@@ -22,6 +22,8 @@ type JSONer interface {
 
 //UserState represents the state of a game associated with a specific user.
 type UserState interface {
+	//PlayerIndex encodes the index this user's state is in the containing
+	//state object.
 	PlayerIndex() int
 	JSONer
 }
