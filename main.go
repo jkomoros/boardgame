@@ -20,12 +20,23 @@ type JSONer interface {
 	JSON() []byte
 }
 
+//Property reader is a way to read out properties on an object with unknown
+//shape.
+type PropertyReader interface {
+	//Props returns a list of all property names that are defined for this
+	//object.
+	Props() []string
+	//Prop returns the value for that property.
+	Prop(name string) interface{}
+}
+
 //UserState represents the state of a game associated with a specific user.
 type UserState interface {
 	//PlayerIndex encodes the index this user's state is in the containing
 	//state object.
 	PlayerIndex() int
 	JSONer
+	PropertyReader
 }
 
 //GameState represents the state of a game that is not associated with a
@@ -33,4 +44,5 @@ type UserState interface {
 //player is, and other properites.
 type GameState interface {
 	JSONer
+	PropertyReader
 }
