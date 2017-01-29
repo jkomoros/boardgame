@@ -13,18 +13,11 @@ type testingComponent struct {
 const testGameName = "testgame"
 
 func (t *testingComponent) Props() []string {
-	return []string{"String", "Integer"}
+	return PropertyReaderPropsImpl(t)
 }
 
 func (t *testingComponent) Prop(name string) interface{} {
-	switch name {
-	case "String":
-		return t.String
-	case "Integer":
-		return t.Integer
-	default:
-		return nil
-	}
+	return PropertyReaderPropImpl(t, name)
 }
 
 func (t *testingComponent) Deck() string {
@@ -124,16 +117,11 @@ func (t *testGameState) JSON() JSONObject {
 }
 
 func (t *testGameState) Props() []string {
-	return []string{"CurrentPlayer"}
+	return PropertyReaderPropsImpl(t)
 }
 
 func (t *testGameState) Prop(name string) interface{} {
-	switch name {
-	case "CurrentPlayer":
-		return t.CurrentPlayer
-	default:
-		return nil
-	}
+	return PropertyReaderPropImpl(t, name)
 }
 
 type testUserState struct {
@@ -162,18 +150,11 @@ func (t *testUserState) JSON() JSONObject {
 }
 
 func (t *testUserState) Props() []string {
-	return []string{"Score", "IsFoo"}
+	return PropertyReaderPropsImpl(t)
 }
 
 func (t *testUserState) Prop(name string) interface{} {
-	switch name {
-	case "Score":
-		return t.Score
-	case "IsFoo":
-		return t.IsFoo
-	default:
-		return nil
-	}
+	return PropertyReaderPropImpl(t, name)
 }
 
 type testMove struct {
@@ -188,22 +169,11 @@ func (t *testMove) GameName() string {
 }
 
 func (t *testMove) Props() []string {
-	return []string{"AString", "ScoreIncrement", "TargetPlayerIndex", "ABool"}
+	return PropertyReaderPropsImpl(t)
 }
 
 func (t *testMove) Prop(name string) interface{} {
-	switch name {
-	case "AString":
-		return t.AString
-	case "ScoreIncrement":
-		return t.ScoreIncrement
-	case "TestPlayerIndex":
-		return t.TargetPlayerIndex
-	case "ABool":
-		return t.ABool
-	default:
-		return nil
-	}
+	return PropertyReaderPropImpl(t, name)
 }
 
 func (t *testMove) JSON() JSONObject {
