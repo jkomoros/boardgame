@@ -3,6 +3,7 @@ package boardgame
 import (
 	"encoding/json"
 	"io/ioutil"
+	"reflect"
 	"testing"
 )
 
@@ -35,10 +36,17 @@ func TestState(t *testing.T) {
 }
 
 func compareJSONObjects(in JSONObject, golden JSONObject, message string, t *testing.T) {
-	serializedIn := string(Serialize(in))
-	serializedGolden := string(Serialize(golden))
-	if serializedIn != serializedGolden {
-		t.Error("Got wrong json.", message, "Got", serializedIn, "wanted", serializedGolden)
+	serializedIn := Serialize(in)
+	serializedGolden := Serialize(golden)
+
+	var deserializedIn interface{}
+	var deserializedGolden interface{}
+
+	json.Unmarshal(serializedIn, &deserializedIn)
+	json.Unmarshal(serializedGolden, &deserializedGolden)
+
+	if !reflect.DeepEqual(deserializedIn, deserializedGolden) {
+		t.Error("Got wrong json.", message, "Got", string(serializedIn), "wanted", string(serializedGolden))
 	}
 }
 
