@@ -54,22 +54,6 @@ func (t testingDeck) ComponentAt(index int) Component {
 	return t[index]
 }
 
-type testingChest map[string]Deck
-
-func (t testingChest) Names() []string {
-	result := make([]string, len(t))
-	i := 0
-	for name, _ := range t {
-		result[i] = name
-		i++
-	}
-	return result
-}
-
-func (t testingChest) Deck(name string) Deck {
-	return t[name]
-}
-
 //TODO: this should probably be somewhere more central.
 func componentsEqual(one Component, two Component) bool {
 	if one == nil && two == nil {
@@ -91,7 +75,7 @@ func componentsEqual(one Component, two Component) bool {
 
 func TestStackInsert(t *testing.T) {
 	//TODO: some kind of way to set the deckName/Index automatically at insertion?
-	chest := testingChest{
+	chest := ComponentChest{
 		"test": testingDeck{
 			&testingComponent{
 				"test",
