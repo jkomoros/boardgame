@@ -1,4 +1,7 @@
 {
 	"Version" : 0,
-	"Schema" : 0
+	"Schema" : 0,
+	"Game" : {
+		"CurrentPlayer" : 0
+	}
 }

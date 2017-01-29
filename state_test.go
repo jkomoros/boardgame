@@ -8,12 +8,12 @@ import (
 
 func TestState(t *testing.T) {
 
-	//TODO: use testGameState here
-
 	state := &State{
 		0,
 		0,
-		nil,
+		&testGameState{
+			0,
+		},
 		nil,
 	}
 
