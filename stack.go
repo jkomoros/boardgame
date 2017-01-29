@@ -44,12 +44,8 @@ func (s *Stack) ComponentAt(index int) *Component {
 //of any other stacks, to maintain the deck invariant.
 func (s *Stack) InsertFront(c *Component) {
 
-	//TODO: this check should actually be done when the component is first put
-	//into the deck.
-	if c.GameName() != s.Game.Name {
-		//We can only add components designed for this game
-		return
-	}
+	//Based on how Decks and Chests are constructed, we know the components in
+	//the chest hae the right gamename, so no need to check.
 
 	if c.Address.Deck != s.DeckName {
 		//We can only add items that are in our deck.
