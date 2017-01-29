@@ -195,37 +195,29 @@ func (t *testMove) Apply(state *State) *State {
 }
 
 func testGame() *Game {
-	//TODO: some kind of way to set the deckName/Index automatically at insertion?
+
 	chest := ComponentChest{}
 
-	//TODO: name of DEck should be set when it's added to the chest.
-	chest.AddDeck("test", &Deck{
-		Name: "test",
-		Components: []*Component{
-			&Component{
-				Values: &testingComponent{
-					"foo",
-					1,
-				},
-				Address: ComponentAddress{
-					"test",
-					0,
-				},
-				GameName: testGameName,
-			},
-			&Component{
-				Values: &testingComponent{
-					"bar",
-					2,
-				},
-				Address: ComponentAddress{
-					"test",
-					1,
-				},
-				GameName: testGameName,
-			},
+	deck := &Deck{}
+
+	//TODO: find a way to set GameName automatically too
+	deck.AddComponent(&Component{
+		Values: &testingComponent{
+			"foo",
+			1,
 		},
+		GameName: testGameName,
 	})
+
+	deck.AddComponent(&Component{
+		Values: &testingComponent{
+			"bar",
+			2,
+		},
+		GameName: testGameName,
+	})
+
+	chest.AddDeck("test", deck)
 
 	chest.Finish()
 

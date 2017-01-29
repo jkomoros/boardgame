@@ -36,7 +36,7 @@ func (s *Stack) ComponentAt(index int) *Component {
 
 	//We don't need to check that s.Indexes[index] is valid because it was
 	//checked when it was set, and Decks are immutable.
-	return deck.Components[s.Indexes[index]]
+	return deck.Components()[s.Indexes[index]]
 }
 
 //InsertFront puts the component at index 0 in this stack, moving all other

@@ -14,11 +14,47 @@ func TestComponentChest(t *testing.T) {
 		t.Error("We got a deck names array before we'd added anything")
 	}
 
+	//TODO: make real decks here
 	deckOne := &Deck{}
 
-	deckTwo := &Deck{}
+	componentOne := &Component{
+		Values: &testingComponent{
+			"foo",
+			1,
+		},
+	}
+
+	deckOne.AddComponent(componentOne)
+
+	componentTwo := &Component{
+		Values: &testingComponent{
+			"bar",
+			2,
+		},
+	}
+
+	deckOne.AddComponent(componentTwo)
+
+	if deckOne.Components() != nil {
+		t.Error("We got non-nil components before it was added to the chest")
+	}
 
 	chest.AddDeck("test", deckOne)
+
+	if !reflect.DeepEqual(deckOne.Components(), []*Component{componentOne, componentTwo}) {
+		t.Error("Deck gave back wrong items after being added to chest")
+	}
+
+	deckOne.AddComponent(&Component{
+		Values: &testingComponent{
+			"illegal",
+			-1,
+		},
+	})
+
+	if !reflect.DeepEqual(deckOne.Components(), []*Component{componentOne, componentTwo}) {
+		t.Error("Deck allowed itself to be mutated after it was added to chest")
+	}
 
 	if chest.DeckNames() != nil {
 		t.Error("We got decknames before we called freeze")
@@ -27,6 +63,15 @@ func TestComponentChest(t *testing.T) {
 	if chest.Deck("test") != nil {
 		t.Error("We got a deck back before freeze was called")
 	}
+
+	deckTwo := &Deck{}
+
+	deckTwo.AddComponent(&Component{
+		Values: &testingComponent{
+			"another",
+			3,
+		},
+	})
 
 	chest.AddDeck("other", deckTwo)
 
@@ -54,6 +99,23 @@ func TestComponentChest(t *testing.T) {
 
 	if chest.Deck("other") != deckTwo {
 		t.Error("Got wrong value for deck two. Got", chest.Deck("other"), "wanted", deckTwo)
+	}
+
+	if deckOne.name != "test" {
+		t.Error("DeckOne didn't have its name set when added to the chest. Got", deckOne.name, "wanted test")
+	}
+
+	if deckTwo.name != "other" {
+		t.Error("DeckTwo didn't have its name set when added to the chest. Got", deckTwo.name, "wanted other")
+	}
+
+	for i, c := range deckOne.Components() {
+		if c.Address.Deck != deckOne.name {
+			t.Error("At position", i, "deck name was not set correctly in component. Got", c.Address.Deck, "wanted", deckOne.name)
+		}
+		if c.Address.Index != i {
+			t.Error("At position", i, "index was not set correctly in component. Got", c.Address.Index, "wanted", i)
+		}
 	}
 
 }

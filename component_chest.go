@@ -42,7 +42,24 @@ func (c *ComponentChest) AddDeck(name string, deck *Deck) {
 	if c.decks == nil {
 		c.decks = make(map[string]*Deck)
 	}
+
+	if name == "" {
+		name = "NONAMEPROVIDED"
+	}
+
+	//Tell the deck that no more items will be added to it.
+	deck.finish(name)
+
 	c.decks[name] = deck
+
+	//We didn't know the component's deck's names when we added them to the deck, but now we do.
+	components := deck.Components()
+
+	for i := 0; i < len(components); i++ {
+		component := components[i]
+		component.Address.Deck = name
+	}
+
 }
 
 //Finish switches the chest from constructing to serving. Before freeze is
