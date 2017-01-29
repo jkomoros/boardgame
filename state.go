@@ -7,11 +7,24 @@ type State struct {
 	//The schema version that this state object uses. This number will not
 	//change often, but is useful to detect if the state was saved back when a
 	//diferent schema was in use and needs to be migrated.
-	Schema int
+	Schema  int
+	Payload StatePayload
+}
+
+//StatePayload is where the "meat" of the state goes. It is one object so that
+//client games can cast it quickly to the concrete struct for their game, so
+//that they can get to a type-checked world with minimal fuss inside of
+//Move.Legal and move.Apply.
+type StatePayload interface {
 	//Game includes the non-user state for the game.
-	Game GameState
+	Game() GameState
 	//Users contains a UserState object for each user in the game.
-	Users []UserState
+	Users() []UserState
+	//Copy returns a copy of the Payload.
+	Copy() StatePayload
+	JSONer
+	//TODO: it's annoying that we have to reimplement JSON() for every struct
+	//even though there should just be generic. Move to a top-level Method.
 }
 
 //Property reader is a way to read out properties on an object with unknown
@@ -54,40 +67,21 @@ type GameState interface {
 //done before a modification is made.
 func (s *State) Copy() *State {
 	//TODO: test this
-	result := &State{
+	return &State{
 		Version: s.Version,
 		Schema:  s.Schema,
+		Payload: s.Payload.Copy(),
 	}
-	if s.Game != nil {
-		result.Game = s.Game.Copy()
-	}
-	if s.Users == nil {
-		return result
-	}
-	array := make([]UserState, len(s.Users))
-	for i, user := range s.Users {
-		array[i] = user.Copy()
-	}
-	result.Users = array
-	return result
+
 }
 
 //JSON returns the JSONObject representing the State's full state.
 func (s *State) JSON() JSONObject {
-	result := make(JSONObject)
-	result["Version"] = s.Version
-	result["Schema"] = s.Schema
-	if s.Game != nil {
-		result["Game"] = s.Game.JSON()
-	}
-	if s.Users == nil {
-		return result
-	}
-	array := make([]interface{}, len(s.Users))
-	for i, user := range s.Users {
-		array[i] = user.JSON()
-	}
-	result["Users"] = array
 
-	return result
+	return JSONObject{
+		"Version": s.Version,
+		"Schema":  s.Schema,
+		"Payload": s.Payload.JSON(),
+	}
+
 }

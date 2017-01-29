@@ -55,6 +55,58 @@ func componentsEqual(one Component, two Component) bool {
 	return true
 }
 
+type testStatePayload struct {
+	game  *testGameState
+	users []*testUserState
+}
+
+func (t *testStatePayload) Game() GameState {
+	return t.game
+}
+
+func (t *testStatePayload) Users() []UserState {
+	result := make([]UserState, len(t.users))
+	for i, user := range t.users {
+		result[i] = user
+	}
+	return result
+}
+
+func (t *testStatePayload) Copy() StatePayload {
+
+	result := &testStatePayload{}
+
+	if t.game != nil {
+		result.game = t.game.Copy().(*testGameState)
+	}
+
+	if t.users == nil {
+		return result
+	}
+
+	array := make([]*testUserState, len(t.users))
+	for i, user := range t.users {
+		array[i] = user.Copy().(*testUserState)
+	}
+	result.users = array
+
+	return result
+}
+
+func (t *testStatePayload) JSON() JSONObject {
+
+	usersArray := make([]JSONObject, len(t.users))
+
+	for i, user := range t.users {
+		usersArray[i] = user.JSON()
+	}
+
+	return JSONObject{
+		"Game":  t.game.JSON(),
+		"Users": usersArray,
+	}
+}
+
 type testGameState struct {
 	CurrentPlayer int
 	//TODO: have a Stack here.
@@ -167,15 +219,9 @@ func (t *testMove) JSON() JSONObject {
 
 func (t *testMove) Legal(state *State) bool {
 
-	//TODO: create a helper to cast these. Maybe if we have a StatePayload
-	//object in the middle that is an interface, it's one cast?
-	gameState := state.Game.(*testGameState)
-	userStates := make([]*testUserState, len(state.Users))
-	for i, _ := range state.Users {
-		userStates[i] = state.Users[i].(*testUserState)
-	}
+	payload := state.Payload.(*testStatePayload)
 
-	if gameState.CurrentPlayer != 0 {
+	if payload.game.CurrentPlayer != 0 {
 		return false
 	}
 
@@ -185,14 +231,11 @@ func (t *testMove) Legal(state *State) bool {
 
 func (t *testMove) Apply(state *State) *State {
 	result := state.Copy()
-	gameState := result.Game.(*testGameState)
-	userStates := make([]*testUserState, len(result.Users))
-	for i, _ := range result.Users {
-		userStates[i] = result.Users[i].(*testUserState)
-	}
 
-	gameState.CurrentPlayer++
-	userStates[1].Score += t.ScoreIncrement
+	payload := result.Payload.(*testStatePayload)
+
+	payload.game.CurrentPlayer++
+	payload.users[1].Score += t.ScoreIncrement
 
 	return result
 }
@@ -225,24 +268,26 @@ func testGame() *Game {
 		&State{
 			Version: 0,
 			Schema:  0,
-			Game: &testGameState{
-				CurrentPlayer: 0,
-			},
-			Users: []UserState{
-				&testUserState{
-					playerIndex: 0,
-					Score:       0,
-					IsFoo:       false,
+			Payload: &testStatePayload{
+				game: &testGameState{
+					CurrentPlayer: 0,
 				},
-				&testUserState{
-					playerIndex: 1,
-					Score:       0,
-					IsFoo:       false,
-				},
-				&testUserState{
-					playerIndex: 2,
-					Score:       0,
-					IsFoo:       true,
+				users: []*testUserState{
+					&testUserState{
+						playerIndex: 0,
+						Score:       0,
+						IsFoo:       false,
+					},
+					&testUserState{
+						playerIndex: 1,
+						Score:       0,
+						IsFoo:       false,
+					},
+					&testUserState{
+						playerIndex: 2,
+						Score:       0,
+						IsFoo:       true,
+					},
 				},
 			},
 		},
