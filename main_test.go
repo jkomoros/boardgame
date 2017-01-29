@@ -177,9 +177,10 @@ func (t *testUserState) Prop(name string) interface{} {
 }
 
 type testMove struct {
-	AString        string
-	ScoreIncrement int
-	ABool          bool
+	AString           string
+	ScoreIncrement    int
+	TargetPlayerIndex int
+	ABool             bool
 }
 
 func (t *testMove) GameName() string {
@@ -187,7 +188,7 @@ func (t *testMove) GameName() string {
 }
 
 func (t *testMove) Props() []string {
-	return []string{"AString", "ScoreIncrement", "ABool"}
+	return []string{"AString", "ScoreIncrement", "TargetPlayerIndex", "ABool"}
 }
 
 func (t *testMove) Prop(name string) interface{} {
@@ -196,6 +197,8 @@ func (t *testMove) Prop(name string) interface{} {
 		return t.AString
 	case "ScoreIncrement":
 		return t.ScoreIncrement
+	case "TestPlayerIndex":
+		return t.TargetPlayerIndex
 	case "ABool":
 		return t.ABool
 	default:
@@ -211,7 +214,7 @@ func (t *testMove) Legal(state *State) bool {
 
 	payload := state.Payload.(*testStatePayload)
 
-	if payload.game.CurrentPlayer != 0 {
+	if payload.game.CurrentPlayer != t.TargetPlayerIndex {
 		return false
 	}
 
@@ -224,8 +227,13 @@ func (t *testMove) Apply(state *State) *State {
 
 	payload := result.Payload.(*testStatePayload)
 
+	payload.users[payload.game.CurrentPlayer].Score += t.ScoreIncrement
+
 	payload.game.CurrentPlayer++
-	payload.users[1].Score += t.ScoreIncrement
+
+	if payload.game.CurrentPlayer >= len(payload.users) {
+		payload.game.CurrentPlayer = 0
+	}
 
 	return result
 }
