@@ -43,6 +43,12 @@ func (s *Stack) ComponentAt(index int) Component {
 //items down by one. The Component you insert should not currently be a member
 //of any other stacks, to maintain the deck invariant.
 func (s *Stack) InsertFront(c Component) {
+
+	if c.GameName() != s.Game.Name {
+		//We can only add components designed for this game
+		return
+	}
+
 	if c.Deck() != s.DeckName {
 		//We can only add items that are in our deck.
 
