@@ -196,17 +196,15 @@ func (t *testMove) Apply(state *State) *State {
 
 func testGame() *Game {
 
-	chest := ComponentChest{}
+	chest := NewComponentChest(testGameName)
 
 	deck := &Deck{}
 
-	//TODO: find a way to set GameName automatically too
 	deck.AddComponent(&Component{
 		Values: &testingComponent{
 			"foo",
 			1,
 		},
-		GameName: testGameName,
 	})
 
 	deck.AddComponent(&Component{
@@ -214,7 +212,6 @@ func testGame() *Game {
 			"bar",
 			2,
 		},
-		GameName: testGameName,
 	})
 
 	chest.AddDeck("test", deck)

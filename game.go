@@ -7,7 +7,7 @@ type Game struct {
 	//intended to be used with this game.
 	Name string
 	//Chest is the ComponentChest used for this game.
-	Chest ComponentChest
+	Chest *ComponentChest
 	//State is the current state of the game.
 	State *State
 

@@ -9,11 +9,18 @@ package boardgame
 //phases: construction and serving. During consruction, decks may be added but
 //non may be retrieved. After consruction decks may be retrieved but not
 //added. This helps ensure that Decks always give a consistent view of the
-//world. The nil value of ComponentChest is valid.
+//world.
 type ComponentChest struct {
 	initialized bool
 	deckNames   []string
 	decks       map[string]*Deck
+	gameName    string
+}
+
+func NewComponentChest(gameName string) *ComponentChest {
+	return &ComponentChest{
+		gameName: gameName,
+	}
 }
 
 //DeckNames returns all of the valid deck names, if the chest has finished initalization.
@@ -58,6 +65,7 @@ func (c *ComponentChest) AddDeck(name string, deck *Deck) {
 	for i := 0; i < len(components); i++ {
 		component := components[i]
 		component.Address.Deck = name
+		component.GameName = c.gameName
 	}
 
 }
