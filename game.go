@@ -16,6 +16,13 @@ type Game struct {
 	//TODO: an array of Player objects.
 }
 
+type GameNamer interface {
+	//GameName returns the string of the type of game we're designed for.
+	//Before a move is applied to a game we verify that game.Name() and
+	//move.GameName() match. Other types will similarly be gutchecked.
+	GameName() string
+}
+
 //Game applies the move to the state if it is currently legal.
 func (g *Game) ApplyMove(move Move) bool {
 
