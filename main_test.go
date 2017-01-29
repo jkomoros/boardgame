@@ -101,7 +101,7 @@ func (t *testStatePayload) JSON() JSONObject {
 		usersArray[i] = user.JSON()
 	}
 
-	return JSONObject{
+	return JSONMap{
 		"Game":  t.game.JSON(),
 		"Users": usersArray,
 	}
@@ -121,7 +121,7 @@ func (t *testGameState) Copy() GameState {
 func (t *testGameState) JSON() JSONObject {
 	//TODO: once JSONObject is more generic, we can just return ourselves
 
-	return JSONObject{
+	return JSONMap{
 		"CurrentPlayer": t.CurrentPlayer,
 	}
 }
@@ -161,7 +161,7 @@ func (t *testUserState) Copy() UserState {
 }
 
 func (t *testUserState) JSON() JSONObject {
-	return JSONObject{
+	return JSONMap{
 		"Score": t.Score,
 		"IsFoo": t.IsFoo,
 	}
@@ -210,7 +210,7 @@ func (t *testMove) Prop(name string) interface{} {
 }
 
 func (t *testMove) JSON() JSONObject {
-	return JSONObject{
+	return JSONMap{
 		"AString":        t.AString,
 		"ScoreIncrement": t.ScoreIncrement,
 		"ABool":          t.ABool,

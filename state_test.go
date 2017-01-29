@@ -35,7 +35,7 @@ func TestState(t *testing.T) {
 }
 
 func compareJSONObjects(in JSONObject, golden JSONObject, message string, t *testing.T) {
-	if string(in.Serialize()) != string(golden.Serialize()) {
+	if string(Serialize(in)) != string(Serialize(golden)) {
 		t.Error("Got wrong json.", message, "Got", in, "wanted", golden)
 	}
 }
@@ -46,7 +46,7 @@ func goldenJSON(fileName string, t *testing.T) JSONObject {
 		t.Fatal("Couldn't load golden JSON at " + fileName)
 	}
 
-	result := make(JSONObject)
+	result := make(JSONMap)
 
 	if err := json.Unmarshal(contents, &result); err != nil {
 		t.Fatal("Couldn't parse golden json at " + fileName + err.Error())

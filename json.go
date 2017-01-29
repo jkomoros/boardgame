@@ -5,7 +5,10 @@ import (
 )
 
 //A JSONObject is an object that is ready to be serialized to JSON.
-type JSONObject map[string]interface{}
+type JSONObject interface{}
+
+//JSONMap is just convenient where you need to create a map
+type JSONMap map[string]JSONObject
 
 type JSONer interface {
 	//Returns the canonical JSON representation of this object, suitable to
@@ -15,8 +18,8 @@ type JSONer interface {
 
 //Serialize converts the JSONObject into bytes, suitable for being transferred
 //across the wire or written to disk.
-func (j *JSONObject) Serialize() []byte {
-	result, err := json.Marshal(j)
+func Serialize(o JSONObject) []byte {
+	result, err := json.Marshal(o)
 	if err != nil {
 		return []byte("")
 	}

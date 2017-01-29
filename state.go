@@ -78,7 +78,7 @@ func (s *State) Copy() *State {
 //JSON returns the JSONObject representing the State's full state.
 func (s *State) JSON() JSONObject {
 
-	return JSONObject{
+	return JSONMap{
 		"Version": s.Version,
 		"Schema":  s.Schema,
 		"Payload": s.Payload.JSON(),
