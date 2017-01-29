@@ -19,7 +19,7 @@ type JSONer interface {
 //Serialize converts the JSONObject into bytes, suitable for being transferred
 //across the wire or written to disk.
 func Serialize(o JSONObject) []byte {
-	result, err := json.Marshal(o)
+	result, err := json.MarshalIndent(o, "", "  ")
 	if err != nil {
 		return []byte("")
 	}
