@@ -119,11 +119,8 @@ func (t *testGameState) Copy() GameState {
 }
 
 func (t *testGameState) JSON() JSONObject {
-	//TODO: once JSONObject is more generic, we can just return ourselves
 
-	return JSONMap{
-		"CurrentPlayer": t.CurrentPlayer,
-	}
+	return t
 }
 
 func (t *testGameState) Props() []string {
@@ -161,10 +158,7 @@ func (t *testUserState) Copy() UserState {
 }
 
 func (t *testUserState) JSON() JSONObject {
-	return JSONMap{
-		"Score": t.Score,
-		"IsFoo": t.IsFoo,
-	}
+	return t
 }
 
 func (t *testUserState) Props() []string {
@@ -210,11 +204,7 @@ func (t *testMove) Prop(name string) interface{} {
 }
 
 func (t *testMove) JSON() JSONObject {
-	return JSONMap{
-		"AString":        t.AString,
-		"ScoreIncrement": t.ScoreIncrement,
-		"ABool":          t.ABool,
-	}
+	return t
 }
 
 func (t *testMove) Legal(state *State) bool {
