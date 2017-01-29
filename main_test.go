@@ -46,6 +46,45 @@ func goldenJSON(fileName string, t *testing.T) JSONObject {
 
 }
 
+//TODO: move testingComponent to component_test.go
+
+//testingComponent is a very basic thing that fufills the Component interface.
+type testingComponent struct {
+	deckName  string
+	deckIndex int
+	String    string
+	Integer   int
+}
+
+const testGameName = "testgame"
+
+func (t *testingComponent) Props() []string {
+	return []string{"String", "Integer"}
+}
+
+func (t *testingComponent) Prop(name string) interface{} {
+	switch name {
+	case "String":
+		return t.String
+	case "Integer":
+		return t.Integer
+	default:
+		return nil
+	}
+}
+
+func (t *testingComponent) Deck() string {
+	return t.deckName
+}
+
+func (t *testingComponent) DeckIndex() int {
+	return t.deckIndex
+}
+
+func (t *testingComponent) GameName() string {
+	return testGameName
+}
+
 func testGame() *Game {
 	//TODO: some kind of way to set the deckName/Index automatically at insertion?
 	chest := ComponentChest{
@@ -69,7 +108,7 @@ func testGame() *Game {
 	}
 
 	game := &Game{
-		"testgame",
+		testGameName,
 		chest,
 		nil,
 	}
