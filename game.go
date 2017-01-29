@@ -2,14 +2,16 @@ package boardgame
 
 //A Game represents a specific game between a collection of Players
 type Game struct {
+	//Name is a string that defines the type of game this is. It is useful as
+	//a sanity check to verify that various interface values were actually
+	//intended to be used with this game.
+	Name string
 	//Chest is the ComponentChest used for this game.
 	Chest ComponentChest
 	//State is the current state of the game.
 	State *State
 
 	//TODO: HistoricalState(index int) and HistoryLen() int
-
-	//TODO: a Name property that moves can gutcheck apply
 
 	//TODO: an array of Player objects.
 }
@@ -18,6 +20,12 @@ type Game struct {
 func (g *Game) ApplyMove(move Move) bool {
 
 	//TODO: test this
+
+	//Verify that the Move is actually designed to be used with this type of
+	//game.
+	if move.GameName() != g.Name {
+		return false
+	}
 
 	if !move.Legal(g.State) {
 		//It's not legal, reject.

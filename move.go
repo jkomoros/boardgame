@@ -9,5 +9,9 @@ type Move interface {
 	//Apply applies the move to the state and returns a new state object. It
 	//should not be called directly; use Game.ApplyMove.
 	Apply(state *State) *State
+	//GameName returns the string of the type of game we're designed for.
+	//Before a move is applied to a game we verify that game.Name() and
+	//move.GameName() match.
+	GameName() string
 	PropertyReader
 }

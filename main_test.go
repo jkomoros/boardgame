@@ -69,6 +69,7 @@ func testGame() *Game {
 	}
 
 	game := &Game{
+		"testgame",
 		chest,
 		nil,
 	}
