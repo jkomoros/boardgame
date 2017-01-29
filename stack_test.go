@@ -37,23 +37,6 @@ func (t *testingComponent) DeckIndex() int {
 	return t.deckIndex
 }
 
-type testingDeck []Component
-
-func (t testingDeck) Name() string {
-	return "test"
-}
-
-func (t testingDeck) Len() int {
-	return len(t)
-}
-
-func (t testingDeck) ComponentAt(index int) Component {
-	if index < 0 || index >= len(t) {
-		return nil
-	}
-	return t[index]
-}
-
 //TODO: this should probably be somewhere more central.
 func componentsEqual(one Component, two Component) bool {
 	if one == nil && two == nil {
@@ -76,18 +59,21 @@ func componentsEqual(one Component, two Component) bool {
 func TestStackInsert(t *testing.T) {
 	//TODO: some kind of way to set the deckName/Index automatically at insertion?
 	chest := ComponentChest{
-		"test": testingDeck{
-			&testingComponent{
-				"test",
-				0,
-				"foo",
-				1,
-			},
-			&testingComponent{
-				"test",
-				1,
-				"bar",
-				2,
+		"test": &Deck{
+			Name: "test",
+			Components: []Component{
+				&testingComponent{
+					"test",
+					0,
+					"foo",
+					1,
+				},
+				&testingComponent{
+					"test",
+					1,
+					"bar",
+					2,
+				},
 			},
 		},
 	}
@@ -115,8 +101,8 @@ func TestStackInsert(t *testing.T) {
 		t.Error("Stack returned something even though it was empty:", stack.ComponentAt(0))
 	}
 
-	one := chest["test"].ComponentAt(0)
-	two := chest["test"].ComponentAt(1)
+	one := chest["test"].Components[0]
+	two := chest["test"].Components[1]
 
 	if componentsEqual(one, two) {
 		t.Error("Two components that are not equal were thought to be equal", one, two)

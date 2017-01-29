@@ -1,15 +1,15 @@
 package boardgame
 
-//TODO: is there a reason Deck isn't just a Struct?
+//TODO: consider making Deck be an interface again (in some cases it
+//might be nice to be able to cast the Deck directly to its underlying type to
+//minimize later casts)
 
 //A Deck represents an immutable collection of a certain type of components.
 //Every component lives in one deck. 1 or more Stacks index into every Deck,
 //and cover every item in the deck, with no items in more than one deck.
-type Deck interface {
-	//The name of the deck we are in the ComponentChest for this game.
-	Name() string
-	//The number of components in this deck
-	Len() int
-	//The component at the given index in this deck
-	ComponentAt(index int) Component
+type Deck struct {
+	Name string
+	//Components should only ever be added at initalization time. After
+	//initalization, Components should be read-only.
+	Components []Component
 }
