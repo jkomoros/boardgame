@@ -130,6 +130,73 @@ func (t *testUserState) Prop(name string) interface{} {
 	}
 }
 
+type testMove struct {
+	AString        string
+	ScoreIncrement int
+	ABool          bool
+}
+
+func (t *testMove) GameName() string {
+	return testGameName
+}
+
+func (t *testMove) Props() []string {
+	return []string{"AString", "ScoreIncrement", "ABool"}
+}
+
+func (t *testMove) Prop(name string) interface{} {
+	switch name {
+	case "AString":
+		return t.AString
+	case "ScoreIncrement":
+		return t.ScoreIncrement
+	case "ABool":
+		return t.ABool
+	default:
+		return nil
+	}
+}
+
+func (t *testMove) JSON() JSONObject {
+	return JSONObject{
+		"AString":        t.AString,
+		"ScoreIncrement": t.ScoreIncrement,
+		"ABool":          t.ABool,
+	}
+}
+
+func (t *testMove) Legal(state *State) bool {
+
+	//TODO: create a helper to cast these. Maybe if we have a StatePayload
+	//object in the middle that is an interface, it's one cast?
+	gameState := state.Game.(*testGameState)
+	userStates := make([]*testUserState, len(state.Users))
+	for i, _ := range state.Users {
+		userStates[i] = state.Users[i].(*testUserState)
+	}
+
+	if gameState.CurrentPlayer != 0 {
+		return false
+	}
+
+	return true
+
+}
+
+func (t *testMove) Apply(state *State) *State {
+	result := state.Copy()
+	gameState := result.Game.(*testGameState)
+	userStates := make([]*testUserState, len(result.Users))
+	for i, _ := range result.Users {
+		userStates[i] = result.Users[i].(*testUserState)
+	}
+
+	gameState.CurrentPlayer++
+	userStates[1].Score += t.ScoreIncrement
+
+	return result
+}
+
 func testGame() *Game {
 	//TODO: some kind of way to set the deckName/Index automatically at insertion?
 	chest := ComponentChest{
