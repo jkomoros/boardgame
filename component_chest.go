@@ -65,7 +65,7 @@ func (c *ComponentChest) AddDeck(name string, deck *Deck) {
 	for i := 0; i < len(components); i++ {
 		component := components[i]
 		component.Address.Deck = name
-		component.GameName = c.gameName
+		component.gameName = c.gameName
 	}
 
 }

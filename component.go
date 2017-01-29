@@ -12,7 +12,11 @@ type ComponentAddress struct {
 type Component struct {
 	Values PropertyReader
 	//The name of the game this is associated with. Will be set automatically when added to a Deck.
-	GameName string
+	gameName string
 	//The addresss of the component in the chest. Will be set automatically when added to a Deck.
 	Address ComponentAddress
+}
+
+func (c *Component) GameName() string {
+	return c.gameName
 }

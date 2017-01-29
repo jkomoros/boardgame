@@ -119,8 +119,8 @@ func TestComponentChest(t *testing.T) {
 		if c.Address.Index != i {
 			t.Error("At position", i, "index was not set correctly in component. Got", c.Address.Index, "wanted", i)
 		}
-		if c.GameName != testGameName {
-			t.Error("The component at", i, "didn't have its gameName set correctly. Got", c.GameName, "wanted", testGameName)
+		if c.GameName() != testGameName {
+			t.Error("The component at", i, "didn't have its gameName set correctly. Got", c.GameName(), "wanted", testGameName)
 		}
 	}
 
