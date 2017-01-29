@@ -35,8 +35,10 @@ func TestState(t *testing.T) {
 }
 
 func compareJSONObjects(in JSONObject, golden JSONObject, message string, t *testing.T) {
-	if string(Serialize(in)) != string(Serialize(golden)) {
-		t.Error("Got wrong json.", message, "Got", in, "wanted", golden)
+	serializedIn := string(Serialize(in))
+	serializedGolden := string(Serialize(golden))
+	if serializedIn != serializedGolden {
+		t.Error("Got wrong json.", message, "Got", serializedIn, "wanted", serializedGolden)
 	}
 }
 
