@@ -39,6 +39,8 @@ type propertyReaderTestStruct struct {
 	A int
 	B bool
 	C string
+	//d should be excluded since it is lowercase
+	d string
 }
 
 func (p *propertyReaderTestStruct) Props() []string {
@@ -67,6 +69,12 @@ func TestPropertyReaderImpl(t *testing.T) {
 
 	if field.(string) != "bam" {
 		t.Error("Got back wrong value from Prop. Got", field, "expected 'foo'")
+	}
+
+	field = s.Prop("d")
+
+	if field != nil {
+		t.Error("Expected to not get back a result for private field, but did", field)
 	}
 
 }

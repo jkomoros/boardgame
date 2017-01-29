@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"reflect"
+	"unicode"
 )
 
 type State struct {
@@ -90,6 +91,23 @@ func (s *State) JSON() JSONObject {
 
 }
 
+func propertyReaderImplNameShouldBeIncluded(name string) bool {
+	if len(name) < 1 {
+		return false
+	}
+
+	firstChar := []rune(name)[0]
+
+	if firstChar != unicode.ToUpper(firstChar) {
+		//It was not upper case, thus private, thus should not be included.
+		return false
+	}
+
+	//TODO: check if the struct says propertyreader:omit
+
+	return true
+}
+
 //PropertyReaderPropsImpl is a helper method useful for satisfying the
 //PropertyReader interface without writing finicky, bespoke code. It uses
 //reflection to enumerate all of the properties. You'd use it as the single
@@ -102,10 +120,15 @@ func PropertyReaderPropsImpl(obj interface{}) []string {
 	s := reflect.ValueOf(obj).Elem()
 	typeOfObj := s.Type()
 
-	result := make([]string, s.NumField())
+	var result []string
 
 	for i := 0; i < s.NumField(); i++ {
-		result[i] = typeOfObj.Field(i).Name
+		name := typeOfObj.Field(i).Name
+
+		if propertyReaderImplNameShouldBeIncluded(name) {
+			result = append(result, name)
+		}
+
 	}
 
 	return result
@@ -117,7 +140,11 @@ func PropertyReaderPropsImpl(obj interface{}) []string {
 //the single line of implementation in your struct's Prop() implementation,
 //passing in self, where self is the pointer receiver.
 func PropertyReaderPropImpl(obj interface{}, name string) interface{} {
-	//TODO: skip fields that have a propertyreader:omit
+
+	if !propertyReaderImplNameShouldBeIncluded(name) {
+		return nil
+	}
+
 	s := reflect.ValueOf(obj).Elem()
 	return s.FieldByName(name).Interface()
 }
