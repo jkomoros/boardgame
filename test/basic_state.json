@@ -1,0 +1,21 @@
+{
+	"Version" : 0,
+	"Schema" : 0,
+	"Game" : {
+		"CurrentPlayer" : 0
+	},
+	"Users" : [
+		{
+			"Score" : 0,
+			"IsFoo" : false
+		},
+		{
+			"Score" : 0,
+			"IsFoo" : false
+		},
+		{
+			"Score": 0,
+			"IsFoo" : true
+		}
+	]
+}

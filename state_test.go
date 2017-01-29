@@ -8,23 +8,18 @@ import (
 
 func TestState(t *testing.T) {
 
-	state := &State{
-		0,
-		0,
-		&testGameState{
-			0,
-		},
-		nil,
-	}
+	game := testGame()
+
+	state := game.State
 
 	if state == nil {
 		t.Error("State could not be created")
 	}
 
 	json := state.JSON()
-	golden := goldenJSON("empty_state.json", t)
+	golden := goldenJSON("basic_state.json", t)
 
-	compareJSONObjects(json, golden, "Empty state", t)
+	compareJSONObjects(json, golden, "Basic state", t)
 
 	stateCopy := state.Copy()
 
