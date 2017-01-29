@@ -10,6 +10,13 @@ type Game struct {
 	Chest *ComponentChest
 	//State is the current state of the game.
 	State *State
+	//Finished is whether the came has been completed. If it is over, the
+	//Winners will be set.
+	Finished bool
+	//Winners is the player indexes who were winners. Typically, this will be
+	//one player, but it could be multiple in the case of tie, or 0 in the
+	//case of a draw.
+	Winners []int
 
 	//TODO: HistoricalState(index int) and HistoryLen() int
 
@@ -27,6 +34,10 @@ type GameNamer interface {
 func (g *Game) ApplyMove(move Move) bool {
 
 	//TODO: test this
+
+	if g.Finished {
+		return false
+	}
 
 	//Verify that the Move is actually designed to be used with this type of
 	//game.

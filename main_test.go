@@ -219,9 +219,9 @@ func testGame() *Game {
 	chest.Finish()
 
 	game := &Game{
-		testGameName,
-		chest,
-		&State{
+		Name:  testGameName,
+		Chest: chest,
+		State: &State{
 			Version: 0,
 			Schema:  0,
 			Payload: &testStatePayload{
