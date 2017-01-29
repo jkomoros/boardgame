@@ -28,8 +28,8 @@ func TestStackInsert(t *testing.T) {
 		t.Error("Stack returned something even though it was empty:", stack.ComponentAt(0))
 	}
 
-	one := chest["test"].Components[0]
-	two := chest["test"].Components[1]
+	one := chest.Deck("test").Components[0]
+	two := chest.Deck("test").Components[1]
 
 	if componentsEqual(one, two) {
 		t.Error("Two components that are not equal were thought to be equal", one, two)

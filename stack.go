@@ -28,7 +28,7 @@ func (s *Stack) ComponentAt(index int) *Component {
 		return nil
 	}
 
-	deck := s.Game.Chest[s.DeckName]
+	deck := s.Game.Chest.Deck(s.DeckName)
 
 	if deck == nil {
 		return nil
