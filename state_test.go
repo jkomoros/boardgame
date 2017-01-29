@@ -22,6 +22,18 @@ func TestState(t *testing.T) {
 	golden := goldenJSON("empty_state.json", t)
 
 	compareJSONObjects(json, golden, "Empty state", t)
+
+	stateCopy := state.Copy()
+
+	compareJSONObjects(stateCopy.JSON(), state.JSON(), "Copy was not same", t)
+
+	stateCopy.Schema = 1
+
+	if state.Schema == 1 {
+		t.Error("Modifying a copy changed the original")
+	}
+
+	//TODO: test that GAmeState and UserStates are also copies
 }
 
 func compareJSONObjects(in JSONObject, golden JSONObject, message string, t *testing.T) {

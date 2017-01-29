@@ -36,6 +36,8 @@ type UserState interface {
 	//PlayerIndex encodes the index this user's state is in the containing
 	//state object.
 	PlayerIndex() int
+	//Copy produces a copy of our current state
+	Copy() UserState
 	BaseState
 }
 
@@ -43,7 +45,31 @@ type UserState interface {
 //particular user. For example, the draw stack of cards, who the current
 //player is, and other properites.
 type GameState interface {
+	//Copy returns a copy of our current state
+	Copy() GameState
 	BaseState
+}
+
+//Copy prepares another version of State that is set exactly the same. This is
+//done before a modification is made.
+func (s *State) Copy() *State {
+	//TODO: test this
+	result := &State{
+		Version: s.Version,
+		Schema:  s.Schema,
+	}
+	if s.Game != nil {
+		result.Game = s.Game.Copy()
+	}
+	if s.Users == nil {
+		return result
+	}
+	array := make([]UserState, len(s.Users))
+	for i, user := range s.Users {
+		array[i] = user.Copy()
+	}
+	result.Users = array
+	return result
 }
 
 //JSON returns the JSONObject representing the State's full state.
