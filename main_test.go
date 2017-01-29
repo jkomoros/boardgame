@@ -4,10 +4,8 @@ package boardgame
 
 //testingComponent is a very basic thing that fufills the Component interface.
 type testingComponent struct {
-	deckName  string
-	deckIndex int
-	String    string
-	Integer   int
+	String  string
+	Integer int
 }
 
 const testGameName = "testgame"
@@ -20,29 +18,17 @@ func (t *testingComponent) Prop(name string) interface{} {
 	return PropertyReaderPropImpl(t, name)
 }
 
-func (t *testingComponent) Deck() string {
-	return t.deckName
-}
-
-func (t *testingComponent) DeckIndex() int {
-	return t.deckIndex
-}
-
-func (t *testingComponent) GameName() string {
-	return testGameName
-}
-
-func componentsEqual(one Component, two Component) bool {
+func componentsEqual(one *Component, two *Component) bool {
 	if one == nil && two == nil {
 		return true
 	}
 	if one == nil || two == nil {
 		return false
 	}
-	if one.Deck() != two.Deck() {
+	if one.Address.Deck != two.Address.Deck {
 		return false
 	}
-	if one.DeckIndex() != two.DeckIndex() {
+	if one.Address.Index != two.Address.Index {
 		return false
 	}
 	return true
@@ -213,18 +199,28 @@ func testGame() *Game {
 	chest := ComponentChest{
 		"test": &Deck{
 			Name: "test",
-			Components: []Component{
-				&testingComponent{
-					"test",
-					0,
-					"foo",
-					1,
+			Components: []*Component{
+				&Component{
+					Values: &testingComponent{
+						"foo",
+						1,
+					},
+					Address: ComponentAddress{
+						"test",
+						0,
+					},
+					GameName: testGameName,
 				},
-				&testingComponent{
-					"test",
-					1,
-					"bar",
-					2,
+				&Component{
+					Values: &testingComponent{
+						"bar",
+						2,
+					},
+					Address: ComponentAddress{
+						"test",
+						1,
+					},
+					GameName: testGameName,
 				},
 			},
 		},

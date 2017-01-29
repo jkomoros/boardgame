@@ -11,5 +11,5 @@ type Deck struct {
 	Name string
 	//Components should only ever be added at initalization time. After
 	//initalization, Components should be read-only.
-	Components []Component
+	Components []*Component
 }

@@ -22,7 +22,7 @@ func (s *Stack) Len() int {
 
 //ComponentAt fetches the component object representing the n-th object in
 //this stack.
-func (s *Stack) ComponentAt(index int) Component {
+func (s *Stack) ComponentAt(index int) *Component {
 
 	if index >= s.Len() || index < 0 {
 		return nil
@@ -42,23 +42,23 @@ func (s *Stack) ComponentAt(index int) Component {
 //InsertFront puts the component at index 0 in this stack, moving all other
 //items down by one. The Component you insert should not currently be a member
 //of any other stacks, to maintain the deck invariant.
-func (s *Stack) InsertFront(c Component) {
+func (s *Stack) InsertFront(c *Component) {
 
 	//TODO: this check should actually be done when the component is first put
 	//into the deck.
-	if c.GameName() != s.Game.Name {
+	if c.GameName != s.Game.Name {
 		//We can only add components designed for this game
 		return
 	}
 
-	if c.Deck() != s.DeckName {
+	if c.Address.Deck != s.DeckName {
 		//We can only add items that are in our deck.
 
 		//TODO: communicate an error
 		return
 	}
 
-	s.Indexes = append([]int{c.DeckIndex()}, s.Indexes...)
+	s.Indexes = append([]int{c.Address.Index}, s.Indexes...)
 }
 
 /*

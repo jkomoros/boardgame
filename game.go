@@ -16,6 +16,7 @@ type Game struct {
 	//TODO: an array of Player objects.
 }
 
+//TODO: does anyone use GameNamer now that Component doesn't?
 type GameNamer interface {
 	//GameName returns the string of the type of game we're designed for.
 	//Before a move is applied to a game we verify that game.Name() and
