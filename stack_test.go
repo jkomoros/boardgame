@@ -4,25 +4,6 @@ import (
 	"testing"
 )
 
-//TODO: this should probably be somewhere more central.
-func componentsEqual(one Component, two Component) bool {
-	if one == nil && two == nil {
-		return true
-	}
-	if one == nil || two == nil {
-		return false
-	}
-	if one.Deck() != two.Deck() {
-		return false
-	}
-	if one.DeckIndex() != two.DeckIndex() {
-		return false
-	}
-	return true
-}
-
-//Begin tests
-
 func TestStackInsert(t *testing.T) {
 
 	game := testGame()
