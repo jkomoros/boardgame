@@ -33,8 +33,6 @@ type GameNamer interface {
 //Game applies the move to the state if it is currently legal.
 func (g *Game) ApplyMove(move Move) bool {
 
-	//TODO: test this
-
 	if g.Finished {
 		return false
 	}

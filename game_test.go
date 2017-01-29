@@ -45,4 +45,18 @@ func TestApplyMove(t *testing.T) {
 
 	compareJSONObjects(json, golden, "Basic state after test move", t)
 
+	newMove := &testMove{
+		AString:           "foo",
+		ScoreIncrement:    3,
+		TargetPlayerIndex: 1,
+		ABool:             true,
+	}
+
+	//newMove is valid at this point.
+	game.Finished = true
+
+	if game.ApplyMove(newMove) {
+		t.Error("Game allowed a move to be made even though the game was Finished.")
+	}
+
 }
