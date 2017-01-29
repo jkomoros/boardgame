@@ -35,6 +35,29 @@ func TestState(t *testing.T) {
 	//TODO: test that GAmeState and UserStates are also copies
 }
 
+type propertyReaderTestStruct struct {
+	A int
+	B bool
+	C string
+}
+
+func (p *propertyReaderTestStruct) Props() []string {
+	return PropertyReaderPropsImpl(p)
+}
+
+func TestPropertyReaderPropsImpl(t *testing.T) {
+
+	s := &propertyReaderTestStruct{}
+
+	result := s.Props()
+
+	expected := []string{"A", "B", "C"}
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Error("PropertyReaderPropsImpl returned wrong result. Got", result, "expected", expected)
+	}
+}
+
 func compareJSONObjects(in JSONObject, golden JSONObject, message string, t *testing.T) {
 	serializedIn := Serialize(in)
 	serializedGolden := Serialize(golden)

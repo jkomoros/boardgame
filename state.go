@@ -1,5 +1,9 @@
 package boardgame
 
+import (
+	"reflect"
+)
+
 type State struct {
 	//The version number of the state. Increments by one each time a Move is
 	//applied.
@@ -84,4 +88,25 @@ func (s *State) JSON() JSONObject {
 		"Payload": s.Payload.JSON(),
 	}
 
+}
+
+//PropertyReaderPropsImpl is a helper method useful for satisfying the
+//PropertyReader interface without writing finicky, bespoke code. It uses
+//reflection to enumerate all of the properties. You'd use it as the single
+//line of implementation in your struct's Props() implementation, passing in
+//self, where self is the pointer receiver.
+func PropertyReaderPropsImpl(obj interface{}) []string {
+
+	//TODO: skip fields that have a propertyreader:omit
+
+	s := reflect.ValueOf(obj).Elem()
+	typeOfObj := s.Type()
+
+	result := make([]string, s.NumField())
+
+	for i := 0; i < s.NumField(); i++ {
+		result[i] = typeOfObj.Field(i).Name
+	}
+
+	return result
 }
