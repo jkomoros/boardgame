@@ -55,6 +55,37 @@ func componentsEqual(one Component, two Component) bool {
 	return true
 }
 
+type testGameState struct {
+	CurrentPlayer int
+}
+
+func (t *testGameState) Copy() GameState {
+	return &testGameState{
+		CurrentPlayer: t.CurrentPlayer,
+	}
+}
+
+func (t *testGameState) JSON() JSONObject {
+	//TODO: once JSONObject is more generic, we can just return ourselves
+
+	return JSONObject{
+		"CurrentPlayer": t.CurrentPlayer,
+	}
+}
+
+func (t *testGameState) Props() []string {
+	return []string{"CurrentPlayer"}
+}
+
+func (t *testGameState) Prop(name string) interface{} {
+	switch name {
+	case "CurrentPlayer":
+		return t.CurrentPlayer
+	default:
+		return nil
+	}
+}
+
 func testGame() *Game {
 	//TODO: some kind of way to set the deckName/Index automatically at insertion?
 	chest := ComponentChest{
@@ -80,7 +111,13 @@ func testGame() *Game {
 	game := &Game{
 		testGameName,
 		chest,
-		nil,
+		&State{
+			Version: 0,
+			Schema:  0,
+			Game: &testGameState{
+				CurrentPlayer: 0,
+			},
+		},
 	}
 
 	return game
