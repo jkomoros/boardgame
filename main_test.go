@@ -227,7 +227,7 @@ func testGame() *Game {
 		},
 	})
 
-	chest.Freeze()
+	chest.Finish()
 
 	game := &Game{
 		testGameName,

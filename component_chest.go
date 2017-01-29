@@ -45,10 +45,10 @@ func (c *ComponentChest) AddDeck(name string, deck *Deck) {
 	c.decks[name] = deck
 }
 
-//Freeze switches the chest from constructing to serving. Before freeze is
+//Finish switches the chest from constructing to serving. Before freeze is
 //called, decks may be added but not retrieved. After it is called, decks may
 //be retrieved but not added.
-func (c *ComponentChest) Freeze() {
+func (c *ComponentChest) Finish() {
 
 	c.initialized = true
 

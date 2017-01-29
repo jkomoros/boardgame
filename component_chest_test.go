@@ -30,7 +30,7 @@ func TestComponentChest(t *testing.T) {
 
 	chest.AddDeck("other", deckTwo)
 
-	chest.Freeze()
+	chest.Finish()
 
 	chest.AddDeck("shoulfail", deckOne)
 
