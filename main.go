@@ -1,9 +1,5 @@
 package boardgame
 
-import (
-	"encoding/json"
-)
-
 type State struct {
 	//The version number of the state. Increments by one each time a Move is
 	//applied.
@@ -16,15 +12,6 @@ type State struct {
 	Game GameState
 	//Users contains a UserState object for each user in the game.
 	Users []UserState
-}
-
-//A JSONObject is an object that is ready to be serialized to JSON.
-type JSONObject map[string]interface{}
-
-type JSONer interface {
-	//Returns the canonical JSON representation of this object, suitable to
-	//being communicated across the wire or saved in a DB.
-	JSON() JSONObject
 }
 
 //Property reader is a way to read out properties on an object with unknown
@@ -52,16 +39,6 @@ type UserState interface {
 type GameState interface {
 	JSONer
 	PropertyReader
-}
-
-//Serialize converts the JSONObject into bytes, suitable for being transferred
-//across the wire or written to disk.
-func (j *JSONObject) Serialize() []byte {
-	result, err := json.Marshal(j)
-	if err != nil {
-		return []byte("")
-	}
-	return result
 }
 
 //JSON returns the JSONObject representing the State's full state.
