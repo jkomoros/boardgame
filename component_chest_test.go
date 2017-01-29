@@ -77,7 +77,7 @@ func TestComponentChest(t *testing.T) {
 
 	chest.Finish()
 
-	chest.AddDeck("shoulfail", deckOne)
+	chest.AddDeck("shouldfail", deckOne)
 
 	if chest.decks["shouldfail"] != nil {
 		t.Fatal("We were able to add a deck after freezing")
