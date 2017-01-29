@@ -45,9 +45,15 @@ func (p *propertyReaderTestStruct) Props() []string {
 	return PropertyReaderPropsImpl(p)
 }
 
-func TestPropertyReaderPropsImpl(t *testing.T) {
+func (p *propertyReaderTestStruct) Prop(name string) interface{} {
+	return PropertyReaderPropImpl(p, name)
+}
 
-	s := &propertyReaderTestStruct{}
+func TestPropertyReaderImpl(t *testing.T) {
+
+	s := &propertyReaderTestStruct{
+		C: "bam",
+	}
 
 	result := s.Props()
 
@@ -56,6 +62,13 @@ func TestPropertyReaderPropsImpl(t *testing.T) {
 	if !reflect.DeepEqual(result, expected) {
 		t.Error("PropertyReaderPropsImpl returned wrong result. Got", result, "expected", expected)
 	}
+
+	field := s.Prop("C")
+
+	if field.(string) != "bam" {
+		t.Error("Got back wrong value from Prop. Got", field, "expected 'foo'")
+	}
+
 }
 
 func compareJSONObjects(in JSONObject, golden JSONObject, message string, t *testing.T) {

@@ -110,3 +110,14 @@ func PropertyReaderPropsImpl(obj interface{}) []string {
 
 	return result
 }
+
+//PropertyReaderPropImpl is a helper method useful for satisfying the
+//PropertyReader interface without writing finicky, bespoke code. It uses
+//reflection to return the value of the named field or nil. You'd use it as
+//the single line of implementation in your struct's Prop() implementation,
+//passing in self, where self is the pointer receiver.
+func PropertyReaderPropImpl(obj interface{}, name string) interface{} {
+	//TODO: skip fields that have a propertyreader:omit
+	s := reflect.ValueOf(obj).Elem()
+	return s.FieldByName(name).Interface()
+}
