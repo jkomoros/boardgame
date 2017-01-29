@@ -57,6 +57,7 @@ func componentsEqual(one Component, two Component) bool {
 
 type testGameState struct {
 	CurrentPlayer int
+	//TODO: have a Stack here.
 }
 
 func (t *testGameState) Copy() GameState {
@@ -81,6 +82,49 @@ func (t *testGameState) Prop(name string) interface{} {
 	switch name {
 	case "CurrentPlayer":
 		return t.CurrentPlayer
+	default:
+		return nil
+	}
+}
+
+type testUserState struct {
+	//Note: PlayerIndex is stored ehre, but not a normal property or
+	//serialized, because it's really just a convenience method because it's
+	//implied by its position in the State.Users array.
+	playerIndex int
+	Score       int
+	IsFoo       bool
+}
+
+func (t *testUserState) PlayerIndex() int {
+	return t.playerIndex
+}
+
+func (t *testUserState) Copy() UserState {
+	return &testUserState{
+		playerIndex: t.playerIndex,
+		Score:       t.Score,
+		IsFoo:       t.IsFoo,
+	}
+}
+
+func (t *testUserState) JSON() JSONObject {
+	return JSONObject{
+		"Score": t.Score,
+		"IsFoo": t.IsFoo,
+	}
+}
+
+func (t *testUserState) Props() []string {
+	return []string{"Score", "IsFoo"}
+}
+
+func (t *testUserState) Prop(name string) interface{} {
+	switch name {
+	case "Score":
+		return t.Score
+	case "IsFoo":
+		return t.IsFoo
 	default:
 		return nil
 	}
@@ -116,6 +160,23 @@ func testGame() *Game {
 			Schema:  0,
 			Game: &testGameState{
 				CurrentPlayer: 0,
+			},
+			Users: []UserState{
+				&testUserState{
+					playerIndex: 0,
+					Score:       0,
+					IsFoo:       false,
+				},
+				&testUserState{
+					playerIndex: 1,
+					Score:       0,
+					IsFoo:       false,
+				},
+				&testUserState{
+					playerIndex: 2,
+					Score:       0,
+					IsFoo:       true,
+				},
 			},
 		},
 	}
