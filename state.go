@@ -24,21 +24,26 @@ type PropertyReader interface {
 	Prop(name string) interface{}
 }
 
+//BaseState is the interface that all state objects--UserStates and GameStates
+//--implement.
+type BaseState interface {
+	JSONer
+	PropertyReader
+}
+
 //UserState represents the state of a game associated with a specific user.
 type UserState interface {
 	//PlayerIndex encodes the index this user's state is in the containing
 	//state object.
 	PlayerIndex() int
-	JSONer
-	PropertyReader
+	BaseState
 }
 
 //GameState represents the state of a game that is not associated with a
 //particular user. For example, the draw stack of cards, who the current
 //player is, and other properites.
 type GameState interface {
-	JSONer
-	PropertyReader
+	BaseState
 }
 
 //JSON returns the JSONObject representing the State's full state.
