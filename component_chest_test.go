@@ -18,7 +18,6 @@ func TestComponentChest(t *testing.T) {
 		t.Error("We got a deck names array before we'd added anything")
 	}
 
-	//TODO: make real decks here
 	deckOne := &Deck{}
 
 	componentOne := &Component{
