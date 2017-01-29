@@ -6,6 +6,7 @@ type Component interface {
 	//The name of the Deck in the game's ComponentChest that we are part of.
 	Deck() string
 	//The index that this component resides at in its deck.
-	DeckIndex() string
+	DeckIndex() int
 	PropertyReader
+	//TODO: consider having a ChestAddress struct that is a deck name / index
 }

@@ -1,5 +1,7 @@
 package boardgame
 
+//TODO: should ComponentChest be a struct?
+
 //Each game has one ComponentChest, which is an immutable set of all
 //components in this game, configured into 0 or more Decks.
 type ComponentChest interface {
