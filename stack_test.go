@@ -57,31 +57,10 @@ func componentsEqual(one Component, two Component) bool {
 //Begin tests
 
 func TestStackInsert(t *testing.T) {
-	//TODO: some kind of way to set the deckName/Index automatically at insertion?
-	chest := ComponentChest{
-		"test": &Deck{
-			Name: "test",
-			Components: []Component{
-				&testingComponent{
-					"test",
-					0,
-					"foo",
-					1,
-				},
-				&testingComponent{
-					"test",
-					1,
-					"bar",
-					2,
-				},
-			},
-		},
-	}
 
-	game := &Game{
-		chest,
-		nil,
-	}
+	game := testGame()
+
+	chest := game.Chest
 
 	stack := &Stack{
 		game,

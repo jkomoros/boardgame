@@ -6,7 +6,8 @@ package boardgame
 type Move interface {
 	//Legal returns true if this proposed move is legal
 	Legal(state *State) bool
-	//Apply applies the move to the state in game (checking first whether it's legal)
-	Apply(game *Game) bool
+	//Apply applies the move to the state and returns a new state object. It
+	//should not be called directly; use Game.ApplyMove.
+	Apply(state *State) *State
 	PropertyReader
 }

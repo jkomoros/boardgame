@@ -45,3 +45,33 @@ func goldenJSON(fileName string, t *testing.T) JSONObject {
 	return result
 
 }
+
+func testGame() *Game {
+	//TODO: some kind of way to set the deckName/Index automatically at insertion?
+	chest := ComponentChest{
+		"test": &Deck{
+			Name: "test",
+			Components: []Component{
+				&testingComponent{
+					"test",
+					0,
+					"foo",
+					1,
+				},
+				&testingComponent{
+					"test",
+					1,
+					"bar",
+					2,
+				},
+			},
+		},
+	}
+
+	game := &Game{
+		chest,
+		nil,
+	}
+
+	return game
+}
