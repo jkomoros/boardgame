@@ -8,14 +8,17 @@
         "Users": [
             {
                 "Score": 3,
+                "MovesLeftThisTurn": 0,
                 "IsFoo": false
             },
             {
                 "Score": 0,
+                "MovesLeftThisTurn": 1,
                 "IsFoo": false
             },
             {
                 "Score": 0,
+                "MovesLeftThisTurn": 0,
                 "IsFoo": true
             }
         ]

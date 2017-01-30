@@ -35,6 +35,14 @@ type GameDelegate interface {
 	//CheckGameFinished should return true if the game is finished, and who
 	//the winners are. Called after every move is applied.
 	CheckGameFinished(state StatePayload) (finished bool, winners []int)
+
+	//ProposeFixUpMove is called after a move has been applied. It may return
+	//a FixUp move, which will be applied before any other moves are applied.
+	//If it returns nil, we may take the next move off of the queue. FixUp
+	//moves are useful for things like shuffling a discard deck back into a
+	//draw deck, or other moves that are necessary to get the GameState back
+	//into reasonable shape.
+	ProposeFixUpMove(state StatePayload) Move
 }
 
 type GameNamer interface {
@@ -97,6 +105,17 @@ func (g *Game) ApplyMove(move Move) bool {
 			g.Finished = true
 			g.Winners = winners
 			//TODO: persist to database here.
+		}
+	}
+
+	//TDOO: once we have a ProposedMove queue, instead of running this
+	//syncrhounously, we should just inject the move (if it exists) into the
+	//MoveQueue.
+	if g.Delegate != nil {
+		move := g.Delegate.ProposeFixUpMove(g.State.Payload)
+
+		if move != nil {
+			g.ApplyMove(move)
 		}
 	}
 

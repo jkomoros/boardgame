@@ -114,9 +114,10 @@ type testUserState struct {
 	//Note: PlayerIndex is stored ehre, but not a normal property or
 	//serialized, because it's really just a convenience method because it's
 	//implied by its position in the State.Users array.
-	playerIndex int
-	Score       int
-	IsFoo       bool
+	playerIndex       int
+	Score             int
+	MovesLeftThisTurn int
+	IsFoo             bool
 }
 
 func (t *testUserState) PlayerIndex() int {
@@ -125,9 +126,10 @@ func (t *testUserState) PlayerIndex() int {
 
 func (t *testUserState) Copy() UserState {
 	return &testUserState{
-		playerIndex: t.playerIndex,
-		Score:       t.Score,
-		IsFoo:       t.IsFoo,
+		playerIndex:       t.playerIndex,
+		Score:             t.Score,
+		IsFoo:             t.IsFoo,
+		MovesLeftThisTurn: t.MovesLeftThisTurn,
 	}
 }
 
@@ -185,11 +187,17 @@ func (t *testMove) Apply(state StatePayload) StatePayload {
 
 	payload.users[payload.game.CurrentPlayer].Score += t.ScoreIncrement
 
+	payload.users[payload.game.CurrentPlayer].MovesLeftThisTurn -= 1
+
+	//TODO: the logic to advance the turn should be popped out into a FixUp move.
+
 	payload.game.CurrentPlayer++
 
 	if payload.game.CurrentPlayer >= len(payload.users) {
 		payload.game.CurrentPlayer = 0
 	}
+
+	payload.users[payload.game.CurrentPlayer].MovesLeftThisTurn = 1
 
 	return result
 }
@@ -244,19 +252,22 @@ func testGame() *Game {
 				},
 				users: []*testUserState{
 					&testUserState{
-						playerIndex: 0,
-						Score:       0,
-						IsFoo:       false,
+						playerIndex:       0,
+						Score:             0,
+						MovesLeftThisTurn: 1,
+						IsFoo:             false,
 					},
 					&testUserState{
-						playerIndex: 1,
-						Score:       0,
-						IsFoo:       false,
+						playerIndex:       1,
+						Score:             0,
+						MovesLeftThisTurn: 0,
+						IsFoo:             false,
 					},
 					&testUserState{
-						playerIndex: 2,
-						Score:       0,
-						IsFoo:       true,
+						playerIndex:       2,
+						Score:             0,
+						MovesLeftThisTurn: 0,
+						IsFoo:             true,
 					},
 				},
 			},

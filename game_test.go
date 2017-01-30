@@ -28,6 +28,10 @@ func (t *testGameDelegate) CheckGameFinished(state StatePayload) (bool, []int) {
 	return false, nil
 }
 
+func (t *testGameDelegate) ProposeFixUpMove(state StatePayload) Move {
+	return nil
+}
+
 func TestApplyMove(t *testing.T) {
 	game := testGame()
 

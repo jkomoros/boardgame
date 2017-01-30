@@ -8,15 +8,18 @@
         "Users": [
             {
                 "Score": 0,
-                "IsFoo": false
+                "IsFoo": false,
+                "MovesLeftThisTurn": 1
             },
             {
                 "Score": 0,
-                "IsFoo": false
+                "IsFoo": false,
+                "MovesLeftThisTurn": 0
             },
             {
                 "Score": 0,
-                "IsFoo": true
+                "IsFoo": true,
+                "MovesLeftThisTurn": 0
             }
         ]
     }
