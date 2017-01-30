@@ -22,6 +22,20 @@ type GrowableStack struct {
 	Cap int
 }
 
+//NewGrowableStack creates a new growable stack with the given Deck and Cap.
+func NewGrowableStack(deck *Deck, max int) *GrowableStack {
+
+	if max < 0 {
+		max = 0
+	}
+
+	return &GrowableStack{
+		Deck:    deck,
+		Indexes: nil,
+		Cap:     max,
+	}
+}
+
 //Len returns the number of items in the stack.
 func (s *GrowableStack) Len() int {
 	return len(s.Indexes)

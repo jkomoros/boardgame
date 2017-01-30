@@ -11,11 +11,7 @@ func TestStackInsert(t *testing.T) {
 
 	chest := game.Chest()
 
-	stack := &GrowableStack{
-		chest.Deck("test"),
-		[]int{},
-		0,
-	}
+	stack := NewGrowableStack(chest.Deck("test"), 0)
 
 	if stack.SlotsRemaining() != math.MaxInt64 {
 		t.Error("A stack with no cap reported a non-huge SlotsRemaining")
@@ -73,11 +69,7 @@ func TestStackInsert(t *testing.T) {
 func TestStackCap(t *testing.T) {
 	game := testGame()
 
-	stack := &GrowableStack{
-		game.Chest().Deck("test"),
-		[]int{},
-		2,
-	}
+	stack := NewGrowableStack(game.Chest().Deck("test"), 2)
 
 	deck := game.Chest().Deck("test")
 
