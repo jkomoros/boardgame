@@ -17,7 +17,7 @@ func ticTacToeGame() *boardgame.Game {
 
 	chest := boardgame.NewComponentChest(gameName)
 
-	xes := &boardgame.Deck{}
+	tokens := &boardgame.Deck{}
 
 	//How many tokens of each of x's and o's do we need so that no matter who
 	//goes first we always have enough?
@@ -25,26 +25,22 @@ func ticTacToeGame() *boardgame.Game {
 
 	//TODO: use deck.AddComponentMulti when that exists
 	for i := 0; i < numTokens; i++ {
-		xes.AddComponent(&boardgame.Component{
+		tokens.AddComponent(&boardgame.Component{
 			Values: &playerToken{
 				Value: X,
 			},
 		})
 	}
 
-	chest.AddDeck("xes", xes)
-
-	oes := &boardgame.Deck{}
-
 	for i := 0; i < numTokens; i++ {
-		oes.AddComponent(&boardgame.Component{
+		tokens.AddComponent(&boardgame.Component{
 			Values: &playerToken{
 				Value: O,
 			},
 		})
 	}
 
-	chest.AddDeck("oes", oes)
+	chest.AddDeck("tokens", tokens)
 
 	game := &boardgame.Game{
 		Name: gameName,
