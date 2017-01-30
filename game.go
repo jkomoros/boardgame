@@ -23,7 +23,9 @@ type Game struct {
 	//case of a draw.
 	Winners []int
 
-	chest *ComponentChest
+	//Initalized is set to True after SetUp is called.
+	initalized bool
+	chest      *ComponentChest
 
 	//TODO: HistoricalState(index int) and HistoryLen() int
 
@@ -56,6 +58,27 @@ type GameNamer interface {
 	GameName() string
 }
 
+//SetUp should be called a single time after all of the member variables are
+//set correctly, including Chest. SetUp must be called before ApplyMove can be
+//called.
+func (g *Game) SetUp() error {
+
+	if g.initalized {
+		return errors.New("Game already initalized")
+	}
+
+	if g.chest == nil {
+		return errors.New("No component chest set")
+	}
+
+	//TODO: do other set-up work, including calling applicable delegate
+	//methods.
+
+	g.initalized = true
+
+	return nil
+}
+
 //Chest is the ComponentChest in use for this game.
 func (g *Game) Chest() *ComponentChest {
 	return g.chest
@@ -63,12 +86,22 @@ func (g *Game) Chest() *ComponentChest {
 
 //SetChest is the way to associate the given Chest with this game.
 func (g *Game) SetChest(chest *ComponentChest) {
-	chest.game = g
+	//We are only allowed to change the chest before the game is SetUp.
+	if g.initalized {
+		return
+	}
+	if chest != nil {
+		chest.game = g
+	}
 	g.chest = chest
 }
 
 //Game applies the move to the state if it is currently legal.
 func (g *Game) ApplyMove(move Move) error {
+
+	if !g.initalized {
+		return errors.New("The game has not been initalized.")
+	}
 
 	if g.Finished {
 		return errors.New("Game was already finished")

@@ -38,8 +38,46 @@ func (t *testGameDelegate) ProposeFixUpMove(state StatePayload) Move {
 	return nil
 }
 
+func TestGameSetUp(t *testing.T) {
+	game := testGame()
+
+	chest := game.Chest()
+
+	game.SetChest(nil)
+
+	if err := game.SetUp(); err == nil {
+		t.Error("We were able to call game.SetUp without a Chest")
+	}
+
+	game.SetChest(chest)
+
+	move := &testMove{
+		AString:           "foo",
+		ScoreIncrement:    3,
+		TargetPlayerIndex: 0,
+		ABool:             true,
+	}
+
+	if err := game.ApplyMove(move); err == nil {
+		t.Error("Game allowed a move to be made before SetUp was called")
+	}
+
+	game.SetUp()
+
+	newChest := NewComponentChest(testGameName)
+
+	game.SetChest(newChest)
+
+	if game.Chest() == newChest {
+		t.Error("We were able to change the chest after game.SetUp was called.")
+	}
+
+}
+
 func TestApplyMove(t *testing.T) {
 	game := testGame()
+
+	game.SetUp()
 
 	move := &testMove{
 		AString:           "foo",

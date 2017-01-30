@@ -242,6 +242,7 @@ func (t *testMove) Apply(state StatePayload) StatePayload {
 	return result
 }
 
+//testGame returns a Game that has not yet had SetUp() called.
 func testGame() *Game {
 
 	chest := NewComponentChest(testGameName)
