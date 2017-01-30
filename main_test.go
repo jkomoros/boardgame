@@ -1,5 +1,9 @@
 package boardgame
 
+import (
+	"errors"
+)
+
 //Place to define testing structs and helpers that are useful throughout
 
 //testingComponent is a very basic thing that fufills the Component interface.
@@ -160,16 +164,16 @@ func (t *testMoveAdvanceCurentPlayer) JSON() JSONObject {
 	return t
 }
 
-func (t *testMoveAdvanceCurentPlayer) Legal(state StatePayload) bool {
+func (t *testMoveAdvanceCurentPlayer) Legal(state StatePayload) error {
 	payload := state.(*testStatePayload)
 
 	user := payload.users[payload.game.CurrentPlayer]
 
 	if user.MovesLeftThisTurn > 0 {
-		return false
+		return errors.New("The current player still has moves left this turn.")
 	}
 
-	return true
+	return nil
 }
 
 func (t *testMoveAdvanceCurentPlayer) Apply(state StatePayload) StatePayload {
@@ -214,15 +218,15 @@ func (t *testMove) JSON() JSONObject {
 	return t
 }
 
-func (t *testMove) Legal(state StatePayload) bool {
+func (t *testMove) Legal(state StatePayload) error {
 
 	payload := state.(*testStatePayload)
 
 	if payload.game.CurrentPlayer != t.TargetPlayerIndex {
-		return false
+		return errors.New("The current player is not the same as the target player")
 	}
 
-	return true
+	return nil
 
 }
 

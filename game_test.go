@@ -31,7 +31,7 @@ func (t *testGameDelegate) CheckGameFinished(state StatePayload) (bool, []int) {
 func (t *testGameDelegate) ProposeFixUpMove(state StatePayload) Move {
 	move := &testMoveAdvanceCurentPlayer{}
 
-	if move.Legal(state) {
+	if err := move.Legal(state); err == nil {
 		return move
 	}
 

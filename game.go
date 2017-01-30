@@ -80,9 +80,9 @@ func (g *Game) ApplyMove(move Move) error {
 		return errors.New("The move expected a game of a different name")
 	}
 
-	if !move.Legal(g.State.Payload) {
+	if err := move.Legal(g.State.Payload); err != nil {
 		//It's not legal, reject.
-		return errors.New("The move was not legal")
+		return errors.New("The move was not legal: " + err.Error())
 	}
 
 	//TODO: keep track of historical states

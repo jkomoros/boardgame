@@ -4,8 +4,9 @@ package boardgame
 //initialization. Packages define structs that implement Move for all
 //modifications.
 type Move interface {
-	//Legal returns true if this proposed move is legal
-	Legal(state StatePayload) bool
+	//Legal returns nil if this proposed move is legal, or an error if the
+	//move is not legal
+	Legal(state StatePayload) error
 	//TODO: figure out how to get a string describing why it's not legal out
 
 	//Apply applies the move to the state and returns a new state object. It
