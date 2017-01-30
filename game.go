@@ -55,21 +55,24 @@ func (g *Game) ApplyMove(move Move) bool {
 		return false
 	}
 
-	if !move.Legal(g.State) {
+	if !move.Legal(g.State.Payload) {
 		//It's not legal, reject.
 		return false
 	}
 
 	//TODO: keep track of historical states
 	//TODO: persist new states to database here
-	newState := move.Apply(g.State)
+	newStatePayload := move.Apply(g.State.Payload)
 
-	if newState == nil {
+	if newStatePayload == nil {
 		return false
 	}
 
-	//Make sure that the version number monotonically increases.
-	newState.Version = g.State.Version + 1
+	newState := &State{
+		Version: g.State.Version + 1,
+		Schema:  g.State.Schema,
+		Payload: newStatePayload,
+	}
 
 	g.State = newState
 

@@ -166,9 +166,9 @@ func (t *testMove) JSON() JSONObject {
 	return t
 }
 
-func (t *testMove) Legal(state *State) bool {
+func (t *testMove) Legal(state StatePayload) bool {
 
-	payload := state.Payload.(*testStatePayload)
+	payload := state.(*testStatePayload)
 
 	if payload.game.CurrentPlayer != t.TargetPlayerIndex {
 		return false
@@ -178,10 +178,10 @@ func (t *testMove) Legal(state *State) bool {
 
 }
 
-func (t *testMove) Apply(state *State) *State {
+func (t *testMove) Apply(state StatePayload) StatePayload {
 	result := state.Copy()
 
-	payload := result.Payload.(*testStatePayload)
+	payload := result.(*testStatePayload)
 
 	payload.users[payload.game.CurrentPlayer].Score += t.ScoreIncrement
 
