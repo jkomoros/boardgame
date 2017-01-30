@@ -52,7 +52,7 @@ func TestApplyMove(t *testing.T) {
 
 	game.Name = "WRONG NAME"
 
-	if game.ApplyMove(move) {
+	if err := game.ApplyMove(move); err == nil {
 		t.Error("Game allowed a move with wrong game name to be applied")
 	}
 
@@ -62,13 +62,13 @@ func TestApplyMove(t *testing.T) {
 
 	move.TargetPlayerIndex = 1
 
-	if game.ApplyMove(move) {
+	if err := game.ApplyMove(move); err == nil {
 		t.Error("Game allowed a move to be applied where the wrong playe was current")
 	}
 
 	move.TargetPlayerIndex = 0
 
-	if !game.ApplyMove(move) {
+	if err := game.ApplyMove(move); err != nil {
 		t.Error("Game didn't allow a legal move to be made")
 	}
 
@@ -89,7 +89,7 @@ func TestApplyMove(t *testing.T) {
 		ABool:             true,
 	}
 
-	if !game.ApplyMove(newMove) {
+	if err := game.ApplyMove(newMove); err != nil {
 		t.Error("Game didn't allow a move to be made even though it was legal")
 	}
 
@@ -108,7 +108,7 @@ func TestApplyMove(t *testing.T) {
 		ABool:             true,
 	}
 
-	if game.ApplyMove(moveAfterFinished) {
+	if err := game.ApplyMove(moveAfterFinished); err == nil {
 		t.Error("Game allowed a move to be applied after the game was finished")
 	}
 }

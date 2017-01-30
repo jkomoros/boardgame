@@ -1,5 +1,9 @@
 package boardgame
 
+import (
+	"errors"
+)
+
 //A Game represents a specific game between a collection of Players
 type Game struct {
 	//Name is a string that defines the type of game this is. It is useful as
@@ -64,21 +68,21 @@ func (g *Game) SetChest(chest *ComponentChest) {
 }
 
 //Game applies the move to the state if it is currently legal.
-func (g *Game) ApplyMove(move Move) bool {
+func (g *Game) ApplyMove(move Move) error {
 
 	if g.Finished {
-		return false
+		return errors.New("Game was already finished")
 	}
 
 	//Verify that the Move is actually designed to be used with this type of
 	//game.
 	if move.GameName() != g.Name {
-		return false
+		return errors.New("The move expected a game of a different name")
 	}
 
 	if !move.Legal(g.State.Payload) {
 		//It's not legal, reject.
-		return false
+		return errors.New("The move was not legal")
 	}
 
 	//TODO: keep track of historical states
@@ -86,7 +90,7 @@ func (g *Game) ApplyMove(move Move) bool {
 	newStatePayload := move.Apply(g.State.Payload)
 
 	if newStatePayload == nil {
-		return false
+		return errors.New("The move's Apply function did not return a modified state")
 	}
 
 	newState := &State{
@@ -119,6 +123,6 @@ func (g *Game) ApplyMove(move Move) bool {
 		}
 	}
 
-	return true
+	return nil
 
 }
