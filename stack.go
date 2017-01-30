@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"errors"
 	"math"
 )
 
@@ -156,32 +157,32 @@ func (s *SizedStack) SlotsRemaining() int {
 
 //InsertAtSlot inserts the given component at the specified slot in the stack,
 //as long as that slot is not currently occupied.
-func (s *SizedStack) InsertAtSlot(c *Component, index int) {
+func (s *SizedStack) InsertAtSlot(c *Component, index int) error {
 	//Based on how Decks and Chests are constructed, we know the components in
 	//the chest hae the right gamename, so no need to check.
 
 	if c.Deck.Name() != s.deck.Name() {
 		//We can only add items that are in our deck.
 
-		//TODO: communicate an error
-		return
+		return errors.New("The component is not part of this stack's deck.")
 	}
 
 	if index > s.Len() || index < 0 {
-		//TODO: communicate error
-		return
+		return errors.New("The index is not valid")
 	}
 
 	if s.indexes[index] != emptyIndexSentinel {
 		//That slot is taken!
-		return
+		return errors.New("That slot is taken!")
 	}
 
 	s.indexes[index] = c.DeckIndex
+
+	return nil
 }
 
 //InsertFirstEmptySlot inserts the component in the first slot that is empty.
-func (s *SizedStack) InsertFirstEmptySlot(c *Component) {
+func (s *SizedStack) InsertFirstEmptySlot(c *Component) error {
 
 	//TODO: shouldn't this just be InsertFront, and then we pop it into the
 	//Stack interface?
@@ -192,27 +193,28 @@ func (s *SizedStack) InsertFirstEmptySlot(c *Component) {
 	if c.Deck.Name() != s.deck.Name() {
 		//We can only add items that are in our deck.
 
-		//TODO: communicate an error
-		return
+		return errors.New("The component is not part of this stack's deck.")
 	}
 
 	if s.SlotsRemaining() < 1 {
-		return
+		return errors.New("There are no available slots.")
 	}
 
 	for i, index := range s.indexes {
 		if index == emptyIndexSentinel {
 			//Found it!
 			s.indexes[i] = c.DeckIndex
-			return
+			return nil
 		}
 	}
+
+	return nil
 }
 
 //InsertFront puts the component at index 0 in this stack, moving all other
 //items down by one. The Component you insert should not currently be a member
 //of any other stacks, to maintain the deck invariant.
-func (s *GrowableStack) InsertFront(c *Component) {
+func (s *GrowableStack) InsertFront(c *Component) error {
 
 	//Based on how Decks and Chests are constructed, we know the components in
 	//the chest hae the right gamename, so no need to check.
@@ -220,15 +222,16 @@ func (s *GrowableStack) InsertFront(c *Component) {
 	if c.Deck.Name() != s.deck.Name() {
 		//We can only add items that are in our deck.
 
-		//TODO: communicate an error
-		return
+		return errors.New("The component is not part of this stack's deck.")
 	}
 
 	if s.SlotsRemaining() < 1 {
-		return
+		return errors.New("There's no more room in the stack.")
 	}
 
 	s.indexes = append([]int{c.DeckIndex}, s.indexes...)
+
+	return nil
 }
 
 /*
