@@ -32,6 +32,12 @@ func TestState(t *testing.T) {
 		t.Error("Modifying a copy changed the original")
 	}
 
+	stateCopy.Payload.(*testStatePayload).users[0].MovesLeftThisTurn = 10
+
+	if state.Payload.(*testStatePayload).users[0].MovesLeftThisTurn == 10 {
+		t.Error("Modifying a copy change the original")
+	}
+
 	//TODO: test that GAmeState and UserStates are also copies
 }
 

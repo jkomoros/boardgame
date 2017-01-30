@@ -92,9 +92,9 @@ type testGameState struct {
 }
 
 func (t *testGameState) Copy() GameState {
-	return &testGameState{
-		CurrentPlayer: t.CurrentPlayer,
-	}
+	var result testGameState
+	result = *t
+	return &result
 }
 
 func (t *testGameState) JSON() JSONObject {
@@ -125,12 +125,9 @@ func (t *testUserState) PlayerIndex() int {
 }
 
 func (t *testUserState) Copy() UserState {
-	return &testUserState{
-		playerIndex:       t.playerIndex,
-		Score:             t.Score,
-		IsFoo:             t.IsFoo,
-		MovesLeftThisTurn: t.MovesLeftThisTurn,
-	}
+	var result testUserState
+	result = *t
+	return &result
 }
 
 func (t *testUserState) JSON() JSONObject {
