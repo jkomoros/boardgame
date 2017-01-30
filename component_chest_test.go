@@ -113,14 +113,11 @@ func TestComponentChest(t *testing.T) {
 	}
 
 	for i, c := range deckOne.Components() {
-		if c.Address.Deck != deckOne.name {
-			t.Error("At position", i, "deck name was not set correctly in component. Got", c.Address.Deck, "wanted", deckOne.name)
+		if c.Deck != deckOne {
+			t.Error("At position", i, "deck name was not set correctly in component. Got", c.Deck, "wanted", deckOne)
 		}
-		if c.Address.Index != i {
-			t.Error("At position", i, "index was not set correctly in component. Got", c.Address.Index, "wanted", i)
-		}
-		if c.GameName() != testGameName {
-			t.Error("The component at", i, "didn't have its gameName set correctly. Got", c.GameName(), "wanted", testGameName)
+		if c.DeckIndex != i {
+			t.Error("At position", i, "index was not set correctly in component. Got", c.DeckIndex, "wanted", i)
 		}
 	}
 

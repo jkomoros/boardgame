@@ -13,11 +13,8 @@ import (
 //that deck, with no component residing in more than one stack. Stacks model
 //things like a stack of cards, a collection of resource tokens, etc.
 type GrowableStack struct {
-	//The Game that we're associated with
-	Game *Game
-	//DeckName is the name of the deck in the game's ComponentChest that this
-	//Stack is tied to.
-	DeckName string
+	//Deck is the deck that we're a part of.
+	Deck *Deck
 	//The indexes from the given deck that this stack contains, in order.
 	Indexes []int
 	//Cap, if set, says the maxmimum number of items allowed in the Stack. 0
@@ -38,15 +35,13 @@ func (s *GrowableStack) ComponentAt(index int) *Component {
 		return nil
 	}
 
-	deck := s.Game.Chest.Deck(s.DeckName)
-
-	if deck == nil {
+	if s.Deck == nil {
 		return nil
 	}
 
 	//We don't need to check that s.Indexes[index] is valid because it was
 	//checked when it was set, and Decks are immutable.
-	return deck.Components()[s.Indexes[index]]
+	return s.Deck.Components()[s.Indexes[index]]
 }
 
 //SlotsRemaining returns the count of slots left in this stack. If Cap is 0
@@ -66,7 +61,7 @@ func (s *GrowableStack) InsertFront(c *Component) {
 	//Based on how Decks and Chests are constructed, we know the components in
 	//the chest hae the right gamename, so no need to check.
 
-	if c.Address.Deck != s.DeckName {
+	if c.Deck.Name() != s.Deck.Name() {
 		//We can only add items that are in our deck.
 
 		//TODO: communicate an error
@@ -77,7 +72,7 @@ func (s *GrowableStack) InsertFront(c *Component) {
 		return
 	}
 
-	s.Indexes = append([]int{c.Address.Index}, s.Indexes...)
+	s.Indexes = append([]int{c.DeckIndex}, s.Indexes...)
 }
 
 /*

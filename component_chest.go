@@ -55,18 +55,9 @@ func (c *ComponentChest) AddDeck(name string, deck *Deck) {
 	}
 
 	//Tell the deck that no more items will be added to it.
-	deck.finish(name)
+	deck.finish(c, name)
 
 	c.decks[name] = deck
-
-	//We didn't know the component's deck's names when we added them to the deck, but now we do.
-	components := deck.Components()
-
-	for i := 0; i < len(components); i++ {
-		component := components[i]
-		component.Address.Deck = name
-		component.gameName = c.gameName
-	}
 
 }
 

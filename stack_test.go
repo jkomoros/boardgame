@@ -12,8 +12,7 @@ func TestStackInsert(t *testing.T) {
 	chest := game.Chest
 
 	stack := &GrowableStack{
-		game,
-		"test",
+		chest.Deck("test"),
 		[]int{},
 		0,
 	}
@@ -26,7 +25,7 @@ func TestStackInsert(t *testing.T) {
 		t.Error("Empty stack didn't report empty")
 	}
 
-	if stack.DeckName != "test" {
+	if stack.Deck.Name() != "test" {
 		t.Error("Stack didn't report right deck name")
 	}
 
@@ -75,8 +74,7 @@ func TestStackCap(t *testing.T) {
 	game := testGame()
 
 	stack := &GrowableStack{
-		game,
-		"test",
+		game.Chest.Deck("test"),
 		[]int{},
 		2,
 	}

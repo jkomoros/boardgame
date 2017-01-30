@@ -11,6 +11,7 @@ package boardgame
 //been added to a ComponentChest, which helps enforce that Decks' values never
 //change.
 type Deck struct {
+	chest *ComponentChest
 	//Name is only set when it's added to the component chest.
 	name string
 	//Components should only ever be added at initalization time. After
@@ -21,25 +22,35 @@ type Deck struct {
 //AddComponent adds the component to the next spot in the deck. If the deck
 //has already been added to a componentchest, this will do nothing.
 func (d *Deck) AddComponent(c *Component) {
-	if d.name != "" {
+	if d.chest != nil {
 		return
 	}
-	//We don't know our name yet. The component name will be set when the deck is added to the chest.
-	c.Address.Index = len(d.components)
+	c.Deck = d
+	c.DeckIndex = len(d.components)
 	d.components = append(d.components, c)
 }
 
 //Components returns a list of Components in order in this deck, but only if
 //this Deck has already been added to its ComponentChest.
 func (d *Deck) Components() []*Component {
-	if d.name == "" {
+	if d.chest == nil {
 		return nil
 	}
 	return d.components
 }
 
+//Chest points back to the chest we're part of.
+func (d *Deck) Chest() *ComponentChest {
+	return d.chest
+}
+
+func (d *Deck) Name() string {
+	return d.name
+}
+
 //finish is called when the deck is added to a component chest. It signifies that no more items may be added.
-func (d *Deck) finish(name string) {
+func (d *Deck) finish(chest *ComponentChest, name string) {
+	d.chest = chest
 	//If a deck has a name, it cannot receive any more items.
 	d.name = name
 }

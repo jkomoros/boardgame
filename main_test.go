@@ -25,10 +25,10 @@ func componentsEqual(one *Component, two *Component) bool {
 	if one == nil || two == nil {
 		return false
 	}
-	if one.Address.Deck != two.Address.Deck {
+	if one.Deck.Name() != two.Deck.Name() {
 		return false
 	}
-	if one.Address.Index != two.Address.Index {
+	if one.DeckIndex != two.DeckIndex {
 		return false
 	}
 	return true
