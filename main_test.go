@@ -145,6 +145,55 @@ func (t *testUserState) Prop(name string) interface{} {
 	return PropertyReaderPropImpl(t, name)
 }
 
+type testMoveAdvanceCurentPlayer struct{}
+
+func (t *testMoveAdvanceCurentPlayer) GameName() string {
+	return testGameName
+}
+
+func (t *testMoveAdvanceCurentPlayer) Props() []string {
+	return PropertyReaderPropsImpl(t)
+}
+
+func (t *testMoveAdvanceCurentPlayer) Prop(name string) interface{} {
+	return PropertyReaderPropImpl(t, name)
+}
+
+func (t *testMoveAdvanceCurentPlayer) JSON() JSONObject {
+	return t
+}
+
+func (t *testMoveAdvanceCurentPlayer) Legal(state StatePayload) bool {
+	payload := state.(*testStatePayload)
+
+	user := payload.users[payload.game.CurrentPlayer]
+
+	if user.MovesLeftThisTurn > 0 {
+		return false
+	}
+
+	return true
+}
+
+func (t *testMoveAdvanceCurentPlayer) Apply(state StatePayload) StatePayload {
+	result := state.Copy()
+
+	payload := result.(*testStatePayload)
+
+	//Make sure we're leaving it at 0
+	payload.users[payload.game.CurrentPlayer].MovesLeftThisTurn = 0
+
+	payload.game.CurrentPlayer++
+
+	if payload.game.CurrentPlayer >= len(payload.users) {
+		payload.game.CurrentPlayer = 0
+	}
+
+	payload.users[payload.game.CurrentPlayer].MovesLeftThisTurn = 1
+
+	return result
+}
+
 type testMove struct {
 	AString           string
 	ScoreIncrement    int
@@ -188,16 +237,6 @@ func (t *testMove) Apply(state StatePayload) StatePayload {
 	payload.users[payload.game.CurrentPlayer].Score += t.ScoreIncrement
 
 	payload.users[payload.game.CurrentPlayer].MovesLeftThisTurn -= 1
-
-	//TODO: the logic to advance the turn should be popped out into a FixUp move.
-
-	payload.game.CurrentPlayer++
-
-	if payload.game.CurrentPlayer >= len(payload.users) {
-		payload.game.CurrentPlayer = 0
-	}
-
-	payload.users[payload.game.CurrentPlayer].MovesLeftThisTurn = 1
 
 	return result
 }

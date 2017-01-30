@@ -29,6 +29,12 @@ func (t *testGameDelegate) CheckGameFinished(state StatePayload) (bool, []int) {
 }
 
 func (t *testGameDelegate) ProposeFixUpMove(state StatePayload) Move {
+	move := &testMoveAdvanceCurentPlayer{}
+
+	if move.Legal(state) {
+		return move
+	}
+
 	return nil
 }
 
@@ -66,7 +72,9 @@ func TestApplyMove(t *testing.T) {
 		t.Error("Game didn't allow a legal move to be made")
 	}
 
-	//Verify that the move was made
+	//Verify that the move was made. Note that because our Delegate has a
+	//FixUp move, this is also testing that not just the main move, but also
+	//the fixup move was made.
 
 	json := game.State.JSON()
 	golden := goldenJSON("basic_state_after_move.json", t)
