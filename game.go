@@ -43,8 +43,10 @@ type GameDelegate interface {
 	//the Deck/Stack invariant that every component in the chest is placed in
 	//precisely one Stack. Game will call this on each component in the Chest
 	//in order. This is where the logic goes to make sure each Component goes
-	//into its correct starter stack.
-	DistributeComponentToStarterStack(c *Component)
+	//into its correct starter stack. As long as you put each component into a
+	//Stack, the invariant will be met at the end of SetUp. Unlike after the
+	//game has been SetUp, you can modify payload directly.
+	DistributeComponentToStarterStack(payload StatePayload, c *Component)
 
 	//CheckGameFinished should return true if the game is finished, and who
 	//the winners are. Called after every move is applied.
@@ -84,7 +86,7 @@ func (g *Game) SetUp() error {
 		for _, name := range g.Chest().DeckNames() {
 			deck := g.Chest().Deck(name)
 			for _, component := range deck.Components() {
-				g.Delegate.DistributeComponentToStarterStack(component)
+				g.Delegate.DistributeComponentToStarterStack(g.State.Payload, component)
 			}
 		}
 	}

@@ -7,8 +7,9 @@ import (
 
 type testGameDelegate struct{}
 
-func (t *testGameDelegate) DistributeComponentToStarterStack(c *Component) {
-	//TODO: test that this is done correctly.
+func (t *testGameDelegate) DistributeComponentToStarterStack(payload StatePayload, c *Component) {
+	p := payload.(*testStatePayload)
+	p.game.DrawDeck.InsertFront(c)
 }
 
 func (t *testGameDelegate) CheckGameFinished(state StatePayload) (bool, []int) {
@@ -67,6 +68,14 @@ func TestGameSetUp(t *testing.T) {
 	}
 
 	game.SetUp()
+
+	p := game.State.Payload.(*testStatePayload)
+
+	deck := game.Chest().Deck("test").Components()
+
+	if p.game.DrawDeck.Len() != len(deck) {
+		t.Error("All of the components were not distributed in SetUp")
+	}
 
 	newChest := NewComponentChest(testGameName)
 
