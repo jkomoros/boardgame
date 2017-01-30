@@ -6,16 +6,24 @@ import (
 
 const emptyIndexSentinel = -1
 
-//TODO: create a Stack interface that both GrowableStack and SizedStack
-//implement.
-
-//TODO: should deck, index, and cap all be private?
-
 //Stack is one of the fundamental types in BoardGame. It represents an ordered
 //stack of 0 or more Components, all from the same Deck. Each deck has 0 or
 //more Stacks based off of it, and together they include all components in
 //that deck, with no component residing in more than one stack. Stacks model
-//things like a stack of cards, a collection of resource tokens, etc.
+//things like a stack of cards, a collection of resource tokens, etc. There
+//are two concrete types of Stacks: GrowableStack's and SizedStack's.
+type Stack interface {
+	//Len returns the number of slots in the Stack. For a GrowableStack this
+	//is the number of items in the stack. For SizedStacks, this is the number
+	//of slots--even if some are unfilled.
+	Len() int
+	//ComponentAt retrieves the component at the given index in the stack.
+	ComponentAt(index int) *Component
+	//SlotsRemaining returns how many slots there are left in this stack to
+	//add items.
+	SlotsRemaining() int
+}
+
 type GrowableStack struct {
 	//Deck is the deck that we're a part of.
 	deck *Deck
