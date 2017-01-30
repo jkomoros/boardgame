@@ -9,7 +9,7 @@ func TestStackInsert(t *testing.T) {
 
 	game := testGame()
 
-	chest := game.Chest
+	chest := game.Chest()
 
 	stack := &GrowableStack{
 		chest.Deck("test"),
@@ -74,12 +74,12 @@ func TestStackCap(t *testing.T) {
 	game := testGame()
 
 	stack := &GrowableStack{
-		game.Chest.Deck("test"),
+		game.Chest().Deck("test"),
 		[]int{},
 		2,
 	}
 
-	deck := game.Chest.Deck("test")
+	deck := game.Chest().Deck("test")
 
 	if stack.SlotsRemaining() != 2 {
 		t.Error("An empty stack with cap 2 reported wrong slots remaining. Got", stack.SlotsRemaining(), "wanted 2")

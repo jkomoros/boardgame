@@ -15,6 +15,8 @@ type ComponentChest struct {
 	deckNames   []string
 	decks       map[string]*Deck
 	gameName    string
+	//The game part of.
+	game *Game
 }
 
 func NewComponentChest(gameName string) *ComponentChest {

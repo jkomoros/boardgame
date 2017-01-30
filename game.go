@@ -9,8 +9,6 @@ type Game struct {
 
 	//Delegate is an (optional) way to override behavior at key game states.
 	Delegate GameDelegate
-	//Chest is the ComponentChest used for this game.
-	Chest *ComponentChest
 	//State is the current state of the game.
 	State *State
 	//Finished is whether the came has been completed. If it is over, the
@@ -21,10 +19,14 @@ type Game struct {
 	//case of a draw.
 	Winners []int
 
+	chest *ComponentChest
+
 	//TODO: HistoricalState(index int) and HistoryLen() int
 
 	//TODO: an array of Player objects.
 }
+
+//TODO: Create a NewGame()
 
 //GameDelegate is called at various points in the game lifecycle. It is one of
 //the primary ways that a specific game controls behavior over and beyond
@@ -40,6 +42,17 @@ type GameNamer interface {
 	//Before a move is applied to a game we verify that game.Name() and
 	//move.GameName() match. Other types will similarly be gutchecked.
 	GameName() string
+}
+
+//Chest is the ComponentChest in use for this game.
+func (g *Game) Chest() *ComponentChest {
+	return g.chest
+}
+
+//SetChest is the way to associate the given Chest with this game.
+func (g *Game) SetChest(chest *ComponentChest) {
+	chest.game = g
+	g.chest = chest
 }
 
 //Game applies the move to the state if it is currently legal.

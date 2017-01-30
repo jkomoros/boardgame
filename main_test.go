@@ -228,7 +228,6 @@ func testGame() *Game {
 	game := &Game{
 		Name:     testGameName,
 		Delegate: &testGameDelegate{},
-		Chest:    chest,
 		State: &State{
 			Version: 0,
 			Schema:  0,
@@ -256,6 +255,8 @@ func testGame() *Game {
 			},
 		},
 	}
+
+	game.SetChest(chest)
 
 	return game
 }
