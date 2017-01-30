@@ -11,7 +11,7 @@ func TestStackInsert(t *testing.T) {
 
 	chest := game.Chest
 
-	stack := &Stack{
+	stack := &GrowableStack{
 		game,
 		"test",
 		[]int{},
@@ -74,7 +74,7 @@ func TestStackInsert(t *testing.T) {
 func TestStackCap(t *testing.T) {
 	game := testGame()
 
-	stack := &Stack{
+	stack := &GrowableStack{
 		game,
 		"test",
 		[]int{},

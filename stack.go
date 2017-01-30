@@ -4,12 +4,15 @@ import (
 	"math"
 )
 
+//TODO: create a Stack interface that both GrowableStack and SizedStack
+//implement.
+
 //Stack is one of the fundamental types in BoardGame. It represents an ordered
 //stack of 0 or more Components, all from the same Deck. Each deck has 0 or
 //more Stacks based off of it, and together they include all components in
 //that deck, with no component residing in more than one stack. Stacks model
 //things like a stack of cards, a collection of resource tokens, etc.
-type Stack struct {
+type GrowableStack struct {
 	//The Game that we're associated with
 	Game *Game
 	//DeckName is the name of the deck in the game's ComponentChest that this
@@ -23,13 +26,13 @@ type Stack struct {
 }
 
 //Len returns the number of items in the stack.
-func (s *Stack) Len() int {
+func (s *GrowableStack) Len() int {
 	return len(s.Indexes)
 }
 
 //ComponentAt fetches the component object representing the n-th object in
 //this stack.
-func (s *Stack) ComponentAt(index int) *Component {
+func (s *GrowableStack) ComponentAt(index int) *Component {
 
 	if index >= s.Len() || index < 0 {
 		return nil
@@ -48,7 +51,7 @@ func (s *Stack) ComponentAt(index int) *Component {
 
 //SlotsRemaining returns the count of slots left in this stack. If Cap is 0
 //(inifinite) this will be MaxInt64.
-func (s *Stack) SlotsRemaining() int {
+func (s *GrowableStack) SlotsRemaining() int {
 	if s.Cap <= 0 {
 		return math.MaxInt64
 	}
@@ -58,7 +61,7 @@ func (s *Stack) SlotsRemaining() int {
 //InsertFront puts the component at index 0 in this stack, moving all other
 //items down by one. The Component you insert should not currently be a member
 //of any other stacks, to maintain the deck invariant.
-func (s *Stack) InsertFront(c *Component) {
+func (s *GrowableStack) InsertFront(c *Component) {
 
 	//Based on how Decks and Chests are constructed, we know the components in
 	//the chest hae the right gamename, so no need to check.
