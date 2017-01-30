@@ -70,6 +70,26 @@ type GameNamer interface {
 	GameName() string
 }
 
+//DefaultGameDelegate is a struct that implements stubs for all of
+//GameDelegate's methods. This makes it easy to override just one or two
+//methods by creating your own struct that anonymously embeds this one.
+type DefaultGameDelegate struct{}
+
+func (d *DefaultGameDelegate) DistributeComponentToStarterStack(payload StatePayload, c *Component) error {
+	//The stub returns an error, because if this is called that means there
+	//was a component in the deck. And if we didn't store it in a stack, then
+	//we are in violation of the invariant.
+	return errors.New("DistributeComponentToStarterStack was called, but the component was not stored in a stack")
+}
+
+func (d *DefaultGameDelegate) CheckGameFinished(state StatePayload) (finished bool, winners []int) {
+	return false, nil
+}
+
+func (d *DefaultGameDelegate) ProposeFixUpMove(state StatePayload) Move {
+	return nil
+}
+
 //SetUp should be called a single time after all of the member variables are
 //set correctly, including Chest. SetUp must be called before ApplyMove can be
 //called. Even if an error is returned, the game should be in a consistent state.
