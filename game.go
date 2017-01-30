@@ -38,6 +38,14 @@ type Game struct {
 //the primary ways that a specific game controls behavior over and beyond
 //Moves and their Legal states.
 type GameDelegate interface {
+
+	//DistributeComponentToStarterStack is called during set up to establish
+	//the Deck/Stack invariant that every component in the chest is placed in
+	//precisely one Stack. Game will call this on each component in the Chest
+	//in order. This is where the logic goes to make sure each Component goes
+	//into its correct starter stack.
+	DistributeComponentToStarterStack(c *Component)
+
 	//CheckGameFinished should return true if the game is finished, and who
 	//the winners are. Called after every move is applied.
 	CheckGameFinished(state StatePayload) (finished bool, winners []int)
@@ -71,8 +79,17 @@ func (g *Game) SetUp() error {
 		return errors.New("No component chest set")
 	}
 
-	//TODO: do other set-up work, including calling applicable delegate
-	//methods.
+	//Distribute all components to their starter locations
+	if g.Delegate != nil {
+		for _, name := range g.Chest().DeckNames() {
+			deck := g.Chest().Deck(name)
+			for _, component := range deck.Components() {
+				g.Delegate.DistributeComponentToStarterStack(component)
+			}
+		}
+	}
+
+	//TODO: do other set-up work, including FinishSetUp
 
 	g.initalized = true
 

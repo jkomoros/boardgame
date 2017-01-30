@@ -7,6 +7,10 @@ import (
 
 type testGameDelegate struct{}
 
+func (t *testGameDelegate) DistributeComponentToStarterStack(c *Component) {
+	//TODO: test that this is done correctly.
+}
+
 func (t *testGameDelegate) CheckGameFinished(state StatePayload) (bool, []int) {
 	p := state.(*testStatePayload)
 
