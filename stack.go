@@ -23,6 +23,11 @@ type Stack interface {
 	//SlotsRemaining returns how many slots there are left in this stack to
 	//add items.
 	SlotsRemaining() int
+	//InsertFront inserts the component at the first position in the stack
+	//that it can. In GrowableStacks, this will be the front of the stack (if
+	//there aren't already MaxLen), and in SizedStacks this will be in the
+	//first unfilled slot.
+	InsertFront(c *Component) error
 }
 
 type GrowableStack struct {
@@ -181,8 +186,8 @@ func (s *SizedStack) InsertAtSlot(c *Component, index int) error {
 	return nil
 }
 
-//InsertFirstEmptySlot inserts the component in the first slot that is empty.
-func (s *SizedStack) InsertFirstEmptySlot(c *Component) error {
+//InsertFront inserts the component in the first slot that is empty.
+func (s *SizedStack) InsertFront(c *Component) error {
 
 	//TODO: shouldn't this just be InsertFront, and then we pop it into the
 	//Stack interface?

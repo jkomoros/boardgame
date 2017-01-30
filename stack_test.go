@@ -143,7 +143,7 @@ func TestSizedStack(t *testing.T) {
 		t.Error("Got wrong component out. Got", stack.ComponentAt(1), "wanted", deck.Components()[1])
 	}
 
-	if err := stack.InsertFirstEmptySlot(deck.Components()[0]); err != nil {
+	if err := stack.InsertFront(deck.Components()[0]); err != nil {
 		t.Error("Insertion unexpectedly failed", err)
 	}
 
@@ -155,7 +155,7 @@ func TestSizedStack(t *testing.T) {
 		t.Error("Stack InsertFirstEmptySlot put a component in the wrong slot.")
 	}
 
-	if err := stack.InsertFirstEmptySlot(deck.Components()[2]); err != nil {
+	if err := stack.InsertFront(deck.Components()[2]); err != nil {
 		t.Error("Insertion unexpectedly failed", err)
 	}
 
@@ -167,7 +167,7 @@ func TestSizedStack(t *testing.T) {
 		t.Error("Stack insertnextemptyslot didn't insert the item at the right slot")
 	}
 
-	if err := stack.InsertFirstEmptySlot(deck.Components()[3]); err == nil {
+	if err := stack.InsertFront(deck.Components()[3]); err == nil {
 		t.Error("Trying to insert a compnent after there were no more slots succeeded")
 	}
 
