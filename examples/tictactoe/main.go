@@ -13,6 +13,8 @@ import (
 
 const gameName = "tictactoe"
 
+const DIM = 3
+
 func ticTacToeGame() *boardgame.Game {
 
 	chest := boardgame.NewComponentChest(gameName)
@@ -42,9 +44,15 @@ func ticTacToeGame() *boardgame.Game {
 
 	chest.AddDeck("tokens", tokens)
 
+	starterPayload := &statePayload{
+		game: &gameState{
+			Slots: boardgame.NewSizedStack(tokens, DIM*DIM),
+		},
+	}
+
 	game := &boardgame.Game{
-		Name: gameName,
-		//TODO: state
+		Name:  gameName,
+		State: boardgame.NewStarterState(starterPayload),
 	}
 
 	game.SetChest(chest)
