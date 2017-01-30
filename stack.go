@@ -18,37 +18,37 @@ const emptyIndexSentinel = -1
 //things like a stack of cards, a collection of resource tokens, etc.
 type GrowableStack struct {
 	//Deck is the deck that we're a part of.
-	Deck *Deck
+	deck *Deck
 	//The indexes from the given deck that this stack contains, in order.
-	Indexes []int
-	//Cap, if set, says the maxmimum number of items allowed in the Stack. 0
+	indexes []int
+	//size, if set, says the maxmimum number of items allowed in the Stack. 0
 	//means that the Stack may grow without bound.
-	Cap int
+	maxLen int
 }
 
 //SizedStack is a Stack that has a fixed number of slots, any of which may be
 //empty. Create a new one with NewSizedStack.
 type SizedStack struct {
 	//Deck is the deck we're a part of.
-	Deck *Deck
+	deck *Deck
 	//Indexes will always have a len of size. Slots that are "empty" will have
 	//index of -1.
-	Indexes []int
+	indexes []int
 	//Size is the number of slots.
-	Size int
+	size int
 }
 
 //NewGrowableStack creates a new growable stack with the given Deck and Cap.
-func NewGrowableStack(deck *Deck, max int) *GrowableStack {
+func NewGrowableStack(deck *Deck, maxLen int) *GrowableStack {
 
-	if max < 0 {
-		max = 0
+	if maxLen < 0 {
+		maxLen = 0
 	}
 
 	return &GrowableStack{
-		Deck:    deck,
-		Indexes: nil,
-		Cap:     max,
+		deck:    deck,
+		indexes: nil,
+		maxLen:  maxLen,
 	}
 }
 
@@ -66,20 +66,20 @@ func NewSizedStack(deck *Deck, size int) *SizedStack {
 	}
 
 	return &SizedStack{
-		Deck:    deck,
-		Indexes: indexes,
-		Size:    size,
+		deck:    deck,
+		indexes: indexes,
+		size:    size,
 	}
 }
 
 //Len returns the number of items in the stack.
 func (s *GrowableStack) Len() int {
-	return len(s.Indexes)
+	return len(s.indexes)
 }
 
 //Len returns the number of slots in the stack. It will always equal Size.
 func (s *SizedStack) Len() int {
-	return len(s.Indexes)
+	return len(s.indexes)
 }
 
 //ComponentAt fetches the component object representing the n-th object in
@@ -91,13 +91,13 @@ func (s *GrowableStack) ComponentAt(index int) *Component {
 		return nil
 	}
 
-	if s.Deck == nil {
+	if s.deck == nil {
 		return nil
 	}
 
 	//We don't need to check that s.Indexes[index] is valid because it was
 	//checked when it was set, and Decks are immutable.
-	return s.Deck.Components()[s.Indexes[index]]
+	return s.deck.Components()[s.indexes[index]]
 }
 
 //ComponentAt fetches the component object representing the n-th object in
@@ -110,11 +110,11 @@ func (s *SizedStack) ComponentAt(index int) *Component {
 		return nil
 	}
 
-	if s.Deck == nil {
+	if s.deck == nil {
 		return nil
 	}
 
-	deckIndex := s.Indexes[index]
+	deckIndex := s.indexes[index]
 
 	//Check if this is an empty slot
 	if deckIndex == emptyIndexSentinel {
@@ -123,22 +123,22 @@ func (s *SizedStack) ComponentAt(index int) *Component {
 
 	//We don't need to check that s.Indexes[index] is valid because it was
 	//checked when it was set, and Decks are immutable.
-	return s.Deck.Components()[deckIndex]
+	return s.deck.Components()[deckIndex]
 }
 
 //SlotsRemaining returns the count of slots left in this stack. If Cap is 0
 //(inifinite) this will be MaxInt64.
 func (s *GrowableStack) SlotsRemaining() int {
-	if s.Cap <= 0 {
+	if s.maxLen <= 0 {
 		return math.MaxInt64
 	}
-	return s.Cap - s.Len()
+	return s.maxLen - s.Len()
 }
 
 //SlotsRemaining returns the count of unfilled slots in this stack.
 func (s *SizedStack) SlotsRemaining() int {
 	count := 0
-	for _, index := range s.Indexes {
+	for _, index := range s.indexes {
 		if index == emptyIndexSentinel {
 			count++
 		}
@@ -154,7 +154,7 @@ func (s *GrowableStack) InsertFront(c *Component) {
 	//Based on how Decks and Chests are constructed, we know the components in
 	//the chest hae the right gamename, so no need to check.
 
-	if c.Deck.Name() != s.Deck.Name() {
+	if c.Deck.Name() != s.deck.Name() {
 		//We can only add items that are in our deck.
 
 		//TODO: communicate an error
@@ -165,7 +165,7 @@ func (s *GrowableStack) InsertFront(c *Component) {
 		return
 	}
 
-	s.Indexes = append([]int{c.DeckIndex}, s.Indexes...)
+	s.indexes = append([]int{c.DeckIndex}, s.indexes...)
 }
 
 /*

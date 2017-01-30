@@ -21,7 +21,7 @@ func TestStackInsert(t *testing.T) {
 		t.Error("Empty stack didn't report empty")
 	}
 
-	if stack.Deck.Name() != "test" {
+	if stack.deck.Name() != "test" {
 		t.Error("Stack didn't report right deck name")
 	}
 
