@@ -14,7 +14,8 @@ type ComponentChest struct {
 	initialized bool
 	deckNames   []string
 	decks       map[string]*Deck
-	gameName    string
+	//TODO: why do we need gameName when we have game? Should we remove?
+	gameName string
 	//The game part of.
 	game *Game
 }
@@ -23,6 +24,10 @@ func NewComponentChest(gameName string) *ComponentChest {
 	return &ComponentChest{
 		gameName: gameName,
 	}
+}
+
+func (c *ComponentChest) Game() *Game {
+	return c.game
 }
 
 //DeckNames returns all of the valid deck names, if the chest has finished initalization.
