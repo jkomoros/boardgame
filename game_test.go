@@ -50,6 +50,10 @@ func TestGameSetUp(t *testing.T) {
 
 	game.SetChest(nil)
 
+	//TODO: test that if one of the calls to DistributeComponentToStarterStack
+	//returned an error all of SetUp fails, and that the state is still in a
+	//consistent state. This will be easier with a DefaultDelegate.
+
 	if err := game.SetUp(); err == nil {
 		t.Error("We were able to call game.SetUp without a Chest")
 	}

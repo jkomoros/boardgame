@@ -72,7 +72,7 @@ type GameNamer interface {
 
 //SetUp should be called a single time after all of the member variables are
 //set correctly, including Chest. SetUp must be called before ApplyMove can be
-//called.
+//called. Even if an error is returned, the game should be in a consistent state.
 func (g *Game) SetUp() error {
 
 	if g.initalized {
@@ -85,14 +85,21 @@ func (g *Game) SetUp() error {
 
 	//Distribute all components to their starter locations
 	if g.Delegate != nil {
+
+		//We'll work on a copy of Payload, so if it fails at some point we can just drop it
+		payloadCopy := g.State.Payload.Copy()
+
 		for _, name := range g.Chest().DeckNames() {
 			deck := g.Chest().Deck(name)
 			for i, component := range deck.Components() {
-				if err := g.Delegate.DistributeComponentToStarterStack(g.State.Payload, component); err != nil {
+				if err := g.Delegate.DistributeComponentToStarterStack(payloadCopy, component); err != nil {
 					return errors.New("Distributing components failed for deck " + name + ":" + strconv.Itoa(i) + ":" + err.Error())
 				}
 			}
 		}
+
+		//If we got to here then the payloadCopy is now the real one.
+		g.State.Payload = payloadCopy
 	}
 
 	//TODO: do other set-up work, including FinishSetUp
