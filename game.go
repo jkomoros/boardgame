@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"errors"
+	"strconv"
 )
 
 //A Game represents a specific game between a collection of Players
@@ -44,9 +45,10 @@ type GameDelegate interface {
 	//precisely one Stack. Game will call this on each component in the Chest
 	//in order. This is where the logic goes to make sure each Component goes
 	//into its correct starter stack. As long as you put each component into a
-	//Stack, the invariant will be met at the end of SetUp. Unlike after the
-	//game has been SetUp, you can modify payload directly.
-	DistributeComponentToStarterStack(payload StatePayload, c *Component)
+	//Stack, the invariant will be met at the end of SetUp. If any errors are
+	//returned SetUp fails. Unlike after the game has been SetUp, you can
+	//modify payload directly.
+	DistributeComponentToStarterStack(payload StatePayload, c *Component) error
 
 	//CheckGameFinished should return true if the game is finished, and who
 	//the winners are. Called after every move is applied.
@@ -85,8 +87,10 @@ func (g *Game) SetUp() error {
 	if g.Delegate != nil {
 		for _, name := range g.Chest().DeckNames() {
 			deck := g.Chest().Deck(name)
-			for _, component := range deck.Components() {
-				g.Delegate.DistributeComponentToStarterStack(g.State.Payload, component)
+			for i, component := range deck.Components() {
+				if err := g.Delegate.DistributeComponentToStarterStack(g.State.Payload, component); err != nil {
+					return errors.New("Distributing components failed for deck " + name + ":" + strconv.Itoa(i) + ":" + err.Error())
+				}
 			}
 		}
 	}

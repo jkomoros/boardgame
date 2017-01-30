@@ -7,9 +7,9 @@ import (
 
 type testGameDelegate struct{}
 
-func (t *testGameDelegate) DistributeComponentToStarterStack(payload StatePayload, c *Component) {
+func (t *testGameDelegate) DistributeComponentToStarterStack(payload StatePayload, c *Component) error {
 	p := payload.(*testStatePayload)
-	p.game.DrawDeck.InsertFront(c)
+	return p.game.DrawDeck.InsertFront(c)
 }
 
 func (t *testGameDelegate) CheckGameFinished(state StatePayload) (bool, []int) {
