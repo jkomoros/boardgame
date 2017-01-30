@@ -16,6 +16,15 @@ type State struct {
 	Payload StatePayload
 }
 
+//NewStarterState creates a new state initialized for the first move.
+func NewStarterState(payload StatePayload) *State {
+	return &State{
+		Version: 0,
+		Schema:  0,
+		Payload: payload,
+	}
+}
+
 //StatePayload is where the "meat" of the state goes. It is one object so that
 //client games can cast it quickly to the concrete struct for their game, so
 //that they can get to a type-checked world with minimal fuss inside of
