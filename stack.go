@@ -1,5 +1,9 @@
 package boardgame
 
+import (
+	"math"
+)
+
 //Stack is one of the fundamental types in BoardGame. It represents an ordered
 //stack of 0 or more Components, all from the same Deck. Each deck has 0 or
 //more Stacks based off of it, and together they include all components in
@@ -13,6 +17,9 @@ type Stack struct {
 	DeckName string
 	//The indexes from the given deck that this stack contains, in order.
 	Indexes []int
+	//Cap, if set, says the maxmimum number of items allowed in the Stack. 0
+	//means that the Stack may grow without bound.
+	Cap int
 }
 
 //Len returns the number of items in the stack.
@@ -39,6 +46,15 @@ func (s *Stack) ComponentAt(index int) *Component {
 	return deck.Components()[s.Indexes[index]]
 }
 
+//SlotsRemaining returns the count of slots left in this stack. If Cap is 0
+//(inifinite) this will be MaxInt64.
+func (s *Stack) SlotsRemaining() int {
+	if s.Cap <= 0 {
+		return math.MaxInt64
+	}
+	return s.Cap - s.Len()
+}
+
 //InsertFront puts the component at index 0 in this stack, moving all other
 //items down by one. The Component you insert should not currently be a member
 //of any other stacks, to maintain the deck invariant.
@@ -51,6 +67,10 @@ func (s *Stack) InsertFront(c *Component) {
 		//We can only add items that are in our deck.
 
 		//TODO: communicate an error
+		return
+	}
+
+	if s.SlotsRemaining() < 1 {
 		return
 	}
 

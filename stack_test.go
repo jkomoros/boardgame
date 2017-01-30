@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"math"
 	"testing"
 )
 
@@ -14,6 +15,11 @@ func TestStackInsert(t *testing.T) {
 		game,
 		"test",
 		[]int{},
+		0,
+	}
+
+	if stack.SlotsRemaining() != math.MaxInt64 {
+		t.Error("A stack with no cap reported a non-huge SlotsRemaining")
 	}
 
 	if stack.Len() != 0 {
@@ -63,4 +69,39 @@ func TestStackInsert(t *testing.T) {
 		t.Error("Inserting front didn't move the previous front back by one")
 	}
 
+}
+
+func TestStackCap(t *testing.T) {
+	game := testGame()
+
+	stack := &Stack{
+		game,
+		"test",
+		[]int{},
+		2,
+	}
+
+	deck := game.Chest.Deck("test")
+
+	if stack.SlotsRemaining() != 2 {
+		t.Error("An empty stack with cap 2 reported wrong slots remaining. Got", stack.SlotsRemaining(), "wanted 2")
+	}
+
+	stack.InsertFront(deck.Components()[0])
+
+	if stack.SlotsRemaining() != 1 {
+		t.Error("A stack with one item cap 2 reported wrong slots remaining. Got", stack.SlotsRemaining(), "wanted 1")
+	}
+
+	stack.InsertFront(deck.Components()[1])
+
+	if stack.SlotsRemaining() != 0 {
+		t.Error("A stack with two items cap two said it still had slots left. Got", stack.SlotsRemaining(), "wanted 0")
+	}
+
+	stack.InsertFront(deck.Components()[2])
+
+	if stack.Len() > 2 {
+		t.Error("InsertFront after a stack had hit its cap succeeded")
+	}
 }
