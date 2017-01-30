@@ -50,10 +50,6 @@ func TestGameSetUp(t *testing.T) {
 
 	game.SetChest(nil)
 
-	//TODO: test that if one of the calls to DistributeComponentToStarterStack
-	//returned an error all of SetUp fails, and that the state is still in a
-	//consistent state. This will be easier with a DefaultDelegate.
-
 	if err := game.SetUp(); err == nil {
 		t.Error("We were able to call game.SetUp without a Chest")
 	}
@@ -71,7 +67,23 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("Game allowed a move to be made before SetUp was called")
 	}
 
-	game.SetUp()
+	delegate := game.Delegate
+
+	game.Delegate = nil
+
+	if err := game.SetUp(); err == nil {
+		t.Error("game.SetUp didn't error when we had components in a deck but only the default delegate, which errors when a component has DistributeComponentToStarterStack is called.")
+	}
+
+	if game.Delegate == nil {
+		t.Error("Calling game.SetUp with no delegate did not provide us with one.")
+	}
+
+	game.Delegate = delegate
+
+	if err := game.SetUp(); err != nil {
+		t.Error("Calling SetUp on a previously errored game did not succeed", err)
+	}
 
 	p := game.State.Payload.(*testStatePayload)
 
