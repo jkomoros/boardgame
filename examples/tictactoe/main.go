@@ -48,6 +48,18 @@ func ticTacToeGame() *boardgame.Game {
 		game: &gameState{
 			Slots: boardgame.NewSizedStack(tokens, DIM*DIM),
 		},
+		users: []*userState{
+			&userState{
+				UnusedTokens: boardgame.NewGrowableStack(tokens, 0),
+			},
+			&userState{
+				UnusedTokens: boardgame.NewGrowableStack(tokens, 0),
+			},
+		},
+	}
+
+	for i, user := range starterPayload.users {
+		user.playerIndex = i
 	}
 
 	game := &boardgame.Game{
