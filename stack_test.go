@@ -68,6 +68,38 @@ func TestStackInsert(t *testing.T) {
 		t.Error("Inserting front didn't move the previous front back by one")
 	}
 
+	component := stack.RemoveFirst()
+
+	if component != one {
+		t.Error("REmoving component from front was wrong component. Got", component, "wanted", one)
+	}
+
+	if stack.Len() != 1 {
+		t.Error("Removing a component from front did not decrement len.")
+	}
+
+	component = stack.ComponentAt(0)
+
+	if component != two {
+		t.Error("Removing a component didn't move the other component down. Got", component, "wanted", two)
+	}
+
+	component = stack.RemoveFirst()
+
+	if component != two {
+		t.Error("removing last component didn't return the right one. Got", component, "wanted", two)
+	}
+
+	if stack.Len() != 0 {
+		t.Error("After removing two components the stack wasn't 0", stack.Len())
+	}
+
+	component = stack.RemoveFirst()
+
+	if component != nil {
+		t.Error("Was still able to remove a component even though it was empty.", component)
+	}
+
 }
 
 func TestStackCap(t *testing.T) {
@@ -173,6 +205,62 @@ func TestSizedStack(t *testing.T) {
 
 	if err := stack.InsertAtSlot(deck.Components()[3], 0); err == nil {
 		t.Error("Trying to insert a component at a taken slot succeeded")
+	}
+
+	component := stack.RemoveFirst()
+
+	if component != deck.Components()[0] {
+		t.Error("Removing first componetn didn't give first component got", component, "wanted", deck.Components()[0])
+	}
+
+	if stack.SlotsRemaining() != stackSize-2 {
+		t.Error("SlotsRemaining didn't change when removing first item")
+	}
+
+	component = stack.ComponentAt(0)
+
+	if component != nil {
+		t.Error("After removing a component from a slot there were other components in that slot", component)
+	}
+
+	component = stack.ComponentAt(1)
+
+	if component != deck.Components()[1] {
+		t.Error("AFter removing a component from slot one, the second component was not what we expected", component, "wanted", deck.Components()[1])
+	}
+
+	component = stack.RemoveFirst()
+
+	if component != deck.Components()[1] {
+		t.Error("Removing a second component didn't give right item", component, "wanted", deck.Components()[1])
+	}
+
+	if err := stack.InsertFront(deck.Components()[0]); err != nil {
+		t.Error("Couldn't insert an item even though we'd removed two", err)
+	}
+
+	component = stack.ComponentAt(0)
+
+	if component != deck.Components()[0] {
+		t.Error("After inserting again, the first component was not in the slot we wanted", component, deck.Components()[0])
+	}
+
+	component = stack.RemoveFirst()
+
+	if component != deck.Components()[0] {
+		t.Error("After removing again, we got wrong component.", component, "wanted", deck.Components()[0])
+	}
+
+	component = stack.RemoveFirst()
+
+	if component != deck.Components()[2] {
+		t.Error("Removing final item didn't give what we expected", component, "wanted", deck.Components()[2])
+	}
+
+	component = stack.RemoveFirst()
+
+	if component != nil {
+		t.Error("removefirst from empty stack didn't give us nil", component)
 	}
 
 }

@@ -26,8 +26,16 @@ type Stack interface {
 	//InsertFront inserts the component at the first position in the stack
 	//that it can. In GrowableStacks, this will be the front of the stack (if
 	//there aren't already MaxLen), and in SizedStacks this will be in the
-	//first unfilled slot.
+	//first unfilled slot. The component you insert should not currently be a
+	//member of any other Stack, in order to maintain the Deck/Stack
+	//invariant.
 	InsertFront(c *Component) error
+
+	//RemoveFirst removes the first component in the stack. For GrowableStacks
+	//this will always be the first component in the stack. For SizedStacks,
+	//this will be the component in the first filled slot. Remember to insert
+	//the component in another stack to maintain the Deck/Stack invariant.
+	RemoveFirst() *Component
 }
 
 type GrowableStack struct {
@@ -237,6 +245,30 @@ func (s *GrowableStack) InsertFront(c *Component) error {
 	s.indexes = append([]int{c.DeckIndex}, s.indexes...)
 
 	return nil
+}
+
+func (s *SizedStack) RemoveFirst() *Component {
+	for i, index := range s.indexes {
+		if index != emptyIndexSentinel {
+			//Found it!
+			component := s.ComponentAt(i)
+			s.indexes[i] = emptyIndexSentinel
+			return component
+		}
+	}
+	//didn't find any.
+	return nil
+}
+
+func (g *GrowableStack) RemoveFirst() *Component {
+	if len(g.indexes) == 0 {
+		return nil
+	}
+	component := g.ComponentAt(0)
+
+	g.indexes = g.indexes[1:]
+	return component
+
 }
 
 /*
