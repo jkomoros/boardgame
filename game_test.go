@@ -7,8 +7,8 @@ import (
 
 type testGameDelegate struct{}
 
-func (t *testGameDelegate) CheckGameFinished(state *State) (bool, []int) {
-	p := state.Payload.(*testStatePayload)
+func (t *testGameDelegate) CheckGameFinished(state StatePayload) (bool, []int) {
+	p := state.(*testStatePayload)
 
 	var winners []int
 

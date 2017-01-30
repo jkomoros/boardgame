@@ -34,7 +34,7 @@ type Game struct {
 type GameDelegate interface {
 	//CheckGameFinished should return true if the game is finished, and who
 	//the winners are. Called after every move is applied.
-	CheckGameFinished(state *State) (finished bool, winners []int)
+	CheckGameFinished(state StatePayload) (finished bool, winners []int)
 }
 
 type GameNamer interface {
@@ -91,7 +91,7 @@ func (g *Game) ApplyMove(move Move) bool {
 
 	//Check to see if that move made the game finished.
 	if g.Delegate != nil {
-		finished, winners := g.Delegate.CheckGameFinished(g.State)
+		finished, winners := g.Delegate.CheckGameFinished(g.State.Payload)
 
 		if finished {
 			g.Finished = true
