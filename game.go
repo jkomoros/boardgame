@@ -103,24 +103,26 @@ func (g *Game) SetUp() error {
 		return errors.New("No component chest set")
 	}
 
+	if g.Delegate == nil {
+		g.Delegate = &DefaultGameDelegate{}
+	}
+
 	//Distribute all components to their starter locations
-	if g.Delegate != nil {
 
-		//We'll work on a copy of Payload, so if it fails at some point we can just drop it
-		payloadCopy := g.State.Payload.Copy()
+	//We'll work on a copy of Payload, so if it fails at some point we can just drop it
+	payloadCopy := g.State.Payload.Copy()
 
-		for _, name := range g.Chest().DeckNames() {
-			deck := g.Chest().Deck(name)
-			for i, component := range deck.Components() {
-				if err := g.Delegate.DistributeComponentToStarterStack(payloadCopy, component); err != nil {
-					return errors.New("Distributing components failed for deck " + name + ":" + strconv.Itoa(i) + ":" + err.Error())
-				}
+	for _, name := range g.Chest().DeckNames() {
+		deck := g.Chest().Deck(name)
+		for i, component := range deck.Components() {
+			if err := g.Delegate.DistributeComponentToStarterStack(payloadCopy, component); err != nil {
+				return errors.New("Distributing components failed for deck " + name + ":" + strconv.Itoa(i) + ":" + err.Error())
 			}
 		}
-
-		//If we got to here then the payloadCopy is now the real one.
-		g.State.Payload = payloadCopy
 	}
+
+	//If we got to here then the payloadCopy is now the real one.
+	g.State.Payload = payloadCopy
 
 	//TODO: do other set-up work, including FinishSetUp
 
