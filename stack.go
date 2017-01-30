@@ -4,6 +4,8 @@ import (
 	"math"
 )
 
+const emptyIndexSentinel = -1
+
 //TODO: create a Stack interface that both GrowableStack and SizedStack
 //implement.
 
@@ -60,7 +62,7 @@ func NewSizedStack(deck *Deck, size int) *SizedStack {
 	indexes := make([]int, size)
 
 	for i := 0; i < size; i++ {
-		indexes[i] = -1
+		indexes[i] = emptyIndexSentinel
 	}
 
 	return &SizedStack{
@@ -115,7 +117,7 @@ func (s *SizedStack) ComponentAt(index int) *Component {
 	deckIndex := s.Indexes[index]
 
 	//Check if this is an empty slot
-	if deckIndex == -1 {
+	if deckIndex == emptyIndexSentinel {
 		return nil
 	}
 
@@ -137,7 +139,7 @@ func (s *GrowableStack) SlotsRemaining() int {
 func (s *SizedStack) SlotsRemaining() int {
 	count := 0
 	for _, index := range s.Indexes {
-		if index == -1 {
+		if index == emptyIndexSentinel {
 			count++
 		}
 	}
