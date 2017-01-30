@@ -95,3 +95,30 @@ func TestStackCap(t *testing.T) {
 		t.Error("InsertFront after a stack had hit its cap succeeded")
 	}
 }
+
+func TestSizedStack(t *testing.T) {
+	game := testGame()
+
+	deck := game.Chest().Deck("test")
+
+	stackSize := 3
+
+	stack := NewSizedStack(deck, stackSize)
+
+	if stack.Len() != stackSize {
+		t.Error("Sized stack had wrong len. Got", stack.Len(), "wanted", stackSize)
+	}
+
+	for i := 0; i < stackSize; i++ {
+		component := stack.ComponentAt(i)
+
+		if component != nil {
+			t.Error("Expected nil component but got one at", i, "got", component, "wanted nil")
+		}
+	}
+
+	if stack.SlotsRemaining() != stackSize {
+		t.Error("Got wrong SlotsRemaining for empty stack. Got", stack.SlotsRemaining(), "wanted", stackSize)
+	}
+
+}
