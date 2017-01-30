@@ -221,6 +221,13 @@ func testGame() *Game {
 		},
 	})
 
+	deck.AddComponent(&Component{
+		Values: &testingComponent{
+			"slam",
+			10,
+		},
+	})
+
 	chest.AddDeck("test", deck)
 
 	chest.Finish()

@@ -121,4 +121,38 @@ func TestSizedStack(t *testing.T) {
 		t.Error("Got wrong SlotsRemaining for empty stack. Got", stack.SlotsRemaining(), "wanted", stackSize)
 	}
 
+	stack.InsertAtSlot(deck.Components()[1], 1)
+
+	if stack.SlotsRemaining() != stackSize-1 {
+		t.Error("After inserting a component, slots remaining was wrong. Got", stack.SlotsRemaining(), "wanted", stackSize-1)
+	}
+
+	if stack.ComponentAt(1) != deck.Components()[1] {
+		t.Error("Got wrong component out. Got", stack.ComponentAt(1), "wanted", deck.Components()[1])
+	}
+
+	stack.InsertFirstEmptySlot(deck.Components()[0])
+
+	if stack.SlotsRemaining() != stackSize-2 {
+		t.Error("After inserting a component, slots remaining was wrong. Got", stack.SlotsRemaining(), "wanted", stackSize-2)
+	}
+
+	if stack.ComponentAt(0) != deck.Components()[0] {
+		t.Error("Stack InsertFirstEmptySlot put a component in the wrong slot.")
+	}
+
+	stack.InsertFirstEmptySlot(deck.Components()[2])
+
+	if stack.SlotsRemaining() != stackSize-3 {
+		t.Error("After inserting a component, slots remaining was wrong. Got", stack.SlotsRemaining(), "wanted", stackSize-3)
+	}
+
+	if stack.ComponentAt(2) != deck.Components()[2] {
+		t.Error("Stack insertnextemptyslot didn't insert the item at the right slot")
+	}
+
+	//TODO: when we return errors from insertion methods, verify that trying to insert when no more slots fails.
+
+	//TODO: verify that trying to set in an already-taken slot fails.
+
 }

@@ -154,6 +154,61 @@ func (s *SizedStack) SlotsRemaining() int {
 	return count
 }
 
+//InsertAtSlot inserts the given component at the specified slot in the stack,
+//as long as that slot is not currently occupied.
+func (s *SizedStack) InsertAtSlot(c *Component, index int) {
+	//Based on how Decks and Chests are constructed, we know the components in
+	//the chest hae the right gamename, so no need to check.
+
+	if c.Deck.Name() != s.deck.Name() {
+		//We can only add items that are in our deck.
+
+		//TODO: communicate an error
+		return
+	}
+
+	if index > s.Len() || index < 0 {
+		//TODO: communicate error
+		return
+	}
+
+	if s.indexes[index] != emptyIndexSentinel {
+		//That slot is taken!
+		return
+	}
+
+	s.indexes[index] = c.DeckIndex
+}
+
+//InsertFirstEmptySlot inserts the component in the first slot that is empty.
+func (s *SizedStack) InsertFirstEmptySlot(c *Component) {
+
+	//TODO: shouldn't this just be InsertFront, and then we pop it into the
+	//Stack interface?
+
+	//Based on how Decks and Chests are constructed, we know the components in
+	//the chest hae the right gamename, so no need to check.
+
+	if c.Deck.Name() != s.deck.Name() {
+		//We can only add items that are in our deck.
+
+		//TODO: communicate an error
+		return
+	}
+
+	if s.SlotsRemaining() < 1 {
+		return
+	}
+
+	for i, index := range s.indexes {
+		if index == emptyIndexSentinel {
+			//Found it!
+			s.indexes[i] = c.DeckIndex
+			return
+		}
+	}
+}
+
 //InsertFront puts the component at index 0 in this stack, moving all other
 //items down by one. The Component you insert should not currently be a member
 //of any other stacks, to maintain the deck invariant.
