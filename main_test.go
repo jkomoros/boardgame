@@ -92,6 +92,7 @@ func (t *testStatePayload) JSON() JSONObject {
 
 type testGameState struct {
 	CurrentPlayer int
+	DrawDeck      *GrowableStack
 	//TODO: have a Stack here.
 }
 
@@ -290,6 +291,7 @@ func testGame() *Game {
 			Payload: &testStatePayload{
 				game: &testGameState{
 					CurrentPlayer: 0,
+					DrawDeck:      NewGrowableStack(deck, 0),
 				},
 				users: []*testUserState{
 					&testUserState{

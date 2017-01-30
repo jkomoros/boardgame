@@ -3,7 +3,8 @@
     "Schema": 0,
     "Payload": {
         "Game": {
-            "CurrentPlayer": 1
+            "CurrentPlayer": 1,
+            "DrawDeck": {}
         },
         "Users": [
             {
