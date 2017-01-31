@@ -6,7 +6,7 @@ import (
 
 func TestGame(t *testing.T) {
 
-	game := NewTicTacToeGame()
+	game := NewGame()
 
 	if game == nil {
 		t.Error("Didn't get tictactoe game back")
