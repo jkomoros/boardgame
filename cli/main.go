@@ -16,11 +16,13 @@ import (
 //Controller is the primary type of the package.
 type Controller struct {
 	game *boardgame.Game
+	mode inputMode
 }
 
 func NewController(game *boardgame.Game) *Controller {
 	return &Controller{
 		game: game,
+		mode: modeDefault,
 	}
 }
 
@@ -37,12 +39,8 @@ func (c *Controller) MainLoop() {
 	for {
 		evt := termbox.PollEvent()
 
-		switch evt.Type {
-		case termbox.EventKey:
-			switch evt.Key {
-			case termbox.KeyCtrlC:
-				return
-			}
+		if c.mode.handleInput(c, evt) {
+			return
 		}
 
 		c.draw()
