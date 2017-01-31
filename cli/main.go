@@ -37,12 +37,21 @@ func makeLayoutFunc(c *Controller) func(g *gocui.Gui) error {
 	//Used to create a closure that captures 'c'
 	return func(g *gocui.Gui) error {
 		maxX, maxY := g.Size()
-		if v, err := g.SetView("main", 0, 0, maxX-1, maxY-1); err != nil {
+		if v, err := g.SetView("main", 0, 0, maxX-1, maxY-2); err != nil {
 			if err != gocui.ErrUnknownView {
 				return err
 			}
 			v.Title = "JSON"
 			v.Frame = true
+		}
+
+		if v, err := g.SetView("status", 0, maxY-2, maxX-1, maxY); err != nil {
+			if err != gocui.ErrUnknownView {
+				return err
+			}
+			v.FgColor = gocui.ColorBlack
+			v.BgColor = gocui.ColorWhite
+			v.Frame = false
 		}
 
 		//Update the json field of view
@@ -56,6 +65,11 @@ func makeLayoutFunc(c *Controller) func(g *gocui.Gui) error {
 				//Print JSON view
 				fmt.Fprint(view, string(boardgame.Serialize(c.game.State.JSON())))
 			}
+		}
+
+		if view, err := g.View("status"); err == nil {
+			view.Clear()
+			fmt.Fprint(view, "Type 't' to toggle json or render output, Ctrl-C to quit")
 		}
 
 		return nil
