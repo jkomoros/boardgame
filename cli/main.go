@@ -58,7 +58,7 @@ func (c *Controller) draw() {
 	//TODO: do real drawing
 	x := 0
 	y := 0
-	for _, ch := range "Hello World!" {
+	for _, ch := range "Hello World! You can kill with Ctrl-C" {
 		termbox.SetCell(x, y, ch, termbox.ColorWhite, termbox.ColorBlack)
 		x++
 	}
