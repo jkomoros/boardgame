@@ -9,7 +9,6 @@ package tictactoe
 
 import (
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/cli"
 )
 
 const gameName = "tictactoe"
@@ -95,9 +94,4 @@ func ticTacToeGame() *boardgame.Game {
 
 	return game
 
-}
-
-func main() {
-	controller := cli.NewController(ticTacToeGame())
-	controller.MainLoop()
 }
