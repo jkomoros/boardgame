@@ -33,7 +33,7 @@ func (g *gameDelegate) DistributeComponentToStarterStack(payload boardgame.State
 	return nil
 }
 
-func ticTacToeGame() *boardgame.Game {
+func NewTicTacToeGame() *boardgame.Game {
 
 	chest := boardgame.NewComponentChest(gameName)
 
