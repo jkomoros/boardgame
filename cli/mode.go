@@ -10,6 +10,7 @@ var (
 
 type inputMode interface {
 	handleInput(c *Controller, evt termbox.Event) (doQuit bool)
+	statusLine() string
 }
 
 type baseMode struct{}
@@ -18,7 +19,7 @@ type defaultMode struct {
 	baseMode
 }
 
-func (d *baseMode) handleInput(c *Controller, evt termbox.Event) bool {
+func (b *baseMode) handleInput(c *Controller, evt termbox.Event) bool {
 	switch evt.Type {
 	case termbox.EventKey:
 		switch evt.Key {
@@ -28,6 +29,10 @@ func (d *baseMode) handleInput(c *Controller, evt termbox.Event) bool {
 	}
 
 	return false
+}
+
+func (b *baseMode) statusLine() string {
+	return "Ctrl-C to exit"
 }
 
 func (d *defaultMode) handleInput(c *Controller, evt termbox.Event) bool {

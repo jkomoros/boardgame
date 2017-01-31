@@ -56,7 +56,13 @@ func (c *Controller) draw() {
 
 	c.drawJSON()
 
+	c.drawStatusLine()
+
 	termbox.Flush()
+}
+
+func (c *Controller) statusLine() string {
+	return c.mode.statusLine()
 }
 
 func clearScreen() {
@@ -65,6 +71,26 @@ func clearScreen() {
 		for y := 0; y < height; y++ {
 			termbox.SetCell(x, y, ' ', termbox.ColorDefault, termbox.ColorDefault)
 		}
+	}
+}
+
+func (c *Controller) drawStatusLine() {
+	line := c.statusLine()
+
+	width, height := termbox.Size()
+
+	//Render white background
+	y := height - 1
+
+	for x := 0; x < width; x++ {
+		termbox.SetCell(x, y, ' ', termbox.ColorBlack, termbox.ColorWhite)
+	}
+
+	x := 0
+
+	for _, ch := range ">>> " + line {
+		termbox.SetCell(x, y, ch, termbox.ColorBlack, termbox.ColorWhite)
+		x++
 	}
 }
 
