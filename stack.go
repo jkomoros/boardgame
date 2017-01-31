@@ -21,6 +21,9 @@ type Stack interface {
 	Len() int
 	//ComponentAt retrieves the component at the given index in the stack.
 	ComponentAt(index int) *Component
+	//Components returns all components. Equivalent to calling ComponentAt
+	//from 0 to Len(), and extracting the Values of each.
+	ComponentValues() []PropertyReader
 	//SlotsRemaining returns how many slots there are left in this stack to
 	//add items.
 	SlotsRemaining() int
@@ -156,6 +159,44 @@ func (s *SizedStack) ComponentAt(index int) *Component {
 	//We don't need to check that s.Indexes[index] is valid because it was
 	//checked when it was set, and Decks are immutable.
 	return s.deck.Components()[deckIndex]
+}
+
+//ComponentValues returns the Values of each Component in order. Useful for
+//then running through a converter to the underlying struct type you know it
+//is.
+func (g *GrowableStack) ComponentValues() []PropertyReader {
+	//TODO: memoize this, as long as indexes hasn't changed
+
+	//Substantially recreated in SizedStack.ComponentValues
+	result := make([]PropertyReader, g.Len())
+	for i := 0; i < g.Len(); i++ {
+		c := g.ComponentAt(i)
+		if c == nil {
+			result[i] = nil
+			continue
+		}
+		result[i] = c.Values
+	}
+	return result
+}
+
+//ComponentValues returns the Values of each Component in order. Useful for
+//then running through a converter to the underlying struct type you know it
+//is.
+func (s *SizedStack) ComponentValues() []PropertyReader {
+	//TODO: memoize this, as long as indexes hasn't changed
+
+	//Substantially recreated in GrowableStack.ComponentValues
+	result := make([]PropertyReader, s.Len())
+	for i := 0; i < s.Len(); i++ {
+		c := s.ComponentAt(i)
+		if c == nil {
+			result[i] = nil
+			continue
+		}
+		result[i] = c.Values
+	}
+	return result
 }
 
 //SlotsRemaining returns the count of slots left in this stack. If Cap is 0

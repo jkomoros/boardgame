@@ -243,6 +243,21 @@ func (t *testMove) Apply(state StatePayload) StatePayload {
 	return result
 }
 
+//testingComponentValues is designed to be run on a stack.ComponentValues() of
+//a stack of testingComponents, in order to convert them all to the specified
+//underlying struct.
+func testingComponentValues(in []PropertyReader) []*testingComponent {
+	result := make([]*testingComponent, len(in))
+	for i := 0; i < len(in); i++ {
+		if in[i] == nil {
+			result[i] = nil
+			continue
+		}
+		result[i] = in[i].(*testingComponent)
+	}
+	return result
+}
+
 //testGame returns a Game that has not yet had SetUp() called.
 func testGame() *Game {
 

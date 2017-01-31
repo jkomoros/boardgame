@@ -29,8 +29,10 @@ func TestStackInsert(t *testing.T) {
 		t.Error("Stack returned something even though it was empty:", stack.ComponentAt(0))
 	}
 
-	one := chest.Deck("test").Components()[0]
-	two := chest.Deck("test").Components()[1]
+	deck := chest.Deck("test")
+
+	one := deck.Components()[0]
+	two := deck.Components()[1]
 
 	if componentsEqual(one, two) {
 		t.Error("Two components that are not equal were thought to be equal", one, two)
@@ -66,6 +68,18 @@ func TestStackInsert(t *testing.T) {
 
 	if !componentsEqual(stack.ComponentAt(1), two) {
 		t.Error("Inserting front didn't move the previous front back by one")
+	}
+
+	values := testingComponentValues(stack.ComponentValues())
+
+	if len(values) != 2 {
+		t.Error("stack.ComponentValues returned wrong len", len(values), "wanted", 2)
+	}
+
+	for i := 0; i < 2; i++ {
+		if values[i] != deck.Components()[i].Values.(*testingComponent) {
+			t.Error("Got wrong value out of stack.Components at", i, "got", values[i], "wanted", deck.Components()[i].Values.(*testingComponent))
+		}
 	}
 
 	component := stack.RemoveFirst()
@@ -187,6 +201,24 @@ func TestSizedStack(t *testing.T) {
 		t.Error("Stack InsertFirstEmptySlot put a component in the wrong slot.")
 	}
 
+	values := testingComponentValues(stack.ComponentValues())
+
+	if len(values) != stackSize {
+		t.Error("stack.ComponentValues returned wrong len", len(values), "wanted", stackSize)
+	}
+
+	for i := 0; i < stackSize; i++ {
+		if i == 2 {
+			if values[i] != nil {
+				t.Error("Expected nil at 2")
+			}
+			continue
+		}
+		if values[i] != deck.Components()[i].Values.(*testingComponent) {
+			t.Error("Got wrong value out of stack.Components at", i, "got", values[i], "wanted", deck.Components()[i].Values.(*testingComponent))
+		}
+	}
+
 	if err := stack.InsertFront(deck.Components()[2]); err != nil {
 		t.Error("Insertion unexpectedly failed", err)
 	}
@@ -205,6 +237,18 @@ func TestSizedStack(t *testing.T) {
 
 	if err := stack.InsertAtSlot(deck.Components()[3], 0); err == nil {
 		t.Error("Trying to insert a component at a taken slot succeeded")
+	}
+
+	values = testingComponentValues(stack.ComponentValues())
+
+	if len(values) != stackSize {
+		t.Error("stack.ComponentValues returned wrong len", len(values), "wanted", stackSize)
+	}
+
+	for i := 0; i < stackSize; i++ {
+		if values[i] != deck.Components()[i].Values.(*testingComponent) {
+			t.Error("Got wrong value out of stack.Components at", i, "got", values[i], "wanted", deck.Components()[i].Values.(*testingComponent))
+		}
 	}
 
 	component := stack.RemoveFirst()
