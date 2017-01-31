@@ -25,7 +25,7 @@ type Controller struct {
 
 //RenderrerFunc takes a state and outputs a list of strings that should be
 //printed to screen to depict it.
-type RendererFunc func(boardgame.StatePayload) []string
+type RendererFunc func(boardgame.StatePayload) string
 
 func NewController(game *boardgame.Game, renderer RendererFunc) *Controller {
 	return &Controller{
@@ -51,7 +51,13 @@ func makeLayoutFunc(c *Controller) func(g *gocui.Gui) error {
 
 		if view, err := g.View("main"); err == nil {
 			view.Clear()
-			fmt.Fprint(view, string(boardgame.Serialize(c.game.State.JSON())))
+			if c.render {
+				//Print renderered view
+				fmt.Fprint(view, c.renderer(c.game.State.Payload))
+			} else {
+				//Print JSON view
+				fmt.Fprint(view, string(boardgame.Serialize(c.game.State.JSON())))
+			}
 		}
 
 		return nil
@@ -60,6 +66,13 @@ func makeLayoutFunc(c *Controller) func(g *gocui.Gui) error {
 
 func quit(g *gocui.Gui, v *gocui.View) error {
 	return gocui.ErrQuit
+}
+
+func makeToggleRenderFunc(c *Controller) func(*gocui.Gui, *gocui.View) error {
+	return func(g *gocui.Gui, v *gocui.View) error {
+		c.ToggleRender()
+		return nil
+	}
 }
 
 //Once the controller is set up, call Start. It will block until it is time
@@ -80,8 +93,11 @@ func (c *Controller) Start() {
 	//keybindings when set.
 	g.SetManagerFunc(makeLayoutFunc(c))
 
-	//TODO: key bindings don't appear to be running...
 	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+		panic(err)
+	}
+
+	if err := g.SetKeybinding("", 't', gocui.ModNone, makeToggleRenderFunc(c)); err != nil {
 		panic(err)
 	}
 
