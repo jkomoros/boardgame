@@ -20,3 +20,17 @@ func (p *playerToken) Props() []string {
 func (p *playerToken) Prop(name string) interface{} {
 	return boardgame.PropertyReaderPropImpl(p, name)
 }
+
+//Designed to be used with stack.ComponentValues()
+func playerTokenValues(in []boardgame.PropertyReader) []*playerToken {
+	result := make([]*playerToken, len(in))
+	for i := 0; i < len(in); i++ {
+		c := in[i]
+		if c == nil {
+			result[i] = nil
+			continue
+		}
+		result[i] = c.(*playerToken)
+	}
+	return result
+}
