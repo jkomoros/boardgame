@@ -17,6 +17,12 @@ type Controller struct {
 	game *boardgame.Game
 }
 
+func NewController(game *boardgame.Game) *Controller {
+	return &Controller{
+		game: game,
+	}
+}
+
 //Once the controller is set up, call MainLoop. It will block until it is time
 //to exit.
 func (c *Controller) MainLoop() {
