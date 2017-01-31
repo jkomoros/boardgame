@@ -50,7 +50,6 @@ func layout(g *gocui.Gui) error {
 }
 
 func quit(g *gocui.Gui, v *gocui.View) error {
-	panic("quit called")
 	return gocui.ErrQuit
 }
 
@@ -68,12 +67,14 @@ func (c *Controller) Start() {
 
 	c.gui = g
 
+	//manager has to be set before setting keybindings, because it clears all
+	//keybindings when set.
+	g.SetManagerFunc(layout)
+
 	//TODO: key bindings don't appear to be running...
 	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
 		panic(err)
 	}
-
-	g.SetManagerFunc(layout)
 
 	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
 		panic(err)
