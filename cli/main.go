@@ -62,6 +62,8 @@ func (c *Controller) draw() {
 		termbox.SetCell(x, y, ch, termbox.ColorWhite, termbox.ColorBlack)
 		x++
 	}
+
+	termbox.Flush()
 }
 
 func clearScreen() {
