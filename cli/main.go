@@ -88,8 +88,27 @@ func (c *Controller) drawStatusLine() {
 
 	x := 0
 
+	underlined := false
+
+	var fg termbox.Attribute
+
 	for _, ch := range ">>> " + line {
-		termbox.SetCell(x, y, ch, termbox.ColorBlack, termbox.ColorWhite)
+
+		if ch == '{' {
+			underlined = true
+			continue
+		} else if ch == '}' {
+			underlined = false
+			continue
+		}
+
+		fg = termbox.ColorBlack
+
+		if underlined {
+			fg = fg | termbox.AttrUnderline | termbox.AttrBold
+		}
+
+		termbox.SetCell(x, y, ch, fg, termbox.ColorWhite)
 		x++
 	}
 }
