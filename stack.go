@@ -291,6 +291,7 @@ func (g *GrowableStack) MarshalJSON() ([]byte, error) {
 }
 
 func (s *SizedStack) MarshalJSON() ([]byte, error) {
+	//TODO: test this, including Size
 	obj := &stackJSONObj{
 		Deck:    s.deck.Name(),
 		Indexes: s.indexes,
