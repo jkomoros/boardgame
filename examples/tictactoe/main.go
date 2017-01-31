@@ -72,9 +72,11 @@ func NewGame() *boardgame.Game {
 		},
 		users: []*userState{
 			&userState{
+				TokenValue:   X,
 				UnusedTokens: boardgame.NewGrowableStack(tokens, 0),
 			},
 			&userState{
+				TokenValue:   O,
 				UnusedTokens: boardgame.NewGrowableStack(tokens, 0),
 			},
 		},

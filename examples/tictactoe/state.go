@@ -29,6 +29,7 @@ func (g *gameState) JSON() boardgame.JSONObject {
 
 type userState struct {
 	playerIndex  int
+	TokenValue   string
 	UnusedTokens *boardgame.GrowableStack
 }
 
