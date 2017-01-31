@@ -10,6 +10,7 @@ package cli
 import (
 	"github.com/jkomoros/boardgame"
 	"github.com/nsf/termbox-go"
+	"strings"
 )
 
 //Controller is the primary type of the package.
@@ -55,13 +56,7 @@ func (c *Controller) draw() {
 
 	clearScreen()
 
-	//TODO: do real drawing
-	x := 0
-	y := 0
-	for _, ch := range "Hello World! You can kill with Ctrl-C" {
-		termbox.SetCell(x, y, ch, termbox.ColorWhite, termbox.ColorBlack)
-		x++
-	}
+	c.drawJSON()
 
 	termbox.Flush()
 }
@@ -73,4 +68,25 @@ func clearScreen() {
 			termbox.SetCell(x, y, ' ', termbox.ColorDefault, termbox.ColorDefault)
 		}
 	}
+}
+
+//Draws the JSON output of the current state to the screen
+func (c *Controller) drawJSON() {
+	x := 0
+	y := 0
+
+	json := string(boardgame.Serialize(c.game.State.JSON()))
+
+	for _, line := range strings.Split(json, "\n") {
+
+		x = 0
+
+		for _, ch := range line {
+			termbox.SetCell(x, y, ch, termbox.ColorWhite, termbox.ColorBlack)
+			x++
+		}
+
+		y++
+	}
+
 }
