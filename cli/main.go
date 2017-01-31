@@ -17,7 +17,6 @@ import (
 type Controller struct {
 	game     *boardgame.Game
 	gui      *gocui.Gui
-	mode     inputMode
 	renderer RendererFunc
 	//Whether or not we should render JSON (false) or the RendererFunc (true)
 	render bool
@@ -30,7 +29,6 @@ type RendererFunc func(boardgame.StatePayload) string
 func NewController(game *boardgame.Game, renderer RendererFunc) *Controller {
 	return &Controller{
 		game:     game,
-		mode:     modeDefault,
 		renderer: renderer,
 	}
 }
@@ -110,114 +108,3 @@ func (c *Controller) Start() {
 func (c *Controller) ToggleRender() {
 	c.render = !c.render
 }
-
-/*
-
-//draw draws the entire app to the screen
-func (c *Controller) draw() {
-
-	clearScreen()
-
-	if c.render {
-		c.drawRender()
-	} else {
-		c.drawJSON()
-	}
-
-	c.drawStatusLine()
-
-	termbox.Flush()
-}
-
-
-func (c *Controller) statusLine() string {
-	return c.mode.statusLine()
-}
-
-func clearScreen() {
-	width, height := termbox.Size()
-	for x := 0; x < width; x++ {
-		for y := 0; y < height; y++ {
-			termbox.SetCell(x, y, ' ', termbox.ColorDefault, termbox.ColorDefault)
-		}
-	}
-}
-
-//TODO: these should be global funcs that take a cont
-func (c *Controller) drawStatusLine() {
-	line := c.statusLine()
-
-	width, height := termbox.Size()
-
-	//Render white background
-	y := height - 1
-
-	for x := 0; x < width; x++ {
-		termbox.SetCell(x, y, ' ', termbox.ColorBlack, termbox.ColorWhite)
-	}
-
-	x := 0
-
-	underlined := false
-
-	var fg termbox.Attribute
-
-	for _, ch := range ">>> " + line {
-
-		if ch == '{' {
-			underlined = true
-			continue
-		} else if ch == '}' {
-			underlined = false
-			continue
-		}
-
-		fg = termbox.ColorBlack
-
-		if underlined {
-			fg = fg | termbox.AttrUnderline | termbox.AttrBold
-		}
-
-		termbox.SetCell(x, y, ch, fg, termbox.ColorWhite)
-		x++
-	}
-}
-
-func (c *Controller) drawRender() {
-	x := 0
-	y := 0
-
-	for _, line := range c.renderer(c.game.State.Payload) {
-		x = 0
-
-		for _, ch := range line {
-			termbox.SetCell(x, y, ch, termbox.ColorWhite, termbox.ColorBlack)
-			x++
-		}
-
-		y++
-	}
-}
-
-//Draws the JSON output of the current state to the screen
-func (c *Controller) drawJSON() {
-	x := 0
-	y := 0
-
-	json := string(boardgame.Serialize(c.game.State.JSON()))
-
-	for _, line := range strings.Split(json, "\n") {
-
-		x = 0
-
-		for _, ch := range line {
-			termbox.SetCell(x, y, ch, termbox.ColorWhite, termbox.ColorBlack)
-			x++
-		}
-
-		y++
-	}
-
-}
-
-*/
