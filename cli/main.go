@@ -27,6 +27,8 @@ func NewController(game *boardgame.Game) *Controller {
 //to exit.
 func (c *Controller) MainLoop() {
 
+	termbox.Init()
+
 	c.draw()
 
 	for {
