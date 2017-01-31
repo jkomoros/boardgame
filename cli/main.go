@@ -29,6 +29,8 @@ func (c *Controller) MainLoop() {
 
 	termbox.Init()
 
+	defer termbox.Close()
+
 	c.draw()
 
 	for {
@@ -36,7 +38,10 @@ func (c *Controller) MainLoop() {
 
 		switch evt.Type {
 		case termbox.EventKey:
-			//TODO: do something special for keys
+			switch evt.Key {
+			case termbox.KeyCtrlC:
+				return
+			}
 		}
 
 		c.draw()
