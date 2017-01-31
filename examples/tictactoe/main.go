@@ -15,6 +15,15 @@ const gameName = "tictactoe"
 
 const DIM = 3
 
+type gameDelegate struct {
+	boardgame.DefaultGameDelegate
+}
+
+func (g *gameDelegate) DistributeComponentToStarterStack(payload boardgame.StatePayload, c *boardgame.Component) error {
+	//TODO: actually sort the tokens into the right stacks
+	return nil
+}
+
 func ticTacToeGame() *boardgame.Game {
 
 	chest := boardgame.NewComponentChest(gameName)
@@ -44,6 +53,8 @@ func ticTacToeGame() *boardgame.Game {
 
 	chest.AddDeck("tokens", tokens)
 
+	chest.Finish()
+
 	starterPayload := &statePayload{
 		game: &gameState{
 			Slots: boardgame.NewSizedStack(tokens, DIM*DIM),
@@ -63,11 +74,16 @@ func ticTacToeGame() *boardgame.Game {
 	}
 
 	game := &boardgame.Game{
-		Name:  gameName,
-		State: boardgame.NewStarterState(starterPayload),
+		Name:     gameName,
+		State:    boardgame.NewStarterState(starterPayload),
+		Delegate: &gameDelegate{},
 	}
 
 	game.SetChest(chest)
+
+	if err := game.SetUp(); err != nil {
+		panic("Game couldn't be set up")
+	}
 
 	return game
 
