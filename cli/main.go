@@ -35,18 +35,28 @@ func NewController(game *boardgame.Game, renderer RendererFunc) *Controller {
 	}
 }
 
-func layout(g *gocui.Gui) error {
-	maxX, maxY := g.Size()
-	if v, err := g.SetView("main", 0, 0, maxX/2-1, maxY/2-1); err != nil {
-		if err != gocui.ErrUnknownView {
-			return err
+func makeLayoutFunc(c *Controller) func(g *gocui.Gui) error {
+	//Used to create a closure that captures 'c'
+	return func(g *gocui.Gui) error {
+		maxX, maxY := g.Size()
+		if v, err := g.SetView("main", 0, 0, maxX/2-1, maxY/2-1); err != nil {
+			if err != gocui.ErrUnknownView {
+				return err
+			}
+			v.Title = "JSON"
+			v.Frame = true
+			v.Autoscroll = true
 		}
-		v.Title = "Hey!"
-		v.Frame = true
 
-		fmt.Fprintln(v, "Hello, world!")
+		//Update the json field of view
+
+		if view, err := g.View("main"); err == nil {
+
+			fmt.Fprint(view, string(boardgame.Serialize(c.game.State.JSON())))
+		}
+
+		return nil
 	}
-	return nil
 }
 
 func quit(g *gocui.Gui, v *gocui.View) error {
@@ -69,7 +79,7 @@ func (c *Controller) Start() {
 
 	//manager has to be set before setting keybindings, because it clears all
 	//keybindings when set.
-	g.SetManagerFunc(layout)
+	g.SetManagerFunc(makeLayoutFunc(c))
 
 	//TODO: key bindings don't appear to be running...
 	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
