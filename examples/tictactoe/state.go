@@ -5,7 +5,8 @@ import (
 )
 
 type gameState struct {
-	Slots *boardgame.SizedStack
+	CurrentPlayer int
+	Slots         *boardgame.SizedStack
 }
 
 func (g *gameState) Props() []string {
