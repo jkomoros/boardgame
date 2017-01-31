@@ -39,7 +39,7 @@ func makeLayoutFunc(c *Controller) func(g *gocui.Gui) error {
 	//Used to create a closure that captures 'c'
 	return func(g *gocui.Gui) error {
 		maxX, maxY := g.Size()
-		if v, err := g.SetView("main", 0, 0, maxX/2-1, maxY/2-1); err != nil {
+		if v, err := g.SetView("main", 0, 0, maxX-1, maxY-1); err != nil {
 			if err != gocui.ErrUnknownView {
 				return err
 			}
