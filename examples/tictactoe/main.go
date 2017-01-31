@@ -34,7 +34,7 @@ func (g *gameDelegate) DistributeComponentToStarterStack(payload boardgame.State
 	return nil
 }
 
-func Renderer(state boardgame.StatePayload) []string {
+func Renderer(state boardgame.StatePayload) string {
 	p := state.(*statePayload)
 
 	//Get an array of *playerTokenValues corresponding to tokens currently in
@@ -60,7 +60,7 @@ func Renderer(state boardgame.StatePayload) []string {
 	result[3] = result[1]
 	result[4] = tokenValues[6] + "|" + tokenValues[7] + "|" + tokenValues[8]
 
-	return result
+	return strings.Join(result, "\n")
 
 }
 
