@@ -45,7 +45,6 @@ func makeLayoutFunc(c *Controller) func(g *gocui.Gui) error {
 			}
 			v.Title = "JSON"
 			v.Frame = true
-			v.Autoscroll = true
 		}
 
 		//Update the json field of view
