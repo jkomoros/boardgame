@@ -4,7 +4,15 @@
     "Payload": {
         "Game": {
             "CurrentPlayer": 1,
-            "DrawDeck": {}
+            "DrawDeck": {                
+                "Deck" : "test",
+                "Indexes" : [
+                    3,
+                    2,
+                    1,
+                    0
+                ]
+            }
         },
         "Users": [
             {

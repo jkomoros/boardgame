@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"encoding/json"
 	"errors"
 	"math"
 )
@@ -60,6 +61,15 @@ type SizedStack struct {
 	size int
 }
 
+//stackJSONObj is an internal struct that we populate and use to implement
+//MarshalJSON so stacks can be saved in output JSON with minimum fuss.
+type stackJSONObj struct {
+	Deck    string
+	Indexes []int
+	Size    int `json:",omitempty"`
+	MaxLen  int `json:",omitempty"`
+}
+
 //NewGrowableStack creates a new growable stack with the given Deck and Cap.
 func NewGrowableStack(deck *Deck, maxLen int) *GrowableStack {
 
@@ -69,7 +79,7 @@ func NewGrowableStack(deck *Deck, maxLen int) *GrowableStack {
 
 	return &GrowableStack{
 		deck:    deck,
-		indexes: nil,
+		indexes: make([]int, 0),
 		maxLen:  maxLen,
 	}
 }
@@ -269,6 +279,24 @@ func (g *GrowableStack) RemoveFirst() *Component {
 	g.indexes = g.indexes[1:]
 	return component
 
+}
+
+func (g *GrowableStack) MarshalJSON() ([]byte, error) {
+	obj := &stackJSONObj{
+		Deck:    g.deck.Name(),
+		Indexes: g.indexes,
+		MaxLen:  g.maxLen,
+	}
+	return json.Marshal(obj)
+}
+
+func (s *SizedStack) MarshalJSON() ([]byte, error) {
+	obj := &stackJSONObj{
+		Deck:    s.deck.Name(),
+		Indexes: s.indexes,
+		Size:    s.size,
+	}
+	return json.Marshal(obj)
 }
 
 /*
