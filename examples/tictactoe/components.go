@@ -5,12 +5,12 @@ import (
 )
 
 const (
-	X rune = 'X'
-	O rune = 'O'
+	X = "X"
+	O = "O"
 )
 
 type playerToken struct {
-	Value rune
+	Value string
 }
 
 func (p *playerToken) Props() []string {

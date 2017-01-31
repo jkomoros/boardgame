@@ -20,7 +20,16 @@ type gameDelegate struct {
 }
 
 func (g *gameDelegate) DistributeComponentToStarterStack(payload boardgame.StatePayload, c *boardgame.Component) error {
-	//TODO: actually sort the tokens into the right stacks
+	component := c.Values.(*playerToken)
+
+	p := payload.(*statePayload)
+
+	switch component.Value {
+	case X:
+		p.users[0].UnusedTokens.InsertFront(c)
+	case O:
+		p.users[1].UnusedTokens.InsertFront(c)
+	}
 	return nil
 }
 
