@@ -34,9 +34,9 @@ func NewController(game *boardgame.Game, renderer RendererFunc) *Controller {
 	}
 }
 
-//Once the controller is set up, call MainLoop. It will block until it is time
+//Once the controller is set up, call Start. It will block until it is time
 //to exit.
-func (c *Controller) MainLoop() {
+func (c *Controller) Start() {
 
 	termbox.Init()
 
