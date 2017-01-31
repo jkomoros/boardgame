@@ -53,8 +53,6 @@ func ticTacToeGame() *boardgame.Game {
 
 	chest.AddDeck("tokens", tokens)
 
-	chest.Finish()
-
 	starterPayload := &statePayload{
 		game: &gameState{
 			Slots: boardgame.NewSizedStack(tokens, DIM*DIM),

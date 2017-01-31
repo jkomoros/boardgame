@@ -144,6 +144,13 @@ func (g *Game) SetChest(chest *ComponentChest) {
 	}
 	if chest != nil {
 		chest.game = g
+		//If Finish was not already called in Chest it must be now--we can't
+		//have it changing anymore. This will be a no-op if Finish() was
+		//already called.
+
+		//TODO: test that a chest that has not yet had finish called will when
+		//added to a game.
+		chest.Finish()
 	}
 	g.chest = chest
 }

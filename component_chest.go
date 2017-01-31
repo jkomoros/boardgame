@@ -70,8 +70,15 @@ func (c *ComponentChest) AddDeck(name string, deck *Deck) {
 
 //Finish switches the chest from constructing to serving. Before freeze is
 //called, decks may be added but not retrieved. After it is called, decks may
-//be retrieved but not added.
+//be retrieved but not added. Finish() is called automatically when a Chest is
+//added to a game via SetChest(), but you can call it before then if you'd
+//like.
 func (c *ComponentChest) Finish() {
+
+	//Check if Finish() has already been called
+	if c.initialized {
+		return
+	}
 
 	c.initialized = true
 
