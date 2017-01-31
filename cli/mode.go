@@ -32,7 +32,7 @@ func (b *baseMode) handleInput(c *Controller, evt termbox.Event) bool {
 }
 
 func (b *baseMode) statusLine() string {
-	return "{q} to quit"
+	return "{q} to quit, {t} to toggle JSON or render"
 }
 
 func (d *defaultMode) handleInput(c *Controller, evt termbox.Event) bool {
@@ -42,6 +42,8 @@ func (d *defaultMode) handleInput(c *Controller, evt termbox.Event) bool {
 		switch evt.Ch {
 		case 'q':
 			return true
+		case 't':
+			c.ToggleRender()
 		}
 
 	}

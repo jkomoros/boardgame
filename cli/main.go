@@ -15,14 +15,22 @@ import (
 
 //Controller is the primary type of the package.
 type Controller struct {
-	game *boardgame.Game
-	mode inputMode
+	game     *boardgame.Game
+	mode     inputMode
+	renderer RendererFunc
+	//Whether or not we should render JSON (false) or the RendererFunc (true)
+	render bool
 }
 
-func NewController(game *boardgame.Game) *Controller {
+//RenderrerFunc takes a state and outputs a list of strings that should be
+//printed to screen to depict it.
+type RendererFunc func(boardgame.StatePayload) []string
+
+func NewController(game *boardgame.Game, renderer RendererFunc) *Controller {
 	return &Controller{
-		game: game,
-		mode: modeDefault,
+		game:     game,
+		mode:     modeDefault,
+		renderer: renderer,
 	}
 }
 
@@ -54,11 +62,19 @@ func (c *Controller) draw() {
 
 	clearScreen()
 
-	c.drawJSON()
+	if c.render {
+		c.drawRender()
+	} else {
+		c.drawJSON()
+	}
 
 	c.drawStatusLine()
 
 	termbox.Flush()
+}
+
+func (c *Controller) ToggleRender() {
+	c.render = !c.render
 }
 
 func (c *Controller) statusLine() string {
@@ -74,6 +90,7 @@ func clearScreen() {
 	}
 }
 
+//TODO: these should be global funcs that take a cont
 func (c *Controller) drawStatusLine() {
 	line := c.statusLine()
 
@@ -110,6 +127,22 @@ func (c *Controller) drawStatusLine() {
 
 		termbox.SetCell(x, y, ch, fg, termbox.ColorWhite)
 		x++
+	}
+}
+
+func (c *Controller) drawRender() {
+	x := 0
+	y := 0
+
+	for _, line := range c.renderer(c.game.State.Payload) {
+		x = 0
+
+		for _, ch := range line {
+			termbox.SetCell(x, y, ch, termbox.ColorWhite, termbox.ColorBlack)
+			x++
+		}
+
+		y++
 	}
 }
 

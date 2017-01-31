@@ -33,6 +33,10 @@ func (g *gameDelegate) DistributeComponentToStarterStack(payload boardgame.State
 	return nil
 }
 
+func Renderer(state boardgame.StatePayload) []string {
+	return []string{"TODO: actually do something here"}
+}
+
 func NewGame() *boardgame.Game {
 
 	chest := boardgame.NewComponentChest(gameName)
