@@ -32,10 +32,19 @@ func (b *baseMode) handleInput(c *Controller, evt termbox.Event) bool {
 }
 
 func (b *baseMode) statusLine() string {
-	return "Ctrl-C to exit"
+	return "{q} to quit"
 }
 
 func (d *defaultMode) handleInput(c *Controller, evt termbox.Event) bool {
+
+	switch evt.Type {
+	case termbox.EventKey:
+		switch evt.Ch {
+		case 'q':
+			return true
+		}
+
+	}
 
 	//TODO: do our own event handling.
 	return d.baseMode.handleInput(c, evt)
