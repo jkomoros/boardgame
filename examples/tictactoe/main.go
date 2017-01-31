@@ -9,6 +9,7 @@ package tictactoe
 
 import (
 	"github.com/jkomoros/boardgame"
+	"strings"
 )
 
 const gameName = "tictactoe"
@@ -34,7 +35,33 @@ func (g *gameDelegate) DistributeComponentToStarterStack(payload boardgame.State
 }
 
 func Renderer(state boardgame.StatePayload) []string {
-	return []string{"TODO: actually do something here"}
+	p := state.(*statePayload)
+
+	//Get an array of *playerTokenValues corresponding to tokens currently in
+	//the stack.
+	tokens := playerTokenValues(p.game.Slots.ComponentValues())
+
+	tokenValues := make([]string, len(tokens))
+
+	for i, token := range tokens {
+		if token == nil {
+			tokenValues[i] = "  "
+			continue
+		}
+		tokenValues[i] = token.Value
+	}
+
+	result := make([]string, 5)
+
+	//TODO: loop thorugh this instead of unrolling the loop by hand
+	result[0] = tokenValues[0] + "|" + tokenValues[1] + "|" + tokenValues[2]
+	result[1] = strings.Repeat("-", len(result[0]))
+	result[2] = tokenValues[3] + "|" + tokenValues[4] + "|" + tokenValues[5]
+	result[3] = result[1]
+	result[4] = tokenValues[6] + "|" + tokenValues[7] + "|" + tokenValues[8]
+
+	return result
+
 }
 
 func NewGame() *boardgame.Game {
