@@ -8,14 +8,15 @@ with a game while its moves and logic are being defined.
 package cli
 
 import (
+	"fmt"
 	"github.com/jkomoros/boardgame"
-	"github.com/nsf/termbox-go"
-	"strings"
+	"github.com/jroimartin/gocui"
 )
 
 //Controller is the primary type of the package.
 type Controller struct {
 	game     *boardgame.Game
+	gui      *gocui.Gui
 	mode     inputMode
 	renderer RendererFunc
 	//Whether or not we should render JSON (false) or the RendererFunc (true)
@@ -34,28 +35,57 @@ func NewController(game *boardgame.Game, renderer RendererFunc) *Controller {
 	}
 }
 
+func layout(g *gocui.Gui) error {
+	maxX, maxY := g.Size()
+	if v, err := g.SetView("main", 0, 0, maxX/2-1, maxY/2-1); err != nil {
+		if err != gocui.ErrUnknownView {
+			return err
+		}
+		v.Title = "Hey!"
+		v.Frame = true
+
+		fmt.Fprintln(v, "Hello, world!")
+	}
+	return nil
+}
+
+func quit(g *gocui.Gui, v *gocui.View) error {
+	panic("quit called")
+	return gocui.ErrQuit
+}
+
 //Once the controller is set up, call Start. It will block until it is time
 //to exit.
 func (c *Controller) Start() {
 
-	termbox.Init()
+	g, err := gocui.NewGui(gocui.OutputNormal)
 
-	defer termbox.Close()
+	if err != nil {
+		panic("Couldn't create gui:" + err.Error())
+	}
 
-	c.draw()
+	defer g.Close()
 
-	for {
-		evt := termbox.PollEvent()
+	c.gui = g
 
-		if c.mode.handleInput(c, evt) {
-			return
-		}
+	//TODO: key bindings don't appear to be running...
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+		panic(err)
+	}
 
-		c.draw()
+	g.SetManagerFunc(layout)
 
+	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
+		panic(err)
 	}
 
 }
+
+func (c *Controller) ToggleRender() {
+	c.render = !c.render
+}
+
+/*
 
 //draw draws the entire app to the screen
 func (c *Controller) draw() {
@@ -73,9 +103,6 @@ func (c *Controller) draw() {
 	termbox.Flush()
 }
 
-func (c *Controller) ToggleRender() {
-	c.render = !c.render
-}
 
 func (c *Controller) statusLine() string {
 	return c.mode.statusLine()
@@ -166,3 +193,5 @@ func (c *Controller) drawJSON() {
 	}
 
 }
+
+*/
