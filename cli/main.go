@@ -51,7 +51,7 @@ func makeLayoutFunc(c *Controller) func(g *gocui.Gui) error {
 		//Update the json field of view
 
 		if view, err := g.View("main"); err == nil {
-
+			view.Clear()
 			fmt.Fprint(view, string(boardgame.Serialize(c.game.State.JSON())))
 		}
 
