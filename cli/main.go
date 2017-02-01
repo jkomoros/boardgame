@@ -13,13 +13,19 @@ import (
 	"github.com/jroimartin/gocui"
 )
 
+type renderType int
+
+const (
+	renderJSON renderType = iota
+	renderRender
+)
+
 //Controller is the primary type of the package.
 type Controller struct {
 	game     *boardgame.Game
 	gui      *gocui.Gui
 	renderer RendererFunc
-	//Whether or not we should render JSON (false) or the RendererFunc (true)
-	render bool
+	render   renderType
 }
 
 //RenderrerFunc takes a state and outputs a list of strings that should be
@@ -57,16 +63,17 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 
 	if view, err := g.View("main"); err == nil {
 		view.Clear()
-		if c.render {
+		switch c.render {
+		case renderRender:
 			//Print renderered view
 			fmt.Fprint(view, c.renderer(c.game.State.Payload))
 			view.Title = "Rendered"
-		} else {
+		case renderJSON:
 			//Print JSON view
 			fmt.Fprint(view, string(boardgame.Serialize(c.game.State.JSON())))
-
 			view.Title = "JSON"
 		}
+
 	}
 
 	if view, err := g.View("status"); err == nil {
@@ -169,5 +176,8 @@ func (c *Controller) Start() {
 }
 
 func (c *Controller) ToggleRender() {
-	c.render = !c.render
+	c.render++
+	if c.render > renderRender {
+		c.render = 0
+	}
 }
