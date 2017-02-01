@@ -5,7 +5,8 @@ import (
 )
 
 var (
-	modeNormal = &normalMode{}
+	modeNormal        = &normalMode{}
+	modeProposingMove = &proposingMoveMode{}
 )
 
 type inputMode interface {
@@ -23,7 +24,9 @@ type normalMode struct {
 	baseMode
 }
 
-//TODO: a modeProposingMove which has different key bindings.
+type proposingMoveMode struct {
+	baseMode
+}
 
 func (b *baseMode) enterMode(c *Controller) {
 	//Establish the keybindings that exist in every mode.
@@ -87,4 +90,22 @@ func (n *normalMode) enterMode(c *Controller) {
 		panic(err)
 	}
 
+}
+
+func (p *proposingMoveMode) enterMode(c *Controller) {
+
+	p.baseMode.enterMode(c)
+
+	g := c.gui
+
+	if err := g.SetKeybinding("", gocui.KeyEsc, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		c.CancelMode()
+		return nil
+	}); err != nil {
+		panic(err)
+	}
+}
+
+func (p *proposingMoveMode) statusLine() string {
+	return "'Esc' to cancel"
 }

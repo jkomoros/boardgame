@@ -24,12 +24,11 @@ const (
 
 //Controller is the primary type of the package.
 type Controller struct {
-	game          *boardgame.Game
-	gui           *gocui.Gui
-	renderer      RendererFunc
-	render        renderType
-	mode          inputMode
-	proposingMove bool
+	game     *boardgame.Game
+	gui      *gocui.Gui
+	renderer RendererFunc
+	render   renderType
+	mode     inputMode
 }
 
 //RenderrerFunc takes a state and outputs a list of strings that should be
@@ -63,7 +62,8 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 		v.Frame = false
 	}
 
-	if c.proposingMove {
+	switch c.mode {
+	case modeProposingMove:
 		if v, err := g.SetView("move", 0, maxY-30, maxX-1, maxY-2); err != nil {
 			if err != gocui.ErrUnknownView {
 				return err
@@ -75,8 +75,7 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 
 			g.SetViewOnTop("move")
 		}
-
-	} else {
+	case modeNormal:
 		//Delete the view, if it exists
 		if err := g.DeleteView("move"); err != nil {
 			//It's OK if it's ErrUnknownView because that just means it wasn't
@@ -85,6 +84,8 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 				return err
 			}
 		}
+	default:
+		//Presumably a nil mode. Meh.
 	}
 
 	//Update the json field of view
@@ -188,7 +189,12 @@ func (c *Controller) ToggleRender() {
 }
 
 func (c *Controller) StartProposingMove() {
-	c.proposingMove = true
+	c.EnterMode(modeProposingMove)
+}
+
+//Cancels any mode that we're in by going back to normal mode.
+func (c *Controller) CancelMode() {
+	c.EnterMode(modeNormal)
 }
 
 func (c *Controller) EnterMode(m inputMode) {
@@ -217,6 +223,8 @@ func (c *Controller) Start() {
 	defer g.Close()
 
 	c.gui = g
+
+	g.InputEsc = true
 
 	//manager has to be set before setting keybindings, because it clears all
 	//keybindings when set.
