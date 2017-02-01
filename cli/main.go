@@ -60,9 +60,12 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 		if c.render {
 			//Print renderered view
 			fmt.Fprint(view, c.renderer(c.game.State.Payload))
+			view.Title = "Rendered"
 		} else {
 			//Print JSON view
 			fmt.Fprint(view, string(boardgame.Serialize(c.game.State.JSON())))
+
+			view.Title = "JSON"
 		}
 	}
 
