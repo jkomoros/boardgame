@@ -13,6 +13,8 @@ type inputMode interface {
 	//been cleared before this is called, so the main point of order is to
 	//establish whatever key bindings are valid in this mode.
 	enterMode(c *Controller)
+	//statusLine returns the text that should be displayed in the status line.
+	statusLine() string
 }
 
 type baseMode struct{}
@@ -32,6 +34,10 @@ func (b *baseMode) enterMode(c *Controller) {
 		panic(err)
 	}
 
+}
+
+func (b *baseMode) statusLine() string {
+	return "Type 't' to toggle json or render output, 'm' to propose a move, Ctrl-C to quit"
 }
 
 func (n *normalMode) enterMode(c *Controller) {

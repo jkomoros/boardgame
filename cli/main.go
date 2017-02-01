@@ -109,7 +109,7 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 
 	if view, err := g.View("status"); err == nil {
 		view.Clear()
-		fmt.Fprint(view, "Type 't' to toggle json or render output, 'm' to propose a move, Ctrl-C to quit")
+		fmt.Fprint(view, c.mode.statusLine())
 	}
 
 	return nil
