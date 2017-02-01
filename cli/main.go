@@ -88,13 +88,6 @@ func quit(g *gocui.Gui, v *gocui.View) error {
 	return gocui.ErrQuit
 }
 
-func makeToggleRenderFunc(c *Controller) func(*gocui.Gui, *gocui.View) error {
-	return func(g *gocui.Gui, v *gocui.View) error {
-		c.ToggleRender()
-		return nil
-	}
-}
-
 func (c *Controller) ScrollUp() {
 	var view *gocui.View
 	var err error
@@ -137,7 +130,10 @@ func (c *Controller) Start() {
 		panic(err)
 	}
 
-	if err := g.SetKeybinding("", 't', gocui.ModNone, makeToggleRenderFunc(c)); err != nil {
+	if err := g.SetKeybinding("", 't', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		c.ToggleRender()
+		return nil
+	}); err != nil {
 		panic(err)
 	}
 
