@@ -28,6 +28,7 @@ type Controller struct {
 	gui           *gocui.Gui
 	renderer      RendererFunc
 	render        renderType
+	mode          inputMode
 	proposingMove bool
 }
 
@@ -190,6 +191,19 @@ func (c *Controller) StartProposingMove() {
 	c.proposingMove = true
 }
 
+func (c *Controller) EnterMode(m inputMode) {
+	g := c.gui
+
+	//Clear out all keybindings; mode. enterMode will reestablish them.
+	g.DeleteKeybindings("")
+	for _, view := range g.Views() {
+		g.DeleteKeybindings(view.Name())
+	}
+
+	m.enterMode(c)
+	c.mode = m
+}
+
 //Once the controller is set up, call Start. It will block until it is time
 //to exit.
 func (c *Controller) Start() {
@@ -208,57 +222,7 @@ func (c *Controller) Start() {
 	//keybindings when set.
 	g.SetManager(c)
 
-	//TODO: all of these key bindings are getting really brittle. We need a
-	//notion of modes who install all of the various key bindings when they
-	//are entered.
-
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
-		panic(err)
-	}
-
-	if err := g.SetKeybinding("", 't', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		c.ToggleRender()
-		return nil
-	}); err != nil {
-		panic(err)
-	}
-
-	if err := g.SetKeybinding("", gocui.KeyArrowUp, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		c.ScrollUp()
-		return nil
-	}); err != nil {
-		panic(err)
-	}
-
-	if err := g.SetKeybinding("", gocui.MouseWheelUp, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		c.ScrollUp()
-		return nil
-	}); err != nil {
-		panic(err)
-	}
-
-	if err := g.SetKeybinding("", gocui.KeyArrowDown, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		c.ScrollDown()
-		return nil
-	}); err != nil {
-		panic(err)
-	}
-
-	if err := g.SetKeybinding("", gocui.MouseWheelDown, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		c.ScrollDown()
-		return nil
-	}); err != nil {
-		panic(err)
-	}
-
-	if err := g.SetKeybinding("", 'm', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		c.StartProposingMove()
-		return nil
-	}); err != nil {
-		panic(err)
-	}
-
-	//TODO: cancel proposing move if esc is hit.
+	c.EnterMode(modeNormal)
 
 	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
 		panic(err)
