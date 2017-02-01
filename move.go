@@ -12,6 +12,9 @@ type Move interface {
 	//Apply applies the move to the state and returns a new state object. It
 	//should not be called directly; use Game.ApplyMove.
 	Apply(state StatePayload) StatePayload
+
+	//Copy creates a new move based on this one.
+	Copy() Move
 	GameNamer
 	PropertyReader
 	JSONer

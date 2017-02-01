@@ -165,6 +165,12 @@ func (t *testMoveAdvanceCurentPlayer) JSON() JSONObject {
 	return t
 }
 
+func (t *testMoveAdvanceCurentPlayer) Copy() Move {
+	var result testMoveAdvanceCurentPlayer
+	result = *t
+	return &result
+}
+
 func (t *testMoveAdvanceCurentPlayer) Legal(state StatePayload) error {
 	payload := state.(*testStatePayload)
 
@@ -217,6 +223,12 @@ func (t *testMove) Prop(name string) interface{} {
 
 func (t *testMove) JSON() JSONObject {
 	return t
+}
+
+func (t *testMove) Copy() Move {
+	var result testMove
+	result = *t
+	return &result
 }
 
 func (t *testMove) Legal(state StatePayload) error {
