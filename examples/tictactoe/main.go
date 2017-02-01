@@ -51,7 +51,7 @@ func Renderer(state boardgame.StatePayload) string {
 		tokenValues[i] = token.Value
 	}
 
-	result := make([]string, 5)
+	result := make([]string, 7)
 
 	//TODO: loop thorugh this instead of unrolling the loop by hand
 	result[0] = tokenValues[0] + "|" + tokenValues[1] + "|" + tokenValues[2]
@@ -59,6 +59,8 @@ func Renderer(state boardgame.StatePayload) string {
 	result[2] = tokenValues[3] + "|" + tokenValues[4] + "|" + tokenValues[5]
 	result[3] = result[1]
 	result[4] = tokenValues[6] + "|" + tokenValues[7] + "|" + tokenValues[8]
+	result[5] = ""
+	result[6] = "Next player: " + p.users[p.game.CurrentPlayer].TokenValue
 
 	return strings.Join(result, "\n")
 
