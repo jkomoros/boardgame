@@ -12,7 +12,7 @@ type testingComponent struct {
 	Integer int
 }
 
-const testGameName = "testgame"
+const testGameName = "Test Game"
 
 func (t *testingComponent) Props() []string {
 	return PropertyReaderPropsImpl(t)

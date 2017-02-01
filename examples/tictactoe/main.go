@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-const gameName = "tictactoe"
+const gameName = "Tic Tac Toe"
 
 const DIM = 3
 

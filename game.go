@@ -8,9 +8,9 @@ import (
 
 //A Game represents a specific game between a collection of Players
 type Game struct {
-	//Name is a string that defines the type of game this is. It is useful as
-	//a sanity check to verify that various interface values were actually
-	//intended to be used with this game.
+	//Name is a string that defines the type of game this is. The name should
+	//be unique but human readable. Good examples are "Tic Tac Toe",
+	//"Blackjack".
 	Name string
 
 	//Delegate is an (optional) way to override behavior at key game states.
@@ -67,13 +67,6 @@ type GameDelegate interface {
 	//draw deck, or other moves that are necessary to get the GameState back
 	//into reasonable shape.
 	ProposeFixUpMove(state StatePayload) Move
-}
-
-type GameNamer interface {
-	//GameName returns the string of the type of game we're designed for.
-	//Before a move is applied to a game we verify that game.Name() and
-	//move.GameName() match. Other types will similarly be gutchecked.
-	GameName() string
 }
 
 //DefaultGameDelegate is a struct that implements stubs for all of
