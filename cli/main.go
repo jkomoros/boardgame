@@ -33,47 +33,45 @@ func NewController(game *boardgame.Game, renderer RendererFunc) *Controller {
 	}
 }
 
-func makeLayoutFunc(c *Controller) func(g *gocui.Gui) error {
-	//Used to create a closure that captures 'c'
-	return func(g *gocui.Gui) error {
-		maxX, maxY := g.Size()
-		if v, err := g.SetView("main", 0, 0, maxX-1, maxY-2); err != nil {
-			if err != gocui.ErrUnknownView {
-				return err
-			}
-			v.Title = "JSON"
-			v.Frame = true
+//Implement the gocui.Manager interface
+func (c *Controller) Layout(g *gocui.Gui) error {
+	maxX, maxY := g.Size()
+	if v, err := g.SetView("main", 0, 0, maxX-1, maxY-2); err != nil {
+		if err != gocui.ErrUnknownView {
+			return err
 		}
-
-		if v, err := g.SetView("status", 0, maxY-2, maxX-1, maxY); err != nil {
-			if err != gocui.ErrUnknownView {
-				return err
-			}
-			v.FgColor = gocui.ColorBlack
-			v.BgColor = gocui.ColorWhite
-			v.Frame = false
-		}
-
-		//Update the json field of view
-
-		if view, err := g.View("main"); err == nil {
-			view.Clear()
-			if c.render {
-				//Print renderered view
-				fmt.Fprint(view, c.renderer(c.game.State.Payload))
-			} else {
-				//Print JSON view
-				fmt.Fprint(view, string(boardgame.Serialize(c.game.State.JSON())))
-			}
-		}
-
-		if view, err := g.View("status"); err == nil {
-			view.Clear()
-			fmt.Fprint(view, "Type 't' to toggle json or render output, Ctrl-C to quit")
-		}
-
-		return nil
+		v.Title = "JSON"
+		v.Frame = true
 	}
+
+	if v, err := g.SetView("status", 0, maxY-2, maxX-1, maxY); err != nil {
+		if err != gocui.ErrUnknownView {
+			return err
+		}
+		v.FgColor = gocui.ColorBlack
+		v.BgColor = gocui.ColorWhite
+		v.Frame = false
+	}
+
+	//Update the json field of view
+
+	if view, err := g.View("main"); err == nil {
+		view.Clear()
+		if c.render {
+			//Print renderered view
+			fmt.Fprint(view, c.renderer(c.game.State.Payload))
+		} else {
+			//Print JSON view
+			fmt.Fprint(view, string(boardgame.Serialize(c.game.State.JSON())))
+		}
+	}
+
+	if view, err := g.View("status"); err == nil {
+		view.Clear()
+		fmt.Fprint(view, "Type 't' to toggle json or render output, Ctrl-C to quit")
+	}
+
+	return nil
 }
 
 func quit(g *gocui.Gui, v *gocui.View) error {
@@ -103,7 +101,7 @@ func (c *Controller) Start() {
 
 	//manager has to be set before setting keybindings, because it clears all
 	//keybindings when set.
-	g.SetManagerFunc(makeLayoutFunc(c))
+	g.SetManager(c)
 
 	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
 		panic(err)
