@@ -85,6 +85,26 @@ func makeToggleRenderFunc(c *Controller) func(*gocui.Gui, *gocui.View) error {
 	}
 }
 
+func (c *Controller) ScrollUp() {
+	var view *gocui.View
+	var err error
+	if view, err = c.gui.View("main"); err != nil {
+		return
+	}
+	x, y := view.Origin()
+	view.SetOrigin(x, y-1)
+}
+
+func (c *Controller) ScrollDown() {
+	var view *gocui.View
+	var err error
+	if view, err = c.gui.View("main"); err != nil {
+		return
+	}
+	x, y := view.Origin()
+	view.SetOrigin(x, y+1)
+}
+
 //Once the controller is set up, call Start. It will block until it is time
 //to exit.
 func (c *Controller) Start() {
@@ -108,6 +128,20 @@ func (c *Controller) Start() {
 	}
 
 	if err := g.SetKeybinding("", 't', gocui.ModNone, makeToggleRenderFunc(c)); err != nil {
+		panic(err)
+	}
+
+	if err := g.SetKeybinding("", gocui.KeyArrowUp, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		c.ScrollUp()
+		return nil
+	}); err != nil {
+		panic(err)
+	}
+
+	if err := g.SetKeybinding("", gocui.KeyArrowDown, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		c.ScrollDown()
+		return nil
+	}); err != nil {
 		panic(err)
 	}
 
