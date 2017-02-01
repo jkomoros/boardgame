@@ -15,6 +15,21 @@ type Move interface {
 
 	//Copy creates a new move based on this one.
 	Copy() Move
+
+	//Name should return the name for this type of move. No other Move structs
+	//in use in this game should have the same name, but it should be human-
+	//friendly. For example, "Place Token" is a reasonable name, as long as no
+	//other types of Move-structs will return that name in this game. Name()
+	//should be the same for every Move of the same type.
+	Name() string
+
+	//Description is a human-readable sentence describing what the move does.
+	//Description should be the same for all moves of the same type, and
+	//should not vary with the Move's specific properties. For example, the
+	//Description for "Place Token" might be "Places the current user's token
+	//in the specified slot on the board."
+	Description() string
+
 	GameNamer
 	PropertyReader
 	JSONer

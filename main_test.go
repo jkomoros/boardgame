@@ -171,6 +171,14 @@ func (t *testMoveAdvanceCurentPlayer) Copy() Move {
 	return &result
 }
 
+func (t *testMoveAdvanceCurentPlayer) Name() string {
+	return "Advance Current Player"
+}
+
+func (t *testMoveAdvanceCurentPlayer) Description() string {
+	return "Advances to the next player when the current player has no more legal moves they can make this turn."
+}
+
 func (t *testMoveAdvanceCurentPlayer) Legal(state StatePayload) error {
 	payload := state.(*testStatePayload)
 
@@ -229,6 +237,14 @@ func (t *testMove) Copy() Move {
 	var result testMove
 	result = *t
 	return &result
+}
+
+func (t *testMove) Name() string {
+	return "Test"
+}
+
+func (t *testMove) Description() string {
+	return "Advances the score of the current player by the specified amount."
 }
 
 func (t *testMove) Legal(state StatePayload) error {
