@@ -3,6 +3,7 @@ package boardgame
 import (
 	"errors"
 	"strconv"
+	"strings"
 )
 
 //A Game represents a specific game between a collection of Players
@@ -26,7 +27,8 @@ type Game struct {
 
 	//Moves is the set of all move types that are ever legal to apply in this
 	//game. When a move will be proposed it should copy one of these moves.
-	moves []Move
+	moves       []Move
+	movesByName map[string]Move
 
 	//Initalized is set to True after SetUp is called.
 	initalized bool
@@ -125,6 +127,11 @@ func (g *Game) SetUp() error {
 		}
 	}
 
+	g.movesByName = make(map[string]Move)
+	for _, move := range g.moves {
+		g.movesByName[strings.ToLower(move.Name())] = move
+	}
+
 	//If we got to here then the payloadCopy is now the real one.
 	g.State.Payload = payloadCopy
 
@@ -153,6 +160,16 @@ func (g *Game) Moves() []Move {
 		return nil
 	}
 	return g.moves
+}
+
+//MoveByName returns the Move of that name from game.Moves(), if it exists.
+//Names are considered without regard to case.
+func (g *Game) MoveByName(name string) Move {
+	if !g.initalized {
+		return nil
+	}
+	name = strings.ToLower(name)
+	return g.movesByName[name]
 }
 
 //Chest is the ComponentChest in use for this game.

@@ -50,6 +50,10 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("Got moves back before SetUp was called")
 	}
 
+	if game.MoveByName("Test") != nil {
+		t.Error("Move by name returned a move before SetUp was called")
+	}
+
 	chest := game.Chest()
 
 	game.SetChest(nil)
@@ -93,6 +97,14 @@ func TestGameSetUp(t *testing.T) {
 
 	if !reflect.DeepEqual(game.moves, moves) {
 		t.Error("Got wrong moves out of game after SetUp was called.")
+	}
+
+	if game.MoveByName("Test") == nil {
+		t.Error("MoveByName didn't return a valid move when provided the proper name after calling setup")
+	}
+
+	if game.MoveByName("test") == nil {
+		t.Error("MoveByName didn't return a valid move when provided with a lowercase name after calling SetUp.")
 	}
 
 	p := game.State.Payload.(*testStatePayload)
