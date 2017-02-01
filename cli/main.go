@@ -8,6 +8,7 @@ with a game while its moves and logic are being defined.
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/jkomoros/boardgame"
 	"github.com/jroimartin/gocui"
@@ -18,6 +19,7 @@ type renderType int
 const (
 	renderJSON renderType = iota
 	renderRender
+	renderChest
 )
 
 //Controller is the primary type of the package.
@@ -72,6 +74,9 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 			//Print JSON view
 			fmt.Fprint(view, c.renderJSON())
 			view.Title = "JSON"
+		case renderChest:
+			fmt.Fprint(view, c.renderChest())
+			view.Title = "Chest"
 		}
 
 	}
@@ -90,6 +95,24 @@ func (c *Controller) renderRendered() string {
 
 func (c *Controller) renderJSON() string {
 	return string(boardgame.Serialize(c.game.State.JSON()))
+}
+
+func (c *Controller) renderChest() string {
+
+	deck := make(map[string][]*boardgame.Component)
+
+	for _, name := range c.game.Chest().DeckNames() {
+		deck[name] = c.game.Chest().Deck(name).Components()
+	}
+
+	json, err := json.MarshalIndent(deck, "", "  ")
+
+	if err != nil {
+		panic(err)
+	}
+
+	return string(json)
+
 }
 
 func quit(g *gocui.Gui, v *gocui.View) error {
@@ -118,7 +141,7 @@ func (c *Controller) ScrollDown() {
 
 func (c *Controller) ToggleRender() {
 	c.render++
-	if c.render > renderRender {
+	if c.render > renderChest {
 		c.render = 0
 	}
 }
