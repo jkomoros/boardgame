@@ -30,3 +30,17 @@ func (m *MovePlaceToken) Legal(payload boardgame.StatePayload) error {
 	return nil
 
 }
+
+func (m *MovePlaceToken) Apply(payload boardgame.StatePayload) boardgame.StatePayload {
+
+	result := payload.Copy()
+
+	p := result.(*statePayload)
+
+	c := p.users[m.TargetPlayerIndex].UnusedTokens.RemoveFirst()
+
+	p.game.Slots.InsertAtSlot(c, m.Slot)
+
+	return result
+
+}
