@@ -137,6 +137,19 @@ func TestApplyMove(t *testing.T) {
 		ABool:             true,
 	}
 
+	oldMoves := game.moves
+	oldMovesByName := game.movesByName
+
+	game.moves = nil
+	game.movesByName = make(map[string]Move)
+
+	if err := game.ApplyMove(move); err == nil {
+		t.Error("Game allowed a move that wasn't configured as part of game to be applied")
+	}
+
+	game.moves = oldMoves
+	game.movesByName = oldMovesByName
+
 	oldGameName := game.Name
 
 	game.Name = "WRONG NAME"

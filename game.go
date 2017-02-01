@@ -207,6 +207,12 @@ func (g *Game) ApplyMove(move Move) error {
 		return errors.New("Game was already finished")
 	}
 
+	//Verify that the Move is actually configured to be part of this game.
+	if g.MoveByName(move.Name()) == nil {
+		return errors.New("That move is not configured for this game.")
+	}
+
+	//TODO: we can get rid of this now that we verify that they're in the game.
 	//Verify that the Move is actually designed to be used with this type of
 	//game.
 	if move.GameName() != g.Name {
