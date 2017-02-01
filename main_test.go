@@ -149,10 +149,6 @@ func (t *testUserState) Prop(name string) interface{} {
 
 type testMoveAdvanceCurentPlayer struct{}
 
-func (t *testMoveAdvanceCurentPlayer) GameName() string {
-	return testGameName
-}
-
 func (t *testMoveAdvanceCurentPlayer) Props() []string {
 	return PropertyReaderPropsImpl(t)
 }
@@ -215,10 +211,6 @@ type testMove struct {
 	ScoreIncrement    int
 	TargetPlayerIndex int
 	ABool             bool
-}
-
-func (t *testMove) GameName() string {
-	return testGameName
 }
 
 func (t *testMove) Props() []string {

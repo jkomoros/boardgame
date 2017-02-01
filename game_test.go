@@ -150,16 +150,6 @@ func TestApplyMove(t *testing.T) {
 	game.moves = oldMoves
 	game.movesByName = oldMovesByName
 
-	oldGameName := game.Name
-
-	game.Name = "WRONG NAME"
-
-	if err := game.ApplyMove(move); err == nil {
-		t.Error("Game allowed a move with wrong game name to be applied")
-	}
-
-	game.Name = oldGameName
-
 	//testMove checks to make sure game.state.currentPlayerIndex is targetplayerindex
 
 	move.TargetPlayerIndex = 1

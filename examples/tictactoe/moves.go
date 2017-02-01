@@ -56,7 +56,3 @@ func (m *MovePlaceToken) Prop(name string) interface{} {
 func (m *MovePlaceToken) JSON() boardgame.JSONObject {
 	return m
 }
-
-func (m *MovePlaceToken) GameName() string {
-	return gameName
-}
