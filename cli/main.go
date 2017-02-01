@@ -99,10 +99,25 @@ func (c *Controller) renderJSON() string {
 
 func (c *Controller) renderChest() string {
 
-	deck := make(map[string][]*boardgame.Component)
+	deck := make(map[string][]interface{})
 
 	for _, name := range c.game.Chest().DeckNames() {
-		deck[name] = c.game.Chest().Deck(name).Components()
+
+		components := c.game.Chest().Deck(name).Components()
+
+		values := make([]interface{}, len(components))
+
+		for i, component := range components {
+			values[i] = struct {
+				Index  int
+				Values interface{}
+			}{
+				i,
+				component.Values,
+			}
+		}
+
+		deck[name] = values
 	}
 
 	json, err := json.MarshalIndent(deck, "", "  ")
