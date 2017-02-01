@@ -108,6 +108,13 @@ func (c *Controller) ScrollDown() {
 	view.SetOrigin(x, y+1)
 }
 
+func (c *Controller) ToggleRender() {
+	c.render++
+	if c.render > renderRender {
+		c.render = 0
+	}
+}
+
 //Once the controller is set up, call Start. It will block until it is time
 //to exit.
 func (c *Controller) Start() {
@@ -169,11 +176,4 @@ func (c *Controller) Start() {
 		panic(err)
 	}
 
-}
-
-func (c *Controller) ToggleRender() {
-	c.render++
-	if c.render > renderRender {
-		c.render = 0
-	}
 }
