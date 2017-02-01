@@ -66,11 +66,11 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 		switch c.render {
 		case renderRender:
 			//Print renderered view
-			fmt.Fprint(view, c.renderer(c.game.State.Payload))
+			fmt.Fprint(view, c.renderRendered())
 			view.Title = "Rendered"
 		case renderJSON:
 			//Print JSON view
-			fmt.Fprint(view, string(boardgame.Serialize(c.game.State.JSON())))
+			fmt.Fprint(view, c.renderJSON())
 			view.Title = "JSON"
 		}
 
@@ -82,6 +82,14 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 	}
 
 	return nil
+}
+
+func (c *Controller) renderRendered() string {
+	return c.renderer(c.game.State.Payload)
+}
+
+func (c *Controller) renderJSON() string {
+	return string(boardgame.Serialize(c.game.State.JSON()))
 }
 
 func quit(g *gocui.Gui, v *gocui.View) error {
