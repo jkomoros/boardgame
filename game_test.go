@@ -46,6 +46,10 @@ func (t *testGameDelegate) ProposeFixUpMove(state StatePayload) Move {
 func TestGameSetUp(t *testing.T) {
 	game := testGame()
 
+	if game.Moves() != nil {
+		t.Error("Got moves back before SetUp was called")
+	}
+
 	chest := game.Chest()
 
 	game.SetChest(nil)
@@ -83,6 +87,12 @@ func TestGameSetUp(t *testing.T) {
 
 	if err := game.SetUp(); err != nil {
 		t.Error("Calling SetUp on a previously errored game did not succeed", err)
+	}
+
+	moves := game.Moves()
+
+	if !reflect.DeepEqual(game.moves, moves) {
+		t.Error("Got wrong moves out of game after SetUp was called.")
 	}
 
 	p := game.State.Payload.(*testStatePayload)

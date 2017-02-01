@@ -360,6 +360,9 @@ func testGame() *Game {
 		},
 	}
 
+	game.AddMove(&testMove{})
+	game.AddMove(&testMoveAdvanceCurentPlayer{})
+
 	game.SetChest(chest)
 
 	return game

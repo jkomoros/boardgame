@@ -24,6 +24,10 @@ type Game struct {
 	//case of a draw.
 	Winners []int
 
+	//Moves is the set of all move types that are ever legal to apply in this
+	//game. When a move will be proposed it should copy one of these moves.
+	moves []Move
+
 	//Initalized is set to True after SetUp is called.
 	initalized bool
 	chest      *ComponentChest
@@ -129,6 +133,26 @@ func (g *Game) SetUp() error {
 	g.initalized = true
 
 	return nil
+}
+
+//AddMove adds the specified move to the game. It may only be called during
+//initalization.
+func (g *Game) AddMove(move Move) {
+
+	if g.initalized {
+		return
+	}
+	g.moves = append(g.moves, move)
+}
+
+//Moves returns all moves that are valid in this game--all of the Moves that
+//have been added via AddMove during initalization. Returns nil until
+//game.SetUp() has been called.
+func (g *Game) Moves() []Move {
+	if !g.initalized {
+		return nil
+	}
+	return g.moves
 }
 
 //Chest is the ComponentChest in use for this game.
