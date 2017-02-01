@@ -138,7 +138,21 @@ func (c *Controller) Start() {
 		panic(err)
 	}
 
+	if err := g.SetKeybinding("", gocui.MouseWheelUp, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		c.ScrollUp()
+		return nil
+	}); err != nil {
+		panic(err)
+	}
+
 	if err := g.SetKeybinding("", gocui.KeyArrowDown, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		c.ScrollDown()
+		return nil
+	}); err != nil {
+		panic(err)
+	}
+
+	if err := g.SetKeybinding("", gocui.MouseWheelDown, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		c.ScrollDown()
 		return nil
 	}); err != nil {
