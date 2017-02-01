@@ -24,10 +24,11 @@ const (
 
 //Controller is the primary type of the package.
 type Controller struct {
-	game     *boardgame.Game
-	gui      *gocui.Gui
-	renderer RendererFunc
-	render   renderType
+	game          *boardgame.Game
+	gui           *gocui.Gui
+	renderer      RendererFunc
+	render        renderType
+	proposingMove bool
 }
 
 //RenderrerFunc takes a state and outputs a list of strings that should be
@@ -61,6 +62,30 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 		v.Frame = false
 	}
 
+	if c.proposingMove {
+		if v, err := g.SetView("move", 0, maxY-30, maxX-1, maxY-2); err != nil {
+			if err != gocui.ErrUnknownView {
+				return err
+			}
+			v.Frame = true
+			v.Title = "Proposing Move"
+
+			fmt.Fprint(v, "This is where move stuff will show up.")
+
+			g.SetViewOnTop("move")
+		}
+
+	} else {
+		//Delete the view, if it exists
+		if err := g.DeleteView("move"); err != nil {
+			//It's OK if it's ErrUnknownView because that just means it wasn't
+			//in there and was a no op.
+			if err != gocui.ErrUnknownView {
+				return err
+			}
+		}
+	}
+
 	//Update the json field of view
 
 	if view, err := g.View("main"); err == nil {
@@ -83,7 +108,7 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 
 	if view, err := g.View("status"); err == nil {
 		view.Clear()
-		fmt.Fprint(view, "Type 't' to toggle json or render output, Ctrl-C to quit")
+		fmt.Fprint(view, "Type 't' to toggle json or render output, 'm' to propose a move, Ctrl-C to quit")
 	}
 
 	return nil
@@ -161,6 +186,10 @@ func (c *Controller) ToggleRender() {
 	}
 }
 
+func (c *Controller) StartProposingMove() {
+	c.proposingMove = true
+}
+
 //Once the controller is set up, call Start. It will block until it is time
 //to exit.
 func (c *Controller) Start() {
@@ -178,6 +207,10 @@ func (c *Controller) Start() {
 	//manager has to be set before setting keybindings, because it clears all
 	//keybindings when set.
 	g.SetManager(c)
+
+	//TODO: all of these key bindings are getting really brittle. We need a
+	//notion of modes who install all of the various key bindings when they
+	//are entered.
 
 	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
 		panic(err)
@@ -217,6 +250,15 @@ func (c *Controller) Start() {
 	}); err != nil {
 		panic(err)
 	}
+
+	if err := g.SetKeybinding("", 'm', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		c.StartProposingMove()
+		return nil
+	}); err != nil {
+		panic(err)
+	}
+
+	//TODO: cancel proposing move if esc is hit.
 
 	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
 		panic(err)
