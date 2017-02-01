@@ -44,3 +44,19 @@ func (m *MovePlaceToken) Apply(payload boardgame.StatePayload) boardgame.StatePa
 	return result
 
 }
+
+func (m *MovePlaceToken) Props() []string {
+	return boardgame.PropertyReaderPropsImpl(m)
+}
+
+func (m *MovePlaceToken) Prop(name string) interface{} {
+	return boardgame.PropertyReaderPropImpl(m, name)
+}
+
+func (m *MovePlaceToken) JSON() boardgame.JSONObject {
+	return m
+}
+
+func (m *MovePlaceToken) GameName() string {
+	return gameName
+}
