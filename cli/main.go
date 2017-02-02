@@ -68,36 +68,33 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 		v.Frame = false
 	}
 
-	switch c.mode {
-	case modePickMove, modeEditMove:
-		if v, err := g.SetView("move", 0, maxY-30, maxX-1, maxY-2); err != nil {
+	if c.mode.showOverlay() {
+		if v, err := g.SetView("overlay", 0, maxY-30, maxX-1, maxY-2); err != nil {
 			if err != gocui.ErrUnknownView {
 				return err
 			}
 			v.Frame = true
-			v.Title = "Proposing Move"
+			v.Title = c.mode.overlayTitle()
 			v.Highlight = true
 			v.SelFgColor = gocui.ColorBlack
 			v.SelBgColor = gocui.ColorWhite
 
 			v.SetCursor(0, 0)
 
-			g.SetViewOnTop("move")
-			g.SetCurrentView("move")
+			g.SetViewOnTop("overlay")
+			g.SetCurrentView("overlay")
 
 			//We'll render the content below
 		}
-	case modeNormal:
+	} else {
 		//Delete the view, if it exists
-		if err := g.DeleteView("move"); err != nil {
+		if err := g.DeleteView("overlay"); err != nil {
 			//It's OK if it's ErrUnknownView because that just means it wasn't
 			//in there and was a no op.
 			if err != gocui.ErrUnknownView {
 				return err
 			}
 		}
-	default:
-		//Presumably a nil mode. Meh.
 	}
 
 	//Update the json field of view
@@ -120,19 +117,11 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 
 	}
 
-	if view, err := g.View("move"); err == nil {
+	if view, err := g.View("overlay"); err == nil {
 
 		view.Clear()
-		if c.mode == modePickMove {
-			//TODO: this regenerates the move information every time, which seems funny...
-			moves := c.renderMoves()
 
-			c.numLines = len(moves)
-
-			fmt.Fprint(view, strings.Join(moves, "\n"))
-		} else {
-			fmt.Fprint(view, "This is where the move will have its fields enumerated for editing")
-		}
+		fmt.Fprint(view, strings.Join(c.mode.overlayContent(), "\n"))
 	}
 
 	if view, err := g.View("status"); err == nil {
@@ -255,7 +244,7 @@ func (c *Controller) PickCurrentlySelectedMoveToEdit(v *gocui.View) {
 func (c *Controller) PickMoveToEdit(move boardgame.Move) {
 	c.currentMove = move
 
-	c.EnterMode(modeEditMove)
+	c.EnterMode(&modeEditMove{modeBase{c}})
 }
 
 func (c *Controller) ToggleRender() {
@@ -266,12 +255,12 @@ func (c *Controller) ToggleRender() {
 }
 
 func (c *Controller) StartProposingMove() {
-	c.EnterMode(modePickMove)
+	c.EnterMode(&modePickMove{modeBase{c}})
 }
 
 //Cancels any mode that we're in by going back to normal mode.
 func (c *Controller) CancelMode() {
-	c.EnterMode(modeNormal)
+	c.EnterMode(&modeNormal{modeBase{c}})
 }
 
 func (c *Controller) EnterMode(m inputMode) {
@@ -283,7 +272,7 @@ func (c *Controller) EnterMode(m inputMode) {
 		g.DeleteKeybindings(view.Name())
 	}
 
-	m.enterMode(c)
+	m.enterMode()
 	c.mode = m
 }
 
@@ -307,7 +296,7 @@ func (c *Controller) Start() {
 	//keybindings when set.
 	g.SetManager(c)
 
-	c.EnterMode(modeNormal)
+	c.EnterMode(&modeNormal{modeBase{c}})
 
 	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
 		panic(err)
