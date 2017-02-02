@@ -104,6 +104,20 @@ func (p *proposingMoveMode) enterMode(c *Controller) {
 	}); err != nil {
 		panic(err)
 	}
+
+	if err := g.SetKeybinding("move", gocui.KeyArrowUp, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		c.ScrollMoveSelectionUp(v)
+		return nil
+	}); err != nil {
+		panic(err)
+	}
+
+	if err := g.SetKeybinding("move", gocui.KeyArrowDown, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		c.ScrollMoveSelectionDown(v)
+		return nil
+	}); err != nil {
+		panic(err)
+	}
 }
 
 func (p *proposingMoveMode) statusLine() string {

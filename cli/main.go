@@ -88,6 +88,7 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 			v.SetCursor(0, 0)
 
 			g.SetViewOnTop("move")
+			g.SetCurrentView("move")
 		}
 	case modeNormal:
 		//Delete the view, if it exists
@@ -209,6 +210,26 @@ func (c *Controller) ScrollDown() {
 	}
 	x, y := view.Origin()
 	view.SetOrigin(x, y+1)
+}
+
+func (c *Controller) ScrollMoveSelectionUp(v *gocui.View) {
+	_, y := v.Cursor()
+
+	if y == 0 {
+		return
+	}
+
+	v.MoveCursor(0, -1, false)
+}
+
+func (c *Controller) ScrollMoveSelectionDown(v *gocui.View) {
+	_, y := v.Cursor()
+
+	if y+1 >= c.numLines {
+		return
+	}
+
+	v.MoveCursor(0, +1, false)
 }
 
 func (c *Controller) ToggleRender() {
