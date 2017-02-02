@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"github.com/jkomoros/boardgame"
 	"github.com/jroimartin/gocui"
+	"strings"
 )
 
 type renderType int
@@ -71,7 +72,7 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 			v.Frame = true
 			v.Title = "Proposing Move"
 
-			fmt.Fprint(v, "This is where move stuff will show up.")
+			fmt.Fprint(v, c.renderMoves())
 
 			g.SetViewOnTop("move")
 		}
@@ -114,6 +115,22 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 	}
 
 	return nil
+}
+
+func (c *Controller) renderMoves() string {
+
+	var result []string
+
+	for _, move := range c.game.Moves() {
+		result = append(result, move.Name()+" : "+move.Description())
+	}
+
+	if len(result) == 0 {
+		result = []string{"No moves configured for this game."}
+	}
+
+	return strings.Join(result, "\n")
+
 }
 
 func (c *Controller) renderRendered() string {
