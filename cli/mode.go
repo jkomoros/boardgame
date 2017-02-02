@@ -7,6 +7,7 @@ import (
 var (
 	modeNormal   = &normalMode{}
 	modePickMove = &pickMoveMode{}
+	modeEditMove = &editMoveMode{}
 )
 
 type inputMode interface {
@@ -25,6 +26,10 @@ type normalMode struct {
 }
 
 type pickMoveMode struct {
+	baseMode
+}
+
+type editMoveMode struct {
 	baseMode
 }
 
@@ -129,4 +134,22 @@ func (p *pickMoveMode) enterMode(c *Controller) {
 
 func (p *pickMoveMode) statusLine() string {
 	return "'Enter' to pick a move to edit. 'Esc' to cancel"
+}
+
+func (e *editMoveMode) enterMode(c *Controller) {
+	e.baseMode.enterMode(c)
+
+	g := c.gui
+
+	//TODO:should the esc handler just be in baseMode?
+	if err := g.SetKeybinding("", gocui.KeyEsc, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		c.CancelMode()
+		return nil
+	}); err != nil {
+		panic(err)
+	}
+}
+
+func (e *editMoveMode) statusLine() string {
+	return "this is where you edit the move, I guess. Or 'Esc' to cancel. I don't care."
 }

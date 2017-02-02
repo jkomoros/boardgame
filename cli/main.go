@@ -33,7 +33,8 @@ type Controller struct {
 
 	//TODO: having these here feels bad. Shouldn't these be in a mode or
 	//something?
-	numLines int
+	numLines    int
+	currentMove boardgame.Move
 }
 
 //RenderrerFunc takes a state and outputs a list of strings that should be
@@ -68,7 +69,7 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 	}
 
 	switch c.mode {
-	case modePickMove:
+	case modePickMove, modeEditMove:
 		if v, err := g.SetView("move", 0, maxY-30, maxX-1, maxY-2); err != nil {
 			if err != gocui.ErrUnknownView {
 				return err
@@ -79,16 +80,12 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 			v.SelFgColor = gocui.ColorBlack
 			v.SelBgColor = gocui.ColorWhite
 
-			moves := c.renderMoves()
-
-			c.numLines = len(moves)
-
-			fmt.Fprint(v, strings.Join(moves, "\n"))
-
 			v.SetCursor(0, 0)
 
 			g.SetViewOnTop("move")
 			g.SetCurrentView("move")
+
+			//We'll render the content below
 		}
 	case modeNormal:
 		//Delete the view, if it exists
@@ -121,6 +118,21 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 			view.Title = "Chest"
 		}
 
+	}
+
+	if view, err := g.View("move"); err == nil {
+
+		view.Clear()
+		if c.mode == modePickMove {
+			//TODO: this regenerates the move information every time, which seems funny...
+			moves := c.renderMoves()
+
+			c.numLines = len(moves)
+
+			fmt.Fprint(view, strings.Join(moves, "\n"))
+		} else {
+			fmt.Fprint(view, "This is where the move will have its fields enumerated for editing")
+		}
 	}
 
 	if view, err := g.View("status"); err == nil {
@@ -241,8 +253,9 @@ func (c *Controller) PickCurrentlySelectedMoveToEdit(v *gocui.View) {
 }
 
 func (c *Controller) PickMoveToEdit(move boardgame.Move) {
-	//TODO: do something with this
-	panic(move)
+	c.currentMove = move
+
+	c.EnterMode(modeEditMove)
 }
 
 func (c *Controller) ToggleRender() {
