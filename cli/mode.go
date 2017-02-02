@@ -118,8 +118,15 @@ func (p *proposingMoveMode) enterMode(c *Controller) {
 	}); err != nil {
 		panic(err)
 	}
+
+	if err := g.SetKeybinding("move", gocui.KeyEnter, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		c.PickCurrentlySelectedMoveToEdit(v)
+		return nil
+	}); err != nil {
+		panic(err)
+	}
 }
 
 func (p *proposingMoveMode) statusLine() string {
-	return "'Esc' to cancel"
+	return "'Enter' to pick a move to edit. 'Esc' to cancel"
 }

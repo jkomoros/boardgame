@@ -232,6 +232,19 @@ func (c *Controller) ScrollMoveSelectionDown(v *gocui.View) {
 	v.MoveCursor(0, +1, false)
 }
 
+func (c *Controller) PickCurrentlySelectedMoveToEdit(v *gocui.View) {
+	_, index := v.Cursor()
+
+	move := c.game.Moves()[index]
+
+	c.PickMoveToEdit(move)
+}
+
+func (c *Controller) PickMoveToEdit(move boardgame.Move) {
+	//TODO: do something with this
+	panic(move)
+}
+
 func (c *Controller) ToggleRender() {
 	c.render++
 	if c.render > renderChest {
