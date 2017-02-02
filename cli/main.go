@@ -30,6 +30,10 @@ type Controller struct {
 	renderer RendererFunc
 	render   renderType
 	mode     inputMode
+
+	//TODO: having these here feels bad. Shouldn't these be in a mode or
+	//something?
+	numLines int
 }
 
 //RenderrerFunc takes a state and outputs a list of strings that should be
@@ -71,8 +75,17 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 			}
 			v.Frame = true
 			v.Title = "Proposing Move"
+			v.Highlight = true
+			v.SelFgColor = gocui.ColorBlack
+			v.SelBgColor = gocui.ColorWhite
 
-			fmt.Fprint(v, c.renderMoves())
+			moves := c.renderMoves()
+
+			c.numLines = len(moves)
+
+			fmt.Fprint(v, strings.Join(moves, "\n"))
+
+			v.SetCursor(0, 0)
 
 			g.SetViewOnTop("move")
 		}
@@ -117,7 +130,7 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 	return nil
 }
 
-func (c *Controller) renderMoves() string {
+func (c *Controller) renderMoves() []string {
 
 	var result []string
 
@@ -129,7 +142,7 @@ func (c *Controller) renderMoves() string {
 		result = []string{"No moves configured for this game."}
 	}
 
-	return strings.Join(result, "\n")
+	return result
 
 }
 
