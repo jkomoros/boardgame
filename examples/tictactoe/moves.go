@@ -45,6 +45,20 @@ func (m *MovePlaceToken) Apply(payload boardgame.StatePayload) boardgame.StatePa
 
 }
 
+func (m *MovePlaceToken) Name() string {
+	return "Place Token"
+}
+
+func (m *MovePlaceToken) Description() string {
+	return "Place a player's token in a specific space."
+}
+
+func (m *MovePlaceToken) Copy() boardgame.Move {
+	var result MovePlaceToken
+	result = *m
+	return &result
+}
+
 func (m *MovePlaceToken) Props() []string {
 	return boardgame.PropertyReaderPropsImpl(m)
 }

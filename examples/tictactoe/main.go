@@ -123,6 +123,8 @@ func NewGame() *boardgame.Game {
 
 	game.SetChest(chest)
 
+	game.AddMove(&MovePlaceToken{})
+
 	if err := game.SetUp(); err != nil {
 		panic("Game couldn't be set up")
 	}
