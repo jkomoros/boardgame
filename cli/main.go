@@ -68,7 +68,7 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 	}
 
 	switch c.mode {
-	case modeProposingMove:
+	case modePickMove:
 		if v, err := g.SetView("move", 0, maxY-30, maxX-1, maxY-2); err != nil {
 			if err != gocui.ErrUnknownView {
 				return err
@@ -253,7 +253,7 @@ func (c *Controller) ToggleRender() {
 }
 
 func (c *Controller) StartProposingMove() {
-	c.EnterMode(modeProposingMove)
+	c.EnterMode(modePickMove)
 }
 
 //Cancels any mode that we're in by going back to normal mode.

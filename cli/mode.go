@@ -5,8 +5,8 @@ import (
 )
 
 var (
-	modeNormal        = &normalMode{}
-	modeProposingMove = &proposingMoveMode{}
+	modeNormal   = &normalMode{}
+	modePickMove = &pickMoveMode{}
 )
 
 type inputMode interface {
@@ -24,7 +24,7 @@ type normalMode struct {
 	baseMode
 }
 
-type proposingMoveMode struct {
+type pickMoveMode struct {
 	baseMode
 }
 
@@ -92,7 +92,7 @@ func (n *normalMode) enterMode(c *Controller) {
 
 }
 
-func (p *proposingMoveMode) enterMode(c *Controller) {
+func (p *pickMoveMode) enterMode(c *Controller) {
 
 	p.baseMode.enterMode(c)
 
@@ -127,6 +127,6 @@ func (p *proposingMoveMode) enterMode(c *Controller) {
 	}
 }
 
-func (p *proposingMoveMode) statusLine() string {
+func (p *pickMoveMode) statusLine() string {
 	return "'Enter' to pick a move to edit. 'Esc' to cancel"
 }
