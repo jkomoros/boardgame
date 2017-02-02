@@ -31,6 +31,8 @@ type userState struct {
 	playerIndex  int
 	TokenValue   string
 	UnusedTokens *boardgame.GrowableStack
+	//How many tokens they have left to place this turn.
+	TokensToPlaceThisTurn int
 }
 
 func (u *userState) Props() []string {

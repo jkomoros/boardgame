@@ -70,3 +70,62 @@ func (m *MovePlaceToken) Prop(name string) interface{} {
 func (m *MovePlaceToken) JSON() boardgame.JSONObject {
 	return m
 }
+
+type MoveAdvancePlayer struct{}
+
+func (m *MoveAdvancePlayer) Legal(payload boardgame.StatePayload) error {
+	p := payload.(*statePayload)
+
+	user := p.users[p.game.CurrentPlayer]
+
+	if user.TokensToPlaceThisTurn > 0 {
+		return errors.New("The current player still has tokens left to place this turn.")
+	}
+
+	return nil
+}
+
+func (m *MoveAdvancePlayer) Apply(payload boardgame.StatePayload) boardgame.StatePayload {
+	result := payload.Copy()
+
+	p := result.(*statePayload)
+
+	p.game.CurrentPlayer++
+
+	if p.game.CurrentPlayer >= len(p.users) {
+		p.game.CurrentPlayer = 0
+	}
+
+	newUser := p.users[p.game.CurrentPlayer]
+
+	newUser.TokensToPlaceThisTurn = 1
+
+	return result
+
+}
+
+func (m *MoveAdvancePlayer) Name() string {
+	return "Advance Player"
+}
+
+func (m *MoveAdvancePlayer) Description() string {
+	return "After the current player has made all of their moves, this fix-up move advances to the next player."
+}
+
+func (m *MoveAdvancePlayer) Copy() boardgame.Move {
+	var result MoveAdvancePlayer
+	result = *m
+	return &result
+}
+
+func (m *MoveAdvancePlayer) JSON() boardgame.JSONObject {
+	return m
+}
+
+func (m *MoveAdvancePlayer) Prop(name string) interface{} {
+	return boardgame.PropertyReaderPropImpl(m, name)
+}
+
+func (m *MoveAdvancePlayer) Props() []string {
+	return boardgame.PropertyReaderPropsImpl(m)
+}

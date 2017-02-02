@@ -101,12 +101,14 @@ func NewGame() *boardgame.Game {
 		},
 		users: []*userState{
 			&userState{
-				TokenValue:   X,
-				UnusedTokens: boardgame.NewGrowableStack(tokens, 0),
+				TokensToPlaceThisTurn: 1,
+				TokenValue:            X,
+				UnusedTokens:          boardgame.NewGrowableStack(tokens, 0),
 			},
 			&userState{
-				TokenValue:   O,
-				UnusedTokens: boardgame.NewGrowableStack(tokens, 0),
+				TokensToPlaceThisTurn: 0,
+				TokenValue:            O,
+				UnusedTokens:          boardgame.NewGrowableStack(tokens, 0),
 			},
 		},
 	}
@@ -124,6 +126,7 @@ func NewGame() *boardgame.Game {
 	game.SetChest(chest)
 
 	game.AddMove(&MovePlaceToken{})
+	game.AddMove(&MoveAdvancePlayer{})
 
 	if err := game.SetUp(); err != nil {
 		panic("Game couldn't be set up")
