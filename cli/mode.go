@@ -47,6 +47,15 @@ type modeEditMove struct {
 	move boardgame.Move
 }
 
+func newModeEditMove(c *Controller, move boardgame.Move) *modeEditMove {
+	return &modeEditMove{
+		modeBase{
+			c,
+		},
+		move,
+	}
+}
+
 func (m *modeBase) enterMode() {
 
 	m.c.gui.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
@@ -78,6 +87,10 @@ func (m *modeBase) overlayTitle() string {
 
 func (m *modeBase) overlayHighlightedLine() int {
 	return -1
+}
+
+func newModeNormal(c *Controller) *modeNormal {
+	return &modeNormal{modeBase{c}}
 }
 
 func (m *modeNormal) handleInput(key gocui.Key, ch rune, mode gocui.Modifier) {
@@ -131,6 +144,16 @@ func (m *modeNormal) enterMode() {
 		panic(err)
 	}
 
+}
+
+func newModePickMove(c *Controller) *modePickMove {
+	return &modePickMove{
+		modeBase{
+			c,
+		},
+		0,
+		0,
+	}
 }
 
 func (m *modePickMove) handleInput(key gocui.Key, ch rune, mode gocui.Modifier) {

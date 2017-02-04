@@ -226,7 +226,7 @@ func (c *Controller) ScrollDown() {
 }
 
 func (c *Controller) PickMoveToEdit(move boardgame.Move) {
-	c.EnterMode(&modeEditMove{modeBase{c}, move})
+	c.EnterMode(newModeEditMove(c, move))
 }
 
 func (c *Controller) ToggleRender() {
@@ -237,12 +237,12 @@ func (c *Controller) ToggleRender() {
 }
 
 func (c *Controller) StartProposingMove() {
-	c.EnterMode(&modePickMove{modeBase{c}, 0, 0})
+	c.EnterMode(newModePickMove(c))
 }
 
 //Cancels any mode that we're in by going back to normal mode.
 func (c *Controller) CancelMode() {
-	c.EnterMode(&modeNormal{modeBase{c}})
+	c.EnterMode(newModeNormal(c))
 }
 
 func (c *Controller) EnterMode(m inputMode) {
@@ -278,7 +278,7 @@ func (c *Controller) Start() {
 	//keybindings when set.
 	g.SetManager(c)
 
-	c.EnterMode(&modeNormal{modeBase{c}})
+	c.EnterMode(newModeNormal(c))
 
 	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
 		panic(err)
