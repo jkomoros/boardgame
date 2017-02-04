@@ -31,6 +31,7 @@ type modeNormal struct {
 
 type modePickMove struct {
 	modeBase
+	numLines int
 }
 
 type modeEditMove struct {
@@ -123,17 +124,16 @@ func (m *modePickMove) handleInput(key gocui.Key, ch rune, mode gocui.Modifier) 
 	handled := false
 	switch key {
 	case gocui.KeyArrowUp:
-		m.c.ScrollMoveSelectionUp()
+		m.MoveSelectionUp()
 		handled = true
 	case gocui.KeyArrowDown:
-		m.c.ScrollMoveSelectionDown()
+		m.MoveSelectionDown()
 		handled = true
 	case gocui.KeyEsc:
 		m.c.CancelMode()
 		handled = true
 	case gocui.KeyEnter:
-		//TODO: this doesn't wire through correctly, needs a view
-		m.c.PickCurrentlySelectedMoveToEdit()
+		m.PickCurrentlySelectedMoveToEdit()
 	}
 	if handled {
 		return
@@ -161,13 +161,42 @@ func (m *modePickMove) overlayContent() []string {
 
 	//TODO: this is VERY weird that we're using a side-effect to set this
 	//piece of state in controller.
-	m.c.numLines = len(moves)
+	m.numLines = len(moves)
 
 	return moves
 }
 
 func (m *modePickMove) overlayTitle() string {
 	return "Pick Move To Propose"
+}
+
+func (m *modePickMove) MoveSelectionUp() {
+	_, y := m.c.overlayView.Cursor()
+
+	if y == 0 {
+		return
+	}
+
+	m.c.overlayView.MoveCursor(0, -1, false)
+}
+
+func (m *modePickMove) MoveSelectionDown() {
+	_, y := m.c.overlayView.Cursor()
+
+	if y+1 >= m.numLines {
+		return
+	}
+
+	m.c.overlayView.MoveCursor(0, +1, false)
+}
+
+func (m *modePickMove) PickCurrentlySelectedMoveToEdit() {
+	//TODO: store this state not in cursor but within this view
+	_, index := m.c.overlayView.Cursor()
+
+	move := m.c.game.Moves()[index]
+
+	m.c.PickMoveToEdit(move)
 }
 
 func (m *modeEditMove) handleInput(key gocui.Key, ch rune, mode gocui.Modifier) {

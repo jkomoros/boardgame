@@ -35,7 +35,6 @@ type Controller struct {
 
 	//TODO: having these here feels bad. Shouldn't these be in a mode or
 	//something?
-	numLines    int
 	currentMove boardgame.Move
 }
 
@@ -226,34 +225,6 @@ func (c *Controller) ScrollDown() {
 	view.SetOrigin(x, y+1)
 }
 
-func (c *Controller) ScrollMoveSelectionUp() {
-	_, y := c.overlayView.Cursor()
-
-	if y == 0 {
-		return
-	}
-
-	c.overlayView.MoveCursor(0, -1, false)
-}
-
-func (c *Controller) ScrollMoveSelectionDown() {
-	_, y := c.overlayView.Cursor()
-
-	if y+1 >= c.numLines {
-		return
-	}
-
-	c.overlayView.MoveCursor(0, +1, false)
-}
-
-func (c *Controller) PickCurrentlySelectedMoveToEdit() {
-	_, index := c.overlayView.Cursor()
-
-	move := c.game.Moves()[index]
-
-	c.PickMoveToEdit(move)
-}
-
 func (c *Controller) PickMoveToEdit(move boardgame.Move) {
 	c.currentMove = move
 
@@ -268,7 +239,7 @@ func (c *Controller) ToggleRender() {
 }
 
 func (c *Controller) StartProposingMove() {
-	c.EnterMode(&modePickMove{modeBase{c}})
+	c.EnterMode(&modePickMove{modeBase{c}, 0})
 }
 
 //Cancels any mode that we're in by going back to normal mode.
