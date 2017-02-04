@@ -206,11 +206,6 @@ func (c *Controller) renderChest() string {
 
 }
 
-func (c *Controller) Quit() {
-	//TODO: figure out right way to signal
-	panic("Quitting. In the future we'll hopefully do so cleanly.")
-}
-
 func (c *Controller) ScrollUp() {
 	var view *gocui.View
 	var err error

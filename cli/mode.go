@@ -39,15 +39,15 @@ type modeEditMove struct {
 
 func (m *modeBase) enterMode() {
 
-	//No op
+	m.c.gui.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		return gocui.ErrQuit
+	})
 
 }
 
 func (m *modeBase) handleInput(key gocui.Key, ch rune, mode gocui.Modifier) {
-	switch key {
-	case gocui.KeyCtrlC:
-		m.c.Quit()
-	}
+	//Currently there arent any base handlers. Quitting via Ctrl-C is handled
+	//via gocui key bindings so we can exit cleanly.
 }
 
 func (m *modeBase) statusLine() string {
