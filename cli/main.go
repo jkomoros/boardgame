@@ -32,10 +32,6 @@ type Controller struct {
 	mode        inputMode
 	mainView    *gocui.View
 	overlayView *gocui.View
-
-	//TODO: having these here feels bad. Shouldn't these be in a mode or
-	//something?
-	currentMove boardgame.Move
 }
 
 //RenderrerFunc takes a state and outputs a list of strings that should be
@@ -226,9 +222,7 @@ func (c *Controller) ScrollDown() {
 }
 
 func (c *Controller) PickMoveToEdit(move boardgame.Move) {
-	c.currentMove = move
-
-	c.EnterMode(&modeEditMove{modeBase{c}})
+	c.EnterMode(&modeEditMove{modeBase{c}, move})
 }
 
 func (c *Controller) ToggleRender() {

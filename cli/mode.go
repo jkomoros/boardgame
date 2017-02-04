@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"github.com/jkomoros/boardgame"
 	"github.com/jroimartin/gocui"
 )
 
@@ -36,6 +37,7 @@ type modePickMove struct {
 
 type modeEditMove struct {
 	modeBase
+	mode boardgame.Move
 }
 
 func (m *modeBase) enterMode() {
