@@ -74,9 +74,23 @@ func (o overlayContent) Valid() bool {
 }
 
 //Aligned returns true if all cells in a column have the same length
-func (o *overlayContent) Aligned() bool {
-	//TODO: implement
-	return false
+func (o overlayContent) Aligned() bool {
+	if !o.Valid() {
+		return false
+	}
+	if len(o) == 0 {
+		return true
+	}
+	numColumns := len(o[0])
+	for c := 0; c < numColumns; c++ {
+		colLength := len(o[0][c])
+		for _, row := range o {
+			if len(row[c]) != colLength {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 //DefaultPad goes through and makes sure that every column has the same
