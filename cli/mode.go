@@ -24,6 +24,8 @@ type inputMode interface {
 	overlayContent() []string
 	//Returns the title for overlay
 	overlayTitle() string
+	//Which line in the overlay to highlight. -1 is "none"
+	overlayHighlightedLine() int
 }
 
 type modeBase struct {
@@ -36,7 +38,8 @@ type modeNormal struct {
 
 type modePickMove struct {
 	modeBase
-	numLines int
+	numLines    int
+	currentLine int
 }
 
 type modeEditMove struct {
@@ -71,6 +74,10 @@ func (m *modeBase) overlayContent() []string {
 
 func (m *modeBase) overlayTitle() string {
 	return ""
+}
+
+func (m *modeBase) overlayHighlightedLine() int {
+	return -1
 }
 
 func (m *modeNormal) handleInput(key gocui.Key, ch rune, mode gocui.Modifier) {
@@ -176,31 +183,29 @@ func (m *modePickMove) overlayTitle() string {
 	return "Pick Move To Propose"
 }
 
-func (m *modePickMove) MoveSelectionUp() {
-	_, y := m.c.overlayView.Cursor()
+func (m *modePickMove) overlayHighlightedLine() int {
+	return m.currentLine
+}
 
-	if y == 0 {
+func (m *modePickMove) MoveSelectionUp() {
+
+	if m.currentLine == 0 {
 		return
 	}
-
-	m.c.overlayView.MoveCursor(0, -1, false)
+	m.currentLine--
 }
 
 func (m *modePickMove) MoveSelectionDown() {
-	_, y := m.c.overlayView.Cursor()
 
-	if y+1 >= m.numLines {
+	if m.currentLine+1 >= m.numLines {
 		return
 	}
-
-	m.c.overlayView.MoveCursor(0, +1, false)
+	m.currentLine++
 }
 
 func (m *modePickMove) PickCurrentlySelectedMoveToEdit() {
-	//TODO: store this state not in cursor but within this view
-	_, index := m.c.overlayView.Cursor()
 
-	move := m.c.game.Moves()[index]
+	move := m.c.game.Moves()[m.currentLine]
 
 	m.c.PickMoveToEdit(move)
 }

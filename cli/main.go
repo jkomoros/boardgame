@@ -90,8 +90,6 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 			v.SelFgColor = gocui.ColorBlack
 			v.SelBgColor = gocui.ColorWhite
 
-			v.SetCursor(0, 0)
-
 			g.SetViewOnTop("overlay")
 
 			c.overlayView = v
@@ -134,6 +132,12 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 		view.Clear()
 
 		fmt.Fprint(view, strings.Join(c.mode.overlayContent(), "\n"))
+
+		highlightedLine := c.mode.overlayHighlightedLine()
+
+		if highlightedLine >= 0 {
+			view.SetCursor(0, highlightedLine)
+		}
 	}
 
 	if view, err := g.View("status"); err == nil {
@@ -233,7 +237,7 @@ func (c *Controller) ToggleRender() {
 }
 
 func (c *Controller) StartProposingMove() {
-	c.EnterMode(&modePickMove{modeBase{c}, 0})
+	c.EnterMode(&modePickMove{modeBase{c}, 0, 0})
 }
 
 //Cancels any mode that we're in by going back to normal mode.
