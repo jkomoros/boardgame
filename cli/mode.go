@@ -5,10 +5,12 @@ import (
 )
 
 type inputMode interface {
-	//enterMode enters the specified mode. All of the keybindings will have
-	//been cleared before this is called, so the main point of order is to
-	//establish whatever key bindings are valid in this mode.
+	//enterMode enters the specified mode, doing any init necessary. Do not
+	//register keybindings (unless you're doing mouse)
 	enterMode()
+
+	//handleInput is where all input is routed.
+	handleInput(key gocui.Key, ch rune, mode gocui.Modifier)
 	//statusLine returns the text that should be displayed in the status line.
 	statusLine() string
 	//Whether or not the overlay should be visible
@@ -36,14 +38,16 @@ type modeEditMove struct {
 }
 
 func (m *modeBase) enterMode() {
-	//Establish the keybindings that exist in every mode.
 
-	g := m.c.gui
+	//No op
 
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
-		panic(err)
+}
+
+func (m *modeBase) handleInput(key gocui.Key, ch rune, mode gocui.Modifier) {
+	switch key {
+	case gocui.KeyCtrlC:
+		m.c.Quit()
 	}
-
 }
 
 func (m *modeBase) statusLine() string {
@@ -62,6 +66,33 @@ func (m *modeBase) overlayTitle() string {
 	return ""
 }
 
+func (m *modeNormal) handleInput(key gocui.Key, ch rune, mode gocui.Modifier) {
+	handled := false
+	switch key {
+	case gocui.KeyArrowUp:
+		m.c.ScrollUp()
+		handled = true
+	case gocui.KeyArrowDown:
+		m.c.ScrollDown()
+		handled = true
+	}
+	if handled {
+		return
+	}
+	switch ch {
+	case 't':
+		m.c.ToggleRender()
+		handled = true
+	case 'm':
+		m.c.StartProposingMove()
+		handled = true
+	}
+	if handled {
+		return
+	}
+	m.modeBase.handleInput(key, ch, mode)
+}
+
 func (m *modeNormal) enterMode() {
 
 	c := m.c
@@ -70,29 +101,10 @@ func (m *modeNormal) enterMode() {
 
 	g := c.gui
 
-	if err := g.SetKeybinding("", 't', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		c.ToggleRender()
-		return nil
-	}); err != nil {
-		panic(err)
-	}
-
-	if err := g.SetKeybinding("", gocui.KeyArrowUp, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		c.ScrollUp()
-		return nil
-	}); err != nil {
-		panic(err)
-	}
+	//TODO: can we skip setting key bindings for mouse?
 
 	if err := g.SetKeybinding("", gocui.MouseWheelUp, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		c.ScrollUp()
-		return nil
-	}); err != nil {
-		panic(err)
-	}
-
-	if err := g.SetKeybinding("", gocui.KeyArrowDown, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		c.ScrollDown()
 		return nil
 	}); err != nil {
 		panic(err)
@@ -105,50 +117,34 @@ func (m *modeNormal) enterMode() {
 		panic(err)
 	}
 
-	if err := g.SetKeybinding("", 'm', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		c.StartProposingMove()
-		return nil
-	}); err != nil {
-		panic(err)
-	}
+}
 
+func (m *modePickMove) handleInput(key gocui.Key, ch rune, mode gocui.Modifier) {
+	handled := false
+	switch key {
+	case gocui.KeyArrowUp:
+		m.c.ScrollMoveSelectionUp()
+		handled = true
+	case gocui.KeyArrowDown:
+		m.c.ScrollMoveSelectionDown()
+		handled = true
+	case gocui.KeyEsc:
+		m.c.CancelMode()
+		handled = true
+	case gocui.KeyEnter:
+		//TODO: this doesn't wire through correctly, needs a view
+		m.c.PickCurrentlySelectedMoveToEdit()
+	}
+	if handled {
+		return
+	}
+	m.modeBase.handleInput(key, ch, mode)
 }
 
 func (m *modePickMove) enterMode() {
 
 	m.modeBase.enterMode()
 
-	c := m.c
-
-	g := c.gui
-
-	if err := g.SetKeybinding("", gocui.KeyEsc, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		c.CancelMode()
-		return nil
-	}); err != nil {
-		panic(err)
-	}
-
-	if err := g.SetKeybinding("overlay", gocui.KeyArrowUp, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		c.ScrollMoveSelectionUp(v)
-		return nil
-	}); err != nil {
-		panic(err)
-	}
-
-	if err := g.SetKeybinding("overlay", gocui.KeyArrowDown, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		c.ScrollMoveSelectionDown(v)
-		return nil
-	}); err != nil {
-		panic(err)
-	}
-
-	if err := g.SetKeybinding("overlay", gocui.KeyEnter, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		c.PickCurrentlySelectedMoveToEdit(v)
-		return nil
-	}); err != nil {
-		panic(err)
-	}
 }
 
 func (m *modePickMove) statusLine() string {
@@ -174,20 +170,25 @@ func (m *modePickMove) overlayTitle() string {
 	return "Pick Move To Propose"
 }
 
+func (m *modeEditMove) handleInput(key gocui.Key, ch rune, mode gocui.Modifier) {
+	handled := false
+	switch key {
+	case gocui.KeyEsc:
+		//TODO: should this esc handler just be in baseMode?
+		m.c.CancelMode()
+		handled = true
+	}
+	if handled {
+		return
+	}
+	m.modeBase.handleInput(key, ch, mode)
+}
+
 func (m *modeEditMove) enterMode() {
 	m.modeBase.enterMode()
 
-	c := m.c
-
-	g := c.gui
-
 	//TODO:should the esc handler just be in baseMode?
-	if err := g.SetKeybinding("", gocui.KeyEsc, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		c.CancelMode()
-		return nil
-	}); err != nil {
-		panic(err)
-	}
+
 }
 
 func (m *modeEditMove) statusLine() string {

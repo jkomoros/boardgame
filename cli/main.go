@@ -25,11 +25,13 @@ const (
 
 //Controller is the primary type of the package.
 type Controller struct {
-	game     *boardgame.Game
-	gui      *gocui.Gui
-	renderer RendererFunc
-	render   renderType
-	mode     inputMode
+	game        *boardgame.Game
+	gui         *gocui.Gui
+	renderer    RendererFunc
+	render      renderType
+	mode        inputMode
+	mainView    *gocui.View
+	overlayView *gocui.View
 
 	//TODO: having these here feels bad. Shouldn't these be in a mode or
 	//something?
@@ -48,6 +50,16 @@ func NewController(game *boardgame.Game, renderer RendererFunc) *Controller {
 	}
 }
 
+//keyPressed is the func we use to "edit" the main view. gocui's keybinding is
+//a bit verbose for us (especially to register handlers for many keys), so
+//instead we have the main view ALWAYS be current, set it to have this as an
+//editor, and then route all input through it. This is a perversion of gocui's
+//model, and basically circumvents half the value of the package. Oh well, the
+//abstractions around windows are still useful for rendering. :-/
+func (c *Controller) keyPressed(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) {
+	c.mode.handleInput(key, ch, mod)
+}
+
 //Implement the gocui.Manager interface
 func (c *Controller) Layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
@@ -57,6 +69,10 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 		}
 		v.Title = "JSON"
 		v.Frame = true
+		v.Editable = true
+		v.Editor = gocui.EditorFunc(c.keyPressed)
+		c.gui.SetCurrentView("main")
+		c.mainView = v
 	}
 
 	if v, err := g.SetView("status", 0, maxY-2, maxX-1, maxY); err != nil {
@@ -82,7 +98,8 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 			v.SetCursor(0, 0)
 
 			g.SetViewOnTop("overlay")
-			g.SetCurrentView("overlay")
+
+			c.overlayView = v
 
 			//We'll render the content below
 		}
@@ -189,8 +206,9 @@ func (c *Controller) renderChest() string {
 
 }
 
-func quit(g *gocui.Gui, v *gocui.View) error {
-	return gocui.ErrQuit
+func (c *Controller) Quit() {
+	//TODO: figure out right way to signal
+	panic("Quitting. In the future we'll hopefully do so cleanly.")
 }
 
 func (c *Controller) ScrollUp() {
@@ -213,28 +231,28 @@ func (c *Controller) ScrollDown() {
 	view.SetOrigin(x, y+1)
 }
 
-func (c *Controller) ScrollMoveSelectionUp(v *gocui.View) {
-	_, y := v.Cursor()
+func (c *Controller) ScrollMoveSelectionUp() {
+	_, y := c.overlayView.Cursor()
 
 	if y == 0 {
 		return
 	}
 
-	v.MoveCursor(0, -1, false)
+	c.overlayView.MoveCursor(0, -1, false)
 }
 
-func (c *Controller) ScrollMoveSelectionDown(v *gocui.View) {
-	_, y := v.Cursor()
+func (c *Controller) ScrollMoveSelectionDown() {
+	_, y := c.overlayView.Cursor()
 
 	if y+1 >= c.numLines {
 		return
 	}
 
-	v.MoveCursor(0, +1, false)
+	c.overlayView.MoveCursor(0, +1, false)
 }
 
-func (c *Controller) PickCurrentlySelectedMoveToEdit(v *gocui.View) {
-	_, index := v.Cursor()
+func (c *Controller) PickCurrentlySelectedMoveToEdit() {
+	_, index := c.overlayView.Cursor()
 
 	move := c.game.Moves()[index]
 
