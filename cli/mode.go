@@ -287,6 +287,11 @@ func (m *modeEditMove) overlayContent() []string {
 		result[i] = strings.Repeat(" ", maxLineLength-len(parts[0])) + line
 	}
 
+	if len(result) == 0 {
+		//No fields!
+		return []string{"No fields to modify"}
+	}
+
 	return result
 
 }
