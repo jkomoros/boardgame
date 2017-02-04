@@ -1,8 +1,11 @@
 package cli
 
 import (
+	"fmt"
 	"github.com/jkomoros/boardgame"
 	"github.com/jroimartin/gocui"
+	"reflect"
+	"unicode"
 )
 
 type inputMode interface {
@@ -37,7 +40,7 @@ type modePickMove struct {
 
 type modeEditMove struct {
 	modeBase
-	mode boardgame.Move
+	move boardgame.Move
 }
 
 func (m *modeBase) enterMode() {
@@ -230,9 +233,38 @@ func (m *modeEditMove) showOverlay() bool {
 	return true
 }
 
+func moveFieldNameShouldBeIncluded(name string) bool {
+	if len(name) < 1 {
+		return false
+	}
+
+	firstChar := []rune(name)[0]
+
+	if firstChar != unicode.ToUpper(firstChar) {
+		//It was not upper case, thus private, thus should not be included.
+		return false
+	}
+
+	return true
+}
+
 func (m *modeEditMove) overlayContent() []string {
 	//TODO; return real content
-	return []string{"This is where the move will have its fields enumerated for editing"}
+
+	var result []string
+
+	s := reflect.ValueOf(m.move).Elem()
+	typeOfT := s.Type()
+	for i := 0; i < s.NumField(); i++ {
+		f := s.Field(i)
+		fieldName := typeOfT.Field(i).Name
+		if !moveFieldNameShouldBeIncluded(fieldName) {
+			continue
+		}
+		result = append(result, fmt.Sprintf("%s (%s): %v", fieldName, f.Type(), f.Interface()))
+	}
+
+	return result
 
 }
 
