@@ -5,6 +5,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jroimartin/gocui"
 	"reflect"
+	"strings"
 	"unicode"
 )
 
@@ -251,7 +252,7 @@ func moveFieldNameShouldBeIncluded(name string) bool {
 func (m *modeEditMove) overlayContent() []string {
 	//TODO; return real content
 
-	var result []string
+	var lines []string
 
 	s := reflect.ValueOf(m.move).Elem()
 	typeOfT := s.Type()
@@ -261,7 +262,24 @@ func (m *modeEditMove) overlayContent() []string {
 		if !moveFieldNameShouldBeIncluded(fieldName) {
 			continue
 		}
-		result = append(result, fmt.Sprintf("%s (%s): %v", fieldName, f.Type(), f.Interface()))
+		lines = append(lines, fmt.Sprintf("%s (%s): %v", fieldName, f.Type(), f.Interface()))
+	}
+
+	result := make([]string, len(lines))
+
+	//Make sure all of the field types for the size are set the same size
+	maxLineLength := 0
+
+	for _, line := range lines {
+		parts := strings.Split(line, ":")
+		if len(parts[0]) > maxLineLength {
+			maxLineLength = len(parts[0])
+		}
+	}
+
+	for i, line := range lines {
+		parts := strings.Split(line, ":")
+		result[i] = strings.Repeat(" ", maxLineLength-len(parts[0])) + line
 	}
 
 	return result
