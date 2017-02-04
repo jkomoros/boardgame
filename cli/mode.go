@@ -22,11 +22,23 @@ type inputMode interface {
 	showOverlay() bool
 	//Returns overlay content
 	overlayContent() []string
+	//TODO: overlayContent should return an *overlayContent once all of those
+	//methods are set.
+
 	//Returns the title for overlay
 	overlayTitle() string
 	//Which line in the overlay to highlight. -1 is "none"
 	overlayHighlightedLine() int
 }
+
+type overlayContent [][]string
+
+type columnAlignment int
+
+const (
+	alignLeft columnAlignment = iota
+	alignRight
+)
 
 type modeBase struct {
 	c *Controller
@@ -45,6 +57,38 @@ type modePickMove struct {
 type modeEditMove struct {
 	modeBase
 	move boardgame.Move
+}
+
+//Valid returns true if each row has the same number of columns
+func (o overlayContent) Valid() bool {
+	if len(o) < 1 {
+		return true
+	}
+	numColumns := len(o[0])
+	for _, row := range o {
+		if len(row) != numColumns {
+			return false
+		}
+	}
+	return true
+}
+
+//Aligned returns true if all cells in a column have the same length
+func (o *overlayContent) Aligned() bool {
+	//TODO: implement
+	return false
+}
+
+//DefaultPad goes through and makes sure that every column has the same
+//lenght. Defaults to left-aligned for all.
+func (o *overlayContent) DefaultPad() {
+	//TODO: implement
+}
+
+//Pad verifies that each column in the overlayContent is the same size, with
+//each column left or right aligned.
+func (o *overlayContent) PadWithAlignment(alignments ...columnAlignment) {
+	//TODO: implement
 }
 
 func newModeEditMove(c *Controller, move boardgame.Move) *modeEditMove {
