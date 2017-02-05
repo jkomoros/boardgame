@@ -96,7 +96,19 @@ func (o overlayContent) Aligned() bool {
 //DefaultPad goes through and makes sure that every column has the same
 //lenght. Defaults to left-aligned for all.
 func (o *overlayContent) DefaultPad() {
-	//TODO: implement
+	if o.Aligned() {
+		return
+	}
+
+	numColumns := len((*o)[0])
+
+	alignments := make([]columnAlignment, numColumns)
+
+	for i := 0; i < numColumns; i++ {
+		alignments[i] = alignLeft
+	}
+
+	o.PadWithAlignment(alignments...)
 }
 
 //Pad verifies that each column in the overlayContent is the same size, with
