@@ -103,6 +103,39 @@ func (o *overlayContent) DefaultPad() {
 //each column left or right aligned.
 func (o *overlayContent) PadWithAlignment(alignments ...columnAlignment) {
 	//TODO: implement
+	if o.Aligned() {
+		return
+	}
+
+	//Make sure the length of alignments lines up with Aligned.
+	if len((*o)[0]) != len(alignments) {
+		return
+	}
+
+	for c, alignment := range alignments {
+
+		maxColLength := len((*o)[0][c])
+		for r := 1; r < len((*o)); r++ {
+			if len((*o)[r][c]) > maxColLength {
+				maxColLength = len((*o)[r][c])
+			}
+		}
+
+		for r, line := range *o {
+			length := len(line[c])
+
+			lengthToPad := maxColLength - length
+
+			if alignment == alignLeft {
+
+				(*o)[r][c] = (*o)[r][c] + strings.Repeat(" ", lengthToPad)
+
+			} else if alignment == alignRight {
+				(*o)[r][c] = strings.Repeat(" ", lengthToPad) + (*o)[r][c]
+			}
+		}
+	}
+
 }
 
 func newModeEditMove(c *Controller, move boardgame.Move) *modeEditMove {
