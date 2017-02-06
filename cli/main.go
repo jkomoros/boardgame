@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"github.com/jkomoros/boardgame"
 	"github.com/jroimartin/gocui"
-	"strings"
 )
 
 type renderType int
@@ -131,7 +130,7 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 
 		view.Clear()
 
-		fmt.Fprint(view, strings.Join(c.mode.overlayContent(), "\n"))
+		fmt.Fprint(view, c.mode.overlayContent())
 
 		highlightedLine := c.mode.overlayHighlightedLine()
 

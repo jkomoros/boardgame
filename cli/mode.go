@@ -21,10 +21,7 @@ type inputMode interface {
 	//Whether or not the overlay should be visible
 	showOverlay() bool
 	//Returns overlay content
-	overlayContent() []string
-	//TODO: overlayContent should return an *overlayContent once all of those
-	//methods are set.
-
+	overlayContent() *overlayContent
 	//Returns the title for overlay
 	overlayTitle() string
 	//Which line in the overlay to highlight. -1 is "none"
@@ -50,13 +47,14 @@ type modeNormal struct {
 
 type modePickMove struct {
 	modeBase
-	numLines    int
+	content     *overlayContent
 	currentLine int
 }
 
 type modeEditMove struct {
 	modeBase
-	move boardgame.Move
+	content *overlayContent
+	move    boardgame.Move
 }
 
 //Valid returns true if each row has the same number of columns
@@ -172,6 +170,7 @@ func newModeEditMove(c *Controller, move boardgame.Move) *modeEditMove {
 		modeBase{
 			c,
 		},
+		nil,
 		move,
 	}
 }
@@ -197,7 +196,7 @@ func (m *modeBase) showOverlay() bool {
 	return false
 }
 
-func (m *modeBase) overlayContent() []string {
+func (m *modeBase) overlayContent() *overlayContent {
 	return nil
 }
 
@@ -271,7 +270,7 @@ func newModePickMove(c *Controller) *modePickMove {
 		modeBase{
 			c,
 		},
-		0,
+		nil,
 		0,
 	}
 }
@@ -311,15 +310,24 @@ func (m *modePickMove) showOverlay() bool {
 	return true
 }
 
-func (m *modePickMove) overlayContent() []string {
-	//TODO: memoize this
-	moves := m.c.renderMoves()
+func (m *modePickMove) overlayContent() *overlayContent {
 
-	//TODO: this is VERY weird that we're using a side-effect to set this
-	//piece of state in controller.
-	m.numLines = len(moves)
+	if m.content == nil {
 
-	return moves
+		moves := m.c.renderMoves()
+
+		result := make(overlayContent, len(moves))
+
+		for i := 0; i < len(moves); i++ {
+			result[i] = []string{moves[i]}
+		}
+
+		m.content = &result
+
+	}
+
+	return m.content
+
 }
 
 func (m *modePickMove) overlayTitle() string {
@@ -340,7 +348,11 @@ func (m *modePickMove) MoveSelectionUp() {
 
 func (m *modePickMove) MoveSelectionDown() {
 
-	if m.currentLine+1 >= m.numLines {
+	if m.content == nil {
+		return
+	}
+
+	if m.currentLine+1 >= len(*m.content) {
 		return
 	}
 	m.currentLine++
@@ -397,45 +409,32 @@ func moveFieldNameShouldBeIncluded(name string) bool {
 	return true
 }
 
-func (m *modeEditMove) overlayContent() []string {
-	//TODO; return real content
+func (m *modeEditMove) overlayContent() *overlayContent {
 
-	var lines []string
+	if m.content == nil {
 
-	s := reflect.ValueOf(m.move).Elem()
-	typeOfT := s.Type()
-	for i := 0; i < s.NumField(); i++ {
-		f := s.Field(i)
-		fieldName := typeOfT.Field(i).Name
-		if !moveFieldNameShouldBeIncluded(fieldName) {
-			continue
+		var result overlayContent
+
+		s := reflect.ValueOf(m.move).Elem()
+		typeOfT := s.Type()
+		for i := 0; i < s.NumField(); i++ {
+			f := s.Field(i)
+			fieldName := typeOfT.Field(i).Name
+			if !moveFieldNameShouldBeIncluded(fieldName) {
+				continue
+			}
+			result = append(result, []string{fmt.Sprintf("%s (%s)", fieldName, f.Type()), ":", fmt.Sprintf("%v", f.Interface())})
 		}
-		lines = append(lines, fmt.Sprintf("%s (%s): %v", fieldName, f.Type(), f.Interface()))
-	}
 
-	result := make([]string, len(lines))
-
-	//Make sure all of the field types for the size are set the same size
-	maxLineLength := 0
-
-	for _, line := range lines {
-		parts := strings.Split(line, ":")
-		if len(parts[0]) > maxLineLength {
-			maxLineLength = len(parts[0])
+		if len(result) == 0 {
+			//No fields!
+			result = overlayContent{[]string{"No fields to modify"}}
 		}
+
+		m.content = &result
 	}
 
-	for i, line := range lines {
-		parts := strings.Split(line, ":")
-		result[i] = strings.Repeat(" ", maxLineLength-len(parts[0])) + line
-	}
-
-	if len(result) == 0 {
-		//No fields!
-		return []string{"No fields to modify"}
-	}
-
-	return result
+	return m.content
 
 }
 
