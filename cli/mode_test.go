@@ -272,3 +272,31 @@ func TestOverlayContentDefaultPad(t *testing.T) {
 		}
 	}
 }
+
+func TestOverlayContentString(t *testing.T) {
+	tests := []struct {
+		input    *overlayContent
+		expected string
+	}{
+		{
+			input: &overlayContent{
+				{
+					"0",
+					"1 ",
+				}, {
+					"0",
+					"1",
+				},
+			},
+			expected: "01 \n01 ",
+		},
+	}
+
+	for i, test := range tests {
+		str := test.input.String()
+
+		if str != test.expected {
+			t.Error("Mismatch in test", i, "got", str, "expected", test.expected)
+		}
+	}
+}

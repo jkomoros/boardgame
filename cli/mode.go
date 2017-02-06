@@ -150,6 +150,23 @@ func (o *overlayContent) PadWithAlignment(alignments ...columnAlignment) {
 
 }
 
+//String returns overlay content rendered as a simple string with lines separated by \n
+func (o *overlayContent) String() string {
+
+	if !o.Aligned() {
+		o.DefaultPad()
+	}
+
+	lines := make([]string, len(*o))
+
+	for i, line := range *o {
+		lines[i] = strings.Join(line, "")
+	}
+
+	return strings.Join(lines, "\n")
+
+}
+
 func newModeEditMove(c *Controller, move boardgame.Move) *modeEditMove {
 	return &modeEditMove{
 		modeBase{
