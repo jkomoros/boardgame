@@ -432,6 +432,8 @@ func (m *modeEditMove) overlayContent() *overlayContent {
 		}
 
 		m.content = &result
+
+		m.content.PadWithAlignment(alignRight, alignLeft, alignLeft)
 	}
 
 	return m.content
