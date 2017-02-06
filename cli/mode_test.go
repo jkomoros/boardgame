@@ -117,9 +117,10 @@ func TestOverlayContentAligned(t *testing.T) {
 
 func TestOverlayContentPadWithAlignment(t *testing.T) {
 	tests := []struct {
-		input     *overlayContent
-		alignment []columnAlignment
-		expected  *overlayContent
+		input          *overlayContent
+		alignment      []columnAlignment
+		expected       *overlayContent
+		expectedWidths []int
 	}{
 		{
 			input: &overlayContent{
@@ -146,6 +147,10 @@ func TestOverlayContentPadWithAlignment(t *testing.T) {
 					"1",
 				},
 			},
+			expectedWidths: []int{
+				2,
+				1,
+			},
 		},
 		{
 			input: &overlayContent{
@@ -172,31 +177,9 @@ func TestOverlayContentPadWithAlignment(t *testing.T) {
 					"1",
 				},
 			},
-		},
-		{
-			input: &overlayContent{
-				{
-					"0",
-					"1",
-				},
-				{
-					"    0",
-					"1   ",
-				},
-			},
-			alignment: []columnAlignment{
-				alignRight,
-				alignLeft,
-			},
-			expected: &overlayContent{
-				{
-					"    0",
-					"1   ",
-				},
-				{
-					"    0",
-					"1   ",
-				},
+			expectedWidths: []int{
+				1,
+				1,
 			},
 		},
 		{
@@ -212,6 +195,36 @@ func TestOverlayContentPadWithAlignment(t *testing.T) {
 			},
 			alignment: []columnAlignment{
 				alignRight,
+				alignLeft,
+			},
+			expected: &overlayContent{
+				{
+					"    0",
+					"1   ",
+				},
+				{
+					"    0",
+					"1   ",
+				},
+			},
+			expectedWidths: []int{
+				5,
+				4,
+			},
+		},
+		{
+			input: &overlayContent{
+				{
+					"0",
+					"1",
+				},
+				{
+					"    0",
+					"1   ",
+				},
+			},
+			alignment: []columnAlignment{
+				alignRight,
 			},
 			expected: &overlayContent{
 				{
@@ -222,6 +235,10 @@ func TestOverlayContentPadWithAlignment(t *testing.T) {
 					"    0",
 					"1   ",
 				},
+			},
+			expectedWidths: []int{
+				5,
+				4,
 			},
 		},
 	}
@@ -231,6 +248,12 @@ func TestOverlayContentPadWithAlignment(t *testing.T) {
 
 		if !reflect.DeepEqual(*test.input, *test.expected) {
 			t.Error("Mismatch in test", i, "got", test.input, "wanted", test.expected)
+		}
+
+		widths := test.input.ColumnWidths()
+
+		if !reflect.DeepEqual(widths, test.expectedWidths) {
+			t.Error("Width mismatch in test", i, "got", widths, "wanted", test.expectedWidths)
 		}
 	}
 }

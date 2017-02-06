@@ -91,6 +91,23 @@ func (o overlayContent) Aligned() bool {
 	return true
 }
 
+//ColumnWidths verifies that evertyhing is aligned and then returns the column sizes
+func (o *overlayContent) ColumnWidths() []int {
+	if !o.Aligned() {
+		o.DefaultPad()
+	}
+
+	row := (*o)[0]
+
+	result := make([]int, len(row))
+
+	for c := 0; c < len(row); c++ {
+		result[c] = len(row[c])
+	}
+
+	return result
+}
+
 //DefaultPad goes through and makes sure that every column has the same
 //lenght. Defaults to left-aligned for all.
 func (o *overlayContent) DefaultPad() {
