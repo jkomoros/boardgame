@@ -99,7 +99,7 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 
 			//We're going to show the overlay selectd content. Where does it go?
 
-			cols := c.mode.overlayContent().ColumnWidths()
+			cols := c.mode.overlayContent(maxX - 2).ColumnWidths()
 
 			x := 0
 
@@ -170,7 +170,9 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 
 		view.Clear()
 
-		fmt.Fprint(view, c.mode.overlayContent())
+		width, _ := view.Size()
+
+		fmt.Fprint(view, c.mode.overlayContent(width))
 	}
 
 	if view, err := g.View("overlay-selected"); err == nil {
@@ -183,7 +185,9 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 
 		//panic(fmt.Sprint(x0, y0, x1, y1))
 
-		fmt.Fprint(view, (*c.mode.overlayContent())[row][col])
+		width, _ := g.Size()
+
+		fmt.Fprint(view, (*c.mode.overlayContent(width))[row][col])
 
 	}
 

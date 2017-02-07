@@ -21,7 +21,7 @@ type inputMode interface {
 	//Whether or not the overlay should be visible
 	showOverlay() bool
 	//Returns overlay content
-	overlayContent() *overlayContent
+	overlayContent(width int) *overlayContent
 	//Which cell in overlayContent is currently selected. -1, -1 is "none"
 	overlaySelectedCell() (row, col int)
 
@@ -247,7 +247,7 @@ func (m *modeBase) showOverlay() bool {
 	return false
 }
 
-func (m *modeBase) overlayContent() *overlayContent {
+func (m *modeBase) overlayContent(width int) *overlayContent {
 	return nil
 }
 
@@ -394,7 +394,7 @@ func (m *modePickMove) showOverlay() bool {
 	return true
 }
 
-func (m *modePickMove) overlayContent() *overlayContent {
+func (m *modePickMove) overlayContent(width int) *overlayContent {
 
 	if m.content == nil {
 
@@ -404,7 +404,10 @@ func (m *modePickMove) overlayContent() *overlayContent {
 
 		for i := 0; i < len(moves); i++ {
 			result[i] = []string{moves[i]}
+
 		}
+
+		result.SizeTo(width)
 
 		m.content = &result
 
@@ -473,7 +476,7 @@ func moveFieldNameShouldBeIncluded(name string) bool {
 	return true
 }
 
-func (m *modeEditMove) overlayContent() *overlayContent {
+func (m *modeEditMove) overlayContent(width int) *overlayContent {
 
 	if m.content == nil {
 
@@ -498,6 +501,8 @@ func (m *modeEditMove) overlayContent() *overlayContent {
 		m.content = &result
 
 		m.content.PadWithAlignment(alignRight, alignLeft, alignLeft)
+
+		m.content.SizeTo(width)
 	}
 
 	return m.content
