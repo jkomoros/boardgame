@@ -79,15 +79,18 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 	}
 
 	if c.mode.showOverlay() {
-		if v, err := g.SetView("overlay", 0, maxY-30, maxX-1, maxY-2); err != nil {
+
+		overlayX := 0
+		overlayY := maxY - 30
+		overlayX1 := maxX - 1
+		overlayY1 := maxY - 2
+
+		if v, err := g.SetView("overlay", overlayX, overlayY, overlayX1, overlayY1); err != nil {
 			if err != gocui.ErrUnknownView {
 				return err
 			}
 			v.Frame = true
 			v.Title = c.mode.overlayTitle()
-			v.Highlight = true
-			v.SelFgColor = gocui.ColorBlack
-			v.SelBgColor = gocui.ColorWhite
 
 			g.SetViewOnTop("overlay")
 
@@ -95,9 +98,52 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 
 			//We'll render the content below
 		}
+
+		row, col := c.mode.overlaySelectedCell()
+
+		if row != -1 && col != -1 {
+
+			//We're going to show the overlay selectd content. Where does it go?
+
+			cols := c.mode.overlayContent().ColumnWidths()
+
+			x := 0
+
+			for i := 0; i < col; i++ {
+				x += cols[i]
+			}
+
+			if v, err := g.SetView("overlay-selected", x, overlayY+row, x+cols[col]+1, overlayY+row+2); err != nil {
+				if err != gocui.ErrUnknownView {
+					return err
+				}
+				v.FgColor = gocui.ColorBlack
+				v.BgColor = gocui.ColorWhite
+				v.Frame = false
+
+				g.SetViewOnTop("overlay-selected")
+
+			}
+		} else {
+			//TODO: it's a smell that we have the code to get rid of overlay-selected twice.
+			if err := g.DeleteView("overlay-selected"); err != nil {
+				//It's OK if it's ErrUnknownView because that just means it wasn't
+				//in there and was a no op.
+				if err != gocui.ErrUnknownView {
+					return err
+				}
+			}
+		}
 	} else {
 		//Delete the view, if it exists
 		if err := g.DeleteView("overlay"); err != nil {
+			//It's OK if it's ErrUnknownView because that just means it wasn't
+			//in there and was a no op.
+			if err != gocui.ErrUnknownView {
+				return err
+			}
+		}
+		if err := g.DeleteView("overlay-selected"); err != nil {
 			//It's OK if it's ErrUnknownView because that just means it wasn't
 			//in there and was a no op.
 			if err != gocui.ErrUnknownView {
@@ -131,12 +177,20 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 		view.Clear()
 
 		fmt.Fprint(view, c.mode.overlayContent())
+	}
 
-		highlightedLine := c.mode.overlayHighlightedLine()
+	if view, err := g.View("overlay-selected"); err == nil {
 
-		if highlightedLine >= 0 {
-			view.SetCursor(0, highlightedLine)
-		}
+		view.Clear()
+
+		row, col := c.mode.overlaySelectedCell()
+
+		//x0, y0, x1, y1, _ := g.ViewPosition("overlay-selected")
+
+		//panic(fmt.Sprint(x0, y0, x1, y1))
+
+		fmt.Fprint(view, (*c.mode.overlayContent())[row][col])
+
 	}
 
 	if view, err := g.View("status"); err == nil {

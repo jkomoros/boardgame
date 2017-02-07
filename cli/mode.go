@@ -22,10 +22,11 @@ type inputMode interface {
 	showOverlay() bool
 	//Returns overlay content
 	overlayContent() *overlayContent
+	//Which cell in overlayContent is currently selected. -1, -1 is "none"
+	overlaySelectedCell() (row, col int)
+
 	//Returns the title for overlay
 	overlayTitle() string
-	//Which line in the overlay to highlight. -1 is "none"
-	overlayHighlightedLine() int
 }
 
 type overlayContent [][]string
@@ -221,8 +222,8 @@ func (m *modeBase) overlayTitle() string {
 	return ""
 }
 
-func (m *modeBase) overlayHighlightedLine() int {
-	return -1
+func (m *modeBase) overlaySelectedCell() (row, col int) {
+	return -1, -1
 }
 
 func newModeNormal(c *Controller) *modeNormal {
@@ -351,8 +352,8 @@ func (m *modePickMove) overlayTitle() string {
 	return "Pick Move To Propose"
 }
 
-func (m *modePickMove) overlayHighlightedLine() int {
-	return m.currentLine
+func (m *modePickMove) overlaySelectedCell() (row, col int) {
+	return m.currentLine, 0
 }
 
 func (m *modePickMove) MoveSelectionUp() {
