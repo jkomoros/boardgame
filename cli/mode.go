@@ -54,8 +54,9 @@ type modePickMove struct {
 
 type modeEditMove struct {
 	modeBase
-	content *overlayContent
-	move    boardgame.Move
+	content     *overlayContent
+	move        boardgame.Move
+	currentLine int
 }
 
 //Valid returns true if each row has the same number of columns
@@ -190,6 +191,7 @@ func newModeEditMove(c *Controller, move boardgame.Move) *modeEditMove {
 		},
 		nil,
 		move,
+		0,
 	}
 }
 
@@ -390,6 +392,13 @@ func (m *modeEditMove) handleInput(key gocui.Key, ch rune, mode gocui.Modifier) 
 		//TODO: should this esc handler just be in baseMode?
 		m.c.CancelMode()
 		handled = true
+	case gocui.KeyArrowUp:
+		//TODO: KeyArrowUp and KeyArrowDown should just be handled in a sub-mode
+		m.MoveSelectionUp()
+		handled = true
+	case gocui.KeyArrowDown:
+		m.MoveSelectionDown()
+		handled = true
 	}
 	if handled {
 		return
@@ -456,6 +465,31 @@ func (m *modeEditMove) overlayContent() *overlayContent {
 
 	return m.content
 
+}
+
+//TODO: pop these out into a base class
+func (m *modeEditMove) MoveSelectionUp() {
+
+	if m.currentLine == 0 {
+		return
+	}
+	m.currentLine--
+}
+
+func (m *modeEditMove) MoveSelectionDown() {
+
+	if m.content == nil {
+		return
+	}
+
+	if m.currentLine+1 >= len(*m.content) {
+		return
+	}
+	m.currentLine++
+}
+
+func (m *modeEditMove) overlaySelectedCell() (row, col int) {
+	return m.currentLine, 2
 }
 
 func (m *modeEditMove) overlayTitle() string {
