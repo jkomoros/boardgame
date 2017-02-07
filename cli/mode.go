@@ -46,17 +46,19 @@ type modeNormal struct {
 	modeBase
 }
 
-type modePickMove struct {
+type modePickableLine struct {
 	modeBase
 	content     *overlayContent
 	currentLine int
 }
 
+type modePickMove struct {
+	modePickableLine
+}
+
 type modeEditMove struct {
-	modeBase
-	content     *overlayContent
-	move        boardgame.Move
-	currentLine int
+	modePickableLine
+	move boardgame.Move
 }
 
 //Valid returns true if each row has the same number of columns
@@ -186,12 +188,14 @@ func (o *overlayContent) String() string {
 
 func newModeEditMove(c *Controller, move boardgame.Move) *modeEditMove {
 	return &modeEditMove{
-		modeBase{
-			c,
+		modePickableLine{
+			modeBase{
+				c,
+			},
+			nil,
+			0,
 		},
-		nil,
 		move,
-		0,
 	}
 }
 
@@ -285,17 +289,7 @@ func (m *modeNormal) enterMode() {
 
 }
 
-func newModePickMove(c *Controller) *modePickMove {
-	return &modePickMove{
-		modeBase{
-			c,
-		},
-		nil,
-		0,
-	}
-}
-
-func (m *modePickMove) handleInput(key gocui.Key, ch rune, mode gocui.Modifier) {
+func (m *modePickableLine) handleInput(key gocui.Key, ch rune, mode gocui.Modifier) {
 	handled := false
 	switch key {
 	case gocui.KeyArrowUp:
@@ -304,6 +298,49 @@ func (m *modePickMove) handleInput(key gocui.Key, ch rune, mode gocui.Modifier) 
 	case gocui.KeyArrowDown:
 		m.MoveSelectionDown()
 		handled = true
+	}
+	if handled {
+		return
+	}
+
+	m.modeBase.handleInput(key, ch, mode)
+
+}
+
+func (m *modePickableLine) MoveSelectionUp() {
+	if m.currentLine == 0 {
+		return
+	}
+	m.currentLine--
+}
+
+func (m *modePickableLine) MoveSelectionDown() {
+
+	if m.content == nil {
+		return
+	}
+
+	if m.currentLine+1 >= len(*m.content) {
+		return
+	}
+	m.currentLine++
+}
+
+func newModePickMove(c *Controller) *modePickMove {
+	return &modePickMove{
+		modePickableLine{
+			modeBase{
+				c,
+			},
+			nil,
+			0,
+		},
+	}
+}
+
+func (m *modePickMove) handleInput(key gocui.Key, ch rune, mode gocui.Modifier) {
+	handled := false
+	switch key {
 	case gocui.KeyEsc:
 		m.c.CancelMode()
 		handled = true
@@ -313,7 +350,7 @@ func (m *modePickMove) handleInput(key gocui.Key, ch rune, mode gocui.Modifier) 
 	if handled {
 		return
 	}
-	m.modeBase.handleInput(key, ch, mode)
+	m.modePickableLine.handleInput(key, ch, mode)
 }
 
 func (m *modePickMove) enterMode() {
@@ -358,26 +395,6 @@ func (m *modePickMove) overlaySelectedCell() (row, col int) {
 	return m.currentLine, 0
 }
 
-func (m *modePickMove) MoveSelectionUp() {
-
-	if m.currentLine == 0 {
-		return
-	}
-	m.currentLine--
-}
-
-func (m *modePickMove) MoveSelectionDown() {
-
-	if m.content == nil {
-		return
-	}
-
-	if m.currentLine+1 >= len(*m.content) {
-		return
-	}
-	m.currentLine++
-}
-
 func (m *modePickMove) PickCurrentlySelectedMoveToEdit() {
 
 	move := m.c.game.Moves()[m.currentLine]
@@ -392,18 +409,11 @@ func (m *modeEditMove) handleInput(key gocui.Key, ch rune, mode gocui.Modifier) 
 		//TODO: should this esc handler just be in baseMode?
 		m.c.CancelMode()
 		handled = true
-	case gocui.KeyArrowUp:
-		//TODO: KeyArrowUp and KeyArrowDown should just be handled in a sub-mode
-		m.MoveSelectionUp()
-		handled = true
-	case gocui.KeyArrowDown:
-		m.MoveSelectionDown()
-		handled = true
 	}
 	if handled {
 		return
 	}
-	m.modeBase.handleInput(key, ch, mode)
+	m.modePickableLine.handleInput(key, ch, mode)
 }
 
 func (m *modeEditMove) enterMode() {
@@ -465,27 +475,6 @@ func (m *modeEditMove) overlayContent() *overlayContent {
 
 	return m.content
 
-}
-
-//TODO: pop these out into a base class
-func (m *modeEditMove) MoveSelectionUp() {
-
-	if m.currentLine == 0 {
-		return
-	}
-	m.currentLine--
-}
-
-func (m *modeEditMove) MoveSelectionDown() {
-
-	if m.content == nil {
-		return
-	}
-
-	if m.currentLine+1 >= len(*m.content) {
-		return
-	}
-	m.currentLine++
 }
 
 func (m *modeEditMove) overlaySelectedCell() (row, col int) {
