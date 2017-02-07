@@ -2,6 +2,7 @@ package tictactoe
 
 import (
 	"github.com/jkomoros/boardgame"
+	"strings"
 )
 
 type gameState struct {
@@ -60,6 +61,37 @@ func (u *userState) PlayerIndex() int {
 type statePayload struct {
 	game  *gameState
 	users []*userState
+}
+
+func (s *statePayload) Diagram() string {
+
+	//Get an array of *playerTokenValues corresponding to tokens currently in
+	//the stack.
+	tokens := playerTokenValues(s.game.Slots.ComponentValues())
+
+	tokenValues := make([]string, len(tokens))
+
+	for i, token := range tokens {
+		if token == nil {
+			tokenValues[i] = "  "
+			continue
+		}
+		tokenValues[i] = token.Value
+	}
+
+	result := make([]string, 7)
+
+	//TODO: loop thorugh this instead of unrolling the loop by hand
+	result[0] = tokenValues[0] + "|" + tokenValues[1] + "|" + tokenValues[2]
+	result[1] = strings.Repeat("-", len(result[0]))
+	result[2] = tokenValues[3] + "|" + tokenValues[4] + "|" + tokenValues[5]
+	result[3] = result[1]
+	result[4] = tokenValues[6] + "|" + tokenValues[7] + "|" + tokenValues[8]
+	result[5] = ""
+	result[6] = "Next player: " + s.users[s.game.CurrentPlayer].TokenValue
+
+	return strings.Join(result, "\n")
+
 }
 
 func (s *statePayload) Game() boardgame.GameState {

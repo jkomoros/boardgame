@@ -36,6 +36,9 @@ type StatePayload interface {
 	Users() []UserState
 	//Copy returns a copy of the Payload.
 	Copy() StatePayload
+	//Diagram should return a basic debug rendering of state in multi-line
+	//ascii art. Useful for debugging.
+	Diagram() string
 	JSONer
 	//TODO: it's annoying that we have to reimplement JSON() for every struct
 	//even though there should just be generic. Move to a top-level Method.

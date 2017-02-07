@@ -14,5 +14,5 @@ import (
 
 func main() {
 
-	cli.NewController(tictactoe.NewGame(), tictactoe.Renderer).Start()
+	cli.NewController(tictactoe.NewGame()).Start()
 }

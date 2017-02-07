@@ -26,21 +26,15 @@ const (
 type Controller struct {
 	game        *boardgame.Game
 	gui         *gocui.Gui
-	renderer    RendererFunc
 	render      renderType
 	mode        inputMode
 	mainView    *gocui.View
 	overlayView *gocui.View
 }
 
-//RenderrerFunc takes a state and outputs a list of strings that should be
-//printed to screen to depict it.
-type RendererFunc func(boardgame.StatePayload) string
-
-func NewController(game *boardgame.Game, renderer RendererFunc) *Controller {
+func NewController(game *boardgame.Game) *Controller {
 	return &Controller{
-		game:     game,
-		renderer: renderer,
+		game: game,
 	}
 }
 
@@ -218,7 +212,7 @@ func (c *Controller) renderMoves() []string {
 }
 
 func (c *Controller) renderRendered() string {
-	return c.renderer(c.game.State.Payload)
+	return c.game.State.Payload.Diagram()
 }
 
 func (c *Controller) renderJSON() string {

@@ -55,6 +55,10 @@ func (t *testStatePayload) Users() []UserState {
 	return result
 }
 
+func (t *testStatePayload) Diagram() string {
+	return "IMPLEMENT ME"
+}
+
 func (t *testStatePayload) Copy() StatePayload {
 
 	result := &testStatePayload{}
