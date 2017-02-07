@@ -181,11 +181,10 @@ func (c *Controller) Layout(g *gocui.Gui) error {
 
 		row, col := c.mode.overlaySelectedCell()
 
-		//x0, y0, x1, y1, _ := g.ViewPosition("overlay-selected")
-
-		//panic(fmt.Sprint(x0, y0, x1, y1))
-
 		width, _ := g.Size()
+
+		//TODO: we use varying numbers for width in overlayContent at various
+		//times... We should audit that.
 
 		fmt.Fprint(view, (*c.mode.overlayContent(width))[row][col])
 
