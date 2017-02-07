@@ -258,6 +258,46 @@ func TestOverlayContentPadWithAlignment(t *testing.T) {
 	}
 }
 
+func TestOverlayContentSizeTo(t *testing.T) {
+	tests := []struct {
+		input    *overlayContent
+		size     int
+		expected *overlayContent
+	}{
+		{
+			input: &overlayContent{
+				{
+					"0",
+					"11",
+				},
+				{
+					"0",
+					"1 ",
+				},
+			},
+			size: 5,
+			expected: &overlayContent{
+				{
+					"0",
+					"11  ",
+				},
+				{
+					"0",
+					"1   ",
+				},
+			},
+		},
+	}
+
+	for i, test := range tests {
+		test.input.SizeTo(test.size)
+
+		if !reflect.DeepEqual(*test.input, *test.expected) {
+			t.Error("Mismatch at", i, "got", test.input, "wanted", test.expected)
+		}
+	}
+}
+
 func TestOverlayContentDefaultPad(t *testing.T) {
 	tests := []struct {
 		input    *overlayContent

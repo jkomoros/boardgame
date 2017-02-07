@@ -169,6 +169,33 @@ func (o *overlayContent) PadWithAlignment(alignments ...columnAlignment) {
 
 }
 
+//SizeTo will make sure that the content is at least width big, and if not will pad the last column with spaces
+func (o *overlayContent) SizeTo(width int) {
+
+	if !o.Aligned() {
+		o.DefaultPad()
+	}
+
+	currentWidth := 0
+
+	for _, colWidth := range o.ColumnWidths() {
+		currentWidth += colWidth
+	}
+
+	if currentWidth >= width {
+		return
+	}
+
+	spacesToAdd := width - currentWidth
+
+	col := len((*o)[0]) - 1
+
+	for r := 0; r < len(*o); r++ {
+		(*o)[r][col] += strings.Repeat(" ", spacesToAdd)
+	}
+
+}
+
 //String returns overlay content rendered as a simple string with lines separated by \n
 func (o *overlayContent) String() string {
 
