@@ -18,7 +18,7 @@ func NewServer(game *boardgame.Game) *Server {
 }
 
 func (s *Server) viewHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello, world!")
+	fmt.Fprintf(w, string(boardgame.Serialize(s.game.State.JSON())))
 }
 
 //Start is where you start the server, and it never returns until it's time to shut down.
