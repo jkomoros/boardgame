@@ -8,10 +8,10 @@ server version.
 package main
 
 import (
-	"github.com/jkomoros/boardgame/debugserver"
 	"github.com/jkomoros/boardgame/examples/tictactoe"
+	"github.com/jkomoros/boardgame/server"
 )
 
 func main() {
-	debugserver.NewServer(tictactoe.NewGame()).Start()
+	server.NewServer(tictactoe.NewGame()).Start()
 }

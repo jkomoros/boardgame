@@ -1,4 +1,4 @@
-package debugserver
+package server
 
 import (
 	"fmt"
