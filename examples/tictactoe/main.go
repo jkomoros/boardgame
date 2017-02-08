@@ -33,6 +33,29 @@ func (g *gameDelegate) DistributeComponentToStarterStack(payload boardgame.State
 	return nil
 }
 
+func (g *gameDelegate) ProposeFixUpMove(state boardgame.StatePayload) boardgame.Move {
+
+	//TODO: when there's a concept of FixUp moves, the default delegate will
+	//probably do what I want.
+
+	move := g.Game.MoveByName("Advance Player")
+
+	if move == nil {
+		panic("Couldn't find advance player move")
+	}
+
+	moveToMake := move.Copy()
+
+	//Advance Player only returns Legal if it makes sense to apply right now
+
+	if err := moveToMake.Legal(state); err == nil {
+		return moveToMake
+	}
+
+	return nil
+
+}
+
 func NewGame() *boardgame.Game {
 
 	chest := boardgame.NewComponentChest(gameName)

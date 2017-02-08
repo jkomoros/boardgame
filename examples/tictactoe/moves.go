@@ -115,6 +115,7 @@ func (m *MoveAdvancePlayer) Apply(payload boardgame.StatePayload) boardgame.Stat
 }
 
 func (m *MoveAdvancePlayer) Name() string {
+	//TODO: these should be package constants
 	return "Advance Player"
 }
 
