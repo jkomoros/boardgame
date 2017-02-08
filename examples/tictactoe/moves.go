@@ -5,6 +5,8 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
+//TODO: test this!!
+
 type MovePlaceToken struct {
 	//Which token to place the token
 	Slot int
