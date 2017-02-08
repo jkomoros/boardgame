@@ -3,10 +3,12 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/jkomoros/boardgame"
 	"net/http"
 	"os"
+	"strconv"
 )
 
 type Server struct {
@@ -77,9 +79,50 @@ func (s *Server) makeMove(c *gin.Context) error {
 		return errors.New("Invalid MoveType")
 	}
 
-	//TODO: actually make the move.
+	moveToMake := move.Copy()
 
-	return errors.New("This functionality is not yet implemented")
+	//TODO: should we use gin's Binding to do this instead?
+
+	for _, field := range formFields(moveToMake) {
+
+		rawVal := c.PostForm(field.Name)
+
+		switch field.Type {
+		case FieldInt:
+			if rawVal == "" {
+				return errors.New(fmt.Sprint("An int field had no value", field.Name))
+			}
+			num, err := strconv.Atoi(rawVal)
+			if err != nil {
+				return errors.New(fmt.Sprint("Couldn't set field", field.Name, err))
+			}
+			moveToMake.SetProp(field.Name, num)
+		case FieldBool:
+			if rawVal == "" {
+				moveToMake.SetProp(field.Name, false)
+				continue
+			}
+			num, err := strconv.Atoi(rawVal)
+			if err != nil {
+				return errors.New(fmt.Sprint("Couldn't set field", field.Name, err))
+			}
+			if num == 1 {
+				moveToMake.SetProp(field.Name, true)
+			} else {
+				moveToMake.SetProp(field.Name, false)
+			}
+		case FieldUnknown:
+			return errors.New(fmt.Sprint("Field", field.Name, "was an unknown value type"))
+		}
+	}
+
+	if err := s.game.ApplyMove(moveToMake); err != nil {
+		return errors.New(fmt.Sprint("Applying move failed", err))
+	}
+	//TODO: it would be nice if we could show which fixup moves we made, too,
+	//somehow.
+
+	return nil
 }
 
 func (s *Server) generateForms() []*MoveForm {
