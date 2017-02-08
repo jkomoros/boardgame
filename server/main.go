@@ -29,6 +29,7 @@ func (s *Server) viewHandler(w http.ResponseWriter, r *http.Request) {
 	args := make(templateArgs)
 
 	args["State"] = string(boardgame.Serialize(s.game.State.JSON()))
+	args["Diagram"] = s.game.State.Payload.Diagram()
 
 	s.renderTemplate(w, "main", args)
 
