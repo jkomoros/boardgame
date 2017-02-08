@@ -1,17 +1,15 @@
 <html>
-<title>Debug Game</title>
-<body>
-<h2>Rendered Output</h2>
-<pre>
-{{.Diagram}}
-</pre>
-<h2>State</h2>
-<pre>
-{{.State}}
-</pre>
-<h2>Deck</h2>
-<pre>
-{{.Deck}}
-</pre>
-</body>
+	<title>Debug Game</title>
+	<body>
+		<h2>Rendered Output</h2>
+		<pre>{{.Diagram}}</pre>
+		<details>
+			<summary>State</summary>
+			<pre>{{.State}}</pre>
+		</details>
+		<details>
+			<summary>Deck</summary>
+			<pre>{{.Deck}}</pre>
+		</details>
+	</body>
 </html>
