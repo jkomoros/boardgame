@@ -23,7 +23,16 @@
 					<summary>Move {{.Name}}</summary>
 					<form>
 						<p><em>{{.Description}}</em></p>
-						<p>Fields will go here</p>
+						{{range .Fields}}
+							<strong>{{.Name}}</strong>
+							<!-- TODO: output different form elements based on type -->
+							<input name="{{.Name}}">
+							<br/>
+						{{else}}
+							<em>No modifiable fields</em>
+							<br/>
+						{{end}}
+						<input type="submit" value="Make Move">
 					</form>
 				</details>
 			{{end}}

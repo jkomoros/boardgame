@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"reflect"
+	"unicode"
 )
 
 type templateArgs map[string]interface{}
@@ -24,7 +26,8 @@ type MoveForm struct {
 type MoveFormFieldType int
 
 const (
-	FieldInt MoveFormFieldType = iota
+	FieldUnknown MoveFormFieldType = iota
+	FieldInt
 	FieldBool
 )
 
@@ -72,9 +75,55 @@ func (s *Server) generateForms() []*MoveForm {
 	return result
 }
 
+func moveFieldNameShouldBeIncluded(name string) bool {
+	//TODO: this is recreated a number of places, which implies it should be
+	//in the base library.
+
+	if len(name) < 1 {
+		return false
+	}
+
+	firstChar := []rune(name)[0]
+
+	if firstChar != unicode.ToUpper(firstChar) {
+		//It was not upper case, thus private, thus should not be included.
+		return false
+	}
+
+	return true
+}
+
 func formFields(move boardgame.Move) []*MoveFormField {
-	//TODO: use reflection to return the fields
-	return nil
+
+	var result []*MoveFormField
+
+	s := reflect.ValueOf(move).Elem()
+	typeOfT := s.Type()
+	for i := 0; i < s.NumField(); i++ {
+		f := s.Field(i)
+		fieldName := typeOfT.Field(i).Name
+		if !moveFieldNameShouldBeIncluded(fieldName) {
+			continue
+		}
+
+		var fieldType MoveFormFieldType
+
+		switch f.Type().Name() {
+		case "int":
+			fieldType = FieldInt
+		case "bool":
+			fieldType = FieldBool
+		default:
+			fieldType = FieldUnknown
+		}
+
+		result = append(result, &MoveFormField{
+			Name: fieldName,
+			Type: fieldType,
+		})
+	}
+
+	return result
 }
 
 func (s *Server) renderDeck() string {
