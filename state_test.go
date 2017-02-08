@@ -57,6 +57,10 @@ func (p *propertyReaderTestStruct) Prop(name string) interface{} {
 	return PropertyReaderPropImpl(p, name)
 }
 
+func (p *propertyReaderTestStruct) SetProp(name string, val interface{}) error {
+	return PropertySetImpl(p, name, val)
+}
+
 func TestPropertyReaderImpl(t *testing.T) {
 
 	s := &propertyReaderTestStruct{
@@ -81,6 +85,22 @@ func TestPropertyReaderImpl(t *testing.T) {
 
 	if field != nil {
 		t.Error("Expected to not get back a result for private field, but did", field)
+	}
+
+	if err := s.SetProp("A", 4); err != nil {
+		t.Error("Setting A to 4 failed: ", err)
+	}
+
+	if s.A != 4 {
+		t.Error("Using setProp to set to 4 failed.")
+	}
+
+	if err := s.SetProp("A", "string"); err == nil {
+		t.Error("Trying to set a string into an int slot didn't fail")
+	}
+
+	if s.A != 4 {
+		t.Error("Failed setting into a field modified the value")
 	}
 
 }

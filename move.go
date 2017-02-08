@@ -30,6 +30,6 @@ type Move interface {
 	//in the specified slot on the board."
 	Description() string
 
-	PropertyReader
+	PropertyReadSetter
 	JSONer
 }

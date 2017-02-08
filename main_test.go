@@ -161,6 +161,10 @@ func (t *testMoveAdvanceCurentPlayer) Prop(name string) interface{} {
 	return PropertyReaderPropImpl(t, name)
 }
 
+func (t *testMoveAdvanceCurentPlayer) SetProp(name string, val interface{}) error {
+	return PropertySetImpl(t, name, val)
+}
+
 func (t *testMoveAdvanceCurentPlayer) JSON() JSONObject {
 	return t
 }
@@ -223,6 +227,10 @@ func (t *testMove) Props() []string {
 
 func (t *testMove) Prop(name string) interface{} {
 	return PropertyReaderPropImpl(t, name)
+}
+
+func (t *testMove) SetProp(name string, val interface{}) error {
+	return PropertySetImpl(t, name, val)
 }
 
 func (t *testMove) JSON() JSONObject {

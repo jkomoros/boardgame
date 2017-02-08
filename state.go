@@ -1,6 +1,8 @@
 package boardgame
 
 import (
+	"errors"
+	"fmt"
 	"reflect"
 	"unicode"
 )
@@ -52,6 +54,16 @@ type PropertyReader interface {
 	Props() []string
 	//Prop returns the value for that property.
 	Prop(name string) interface{}
+}
+
+//Property read setter is a way to enumerate and set properties on an object with an
+//unknown shape.
+type PropertyReadSetter interface {
+	//All PropertyReadSetters have read interfaces
+	PropertyReader
+	//SetProp sets the property with the given name. If the value does not
+	//match the underlying slot type, it should return an error.
+	SetProp(name string, value interface{}) error
 }
 
 //BaseState is the interface that all state objects--UserStates and GameStates
@@ -159,4 +171,39 @@ func PropertyReaderPropImpl(obj interface{}, name string) interface{} {
 
 	s := reflect.ValueOf(obj).Elem()
 	return s.FieldByName(name).Interface()
+}
+
+//PropertySetImpl is a helper method useful for satisfying the
+//PropertyReadSetter interface without writing finicky, bespoke code. It uses
+//reflection to set the value. You'd use it as the single-line implementation
+//of your struct's SetProp() implementation, passing in self, where self is
+//the pointer receiver.
+func PropertySetImpl(obj interface{}, name string, val interface{}) (err error) {
+
+	//TODO: name this consistently with the other PropertyReader helpers.
+
+	if !propertyReaderImplNameShouldBeIncluded(name) {
+		return errors.New("That name is not valid to set.")
+	}
+
+	s := reflect.ValueOf(obj).Elem()
+
+	f := s.FieldByName(name)
+
+	if !f.IsValid() {
+		return errors.New("That name was not available on the struct")
+	}
+
+	//f.Set will panic if it's not possible to set the field to the given
+	//value kind.
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprint(e))
+		}
+	}()
+
+	f.Set(reflect.ValueOf(val))
+
+	return
+
 }

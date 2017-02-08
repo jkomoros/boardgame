@@ -67,6 +67,10 @@ func (m *MovePlaceToken) Prop(name string) interface{} {
 	return boardgame.PropertyReaderPropImpl(m, name)
 }
 
+func (m *MovePlaceToken) SetProp(name string, val interface{}) error {
+	return boardgame.PropertySetImpl(m, name, val)
+}
+
 func (m *MovePlaceToken) JSON() boardgame.JSONObject {
 	return m
 }
@@ -128,4 +132,8 @@ func (m *MoveAdvancePlayer) Prop(name string) interface{} {
 
 func (m *MoveAdvancePlayer) Props() []string {
 	return boardgame.PropertyReaderPropsImpl(m)
+}
+
+func (m *MoveAdvancePlayer) SetProp(name string, val interface{}) error {
+	return boardgame.PropertySetImpl(m, name, val)
 }
