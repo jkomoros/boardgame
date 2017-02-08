@@ -37,9 +37,13 @@ func (m *MovePlaceToken) Apply(payload boardgame.StatePayload) boardgame.StatePa
 
 	p := result.(*statePayload)
 
-	c := p.users[m.TargetPlayerIndex].UnusedTokens.RemoveFirst()
+	u := p.users[m.TargetPlayerIndex]
+
+	c := u.UnusedTokens.RemoveFirst()
 
 	p.game.Slots.InsertAtSlot(c, m.Slot)
+
+	u.TokensToPlaceThisTurn--
 
 	return result
 
