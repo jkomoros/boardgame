@@ -48,7 +48,7 @@ func (s *Server) viewHandler(c *gin.Context) {
 	args := gin.H{
 		"State":   string(boardgame.Serialize(s.game.State.JSON())),
 		"Diagram": s.game.State.Payload.Diagram(),
-		"Deck":    s.renderDeck(),
+		"Chest":   s.renderChest(),
 		"Forms":   s.generateForms(),
 		"Game":    s.game,
 	}
@@ -124,7 +124,7 @@ func formFields(move boardgame.Move) []*MoveFormField {
 	return result
 }
 
-func (s *Server) renderDeck() string {
+func (s *Server) renderChest() string {
 	//Substantially copied from cli.renderChest().
 
 	deck := make(map[string][]interface{})
