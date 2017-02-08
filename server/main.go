@@ -7,8 +7,6 @@ import (
 	"github.com/jkomoros/boardgame"
 	"net/http"
 	"os"
-	"reflect"
-	"unicode"
 )
 
 type Server struct {
@@ -100,52 +98,30 @@ func (s *Server) generateForms() []*MoveForm {
 	return result
 }
 
-func moveFieldNameShouldBeIncluded(name string) bool {
-	//TODO: this is recreated a number of places, which implies it should be
-	//in the base library.
-
-	if len(name) < 1 {
-		return false
-	}
-
-	firstChar := []rune(name)[0]
-
-	if firstChar != unicode.ToUpper(firstChar) {
-		//It was not upper case, thus private, thus should not be included.
-		return false
-	}
-
-	return true
-}
-
 func formFields(move boardgame.Move) []*MoveFormField {
 
 	var result []*MoveFormField
 
-	s := reflect.ValueOf(move).Elem()
-	typeOfT := s.Type()
-	for i := 0; i < s.NumField(); i++ {
-		f := s.Field(i)
-		fieldName := typeOfT.Field(i).Name
-		if !moveFieldNameShouldBeIncluded(fieldName) {
-			continue
-		}
+	for _, fieldName := range move.Props() {
+
+		val := move.Prop(fieldName)
 
 		var fieldType MoveFormFieldType
 
-		switch f.Type().Name() {
-		case "int":
-			fieldType = FieldInt
-		case "bool":
-			fieldType = FieldBool
+		switch val.(type) {
 		default:
 			fieldType = FieldUnknown
+		case int:
+			fieldType = FieldInt
+		case bool:
+			fieldType = FieldBool
 		}
 
 		result = append(result, &MoveFormField{
 			Name: fieldName,
 			Type: fieldType,
 		})
+
 	}
 
 	return result
