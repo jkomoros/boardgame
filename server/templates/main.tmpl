@@ -25,7 +25,7 @@
 			{{range .Forms}}
 				<details>
 					<summary>Move {{.Name}}</summary>
-					<form>
+					<form method="POST">
 						<p><em>{{.Description}}</em></p>
 						<input type="hidden" name="MoveType" value="{{.Name}}">
 						{{range .Fields}}
