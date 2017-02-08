@@ -23,6 +23,7 @@
 					<summary>Move {{.Name}}</summary>
 					<form>
 						<p><em>{{.Description}}</em></p>
+						<input type="hidden" name="MoveType" value="{{.Name}}">
 						{{range .Fields}}
 							<strong>{{.Name}}</strong>
 							<!-- TODO: output different form elements based on type -->
