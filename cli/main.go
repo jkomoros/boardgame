@@ -224,6 +224,8 @@ func (c *Controller) renderJSON() string {
 
 func (c *Controller) renderChest() string {
 
+	//TODO: recreated in server.renderChest()
+
 	deck := make(map[string][]interface{})
 
 	for _, name := range c.game.Chest().DeckNames() {

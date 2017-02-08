@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"github.com/jkomoros/boardgame"
 	"html/template"
 	"log"
@@ -30,9 +31,43 @@ func (s *Server) viewHandler(w http.ResponseWriter, r *http.Request) {
 
 	args["State"] = string(boardgame.Serialize(s.game.State.JSON()))
 	args["Diagram"] = s.game.State.Payload.Diagram()
+	args["Deck"] = s.renderDeck()
 
 	s.renderTemplate(w, "main", args)
 
+}
+
+func (s *Server) renderDeck() string {
+	//Substantially copied from cli.renderChest().
+
+	deck := make(map[string][]interface{})
+
+	for _, name := range s.game.Chest().DeckNames() {
+
+		components := s.game.Chest().Deck(name).Components()
+
+		values := make([]interface{}, len(components))
+
+		for i, component := range components {
+			values[i] = struct {
+				Index  int
+				Values interface{}
+			}{
+				i,
+				component.Values,
+			}
+		}
+
+		deck[name] = values
+	}
+
+	json, err := json.MarshalIndent(deck, "", "  ")
+
+	if err != nil {
+		panic(err)
+	}
+
+	return string(json)
 }
 
 func (s *Server) renderTemplate(w http.ResponseWriter, tmpl string, args templateArgs) {
