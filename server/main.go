@@ -15,6 +15,24 @@ type Server struct {
 	game *boardgame.Game
 }
 
+type MoveForm struct {
+	Name        string
+	Description string
+	Fields      []*MoveFormField
+}
+
+type MoveFormFieldType int
+
+const (
+	FieldInt MoveFormFieldType = iota
+	FieldBool
+)
+
+type MoveFormField struct {
+	Name string
+	Type MoveFormFieldType
+}
+
 func NewServer(game *boardgame.Game) *Server {
 	return &Server{
 		game: game,
@@ -32,9 +50,31 @@ func (s *Server) viewHandler(w http.ResponseWriter, r *http.Request) {
 	args["State"] = string(boardgame.Serialize(s.game.State.JSON()))
 	args["Diagram"] = s.game.State.Payload.Diagram()
 	args["Deck"] = s.renderDeck()
+	args["Forms"] = s.generateForms()
 
 	s.renderTemplate(w, "main", args)
 
+}
+
+func (s *Server) generateForms() []*MoveForm {
+
+	var result []*MoveForm
+
+	for _, move := range s.game.Moves() {
+		moveItem := &MoveForm{
+			Name:        move.Name(),
+			Description: move.Description(),
+			Fields:      formFields(move),
+		}
+		result = append(result, moveItem)
+	}
+
+	return result
+}
+
+func formFields(move boardgame.Move) []*MoveFormField {
+	//TODO: use reflection to return the fields
+	return nil
 }
 
 func (s *Server) renderDeck() string {
