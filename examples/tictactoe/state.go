@@ -73,7 +73,7 @@ func (s *statePayload) Diagram() string {
 
 	for i, token := range tokens {
 		if token == nil {
-			tokenValues[i] = "  "
+			tokenValues[i] = " "
 			continue
 		}
 		tokenValues[i] = token.Value
