@@ -5,7 +5,9 @@ import (
 	"testing"
 )
 
-type testGameDelegate struct{}
+type testGameDelegate struct {
+	game *Game
+}
 
 func (t *testGameDelegate) DistributeComponentToStarterStack(payload StatePayload, c *Component) error {
 	p := payload.(*testStatePayload)
@@ -41,6 +43,10 @@ func (t *testGameDelegate) ProposeFixUpMove(state StatePayload) Move {
 	}
 
 	return nil
+}
+
+func (t *testGameDelegate) SetGame(game *Game) {
+	t.game = game
 }
 
 func TestGameSetUp(t *testing.T) {
@@ -91,6 +97,10 @@ func TestGameSetUp(t *testing.T) {
 
 	if err := game.SetUp(); err != nil {
 		t.Error("Calling SetUp on a previously errored game did not succeed", err)
+	}
+
+	if game.Delegate.(*testGameDelegate).game != game {
+		t.Error("After calling SetUp succesfully SetGame was not called.")
 	}
 
 	moves := game.Moves()

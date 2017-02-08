@@ -67,12 +67,18 @@ type GameDelegate interface {
 	//draw deck, or other moves that are necessary to get the GameState back
 	//into reasonable shape.
 	ProposeFixUpMove(state StatePayload) Move
+
+	//SetGame is called during game.SetUp and passes a reference to the Game
+	//that the delegate is part of.
+	SetGame(game *Game)
 }
 
 //DefaultGameDelegate is a struct that implements stubs for all of
 //GameDelegate's methods. This makes it easy to override just one or two
 //methods by creating your own struct that anonymously embeds this one.
-type DefaultGameDelegate struct{}
+type DefaultGameDelegate struct {
+	Game *Game
+}
 
 func (d *DefaultGameDelegate) DistributeComponentToStarterStack(payload StatePayload, c *Component) error {
 	//The stub returns an error, because if this is called that means there
@@ -87,6 +93,10 @@ func (d *DefaultGameDelegate) CheckGameFinished(state StatePayload) (finished bo
 
 func (d *DefaultGameDelegate) ProposeFixUpMove(state StatePayload) Move {
 	return nil
+}
+
+func (d *DefaultGameDelegate) SetGame(game *Game) {
+	d.Game = game
 }
 
 //SetUp should be called a single time after all of the member variables are
@@ -105,6 +115,8 @@ func (g *Game) SetUp() error {
 	if g.Delegate == nil {
 		g.Delegate = &DefaultGameDelegate{}
 	}
+
+	g.Delegate.SetGame(g)
 
 	//Distribute all components to their starter locations
 
