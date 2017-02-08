@@ -6,6 +6,10 @@
 	}
 	</style>
 	<body>
+		{{if .Error}}
+			<h1>Error</h1>
+			{{.Error}}
+		{{end}}
 		<h2>Rendered Output</h2>
 		<pre>{{.Diagram}}</pre>
 		<details>

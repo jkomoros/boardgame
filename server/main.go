@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/jkomoros/boardgame"
 	"net/http"
@@ -45,16 +46,42 @@ const (
 
 func (s *Server) viewHandler(c *gin.Context) {
 
+	var errorMessage string
+
+	if c.Request.Method == http.MethodPost {
+
+		if err := s.makeMove(c); err != nil {
+			errorMessage = err.Error()
+		}
+
+	}
+
 	args := gin.H{
 		"State":   string(boardgame.Serialize(s.game.State.JSON())),
 		"Diagram": s.game.State.Payload.Diagram(),
 		"Chest":   s.renderChest(),
 		"Forms":   s.generateForms(),
 		"Game":    s.game,
+		"Error":   errorMessage,
 	}
 
 	c.HTML(http.StatusOK, "main.tmpl", args)
 
+}
+
+func (s *Server) makeMove(c *gin.Context) error {
+
+	//This method is passed a context mainly just to get info from request.
+
+	move := s.game.MoveByName(c.PostForm("MoveType"))
+
+	if move == nil {
+		return errors.New("Invalid MoveType")
+	}
+
+	//TODO: actually make the move.
+
+	return errors.New("This functionality is not yet implemented")
 }
 
 func (s *Server) generateForms() []*MoveForm {
@@ -165,6 +192,7 @@ func (s *Server) Start() {
 	router.LoadHTMLGlob(os.ExpandEnv(pathToLib) + "templates/*")
 
 	router.GET("/", s.viewHandler)
+	router.POST("/", s.viewHandler)
 
 	router.Run(":8080")
 
