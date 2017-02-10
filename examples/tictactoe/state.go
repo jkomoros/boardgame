@@ -10,6 +10,18 @@ type gameState struct {
 	Slots         *boardgame.SizedStack
 }
 
+func (g *gameState) tokenValue(row, col int) string {
+	c := g.Slots.ComponentAt(g.rowColToIndex(row, col))
+	if c == nil {
+		return " "
+	}
+	return c.Values.(*playerToken).Value
+}
+
+func (g *gameState) rowColToIndex(row, col int) int {
+	return row*DIM + col
+}
+
 func (g *gameState) Props() []string {
 	return boardgame.PropertyReaderPropsImpl(g)
 }
@@ -61,6 +73,15 @@ func (u *userState) PlayerIndex() int {
 type statePayload struct {
 	game  *gameState
 	users []*userState
+}
+
+func (s *statePayload) userFromTokenValue(value string) *userState {
+	for _, user := range s.users {
+		if user.TokenValue == value {
+			return user
+		}
+	}
+	return nil
 }
 
 func (s *statePayload) Diagram() string {
