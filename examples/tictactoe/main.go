@@ -35,8 +35,6 @@ func (g *gameDelegate) DistributeComponentToStarterStack(payload boardgame.State
 
 func (g *gameDelegate) CheckGameFinished(state boardgame.StatePayload) (finished bool, winners []int) {
 
-	//TODO: test this!
-
 	s := state.(*statePayload)
 
 	tokens := make([]string, DIM*DIM)
