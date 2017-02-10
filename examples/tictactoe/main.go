@@ -49,7 +49,7 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.StatePayload) (finished
 
 	if finished {
 
-		if winner == "" {
+		if winner == Empty {
 			//Draw
 			return true, nil
 		}
@@ -74,7 +74,7 @@ func checkGameFinished(state []string) (finished bool, winner string) {
 	 */
 
 	if len(state) != DIM*DIM {
-		return false, ""
+		return false, Empty
 	}
 
 	//Check condition 1 (rows)
@@ -85,7 +85,7 @@ func checkGameFinished(state []string) (finished bool, winner string) {
 			run = append(run, state[rowColToIndex(r, c)])
 		}
 		result := checkRunWon(run)
-		if result != "" {
+		if result != Empty {
 			return true, result
 		}
 	}
@@ -98,7 +98,7 @@ func checkGameFinished(state []string) (finished bool, winner string) {
 			run = append(run, state[rowColToIndex(r, c)])
 		}
 		result := checkRunWon(run)
-		if result != "" {
+		if result != Empty {
 			return true, result
 		}
 	}
@@ -114,26 +114,26 @@ func checkGameFinished(state []string) (finished bool, winner string) {
 	}
 
 	result := checkRunWon(diagonalDown)
-	if result != "" {
+	if result != Empty {
 		return true, result
 	}
 
 	result = checkRunWon(diagonalUp)
 
-	if result != "" {
+	if result != Empty {
 		return true, result
 	}
 
 	//Check condition 5 (draw)
 
 	for _, token := range state {
-		if token == "" {
+		if token == Empty {
 			//We found at least one slot that wasn't filled, so the game can't be a draw.
-			return false, ""
+			return false, Empty
 		}
 	}
 	//If we get to here, then every slot is filled but no one is winner, so it's a draw.
-	return true, ""
+	return true, Empty
 }
 
 //runState should be a string of length DIM, where empty spaces are
@@ -142,18 +142,18 @@ func checkGameFinished(state []string) (finished bool, winner string) {
 func checkRunWon(runState []string) string {
 
 	if len(runState) != DIM {
-		return ""
+		return Empty
 	}
 
 	targetToken := runState[0]
 
-	if targetToken == "" {
-		return ""
+	if targetToken == Empty {
+		return Empty
 	}
 
 	for _, token := range runState {
 		if token != targetToken {
-			return ""
+			return Empty
 		}
 	}
 

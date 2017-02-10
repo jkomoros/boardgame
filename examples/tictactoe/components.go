@@ -5,8 +5,9 @@ import (
 )
 
 const (
-	X = "X"
-	O = "O"
+	X     = "X"
+	O     = "O"
+	Empty = ""
 )
 
 type playerToken struct {
