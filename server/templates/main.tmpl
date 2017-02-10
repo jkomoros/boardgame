@@ -30,6 +30,7 @@
 			<summary>Chest</summary>
 			<pre>{{.Chest}}</pre>
 		</details>
+		{{if not .Game.Finished}}
 		<details id="moves">
 			<summary>Moves</summary>
 			{{range .Forms}}
@@ -52,5 +53,6 @@
 				</details>
 			{{end}}
 		</details>
+		{{end}}
 	</body>
 </html>
