@@ -37,6 +37,32 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.StatePayload) (finished
 
 	//TODO: test this!
 
+	s := state.(*statePayload)
+
+	tokens := make([]string, DIM*DIM)
+
+	for i := 0; i < DIM*DIM; i++ {
+		tokens[i] = s.game.tokenValueAtIndex(i)
+	}
+
+	finished, winner := checkGameFinished(tokens)
+
+	if finished {
+
+		if winner == "" {
+			//Draw
+			return true, nil
+		}
+		return true, []int{s.userFromTokenValue(winner).playerIndex}
+	}
+
+	return false, nil
+
+}
+
+//state should be a DIM * DIM length string, of the form "XXO XO  O". Winner
+//will be of the form "X" or "O".
+func checkGameFinished(state []string) (finished bool, winner string) {
 	/*The following are win conditions:
 
 	* 1) For each row, check to see if the entire row across is same token value
@@ -47,98 +73,91 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.StatePayload) (finished
 
 	 */
 
-	s := state.(*statePayload)
+	if len(state) != DIM*DIM {
+		return false, ""
+	}
 
-	//TODO: all of this feels like it could be totally refactored...
-
-	//Check condition 1
+	//Check condition 1 (rows)
 
 	for r := 0; r < DIM; r++ {
-		ok := true
-		tokenValue := s.game.tokenValue(r, 0)
-		if tokenValue == " " {
-			continue
+		var run []string
+		for c := 0; c < DIM; c++ {
+			run = append(run, state[rowColToIndex(r, c)])
 		}
-		for c := 1; c < DIM; c++ {
-			if s.game.tokenValue(r, c) != tokenValue {
-				ok = false
-				break
-			}
-		}
-		if ok {
-			//Found it!
-			return true, []int{s.userFromTokenValue(tokenValue).playerIndex}
+		result := checkRunWon(run)
+		if result != "" {
+			return true, result
 		}
 	}
 
-	//Check condition 2
+	//Check condition 2 (cols)
+
 	for c := 0; c < DIM; c++ {
-		ok := true
-		tokenValue := s.game.tokenValue(0, c)
-
-		if tokenValue == " " {
-			continue
+		var run []string
+		for r := 0; r < DIM; r++ {
+			run = append(run, state[rowColToIndex(r, c)])
 		}
-
-		for r := 1; r < DIM; r++ {
-			if s.game.tokenValue(r, c) != tokenValue {
-				ok = false
-				break
-			}
-		}
-		if ok {
-			//Found it!
-			return true, []int{s.userFromTokenValue(tokenValue).playerIndex}
+		result := checkRunWon(run)
+		if result != "" {
+			return true, result
 		}
 	}
 
-	//Check condition 3
+	//Check condition 3 and 4
 
-	ok := true
-	tokenValue := s.game.tokenValue(0, 0)
-	if tokenValue != " " {
-		for i := 1; i < DIM; i++ {
-			if s.game.tokenValue(i, i) != tokenValue {
-				ok = false
-				break
-			}
+	var diagonalDown []string
+	var diagonalUp []string
+
+	for i := 0; i < DIM; i++ {
+		diagonalDown = append(diagonalDown, state[rowColToIndex(i, i)])
+		diagonalUp = append(diagonalUp, state[rowColToIndex(DIM-i-1, i)])
+	}
+
+	result := checkRunWon(diagonalDown)
+	if result != "" {
+		return true, result
+	}
+
+	result = checkRunWon(diagonalUp)
+
+	if result != "" {
+		return true, result
+	}
+
+	//Check condition 5 (draw)
+
+	for _, token := range state {
+		if token == "" {
+			//We found at least one slot that wasn't filled, so the game can't be a draw.
+			return false, ""
 		}
-		if ok {
-			return true, []int{s.userFromTokenValue(tokenValue).playerIndex}
+	}
+	//If we get to here, then every slot is filled but no one is winner, so it's a draw.
+	return true, ""
+}
+
+//runState should be a string of length DIM, where empty spaces are
+//represented by "", which represents one "run" in the state. The winner will
+//be "X", "O", or "" if no winner in this run.
+func checkRunWon(runState []string) string {
+
+	if len(runState) != DIM {
+		return ""
+	}
+
+	targetToken := runState[0]
+
+	if targetToken == "" {
+		return ""
+	}
+
+	for _, token := range runState {
+		if token != targetToken {
+			return ""
 		}
 	}
 
-	//Check condition 4
-
-	ok = true
-	tokenValue = s.game.tokenValue(DIM, 0)
-
-	if tokenValue != " " {
-		for i := 1; i < DIM; i++ {
-			if s.game.tokenValue(DIM-i, i) != tokenValue {
-				ok = false
-				break
-			}
-		}
-		if ok {
-			return true, []int{s.userFromTokenValue(tokenValue).playerIndex}
-		}
-	}
-
-	unfilledCells := 0
-	for _, component := range s.game.Slots.ComponentValues() {
-		if component == nil {
-			unfilledCells++
-		}
-	}
-
-	if unfilledCells == 0 {
-		//All cells are filled and no one is a winner--draw!
-		return true, nil
-	}
-
-	return false, nil
-
+	return targetToken
 }
 
 func (g *gameDelegate) ProposeFixUpMove(state boardgame.StatePayload) boardgame.Move {

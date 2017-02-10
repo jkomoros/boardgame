@@ -11,14 +11,18 @@ type gameState struct {
 }
 
 func (g *gameState) tokenValue(row, col int) string {
-	c := g.Slots.ComponentAt(g.rowColToIndex(row, col))
+	return g.tokenValueAtIndex(rowColToIndex(row, col))
+}
+
+func (g *gameState) tokenValueAtIndex(index int) string {
+	c := g.Slots.ComponentAt(index)
 	if c == nil {
-		return " "
+		return ""
 	}
 	return c.Values.(*playerToken).Value
 }
 
-func (g *gameState) rowColToIndex(row, col int) int {
+func rowColToIndex(row, col int) int {
 	return row*DIM + col
 }
 
