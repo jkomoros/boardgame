@@ -168,18 +168,13 @@ func NewGame() *boardgame.Game {
 	//goes first we always have enough?
 	numTokens := 5
 
-	//TODO: use deck.AddComponentMulti when that exists
-	for i := 0; i < numTokens; i++ {
-		tokens.AddComponent(&playerToken{
-			Value: X,
-		})
-	}
+	tokens.AddComponentMulti(&playerToken{
+		Value: X,
+	}, numTokens)
 
-	for i := 0; i < numTokens; i++ {
-		tokens.AddComponent(&playerToken{
-			Value: O,
-		})
-	}
+	tokens.AddComponentMulti(&playerToken{
+		Value: O,
+	}, numTokens)
 
 	chest.AddDeck("tokens", tokens)
 
