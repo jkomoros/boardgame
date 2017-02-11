@@ -1,0 +1,12 @@
+{
+	"Cards" : [
+		{
+			"Suit": 3,
+			"Name" : "Bob"
+		},
+		{
+			"Suit": 1,
+			"Name": "Jane"
+		}
+	]
+}
