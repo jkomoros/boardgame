@@ -158,27 +158,6 @@ func checkRunWon(runState []string) string {
 	return targetToken
 }
 
-func (g *gameDelegate) ProposeFixUpMove(state boardgame.State) boardgame.Move {
-
-	//TODO: when there's a concept of FixUp moves, the default delegate will
-	//probably do what I want.
-
-	move := g.Game.FixUpMoveByName("Advance Player")
-
-	if move == nil {
-		panic("Couldn't find advance player move")
-	}
-
-	//Advance Player only returns Legal if it makes sense to apply right now
-
-	if err := move.Legal(state); err == nil {
-		return move
-	}
-
-	return nil
-
-}
-
 func NewGame() *boardgame.Game {
 
 	chest := boardgame.NewComponentChest(gameName)

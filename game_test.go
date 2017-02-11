@@ -6,9 +6,12 @@ import (
 	"time"
 )
 
+type testInfiniteLoopGameDelegate struct {
+	testGameDelegate
+}
+
 type testGameDelegate struct {
-	game              *Game
-	inifinteFixUpMode bool
+	DefaultGameDelegate
 }
 
 func (t *testGameDelegate) DistributeComponentToStarterStack(state State, c *Component) error {
@@ -37,25 +40,8 @@ func (t *testGameDelegate) CheckGameFinished(state State) (bool, []int) {
 	return false, nil
 }
 
-func (t *testGameDelegate) ProposeFixUpMove(state State) Move {
-
-	if t.inifinteFixUpMode {
-		//This is a special mode to stress-test when we have a mis-behaving
-		//ProposeFixUp move that will always return a move that is legal.
-		return &testAlwaysLegalMove{}
-	}
-
-	move := &testMoveAdvanceCurentPlayer{}
-
-	if err := move.Legal(state); err == nil {
-		return move
-	}
-
-	return nil
-}
-
-func (t *testGameDelegate) SetGame(game *Game) {
-	t.game = game
+func (t *testInfiniteLoopGameDelegate) ProposeFixUpMove(state State) Move {
+	return &testAlwaysLegalMove{}
 }
 
 func TestGameSetUp(t *testing.T) {
@@ -115,7 +101,7 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("Calling SetUp on a previously errored game did not succeed", err)
 	}
 
-	if game.Delegate.(*testGameDelegate).game != game {
+	if game.Delegate.(*testGameDelegate).Game != game {
 		t.Error("After calling SetUp succesfully SetGame was not called.")
 	}
 
@@ -243,7 +229,7 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 
 	game := testGame()
 
-	game.Delegate.(*testGameDelegate).inifinteFixUpMode = true
+	game.Delegate = &testInfiniteLoopGameDelegate{}
 
 	game.AddFixUpMove(&testAlwaysLegalMove{})
 

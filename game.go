@@ -127,7 +127,19 @@ func (d *DefaultGameDelegate) CheckGameFinished(state State) (finished bool, win
 	return false, nil
 }
 
+//The Default ProposeFixUpMove runs through all moves in FixUpMoves, in order,
+//and returns the first one that is legal at the current state. In many cases,
+//this behavior should be suficient and need not be overwritten. Be extra sure
+//that your FixUpMoves have a conservative Legal function, otherwise you could
+//get a panic from applying too many FixUp moves.
 func (d *DefaultGameDelegate) ProposeFixUpMove(state State) Move {
+	for _, move := range d.Game.FixUpMoves() {
+		if err := move.Legal(state); err == nil {
+			//Found it!
+			return move
+		}
+	}
+	//No moves apply now.
 	return nil
 }
 
