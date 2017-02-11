@@ -6,6 +6,11 @@ import (
 	"strings"
 )
 
+//maxRecurseCount is the number of fixUp moves that can be considered normal--
+//anything more than that and we'll panic because the delegate is likely going
+//to return fixup moves forever.
+const maxRecurseCount = 50
+
 //A Game represents a specific game between a collection of Players. Create a
 //new one with NewGame().
 type Game struct {
@@ -185,7 +190,7 @@ func (g *Game) mainLoop() {
 		if item == nil {
 			return
 		}
-		item.ch <- g.applyMove(item.move)
+		item.ch <- g.applyMove(item.move, 0)
 		close(item.ch)
 	}
 
@@ -267,7 +272,7 @@ func (g *Game) ProposeMove(move Move) DelayedError {
 
 //Game applies the move to the state if it is currently legal. May only be
 //called by mainLoop. Propose moves with game.ProposeMove instead.
-func (g *Game) applyMove(move Move) error {
+func (g *Game) applyMove(move Move, recurseCount int) error {
 
 	if !g.initalized {
 		return errors.New("The game has not been initalized.")
@@ -316,13 +321,18 @@ func (g *Game) applyMove(move Move) error {
 	}
 
 	if g.Delegate != nil {
+
+		if recurseCount > maxRecurseCount {
+			panic("We recursed deeply in fixup, which implies that ProposeFixUp has a move that is always legal. Quitting.")
+		}
+
 		move := g.Delegate.ProposeFixUpMove(g.StateWrapper.State)
 
 		if move != nil {
 			//We apply the move immediately. This ensures that when
 			//DelayedError resolves, all of the fix up moves have been
 			//applied.
-			g.applyMove(move)
+			g.applyMove(move, recurseCount+1)
 		}
 	}
 

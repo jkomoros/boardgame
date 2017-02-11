@@ -7,7 +7,8 @@ import (
 )
 
 type testGameDelegate struct {
-	game *Game
+	game              *Game
+	inifinteFixUpMode bool
 }
 
 func (t *testGameDelegate) DistributeComponentToStarterStack(state State, c *Component) error {
@@ -37,6 +38,13 @@ func (t *testGameDelegate) CheckGameFinished(state State) (bool, []int) {
 }
 
 func (t *testGameDelegate) ProposeFixUpMove(state State) Move {
+
+	if t.inifinteFixUpMode {
+		//This is a special mode to stress-test when we have a mis-behaving
+		//ProposeFixUp move that will always return a move that is legal.
+		return &testAlwaysLegalMove{}
+	}
+
 	move := &testMoveAdvanceCurentPlayer{}
 
 	if err := move.Legal(state); err == nil {
@@ -221,4 +229,37 @@ func TestApplyMove(t *testing.T) {
 	if err := <-game.ProposeMove(moveAfterFinished); err == nil {
 		t.Error("Game allowed a move to be applied after the game was finished")
 	}
+}
+
+func TestInfiniteProposeFixUp(t *testing.T) {
+	//This test makes sure that if our GameDelegate is going to always return
+	//moves that are legal, we'll bail at a certain point.
+
+	game := testGame()
+
+	game.Delegate.(*testGameDelegate).inifinteFixUpMode = true
+
+	game.AddMove(&testAlwaysLegalMove{})
+
+	game.SetUp()
+
+	move := game.MoveByName("Test")
+
+	if move == nil {
+		t.Fatal("Couldn't find Test move")
+	}
+	checkForPanic := func() (didPanic bool) {
+		defer func() {
+			if e := recover(); e != nil {
+				didPanic = true
+			}
+		}()
+		game.applyMove(move, maxRecurseCount-5)
+		return
+	}
+
+	if !checkForPanic() {
+		t.Error("We didn't get an error when we had a badly behaved ProposeFixUpMove.")
+	}
+
 }

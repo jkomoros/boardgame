@@ -284,6 +284,57 @@ func (t *testMove) Apply(state State) error {
 	return nil
 }
 
+type testAlwaysLegalMove struct{}
+
+func (t *testAlwaysLegalMove) Props() []string {
+	return PropertyReaderPropsImpl(t)
+}
+
+func (t *testAlwaysLegalMove) Prop(name string) interface{} {
+	return PropertyReaderPropImpl(t, name)
+}
+
+func (t *testAlwaysLegalMove) SetProp(name string, val interface{}) error {
+	return PropertySetImpl(t, name, val)
+}
+
+func (t *testAlwaysLegalMove) JSON() JSONObject {
+	return t
+}
+
+func (t *testAlwaysLegalMove) Copy() Move {
+	var result testAlwaysLegalMove
+	result = *t
+	return &result
+}
+
+func (t *testAlwaysLegalMove) Name() string {
+	return "Test Always Legal Move"
+}
+
+func (t *testAlwaysLegalMove) Description() string {
+	return "A move that is always legal"
+}
+
+func (t *testAlwaysLegalMove) DefaultsForState(state State) {
+	//Pass
+}
+
+func (t *testAlwaysLegalMove) Legal(state State) error {
+
+	//This move is always legal
+
+	return nil
+
+}
+
+func (t *testAlwaysLegalMove) Apply(state State) error {
+
+	//This move doesn't do anything
+
+	return nil
+}
+
 //testingComponentValues is designed to be run on a stack.ComponentValues() of
 //a stack of testingComponents, in order to convert them all to the specified
 //underlying struct.
