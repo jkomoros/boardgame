@@ -61,11 +61,11 @@ func (t *testGameDelegate) SetGame(game *Game) {
 func TestGameSetUp(t *testing.T) {
 	game := testGame()
 
-	if game.Moves() != nil {
+	if game.PlayerMoves() != nil {
 		t.Error("Got moves back before SetUp was called")
 	}
 
-	if game.MoveByName("Test") != nil {
+	if game.PlayerMoveByName("Test") != nil {
 		t.Error("Move by name returned a move before SetUp was called")
 	}
 
@@ -119,21 +119,21 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("After calling SetUp succesfully SetGame was not called.")
 	}
 
-	moves := game.Moves()
+	moves := game.PlayerMoves()
 
-	if reflect.DeepEqual(game.moves, moves) {
+	if reflect.DeepEqual(game.playerMoves, moves) {
 		t.Error("Got non-copy moves out of game after SetUp was called.")
 	}
 
-	if game.MoveByName("Test") == nil {
+	if game.PlayerMoveByName("Test") == nil {
 		t.Error("MoveByName didn't return a valid move when provided the proper name after calling setup")
 	}
 
-	if game.MoveByName("test") == nil {
+	if game.PlayerMoveByName("test") == nil {
 		t.Error("MoveByName didn't return a valid move when provided with a lowercase name after calling SetUp.")
 	}
 
-	if originalTestMove == game.MoveByName("Test") {
+	if originalTestMove == game.PlayerMoveByName("Test") {
 		t.Error("MoveByName returned a non-copy")
 	}
 
@@ -167,18 +167,18 @@ func TestApplyMove(t *testing.T) {
 		ABool:             true,
 	}
 
-	oldMoves := game.moves
-	oldMovesByName := game.movesByName
+	oldMoves := game.playerMoves
+	oldMovesByName := game.playerMovesByName
 
-	game.moves = nil
-	game.movesByName = make(map[string]Move)
+	game.playerMoves = nil
+	game.playerMovesByName = make(map[string]Move)
 
 	if err := <-game.ProposeMove(move); err == nil {
 		t.Error("Game allowed a move that wasn't configured as part of game to be applied")
 	}
 
-	game.moves = oldMoves
-	game.movesByName = oldMovesByName
+	game.playerMoves = oldMoves
+	game.playerMovesByName = oldMovesByName
 
 	//testMove checks to make sure game.state.currentPlayerIndex is targetplayerindex
 
@@ -245,11 +245,11 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 
 	game.Delegate.(*testGameDelegate).inifinteFixUpMode = true
 
-	game.AddMove(&testAlwaysLegalMove{})
+	game.AddFixUpMove(&testAlwaysLegalMove{})
 
 	game.SetUp()
 
-	move := game.MoveByName("Test")
+	move := game.PlayerMoveByName("Test")
 
 	if move == nil {
 		t.Fatal("Couldn't find Test move")
@@ -260,7 +260,7 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 				didPanic = true
 			}
 		}()
-		game.applyMove(move, maxRecurseCount-5)
+		game.applyMove(move, false, maxRecurseCount-5)
 		return
 	}
 

@@ -418,8 +418,8 @@ func testGame() *Game {
 
 	game := NewGame(testGameName, initialState, &testGameDelegate{})
 
-	game.AddMove(&testMove{})
-	game.AddMove(&testMoveAdvanceCurentPlayer{})
+	game.AddPlayerMove(&testMove{})
+	game.AddFixUpMove(&testMoveAdvanceCurentPlayer{})
 
 	game.SetChest(chest)
 

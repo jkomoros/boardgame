@@ -163,7 +163,7 @@ func (g *gameDelegate) ProposeFixUpMove(state boardgame.State) boardgame.Move {
 	//TODO: when there's a concept of FixUp moves, the default delegate will
 	//probably do what I want.
 
-	move := g.Game.MoveByName("Advance Player")
+	move := g.Game.FixUpMoveByName("Advance Player")
 
 	if move == nil {
 		panic("Couldn't find advance player move")
@@ -234,8 +234,8 @@ func NewGame() *boardgame.Game {
 
 	game.SetChest(chest)
 
-	game.AddMove(&MovePlaceToken{})
-	game.AddMove(&MoveAdvancePlayer{})
+	game.AddPlayerMove(&MovePlaceToken{})
+	game.AddFixUpMove(&MoveAdvancePlayer{})
 
 	if err := game.SetUp(); err != nil {
 		panic("Game couldn't be set up")

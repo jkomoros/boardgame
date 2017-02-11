@@ -33,8 +33,12 @@ type Game struct {
 
 	//Moves is the set of all move types that are ever legal to apply in this
 	//game. When a move will be proposed it should copy one of these moves.
-	moves       []Move
-	movesByName map[string]Move
+	//Player moves are moves that can be applied by users. FixUp moves are
+	//only ever returned by Delegate.ProposeFixUpMove().
+	playerMoves       []Move
+	fixUpMoves        []Move
+	playerMovesByName map[string]Move
+	fixUpMovesByName  map[string]Move
 
 	//Proposed moves is where moves that have been proposed but have not yet been applied go.
 	proposedMoves chan *proposedMoveItem
@@ -164,9 +168,14 @@ func (g *Game) SetUp() error {
 		}
 	}
 
-	g.movesByName = make(map[string]Move)
-	for _, move := range g.moves {
-		g.movesByName[strings.ToLower(move.Name())] = move
+	g.playerMovesByName = make(map[string]Move)
+	for _, move := range g.playerMoves {
+		g.playerMovesByName[strings.ToLower(move.Name())] = move
+	}
+
+	g.fixUpMovesByName = make(map[string]Move)
+	for _, move := range g.fixUpMoves {
+		g.fixUpMovesByName[strings.ToLower(move.Name())] = move
 	}
 
 	//If we got to here then the payloadCopy is now the real one.
@@ -190,34 +199,44 @@ func (g *Game) mainLoop() {
 		if item == nil {
 			return
 		}
-		item.ch <- g.applyMove(item.move, 0)
+		item.ch <- g.applyMove(item.move, false, 0)
 		close(item.ch)
 	}
 
 }
 
-//AddMove adds the specified move to the game. It may only be called during
-//initalization.
-func (g *Game) AddMove(move Move) {
+//AddPlayerMove adds the specified move to the game as a move that Players can
+//make. It may only be called during initalization.
+func (g *Game) AddPlayerMove(move Move) {
 
 	if g.initalized {
 		return
 	}
-	g.moves = append(g.moves, move)
+	g.playerMoves = append(g.playerMoves, move)
 }
 
-//Moves returns all moves that are valid in this game--all of the Moves that
-//have been added via AddMove during initalization. Returns nil until
-//game.SetUp() has been called. Will return moves that are all copies, with
-//them already set to the proper DefaultsForState.
-func (g *Game) Moves() []Move {
+//AddFixUpMove adds a move that can only be legally made by GameDelegate as a
+//FixUp move. It can only be called during initialization.
+func (g *Game) AddFixUpMove(move Move) {
+	if g.initalized {
+		return
+	}
+	g.fixUpMoves = append(g.fixUpMoves, move)
+}
+
+//PlayerMoves returns all moves that are valid in this game to be made my
+//players--all of the Moves that have been added via AddPlayerMove  during
+//initalization. Returns nil until game.SetUp() has been called. Will return
+//moves that are all copies, with them already set to the proper
+//DefaultsForState.
+func (g *Game) PlayerMoves() []Move {
 	if !g.initalized {
 		return nil
 	}
 
-	result := make([]Move, len(g.moves))
+	result := make([]Move, len(g.playerMoves))
 
-	for i, move := range g.moves {
+	for i, move := range g.playerMoves {
 		result[i] = move.Copy()
 		result[i].DefaultsForState(g.StateWrapper.State)
 	}
@@ -225,15 +244,57 @@ func (g *Game) Moves() []Move {
 	return result
 }
 
-//MoveByName returns the Move of that name from game.Moves(), if it exists.
-//Names are considered without regard to case.  Will return a copy with
-//defaults already set for current game state by move.DefaultsForState.
-func (g *Game) MoveByName(name string) Move {
+//FixUpMoves returns all moves that are valid in this game to be made as fixup
+//moves--all of the Moves that have been added via AddPlayerMove  during
+//initalization. Returns nil until game.SetUp() has been called. Will return
+//moves that are all copies, with them already set to the proper
+//DefaultsForState.
+func (g *Game) FixUpMoves() []Move {
+
+	//TODO: test all of these fixup moves
+
+	if !g.initalized {
+		return nil
+	}
+
+	result := make([]Move, len(g.fixUpMoves))
+
+	for i, move := range g.fixUpMoves {
+		result[i] = move.Copy()
+		result[i].DefaultsForState(g.StateWrapper.State)
+	}
+
+	return result
+}
+
+//PlayerMoveByName returns the Move of that name from game.PlayerMoves(), if
+//it exists. Names are considered without regard to case.  Will return a copy
+//with defaults already set for current game state by move.DefaultsForState.
+func (g *Game) PlayerMoveByName(name string) Move {
 	if !g.initalized {
 		return nil
 	}
 	name = strings.ToLower(name)
-	move := g.movesByName[name]
+	move := g.playerMovesByName[name]
+
+	if move == nil {
+		return nil
+	}
+
+	result := move.Copy()
+	result.DefaultsForState(g.StateWrapper.State)
+	return result
+}
+
+//FixUpMoveByName returns the Move of that name from game.FixUpMoves(), if
+//it exists. Names are considered without regard to case.  Will return a copy
+//with defaults already set for current game state by move.DefaultsForState.
+func (g *Game) FixUpMoveByName(name string) Move {
+	if !g.initalized {
+		return nil
+	}
+	name = strings.ToLower(name)
+	move := g.fixUpMovesByName[name]
 
 	if move == nil {
 		return nil
@@ -290,7 +351,7 @@ func (g *Game) ProposeMove(move Move) DelayedError {
 
 //Game applies the move to the state if it is currently legal. May only be
 //called by mainLoop. Propose moves with game.ProposeMove instead.
-func (g *Game) applyMove(move Move, recurseCount int) error {
+func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 
 	if !g.initalized {
 		return errors.New("The game has not been initalized.")
@@ -300,9 +361,16 @@ func (g *Game) applyMove(move Move, recurseCount int) error {
 		return errors.New("Game was already finished")
 	}
 
-	//Verify that the Move is actually configured to be part of this game.
-	if g.MoveByName(move.Name()) == nil {
-		return errors.New("That move is not configured for this game.")
+	if isFixUp {
+		if g.FixUpMoveByName(move.Name()) == nil {
+			return errors.New("That move is not configured as a Fix Up move for this game.")
+		}
+	} else {
+
+		//Verify that the Move is actually configured to be part of this game.
+		if g.PlayerMoveByName(move.Name()) == nil {
+			return errors.New("That move is not configured as a Player move for this game.")
+		}
 	}
 
 	if err := move.Legal(g.StateWrapper.State); err != nil {
@@ -350,7 +418,7 @@ func (g *Game) applyMove(move Move, recurseCount int) error {
 			//We apply the move immediately. This ensures that when
 			//DelayedError resolves, all of the fix up moves have been
 			//applied.
-			g.applyMove(move, recurseCount+1)
+			g.applyMove(move, true, recurseCount+1)
 		}
 	}
 

@@ -74,7 +74,12 @@ func (s *Server) makeMove(c *gin.Context) error {
 
 	//This method is passed a context mainly just to get info from request.
 
-	move := s.game.MoveByName(c.PostForm("MoveType"))
+	move := s.game.PlayerMoveByName(c.PostForm("MoveType"))
+
+	//Is it  a fixup move?
+	if move == nil {
+		move = s.game.FixUpMoveByName(c.PostForm("MoveType"))
+	}
 
 	if move == nil {
 		return errors.New("Invalid MoveType")
@@ -128,7 +133,7 @@ func (s *Server) generateForms() []*MoveForm {
 
 	var result []*MoveForm
 
-	for _, move := range s.game.Moves() {
+	for _, move := range s.game.PlayerMoves() {
 
 		move.DefaultsForState(s.game.StateWrapper.State)
 
