@@ -208,22 +208,40 @@ func (g *Game) AddMove(move Move) {
 
 //Moves returns all moves that are valid in this game--all of the Moves that
 //have been added via AddMove during initalization. Returns nil until
-//game.SetUp() has been called.
+//game.SetUp() has been called. Will return moves that are all copies, with
+//them already set to the proper DefaultsForState.
 func (g *Game) Moves() []Move {
 	if !g.initalized {
 		return nil
 	}
-	return g.moves
+
+	result := make([]Move, len(g.moves))
+
+	for i, move := range g.moves {
+		result[i] = move.Copy()
+		result[i].DefaultsForState(g.StateWrapper.State)
+	}
+
+	return result
 }
 
 //MoveByName returns the Move of that name from game.Moves(), if it exists.
-//Names are considered without regard to case.
+//Names are considered without regard to case.  Will return a copy with
+//defaults already set for current game state by move.DefaultsForState.
 func (g *Game) MoveByName(name string) Move {
 	if !g.initalized {
 		return nil
 	}
 	name = strings.ToLower(name)
-	return g.movesByName[name]
+	move := g.movesByName[name]
+
+	if move == nil {
+		return nil
+	}
+
+	result := move.Copy()
+	result.DefaultsForState(g.StateWrapper.State)
+	return result
 }
 
 //Chest is the ComponentChest in use for this game.

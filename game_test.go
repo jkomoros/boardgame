@@ -86,6 +86,8 @@ func TestGameSetUp(t *testing.T) {
 		ABool:             true,
 	}
 
+	originalTestMove := move
+
 	delayedError := game.ProposeMove(move)
 
 	select {
@@ -119,8 +121,8 @@ func TestGameSetUp(t *testing.T) {
 
 	moves := game.Moves()
 
-	if !reflect.DeepEqual(game.moves, moves) {
-		t.Error("Got wrong moves out of game after SetUp was called.")
+	if reflect.DeepEqual(game.moves, moves) {
+		t.Error("Got non-copy moves out of game after SetUp was called.")
 	}
 
 	if game.MoveByName("Test") == nil {
@@ -129,6 +131,10 @@ func TestGameSetUp(t *testing.T) {
 
 	if game.MoveByName("test") == nil {
 		t.Error("MoveByName didn't return a valid move when provided with a lowercase name after calling SetUp.")
+	}
+
+	if originalTestMove == game.MoveByName("Test") {
+		t.Error("MoveByName returned a non-copy")
 	}
 
 	p := game.StateWrapper.State.(*testState)

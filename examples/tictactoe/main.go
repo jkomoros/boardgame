@@ -169,12 +169,10 @@ func (g *gameDelegate) ProposeFixUpMove(state boardgame.State) boardgame.Move {
 		panic("Couldn't find advance player move")
 	}
 
-	moveToMake := move.Copy()
-
 	//Advance Player only returns Legal if it makes sense to apply right now
 
-	if err := moveToMake.Legal(state); err == nil {
-		return moveToMake
+	if err := move.Legal(state); err == nil {
+		return move
 	}
 
 	return nil

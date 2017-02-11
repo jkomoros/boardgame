@@ -80,11 +80,9 @@ func (s *Server) makeMove(c *gin.Context) error {
 		return errors.New("Invalid MoveType")
 	}
 
-	moveToMake := move.Copy()
-
 	//TODO: should we use gin's Binding to do this instead?
 
-	for _, field := range formFields(moveToMake) {
+	for _, field := range formFields(move) {
 
 		rawVal := c.PostForm(field.Name)
 
@@ -97,10 +95,10 @@ func (s *Server) makeMove(c *gin.Context) error {
 			if err != nil {
 				return errors.New(fmt.Sprint("Couldn't set field", field.Name, err))
 			}
-			moveToMake.SetProp(field.Name, num)
+			move.SetProp(field.Name, num)
 		case FieldBool:
 			if rawVal == "" {
-				moveToMake.SetProp(field.Name, false)
+				move.SetProp(field.Name, false)
 				continue
 			}
 			num, err := strconv.Atoi(rawVal)
@@ -108,16 +106,16 @@ func (s *Server) makeMove(c *gin.Context) error {
 				return errors.New(fmt.Sprint("Couldn't set field", field.Name, err))
 			}
 			if num == 1 {
-				moveToMake.SetProp(field.Name, true)
+				move.SetProp(field.Name, true)
 			} else {
-				moveToMake.SetProp(field.Name, false)
+				move.SetProp(field.Name, false)
 			}
 		case FieldUnknown:
 			return errors.New(fmt.Sprint("Field", field.Name, "was an unknown value type"))
 		}
 	}
 
-	if err := <-s.game.ProposeMove(moveToMake); err != nil {
+	if err := <-s.game.ProposeMove(move); err != nil {
 		return errors.New(fmt.Sprint("Applying move failed", err))
 	}
 	//TODO: it would be nice if we could show which fixup moves we made, too,
@@ -130,9 +128,7 @@ func (s *Server) generateForms() []*MoveForm {
 
 	var result []*MoveForm
 
-	for _, originalMove := range s.game.Moves() {
-
-		move := originalMove.Copy()
+	for _, move := range s.game.Moves() {
 
 		move.DefaultsForState(s.game.StateWrapper.State)
 
