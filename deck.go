@@ -36,6 +36,15 @@ func (d *Deck) AddComponent(v ComponentValues) {
 	d.components = append(d.components, c)
 }
 
+//AddComponentMulti is like AddComponent, but creates multiple versions of the
+//same component. The exact same ComponentValues will be re-used, which is
+//reasonable becasue components are read-only anyway.
+func (d *Deck) AddComponentMulti(v ComponentValues, count int) {
+	for i := 0; i < count; i++ {
+		d.AddComponent(v)
+	}
+}
+
 //Components returns a list of Components in order in this deck, but only if
 //this Deck has already been added to its ComponentChest.
 func (d *Deck) Components() []*Component {
