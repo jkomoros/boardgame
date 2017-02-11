@@ -34,7 +34,7 @@
 		<details id="moves">
 			<summary>Moves</summary>
 			{{range .Forms}}
-				<details>
+				<details id="moves-{{.Name}}">
 					<summary>Move {{.Name}}</summary>
 					<form method="POST">
 						<p><em>{{.Description}}</em></p>
@@ -54,5 +54,6 @@
 			{{end}}
 		</details>
 		{{end}}
+		<script src="/static/script.js"></script>
 	</body>
 </html>

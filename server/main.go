@@ -213,6 +213,8 @@ func (s *Server) Start() {
 
 	router.LoadHTMLGlob(os.ExpandEnv(pathToLib) + "templates/*")
 
+	router.Static("/static", os.ExpandEnv(pathToLib)+"static/")
+
 	router.GET("/", s.viewHandler)
 	router.POST("/", s.viewHandler)
 
