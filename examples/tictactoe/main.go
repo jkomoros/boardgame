@@ -26,9 +26,9 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, 
 
 	switch component.Value {
 	case X:
-		p.users[0].UnusedTokens.InsertFront(c)
+		p.Users[0].UnusedTokens.InsertFront(c)
 	case O:
-		p.users[1].UnusedTokens.InsertFront(c)
+		p.Users[1].UnusedTokens.InsertFront(c)
 	}
 	return nil
 }
@@ -40,7 +40,7 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, 
 	tokens := make([]string, DIM*DIM)
 
 	for i := 0; i < DIM*DIM; i++ {
-		tokens[i] = s.game.tokenValueAtIndex(i)
+		tokens[i] = s.Game.tokenValueAtIndex(i)
 	}
 
 	finished, winner := checkGameFinished(tokens)
@@ -188,10 +188,10 @@ func NewGame() *boardgame.Game {
 	chest.AddDeck("tokens", tokens)
 
 	starterState := &mainState{
-		game: &gameState{
+		Game: &gameState{
 			Slots: boardgame.NewSizedStack(tokens, DIM*DIM),
 		},
-		users: []*userState{
+		Users: []*userState{
 			&userState{
 				TokensToPlaceThisTurn: 1,
 				TokenValue:            X,
@@ -205,7 +205,7 @@ func NewGame() *boardgame.Game {
 		},
 	}
 
-	for i, user := range starterState.users {
+	for i, user := range starterState.Users {
 		user.playerIndex = i
 	}
 

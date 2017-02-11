@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -30,18 +31,18 @@ func newStarterStateWrapper(state State) *StateWrapper {
 //StatePayload is where the "meat" of the state goes. It is one object so that
 //client games can cast it quickly to the concrete struct for their game, so
 //that they can get to a type-checked world with minimal fuss inside of
-//Move.Legal and move.Apply.
+//Move.Legal and move.Apply. Your underlying struct should have a Game and
+//Users property, so they serialize properly to JSON.
 type State interface {
 	//Game includes the non-user state for the game.
-	Game() GameState
+	GameState() GameState
 	//Users contains a UserState object for each user in the game.
-	Users() []UserState
+	UserStates() []UserState
 	//Copy returns a copy of the Payload.
 	Copy() State
 	//Diagram should return a basic debug rendering of state in multi-line
 	//ascii art. Useful for debugging.
 	Diagram() string
-	JSONer
 	//TODO: it's annoying that we have to reimplement JSON() for every struct
 	//even though there should just be generic. Move to a top-level Method.
 }
@@ -69,7 +70,6 @@ type PropertyReadSetter interface {
 //BaseState is the interface that all state objects--UserStates and GameStates
 //--implement.
 type BaseState interface {
-	JSONer
 	PropertyReader
 }
 
@@ -104,15 +104,11 @@ func (s *StateWrapper) Copy() *StateWrapper {
 
 }
 
-//JSON returns the JSONObject representing the State's full state.
-func (s *StateWrapper) JSON() JSONObject {
-
-	return JSONMap{
-		"Version": s.Version,
-		"Schema":  s.Schema,
-		"State":   s.State.JSON(),
-	}
-
+//DefaultMarshalJSON is a simple wrapper around json.MarshalIndent, with the
+//right defaults set. If your structs need to implement MarshaLJSON to output
+//JSON, use this to encode it.
+func DefaultMarshalJSON(obj interface{}) ([]byte, error) {
+	return json.MarshalIndent(obj, "", "  ")
 }
 
 func propertyReaderImplNameShouldBeIncluded(name string) bool {

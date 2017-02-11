@@ -17,14 +17,16 @@ func TestState(t *testing.T) {
 		t.Error("State could not be created")
 	}
 
-	json := state.JSON()
+	currentJson, _ := json.Marshal(state)
 	golden := goldenJSON("basic_state.json", t)
 
-	compareJSONObjects(json, golden, "Basic state", t)
+	compareJSONObjects(currentJson, golden, "Basic state", t)
 
 	stateCopy := state.Copy()
 
-	compareJSONObjects(stateCopy.JSON(), state.JSON(), "Copy was not same", t)
+	copyJson, _ := DefaultMarshalJSON(stateCopy)
+
+	compareJSONObjects(copyJson, currentJson, "Copy was not same", t)
 
 	stateCopy.Schema = 1
 
@@ -32,9 +34,9 @@ func TestState(t *testing.T) {
 		t.Error("Modifying a copy changed the original")
 	}
 
-	stateCopy.State.(*testState).users[0].MovesLeftThisTurn = 10
+	stateCopy.State.(*testState).Users[0].MovesLeftThisTurn = 10
 
-	if state.State.(*testState).users[0].MovesLeftThisTurn == 10 {
+	if state.State.(*testState).Users[0].MovesLeftThisTurn == 10 {
 		t.Error("Modifying a copy change the original")
 	}
 
@@ -105,33 +107,25 @@ func TestPropertyReaderImpl(t *testing.T) {
 
 }
 
-func compareJSONObjects(in JSONObject, golden JSONObject, message string, t *testing.T) {
-	serializedIn := Serialize(in)
-	serializedGolden := Serialize(golden)
+func compareJSONObjects(in []byte, golden []byte, message string, t *testing.T) {
 
 	var deserializedIn interface{}
 	var deserializedGolden interface{}
 
-	json.Unmarshal(serializedIn, &deserializedIn)
-	json.Unmarshal(serializedGolden, &deserializedGolden)
+	json.Unmarshal(in, &deserializedIn)
+	json.Unmarshal(golden, &deserializedGolden)
 
 	if !reflect.DeepEqual(deserializedIn, deserializedGolden) {
-		t.Error("Got wrong json.", message, "Got", string(serializedIn), "wanted", string(serializedGolden))
+		t.Error("Got wrong json.", message, "Got", string(in), "wanted", string(golden))
 	}
 }
 
-func goldenJSON(fileName string, t *testing.T) JSONObject {
+func goldenJSON(fileName string, t *testing.T) []byte {
 	contents, err := ioutil.ReadFile("./test/" + fileName)
 	if err != nil {
 		t.Fatal("Couldn't load golden JSON at " + fileName)
 	}
 
-	result := make(JSONMap)
-
-	if err := json.Unmarshal(contents, &result); err != nil {
-		t.Fatal("Couldn't parse golden json at " + fileName + err.Error())
-	}
-
-	return result
+	return contents
 
 }

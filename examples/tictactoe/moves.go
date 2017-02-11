@@ -17,19 +17,19 @@ type MovePlaceToken struct {
 func (m *MovePlaceToken) Legal(payload boardgame.State) error {
 	p := payload.(*mainState)
 
-	if p.game.CurrentPlayer != m.TargetPlayerIndex {
+	if p.Game.CurrentPlayer != m.TargetPlayerIndex {
 		return errors.New("The specified player is not the current player.")
 	}
 
-	if p.users[m.TargetPlayerIndex].UnusedTokens.Len() < 1 {
+	if p.Users[m.TargetPlayerIndex].UnusedTokens.Len() < 1 {
 		return errors.New("There aren't any remaining tokens for the current player to place.")
 	}
 
-	if m.Slot < 0 || m.Slot >= p.game.Slots.Len() {
+	if m.Slot < 0 || m.Slot >= p.Game.Slots.Len() {
 		return errors.New("The specified slot is not legal.")
 	}
 
-	if p.game.Slots.ComponentAt(m.Slot) != nil {
+	if p.Game.Slots.ComponentAt(m.Slot) != nil {
 		return errors.New("The specified slot is already taken.")
 	}
 
@@ -41,11 +41,11 @@ func (m *MovePlaceToken) Apply(payload boardgame.State) error {
 
 	p := payload.(*mainState)
 
-	u := p.users[m.TargetPlayerIndex]
+	u := p.Users[m.TargetPlayerIndex]
 
 	c := u.UnusedTokens.RemoveFirst()
 
-	p.game.Slots.InsertAtSlot(c, m.Slot)
+	p.Game.Slots.InsertAtSlot(c, m.Slot)
 
 	u.TokensToPlaceThisTurn--
 
@@ -55,10 +55,10 @@ func (m *MovePlaceToken) Apply(payload boardgame.State) error {
 func (m *MovePlaceToken) DefaultsForState(state boardgame.State) {
 	s := state.(*mainState)
 
-	m.TargetPlayerIndex = s.game.CurrentPlayer
+	m.TargetPlayerIndex = s.Game.CurrentPlayer
 
 	//Default to setting a slot that's empty.
-	for i, token := range s.game.Slots.ComponentValues() {
+	for i, token := range s.Game.Slots.ComponentValues() {
 		if token == nil {
 			m.Slot = i
 			break
@@ -93,16 +93,12 @@ func (m *MovePlaceToken) SetProp(name string, val interface{}) error {
 	return boardgame.PropertySetImpl(m, name, val)
 }
 
-func (m *MovePlaceToken) JSON() boardgame.JSONObject {
-	return m
-}
-
 type MoveAdvancePlayer struct{}
 
 func (m *MoveAdvancePlayer) Legal(payload boardgame.State) error {
 	p := payload.(*mainState)
 
-	user := p.users[p.game.CurrentPlayer]
+	user := p.Users[p.Game.CurrentPlayer]
 
 	if user.TokensToPlaceThisTurn > 0 {
 		return errors.New("The current player still has tokens left to place this turn.")
@@ -115,13 +111,13 @@ func (m *MoveAdvancePlayer) Apply(payload boardgame.State) error {
 
 	p := payload.(*mainState)
 
-	p.game.CurrentPlayer++
+	p.Game.CurrentPlayer++
 
-	if p.game.CurrentPlayer >= len(p.users) {
-		p.game.CurrentPlayer = 0
+	if p.Game.CurrentPlayer >= len(p.Users) {
+		p.Game.CurrentPlayer = 0
 	}
 
-	newUser := p.users[p.game.CurrentPlayer]
+	newUser := p.Users[p.Game.CurrentPlayer]
 
 	newUser.TokensToPlaceThisTurn = 1
 
@@ -146,10 +142,6 @@ func (m *MoveAdvancePlayer) Copy() boardgame.Move {
 	var result MoveAdvancePlayer
 	result = *m
 	return &result
-}
-
-func (m *MoveAdvancePlayer) JSON() boardgame.JSONObject {
-	return m
 }
 
 func (m *MoveAdvancePlayer) Prop(name string) interface{} {

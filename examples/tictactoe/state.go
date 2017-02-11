@@ -40,10 +40,6 @@ func (g *gameState) Copy() boardgame.GameState {
 	return &result
 }
 
-func (g *gameState) JSON() boardgame.JSONObject {
-	return g
-}
-
 type userState struct {
 	playerIndex  int
 	TokenValue   string
@@ -66,21 +62,17 @@ func (u *userState) Copy() boardgame.UserState {
 	return &result
 }
 
-func (u *userState) JSON() boardgame.JSONObject {
-	return u
-}
-
 func (u *userState) PlayerIndex() int {
 	return u.playerIndex
 }
 
 type mainState struct {
-	game  *gameState
-	users []*userState
+	Game  *gameState
+	Users []*userState
 }
 
 func (s *mainState) userFromTokenValue(value string) *userState {
-	for _, user := range s.users {
+	for _, user := range s.Users {
 		if user.TokenValue == value {
 			return user
 		}
@@ -92,7 +84,7 @@ func (s *mainState) Diagram() string {
 
 	//Get an array of *playerTokenValues corresponding to tokens currently in
 	//the stack.
-	tokens := playerTokenValues(s.game.Slots.ComponentValues())
+	tokens := playerTokenValues(s.Game.Slots.ComponentValues())
 
 	tokenValues := make([]string, len(tokens))
 
@@ -113,49 +105,35 @@ func (s *mainState) Diagram() string {
 	result[3] = result[1]
 	result[4] = tokenValues[6] + "|" + tokenValues[7] + "|" + tokenValues[8]
 	result[5] = ""
-	result[6] = "Next player: " + s.users[s.game.CurrentPlayer].TokenValue
+	result[6] = "Next player: " + s.Users[s.Game.CurrentPlayer].TokenValue
 
 	return strings.Join(result, "\n")
 
 }
 
-func (s *mainState) Game() boardgame.GameState {
-	return s.game
+func (s *mainState) GameState() boardgame.GameState {
+	return s.Game
 }
 
-func (s *mainState) Users() []boardgame.UserState {
-	array := make([]boardgame.UserState, len(s.users))
+func (s *mainState) UserStates() []boardgame.UserState {
+	array := make([]boardgame.UserState, len(s.Users))
 
-	for i := 0; i < len(s.users); i++ {
-		array[i] = s.users[i]
+	for i := 0; i < len(s.Users); i++ {
+		array[i] = s.Users[i]
 	}
 
 	return array
 }
 
-func (s *mainState) JSON() boardgame.JSONObject {
-
-	array := make([]boardgame.JSONObject, len(s.users))
-
-	for i, user := range s.users {
-		array[i] = user.JSON()
-	}
-
-	return boardgame.JSONMap{
-		"Game":  s.game.JSON(),
-		"Users": array,
-	}
-}
-
 func (s *mainState) Copy() boardgame.State {
-	array := make([]*userState, len(s.users))
+	array := make([]*userState, len(s.Users))
 
-	for i := 0; i < len(s.users); i++ {
-		array[i] = s.users[i].Copy().(*userState)
+	for i := 0; i < len(s.Users); i++ {
+		array[i] = s.Users[i].Copy().(*userState)
 	}
 
 	return &mainState{
-		game:  s.game.Copy().(*gameState),
-		users: array,
+		Game:  s.Game.Copy().(*gameState),
+		Users: array,
 	}
 }

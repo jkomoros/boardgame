@@ -39,17 +39,17 @@ func componentsEqual(one *Component, two *Component) bool {
 }
 
 type testState struct {
-	game  *testGameState
-	users []*testUserState
+	Game  *testGameState
+	Users []*testUserState
 }
 
-func (t *testState) Game() GameState {
-	return t.game
+func (t *testState) GameState() GameState {
+	return t.Game
 }
 
-func (t *testState) Users() []UserState {
-	result := make([]UserState, len(t.users))
-	for i, user := range t.users {
+func (t *testState) UserStates() []UserState {
+	result := make([]UserState, len(t.Users))
+	for i, user := range t.Users {
 		result[i] = user
 	}
 	return result
@@ -63,35 +63,21 @@ func (t *testState) Copy() State {
 
 	result := &testState{}
 
-	if t.game != nil {
-		result.game = t.game.Copy().(*testGameState)
+	if t.Game != nil {
+		result.Game = t.Game.Copy().(*testGameState)
 	}
 
-	if t.users == nil {
+	if t.Users == nil {
 		return result
 	}
 
-	array := make([]*testUserState, len(t.users))
-	for i, user := range t.users {
+	array := make([]*testUserState, len(t.Users))
+	for i, user := range t.Users {
 		array[i] = user.Copy().(*testUserState)
 	}
-	result.users = array
+	result.Users = array
 
 	return result
-}
-
-func (t *testState) JSON() JSONObject {
-
-	usersArray := make([]JSONObject, len(t.users))
-
-	for i, user := range t.users {
-		usersArray[i] = user.JSON()
-	}
-
-	return JSONMap{
-		"Game":  t.game.JSON(),
-		"Users": usersArray,
-	}
 }
 
 type testGameState struct {
@@ -104,11 +90,6 @@ func (t *testGameState) Copy() GameState {
 	var result testGameState
 	result = *t
 	return &result
-}
-
-func (t *testGameState) JSON() JSONObject {
-
-	return t
 }
 
 func (t *testGameState) Props() []string {
@@ -139,10 +120,6 @@ func (t *testUserState) Copy() UserState {
 	return &result
 }
 
-func (t *testUserState) JSON() JSONObject {
-	return t
-}
-
 func (t *testUserState) Props() []string {
 	return PropertyReaderPropsImpl(t)
 }
@@ -163,10 +140,6 @@ func (t *testMoveAdvanceCurentPlayer) Prop(name string) interface{} {
 
 func (t *testMoveAdvanceCurentPlayer) SetProp(name string, val interface{}) error {
 	return PropertySetImpl(t, name, val)
-}
-
-func (t *testMoveAdvanceCurentPlayer) JSON() JSONObject {
-	return t
 }
 
 func (t *testMoveAdvanceCurentPlayer) Copy() Move {
@@ -190,7 +163,7 @@ func (t *testMoveAdvanceCurentPlayer) Description() string {
 func (t *testMoveAdvanceCurentPlayer) Legal(state State) error {
 	payload := state.(*testState)
 
-	user := payload.users[payload.game.CurrentPlayer]
+	user := payload.Users[payload.Game.CurrentPlayer]
 
 	if user.MovesLeftThisTurn > 0 {
 		return errors.New("The current player still has moves left this turn.")
@@ -204,15 +177,15 @@ func (t *testMoveAdvanceCurentPlayer) Apply(state State) error {
 	payload := state.(*testState)
 
 	//Make sure we're leaving it at 0
-	payload.users[payload.game.CurrentPlayer].MovesLeftThisTurn = 0
+	payload.Users[payload.Game.CurrentPlayer].MovesLeftThisTurn = 0
 
-	payload.game.CurrentPlayer++
+	payload.Game.CurrentPlayer++
 
-	if payload.game.CurrentPlayer >= len(payload.users) {
-		payload.game.CurrentPlayer = 0
+	if payload.Game.CurrentPlayer >= len(payload.Users) {
+		payload.Game.CurrentPlayer = 0
 	}
 
-	payload.users[payload.game.CurrentPlayer].MovesLeftThisTurn = 1
+	payload.Users[payload.Game.CurrentPlayer].MovesLeftThisTurn = 1
 
 	return nil
 }
@@ -236,10 +209,6 @@ func (t *testMove) SetProp(name string, val interface{}) error {
 	return PropertySetImpl(t, name, val)
 }
 
-func (t *testMove) JSON() JSONObject {
-	return t
-}
-
 func (t *testMove) Copy() Move {
 	var result testMove
 	result = *t
@@ -257,7 +226,7 @@ func (t *testMove) Description() string {
 func (t *testMove) DefaultsForState(state State) {
 	s := state.(*testState)
 
-	t.TargetPlayerIndex = s.game.CurrentPlayer
+	t.TargetPlayerIndex = s.Game.CurrentPlayer
 	t.ScoreIncrement = 3
 }
 
@@ -265,7 +234,7 @@ func (t *testMove) Legal(state State) error {
 
 	payload := state.(*testState)
 
-	if payload.game.CurrentPlayer != t.TargetPlayerIndex {
+	if payload.Game.CurrentPlayer != t.TargetPlayerIndex {
 		return errors.New("The current player is not the same as the target player")
 	}
 
@@ -277,9 +246,9 @@ func (t *testMove) Apply(state State) error {
 
 	payload := state.(*testState)
 
-	payload.users[payload.game.CurrentPlayer].Score += t.ScoreIncrement
+	payload.Users[payload.Game.CurrentPlayer].Score += t.ScoreIncrement
 
-	payload.users[payload.game.CurrentPlayer].MovesLeftThisTurn -= 1
+	payload.Users[payload.Game.CurrentPlayer].MovesLeftThisTurn -= 1
 
 	return nil
 }
@@ -296,10 +265,6 @@ func (t *testAlwaysLegalMove) Prop(name string) interface{} {
 
 func (t *testAlwaysLegalMove) SetProp(name string, val interface{}) error {
 	return PropertySetImpl(t, name, val)
-}
-
-func (t *testAlwaysLegalMove) JSON() JSONObject {
-	return t
 }
 
 func (t *testAlwaysLegalMove) Copy() Move {
@@ -390,11 +355,11 @@ func testGame() *Game {
 	chest.Finish()
 
 	initialState := &testState{
-		game: &testGameState{
+		Game: &testGameState{
 			CurrentPlayer: 0,
 			DrawDeck:      NewGrowableStack(deck, 0),
 		},
-		users: []*testUserState{
+		Users: []*testUserState{
 			&testUserState{
 				playerIndex:       0,
 				Score:             0,

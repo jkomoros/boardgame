@@ -37,5 +37,4 @@ type Move interface {
 	Description() string
 
 	PropertyReadSetter
-	JSONer
 }

@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"encoding/json"
 	"reflect"
 	"testing"
 	"time"
@@ -16,7 +17,7 @@ type testGameDelegate struct {
 
 func (t *testGameDelegate) DistributeComponentToStarterStack(state State, c *Component) error {
 	p := state.(*testState)
-	return p.game.DrawDeck.InsertFront(c)
+	return p.Game.DrawDeck.InsertFront(c)
 }
 
 func (t *testGameDelegate) CheckGameFinished(state State) (bool, []int) {
@@ -24,7 +25,7 @@ func (t *testGameDelegate) CheckGameFinished(state State) (bool, []int) {
 
 	var winners []int
 
-	for i, user := range p.users {
+	for i, user := range p.Users {
 		if user.Score >= 5 {
 			//This user won!
 			winners = append(winners, i)
@@ -127,7 +128,7 @@ func TestGameSetUp(t *testing.T) {
 
 	deck := game.Chest().Deck("test").Components()
 
-	if p.game.DrawDeck.Len() != len(deck) {
+	if p.Game.DrawDeck.Len() != len(deck) {
 		t.Error("All of the components were not distributed in SetUp")
 	}
 
@@ -184,10 +185,10 @@ func TestApplyMove(t *testing.T) {
 	//FixUp move, this is also testing that not just the main move, but also
 	//the fixup move was made.
 
-	json := game.StateWrapper.JSON()
+	currentJson, _ := json.Marshal(game.StateWrapper)
 	golden := goldenJSON("basic_state_after_move.json", t)
 
-	compareJSONObjects(json, golden, "Basic state after test move", t)
+	compareJSONObjects(currentJson, golden, "Basic state after test move", t)
 
 	//Apply a move that should finish the game (any player has score > 5)
 	newMove := &testMove{

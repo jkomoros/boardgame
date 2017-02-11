@@ -50,8 +50,10 @@ const (
 
 func (s *Server) viewHandler(c *gin.Context) {
 
+	json, _ := boardgame.DefaultMarshalJSON(s.game.StateWrapper)
+
 	args := gin.H{
-		"StateWrapper": string(boardgame.Serialize(s.game.StateWrapper.JSON())),
+		"StateWrapper": string(json),
 		"Diagram":      s.game.StateWrapper.State.Diagram(),
 		"Chest":        s.renderChest(),
 		"Forms":        s.generateForms(),
