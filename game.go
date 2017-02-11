@@ -33,9 +33,6 @@ type Game struct {
 
 	//Proposed moves is where moves that have been proposed but have not yet been applied go.
 	proposedMoves chan *proposedMoveItem
-	//TODO: once we have things actually coming in multi-threaded, we need to
-	//ensure that FixUp moves are serviced first. That doesn't need another
-	//channel, because only applyMove can inject one.
 
 	//Initalized is set to True after SetUp is called.
 	initalized bool
@@ -250,8 +247,9 @@ func (g *Game) SetChest(chest *ComponentChest) {
 
 //ProposedMove is the way to propose a move to the game. DelayedError will
 //return an error in the future if the move was unable to be applied, or nil
-//if the move was applied successfully. Note: DelayedError won't return anything
-//until after SetUp has been called.
+//if the move was applied successfully. DelayedError will only resolve once
+//any applicable FixUp moves have been applied already. Note: DelayedError
+//won't return anything until after SetUp has been called.
 func (g *Game) ProposeMove(move Move) DelayedError {
 
 	errChan := make(DelayedError, 1)
@@ -321,7 +319,10 @@ func (g *Game) applyMove(move Move) error {
 		move := g.Delegate.ProposeFixUpMove(g.StateWrapper.State)
 
 		if move != nil {
-			g.ProposeMove(move)
+			//We apply the move immediately. This ensures that when
+			//DelayedError resolves, all of the fix up moves have been
+			//applied.
+			g.applyMove(move)
 		}
 	}
 

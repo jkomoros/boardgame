@@ -159,9 +159,7 @@ func TestApplyMove(t *testing.T) {
 	game.moves = nil
 	game.movesByName = make(map[string]Move)
 
-	delayedErr := game.ProposeMove(move)
-
-	if err := <-delayedErr; err == nil {
+	if err := <-game.ProposeMove(move); err == nil {
 		t.Error("Game allowed a move that wasn't configured as part of game to be applied")
 	}
 
@@ -172,17 +170,13 @@ func TestApplyMove(t *testing.T) {
 
 	move.TargetPlayerIndex = 1
 
-	delayedErr = game.ProposeMove(move)
-
-	if err := <-delayedErr; err == nil {
+	if err := <-game.ProposeMove(move); err == nil {
 		t.Error("Game allowed a move to be applied where the wrong playe was current")
 	}
 
 	move.TargetPlayerIndex = 0
 
-	delayedErr = game.ProposeMove(move)
-
-	if err := <-delayedErr; err != nil {
+	if err := <-game.ProposeMove(move); err != nil {
 		t.Error("Game didn't allow a legal move to be made")
 	}
 
@@ -203,14 +197,11 @@ func TestApplyMove(t *testing.T) {
 		ABool:             true,
 	}
 
-	delayedErr = game.ProposeMove(newMove)
-
-	if err := <-delayedErr; err != nil {
+	if err := <-game.ProposeMove(newMove); err != nil {
 		t.Error("Game didn't allow a move to be made even though it was legal")
 	}
 
-	//TODO: there's got to be a better way to make sure we've applied any fix up moves.
-	<-time.After(time.Millisecond * 5)
+	//By the time err has resolved above, any fixup moves have been applied.
 
 	if !game.Finished {
 		t.Error("Game didn't notice that a user had won")
@@ -227,9 +218,7 @@ func TestApplyMove(t *testing.T) {
 		ABool:             true,
 	}
 
-	delayedErr = game.ProposeMove(moveAfterFinished)
-
-	if err := <-delayedErr; err == nil {
+	if err := <-game.ProposeMove(moveAfterFinished); err == nil {
 		t.Error("Game allowed a move to be applied after the game was finished")
 	}
 }
