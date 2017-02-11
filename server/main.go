@@ -44,6 +44,7 @@ func NewServer(game *boardgame.Game) *Server {
 	}
 }
 
+//TODO: use go.rice here?
 const (
 	pathToLib = "$GOPATH/src/github.com/jkomoros/boardgame/server/"
 )
