@@ -25,6 +25,10 @@ func (m *MovePlaceToken) Legal(payload boardgame.State) error {
 		return errors.New("There aren't any remaining tokens for the current player to place.")
 	}
 
+	if m.Slot < 0 || m.Slot >= p.game.Slots.Len() {
+		return errors.New("The specified slot is not legal.")
+	}
+
 	if p.game.Slots.ComponentAt(m.Slot) != nil {
 		return errors.New("The specified slot is already taken.")
 	}
