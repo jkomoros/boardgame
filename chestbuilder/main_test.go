@@ -11,8 +11,18 @@ type CardComponent struct {
 	Name string
 }
 
+type TokenComponent struct {
+	Color int
+}
+
+type RepeatTokenComponent struct {
+	Repeat    int
+	Component *TokenComponent
+}
+
 type TestChest struct {
-	Cards []*CardComponent
+	Cards  []*CardComponent
+	Tokens []*RepeatTokenComponent
 }
 
 func (c *CardComponent) Props() []string {
@@ -21,6 +31,14 @@ func (c *CardComponent) Props() []string {
 
 func (c *CardComponent) Prop(name string) interface{} {
 	return boardgame.PropertyReaderPropImpl(c, name)
+}
+
+func (t *TokenComponent) Props() []string {
+	return boardgame.PropertyReaderPropsImpl(t)
+}
+
+func (t *TokenComponent) Prop(name string) interface{} {
+	return boardgame.PropertyReaderPropImpl(t, name)
 }
 
 func TestChestBuilder(t *testing.T) {
@@ -66,5 +84,30 @@ func TestChestBuilder(t *testing.T) {
 
 	if v.Suit != 3 {
 		t.Error("Got wrong component in first positon. Expected '3', got", v.Suit)
+	}
+
+	deck = chest.Deck("Tokens")
+
+	if deck == nil {
+		t.Fatal("Chest had no deck named tokens")
+	}
+
+	if len(deck.Components()) != 5 {
+		t.Error("Tokens had wrong length. Wanted 5, got", len(deck.Components()))
+	}
+
+	//TODO: verify that it's three of the first and two of the rest.
+
+	for i, component := range deck.Components() {
+		c := component.Values.(*TokenComponent)
+		if i < 3 {
+			if c.Color != 4 {
+				t.Error("Expected component", i, "to have color 4. Got", c.Color)
+			}
+		} else {
+			if c.Color != 2 {
+				t.Error("Expected component", i, "to have color 2. Got", c.Color)
+			}
+		}
 	}
 }

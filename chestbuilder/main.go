@@ -18,13 +18,24 @@ FromConfig takes in a JSON blob in bytes, loads it up into Container, and
 then creates and returns a Chest by walking that container.
 
 You container should look like:
-	type myChest struct {
-		CardDeck []*CardComponent
-		ResourceTokenDeck []*ResourceTokenDeck
+
+	type RepeatTokenComponent struct {
+		Repeat int
+		Component *TokenComponent
 	}
 
-Where *CardComponent and *ResourceTokenComponent both implement
-boardgame.ComponentValues
+	type myChest struct {
+		CardDeck []*CardComponent
+		TokenDeck []*RepeatTokenComponent
+	}
+
+Where *CardComponent and *TokenComponent both implement
+boardgame.ComponentValues. Note that if the value is a struct with two fields,
+Repeat and Component, Repeat number of the component will be added to the
+deck.
+
+At this point, the RepeatComponents and the Components themselves must be
+pointers.
 
 */
 func FromConfig(blob []byte, container interface{}) (*boardgame.ComponentChest, error) {
@@ -48,10 +59,32 @@ func FromConfig(blob []byte, container interface{}) (*boardgame.ComponentChest, 
 		deck := &boardgame.Deck{}
 
 		for j := 0; j < f.Len(); j++ {
-			deck.AddComponent(
-				//TODO: verify this works so we don't panic
-				f.Index(j).Interface().(boardgame.PropertyReader),
-			)
+
+			val := f.Index(j)
+			typeOfVal := val.Elem().Type()
+
+			simpleComponent := true
+
+			//Check to see if this is a repeat object
+			if val.Elem().NumField() == 2 {
+				nameZero := typeOfVal.Field(0).Name
+				nameOne := typeOfVal.Field(1).Name
+				if (nameOne == "Repeat" && nameZero == "Component") || (nameZero == "Repeat" && nameOne == "Component") {
+
+					//It's a repeat component!
+					deck.AddComponentMulti(val.Elem().FieldByName("Component").Interface().(boardgame.ComponentValues), val.Elem().FieldByName("Repeat").Interface().(int))
+
+					//Signal that we already added it.
+					simpleComponent = false
+				}
+			}
+
+			if simpleComponent {
+				deck.AddComponent(
+					//TODO: verify this works so we don't panic
+					val.Interface().(boardgame.ComponentValues),
+				)
+			}
 		}
 
 		chest.AddDeck(typeOfContainer.Field(i).Name, deck)

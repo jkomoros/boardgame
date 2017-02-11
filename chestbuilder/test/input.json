@@ -8,5 +8,19 @@
 			"Suit": 1,
 			"Name": "Jane"
 		}
+	],
+	"Tokens" : [
+		{
+			"Repeat" : 3,
+			"Component" : {
+				"Color" : 4
+			}
+		},
+		{
+			"Repeat" : 2,
+			"Component" : {
+				"Color" : 2
+			}
+		}
 	]
 }
