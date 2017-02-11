@@ -6,7 +6,8 @@ import (
 	"strings"
 )
 
-//A Game represents a specific game between a collection of Players
+//A Game represents a specific game between a collection of Players. Create a
+//new one with NewGame().
 type Game struct {
 	//Name is a string that defines the type of game this is. The name should
 	//be unique but human readable. Good examples are "Tic Tac Toe",
@@ -39,7 +40,17 @@ type Game struct {
 	//TODO: an array of Player objects.
 }
 
-//TODO: Create a NewGame()
+//NewGame returns a new game. You must set a Chest and call AddMove with all
+//moves, before calling SetUp. Then the game can be used.
+func NewGame(name string, initialState State, optionalDelegate GameDelegate) *Game {
+
+	return &Game{
+		Name:         name,
+		Delegate:     optionalDelegate,
+		StateWrapper: newStarterStateWrapper(initialState),
+	}
+
+}
 
 //GameDelegate is called at various points in the game lifecycle. It is one of
 //the primary ways that a specific game controls behavior over and beyond

@@ -232,11 +232,7 @@ func NewGame() *boardgame.Game {
 		user.playerIndex = i
 	}
 
-	game := &boardgame.Game{
-		Name:         gameName,
-		StateWrapper: boardgame.NewStarterStateWrapper(starterState),
-		Delegate:     &gameDelegate{},
-	}
+	game := boardgame.NewGame(gameName, starterState, &gameDelegate{})
 
 	game.SetChest(chest)
 

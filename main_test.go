@@ -338,40 +338,34 @@ func testGame() *Game {
 
 	chest.Finish()
 
-	game := &Game{
-		Name:     testGameName,
-		Delegate: &testGameDelegate{},
-		StateWrapper: &StateWrapper{
-			Version: 0,
-			Schema:  0,
-			State: &testState{
-				game: &testGameState{
-					CurrentPlayer: 0,
-					DrawDeck:      NewGrowableStack(deck, 0),
-				},
-				users: []*testUserState{
-					&testUserState{
-						playerIndex:       0,
-						Score:             0,
-						MovesLeftThisTurn: 1,
-						IsFoo:             false,
-					},
-					&testUserState{
-						playerIndex:       1,
-						Score:             0,
-						MovesLeftThisTurn: 0,
-						IsFoo:             false,
-					},
-					&testUserState{
-						playerIndex:       2,
-						Score:             0,
-						MovesLeftThisTurn: 0,
-						IsFoo:             true,
-					},
-				},
+	initialState := &testState{
+		game: &testGameState{
+			CurrentPlayer: 0,
+			DrawDeck:      NewGrowableStack(deck, 0),
+		},
+		users: []*testUserState{
+			&testUserState{
+				playerIndex:       0,
+				Score:             0,
+				MovesLeftThisTurn: 1,
+				IsFoo:             false,
+			},
+			&testUserState{
+				playerIndex:       1,
+				Score:             0,
+				MovesLeftThisTurn: 0,
+				IsFoo:             false,
+			},
+			&testUserState{
+				playerIndex:       2,
+				Score:             0,
+				MovesLeftThisTurn: 0,
+				IsFoo:             true,
 			},
 		},
 	}
+
+	game := NewGame(testGameName, initialState, &testGameDelegate{})
 
 	game.AddMove(&testMove{})
 	game.AddMove(&testMoveAdvanceCurentPlayer{})

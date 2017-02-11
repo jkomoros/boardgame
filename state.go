@@ -18,8 +18,8 @@ type StateWrapper struct {
 	State  State
 }
 
-//NewStarterState creates a new state initialized for the first move.
-func NewStarterStateWrapper(state State) *StateWrapper {
+//newStarterState creates a new state initialized for the first move.
+func newStarterStateWrapper(state State) *StateWrapper {
 	return &StateWrapper{
 		Version: 0,
 		Schema:  0,
