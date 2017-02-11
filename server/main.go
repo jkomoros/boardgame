@@ -13,6 +13,9 @@ import (
 
 type Server struct {
 	game *boardgame.Game
+	//We store the last error so that next time viewHandler is called we can
+	//display it. Yes, this is a hack.
+	lastErrorMessage string
 }
 
 type MoveForm struct {
@@ -47,27 +50,29 @@ const (
 
 func (s *Server) viewHandler(c *gin.Context) {
 
-	var errorMessage string
-
-	if c.Request.Method == http.MethodPost {
-
-		if err := s.makeMove(c); err != nil {
-			errorMessage = err.Error()
-		}
-
-	}
-
 	args := gin.H{
 		"StateWrapper": string(boardgame.Serialize(s.game.StateWrapper.JSON())),
 		"Diagram":      s.game.StateWrapper.State.Diagram(),
 		"Chest":        s.renderChest(),
 		"Forms":        s.generateForms(),
 		"Game":         s.game,
-		"Error":        errorMessage,
+		"Error":        s.lastErrorMessage,
 	}
+
+	s.lastErrorMessage = ""
 
 	c.HTML(http.StatusOK, "main.tmpl", args)
 
+}
+
+func (s *Server) moveHandler(c *gin.Context) {
+	if c.Request.Method != http.MethodPost {
+		panic("This can only be called as a post.")
+	}
+	if err := s.makeMove(c); err != nil {
+		s.lastErrorMessage = err.Error()
+	}
+	c.Redirect(http.StatusFound, "/")
 }
 
 func (s *Server) makeMove(c *gin.Context) error {
@@ -221,7 +226,7 @@ func (s *Server) Start() {
 	router.Static("/static", os.ExpandEnv(pathToLib)+"static/")
 
 	router.GET("/", s.viewHandler)
-	router.POST("/", s.viewHandler)
+	router.POST("/move", s.moveHandler)
 
 	router.Run(":8080")
 
