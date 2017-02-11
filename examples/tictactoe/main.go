@@ -19,10 +19,10 @@ type gameDelegate struct {
 	boardgame.DefaultGameDelegate
 }
 
-func (g *gameDelegate) DistributeComponentToStarterStack(payload boardgame.StatePayload, c *boardgame.Component) error {
+func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c *boardgame.Component) error {
 	component := c.Values.(*playerToken)
 
-	p := payload.(*statePayload)
+	p := state.(*mainState)
 
 	switch component.Value {
 	case X:
@@ -33,9 +33,9 @@ func (g *gameDelegate) DistributeComponentToStarterStack(payload boardgame.State
 	return nil
 }
 
-func (g *gameDelegate) CheckGameFinished(state boardgame.StatePayload) (finished bool, winners []int) {
+func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, winners []int) {
 
-	s := state.(*statePayload)
+	s := state.(*mainState)
 
 	tokens := make([]string, DIM*DIM)
 
@@ -158,7 +158,7 @@ func checkRunWon(runState []string) string {
 	return targetToken
 }
 
-func (g *gameDelegate) ProposeFixUpMove(state boardgame.StatePayload) boardgame.Move {
+func (g *gameDelegate) ProposeFixUpMove(state boardgame.State) boardgame.Move {
 
 	//TODO: when there's a concept of FixUp moves, the default delegate will
 	//probably do what I want.
@@ -210,7 +210,7 @@ func NewGame() *boardgame.Game {
 
 	chest.AddDeck("tokens", tokens)
 
-	starterPayload := &statePayload{
+	starterState := &mainState{
 		game: &gameState{
 			Slots: boardgame.NewSizedStack(tokens, DIM*DIM),
 		},
@@ -228,14 +228,14 @@ func NewGame() *boardgame.Game {
 		},
 	}
 
-	for i, user := range starterPayload.users {
+	for i, user := range starterState.users {
 		user.playerIndex = i
 	}
 
 	game := &boardgame.Game{
-		Name:     gameName,
-		State:    boardgame.NewStarterState(starterPayload),
-		Delegate: &gameDelegate{},
+		Name:         gameName,
+		StateWrapper: boardgame.NewStarterStateWrapper(starterState),
+		Delegate:     &gameDelegate{},
 	}
 
 	game.SetChest(chest)

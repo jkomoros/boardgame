@@ -9,13 +9,13 @@ type testGameDelegate struct {
 	game *Game
 }
 
-func (t *testGameDelegate) DistributeComponentToStarterStack(payload StatePayload, c *Component) error {
-	p := payload.(*testStatePayload)
+func (t *testGameDelegate) DistributeComponentToStarterStack(state State, c *Component) error {
+	p := state.(*testState)
 	return p.game.DrawDeck.InsertFront(c)
 }
 
-func (t *testGameDelegate) CheckGameFinished(state StatePayload) (bool, []int) {
-	p := state.(*testStatePayload)
+func (t *testGameDelegate) CheckGameFinished(state State) (bool, []int) {
+	p := state.(*testState)
 
 	var winners []int
 
@@ -35,7 +35,7 @@ func (t *testGameDelegate) CheckGameFinished(state StatePayload) (bool, []int) {
 	return false, nil
 }
 
-func (t *testGameDelegate) ProposeFixUpMove(state StatePayload) Move {
+func (t *testGameDelegate) ProposeFixUpMove(state State) Move {
 	move := &testMoveAdvanceCurentPlayer{}
 
 	if err := move.Legal(state); err == nil {
@@ -117,7 +117,7 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("MoveByName didn't return a valid move when provided with a lowercase name after calling SetUp.")
 	}
 
-	p := game.State.Payload.(*testStatePayload)
+	p := game.StateWrapper.State.(*testState)
 
 	deck := game.Chest().Deck("test").Components()
 
@@ -178,7 +178,7 @@ func TestApplyMove(t *testing.T) {
 	//FixUp move, this is also testing that not just the main move, but also
 	//the fixup move was made.
 
-	json := game.State.JSON()
+	json := game.StateWrapper.JSON()
 	golden := goldenJSON("basic_state_after_move.json", t)
 
 	compareJSONObjects(json, golden, "Basic state after test move", t)

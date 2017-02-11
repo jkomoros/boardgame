@@ -14,8 +14,8 @@ type MovePlaceToken struct {
 	TargetPlayerIndex int
 }
 
-func (m *MovePlaceToken) Legal(payload boardgame.StatePayload) error {
-	p := payload.(*statePayload)
+func (m *MovePlaceToken) Legal(payload boardgame.State) error {
+	p := payload.(*mainState)
 
 	if p.game.CurrentPlayer != m.TargetPlayerIndex {
 		return errors.New("The specified player is not the current player.")
@@ -33,11 +33,11 @@ func (m *MovePlaceToken) Legal(payload boardgame.StatePayload) error {
 
 }
 
-func (m *MovePlaceToken) Apply(payload boardgame.StatePayload) boardgame.StatePayload {
+func (m *MovePlaceToken) Apply(payload boardgame.State) boardgame.State {
 
 	result := payload.Copy()
 
-	p := result.(*statePayload)
+	p := result.(*mainState)
 
 	u := p.users[m.TargetPlayerIndex]
 
@@ -50,8 +50,8 @@ func (m *MovePlaceToken) Apply(payload boardgame.StatePayload) boardgame.StatePa
 	return result
 }
 
-func (m *MovePlaceToken) DefaultsForState(state boardgame.StatePayload) {
-	s := state.(*statePayload)
+func (m *MovePlaceToken) DefaultsForState(state boardgame.State) {
+	s := state.(*mainState)
 
 	m.TargetPlayerIndex = s.game.CurrentPlayer
 
@@ -97,8 +97,8 @@ func (m *MovePlaceToken) JSON() boardgame.JSONObject {
 
 type MoveAdvancePlayer struct{}
 
-func (m *MoveAdvancePlayer) Legal(payload boardgame.StatePayload) error {
-	p := payload.(*statePayload)
+func (m *MoveAdvancePlayer) Legal(payload boardgame.State) error {
+	p := payload.(*mainState)
 
 	user := p.users[p.game.CurrentPlayer]
 
@@ -109,10 +109,10 @@ func (m *MoveAdvancePlayer) Legal(payload boardgame.StatePayload) error {
 	return nil
 }
 
-func (m *MoveAdvancePlayer) Apply(payload boardgame.StatePayload) boardgame.StatePayload {
+func (m *MoveAdvancePlayer) Apply(payload boardgame.State) boardgame.State {
 	result := payload.Copy()
 
-	p := result.(*statePayload)
+	p := result.(*mainState)
 
 	p.game.CurrentPlayer++
 
@@ -128,7 +128,7 @@ func (m *MoveAdvancePlayer) Apply(payload boardgame.StatePayload) boardgame.Stat
 
 }
 
-func (m *MoveAdvancePlayer) DefaultsForState(state boardgame.StatePayload) {
+func (m *MoveAdvancePlayer) DefaultsForState(state boardgame.State) {
 	//Nothing to set.
 }
 

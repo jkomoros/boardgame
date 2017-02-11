@@ -38,16 +38,16 @@ func componentsEqual(one *Component, two *Component) bool {
 	return true
 }
 
-type testStatePayload struct {
+type testState struct {
 	game  *testGameState
 	users []*testUserState
 }
 
-func (t *testStatePayload) Game() GameState {
+func (t *testState) Game() GameState {
 	return t.game
 }
 
-func (t *testStatePayload) Users() []UserState {
+func (t *testState) Users() []UserState {
 	result := make([]UserState, len(t.users))
 	for i, user := range t.users {
 		result[i] = user
@@ -55,13 +55,13 @@ func (t *testStatePayload) Users() []UserState {
 	return result
 }
 
-func (t *testStatePayload) Diagram() string {
+func (t *testState) Diagram() string {
 	return "IMPLEMENT ME"
 }
 
-func (t *testStatePayload) Copy() StatePayload {
+func (t *testState) Copy() State {
 
-	result := &testStatePayload{}
+	result := &testState{}
 
 	if t.game != nil {
 		result.game = t.game.Copy().(*testGameState)
@@ -80,7 +80,7 @@ func (t *testStatePayload) Copy() StatePayload {
 	return result
 }
 
-func (t *testStatePayload) JSON() JSONObject {
+func (t *testState) JSON() JSONObject {
 
 	usersArray := make([]JSONObject, len(t.users))
 
@@ -175,7 +175,7 @@ func (t *testMoveAdvanceCurentPlayer) Copy() Move {
 	return &result
 }
 
-func (t *testMoveAdvanceCurentPlayer) DefaultsForState(state StatePayload) {
+func (t *testMoveAdvanceCurentPlayer) DefaultsForState(state State) {
 	//No defaults to set
 }
 
@@ -187,8 +187,8 @@ func (t *testMoveAdvanceCurentPlayer) Description() string {
 	return "Advances to the next player when the current player has no more legal moves they can make this turn."
 }
 
-func (t *testMoveAdvanceCurentPlayer) Legal(state StatePayload) error {
-	payload := state.(*testStatePayload)
+func (t *testMoveAdvanceCurentPlayer) Legal(state State) error {
+	payload := state.(*testState)
 
 	user := payload.users[payload.game.CurrentPlayer]
 
@@ -199,10 +199,10 @@ func (t *testMoveAdvanceCurentPlayer) Legal(state StatePayload) error {
 	return nil
 }
 
-func (t *testMoveAdvanceCurentPlayer) Apply(state StatePayload) StatePayload {
+func (t *testMoveAdvanceCurentPlayer) Apply(state State) State {
 	result := state.Copy()
 
-	payload := result.(*testStatePayload)
+	payload := result.(*testState)
 
 	//Make sure we're leaving it at 0
 	payload.users[payload.game.CurrentPlayer].MovesLeftThisTurn = 0
@@ -255,16 +255,16 @@ func (t *testMove) Description() string {
 	return "Advances the score of the current player by the specified amount."
 }
 
-func (t *testMove) DefaultsForState(state StatePayload) {
-	s := state.(*testStatePayload)
+func (t *testMove) DefaultsForState(state State) {
+	s := state.(*testState)
 
 	t.TargetPlayerIndex = s.game.CurrentPlayer
 	t.ScoreIncrement = 3
 }
 
-func (t *testMove) Legal(state StatePayload) error {
+func (t *testMove) Legal(state State) error {
 
-	payload := state.(*testStatePayload)
+	payload := state.(*testState)
 
 	if payload.game.CurrentPlayer != t.TargetPlayerIndex {
 		return errors.New("The current player is not the same as the target player")
@@ -274,10 +274,10 @@ func (t *testMove) Legal(state StatePayload) error {
 
 }
 
-func (t *testMove) Apply(state StatePayload) StatePayload {
+func (t *testMove) Apply(state State) State {
 	result := state.Copy()
 
-	payload := result.(*testStatePayload)
+	payload := result.(*testState)
 
 	payload.users[payload.game.CurrentPlayer].Score += t.ScoreIncrement
 
@@ -343,10 +343,10 @@ func testGame() *Game {
 	game := &Game{
 		Name:     testGameName,
 		Delegate: &testGameDelegate{},
-		State: &State{
+		StateWrapper: &StateWrapper{
 			Version: 0,
 			Schema:  0,
-			Payload: &testStatePayload{
+			State: &testState{
 				game: &testGameState{
 					CurrentPlayer: 0,
 					DrawDeck:      NewGrowableStack(deck, 0),

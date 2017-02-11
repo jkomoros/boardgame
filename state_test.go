@@ -11,7 +11,7 @@ func TestState(t *testing.T) {
 
 	game := testGame()
 
-	state := game.State
+	state := game.StateWrapper
 
 	if state == nil {
 		t.Error("State could not be created")
@@ -32,9 +32,9 @@ func TestState(t *testing.T) {
 		t.Error("Modifying a copy changed the original")
 	}
 
-	stateCopy.Payload.(*testStatePayload).users[0].MovesLeftThisTurn = 10
+	stateCopy.State.(*testState).users[0].MovesLeftThisTurn = 10
 
-	if state.Payload.(*testStatePayload).users[0].MovesLeftThisTurn == 10 {
+	if state.State.(*testState).users[0].MovesLeftThisTurn == 10 {
 		t.Error("Modifying a copy change the original")
 	}
 

@@ -7,23 +7,23 @@ import (
 	"unicode"
 )
 
-type State struct {
+type StateWrapper struct {
 	//The version number of the state. Increments by one each time a Move is
 	//applied.
 	Version int
 	//The schema version that this state object uses. This number will not
 	//change often, but is useful to detect if the state was saved back when a
 	//diferent schema was in use and needs to be migrated.
-	Schema  int
-	Payload StatePayload
+	Schema int
+	State  State
 }
 
 //NewStarterState creates a new state initialized for the first move.
-func NewStarterState(payload StatePayload) *State {
-	return &State{
+func NewStarterStateWrapper(state State) *StateWrapper {
+	return &StateWrapper{
 		Version: 0,
 		Schema:  0,
-		Payload: payload,
+		State:   state,
 	}
 }
 
@@ -31,13 +31,13 @@ func NewStarterState(payload StatePayload) *State {
 //client games can cast it quickly to the concrete struct for their game, so
 //that they can get to a type-checked world with minimal fuss inside of
 //Move.Legal and move.Apply.
-type StatePayload interface {
+type State interface {
 	//Game includes the non-user state for the game.
 	Game() GameState
 	//Users contains a UserState object for each user in the game.
 	Users() []UserState
 	//Copy returns a copy of the Payload.
-	Copy() StatePayload
+	Copy() State
 	//Diagram should return a basic debug rendering of state in multi-line
 	//ascii art. Useful for debugging.
 	Diagram() string
@@ -94,23 +94,23 @@ type GameState interface {
 
 //Copy prepares another version of State that is set exactly the same. This is
 //done before a modification is made.
-func (s *State) Copy() *State {
+func (s *StateWrapper) Copy() *StateWrapper {
 	//TODO: test this
-	return &State{
+	return &StateWrapper{
 		Version: s.Version,
 		Schema:  s.Schema,
-		Payload: s.Payload.Copy(),
+		State:   s.State.Copy(),
 	}
 
 }
 
 //JSON returns the JSONObject representing the State's full state.
-func (s *State) JSON() JSONObject {
+func (s *StateWrapper) JSON() JSONObject {
 
 	return JSONMap{
 		"Version": s.Version,
 		"Schema":  s.Schema,
-		"Payload": s.Payload.JSON(),
+		"State":   s.State.JSON(),
 	}
 
 }

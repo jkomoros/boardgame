@@ -1,7 +1,7 @@
 {
     "Version": 0,
     "Schema": 0,
-    "Payload": {
+    "State": {
         "Game": {
             "CurrentPlayer": 0,
             "DrawDeck": {

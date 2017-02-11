@@ -74,12 +74,12 @@ func (u *userState) PlayerIndex() int {
 	return u.playerIndex
 }
 
-type statePayload struct {
+type mainState struct {
 	game  *gameState
 	users []*userState
 }
 
-func (s *statePayload) userFromTokenValue(value string) *userState {
+func (s *mainState) userFromTokenValue(value string) *userState {
 	for _, user := range s.users {
 		if user.TokenValue == value {
 			return user
@@ -88,7 +88,7 @@ func (s *statePayload) userFromTokenValue(value string) *userState {
 	return nil
 }
 
-func (s *statePayload) Diagram() string {
+func (s *mainState) Diagram() string {
 
 	//Get an array of *playerTokenValues corresponding to tokens currently in
 	//the stack.
@@ -119,11 +119,11 @@ func (s *statePayload) Diagram() string {
 
 }
 
-func (s *statePayload) Game() boardgame.GameState {
+func (s *mainState) Game() boardgame.GameState {
 	return s.game
 }
 
-func (s *statePayload) Users() []boardgame.UserState {
+func (s *mainState) Users() []boardgame.UserState {
 	array := make([]boardgame.UserState, len(s.users))
 
 	for i := 0; i < len(s.users); i++ {
@@ -133,7 +133,7 @@ func (s *statePayload) Users() []boardgame.UserState {
 	return array
 }
 
-func (s *statePayload) JSON() boardgame.JSONObject {
+func (s *mainState) JSON() boardgame.JSONObject {
 
 	array := make([]boardgame.JSONObject, len(s.users))
 
@@ -147,14 +147,14 @@ func (s *statePayload) JSON() boardgame.JSONObject {
 	}
 }
 
-func (s *statePayload) Copy() boardgame.StatePayload {
+func (s *mainState) Copy() boardgame.State {
 	array := make([]*userState, len(s.users))
 
 	for i := 0; i < len(s.users); i++ {
 		array[i] = s.users[i].Copy().(*userState)
 	}
 
-	return &statePayload{
+	return &mainState{
 		game:  s.game.Copy().(*gameState),
 		users: array,
 	}

@@ -58,12 +58,12 @@ func (s *Server) viewHandler(c *gin.Context) {
 	}
 
 	args := gin.H{
-		"State":   string(boardgame.Serialize(s.game.State.JSON())),
-		"Diagram": s.game.State.Payload.Diagram(),
-		"Chest":   s.renderChest(),
-		"Forms":   s.generateForms(),
-		"Game":    s.game,
-		"Error":   errorMessage,
+		"StateWrapper": string(boardgame.Serialize(s.game.StateWrapper.JSON())),
+		"Diagram":      s.game.StateWrapper.State.Diagram(),
+		"Chest":        s.renderChest(),
+		"Forms":        s.generateForms(),
+		"Game":         s.game,
+		"Error":        errorMessage,
 	}
 
 	c.HTML(http.StatusOK, "main.tmpl", args)
@@ -134,7 +134,7 @@ func (s *Server) generateForms() []*MoveForm {
 
 		move := originalMove.Copy()
 
-		move.DefaultsForState(s.game.State.Payload)
+		move.DefaultsForState(s.game.StateWrapper.State)
 
 		moveItem := &MoveForm{
 			Name:        move.Name(),

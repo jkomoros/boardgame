@@ -16,7 +16,7 @@ type Game struct {
 	//Delegate is an (optional) way to override behavior at key game states.
 	Delegate GameDelegate
 	//State is the current state of the game.
-	State *State
+	StateWrapper *StateWrapper
 	//Finished is whether the came has been completed. If it is over, the
 	//Winners will be set.
 	Finished bool
@@ -54,11 +54,11 @@ type GameDelegate interface {
 	//Stack, the invariant will be met at the end of SetUp. If any errors are
 	//returned SetUp fails. Unlike after the game has been SetUp, you can
 	//modify payload directly.
-	DistributeComponentToStarterStack(payload StatePayload, c *Component) error
+	DistributeComponentToStarterStack(state State, c *Component) error
 
 	//CheckGameFinished should return true if the game is finished, and who
 	//the winners are. Called after every move is applied.
-	CheckGameFinished(state StatePayload) (finished bool, winners []int)
+	CheckGameFinished(state State) (finished bool, winners []int)
 
 	//ProposeFixUpMove is called after a move has been applied. It may return
 	//a FixUp move, which will be applied before any other moves are applied.
@@ -66,7 +66,7 @@ type GameDelegate interface {
 	//moves are useful for things like shuffling a discard deck back into a
 	//draw deck, or other moves that are necessary to get the GameState back
 	//into reasonable shape.
-	ProposeFixUpMove(state StatePayload) Move
+	ProposeFixUpMove(state State) Move
 
 	//SetGame is called during game.SetUp and passes a reference to the Game
 	//that the delegate is part of.
@@ -80,18 +80,18 @@ type DefaultGameDelegate struct {
 	Game *Game
 }
 
-func (d *DefaultGameDelegate) DistributeComponentToStarterStack(payload StatePayload, c *Component) error {
+func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state State, c *Component) error {
 	//The stub returns an error, because if this is called that means there
 	//was a component in the deck. And if we didn't store it in a stack, then
 	//we are in violation of the invariant.
 	return errors.New("DistributeComponentToStarterStack was called, but the component was not stored in a stack")
 }
 
-func (d *DefaultGameDelegate) CheckGameFinished(state StatePayload) (finished bool, winners []int) {
+func (d *DefaultGameDelegate) CheckGameFinished(state State) (finished bool, winners []int) {
 	return false, nil
 }
 
-func (d *DefaultGameDelegate) ProposeFixUpMove(state StatePayload) Move {
+func (d *DefaultGameDelegate) ProposeFixUpMove(state State) Move {
 	return nil
 }
 
@@ -121,12 +121,12 @@ func (g *Game) SetUp() error {
 	//Distribute all components to their starter locations
 
 	//We'll work on a copy of Payload, so if it fails at some point we can just drop it
-	payloadCopy := g.State.Payload.Copy()
+	stateCopy := g.StateWrapper.State.Copy()
 
 	for _, name := range g.Chest().DeckNames() {
 		deck := g.Chest().Deck(name)
 		for i, component := range deck.Components() {
-			if err := g.Delegate.DistributeComponentToStarterStack(payloadCopy, component); err != nil {
+			if err := g.Delegate.DistributeComponentToStarterStack(stateCopy, component); err != nil {
 				return errors.New("Distributing components failed for deck " + name + ":" + strconv.Itoa(i) + ":" + err.Error())
 			}
 		}
@@ -138,7 +138,7 @@ func (g *Game) SetUp() error {
 	}
 
 	//If we got to here then the payloadCopy is now the real one.
-	g.State.Payload = payloadCopy
+	g.StateWrapper.State = stateCopy
 
 	//TODO: do other set-up work, including FinishSetUp
 
@@ -217,30 +217,30 @@ func (g *Game) ApplyMove(move Move) error {
 		return errors.New("That move is not configured for this game.")
 	}
 
-	if err := move.Legal(g.State.Payload); err != nil {
+	if err := move.Legal(g.StateWrapper.State); err != nil {
 		//It's not legal, reject.
 		return errors.New("The move was not legal: " + err.Error())
 	}
 
 	//TODO: keep track of historical states
 	//TODO: persist new states to database here
-	newStatePayload := move.Apply(g.State.Payload)
+	newStatePayload := move.Apply(g.StateWrapper.State)
 
 	if newStatePayload == nil {
 		return errors.New("The move's Apply function did not return a modified state")
 	}
 
-	newState := &State{
-		Version: g.State.Version + 1,
-		Schema:  g.State.Schema,
-		Payload: newStatePayload,
+	newState := &StateWrapper{
+		Version: g.StateWrapper.Version + 1,
+		Schema:  g.StateWrapper.Schema,
+		State:   newStatePayload,
 	}
 
-	g.State = newState
+	g.StateWrapper = newState
 
 	//Check to see if that move made the game finished.
 	if g.Delegate != nil {
-		finished, winners := g.Delegate.CheckGameFinished(g.State.Payload)
+		finished, winners := g.Delegate.CheckGameFinished(g.StateWrapper.State)
 
 		if finished {
 			g.Finished = true
@@ -253,7 +253,7 @@ func (g *Game) ApplyMove(move Move) error {
 	//syncrhounously, we should just inject the move (if it exists) into the
 	//MoveQueue.
 	if g.Delegate != nil {
-		move := g.Delegate.ProposeFixUpMove(g.State.Payload)
+		move := g.Delegate.ProposeFixUpMove(g.StateWrapper.State)
 
 		if move != nil {
 			g.ApplyMove(move)
