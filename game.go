@@ -31,6 +31,12 @@ type Game struct {
 	moves       []Move
 	movesByName map[string]Move
 
+	//Proposed moves is where moves that have been proposed but have not yet been applied go.
+	proposedMoves chan *proposedMoveItem
+	//TODO: once we have things actually coming in multi-threaded, we need to
+	//ensure that FixUp moves are serviced first. That doesn't need another
+	//channel, because only applyMove can inject one.
+
 	//Initalized is set to True after SetUp is called.
 	initalized bool
 	chest      *ComponentChest
@@ -40,15 +46,28 @@ type Game struct {
 	//TODO: an array of Player objects.
 }
 
+type DelayedError chan error
+
+type proposedMoveItem struct {
+	move Move
+	//Ch is the channel we should either return an error on and then close, or
+	//send nil and close.
+	ch DelayedError
+}
+
 //NewGame returns a new game. You must set a Chest and call AddMove with all
 //moves, before calling SetUp. Then the game can be used.
 func NewGame(name string, initialState State, optionalDelegate GameDelegate) *Game {
 
-	return &Game{
+	result := &Game{
 		Name:         name,
 		Delegate:     optionalDelegate,
 		StateWrapper: newStarterStateWrapper(initialState),
+		//TODO: set the size of chan based on something more reasonable.
+		proposedMoves: make(chan *proposedMoveItem, 20),
 	}
+
+	return result
 
 }
 
@@ -111,7 +130,7 @@ func (d *DefaultGameDelegate) SetGame(game *Game) {
 }
 
 //SetUp should be called a single time after all of the member variables are
-//set correctly, including Chest. SetUp must be called before ApplyMove can be
+//set correctly, including Chest. SetUp must be called before ProposeMove can be
 //called. Even if an error is returned, the game should be in a consistent state.
 func (g *Game) SetUp() error {
 
@@ -153,9 +172,26 @@ func (g *Game) SetUp() error {
 
 	//TODO: do other set-up work, including FinishSetUp
 
+	go g.mainLoop()
+
 	g.initalized = true
 
 	return nil
+}
+
+//MainLoop should be run in a goroutine. It is what takes moves off of
+//proposedMoves and applies them. It is the only method that may call
+//applyMove.
+func (g *Game) mainLoop() {
+
+	for item := range g.proposedMoves {
+		if item == nil {
+			return
+		}
+		item.ch <- g.applyMove(item.move)
+		close(item.ch)
+	}
+
 }
 
 //AddMove adds the specified move to the game. It may only be called during
@@ -212,8 +248,28 @@ func (g *Game) SetChest(chest *ComponentChest) {
 	g.chest = chest
 }
 
-//Game applies the move to the state if it is currently legal.
-func (g *Game) ApplyMove(move Move) error {
+//ProposedMove is the way to propose a move to the game. DelayedError will
+//return an error in the future if the move was unable to be applied, or nil
+//if the move was applied successfully. Note: DelayedError won't return anything
+//until after SetUp has been called.
+func (g *Game) ProposeMove(move Move) DelayedError {
+
+	errChan := make(DelayedError, 1)
+
+	workItem := &proposedMoveItem{
+		move: move,
+		ch:   errChan,
+	}
+
+	g.proposedMoves <- workItem
+
+	return errChan
+
+}
+
+//Game applies the move to the state if it is currently legal. May only be
+//called by mainLoop. Propose moves with game.ProposeMove instead.
+func (g *Game) applyMove(move Move) error {
 
 	if !g.initalized {
 		return errors.New("The game has not been initalized.")
@@ -261,14 +317,11 @@ func (g *Game) ApplyMove(move Move) error {
 		}
 	}
 
-	//TDOO: once we have a ProposedMove queue, instead of running this
-	//syncrhounously, we should just inject the move (if it exists) into the
-	//MoveQueue.
 	if g.Delegate != nil {
 		move := g.Delegate.ProposeFixUpMove(g.StateWrapper.State)
 
 		if move != nil {
-			g.ApplyMove(move)
+			g.ProposeMove(move)
 		}
 	}
 

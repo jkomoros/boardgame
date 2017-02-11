@@ -3,6 +3,7 @@ package boardgame
 import (
 	"reflect"
 	"testing"
+	"time"
 )
 
 type testGameDelegate struct {
@@ -77,8 +78,13 @@ func TestGameSetUp(t *testing.T) {
 		ABool:             true,
 	}
 
-	if err := game.ApplyMove(move); err == nil {
-		t.Error("Game allowed a move to be made before SetUp was called")
+	delayedError := game.ProposeMove(move)
+
+	select {
+	case err := <-delayedError:
+		t.Error("We got something from a proposed move but the game hadn't even started", err)
+	case <-time.After(time.Millisecond * 5):
+		//Pass.
 	}
 
 	delegate := game.Delegate
@@ -153,7 +159,9 @@ func TestApplyMove(t *testing.T) {
 	game.moves = nil
 	game.movesByName = make(map[string]Move)
 
-	if err := game.ApplyMove(move); err == nil {
+	delayedErr := game.ProposeMove(move)
+
+	if err := <-delayedErr; err == nil {
 		t.Error("Game allowed a move that wasn't configured as part of game to be applied")
 	}
 
@@ -164,13 +172,17 @@ func TestApplyMove(t *testing.T) {
 
 	move.TargetPlayerIndex = 1
 
-	if err := game.ApplyMove(move); err == nil {
+	delayedErr = game.ProposeMove(move)
+
+	if err := <-delayedErr; err == nil {
 		t.Error("Game allowed a move to be applied where the wrong playe was current")
 	}
 
 	move.TargetPlayerIndex = 0
 
-	if err := game.ApplyMove(move); err != nil {
+	delayedErr = game.ProposeMove(move)
+
+	if err := <-delayedErr; err != nil {
 		t.Error("Game didn't allow a legal move to be made")
 	}
 
@@ -191,9 +203,14 @@ func TestApplyMove(t *testing.T) {
 		ABool:             true,
 	}
 
-	if err := game.ApplyMove(newMove); err != nil {
+	delayedErr = game.ProposeMove(newMove)
+
+	if err := <-delayedErr; err != nil {
 		t.Error("Game didn't allow a move to be made even though it was legal")
 	}
+
+	//TODO: there's got to be a better way to make sure we've applied any fix up moves.
+	<-time.After(time.Millisecond * 5)
 
 	if !game.Finished {
 		t.Error("Game didn't notice that a user had won")
@@ -210,7 +227,9 @@ func TestApplyMove(t *testing.T) {
 		ABool:             true,
 	}
 
-	if err := game.ApplyMove(moveAfterFinished); err == nil {
+	delayedErr = game.ProposeMove(moveAfterFinished)
+
+	if err := <-delayedErr; err == nil {
 		t.Error("Game allowed a move to be applied after the game was finished")
 	}
 }

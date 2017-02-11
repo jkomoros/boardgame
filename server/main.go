@@ -117,7 +117,7 @@ func (s *Server) makeMove(c *gin.Context) error {
 		}
 	}
 
-	if err := s.game.ApplyMove(moveToMake); err != nil {
+	if err := <-s.game.ProposeMove(moveToMake); err != nil {
 		return errors.New(fmt.Sprint("Applying move failed", err))
 	}
 	//TODO: it would be nice if we could show which fixup moves we made, too,
