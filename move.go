@@ -8,9 +8,10 @@ type Move interface {
 	//move is not legal
 	Legal(state State) error
 
-	//Apply applies the move to the state and returns a new state object. It
+	//Apply applies the move to the state. It is handed a copy of the state to
+	//modify. If error is non-nil it will not be applied to the game. It
 	//should not be called directly; use Game.ApplyMove.
-	Apply(state State) State
+	Apply(state State) error
 
 	//Copy creates a new move based on this one.
 	Copy() Move

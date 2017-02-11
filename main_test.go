@@ -199,10 +199,9 @@ func (t *testMoveAdvanceCurentPlayer) Legal(state State) error {
 	return nil
 }
 
-func (t *testMoveAdvanceCurentPlayer) Apply(state State) State {
-	result := state.Copy()
+func (t *testMoveAdvanceCurentPlayer) Apply(state State) error {
 
-	payload := result.(*testState)
+	payload := state.(*testState)
 
 	//Make sure we're leaving it at 0
 	payload.users[payload.game.CurrentPlayer].MovesLeftThisTurn = 0
@@ -215,7 +214,7 @@ func (t *testMoveAdvanceCurentPlayer) Apply(state State) State {
 
 	payload.users[payload.game.CurrentPlayer].MovesLeftThisTurn = 1
 
-	return result
+	return nil
 }
 
 type testMove struct {
@@ -274,16 +273,15 @@ func (t *testMove) Legal(state State) error {
 
 }
 
-func (t *testMove) Apply(state State) State {
-	result := state.Copy()
+func (t *testMove) Apply(state State) error {
 
-	payload := result.(*testState)
+	payload := state.(*testState)
 
 	payload.users[payload.game.CurrentPlayer].Score += t.ScoreIncrement
 
 	payload.users[payload.game.CurrentPlayer].MovesLeftThisTurn -= 1
 
-	return result
+	return nil
 }
 
 //testingComponentValues is designed to be run on a stack.ComponentValues() of

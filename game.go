@@ -224,19 +224,20 @@ func (g *Game) ApplyMove(move Move) error {
 
 	//TODO: keep track of historical states
 	//TODO: persist new states to database here
-	newStatePayload := move.Apply(g.StateWrapper.State)
 
-	if newStatePayload == nil {
-		return errors.New("The move's Apply function did not return a modified state")
+	newState := g.StateWrapper.State.Copy()
+
+	if err := move.Apply(newState); err != nil {
+		return errors.New("The move's apply function returned an error:" + err.Error())
 	}
 
-	newState := &StateWrapper{
+	newStateWrapper := &StateWrapper{
 		Version: g.StateWrapper.Version + 1,
 		Schema:  g.StateWrapper.Schema,
-		State:   newStatePayload,
+		State:   newState,
 	}
 
-	g.StateWrapper = newState
+	g.StateWrapper = newStateWrapper
 
 	//Check to see if that move made the game finished.
 	if g.Delegate != nil {

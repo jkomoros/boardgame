@@ -33,11 +33,9 @@ func (m *MovePlaceToken) Legal(payload boardgame.State) error {
 
 }
 
-func (m *MovePlaceToken) Apply(payload boardgame.State) boardgame.State {
+func (m *MovePlaceToken) Apply(payload boardgame.State) error {
 
-	result := payload.Copy()
-
-	p := result.(*mainState)
+	p := payload.(*mainState)
 
 	u := p.users[m.TargetPlayerIndex]
 
@@ -47,7 +45,7 @@ func (m *MovePlaceToken) Apply(payload boardgame.State) boardgame.State {
 
 	u.TokensToPlaceThisTurn--
 
-	return result
+	return nil
 }
 
 func (m *MovePlaceToken) DefaultsForState(state boardgame.State) {
@@ -109,10 +107,9 @@ func (m *MoveAdvancePlayer) Legal(payload boardgame.State) error {
 	return nil
 }
 
-func (m *MoveAdvancePlayer) Apply(payload boardgame.State) boardgame.State {
-	result := payload.Copy()
+func (m *MoveAdvancePlayer) Apply(payload boardgame.State) error {
 
-	p := result.(*mainState)
+	p := payload.(*mainState)
 
 	p.game.CurrentPlayer++
 
@@ -124,7 +121,7 @@ func (m *MoveAdvancePlayer) Apply(payload boardgame.State) boardgame.State {
 
 	newUser.TokensToPlaceThisTurn = 1
 
-	return result
+	return nil
 
 }
 
