@@ -24,8 +24,7 @@ You container should look like:
 	}
 
 Where *CardComponent and *ResourceTokenComponent both implement
-boardgame.PropertyReader (that is, they are reasonable to use as
-boardgame.Component.Values)
+boardgame.ComponentValues
 
 */
 func FromConfig(blob []byte, container interface{}) (*boardgame.ComponentChest, error) {
