@@ -48,6 +48,20 @@ func (m *MovePlaceToken) Apply(payload boardgame.StatePayload) boardgame.StatePa
 	u.TokensToPlaceThisTurn--
 
 	return result
+}
+
+func (m *MovePlaceToken) DefaultsForState(state boardgame.StatePayload) {
+	s := state.(*statePayload)
+
+	m.TargetPlayerIndex = s.game.CurrentPlayer
+
+	//Default to setting a slot that's empty.
+	for i, token := range s.game.Slots.ComponentValues() {
+		if token == nil {
+			m.Slot = i
+			break
+		}
+	}
 
 }
 
@@ -112,6 +126,10 @@ func (m *MoveAdvancePlayer) Apply(payload boardgame.StatePayload) boardgame.Stat
 
 	return result
 
+}
+
+func (m *MoveAdvancePlayer) DefaultsForState(state boardgame.StatePayload) {
+	//Nothing to set.
 }
 
 func (m *MoveAdvancePlayer) Name() string {

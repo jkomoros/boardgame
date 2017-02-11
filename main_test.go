@@ -175,6 +175,10 @@ func (t *testMoveAdvanceCurentPlayer) Copy() Move {
 	return &result
 }
 
+func (t *testMoveAdvanceCurentPlayer) DefaultsForState(state StatePayload) {
+	//No defaults to set
+}
+
 func (t *testMoveAdvanceCurentPlayer) Name() string {
 	return "Advance Current Player"
 }
@@ -249,6 +253,13 @@ func (t *testMove) Name() string {
 
 func (t *testMove) Description() string {
 	return "Advances the score of the current player by the specified amount."
+}
+
+func (t *testMove) DefaultsForState(state StatePayload) {
+	s := state.(*testStatePayload)
+
+	t.TargetPlayerIndex = s.game.CurrentPlayer
+	t.ScoreIncrement = 3
 }
 
 func (t *testMove) Legal(state StatePayload) error {

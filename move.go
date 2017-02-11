@@ -16,6 +16,12 @@ type Move interface {
 	//Copy creates a new move based on this one.
 	Copy() Move
 
+	//DefaultsForState should set this move up so that obvious defaults, given
+	//the state, are set. For example, for moves that have a
+	//TargetPlayerIndex, it makes sense to have this set that to
+	//game.CurrentPlayerIndex. Note: this will modify the move!
+	DefaultsForState(state StatePayload)
+
 	//Name should return the name for this type of move. No other Move structs
 	//in use in this game should have the same name, but it should be human-
 	//friendly. For example, "Place Token" is a reasonable name, as long as no

@@ -30,8 +30,9 @@ const (
 )
 
 type MoveFormField struct {
-	Name string
-	Type MoveFormFieldType
+	Name         string
+	Type         MoveFormFieldType
+	DefaultValue interface{}
 }
 
 func NewServer(game *boardgame.Game) *Server {
@@ -129,7 +130,12 @@ func (s *Server) generateForms() []*MoveForm {
 
 	var result []*MoveForm
 
-	for _, move := range s.game.Moves() {
+	for _, originalMove := range s.game.Moves() {
+
+		move := originalMove.Copy()
+
+		move.DefaultsForState(s.game.State.Payload)
+
 		moveItem := &MoveForm{
 			Name:        move.Name(),
 			Description: move.Description(),
@@ -161,8 +167,9 @@ func formFields(move boardgame.Move) []*MoveFormField {
 		}
 
 		result = append(result, &MoveFormField{
-			Name: fieldName,
-			Type: fieldType,
+			Name:         fieldName,
+			Type:         fieldType,
+			DefaultValue: val,
 		})
 
 	}

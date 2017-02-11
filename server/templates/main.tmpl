@@ -42,7 +42,7 @@
 						{{range .Fields}}
 							<strong>{{.Name}}</strong>
 							<!-- TODO: output different form elements based on type -->
-							<input name="{{.Name}}">
+							<input name="{{.Name}}" value="{{.DefaultValue}}">
 							<br/>
 						{{else}}
 							<em>No modifiable fields</em>
