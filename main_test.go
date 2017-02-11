@@ -322,32 +322,24 @@ func testGame() *Game {
 
 	deck := &Deck{}
 
-	deck.AddComponent(&Component{
-		Values: &testingComponent{
-			"foo",
-			1,
-		},
+	deck.AddComponent(&testingComponent{
+		"foo",
+		1,
 	})
 
-	deck.AddComponent(&Component{
-		Values: &testingComponent{
-			"bar",
-			2,
-		},
+	deck.AddComponent(&testingComponent{
+		"bar",
+		2,
 	})
 
-	deck.AddComponent(&Component{
-		Values: &testingComponent{
-			"baz",
-			5,
-		},
+	deck.AddComponent(&testingComponent{
+		"baz",
+		5,
 	})
 
-	deck.AddComponent(&Component{
-		Values: &testingComponent{
-			"slam",
-			10,
-		},
+	deck.AddComponent(&testingComponent{
+		"slam",
+		10,
 	})
 
 	chest.AddDeck("test", deck)

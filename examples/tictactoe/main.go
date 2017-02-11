@@ -170,18 +170,14 @@ func NewGame() *boardgame.Game {
 
 	//TODO: use deck.AddComponentMulti when that exists
 	for i := 0; i < numTokens; i++ {
-		tokens.AddComponent(&boardgame.Component{
-			Values: &playerToken{
-				Value: X,
-			},
+		tokens.AddComponent(&playerToken{
+			Value: X,
 		})
 	}
 
 	for i := 0; i < numTokens; i++ {
-		tokens.AddComponent(&boardgame.Component{
-			Values: &playerToken{
-				Value: O,
-			},
+		tokens.AddComponent(&playerToken{
+			Value: O,
 		})
 	}
 

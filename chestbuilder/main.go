@@ -49,10 +49,10 @@ func FromConfig(blob []byte, container interface{}) (*boardgame.ComponentChest, 
 		deck := &boardgame.Deck{}
 
 		for j := 0; j < f.Len(); j++ {
-			deck.AddComponent(&boardgame.Component{
+			deck.AddComponent(
 				//TODO: verify this works so we don't panic
-				Values: f.Index(j).Interface().(boardgame.PropertyReader),
-			})
+				f.Index(j).Interface().(boardgame.PropertyReader),
+			)
 		}
 
 		chest.AddDeck(typeOfContainer.Field(i).Name, deck)

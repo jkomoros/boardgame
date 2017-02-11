@@ -20,20 +20,16 @@ func TestComponentChest(t *testing.T) {
 
 	deckOne := &Deck{}
 
-	componentOne := &Component{
-		Values: &testingComponent{
-			"foo",
-			1,
-		},
+	componentOne := &testingComponent{
+		"foo",
+		1,
 	}
 
 	deckOne.AddComponent(componentOne)
 
-	componentTwo := &Component{
-		Values: &testingComponent{
-			"bar",
-			2,
-		},
+	componentTwo := &testingComponent{
+		"bar",
+		2,
 	}
 
 	deckOne.AddComponent(componentTwo)
@@ -44,18 +40,28 @@ func TestComponentChest(t *testing.T) {
 
 	chest.AddDeck("test", deckOne)
 
-	if !reflect.DeepEqual(deckOne.Components(), []*Component{componentOne, componentTwo}) {
+	componentValues := make([]ComponentValues, 2)
+
+	for i, component := range deckOne.Components() {
+		componentValues[i] = component.Values
+	}
+
+	if !reflect.DeepEqual(componentValues, []ComponentValues{componentOne, componentTwo}) {
 		t.Error("Deck gave back wrong items after being added to chest")
 	}
 
-	deckOne.AddComponent(&Component{
-		Values: &testingComponent{
-			"illegal",
-			-1,
-		},
+	deckOne.AddComponent(&testingComponent{
+		"illegal",
+		-1,
 	})
 
-	if !reflect.DeepEqual(deckOne.Components(), []*Component{componentOne, componentTwo}) {
+	componentValues = make([]ComponentValues, 2)
+
+	for i, component := range deckOne.Components() {
+		componentValues[i] = component.Values
+	}
+
+	if !reflect.DeepEqual(componentValues, []ComponentValues{componentOne, componentTwo}) {
 		t.Error("Deck allowed itself to be mutated after it was added to chest")
 	}
 
@@ -69,11 +75,9 @@ func TestComponentChest(t *testing.T) {
 
 	deckTwo := &Deck{}
 
-	deckTwo.AddComponent(&Component{
-		Values: &testingComponent{
-			"another",
-			3,
-		},
+	deckTwo.AddComponent(&testingComponent{
+		"another",
+		3,
 	})
 
 	chest.AddDeck("other", deckTwo)

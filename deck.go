@@ -19,14 +19,20 @@ type Deck struct {
 	components []*Component
 }
 
-//AddComponent adds the component to the next spot in the deck. If the deck
-//has already been added to a componentchest, this will do nothing.
-func (d *Deck) AddComponent(c *Component) {
+//AddComponent adds a new component with the given values to the next spot in
+//the deck. If the deck has already been added to a componentchest, this will
+//do nothing.
+func (d *Deck) AddComponent(v ComponentValues) {
 	if d.chest != nil {
 		return
 	}
-	c.Deck = d
-	c.DeckIndex = len(d.components)
+
+	c := &Component{
+		Deck:      d,
+		DeckIndex: len(d.components),
+		Values:    v,
+	}
+
 	d.components = append(d.components, c)
 }
 
