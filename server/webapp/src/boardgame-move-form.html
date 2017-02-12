@@ -1,0 +1,53 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="boardgame-move-form">
+  <template>
+    <style include="shared-styles">
+      #moves > details {
+        margin-left:1em;
+      }
+    </style>
+    <details id="moves">
+      <summary>Moves</summary>
+      <template is="dom-repeat" items="{{config}}">
+        <details id="moves-{{item.Name}}">
+          <summary>Move {{item.Name}}</summary>
+          <form method="POST" action="/api/move">
+            <p><em>{{item.Description}}</em></p>
+            <input type="hidden" name="MoveType" value="{{item.Name}}">
+            <template is="dom-repeat" items="{{item.Fields}}">
+              <strong>{{item.Name}}</strong>
+              <input name="{{item.Name}}" value="{{item.DefaultValue}}">
+              <br/>
+            </template>
+            <div hidden$="{{item.Fields}}">
+              <em>No modifiable fields</em><br/>
+            </div>
+            <input type="submit" value="Make Move">
+          </form>
+        </details>
+      </template>
+    </details>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'boardgame-move-form',
+      properties: {
+        config : Object,
+      }
+      //TODO: load up zippy state
+    });
+  </script>
+</dom-module>

@@ -10,6 +10,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../bower_components/polymer/polymer.html">
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="boardgame-move-form.html">
 <link rel="import" href="shared-styles.html">
 
 <dom-module id="boardgame-game-view">
@@ -55,29 +56,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <pre>{{data.Diagram}}</pre>
     </div>
 
-    <div class="card" hidden$="{{data.Game.Finished}}">
-      <details id="moves">
-        <summary>Moves</summary>
-        <template is="dom-repeat" items="{{data.Forms}}">
-          <details id="moves-{{item.Name}}">
-            <summary>Move {{item.Name}}</summary>
-            <form method="POST" action="/api/move">
-              <p><em>{{item.Description}}</em></p>
-              <input type="hidden" name="MoveType" value="{{item.Name}}">
-              <template is="dom-repeat" items="{{item.Fields}}">
-                <strong>{{item.Name}}</strong>
-                <input name="{{item.Name}}" value="{{item.DefaultValue}}">
-                <br/>
-              </template>
-              <div hidden$="{{item.Fields}}">
-                <em>No modifiable fields</em><br/>
-              </div>
-              <input type="submit" value="Make Move">
-            </form>
-          </details>
-        </template>
-      </details>
-    </div>
+    <template is="dom-if" if="{{!data.Game.Finished}}">
+      <div class="card">
+        <boardgame-move-form config="{{data.Forms}}"></boardgame-move-form>
+      </div>
+    </template>
     <div class="card">
       <details>
         <summary>State</summary>
