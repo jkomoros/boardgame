@@ -226,7 +226,7 @@ func (s *Server) Start() {
 
 	expandedPathToLib := os.ExpandEnv(pathToLib)
 
-	router.GET("/", s.viewHandler)
+	router.NoRoute(s.viewHandler)
 
 	router.LoadHTMLFiles(expandedPathToLib + "webapp/index.html")
 
