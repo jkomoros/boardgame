@@ -67,6 +67,22 @@ func (s *Server) gameStatusHandler(c *gin.Context) {
 	})
 }
 
+func (s *Server) listGamesHandler(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"Games": s.listGames(),
+	})
+}
+
+func (s *Server) listGames() map[string]*boardgame.Game {
+
+	result := make(map[string]*boardgame.Game)
+
+	//TODO: when there are more games return those.
+	result[s.game.ID()] = s.game
+
+	return result
+}
+
 func (s *Server) gameViewHandler(c *gin.Context) {
 
 	args := gin.H{
@@ -241,6 +257,8 @@ func (s *Server) Start() {
 	router.Static("/bower_components", expandedPathToLib+"webapp/bower_components")
 	router.Static("/src", expandedPathToLib+"webapp/src")
 	router.Static("/game-src", expandedPathToLib+"webapp/game-src")
+
+	router.GET("/api/list/game", s.listGamesHandler)
 
 	router.GET("/api/game/view", s.gameViewHandler)
 	router.POST("/api/game/move", s.moveHandler)
