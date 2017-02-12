@@ -58,7 +58,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     <template is="dom-if" if="{{!data.Game.Finished}}">
       <div class="card">
-        <boardgame-move-form config="{{data.Forms}}" gameID="[[id]]"></boardgame-move-form>
+        <boardgame-move-form config="{{data.Forms}}" game-id="[[gameId]]"></boardgame-move-form>
       </div>
     </template>
     <div class="card">
@@ -73,8 +73,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <pre>{{chest}}</pre>
       </details>
     </div>
-    <iron-ajax id="status" url="/api/game/{{id}}/status" handle-as="json" last-response="{{status}}">
-    <iron-ajax id="data" url="/api/game/{{id}}/view" handle-as="json" last-response="{{data}}">
+    <iron-ajax id="status" url="/api/game/{{gameId}}/status" handle-as="json" last-response="{{status}}">
+    <iron-ajax id="data" url="/api/game/{{gameId}}/view" handle-as="json" last-response="{{data}}">
   </template>
 
   <script>
@@ -91,14 +91,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         chest : String,
         gameState : String,
-        id: String,
+        gameId: String,
       },
       fetchData : function() {
         //If we're already fetchign data don't fire off another one.
         if (this.$.data.loading) {
           return
         }
-        if (!this.id) {
+        if (!this.gameId) {
           //The URL will be junk
           return
         }
@@ -116,7 +116,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
       fetchStatus: function() {
-        if (!this.id) {
+        if (!this.gameId) {
           //The URL will be junk
           return
         }
