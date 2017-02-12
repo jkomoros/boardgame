@@ -19,7 +19,7 @@ import (
 )
 
 func main() {
-	server.NewServer(<mygame-import-name>.NewGame()).Start()
+	server.NewServer(<mygame-import-name>.NewGame).Start()
 }
 ```
 4. Create mygame/server/webapp directory

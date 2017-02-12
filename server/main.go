@@ -11,11 +11,15 @@ import (
 )
 
 type Server struct {
-	game *boardgame.Game
+	games   map[string]*boardgame.Game
+	game    *boardgame.Game
+	factory GameFactory
 	//We store the last error so that next time viewHandler is called we can
 	//display it. Yes, this is a hack.
 	lastErrorMessage string
 }
+
+type GameFactory func() *boardgame.Game
 
 type MoveForm struct {
 	Name        string
@@ -37,9 +41,11 @@ type MoveFormField struct {
 	DefaultValue interface{}
 }
 
-func NewServer(game *boardgame.Game) *Server {
+func NewServer(factory GameFactory) *Server {
 	return &Server{
-		game: game,
+		games:   make(map[string]*boardgame.Game),
+		game:    factory(),
+		factory: factory,
 	}
 }
 
