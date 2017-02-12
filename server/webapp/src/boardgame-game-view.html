@@ -99,6 +99,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
       _handleSelected: function(newValue) {
         if (newValue) {
+          //Clear out any old data. If we kept it, we could get in a weird
+          //race.
+          this.data = null;
           this.async(this.updateData);
         }
       },
@@ -154,6 +157,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
       _dataChanged: function(newValue, oldValue) {
+        if (!newValue) {
+          //Sometimes we set null, like when we select the view.
+          return
+        }
         if (newValue.Chest) {
           this.chest = JSON.stringify(newValue.Chest, null, 2)
         }
