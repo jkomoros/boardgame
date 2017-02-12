@@ -73,6 +73,16 @@ func (s *Server) gameStatusHandler(c *gin.Context) {
 	})
 }
 
+func (s *Server) newGameHandler(c *gin.Context) {
+	game := s.factory()
+	s.games[game.ID()] = game
+
+	c.JSON(http.StatusOK, gin.H{
+		"Status": "Success",
+		"GameID": game.ID(),
+	})
+}
+
 func (s *Server) listGamesHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"Games": s.listGames(),
@@ -265,6 +275,7 @@ func (s *Server) Start() {
 	router.Static("/game-src", expandedPathToLib+"webapp/game-src")
 
 	router.GET("/api/list/game", s.listGamesHandler)
+	router.POST("/api/new/game", s.newGameHandler)
 
 	gameAPIGroup := router.Group("/api/game/:Id")
 	//TODO: use the ID for something once we have mutiple games to decide between

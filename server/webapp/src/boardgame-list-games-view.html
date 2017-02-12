@@ -10,6 +10,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../bower_components/polymer/polymer.html">
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../bower_components/iron-form/iron-form.html">
 <link rel="import" href="shared-styles.html">
 
 <dom-module id="boardgame-list-games-view">
@@ -26,6 +27,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <a href="/game/{{item.ID}}">{{item.ID}}</a>
       </div>
     </template>
+    <div class="card">
+      <form is="iron-form" method="POST" action="/api/new/game">
+        <input type="submit" value="Make new game">
+      </form>
+    </div>
     <iron-ajax auto id="games" url="/api/list/game" handle-as="json" last-response="{{data}}">
   </template>
 
