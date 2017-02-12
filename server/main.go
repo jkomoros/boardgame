@@ -54,6 +54,18 @@ func (s *Server) viewHandler(c *gin.Context) {
 
 }
 
+func (s *Server) gameStatusHandler(c *gin.Context) {
+	//This handler is designed to be a very simple status marker for the
+	//current version of the specific game. It will be hit hard by all
+	//clients, repeatedly, so it should be very fast.
+
+	//TODO: use memcache for this handler
+
+	c.JSON(http.StatusOK, gin.H{
+		"Version": s.game.StateWrapper.Version,
+	})
+}
+
 func (s *Server) gameViewHandler(c *gin.Context) {
 
 	args := gin.H{
@@ -231,6 +243,7 @@ func (s *Server) Start() {
 
 	router.GET("/api/game/view", s.gameViewHandler)
 	router.POST("/api/game/move", s.moveHandler)
+	router.GET("/api/game/status", s.gameStatusHandler)
 
 	router.Run(":8080")
 
