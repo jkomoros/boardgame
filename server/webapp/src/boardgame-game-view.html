@@ -1,0 +1,101 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="boardgame-move-form.html">
+<link rel="import" href="shared-styles.html">
+<link rel="import" href="../game-src/boardgame-render-game.html">
+
+<dom-module id="boardgame-game-view">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+
+        padding: 10px;
+      }
+
+      #moves > details {
+        margin-left:1em;
+      }
+    </style>
+    <template is="dom-if" if="{{data.error}}">
+    <div class="card">
+    <h2>Error</h2>
+    {{data.error}}
+    </div>
+    </template>
+
+    <div class="card">
+      <div hidden$="{{!data.Game.Finished}}">
+        <h1>Game over</h1>
+        <div hidden$="{{!data.Game.Winners}}">
+          <h2>Winners:
+            <template is="dom-repeat" items="{{data.Game.Winners}}">
+            {{item}}
+            </template>
+          </h2>
+        </div>
+        <div hidden$="{{data.Game.Winners}}">
+          <h3>It's a draw!</h3>
+        </div>
+        </div>
+        <div hidden$="{{data.Game.Finished}}">
+          <h3>Playing</h3>
+      </div>
+    </div>
+    <div class="card">
+      <boardgame-render-game state="{{data.Game.StateWrapper.State}}" diagram="{{data.Diagram}}"></boardgame-render-game>
+    </div>
+
+    <template is="dom-if" if="{{!data.Game.Finished}}">
+      <div class="card">
+        <boardgame-move-form config="{{data.Forms}}"></boardgame-move-form>
+      </div>
+    </template>
+    <div class="card">
+      <details>
+        <summary>State</summary>
+        <pre>{{gameState}}</pre>
+      </details>
+    </div>
+    <div class="card">
+      <details>
+        <summary>Chest</summary>
+        <pre>{{chest}}</pre>
+      </details>
+    </div>
+    <iron-ajax auto url="/api/view" handle-as="json" last-response="{{data}}">
+  </template>
+
+  <script>
+    Polymer({
+      is: 'boardgame-game-view',
+      properties: {
+        data: {
+          type: Object,
+          observer: '_dataChanged',
+        },
+        chest : String,
+        gameState : String,
+      },
+      _dataChanged: function(newValue, oldValue) {
+        if (newValue.Chest) {
+          this.chest = JSON.stringify(newValue.Chest, null, 2)
+        }
+        if (newValue.Game && newValue.Game.StateWrapper) {
+          this.gameState = JSON.stringify(newValue.Game.StateWrapper, null, 2)
+        }
+
+      }
+    });
+  </script>
+</dom-module>

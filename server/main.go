@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -51,21 +50,23 @@ const (
 
 func (s *Server) viewHandler(c *gin.Context) {
 
-	json, _ := boardgame.DefaultMarshalJSON(s.game.StateWrapper)
+	c.HTML(http.StatusOK, "index.html", nil)
+
+}
+
+func (s *Server) gameViewHandler(c *gin.Context) {
 
 	args := gin.H{
-		"StateWrapper": string(json),
-		"Diagram":      s.game.StateWrapper.State.Diagram(),
-		"Chest":        s.renderChest(),
-		"Forms":        s.generateForms(),
-		"Game":         s.game,
-		"Error":        s.lastErrorMessage,
+		"Diagram": s.game.StateWrapper.State.Diagram(),
+		"Chest":   s.renderChest(),
+		"Forms":   s.generateForms(),
+		"Game":    s.game,
+		"Error":   s.lastErrorMessage,
 	}
 
 	s.lastErrorMessage = ""
 
-	c.HTML(http.StatusOK, "main.tmpl", args)
-
+	c.JSON(http.StatusOK, args)
 }
 
 func (s *Server) moveHandler(c *gin.Context) {
@@ -186,7 +187,7 @@ func formFields(move boardgame.Move) []*MoveFormField {
 	return result
 }
 
-func (s *Server) renderChest() string {
+func (s *Server) renderChest() map[string][]interface{} {
 	//Substantially copied from cli.renderChest().
 
 	deck := make(map[string][]interface{})
@@ -210,13 +211,7 @@ func (s *Server) renderChest() string {
 		deck[name] = values
 	}
 
-	json, err := json.MarshalIndent(deck, "", "  ")
-
-	if err != nil {
-		panic(err)
-	}
-
-	return string(json)
+	return deck
 }
 
 //Start is where you start the server, and it never returns until it's time to shut down.
@@ -224,12 +219,18 @@ func (s *Server) Start() {
 
 	router := gin.Default()
 
-	router.LoadHTMLGlob(os.ExpandEnv(pathToLib) + "templates/*")
+	expandedPathToLib := os.ExpandEnv(pathToLib)
 
-	router.Static("/static", os.ExpandEnv(pathToLib)+"static/")
+	router.NoRoute(s.viewHandler)
 
-	router.GET("/", s.viewHandler)
-	router.POST("/move", s.moveHandler)
+	router.LoadHTMLFiles(expandedPathToLib + "webapp/index.html")
+
+	router.Static("/bower_components", expandedPathToLib+"webapp/bower_components")
+	router.Static("/src", expandedPathToLib+"webapp/src")
+	router.Static("/game-src", expandedPathToLib+"webapp/game-src")
+
+	router.GET("/api/view", s.gameViewHandler)
+	router.POST("/api/move", s.moveHandler)
 
 	router.Run(":8080")
 
