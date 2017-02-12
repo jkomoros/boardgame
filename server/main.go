@@ -67,12 +67,12 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 	id := c.Param("id")
 
-	if id == "" {
+	game := s.games[id]
+
+	if game == nil {
 		log.Println("Couldn't find game with id", id)
 		return
 	}
-
-	game := s.games[id]
 
 	c.Set("game", game)
 
@@ -136,9 +136,9 @@ func (s *Server) listGames() []*boardgame.Game {
 
 func (s *Server) gameViewHandler(c *gin.Context) {
 
-	obj, _ := c.Get("game")
+	obj, ok := c.Get("game")
 
-	if obj == nil {
+	if !ok {
 		c.JSON(http.StatusOK, gin.H{
 			//TODO: handle this kind of rendering somewhere central
 			"Status": "Failure",
