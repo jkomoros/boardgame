@@ -51,11 +51,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <pre>{{data.Diagram}}</pre>
       <details>
         <summary>State</summary>
-        <pre>{{data.Game.StateWrapper}}</pre>
+        <pre>{{gameState}}</pre>
       </details>
       <details>
         <summary>Chest</summary>
-        <pre>{{data.Chest}}</pre>
+        <pre>{{chest}}</pre>
       </details>
     </div>
     <iron-ajax auto url="/api/view" handle-as="json" last-response="{{data}}">
@@ -64,6 +64,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <script>
     Polymer({
       is: 'boardgame-game-view',
+      properties: {
+        data: Object,
+        chest : String,
+        gameState : String,
+      },
+      observers: [
+        'updateChest(data.Chest)',
+        'updateGameState(data.Game.StateWrapper)'
+      ],
+      updateChest: function(chestData) {
+        console.log(chestData)
+        this.chest = JSON.stringify(chestData, null, 2)
+      },
+      updateGameState: function(stateData) {
+        this.gameState = JSON.stringify(stateData, null, 2)
+      }
     });
   </script>
 </dom-module>
