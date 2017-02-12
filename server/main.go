@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/jkomoros/boardgame"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -12,7 +13,6 @@ import (
 
 type Server struct {
 	games   map[string]*boardgame.Game
-	game    *boardgame.Game
 	factory GameFactory
 	//We store the last error so that next time viewHandler is called we can
 	//display it. Yes, this is a hack.
@@ -43,17 +43,10 @@ type MoveFormField struct {
 
 func NewServer(factory GameFactory) *Server {
 
-	game := factory()
-
-	result := &Server{
+	return &Server{
 		games:   make(map[string]*boardgame.Game),
-		game:    game,
 		factory: factory,
 	}
-
-	result.games[game.ID()] = game
-
-	return result
 
 }
 
@@ -69,6 +62,22 @@ func (s *Server) viewHandler(c *gin.Context) {
 
 }
 
+//gameAPISetup fetches the game configured in the URL and puts it in context.
+func (s *Server) gameAPISetup(c *gin.Context) {
+
+	id := c.Param("id")
+
+	if id == "" {
+		log.Println("Couldn't find game with id", id)
+		return
+	}
+
+	game := s.games[id]
+
+	c.Set("game", game)
+
+}
+
 func (s *Server) gameStatusHandler(c *gin.Context) {
 	//This handler is designed to be a very simple status marker for the
 	//current version of the specific game. It will be hit hard by all
@@ -76,8 +85,22 @@ func (s *Server) gameStatusHandler(c *gin.Context) {
 
 	//TODO: use memcache for this handler
 
+	obj, _ := c.Get("game")
+
+	if obj == nil {
+		c.JSON(http.StatusOK, gin.H{
+			//TODO: handle this kind of rendering somewhere central
+			"Status": "Failure",
+			"Error":  "Not Found",
+		})
+		return
+	}
+
+	game := obj.(*boardgame.Game)
+
 	c.JSON(http.StatusOK, gin.H{
-		"Version": s.game.StateWrapper.Version,
+		"Status":  "Success",
+		"Version": game.StateWrapper.Version,
 	})
 }
 
@@ -93,7 +116,8 @@ func (s *Server) newGameHandler(c *gin.Context) {
 
 func (s *Server) listGamesHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"Games": s.listGames(),
+		"Status": "Success",
+		"Games":  s.listGames(),
 	})
 }
 
@@ -112,12 +136,26 @@ func (s *Server) listGames() []*boardgame.Game {
 
 func (s *Server) gameViewHandler(c *gin.Context) {
 
+	obj, _ := c.Get("game")
+
+	if obj == nil {
+		c.JSON(http.StatusOK, gin.H{
+			//TODO: handle this kind of rendering somewhere central
+			"Status": "Failure",
+			"Error":  "Not Found",
+		})
+		return
+	}
+
+	game := obj.(*boardgame.Game)
+
 	args := gin.H{
-		"Diagram": s.game.StateWrapper.State.Diagram(),
-		"Chest":   s.renderChest(),
-		"Forms":   s.generateForms(),
-		"Game":    s.game,
+		"Diagram": game.StateWrapper.State.Diagram(),
+		"Chest":   s.renderChest(game),
+		"Forms":   s.generateForms(game),
+		"Game":    game,
 		"Error":   s.lastErrorMessage,
+		"Status":  "Success",
 	}
 
 	s.lastErrorMessage = ""
@@ -129,21 +167,39 @@ func (s *Server) moveHandler(c *gin.Context) {
 	if c.Request.Method != http.MethodPost {
 		panic("This can only be called as a post.")
 	}
-	if err := s.makeMove(c); err != nil {
+
+	obj, _ := c.Get("game")
+
+	if obj == nil {
+		c.JSON(http.StatusOK, gin.H{
+			//TODO: handle this kind of rendering somewhere central
+			"Status": "Failure",
+			"Error":  "Not Found",
+		})
+		return
+	}
+
+	game := obj.(*boardgame.Game)
+
+	if err := s.makeMove(c, game); err != nil {
 		s.lastErrorMessage = err.Error()
 	}
-	c.Redirect(http.StatusFound, "/")
+
+	c.JSON(http.StatusOK, gin.H{
+		"Status": "Success",
+		"Error":  s.lastErrorMessage,
+	})
 }
 
-func (s *Server) makeMove(c *gin.Context) error {
+func (s *Server) makeMove(c *gin.Context, game *boardgame.Game) error {
 
 	//This method is passed a context mainly just to get info from request.
 
-	move := s.game.PlayerMoveByName(c.PostForm("MoveType"))
+	move := game.PlayerMoveByName(c.PostForm("MoveType"))
 
 	//Is it  a fixup move?
 	if move == nil {
-		move = s.game.FixUpMoveByName(c.PostForm("MoveType"))
+		move = game.FixUpMoveByName(c.PostForm("MoveType"))
 	}
 
 	if move == nil {
@@ -185,7 +241,7 @@ func (s *Server) makeMove(c *gin.Context) error {
 		}
 	}
 
-	if err := <-s.game.ProposeMove(move); err != nil {
+	if err := <-game.ProposeMove(move); err != nil {
 		return errors.New(fmt.Sprint("Applying move failed", err))
 	}
 	//TODO: it would be nice if we could show which fixup moves we made, too,
@@ -194,13 +250,13 @@ func (s *Server) makeMove(c *gin.Context) error {
 	return nil
 }
 
-func (s *Server) generateForms() []*MoveForm {
+func (s *Server) generateForms(game *boardgame.Game) []*MoveForm {
 
 	var result []*MoveForm
 
-	for _, move := range s.game.PlayerMoves() {
+	for _, move := range game.PlayerMoves() {
 
-		move.DefaultsForState(s.game.StateWrapper.State)
+		move.DefaultsForState(game.StateWrapper.State)
 
 		moveItem := &MoveForm{
 			Name:        move.Name(),
@@ -243,14 +299,14 @@ func formFields(move boardgame.Move) []*MoveFormField {
 	return result
 }
 
-func (s *Server) renderChest() map[string][]interface{} {
+func (s *Server) renderChest(game *boardgame.Game) map[string][]interface{} {
 	//Substantially copied from cli.renderChest().
 
 	deck := make(map[string][]interface{})
 
-	for _, name := range s.game.Chest().DeckNames() {
+	for _, name := range game.Chest().DeckNames() {
 
-		components := s.game.Chest().Deck(name).Components()
+		components := game.Chest().Deck(name).Components()
 
 		values := make([]interface{}, len(components))
 
@@ -288,7 +344,8 @@ func (s *Server) Start() {
 	router.GET("/api/list/game", s.listGamesHandler)
 	router.POST("/api/new/game", s.newGameHandler)
 
-	gameAPIGroup := router.Group("/api/game/:Id")
+	gameAPIGroup := router.Group("/api/game/:id")
+	gameAPIGroup.Use(s.gameAPISetup)
 	//TODO: use the ID for something once we have mutiple games to decide between
 	{
 		gameAPIGroup.GET("view", s.gameViewHandler)
