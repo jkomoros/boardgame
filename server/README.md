@@ -59,6 +59,12 @@ npm install -g bower
 npm install -g polymer-cli
 ```
 
+If you have a fresh checkout, cd into boardgame/server/webapp and run:
+
+```
+bower install
+```
+
 ## Building
 
 By default the server will serve from /src, /game-src, and /bower-components. From mygame/server/webapp, you can run
