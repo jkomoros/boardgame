@@ -21,21 +21,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         padding: 10px;
       }
     </style>
-
-<!--
-
-    {{if .Game.Finished}}
-    <h1>Game over</h1>
-      {{if .Game.Winners}}
-      <h2>Winners:{{range .Game.Winners}}{{.}}{{end}}</h2>
-      {{else}}
-      <h2>It's a draw!</h2>
-      {{end}}
-    {{else}}
-
--->
-
-
     <template is="dom-if" if="{{data.error}}">
     <div class="card">
     <h2>Error</h2>
@@ -64,6 +49,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </div>
       <h2>Diagram</h2>
       <pre>{{data.Diagram}}</pre>
+      <details>
+        <summary>State</summary>
+        <pre>{{data.Game.StateWrapper}}</pre>
+      </details>
+      <details>
+        <summary>Chest</summary>
+        <pre>{{data.Chest}}</pre>
+      </details>
     </div>
     <iron-ajax auto url="/api/view" handle-as="json" last-response="{{data}}">
   </template>
