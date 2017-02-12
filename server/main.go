@@ -260,9 +260,13 @@ func (s *Server) Start() {
 
 	router.GET("/api/list/game", s.listGamesHandler)
 
-	router.GET("/api/game/view", s.gameViewHandler)
-	router.POST("/api/game/move", s.moveHandler)
-	router.GET("/api/game/status", s.gameStatusHandler)
+	gameAPIGroup := router.Group("/api/game/:Id")
+	//TODO: use the ID for something once we have mutiple games to decide between
+	{
+		gameAPIGroup.GET("view", s.gameViewHandler)
+		gameAPIGroup.POST("move", s.moveHandler)
+		gameAPIGroup.GET("status", s.gameStatusHandler)
+	}
 
 	router.Run(":8080")
 

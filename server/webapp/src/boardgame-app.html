@@ -64,6 +64,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         pattern="/:page"
         data="{{routeData}}"
         tail="{{subroute}}"></app-route>
+    <app-route route="{{route}}"
+               pattern="/game/:ID"
+               data="{{gameData}}"
+               tail="{{gameSubRoute}}"></app-route>
 
     <app-drawer-layout fullbleed>
       <!-- Drawer content -->
@@ -90,7 +94,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             attr-for-selected="name"
             fallback-selection="view404"
             role="main">
-          <boardgame-game-view name="game"></boardgame-game-view>
+          <boardgame-game-view name="game" id="[[gameData.ID]]"></boardgame-game-view>
           <boardgame-list-games-view name="list-games"></boardgame-list-games-view>
           <boardgame-404-view name="404"></boardgame-404-view>
         </iron-pages>
