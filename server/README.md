@@ -30,6 +30,9 @@ func main() {
 * index.html
 * manifest.json
 * polymer.json
+
+_TODO: should polymer.json be a symlink?_
+
 8. Create a symlink from mygame/server/webapp/src to boardgame/server/webapp/src
 9. In mygame/server/webapp directory, run the bower update command to install bower components
 
