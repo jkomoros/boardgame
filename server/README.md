@@ -1,4 +1,9 @@
-## Starting a new game
+
+## Running the server
+
+_TODO: describe steps_
+
+## Starting a new game from scratch
 
 1. Create your mygame directory at the right place in your $GOPATH
 1. Define your moves components, etc in the directory.
