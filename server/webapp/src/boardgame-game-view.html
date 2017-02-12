@@ -73,7 +73,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <pre>{{chest}}</pre>
       </details>
     </div>
-    <iron-ajax auto url="/api/game/view" handle-as="json" last-response="{{data}}">
+    <iron-ajax id="data" url="/api/game/view" handle-as="json" last-response="{{data}}">
   </template>
 
   <script>
@@ -86,6 +86,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         chest : String,
         gameState : String,
+      },
+      fetchData : function() {
+        this.$.data.generateRequest();
+      },
+      ready: function() {
+        this.fetchData();
       },
       _dataChanged: function(newValue, oldValue) {
         if (newValue.Chest) {
