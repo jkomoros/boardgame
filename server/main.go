@@ -229,8 +229,8 @@ func (s *Server) Start() {
 	router.Static("/src", expandedPathToLib+"webapp/src")
 	router.Static("/game-src", expandedPathToLib+"webapp/game-src")
 
-	router.GET("/api/view", s.gameViewHandler)
-	router.POST("/api/move", s.moveHandler)
+	router.GET("/api/game/view", s.gameViewHandler)
+	router.POST("/api/game/move", s.moveHandler)
 
 	router.Run(":8080")
 
