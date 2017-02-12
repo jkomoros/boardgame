@@ -29,30 +29,34 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </template>
 
     <div class="card">
-      <div id="game-status">
-        <div hidden$="{{!data.Game.Finished}}">
-          <h1>Game over</h1>
-          <div hidden$="{{!data.Game.Winners}}">
+      <div hidden$="{{!data.Game.Finished}}">
+        <h1>Game over</h1>
+        <div hidden$="{{!data.Game.Winners}}">
           <h2>Winners:
-          <template is="dom-repeat" items="{{data.Game.Winners}}">
-          {{item}}
-          </template>
+            <template is="dom-repeat" items="{{data.Game.Winners}}">
+            {{item}}
+            </template>
           </h2>
-          </div>
-          <div hidden$="{{data.Game.Winners}}">
-            <h3>It's a draw!</h3>
-          </div>
+        </div>
+        <div hidden$="{{data.Game.Winners}}">
+          <h3>It's a draw!</h3>
+        </div>
         </div>
         <div hidden$="{{data.Game.Finished}}">
           <h3>Playing</h3>
-        </div>
       </div>
+    </div>
+    <div class="card">
       <h2>Diagram</h2>
       <pre>{{data.Diagram}}</pre>
+    </div>
+    <div class="card">
       <details>
         <summary>State</summary>
         <pre>{{gameState}}</pre>
       </details>
+    </div>
+    <div class="card">
       <details>
         <summary>Chest</summary>
         <pre>{{chest}}</pre>
