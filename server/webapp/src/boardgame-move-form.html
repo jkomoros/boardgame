@@ -56,6 +56,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         //Must be async because databinding hasn't created the details yet.
         this.async(this.loadZippyState);
       },
+      _storageKey : function(id) {
+        //TODO: store the game ID in here too when we have one.
+        return "move-form-zippy-" + id
+      },
       saveZippyState : function(e) {
 
 
@@ -67,10 +71,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         //the tap fires the zippy hasn't actually been opened (it will if we
         //don't preventDefault). So when we see zippy.open, it's the opposite
         //of what it will be.
+
+        storageKey = this._storageKey(zippy.id)
+
         if (zippy.open) {
-          sessionStorage.removeItem(zippy.id)
+          sessionStorage.removeItem(storageKey)
         } else {
-          sessionStorage.setItem(zippy.id, true)
+          sessionStorage.setItem(storageKey, true)
         }
       },
       loadZippyState : function() {
@@ -80,7 +87,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             continue;
           }
           //TODO: store in sessionStorage in a way that won't conflict across GAME IDs.
-          var data = sessionStorage.getItem(el.id);
+          var data = sessionStorage.getItem(this._storageKey(el.id));
 
           if (data) {
             el.open = true;
