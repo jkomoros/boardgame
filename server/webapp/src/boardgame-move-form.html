@@ -24,8 +24,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
       <h2>Moves</h2>
       <template is="dom-repeat" items="{{config}}">
-        <details id="moves-{{item.Name}}" on-tap="saveZippyState">
-          <summary>Move {{item.Name}}</summary>
+        <details id="moves-{{item.Name}}" >
+          <summary on-tap="saveZippyState">Move {{item.Name}}</summary>
           <form method="POST" action="/api/move">
             <p><em>{{item.Description}}</em></p>
             <input type="hidden" name="MoveType" value="{{item.Name}}">
@@ -58,7 +58,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
       saveZippyState : function(e) {
 
-        var zippy = e.currentTarget;
+
+        var zippy = e.currentTarget.parentElement;
         if (!zippy.id.startsWith("moves")) {
           return
         }
