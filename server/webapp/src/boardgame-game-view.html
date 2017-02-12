@@ -97,19 +97,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     Polymer({
       is: 'boardgame-game-view',
       properties: {
-        data: Object,
+        data: {
+          type: Object,
+          observer: '_dataChanged',
+        },
         chest : String,
         gameState : String,
       },
-      observers: [
-        'updateChest(data.Chest)',
-        'updateGameState(data.Game.StateWrapper)'
-      ],
-      updateChest: function(chestData) {
-        this.chest = JSON.stringify(chestData, null, 2)
-      },
-      updateGameState: function(stateData) {
-        this.gameState = JSON.stringify(stateData, null, 2)
+      _dataChanged: function(newValue, oldValue) {
+        //TODO: update zippies
+        if (newValue.Chest) {
+          this.chest = JSON.stringify(newValue.Chest, null, 2)
+        }
+        if (newValue.Game && newValue.Game.StateWrapper) {
+          this.gameState = JSON.stringify(newValue.Game.StateWrapper, null, 2)
+        }
+
       }
     });
   </script>
