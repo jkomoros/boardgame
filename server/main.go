@@ -233,7 +233,7 @@ func (s *Server) Start() {
 	router.Static("/bower_components", expandedPathToLib+"webapp/bower_components")
 	router.Static("/src", expandedPathToLib+"webapp/src")
 
-	router.POST("/move", s.moveHandler)
+	router.POST("/api/move", s.moveHandler)
 
 	router.Run(":8080")
 
