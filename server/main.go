@@ -51,20 +51,20 @@ const (
 
 func (s *Server) viewHandler(c *gin.Context) {
 
-	json, _ := boardgame.DefaultMarshalJSON(s.game.StateWrapper)
+	// json, _ := boardgame.DefaultMarshalJSON(s.game.StateWrapper)
 
-	args := gin.H{
-		"StateWrapper": string(json),
-		"Diagram":      s.game.StateWrapper.State.Diagram(),
-		"Chest":        s.renderChest(),
-		"Forms":        s.generateForms(),
-		"Game":         s.game,
-		"Error":        s.lastErrorMessage,
-	}
+	// args := gin.H{
+	// 	"StateWrapper": string(json),
+	// 	"Diagram":      s.game.StateWrapper.State.Diagram(),
+	// 	"Chest":        s.renderChest(),
+	// 	"Forms":        s.generateForms(),
+	// 	"Game":         s.game,
+	// 	"Error":        s.lastErrorMessage,
+	// }
 
-	s.lastErrorMessage = ""
+	// s.lastErrorMessage = ""
 
-	c.HTML(http.StatusOK, "main.tmpl", args)
+	c.HTML(http.StatusOK, "index.html", nil)
 
 }
 
@@ -224,11 +224,15 @@ func (s *Server) Start() {
 
 	router := gin.Default()
 
-	router.LoadHTMLGlob(os.ExpandEnv(pathToLib) + "templates/*")
-
-	router.Static("/static", os.ExpandEnv(pathToLib)+"static/")
+	expandedPathToLib := os.ExpandEnv(pathToLib)
 
 	router.GET("/", s.viewHandler)
+
+	router.LoadHTMLFiles(expandedPathToLib + "webapp/index.html")
+
+	router.Static("/bower_components", expandedPathToLib+"webapp/bower_components")
+	router.Static("/src", expandedPathToLib+"webapp/src")
+
 	router.POST("/move", s.moveHandler)
 
 	router.Run(":8080")
