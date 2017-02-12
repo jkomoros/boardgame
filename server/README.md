@@ -56,6 +56,18 @@ npm install -g bower
 npm install -g polymer-cli
 ```
 
+## Building
+
+By default the server will serve from /src, /game-src, and /bower-components. From mygame/server/webapp, you can run
+
+```
+polymer build
+```
+
+To create results in mygame/server/webapp/build/{bundled, unbundled}. 
+
+Change the RELEASE_MODE environment variable to change where we serve files from.
+
 ## Deploying
 
 _TODO: describe how to deploy_
