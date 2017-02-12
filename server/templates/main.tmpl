@@ -6,20 +6,6 @@
 	}
 	</style>
 	<body>
-		{{if .Error}}
-			<h1>Error</h1>
-			{{.Error}}
-		{{end}}
-		{{if .Game.Finished}}
-		<h1>Game over</h1>
-			{{if .Game.Winners}}
-			<h2>Winners:{{range .Game.Winners}}{{.}}{{end}}</h2>
-			{{else}}
-			<h2>It's a draw!</h2>
-			{{end}}
-		{{else}}
-		<h3>Playing</h3>
-		{{end}}
 		<h2>Rendered Output</h2>
 		<pre>{{.Diagram}}</pre>
 		<details>

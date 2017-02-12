@@ -21,6 +21,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         padding: 10px;
       }
     </style>
+
+<!--
+
+    {{if .Game.Finished}}
+    <h1>Game over</h1>
+      {{if .Game.Winners}}
+      <h2>Winners:{{range .Game.Winners}}{{.}}{{end}}</h2>
+      {{else}}
+      <h2>It's a draw!</h2>
+      {{end}}
+    {{else}}
+
+-->
+
+
     <template is="dom-if" if="{{data.error}}">
     <div class="card">
     <h2>Error</h2>
@@ -29,6 +44,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </template>
 
     <div class="card">
+      <div id="game-status">
+        <div hidden$="{{!data.Game.Finished}}">
+          <h1>Game over</h1>
+          <div hidden$="{{!data.Game.Winners}}">
+          <h2>Winners:
+          <template is="dom-repeat" items="{{data.Game.Winners}}">
+          {{item}}
+          </template>
+          </h2>
+          </div>
+          <div hidden$="{{data.Game.Winners}}">
+            <h3>It's a draw!</h3>
+          </div>
+        </div>
+        <div hidden$="{{data.Game.Finished}}">
+          <h3>Playing</h3>
+        </div>
+      </div>
       <div class="circle">1</div>
       <h1>View One</h1>
       <p>Ut labores minimum atomorum pro. Laudem tibique ut has.</p>
