@@ -73,6 +73,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <pre>{{chest}}</pre>
       </details>
     </div>
+    <iron-ajax id="status" url="/api/game/status" handle-as="json" last-response="{{status}}">
     <iron-ajax id="data" url="/api/game/view" handle-as="json" last-response="{{data}}">
   </template>
 
@@ -84,14 +85,41 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Object,
           observer: '_dataChanged',
         },
+        status:{
+          type: Object,
+          observer: '_statusChanged'
+        },
         chest : String,
         gameState : String,
       },
       fetchData : function() {
+        //If we're already fetchign data don't fire off another one.
+        if (this.$.data.loading) {
+          return
+        }
         this.$.data.generateRequest();
+      },
+      autoFetchStatus : function() {
+        this.fetchStatus();
+        //Fetch from server automatically in 500 ms, in case a move was made
+        //or the game was updated.
+        this.async(this.autoFetchStatus, 500);
+      },
+      fetchStatus: function() {
+        this.$.status.generateRequest();
       },
       ready: function() {
         this.fetchData();
+        this.autoFetchStatus();
+      },
+      _statusChanged: function(newValue, oldValue) {
+        if (!this.data) {
+          return
+        }
+        if (newValue.Version > this.data.Game.StateWrapper.Version) { 
+          //We're out of date! Fetch new data!
+          this.fetchData();
+        }
       },
       _dataChanged: function(newValue, oldValue) {
         if (newValue.Chest) {
