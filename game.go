@@ -3,6 +3,7 @@ package boardgame
 import (
 	"encoding/json"
 	"errors"
+	"math/rand"
 	"strconv"
 	"strings"
 )
@@ -41,6 +42,9 @@ type Game struct {
 	playerMovesByName map[string]Move
 	fixUpMovesByName  map[string]Move
 
+	//A unique ID provided to this game when it is created.
+	id string
+
 	//Proposed moves is where moves that have been proposed but have not yet been applied go.
 	proposedMoves chan *proposedMoveItem
 
@@ -53,6 +57,8 @@ type Game struct {
 	//TODO: an array of Player objects.
 }
 
+const gameIDLength = 16
+
 type DelayedError chan error
 
 type proposedMoveItem struct {
@@ -60,6 +66,19 @@ type proposedMoveItem struct {
 	//Ch is the channel we should either return an error on and then close, or
 	//send nil and close.
 	ch DelayedError
+}
+
+const randomStringChars = "ABCDEF0123456789"
+
+//randomString returns a random string of the given length.
+func randomString(length int) string {
+	var result = ""
+
+	for len(result) < length {
+		result += string(randomStringChars[rand.Intn(len(randomStringChars))])
+	}
+
+	return result
 }
 
 //NewGame returns a new game. You must set a Chest and call AddMove with all
@@ -72,6 +91,7 @@ func NewGame(name string, initialState State, optionalDelegate GameDelegate) *Ga
 		StateWrapper: newStarterStateWrapper(initialState),
 		//TODO: set the size of chan based on something more reasonable.
 		proposedMoves: make(chan *proposedMoveItem, 20),
+		id:            randomString(gameIDLength),
 	}
 
 	return result
@@ -155,9 +175,14 @@ func (g *Game) MarshalJSON() ([]byte, error) {
 		"Finished":     g.Finished,
 		"Winners":      g.Winners,
 		"StateWrapper": g.StateWrapper,
+		"ID":           g.ID(),
 	}
 
 	return json.Marshal(result)
+}
+
+func (g *Game) ID() string {
+	return g.id
 }
 
 //SetUp should be called a single time after all of the member variables are
