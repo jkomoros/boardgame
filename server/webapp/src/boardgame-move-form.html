@@ -17,11 +17,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       #moves > details {
         margin-left:1em;
       }
+      h2 {
+        margin-top:0;
+        margin-bottom:0;
+      }
     </style>
-    <details id="moves">
-      <summary>Moves</summary>
+      <h2>Moves</h2>
       <template is="dom-repeat" items="{{config}}">
-        <details id="moves-{{item.Name}}">
+        <details id="moves-{{item.Name}}" on-tap="saveZippyState">
           <summary>Move {{item.Name}}</summary>
           <form method="POST" action="/api/move">
             <p><em>{{item.Description}}</em></p>
@@ -38,16 +41,51 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           </form>
         </details>
       </template>
-    </details>
   </template>
 
   <script>
     Polymer({
       is: 'boardgame-move-form',
       properties: {
-        config : Object,
+        config : {
+          type: Object,
+          observer: '_configChanged'
+        }
+      },
+      _configChanged : function(newValue, oldValue) {
+        //Must be async because databinding hasn't created the details yet.
+        this.async(this.loadZippyState);
+      },
+      saveZippyState : function(e) {
+
+        var zippy = e.currentTarget;
+        if (!zippy.id.startsWith("moves")) {
+          return
+        }
+        //This next if condition appears to be backwards, because by the time
+        //the tap fires the zippy hasn't actually been opened (it will if we
+        //don't preventDefault). So when we see zippy.open, it's the opposite
+        //of what it will be.
+        if (zippy.open) {
+          sessionStorage.removeItem(zippy.id)
+        } else {
+          sessionStorage.setItem(zippy.id, true)
+        }
+      },
+      loadZippyState : function() {
+        var details = Polymer.dom(this.root).querySelectorAll("details")
+        for (var el of details) {
+          if (!el.id.startsWith("moves")) {
+            continue;
+          }
+          //TODO: store in sessionStorage in a way that won't conflict across GAME IDs.
+          var data = sessionStorage.getItem(el.id);
+
+          if (data) {
+            el.open = true;
+          }
+        }
       }
-      //TODO: load up zippy state
     });
   </script>
 </dom-module>

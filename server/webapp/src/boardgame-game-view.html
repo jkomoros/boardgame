@@ -88,7 +88,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         gameState : String,
       },
       _dataChanged: function(newValue, oldValue) {
-        //TODO: update zippies
         if (newValue.Chest) {
           this.chest = JSON.stringify(newValue.Chest, null, 2)
         }
