@@ -50,6 +50,30 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <h2>Diagram</h2>
       <pre>{{data.Diagram}}</pre>
     </div>
+
+    <div class="card" hidden$="{{data.Game.Finished}}">
+      <details id="moves">
+        <summary>Moves</summary>
+        <template is="dom-repeat" items="{{data.Forms}}">
+          <details id="moves-{{item.Name}}">
+            <summary>Move {{item.Name}}</summary>
+            <form method="POST" action="/api/move">
+              <p><em>{{item.Description}}</em></p>
+              <input type="hidden" name="MoveType" value="{{item.Name}}">
+              <template is="dom-repeat" items="{{item.Fields}}">
+                <strong>{{item.Name}}</strong>
+                <input name="{{item.Name}}" value="{{item.DefaultValue}}">
+                <br/>
+              </template>
+              <div hidden$="{{item.Fields}}">
+                <em>No modifiable fields</em><br/>
+              </div>
+              <input type="submit" value="Make Move">
+            </form>
+          </details>
+        </template>
+      </details>
+    </div>
     <div class="card">
       <details>
         <summary>State</summary>
