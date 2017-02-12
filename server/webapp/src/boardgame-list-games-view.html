@@ -32,7 +32,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <input type="submit" value="Make new game">
       </form>
     </div>
-    <iron-ajax auto id="games" url="/api/list/game" handle-as="json" last-response="{{data}}">
+    <iron-ajax id="games" url="/api/list/game" handle-as="json" last-response="{{data}}">
   </template>
 
   <script>
@@ -40,9 +40,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       is: 'boardgame-list-games-view',
       properties: {
         data: Object,
+        selected: {
+          type: Boolean,
+          observer: '_selectedChanged',
+        }
       },
       listeners: {
         'iron-form-response': 'handleResponse',
+      },
+      _selectedChanged: function(newValue) {
+        if (newValue) {
+          this.$.games.generateRequest();
+        }
       },
       handleResponse : function(e) {
         var result = e.detail.parseResponse();

@@ -92,6 +92,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         chest : String,
         gameState : String,
         gameId: String,
+        selected: {
+          type: Boolean,
+          observer: "_handleSelected",
+        }
+      },
+      _handleSelected: function(newValue) {
+        if (newValue) {
+          this.async(this.updateData);
+        }
+      },
+      updateData: function() {
+        this.fetchData();
+        this.autoFetchStatus();
       },
       fetchData : function() {
         //If we're already fetchign data don't fire off another one.
@@ -105,6 +118,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.$.data.generateRequest();
       },
       autoFetchStatus : function() {
+
+        if (!this.selected) {
+          return
+        }
+
         this.fetchStatus();
         //Fetch from server automatically in 500 ms, in case a move was made
         //or the game was updated.
@@ -120,11 +138,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           //The URL will be junk
           return
         }
+
         this.$.status.generateRequest();
       },
       ready: function() {
-        this.fetchData();
-        this.autoFetchStatus();
+        this.updateData();
       },
       _statusChanged: function(newValue, oldValue) {
         if (!this.data) {
