@@ -73,12 +73,12 @@ func (s *Server) listGamesHandler(c *gin.Context) {
 	})
 }
 
-func (s *Server) listGames() map[string]*boardgame.Game {
+func (s *Server) listGames() []*boardgame.Game {
 
-	result := make(map[string]*boardgame.Game)
+	result := make([]*boardgame.Game, 1)
 
 	//TODO: when there are more games return those.
-	result[s.game.ID()] = s.game
+	result[0] = s.game
 
 	return result
 }
