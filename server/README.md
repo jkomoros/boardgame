@@ -24,7 +24,7 @@ func main() {
 ```
 4. Create mygame/server/webapp directory
 5. Create mygame/server/webapp/game-src directory, which is where you will create all of your game-rendering subviews.
-6. In mygame/server/webapp/game-src, create game-render-view.html and define a polymer element in it. This is the entrypoint for the rendering of your view, and will be passed Game object.
+6. In mygame/server/webapp/game-src, create boardgame-render-game.html and define a polymer element in it. This is the entrypoint for the rendering of your view, and will be passed Game object. The one in boardgame/server/webapp/game-src is a reasonable starting point to copy.
 7. Copy the following items from boardgame/server/webapp. None of them require modification by default.
 * bower.json
 * index.html

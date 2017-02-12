@@ -227,6 +227,7 @@ func (s *Server) Start() {
 
 	router.Static("/bower_components", expandedPathToLib+"webapp/bower_components")
 	router.Static("/src", expandedPathToLib+"webapp/src")
+	router.Static("/game-src", expandedPathToLib+"webapp/game-src")
 
 	router.GET("/api/view", s.gameViewHandler)
 	router.POST("/api/move", s.moveHandler)

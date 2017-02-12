@@ -12,6 +12,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="boardgame-move-form.html">
 <link rel="import" href="shared-styles.html">
+<link rel="import" href="../game-src/boardgame-render-game.html">
 
 <dom-module id="boardgame-game-view">
   <template>
@@ -52,8 +53,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </div>
     </div>
     <div class="card">
-      <h2>Diagram</h2>
-      <pre>{{data.Diagram}}</pre>
+      <boardgame-render-game state="{{data.Game.StateWrapper.State}}" diagram="{{data.Diagram}}"></boardgame-render-game>
     </div>
 
     <template is="dom-if" if="{{!data.Game.Finished}}">

@@ -1,0 +1,20 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+
+<dom-module id="boardgame-render-game">
+  <template>
+    <!--TODO: override with your own rendering here -->
+    <h2>Diagram</h2>
+    <pre>{{diagram}}</pre>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'boardgame-render-game',
+      properties: {
+        state: Object,
+        diagram : String
+      }
+    });
+  </script>
+</dom-module>
