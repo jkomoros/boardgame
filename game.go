@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"encoding/json"
 	"errors"
 	"strconv"
 	"strings"
@@ -145,6 +146,18 @@ func (d *DefaultGameDelegate) ProposeFixUpMove(state State) Move {
 
 func (d *DefaultGameDelegate) SetGame(game *Game) {
 	d.Game = game
+}
+
+func (g *Game) MarshalJSON() ([]byte, error) {
+	//We define our own MarshalJSON because if we didn't there'd be an infinite loop because of the redirects back up.
+	result := map[string]interface{}{
+		"Name":         g.Name,
+		"Finished":     g.Finished,
+		"Winners":      g.Winners,
+		"StateWrapper": g.StateWrapper,
+	}
+
+	return json.Marshal(result)
 }
 
 //SetUp should be called a single time after all of the member variables are
