@@ -49,7 +49,8 @@ const (
 )
 
 func (s *Server) viewHandler(c *gin.Context) {
-
+	//We serve the main app for every thing that we don't otherwise have a
+	//handler for.
 	c.HTML(http.StatusOK, "index.html", nil)
 
 }
