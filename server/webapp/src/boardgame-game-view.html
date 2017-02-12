@@ -111,7 +111,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         //We stop asking for data if the game is finished, because nothing
         //interesting can happen at that point.
-        if (this.data && this.data.Game && !this.data.Game.Finished){
+        if (!this.data || (this.data && this.data.Game && !this.data.Game.Finished)){
           this.async(this.autoFetchStatus, 500);
         }
       },
