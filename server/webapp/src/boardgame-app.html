@@ -112,11 +112,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           reflectToAttribute: true,
           observer: '_pageChanged',
         },
+        route : Object,
+      },
+
+      listeners : {
+        'navigate-to':'handleNavigateTo'
       },
 
       observers: [
         '_routePageChanged(routeData.page)',
       ],
+
+      handleNavigateTo: function(e) {
+        this.set('route.path',e.detail);
+      },
 
       _routePageChanged: function(page) {
         this.page = page || 'list-games';

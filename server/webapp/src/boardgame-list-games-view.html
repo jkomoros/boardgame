@@ -41,6 +41,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       properties: {
         data: Object,
       },
+      listeners: {
+        'iron-form-response': 'handleResponse',
+      },
+      handleResponse : function(e) {
+        var result = e.detail.parseResponse();
+        if (result.Status == "Success") {
+          this.fire("navigate-to", "/game/" + result.GameID)
+        }
+      }
     });
   </script>
 </dom-module>
