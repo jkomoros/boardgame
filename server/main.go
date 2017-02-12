@@ -42,11 +42,19 @@ type MoveFormField struct {
 }
 
 func NewServer(factory GameFactory) *Server {
-	return &Server{
+
+	game := factory()
+
+	result := &Server{
 		games:   make(map[string]*boardgame.Game),
-		game:    factory(),
+		game:    game,
 		factory: factory,
 	}
+
+	result.games[game.ID()] = game
+
+	return result
+
 }
 
 //TODO: use go.rice here?
@@ -91,10 +99,13 @@ func (s *Server) listGamesHandler(c *gin.Context) {
 
 func (s *Server) listGames() []*boardgame.Game {
 
-	result := make([]*boardgame.Game, 1)
+	result := make([]*boardgame.Game, len(s.games))
 
-	//TODO: when there are more games return those.
-	result[0] = s.game
+	i := 0
+	for _, val := range s.games {
+		result[i] = val
+		i++
+	}
 
 	return result
 }
