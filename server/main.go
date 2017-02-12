@@ -106,11 +106,11 @@ func (s *Server) gameStatusHandler(c *gin.Context) {
 
 func (s *Server) newGameHandler(c *gin.Context) {
 	game := s.factory()
-	s.games[game.ID()] = game
+	s.games[game.Id()] = game
 
 	c.JSON(http.StatusOK, gin.H{
 		"Status": "Success",
-		"GameID": game.ID(),
+		"GameId": game.Id(),
 	})
 }
 

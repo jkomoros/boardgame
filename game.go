@@ -175,13 +175,13 @@ func (g *Game) MarshalJSON() ([]byte, error) {
 		"Finished":     g.Finished,
 		"Winners":      g.Winners,
 		"StateWrapper": g.StateWrapper,
-		"ID":           g.ID(),
+		"Id":           g.Id(),
 	}
 
 	return json.Marshal(result)
 }
 
-func (g *Game) ID() string {
+func (g *Game) Id() string {
 	return g.id
 }
 

@@ -24,7 +24,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
     <template is="dom-repeat" items="{{data.Games}}">
       <div class="card">
-        <a href="/game/{{item.ID}}">{{item.ID}}</a>
+        <a href="/game/{{item.Id}}">{{item.Id}}</a>
       </div>
     </template>
     <div class="card">
@@ -56,7 +56,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       handleResponse : function(e) {
         var result = e.detail.parseResponse();
         if (result.Status == "Success") {
-          this.fire("navigate-to", "/game/" + result.GameID)
+          this.fire("navigate-to", "/game/" + result.GameId)
         }
       }
     });
