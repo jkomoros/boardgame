@@ -420,6 +420,32 @@ func (s *SizedStack) MarshalJSON() ([]byte, error) {
 	return json.Marshal(obj)
 }
 
+func (g *GrowableStack) UnmarshalJSON(blob []byte) error {
+	obj := &stackJSONObj{}
+	if err := json.Unmarshal(blob, obj); err != nil {
+		return err
+	}
+	//TODO: what if any of these required fields are zero? Should we return
+	//error?
+	g.deckName = obj.DeckName
+	g.indexes = obj.Indexes
+	g.maxLen = obj.MaxLen
+	return nil
+}
+
+func (s *SizedStack) UnmarshalJSON(blob []byte) error {
+	obj := &stackJSONObj{}
+	if err := json.Unmarshal(blob, obj); err != nil {
+		return err
+	}
+	//TODO: what if any of these required fields are zero? Should we return
+	//error?
+	s.deckName = obj.DeckName
+	s.indexes = obj.Indexes
+	s.size = obj.Size
+	return nil
+}
+
 /*
 
 //InsertBack puts the component at the last index in this stack. The
