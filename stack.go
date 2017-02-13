@@ -43,8 +43,12 @@ type Stack interface {
 }
 
 type GrowableStack struct {
-	//Deck is the deck that we're a part of.
+	//Deck is the deck that we're a part of. This will be nil if we aren't
+	//inflated.
 	deck *Deck
+	//We need to maintain the name of deck because sometimes we aren't
+	//inflated yet (like after being deserialized from disk)
+	deckName string
 	//The indexes from the given deck that this stack contains, in order.
 	indexes []int
 	//size, if set, says the maxmimum number of items allowed in the Stack. 0
@@ -55,8 +59,11 @@ type GrowableStack struct {
 //SizedStack is a Stack that has a fixed number of slots, any of which may be
 //empty. Create a new one with NewSizedStack.
 type SizedStack struct {
-	//Deck is the deck we're a part of.
+	//Deck is the deck we're a part of. This will be nil if we aren't inflated.
 	deck *Deck
+	//We need to maintain the name of deck because sometimes we aren't
+	//inflated yet (like after being deserialized from disk)
+	deckName string
 	//Indexes will always have a len of size. Slots that are "empty" will have
 	//index of -1.
 	indexes []int
@@ -67,10 +74,10 @@ type SizedStack struct {
 //stackJSONObj is an internal struct that we populate and use to implement
 //MarshalJSON so stacks can be saved in output JSON with minimum fuss.
 type stackJSONObj struct {
-	Deck    string
-	Indexes []int
-	Size    int `json:",omitempty"`
-	MaxLen  int `json:",omitempty"`
+	DeckName string
+	Indexes  []int
+	Size     int `json:",omitempty"`
+	MaxLen   int `json:",omitempty"`
 }
 
 //NewGrowableStack creates a new growable stack with the given Deck and Cap.
@@ -81,9 +88,10 @@ func NewGrowableStack(deck *Deck, maxLen int) *GrowableStack {
 	}
 
 	return &GrowableStack{
-		deck:    deck,
-		indexes: make([]int, 0),
-		maxLen:  maxLen,
+		deck:     deck,
+		deckName: deck.Name(),
+		indexes:  make([]int, 0),
+		maxLen:   maxLen,
 	}
 }
 
@@ -101,9 +109,10 @@ func NewSizedStack(deck *Deck, size int) *SizedStack {
 	}
 
 	return &SizedStack{
-		deck:    deck,
-		indexes: indexes,
-		size:    size,
+		deck:     deck,
+		deckName: deck.Name(),
+		indexes:  indexes,
+		size:     size,
 	}
 }
 
@@ -324,9 +333,9 @@ func (g *GrowableStack) RemoveFirst() *Component {
 
 func (g *GrowableStack) MarshalJSON() ([]byte, error) {
 	obj := &stackJSONObj{
-		Deck:    g.deck.Name(),
-		Indexes: g.indexes,
-		MaxLen:  g.maxLen,
+		DeckName: g.deckName,
+		Indexes:  g.indexes,
+		MaxLen:   g.maxLen,
 	}
 	return json.Marshal(obj)
 }
@@ -334,9 +343,9 @@ func (g *GrowableStack) MarshalJSON() ([]byte, error) {
 func (s *SizedStack) MarshalJSON() ([]byte, error) {
 	//TODO: test this, including Size
 	obj := &stackJSONObj{
-		Deck:    s.deck.Name(),
-		Indexes: s.indexes,
-		Size:    s.size,
+		DeckName: s.deckName,
+		Indexes:  s.indexes,
+		Size:     s.size,
 	}
 	return json.Marshal(obj)
 }
