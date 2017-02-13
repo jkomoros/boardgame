@@ -31,6 +31,14 @@ func TestInflate(t *testing.T) {
 		t.Error("Couldn't get component from inflated sstack")
 	}
 
+	if err := gStack.Inflate(chest); err == nil {
+		t.Error("An inflated g stack was able to inflate again")
+	}
+
+	if err := sStack.Inflate(chest); err == nil {
+		t.Error("An inflated s stack was able to inflate again")
+	}
+
 	gStackBlob, err := json.Marshal(gStack)
 
 	if err != nil {
@@ -71,6 +79,33 @@ func TestInflate(t *testing.T) {
 		t.Error("Uninflated s stack still returned a component")
 	}
 
+	if err := reGStack.Inflate(chest); err != nil {
+		t.Error("Uninflated g stack wasn't able to inflate", err)
+	}
+
+	if err := reSStack.Inflate(chest); err != nil {
+		t.Error("Uninflated s stack wasn't able to inflate", err)
+	}
+
+	if !reGStack.Inflated() {
+		t.Error("After inflating g stack it didn't think it was inflated")
+	}
+
+	if !reSStack.Inflated() {
+		t.Error("After inflating s stack it didn't think it was inflated")
+	}
+
+	c := reGStack.ComponentAt(0)
+
+	if c != testDeck.Components()[0] {
+		t.Error("After inflating g stack, got wrong component. Wanted", testDeck.Components()[0], "got", c)
+	}
+
+	c = reSStack.ComponentAt(0)
+
+	if c != testDeck.Components()[1] {
+		t.Error("After inflating s stack, got wrong component. Wanted", testDeck.Components()[1], "got", c)
+	}
 }
 
 func TestStackInsert(t *testing.T) {

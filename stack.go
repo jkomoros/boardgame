@@ -25,6 +25,10 @@ type Stack interface {
 	//will fail if we are not inflated.
 	Inflated() bool
 
+	//Stacks that are not inflated will become inflated by grabbing a
+	//reference to the associated deck in the provided chest.
+	Inflate(chest *ComponentChest) error
+
 	//ComponentAt retrieves the component at the given index in the stack.
 	ComponentAt(index int) *Component
 	//Components returns all components. Equivalent to calling ComponentAt
@@ -138,6 +142,42 @@ func (s *GrowableStack) Inflated() bool {
 
 func (s *SizedStack) Inflated() bool {
 	return s.deck != nil
+}
+
+func (g *GrowableStack) Inflate(chest *ComponentChest) error {
+
+	if g.Inflated() {
+		return errors.New("Stack already inflated")
+	}
+
+	deck := chest.Deck(g.deckName)
+
+	if deck == nil {
+		return errors.New("Chest did not contain deck with name " + g.deckName)
+	}
+
+	g.deck = deck
+
+	return nil
+
+}
+
+func (s *SizedStack) Inflate(chest *ComponentChest) error {
+
+	if s.Inflated() {
+		return errors.New("Stack already inflated")
+	}
+
+	deck := chest.Deck(s.deckName)
+
+	if deck == nil {
+		return errors.New("Chest did not contain deck with name " + s.deckName)
+	}
+
+	s.deck = deck
+
+	return nil
+
 }
 
 //ComponentAt fetches the component object representing the n-th object in
