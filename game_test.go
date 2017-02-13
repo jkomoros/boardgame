@@ -48,7 +48,7 @@ func (t *testInfiniteLoopGameDelegate) ProposeFixUpMove(state State) Move {
 func TestGameSetUp(t *testing.T) {
 	game := testGame()
 
-	id := game.ID()
+	id := game.Id()
 
 	if len(id) != gameIDLength {
 		t.Error("Game didn't have an ID of correct length. Wanted", gameIDLength, "got", id)
