@@ -42,6 +42,9 @@ type Game struct {
 	playerMovesByName map[string]Move
 	fixUpMovesByName  map[string]Move
 
+	//Modifiable controls whether moves can be made on this game.
+	modifiable bool
+
 	//A unique ID provided to this game when it is created.
 	id string
 
@@ -92,6 +95,7 @@ func NewGame(name string, initialState State, optionalDelegate GameDelegate) *Ga
 		//TODO: set the size of chan based on something more reasonable.
 		proposedMoves: make(chan *proposedMoveItem, 20),
 		id:            randomString(gameIDLength),
+		modifiable:    true,
 	}
 
 	return result
@@ -253,6 +257,13 @@ func (g *Game) mainLoop() {
 		close(item.ch)
 	}
 
+}
+
+//Modifiable returns true if this instantiation of the game can be modified.
+//If false, this instantiation is read-only: attributes can be read, but not
+//written. In practice this means moves cannot be made.
+func (g *Game) Modifiable() bool {
+	return g.modifiable
 }
 
 //AddPlayerMove adds the specified move to the game as a move that Players can

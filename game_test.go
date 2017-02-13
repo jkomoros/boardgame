@@ -48,6 +48,10 @@ func (t *testInfiniteLoopGameDelegate) ProposeFixUpMove(state State) Move {
 func TestGameSetUp(t *testing.T) {
 	game := testGame()
 
+	if !game.Modifiable() {
+		t.Error("Default new game was not modifiable")
+	}
+
 	id := game.Id()
 
 	if len(id) != gameIDLength {
