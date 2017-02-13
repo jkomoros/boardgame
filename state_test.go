@@ -45,8 +45,7 @@ func TestState(t *testing.T) {
 
 func TestStateSerialization(t *testing.T) {
 
-	//Temporarily disable this test while we fix the underlying problem it
-	//exposed.
+	//TODO: enable this test when it passes again.
 	return
 
 	game := testGame()
@@ -72,6 +71,10 @@ func TestStateSerialization(t *testing.T) {
 
 	if err != nil {
 		t.Error("StateFromBlob returned unexpected err", err)
+	}
+
+	if !reconstitutedState.(*testState).Game.DrawDeck.Inflated() {
+		t.Error("The stack was not inflated when it came back from StateFromBlob")
 	}
 
 	if !reflect.DeepEqual(reconstitutedState, game.StateWrapper.State) {

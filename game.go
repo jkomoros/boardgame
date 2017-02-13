@@ -131,7 +131,8 @@ type GameDelegate interface {
 
 	//StateFromBlob should deserialize a JSON string of this game's State. We
 	//need it to be in a game-specific bit of logic because we don't know the
-	//real type of the state stuct for this game.
+	//real type of the state stuct for this game. Be sure to inflate any
+	//Stacks in the state.
 	StateFromBlob(blob []byte, schema int) (State, error)
 
 	//SetGame is called during game.SetUp and passes a reference to the Game

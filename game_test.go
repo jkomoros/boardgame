@@ -42,11 +42,14 @@ func (t *testGameDelegate) CheckGameFinished(state State) (bool, []int) {
 }
 
 func (t *testGameDelegate) StateFromBlob(blob []byte, schema int) (State, error) {
-	var result testState
-	if err := json.Unmarshal(blob, &result); err != nil {
+	result := &testState{}
+	if err := json.Unmarshal(blob, result); err != nil {
 		return nil, err
 	}
-	return &result, nil
+
+	result.Game.DrawDeck.Inflate(t.Game.Chest())
+
+	return result, nil
 }
 
 func (t *testInfiniteLoopGameDelegate) ProposeFixUpMove(state State) Move {
