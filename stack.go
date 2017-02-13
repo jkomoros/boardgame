@@ -19,6 +19,12 @@ type Stack interface {
 	//is the number of items in the stack. For SizedStacks, this is the number
 	//of slots--even if some are unfilled.
 	Len() int
+
+	//Inflated returns true if we are inflated--that is, we have a connection
+	//to the underlying deck we reference. ComponentAt and ComponentValues()
+	//will fail if we are not inflated.
+	Inflated() bool
+
 	//ComponentAt retrieves the component at the given index in the stack.
 	ComponentAt(index int) *Component
 	//Components returns all components. Equivalent to calling ComponentAt
@@ -126,9 +132,21 @@ func (s *SizedStack) Len() int {
 	return len(s.indexes)
 }
 
+func (s *GrowableStack) Inflated() bool {
+	return s.deck != nil
+}
+
+func (s *SizedStack) Inflated() bool {
+	return s.deck != nil
+}
+
 //ComponentAt fetches the component object representing the n-th object in
 //this stack.
 func (s *GrowableStack) ComponentAt(index int) *Component {
+
+	if !s.Inflated() {
+		return nil
+	}
 
 	//Substantially recreated in SizedStack.ComponentAt()
 	if index >= s.Len() || index < 0 {
@@ -147,6 +165,10 @@ func (s *GrowableStack) ComponentAt(index int) *Component {
 //ComponentAt fetches the component object representing the n-th object in
 //this stack.
 func (s *SizedStack) ComponentAt(index int) *Component {
+
+	if !s.Inflated() {
+		return nil
+	}
 
 	//Substantially recreated in GrowableStack.ComponentAt()
 
@@ -176,6 +198,10 @@ func (s *SizedStack) ComponentAt(index int) *Component {
 func (g *GrowableStack) ComponentValues() []PropertyReader {
 	//TODO: memoize this, as long as indexes hasn't changed
 
+	if !g.Inflated() {
+		return nil
+	}
+
 	//Substantially recreated in SizedStack.ComponentValues
 	result := make([]PropertyReader, g.Len())
 	for i := 0; i < g.Len(); i++ {
@@ -194,6 +220,10 @@ func (g *GrowableStack) ComponentValues() []PropertyReader {
 //is.
 func (s *SizedStack) ComponentValues() []PropertyReader {
 	//TODO: memoize this, as long as indexes hasn't changed
+
+	if !s.Inflated() {
+		return nil
+	}
 
 	//Substantially recreated in GrowableStack.ComponentValues
 	result := make([]PropertyReader, s.Len())

@@ -1,9 +1,77 @@
 package boardgame
 
 import (
+	"encoding/json"
 	"math"
 	"testing"
 )
+
+func TestInflate(t *testing.T) {
+	game := testGame()
+
+	game.SetUp()
+
+	chest := game.Chest()
+
+	testDeck := chest.Deck("test")
+
+	gStack := NewGrowableStack(testDeck, 0)
+
+	gStack.InsertFront(testDeck.Components()[0])
+
+	sStack := NewSizedStack(testDeck, 2)
+
+	sStack.InsertFront(testDeck.Components()[1])
+
+	if gStack.ComponentAt(0) == nil {
+		t.Error("Couldnt' get component from inflated gstack")
+	}
+
+	if sStack.ComponentAt(0) == nil {
+		t.Error("Couldn't get component from inflated sstack")
+	}
+
+	gStackBlob, err := json.Marshal(gStack)
+
+	if err != nil {
+		t.Error("Gstack didn't serialize", err)
+	}
+
+	sStackBlob, err := json.Marshal(sStack)
+
+	if err != nil {
+		t.Error("SStack didn't serialize", err)
+	}
+
+	reGStack := &GrowableStack{}
+
+	if err := json.Unmarshal(gStackBlob, reGStack); err != nil {
+		t.Error("Couldn't reconstitute gStack", err)
+	}
+
+	reSStack := &SizedStack{}
+
+	if err := json.Unmarshal(sStackBlob, reSStack); err != nil {
+		t.Error("Couldn't reconstitute sStack", err)
+	}
+
+	if reGStack.Inflated() {
+		t.Error("Reconstituted g stack thought it was inflated")
+	}
+
+	if reSStack.Inflated() {
+		t.Error("Reconstituted s stack thought it was inflated")
+	}
+
+	if reGStack.ComponentAt(0) != nil {
+		t.Error("Uninflated g stack still returned a component")
+	}
+
+	if reSStack.ComponentAt(0) != nil {
+		t.Error("Uninflated s stack still returned a component")
+	}
+
+}
 
 func TestStackInsert(t *testing.T) {
 
