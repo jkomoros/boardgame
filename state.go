@@ -32,7 +32,9 @@ func newStarterStateWrapper(state State) *StateWrapper {
 //client games can cast it quickly to the concrete struct for their game, so
 //that they can get to a type-checked world with minimal fuss inside of
 //Move.Legal and move.Apply. Your underlying struct should have a Game and
-//Users property, so they serialize properly to JSON.
+//Users property, so they serialize properly to JSON. Most importantly,
+//json.Marshal() should round trip through your GameDelegate.StateFromBlob()
+//without modifications in order for persistence to work.
 type State interface {
 	//Game includes the non-user state for the game.
 	GameState() GameState
