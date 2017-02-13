@@ -45,9 +45,6 @@ func TestState(t *testing.T) {
 
 func TestStateSerialization(t *testing.T) {
 
-	//TODO: enable this test when it passes again.
-	return
-
 	game := testGame()
 
 	game.SetUp()
