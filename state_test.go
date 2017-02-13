@@ -43,6 +43,41 @@ func TestState(t *testing.T) {
 	//TODO: test that GAmeState and UserStates are also copies
 }
 
+func TestStateSerialization(t *testing.T) {
+	game := testGame()
+
+	game.SetUp()
+
+	if err := <-game.ProposeMove(&testMove{
+		AString:           "bam",
+		ScoreIncrement:    3,
+		TargetPlayerIndex: 0,
+		ABool:             true,
+	}); err != nil {
+		t.Fatal("Couldn't make move", err)
+	}
+
+	blob, err := json.Marshal(game.StateWrapper.State)
+
+	if err != nil {
+		t.Fatal("Couldn't serialize state:", err)
+	}
+
+	reconstitutedState, err := game.Delegate.StateFromBlob(blob, 0)
+
+	if err != nil {
+		t.Error("StateFromBlob returned unexpected err", err)
+	}
+
+	if !reflect.DeepEqual(reconstitutedState, game.StateWrapper.State) {
+
+		rStateBlob, _ := json.Marshal(reconstitutedState)
+		oStateBlob, _ := json.Marshal(game.StateWrapper.State)
+
+		t.Error("Reconstituted state and original state were not the same. Got", string(rStateBlob), "wanted", string(oStateBlob))
+	}
+}
+
 type propertyReaderTestStruct struct {
 	A int
 	B bool
