@@ -84,10 +84,10 @@ type SizedStack struct {
 //stackJSONObj is an internal struct that we populate and use to implement
 //MarshalJSON so stacks can be saved in output JSON with minimum fuss.
 type stackJSONObj struct {
-	DeckName string
-	Indexes  []int
-	Size     int `json:",omitempty"`
-	MaxLen   int `json:",omitempty"`
+	Deck    string
+	Indexes []int
+	Size    int `json:",omitempty"`
+	MaxLen  int `json:",omitempty"`
 }
 
 //NewGrowableStack creates a new growable stack with the given Deck and Cap.
@@ -403,9 +403,9 @@ func (g *GrowableStack) RemoveFirst() *Component {
 
 func (g *GrowableStack) MarshalJSON() ([]byte, error) {
 	obj := &stackJSONObj{
-		DeckName: g.deckName,
-		Indexes:  g.indexes,
-		MaxLen:   g.maxLen,
+		Deck:    g.deckName,
+		Indexes: g.indexes,
+		MaxLen:  g.maxLen,
 	}
 	return json.Marshal(obj)
 }
@@ -413,9 +413,9 @@ func (g *GrowableStack) MarshalJSON() ([]byte, error) {
 func (s *SizedStack) MarshalJSON() ([]byte, error) {
 	//TODO: test this, including Size
 	obj := &stackJSONObj{
-		DeckName: s.deckName,
-		Indexes:  s.indexes,
-		Size:     s.size,
+		Deck:    s.deckName,
+		Indexes: s.indexes,
+		Size:    s.size,
 	}
 	return json.Marshal(obj)
 }
@@ -427,7 +427,7 @@ func (g *GrowableStack) UnmarshalJSON(blob []byte) error {
 	}
 	//TODO: what if any of these required fields are zero? Should we return
 	//error?
-	g.deckName = obj.DeckName
+	g.deckName = obj.Deck
 	g.indexes = obj.Indexes
 	g.maxLen = obj.MaxLen
 	return nil
@@ -440,7 +440,7 @@ func (s *SizedStack) UnmarshalJSON(blob []byte) error {
 	}
 	//TODO: what if any of these required fields are zero? Should we return
 	//error?
-	s.deckName = obj.DeckName
+	s.deckName = obj.Deck
 	s.indexes = obj.Indexes
 	s.size = obj.Size
 	return nil

@@ -5,7 +5,7 @@
         "Game": {
             "CurrentPlayer": 0,
             "DrawDeck": {
-                "DeckName" : "test",
+                "Deck" : "test",
                 "Indexes" : []
             }
         },
