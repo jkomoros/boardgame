@@ -45,12 +45,34 @@ func (t *testInfiniteLoopGameDelegate) ProposeFixUpMove(state State) Move {
 	return &testAlwaysLegalMove{}
 }
 
-func TestGameSetUp(t *testing.T) {
+func TestGameModifiable(t *testing.T) {
+
 	game := testGame()
 
 	if !game.Modifiable() {
 		t.Error("Default new game was not modifiable")
 	}
+
+	//Fake that the game is not modifiable.
+	game.modifiable = false
+
+	game.SetUp()
+
+	move := &testMove{
+		AString:           "foo",
+		ScoreIncrement:    3,
+		TargetPlayerIndex: 0,
+		ABool:             true,
+	}
+
+	if err := <-game.ProposeMove(move); err == nil {
+		t.Error("Proposing a move on non-modifiable game succeeded")
+	}
+
+}
+
+func TestGameSetUp(t *testing.T) {
+	game := testGame()
 
 	id := game.Id()
 

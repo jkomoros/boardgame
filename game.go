@@ -237,7 +237,9 @@ func (g *Game) SetUp() error {
 
 	//TODO: do other set-up work, including FinishSetUp
 
-	go g.mainLoop()
+	if g.Modifiable() {
+		go g.mainLoop()
+	}
 
 	g.initalized = true
 
@@ -399,12 +401,17 @@ func (g *Game) ProposeMove(move Move) DelayedError {
 
 	errChan := make(DelayedError, 1)
 
-	workItem := &proposedMoveItem{
-		move: move,
-		ch:   errChan,
-	}
+	if g.Modifiable() {
 
-	g.proposedMoves <- workItem
+		workItem := &proposedMoveItem{
+			move: move,
+			ch:   errChan,
+		}
+
+		g.proposedMoves <- workItem
+	} else {
+		errChan <- errors.New("Game is not modifiable")
+	}
 
 	return errChan
 
