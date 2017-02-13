@@ -1,6 +1,8 @@
 package tictactoe
 
 import (
+	"encoding/json"
+	"reflect"
 	"testing"
 )
 
@@ -11,6 +13,44 @@ func TestGame(t *testing.T) {
 	if game == nil {
 		t.Error("Didn't get tictactoe game back")
 	}
+}
+
+func TestStateFromBlob(t *testing.T) {
+	game := NewGame()
+
+	game.SetUp()
+
+	if err := <-game.ProposeMove(&MovePlaceToken{
+		Slot:              1,
+		TargetPlayerIndex: 0,
+	}); err != nil {
+		t.Fatal("Couldn't make move", err)
+	}
+
+	blob, err := json.Marshal(game.StateWrapper.State)
+
+	if err != nil {
+		t.Fatal("Couldn't serialize state:", err)
+	}
+
+	reconstitutedState, err := game.Delegate.StateFromBlob(blob, 0)
+
+	if err != nil {
+		t.Error("StateFromBlob returned unexpected err", err)
+	}
+
+	if !reconstitutedState.(*mainState).Game.Slots.Inflated() {
+		t.Error("The stack was not inflated when it came back from StateFromBlob")
+	}
+
+	if !reflect.DeepEqual(reconstitutedState, game.StateWrapper.State) {
+
+		rStateBlob, _ := json.Marshal(reconstitutedState)
+		oStateBlob, _ := json.Marshal(game.StateWrapper.State)
+
+		t.Error("Reconstituted state and original state were not the same. Got", string(rStateBlob), "wanted", string(oStateBlob))
+	}
+
 }
 
 func TestCheckGameFinished(t *testing.T) {

@@ -8,6 +8,7 @@ boardgame are useful for real games.
 package tictactoe
 
 import (
+	"encoding/json"
 	"github.com/jkomoros/boardgame"
 )
 
@@ -31,6 +32,22 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, 
 		p.Users[1].UnusedTokens.InsertFront(c)
 	}
 	return nil
+}
+
+func (g *gameDelegate) StateFromBlob(blob []byte, schema int) (boardgame.State, error) {
+	result := &mainState{}
+	if err := json.Unmarshal(blob, result); err != nil {
+		return nil, err
+	}
+
+	result.Game.Slots.Inflate(g.Game.Chest())
+
+	for i, user := range result.Users {
+		user.playerIndex = i
+		user.UnusedTokens.Inflate(g.Game.Chest())
+	}
+
+	return result, nil
 }
 
 func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, winners []int) {

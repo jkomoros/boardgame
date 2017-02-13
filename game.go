@@ -133,6 +133,8 @@ type GameDelegate interface {
 	//need it to be in a game-specific bit of logic because we don't know the
 	//real type of the state stuct for this game. Be sure to inflate any
 	//Stacks in the state, and set playerIndex for each UserState in order.
+	//It's strongly recommended that you test a round-trip of state through
+	//this method.
 	StateFromBlob(blob []byte, schema int) (State, error)
 
 	//SetGame is called during game.SetUp and passes a reference to the Game
