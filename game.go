@@ -129,6 +129,11 @@ type GameDelegate interface {
 	//into reasonable shape.
 	ProposeFixUpMove(state State) Move
 
+	//StateFromBlob should deserialize a JSON string of this game's State. We
+	//need it to be in a game-specific bit of logic because we don't know the
+	//real type of the state stuct for this game.
+	StateFromBlob(blob []byte, schema int) (State, error)
+
 	//SetGame is called during game.SetUp and passes a reference to the Game
 	//that the delegate is part of.
 	SetGame(game *Game)
@@ -150,6 +155,10 @@ func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state State, c *
 
 func (d *DefaultGameDelegate) CheckGameFinished(state State) (finished bool, winners []int) {
 	return false, nil
+}
+
+func (d *DefaultGameDelegate) StateFromBlob(blob []byte, schema int) (State, error) {
+	return nil, errors.New("Default delegate does not know how to deserialize state objects")
 }
 
 //The Default ProposeFixUpMove runs through all moves in FixUpMoves, in order,
