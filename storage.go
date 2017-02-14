@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"encoding/json"
 	"errors"
 )
 
@@ -68,6 +69,34 @@ func (i *inMemoryStorageManager) State(game *Game, version int) *StateWrapper {
 }
 
 func (i *inMemoryStorageManager) SaveState(game *Game, state *StateWrapper) error {
-	//TODO: do something
-	return errors.New("That method is not yet implemented")
+	if game == nil {
+		return errors.New("No game provided")
+	}
+
+	//TODO: validate that state.Version is reasonable.
+
+	if _, ok := i.states[game.Id()]; !ok {
+		i.states[game.Id()] = make(map[int]*memoryStateRecord)
+	}
+
+	versionMap := i.states[game.Id()]
+
+	if _, ok := versionMap[state.Version]; ok {
+		//Wait, there was already a version stored there?
+		return errors.New("There was already a version for that game stored")
+	}
+
+	blob, err := json.Marshal(state.State)
+
+	if err != nil {
+		return errors.New("Error marshalling State: " + err.Error())
+	}
+
+	versionMap[state.Version] = &memoryStateRecord{
+		Version:         state.Version,
+		Schema:          state.Schema,
+		SerializedState: blob,
+	}
+
+	return nil
 }
