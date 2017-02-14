@@ -23,6 +23,7 @@ type Game struct {
 
 	//Delegate is an (optional) way to override behavior at key game states.
 	Delegate GameDelegate
+
 	//State is the current state of the game.
 	StateWrapper *StateWrapper
 	//Finished is whether the came has been completed. If it is over, the
@@ -32,6 +33,10 @@ type Game struct {
 	//one player, but it could be multiple in the case of tie, or 0 in the
 	//case of a draw.
 	Winners []int
+
+	//The storage to use. When we move Delegat to be a GameManager, storage
+	//should live there instead.
+	storage StorageManager
 
 	//Moves is the set of all move types that are ever legal to apply in this
 	//game. When a move will be proposed it should copy one of these moves.
@@ -86,7 +91,11 @@ func randomString(length int) string {
 
 //NewGame returns a new game. You must set a Chest and call AddMove with all
 //moves, before calling SetUp. Then the game can be used.
-func NewGame(name string, initialState State, optionalDelegate GameDelegate) *Game {
+func NewGame(name string, initialState State, optionalDelegate GameDelegate, storage StorageManager) *Game {
+
+	if storage == nil {
+		return nil
+	}
 
 	result := &Game{
 		Name:         name,
@@ -96,6 +105,7 @@ func NewGame(name string, initialState State, optionalDelegate GameDelegate) *Ga
 		proposedMoves: make(chan *proposedMoveItem, 20),
 		id:            randomString(gameIDLength),
 		modifiable:    true,
+		storage:       storage,
 	}
 
 	return result

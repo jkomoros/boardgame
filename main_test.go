@@ -373,7 +373,7 @@ func testGame() *Game {
 		},
 	}
 
-	game := NewGame(testGameName, initialState, &testGameDelegate{})
+	game := NewGame(testGameName, initialState, &testGameDelegate{}, NewInMemoryStorageManager())
 
 	game.AddPlayerMove(&testMove{})
 	game.AddFixUpMove(&testMoveAdvanceCurentPlayer{})

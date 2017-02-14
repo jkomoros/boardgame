@@ -217,7 +217,7 @@ func NewGame() *boardgame.Game {
 		user.playerIndex = i
 	}
 
-	game := boardgame.NewGame(gameName, starterState, &gameDelegate{})
+	game := boardgame.NewGame(gameName, starterState, &gameDelegate{}, boardgame.NewInMemoryStorageManager())
 
 	game.SetChest(chest)
 
