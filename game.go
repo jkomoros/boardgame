@@ -24,8 +24,6 @@ type Game struct {
 	//Delegate is an (optional) way to override behavior at key game states.
 	Delegate GameDelegate
 
-	//State is the current state of the game.
-	StateWrapper *StateWrapper
 	//Finished is whether the came has been completed. If it is over, the
 	//Winners will be set.
 	Finished bool
@@ -34,9 +32,20 @@ type Game struct {
 	//case of a draw.
 	Winners []int
 
+	//The current version of State.
+	version int
+	//The schema of the game.
+	schema int
+	//TODO: allow setting this.
+
 	//The storage to use. When we move Delegat to be a GameManager, storage
 	//should live there instead.
 	storage StorageManager
+
+	//starterState is a temporary state passed in in the constructor.
+	initialState State
+	//TODO: instead of having a starterState, we should just have a
+	//Delegate.StarterState()
 
 	//Moves is the set of all move types that are ever legal to apply in this
 	//game. When a move will be proposed it should copy one of these moves.
@@ -98,14 +107,14 @@ func NewGame(name string, initialState State, optionalDelegate GameDelegate, sto
 	}
 
 	result := &Game{
-		Name:         name,
-		Delegate:     optionalDelegate,
-		StateWrapper: newStarterStateWrapper(initialState),
+		Name:     name,
+		Delegate: optionalDelegate,
 		//TODO: set the size of chan based on something more reasonable.
 		proposedMoves: make(chan *proposedMoveItem, 20),
 		id:            randomString(gameIDLength),
 		modifiable:    true,
 		storage:       storage,
+		initialState:  initialState,
 	}
 
 	return result
@@ -200,8 +209,9 @@ func (g *Game) MarshalJSON() ([]byte, error) {
 		"Name":         g.Name,
 		"Finished":     g.Finished,
 		"Winners":      g.Winners,
-		"StateWrapper": g.StateWrapper,
+		"CurrentState": g.CurrentState(),
 		"Id":           g.Id(),
+		"Version":      g.Version(),
 	}
 
 	return json.Marshal(result)
@@ -209,6 +219,37 @@ func (g *Game) MarshalJSON() ([]byte, error) {
 
 func (g *Game) Id() string {
 	return g.id
+}
+
+//Version returns the version number of the highest State that is stored for
+//this game. This number will increase by one every time a move (either Player
+//or FixUp) is applied.
+func (g *Game) Version() int {
+	return g.version
+}
+
+//CurrentVersion returns the state object for the current state. Equivalent,
+//semantically, to game.State(game.Version())
+func (g *Game) CurrentState() State {
+	//TODO: memoize this
+	return g.State(g.Version())
+}
+
+//Returns the game's atate at the current version.
+func (g *Game) State(version int) State {
+
+	if version < 0 || version > g.Version() {
+		return nil
+	}
+
+	wrapper := g.storage.State(g, version)
+
+	if wrapper == nil {
+		return nil
+	}
+
+	return wrapper.State
+
 }
 
 //SetUp should be called a single time after all of the member variables are
@@ -233,7 +274,7 @@ func (g *Game) SetUp() error {
 	//Distribute all components to their starter locations
 
 	//We'll work on a copy of Payload, so if it fails at some point we can just drop it
-	stateCopy := g.StateWrapper.State.Copy()
+	stateCopy := g.initialState
 
 	for _, name := range g.Chest().DeckNames() {
 		deck := g.Chest().Deck(name)
@@ -254,15 +295,15 @@ func (g *Game) SetUp() error {
 		g.fixUpMovesByName[strings.ToLower(move.Name())] = move
 	}
 
-	//If we got to here then the payloadCopy is now the real one.
-	g.StateWrapper.State = stateCopy
-
 	//TODO: do other set-up work, including FinishSetUp
 
 	if g.Modifiable() {
 
 		//Save the initial state to DB.
-		g.storage.SaveState(g, g.StateWrapper)
+
+		g.storage.SaveState(g, newStarterStateWrapper(stateCopy))
+
+		g.initialState = nil
 
 		go g.mainLoop()
 	}
@@ -325,9 +366,11 @@ func (g *Game) PlayerMoves() []Move {
 
 	result := make([]Move, len(g.playerMoves))
 
+	currentState := g.CurrentState()
+
 	for i, move := range g.playerMoves {
 		result[i] = move.Copy()
-		result[i].DefaultsForState(g.StateWrapper.State)
+		result[i].DefaultsForState(currentState)
 	}
 
 	return result
@@ -348,9 +391,11 @@ func (g *Game) FixUpMoves() []Move {
 
 	result := make([]Move, len(g.fixUpMoves))
 
+	currentState := g.CurrentState()
+
 	for i, move := range g.fixUpMoves {
 		result[i] = move.Copy()
-		result[i].DefaultsForState(g.StateWrapper.State)
+		result[i].DefaultsForState(currentState)
 	}
 
 	return result
@@ -371,7 +416,7 @@ func (g *Game) PlayerMoveByName(name string) Move {
 	}
 
 	result := move.Copy()
-	result.DefaultsForState(g.StateWrapper.State)
+	result.DefaultsForState(g.CurrentState())
 	return result
 }
 
@@ -390,7 +435,7 @@ func (g *Game) FixUpMoveByName(name string) Move {
 	}
 
 	result := move.Copy()
-	result.DefaultsForState(g.StateWrapper.State)
+	result.DefaultsForState(g.CurrentState())
 	return result
 }
 
@@ -467,33 +512,35 @@ func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 		}
 	}
 
-	if err := move.Legal(g.StateWrapper.State); err != nil {
+	currentState := g.CurrentState()
+
+	if err := move.Legal(currentState); err != nil {
 		//It's not legal, reject.
 		return errors.New("The move was not legal: " + err.Error())
 	}
 
-	//TODO: keep track of historical states
-	//TODO: persist new states to database here
-
-	newState := g.StateWrapper.State.Copy()
+	newState := currentState.Copy()
 
 	if err := move.Apply(newState); err != nil {
 		return errors.New("The move's apply function returned an error:" + err.Error())
 	}
 
 	newStateWrapper := &StateWrapper{
-		Version: g.StateWrapper.Version + 1,
-		Schema:  g.StateWrapper.Schema,
+		Version: g.version + 1,
+		Schema:  g.schema,
 		State:   newState,
 	}
 
-	g.StateWrapper = newStateWrapper
+	//TODO: test that if we fail to save state to storage everything's fine.
+	if err := g.storage.SaveState(g, newStateWrapper); err != nil {
+		return errors.New("Storage returned an error:" + err.Error())
+	}
 
-	g.storage.SaveState(g, newStateWrapper)
+	g.version = g.version + 1
 
 	//Check to see if that move made the game finished.
 	if g.Delegate != nil {
-		finished, winners := g.Delegate.CheckGameFinished(g.StateWrapper.State)
+		finished, winners := g.Delegate.CheckGameFinished(newState)
 
 		if finished {
 			g.Finished = true
@@ -508,7 +555,7 @@ func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 			panic("We recursed deeply in fixup, which implies that ProposeFixUp has a move that is always legal. Quitting.")
 		}
 
-		move := g.Delegate.ProposeFixUpMove(g.StateWrapper.State)
+		move := g.Delegate.ProposeFixUpMove(newState)
 
 		if move != nil {
 			//We apply the move immediately. This ensures that when

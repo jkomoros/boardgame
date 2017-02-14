@@ -11,7 +11,9 @@ func TestState(t *testing.T) {
 
 	game := testGame()
 
-	state := game.StateWrapper
+	game.SetUp()
+
+	state := game.storage.State(game, game.Version())
 
 	if state == nil {
 		t.Error("State could not be created")
@@ -58,7 +60,7 @@ func TestStateSerialization(t *testing.T) {
 		t.Fatal("Couldn't make move", err)
 	}
 
-	blob, err := json.Marshal(game.StateWrapper.State)
+	blob, err := json.Marshal(game.CurrentState())
 
 	if err != nil {
 		t.Fatal("Couldn't serialize state:", err)
@@ -74,10 +76,10 @@ func TestStateSerialization(t *testing.T) {
 		t.Error("The stack was not inflated when it came back from StateFromBlob")
 	}
 
-	if !reflect.DeepEqual(reconstitutedState, game.StateWrapper.State) {
+	if !reflect.DeepEqual(reconstitutedState, game.CurrentState()) {
 
 		rStateBlob, _ := json.Marshal(reconstitutedState)
-		oStateBlob, _ := json.Marshal(game.StateWrapper.State)
+		oStateBlob, _ := json.Marshal(game.CurrentState())
 
 		t.Error("Reconstituted state and original state were not the same. Got", string(rStateBlob), "wanted", string(oStateBlob))
 	}
@@ -154,6 +156,14 @@ func compareJSONObjects(in []byte, golden []byte, message string, t *testing.T) 
 
 	json.Unmarshal(in, &deserializedIn)
 	json.Unmarshal(golden, &deserializedGolden)
+
+	if deserializedIn == nil {
+		t.Error("In didn't deserialize", message)
+	}
+
+	if deserializedGolden == nil {
+		t.Error("Golden didn't deserialize", message)
+	}
 
 	if !reflect.DeepEqual(deserializedIn, deserializedGolden) {
 		t.Error("Got wrong json.", message, "Got", string(in), "wanted", string(golden))

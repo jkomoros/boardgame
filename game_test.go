@@ -175,7 +175,7 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("MoveByName returned a non-copy")
 	}
 
-	p := game.StateWrapper.State.(*testState)
+	p := game.CurrentState().(*testState)
 
 	deck := game.Chest().Deck("test").Components()
 
@@ -236,7 +236,9 @@ func TestApplyMove(t *testing.T) {
 	//FixUp move, this is also testing that not just the main move, but also
 	//the fixup move was made.
 
-	currentJson, _ := json.Marshal(game.StateWrapper)
+	wrapper := game.storage.State(game, game.Version())
+
+	currentJson, _ := json.Marshal(wrapper)
 	golden := goldenJSON("basic_state_after_move.json", t)
 
 	compareJSONObjects(currentJson, golden, "Basic state after test move", t)

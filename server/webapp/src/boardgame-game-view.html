@@ -151,7 +151,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         if (!this.data) {
           return
         }
-        if (newValue.Version > this.data.Game.StateWrapper.Version) { 
+        if (newValue.Version > this.data.Game.Version) { 
           //We're out of date! Fetch new data!
           this.fetchData();
         }

@@ -15,9 +15,9 @@ func TestInMemoryStorageManger(t *testing.T) {
 
 	//Save state 0
 
-	state0 := game.StateWrapper
+	state0 := game.storage.State(game, game.Version())
 
-	if err := manager.SaveState(game, game.StateWrapper); err != nil {
+	if err := manager.SaveState(game, state0); err != nil {
 		t.Error("Save state 0 failed", err)
 	}
 
@@ -33,7 +33,7 @@ func TestInMemoryStorageManger(t *testing.T) {
 
 	//Try to save again insame slot
 
-	if err := manager.SaveState(game, game.StateWrapper); err == nil {
+	if err := manager.SaveState(game, state0); err == nil {
 		t.Error("We didn't get an error trying to save again at same version")
 	}
 

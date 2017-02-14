@@ -39,7 +39,7 @@ func (i *inMemoryStorageManager) State(game *Game, version int) *StateWrapper {
 		return nil
 	}
 
-	if version < 0 || version > game.StateWrapper.Version {
+	if version < 0 || version > game.version {
 		return nil
 	}
 

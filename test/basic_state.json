@@ -6,7 +6,12 @@
             "CurrentPlayer": 0,
             "DrawDeck": {
                 "Deck" : "test",
-                "Indexes" : []
+                "Indexes" : [
+                    3,
+                    2,
+                    1,
+                    0
+                ]
             }
         },
         "Users": [

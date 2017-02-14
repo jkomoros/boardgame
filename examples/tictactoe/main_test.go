@@ -27,7 +27,7 @@ func TestStateFromBlob(t *testing.T) {
 		t.Fatal("Couldn't make move", err)
 	}
 
-	blob, err := json.Marshal(game.StateWrapper.State)
+	blob, err := json.Marshal(game.CurrentState())
 
 	if err != nil {
 		t.Fatal("Couldn't serialize state:", err)
@@ -43,10 +43,10 @@ func TestStateFromBlob(t *testing.T) {
 		t.Error("The stack was not inflated when it came back from StateFromBlob")
 	}
 
-	if !reflect.DeepEqual(reconstitutedState, game.StateWrapper.State) {
+	if !reflect.DeepEqual(reconstitutedState, game.CurrentState()) {
 
 		rStateBlob, _ := json.Marshal(reconstitutedState)
-		oStateBlob, _ := json.Marshal(game.StateWrapper.State)
+		oStateBlob, _ := json.Marshal(game.CurrentState())
 
 		t.Error("Reconstituted state and original state were not the same. Got", string(rStateBlob), "wanted", string(oStateBlob))
 	}

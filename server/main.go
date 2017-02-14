@@ -100,7 +100,7 @@ func (s *Server) gameStatusHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"Status":  "Success",
-		"Version": game.StateWrapper.Version,
+		"Version": game.Version(),
 	})
 }
 
@@ -150,7 +150,7 @@ func (s *Server) gameViewHandler(c *gin.Context) {
 	game := obj.(*boardgame.Game)
 
 	args := gin.H{
-		"Diagram": game.StateWrapper.State.Diagram(),
+		"Diagram": game.CurrentState().Diagram(),
 		"Chest":   s.renderChest(game),
 		"Forms":   s.generateForms(game),
 		"Game":    game,
@@ -256,7 +256,7 @@ func (s *Server) generateForms(game *boardgame.Game) []*MoveForm {
 
 	for _, move := range game.PlayerMoves() {
 
-		move.DefaultsForState(game.StateWrapper.State)
+		move.DefaultsForState(game.CurrentState())
 
 		moveItem := &MoveForm{
 			Name:        move.Name(),
