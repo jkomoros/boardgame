@@ -260,6 +260,10 @@ func (g *Game) SetUp() error {
 	//TODO: do other set-up work, including FinishSetUp
 
 	if g.Modifiable() {
+
+		//Save the initial state to DB.
+		g.storage.SaveState(g, g.StateWrapper)
+
 		go g.mainLoop()
 	}
 
@@ -484,6 +488,8 @@ func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 	}
 
 	g.StateWrapper = newStateWrapper
+
+	g.storage.SaveState(g, newStateWrapper)
 
 	//Check to see if that move made the game finished.
 	if g.Delegate != nil {

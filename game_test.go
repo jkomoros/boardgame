@@ -149,6 +149,10 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("Calling SetUp on a previously errored game did not succeed", err)
 	}
 
+	if wrapper := game.storage.State(game, 0); wrapper == nil {
+		t.Error("State 0 was not saved in storage when game set up")
+	}
+
 	if game.Delegate.(*testGameDelegate).Game != game {
 		t.Error("After calling SetUp succesfully SetGame was not called.")
 	}
@@ -247,6 +251,10 @@ func TestApplyMove(t *testing.T) {
 
 	if err := <-game.ProposeMove(newMove); err != nil {
 		t.Error("Game didn't allow a move to be made even though it was legal")
+	}
+
+	if wrapper := game.storage.State(game, 1); wrapper == nil {
+		t.Error("We didn't get back state for state 1; game must not be persisting states to DB.")
 	}
 
 	//By the time err has resolved above, any fixup moves have been applied.
