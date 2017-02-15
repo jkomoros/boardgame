@@ -11,7 +11,7 @@ func TestState(t *testing.T) {
 
 	game := testGame()
 
-	game.SetUp()
+	game.SetUp(0)
 
 	state := game.storage.State(game, game.Version())
 
@@ -43,7 +43,7 @@ func TestStateSerialization(t *testing.T) {
 
 	game := testGame()
 
-	game.SetUp()
+	game.SetUp(0)
 
 	if err := <-game.ProposeMove(&testMove{
 		AString:           "bam",

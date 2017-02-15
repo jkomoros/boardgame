@@ -18,8 +18,6 @@ func TestGame(t *testing.T) {
 func TestStateFromBlob(t *testing.T) {
 	game := NewGame()
 
-	game.SetUp()
-
 	if err := <-game.ProposeMove(&MovePlaceToken{
 		Slot:              1,
 		TargetPlayerIndex: 0,

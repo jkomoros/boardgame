@@ -34,6 +34,10 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, 
 	return nil
 }
 
+func (g *gameDelegate) DefaultNumPlayers() int {
+	return 2
+}
+
 func (g *gameDelegate) StateFromBlob(blob []byte, schema int) (boardgame.State, error) {
 	result := &mainState{}
 	if err := json.Unmarshal(blob, result); err != nil {
@@ -239,7 +243,7 @@ func NewGame() *boardgame.Game {
 	game.AddPlayerMove(&MovePlaceToken{})
 	game.AddFixUpMove(&MoveAdvancePlayer{})
 
-	if err := game.SetUp(); err != nil {
+	if err := game.SetUp(0); err != nil {
 		panic("Game couldn't be set up")
 	}
 

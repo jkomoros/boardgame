@@ -41,6 +41,10 @@ func (t *testGameDelegate) CheckGameFinished(state State) (bool, []int) {
 	return false, nil
 }
 
+func (t *testGameDelegate) DefaultNumPlayers() int {
+	return 3
+}
+
 func (t *testGameDelegate) StartingState(numPlayers int) State {
 
 	chest := t.Game.Chest()
@@ -105,7 +109,7 @@ func TestGameModifiable(t *testing.T) {
 	//Fake that the game is not modifiable.
 	game.modifiable = false
 
-	game.SetUp()
+	game.SetUp(0)
 
 	move := &testMove{
 		AString:           "foo",
@@ -141,7 +145,7 @@ func TestGameSetUp(t *testing.T) {
 
 	game.SetChest(nil)
 
-	if err := game.SetUp(); err == nil {
+	if err := game.SetUp(0); err == nil {
 		t.Error("We were able to call game.SetUp without a Chest")
 	}
 
@@ -167,7 +171,7 @@ func TestGameSetUp(t *testing.T) {
 
 	//TODO: we no longer test that SetUp calls the Component distribution logic.
 
-	if err := game.SetUp(); err != nil {
+	if err := game.SetUp(0); err != nil {
 		t.Error("Calling SetUp on a previously errored game did not succeed", err)
 	}
 
@@ -218,7 +222,7 @@ func TestGameSetUp(t *testing.T) {
 func TestApplyMove(t *testing.T) {
 	game := testGame()
 
-	game.SetUp()
+	game.SetUp(0)
 
 	move := &testMove{
 		AString:           "foo",
@@ -313,7 +317,7 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 
 	game.AddFixUpMove(&testAlwaysLegalMove{})
 
-	game.SetUp()
+	game.SetUp(0)
 
 	move := game.PlayerMoveByName("Test")
 
@@ -338,7 +342,7 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 
 func TestGameState(t *testing.T) {
 	game := testGame()
-	game.SetUp()
+	game.SetUp(0)
 
 	//Getting this now helps verify that we invalidate currentState cache when
 	//we apply a move.

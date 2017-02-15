@@ -11,7 +11,7 @@ func TestInMemoryStorageManger(t *testing.T) {
 
 	game := testGame()
 
-	game.SetUp()
+	game.SetUp(0)
 
 	//Save state 0
 

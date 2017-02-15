@@ -150,6 +150,11 @@ type GameDelegate interface {
 	//into reasonable shape.
 	ProposeFixUpMove(state State) Move
 
+	//DefaultNumPlayers returns the number of users that this game defaults to.
+	//For example, for tictactoe, it will be 2. If 0 is provided to
+	//game.SetUp(), we wil use this value instead.
+	DefaultNumPlayers() int
+
 	//StartingState should return a zero'd state object for this game type.
 	//All future states for this particular game will be created by Copy()ing
 	//this state. If you return nil, game.SetUp() will fail.
@@ -193,6 +198,10 @@ func (d *DefaultGameDelegate) StateFromBlob(blob []byte, schema int) (State, err
 
 func (d *DefaultGameDelegate) StartingState(numPlayers int) State {
 	return nil
+}
+
+func (d *DefaultGameDelegate) DefaultNumPlayers() int {
+	return 2
 }
 
 //The Default ProposeFixUpMove runs through all moves in FixUpMoves, in order,
@@ -261,9 +270,10 @@ func (g *Game) State(version int) State {
 }
 
 //SetUp should be called a single time after all of the member variables are
-//set correctly, including Chest. SetUp must be called before ProposeMove can be
-//called. Even if an error is returned, the game should be in a consistent state.
-func (g *Game) SetUp() error {
+//set correctly, including Chest. SetUp must be called before ProposeMove can
+//be called. Even if an error is returned, the game should be in a consistent
+//state. If numPlayers is 0, we will use delegate.DefaultNumPlayers().
+func (g *Game) SetUp(numPlayers int) error {
 
 	if g.initalized {
 		return errors.New("Game already initalized")
@@ -275,14 +285,18 @@ func (g *Game) SetUp() error {
 
 	g.Delegate.SetGame(g)
 
-	//Distribute all components to their starter locations
+	if numPlayers == 0 {
+		numPlayers = g.Delegate.DefaultNumPlayers()
+	}
 
 	//We'll work on a copy of Payload, so if it fails at some point we can just drop it
-	stateCopy := g.Delegate.StartingState(2)
+	stateCopy := g.Delegate.StartingState(numPlayers)
 
 	if stateCopy == nil {
 		return errors.New("Delegate didn't return a starter state.")
 	}
+
+	//Distribute all components to their starter locations
 
 	for _, name := range g.Chest().DeckNames() {
 		deck := g.Chest().Deck(name)
