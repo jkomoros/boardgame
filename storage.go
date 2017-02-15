@@ -10,10 +10,10 @@ import (
 type StorageManager interface {
 	//State returns the StateWrapper for the game at the given version, or
 	//nil.
-	State(game *Game, version int) *StateWrapper
+	State(game *Game, version int) State
 	//SaveState puts the given stateWrapper (at the specified version and
 	//schema) into storage.
-	SaveState(game *Game, state *StateWrapper) error
+	SaveState(game *Game, version int, schema int, state State) error
 }
 
 type memoryStateRecord struct {
@@ -34,7 +34,7 @@ func NewInMemoryStorageManager() StorageManager {
 	}
 }
 
-func (i *inMemoryStorageManager) State(game *Game, version int) *StateWrapper {
+func (i *inMemoryStorageManager) State(game *Game, version int) State {
 	if game == nil {
 		return nil
 	}
@@ -61,14 +61,10 @@ func (i *inMemoryStorageManager) State(game *Game, version int) *StateWrapper {
 		return nil
 	}
 
-	return &StateWrapper{
-		Version: record.Version,
-		Schema:  record.Schema,
-		State:   state,
-	}
+	return state
 }
 
-func (i *inMemoryStorageManager) SaveState(game *Game, state *StateWrapper) error {
+func (i *inMemoryStorageManager) SaveState(game *Game, version int, schema int, state State) error {
 	if game == nil {
 		return errors.New("No game provided")
 	}
@@ -81,20 +77,20 @@ func (i *inMemoryStorageManager) SaveState(game *Game, state *StateWrapper) erro
 
 	versionMap := i.states[game.Id()]
 
-	if _, ok := versionMap[state.Version]; ok {
+	if _, ok := versionMap[version]; ok {
 		//Wait, there was already a version stored there?
 		return errors.New("There was already a version for that game stored")
 	}
 
-	blob, err := json.Marshal(state.State)
+	blob, err := json.Marshal(state)
 
 	if err != nil {
 		return errors.New("Error marshalling State: " + err.Error())
 	}
 
-	versionMap[state.Version] = &memoryStateRecord{
-		Version:         state.Version,
-		Schema:          state.Schema,
+	versionMap[version] = &memoryStateRecord{
+		Version:         version,
+		Schema:          schema,
 		SerializedState: blob,
 	}
 

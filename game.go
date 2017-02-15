@@ -242,13 +242,7 @@ func (g *Game) State(version int) State {
 		return nil
 	}
 
-	wrapper := g.storage.State(g, version)
-
-	if wrapper == nil {
-		return nil
-	}
-
-	return wrapper.State
+	return g.storage.State(g, version)
 
 }
 
@@ -300,8 +294,7 @@ func (g *Game) SetUp() error {
 	if g.Modifiable() {
 
 		//Save the initial state to DB.
-
-		g.storage.SaveState(g, newStarterStateWrapper(stateCopy))
+		g.storage.SaveState(g, 0, g.schema, stateCopy)
 
 		g.initialState = nil
 
@@ -525,17 +518,13 @@ func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 		return errors.New("The move's apply function returned an error:" + err.Error())
 	}
 
-	newStateWrapper := &StateWrapper{
-		Version: g.version + 1,
-		Schema:  g.schema,
-		State:   newState,
-	}
-
 	//TODO: test that if we fail to save state to storage everything's fine.
-	if err := g.storage.SaveState(g, newStateWrapper); err != nil {
+	if err := g.storage.SaveState(g, g.version+1, g.schema, newState); err != nil {
 		return errors.New("Storage returned an error:" + err.Error())
 	}
 
+	//We succeeded in saving the state, whcih means that our version can be
+	//incremented.
 	g.version = g.version + 1
 
 	//Check to see if that move made the game finished.

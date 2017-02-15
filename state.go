@@ -8,26 +8,6 @@ import (
 	"unicode"
 )
 
-type StateWrapper struct {
-	//The version number of the state. Increments by one each time a Move is
-	//applied.
-	Version int
-	//The schema version that this state object uses. This number will not
-	//change often, but is useful to detect if the state was saved back when a
-	//diferent schema was in use and needs to be migrated.
-	Schema int
-	State  State
-}
-
-//newStarterState creates a new state initialized for the first move.
-func newStarterStateWrapper(state State) *StateWrapper {
-	return &StateWrapper{
-		Version: 0,
-		Schema:  0,
-		State:   state,
-	}
-}
-
 //StatePayload is where the "meat" of the state goes. It is one object so that
 //client games can cast it quickly to the concrete struct for their game, so
 //that they can get to a type-checked world with minimal fuss inside of
@@ -92,18 +72,6 @@ type GameState interface {
 	//Copy returns a copy of our current state
 	Copy() GameState
 	BaseState
-}
-
-//Copy prepares another version of State that is set exactly the same. This is
-//done before a modification is made.
-func (s *StateWrapper) Copy() *StateWrapper {
-	//TODO: test this
-	return &StateWrapper{
-		Version: s.Version,
-		Schema:  s.Schema,
-		State:   s.State.Copy(),
-	}
-
 }
 
 //DefaultMarshalJSON is a simple wrapper around json.MarshalIndent, with the

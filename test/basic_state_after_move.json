@@ -1,35 +1,31 @@
 {
-    "Version": 2,
-    "Schema": 0,
-    "State": {
-        "Game": {
-            "CurrentPlayer": 1,
-            "DrawDeck": {                
-                "Deck" : "test",
-                "Indexes" : [
-                    3,
-                    2,
-                    1,
-                    0
-                ]
-            }
+    "Game": {
+        "CurrentPlayer": 1,
+        "DrawDeck": {                
+            "Deck" : "test",
+            "Indexes" : [
+                3,
+                2,
+                1,
+                0
+            ]
+        }
+    },
+    "Users": [
+        {
+            "Score": 3,
+            "MovesLeftThisTurn": 0,
+            "IsFoo": false
         },
-        "Users": [
-            {
-                "Score": 3,
-                "MovesLeftThisTurn": 0,
-                "IsFoo": false
-            },
-            {
-                "Score": 0,
-                "MovesLeftThisTurn": 1,
-                "IsFoo": false
-            },
-            {
-                "Score": 0,
-                "MovesLeftThisTurn": 0,
-                "IsFoo": true
-            }
-        ]
-    }
+        {
+            "Score": 0,
+            "MovesLeftThisTurn": 1,
+            "IsFoo": false
+        },
+        {
+            "Score": 0,
+            "MovesLeftThisTurn": 0,
+            "IsFoo": true
+        }
+    ]
 }

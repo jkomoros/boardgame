@@ -30,15 +30,9 @@ func TestState(t *testing.T) {
 
 	compareJSONObjects(copyJson, currentJson, "Copy was not same", t)
 
-	stateCopy.Schema = 1
+	stateCopy.(*testState).Users[0].MovesLeftThisTurn = 10
 
-	if state.Schema == 1 {
-		t.Error("Modifying a copy changed the original")
-	}
-
-	stateCopy.State.(*testState).Users[0].MovesLeftThisTurn = 10
-
-	if state.State.(*testState).Users[0].MovesLeftThisTurn == 10 {
+	if state.(*testState).Users[0].MovesLeftThisTurn == 10 {
 		t.Error("Modifying a copy change the original")
 	}
 
