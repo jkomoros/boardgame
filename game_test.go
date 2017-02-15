@@ -313,3 +313,39 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 	}
 
 }
+
+func TestGameState(t *testing.T) {
+	game := testGame()
+	game.SetUp()
+
+	move := game.PlayerMoveByName("Test")
+
+	if move == nil {
+		t.Fatal("Couldn't find a move to make")
+	}
+
+	if err := <-game.ProposeMove(move); err != nil {
+		t.Error("Couldn't make move")
+	}
+
+	state := game.State(-1)
+
+	if state != nil {
+		t.Error("Returned a state for a non-sensiscal version -1", state)
+	}
+
+	state = game.State(game.Version() + 1)
+
+	if state != nil {
+		t.Error("Returned a state for a too-high version", state)
+	}
+
+	currentState := game.CurrentState()
+	state = game.State(game.Version())
+
+	if !reflect.DeepEqual(currentState, state) {
+		t.Error("State(game.Version()) and CurrentState() weren't equivalent", currentState, state)
+
+	}
+
+}
