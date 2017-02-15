@@ -51,6 +51,10 @@ type Game struct {
 	playerMovesByName map[string]Move
 	fixUpMovesByName  map[string]Move
 
+	//Memozied answer to CurrentState. Invalidated whenever ApplyMove is
+	//called.
+	cachedCurrentState State
+
 	//Modifiable controls whether moves can be made on this game.
 	modifiable bool
 
@@ -239,8 +243,10 @@ func (g *Game) Version() int {
 //CurrentVersion returns the state object for the current state. Equivalent,
 //semantically, to game.State(game.Version())
 func (g *Game) CurrentState() State {
-	//TODO: memoize this
-	return g.State(g.Version())
+	if g.cachedCurrentState == nil {
+		g.cachedCurrentState = g.State(g.Version())
+	}
+	return g.cachedCurrentState
 }
 
 //Returns the game's atate at the current version.
@@ -532,6 +538,8 @@ func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 	//We succeeded in saving the state, whcih means that our version can be
 	//incremented.
 	g.version = g.version + 1
+	//Expire the currentState cache; it's no longer valid.
+	g.cachedCurrentState = nil
 
 	//Check to see if that move made the game finished.
 	if g.Delegate != nil {

@@ -340,6 +340,16 @@ func TestGameState(t *testing.T) {
 	game := testGame()
 	game.SetUp()
 
+	//Getting this now helps verify that we invalidate currentState cache when
+	//we apply a move.
+	state := game.CurrentState()
+
+	state0 := game.State(0)
+
+	if !reflect.DeepEqual(state, state0) {
+		t.Error("CurrentState at version 0 did not return state 0")
+	}
+
 	move := game.PlayerMoveByName("Test")
 
 	if move == nil {
@@ -350,7 +360,7 @@ func TestGameState(t *testing.T) {
 		t.Error("Couldn't make move")
 	}
 
-	state := game.State(-1)
+	state = game.State(-1)
 
 	if state != nil {
 		t.Error("Returned a state for a non-sensiscal version -1", state)
