@@ -100,15 +100,19 @@ func randomString(length int) string {
 
 //NewGame returns a new game. You must set a Chest and call AddMove with all
 //moves, before calling SetUp. Then the game can be used.
-func NewGame(name string, initialState State, optionalDelegate GameDelegate, storage StorageManager) *Game {
+func NewGame(name string, initialState State, delegate GameDelegate, storage StorageManager) *Game {
 
 	if storage == nil {
 		return nil
 	}
 
+	if delegate == nil {
+		return nil
+	}
+
 	result := &Game{
 		Name:     name,
-		Delegate: optionalDelegate,
+		Delegate: delegate,
 		//TODO: set the size of chan based on something more reasonable.
 		proposedMoves: make(chan *proposedMoveItem, 20),
 		id:            randomString(gameIDLength),
@@ -257,10 +261,6 @@ func (g *Game) SetUp() error {
 
 	if g.chest == nil {
 		return errors.New("No component chest set")
-	}
-
-	if g.Delegate == nil {
-		g.Delegate = &DefaultGameDelegate{}
 	}
 
 	g.Delegate.SetGame(g)

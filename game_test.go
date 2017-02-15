@@ -133,14 +133,10 @@ func TestGameSetUp(t *testing.T) {
 
 	delegate := game.Delegate
 
-	game.Delegate = nil
+	game.Delegate = &DefaultGameDelegate{}
 
 	if err := game.SetUp(); err == nil {
 		t.Error("game.SetUp didn't error when we had components in a deck but only the default delegate, which errors when a component has DistributeComponentToStarterStack is called.")
-	}
-
-	if game.Delegate == nil {
-		t.Error("Calling game.SetUp with no delegate did not provide us with one.")
 	}
 
 	game.Delegate = delegate
