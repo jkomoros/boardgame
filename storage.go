@@ -55,7 +55,7 @@ func (i *inMemoryStorageManager) State(game *Game, version int) State {
 		return nil
 	}
 
-	state, err := game.Delegate.StateFromBlob(record.SerializedState, record.Schema)
+	state, err := game.Manager.StateFromBlob(record.SerializedState, record.Schema)
 
 	if err != nil {
 		return nil

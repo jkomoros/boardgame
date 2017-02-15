@@ -7,20 +7,20 @@ import (
 	"time"
 )
 
-type testInfiniteLoopGameDelegate struct {
-	testGameDelegate
+type testInfiniteLoopGameManager struct {
+	testGameManager
 }
 
-type testGameDelegate struct {
-	DefaultGameDelegate
+type testGameManager struct {
+	DefaultGameManager
 }
 
-func (t *testGameDelegate) DistributeComponentToStarterStack(state State, c *Component) error {
+func (t *testGameManager) DistributeComponentToStarterStack(state State, c *Component) error {
 	p := state.(*testState)
 	return p.Game.DrawDeck.InsertFront(c)
 }
 
-func (t *testGameDelegate) CheckGameFinished(state State) (bool, []int) {
+func (t *testGameManager) CheckGameFinished(state State) (bool, []int) {
 	p := state.(*testState)
 
 	var winners []int
@@ -41,11 +41,11 @@ func (t *testGameDelegate) CheckGameFinished(state State) (bool, []int) {
 	return false, nil
 }
 
-func (t *testGameDelegate) DefaultNumPlayers() int {
+func (t *testGameManager) DefaultNumPlayers() int {
 	return 3
 }
 
-func (t *testGameDelegate) StartingState(numPlayers int) State {
+func (t *testGameManager) StartingState(numPlayers int) State {
 
 	chest := t.Game.Chest()
 
@@ -79,7 +79,7 @@ func (t *testGameDelegate) StartingState(numPlayers int) State {
 	}
 }
 
-func (t *testGameDelegate) StateFromBlob(blob []byte, schema int) (State, error) {
+func (t *testGameManager) StateFromBlob(blob []byte, schema int) (State, error) {
 	result := &testState{}
 	if err := json.Unmarshal(blob, result); err != nil {
 		return nil, err
@@ -94,7 +94,7 @@ func (t *testGameDelegate) StateFromBlob(blob []byte, schema int) (State, error)
 	return result, nil
 }
 
-func (t *testInfiniteLoopGameDelegate) ProposeFixUpMove(state State) Move {
+func (t *testInfiniteLoopGameManager) ProposeFixUpMove(state State) Move {
 	return &testAlwaysLegalMove{}
 }
 
@@ -179,7 +179,7 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("State 0 was not saved in storage when game set up")
 	}
 
-	if game.Delegate.(*testGameDelegate).Game != game {
+	if game.Manager.(*testGameManager).Game != game {
 		t.Error("After calling SetUp succesfully SetGame was not called.")
 	}
 
@@ -313,7 +313,7 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 
 	game := testGame()
 
-	game.Delegate = &testInfiniteLoopGameDelegate{}
+	game.Manager = &testInfiniteLoopGameManager{}
 
 	game.AddFixUpMove(&testAlwaysLegalMove{})
 

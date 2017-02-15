@@ -16,11 +16,11 @@ const gameName = "Tic Tac Toe"
 
 const DIM = 3
 
-type gameDelegate struct {
-	boardgame.DefaultGameDelegate
+type gameManager struct {
+	boardgame.DefaultGameManager
 }
 
-func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c *boardgame.Component) error {
+func (g *gameManager) DistributeComponentToStarterStack(state boardgame.State, c *boardgame.Component) error {
 	component := c.Values.(*playerToken)
 
 	p := state.(*mainState)
@@ -34,11 +34,11 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, 
 	return nil
 }
 
-func (g *gameDelegate) DefaultNumPlayers() int {
+func (g *gameManager) DefaultNumPlayers() int {
 	return 2
 }
 
-func (g *gameDelegate) StateFromBlob(blob []byte, schema int) (boardgame.State, error) {
+func (g *gameManager) StateFromBlob(blob []byte, schema int) (boardgame.State, error) {
 	result := &mainState{}
 	if err := json.Unmarshal(blob, result); err != nil {
 		return nil, err
@@ -54,7 +54,7 @@ func (g *gameDelegate) StateFromBlob(blob []byte, schema int) (boardgame.State, 
 	return result, nil
 }
 
-func (g *gameDelegate) StartingState(numUsers int) boardgame.State {
+func (g *gameManager) StartingState(numUsers int) boardgame.State {
 
 	if numUsers != 2 {
 		return nil
@@ -91,7 +91,7 @@ func (g *gameDelegate) StartingState(numUsers int) boardgame.State {
 	return result
 }
 
-func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, winners []int) {
+func (g *gameManager) CheckGameFinished(state boardgame.State) (finished bool, winners []int) {
 
 	s := state.(*mainState)
 
@@ -236,7 +236,7 @@ func NewGame() *boardgame.Game {
 
 	chest.AddDeck("tokens", tokens)
 
-	game := boardgame.NewGame(gameName, &gameDelegate{}, boardgame.NewInMemoryStorageManager())
+	game := boardgame.NewGame(gameName, &gameManager{}, boardgame.NewInMemoryStorageManager())
 
 	game.SetChest(chest)
 

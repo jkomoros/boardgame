@@ -4,10 +4,11 @@ import (
 	"errors"
 )
 
-//GameDelegate is called at various points in the game lifecycle. It is one of
-//the primary ways that a specific game controls behavior over and beyond
-//Moves and their Legal states.
-type GameDelegate interface {
+//GameManager is a central point of coordination for games. It serves as a
+//delegate for key parts of a Game's lifecycle to define the logic for a given
+//type of game.It is one of the primary ways that a specific game controls
+//behavior over and beyond Moves and their Legal states.
+type GameManager interface {
 
 	//DistributeComponentToStarterStack is called during set up to establish
 	//the Deck/Stack invariant that every component in the chest is placed in
@@ -54,34 +55,34 @@ type GameDelegate interface {
 	SetGame(game *Game)
 }
 
-//DefaultGameDelegate is a struct that implements stubs for all of
-//GameDelegate's methods. This makes it easy to override just one or two
+//DefaultGameManager is a struct that implements stubs for all of
+//GameManager's methods. This makes it easy to override just one or two
 //methods by creating your own struct that anonymously embeds this one. You
 //almost certainly want to override StartingState.
-type DefaultGameDelegate struct {
+type DefaultGameManager struct {
 	Game *Game
 }
 
-func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state State, c *Component) error {
+func (d *DefaultGameManager) DistributeComponentToStarterStack(state State, c *Component) error {
 	//The stub returns an error, because if this is called that means there
 	//was a component in the deck. And if we didn't store it in a stack, then
 	//we are in violation of the invariant.
 	return errors.New("DistributeComponentToStarterStack was called, but the component was not stored in a stack")
 }
 
-func (d *DefaultGameDelegate) CheckGameFinished(state State) (finished bool, winners []int) {
+func (d *DefaultGameManager) CheckGameFinished(state State) (finished bool, winners []int) {
 	return false, nil
 }
 
-func (d *DefaultGameDelegate) StateFromBlob(blob []byte, schema int) (State, error) {
+func (d *DefaultGameManager) StateFromBlob(blob []byte, schema int) (State, error) {
 	return nil, errors.New("Default delegate does not know how to deserialize state objects")
 }
 
-func (d *DefaultGameDelegate) StartingState(numPlayers int) State {
+func (d *DefaultGameManager) StartingState(numPlayers int) State {
 	return nil
 }
 
-func (d *DefaultGameDelegate) DefaultNumPlayers() int {
+func (d *DefaultGameManager) DefaultNumPlayers() int {
 	return 2
 }
 
@@ -90,7 +91,7 @@ func (d *DefaultGameDelegate) DefaultNumPlayers() int {
 //this behavior should be suficient and need not be overwritten. Be extra sure
 //that your FixUpMoves have a conservative Legal function, otherwise you could
 //get a panic from applying too many FixUp moves.
-func (d *DefaultGameDelegate) ProposeFixUpMove(state State) Move {
+func (d *DefaultGameManager) ProposeFixUpMove(state State) Move {
 	for _, move := range d.Game.FixUpMoves() {
 		if err := move.Legal(state); err == nil {
 			//Found it!
@@ -101,6 +102,6 @@ func (d *DefaultGameDelegate) ProposeFixUpMove(state State) Move {
 	return nil
 }
 
-func (d *DefaultGameDelegate) SetGame(game *Game) {
+func (d *DefaultGameManager) SetGame(game *Game) {
 	d.Game = game
 }

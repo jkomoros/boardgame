@@ -21,8 +21,10 @@ type Game struct {
 	//"Blackjack".
 	Name string
 
-	//Delegate is an (optional) way to override behavior at key game states.
-	Delegate GameDelegate
+	//Manager is a reference to the GameManager that controls this game.
+	//GameManager's methods will be called at key points in the lifecycle of
+	//this game.
+	Manager GameManager
 
 	//Finished is whether the came has been completed. If it is over, the
 	//Winners will be set.
@@ -99,19 +101,19 @@ func randomString(length int) string {
 
 //NewGame returns a new game. You must set a Chest and call AddMove with all
 //moves, before calling SetUp. Then the game can be used.
-func NewGame(name string, delegate GameDelegate, storage StorageManager) *Game {
+func NewGame(name string, manager GameManager, storage StorageManager) *Game {
 
 	if storage == nil {
 		return nil
 	}
 
-	if delegate == nil {
+	if manager == nil {
 		return nil
 	}
 
 	result := &Game{
-		Name:     name,
-		Delegate: delegate,
+		Name:    name,
+		Manager: manager,
 		//TODO: set the size of chan based on something more reasonable.
 		proposedMoves: make(chan *proposedMoveItem, 20),
 		id:            randomString(gameIDLength),
@@ -182,14 +184,14 @@ func (g *Game) SetUp(numPlayers int) error {
 		return errors.New("No component chest set")
 	}
 
-	g.Delegate.SetGame(g)
+	g.Manager.SetGame(g)
 
 	if numPlayers == 0 {
-		numPlayers = g.Delegate.DefaultNumPlayers()
+		numPlayers = g.Manager.DefaultNumPlayers()
 	}
 
 	//We'll work on a copy of Payload, so if it fails at some point we can just drop it
-	stateCopy := g.Delegate.StartingState(numPlayers)
+	stateCopy := g.Manager.StartingState(numPlayers)
 
 	if stateCopy == nil {
 		return errors.New("Delegate didn't return a starter state.")
@@ -200,7 +202,7 @@ func (g *Game) SetUp(numPlayers int) error {
 	for _, name := range g.Chest().DeckNames() {
 		deck := g.Chest().Deck(name)
 		for i, component := range deck.Components() {
-			if err := g.Delegate.DistributeComponentToStarterStack(stateCopy, component); err != nil {
+			if err := g.Manager.DistributeComponentToStarterStack(stateCopy, component); err != nil {
 				return errors.New("Distributing components failed for deck " + name + ":" + strconv.Itoa(i) + ":" + err.Error())
 			}
 		}
@@ -455,30 +457,26 @@ func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 	g.cachedCurrentState = nil
 
 	//Check to see if that move made the game finished.
-	if g.Delegate != nil {
-		finished, winners := g.Delegate.CheckGameFinished(newState)
 
-		if finished {
-			g.Finished = true
-			g.Winners = winners
-			//TODO: persist to database here.
-		}
+	finished, winners := g.Manager.CheckGameFinished(newState)
+
+	if finished {
+		g.Finished = true
+		g.Winners = winners
+		//TODO: persist to database here.
 	}
 
-	if g.Delegate != nil {
+	if recurseCount > maxRecurseCount {
+		panic("We recursed deeply in fixup, which implies that ProposeFixUp has a move that is always legal. Quitting.")
+	}
 
-		if recurseCount > maxRecurseCount {
-			panic("We recursed deeply in fixup, which implies that ProposeFixUp has a move that is always legal. Quitting.")
-		}
+	move = g.Manager.ProposeFixUpMove(newState)
 
-		move := g.Delegate.ProposeFixUpMove(newState)
-
-		if move != nil {
-			//We apply the move immediately. This ensures that when
-			//DelayedError resolves, all of the fix up moves have been
-			//applied.
-			g.applyMove(move, true, recurseCount+1)
-		}
+	if move != nil {
+		//We apply the move immediately. This ensures that when
+		//DelayedError resolves, all of the fix up moves have been
+		//applied.
+		g.applyMove(move, true, recurseCount+1)
 	}
 
 	return nil

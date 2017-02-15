@@ -346,7 +346,7 @@ func testGame() *Game {
 
 	chest.Finish()
 
-	game := NewGame(testGameName, &testGameDelegate{}, NewInMemoryStorageManager())
+	game := NewGame(testGameName, &testGameManager{}, NewInMemoryStorageManager())
 
 	game.AddPlayerMove(&testMove{})
 	game.AddFixUpMove(&testMoveAdvanceCurentPlayer{})
