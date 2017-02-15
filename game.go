@@ -42,11 +42,6 @@ type Game struct {
 	//should live there instead.
 	storage StorageManager
 
-	//starterState is a temporary state passed in in the constructor.
-	initialState State
-	//TODO: instead of having a starterState, we should just have a
-	//Delegate.StarterState()
-
 	//Moves is the set of all move types that are ever legal to apply in this
 	//game. When a move will be proposed it should copy one of these moves.
 	//Player moves are moves that can be applied by users. FixUp moves are
