@@ -41,6 +41,40 @@ func (t *testGameDelegate) CheckGameFinished(state State) (bool, []int) {
 	return false, nil
 }
 
+func (t *testGameDelegate) StartingState(numPlayers int) State {
+
+	chest := t.Game.Chest()
+
+	deck := chest.Deck("test")
+
+	return &testState{
+		Game: &testGameState{
+			CurrentPlayer: 0,
+			DrawDeck:      NewGrowableStack(deck, 0),
+		},
+		Users: []*testUserState{
+			&testUserState{
+				playerIndex:       0,
+				Score:             0,
+				MovesLeftThisTurn: 1,
+				IsFoo:             false,
+			},
+			&testUserState{
+				playerIndex:       1,
+				Score:             0,
+				MovesLeftThisTurn: 0,
+				IsFoo:             false,
+			},
+			&testUserState{
+				playerIndex:       2,
+				Score:             0,
+				MovesLeftThisTurn: 0,
+				IsFoo:             true,
+			},
+		},
+	}
+}
+
 func (t *testGameDelegate) StateFromBlob(blob []byte, schema int) (State, error) {
 	result := &testState{}
 	if err := json.Unmarshal(blob, result); err != nil {
@@ -131,15 +165,7 @@ func TestGameSetUp(t *testing.T) {
 		//Pass.
 	}
 
-	delegate := game.Delegate
-
-	game.Delegate = &DefaultGameDelegate{}
-
-	if err := game.SetUp(); err == nil {
-		t.Error("game.SetUp didn't error when we had components in a deck but only the default delegate, which errors when a component has DistributeComponentToStarterStack is called.")
-	}
-
-	game.Delegate = delegate
+	//TODO: we no longer test that SetUp calls the Component distribution logic.
 
 	if err := game.SetUp(); err != nil {
 		t.Error("Calling SetUp on a previously errored game did not succeed", err)

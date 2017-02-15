@@ -100,7 +100,7 @@ func randomString(length int) string {
 
 //NewGame returns a new game. You must set a Chest and call AddMove with all
 //moves, before calling SetUp. Then the game can be used.
-func NewGame(name string, initialState State, delegate GameDelegate, storage StorageManager) *Game {
+func NewGame(name string, delegate GameDelegate, storage StorageManager) *Game {
 
 	if storage == nil {
 		return nil
@@ -118,7 +118,6 @@ func NewGame(name string, initialState State, delegate GameDelegate, storage Sto
 		id:            randomString(gameIDLength),
 		modifiable:    true,
 		storage:       storage,
-		initialState:  initialState,
 	}
 
 	return result
@@ -152,6 +151,11 @@ type GameDelegate interface {
 	//into reasonable shape.
 	ProposeFixUpMove(state State) Move
 
+	//StartingState should return a zero'd state object for this game type.
+	//All future states for this particular game will be created by Copy()ing
+	//this state. If you return nil, game.SetUp() will fail.
+	StartingState(numPlayers int) State
+
 	//StateFromBlob should deserialize a JSON string of this game's State. We
 	//need it to be in a game-specific bit of logic because we don't know the
 	//real type of the state stuct for this game. Be sure to inflate any
@@ -167,7 +171,8 @@ type GameDelegate interface {
 
 //DefaultGameDelegate is a struct that implements stubs for all of
 //GameDelegate's methods. This makes it easy to override just one or two
-//methods by creating your own struct that anonymously embeds this one.
+//methods by creating your own struct that anonymously embeds this one. You
+//almost certainly want to override StartingState.
 type DefaultGameDelegate struct {
 	Game *Game
 }
@@ -185,6 +190,10 @@ func (d *DefaultGameDelegate) CheckGameFinished(state State) (finished bool, win
 
 func (d *DefaultGameDelegate) StateFromBlob(blob []byte, schema int) (State, error) {
 	return nil, errors.New("Default delegate does not know how to deserialize state objects")
+}
+
+func (d *DefaultGameDelegate) StartingState(numPlayers int) State {
+	return nil
 }
 
 //The Default ProposeFixUpMove runs through all moves in FixUpMoves, in order,
@@ -268,7 +277,11 @@ func (g *Game) SetUp() error {
 	//Distribute all components to their starter locations
 
 	//We'll work on a copy of Payload, so if it fails at some point we can just drop it
-	stateCopy := g.initialState
+	stateCopy := g.Delegate.StartingState(2)
+
+	if stateCopy == nil {
+		return errors.New("Delegate didn't return a starter state.")
+	}
 
 	for _, name := range g.Chest().DeckNames() {
 		deck := g.Chest().Deck(name)
@@ -295,8 +308,6 @@ func (g *Game) SetUp() error {
 
 		//Save the initial state to DB.
 		g.storage.SaveState(g, 0, g.schema, stateCopy)
-
-		g.initialState = nil
 
 		go g.mainLoop()
 	}

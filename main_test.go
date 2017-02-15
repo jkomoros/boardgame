@@ -346,34 +346,7 @@ func testGame() *Game {
 
 	chest.Finish()
 
-	initialState := &testState{
-		Game: &testGameState{
-			CurrentPlayer: 0,
-			DrawDeck:      NewGrowableStack(deck, 0),
-		},
-		Users: []*testUserState{
-			&testUserState{
-				playerIndex:       0,
-				Score:             0,
-				MovesLeftThisTurn: 1,
-				IsFoo:             false,
-			},
-			&testUserState{
-				playerIndex:       1,
-				Score:             0,
-				MovesLeftThisTurn: 0,
-				IsFoo:             false,
-			},
-			&testUserState{
-				playerIndex:       2,
-				Score:             0,
-				MovesLeftThisTurn: 0,
-				IsFoo:             true,
-			},
-		},
-	}
-
-	game := NewGame(testGameName, initialState, &testGameDelegate{}, NewInMemoryStorageManager())
+	game := NewGame(testGameName, &testGameDelegate{}, NewInMemoryStorageManager())
 
 	game.AddPlayerMove(&testMove{})
 	game.AddFixUpMove(&testMoveAdvanceCurentPlayer{})

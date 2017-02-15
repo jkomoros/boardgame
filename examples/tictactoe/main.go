@@ -50,6 +50,43 @@ func (g *gameDelegate) StateFromBlob(blob []byte, schema int) (boardgame.State, 
 	return result, nil
 }
 
+func (g *gameDelegate) StartingState(numUsers int) boardgame.State {
+
+	if numUsers != 2 {
+		return nil
+	}
+
+	tokens := g.Game.Chest().Deck("tokens")
+
+	if tokens == nil {
+		return nil
+	}
+
+	result := &mainState{
+		Game: &gameState{
+			Slots: boardgame.NewSizedStack(tokens, DIM*DIM),
+		},
+		Users: []*userState{
+			&userState{
+				TokensToPlaceThisTurn: 1,
+				TokenValue:            X,
+				UnusedTokens:          boardgame.NewGrowableStack(tokens, 0),
+			},
+			&userState{
+				TokensToPlaceThisTurn: 0,
+				TokenValue:            O,
+				UnusedTokens:          boardgame.NewGrowableStack(tokens, 0),
+			},
+		},
+	}
+
+	for i, user := range result.Users {
+		user.playerIndex = i
+	}
+
+	return result
+}
+
 func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, winners []int) {
 
 	s := state.(*mainState)
@@ -195,29 +232,7 @@ func NewGame() *boardgame.Game {
 
 	chest.AddDeck("tokens", tokens)
 
-	starterState := &mainState{
-		Game: &gameState{
-			Slots: boardgame.NewSizedStack(tokens, DIM*DIM),
-		},
-		Users: []*userState{
-			&userState{
-				TokensToPlaceThisTurn: 1,
-				TokenValue:            X,
-				UnusedTokens:          boardgame.NewGrowableStack(tokens, 0),
-			},
-			&userState{
-				TokensToPlaceThisTurn: 0,
-				TokenValue:            O,
-				UnusedTokens:          boardgame.NewGrowableStack(tokens, 0),
-			},
-		},
-	}
-
-	for i, user := range starterState.Users {
-		user.playerIndex = i
-	}
-
-	game := boardgame.NewGame(gameName, starterState, &gameDelegate{}, boardgame.NewInMemoryStorageManager())
+	game := boardgame.NewGame(gameName, &gameDelegate{}, boardgame.NewInMemoryStorageManager())
 
 	game.SetChest(chest)
 
