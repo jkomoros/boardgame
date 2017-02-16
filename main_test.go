@@ -322,7 +322,7 @@ func testGame() *Game {
 
 	manager.SetUp()
 
-	game := NewGame(testGameName, manager, NewInMemoryStorageManager())
+	game := NewGame(testGameName, manager)
 
 	return game
 }

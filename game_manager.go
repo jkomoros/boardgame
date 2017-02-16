@@ -99,6 +99,12 @@ type GameManager interface {
 	//SetChest is the way to associate the given Chest with this game manager
 	//before calling SetUp().
 	SetChest(chest *ComponentChest)
+
+	//Storage is the StorageManager games that use this manager should use.
+	Storage() StorageManager
+
+	//SetStorage is how to set the storage manager before SetUp is called.
+	SetStorage(storage StorageManager)
 }
 
 //DefaultGameManager is a struct that implements stubs for all of
@@ -110,6 +116,7 @@ type GameManager interface {
 type DefaultGameManager struct {
 	Game              *Game
 	chest             *ComponentChest
+	storage           StorageManager
 	fixUpMoves        []Move
 	playerMoves       []Move
 	fixUpMovesByName  map[string]Move
@@ -121,6 +128,10 @@ func (d *DefaultGameManager) SetUp() error {
 
 	if d.chest == nil {
 		return errors.New("No chest provided")
+	}
+
+	if d.storage == nil {
+		return errors.New("Storage not provided")
 	}
 
 	d.playerMovesByName = make(map[string]Move)
@@ -257,6 +268,14 @@ func (d *DefaultGameManager) SetChest(chest *ComponentChest) {
 		chest.Finish()
 	}
 	d.chest = chest
+}
+
+func (d *DefaultGameManager) Storage() StorageManager {
+	return d.storage
+}
+
+func (d *DefaultGameManager) SetStorage(storage StorageManager) {
+	d.storage = storage
 }
 
 //The Default ProposeFixUpMove runs through all moves in FixUpMoves, in order,

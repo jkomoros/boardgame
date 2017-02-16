@@ -128,6 +128,8 @@ func newTestGameManger() GameManager {
 
 	manager.SetChest(newTestGameChest())
 
+	manager.SetStorage(NewInMemoryStorageManager())
+
 	return manager
 }
 

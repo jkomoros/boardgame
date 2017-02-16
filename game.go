@@ -39,10 +39,6 @@ type Game struct {
 	schema int
 	//TODO: allow setting this.
 
-	//The storage to use. When we move Delegat to be a GameManager, storage
-	//should live there instead.
-	storage StorageManager
-
 	//Memozied answer to CurrentState. Invalidated whenever ApplyMove is
 	//called.
 	cachedCurrentState State
@@ -90,11 +86,7 @@ func randomString(length int) string {
 
 //NewGame returns a new game. You must set a Chest and call AddMove with all
 //moves, before calling SetUp. Then the game can be used.
-func NewGame(name string, manager GameManager, storage StorageManager) *Game {
-
-	if storage == nil {
-		return nil
-	}
+func NewGame(name string, manager GameManager) *Game {
 
 	if manager == nil {
 		return nil
@@ -107,7 +99,6 @@ func NewGame(name string, manager GameManager, storage StorageManager) *Game {
 		proposedMoves: make(chan *proposedMoveItem, 20),
 		id:            randomString(gameIDLength),
 		modifiable:    true,
-		storage:       storage,
 	}
 
 	return result
@@ -155,7 +146,7 @@ func (g *Game) State(version int) State {
 		return nil
 	}
 
-	return g.storage.State(g, version)
+	return g.Manager.Storage().State(g, version)
 
 }
 
@@ -202,7 +193,7 @@ func (g *Game) SetUp(numPlayers int) error {
 	if g.Modifiable() {
 
 		//Save the initial state to DB.
-		g.storage.SaveState(g, 0, g.schema, stateCopy)
+		g.Manager.Storage().SaveState(g, 0, g.schema, stateCopy)
 
 		go g.mainLoop()
 	}
@@ -370,7 +361,7 @@ func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 	}
 
 	//TODO: test that if we fail to save state to storage everything's fine.
-	if err := g.storage.SaveState(g, g.version+1, g.schema, newState); err != nil {
+	if err := g.Manager.Storage().SaveState(g, g.version+1, g.schema, newState); err != nil {
 		return errors.New("Storage returned an error:" + err.Error())
 	}
 

@@ -243,9 +243,11 @@ func NewGame() *boardgame.Game {
 
 	manager.SetChest(chest)
 
+	manager.SetStorage(boardgame.NewInMemoryStorageManager())
+
 	manager.SetUp()
 
-	game := boardgame.NewGame(gameName, manager, boardgame.NewInMemoryStorageManager())
+	game := boardgame.NewGame(gameName, manager)
 
 	if err := game.SetUp(0); err != nil {
 		panic("Game couldn't be set up")
