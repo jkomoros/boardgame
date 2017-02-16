@@ -44,11 +44,11 @@ func (g *gameManager) StateFromBlob(blob []byte, schema int) (boardgame.State, e
 		return nil, err
 	}
 
-	result.Game.Slots.Inflate(g.Game.Chest())
+	result.Game.Slots.Inflate(g.Chest())
 
 	for i, user := range result.Users {
 		user.playerIndex = i
-		user.UnusedTokens.Inflate(g.Game.Chest())
+		user.UnusedTokens.Inflate(g.Chest())
 	}
 
 	return result, nil
@@ -60,7 +60,7 @@ func (g *gameManager) StartingState(numUsers int) boardgame.State {
 		return nil
 	}
 
-	tokens := g.Game.Chest().Deck("tokens")
+	tokens := g.Chest().Deck("tokens")
 
 	if tokens == nil {
 		return nil

@@ -164,8 +164,6 @@ func (g *Game) SetUp(numPlayers int) error {
 		return errors.New("No component chest set on manager")
 	}
 
-	g.Manager.SetGame(g)
-
 	if numPlayers == 0 {
 		numPlayers = g.Manager.DefaultNumPlayers()
 	}

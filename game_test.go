@@ -86,10 +86,6 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("State 0 was not saved in storage when game set up")
 	}
 
-	if game.Manager.(*testGameManager).Game != game {
-		t.Error("After calling SetUp succesfully SetGame was not called.")
-	}
-
 	if game.PlayerMoveByName("Test") == nil {
 		t.Error("MoveByName didn't return a valid move when provided the proper name after calling setup")
 	}

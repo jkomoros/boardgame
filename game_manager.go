@@ -8,7 +8,8 @@ import (
 //GameManager is a central point of coordination for games. It serves as a
 //delegate for key parts of a Game's lifecycle to define the logic for a given
 //type of game.It is one of the primary ways that a specific game controls
-//behavior over and beyond Moves and their Legal states.
+//behavior over and beyond Moves and their Legal states. One GameManager is
+//designed to be used with many Games.
 type GameManager interface {
 
 	//DistributeComponentToStarterStack is called during set up to establish
@@ -50,10 +51,6 @@ type GameManager interface {
 	//It's strongly recommended that you test a round-trip of state through
 	//this method.
 	StateFromBlob(blob []byte, schema int) (State, error)
-
-	//SetGame is called during game.SetUp and passes a reference to the Game
-	//that the delegate is part of.
-	SetGame(game *Game)
 
 	//Moves is the set of all move types that are ever legal to apply in this
 	//game. When a move will be proposed it should copy one of these moves.
@@ -114,7 +111,6 @@ type GameManager interface {
 //embed this struct, especially for its SetUp, Moves(), and other state
 //wrangling.
 type DefaultGameManager struct {
-	Game              *Game
 	chest             *ComponentChest
 	storage           StorageManager
 	fixUpMoves        []Move
@@ -284,7 +280,8 @@ func (d *DefaultGameManager) SetStorage(storage StorageManager) {
 //that your FixUpMoves have a conservative Legal function, otherwise you could
 //get a panic from applying too many FixUp moves.
 func (d *DefaultGameManager) ProposeFixUpMove(state State) Move {
-	for _, move := range d.Game.FixUpMoves() {
+	for _, move := range d.FixUpMoves() {
+		move.DefaultsForState(state)
 		if err := move.Legal(state); err == nil {
 			//Found it!
 			return move
@@ -292,8 +289,4 @@ func (d *DefaultGameManager) ProposeFixUpMove(state State) Move {
 	}
 	//No moves apply now.
 	return nil
-}
-
-func (d *DefaultGameManager) SetGame(game *Game) {
-	d.Game = game
 }

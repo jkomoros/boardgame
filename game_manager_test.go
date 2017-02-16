@@ -79,7 +79,7 @@ func (t *testGameManager) StateFromBlob(blob []byte, schema int) (State, error) 
 		return nil, err
 	}
 
-	result.Game.DrawDeck.Inflate(t.Game.Chest())
+	result.Game.DrawDeck.Inflate(t.Chest())
 
 	for i, user := range result.Users {
 		user.playerIndex = i
