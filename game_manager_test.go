@@ -14,6 +14,10 @@ func (t *testGameManager) DistributeComponentToStarterStack(state State, c *Comp
 	return p.Game.DrawDeck.InsertFront(c)
 }
 
+func (t *testGameManager) Name() string {
+	return testGameName
+}
+
 func (t *testGameManager) CheckGameFinished(state State) (bool, []int) {
 	p := state.(*testState)
 
@@ -136,6 +140,10 @@ func newTestGameManger() GameManager {
 func TestGameManagerSetUp(t *testing.T) {
 
 	manager := newTestGameManger().(*testGameManager)
+
+	if manager.Name() != testGameName {
+		t.Error("Manager.Name() was not overridden")
+	}
 
 	if manager.PlayerMoves() != nil {
 		t.Error("Got moves back before SetUp was called")

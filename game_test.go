@@ -251,6 +251,10 @@ func TestGameState(t *testing.T) {
 	game := testGame()
 	game.SetUp(0)
 
+	if game.Name() != testGameName {
+		t.Error("Game name was not correct")
+	}
+
 	//Getting this now helps verify that we invalidate currentState cache when
 	//we apply a move.
 	state := game.CurrentState()

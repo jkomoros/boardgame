@@ -102,6 +102,11 @@ type GameManager interface {
 
 	//SetStorage is how to set the storage manager before SetUp is called.
 	SetStorage(storage StorageManager)
+
+	//Name is a string that defines the type of game this is. The name should
+	//be unique but human readable. Good examples are "Tic Tac Toe",
+	//"Blackjack". Subclasses should override this.
+	Name() string
 }
 
 //DefaultGameManager is a struct that implements stubs for all of
@@ -272,6 +277,10 @@ func (d *DefaultGameManager) Storage() StorageManager {
 
 func (d *DefaultGameManager) SetStorage(storage StorageManager) {
 	d.storage = storage
+}
+
+func (d *DefaultGameManager) Name() string {
+	return "Default Game"
 }
 
 //The Default ProposeFixUpMove runs through all moves in FixUpMoves, in order,

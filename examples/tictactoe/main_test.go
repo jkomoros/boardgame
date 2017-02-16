@@ -13,6 +13,10 @@ func TestGame(t *testing.T) {
 	if game == nil {
 		t.Error("Didn't get tictactoe game back")
 	}
+
+	if game.Name() != gameName {
+		t.Error("Game didn't have right name. wanted", gameName, "got", game.Name())
+	}
 }
 
 func TestStateFromBlob(t *testing.T) {

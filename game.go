@@ -15,10 +15,6 @@ const maxRecurseCount = 50
 //A Game represents a specific game between a collection of Players. Create a
 //new one with NewGame().
 type Game struct {
-	//Name is a string that defines the type of game this is. The name should
-	//be unique but human readable. Good examples are "Tic Tac Toe",
-	//"Blackjack".
-	Name string
 
 	//Manager is a reference to the GameManager that controls this game.
 	//GameManager's methods will be called at key points in the lifecycle of
@@ -86,14 +82,13 @@ func randomString(length int) string {
 
 //NewGame returns a new game. You must set a Chest and call AddMove with all
 //moves, before calling SetUp. Then the game can be used.
-func NewGame(name string, manager GameManager) *Game {
+func NewGame(manager GameManager) *Game {
 
 	if manager == nil {
 		return nil
 	}
 
 	result := &Game{
-		Name:    name,
 		Manager: manager,
 		//TODO: set the size of chan based on something more reasonable.
 		proposedMoves: make(chan *proposedMoveItem, 20),
@@ -108,7 +103,7 @@ func NewGame(name string, manager GameManager) *Game {
 func (g *Game) MarshalJSON() ([]byte, error) {
 	//We define our own MarshalJSON because if we didn't there'd be an infinite loop because of the redirects back up.
 	result := map[string]interface{}{
-		"Name":         g.Name,
+		"Name":         g.Name(),
 		"Finished":     g.Finished,
 		"Winners":      g.Winners,
 		"CurrentState": g.CurrentState(),
@@ -117,6 +112,10 @@ func (g *Game) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(result)
+}
+
+func (g *Game) Name() string {
+	return g.Manager.Name()
 }
 
 func (g *Game) Id() string {

@@ -34,6 +34,10 @@ func (g *gameManager) DistributeComponentToStarterStack(state boardgame.State, c
 	return nil
 }
 
+func (g *gameManager) Name() string {
+	return gameName
+}
+
 func (g *gameManager) DefaultNumPlayers() int {
 	return 2
 }
@@ -247,7 +251,7 @@ func NewGame() *boardgame.Game {
 
 	manager.SetUp()
 
-	game := boardgame.NewGame(gameName, manager)
+	game := boardgame.NewGame(manager)
 
 	if err := game.SetUp(0); err != nil {
 		panic("Game couldn't be set up")
