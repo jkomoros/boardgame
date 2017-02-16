@@ -13,13 +13,11 @@ import (
 
 type Server struct {
 	games   map[string]*boardgame.Game
-	factory GameFactory
+	manager boardgame.GameManager
 	//We store the last error so that next time viewHandler is called we can
 	//display it. Yes, this is a hack.
 	lastErrorMessage string
 }
-
-type GameFactory func() *boardgame.Game
 
 type MoveForm struct {
 	Name        string
@@ -41,11 +39,11 @@ type MoveFormField struct {
 	DefaultValue interface{}
 }
 
-func NewServer(factory GameFactory) *Server {
+func NewServer(manager boardgame.GameManager) *Server {
 
 	return &Server{
 		games:   make(map[string]*boardgame.Game),
-		factory: factory,
+		manager: manager,
 	}
 
 }
@@ -105,7 +103,13 @@ func (s *Server) gameStatusHandler(c *gin.Context) {
 }
 
 func (s *Server) newGameHandler(c *gin.Context) {
-	game := s.factory()
+	game := boardgame.NewGame(s.manager)
+
+	if err := game.SetUp(0); err != nil {
+		//TODO: communicate the error state back to the client in a sane way
+		panic(err)
+	}
+
 	s.games[game.Id()] = game
 
 	c.JSON(http.StatusOK, gin.H{

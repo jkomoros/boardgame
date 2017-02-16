@@ -13,5 +13,5 @@ import (
 )
 
 func main() {
-	server.NewServer(tictactoe.NewGame).Start()
+	server.NewServer(tictactoe.NewManager()).Start()
 }

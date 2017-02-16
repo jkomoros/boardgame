@@ -220,8 +220,7 @@ func checkRunWon(runState []string) string {
 	return targetToken
 }
 
-func NewGame() *boardgame.Game {
-
+func NewManager() boardgame.GameManager {
 	chest := boardgame.NewComponentChest(gameName)
 
 	tokens := &boardgame.Deck{}
@@ -251,12 +250,15 @@ func NewGame() *boardgame.Game {
 
 	manager.SetUp()
 
+	return manager
+}
+
+func NewGame(manager boardgame.GameManager) *boardgame.Game {
 	game := boardgame.NewGame(manager)
 
 	if err := game.SetUp(0); err != nil {
-		panic("Game couldn't be set up")
+		panic(err)
 	}
 
 	return game
-
 }
