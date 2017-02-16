@@ -5,7 +5,6 @@ import (
 	"errors"
 	"math/rand"
 	"strconv"
-	"strings"
 )
 
 //maxRecurseCount is the number of fixUp moves that can be considered normal--
@@ -43,15 +42,6 @@ type Game struct {
 	//The storage to use. When we move Delegat to be a GameManager, storage
 	//should live there instead.
 	storage StorageManager
-
-	//Moves is the set of all move types that are ever legal to apply in this
-	//game. When a move will be proposed it should copy one of these moves.
-	//Player moves are moves that can be applied by users. FixUp moves are
-	//only ever returned by Delegate.ProposeFixUpMove().
-	playerMoves       []Move
-	fixUpMoves        []Move
-	playerMovesByName map[string]Move
-	fixUpMovesByName  map[string]Move
 
 	//Memozied answer to CurrentState. Invalidated whenever ApplyMove is
 	//called.
@@ -208,16 +198,6 @@ func (g *Game) SetUp(numPlayers int) error {
 		}
 	}
 
-	g.playerMovesByName = make(map[string]Move)
-	for _, move := range g.playerMoves {
-		g.playerMovesByName[strings.ToLower(move.Name())] = move
-	}
-
-	g.fixUpMovesByName = make(map[string]Move)
-	for _, move := range g.fixUpMoves {
-		g.fixUpMovesByName[strings.ToLower(move.Name())] = move
-	}
-
 	//TODO: do other set-up work, including FinishSetUp
 
 	if g.Modifiable() {
@@ -255,107 +235,71 @@ func (g *Game) Modifiable() bool {
 	return g.modifiable
 }
 
-//AddPlayerMove adds the specified move to the game as a move that Players can
-//make. It may only be called during initalization.
-func (g *Game) AddPlayerMove(move Move) {
-
-	if g.initalized {
-		return
-	}
-	g.playerMoves = append(g.playerMoves, move)
-}
-
-//AddFixUpMove adds a move that can only be legally made by GameDelegate as a
-//FixUp move. It can only be called during initialization.
-func (g *Game) AddFixUpMove(move Move) {
-	if g.initalized {
-		return
-	}
-	g.fixUpMoves = append(g.fixUpMoves, move)
-}
-
-//PlayerMoves returns all moves that are valid in this game to be made my
-//players--all of the Moves that have been added via AddPlayerMove  during
-//initalization. Returns nil until game.SetUp() has been called. Will return
-//moves that are all copies, with them already set to the proper
-//DefaultsForState.
+//PlayerMoves is a thin wrapper around GameManager.PlayerMoves, but with all
+//of the moves set to the right defaults for the current state of this game.
 func (g *Game) PlayerMoves() []Move {
+
 	if !g.initalized {
 		return nil
 	}
 
-	result := make([]Move, len(g.playerMoves))
-
-	currentState := g.CurrentState()
-
-	for i, move := range g.playerMoves {
-		result[i] = move.Copy()
-		result[i].DefaultsForState(currentState)
+	result := g.Manager.PlayerMoves()
+	for _, move := range result {
+		move.DefaultsForState(g.CurrentState())
 	}
-
 	return result
 }
 
-//FixUpMoves returns all moves that are valid in this game to be made as fixup
-//moves--all of the Moves that have been added via AddPlayerMove  during
-//initalization. Returns nil until game.SetUp() has been called. Will return
-//moves that are all copies, with them already set to the proper
-//DefaultsForState.
+//FixUpMoves is a thin wrapper around GameManager.FixUpMoves, but with all
+//of the moves set to the right defaults for the current state of this game.
 func (g *Game) FixUpMoves() []Move {
 
-	//TODO: test all of these fixup moves
-
 	if !g.initalized {
 		return nil
 	}
 
-	result := make([]Move, len(g.fixUpMoves))
-
-	currentState := g.CurrentState()
-
-	for i, move := range g.fixUpMoves {
-		result[i] = move.Copy()
-		result[i].DefaultsForState(currentState)
+	result := g.Manager.FixUpMoves()
+	for _, move := range result {
+		move.DefaultsForState(g.CurrentState())
 	}
-
 	return result
+
 }
 
-//PlayerMoveByName returns the Move of that name from game.PlayerMoves(), if
-//it exists. Names are considered without regard to case.  Will return a copy
-//with defaults already set for current game state by move.DefaultsForState.
+//PlayerMoveByName is a thin wrapper around GameManager.PlayerMoveByName, but
+//with it set to the right defaults for the current state of this game.
 func (g *Game) PlayerMoveByName(name string) Move {
 	if !g.initalized {
 		return nil
 	}
-	name = strings.ToLower(name)
-	move := g.playerMovesByName[name]
 
-	if move == nil {
-		return nil
+	result := g.Manager.PlayerMoveByName(name)
+
+	if result == nil {
+		return result
 	}
 
-	result := move.Copy()
 	result.DefaultsForState(g.CurrentState())
+
 	return result
 }
 
-//FixUpMoveByName returns the Move of that name from game.FixUpMoves(), if
-//it exists. Names are considered without regard to case.  Will return a copy
-//with defaults already set for current game state by move.DefaultsForState.
+//FixUpMoveByName is a thin wrapper around GameManager.FixUpMoveByName, but
+//with it set to the right defaults for the current state of this game.
 func (g *Game) FixUpMoveByName(name string) Move {
+
 	if !g.initalized {
 		return nil
 	}
-	name = strings.ToLower(name)
-	move := g.fixUpMovesByName[name]
 
-	if move == nil {
-		return nil
+	result := g.Manager.FixUpMoveByName(name)
+
+	if result == nil {
+		return result
 	}
 
-	result := move.Copy()
 	result.DefaultsForState(g.CurrentState())
+
 	return result
 }
 

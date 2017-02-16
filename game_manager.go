@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"errors"
+	"strings"
 )
 
 //GameManager is a central point of coordination for games. It serves as a
@@ -53,14 +54,149 @@ type GameManager interface {
 	//SetGame is called during game.SetUp and passes a reference to the Game
 	//that the delegate is part of.
 	SetGame(game *Game)
+
+	//Moves is the set of all move types that are ever legal to apply in this
+	//game. When a move will be proposed it should copy one of these moves.
+	//Player moves are moves that can be applied by users. FixUp moves are
+	//only ever returned by Delegate.ProposeFixUpMove().
+
+	//PlayerMoves returns all moves that are valid in this game to be made my
+	//players--all of the Moves that have been added via AddPlayerMove  during
+	//initalization. Returns nil until game.SetUp() has been called. Will return
+	//moves that are all copies.
+	PlayerMoves() []Move
+
+	//FixUpMoves returns all moves that are valid in this game to be made as fixup
+	//moves--all of the Moves that have been added via AddPlayerMove  during
+	//initalization. Returns nil until game.SetUp() has been called. Will return
+	//moves that are all copies.
+	FixUpMoves() []Move
+
+	//PlayerMoveByName returns the Move of that name from game.PlayerMoves(), if
+	//it exists. Names are considered without regard to case.  Will return a copy.
+	PlayerMoveByName(name string) Move
+
+	//FixUpMoveByName returns the Move of that name from game.FixUpMoves(), if
+	//it exists. Names are considered without regard to case.  Will return a copy.
+	FixUpMoveByName(name string) Move
+
+	//AddPlayerMove adds the specified move to the game as a move that Players can
+	//make. It may only be called during initalization.
+	AddPlayerMove(move Move)
+
+	//AddFixUpMove adds a move that can only be legally made by GameDelegate as a
+	//FixUp move. It can only be called during initialization.
+	AddFixUpMove(move Move)
+
+	//SetUp should be called before this Manager is used. It locks in moves,
+	//chest, storage, etc.
+	SetUp() error
 }
 
 //DefaultGameManager is a struct that implements stubs for all of
 //GameManager's methods. This makes it easy to override just one or two
 //methods by creating your own struct that anonymously embeds this one. You
-//almost certainly want to override StartingState.
+//almost certainly want to override StartingState. Almost every game should
+//embed this struct, especially for its SetUp, Moves(), and other state
+//wrangling.
 type DefaultGameManager struct {
-	Game *Game
+	Game              *Game
+	fixUpMoves        []Move
+	playerMoves       []Move
+	fixUpMovesByName  map[string]Move
+	playerMovesByName map[string]Move
+	initialized       bool
+}
+
+func (d *DefaultGameManager) SetUp() error {
+
+	d.playerMovesByName = make(map[string]Move)
+	for _, move := range d.playerMoves {
+		d.playerMovesByName[strings.ToLower(move.Name())] = move
+	}
+
+	d.fixUpMovesByName = make(map[string]Move)
+	for _, move := range d.fixUpMoves {
+		d.fixUpMovesByName[strings.ToLower(move.Name())] = move
+	}
+
+	d.initialized = true
+
+	return nil
+}
+
+func (d *DefaultGameManager) AddPlayerMove(move Move) {
+
+	if d.initialized {
+		return
+	}
+	d.playerMoves = append(d.playerMoves, move)
+}
+
+func (d *DefaultGameManager) AddFixUpMove(move Move) {
+	if d.initialized {
+		return
+	}
+	d.fixUpMoves = append(d.fixUpMoves, move)
+}
+
+func (d *DefaultGameManager) PlayerMoves() []Move {
+	if !d.initialized {
+		return nil
+	}
+
+	result := make([]Move, len(d.playerMoves))
+
+	for i, move := range d.playerMoves {
+		result[i] = move.Copy()
+	}
+
+	return result
+}
+
+func (d *DefaultGameManager) FixUpMoves() []Move {
+
+	//TODO: test all of these fixup moves
+
+	if !d.initialized {
+		return nil
+	}
+
+	result := make([]Move, len(d.fixUpMoves))
+
+	for i, move := range d.fixUpMoves {
+		result[i] = move.Copy()
+	}
+
+	return result
+}
+
+func (d *DefaultGameManager) PlayerMoveByName(name string) Move {
+	if !d.initialized {
+		return nil
+	}
+	name = strings.ToLower(name)
+	move := d.playerMovesByName[name]
+
+	if move == nil {
+		return nil
+	}
+
+	return move.Copy()
+}
+
+func (d *DefaultGameManager) FixUpMoveByName(name string) Move {
+	if !d.initialized {
+		return nil
+	}
+	name = strings.ToLower(name)
+	move := d.fixUpMovesByName[name]
+
+	if move == nil {
+		return nil
+	}
+
+	return move.Copy()
 }
 
 func (d *DefaultGameManager) DistributeComponentToStarterStack(state State, c *Component) error {

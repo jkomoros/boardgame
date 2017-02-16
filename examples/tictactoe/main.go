@@ -236,12 +236,16 @@ func NewGame() *boardgame.Game {
 
 	chest.AddDeck("tokens", tokens)
 
-	game := boardgame.NewGame(gameName, &gameManager{}, boardgame.NewInMemoryStorageManager())
+	manager := &gameManager{}
+
+	manager.AddPlayerMove(&MovePlaceToken{})
+	manager.AddFixUpMove(&MoveAdvancePlayer{})
+
+	manager.SetUp()
+
+	game := boardgame.NewGame(gameName, manager, boardgame.NewInMemoryStorageManager())
 
 	game.SetChest(chest)
-
-	game.AddPlayerMove(&MovePlaceToken{})
-	game.AddFixUpMove(&MoveAdvancePlayer{})
 
 	if err := game.SetUp(0); err != nil {
 		panic("Game couldn't be set up")

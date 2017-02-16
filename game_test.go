@@ -11,89 +11,6 @@ type testInfiniteLoopGameManager struct {
 	testGameManager
 }
 
-type testGameManager struct {
-	DefaultGameManager
-}
-
-func (t *testGameManager) DistributeComponentToStarterStack(state State, c *Component) error {
-	p := state.(*testState)
-	return p.Game.DrawDeck.InsertFront(c)
-}
-
-func (t *testGameManager) CheckGameFinished(state State) (bool, []int) {
-	p := state.(*testState)
-
-	var winners []int
-
-	for i, user := range p.Users {
-		if user.Score >= 5 {
-			//This user won!
-			winners = append(winners, i)
-
-			//Keep going through to see if anyone else won at the same time
-		}
-	}
-
-	if len(winners) > 0 {
-		return true, winners
-	}
-
-	return false, nil
-}
-
-func (t *testGameManager) DefaultNumPlayers() int {
-	return 3
-}
-
-func (t *testGameManager) StartingState(numPlayers int) State {
-
-	chest := t.Game.Chest()
-
-	deck := chest.Deck("test")
-
-	return &testState{
-		Game: &testGameState{
-			CurrentPlayer: 0,
-			DrawDeck:      NewGrowableStack(deck, 0),
-		},
-		Users: []*testUserState{
-			&testUserState{
-				playerIndex:       0,
-				Score:             0,
-				MovesLeftThisTurn: 1,
-				IsFoo:             false,
-			},
-			&testUserState{
-				playerIndex:       1,
-				Score:             0,
-				MovesLeftThisTurn: 0,
-				IsFoo:             false,
-			},
-			&testUserState{
-				playerIndex:       2,
-				Score:             0,
-				MovesLeftThisTurn: 0,
-				IsFoo:             true,
-			},
-		},
-	}
-}
-
-func (t *testGameManager) StateFromBlob(blob []byte, schema int) (State, error) {
-	result := &testState{}
-	if err := json.Unmarshal(blob, result); err != nil {
-		return nil, err
-	}
-
-	result.Game.DrawDeck.Inflate(t.Game.Chest())
-
-	for i, user := range result.Users {
-		user.playerIndex = i
-	}
-
-	return result, nil
-}
-
 func (t *testInfiniteLoopGameManager) ProposeFixUpMove(state State) Move {
 	return &testAlwaysLegalMove{}
 }
@@ -183,12 +100,6 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("After calling SetUp succesfully SetGame was not called.")
 	}
 
-	moves := game.PlayerMoves()
-
-	if reflect.DeepEqual(game.playerMoves, moves) {
-		t.Error("Got non-copy moves out of game after SetUp was called.")
-	}
-
 	if game.PlayerMoveByName("Test") == nil {
 		t.Error("MoveByName didn't return a valid move when provided the proper name after calling setup")
 	}
@@ -231,18 +142,20 @@ func TestApplyMove(t *testing.T) {
 		ABool:             true,
 	}
 
-	oldMoves := game.playerMoves
-	oldMovesByName := game.playerMovesByName
+	manager := game.Manager.(*testGameManager)
 
-	game.playerMoves = nil
-	game.playerMovesByName = make(map[string]Move)
+	oldMoves := manager.playerMoves
+	oldMovesByName := manager.playerMovesByName
+
+	manager.playerMoves = nil
+	manager.playerMovesByName = make(map[string]Move)
 
 	if err := <-game.ProposeMove(move); err == nil {
 		t.Error("Game allowed a move that wasn't configured as part of game to be applied")
 	}
 
-	game.playerMoves = oldMoves
-	game.playerMovesByName = oldMovesByName
+	manager.playerMoves = oldMoves
+	manager.playerMovesByName = oldMovesByName
 
 	//testMove checks to make sure game.state.currentPlayerIndex is targetplayerindex
 
@@ -315,7 +228,10 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 
 	game.Manager = &testInfiniteLoopGameManager{}
 
-	game.AddFixUpMove(&testAlwaysLegalMove{})
+	game.Manager.AddPlayerMove(&testMove{})
+	game.Manager.AddFixUpMove(&testAlwaysLegalMove{})
+
+	game.Manager.SetUp()
 
 	game.SetUp(0)
 
@@ -324,6 +240,7 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 	if move == nil {
 		t.Fatal("Couldn't find Test move")
 	}
+
 	checkForPanic := func() (didPanic bool) {
 		defer func() {
 			if e := recover(); e != nil {
