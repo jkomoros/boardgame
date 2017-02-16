@@ -16,8 +16,8 @@ type ComponentChest struct {
 	decks       map[string]*Deck
 	//TODO: why do we need gameName when we have game? Should we remove?
 	gameName string
-	//The game part of.
-	game *Game
+
+	manager GameManager
 }
 
 func NewComponentChest(gameName string) *ComponentChest {
@@ -26,8 +26,8 @@ func NewComponentChest(gameName string) *ComponentChest {
 	}
 }
 
-func (c *ComponentChest) Game() *Game {
-	return c.game
+func (c *ComponentChest) Manager() GameManager {
+	return c.manager
 }
 
 //DeckNames returns all of the valid deck names, if the chest has finished initalization.

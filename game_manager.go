@@ -91,6 +91,14 @@ type GameManager interface {
 	//SetUp should be called before this Manager is used. It locks in moves,
 	//chest, storage, etc.
 	SetUp() error
+
+	//Chest is the ComponentChest in use for this game. Will return nil until
+	//SetUp() called.
+	Chest() *ComponentChest
+
+	//SetChest is the way to associate the given Chest with this game manager
+	//before calling SetUp().
+	SetChest(chest *ComponentChest)
 }
 
 //DefaultGameManager is a struct that implements stubs for all of
@@ -101,6 +109,7 @@ type GameManager interface {
 //wrangling.
 type DefaultGameManager struct {
 	Game              *Game
+	chest             *ComponentChest
 	fixUpMoves        []Move
 	playerMoves       []Move
 	fixUpMovesByName  map[string]Move
@@ -109,6 +118,10 @@ type DefaultGameManager struct {
 }
 
 func (d *DefaultGameManager) SetUp() error {
+
+	if d.chest == nil {
+		return errors.New("No chest provided")
+	}
 
 	d.playerMovesByName = make(map[string]Move)
 	for _, move := range d.playerMoves {
@@ -220,6 +233,30 @@ func (d *DefaultGameManager) StartingState(numPlayers int) State {
 
 func (d *DefaultGameManager) DefaultNumPlayers() int {
 	return 2
+}
+
+//Chest is the ComponentChest in use for this game.
+func (d *DefaultGameManager) Chest() *ComponentChest {
+	return d.chest
+}
+
+//SetChest is the way to associate the given Chest with this game manager.
+func (d *DefaultGameManager) SetChest(chest *ComponentChest) {
+	//We are only allowed to change the chest before the game is SetUp.
+	if d.initialized {
+		return
+	}
+	if chest != nil {
+		chest.manager = d
+		//If Finish was not already called in Chest it must be now--we can't
+		//have it changing anymore. This will be a no-op if Finish() was
+		//already called.
+
+		//TODO: test that a chest that has not yet had finish called will when
+		//added to a game.
+		chest.Finish()
+	}
+	d.chest = chest
 }
 
 //The Default ProposeFixUpMove runs through all moves in FixUpMoves, in order,

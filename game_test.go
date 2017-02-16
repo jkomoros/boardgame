@@ -58,16 +58,6 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("Move by name returned a move before SetUp was called")
 	}
 
-	chest := game.Chest()
-
-	game.SetChest(nil)
-
-	if err := game.SetUp(0); err == nil {
-		t.Error("We were able to call game.SetUp without a Chest")
-	}
-
-	game.SetChest(chest)
-
 	move := &testMove{
 		AString:           "foo",
 		ScoreIncrement:    3,
@@ -122,9 +112,9 @@ func TestGameSetUp(t *testing.T) {
 
 	newChest := NewComponentChest(testGameName)
 
-	game.SetChest(newChest)
+	game.Manager.SetChest(newChest)
 
-	if game.Chest() == newChest {
+	if game.Manager.Chest() == newChest {
 		t.Error("We were able to change the chest after game.SetUp was called.")
 	}
 
@@ -230,6 +220,8 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 
 	game.Manager.AddPlayerMove(&testMove{})
 	game.Manager.AddFixUpMove(&testAlwaysLegalMove{})
+
+	game.Manager.SetChest(newTestGameChest())
 
 	game.Manager.SetUp()
 

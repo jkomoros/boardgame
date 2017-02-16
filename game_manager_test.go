@@ -41,7 +41,7 @@ func (t *testGameManager) DefaultNumPlayers() int {
 
 func (t *testGameManager) StartingState(numPlayers int) State {
 
-	chest := t.Game.Chest()
+	chest := t.Chest()
 
 	deck := chest.Deck("test")
 
@@ -88,11 +88,45 @@ func (t *testGameManager) StateFromBlob(blob []byte, schema int) (State, error) 
 	return result, nil
 }
 
+func newTestGameChest() *ComponentChest {
+	chest := NewComponentChest(testGameName)
+
+	deck := &Deck{}
+
+	deck.AddComponent(&testingComponent{
+		"foo",
+		1,
+	})
+
+	deck.AddComponent(&testingComponent{
+		"bar",
+		2,
+	})
+
+	deck.AddComponent(&testingComponent{
+		"baz",
+		5,
+	})
+
+	deck.AddComponent(&testingComponent{
+		"slam",
+		10,
+	})
+
+	chest.AddDeck("test", deck)
+
+	chest.Finish()
+
+	return chest
+}
+
 func newTestGameManger() GameManager {
 	manager := &testGameManager{}
 
 	manager.AddPlayerMove(&testMove{})
 	manager.AddFixUpMove(&testMoveAdvanceCurentPlayer{})
+
+	manager.SetChest(newTestGameChest())
 
 	return manager
 }

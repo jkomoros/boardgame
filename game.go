@@ -58,7 +58,6 @@ type Game struct {
 
 	//Initalized is set to True after SetUp is called.
 	initalized bool
-	chest      *ComponentChest
 
 	//TODO: HistoricalState(index int) and HistoryLen() int
 
@@ -170,8 +169,8 @@ func (g *Game) SetUp(numPlayers int) error {
 		return errors.New("Game already initalized")
 	}
 
-	if g.chest == nil {
-		return errors.New("No component chest set")
+	if g.Manager.Chest() == nil {
+		return errors.New("No component chest set on manager")
 	}
 
 	g.Manager.SetGame(g)
@@ -305,26 +304,7 @@ func (g *Game) FixUpMoveByName(name string) Move {
 
 //Chest is the ComponentChest in use for this game.
 func (g *Game) Chest() *ComponentChest {
-	return g.chest
-}
-
-//SetChest is the way to associate the given Chest with this game.
-func (g *Game) SetChest(chest *ComponentChest) {
-	//We are only allowed to change the chest before the game is SetUp.
-	if g.initalized {
-		return
-	}
-	if chest != nil {
-		chest.game = g
-		//If Finish was not already called in Chest it must be now--we can't
-		//have it changing anymore. This will be a no-op if Finish() was
-		//already called.
-
-		//TODO: test that a chest that has not yet had finish called will when
-		//added to a game.
-		chest.Finish()
-	}
-	g.chest = chest
+	return g.Manager.Chest()
 }
 
 //ProposedMove is the way to propose a move to the game. DelayedError will

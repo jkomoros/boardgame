@@ -241,11 +241,11 @@ func NewGame() *boardgame.Game {
 	manager.AddPlayerMove(&MovePlaceToken{})
 	manager.AddFixUpMove(&MoveAdvancePlayer{})
 
+	manager.SetChest(chest)
+
 	manager.SetUp()
 
 	game := boardgame.NewGame(gameName, manager, boardgame.NewInMemoryStorageManager())
-
-	game.SetChest(chest)
 
 	if err := game.SetUp(0); err != nil {
 		panic("Game couldn't be set up")

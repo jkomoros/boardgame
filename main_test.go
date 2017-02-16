@@ -318,41 +318,11 @@ func testingComponentValues(in []PropertyReader) []*testingComponent {
 //testGame returns a Game that has not yet had SetUp() called.
 func testGame() *Game {
 
-	chest := NewComponentChest(testGameName)
-
-	deck := &Deck{}
-
-	deck.AddComponent(&testingComponent{
-		"foo",
-		1,
-	})
-
-	deck.AddComponent(&testingComponent{
-		"bar",
-		2,
-	})
-
-	deck.AddComponent(&testingComponent{
-		"baz",
-		5,
-	})
-
-	deck.AddComponent(&testingComponent{
-		"slam",
-		10,
-	})
-
-	chest.AddDeck("test", deck)
-
-	chest.Finish()
-
 	manager := newTestGameManger()
 
 	manager.SetUp()
 
 	game := NewGame(testGameName, manager, NewInMemoryStorageManager())
-
-	game.SetChest(chest)
 
 	return game
 }
