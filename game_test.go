@@ -106,14 +106,6 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("All of the components were not distributed in SetUp")
 	}
 
-	newChest := NewComponentChest(testGameName)
-
-	game.Manager.SetChest(newChest)
-
-	if game.Manager.Chest() == newChest {
-		t.Error("We were able to change the chest after game.SetUp was called.")
-	}
-
 }
 
 func TestApplyMove(t *testing.T) {
@@ -210,14 +202,10 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 	//This test makes sure that if our GameDelegate is going to always return
 	//moves that are legal, we'll bail at a certain point.
 
-	manager := NewGameManager(&testInfiniteLoopGameDelegate{})
+	manager := NewGameManager(&testInfiniteLoopGameDelegate{}, newTestGameChest(), NewInMemoryStorageManager())
 
 	manager.AddPlayerMove(&testMove{})
 	manager.AddFixUpMove(&testAlwaysLegalMove{})
-
-	manager.SetChest(newTestGameChest())
-
-	manager.SetStorage(NewInMemoryStorageManager())
 
 	manager.SetUp()
 

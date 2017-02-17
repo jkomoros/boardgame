@@ -239,14 +239,10 @@ func NewManager() *boardgame.GameManager {
 
 	chest.AddDeck("tokens", tokens)
 
-	manager := boardgame.NewGameManager(&gameDelegate{})
+	manager := boardgame.NewGameManager(&gameDelegate{}, chest, boardgame.NewInMemoryStorageManager())
 
 	manager.AddPlayerMove(&MovePlaceToken{})
 	manager.AddFixUpMove(&MoveAdvancePlayer{})
-
-	manager.SetChest(chest)
-
-	manager.SetStorage(boardgame.NewInMemoryStorageManager())
 
 	manager.SetUp()
 

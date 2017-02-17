@@ -27,16 +27,30 @@ type GameManager struct {
 }
 
 //NewGameManager creates a new game manager with the given delegate.
-func NewGameManager(delegate GameDelegate) *GameManager {
-	//TODO: should this constructor take Chest, Storage too and get rid of
-	//SetChest, SetStorage?
+func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage StorageManager) *GameManager {
 	if delegate == nil {
+		return nil
+	}
+
+	if chest == nil {
+		return nil
+	}
+
+	//Make sure the chest is no longer open for modification. If finish was
+	//already called, this will be a no-op.
+	chest.Finish()
+
+	if storage == nil {
 		return nil
 	}
 
 	result := &GameManager{
 		delegate: delegate,
+		chest:    chest,
+		storage:  storage,
 	}
+
+	chest.manager = result
 
 	delegate.SetManager(result)
 
@@ -166,34 +180,9 @@ func (g *GameManager) Chest() *ComponentChest {
 	return g.chest
 }
 
-//SetChest is the way to associate the given Chest with this game manager
-//before calling SetUp().
-func (g *GameManager) SetChest(chest *ComponentChest) {
-	//We are only allowed to change the chest before the game is SetUp.
-	if g.initialized {
-		return
-	}
-	if chest != nil {
-		chest.manager = g
-		//If Finish was not already called in Chest it must be now--we can't
-		//have it changing anymore. This will be a no-op if Finish() was
-		//already called.
-
-		//TODO: test that a chest that has not yet had finish called will when
-		//added to a game.
-		chest.Finish()
-	}
-	g.chest = chest
-}
-
 //Storage is the StorageManager games that use this manager should use.
 func (g *GameManager) Storage() StorageManager {
 	return g.storage
-}
-
-//SetStorage is how to set the storage manager before SetUp is called.
-func (g *GameManager) SetStorage(storage StorageManager) {
-	g.storage = storage
 }
 
 //Delegate returns the GameDelegate configured for these games.
