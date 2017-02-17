@@ -13,7 +13,7 @@ import (
 
 type Server struct {
 	games   map[string]*boardgame.Game
-	manager boardgame.GameManager
+	manager *boardgame.GameManager
 	//We store the last error so that next time viewHandler is called we can
 	//display it. Yes, this is a hack.
 	lastErrorMessage string
@@ -39,7 +39,7 @@ type MoveFormField struct {
 	DefaultValue interface{}
 }
 
-func NewServer(manager boardgame.GameManager) *Server {
+func NewServer(manager *boardgame.GameManager) *Server {
 
 	return &Server{
 		games:   make(map[string]*boardgame.Game),

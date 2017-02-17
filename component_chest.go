@@ -17,7 +17,7 @@ type ComponentChest struct {
 	//TODO: why do we need gameName when we have game? Should we remove?
 	gameName string
 
-	manager GameManager
+	manager *GameManager
 }
 
 func NewComponentChest(gameName string) *ComponentChest {
@@ -26,7 +26,7 @@ func NewComponentChest(gameName string) *ComponentChest {
 	}
 }
 
-func (c *ComponentChest) Manager() GameManager {
+func (c *ComponentChest) Manager() *GameManager {
 	return c.manager
 }
 

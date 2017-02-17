@@ -7,11 +7,11 @@ import (
 	"time"
 )
 
-type testInfiniteLoopGameManager struct {
-	testGameManager
+type testInfiniteLoopGameDelegate struct {
+	testGameDelegate
 }
 
-func (t *testInfiniteLoopGameManager) ProposeFixUpMove(state State) Move {
+func (t *testInfiniteLoopGameDelegate) ProposeFixUpMove(state State) Move {
 	return &testAlwaysLegalMove{}
 }
 
@@ -128,7 +128,7 @@ func TestApplyMove(t *testing.T) {
 		ABool:             true,
 	}
 
-	manager := game.Manager.(*testGameManager)
+	manager := game.Manager
 
 	oldMoves := manager.playerMoves
 	oldMovesByName := manager.playerMovesByName
@@ -210,18 +210,18 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 	//This test makes sure that if our GameDelegate is going to always return
 	//moves that are legal, we'll bail at a certain point.
 
-	game := testGame()
+	manager := NewGameManager(&testInfiniteLoopGameDelegate{})
 
-	game.Manager = &testInfiniteLoopGameManager{}
+	manager.AddPlayerMove(&testMove{})
+	manager.AddFixUpMove(&testAlwaysLegalMove{})
 
-	game.Manager.AddPlayerMove(&testMove{})
-	game.Manager.AddFixUpMove(&testAlwaysLegalMove{})
+	manager.SetChest(newTestGameChest())
 
-	game.Manager.SetChest(newTestGameChest())
+	manager.SetStorage(NewInMemoryStorageManager())
 
-	game.Manager.SetStorage(NewInMemoryStorageManager())
+	manager.SetUp()
 
-	game.Manager.SetUp()
+	game := NewGame(manager)
 
 	game.SetUp(0)
 

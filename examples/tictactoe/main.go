@@ -16,11 +16,11 @@ const gameName = "Tic Tac Toe"
 
 const DIM = 3
 
-type gameManager struct {
-	boardgame.DefaultGameManager
+type gameDelegate struct {
+	boardgame.DefaultGameDelegate
 }
 
-func (g *gameManager) DistributeComponentToStarterStack(state boardgame.State, c *boardgame.Component) error {
+func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c *boardgame.Component) error {
 	component := c.Values.(*playerToken)
 
 	p := state.(*mainState)
@@ -34,37 +34,37 @@ func (g *gameManager) DistributeComponentToStarterStack(state boardgame.State, c
 	return nil
 }
 
-func (g *gameManager) Name() string {
+func (g *gameDelegate) Name() string {
 	return gameName
 }
 
-func (g *gameManager) DefaultNumPlayers() int {
+func (g *gameDelegate) DefaultNumPlayers() int {
 	return 2
 }
 
-func (g *gameManager) StateFromBlob(blob []byte, schema int) (boardgame.State, error) {
+func (g *gameDelegate) StateFromBlob(blob []byte, schema int) (boardgame.State, error) {
 	result := &mainState{}
 	if err := json.Unmarshal(blob, result); err != nil {
 		return nil, err
 	}
 
-	result.Game.Slots.Inflate(g.Chest())
+	result.Game.Slots.Inflate(g.Manager().Chest())
 
 	for i, user := range result.Users {
 		user.playerIndex = i
-		user.UnusedTokens.Inflate(g.Chest())
+		user.UnusedTokens.Inflate(g.Manager().Chest())
 	}
 
 	return result, nil
 }
 
-func (g *gameManager) StartingState(numUsers int) boardgame.State {
+func (g *gameDelegate) StartingState(numUsers int) boardgame.State {
 
 	if numUsers != 2 {
 		return nil
 	}
 
-	tokens := g.Chest().Deck("tokens")
+	tokens := g.Manager().Chest().Deck("tokens")
 
 	if tokens == nil {
 		return nil
@@ -95,7 +95,7 @@ func (g *gameManager) StartingState(numUsers int) boardgame.State {
 	return result
 }
 
-func (g *gameManager) CheckGameFinished(state boardgame.State) (finished bool, winners []int) {
+func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, winners []int) {
 
 	s := state.(*mainState)
 
@@ -220,7 +220,7 @@ func checkRunWon(runState []string) string {
 	return targetToken
 }
 
-func NewManager() boardgame.GameManager {
+func NewManager() *boardgame.GameManager {
 	chest := boardgame.NewComponentChest(gameName)
 
 	tokens := &boardgame.Deck{}
@@ -239,7 +239,7 @@ func NewManager() boardgame.GameManager {
 
 	chest.AddDeck("tokens", tokens)
 
-	manager := &gameManager{}
+	manager := boardgame.NewGameManager(&gameDelegate{})
 
 	manager.AddPlayerMove(&MovePlaceToken{})
 	manager.AddFixUpMove(&MoveAdvancePlayer{})
@@ -253,7 +253,7 @@ func NewManager() boardgame.GameManager {
 	return manager
 }
 
-func NewGame(manager boardgame.GameManager) *boardgame.Game {
+func NewGame(manager *boardgame.GameManager) *boardgame.Game {
 	game := boardgame.NewGame(manager)
 
 	if err := game.SetUp(0); err != nil {

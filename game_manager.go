@@ -5,117 +5,18 @@ import (
 	"strings"
 )
 
-//GameManager is a central point of coordination for games. It serves as a
-//delegate for key parts of a Game's lifecycle to define the logic for a given
-//type of game.It is one of the primary ways that a specific game controls
-//behavior over and beyond Moves and their Legal states. One GameManager is
-//designed to be used with many Games.
-type GameManager interface {
+//Moves is the set of all move types that are ever legal to apply in this
+//game. When a move will be proposed it should copy one of these moves.
+//Player moves are moves that can be applied by users. FixUp moves are
+//only ever returned by Delegate.ProposeFixUpMove().
 
-	//DistributeComponentToStarterStack is called during set up to establish
-	//the Deck/Stack invariant that every component in the chest is placed in
-	//precisely one Stack. Game will call this on each component in the Chest
-	//in order. This is where the logic goes to make sure each Component goes
-	//into its correct starter stack. As long as you put each component into a
-	//Stack, the invariant will be met at the end of SetUp. If any errors are
-	//returned SetUp fails. Unlike after the game has been SetUp, you can
-	//modify payload directly.
-	DistributeComponentToStarterStack(state State, c *Component) error
+//TODO: figure out where the above comment should go for documentation.
 
-	//CheckGameFinished should return true if the game is finished, and who
-	//the winners are. Called after every move is applied.
-	CheckGameFinished(state State) (finished bool, winners []int)
-
-	//ProposeFixUpMove is called after a move has been applied. It may return
-	//a FixUp move, which will be applied before any other moves are applied.
-	//If it returns nil, we may take the next move off of the queue. FixUp
-	//moves are useful for things like shuffling a discard deck back into a
-	//draw deck, or other moves that are necessary to get the GameState back
-	//into reasonable shape.
-	ProposeFixUpMove(state State) Move
-
-	//DefaultNumPlayers returns the number of users that this game defaults to.
-	//For example, for tictactoe, it will be 2. If 0 is provided to
-	//game.SetUp(), we wil use this value insteadp.
-	DefaultNumPlayers() int
-
-	//StartingState should return a zero'd state object for this game type.
-	//All future states for this particular game will be created by Copy()ing
-	//this state. If you return nil, game.SetUp() will fail.
-	StartingState(numPlayers int) State
-
-	//StateFromBlob should deserialize a JSON string of this game's State. We
-	//need it to be in a game-specific bit of logic because we don't know the
-	//real type of the state stuct for this game. Be sure to inflate any
-	//Stacks in the state, and set playerIndex for each UserState in order.
-	//It's strongly recommended that you test a round-trip of state through
-	//this method.
-	StateFromBlob(blob []byte, schema int) (State, error)
-
-	//Moves is the set of all move types that are ever legal to apply in this
-	//game. When a move will be proposed it should copy one of these moves.
-	//Player moves are moves that can be applied by users. FixUp moves are
-	//only ever returned by Delegate.ProposeFixUpMove().
-
-	//PlayerMoves returns all moves that are valid in this game to be made my
-	//players--all of the Moves that have been added via AddPlayerMove  during
-	//initalization. Returns nil until game.SetUp() has been called. Will return
-	//moves that are all copies.
-	PlayerMoves() []Move
-
-	//FixUpMoves returns all moves that are valid in this game to be made as fixup
-	//moves--all of the Moves that have been added via AddPlayerMove  during
-	//initalization. Returns nil until game.SetUp() has been called. Will return
-	//moves that are all copies.
-	FixUpMoves() []Move
-
-	//PlayerMoveByName returns the Move of that name from game.PlayerMoves(), if
-	//it exists. Names are considered without regard to case.  Will return a copy.
-	PlayerMoveByName(name string) Move
-
-	//FixUpMoveByName returns the Move of that name from game.FixUpMoves(), if
-	//it exists. Names are considered without regard to case.  Will return a copy.
-	FixUpMoveByName(name string) Move
-
-	//AddPlayerMove adds the specified move to the game as a move that Players can
-	//make. It may only be called during initalization.
-	AddPlayerMove(move Move)
-
-	//AddFixUpMove adds a move that can only be legally made by GameDelegate as a
-	//FixUp move. It can only be called during initialization.
-	AddFixUpMove(move Move)
-
-	//SetUp should be called before this Manager is used. It locks in moves,
-	//chest, storage, etc.
-	SetUp() error
-
-	//Chest is the ComponentChest in use for this game. Will return nil until
-	//SetUp() called.
-	Chest() *ComponentChest
-
-	//SetChest is the way to associate the given Chest with this game manager
-	//before calling SetUp().
-	SetChest(chest *ComponentChest)
-
-	//Storage is the StorageManager games that use this manager should use.
-	Storage() StorageManager
-
-	//SetStorage is how to set the storage manager before SetUp is called.
-	SetStorage(storage StorageManager)
-
-	//Name is a string that defines the type of game this is. The name should
-	//be unique but human readable. Good examples are "Tic Tac Toe",
-	//"Blackjack". Subclasses should override this.
-	Name() string
-}
-
-//DefaultGameManager is a struct that implements stubs for all of
-//GameManager's methods. This makes it easy to override just one or two
-//methods by creating your own struct that anonymously embeds this one. You
-//almost certainly want to override StartingState. Almost every game should
-//embed this struct, especially for its SetUp, Moves(), and other state
-//wrangling.
-type DefaultGameManager struct {
+//GameManager is a struct that keeps track of configuration that is common
+//across multiple games. It is specifically designed to be used with multiple
+//games.
+type GameManager struct {
+	delegate          GameDelegate
 	chest             *ComponentChest
 	storage           StorageManager
 	fixUpMoves        []Move
@@ -125,83 +26,116 @@ type DefaultGameManager struct {
 	initialized       bool
 }
 
-func (d *DefaultGameManager) SetUp() error {
+//NewGameManager creates a new game manager with the given delegate.
+func NewGameManager(delegate GameDelegate) *GameManager {
+	//TODO: should this constructor take Chest, Storage too and get rid of
+	//SetChest, SetStorage?
+	if delegate == nil {
+		return nil
+	}
 
-	if d.chest == nil {
+	result := &GameManager{
+		delegate: delegate,
+	}
+
+	delegate.SetManager(result)
+
+	return result
+}
+
+//SetUp should be called before this Manager is used. It locks in moves,
+//chest, storage, etc.
+func (g *GameManager) SetUp() error {
+
+	if g.chest == nil {
 		return errors.New("No chest provided")
 	}
 
-	if d.storage == nil {
+	if g.storage == nil {
 		return errors.New("Storage not provided")
 	}
 
-	d.playerMovesByName = make(map[string]Move)
-	for _, move := range d.playerMoves {
-		d.playerMovesByName[strings.ToLower(move.Name())] = move
+	g.playerMovesByName = make(map[string]Move)
+	for _, move := range g.playerMoves {
+		g.playerMovesByName[strings.ToLower(move.Name())] = move
 	}
 
-	d.fixUpMovesByName = make(map[string]Move)
-	for _, move := range d.fixUpMoves {
-		d.fixUpMovesByName[strings.ToLower(move.Name())] = move
+	g.fixUpMovesByName = make(map[string]Move)
+	for _, move := range g.fixUpMoves {
+		g.fixUpMovesByName[strings.ToLower(move.Name())] = move
 	}
 
-	d.initialized = true
+	g.initialized = true
 
 	return nil
 }
 
-func (d *DefaultGameManager) AddPlayerMove(move Move) {
+//AddPlayerMove adds the specified move to the game as a move that Players can
+//make. It may only be called during initalization.
+func (g *GameManager) AddPlayerMove(move Move) {
 
-	if d.initialized {
+	if g.initialized {
 		return
 	}
-	d.playerMoves = append(d.playerMoves, move)
+	g.playerMoves = append(g.playerMoves, move)
 }
 
-func (d *DefaultGameManager) AddFixUpMove(move Move) {
-	if d.initialized {
+//AddFixUpMove adds a move that can only be legally made by GameDelegate as a
+//FixUp move. It can only be called during initialization.
+func (g *GameManager) AddFixUpMove(move Move) {
+	if g.initialized {
 		return
 	}
-	d.fixUpMoves = append(d.fixUpMoves, move)
+	g.fixUpMoves = append(g.fixUpMoves, move)
 }
 
-func (d *DefaultGameManager) PlayerMoves() []Move {
-	if !d.initialized {
+//PlayerMoves returns all moves that are valid in this game to be made my
+//players--all of the Moves that have been added via AddPlayerMove  during
+//initalization. Returns nil until game.SetUp() has been called. Will return
+//moves that are all copies.
+func (g *GameManager) PlayerMoves() []Move {
+	if !g.initialized {
 		return nil
 	}
 
-	result := make([]Move, len(d.playerMoves))
+	result := make([]Move, len(g.playerMoves))
 
-	for i, move := range d.playerMoves {
+	for i, move := range g.playerMoves {
 		result[i] = move.Copy()
 	}
 
 	return result
 }
 
-func (d *DefaultGameManager) FixUpMoves() []Move {
+//FixUpMoves returns all moves that are valid in this game to be made as fixup
+//moves--all of the Moves that have been added via AddPlayerMove  during
+//initalization. Returns nil until game.SetUp() has been called. Will return
+//moves that are all copies.
+func (g *GameManager) FixUpMoves() []Move {
 
 	//TODO: test all of these fixup moves
 
-	if !d.initialized {
+	if !g.initialized {
 		return nil
 	}
 
-	result := make([]Move, len(d.fixUpMoves))
+	result := make([]Move, len(g.fixUpMoves))
 
-	for i, move := range d.fixUpMoves {
+	for i, move := range g.fixUpMoves {
 		result[i] = move.Copy()
 	}
 
 	return result
 }
 
-func (d *DefaultGameManager) PlayerMoveByName(name string) Move {
-	if !d.initialized {
+//PlayerMoveByName returns the Move of that name from game.PlayerMoves(), if
+//it exists. Names are considered without regard to case.  Will return a copy.
+func (g *GameManager) PlayerMoveByName(name string) Move {
+	if !g.initialized {
 		return nil
 	}
 	name = strings.ToLower(name)
-	move := d.playerMovesByName[name]
+	move := g.playerMovesByName[name]
 
 	if move == nil {
 		return nil
@@ -210,12 +144,14 @@ func (d *DefaultGameManager) PlayerMoveByName(name string) Move {
 	return move.Copy()
 }
 
-func (d *DefaultGameManager) FixUpMoveByName(name string) Move {
-	if !d.initialized {
+//FixUpMoveByName returns the Move of that name from game.FixUpMoves(), if
+//it exists. Names are considered without regard to case.  Will return a copy.
+func (g *GameManager) FixUpMoveByName(name string) Move {
+	if !g.initialized {
 		return nil
 	}
 	name = strings.ToLower(name)
-	move := d.fixUpMovesByName[name]
+	move := g.fixUpMovesByName[name]
 
 	if move == nil {
 		return nil
@@ -224,42 +160,21 @@ func (d *DefaultGameManager) FixUpMoveByName(name string) Move {
 	return move.Copy()
 }
 
-func (d *DefaultGameManager) DistributeComponentToStarterStack(state State, c *Component) error {
-	//The stub returns an error, because if this is called that means there
-	//was a component in the deck. And if we didn't store it in a stack, then
-	//we are in violation of the invariant.
-	return errors.New("DistributeComponentToStarterStack was called, but the component was not stored in a stack")
+//Chest is the ComponentChest in use for this game. Will return nil until
+//SetUp() called.
+func (g *GameManager) Chest() *ComponentChest {
+	return g.chest
 }
 
-func (d *DefaultGameManager) CheckGameFinished(state State) (finished bool, winners []int) {
-	return false, nil
-}
-
-func (d *DefaultGameManager) StateFromBlob(blob []byte, schema int) (State, error) {
-	return nil, errors.New("Default delegate does not know how to deserialize state objects")
-}
-
-func (d *DefaultGameManager) StartingState(numPlayers int) State {
-	return nil
-}
-
-func (d *DefaultGameManager) DefaultNumPlayers() int {
-	return 2
-}
-
-//Chest is the ComponentChest in use for this game.
-func (d *DefaultGameManager) Chest() *ComponentChest {
-	return d.chest
-}
-
-//SetChest is the way to associate the given Chest with this game manager.
-func (d *DefaultGameManager) SetChest(chest *ComponentChest) {
+//SetChest is the way to associate the given Chest with this game manager
+//before calling SetUp().
+func (g *GameManager) SetChest(chest *ComponentChest) {
 	//We are only allowed to change the chest before the game is SetUp.
-	if d.initialized {
+	if g.initialized {
 		return
 	}
 	if chest != nil {
-		chest.manager = d
+		chest.manager = g
 		//If Finish was not already called in Chest it must be now--we can't
 		//have it changing anymore. This will be a no-op if Finish() was
 		//already called.
@@ -268,34 +183,20 @@ func (d *DefaultGameManager) SetChest(chest *ComponentChest) {
 		//added to a game.
 		chest.Finish()
 	}
-	d.chest = chest
+	g.chest = chest
 }
 
-func (d *DefaultGameManager) Storage() StorageManager {
-	return d.storage
+//Storage is the StorageManager games that use this manager should use.
+func (g *GameManager) Storage() StorageManager {
+	return g.storage
 }
 
-func (d *DefaultGameManager) SetStorage(storage StorageManager) {
-	d.storage = storage
+//SetStorage is how to set the storage manager before SetUp is called.
+func (g *GameManager) SetStorage(storage StorageManager) {
+	g.storage = storage
 }
 
-func (d *DefaultGameManager) Name() string {
-	return "Default Game"
-}
-
-//The Default ProposeFixUpMove runs through all moves in FixUpMoves, in order,
-//and returns the first one that is legal at the current state. In many cases,
-//this behavior should be suficient and need not be overwritten. Be extra sure
-//that your FixUpMoves have a conservative Legal function, otherwise you could
-//get a panic from applying too many FixUp moves.
-func (d *DefaultGameManager) ProposeFixUpMove(state State) Move {
-	for _, move := range d.FixUpMoves() {
-		move.DefaultsForState(state)
-		if err := move.Legal(state); err == nil {
-			//Found it!
-			return move
-		}
-	}
-	//No moves apply now.
-	return nil
+//Delegate returns the GameDelegate configured for these games.
+func (g *GameManager) Delegate() GameDelegate {
+	return g.delegate
 }

@@ -19,7 +19,7 @@ type Game struct {
 	//Manager is a reference to the GameManager that controls this game.
 	//GameManager's methods will be called at key points in the lifecycle of
 	//this game.
-	Manager GameManager
+	Manager *GameManager
 
 	//Finished is whether the came has been completed. If it is over, the
 	//Winners will be set.
@@ -82,7 +82,7 @@ func randomString(length int) string {
 
 //NewGame returns a new game. You must set a Chest and call AddMove with all
 //moves, before calling SetUp. Then the game can be used.
-func NewGame(manager GameManager) *Game {
+func NewGame(manager *GameManager) *Game {
 
 	if manager == nil {
 		return nil
@@ -115,7 +115,7 @@ func (g *Game) MarshalJSON() ([]byte, error) {
 }
 
 func (g *Game) Name() string {
-	return g.Manager.Name()
+	return g.Manager.Delegate().Name()
 }
 
 func (g *Game) Id() string {
@@ -164,11 +164,11 @@ func (g *Game) SetUp(numPlayers int) error {
 	}
 
 	if numPlayers == 0 {
-		numPlayers = g.Manager.DefaultNumPlayers()
+		numPlayers = g.Manager.Delegate().DefaultNumPlayers()
 	}
 
 	//We'll work on a copy of Payload, so if it fails at some point we can just drop it
-	stateCopy := g.Manager.StartingState(numPlayers)
+	stateCopy := g.Manager.Delegate().StartingState(numPlayers)
 
 	if stateCopy == nil {
 		return errors.New("Delegate didn't return a starter state.")
@@ -179,7 +179,7 @@ func (g *Game) SetUp(numPlayers int) error {
 	for _, name := range g.Chest().DeckNames() {
 		deck := g.Chest().Deck(name)
 		for i, component := range deck.Components() {
-			if err := g.Manager.DistributeComponentToStarterStack(stateCopy, component); err != nil {
+			if err := g.Manager.Delegate().DistributeComponentToStarterStack(stateCopy, component); err != nil {
 				return errors.New("Distributing components failed for deck " + name + ":" + strconv.Itoa(i) + ":" + err.Error())
 			}
 		}
@@ -370,7 +370,7 @@ func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 
 	//Check to see if that move made the game finished.
 
-	finished, winners := g.Manager.CheckGameFinished(newState)
+	finished, winners := g.Manager.Delegate().CheckGameFinished(newState)
 
 	if finished {
 		g.Finished = true
@@ -382,7 +382,7 @@ func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 		panic("We recursed deeply in fixup, which implies that ProposeFixUp has a move that is always legal. Quitting.")
 	}
 
-	move = g.Manager.ProposeFixUpMove(newState)
+	move = g.Manager.Delegate().ProposeFixUpMove(newState)
 
 	if move != nil {
 		//We apply the move immediately. This ensures that when
