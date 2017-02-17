@@ -80,8 +80,7 @@ func randomString(length int) string {
 	return result
 }
 
-//NewGame returns a new game. You must set a Chest and call AddMove with all
-//moves, before calling SetUp. Then the game can be used.
+//NewGame returns a new game. You must call SetUp before using it.
 func NewGame(manager *GameManager) *Game {
 
 	if manager == nil {
