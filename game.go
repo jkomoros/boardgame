@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math/rand"
 	"strconv"
+	"time"
 )
 
 //maxRecurseCount is the number of fixUp moves that can be considered normal--
@@ -65,6 +66,10 @@ type proposedMoveItem struct {
 	//Ch is the channel we should either return an error on and then close, or
 	//send nil and close.
 	ch DelayedError
+}
+
+func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
 }
 
 const randomStringChars = "ABCDEF0123456789"
