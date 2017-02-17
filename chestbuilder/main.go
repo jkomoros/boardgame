@@ -47,7 +47,7 @@ func FromConfig(blob []byte, container interface{}) (*boardgame.ComponentChest, 
 	s := reflect.ValueOf(container).Elem()
 	typeOfContainer := s.Type()
 
-	chest := boardgame.NewComponentChest("WHATEVER")
+	chest := boardgame.NewComponentChest()
 
 	for i := 0; i < s.NumField(); i++ {
 		f := s.Field(i)

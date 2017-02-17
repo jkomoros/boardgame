@@ -5,7 +5,7 @@ import (
 )
 
 func newTestGameChest() *ComponentChest {
-	chest := NewComponentChest(testGameName)
+	chest := NewComponentChest()
 
 	deck := &Deck{}
 

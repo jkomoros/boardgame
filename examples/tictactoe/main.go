@@ -221,7 +221,7 @@ func checkRunWon(runState []string) string {
 }
 
 func NewManager() *boardgame.GameManager {
-	chest := boardgame.NewComponentChest(gameName)
+	chest := boardgame.NewComponentChest()
 
 	tokens := &boardgame.Deck{}
 
