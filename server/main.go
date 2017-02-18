@@ -347,7 +347,6 @@ func (s *Server) Start() {
 
 	gameAPIGroup := router.Group("/api/game/:id")
 	gameAPIGroup.Use(s.gameAPISetup)
-	//TODO: use the ID for something once we have mutiple games to decide between
 	{
 		gameAPIGroup.GET("view", s.gameViewHandler)
 		gameAPIGroup.POST("move", s.moveHandler)
