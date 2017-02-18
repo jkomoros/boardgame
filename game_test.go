@@ -27,7 +27,7 @@ func TestProposeMoveNonModifiableGame(t *testing.T) {
 
 	//At this point, the game has stored state in storage.
 
-	refriedGame := manager.storage.Game(manager, id)
+	refriedGame := manager.Game(id)
 
 	if refriedGame == nil {
 		t.Fatal("Couldn't get a game out refried")
@@ -45,7 +45,7 @@ func TestProposeMoveNonModifiableGame(t *testing.T) {
 	}
 
 	//Update it from server
-	refriedGame = manager.storage.Game(manager, id)
+	refriedGame = manager.Game(id)
 
 	if refriedGame.Version() != 2 {
 		t.Error("The proposed move didn't actually modify the underlying game in storage: ", refriedGame.Version())

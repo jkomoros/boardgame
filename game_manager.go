@@ -149,6 +149,12 @@ func (g *GameManager) ModifiableGame(id string) *Game {
 
 }
 
+//Game fetches a new non-modifiable copy of the given game from storage. If
+//you want a modifiable version, use ModifiableGame.
+func (g *GameManager) Game(id string) *Game {
+	return g.storage.Game(g, id)
+}
+
 //proposeMoveOnGame is how non-modifiable games should tell the manager they
 //have a move they want to make on a given move ID. For now it's just a simple
 //wrapper around ModifiableGame, but in multi-server situations, in the future
