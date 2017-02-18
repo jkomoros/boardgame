@@ -12,8 +12,8 @@ import (
 )
 
 type Server struct {
-	games   map[string]*boardgame.Game
 	manager *boardgame.GameManager
+	storage StorageManager
 	//We store the last error so that next time viewHandler is called we can
 	//display it. Yes, this is a hack.
 	lastErrorMessage string
@@ -39,11 +39,22 @@ type MoveFormField struct {
 	DefaultValue interface{}
 }
 
-func NewServer(manager *boardgame.GameManager) *Server {
+/*
+NewServer returns a new server. Get it to run by calling Start(). storage
+should be the same underlying storage manager that is in use for manager.
 
+Use it like so:
+
+	func main() {
+		storage := server.NewDefaultStorageManager()
+		server.NewServer(mygame.NewManager(storage), storage).Start()
+	}
+
+*/
+func NewServer(manager *boardgame.GameManager, storage StorageManager) *Server {
 	return &Server{
-		games:   make(map[string]*boardgame.Game),
 		manager: manager,
+		storage: storage,
 	}
 
 }
@@ -65,7 +76,7 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 	id := c.Param("id")
 
-	game := s.games[id]
+	game := s.manager.Game(id)
 
 	if game == nil {
 		log.Println("Couldn't find game with id", id)
@@ -110,8 +121,6 @@ func (s *Server) newGameHandler(c *gin.Context) {
 		panic(err)
 	}
 
-	s.games[game.Id()] = game
-
 	c.JSON(http.StatusOK, gin.H{
 		"Status": "Success",
 		"GameId": game.Id(),
@@ -121,21 +130,8 @@ func (s *Server) newGameHandler(c *gin.Context) {
 func (s *Server) listGamesHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"Status": "Success",
-		"Games":  s.listGames(),
+		"Games":  s.storage.ListGames(s.manager, 10),
 	})
-}
-
-func (s *Server) listGames() []*boardgame.Game {
-
-	result := make([]*boardgame.Game, len(s.games))
-
-	i := 0
-	for _, val := range s.games {
-		result[i] = val
-		i++
-	}
-
-	return result
 }
 
 func (s *Server) gameViewHandler(c *gin.Context) {

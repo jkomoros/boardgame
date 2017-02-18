@@ -44,21 +44,23 @@ type memoryGameRecord struct {
 	Winners string
 }
 
-type inMemoryStorageManager struct {
+//InMemoryStorageManager is a very simple storage manager that just stores the
+//given games in memory.≈
+type InMemoryStorageManager struct {
 	states map[string]map[int]*memoryStateRecord
 	games  map[string]*memoryGameRecord
 }
 
-func NewInMemoryStorageManager() StorageManager {
+func NewInMemoryStorageManager() *InMemoryStorageManager {
 	//InMemoryStorageManager is an extremely simple StorageManager that just keeps
 	//track of the objects in memory.
-	return &inMemoryStorageManager{
+	return &InMemoryStorageManager{
 		states: make(map[string]map[int]*memoryStateRecord),
 		games:  make(map[string]*memoryGameRecord),
 	}
 }
 
-func (i *inMemoryStorageManager) State(game *Game, version int) State {
+func (i *InMemoryStorageManager) State(game *Game, version int) State {
 	if game == nil {
 		return nil
 	}
@@ -88,7 +90,7 @@ func (i *inMemoryStorageManager) State(game *Game, version int) State {
 	return state
 }
 
-func (i *inMemoryStorageManager) Game(manager *GameManager, id string) *Game {
+func (i *InMemoryStorageManager) Game(manager *GameManager, id string) *Game {
 	record := i.games[id]
 
 	if record == nil {
@@ -102,7 +104,7 @@ func (i *inMemoryStorageManager) Game(manager *GameManager, id string) *Game {
 	return manager.LoadGame(record.Name, id, record.Version, record.Finished, i.winnersFromStorage(record.Winners))
 }
 
-func (i *inMemoryStorageManager) winnersForStorage(winners []int) string {
+func (i *InMemoryStorageManager) winnersForStorage(winners []int) string {
 
 	if winners == nil {
 		return ""
@@ -117,7 +119,7 @@ func (i *inMemoryStorageManager) winnersForStorage(winners []int) string {
 	return strings.Join(result, ",")
 }
 
-func (i *inMemoryStorageManager) winnersFromStorage(winners string) []int {
+func (i *InMemoryStorageManager) winnersFromStorage(winners string) []int {
 
 	if winners == "" {
 		return nil
@@ -139,7 +141,7 @@ func (i *inMemoryStorageManager) winnersFromStorage(winners string) []int {
 	return result
 }
 
-func (i *inMemoryStorageManager) SaveGameAndState(game *Game, version int, schema int, state State) error {
+func (i *InMemoryStorageManager) SaveGameAndState(game *Game, version int, schema int, state State) error {
 	if game == nil {
 		return errors.New("No game provided")
 	}
@@ -182,4 +184,20 @@ func (i *inMemoryStorageManager) SaveGameAndState(game *Game, version int, schem
 	}
 
 	return nil
+}
+
+//ListGames will return game objects for up to max number of games
+func (i *InMemoryStorageManager) ListGames(manager *GameManager, max int) []*Game {
+
+	var result []*Game
+
+	for _, game := range i.games {
+		result = append(result, manager.Game(game.Id))
+		if len(result) >= max {
+			break
+		}
+	}
+
+	return result
+
 }

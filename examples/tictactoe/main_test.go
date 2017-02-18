@@ -8,7 +8,7 @@ import (
 
 func TestGame(t *testing.T) {
 
-	game := NewGame(NewManager())
+	game := NewGame(NewManager(nil))
 
 	if game == nil {
 		t.Error("Didn't get tictactoe game back")
@@ -20,7 +20,7 @@ func TestGame(t *testing.T) {
 }
 
 func TestStateFromBlob(t *testing.T) {
-	game := NewGame(NewManager())
+	game := NewGame(NewManager(nil))
 
 	if err := <-game.ProposeMove(&MovePlaceToken{
 		Slot:              1,

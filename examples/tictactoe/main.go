@@ -220,7 +220,7 @@ func checkRunWon(runState []string) string {
 	return targetToken
 }
 
-func NewManager() *boardgame.GameManager {
+func NewManager(optionalStorage boardgame.StorageManager) *boardgame.GameManager {
 	chest := boardgame.NewComponentChest()
 
 	tokens := &boardgame.Deck{}
@@ -239,7 +239,11 @@ func NewManager() *boardgame.GameManager {
 
 	chest.AddDeck("tokens", tokens)
 
-	manager := boardgame.NewGameManager(&gameDelegate{}, chest, boardgame.NewInMemoryStorageManager())
+	if optionalStorage == nil {
+		optionalStorage = boardgame.NewInMemoryStorageManager()
+	}
+
+	manager := boardgame.NewGameManager(&gameDelegate{}, chest, optionalStorage)
 
 	manager.AddPlayerMove(&MovePlaceToken{})
 	manager.AddFixUpMove(&MoveAdvancePlayer{})

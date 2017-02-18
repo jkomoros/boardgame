@@ -65,7 +65,7 @@ func TestInMemoryStorageManger(t *testing.T) {
 
 	//Verify that if the game is stored with wrong name that doesn't match manager it won't load up.
 
-	store := storage.(*inMemoryStorageManager)
+	store := storage.(*InMemoryStorageManager)
 
 	record := store.games[game.Id()]
 
