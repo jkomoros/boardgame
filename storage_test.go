@@ -1,36 +1,66 @@
 package boardgame
 
 import (
-	"reflect"
+	"encoding/json"
 	"testing"
 )
 
 func TestInMemoryStorageManger(t *testing.T) {
 
-	manager := NewInMemoryStorageManager()
-
 	game := testGame()
 
 	game.SetUp(0)
 
-	//Save state 0
-
-	state0 := game.Manager().Storage().State(game, game.Version())
-
-	if err := manager.SaveState(game, 0, 0, state0); err != nil {
-		t.Error("Save state 0 failed", err)
+	move := &testMove{
+		AString:           "foo",
+		ScoreIncrement:    3,
+		TargetPlayerIndex: 0,
+		ABool:             true,
 	}
 
-	savedState0 := manager.State(game, 0)
-
-	if !reflect.DeepEqual(savedState0, state0) {
-		t.Error("Reconstituted state did not deep equal state. Got", savedState0, "wanted", state0)
+	if err := <-game.ProposeMove(move); err != nil {
+		t.Fatal("Couldn't make move", err)
 	}
 
-	//Try to save again insame slot
+	//OK, now test that the manager and SetUp and everyone did the right thing.
 
-	if err := manager.SaveState(game, 0, 0, state0); err == nil {
-		t.Error("We didn't get an error trying to save again at same version")
+	//Manager.Storage() is a InMemoryStorageManager
+
+	//Game.SetUp() should have stored the state to the storages
+
+	storage := game.Manager().Storage()
+	manager := game.Manager()
+
+	localGame := storage.Game(manager, game.Id(), false)
+
+	if localGame == nil {
+		t.Fatal("Couldn't get game copy out")
 	}
+
+	if localGame.Modifiable() {
+		t.Error("We asked for a non-modifiable game, got a modifiable one")
+	}
+
+	blob, err := json.MarshalIndent(game, "", "  ")
+
+	if err != nil {
+		t.Fatal("couldn't marshal game", err)
+	}
+
+	localBlob, err := json.MarshalIndent(localGame, "", "  ")
+
+	if err != nil {
+		t.Fatal("Couldn't marshal localGame", err)
+	}
+
+	compareJSONObjects(blob, localBlob, "Comparing game and local game", t)
+
+	state := game.State(0)
+	stateBlob, _ := json.MarshalIndent(state, "", "  ")
+
+	localState := localGame.State(0)
+	localStateBlob, _ := json.MarshalIndent(localState, "", "  ")
+
+	compareJSONObjects(stateBlob, localStateBlob, "Comparing game version 0", t)
 
 }

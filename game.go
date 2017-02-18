@@ -175,6 +175,7 @@ func (g *Game) SetUp(numPlayers int) error {
 		return errors.New("Game already initalized")
 	}
 
+	//TODO: we don't need this anymore because managers can't be created without chests.
 	if g.manager.Chest() == nil {
 		return errors.New("No component chest set on manager")
 	}
@@ -206,7 +207,7 @@ func (g *Game) SetUp(numPlayers int) error {
 	if g.Modifiable() {
 
 		//Save the initial state to DB.
-		g.manager.Storage().SaveState(g, 0, g.schema, stateCopy)
+		g.manager.Storage().SaveGameAndState(g, 0, g.schema, stateCopy)
 
 		go g.mainLoop()
 	}
@@ -373,17 +374,6 @@ func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 		return errors.New("The move's apply function returned an error:" + err.Error())
 	}
 
-	//TODO: test that if we fail to save state to storage everything's fine.
-	if err := g.manager.Storage().SaveState(g, g.version+1, g.schema, newState); err != nil {
-		return errors.New("Storage returned an error:" + err.Error())
-	}
-
-	//We succeeded in saving the state, whcih means that our version can be
-	//incremented.
-	g.version = g.version + 1
-	//Expire the currentState cache; it's no longer valid.
-	g.cachedCurrentState = nil
-
 	//Check to see if that move made the game finished.
 
 	finished, winners := g.manager.Delegate().CheckGameFinished(newState)
@@ -392,6 +382,15 @@ func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 		g.finished = true
 		g.winners = winners
 		//TODO: persist to database here.
+	}
+
+	g.version = g.version + 1
+	//Expire the currentState cache; it's no longer valid.
+	g.cachedCurrentState = nil
+
+	//TODO: test that if we fail to save state to storage everything's fine.
+	if err := g.manager.Storage().SaveGameAndState(g, g.version, g.schema, newState); err != nil {
+		return errors.New("Storage returned an error:" + err.Error())
 	}
 
 	if recurseCount > maxRecurseCount {

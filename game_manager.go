@@ -57,6 +57,34 @@ func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage Storag
 	return result
 }
 
+//LoadGame is used to provide back a real Game instance based on state that
+//was stored in storage, that is ready to use like any other game (that is, it
+//operates like SetUp has already been called). If you want a new game, use
+//NewGame.
+func (g *GameManager) LoadGame(id string, modifiable bool, version int, finished bool, winners []int) *Game {
+
+	//It feels really weird that this is exposed, but I think something like
+	//it has to be so that others can implement their own StorageManagers
+	//without being able to modify Game's internal fields.
+
+	result := &Game{
+		manager:    g,
+		version:    version,
+		modifiable: modifiable,
+		id:         id,
+		finished:   finished,
+		winners:    winners,
+		initalized: true,
+	}
+
+	if result.Modifiable() {
+		go result.mainLoop()
+	}
+
+	return result
+
+}
+
 //SetUp should be called before this Manager is used. It locks in moves,
 //chest, storage, etc.
 func (g *GameManager) SetUp() error {
