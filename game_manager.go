@@ -138,11 +138,47 @@ func (g *GameManager) ModifiableGame(id string) *Game {
 
 	//Only SetUp() and us are allowed to kick off a game's mainLoop.
 	game.modifiable = true
+	//TODO: set the size of chan based on something more reasonable.
+	//Note: this is also set similarly in NewGame
+	game.proposedMoves = make(chan *proposedMoveItem, 20)
 	go game.mainLoop()
 
 	g.modifiableGames[id] = game
 
 	return game
+
+}
+
+//proposeMoveOnGame is how non-modifiable games should tell the manager they
+//have a move they want to make on a given move ID. For now it's just a simple
+//wrapper around ModifiableGame, but in multi-server situations, in the future
+//it would conceivably do an RPC or something.
+func (g *GameManager) proposeMoveOnGame(id string, move Move) DelayedError {
+
+	errChan := make(DelayedError, 1)
+
+	//ModifiableGame could take awhile if it has to be fetched from storage,
+	//so we'll run all of this in a goroutine since we're returning a
+	//DelayedError anyway.
+
+	go func() {
+		game := g.ModifiableGame(id)
+
+		if game == nil {
+			errChan <- errors.New("There was no game with that ID")
+			return
+		}
+
+		workItem := &proposedMoveItem{
+			move: move,
+			ch:   errChan,
+		}
+
+		game.proposedMoves <- workItem
+
+	}()
+
+	return errChan
 
 }
 

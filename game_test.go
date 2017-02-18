@@ -16,18 +16,22 @@ func (t *testInfiniteLoopGameDelegate) ProposeFixUpMove(state State) Move {
 	return &testAlwaysLegalMove{}
 }
 
-func TestGameModifiable(t *testing.T) {
-
+func TestProposeMoveNonModifiableGame(t *testing.T) {
 	game := testGame()
 
-	if !game.Modifiable() {
-		t.Error("Default new game was not modifiable")
-	}
-
-	//Fake that the game is not modifiable.
-	game.modifiable = false
-
 	game.SetUp(0)
+
+	manager := game.Manager()
+
+	id := game.Id()
+
+	//At this point, the game has stored state in storage.
+
+	refriedGame := manager.storage.Game(manager, id)
+
+	if refriedGame == nil {
+		t.Fatal("Couldn't get a game out refried")
+	}
 
 	move := &testMove{
 		AString:           "foo",
@@ -36,8 +40,15 @@ func TestGameModifiable(t *testing.T) {
 		ABool:             true,
 	}
 
-	if err := <-game.ProposeMove(move); err == nil {
-		t.Error("Proposing a move on non-modifiable game succeeded")
+	if err := <-refriedGame.ProposeMove(move); err != nil {
+		t.Error("Propose move on refried game failed:", err)
+	}
+
+	//Update it from server
+	refriedGame = manager.storage.Game(manager, id)
+
+	if refriedGame.Version() != 2 {
+		t.Error("The proposed move didn't actually modify the underlying game in storage: ", refriedGame.Version())
 	}
 
 }

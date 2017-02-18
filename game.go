@@ -87,6 +87,7 @@ func NewGame(manager *GameManager) *Game {
 	result := &Game{
 		manager: manager,
 		//TODO: set the size of chan based on something more reasonable.
+		//Note: this is also set similarly in manager.ModifiableGame
 		proposedMoves: make(chan *proposedMoveItem, 20),
 		id:            randomString(gameIDLength),
 		modifiable:    true,
@@ -318,22 +319,27 @@ func (g *Game) Chest() *ComponentChest {
 //return an error in the future if the move was unable to be applied, or nil
 //if the move was applied successfully. DelayedError will only resolve once
 //any applicable FixUp moves have been applied already. Note: DelayedError
-//won't return anything until after SetUp has been called.
+//won't return anything until after SetUp has been called. This is legal to
+//call on a non-modifiable game--the change will be dispatched to a modifiable
+//version of the game with this ID. However, note that if you call it on a
+//non-modifiable game, even once DelayedError has resolved, the original game
+//will still represent its old state. Therefore, if you call this on a non-
+//modifiable game, it's best to fetch the game from storage fresh once
+//ProposedError resolves.
 func (g *Game) ProposeMove(move Move) DelayedError {
+
+	if !g.Modifiable() {
+		return g.manager.proposeMoveOnGame(g.Id(), move)
+	}
 
 	errChan := make(DelayedError, 1)
 
-	if g.Modifiable() {
-
-		workItem := &proposedMoveItem{
-			move: move,
-			ch:   errChan,
-		}
-
-		g.proposedMoves <- workItem
-	} else {
-		errChan <- errors.New("Game is not modifiable")
+	workItem := &proposedMoveItem{
+		move: move,
+		ch:   errChan,
 	}
+
+	g.proposedMoves <- workItem
 
 	return errChan
 
