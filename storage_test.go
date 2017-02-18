@@ -63,4 +63,18 @@ func TestInMemoryStorageManger(t *testing.T) {
 
 	compareJSONObjects(stateBlob, localStateBlob, "Comparing game version 0", t)
 
+	//Verify that if the game is stored with wrong name that doesn't match manager it won't load up.
+
+	store := storage.(*inMemoryStorageManager)
+
+	record := store.games[game.Id()]
+
+	record.Name = "BOGUS"
+
+	bogusGame := storage.Game(manager, game.Id(), false)
+
+	if bogusGame != nil {
+		t.Error("Game shouldn't have come back because name doesn't match")
+	}
+
 }

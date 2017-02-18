@@ -39,6 +39,7 @@ type memoryStateRecord struct {
 }
 
 type memoryGameRecord struct {
+	Name     string
 	Id       string
 	Version  int
 	Finished bool
@@ -103,7 +104,7 @@ func (i *inMemoryStorageManager) Game(manager *GameManager, id string, modifiabl
 		return nil
 	}
 
-	return manager.LoadGame(id, modifiable, record.Version, record.Finished, i.winnersFromStorage(record.Winners))
+	return manager.LoadGame(record.Name, id, modifiable, record.Version, record.Finished, i.winnersFromStorage(record.Winners))
 }
 
 func (i *inMemoryStorageManager) winnersForStorage(winners []int) string {
@@ -182,6 +183,7 @@ func (i *inMemoryStorageManager) SaveGameAndState(game *Game, version int, schem
 		Winners:  i.winnersForStorage(game.Winners()),
 		Finished: game.Finished(),
 		Id:       game.Id(),
+		Name:     game.Name(),
 	}
 
 	return nil

@@ -61,11 +61,16 @@ func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage Storag
 //was stored in storage, that is ready to use like any other game (that is, it
 //operates like SetUp has already been called). If you want a new game, use
 //NewGame.
-func (g *GameManager) LoadGame(id string, modifiable bool, version int, finished bool, winners []int) *Game {
+func (g *GameManager) LoadGame(name string, id string, modifiable bool, version int, finished bool, winners []int) *Game {
 
 	//It feels really weird that this is exposed, but I think something like
 	//it has to be so that others can implement their own StorageManagers
 	//without being able to modify Game's internal fields.
+
+	//Sanity check that this game actually does match with this manager.
+	if name != g.delegate.Name() {
+		return nil
+	}
 
 	result := &Game{
 		manager:    g,
