@@ -315,6 +315,23 @@ func (g *Game) Chest() *ComponentChest {
 	return g.manager.Chest()
 }
 
+//Refresh goes and sets this game object to reflect the current state of the
+//underlying game in Storage. Basically, when you call manager.Game() you get
+//a snapshot of the game in storage at that moment. If you believe that the
+//underlying game in storage has been modified, calling Refresh() will re-load
+//the snapshot, effectively. Most useful after calling ProposeMove() on a non-
+//modifiable game.
+func (g *Game) Refresh() {
+
+	freshGame := g.manager.Game(g.Id())
+
+	g.cachedCurrentState = nil
+	g.version = freshGame.Version()
+	g.finished = freshGame.Finished()
+	g.winners = freshGame.Winners()
+
+}
+
 //ProposedMove is the way to propose a move to the game. DelayedError will
 //return an error in the future if the move was unable to be applied, or nil
 //if the move was applied successfully. DelayedError will only resolve once
@@ -323,9 +340,10 @@ func (g *Game) Chest() *ComponentChest {
 //call on a non-modifiable game--the change will be dispatched to a modifiable
 //version of the game with this ID. However, note that if you call it on a
 //non-modifiable game, even once DelayedError has resolved, the original game
-//will still represent its old state. Therefore, if you call this on a non-
-//modifiable game, it's best to fetch the game from storage fresh once
-//ProposedError resolves.
+//will still represent its old state. If you wantt to see its current state,
+//calling game.Refresh() after DelayedError has resolved should contain the
+//move changes you proposed, if they were accepted (and of course potentially
+//more moves if other moves were applied in the meantime).
 func (g *Game) ProposeMove(move Move) DelayedError {
 
 	if !g.Modifiable() {

@@ -45,7 +45,7 @@ func TestProposeMoveNonModifiableGame(t *testing.T) {
 	}
 
 	//Update it from server
-	refriedGame = manager.Game(id)
+	refriedGame.Refresh()
 
 	if refriedGame.Version() != 2 {
 		t.Error("The proposed move didn't actually modify the underlying game in storage: ", refriedGame.Version())
