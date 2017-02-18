@@ -70,6 +70,12 @@ func TestGameManagerModifiableGame(t *testing.T) {
 	if game == otherGame {
 		t.Error("ModifiableGame didn't grab a game from storage fresh")
 	}
+
+	otherGame = manager.ModifiableGame("NOGAMEATTHISID")
+
+	if otherGame != nil {
+		t.Error("ModifiableGame returned a game even for an invalid ID")
+	}
 }
 
 func TestGameManagerSetUp(t *testing.T) {
