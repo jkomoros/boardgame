@@ -207,7 +207,7 @@ func (g *Game) SetUp(numPlayers int) error {
 	if g.Modifiable() {
 
 		//Save the initial state to DB.
-		g.manager.Storage().SaveGameAndState(g, 0, stateCopy)
+		g.manager.Storage().SaveGameAndCurrentState(g, stateCopy)
 
 		go g.mainLoop()
 	}
@@ -412,7 +412,7 @@ func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 	g.cachedCurrentState = nil
 
 	//TODO: test that if we fail to save state to storage everything's fine.
-	if err := g.manager.Storage().SaveGameAndState(g, g.version, newState); err != nil {
+	if err := g.manager.Storage().SaveGameAndCurrentState(g, newState); err != nil {
 		return errors.New("Storage returned an error:" + err.Error())
 	}
 

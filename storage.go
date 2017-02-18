@@ -14,8 +14,8 @@ type StorageManager interface {
 	//GameManager.ModifiableGame(id).
 	Game(manager *GameManager, id string) *Game
 
-	//SaveGameAndState stores the game and the given state into the store at
-	//the same time in a transaction. If Game.Modifiable() is false, storage
-	//should fail.
-	SaveGameAndState(game *Game, version int, state State) error
+	//SaveGameAndCurrentState stores the game and the current state (at
+	//game.Version()) into the store at the same time in a transaction. If
+	//Game.Modifiable() is false, storage should fail.
+	SaveGameAndCurrentState(game *Game, state State) error
 }

@@ -121,7 +121,7 @@ func (i *testStorageManager) winnersFromStorage(winners string) []int {
 	return result
 }
 
-func (i *testStorageManager) SaveGameAndState(game *Game, version int, state State) error {
+func (i *testStorageManager) SaveGameAndCurrentState(game *Game, state State) error {
 	if game == nil {
 		return errors.New("No game provided")
 	}
@@ -135,6 +135,8 @@ func (i *testStorageManager) SaveGameAndState(game *Game, version int, state Sta
 	if _, ok := i.states[game.Id()]; !ok {
 		i.states[game.Id()] = make(map[int]*memoryStateRecord)
 	}
+
+	version := game.Version()
 
 	versionMap := i.states[game.Id()]
 

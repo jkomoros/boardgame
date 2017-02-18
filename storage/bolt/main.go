@@ -154,7 +154,9 @@ func (s *StorageManager) Game(manager *boardgame.GameManager, id string) *boardg
 
 }
 
-func (s *StorageManager) SaveGameAndState(game *boardgame.Game, version int, state boardgame.State) error {
+func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.Game, state boardgame.State) error {
+
+	version := game.Version()
 
 	gameRec := &gameRecord{
 		Name:     game.Name(),
