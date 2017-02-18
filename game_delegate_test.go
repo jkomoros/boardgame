@@ -77,7 +77,7 @@ func (t *testGameDelegate) StartingState(numPlayers int) State {
 	}
 }
 
-func (t *testGameDelegate) StateFromBlob(blob []byte, schema int) (State, error) {
+func (t *testGameDelegate) StateFromBlob(blob []byte) (State, error) {
 	result := &testState{}
 	if err := json.Unmarshal(blob, result); err != nil {
 		return nil, err

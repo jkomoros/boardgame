@@ -34,7 +34,6 @@ type gameRecord struct {
 
 //stateRecord is suitable for being marshaled as JSON
 type stateRecord struct {
-	Schema  int
 	Version int
 	State   []byte
 }
@@ -115,7 +114,7 @@ func (s *StorageManager) State(game *boardgame.Game, version int) boardgame.Stat
 		return nil
 	}
 
-	state, err := game.Manager().Delegate().StateFromBlob(decodedRecord.State, decodedRecord.Schema)
+	state, err := game.Manager().Delegate().StateFromBlob(decodedRecord.State)
 
 	if err != nil {
 		return nil
@@ -155,7 +154,7 @@ func (s *StorageManager) Game(manager *boardgame.GameManager, id string) *boardg
 
 }
 
-func (s *StorageManager) SaveGameAndState(game *boardgame.Game, version int, schema int, state boardgame.State) error {
+func (s *StorageManager) SaveGameAndState(game *boardgame.Game, version int, state boardgame.State) error {
 
 	gameRec := &gameRecord{
 		Name:     game.Name(),
@@ -172,7 +171,6 @@ func (s *StorageManager) SaveGameAndState(game *boardgame.Game, version int, sch
 	}
 
 	stateRec := &stateRecord{
-		Schema:  schema,
 		Version: version,
 		State:   serializedState,
 	}

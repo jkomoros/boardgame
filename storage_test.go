@@ -11,7 +11,6 @@ import (
 //own package tests can run. The shim is basically storage/memory/StorageManager.
 
 type memoryStateRecord struct {
-	Schema          int
 	Version         int
 	SerializedState []byte
 }
@@ -62,7 +61,7 @@ func (i *testStorageManager) State(game *Game, version int) State {
 		return nil
 	}
 
-	state, err := game.manager.Delegate().StateFromBlob(record.SerializedState, record.Schema)
+	state, err := game.manager.Delegate().StateFromBlob(record.SerializedState)
 
 	if err != nil {
 		return nil
@@ -122,7 +121,7 @@ func (i *testStorageManager) winnersFromStorage(winners string) []int {
 	return result
 }
 
-func (i *testStorageManager) SaveGameAndState(game *Game, version int, schema int, state State) error {
+func (i *testStorageManager) SaveGameAndState(game *Game, version int, state State) error {
 	if game == nil {
 		return errors.New("No game provided")
 	}
@@ -152,7 +151,6 @@ func (i *testStorageManager) SaveGameAndState(game *Game, version int, schema in
 
 	versionMap[version] = &memoryStateRecord{
 		Version:         version,
-		Schema:          schema,
 		SerializedState: blob,
 	}
 

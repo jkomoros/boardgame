@@ -17,5 +17,5 @@ type StorageManager interface {
 	//SaveGameAndState stores the game and the given state into the store at
 	//the same time in a transaction. If Game.Modifiable() is false, storage
 	//should fail.
-	SaveGameAndState(game *Game, version int, schema int, state State) error
+	SaveGameAndState(game *Game, version int, state State) error
 }

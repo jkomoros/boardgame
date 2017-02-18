@@ -18,7 +18,6 @@ import (
 )
 
 type memoryStateRecord struct {
-	Schema          int
 	Version         int
 	SerializedState []byte
 }
@@ -69,7 +68,7 @@ func (s *StorageManager) State(game *boardgame.Game, version int) boardgame.Stat
 		return nil
 	}
 
-	state, err := game.Manager().Delegate().StateFromBlob(record.SerializedState, record.Schema)
+	state, err := game.Manager().Delegate().StateFromBlob(record.SerializedState)
 
 	if err != nil {
 		return nil
@@ -129,7 +128,7 @@ func (s *StorageManager) winnersFromStorage(winners string) []int {
 	return result
 }
 
-func (s *StorageManager) SaveGameAndState(game *boardgame.Game, version int, schema int, state boardgame.State) error {
+func (s *StorageManager) SaveGameAndState(game *boardgame.Game, version int, state boardgame.State) error {
 	if game == nil {
 		return errors.New("No game provided")
 	}
@@ -159,7 +158,6 @@ func (s *StorageManager) SaveGameAndState(game *boardgame.Game, version int, sch
 
 	versionMap[version] = &memoryStateRecord{
 		Version:         version,
-		Schema:          schema,
 		SerializedState: blob,
 	}
 

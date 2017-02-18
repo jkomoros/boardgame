@@ -24,9 +24,6 @@ type Game struct {
 
 	//The current version of State.
 	version int
-	//The schema of the game.
-	schema int
-	//TODO: allow setting this.
 
 	//Memozied answer to CurrentState. Invalidated whenever ApplyMove is
 	//called.
@@ -210,7 +207,7 @@ func (g *Game) SetUp(numPlayers int) error {
 	if g.Modifiable() {
 
 		//Save the initial state to DB.
-		g.manager.Storage().SaveGameAndState(g, 0, g.schema, stateCopy)
+		g.manager.Storage().SaveGameAndState(g, 0, stateCopy)
 
 		go g.mainLoop()
 	}
@@ -415,7 +412,7 @@ func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 	g.cachedCurrentState = nil
 
 	//TODO: test that if we fail to save state to storage everything's fine.
-	if err := g.manager.Storage().SaveGameAndState(g, g.version, g.schema, newState); err != nil {
+	if err := g.manager.Storage().SaveGameAndState(g, g.version, newState); err != nil {
 		return errors.New("Storage returned an error:" + err.Error())
 	}
 

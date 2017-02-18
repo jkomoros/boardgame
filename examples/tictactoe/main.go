@@ -42,7 +42,7 @@ func (g *gameDelegate) DefaultNumPlayers() int {
 	return 2
 }
 
-func (g *gameDelegate) StateFromBlob(blob []byte, schema int) (boardgame.State, error) {
+func (g *gameDelegate) StateFromBlob(blob []byte) (boardgame.State, error) {
 	result := &mainState{}
 	if err := json.Unmarshal(blob, result); err != nil {
 		return nil, err

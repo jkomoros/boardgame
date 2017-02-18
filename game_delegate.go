@@ -51,7 +51,7 @@ type GameDelegate interface {
 	//Stacks in the state, and set playerIndex for each UserState in order.
 	//It's strongly recommended that you test a round-trip of state through
 	//this method.
-	StateFromBlob(blob []byte, schema int) (State, error)
+	StateFromBlob(blob []byte) (State, error)
 
 	//SetManager configures which manager this delegate is in use with. A
 	//given delegate can only be used by a single manager at a time.
