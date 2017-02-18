@@ -1,0 +1,38 @@
+{
+  "CurrentState": {
+    "Game": {
+      "CurrentPlayer": 0,
+      "DrawDeck": {
+        "Deck": "test",
+        "Indexes": [
+          3,
+          2,
+          1,
+          0
+        ]
+      }
+    },
+    "Users": [
+      {
+        "Score": 0,
+        "MovesLeftThisTurn": 1,
+        "IsFoo": false
+      },
+      {
+        "Score": 0,
+        "MovesLeftThisTurn": 0,
+        "IsFoo": false
+      },
+      {
+        "Score": 0,
+        "MovesLeftThisTurn": 0,
+        "IsFoo": true
+      }
+    ]
+  },
+  "Finished": false,
+  "Id": "483BD9BC8D1A2F27",
+  "Name": "Test Game",
+  "Version": 0,
+  "Winners": null
+}

@@ -16,19 +16,11 @@ const maxRecurseCount = 50
 //A Game represents a specific game between a collection of Players. Create a
 //new one with NewGame().
 type Game struct {
+	manager *GameManager
 
-	//Manager is a reference to the GameManager that controls this game.
-	//GameManager's methods will be called at key points in the lifecycle of
-	//this game.
-	Manager *GameManager
+	finished bool
 
-	//Finished is whether the came has been completed. If it is over, the
-	//Winners will be set.
-	Finished bool
-	//Winners is the player indexes who were winners. Typically, this will be
-	//one player, but it could be multiple in the case of tie, or 0 in the
-	//case of a draw.
-	Winners []int
+	winners []int
 
 	//The current version of State.
 	version int
@@ -93,7 +85,7 @@ func NewGame(manager *GameManager) *Game {
 	}
 
 	result := &Game{
-		Manager: manager,
+		manager: manager,
 		//TODO: set the size of chan based on something more reasonable.
 		proposedMoves: make(chan *proposedMoveItem, 20),
 		id:            randomString(gameIDLength),
@@ -104,12 +96,32 @@ func NewGame(manager *GameManager) *Game {
 
 }
 
+//Winners is the player indexes who were winners. Typically, this will be
+//one player, but it could be multiple in the case of tie, or 0 in the
+//case of a draw.
+func (g *Game) Winners() []int {
+	return g.winners
+}
+
+//Finished is whether the came has been completed. If it is over, the
+//Winners will be set.
+func (g *Game) Finished() bool {
+	return g.finished
+}
+
+//Manager is a reference to the GameManager that controls this game.
+//GameManager's methods will be called at key points in the lifecycle of
+//this game.
+func (g *Game) Manager() *GameManager {
+	return g.manager
+}
+
 func (g *Game) MarshalJSON() ([]byte, error) {
 	//We define our own MarshalJSON because if we didn't there'd be an infinite loop because of the redirects back up.
 	result := map[string]interface{}{
 		"Name":         g.Name(),
-		"Finished":     g.Finished,
-		"Winners":      g.Winners,
+		"Finished":     g.Finished(),
+		"Winners":      g.Winners(),
 		"CurrentState": g.CurrentState(),
 		"Id":           g.Id(),
 		"Version":      g.Version(),
@@ -119,7 +131,7 @@ func (g *Game) MarshalJSON() ([]byte, error) {
 }
 
 func (g *Game) Name() string {
-	return g.Manager.Delegate().Name()
+	return g.manager.Delegate().Name()
 }
 
 func (g *Game) Id() string {
@@ -149,7 +161,7 @@ func (g *Game) State(version int) State {
 		return nil
 	}
 
-	return g.Manager.Storage().State(g, version)
+	return g.manager.Storage().State(g, version)
 
 }
 
@@ -163,16 +175,16 @@ func (g *Game) SetUp(numPlayers int) error {
 		return errors.New("Game already initalized")
 	}
 
-	if g.Manager.Chest() == nil {
+	if g.manager.Chest() == nil {
 		return errors.New("No component chest set on manager")
 	}
 
 	if numPlayers == 0 {
-		numPlayers = g.Manager.Delegate().DefaultNumPlayers()
+		numPlayers = g.manager.Delegate().DefaultNumPlayers()
 	}
 
 	//We'll work on a copy of Payload, so if it fails at some point we can just drop it
-	stateCopy := g.Manager.Delegate().StartingState(numPlayers)
+	stateCopy := g.manager.Delegate().StartingState(numPlayers)
 
 	if stateCopy == nil {
 		return errors.New("Delegate didn't return a starter state.")
@@ -183,7 +195,7 @@ func (g *Game) SetUp(numPlayers int) error {
 	for _, name := range g.Chest().DeckNames() {
 		deck := g.Chest().Deck(name)
 		for i, component := range deck.Components() {
-			if err := g.Manager.Delegate().DistributeComponentToStarterStack(stateCopy, component); err != nil {
+			if err := g.manager.Delegate().DistributeComponentToStarterStack(stateCopy, component); err != nil {
 				return errors.New("Distributing components failed for deck " + name + ":" + strconv.Itoa(i) + ":" + err.Error())
 			}
 		}
@@ -194,7 +206,7 @@ func (g *Game) SetUp(numPlayers int) error {
 	if g.Modifiable() {
 
 		//Save the initial state to DB.
-		g.Manager.Storage().SaveState(g, 0, g.schema, stateCopy)
+		g.manager.Storage().SaveState(g, 0, g.schema, stateCopy)
 
 		go g.mainLoop()
 	}
@@ -234,7 +246,7 @@ func (g *Game) PlayerMoves() []Move {
 		return nil
 	}
 
-	result := g.Manager.PlayerMoves()
+	result := g.manager.PlayerMoves()
 	for _, move := range result {
 		move.DefaultsForState(g.CurrentState())
 	}
@@ -249,7 +261,7 @@ func (g *Game) FixUpMoves() []Move {
 		return nil
 	}
 
-	result := g.Manager.FixUpMoves()
+	result := g.manager.FixUpMoves()
 	for _, move := range result {
 		move.DefaultsForState(g.CurrentState())
 	}
@@ -264,7 +276,7 @@ func (g *Game) PlayerMoveByName(name string) Move {
 		return nil
 	}
 
-	result := g.Manager.PlayerMoveByName(name)
+	result := g.manager.PlayerMoveByName(name)
 
 	if result == nil {
 		return result
@@ -283,7 +295,7 @@ func (g *Game) FixUpMoveByName(name string) Move {
 		return nil
 	}
 
-	result := g.Manager.FixUpMoveByName(name)
+	result := g.manager.FixUpMoveByName(name)
 
 	if result == nil {
 		return result
@@ -296,7 +308,7 @@ func (g *Game) FixUpMoveByName(name string) Move {
 
 //Chest is the ComponentChest in use for this game.
 func (g *Game) Chest() *ComponentChest {
-	return g.Manager.Chest()
+	return g.manager.Chest()
 }
 
 //ProposedMove is the way to propose a move to the game. DelayedError will
@@ -332,7 +344,7 @@ func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 		return errors.New("The game has not been initalized.")
 	}
 
-	if g.Finished {
+	if g.finished {
 		return errors.New("Game was already finished")
 	}
 
@@ -362,7 +374,7 @@ func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 	}
 
 	//TODO: test that if we fail to save state to storage everything's fine.
-	if err := g.Manager.Storage().SaveState(g, g.version+1, g.schema, newState); err != nil {
+	if err := g.manager.Storage().SaveState(g, g.version+1, g.schema, newState); err != nil {
 		return errors.New("Storage returned an error:" + err.Error())
 	}
 
@@ -374,11 +386,11 @@ func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 
 	//Check to see if that move made the game finished.
 
-	finished, winners := g.Manager.Delegate().CheckGameFinished(newState)
+	finished, winners := g.manager.Delegate().CheckGameFinished(newState)
 
 	if finished {
-		g.Finished = true
-		g.Winners = winners
+		g.finished = true
+		g.winners = winners
 		//TODO: persist to database here.
 	}
 
@@ -386,7 +398,7 @@ func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 		panic("We recursed deeply in fixup, which implies that ProposeFixUp has a move that is always legal. Quitting.")
 	}
 
-	move = g.Manager.Delegate().ProposeFixUpMove(newState)
+	move = g.manager.Delegate().ProposeFixUpMove(newState)
 
 	if move != nil {
 		//We apply the move immediately. This ensures that when

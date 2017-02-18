@@ -15,7 +15,7 @@ func TestInMemoryStorageManger(t *testing.T) {
 
 	//Save state 0
 
-	state0 := game.Manager.Storage().State(game, game.Version())
+	state0 := game.Manager().Storage().State(game, game.Version())
 
 	if err := manager.SaveState(game, 0, 0, state0); err != nil {
 		t.Error("Save state 0 failed", err)

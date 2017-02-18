@@ -13,7 +13,7 @@ func TestState(t *testing.T) {
 
 	game.SetUp(0)
 
-	state := game.Manager.Storage().State(game, game.Version())
+	state := game.Manager().Storage().State(game, game.Version())
 
 	if state == nil {
 		t.Error("State could not be created")
@@ -60,7 +60,7 @@ func TestStateSerialization(t *testing.T) {
 		t.Fatal("Couldn't serialize state:", err)
 	}
 
-	reconstitutedState, err := game.Manager.Delegate().StateFromBlob(blob, 0)
+	reconstitutedState, err := game.Manager().Delegate().StateFromBlob(blob, 0)
 
 	if err != nil {
 		t.Error("StateFromBlob returned unexpected err", err)

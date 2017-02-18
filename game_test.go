@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"reflect"
 	"testing"
 	"time"
@@ -82,7 +83,7 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("Calling SetUp on a previously errored game did not succeed", err)
 	}
 
-	if wrapper := game.Manager.Storage().State(game, 0); wrapper == nil {
+	if wrapper := game.Manager().Storage().State(game, 0); wrapper == nil {
 		t.Error("State 0 was not saved in storage when game set up")
 	}
 
@@ -120,7 +121,7 @@ func TestApplyMove(t *testing.T) {
 		ABool:             true,
 	}
 
-	manager := game.Manager
+	manager := game.Manager()
 
 	oldMoves := manager.playerMoves
 	oldMovesByName := manager.playerMovesByName
@@ -153,7 +154,7 @@ func TestApplyMove(t *testing.T) {
 	//FixUp move, this is also testing that not just the main move, but also
 	//the fixup move was made.
 
-	wrapper := game.Manager.Storage().State(game, game.Version())
+	wrapper := game.Manager().Storage().State(game, game.Version())
 
 	currentJson, _ := json.Marshal(wrapper)
 	golden := goldenJSON("basic_state_after_move.json", t)
@@ -172,17 +173,17 @@ func TestApplyMove(t *testing.T) {
 		t.Error("Game didn't allow a move to be made even though it was legal")
 	}
 
-	if wrapper := game.Manager.Storage().State(game, 1); wrapper == nil {
+	if wrapper := game.Manager().Storage().State(game, 1); wrapper == nil {
 		t.Error("We didn't get back state for state 1; game must not be persisting states to DB.")
 	}
 
 	//By the time err has resolved above, any fixup moves have been applied.
 
-	if !game.Finished {
+	if !game.Finished() {
 		t.Error("Game didn't notice that a user had won")
 	}
 
-	if !reflect.DeepEqual(game.Winners, []int{1}) {
+	if !reflect.DeepEqual(game.Winners(), []int{1}) {
 		t.Error("Game thought the wrong players had won")
 	}
 
@@ -237,11 +238,29 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 
 func TestGameState(t *testing.T) {
 	game := testGame()
+
+	//Force a deterministic ID
+	game.id = "483BD9BC8D1A2F27"
+
 	game.SetUp(0)
 
 	if game.Name() != testGameName {
 		t.Error("Game name was not correct")
 	}
+
+	blob, err := json.MarshalIndent(game, "", "  ")
+
+	if err != nil {
+		t.Error("Json marshal of game failed:", err)
+	}
+
+	goldenBlob, err := ioutil.ReadFile("test/game_blob.json")
+
+	if err != nil {
+		t.Error("Couldn't load golden file", err)
+	}
+
+	compareJSONObjects(blob, goldenBlob, "Sanity checking game json", t)
 
 	//Getting this now helps verify that we invalidate currentState cache when
 	//we apply a move.
