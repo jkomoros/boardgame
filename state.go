@@ -18,8 +18,8 @@ import (
 type State interface {
 	//Game includes the non-user state for the game.
 	GameState() GameState
-	//Users contains a UserState object for each user in the game.
-	UserStates() []UserState
+	//Users contains a PlayerState object for each user in the game.
+	PlayerStates() []PlayerState
 	//Copy returns a copy of the Payload.
 	Copy() State
 	//Diagram should return a basic debug rendering of state in multi-line
@@ -55,13 +55,13 @@ type BaseState interface {
 	PropertyReader
 }
 
-//UserState represents the state of a game associated with a specific user.
-type UserState interface {
+//PlayerState represents the state of a game associated with a specific user.
+type PlayerState interface {
 	//PlayerIndex encodes the index this user's state is in the containing
 	//state object.
 	PlayerIndex() int
 	//Copy produces a copy of our current state
-	Copy() UserState
+	Copy() PlayerState
 	BaseState
 }
 

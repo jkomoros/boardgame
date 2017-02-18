@@ -30,9 +30,9 @@ func TestState(t *testing.T) {
 
 	compareJSONObjects(copyJson, currentJson, "Copy was not same", t)
 
-	stateCopy.(*testState).Users[0].MovesLeftThisTurn = 10
+	stateCopy.(*testState).Players[0].MovesLeftThisTurn = 10
 
-	if state.(*testState).Users[0].MovesLeftThisTurn == 10 {
+	if state.(*testState).Players[0].MovesLeftThisTurn == 10 {
 		t.Error("Modifying a copy change the original")
 	}
 

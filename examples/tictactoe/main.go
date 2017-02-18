@@ -27,9 +27,9 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, 
 
 	switch component.Value {
 	case X:
-		p.Users[0].UnusedTokens.InsertFront(c)
+		p.Players[0].UnusedTokens.InsertFront(c)
 	case O:
-		p.Users[1].UnusedTokens.InsertFront(c)
+		p.Players[1].UnusedTokens.InsertFront(c)
 	}
 	return nil
 }
@@ -50,9 +50,9 @@ func (g *gameDelegate) StateFromBlob(blob []byte, schema int) (boardgame.State, 
 
 	result.Game.Slots.Inflate(g.Manager().Chest())
 
-	for i, user := range result.Users {
-		user.playerIndex = i
-		user.UnusedTokens.Inflate(g.Manager().Chest())
+	for i, player := range result.Players {
+		player.playerIndex = i
+		player.UnusedTokens.Inflate(g.Manager().Chest())
 	}
 
 	return result, nil
@@ -74,13 +74,13 @@ func (g *gameDelegate) StartingState(numUsers int) boardgame.State {
 		Game: &gameState{
 			Slots: boardgame.NewSizedStack(tokens, DIM*DIM),
 		},
-		Users: []*userState{
-			&userState{
+		Players: []*playerState{
+			&playerState{
 				TokensToPlaceThisTurn: 1,
 				TokenValue:            X,
 				UnusedTokens:          boardgame.NewGrowableStack(tokens, 0),
 			},
-			&userState{
+			&playerState{
 				TokensToPlaceThisTurn: 0,
 				TokenValue:            O,
 				UnusedTokens:          boardgame.NewGrowableStack(tokens, 0),
@@ -88,8 +88,8 @@ func (g *gameDelegate) StartingState(numUsers int) boardgame.State {
 		},
 	}
 
-	for i, user := range result.Users {
-		user.playerIndex = i
+	for i, player := range result.Players {
+		player.playerIndex = i
 	}
 
 	return result

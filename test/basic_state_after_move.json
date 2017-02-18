@@ -11,7 +11,7 @@
             ]
         }
     },
-    "Users": [
+    "Players": [
         {
             "Score": 3,
             "MovesLeftThisTurn": 0,

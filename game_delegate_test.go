@@ -23,8 +23,8 @@ func (t *testGameDelegate) CheckGameFinished(state State) (bool, []int) {
 
 	var winners []int
 
-	for i, user := range p.Users {
-		if user.Score >= 5 {
+	for i, player := range p.Players {
+		if player.Score >= 5 {
 			//This user won!
 			winners = append(winners, i)
 
@@ -54,20 +54,20 @@ func (t *testGameDelegate) StartingState(numPlayers int) State {
 			CurrentPlayer: 0,
 			DrawDeck:      NewGrowableStack(deck, 0),
 		},
-		Users: []*testUserState{
-			&testUserState{
+		Players: []*testPlayerState{
+			&testPlayerState{
 				playerIndex:       0,
 				Score:             0,
 				MovesLeftThisTurn: 1,
 				IsFoo:             false,
 			},
-			&testUserState{
+			&testPlayerState{
 				playerIndex:       1,
 				Score:             0,
 				MovesLeftThisTurn: 0,
 				IsFoo:             false,
 			},
-			&testUserState{
+			&testPlayerState{
 				playerIndex:       2,
 				Score:             0,
 				MovesLeftThisTurn: 0,
@@ -85,8 +85,8 @@ func (t *testGameDelegate) StateFromBlob(blob []byte, schema int) (State, error)
 
 	result.Game.DrawDeck.Inflate(t.Manager().Chest())
 
-	for i, user := range result.Users {
-		user.playerIndex = i
+	for i, player := range result.Players {
+		player.playerIndex = i
 	}
 
 	return result, nil

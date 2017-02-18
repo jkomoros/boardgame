@@ -11,7 +11,7 @@
             ]
         }
     },
-    "Users": [
+    "Players": [
         {
             "Score": 0,
             "IsFoo": false,

@@ -39,18 +39,18 @@ func componentsEqual(one *Component, two *Component) bool {
 }
 
 type testState struct {
-	Game  *testGameState
-	Users []*testUserState
+	Game    *testGameState
+	Players []*testPlayerState
 }
 
 func (t *testState) GameState() GameState {
 	return t.Game
 }
 
-func (t *testState) UserStates() []UserState {
-	result := make([]UserState, len(t.Users))
-	for i, user := range t.Users {
-		result[i] = user
+func (t *testState) PlayerStates() []PlayerState {
+	result := make([]PlayerState, len(t.Players))
+	for i, player := range t.Players {
+		result[i] = player
 	}
 	return result
 }
@@ -67,15 +67,15 @@ func (t *testState) Copy() State {
 		result.Game = t.Game.Copy().(*testGameState)
 	}
 
-	if t.Users == nil {
+	if t.Players == nil {
 		return result
 	}
 
-	array := make([]*testUserState, len(t.Users))
-	for i, user := range t.Users {
-		array[i] = user.Copy().(*testUserState)
+	array := make([]*testPlayerState, len(t.Players))
+	for i, player := range t.Players {
+		array[i] = player.Copy().(*testPlayerState)
 	}
-	result.Users = array
+	result.Players = array
 
 	return result
 }
@@ -100,7 +100,7 @@ func (t *testGameState) Prop(name string) interface{} {
 	return PropertyReaderPropImpl(t, name)
 }
 
-type testUserState struct {
+type testPlayerState struct {
 	//Note: PlayerIndex is stored ehre, but not a normal property or
 	//serialized, because it's really just a convenience method because it's
 	//implied by its position in the State.Users array.
@@ -110,21 +110,21 @@ type testUserState struct {
 	IsFoo             bool
 }
 
-func (t *testUserState) PlayerIndex() int {
+func (t *testPlayerState) PlayerIndex() int {
 	return t.playerIndex
 }
 
-func (t *testUserState) Copy() UserState {
-	var result testUserState
+func (t *testPlayerState) Copy() PlayerState {
+	var result testPlayerState
 	result = *t
 	return &result
 }
 
-func (t *testUserState) Props() []string {
+func (t *testPlayerState) Props() []string {
 	return PropertyReaderPropsImpl(t)
 }
 
-func (t *testUserState) Prop(name string) interface{} {
+func (t *testPlayerState) Prop(name string) interface{} {
 	return PropertyReaderPropImpl(t, name)
 }
 
@@ -163,9 +163,9 @@ func (t *testMoveAdvanceCurentPlayer) Description() string {
 func (t *testMoveAdvanceCurentPlayer) Legal(state State) error {
 	payload := state.(*testState)
 
-	user := payload.Users[payload.Game.CurrentPlayer]
+	player := payload.Players[payload.Game.CurrentPlayer]
 
-	if user.MovesLeftThisTurn > 0 {
+	if player.MovesLeftThisTurn > 0 {
 		return errors.New("The current player still has moves left this turn.")
 	}
 
@@ -177,15 +177,15 @@ func (t *testMoveAdvanceCurentPlayer) Apply(state State) error {
 	payload := state.(*testState)
 
 	//Make sure we're leaving it at 0
-	payload.Users[payload.Game.CurrentPlayer].MovesLeftThisTurn = 0
+	payload.Players[payload.Game.CurrentPlayer].MovesLeftThisTurn = 0
 
 	payload.Game.CurrentPlayer++
 
-	if payload.Game.CurrentPlayer >= len(payload.Users) {
+	if payload.Game.CurrentPlayer >= len(payload.Players) {
 		payload.Game.CurrentPlayer = 0
 	}
 
-	payload.Users[payload.Game.CurrentPlayer].MovesLeftThisTurn = 1
+	payload.Players[payload.Game.CurrentPlayer].MovesLeftThisTurn = 1
 
 	return nil
 }
@@ -246,9 +246,9 @@ func (t *testMove) Apply(state State) error {
 
 	payload := state.(*testState)
 
-	payload.Users[payload.Game.CurrentPlayer].Score += t.ScoreIncrement
+	payload.Players[payload.Game.CurrentPlayer].Score += t.ScoreIncrement
 
-	payload.Users[payload.Game.CurrentPlayer].MovesLeftThisTurn -= 1
+	payload.Players[payload.Game.CurrentPlayer].MovesLeftThisTurn -= 1
 
 	return nil
 }

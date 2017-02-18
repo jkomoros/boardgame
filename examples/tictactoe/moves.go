@@ -21,7 +21,7 @@ func (m *MovePlaceToken) Legal(payload boardgame.State) error {
 		return errors.New("The specified player is not the current player.")
 	}
 
-	if p.Users[m.TargetPlayerIndex].UnusedTokens.Len() < 1 {
+	if p.Players[m.TargetPlayerIndex].UnusedTokens.Len() < 1 {
 		return errors.New("There aren't any remaining tokens for the current player to place.")
 	}
 
@@ -41,7 +41,7 @@ func (m *MovePlaceToken) Apply(payload boardgame.State) error {
 
 	p := payload.(*mainState)
 
-	u := p.Users[m.TargetPlayerIndex]
+	u := p.Players[m.TargetPlayerIndex]
 
 	c := u.UnusedTokens.RemoveFirst()
 
@@ -98,7 +98,7 @@ type MoveAdvancePlayer struct{}
 func (m *MoveAdvancePlayer) Legal(payload boardgame.State) error {
 	p := payload.(*mainState)
 
-	user := p.Users[p.Game.CurrentPlayer]
+	user := p.Players[p.Game.CurrentPlayer]
 
 	if user.TokensToPlaceThisTurn > 0 {
 		return errors.New("The current player still has tokens left to place this turn.")
@@ -113,11 +113,11 @@ func (m *MoveAdvancePlayer) Apply(payload boardgame.State) error {
 
 	p.Game.CurrentPlayer++
 
-	if p.Game.CurrentPlayer >= len(p.Users) {
+	if p.Game.CurrentPlayer >= len(p.Players) {
 		p.Game.CurrentPlayer = 0
 	}
 
-	newUser := p.Users[p.Game.CurrentPlayer]
+	newUser := p.Players[p.Game.CurrentPlayer]
 
 	newUser.TokensToPlaceThisTurn = 1
 

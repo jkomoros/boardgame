@@ -40,7 +40,7 @@ func (g *gameState) Copy() boardgame.GameState {
 	return &result
 }
 
-type userState struct {
+type playerState struct {
 	playerIndex  int
 	TokenValue   string
 	UnusedTokens *boardgame.GrowableStack
@@ -48,33 +48,33 @@ type userState struct {
 	TokensToPlaceThisTurn int
 }
 
-func (u *userState) Props() []string {
-	return boardgame.PropertyReaderPropsImpl(u)
+func (p *playerState) Props() []string {
+	return boardgame.PropertyReaderPropsImpl(p)
 }
 
-func (u *userState) Prop(name string) interface{} {
-	return boardgame.PropertyReaderPropImpl(u, name)
+func (p *playerState) Prop(name string) interface{} {
+	return boardgame.PropertyReaderPropImpl(p, name)
 }
 
-func (u *userState) Copy() boardgame.UserState {
-	var result userState
-	result = *u
+func (p *playerState) Copy() boardgame.PlayerState {
+	var result playerState
+	result = *p
 	return &result
 }
 
-func (u *userState) PlayerIndex() int {
-	return u.playerIndex
+func (p *playerState) PlayerIndex() int {
+	return p.playerIndex
 }
 
 type mainState struct {
-	Game  *gameState
-	Users []*userState
+	Game    *gameState
+	Players []*playerState
 }
 
-func (s *mainState) userFromTokenValue(value string) *userState {
-	for _, user := range s.Users {
-		if user.TokenValue == value {
-			return user
+func (s *mainState) userFromTokenValue(value string) *playerState {
+	for _, player := range s.Players {
+		if player.TokenValue == value {
+			return player
 		}
 	}
 	return nil
@@ -105,7 +105,7 @@ func (s *mainState) Diagram() string {
 	result[3] = result[1]
 	result[4] = tokenValues[6] + "|" + tokenValues[7] + "|" + tokenValues[8]
 	result[5] = ""
-	result[6] = "Next player: " + s.Users[s.Game.CurrentPlayer].TokenValue
+	result[6] = "Next player: " + s.Players[s.Game.CurrentPlayer].TokenValue
 
 	return strings.Join(result, "\n")
 
@@ -115,25 +115,25 @@ func (s *mainState) GameState() boardgame.GameState {
 	return s.Game
 }
 
-func (s *mainState) UserStates() []boardgame.UserState {
-	array := make([]boardgame.UserState, len(s.Users))
+func (s *mainState) PlayerStates() []boardgame.PlayerState {
+	array := make([]boardgame.PlayerState, len(s.Players))
 
-	for i := 0; i < len(s.Users); i++ {
-		array[i] = s.Users[i]
+	for i := 0; i < len(s.Players); i++ {
+		array[i] = s.Players[i]
 	}
 
 	return array
 }
 
 func (s *mainState) Copy() boardgame.State {
-	array := make([]*userState, len(s.Users))
+	array := make([]*playerState, len(s.Players))
 
-	for i := 0; i < len(s.Users); i++ {
-		array[i] = s.Users[i].Copy().(*userState)
+	for i := 0; i < len(s.Players); i++ {
+		array[i] = s.Players[i].Copy().(*playerState)
 	}
 
 	return &mainState{
-		Game:  s.Game.Copy().(*gameState),
-		Users: array,
+		Game:    s.Game.Copy().(*gameState),
+		Players: array,
 	}
 }
