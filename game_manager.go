@@ -99,7 +99,9 @@ func (g *GameManager) modifiableGameCreated(game *Game) {
 		panic("modifiableGameCreated collided with existing game")
 	}
 
-	g.modifiableGames[game.Id()] = game
+	id := strings.ToUpper(game.Id())
+
+	g.modifiableGames[id] = game
 }
 
 //ModifiableGameForId returns a modifiable game with the given ID. Either it
@@ -116,6 +118,9 @@ func (g *GameManager) modifiableGameCreated(game *Game) {
 //sense to have only a single server that takes in proposed moves from a
 //queue and then applies them to a modifiable version of the given game.
 func (g *GameManager) ModifiableGame(id string) *Game {
+
+	id = strings.ToUpper(id)
+
 	game := g.modifiableGames[id]
 
 	if game != nil {

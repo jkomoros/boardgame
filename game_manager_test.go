@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -52,7 +53,8 @@ func TestGameManagerModifiableGame(t *testing.T) {
 
 	manager := game.Manager()
 
-	otherGame := manager.ModifiableGame(game.Id())
+	//use ToLower to verify that ID comparison is not case sensitive.
+	otherGame := manager.ModifiableGame(strings.ToLower(game.Id()))
 
 	if game != otherGame {
 		t.Error("ModifiableGame didn't give back the same game that already existed")
@@ -76,6 +78,7 @@ func TestGameManagerModifiableGame(t *testing.T) {
 	if otherGame != nil {
 		t.Error("ModifiableGame returned a game even for an invalid ID")
 	}
+
 }
 
 func TestGameManagerSetUp(t *testing.T) {
