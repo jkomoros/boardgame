@@ -11,6 +11,7 @@ import (
 	"errors"
 	"github.com/boltdb/bolt"
 	"github.com/jkomoros/boardgame"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -18,7 +19,8 @@ import (
 //TODO: test this package
 
 type StorageManager struct {
-	db *bolt.DB
+	db       *bolt.DB
+	filename string
 }
 
 //gameRecord is suitable for being marshaled as JSON
@@ -65,7 +67,8 @@ func NewStorageManager(fileName string) *StorageManager {
 	}
 	//We don't defer DB close; our users need to.
 	return &StorageManager{
-		db: db,
+		db:       db,
+		filename: fileName,
 	}
 
 }
@@ -258,4 +261,8 @@ func (s *StorageManager) ListGames(manager *boardgame.GameManager, max int) []*b
 
 func (s *StorageManager) Close() {
 	s.db.Close()
+}
+
+func (s *StorageManager) CleanUp() {
+	os.Remove(s.filename)
 }

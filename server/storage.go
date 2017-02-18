@@ -12,6 +12,8 @@ type StorageManager interface {
 	//Close should be called before the server is shut down.
 	Close()
 	ListGames(manager *boardgame.GameManager, max int) []*boardgame.Game
+
+	//Note: whenever you add methods here, also add them to boardgame/storage/test/StorageManager
 }
 
 //DefaultStorageManager currently uses bolt. It will create the database file

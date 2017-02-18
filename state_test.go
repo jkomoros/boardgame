@@ -145,6 +145,8 @@ func TestPropertyReaderImpl(t *testing.T) {
 
 func compareJSONObjects(in []byte, golden []byte, message string, t *testing.T) {
 
+	//recreated in server/internal/teststoragemanager
+
 	var deserializedIn interface{}
 	var deserializedGolden interface{}
 
