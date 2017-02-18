@@ -10,7 +10,6 @@ package tictactoe
 import (
 	"encoding/json"
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/storage/memory"
 )
 
 const gameName = "Tic Tac Toe"
@@ -221,7 +220,7 @@ func checkRunWon(runState []string) string {
 	return targetToken
 }
 
-func NewManager(optionalStorage boardgame.StorageManager) *boardgame.GameManager {
+func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 	chest := boardgame.NewComponentChest()
 
 	tokens := &boardgame.Deck{}
@@ -240,11 +239,11 @@ func NewManager(optionalStorage boardgame.StorageManager) *boardgame.GameManager
 
 	chest.AddDeck("tokens", tokens)
 
-	if optionalStorage == nil {
-		optionalStorage = memory.NewStorageManager()
-	}
+	manager := boardgame.NewGameManager(&gameDelegate{}, chest, storage)
 
-	manager := boardgame.NewGameManager(&gameDelegate{}, chest, optionalStorage)
+	if manager == nil {
+		panic("No manager returned")
+	}
 
 	manager.AddPlayerMove(&MovePlaceToken{})
 	manager.AddFixUpMove(&MoveAdvancePlayer{})

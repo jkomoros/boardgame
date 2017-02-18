@@ -2,13 +2,14 @@ package tictactoe
 
 import (
 	"encoding/json"
+	"github.com/jkomoros/boardgame/storage/memory"
 	"reflect"
 	"testing"
 )
 
 func TestGame(t *testing.T) {
 
-	game := NewGame(NewManager(nil))
+	game := NewGame(NewManager(memory.NewStorageManager()))
 
 	if game == nil {
 		t.Error("Didn't get tictactoe game back")
@@ -20,7 +21,7 @@ func TestGame(t *testing.T) {
 }
 
 func TestStateFromBlob(t *testing.T) {
-	game := NewGame(NewManager(nil))
+	game := NewGame(NewManager(memory.NewStorageManager()))
 
 	if err := <-game.ProposeMove(&MovePlaceToken{
 		Slot:              1,

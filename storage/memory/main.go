@@ -34,8 +34,6 @@ type memoryGameRecord struct {
 	Winners string
 }
 
-//TODO: test this. We can't use storage/test package because that has a loop.
-
 type StorageManager struct {
 	states map[string]map[int]*memoryStateRecord
 	games  map[string]*memoryGameRecord
@@ -194,4 +192,8 @@ func (s *StorageManager) ListGames(manager *boardgame.GameManager, max int) []*b
 
 func (s *StorageManager) Close() {
 	//Don't need to do anything
+}
+
+func (s *StorageManager) CleanUp() {
+	//Don't need to do
 }
