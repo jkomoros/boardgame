@@ -164,8 +164,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         if (newValue.Chest) {
           this.chest = JSON.stringify(newValue.Chest, null, 2)
         }
-        if (newValue.Game && newValue.Game.StateWrapper) {
-          this.gameState = JSON.stringify(newValue.Game.StateWrapper, null, 2)
+        if (newValue.Game && newValue.Game.CurrentState) {
+          this.gameState = JSON.stringify(newValue.Game.CurrentState, null, 2)
         }
 
       }
