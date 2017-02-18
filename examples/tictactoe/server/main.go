@@ -14,5 +14,6 @@ import (
 
 func main() {
 	storage := server.NewDefaultStorageManager()
+	defer storage.Close()
 	server.NewServer(tictactoe.NewManager(storage), storage).Start()
 }

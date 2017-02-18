@@ -47,6 +47,7 @@ Use it like so:
 
 	func main() {
 		storage := server.NewDefaultStorageManager()
+		defer storage.Close()
 		server.NewServer(mygame.NewManager(storage), storage).Start()
 	}
 
