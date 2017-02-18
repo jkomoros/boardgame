@@ -38,7 +38,7 @@ func newTestGameChest() *ComponentChest {
 }
 
 func newTestGameManger() *GameManager {
-	manager := NewGameManager(&testGameDelegate{}, newTestGameChest(), NewInMemoryStorageManager())
+	manager := NewGameManager(&testGameDelegate{}, newTestGameChest(), newTestStorageManager())
 
 	manager.AddPlayerMove(&testMove{})
 	manager.AddFixUpMove(&testMoveAdvanceCurentPlayer{})

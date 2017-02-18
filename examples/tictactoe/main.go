@@ -10,6 +10,7 @@ package tictactoe
 import (
 	"encoding/json"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/storage/memory"
 )
 
 const gameName = "Tic Tac Toe"
@@ -240,7 +241,7 @@ func NewManager(optionalStorage boardgame.StorageManager) *boardgame.GameManager
 	chest.AddDeck("tokens", tokens)
 
 	if optionalStorage == nil {
-		optionalStorage = boardgame.NewInMemoryStorageManager()
+		optionalStorage = memory.NewStorageManager()
 	}
 
 	manager := boardgame.NewGameManager(&gameDelegate{}, chest, optionalStorage)

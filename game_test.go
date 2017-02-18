@@ -214,7 +214,7 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 	//This test makes sure that if our GameDelegate is going to always return
 	//moves that are legal, we'll bail at a certain point.
 
-	manager := NewGameManager(&testInfiniteLoopGameDelegate{}, newTestGameChest(), NewInMemoryStorageManager())
+	manager := NewGameManager(&testInfiniteLoopGameDelegate{}, newTestGameChest(), newTestStorageManager())
 
 	manager.AddPlayerMove(&testMove{})
 	manager.AddFixUpMove(&testAlwaysLegalMove{})
