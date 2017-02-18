@@ -161,7 +161,11 @@ func (g *Game) State(version int) State {
 		return nil
 	}
 
-	return g.manager.Storage().State(g, version)
+	if result, err := g.manager.Storage().State(g, version); err == nil {
+		return result
+	}
+
+	return nil
 
 }
 

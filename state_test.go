@@ -13,7 +13,11 @@ func TestState(t *testing.T) {
 
 	game.SetUp(0)
 
-	state := game.Manager().Storage().State(game, game.Version())
+	state, err := game.Manager().Storage().State(game, game.Version())
+
+	if err != nil {
+		t.Error("Unexpected error", err)
+	}
 
 	if state == nil {
 		t.Error("State could not be created")

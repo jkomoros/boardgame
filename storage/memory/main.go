@@ -47,48 +47,48 @@ func NewStorageManager() *StorageManager {
 	}
 }
 
-func (s *StorageManager) State(game *boardgame.Game, version int) boardgame.State {
+func (s *StorageManager) State(game *boardgame.Game, version int) (boardgame.State, error) {
 	if game == nil {
-		return nil
+		return nil, errors.New("No game provided")
 	}
 
 	if version < 0 || version > game.Version() {
-		return nil
+		return nil, errors.New("Invalid version")
 	}
 
 	versionMap, ok := s.states[game.Id()]
 
 	if !ok {
-		return nil
+		return nil, errors.New("No such game")
 	}
 
 	record, ok := versionMap[version]
 
 	if !ok {
-		return nil
+		return nil, errors.New("No such version for that game")
 	}
 
 	state, err := game.Manager().Delegate().StateFromBlob(record.SerializedState)
 
 	if err != nil {
-		return nil
+		return nil, errors.New("StateForBlob failed" + err.Error())
 	}
 
-	return state
+	return state, nil
 }
 
-func (s *StorageManager) Game(manager *boardgame.GameManager, id string) *boardgame.Game {
+func (s *StorageManager) Game(manager *boardgame.GameManager, id string) (*boardgame.Game, error) {
 	record := s.games[id]
 
 	if record == nil {
-		return nil
+		return nil, errors.New("No such game")
 	}
 
 	if manager == nil {
-		return nil
+		return nil, errors.New("No manager provided")
 	}
 
-	return manager.LoadGame(record.Name, id, record.Version, record.Finished, s.winnersFromStorage(record.Winners))
+	return manager.LoadGame(record.Name, id, record.Version, record.Finished, s.winnersFromStorage(record.Winners)), nil
 }
 
 func (s *StorageManager) winnersForStorage(winners []int) string {

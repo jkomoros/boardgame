@@ -129,7 +129,7 @@ func (g *GameManager) ModifiableGame(id string) *Game {
 
 	//Let's try to load up from storage.
 
-	game = g.storage.Game(g, id)
+	game, _ = g.storage.Game(g, id)
 
 	if game == nil {
 		//Nah, we've never seen that game.
@@ -152,7 +152,10 @@ func (g *GameManager) ModifiableGame(id string) *Game {
 //Game fetches a new non-modifiable copy of the given game from storage. If
 //you want a modifiable version, use ModifiableGame.
 func (g *GameManager) Game(id string) *Game {
-	return g.storage.Game(g, id)
+	if result, err := g.storage.Game(g, id); err == nil {
+		return result
+	}
+	return nil
 }
 
 //proposeMoveOnGame is how non-modifiable games should tell the manager they

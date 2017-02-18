@@ -80,18 +80,18 @@ func keyForGame(id string) []byte {
 	return []byte(strings.ToUpper(id))
 }
 
-func (s *StorageManager) State(game *boardgame.Game, version int) boardgame.State {
+func (s *StorageManager) State(game *boardgame.Game, version int) (boardgame.State, error) {
 	if game == nil {
-		return nil
+		return nil, errors.New("No game provided")
 	}
 
 	if version < 0 || version > game.Version() {
-		return nil
+		return nil, errors.New("Invalid version")
 	}
 
 	var record []byte
 
-	s.db.View(func(tx *bolt.Tx) error {
+	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(statesBucket)
 
 		if b == nil {
@@ -102,8 +102,12 @@ func (s *StorageManager) State(game *boardgame.Game, version int) boardgame.Stat
 		return nil
 	})
 
+	if err != nil {
+		return nil, err
+	}
+
 	if record == nil {
-		return nil
+		return nil, errors.New("No such version for game")
 	}
 
 	//Let's try to deserialize!
@@ -111,27 +115,27 @@ func (s *StorageManager) State(game *boardgame.Game, version int) boardgame.Stat
 	var decodedRecord stateRecord
 
 	if err := json.Unmarshal(record, &decodedRecord); err != nil {
-		return nil
+		return nil, errors.New("Couldn't unmarshal record")
 	}
 
 	state, err := game.Manager().Delegate().StateFromBlob(decodedRecord.State)
 
 	if err != nil {
-		return nil
+		return nil, errors.New("StateFromBlob error " + err.Error())
 	}
 
-	return state
+	return state, nil
 }
 
-func (s *StorageManager) Game(manager *boardgame.GameManager, id string) *boardgame.Game {
+func (s *StorageManager) Game(manager *boardgame.GameManager, id string) (*boardgame.Game, error) {
 
 	if manager == nil {
-		return nil
+		return nil, errors.New("No manager provided")
 	}
 
 	var rawRecord []byte
 
-	s.db.View(func(tx *bolt.Tx) error {
+	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(gamesBucket)
 		if b == nil {
 			return errors.New("Couldn't open bucket")
@@ -140,17 +144,21 @@ func (s *StorageManager) Game(manager *boardgame.GameManager, id string) *boardg
 		return nil
 	})
 
+	if err != nil {
+		return nil, errors.New("Transacation error " + err.Error())
+	}
+
 	if rawRecord == nil {
-		return nil
+		return nil, errors.New("No such game found")
 	}
 
 	var record gameRecord
 
 	if err := json.Unmarshal(rawRecord, &record); err != nil {
-		return nil
+		return nil, errors.New("Unmarshal error " + err.Error())
 	}
 
-	return manager.LoadGame(record.Name, record.Id, record.Version, record.Finished, record.Winners)
+	return manager.LoadGame(record.Name, record.Id, record.Version, record.Finished, record.Winners), nil
 
 }
 

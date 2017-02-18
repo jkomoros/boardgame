@@ -40,48 +40,48 @@ func newTestStorageManager() *testStorageManager {
 	}
 }
 
-func (i *testStorageManager) State(game *Game, version int) State {
+func (i *testStorageManager) State(game *Game, version int) (State, error) {
 	if game == nil {
-		return nil
+		return nil, errors.New("No game provided")
 	}
 
 	if version < 0 || version > game.version {
-		return nil
+		return nil, errors.New("Illegal version")
 	}
 
 	versionMap, ok := i.states[game.Id()]
 
 	if !ok {
-		return nil
+		return nil, errors.New("That game does not exist")
 	}
 
 	record, ok := versionMap[version]
 
 	if !ok {
-		return nil
+		return nil, errors.New("That version of that game doesn't exist")
 	}
 
 	state, err := game.manager.Delegate().StateFromBlob(record.SerializedState)
 
 	if err != nil {
-		return nil
+		return nil, errors.New("StateFromBlob failed " + err.Error())
 	}
 
-	return state
+	return state, nil
 }
 
-func (i *testStorageManager) Game(manager *GameManager, id string) *Game {
+func (i *testStorageManager) Game(manager *GameManager, id string) (*Game, error) {
 	record := i.games[id]
 
 	if record == nil {
-		return nil
+		return nil, errors.New("That game does not exist")
 	}
 
 	if manager == nil {
-		return nil
+		return nil, errors.New("No manager provided")
 	}
 
-	return manager.LoadGame(record.Name, id, record.Version, record.Finished, i.winnersFromStorage(record.Winners))
+	return manager.LoadGame(record.Name, id, record.Version, record.Finished, i.winnersFromStorage(record.Winners)), nil
 }
 
 func (i *testStorageManager) winnersForStorage(winners []int) string {

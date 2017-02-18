@@ -49,7 +49,11 @@ func Test(factory StorageManagerFactory, t *testing.T) {
 
 	//OK, now test that the manager and SetUp and everyone did the right thing.
 
-	localGame := storage.Game(manager, game.Id())
+	localGame, err := storage.Game(manager, game.Id())
+
+	if err != nil {
+		t.Error("Unexpected error", err)
+	}
 
 	if localGame == nil {
 		t.Fatal("Couldn't get game copy out")
