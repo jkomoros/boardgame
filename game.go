@@ -92,6 +92,8 @@ func NewGame(manager *GameManager) *Game {
 		modifiable:    true,
 	}
 
+	manager.modifiableGameCreated(result)
+
 	return result
 
 }

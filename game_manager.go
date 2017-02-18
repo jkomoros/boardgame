@@ -23,6 +23,7 @@ type GameManager struct {
 	playerMoves       []Move
 	fixUpMovesByName  map[string]Move
 	playerMovesByName map[string]Move
+	modifiableGames   map[string]*Game
 	initialized       bool
 }
 
@@ -61,7 +62,7 @@ func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage Storag
 //was stored in storage, that is ready to use like any other game (that is, it
 //operates like SetUp has already been called). If you want a new game, use
 //NewGame.
-func (g *GameManager) LoadGame(name string, id string, modifiable bool, version int, finished bool, winners []int) *Game {
+func (g *GameManager) LoadGame(name string, id string, version int, finished bool, winners []int) *Game {
 
 	//It feels really weird that this is exposed, but I think something like
 	//it has to be so that others can implement their own StorageManagers
@@ -75,18 +76,68 @@ func (g *GameManager) LoadGame(name string, id string, modifiable bool, version 
 	result := &Game{
 		manager:    g,
 		version:    version,
-		modifiable: modifiable,
 		id:         id,
 		finished:   finished,
 		winners:    winners,
+		modifiable: false,
 		initalized: true,
 	}
 
-	if result.Modifiable() {
-		go result.mainLoop()
+	return result
+
+}
+
+//modifiableGameCreated lets Manager know that a modifiable game was created
+//with the given ID, so that manager can vend that later if necessary. It is
+//designed to only be called from NewGame.
+func (g *GameManager) modifiableGameCreated(game *Game) {
+	if !g.initialized {
+		return
 	}
 
-	return result
+	if _, ok := g.modifiableGames[game.Id()]; ok {
+		panic("modifiableGameCreated collided with existing game")
+	}
+
+	g.modifiableGames[game.Id()] = game
+}
+
+//ModifiableGameForId returns a modifiable game with the given ID. Either it
+//returns one it already knows about, or it creates a modifiable version from
+//storage (if one is stored in storage). If a game cannot be created from
+//those ways, it will return nil. The primary way to avoid race
+//conditions with the same underlying game being stored to the store is
+//that only one modifiable copy of a Game should exist at a time. It is up
+//to the specific user of boardgame to ensure that is the case. As long as
+//manager.LoadGame is used, a single manager will not allow multiple
+//modifiable versions of a single game to be "checked out".  However, if
+//there could be multiple managers loaded up at the same time for the same
+//store, it's possible to have a race condition. For example, it makes
+//sense to have only a single server that takes in proposed moves from a
+//queue and then applies them to a modifiable version of the given game.
+func (g *GameManager) ModifiableGame(id string) *Game {
+	game := g.modifiableGames[id]
+
+	if game != nil {
+		return game
+	}
+
+	//Let's try to load up from storage.
+
+	game = g.storage.Game(g, id)
+
+	if game == nil {
+		//Nah, we've never seen that game.
+		return nil
+	}
+
+	//Only SetUp() and us are allowed to kick off a game's mainLoop.
+	game.modifiable = true
+	go game.mainLoop()
+
+	g.modifiableGames[id] = game
+
+	return game
 
 }
 
@@ -111,6 +162,8 @@ func (g *GameManager) SetUp() error {
 	for _, move := range g.fixUpMoves {
 		g.fixUpMovesByName[strings.ToLower(move.Name())] = move
 	}
+
+	g.modifiableGames = make(map[string]*Game)
 
 	g.initialized = true
 

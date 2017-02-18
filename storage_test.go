@@ -31,7 +31,7 @@ func TestInMemoryStorageManger(t *testing.T) {
 	storage := game.Manager().Storage()
 	manager := game.Manager()
 
-	localGame := storage.Game(manager, game.Id(), false)
+	localGame := storage.Game(manager, game.Id())
 
 	if localGame == nil {
 		t.Fatal("Couldn't get game copy out")
@@ -71,7 +71,7 @@ func TestInMemoryStorageManger(t *testing.T) {
 
 	record.Name = "BOGUS"
 
-	bogusGame := storage.Game(manager, game.Id(), false)
+	bogusGame := storage.Game(manager, game.Id())
 
 	if bogusGame != nil {
 		t.Error("Game shouldn't have come back because name doesn't match")

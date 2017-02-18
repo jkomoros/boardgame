@@ -45,6 +45,33 @@ func newTestGameManger() *GameManager {
 	return manager
 }
 
+func TestGameManagerModifiableGame(t *testing.T) {
+	game := testGame()
+
+	game.SetUp(0)
+
+	manager := game.Manager()
+
+	otherGame := manager.ModifiableGame(game.Id())
+
+	if game != otherGame {
+		t.Error("ModifiableGame didn't give back the same game that already existed")
+	}
+
+	//OK, forget about the real game to test us making a new one.
+	manager.modifiableGames = make(map[string]*Game)
+
+	otherGame = manager.ModifiableGame(game.Id())
+
+	if otherGame == nil {
+		t.Error("Other game didn't return anything even though it was in storage!")
+	}
+
+	if game == otherGame {
+		t.Error("ModifiableGame didn't grab a game from storage fresh")
+	}
+}
+
 func TestGameManagerSetUp(t *testing.T) {
 
 	manager := newTestGameManger()

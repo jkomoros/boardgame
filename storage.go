@@ -15,16 +15,11 @@ type StorageManager interface {
 	State(game *Game, version int) State
 
 	//Game fetches the game with the given ID from the store, if it exists.
-	//Its Modifiable() bit will be set based on the modifiable argument. The
-	//implementation should use manager.LoadGame to get a real game object
-	//that is ready for use. The primary way to avoid race conditions with the
-	//same underlying game being stored to the store is that only one
-	//modifiable copy of a Game should exist at a time. It is up to the
-	//specific user of boardgame to ensure that is the case. For example, it
-	//makes sense to have only a single server that takes in proposed moves
-	//from a queue and then applies them to a modifiable version of the given
-	//game.
-	Game(manager *GameManager, id string, modifiable bool) *Game
+	//The implementation should use manager.LoadGame to get a real game object
+	//that is ready for use. The returned game will always have Modifiable()
+	//as false. If you want a modifiable version, use
+	//GameManager.ModifiableGame(id).
+	Game(manager *GameManager, id string) *Game
 
 	//SaveGameAndState stores the game and the given state into the store at
 	//the same time in a transaction. If Game.Modifiable() is false, storage
@@ -93,7 +88,7 @@ func (i *inMemoryStorageManager) State(game *Game, version int) State {
 	return state
 }
 
-func (i *inMemoryStorageManager) Game(manager *GameManager, id string, modifiable bool) *Game {
+func (i *inMemoryStorageManager) Game(manager *GameManager, id string) *Game {
 	record := i.games[id]
 
 	if record == nil {
@@ -104,7 +99,7 @@ func (i *inMemoryStorageManager) Game(manager *GameManager, id string, modifiabl
 		return nil
 	}
 
-	return manager.LoadGame(record.Name, id, modifiable, record.Version, record.Finished, i.winnersFromStorage(record.Winners))
+	return manager.LoadGame(record.Name, id, record.Version, record.Finished, i.winnersFromStorage(record.Winners))
 }
 
 func (i *inMemoryStorageManager) winnersForStorage(winners []int) string {
