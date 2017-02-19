@@ -61,11 +61,13 @@ func (s *Server) Start() {
 
 	router.LoadHTMLFiles(expandedPathToLib + "webapp/index.html")
 
-	router.Static("/bower_components", expandedPathToLib+"webapp/bower_components")
-	router.Static("/src", expandedPathToLib+"webapp/src")
-	router.StaticFile("/config-src/boardgame-config.html", expandedPathToLib+"webapp/config-src/boardgame-config-dev.html")
-	router.Static("/game-src", expandedPathToLib+"webapp/game-src")
-
+	static := router.Group("/static")
+	{
+		static.Static("/bower_components", expandedPathToLib+"webapp/bower_components")
+		static.Static("/src", expandedPathToLib+"webapp/src")
+		static.StaticFile("/config-src/boardgame-config.html", expandedPathToLib+"webapp/config-src/boardgame-config-dev.html")
+		static.Static("/game-src", expandedPathToLib+"webapp/game-src")
+	}
 	router.Run(":8080")
 
 }
