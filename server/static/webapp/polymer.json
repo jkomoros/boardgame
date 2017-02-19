@@ -3,9 +3,8 @@
   "shell": "src/boardgame-app.html",
   "fragments": [
     "src/boardgame-game-view.html",
-    "src/my-view2.html",
-    "src/my-view3.html",
-    "src/my-view404.html"
+    "src/boardgame-list-games-view.html",
+    "src/boardgame-404-view.html"
   ],
   "sourceGlobs": [
     "src/**/*",
