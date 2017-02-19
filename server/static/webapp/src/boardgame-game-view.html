@@ -13,6 +13,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="boardgame-move-form.html">
 <link rel="import" href="shared-styles.html">
 <link rel="import" href="../game-src/boardgame-render-game.html">
+<link rel="import" href="../config-src/boardgame-config.html">
 
 <dom-module id="boardgame-game-view">
   <template>
@@ -58,7 +59,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     <template is="dom-if" if="{{!data.Game.Finished}}">
       <div class="card">
-        <boardgame-move-form config="{{data.Forms}}" game-id="[[gameId]]" api-host="[[apiHost]]"></boardgame-move-form>
+        <boardgame-move-form config="{{data.Forms}}" game-id="[[gameId]]"></boardgame-move-form>
       </div>
     </template>
     <div class="card">
@@ -96,8 +97,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Boolean,
           observer: "_handleSelected",
         },
-        apiHost : String,
       },
+      behaviors: [ApiHostBehavior],
       _handleSelected: function(newValue) {
         if (newValue) {
           //Clear out any old data. If we kept it, we could get in a weird

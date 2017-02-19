@@ -11,6 +11,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/polymer/polymer.html">
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="../bower_components/iron-form/iron-form.html">
+<link rel="import" href="../config-src/boardgame-config.html">
 <link rel="import" href="shared-styles.html">
 
 <dom-module id="boardgame-list-games-view">
@@ -44,8 +45,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Boolean,
           observer: '_selectedChanged',
         },
-        apiHost: String,
       },
+      behaviors: [ApiHostBehavior],
       listeners: {
         'iron-form-response': 'handleResponse',
       },

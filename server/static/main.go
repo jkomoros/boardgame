@@ -9,8 +9,8 @@ view of the world, but it actually shadows your local /webapp folder on top of
 the package default /webapp folder. So if there's a hit in your /webapp, it
 returns that. Otherwise, it defaults to the package /webapp.
 
-The other magic it does is /static/game-src/boardgame-config.html is actually
-fetched from /static/game-src/boardgame-config-dev.html, so you can have
+The other magic it does is /static/config-src/boardgame-config.html is actually
+fetched from /static/config-src/boardgame-config-dev.html, so you can have
 different endpoints configured in production and in dev.
 
 */
@@ -63,6 +63,7 @@ func (s *Server) Start() {
 
 	router.Static("/bower_components", expandedPathToLib+"webapp/bower_components")
 	router.Static("/src", expandedPathToLib+"webapp/src")
+	router.StaticFile("/config-src/boardgame-config.html", expandedPathToLib+"webapp/config-src/boardgame-config-dev.html")
 	router.Static("/game-src", expandedPathToLib+"webapp/game-src")
 
 	router.Run(":8080")

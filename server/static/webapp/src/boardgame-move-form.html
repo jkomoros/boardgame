@@ -11,6 +11,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/polymer/polymer.html">
 <link rel="import" href="../bower_components/iron-form/iron-form.html">
 <link rel="import" href="shared-styles.html">
+<link rel="import" href="../config-src/boardgame-config.html">
 
 <dom-module id="boardgame-move-form">
   <template>
@@ -53,8 +54,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           observer: '_configChanged'
         },
         gameId: String,
-        apiHost: String,
       },
+      behaviors : [ApiHostBehavior],
       _configChanged : function(newValue, oldValue) {
         //Must be async because databinding hasn't created the details yet.
         this.async(this.loadZippyState);
