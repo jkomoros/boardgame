@@ -153,4 +153,6 @@ Run
 gsutil -m rsync -r . gs://<your-bucket-name>/static
 ```
 
+Now you can access the files at https://storage.googleapis.com/<your-bucket-name>/static/index.html
+
 _TODO: describe how to deploy_
