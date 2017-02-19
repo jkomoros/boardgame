@@ -28,11 +28,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </div>
     </template>
     <div class="card">
-      <form is="iron-form" method="POST" action="/api/new/game">
+      <form is="iron-form" method="POST" action="{{apiHost}}/api/new/game">
         <input type="submit" value="Make new game">
       </form>
     </div>
-    <iron-ajax id="games" url="/api/list/game" handle-as="json" last-response="{{data}}">
+    <iron-ajax id="games" url="{{apiHost}}/api/list/game" handle-as="json" last-response="{{data}}">
   </template>
 
   <script>
@@ -43,7 +43,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         selected: {
           type: Boolean,
           observer: '_selectedChanged',
-        }
+        },
+        apiHost: String,
       },
       listeners: {
         'iron-form-response': 'handleResponse',

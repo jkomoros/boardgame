@@ -58,7 +58,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     <template is="dom-if" if="{{!data.Game.Finished}}">
       <div class="card">
-        <boardgame-move-form config="{{data.Forms}}" game-id="[[gameId]]"></boardgame-move-form>
+        <boardgame-move-form config="{{data.Forms}}" game-id="[[gameId]]" api-host="[[apiHost]]"></boardgame-move-form>
       </div>
     </template>
     <div class="card">
@@ -73,8 +73,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <pre>{{chest}}</pre>
       </details>
     </div>
-    <iron-ajax id="status" url="/api/game/{{gameId}}/status" handle-as="json" last-response="{{status}}">
-    <iron-ajax id="data" url="/api/game/{{gameId}}/view" handle-as="json" last-response="{{data}}">
+    <iron-ajax id="status" url="{{apiHost}}/api/game/{{gameId}}/status" handle-as="json" last-response="{{status}}">
+    <iron-ajax id="data" url="{{apiHost}}/api/game/{{gameId}}/view" handle-as="json" last-response="{{data}}">
   </template>
 
   <script>
@@ -95,7 +95,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         selected: {
           type: Boolean,
           observer: "_handleSelected",
-        }
+        },
+        apiHost : String,
       },
       _handleSelected: function(newValue) {
         if (newValue) {

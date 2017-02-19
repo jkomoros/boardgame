@@ -9,11 +9,11 @@ package main
 
 import (
 	"github.com/jkomoros/boardgame/examples/tictactoe"
-	"github.com/jkomoros/boardgame/server"
+	"github.com/jkomoros/boardgame/server/api"
 )
 
 func main() {
-	storage := server.NewDefaultStorageManager()
+	storage := api.NewDefaultStorageManager()
 	defer storage.Close()
-	server.NewServer(tictactoe.NewManager(storage), storage).Start()
+	api.NewServer(tictactoe.NewManager(storage), storage).Start()
 }
