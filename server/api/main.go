@@ -1,4 +1,4 @@
-package server
+package api
 
 import (
 	"errors"
@@ -7,7 +7,6 @@ import (
 	"github.com/jkomoros/boardgame"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 )
 
@@ -60,16 +59,9 @@ func NewServer(manager *boardgame.GameManager, storage StorageManager) *Server {
 
 }
 
-//TODO: use go.rice here?
-const (
-	pathToLib = "$GOPATH/src/github.com/jkomoros/boardgame/server/"
-)
-
-func (s *Server) viewHandler(c *gin.Context) {
-	//We serve the main app for every thing that we don't otherwise have a
-	//handler for.
-	c.HTML(http.StatusOK, "index.html", nil)
-
+func (s *Server) CORSSetup(c *gin.Context) {
+	//TODO: will need to set this differently in production.
+	c.Header("Access-Control-Allow-Origin", "http://localhost:8080")
 }
 
 //gameAPISetup fetches the game configured in the URL and puts it in context.
@@ -332,27 +324,23 @@ func (s *Server) Start() {
 
 	router := gin.Default()
 
-	expandedPathToLib := os.ExpandEnv(pathToLib)
-
-	router.NoRoute(s.viewHandler)
-
-	router.LoadHTMLFiles(expandedPathToLib + "webapp/index.html")
-
-	router.Static("/bower_components", expandedPathToLib+"webapp/bower_components")
-	router.Static("/src", expandedPathToLib+"webapp/src")
-	router.Static("/game-src", expandedPathToLib+"webapp/game-src")
-
-	router.GET("/api/list/game", s.listGamesHandler)
-	router.POST("/api/new/game", s.newGameHandler)
-
-	gameAPIGroup := router.Group("/api/game/:id")
-	gameAPIGroup.Use(s.gameAPISetup)
+	//We have everything prefixed by /api just in case at some point we do
+	//want to host both static and api on the same logical server.
+	mainGroup := router.Group("/api")
+	mainGroup.Use(s.CORSSetup)
 	{
-		gameAPIGroup.GET("view", s.gameViewHandler)
-		gameAPIGroup.POST("move", s.moveHandler)
-		gameAPIGroup.GET("status", s.gameStatusHandler)
+		mainGroup.GET("list/game", s.listGamesHandler)
+		mainGroup.POST("new/game", s.newGameHandler)
+
+		gameAPIGroup := mainGroup.Group("game/:id")
+		gameAPIGroup.Use(s.gameAPISetup)
+		{
+			gameAPIGroup.GET("view", s.gameViewHandler)
+			gameAPIGroup.POST("move", s.moveHandler)
+			gameAPIGroup.GET("status", s.gameStatusHandler)
+		}
 	}
 
-	router.Run(":8080")
+	router.Run(":8888")
 
 }
