@@ -103,6 +103,54 @@ To create results in mygame/server/webapp/build/{bundled, unbundled}.
 
 Change the RELEASE_MODE environment variable to change where we serve files from.
 
+## First deploy
+
+Make sure you have created a project for the static and api servers.
+
+Tell the gcloud commands which project you're operating on.
+
+```
+gcloud config set project <project-id>
+```
+
+### Static
+
+The static app can be hosted anywhere you want. This section describes how to deploy to Google Cloud Storage.
+
+Create the storage bucket to serve the files in:
+
+```
+gsutil mb gs://<your-bucket-name>
+```
+
+Your bucket name can be whatever you want.
+
+Set the acls to be world-readable:
+
+```
+gsutil defacl set public-read gs://<your-bucket-name>
+```
+
+Now do a normal deploy, below.
+
+Set it so index.html is returned by default:
+
+```
+gsutil web set -e static/index.html gs://<your-bucket-name>
+```
+
 ## Deploying
+
+### Static
+
+Do a build, as described above.
+
+Cd into boardgame/webapp/build/bundled
+
+Run
+
+```
+gsutil -m rsync -r . gs://<your-bucket-name>/static
+```
 
 _TODO: describe how to deploy_
