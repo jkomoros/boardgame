@@ -85,10 +85,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
       loadZippyState : function() {
-        var details = Polymer.dom(this.root).querySelectorAll("details")
-        for (var el of details) {
+        Polymer.dom(this.root).querySelectorAll("details").forEach(function(el) {
           if (!el.id.startsWith("moves")) {
-            continue;
+            return;
           }
           //TODO: store in sessionStorage in a way that won't conflict across GAME IDs.
           var data = sessionStorage.getItem(this._storageKey(el.id));
@@ -96,7 +95,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           if (data) {
             el.open = true;
           }
-        }
+        });
       }
     });
   </script>
