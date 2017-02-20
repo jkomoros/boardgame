@@ -58,6 +58,12 @@ type Stack interface {
 	//this will be the component in the first filled slot. Remember to insert
 	//the component in another stack to maintain the Deck/Stack invariant.
 	RemoveFirst() *Component
+
+	//RemoveLast removes the last component in the stack. For GrowableStacks
+	//this will always be the last component in the stack. For SizedStacks,
+	//this will be the component in the last filled slot. Remember to insert
+	//the component in another stack to maintain the Deck/Stack invariant.
+	RemoveLast() *Component
 }
 
 type GrowableStack struct {
@@ -461,6 +467,32 @@ func (g *GrowableStack) RemoveFirst() *Component {
 
 }
 
+func (s *SizedStack) RemoveLast() *Component {
+	for i := len(s.indexes) - 1; i >= 0; i-- {
+		index := s.indexes[i]
+		if index != emptyIndexSentinel {
+			//Found it!
+			component := s.ComponentAt(i)
+			s.indexes[i] = emptyIndexSentinel
+			return component
+		}
+	}
+
+	//didn't find any.
+	return nil
+}
+
+func (g *GrowableStack) RemoveLast() *Component {
+	if len(g.indexes) == 0 {
+		return nil
+	}
+	component := g.ComponentAt(g.Len() - 1)
+
+	g.indexes = g.indexes[:g.Len()-1]
+	return component
+
+}
+
 func (g *GrowableStack) MarshalJSON() ([]byte, error) {
 	obj := &stackJSONObj{
 		Deck:    g.deckName,
@@ -505,21 +537,3 @@ func (s *SizedStack) UnmarshalJSON(blob []byte) error {
 	s.size = obj.Size
 	return nil
 }
-
-/*
-
-//RemoveFront removes the component from the first slot in this stack,
-//shifting all later components down by 1. You should then insert the
-//component in another stack to maintain the deck invariant.
-func (s *Stack) RemoveFront() Component {
-
-}
-
-//RemoveBack removes the component from the last slot in this stack. You
-//should then insert the component in another stack to maintain the deck
-//invariant.
-func (s *Stack) RemoveBack() Component {
-
-}
-
-*/

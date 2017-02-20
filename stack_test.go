@@ -257,6 +257,18 @@ func TestStackInsertBack(t *testing.T) {
 		t.Error("After inserting back, one wasn't in back")
 	}
 
+	//Now test removing
+
+	component := stack.RemoveLast()
+
+	if component != one {
+		t.Error("Got wrong item by removing last")
+	}
+
+	if stack.Len() != 1 {
+		t.Error("Removing last component did not reduce size")
+	}
+
 	stack = NewSizedStack(deck, 3)
 
 	stack.InsertBack(two)
@@ -277,6 +289,24 @@ func TestStackInsertBack(t *testing.T) {
 
 	if stack.ComponentAt(1) != one {
 		t.Error("Inserting one back didn't put it in second slot")
+	}
+
+	//Test removing
+
+	component = stack.RemoveLast()
+
+	if component != two {
+		t.Error("Removing last did not remove last item")
+	}
+
+	if stack.ComponentAt(2) != nil {
+		t.Error("Removing last item didn't actually remove it from list")
+	}
+
+	component = stack.RemoveLast()
+
+	if component != one {
+		t.Error("Removing Last didn't remove the middle item when that was the only one left")
 	}
 }
 
