@@ -48,6 +48,13 @@ func main() {
 
 ```
 5. Copy boardgame/server/api/app.yaml to be in your mygame/server/api folder.
+5. Ensure your .gitignore file contains the following line:
+
+```
+*.SECRET.*
+```
+
+6. Copy boardgame/server/api/config.SAMPLE.json to be mygame/server/api/config.SECRET.json . Do not commit this file to version control (your gitignore should help you avoid doing that)
 
 (The rest of these steps are in theory, not yet in practice)
 

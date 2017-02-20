@@ -1,10 +1,12 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/jkomoros/boardgame"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -17,6 +19,17 @@ type Server struct {
 	//We store the last error so that next time viewHandler is called we can
 	//display it. Yes, this is a hack.
 	lastErrorMessage string
+	config           *ConfigMode
+}
+
+type Config struct {
+	Dev  *ConfigMode
+	Prod *ConfigMode
+}
+
+type ConfigMode struct {
+	AllowedURLs string
+	Port        string
 }
 
 type MoveForm struct {
@@ -38,6 +51,18 @@ type MoveFormField struct {
 	Type         MoveFormFieldType
 	DefaultValue interface{}
 }
+
+func (c *ConfigMode) Validate() error {
+	if c.Port == "" {
+		return errors.New("No port provided")
+	}
+	//It's OK if no AllowedURls exist
+	return nil
+}
+
+const (
+	configFileName = "config.SECRET.json"
+)
 
 /*
 NewServer returns a new server. Get it to run by calling Start(). storage
@@ -61,8 +86,7 @@ func NewServer(manager *boardgame.GameManager, storage StorageManager) *Server {
 }
 
 func (s *Server) CORSSetup(c *gin.Context) {
-	//TODO: will need to set this differently in production.
-	c.Header("Access-Control-Allow-Origin", "http://localhost:8080")
+	c.Header("Access-Control-Allow-Origin", s.config.AllowedURLs)
 }
 
 //gameAPISetup fetches the game configured in the URL and puts it in context.
@@ -323,6 +347,44 @@ func (s *Server) renderChest(game *boardgame.Game) map[string][]interface{} {
 //Start is where you start the server, and it never returns until it's time to shut down.
 func (s *Server) Start() {
 
+	if _, err := os.Stat(configFileName); os.IsNotExist(err) {
+		log.Println("Couldn't find a " + configFileName + " in current directory. This file is required. Copy a starter one from boardgame/server/api/config.SAMPLE.json")
+		return
+	}
+
+	contents, err := ioutil.ReadFile(configFileName)
+
+	if err != nil {
+		log.Println("Couldn't read config file:", err)
+		return
+	}
+
+	var config Config
+
+	if err := json.Unmarshal(contents, &config); err != nil {
+		log.Println("couldn't unmarshal config file:", err)
+		return
+	}
+
+	log.Println("Environment Variables")
+	//Dbug print out the current environment
+	for _, config := range os.Environ() {
+		log.Println("Environ:", config)
+	}
+
+	if v := os.Getenv("GIN_MODE"); v == "release" {
+		log.Println("Using release mode config")
+		s.config = config.Prod
+	} else {
+		log.Println("Using dev mode config")
+		s.config = config.Dev
+	}
+
+	if err := s.config.Validate(); err != nil {
+		log.Println("The provided config was not valid: ", err)
+		return
+	}
+
 	router := gin.Default()
 
 	//We have everything prefixed by /api just in case at some point we do
@@ -342,20 +404,10 @@ func (s *Server) Start() {
 		}
 	}
 
-	log.Println("Environment Variables")
-	//Dbug print out the current environment
-	for _, config := range os.Environ() {
-		log.Println("Environ:", config)
-	}
-
-	if v := os.Getenv("GIN_MODE"); v == "release" {
-		if p := os.Getenv("PORT"); p != "" {
-			router.Run(":" + p)
-		} else {
-			router.Run(":80")
-		}
+	if p := os.Getenv("PORT"); p != "" {
+		router.Run(":" + p)
 	} else {
-		router.Run(":8888")
+		router.Run(":" + s.config.Port)
 	}
 
 }
