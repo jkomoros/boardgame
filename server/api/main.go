@@ -7,6 +7,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 )
 
@@ -341,6 +342,20 @@ func (s *Server) Start() {
 		}
 	}
 
-	router.Run(":8888")
+	log.Println("Environment Variables")
+	//Dbug print out the current environment
+	for _, config := range os.Environ() {
+		log.Println("Environ:", config)
+	}
+
+	if v := os.Getenv("GIN_MODE"); v == "release" {
+		if p := os.Getenv("PORT"); p != "" {
+			router.Run(":" + p)
+		} else {
+			router.Run(":80")
+		}
+	} else {
+		router.Run(":8888")
+	}
 
 }
