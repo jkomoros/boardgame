@@ -121,7 +121,7 @@ func (d *DefaultGameDelegate) CheckGameFinished(state State) (finished bool, win
 	return false, nil
 }
 
-func (d *DefaultGameDelegate) StateFromBlob(blob []byte, schema int) (State, error) {
+func (d *DefaultGameDelegate) StateFromBlob(blob []byte) (State, error) {
 	return nil, errors.New("Default delegate does not know how to deserialize state objects")
 }
 
