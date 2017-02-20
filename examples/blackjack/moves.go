@@ -11,6 +11,10 @@ type MoveCurrentPlayerHit struct {
 	TargetPlayerIndex int
 }
 
+type MoveCurrentPlayerStand struct {
+	TargetPlayerIndex int
+}
+
 /**************************************************
  *
  * MoveShuffleDiscardToDraw Implementation
@@ -75,6 +79,10 @@ func (m *MoveShuffleDiscardToDraw) SetProp(name string, val interface{}) error {
 func (m *MoveCurrentPlayerHit) Legal(state boardgame.State) error {
 	s := state.(*mainState)
 
+	if s.Game.CurrentPlayer != m.TargetPlayerIndex {
+		return errors.New("The specified player is not the current player.")
+	}
+
 	currentPlayer := s.Players[s.Game.CurrentPlayer]
 
 	if currentPlayer.Busted {
@@ -135,6 +143,75 @@ func (m *MoveCurrentPlayerHit) Prop(name string) interface{} {
 }
 
 func (m *MoveCurrentPlayerHit) SetProp(name string, val interface{}) error {
+	return boardgame.PropertySetImpl(m, name, val)
+}
+
+/**************************************************
+ *
+ * MoveCurrentPlayerStand Implementation
+ *
+ **************************************************/
+
+func (m *MoveCurrentPlayerStand) Legal(state boardgame.State) error {
+
+	s := state.(*mainState)
+
+	if s.Game.CurrentPlayer != m.TargetPlayerIndex {
+		return errors.New("The specified player is not the current player.")
+	}
+
+	currentPlayer := s.Players[s.Game.CurrentPlayer]
+
+	if currentPlayer.Busted {
+		return errors.New("The current player has already busted.")
+	}
+
+	if currentPlayer.Stood {
+		return errors.New("The current player already stood.")
+	}
+
+	return nil
+
+}
+
+func (m *MoveCurrentPlayerStand) Apply(state boardgame.State) error {
+	s := state.(*mainState)
+
+	currentPlayer := s.Players[s.Game.CurrentPlayer]
+
+	currentPlayer.Stood = true
+
+	return nil
+}
+
+func (m *MoveCurrentPlayerStand) Copy() boardgame.Move {
+	var result MoveCurrentPlayerStand
+	result = *m
+	return &result
+}
+
+func (m *MoveCurrentPlayerStand) DefaultsForState(state boardgame.State) {
+	s := state.(*mainState)
+	m.TargetPlayerIndex = s.Game.CurrentPlayer
+}
+
+func (m *MoveCurrentPlayerStand) Name() string {
+	return "Current Player Stand"
+}
+
+func (m *MoveCurrentPlayerStand) Description() string {
+	return "If the current player no longer wants to draw cards, they can stand."
+}
+
+func (m *MoveCurrentPlayerStand) Props() []string {
+	return boardgame.PropertyReaderPropsImpl(m)
+}
+
+func (m *MoveCurrentPlayerStand) Prop(name string) interface{} {
+	return boardgame.PropertyReaderPropImpl(m, name)
+}
+
+func (m *MoveCurrentPlayerStand) SetProp(name string, val interface{}) error {
 	return boardgame.PropertySetImpl(m, name, val)
 }
 
