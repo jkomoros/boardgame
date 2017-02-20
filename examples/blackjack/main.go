@@ -66,6 +66,7 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 	manager.AddPlayerMove(&MoveCurrentPlayerStand{})
 
 	manager.AddFixUpMove(&MoveShuffleDiscardToDraw{})
+	manager.AddFixUpMove(&MoveAdvanceNextPlayer{})
 
 	manager.SetUp()
 

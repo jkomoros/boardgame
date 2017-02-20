@@ -7,6 +7,8 @@ import (
 
 type MoveShuffleDiscardToDraw struct{}
 
+type MoveAdvanceNextPlayer struct{}
+
 type MoveCurrentPlayerHit struct {
 	TargetPlayerIndex int
 }
@@ -215,48 +217,66 @@ func (m *MoveCurrentPlayerStand) SetProp(name string, val interface{}) error {
 	return boardgame.PropertySetImpl(m, name, val)
 }
 
-/*
+/**************************************************
+ *
+ * MoveAdvanceNextPlayer Implementation
+ *
+ **************************************************/
 
-//For ease of copying for the next move to create. :-)
+func (m *MoveAdvanceNextPlayer) Legal(state boardgame.State) error {
+	s := state.(*mainState)
 
-type MoveShuffleDiscardToDraw struct{}
+	currentPlayer := s.Players[s.Game.CurrentPlayer]
 
-func (m *MoveShuffleDiscardToDraw) Legal(state boardgame.State) error {
-	return nil
+	if currentPlayer.Busted || currentPlayer.Stood {
+		return nil
+	}
+
+	return errors.New("The current player has neither busted nor decided to stand.")
 }
 
-func (m *MoveShuffleDiscardToDraw) Apply(state boardgame.State) error {
+func (m *MoveAdvanceNextPlayer) Apply(state boardgame.State) error {
+	s := state.(*mainState)
+
+	s.Game.CurrentPlayer++
+	if s.Game.CurrentPlayer >= len(s.Players) {
+		s.Game.CurrentPlayer = 0
+	}
+
+	currentPlayer := s.Players[s.Game.CurrentPlayer]
+
+	currentPlayer.Stood = false
+
 	return nil
+
 }
 
-func (m *MoveShuffleDiscardToDraw) Copy() boardgame.Move {
-	var result MoveShuffleDiscardToDraw
+func (m *MoveAdvanceNextPlayer) Copy() boardgame.Move {
+	var result MoveAdvanceNextPlayer
 	result = *m
 	return &result
 }
 
-func (m *MoveShuffleDiscardToDraw) DefaultsForState(state boardgame.State) {
+func (m *MoveAdvanceNextPlayer) DefaultsForState(state boardgame.State) {
 	//TODO: implement
 }
 
-func (m *MoveShuffleDiscardToDraw) Name() string {
-	return "Shuffle Discard To Draw"
+func (m *MoveAdvanceNextPlayer) Name() string {
+	return "Advance Next Player"
 }
 
-func (m *MoveShuffleDiscardToDraw) Description() string {
-	return "When the draw deck is empty, shuffles the discard deck into draw deck."
+func (m *MoveAdvanceNextPlayer) Description() string {
+	return "When the current player has either busted or decided to stand, we advance to next player."
 }
 
-func (m *MoveShuffleDiscardToDraw) Props() []string {
+func (m *MoveAdvanceNextPlayer) Props() []string {
 	return boardgame.PropertyReaderPropsImpl(m)
 }
 
-func (m *MoveShuffleDiscardToDraw) Prop(name string) interface{} {
+func (m *MoveAdvanceNextPlayer) Prop(name string) interface{} {
 	return boardgame.PropertyReaderPropImpl(m, name)
 }
 
-func (m *MoveShuffleDiscardToDraw) SetProp(name string, val interface{}) error {
+func (m *MoveAdvanceNextPlayer) SetProp(name string, val interface{}) error {
 	return boardgame.PropertySetImpl(m, name, val)
 }
-
-*/
