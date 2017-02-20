@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
+	"math/rand"
 )
 
 const emptyIndexSentinel = -1
@@ -74,6 +75,11 @@ type Stack interface {
 	//by repeatedly calling RemoveFirst() and InsertBack(). Errors and does
 	//not complete the move if there's not enough space in the target stack.
 	MoveAllTo(other Stack) error
+
+	//Shuffle shuffles the order of the stack, so that it has the same items,
+	//but in a different order. In a SizedStack, the empty slots will move
+	//around as part of a shuffle.
+	Shuffle()
 }
 
 type GrowableStack struct {
@@ -522,9 +528,7 @@ func (s *SizedStack) MoveAllTo(other Stack) error {
 }
 
 func (g *GrowableStack) MoveAllTo(other Stack) error {
-
 	return moveAllToImpl(g, other)
-
 }
 
 func moveAllToImpl(from Stack, to Stack) error {
@@ -540,6 +544,30 @@ func moveAllToImpl(from Stack, to Stack) error {
 	}
 
 	return nil
+}
+
+func (g *GrowableStack) Shuffle() {
+
+	perm := rand.Perm(len(g.indexes))
+
+	currentComponents := g.indexes
+	g.indexes = make([]int, len(g.indexes))
+
+	for i, j := range perm {
+		g.indexes[i] = currentComponents[j]
+	}
+
+}
+
+func (s *SizedStack) Shuffle() {
+	perm := rand.Perm(len(s.indexes))
+
+	currentComponents := s.indexes
+	s.indexes = make([]int, len(s.indexes))
+
+	for i, j := range perm {
+		s.indexes[i] = currentComponents[j]
+	}
 }
 
 func (g *GrowableStack) MarshalJSON() ([]byte, error) {

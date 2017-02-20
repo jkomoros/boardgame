@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"encoding/json"
+	"fmt"
 	"math"
 	"testing"
 )
@@ -316,6 +317,70 @@ func TestStackInsertBack(t *testing.T) {
 	if component != one {
 		t.Error("Removing Last didn't remove the middle item when that was the only one left")
 	}
+}
+
+func TestShuffle(t *testing.T) {
+	game := testGame()
+
+	deck := game.Chest().Deck("test")
+
+	stack := NewGrowableStack(deck, 0)
+
+	for _, c := range deck.Components() {
+		stack.InsertFront(c)
+	}
+
+	//The number of shuffles to do
+	numShuffles := 10
+
+	//Number of shuffles that were the same (which is bad)
+	numShufflesTheSame := 0
+
+	lastStackState := fmt.Sprint(stack.indexes)
+
+	for i := 0; i < numShuffles; i++ {
+		stack.Shuffle()
+		stackState := fmt.Sprint(stack.indexes)
+		if stackState == lastStackState {
+			//Stack was teh same before and after. That's suspicious...
+			numShufflesTheSame++
+		}
+
+		lastStackState = stackState
+	}
+
+	//We set this high because there aren't THAT many items, so the same shuffle will happen somewhat often.
+	if numShufflesTheSame > 3 {
+		t.Error("When we shuffled", numShuffles, "times, got the same state", numShufflesTheSame, "which is suspicious")
+	}
+
+	sStack := NewSizedStack(deck, 5)
+
+	for _, c := range deck.Components() {
+		sStack.InsertFront(c)
+	}
+
+	//Number of shuffles that were the same (which is bad)
+	numShufflesTheSame = 0
+
+	lastStackState = fmt.Sprint(sStack.indexes)
+
+	for i := 0; i < numShuffles; i++ {
+		sStack.Shuffle()
+		stackState := fmt.Sprint(sStack.indexes)
+		if stackState == lastStackState {
+			//Stack was teh same before and after. That's suspicious...
+			numShufflesTheSame++
+		}
+
+		lastStackState = stackState
+	}
+
+	//We set this high because there aren't THAT many items, so the same shuffle will happen somewhat often.
+	if numShufflesTheSame > 3 {
+		t.Error("When we shuffled", numShuffles, "times, got the same state", numShufflesTheSame, "which is suspicious")
+	}
+
 }
 
 func TestMoveAllTo(t *testing.T) {
