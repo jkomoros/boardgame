@@ -20,6 +20,11 @@ type Stack interface {
 	//of slots--even if some are unfilled.
 	Len() int
 
+	//NumComponents returns the number of components that are in this stack.
+	//For GrowableStacks this is the same as Len(); for SizedStacks, this is
+	//the number of non-nil slots.
+	NumComponents() int
+
 	//Inflated returns true if we are inflated--that is, we have a connection
 	//to the underlying deck we reference. ComponentAt and ComponentValues()
 	//will fail if we are not inflated.
@@ -148,6 +153,20 @@ func (s *GrowableStack) Len() int {
 //Len returns the number of slots in the stack. It will always equal Size.
 func (s *SizedStack) Len() int {
 	return len(s.indexes)
+}
+
+func (g *GrowableStack) NumComponents() int {
+	return len(g.indexes)
+}
+
+func (s *SizedStack) NumComponents() int {
+	count := 0
+	for _, index := range s.indexes {
+		if index != emptyIndexSentinel {
+			count++
+		}
+	}
+	return count
 }
 
 func (s *GrowableStack) Inflated() bool {

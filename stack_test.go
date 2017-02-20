@@ -124,6 +124,10 @@ func TestStackInsert(t *testing.T) {
 		t.Error("Empty stack didn't report empty")
 	}
 
+	if stack.NumComponents() != 0 {
+		t.Error("NumComponents was wrong")
+	}
+
 	if stack.deck.Name() != "test" {
 		t.Error("Stack didn't report right deck name")
 	}
@@ -159,6 +163,10 @@ func TestStackInsert(t *testing.T) {
 
 	if err := stack.InsertFront(one); err != nil {
 		t.Error("Got unexpected error when inserting:", err)
+	}
+
+	if stack.NumComponents() != 2 {
+		t.Error("After inserting two components numComponents wasn't 2")
 	}
 
 	if stack.Len() != 2 {
@@ -359,6 +367,10 @@ func TestSizedStack(t *testing.T) {
 		t.Error("Sized stack had wrong len. Got", stack.Len(), "wanted", stackSize)
 	}
 
+	if stack.NumComponents() != 0 {
+		t.Error("Empty stack thought it had components")
+	}
+
 	for i := 0; i < stackSize; i++ {
 		component := stack.ComponentAt(i)
 
@@ -377,6 +389,10 @@ func TestSizedStack(t *testing.T) {
 
 	if stack.SlotsRemaining() != stackSize-1 {
 		t.Error("After inserting a component, slots remaining was wrong. Got", stack.SlotsRemaining(), "wanted", stackSize-1)
+	}
+
+	if stack.NumComponents() != 1 {
+		t.Error("AFter inserting a component NumComponents didn't return 1")
 	}
 
 	if stack.ComponentAt(1) != deck.Components()[1] {
