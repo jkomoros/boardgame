@@ -31,6 +31,13 @@ type GameDelegate interface {
 	//modify payload directly.
 	DistributeComponentToStarterStack(state State, c *Component) error
 
+	//FinishSetUp is called during game.SetUp, after components have been
+	//distributed to their StarterStack. This is the last chance to modify the
+	//state before the game's initial state is considered final. For example,
+	//if you have a card game this is where you'd make sure the starter draw
+	//stacks are shuffled.
+	FinishSetUp(state State)
+
 	//CheckGameFinished should return true if the game is finished, and who
 	//the winners are. Called after every move is applied.
 	CheckGameFinished(state State) (finished bool, winners []int)
@@ -115,6 +122,10 @@ func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state State, c *
 	//was a component in the deck. And if we didn't store it in a stack, then
 	//we are in violation of the invariant.
 	return errors.New("DistributeComponentToStarterStack was called, but the component was not stored in a stack")
+}
+
+func (d *DefaultGameDelegate) FinishSetUp(state State) {
+	//Don't need to do anything by default
 }
 
 func (d *DefaultGameDelegate) CheckGameFinished(state State) (finished bool, winners []int) {

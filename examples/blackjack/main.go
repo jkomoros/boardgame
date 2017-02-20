@@ -119,6 +119,12 @@ func (g *gameDelegate) StartingState(numPlayers int) boardgame.State {
 	return result
 }
 
+func (g *gameDelegate) FinishSetUp(state boardgame.State) {
+	s := state.(*mainState)
+
+	s.Game.DrawStack.Shuffle()
+}
+
 func (g *gameDelegate) StateFromBlob(blob []byte) (boardgame.State, error) {
 	result := &mainState{}
 	if err := json.Unmarshal(blob, result); err != nil {

@@ -206,7 +206,7 @@ func (g *Game) SetUp(numPlayers int) error {
 		}
 	}
 
-	//TODO: do other set-up work, including FinishSetUp
+	g.manager.delegate.FinishSetUp(stateCopy)
 
 	if g.Modifiable() {
 
