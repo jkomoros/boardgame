@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/itsjamie/gin-cors"
 	"github.com/jkomoros/boardgame"
 	"io/ioutil"
 	"log"
@@ -28,8 +29,8 @@ type Config struct {
 }
 
 type ConfigMode struct {
-	AllowedURLs string
-	DefaultPort string
+	AllowedOrigins string
+	DefaultPort    string
 }
 
 type MoveForm struct {
@@ -56,7 +57,11 @@ func (c *ConfigMode) Validate() error {
 	if c.DefaultPort == "" {
 		return errors.New("No default port provided")
 	}
-	//It's OK if no AllowedURls exist
+	//AllowedOrigins will just be default allow
+	if c.AllowedOrigins == "" {
+		log.Println("No AllowedOrigins found. Defaulting to '*'")
+		c.AllowedOrigins = "*"
+	}
 	return nil
 }
 
@@ -83,10 +88,6 @@ func NewServer(manager *boardgame.GameManager, storage StorageManager) *Server {
 		storage: storage,
 	}
 
-}
-
-func (s *Server) CORSSetup(c *gin.Context) {
-	c.Header("Access-Control-Allow-Origin", s.config.AllowedURLs)
 }
 
 //gameAPISetup fetches the game configured in the URL and puts it in context.
@@ -390,7 +391,9 @@ func (s *Server) Start() {
 	//We have everything prefixed by /api just in case at some point we do
 	//want to host both static and api on the same logical server.
 	mainGroup := router.Group("/api")
-	mainGroup.Use(s.CORSSetup)
+	mainGroup.Use(cors.Middleware(cors.Config{
+		Origins: s.config.AllowedOrigins,
+	}))
 	{
 		mainGroup.GET("list/game", s.listGamesHandler)
 		mainGroup.POST("new/game", s.newGameHandler)
