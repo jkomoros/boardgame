@@ -158,6 +158,60 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.fetchData();
         }
       },
+      _expandState: function(currentState) {
+        //Takes the currentState and returns an object where all of the Stacks are replaced by actual references to the component they reference.
+
+        var that = this;
+
+        //We expect the top-level shape to be {Game:obj, Players: array}
+        var result = {
+          "Game" : this._expandLeafState(currentState.Game),
+          "Players" : currentState.Players.map(function(item) {
+            return that._expandLeafState(item);
+          })
+        };
+
+        return result;
+
+      },
+      _expandLeafState: function(leafState) {
+        //Returns an expanded version of leafState. leafState should have keys that are either bools, floats, strings, or Stacks.
+        var result = {};
+        var entries = Object.entries(leafState);
+        for (var i = 0; i < entries.length; i++) {
+          let item = entries[i];
+          let key = item[0];
+          let val = item[1];
+          if (typeof val == "object") {
+            result[key] = this._expandStack(val);
+          } else {
+            result[key] = val;
+          }
+        }
+        return result;
+      },
+      _expandStack: function(stack) {
+        if (!stack.Deck) {
+          //Meh, I guess it's not a stack
+          return stack;
+        }
+
+        var deck = this.data.Chest[stack.Deck];
+
+        var result = [];
+
+        for (var i = 0; i < stack.Indexes.length; i++) {
+          let index = stack.Indexes[i];
+          if (index == -1) {
+            result[i] = null;
+          } else {
+            result[i] = deck[index];
+          }
+        }
+
+        return result;
+
+      },
       _dataChanged: function(newValue, oldValue) {
         if (!newValue) {
           //Sometimes we set null, like when we select the view.
@@ -167,7 +221,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.chest = JSON.stringify(newValue.Chest, null, 2)
         }
         if (newValue.Game && newValue.Game.CurrentState) {
-          this.gameState = JSON.stringify(newValue.Game.CurrentState, null, 2)
+          this.gameState = JSON.stringify(newValue.Game.CurrentState, null, 2);
+          newValue.Game.ExpandedCurrentState = this._expandState(newValue.Game.CurrentState);
         }
 
       }
