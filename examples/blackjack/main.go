@@ -60,7 +60,7 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 		panic("No manager returned")
 	}
 
-	//TODO: add moves
+	manager.AddFixUpMove(&MoveShuffleDiscardToDraw{})
 
 	manager.SetUp()
 

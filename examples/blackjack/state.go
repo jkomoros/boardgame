@@ -10,10 +10,13 @@ type mainState struct {
 }
 
 type gameState struct {
+	DiscardStack *boardgame.GrowableStack
+	DrawStack    *boardgame.GrowableStack
 }
 
 type playerState struct {
 	playerIndex int
+	Hand        *boardgame.GrowableStack
 }
 
 func (g *gameState) Props() []string {
