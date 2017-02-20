@@ -1,10 +1,10 @@
 {
 	"prod" : {
 		"allowedurls" : "https://www.mygame.com",
-		"port" : "8080"
+		"defaultport" : "8080"
 	},
 	"dev" : {
 		"allowedurls" : "http://localhost:8080",
-		"port" : "8888"
+		"defaultport" : "8888"
 	}
 }

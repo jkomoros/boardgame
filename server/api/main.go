@@ -29,7 +29,7 @@ type Config struct {
 
 type ConfigMode struct {
 	AllowedURLs string
-	Port        string
+	DefaultPort string
 }
 
 type MoveForm struct {
@@ -53,8 +53,8 @@ type MoveFormField struct {
 }
 
 func (c *ConfigMode) Validate() error {
-	if c.Port == "" {
-		return errors.New("No port provided")
+	if c.DefaultPort == "" {
+		return errors.New("No default port provided")
 	}
 	//It's OK if no AllowedURls exist
 	return nil
@@ -407,7 +407,7 @@ func (s *Server) Start() {
 	if p := os.Getenv("PORT"); p != "" {
 		router.Run(":" + p)
 	} else {
-		router.Run(":" + s.config.Port)
+		router.Run(":" + s.config.DefaultPort)
 	}
 
 }
