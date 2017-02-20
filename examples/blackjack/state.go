@@ -1,7 +1,9 @@
 package blackjack
 
 import (
+	"fmt"
 	"github.com/jkomoros/boardgame"
+	"strings"
 )
 
 type mainState struct {
@@ -90,7 +92,35 @@ func (p *playerState) HandValue() int {
 }
 
 func (m *mainState) Diagram() string {
-	return "TODO: implement this"
+	var result []string
+
+	result = append(result, fmt.Sprintf("Cards left in deck: %d", m.Game.DrawStack.NumComponents()))
+
+	for i, player := range m.Players {
+		result = append(result, fmt.Sprintf("Player %d", i))
+
+		statusLine := fmt.Sprintf("\tValue: %d", player.HandValue())
+
+		if player.Busted {
+			statusLine += " BUSTED"
+		}
+
+		if player.Stood {
+			statusLine += " STOOD"
+		}
+
+		result = append(result, statusLine)
+
+		result = append(result, "\tCards:")
+
+		for _, card := range cards(player.Hand.ComponentValues()) {
+			result = append(result, "\t\t"+card.String())
+		}
+
+		result = append(result, "")
+	}
+
+	return strings.Join(result, "\n")
 }
 
 func (s *mainState) GameState() boardgame.GameState {

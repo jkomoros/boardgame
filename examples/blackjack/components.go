@@ -1,6 +1,7 @@
 package blackjack
 
 import (
+	"fmt"
 	"github.com/jkomoros/boardgame"
 )
 
@@ -44,6 +45,10 @@ func (c *Card) Props() []string {
 
 func (c *Card) Prop(name string) interface{} {
 	return boardgame.PropertyReaderPropImpl(c, name)
+}
+
+func (c *Card) String() string {
+	return fmt.Sprintf("%s %d", c.Suit, c.Rank)
 }
 
 //Designed to be used with stack.ComponentValues()
