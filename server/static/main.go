@@ -18,6 +18,7 @@ package static
 
 import (
 	"github.com/gin-gonic/gin"
+	"log"
 	"net/http"
 	"os"
 )
@@ -50,6 +51,44 @@ func (s *Server) viewHandler(c *gin.Context) {
 
 }
 
+//ShadowedFS is a simple FileSystem that tries the first FS and if that fails falls back on the Secondary.
+type shadowedFS struct {
+	Primary   http.FileSystem
+	Secondary http.FileSystem
+	Redirects map[string]string
+}
+
+func (s *shadowedFS) Open(name string) (http.File, error) {
+
+	for from, to := range s.Redirects {
+		if name == from {
+			log.Println("Found redirect for", name, "to", to)
+			return s.Open(to)
+		}
+	}
+
+	if file, err := s.Primary.Open(name); err == nil {
+		log.Println("Serving", name, "from primary")
+		return file, nil
+	}
+	log.Println("Attempting to serve", name, "from secondary")
+	return s.Secondary.Open(name)
+}
+
+func newShadowedFS(primary http.FileSystem, secondary http.FileSystem) *shadowedFS {
+	return &shadowedFS{
+		Primary:   primary,
+		Secondary: secondary,
+		Redirects: make(map[string]string),
+	}
+}
+
+//AddRedirect adds a redirect so whenever from is fetched, we'll actually
+//return the result for to. Take care to not create loops!
+func (s *shadowedFS) AddRedirect(from string, to string) {
+	s.Redirects[from] = to
+}
+
 //Start is where you start the server, and it never returns until it's time to shut down.
 func (s *Server) Start() {
 
@@ -61,13 +100,12 @@ func (s *Server) Start() {
 
 	router.LoadHTMLFiles(expandedPathToLib + "webapp/index.html")
 
-	static := router.Group("/static")
-	{
-		static.Static("/bower_components", expandedPathToLib+"webapp/bower_components")
-		static.Static("/src", expandedPathToLib+"webapp/src")
-		static.StaticFile("/config-src/boardgame-config.html", expandedPathToLib+"webapp/config-src/boardgame-config-dev.html")
-		static.Static("/game-src", expandedPathToLib+"webapp/game-src")
-	}
+	fs := newShadowedFS(http.Dir("webapp"), http.Dir(expandedPathToLib+"webapp"))
+
+	fs.AddRedirect("/config-src/boardgame-config.html", "/config-src/boardgame-config-dev.html")
+
+	router.StaticFS("/static", fs)
+
 	router.Run(":8080")
 
 }
