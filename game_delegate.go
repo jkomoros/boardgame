@@ -9,9 +9,17 @@ import (
 type GameDelegate interface {
 
 	//Name is a string that defines the type of game this is. The name should
-	//be unique but human readable. Good examples are "Tic Tac Toe",
-	//"Blackjack". Subclasses should override this.
+	//be unique and compact. Good examples are "tictactoe", "blackjack". Once
+	//configured, names should never change over the lifetime of the gametype,
+	//since it will be persisted in storage. Subclasses should override this.
 	Name() string
+
+	//DisplayName is a string that defines the type of game this is in a way
+	//appropriate for humans. The name should be unique but human readable. It
+	//is purely for human consumption, and may change over time with no
+	//adverse effects. Good examples are "Tic Tac Toe", "Blackjack".
+	//Subclasses should override this.
+	DisplayName() string
 
 	//DistributeComponentToStarterStack is called during set up to establish
 	//the Deck/Stack invariant that every component in the chest is placed in
@@ -70,6 +78,10 @@ type DefaultGameDelegate struct {
 }
 
 func (d *DefaultGameDelegate) Name() string {
+	return "default"
+}
+
+func (d *DefaultGameDelegate) DisplayName() string {
 	return "Default Game"
 }
 

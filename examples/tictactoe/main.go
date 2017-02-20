@@ -12,7 +12,8 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
-const gameName = "Tic Tac Toe"
+const gameDisplayname = "Tic Tac Toe"
+const gameName = "tictactoe"
 
 const DIM = 3
 
@@ -36,6 +37,10 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, 
 
 func (g *gameDelegate) Name() string {
 	return gameName
+}
+
+func (g *gameDelegate) DisplayName() string {
+	return gameDisplayname
 }
 
 func (g *gameDelegate) DefaultNumPlayers() int {
