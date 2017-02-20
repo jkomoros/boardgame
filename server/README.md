@@ -57,12 +57,12 @@ func main() {
 6. Copy boardgame/server/api/config.SAMPLE.json to be mygame/server/api/config.SECRET.json . Do not commit this file to version control (your gitignore should help you avoid doing that)
 7. Create mygame/server/static/webapp directory
 8. Create mygame/server/webapp/game-src directory, which is where you will create all of your game-rendering subviews.
-8. In mygame/server/static/webapp/game-src, create boardgame-render-game.html and define a polymer element in it. This is the entrypoint for the rendering of your view, and will be passed Game object. The one in boardgame/server/static/webapp/game-src is a reasonable starting point to copy.
-9. Copy the following items from boardgame/server/static/webapp to your own webapp. None of them require modification by default.
+9. In mygame/server/static/webapp/game-src, create boardgame-render-game.html and define a polymer element in it. This is the entrypoint for the rendering of your view, and will be passed Game object. The one in boardgame/server/static/webapp/game-src is a reasonable starting point to copy.
+10. Copy the following items from boardgame/server/static/webapp to your own webapp. None of them require modification by default.
 * bower.json
 * manifest.json
 * .gitignore.sample -> .gitignore (this will help ensure you don't check in the symlinks)
-10. Create symlinks from the following items:
+11. Create symlinks from the following items:
 * src 
 * config-src
 * index.html
@@ -89,6 +89,15 @@ You can add new views in game-src/ that are imported directly from other views i
 If you need new bower depenencies, just add them as normal from the command line, sitting in mygame/server/webapp. This will modify your bower.json file, which is correct.
 
 If you want to modify config-src, manifest.json, or index.html just remove the symlink and copy in the example folder from boardgame/server/static/webapp.
+
+## Checking out an existing webapp server
+
+If you're doing a fresh check out of a webapp server, you'll have to recreate the bits that aren't checked into git.
+
+In particular:
+
+1) Create your own server/api/config.SECRET.json
+2) Run step 11 in the "starting a new game from scrathc section above"
 
 ## Installing dependencies
 
