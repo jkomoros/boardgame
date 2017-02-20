@@ -117,27 +117,33 @@ gcloud config set project <project-id>
 
 The static app can be hosted anywhere you want. This section describes how to deploy to Google Cloud Storage.
 
-Create the storage bucket to serve the files in:
+You will be storing as a static domain-backed bucket on Google Cloud Storage. The main instructions to follow are [https://cloud.google.com/storage/docs/hosting-static-website](here), but this guide pulls out the main steps.
+
+Get a domain. If you get it from Google Domains, it will be pre-verified on Google as owned by you.
+
+Set up your domain to have a cname that points to c.storage.googleapis.com
+
+Create the storage bucket to serve the files in. It must be based on the domain you will serve from:
 
 ```
-gsutil mb gs://<your-bucket-name>
-```
-
-Your bucket name can be whatever you want.
-
-Set the acls to be world-readable:
-
-```
-gsutil defacl set public-read gs://<your-bucket-name>
+gsutil mb gs://www.mydomain.com
 ```
 
 Now do a normal deploy, below.
 
+Set the acls to be world-readable:
+
+```
+gsutil defacl set public-read gs://www.mydomain.com
+```
+
 Set it so index.html is returned by default:
 
 ```
-gsutil web set -e static/index.html gs://<your-bucket-name>
+gsutil web set -e static/index.html gs://www.mydomain.com
 ```
+
+This will only work if it's a domain-backed bucket.
 
 ## Deploying
 
@@ -150,9 +156,9 @@ Cd into boardgame/webapp/build/bundled
 Run
 
 ```
-gsutil -m rsync -r . gs://<your-bucket-name>/static
+gsutil -m rsync -r . gs://www.mydomain.com/static
 ```
 
-Now you can access the files at https://<your-bucket-name>.storage.googleapis.com/static/index.html . (Note that although the files are also available at https://storage.googleapis.com/<your-bucket-name>/static/index.html, the page won't work because index.html needs to use an absolute path to get to sub-resources.)
+If you were to not use a domain backed bucket you can access the files at https://<your-bucket-name>.storage.googleapis.com/static/index.html . (Note that although the files are also available at https://storage.googleapis.com/<your-bucket-name>/static/index.html, the page won't work because index.html needs to use an absolute path to get to sub-resources.) However, you can't set an errHandler except on domain-backed buckets.
 
-_TODO: describe how to deploy_
+_TODO: describe how to deploy api_
