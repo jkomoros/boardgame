@@ -69,6 +69,11 @@ type Stack interface {
 	//this will be the component in the last filled slot. Remember to insert
 	//the component in another stack to maintain the Deck/Stack invariant.
 	RemoveLast() *Component
+
+	//MoveAllTo moves all of the components in this stack to the other stack,
+	//by repeatedly calling RemoveFirst() and InsertBack(). Errors and does
+	//not complete the move if there's not enough space in the target stack.
+	MoveAllTo(other Stack) error
 }
 
 type GrowableStack struct {
@@ -510,6 +515,31 @@ func (g *GrowableStack) RemoveLast() *Component {
 	g.indexes = g.indexes[:g.Len()-1]
 	return component
 
+}
+
+func (s *SizedStack) MoveAllTo(other Stack) error {
+	return moveAllToImpl(s, other)
+}
+
+func (g *GrowableStack) MoveAllTo(other Stack) error {
+
+	return moveAllToImpl(g, other)
+
+}
+
+func moveAllToImpl(from Stack, to Stack) error {
+
+	if to.SlotsRemaining() < from.NumComponents() {
+		return errors.New("Not enough space in the target stack")
+	}
+
+	c := from.RemoveFirst()
+	for c != nil {
+		to.InsertBack(c)
+		c = from.RemoveFirst()
+	}
+
+	return nil
 }
 
 func (g *GrowableStack) MarshalJSON() ([]byte, error) {

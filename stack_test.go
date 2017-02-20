@@ -318,6 +318,47 @@ func TestStackInsertBack(t *testing.T) {
 	}
 }
 
+func TestMoveAllTo(t *testing.T) {
+	game := testGame()
+
+	deck := game.Chest().Deck("test")
+
+	to := NewGrowableStack(deck, 1)
+
+	from := NewSizedStack(deck, 2)
+
+	zero := deck.Components()[0]
+	one := deck.Components()[1]
+
+	from.InsertBack(zero)
+
+	//This should succeed because although to only has one slot, there's only
+	//actually one item in from.
+	if err := from.MoveAllTo(to); err != nil {
+		t.Error("Unexpected error moving from sized stack to other stack", err)
+	}
+
+	if from.NumComponents() != 0 {
+		t.Error("MoveAllTo did not vacate from")
+	}
+
+	if to.NumComponents() != 1 {
+		t.Error("MoveAllTo did not move the components to other")
+	}
+
+	to = NewGrowableStack(deck, 1)
+
+	from = NewSizedStack(deck, 2)
+
+	from.InsertBack(zero)
+	from.InsertBack(one)
+
+	if err := from.MoveAllTo(to); err == nil {
+		t.Error("Got no error moving from a stack that was too big.")
+	}
+
+}
+
 func TestStackCap(t *testing.T) {
 	game := testGame()
 
