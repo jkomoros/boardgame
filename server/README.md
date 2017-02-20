@@ -138,13 +138,13 @@ Create the storage bucket to serve the files in. It must be based on the domain 
 gsutil mb gs://www.mydomain.com
 ```
 
-Now do a normal deploy, as described in the "Deploying" section below.
-
-Set the acls to be world-readable:
+Set the acls to be world-readable (do this before the first push so all files you push get this ACL by default)
 
 ```
 gsutil defacl set public-read gs://www.mydomain.com
 ```
+
+Now do a normal deploy, as described in the "Deploying" section below.
 
 Set it so index.html is returned by default for all routes that don't have other objects:
 
