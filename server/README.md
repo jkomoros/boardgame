@@ -55,30 +55,40 @@ func main() {
 ```
 
 6. Copy boardgame/server/api/config.SAMPLE.json to be mygame/server/api/config.SECRET.json . Do not commit this file to version control (your gitignore should help you avoid doing that)
-
-(The rest of these steps are in theory, not yet in practice)
-
-6. Create mygame/server/static/webapp directory
-7. Create mygame/server/webapp/game-src directory, which is where you will create all of your game-rendering subviews.
-8. In mygame/server/webapp/game-src, create boardgame-render-game.html and define a polymer element in it. This is the entrypoint for the rendering of your view, and will be passed Game object. The one in boardgame/server/webapp/game-src is a reasonable starting point to copy.
-9. Copy the following items from boardgame/server/webapp. None of them require modification by default.
+7. Create mygame/server/static/webapp directory
+8. Create mygame/server/webapp/game-src directory, which is where you will create all of your game-rendering subviews.
+8. In mygame/server/static/webapp/game-src, create boardgame-render-game.html and define a polymer element in it. This is the entrypoint for the rendering of your view, and will be passed Game object. The one in boardgame/server/static/webapp/game-src is a reasonable starting point to copy.
+9. Copy the following items from boardgame/server/static/webapp to your own webapp. None of them require modification by default.
 * bower.json
+* manifest.json
+* .gitignore.sample -> .gitignore (this will help ensure you don't check in the symlinks)
+10. Create symlinks from the following items:
+* src 
+* config-src
 * index.html
 * manifest.json
 * polymer.json
 
-_TODO: should polymer.json be a symlink?_
+Example symlink:
+```
+#sitting in mygame/server/static/webapp
+ln -s ~/Code/go/src/github.com/jkomoros/boadgame/server/static/webapp/index.html
+```
 
-8. Create a symlink from mygame/server/webapp/src to boardgame/server/webapp/src
-9. In mygame/server/webapp directory, run the bower update command to install bower components
+11. In mygame/server/webapp directory, run:
+```
+bower update
+```
+This will create bower_components.
 
-_TODO: what is the bower update command exactly?_ 
 
 ## Adding new views
 
 You can add new views in game-src/ that are imported directly from other views in game-src/. Remember that game-render-view is the polymer element that is the root of your game rendering.
 
 If you need new bower depenencies, just add them as normal from the command line, sitting in mygame/server/webapp. This will modify your bower.json file, which is correct.
+
+If you want to modify config-src, manifest.json, or index.html just remove the symlink and copy in the example folder from boardgame/server/static/webapp.
 
 ## Installing dependencies
 
