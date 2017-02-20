@@ -10,6 +10,8 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
+const targetScore = 21
+
 const gameDisplayname = "Blackjack"
 const gameName = "blackjack"
 

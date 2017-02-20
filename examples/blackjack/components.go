@@ -45,3 +45,17 @@ func (c *Card) Props() []string {
 func (c *Card) Prop(name string) interface{} {
 	return boardgame.PropertyReaderPropImpl(c, name)
 }
+
+//Designed to be used with stack.ComponentValues()
+func cards(in []boardgame.PropertyReader) []*Card {
+	result := make([]*Card, len(in))
+	for i := 0; i < len(in); i++ {
+		c := in[i]
+		if c == nil {
+			result[i] = nil
+			continue
+		}
+		result[i] = c.(*Card)
+	}
+	return result
+}
