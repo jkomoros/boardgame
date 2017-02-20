@@ -113,6 +113,10 @@ func (m *MoveCurrentPlayerHit) Apply(state boardgame.State) error {
 		currentPlayer.Busted = true
 	}
 
+	if handValue == targetScore {
+		currentPlayer.Stood = true
+	}
+
 	return nil
 }
 
