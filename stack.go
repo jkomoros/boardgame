@@ -45,6 +45,14 @@ type Stack interface {
 	//invariant.
 	InsertFront(c *Component) error
 
+	//InsertBack starts at the back of the stack and then walks forward and
+	//inserts the component at the first slot it fits. In GrowableStack, this
+	//will merely append to the end. In SizedStacks it will be the first slot,
+	//walking from the back, that is empty. The component you insert should
+	//not currently be a member of any other Stack, in order to maintain the
+	//Deck/Stack invariant.
+	InsertBack(c *Component) error
+
 	//RemoveFirst removes the first component in the stack. For GrowableStacks
 	//this will always be the first component in the stack. For SizedStacks,
 	//this will be the component in the first filled slot. Remember to insert
@@ -354,6 +362,58 @@ func (s *SizedStack) InsertFront(c *Component) error {
 	return nil
 }
 
+//InsertBack adds the item to the end of the stack.The Component you insert
+//should not currently be a member of any other stacks, to maintain the deck
+//invariant.
+func (g *GrowableStack) InsertBack(c *Component) error {
+
+	//Based on how Decks and Chests are constructed, we know the components in
+	//the chest hae the right gamename, so no need to check.
+
+	if c.Deck.Name() != g.deck.Name() {
+		//We can only add items that are in our deck.
+
+		return errors.New("The component is not part of this stack's deck.")
+	}
+
+	if g.SlotsRemaining() < 1 {
+		return errors.New("There's no more room in the stack.")
+	}
+
+	g.indexes = append(g.indexes, c.DeckIndex)
+
+	return nil
+}
+
+//InsertBack inserts the component in the first slot that is empty, starting
+//from the end of the stack.
+func (s *SizedStack) InsertBack(c *Component) error {
+
+	//Based on how Decks and Chests are constructed, we know the components in
+	//the chest hae the right gamename, so no need to check.
+
+	if c.Deck.Name() != s.deck.Name() {
+		//We can only add items that are in our deck.
+
+		return errors.New("The component is not part of this stack's deck.")
+	}
+
+	if s.SlotsRemaining() < 1 {
+		return errors.New("There are no available slots.")
+	}
+
+	for i := len(s.indexes) - 1; i >= 0; i-- {
+		index := s.indexes[i]
+		if index == emptyIndexSentinel {
+			//Found it!
+			s.indexes[i] = c.DeckIndex
+			return nil
+		}
+	}
+
+	return errors.New("Couldn't find the empty slot, even though it should have existed")
+}
+
 //InsertFront puts the component at index 0 in this stack, moving all other
 //items down by one. The Component you insert should not currently be a member
 //of any other stacks, to maintain the deck invariant.
@@ -447,13 +507,6 @@ func (s *SizedStack) UnmarshalJSON(blob []byte) error {
 }
 
 /*
-
-//InsertBack puts the component at the last index in this stack. The
-//Component you insert should not currently be a member of any other stacks,
-//to maintain the deck invariant.
-func (s *Stack) InsertBack(c Component) {
-
-}
 
 //RemoveFront removes the component from the first slot in this stack,
 //shifting all later components down by 1. You should then insert the

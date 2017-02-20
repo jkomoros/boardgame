@@ -219,6 +219,67 @@ func TestStackInsert(t *testing.T) {
 
 }
 
+func TestStackInsertBack(t *testing.T) {
+
+	var stack Stack
+
+	game := testGame()
+
+	deck := game.Chest().Deck("test")
+
+	stack = NewGrowableStack(deck, 3)
+
+	zero := deck.Components()[0]
+	one := deck.Components()[1]
+	two := deck.Components()[2]
+
+	stack.InsertBack(zero)
+
+	if stack.Len() != 1 {
+		t.Error("Added an item back len did not incrase")
+	}
+
+	if stack.ComponentAt(0) != zero {
+		t.Error("After inserting first item back didn't get it out")
+	}
+
+	stack.InsertBack(one)
+
+	if stack.Len() != 2 {
+		t.Error("Inserting second item didn't increase len")
+	}
+
+	if stack.ComponentAt(0) != zero {
+		t.Error("After inserting another component back, zero wasn't up front")
+	}
+
+	if stack.ComponentAt(1) != one {
+		t.Error("After inserting back, one wasn't in back")
+	}
+
+	stack = NewSizedStack(deck, 3)
+
+	stack.InsertBack(two)
+
+	if stack.ComponentAt(0) != nil {
+		t.Error("Inserting back found component at front")
+	}
+
+	if stack.ComponentAt(2) != two {
+		t.Error("After inserting back one wasn't in last slot")
+	}
+
+	stack.InsertBack(one)
+
+	if stack.ComponentAt(2) != two {
+		t.Error("inseting back offset item two")
+	}
+
+	if stack.ComponentAt(1) != one {
+		t.Error("Inserting one back didn't put it in second slot")
+	}
+}
+
 func TestStackCap(t *testing.T) {
 	game := testGame()
 
