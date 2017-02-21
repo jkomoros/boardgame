@@ -1,3 +1,9 @@
+/*
+
+playingcards is a convenience package that helps define and work with a set of
+american playing cards.
+
+*/
 package playingcards
 
 import (
