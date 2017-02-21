@@ -102,6 +102,11 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 		return
 	}
 
+	if game.Name() != c.Param("name") {
+		log.Println("The name of the game was not what we were expecting. Wanted", c.Param("name"), "got", game.Name())
+		return
+	}
+
 	c.Set("game", game)
 
 }
@@ -399,7 +404,7 @@ func (s *Server) Start() {
 		mainGroup.GET("list/game", s.listGamesHandler)
 		mainGroup.POST("new/game", s.newGameHandler)
 
-		gameAPIGroup := mainGroup.Group("game/:id")
+		gameAPIGroup := mainGroup.Group("game/:name/:id")
 		gameAPIGroup.Use(s.gameAPISetup)
 		{
 			gameAPIGroup.GET("view", s.gameViewHandler)
