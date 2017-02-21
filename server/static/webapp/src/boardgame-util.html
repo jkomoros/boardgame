@@ -3,6 +3,9 @@
 BoardgameUtilBehavior = {
 	UrlForGame : function(gameName, gameId) {
 		return "game/" + gameName + "/" + gameId;
+	},
+	UrlForGameAPI : function(gameName, gameId, action) {
+		return (this.apiHost || "http://nohost.com") + "/api/" + this.UrlForGame(gameName, gameId) + "/" + action;
 	}
 }
 

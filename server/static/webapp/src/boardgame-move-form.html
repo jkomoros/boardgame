@@ -12,6 +12,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/iron-form/iron-form.html">
 <link rel="import" href="shared-styles.html">
 <link rel="import" href="../config-src/boardgame-config.html">
+<link rel="import" href="boardgame-util.html">
 
 <dom-module id="boardgame-move-form">
   <template>
@@ -28,7 +29,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <template is="dom-repeat" items="{{config}}">
         <details id="moves-{{item.Name}}" >
           <summary on-tap="saveZippyState">Move {{item.Name}}</summary>
-          <form is="iron-form" method="POST" action$="{{apiHost}}/api/game/{{gameName}}/{{gameId}}/move">
+          <form is="iron-form" method="POST" action$="[[UrlForGameAPI(gameName, gameId, 'move')]]">
             <p><em>{{item.Description}}</em></p>
             <input type="hidden" name="MoveType" value="{{item.Name}}">
             <template is="dom-repeat" items="{{item.Fields}}">
@@ -56,7 +57,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         gameId: String,
         gameName: String,
       },
-      behaviors : [ApiHostBehavior],
+      behaviors : [ApiHostBehavior, BoardgameUtilBehavior],
       _configChanged : function(newValue, oldValue) {
         //Must be async because databinding hasn't created the details yet.
         this.async(this.loadZippyState);
