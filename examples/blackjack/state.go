@@ -3,6 +3,7 @@ package blackjack
 import (
 	"fmt"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/playingcards"
 	"strings"
 )
 
@@ -63,14 +64,14 @@ func (p *playerState) HandValue() int {
 	var numUnconvertedAces int
 	var currentValue int
 
-	for _, card := range cards(p.Hand.ComponentValues()) {
+	for _, card := range playingcards.Cards(p.Hand.ComponentValues()) {
 		switch card.Rank {
-		case RankAce:
+		case playingcards.RankAce:
 			numUnconvertedAces++
 			//We count the ace as 1 now. Later we'll check to see if we can
 			//expand any aces.
 			currentValue += 1
-		case RankJack, RankQueen, RankKing:
+		case playingcards.RankJack, playingcards.RankQueen, playingcards.RankKing:
 			currentValue += 10
 		default:
 			currentValue += int(card.Rank)
@@ -120,7 +121,7 @@ func (m *mainState) Diagram() string {
 
 		result = append(result, "\tCards:")
 
-		for _, card := range cards(player.Hand.ComponentValues()) {
+		for _, card := range playingcards.Cards(player.Hand.ComponentValues()) {
 			result = append(result, "\t\t"+card.String())
 		}
 

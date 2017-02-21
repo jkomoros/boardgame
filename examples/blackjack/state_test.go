@@ -2,6 +2,7 @@ package blackjack
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/playingcards"
 	"github.com/jkomoros/boardgame/storage/memory"
 	"testing"
 )
@@ -20,25 +21,25 @@ func TestHandValue(t *testing.T) {
 	}{
 		{
 			&playerState{
-				Hand: createHand(deck, Rank2, Rank3, Rank4),
+				Hand: createHand(deck, playingcards.Rank2, playingcards.Rank3, playingcards.Rank4),
 			},
 			9,
 		},
 		{
 			&playerState{
-				Hand: createHand(deck, RankAce),
+				Hand: createHand(deck, playingcards.RankAce),
 			},
 			11,
 		},
 		{
 			&playerState{
-				Hand: createHand(deck, RankAce, RankAce),
+				Hand: createHand(deck, playingcards.RankAce, playingcards.RankAce),
 			},
 			12,
 		},
 		{
 			&playerState{
-				Hand: createHand(deck, RankJack, RankKing, RankAce),
+				Hand: createHand(deck, playingcards.RankJack, playingcards.RankKing, playingcards.RankAce),
 			},
 			21,
 		},
@@ -53,7 +54,7 @@ func TestHandValue(t *testing.T) {
 	}
 }
 
-func createHand(deck *boardgame.Deck, ranks ...Rank) *boardgame.GrowableStack {
+func createHand(deck *boardgame.Deck, ranks ...playingcards.Rank) *boardgame.GrowableStack {
 	result := boardgame.NewGrowableStack(deck, 0)
 
 	givenCards := make(map[int]bool)
@@ -66,7 +67,7 @@ func createHand(deck *boardgame.Deck, ranks ...Rank) *boardgame.GrowableStack {
 				continue
 			}
 
-			card := c.Values.(*Card)
+			card := c.Values.(*playingcards.Card)
 
 			if card.Rank == rank {
 				//Found one!

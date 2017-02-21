@@ -9,6 +9,7 @@ package blackjack
 import (
 	"encoding/json"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/playingcards"
 )
 
 const targetScore = 21
@@ -36,9 +37,9 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, 
 
 	s := state.(*mainState)
 
-	card := c.Values.(*Card)
+	card := c.Values.(*playingcards.Card)
 
-	if card.Rank == RankJoker {
+	if card.Rank == playingcards.RankJoker {
 		s.Game.UnusedCards.InsertFront(c)
 	} else {
 		s.Game.DrawStack.InsertFront(c)
@@ -146,27 +147,7 @@ func (g *gameDelegate) StateFromBlob(blob []byte) (boardgame.State, error) {
 func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 	chest := boardgame.NewComponentChest()
 
-	cards := &boardgame.Deck{}
-
-	ranks := []Rank{RankAce, Rank2, Rank3, Rank4, Rank5, Rank6, Rank7, Rank8, Rank9, Rank10, RankJack, RankQueen, RankKing}
-	suits := []Suit{SuitClubs, SuitDiamonds, SuitHearts, SuitSpades}
-
-	for _, rank := range ranks {
-		for _, suit := range suits {
-			cards.AddComponent(&Card{
-				Suit: suit,
-				Rank: rank,
-			})
-		}
-	}
-
-	//Add two Jokers
-	cards.AddComponentMulti(&Card{
-		Suit: SuitJokers,
-		Rank: RankJoker,
-	}, 2)
-
-	chest.AddDeck("cards", cards)
+	chest.AddDeck("cards", playingcards.NewDeck(false))
 
 	manager := boardgame.NewGameManager(&gameDelegate{}, chest, storage)
 

@@ -1,4 +1,4 @@
-package blackjack
+package playingcards
 
 import (
 	"fmt"
@@ -51,8 +51,8 @@ func (c *Card) String() string {
 	return fmt.Sprintf("%s %d", c.Suit, c.Rank)
 }
 
-//Designed to be used with stack.ComponentValues()
-func cards(in []boardgame.PropertyReader) []*Card {
+//Cards is designed to be used with stack.ComponentValues()
+func Cards(in []boardgame.PropertyReader) []*Card {
 	result := make([]*Card, len(in))
 	for i := 0; i < len(in); i++ {
 		c := in[i]
@@ -63,4 +63,32 @@ func cards(in []boardgame.PropertyReader) []*Card {
 		result[i] = c.(*Card)
 	}
 	return result
+}
+
+//NewDeck returns a new deck of playing cards with or without Jokers, ready
+//for being added to a chest.
+func NewDeck(withJokers bool) *boardgame.Deck {
+	cards := &boardgame.Deck{}
+
+	ranks := []Rank{RankAce, Rank2, Rank3, Rank4, Rank5, Rank6, Rank7, Rank8, Rank9, Rank10, RankJack, RankQueen, RankKing}
+	suits := []Suit{SuitClubs, SuitDiamonds, SuitHearts, SuitSpades}
+
+	for _, rank := range ranks {
+		for _, suit := range suits {
+			cards.AddComponent(&Card{
+				Suit: suit,
+				Rank: rank,
+			})
+		}
+	}
+
+	if withJokers {
+		//Add two Jokers
+		cards.AddComponentMulti(&Card{
+			Suit: SuitJokers,
+			Rank: RankJoker,
+		}, 2)
+	}
+
+	return cards
 }
