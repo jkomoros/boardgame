@@ -97,7 +97,14 @@ func (m *mainState) Diagram() string {
 	result = append(result, fmt.Sprintf("Cards left in deck: %d", m.Game.DrawStack.NumComponents()))
 
 	for i, player := range m.Players {
-		result = append(result, fmt.Sprintf("Player %d", i))
+
+		playerLine := fmt.Sprintf("Player %d", i)
+
+		if i == m.Game.CurrentPlayer {
+			playerLine += "  *CURRENT*"
+		}
+
+		result = append(result, playerLine)
 
 		statusLine := fmt.Sprintf("\tValue: %d", player.HandValue())
 
