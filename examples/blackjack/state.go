@@ -64,7 +64,7 @@ func (p *playerState) HandValue() int {
 	var numUnconvertedAces int
 	var currentValue int
 
-	for _, card := range playingcards.Cards(p.Hand.ComponentValues()) {
+	for _, card := range playingcards.ValuesToCards(p.Hand.ComponentValues()) {
 		switch card.Rank {
 		case playingcards.RankAce:
 			numUnconvertedAces++
@@ -121,7 +121,7 @@ func (m *mainState) Diagram() string {
 
 		result = append(result, "\tCards:")
 
-		for _, card := range playingcards.Cards(player.Hand.ComponentValues()) {
+		for _, card := range playingcards.ValuesToCards(player.Hand.ComponentValues()) {
 			result = append(result, "\t\t"+card.String())
 		}
 

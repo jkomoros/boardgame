@@ -57,8 +57,8 @@ func (c *Card) String() string {
 	return fmt.Sprintf("%s %d", c.Suit, c.Rank)
 }
 
-//Cards is designed to be used with stack.ComponentValues()
-func Cards(in []boardgame.PropertyReader) []*Card {
+//ValuesToCards is designed to be used with stack.ComponentValues().
+func ValuesToCards(in []boardgame.PropertyReader) []*Card {
 	result := make([]*Card, len(in))
 	for i := 0; i < len(in); i++ {
 		c := in[i]
