@@ -30,11 +30,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </div>
     </template>
     <div class="card">
-      <form is="iron-form" method="POST" action="{{apiHost}}/api/new/game">
+      <form is="iron-form" method="POST" action="[[NewGameUrl(apiHost)]]">
         <input type="submit" value="Make new game">
       </form>
     </div>
-    <iron-ajax id="games" url="{{apiHost}}/api/list/game" handle-as="json" last-response="{{data}}">
+    <iron-ajax id="games" url="[[ListGamesUrl(apiHost)]]" handle-as="json" last-response="{{data}}">
   </template>
 
   <script>

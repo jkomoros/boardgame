@@ -6,7 +6,16 @@ BoardgameUtilBehavior = {
 	},
 	UrlForGameAPI : function(gameName, gameId, action) {
 		return (this.apiHost || "http://nohost.com") + "/api/" + this.UrlForGame(gameName, gameId) + "/" + action;
+	},
+	ListGamesUrl: function(apiHost) {
+		//We take the apiHost, so we'll be re-evaluated when apiHost is set.
+		return (apiHost || "http://nohost.com") + "/api/list/game";
+	},
+	NewGameUrl: function(apiHost) {
+		//We take the apiHost, so we'll be re-evaluated when apiHost is set.
+		return (apiHost || "http://nohost.com") + "/api/new/game";
 	}
+
 }
 
 </script>
