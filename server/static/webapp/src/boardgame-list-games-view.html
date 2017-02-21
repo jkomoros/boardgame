@@ -13,6 +13,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/iron-form/iron-form.html">
 <link rel="import" href="../config-src/boardgame-config.html">
 <link rel="import" href="shared-styles.html">
+<link rel="import" href="boardgame-util.html">
 
 <dom-module id="boardgame-list-games-view">
   <template>
@@ -25,7 +26,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
     <template is="dom-repeat" items="{{data.Games}}">
       <div class="card">
-        <a href="/game/{{item.Id}}">{{item.Id}}</a>
+        <a href="[[UrlForGame(item.Name,item.Id)]]">{{item.Id}}</a>
       </div>
     </template>
     <div class="card">
@@ -46,7 +47,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           observer: '_selectedChanged',
         },
       },
-      behaviors: [ApiHostBehavior],
+      behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
       listeners: {
         'iron-form-response': 'handleResponse',
       },
@@ -58,7 +59,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       handleResponse : function(e) {
         var result = e.detail.parseResponse();
         if (result.Status == "Success") {
-          this.fire("navigate-to", "/game/" + result.GameId)
+          this.fire("navigate-to", this.UrlForGame(result.GameName, result.GameId))
         }
       }
     });

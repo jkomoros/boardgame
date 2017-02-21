@@ -141,8 +141,9 @@ func (s *Server) newGameHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"Status": "Success",
-		"GameId": game.Id(),
+		"Status":   "Success",
+		"GameId":   game.Id(),
+		"GameName": game.Name(),
 	})
 }
 

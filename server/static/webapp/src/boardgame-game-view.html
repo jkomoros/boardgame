@@ -14,6 +14,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="shared-styles.html">
 <link rel="import" href="../game-src/boardgame-render-game.html">
 <link rel="import" href="../config-src/boardgame-config.html">
+<link rel="import" href="boardgame-util.html">
 
 <dom-module id="boardgame-game-view">
   <template>
@@ -98,7 +99,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           observer: "_handleSelected",
         },
       },
-      behaviors: [ApiHostBehavior],
+      behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
       _handleSelected: function(newValue) {
         if (newValue) {
           //Clear out any old data. If we kept it, we could get in a weird
