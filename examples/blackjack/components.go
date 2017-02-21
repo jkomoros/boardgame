@@ -8,10 +8,10 @@ import (
 type Suit string
 
 const (
-	SuitSpades   Suit = "Spades"
-	SuitHearts        = "Hearts"
-	SuitClubs         = "Clubs"
-	SuitDiamonds      = "Diamonds"
+	SuitSpades   Suit = "\u2660"
+	SuitHearts        = "\u2665"
+	SuitClubs         = "\u2663"
+	SuitDiamonds      = "\u2666"
 	SuitJokers        = "Jokers"
 )
 
