@@ -97,6 +97,8 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 	game := s.manager.Game(id)
 
+	//TODO: figure out a way to return a meaningful error
+
 	if game == nil {
 		log.Println("Couldn't find game with id", id)
 		return
