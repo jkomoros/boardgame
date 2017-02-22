@@ -1,6 +1,7 @@
 /*
 
-multi is a server that loads up multiple games on one server to demonstrate how that works.
+multi is a server that loads up multiple games on one server to demonstrate
+how that works. It is also possible to have a server with only one game.
 
 */
 package main

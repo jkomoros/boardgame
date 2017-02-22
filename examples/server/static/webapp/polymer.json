@@ -1,0 +1,18 @@
+{
+  "entrypoint": "index.html",
+  "shell": "src/boardgame-app.html",
+  "fragments": [
+    "src/boardgame-game-view.html",
+    "src/boardgame-list-games-view.html",
+    "src/boardgame-404-view.html"
+  ],
+  "sourceGlobs": [
+    "src/**/*",
+    "images/**/*",
+    "bower.json"
+  ],
+  "includeDependencies": [
+    "manifest.json",
+    "bower_components/webcomponentsjs/webcomponents-lite.min.js"
+  ]
+}
