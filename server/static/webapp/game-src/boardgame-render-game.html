@@ -8,7 +8,7 @@
       <h2>Diagram of {{gameName}}</h2>
       <pre>{{diagram}}</pre>
     </div>
-    <div id="renderer">
+    <div id="container">
     <!-- This is where renderer will go -->
     </div>
   </template>
@@ -17,33 +17,61 @@
     Polymer({
       is: 'boardgame-render-game',
       properties: {
-        state: Object,
-        diagram : String,
+        state: {
+          type: Object,
+          observer: "_stateChanged",
+        },
+        diagram : {
+          type: String,
+          observer: "_diagramChanged",
+        },
         gameName: {
           type: String,
           observer: "_gameNameChanged",
         },
+        renderer: Object,
         rendererLoaded: {
           type: Boolean,
           value: false,
         }
       },
+      _diagramChanged : function(newValue) {
+        if (!this.renderer) {
+          return;
+        }
+        this.renderer.diagram = newValue;
+      },
+      _stateChanged: function(newValue) {
+        if (!this.renderer) {
+          return;
+        }
+        this.renderer.state = newValue;
+      },
       _gameNameChanged : function(newValue) {
         this.rendererLoaded = false
 
+        if (this.renderer) {
+          Polymer.dom(this.$.container).removeChild(this.renderer);
+        }
+        this.renderer = null;
+
+
         var resolvedUrl = this.resolveUrl("../game-src/boardgame-render-game-" + newValue + ".html")
-        this.importHref(resolvedUrl, this._instantiateRender, null, true);
+        this.importHref(resolvedUrl, this._instantiateRenderer, null, true);
       },
-      _instantiateRender : function(e) {
+      _instantiateRenderer : function(e) {
         //The import loaded! Add it!
         this.rendererLoaded = true;
 
         var ele = document.createElement("boardgame-render-game-" + this.gameName);
 
-        //This works, but will not update live going forward.
-        ele.diagram = this.diagram;
 
-        Polymer.dom(this.$.renderer).appendChild(ele);
+        ele.diagram = this.diagram;
+        ele.state = this.state;
+
+        this.renderer = ele;
+
+        Polymer.dom(this.$.container).appendChild(ele);
 
       }
 
