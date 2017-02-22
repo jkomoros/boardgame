@@ -61,7 +61,7 @@ func main() {
 10. Copy the following items from boardgame/server/static/webapp to your own webapp. None of them require modification by default.
 * bower.json
 * manifest.json
-* .gitignore.sample -> .gitignore (this will help ensure you don't check in the symlinks)
+* .gitignore
 10. Copy polymer.json to your own webapp. Modify it to add the game-src/boardgame-render-game-<gamename>.html fragment.
 11. Create symlinks from the following items:
 * src 
@@ -72,8 +72,10 @@ func main() {
 Example symlink:
 ```
 #sitting in mygame/server/static/webapp
-ln -s ~/Code/go/src/github.com/jkomoros/boadgame/server/static/webapp/index.html
+ln -s ../../../../server/static/webapp/index.html
 ```
+
+By doing relative paths, they can be checked into and managed by git, as long as everything is in its canonical path in $GOPATH--because it will work for everyone.
 
 11. In mygame/server/webapp directory, run:
 ```
