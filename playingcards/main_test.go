@@ -27,6 +27,17 @@ func TestNewDeck(t *testing.T) {
 		t.Error("Deck with jokers had wrong number of cards:", len(withJokers.Components()))
 	}
 
+	multiDeck := NewDeckMulti(2, false)
+
+	chest.AddDeck("multideck", multiDeck)
+
+	if len(multiDeck.Components()) != 52*2 {
+		t.Error("Got wrong number of components. Expected 52 *2, got", len(multiDeck.Components()))
+	}
+
+	checkExpectedRun(multiDeck, 0, t)
+	checkExpectedRun(multiDeck, 52, t)
+
 }
 
 //Checks that the deck, at starting Index, has the 52 main cards in canonical order.
