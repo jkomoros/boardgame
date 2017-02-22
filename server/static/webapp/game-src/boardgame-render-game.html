@@ -4,7 +4,7 @@
 <dom-module id="boardgame-render-game">
   <template>
     <!--TODO: override with your own rendering here -->
-    <div hidden$="{{!this.rendererLoaded}}">
+    <div hidden$="{{rendererLoaded}}">
       <h2>Diagram of {{gameName}}</h2>
       <pre>{{diagram}}</pre>
     </div>
@@ -23,7 +23,10 @@
           type: String,
           observer: "_gameNameChanged",
         },
-        rendererLoaded: Boolean,
+        rendererLoaded: {
+          type: Boolean,
+          value: false,
+        }
       },
       _gameNameChanged : function(newValue) {
         this.rendererLoaded = false
