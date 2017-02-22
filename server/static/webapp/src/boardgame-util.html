@@ -14,8 +14,10 @@ BoardgameUtilBehavior = {
 	NewGameUrl: function(apiHost) {
 		//We take the apiHost, so we'll be re-evaluated when apiHost is set.
 		return (apiHost || "http://nohost.com") + "/api/new/game";
+	},
+	ListManagersUrl: function(apiHost) {
+		return (apiHost || "http://nohost.com") + "/api/list/manager";
 	}
-
 }
 
 </script>

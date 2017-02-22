@@ -15,8 +15,8 @@ import (
 )
 
 type Server struct {
-	manager *boardgame.GameManager
-	storage StorageManager
+	managers map[string]*boardgame.GameManager
+	storage  StorageManager
 	//We store the last error so that next time viewHandler is called we can
 	//display it. Yes, this is a hack.
 	lastErrorMessage string
@@ -78,15 +78,22 @@ Use it like so:
 	func main() {
 		storage := server.NewDefaultStorageManager()
 		defer storage.Close()
-		server.NewServer(mygame.NewManager(storage), storage).Start()
+		server.NewServer(storage, mygame.NewManager(storage)).Start()
 	}
 
 */
-func NewServer(manager *boardgame.GameManager, storage StorageManager) *Server {
-	return &Server{
-		manager: manager,
-		storage: storage,
+func NewServer(storage StorageManager, managers ...*boardgame.GameManager) *Server {
+	result := &Server{
+		managers: make(map[string]*boardgame.GameManager),
+		storage:  storage,
 	}
+
+	for _, manager := range managers {
+		name := manager.Delegate().Name()
+		result.managers[name] = manager
+	}
+
+	return result
 
 }
 
@@ -95,7 +102,14 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 	id := c.Param("id")
 
-	game := s.manager.Game(id)
+	manager := s.managers[c.Param("name")]
+
+	if manager == nil {
+		log.Println("Invalid manager", c.Param("name"))
+		return
+	}
+
+	game := manager.Game(id)
 
 	//TODO: figure out a way to return a meaningful error
 
@@ -140,7 +154,15 @@ func (s *Server) gameStatusHandler(c *gin.Context) {
 }
 
 func (s *Server) newGameHandler(c *gin.Context) {
-	game := boardgame.NewGame(s.manager)
+
+	manager := s.managers[c.PostForm("manager")]
+
+	if manager == nil {
+		//TODO: communicate the error back to the client in a sane way
+		panic("Invalid manager" + c.PostForm("manager"))
+	}
+
+	game := boardgame.NewGame(manager)
 
 	if err := game.SetUp(0); err != nil {
 		//TODO: communicate the error state back to the client in a sane way
@@ -155,9 +177,31 @@ func (s *Server) newGameHandler(c *gin.Context) {
 }
 
 func (s *Server) listGamesHandler(c *gin.Context) {
+
+	//TODO: this is SUPER hacky. storage.ListGames() requires a manager, but
+	//we know that it's not really THAT important.
+	var aManager *boardgame.GameManager
+
+	for _, manager := range s.managers {
+		aManager = manager
+		break
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"Status": "Success",
-		"Games":  s.storage.ListGames(s.manager, 10),
+		"Games":  s.storage.ListGames(aManager, 10),
+	})
+}
+
+func (s *Server) listManagerHandler(c *gin.Context) {
+	var managerNames []string
+	for name, _ := range s.managers {
+		managerNames = append(managerNames, name)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"Status":   "Success",
+		"Managers": managerNames,
 	})
 }
 
@@ -405,6 +449,7 @@ func (s *Server) Start() {
 	{
 		mainGroup.GET("list/game", s.listGamesHandler)
 		mainGroup.POST("new/game", s.newGameHandler)
+		mainGroup.GET("list/manager", s.listManagerHandler)
 
 		gameAPIGroup := mainGroup.Group("game/:name/:id")
 		gameAPIGroup.Use(s.gameAPISetup)

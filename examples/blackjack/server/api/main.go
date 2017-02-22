@@ -15,5 +15,5 @@ import (
 func main() {
 	storage := api.NewDefaultStorageManager()
 	defer storage.Close()
-	api.NewServer(blackjack.NewManager(storage), storage).Start()
+	api.NewServer(storage, blackjack.NewManager(storage)).Start()
 }

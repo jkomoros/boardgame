@@ -31,9 +31,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </template>
     <div class="card">
       <form is="iron-form" method="POST" action="[[NewGameUrl(apiHost)]]">
+        <select name="manager">
+          <template is="dom-repeat" items="{{managers.Managers}}">
+            <option value="{{item}}">{{item}}</option> 
+          </template>
+        </select>
         <input type="submit" value="Make new game">
       </form>
     </div>
+    <iron-ajax auto url="[[ListManagersUrl(apiHost)]]" handle-as="json" last-response="{{managers}}">
     <iron-ajax id="games" url="[[ListGamesUrl(apiHost)]]" handle-as="json" last-response="{{data}}">
   </template>
 
@@ -42,6 +48,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       is: 'boardgame-list-games-view',
       properties: {
         data: Object,
+        managers: Array,
         selected: {
           type: Boolean,
           observer: '_selectedChanged',
