@@ -175,11 +175,21 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.Game, state boa
 }
 
 //ListGames will return game objects for up to max number of games
-func (s *StorageManager) ListGames(manager *boardgame.GameManager, max int) []*boardgame.Game {
+func (s *StorageManager) ListGames(managers boardgame.ManagerCollection, max int) []*boardgame.Game {
 
 	var result []*boardgame.Game
 
 	for _, game := range s.games {
+
+		manager := managers.Get(game.Name)
+
+		if manager == nil {
+			//Hmm, guess it wasn't a manager we knew about.
+
+			//TODO: log an error
+			continue
+		}
+
 		result = append(result, manager.Game(game.Id))
 		if len(result) >= max {
 			break

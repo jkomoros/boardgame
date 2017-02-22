@@ -15,7 +15,7 @@ import (
 )
 
 type Server struct {
-	managers map[string]*boardgame.GameManager
+	managers managerMap
 	storage  StorageManager
 	//We store the last error so that next time viewHandler is called we can
 	//display it. Yes, this is a hack.
@@ -69,6 +69,12 @@ const (
 	configFileName = "config.SECRET.json"
 )
 
+type managerMap map[string]*boardgame.GameManager
+
+func (m managerMap) Get(name string) *boardgame.GameManager {
+	return m[name]
+}
+
 /*
 NewServer returns a new server. Get it to run by calling Start(). storage
 should be the same underlying storage manager that is in use for manager.
@@ -84,7 +90,7 @@ Use it like so:
 */
 func NewServer(storage StorageManager, managers ...*boardgame.GameManager) *Server {
 	result := &Server{
-		managers: make(map[string]*boardgame.GameManager),
+		managers: make(managerMap),
 		storage:  storage,
 	}
 
@@ -178,18 +184,9 @@ func (s *Server) newGameHandler(c *gin.Context) {
 
 func (s *Server) listGamesHandler(c *gin.Context) {
 
-	//TODO: this is SUPER hacky. storage.ListGames() requires a manager, but
-	//we know that it's not really THAT important.
-	var aManager *boardgame.GameManager
-
-	for _, manager := range s.managers {
-		aManager = manager
-		break
-	}
-
 	c.JSON(http.StatusOK, gin.H{
 		"Status": "Success",
-		"Games":  s.storage.ListGames(aManager, 10),
+		"Games":  s.storage.ListGames(s.managers, 10),
 	})
 }
 

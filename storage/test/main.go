@@ -9,6 +9,7 @@ package test
 import (
 	"encoding/json"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/examples/blackjack"
 	"github.com/jkomoros/boardgame/examples/tictactoe"
 	"reflect"
 	"testing"
@@ -22,70 +23,98 @@ type StorageManager interface {
 
 	//The methods past this point are the same ones that are included in Server.StorageManager
 	Close()
-	ListGames(manager *boardgame.GameManager, max int) []*boardgame.Game
+	ListGames(manager boardgame.ManagerCollection, max int) []*boardgame.Game
+}
+
+type managerMap map[string]*boardgame.GameManager
+
+func (m managerMap) Get(name string) *boardgame.GameManager {
+	return m[name]
 }
 
 type StorageManagerFactory func() StorageManager
 
-func Test(factory StorageManagerFactory, t *testing.T) {
+func Test(factory StorageManagerFactory, testName string, t *testing.T) {
 
 	storage := factory()
 
-	manager := tictactoe.NewManager(storage)
+	managers := make(managerMap)
 
-	game := boardgame.NewGame(manager)
+	tictactoeManager := tictactoe.NewManager(storage)
 
-	game.SetUp(0)
+	managers[tictactoeManager.Delegate().Name()] = tictactoeManager
 
-	move := game.PlayerMoveByName("Place Token")
+	blackjackManager := blackjack.NewManager(storage)
+
+	managers[blackjackManager.Delegate().Name()] = blackjackManager
+
+	tictactoeGame := boardgame.NewGame(tictactoeManager)
+
+	tictactoeGame.SetUp(0)
+
+	move := tictactoeGame.PlayerMoveByName("Place Token")
 
 	if move == nil {
-		t.Fatal("Couldn't find a move")
+		t.Fatal(testName, "Couldn't find a move")
 	}
 
-	if err := <-game.ProposeMove(move); err != nil {
-		t.Fatal("Couldn't make move", err)
+	if err := <-tictactoeGame.ProposeMove(move); err != nil {
+		t.Fatal(testName, "Couldn't make move", err)
 	}
 
 	//OK, now test that the manager and SetUp and everyone did the right thing.
 
-	localGame, err := storage.Game(manager, game.Id())
+	localGame, err := storage.Game(tictactoeManager, tictactoeGame.Id())
 
 	if err != nil {
-		t.Error("Unexpected error", err)
+		t.Error(testName, "Unexpected error", err)
 	}
 
 	if localGame == nil {
-		t.Fatal("Couldn't get game copy out")
+		t.Fatal(testName, "Couldn't get game copy out")
 	}
 
 	if localGame.Modifiable() {
-		t.Error("We asked for a non-modifiable game, got a modifiable one")
+		t.Error(testName, "We asked for a non-modifiable game, got a modifiable one")
 	}
 
-	blob, err := json.MarshalIndent(game, "", "  ")
+	blob, err := json.MarshalIndent(tictactoeGame, "", "  ")
 
 	if err != nil {
-		t.Fatal("couldn't marshal game", err)
+		t.Fatal(testName, "couldn't marshal game", err)
 	}
 
 	localBlob, err := json.MarshalIndent(localGame, "", "  ")
 
 	if err != nil {
-		t.Fatal("Couldn't marshal localGame", err)
+		t.Fatal(testName, "Couldn't marshal localGame", err)
 	}
 
-	compareJSONObjects(blob, localBlob, "Comparing game and local game", t)
+	compareJSONObjects(blob, localBlob, testName+"Comparing game and local game", t)
 
-	state := game.State(0)
+	state := tictactoeGame.State(0)
 	stateBlob, _ := json.MarshalIndent(state, "", "  ")
 
 	localState := localGame.State(0)
 	localStateBlob, _ := json.MarshalIndent(localState, "", "  ")
 
-	compareJSONObjects(stateBlob, localStateBlob, "Comparing game version 0", t)
+	compareJSONObjects(stateBlob, localStateBlob, testName+"Comparing game version 0", t)
 
 	//Verify that if the game is stored with wrong name that doesn't match manager it won't load up.
+
+	blackjackGame := boardgame.NewGame(blackjackManager)
+
+	blackjackGame.SetUp(0)
+
+	games := storage.ListGames(managers, 10)
+
+	if games == nil {
+		t.Error(testName, "ListGames gave back nothing")
+	}
+
+	if len(games) != 2 {
+		t.Error(testName, "We called listgames with a tictactoe game and a blackjack game, but got", len(games), "back.")
+	}
 
 	//TODO: figure out how to test that name is matched when retrieving from store.
 
