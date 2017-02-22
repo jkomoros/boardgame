@@ -55,7 +55,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </div>
     </div>
     <div class="card">
-      <boardgame-render-game state="{{data.Game.StateWrapper.State}}" diagram="{{data.Diagram}}"></boardgame-render-game>
+      <boardgame-render-game state="{{data.Game.StateWrapper.State}}" diagram="{{data.Diagram}}" game-name="{{gameName}}"></boardgame-render-game>
     </div>
 
     <template is="dom-if" if="{{!data.Game.Finished}}">
