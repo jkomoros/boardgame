@@ -87,12 +87,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
       loadZippyState : function() {
+        var that = this;
         Polymer.dom(this.root).querySelectorAll("details").forEach(function(el) {
           if (!el.id.startsWith("moves")) {
             return;
           }
           //TODO: store in sessionStorage in a way that won't conflict across GAME IDs.
-          var data = sessionStorage.getItem(this._storageKey(el.id));
+          var data = sessionStorage.getItem(that._storageKey(el.id));
 
           if (data) {
             el.open = true;
