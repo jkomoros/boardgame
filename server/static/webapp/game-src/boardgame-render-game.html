@@ -38,7 +38,13 @@
         //The import loaded! Add it!
         this.rendererLoaded = true;
 
-        this.$.renderer.innerHTML = "<boardgame-render-game-" + this.gameName + "></boardgame-render-game-" + this.gameName + ">"
+        var ele = document.createElement("boardgame-render-game-" + this.gameName);
+
+        //This works, but will not update live going forward.
+        ele.diagram = this.diagram;
+
+        Polymer.dom(this.$.renderer).appendChild(ele);
+
       }
 
     });
