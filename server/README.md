@@ -62,12 +62,12 @@ func main() {
 * bower.json
 * manifest.json
 * .gitignore.sample -> .gitignore (this will help ensure you don't check in the symlinks)
+10. Copy polymer.json to your own webapp. Modify it to add the game-src/boardgame-render-game-<gamename>.html fragment.
 11. Create symlinks from the following items:
 * src 
 * config-src
 * index.html
 * manifest.json
-* polymer.json
 
 Example symlink:
 ```
