@@ -24,6 +24,10 @@ const (
 	//GroupOther applies if the player the state is being prepared for is NOT
 	//the current PlayerState being transformed.
 	GroupOther = -2
+	//GroupAll matches all players. It's useful for setting a restrictive
+	//policy by default, that then some sub-groups relax by applying a less
+	//restrictive policy.
+	GroupAll = -3
 )
 
 //A group Santization policy represents all of the various policies that apply
