@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"encoding/json"
 	"errors"
 	"strings"
 )
@@ -162,6 +163,43 @@ func (g *GameManager) Game(id string) *Game {
 		return result
 	}
 	return nil
+}
+
+type refriedState struct {
+	Game    map[string]interface{}
+	Players []map[string]interface{}
+}
+
+//SanitizedStateForPlayer produces a JSON blob representing the given state,
+//prepared for the player at the given index. Will call
+//GameDelegate.StateSanitizationPolicy to retrieve the policy in place. See
+//the package level comment for an overview of how state sanitization works.
+func (g *GameManager) SanitizedStateForPlayer(state State, playerIndex int) ([]byte, error) {
+
+	policy := g.Delegate().StateSanitizationPolicy()
+
+	//First, round trip the state object through JSON to get the simplified JSON object.
+	blob, err := json.Marshal(state)
+
+	if err != nil {
+		return nil, err
+	}
+
+	//Now put it back to a map of strings.
+	var refried refriedState
+
+	if err := json.Unmarshal(blob, &refried); err != nil {
+		return nil, errors.New("State did not serialize with the expected top-level properties: " + err.Error())
+	}
+
+	sanitized := &refriedState{}
+
+	sanitized.Game = sanitization(refried.Game, policy.Game)
+
+	//TODO: sanitize each of the player objects.
+
+	return json.Marshal(sanitized)
+
 }
 
 //proposeMoveOnGame is how non-modifiable games should tell the manager they

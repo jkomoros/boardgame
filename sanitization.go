@@ -41,3 +41,21 @@ const (
 
 	//TODO: implement the other policies.
 )
+
+//Actually santizies a given State Object.
+func sanitization(obj map[string]interface{}, policy map[string]GroupPolicy) map[string]interface{} {
+
+	result := make(map[string]interface{})
+
+	for key, val := range obj {
+		result[key] = sanitizeProperty(val, policy[key])
+	}
+
+	return result
+
+}
+
+func sanitizeProperty(prop interface{}, policy GroupPolicy) interface{} {
+	//TODO: actually sanitize here
+	return prop
+}
