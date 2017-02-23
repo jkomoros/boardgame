@@ -39,7 +39,7 @@ type Policy int
 
 const (
 	//Non sanitized
-	PolicyNoOp Policy = iota
+	PolicyVisible Policy = iota
 	//For groups (e.g. stacks, int slices), return the length
 	PolicyLen
 
@@ -85,7 +85,7 @@ func sanitizeProperty(prop interface{}, policyGroup GroupPolicy, statePlayerInde
 	}
 
 	//Now calculate the LEAST restrictive of the policies that apply.
-	effectivePolicy := PolicyNoOp
+	effectivePolicy := PolicyVisible
 	if len(applicablePolicies) > 0 {
 		effectivePolicy = Policy(math.MaxInt64)
 		for _, policy := range applicablePolicies {
@@ -99,7 +99,7 @@ func sanitizeProperty(prop interface{}, policyGroup GroupPolicy, statePlayerInde
 }
 
 func applyPolicy(policy Policy, input interface{}) interface{} {
-	if policy == PolicyNoOp {
+	if policy == PolicyVisible {
 		return input
 	}
 	//TODO: implement PolicyLen, and others.
