@@ -68,6 +68,11 @@ type GameDelegate interface {
 	//this method.
 	StateFromBlob(blob []byte) (State, error)
 
+	//StateSanitizationPolicy returns the policy for sanitizing states in this
+	//game. The policy should not change over time. See StatePolicy for more
+	//on how sanitization policies are calculated and applied.
+	StateSanitizationPolicy() *StatePolicy
+
 	//SetManager configures which manager this delegate is in use with. A
 	//given delegate can only be used by a single manager at a time.
 	SetManager(manager *GameManager)
@@ -122,6 +127,10 @@ func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state State, c *
 	//was a component in the deck. And if we didn't store it in a stack, then
 	//we are in violation of the invariant.
 	return errors.New("DistributeComponentToStarterStack was called, but the component was not stored in a stack")
+}
+
+func (d *DefaultGameDelegate) StateSanitizationPolicy() *StatePolicy {
+	return nil
 }
 
 func (d *DefaultGameDelegate) FinishSetUp(state State) {

@@ -12,9 +12,12 @@ import (
 //client games can cast it quickly to the concrete struct for their game, so
 //that they can get to a type-checked world with minimal fuss inside of
 //Move.Legal and move.Apply. Your underlying struct should have a Game and
-//Users property, so they serialize properly to JSON. Most importantly,
+//Players property, so they serialize properly to JSON. Most importantly,
 //json.Marshal() should round trip through your GameDelegate.StateFromBlob()
-//without modifications in order for persistence to work.
+//without modifications in order for persistence to work. Each PlayerState you
+//return should be the same underlying type. This means that if different
+//players have very different roles in a game, there might be many properties
+//that are not in use for any given player.
 type State interface {
 	//Game includes the non-user state for the game.
 	GameState() GameState
