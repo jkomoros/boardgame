@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"encoding/json"
 	"math"
 )
 
@@ -44,7 +45,8 @@ type Policy int
 const (
 	//Non sanitized
 	PolicyVisible Policy = iota
-	//For groups (e.g. stacks, int slices), return the length
+	//For groups (e.g. stacks, int slices), return the length. For all else,
+	//it's effectively PolicyHidden.
 	PolicyLen
 
 	//TODO: implement the other policies.
@@ -106,7 +108,56 @@ func applyPolicy(policy Policy, input interface{}) interface{} {
 	if policy == PolicyVisible {
 		return input
 	}
-	//TODO: implement PolicyLen, and others.
 
-	panic("ApplyPolicy didn't know how to handle that policy.")
+	stack := tryToCastToStackJson(input)
+
+	if stack == nil {
+		//OK, it's not a stack. All non-stack types treat everything other
+		//than PolicyVisible as effectively PolicyHidden.
+		switch input.(type) {
+		case bool:
+			return false
+		case int:
+			return 0
+		}
+	}
+
+	//TODO: ideally at this point we'd just have a GrowableStack or
+	//SizedStack. But there's not enough information in the JSON to know which
+	//is which. Maybe when PropertyReader splits them out separately we can
+	//know and directly unmarshal...
+
+	switch policy {
+	case PolicyLen:
+		count := 0
+		for _, val := range stack.Indexes {
+			if val >= 0 {
+				count++
+			}
+		}
+		return count
+
+	default:
+		panic("Unknown policy provided")
+	}
+
+}
+
+//Try to recover the stackJsonObj reprsentation of the stack, if it is shaped
+//like a stack. If not, will return nil.
+func tryToCastToStackJson(input interface{}) *stackJSONObj {
+	blob, err := json.Marshal(input)
+
+	if err != nil {
+		return nil
+	}
+
+	var result stackJSONObj
+
+	if err := json.Unmarshal(blob, &result); err != nil {
+		return nil
+	}
+
+	return &result
+
 }
