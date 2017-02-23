@@ -95,7 +95,14 @@ func sanitizeProperty(prop interface{}, policyGroup GroupPolicy, statePlayerInde
 		}
 	}
 
-	//TODO: actually sanitize based on policy that applies here.
+	return applyPolicy(effectivePolicy, prop)
+}
 
-	return prop
+func applyPolicy(policy Policy, input interface{}) interface{} {
+	if policy == PolicyNoOp {
+		return input
+	}
+	//TODO: implement PolicyLen, and others.
+
+	panic("ApplyPolicy didn't know how to handle that policy.")
 }
