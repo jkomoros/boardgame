@@ -194,9 +194,11 @@ func (g *GameManager) SanitizedStateForPlayer(state State, playerIndex int) ([]b
 
 	sanitized := &refriedState{}
 
-	sanitized.Game = sanitization(refried.Game, policy.Game)
+	sanitized.Game = sanitizeStateObj(refried.Game, policy.Game, -1, playerIndex)
 
-	//TODO: sanitize each of the player objects.
+	for i := 0; i < len(refried.Players); i++ {
+		sanitized.Players = append(sanitized.Players, sanitizeStateObj(refried.Players[i], policy.Player, i, playerIndex))
+	}
 
 	return json.Marshal(sanitized)
 

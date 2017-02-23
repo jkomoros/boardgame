@@ -42,20 +42,23 @@ const (
 	//TODO: implement the other policies.
 )
 
-//Actually santizies a given State Object.
-func sanitization(obj map[string]interface{}, policy map[string]GroupPolicy) map[string]interface{} {
+//statePlayerIndex is the index of the PlayerState that we're working on (-1
+//for Game). preparingForPlayerIndex is the index that we're preparing the
+//overall santiized state for, as provied to
+//GameManager.SanitizedStateForPlayer()
+func sanitizeStateObj(obj map[string]interface{}, policy map[string]GroupPolicy, statePlayerIndex int, preparingForPlayerIndex int) map[string]interface{} {
 
 	result := make(map[string]interface{})
 
 	for key, val := range obj {
-		result[key] = sanitizeProperty(val, policy[key])
+		result[key] = sanitizeProperty(val, policy[key], statePlayerIndex, preparingForPlayerIndex)
 	}
 
 	return result
 
 }
 
-func sanitizeProperty(prop interface{}, policy GroupPolicy) interface{} {
+func sanitizeProperty(prop interface{}, policy GroupPolicy, statePlayerIndex int, preparingForPlayerIndex int) interface{} {
 	//TODO: actually sanitize here
 	return prop
 }
