@@ -1,5 +1,9 @@
 package boardgame
 
+import (
+	"math"
+)
+
 //StatePolicy defines a sanitization policy for a State object. In particular,
 //it defines a policy for the Game state, and a single, fixed policy for all
 //Player states. Each string returns the policy for the property with that
@@ -81,7 +85,17 @@ func sanitizeProperty(prop interface{}, policyGroup GroupPolicy, statePlayerInde
 	}
 
 	//Now calculate the LEAST restrictive of the policies that apply.
+	effectivePolicy := PolicyNoOp
+	if len(applicablePolicies) > 0 {
+		effectivePolicy = Policy(math.MaxInt64)
+		for _, policy := range applicablePolicies {
+			if policy < effectivePolicy {
+				effectivePolicy = policy
+			}
+		}
+	}
 
 	//TODO: actually sanitize based on policy that applies here.
+
 	return prop
 }
