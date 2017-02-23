@@ -58,7 +58,30 @@ func sanitizeStateObj(obj map[string]interface{}, policy map[string]GroupPolicy,
 
 }
 
-func sanitizeProperty(prop interface{}, policy GroupPolicy, statePlayerIndex int, preparingForPlayerIndex int) interface{} {
-	//TODO: actually sanitize here
+func sanitizeProperty(prop interface{}, policyGroup GroupPolicy, statePlayerIndex int, preparingForPlayerIndex int) interface{} {
+
+	//We're going to collect all of the policies that apply.
+	var applicablePolicies []Policy
+
+	for group, policy := range policyGroup {
+		policyApplies := false
+		switch group {
+		case GroupSelf:
+			policyApplies = (statePlayerIndex == preparingForPlayerIndex)
+		case GroupOther:
+			policyApplies = (statePlayerIndex != preparingForPlayerIndex)
+		default:
+			//In the future we'll interrogate whether the given group index is
+			//in the specified property at this point.
+			panic("Unsupported policy group")
+		}
+		if policyApplies {
+			applicablePolicies = append(applicablePolicies, policy)
+		}
+	}
+
+	//Now calculate the LEAST restrictive of the policies that apply.
+
+	//TODO: actually sanitize based on policy that applies here.
 	return prop
 }
