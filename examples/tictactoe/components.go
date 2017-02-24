@@ -14,16 +14,12 @@ type playerToken struct {
 	Value string
 }
 
-func (p *playerToken) Props() []string {
-	return boardgame.PropertyReaderPropsImpl(p)
-}
-
-func (p *playerToken) Prop(name string) interface{} {
-	return boardgame.PropertyReaderPropImpl(p, name)
+func (p *playerToken) Reader() boardgame.PropertyReader {
+	return boardgame.NewDefaultReader(p)
 }
 
 //Designed to be used with stack.ComponentValues()
-func playerTokenValues(in []boardgame.PropertyReader) []*playerToken {
+func playerTokenValues(in []boardgame.ComponentValues) []*playerToken {
 	result := make([]*playerToken, len(in))
 	for i := 0; i < len(in); i++ {
 		c := in[i]

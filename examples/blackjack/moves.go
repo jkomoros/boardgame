@@ -60,16 +60,8 @@ func (m *MoveShuffleDiscardToDraw) Description() string {
 	return "When the draw deck is empty, shuffles the discard deck into draw deck."
 }
 
-func (m *MoveShuffleDiscardToDraw) Props() []string {
-	return boardgame.PropertyReaderPropsImpl(m)
-}
-
-func (m *MoveShuffleDiscardToDraw) Prop(name string) interface{} {
-	return boardgame.PropertyReaderPropImpl(m, name)
-}
-
-func (m *MoveShuffleDiscardToDraw) SetProp(name string, val interface{}) error {
-	return boardgame.PropertySetImpl(m, name, val)
+func (m *MoveShuffleDiscardToDraw) ReadSetter() boardgame.PropertyReadSetter {
+	return boardgame.NewDefaultReadSetter(m)
 }
 
 /**************************************************
@@ -140,16 +132,8 @@ func (m *MoveCurrentPlayerHit) Description() string {
 	return "The current player hits, drawing a card."
 }
 
-func (m *MoveCurrentPlayerHit) Props() []string {
-	return boardgame.PropertyReaderPropsImpl(m)
-}
-
-func (m *MoveCurrentPlayerHit) Prop(name string) interface{} {
-	return boardgame.PropertyReaderPropImpl(m, name)
-}
-
-func (m *MoveCurrentPlayerHit) SetProp(name string, val interface{}) error {
-	return boardgame.PropertySetImpl(m, name, val)
+func (m *MoveCurrentPlayerHit) ReadSetter() boardgame.PropertyReadSetter {
+	return boardgame.NewDefaultReadSetter(m)
 }
 
 /**************************************************
@@ -209,16 +193,8 @@ func (m *MoveCurrentPlayerStand) Description() string {
 	return "If the current player no longer wants to draw cards, they can stand."
 }
 
-func (m *MoveCurrentPlayerStand) Props() []string {
-	return boardgame.PropertyReaderPropsImpl(m)
-}
-
-func (m *MoveCurrentPlayerStand) Prop(name string) interface{} {
-	return boardgame.PropertyReaderPropImpl(m, name)
-}
-
-func (m *MoveCurrentPlayerStand) SetProp(name string, val interface{}) error {
-	return boardgame.PropertySetImpl(m, name, val)
+func (m *MoveCurrentPlayerStand) ReadSetter() boardgame.PropertyReadSetter {
+	return boardgame.NewDefaultReadSetter(m)
 }
 
 /**************************************************
@@ -273,14 +249,6 @@ func (m *MoveAdvanceNextPlayer) Description() string {
 	return "When the current player has either busted or decided to stand, we advance to next player."
 }
 
-func (m *MoveAdvanceNextPlayer) Props() []string {
-	return boardgame.PropertyReaderPropsImpl(m)
-}
-
-func (m *MoveAdvanceNextPlayer) Prop(name string) interface{} {
-	return boardgame.PropertyReaderPropImpl(m, name)
-}
-
-func (m *MoveAdvanceNextPlayer) SetProp(name string, val interface{}) error {
-	return boardgame.PropertySetImpl(m, name, val)
+func (m *MoveAdvanceNextPlayer) ReadSetter() boardgame.PropertyReadSetter {
+	return boardgame.NewDefaultReadSetter(m)
 }

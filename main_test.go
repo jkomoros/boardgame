@@ -14,12 +14,8 @@ type testingComponent struct {
 
 const testGameName = "Test Game"
 
-func (t *testingComponent) Props() []string {
-	return PropertyReaderPropsImpl(t)
-}
-
-func (t *testingComponent) Prop(name string) interface{} {
-	return PropertyReaderPropImpl(t, name)
+func (t *testingComponent) Reader() PropertyReader {
+	return NewDefaultReader(t)
 }
 
 func componentsEqual(one *Component, two *Component) bool {
@@ -93,12 +89,8 @@ func (t *testGameState) Copy() GameState {
 	return &result
 }
 
-func (t *testGameState) Props() []string {
-	return PropertyReaderPropsImpl(t)
-}
-
-func (t *testGameState) Prop(name string) interface{} {
-	return PropertyReaderPropImpl(t, name)
+func (t *testGameState) Reader() PropertyReader {
+	return NewDefaultReader(t)
 }
 
 type testPlayerState struct {
@@ -121,26 +113,14 @@ func (t *testPlayerState) Copy() PlayerState {
 	return &result
 }
 
-func (t *testPlayerState) Props() []string {
-	return PropertyReaderPropsImpl(t)
-}
-
-func (t *testPlayerState) Prop(name string) interface{} {
-	return PropertyReaderPropImpl(t, name)
+func (t *testPlayerState) Reader() PropertyReader {
+	return NewDefaultReader(t)
 }
 
 type testMoveAdvanceCurentPlayer struct{}
 
-func (t *testMoveAdvanceCurentPlayer) Props() []string {
-	return PropertyReaderPropsImpl(t)
-}
-
-func (t *testMoveAdvanceCurentPlayer) Prop(name string) interface{} {
-	return PropertyReaderPropImpl(t, name)
-}
-
-func (t *testMoveAdvanceCurentPlayer) SetProp(name string, val interface{}) error {
-	return PropertySetImpl(t, name, val)
+func (t *testMoveAdvanceCurentPlayer) ReadSetter() PropertyReadSetter {
+	return NewDefaultReadSetter(t)
 }
 
 func (t *testMoveAdvanceCurentPlayer) Copy() Move {
@@ -198,16 +178,8 @@ type testMove struct {
 	ABool             bool
 }
 
-func (t *testMove) Props() []string {
-	return PropertyReaderPropsImpl(t)
-}
-
-func (t *testMove) Prop(name string) interface{} {
-	return PropertyReaderPropImpl(t, name)
-}
-
-func (t *testMove) SetProp(name string, val interface{}) error {
-	return PropertySetImpl(t, name, val)
+func (t *testMove) ReadSetter() PropertyReadSetter {
+	return NewDefaultReadSetter(t)
 }
 
 func (t *testMove) Copy() Move {
@@ -256,16 +228,8 @@ func (t *testMove) Apply(state State) error {
 
 type testAlwaysLegalMove struct{}
 
-func (t *testAlwaysLegalMove) Props() []string {
-	return PropertyReaderPropsImpl(t)
-}
-
-func (t *testAlwaysLegalMove) Prop(name string) interface{} {
-	return PropertyReaderPropImpl(t, name)
-}
-
-func (t *testAlwaysLegalMove) SetProp(name string, val interface{}) error {
-	return PropertySetImpl(t, name, val)
+func (t *testAlwaysLegalMove) ReadSetter() PropertyReadSetter {
+	return NewDefaultReadSetter(t)
 }
 
 func (t *testAlwaysLegalMove) Copy() Move {
@@ -304,7 +268,7 @@ func (t *testAlwaysLegalMove) Apply(state State) error {
 //testingComponentValues is designed to be run on a stack.ComponentValues() of
 //a stack of testingComponents, in order to convert them all to the specified
 //underlying struct.
-func testingComponentValues(in []PropertyReader) []*testingComponent {
+func testingComponentValues(in []ComponentValues) []*testingComponent {
 	result := make([]*testingComponent, len(in))
 	for i := 0; i < len(in); i++ {
 		if in[i] == nil {

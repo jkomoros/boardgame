@@ -25,20 +25,12 @@ type TestChest struct {
 	Tokens []*RepeatTokenComponent
 }
 
-func (c *CardComponent) Props() []string {
-	return boardgame.PropertyReaderPropsImpl(c)
+func (c *CardComponent) Reader() boardgame.PropertyReader {
+	return boardgame.NewDefaultReader(c)
 }
 
-func (c *CardComponent) Prop(name string) interface{} {
-	return boardgame.PropertyReaderPropImpl(c, name)
-}
-
-func (t *TokenComponent) Props() []string {
-	return boardgame.PropertyReaderPropsImpl(t)
-}
-
-func (t *TokenComponent) Prop(name string) interface{} {
-	return boardgame.PropertyReaderPropImpl(t, name)
+func (t *TokenComponent) Reader() boardgame.PropertyReader {
+	return boardgame.NewDefaultReader(t)
 }
 
 func TestChestBuilder(t *testing.T) {

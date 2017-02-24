@@ -39,7 +39,7 @@ type Stack interface {
 	ComponentAt(index int) *Component
 	//Components returns all components. Equivalent to calling ComponentAt
 	//from 0 to Len(), and extracting the Values of each.
-	ComponentValues() []PropertyReader
+	ComponentValues() []ComponentValues
 	//SlotsRemaining returns how many slots there are left in this stack to
 	//add items.
 	SlotsRemaining() int
@@ -291,7 +291,7 @@ func (s *SizedStack) ComponentAt(index int) *Component {
 //ComponentValues returns the Values of each Component in order. Useful for
 //then running through a converter to the underlying struct type you know it
 //is.
-func (g *GrowableStack) ComponentValues() []PropertyReader {
+func (g *GrowableStack) ComponentValues() []ComponentValues {
 	//TODO: memoize this, as long as indexes hasn't changed
 
 	if !g.Inflated() {
@@ -299,7 +299,7 @@ func (g *GrowableStack) ComponentValues() []PropertyReader {
 	}
 
 	//Substantially recreated in SizedStack.ComponentValues
-	result := make([]PropertyReader, g.Len())
+	result := make([]ComponentValues, g.Len())
 	for i := 0; i < g.Len(); i++ {
 		c := g.ComponentAt(i)
 		if c == nil {
@@ -314,7 +314,7 @@ func (g *GrowableStack) ComponentValues() []PropertyReader {
 //ComponentValues returns the Values of each Component in order. Useful for
 //then running through a converter to the underlying struct type you know it
 //is.
-func (s *SizedStack) ComponentValues() []PropertyReader {
+func (s *SizedStack) ComponentValues() []ComponentValues {
 	//TODO: memoize this, as long as indexes hasn't changed
 
 	if !s.Inflated() {
@@ -322,7 +322,7 @@ func (s *SizedStack) ComponentValues() []PropertyReader {
 	}
 
 	//Substantially recreated in GrowableStack.ComponentValues
-	result := make([]PropertyReader, s.Len())
+	result := make([]ComponentValues, s.Len())
 	for i := 0; i < s.Len(); i++ {
 		c := s.ComponentAt(i)
 		if c == nil {

@@ -12,5 +12,5 @@ type Component struct {
 }
 
 type ComponentValues interface {
-	PropertyReader
+	Reader() PropertyReader
 }

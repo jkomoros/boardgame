@@ -91,23 +91,17 @@ type propertyReaderTestStruct struct {
 	d string
 }
 
-func (p *propertyReaderTestStruct) Props() []string {
-	return PropertyReaderPropsImpl(p)
-}
-
-func (p *propertyReaderTestStruct) Prop(name string) interface{} {
-	return PropertyReaderPropImpl(p, name)
-}
-
-func (p *propertyReaderTestStruct) SetProp(name string, val interface{}) error {
-	return PropertySetImpl(p, name, val)
+func (p *propertyReaderTestStruct) ReadSetter() PropertyReadSetter {
+	return NewDefaultReadSetter(p)
 }
 
 func TestPropertyReaderImpl(t *testing.T) {
 
-	s := &propertyReaderTestStruct{
+	p := &propertyReaderTestStruct{
 		C: "bam",
 	}
+
+	s := p.ReadSetter()
 
 	result := s.Props()
 
@@ -133,7 +127,7 @@ func TestPropertyReaderImpl(t *testing.T) {
 		t.Error("Setting A to 4 failed: ", err)
 	}
 
-	if s.A != 4 {
+	if p.A != 4 {
 		t.Error("Using setProp to set to 4 failed.")
 	}
 
@@ -141,7 +135,7 @@ func TestPropertyReaderImpl(t *testing.T) {
 		t.Error("Trying to set a string into an int slot didn't fail")
 	}
 
-	if s.A != 4 {
+	if p.A != 4 {
 		t.Error("Failed setting into a field modified the value")
 	}
 

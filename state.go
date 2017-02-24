@@ -56,7 +56,7 @@ type PropertyReadSetter interface {
 //BaseState is the interface that all state objects--UserStates and GameStates
 //--implement.
 type BaseState interface {
-	PropertyReader
+	Reader() PropertyReader
 }
 
 //PlayerState represents the state of a game associated with a specific user.
@@ -78,6 +78,28 @@ type GameState interface {
 	//makes a copy of any pointer arguments.
 	Copy() GameState
 	BaseState
+}
+
+type defaultReader struct {
+	i interface{}
+}
+
+//NewDefaultReader returns an object that satisfies the PropertyReader
+//interface for the given concrete object, using reflection. Make it easy to
+//implement the Reader method in a line.
+func NewDefaultReader(i interface{}) PropertyReader {
+	return &defaultReader{
+		i,
+	}
+}
+
+//NewDefaultReadSetter returns an object that satisfies the PropertyReadSetter
+//interface for the given concrete object, using reflection. Make it easy to
+//implement the Reader method in a line.
+func NewDefaultReadSetter(i interface{}) PropertyReadSetter {
+	return &defaultReader{
+		i,
+	}
 }
 
 //DefaultMarshalJSON is a simple wrapper around json.MarshalIndent, with the
@@ -104,14 +126,11 @@ func propertyReaderImplNameShouldBeIncluded(name string) bool {
 	return true
 }
 
-//PropertyReaderPropsImpl is a helper method useful for satisfying the
-//PropertyReader interface without writing finicky, bespoke code. It uses
-//reflection to enumerate all of the properties. You'd use it as the single
-//line of implementation in your struct's Props() implementation, passing in
-//self, where self is the pointer receiver.
-func PropertyReaderPropsImpl(obj interface{}) []string {
+func (d *defaultReader) Props() []string {
 
 	//TODO: skip fields that have a propertyreader:omit
+
+	obj := d.i
 
 	s := reflect.ValueOf(obj).Elem()
 	typeOfObj := s.Type()
@@ -130,29 +149,21 @@ func PropertyReaderPropsImpl(obj interface{}) []string {
 	return result
 }
 
-//PropertyReaderPropImpl is a helper method useful for satisfying the
-//PropertyReader interface without writing finicky, bespoke code. It uses
-//reflection to return the value of the named field or nil. You'd use it as
-//the single line of implementation in your struct's Prop() implementation,
-//passing in self, where self is the pointer receiver.
-func PropertyReaderPropImpl(obj interface{}, name string) interface{} {
+func (d *defaultReader) Prop(name string) interface{} {
 
 	if !propertyReaderImplNameShouldBeIncluded(name) {
 		return nil
 	}
 
+	obj := d.i
+
 	s := reflect.ValueOf(obj).Elem()
 	return s.FieldByName(name).Interface()
 }
 
-//PropertySetImpl is a helper method useful for satisfying the
-//PropertyReadSetter interface without writing finicky, bespoke code. It uses
-//reflection to set the value. You'd use it as the single-line implementation
-//of your struct's SetProp() implementation, passing in self, where self is
-//the pointer receiver.
-func PropertySetImpl(obj interface{}, name string, val interface{}) (err error) {
+func (d *defaultReader) SetProp(name string, val interface{}) (err error) {
 
-	//TODO: name this consistently with the other PropertyReader helpers.
+	obj := d.i
 
 	if !propertyReaderImplNameShouldBeIncluded(name) {
 		return errors.New("That name is not valid to set.")

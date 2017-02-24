@@ -26,12 +26,8 @@ func rowColToIndex(row, col int) int {
 	return row*DIM + col
 }
 
-func (g *gameState) Props() []string {
-	return boardgame.PropertyReaderPropsImpl(g)
-}
-
-func (g *gameState) Prop(name string) interface{} {
-	return boardgame.PropertyReaderPropImpl(g, name)
+func (g *gameState) Reader() boardgame.PropertyReader {
+	return boardgame.NewDefaultReader(g)
 }
 
 func (g *gameState) Copy() boardgame.GameState {
@@ -49,12 +45,8 @@ type playerState struct {
 	TokensToPlaceThisTurn int
 }
 
-func (p *playerState) Props() []string {
-	return boardgame.PropertyReaderPropsImpl(p)
-}
-
-func (p *playerState) Prop(name string) interface{} {
-	return boardgame.PropertyReaderPropImpl(p, name)
+func (p *playerState) Reader() boardgame.PropertyReader {
+	return boardgame.NewDefaultReader(p)
 }
 
 func (p *playerState) Copy() boardgame.PlayerState {

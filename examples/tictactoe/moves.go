@@ -81,16 +81,8 @@ func (m *MovePlaceToken) Copy() boardgame.Move {
 	return &result
 }
 
-func (m *MovePlaceToken) Props() []string {
-	return boardgame.PropertyReaderPropsImpl(m)
-}
-
-func (m *MovePlaceToken) Prop(name string) interface{} {
-	return boardgame.PropertyReaderPropImpl(m, name)
-}
-
-func (m *MovePlaceToken) SetProp(name string, val interface{}) error {
-	return boardgame.PropertySetImpl(m, name, val)
+func (m *MovePlaceToken) ReadSetter() boardgame.PropertyReadSetter {
+	return boardgame.NewDefaultReadSetter(m)
 }
 
 type MoveAdvancePlayer struct{}
@@ -144,14 +136,6 @@ func (m *MoveAdvancePlayer) Copy() boardgame.Move {
 	return &result
 }
 
-func (m *MoveAdvancePlayer) Prop(name string) interface{} {
-	return boardgame.PropertyReaderPropImpl(m, name)
-}
-
-func (m *MoveAdvancePlayer) Props() []string {
-	return boardgame.PropertyReaderPropsImpl(m)
-}
-
-func (m *MoveAdvancePlayer) SetProp(name string, val interface{}) error {
-	return boardgame.PropertySetImpl(m, name, val)
+func (m *MoveAdvancePlayer) ReadSetter() boardgame.PropertyReadSetter {
+	return boardgame.NewDefaultReadSetter(m)
 }

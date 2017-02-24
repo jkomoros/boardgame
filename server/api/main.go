@@ -289,10 +289,10 @@ func (s *Server) makeMove(c *gin.Context, game *boardgame.Game) error {
 			if err != nil {
 				return errors.New(fmt.Sprint("Couldn't set field", field.Name, err))
 			}
-			move.SetProp(field.Name, num)
+			move.ReadSetter().SetProp(field.Name, num)
 		case FieldBool:
 			if rawVal == "" {
-				move.SetProp(field.Name, false)
+				move.ReadSetter().SetProp(field.Name, false)
 				continue
 			}
 			num, err := strconv.Atoi(rawVal)
@@ -300,9 +300,9 @@ func (s *Server) makeMove(c *gin.Context, game *boardgame.Game) error {
 				return errors.New(fmt.Sprint("Couldn't set field", field.Name, err))
 			}
 			if num == 1 {
-				move.SetProp(field.Name, true)
+				move.ReadSetter().SetProp(field.Name, true)
 			} else {
-				move.SetProp(field.Name, false)
+				move.ReadSetter().SetProp(field.Name, false)
 			}
 		case FieldUnknown:
 			return errors.New(fmt.Sprint("Field", field.Name, "was an unknown value type"))
@@ -341,9 +341,9 @@ func formFields(move boardgame.Move) []*MoveFormField {
 
 	var result []*MoveFormField
 
-	for _, fieldName := range move.Props() {
+	for _, fieldName := range move.ReadSetter().Props() {
 
-		val := move.Prop(fieldName)
+		val := move.ReadSetter().Prop(fieldName)
 
 		var fieldType MoveFormFieldType
 

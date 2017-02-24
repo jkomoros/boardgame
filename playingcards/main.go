@@ -45,12 +45,8 @@ type Card struct {
 	Rank Rank
 }
 
-func (c *Card) Props() []string {
-	return boardgame.PropertyReaderPropsImpl(c)
-}
-
-func (c *Card) Prop(name string) interface{} {
-	return boardgame.PropertyReaderPropImpl(c, name)
+func (c *Card) Reader() boardgame.PropertyReader {
+	return boardgame.NewDefaultReader(c)
 }
 
 func (c *Card) String() string {
@@ -58,7 +54,7 @@ func (c *Card) String() string {
 }
 
 //ValuesToCards is designed to be used with stack.ComponentValues().
-func ValuesToCards(in []boardgame.PropertyReader) []*Card {
+func ValuesToCards(in []boardgame.ComponentValues) []*Card {
 	result := make([]*Card, len(in))
 	for i := 0; i < len(in); i++ {
 		c := in[i]
