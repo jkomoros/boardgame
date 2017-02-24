@@ -96,6 +96,13 @@ type GameState interface {
 	BaseState
 }
 
+//TODO: protect access to this with a mutex.
+var defaultReaderCache map[interface{}]*defaultReader
+
+func init() {
+	defaultReaderCache = make(map[interface{}]*defaultReader)
+}
+
 type defaultReader struct {
 	i     interface{}
 	props map[string]PropertyType
@@ -103,20 +110,25 @@ type defaultReader struct {
 
 //NewDefaultReader returns an object that satisfies the PropertyReader
 //interface for the given concrete object, using reflection. Make it easy to
-//implement the Reader method in a line.
+//implement the Reader method in a line. It will return an existing wrapper or
+//create a new one if necessary.
 func NewDefaultReader(i interface{}) PropertyReader {
-	return &defaultReader{
-		i: i,
-	}
+	return NewDefaultReadSetter(i)
 }
 
 //NewDefaultReadSetter returns an object that satisfies the PropertyReadSetter
 //interface for the given concrete object, using reflection. Make it easy to
-//implement the Reader method in a line.
+//implement the Reader method in a line. It will return an existing wrapper or
+//create a new one if necessary.
 func NewDefaultReadSetter(i interface{}) PropertyReadSetter {
-	return &defaultReader{
+	if reader := defaultReaderCache[i]; reader != nil {
+		return reader
+	}
+	result := &defaultReader{
 		i: i,
 	}
+	defaultReaderCache[i] = result
+	return result
 }
 
 //DefaultMarshalJSON is a simple wrapper around json.MarshalIndent, with the
