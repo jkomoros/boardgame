@@ -97,7 +97,8 @@ type GameState interface {
 }
 
 type defaultReader struct {
-	i interface{}
+	i     interface{}
+	props map[string]PropertyType
 }
 
 //NewDefaultReader returns an object that satisfies the PropertyReader
@@ -105,7 +106,7 @@ type defaultReader struct {
 //implement the Reader method in a line.
 func NewDefaultReader(i interface{}) PropertyReader {
 	return &defaultReader{
-		i,
+		i: i,
 	}
 }
 
@@ -114,7 +115,7 @@ func NewDefaultReader(i interface{}) PropertyReader {
 //implement the Reader method in a line.
 func NewDefaultReadSetter(i interface{}) PropertyReadSetter {
 	return &defaultReader{
-		i,
+		i: i,
 	}
 }
 
@@ -146,51 +147,55 @@ func (d *defaultReader) Props() map[string]PropertyType {
 
 	//TODO: skip fields that have a propertyreader:omit
 
-	obj := d.i
+	if d.props == nil {
 
-	result := make(map[string]PropertyType)
+		obj := d.i
 
-	s := reflect.ValueOf(obj).Elem()
-	typeOfObj := s.Type()
+		result := make(map[string]PropertyType)
 
-	for i := 0; i < s.NumField(); i++ {
-		name := typeOfObj.Field(i).Name
+		s := reflect.ValueOf(obj).Elem()
+		typeOfObj := s.Type()
 
-		field := s.Field(i)
+		for i := 0; i < s.NumField(); i++ {
+			name := typeOfObj.Field(i).Name
 
-		if !propertyReaderImplNameShouldBeIncluded(name) {
-			continue
-		}
+			field := s.Field(i)
 
-		var pType PropertyType
-
-		switch field.Type().Kind() {
-		case reflect.Bool:
-			pType = TypeBool
-		case reflect.Int:
-			pType = TypeInt
-		case reflect.String:
-			pType = TypeString
-		case reflect.Ptr:
-			//Is it a growable stack or a sizedStack?
-			ptrType := field.Elem().Type().String()
-
-			if strings.Contains(ptrType, "GrowableStack") {
-				pType = TypeGrowableStack
-			} else if strings.Contains(ptrType, "SizedStack") {
-				pType = TypeSizedStack
-			} else {
-				panic("Unknown ptr type:" + ptrType)
+			if !propertyReaderImplNameShouldBeIncluded(name) {
+				continue
 			}
-		default:
-			panic("Unsupported field in underlying type" + strconv.Itoa(int(field.Type().Kind())))
+
+			var pType PropertyType
+
+			switch field.Type().Kind() {
+			case reflect.Bool:
+				pType = TypeBool
+			case reflect.Int:
+				pType = TypeInt
+			case reflect.String:
+				pType = TypeString
+			case reflect.Ptr:
+				//Is it a growable stack or a sizedStack?
+				ptrType := field.Elem().Type().String()
+
+				if strings.Contains(ptrType, "GrowableStack") {
+					pType = TypeGrowableStack
+				} else if strings.Contains(ptrType, "SizedStack") {
+					pType = TypeSizedStack
+				} else {
+					panic("Unknown ptr type:" + ptrType)
+				}
+			default:
+				panic("Unsupported field in underlying type" + strconv.Itoa(int(field.Type().Kind())))
+			}
+
+			result[name] = pType
+
 		}
-
-		result[name] = pType
-
+		d.props = result
 	}
 
-	return result
+	return d.props
 }
 
 func (d *defaultReader) Prop(name string) interface{} {
