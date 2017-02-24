@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
+	"strings"
 	"unicode"
 )
 
@@ -38,10 +40,24 @@ type State interface {
 type PropertyReader interface {
 	//Props returns a list of all property names that are defined for this
 	//object.
-	Props() []string
+	Props() map[string]PropertyType
 	//Prop returns the value for that property.
 	Prop(name string) interface{}
 }
+
+//PropertyType is an enumeration of the types that are legal to have on an
+//underyling object that can return a Reader. This ensures that State objects
+//are not overly complex and can be reasoned about clearnly.
+type PropertyType int
+
+const (
+	TypeIllegal PropertyType = iota
+	TypeInt
+	TypeBool
+	TypeString
+	TypeGrowableStack
+	TypeSizedStack
+)
 
 //Property read setter is a way to enumerate and set properties on an object with an
 //unknown shape.
@@ -126,23 +142,51 @@ func propertyReaderImplNameShouldBeIncluded(name string) bool {
 	return true
 }
 
-func (d *defaultReader) Props() []string {
+func (d *defaultReader) Props() map[string]PropertyType {
 
 	//TODO: skip fields that have a propertyreader:omit
 
 	obj := d.i
 
+	result := make(map[string]PropertyType)
+
 	s := reflect.ValueOf(obj).Elem()
 	typeOfObj := s.Type()
-
-	var result []string
 
 	for i := 0; i < s.NumField(); i++ {
 		name := typeOfObj.Field(i).Name
 
-		if propertyReaderImplNameShouldBeIncluded(name) {
-			result = append(result, name)
+		field := s.Field(i)
+
+		if !propertyReaderImplNameShouldBeIncluded(name) {
+			continue
 		}
+
+		var pType PropertyType
+
+		switch field.Type().Kind() {
+		case reflect.Bool:
+			pType = TypeBool
+		case reflect.Int:
+			pType = TypeInt
+		case reflect.String:
+			pType = TypeString
+		case reflect.Ptr:
+			//Is it a growable stack or a sizedStack?
+			ptrType := field.Elem().Type().String()
+
+			if strings.Contains(ptrType, "GrowableStack") {
+				pType = TypeGrowableStack
+			} else if strings.Contains(ptrType, "SizedStack") {
+				pType = TypeSizedStack
+			} else {
+				panic("Unknown ptr type:" + ptrType)
+			}
+		default:
+			panic("Unsupported field in underlying type" + strconv.Itoa(int(field.Type().Kind())))
+		}
+
+		result[name] = pType
 
 	}
 

@@ -41,15 +41,9 @@ type MoveForm struct {
 
 type MoveFormFieldType int
 
-const (
-	FieldUnknown MoveFormFieldType = iota
-	FieldInt
-	FieldBool
-)
-
 type MoveFormField struct {
 	Name         string
-	Type         MoveFormFieldType
+	Type         boardgame.PropertyType
 	DefaultValue interface{}
 }
 
@@ -281,7 +275,7 @@ func (s *Server) makeMove(c *gin.Context, game *boardgame.Game) error {
 		rawVal := c.PostForm(field.Name)
 
 		switch field.Type {
-		case FieldInt:
+		case boardgame.TypeInt:
 			if rawVal == "" {
 				return errors.New(fmt.Sprint("An int field had no value", field.Name))
 			}
@@ -290,7 +284,7 @@ func (s *Server) makeMove(c *gin.Context, game *boardgame.Game) error {
 				return errors.New(fmt.Sprint("Couldn't set field", field.Name, err))
 			}
 			move.ReadSetter().SetProp(field.Name, num)
-		case FieldBool:
+		case boardgame.TypeBool:
 			if rawVal == "" {
 				move.ReadSetter().SetProp(field.Name, false)
 				continue
@@ -304,7 +298,7 @@ func (s *Server) makeMove(c *gin.Context, game *boardgame.Game) error {
 			} else {
 				move.ReadSetter().SetProp(field.Name, false)
 			}
-		case FieldUnknown:
+		case boardgame.TypeIllegal:
 			return errors.New(fmt.Sprint("Field", field.Name, "was an unknown value type"))
 		}
 	}
@@ -341,20 +335,9 @@ func formFields(move boardgame.Move) []*MoveFormField {
 
 	var result []*MoveFormField
 
-	for _, fieldName := range move.ReadSetter().Props() {
+	for fieldName, fieldType := range move.ReadSetter().Props() {
 
 		val := move.ReadSetter().Prop(fieldName)
-
-		var fieldType MoveFormFieldType
-
-		switch val.(type) {
-		default:
-			fieldType = FieldUnknown
-		case int:
-			fieldType = FieldInt
-		case bool:
-			fieldType = FieldBool
-		}
 
 		result = append(result, &MoveFormField{
 			Name:         fieldName,

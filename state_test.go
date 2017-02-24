@@ -87,6 +87,8 @@ type propertyReaderTestStruct struct {
 	A int
 	B bool
 	C string
+	G *GrowableStack
+	S *SizedStack
 	//d should be excluded since it is lowercase
 	d string
 }
@@ -97,15 +99,19 @@ func (p *propertyReaderTestStruct) ReadSetter() PropertyReadSetter {
 
 func TestPropertyReaderImpl(t *testing.T) {
 
+	deck := &Deck{}
+
 	p := &propertyReaderTestStruct{
 		C: "bam",
+		G: NewGrowableStack(deck, 3),
+		S: NewSizedStack(deck, 3),
 	}
 
 	s := p.ReadSetter()
 
 	result := s.Props()
 
-	expected := []string{"A", "B", "C"}
+	expected := map[string]PropertyType{"A": TypeInt, "B": TypeBool, "C": TypeString, "G": TypeGrowableStack, "S": TypeSizedStack}
 
 	if !reflect.DeepEqual(result, expected) {
 		t.Error("PropertyReaderPropsImpl returned wrong result. Got", result, "expected", expected)
