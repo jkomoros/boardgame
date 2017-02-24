@@ -37,6 +37,9 @@ func (g *gameState) Prop(name string) interface{} {
 func (g *gameState) Copy() boardgame.GameState {
 	var result gameState
 	result = *g
+	result.DiscardStack = g.DiscardStack.Copy()
+	result.DrawStack = g.DiscardStack.Copy()
+	result.UnusedCards = g.UnusedCards.Copy()
 	return &result
 }
 
@@ -51,6 +54,7 @@ func (p *playerState) Prop(name string) interface{} {
 func (p *playerState) Copy() boardgame.PlayerState {
 	var result playerState
 	result = *p
+	result.Hand = p.Hand.Copy()
 	return &result
 }
 

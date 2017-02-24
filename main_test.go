@@ -89,6 +89,7 @@ type testGameState struct {
 func (t *testGameState) Copy() GameState {
 	var result testGameState
 	result = *t
+	result.DrawDeck = t.DrawDeck.Copy()
 	return &result
 }
 

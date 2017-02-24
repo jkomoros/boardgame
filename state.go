@@ -23,7 +23,8 @@ type State interface {
 	GameState() GameState
 	//Users contains a PlayerState object for each user in the game.
 	PlayerStates() []PlayerState
-	//Copy returns a copy of the Payload.
+	//Copy returns a copy of the Payload. Be sure it's a deep copy that makes
+	//a copy of any pointer arguments.
 	Copy() State
 	//Diagram should return a basic debug rendering of state in multi-line
 	//ascii art. Useful for debugging.
@@ -63,7 +64,8 @@ type PlayerState interface {
 	//PlayerIndex encodes the index this user's state is in the containing
 	//state object.
 	PlayerIndex() int
-	//Copy produces a copy of our current state
+	//Copy produces a copy of our current state. Be sure it's a deep copy that
+	//makes a copy of any pointer arguments.
 	Copy() PlayerState
 	BaseState
 }
@@ -72,7 +74,8 @@ type PlayerState interface {
 //particular user. For example, the draw stack of cards, who the current
 //player is, and other properites.
 type GameState interface {
-	//Copy returns a copy of our current state
+	//Copy returns a copy of our current state. Be sure it's a deep copy that
+	//makes a copy of any pointer arguments.
 	Copy() GameState
 	BaseState
 }

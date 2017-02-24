@@ -156,6 +156,18 @@ func NewSizedStack(deck *Deck, size int) *SizedStack {
 	}
 }
 
+func (g *GrowableStack) Copy() *GrowableStack {
+	var result GrowableStack
+	result = *g
+	return &result
+}
+
+func (s *SizedStack) Copy() *SizedStack {
+	var result SizedStack
+	result = *s
+	return &result
+}
+
 //Len returns the number of items in the stack.
 func (s *GrowableStack) Len() int {
 	return len(s.indexes)
