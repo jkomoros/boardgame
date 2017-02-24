@@ -61,7 +61,7 @@ func (m *MoveShuffleDiscardToDraw) Description() string {
 }
 
 func (m *MoveShuffleDiscardToDraw) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.NewDefaultReadSetter(m)
+	return boardgame.DefaultReadSetter(m)
 }
 
 /**************************************************
@@ -133,7 +133,7 @@ func (m *MoveCurrentPlayerHit) Description() string {
 }
 
 func (m *MoveCurrentPlayerHit) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.NewDefaultReadSetter(m)
+	return boardgame.DefaultReadSetter(m)
 }
 
 /**************************************************
@@ -194,7 +194,7 @@ func (m *MoveCurrentPlayerStand) Description() string {
 }
 
 func (m *MoveCurrentPlayerStand) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.NewDefaultReadSetter(m)
+	return boardgame.DefaultReadSetter(m)
 }
 
 /**************************************************
@@ -250,5 +250,5 @@ func (m *MoveAdvanceNextPlayer) Description() string {
 }
 
 func (m *MoveAdvanceNextPlayer) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.NewDefaultReadSetter(m)
+	return boardgame.DefaultReadSetter(m)
 }

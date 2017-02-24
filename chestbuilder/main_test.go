@@ -26,11 +26,11 @@ type TestChest struct {
 }
 
 func (c *CardComponent) Reader() boardgame.PropertyReader {
-	return boardgame.NewDefaultReader(c)
+	return boardgame.DefaultReader(c)
 }
 
 func (t *TokenComponent) Reader() boardgame.PropertyReader {
-	return boardgame.NewDefaultReader(t)
+	return boardgame.DefaultReader(t)
 }
 
 func TestChestBuilder(t *testing.T) {

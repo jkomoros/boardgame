@@ -46,7 +46,7 @@ type Card struct {
 }
 
 func (c *Card) Reader() boardgame.PropertyReader {
-	return boardgame.NewDefaultReader(c)
+	return boardgame.DefaultReader(c)
 }
 
 func (c *Card) String() string {

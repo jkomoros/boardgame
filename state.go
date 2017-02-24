@@ -108,19 +108,19 @@ type defaultReader struct {
 	props map[string]PropertyType
 }
 
-//NewDefaultReader returns an object that satisfies the PropertyReader
+//DefaultReader returns an object that satisfies the PropertyReader
 //interface for the given concrete object, using reflection. Make it easy to
 //implement the Reader method in a line. It will return an existing wrapper or
 //create a new one if necessary.
-func NewDefaultReader(i interface{}) PropertyReader {
-	return NewDefaultReadSetter(i)
+func DefaultReader(i interface{}) PropertyReader {
+	return DefaultReadSetter(i)
 }
 
-//NewDefaultReadSetter returns an object that satisfies the PropertyReadSetter
+//DefaultReadSetter returns an object that satisfies the PropertyReadSetter
 //interface for the given concrete object, using reflection. Make it easy to
 //implement the Reader method in a line. It will return an existing wrapper or
 //create a new one if necessary.
-func NewDefaultReadSetter(i interface{}) PropertyReadSetter {
+func DefaultReadSetter(i interface{}) PropertyReadSetter {
 	if reader := defaultReaderCache[i]; reader != nil {
 		return reader
 	}

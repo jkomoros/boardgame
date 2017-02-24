@@ -94,7 +94,7 @@ type propertyReaderTestStruct struct {
 }
 
 func (p *propertyReaderTestStruct) ReadSetter() PropertyReadSetter {
-	return NewDefaultReadSetter(p)
+	return DefaultReadSetter(p)
 }
 
 func TestPropertyReaderImpl(t *testing.T) {

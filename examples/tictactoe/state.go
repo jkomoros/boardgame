@@ -27,7 +27,7 @@ func rowColToIndex(row, col int) int {
 }
 
 func (g *gameState) Reader() boardgame.PropertyReader {
-	return boardgame.NewDefaultReader(g)
+	return boardgame.DefaultReader(g)
 }
 
 func (g *gameState) Copy() boardgame.GameState {
@@ -46,7 +46,7 @@ type playerState struct {
 }
 
 func (p *playerState) Reader() boardgame.PropertyReader {
-	return boardgame.NewDefaultReader(p)
+	return boardgame.DefaultReader(p)
 }
 
 func (p *playerState) Copy() boardgame.PlayerState {

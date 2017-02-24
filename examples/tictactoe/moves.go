@@ -82,7 +82,7 @@ func (m *MovePlaceToken) Copy() boardgame.Move {
 }
 
 func (m *MovePlaceToken) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.NewDefaultReadSetter(m)
+	return boardgame.DefaultReadSetter(m)
 }
 
 type MoveAdvancePlayer struct{}
@@ -137,5 +137,5 @@ func (m *MoveAdvancePlayer) Copy() boardgame.Move {
 }
 
 func (m *MoveAdvancePlayer) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.NewDefaultReadSetter(m)
+	return boardgame.DefaultReadSetter(m)
 }

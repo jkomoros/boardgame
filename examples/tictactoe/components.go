@@ -15,7 +15,7 @@ type playerToken struct {
 }
 
 func (p *playerToken) Reader() boardgame.PropertyReader {
-	return boardgame.NewDefaultReader(p)
+	return boardgame.DefaultReader(p)
 }
 
 //Designed to be used with stack.ComponentValues()

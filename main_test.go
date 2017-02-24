@@ -15,7 +15,7 @@ type testingComponent struct {
 const testGameName = "Test Game"
 
 func (t *testingComponent) Reader() PropertyReader {
-	return NewDefaultReader(t)
+	return DefaultReader(t)
 }
 
 func componentsEqual(one *Component, two *Component) bool {
@@ -90,7 +90,7 @@ func (t *testGameState) Copy() GameState {
 }
 
 func (t *testGameState) Reader() PropertyReader {
-	return NewDefaultReader(t)
+	return DefaultReader(t)
 }
 
 type testPlayerState struct {
@@ -114,13 +114,13 @@ func (t *testPlayerState) Copy() PlayerState {
 }
 
 func (t *testPlayerState) Reader() PropertyReader {
-	return NewDefaultReader(t)
+	return DefaultReader(t)
 }
 
 type testMoveAdvanceCurentPlayer struct{}
 
 func (t *testMoveAdvanceCurentPlayer) ReadSetter() PropertyReadSetter {
-	return NewDefaultReadSetter(t)
+	return DefaultReadSetter(t)
 }
 
 func (t *testMoveAdvanceCurentPlayer) Copy() Move {
@@ -179,7 +179,7 @@ type testMove struct {
 }
 
 func (t *testMove) ReadSetter() PropertyReadSetter {
-	return NewDefaultReadSetter(t)
+	return DefaultReadSetter(t)
 }
 
 func (t *testMove) Copy() Move {
@@ -229,7 +229,7 @@ func (t *testMove) Apply(state State) error {
 type testAlwaysLegalMove struct{}
 
 func (t *testAlwaysLegalMove) ReadSetter() PropertyReadSetter {
-	return NewDefaultReadSetter(t)
+	return DefaultReadSetter(t)
 }
 
 func (t *testAlwaysLegalMove) Copy() Move {
