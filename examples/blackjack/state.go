@@ -34,7 +34,7 @@ func (g *gameState) Copy() boardgame.GameState {
 	var result gameState
 	result = *g
 	result.DiscardStack = g.DiscardStack.Copy()
-	result.DrawStack = g.DiscardStack.Copy()
+	result.DrawStack = g.DrawStack.Copy()
 	result.UnusedCards = g.UnusedCards.Copy()
 	return &result
 }
