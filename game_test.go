@@ -227,21 +227,13 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 
 	game := NewGame(manager)
 
-	game.SetUp(0)
-
-	move := game.PlayerMoveByName("Test")
-
-	if move == nil {
-		t.Fatal("Couldn't find Test move")
-	}
-
 	checkForPanic := func() (didPanic bool) {
 		defer func() {
 			if e := recover(); e != nil {
 				didPanic = true
 			}
 		}()
-		game.applyMove(move, false, maxRecurseCount-5)
+		game.SetUp(0)
 		return
 	}
 

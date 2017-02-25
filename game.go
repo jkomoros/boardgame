@@ -231,6 +231,19 @@ func (g *Game) SetUp(numPlayers int) error {
 
 	g.initalized = true
 
+	//See if any fixup moves apply
+
+	//TODO: test that fixup moves are applied at the beginning.
+
+	move := g.manager.Delegate().ProposeFixUpMove(stateCopy)
+
+	if move != nil {
+		//We apply the move immediately. This ensures that when
+		//DelayedError resolves, all of the fix up moves have been
+		//applied.
+		g.applyMove(move, true, 0)
+	}
+
 	return nil
 }
 
