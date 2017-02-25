@@ -21,25 +21,29 @@ func TestHandValue(t *testing.T) {
 	}{
 		{
 			&playerState{
-				Hand: createHand(deck, playingcards.Rank2, playingcards.Rank3, playingcards.Rank4),
+				VisibleHand: createHand(deck, playingcards.Rank2, playingcards.Rank3, playingcards.Rank4),
+				HiddenHand:  boardgame.NewGrowableStack(deck, 0),
 			},
 			9,
 		},
 		{
 			&playerState{
-				Hand: createHand(deck, playingcards.RankAce),
+				VisibleHand: createHand(deck, playingcards.RankAce),
+				HiddenHand:  boardgame.NewGrowableStack(deck, 0),
 			},
 			11,
 		},
 		{
 			&playerState{
-				Hand: createHand(deck, playingcards.RankAce, playingcards.RankAce),
+				VisibleHand: createHand(deck, playingcards.RankAce, playingcards.RankAce),
+				HiddenHand:  boardgame.NewGrowableStack(deck, 0),
 			},
 			12,
 		},
 		{
 			&playerState{
-				Hand: createHand(deck, playingcards.RankJack, playingcards.RankKing, playingcards.RankAce),
+				VisibleHand: createHand(deck, playingcards.RankJack, playingcards.RankKing, playingcards.RankAce),
+				HiddenHand:  boardgame.NewGrowableStack(deck, 0),
 			},
 			21,
 		},
