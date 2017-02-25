@@ -25,8 +25,6 @@ type State interface {
 	//Diagram should return a basic debug rendering of state in multi-line
 	//ascii art. Useful for debugging.
 	Diagram() string
-	//TODO: it's annoying that we have to reimplement JSON() for every struct
-	//even though there should just be generic. Move to a top-level Method.
 }
 
 //BaseState is the interface that all state objects--UserStates and GameStates
