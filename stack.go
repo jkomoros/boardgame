@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math"
 	"math/rand"
+	"strconv"
 )
 
 const emptyIndexSentinel = -1
@@ -81,11 +82,9 @@ type Stack interface {
 	//around as part of a shuffle.
 	Shuffle()
 
-	//makeGeneric makes it so that the stack has the same length, but each
-	//component is the generic component. Useful for implementing PolicyLen.
-	//Should only be called on a copy--this basically exists for
-	//sanitization.go and shouldn't be used elsewhere.
-	makeComponentsGeneric()
+	//applySanitizationPolicy applies the given policy to ourselves. This
+	//should only be called by methods in sanitization.go.
+	applySanitizationPolicy(policy Policy)
 }
 
 type GrowableStack struct {
@@ -174,30 +173,52 @@ func (s *SizedStack) Copy() *SizedStack {
 	return &result
 }
 
-func (g *GrowableStack) makeComponentsGeneric() {
+func (g *GrowableStack) applySanitizationPolicy(policy Policy) {
 
-	indexes := make([]int, len(g.indexes))
-
-	for i := 0; i < len(indexes); i++ {
-		indexes[i] = genericComponentSentinel
+	if policy == PolicyVisible {
+		return
 	}
 
-	g.indexes = indexes
+	if policy == PolicyLen {
+
+		indexes := make([]int, len(g.indexes))
+
+		for i := 0; i < len(indexes); i++ {
+			indexes[i] = genericComponentSentinel
+		}
+
+		g.indexes = indexes
+		return
+	}
+
+	panic("Unknown sanitization policy" + strconv.Itoa(int(policy)))
 
 }
 
-func (s *SizedStack) makeComponentsGeneric() {
-	indexes := make([]int, len(s.indexes))
+func (s *SizedStack) applySanitizationPolicy(policy Policy) {
 
-	for i := 0; i < len(indexes); i++ {
-		if s.indexes[i] == emptyIndexSentinel {
-			indexes[i] = emptyIndexSentinel
-		} else {
-			indexes[i] = genericComponentSentinel
-		}
+	if policy == PolicyVisible {
+		return
 	}
 
-	s.indexes = indexes
+	if policy == PolicyLen {
+
+		indexes := make([]int, len(s.indexes))
+
+		for i := 0; i < len(indexes); i++ {
+			if s.indexes[i] == emptyIndexSentinel {
+				indexes[i] = emptyIndexSentinel
+			} else {
+				indexes[i] = genericComponentSentinel
+			}
+		}
+
+		s.indexes = indexes
+
+		return
+	}
+
+	panic("Unknown sanitization policy" + strconv.Itoa(int(policy)))
 }
 
 //Len returns the number of items in the stack.

@@ -130,12 +130,7 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 
 	stack := input.(Stack)
 
-	switch policy {
-	case PolicyLen:
-		stack.makeComponentsGeneric()
-	default:
-		panic("Unknown policy provided")
-	}
+	stack.applySanitizationPolicy(policy)
 
 	return input
 
