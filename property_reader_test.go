@@ -83,4 +83,20 @@ func TestPropertyReaderImpl(t *testing.T) {
 		t.Error("Fetch on non-int prop with intprop did not fail")
 	}
 
+	boolResult, err := s.BoolProp("B")
+
+	if err != nil {
+		t.Error("Unexpected error fetching bool prop", err)
+	}
+
+	if boolResult != p.B {
+		t.Error("Unexpected bool result")
+	}
+
+	boolResult, err = s.BoolProp("A")
+
+	if err == nil {
+		t.Error("Didn't get error fetching non-bool prop")
+	}
+
 }
