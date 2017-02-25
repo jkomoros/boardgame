@@ -21,10 +21,12 @@ type gameState struct {
 }
 
 type playerState struct {
-	playerIndex int
-	Hand        *boardgame.GrowableStack
-	Busted      bool
-	Stood       bool
+	playerIndex    int
+	GotInitialDeal bool
+	HiddenHand     *boardgame.GrowableStack
+	VisibleHand    *boardgame.GrowableStack
+	Busted         bool
+	Stood          bool
 }
 
 func (g *gameState) Reader() boardgame.PropertyReadSetter {
@@ -47,12 +49,17 @@ func (p *playerState) Reader() boardgame.PropertyReadSetter {
 func (p *playerState) Copy() boardgame.PlayerState {
 	var result playerState
 	result = *p
-	result.Hand = p.Hand.Copy()
+	result.VisibleHand = p.VisibleHand.Copy()
+	result.HiddenHand = p.HiddenHand.Copy()
 	return &result
 }
 
 func (p *playerState) PlayerIndex() int {
 	return p.playerIndex
+}
+
+func (p *playerState) EffectiveHand() []*playingcards.Card {
+	return append(playingcards.ValuesToCards(p.HiddenHand.ComponentValues()), playingcards.ValuesToCards(p.VisibleHand.ComponentValues())...)
 }
 
 //HandValue returns the value of the player's hand.
@@ -61,7 +68,7 @@ func (p *playerState) HandValue() int {
 	var numUnconvertedAces int
 	var currentValue int
 
-	for _, card := range playingcards.ValuesToCards(p.Hand.ComponentValues()) {
+	for _, card := range p.EffectiveHand() {
 		switch card.Rank {
 		case playingcards.RankAce:
 			numUnconvertedAces++
@@ -122,7 +129,11 @@ func (m *mainState) Diagram() string {
 
 		result = append(result, "\tCards:")
 
-		for _, card := range playingcards.ValuesToCards(player.Hand.ComponentValues()) {
+		for _, _ = range player.HiddenHand.ComponentValues() {
+			result = append(result, "\t\tHIDDENCARD")
+		}
+
+		for _, card := range playingcards.ValuesToCards(player.VisibleHand.ComponentValues()) {
 			result = append(result, "\t\t"+card.String())
 		}
 

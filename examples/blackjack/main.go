@@ -109,10 +109,12 @@ func (g *gameDelegate) StartingState(numPlayers int) boardgame.State {
 
 	for i := 0; i < numPlayers; i++ {
 		player := &playerState{
-			playerIndex: i,
-			Hand:        boardgame.NewGrowableStack(cards, 0),
-			Busted:      false,
-			Stood:       false,
+			playerIndex:    i,
+			GotInitialDeal: false,
+			HiddenHand:     boardgame.NewGrowableStack(cards, 1),
+			VisibleHand:    boardgame.NewGrowableStack(cards, 0),
+			Busted:         false,
+			Stood:          false,
 		}
 		result.Players = append(result.Players, player)
 	}
@@ -138,7 +140,8 @@ func (g *gameDelegate) StateFromBlob(blob []byte) (boardgame.State, error) {
 
 	for i, player := range result.Players {
 		player.playerIndex = i
-		player.Hand.Inflate(g.Manager().Chest())
+		player.VisibleHand.Inflate(g.Manager().Chest())
+		player.HiddenHand.Inflate(g.Manager().Chest())
 	}
 
 	return result, nil
@@ -158,6 +161,8 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 	manager.AddPlayerMove(&MoveCurrentPlayerHit{})
 	manager.AddPlayerMove(&MoveCurrentPlayerStand{})
 
+	manager.AddFixUpMove(&MoveDealInitialCard{})
+	manager.AddFixUpMove(&MoveRevealHiddenCard{})
 	manager.AddFixUpMove(&MoveShuffleDiscardToDraw{})
 	manager.AddFixUpMove(&MoveAdvanceNextPlayer{})
 

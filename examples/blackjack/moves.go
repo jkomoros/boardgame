@@ -9,6 +9,15 @@ type MoveShuffleDiscardToDraw struct{}
 
 type MoveAdvanceNextPlayer struct{}
 
+type MoveDealInitialCard struct {
+	TargetPlayerIndex int
+	IsHidden          bool
+}
+
+type MoveRevealHiddenCard struct {
+	TargetPlayerIndex int
+}
+
 type MoveCurrentPlayerHit struct {
 	TargetPlayerIndex int
 }
@@ -97,7 +106,7 @@ func (m *MoveCurrentPlayerHit) Apply(state boardgame.State) error {
 
 	currentPlayer := s.Players[s.Game.CurrentPlayer]
 
-	currentPlayer.Hand.InsertFront(s.Game.DrawStack.RemoveFirst())
+	currentPlayer.VisibleHand.InsertFront(s.Game.DrawStack.RemoveFirst())
 
 	handValue := currentPlayer.HandValue()
 
@@ -250,5 +259,157 @@ func (m *MoveAdvanceNextPlayer) Description() string {
 }
 
 func (m *MoveAdvanceNextPlayer) ReadSetter() boardgame.PropertyReadSetter {
+	return boardgame.DefaultReadSetter(m)
+}
+
+/**************************************************
+ *
+ * MoveRevealHiddenCard Implementation
+ *
+ **************************************************/
+
+func (m *MoveRevealHiddenCard) Legal(state boardgame.State) error {
+	s := state.(*mainState)
+
+	p := s.Players[m.TargetPlayerIndex]
+
+	if p.HiddenHand.NumComponents() < 1 {
+		return errors.New("Target player has no cards to reveal")
+	}
+
+	return nil
+}
+
+func (m *MoveRevealHiddenCard) Apply(state boardgame.State) error {
+	s := state.(*mainState)
+
+	p := s.Players[m.TargetPlayerIndex]
+
+	p.VisibleHand.InsertFront(p.HiddenHand.RemoveFirst())
+
+	return nil
+}
+
+func (m *MoveRevealHiddenCard) Copy() boardgame.Move {
+	var result MoveRevealHiddenCard
+	result = *m
+	return &result
+}
+
+func (m *MoveRevealHiddenCard) DefaultsForState(state boardgame.State) {
+	s := state.(*mainState)
+
+	m.TargetPlayerIndex = s.Game.CurrentPlayer
+
+}
+
+func (m *MoveRevealHiddenCard) Name() string {
+	return "Reveal Hidden Card"
+}
+
+func (m *MoveRevealHiddenCard) Description() string {
+	return "Reveals the hidden card in the user's hand"
+}
+
+func (m *MoveRevealHiddenCard) ReadSetter() boardgame.PropertyReadSetter {
+	return boardgame.DefaultReadSetter(m)
+}
+
+/**************************************************
+ *
+ * MoveDealInitialHiddenCard Implementation
+ *
+ **************************************************/
+
+func (m *MoveDealInitialCard) Legal(state boardgame.State) error {
+	s := state.(*mainState)
+
+	if m.TargetPlayerIndex < 0 || m.TargetPlayerIndex >= len(s.Players) {
+		return errors.New("Invalid target player index")
+	}
+
+	p := s.Players[m.TargetPlayerIndex]
+
+	if p.GotInitialDeal {
+		return errors.New("The target player already got their initial deal")
+	}
+
+	if p.HiddenHand.NumComponents() == 1 && m.IsHidden {
+		return errors.New("We were supposed to deal the hidden card, but the hidden hand was already dealt")
+	}
+
+	if p.HiddenHand.NumComponents() == 0 && !m.IsHidden {
+		return errors.New("We were told to deal to the non-hidden card even though hidden hand was empty")
+	}
+
+	return nil
+
+}
+
+func (m *MoveDealInitialCard) Apply(state boardgame.State) error {
+	s := state.(*mainState)
+
+	p := s.Players[m.TargetPlayerIndex]
+
+	if m.IsHidden {
+		if err := p.HiddenHand.InsertBack(s.Game.DrawStack.RemoveFirst()); err != nil {
+			return err
+		}
+	} else {
+		if err := p.VisibleHand.InsertBack(s.Game.DrawStack.RemoveFirst()); err != nil {
+			return err
+		}
+		//This completes their initial deal
+		p.GotInitialDeal = true
+	}
+
+	return nil
+
+}
+
+func (m *MoveDealInitialCard) Copy() boardgame.Move {
+	var result MoveDealInitialCard
+	result = *m
+	return &result
+}
+
+func (m *MoveDealInitialCard) DefaultsForState(state boardgame.State) {
+
+	//The default game delegate will cycle around calling this, so
+	//DefaultsForState should pick the next one each time.
+
+	s := state.(*mainState)
+
+	//First look for the first player with no hidden card dealt
+	for i := 0; i < len(s.Players); i++ {
+		p := s.Players[i]
+		if p.HiddenHand.NumComponents() == 0 {
+			m.TargetPlayerIndex = i
+			m.IsHidden = true
+			return
+		}
+	}
+	//OK, hidden hands were full. Anyone who hasn't had the other card now gets it.
+	for i := 0; i < len(s.Players); i++ {
+		p := s.Players[i]
+		if !p.GotInitialDeal {
+			m.TargetPlayerIndex = i
+			m.IsHidden = false
+			return
+		}
+	}
+
+	return
+}
+
+func (m *MoveDealInitialCard) Name() string {
+	return "Deal Initial Card"
+}
+
+func (m *MoveDealInitialCard) Description() string {
+	return "Deals a card to the a player who has not gotten their initial deal"
+}
+
+func (m *MoveDealInitialCard) ReadSetter() boardgame.PropertyReadSetter {
 	return boardgame.DefaultReadSetter(m)
 }
