@@ -32,4 +32,10 @@ func TestDeckShadowComponent(t *testing.T) {
 		t.Error("Two calls to same shadow gave different components")
 	}
 
+	c = deck.ComponentAt(0)
+
+	if c != deck.Components()[0] {
+		t.Error("Deck.componenAt didn't return correct component for normal component")
+	}
+
 }
