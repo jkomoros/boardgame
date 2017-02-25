@@ -115,4 +115,20 @@ func TestPropertyReaderImpl(t *testing.T) {
 		t.Error("Didn't error trying to string prop a non-string")
 	}
 
+	growableStackResult, err := s.GrowableStackProp("G")
+
+	if err != nil {
+		t.Error("Unexpted error fetching growable stack", err)
+	}
+
+	if growableStackResult != p.G {
+		t.Error("Unexpected growable stack result")
+	}
+
+	growableStackResult, err = s.GrowableStackProp("A")
+
+	if err == nil {
+		t.Error("didn't get error for unreasonable growable stack fetch")
+	}
+
 }

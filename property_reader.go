@@ -20,6 +20,7 @@ type PropertyReader interface {
 	IntProp(name string) (int, error)
 	BoolProp(name string) (bool, error)
 	StringProp(name string) (string, error)
+	GrowableStackProp(name string) (*GrowableStack, error)
 	//Prop returns the value for that property.
 	Prop(name string) interface{}
 }
@@ -189,6 +190,20 @@ func (d *defaultReader) StringProp(name string) (string, error) {
 
 	s := reflect.ValueOf(d.i).Elem()
 	return s.FieldByName(name).String(), nil
+}
+
+func (d *defaultReader) GrowableStackProp(name string) (*GrowableStack, error) {
+	//Verify that this seems legal.
+	props := d.Props()
+
+	if props[name] != TypeGrowableStack {
+		return nil, errors.New("That property is not a growable stack: " + name)
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+	result := s.FieldByName(name).Interface().(*GrowableStack)
+
+	return result, nil
 }
 
 func (d *defaultReader) Prop(name string) interface{} {
