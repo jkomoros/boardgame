@@ -10,6 +10,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../bower_components/polymer/polymer.html">
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../bower_components/iron-input/iron-input.html">
 <link rel="import" href="boardgame-move-form.html">
 <link rel="import" href="shared-styles.html">
 <link rel="import" href="boardgame-render-game.html">
@@ -56,6 +57,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </div>
     <div class="card">
       <boardgame-render-game state="{{data.Game.StateWrapper.State}}" diagram="{{data.Diagram}}" game-name="{{gameName}}"></boardgame-render-game>
+    </div>
+    <div class="card">
+      View as:<input is="iron-input" type="number" value-as-number="{{currentPlayer::input}}" min="0" max="{{data.Game.NumPlayers}}">
     </div>
 
     <template is="dom-if" if="{{!data.Game.Finished}}">
