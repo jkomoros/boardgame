@@ -116,6 +116,12 @@ func (g *Game) Manager() *GameManager {
 	return g.manager
 }
 
+//NumPlayers returns the number of players for this game, based on how many
+//PlayerStates are in CurrentState.
+func (g *Game) NumPlayers() int {
+	return len(g.CurrentState().PlayerStates())
+}
+
 //JSONForPlayer returns an object appropriate for being json'd via
 //json.Marshal. The object is the equivalent to what MarshalJSON would output,
 //only as an object, and with CurrentState equal to a sanitized state for the
@@ -127,6 +133,7 @@ func (g *Game) JSONForPlayer(playerIndex int) interface{} {
 		"Winners":      g.Winners(),
 		"CurrentState": g.Manager().SanitizedStateForPlayer(g.CurrentState(), playerIndex),
 		"Id":           g.Id(),
+		"NumPlayers":   g.NumPlayers(),
 		"Version":      g.Version(),
 	}
 }

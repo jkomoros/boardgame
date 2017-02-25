@@ -58,5 +58,6 @@
   "Id": "483BD9BC8D1A2F27",
   "Name": "Test Game",
   "Version": 0,
+  "NumPlayers": 3,
   "Winners": null
 }
