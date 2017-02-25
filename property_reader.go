@@ -15,6 +15,9 @@ type PropertyReader interface {
 	//Props returns a list of all property names that are defined for this
 	//object.
 	Props() map[string]PropertyType
+	//IntProp fetches the int property with that name, returning an error if
+	//that property doese not exist.
+	IntProp(name string) (int, error)
 	//Prop returns the value for that property.
 	Prop(name string) interface{}
 }
@@ -148,6 +151,18 @@ func (d *defaultReader) Props() map[string]PropertyType {
 	}
 
 	return d.props
+}
+
+func (d *defaultReader) IntProp(name string) (int, error) {
+	//Verify that this seems legal.
+	props := d.Props()
+
+	if props[name] != TypeInt {
+		return 0, errors.New("That property is not an int: " + name)
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+	return int(s.FieldByName(name).Int()), nil
 }
 
 func (d *defaultReader) Prop(name string) interface{} {

@@ -67,4 +67,20 @@ func TestPropertyReaderImpl(t *testing.T) {
 		t.Error("Failed setting into a field modified the value")
 	}
 
+	intResult, err := s.IntProp("A")
+
+	if err != nil {
+		t.Error("Unexpected error fetching int prop", err)
+	}
+
+	if intResult != 4 {
+		t.Error("Unexpected result from intprop", intResult)
+	}
+
+	intResult, err = s.IntProp("B")
+
+	if err == nil {
+		t.Error("Fetch on non-int prop with intprop did not fail")
+	}
+
 }
