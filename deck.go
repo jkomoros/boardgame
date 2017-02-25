@@ -93,7 +93,9 @@ func (d *Deck) ComponentAt(index int) *Component {
 //ShadowComponent takes an index that is negative and returns a component that
 //is empty but when compared to the result of previous calls to
 //ShadowComponent with that index will have equality. This is important for
-//sanitized Components.
+//sanitized states, where depending on the policy for that property, the stack
+//might have its order revealed but not its contents, which requires throwaway
+//but stable indexes.
 func (d *Deck) ShadowComponent(index int) *Component {
 	if index >= 0 {
 		return nil
