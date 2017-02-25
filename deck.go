@@ -16,11 +16,15 @@ type Deck struct {
 	name string
 	//Components should only ever be added at initalization time. After
 	//initalization, Components should be read-only.
-	components []*Component
+	components             []*Component
+	vendedShadowComponents map[int]*Component
+	//TODO: protect shadowComponents cache with mutex to make threadsafe.
 }
 
 func NewDeck() *Deck {
-	return &Deck{}
+	return &Deck{
+		vendedShadowComponents: make(map[int]*Component),
+	}
 }
 
 //AddComponent adds a new component with the given values to the next spot in
@@ -65,6 +69,52 @@ func (d *Deck) Chest() *ComponentChest {
 
 func (d *Deck) Name() string {
 	return d.name
+}
+
+//ComponentAt returns the component at a given index. It handles empty indexes
+//and shadow indexes correctly.
+func (d *Deck) ComponentAt(index int) *Component {
+	if d.chest == nil {
+		return nil
+	}
+	if index >= len(d.components) {
+		return nil
+	}
+	if index >= 0 {
+		return d.components[index]
+	}
+
+	//d.ShadowComponent handles all negative indexes correctly, which is what
+	//we have.
+	return d.ShadowComponent(index)
+
+}
+
+//ShadowComponent takes an index that is negative and returns a component that
+//is empty but when compared to the result of previous calls to
+//ShadowComponent with that index will have equality. This is important for
+//sanitized Components.
+func (d *Deck) ShadowComponent(index int) *Component {
+	if index >= 0 {
+		return nil
+	}
+	if index == emptyIndexSentinel {
+		return nil
+	}
+
+	shadow, ok := d.vendedShadowComponents[index]
+
+	if !ok {
+		shadow = &Component{
+			Deck:      d,
+			DeckIndex: index,
+			Values:    nil,
+		}
+		d.vendedShadowComponents[index] = shadow
+	}
+
+	return shadow
+
 }
 
 //finish is called when the deck is added to a component chest. It signifies that no more items may be added.
