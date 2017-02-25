@@ -228,7 +228,7 @@ func checkRunWon(runState []string) string {
 func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 	chest := boardgame.NewComponentChest()
 
-	tokens := &boardgame.Deck{}
+	tokens := boardgame.NewDeck()
 
 	//How many tokens of each of x's and o's do we need so that no matter who
 	//goes first we always have enough?

@@ -14,7 +14,7 @@ func TestComponentChest(t *testing.T) {
 		t.Error("We got a deck names array before we'd added anything")
 	}
 
-	deckOne := &Deck{}
+	deckOne := NewDeck()
 
 	componentOne := &testingComponent{
 		"foo",
@@ -69,7 +69,7 @@ func TestComponentChest(t *testing.T) {
 		t.Error("We got a deck back before freeze was called")
 	}
 
-	deckTwo := &Deck{}
+	deckTwo := NewDeck()
 
 	deckTwo.AddComponent(&testingComponent{
 		"another",

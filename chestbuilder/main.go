@@ -56,7 +56,7 @@ func FromConfig(blob []byte, container interface{}) (*boardgame.ComponentChest, 
 			continue
 		}
 
-		deck := &boardgame.Deck{}
+		deck := boardgame.NewDeck()
 
 		for j := 0; j < f.Len(); j++ {
 

@@ -9,7 +9,7 @@ package boardgame
 //and cover every item in the deck, with no items in more than one deck. The
 //zero-value of Deck is useful. The Deck will not return items until it has
 //been added to a ComponentChest, which helps enforce that Decks' values never
-//change.
+//change. Create a new Deck with NewDeck()
 type Deck struct {
 	chest *ComponentChest
 	//Name is only set when it's added to the component chest.
@@ -17,6 +17,10 @@ type Deck struct {
 	//Components should only ever be added at initalization time. After
 	//initalization, Components should be read-only.
 	components []*Component
+}
+
+func NewDeck() *Deck {
+	return &Deck{}
 }
 
 //AddComponent adds a new component with the given values to the next spot in

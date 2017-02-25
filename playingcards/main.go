@@ -76,7 +76,7 @@ func NewDeckMulti(count int, withJokers bool) *boardgame.Deck {
 		count = 1
 	}
 
-	cards := &boardgame.Deck{}
+	cards := boardgame.NewDeck()
 
 	for i := 0; i < count; i++ {
 		deckCanonicalOrder(cards, withJokers)
@@ -89,7 +89,7 @@ func NewDeckMulti(count int, withJokers bool) *boardgame.Deck {
 //NewDeck returns a new deck of playing cards with or without Jokers in a
 //canonical, stable order, ready for being added to a chest.
 func NewDeck(withJokers bool) *boardgame.Deck {
-	cards := &boardgame.Deck{}
+	cards := boardgame.NewDeck()
 
 	deckCanonicalOrder(cards, withJokers)
 

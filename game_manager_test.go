@@ -8,7 +8,7 @@ import (
 func newTestGameChest() *ComponentChest {
 	chest := NewComponentChest()
 
-	deck := &Deck{}
+	deck := NewDeck()
 
 	deck.AddComponent(&testingComponent{
 		"foo",

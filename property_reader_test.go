@@ -21,7 +21,7 @@ func (p *propertyReaderTestStruct) ReadSetter() PropertyReadSetter {
 
 func TestPropertyReaderImpl(t *testing.T) {
 
-	deck := &Deck{}
+	deck := NewDeck()
 
 	p := &propertyReaderTestStruct{
 		C: "bam",
