@@ -37,7 +37,7 @@ type State interface {
 //BaseState is the interface that all state objects--UserStates and GameStates
 //--implement.
 type BaseState interface {
-	Reader() PropertyReader
+	Reader() PropertyReadSetter
 }
 
 //PlayerState represents the state of a game associated with a specific user.

@@ -96,8 +96,8 @@ func (t *testGameState) Copy() GameState {
 	return &result
 }
 
-func (t *testGameState) Reader() PropertyReader {
-	return DefaultReader(t)
+func (t *testGameState) Reader() PropertyReadSetter {
+	return DefaultReadSetter(t)
 }
 
 type testPlayerState struct {
@@ -120,8 +120,8 @@ func (t *testPlayerState) Copy() PlayerState {
 	return &result
 }
 
-func (t *testPlayerState) Reader() PropertyReader {
-	return DefaultReader(t)
+func (t *testPlayerState) Reader() PropertyReadSetter {
+	return DefaultReadSetter(t)
 }
 
 type testMoveAdvanceCurentPlayer struct{}

@@ -27,8 +27,8 @@ type playerState struct {
 	Stood       bool
 }
 
-func (g *gameState) Reader() boardgame.PropertyReader {
-	return boardgame.DefaultReader(g)
+func (g *gameState) Reader() boardgame.PropertyReadSetter {
+	return boardgame.DefaultReadSetter(g)
 }
 
 func (g *gameState) Copy() boardgame.GameState {
@@ -40,8 +40,8 @@ func (g *gameState) Copy() boardgame.GameState {
 	return &result
 }
 
-func (p *playerState) Reader() boardgame.PropertyReader {
-	return boardgame.DefaultReader(p)
+func (p *playerState) Reader() boardgame.PropertyReadSetter {
+	return boardgame.DefaultReadSetter(p)
 }
 
 func (p *playerState) Copy() boardgame.PlayerState {
