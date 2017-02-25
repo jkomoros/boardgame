@@ -38,4 +38,18 @@ func TestDeckShadowComponent(t *testing.T) {
 		t.Error("Deck.componenAt didn't return correct component for normal component")
 	}
 
+	c = deck.GenericComponent()
+
+	altC = deck.ComponentAt(genericComponentSentinel)
+
+	if c != altC {
+		t.Error("GEneric component wasn't the expected component index")
+	}
+
+	altC = deck.GenericComponent()
+
+	if c != altC {
+		t.Error("Repated calls to generic component didn't return the same thign.")
+	}
+
 }

@@ -21,6 +21,8 @@ type Deck struct {
 	//TODO: protect shadowComponents cache with mutex to make threadsafe.
 }
 
+const genericComponentSentinel = -2
+
 func NewDeck() *Deck {
 	return &Deck{
 		vendedShadowComponents: make(map[int]*Component),
@@ -117,6 +119,15 @@ func (d *Deck) ShadowComponent(index int) *Component {
 
 	return shadow
 
+}
+
+//GenericComponent returns the component that is considereed fully generic for
+//this deck. This is the component that every component will be if a Stack is
+//sanitized with PolicyLen, for example. If you want to figure out if a Stack
+//was sanitized according to that policy, you can compare the component to
+//this.
+func (d *Deck) GenericComponent() *Component {
+	return d.ShadowComponent(genericComponentSentinel)
 }
 
 //finish is called when the deck is added to a component chest. It signifies that no more items may be added.
