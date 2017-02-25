@@ -1,7 +1,6 @@
 package boardgame
 
 import (
-	"encoding/json"
 	"math"
 )
 
@@ -45,8 +44,10 @@ type Policy int
 const (
 	//Non sanitized
 	PolicyVisible Policy = iota
-	//For groups (e.g. stacks, int slices), return the length. For all else,
-	//it's effectively PolicyHidden.
+	//For groups (e.g. stacks, int slices), return a group that has the same
+	//length. For all else, it's effectively PolicyHidden. In practice, stacks
+	//will be set so that their NumComponents() is the same, but every
+	//component that exists returns the GenericComponent.
 	PolicyLen
 
 	//TODO: implement the other policies.
@@ -56,19 +57,21 @@ const (
 //for Game). preparingForPlayerIndex is the index that we're preparing the
 //overall santiized state for, as provied to
 //GameManager.SanitizedStateForPlayer()
-func sanitizeStateObj(obj map[string]interface{}, policy map[string]GroupPolicy, statePlayerIndex int, preparingForPlayerIndex int) map[string]interface{} {
+func sanitizeStateObj(readSetter PropertyReadSetter, policy map[string]GroupPolicy, statePlayerIndex int, preparingForPlayerIndex int) {
 
-	result := make(map[string]interface{})
+	for propName, propType := range readSetter.Props() {
+		prop, err := readSetter.Prop(propName)
 
-	for key, val := range obj {
-		result[key] = sanitizeProperty(val, policy[key], statePlayerIndex, preparingForPlayerIndex)
+		if err != nil {
+			//TODO: shouldn't we return an error or something?
+			continue
+		}
+		readSetter.SetProp(propName, sanitizeProperty(prop, propType, policy[propName], statePlayerIndex, preparingForPlayerIndex))
 	}
-
-	return result
 
 }
 
-func sanitizeProperty(prop interface{}, policyGroup GroupPolicy, statePlayerIndex int, preparingForPlayerIndex int) interface{} {
+func sanitizeProperty(prop interface{}, propType PropertyType, policyGroup GroupPolicy, statePlayerIndex int, preparingForPlayerIndex int) interface{} {
 
 	//We're going to collect all of the policies that apply.
 	var applicablePolicies []Policy
@@ -101,63 +104,37 @@ func sanitizeProperty(prop interface{}, policyGroup GroupPolicy, statePlayerInde
 		}
 	}
 
-	return applyPolicy(effectivePolicy, prop)
+	return applyPolicy(effectivePolicy, prop, propType)
 }
 
-func applyPolicy(policy Policy, input interface{}) interface{} {
+func applyPolicy(policy Policy, input interface{}, propType PropertyType) interface{} {
 	if policy == PolicyVisible {
 		return input
 	}
 
-	stack := tryToCastToStackJson(input)
+	//Go through the propTypes where everythign that's not PolicyVisible is
+	//effectively PolicyHidden.
 
-	if stack == nil {
-		//OK, it's not a stack. All non-stack types treat everything other
-		//than PolicyVisible as effectively PolicyHidden.
-		switch input.(type) {
-		case bool:
-			return false
-		case int:
-			return 0
-		}
+	switch propType {
+	case TypeBool:
+		return false
+	case TypeInt:
+		return 0
+	case TypeString:
+		return ""
 	}
 
-	//TODO: ideally at this point we'd just have a GrowableStack or
-	//SizedStack. But there's not enough information in the JSON to know which
-	//is which. Maybe when PropertyReader splits them out separately we can
-	//know and directly unmarshal...
+	//Now we're left with len-properties.
+
+	stack := input.(Stack)
 
 	switch policy {
 	case PolicyLen:
-		count := 0
-		for _, val := range stack.Indexes {
-			if val >= 0 {
-				count++
-			}
-		}
-		return count
-
+		stack.makeComponentsGeneric()
 	default:
 		panic("Unknown policy provided")
 	}
 
-}
-
-//Try to recover the stackJsonObj reprsentation of the stack, if it is shaped
-//like a stack. If not, will return nil.
-func tryToCastToStackJson(input interface{}) *stackJSONObj {
-	blob, err := json.Marshal(input)
-
-	if err != nil {
-		return nil
-	}
-
-	var result stackJSONObj
-
-	if err := json.Unmarshal(blob, &result); err != nil {
-		return nil
-	}
-
-	return &result
+	return input
 
 }

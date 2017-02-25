@@ -1,7 +1,6 @@
 package boardgame
 
 import (
-	"encoding/json"
 	"errors"
 	"strings"
 )
@@ -170,37 +169,26 @@ type refriedState struct {
 	Players []map[string]interface{}
 }
 
-//SanitizedStateForPlayer produces a JSON blob representing the given state,
-//prepared for the player at the given index. Will call
+//SanitizedStateForPlayer produces a sanitized state object representing the
+//given state, prepared for the player at the given index. The state object
+//returned will have Sanitized() return true. Will call
 //GameDelegate.StateSanitizationPolicy to retrieve the policy in place. See
 //the package level comment for an overview of how state sanitization works.
-func (g *GameManager) SanitizedStateForPlayer(state State, playerIndex int) ([]byte, error) {
+func (g *GameManager) SanitizedStateForPlayer(state State, playerIndex int) State {
 
 	policy := g.Delegate().StateSanitizationPolicy()
 
-	//First, round trip the state object through JSON to get the simplified JSON object.
-	blob, err := json.Marshal(state)
+	sanitized := state.Copy(true)
 
-	if err != nil {
-		return nil, err
+	sanitizeStateObj(sanitized.GameState().Reader(), policy.Game, -1, playerIndex)
+
+	playerStates := sanitized.PlayerStates()
+
+	for i := 0; i < len(playerStates); i++ {
+		sanitizeStateObj(playerStates[i].Reader(), policy.Player, i, playerIndex)
 	}
 
-	//Now put it back to a map of strings.
-	var refried refriedState
-
-	if err := json.Unmarshal(blob, &refried); err != nil {
-		return nil, errors.New("State did not serialize with the expected top-level properties: " + err.Error())
-	}
-
-	sanitized := &refriedState{}
-
-	sanitized.Game = sanitizeStateObj(refried.Game, policy.Game, -1, playerIndex)
-
-	for i := 0; i < len(refried.Players); i++ {
-		sanitized.Players = append(sanitized.Players, sanitizeStateObj(refried.Players[i], policy.Player, i, playerIndex))
-	}
-
-	return json.Marshal(sanitized)
+	return sanitized
 
 }
 
