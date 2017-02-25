@@ -46,8 +46,16 @@ const (
 type PropertyReadSetter interface {
 	//All PropertyReadSetters have read interfaces
 	PropertyReader
+
+	//SetTYPEProp sets the given property name to the given type.
+	SetIntProp(name string, value int) error
+	SetBoolProp(name string, value bool) error
+	SetStringProp(name string, value string) error
+	SetGrowableStackProp(name string, value *GrowableStack) error
+	SetSizedStackProp(name string, value *SizedStack) error
 	//SetProp sets the property with the given name. If the value does not
-	//match the underlying slot type, it should return an error.
+	//match the underlying slot type, it should return an error. If you know
+	//the underlying type it's always better to use the typed accessors.
 	SetProp(name string, value interface{}) error
 }
 
@@ -240,9 +248,156 @@ func (d *defaultReader) Prop(name string) (interface{}, error) {
 	return s.FieldByName(name).Interface(), nil
 }
 
+func (d *defaultReader) SetIntProp(name string, val int) (err error) {
+	props := d.Props()
+
+	if props[name] != TypeInt {
+		return errors.New("That property is not a settable int")
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+
+	f := s.FieldByName(name)
+
+	if !f.IsValid() {
+		return errors.New("that name was not available on the struct")
+	}
+
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprint(e))
+		}
+	}()
+
+	f.SetInt(int64(val))
+
+	return nil
+
+}
+
+func (d *defaultReader) SetBoolProp(name string, val bool) (err error) {
+	props := d.Props()
+
+	if props[name] != TypeBool {
+		return errors.New("That property is not a settable bool")
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+
+	f := s.FieldByName(name)
+
+	if !f.IsValid() {
+		return errors.New("that name was not available on the struct")
+	}
+
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprint(e))
+		}
+	}()
+
+	f.SetBool(val)
+
+	return nil
+
+}
+
+func (d *defaultReader) SetStringProp(name string, val string) (err error) {
+	props := d.Props()
+
+	if props[name] != TypeString {
+		return errors.New("That property is not a settable string")
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+
+	f := s.FieldByName(name)
+
+	if !f.IsValid() {
+		return errors.New("that name was not available on the struct")
+	}
+
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprint(e))
+		}
+	}()
+
+	f.SetString(val)
+
+	return nil
+
+}
+
+func (d *defaultReader) SetGrowableStackProp(name string, val *GrowableStack) (err error) {
+	props := d.Props()
+
+	if props[name] != TypeGrowableStack {
+		return errors.New("That property is not a settable growable stack")
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+
+	f := s.FieldByName(name)
+
+	if !f.IsValid() {
+		return errors.New("that name was not available on the struct")
+	}
+
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprint(e))
+		}
+	}()
+
+	f.Set(reflect.ValueOf(val))
+
+	return nil
+
+}
+
+func (d *defaultReader) SetSizedStackProp(name string, val *SizedStack) (err error) {
+	props := d.Props()
+
+	if props[name] != TypeSizedStack {
+		return errors.New("That property is not a settable sized stack")
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+
+	f := s.FieldByName(name)
+
+	if !f.IsValid() {
+		return errors.New("that name was not available on the struct")
+	}
+
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprint(e))
+		}
+	}()
+
+	f.Set(reflect.ValueOf(val))
+
+	return nil
+
+}
+
 func (d *defaultReader) SetProp(name string, val interface{}) (err error) {
 
 	obj := d.i
+
+	props := d.Props()
+
+	propType, ok := props[name]
+
+	if !ok {
+		return errors.New("Not a settable name")
+	}
+
+	if propType == TypeIllegal {
+		return errors.New("Unsupported type of prop")
+	}
 
 	if !propertyReaderImplNameShouldBeIncluded(name) {
 		return errors.New("That name is not valid to set.")
