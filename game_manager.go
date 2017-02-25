@@ -178,6 +178,10 @@ func (g *GameManager) SanitizedStateForPlayer(state State, playerIndex int) Stat
 
 	policy := g.Delegate().StateSanitizationPolicy()
 
+	if policy == nil {
+		policy = &StatePolicy{}
+	}
+
 	sanitized := state.Copy(true)
 
 	sanitizeStateObj(sanitized.GameState().Reader(), policy.Game, -1, playerIndex)

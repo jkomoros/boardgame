@@ -26,7 +26,14 @@ func TestSanitization(t *testing.T) {
 		playerIndex      int
 		inputFileName    string
 		expectedFileName string
-	}{}
+	}{
+		{
+			nil,
+			-1,
+			"sanitization_basic_in.json",
+			"sanitization_basic_in.json",
+		},
+	}
 
 	for i, test := range tests {
 
