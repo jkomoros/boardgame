@@ -131,4 +131,20 @@ func TestPropertyReaderImpl(t *testing.T) {
 		t.Error("didn't get error for unreasonable growable stack fetch")
 	}
 
+	sizedStackResult, err := s.SizedStackProp("S")
+
+	if err != nil {
+		t.Error("Unexpted error fetching sized stack", err)
+	}
+
+	if sizedStackResult != p.S {
+		t.Error("Unexpected sized stack result")
+	}
+
+	sizedStackResult, err = s.SizedStackProp("A")
+
+	if err == nil {
+		t.Error("didn't get error for unreasonable sized stack fetch")
+	}
+
 }

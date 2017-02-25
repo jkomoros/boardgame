@@ -21,6 +21,7 @@ type PropertyReader interface {
 	BoolProp(name string) (bool, error)
 	StringProp(name string) (string, error)
 	GrowableStackProp(name string) (*GrowableStack, error)
+	SizedStackProp(name string) (*SizedStack, error)
 	//Prop returns the value for that property.
 	Prop(name string) interface{}
 }
@@ -202,6 +203,20 @@ func (d *defaultReader) GrowableStackProp(name string) (*GrowableStack, error) {
 
 	s := reflect.ValueOf(d.i).Elem()
 	result := s.FieldByName(name).Interface().(*GrowableStack)
+
+	return result, nil
+}
+
+func (d *defaultReader) SizedStackProp(name string) (*SizedStack, error) {
+	//Verify that this seems legal.
+	props := d.Props()
+
+	if props[name] != TypeSizedStack {
+		return nil, errors.New("That property is not a sized stack: " + name)
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+	result := s.FieldByName(name).Interface().(*SizedStack)
 
 	return result, nil
 }
