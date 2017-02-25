@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"math"
+	"strconv"
 )
 
 //StatePolicy defines a sanitization policy for a State object. In particular,
@@ -49,6 +50,11 @@ const (
 	//will be set so that their NumComponents() is the same, but every
 	//component that exists returns the GenericComponent.
 	PolicyLen
+
+	//PolicyHidden returns effectively the zero value for the type. For
+	//stacks, the deck it is, and the Size (for SizedStack) is set, but
+	//nothing else is.
+	PolicyHidden
 
 	//TODO: implement the other policies.
 )
@@ -134,4 +140,66 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 
 	return input
 
+}
+
+func (g *GrowableStack) applySanitizationPolicy(policy Policy) {
+
+	if policy == PolicyVisible {
+		return
+	}
+
+	if policy == PolicyLen {
+
+		indexes := make([]int, len(g.indexes))
+
+		for i := 0; i < len(indexes); i++ {
+			indexes[i] = genericComponentSentinel
+		}
+
+		g.indexes = indexes
+		return
+	}
+
+	if policy == PolicyHidden {
+		g.indexes = make([]int, 0)
+		return
+	}
+
+	panic("Unknown sanitization policy" + strconv.Itoa(int(policy)))
+
+}
+
+func (s *SizedStack) applySanitizationPolicy(policy Policy) {
+
+	if policy == PolicyVisible {
+		return
+	}
+
+	if policy == PolicyLen {
+
+		indexes := make([]int, len(s.indexes))
+
+		for i := 0; i < len(indexes); i++ {
+			if s.indexes[i] == emptyIndexSentinel {
+				indexes[i] = emptyIndexSentinel
+			} else {
+				indexes[i] = genericComponentSentinel
+			}
+		}
+
+		s.indexes = indexes
+
+		return
+	}
+
+	if policy == PolicyHidden {
+		indexes := make([]int, len(s.indexes))
+		for i := 0; i < len(indexes); i++ {
+			indexes[i] = -1
+		}
+		s.indexes = indexes
+		return
+	}
+
+	panic("Unknown sanitization policy" + strconv.Itoa(int(policy)))
 }

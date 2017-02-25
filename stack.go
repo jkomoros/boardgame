@@ -5,7 +5,6 @@ import (
 	"errors"
 	"math"
 	"math/rand"
-	"strconv"
 )
 
 const emptyIndexSentinel = -1
@@ -171,54 +170,6 @@ func (s *SizedStack) Copy() *SizedStack {
 	var result SizedStack
 	result = *s
 	return &result
-}
-
-func (g *GrowableStack) applySanitizationPolicy(policy Policy) {
-
-	if policy == PolicyVisible {
-		return
-	}
-
-	if policy == PolicyLen {
-
-		indexes := make([]int, len(g.indexes))
-
-		for i := 0; i < len(indexes); i++ {
-			indexes[i] = genericComponentSentinel
-		}
-
-		g.indexes = indexes
-		return
-	}
-
-	panic("Unknown sanitization policy" + strconv.Itoa(int(policy)))
-
-}
-
-func (s *SizedStack) applySanitizationPolicy(policy Policy) {
-
-	if policy == PolicyVisible {
-		return
-	}
-
-	if policy == PolicyLen {
-
-		indexes := make([]int, len(s.indexes))
-
-		for i := 0; i < len(indexes); i++ {
-			if s.indexes[i] == emptyIndexSentinel {
-				indexes[i] = emptyIndexSentinel
-			} else {
-				indexes[i] = genericComponentSentinel
-			}
-		}
-
-		s.indexes = indexes
-
-		return
-	}
-
-	panic("Unknown sanitization policy" + strconv.Itoa(int(policy)))
 }
 
 //Len returns the number of items in the stack.
