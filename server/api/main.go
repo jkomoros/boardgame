@@ -337,7 +337,7 @@ func formFields(move boardgame.Move) []*MoveFormField {
 
 	for fieldName, fieldType := range move.ReadSetter().Props() {
 
-		val := move.ReadSetter().Prop(fieldName)
+		val, _ := move.ReadSetter().Prop(fieldName)
 
 		result = append(result, &MoveFormField{
 			Name:         fieldName,

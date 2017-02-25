@@ -22,8 +22,9 @@ type PropertyReader interface {
 	StringProp(name string) (string, error)
 	GrowableStackProp(name string) (*GrowableStack, error)
 	SizedStackProp(name string) (*SizedStack, error)
-	//Prop returns the value for that property.
-	Prop(name string) interface{}
+	//Prop fetches the given property generically. If you already know the
+	//type, it's better to use the typed methods.
+	Prop(name string) (interface{}, error)
 }
 
 //PropertyType is an enumeration of the types that are legal to have on an
@@ -221,16 +222,22 @@ func (d *defaultReader) SizedStackProp(name string) (*SizedStack, error) {
 	return result, nil
 }
 
-func (d *defaultReader) Prop(name string) interface{} {
+func (d *defaultReader) Prop(name string) (interface{}, error) {
 
-	if !propertyReaderImplNameShouldBeIncluded(name) {
-		return nil
+	props := d.Props()
+
+	propType, ok := props[name]
+
+	if !ok {
+		return nil, errors.New("No such property")
 	}
 
-	obj := d.i
+	if propType == TypeIllegal {
+		return nil, errors.New("That property is not a supported type")
+	}
 
-	s := reflect.ValueOf(obj).Elem()
-	return s.FieldByName(name).Interface()
+	s := reflect.ValueOf(d.i).Elem()
+	return s.FieldByName(name).Interface(), nil
 }
 
 func (d *defaultReader) SetProp(name string, val interface{}) (err error) {

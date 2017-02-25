@@ -39,13 +39,21 @@ func TestPropertyReaderImpl(t *testing.T) {
 		t.Error("PropertyReaderPropsImpl returned wrong result. Got", result, "expected", expected)
 	}
 
-	field := s.Prop("C")
+	field, err := s.Prop("C")
+
+	if err != nil {
+		t.Error("Unexpected error fetching generic prop", err)
+	}
 
 	if field.(string) != "bam" {
 		t.Error("Got back wrong value from Prop. Got", field, "expected 'foo'")
 	}
 
-	field = s.Prop("d")
+	field, err = s.Prop("d")
+
+	if err == nil {
+		t.Error("Didn't get expected error when fetching invalid property")
+	}
 
 	if field != nil {
 		t.Error("Expected to not get back a result for private field, but did", field)
