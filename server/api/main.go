@@ -209,13 +209,24 @@ func (s *Server) gameViewHandler(c *gin.Context) {
 		return
 	}
 
+	//TODO: set this in a way that isn't possible to spoof.
+	player := c.Query("player")
+
+	var playerIndex int
+
+	if player == "" {
+		playerIndex = 0
+	}
+
+	playerIndex, _ = strconv.Atoi(player)
+
 	game := obj.(*boardgame.Game)
 
 	args := gin.H{
 		"Diagram": game.CurrentState().Diagram(),
 		"Chest":   s.renderChest(game),
 		"Forms":   s.generateForms(game),
-		"Game":    game,
+		"Game":    game.JSONForPlayer(playerIndex),
 		"Error":   s.lastErrorMessage,
 		"Status":  "Success",
 	}
