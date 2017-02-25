@@ -42,7 +42,7 @@
             "Hand" : {
                 "Deck" : "test",
                 "Indexes" : [
-                    -2,
+                    -1,
                     -1
                 ],
                 "Size" : 2
