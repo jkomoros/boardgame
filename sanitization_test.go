@@ -1,6 +1,9 @@
 package boardgame
 
 import (
+	"encoding/json"
+	"io/ioutil"
+	"strconv"
 	"testing"
 )
 
@@ -18,17 +21,48 @@ func TestSanitization(t *testing.T) {
 
 	manager.SetUp()
 
-	game := NewGame(manager)
-
-	game.SetUp(0)
-
 	tests := []struct {
 		policy           *StatePolicy
+		playerIndex      int
+		inputFileName    string
 		expectedFileName string
 	}{}
 
-	for _, _ = range tests {
-		//TODO: actually do the tests
+	for i, test := range tests {
+
+		inputBlob, err := ioutil.ReadFile("test/" + test.inputFileName)
+
+		if err != nil {
+			t.Fatal("couldn't load input file", i, test.inputFileName, err)
+		}
+
+		state, err := manager.Delegate().StateFromBlob(inputBlob)
+
+		if err != nil {
+			t.Fatal(i, "Failed to deserialize", err)
+		}
+
+		manager.delegate.(*testSanitizationDelegate).policy = test.policy
+
+		sanitizedState := manager.SanitizedStateForPlayer(state, test.playerIndex)
+
+		if sanitizedState == nil {
+			t.Fatal(i, "state sanitization came back nil")
+		}
+
+		sanitizedBlob, err := json.Marshal(sanitizedState)
+
+		if err != nil {
+			t.Fatal(i, "Sanitized serialize failed", err)
+		}
+
+		goldenBlob, err := ioutil.ReadFile("test/" + test.expectedFileName)
+
+		if err != nil {
+			t.Fatal("Couldn't load file", i, test.expectedFileName, err)
+		}
+
+		compareJSONObjects(sanitizedBlob, goldenBlob, "Test Sanitization "+strconv.Itoa(i), t)
 
 	}
 
