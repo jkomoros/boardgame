@@ -59,7 +59,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <boardgame-render-game state="{{data.Game.StateWrapper.State}}" diagram="{{data.Diagram}}" game-name="{{gameName}}"></boardgame-render-game>
     </div>
     <div class="card">
-      View as:<input is="iron-input" type="number" value-as-number="{{currentPlayer::input}}" min="0" max="{{data.Game.NumPlayers}}">
+      View as:<input is="iron-input" type="number" value-as-number="{{currentPlayer::input}}" min="0" max="{{maxCurrentPlayerIndex}}">
     </div>
 
     <template is="dom-if" if="{{!data.Game.Finished}}">
@@ -111,6 +111,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         gameViewUrl : {
           type: String,
           computed: "_computeGameViewUrl(gameName, gameId, currentPlayer)"
+        },
+        maxCurrentPlayerIndex: {
+          type: Number,
+          computed: "_computeMaxCurrentPlayerIndex(data)"
         }
       },
       behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
@@ -124,6 +128,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
       _computeGameViewUrl: function(gameName, gameId, currentPlayer){
         return this.UrlForGameAPI(gameName, gameId, "view") + "?player=" + currentPlayer;
+      },
+      _computeMaxCurrentPlayerIndex: function(data) {
+        if (!data) {
+          return 0;
+        }
+        if (!data.Game) {
+          return 0;
+        }
+        return data.Game.NumPlayers - 1;
       },
       _currentPlayerChanged : function() {
         this.async(this.fetchData);
