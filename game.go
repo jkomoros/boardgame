@@ -116,15 +116,12 @@ func (g *Game) Manager() *GameManager {
 	return g.manager
 }
 
-//MarshalJSONForPlayer returns an output similar to MarshalJSON, but with
-//CurrentState set to a Sanitized state for the given Player.
-func (g *Game) MarshalJSONForPlayer(playerIndex int) ([]byte, error) {
-	return g.marshalJSONImpl(playerIndex)
-}
-
-func (g *Game) marshalJSONImpl(playerIndex int) ([]byte, error) {
-
-	result := map[string]interface{}{
+//JSONForPlayer returns an object appropriate for being json'd via
+//json.Marshal. The object is the equivalent to what MarshalJSON would output,
+//only as an object, and with CurrentState equal to a sanitized state for the
+//given player.
+func (g *Game) JSONForPlayer(playerIndex int) interface{} {
+	return map[string]interface{}{
 		"Name":         g.Name(),
 		"Finished":     g.Finished(),
 		"Winners":      g.Winners(),
@@ -132,13 +129,11 @@ func (g *Game) marshalJSONImpl(playerIndex int) ([]byte, error) {
 		"Id":           g.Id(),
 		"Version":      g.Version(),
 	}
-
-	return json.Marshal(result)
 }
 
 func (g *Game) MarshalJSON() ([]byte, error) {
 	//We define our own MarshalJSON because if we didn't there'd be an infinite loop because of the redirects back up.
-	return g.marshalJSONImpl(-1)
+	return json.Marshal(g.JSONForPlayer(-1))
 }
 
 func (g *Game) Name() string {
