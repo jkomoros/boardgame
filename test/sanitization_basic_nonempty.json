@@ -1,0 +1,52 @@
+{
+    "Game": {
+        "CurrentPlayer": 0,
+        "DrawDeck": {
+            "Deck" : "test",
+            "Indexes" : [
+                -2
+            ]
+        }
+    },
+    "Players": [
+        {
+            "Score": 0,
+            "IsFoo": false,
+            "MovesLeftThisTurn": 1,
+            "Hand" : {
+                "Deck" : "test",
+                "Indexes" : [
+                    -2,
+                    -1
+                ],
+                "Size" : 2
+            }
+        },
+        {
+            "Score": 0,
+            "IsFoo": false,
+            "MovesLeftThisTurn": 0,
+            "Hand" : {
+                "Deck" : "test",
+                "Indexes" : [
+                    -2,
+                    -1
+                ],
+                "Size" : 2
+            }
+        },
+        {
+            "Score": 0,
+            "IsFoo": true,
+            "MovesLeftThisTurn": 0,
+            "Hand" : {
+                "Deck" : "test",
+                "Indexes" : [
+                    -2,
+                    -1
+                ],
+                "Size" : 2
+            }
+        }
+    ]
+}

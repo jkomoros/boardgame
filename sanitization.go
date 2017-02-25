@@ -43,13 +43,22 @@ type GroupPolicy map[int]Policy
 type Policy int
 
 const (
-	//Non sanitized
+	//Non sanitized. For non-group properties (e.g. strings, ints, bools), any
+	//policy other than PolicyVisible is effectively PolicyHidden.
 	PolicyVisible Policy = iota
 	//For groups (e.g. stacks, int slices), return a group that has the same
 	//length. For all else, it's effectively PolicyHidden. In practice, stacks
 	//will be set so that their NumComponents() is the same, but every
 	//component that exists returns the GenericComponent.
 	PolicyLen
+
+	//For groups, PolicyNonEmpty will allow it to be observed that the stack's
+	//NumComponents is either Empty (0 components) or non-empty (1
+	//components). So for GrowableStacks, it will either have no components or
+	//1 component. And for SizedStack, either all of the slots will be empty,
+	//or the first slot will be non-empty. In all cases, the Component
+	//present, if there is one, will be the deck's GenericComponent.
+	PolicyNonEmpty
 
 	//PolicyHidden returns effectively the zero value for the type. For
 	//stacks, the deck it is, and the Size (for SizedStack) is set, but
@@ -165,6 +174,16 @@ func (g *GrowableStack) applySanitizationPolicy(policy Policy) {
 		return
 	}
 
+	if policy == PolicyNonEmpty {
+		if g.NumComponents() == 0 {
+			g.indexes = make([]int, 0)
+		} else {
+			g.indexes = []int{genericComponentSentinel}
+		}
+
+		return
+	}
+
 	panic("Unknown sanitization policy" + strconv.Itoa(int(policy)))
 
 }
@@ -192,12 +211,20 @@ func (s *SizedStack) applySanitizationPolicy(policy Policy) {
 		return
 	}
 
-	if policy == PolicyHidden {
+	if policy == PolicyHidden || policy == PolicyNonEmpty {
+
+		hasComponents := s.NumComponents() > 0
+
 		indexes := make([]int, len(s.indexes))
 		for i := 0; i < len(indexes); i++ {
 			indexes[i] = -1
 		}
 		s.indexes = indexes
+
+		if policy == PolicyNonEmpty && hasComponents {
+			s.indexes[0] = genericComponentSentinel
+		}
+
 		return
 	}
 
