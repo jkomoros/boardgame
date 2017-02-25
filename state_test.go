@@ -28,7 +28,7 @@ func TestState(t *testing.T) {
 
 	compareJSONObjects(currentJson, golden, "Basic state", t)
 
-	stateCopy := state.Copy()
+	stateCopy := state.Copy(false)
 
 	copyJson, _ := DefaultMarshalJSON(stateCopy)
 
@@ -38,6 +38,16 @@ func TestState(t *testing.T) {
 
 	if state.(*testState).Players[0].MovesLeftThisTurn == 10 {
 		t.Error("Modifying a copy change the original")
+	}
+
+	if state.Sanitized() {
+		t.Error("State reported being sanitized even when it wasn't")
+	}
+
+	sanitizedStateCopy := stateCopy.Copy(true)
+
+	if !sanitizedStateCopy.Sanitized() {
+		t.Error("A copy that was told it was sanitized did not report being sanitized.")
 	}
 
 	//TODO: test that GAmeState and UserStates are also copies

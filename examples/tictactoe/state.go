@@ -61,8 +61,9 @@ func (p *playerState) PlayerIndex() int {
 }
 
 type mainState struct {
-	Game    *gameState
-	Players []*playerState
+	sanitized bool
+	Game      *gameState
+	Players   []*playerState
 }
 
 func (s *mainState) userFromTokenValue(value string) *playerState {
@@ -72,6 +73,10 @@ func (s *mainState) userFromTokenValue(value string) *playerState {
 		}
 	}
 	return nil
+}
+
+func (s *mainState) Sanitized() bool {
+	return s.sanitized
 }
 
 func (s *mainState) Diagram() string {
@@ -119,7 +124,7 @@ func (s *mainState) PlayerStates() []boardgame.PlayerState {
 	return array
 }
 
-func (s *mainState) Copy() boardgame.State {
+func (s *mainState) Copy(sanitized bool) boardgame.State {
 	array := make([]*playerState, len(s.Players))
 
 	for i := 0; i < len(s.Players); i++ {
@@ -127,7 +132,8 @@ func (s *mainState) Copy() boardgame.State {
 	}
 
 	return &mainState{
-		Game:    s.Game.Copy().(*gameState),
-		Players: array,
+		Game:      s.Game.Copy().(*gameState),
+		Players:   array,
+		sanitized: sanitized,
 	}
 }

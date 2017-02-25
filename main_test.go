@@ -35,8 +35,9 @@ func componentsEqual(one *Component, two *Component) bool {
 }
 
 type testState struct {
-	Game    *testGameState
-	Players []*testPlayerState
+	sanitized bool
+	Game      *testGameState
+	Players   []*testPlayerState
 }
 
 func (t *testState) GameState() GameState {
@@ -51,11 +52,15 @@ func (t *testState) PlayerStates() []PlayerState {
 	return result
 }
 
+func (t *testState) Sanitized() bool {
+	return t.sanitized
+}
+
 func (t *testState) Diagram() string {
 	return "IMPLEMENT ME"
 }
 
-func (t *testState) Copy() State {
+func (t *testState) Copy(sanitized bool) State {
 
 	result := &testState{}
 
@@ -72,6 +77,8 @@ func (t *testState) Copy() State {
 		array[i] = player.Copy().(*testPlayerState)
 	}
 	result.Players = array
+
+	result.sanitized = sanitized
 
 	return result
 }

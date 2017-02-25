@@ -8,8 +8,9 @@ import (
 )
 
 type mainState struct {
-	Game    *gameState
-	Players []*playerState
+	sanitized bool
+	Game      *gameState
+	Players   []*playerState
 }
 
 type gameState struct {
@@ -88,6 +89,10 @@ func (p *playerState) HandValue() int {
 
 }
 
+func (m *mainState) Sanitized() bool {
+	return m.sanitized
+}
+
 func (m *mainState) Diagram() string {
 	var result []string
 
@@ -141,7 +146,7 @@ func (s *mainState) PlayerStates() []boardgame.PlayerState {
 	return array
 }
 
-func (s *mainState) Copy() boardgame.State {
+func (s *mainState) Copy(sanitized bool) boardgame.State {
 	array := make([]*playerState, len(s.Players))
 
 	for i := 0; i < len(s.Players); i++ {
@@ -149,7 +154,8 @@ func (s *mainState) Copy() boardgame.State {
 	}
 
 	return &mainState{
-		Game:    s.Game.Copy().(*gameState),
-		Players: array,
+		Game:      s.Game.Copy().(*gameState),
+		Players:   array,
+		sanitized: sanitized,
 	}
 }

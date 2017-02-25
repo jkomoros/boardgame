@@ -20,11 +20,18 @@ type State interface {
 	//Users contains a PlayerState object for each user in the game.
 	PlayerStates() []PlayerState
 	//Copy returns a copy of the Payload. Be sure it's a deep copy that makes
-	//a copy of any pointer arguments.
-	Copy() State
+	//a copy of any pointer arguments. If the Copy will be used to create a
+	//Sanitized version of state, pass sanitized = true.
+	Copy(sanitized bool) State
 	//Diagram should return a basic debug rendering of state in multi-line
 	//ascii art. Useful for debugging.
 	Diagram() string
+
+	//Santizied will return false if this is a full-fidelity State object, or
+	//true if it has been sanitized, which means that some properties might be
+	//hidden or otherwise altered. This should return true if the object was
+	//created with Copy(true)
+	Sanitized() bool
 }
 
 //BaseState is the interface that all state objects--UserStates and GameStates

@@ -395,7 +395,7 @@ func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 		return errors.New("The move was not legal: " + err.Error())
 	}
 
-	newState := currentState.Copy()
+	newState := currentState.Copy(false)
 
 	if err := move.Apply(newState); err != nil {
 		return errors.New("The move's apply function returned an error:" + err.Error())
