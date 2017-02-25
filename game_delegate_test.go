@@ -59,18 +59,21 @@ func (t *testGameDelegate) StartingState(numPlayers int) State {
 				playerIndex:       0,
 				Score:             0,
 				MovesLeftThisTurn: 1,
+				Hand:              NewSizedStack(deck, 2),
 				IsFoo:             false,
 			},
 			&testPlayerState{
 				playerIndex:       1,
 				Score:             0,
 				MovesLeftThisTurn: 0,
+				Hand:              NewSizedStack(deck, 2),
 				IsFoo:             false,
 			},
 			&testPlayerState{
 				playerIndex:       2,
 				Score:             0,
 				MovesLeftThisTurn: 0,
+				Hand:              NewSizedStack(deck, 2),
 				IsFoo:             true,
 			},
 		},
@@ -87,6 +90,7 @@ func (t *testGameDelegate) StateFromBlob(blob []byte) (State, error) {
 
 	for i, player := range result.Players {
 		player.playerIndex = i
+		player.Hand.Inflate(t.Manager().Chest())
 	}
 
 	return result, nil

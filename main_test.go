@@ -107,6 +107,7 @@ type testPlayerState struct {
 	playerIndex       int
 	Score             int
 	MovesLeftThisTurn int
+	Hand              *SizedStack
 	IsFoo             bool
 }
 
@@ -117,6 +118,9 @@ func (t *testPlayerState) PlayerIndex() int {
 func (t *testPlayerState) Copy() PlayerState {
 	var result testPlayerState
 	result = *t
+
+	result.Hand = t.Hand.Copy()
+
 	return &result
 }
 
