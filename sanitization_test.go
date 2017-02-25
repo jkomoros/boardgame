@@ -41,7 +41,7 @@ func TestSanitization(t *testing.T) {
 					},
 				},
 			},
-			-1,
+			0,
 			"sanitization_basic_in.json",
 			"sanitization_basic_len.json",
 		},

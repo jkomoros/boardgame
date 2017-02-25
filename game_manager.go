@@ -176,6 +176,11 @@ type refriedState struct {
 //the package level comment for an overview of how state sanitization works.
 func (g *GameManager) SanitizedStateForPlayer(state State, playerIndex int) State {
 
+	//If the playerIndex isn't an actuall player's index, just return self.
+	if playerIndex < 0 || playerIndex >= len(state.PlayerStates()) {
+		return state
+	}
+
 	policy := g.Delegate().StateSanitizationPolicy()
 
 	if policy == nil {
