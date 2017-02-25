@@ -99,4 +99,20 @@ func TestPropertyReaderImpl(t *testing.T) {
 		t.Error("Didn't get error fetching non-bool prop")
 	}
 
+	stringResult, err := s.StringProp("C")
+
+	if err != nil {
+		t.Error("Unexpected error fetching string", err)
+	}
+
+	if stringResult != p.C {
+		t.Error("Unexpeted string result")
+	}
+
+	stringResult, err = s.StringProp("A")
+
+	if err == nil {
+		t.Error("Didn't error trying to string prop a non-string")
+	}
+
 }

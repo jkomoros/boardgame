@@ -19,6 +19,7 @@ type PropertyReader interface {
 	//that property doese not exist.
 	IntProp(name string) (int, error)
 	BoolProp(name string) (bool, error)
+	StringProp(name string) (string, error)
 	//Prop returns the value for that property.
 	Prop(name string) interface{}
 }
@@ -176,6 +177,18 @@ func (d *defaultReader) BoolProp(name string) (bool, error) {
 
 	s := reflect.ValueOf(d.i).Elem()
 	return s.FieldByName(name).Bool(), nil
+}
+
+func (d *defaultReader) StringProp(name string) (string, error) {
+	//Verify that this seems legal.
+	props := d.Props()
+
+	if props[name] != TypeString {
+		return "", errors.New("That property is not a string: " + name)
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+	return s.FieldByName(name).String(), nil
 }
 
 func (d *defaultReader) Prop(name string) interface{} {
