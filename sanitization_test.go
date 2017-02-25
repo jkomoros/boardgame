@@ -33,6 +33,18 @@ func TestSanitization(t *testing.T) {
 			"sanitization_basic_in.json",
 			"sanitization_basic_in.json",
 		},
+		{
+			&StatePolicy{
+				Game: map[string]GroupPolicy{
+					"DrawDeck": GroupPolicy{
+						GroupAll: PolicyLen,
+					},
+				},
+			},
+			-1,
+			"sanitization_basic_in.json",
+			"sanitization_basic_len.json",
+		},
 	}
 
 	for i, test := range tests {

@@ -83,6 +83,8 @@ func sanitizeProperty(prop interface{}, propType PropertyType, policyGroup Group
 			policyApplies = (statePlayerIndex == preparingForPlayerIndex)
 		case GroupOther:
 			policyApplies = (statePlayerIndex != preparingForPlayerIndex)
+		case GroupAll:
+			policyApplies = true
 		default:
 			//In the future we'll interrogate whether the given group index is
 			//in the specified property at this point.
