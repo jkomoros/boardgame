@@ -253,9 +253,10 @@ func (s *GrowableStack) ComponentAt(index int) *Component {
 		return nil
 	}
 
-	//We don't need to check that s.Indexes[index] is valid because it was
-	//checked when it was set, and Decks are immutable.
-	return s.deck.Components()[s.indexes[index]]
+	deckIndex := s.indexes[index]
+
+	//ComponentAt will handle negative values and empty sentinel correctly.
+	return s.deck.ComponentAt(deckIndex)
 }
 
 //ComponentAt fetches the component object representing the n-th object in
@@ -278,14 +279,8 @@ func (s *SizedStack) ComponentAt(index int) *Component {
 
 	deckIndex := s.indexes[index]
 
-	//Check if this is an empty slot
-	if deckIndex == emptyIndexSentinel {
-		return nil
-	}
-
-	//We don't need to check that s.Indexes[index] is valid because it was
-	//checked when it was set, and Decks are immutable.
-	return s.deck.Components()[deckIndex]
+	//ComponentAt will handle negative values and empty sentinel correctly.
+	return s.deck.ComponentAt(deckIndex)
 }
 
 //ComponentValues returns the Values of each Component in order. Useful for
