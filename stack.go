@@ -80,6 +80,12 @@ type Stack interface {
 	//but in a different order. In a SizedStack, the empty slots will move
 	//around as part of a shuffle.
 	Shuffle()
+
+	//makeGeneric makes it so that the stack has the same length, but each
+	//component is the generic component. Useful for implementing PolicyLen.
+	//Should only be called on a copy--this basically exists for
+	//sanitization.go and shouldn't be used elsewhere.
+	makeComponentsGeneric()
 }
 
 type GrowableStack struct {
@@ -166,6 +172,32 @@ func (s *SizedStack) Copy() *SizedStack {
 	var result SizedStack
 	result = *s
 	return &result
+}
+
+func (g *GrowableStack) makeComponentsGeneric() {
+
+	indexes := make([]int, len(g.indexes))
+
+	for i := 0; i < len(indexes); i++ {
+		indexes[i] = genericComponentSentinel
+	}
+
+	g.indexes = indexes
+
+}
+
+func (s *SizedStack) makeComponentsGeneric() {
+	indexes := make([]int, len(s.indexes))
+
+	for i := 0; i < len(indexes); i++ {
+		if s.indexes[i] == emptyIndexSentinel {
+			indexes[i] = emptyIndexSentinel
+		} else {
+			indexes[i] = genericComponentSentinel
+		}
+	}
+
+	s.indexes = indexes
 }
 
 //Len returns the number of items in the stack.
