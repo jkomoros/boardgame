@@ -19,7 +19,7 @@
             "Hand" : {
                 "Deck" : "test",
                 "Indexes" : [
-                    -1,
+                    0,
                     -1
                 ],
                 "Size" : 2
@@ -32,7 +32,7 @@
             "Hand" : {
                 "Deck" : "test",
                 "Indexes" : [
-                    -1,
+                    1,
                     -1
                 ],
                 "Size" : 2
@@ -45,7 +45,7 @@
             "Hand" : {
                 "Deck" : "test",
                 "Indexes" : [
-                    -1,
+                    2,
                     -1
                 ],
                 "Size" : 2
