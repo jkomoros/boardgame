@@ -140,6 +140,66 @@ in the chest in turn, which helps you conform to this important invariant from
 the very beginning, and then make sure to maintain it in each Move's Apply
 method.
 
+Sanitization
+
+The server canonically knows all state in a game. However, there are certain
+bits of state that should not be known by specific players. For example, in
+poker,the other players should not know the two hidden cards in your hand.
+
+boardgame handles this with a notion of sanitization. When preparing a state
+object to be sent to a client, it is possible to get a sanitized version of
+the state with GameManager.SanitizedStateForPlayer(index). This will sanitize
+certain fields according to a policy that your Delegate defines in
+StateSanitizationPolicy. The result is a copy of the input state, with the
+various fields obscured, and which will have Sanitized() return true. All of
+the fields will always have the same "shape" as before (e.g. GrowableStacks
+will not be reduced to an int), but will have key properties changed so that
+less information can be recovered.
+
+The policy for a game will never change during the course of the game; it is
+tied to which player the state is being prepared for, which key we are
+considering, and which groups the various players are in. The same policy will
+be applied to each PlayerState in the State; use Groups to change the behavior.
+
+boardgame has no notion of who is who; it will generate a SanitizedState for
+whomever you request. Other packages, like Server, keep track of which person
+is which via mechanisms like cookies.
+
+There are a number of policies that can be applied to each key, of type
+Policy. PolicyVisible is the default; if there is no effective policy in
+place, it defaults to PolicyVisible. It leaves the property unchanged.
+PolicyHidden is the most restrictive; it sets the property to its zero value.
+For basic types (e.g. int, string, bool), these are the only two policies. Any
+Policy other than PolicyVisible behaves like PolicyHidden.
+
+Groups (e.g. SizedStacks and GrowableStacks) have a few extra policies.
+PolicyLen will obscure the group so that the number of items is clear, but all
+elements will be replaced by the Deck's GenericComponent. PolicyNonEmpty is
+similar to PolicyLen, but if the real Stack has 1 or more components, the
+output result will have a single GenericComponent. This allows you to observe
+whether the stack was empty or not, but not anything about how many components
+it had. PolicyOrder replaces each Component with a stable but obscured
+ShadowComponent, so that observes can keep track of the lenght, and when
+components swithc orders in the stack, but not what the underlying components
+are.
+
+To compute the effective policy for a given property, we have to consider the
+Groups. Conceptually there are a number of groups, which define which players
+are in or out of each one. In the future there will be a way to define group
+membership that can be modified just like any other part of the state. At this
+point there are three special groups.  Every player is a member of GroupAll.
+GroupSelf is the group that only the player who the state is being prepared
+for is in. GroupOther contains all players who the state is not being prepared
+for.
+
+Policies contain GroupPolicies for each key in Game and State. GroupPolicies
+are a map of Group ID to the effective policy. When preparing a sanitized
+state for a given property, we to through each group/policy pair in the
+GroupPolicy. We collect each policy where the player that the state is being
+prepared for is in. Then the effective policy is the *least* restrictive
+policy that applies. In practice this means that policies like
+GroupAll:PolicyLen, GroupSelf:PolicyVisible make sense to do.
+
 Implementing Your Own Game
 
 When you are implementing your own game, at a high level you must do the
