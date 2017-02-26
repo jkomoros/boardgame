@@ -128,6 +128,24 @@ func (g *gameDelegate) FinishSetUp(state boardgame.State) {
 	s.Game.DrawStack.Shuffle()
 }
 
+var policy *boardgame.StatePolicy
+
+func (g *gameDelegate) StateSanitizationPolicy() *boardgame.StatePolicy {
+
+	if policy == nil {
+		policy = &boardgame.StatePolicy{
+			Player: map[string]boardgame.GroupPolicy{
+				"HiddenHand": boardgame.GroupPolicy{
+					boardgame.GroupOther: boardgame.PolicyLen,
+				},
+			},
+		}
+	}
+
+	return policy
+
+}
+
 func (g *gameDelegate) StateFromBlob(blob []byte) (boardgame.State, error) {
 	result := &mainState{}
 	if err := json.Unmarshal(blob, result); err != nil {
