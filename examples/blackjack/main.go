@@ -139,6 +139,14 @@ func (g *gameDelegate) StateSanitizationPolicy() *boardgame.StatePolicy {
 					boardgame.GroupOther: boardgame.PolicyLen,
 				},
 			},
+			Game: map[string]boardgame.GroupPolicy{
+				"DiscardStack": boardgame.GroupPolicy{
+					boardgame.GroupAll: boardgame.PolicyLen,
+				},
+				"DrawStack": boardgame.GroupPolicy{
+					boardgame.GroupAll: boardgame.PolicyLen,
+				},
+			},
 		}
 	}
 
