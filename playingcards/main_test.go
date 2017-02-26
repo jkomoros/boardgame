@@ -17,6 +17,32 @@ func TestNewDeck(t *testing.T) {
 		t.Error("We asked for no jokers but got wrong number of cards", len(deck.Components()))
 	}
 
+	g := deck.GenericComponent()
+
+	if g.Values == nil {
+		t.Error("Generic components had no values")
+	}
+
+	r, err := g.Values.Reader().IntProp("Rank")
+
+	if err != nil {
+		t.Error("Values on Reader had no Rank property")
+	}
+
+	if r != int(RankUnknown) {
+		t.Error("generic rank was not RankUnknown")
+	}
+
+	s, err := g.Values.Reader().StringProp("Suit")
+
+	if err != nil {
+		t.Error("Values on reader had no Suit property")
+	}
+
+	if s != string(SuitUnknown) {
+		t.Error("Generic suit was not suitunknown")
+	}
+
 	checkExpectedRun(deck, 0, t)
 
 	withJokers := NewDeck(true)

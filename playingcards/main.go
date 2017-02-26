@@ -14,7 +14,8 @@ import (
 type Suit string
 
 const (
-	SuitSpades   Suit = "\u2660"
+	SuitUnknown  Suit = "\uFFFD"
+	SuitSpades        = "\u2660"
 	SuitHearts        = "\u2665"
 	SuitClubs         = "\u2663"
 	SuitDiamonds      = "\u2666"
@@ -24,7 +25,7 @@ const (
 type Rank int
 
 const (
-	RankJoker Rank = iota
+	RankUnknown Rank = iota
 	RankAce
 	Rank2
 	Rank3
@@ -38,6 +39,7 @@ const (
 	RankJack
 	RankQueen
 	RankKing
+	RankJoker
 )
 
 type Card struct {
@@ -116,4 +118,9 @@ func deckCanonicalOrder(cards *boardgame.Deck, withJokers bool) {
 			Rank: RankJoker,
 		}, 2)
 	}
+
+	cards.SetShadowValues(&Card{
+		Suit: SuitUnknown,
+		Rank: RankUnknown,
+	})
 }
