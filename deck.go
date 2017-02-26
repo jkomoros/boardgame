@@ -17,6 +17,7 @@ type Deck struct {
 	//Components should only ever be added at initalization time. After
 	//initalization, Components should be read-only.
 	components             []*Component
+	shadowValues           ComponentValues
 	vendedShadowComponents map[int]*Component
 	//TODO: protect shadowComponents cache with mutex to make threadsafe.
 }
@@ -92,6 +93,17 @@ func (d *Deck) ComponentAt(index int) *Component {
 
 }
 
+//SetShadowValues sets the ComponentValues to return for every shadow
+//component that is returned. May only be set before added to a chest. Should
+//generally be the same shape of componentValues as used for other components
+//in the deck.
+func (d *Deck) SetShadowValues(v ComponentValues) {
+	if d.chest != nil {
+		return
+	}
+	d.shadowValues = v
+}
+
 //ShadowComponent takes an index that is negative and returns a component that
 //is empty but when compared to the result of previous calls to
 //ShadowComponent with that index will have equality. This is important for
@@ -112,7 +124,7 @@ func (d *Deck) ShadowComponent(index int) *Component {
 		shadow = &Component{
 			Deck:      d,
 			DeckIndex: index,
-			Values:    nil,
+			Values:    d.shadowValues,
 		}
 		d.vendedShadowComponents[index] = shadow
 	}

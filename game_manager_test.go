@@ -30,6 +30,10 @@ func newTestGameChest() *ComponentChest {
 		10,
 	})
 
+	deck.SetShadowValues(&testShadowValues{
+		Message: "Foo",
+	})
+
 	chest.AddDeck("test", deck)
 
 	chest.Finish()

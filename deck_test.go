@@ -4,6 +4,14 @@ import (
 	"testing"
 )
 
+type testShadowValues struct {
+	Message string
+}
+
+func (t *testShadowValues) Reader() PropertyReader {
+	return DefaultReader(t)
+}
+
 func TestDeckShadowComponent(t *testing.T) {
 
 	manager := newTestGameManger()
@@ -24,6 +32,16 @@ func TestDeckShadowComponent(t *testing.T) {
 
 	if c == nil {
 		t.Error("Negative value gave nil")
+	}
+
+	v := c.Values
+
+	if v == nil {
+		t.Error("Values was nil")
+	}
+
+	if _, err := v.Reader().StringProp("Message"); err != nil {
+		t.Error("Values didn't have Message")
 	}
 
 	altC := deck.ComponentAt(-2)
