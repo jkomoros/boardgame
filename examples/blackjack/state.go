@@ -129,8 +129,8 @@ func (m *mainState) Diagram() string {
 
 		result = append(result, "\tCards:")
 
-		for _, _ = range player.HiddenHand.ComponentValues() {
-			result = append(result, "\t\tHIDDENCARD")
+		for _, card := range playingcards.ValuesToCards(player.HiddenHand.ComponentValues()) {
+			result = append(result, "\t\t"+card.String())
 		}
 
 		for _, card := range playingcards.ValuesToCards(player.VisibleHand.ComponentValues()) {
