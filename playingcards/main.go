@@ -52,6 +52,9 @@ func (c *Card) Reader() boardgame.PropertyReader {
 }
 
 func (c *Card) String() string {
+	if c.Rank == RankUnknown {
+		return fmt.Sprintf("%s ?", c.Suit)
+	}
 	return fmt.Sprintf("%s %d", c.Suit, c.Rank)
 }
 
