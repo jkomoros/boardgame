@@ -31,7 +31,13 @@ type GameDelegate interface {
 	//modify payload directly.
 	DistributeComponentToStarterStack(state *State, c *Component) error
 
-	//FinishSetUp is called during game.SetUp, after components have been
+	//BeginSetup is a chance to modify the initial state object *before* the
+	//components are distributed to it. This is a good place to configure
+	//state that will be necessary for you to make the right decisions in
+	//DistributeComponentToStarterStack.
+	BeginSetUp(state *State)
+
+	//FinishSetUp is called during game.SetUp, *after* components have been
 	//distributed to their StarterStack. This is the last chance to modify the
 	//state before the game's initial state is considered final. For example,
 	//if you have a card game this is where you'd make sure the starter draw
@@ -148,6 +154,10 @@ func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state *State, c 
 
 func (d *DefaultGameDelegate) StateSanitizationPolicy() *StatePolicy {
 	return nil
+}
+
+func (d *DefaultGameDelegate) BeginSetUp(stae *State) {
+	//Don't need to do anything by default
 }
 
 func (d *DefaultGameDelegate) FinishSetUp(state *State) {

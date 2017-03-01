@@ -213,6 +213,8 @@ func (g *Game) SetUp(numPlayers int) error {
 		Props:    props,
 	}
 
+	g.manager.delegate.BeginSetUp(stateCopy)
+
 	//Distribute all components to their starter locations
 
 	for _, name := range g.Chest().DeckNames() {
