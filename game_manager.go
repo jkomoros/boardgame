@@ -3,6 +3,7 @@ package boardgame
 import (
 	"errors"
 	"strings"
+	"sync"
 )
 
 //Moves is the set of all move types that are ever legal to apply in this
@@ -16,15 +17,16 @@ import (
 //across multiple games. It is specifically designed to be used with multiple
 //games.
 type GameManager struct {
-	delegate          GameDelegate
-	chest             *ComponentChest
-	storage           StorageManager
-	fixUpMoves        []Move
-	playerMoves       []Move
-	fixUpMovesByName  map[string]Move
-	playerMovesByName map[string]Move
-	modifiableGames   map[string]*Game
-	initialized       bool
+	delegate            GameDelegate
+	chest               *ComponentChest
+	storage             StorageManager
+	fixUpMoves          []Move
+	playerMoves         []Move
+	fixUpMovesByName    map[string]Move
+	playerMovesByName   map[string]Move
+	modifiableGamesLock sync.RWMutex
+	modifiableGames     map[string]*Game
+	initialized         bool
 }
 
 //ManagerCollection is a way to grab a reference to a specific manager based
@@ -101,13 +103,19 @@ func (g *GameManager) modifiableGameCreated(game *Game) {
 		return
 	}
 
-	if _, ok := g.modifiableGames[game.Id()]; ok {
+	g.modifiableGamesLock.RLock()
+	_, ok := g.modifiableGames[game.Id()]
+	g.modifiableGamesLock.RUnlock()
+
+	if ok {
 		panic("modifiableGameCreated collided with existing game")
 	}
 
 	id := strings.ToUpper(game.Id())
 
+	g.modifiableGamesLock.Lock()
 	g.modifiableGames[id] = game
+	g.modifiableGamesLock.Unlock()
 }
 
 //ModifiableGameForId returns a modifiable game with the given ID. Either it
@@ -127,7 +135,9 @@ func (g *GameManager) ModifiableGame(id string) *Game {
 
 	id = strings.ToUpper(id)
 
+	g.modifiableGamesLock.RLock()
 	game := g.modifiableGames[id]
+	g.modifiableGamesLock.RUnlock()
 
 	if game != nil {
 		return game
@@ -149,7 +159,9 @@ func (g *GameManager) ModifiableGame(id string) *Game {
 	game.proposedMoves = make(chan *proposedMoveItem, 20)
 	go game.mainLoop()
 
+	g.modifiableGamesLock.Lock()
 	g.modifiableGames[id] = game
+	g.modifiableGamesLock.Unlock()
 
 	return game
 
