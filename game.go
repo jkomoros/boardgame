@@ -209,19 +209,21 @@ func (g *Game) SetUp(numPlayers int) error {
 		return errors.New("The number of players, " + strconv.Itoa(numPlayers) + " was not legal.")
 	}
 
-	gameState := g.manager.Delegate().EmptyGameState()
+	gameState, err := g.manager.emptyGameState()
 
-	if gameState == nil {
-		return errors.New("GameState returned by EmptyGameState was nil")
+	if err != nil {
+		return err
 	}
 
 	playerStates := make([]PlayerState, numPlayers)
 
 	for i := 0; i < numPlayers; i++ {
-		playerState := g.manager.Delegate().EmptyPlayerState(i)
-		if playerState == nil {
-			return errors.New("The " + strconv.Itoa(i) + " player returned by EmptyPlayerState was nil")
+		playerState, err := g.manager.emptyPlayerState(i)
+
+		if err != nil {
+			return err
 		}
+
 		playerStates[i] = playerState
 	}
 

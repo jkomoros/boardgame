@@ -187,6 +187,58 @@ type refriedStateProps struct {
 	Players []json.RawMessage
 }
 
+//emptyPlayerState is a simple wrapper around delegate.EmptyPlayerState that
+//just verifies that stacks are inflated.
+func (g *GameManager) emptyPlayerState(playerIndex int) (PlayerState, error) {
+
+	playerState := g.delegate.EmptyPlayerState(playerIndex)
+
+	if playerState == nil {
+		return nil, errors.New("EmptyPlayerState returned nil for " + strconv.Itoa(playerIndex))
+	}
+
+	for propName, propType := range playerState.Reader().Props() {
+		switch propType {
+		case TypeGrowableStack:
+			if val, _ := playerState.Reader().GrowableStackProp(propName); val == nil {
+				return nil, errors.New("GrowableStack Prop " + propName + " was nil")
+			}
+		case TypeSizedStack:
+			if val, _ := playerState.Reader().SizedStackProp(propName); val == nil {
+				return nil, errors.New("SizedStackProp " + propName + " was nil")
+			}
+		}
+	}
+	return playerState, nil
+
+}
+
+//emptyGameState is a simple wrapper around delegate.EmptyPlayerState that
+//just verifies that stacks are inflated.
+func (g *GameManager) emptyGameState() (GameState, error) {
+
+	gameState := g.delegate.EmptyGameState()
+
+	if gameState == nil {
+		return nil, errors.New("EmptyGameState returned nil")
+	}
+
+	for propName, propType := range gameState.Reader().Props() {
+		switch propType {
+		case TypeGrowableStack:
+			if val, _ := gameState.Reader().GrowableStackProp(propName); val == nil {
+				return nil, errors.New("GrowableStack Prop " + propName + " was nil")
+			}
+		case TypeSizedStack:
+			if val, _ := gameState.Reader().SizedStackProp(propName); val == nil {
+				return nil, errors.New("SizedStackProp " + propName + " was nil")
+			}
+		}
+	}
+	return gameState, nil
+
+}
+
 func (g *GameManager) StateFromBlob(blob []byte) (*State, error) {
 	//At this point, no extra state is stored in the blob other than in props.
 
@@ -200,10 +252,10 @@ func (g *GameManager) StateFromBlob(blob []byte) (*State, error) {
 
 	props := &StateProps{}
 
-	game := g.delegate.EmptyGameState()
+	game, err := g.emptyGameState()
 
-	if game == nil {
-		return nil, errors.New("EmptyGameState returned nil")
+	if err != nil {
+		return nil, err
 	}
 
 	if err := json.Unmarshal(refried.Props.Game, game); err != nil {
@@ -230,10 +282,10 @@ func (g *GameManager) StateFromBlob(blob []byte) (*State, error) {
 	props.Game = game
 
 	for i, blob := range refried.Props.Players {
-		player := g.delegate.EmptyPlayerState(i)
+		player, err := g.emptyPlayerState(i)
 
-		if player == nil {
-			return nil, errors.New("EmptyPlayerState returned nil for " + strconv.Itoa(i) + " player")
+		if err != nil {
+			return nil, err
 		}
 
 		if err := json.Unmarshal(blob, player); err != nil {
