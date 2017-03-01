@@ -43,6 +43,10 @@ func (t *testGameDelegate) DefaultNumPlayers() int {
 	return 3
 }
 
+func (t *testGameDelegate) LegalNumPlayers(numPlayers int) bool {
+	return numPlayers > 0 && numPlayers <= 5
+}
+
 func (t *testGameDelegate) StartingStateProps(numPlayers int) *StateProps {
 
 	chest := t.Manager().Chest()

@@ -201,6 +201,10 @@ func (g *Game) SetUp(numPlayers int) error {
 		numPlayers = g.manager.Delegate().DefaultNumPlayers()
 	}
 
+	if !g.manager.Delegate().LegalNumPlayers(numPlayers) {
+		return errors.New("The number of players, " + strconv.Itoa(numPlayers) + " was not legal.")
+	}
+
 	//We'll work on a copy of Payload, so if it fails at some point we can just drop it
 	props := g.manager.Delegate().StartingStateProps(numPlayers)
 

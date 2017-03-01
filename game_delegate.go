@@ -61,6 +61,11 @@ type GameDelegate interface {
 	//game.SetUp(), we wil use this value insteadp.
 	DefaultNumPlayers() int
 
+	//LegalNumPlayers will be consulted when a new game is created. It should
+	//return true if the given number of players is legal, and false
+	//otherwise. If this returns false, the game's SetUp will fail.
+	LegalNumPlayers(numPlayers int) bool
+
 	//StartingState should return a zero'd state object for this game type.
 	//All future states for this particular game will be created by Copy()ing
 	//this state. If you return nil, game.SetUp() will fail.
@@ -182,4 +187,11 @@ func (d *DefaultGameDelegate) StartingStateProps(numPlayers int) *StateProps {
 
 func (d *DefaultGameDelegate) DefaultNumPlayers() int {
 	return 2
+}
+
+func (d *DefaultGameDelegate) LegalNumPlayers(numPlayers int) bool {
+	if numPlayers > 0 && numPlayers <= 10 {
+		return true
+	}
+	return false
 }

@@ -139,6 +139,10 @@ func (g *gameDelegate) CheckGameFinished(state *boardgame.State) (finished bool,
 
 }
 
+func (g *gameDelegate) LegalNumPlayers(numPlayers int) bool {
+	return numPlayers > 0 && numPlayers < 7
+}
+
 func (g *gameDelegate) StartingStateProps(numPlayers int) *boardgame.StateProps {
 	cards := g.Manager().Chest().Deck("cards")
 

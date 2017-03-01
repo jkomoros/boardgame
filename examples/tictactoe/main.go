@@ -70,6 +70,10 @@ func (g *gameDelegate) PlayerStateFromBlob(blob []byte, index int) (boardgame.Pl
 	return &result, nil
 }
 
+func (g *gameDelegate) LegalNumPlayers(numPlayers int) bool {
+	return numPlayers == 2
+}
+
 func (g *gameDelegate) StartingStateProps(numUsers int) *boardgame.StateProps {
 
 	if numUsers != 2 {

@@ -88,6 +88,10 @@ func TestGameSetUp(t *testing.T) {
 		//Pass.
 	}
 
+	if err := game.SetUp(15); err == nil {
+		t.Error("Calling set up with an illegal number of players didn't fail")
+	}
+
 	//TODO: we no longer test that SetUp calls the Component distribution logic.
 
 	if err := game.SetUp(0); err != nil {
