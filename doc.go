@@ -205,13 +205,21 @@ Implementing Your Own Game
 When you are implementing your own game, at a high level you must do the
 following things:
 
-1) Define a State implementation that fully captures all of the semantic state
-of the game at all times. In practice this will likely include state that is
-central to the game, as well as state specific to each user. It often includes
-more things than you might first think. For example, your state should include
-how many of each type of action the current player can still do in their turn,
-so that your game can decide when to advance to the next player. Ensure that
-each State object can be serialized by json.Marhsal().
+1) Define a GameState/PlayerState implementation that fully captures all of
+the semantic state of the game at all times. In practice this will likely
+include state that is central to the game, as well as state specific to each
+user. It often includes more things than you might first think. For example,
+your state should include how many of each type of action the current player
+can still do in their turn, so that your game can decide when to advance to
+the next player. Ensure that your GameState and PlayerState objects serialize
+with all necessary state when marshaled as JSON, and that they survive a
+round-trip through Delegate.GameStatefromBlob and
+Delegate.PlayerStateFromBlob. All of the properties you want serialized or
+available through PropReader should be public fields on the struct. For
+convenience, it's good to implement a concreteStates(state) that returns the
+concrete *gameState and []*playerState. That way in the top of your specific
+methods that accept a State, you can quickly get workable, type-checked
+structs with only a single conversion leap of faith at the top.
 
 2) Define the complete set of Components that exist in your game. Every item
 that could be manipulated or moved, including cards, meeples, resource tokens,
