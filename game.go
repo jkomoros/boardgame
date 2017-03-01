@@ -209,11 +209,25 @@ func (g *Game) SetUp(numPlayers int) error {
 		return errors.New("The number of players, " + strconv.Itoa(numPlayers) + " was not legal.")
 	}
 
-	//We'll work on a copy of Payload, so if it fails at some point we can just drop it
-	props := g.manager.Delegate().StartingStateProps(numPlayers)
+	gameState := g.manager.Delegate().EmptyGameState()
 
-	if props == nil {
-		return errors.New("Delegate didn't return a starter state.")
+	if gameState == nil {
+		return errors.New("GameState returned by EmptyGameState was nil")
+	}
+
+	playerStates := make([]PlayerState, numPlayers)
+
+	for i := 0; i < numPlayers; i++ {
+		playerState := g.manager.Delegate().EmptyPlayerState(i)
+		if playerState == nil {
+			return errors.New("The " + strconv.Itoa(i) + " player returned by EmptyPlayerState was nil")
+		}
+		playerStates[i] = playerState
+	}
+
+	props := &StateProps{
+		Game:    gameState,
+		Players: playerStates,
 	}
 
 	stateCopy := &State{

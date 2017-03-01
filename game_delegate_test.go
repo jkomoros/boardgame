@@ -1,7 +1,6 @@
 package boardgame
 
 import (
-	"encoding/json"
 	"testing"
 )
 
@@ -49,63 +48,39 @@ func (t *testGameDelegate) LegalNumPlayers(numPlayers int) bool {
 	return numPlayers <= 5
 }
 
-func (t *testGameDelegate) StartingStateProps(numPlayers int) *StateProps {
+func (t *testGameDelegate) BeginSetUp(state *State) {
+	_, players := concreteStates(state)
 
+	if len(players) != 3 {
+		return
+	}
+
+	players[0].MovesLeftThisTurn = 1
+	players[2].IsFoo = true
+}
+
+func (t *testGameDelegate) EmptyGameState() GameState {
+	chest := t.Manager().Chest()
+
+	deck := chest.Deck("test")
+	return &testGameState{
+		CurrentPlayer: 0,
+		DrawDeck:      NewGrowableStack(deck, 0),
+	}
+}
+
+func (t *testGameDelegate) EmptyPlayerState(playerIndex int) PlayerState {
 	chest := t.Manager().Chest()
 
 	deck := chest.Deck("test")
 
-	return &StateProps{
-		Game: &testGameState{
-			CurrentPlayer: 0,
-			DrawDeck:      NewGrowableStack(deck, 0),
-		},
-		Players: []PlayerState{
-			&testPlayerState{
-				playerIndex:       0,
-				Score:             0,
-				MovesLeftThisTurn: 1,
-				Hand:              NewSizedStack(deck, 2),
-				IsFoo:             false,
-			},
-			&testPlayerState{
-				playerIndex:       1,
-				Score:             0,
-				MovesLeftThisTurn: 0,
-				Hand:              NewSizedStack(deck, 2),
-				IsFoo:             false,
-			},
-			&testPlayerState{
-				playerIndex:       2,
-				Score:             0,
-				MovesLeftThisTurn: 0,
-				Hand:              NewSizedStack(deck, 2),
-				IsFoo:             true,
-			},
-		},
+	return &testPlayerState{
+		playerIndex:       0,
+		Score:             0,
+		MovesLeftThisTurn: 0,
+		Hand:              NewSizedStack(deck, 2),
+		IsFoo:             false,
 	}
-}
-
-func (t *testGameDelegate) GameStateFromBlob(blob []byte) (GameState, error) {
-	var result testGameState
-
-	if err := json.Unmarshal(blob, &result); err != nil {
-		return nil, err
-	}
-
-	return &result, nil
-}
-
-func (t *testGameDelegate) PlayerStateFromBlob(blob []byte, index int) (PlayerState, error) {
-	var result testPlayerState
-
-	if err := json.Unmarshal(blob, &result); err != nil {
-		return nil, err
-	}
-
-	result.playerIndex = index
-
-	return &result, nil
 }
 
 func TestTestGameDelegate(t *testing.T) {

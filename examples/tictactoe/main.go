@@ -8,7 +8,6 @@ boardgame are useful for real games.
 package tictactoe
 
 import (
-	"encoding/json"
 	"github.com/jkomoros/boardgame"
 	"strings"
 )
@@ -48,65 +47,35 @@ func (g *gameDelegate) DefaultNumPlayers() int {
 	return 2
 }
 
-func (g *gameDelegate) GameStateFromBlob(blob []byte) (boardgame.GameState, error) {
-	var result gameState
-
-	if err := json.Unmarshal(blob, &result); err != nil {
-		return nil, err
-	}
-
-	return &result, nil
-}
-
-func (g *gameDelegate) PlayerStateFromBlob(blob []byte, index int) (boardgame.PlayerState, error) {
-	var result playerState
-
-	if err := json.Unmarshal(blob, &result); err != nil {
-		return nil, err
-	}
-
-	result.playerIndex = index
-
-	return &result, nil
-}
-
 func (g *gameDelegate) LegalNumPlayers(numPlayers int) bool {
 	return numPlayers == 2
 }
 
-func (g *gameDelegate) StartingStateProps(numUsers int) *boardgame.StateProps {
-
-	if numUsers != 2 {
-		return nil
-	}
-
+func (g *gameDelegate) EmptyGameState() boardgame.GameState {
 	tokens := g.Manager().Chest().Deck("tokens")
 
 	if tokens == nil {
 		return nil
 	}
 
-	result := &boardgame.StateProps{
-		Game: &gameState{
-			Slots: boardgame.NewSizedStack(tokens, DIM*DIM),
-		},
-		Players: []boardgame.PlayerState{
-			&playerState{
-				TokensToPlaceThisTurn: 1,
-				TokenValue:            X,
-				UnusedTokens:          boardgame.NewGrowableStack(tokens, 0),
-				playerIndex:           0,
-			},
-			&playerState{
-				TokensToPlaceThisTurn: 0,
-				TokenValue:            O,
-				UnusedTokens:          boardgame.NewGrowableStack(tokens, 0),
-				playerIndex:           1,
-			},
-		},
+	return &gameState{
+		Slots: boardgame.NewSizedStack(tokens, DIM*DIM),
 	}
 
-	return result
+}
+
+func (g *gameDelegate) EmptyPlayerState(playerIndex int) boardgame.PlayerState {
+	tokens := g.Manager().Chest().Deck("tokens")
+
+	if tokens == nil {
+		return nil
+	}
+	return &playerState{
+		TokensToPlaceThisTurn: 1,
+		TokenValue:            X,
+		UnusedTokens:          boardgame.NewGrowableStack(tokens, 0),
+		playerIndex:           playerIndex,
+	}
 }
 
 func (g *gameDelegate) CheckGameFinished(state *boardgame.State) (finished bool, winners []int) {

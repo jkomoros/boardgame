@@ -68,26 +68,20 @@ type GameDelegate interface {
 	//one player existing.
 	LegalNumPlayers(numPlayers int) bool
 
-	//StartingState should return a zero'd state object for this game type.
-	//All future states for this particular game will be created by Copy()ing
-	//this state. If you return nil, game.SetUp() will fail.
-	StartingStateProps(numPlayers int) *StateProps
-
-	//StateFromBlob should deserialize a JSON string of this game's State. We
-	//need it to be in a game-specific bit of logic because we don't know the
-	//real type of the state stuct for this game. Be sure to inflate any
-	//Stacks in the state, and set playerIndex for each UserState in order.
-	//It's strongly recommended that you test a round-trip of state through
-	//this method.
-
-	//GameStateFromBlob and PlayerStateFromBlob are passed blobs representing
-	//those JSON'd state and should back back the given objects. This is
-	//necessary because we don't know the underlying concrete type and need to
-	//be told. Do not worry about re-inflating stacks, that will be done for
-	//you in GameManger's StateFromBlob, as long as your stacks are visible
-	//via the PropertyReader your states return.
-	GameStateFromBlob(blob []byte) (GameState, error)
-	PlayerStateFromBlob(blob []byte, playerIndex int) (PlayerState, error)
+	//EmptyGameState and EmptyPlayerState are called to get an instantiation
+	//of the concrete game/player structs that your package defines. This is
+	//used both to create the initial state, but also to inflate states from
+	//the database. These methods should always return the underlying same
+	//type of struct when called. The simple properties (ints, bools, strings)
+	//should all be their zero-value. Importantly, all Stacks should be non-
+	//nil, because an initialized struct contains information about things
+	//like MaxSize, Size, and a reference to the deck they are affiliated
+	//with. Game methods that use these will fail if the State objects return
+	//have uninitialized stacks. Since these two methods are always required
+	//and always specific to each game type, DefaultGameDelegate does not
+	//implement them.
+	EmptyGameState() GameState
+	EmptyPlayerState(playerIndex int) PlayerState
 
 	//StateSanitizationPolicy returns the policy for sanitizing states in this
 	//game. The policy should not change over time. See StatePolicy for more
@@ -173,18 +167,6 @@ func (d *DefaultGameDelegate) FinishSetUp(state *State) {
 
 func (d *DefaultGameDelegate) CheckGameFinished(state *State) (finished bool, winners []int) {
 	return false, nil
-}
-
-func (d *DefaultGameDelegate) GameStateFromBlob(blob []byte) (GameState, error) {
-	return nil, errors.New("Default delegate does not know how to deserialize game state objects")
-}
-
-func (d *DefaultGameDelegate) PlayerStateFromBlob(blob []byte, index int) (PlayerState, error) {
-	return nil, errors.New("Default delegate does not know how to deserialize player state objects")
-}
-
-func (d *DefaultGameDelegate) StartingStateProps(numPlayers int) *StateProps {
-	return nil
 }
 
 func (d *DefaultGameDelegate) DefaultNumPlayers() int {

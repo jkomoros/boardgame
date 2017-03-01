@@ -7,7 +7,6 @@ because it has hidden state.
 package blackjack
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/playingcards"
@@ -143,35 +142,34 @@ func (g *gameDelegate) LegalNumPlayers(numPlayers int) bool {
 	return numPlayers > 0 && numPlayers < 7
 }
 
-func (g *gameDelegate) StartingStateProps(numPlayers int) *boardgame.StateProps {
+func (g *gameDelegate) EmptyGameState() boardgame.GameState {
 	cards := g.Manager().Chest().Deck("cards")
 
 	if cards == nil {
 		return nil
 	}
-
-	result := &boardgame.StateProps{
-		Game: &gameState{
-			DiscardStack:  boardgame.NewGrowableStack(cards, 0),
-			DrawStack:     boardgame.NewGrowableStack(cards, 0),
-			UnusedCards:   boardgame.NewGrowableStack(cards, 0),
-			CurrentPlayer: 0,
-		},
+	return &gameState{
+		DiscardStack:  boardgame.NewGrowableStack(cards, 0),
+		DrawStack:     boardgame.NewGrowableStack(cards, 0),
+		UnusedCards:   boardgame.NewGrowableStack(cards, 0),
+		CurrentPlayer: 0,
 	}
+}
 
-	for i := 0; i < numPlayers; i++ {
-		player := &playerState{
-			playerIndex:    i,
-			GotInitialDeal: false,
-			HiddenHand:     boardgame.NewGrowableStack(cards, 1),
-			VisibleHand:    boardgame.NewGrowableStack(cards, 0),
-			Busted:         false,
-			Stood:          false,
-		}
-		result.Players = append(result.Players, player)
+func (g *gameDelegate) EmptyPlayerState(playerIndex int) boardgame.PlayerState {
+	cards := g.Manager().Chest().Deck("cards")
+
+	if cards == nil {
+		return nil
 	}
-
-	return result
+	return &playerState{
+		playerIndex:    playerIndex,
+		GotInitialDeal: false,
+		HiddenHand:     boardgame.NewGrowableStack(cards, 1),
+		VisibleHand:    boardgame.NewGrowableStack(cards, 0),
+		Busted:         false,
+		Stood:          false,
+	}
 }
 
 func (g *gameDelegate) FinishSetUp(state *boardgame.State) {
@@ -204,28 +202,6 @@ func (g *gameDelegate) StateSanitizationPolicy() *boardgame.StatePolicy {
 
 	return policy
 
-}
-
-func (g *gameDelegate) GameStateFromBlob(blob []byte) (boardgame.GameState, error) {
-	var result gameState
-
-	if err := json.Unmarshal(blob, &result); err != nil {
-		return nil, err
-	}
-
-	return &result, nil
-}
-
-func (g *gameDelegate) PlayerStateFromBlob(blob []byte, index int) (boardgame.PlayerState, error) {
-	var result playerState
-
-	if err := json.Unmarshal(blob, &result); err != nil {
-		return nil, err
-	}
-
-	result.playerIndex = index
-
-	return &result, nil
 }
 
 func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {

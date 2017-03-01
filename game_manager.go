@@ -200,10 +200,14 @@ func (g *GameManager) StateFromBlob(blob []byte) (*State, error) {
 
 	props := &StateProps{}
 
-	game, err := g.delegate.GameStateFromBlob(refried.Props.Game)
+	game := g.delegate.EmptyGameState()
 
-	if err != nil {
-		return nil, errors.New("GameStateFromBlob failed: " + err.Error())
+	if game == nil {
+		return nil, errors.New("EmptyGameState returned nil")
+	}
+
+	if err := json.Unmarshal(refried.Props.Game, game); err != nil {
+		return nil, errors.New("Unmarshal of GameState failed: " + err.Error())
 	}
 
 	for propName, propType := range game.Reader().Props() {
@@ -226,10 +230,14 @@ func (g *GameManager) StateFromBlob(blob []byte) (*State, error) {
 	props.Game = game
 
 	for i, blob := range refried.Props.Players {
-		player, err := g.delegate.PlayerStateFromBlob(blob, i)
+		player := g.delegate.EmptyPlayerState(i)
 
-		if err != nil {
-			return nil, errors.New("PlayerStateFromBlob failed for " + strconv.Itoa(i) + "th entry: " + err.Error())
+		if player == nil {
+			return nil, errors.New("EmptyPlayerState returned nil for " + strconv.Itoa(i) + " player")
+		}
+
+		if err := json.Unmarshal(blob, player); err != nil {
+			return nil, errors.New("Unmarshal into player state failed for " + strconv.Itoa(i) + " player: " + err.Error())
 		}
 
 		for propName, propType := range player.Reader().Props() {
