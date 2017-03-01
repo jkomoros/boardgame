@@ -403,13 +403,13 @@ func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 	}
 
 	if isFixUp {
-		if g.FixUpMoveByName(move.Name()) == nil {
+		if g.manager.FixUpMoveByName(move.Name()) == nil {
 			return errors.New("That move is not configured as a Fix Up move for this game.")
 		}
 	} else {
 
 		//Verify that the Move is actually configured to be part of this game.
-		if g.PlayerMoveByName(move.Name()) == nil {
+		if g.manager.PlayerMoveByName(move.Name()) == nil {
 			return errors.New("That move is not configured as a Player move for this game.")
 		}
 	}
