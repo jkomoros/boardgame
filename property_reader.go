@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode"
 )
 
@@ -60,10 +61,13 @@ type PropertyReadSetter interface {
 }
 
 //TODO: protect access to this with a mutex.
+var defaultReaderCacheLock sync.RWMutex
 var defaultReaderCache map[interface{}]*defaultReader
 
 func init() {
+	defaultReaderCacheLock.Lock()
 	defaultReaderCache = make(map[interface{}]*defaultReader)
+	defaultReaderCacheLock.Unlock()
 }
 
 type defaultReader struct {
@@ -84,13 +88,20 @@ func DefaultReader(i interface{}) PropertyReader {
 //implement the Reader method in a line. It will return an existing wrapper or
 //create a new one if necessary.
 func DefaultReadSetter(i interface{}) PropertyReadSetter {
+
+	defaultReaderCacheLock.RLock()
 	if reader := defaultReaderCache[i]; reader != nil {
 		return reader
 	}
+
+	defaultReaderCacheLock.RUnlock()
 	result := &defaultReader{
 		i: i,
 	}
+
+	defaultReaderCacheLock.Lock()
 	defaultReaderCache[i] = result
+	defaultReaderCacheLock.Unlock()
 	return result
 }
 
