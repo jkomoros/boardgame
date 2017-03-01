@@ -90,11 +90,13 @@ func DefaultReader(i interface{}) PropertyReader {
 func DefaultReadSetter(i interface{}) PropertyReadSetter {
 
 	defaultReaderCacheLock.RLock()
-	if reader := defaultReaderCache[i]; reader != nil {
+	reader := defaultReaderCache[i]
+	defaultReaderCacheLock.RUnlock()
+
+	if reader != nil {
 		return reader
 	}
 
-	defaultReaderCacheLock.RUnlock()
 	result := &defaultReader{
 		i: i,
 	}
