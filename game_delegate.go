@@ -71,7 +71,8 @@ type GameDelegate interface {
 	//those JSON'd state and should back back the given objects. This is
 	//necessary because we don't know the underlying concrete type and need to
 	//be told. Do not worry about re-inflating stacks, that will be done for
-	//you in GameManger's StateFromBlob.
+	//you in GameManger's StateFromBlob, as long as your stacks are visible
+	//via the PropertyReader your states return.
 	GameStateFromBlob(blob []byte) (GameState, error)
 	PlayerStateFromBlob(blob []byte, playerIndex int) (PlayerState, error)
 
