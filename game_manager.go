@@ -1,7 +1,9 @@
 package boardgame
 
 import (
+	"encoding/json"
 	"errors"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -177,8 +179,86 @@ func (g *GameManager) Game(id string) *Game {
 }
 
 type refriedState struct {
-	Game    map[string]interface{}
-	Players []map[string]interface{}
+	Props refriedStateProps
+}
+
+type refriedStateProps struct {
+	Game    json.RawMessage
+	Players []json.RawMessage
+}
+
+func (g *GameManager) StateFromBlob(blob []byte) (*State, error) {
+	//At this point, no extra state is stored in the blob other than in props.
+
+	//We can't just delegate to StateProps to unmarshal itself, because it
+	//needs a reference to delegate to inflate, and only we have that.
+	var refried refriedState
+
+	if err := json.Unmarshal(blob, &refried); err != nil {
+		return nil, err
+	}
+
+	props := &StateProps{}
+
+	game, err := g.delegate.GameStateFromBlob(refried.Props.Game)
+
+	if err != nil {
+		return nil, errors.New("GameStateFromBlob failed: " + err.Error())
+	}
+
+	for propName, propType := range game.Reader().Props() {
+		switch propType {
+		case TypeSizedStack:
+			stack, err := game.Reader().SizedStackProp(propName)
+			if err != nil {
+				return nil, errors.New("Unable to inflate stack " + propName + " in game.")
+			}
+			stack.Inflate(g.Chest())
+		case TypeGrowableStack:
+			stack, err := game.Reader().GrowableStackProp(propName)
+			if err != nil {
+				return nil, errors.New("Unable to inflate stack " + propName + " in game.")
+			}
+			stack.Inflate(g.Chest())
+		}
+	}
+
+	props.Game = game
+
+	for i, blob := range refried.Props.Players {
+		player, err := g.delegate.PlayerStateFromBlob(blob, i)
+
+		if err != nil {
+			return nil, errors.New("PlayerStateFromBlob failed for " + strconv.Itoa(i) + "th entry: " + err.Error())
+		}
+
+		for propName, propType := range player.Reader().Props() {
+			switch propType {
+			case TypeSizedStack:
+				stack, err := player.Reader().SizedStackProp(propName)
+				if err != nil {
+					return nil, errors.New("Unable to inflate stack " + propName + " in player " + strconv.Itoa(i))
+				}
+				stack.Inflate(g.Chest())
+			case TypeGrowableStack:
+				stack, err := player.Reader().GrowableStackProp(propName)
+				if err != nil {
+					return nil, errors.New("Unable to inflate stack " + propName + " in player " + strconv.Itoa(i))
+				}
+				stack.Inflate(g.Chest())
+			}
+		}
+
+		props.Players = append(props.Players, player)
+	}
+
+	result := &State{
+		delegate: g.delegate,
+		Props:    props,
+	}
+
+	return result, nil
+
 }
 
 //SanitizedStateForPlayer produces a sanitized state object representing the
@@ -186,10 +266,10 @@ type refriedState struct {
 //returned will have Sanitized() return true. Will call
 //GameDelegate.StateSanitizationPolicy to retrieve the policy in place. See
 //the package level comment for an overview of how state sanitization works.
-func (g *GameManager) SanitizedStateForPlayer(state State, playerIndex int) State {
+func (g *GameManager) SanitizedStateForPlayer(state *State, playerIndex int) *State {
 
 	//If the playerIndex isn't an actuall player's index, just return self.
-	if playerIndex < 0 || playerIndex >= len(state.PlayerStates()) {
+	if playerIndex < 0 || playerIndex >= len(state.Props.Players) {
 		return state
 	}
 
@@ -201,9 +281,9 @@ func (g *GameManager) SanitizedStateForPlayer(state State, playerIndex int) Stat
 
 	sanitized := state.Copy(true)
 
-	sanitizeStateObj(sanitized.GameState().Reader(), policy.Game, -1, playerIndex)
+	sanitizeStateObj(sanitized.Props.Game.Reader(), policy.Game, -1, playerIndex)
 
-	playerStates := sanitized.PlayerStates()
+	playerStates := sanitized.Props.Players
 
 	for i := 0; i < len(playerStates); i++ {
 		sanitizeStateObj(playerStates[i].Reader(), policy.Player, i, playerIndex)

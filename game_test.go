@@ -12,7 +12,7 @@ type testInfiniteLoopGameDelegate struct {
 	testGameDelegate
 }
 
-func (t *testInfiniteLoopGameDelegate) ProposeFixUpMove(state State) Move {
+func (t *testInfiniteLoopGameDelegate) ProposeFixUpMove(state *State) Move {
 	return &testAlwaysLegalMove{}
 }
 
@@ -110,11 +110,11 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("MoveByName returned a non-copy")
 	}
 
-	p := game.CurrentState().(*testState)
+	gameState, _ := concreteStates(game.CurrentState())
 
 	deck := game.Chest().Deck("test").Components()
 
-	if p.Game.DrawDeck.Len() != len(deck) {
+	if gameState.DrawDeck.Len() != len(deck) {
 		t.Error("All of the components were not distributed in SetUp")
 	}
 

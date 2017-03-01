@@ -9,21 +9,21 @@ type testGameDelegate struct {
 	DefaultGameDelegate
 }
 
-func (t *testGameDelegate) DistributeComponentToStarterStack(state State, c *Component) error {
-	p := state.(*testState)
-	return p.Game.DrawDeck.InsertFront(c)
+func (t *testGameDelegate) DistributeComponentToStarterStack(state *State, c *Component) error {
+	game, _ := concreteStates(state)
+	return game.DrawDeck.InsertFront(c)
 }
 
 func (t *testGameDelegate) Name() string {
 	return testGameName
 }
 
-func (t *testGameDelegate) CheckGameFinished(state State) (bool, []int) {
-	p := state.(*testState)
+func (t *testGameDelegate) CheckGameFinished(state *State) (bool, []int) {
+	_, players := concreteStates(state)
 
 	var winners []int
 
-	for i, player := range p.Players {
+	for i, player := range players {
 		if player.Score >= 5 {
 			//This user won!
 			winners = append(winners, i)
@@ -43,18 +43,18 @@ func (t *testGameDelegate) DefaultNumPlayers() int {
 	return 3
 }
 
-func (t *testGameDelegate) StartingState(numPlayers int) State {
+func (t *testGameDelegate) StartingStateProps(numPlayers int) *StateProps {
 
 	chest := t.Manager().Chest()
 
 	deck := chest.Deck("test")
 
-	return &testState{
+	return &StateProps{
 		Game: &testGameState{
 			CurrentPlayer: 0,
 			DrawDeck:      NewGrowableStack(deck, 0),
 		},
-		Players: []*testPlayerState{
+		Players: []PlayerState{
 			&testPlayerState{
 				playerIndex:       0,
 				Score:             0,
@@ -80,20 +80,26 @@ func (t *testGameDelegate) StartingState(numPlayers int) State {
 	}
 }
 
-func (t *testGameDelegate) StateFromBlob(blob []byte) (State, error) {
-	result := &testState{}
-	if err := json.Unmarshal(blob, result); err != nil {
+func (t *testGameDelegate) GameStateFromBlob(blob []byte) (GameState, error) {
+	var result testGameState
+
+	if err := json.Unmarshal(blob, &result); err != nil {
 		return nil, err
 	}
 
-	result.Game.DrawDeck.Inflate(t.Manager().Chest())
+	return &result, nil
+}
 
-	for i, player := range result.Players {
-		player.playerIndex = i
-		player.Hand.Inflate(t.Manager().Chest())
+func (t *testGameDelegate) PlayerStateFromBlob(blob []byte, index int) (PlayerState, error) {
+	var result testPlayerState
+
+	if err := json.Unmarshal(blob, &result); err != nil {
+		return nil, err
 	}
 
-	return result, nil
+	result.playerIndex = index
+
+	return &result, nil
 }
 
 func TestTestGameDelegate(t *testing.T) {

@@ -36,13 +36,13 @@ func TestStateFromBlob(t *testing.T) {
 		t.Fatal("Couldn't serialize state:", err)
 	}
 
-	reconstitutedState, err := game.Manager().Delegate().StateFromBlob(blob)
+	reconstitutedState, err := game.Manager().StateFromBlob(blob)
 
 	if err != nil {
 		t.Error("StateFromBlob returned unexpected err", err)
 	}
 
-	if !reconstitutedState.(*mainState).Game.Slots.Inflated() {
+	if !reconstitutedState.Props.Game.(*gameState).Slots.Inflated() {
 		t.Error("The stack was not inflated when it came back from StateFromBlob")
 	}
 

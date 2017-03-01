@@ -14,22 +14,22 @@ type MovePlaceToken struct {
 	TargetPlayerIndex int
 }
 
-func (m *MovePlaceToken) Legal(payload boardgame.State) error {
-	p := payload.(*mainState)
+func (m *MovePlaceToken) Legal(state *boardgame.State) error {
+	game, players := concreteStates(state)
 
-	if p.Game.CurrentPlayer != m.TargetPlayerIndex {
+	if game.CurrentPlayer != m.TargetPlayerIndex {
 		return errors.New("The specified player is not the current player.")
 	}
 
-	if p.Players[m.TargetPlayerIndex].UnusedTokens.Len() < 1 {
+	if players[m.TargetPlayerIndex].UnusedTokens.Len() < 1 {
 		return errors.New("There aren't any remaining tokens for the current player to place.")
 	}
 
-	if m.Slot < 0 || m.Slot >= p.Game.Slots.Len() {
+	if m.Slot < 0 || m.Slot >= game.Slots.Len() {
 		return errors.New("The specified slot is not legal.")
 	}
 
-	if p.Game.Slots.ComponentAt(m.Slot) != nil {
+	if game.Slots.ComponentAt(m.Slot) != nil {
 		return errors.New("The specified slot is already taken.")
 	}
 
@@ -37,28 +37,29 @@ func (m *MovePlaceToken) Legal(payload boardgame.State) error {
 
 }
 
-func (m *MovePlaceToken) Apply(payload boardgame.State) error {
+func (m *MovePlaceToken) Apply(state *boardgame.State) error {
 
-	p := payload.(*mainState)
+	game, players := concreteStates(state)
 
-	u := p.Players[m.TargetPlayerIndex]
+	u := players[m.TargetPlayerIndex]
 
 	c := u.UnusedTokens.RemoveFirst()
 
-	p.Game.Slots.InsertAtSlot(c, m.Slot)
+	game.Slots.InsertAtSlot(c, m.Slot)
 
 	u.TokensToPlaceThisTurn--
 
 	return nil
 }
 
-func (m *MovePlaceToken) DefaultsForState(state boardgame.State) {
-	s := state.(*mainState)
+func (m *MovePlaceToken) DefaultsForState(state *boardgame.State) {
 
-	m.TargetPlayerIndex = s.Game.CurrentPlayer
+	game, _ := concreteStates(state)
+
+	m.TargetPlayerIndex = game.CurrentPlayer
 
 	//Default to setting a slot that's empty.
-	for i, token := range s.Game.Slots.ComponentValues() {
+	for i, token := range game.Slots.ComponentValues() {
 		if token == nil {
 			m.Slot = i
 			break
@@ -87,10 +88,11 @@ func (m *MovePlaceToken) ReadSetter() boardgame.PropertyReadSetter {
 
 type MoveAdvancePlayer struct{}
 
-func (m *MoveAdvancePlayer) Legal(payload boardgame.State) error {
-	p := payload.(*mainState)
+func (m *MoveAdvancePlayer) Legal(state *boardgame.State) error {
 
-	user := p.Players[p.Game.CurrentPlayer]
+	game, players := concreteStates(state)
+
+	user := players[game.CurrentPlayer]
 
 	if user.TokensToPlaceThisTurn > 0 {
 		return errors.New("The current player still has tokens left to place this turn.")
@@ -99,17 +101,17 @@ func (m *MoveAdvancePlayer) Legal(payload boardgame.State) error {
 	return nil
 }
 
-func (m *MoveAdvancePlayer) Apply(payload boardgame.State) error {
+func (m *MoveAdvancePlayer) Apply(state *boardgame.State) error {
 
-	p := payload.(*mainState)
+	game, players := concreteStates(state)
 
-	p.Game.CurrentPlayer++
+	game.CurrentPlayer++
 
-	if p.Game.CurrentPlayer >= len(p.Players) {
-		p.Game.CurrentPlayer = 0
+	if game.CurrentPlayer >= len(players) {
+		game.CurrentPlayer = 0
 	}
 
-	newUser := p.Players[p.Game.CurrentPlayer]
+	newUser := players[game.CurrentPlayer]
 
 	newUser.TokensToPlaceThisTurn = 1
 
@@ -117,7 +119,7 @@ func (m *MoveAdvancePlayer) Apply(payload boardgame.State) error {
 
 }
 
-func (m *MoveAdvancePlayer) DefaultsForState(state boardgame.State) {
+func (m *MoveAdvancePlayer) DefaultsForState(state *boardgame.State) {
 	//Nothing to set.
 }
 

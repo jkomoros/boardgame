@@ -34,53 +34,30 @@ func componentsEqual(one *Component, two *Component) bool {
 	return true
 }
 
-type testState struct {
-	sanitized bool
-	Game      *testGameState
-	Players   []*testPlayerState
-}
+//Every game should do such a convenience method. state might be nil.
+func concreteStates(state *State) (*testGameState, []*testPlayerState) {
 
-func (t *testState) GameState() GameState {
-	return t.Game
-}
-
-func (t *testState) PlayerStates() []PlayerState {
-	result := make([]PlayerState, len(t.Players))
-	for i, player := range t.Players {
-		result[i] = player
-	}
-	return result
-}
-
-func (t *testState) Sanitized() bool {
-	return t.sanitized
-}
-
-func (t *testState) Diagram() string {
-	return "IMPLEMENT ME"
-}
-
-func (t *testState) Copy(sanitized bool) State {
-
-	result := &testState{}
-
-	if t.Game != nil {
-		result.Game = t.Game.Copy().(*testGameState)
+	if state == nil {
+		return nil, nil
 	}
 
-	if t.Players == nil {
-		return result
+	if state.Props == nil {
+		return nil, nil
 	}
 
-	array := make([]*testPlayerState, len(t.Players))
-	for i, player := range t.Players {
-		array[i] = player.Copy().(*testPlayerState)
+	players := make([]*testPlayerState, len(state.Props.Players))
+
+	for i, player := range state.Props.Players {
+		players[i] = player.(*testPlayerState)
 	}
-	result.Players = array
 
-	result.sanitized = sanitized
+	game, ok := state.Props.Game.(*testGameState)
 
-	return result
+	if !ok {
+		return nil, nil
+	}
+
+	return game, players
 }
 
 type testGameState struct {
@@ -140,7 +117,7 @@ func (t *testMoveAdvanceCurentPlayer) Copy() Move {
 	return &result
 }
 
-func (t *testMoveAdvanceCurentPlayer) DefaultsForState(state State) {
+func (t *testMoveAdvanceCurentPlayer) DefaultsForState(state *State) {
 	//No defaults to set
 }
 
@@ -152,10 +129,11 @@ func (t *testMoveAdvanceCurentPlayer) Description() string {
 	return "Advances to the next player when the current player has no more legal moves they can make this turn."
 }
 
-func (t *testMoveAdvanceCurentPlayer) Legal(state State) error {
-	payload := state.(*testState)
+func (t *testMoveAdvanceCurentPlayer) Legal(state *State) error {
 
-	player := payload.Players[payload.Game.CurrentPlayer]
+	game, players := concreteStates(state)
+
+	player := players[game.CurrentPlayer]
 
 	if player.MovesLeftThisTurn > 0 {
 		return errors.New("The current player still has moves left this turn.")
@@ -164,20 +142,20 @@ func (t *testMoveAdvanceCurentPlayer) Legal(state State) error {
 	return nil
 }
 
-func (t *testMoveAdvanceCurentPlayer) Apply(state State) error {
+func (t *testMoveAdvanceCurentPlayer) Apply(state *State) error {
 
-	payload := state.(*testState)
+	game, players := concreteStates(state)
 
 	//Make sure we're leaving it at 0
-	payload.Players[payload.Game.CurrentPlayer].MovesLeftThisTurn = 0
+	players[game.CurrentPlayer].MovesLeftThisTurn = 0
 
-	payload.Game.CurrentPlayer++
+	game.CurrentPlayer++
 
-	if payload.Game.CurrentPlayer >= len(payload.Players) {
-		payload.Game.CurrentPlayer = 0
+	if game.CurrentPlayer >= len(players) {
+		game.CurrentPlayer = 0
 	}
 
-	payload.Players[payload.Game.CurrentPlayer].MovesLeftThisTurn = 1
+	players[game.CurrentPlayer].MovesLeftThisTurn = 1
 
 	return nil
 }
@@ -207,18 +185,18 @@ func (t *testMove) Description() string {
 	return "Advances the score of the current player by the specified amount."
 }
 
-func (t *testMove) DefaultsForState(state State) {
-	s := state.(*testState)
+func (t *testMove) DefaultsForState(state *State) {
+	game, _ := concreteStates(state)
 
-	t.TargetPlayerIndex = s.Game.CurrentPlayer
+	t.TargetPlayerIndex = game.CurrentPlayer
 	t.ScoreIncrement = 3
 }
 
-func (t *testMove) Legal(state State) error {
+func (t *testMove) Legal(state *State) error {
 
-	payload := state.(*testState)
+	game, _ := concreteStates(state)
 
-	if payload.Game.CurrentPlayer != t.TargetPlayerIndex {
+	if game.CurrentPlayer != t.TargetPlayerIndex {
 		return errors.New("The current player is not the same as the target player")
 	}
 
@@ -226,13 +204,13 @@ func (t *testMove) Legal(state State) error {
 
 }
 
-func (t *testMove) Apply(state State) error {
+func (t *testMove) Apply(state *State) error {
 
-	payload := state.(*testState)
+	game, players := concreteStates(state)
 
-	payload.Players[payload.Game.CurrentPlayer].Score += t.ScoreIncrement
+	players[game.CurrentPlayer].Score += t.ScoreIncrement
 
-	payload.Players[payload.Game.CurrentPlayer].MovesLeftThisTurn -= 1
+	players[game.CurrentPlayer].MovesLeftThisTurn -= 1
 
 	return nil
 }
@@ -257,11 +235,11 @@ func (t *testAlwaysLegalMove) Description() string {
 	return "A move that is always legal"
 }
 
-func (t *testAlwaysLegalMove) DefaultsForState(state State) {
+func (t *testAlwaysLegalMove) DefaultsForState(state *State) {
 	//Pass
 }
 
-func (t *testAlwaysLegalMove) Legal(state State) error {
+func (t *testAlwaysLegalMove) Legal(state *State) error {
 
 	//This move is always legal
 
@@ -269,7 +247,7 @@ func (t *testAlwaysLegalMove) Legal(state State) error {
 
 }
 
-func (t *testAlwaysLegalMove) Apply(state State) error {
+func (t *testAlwaysLegalMove) Apply(state *State) error {
 
 	//This move doesn't do anything
 

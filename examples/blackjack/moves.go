@@ -32,21 +32,21 @@ type MoveCurrentPlayerStand struct {
  *
  **************************************************/
 
-func (m *MoveShuffleDiscardToDraw) Legal(state boardgame.State) error {
-	s := state.(*mainState)
+func (m *MoveShuffleDiscardToDraw) Legal(state *boardgame.State) error {
+	game, _ := concreteStates(state)
 
-	if s.Game.DrawStack.Len() > 0 {
+	if game.DrawStack.Len() > 0 {
 		return errors.New("The draw stack is not yet empty")
 	}
 
 	return nil
 }
 
-func (m *MoveShuffleDiscardToDraw) Apply(state boardgame.State) error {
-	s := state.(*mainState)
+func (m *MoveShuffleDiscardToDraw) Apply(state *boardgame.State) error {
+	game, _ := concreteStates(state)
 
-	s.Game.DiscardStack.MoveAllTo(s.Game.DrawStack)
-	s.Game.DrawStack.Shuffle()
+	game.DiscardStack.MoveAllTo(game.DrawStack)
+	game.DrawStack.Shuffle()
 
 	return nil
 }
@@ -57,7 +57,7 @@ func (m *MoveShuffleDiscardToDraw) Copy() boardgame.Move {
 	return &result
 }
 
-func (m *MoveShuffleDiscardToDraw) DefaultsForState(state boardgame.State) {
+func (m *MoveShuffleDiscardToDraw) DefaultsForState(state *boardgame.State) {
 	//Nothing to do
 }
 
@@ -79,14 +79,15 @@ func (m *MoveShuffleDiscardToDraw) ReadSetter() boardgame.PropertyReadSetter {
  *
  **************************************************/
 
-func (m *MoveCurrentPlayerHit) Legal(state boardgame.State) error {
-	s := state.(*mainState)
+func (m *MoveCurrentPlayerHit) Legal(state *boardgame.State) error {
 
-	if s.Game.CurrentPlayer != m.TargetPlayerIndex {
+	game, players := concreteStates(state)
+
+	if game.CurrentPlayer != m.TargetPlayerIndex {
 		return errors.New("The specified player is not the current player.")
 	}
 
-	currentPlayer := s.Players[s.Game.CurrentPlayer]
+	currentPlayer := players[game.CurrentPlayer]
 
 	if currentPlayer.Busted {
 		return errors.New("Current player is busted")
@@ -101,12 +102,12 @@ func (m *MoveCurrentPlayerHit) Legal(state boardgame.State) error {
 	return nil
 }
 
-func (m *MoveCurrentPlayerHit) Apply(state boardgame.State) error {
-	s := state.(*mainState)
+func (m *MoveCurrentPlayerHit) Apply(state *boardgame.State) error {
+	game, players := concreteStates(state)
 
-	currentPlayer := s.Players[s.Game.CurrentPlayer]
+	currentPlayer := players[game.CurrentPlayer]
 
-	currentPlayer.VisibleHand.InsertFront(s.Game.DrawStack.RemoveFirst())
+	currentPlayer.VisibleHand.InsertFront(game.DrawStack.RemoveFirst())
 
 	handValue := currentPlayer.HandValue()
 
@@ -127,10 +128,10 @@ func (m *MoveCurrentPlayerHit) Copy() boardgame.Move {
 	return &result
 }
 
-func (m *MoveCurrentPlayerHit) DefaultsForState(state boardgame.State) {
-	s := state.(*mainState)
+func (m *MoveCurrentPlayerHit) DefaultsForState(state *boardgame.State) {
+	game, _ := concreteStates(state)
 
-	m.TargetPlayerIndex = s.Game.CurrentPlayer
+	m.TargetPlayerIndex = game.CurrentPlayer
 }
 
 func (m *MoveCurrentPlayerHit) Name() string {
@@ -151,15 +152,15 @@ func (m *MoveCurrentPlayerHit) ReadSetter() boardgame.PropertyReadSetter {
  *
  **************************************************/
 
-func (m *MoveCurrentPlayerStand) Legal(state boardgame.State) error {
+func (m *MoveCurrentPlayerStand) Legal(state *boardgame.State) error {
 
-	s := state.(*mainState)
+	game, players := concreteStates(state)
 
-	if s.Game.CurrentPlayer != m.TargetPlayerIndex {
+	if game.CurrentPlayer != m.TargetPlayerIndex {
 		return errors.New("The specified player is not the current player.")
 	}
 
-	currentPlayer := s.Players[s.Game.CurrentPlayer]
+	currentPlayer := players[game.CurrentPlayer]
 
 	if currentPlayer.Busted {
 		return errors.New("The current player has already busted.")
@@ -173,10 +174,11 @@ func (m *MoveCurrentPlayerStand) Legal(state boardgame.State) error {
 
 }
 
-func (m *MoveCurrentPlayerStand) Apply(state boardgame.State) error {
-	s := state.(*mainState)
+func (m *MoveCurrentPlayerStand) Apply(state *boardgame.State) error {
 
-	currentPlayer := s.Players[s.Game.CurrentPlayer]
+	game, players := concreteStates(state)
+
+	currentPlayer := players[game.CurrentPlayer]
 
 	currentPlayer.Stood = true
 
@@ -189,9 +191,9 @@ func (m *MoveCurrentPlayerStand) Copy() boardgame.Move {
 	return &result
 }
 
-func (m *MoveCurrentPlayerStand) DefaultsForState(state boardgame.State) {
-	s := state.(*mainState)
-	m.TargetPlayerIndex = s.Game.CurrentPlayer
+func (m *MoveCurrentPlayerStand) DefaultsForState(state *boardgame.State) {
+	game, _ := concreteStates(state)
+	m.TargetPlayerIndex = game.CurrentPlayer
 }
 
 func (m *MoveCurrentPlayerStand) Name() string {
@@ -212,10 +214,10 @@ func (m *MoveCurrentPlayerStand) ReadSetter() boardgame.PropertyReadSetter {
  *
  **************************************************/
 
-func (m *MoveAdvanceNextPlayer) Legal(state boardgame.State) error {
-	s := state.(*mainState)
+func (m *MoveAdvanceNextPlayer) Legal(state *boardgame.State) error {
+	game, players := concreteStates(state)
 
-	currentPlayer := s.Players[s.Game.CurrentPlayer]
+	currentPlayer := players[game.CurrentPlayer]
 
 	if currentPlayer.Busted || currentPlayer.Stood {
 		return nil
@@ -224,15 +226,16 @@ func (m *MoveAdvanceNextPlayer) Legal(state boardgame.State) error {
 	return errors.New("The current player has neither busted nor decided to stand.")
 }
 
-func (m *MoveAdvanceNextPlayer) Apply(state boardgame.State) error {
-	s := state.(*mainState)
+func (m *MoveAdvanceNextPlayer) Apply(state *boardgame.State) error {
 
-	s.Game.CurrentPlayer++
-	if s.Game.CurrentPlayer >= len(s.Players) {
-		s.Game.CurrentPlayer = 0
+	game, players := concreteStates(state)
+
+	game.CurrentPlayer++
+	if game.CurrentPlayer >= len(players) {
+		game.CurrentPlayer = 0
 	}
 
-	currentPlayer := s.Players[s.Game.CurrentPlayer]
+	currentPlayer := players[game.CurrentPlayer]
 
 	currentPlayer.Stood = false
 
@@ -246,7 +249,7 @@ func (m *MoveAdvanceNextPlayer) Copy() boardgame.Move {
 	return &result
 }
 
-func (m *MoveAdvanceNextPlayer) DefaultsForState(state boardgame.State) {
+func (m *MoveAdvanceNextPlayer) DefaultsForState(state *boardgame.State) {
 	//TODO: implement
 }
 
@@ -268,10 +271,11 @@ func (m *MoveAdvanceNextPlayer) ReadSetter() boardgame.PropertyReadSetter {
  *
  **************************************************/
 
-func (m *MoveRevealHiddenCard) Legal(state boardgame.State) error {
-	s := state.(*mainState)
+func (m *MoveRevealHiddenCard) Legal(state *boardgame.State) error {
 
-	p := s.Players[m.TargetPlayerIndex]
+	_, players := concreteStates(state)
+
+	p := players[m.TargetPlayerIndex]
 
 	if p.HiddenHand.NumComponents() < 1 {
 		return errors.New("Target player has no cards to reveal")
@@ -280,10 +284,10 @@ func (m *MoveRevealHiddenCard) Legal(state boardgame.State) error {
 	return nil
 }
 
-func (m *MoveRevealHiddenCard) Apply(state boardgame.State) error {
-	s := state.(*mainState)
+func (m *MoveRevealHiddenCard) Apply(state *boardgame.State) error {
+	_, players := concreteStates(state)
 
-	p := s.Players[m.TargetPlayerIndex]
+	p := players[m.TargetPlayerIndex]
 
 	p.VisibleHand.InsertFront(p.HiddenHand.RemoveFirst())
 
@@ -296,10 +300,10 @@ func (m *MoveRevealHiddenCard) Copy() boardgame.Move {
 	return &result
 }
 
-func (m *MoveRevealHiddenCard) DefaultsForState(state boardgame.State) {
-	s := state.(*mainState)
+func (m *MoveRevealHiddenCard) DefaultsForState(state *boardgame.State) {
+	game, _ := concreteStates(state)
 
-	m.TargetPlayerIndex = s.Game.CurrentPlayer
+	m.TargetPlayerIndex = game.CurrentPlayer
 
 }
 
@@ -321,14 +325,14 @@ func (m *MoveRevealHiddenCard) ReadSetter() boardgame.PropertyReadSetter {
  *
  **************************************************/
 
-func (m *MoveDealInitialCard) Legal(state boardgame.State) error {
-	s := state.(*mainState)
+func (m *MoveDealInitialCard) Legal(state *boardgame.State) error {
+	_, players := concreteStates(state)
 
-	if m.TargetPlayerIndex < 0 || m.TargetPlayerIndex >= len(s.Players) {
+	if m.TargetPlayerIndex < 0 || m.TargetPlayerIndex >= len(players) {
 		return errors.New("Invalid target player index")
 	}
 
-	p := s.Players[m.TargetPlayerIndex]
+	p := players[m.TargetPlayerIndex]
 
 	if p.GotInitialDeal {
 		return errors.New("The target player already got their initial deal")
@@ -346,17 +350,17 @@ func (m *MoveDealInitialCard) Legal(state boardgame.State) error {
 
 }
 
-func (m *MoveDealInitialCard) Apply(state boardgame.State) error {
-	s := state.(*mainState)
+func (m *MoveDealInitialCard) Apply(state *boardgame.State) error {
+	game, players := concreteStates(state)
 
-	p := s.Players[m.TargetPlayerIndex]
+	p := players[m.TargetPlayerIndex]
 
 	if m.IsHidden {
-		if err := p.HiddenHand.InsertBack(s.Game.DrawStack.RemoveFirst()); err != nil {
+		if err := p.HiddenHand.InsertBack(game.DrawStack.RemoveFirst()); err != nil {
 			return err
 		}
 	} else {
-		if err := p.VisibleHand.InsertBack(s.Game.DrawStack.RemoveFirst()); err != nil {
+		if err := p.VisibleHand.InsertBack(game.DrawStack.RemoveFirst()); err != nil {
 			return err
 		}
 		//This completes their initial deal
@@ -373,16 +377,16 @@ func (m *MoveDealInitialCard) Copy() boardgame.Move {
 	return &result
 }
 
-func (m *MoveDealInitialCard) DefaultsForState(state boardgame.State) {
+func (m *MoveDealInitialCard) DefaultsForState(state *boardgame.State) {
 
 	//The default game delegate will cycle around calling this, so
 	//DefaultsForState should pick the next one each time.
 
-	s := state.(*mainState)
+	_, players := concreteStates(state)
 
 	//First look for the first player with no hidden card dealt
-	for i := 0; i < len(s.Players); i++ {
-		p := s.Players[i]
+	for i := 0; i < len(players); i++ {
+		p := players[i]
 		if p.HiddenHand.NumComponents() == 0 {
 			m.TargetPlayerIndex = i
 			m.IsHidden = true
@@ -390,8 +394,8 @@ func (m *MoveDealInitialCard) DefaultsForState(state boardgame.State) {
 		}
 	}
 	//OK, hidden hands were full. Anyone who hasn't had the other card now gets it.
-	for i := 0; i < len(s.Players); i++ {
-		p := s.Players[i]
+	for i := 0; i < len(players); i++ {
+		p := players[i]
 		if !p.GotInitialDeal {
 			m.TargetPlayerIndex = i
 			m.IsHidden = false

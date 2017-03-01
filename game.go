@@ -27,7 +27,7 @@ type Game struct {
 
 	//Memozied answer to CurrentState. Invalidated whenever ApplyMove is
 	//called.
-	cachedCurrentState State
+	cachedCurrentState *State
 
 	//Modifiable controls whether moves can be made on this game.
 	modifiable bool
@@ -119,7 +119,7 @@ func (g *Game) Manager() *GameManager {
 //NumPlayers returns the number of players for this game, based on how many
 //PlayerStates are in CurrentState.
 func (g *Game) NumPlayers() int {
-	return len(g.CurrentState().PlayerStates())
+	return len(g.CurrentState().Props.Players)
 }
 
 //JSONForPlayer returns an object appropriate for being json'd via
@@ -160,7 +160,7 @@ func (g *Game) Version() int {
 
 //CurrentVersion returns the state object for the current state. Equivalent,
 //semantically, to game.State(game.Version())
-func (g *Game) CurrentState() State {
+func (g *Game) CurrentState() *State {
 	if g.cachedCurrentState == nil {
 		g.cachedCurrentState = g.State(g.Version())
 	}
@@ -168,7 +168,7 @@ func (g *Game) CurrentState() State {
 }
 
 //Returns the game's atate at the current version.
-func (g *Game) State(version int) State {
+func (g *Game) State(version int) *State {
 
 	if version < 0 || version > g.Version() {
 		return nil
@@ -202,10 +202,15 @@ func (g *Game) SetUp(numPlayers int) error {
 	}
 
 	//We'll work on a copy of Payload, so if it fails at some point we can just drop it
-	stateCopy := g.manager.Delegate().StartingState(numPlayers)
+	props := g.manager.Delegate().StartingStateProps(numPlayers)
 
-	if stateCopy == nil {
+	if props == nil {
 		return errors.New("Delegate didn't return a starter state.")
+	}
+
+	stateCopy := &State{
+		delegate: g.Manager().Delegate(),
+		Props:    props,
 	}
 
 	//Distribute all components to their starter locations

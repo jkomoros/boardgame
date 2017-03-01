@@ -8,8 +8,10 @@ package blackjack
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/playingcards"
+	"strings"
 )
 
 const targetScore = 21
@@ -33,27 +35,73 @@ func (g *gameDelegate) DefaultNumPlayers() int {
 	return 4
 }
 
-func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c *boardgame.Component) error {
+func (g *gameDelegate) DistributeComponentToStarterStack(state *boardgame.State, c *boardgame.Component) error {
 
-	s := state.(*mainState)
+	game, _ := concreteStates(state)
 
 	card := c.Values.(*playingcards.Card)
 
 	if card.Rank == playingcards.RankJoker {
-		s.Game.UnusedCards.InsertFront(c)
+		game.UnusedCards.InsertFront(c)
 	} else {
-		s.Game.DrawStack.InsertFront(c)
+		game.DrawStack.InsertFront(c)
 	}
 
 	return nil
 
 }
 
-func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, winners []int) {
+func (g *gameDelegate) Diagram(state *boardgame.State) string {
 
-	s := state.(*mainState)
+	game, players := concreteStates(state)
 
-	for _, player := range s.Players {
+	var result []string
+
+	result = append(result, fmt.Sprintf("Cards left in deck: %d", game.DrawStack.NumComponents()))
+
+	for i, player := range players {
+
+		playerLine := fmt.Sprintf("Player %d", i)
+
+		if i == game.CurrentPlayer {
+			playerLine += "  *CURRENT*"
+		}
+
+		result = append(result, playerLine)
+
+		statusLine := fmt.Sprintf("\tValue: %d", player.HandValue())
+
+		if player.Busted {
+			statusLine += " BUSTED"
+		}
+
+		if player.Stood {
+			statusLine += " STOOD"
+		}
+
+		result = append(result, statusLine)
+
+		result = append(result, "\tCards:")
+
+		for _, card := range playingcards.ValuesToCards(player.HiddenHand.ComponentValues()) {
+			result = append(result, "\t\t"+card.String())
+		}
+
+		for _, card := range playingcards.ValuesToCards(player.VisibleHand.ComponentValues()) {
+			result = append(result, "\t\t"+card.String())
+		}
+
+		result = append(result, "")
+	}
+
+	return strings.Join(result, "\n")
+}
+
+func (g *gameDelegate) CheckGameFinished(state *boardgame.State) (finished bool, winners []int) {
+
+	_, players := concreteStates(state)
+
+	for _, player := range players {
 		if !player.Busted && !player.Stood {
 			return false, nil
 		}
@@ -63,7 +111,7 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, 
 
 	maxScore := 0
 
-	for _, player := range s.Players {
+	for _, player := range players {
 		if player.Busted {
 			continue
 		}
@@ -77,7 +125,7 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, 
 
 	var result []int
 
-	for i, player := range s.Players {
+	for i, player := range players {
 		if player.Busted {
 			continue
 		}
@@ -91,14 +139,14 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, 
 
 }
 
-func (g *gameDelegate) StartingState(numPlayers int) boardgame.State {
+func (g *gameDelegate) StartingStateProps(numPlayers int) *boardgame.StateProps {
 	cards := g.Manager().Chest().Deck("cards")
 
 	if cards == nil {
 		return nil
 	}
 
-	result := &mainState{
+	result := &boardgame.StateProps{
 		Game: &gameState{
 			DiscardStack:  boardgame.NewGrowableStack(cards, 0),
 			DrawStack:     boardgame.NewGrowableStack(cards, 0),
@@ -122,10 +170,10 @@ func (g *gameDelegate) StartingState(numPlayers int) boardgame.State {
 	return result
 }
 
-func (g *gameDelegate) FinishSetUp(state boardgame.State) {
-	s := state.(*mainState)
+func (g *gameDelegate) FinishSetUp(state *boardgame.State) {
+	game, _ := concreteStates(state)
 
-	s.Game.DrawStack.Shuffle()
+	game.DrawStack.Shuffle()
 }
 
 var policy *boardgame.StatePolicy
@@ -154,23 +202,26 @@ func (g *gameDelegate) StateSanitizationPolicy() *boardgame.StatePolicy {
 
 }
 
-func (g *gameDelegate) StateFromBlob(blob []byte) (boardgame.State, error) {
-	result := &mainState{}
-	if err := json.Unmarshal(blob, result); err != nil {
+func (g *gameDelegate) GameStateFromBlob(blob []byte) (boardgame.GameState, error) {
+	var result gameState
+
+	if err := json.Unmarshal(blob, &result); err != nil {
 		return nil, err
 	}
 
-	result.Game.DrawStack.Inflate(g.Manager().Chest())
-	result.Game.DiscardStack.Inflate(g.Manager().Chest())
-	result.Game.UnusedCards.Inflate(g.Manager().Chest())
+	return &result, nil
+}
 
-	for i, player := range result.Players {
-		player.playerIndex = i
-		player.VisibleHand.Inflate(g.Manager().Chest())
-		player.HiddenHand.Inflate(g.Manager().Chest())
+func (g *gameDelegate) PlayerStateFromBlob(blob []byte, index int) (boardgame.PlayerState, error) {
+	var result playerState
+
+	if err := json.Unmarshal(blob, &result); err != nil {
+		return nil, err
 	}
 
-	return result, nil
+	result.playerIndex = index
+
+	return &result, nil
 }
 
 func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {

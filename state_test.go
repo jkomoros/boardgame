@@ -34,9 +34,13 @@ func TestState(t *testing.T) {
 
 	compareJSONObjects(copyJson, currentJson, "Copy was not same", t)
 
-	stateCopy.(*testState).Players[0].MovesLeftThisTurn = 10
+	_, playerStatesCopy := concreteStates(stateCopy)
 
-	if state.(*testState).Players[0].MovesLeftThisTurn == 10 {
+	playerStatesCopy[0].MovesLeftThisTurn = 10
+
+	_, playerStates := concreteStates(state)
+
+	if playerStates[0].MovesLeftThisTurn == 10 {
 		t.Error("Modifying a copy change the original")
 	}
 
@@ -74,13 +78,15 @@ func TestStateSerialization(t *testing.T) {
 		t.Fatal("Couldn't serialize state:", err)
 	}
 
-	reconstitutedState, err := game.Manager().Delegate().StateFromBlob(blob)
+	reconstitutedState, err := game.Manager().StateFromBlob(blob)
 
 	if err != nil {
 		t.Error("StateFromBlob returned unexpected err", err)
 	}
 
-	if !reconstitutedState.(*testState).Game.DrawDeck.Inflated() {
+	gameState, _ := concreteStates(reconstitutedState)
+
+	if !gameState.DrawDeck.Inflated() {
 		t.Error("The stack was not inflated when it came back from StateFromBlob")
 	}
 

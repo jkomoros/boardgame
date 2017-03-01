@@ -10,6 +10,7 @@ package tictactoe
 import (
 	"encoding/json"
 	"github.com/jkomoros/boardgame"
+	"strings"
 )
 
 const gameDisplayname = "Tic Tac Toe"
@@ -21,16 +22,16 @@ type gameDelegate struct {
 	boardgame.DefaultGameDelegate
 }
 
-func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c *boardgame.Component) error {
+func (g *gameDelegate) DistributeComponentToStarterStack(state *boardgame.State, c *boardgame.Component) error {
 	component := c.Values.(*playerToken)
 
-	p := state.(*mainState)
+	_, players := concreteStates(state)
 
 	switch component.Value {
 	case X:
-		p.Players[0].UnusedTokens.InsertFront(c)
+		players[0].UnusedTokens.InsertFront(c)
 	case O:
-		p.Players[1].UnusedTokens.InsertFront(c)
+		players[1].UnusedTokens.InsertFront(c)
 	}
 	return nil
 }
@@ -47,23 +48,29 @@ func (g *gameDelegate) DefaultNumPlayers() int {
 	return 2
 }
 
-func (g *gameDelegate) StateFromBlob(blob []byte) (boardgame.State, error) {
-	result := &mainState{}
-	if err := json.Unmarshal(blob, result); err != nil {
+func (g *gameDelegate) GameStateFromBlob(blob []byte) (boardgame.GameState, error) {
+	var result gameState
+
+	if err := json.Unmarshal(blob, &result); err != nil {
 		return nil, err
 	}
 
-	result.Game.Slots.Inflate(g.Manager().Chest())
-
-	for i, player := range result.Players {
-		player.playerIndex = i
-		player.UnusedTokens.Inflate(g.Manager().Chest())
-	}
-
-	return result, nil
+	return &result, nil
 }
 
-func (g *gameDelegate) StartingState(numUsers int) boardgame.State {
+func (g *gameDelegate) PlayerStateFromBlob(blob []byte, index int) (boardgame.PlayerState, error) {
+	var result playerState
+
+	if err := json.Unmarshal(blob, &result); err != nil {
+		return nil, err
+	}
+
+	result.playerIndex = index
+
+	return &result, nil
+}
+
+func (g *gameDelegate) StartingStateProps(numUsers int) *boardgame.StateProps {
 
 	if numUsers != 2 {
 		return nil
@@ -75,39 +82,37 @@ func (g *gameDelegate) StartingState(numUsers int) boardgame.State {
 		return nil
 	}
 
-	result := &mainState{
+	result := &boardgame.StateProps{
 		Game: &gameState{
 			Slots: boardgame.NewSizedStack(tokens, DIM*DIM),
 		},
-		Players: []*playerState{
+		Players: []boardgame.PlayerState{
 			&playerState{
 				TokensToPlaceThisTurn: 1,
 				TokenValue:            X,
 				UnusedTokens:          boardgame.NewGrowableStack(tokens, 0),
+				playerIndex:           0,
 			},
 			&playerState{
 				TokensToPlaceThisTurn: 0,
 				TokenValue:            O,
 				UnusedTokens:          boardgame.NewGrowableStack(tokens, 0),
+				playerIndex:           1,
 			},
 		},
-	}
-
-	for i, player := range result.Players {
-		player.playerIndex = i
 	}
 
 	return result
 }
 
-func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, winners []int) {
+func (g *gameDelegate) CheckGameFinished(state *boardgame.State) (finished bool, winners []int) {
 
-	s := state.(*mainState)
+	game, players := concreteStates(state)
 
 	tokens := make([]string, DIM*DIM)
 
 	for i := 0; i < DIM*DIM; i++ {
-		tokens[i] = s.Game.tokenValueAtIndex(i)
+		tokens[i] = game.tokenValueAtIndex(i)
 	}
 
 	finished, winner := checkGameFinished(tokens)
@@ -118,11 +123,52 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, 
 			//Draw
 			return true, nil
 		}
-		return true, []int{s.userFromTokenValue(winner).playerIndex}
+
+		var winningPlayer int
+
+		for i, player := range players {
+			if player.TokenValue == winner {
+				winningPlayer = i
+			}
+		}
+
+		return true, []int{winningPlayer}
 	}
 
 	return false, nil
 
+}
+
+func (g *gameDelegate) Diagram(state *boardgame.State) string {
+
+	game, players := concreteStates(state)
+
+	//Get an array of *playerTokenValues corresponding to tokens currently in
+	//the stack.
+	tokens := playerTokenValues(game.Slots.ComponentValues())
+
+	tokenValues := make([]string, len(tokens))
+
+	for i, token := range tokens {
+		if token == nil {
+			tokenValues[i] = " "
+			continue
+		}
+		tokenValues[i] = token.Value
+	}
+
+	result := make([]string, 7)
+
+	//TODO: loop thorugh this instead of unrolling the loop by hand
+	result[0] = tokenValues[0] + "|" + tokenValues[1] + "|" + tokenValues[2]
+	result[1] = strings.Repeat("-", len(result[0]))
+	result[2] = tokenValues[3] + "|" + tokenValues[4] + "|" + tokenValues[5]
+	result[3] = result[1]
+	result[4] = tokenValues[6] + "|" + tokenValues[7] + "|" + tokenValues[8]
+	result[5] = ""
+	result[6] = "Next player: " + players[game.CurrentPlayer].TokenValue
+
+	return strings.Join(result, "\n")
 }
 
 //state should be a DIM * DIM length string, of the form "XXO XO  O". Winner

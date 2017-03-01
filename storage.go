@@ -5,7 +5,7 @@ package boardgame
 type StorageManager interface {
 	//State returns the StateWrapper for the game at the given version, or
 	//nil.
-	State(game *Game, version int) (State, error)
+	State(game *Game, version int) (*State, error)
 
 	//Game fetches the game with the given ID from the store, if it exists.
 	//The implementation should use manager.LoadGame to get a real game object
@@ -17,5 +17,5 @@ type StorageManager interface {
 	//SaveGameAndCurrentState stores the game and the current state (at
 	//game.Version()) into the store at the same time in a transaction. If
 	//Game.Modifiable() is false, storage should fail.
-	SaveGameAndCurrentState(game *Game, state State) error
+	SaveGameAndCurrentState(game *Game, state *State) error
 }

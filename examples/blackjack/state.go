@@ -1,16 +1,20 @@
 package blackjack
 
 import (
-	"fmt"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/playingcards"
-	"strings"
 )
 
-type mainState struct {
-	sanitized bool
-	Game      *gameState
-	Players   []*playerState
+func concreteStates(state *boardgame.State) (*gameState, []*playerState) {
+	game := state.Props.Game.(*gameState)
+
+	players := make([]*playerState, len(state.Props.Players))
+
+	for i, player := range state.Props.Players {
+		players[i] = player.(*playerState)
+	}
+
+	return game, players
 }
 
 type gameState struct {
@@ -94,79 +98,4 @@ func (p *playerState) HandValue() int {
 
 	return currentValue
 
-}
-
-func (m *mainState) Sanitized() bool {
-	return m.sanitized
-}
-
-func (m *mainState) Diagram() string {
-	var result []string
-
-	result = append(result, fmt.Sprintf("Cards left in deck: %d", m.Game.DrawStack.NumComponents()))
-
-	for i, player := range m.Players {
-
-		playerLine := fmt.Sprintf("Player %d", i)
-
-		if i == m.Game.CurrentPlayer {
-			playerLine += "  *CURRENT*"
-		}
-
-		result = append(result, playerLine)
-
-		statusLine := fmt.Sprintf("\tValue: %d", player.HandValue())
-
-		if player.Busted {
-			statusLine += " BUSTED"
-		}
-
-		if player.Stood {
-			statusLine += " STOOD"
-		}
-
-		result = append(result, statusLine)
-
-		result = append(result, "\tCards:")
-
-		for _, card := range playingcards.ValuesToCards(player.HiddenHand.ComponentValues()) {
-			result = append(result, "\t\t"+card.String())
-		}
-
-		for _, card := range playingcards.ValuesToCards(player.VisibleHand.ComponentValues()) {
-			result = append(result, "\t\t"+card.String())
-		}
-
-		result = append(result, "")
-	}
-
-	return strings.Join(result, "\n")
-}
-
-func (s *mainState) GameState() boardgame.GameState {
-	return s.Game
-}
-
-func (s *mainState) PlayerStates() []boardgame.PlayerState {
-	array := make([]boardgame.PlayerState, len(s.Players))
-
-	for i := 0; i < len(s.Players); i++ {
-		array[i] = s.Players[i]
-	}
-
-	return array
-}
-
-func (s *mainState) Copy(sanitized bool) boardgame.State {
-	array := make([]*playerState, len(s.Players))
-
-	for i := 0; i < len(s.Players); i++ {
-		array[i] = s.Players[i].Copy().(*playerState)
-	}
-
-	return &mainState{
-		Game:      s.Game.Copy().(*gameState),
-		Players:   array,
-		sanitized: sanitized,
-	}
 }

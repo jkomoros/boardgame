@@ -108,7 +108,7 @@ func TestSanitization(t *testing.T) {
 			t.Fatal("couldn't load input file", i, test.inputFileName, err)
 		}
 
-		state, err := manager.Delegate().StateFromBlob(inputBlob)
+		state, err := manager.StateFromBlob(inputBlob)
 
 		if err != nil {
 			t.Fatal(i, "Failed to deserialize", err)

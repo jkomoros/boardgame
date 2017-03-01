@@ -47,7 +47,7 @@ func NewStorageManager() *StorageManager {
 	}
 }
 
-func (s *StorageManager) State(game *boardgame.Game, version int) (boardgame.State, error) {
+func (s *StorageManager) State(game *boardgame.Game, version int) (*boardgame.State, error) {
 	if game == nil {
 		return nil, errors.New("No game provided")
 	}
@@ -68,7 +68,7 @@ func (s *StorageManager) State(game *boardgame.Game, version int) (boardgame.Sta
 		return nil, errors.New("No such version for that game")
 	}
 
-	state, err := game.Manager().Delegate().StateFromBlob(record.SerializedState)
+	state, err := game.Manager().StateFromBlob(record.SerializedState)
 
 	if err != nil {
 		return nil, errors.New("StateForBlob failed" + err.Error())
@@ -128,7 +128,7 @@ func (s *StorageManager) winnersFromStorage(winners string) []int {
 	return result
 }
 
-func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.Game, state boardgame.State) error {
+func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.Game, state *boardgame.State) error {
 	if game == nil {
 		return errors.New("No game provided")
 	}
