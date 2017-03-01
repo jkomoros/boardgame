@@ -63,7 +63,9 @@ type GameDelegate interface {
 
 	//LegalNumPlayers will be consulted when a new game is created. It should
 	//return true if the given number of players is legal, and false
-	//otherwise. If this returns false, the game's SetUp will fail.
+	//otherwise. If this returns false, the game's SetUp will fail. Game.SetUp
+	//will automatically reject a numPlayers that does not result in at least
+	//one player existing.
 	LegalNumPlayers(numPlayers int) bool
 
 	//StartingState should return a zero'd state object for this game type.

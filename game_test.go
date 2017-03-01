@@ -92,6 +92,10 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("Calling set up with an illegal number of players didn't fail")
 	}
 
+	if err := game.SetUp(-5); err == nil {
+		t.Error("Calling set up with negative number of players didn't fail")
+	}
+
 	//TODO: we no longer test that SetUp calls the Component distribution logic.
 
 	if err := game.SetUp(0); err != nil {

@@ -44,7 +44,9 @@ func (t *testGameDelegate) DefaultNumPlayers() int {
 }
 
 func (t *testGameDelegate) LegalNumPlayers(numPlayers int) bool {
-	return numPlayers > 0 && numPlayers <= 5
+	//We don't do a lower bound check specifically to test that SetUp rejects
+	//numbers of players less than 1.
+	return numPlayers <= 5
 }
 
 func (t *testGameDelegate) StartingStateProps(numPlayers int) *StateProps {

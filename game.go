@@ -201,6 +201,10 @@ func (g *Game) SetUp(numPlayers int) error {
 		numPlayers = g.manager.Delegate().DefaultNumPlayers()
 	}
 
+	if numPlayers < 1 {
+		return errors.New("The number of players, " + strconv.Itoa(numPlayers) + " is not legal. There must be one or more players.")
+	}
+
 	if !g.manager.Delegate().LegalNumPlayers(numPlayers) {
 		return errors.New("The number of players, " + strconv.Itoa(numPlayers) + " was not legal.")
 	}
