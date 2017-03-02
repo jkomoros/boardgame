@@ -326,6 +326,10 @@ func TestShuffle(t *testing.T) {
 
 	stack := NewGrowableStack(deck, 0)
 
+	fakeState := &State{}
+
+	stack.state = fakeState
+
 	for _, c := range deck.Components() {
 		stack.InsertFront(c)
 	}
@@ -339,7 +343,9 @@ func TestShuffle(t *testing.T) {
 	lastStackState := fmt.Sprint(stack.indexes)
 
 	for i := 0; i < numShuffles; i++ {
-		stack.Shuffle()
+		if err := stack.Shuffle(); err != nil {
+			t.Error("Shuffle failed", err)
+		}
 		stackState := fmt.Sprint(stack.indexes)
 		if stackState == lastStackState {
 			//Stack was teh same before and after. That's suspicious...
@@ -356,6 +362,8 @@ func TestShuffle(t *testing.T) {
 
 	sStack := NewSizedStack(deck, 5)
 
+	sStack.state = fakeState
+
 	for _, c := range deck.Components() {
 		sStack.InsertFront(c)
 	}
@@ -366,7 +374,9 @@ func TestShuffle(t *testing.T) {
 	lastStackState = fmt.Sprint(sStack.indexes)
 
 	for i := 0; i < numShuffles; i++ {
-		sStack.Shuffle()
+		if err := sStack.Shuffle(); err != nil {
+			t.Error("couldn't shuffle stack: ", err)
+		}
 		stackState := fmt.Sprint(sStack.indexes)
 		if stackState == lastStackState {
 			//Stack was teh same before and after. That's suspicious...

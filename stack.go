@@ -79,7 +79,7 @@ type Stack interface {
 	//Shuffle shuffles the order of the stack, so that it has the same items,
 	//but in a different order. In a SizedStack, the empty slots will move
 	//around as part of a shuffle.
-	Shuffle()
+	Shuffle() error
 
 	//applySanitizationPolicy applies the given policy to ourselves. This
 	//should only be called by methods in sanitization.go.
@@ -565,7 +565,37 @@ func moveAllToImpl(from Stack, to Stack) error {
 	return nil
 }
 
-func (g *GrowableStack) Shuffle() {
+func (g *GrowableStack) modificationsAllowed() error {
+	if !g.Inflated() {
+		return errors.New("Modifications not allowed: stack is not inflated")
+	}
+	if g.state == nil {
+		return errors.New("Modifications not allowed: stack's state not set")
+	}
+	if g.state.Sanitized() {
+		return errors.New("Modifications not allowed: stack's state is sanitized")
+	}
+	return nil
+}
+
+func (s *SizedStack) modificationsAllowed() error {
+	if !s.Inflated() {
+		return errors.New("Modifications not allowed: stack is not inflated")
+	}
+	if s.state == nil {
+		return errors.New("Modifications not allowed: stack's state not set")
+	}
+	if s.state.Sanitized() {
+		return errors.New("Modifications not allowed: stack's state is sanitized")
+	}
+	return nil
+}
+
+func (g *GrowableStack) Shuffle() error {
+
+	if err := g.modificationsAllowed(); err != nil {
+		return err
+	}
 
 	perm := rand.Perm(len(g.indexes))
 
@@ -576,9 +606,16 @@ func (g *GrowableStack) Shuffle() {
 		g.indexes[i] = currentComponents[j]
 	}
 
+	return nil
+
 }
 
-func (s *SizedStack) Shuffle() {
+func (s *SizedStack) Shuffle() error {
+
+	if err := s.modificationsAllowed(); err != nil {
+		return err
+	}
+
 	perm := rand.Perm(len(s.indexes))
 
 	currentComponents := s.indexes
@@ -587,6 +624,8 @@ func (s *SizedStack) Shuffle() {
 	for i, j := range perm {
 		s.indexes[i] = currentComponents[j]
 	}
+
+	return nil
 }
 
 func (g *GrowableStack) MarshalJSON() ([]byte, error) {
