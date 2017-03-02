@@ -42,7 +42,7 @@ func TestStateFromBlob(t *testing.T) {
 		t.Error("StateFromBlob returned unexpected err", err)
 	}
 
-	if !reconstitutedState.Props.Game.(*gameState).Slots.Inflated() {
+	if !reconstitutedState.Game.(*gameState).Slots.Inflated() {
 		t.Error("The stack was not inflated when it came back from StateFromBlob")
 	}
 

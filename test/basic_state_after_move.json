@@ -1,57 +1,55 @@
 {
-    "Props": {
-        "Game": {
-            "CurrentPlayer": 1,
-            "DrawDeck": {                
+    "Game": {
+        "CurrentPlayer": 1,
+        "DrawDeck": {                
+            "Deck" : "test",
+            "Indexes" : [
+                3,
+                2,
+                1,
+                0
+            ]
+        }
+    },
+    "Players": [
+        {
+            "Score": 3,
+            "MovesLeftThisTurn": 0,
+            "IsFoo": false,
+            "Hand" : {
                 "Deck" : "test",
                 "Indexes" : [
-                    3,
-                    2,
-                    1,
-                    0
-                ]
+                    -1,
+                    -1
+                ],
+                "Size" : 2
             }
         },
-        "Players": [
-            {
-                "Score": 3,
-                "MovesLeftThisTurn": 0,
-                "IsFoo": false,
-                "Hand" : {
-                    "Deck" : "test",
-                    "Indexes" : [
-                        -1,
-                        -1
-                    ],
-                    "Size" : 2
-                }
-            },
-            {
-                "Score": 0,
-                "MovesLeftThisTurn": 1,
-                "IsFoo": false,
-                "Hand" : {
-                    "Deck" : "test",
-                    "Indexes" : [
-                        -1,
-                        -1
-                    ],
-                    "Size" : 2
-                }
-            },
-            {
-                "Score": 0,
-                "MovesLeftThisTurn": 0,
-                "IsFoo": true,
-                "Hand" : {
-                    "Deck" : "test",
-                    "Indexes" : [
-                        -1,
-                        -1
-                    ],
-                    "Size" : 2
-                }
+        {
+            "Score": 0,
+            "MovesLeftThisTurn": 1,
+            "IsFoo": false,
+            "Hand" : {
+                "Deck" : "test",
+                "Indexes" : [
+                    -1,
+                    -1
+                ],
+                "Size" : 2
             }
-        ]
-    }
+        },
+        {
+            "Score": 0,
+            "MovesLeftThisTurn": 0,
+            "IsFoo": true,
+            "Hand" : {
+                "Deck" : "test",
+                "Indexes" : [
+                    -1,
+                    -1
+                ],
+                "Size" : 2
+            }
+        }
+    ]
 }

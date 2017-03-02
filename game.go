@@ -119,7 +119,7 @@ func (g *Game) Manager() *GameManager {
 //NumPlayers returns the number of players for this game, based on how many
 //PlayerStates are in CurrentState.
 func (g *Game) NumPlayers() int {
-	return len(g.CurrentState().Props.Players)
+	return len(g.CurrentState().Players)
 }
 
 //JSONForPlayer returns an object appropriate for being json'd via
@@ -227,14 +227,10 @@ func (g *Game) SetUp(numPlayers int) error {
 		playerStates[i] = playerState
 	}
 
-	props := &StateProps{
-		Game:    gameState,
-		Players: playerStates,
-	}
-
 	stateCopy := &State{
+		Game:     gameState,
+		Players:  playerStates,
 		delegate: g.Manager().Delegate(),
-		Props:    props,
 	}
 
 	g.manager.delegate.BeginSetUp(stateCopy)

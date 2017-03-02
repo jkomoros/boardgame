@@ -179,10 +179,6 @@ func (g *GameManager) Game(id string) *Game {
 }
 
 type refriedState struct {
-	Props refriedStateProps
-}
-
-type refriedStateProps struct {
 	Game    json.RawMessage
 	Players []json.RawMessage
 }
@@ -250,7 +246,9 @@ func (g *GameManager) StateFromBlob(blob []byte) (*State, error) {
 		return nil, err
 	}
 
-	props := &StateProps{}
+	result := &State{
+		delegate: g.delegate,
+	}
 
 	game, err := g.emptyGameState()
 
@@ -258,7 +256,7 @@ func (g *GameManager) StateFromBlob(blob []byte) (*State, error) {
 		return nil, err
 	}
 
-	if err := json.Unmarshal(refried.Props.Game, game); err != nil {
+	if err := json.Unmarshal(refried.Game, game); err != nil {
 		return nil, errors.New("Unmarshal of GameState failed: " + err.Error())
 	}
 
@@ -279,9 +277,9 @@ func (g *GameManager) StateFromBlob(blob []byte) (*State, error) {
 		}
 	}
 
-	props.Game = game
+	result.Game = game
 
-	for i, blob := range refried.Props.Players {
+	for i, blob := range refried.Players {
 		player, err := g.emptyPlayerState(i)
 
 		if err != nil {
@@ -309,12 +307,7 @@ func (g *GameManager) StateFromBlob(blob []byte) (*State, error) {
 			}
 		}
 
-		props.Players = append(props.Players, player)
-	}
-
-	result := &State{
-		delegate: g.delegate,
-		Props:    props,
+		result.Players = append(result.Players, player)
 	}
 
 	return result, nil
@@ -329,7 +322,7 @@ func (g *GameManager) StateFromBlob(blob []byte) (*State, error) {
 func (g *GameManager) SanitizedStateForPlayer(state *State, playerIndex int) *State {
 
 	//If the playerIndex isn't an actuall player's index, just return self.
-	if playerIndex < 0 || playerIndex >= len(state.Props.Players) {
+	if playerIndex < 0 || playerIndex >= len(state.Players) {
 		return state
 	}
 
@@ -341,9 +334,9 @@ func (g *GameManager) SanitizedStateForPlayer(state *State, playerIndex int) *St
 
 	sanitized := state.Copy(true)
 
-	sanitizeStateObj(sanitized.Props.Game.Reader(), policy.Game, -1, playerIndex)
+	sanitizeStateObj(sanitized.Game.Reader(), policy.Game, -1, playerIndex)
 
-	playerStates := sanitized.Props.Players
+	playerStates := sanitized.Players
 
 	for i := 0; i < len(playerStates); i++ {
 		sanitizeStateObj(playerStates[i].Reader(), policy.Player, i, playerIndex)

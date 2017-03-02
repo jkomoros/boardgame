@@ -4,30 +4,6 @@ import (
 	"encoding/json"
 )
 
-//StateProps is the "core" item of a state, the primary properties on Game and
-//Player state objects. It is separate from State so that it can be returned
-//in various initializers.
-type StateProps struct {
-	//Game includes the non-user state for the game.
-	Game GameState
-	//Users contains a PlayerState object for each user in the game.
-	Players []PlayerState
-}
-
-func (s *StateProps) Copy() *StateProps {
-
-	players := make([]PlayerState, len(s.Players))
-
-	for i, player := range s.Players {
-		players[i] = player.Copy()
-	}
-
-	return &StateProps{
-		Game:    s.Game.Copy(),
-		Players: players,
-	}
-}
-
 //StatePayload is where the "meat" of the state goes. It is one object so that
 //client games can cast it quickly to the concrete struct for their game, so
 //that they can get to a type-checked world with minimal fuss inside of
@@ -39,7 +15,8 @@ func (s *StateProps) Copy() *StateProps {
 //players have very different roles in a game, there might be many properties
 //that are not in use for any given player.
 type State struct {
-	Props     *StateProps
+	Game      GameState
+	Players   []PlayerState
 	sanitized bool
 	delegate  GameDelegate
 }
@@ -55,8 +32,15 @@ type State struct {
 //Sanitized version of state, pass sanitized = true.
 func (s *State) Copy(sanitized bool) *State {
 
+	players := make([]PlayerState, len(s.Players))
+
+	for i, player := range s.Players {
+		players[i] = player.Copy()
+	}
+
 	result := &State{
-		Props:     s.Props.Copy(),
+		Game:      s.Game.Copy(),
+		Players:   players,
 		sanitized: sanitized,
 		delegate:  s.delegate,
 	}
