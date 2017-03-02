@@ -84,6 +84,9 @@ type GameDelegate interface {
 	//DefaultGameDelegate does not implement them, as an extra reminder that
 	//you must implement them yourself.
 	EmptyGameState() GameState
+	//EmptyPlayerState is similar to EmptyGameState, but playerIndex is the
+	//value that this PlayerState must return when its PlayerIndex() is
+	//called.
 	EmptyPlayerState(playerIndex int) PlayerState
 
 	//StateSanitizationPolicy returns the policy for sanitizing states in this
