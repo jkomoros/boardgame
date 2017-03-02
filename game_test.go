@@ -118,7 +118,17 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("MoveByName returned a non-copy")
 	}
 
-	gameState, _ := concreteStates(game.CurrentState())
+	//Test to verify that game has stack's state property set
+	currentState := game.CurrentState()
+	gameState, playerStates := concreteStates(currentState)
+
+	if gameState.DrawDeck.state != currentState {
+		t.Error("GameState's drawdeck didn't have state set correctly. Got", gameState.DrawDeck.state, "wanted", currentState)
+	}
+
+	if playerStates[0].Hand.state != currentState {
+		t.Error("PlayerStates Hand didn't have state set correctly. Got", playerStates[0].Hand.state, "wanted", currentState)
+	}
 
 	deck := game.Chest().Deck("test").Components()
 

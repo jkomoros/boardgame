@@ -185,7 +185,7 @@ type refriedState struct {
 
 //emptyPlayerState is a simple wrapper around delegate.EmptyPlayerState that
 //just verifies that stacks are inflated.
-func (g *GameManager) emptyPlayerState(playerIndex int) (PlayerState, error) {
+func (g *GameManager) emptyPlayerState(state *State, playerIndex int) (PlayerState, error) {
 
 	playerState := g.delegate.EmptyPlayerState(playerIndex)
 
@@ -196,13 +196,23 @@ func (g *GameManager) emptyPlayerState(playerIndex int) (PlayerState, error) {
 	for propName, propType := range playerState.Reader().Props() {
 		switch propType {
 		case TypeGrowableStack:
-			if val, _ := playerState.Reader().GrowableStackProp(propName); val == nil {
+			val, err := playerState.Reader().GrowableStackProp(propName)
+			if val == nil {
 				return nil, errors.New("GrowableStack Prop " + propName + " was nil for playerstate")
 			}
+			if err != nil {
+				return nil, errors.New("GrowableStack prop " + propName + " had unexpected error: " + err.Error())
+			}
+			val.state = state
 		case TypeSizedStack:
-			if val, _ := playerState.Reader().SizedStackProp(propName); val == nil {
+			val, err := playerState.Reader().SizedStackProp(propName)
+			if val == nil {
 				return nil, errors.New("SizedStackProp " + propName + " was nil for playerstate")
 			}
+			if err != nil {
+				return nil, errors.New("SizedStack prop " + propName + " had unexpected error: " + err.Error())
+			}
+			val.state = state
 		}
 	}
 	return playerState, nil
@@ -211,7 +221,7 @@ func (g *GameManager) emptyPlayerState(playerIndex int) (PlayerState, error) {
 
 //emptyGameState is a simple wrapper around delegate.EmptyPlayerState that
 //just verifies that stacks are inflated.
-func (g *GameManager) emptyGameState() (GameState, error) {
+func (g *GameManager) emptyGameState(state *State) (GameState, error) {
 
 	gameState := g.delegate.EmptyGameState()
 
@@ -222,14 +232,25 @@ func (g *GameManager) emptyGameState() (GameState, error) {
 	for propName, propType := range gameState.Reader().Props() {
 		switch propType {
 		case TypeGrowableStack:
-			if val, _ := gameState.Reader().GrowableStackProp(propName); val == nil {
+			val, err := gameState.Reader().GrowableStackProp(propName)
+			if val == nil {
 				return nil, errors.New("GrowableStack Prop " + propName + " was nil for gamestate")
 			}
+			if err != nil {
+				return nil, errors.New("Unexpected error fetching Prop " + propName + ": " + err.Error())
+			}
+			val.state = state
 		case TypeSizedStack:
-			if val, _ := gameState.Reader().SizedStackProp(propName); val == nil {
+			val, err := gameState.Reader().SizedStackProp(propName)
+			if val == nil {
 				return nil, errors.New("SizedStackProp " + propName + " was nil for gamestate")
 			}
+			if err != nil {
+				return nil, errors.New("Unexpected error fetching Prop " + propName + ": " + err.Error())
+			}
+			val.state = state
 		}
+
 	}
 	return gameState, nil
 
@@ -253,7 +274,7 @@ func (g *GameManager) StateFromBlob(blob []byte) (*State, error) {
 		delegate: g.delegate,
 	}
 
-	game, err := g.emptyGameState()
+	game, err := g.emptyGameState(result)
 
 	if err != nil {
 		return nil, err
@@ -283,7 +304,7 @@ func (g *GameManager) StateFromBlob(blob []byte) (*State, error) {
 	result.Game = game
 
 	for i, blob := range refried.Players {
-		player, err := g.emptyPlayerState(i)
+		player, err := g.emptyPlayerState(result, i)
 
 		if err != nil {
 			return nil, err

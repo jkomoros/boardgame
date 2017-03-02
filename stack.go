@@ -98,6 +98,10 @@ type GrowableStack struct {
 	//size, if set, says the maxmimum number of items allowed in the Stack. 0
 	//means that the Stack may grow without bound.
 	maxLen int
+	//Each stack is associated with precisely one state. This is consulted to
+	//verify that components being transfered between stacks are part of a
+	//single state. Set in empty{Game,Player}State.
+	state *State
 }
 
 //SizedStack is a Stack that has a fixed number of slots, any of which may be
@@ -113,6 +117,10 @@ type SizedStack struct {
 	indexes []int
 	//Size is the number of slots.
 	size int
+	//Each stack is associated with precisely one state. This is consulted to
+	//verify that components being transfered between stacks are part of a
+	//single state. Set in empty{Game,Player}State.
+	state *State
 }
 
 //stackJSONObj is an internal struct that we populate and use to implement

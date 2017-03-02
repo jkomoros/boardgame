@@ -209,16 +209,22 @@ func (g *Game) SetUp(numPlayers int) error {
 		return errors.New("The number of players, " + strconv.Itoa(numPlayers) + " was not legal.")
 	}
 
-	gameState, err := g.manager.emptyGameState()
+	stateCopy := &State{
+		delegate: g.Manager().Delegate(),
+	}
+
+	gameState, err := g.manager.emptyGameState(stateCopy)
 
 	if err != nil {
 		return err
 	}
 
+	stateCopy.Game = gameState
+
 	playerStates := make([]PlayerState, numPlayers)
 
 	for i := 0; i < numPlayers; i++ {
-		playerState, err := g.manager.emptyPlayerState(i)
+		playerState, err := g.manager.emptyPlayerState(stateCopy, i)
 
 		if err != nil {
 			return err
@@ -227,11 +233,7 @@ func (g *Game) SetUp(numPlayers int) error {
 		playerStates[i] = playerState
 	}
 
-	stateCopy := &State{
-		Game:     gameState,
-		Players:  playerStates,
-		delegate: g.Manager().Delegate(),
-	}
+	stateCopy.Players = playerStates
 
 	g.manager.delegate.BeginSetUp(stateCopy)
 
