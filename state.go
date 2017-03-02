@@ -39,6 +39,16 @@ func (s *State) Copy(sanitized bool) *State {
 		delegate:  s.delegate,
 	}
 
+	//FixUp stacks to make sure they point to this new state.
+	if err := verifyReaderStacks(result.Game.Reader(), result); err != nil {
+		return nil
+	}
+	for _, player := range result.Players {
+		if err := verifyReaderStacks(player.Reader(), result); err != nil {
+			return nil
+		}
+	}
+
 	return result
 
 }

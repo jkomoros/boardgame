@@ -136,6 +136,18 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("All of the components were not distributed in SetUp")
 	}
 
+	stateCopy := currentState.Copy(false)
+
+	gameState, playerStates = concreteStates(stateCopy)
+
+	if gameState.DrawDeck.state != stateCopy {
+		t.Error("The copy of state's stacks had the old state in gamestate")
+	}
+
+	if playerStates[0].Hand.state != stateCopy {
+		t.Error("The copy of state's stacks had the old state in playerstate")
+	}
+
 }
 
 func TestApplyMove(t *testing.T) {
