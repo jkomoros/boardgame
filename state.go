@@ -63,6 +63,38 @@ func (s *State) Sanitized() bool {
 	return s.sanitized
 }
 
+//SanitizedForPlayer produces a copy state object that has been sanitized for
+//the player at the given index. The state object returned will have
+//Sanitized() return true. Will call GameDelegate.StateSanitizationPolicy to
+//retrieve the policy in place. See the package level comment for an overview
+//of how state sanitization works.
+func (s *State) SanitizedForPlayer(playerIndex int) *State {
+
+	//If the playerIndex isn't an actuall player's index, just return self.
+	if playerIndex < 0 || playerIndex >= len(s.Players) {
+		return s
+	}
+
+	policy := s.delegate.StateSanitizationPolicy()
+
+	if policy == nil {
+		policy = &StatePolicy{}
+	}
+
+	sanitized := s.Copy(true)
+
+	sanitizeStateObj(sanitized.Game.Reader(), policy.Game, -1, playerIndex)
+
+	playerStates := sanitized.Players
+
+	for i := 0; i < len(playerStates); i++ {
+		sanitizeStateObj(playerStates[i].Reader(), policy.Player, i, playerIndex)
+	}
+
+	return sanitized
+
+}
+
 //BaseState is the interface that all state objects--UserStates and GameStates
 //--implement.
 type BaseState interface {

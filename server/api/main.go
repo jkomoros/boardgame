@@ -223,7 +223,7 @@ func (s *Server) gameViewHandler(c *gin.Context) {
 	game := obj.(*boardgame.Game)
 
 	args := gin.H{
-		"Diagram": game.Manager().SanitizedStateForPlayer(game.CurrentState(), playerIndex).Diagram(),
+		"Diagram": game.CurrentState().SanitizedForPlayer(playerIndex).Diagram(),
 		"Chest":   s.renderChest(game),
 		"Forms":   s.generateForms(game),
 		"Game":    game.JSONForPlayer(playerIndex),

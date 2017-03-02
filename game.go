@@ -131,7 +131,7 @@ func (g *Game) JSONForPlayer(playerIndex int) interface{} {
 		"Name":         g.Name(),
 		"Finished":     g.Finished(),
 		"Winners":      g.Winners(),
-		"CurrentState": g.Manager().SanitizedStateForPlayer(g.CurrentState(), playerIndex),
+		"CurrentState": g.CurrentState().SanitizedForPlayer(playerIndex),
 		"Id":           g.Id(),
 		"NumPlayers":   g.NumPlayers(),
 		"Version":      g.Version(),

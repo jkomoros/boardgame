@@ -116,7 +116,7 @@ func TestSanitization(t *testing.T) {
 
 		manager.delegate.(*testSanitizationDelegate).policy = test.policy
 
-		sanitizedState := manager.SanitizedStateForPlayer(state, test.playerIndex)
+		sanitizedState := state.SanitizedForPlayer(test.playerIndex)
 
 		if sanitizedState == nil {
 			t.Fatal(i, "state sanitization came back nil")

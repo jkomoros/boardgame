@@ -314,38 +314,6 @@ func (g *GameManager) StateFromBlob(blob []byte) (*State, error) {
 
 }
 
-//SanitizedStateForPlayer produces a sanitized state object representing the
-//given state, prepared for the player at the given index. The state object
-//returned will have Sanitized() return true. Will call
-//GameDelegate.StateSanitizationPolicy to retrieve the policy in place. See
-//the package level comment for an overview of how state sanitization works.
-func (g *GameManager) SanitizedStateForPlayer(state *State, playerIndex int) *State {
-
-	//If the playerIndex isn't an actuall player's index, just return self.
-	if playerIndex < 0 || playerIndex >= len(state.Players) {
-		return state
-	}
-
-	policy := g.Delegate().StateSanitizationPolicy()
-
-	if policy == nil {
-		policy = &StatePolicy{}
-	}
-
-	sanitized := state.Copy(true)
-
-	sanitizeStateObj(sanitized.Game.Reader(), policy.Game, -1, playerIndex)
-
-	playerStates := sanitized.Players
-
-	for i := 0; i < len(playerStates); i++ {
-		sanitizeStateObj(playerStates[i].Reader(), policy.Player, i, playerIndex)
-	}
-
-	return sanitized
-
-}
-
 //proposeMoveOnGame is how non-modifiable games should tell the manager they
 //have a move they want to make on a given move ID. For now it's just a simple
 //wrapper around ModifiableGame, but in multi-server situations, in the future
