@@ -50,6 +50,52 @@ func newTestGameManger() *GameManager {
 	return manager
 }
 
+type nilStackGameDelegate struct {
+	testGameDelegate
+	//We wil always return a player state that has nil. But if this is false, we will also return one for game.
+	nilForPlayer bool
+}
+
+func (n *nilStackGameDelegate) EmptyPlayerState(playerIndex int) PlayerState {
+	return &testPlayerState{}
+}
+
+func (n *nilStackGameDelegate) EmptyGameState() GameState {
+	if n.nilForPlayer {
+		//return a non-nil one.
+		return n.testGameDelegate.EmptyGameState()
+	}
+
+	return &testGameState{}
+}
+
+func TestNilStackErrors(t *testing.T) {
+	manager := NewGameManager(&nilStackGameDelegate{}, newTestGameChest(), newTestStorageManager())
+
+	if err := manager.SetUp(); err != nil {
+		t.Fatal("Couldn't set up nilStackGameDelegate-based manager")
+	}
+
+	game := NewGame(manager)
+
+	if game == nil {
+		t.Error("No game provided from new game")
+	}
+
+	if err := game.SetUp(0); err == nil {
+		t.Error("Didn't get error when setting up with an empty game state with nil stacks")
+	}
+
+	//Switch so gameState is valid, but playerState is still not, so we can
+	//make sure we do the same test for playerStates.
+	manager.delegate.(*nilStackGameDelegate).nilForPlayer = true
+
+	if err := game.SetUp(0); err == nil {
+		t.Error("Didn't get an error when given an empty player state with nil stacks")
+	}
+
+}
+
 func TestGameManagerModifiableGame(t *testing.T) {
 	game := testGame()
 

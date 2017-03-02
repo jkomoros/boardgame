@@ -201,11 +201,11 @@ func (g *GameManager) emptyPlayerState(playerIndex int) (PlayerState, error) {
 		switch propType {
 		case TypeGrowableStack:
 			if val, _ := playerState.Reader().GrowableStackProp(propName); val == nil {
-				return nil, errors.New("GrowableStack Prop " + propName + " was nil")
+				return nil, errors.New("GrowableStack Prop " + propName + " was nil for playerstate")
 			}
 		case TypeSizedStack:
 			if val, _ := playerState.Reader().SizedStackProp(propName); val == nil {
-				return nil, errors.New("SizedStackProp " + propName + " was nil")
+				return nil, errors.New("SizedStackProp " + propName + " was nil for playerstate")
 			}
 		}
 	}
@@ -227,11 +227,11 @@ func (g *GameManager) emptyGameState() (GameState, error) {
 		switch propType {
 		case TypeGrowableStack:
 			if val, _ := gameState.Reader().GrowableStackProp(propName); val == nil {
-				return nil, errors.New("GrowableStack Prop " + propName + " was nil")
+				return nil, errors.New("GrowableStack Prop " + propName + " was nil for gamestate")
 			}
 		case TypeSizedStack:
 			if val, _ := gameState.Reader().SizedStackProp(propName); val == nil {
-				return nil, errors.New("SizedStackProp " + propName + " was nil")
+				return nil, errors.New("SizedStackProp " + propName + " was nil for gamestate")
 			}
 		}
 	}

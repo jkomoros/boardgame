@@ -157,7 +157,7 @@ func (d *defaultReader) Props() map[string]PropertyType {
 				pType = TypeString
 			case reflect.Ptr:
 				//Is it a growable stack or a sizedStack?
-				ptrType := field.Elem().Type().String()
+				ptrType := field.Type().String()
 
 				if strings.Contains(ptrType, "GrowableStack") {
 					pType = TypeGrowableStack
