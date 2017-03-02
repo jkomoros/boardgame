@@ -72,14 +72,17 @@ type GameDelegate interface {
 	//of the concrete game/player structs that your package defines. This is
 	//used both to create the initial state, but also to inflate states from
 	//the database. These methods should always return the underlying same
-	//type of struct when called. The simple properties (ints, bools, strings)
-	//should all be their zero-value. Importantly, all Stacks should be non-
-	//nil, because an initialized struct contains information about things
-	//like MaxSize, Size, and a reference to the deck they are affiliated
-	//with. Game methods that use these will fail if the State objects return
-	//have uninitialized stacks. Since these two methods are always required
-	//and always specific to each game type, DefaultGameDelegate does not
-	//implement them.
+	//type of struct when called. This means that if different players have
+	//very different roles in a game, there might be many properties that are
+	//not in use for any given player. The simple properties (ints, bools,
+	//strings) should all be their zero-value. Importantly, all Stacks should
+	//be non- nil, because an initialized struct contains information about
+	//things like MaxSize, Size, and a reference to the deck they are
+	//affiliated with. Game methods that use these will fail if the State
+	//objects return have uninitialized stacks. Since these two methods are
+	//always required and always specific to each game type,
+	//DefaultGameDelegate does not implement them, as an extra reminder that
+	//you must implement them yourself.
 	EmptyGameState() GameState
 	EmptyPlayerState(playerIndex int) PlayerState
 

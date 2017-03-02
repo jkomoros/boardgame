@@ -235,6 +235,9 @@ func (g *GameManager) emptyGameState() (GameState, error) {
 
 }
 
+//StateFromBlob takes a state that was serialized in storage and reinflates
+//it. Storage sub-packages should call this to recover a real State object
+//given a serialized state blob.
 func (g *GameManager) StateFromBlob(blob []byte) (*State, error) {
 	//At this point, no extra state is stored in the blob other than in props.
 

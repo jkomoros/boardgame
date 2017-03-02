@@ -4,16 +4,17 @@ import (
 	"encoding/json"
 )
 
-//StatePayload is where the "meat" of the state goes. It is one object so that
-//client games can cast it quickly to the concrete struct for their game, so
-//that they can get to a type-checked world with minimal fuss inside of
-//Move.Legal and move.Apply. Your underlying struct should have a Game and
-//Players property, so they serialize properly to JSON. Most importantly,
-//json.Marshal() should round trip through your GameDelegate.StateFromBlob()
-//without modifications in order for persistence to work. Each PlayerState you
-//return should be the same underlying type. This means that if different
-//players have very different roles in a game, there might be many properties
-//that are not in use for any given player.
+//State represents the entire semantic state of a game at a given version. For
+//your specific game, Game and Players will actually be concrete structs to
+//your particular game. Games often define a top-level concreteStates()
+//*myGameState, []*myPlayerState so at the top of methods that accept a *State
+//they can quickly get concrete, type-checked types with only a single
+//conversion leap of faith at the top. States are generally read-only; the
+//exception is in Move.Apply() and Delegate.BeginSetup() and FinishSetup(),
+//when you may modify the provided state. The MarshalJSON output of a State is
+//appropriate for sending to a client or serializing a state to be put in
+//storage. Given a blob serialized in that fashion, GameManager.StateFromBlob
+//will return a state.
 type State struct {
 	Game      GameState
 	Players   []PlayerState
@@ -21,15 +22,8 @@ type State struct {
 	delegate  GameDelegate
 }
 
-//Note: the MarshalJSON output of State is appropriate for sending to client
-//or persisting to storage.  In the future what we marshal for storage and
-//what we marshal for sending to client might be different. (e.g. all computed
-//properties, which might be lazily computed server side). But we'll cross
-//that bridge when we come to it.
-
-//Copy returns a copy of the Payload. Be sure it's a deep copy that makes
-//a copy of any pointer arguments. If the Copy will be used to create a
-//Sanitized version of state, pass sanitized = true.
+//Copy returns a deep copy of the State, including copied version of the Game
+//and Player States.
 func (s *State) Copy(sanitized bool) *State {
 
 	players := make([]PlayerState, len(s.Players))
@@ -49,8 +43,8 @@ func (s *State) Copy(sanitized bool) *State {
 
 }
 
-//Diagram should return a basic debug rendering of state in multi-line ascii
-//art. Useful for debugging. Will thunk out to Delegate.Diagram()
+//Diagram returns a basic, ascii rendering of the state for debug rendering.
+//It thunks out to Delegate.Diagram.
 func (s *State) Diagram() string {
 	return s.delegate.Diagram(s)
 }
