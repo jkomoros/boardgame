@@ -319,6 +319,73 @@ func TestStackInsertBack(t *testing.T) {
 	}
 }
 
+func TestSwapComponents(t *testing.T) {
+	game := testGame()
+
+	deck := game.Chest().Deck("test")
+
+	stack := NewGrowableStack(deck, 0)
+
+	for _, c := range deck.Components() {
+		stack.InsertFront(c)
+	}
+
+	swapComponentsTests(stack, t)
+
+	sStack := NewSizedStack(deck, 10)
+
+	for _, c := range deck.Components() {
+		stack.InsertBack(c)
+	}
+
+	swapComponentsTests(sStack, t)
+
+}
+
+func swapComponentsTests(stack Stack, t *testing.T) {
+	if err := stack.SwapComponents(0, 1); err == nil {
+		t.Error("Stack with no state allowed a swap")
+	}
+
+	fakeState := &State{}
+
+	switch s := stack.(type) {
+	case *GrowableStack:
+		s.state = fakeState
+	case *SizedStack:
+		s.state = fakeState
+	default:
+		t.Fatal("Unknown type of stack")
+	}
+
+	zero := stack.ComponentAt(0)
+	one := stack.ComponentAt(1)
+
+	if err := stack.SwapComponents(0, 1); err != nil {
+		t.Error("Legal swap not allowed")
+	}
+
+	if stack.ComponentAt(0) != one {
+		t.Error("Swap did not actually position of #1")
+	}
+
+	if stack.ComponentAt(1) != zero {
+		t.Error("Swap did not actualy change position of #0")
+	}
+
+	if err := stack.SwapComponents(-1, 0); err == nil {
+		t.Error("Stack swap with illgal lower bound succeeded")
+	}
+
+	if err := stack.SwapComponents(0, stack.Len()); err == nil {
+		t.Error("Stack swap with illegal upper bound succeeded")
+	}
+
+	if err := stack.SwapComponents(0, 0); err == nil {
+		t.Error("Stack swap that was no op succeeded")
+	}
+}
+
 func TestShuffle(t *testing.T) {
 	game := testGame()
 

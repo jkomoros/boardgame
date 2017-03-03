@@ -81,6 +81,11 @@ type Stack interface {
 	//around as part of a shuffle.
 	Shuffle() error
 
+	//SwapComponents swaps the position of two components within this stack
+	//without changing the size of the stack (in SizedStacks, it is legal to
+	//swap empty slots). i,j must be between [0, stack.Len()).
+	SwapComponents(i, j int) error
+
 	//applySanitizationPolicy applies the given policy to ourselves. This
 	//should only be called by methods in sanitization.go.
 	applySanitizationPolicy(policy Policy)
@@ -624,6 +629,59 @@ func (s *SizedStack) Shuffle() error {
 	for i, j := range perm {
 		s.indexes[i] = currentComponents[j]
 	}
+
+	return nil
+}
+
+func (g *GrowableStack) SwapComponents(i, j int) error {
+	if err := g.modificationsAllowed(); err != nil {
+		return err
+	}
+	//check i j indexes are legal
+	if i < 0 {
+		return errors.New("i must be 0 or greater")
+	}
+	if j < 0 {
+		return errors.New("j must be 0 or greater")
+	}
+	if i >= g.Len() {
+		return errors.New("i must be less than or equal to the stack's length")
+	}
+	if j >= g.Len() {
+		return errors.New("j must be less than or equal to the stack's length")
+	}
+	if i == j {
+		return errors.New("i and j were the same")
+	}
+
+	g.indexes[i], g.indexes[j] = g.indexes[j], g.indexes[i]
+
+	return nil
+
+}
+
+func (s *SizedStack) SwapComponents(i, j int) error {
+	if err := s.modificationsAllowed(); err != nil {
+		return err
+	}
+	//check i j indexes are legal
+	if i < 0 {
+		return errors.New("i must be 0 or greater")
+	}
+	if j < 0 {
+		return errors.New("j must be 0 or greater")
+	}
+	if i >= s.Len() {
+		return errors.New("i must be less than or equal to the stack's length")
+	}
+	if j >= s.Len() {
+		return errors.New("j must be less than or equal to the stack's length")
+	}
+	if i == j {
+		return errors.New("i and j were the same")
+	}
+
+	s.indexes[i], s.indexes[j] = s.indexes[j], s.indexes[i]
 
 	return nil
 }
