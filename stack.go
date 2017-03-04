@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math"
 	"math/rand"
+	"strconv"
 )
 
 const emptyIndexSentinel = -1
@@ -86,9 +87,29 @@ type Stack interface {
 	//swap empty slots). i,j must be between [0, stack.Len()).
 	SwapComponents(i, j int) error
 
+	//MoveComponent moves the specified component in the source stack to the
+	//specified slot in the destination stack. The source and destination
+	//stacks must be different--if you're moving components within a stack,
+	//use SwapComponent. Components and Slots are overlapping concepts but are
+	//distinct. For the source you must provide a componentIndex--that is, an
+	//index that computes to an index that, when passed to
+	//source.ComponentAt() will return a component. In destination, slotIndex
+	//must point to a valid "slot" to put a component, such that after
+	//insertion, using that index on the destination will return that
+	//component. In GrowableStacks, slots are any index from 0 up to and
+	//including stack.Len(), because the growable stack will insert the
+	//component between existing componnets if necessary. For SizedStack,
+	//slotIndex must point to a currently empty slot. Use
+	//{First,Last}{Component,Slot}Index constants to automatically set these
+	//indexes to common values.
+	MoveComponent(componentIndex int, destination Stack, slotIndex int) error
+
 	//applySanitizationPolicy applies the given policy to ourselves. This
 	//should only be called by methods in sanitization.go.
 	applySanitizationPolicy(policy Policy)
+
+	//Whether or not the stack is set up to be modified right now.
+	modificationsAllowed() error
 
 	//Takes the given index, and expands it--either returns the given index,
 	//or, if it's one of {First,Last}{Component,Slot}Index, what that computes
@@ -801,6 +822,68 @@ func (s *SizedStack) effectiveIndex(index int) int {
 	//If we get to here either we were just provided index, or there were no
 	//slots/components to return.
 	return index
+
+}
+
+func (g *GrowableStack) MoveComponent(componentIndex int, destination Stack, slotIndex int) error {
+	return moveComonentImpl(g, componentIndex, destination, slotIndex)
+}
+
+func (s *SizedStack) MoveComponent(componentIndex int, destination Stack, slotIndex int) error {
+	return moveComonentImpl(s, componentIndex, destination, slotIndex)
+}
+
+func moveComonentImpl(source Stack, componentIndex int, destination Stack, slotIndex int) error {
+
+	if source == nil {
+		return errors.New("Source is a nil stack")
+	}
+
+	if destination == nil {
+		return errors.New("Destination is a nil stack")
+	}
+
+	if err := source.modificationsAllowed(); err != nil {
+		return errors.New("Source doesn't allow modifications: " + err.Error())
+	}
+
+	if err := source.modificationsAllowed(); err != nil {
+		return errors.New("Destination doesn't allow modifications: " + err.Error())
+	}
+
+	if source == destination {
+		return errors.New("Source and desintation stack are the same. Use SwapComponents instead.")
+	}
+
+	if source.state() != destination.state() {
+		return errors.New("Source and destination are not members of the same state object.")
+	}
+
+	if source.deck() != destination.deck() {
+		return errors.New("Source and destination are affiliated with two different decks.")
+	}
+
+	componentIndex = source.effectiveIndex(componentIndex)
+
+	if c := source.ComponentAt(componentIndex); c == nil {
+		return errors.New("The effective index, " + strconv.Itoa(componentIndex) + " does not point to an existing component in Source")
+	}
+
+	slotIndex = destination.effectiveIndex(slotIndex)
+
+	if !destination.legalSlot(slotIndex) {
+		return errors.New("The effective slot index, " + strconv.Itoa(slotIndex) + " does not point to a legal slot.")
+	}
+
+	c := source.removeComponentAt(componentIndex)
+
+	if c == nil {
+		panic("Unexpected nil component returned from removeComponentAt")
+	}
+
+	destination.insertComponentAt(slotIndex, c)
+
+	return nil
 
 }
 
