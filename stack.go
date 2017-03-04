@@ -685,7 +685,14 @@ func (g *GrowableStack) removeComponentAt(componentIndex int) *Component {
 	} else if componentIndex == g.Len()-1 {
 		g.indexes = g.indexes[:g.Len()-1]
 	} else {
-		g.indexes = append(g.indexes[:componentIndex], g.indexes[componentIndex+1:]...)
+		//We have to do this dance because append will notice that there's
+		//enough space in the underlying array and just shrink it, but
+		//currently when staacks are copied they don't bother to actually copy
+		//their underlying indexes.
+		firstPart := g.indexes[:componentIndex]
+		firstPartCopy := make([]int, len(firstPart))
+		copy(firstPartCopy, firstPart)
+		g.indexes = append(firstPartCopy, g.indexes[componentIndex+1:]...)
 	}
 
 	return component

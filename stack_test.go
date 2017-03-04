@@ -406,6 +406,7 @@ func TestGrowableStackRemoveComponentAt(t *testing.T) {
 	}
 
 	//stack.indexes = [0, 1, 2, 3]
+	startingIndexes := []int{0, 1, 2, 3}
 
 	tests := []struct {
 		componentIndex  int
@@ -427,10 +428,19 @@ func TestGrowableStackRemoveComponentAt(t *testing.T) {
 			[]int{0, 2, 3},
 			"remove #1",
 		},
+		{
+			2,
+			[]int{0, 1, 3},
+			"remove #2",
+		},
 	}
 
 	for i, test := range tests {
 		stackCopy := stack.Copy()
+
+		if !reflect.DeepEqual(stackCopy.indexes, startingIndexes) {
+			t.Error("Sanity check failed for", i, "Starting indexes were", stackCopy.indexes, "wanted", startingIndexes)
+		}
 
 		stackCopy.removeComponentAt(test.componentIndex)
 
