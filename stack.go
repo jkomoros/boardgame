@@ -649,10 +649,10 @@ func moveAllToImpl(from Stack, to Stack) error {
 		return errors.New("Not enough space in the target stack")
 	}
 
-	c := from.RemoveFirst()
-	for c != nil {
-		to.InsertBack(c)
-		c = from.RemoveFirst()
+	for from.NumComponents() > 0 {
+		if err := from.MoveComponent(FirstComponentIndex, to, NextSlotIndex); err != nil {
+			return err
+		}
 	}
 
 	return nil

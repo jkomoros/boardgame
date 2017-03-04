@@ -834,9 +834,13 @@ func TestMoveAllTo(t *testing.T) {
 
 	deck := game.Chest().Deck("test")
 
+	fakeState := &State{}
+
 	to := NewGrowableStack(deck, 1)
+	to.statePtr = fakeState
 
 	from := NewSizedStack(deck, 2)
+	from.statePtr = fakeState
 
 	zero := deck.Components()[0]
 	one := deck.Components()[1]
