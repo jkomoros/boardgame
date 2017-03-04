@@ -332,10 +332,13 @@ func TestMoveComponent(t *testing.T) {
 
 	gStackMaxLen := NewGrowableStack(deck, 4)
 
+	sStackMaxLen := NewSizedStack(deck, 4)
+
 	for _, c := range deck.Components() {
 		gStack.InsertBack(c)
 		gStackMaxLen.InsertBack(c)
 		sStack.InsertFront(c)
+		sStackMaxLen.InsertFront(c)
 	}
 
 	fakeState := &State{}
@@ -343,6 +346,7 @@ func TestMoveComponent(t *testing.T) {
 	gStack.statePtr = fakeState
 	sStack.statePtr = fakeState
 	gStackMaxLen.statePtr = fakeState
+	sStackMaxLen.statePtr = fakeState
 
 	if !reflect.DeepEqual(gStack.indexes, []int{0, 1, 2, 3}) {
 		t.Error("gStack was not initialized like expected. Got", gStack.indexes)
@@ -350,6 +354,14 @@ func TestMoveComponent(t *testing.T) {
 
 	if !reflect.DeepEqual(sStack.indexes, []int{0, 1, 2, 3, -1}) {
 		t.Error("sStack was not initalized like expected. Got", sStack.indexes)
+	}
+
+	if !reflect.DeepEqual(gStackMaxLen.indexes, []int{0, 1, 2, 3}) {
+		t.Error("gStackMaxLen was not initalized like expected. got", gStackMaxLen.indexes)
+	}
+
+	if !reflect.DeepEqual(sStackMaxLen.indexes, []int{0, 1, 2, 3}) {
+		t.Error("sStackMaxLen was not initalized like expected. Got", sStackMaxLen.indexes)
 	}
 
 	sStackOtherState := sStack.Copy()
@@ -434,6 +446,16 @@ func TestMoveComponent(t *testing.T) {
 			4,
 			true,
 			"Moving to a gstack with no more space",
+		},
+		{
+			gStack,
+			sStackMaxLen,
+			FirstComponentIndex,
+			0,
+			LastSlotIndex,
+			-1,
+			true,
+			"Moving from a growable stack to a slot that has no more space.",
 		},
 	}
 
