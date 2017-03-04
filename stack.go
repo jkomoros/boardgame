@@ -875,6 +875,10 @@ func moveComonentImpl(source Stack, componentIndex int, destination Stack, slotI
 		return errors.New("The effective slot index, " + strconv.Itoa(slotIndex) + " does not point to a legal slot.")
 	}
 
+	if destination.SlotsRemaining() < 1 {
+		return errors.New("The destination stack does not have any extra slots.")
+	}
+
 	c := source.removeComponentAt(componentIndex)
 
 	if c == nil {
