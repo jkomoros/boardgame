@@ -130,7 +130,7 @@ func TestStackInsert(t *testing.T) {
 		t.Error("NumComponents was wrong")
 	}
 
-	if stack.deck.Name() != "test" {
+	if stack.deck().Name() != "test" {
 		t.Error("Stack didn't report right deck name")
 	}
 

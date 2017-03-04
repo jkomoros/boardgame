@@ -121,6 +121,10 @@ type Stack interface {
 	//convenience method when you have a Stack but don't know its underlying
 	//type.
 	state() *State
+
+	//deck returns the Deck in this stack. Just a conveniene wrapper if you
+	//don't know what kind of stack you have.
+	deck() *Deck
 }
 
 const (
@@ -147,7 +151,7 @@ const (
 type GrowableStack struct {
 	//Deck is the deck that we're a part of. This will be nil if we aren't
 	//inflated.
-	deck *Deck
+	deckPtr *Deck
 	//We need to maintain the name of deck because sometimes we aren't
 	//inflated yet (like after being deserialized from disk)
 	deckName string
@@ -166,7 +170,7 @@ type GrowableStack struct {
 //empty. Create a new one with NewSizedStack.
 type SizedStack struct {
 	//Deck is the deck we're a part of. This will be nil if we aren't inflated.
-	deck *Deck
+	deckPtr *Deck
 	//We need to maintain the name of deck because sometimes we aren't
 	//inflated yet (like after being deserialized from disk)
 	deckName string
@@ -198,7 +202,7 @@ func NewGrowableStack(deck *Deck, maxLen int) *GrowableStack {
 	}
 
 	return &GrowableStack{
-		deck:     deck,
+		deckPtr:  deck,
 		deckName: deck.Name(),
 		indexes:  make([]int, 0),
 		maxLen:   maxLen,
@@ -219,7 +223,7 @@ func NewSizedStack(deck *Deck, size int) *SizedStack {
 	}
 
 	return &SizedStack{
-		deck:     deck,
+		deckPtr:  deck,
 		deckName: deck.Name(),
 		indexes:  indexes,
 		size:     size,
@@ -268,11 +272,11 @@ func (s *SizedStack) NumComponents() int {
 }
 
 func (s *GrowableStack) Inflated() bool {
-	return s.deck != nil
+	return s.deck() != nil
 }
 
 func (s *SizedStack) Inflated() bool {
-	return s.deck != nil
+	return s.deck() != nil
 }
 
 func (g *GrowableStack) Inflate(chest *ComponentChest) error {
@@ -287,7 +291,7 @@ func (g *GrowableStack) Inflate(chest *ComponentChest) error {
 		return errors.New("Chest did not contain deck with name " + g.deckName)
 	}
 
-	g.deck = deck
+	g.deckPtr = deck
 
 	return nil
 
@@ -305,7 +309,7 @@ func (s *SizedStack) Inflate(chest *ComponentChest) error {
 		return errors.New("Chest did not contain deck with name " + s.deckName)
 	}
 
-	s.deck = deck
+	s.deckPtr = deck
 
 	return nil
 
@@ -331,7 +335,7 @@ func (s *GrowableStack) ComponentAt(index int) *Component {
 	deckIndex := s.indexes[index]
 
 	//ComponentAt will handle negative values and empty sentinel correctly.
-	return s.deck.ComponentAt(deckIndex)
+	return s.deck().ComponentAt(deckIndex)
 }
 
 //ComponentAt fetches the component object representing the n-th object in
@@ -355,7 +359,7 @@ func (s *SizedStack) ComponentAt(index int) *Component {
 	deckIndex := s.indexes[index]
 
 	//ComponentAt will handle negative values and empty sentinel correctly.
-	return s.deck.ComponentAt(deckIndex)
+	return s.deck().ComponentAt(deckIndex)
 }
 
 //ComponentValues returns the Values of each Component in order. Useful for
@@ -430,7 +434,7 @@ func (s *SizedStack) InsertAtSlot(c *Component, index int) error {
 	//Based on how Decks and Chests are constructed, we know the components in
 	//the chest hae the right gamename, so no need to check.
 
-	if c.Deck.Name() != s.deck.Name() {
+	if c.Deck.Name() != s.deck().Name() {
 		//We can only add items that are in our deck.
 
 		return errors.New("The component is not part of this stack's deck.")
@@ -459,7 +463,7 @@ func (s *SizedStack) InsertFront(c *Component) error {
 	//Based on how Decks and Chests are constructed, we know the components in
 	//the chest hae the right gamename, so no need to check.
 
-	if c.Deck.Name() != s.deck.Name() {
+	if c.Deck.Name() != s.deck().Name() {
 		//We can only add items that are in our deck.
 
 		return errors.New("The component is not part of this stack's deck.")
@@ -488,7 +492,7 @@ func (g *GrowableStack) InsertBack(c *Component) error {
 	//Based on how Decks and Chests are constructed, we know the components in
 	//the chest hae the right gamename, so no need to check.
 
-	if c.Deck.Name() != g.deck.Name() {
+	if c.Deck.Name() != g.deck().Name() {
 		//We can only add items that are in our deck.
 
 		return errors.New("The component is not part of this stack's deck.")
@@ -510,7 +514,7 @@ func (s *SizedStack) InsertBack(c *Component) error {
 	//Based on how Decks and Chests are constructed, we know the components in
 	//the chest hae the right gamename, so no need to check.
 
-	if c.Deck.Name() != s.deck.Name() {
+	if c.Deck.Name() != s.deck().Name() {
 		//We can only add items that are in our deck.
 
 		return errors.New("The component is not part of this stack's deck.")
@@ -540,7 +544,7 @@ func (s *GrowableStack) InsertFront(c *Component) error {
 	//Based on how Decks and Chests are constructed, we know the components in
 	//the chest hae the right gamename, so no need to check.
 
-	if c.Deck.Name() != s.deck.Name() {
+	if c.Deck.Name() != s.deck().Name() {
 		//We can only add items that are in our deck.
 
 		return errors.New("The component is not part of this stack's deck.")
@@ -634,6 +638,14 @@ func (g *GrowableStack) state() *State {
 
 func (s *SizedStack) state() *State {
 	return s.statePtr
+}
+
+func (g *GrowableStack) deck() *Deck {
+	return g.deckPtr
+}
+
+func (s *SizedStack) deck() *Deck {
+	return s.deckPtr
 }
 
 func (g *GrowableStack) modificationsAllowed() error {
