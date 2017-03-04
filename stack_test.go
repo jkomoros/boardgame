@@ -332,13 +332,21 @@ func TestMoveComponent(t *testing.T) {
 
 	for _, c := range deck.Components() {
 		gStack.InsertBack(c)
-		sStack.InsertBack(c)
+		sStack.InsertFront(c)
 	}
 
 	fakeState := &State{}
 
 	gStack.statePtr = fakeState
 	sStack.statePtr = fakeState
+
+	if !reflect.DeepEqual(gStack.indexes, []int{0, 1, 2, 3}) {
+		t.Error("gStack was not initialized like expected. Got", gStack.indexes)
+	}
+
+	if !reflect.DeepEqual(sStack.indexes, []int{0, 1, 2, 3, -1}) {
+		t.Error("sStack was not initalized like expected. Got", sStack.indexes)
+	}
 
 	tests := []struct {
 		source         Stack
@@ -347,7 +355,16 @@ func TestMoveComponent(t *testing.T) {
 		slotIndex      int
 		expectError    bool
 		description    string
-	}{}
+	}{
+		{
+			gStack,
+			sStack,
+			0,
+			4,
+			false,
+			"Move from growable to sized 0 to last slot",
+		},
+	}
 
 	for i, test := range tests {
 		var source Stack
