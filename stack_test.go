@@ -320,6 +320,78 @@ func TestStackInsertBack(t *testing.T) {
 	}
 }
 
+func TestMoveComponent(t *testing.T) {
+
+	game := testGame()
+
+	deck := game.Chest().Deck("test")
+
+	gStack := NewGrowableStack(deck, 0)
+
+	sStack := NewSizedStack(deck, 5)
+
+	for _, c := range deck.Components() {
+		gStack.InsertBack(c)
+		sStack.InsertBack(c)
+	}
+
+	fakeState := &State{}
+
+	gStack.statePtr = fakeState
+	sStack.statePtr = fakeState
+
+	tests := []struct {
+		source         Stack
+		destination    Stack
+		componentIndex int
+		slotIndex      int
+		expectError    bool
+		description    string
+	}{}
+
+	for i, test := range tests {
+		var source Stack
+		var destination Stack
+
+		switch s := test.source.(type) {
+		case *GrowableStack:
+			source = s.Copy()
+		case *SizedStack:
+			source = s.Copy()
+		}
+
+		switch s := test.destination.(type) {
+		case *GrowableStack:
+			destination = s.Copy()
+		case *SizedStack:
+			destination = s.Copy()
+		}
+
+		preMoveSourceNumComponents := source.NumComponents()
+		preMoveDestinationNumComponents := destination.NumComponents()
+
+		err := moveComonentImpl(source, test.componentIndex, destination, test.slotIndex)
+
+		if err == nil && test.expectError {
+			t.Error("Got no error but expected one for", i, test.description)
+		} else if err != nil && !test.expectError {
+			t.Error("Got an error but didn't expect one for", i, test.description, err)
+		}
+
+		if err != nil && test.expectError {
+			continue
+		}
+
+		if preMoveSourceNumComponents != source.NumComponents()+1 {
+			t.Error("After the successful move, sourcew as not one component smaller.", i, test.description)
+		}
+		if preMoveDestinationNumComponents != destination.NumComponents()-1 {
+			t.Error("After the successful move, destination was not one component bigger", i, test.description)
+		}
+	}
+
+}
+
 func TestSwapComponents(t *testing.T) {
 	game := testGame()
 
