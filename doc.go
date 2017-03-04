@@ -134,11 +134,10 @@ Your State object will contain a collection of Stacks. Stacks are mutable
 ordered collections of Components of a specific type. For example, you might
 have a Stack for the Draw pile, a Stack for Discard pile, and a stack
 representing each player's hand. Every component in the Chest must live in
-precisely one Stack at every State in your game. During Game set-up, your
-delegate's DistributeComponentToStarterStack will be called for each component
-in the chest in turn, which helps you conform to this important invariant from
-the very beginning, and then make sure to maintain it in each Move's Apply
-method.
+precisely one Stack at every State in your game. The design of Stack methods
+and Delegate's DistributeComponentsToStartingStacks is carefully configured so
+that it is impossible to not satisfy this invariant (as long as you do not
+call stack.UnsafeInsertNextComponent outside of testing context).
 
 Sanitization
 
