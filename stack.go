@@ -91,6 +91,27 @@ type Stack interface {
 	applySanitizationPolicy(policy Policy)
 }
 
+const (
+	//FirstComponentIndex is computed to be the first  index, from the left,
+	//where ComponentAt() will return a component. For GrowableStacks this is
+	//always 0 (for non-empty stacks); for SizedStacks, it's the first non-
+	//empty slot from the left.
+	FirstComponentIndex = -1
+	//LastComponentIndex is computed to be the largest index where
+	//ComponentAt() will return a component. For GrowableStacks, this is
+	//always Len() - 1 (for non-empty stacks); for SizedStacks, it's the first
+	//non-empty slot from the right.
+	LastComponentIndex = -2
+	//FirstSlotIndex is computed to be the first index that it is valid to
+	//insert a component at (a "slot"). For GrowableStacks, this is always 0.
+	//For SizedStacks, this is the first empty slot from the left.
+	FirstSlotIndex = -1
+	//LastSlotIndex is computed to be the last index that it is valid to
+	//insert a component at (a "slot"). For GrowableStacks, this is always
+	//Len(). For SizedStacks, this is the first empty slot from the right.
+	LastSlotIndex = -2
+)
+
 type GrowableStack struct {
 	//Deck is the deck that we're a part of. This will be nil if we aren't
 	//inflated.
