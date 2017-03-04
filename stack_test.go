@@ -330,8 +330,11 @@ func TestMoveComponent(t *testing.T) {
 
 	sStack := NewSizedStack(deck, 5)
 
+	gStackMaxLen := NewGrowableStack(deck, 4)
+
 	for _, c := range deck.Components() {
 		gStack.InsertBack(c)
+		gStackMaxLen.InsertBack(c)
 		sStack.InsertFront(c)
 	}
 
@@ -339,6 +342,7 @@ func TestMoveComponent(t *testing.T) {
 
 	gStack.statePtr = fakeState
 	sStack.statePtr = fakeState
+	gStackMaxLen.statePtr = fakeState
 
 	if !reflect.DeepEqual(gStack.indexes, []int{0, 1, 2, 3}) {
 		t.Error("gStack was not initialized like expected. Got", gStack.indexes)
@@ -420,6 +424,16 @@ func TestMoveComponent(t *testing.T) {
 			4,
 			true,
 			"Moving from same stack",
+		},
+		{
+			sStack,
+			gStackMaxLen,
+			FirstComponentIndex,
+			0,
+			LastSlotIndex,
+			4,
+			true,
+			"Moving to a gstack with no more space",
 		},
 	}
 
