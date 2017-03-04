@@ -122,11 +122,11 @@ func TestGameSetUp(t *testing.T) {
 	currentState := game.CurrentState()
 	gameState, playerStates := concreteStates(currentState)
 
-	if gameState.DrawDeck.state != currentState {
+	if gameState.DrawDeck.state() != currentState {
 		t.Error("GameState's drawdeck didn't have state set correctly. Got", gameState.DrawDeck.state, "wanted", currentState)
 	}
 
-	if playerStates[0].Hand.state != currentState {
+	if playerStates[0].Hand.state() != currentState {
 		t.Error("PlayerStates Hand didn't have state set correctly. Got", playerStates[0].Hand.state, "wanted", currentState)
 	}
 
@@ -140,11 +140,11 @@ func TestGameSetUp(t *testing.T) {
 
 	gameState, playerStates = concreteStates(stateCopy)
 
-	if gameState.DrawDeck.state != stateCopy {
+	if gameState.DrawDeck.state() != stateCopy {
 		t.Error("The copy of state's stacks had the old state in gamestate")
 	}
 
-	if playerStates[0].Hand.state != stateCopy {
+	if playerStates[0].Hand.state() != stateCopy {
 		t.Error("The copy of state's stacks had the old state in playerstate")
 	}
 

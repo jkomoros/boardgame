@@ -351,9 +351,9 @@ func swapComponentsTests(stack Stack, t *testing.T) {
 
 	switch s := stack.(type) {
 	case *GrowableStack:
-		s.state = fakeState
+		s.statePtr = fakeState
 	case *SizedStack:
-		s.state = fakeState
+		s.statePtr = fakeState
 	default:
 		t.Fatal("Unknown type of stack")
 	}
@@ -395,7 +395,7 @@ func TestShuffle(t *testing.T) {
 
 	fakeState := &State{}
 
-	stack.state = fakeState
+	stack.statePtr = fakeState
 
 	for _, c := range deck.Components() {
 		stack.InsertFront(c)
@@ -429,7 +429,7 @@ func TestShuffle(t *testing.T) {
 
 	sStack := NewSizedStack(deck, 5)
 
-	sStack.state = fakeState
+	sStack.statePtr = fakeState
 
 	for _, c := range deck.Components() {
 		sStack.InsertFront(c)

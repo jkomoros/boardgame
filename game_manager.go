@@ -197,7 +197,7 @@ func verifyReaderStacks(reader PropertyReader, state *State) error {
 			if err != nil {
 				return errors.New("GrowableStack prop " + propName + " had unexpected error: " + err.Error())
 			}
-			val.state = state
+			val.statePtr = state
 		case TypeSizedStack:
 			val, err := reader.SizedStackProp(propName)
 			if val == nil {
@@ -206,7 +206,7 @@ func verifyReaderStacks(reader PropertyReader, state *State) error {
 			if err != nil {
 				return errors.New("SizedStack prop " + propName + " had unexpected error: " + err.Error())
 			}
-			val.state = state
+			val.statePtr = state
 		}
 	}
 	return nil

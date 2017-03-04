@@ -94,6 +94,11 @@ type Stack interface {
 	//or, if it's one of {First,Last}{Component,Slot}Index, what that computes
 	//to in this case.
 	effectiveIndex(index int) int
+
+	//Returns the state that this Stack is currently part of. Mainly a
+	//convenience method when you have a Stack but don't know its underlying
+	//type.
+	state() *State
 }
 
 const (
@@ -132,7 +137,7 @@ type GrowableStack struct {
 	//Each stack is associated with precisely one state. This is consulted to
 	//verify that components being transfered between stacks are part of a
 	//single state. Set in empty{Game,Player}State.
-	state *State
+	statePtr *State
 }
 
 //SizedStack is a Stack that has a fixed number of slots, any of which may be
@@ -151,7 +156,7 @@ type SizedStack struct {
 	//Each stack is associated with precisely one state. This is consulted to
 	//verify that components being transfered between stacks are part of a
 	//single state. Set in empty{Game,Player}State.
-	state *State
+	statePtr *State
 }
 
 //stackJSONObj is an internal struct that we populate and use to implement
@@ -596,14 +601,22 @@ func moveAllToImpl(from Stack, to Stack) error {
 	return nil
 }
 
+func (g *GrowableStack) state() *State {
+	return g.statePtr
+}
+
+func (s *SizedStack) state() *State {
+	return s.statePtr
+}
+
 func (g *GrowableStack) modificationsAllowed() error {
 	if !g.Inflated() {
 		return errors.New("Modifications not allowed: stack is not inflated")
 	}
-	if g.state == nil {
+	if g.state() == nil {
 		return errors.New("Modifications not allowed: stack's state not set")
 	}
-	if g.state.Sanitized() {
+	if g.state().Sanitized() {
 		return errors.New("Modifications not allowed: stack's state is sanitized")
 	}
 	return nil
@@ -613,10 +626,10 @@ func (s *SizedStack) modificationsAllowed() error {
 	if !s.Inflated() {
 		return errors.New("Modifications not allowed: stack is not inflated")
 	}
-	if s.state == nil {
+	if s.state() == nil {
 		return errors.New("Modifications not allowed: stack's state not set")
 	}
-	if s.state.Sanitized() {
+	if s.state().Sanitized() {
 		return errors.New("Modifications not allowed: stack's state is sanitized")
 	}
 	return nil
