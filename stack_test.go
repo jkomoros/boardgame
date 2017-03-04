@@ -457,6 +457,26 @@ func TestMoveComponent(t *testing.T) {
 			true,
 			"Moving from a growable stack to a slot that has no more space.",
 		},
+		{
+			gStack,
+			sStack,
+			10,
+			10,
+			LastSlotIndex,
+			4,
+			true,
+			"Invalid component index",
+		},
+		{
+			gStack,
+			sStack,
+			2,
+			2,
+			LastSlotIndex,
+			4,
+			false,
+			"Moving from middle of growable stack to sized stack",
+		},
 	}
 
 	for i, test := range tests {
