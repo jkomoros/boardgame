@@ -411,6 +411,16 @@ func TestMoveComponent(t *testing.T) {
 			true,
 			"Move from a stack in one state to another",
 		},
+		{
+			sStack,
+			sStack,
+			FirstComponentIndex,
+			0,
+			LastSlotIndex,
+			4,
+			true,
+			"Moving from same stack",
+		},
 	}
 
 	for i, test := range tests {
@@ -424,11 +434,17 @@ func TestMoveComponent(t *testing.T) {
 			source = s.Copy()
 		}
 
-		switch s := test.destination.(type) {
-		case *GrowableStack:
-			destination = s.Copy()
-		case *SizedStack:
-			destination = s.Copy()
+		//Some tests deliberately want to make sure that copies within same source and dest aren't allowed
+		if test.source == test.destination {
+			destination = source
+		} else {
+
+			switch s := test.destination.(type) {
+			case *GrowableStack:
+				destination = s.Copy()
+			case *SizedStack:
+				destination = s.Copy()
+			}
 		}
 
 		preMoveSourceNumComponents := source.NumComponents()
