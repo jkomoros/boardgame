@@ -477,6 +477,26 @@ func TestMoveComponent(t *testing.T) {
 			false,
 			"Moving from middle of growable stack to sized stack",
 		},
+		{
+			gStack,
+			sStack,
+			FirstComponentIndex,
+			0,
+			NextSlotIndex,
+			4,
+			false,
+			"NextSlotIndex from growable to sized",
+		},
+		{
+			sStack,
+			gStack,
+			FirstComponentIndex,
+			0,
+			NextSlotIndex,
+			4,
+			false,
+			"NextSlotIndex from sized to growable",
+		},
 	}
 
 	for i, test := range tests {

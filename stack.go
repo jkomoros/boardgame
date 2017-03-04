@@ -167,6 +167,11 @@ const (
 	//insert a component at (a "slot"). For GrowableStacks, this is always
 	//Len(). For SizedStacks, this is the first empty slot from the right.
 	LastSlotIndex = -4
+	//NextSlotIndex returns the next slot index, from the left, where a
+	//component could be inserted without splicing--that is, without shifting
+	//other components to the right. For SizedStacks, this is equivalent to
+	//FirstSlotIndex. For GrowableStacks, this is equivalent to LastSlotIndex.
+	NextSlotIndex = -5
 )
 
 type GrowableStack struct {
@@ -779,6 +784,8 @@ func (g *GrowableStack) effectiveIndex(index int) int {
 		return 0
 	case LastSlotIndex:
 		return g.Len()
+	case NextSlotIndex:
+		return g.Len()
 	}
 
 	return index
@@ -803,7 +810,7 @@ func (s *SizedStack) effectiveIndex(index int) int {
 		}
 	}
 
-	if index == FirstSlotIndex {
+	if index == FirstSlotIndex || index == NextSlotIndex {
 		for i, componentIndex := range s.indexes {
 			if componentIndex == emptyIndexSentinel {
 				return i
