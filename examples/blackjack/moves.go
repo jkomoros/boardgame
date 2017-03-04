@@ -107,7 +107,7 @@ func (m *MoveCurrentPlayerHit) Apply(state *boardgame.State) error {
 
 	currentPlayer := players[game.CurrentPlayer]
 
-	currentPlayer.VisibleHand.InsertFront(game.DrawStack.RemoveFirst())
+	game.DrawStack.MoveComponent(boardgame.FirstComponentIndex, currentPlayer.VisibleHand, boardgame.FirstSlotIndex)
 
 	handValue := currentPlayer.HandValue()
 
@@ -289,7 +289,7 @@ func (m *MoveRevealHiddenCard) Apply(state *boardgame.State) error {
 
 	p := players[m.TargetPlayerIndex]
 
-	p.VisibleHand.InsertFront(p.HiddenHand.RemoveFirst())
+	p.HiddenHand.MoveComponent(boardgame.FirstComponentIndex, p.VisibleHand, boardgame.FirstSlotIndex)
 
 	return nil
 }
@@ -356,13 +356,17 @@ func (m *MoveDealInitialCard) Apply(state *boardgame.State) error {
 	p := players[m.TargetPlayerIndex]
 
 	if m.IsHidden {
-		if err := p.HiddenHand.InsertBack(game.DrawStack.RemoveFirst()); err != nil {
+
+		if err := game.DrawStack.MoveComponent(boardgame.FirstComponentIndex, p.HiddenHand, boardgame.NextSlotIndex); err != nil {
 			return err
 		}
+
 	} else {
-		if err := p.VisibleHand.InsertBack(game.DrawStack.RemoveFirst()); err != nil {
+
+		if err := game.DrawStack.MoveComponent(boardgame.FirstComponentIndex, p.VisibleHand, boardgame.NextSlotIndex); err != nil {
 			return err
 		}
+
 		//This completes their initial deal
 		p.GotInitialDeal = true
 	}

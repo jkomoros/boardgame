@@ -43,9 +43,9 @@ func (m *MovePlaceToken) Apply(state *boardgame.State) error {
 
 	u := players[m.TargetPlayerIndex]
 
-	c := u.UnusedTokens.RemoveFirst()
-
-	game.Slots.InsertAtSlot(c, m.Slot)
+	if err := u.UnusedTokens.MoveComponent(boardgame.FirstComponentIndex, game.Slots, m.Slot); err != nil {
+		return err
+	}
 
 	u.TokensToPlaceThisTurn--
 
