@@ -7,6 +7,7 @@ because it has hidden state.
 package blackjack
 
 import (
+	"errors"
 	"fmt"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/playingcards"
@@ -34,19 +35,19 @@ func (g *gameDelegate) DefaultNumPlayers() int {
 	return 4
 }
 
-func (g *gameDelegate) DistributeComponentToStarterStack(state *boardgame.State, c *boardgame.Component) error {
+func (g *gameDelegate) DistributeComponentToStarterStack(state *boardgame.State, c *boardgame.Component) (boardgame.Stack, error) {
 
 	game, _ := concreteStates(state)
 
 	card := c.Values.(*playingcards.Card)
 
 	if card.Rank == playingcards.RankJoker {
-		game.UnusedCards.InsertFront(c)
+		return game.UnusedCards, nil
 	} else {
-		game.DrawStack.InsertFront(c)
+		return game.DrawStack, nil
 	}
 
-	return nil
+	return nil, errors.New("Unexpected control point reached")
 
 }
 

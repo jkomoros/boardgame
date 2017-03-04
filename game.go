@@ -242,9 +242,17 @@ func (g *Game) SetUp(numPlayers int) error {
 	for _, name := range g.Chest().DeckNames() {
 		deck := g.Chest().Deck(name)
 		for i, component := range deck.Components() {
-			if err := g.manager.Delegate().DistributeComponentToStarterStack(stateCopy, component); err != nil {
+			stack, err := g.manager.Delegate().DistributeComponentToStarterStack(stateCopy, component)
+			if err != nil {
 				return errors.New("Distributing components failed for deck " + name + ":" + strconv.Itoa(i) + ":" + err.Error())
 			}
+			if stack == nil {
+				return errors.New("Distributing components failed for deck " + name + ":" + strconv.Itoa(i) + ": the delegate returned no stack.")
+			}
+			if stack.SlotsRemaining() < 1 {
+				return errors.New("Distributing components failed for deck " + name + ":" + strconv.Itoa(i) + ": the stack the delegate returned had no more slots.")
+			}
+			stack.insertComponentAt(stack.effectiveIndex(NextSlotIndex), component)
 		}
 	}
 

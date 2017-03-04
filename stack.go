@@ -135,7 +135,7 @@ type Stack interface {
 	//component. For GrowableStacks, this splices in the component. For
 	//SizedStacks, this just inserts the component in the slot. This should
 	//only be called by MoveComponent. Performs minimal error checking because
-	//it is only used inside of Movecomponent.
+	//it is only used inside of Movecomponent and game.SetUp.
 	insertComponentAt(slotIndex int, component *Component)
 
 	//Returns the state that this Stack is currently part of. Mainly a

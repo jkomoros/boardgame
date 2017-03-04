@@ -5,10 +5,10 @@
       "DrawDeck": {
         "Deck": "test",
         "Indexes": [
-          3,
-          2,
+          0,
           1,
-          0
+          2,
+          3
         ]
       }
     },

@@ -25,11 +25,14 @@ type GameDelegate interface {
 	//the Deck/Stack invariant that every component in the chest is placed in
 	//precisely one Stack. Game will call this on each component in the Chest
 	//in order. This is where the logic goes to make sure each Component goes
-	//into its correct starter stack. As long as you put each component into a
-	//Stack, the invariant will be met at the end of SetUp. If any errors are
-	//returned SetUp fails. Unlike after the game has been SetUp, you can
-	//modify payload directly.
-	DistributeComponentToStarterStack(state *State, c *Component) error
+	//into its correct starter stack. You must return a non-nil Stack for each
+	//call, after which the given Component will be inserted into
+	//NextSlotIndex of that stack. If that is not the ordering you desire, you
+	//can fix it up in FinishSetUp by using SwapComponents. If any errors are
+	//returned, any nil Stacks are returned, or any returned stacks don't have
+	//space for another component, game.SetUp will fail. State and Component
+	//are only provided for reference; do not modify them.
+	DistributeComponentToStarterStack(readOnlyState *State, c *Component) (Stack, error)
 
 	//BeginSetup is a chance to modify the initial state object *before* the
 	//components are distributed to it. This is a good place to configure
@@ -152,11 +155,11 @@ func (d *DefaultGameDelegate) ProposeFixUpMove(state *State) Move {
 	return nil
 }
 
-func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state *State, c *Component) error {
+func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state *State, c *Component) (Stack, error) {
 	//The stub returns an error, because if this is called that means there
 	//was a component in the deck. And if we didn't store it in a stack, then
 	//we are in violation of the invariant.
-	return errors.New("DistributeComponentToStarterStack was called, but the component was not stored in a stack")
+	return nil, errors.New("DistributeComponentToStarterStack was called, but the component was not stored in a stack")
 }
 
 func (d *DefaultGameDelegate) StateSanitizationPolicy() *StatePolicy {

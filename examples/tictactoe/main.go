@@ -8,6 +8,7 @@ boardgame are useful for real games.
 package tictactoe
 
 import (
+	"errors"
 	"github.com/jkomoros/boardgame"
 	"strings"
 )
@@ -21,18 +22,18 @@ type gameDelegate struct {
 	boardgame.DefaultGameDelegate
 }
 
-func (g *gameDelegate) DistributeComponentToStarterStack(state *boardgame.State, c *boardgame.Component) error {
+func (g *gameDelegate) DistributeComponentToStarterStack(state *boardgame.State, c *boardgame.Component) (boardgame.Stack, error) {
 	component := c.Values.(*playerToken)
 
 	_, players := concreteStates(state)
 
 	switch component.Value {
 	case X:
-		players[0].UnusedTokens.InsertFront(c)
+		return players[0].UnusedTokens, nil
 	case O:
-		players[1].UnusedTokens.InsertFront(c)
+		return players[1].UnusedTokens, nil
 	}
-	return nil
+	return nil, errors.New("Component with unexpected value")
 }
 
 func (g *gameDelegate) Name() string {

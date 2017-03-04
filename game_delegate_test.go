@@ -8,9 +8,9 @@ type testGameDelegate struct {
 	DefaultGameDelegate
 }
 
-func (t *testGameDelegate) DistributeComponentToStarterStack(state *State, c *Component) error {
+func (t *testGameDelegate) DistributeComponentToStarterStack(state *State, c *Component) (Stack, error) {
 	game, _ := concreteStates(state)
-	return game.DrawDeck.InsertFront(c)
+	return game.DrawDeck, nil
 }
 
 func (t *testGameDelegate) Name() string {
