@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/rand"
 	"strconv"
+	"testing"
 )
 
 const emptyIndexSentinel = -1
@@ -103,6 +104,13 @@ type Stack interface {
 	//{First,Last}{Component,Slot}Index constants to automatically set these
 	//indexes to common values.
 	MoveComponent(componentIndex int, destination Stack, slotIndex int) error
+
+	//UnsafeInsertNextComponent is designed only to be used in tests, because
+	//it makes it trivial to violate the component-in-one-stack invariant. It
+	//inserts the given component to the NextSlotIndex in the given stack. You
+	//must pass a non-nil testing.T in order to reinforce that this is only
+	//intended to be used in tests.
+	UnsafeInsertNextComponent(t *testing.T, c *Component) error
 
 	//applySanitizationPolicy applies the given policy to ourselves. This
 	//should only be called by methods in sanitization.go.
@@ -774,6 +782,28 @@ func (g *GrowableStack) insertComponentAt(slotIndex int, component *Component) {
 
 func (s *SizedStack) insertComponentAt(slotIndex int, component *Component) {
 	s.indexes[slotIndex] = component.DeckIndex
+}
+
+func (g *GrowableStack) UnsafeInsertNextComponent(t *testing.T, c *Component) error {
+	if t == nil {
+		return errors.New("You must provide a non-nil testing.T")
+	}
+	if g.SlotsRemaining() < 1 {
+		return errors.New("There are not enough slots remaining")
+	}
+	g.insertNext(c)
+	return nil
+}
+
+func (s *SizedStack) UnsafeInsertNextComponent(t *testing.T, c *Component) error {
+	if t == nil {
+		return errors.New("You must provide a non-nil testing.T")
+	}
+	if s.SlotsRemaining() < 1 {
+		return errors.New("There are not enough slots remaining")
+	}
+	s.insertNext(c)
+	return nil
 }
 
 func (g *GrowableStack) insertNext(c *Component) {
