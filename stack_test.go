@@ -387,6 +387,77 @@ func swapComponentsTests(stack Stack, t *testing.T) {
 	}
 }
 
+func TestGrowableStackInsertComponentAt(t *testing.T) {
+	//Splicing out parts of an array is so finicky that we need to make sure
+	//to test it extra good...
+
+	game := testGame()
+
+	deck := game.Chest().Deck("test")
+
+	fakeState := &State{}
+
+	stack := NewGrowableStack(deck, 0)
+
+	stack.statePtr = fakeState
+
+	for _, c := range deck.Components() {
+		stack.InsertBack(c)
+	}
+
+	//stack.indexes = [0, 1, 2, 3]
+
+	startingIndexes := []int{0, 1, 2, 3}
+
+	tests := []struct {
+		slotIndex          int
+		componentDeckIndex int
+		expectedIndexes    []int
+		description        string
+	}{
+		{
+			0,
+			2,
+			[]int{2, 0, 1, 2, 3},
+			"Add 2 at index 0",
+		},
+		{
+			4,
+			2,
+			[]int{0, 1, 2, 3, 2},
+			"Insert 2 at end",
+		},
+		{
+			1,
+			3,
+			[]int{0, 3, 1, 2, 3},
+			"Insert 3 at #1",
+		},
+		{
+			3,
+			1,
+			[]int{0, 1, 2, 1, 3},
+			"inserting 1 at #3",
+		},
+	}
+
+	for i, test := range tests {
+		stackCopy := stack.Copy()
+
+		component := deck.ComponentAt(test.componentDeckIndex)
+
+		if !reflect.DeepEqual(stackCopy.indexes, startingIndexes) {
+			t.Error("Sanity check failed", i, "Starting indexes were", stackCopy.indexes, "wanted", startingIndexes)
+		}
+
+		stackCopy.insertComponentAt(test.slotIndex, component)
+
+		if !reflect.DeepEqual(stackCopy.indexes, test.expectedIndexes) {
+			t.Error("Test", i, test.description, "failed for insertComponentAt. Got", stackCopy.indexes, "wanted", test.expectedIndexes)
+		}
+	}
+}
+
 func TestGrowableStackRemoveComponentAt(t *testing.T) {
 	//Splicing out parts of an array is so finicky that we need to make sure
 	//to test it extra good...

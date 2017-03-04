@@ -109,6 +109,14 @@ type Stack interface {
 	//it is only used inside of MoveComponent.
 	removeComponentAt(componentIndex int) *Component
 
+	//insertComponentAt inserts the given component at the given slot index,
+	//such that calling ComponentAt with slotIndex would return that
+	//component. For GrowableStacks, this splices in the component. For
+	//SizedStacks, this just inserts the component in the slot. This should
+	//only be called by MoveComponent. Performs minimal error checking because
+	//it is only used inside of Movecomponent.
+	insertComponentAt(slotIndex int, component *Component)
+
 	//Returns the state that this Stack is currently part of. Mainly a
 	//convenience method when you have a Stack but don't know its underlying
 	//type.
@@ -703,6 +711,28 @@ func (s *SizedStack) removeComponentAt(componentIndex int) *Component {
 	s.indexes[componentIndex] = emptyIndexSentinel
 
 	return component
+}
+
+func (g *GrowableStack) insertComponentAt(slotIndex int, component *Component) {
+
+	if slotIndex == 0 {
+		g.indexes = append([]int{component.DeckIndex}, g.indexes...)
+	} else if slotIndex == g.Len() {
+		g.indexes = append(g.indexes, component.DeckIndex)
+	} else {
+		firstPart := g.indexes[:slotIndex]
+		firstPartCopy := make([]int, len(firstPart))
+		copy(firstPartCopy, firstPart)
+		//If we just append, it will put the component.DeckIndex in the
+		//underlying slice, which will then be copied again in the last append.
+		firstPartCopy = append(firstPartCopy, component.DeckIndex)
+		g.indexes = append(firstPartCopy, g.indexes[slotIndex:]...)
+	}
+
+}
+
+func (s *SizedStack) insertComponentAt(slotIndex int, component *Component) {
+	s.indexes[slotIndex] = component.DeckIndex
 }
 
 func (g *GrowableStack) effectiveIndex(index int) int {
