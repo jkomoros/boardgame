@@ -138,6 +138,9 @@ type Stack interface {
 	//it is only used inside of Movecomponent and game.SetUp.
 	insertComponentAt(slotIndex int, component *Component)
 
+	//insertNext is a convenience wrapper around insertComponentAt.
+	insertNext(c *Component)
+
 	//Returns the state that this Stack is currently part of. Mainly a
 	//convenience method when you have a Stack but don't know its underlying
 	//type.
@@ -771,6 +774,14 @@ func (g *GrowableStack) insertComponentAt(slotIndex int, component *Component) {
 
 func (s *SizedStack) insertComponentAt(slotIndex int, component *Component) {
 	s.indexes[slotIndex] = component.DeckIndex
+}
+
+func (g *GrowableStack) insertNext(c *Component) {
+	g.insertComponentAt(g.effectiveIndex(NextSlotIndex), c)
+}
+
+func (s *SizedStack) insertNext(c *Component) {
+	s.insertComponentAt(s.effectiveIndex(NextSlotIndex), c)
 }
 
 func (g *GrowableStack) effectiveIndex(index int) int {
