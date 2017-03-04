@@ -102,6 +102,13 @@ type Stack interface {
 	//special index constants.
 	legalSlot(index int) bool
 
+	//removeComponentAt returns the component at componentIndex, and removes
+	//it from the stack. For GrowableStacks, this will splice out the
+	//component. For SizedStacks it will simply vacate that slot. This should
+	//only be called by MoveComponent. Performs minimal error checking because
+	//it is only used inside of MoveComponent.
+	removeComponentAt(componentIndex int) *Component
+
 	//Returns the state that this Stack is currently part of. Mainly a
 	//convenience method when you have a Stack but don't know its underlying
 	//type.
@@ -667,6 +674,30 @@ func (s *SizedStack) legalSlot(index int) bool {
 	}
 
 	return true
+}
+
+func (g *GrowableStack) removeComponentAt(componentIndex int) *Component {
+
+	component := g.ComponentAt(componentIndex)
+
+	if componentIndex == 0 {
+		g.indexes = g.indexes[1:]
+	} else if componentIndex == g.Len()-1 {
+		g.indexes = g.indexes[:g.Len()-1]
+	} else {
+		g.indexes = append(g.indexes[:componentIndex], g.indexes[componentIndex+1:]...)
+	}
+
+	return component
+
+}
+
+func (s *SizedStack) removeComponentAt(componentIndex int) *Component {
+	component := s.ComponentAt(componentIndex)
+
+	s.indexes[componentIndex] = emptyIndexSentinel
+
+	return component
 }
 
 func (g *GrowableStack) effectiveIndex(index int) int {

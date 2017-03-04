@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"reflect"
 	"testing"
 )
 
@@ -383,6 +384,59 @@ func swapComponentsTests(stack Stack, t *testing.T) {
 
 	if err := stack.SwapComponents(0, 0); err == nil {
 		t.Error("Stack swap that was no op succeeded")
+	}
+}
+
+func TestGrowableStackRemoveComponentAt(t *testing.T) {
+	//Splicing out parts of an array is so finicky that we need to make sure
+	//to test it extra good...
+
+	game := testGame()
+
+	deck := game.Chest().Deck("test")
+
+	fakeState := &State{}
+
+	stack := NewGrowableStack(deck, 0)
+
+	stack.statePtr = fakeState
+
+	for _, c := range deck.Components() {
+		stack.InsertBack(c)
+	}
+
+	//stack.indexes = [0, 1, 2, 3]
+
+	tests := []struct {
+		componentIndex  int
+		expectedIndexes []int
+		description     string
+	}{
+		{
+			0,
+			[]int{1, 2, 3},
+			"Remove 0",
+		},
+		{
+			3,
+			[]int{0, 1, 2},
+			"remove last",
+		},
+		{
+			1,
+			[]int{0, 2, 3},
+			"remove #1",
+		},
+	}
+
+	for i, test := range tests {
+		stackCopy := stack.Copy()
+
+		stackCopy.removeComponentAt(test.componentIndex)
+
+		if !reflect.DeepEqual(stackCopy.indexes, test.expectedIndexes) {
+			t.Error("Test", i, test.description, "failed. Got", stackCopy.indexes, "wanted", test.expectedIndexes)
+		}
 	}
 }
 
