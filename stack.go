@@ -89,6 +89,11 @@ type Stack interface {
 	//applySanitizationPolicy applies the given policy to ourselves. This
 	//should only be called by methods in sanitization.go.
 	applySanitizationPolicy(policy Policy)
+
+	//Takes the given index, and expands it--either returns the given index,
+	//or, if it's one of {First,Last}{Component,Slot}Index, what that computes
+	//to in this case.
+	effectiveIndex(index int) int
 }
 
 const (
@@ -105,11 +110,11 @@ const (
 	//FirstSlotIndex is computed to be the first index that it is valid to
 	//insert a component at (a "slot"). For GrowableStacks, this is always 0.
 	//For SizedStacks, this is the first empty slot from the left.
-	FirstSlotIndex = -1
+	FirstSlotIndex = -3
 	//LastSlotIndex is computed to be the last index that it is valid to
 	//insert a component at (a "slot"). For GrowableStacks, this is always
 	//Len(). For SizedStacks, this is the first empty slot from the right.
-	LastSlotIndex = -2
+	LastSlotIndex = -4
 )
 
 type GrowableStack struct {
@@ -615,6 +620,63 @@ func (s *SizedStack) modificationsAllowed() error {
 		return errors.New("Modifications not allowed: stack's state is sanitized")
 	}
 	return nil
+}
+
+func (g *GrowableStack) effectiveIndex(index int) int {
+
+	switch index {
+	case FirstComponentIndex:
+		return 0
+	case LastComponentIndex:
+		return g.Len() - 1
+	case FirstSlotIndex:
+		return 0
+	case LastSlotIndex:
+		return g.Len()
+	}
+
+	return index
+
+}
+
+func (s *SizedStack) effectiveIndex(index int) int {
+
+	if index == FirstComponentIndex {
+		for i, componentIndex := range s.indexes {
+			if componentIndex != emptyIndexSentinel {
+				return i
+			}
+		}
+	}
+
+	if index == LastComponentIndex {
+		for i := len(s.indexes) - 1; i >= 0; i-- {
+			if s.indexes[i] != emptyIndexSentinel {
+				return i
+			}
+		}
+	}
+
+	if index == FirstSlotIndex {
+		for i, componentIndex := range s.indexes {
+			if componentIndex == emptyIndexSentinel {
+				return i
+			}
+		}
+	}
+
+	if index == LastSlotIndex {
+		for i := len(s.indexes) - 1; i >= 0; i-- {
+			if s.indexes[i] == emptyIndexSentinel {
+				return i
+			}
+		}
+	}
+
+	//If we get to here either we were just provided index, or there were no
+	//slots/components to return.
+	return index
+
 }
 
 func (g *GrowableStack) Shuffle() error {
