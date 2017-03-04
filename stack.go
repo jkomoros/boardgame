@@ -95,6 +95,13 @@ type Stack interface {
 	//to in this case.
 	effectiveIndex(index int) int
 
+	//legalSlot will return true if the provided index points to a valid slot
+	//to insert a component at. For growableStacks, this is simply a check to
+	//ensure it's in the range [0, stack.Len()]. For SizedStacks, it is a
+	//check that the slot is valid and is currently empty. Does not expand the
+	//special index constants.
+	legalSlot(index int) bool
+
 	//Returns the state that this Stack is currently part of. Mainly a
 	//convenience method when you have a Stack but don't know its underlying
 	//type.
@@ -633,6 +640,33 @@ func (s *SizedStack) modificationsAllowed() error {
 		return errors.New("Modifications not allowed: stack's state is sanitized")
 	}
 	return nil
+}
+
+func (g *GrowableStack) legalSlot(index int) bool {
+	if index < 0 {
+		return false
+	}
+	if index > g.Len() {
+		return false
+	}
+
+	return true
+}
+
+func (s *SizedStack) legalSlot(index int) bool {
+	if index < 0 {
+		return false
+	}
+
+	if index >= s.Len() {
+		return false
+	}
+
+	if s.ComponentAt(index) != nil {
+		return false
+	}
+
+	return true
 }
 
 func (g *GrowableStack) effectiveIndex(index int) int {
