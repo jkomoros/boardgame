@@ -349,20 +349,34 @@ func TestMoveComponent(t *testing.T) {
 	}
 
 	tests := []struct {
-		source         Stack
-		destination    Stack
-		componentIndex int
-		slotIndex      int
-		expectError    bool
-		description    string
+		source                 Stack
+		destination            Stack
+		componentIndex         int
+		resolvedComponentIndex int
+		slotIndex              int
+		resolvedSlotIndex      int
+		expectError            bool
+		description            string
 	}{
 		{
 			gStack,
 			sStack,
 			0,
+			0,
+			4,
 			4,
 			false,
 			"Move from growable to sized 0 to last slot",
+		},
+		{
+			gStack,
+			sStack,
+			FirstComponentIndex,
+			0,
+			FirstSlotIndex,
+			4,
+			false,
+			"Move from growable first component to sized stack first slot",
 		},
 	}
 
@@ -387,6 +401,8 @@ func TestMoveComponent(t *testing.T) {
 		preMoveSourceNumComponents := source.NumComponents()
 		preMoveDestinationNumComponents := destination.NumComponents()
 
+		component := source.ComponentAt(test.resolvedComponentIndex)
+
 		err := moveComonentImpl(source, test.componentIndex, destination, test.slotIndex)
 
 		if err == nil && test.expectError {
@@ -404,6 +420,10 @@ func TestMoveComponent(t *testing.T) {
 		}
 		if preMoveDestinationNumComponents != destination.NumComponents()-1 {
 			t.Error("After the successful move, destination was not one component bigger", i, test.description)
+		}
+
+		if finalComponent := destination.ComponentAt(test.resolvedSlotIndex); finalComponent != component {
+			t.Error("After the move, the component that was supposed to be moved was not moved to the target slot.", i, test.description)
 		}
 	}
 
