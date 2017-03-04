@@ -132,6 +132,7 @@ type Stack interface {
 	deck() *Deck
 }
 
+//These special Indexes are designed to be provided to stack.MoveComponent.
 const (
 	//FirstComponentIndex is computed to be the first  index, from the left,
 	//where ComponentAt() will return a component. For GrowableStacks this is
