@@ -348,6 +348,9 @@ func TestMoveComponent(t *testing.T) {
 		t.Error("sStack was not initalized like expected. Got", sStack.indexes)
 	}
 
+	sStackOtherState := sStack.Copy()
+	sStackOtherState.statePtr = &State{}
+
 	tests := []struct {
 		source                 Stack
 		destination            Stack
@@ -397,6 +400,16 @@ func TestMoveComponent(t *testing.T) {
 			4,
 			false,
 			"Move first component in sized stack to growable stack",
+		},
+		{
+			sStackOtherState,
+			gStack,
+			FirstComponentIndex,
+			0,
+			LastSlotIndex,
+			4,
+			true,
+			"Move from a stack in one state to another",
 		},
 	}
 
