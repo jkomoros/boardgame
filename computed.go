@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"errors"
+	"strconv"
 )
 
 //ComputedProperties represents a collection of compute properties for a given
@@ -111,7 +112,14 @@ func (s *ShadowState) addDependency(state *State, ref StatePropertyRef) error {
 
 func (s *ShadowState) addGameDependency(state *State, propName string) error {
 	reader := state.Game.Reader()
+	//TODO: this is hacky
+	bag := s.Game.(*computedPropertiesBag)
 
+	return s.addDependencyHelper(propName, reader, bag)
+
+}
+
+func (s *ShadowState) addDependencyHelper(propName string, reader PropertyReader, bag *computedPropertiesBag) error {
 	props := reader.Props()
 
 	propType, ok := props[propName]
@@ -119,9 +127,6 @@ func (s *ShadowState) addGameDependency(state *State, propName string) error {
 	if !ok {
 		return errors.New("No such property on state game")
 	}
-
-	//TODO: this is hacky
-	bag := s.Game.(*computedPropertiesBag)
 
 	switch propType {
 	case TypeInt:
@@ -166,7 +171,20 @@ func (s *ShadowState) addGameDependency(state *State, propName string) error {
 }
 
 func (s *ShadowState) addPlayerDependency(state *State, propName string) error {
+
+	for i, player := range state.Players {
+
+		reader := player.Reader()
+		//TODO: this is hacky
+		bag := s.Players[i].PropertyReader.(*computedPropertiesBag)
+
+		if err := s.addDependencyHelper(propName, reader, bag); err != nil {
+			return errors.New("Error on " + strconv.Itoa(i) + ": " + err.Error())
+		}
+	}
+
 	return nil
+
 }
 
 func newComputedPropertiesBag() *computedPropertiesBag {
