@@ -47,5 +47,7 @@
             }
         }
     ],
-    "Computed":{}
+    "Computed":{
+        "SumAllScores": 0
+    }
 }

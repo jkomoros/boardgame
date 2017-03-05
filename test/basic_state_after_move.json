@@ -52,5 +52,7 @@
             }
         }
     ],
-    "Computed":{}
+    "Computed":{
+        "SumAllScores": 3
+    }
 }

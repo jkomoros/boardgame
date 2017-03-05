@@ -53,7 +53,9 @@
         }
       }
     ],
-    "Computed":{}
+    "Computed":{
+      "SumAllScores": 0
+    }
   },
   "Finished": false,
   "Id": "483BD9BC8D1A2F27",

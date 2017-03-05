@@ -4,6 +4,37 @@ import (
 	"testing"
 )
 
+var testPropertiesConfig *ComputedPropertiesConfig
+
+func init() {
+	testPropertiesConfig = &ComputedPropertiesConfig{
+		Properties: map[string]ComputedPropertyDefinition{
+			"SumAllScores": ComputedPropertyDefinition{
+				Dependencies: []StatePropertyRef{
+					{
+						Group:    StateGroupPlayer,
+						PropName: "Score",
+					},
+				},
+				PropType: TypeInt,
+				Compute: func(shadow *ShadowState) (interface{}, error) {
+					result := 0
+					for _, player := range shadow.Players {
+						val, err := player.IntProp("Score")
+
+						if err != nil {
+							return nil, err
+						}
+
+						result += val
+					}
+					return result, nil
+				},
+			},
+		},
+	}
+}
+
 type testGameDelegate struct {
 	DefaultGameDelegate
 }
@@ -15,6 +46,10 @@ func (t *testGameDelegate) DistributeComponentToStarterStack(state *State, c *Co
 
 func (t *testGameDelegate) Name() string {
 	return testGameName
+}
+
+func (t *testGameDelegate) ComputedPropertiesConfig() *ComputedPropertiesConfig {
+	return testPropertiesConfig
 }
 
 func (t *testGameDelegate) CheckGameFinished(state *State) (bool, []int) {

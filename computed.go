@@ -379,7 +379,7 @@ func (c *computedPropertiesImpl) SizedStackProp(name string) (*SizedStack, error
 }
 
 func (c *computedPropertiesImpl) Prop(name string) (interface{}, error) {
-	if val, err := c.bag.Prop(name); err != nil {
+	if val, err := c.bag.Prop(name); err == nil {
 		return val, nil
 	}
 
