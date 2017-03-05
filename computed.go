@@ -46,6 +46,7 @@ type StatePropertyRef struct {
 //The private impl for ComputedProperties
 type computedPropertiesImpl struct {
 	*computedPropertiesBag
+	state  *State
 	config *ComputedPropertiesConfig
 }
 
@@ -62,18 +63,12 @@ func (s *State) Computed() ComputedProperties {
 		config := s.delegate.ComputedPropertiesConfig()
 		s.computed = &computedPropertiesImpl{
 			newComputedPropertiesBag(),
+			s,
 			config,
 		}
 	}
 	return s.computed
 }
-
-/*
-
-
-	Prop(name string) (interface{}, error)
-
-*/
 
 func newComputedPropertiesBag() *computedPropertiesBag {
 	return &computedPropertiesBag{
