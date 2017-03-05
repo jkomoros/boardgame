@@ -31,6 +31,7 @@ type StateGroupType int
 
 const (
 	StateGroupGame StateGroupType = iota
+	StateGroupPlayer
 )
 
 type StatePropertyRef struct {
