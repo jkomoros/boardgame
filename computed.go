@@ -118,11 +118,11 @@ func (s *ShadowState) addGameDependency(state *State, propName string) error {
 	//TODO: this is hacky
 	bag := s.Game.(*computedPropertiesBag)
 
-	return s.addDependencyHelper(propName, reader, bag)
+	return shadowAddDependencyHelper(propName, reader, bag)
 
 }
 
-func (s *ShadowState) addDependencyHelper(propName string, reader PropertyReader, bag *computedPropertiesBag) error {
+func shadowAddDependencyHelper(propName string, reader PropertyReader, bag *computedPropertiesBag) error {
 	props := reader.Props()
 
 	propType, ok := props[propName]
@@ -181,7 +181,7 @@ func (s *ShadowState) addPlayerDependency(state *State, propName string) error {
 		//TODO: this is hacky
 		bag := s.Players[i].PropertyReader.(*computedPropertiesBag)
 
-		if err := s.addDependencyHelper(propName, reader, bag); err != nil {
+		if err := shadowAddDependencyHelper(propName, reader, bag); err != nil {
 			return errors.New("Error on " + strconv.Itoa(i) + ": " + err.Error())
 		}
 	}
