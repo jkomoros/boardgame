@@ -28,7 +28,9 @@ type ShadowState struct {
 
 type ComputedPropertyDefinition struct {
 	Dependencies []StatePropertyRef
-	Compute      func(shadow *ShadowState) (interface{}, error)
+	//The thing we expect to be able to cast the result of Compute to.
+	PropType PropertyType
+	Compute  func(shadow *ShadowState) (interface{}, error)
 }
 
 type StateGroupType int
