@@ -48,7 +48,7 @@ type StatePropertyRef struct {
 
 //The private impl for ComputedProperties
 type computedPropertiesImpl struct {
-	*computedPropertiesBag
+	bag    *computedPropertiesBag
 	state  *State
 	config *ComputedPropertiesConfig
 }
@@ -185,6 +185,223 @@ func (s *ShadowState) addPlayerDependency(state *State, propName string) error {
 
 	return nil
 
+}
+
+func (c *computedPropertiesImpl) Props() map[string]PropertyType {
+	result := make(map[string]PropertyType)
+
+	for name, config := range c.config.Properties {
+		result[name] = config.PropType
+	}
+
+	return result
+}
+
+func (c *computedPropertiesImpl) IntProp(name string) (int, error) {
+	if val, err := c.bag.IntProp(name); err == nil {
+		return val, nil
+	}
+
+	definition, ok := c.config.Properties[name]
+
+	if !ok {
+		return 0, errors.New("no such computed property")
+	}
+
+	if definition.PropType != TypeInt {
+		return 0, errors.New("That name is not an IntProp.")
+	}
+
+	//Nope, gotta compute it.
+	val, err := definition.compute(c.state)
+
+	if err != nil {
+		return 0, errors.New("Error computing calculated int prop:" + err.Error())
+	}
+
+	intVal, ok := val.(int)
+
+	if !ok {
+		return 0, errors.New("The compute function for that name did not return an int as expectd")
+	}
+
+	c.bag.SetIntProp(name, intVal)
+
+	return intVal, nil
+
+}
+
+func (c *computedPropertiesImpl) BoolProp(name string) (bool, error) {
+	if val, err := c.bag.BoolProp(name); err == nil {
+		return val, nil
+	}
+
+	definition, ok := c.config.Properties[name]
+
+	if !ok {
+		return false, errors.New("no such computed property")
+	}
+
+	if definition.PropType != TypeBool {
+		return false, errors.New("That name is not an BoolProp.")
+	}
+
+	//Nope, gotta compute it.
+	val, err := definition.compute(c.state)
+
+	if err != nil {
+		return false, errors.New("Error computing calculated prop:" + err.Error())
+	}
+
+	boolVal, ok := val.(bool)
+
+	if !ok {
+		return false, errors.New("The compute function for that name did not return a bool as expectd")
+	}
+
+	c.bag.SetBoolProp(name, boolVal)
+
+	return boolVal, nil
+
+}
+
+func (c *computedPropertiesImpl) StringProp(name string) (string, error) {
+	if val, err := c.bag.StringProp(name); err == nil {
+		return val, nil
+	}
+
+	definition, ok := c.config.Properties[name]
+
+	if !ok {
+		return "", errors.New("no such computed property")
+	}
+
+	if definition.PropType != TypeString {
+		return "", errors.New("That name is not a stringProp.")
+	}
+
+	//Nope, gotta compute it.
+	val, err := definition.compute(c.state)
+
+	if err != nil {
+		return "", errors.New("Error computing calculated prop:" + err.Error())
+	}
+
+	stringVal, ok := val.(string)
+
+	if !ok {
+		return "", errors.New("The compute function for that name did not return a string as expectd")
+	}
+
+	c.bag.SetStringProp(name, stringVal)
+
+	return stringVal, nil
+
+}
+
+func (c *computedPropertiesImpl) GrowableStackProp(name string) (*GrowableStack, error) {
+	if val, err := c.bag.GrowableStackProp(name); err == nil {
+		return val, nil
+	}
+
+	definition, ok := c.config.Properties[name]
+
+	if !ok {
+		return nil, errors.New("no such computed property")
+	}
+
+	if definition.PropType != TypeGrowableStack {
+		return nil, errors.New("That name is not an growable stack prop.")
+	}
+
+	//Nope, gotta compute it.
+	val, err := definition.compute(c.state)
+
+	if err != nil {
+		return nil, errors.New("Error computing calculated prop:" + err.Error())
+	}
+
+	growableStackVal, ok := val.(*GrowableStack)
+
+	if !ok {
+		return nil, errors.New("The compute function for that name did not return a growableStackVal as expectd")
+	}
+
+	c.bag.SetGrowableStackProp(name, growableStackVal)
+
+	return growableStackVal, nil
+
+}
+
+func (c *computedPropertiesImpl) SizedStackProp(name string) (*SizedStack, error) {
+	if val, err := c.bag.SizedStackProp(name); err == nil {
+		return val, nil
+	}
+
+	definition, ok := c.config.Properties[name]
+
+	if !ok {
+		return nil, errors.New("no such computed property")
+	}
+
+	if definition.PropType != TypeSizedStack {
+		return nil, errors.New("That name is not an sized stack prop.")
+	}
+
+	//Nope, gotta compute it.
+	val, err := definition.compute(c.state)
+
+	if err != nil {
+		return nil, errors.New("Error computing calculated prop:" + err.Error())
+	}
+
+	sizedStackVal, ok := val.(*SizedStack)
+
+	if !ok {
+		return nil, errors.New("The compute function for that name did not return a sizedStackVal as expectd")
+	}
+
+	c.bag.SetSizedStackProp(name, sizedStackVal)
+
+	return sizedStackVal, nil
+
+}
+
+func (c *computedPropertiesImpl) Prop(name string) (interface{}, error) {
+	if val, err := c.bag.Prop(name); err != nil {
+		return val, nil
+	}
+
+	definition, ok := c.config.Properties[name]
+
+	if !ok {
+		return nil, errors.New("No such computed property")
+	}
+
+	switch definition.PropType {
+	case TypeBool:
+		return c.BoolProp(name)
+	case TypeInt:
+		return c.IntProp(name)
+	case TypeString:
+		return c.StringProp(name)
+	case TypeGrowableStack:
+		return c.GrowableStackProp(name)
+	case TypeSizedStack:
+		return c.SizedStackProp(name)
+	}
+
+	//If we get to here, it's a TypeUnknown
+
+	val, err := definition.compute(c.state)
+
+	if err != nil {
+		return nil, errors.New("Error computing calculated prop" + err.Error())
+	}
+
+	c.bag.SetProp(name, val)
+
+	return val, nil
 }
 
 func newComputedPropertiesBag() *computedPropertiesBag {
