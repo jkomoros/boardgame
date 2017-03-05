@@ -156,4 +156,8 @@ func TestStateComputed(t *testing.T) {
 		t.Error("Unexpected result for SumAllScores. Got", val, "wanted", 15)
 	}
 
+	if _, err := computed.BoolProp("Foo"); err == nil {
+		t.Error("Didn't get an error reading an unexpected bool prop")
+	}
+
 }
