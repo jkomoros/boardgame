@@ -18,6 +18,7 @@ import (
 type State struct {
 	Game      GameState
 	Players   []PlayerState
+	computed  *computedPropertiesImpl
 	sanitized bool
 	delegate  GameDelegate
 }
