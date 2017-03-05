@@ -97,6 +97,10 @@ type GameDelegate interface {
 	//on how sanitization policies are calculated and applied.
 	StateSanitizationPolicy() *StatePolicy
 
+	//ComputedPropertiesConfig returns a pointer to the config for how
+	//computed properties for this game should be constructed.
+	ComputedPropertiesConfig() *ComputedPropertiesConfig
+
 	//Diagram should return a basic debug rendering of state in multi-line
 	//ascii art. Useful for debugging. State.Diagram() will reach out to this
 	//method.
@@ -163,6 +167,10 @@ func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state *State, c 
 }
 
 func (d *DefaultGameDelegate) StateSanitizationPolicy() *StatePolicy {
+	return nil
+}
+
+func (d *DefaultGameDelegate) ComputedPropertiesConfig() *ComputedPropertiesConfig {
 	return nil
 }
 
