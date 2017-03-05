@@ -172,3 +172,31 @@ func (c *computedPropertiesBag) Prop(name string) (interface{}, error) {
 
 	return val, nil
 }
+
+func (c *computedPropertiesBag) SetIntProp(name string, value int) error {
+	c.intProps[name] = value
+	return nil
+}
+
+func (c *computedPropertiesBag) SetBoolProp(name string, value bool) error {
+	c.boolProps[name] = value
+	return nil
+}
+
+func (c *computedPropertiesBag) SetStringProp(name string, value string) error {
+	c.stringProps[name] = value
+	return nil
+}
+
+func (c *computedPropertiesBag) SetGrowableStackProp(name string, value *GrowableStack) error {
+	return errors.New("We don't currently support growable stacks")
+}
+
+func (c *computedPropertiesBag) SetSizedStackProp(name string, value *SizedStack) error {
+	return errors.New("We don't currently support sized stacks")
+}
+
+func (c *computedPropertiesBag) SetProp(name string, value interface{}) error {
+	c.unknownProps[name] = value
+	return nil
+}
