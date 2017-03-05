@@ -110,6 +110,58 @@ func (s *ShadowState) addDependency(state *State, ref StatePropertyRef) error {
 }
 
 func (s *ShadowState) addGameDependency(state *State, propName string) error {
+	reader := state.Game.Reader()
+
+	props := reader.Props()
+
+	propType, ok := props[propName]
+
+	if !ok {
+		return errors.New("No such property on state game")
+	}
+
+	//TODO: this is hacky
+	bag := s.Game.(*computedPropertiesBag)
+
+	switch propType {
+	case TypeInt:
+		if val, err := reader.IntProp(propName); err == nil {
+			bag.SetIntProp(propName, val)
+		} else {
+			return errors.New("Error reading int prop" + err.Error())
+		}
+	case TypeBool:
+		if val, err := reader.BoolProp(propName); err == nil {
+			bag.SetBoolProp(propName, val)
+		} else {
+			return errors.New("Error reading bool prop" + err.Error())
+		}
+	case TypeString:
+		if val, err := reader.StringProp(propName); err == nil {
+			bag.SetStringProp(propName, val)
+		} else {
+			return errors.New("Error reading string prop" + err.Error())
+		}
+	case TypeGrowableStack:
+		if val, err := reader.GrowableStackProp(propName); err == nil {
+			bag.SetGrowableStackProp(propName, val)
+		} else {
+			return errors.New("Error reading growable stack prop" + err.Error())
+		}
+	case TypeSizedStack:
+		if val, err := reader.SizedStackProp(propName); err == nil {
+			bag.SetSizedStackProp(propName, val)
+		} else {
+			return errors.New("Error reading sized stack prop" + err.Error())
+		}
+	default:
+		if val, err := reader.Prop(propName); err == nil {
+			bag.SetProp(propName, val)
+		} else {
+			return errors.New("Error reading unknown prop" + err.Error())
+		}
+	}
+
 	return nil
 }
 
