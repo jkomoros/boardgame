@@ -72,6 +72,27 @@ func (s *State) Computed() ComputedProperties {
 	return s.computed
 }
 
+func (c *ComputedPropertyDefinition) compute(state *State) (interface{}, error) {
+
+	//First, prepare a shadow state with all of the dependencies.
+
+	players := make([]*ShadowPlayerState, len(state.Players))
+
+	for i := 0; i < len(state.Players); i++ {
+		players[i] = &ShadowPlayerState{newComputedPropertiesBag()}
+	}
+
+	shadow := &ShadowState{
+		Game:    newComputedPropertiesBag(),
+		Players: players,
+	}
+
+	//TODO: actually put in the dependency values
+
+	return c.Compute(shadow)
+
+}
+
 func newComputedPropertiesBag() *computedPropertiesBag {
 	return &computedPropertiesBag{
 		unknownProps: make(map[string]interface{}),
