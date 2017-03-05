@@ -81,10 +81,12 @@ func (s *State) Sanitized() bool {
 func (s *State) Computed() ComputedProperties {
 	if s.computed == nil {
 		config := s.delegate.ComputedPropertiesConfig()
-		playerBags := make([]*computedPropertiesBag, len(s.Players))
+		playerBags := make([]*computedPlayerPropertiesImpl, len(s.Players))
 
 		for i, _ := range s.Players {
-			playerBags[i] = newComputedPropertiesBag()
+			playerBags[i] = &computedPlayerPropertiesImpl{
+				newComputedPropertiesBag(),
+			}
 		}
 
 		s.computed = &computedPropertiesImpl{

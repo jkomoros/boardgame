@@ -59,10 +59,14 @@ type StatePropertyRef struct {
 
 //The private impl for ComputedProperties
 type computedPropertiesImpl struct {
-	bag        *computedPropertiesBag
-	playerBags []*computedPropertiesBag
-	state      *State
-	config     *ComputedPropertiesConfig
+	bag     *computedPropertiesBag
+	players []*computedPlayerPropertiesImpl
+	state   *State
+	config  *ComputedPropertiesConfig
+}
+
+type computedPlayerPropertiesImpl struct {
+	*computedPropertiesBag
 }
 
 type computedPropertiesBag struct {
@@ -204,7 +208,7 @@ func (c *computedPropertiesImpl) MarshalJSON() ([]byte, error) {
 }
 
 func (c *computedPropertiesImpl) Player(index int) PropertyReader {
-	return c.playerBags[index]
+	return c.players[index]
 }
 
 func (c *computedPropertiesImpl) Props() map[string]PropertyType {
