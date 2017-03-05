@@ -87,10 +87,34 @@ func (c *ComputedPropertyDefinition) compute(state *State) (interface{}, error) 
 		Players: players,
 	}
 
-	//TODO: actually put in the dependency values
+	for _, dependency := range c.Dependencies {
+		shadow.addDependency(state, dependency)
+	}
 
 	return c.Compute(shadow)
 
+}
+
+func (s *ShadowState) addDependency(state *State, ref StatePropertyRef) error {
+
+	if ref.Group == StateGroupGame {
+		return s.addGameDependency(state, ref.PropName)
+	}
+
+	if ref.Group == StateGroupPlayer {
+		return s.addPlayerDependency(state, ref.PropName)
+	}
+
+	return errors.New("Unsupoorted Ref.Group")
+
+}
+
+func (s *ShadowState) addGameDependency(state *State, propName string) error {
+	return nil
+}
+
+func (s *ShadowState) addPlayerDependency(state *State, propName string) error {
+	return nil
 }
 
 func newComputedPropertiesBag() *computedPropertiesBag {
