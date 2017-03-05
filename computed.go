@@ -18,9 +18,8 @@ type ShadowPlayerState struct {
 //underlying types it has PropertyReaders. Passed in to the Compute method of
 //a ComputedProperty, based on the dependencies they define.
 type ShadowState struct {
-	Game     PropertyReader
-	Players  []*ShadowPlayerState
-	Computed PropertyReader
+	Game    PropertyReader
+	Players []*ShadowPlayerState
 }
 
 type ComputedPropertyDefinition struct {
