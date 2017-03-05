@@ -4,7 +4,6 @@ package boardgame
 //state.
 type ComputedProperties interface {
 	PropertyReader
-	Player(index int) PropertyReader
 }
 
 type ComputedPropertiesConfig struct {
@@ -13,9 +12,11 @@ type ComputedPropertiesConfig struct {
 
 type ShadowPlayerState struct {
 	PropertyReader
-	Computed PropertyReader
 }
 
+//ShadowState is an object roughly shaped like a State, but where instead of
+//underlying types it has PropertyReaders. Passed in to the Compute method of
+//a ComputedProperty, based on the dependencies they define.
 type ShadowState struct {
 	Game     PropertyReader
 	Players  []*ShadowPlayerState
