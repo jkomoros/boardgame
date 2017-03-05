@@ -305,6 +305,13 @@ func TestGameState(t *testing.T) {
 
 	state0 := game.State(0)
 
+	//This is lame, but when you create json for a State, it touches Computed,
+	//which will make it non-nil, so if you're doing direct comparison they
+	//won't compare equal even though they basically are. At this point
+	//CurrentState has already been touched above by creating a json blob. So
+	//just touch state0, too.
+	_, _ = json.Marshal(state0)
+
 	if !reflect.DeepEqual(state, state0) {
 		t.Error("CurrentState at version 0 did not return state 0")
 	}

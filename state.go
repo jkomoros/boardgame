@@ -54,6 +54,15 @@ func (s *State) Copy(sanitized bool) *State {
 
 }
 
+func (s *State) MarshalJSON() ([]byte, error) {
+	obj := map[string]interface{}{
+		"Game":     s.Game,
+		"Players":  s.Players,
+		"Computed": s.Computed(),
+	}
+	return json.Marshal(obj)
+}
+
 //Diagram returns a basic, ascii rendering of the state for debug rendering.
 //It thunks out to Delegate.Diagram.
 func (s *State) Diagram() string {
@@ -66,6 +75,19 @@ func (s *State) Diagram() string {
 //created with Copy(true)
 func (s *State) Sanitized() bool {
 	return s.sanitized
+}
+
+//Computed returns the computed properties for this state.
+func (s *State) Computed() ComputedProperties {
+	if s.computed == nil {
+		config := s.delegate.ComputedPropertiesConfig()
+		s.computed = &computedPropertiesImpl{
+			newComputedPropertiesBag(),
+			s,
+			config,
+		}
+	}
+	return s.computed
 }
 
 //SanitizedForPlayer produces a copy state object that has been sanitized for

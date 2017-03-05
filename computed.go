@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"encoding/json"
 	"errors"
 	"strconv"
 )
@@ -9,6 +10,7 @@ import (
 //state.
 type ComputedProperties interface {
 	PropertyReader
+	MarshalJSON() ([]byte, error)
 }
 
 type ComputedPropertiesConfig struct {
@@ -58,19 +60,6 @@ type computedPropertiesBag struct {
 	intProps     map[string]int
 	boolProps    map[string]bool
 	stringProps  map[string]string
-}
-
-//Computed returns the computed properties for this state.
-func (s *State) Computed() ComputedProperties {
-	if s.computed == nil {
-		config := s.delegate.ComputedPropertiesConfig()
-		s.computed = &computedPropertiesImpl{
-			newComputedPropertiesBag(),
-			s,
-			config,
-		}
-	}
-	return s.computed
 }
 
 func (c *ComputedPropertyDefinition) compute(state *State) (interface{}, error) {
@@ -187,8 +176,30 @@ func (s *ShadowState) addPlayerDependency(state *State, propName string) error {
 
 }
 
+func (c *computedPropertiesImpl) MarshalJSON() ([]byte, error) {
+
+	result := make(map[string]interface{})
+
+	for propName, _ := range c.Props() {
+		val, err := c.Prop(propName)
+
+		if err != nil {
+			continue
+		}
+
+		result[propName] = val
+	}
+
+	return json.Marshal(result)
+}
+
 func (c *computedPropertiesImpl) Props() map[string]PropertyType {
+
 	result := make(map[string]PropertyType)
+
+	if c.config == nil {
+		return result
+	}
 
 	for name, config := range c.config.Properties {
 		result[name] = config.PropType

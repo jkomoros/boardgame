@@ -90,6 +90,14 @@ func TestStateSerialization(t *testing.T) {
 		t.Error("The stack was not inflated when it came back from StateFromBlob")
 	}
 
+	//This is lame, but when you create json for a State, it touches Computed,
+	//which will make it non-nil, so if you're doing direct comparison they
+	//won't compare equal even though they basically are. At this point
+	//CurrentState has already been touched above by creating a json blob. So
+	//just touch reconstitutedState, too. ¯\_(ツ)_/¯
+
+	_, _ = json.Marshal(reconstitutedState)
+
 	if !reflect.DeepEqual(reconstitutedState, game.CurrentState()) {
 
 		rStateBlob, _ := json.Marshal(reconstitutedState)

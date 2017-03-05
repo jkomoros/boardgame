@@ -46,6 +46,10 @@ func TestStateFromBlob(t *testing.T) {
 		t.Error("The stack was not inflated when it came back from StateFromBlob")
 	}
 
+	//Creating JSON touches Computed on reconsistutdeState, which will make
+	//them compare equal.
+	_, _ = json.Marshal(reconstitutedState)
+
 	if !reflect.DeepEqual(reconstitutedState, game.CurrentState()) {
 
 		rStateBlob, _ := json.Marshal(reconstitutedState)
