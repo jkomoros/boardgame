@@ -99,6 +99,19 @@ func (c *ComputedPropertyDefinition) compute(state *State) (interface{}, error) 
 
 }
 
+func (c *ComputedPlayerPropertyDefinition) compute(playerState PlayerState) (interface{}, error) {
+
+	shadow := &ShadowPlayerState{
+		newComputedPropertiesBag(),
+	}
+
+	for _, dependency := range c.Dependencies {
+		shadowAddDependencyHelper(dependency.PropName, playerState.Reader(), shadow.PropertyReader.(*computedPropertiesBag))
+	}
+
+	return c.Compute(shadow)
+}
+
 func (s *ShadowState) addDependency(state *State, ref StatePropertyRef) error {
 
 	if ref.Group == StateGroupGame {
