@@ -10,11 +10,13 @@ import (
 //state.
 type ComputedProperties interface {
 	PropertyReader
+	Player(index int) PropertyReader
 	MarshalJSON() ([]byte, error)
 }
 
 type ComputedPropertiesConfig struct {
-	Properties map[string]ComputedPropertyDefinition
+	Properties       map[string]ComputedPropertyDefinition
+	PlayerProperties map[string]ComputedPlayerPropertyDefinition
 }
 
 type ShadowPlayerState struct {
@@ -36,6 +38,13 @@ type ComputedPropertyDefinition struct {
 	Compute  func(shadow *ShadowState) (interface{}, error)
 }
 
+type ComputedPlayerPropertyDefinition struct {
+	//Only StateGroupPlayer group is valid for these
+	Dependencies []StatePropertyRef
+	PropType     PropertyType
+	Compute      func(shadow *ShadowPlayerState) (interface{}, error)
+}
+
 type StateGroupType int
 
 const (
@@ -50,9 +59,10 @@ type StatePropertyRef struct {
 
 //The private impl for ComputedProperties
 type computedPropertiesImpl struct {
-	bag    *computedPropertiesBag
-	state  *State
-	config *ComputedPropertiesConfig
+	bag        *computedPropertiesBag
+	playerBags []*computedPropertiesBag
+	state      *State
+	config     *ComputedPropertiesConfig
 }
 
 type computedPropertiesBag struct {
@@ -191,6 +201,10 @@ func (c *computedPropertiesImpl) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(result)
+}
+
+func (c *computedPropertiesImpl) Player(index int) PropertyReader {
+	return c.playerBags[index]
 }
 
 func (c *computedPropertiesImpl) Props() map[string]PropertyType {
