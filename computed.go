@@ -209,6 +209,20 @@ func (c *computedPropertiesImpl) MarshalJSON() ([]byte, error) {
 
 	result := make(map[string]interface{})
 
+	playerProperties := make([]map[string]interface{}, len(c.players))
+
+	for i, player := range c.players {
+		playerProperties[i] = make(map[string]interface{})
+		for propName, _ := range player.Props() {
+			val, err := c.Prop(propName)
+
+			if err != nil {
+				continue
+			}
+			playerProperties[i][propName] = val
+		}
+	}
+
 	for propName, _ := range c.Props() {
 		val, err := c.Prop(propName)
 
@@ -218,6 +232,8 @@ func (c *computedPropertiesImpl) MarshalJSON() ([]byte, error) {
 
 		result[propName] = val
 	}
+
+	result["Players"] = playerProperties
 
 	return json.Marshal(result)
 }

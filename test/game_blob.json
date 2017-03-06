@@ -54,7 +54,12 @@
       }
     ],
     "Computed":{
-      "SumAllScores": 0
+      "SumAllScores": 0,
+      "Players": [
+        {},
+        {},
+        {}
+      ]
     }
   },
   "Finished": false,

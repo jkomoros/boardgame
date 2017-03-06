@@ -53,6 +53,11 @@
         }
     ],
     "Computed":{
-        "SumAllScores": 3
+        "SumAllScores": 3,
+        "Players": [
+            {},
+            {},
+            {}
+        ]
     }
 }
