@@ -261,7 +261,9 @@ func (g *Game) SetUp(numPlayers int) error {
 	if g.Modifiable() {
 
 		//Save the initial state to DB.
-		g.manager.Storage().SaveGameAndCurrentState(g, stateCopy)
+		if err := g.manager.Storage().SaveGameAndCurrentState(g, stateCopy); err != nil {
+			return errors.New("Storage failed: " + err.Error())
+		}
 
 		go g.mainLoop()
 	}
