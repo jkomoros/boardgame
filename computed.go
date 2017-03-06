@@ -66,7 +66,9 @@ type computedPropertiesImpl struct {
 }
 
 type computedPlayerPropertiesImpl struct {
-	*computedPropertiesBag
+	bag         *computedPropertiesBag
+	config      map[string]ComputedPlayerPropertyDefinition
+	playerState PlayerState
 }
 
 type computedPropertiesBag struct {
@@ -224,6 +226,20 @@ func (c *computedPropertiesImpl) Player(index int) PropertyReader {
 	return c.players[index]
 }
 
+func (c *computedPlayerPropertiesImpl) Props() map[string]PropertyType {
+	result := make(map[string]PropertyType)
+
+	if c.config == nil {
+		return result
+	}
+
+	for name, config := range c.config {
+		result[name] = config.PropType
+	}
+
+	return result
+}
+
 func (c *computedPropertiesImpl) Props() map[string]PropertyType {
 
 	result := make(map[string]PropertyType)
@@ -237,6 +253,41 @@ func (c *computedPropertiesImpl) Props() map[string]PropertyType {
 	}
 
 	return result
+}
+
+func (c *computedPlayerPropertiesImpl) IntProp(name string) (int, error) {
+	if val, err := c.bag.IntProp(name); err == nil {
+		return val, nil
+	}
+
+	definition, ok := c.config[name]
+
+	if !ok {
+		return 0, errors.New("No such computed player property")
+	}
+
+	if definition.PropType != TypeInt {
+		return 0, errors.New("That name is not an intprop")
+	}
+
+	//Compute it
+
+	val, err := definition.compute(c.playerState)
+
+	if err != nil {
+		return 0, errors.New("Error computing calculated int prop: " + err.Error())
+	}
+
+	intVal, ok := val.(int)
+
+	if !ok {
+		return 0, errors.New("The compute function for that name did not return an int as expected")
+	}
+
+	c.bag.SetIntProp(name, intVal)
+
+	return intVal, nil
+
 }
 
 func (c *computedPropertiesImpl) IntProp(name string) (int, error) {
@@ -270,6 +321,41 @@ func (c *computedPropertiesImpl) IntProp(name string) (int, error) {
 	c.bag.SetIntProp(name, intVal)
 
 	return intVal, nil
+
+}
+
+func (c *computedPlayerPropertiesImpl) BoolProp(name string) (bool, error) {
+	if val, err := c.bag.BoolProp(name); err == nil {
+		return val, nil
+	}
+
+	definition, ok := c.config[name]
+
+	if !ok {
+		return false, errors.New("No such computed player property")
+	}
+
+	if definition.PropType != TypeBool {
+		return false, errors.New("That name is not an boolprop")
+	}
+
+	//Compute it
+
+	val, err := definition.compute(c.playerState)
+
+	if err != nil {
+		return false, errors.New("Error computing calculated int prop: " + err.Error())
+	}
+
+	boolVal, ok := val.(bool)
+
+	if !ok {
+		return false, errors.New("The compute function for that name did not return an bool as expected")
+	}
+
+	c.bag.SetBoolProp(name, boolVal)
+
+	return boolVal, nil
 
 }
 
@@ -307,6 +393,41 @@ func (c *computedPropertiesImpl) BoolProp(name string) (bool, error) {
 
 }
 
+func (c *computedPlayerPropertiesImpl) StringProp(name string) (string, error) {
+	if val, err := c.bag.StringProp(name); err == nil {
+		return val, nil
+	}
+
+	definition, ok := c.config[name]
+
+	if !ok {
+		return "", errors.New("No such computed player property")
+	}
+
+	if definition.PropType != TypeString {
+		return "", errors.New("That name is not an stringProp")
+	}
+
+	//Compute it
+
+	val, err := definition.compute(c.playerState)
+
+	if err != nil {
+		return "", errors.New("Error computing calculated string prop: " + err.Error())
+	}
+
+	stringVal, ok := val.(string)
+
+	if !ok {
+		return "", errors.New("The compute function for that name did not return an string as expected")
+	}
+
+	c.bag.SetStringProp(name, stringVal)
+
+	return stringVal, nil
+
+}
+
 func (c *computedPropertiesImpl) StringProp(name string) (string, error) {
 	if val, err := c.bag.StringProp(name); err == nil {
 		return val, nil
@@ -338,6 +459,41 @@ func (c *computedPropertiesImpl) StringProp(name string) (string, error) {
 	c.bag.SetStringProp(name, stringVal)
 
 	return stringVal, nil
+
+}
+
+func (c *computedPlayerPropertiesImpl) GrowableStackProp(name string) (*GrowableStack, error) {
+	if val, err := c.bag.GrowableStackProp(name); err == nil {
+		return val, nil
+	}
+
+	definition, ok := c.config[name]
+
+	if !ok {
+		return nil, errors.New("No such computed player property")
+	}
+
+	if definition.PropType != TypeGrowableStack {
+		return nil, errors.New("That name is not an Growable Stack prop")
+	}
+
+	//Compute it
+
+	val, err := definition.compute(c.playerState)
+
+	if err != nil {
+		return nil, errors.New("Error computing calculated growable stack prop: " + err.Error())
+	}
+
+	growableStackVal, ok := val.(*GrowableStack)
+
+	if !ok {
+		return nil, errors.New("The compute function for that name did not return an growable stack as expected")
+	}
+
+	c.bag.SetGrowableStackProp(name, growableStackVal)
+
+	return growableStackVal, nil
 
 }
 
@@ -375,6 +531,41 @@ func (c *computedPropertiesImpl) GrowableStackProp(name string) (*GrowableStack,
 
 }
 
+func (c *computedPlayerPropertiesImpl) SizedStackProp(name string) (*SizedStack, error) {
+	if val, err := c.bag.SizedStackProp(name); err == nil {
+		return val, nil
+	}
+
+	definition, ok := c.config[name]
+
+	if !ok {
+		return nil, errors.New("No such computed player property")
+	}
+
+	if definition.PropType != TypeSizedStack {
+		return nil, errors.New("That name is not an sized stack prop")
+	}
+
+	//Compute it
+
+	val, err := definition.compute(c.playerState)
+
+	if err != nil {
+		return nil, errors.New("Error computing calculated sized stack prop: " + err.Error())
+	}
+
+	sizedStackVal, ok := val.(*SizedStack)
+
+	if !ok {
+		return nil, errors.New("The compute function for that name did not return an sized stack as expected")
+	}
+
+	c.bag.SetSizedStackProp(name, sizedStackVal)
+
+	return sizedStackVal, nil
+
+}
+
 func (c *computedPropertiesImpl) SizedStackProp(name string) (*SizedStack, error) {
 	if val, err := c.bag.SizedStackProp(name); err == nil {
 		return val, nil
@@ -407,6 +598,43 @@ func (c *computedPropertiesImpl) SizedStackProp(name string) (*SizedStack, error
 
 	return sizedStackVal, nil
 
+}
+
+func (c *computedPlayerPropertiesImpl) Prop(name string) (interface{}, error) {
+	if val, err := c.bag.Prop(name); err == nil {
+		return val, nil
+	}
+
+	definition, ok := c.config[name]
+
+	if !ok {
+		return nil, errors.New("No such computed property")
+	}
+
+	switch definition.PropType {
+	case TypeBool:
+		return c.BoolProp(name)
+	case TypeInt:
+		return c.IntProp(name)
+	case TypeString:
+		return c.StringProp(name)
+	case TypeGrowableStack:
+		return c.GrowableStackProp(name)
+	case TypeSizedStack:
+		return c.SizedStackProp(name)
+	}
+
+	//If we get to here, it's a TypeUnknown
+
+	val, err := definition.compute(c.playerState)
+
+	if err != nil {
+		return nil, errors.New("Error computing calculated prop" + err.Error())
+	}
+
+	c.bag.SetProp(name, val)
+
+	return val, nil
 }
 
 func (c *computedPropertiesImpl) Prop(name string) (interface{}, error) {
