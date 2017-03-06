@@ -32,6 +32,43 @@ func init() {
 				},
 			},
 		},
+		PlayerProperties: map[string]ComputedPlayerPropertyDefinition{
+			"EffectiveMovesLeftThisTurn": ComputedPlayerPropertyDefinition{
+				Dependencies: []StatePropertyRef{
+					{
+						Group:    StateGroupPlayer,
+						PropName: "MovesLeftThisTurn",
+					},
+					{
+						Group:    StateGroupPlayer,
+						PropName: "IsFoo",
+					},
+				},
+				PropType: TypeInt,
+				Compute: func(shadow *ShadowPlayerState) (interface{}, error) {
+					isFoo, err := shadow.BoolProp("IsFoo")
+
+					if err != nil {
+						return nil, err
+					}
+
+					movesLeftThisTurn, err := shadow.IntProp("MovesLeftThisTurn")
+
+					if err != nil {
+						return nil, err
+					}
+
+					effectiveMovesLeftThisTurn := movesLeftThisTurn
+
+					//Players with Isfoo get a bonus.
+					if isFoo {
+						effectiveMovesLeftThisTurn += 5
+					}
+
+					return effectiveMovesLeftThisTurn, nil
+				},
+			},
+		},
 	}
 }
 

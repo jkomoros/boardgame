@@ -55,9 +55,15 @@
     "Computed":{
         "SumAllScores": 0,
         "Players": [
-            {},
-            {},
-            {}
+            {
+                "EffectiveMovesLeftThisTurn" : 1
+            },
+            {
+                "EffectiveMovesLeftThisTurn" : 0
+            },
+            {
+                "EffectiveMovesLeftThisTurn" : 5
+            }
         ]
     }
 }
