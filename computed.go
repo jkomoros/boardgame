@@ -214,7 +214,7 @@ func (c *computedPropertiesImpl) MarshalJSON() ([]byte, error) {
 	for i, player := range c.players {
 		playerProperties[i] = make(map[string]interface{})
 		for propName, _ := range player.Props() {
-			val, err := c.Prop(propName)
+			val, err := player.Prop(propName)
 
 			if err != nil {
 				return nil, errors.New("Player computed prop " + propName + " for player " + strconv.Itoa(i) + " returned an error: " + err.Error())
