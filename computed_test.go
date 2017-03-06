@@ -17,7 +17,9 @@ func TestComputedPropertyDefinitionCompute(t *testing.T) {
 
 	game := testGame()
 
-	game.SetUp(0)
+	if err := game.SetUp(0); err != nil {
+		t.Fatal("Game failed to set up", err)
+	}
 
 	var passedShadow *ShadowState
 
