@@ -217,7 +217,7 @@ func (c *computedPropertiesImpl) MarshalJSON() ([]byte, error) {
 			val, err := c.Prop(propName)
 
 			if err != nil {
-				continue
+				return nil, errors.New("Player computed prop " + propName + " for player " + strconv.Itoa(i) + " returned an error: " + err.Error())
 			}
 			playerProperties[i][propName] = val
 		}
@@ -227,7 +227,7 @@ func (c *computedPropertiesImpl) MarshalJSON() ([]byte, error) {
 		val, err := c.Prop(propName)
 
 		if err != nil {
-			continue
+			return nil, errors.New("Computed Prop " + propName + " returned an error: " + err.Error())
 		}
 
 		result[propName] = val
