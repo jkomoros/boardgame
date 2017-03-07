@@ -6,18 +6,30 @@ import (
 	"strconv"
 )
 
-//ComputedProperties represents a collection of compute properties for a given
-//state.
+//ComputedProperties represents a collection of computed properties for a
+//given state. An object conforming to this interface will be returned from
+//state.Computed(). Its values will be set based on what
+//Delegate.ComputedPropertiesConfig returns.
 type ComputedProperties interface {
+	//The primary property reader is where top-level computed properties can
+	//be accessed.
 	PropertyReader
+	//To get the ComputedPlayerProperties, pass in the player index.
 	Player(index int) PropertyReader
 }
 
+//ComputedPropertiesConfig is the struct that contains configuration for which
+//properties to compute and how to compute them. See the package documentation
+//on Computed Properties for more information.
 type ComputedPropertiesConfig struct {
-	Properties       map[string]ComputedPropertyDefinition
+	//The top-level computed properties.
+	Properties map[string]ComputedPropertyDefinition
+	//The properties that are computed for each PlayerState individually.
 	PlayerProperties map[string]ComputedPlayerPropertyDefinition
 }
 
+//A ShadowPlayerState is like a PlayerState, but will only contain values for
+//dependencies explicitly declared in the Computed(Player?)PropertyDefinition.
 type ShadowPlayerState struct {
 	PropertyReader
 }
@@ -30,20 +42,57 @@ type ShadowState struct {
 	Players []*ShadowPlayerState
 }
 
+//ComputedPropertyDefinition defines how to calculate a given top-level
+//computed property.
 type ComputedPropertyDefinition struct {
+	//Dependencies exhaustively enumerates all of the properties that need to
+	//be populated on the ShadowState to calculate this value. Defining your
+	//dependencies allows us to only recalculate computed properties when
+	//necessary, and other kewl tricks.
 	Dependencies []StatePropertyRef
-	//The thing we expect to be able to cast the result of Compute to.
+	//The thing we expect to be able to cast the result of Compute to (since
+	//the method necessarily has to be general).
 	PropType PropertyType
-	Compute  func(shadow *ShadowState) (interface{}, error)
+	//Where the actual logic of the computed property goes. shadow will be a
+	//ShadowState populated with all of the properties enumerated in
+	//Dependencies. (For PlayerState properties, we will include that property
+	//on each ShadowPlayerState object). The return value will be casted to
+	//PropType afterward. Return an error if any state is configured in an
+	//unexpected way. Note: your compute function should be resilient to
+	//values that are sanitized. In many cases it makes sense to factor your
+	//compute computation out into a shim that fetches the relevant properties
+	//from the ShadowState and then passes them to the core computation
+	//function, so that other methods can reuse the same logic.
+	Compute func(shadow *ShadowState) (interface{}, error)
 }
 
+//ComputedPlayerPropertyDefinition is the analogue for
+//ComputedPropertyDefintion, but operates on a single PlayerState at a time
+//and returns properties for that particular PlayerState.
 type ComputedPlayerPropertyDefinition struct {
-	//Only StateGroupPlayer group is valid for these
+	//Dependencies exhaustively enumerates all of the properties that need to
+	//be populated on the ShadowState to calculate this value. Defining your
+	//dependencies allows us to only recalculate computed properties when
+	//necessary, and other kewl tricks. All Dependencies must have Group
+	//StateGroupPlayer, otherwise the computation will error.
 	Dependencies []StatePropertyRef
-	PropType     PropertyType
-	Compute      func(shadow *ShadowPlayerState) (interface{}, error)
+	//The thing we expect to be able to cast the result of Compute to (since
+	//the method necessarily has to be general).
+	PropType PropertyType
+	//Where the actual logic of the computed property goes. shadow will be a
+	//ShadowPlayerState populated with all of the properties enumerated in
+	//Dependencies. This method will be called once per PlayerState in turn.
+	//The return value will be casted to PropType afterward. Return an error
+	//if any state is configured in an unexpected way. Note: your compute
+	//function should be resilient to values that are sanitized. In many cases
+	//it makes sense to factor your compute computation out into a shim that
+	//fetches the relevant properties from the ShadowState and then passes
+	//them to the core computation function, so that other methods can reuse
+	//the same logic.
+	Compute func(shadow *ShadowPlayerState) (interface{}, error)
 }
 
+//StateGroupType is the top-level grouping object used in a StatePropertyRef.
 type StateGroupType int
 
 const (
@@ -51,6 +100,9 @@ const (
 	StateGroupPlayer
 )
 
+//A StatePropertyRef is a reference to a particular property in a State, in a
+//structured way. Currently used when defining your dependencies for computed
+//properties.
 type StatePropertyRef struct {
 	Group    StateGroupType
 	PropName string
