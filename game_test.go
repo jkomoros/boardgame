@@ -309,7 +309,7 @@ func TestGameState(t *testing.T) {
 	//which will make it non-nil, so if you're doing direct comparison they
 	//won't compare equal even though they basically are. At this point
 	//CurrentState has already been touched above by creating a json blob. So
-	//just touch state0, too.
+	//just touch state0, too. ¯\_(ツ)_/¯
 	_, _ = json.Marshal(state0)
 
 	if !reflect.DeepEqual(state, state0) {

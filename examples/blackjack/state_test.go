@@ -50,7 +50,7 @@ func TestHandValue(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		result := test.state.HandValue()
+		result := handValue(test.state.HiddenHand, test.state.VisibleHand)
 
 		if result != test.expected {
 			t.Error("Test", i, "Failed. Got", result, "wanted", test.expected)

@@ -93,7 +93,7 @@ func (m *MoveCurrentPlayerHit) Legal(state *boardgame.State) error {
 		return errors.New("Current player is busted")
 	}
 
-	handValue := currentPlayer.HandValue()
+	handValue, _ := state.Computed().Player(currentPlayer.PlayerIndex()).IntProp("HandValue")
 
 	if handValue >= targetScore {
 		return errors.New("Current player is already at target scores")
@@ -109,7 +109,7 @@ func (m *MoveCurrentPlayerHit) Apply(state *boardgame.State) error {
 
 	game.DrawStack.MoveComponent(boardgame.FirstComponentIndex, currentPlayer.VisibleHand, boardgame.FirstSlotIndex)
 
-	handValue := currentPlayer.HandValue()
+	handValue, _ := state.Computed().Player(currentPlayer.PlayerIndex()).IntProp("HandValue")
 
 	if handValue > targetScore {
 		currentPlayer.Busted = true

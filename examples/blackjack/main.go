@@ -19,6 +19,80 @@ const targetScore = 21
 const gameDisplayname = "Blackjack"
 const gameName = "blackjack"
 
+var computedPropertiesConfig *boardgame.ComputedPropertiesConfig
+
+//computeHandValue is used in our ComputedPropertyConfig.
+func computeHandValue(shadow *boardgame.ShadowPlayerState) (interface{}, error) {
+
+	hiddenHand, err := shadow.GrowableStackProp("HiddenHand")
+
+	if err != nil {
+		return nil, err
+	}
+
+	visibleHand, err := shadow.GrowableStackProp("VisibleHand")
+
+	if err != nil {
+		return nil, err
+	}
+
+	return handValue(hiddenHand, visibleHand), nil
+
+}
+
+func handValue(hiddenHand *boardgame.GrowableStack, visibleHand *boardgame.GrowableStack) int {
+	effectiveHand := append(playingcards.ValuesToCards(hiddenHand.ComponentValues()), playingcards.ValuesToCards(visibleHand.ComponentValues())...)
+	var numUnconvertedAces int
+	var currentValue int
+
+	for _, card := range effectiveHand {
+		switch card.Rank {
+		case playingcards.RankAce:
+			numUnconvertedAces++
+			//We count the ace as 1 now. Later we'll check to see if we can
+			//expand any aces.
+			currentValue += 1
+		case playingcards.RankJack, playingcards.RankQueen, playingcards.RankKing:
+			currentValue += 10
+		default:
+			currentValue += int(card.Rank)
+		}
+	}
+
+	for numUnconvertedAces > 0 {
+
+		if currentValue >= (targetScore - 10) {
+			break
+		}
+
+		numUnconvertedAces--
+		currentValue += 10
+	}
+
+	return currentValue
+}
+
+func init() {
+	computedPropertiesConfig = &boardgame.ComputedPropertiesConfig{
+		PlayerProperties: map[string]boardgame.ComputedPlayerPropertyDefinition{
+			"HandValue": boardgame.ComputedPlayerPropertyDefinition{
+				Dependencies: []boardgame.StatePropertyRef{
+					{
+						Group:    boardgame.StateGroupPlayer,
+						PropName: "HiddenHand",
+					},
+					{
+						Group:    boardgame.StateGroupPlayer,
+						PropName: "VisibleHand",
+					},
+				},
+				PropType: boardgame.TypeInt,
+				Compute:  computeHandValue,
+			},
+		},
+	}
+}
+
 type gameDelegate struct {
 	boardgame.DefaultGameDelegate
 }
@@ -33,6 +107,10 @@ func (g *gameDelegate) DisplayName() string {
 
 func (g *gameDelegate) DefaultNumPlayers() int {
 	return 4
+}
+
+func (g *gameDelegate) ComputedPropertiesConfig() *boardgame.ComputedPropertiesConfig {
+	return computedPropertiesConfig
 }
 
 func (g *gameDelegate) DistributeComponentToStarterStack(state *boardgame.State, c *boardgame.Component) (boardgame.Stack, error) {
@@ -69,7 +147,9 @@ func (g *gameDelegate) Diagram(state *boardgame.State) string {
 
 		result = append(result, playerLine)
 
-		statusLine := fmt.Sprintf("\tValue: %d", player.HandValue())
+		handValue, _ := state.Computed().Player(i).IntProp("HandValue")
+
+		statusLine := fmt.Sprintf("\tValue: %d", handValue)
 
 		if player.Busted {
 			statusLine += " BUSTED"
@@ -111,11 +191,12 @@ func (g *gameDelegate) CheckGameFinished(state *boardgame.State) (finished bool,
 
 	maxScore := 0
 
-	for _, player := range players {
+	for i, player := range players {
 		if player.Busted {
 			continue
 		}
-		handValue := player.HandValue()
+
+		handValue, _ := state.Computed().Player(i).IntProp("HandValue")
 		if handValue > maxScore {
 			maxScore = handValue
 		}
@@ -129,7 +210,7 @@ func (g *gameDelegate) CheckGameFinished(state *boardgame.State) (finished bool,
 		if player.Busted {
 			continue
 		}
-		handValue := player.HandValue()
+		handValue, _ := state.Computed().Player(i).IntProp("HandValue")
 		if handValue == maxScore {
 			result = append(result, i)
 		}
