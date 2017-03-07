@@ -199,6 +199,52 @@ prepared for is in. Then the effective policy is the *least* restrictive
 policy that applies. In practice this means that policies like
 GroupAll:PolicyLen, GroupSelf:PolicyVisible make sense to do.
 
+Computed Properties
+
+In some cases there are properties on your State whose value is
+deterministically defined by other properties in your state. Storing the
+derived value as well as the underlying values is redundant and has the
+possibility for the State to accidentally get out of sync. For example, in a
+game of Blackjack you might have a method for each player's hand
+that returns the effective value of their hand--which is a tricky calculation
+because Aces can be worth either 1 or 11.
+
+ComputedProperties are the way to model these. They are formally defined, and
+are part of the default JSON serialization of your state so are available
+automatically to your client-side renderer.
+
+There are two types of ComputedProperties: those that operate on the whole
+state, and output a top-level value, and those that operate on a single player
+state at a time and output a value specific to that player state. An example
+of the former would be "PlayerWithLongestTrain" in Ticket to Ride. An example
+of the latter would be the effective blackjack hand value situation described
+immediately above. The former is called a ComputedProperty and the latter is a
+ComputedPlayerProperty.
+
+Both types of computed properties exhaustively identify the other state
+properties that they rely on. This helps the engine only recalculate state
+properties when the underlying values have changed, and other optimizations.
+When the value is computed, a ShadowState is passed instead of a normal state.
+This ShadowState object only has the properties defined that were explicitly
+listed as dependencies. This allows us to verify that your dependency list is
+a superset of the properties you actually rely on.
+
+ComputedProperties are defined based on the config object your GameDelegate
+returns from the ComputedPropertiesConfig method. This method should always
+return the same value. These objects are normally heavy and large (they often
+include method definitions), so it is recommended to define a single Config at
+init() time and always pass a reference to that config.
+
+Importantly, your Compute() methods for your computed properties should be
+resilient to states that have sanitized. In cases where we are generating a
+SanitizedState, your compute method will be called and pass in the sanitized
+values. In many cases the naive approach will do what you want, but in cases
+of Stacks with things like PolicyLen it can get trickier.
+
+Your Compute() methods should also be deterministic based on their inputs.
+This is important so that the system can be conservative about when to
+calculate them.
+
 Implementing Your Own Game
 
 When you are implementing your own game, at a high level you must do the
