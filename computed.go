@@ -11,7 +11,6 @@ import (
 type ComputedProperties interface {
 	PropertyReader
 	Player(index int) PropertyReader
-	MarshalJSON() ([]byte, error)
 }
 
 type ComputedPropertiesConfig struct {
