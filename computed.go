@@ -72,10 +72,12 @@ type computedPlayerPropertiesImpl struct {
 }
 
 type computedPropertiesBag struct {
-	unknownProps map[string]interface{}
-	intProps     map[string]int
-	boolProps    map[string]bool
-	stringProps  map[string]string
+	unknownProps       map[string]interface{}
+	intProps           map[string]int
+	boolProps          map[string]bool
+	stringProps        map[string]string
+	growableStackProps map[string]*GrowableStack
+	sizedStackProps    map[string]*SizedStack
 }
 
 func (c *ComputedPropertyDefinition) compute(state *State) (interface{}, error) {
@@ -692,10 +694,12 @@ func (c *computedPropertiesImpl) Prop(name string) (interface{}, error) {
 
 func newComputedPropertiesBag() *computedPropertiesBag {
 	return &computedPropertiesBag{
-		unknownProps: make(map[string]interface{}),
-		intProps:     make(map[string]int),
-		boolProps:    make(map[string]bool),
-		stringProps:  make(map[string]string),
+		unknownProps:       make(map[string]interface{}),
+		intProps:           make(map[string]int),
+		boolProps:          make(map[string]bool),
+		stringProps:        make(map[string]string),
+		growableStackProps: make(map[string]*GrowableStack),
+		sizedStackProps:    make(map[string]*SizedStack),
 	}
 }
 
@@ -725,13 +729,23 @@ func (c *computedPropertiesBag) Props() map[string]PropertyType {
 }
 
 func (c *computedPropertiesBag) GrowableStackProp(name string) (*GrowableStack, error) {
-	//We don't (yet?) support growable stack computed props
-	return nil, errors.New("No such growable stack prop")
+	result, ok := c.growableStackProps[name]
+
+	if !ok {
+		return nil, errors.New("No such growable stack prop")
+	}
+
+	return result, nil
 }
 
 func (c *computedPropertiesBag) SizedStackProp(name string) (*SizedStack, error) {
-	//We don't (yet?) support SizedStackProps.
-	return nil, errors.New("No such sized stack prop")
+	result, ok := c.sizedStackProps[name]
+
+	if !ok {
+		return nil, errors.New("No such sized stack prop")
+	}
+
+	return result, nil
 }
 
 func (c *computedPropertiesBag) IntProp(name string) (int, error) {
@@ -780,6 +794,10 @@ func (c *computedPropertiesBag) Prop(name string) (interface{}, error) {
 		return c.BoolProp(name)
 	case TypeInt:
 		return c.IntProp(name)
+	case TypeGrowableStack:
+		return c.GrowableStackProp(name)
+	case TypeSizedStack:
+		return c.SizedStackProp(name)
 	}
 
 	val, ok := c.unknownProps[name]
@@ -807,11 +825,13 @@ func (c *computedPropertiesBag) SetStringProp(name string, value string) error {
 }
 
 func (c *computedPropertiesBag) SetGrowableStackProp(name string, value *GrowableStack) error {
-	return errors.New("We don't currently support growable stacks")
+	c.growableStackProps[name] = value
+	return nil
 }
 
 func (c *computedPropertiesBag) SetSizedStackProp(name string, value *SizedStack) error {
-	return errors.New("We don't currently support sized stacks")
+	c.sizedStackProps[name] = value
+	return nil
 }
 
 func (c *computedPropertiesBag) SetProp(name string, value interface{}) error {
