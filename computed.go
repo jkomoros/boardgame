@@ -109,7 +109,10 @@ func (c *ComputedPlayerPropertyDefinition) compute(playerState PlayerState) (int
 		newComputedPropertiesBag(),
 	}
 
-	for _, dependency := range c.Dependencies {
+	for i, dependency := range c.Dependencies {
+		if dependency.Group != StateGroupPlayer {
+			return nil, errors.New("The " + strconv.Itoa(i) + "dependency was not for a player property, which is illegal for a player computed property.")
+		}
 		shadowAddDependencyHelper(dependency.PropName, playerState.Reader(), shadow.PropertyReader.(*computedPropertiesBag))
 	}
 
