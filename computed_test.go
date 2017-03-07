@@ -138,6 +138,36 @@ func TestStateComputed(t *testing.T) {
 				},
 			},
 		},
+		PlayerProperties: map[string]ComputedPlayerPropertyDefinition{
+			"EffectiveScore": ComputedPlayerPropertyDefinition{
+				Dependencies: []StatePropertyRef{
+					{
+						Group:    StateGroupPlayer,
+						PropName: "Score",
+					},
+					{
+						Group:    StateGroupPlayer,
+						PropName: "Hand",
+					},
+				},
+				PropType: TypeInt,
+				Compute: func(shadow *ShadowPlayerState) (interface{}, error) {
+					score, err := shadow.IntProp("Score")
+
+					if err != nil {
+						return nil, err
+					}
+
+					hand, err := shadow.SizedStackProp("Hand")
+
+					if err != nil {
+						return nil, err
+					}
+
+					return score + hand.Len(), nil
+				},
+			},
+		},
 	}
 
 	delegate.config = config
@@ -160,6 +190,13 @@ func TestStateComputed(t *testing.T) {
 
 	if _, err := computed.BoolProp("Foo"); err == nil {
 		t.Error("Didn't get an error reading an unexpected bool prop")
+	}
+
+	if val, err := computed.Player(0).IntProp("EffectiveScore"); err != nil {
+		t.Error("Got error for EffectiveScore", err)
+	} else if val != 12 {
+		//We set player 0 score to 10 a the top of this test, and there are two items in hand.
+		t.Error("Got wrong value for EffectiveScore. Got", val, "wanted 12")
 	}
 
 }
