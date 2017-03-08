@@ -16,23 +16,16 @@ import (
 //storage. Given a blob serialized in that fashion, GameManager.StateFromBlob
 //will return a state.
 type State struct {
-	Game     GameState
-	Players  []PlayerState
-	computed *computedPropertiesImpl
-	mode     stateMode
-	delegate GameDelegate
+	Game      GameState
+	Players   []PlayerState
+	computed  *computedPropertiesImpl
+	sanitized bool
+	delegate  GameDelegate
 }
-
-type stateMode int
-
-const (
-	stateModeNormal stateMode = iota
-	stateModeSanitized
-)
 
 //Copy returns a deep copy of the State, including copied version of the Game
 //and Player States.
-func (s *State) copy(mode stateMode) *State {
+func (s *State) Copy(sanitized bool) *State {
 
 	players := make([]PlayerState, len(s.Players))
 
@@ -41,10 +34,10 @@ func (s *State) copy(mode stateMode) *State {
 	}
 
 	result := &State{
-		Game:     s.Game.Copy(),
-		Players:  players,
-		mode:     mode,
-		delegate: s.delegate,
+		Game:      s.Game.Copy(),
+		Players:   players,
+		sanitized: sanitized,
+		delegate:  s.delegate,
 	}
 
 	//FixUp stacks to make sure they point to this new state.
@@ -81,7 +74,7 @@ func (s *State) Diagram() string {
 //hidden or otherwise altered. This should return true if the object was
 //created with Copy(true)
 func (s *State) Sanitized() bool {
-	return s.mode == stateModeSanitized
+	return s.sanitized
 }
 
 //Computed returns the computed properties for this state.
@@ -131,7 +124,7 @@ func (s *State) SanitizedForPlayer(playerIndex int) *State {
 		policy = &StatePolicy{}
 	}
 
-	sanitized := s.copy(stateModeSanitized)
+	sanitized := s.Copy(true)
 
 	sanitizeStateObj(sanitized.Game.Reader(), policy.Game, -1, playerIndex)
 
