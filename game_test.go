@@ -136,7 +136,7 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("All of the components were not distributed in SetUp")
 	}
 
-	stateCopy := currentState.copy(false)
+	stateCopy := currentState.copy(stateModeNormal)
 
 	gameState, playerStates = concreteStates(stateCopy)
 
