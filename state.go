@@ -25,7 +25,7 @@ type State struct {
 
 //Copy returns a deep copy of the State, including copied version of the Game
 //and Player States.
-func (s *State) Copy(sanitized bool) *State {
+func (s *State) copy(sanitized bool) *State {
 
 	players := make([]PlayerState, len(s.Players))
 
@@ -124,7 +124,7 @@ func (s *State) SanitizedForPlayer(playerIndex int) *State {
 		policy = &StatePolicy{}
 	}
 
-	sanitized := s.Copy(true)
+	sanitized := s.copy(true)
 
 	sanitizeStateObj(sanitized.Game.Reader(), policy.Game, -1, playerIndex)
 

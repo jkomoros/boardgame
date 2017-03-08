@@ -28,7 +28,7 @@ func TestState(t *testing.T) {
 
 	compareJSONObjects(currentJson, golden, "Basic state", t)
 
-	stateCopy := state.Copy(false)
+	stateCopy := state.copy(false)
 
 	copyJson, _ := DefaultMarshalJSON(stateCopy)
 
@@ -48,7 +48,7 @@ func TestState(t *testing.T) {
 		t.Error("State reported being sanitized even when it wasn't")
 	}
 
-	sanitizedStateCopy := stateCopy.Copy(true)
+	sanitizedStateCopy := stateCopy.copy(true)
 
 	if !sanitizedStateCopy.Sanitized() {
 		t.Error("A copy that was told it was sanitized did not report being sanitized.")
