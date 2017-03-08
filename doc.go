@@ -168,8 +168,9 @@ There are a number of policies that can be applied to each key, of type
 Policy. PolicyVisible is the default; if there is no effective policy in
 place, it defaults to PolicyVisible. It leaves the property unchanged.
 PolicyHidden is the most restrictive; it sets the property to its zero value.
-For basic types (e.g. int, string, bool), these are the only two policies. Any
-Policy other than PolicyVisible behaves like PolicyHidden.
+For basic types (e.g. int, string, bool), these are the only two policies. For
+those property types, any Policy other than PolicyVisible or PolicyRandom
+behaves like PolicyHidden.
 
 Groups (e.g. SizedStacks and GrowableStacks) have a few extra policies.
 PolicyLen will obscure the group so that the number of items is clear, but all

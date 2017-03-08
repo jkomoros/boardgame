@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"math"
+	"math/rand"
 	"strconv"
 )
 
@@ -44,7 +45,8 @@ type Policy int
 
 const (
 	//Non sanitized. For non-group properties (e.g. strings, ints, bools), any
-	//policy other than PolicyVisible is effectively PolicyHidden.
+	//policy other than PolicyVisible or PolicyRandom is effectively
+	//PolicyHidden.
 	PolicyVisible Policy = iota
 	//For groups (e.g. stacks, int slices), return a group that has the same
 	//length. For all else, it's effectively PolicyHidden. In practice, stacks
@@ -64,6 +66,12 @@ const (
 	//stacks, the deck it is, and the Size (for SizedStack) is set, but
 	//nothing else is.
 	PolicyHidden
+
+	//PolicyRandom sets the property to a random but legal value to obscure
+	//it. Not practically useful often, but is used in ComputedProperties to
+	//ensure that people do not take an accidental dependency on a property
+	//they didn't explicitly list in their dependencies.
+	PolicyRandom
 
 	//TODO: implement the other policies.
 )
@@ -124,9 +132,73 @@ func sanitizeProperty(prop interface{}, propType PropertyType, policyGroup Group
 	return applyPolicy(effectivePolicy, prop, propType)
 }
 
+func randomBool() bool {
+	r := rand.Intn(2)
+	if r == 0 {
+		return false
+	}
+	return true
+}
+
+func randomInt() int {
+	return rand.Int()
+}
+
+func randomGrowableStack(stack *GrowableStack) *GrowableStack {
+	result := stack.Copy()
+
+	indexes := make([]int, rand.Intn(16))
+
+	for i, _ := range indexes {
+		indexes[i] = emptyIndexSentinel
+	}
+
+	result.indexes = indexes
+
+	return result
+}
+
+func randomSizedStack(stack *SizedStack) *SizedStack {
+	result := stack.Copy()
+
+	indexes := make([]int, len(result.indexes))
+
+	for i, _ := range indexes {
+		if randomBool() {
+			indexes[i] = emptyIndexSentinel
+		} else {
+			indexes[i] = genericComponentSentinel
+		}
+	}
+
+	result.indexes = indexes
+
+	return result
+}
+
 func applyPolicy(policy Policy, input interface{}, propType PropertyType) interface{} {
 	if policy == PolicyVisible {
 		return input
+	}
+
+	if policy == PolicyRandom {
+		switch propType {
+		case TypeBool:
+			return randomBool()
+		case TypeInt:
+			return randomInt()
+		case TypeString:
+			//Note: unlike the other random*() functions, this is defined in
+			//game for the purposes of creating an ID. That's sufficient for
+			//this use.
+			return randomString(16)
+		case TypeGrowableStack:
+			return randomGrowableStack(input.(*GrowableStack))
+		case TypeSizedStack:
+			return randomSizedStack(input.(*SizedStack))
+		default:
+			panic("Unknown property type for policy random")
+		}
 	}
 
 	//Go through the propTypes where everythign that's not PolicyVisible is
