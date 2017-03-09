@@ -68,8 +68,9 @@ func (s *StorageManager) State(game *boardgame.Game, version int) (*boardgame.St
 	if !ok {
 		return nil, errors.New("No such game")
 	}
-
+	s.statesLock.RLock()
 	record, ok := versionMap[version]
+	s.statesLock.RUnlock()
 
 	if !ok {
 		return nil, errors.New("No such version for that game")
@@ -162,9 +163,10 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.Game, state *bo
 
 	s.statesLock.RLock()
 	versionMap := s.states[game.Id()]
+	_, ok = versionMap[version]
 	s.statesLock.RUnlock()
 
-	if _, ok := versionMap[version]; ok {
+	if ok {
 		//Wait, there was already a version stored there?
 		return errors.New("There was already a version for that game stored")
 	}
