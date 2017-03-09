@@ -131,6 +131,25 @@ type computedPropertiesBag struct {
 	sizedStackProps    map[string]*SizedStack
 }
 
+func policyForDependencies(dependencies []StatePropertyRef) *StatePolicy {
+	result := &StatePolicy{
+		Game:   make(map[string]GroupPolicy),
+		Player: make(map[string]GroupPolicy),
+	}
+	for _, dependency := range dependencies {
+		if dependency.Group == StateGroupGame {
+			result.Game[dependency.PropName] = GroupPolicy{
+				GroupAll: PolicyVisible,
+			}
+		} else if dependency.Group == StateGroupPlayer {
+			result.Player[dependency.PropName] = GroupPolicy{
+				GroupAll: PolicyVisible,
+			}
+		}
+	}
+	return result
+}
+
 func (c *ComputedPropertyDefinition) compute(state *State) (interface{}, error) {
 
 	//First, prepare a shadow state with all of the dependencies.
