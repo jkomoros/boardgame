@@ -126,12 +126,12 @@ func (s *State) SanitizedForPlayer(playerIndex int) *State {
 
 	sanitized := s.Copy(true)
 
-	sanitizeStateObj(sanitized.Game.Reader(), policy.Game, -1, playerIndex)
+	sanitizeStateObj(sanitized.Game.Reader(), policy.Game, -1, playerIndex, PolicyVisible)
 
 	playerStates := sanitized.Players
 
 	for i := 0; i < len(playerStates); i++ {
-		sanitizeStateObj(playerStates[i].Reader(), policy.Player, i, playerIndex)
+		sanitizeStateObj(playerStates[i].Reader(), policy.Player, i, playerIndex, PolicyVisible)
 	}
 
 	return sanitized

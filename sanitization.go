@@ -80,7 +80,7 @@ const (
 //for Game). preparingForPlayerIndex is the index that we're preparing the
 //overall santiized state for, as provied to
 //GameManager.SanitizedStateForPlayer()
-func sanitizeStateObj(readSetter PropertyReadSetter, policy map[string]GroupPolicy, statePlayerIndex int, preparingForPlayerIndex int) {
+func sanitizeStateObj(readSetter PropertyReadSetter, policy map[string]GroupPolicy, statePlayerIndex int, preparingForPlayerIndex int, defaultPolicy Policy) {
 
 	for propName, propType := range readSetter.Props() {
 		prop, err := readSetter.Prop(propName)
@@ -89,12 +89,12 @@ func sanitizeStateObj(readSetter PropertyReadSetter, policy map[string]GroupPoli
 			//TODO: shouldn't we return an error or something?
 			continue
 		}
-		readSetter.SetProp(propName, sanitizeProperty(prop, propType, policy[propName], statePlayerIndex, preparingForPlayerIndex))
+		readSetter.SetProp(propName, sanitizeProperty(prop, propType, policy[propName], statePlayerIndex, preparingForPlayerIndex, defaultPolicy))
 	}
 
 }
 
-func sanitizeProperty(prop interface{}, propType PropertyType, policyGroup GroupPolicy, statePlayerIndex int, preparingForPlayerIndex int) interface{} {
+func sanitizeProperty(prop interface{}, propType PropertyType, policyGroup GroupPolicy, statePlayerIndex int, preparingForPlayerIndex int, defaultPolicy Policy) interface{} {
 
 	//We're going to collect all of the policies that apply.
 	var applicablePolicies []Policy
@@ -127,6 +127,8 @@ func sanitizeProperty(prop interface{}, propType PropertyType, policyGroup Group
 				effectivePolicy = policy
 			}
 		}
+	} else {
+		effectivePolicy = defaultPolicy
 	}
 
 	return applyPolicy(effectivePolicy, prop, propType)
