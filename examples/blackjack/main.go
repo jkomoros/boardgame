@@ -26,40 +26,8 @@ func computeHandValue(state boardgame.PlayerState) (interface{}, error) {
 
 	playerState := state.(*playerState)
 
-	return handValue(playerState.HiddenHand, playerState.VisibleHand), nil
+	return playerState.HandValue(), nil
 
-}
-
-func handValue(hiddenHand *boardgame.GrowableStack, visibleHand *boardgame.GrowableStack) int {
-	effectiveHand := append(playingcards.ValuesToCards(hiddenHand.ComponentValues()), playingcards.ValuesToCards(visibleHand.ComponentValues())...)
-	var numUnconvertedAces int
-	var currentValue int
-
-	for _, card := range effectiveHand {
-		switch card.Rank {
-		case playingcards.RankAce:
-			numUnconvertedAces++
-			//We count the ace as 1 now. Later we'll check to see if we can
-			//expand any aces.
-			currentValue += 1
-		case playingcards.RankJack, playingcards.RankQueen, playingcards.RankKing:
-			currentValue += 10
-		default:
-			currentValue += int(card.Rank)
-		}
-	}
-
-	for numUnconvertedAces > 0 {
-
-		if currentValue >= (targetScore - 10) {
-			break
-		}
-
-		numUnconvertedAces--
-		currentValue += 10
-	}
-
-	return currentValue
 }
 
 func init() {

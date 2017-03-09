@@ -2,6 +2,7 @@ package blackjack
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/playingcards"
 )
 
 func concreteStates(state *boardgame.State) (*gameState, []*playerState) {
@@ -61,7 +62,6 @@ func (p *playerState) PlayerIndex() int {
 	return p.playerIndex
 }
 
-/*
 func (p *playerState) EffectiveHand() []*playingcards.Card {
 	return append(playingcards.ValuesToCards(p.HiddenHand.ComponentValues()), playingcards.ValuesToCards(p.VisibleHand.ComponentValues())...)
 }
@@ -98,4 +98,4 @@ func (p *playerState) HandValue() int {
 
 	return currentValue
 
-}*/
+}
