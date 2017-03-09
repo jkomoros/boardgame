@@ -138,6 +138,25 @@ func (s *State) SanitizedForPlayer(playerIndex int) *State {
 
 }
 
+//sanitizedWithExceptions will return a Sanitized() State where properties
+//that are not in the passed policy are treated as PolicyRandom. Useful in
+//computing properties.
+func (s *State) sanitizedWithExceptions(policy *StatePolicy) *State {
+
+	sanitized := s.Copy(true)
+
+	sanitizeStateObj(sanitized.Game.Reader(), policy.Game, -1, -1, PolicyRandom)
+
+	playerStates := sanitized.Players
+
+	for i := 0; i < len(playerStates); i++ {
+		sanitizeStateObj(playerStates[i].Reader(), policy.Player, -1, -1, PolicyRandom)
+	}
+
+	return sanitized
+
+}
+
 //BaseState is the interface that all state objects--UserStates and GameStates
 //--implement.
 type BaseState interface {
