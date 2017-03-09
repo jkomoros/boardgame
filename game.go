@@ -280,7 +280,11 @@ func (g *Game) SetUp(numPlayers int) error {
 		//We apply the move immediately. This ensures that when
 		//DelayedError resolves, all of the fix up moves have been
 		//applied.
-		g.applyMove(move, true, 0)
+		if err := g.applyMove(move, true, 0); err != nil {
+			//TODO: if we bail here, we haven't left Game in a consistent
+			//state because we haven't rolled back what we did.
+			return errors.New("Applying the first fix up move failed: " + err.Error())
+		}
 	}
 
 	if g.Modifiable() {
