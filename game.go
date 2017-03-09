@@ -264,8 +264,6 @@ func (g *Game) SetUp(numPlayers int) error {
 		if err := g.manager.Storage().SaveGameAndCurrentState(g, stateCopy); err != nil {
 			return errors.New("Storage failed: " + err.Error())
 		}
-
-		go g.mainLoop()
 	}
 
 	g.initalized = true
@@ -281,6 +279,11 @@ func (g *Game) SetUp(numPlayers int) error {
 		//DelayedError resolves, all of the fix up moves have been
 		//applied.
 		g.applyMove(move, true, 0)
+	}
+
+	if g.Modifiable() {
+		//Can't start this until now, otherwise we could have a race.
+		go g.mainLoop()
 	}
 
 	return nil
