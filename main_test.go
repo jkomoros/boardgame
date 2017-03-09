@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"errors"
+	"log"
 )
 
 //Place to define testing structs and helpers that are useful throughout
@@ -183,6 +184,12 @@ func (t *testMove) Description() string {
 
 func (t *testMove) DefaultsForState(state *State) {
 	game, _ := concreteStates(state)
+
+	if game == nil {
+		blob, _ := DefaultMarshalJSON(state)
+		log.Println(string(blob))
+		return
+	}
 
 	t.TargetPlayerIndex = game.CurrentPlayer
 	t.ScoreIncrement = 3

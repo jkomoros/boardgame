@@ -15,6 +15,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type memoryStateRecord struct {
@@ -34,8 +35,10 @@ type memoryGameRecord struct {
 }
 
 type StorageManager struct {
-	states map[string]map[int]*memoryStateRecord
-	games  map[string]*memoryGameRecord
+	states     map[string]map[int]*memoryStateRecord
+	games      map[string]*memoryGameRecord
+	statesLock sync.RWMutex
+	gamesLock  sync.RWMutex
 }
 
 func NewStorageManager() *StorageManager {
@@ -56,7 +59,11 @@ func (s *StorageManager) State(game *boardgame.Game, version int) (*boardgame.St
 		return nil, errors.New("Invalid version")
 	}
 
+	s.statesLock.RLock()
+
 	versionMap, ok := s.states[game.Id()]
+
+	s.statesLock.RUnlock()
 
 	if !ok {
 		return nil, errors.New("No such game")
@@ -78,7 +85,10 @@ func (s *StorageManager) State(game *boardgame.Game, version int) (*boardgame.St
 }
 
 func (s *StorageManager) Game(manager *boardgame.GameManager, id string) (*boardgame.Game, error) {
+
+	s.gamesLock.RLock()
 	record := s.games[id]
+	s.gamesLock.RUnlock()
 
 	if record == nil {
 		return nil, errors.New("No such game")
@@ -139,13 +149,20 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.Game, state *bo
 
 	//TODO: validate that state.Version is reasonable.
 
-	if _, ok := s.states[game.Id()]; !ok {
+	s.statesLock.RLock()
+	_, ok := s.states[game.Id()]
+	s.statesLock.RUnlock()
+	if !ok {
+		s.statesLock.Lock()
 		s.states[game.Id()] = make(map[int]*memoryStateRecord)
+		s.statesLock.Unlock()
 	}
 
 	version := game.Version()
 
+	s.statesLock.RLock()
 	versionMap := s.states[game.Id()]
+	s.statesLock.RUnlock()
 
 	if _, ok := versionMap[version]; ok {
 		//Wait, there was already a version stored there?
@@ -158,11 +175,14 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.Game, state *bo
 		return errors.New("Error marshalling State: " + err.Error())
 	}
 
+	s.statesLock.Lock()
 	versionMap[version] = &memoryStateRecord{
 		Version:         version,
 		SerializedState: blob,
 	}
+	s.statesLock.Unlock()
 
+	s.gamesLock.Lock()
 	s.games[game.Id()] = &memoryGameRecord{
 		Version:  version,
 		Winners:  s.winnersForStorage(game.Winners()),
@@ -170,6 +190,7 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.Game, state *bo
 		Id:       game.Id(),
 		Name:     game.Name(),
 	}
+	s.gamesLock.Unlock()
 
 	return nil
 }

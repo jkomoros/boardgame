@@ -102,8 +102,14 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("Calling SetUp on a previously errored game did not succeed", err)
 	}
 
-	if wrapper, _ := game.Manager().Storage().State(game, 0); wrapper == nil {
+	if wrapper, err := game.Manager().Storage().State(game, 0); wrapper == nil {
 		t.Error("State 0 was not saved in storage when game set up")
+	} else if err != nil {
+		t.Error("Storing state 0 failed: " + err.Error())
+	}
+
+	if game.CurrentState() == nil {
+		t.Error("Game had no current state after saving")
 	}
 
 	if game.PlayerMoveByName("Test") == nil {

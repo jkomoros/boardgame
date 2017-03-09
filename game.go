@@ -176,6 +176,8 @@ func (g *Game) State(version int) *State {
 
 	if result, err := g.manager.Storage().State(g, version); err == nil {
 		return result
+	} else if err != nil {
+		panic("State retrieval failed" + err.Error())
 	}
 
 	return nil
