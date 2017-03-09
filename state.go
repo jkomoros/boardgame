@@ -88,11 +88,12 @@ func (s *State) Computed() ComputedProperties {
 
 		playerBags := make([]*computedPlayerPropertiesImpl, len(s.Players))
 
-		for i, player := range s.Players {
+		for i, _ := range s.Players {
 			playerBags[i] = &computedPlayerPropertiesImpl{
 				newComputedPropertiesBag(),
 				playerConfig,
-				player,
+				s,
+				i,
 			}
 		}
 

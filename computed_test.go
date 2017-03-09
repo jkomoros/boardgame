@@ -21,7 +21,7 @@ func TestComputedPropertyDefinitionCompute(t *testing.T) {
 		t.Fatal("Game failed to set up", err)
 	}
 
-	var passedShadow *ShadowState
+	var passedState *State
 
 	definition := &ComputedPropertyDefinition{
 		Dependencies: []StatePropertyRef{
@@ -35,9 +35,9 @@ func TestComputedPropertyDefinitionCompute(t *testing.T) {
 			},
 		},
 		PropType: TypeInt,
-		Compute: func(shadow *ShadowState) (interface{}, error) {
+		Compute: func(state *State) (interface{}, error) {
 			//For now we'll just pass it out for inspection
-			passedShadow = shadow
+			passedState = state
 			return nil, nil
 		},
 	}
@@ -54,20 +54,20 @@ func TestComputedPropertyDefinitionCompute(t *testing.T) {
 
 	definition.compute(state)
 
-	if passedShadow == nil {
+	if passedState == nil {
 		t.Error("Calling compute on the rigged definition didn't set passedState")
 	}
 
-	if val, err := passedShadow.Game.IntProp("CurrentPlayer"); err != nil {
+	if val, err := passedState.Game.Reader().IntProp("CurrentPlayer"); err != nil {
 		t.Error("Unexpected error reading CurrentPlayer prop", err)
 	} else if val != gameState.CurrentPlayer {
 		t.Error("The shadow current player was not the real value. Got", val, "wanted", gameState.CurrentPlayer)
 	}
 
 	for i, playerState := range playerStates {
-		playerShadow := passedShadow.Players[i]
+		playerShadow := passedState.Players[i]
 
-		if val, err := playerShadow.IntProp("Score"); err != nil {
+		if val, err := playerShadow.Reader().IntProp("Score"); err != nil {
 			t.Error("Unexpected error reading Score prop", err)
 		} else if val != playerState.Score {
 			t.Error("Unexpected score was not real value. Got", val, "wanted", playerState.Score)
@@ -107,12 +107,11 @@ func TestStateComputed(t *testing.T) {
 					},
 				},
 				PropType: TypeInt,
-				Compute: func(shadow *ShadowState) (interface{}, error) {
-					val, err := shadow.Game.IntProp("CurrentPlayer")
-					if err != nil {
-						return nil, err
-					}
-					return val + 5, nil
+				Compute: func(state *State) (interface{}, error) {
+
+					game, _ := concreteStates(state)
+
+					return game.CurrentPlayer + 5, nil
 				},
 			},
 			"SumAllScores": ComputedPropertyDefinition{
@@ -123,16 +122,14 @@ func TestStateComputed(t *testing.T) {
 					},
 				},
 				PropType: TypeInt,
-				Compute: func(shadow *ShadowState) (interface{}, error) {
+				Compute: func(state *State) (interface{}, error) {
 					result := 0
-					for _, player := range shadow.Players {
-						val, err := player.IntProp("Score")
 
-						if err != nil {
-							return nil, err
-						}
+					_, playerStates := concreteStates(state)
 
-						result += val
+					for _, player := range playerStates {
+
+						result += player.Score
 					}
 					return result, nil
 				},
@@ -151,20 +148,12 @@ func TestStateComputed(t *testing.T) {
 					},
 				},
 				PropType: TypeInt,
-				Compute: func(shadow *ShadowPlayerState) (interface{}, error) {
-					score, err := shadow.IntProp("Score")
+				Compute: func(state PlayerState) (interface{}, error) {
 
-					if err != nil {
-						return nil, err
-					}
+					playerState := state.(*testPlayerState)
 
-					hand, err := shadow.SizedStackProp("Hand")
+					return playerState.Score + playerState.Hand.Len(), nil
 
-					if err != nil {
-						return nil, err
-					}
-
-					return score + hand.Len(), nil
 				},
 			},
 		},

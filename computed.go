@@ -28,20 +28,6 @@ type ComputedPropertiesConfig struct {
 	PlayerProperties map[string]ComputedPlayerPropertyDefinition
 }
 
-//A ShadowPlayerState is like a PlayerState, but will only contain values for
-//dependencies explicitly declared in the Computed(Player?)PropertyDefinition.
-type ShadowPlayerState struct {
-	PropertyReader
-}
-
-//ShadowState is an object roughly shaped like a State, but where instead of
-//underlying types it has PropertyReaders. Passed in to the Compute method of
-//a ComputedProperty, based on the dependencies they define.
-type ShadowState struct {
-	Game    PropertyReader
-	Players []*ShadowPlayerState
-}
-
 //ComputedPropertyDefinition defines how to calculate a given top-level
 //computed property.
 type ComputedPropertyDefinition struct {
@@ -53,9 +39,10 @@ type ComputedPropertyDefinition struct {
 	//The thing we expect to be able to cast the result of Compute to (since
 	//the method necessarily has to be general).
 	PropType PropertyType
-	//Where the actual logic of the computed property goes. shadow will be a
-	//ShadowState populated with all of the properties enumerated in
-	//Dependencies. (For PlayerState properties, we will include that property
+	//Where the actual logic of the computed property goes. sanitizedState
+	//will be a Sanitized() State populated with all of the properties
+	//enumerated in Dependencies, with the other properties obscured with
+	//PolicyRandom  (For PlayerState properties, we will include that property
 	//on each ShadowPlayerState object). The return value will be casted to
 	//PropType afterward. Return an error if any state is configured in an
 	//unexpected way. Note: your compute function should be resilient to
@@ -63,7 +50,7 @@ type ComputedPropertyDefinition struct {
 	//compute computation out into a shim that fetches the relevant properties
 	//from the ShadowState and then passes them to the core computation
 	//function, so that other methods can reuse the same logic.
-	Compute func(shadow *ShadowState) (interface{}, error)
+	Compute func(sanitizedState *State) (interface{}, error)
 }
 
 //ComputedPlayerPropertyDefinition is the analogue for
@@ -79,9 +66,10 @@ type ComputedPlayerPropertyDefinition struct {
 	//The thing we expect to be able to cast the result of Compute to (since
 	//the method necessarily has to be general).
 	PropType PropertyType
-	//Where the actual logic of the computed property goes. shadow will be a
-	//ShadowPlayerState populated with all of the properties enumerated in
-	//Dependencies. This method will be called once per PlayerState in turn.
+	//Where the actual logic of the computed property goes. playerState will
+	//be a PlayerState from a Sanitized() state, populated with all of the
+	//properties enumerated in Dependencies, with other properties obscured by
+	//PolicyRandom. This method will be called once per PlayerState in turn.
 	//The return value will be casted to PropType afterward. Return an error
 	//if any state is configured in an unexpected way. Note: your compute
 	//function should be resilient to values that are sanitized. In many cases
@@ -89,7 +77,7 @@ type ComputedPlayerPropertyDefinition struct {
 	//fetches the relevant properties from the ShadowState and then passes
 	//them to the core computation function, so that other methods can reuse
 	//the same logic.
-	Compute func(shadow *ShadowPlayerState) (interface{}, error)
+	Compute func(playerState PlayerState) (interface{}, error)
 }
 
 //StateGroupType is the top-level grouping object used in a StatePropertyRef.
@@ -117,9 +105,10 @@ type computedPropertiesImpl struct {
 }
 
 type computedPlayerPropertiesImpl struct {
-	bag         *computedPropertiesBag
-	config      map[string]ComputedPlayerPropertyDefinition
-	playerState PlayerState
+	bag    *computedPropertiesBag
+	config map[string]ComputedPlayerPropertyDefinition
+	state  *State
+	i      int
 }
 
 type computedPropertiesBag struct {
@@ -154,130 +143,21 @@ func (c *ComputedPropertyDefinition) compute(state *State) (interface{}, error) 
 
 	//First, prepare a shadow state with all of the dependencies.
 
-	players := make([]*ShadowPlayerState, len(state.Players))
+	policy := policyForDependencies(c.Dependencies)
 
-	for i := 0; i < len(state.Players); i++ {
-		players[i] = &ShadowPlayerState{newComputedPropertiesBag()}
-	}
+	sanitized := state.sanitizedWithExceptions(policy)
 
-	shadow := &ShadowState{
-		Game:    newComputedPropertiesBag(),
-		Players: players,
-	}
-
-	for _, dependency := range c.Dependencies {
-		shadow.addDependency(state, dependency)
-	}
-
-	return c.Compute(shadow)
+	return c.Compute(sanitized)
 
 }
 
-func (c *ComputedPlayerPropertyDefinition) compute(playerState PlayerState) (interface{}, error) {
+func (c *ComputedPlayerPropertyDefinition) compute(state *State, playerIndex int) (interface{}, error) {
 
-	shadow := &ShadowPlayerState{
-		newComputedPropertiesBag(),
-	}
+	policy := policyForDependencies(c.Dependencies)
 
-	for i, dependency := range c.Dependencies {
-		if dependency.Group != StateGroupPlayer {
-			return nil, errors.New("The " + strconv.Itoa(i) + "dependency was not for a player property, which is illegal for a player computed property.")
-		}
-		shadowAddDependencyHelper(dependency.PropName, playerState.Reader(), shadow.PropertyReader.(*computedPropertiesBag))
-	}
+	sanitized := state.sanitizedWithExceptions(policy)
 
-	return c.Compute(shadow)
-}
-
-func (s *ShadowState) addDependency(state *State, ref StatePropertyRef) error {
-
-	if ref.Group == StateGroupGame {
-		return s.addGameDependency(state, ref.PropName)
-	}
-
-	if ref.Group == StateGroupPlayer {
-		return s.addPlayerDependency(state, ref.PropName)
-	}
-
-	return errors.New("Unsupoorted Ref.Group")
-
-}
-
-func (s *ShadowState) addGameDependency(state *State, propName string) error {
-	reader := state.Game.Reader()
-	//TODO: this is hacky
-	bag := s.Game.(*computedPropertiesBag)
-
-	return shadowAddDependencyHelper(propName, reader, bag)
-
-}
-
-func shadowAddDependencyHelper(propName string, reader PropertyReader, bag *computedPropertiesBag) error {
-	props := reader.Props()
-
-	propType, ok := props[propName]
-
-	if !ok {
-		return errors.New("No such property on state game")
-	}
-
-	switch propType {
-	case TypeInt:
-		if val, err := reader.IntProp(propName); err == nil {
-			bag.SetIntProp(propName, val)
-		} else {
-			return errors.New("Error reading int prop" + err.Error())
-		}
-	case TypeBool:
-		if val, err := reader.BoolProp(propName); err == nil {
-			bag.SetBoolProp(propName, val)
-		} else {
-			return errors.New("Error reading bool prop" + err.Error())
-		}
-	case TypeString:
-		if val, err := reader.StringProp(propName); err == nil {
-			bag.SetStringProp(propName, val)
-		} else {
-			return errors.New("Error reading string prop" + err.Error())
-		}
-	case TypeGrowableStack:
-		if val, err := reader.GrowableStackProp(propName); err == nil {
-			bag.SetGrowableStackProp(propName, val)
-		} else {
-			return errors.New("Error reading growable stack prop" + err.Error())
-		}
-	case TypeSizedStack:
-		if val, err := reader.SizedStackProp(propName); err == nil {
-			bag.SetSizedStackProp(propName, val)
-		} else {
-			return errors.New("Error reading sized stack prop" + err.Error())
-		}
-	default:
-		if val, err := reader.Prop(propName); err == nil {
-			bag.SetProp(propName, val)
-		} else {
-			return errors.New("Error reading unknown prop" + err.Error())
-		}
-	}
-
-	return nil
-}
-
-func (s *ShadowState) addPlayerDependency(state *State, propName string) error {
-
-	for i, player := range state.Players {
-
-		reader := player.Reader()
-		//TODO: this is hacky
-		bag := s.Players[i].PropertyReader.(*computedPropertiesBag)
-
-		if err := shadowAddDependencyHelper(propName, reader, bag); err != nil {
-			return errors.New("Error on " + strconv.Itoa(i) + ": " + err.Error())
-		}
-	}
-
-	return nil
-
+	return c.Compute(sanitized.Players[playerIndex])
 }
 
 func (c *computedPropertiesImpl) MarshalJSON() ([]byte, error) {
@@ -363,7 +243,7 @@ func (c *computedPlayerPropertiesImpl) IntProp(name string) (int, error) {
 
 	//Compute it
 
-	val, err := definition.compute(c.playerState)
+	val, err := definition.compute(c.state, c.i)
 
 	if err != nil {
 		return 0, errors.New("Error computing calculated int prop: " + err.Error())
@@ -432,7 +312,7 @@ func (c *computedPlayerPropertiesImpl) BoolProp(name string) (bool, error) {
 
 	//Compute it
 
-	val, err := definition.compute(c.playerState)
+	val, err := definition.compute(c.state, c.i)
 
 	if err != nil {
 		return false, errors.New("Error computing calculated int prop: " + err.Error())
@@ -501,7 +381,7 @@ func (c *computedPlayerPropertiesImpl) StringProp(name string) (string, error) {
 
 	//Compute it
 
-	val, err := definition.compute(c.playerState)
+	val, err := definition.compute(c.state, c.i)
 
 	if err != nil {
 		return "", errors.New("Error computing calculated string prop: " + err.Error())
@@ -570,7 +450,7 @@ func (c *computedPlayerPropertiesImpl) GrowableStackProp(name string) (*Growable
 
 	//Compute it
 
-	val, err := definition.compute(c.playerState)
+	val, err := definition.compute(c.state, c.i)
 
 	if err != nil {
 		return nil, errors.New("Error computing calculated growable stack prop: " + err.Error())
@@ -639,7 +519,7 @@ func (c *computedPlayerPropertiesImpl) SizedStackProp(name string) (*SizedStack,
 
 	//Compute it
 
-	val, err := definition.compute(c.playerState)
+	val, err := definition.compute(c.state, c.i)
 
 	if err != nil {
 		return nil, errors.New("Error computing calculated sized stack prop: " + err.Error())
@@ -717,7 +597,7 @@ func (c *computedPlayerPropertiesImpl) Prop(name string) (interface{}, error) {
 
 	//If we get to here, it's a TypeUnknown
 
-	val, err := definition.compute(c.playerState)
+	val, err := definition.compute(c.state, c.i)
 
 	if err != nil {
 		return nil, errors.New("Error computing calculated prop" + err.Error())

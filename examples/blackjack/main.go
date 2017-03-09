@@ -22,21 +22,11 @@ const gameName = "blackjack"
 var computedPropertiesConfig *boardgame.ComputedPropertiesConfig
 
 //computeHandValue is used in our ComputedPropertyConfig.
-func computeHandValue(shadow *boardgame.ShadowPlayerState) (interface{}, error) {
+func computeHandValue(state boardgame.PlayerState) (interface{}, error) {
 
-	hiddenHand, err := shadow.GrowableStackProp("HiddenHand")
+	playerState := state.(*playerState)
 
-	if err != nil {
-		return nil, err
-	}
-
-	visibleHand, err := shadow.GrowableStackProp("VisibleHand")
-
-	if err != nil {
-		return nil, err
-	}
-
-	return handValue(hiddenHand, visibleHand), nil
+	return handValue(playerState.HiddenHand, playerState.VisibleHand), nil
 
 }
 

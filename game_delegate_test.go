@@ -17,16 +17,15 @@ func init() {
 					},
 				},
 				PropType: TypeInt,
-				Compute: func(shadow *ShadowState) (interface{}, error) {
+				Compute: func(state *State) (interface{}, error) {
+
+					_, playerStates := concreteStates(state)
+
 					result := 0
-					for _, player := range shadow.Players {
-						val, err := player.IntProp("Score")
 
-						if err != nil {
-							return nil, err
-						}
+					for _, player := range playerStates {
 
-						result += val
+						result += player.Score
 					}
 					return result, nil
 				},
@@ -45,23 +44,14 @@ func init() {
 					},
 				},
 				PropType: TypeInt,
-				Compute: func(shadow *ShadowPlayerState) (interface{}, error) {
-					isFoo, err := shadow.BoolProp("IsFoo")
+				Compute: func(state PlayerState) (interface{}, error) {
 
-					if err != nil {
-						return nil, err
-					}
+					playerState := state.(*testPlayerState)
 
-					movesLeftThisTurn, err := shadow.IntProp("MovesLeftThisTurn")
-
-					if err != nil {
-						return nil, err
-					}
-
-					effectiveMovesLeftThisTurn := movesLeftThisTurn
+					effectiveMovesLeftThisTurn := playerState.MovesLeftThisTurn
 
 					//Players with Isfoo get a bonus.
-					if isFoo {
+					if playerState.IsFoo {
 						effectiveMovesLeftThisTurn += 5
 					}
 
