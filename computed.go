@@ -43,13 +43,15 @@ type ComputedPropertyDefinition struct {
 	//will be a Sanitized() State populated with all of the properties
 	//enumerated in Dependencies, with the other properties obscured with
 	//PolicyRandom  (For PlayerState properties, we will include that property
-	//on each ShadowPlayerState object). The return value will be casted to
-	//PropType afterward. Return an error if any state is configured in an
-	//unexpected way. Note: your compute function should be resilient to
-	//values that are sanitized. In many cases it makes sense to factor your
-	//compute computation out into a shim that fetches the relevant properties
-	//from the ShadowState and then passes them to the core computation
-	//function, so that other methods can reuse the same logic.
+	//on each ShadowPlayerState object). Since it's just a sanitized State,
+	//you may cast the state to the concrete types for your game to more
+	//easily retrieve values. The return value will be casted to PropType
+	//afterward. Return an error if any state is configured in an unexpected
+	//way. Note: your compute function should be resilient to values that are
+	//sanitized. In many cases it makes sense to factor your compute
+	//computation out into a shim that fetches the relevant properties from
+	//the ShadowState and then passes them to the core computation function,
+	//so that other methods can reuse the same logic.
 	Compute func(sanitizedState *State) (interface{}, error)
 }
 
@@ -69,14 +71,16 @@ type ComputedPlayerPropertyDefinition struct {
 	//Where the actual logic of the computed property goes. playerState will
 	//be a PlayerState from a Sanitized() state, populated with all of the
 	//properties enumerated in Dependencies, with other properties obscured by
-	//PolicyRandom. This method will be called once per PlayerState in turn.
-	//The return value will be casted to PropType afterward. Return an error
-	//if any state is configured in an unexpected way. Note: your compute
-	//function should be resilient to values that are sanitized. In many cases
-	//it makes sense to factor your compute computation out into a shim that
-	//fetches the relevant properties from the ShadowState and then passes
-	//them to the core computation function, so that other methods can reuse
-	//the same logic.
+	//PolicyRandom. Since it's just a PlayerState from a sanitized State, it
+	//is safe to cast to the underlying PlayerState type you know it is for
+	//your package for convenience. This method will be called once per
+	//PlayerState in turn. The return value will be casted to PropType
+	//afterward. Return an error if any state is configured in an unexpected
+	//way. Note: your compute function should be resilient to values that are
+	//sanitized. In many cases it makes sense to factor your compute
+	//computation out into a shim that fetches the relevant properties from
+	//the ShadowState and then passes them to the core computation function,
+	//so that other methods can reuse the same logic.
 	Compute func(playerState PlayerState) (interface{}, error)
 }
 
