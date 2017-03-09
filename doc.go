@@ -225,10 +225,18 @@ ComputedPlayerProperty.
 Both types of computed properties exhaustively identify the other state
 properties that they rely on. This helps the engine only recalculate state
 properties when the underlying values have changed, and other optimizations.
-When the value is computed, a ShadowState is passed instead of a normal state.
-This ShadowState object only has the properties defined that were explicitly
-listed as dependencies. This allows us to verify that your dependency list is
-a superset of the properties you actually rely on.
+When the value is computed, a Sanitized() State is passed instead of a normal
+state. This sanitized state object only has the properties defined that were
+explicitly listed as dependencies, with other properties obscured with
+PolicyRandom. This allows us to verify that your dependency list is a superset
+of the properties you actually rely on. This means that a common pattern is to
+define your computed properties as methods on your concrete GameStates and
+PlayerState objects. Then, your computed properties simply cast the input to
+the concrete underlying type you know it is and return the value of calling
+that method on it. As long as your dependencies are comprehensive that the
+method actually relies on, the result should be the same. This way, you can
+define a method you use directly on the server, but also have the same
+property available computed on the client.
 
 ComputedProperties are defined based on the config object your GameDelegate
 returns from the ComputedPropertiesConfig method. This method should always
