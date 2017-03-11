@@ -445,6 +445,13 @@ func (d *defaultReader) SetProp(name string, val interface{}) (err error) {
 
 }
 
+func newGenericReader() *genericReader {
+	return &genericReader{
+		make(map[string]PropertyType),
+		make(map[string]interface{}),
+	}
+}
+
 func (g *genericReader) Props() map[string]PropertyType {
 	return g.types
 }

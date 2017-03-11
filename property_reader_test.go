@@ -156,3 +156,42 @@ func TestPropertyReaderImpl(t *testing.T) {
 	}
 
 }
+
+func TestGenericReader(t *testing.T) {
+	reader := newGenericReader()
+
+	if _, err := reader.Prop("test"); err == nil {
+		t.Error("A read on an empty reader didn't fail")
+	}
+
+	if err := reader.SetIntProp("intProp", 1); err != nil {
+		t.Error("Unexpected error setting int: ", err)
+	}
+
+	if intVal, err := reader.IntProp("intProp"); err != nil {
+		t.Error("Unexpected error reading back vaid int", err)
+	} else if intVal != 1 {
+		t.Error("Reading back legit int was not expected val. Got", intVal, "wanted", 1)
+	}
+
+	if err := reader.SetBoolProp("boolProp", true); err != nil {
+		t.Error("Unexpected error setting bool: ", err)
+	}
+
+	if boolVal, err := reader.BoolProp("boolProp"); err != nil {
+		t.Error("Unexpected error reading back valid bool", err)
+	} else if boolVal != true {
+		t.Error("Reading back legit bool was not expected val. Got", boolVal, "wanted", true)
+	}
+
+	if err := reader.SetIntProp("boolProp", 2); err == nil {
+		t.Error("Setting an int on a previously set bool prop didn't fail as expected")
+	}
+
+	if val, err := reader.Prop("intProp"); err != nil {
+		t.Error("Got unexpected error reading back generic prop", err)
+	} else if val.(int) != 1 {
+		t.Error("Reading back generic value didn't get right int. WAnted", 1, "got", val)
+	}
+
+}
