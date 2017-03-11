@@ -558,3 +558,82 @@ func (g *genericReader) SizedStackProp(name string) (*SizedStack, error) {
 
 	return val.(*SizedStack), nil
 }
+
+func (g *genericReader) SetProp(name string, val interface{}) error {
+
+	propType, ok := g.types[name]
+
+	if ok && propType != TypeIllegal {
+		return errors.New("That property was already set but was a different type")
+	}
+
+	g.types[name] = TypeIllegal
+	g.values[name] = val
+
+	return nil
+}
+
+func (g *genericReader) SetIntProp(name string, val int) error {
+	propType, ok := g.types[name]
+
+	if ok && propType != TypeInt {
+		return errors.New("That property was already set but was not an int")
+	}
+
+	g.types[name] = TypeInt
+	g.values[name] = val
+
+	return nil
+}
+
+func (g *genericReader) SetBoolProp(name string, val bool) error {
+	propType, ok := g.types[name]
+
+	if ok && propType != TypeBool {
+		return errors.New("That property was already set but was not an bool")
+	}
+
+	g.types[name] = TypeBool
+	g.values[name] = val
+
+	return nil
+}
+
+func (g *genericReader) SetStringProp(name string, val string) error {
+	propType, ok := g.types[name]
+
+	if ok && propType != TypeString {
+		return errors.New("That property was already set but was not an string")
+	}
+
+	g.types[name] = TypeString
+	g.values[name] = val
+
+	return nil
+}
+
+func (g *genericReader) SetGrowableStackProp(name string, val *GrowableStack) error {
+	propType, ok := g.types[name]
+
+	if ok && propType != TypeGrowableStack {
+		return errors.New("That property was already set but was not an growable stack")
+	}
+
+	g.types[name] = TypeGrowableStack
+	g.values[name] = val
+
+	return nil
+}
+
+func (g *genericReader) SetSizedStackProp(name string, val *SizedStack) error {
+	propType, ok := g.types[name]
+
+	if ok && propType != TypeSizedStack {
+		return errors.New("That property was already set but was not an sized stack")
+	}
+
+	g.types[name] = TypeSizedStack
+	g.values[name] = val
+
+	return nil
+}
