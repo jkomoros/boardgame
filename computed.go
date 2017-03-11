@@ -106,31 +106,8 @@ type StatePropertyRef struct {
 }
 
 type computedPropertiesImpl struct {
-	global  *computedGlobalPropertiesImpl
-	players []*computedPlayerPropertiesImpl
-}
-
-//The private impl for ComputedProperties
-type computedGlobalPropertiesImpl struct {
-	*computedPropertiesBag
-	state  *State
-	config *ComputedPropertiesConfig
-}
-
-type computedPlayerPropertiesImpl struct {
-	*computedPropertiesBag
-	config map[string]ComputedPlayerPropertyDefinition
-	state  *State
-	i      int
-}
-
-type computedPropertiesBag struct {
-	unknownProps       map[string]interface{}
-	intProps           map[string]int
-	boolProps          map[string]bool
-	stringProps        map[string]string
-	growableStackProps map[string]*GrowableStack
-	sizedStackProps    map[string]*SizedStack
+	global  ComputedPropertyCollection
+	players []ComputedPropertyCollection
 }
 
 func policyForDependencies(dependencies []StatePropertyRef) *StatePolicy {
@@ -150,6 +127,148 @@ func policyForDependencies(dependencies []StatePropertyRef) *StatePolicy {
 		}
 	}
 	return result
+}
+
+func newComputedPropertiesImpl(config *ComputedPropertiesConfig, state *State) *computedPropertiesImpl {
+
+	if config == nil {
+		return nil
+	}
+
+	playerBags := make([]ComputedPropertyCollection, len(state.Players))
+
+	//TODO: calculate all properties.
+	for i, _ := range state.Players {
+		collection := state.delegate.EmptyComputedPlayerPropertyCollection()
+		if collection == nil {
+			return nil
+		}
+		playerBags[i] = collection
+
+		if config.Player == nil {
+			continue
+		}
+
+		reader := collection.Reader()
+
+		for name, propConfig := range config.Player {
+			if err := propConfig.calculate(name, i, state, reader); err != nil {
+				//TODO: do something better here.
+				panic(err)
+			}
+		}
+
+	}
+
+	globalBag := state.delegate.EmptyComputedGlobalPropertyCollection()
+
+	if globalBag == nil {
+		return nil
+	}
+
+	if config.Global != nil {
+		for name, propConfig := range config.Global {
+			if err := propConfig.calculate(name, state, globalBag.Reader()); err != nil {
+				//TODO: do something better here.
+				panic(err)
+			}
+		}
+	}
+
+	return &computedPropertiesImpl{
+		global:  globalBag,
+		players: playerBags,
+	}
+}
+
+func (c *ComputedGlobalPropertyDefinition) calculate(propName string, state *State, output PropertyReadSetter) error {
+
+	result, err := c.compute(state)
+
+	if err != nil {
+		return errors.New("Error computing calculated prop: " + err.Error())
+	}
+
+	switch c.PropType {
+	case TypeBool:
+		boolVal, ok := result.(bool)
+		if !ok {
+			return errors.New("Property did not return bool as expected")
+		}
+		output.SetBoolProp(propName, boolVal)
+	case TypeInt:
+		intVal, ok := result.(int)
+		if !ok {
+			return errors.New("Property did not return int as expected")
+		}
+		output.SetIntProp(propName, intVal)
+	case TypeString:
+		stringVal, ok := result.(string)
+		if !ok {
+			return errors.New("Property did not return string as expected")
+		}
+		output.SetStringProp(propName, stringVal)
+	case TypeGrowableStack:
+		growableStackVal, ok := result.(*GrowableStack)
+		if !ok {
+			return errors.New("Property did not return growable stack as expected")
+		}
+		output.SetGrowableStackProp(propName, growableStackVal)
+	case TypeSizedStack:
+		sizedStackVal, ok := result.(*SizedStack)
+		if !ok {
+			return errors.New("Property did not return sized stack as expected")
+		}
+		output.SetSizedStackProp(propName, sizedStackVal)
+	}
+
+	return nil
+
+}
+
+func (c *ComputedPlayerPropertyDefinition) calculate(propName string, playerIndex int, state *State, output PropertyReadSetter) error {
+
+	result, err := c.compute(state, playerIndex)
+
+	if err != nil {
+		return errors.New("Error computing calculated prop: " + err.Error())
+	}
+
+	switch c.PropType {
+	case TypeBool:
+		boolVal, ok := result.(bool)
+		if !ok {
+			return errors.New("Property did not return bool as expected")
+		}
+		output.SetBoolProp(propName, boolVal)
+	case TypeInt:
+		intVal, ok := result.(int)
+		if !ok {
+			return errors.New("Property did not return int as expected")
+		}
+		output.SetIntProp(propName, intVal)
+	case TypeString:
+		stringVal, ok := result.(string)
+		if !ok {
+			return errors.New("Property did not return string as expected")
+		}
+		output.SetStringProp(propName, stringVal)
+	case TypeGrowableStack:
+		growableStackVal, ok := result.(*GrowableStack)
+		if !ok {
+			return errors.New("Property did not return growable stack as expected")
+		}
+		output.SetGrowableStackProp(propName, growableStackVal)
+	case TypeSizedStack:
+		sizedStackVal, ok := result.(*SizedStack)
+		if !ok {
+			return errors.New("Property did not return sized stack as expected")
+		}
+		output.SetSizedStackProp(propName, sizedStackVal)
+	}
+
+	return nil
+
 }
 
 func (c *ComputedGlobalPropertyDefinition) compute(state *State) (interface{}, error) {
@@ -189,8 +308,8 @@ func (c *computedPropertiesImpl) MarshalJSON() ([]byte, error) {
 
 	for i, player := range c.players {
 		playerProperties[i] = make(map[string]interface{})
-		for propName, _ := range player.Props() {
-			val, err := player.Prop(propName)
+		for propName, _ := range player.Reader().Props() {
+			val, err := player.Reader().Prop(propName)
 
 			if err != nil {
 				return nil, errors.New("Player computed prop " + propName + " for player " + strconv.Itoa(i) + " returned an error: " + err.Error())
@@ -221,609 +340,4 @@ func (c *computedPropertiesImpl) MarshalJSON() ([]byte, error) {
 	result["Players"] = playerProperties
 
 	return json.Marshal(result)
-}
-
-//Temporary indirection as we're fixing #194
-func (c *computedGlobalPropertiesImpl) Reader() PropertyReadSetter {
-	return c
-}
-
-//Temporary indirection as we're fixing #194
-func (c *computedPlayerPropertiesImpl) Reader() PropertyReadSetter {
-	return c
-}
-
-func (c *computedPlayerPropertiesImpl) Props() map[string]PropertyType {
-	result := make(map[string]PropertyType)
-
-	if c.config == nil {
-		return result
-	}
-
-	for name, config := range c.config {
-		result[name] = config.PropType
-	}
-
-	return result
-}
-
-func (c *computedGlobalPropertiesImpl) Props() map[string]PropertyType {
-
-	result := make(map[string]PropertyType)
-
-	if c.config == nil {
-		return result
-	}
-
-	for name, config := range c.config.Global {
-		result[name] = config.PropType
-	}
-
-	return result
-}
-
-func (c *computedPlayerPropertiesImpl) IntProp(name string) (int, error) {
-	if val, err := c.computedPropertiesBag.IntProp(name); err == nil {
-		return val, nil
-	}
-
-	definition, ok := c.config[name]
-
-	if !ok {
-		return 0, errors.New("No such computed player property")
-	}
-
-	if definition.PropType != TypeInt {
-		return 0, errors.New("That name is not an intprop")
-	}
-
-	//Compute it
-
-	val, err := definition.compute(c.state, c.i)
-
-	if err != nil {
-		return 0, errors.New("Error computing calculated int prop: " + err.Error())
-	}
-
-	intVal, ok := val.(int)
-
-	if !ok {
-		return 0, errors.New("The compute function for that name did not return an int as expected")
-	}
-
-	c.computedPropertiesBag.SetIntProp(name, intVal)
-
-	return intVal, nil
-
-}
-
-func (c *computedGlobalPropertiesImpl) IntProp(name string) (int, error) {
-	if val, err := c.computedPropertiesBag.IntProp(name); err == nil {
-		return val, nil
-	}
-
-	definition, ok := c.config.Global[name]
-
-	if !ok {
-		return 0, errors.New("no such computed property")
-	}
-
-	if definition.PropType != TypeInt {
-		return 0, errors.New("That name is not an IntProp.")
-	}
-
-	//Nope, gotta compute it.
-	val, err := definition.compute(c.state)
-
-	if err != nil {
-		return 0, errors.New("Error computing calculated int prop:" + err.Error())
-	}
-
-	intVal, ok := val.(int)
-
-	if !ok {
-		return 0, errors.New("The compute function for that name did not return an int as expectd")
-	}
-
-	c.computedPropertiesBag.SetIntProp(name, intVal)
-
-	return intVal, nil
-
-}
-
-func (c *computedPlayerPropertiesImpl) BoolProp(name string) (bool, error) {
-	if val, err := c.computedPropertiesBag.BoolProp(name); err == nil {
-		return val, nil
-	}
-
-	definition, ok := c.config[name]
-
-	if !ok {
-		return false, errors.New("No such computed player property")
-	}
-
-	if definition.PropType != TypeBool {
-		return false, errors.New("That name is not an boolprop")
-	}
-
-	//Compute it
-
-	val, err := definition.compute(c.state, c.i)
-
-	if err != nil {
-		return false, errors.New("Error computing calculated int prop: " + err.Error())
-	}
-
-	boolVal, ok := val.(bool)
-
-	if !ok {
-		return false, errors.New("The compute function for that name did not return an bool as expected")
-	}
-
-	c.computedPropertiesBag.SetBoolProp(name, boolVal)
-
-	return boolVal, nil
-
-}
-
-func (c *computedGlobalPropertiesImpl) BoolProp(name string) (bool, error) {
-	if val, err := c.computedPropertiesBag.BoolProp(name); err == nil {
-		return val, nil
-	}
-
-	definition, ok := c.config.Global[name]
-
-	if !ok {
-		return false, errors.New("no such computed property")
-	}
-
-	if definition.PropType != TypeBool {
-		return false, errors.New("That name is not an BoolProp.")
-	}
-
-	//Nope, gotta compute it.
-	val, err := definition.compute(c.state)
-
-	if err != nil {
-		return false, errors.New("Error computing calculated prop:" + err.Error())
-	}
-
-	boolVal, ok := val.(bool)
-
-	if !ok {
-		return false, errors.New("The compute function for that name did not return a bool as expectd")
-	}
-
-	c.computedPropertiesBag.SetBoolProp(name, boolVal)
-
-	return boolVal, nil
-
-}
-
-func (c *computedPlayerPropertiesImpl) StringProp(name string) (string, error) {
-	if val, err := c.computedPropertiesBag.StringProp(name); err == nil {
-		return val, nil
-	}
-
-	definition, ok := c.config[name]
-
-	if !ok {
-		return "", errors.New("No such computed player property")
-	}
-
-	if definition.PropType != TypeString {
-		return "", errors.New("That name is not an stringProp")
-	}
-
-	//Compute it
-
-	val, err := definition.compute(c.state, c.i)
-
-	if err != nil {
-		return "", errors.New("Error computing calculated string prop: " + err.Error())
-	}
-
-	stringVal, ok := val.(string)
-
-	if !ok {
-		return "", errors.New("The compute function for that name did not return an string as expected")
-	}
-
-	c.computedPropertiesBag.SetStringProp(name, stringVal)
-
-	return stringVal, nil
-
-}
-
-func (c *computedGlobalPropertiesImpl) StringProp(name string) (string, error) {
-	if val, err := c.computedPropertiesBag.StringProp(name); err == nil {
-		return val, nil
-	}
-
-	definition, ok := c.config.Global[name]
-
-	if !ok {
-		return "", errors.New("no such computed property")
-	}
-
-	if definition.PropType != TypeString {
-		return "", errors.New("That name is not a stringProp.")
-	}
-
-	//Nope, gotta compute it.
-	val, err := definition.compute(c.state)
-
-	if err != nil {
-		return "", errors.New("Error computing calculated prop:" + err.Error())
-	}
-
-	stringVal, ok := val.(string)
-
-	if !ok {
-		return "", errors.New("The compute function for that name did not return a string as expectd")
-	}
-
-	c.computedPropertiesBag.SetStringProp(name, stringVal)
-
-	return stringVal, nil
-
-}
-
-func (c *computedPlayerPropertiesImpl) GrowableStackProp(name string) (*GrowableStack, error) {
-	if val, err := c.computedPropertiesBag.GrowableStackProp(name); err == nil {
-		return val, nil
-	}
-
-	definition, ok := c.config[name]
-
-	if !ok {
-		return nil, errors.New("No such computed player property")
-	}
-
-	if definition.PropType != TypeGrowableStack {
-		return nil, errors.New("That name is not an Growable Stack prop")
-	}
-
-	//Compute it
-
-	val, err := definition.compute(c.state, c.i)
-
-	if err != nil {
-		return nil, errors.New("Error computing calculated growable stack prop: " + err.Error())
-	}
-
-	growableStackVal, ok := val.(*GrowableStack)
-
-	if !ok {
-		return nil, errors.New("The compute function for that name did not return an growable stack as expected")
-	}
-
-	c.computedPropertiesBag.SetGrowableStackProp(name, growableStackVal)
-
-	return growableStackVal, nil
-
-}
-
-func (c *computedGlobalPropertiesImpl) GrowableStackProp(name string) (*GrowableStack, error) {
-	if val, err := c.computedPropertiesBag.GrowableStackProp(name); err == nil {
-		return val, nil
-	}
-
-	definition, ok := c.config.Global[name]
-
-	if !ok {
-		return nil, errors.New("no such computed property")
-	}
-
-	if definition.PropType != TypeGrowableStack {
-		return nil, errors.New("That name is not an growable stack prop.")
-	}
-
-	//Nope, gotta compute it.
-	val, err := definition.compute(c.state)
-
-	if err != nil {
-		return nil, errors.New("Error computing calculated prop:" + err.Error())
-	}
-
-	growableStackVal, ok := val.(*GrowableStack)
-
-	if !ok {
-		return nil, errors.New("The compute function for that name did not return a growableStackVal as expectd")
-	}
-
-	c.computedPropertiesBag.SetGrowableStackProp(name, growableStackVal)
-
-	return growableStackVal, nil
-
-}
-
-func (c *computedPlayerPropertiesImpl) SizedStackProp(name string) (*SizedStack, error) {
-	if val, err := c.computedPropertiesBag.SizedStackProp(name); err == nil {
-		return val, nil
-	}
-
-	definition, ok := c.config[name]
-
-	if !ok {
-		return nil, errors.New("No such computed player property")
-	}
-
-	if definition.PropType != TypeSizedStack {
-		return nil, errors.New("That name is not an sized stack prop")
-	}
-
-	//Compute it
-
-	val, err := definition.compute(c.state, c.i)
-
-	if err != nil {
-		return nil, errors.New("Error computing calculated sized stack prop: " + err.Error())
-	}
-
-	sizedStackVal, ok := val.(*SizedStack)
-
-	if !ok {
-		return nil, errors.New("The compute function for that name did not return an sized stack as expected")
-	}
-
-	c.computedPropertiesBag.SetSizedStackProp(name, sizedStackVal)
-
-	return sizedStackVal, nil
-
-}
-
-func (c *computedGlobalPropertiesImpl) SizedStackProp(name string) (*SizedStack, error) {
-	if val, err := c.computedPropertiesBag.SizedStackProp(name); err == nil {
-		return val, nil
-	}
-
-	definition, ok := c.config.Global[name]
-
-	if !ok {
-		return nil, errors.New("no such computed property")
-	}
-
-	if definition.PropType != TypeSizedStack {
-		return nil, errors.New("That name is not an sized stack prop.")
-	}
-
-	//Nope, gotta compute it.
-	val, err := definition.compute(c.state)
-
-	if err != nil {
-		return nil, errors.New("Error computing calculated prop:" + err.Error())
-	}
-
-	sizedStackVal, ok := val.(*SizedStack)
-
-	if !ok {
-		return nil, errors.New("The compute function for that name did not return a sizedStackVal as expectd")
-	}
-
-	c.computedPropertiesBag.SetSizedStackProp(name, sizedStackVal)
-
-	return sizedStackVal, nil
-
-}
-
-func (c *computedPlayerPropertiesImpl) Prop(name string) (interface{}, error) {
-	if val, err := c.computedPropertiesBag.Prop(name); err == nil {
-		return val, nil
-	}
-
-	definition, ok := c.config[name]
-
-	if !ok {
-		return nil, errors.New("No such computed property")
-	}
-
-	switch definition.PropType {
-	case TypeBool:
-		return c.BoolProp(name)
-	case TypeInt:
-		return c.IntProp(name)
-	case TypeString:
-		return c.StringProp(name)
-	case TypeGrowableStack:
-		return c.GrowableStackProp(name)
-	case TypeSizedStack:
-		return c.SizedStackProp(name)
-	}
-
-	//If we get to here, it's a TypeUnknown
-
-	val, err := definition.compute(c.state, c.i)
-
-	if err != nil {
-		return nil, errors.New("Error computing calculated prop" + err.Error())
-	}
-
-	c.computedPropertiesBag.SetProp(name, val)
-
-	return val, nil
-}
-
-func (c *computedGlobalPropertiesImpl) Prop(name string) (interface{}, error) {
-	if val, err := c.computedPropertiesBag.Prop(name); err == nil {
-		return val, nil
-	}
-
-	definition, ok := c.config.Global[name]
-
-	if !ok {
-		return nil, errors.New("No such computed property")
-	}
-
-	switch definition.PropType {
-	case TypeBool:
-		return c.BoolProp(name)
-	case TypeInt:
-		return c.IntProp(name)
-	case TypeString:
-		return c.StringProp(name)
-	case TypeGrowableStack:
-		return c.GrowableStackProp(name)
-	case TypeSizedStack:
-		return c.SizedStackProp(name)
-	}
-
-	//If we get to here, it's a TypeUnknown
-
-	val, err := definition.compute(c.state)
-
-	if err != nil {
-		return nil, errors.New("Error computing calculated prop" + err.Error())
-	}
-
-	c.computedPropertiesBag.SetProp(name, val)
-
-	return val, nil
-}
-
-func newComputedPropertiesBag() *computedPropertiesBag {
-	return &computedPropertiesBag{
-		unknownProps:       make(map[string]interface{}),
-		intProps:           make(map[string]int),
-		boolProps:          make(map[string]bool),
-		stringProps:        make(map[string]string),
-		growableStackProps: make(map[string]*GrowableStack),
-		sizedStackProps:    make(map[string]*SizedStack),
-	}
-}
-
-func (c *computedPropertiesBag) Props() map[string]PropertyType {
-	result := make(map[string]PropertyType)
-
-	//TODO: memoize this
-
-	for key, _ := range c.unknownProps {
-		//TODO: shouldn't this be TypeUnknown?
-		result[key] = TypeIllegal
-	}
-
-	for key, _ := range c.intProps {
-		result[key] = TypeInt
-	}
-
-	for key, _ := range c.boolProps {
-		result[key] = TypeBool
-	}
-
-	for key, _ := range c.stringProps {
-		result[key] = TypeString
-	}
-
-	return result
-}
-
-func (c *computedPropertiesBag) GrowableStackProp(name string) (*GrowableStack, error) {
-	result, ok := c.growableStackProps[name]
-
-	if !ok {
-		return nil, errors.New("No such growable stack prop")
-	}
-
-	return result, nil
-}
-
-func (c *computedPropertiesBag) SizedStackProp(name string) (*SizedStack, error) {
-	result, ok := c.sizedStackProps[name]
-
-	if !ok {
-		return nil, errors.New("No such sized stack prop")
-	}
-
-	return result, nil
-}
-
-func (c *computedPropertiesBag) IntProp(name string) (int, error) {
-	result, ok := c.intProps[name]
-
-	if !ok {
-		return 0, errors.New("No such int prop")
-	}
-
-	return result, nil
-}
-
-func (c *computedPropertiesBag) BoolProp(name string) (bool, error) {
-	result, ok := c.boolProps[name]
-
-	if !ok {
-		return false, errors.New("No such bool prop")
-	}
-
-	return result, nil
-}
-
-func (c *computedPropertiesBag) StringProp(name string) (string, error) {
-	result, ok := c.stringProps[name]
-
-	if !ok {
-		return "", errors.New("No such string prop")
-	}
-
-	return result, nil
-}
-
-func (c *computedPropertiesBag) Prop(name string) (interface{}, error) {
-	props := c.Props()
-
-	propType, ok := props[name]
-
-	if !ok {
-		return nil, errors.New("No prop with that name")
-	}
-
-	switch propType {
-	case TypeString:
-		return c.StringProp(name)
-	case TypeBool:
-		return c.BoolProp(name)
-	case TypeInt:
-		return c.IntProp(name)
-	case TypeGrowableStack:
-		return c.GrowableStackProp(name)
-	case TypeSizedStack:
-		return c.SizedStackProp(name)
-	}
-
-	val, ok := c.unknownProps[name]
-
-	if !ok {
-		return nil, errors.New("No such unknown prop")
-	}
-
-	return val, nil
-}
-
-func (c *computedPropertiesBag) SetIntProp(name string, value int) error {
-	c.intProps[name] = value
-	return nil
-}
-
-func (c *computedPropertiesBag) SetBoolProp(name string, value bool) error {
-	c.boolProps[name] = value
-	return nil
-}
-
-func (c *computedPropertiesBag) SetStringProp(name string, value string) error {
-	c.stringProps[name] = value
-	return nil
-}
-
-func (c *computedPropertiesBag) SetGrowableStackProp(name string, value *GrowableStack) error {
-	c.growableStackProps[name] = value
-	return nil
-}
-
-func (c *computedPropertiesBag) SetSizedStackProp(name string, value *SizedStack) error {
-	c.sizedStackProps[name] = value
-	return nil
-}
-
-func (c *computedPropertiesBag) SetProp(name string, value interface{}) error {
-	c.unknownProps[name] = value
-	return nil
 }

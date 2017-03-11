@@ -80,33 +80,7 @@ func (s *State) Sanitized() bool {
 //Computed returns the computed properties for this state.
 func (s *State) Computed() ComputedProperties {
 	if s.computed == nil {
-		config := s.delegate.ComputedPropertiesConfig()
-		var playerConfig map[string]ComputedPlayerPropertyDefinition
-		if config != nil {
-			playerConfig = config.Player
-		}
-
-		playerBags := make([]*computedPlayerPropertiesImpl, len(s.Players))
-
-		for i, _ := range s.Players {
-			playerBags[i] = &computedPlayerPropertiesImpl{
-				newComputedPropertiesBag(),
-				playerConfig,
-				s,
-				i,
-			}
-		}
-
-		globalBag := &computedGlobalPropertiesImpl{
-			newComputedPropertiesBag(),
-			s,
-			config,
-		}
-
-		s.computed = &computedPropertiesImpl{
-			global:  globalBag,
-			players: playerBags,
-		}
+		s.computed = newComputedPropertiesImpl(s.delegate.ComputedPropertiesConfig(), s)
 	}
 	return s.computed
 }

@@ -6,6 +6,22 @@ import (
 
 var testPropertiesConfig *ComputedPropertiesConfig
 
+type testGlobalPropertiesCollection struct {
+	SumAllScores int
+}
+
+type testPlayerPropertiesCollection struct {
+	EffectiveMovesLeftThisTurn int
+}
+
+func (t *testGlobalPropertiesCollection) Reader() PropertyReadSetter {
+	return DefaultReadSetter(t)
+}
+
+func (t *testPlayerPropertiesCollection) Reader() PropertyReadSetter {
+	return DefaultReadSetter(t)
+}
+
 func init() {
 	testPropertiesConfig = &ComputedPropertiesConfig{
 		Global: map[string]ComputedGlobalPropertyDefinition{
@@ -77,6 +93,14 @@ func (t *testGameDelegate) Name() string {
 
 func (t *testGameDelegate) ComputedPropertiesConfig() *ComputedPropertiesConfig {
 	return testPropertiesConfig
+}
+
+func (t *testGameDelegate) EmptyComputedGlobalPropertyCollection() ComputedPropertyCollection {
+	return &testGlobalPropertiesCollection{}
+}
+
+func (t *testGameDelegate) EmptyComputedPlayerPropertyCollection() ComputedPropertyCollection {
+	return &testPlayerPropertiesCollection{}
 }
 
 func (t *testGameDelegate) CheckGameFinished(state *State) (bool, []int) {
