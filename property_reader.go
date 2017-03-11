@@ -70,6 +70,13 @@ func init() {
 	defaultReaderCacheLock.Unlock()
 }
 
+//genericReader is a generic PropertyReadSetter that allows users to Set
+//various properties and have them configed.
+type genericReader struct {
+	types  map[string]PropertyType
+	values map[string]interface{}
+}
+
 type defaultReader struct {
 	i     interface{}
 	props map[string]PropertyType
@@ -436,4 +443,118 @@ func (d *defaultReader) SetProp(name string, val interface{}) (err error) {
 
 	return
 
+}
+
+func (g *genericReader) Props() map[string]PropertyType {
+	return g.types
+}
+
+func (g *genericReader) Prop(name string) (interface{}, error) {
+	val, ok := g.values[name]
+
+	if !ok {
+		return nil, errors.New("No such property: " + name)
+	}
+
+	return val, nil
+}
+
+func (g *genericReader) IntProp(name string) (int, error) {
+	val, err := g.Prop(name)
+
+	if err != nil {
+		return 0, err
+	}
+
+	propType, ok := g.types[name]
+
+	if !ok {
+		return 0, errors.New("Unexpected error: Missing Prop type for " + name)
+	}
+
+	if propType != TypeInt {
+		return 0, errors.New(name + "was expected to be TypeInt but was not")
+	}
+
+	return val.(int), nil
+}
+
+func (g *genericReader) BoolProp(name string) (bool, error) {
+	val, err := g.Prop(name)
+
+	if err != nil {
+		return false, err
+	}
+
+	propType, ok := g.types[name]
+
+	if !ok {
+		return false, errors.New("Unexpected error: Missing Prop type for " + name)
+	}
+
+	if propType != TypeBool {
+		return false, errors.New(name + "was expected to be TypeBool but was not")
+	}
+
+	return val.(bool), nil
+}
+
+func (g *genericReader) StringProp(name string) (string, error) {
+	val, err := g.Prop(name)
+
+	if err != nil {
+		return "", err
+	}
+
+	propType, ok := g.types[name]
+
+	if !ok {
+		return "", errors.New("Unexpected error: Missing Prop type for " + name)
+	}
+
+	if propType != TypeString {
+		return "", errors.New(name + "was expected to be TypeString but was not")
+	}
+
+	return val.(string), nil
+}
+
+func (g *genericReader) GrowableStackProp(name string) (*GrowableStack, error) {
+	val, err := g.Prop(name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	propType, ok := g.types[name]
+
+	if !ok {
+		return nil, errors.New("Unexpected error: Missing Prop type for " + name)
+	}
+
+	if propType != TypeGrowableStack {
+		return nil, errors.New(name + "was expected to be TypeGrowableStack but was not")
+	}
+
+	return val.(*GrowableStack), nil
+}
+
+func (g *genericReader) SizedStackProp(name string) (*SizedStack, error) {
+	val, err := g.Prop(name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	propType, ok := g.types[name]
+
+	if !ok {
+		return nil, errors.New("Unexpected error: Missing Prop type for " + name)
+	}
+
+	if propType != TypeSizedStack {
+		return nil, errors.New(name + "was expected to be TypeSizedStack but was not")
+	}
+
+	return val.(*SizedStack), nil
 }
