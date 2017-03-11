@@ -493,11 +493,16 @@ func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 
 	//TODO: test that if we fail to save state to storage everything's fine.
 	if err := g.manager.Storage().SaveGameAndCurrentState(g, newState); err != nil {
+		//TODO: we need to undo the temporary changes we made directly to ourselves (vesrion, finished, winners)
 		return errors.New("Storage returned an error:" + err.Error())
 	}
 
 	if recurseCount > maxRecurseCount {
 		panic("We recursed deeply in fixup, which implies that ProposeFixUp has a move that is always legal. Quitting.")
+	}
+
+	if g.finished {
+		return nil
 	}
 
 	move = g.manager.Delegate().ProposeFixUpMove(newState)
@@ -506,7 +511,11 @@ func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 		//We apply the move immediately. This ensures that when
 		//DelayedError resolves, all of the fix up moves have been
 		//applied.
-		g.applyMove(move, true, recurseCount+1)
+		if err := g.applyMove(move, true, recurseCount+1); err != nil {
+			//TODO: if we bail here, we haven't left Game in a consistent
+			//state because we haven't rolled back what we did.
+			return errors.New("Applying the fix up move failed: " + strconv.Itoa(recurseCount) + ": " + err.Error())
+		}
 	}
 
 	return nil

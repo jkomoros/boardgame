@@ -221,7 +221,7 @@ func TestApplyMove(t *testing.T) {
 	}
 
 	if err := <-game.ProposeMove(newMove); err != nil {
-		t.Error("Game didn't allow a move to be made even though it was legal")
+		t.Error("Game didn't allow a move to be made even though it was legal: ", err)
 	}
 
 	if wrapper, _ := game.Manager().Storage().State(game, 1); wrapper == nil {
