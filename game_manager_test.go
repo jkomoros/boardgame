@@ -96,6 +96,29 @@ func TestNilStackErrors(t *testing.T) {
 
 }
 
+func TestMisshappenComputedProperties(t *testing.T) {
+	delegate := &stateComputeDelegate{
+		config: &ComputedPropertiesConfig{
+			Global: map[string]ComputedGlobalPropertyDefinition{
+				"ThisPropertyIsNotSupported": ComputedGlobalPropertyDefinition{
+					Dependencies: []StatePropertyRef{},
+					PropType:     TypeGrowableStack,
+					Compute: func(state *State) (interface{}, error) {
+						return nil, nil
+					},
+				},
+			},
+		},
+		returnDefaultCollection: true,
+	}
+
+	manager := NewGameManager(delegate, newTestGameChest(), newTestStorageManager())
+
+	if manager.SetUp() == nil {
+		t.Error("We had a misshapen config object but didn't get an error at setup")
+	}
+}
+
 func TestGameManagerModifiableGame(t *testing.T) {
 	game := testGame()
 

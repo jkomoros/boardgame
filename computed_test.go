@@ -6,7 +6,8 @@ import (
 
 type stateComputeDelegate struct {
 	testGameDelegate
-	config *ComputedPropertiesConfig
+	config                  *ComputedPropertiesConfig
+	returnDefaultCollection bool
 }
 
 func (s *stateComputeDelegate) ComputedPropertiesConfig() *ComputedPropertiesConfig {
@@ -14,10 +15,16 @@ func (s *stateComputeDelegate) ComputedPropertiesConfig() *ComputedPropertiesCon
 }
 
 func (s *stateComputeDelegate) EmptyComputedGlobalPropertyCollection() ComputedPropertyCollection {
+	if s.returnDefaultCollection {
+		return s.testGameDelegate.EmptyComputedGlobalPropertyCollection()
+	}
 	return nil
 }
 
 func (s *stateComputeDelegate) EmptyComputedPlayerPropertyCollection() ComputedPropertyCollection {
+	if s.returnDefaultCollection {
+		return s.testGameDelegate.EmptyComputedPlayerPropertyCollection()
+	}
 	return nil
 }
 

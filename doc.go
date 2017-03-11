@@ -244,6 +244,14 @@ return the same value. These objects are normally heavy and large (they often
 include method definitions), so it is recommended to define a single Config at
 init() time and always pass a reference to that config.
 
+For convenience you can have your delegate return objects that implement
+ComputedPropertyCollections to an underlying concrete struct, that use
+DefaultReadSetter(). This allows you to only have to cast once to get a type-
+checked property accessor. If those delegate methods return nil, a generic,
+flexible PropertyReadSetter will be used instead. When you call
+manager.SetUp(), the framework will verify that the concrete collections you
+return (if you do) are shaped to accept the properties that are configged.
+
 Importantly, your Compute() methods for your computed properties should be
 resilient to states that have sanitized. In cases where we are generating a
 SanitizedState, your compute method will be called and pass in the sanitized

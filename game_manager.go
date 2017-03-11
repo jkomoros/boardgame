@@ -375,6 +375,35 @@ func (g *GameManager) SetUp() error {
 		return errors.New("Storage not provided")
 	}
 
+	//Verify that the shape of the computed property collections fits with the config.
+	if config := g.delegate.ComputedPropertiesConfig(); config != nil {
+
+		if global := config.Global; global != nil {
+			if collection := g.delegate.EmptyComputedGlobalPropertyCollection(); collection != nil {
+				//Verify the shape has slots for all of the configed properties
+				for propName, propConfig := range global {
+					propType := propConfig.PropType
+					if collection.Reader().Props()[propName] != propType {
+						return errors.New("The global property collection the delegate returns has a mismatch for property " + propName)
+					}
+				}
+			}
+		}
+
+		if player := config.Player; player != nil {
+			if collection := g.delegate.EmptyComputedPlayerPropertyCollection(); collection != nil {
+				//Verify the shape has slots for all of the configed properties
+				for propName, propConfig := range player {
+					propType := propConfig.PropType
+					if collection.Reader().Props()[propName] != propType {
+						return errors.New("The global property collection the delegate returns has a mismatch for property " + propName)
+					}
+				}
+			}
+		}
+
+	}
+
 	g.playerMovesByName = make(map[string]Move)
 	for _, move := range g.playerMoves {
 		g.playerMovesByName[strings.ToLower(move.Name())] = move
