@@ -3,7 +3,6 @@ package boardgame
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"math/rand"
 	"strconv"
 	"time"
@@ -178,7 +177,6 @@ func (g *Game) State(version int) *State {
 	if result, err := g.manager.Storage().State(g, version); err == nil {
 		return result
 	} else if err != nil {
-		log.Println(g.manager.storage.(*testStorageManager))
 		panic("State retrieval failed" + err.Error() + strconv.Itoa(version))
 	}
 
@@ -290,6 +288,7 @@ func (g *Game) SetUp(numPlayers int) error {
 	}
 
 	if g.Modifiable() {
+
 		//Can't start this until now, otherwise we could have a race.
 		go g.mainLoop()
 	}
@@ -432,6 +431,12 @@ func (g *Game) ProposeMove(move Move) DelayedError {
 	workItem := &proposedMoveItem{
 		move: move,
 		ch:   errChan,
+	}
+
+	if !g.initalized {
+		//The channel isn't even ready to send one.
+		errChan <- errors.New("Proposed a move before the game had been successfully set-up.")
+		return errChan
 	}
 
 	g.proposedMoves <- workItem

@@ -82,10 +82,10 @@ func TestGameSetUp(t *testing.T) {
 	delayedError := game.ProposeMove(move)
 
 	select {
-	case err := <-delayedError:
-		t.Error("We got something from a proposed move but the game hadn't even started", err)
+	case <-delayedError:
+		//Good!
 	case <-time.After(time.Millisecond * 5):
-		//Pass.
+		t.Error("We never got an error from proposing a move on a game that hadn't even started")
 	}
 
 	if err := game.SetUp(15); err == nil {
