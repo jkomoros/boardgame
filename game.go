@@ -3,6 +3,7 @@ package boardgame
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"math/rand"
 	"strconv"
 	"time"
@@ -177,7 +178,8 @@ func (g *Game) State(version int) *State {
 	if result, err := g.manager.Storage().State(g, version); err == nil {
 		return result
 	} else if err != nil {
-		panic("State retrieval failed" + err.Error())
+		log.Println(g.manager.storage.(*testStorageManager))
+		panic("State retrieval failed" + err.Error() + strconv.Itoa(version))
 	}
 
 	return nil

@@ -40,6 +40,27 @@ func newTestStorageManager() *testStorageManager {
 	}
 }
 
+func (s *testStorageManager) String() string {
+	var results []string
+
+	results = append(results, "States")
+
+	for key, states := range s.states {
+		results = append(results, key)
+		for version, state := range states {
+			results = append(results, strconv.Itoa(version)+": "+string(state.SerializedState))
+		}
+	}
+
+	results = append(results, "Games")
+
+	for key, game := range s.games {
+		results = append(results, key, game.Name, game.Id, strconv.Itoa(game.Version))
+	}
+
+	return strings.Join(results, "\n")
+}
+
 func (i *testStorageManager) State(game *Game, version int) (*State, error) {
 	if game == nil {
 		return nil, errors.New("No game provided")
