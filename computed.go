@@ -13,9 +13,14 @@ import (
 type ComputedProperties interface {
 	//The primary property reader is where top-level computed properties can
 	//be accessed.
-	Global() PropertyReader
+	Global() ComputedPropertyCollection
 	//To get the ComputedPlayerProperties, pass in the player index.
-	Player(index int) PropertyReader
+	Player(index int) ComputedPropertyCollection
+}
+
+//ComputedPropertyCollection is an object that
+type ComputedPropertyCollection interface {
+	Reader() PropertyReadSetter
 }
 
 //ComputedPropertiesConfig is the struct that contains configuration for which
@@ -107,13 +112,13 @@ type computedPropertiesImpl struct {
 
 //The private impl for ComputedProperties
 type computedGlobalPropertiesImpl struct {
-	bag    *computedPropertiesBag
+	*computedPropertiesBag
 	state  *State
 	config *ComputedPropertiesConfig
 }
 
 type computedPlayerPropertiesImpl struct {
-	bag    *computedPropertiesBag
+	*computedPropertiesBag
 	config map[string]ComputedPlayerPropertyDefinition
 	state  *State
 	i      int
@@ -168,11 +173,11 @@ func (c *ComputedPlayerPropertyDefinition) compute(state *State, playerIndex int
 	return c.Compute(sanitized.Players[playerIndex])
 }
 
-func (c *computedPropertiesImpl) Global() PropertyReader {
+func (c *computedPropertiesImpl) Global() ComputedPropertyCollection {
 	return c.global
 }
 
-func (c *computedPropertiesImpl) Player(index int) PropertyReader {
+func (c *computedPropertiesImpl) Player(index int) ComputedPropertyCollection {
 	return c.players[index]
 }
 
@@ -198,8 +203,8 @@ func (c *computedPropertiesImpl) MarshalJSON() ([]byte, error) {
 
 	globalProperties := make(map[string]interface{})
 
-	for propName, _ := range props.Props() {
-		val, err := props.Prop(propName)
+	for propName, _ := range props.Reader().Props() {
+		val, err := props.Reader().Prop(propName)
 
 		if err != nil {
 			return nil, errors.New("Computed Prop " + propName + " returned an error: " + err.Error())
@@ -216,6 +221,16 @@ func (c *computedPropertiesImpl) MarshalJSON() ([]byte, error) {
 	result["Players"] = playerProperties
 
 	return json.Marshal(result)
+}
+
+//Temporary indirection as we're fixing #194
+func (c *computedGlobalPropertiesImpl) Reader() PropertyReadSetter {
+	return c
+}
+
+//Temporary indirection as we're fixing #194
+func (c *computedPlayerPropertiesImpl) Reader() PropertyReadSetter {
+	return c
 }
 
 func (c *computedPlayerPropertiesImpl) Props() map[string]PropertyType {
@@ -248,7 +263,7 @@ func (c *computedGlobalPropertiesImpl) Props() map[string]PropertyType {
 }
 
 func (c *computedPlayerPropertiesImpl) IntProp(name string) (int, error) {
-	if val, err := c.bag.IntProp(name); err == nil {
+	if val, err := c.computedPropertiesBag.IntProp(name); err == nil {
 		return val, nil
 	}
 
@@ -276,14 +291,14 @@ func (c *computedPlayerPropertiesImpl) IntProp(name string) (int, error) {
 		return 0, errors.New("The compute function for that name did not return an int as expected")
 	}
 
-	c.bag.SetIntProp(name, intVal)
+	c.computedPropertiesBag.SetIntProp(name, intVal)
 
 	return intVal, nil
 
 }
 
 func (c *computedGlobalPropertiesImpl) IntProp(name string) (int, error) {
-	if val, err := c.bag.IntProp(name); err == nil {
+	if val, err := c.computedPropertiesBag.IntProp(name); err == nil {
 		return val, nil
 	}
 
@@ -310,14 +325,14 @@ func (c *computedGlobalPropertiesImpl) IntProp(name string) (int, error) {
 		return 0, errors.New("The compute function for that name did not return an int as expectd")
 	}
 
-	c.bag.SetIntProp(name, intVal)
+	c.computedPropertiesBag.SetIntProp(name, intVal)
 
 	return intVal, nil
 
 }
 
 func (c *computedPlayerPropertiesImpl) BoolProp(name string) (bool, error) {
-	if val, err := c.bag.BoolProp(name); err == nil {
+	if val, err := c.computedPropertiesBag.BoolProp(name); err == nil {
 		return val, nil
 	}
 
@@ -345,14 +360,14 @@ func (c *computedPlayerPropertiesImpl) BoolProp(name string) (bool, error) {
 		return false, errors.New("The compute function for that name did not return an bool as expected")
 	}
 
-	c.bag.SetBoolProp(name, boolVal)
+	c.computedPropertiesBag.SetBoolProp(name, boolVal)
 
 	return boolVal, nil
 
 }
 
 func (c *computedGlobalPropertiesImpl) BoolProp(name string) (bool, error) {
-	if val, err := c.bag.BoolProp(name); err == nil {
+	if val, err := c.computedPropertiesBag.BoolProp(name); err == nil {
 		return val, nil
 	}
 
@@ -379,14 +394,14 @@ func (c *computedGlobalPropertiesImpl) BoolProp(name string) (bool, error) {
 		return false, errors.New("The compute function for that name did not return a bool as expectd")
 	}
 
-	c.bag.SetBoolProp(name, boolVal)
+	c.computedPropertiesBag.SetBoolProp(name, boolVal)
 
 	return boolVal, nil
 
 }
 
 func (c *computedPlayerPropertiesImpl) StringProp(name string) (string, error) {
-	if val, err := c.bag.StringProp(name); err == nil {
+	if val, err := c.computedPropertiesBag.StringProp(name); err == nil {
 		return val, nil
 	}
 
@@ -414,14 +429,14 @@ func (c *computedPlayerPropertiesImpl) StringProp(name string) (string, error) {
 		return "", errors.New("The compute function for that name did not return an string as expected")
 	}
 
-	c.bag.SetStringProp(name, stringVal)
+	c.computedPropertiesBag.SetStringProp(name, stringVal)
 
 	return stringVal, nil
 
 }
 
 func (c *computedGlobalPropertiesImpl) StringProp(name string) (string, error) {
-	if val, err := c.bag.StringProp(name); err == nil {
+	if val, err := c.computedPropertiesBag.StringProp(name); err == nil {
 		return val, nil
 	}
 
@@ -448,14 +463,14 @@ func (c *computedGlobalPropertiesImpl) StringProp(name string) (string, error) {
 		return "", errors.New("The compute function for that name did not return a string as expectd")
 	}
 
-	c.bag.SetStringProp(name, stringVal)
+	c.computedPropertiesBag.SetStringProp(name, stringVal)
 
 	return stringVal, nil
 
 }
 
 func (c *computedPlayerPropertiesImpl) GrowableStackProp(name string) (*GrowableStack, error) {
-	if val, err := c.bag.GrowableStackProp(name); err == nil {
+	if val, err := c.computedPropertiesBag.GrowableStackProp(name); err == nil {
 		return val, nil
 	}
 
@@ -483,14 +498,14 @@ func (c *computedPlayerPropertiesImpl) GrowableStackProp(name string) (*Growable
 		return nil, errors.New("The compute function for that name did not return an growable stack as expected")
 	}
 
-	c.bag.SetGrowableStackProp(name, growableStackVal)
+	c.computedPropertiesBag.SetGrowableStackProp(name, growableStackVal)
 
 	return growableStackVal, nil
 
 }
 
 func (c *computedGlobalPropertiesImpl) GrowableStackProp(name string) (*GrowableStack, error) {
-	if val, err := c.bag.GrowableStackProp(name); err == nil {
+	if val, err := c.computedPropertiesBag.GrowableStackProp(name); err == nil {
 		return val, nil
 	}
 
@@ -517,14 +532,14 @@ func (c *computedGlobalPropertiesImpl) GrowableStackProp(name string) (*Growable
 		return nil, errors.New("The compute function for that name did not return a growableStackVal as expectd")
 	}
 
-	c.bag.SetGrowableStackProp(name, growableStackVal)
+	c.computedPropertiesBag.SetGrowableStackProp(name, growableStackVal)
 
 	return growableStackVal, nil
 
 }
 
 func (c *computedPlayerPropertiesImpl) SizedStackProp(name string) (*SizedStack, error) {
-	if val, err := c.bag.SizedStackProp(name); err == nil {
+	if val, err := c.computedPropertiesBag.SizedStackProp(name); err == nil {
 		return val, nil
 	}
 
@@ -552,14 +567,14 @@ func (c *computedPlayerPropertiesImpl) SizedStackProp(name string) (*SizedStack,
 		return nil, errors.New("The compute function for that name did not return an sized stack as expected")
 	}
 
-	c.bag.SetSizedStackProp(name, sizedStackVal)
+	c.computedPropertiesBag.SetSizedStackProp(name, sizedStackVal)
 
 	return sizedStackVal, nil
 
 }
 
 func (c *computedGlobalPropertiesImpl) SizedStackProp(name string) (*SizedStack, error) {
-	if val, err := c.bag.SizedStackProp(name); err == nil {
+	if val, err := c.computedPropertiesBag.SizedStackProp(name); err == nil {
 		return val, nil
 	}
 
@@ -586,14 +601,14 @@ func (c *computedGlobalPropertiesImpl) SizedStackProp(name string) (*SizedStack,
 		return nil, errors.New("The compute function for that name did not return a sizedStackVal as expectd")
 	}
 
-	c.bag.SetSizedStackProp(name, sizedStackVal)
+	c.computedPropertiesBag.SetSizedStackProp(name, sizedStackVal)
 
 	return sizedStackVal, nil
 
 }
 
 func (c *computedPlayerPropertiesImpl) Prop(name string) (interface{}, error) {
-	if val, err := c.bag.Prop(name); err == nil {
+	if val, err := c.computedPropertiesBag.Prop(name); err == nil {
 		return val, nil
 	}
 
@@ -624,13 +639,13 @@ func (c *computedPlayerPropertiesImpl) Prop(name string) (interface{}, error) {
 		return nil, errors.New("Error computing calculated prop" + err.Error())
 	}
 
-	c.bag.SetProp(name, val)
+	c.computedPropertiesBag.SetProp(name, val)
 
 	return val, nil
 }
 
 func (c *computedGlobalPropertiesImpl) Prop(name string) (interface{}, error) {
-	if val, err := c.bag.Prop(name); err == nil {
+	if val, err := c.computedPropertiesBag.Prop(name); err == nil {
 		return val, nil
 	}
 
@@ -661,7 +676,7 @@ func (c *computedGlobalPropertiesImpl) Prop(name string) (interface{}, error) {
 		return nil, errors.New("Error computing calculated prop" + err.Error())
 	}
 
-	c.bag.SetProp(name, val)
+	c.computedPropertiesBag.SetProp(name, val)
 
 	return val, nil
 }

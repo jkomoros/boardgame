@@ -97,8 +97,8 @@ type GameDelegate interface {
 	//in the objects that are returned. This allows users of the framework to
 	//do a single cast of the underlying object and then access the properties
 	//in a type-checked way after that.
-	EmptyComputedGlobalPropertyCollection() PropertyReadSetter
-	EmptyComputedPlayerPropertyCollection() PropertyReadSetter
+	EmptyComputedGlobalPropertyCollection() ComputedPropertyCollection
+	EmptyComputedPlayerPropertyCollection() ComputedPropertyCollection
 
 	//StateSanitizationPolicy returns the policy for sanitizing states in this
 	//game. The policy should not change over time. See StatePolicy for more
@@ -150,11 +150,11 @@ func (d *DefaultGameDelegate) SetManager(manager *GameManager) {
 	d.manager = manager
 }
 
-func (d *DefaultGameDelegate) EmptyComputedGlobalPropertyCollection() PropertyReadSetter {
+func (d *DefaultGameDelegate) EmptyComputedGlobalPropertyCollection() ComputedPropertyCollection {
 	return nil
 }
 
-func (d *DefaultGameDelegate) EmptyComputedPlayerPropertyCollection() PropertyReadSetter {
+func (d *DefaultGameDelegate) EmptyComputedPlayerPropertyCollection() ComputedPropertyCollection {
 	return nil
 }
 

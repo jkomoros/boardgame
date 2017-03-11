@@ -163,7 +163,7 @@ func TestStateComputed(t *testing.T) {
 
 	computed := state.Computed()
 
-	if val, err := computed.Global().IntProp("CurrentPlayerPlusFive"); err != nil {
+	if val, err := computed.Global().Reader().IntProp("CurrentPlayerPlusFive"); err != nil {
 		t.Error("Unexpected error retrieving CurrentPlayerPlusFive", err)
 	} else {
 		if val != 4+5 {
@@ -171,17 +171,17 @@ func TestStateComputed(t *testing.T) {
 		}
 	}
 
-	if val, err := computed.Global().IntProp("SumAllScores"); err != nil {
+	if val, err := computed.Global().Reader().IntProp("SumAllScores"); err != nil {
 		t.Error("Unexpected error retrieving SumAllScores", err)
 	} else if val != 15 {
 		t.Error("Unexpected result for SumAllScores. Got", val, "wanted", 15)
 	}
 
-	if _, err := computed.Global().BoolProp("Foo"); err == nil {
+	if _, err := computed.Global().Reader().BoolProp("Foo"); err == nil {
 		t.Error("Didn't get an error reading an unexpected bool prop")
 	}
 
-	if val, err := computed.Player(0).IntProp("EffectiveScore"); err != nil {
+	if val, err := computed.Player(0).Reader().IntProp("EffectiveScore"); err != nil {
 		t.Error("Got error for EffectiveScore", err)
 	} else if val != 12 {
 		//We set player 0 score to 10 a the top of this test, and there are two items in hand.
