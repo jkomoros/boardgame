@@ -92,6 +92,14 @@ type GameDelegate interface {
 	//called.
 	EmptyPlayerState(playerIndex int) PlayerState
 
+	//EmptyComputed{Global,Player}PropertyCollection should return a struct
+	//that implements PropertyReadSetter. Computed properties will be stored
+	//in the objects that are returned. This allows users of the framework to
+	//do a single cast of the underlying object and then access the properties
+	//in a type-checked way after that.
+	EmptyComputedGlobalPropertyCollection() PropertyReadSetter
+	EmptyComputedPlayerPropertyCollection() PropertyReadSetter
+
 	//StateSanitizationPolicy returns the policy for sanitizing states in this
 	//game. The policy should not change over time. See StatePolicy for more
 	//on how sanitization policies are calculated and applied.
@@ -140,6 +148,14 @@ func (d *DefaultGameDelegate) Manager() *GameManager {
 
 func (d *DefaultGameDelegate) SetManager(manager *GameManager) {
 	d.manager = manager
+}
+
+func (d *DefaultGameDelegate) EmptyComputedGlobalPropertyCollection() PropertyReadSetter {
+	return nil
+}
+
+func (d *DefaultGameDelegate) EmptyComputedPlayerPropertyCollection() PropertyReadSetter {
+	return nil
 }
 
 //The Default ProposeFixUpMove runs through all moves in FixUpMoves, in order,
