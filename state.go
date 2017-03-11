@@ -83,7 +83,7 @@ func (s *State) Computed() ComputedProperties {
 		config := s.delegate.ComputedPropertiesConfig()
 		var playerConfig map[string]ComputedPlayerPropertyDefinition
 		if config != nil {
-			playerConfig = config.PlayerProperties
+			playerConfig = config.Player
 		}
 
 		playerBags := make([]*computedPlayerPropertiesImpl, len(s.Players))
@@ -97,11 +97,15 @@ func (s *State) Computed() ComputedProperties {
 			}
 		}
 
-		s.computed = &computedPropertiesImpl{
+		globalBag := &computedGlobalPropertiesImpl{
 			newComputedPropertiesBag(),
-			playerBags,
 			s,
 			config,
+		}
+
+		s.computed = &computedPropertiesImpl{
+			global:  globalBag,
+			players: playerBags,
 		}
 	}
 	return s.computed

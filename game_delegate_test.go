@@ -8,8 +8,8 @@ var testPropertiesConfig *ComputedPropertiesConfig
 
 func init() {
 	testPropertiesConfig = &ComputedPropertiesConfig{
-		Properties: map[string]ComputedPropertyDefinition{
-			"SumAllScores": ComputedPropertyDefinition{
+		Global: map[string]ComputedGlobalPropertyDefinition{
+			"SumAllScores": ComputedGlobalPropertyDefinition{
 				Dependencies: []StatePropertyRef{
 					{
 						Group:    StateGroupPlayer,
@@ -31,7 +31,7 @@ func init() {
 				},
 			},
 		},
-		PlayerProperties: map[string]ComputedPlayerPropertyDefinition{
+		Player: map[string]ComputedPlayerPropertyDefinition{
 			"EffectiveMovesLeftThisTurn": ComputedPlayerPropertyDefinition{
 				Dependencies: []StatePropertyRef{
 					{

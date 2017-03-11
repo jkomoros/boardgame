@@ -53,7 +53,9 @@
         }
     ],
     "Computed":{
-        "SumAllScores": 3,
+        "Global" : {
+            "SumAllScores": 3
+        },
         "Players": [
             {
                 "EffectiveMovesLeftThisTurn" : 0

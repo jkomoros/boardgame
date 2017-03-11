@@ -32,7 +32,7 @@ func computeHandValue(state boardgame.PlayerState) (interface{}, error) {
 
 func init() {
 	computedPropertiesConfig = &boardgame.ComputedPropertiesConfig{
-		PlayerProperties: map[string]boardgame.ComputedPlayerPropertyDefinition{
+		Player: map[string]boardgame.ComputedPlayerPropertyDefinition{
 			"HandValue": boardgame.ComputedPlayerPropertyDefinition{
 				Dependencies: []boardgame.StatePropertyRef{
 					{

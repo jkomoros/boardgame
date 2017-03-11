@@ -23,7 +23,7 @@ func TestComputedPropertyDefinitionCompute(t *testing.T) {
 
 	var passedState *State
 
-	definition := &ComputedPropertyDefinition{
+	definition := &ComputedGlobalPropertyDefinition{
 		Dependencies: []StatePropertyRef{
 			{
 				Group:    StateGroupGame,
@@ -98,8 +98,8 @@ func TestStateComputed(t *testing.T) {
 	playerStates[1].Score = 5
 
 	config := &ComputedPropertiesConfig{
-		Properties: map[string]ComputedPropertyDefinition{
-			"CurrentPlayerPlusFive": ComputedPropertyDefinition{
+		Global: map[string]ComputedGlobalPropertyDefinition{
+			"CurrentPlayerPlusFive": ComputedGlobalPropertyDefinition{
 				Dependencies: []StatePropertyRef{
 					{
 						Group:    StateGroupGame,
@@ -114,7 +114,7 @@ func TestStateComputed(t *testing.T) {
 					return game.CurrentPlayer + 5, nil
 				},
 			},
-			"SumAllScores": ComputedPropertyDefinition{
+			"SumAllScores": ComputedGlobalPropertyDefinition{
 				Dependencies: []StatePropertyRef{
 					{
 						Group:    StateGroupPlayer,
@@ -135,7 +135,7 @@ func TestStateComputed(t *testing.T) {
 				},
 			},
 		},
-		PlayerProperties: map[string]ComputedPlayerPropertyDefinition{
+		Player: map[string]ComputedPlayerPropertyDefinition{
 			"EffectiveScore": ComputedPlayerPropertyDefinition{
 				Dependencies: []StatePropertyRef{
 					{
@@ -163,7 +163,7 @@ func TestStateComputed(t *testing.T) {
 
 	computed := state.Computed()
 
-	if val, err := computed.IntProp("CurrentPlayerPlusFive"); err != nil {
+	if val, err := computed.Global().IntProp("CurrentPlayerPlusFive"); err != nil {
 		t.Error("Unexpected error retrieving CurrentPlayerPlusFive", err)
 	} else {
 		if val != 4+5 {
@@ -171,13 +171,13 @@ func TestStateComputed(t *testing.T) {
 		}
 	}
 
-	if val, err := computed.IntProp("SumAllScores"); err != nil {
+	if val, err := computed.Global().IntProp("SumAllScores"); err != nil {
 		t.Error("Unexpected error retrieving SumAllScores", err)
 	} else if val != 15 {
 		t.Error("Unexpected result for SumAllScores. Got", val, "wanted", 15)
 	}
 
-	if _, err := computed.BoolProp("Foo"); err == nil {
+	if _, err := computed.Global().BoolProp("Foo"); err == nil {
 		t.Error("Didn't get an error reading an unexpected bool prop")
 	}
 

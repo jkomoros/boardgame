@@ -13,7 +13,7 @@ import (
 type ComputedProperties interface {
 	//The primary property reader is where top-level computed properties can
 	//be accessed.
-	PropertyReader
+	Global() PropertyReader
 	//To get the ComputedPlayerProperties, pass in the player index.
 	Player(index int) PropertyReader
 }
@@ -23,14 +23,14 @@ type ComputedProperties interface {
 //on Computed Properties for more information.
 type ComputedPropertiesConfig struct {
 	//The top-level computed properties.
-	Properties map[string]ComputedPropertyDefinition
+	Global map[string]ComputedGlobalPropertyDefinition
 	//The properties that are computed for each PlayerState individually.
-	PlayerProperties map[string]ComputedPlayerPropertyDefinition
+	Player map[string]ComputedPlayerPropertyDefinition
 }
 
-//ComputedPropertyDefinition defines how to calculate a given top-level
+//ComputedGlobalPropertyDefinition defines how to calculate a given top-level
 //computed property.
-type ComputedPropertyDefinition struct {
+type ComputedGlobalPropertyDefinition struct {
 	//Dependencies exhaustively enumerates all of the properties that need to
 	//be populated on the ShadowState to calculate this value. Defining your
 	//dependencies allows us to only recalculate computed properties when
@@ -100,12 +100,16 @@ type StatePropertyRef struct {
 	PropName string
 }
 
-//The private impl for ComputedProperties
 type computedPropertiesImpl struct {
-	bag     *computedPropertiesBag
+	global  *computedGlobalPropertiesImpl
 	players []*computedPlayerPropertiesImpl
-	state   *State
-	config  *ComputedPropertiesConfig
+}
+
+//The private impl for ComputedProperties
+type computedGlobalPropertiesImpl struct {
+	bag    *computedPropertiesBag
+	state  *State
+	config *ComputedPropertiesConfig
 }
 
 type computedPlayerPropertiesImpl struct {
@@ -143,7 +147,7 @@ func policyForDependencies(dependencies []StatePropertyRef) *StatePolicy {
 	return result
 }
 
-func (c *ComputedPropertyDefinition) compute(state *State) (interface{}, error) {
+func (c *ComputedGlobalPropertyDefinition) compute(state *State) (interface{}, error) {
 
 	//First, prepare a shadow state with all of the dependencies.
 
@@ -164,6 +168,14 @@ func (c *ComputedPlayerPropertyDefinition) compute(state *State, playerIndex int
 	return c.Compute(sanitized.Players[playerIndex])
 }
 
+func (c *computedPropertiesImpl) Global() PropertyReader {
+	return c.global
+}
+
+func (c *computedPropertiesImpl) Player(index int) PropertyReader {
+	return c.players[index]
+}
+
 func (c *computedPropertiesImpl) MarshalJSON() ([]byte, error) {
 
 	result := make(map[string]interface{})
@@ -182,23 +194,28 @@ func (c *computedPropertiesImpl) MarshalJSON() ([]byte, error) {
 		}
 	}
 
-	for propName, _ := range c.Props() {
-		val, err := c.Prop(propName)
+	props := c.Global()
+
+	globalProperties := make(map[string]interface{})
+
+	for propName, _ := range props.Props() {
+		val, err := props.Prop(propName)
 
 		if err != nil {
 			return nil, errors.New("Computed Prop " + propName + " returned an error: " + err.Error())
 		}
 
-		result[propName] = val
+		globalProperties[propName] = val
 	}
+
+	//TODO: can't I just have this have a default marshal JSON and then move
+	//these sub-impls to the global and player group?
+
+	result["Global"] = globalProperties
 
 	result["Players"] = playerProperties
 
 	return json.Marshal(result)
-}
-
-func (c *computedPropertiesImpl) Player(index int) PropertyReader {
-	return c.players[index]
 }
 
 func (c *computedPlayerPropertiesImpl) Props() map[string]PropertyType {
@@ -215,7 +232,7 @@ func (c *computedPlayerPropertiesImpl) Props() map[string]PropertyType {
 	return result
 }
 
-func (c *computedPropertiesImpl) Props() map[string]PropertyType {
+func (c *computedGlobalPropertiesImpl) Props() map[string]PropertyType {
 
 	result := make(map[string]PropertyType)
 
@@ -223,7 +240,7 @@ func (c *computedPropertiesImpl) Props() map[string]PropertyType {
 		return result
 	}
 
-	for name, config := range c.config.Properties {
+	for name, config := range c.config.Global {
 		result[name] = config.PropType
 	}
 
@@ -265,12 +282,12 @@ func (c *computedPlayerPropertiesImpl) IntProp(name string) (int, error) {
 
 }
 
-func (c *computedPropertiesImpl) IntProp(name string) (int, error) {
+func (c *computedGlobalPropertiesImpl) IntProp(name string) (int, error) {
 	if val, err := c.bag.IntProp(name); err == nil {
 		return val, nil
 	}
 
-	definition, ok := c.config.Properties[name]
+	definition, ok := c.config.Global[name]
 
 	if !ok {
 		return 0, errors.New("no such computed property")
@@ -334,12 +351,12 @@ func (c *computedPlayerPropertiesImpl) BoolProp(name string) (bool, error) {
 
 }
 
-func (c *computedPropertiesImpl) BoolProp(name string) (bool, error) {
+func (c *computedGlobalPropertiesImpl) BoolProp(name string) (bool, error) {
 	if val, err := c.bag.BoolProp(name); err == nil {
 		return val, nil
 	}
 
-	definition, ok := c.config.Properties[name]
+	definition, ok := c.config.Global[name]
 
 	if !ok {
 		return false, errors.New("no such computed property")
@@ -403,12 +420,12 @@ func (c *computedPlayerPropertiesImpl) StringProp(name string) (string, error) {
 
 }
 
-func (c *computedPropertiesImpl) StringProp(name string) (string, error) {
+func (c *computedGlobalPropertiesImpl) StringProp(name string) (string, error) {
 	if val, err := c.bag.StringProp(name); err == nil {
 		return val, nil
 	}
 
-	definition, ok := c.config.Properties[name]
+	definition, ok := c.config.Global[name]
 
 	if !ok {
 		return "", errors.New("no such computed property")
@@ -472,12 +489,12 @@ func (c *computedPlayerPropertiesImpl) GrowableStackProp(name string) (*Growable
 
 }
 
-func (c *computedPropertiesImpl) GrowableStackProp(name string) (*GrowableStack, error) {
+func (c *computedGlobalPropertiesImpl) GrowableStackProp(name string) (*GrowableStack, error) {
 	if val, err := c.bag.GrowableStackProp(name); err == nil {
 		return val, nil
 	}
 
-	definition, ok := c.config.Properties[name]
+	definition, ok := c.config.Global[name]
 
 	if !ok {
 		return nil, errors.New("no such computed property")
@@ -541,12 +558,12 @@ func (c *computedPlayerPropertiesImpl) SizedStackProp(name string) (*SizedStack,
 
 }
 
-func (c *computedPropertiesImpl) SizedStackProp(name string) (*SizedStack, error) {
+func (c *computedGlobalPropertiesImpl) SizedStackProp(name string) (*SizedStack, error) {
 	if val, err := c.bag.SizedStackProp(name); err == nil {
 		return val, nil
 	}
 
-	definition, ok := c.config.Properties[name]
+	definition, ok := c.config.Global[name]
 
 	if !ok {
 		return nil, errors.New("no such computed property")
@@ -612,12 +629,12 @@ func (c *computedPlayerPropertiesImpl) Prop(name string) (interface{}, error) {
 	return val, nil
 }
 
-func (c *computedPropertiesImpl) Prop(name string) (interface{}, error) {
+func (c *computedGlobalPropertiesImpl) Prop(name string) (interface{}, error) {
 	if val, err := c.bag.Prop(name); err == nil {
 		return val, nil
 	}
 
-	definition, ok := c.config.Properties[name]
+	definition, ok := c.config.Global[name]
 
 	if !ok {
 		return nil, errors.New("No such computed property")

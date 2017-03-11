@@ -215,12 +215,12 @@ are part of the default JSON serialization of your state so are available
 automatically to your client-side renderer.
 
 There are two types of ComputedProperties: those that operate on the whole
-state, and output a top-level value, and those that operate on a single player
-state at a time and output a value specific to that player state. An example
-of the former would be "PlayerWithLongestTrain" in Ticket to Ride. An example
-of the latter would be the effective blackjack hand value situation described
-immediately above. The former is called a ComputedProperty and the latter is a
-ComputedPlayerProperty.
+state ("Global"), and output a top-level value, and those that operate on a
+single player state at a time and output a value specific to that player state
+("Player"). An example of the former would be "PlayerWithLongestTrain" in
+Ticket to Ride. An example of the latter would be the effective blackjack hand
+value situation described immediately above. The former is called a
+ComputedProperty and the latter is a ComputedPlayerProperty.
 
 Both types of computed properties exhaustively identify the other state
 properties that they rely on. This helps the engine only recalculate state
