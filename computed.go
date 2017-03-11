@@ -141,7 +141,7 @@ func newComputedPropertiesImpl(config *ComputedPropertiesConfig, state *State) *
 	for i, _ := range state.Players {
 		collection := state.delegate.EmptyComputedPlayerPropertyCollection()
 		if collection == nil {
-			return nil
+			collection = newGenericReader()
 		}
 		playerBags[i] = collection
 
@@ -163,7 +163,7 @@ func newComputedPropertiesImpl(config *ComputedPropertiesConfig, state *State) *
 	globalBag := state.delegate.EmptyComputedGlobalPropertyCollection()
 
 	if globalBag == nil {
-		return nil
+		globalBag = newGenericReader()
 	}
 
 	if config.Global != nil {

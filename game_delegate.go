@@ -96,7 +96,8 @@ type GameDelegate interface {
 	//that implements PropertyReadSetter. Computed properties will be stored
 	//in the objects that are returned. This allows users of the framework to
 	//do a single cast of the underlying object and then access the properties
-	//in a type-checked way after that.
+	//in a type-checked way after that. If you return nil, we will use a
+	//generic, flexible PropertyReadSetter instead.
 	EmptyComputedGlobalPropertyCollection() ComputedPropertyCollection
 	EmptyComputedPlayerPropertyCollection() ComputedPropertyCollection
 

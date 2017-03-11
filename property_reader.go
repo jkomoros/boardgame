@@ -452,6 +452,12 @@ func newGenericReader() *genericReader {
 	}
 }
 
+//Implement reader so we can be used directly or in e.g.
+//ComputedPropertyCollection.
+func (g *genericReader) Reader() PropertyReadSetter {
+	return g
+}
+
 func (g *genericReader) Props() map[string]PropertyType {
 	return g.types
 }

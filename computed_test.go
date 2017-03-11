@@ -13,29 +13,12 @@ func (s *stateComputeDelegate) ComputedPropertiesConfig() *ComputedPropertiesCon
 	return s.config
 }
 
-type stateComputeGlobalProperties struct {
-	CurrentPlayerPlusFive int
-	SumAllScores          int
-}
-
-func (s *stateComputeGlobalProperties) Reader() PropertyReadSetter {
-	return DefaultReadSetter(s)
-}
-
-type stateComputePlayerProperties struct {
-	EffectiveScore int
-}
-
-func (s *stateComputePlayerProperties) Reader() PropertyReadSetter {
-	return DefaultReadSetter(s)
-}
-
 func (s *stateComputeDelegate) EmptyComputedGlobalPropertyCollection() ComputedPropertyCollection {
-	return &stateComputeGlobalProperties{}
+	return nil
 }
 
 func (s *stateComputeDelegate) EmptyComputedPlayerPropertyCollection() ComputedPropertyCollection {
-	return &stateComputePlayerProperties{}
+	return nil
 }
 
 func TestComputedPropertyDefinitionCompute(t *testing.T) {
