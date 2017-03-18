@@ -214,7 +214,7 @@ func verifyReaderStacks(reader PropertyReader, state *State) error {
 
 //emptyPlayerState is a simple wrapper around delegate.EmptyPlayerState that
 //just verifies that stacks are inflated.
-func (g *GameManager) emptyPlayerState(state *State, playerIndex int) (PlayerState, error) {
+func (g *GameManager) emptyPlayerState(state *State, playerIndex int) (MutablePlayerState, error) {
 
 	playerState := g.delegate.EmptyPlayerState(playerIndex)
 
@@ -232,7 +232,7 @@ func (g *GameManager) emptyPlayerState(state *State, playerIndex int) (PlayerSta
 
 //emptyGameState is a simple wrapper around delegate.EmptyPlayerState that
 //just verifies that stacks are inflated.
-func (g *GameManager) emptyGameState(state *State) (GameState, error) {
+func (g *GameManager) emptyGameState(state *State) (MutableGameState, error) {
 
 	gameState := g.delegate.EmptyGameState()
 

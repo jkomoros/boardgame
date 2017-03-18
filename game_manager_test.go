@@ -56,11 +56,11 @@ type nilStackGameDelegate struct {
 	nilForPlayer bool
 }
 
-func (n *nilStackGameDelegate) EmptyPlayerState(playerIndex int) PlayerState {
+func (n *nilStackGameDelegate) EmptyPlayerState(playerIndex int) MutablePlayerState {
 	return &testPlayerState{}
 }
 
-func (n *nilStackGameDelegate) EmptyGameState() GameState {
+func (n *nilStackGameDelegate) EmptyGameState() MutableGameState {
 	if n.nilForPlayer {
 		//return a non-nil one.
 		return n.testGameDelegate.EmptyGameState()

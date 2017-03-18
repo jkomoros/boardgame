@@ -145,7 +145,7 @@ func (t *testGameDelegate) BeginSetUp(state *State) {
 	players[2].IsFoo = true
 }
 
-func (t *testGameDelegate) EmptyGameState() GameState {
+func (t *testGameDelegate) EmptyGameState() MutableGameState {
 	chest := t.Manager().Chest()
 
 	deck := chest.Deck("test")
@@ -155,7 +155,7 @@ func (t *testGameDelegate) EmptyGameState() GameState {
 	}
 }
 
-func (t *testGameDelegate) EmptyPlayerState(playerIndex int) PlayerState {
+func (t *testGameDelegate) EmptyPlayerState(playerIndex int) MutablePlayerState {
 	chest := t.Manager().Chest()
 
 	deck := chest.Deck("test")

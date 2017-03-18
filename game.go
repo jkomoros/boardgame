@@ -223,7 +223,7 @@ func (g *Game) SetUp(numPlayers int) error {
 
 	stateCopy.game = gameState
 
-	playerStates := make([]PlayerState, numPlayers)
+	playerStates := make([]MutablePlayerState, numPlayers)
 
 	for i := 0; i < numPlayers; i++ {
 		playerState, err := g.manager.emptyPlayerState(stateCopy, i)

@@ -63,14 +63,22 @@ type testGameState struct {
 	//TODO: have a Stack here.
 }
 
-func (t *testGameState) Copy() GameState {
+func (t *testGameState) MutableCopy() MutableGameState {
 	var result testGameState
 	result = *t
 	result.DrawDeck = t.DrawDeck.Copy()
 	return &result
 }
 
-func (t *testGameState) Reader() PropertyReadSetter {
+func (t *testGameState) Copy() GameState {
+	return t.MutableCopy()
+}
+
+func (t *testGameState) Reader() PropertyReader {
+	return DefaultReader(t)
+}
+
+func (t *testGameState) ReadSetter() PropertyReadSetter {
 	return DefaultReadSetter(t)
 }
 
@@ -89,7 +97,7 @@ func (t *testPlayerState) PlayerIndex() int {
 	return t.playerIndex
 }
 
-func (t *testPlayerState) Copy() PlayerState {
+func (t *testPlayerState) MutableCopy() MutablePlayerState {
 	var result testPlayerState
 	result = *t
 
@@ -98,8 +106,16 @@ func (t *testPlayerState) Copy() PlayerState {
 	return &result
 }
 
-func (t *testPlayerState) Reader() PropertyReadSetter {
+func (t *testPlayerState) Copy() PlayerState {
+	return t.MutableCopy()
+}
+
+func (t *testPlayerState) ReadSetter() PropertyReadSetter {
 	return DefaultReadSetter(t)
+}
+
+func (t *testPlayerState) Reader() PropertyReader {
+	return DefaultReader(t)
 }
 
 type testMoveAdvanceCurentPlayer struct{}

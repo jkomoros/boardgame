@@ -86,11 +86,11 @@ type GameDelegate interface {
 	//always required and always specific to each game type,
 	//DefaultGameDelegate does not implement them, as an extra reminder that
 	//you must implement them yourself.
-	EmptyGameState() GameState
+	EmptyGameState() MutableGameState
 	//EmptyPlayerState is similar to EmptyGameState, but playerIndex is the
 	//value that this PlayerState must return when its PlayerIndex() is
 	//called.
-	EmptyPlayerState(playerIndex int) PlayerState
+	EmptyPlayerState(playerIndex int) MutablePlayerState
 
 	//EmptyComputed{Global,Player}PropertyCollection should return a struct
 	//that implements PropertyReadSetter. Computed properties will be stored

@@ -37,15 +37,23 @@ func rowColToIndex(row, col int) int {
 	return row*DIM + col
 }
 
-func (g *gameState) Reader() boardgame.PropertyReadSetter {
+func (g *gameState) ReadSetter() boardgame.PropertyReadSetter {
 	return boardgame.DefaultReadSetter(g)
 }
 
-func (g *gameState) Copy() boardgame.GameState {
+func (g *gameState) Reader() boardgame.PropertyReader {
+	return boardgame.DefaultReader(g)
+}
+
+func (g *gameState) MutableCopy() boardgame.MutableGameState {
 	var result gameState
 	result = *g
 	result.Slots = g.Slots.Copy()
 	return &result
+}
+
+func (g *gameState) Copy() boardgame.GameState {
+	return g.MutableCopy()
 }
 
 type playerState struct {
@@ -56,15 +64,23 @@ type playerState struct {
 	TokensToPlaceThisTurn int
 }
 
-func (p *playerState) Reader() boardgame.PropertyReadSetter {
+func (p *playerState) ReadSetter() boardgame.PropertyReadSetter {
 	return boardgame.DefaultReadSetter(p)
 }
 
-func (p *playerState) Copy() boardgame.PlayerState {
+func (p *playerState) Reader() boardgame.PropertyReader {
+	return boardgame.DefaultReader(p)
+}
+
+func (p *playerState) MutableCopy() boardgame.MutablePlayerState {
 	var result playerState
 	result = *p
 	result.UnusedTokens = p.UnusedTokens.Copy()
 	return &result
+}
+
+func (p *playerState) Copy() boardgame.PlayerState {
+	return p.MutableCopy()
 }
 
 func (p *playerState) PlayerIndex() int {
