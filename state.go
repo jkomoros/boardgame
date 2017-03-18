@@ -16,35 +16,45 @@ import (
 //storage. Given a blob serialized in that fashion, GameManager.StateFromBlob
 //will return a state.
 type State struct {
-	Game      GameState
-	Players   []PlayerState
+	game      GameState
+	players   []PlayerState
 	computed  *computedPropertiesImpl
 	sanitized bool
 	delegate  GameDelegate
+}
+
+//Game returns the GameState for this State
+func (s *State) Game() GameState {
+	return s.game
+}
+
+//Players returns a slice of all PlayerStates for this State
+func (s *State) Players() []PlayerState {
+	return s.players
 }
 
 //Copy returns a deep copy of the State, including copied version of the Game
 //and Player States.
 func (s *State) Copy(sanitized bool) *State {
 
-	players := make([]PlayerState, len(s.Players))
+	players := make([]PlayerState, len(s.players))
 
-	for i, player := range s.Players {
+	for i, player := range s.players {
 		players[i] = player.Copy()
 	}
 
 	result := &State{
-		Game:      s.Game.Copy(),
-		Players:   players,
+		game:      s.game.Copy(),
+		players:   players,
 		sanitized: sanitized,
 		delegate:  s.delegate,
 	}
 
 	//FixUp stacks to make sure they point to this new state.
-	if err := verifyReaderStacks(result.Game.Reader(), result); err != nil {
+	if err := verifyReaderStacks(result.game.Reader(), result); err != nil {
 		return nil
 	}
-	for _, player := range result.Players {
+	for _, player := range result.players {
 		if err := verifyReaderStacks(player.Reader(), result); err != nil {
 			return nil
 		}
@@ -56,8 +66,8 @@ func (s *State) Copy(sanitized bool) *State {
 
 func (s *State) MarshalJSON() ([]byte, error) {
 	obj := map[string]interface{}{
-		"Game":     s.Game,
-		"Players":  s.Players,
+		"Game":     s.game,
+		"Players":  s.players,
 		"Computed": s.Computed(),
 	}
 	return json.Marshal(obj)
@@ -93,7 +103,7 @@ func (s *State) Computed() ComputedProperties {
 func (s *State) SanitizedForPlayer(playerIndex int) *State {
 
 	//If the playerIndex isn't an actuall player's index, just return self.
-	if playerIndex < 0 || playerIndex >= len(s.Players) {
+	if playerIndex < 0 || playerIndex >= len(s.players) {
 		return s
 	}
 
@@ -105,9 +115,9 @@ func (s *State) SanitizedForPlayer(playerIndex int) *State {
 
 	sanitized := s.Copy(true)
 
-	sanitizeStateObj(sanitized.Game.Reader(), policy.Game, -1, playerIndex, PolicyVisible)
+	sanitizeStateObj(sanitized.game.Reader(), policy.Game, -1, playerIndex, PolicyVisible)
 
-	playerStates := sanitized.Players
+	playerStates := sanitized.players
 
 	for i := 0; i < len(playerStates); i++ {
 		sanitizeStateObj(playerStates[i].Reader(), policy.Player, i, playerIndex, PolicyVisible)
@@ -124,9 +134,9 @@ func (s *State) sanitizedWithExceptions(policy *StatePolicy) *State {
 
 	sanitized := s.Copy(true)
 
-	sanitizeStateObj(sanitized.Game.Reader(), policy.Game, -1, -1, PolicyRandom)
+	sanitizeStateObj(sanitized.game.Reader(), policy.Game, -1, -1, PolicyRandom)
 
-	playerStates := sanitized.Players
+	playerStates := sanitized.players
 
 	for i := 0; i < len(playerStates); i++ {
 		sanitizeStateObj(playerStates[i].Reader(), policy.Player, -1, -1, PolicyRandom)

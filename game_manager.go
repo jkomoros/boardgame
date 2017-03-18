@@ -293,7 +293,7 @@ func (g *GameManager) StateFromBlob(blob []byte) (*State, error) {
 		}
 	}
 
-	result.Game = game
+	result.game = game
 
 	for i, blob := range refried.Players {
 		player, err := g.emptyPlayerState(result, i)
@@ -323,7 +323,7 @@ func (g *GameManager) StateFromBlob(blob []byte) (*State, error) {
 			}
 		}
 
-		result.Players = append(result.Players, player)
+		result.players = append(result.players, player)
 	}
 
 	return result, nil

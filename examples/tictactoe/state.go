@@ -5,11 +5,11 @@ import (
 )
 
 func concreteStates(state *boardgame.State) (*gameState, []*playerState) {
-	game := state.Game.(*gameState)
+	game := state.Game().(*gameState)
 
-	players := make([]*playerState, len(state.Players))
+	players := make([]*playerState, len(state.Players()))
 
-	for i, player := range state.Players {
+	for i, player := range state.Players() {
 		players[i] = player.(*playerState)
 	}
 
