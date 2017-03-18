@@ -22,7 +22,7 @@ type gameDelegate struct {
 	boardgame.DefaultGameDelegate
 }
 
-func (g *gameDelegate) DistributeComponentToStarterStack(state *boardgame.State, c *boardgame.Component) (boardgame.Stack, error) {
+func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c *boardgame.Component) (boardgame.Stack, error) {
 	component := c.Values.(*playerToken)
 
 	_, players := concreteStates(state)
@@ -79,7 +79,7 @@ func (g *gameDelegate) EmptyPlayerState(playerIndex int) boardgame.MutablePlayer
 	}
 }
 
-func (g *gameDelegate) CheckGameFinished(state *boardgame.State) (finished bool, winners []int) {
+func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, winners []int) {
 
 	game, players := concreteStates(state)
 
@@ -113,7 +113,7 @@ func (g *gameDelegate) CheckGameFinished(state *boardgame.State) (finished bool,
 
 }
 
-func (g *gameDelegate) Diagram(state *boardgame.State) string {
+func (g *gameDelegate) Diagram(state boardgame.State) string {
 
 	game, players := concreteStates(state)
 

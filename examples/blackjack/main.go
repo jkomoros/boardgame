@@ -71,7 +71,7 @@ func (g *gameDelegate) ComputedPropertiesConfig() *boardgame.ComputedPropertiesC
 	return computedPropertiesConfig
 }
 
-func (g *gameDelegate) DistributeComponentToStarterStack(state *boardgame.State, c *boardgame.Component) (boardgame.Stack, error) {
+func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c *boardgame.Component) (boardgame.Stack, error) {
 
 	game, _ := concreteStates(state)
 
@@ -87,7 +87,7 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state *boardgame.State,
 
 }
 
-func (g *gameDelegate) Diagram(state *boardgame.State) string {
+func (g *gameDelegate) Diagram(state boardgame.State) string {
 
 	game, players := concreteStates(state)
 
@@ -135,7 +135,7 @@ func (g *gameDelegate) Diagram(state *boardgame.State) string {
 	return strings.Join(result, "\n")
 }
 
-func (g *gameDelegate) CheckGameFinished(state *boardgame.State) (finished bool, winners []int) {
+func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, winners []int) {
 
 	_, players := concreteStates(state)
 
@@ -212,7 +212,7 @@ func (g *gameDelegate) EmptyPlayerState(playerIndex int) boardgame.MutablePlayer
 	}
 }
 
-func (g *gameDelegate) FinishSetUp(state *boardgame.State) {
+func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) {
 	game, _ := concreteStates(state)
 
 	game.DrawStack.Shuffle()

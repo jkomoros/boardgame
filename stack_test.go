@@ -130,7 +130,7 @@ func TestMoveComponent(t *testing.T) {
 		sStackMaxLen.insertNext(c)
 	}
 
-	fakeState := &State{}
+	fakeState := &state{}
 
 	gStack.statePtr = fakeState
 	sStack.statePtr = fakeState
@@ -154,7 +154,7 @@ func TestMoveComponent(t *testing.T) {
 	}
 
 	sStackOtherState := sStack.Copy()
-	sStackOtherState.statePtr = &State{}
+	sStackOtherState.statePtr = &state{}
 
 	tests := []struct {
 		source                 Stack
@@ -371,7 +371,7 @@ func swapComponentsTests(stack Stack, t *testing.T) {
 		t.Error("Stack with no state allowed a swap")
 	}
 
-	fakeState := &State{}
+	fakeState := &state{}
 
 	switch s := stack.(type) {
 	case *GrowableStack:
@@ -418,7 +418,7 @@ func TestGrowableStackInsertComponentAt(t *testing.T) {
 
 	deck := game.Chest().Deck("test")
 
-	fakeState := &State{}
+	fakeState := &state{}
 
 	stack := NewGrowableStack(deck, 0)
 
@@ -489,7 +489,7 @@ func TestGrowableStackRemoveComponentAt(t *testing.T) {
 
 	deck := game.Chest().Deck("test")
 
-	fakeState := &State{}
+	fakeState := &state{}
 
 	stack := NewGrowableStack(deck, 0)
 
@@ -551,7 +551,7 @@ func TestShuffle(t *testing.T) {
 
 	stack := NewGrowableStack(deck, 0)
 
-	fakeState := &State{}
+	fakeState := &state{}
 
 	stack.statePtr = fakeState
 
@@ -623,7 +623,7 @@ func TestMoveAllTo(t *testing.T) {
 
 	deck := game.Chest().Deck("test")
 
-	fakeState := &State{}
+	fakeState := &state{}
 
 	to := NewGrowableStack(deck, 1)
 	to.statePtr = fakeState

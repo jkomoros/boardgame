@@ -33,7 +33,7 @@ func init() {
 					},
 				},
 				PropType: TypeInt,
-				Compute: func(state *State) (interface{}, error) {
+				Compute: func(state State) (interface{}, error) {
 
 					_, playerStates := concreteStates(state)
 
@@ -82,7 +82,7 @@ type testGameDelegate struct {
 	DefaultGameDelegate
 }
 
-func (t *testGameDelegate) DistributeComponentToStarterStack(state *State, c *Component) (Stack, error) {
+func (t *testGameDelegate) DistributeComponentToStarterStack(state State, c *Component) (Stack, error) {
 	game, _ := concreteStates(state)
 	return game.DrawDeck, nil
 }
@@ -103,7 +103,7 @@ func (t *testGameDelegate) EmptyComputedPlayerPropertyCollection() ComputedPrope
 	return &testPlayerPropertiesCollection{}
 }
 
-func (t *testGameDelegate) CheckGameFinished(state *State) (bool, []int) {
+func (t *testGameDelegate) CheckGameFinished(state State) (bool, []int) {
 	_, players := concreteStates(state)
 
 	var winners []int
@@ -134,7 +134,7 @@ func (t *testGameDelegate) LegalNumPlayers(numPlayers int) bool {
 	return numPlayers <= 5
 }
 
-func (t *testGameDelegate) BeginSetUp(state *State) {
+func (t *testGameDelegate) BeginSetUp(state MutableState) {
 	_, players := concreteStates(state)
 
 	if len(players) != 3 {

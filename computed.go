@@ -57,7 +57,7 @@ type ComputedGlobalPropertyDefinition struct {
 	//computation out into a shim that fetches the relevant properties from
 	//the ShadowState and then passes them to the core computation function,
 	//so that other methods can reuse the same logic.
-	Compute func(sanitizedState *State) (interface{}, error)
+	Compute func(sanitizedState State) (interface{}, error)
 }
 
 //ComputedPlayerPropertyDefinition is the analogue for
@@ -129,7 +129,7 @@ func policyForDependencies(dependencies []StatePropertyRef) *StatePolicy {
 	return result
 }
 
-func newComputedPropertiesImpl(config *ComputedPropertiesConfig, state *State) *computedPropertiesImpl {
+func newComputedPropertiesImpl(config *ComputedPropertiesConfig, state *state) *computedPropertiesImpl {
 
 	if config == nil {
 		return nil
@@ -181,7 +181,7 @@ func newComputedPropertiesImpl(config *ComputedPropertiesConfig, state *State) *
 	}
 }
 
-func (c *ComputedGlobalPropertyDefinition) calculate(propName string, state *State, output PropertyReadSetter) error {
+func (c *ComputedGlobalPropertyDefinition) calculate(propName string, state *state, output PropertyReadSetter) error {
 
 	result, err := c.compute(state)
 
@@ -226,7 +226,7 @@ func (c *ComputedGlobalPropertyDefinition) calculate(propName string, state *Sta
 
 }
 
-func (c *ComputedPlayerPropertyDefinition) calculate(propName string, playerIndex int, state *State, output PropertyReadSetter) error {
+func (c *ComputedPlayerPropertyDefinition) calculate(propName string, playerIndex int, state *state, output PropertyReadSetter) error {
 
 	result, err := c.compute(state, playerIndex)
 
@@ -271,7 +271,7 @@ func (c *ComputedPlayerPropertyDefinition) calculate(propName string, playerInde
 
 }
 
-func (c *ComputedGlobalPropertyDefinition) compute(state *State) (interface{}, error) {
+func (c *ComputedGlobalPropertyDefinition) compute(state *state) (interface{}, error) {
 
 	//First, prepare a shadow state with all of the dependencies.
 
@@ -283,7 +283,7 @@ func (c *ComputedGlobalPropertyDefinition) compute(state *State) (interface{}, e
 
 }
 
-func (c *ComputedPlayerPropertyDefinition) compute(state *State, playerIndex int) (interface{}, error) {
+func (c *ComputedPlayerPropertyDefinition) compute(state *state, playerIndex int) (interface{}, error) {
 
 	policy := policyForDependencies(c.Dependencies)
 

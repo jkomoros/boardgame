@@ -36,7 +36,7 @@ func TestComputedPropertyDefinitionCompute(t *testing.T) {
 		t.Fatal("Game failed to set up", err)
 	}
 
-	var passedState *State
+	var passedState State
 
 	definition := &ComputedGlobalPropertyDefinition{
 		Dependencies: []StatePropertyRef{
@@ -50,14 +50,14 @@ func TestComputedPropertyDefinitionCompute(t *testing.T) {
 			},
 		},
 		PropType: TypeInt,
-		Compute: func(state *State) (interface{}, error) {
+		Compute: func(state State) (interface{}, error) {
 			//For now we'll just pass it out for inspection
 			passedState = state
 			return nil, nil
 		},
 	}
 
-	state := game.CurrentState()
+	state := game.CurrentState().(*state)
 
 	gameState, playerStates := concreteStates(state)
 
@@ -73,14 +73,14 @@ func TestComputedPropertyDefinitionCompute(t *testing.T) {
 		t.Error("Calling compute on the rigged definition didn't set passedState")
 	}
 
-	if val, err := passedState.game.Reader().IntProp("CurrentPlayer"); err != nil {
+	if val, err := passedState.Game().Reader().IntProp("CurrentPlayer"); err != nil {
 		t.Error("Unexpected error reading CurrentPlayer prop", err)
 	} else if val != gameState.CurrentPlayer {
 		t.Error("The shadow current player was not the real value. Got", val, "wanted", gameState.CurrentPlayer)
 	}
 
 	for i, playerState := range playerStates {
-		playerShadow := passedState.players[i]
+		playerShadow := passedState.Players()[i]
 
 		if val, err := playerShadow.Reader().IntProp("Score"); err != nil {
 			t.Error("Unexpected error reading Score prop", err)
@@ -103,7 +103,7 @@ func TestStateComputed(t *testing.T) {
 
 	game.SetUp(0)
 
-	state := game.CurrentState()
+	state := game.CurrentState().(*state)
 
 	gameState, playerStates := concreteStates(state)
 
@@ -122,7 +122,7 @@ func TestStateComputed(t *testing.T) {
 					},
 				},
 				PropType: TypeInt,
-				Compute: func(state *State) (interface{}, error) {
+				Compute: func(state State) (interface{}, error) {
 
 					game, _ := concreteStates(state)
 
@@ -137,7 +137,7 @@ func TestStateComputed(t *testing.T) {
 					},
 				},
 				PropType: TypeInt,
-				Compute: func(state *State) (interface{}, error) {
+				Compute: func(state State) (interface{}, error) {
 					result := 0
 
 					_, playerStates := concreteStates(state)

@@ -12,7 +12,7 @@ type testInfiniteLoopGameDelegate struct {
 	testGameDelegate
 }
 
-func (t *testInfiniteLoopGameDelegate) ProposeFixUpMove(state *State) Move {
+func (t *testInfiniteLoopGameDelegate) ProposeFixUpMove(state State) Move {
 	return &testAlwaysLegalMove{}
 }
 

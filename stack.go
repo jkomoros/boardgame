@@ -125,7 +125,7 @@ type Stack interface {
 	//Returns the state that this Stack is currently part of. Mainly a
 	//convenience method when you have a Stack but don't know its underlying
 	//type.
-	state() *State
+	state() *state
 
 	//deck returns the Deck in this stack. Just a conveniene wrapper if you
 	//don't know what kind of stack you have.
@@ -174,7 +174,7 @@ type GrowableStack struct {
 	//Each stack is associated with precisely one state. This is consulted to
 	//verify that components being transfered between stacks are part of a
 	//single state. Set in empty{Game,Player}State.
-	statePtr *State
+	statePtr *state
 }
 
 //SizedStack is a Stack that has a fixed number of slots, any of which may be
@@ -193,7 +193,7 @@ type SizedStack struct {
 	//Each stack is associated with precisely one state. This is consulted to
 	//verify that components being transfered between stacks are part of a
 	//single state. Set in empty{Game,Player}State.
-	statePtr *State
+	statePtr *state
 }
 
 //stackJSONObj is an internal struct that we populate and use to implement
@@ -462,11 +462,11 @@ func moveAllToImpl(from Stack, to Stack) error {
 	return nil
 }
 
-func (g *GrowableStack) state() *State {
+func (g *GrowableStack) state() *state {
 	return g.statePtr
 }
 
-func (s *SizedStack) state() *State {
+func (s *SizedStack) state() *state {
 	return s.statePtr
 }
 

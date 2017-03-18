@@ -32,7 +32,7 @@ type MoveCurrentPlayerStand struct {
  *
  **************************************************/
 
-func (m *MoveShuffleDiscardToDraw) Legal(state *boardgame.State) error {
+func (m *MoveShuffleDiscardToDraw) Legal(state boardgame.State) error {
 	game, _ := concreteStates(state)
 
 	if game.DrawStack.Len() > 0 {
@@ -42,7 +42,7 @@ func (m *MoveShuffleDiscardToDraw) Legal(state *boardgame.State) error {
 	return nil
 }
 
-func (m *MoveShuffleDiscardToDraw) Apply(state *boardgame.State) error {
+func (m *MoveShuffleDiscardToDraw) Apply(state boardgame.MutableState) error {
 	game, _ := concreteStates(state)
 
 	game.DiscardStack.MoveAllTo(game.DrawStack)
@@ -57,7 +57,7 @@ func (m *MoveShuffleDiscardToDraw) Copy() boardgame.Move {
 	return &result
 }
 
-func (m *MoveShuffleDiscardToDraw) DefaultsForState(state *boardgame.State) {
+func (m *MoveShuffleDiscardToDraw) DefaultsForState(state boardgame.State) {
 	//Nothing to do
 }
 
@@ -79,7 +79,7 @@ func (m *MoveShuffleDiscardToDraw) ReadSetter() boardgame.PropertyReadSetter {
  *
  **************************************************/
 
-func (m *MoveCurrentPlayerHit) Legal(state *boardgame.State) error {
+func (m *MoveCurrentPlayerHit) Legal(state boardgame.State) error {
 
 	game, players := concreteStates(state)
 
@@ -102,7 +102,7 @@ func (m *MoveCurrentPlayerHit) Legal(state *boardgame.State) error {
 	return nil
 }
 
-func (m *MoveCurrentPlayerHit) Apply(state *boardgame.State) error {
+func (m *MoveCurrentPlayerHit) Apply(state boardgame.MutableState) error {
 	game, players := concreteStates(state)
 
 	currentPlayer := players[game.CurrentPlayer]
@@ -128,7 +128,7 @@ func (m *MoveCurrentPlayerHit) Copy() boardgame.Move {
 	return &result
 }
 
-func (m *MoveCurrentPlayerHit) DefaultsForState(state *boardgame.State) {
+func (m *MoveCurrentPlayerHit) DefaultsForState(state boardgame.State) {
 	game, _ := concreteStates(state)
 
 	m.TargetPlayerIndex = game.CurrentPlayer
@@ -152,7 +152,7 @@ func (m *MoveCurrentPlayerHit) ReadSetter() boardgame.PropertyReadSetter {
  *
  **************************************************/
 
-func (m *MoveCurrentPlayerStand) Legal(state *boardgame.State) error {
+func (m *MoveCurrentPlayerStand) Legal(state boardgame.State) error {
 
 	game, players := concreteStates(state)
 
@@ -174,7 +174,7 @@ func (m *MoveCurrentPlayerStand) Legal(state *boardgame.State) error {
 
 }
 
-func (m *MoveCurrentPlayerStand) Apply(state *boardgame.State) error {
+func (m *MoveCurrentPlayerStand) Apply(state boardgame.MutableState) error {
 
 	game, players := concreteStates(state)
 
@@ -191,7 +191,7 @@ func (m *MoveCurrentPlayerStand) Copy() boardgame.Move {
 	return &result
 }
 
-func (m *MoveCurrentPlayerStand) DefaultsForState(state *boardgame.State) {
+func (m *MoveCurrentPlayerStand) DefaultsForState(state boardgame.State) {
 	game, _ := concreteStates(state)
 	m.TargetPlayerIndex = game.CurrentPlayer
 }
@@ -214,7 +214,7 @@ func (m *MoveCurrentPlayerStand) ReadSetter() boardgame.PropertyReadSetter {
  *
  **************************************************/
 
-func (m *MoveAdvanceNextPlayer) Legal(state *boardgame.State) error {
+func (m *MoveAdvanceNextPlayer) Legal(state boardgame.State) error {
 	game, players := concreteStates(state)
 
 	currentPlayer := players[game.CurrentPlayer]
@@ -226,7 +226,7 @@ func (m *MoveAdvanceNextPlayer) Legal(state *boardgame.State) error {
 	return errors.New("The current player has neither busted nor decided to stand.")
 }
 
-func (m *MoveAdvanceNextPlayer) Apply(state *boardgame.State) error {
+func (m *MoveAdvanceNextPlayer) Apply(state boardgame.MutableState) error {
 
 	game, players := concreteStates(state)
 
@@ -249,7 +249,7 @@ func (m *MoveAdvanceNextPlayer) Copy() boardgame.Move {
 	return &result
 }
 
-func (m *MoveAdvanceNextPlayer) DefaultsForState(state *boardgame.State) {
+func (m *MoveAdvanceNextPlayer) DefaultsForState(state boardgame.State) {
 	//TODO: implement
 }
 
@@ -271,7 +271,7 @@ func (m *MoveAdvanceNextPlayer) ReadSetter() boardgame.PropertyReadSetter {
  *
  **************************************************/
 
-func (m *MoveRevealHiddenCard) Legal(state *boardgame.State) error {
+func (m *MoveRevealHiddenCard) Legal(state boardgame.State) error {
 
 	_, players := concreteStates(state)
 
@@ -284,7 +284,7 @@ func (m *MoveRevealHiddenCard) Legal(state *boardgame.State) error {
 	return nil
 }
 
-func (m *MoveRevealHiddenCard) Apply(state *boardgame.State) error {
+func (m *MoveRevealHiddenCard) Apply(state boardgame.MutableState) error {
 	_, players := concreteStates(state)
 
 	p := players[m.TargetPlayerIndex]
@@ -300,7 +300,7 @@ func (m *MoveRevealHiddenCard) Copy() boardgame.Move {
 	return &result
 }
 
-func (m *MoveRevealHiddenCard) DefaultsForState(state *boardgame.State) {
+func (m *MoveRevealHiddenCard) DefaultsForState(state boardgame.State) {
 	game, _ := concreteStates(state)
 
 	m.TargetPlayerIndex = game.CurrentPlayer
@@ -325,7 +325,7 @@ func (m *MoveRevealHiddenCard) ReadSetter() boardgame.PropertyReadSetter {
  *
  **************************************************/
 
-func (m *MoveDealInitialCard) Legal(state *boardgame.State) error {
+func (m *MoveDealInitialCard) Legal(state boardgame.State) error {
 	_, players := concreteStates(state)
 
 	if m.TargetPlayerIndex < 0 || m.TargetPlayerIndex >= len(players) {
@@ -350,7 +350,7 @@ func (m *MoveDealInitialCard) Legal(state *boardgame.State) error {
 
 }
 
-func (m *MoveDealInitialCard) Apply(state *boardgame.State) error {
+func (m *MoveDealInitialCard) Apply(state boardgame.MutableState) error {
 	game, players := concreteStates(state)
 
 	p := players[m.TargetPlayerIndex]
@@ -381,7 +381,7 @@ func (m *MoveDealInitialCard) Copy() boardgame.Move {
 	return &result
 }
 
-func (m *MoveDealInitialCard) DefaultsForState(state *boardgame.State) {
+func (m *MoveDealInitialCard) DefaultsForState(state boardgame.State) {
 
 	//The default game delegate will cycle around calling this, so
 	//DefaultsForState should pick the next one each time.

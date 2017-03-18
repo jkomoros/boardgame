@@ -50,7 +50,7 @@ func NewStorageManager() *StorageManager {
 	}
 }
 
-func (s *StorageManager) State(game *boardgame.Game, version int) (*boardgame.State, error) {
+func (s *StorageManager) State(game *boardgame.Game, version int) (boardgame.State, error) {
 	if game == nil {
 		return nil, errors.New("No game provided")
 	}
@@ -139,7 +139,7 @@ func (s *StorageManager) winnersFromStorage(winners string) []int {
 	return result
 }
 
-func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.Game, state *boardgame.State) error {
+func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.Game, state boardgame.State) error {
 	if game == nil {
 		return errors.New("No game provided")
 	}

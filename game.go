@@ -27,7 +27,7 @@ type Game struct {
 
 	//Memozied answer to CurrentState. Invalidated whenever ApplyMove is
 	//called.
-	cachedCurrentState *State
+	cachedCurrentState State
 
 	//Modifiable controls whether moves can be made on this game.
 	modifiable bool
@@ -160,7 +160,7 @@ func (g *Game) Version() int {
 
 //CurrentVersion returns the state object for the current state. Equivalent,
 //semantically, to game.State(game.Version())
-func (g *Game) CurrentState() *State {
+func (g *Game) CurrentState() State {
 	if g.cachedCurrentState == nil {
 		g.cachedCurrentState = g.State(g.Version())
 	}
@@ -168,7 +168,7 @@ func (g *Game) CurrentState() *State {
 }
 
 //Returns the game's atate at the current version.
-func (g *Game) State(version int) *State {
+func (g *Game) State(version int) State {
 
 	if version < 0 || version > g.Version() {
 		return nil
@@ -211,7 +211,7 @@ func (g *Game) SetUp(numPlayers int) error {
 		return errors.New("The number of players, " + strconv.Itoa(numPlayers) + " was not legal.")
 	}
 
-	stateCopy := &State{
+	stateCopy := &state{
 		delegate: g.Manager().Delegate(),
 	}
 
@@ -469,14 +469,14 @@ func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 		}
 	}
 
-	currentState := g.CurrentState()
+	currentState := g.CurrentState().(*state)
 
 	if err := move.Legal(currentState); err != nil {
 		//It's not legal, reject.
 		return errors.New("The move was not legal: " + err.Error())
 	}
 
-	newState := currentState.Copy(false)
+	newState := currentState.copy(false)
 
 	if err := move.Apply(newState); err != nil {
 		return errors.New("The move's apply function returned an error:" + err.Error())

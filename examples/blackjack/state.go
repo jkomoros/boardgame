@@ -5,7 +5,7 @@ import (
 	"github.com/jkomoros/boardgame/playingcards"
 )
 
-func concreteStates(state *boardgame.State) (*gameState, []*playerState) {
+func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 	game := state.Game().(*gameState)
 
 	players := make([]*playerState, len(state.Players()))

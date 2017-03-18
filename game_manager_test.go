@@ -103,7 +103,7 @@ func TestMisshappenComputedProperties(t *testing.T) {
 				"ThisPropertyIsNotSupported": ComputedGlobalPropertyDefinition{
 					Dependencies: []StatePropertyRef{},
 					PropType:     TypeGrowableStack,
-					Compute: func(state *State) (interface{}, error) {
+					Compute: func(state State) (interface{}, error) {
 						return nil, nil
 					},
 				},

@@ -36,19 +36,19 @@ func componentsEqual(one *Component, two *Component) bool {
 }
 
 //Every game should do such a convenience method. state might be nil.
-func concreteStates(state *State) (*testGameState, []*testPlayerState) {
+func concreteStates(state State) (*testGameState, []*testPlayerState) {
 
 	if state == nil {
 		return nil, nil
 	}
 
-	players := make([]*testPlayerState, len(state.players))
+	players := make([]*testPlayerState, len(state.Players()))
 
-	for i, player := range state.players {
+	for i, player := range state.Players() {
 		players[i] = player.(*testPlayerState)
 	}
 
-	game, ok := state.game.(*testGameState)
+	game, ok := state.Game().(*testGameState)
 
 	if !ok {
 		return nil, nil
@@ -130,7 +130,7 @@ func (t *testMoveAdvanceCurentPlayer) Copy() Move {
 	return &result
 }
 
-func (t *testMoveAdvanceCurentPlayer) DefaultsForState(state *State) {
+func (t *testMoveAdvanceCurentPlayer) DefaultsForState(state State) {
 	//No defaults to set
 }
 
@@ -142,7 +142,7 @@ func (t *testMoveAdvanceCurentPlayer) Description() string {
 	return "Advances to the next player when the current player has no more legal moves they can make this turn."
 }
 
-func (t *testMoveAdvanceCurentPlayer) Legal(state *State) error {
+func (t *testMoveAdvanceCurentPlayer) Legal(state State) error {
 
 	game, players := concreteStates(state)
 
@@ -155,7 +155,7 @@ func (t *testMoveAdvanceCurentPlayer) Legal(state *State) error {
 	return nil
 }
 
-func (t *testMoveAdvanceCurentPlayer) Apply(state *State) error {
+func (t *testMoveAdvanceCurentPlayer) Apply(state MutableState) error {
 
 	game, players := concreteStates(state)
 
@@ -198,7 +198,7 @@ func (t *testMove) Description() string {
 	return "Advances the score of the current player by the specified amount."
 }
 
-func (t *testMove) DefaultsForState(state *State) {
+func (t *testMove) DefaultsForState(state State) {
 	game, _ := concreteStates(state)
 
 	if game == nil {
@@ -211,7 +211,7 @@ func (t *testMove) DefaultsForState(state *State) {
 	t.ScoreIncrement = 3
 }
 
-func (t *testMove) Legal(state *State) error {
+func (t *testMove) Legal(state State) error {
 
 	game, _ := concreteStates(state)
 
@@ -223,7 +223,7 @@ func (t *testMove) Legal(state *State) error {
 
 }
 
-func (t *testMove) Apply(state *State) error {
+func (t *testMove) Apply(state MutableState) error {
 
 	game, players := concreteStates(state)
 
@@ -254,11 +254,11 @@ func (t *testAlwaysLegalMove) Description() string {
 	return "A move that is always legal"
 }
 
-func (t *testAlwaysLegalMove) DefaultsForState(state *State) {
+func (t *testAlwaysLegalMove) DefaultsForState(state State) {
 	//Pass
 }
 
-func (t *testAlwaysLegalMove) Legal(state *State) error {
+func (t *testAlwaysLegalMove) Legal(state State) error {
 
 	//This move is always legal
 
@@ -266,7 +266,7 @@ func (t *testAlwaysLegalMove) Legal(state *State) error {
 
 }
 
-func (t *testAlwaysLegalMove) Apply(state *State) error {
+func (t *testAlwaysLegalMove) Apply(state MutableState) error {
 
 	//This move doesn't do anything
 

@@ -9,17 +9,42 @@ import (
 //your particular game. Games often define a top-level concreteStates()
 //*myGameState, []*myPlayerState so at the top of methods that accept a *State
 //they can quickly get concrete, type-checked types with only a single
-//conversion leap of faith at the top. States are generally read-only; the
-//exception is in Move.Apply() and Delegate.BeginSetup() and FinishSetup(),
-//when you may modify the provided state. The MarshalJSON output of a State is
-//appropriate for sending to a client or serializing a state to be put in
+//conversion leap of faith at the top. States are intended to be read-only;
+//methods where you are allowed to mutate the state (e.g. Move.Apply()) will
+//take a MutableState instead as a signal that it is permissable to modify the
+//state. That is why the states only return non-mutable states
+//(PropertyReaders, not PropertyReadSetters, although realistically it is
+//possible to cast them and modify directly. The MarshalJSON output of a State
+//is appropriate for sending to a client or serializing a state to be put in
 //storage. Given a blob serialized in that fashion, GameManager.StateFromBlob
-//will return a state. States are intended to be read-only: that is, you
-//should not modify the underlying properties of the game or player states.
-//That is why the states only return non-mutable states (PropertyReaders, not
-//PropertyReadSetters, although realistically it is possible to cast them and
-//modify directly.
-type State struct {
+//will return a state.
+type State interface {
+	//Game returns the GameState for this State
+	Game() GameState
+	//Players returns a slice of all PlayerStates for this State
+	Players() []PlayerState
+	//Copy returns a deep copy of the State, including copied version of the Game
+	//and Player States.
+	Copy(sanitized bool) State
+	//Diagram returns a basic, ascii rendering of the state for debug rendering.
+	//It thunks out to Delegate.Diagram.
+	Diagram() string
+	//Santizied will return false if this is a full-fidelity State object, or
+	//true if it has been sanitized, which means that some properties might be
+	//hidden or otherwise altered. This should return true if the object was
+	//created with Copy(true)
+	Sanitized() bool
+	//Computed returns the computed properties for this state.
+	Computed() ComputedProperties
+	//SanitizedForPlayer produces a copy state object that has been sanitized for
+	//the player at the given index. The state object returned will have
+	//Sanitized() return true. Will call GameDelegate.StateSanitizationPolicy to
+	//retrieve the policy in place. See the package level comment for an overview
+	//of how state sanitization works.
+	SanitizedForPlayer(playerIndex int) State
+}
+
+type state struct {
 	game      MutableGameState
 	players   []MutablePlayerState
 	computed  *computedPropertiesImpl
@@ -30,28 +55,28 @@ type State struct {
 //A MutableState is a state that is designed to be modified in place. These
 //are passed to methods (instead of normal States) as a signal that
 //modifications are intended to be done on the state.
-type MutableState struct {
-	//MutableState wraps a Read-Only state object.
-	*State
+type MutableState interface {
+	//MutableState contains all of the methods of a read-only state.
+	State
+	//MutableGame is a reference to the MutableGameState for this MutableState.
+	MutableGame() MutableGameState
+	//MutablePlayers returns a slice of MutablePlayerStates for this MutableState.
+	MutablePlayers() []MutablePlayerState
 }
 
-//MutableGame is a reference to the MutableGameState for this MutableState.
-func (m *MutableState) MutableGame() MutableGameState {
-	return m.game
-}
-
-//MutablePlayers returns a slice of MutablePlayerStates for this MutableState.
-func (m *MutableState) MutablePlayers() []MutablePlayerState {
-	return m.players
-}
-
-//Game returns the GameState for this State
-func (s *State) Game() GameState {
+func (s *state) MutableGame() MutableGameState {
 	return s.game
 }
 
-//Players returns a slice of all PlayerStates for this State
-func (s *State) Players() []PlayerState {
+func (s *state) MutablePlayers() []MutablePlayerState {
+	return s.players
+}
+
+func (s *state) Game() GameState {
+	return s.game
+}
+
+func (s *state) Players() []PlayerState {
 	result := make([]PlayerState, len(s.players))
 	for i := 0; i < len(s.players); i++ {
 		result[i] = s.players[i]
@@ -59,17 +84,18 @@ func (s *State) Players() []PlayerState {
 	return result
 }
 
-//Copy returns a deep copy of the State, including copied version of the Game
-//and Player States.
-func (s *State) Copy(sanitized bool) *State {
+func (s *state) Copy(sanitized bool) State {
+	return s.copy(sanitized)
+}
 
+func (s *state) copy(sanitized bool) *state {
 	players := make([]MutablePlayerState, len(s.players))
 
 	for i, player := range s.players {
 		players[i] = player.MutableCopy()
 	}
 
-	result := &State{
+	result := &state{
 		game:      s.game.MutableCopy(),
 		players:   players,
 		sanitized: sanitized,
@@ -87,10 +113,9 @@ func (s *State) Copy(sanitized bool) *State {
 	}
 
 	return result
-
 }
 
-func (s *State) MarshalJSON() ([]byte, error) {
+func (s *state) MarshalJSON() ([]byte, error) {
 	obj := map[string]interface{}{
 		"Game":     s.game,
 		"Players":  s.players,
@@ -99,34 +124,22 @@ func (s *State) MarshalJSON() ([]byte, error) {
 	return json.Marshal(obj)
 }
 
-//Diagram returns a basic, ascii rendering of the state for debug rendering.
-//It thunks out to Delegate.Diagram.
-func (s *State) Diagram() string {
+func (s *state) Diagram() string {
 	return s.delegate.Diagram(s)
 }
 
-//Santizied will return false if this is a full-fidelity State object, or
-//true if it has been sanitized, which means that some properties might be
-//hidden or otherwise altered. This should return true if the object was
-//created with Copy(true)
-func (s *State) Sanitized() bool {
+func (s *state) Sanitized() bool {
 	return s.sanitized
 }
 
-//Computed returns the computed properties for this state.
-func (s *State) Computed() ComputedProperties {
+func (s *state) Computed() ComputedProperties {
 	if s.computed == nil {
 		s.computed = newComputedPropertiesImpl(s.delegate.ComputedPropertiesConfig(), s)
 	}
 	return s.computed
 }
 
-//SanitizedForPlayer produces a copy state object that has been sanitized for
-//the player at the given index. The state object returned will have
-//Sanitized() return true. Will call GameDelegate.StateSanitizationPolicy to
-//retrieve the policy in place. See the package level comment for an overview
-//of how state sanitization works.
-func (s *State) SanitizedForPlayer(playerIndex int) *State {
+func (s *state) SanitizedForPlayer(playerIndex int) State {
 
 	//If the playerIndex isn't an actuall player's index, just return self.
 	if playerIndex < 0 || playerIndex >= len(s.players) {
@@ -139,7 +152,7 @@ func (s *State) SanitizedForPlayer(playerIndex int) *State {
 		policy = &StatePolicy{}
 	}
 
-	sanitized := s.Copy(true)
+	sanitized := s.copy(true)
 
 	sanitizeStateObj(sanitized.game.ReadSetter(), policy.Game, -1, playerIndex, PolicyVisible)
 
@@ -156,9 +169,9 @@ func (s *State) SanitizedForPlayer(playerIndex int) *State {
 //sanitizedWithExceptions will return a Sanitized() State where properties
 //that are not in the passed policy are treated as PolicyRandom. Useful in
 //computing properties.
-func (s *State) sanitizedWithExceptions(policy *StatePolicy) *State {
+func (s *state) sanitizedWithExceptions(policy *StatePolicy) State {
 
-	sanitized := s.Copy(true)
+	sanitized := s.copy(true)
 
 	sanitizeStateObj(sanitized.game.ReadSetter(), policy.Game, -1, -1, PolicyRandom)
 

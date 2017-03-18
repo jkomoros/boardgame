@@ -32,24 +32,24 @@ type GameDelegate interface {
 	//returned, any nil Stacks are returned, or any returned stacks don't have
 	//space for another component, game.SetUp will fail. State and Component
 	//are only provided for reference; do not modify them.
-	DistributeComponentToStarterStack(readOnlyState *State, c *Component) (Stack, error)
+	DistributeComponentToStarterStack(state State, c *Component) (Stack, error)
 
 	//BeginSetup is a chance to modify the initial state object *before* the
 	//components are distributed to it. This is a good place to configure
 	//state that will be necessary for you to make the right decisions in
 	//DistributeComponentToStarterStack.
-	BeginSetUp(state *State)
+	BeginSetUp(state MutableState)
 
 	//FinishSetUp is called during game.SetUp, *after* components have been
 	//distributed to their StarterStack. This is the last chance to modify the
 	//state before the game's initial state is considered final. For example,
 	//if you have a card game this is where you'd make sure the starter draw
 	//stacks are shuffled.
-	FinishSetUp(state *State)
+	FinishSetUp(state MutableState)
 
 	//CheckGameFinished should return true if the game is finished, and who
 	//the winners are. Called after every move is applied.
-	CheckGameFinished(state *State) (finished bool, winners []int)
+	CheckGameFinished(state State) (finished bool, winners []int)
 
 	//ProposeFixUpMove is called after a move has been applied. It may return
 	//a FixUp move, which will be applied before any other moves are applied.
@@ -57,7 +57,7 @@ type GameDelegate interface {
 	//moves are useful for things like shuffling a discard deck back into a
 	//draw deck, or other moves that are necessary to get the GameState back
 	//into reasonable shape.
-	ProposeFixUpMove(state *State) Move
+	ProposeFixUpMove(state State) Move
 
 	//DefaultNumPlayers returns the number of users that this game defaults to.
 	//For example, for tictactoe, it will be 2. If 0 is provided to
@@ -113,7 +113,7 @@ type GameDelegate interface {
 	//Diagram should return a basic debug rendering of state in multi-line
 	//ascii art. Useful for debugging. State.Diagram() will reach out to this
 	//method.
-	Diagram(s *State) string
+	Diagram(s State) string
 
 	//SetManager configures which manager this delegate is in use with. A
 	//given delegate can only be used by a single manager at a time.
@@ -131,7 +131,7 @@ type DefaultGameDelegate struct {
 	manager *GameManager
 }
 
-func (d *DefaultGameDelegate) Diagram(state *State) string {
+func (d *DefaultGameDelegate) Diagram(state State) string {
 	return "This should be overriden to render a reasonable state here"
 }
 
@@ -164,7 +164,7 @@ func (d *DefaultGameDelegate) EmptyComputedPlayerPropertyCollection() ComputedPr
 //this behavior should be suficient and need not be overwritten. Be extra sure
 //that your FixUpMoves have a conservative Legal function, otherwise you could
 //get a panic from applying too many FixUp moves.
-func (d *DefaultGameDelegate) ProposeFixUpMove(state *State) Move {
+func (d *DefaultGameDelegate) ProposeFixUpMove(state State) Move {
 	for _, move := range d.Manager().FixUpMoves() {
 		move.DefaultsForState(state)
 		if err := move.Legal(state); err == nil {
@@ -176,7 +176,7 @@ func (d *DefaultGameDelegate) ProposeFixUpMove(state *State) Move {
 	return nil
 }
 
-func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state *State, c *Component) (Stack, error) {
+func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state State, c *Component) (Stack, error) {
 	//The stub returns an error, because if this is called that means there
 	//was a component in the deck. And if we didn't store it in a stack, then
 	//we are in violation of the invariant.
@@ -191,15 +191,15 @@ func (d *DefaultGameDelegate) ComputedPropertiesConfig() *ComputedPropertiesConf
 	return nil
 }
 
-func (d *DefaultGameDelegate) BeginSetUp(stae *State) {
+func (d *DefaultGameDelegate) BeginSetUp(state MutableState) {
 	//Don't need to do anything by default
 }
 
-func (d *DefaultGameDelegate) FinishSetUp(state *State) {
+func (d *DefaultGameDelegate) FinishSetUp(state MutableState) {
 	//Don't need to do anything by default
 }
 
-func (d *DefaultGameDelegate) CheckGameFinished(state *State) (finished bool, winners []int) {
+func (d *DefaultGameDelegate) CheckGameFinished(state State) (finished bool, winners []int) {
 	return false, nil
 }
 

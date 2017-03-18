@@ -14,7 +14,7 @@ type MovePlaceToken struct {
 	TargetPlayerIndex int
 }
 
-func (m *MovePlaceToken) Legal(state *boardgame.State) error {
+func (m *MovePlaceToken) Legal(state boardgame.State) error {
 	game, players := concreteStates(state)
 
 	if game.CurrentPlayer != m.TargetPlayerIndex {
@@ -37,7 +37,7 @@ func (m *MovePlaceToken) Legal(state *boardgame.State) error {
 
 }
 
-func (m *MovePlaceToken) Apply(state *boardgame.State) error {
+func (m *MovePlaceToken) Apply(state boardgame.MutableState) error {
 
 	game, players := concreteStates(state)
 
@@ -52,7 +52,7 @@ func (m *MovePlaceToken) Apply(state *boardgame.State) error {
 	return nil
 }
 
-func (m *MovePlaceToken) DefaultsForState(state *boardgame.State) {
+func (m *MovePlaceToken) DefaultsForState(state boardgame.State) {
 
 	game, _ := concreteStates(state)
 
@@ -88,7 +88,7 @@ func (m *MovePlaceToken) ReadSetter() boardgame.PropertyReadSetter {
 
 type MoveAdvancePlayer struct{}
 
-func (m *MoveAdvancePlayer) Legal(state *boardgame.State) error {
+func (m *MoveAdvancePlayer) Legal(state boardgame.State) error {
 
 	game, players := concreteStates(state)
 
@@ -101,7 +101,7 @@ func (m *MoveAdvancePlayer) Legal(state *boardgame.State) error {
 	return nil
 }
 
-func (m *MoveAdvancePlayer) Apply(state *boardgame.State) error {
+func (m *MoveAdvancePlayer) Apply(state boardgame.MutableState) error {
 
 	game, players := concreteStates(state)
 
@@ -119,7 +119,7 @@ func (m *MoveAdvancePlayer) Apply(state *boardgame.State) error {
 
 }
 
-func (m *MoveAdvancePlayer) DefaultsForState(state *boardgame.State) {
+func (m *MoveAdvancePlayer) DefaultsForState(state boardgame.State) {
 	//Nothing to set.
 }
 

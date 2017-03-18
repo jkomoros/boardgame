@@ -80,7 +80,7 @@ func keyForGame(id string) []byte {
 	return []byte(strings.ToUpper(id))
 }
 
-func (s *StorageManager) State(game *boardgame.Game, version int) (*boardgame.State, error) {
+func (s *StorageManager) State(game *boardgame.Game, version int) (boardgame.State, error) {
 	if game == nil {
 		return nil, errors.New("No game provided")
 	}
@@ -162,7 +162,7 @@ func (s *StorageManager) Game(manager *boardgame.GameManager, id string) (*board
 
 }
 
-func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.Game, state *boardgame.State) error {
+func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.Game, state boardgame.State) error {
 
 	version := game.Version()
 

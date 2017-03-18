@@ -61,7 +61,7 @@ func (s *testStorageManager) String() string {
 	return strings.Join(results, "\n")
 }
 
-func (i *testStorageManager) State(game *Game, version int) (*State, error) {
+func (i *testStorageManager) State(game *Game, version int) (State, error) {
 	if game == nil {
 		return nil, errors.New("No game provided")
 	}
@@ -142,7 +142,7 @@ func (i *testStorageManager) winnersFromStorage(winners string) []int {
 	return result
 }
 
-func (i *testStorageManager) SaveGameAndCurrentState(game *Game, state *State) error {
+func (i *testStorageManager) SaveGameAndCurrentState(game *Game, state State) error {
 	if game == nil {
 		return errors.New("No game provided")
 	}

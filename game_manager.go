@@ -186,7 +186,7 @@ type refriedState struct {
 //verifyReaderStacks goes through each property in Reader that is a stack, and
 //verifies that it is non-nil, and its state property is set to the given
 //state.
-func verifyReaderStacks(reader PropertyReader, state *State) error {
+func verifyReaderStacks(reader PropertyReader, state *state) error {
 	for propName, propType := range reader.Props() {
 		switch propType {
 		case TypeGrowableStack:
@@ -214,7 +214,7 @@ func verifyReaderStacks(reader PropertyReader, state *State) error {
 
 //emptyPlayerState is a simple wrapper around delegate.EmptyPlayerState that
 //just verifies that stacks are inflated.
-func (g *GameManager) emptyPlayerState(state *State, playerIndex int) (MutablePlayerState, error) {
+func (g *GameManager) emptyPlayerState(state *state, playerIndex int) (MutablePlayerState, error) {
 
 	playerState := g.delegate.EmptyPlayerState(playerIndex)
 
@@ -232,7 +232,7 @@ func (g *GameManager) emptyPlayerState(state *State, playerIndex int) (MutablePl
 
 //emptyGameState is a simple wrapper around delegate.EmptyPlayerState that
 //just verifies that stacks are inflated.
-func (g *GameManager) emptyGameState(state *State) (MutableGameState, error) {
+func (g *GameManager) emptyGameState(state *state) (MutableGameState, error) {
 
 	gameState := g.delegate.EmptyGameState()
 
@@ -251,7 +251,7 @@ func (g *GameManager) emptyGameState(state *State) (MutableGameState, error) {
 //StateFromBlob takes a state that was serialized in storage and reinflates
 //it. Storage sub-packages should call this to recover a real State object
 //given a serialized state blob.
-func (g *GameManager) StateFromBlob(blob []byte) (*State, error) {
+func (g *GameManager) StateFromBlob(blob []byte) (State, error) {
 	//At this point, no extra state is stored in the blob other than in props.
 
 	//We can't just delegate to StateProps to unmarshal itself, because it
@@ -262,7 +262,7 @@ func (g *GameManager) StateFromBlob(blob []byte) (*State, error) {
 		return nil, err
 	}
 
-	result := &State{
+	result := &state{
 		delegate: g.delegate,
 	}
 
