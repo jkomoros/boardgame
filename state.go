@@ -7,7 +7,7 @@ import (
 //State represents the entire semantic state of a game at a given version. For
 //your specific game, Game and Players will actually be concrete structs to
 //your particular game. Games often define a top-level concreteStates()
-//*myGameState, []*myPlayerState so at the top of methods that accept a *State
+//*myGameState, []*myPlayerState so at the top of methods that accept a State
 //they can quickly get concrete, type-checked types with only a single
 //conversion leap of faith at the top. States are intended to be read-only;
 //methods where you are allowed to mutate the state (e.g. Move.Apply()) will
@@ -44,14 +44,6 @@ type State interface {
 	SanitizedForPlayer(playerIndex int) State
 }
 
-type state struct {
-	game      MutableGameState
-	players   []MutablePlayerState
-	computed  *computedPropertiesImpl
-	sanitized bool
-	delegate  GameDelegate
-}
-
 //A MutableState is a state that is designed to be modified in place. These
 //are passed to methods (instead of normal States) as a signal that
 //modifications are intended to be done on the state.
@@ -62,6 +54,17 @@ type MutableState interface {
 	MutableGame() MutableGameState
 	//MutablePlayers returns a slice of MutablePlayerStates for this MutableState.
 	MutablePlayers() []MutablePlayerState
+}
+
+//state implements both State and MutableState, so it can always be passed for
+//either, and what it's interpreted as is primarily a function of what the
+//method signature is that it's passed to
+type state struct {
+	game      MutableGameState
+	players   []MutablePlayerState
+	computed  *computedPropertiesImpl
+	sanitized bool
+	delegate  GameDelegate
 }
 
 func (s *state) MutableGame() MutableGameState {
