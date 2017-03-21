@@ -237,6 +237,14 @@ func (g *Game) SetUp(numPlayers int) error {
 
 	stateCopy.players = playerStates
 
+	dynamic, err := g.manager.emptyDynamicComponentValues(stateCopy)
+
+	if err != nil {
+		return errors.New("Couldn't create empty dynamic component values: " + err.Error())
+	}
+
+	stateCopy.dynamicComponentValues = dynamic
+
 	g.manager.delegate.BeginSetUp(stateCopy)
 
 	//Distribute all components to their starter locations
