@@ -179,8 +179,9 @@ func (g *GameManager) Game(id string) *Game {
 }
 
 type refriedState struct {
-	Game    json.RawMessage
-	Players []json.RawMessage
+	Game       json.RawMessage
+	Players    []json.RawMessage
+	Components map[string][]json.RawMessage
 }
 
 //verifyReaderStacks goes through each property in Reader that is a stack, and
@@ -350,6 +351,52 @@ func (g *GameManager) StateFromBlob(blob []byte) (State, error) {
 
 		result.players = append(result.players, player)
 	}
+
+	dynamic, err := g.emptyDynamicComponentValues(result)
+
+	if err != nil {
+		return nil, errors.New("Couldn't create empty dynamic component values: " + err.Error())
+	}
+
+	for deckName, values := range refried.Components {
+		resultDeckValues := result.dynamicComponentValues[deckName]
+		//TODO: detect the case where the emptycompontentvalues has decknames that are not in the JSON.
+		if resultDeckValues == nil {
+			return nil, errors.New("The empty dynamic component state didn't have deck name: " + deckName)
+		}
+		if len(values) != len(resultDeckValues) {
+			return nil, errors.New("The empty dynamic component state for deck " + deckName + " had wrong length. Got " + strconv.Itoa(len(values)) + " wanted " + strconv.Itoa(len(resultDeckValues)))
+		}
+		for i := 0; i < len(values); i++ {
+
+			value := values[i]
+			resultDeckValue := resultDeckValues[i]
+
+			if err := json.Unmarshal(value, resultDeckValue); err != nil {
+				return nil, errors.New("Error unmarshaling component state for deck " + deckName + " index " + strconv.Itoa(i) + ": " + err.Error())
+			}
+
+			for propName, propType := range resultDeckValue.Reader().Props() {
+				switch propType {
+				case TypeSizedStack:
+					stack, err := resultDeckValue.Reader().SizedStackProp(propName)
+					if err != nil {
+						return nil, errors.New("Unable to inflate stack " + propName + " in deck " + deckName + " component " + strconv.Itoa(i))
+					}
+					stack.Inflate(g.Chest())
+				case TypeGrowableStack:
+					stack, err := resultDeckValue.Reader().GrowableStackProp(propName)
+					if err != nil {
+						return nil, errors.New("Unable to inflate stack " + propName + " in deck " + deckName + " component " + strconv.Itoa(i))
+					}
+					stack.Inflate(g.Chest())
+				}
+			}
+
+		}
+	}
+
+	result.dynamicComponentValues = dynamic
 
 	return result, nil
 
