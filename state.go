@@ -133,6 +133,13 @@ func (s *state) MarshalJSON() ([]byte, error) {
 		"Players":  s.players,
 		"Computed": s.Computed(),
 	}
+
+	dynamic := s.DynamicComponentValues()
+
+	if dynamic != nil && len(dynamic) != 0 {
+		obj["Components"] = dynamic
+	}
+
 	return json.Marshal(obj)
 }
 
