@@ -248,6 +248,31 @@ func (g *GameManager) emptyGameState(state *state) (MutableGameState, error) {
 
 }
 
+func (g *GameManager) emptyDynamicComponentValues(state *state) (map[string][]DynamicComponentValues, error) {
+	result := make(map[string][]DynamicComponentValues)
+
+	for _, deckName := range g.Chest().DeckNames() {
+
+		deck := g.Chest().Deck(deckName)
+
+		if deck == nil {
+			return nil, errors.New("Couldn't find deck for " + deckName)
+		}
+
+		values := g.Delegate().EmptyDynamicComponentValues(deck)
+		if values == nil {
+			continue
+		}
+		arr := make([]DynamicComponentValues, len(deck.Components()))
+		for i := 0; i < len(deck.Components()); i++ {
+			arr[i] = values.Copy()
+		}
+		result[deckName] = arr
+	}
+
+	return result, nil
+}
+
 //StateFromBlob takes a state that was serialized in storage and reinflates
 //it. Storage sub-packages should call this to recover a real State object
 //given a serialized state blob.
