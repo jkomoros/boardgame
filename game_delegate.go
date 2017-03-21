@@ -92,6 +92,12 @@ type GameDelegate interface {
 	//called.
 	EmptyPlayerState(playerIndex int) MutablePlayerState
 
+	//EmptyDynamicComponentValues returns an empty DynamicComponentValues for
+	//the given deck. If nil is returned, then the components in that deck
+	//don't have any dynamic component state. This method must always return
+	//the same underlying type of struct for the same deck.
+	EmptyDynamicComponentValues(deck *Deck) ComponentValues
+
 	//EmptyComputed{Global,Player}PropertyCollection should return a struct
 	//that implements PropertyReadSetter. Computed properties will be stored
 	//in the objects that are returned. This allows users of the framework to
@@ -149,6 +155,10 @@ func (d *DefaultGameDelegate) Manager() *GameManager {
 
 func (d *DefaultGameDelegate) SetManager(manager *GameManager) {
 	d.manager = manager
+}
+
+func (d *DefaultGameDelegate) EmptyDynamicComponentValues(deck *Deck) ComponentValues {
+	return nil
 }
 
 func (d *DefaultGameDelegate) EmptyComputedGlobalPropertyCollection() ComputedPropertyCollection {
