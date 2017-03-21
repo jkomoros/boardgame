@@ -112,7 +112,13 @@ func (s *state) copy(sanitized bool) *state {
 
 	//TODO: fix up stacks for component values
 
-	//TODO: actually copy dynamic component states
+	for deckName, values := range s.dynamicComponentValues {
+		arr := make([]DynamicComponentValues, len(values))
+		for i := 0; i < len(values); i++ {
+			arr[i] = values[i].Copy()
+		}
+		result.dynamicComponentValues[deckName] = arr
+	}
 
 	//FixUp stacks to make sure they point to this new state.
 	if err := verifyReaderStacks(result.game.Reader(), result); err != nil {
