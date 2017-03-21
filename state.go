@@ -25,7 +25,7 @@ type State interface {
 	Players() []PlayerState
 	//DynamicComponentValues returns a map of deck name to array of component
 	//values, one per component in that deck.
-	DynamicComponentValues() map[string][]ComponentValues
+	DynamicComponentValues() map[string][]DynamicComponentValues
 	//Copy returns a deep copy of the State, including copied version of the Game
 	//and Player States.
 	Copy(sanitized bool) State
@@ -66,7 +66,7 @@ type state struct {
 	game                   MutableGameState
 	players                []MutablePlayerState
 	computed               *computedPropertiesImpl
-	dynamicComponentValues map[string][]ComponentValues
+	dynamicComponentValues map[string][]DynamicComponentValues
 	sanitized              bool
 	delegate               GameDelegate
 }
@@ -105,7 +105,7 @@ func (s *state) copy(sanitized bool) *state {
 	result := &state{
 		game:                   s.game.MutableCopy(),
 		players:                players,
-		dynamicComponentValues: make(map[string][]ComponentValues),
+		dynamicComponentValues: make(map[string][]DynamicComponentValues),
 		sanitized:              sanitized,
 		delegate:               s.delegate,
 	}
@@ -151,7 +151,7 @@ func (s *state) Sanitized() bool {
 	return s.sanitized
 }
 
-func (s *state) DynamicComponentValues() map[string][]ComponentValues {
+func (s *state) DynamicComponentValues() map[string][]DynamicComponentValues {
 	return s.dynamicComponentValues
 }
 

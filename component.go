@@ -11,6 +11,11 @@ type Component struct {
 	DeckIndex int
 }
 
+type DynamicComponentValues interface {
+	ComponentValues
+	Copy() DynamicComponentValues
+}
+
 type ComponentValues interface {
 	Reader() PropertyReader
 }
