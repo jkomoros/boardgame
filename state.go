@@ -110,12 +110,13 @@ func (s *state) copy(sanitized bool) *state {
 		delegate:               s.delegate,
 	}
 
-	//TODO: fix up stacks for component values
-
 	for deckName, values := range s.dynamicComponentValues {
 		arr := make([]DynamicComponentValues, len(values))
 		for i := 0; i < len(values); i++ {
 			arr[i] = values[i].Copy()
+			if err := verifyReaderStacks(arr[i].Reader(), result); err != nil {
+				return nil
+			}
 		}
 		result.dynamicComponentValues[deckName] = arr
 	}
