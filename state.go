@@ -23,6 +23,9 @@ type State interface {
 	Game() GameState
 	//Players returns a slice of all PlayerStates for this State
 	Players() []PlayerState
+	//DynamicComponentValues returns a map of deck name to array of component
+	//values, one per component in that deck.
+	DynamicComponentValues() map[string][]ComponentValues
 	//Copy returns a deep copy of the State, including copied version of the Game
 	//and Player States.
 	Copy(sanitized bool) State
@@ -60,11 +63,12 @@ type MutableState interface {
 //either, and what it's interpreted as is primarily a function of what the
 //method signature is that it's passed to
 type state struct {
-	game      MutableGameState
-	players   []MutablePlayerState
-	computed  *computedPropertiesImpl
-	sanitized bool
-	delegate  GameDelegate
+	game                   MutableGameState
+	players                []MutablePlayerState
+	computed               *computedPropertiesImpl
+	dynamicComponentValues map[string][]ComponentValues
+	sanitized              bool
+	delegate               GameDelegate
 }
 
 func (s *state) MutableGame() MutableGameState {
@@ -99,11 +103,16 @@ func (s *state) copy(sanitized bool) *state {
 	}
 
 	result := &state{
-		game:      s.game.MutableCopy(),
-		players:   players,
-		sanitized: sanitized,
-		delegate:  s.delegate,
+		game:                   s.game.MutableCopy(),
+		players:                players,
+		dynamicComponentValues: make(map[string][]ComponentValues),
+		sanitized:              sanitized,
+		delegate:               s.delegate,
 	}
+
+	//TODO: fix up stacks for component values
+
+	//TODO: actually copy dynamic component states
 
 	//FixUp stacks to make sure they point to this new state.
 	if err := verifyReaderStacks(result.game.Reader(), result); err != nil {
@@ -133,6 +142,10 @@ func (s *state) Diagram() string {
 
 func (s *state) Sanitized() bool {
 	return s.sanitized
+}
+
+func (s *state) DynamicComponentValues() map[string][]ComponentValues {
+	return s.dynamicComponentValues
 }
 
 func (s *state) Computed() ComputedProperties {
