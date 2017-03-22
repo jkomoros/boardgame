@@ -50,16 +50,44 @@
     "Components": {
         "test" : [
             {
-                "IntVar" : 0
+                "IntVar" : 0,
+                "Stack" : {
+                    "Deck" : "test",
+                    "Indexes" : [
+                        -1
+                    ],
+                    "Size": 1
+                }
             },
             {
-                "IntVar" : 0
+                "IntVar" : 0,
+                "Stack" : {
+                    "Deck" : "test",
+                    "Indexes" : [
+                        -1
+                    ],
+                    "Size": 1
+                }
             },
             {
-                "IntVar" : 0
+                "IntVar" : 0,
+                "Stack" : {
+                    "Deck" : "test",
+                    "Indexes" : [
+                        -1
+                    ],
+                    "Size": 1
+                }
             },
             {
-                "IntVar" : 0
+                "IntVar" : 0,
+                "Stack" : {
+                    "Deck" : "test",
+                    "Indexes" : [
+                        -1
+                    ],
+                    "Size": 1
+                }
             }
         ]
     },

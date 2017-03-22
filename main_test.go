@@ -15,6 +15,7 @@ type testingComponent struct {
 
 type testingComponentDynamic struct {
 	IntVar int
+	Stack  *SizedStack
 }
 
 const testGameName = "Test Game"
@@ -30,6 +31,7 @@ func (t *testingComponentDynamic) Reader() PropertyReader {
 func (t *testingComponentDynamic) Copy() DynamicComponentValues {
 	var result testingComponentDynamic
 	result = *t
+	result.Stack = t.Stack.Copy()
 	return &result
 }
 

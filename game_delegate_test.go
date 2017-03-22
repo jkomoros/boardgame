@@ -97,7 +97,9 @@ func (t *testGameDelegate) ComputedPropertiesConfig() *ComputedPropertiesConfig 
 
 func (t *testGameDelegate) EmptyDynamicComponentValues(deck *Deck) DynamicComponentValues {
 	if deck.Name() == "test" {
-		return &testingComponentDynamic{}
+		return &testingComponentDynamic{
+			Stack: NewSizedStack(deck, 1),
+		}
 	}
 	return nil
 }
