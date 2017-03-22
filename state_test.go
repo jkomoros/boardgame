@@ -90,6 +90,10 @@ func TestStateSerialization(t *testing.T) {
 		t.Error("The stack was not inflated when it came back from StateFromBlob")
 	}
 
+	if !gameState.DrawDeck.ComponentAt(0).DynamicValues(reconstitutedState).(*testingComponentDynamic).Stack.Inflated() {
+		t.Error("The stack on a component's dynamic value was not inflated coming back from storage.")
+	}
+
 	//This is lame, but when you create json for a State, it touches Computed,
 	//which will make it non-nil, so if you're doing direct comparison they
 	//won't compare equal even though they basically are. At this point

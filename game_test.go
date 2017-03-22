@@ -16,6 +16,57 @@ func (t *testInfiniteLoopGameDelegate) ProposeFixUpMove(state State) Move {
 	return &testAlwaysLegalMove{}
 }
 
+func TestMoveModifyDynamicValues(t *testing.T) {
+	game := testGame()
+
+	game.SetUp(0)
+
+	drawCardMove := game.PlayerMoveByName("Draw Card")
+
+	if drawCardMove == nil {
+		t.Fatal("Couldn't find move draw card")
+	}
+
+	if err := <-game.ProposeMove(drawCardMove); err != nil {
+		t.Error("Unexpected error trying to draw card: " + err.Error())
+	}
+
+	move := game.PlayerMoveByName("Increment IntValue of Card in Hand")
+
+	if move == nil {
+		t.Fatal("Couldn't find move Increment IntValue of Card in Hand")
+	}
+
+	if err := <-game.ProposeMove(move); err != nil {
+		t.Error("Unexpected error trying to increment dynamic component state: " + err.Error())
+	}
+
+	//Apply the move again. This implicitly tests that deserializing a non-zero dynamic component value works.
+
+	if err := <-game.ProposeMove(move); err != nil {
+		t.Error("unexpected error trying to increment dynamic component state a second time: ", err.Error())
+	}
+
+	gameState, playerStates := concreteStates(game.CurrentState())
+
+	player := playerStates[gameState.CurrentPlayer]
+
+	component := player.Hand.ComponentAt(0)
+
+	dynamic := component.DynamicValues(game.CurrentState())
+
+	if dynamic == nil {
+		t.Error("Component unexpectedly had nil dynamic values")
+	}
+
+	easyDynamic := dynamic.(*testingComponentDynamic)
+
+	if easyDynamic.IntVar != 6 {
+		t.Error("Dynamic state of component unexpected value: ", easyDynamic.IntVar)
+	}
+
+}
+
 func TestProposeMoveNonModifiableGame(t *testing.T) {
 	game := testGame()
 

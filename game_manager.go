@@ -179,8 +179,9 @@ func (g *GameManager) Game(id string) *Game {
 }
 
 type refriedState struct {
-	Game    json.RawMessage
-	Players []json.RawMessage
+	Game       json.RawMessage
+	Players    []json.RawMessage
+	Components map[string][]json.RawMessage
 }
 
 //verifyReaderStacks goes through each property in Reader that is a stack, and
@@ -246,6 +247,32 @@ func (g *GameManager) emptyGameState(state *state) (MutableGameState, error) {
 
 	return gameState, nil
 
+}
+
+func (g *GameManager) emptyDynamicComponentValues(state *state) (map[string][]DynamicComponentValues, error) {
+	result := make(map[string][]DynamicComponentValues)
+
+	for _, deckName := range g.Chest().DeckNames() {
+
+		deck := g.Chest().Deck(deckName)
+
+		if deck == nil {
+			return nil, errors.New("Couldn't find deck for " + deckName)
+		}
+
+		values := g.Delegate().EmptyDynamicComponentValues(deck)
+		if values == nil {
+			continue
+		}
+		arr := make([]DynamicComponentValues, len(deck.Components()))
+		for i := 0; i < len(deck.Components()); i++ {
+			arr[i] = values.Copy()
+		}
+		result[deckName] = arr
+
+	}
+
+	return result, nil
 }
 
 //StateFromBlob takes a state that was serialized in storage and reinflates
@@ -324,6 +351,52 @@ func (g *GameManager) StateFromBlob(blob []byte) (State, error) {
 		}
 
 		result.players = append(result.players, player)
+	}
+
+	dynamic, err := g.emptyDynamicComponentValues(result)
+
+	if err != nil {
+		return nil, errors.New("Couldn't create empty dynamic component values: " + err.Error())
+	}
+
+	result.dynamicComponentValues = dynamic
+
+	for deckName, values := range refried.Components {
+		resultDeckValues := result.dynamicComponentValues[deckName]
+		//TODO: detect the case where the emptycompontentvalues has decknames that are not in the JSON.
+		if resultDeckValues == nil {
+			return nil, errors.New("The empty dynamic component state didn't have deck name: " + deckName)
+		}
+		if len(values) != len(resultDeckValues) {
+			return nil, errors.New("The empty dynamic component state for deck " + deckName + " had wrong length. Got " + strconv.Itoa(len(values)) + " wanted " + strconv.Itoa(len(resultDeckValues)))
+		}
+		for i := 0; i < len(values); i++ {
+
+			value := values[i]
+			resultDeckValue := resultDeckValues[i]
+
+			if err := json.Unmarshal(value, resultDeckValue); err != nil {
+				return nil, errors.New("Error unmarshaling component state for deck " + deckName + " index " + strconv.Itoa(i) + ": " + err.Error())
+			}
+
+			for propName, propType := range resultDeckValue.Reader().Props() {
+				switch propType {
+				case TypeSizedStack:
+					stack, err := resultDeckValue.Reader().SizedStackProp(propName)
+					if err != nil {
+						return nil, errors.New("Unable to inflate stack " + propName + " in deck " + deckName + " component " + strconv.Itoa(i))
+					}
+					stack.Inflate(g.Chest())
+				case TypeGrowableStack:
+					stack, err := resultDeckValue.Reader().GrowableStackProp(propName)
+					if err != nil {
+						return nil, errors.New("Unable to inflate stack " + propName + " in deck " + deckName + " component " + strconv.Itoa(i))
+					}
+					stack.Inflate(g.Chest())
+				}
+			}
+
+		}
 	}
 
 	return result, nil

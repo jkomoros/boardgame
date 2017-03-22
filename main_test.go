@@ -13,10 +13,26 @@ type testingComponent struct {
 	Integer int
 }
 
+type testingComponentDynamic struct {
+	IntVar int
+	Stack  *SizedStack
+}
+
 const testGameName = "Test Game"
 
 func (t *testingComponent) Reader() PropertyReader {
 	return DefaultReader(t)
+}
+
+func (t *testingComponentDynamic) Reader() PropertyReader {
+	return DefaultReader(t)
+}
+
+func (t *testingComponentDynamic) Copy() DynamicComponentValues {
+	var result testingComponentDynamic
+	result = *t
+	result.Stack = t.Stack.Copy()
+	return &result
 }
 
 func componentsEqual(one *Component, two *Component) bool {
@@ -116,6 +132,131 @@ func (t *testPlayerState) ReadSetter() PropertyReadSetter {
 
 func (t *testPlayerState) Reader() PropertyReader {
 	return DefaultReader(t)
+}
+
+type testMoveIncrementCardInHand struct {
+	TargetPlayerIndex int
+}
+
+func (t *testMoveIncrementCardInHand) ReadSetter() PropertyReadSetter {
+	return DefaultReadSetter(t)
+}
+
+func (t *testMoveIncrementCardInHand) Copy() Move {
+	var result testMoveIncrementCardInHand
+	result = *t
+	return &result
+}
+
+func (t *testMoveIncrementCardInHand) DefaultsForState(state State) {
+
+	game, _ := concreteStates(state)
+
+	t.TargetPlayerIndex = game.CurrentPlayer
+}
+
+func (t *testMoveIncrementCardInHand) Name() string {
+	return "Increment IntValue of Card in Hand"
+}
+
+func (t *testMoveIncrementCardInHand) Description() string {
+	return "Increments the IntValue of the card in the hand"
+}
+
+func (t *testMoveIncrementCardInHand) Legal(state State) error {
+	game, players := concreteStates(state)
+
+	player := players[game.CurrentPlayer]
+
+	if player.Hand.NumComponents() == 0 {
+		return errors.New("The current player does not have any components in their hand")
+	}
+
+	return nil
+}
+
+func (t *testMoveIncrementCardInHand) Apply(state MutableState) error {
+	game, players := concreteStates(state)
+
+	player := players[game.CurrentPlayer]
+
+	for _, component := range player.Hand.Components() {
+		if component == nil {
+			continue
+		}
+
+		values := component.DynamicValues(state)
+
+		if values == nil {
+			return errors.New("DynamicValues was nil")
+		}
+
+		easyValues := values.(*testingComponentDynamic)
+
+		easyValues.IntVar += 3
+
+		return nil
+
+	}
+
+	return errors.New("Didn't find a component in hand")
+}
+
+type testMoveDrawCard struct {
+	TargetPlayerIndex int
+}
+
+func (t *testMoveDrawCard) ReadSetter() PropertyReadSetter {
+	return DefaultReadSetter(t)
+}
+
+func (t *testMoveDrawCard) Copy() Move {
+	var result testMoveDrawCard
+	result = *t
+	return &result
+}
+
+func (t *testMoveDrawCard) DefaultsForState(state State) {
+
+	game, _ := concreteStates(state)
+
+	t.TargetPlayerIndex = game.CurrentPlayer
+}
+
+func (t *testMoveDrawCard) Name() string {
+	return "Draw Card"
+}
+
+func (t *testMoveDrawCard) Description() string {
+	return "Draws one card from draw deck into player's hand"
+}
+
+func (t *testMoveDrawCard) Legal(state State) error {
+	game, players := concreteStates(state)
+
+	player := players[game.CurrentPlayer]
+
+	if player.Hand.SlotsRemaining() == 0 {
+		return errors.New("The current player does not have enough slots in their hand")
+	}
+
+	if game.DrawDeck.NumComponents() == 0 {
+		return errors.New("there are no cards to draw")
+	}
+
+	return nil
+}
+
+func (t *testMoveDrawCard) Apply(state MutableState) error {
+	game, players := concreteStates(state)
+
+	player := players[game.CurrentPlayer]
+
+	if err := game.DrawDeck.MoveComponent(FirstComponentIndex, player.Hand, FirstSlotIndex); err != nil {
+		return errors.New("couldn't move component from draw deck to hand: " + err.Error())
+	}
+
+	return nil
 }
 
 type testMoveAdvanceCurentPlayer struct{}
