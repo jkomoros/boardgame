@@ -41,6 +41,12 @@ func TestMoveModifyDynamicValues(t *testing.T) {
 		t.Error("Unexpected error trying to increment dynamic component state: " + err.Error())
 	}
 
+	//Apply the move again. This implicitly tests that deserializing a non-zero dynamic component value works.
+
+	if err := <-game.ProposeMove(move); err != nil {
+		t.Error("unexpected error trying to increment dynamic component state a second time: ", err.Error())
+	}
+
 	gameState, playerStates := concreteStates(game.CurrentState())
 
 	player := playerStates[gameState.CurrentPlayer]
@@ -55,7 +61,7 @@ func TestMoveModifyDynamicValues(t *testing.T) {
 
 	easyDynamic := dynamic.(*testingComponentDynamic)
 
-	if easyDynamic.IntVar != 3 {
+	if easyDynamic.IntVar != 6 {
 		t.Error("Dynamic state of component unexpected value: ", easyDynamic.IntVar)
 	}
 
