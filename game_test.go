@@ -21,16 +21,42 @@ func TestMoveModifyDynamicValues(t *testing.T) {
 
 	game.SetUp(0)
 
+	drawCardMove := game.PlayerMoveByName("Draw Card")
+
+	if drawCardMove == nil {
+		t.Fatal("Couldn't find move draw card")
+	}
+
+	if err := <-game.ProposeMove(drawCardMove); err != nil {
+		t.Error("Unexpected error trying to draw card: " + err.Error())
+	}
+
 	move := game.PlayerMoveByName("Increment IntValue of Card in Hand")
 
 	if move == nil {
 		t.Fatal("Couldn't find move Increment IntValue of Card in Hand")
 	}
 
-	//TODO: get the game to a state where the first player has a card in hand
+	if err := <-game.ProposeMove(move); err != nil {
+		t.Error("Unexpected error trying to increment dynamic component state: " + err.Error())
+	}
 
-	if err := <-game.ProposeMove(move); err == nil {
-		t.Error("Excpted illegal move to error but it didn't")
+	gameState, playerStates := concreteStates(game.CurrentState())
+
+	player := playerStates[gameState.CurrentPlayer]
+
+	component := player.Hand.ComponentAt(0)
+
+	dynamic := component.DynamicValues(game.CurrentState())
+
+	if dynamic == nil {
+		t.Error("Component unexpectedly had nil dynamic values")
+	}
+
+	easyDynamic := dynamic.(*testingComponentDynamic)
+
+	if easyDynamic.IntVar != 3 {
+		t.Error("Dynamic state of component unexpected value: ", easyDynamic.IntVar)
 	}
 
 }

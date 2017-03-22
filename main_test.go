@@ -202,6 +202,63 @@ func (t *testMoveIncrementCardInHand) Apply(state MutableState) error {
 	return errors.New("Didn't find a component in hand")
 }
 
+type testMoveDrawCard struct {
+	TargetPlayerIndex int
+}
+
+func (t *testMoveDrawCard) ReadSetter() PropertyReadSetter {
+	return DefaultReadSetter(t)
+}
+
+func (t *testMoveDrawCard) Copy() Move {
+	var result testMoveDrawCard
+	result = *t
+	return &result
+}
+
+func (t *testMoveDrawCard) DefaultsForState(state State) {
+
+	game, _ := concreteStates(state)
+
+	t.TargetPlayerIndex = game.CurrentPlayer
+}
+
+func (t *testMoveDrawCard) Name() string {
+	return "Draw Card"
+}
+
+func (t *testMoveDrawCard) Description() string {
+	return "Draws one card from draw deck into player's hand"
+}
+
+func (t *testMoveDrawCard) Legal(state State) error {
+	game, players := concreteStates(state)
+
+	player := players[game.CurrentPlayer]
+
+	if player.Hand.SlotsRemaining() == 0 {
+		return errors.New("The current player does not have enough slots in their hand")
+	}
+
+	if game.DrawDeck.NumComponents() == 0 {
+		return errors.New("there are no cards to draw")
+	}
+
+	return nil
+}
+
+func (t *testMoveDrawCard) Apply(state MutableState) error {
+	game, players := concreteStates(state)
+
+	player := players[game.CurrentPlayer]
+
+	if err := game.DrawDeck.MoveComponent(FirstComponentIndex, player.Hand, FirstSlotIndex); err != nil {
+		return errors.New("couldn't move component from draw deck to hand: " + err.Error())
+	}
+
+	return nil
+}
+
 type testMoveAdvanceCurentPlayer struct{}
 
 func (t *testMoveAdvanceCurentPlayer) ReadSetter() PropertyReadSetter {
