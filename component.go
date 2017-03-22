@@ -19,3 +19,22 @@ type DynamicComponentValues interface {
 type ComponentValues interface {
 	Reader() PropertyReader
 }
+
+func (c *Component) DynamicValues(state State) DynamicComponentValues {
+
+	//TODO: test this
+
+	dynamic := state.DynamicComponentValues()
+
+	values := dynamic[c.Deck.Name()]
+
+	if values == nil {
+		return nil
+	}
+
+	if len(values) <= c.DeckIndex {
+		return nil
+	}
+
+	return values[c.DeckIndex]
+}
