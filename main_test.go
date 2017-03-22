@@ -134,6 +134,74 @@ func (t *testPlayerState) Reader() PropertyReader {
 	return DefaultReader(t)
 }
 
+type testMoveIncrementCardInHand struct {
+	TargetPlayerIndex int
+}
+
+func (t *testMoveIncrementCardInHand) ReadSetter() PropertyReadSetter {
+	return DefaultReadSetter(t)
+}
+
+func (t *testMoveIncrementCardInHand) Copy() Move {
+	var result testMoveIncrementCardInHand
+	result = *t
+	return &result
+}
+
+func (t *testMoveIncrementCardInHand) DefaultsForState(state State) {
+
+	game, _ := concreteStates(state)
+
+	t.TargetPlayerIndex = game.CurrentPlayer
+}
+
+func (t *testMoveIncrementCardInHand) Name() string {
+	return "Increment IntValue of Card in Hand"
+}
+
+func (t *testMoveIncrementCardInHand) Description() string {
+	return "Increments the IntValue of the card in the hand"
+}
+
+func (t *testMoveIncrementCardInHand) Legal(state State) error {
+	game, players := concreteStates(state)
+
+	player := players[game.CurrentPlayer]
+
+	if player.Hand.NumComponents() == 0 {
+		return errors.New("The current player does not have any components in their hand")
+	}
+
+	return nil
+}
+
+func (t *testMoveIncrementCardInHand) Apply(state MutableState) error {
+	game, players := concreteStates(state)
+
+	player := players[game.CurrentPlayer]
+
+	for _, component := range player.Hand.Components() {
+		if component == nil {
+			continue
+		}
+
+		values := component.DynamicValues(state)
+
+		if values == nil {
+			return errors.New("DynamicValues was nil")
+		}
+
+		easyValues := values.(*testingComponentDynamic)
+
+		easyValues.IntVar += 3
+
+		return nil
+
+	}
+
+	return errors.New("Didn't find a component in hand")
+}
+
 type testMoveAdvanceCurentPlayer struct{}
 
 func (t *testMoveAdvanceCurentPlayer) ReadSetter() PropertyReadSetter {

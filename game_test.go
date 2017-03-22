@@ -16,6 +16,25 @@ func (t *testInfiniteLoopGameDelegate) ProposeFixUpMove(state State) Move {
 	return &testAlwaysLegalMove{}
 }
 
+func TestMoveModifyDynamicValues(t *testing.T) {
+	game := testGame()
+
+	game.SetUp(0)
+
+	move := game.PlayerMoveByName("Increment IntValue of Card in Hand")
+
+	if move == nil {
+		t.Fatal("Couldn't find move Increment IntValue of Card in Hand")
+	}
+
+	//TODO: get the game to a state where the first player has a card in hand
+
+	if err := <-game.ProposeMove(move); err == nil {
+		t.Error("Excpted illegal move to error but it didn't")
+	}
+
+}
+
 func TestProposeMoveNonModifiableGame(t *testing.T) {
 	game := testGame()
 
