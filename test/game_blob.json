@@ -53,6 +53,22 @@
         }
       }
     ],
+    "Components": {
+      "test" : [
+        {
+          "IntVar" : 0
+        },
+        {
+          "IntVar" : 0
+        },
+        {
+          "IntVar" : 0
+        },
+        {
+          "IntVar" : 0
+        }
+      ]
+    },
     "Computed":{
       "Global": {
         "SumAllScores": 0

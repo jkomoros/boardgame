@@ -269,6 +269,7 @@ func (g *GameManager) emptyDynamicComponentValues(state *state) (map[string][]Dy
 			arr[i] = values.Copy()
 		}
 		result[deckName] = arr
+
 	}
 
 	return result, nil
@@ -358,6 +359,8 @@ func (g *GameManager) StateFromBlob(blob []byte) (State, error) {
 		return nil, errors.New("Couldn't create empty dynamic component values: " + err.Error())
 	}
 
+	result.dynamicComponentValues = dynamic
+
 	for deckName, values := range refried.Components {
 		resultDeckValues := result.dynamicComponentValues[deckName]
 		//TODO: detect the case where the emptycompontentvalues has decknames that are not in the JSON.
@@ -395,8 +398,6 @@ func (g *GameManager) StateFromBlob(blob []byte) (State, error) {
 
 		}
 	}
-
-	result.dynamicComponentValues = dynamic
 
 	return result, nil
 

@@ -13,10 +13,24 @@ type testingComponent struct {
 	Integer int
 }
 
+type testingComponentDynamic struct {
+	IntVar int
+}
+
 const testGameName = "Test Game"
 
 func (t *testingComponent) Reader() PropertyReader {
 	return DefaultReader(t)
+}
+
+func (t *testingComponentDynamic) Reader() PropertyReader {
+	return DefaultReader(t)
+}
+
+func (t *testingComponentDynamic) Copy() DynamicComponentValues {
+	var result testingComponentDynamic
+	result = *t
+	return &result
 }
 
 func componentsEqual(one *Component, two *Component) bool {

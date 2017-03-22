@@ -95,6 +95,13 @@ func (t *testGameDelegate) ComputedPropertiesConfig() *ComputedPropertiesConfig 
 	return testPropertiesConfig
 }
 
+func (t *testGameDelegate) EmptyDynamicComponentValues(deck *Deck) DynamicComponentValues {
+	if deck.Name() == "test" {
+		return &testingComponentDynamic{}
+	}
+	return nil
+}
+
 func (t *testGameDelegate) EmptyComputedGlobalPropertyCollection() ComputedPropertyCollection {
 	return &testGlobalPropertiesCollection{}
 }
