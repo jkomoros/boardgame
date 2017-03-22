@@ -39,6 +39,11 @@ type Stack interface {
 
 	//ComponentAt retrieves the component at the given index in the stack.
 	ComponentAt(index int) *Component
+
+	//Components returns all of the components. Equivalent to calling
+	//ComponentAt from 0 to Len().
+	Components() []*Component
+
 	//Components returns all components. Equivalent to calling ComponentAt
 	//from 0 to Len(), and extracting the Values of each.
 	ComponentValues() []ComponentValues
@@ -324,6 +329,26 @@ func (s *SizedStack) Inflate(chest *ComponentChest) error {
 
 	return nil
 
+}
+
+func (g *GrowableStack) Components() []*Component {
+	result := make([]*Component, len(g.indexes))
+
+	for i := 0; i < len(result); i++ {
+		result[i] = g.ComponentAt(i)
+	}
+
+	return result
+}
+
+func (s *SizedStack) Components() []*Component {
+	result := make([]*Component, len(s.indexes))
+
+	for i := 0; i < len(result); i++ {
+		result[i] = s.ComponentAt(i)
+	}
+
+	return result
 }
 
 //ComponentAt fetches the component object representing the n-th object in
