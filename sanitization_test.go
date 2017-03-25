@@ -112,6 +112,25 @@ func TestSanitization(t *testing.T) {
 			"basic_state_after_dynamic_component_move.json",
 			"sanitization_with_dynamic_state.json",
 		},
+		{
+			&StatePolicy{
+				DynamicComponentValues: map[string]SubStatePolicy{
+					"test": SubStatePolicy{
+						"IntVar": GroupPolicy{
+							GroupAll: PolicyHidden,
+						},
+					},
+				},
+				Player: SubStatePolicy{
+					"Hand": GroupPolicy{
+						GroupOther: PolicyHidden,
+					},
+				},
+			},
+			1,
+			"basic_state_after_dynamic_component_move.json",
+			"sanitization_with_dynamic_state_sanitized.json",
+		},
 	}
 
 	for i, test := range tests {
@@ -136,7 +155,7 @@ func TestSanitization(t *testing.T) {
 			t.Fatal(i, "state sanitization came back nil")
 		}
 
-		sanitizedBlob, err := json.Marshal(sanitizedState)
+		sanitizedBlob, err := json.MarshalIndent(sanitizedState, "", "\t")
 
 		if err != nil {
 			t.Fatal(i, "Sanitized serialize failed", err)
