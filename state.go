@@ -184,13 +184,32 @@ func (s *state) SanitizedForPlayer(playerIndex int) State {
 
 	sanitized := s.copy(true)
 
-	sanitizeStateObj(sanitized.game.ReadSetter(), policy.Game, -1, playerIndex, PolicyVisible)
+	//We need to figure out which components that have dynamicvalues are
+	//visible after sanitizing game and player states. We'll have
+	//sanitizeStateObj tell us which ones are visible, and which player's
+	//state they're visible through, by accumulating the information in
+	//visibleDyanmicComponents.
+	visibleDynamicComponents := make(map[string]map[int]int)
+
+	for deckName, _ := range s.dynamicComponentValues {
+		visibleDynamicComponents[deckName] = make(map[int]int)
+	}
+
+	sanitizeStateObj(sanitized.game.ReadSetter(), policy.Game, -1, playerIndex, PolicyVisible, visibleDynamicComponents)
 
 	playerStates := sanitized.players
 
 	for i := 0; i < len(playerStates); i++ {
-		sanitizeStateObj(playerStates[i].ReadSetter(), policy.Player, i, playerIndex, PolicyVisible)
+		sanitizeStateObj(playerStates[i].ReadSetter(), policy.Player, i, playerIndex, PolicyVisible, visibleDynamicComponents)
 	}
+
+	//TODO: now we have to go through and reason about each of the components
+	//that are children of the dynamicvalues that are revealed. :-/
+
+	//Now that all dynamic components are marked, we need to go through and
+	//sanitize all of those objects according to the policy.
+
+	//TODO: do that
 
 	return sanitized
 
@@ -203,12 +222,12 @@ func (s *state) sanitizedWithExceptions(policy *StatePolicy) State {
 
 	sanitized := s.copy(true)
 
-	sanitizeStateObj(sanitized.game.ReadSetter(), policy.Game, -1, -1, PolicyRandom)
+	sanitizeStateObj(sanitized.game.ReadSetter(), policy.Game, -1, -1, PolicyRandom, nil)
 
 	playerStates := sanitized.players
 
 	for i := 0; i < len(playerStates); i++ {
-		sanitizeStateObj(playerStates[i].ReadSetter(), policy.Player, -1, -1, PolicyRandom)
+		sanitizeStateObj(playerStates[i].ReadSetter(), policy.Player, -1, -1, PolicyRandom, nil)
 	}
 
 	return sanitized

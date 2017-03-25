@@ -86,7 +86,7 @@ const (
 //for Game). preparingForPlayerIndex is the index that we're preparing the
 //overall santiized state for, as provied to
 //GameManager.SanitizedStateForPlayer()
-func sanitizeStateObj(readSetter PropertyReadSetter, policy SubStatePolicy, statePlayerIndex int, preparingForPlayerIndex int, defaultPolicy Policy) {
+func sanitizeStateObj(readSetter PropertyReadSetter, policy SubStatePolicy, statePlayerIndex int, preparingForPlayerIndex int, defaultPolicy Policy, visibleDynamic map[string]map[int]int) {
 
 	for propName, propType := range readSetter.Props() {
 		prop, err := readSetter.Prop(propName)
@@ -97,6 +97,23 @@ func sanitizeStateObj(readSetter PropertyReadSetter, policy SubStatePolicy, stat
 		}
 
 		effectivePolicy := calculateEffectivePolicy(prop, propType, policy[propName], statePlayerIndex, preparingForPlayerIndex, defaultPolicy)
+
+		if visibleDynamic != nil {
+			if propType == TypeGrowableStack || propType == TypeSizedStack {
+				if effectivePolicy == PolicyVisible {
+					stackProp := prop.(Stack)
+					if _, ok := visibleDynamic[stackProp.deck().Name()]; ok {
+						for _, c := range stackProp.Components() {
+							if c == nil {
+								continue
+							}
+							visibleDynamic[c.Deck.Name()][c.DeckIndex] = statePlayerIndex
+						}
+					}
+
+				}
+			}
+		}
 
 		readSetter.SetProp(propName, applyPolicy(effectivePolicy, prop, propType))
 	}
