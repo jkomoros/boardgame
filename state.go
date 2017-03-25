@@ -204,7 +204,8 @@ func (s *state) SanitizedForPlayer(playerIndex int) State {
 	}
 
 	//TODO: now we have to go through and reason about each of the components
-	//that are children of the dynamicvalues that are revealed. :-/
+	//that are children of the dynamicvalues that are revealed.... and then
+	//keep on doing that until no new ones are found. :-/
 
 	//Now that all dynamic components are marked, we need to go through and
 	//sanitize all of those objects according to the policy.
