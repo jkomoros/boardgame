@@ -203,9 +203,10 @@ func (s *state) SanitizedForPlayer(playerIndex int) State {
 		sanitizeStateObj(playerStates[i].ReadSetter(), policy.Player, i, playerIndex, PolicyVisible, visibleDynamicComponents)
 	}
 
-	//TODO: now we have to go through and reason about each of the components
-	//that are children of the dynamicvalues that are revealed.... and then
-	//keep on doing that until no new ones are found. :-/
+	//Some of the DynamicComponentValues that were marked as visible might
+	//have their own stacks with dynamic values that are visible, so we need
+	//to go through and mark those, too..
+	transativelyMarkDynamicComponentsAsVisible(sanitized.dynamicComponentValues, visibleDynamicComponents)
 
 	//Now that all dynamic components are marked, we need to go through and
 	//sanitize all of those objects according to the policy.

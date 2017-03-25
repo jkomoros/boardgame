@@ -120,6 +120,67 @@ func sanitizeStateObj(readSetter PropertyReadSetter, policy SubStatePolicy, stat
 
 }
 
+func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[string][]DynamicComponentValues, visibleComponents map[string]map[int]int) {
+
+	//TODO: TEST THIS!
+
+	type workItem struct {
+		deckName  string
+		deckIndex int
+	}
+
+	var workItems []workItem
+
+	//Fill the list of items to work through with all visible items.
+
+	for deckName, visibleItems := range visibleComponents {
+		for index, _ := range visibleItems {
+			workItems = append(workItems, workItem{deckName, index})
+		}
+	}
+
+	//We can't use range because we will be adding more items to it as we go.
+
+	for i := 0; i < len(workItems); i++ {
+		item := workItems[i]
+
+		playerIndex := visibleComponents[item.deckName][item.deckIndex]
+		values := dynamicComponentValues[item.deckName][item.deckIndex]
+
+		reader := values.Reader()
+
+		for propName, propType := range reader.Props() {
+			if propType != TypeGrowableStack && propType != TypeSizedStack {
+				continue
+			}
+			prop, err := reader.Prop(propName)
+
+			if err != nil {
+				continue
+			}
+
+			stackProp := prop.(Stack)
+
+			if _, ok := dynamicComponentValues[stackProp.deck().Name()]; !ok {
+				//This stack is for a deck that has no dynamic values, can skip.
+				continue
+			}
+
+			//Ok, if we get to here then we have a stack with items in a deck that does have dynamic values.
+			for _, c := range stackProp.Components() {
+				if c == nil {
+					continue
+				}
+				//There can't possibly be a collision because each component may only be in a single stack at a time.
+				visibleComponents[c.Deck.Name()][c.DeckIndex] = playerIndex
+				//Take note that there's another item to add to the queue to explore.
+				workItems = append(workItems, workItem{c.Deck.Name(), c.DeckIndex})
+			}
+		}
+
+	}
+}
+
 func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]DynamicComponentValues, visibleComponents map[string]map[int]int, dynamicPolicy map[string]SubStatePolicy, preparingForPlayerIndex int) {
 	for name, slice := range dynamicComponentValues {
 
