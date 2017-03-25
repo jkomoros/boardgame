@@ -98,6 +98,20 @@ func TestSanitization(t *testing.T) {
 			"sanitization_basic_in.json",
 			"sanitization_basic_nonempty.json",
 		},
+		{
+			&StatePolicy{
+				DynamicComponentValues: map[string]SubStatePolicy{
+					"test": SubStatePolicy{
+						"IntVar": GroupPolicy{
+							GroupAll: PolicyHidden,
+						},
+					},
+				},
+			},
+			0,
+			"basic_state_after_dynamic_component_move.json",
+			"sanitization_with_dynamic_state.json",
+		},
 	}
 
 	for i, test := range tests {
