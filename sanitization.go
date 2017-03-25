@@ -95,12 +95,15 @@ func sanitizeStateObj(readSetter PropertyReadSetter, policy SubStatePolicy, stat
 			//TODO: shouldn't we return an error or something?
 			continue
 		}
-		readSetter.SetProp(propName, sanitizeProperty(prop, propType, policy[propName], statePlayerIndex, preparingForPlayerIndex, defaultPolicy))
+
+		effectivePolicy := calculateEffectivePolicy(prop, propType, policy[propName], statePlayerIndex, preparingForPlayerIndex, defaultPolicy)
+
+		readSetter.SetProp(propName, applyPolicy(effectivePolicy, prop, propType))
 	}
 
 }
 
-func sanitizeProperty(prop interface{}, propType PropertyType, policyGroup GroupPolicy, statePlayerIndex int, preparingForPlayerIndex int, defaultPolicy Policy) interface{} {
+func calculateEffectivePolicy(prop interface{}, propType PropertyType, policyGroup GroupPolicy, statePlayerIndex int, preparingForPlayerIndex int, defaultPolicy Policy) Policy {
 
 	//We're going to collect all of the policies that apply.
 	var applicablePolicies []Policy
@@ -137,7 +140,7 @@ func sanitizeProperty(prop interface{}, propType PropertyType, policyGroup Group
 		effectivePolicy = defaultPolicy
 	}
 
-	return applyPolicy(effectivePolicy, prop, propType)
+	return effectivePolicy
 }
 
 func randomBool() bool {
