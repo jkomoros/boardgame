@@ -208,8 +208,7 @@ func (s *state) SanitizedForPlayer(playerIndex int) State {
 
 	//Now that all dynamic components are marked, we need to go through and
 	//sanitize all of those objects according to the policy.
-
-	//TODO: do that
+	sanitizeDynamicComponentValues(sanitized.dynamicComponentValues, visibleDynamicComponents, policy.DynamicComponentValues, playerIndex)
 
 	return sanitized
 

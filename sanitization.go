@@ -120,6 +120,36 @@ func sanitizeStateObj(readSetter PropertyReadSetter, policy SubStatePolicy, stat
 
 }
 
+func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]DynamicComponentValues, visibleComponents map[string]map[int]int, dynamicPolicy map[string]SubStatePolicy, preparingForPlayerIndex int) {
+	for name, slice := range dynamicComponentValues {
+
+		visibleDynamicDeck := visibleComponents[name]
+
+		for i, value := range slice {
+
+			readSetter := value.ReadSetter()
+
+			if player, visible := visibleDynamicDeck[i]; visible {
+
+				sanitizeStateObj(readSetter, dynamicPolicy[name], player, preparingForPlayerIndex, PolicyVisible, nil)
+
+			} else {
+				//Make it a hidden
+
+				for propName, propType := range readSetter.Props() {
+					prop, err := readSetter.Prop(propName)
+
+					if err != nil {
+						continue
+					}
+
+					readSetter.SetProp(propName, applyPolicy(PolicyHidden, prop, propType))
+				}
+			}
+		}
+	}
+}
+
 func calculateEffectivePolicy(prop interface{}, propType PropertyType, policyGroup GroupPolicy, statePlayerIndex int, preparingForPlayerIndex int, defaultPolicy Policy) Policy {
 
 	//We're going to collect all of the policies that apply.
