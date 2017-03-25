@@ -37,5 +37,9 @@ func (c *Component) DynamicValues(state State) DynamicComponentValues {
 		return nil
 	}
 
+	if c.DeckIndex < 0 {
+		return c.Deck.Chest().Manager().Delegate().EmptyDynamicComponentValues(c.Deck)
+	}
+
 	return values[c.DeckIndex]
 }
