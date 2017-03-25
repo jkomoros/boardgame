@@ -8,12 +8,14 @@ import (
 
 //StatePolicy defines a sanitization policy for a State object. In particular,
 //it defines a policy for the Game state, and a single, fixed policy for all
-//Player states. Each string returns the policy for the property with that
-//name in that sub-state object. Properties with no corresponding policy are
+//Player states, and a policy for each deck whose components have Dynamic
+//State. Each string returns the policy for the property with that name in
+//that sub-state object. Properties with no corresponding policy are
 //effectively PolicyNoOp for all groups.
 type StatePolicy struct {
-	Game   SubStatePolicy
-	Player SubStatePolicy
+	Game                   SubStatePolicy
+	Player                 SubStatePolicy
+	DynamicComponentValues map[string]SubStatePolicy
 }
 
 //Policies apply to Groups of players. Groups with numbers 0 or above are
