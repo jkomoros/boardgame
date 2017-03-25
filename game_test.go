@@ -67,10 +67,6 @@ func TestMoveModifyDynamicValues(t *testing.T) {
 
 	currentJSON, _ := json.MarshalIndent(game.CurrentState(), "", "\t")
 
-	if true {
-		ioutil.WriteFile("out.json", currentJSON, 0x755)
-	}
-
 	golden := goldenJSON("basic_state_after_dynamic_component_move.json", t)
 
 	compareJSONObjects(currentJSON, golden, "Comparing json after two dynamic moves", t)
