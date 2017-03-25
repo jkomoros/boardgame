@@ -28,6 +28,10 @@ func (t *testingComponentDynamic) Reader() PropertyReader {
 	return DefaultReader(t)
 }
 
+func (t *testingComponentDynamic) ReadSetter() PropertyReadSetter {
+	return DefaultReadSetter(t)
+}
+
 func (t *testingComponentDynamic) Copy() DynamicComponentValues {
 	var result testingComponentDynamic
 	result = *t

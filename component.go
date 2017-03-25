@@ -13,6 +13,7 @@ type Component struct {
 
 type DynamicComponentValues interface {
 	ComponentValues
+	ReadSetter() PropertyReadSetter
 	Copy() DynamicComponentValues
 }
 
