@@ -12,8 +12,8 @@ import (
 //name in that sub-state object. Properties with no corresponding policy are
 //effectively PolicyNoOp for all groups.
 type StatePolicy struct {
-	Game   map[string]GroupPolicy
-	Player map[string]GroupPolicy
+	Game   SubStatePolicy
+	Player SubStatePolicy
 }
 
 //Policies apply to Groups of players. Groups with numbers 0 or above are
@@ -31,6 +31,10 @@ const (
 	//restrictive policy.
 	GroupAll = -3
 )
+
+//SubStatePolicy is a sanitization policy for a sub-part of a State, for
+//example a Game or Player.
+type SubStatePolicy map[string]GroupPolicy
 
 //A group Santization policy represents all of the various policies that apply
 //depending on whether the player we're preparing the state for is a member of
@@ -80,7 +84,7 @@ const (
 //for Game). preparingForPlayerIndex is the index that we're preparing the
 //overall santiized state for, as provied to
 //GameManager.SanitizedStateForPlayer()
-func sanitizeStateObj(readSetter PropertyReadSetter, policy map[string]GroupPolicy, statePlayerIndex int, preparingForPlayerIndex int, defaultPolicy Policy) {
+func sanitizeStateObj(readSetter PropertyReadSetter, policy SubStatePolicy, statePlayerIndex int, preparingForPlayerIndex int, defaultPolicy Policy) {
 
 	for propName, propType := range readSetter.Props() {
 		prop, err := readSetter.Prop(propName)
