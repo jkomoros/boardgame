@@ -131,7 +131,14 @@ func (s *state) sanitizedWithDefault(policy *StatePolicy, playerIndex int, defau
 
 	//Now that all dynamic components are marked, we need to go through and
 	//sanitize all of those objects according to the policy.
-	sanitizeDynamicComponentValues(sanitized.dynamicComponentValues, visibleDynamicComponents, policy.DynamicComponentValues, playerIndex)
+
+	shouldRandomizeCompontentValues := false
+
+	if defaultPolicy == PolicyRandom {
+		shouldRandomizeCompontentValues = true
+	}
+
+	sanitizeDynamicComponentValues(sanitized.dynamicComponentValues, visibleDynamicComponents, policy.DynamicComponentValues, playerIndex, shouldRandomizeCompontentValues)
 
 	return sanitized
 
@@ -243,7 +250,14 @@ func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[strin
 	}
 }
 
-func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]MutableDynamicComponentValues, visibleComponents map[string]map[int]int, dynamicPolicy map[string]SubStatePolicy, preparingForPlayerIndex int) {
+func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]MutableDynamicComponentValues, visibleComponents map[string]map[int]int, dynamicPolicy map[string]SubStatePolicy, preparingForPlayerIndex int, isRandom bool) {
+
+	defaultPolicy := PolicyHidden
+
+	if isRandom {
+		defaultPolicy = PolicyRandom
+	}
+
 	for name, slice := range dynamicComponentValues {
 
 		visibleDynamicDeck := visibleComponents[name]
@@ -266,7 +280,7 @@ func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]MutableD
 						continue
 					}
 
-					readSetter.SetProp(propName, applyPolicy(PolicyHidden, prop, propType))
+					readSetter.SetProp(propName, applyPolicy(defaultPolicy, prop, propType))
 				}
 			}
 		}
