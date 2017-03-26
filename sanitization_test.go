@@ -131,6 +131,23 @@ func TestSanitization(t *testing.T) {
 			"basic_state_after_dynamic_component_move.json",
 			"sanitization_with_dynamic_state_sanitized.json",
 		},
+		{
+			&StatePolicy{
+				Game: SubStatePolicy{
+					"DrawDeck": GroupPolicy{
+						GroupAll: PolicyLen,
+					},
+				},
+				Player: SubStatePolicy{
+					"Hand": GroupPolicy{
+						GroupOther: PolicyLen,
+					},
+				},
+			},
+			0,
+			"basic_state_after_dynamic_component_move.json",
+			"sanitization_with_dynamic_state_transitive.json",
+		},
 	}
 
 	for i, test := range tests {
