@@ -2,7 +2,17 @@
     "Components": {
         "test": [
             {
-                "IntVar": 6,
+                "IntVar": 7,
+                "Stack": {
+                    "Deck": "test",
+                    "Indexes": [
+                        3
+                    ],
+                    "Size": 1
+                }
+            },
+            {
+                "IntVar": 1,
                 "Stack": {
                     "Deck": "test",
                     "Indexes": [
@@ -12,7 +22,7 @@
                 }
             },
             {
-                "IntVar": 0,
+                "IntVar": 1,
                 "Stack": {
                     "Deck": "test",
                     "Indexes": [
@@ -22,17 +32,7 @@
                 }
             },
             {
-                "IntVar": 0,
-                "Stack": {
-                    "Deck": "test",
-                    "Indexes": [
-                        -1
-                    ],
-                    "Size": 1
-                }
-            },
-            {
-                "IntVar": 0,
+                "IntVar": 1,
                 "Stack": {
                     "Deck": "test",
                     "Indexes": [
@@ -65,8 +65,7 @@
             "Deck": "test",
             "Indexes": [
                 1,
-                2,
-                3
+                2
             ]
         }
     },

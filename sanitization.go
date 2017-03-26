@@ -188,6 +188,13 @@ func sanitizeStateObj(readSetter PropertyReadSetter, policy SubStatePolicy, stat
 
 func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[string][]DynamicComponentValues, visibleComponents map[string]map[int]int) {
 
+	//All dynamic component values are hidden, except for ones that currently
+	//reside in stacks that have resolved to being Visible based on this
+	//current sanitization configuration. However, DynamicComponents may
+	//themselves have stacks that reference other dynamic components. This
+	//method effectively "spreads out" the visibility from visible dynamic
+	//compoonents to other ones they point to.
+
 	//TODO: TEST THIS!
 
 	type workItem struct {

@@ -56,7 +56,7 @@
     "Components": {
       "test" : [
         {
-          "IntVar" : 0,
+          "IntVar" : 1,
           "Stack" : {
             "Deck" : "test",
             "Indexes" : [
@@ -66,7 +66,7 @@
           }
         },
         {
-          "IntVar" : 0,
+          "IntVar" : 1,
           "Stack" : {
             "Deck" : "test",
             "Indexes" : [
@@ -76,7 +76,7 @@
           }
         },
         {
-          "IntVar" : 0,
+          "IntVar" : 1,
           "Stack" : {
             "Deck" : "test",
             "Indexes" : [
@@ -86,7 +86,7 @@
           }
         },
         {
-          "IntVar" : 0,
+          "IntVar" : 1,
           "Stack" : {
             "Deck" : "test",
             "Indexes" : [

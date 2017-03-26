@@ -154,6 +154,20 @@ func (t *testGameDelegate) BeginSetUp(state MutableState) {
 	players[2].IsFoo = true
 }
 
+func (t *testGameDelegate) FinishSetUp(state MutableState) {
+
+	//Set all IntVar's to 1 for dynamic values for all hands. This will help
+	//us verify when they are being sanitized.
+
+	game, _ := concreteStates(state)
+
+	for _, c := range game.DrawDeck.Components() {
+		values := c.DynamicValues(state).(*testingComponentDynamic)
+
+		values.IntVar = 1
+	}
+}
+
 func (t *testGameDelegate) EmptyGameState() MutableGameState {
 	chest := t.Manager().Chest()
 

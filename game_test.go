@@ -61,7 +61,7 @@ func TestMoveModifyDynamicValues(t *testing.T) {
 
 	easyDynamic := dynamic.(*testingComponentDynamic)
 
-	if easyDynamic.IntVar != 6 {
+	if easyDynamic.IntVar != 7 {
 		t.Error("Dynamic state of component unexpected value: ", easyDynamic.IntVar)
 	}
 

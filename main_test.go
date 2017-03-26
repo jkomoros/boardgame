@@ -176,6 +176,10 @@ func (t *testMoveIncrementCardInHand) Legal(state State) error {
 		return errors.New("The current player does not have any components in their hand")
 	}
 
+	if game.DrawDeck.NumComponents() < 1 {
+		return errors.New("There aren't enough cards left over in the draw deck")
+	}
+
 	return nil
 }
 
@@ -198,6 +202,7 @@ func (t *testMoveIncrementCardInHand) Apply(state MutableState) error {
 		easyValues := values.(*testingComponentDynamic)
 
 		easyValues.IntVar += 3
+		game.DrawDeck.MoveComponent(LastComponentIndex, easyValues.Stack, FirstSlotIndex)
 
 		return nil
 
