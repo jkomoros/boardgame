@@ -32,7 +32,7 @@ func (t *testingComponentDynamic) ReadSetter() PropertyReadSetter {
 	return DefaultReadSetter(t)
 }
 
-func (t *testingComponentDynamic) Copy() DynamicComponentValues {
+func (t *testingComponentDynamic) Copy() MutableDynamicComponentValues {
 	var result testingComponentDynamic
 	result = *t
 	result.Stack = t.Stack.Copy()

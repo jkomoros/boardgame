@@ -57,6 +57,8 @@ type MutableState interface {
 	MutableGame() MutableGameState
 	//MutablePlayers returns a slice of MutablePlayerStates for this MutableState.
 	MutablePlayers() []MutablePlayerState
+
+	MutableDynamicComponentValues() map[string][]MutableDynamicComponentValues
 }
 
 //state implements both State and MutableState, so it can always be passed for
@@ -66,7 +68,7 @@ type state struct {
 	game                   MutableGameState
 	players                []MutablePlayerState
 	computed               *computedPropertiesImpl
-	dynamicComponentValues map[string][]DynamicComponentValues
+	dynamicComponentValues map[string][]MutableDynamicComponentValues
 	sanitized              bool
 	delegate               GameDelegate
 }
@@ -77,6 +79,10 @@ func (s *state) MutableGame() MutableGameState {
 
 func (s *state) MutablePlayers() []MutablePlayerState {
 	return s.players
+}
+
+func (s *state) MutableDynamicComponentValues() map[string][]MutableDynamicComponentValues {
+	return s.dynamicComponentValues
 }
 
 func (s *state) Game() GameState {
@@ -105,13 +111,13 @@ func (s *state) copy(sanitized bool) *state {
 	result := &state{
 		game:                   s.game.MutableCopy(),
 		players:                players,
-		dynamicComponentValues: make(map[string][]DynamicComponentValues),
+		dynamicComponentValues: make(map[string][]MutableDynamicComponentValues),
 		sanitized:              sanitized,
 		delegate:               s.delegate,
 	}
 
 	for deckName, values := range s.dynamicComponentValues {
-		arr := make([]DynamicComponentValues, len(values))
+		arr := make([]MutableDynamicComponentValues, len(values))
 		for i := 0; i < len(values); i++ {
 			arr[i] = values[i].Copy()
 			if err := verifyReaderStacks(arr[i].Reader(), result); err != nil {
@@ -159,7 +165,18 @@ func (s *state) Sanitized() bool {
 }
 
 func (s *state) DynamicComponentValues() map[string][]DynamicComponentValues {
-	return s.dynamicComponentValues
+
+	result := make(map[string][]DynamicComponentValues)
+
+	for key, val := range s.dynamicComponentValues {
+		slice := make([]DynamicComponentValues, len(val))
+		for i := 0; i < len(slice); i++ {
+			slice[i] = val[i]
+		}
+		result[key] = slice
+	}
+
+	return result
 }
 
 func (s *state) Computed() ComputedProperties {

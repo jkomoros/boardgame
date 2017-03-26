@@ -11,14 +11,18 @@ type Component struct {
 	DeckIndex int
 }
 
-type DynamicComponentValues interface {
-	ComponentValues
-	ReadSetter() PropertyReadSetter
-	Copy() DynamicComponentValues
-}
-
 type ComponentValues interface {
 	Reader() PropertyReader
+}
+
+type DynamicComponentValues interface {
+	ComponentValues
+}
+
+type MutableDynamicComponentValues interface {
+	DynamicComponentValues
+	Copy() MutableDynamicComponentValues
+	ReadSetter() PropertyReadSetter
 }
 
 func (c *Component) DynamicValues(state State) DynamicComponentValues {

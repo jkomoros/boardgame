@@ -95,7 +95,7 @@ func (t *testGameDelegate) ComputedPropertiesConfig() *ComputedPropertiesConfig 
 	return testPropertiesConfig
 }
 
-func (t *testGameDelegate) EmptyDynamicComponentValues(deck *Deck) DynamicComponentValues {
+func (t *testGameDelegate) EmptyDynamicComponentValues(deck *Deck) MutableDynamicComponentValues {
 	if deck.Name() == "test" {
 		return &testingComponentDynamic{
 			Stack: NewSizedStack(deck, 1),
