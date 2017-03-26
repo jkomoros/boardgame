@@ -169,71 +169,7 @@ func (s *state) Computed() ComputedProperties {
 	return s.computed
 }
 
-func (s *state) SanitizedForPlayer(playerIndex int) State {
-
-	//If the playerIndex isn't an actuall player's index, just return self.
-	if playerIndex < 0 || playerIndex >= len(s.players) {
-		return s
-	}
-
-	policy := s.delegate.StateSanitizationPolicy()
-
-	if policy == nil {
-		policy = &StatePolicy{}
-	}
-
-	sanitized := s.copy(true)
-
-	//We need to figure out which components that have dynamicvalues are
-	//visible after sanitizing game and player states. We'll have
-	//sanitizeStateObj tell us which ones are visible, and which player's
-	//state they're visible through, by accumulating the information in
-	//visibleDyanmicComponents.
-	visibleDynamicComponents := make(map[string]map[int]int)
-
-	for deckName, _ := range s.dynamicComponentValues {
-		visibleDynamicComponents[deckName] = make(map[int]int)
-	}
-
-	sanitizeStateObj(sanitized.game.ReadSetter(), policy.Game, -1, playerIndex, PolicyVisible, visibleDynamicComponents)
-
-	playerStates := sanitized.players
-
-	for i := 0; i < len(playerStates); i++ {
-		sanitizeStateObj(playerStates[i].ReadSetter(), policy.Player, i, playerIndex, PolicyVisible, visibleDynamicComponents)
-	}
-
-	//Some of the DynamicComponentValues that were marked as visible might
-	//have their own stacks with dynamic values that are visible, so we need
-	//to go through and mark those, too..
-	transativelyMarkDynamicComponentsAsVisible(sanitized.dynamicComponentValues, visibleDynamicComponents)
-
-	//Now that all dynamic components are marked, we need to go through and
-	//sanitize all of those objects according to the policy.
-	sanitizeDynamicComponentValues(sanitized.dynamicComponentValues, visibleDynamicComponents, policy.DynamicComponentValues, playerIndex)
-
-	return sanitized
-
-}
-
-//sanitizedWithExceptions will return a Sanitized() State where properties
-//that are not in the passed policy are treated as PolicyRandom. Useful in
-//computing properties.
-func (s *state) sanitizedWithExceptions(policy *StatePolicy) State {
-
-	sanitized := s.copy(true)
-
-	sanitizeStateObj(sanitized.game.ReadSetter(), policy.Game, -1, -1, PolicyRandom, nil)
-
-	playerStates := sanitized.players
-
-	for i := 0; i < len(playerStates); i++ {
-		sanitizeStateObj(playerStates[i].ReadSetter(), policy.Player, -1, -1, PolicyRandom, nil)
-	}
-
-	return sanitized
-
-}
+//SanitizedForPlayer is in sanitized.go
 
 //BaseState is the interface that all state objects--PlayerStates and GameStates
 //--implement.
