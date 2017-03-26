@@ -95,6 +95,14 @@ func (s *state) SanitizedForPlayer(playerIndex int) State {
 		policy = &StatePolicy{}
 	}
 
+	return s.sanitizedWithDefault(policy, playerIndex, PolicyVisible)
+}
+
+//sanitizedWithExceptions will return a Sanitized() State where properties
+//that are not in the passed policy are treated as PolicyRandom. Useful in
+//computing properties.
+func (s *state) sanitizedWithDefault(policy *StatePolicy, playerIndex int, defaultPolicy Policy) State {
+
 	sanitized := s.copy(true)
 
 	//We need to figure out which components that have dynamicvalues are
@@ -108,12 +116,12 @@ func (s *state) SanitizedForPlayer(playerIndex int) State {
 		visibleDynamicComponents[deckName] = make(map[int]int)
 	}
 
-	sanitizeStateObj(sanitized.game.ReadSetter(), policy.Game, -1, playerIndex, PolicyVisible, visibleDynamicComponents)
+	sanitizeStateObj(sanitized.game.ReadSetter(), policy.Game, -1, playerIndex, defaultPolicy, visibleDynamicComponents)
 
 	playerStates := sanitized.players
 
 	for i := 0; i < len(playerStates); i++ {
-		sanitizeStateObj(playerStates[i].ReadSetter(), policy.Player, i, playerIndex, PolicyVisible, visibleDynamicComponents)
+		sanitizeStateObj(playerStates[i].ReadSetter(), policy.Player, i, playerIndex, defaultPolicy, visibleDynamicComponents)
 	}
 
 	//Some of the DynamicComponentValues that were marked as visible might
@@ -124,25 +132,6 @@ func (s *state) SanitizedForPlayer(playerIndex int) State {
 	//Now that all dynamic components are marked, we need to go through and
 	//sanitize all of those objects according to the policy.
 	sanitizeDynamicComponentValues(sanitized.dynamicComponentValues, visibleDynamicComponents, policy.DynamicComponentValues, playerIndex)
-
-	return sanitized
-
-}
-
-//sanitizedWithExceptions will return a Sanitized() State where properties
-//that are not in the passed policy are treated as PolicyRandom. Useful in
-//computing properties.
-func (s *state) sanitizedWithExceptions(policy *StatePolicy) State {
-
-	sanitized := s.copy(true)
-
-	sanitizeStateObj(sanitized.game.ReadSetter(), policy.Game, -1, -1, PolicyRandom, nil)
-
-	playerStates := sanitized.players
-
-	for i := 0; i < len(playerStates); i++ {
-		sanitizeStateObj(playerStates[i].ReadSetter(), policy.Player, -1, -1, PolicyRandom, nil)
-	}
 
 	return sanitized
 

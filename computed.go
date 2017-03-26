@@ -277,7 +277,7 @@ func (c *ComputedGlobalPropertyDefinition) compute(state *state) (interface{}, e
 
 	policy := policyForDependencies(c.Dependencies)
 
-	sanitized := state.sanitizedWithExceptions(policy)
+	sanitized := state.sanitizedWithDefault(policy, -1, PolicyRandom)
 
 	return c.Compute(sanitized)
 
@@ -287,7 +287,7 @@ func (c *ComputedPlayerPropertyDefinition) compute(state *state, playerIndex int
 
 	policy := policyForDependencies(c.Dependencies)
 
-	sanitized := state.sanitizedWithExceptions(policy)
+	sanitized := state.sanitizedWithDefault(policy, -1, PolicyRandom)
 
 	return c.Compute(sanitized.Players()[playerIndex])
 }
