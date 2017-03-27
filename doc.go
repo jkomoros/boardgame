@@ -262,6 +262,48 @@ Your Compute() methods should also be deterministic based on their inputs.
 This is important so that the system can be conservative about when to
 calculate them.
 
+Dynamic Component Values
+
+Components are always read-only and have the same values across every game.
+However, there are some cases where a given component might have a specific
+dynamic value that can change over the life of a specific game. A canonical
+example is a die: the faces that it has are fixed across all games, but which
+face is "selected" can change with each roll--and in some cases its value may
+even be hidden. A more complex example is in Evolution: Climate, where a given
+player may have 1 to n Species cards, each with a body size, population size,
+stack of fed food, and up to four slots for trait cards.
+
+These types of situations can be modeled with Dynamic Component Values. Every
+component in a given deck can have dynamic properties of the same shape. These
+properties are stored in the "Components" section of the JSON output of a
+given GameState. You can access them server-side by getting a reference to the
+associated component and calling DynamicValues. Client-side, the dynamic
+values are automatically exapanded in the expandedState.
+
+By default a deck does not have any dynamic component state for its values. To
+override this, your GameDelegate should return a non-nil value when
+EmptyDynamicComponentValues is called for the specified deck. This method
+should return the same shape of underlying object every time it is called for
+the same deck.
+
+The visibility of Dynamic Component Values in a Sanitized state is somewhat
+more complex than normal state. The dynamic component values associated with
+any one component will only be visible if the component is in a Stack whose
+effective policy is PolicyVisible--if its containing stack is anything else,
+then every property on that dynamic component value will be set to
+PolicyHidden (or PolicyRandom when Computed Property dependencies are being
+calculated). Then, the policy for each property on the DynamicComponentValue,
+as configured on Policy.DynamicComponentValues, is applied to each property to
+achieve the final dynamic component values visbility.
+
+Note that this visibility of components is transitive: it is possible for the
+Dynamic Component Values of a given component to have its own Stack containing
+components that themselves have dynamic component values. In that case, the
+visibility of the "parent" component is expanded to apply to the "children"
+components. That is, if the parent component is visible, and the stack
+property of the component is also visible, the child component will also be
+considered visible.
+
 Implementing Your Own Game
 
 When you are implementing your own game, at a high level you must do the
