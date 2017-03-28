@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"encoding/json"
+	"github.com/workfit/tester/assert"
 	"io/ioutil"
 	"reflect"
 	"testing"
@@ -121,17 +122,12 @@ func compareJSONObjects(in []byte, golden []byte, message string, t *testing.T) 
 	json.Unmarshal(in, &deserializedIn)
 	json.Unmarshal(golden, &deserializedGolden)
 
-	if deserializedIn == nil {
-		t.Error("In didn't deserialize", message)
-	}
+	assert.For(t).ThatActual(deserializedIn).IsNotNil()
 
-	if deserializedGolden == nil {
-		t.Error("Golden didn't deserialize", message)
-	}
+	assert.For(t).ThatActual(deserializedGolden).IsNotNil()
 
-	if !reflect.DeepEqual(deserializedIn, deserializedGolden) {
-		t.Error("Got wrong json.", message, "Got", string(in), "wanted", string(golden))
-	}
+	assert.For(t, message).ThatActual(deserializedGolden).Equals(deserializedIn).ThenDiffOnFail()
+
 }
 
 func goldenJSON(fileName string, t *testing.T) []byte {
