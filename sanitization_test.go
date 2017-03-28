@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"encoding/json"
+	"github.com/workfit/tester/assert"
 	"io/ioutil"
 	"strconv"
 	"testing"
@@ -154,35 +155,25 @@ func TestSanitization(t *testing.T) {
 
 		inputBlob, err := ioutil.ReadFile("test/" + test.inputFileName)
 
-		if err != nil {
-			t.Fatal("couldn't load input file", i, test.inputFileName, err)
-		}
+		assert.For(t).ThatActual(err).IsNil()
 
 		state, err := manager.StateFromBlob(inputBlob)
 
-		if err != nil {
-			t.Fatal(i, "Failed to deserialize", err)
-		}
+		assert.For(t).ThatActual(err).IsNil()
 
 		manager.delegate.(*testSanitizationDelegate).policy = test.policy
 
 		sanitizedState := state.SanitizedForPlayer(test.playerIndex)
 
-		if sanitizedState == nil {
-			t.Fatal(i, "state sanitization came back nil")
-		}
+		assert.For(t).ThatActual(sanitizedState).IsNotNil()
 
 		sanitizedBlob, err := json.MarshalIndent(sanitizedState, "", "\t")
 
-		if err != nil {
-			t.Fatal(i, "Sanitized serialize failed", err)
-		}
+		assert.For(t).ThatActual(err).IsNil()
 
 		goldenBlob, err := ioutil.ReadFile("test/" + test.expectedFileName)
 
-		if err != nil {
-			t.Fatal("Couldn't load file", i, test.expectedFileName, err)
-		}
+		assert.For(t, i, test.expectedFileName).ThatActual(err).IsNil()
 
 		compareJSONObjects(sanitizedBlob, goldenBlob, "Test Sanitization "+strconv.Itoa(i), t)
 
