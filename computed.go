@@ -95,13 +95,18 @@ type StateGroupType int
 const (
 	StateGroupGame StateGroupType = iota
 	StateGroupPlayer
+	StateGroupDynamicComponentValues
 )
 
 //A StatePropertyRef is a reference to a particular property in a State, in a
 //structured way. Currently used when defining your dependencies for computed
 //properties.
 type StatePropertyRef struct {
-	Group    StateGroupType
+	Group StateGroupType
+	//DeckName is only used when Group is StateGroupDynamicComponentValues
+	DeckName string
+	//PropName is the specific property on the given SubStateObject specified
+	//by the rest of the StatePropertyRef.
 	PropName string
 }
 
@@ -112,8 +117,9 @@ type computedPropertiesImpl struct {
 
 func policyForDependencies(dependencies []StatePropertyRef) *StatePolicy {
 	result := &StatePolicy{
-		Game:   make(map[string]GroupPolicy),
-		Player: make(map[string]GroupPolicy),
+		Game:                   make(SubStatePolicy),
+		Player:                 make(SubStatePolicy),
+		DynamicComponentValues: make(map[string]SubStatePolicy),
 	}
 	for _, dependency := range dependencies {
 		if dependency.Group == StateGroupGame {
@@ -122,6 +128,14 @@ func policyForDependencies(dependencies []StatePropertyRef) *StatePolicy {
 			}
 		} else if dependency.Group == StateGroupPlayer {
 			result.Player[dependency.PropName] = GroupPolicy{
+				GroupAll: PolicyVisible,
+			}
+		} else if dependency.Group == StateGroupDynamicComponentValues {
+			if _, ok := result.DynamicComponentValues[dependency.DeckName]; !ok {
+				result.DynamicComponentValues[dependency.DeckName] = make(SubStatePolicy)
+			}
+			policy := result.DynamicComponentValues[dependency.DeckName]
+			policy[dependency.PropName] = GroupPolicy{
 				GroupAll: PolicyVisible,
 			}
 		}
