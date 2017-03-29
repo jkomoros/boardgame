@@ -177,6 +177,30 @@ func TestStateComputed(t *testing.T) {
 
 				},
 			},
+			"SumIntVarsInDrawDeckWrongDependencies": ComputedGlobalPropertyDefinition{
+				Dependencies: []StatePropertyRef{
+					{
+						Group:    StateGroupGame,
+						PropName: "DrawDeck",
+					},
+					//Fail to specify the DynamicComponentValue dependency.
+				},
+				PropType: TypeInt,
+				Compute: func(state State) (interface{}, error) {
+
+					result := 0
+
+					game, _ := concreteStates(state)
+
+					for _, c := range game.DrawDeck.Components() {
+						values := c.DynamicValues(state).(*testingComponentDynamic)
+						result += values.IntVar
+					}
+
+					return result, nil
+
+				},
+			},
 		},
 		Player: map[string]ComputedPlayerPropertyDefinition{
 			"EffectiveScore": ComputedPlayerPropertyDefinition{
@@ -224,6 +248,12 @@ func TestStateComputed(t *testing.T) {
 		t.Error("Unexpected error retrieving SumIntVarsInDrawDeck", err)
 	} else if val != 4 {
 		t.Error("Unexpected result for SumIntVarsInDrawDeck. Got", val, "wanted", 4)
+	}
+
+	if val, err := computed.Global().Reader().IntProp("SumIntVarsInDrawDeckWrongDependencies"); err != nil {
+		t.Error("Unexpected error retrieving SumIntVarsInDrawDeckWrongDependencies", err)
+	} else if val == 4 {
+		t.Error("Unexpected result for SumIntVarsInDrawDeckWrongDependencies. Got", val, "but we shouldn't have because it should have been randomized")
 	}
 
 	if _, err := computed.Global().Reader().BoolProp("Foo"); err == nil {

@@ -268,7 +268,7 @@ func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]MutableD
 
 			if player, visible := visibleDynamicDeck[i]; visible {
 
-				sanitizeStateObj(readSetter, dynamicPolicy[name], player, preparingForPlayerIndex, PolicyVisible, nil)
+				sanitizeStateObj(readSetter, dynamicPolicy[name], player, preparingForPlayerIndex, defaultPolicy, nil)
 
 			} else {
 				//Make it a hidden
@@ -285,6 +285,7 @@ func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]MutableD
 			}
 		}
 	}
+
 }
 
 func calculateEffectivePolicy(prop interface{}, propType PropertyType, policyGroup GroupPolicy, statePlayerIndex int, preparingForPlayerIndex int, defaultPolicy Policy) Policy {

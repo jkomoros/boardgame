@@ -140,6 +140,7 @@ func policyForDependencies(dependencies []StatePropertyRef) *StatePolicy {
 			}
 		}
 	}
+
 	return result
 }
 
