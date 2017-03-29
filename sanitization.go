@@ -252,12 +252,6 @@ func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[strin
 
 func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]MutableDynamicComponentValues, visibleComponents map[string]map[int]int, dynamicPolicy map[string]SubStatePolicy, preparingForPlayerIndex int, isRandom bool) {
 
-	defaultPolicy := PolicyHidden
-
-	if isRandom {
-		defaultPolicy = PolicyRandom
-	}
-
 	for name, slice := range dynamicComponentValues {
 
 		visibleDynamicDeck := visibleComponents[name]
@@ -268,7 +262,12 @@ func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]MutableD
 
 			if player, visible := visibleDynamicDeck[i]; visible {
 
-				sanitizeStateObj(readSetter, dynamicPolicy[name], player, preparingForPlayerIndex, defaultPolicy, nil)
+				//The fact that we do such different things here seems like a bug in how we've structed these methods?
+				if isRandom {
+					sanitizeStateObj(readSetter, dynamicPolicy[name], player, preparingForPlayerIndex, PolicyRandom, nil)
+				} else {
+					sanitizeStateObj(readSetter, dynamicPolicy[name], player, preparingForPlayerIndex, PolicyVisible, nil)
+				}
 
 			} else {
 				//Make it a hidden
@@ -280,7 +279,11 @@ func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]MutableD
 						continue
 					}
 
-					readSetter.SetProp(propName, applyPolicy(defaultPolicy, prop, propType))
+					if isRandom {
+						readSetter.SetProp(propName, applyPolicy(PolicyRandom, prop, propType))
+					} else {
+						readSetter.SetProp(propName, applyPolicy(PolicyHidden, prop, propType))
+					}
 				}
 			}
 		}
