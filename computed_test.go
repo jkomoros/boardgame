@@ -114,6 +114,24 @@ func TestStateComputed(t *testing.T) {
 
 	config := &ComputedPropertiesConfig{
 		Global: map[string]ComputedGlobalPropertyDefinition{
+			"JSONDuringComputed": ComputedGlobalPropertyDefinition{
+				Dependencies: []StatePropertyRef{
+					{
+						Group:    StateGroupGame,
+						PropName: "CurrentPlayer",
+					},
+				},
+				PropType: TypeBool,
+				Compute: func(state State) (interface{}, error) {
+					result := state.Computed()
+
+					if result == nil {
+						return false, nil
+					}
+
+					return true, nil
+				},
+			},
 			"CurrentPlayerPlusFive": ComputedGlobalPropertyDefinition{
 				Dependencies: []StatePropertyRef{
 					{
@@ -229,6 +247,12 @@ func TestStateComputed(t *testing.T) {
 	delegate.config = config
 
 	computed := state.Computed()
+
+	if val, err := computed.Global().Reader().BoolProp("JSONDuringComputed"); err != nil {
+		t.Error("Unexpected error retrieving JSONDuringComputed", err)
+	} else if val {
+		t.Error("Unexpected result for JSONDuringComputed. Expected false, got true")
+	}
 
 	if val, err := computed.Global().Reader().IntProp("CurrentPlayerPlusFive"); err != nil {
 		t.Error("Unexpected error retrieving CurrentPlayerPlusFive", err)

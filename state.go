@@ -71,6 +71,9 @@ type state struct {
 	dynamicComponentValues map[string][]MutableDynamicComponentValues
 	sanitized              bool
 	delegate               GameDelegate
+	//Set to true while computed is being calculating computed. Primarily so
+	//if you marshal JSON in that time we know to just elide computed.
+	calculatingComputed bool
 }
 
 func (s *state) MutableGame() MutableGameState {
@@ -114,6 +117,12 @@ func (s *state) copy(sanitized bool) *state {
 		dynamicComponentValues: make(map[string][]MutableDynamicComponentValues),
 		sanitized:              sanitized,
 		delegate:               s.delegate,
+		//We copy this over, because this should only be set when computed is
+		//being calculated, and during that time we'll be creating sanitized
+		//copies of ourselves. However, if there are other copies created when
+		//this flag is set that outlive the original flag being unset, that
+		//state would be in a bad state long term...
+		calculatingComputed: s.calculatingComputed,
 	}
 
 	for deckName, values := range s.dynamicComponentValues {
@@ -141,6 +150,7 @@ func (s *state) copy(sanitized bool) *state {
 }
 
 func (s *state) MarshalJSON() ([]byte, error) {
+
 	obj := map[string]interface{}{
 		"Game":     s.game,
 		"Players":  s.players,
@@ -180,8 +190,18 @@ func (s *state) DynamicComponentValues() map[string][]DynamicComponentValues {
 }
 
 func (s *state) Computed() ComputedProperties {
+
+	if s.calculatingComputed {
+		//This might be called in a Compute() callback either directly, or
+		//implicitly via MarshalJSON.
+		return nil
+	}
+
 	if s.computed == nil {
+
+		s.calculatingComputed = true
 		s.computed = newComputedPropertiesImpl(s.delegate.ComputedPropertiesConfig(), s)
+		s.calculatingComputed = false
 	}
 	return s.computed
 }

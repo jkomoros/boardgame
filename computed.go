@@ -146,6 +146,10 @@ func policyForDependencies(dependencies []StatePropertyRef) *StatePolicy {
 
 func newComputedPropertiesImpl(config *ComputedPropertiesConfig, state *state) *computedPropertiesImpl {
 
+	if !state.calculatingComputed {
+		panic("State didn't think it was calculatingComputed when it was")
+	}
+
 	if config == nil {
 		return nil
 	}
