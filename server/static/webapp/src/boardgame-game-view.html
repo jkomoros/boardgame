@@ -238,6 +238,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           let index = stack.Indexes[i];
           if (index == -1) {
             result[i] = null;
+          } else if(index == -2) {
+            //TODO: to handle this appropriately we'd need to know how to
+            //produce a GenericComponent for each Deck clientside.
+            result[i] = {};
           } else {
             result[i] = deck[index];
           }
