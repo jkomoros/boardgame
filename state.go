@@ -161,6 +161,8 @@ func (s *state) MarshalJSON() ([]byte, error) {
 
 	if dynamic != nil && len(dynamic) != 0 {
 		obj["Components"] = dynamic
+	} else {
+		obj["Components"] = map[string]interface{}{}
 	}
 
 	return json.Marshal(obj)
