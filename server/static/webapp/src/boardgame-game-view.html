@@ -243,7 +243,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             //produce a GenericComponent for each Deck clientside.
             result[i] = {};
           } else {
-            result[i] = deck[index];
+            result[i] = this._copyObj(deck[index]);
           }
         }
 
@@ -263,6 +263,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           newValue.Game.ExpandedCurrentState = this._expandState(newValue.Game.CurrentState);
         }
 
+      },
+      _copyObj: function(obj) {
+        let copy = {}
+        for (let attr in obj) {
+          if (obj.hasOwnProperty(attr)) copy[attr] = obj[attr]
+        }
+        return copy
       }
     });
   </script>
