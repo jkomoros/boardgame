@@ -21,6 +21,10 @@
           type: Object,
           observer: "_stateChanged",
         },
+        expandedState: {
+          type: Object,
+          observer: "_expandedStateChanged",
+        },
         diagram : {
           type: String,
           observer: "_diagramChanged",
@@ -47,6 +51,10 @@
         }
         this.renderer.state = newValue;
       },
+      _expandedStateChanged : function(newValue) {
+        if (!this.renderer) return;
+        this.renderer.expandedState = newValue;
+      },
       _gameNameChanged : function(newValue) {
         this.rendererLoaded = false
 
@@ -68,6 +76,7 @@
 
         ele.diagram = this.diagram;
         ele.state = this.state;
+        ele.expandedState = this.expandedState;
 
         this.renderer = ele;
 
