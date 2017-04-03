@@ -103,7 +103,11 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 	result = append(result, "*****")
 
 	for i, player := range players {
-		result = append(result, "Player"+strconv.Itoa(i))
+		playerName := "Player" + strconv.Itoa(i)
+		if i == game.CurrentPlayer {
+			playerName += " *CURRENT* " + strconv.Itoa(player.CardsLeftToReveal)
+		}
+		result = append(result, playerName)
 		result = append(result, strconv.Itoa(player.WonCards.NumComponents()))
 	}
 
