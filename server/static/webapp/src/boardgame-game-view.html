@@ -255,7 +255,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         if (!deck) return null;
 
-        return this._copyObj(deck[index])
+        let result = this._copyObj(deck[index]);
+
+        if (this.data.Game.CurrentState && this.data.Game.CurrentState.Components) {
+          if (this.data.Game.CurrentState.Components[deckName]) {
+            result.DynamicValues = this.data.Game.CurrentState.Components[deckName][index];
+          }
+        }
+
+        return 
 
       },
       _dataChanged: function(newValue, oldValue) {
