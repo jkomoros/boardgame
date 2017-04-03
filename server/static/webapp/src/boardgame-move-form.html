@@ -48,6 +48,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </template>
       <paper-dialog id="error">
         <h2>There was an error</h2>
+        <div id="error-content">
+
+        </div>
         <paper-button dialog-dismiss>OK</paper-button>
       </paper-dialog>
   </template>
@@ -69,7 +72,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       behaviors : [ApiHostBehavior, BoardgameUtilBehavior],
       formResponse: function(e) {
         let response = e.detail.parseResponse();
-        console.log(response);
+        if (response.Error) {
+          this.$["error-content"].textContent = response.Error;
+          this.$.error.open();
+        }
       },
       _configChanged : function(newValue, oldValue) {
         //Must be async because databinding hasn't created the details yet.
