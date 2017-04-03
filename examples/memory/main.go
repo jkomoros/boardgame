@@ -8,6 +8,8 @@ package memory
 
 import (
 	"github.com/jkomoros/boardgame"
+	"strconv"
+	"strings"
 )
 
 type gameDelegate struct {
@@ -59,6 +61,40 @@ func (g *gameDelegate) EmptyPlayerState(playerIndex int) boardgame.MutablePlayer
 	}
 }
 
+func (g *gameDelegate) Diagram(state boardgame.State) string {
+	game, players := concreteStates(state)
+
+	var result []string
+
+	result = append(result, "Board")
+
+	for i, c := range game.HiddenCards.Components() {
+
+		//If there's no hidden card in this slot, see if there is a revealed one.
+		if c == nil {
+			c = game.RevealedCards.ComponentAt(i)
+		}
+
+		value := "<empty>"
+
+		if c != nil {
+			value = c.Values.(*cardValue).Type
+		}
+
+		result = append(result, "\t"+value)
+
+	}
+
+	result = append(result, "*****")
+
+	for i, player := range players {
+		result = append(result, "Player"+strconv.Itoa(i))
+		result = append(result, strconv.Itoa(player.WonCards.NumComponents()))
+	}
+
+	return strings.Join(result, "\n")
+}
+
 func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 	chest := boardgame.NewComponentChest()
 
@@ -69,6 +105,10 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 			Type: val,
 		}, 2)
 	}
+
+	cards.SetShadowValues(&cardValue{
+		Type: "<hidden>",
+	})
 
 	chest.AddDeck(cardsDeckName, cards)
 
