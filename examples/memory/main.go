@@ -108,6 +108,24 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 	return strings.Join(result, "\n")
 }
 
+var policy *boardgame.StatePolicy
+
+func (g *gameDelegate) StateSanitizationPolicy() *boardgame.StatePolicy {
+
+	if policy == nil {
+		policy = &boardgame.StatePolicy{
+			Game: map[string]boardgame.GroupPolicy{
+				"HiddenCards": boardgame.GroupPolicy{
+					boardgame.GroupAll: boardgame.PolicyLen,
+				},
+			},
+		}
+	}
+
+	return policy
+
+}
+
 func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 	chest := boardgame.NewComponentChest()
 
