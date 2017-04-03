@@ -12,6 +12,8 @@ type MoveRevealCard struct {
 	CardIndex         int
 }
 
+type MoveCaptureCards struct{}
+
 type MoveHideCards struct{}
 
 /**************************************************
@@ -116,7 +118,7 @@ func (m *MoveRevealCard) Apply(state boardgame.MutableState) error {
 	p.CardsLeftToReveal--
 	game.HiddenCards.MoveComponent(m.CardIndex, game.RevealedCards, m.CardIndex)
 
-	//TODO: if the cards are the same, move to the current player's won hand.
+	//If the cards are the same, the FixUpMove CaptureCards will fire after this.
 
 	return nil
 }
@@ -149,6 +151,73 @@ func (m *MoveRevealCard) Description() string {
 }
 
 func (m *MoveRevealCard) ReadSetter() boardgame.PropertyReadSetter {
+	return boardgame.DefaultReadSetter(m)
+}
+
+/**************************************************
+ *
+ * MoveCaptureCards Implementation
+ *
+ **************************************************/
+
+func (m *MoveCaptureCards) Legal(state boardgame.State) error {
+	game, _ := concreteStates(state)
+
+	if game.RevealedCards.NumComponents() != 2 {
+		return errors.New("There aren't two cards showing!")
+	}
+
+	var revealedCards []*boardgame.Component
+
+	for _, c := range game.RevealedCards.Components() {
+		if c != nil {
+			revealedCards = append(revealedCards, c)
+		}
+	}
+
+	cardOneType := revealedCards[0].Values.(*cardValue).Type
+	cardTwoType := revealedCards[1].Values.(*cardValue).Type
+
+	if cardOneType != cardTwoType {
+		return errors.New("The two revealed cards are not of the same type")
+	}
+
+	return nil
+}
+
+func (m *MoveCaptureCards) Apply(state boardgame.MutableState) error {
+	game, players := concreteStates(state)
+
+	p := players[game.CurrentPlayer]
+
+	for i, c := range game.RevealedCards.Components() {
+		if c != nil {
+			game.RevealedCards.MoveComponent(i, p.WonCards, boardgame.NextSlotIndex)
+		}
+	}
+
+	return nil
+}
+
+func (m *MoveCaptureCards) Copy() boardgame.Move {
+	var result MoveCaptureCards
+	result = *m
+	return &result
+}
+
+func (m *MoveCaptureCards) DefaultsForState(state boardgame.State) {
+	//Nothing to do
+}
+
+func (m *MoveCaptureCards) Name() string {
+	return "Capture Cards"
+}
+
+func (m *MoveCaptureCards) Description() string {
+	return "If two cards are showing and they are the same type, capture them to the current player's hand."
+}
+
+func (m *MoveCaptureCards) ReadSetter() boardgame.PropertyReadSetter {
 	return boardgame.DefaultReadSetter(m)
 }
 
