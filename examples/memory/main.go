@@ -61,6 +61,19 @@ func (g *gameDelegate) EmptyPlayerState(playerIndex int) boardgame.MutablePlayer
 	}
 }
 
+func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c *boardgame.Component) (boardgame.Stack, error) {
+	game, _ := concreteStates(state)
+
+	return game.HiddenCards, nil
+
+}
+
+func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) {
+	game, _ := concreteStates(state)
+
+	game.HiddenCards.Shuffle()
+}
+
 func (g *gameDelegate) Diagram(state boardgame.State) string {
 	game, players := concreteStates(state)
 
