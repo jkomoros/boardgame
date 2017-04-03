@@ -19,7 +19,9 @@
     "iron-ajax": "PolymerElements/iron-ajax#^1.4.3",
     "iron-form": "PolymerElements/iron-form#^1.1.4",
     "iron-input": "PolymerElements/iron-input#^1.0.10",
-    "game-card": "vpusher/game-card#^1.0.3"
+    "game-card": "vpusher/game-card#^1.0.3",
+    "paper-dialog": "PolymerElements/paper-dialog#^1.1.0",
+    "paper-button": "PolymerElements/paper-button#^1.0.14"
   },
   "devDependencies": {
     "web-component-tester": "^4.0.0"
