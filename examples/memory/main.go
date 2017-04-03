@@ -132,6 +132,35 @@ func (g *gameDelegate) StateSanitizationPolicy() *boardgame.StatePolicy {
 
 }
 
+func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, winners []int) {
+	game, players := concreteStates(state)
+
+	if game.HiddenCards.NumComponents() != 0 || game.RevealedCards.NumComponents() != 0 {
+		return false, nil
+	}
+
+	//If we get to here, the game is over. Who won?
+	maxScore := 0
+
+	for _, player := range players {
+		score := player.WonCards.NumComponents()
+		if score > maxScore {
+			maxScore = score
+		}
+	}
+
+	for i, player := range players {
+		score := player.WonCards.NumComponents()
+
+		if score >= maxScore {
+			winners = append(winners, i)
+		}
+	}
+
+	return true, winners
+
+}
+
 func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 	chest := boardgame.NewComponentChest()
 
