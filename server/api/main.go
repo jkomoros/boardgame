@@ -435,7 +435,8 @@ func (s *Server) Start() {
 	//want to host both static and api on the same logical server.
 	mainGroup := router.Group("/api")
 	mainGroup.Use(cors.Middleware(cors.Config{
-		Origins: s.config.AllowedOrigins,
+		Origins:        s.config.AllowedOrigins,
+		RequestHeaders: "Content-Type",
 	}))
 	{
 		mainGroup.GET("list/game", s.listGamesHandler)
@@ -447,6 +448,7 @@ func (s *Server) Start() {
 		{
 			gameAPIGroup.GET("view", s.gameViewHandler)
 			gameAPIGroup.POST("move", s.moveHandler)
+			gameAPIGroup.OPTIONS("move", s.moveHandler)
 			gameAPIGroup.GET("status", s.gameStatusHandler)
 		}
 	}
