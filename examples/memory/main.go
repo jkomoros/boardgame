@@ -31,7 +31,7 @@ func (g *gameDelegate) LegalNumPlayers(numPlayers int) bool {
 }
 
 func EmptyGameState() boardgame.MutableGameState {
-	return nil
+	return &gameState{}
 }
 
 func EmptyPlayerState() boardgame.MutablePlayerState {
