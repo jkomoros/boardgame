@@ -109,8 +109,11 @@ func (m *MoveRevealCard) Legal(state boardgame.State) error {
 }
 
 func (m *MoveRevealCard) Apply(state boardgame.MutableState) error {
-	game, _ := concreteStates(state)
+	game, players := concreteStates(state)
 
+	p := players[game.CurrentPlayer]
+
+	p.CardsLeftToReveal--
 	game.HiddenCards.MoveComponent(m.CardIndex, game.RevealedCards, m.CardIndex)
 
 	//TODO: if the cards are the same, move to the current player's won hand.
