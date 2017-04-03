@@ -69,9 +69,11 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, 
 }
 
 func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) {
-	game, _ := concreteStates(state)
+	game, players := concreteStates(state)
 
 	game.HiddenCards.Shuffle()
+
+	players[0].CardsLeftToReveal = 2
 }
 
 func (g *gameDelegate) Diagram(state boardgame.State) string {
@@ -149,7 +151,9 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 		panic("No manager returned")
 	}
 
-	//TODO: add moves
+	manager.AddFixUpMove(&MoveAdvanceNextPlayer{})
+	manager.AddPlayerMove(&MoveRevealCard{})
+	manager.AddPlayerMove(&MoveHideCards{})
 
 	manager.SetUp()
 

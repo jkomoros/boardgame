@@ -11,8 +11,9 @@ type gameState struct {
 }
 
 type playerState struct {
-	playerIndex int
-	WonCards    *boardgame.GrowableStack
+	playerIndex       int
+	CardsLeftToReveal int
+	WonCards          *boardgame.GrowableStack
 }
 
 func concreteStates(state boardgame.State) (*gameState, []*playerState) {
