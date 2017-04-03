@@ -448,7 +448,6 @@ func (s *Server) Start() {
 		{
 			gameAPIGroup.GET("view", s.gameViewHandler)
 			gameAPIGroup.POST("move", s.moveHandler)
-			gameAPIGroup.OPTIONS("move", s.moveHandler)
 			gameAPIGroup.GET("status", s.gameStatusHandler)
 		}
 	}
