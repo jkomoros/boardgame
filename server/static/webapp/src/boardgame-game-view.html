@@ -243,11 +243,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             //produce a GenericComponent for each Deck clientside.
             result[i] = {};
           } else {
-            result[i] = this._copyObj(deck[index]);
+            result[i] = this._componentForDeckAndIndex(stack.Deck, index);
           }
         }
 
         return result;
+
+      },
+      _componentForDeckAndIndex: function(deckName, index) {
+        let deck = this.data.Chest[deckName];
+
+        if (!deck) return null;
+
+        return this._copyObj(deck[index])
 
       },
       _dataChanged: function(newValue, oldValue) {
