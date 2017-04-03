@@ -30,10 +30,57 @@ func (g *gameDelegate) LegalNumPlayers(numPlayers int) bool {
 	return numPlayers < 4 && numPlayers > 1
 }
 
-func EmptyGameState() boardgame.MutableGameState {
-	return &gameState{}
+func (g *gameDelegate) EmptyGameState() boardgame.MutableGameState {
+
+	cards := g.Manager().Chest().Deck(cardsDeckName)
+
+	if cards == nil {
+		return nil
+	}
+
+	return &gameState{
+		CurrentPlayer: 0,
+		HiddenCards:   boardgame.NewSizedStack(cards, len(cards.Components())),
+		RevealedCards: boardgame.NewSizedStack(cards, len(cards.Components())),
+	}
 }
 
-func EmptyPlayerState() boardgame.MutablePlayerState {
-	return nil
+func (g *gameDelegate) EmptyPlayerState(playerIndex int) boardgame.MutablePlayerState {
+
+	cards := g.Manager().Chest().Deck(cardsDeckName)
+
+	if cards == nil {
+		return nil
+	}
+
+	return &playerState{
+		playerIndex: playerIndex,
+		WonCards:    boardgame.NewGrowableStack(cards, 0),
+	}
+}
+
+func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
+	chest := boardgame.NewComponentChest()
+
+	cards := boardgame.NewDeck()
+
+	for _, val := range cardNames {
+		cards.AddComponentMulti(&cardValue{
+			Type: val,
+		}, 2)
+	}
+
+	chest.AddDeck(cardsDeckName, cards)
+
+	manager := boardgame.NewGameManager(&gameDelegate{}, chest, storage)
+
+	if manager == nil {
+		panic("No manager returned")
+	}
+
+	//TODO: add moves
+
+	manager.SetUp()
+
+	return manager
 }
