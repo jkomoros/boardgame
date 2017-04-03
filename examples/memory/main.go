@@ -7,6 +7,7 @@ flipping over two cards, and keeping them if they match.
 package memory
 
 import (
+	"fmt"
 	"github.com/jkomoros/boardgame"
 	"strconv"
 	"strings"
@@ -90,10 +91,12 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 			c = game.RevealedCards.ComponentAt(i)
 		}
 
-		value := "<empty>"
+		value := fmt.Sprintf("%2d", i) + ": "
 
-		if c != nil {
-			value = c.Values.(*cardValue).Type
+		if c == nil {
+			value += "<empty>"
+		} else {
+			value += c.Values.(*cardValue).Type
 		}
 
 		result = append(result, "\t"+value)
@@ -103,7 +106,7 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 	result = append(result, "*****")
 
 	for i, player := range players {
-		playerName := "Player" + strconv.Itoa(i)
+		playerName := "Player " + strconv.Itoa(i)
 		if i == game.CurrentPlayer {
 			playerName += " *CURRENT* " + strconv.Itoa(player.CardsLeftToReveal)
 		}
