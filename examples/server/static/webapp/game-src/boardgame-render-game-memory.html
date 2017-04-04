@@ -1,4 +1,5 @@
 <link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="boardgame-memory-card.html">
 
 <dom-module id="boardgame-render-game-memory">
   <template>
@@ -19,9 +20,7 @@
     </template>
     <template is="dom-repeat" items="{{expandedState.Game.HiddenCards}}">
         {{index}}
-        <div class='card' hidden$="{{IsHidden(item)}}">
-          {{CardText(item)}}
-        </div>
+        <boardgame-memory-card rank="{{item.Values.Type}}" hidden="{{!Exists(item.Values)}}" spacer="{{!Exists(item)}}"></boardgame-memory-card>
     </template>
   </template>
 
@@ -36,18 +35,9 @@
       IsCurrentPlayer : function(i) {
         return (i == this.expandedState.Game.CurrentPlayer) ? "CURRENT" : "";
       },
-      IsHidden : function(component) {
-        return (!component) ? true : false;
-      },
-      CardText : function(component) {
-        if (!component) {
-          return ""
-        }
-        if (component.Values) {
-          return component.Values.Type
-        }
-        return "Hidden"
-      },
+      Exists: function(item) {
+        return (item) ? true : false
+      }
     });
   </script>
 </dom-module>

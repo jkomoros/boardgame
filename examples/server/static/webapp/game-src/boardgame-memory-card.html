@@ -1,0 +1,67 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+
+<!-- TODO: pop this out and make it more of a generic card in the webapp/src for all to use -->
+<dom-module id="boardgame-memory-card">
+  <template>
+    <style>
+
+      .spacer {
+        visibility: hidden;
+      }
+
+      #card {
+        height: 2em;
+        width: 3em;
+        background-color: #00CCCC;
+      }
+
+      #card #front {
+        display:block;
+      }
+
+      #card #back {
+        display:none;
+      }
+
+      #card.hidden  #front {
+        display:none;
+      }
+
+      #card.hidden #back {
+        display:block;
+      }
+
+    </style>
+
+    <div id="card" class$="{{Classes(hidden, spacer)}}">
+      <div id="front">
+        {{suit}}{{rank}}
+      </div>
+      <div id="back">
+        Hidden
+      </div>
+    </div>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'boardgame-memory-card',
+      properties: {
+        suit: String,
+        rank: String,
+        hidden: Boolean,
+        spacer: Boolean,
+      },
+      Classes: function(hidden, spacer) {
+        let result = ["card"];
+        if (hidden) {
+          result.push("hidden");
+        }
+        if (spacer) {
+          result.push("spacer");
+        }
+        return result.join(" ");
+      },
+    });
+  </script>
+</dom-module>
