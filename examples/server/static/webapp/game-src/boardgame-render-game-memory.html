@@ -1,0 +1,53 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+
+<dom-module id="boardgame-render-game-memory">
+  <template>
+    <style>
+      .card {
+        position: relative;
+        height:3em;
+        width:4em;
+        background-color:#009999;
+      }
+
+    </style>
+    <h2>Memory</h2>
+    <template is="dom-repeat" items="{{expandedState.Players}}">
+      <div>
+        <span>Player {{index}}: {{item.WonCards.length}}</span> <span>{{IsCurrentPlayer(index)}}</span>
+      </div>
+    </template>
+    <template is="dom-repeat" items="{{expandedState.Game.HiddenCards}}">
+        {{index}}
+        <div class='card' hidden$="{{IsHidden(item)}}">
+          {{CardText(item)}}
+        </div>
+    </template>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'boardgame-render-game-memory',
+      properties: {
+        state: Object,
+        expandedState: Object,
+        diagram : String
+      },
+      IsCurrentPlayer : function(i) {
+        return (i == this.expandedState.Game.CurrentPlayer) ? "CURRENT" : "";
+      },
+      IsHidden : function(component) {
+        return (!component) ? true : false;
+      },
+      CardText : function(component) {
+        if (!component) {
+          return ""
+        }
+        if (component.Values) {
+          return component.Values.Type
+        }
+        return "Hidden"
+      },
+    });
+  </script>
+</dom-module>
