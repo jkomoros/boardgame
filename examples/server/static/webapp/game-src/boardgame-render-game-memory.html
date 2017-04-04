@@ -18,7 +18,7 @@
         <span>Player {{index}}: {{item.WonCards.length}}</span> <span>{{IsCurrentPlayer(index)}}</span>
       </div>
     </template>
-    <template is="dom-repeat" items="{{expandedState.Game.HiddenCards}}">
+    <template is="dom-repeat" items="{{computedCards}}">
         {{index}}
         <boardgame-memory-card rank="{{item.Values.Type}}" hidden="{{!Exists(item.Values)}}" spacer="{{!Exists(item)}}"></boardgame-memory-card>
     </template>
@@ -30,14 +30,28 @@
       properties: {
         state: Object,
         expandedState: Object,
-        diagram : String
+        diagram : String,
+        computedCards : {
+          type: Array,
+          computed: 'computeCards(expandedState.Game.HiddenCards, expandedState.Game.RevealedCards)'
+        }
+      },
+      computeCards : function(hidden, revealed) {
+        let result = [];
+        for (let i = 0; i < hidden.length; i++) {
+          result.push(hidden[i]);
+          if (!result[i]) {
+            result[i] = revealed[i];
+          }
+        }
+        return result;
       },
       IsCurrentPlayer : function(i) {
         return (i == this.expandedState.Game.CurrentPlayer) ? "CURRENT" : "";
       },
       Exists: function(item) {
         return (item) ? true : false
-      }
+      },
     });
   </script>
 </dom-module>
