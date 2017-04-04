@@ -4,7 +4,9 @@
   "fragments": [
     "src/boardgame-game-view.html",
     "src/boardgame-list-games-view.html",
-    "src/boardgame-404-view.html"
+    "src/boardgame-404-view.html",
+    "game-src/boardgame-render-game-blackjack.html",
+    "game-src/boardgame-render-game-memory.html"
   ],
   "sourceGlobs": [
     "src/**/*",
