@@ -13,6 +13,7 @@
         height: 4em;
         width: 6em;
         margin:1em;
+        cursor: pointer;
       }
 
       #card #front {
@@ -55,8 +56,18 @@
       properties: {
         suit: String,
         rank: String,
+        index: Number,
         hidden: Boolean,
         spacer: Boolean,
+      },
+      listeners : {
+        'tap' : 'handleTap',
+      },
+      handleTap: function(e) {
+        if (this.spacer) {
+          return;
+        }
+        this.fire('card-tapped', {index: this.index});
       },
       Classes: function(hidden, spacer) {
         let result = ["card"];

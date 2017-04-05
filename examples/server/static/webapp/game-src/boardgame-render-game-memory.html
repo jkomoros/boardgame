@@ -13,7 +13,7 @@
     </template>
     <div class="horizontal layout wrap container">
       <template is="dom-repeat" items="{{computedCards}}">
-          <boardgame-memory-card title="{{index}}" rank="{{item.Values.Type}}" hidden="{{!Exists(item.Values)}}" spacer="{{!Exists(item)}}"></boardgame-memory-card>
+          <boardgame-memory-card title="{{index}}" rank="{{item.Values.Type}}" hidden="{{!Exists(item.Values)}}" spacer="{{!Exists(item)}}" index="{{index}}"></boardgame-memory-card>
       </template>
     </div>
   </template>
@@ -29,6 +29,14 @@
           type: Array,
           computed: 'computeCards(expandedState.Game.HiddenCards, expandedState.Game.RevealedCards)'
         }
+      },
+      listeners: {
+        'card-tapped' : 'handleCardTapped'
+      },
+      handleCardTapped: function(e) {
+        this.fire("propose-move", {name: "Reveal Card", arguments: {
+          "CardIndex": e.detail.index,
+        }});
       },
       computeCards : function(hidden, revealed) {
         let result = [];

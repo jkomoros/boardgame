@@ -117,7 +117,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           computed: "_computeMaxCurrentPlayerIndex(data)"
         }
       },
+      listeners: {
+        'propose-move' : 'handleProposeMove',
+      },
       behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
+      handleProposeMove: function(e) {
+        //TODO: actually do something
+        console.log(e);
+      },
       _handleSelected: function(newValue) {
         if (newValue) {
           //Clear out any old data. If we kept it, we could get in a weird
