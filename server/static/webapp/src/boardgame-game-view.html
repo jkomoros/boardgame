@@ -64,7 +64,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     <template is="dom-if" if="{{!data.Game.Finished}}">
       <div class="card">
-        <boardgame-move-form config="{{data.Forms}}" game-id="[[gameId]]" game-name="[[gameName]]"></boardgame-move-form>
+        <boardgame-move-form id="moves" config="{{data.Forms}}" game-id="[[gameId]]" game-name="[[gameName]]"></boardgame-move-form>
       </div>
     </template>
     <div class="card">
@@ -122,8 +122,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
       behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
       handleProposeMove: function(e) {
-        //TODO: actually do something
-        console.log(e);
+        let movesEle = this.$$("#moves");
+
+        if (!movesEle) {
+          console.warn("propose-move fired, but no moves element to forward to.");
+          return;
+        }
+
+        movesEle.proposeMove(e.detail.name, e.detail.arguments);
       },
       _handleSelected: function(newValue) {
         if (newValue) {

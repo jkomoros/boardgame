@@ -70,6 +70,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         'iron-form-response' : 'formResponse',
       },
       behaviors : [ApiHostBehavior, BoardgameUtilBehavior],
+      proposeMove: function(moveName, arguments) {
+        console.log(moveName, arguments);
+      },
       formResponse: function(e) {
         let response = e.detail.parseResponse();
         if (response.Error) {
