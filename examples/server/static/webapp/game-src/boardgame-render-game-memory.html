@@ -1,27 +1,21 @@
 <link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="boardgame-memory-card.html">
 
 <dom-module id="boardgame-render-game-memory">
   <template>
-    <style>
-      .card {
-        position: relative;
-        height:3em;
-        width:4em;
-        background-color:#009999;
-      }
-
-    </style>
+    <style include="iron-flex iron-flex-alignment"></style>
     <h2>Memory</h2>
     <template is="dom-repeat" items="{{expandedState.Players}}">
       <div>
         <span>Player {{index}}: {{item.WonCards.length}}</span> <span>{{IsCurrentPlayer(index)}}</span>
       </div>
     </template>
-    <template is="dom-repeat" items="{{computedCards}}">
-        {{index}}
-        <boardgame-memory-card rank="{{item.Values.Type}}" hidden="{{!Exists(item.Values)}}" spacer="{{!Exists(item)}}"></boardgame-memory-card>
-    </template>
+    <div class="horizontal layout wrap container">
+      <template is="dom-repeat" items="{{computedCards}}">
+          <boardgame-memory-card title="{{index}}" rank="{{item.Values.Type}}" hidden="{{!Exists(item.Values)}}" spacer="{{!Exists(item)}}"></boardgame-memory-card>
+      </template>
+    </div>
   </template>
 
   <script>
