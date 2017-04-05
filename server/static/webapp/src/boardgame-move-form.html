@@ -71,7 +71,41 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
       behaviors : [ApiHostBehavior, BoardgameUtilBehavior],
       proposeMove: function(moveName, arguments) {
-        console.log(moveName, arguments);
+        if (!this.config) {
+          console.warn("proposeMove called but no forms configed")
+          return;
+        }
+        let moveConfig;
+        for (let i = 0; i < this.config.length; i++) {
+          let item = this.config[i];
+          //TODO: fuzzy matching (remove whitespace and lowercase compare)
+          if (item.Name == moveName) {
+            moveConfig = item;
+            break;
+          }
+        }
+
+        if (!moveConfig) {
+          console.warn("No move of name " + moveName + " found.");
+          return;
+        }
+
+        let targetEleID = "#moves-" + moveConfig.Name;
+
+        let ele = this.$$(targetEleID);
+
+        if (!ele) {
+          console.warn("Couldn't find move dom ele ", targetEleID);
+          return;
+        }
+
+        let inputs = ele.elements;
+
+        for (let i = 0; i < inputs.length; i++) {
+          let element = inputs[i];
+          console.log(element)
+        }
+
       },
       formResponse: function(e) {
         let response = e.detail.parseResponse();
