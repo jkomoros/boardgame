@@ -1,5 +1,6 @@
 <link rel="import" href="../bower_components/polymer/polymer.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
 <link rel="import" href="boardgame-memory-card.html">
 
 <dom-module id="boardgame-render-game-memory">
@@ -16,6 +17,7 @@
           <boardgame-memory-card title="{{index}}" rank="{{item.Values.Type}}" hidden="{{!Exists(item.Values)}}" spacer="{{!Exists(item)}}" index="{{index}}"></boardgame-memory-card>
       </template>
     </div>
+    <paper-button id="hide" raised>Hide Cards</paper-button>
   </template>
 
   <script>
@@ -31,7 +33,11 @@
         }
       },
       listeners: {
-        'card-tapped' : 'handleCardTapped'
+        'card-tapped' : 'handleCardTapped',
+        'hide.tap' : 'hideTapped',
+      },
+      hideTapped : function(e) {
+        this.fire("propose-move", {name: "Hide Cards", arguments: {}});
       },
       handleCardTapped: function(e) {
         this.fire("propose-move", {name: "Reveal Card", arguments: {
