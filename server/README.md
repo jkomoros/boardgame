@@ -83,6 +83,11 @@ bower update
 ```
 This will create bower_components.
 
+## Writing your client-side views
+
+boardgame-render-game-<yourgamename> is the Polymer element that will be instantiated and passed both state and expandedState. Your view should render that to the screen in whatever way is reasonable.
+
+That view can fire events of the type "propose-move", with a detail containing "name" for the precise name of the Move to make, and "arguments", which is an object containing the non-default arguments for the move. When that move is emitted, it will effectively fill in the corresponding form fileds for that move (ignoring, and thus leaving at their default, any fields that were not explicitly listed in the arguments object), and then submit the move.
 
 ## Adding new views
 
