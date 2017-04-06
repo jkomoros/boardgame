@@ -127,9 +127,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
           if (!fieldFilled) {
             console.warn("Couldn't find argument " + key + " in form.")
+            return;
           }
 
         }
+
+        formEle.submit();
 
 
       },
