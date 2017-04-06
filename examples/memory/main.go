@@ -13,6 +13,40 @@ import (
 	"strings"
 )
 
+var computedPropertiesConfig *boardgame.ComputedPropertiesConfig
+
+//computeCurrentPlayerHasCardsToReveal is used in our ComputedPropertyConfig.
+func computeCurrentPlayerHasCardsToReveal(state boardgame.State) (interface{}, error) {
+
+	game, players := concreteStates(state)
+
+	p := players[game.CurrentPlayer]
+
+	return p.CardsLeftToReveal > 0, nil
+
+}
+
+func init() {
+	computedPropertiesConfig = &boardgame.ComputedPropertiesConfig{
+		Global: map[string]boardgame.ComputedGlobalPropertyDefinition{
+			"CurrentPlayerHasCardsToReveal": boardgame.ComputedGlobalPropertyDefinition{
+				Dependencies: []boardgame.StatePropertyRef{
+					{
+						Group:    boardgame.StateGroupGame,
+						PropName: "CurrentPlayer",
+					},
+					{
+						Group:    boardgame.StateGroupPlayer,
+						PropName: "CardsLeftToReveal",
+					},
+				},
+				PropType: boardgame.TypeBool,
+				Compute:  computeCurrentPlayerHasCardsToReveal,
+			},
+		},
+	}
+}
+
 type gameDelegate struct {
 	boardgame.DefaultGameDelegate
 }
@@ -27,6 +61,10 @@ func (g *gameDelegate) DisplayName() string {
 
 func (g *gameDelegate) DefaultNumPlayeres() int {
 	return 2
+}
+
+func (g *gameDelegate) ComputedPropertiesConfig() *boardgame.ComputedPropertiesConfig {
+	return computedPropertiesConfig
 }
 
 func (g *gameDelegate) LegalNumPlayers(numPlayers int) bool {
