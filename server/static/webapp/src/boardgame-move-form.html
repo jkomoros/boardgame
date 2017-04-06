@@ -108,10 +108,29 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         let inputs = formEle.elements;
 
-        for (let i = 0; i < inputs.length; i++) {
-          let element = inputs[i];
-          console.log(element)
+        for (var key in arguments) {
+          if (!arguments.hasOwnProperty(key)) continue;
+
+          let fieldFilled = false;
+
+          for (let i = 0; i < inputs.length; i++) {
+            let element = inputs[i];
+            if (element.type == "hidden") continue;
+            if (element.type == "submit") continue;
+
+            if (element.name == key) {
+              element.value = arguments[key];
+              fieldFilled = true;
+            }
+
+          }
+
+          if (!fieldFilled) {
+            console.warn("Couldn't find argument " + key + " in form.")
+          }
+
         }
+
 
       },
       _normalizeID: function(str) {
