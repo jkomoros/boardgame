@@ -17,7 +17,7 @@
           <boardgame-memory-card title="{{index}}" rank="{{item.Values.Type}}" hidden="{{!Exists(item.Values)}}" spacer="{{!Exists(item)}}" index="{{index}}"></boardgame-memory-card>
       </template>
     </div>
-    <paper-button id="hide" raised>Hide Cards</paper-button>
+    <paper-button id="hide" raised disabled="{{state.Computed.Global.CurrentPlayerHasCardsToReveal}}">Hide Cards</paper-button>
   </template>
 
   <script>
