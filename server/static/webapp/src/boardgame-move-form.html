@@ -29,7 +29,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
       <h2>Moves</h2>
       <template is="dom-repeat" items="{{config}}">
-        <details id="moves-{{item.Name}}" >
+        <details id="moves-{{_normalizeID(item.Name)}}" >
           <summary on-tap="saveZippyState">Move {{item.Name}}</summary>
           <form is="iron-form" method="POST" action$="[[UrlForGameAPI(gameName, gameId, 'move')]]">
             <p><em>{{item.Description}}</em></p>
@@ -90,22 +90,32 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           return;
         }
 
-        let targetEleID = "#moves-" + moveConfig.Name;
+        let targetEleID = "#moves-" + this._normalizeID(moveConfig.Name);
 
-        let ele = this.$$(targetEleID);
+        let containerEle = this.$$(targetEleID);
 
-        if (!ele) {
+        if (!containerEle) {
           console.warn("Couldn't find move dom ele ", targetEleID);
           return;
         }
 
-        let inputs = ele.elements;
+        let formEle = containerEle.querySelector("form");
+
+        if (!formEle) {
+          console.warn("Couldn't find form ele");
+          return;
+        }
+
+        let inputs = formEle.elements;
 
         for (let i = 0; i < inputs.length; i++) {
           let element = inputs[i];
           console.log(element)
         }
 
+      },
+      _normalizeID: function(str) {
+        return str.split(" ").join("")
       },
       formResponse: function(e) {
         let response = e.detail.parseResponse();
