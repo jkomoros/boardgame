@@ -17,6 +17,15 @@ func (t *Timer) Copy() *Timer {
 	return &result
 }
 
+func (t *Timer) MarshalJSON() ([]byte, error) {
+	obj := map[string]interface{}{
+		"ID":       t.ID,
+		"TimeLeft": t.TimeLeft(),
+	}
+
+	return DefaultMarshalJSON(obj)
+}
+
 //Active returns true if the timer is active and counting down.
 func (t *Timer) Active() bool {
 	return t.ID == 0
@@ -24,6 +33,9 @@ func (t *Timer) Active() bool {
 
 //TimeLeft returns the number of nanoseconds left until this timer fires.
 func (t *Timer) TimeLeft() int {
+	if !t.Active() {
+		return 0
+	}
 	//TODO: when this is actually hooked up, return a real value.
 	return 0
 }
