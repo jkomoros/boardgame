@@ -19,6 +19,8 @@ type MoveCaptureCards struct{}
 
 type MoveHideCards struct{}
 
+const HideCardsDuration = 4 * time.Second
+
 /**************************************************
  *
  * MoveAdvanceNextPlayer Implementation
@@ -195,7 +197,7 @@ func (m *MoveStartHideCardsTimer) Legal(state boardgame.State) error {
 func (m *MoveStartHideCardsTimer) Apply(state boardgame.MutableState) error {
 	game, _ := concreteStates(state)
 
-	game.HideCardsTimer.Start(10*time.Second, &MoveHideCards{})
+	game.HideCardsTimer.Start(HideCardsDuration, &MoveHideCards{})
 
 	return nil
 }
