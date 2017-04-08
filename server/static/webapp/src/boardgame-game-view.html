@@ -115,6 +115,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         maxCurrentPlayerIndex: {
           type: Number,
           computed: "_computeMaxCurrentPlayerIndex(data)"
+        },
+        pathsToTick: {
+          type: Array
+        },
+        originalWallClockStartTime: {
+          type: Number
         }
       },
       listeners: {
@@ -205,23 +211,62 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.fetchData();
         }
       },
+      doTick: function() {
+        this._tick();
+        if (this.pathsToTick.length > 0) {
+          window.setTimeout(this.doTick.bind(this), 100);
+        }
+      },
+      _tick: function() {
+        let newPaths = [];
+
+        let pathToExpanded = ["data.Game.ExpandedCurrentState"]
+
+        for (let i = 0; i < this.pathsToTick.length; i++) {
+          let currentPath = this.pathsToTick[i];
+
+          let pathToFetch = pathToExpanded.concat(currentPath);
+
+          let timer = this.get(pathToFetch);
+
+          let now = Date.now();
+          let difference = now - this.originalWallClockStartTime;
+
+          let result = Math.max(0, timer.originalTimeLeft - difference);
+
+          this.set(pathToExpanded.concat(currentPath).concat(["TimeLeft"]), result);
+
+          //If we still have time to tick on this, then make sure it's still
+          //in the list of things to tick.
+          if (timer.TimeLeft > 0) {
+            newPaths.push(currentPath)
+          }
+        }
+
+        this.pathsToTick = newPaths;
+      },
       _expandState: function(currentState) {
         //Takes the currentState and returns an object where all of the Stacks are replaced by actual references to the component they reference.
 
         var that = this;
 
+        this.originalWallClockStartTime = Date.now();
+        this.pathsToTick = [];
+
         //We expect the top-level shape to be {Game:obj, Players: array}
         var result = {
-          "Game" : this._expandLeafState(currentState.Game),
-          "Players" : currentState.Players.map(function(item) {
-            return that._expandLeafState(item);
+          "Game" : this._expandLeafState(currentState.Game, ["Game"]),
+          "Players" : currentState.Players.map(function(item, i) {
+            return that._expandLeafState(item, ["Players", i]);
           })
         };
+
+        this.async(this.doTick);
 
         return result;
 
       },
-      _expandLeafState: function(leafState) {
+      _expandLeafState: function(leafState, pathToLeaf) {
         //Returns an expanded version of leafState. leafState should have keys that are either bools, floats, strings, or Stacks.
         var result = {};
         var entries = Object.entries(leafState);
@@ -230,11 +275,28 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           let key = item[0];
           let val = item[1];
           if (typeof val == "object") {
-            result[key] = this._expandStack(val);
+            if (val.Deck) {
+              result[key] = this._expandStack(val);
+            } else if (val.TimeLeft) {
+              result[key] = this._expandTimer(val, pathToLeaf.concat([key]));
+            } else {
+              result[key] = val;
+            }
+            
           } else {
             result[key] = val;
           }
         }
+        return result;
+      },
+      _expandTimer : function(timer, pathToLeaf) {
+        if (!timer.TimeLeft) {
+          //Meh, I guess it's not a timer.
+          return timer;
+        }
+        let result = this._copyObj(timer);
+        result.originalTimeLeft = timer.TimeLeft;
+        this.pathsToTick.push(pathToLeaf);
         return result;
       },
       _expandStack: function(stack) {

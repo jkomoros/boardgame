@@ -23,7 +23,7 @@
       </template>
     </div>
     <paper-button id="hide" raised disabled="{{state.Computed.Global.CurrentPlayerHasCardsToReveal}}">Hide Cards</paper-button>
-    <paper-progress id="timeleft" value="{{state.Game.HideCardsTimer.TimeLeft}}" max="10000"></paper-progress>
+    <paper-progress id="timeleft" value="{{expandedState.Game.HideCardsTimer.TimeLeft}}" max="10000"></paper-progress>
   </template>
 
   <script>
