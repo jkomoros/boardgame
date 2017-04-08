@@ -165,12 +165,14 @@ func (g *GameManager) ModifiableGame(id string) *Game {
 
 	//Let's try to load up from storage.
 
-	game, _ = g.storage.Game(g, id)
+	gameRecord, _ := g.storage.Game(id)
 
-	if game == nil {
+	if gameRecord == nil {
 		//Nah, we've never seen that game.
 		return nil
 	}
+
+	game = g.gameFromStorageRecord(gameRecord)
 
 	//Only SetUp() and us are allowed to kick off a game's mainLoop.
 	game.modifiable = true
@@ -190,10 +192,13 @@ func (g *GameManager) ModifiableGame(id string) *Game {
 //Game fetches a new non-modifiable copy of the given game from storage. If
 //you want a modifiable version, use ModifiableGame.
 func (g *GameManager) Game(id string) *Game {
-	if result, err := g.storage.Game(g, id); err == nil {
-		return result
+	record, err := g.storage.Game(id)
+
+	if err != nil {
+		return nil
 	}
-	return nil
+
+	return g.gameFromStorageRecord(record)
 }
 
 type refriedState struct {

@@ -27,14 +27,10 @@ type StorageManager interface {
 	State(gameId string, version int) (StateStorageRecord, error)
 
 	//Game fetches the game with the given ID from the store, if it exists.
-	//The implementation should use manager.LoadGame to get a real game object
-	//that is ready for use. The returned game will always have Modifiable()
-	//as false. If you want a modifiable version, use
-	//GameManager.ModifiableGame(id).
-	Game(manager *GameManager, id string) (*Game, error)
+	Game(id string) (*GameStorageRecord, error)
 
 	//SaveGameAndCurrentState stores the game and the current state (at
 	//game.Version()) into the store at the same time in a transaction. If
 	//Game.Modifiable() is false, storage should fail.
-	SaveGameAndCurrentState(game *Game, state StateStorageRecord) error
+	SaveGameAndCurrentState(game *GameStorageRecord, state StateStorageRecord) error
 }

@@ -9,20 +9,9 @@ import (
 //This file is actually used to just implement a shim StorageManager so our
 //own package tests can run. The shim is basically storage/memory/StorageManager.
 
-type memoryGameRecord struct {
-	Name     string
-	Id       string
-	Version  int
-	Finished bool
-	//We'll serialize as a string and then back out to simulate what a real DB
-	//would do, and make sure we don't hand out the same string all of the
-	//time.
-	Winners string
-}
-
 type testStorageManager struct {
 	states map[string]map[int]StateStorageRecord
-	games  map[string]*memoryGameRecord
+	games  map[string]*GameStorageRecord
 }
 
 func newTestStorageManager() *testStorageManager {
@@ -30,7 +19,7 @@ func newTestStorageManager() *testStorageManager {
 	//track of the objects in memory.
 	return &testStorageManager{
 		states: make(map[string]map[int]StateStorageRecord),
-		games:  make(map[string]*memoryGameRecord),
+		games:  make(map[string]*GameStorageRecord),
 	}
 }
 
@@ -79,75 +68,31 @@ func (i *testStorageManager) State(gameId string, version int) (StateStorageReco
 	return record, nil
 }
 
-func (i *testStorageManager) Game(manager *GameManager, id string) (*Game, error) {
+func (i *testStorageManager) Game(id string) (*GameStorageRecord, error) {
 	record := i.games[id]
 
 	if record == nil {
 		return nil, errors.New("That game does not exist")
 	}
 
-	if manager == nil {
-		return nil, errors.New("No manager provided")
-	}
+	return record, nil
 
-	return manager.LoadGame(record.Name, id, record.Version, record.Finished, i.winnersFromStorage(record.Winners)), nil
 }
 
-func (i *testStorageManager) winnersForStorage(winners []int) string {
-
-	if winners == nil {
-		return ""
-	}
-
-	result := make([]string, len(winners))
-
-	for i, num := range winners {
-		result[i] = strconv.Itoa(num)
-	}
-
-	return strings.Join(result, ",")
-}
-
-func (i *testStorageManager) winnersFromStorage(winners string) []int {
-
-	if winners == "" {
-		return nil
-	}
-
-	pieces := strings.Split(winners, ",")
-
-	result := make([]int, len(pieces))
-
-	for i, piece := range pieces {
-		num, err := strconv.Atoi(piece)
-
-		if err != nil {
-			panic("Unexpected number stored:" + err.Error())
-		}
-
-		result[i] = num
-	}
-	return result
-}
-
-func (i *testStorageManager) SaveGameAndCurrentState(game *Game, state StateStorageRecord) error {
+func (i *testStorageManager) SaveGameAndCurrentState(game *GameStorageRecord, state StateStorageRecord) error {
 	if game == nil {
 		return errors.New("No game provided")
 	}
 
-	if !game.Modifiable() {
-		return errors.New("Game is not modifiable")
-	}
-
 	//TODO: validate that state.Version is reasonable.
 
-	if _, ok := i.states[game.Id()]; !ok {
-		i.states[game.Id()] = make(map[int]StateStorageRecord)
+	if _, ok := i.states[game.Id]; !ok {
+		i.states[game.Id] = make(map[int]StateStorageRecord)
 	}
 
-	version := game.Version()
+	version := game.Version
 
-	versionMap := i.states[game.Id()]
+	versionMap := i.states[game.Id]
 
 	if _, ok := versionMap[version]; ok {
 		//Wait, there was already a version stored there?
@@ -156,13 +101,7 @@ func (i *testStorageManager) SaveGameAndCurrentState(game *Game, state StateStor
 
 	versionMap[version] = state
 
-	i.games[game.Id()] = &memoryGameRecord{
-		Version:  version,
-		Winners:  i.winnersForStorage(game.Winners()),
-		Finished: game.Finished(),
-		Id:       game.Id(),
-		Name:     game.Name(),
-	}
+	i.games[game.Id] = game
 
 	return nil
 }

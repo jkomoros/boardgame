@@ -23,7 +23,7 @@ type StorageManager interface {
 
 	//The methods past this point are the same ones that are included in Server.StorageManager
 	Close()
-	ListGames(manager boardgame.ManagerCollection, max int) []*boardgame.Game
+	ListGames(manager boardgame.ManagerCollection, max int) []*boardgame.GameStorageRecord
 }
 
 type managerMap map[string]*boardgame.GameManager
@@ -64,7 +64,7 @@ func Test(factory StorageManagerFactory, testName string, t *testing.T) {
 
 	//OK, now test that the manager and SetUp and everyone did the right thing.
 
-	localGame, err := storage.Game(tictactoeManager, tictactoeGame.Id())
+	localGame, err := storage.Game(tictactoeGame.Id())
 
 	if err != nil {
 		t.Error(testName, "Unexpected error", err)
@@ -74,11 +74,7 @@ func Test(factory StorageManagerFactory, testName string, t *testing.T) {
 		t.Fatal(testName, "Couldn't get game copy out")
 	}
 
-	if localGame.Modifiable() {
-		t.Error(testName, "We asked for a non-modifiable game, got a modifiable one")
-	}
-
-	blob, err := json.MarshalIndent(tictactoeGame, "", "  ")
+	blob, err := json.MarshalIndent(tictactoeGame.StorageRecord(), "", "  ")
 
 	if err != nil {
 		t.Fatal(testName, "couldn't marshal game", err)
@@ -91,14 +87,6 @@ func Test(factory StorageManagerFactory, testName string, t *testing.T) {
 	}
 
 	compareJSONObjects(blob, localBlob, testName+"Comparing game and local game", t)
-
-	state := tictactoeGame.State(0)
-	stateBlob, _ := json.MarshalIndent(state, "", "  ")
-
-	localState := localGame.State(0)
-	localStateBlob, _ := json.MarshalIndent(localState, "", "  ")
-
-	compareJSONObjects(stateBlob, localStateBlob, testName+"Comparing game version 0", t)
 
 	//Verify that if the game is stored with wrong name that doesn't match manager it won't load up.
 
