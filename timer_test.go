@@ -26,13 +26,17 @@ func TestTimerManager(t *testing.T) {
 
 	registeredDuration := time.Duration(50) * time.Millisecond
 
-	id := timer.RegisterTimer(registeredDuration, game, move)
+	id := timer.PrepareTimer(registeredDuration, game, move)
 
 	assert.For(t).ThatActual(id).Equals(1)
 
 	assert.For(t).ThatActual(timer.nextId).Equals(2)
 
 	remaining := timer.GetTimerRemaining(id)
+
+	assert.For(t).ThatActual(remaining > time.Second*3000000).IsTrue()
+
+	timer.StartTimer(id)
 
 	assert.For(t).ThatActual(registeredDuration-remaining < time.Millisecond*10).IsTrue()
 
@@ -74,9 +78,12 @@ func TestTimerManagerMultiple(t *testing.T) {
 
 	timer := newTimerManager()
 
-	firstId := timer.RegisterTimer(time.Duration(50)*time.Millisecond, game, move)
-	secondId := timer.RegisterTimer(time.Duration(10)*time.Millisecond, game, move)
-	thirdId := timer.RegisterTimer(time.Duration(70)*time.Millisecond, game, move)
+	firstId := timer.PrepareTimer(time.Duration(50)*time.Millisecond, game, move)
+	timer.StartTimer(firstId)
+	secondId := timer.PrepareTimer(time.Duration(10)*time.Millisecond, game, move)
+	timer.StartTimer(secondId)
+	thirdId := timer.PrepareTimer(time.Duration(70)*time.Millisecond, game, move)
+	timer.StartTimer(thirdId)
 
 	//Make sure that even though the second timer was added second, it is first.
 	assert.For(t).ThatActual(timer.records[0].id).Equals(secondId)
@@ -116,6 +123,9 @@ func TestTimerProp(t *testing.T) {
 	gameState, _ := concreteStates(game.CurrentState())
 
 	gameState.Timer.Start(time.Millisecond*5, move)
+
+	//Trigger the timers to actually be added
+	game.CurrentState().(*state).committed()
 
 	<-time.After(time.Millisecond * 300)
 

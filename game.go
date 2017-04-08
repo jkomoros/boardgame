@@ -530,6 +530,10 @@ func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 		return errors.New("Storage returned an error:" + err.Error())
 	}
 
+	//Ok, the state stuck and is now canonical--trigger the actions it was
+	//supposed to do.
+	newState.committed()
+
 	if recurseCount > maxRecurseCount {
 		panic("We recursed deeply in fixup, which implies that ProposeFixUp has a move that is always legal. Quitting.")
 	}

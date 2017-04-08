@@ -77,6 +77,11 @@ type state struct {
 	//Set to true while computed is being calculating computed. Primarily so
 	//if you marshal JSON in that time we know to just elide computed.
 	calculatingComputed bool
+	//If TimerProp.Start() is called, it prepares a timer, but doesn't
+	//actually start ticking it until this state is committed. This is where
+	//we accumulate the timers that still need to be fully started at that
+	//point.
+	timersToStart []int
 }
 
 func (s *state) MutableGame() MutableGameState {
@@ -150,6 +155,15 @@ func (s *state) copy(sanitized bool) *state {
 	}
 
 	return result
+}
+
+//committed is called right after the state has been committed to the database
+//and we're sure it will stick. This is the time to do any actions that were
+//triggered during the state manipulation. currently that is only timers.
+func (s *state) committed() {
+	for _, id := range s.timersToStart {
+		s.game.manager.timers.StartTimer(id)
+	}
 }
 
 func (s *state) StorageRecord() StateStorageRecord {

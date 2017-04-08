@@ -49,7 +49,9 @@ func (t *Timer) Start(duration time.Duration, move Move) {
 	game := t.statePtr.game
 	manager := game.manager
 
-	t.Id = manager.timers.RegisterTimer(duration, game, move)
+	t.Id = manager.timers.PrepareTimer(duration, game, move)
+
+	t.statePtr.timersToStart = append(t.statePtr.timersToStart, t.Id)
 }
 
 //Cancel cancels an active timer. If the timer is not active, it has no
@@ -63,15 +65,24 @@ func (t *Timer) Cancel() bool {
 
 	manager.timers.CancelTimer(t.Id)
 
+	//Technically there's a case where Start() was called, but the state was
+	//never fully committed. However, StartTimer() on a canceled timer is a
+	//no-op so it's fine.
+
 	t.Id = 0
 
 	return true
 }
 
 type timerRecord struct {
-	id       int
-	index    int
+	id    int
+	index int
+	//When the timer should fire. Set after the timer is fully Started().
+	//Before that it is impossibly far in the future.
 	fireTime time.Time
+	//The duration we were configured with. Only set when the timer is
+	//Prepared() but not yet Started().
+	duration time.Duration
 	game     *Game
 	move     Move
 }
@@ -103,11 +114,17 @@ func newTimerManager() *timerManager {
 	}
 }
 
-func (t *timerManager) RegisterTimer(duration time.Duration, game *Game, move Move) int {
+//PrepareTimer creates a timer entry and gets it ready and an Id allocated.
+//However, the timer doesn't actually start counting down until
+//manager.StartTimer(id) is called.
+func (t *timerManager) PrepareTimer(duration time.Duration, game *Game, move Move) int {
 	record := &timerRecord{
 		id:       t.nextId,
 		index:    -1,
-		fireTime: time.Now().Add(duration),
+		duration: duration,
+		//fireTime will be set when StartTimer is called. For now, set it to
+		//something impossibly far in the future.
+		fireTime: time.Now().Add(time.Hour * 100000),
 		game:     game,
 		move:     move,
 	}
@@ -118,6 +135,21 @@ func (t *timerManager) RegisterTimer(duration time.Duration, game *Game, move Mo
 	heap.Push(&t.records, record)
 
 	return record.id
+}
+
+//StartTimer actually triggers a timer that was previously PrepareTimer'd to
+//start counting down.
+func (t *timerManager) StartTimer(id int) {
+	record := t.recordsById[id]
+
+	if record == nil {
+		return
+	}
+
+	record.fireTime = time.Now().Add(record.duration)
+	record.duration = 0
+
+	heap.Fix(&t.records, record.index)
 }
 
 func (t *timerManager) GetTimerRemaining(id int) time.Duration {
