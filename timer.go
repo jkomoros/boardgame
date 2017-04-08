@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"container/heap"
 	"time"
 )
 
@@ -106,41 +107,107 @@ type timerRecord struct {
 	move     Move
 }
 
-type timerQueue struct {
-	records     []*timerRecord
+type timerQueue []*timerRecord
+
+type timerManager struct {
+	nextId      int
+	records     timerQueue
 	recordsById map[int]*timerRecord
 }
 
+func newTimerManager() *timerManager {
+	return &timerManager{
+		nextId:      0,
+		records:     make(timerQueue, 0),
+		recordsById: make(map[int]*timerRecord),
+	}
+}
+
+func (t *timerManager) RegisterTimer(nanoseconds int, game *Game, move Move) int {
+	record := &timerRecord{
+		id:       t.nextId,
+		index:    -1,
+		fireTime: time.Now(),
+		game:     game,
+		move:     move,
+	}
+	t.nextId++
+
+	t.recordsById[record.id] = record
+
+	heap.Push(&t.records, record)
+
+	return record.id
+}
+
+//Should be called regularly by the manager to tell this to check and see if
+//any timers have fired, and execute them if so.
+func (t *timerManager) Tick() {
+	for t.nextTimerFired() {
+		record := t.popNext()
+		if record == nil {
+			continue
+		}
+		if err := <-record.game.ProposeMove(record.move); err != nil {
+			//TODO: log the error or something
+			panic(err)
+		}
+	}
+}
+
+//Whether the next timer in the queue is already fired
+func (t *timerManager) nextTimerFired() bool {
+	if len(t.records) == 0 {
+		return false
+	}
+
+	record := t.records[0]
+
+	if record.fireTime.Sub(time.Now()) < 0 {
+		return true
+	}
+
+	return false
+}
+
+func (t *timerManager) popNext() *timerRecord {
+	if !t.nextTimerFired() {
+		return nil
+	}
+
+	x := heap.Pop(&t.records)
+
+	return x.(*timerRecord)
+}
+
 func (t timerQueue) Len() int {
-	return len(t.records)
+	return len(t)
 }
 
 func (t timerQueue) Less(i, j int) bool {
-	return t.records[i].fireTime.Sub(t.records[j].fireTime) < 0
+	return t[i].fireTime.Sub(t[j].fireTime) < 0
 }
 
 func (t timerQueue) Swap(i, j int) {
-	t.records[i], t.records[j] = t.records[j], t.records[i]
-	t.records[i].index = i
-	t.records[j].index = j
+	t[i], t[j] = t[j], t[i]
+	t[i].index = i
+	t[j].index = j
 }
 
 //DO NOT USE THIS DIRECTLY. Use heap.Push(t)
 func (t *timerQueue) Push(x interface{}) {
-	n := len(t.records)
+	n := len(*t)
 	item := x.(*timerRecord)
 	item.index = n
-	t.recordsById[item.id] = item
-	t.records = append(t.records, item)
+	*t = append(*t, item)
 }
 
 //DO NOT USE THIS DIRECTLY. Use heap.Pop()
 func (t *timerQueue) Pop() interface{} {
-	old := t.records
+	old := *t
 	n := len(old)
 	item := old[n-1]
 	item.index = -1
-	delete(t.recordsById, item.id)
-	t.records = old[0 : n-1]
+	*t = old[0 : n-1]
 	return item
 }
