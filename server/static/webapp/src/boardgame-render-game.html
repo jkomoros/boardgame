@@ -23,7 +23,6 @@
         },
         expandedState: {
           type: Object,
-          observer: "_expandedStateChanged",
         },
         diagram : {
           type: String,
@@ -54,11 +53,13 @@
         }
         this.renderer.state = newValue;
       },
-      _expandedStateChanged : function(record) {
+      _expandedStateChanged: function(record) {
+
         if (!this.renderer) return;
-        //TODO: this is really expensive because it re-data-binds everything.
-        this.renderer.expandedState = {};
-        this.renderer.expandedState = this.expandedState;
+
+        this.renderer.set(record.path, record.value);
+
+
       },
       _gameNameChanged : function(newValue) {
         this.rendererLoaded = false
