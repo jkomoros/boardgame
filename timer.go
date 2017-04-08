@@ -1,5 +1,9 @@
 package boardgame
 
+import (
+	"time"
+)
+
 type Timer struct {
 	//Id will be an opaque identifier that is used to keep track of the
 	//corresponding underlying Timer object in the game engine. It is not
@@ -92,4 +96,51 @@ func (g *GameManager) cancelTimer(id int) {
 func (g *GameManager) getTimer(id int) int {
 	//TODO: actually implement this.
 	return 0
+}
+
+type timerRecord struct {
+	id       int
+	index    int
+	fireTime time.Time
+	game     *Game
+	move     Move
+}
+
+type timerQueue struct {
+	records     []*timerRecord
+	recordsById map[int]*timerRecord
+}
+
+func (t timerQueue) Len() int {
+	return len(t.records)
+}
+
+func (t timerQueue) Less(i, j int) bool {
+	return t.records[i].fireTime.Sub(t.records[j].fireTime) < 0
+}
+
+func (t timerQueue) Swap(i, j int) {
+	t.records[i], t.records[j] = t.records[j], t.records[i]
+	t.records[i].index = i
+	t.records[j].index = j
+}
+
+//DO NOT USE THIS DIRECTLY. Use heap.Push(t)
+func (t *timerQueue) Push(x interface{}) {
+	n := len(t.records)
+	item := x.(*timerRecord)
+	item.index = n
+	t.recordsById[item.id] = item
+	t.records = append(t.records, item)
+}
+
+//DO NOT USE THIS DIRECTLY. Use heap.Pop()
+func (t *timerQueue) Pop() interface{} {
+	old := t.records
+	n := len(old)
+	item := old[n-1]
+	item.index = -1
+	delete(t.recordsById, item.id)
+	t.records = old[0 : n-1]
+	return item
 }
