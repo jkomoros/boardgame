@@ -214,7 +214,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       doTick: function() {
         this._tick();
         if (this.pathsToTick.length > 0) {
-          window.setTimeout(this.doTick.bind(this), 100);
+          window.requestAnimationFrame(this.doTick.bind(this));
         }
       },
       _tick: function() {
