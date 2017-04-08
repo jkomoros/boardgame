@@ -212,7 +212,7 @@ func (g *Game) SetUp(numPlayers int) error {
 	}
 
 	stateCopy := &state{
-		delegate: g.Manager().Delegate(),
+		manager: g.Manager(),
 	}
 
 	gameState, err := g.manager.emptyGameState(stateCopy)

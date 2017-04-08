@@ -290,7 +290,7 @@ func (g *GameManager) StateFromBlob(blob []byte) (State, error) {
 	}
 
 	result := &state{
-		delegate: g.delegate,
+		manager: g,
 	}
 
 	game, err := g.emptyGameState(result)

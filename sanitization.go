@@ -89,7 +89,7 @@ func (s *state) SanitizedForPlayer(playerIndex int) State {
 		return s
 	}
 
-	policy := s.delegate.StateSanitizationPolicy()
+	policy := s.manager.delegate.StateSanitizationPolicy()
 
 	if policy == nil {
 		policy = &StatePolicy{}
