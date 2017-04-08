@@ -5,6 +5,17 @@ package boardgame
 //managers can just write straight to disk with no transformations.
 type StateStorageRecord []byte
 
+//GameStorageRecord is a simple struct with public fields representing the
+//important aspects of a game that should be serialized to storage. The fields
+//are broken out specifically so that the storage layer can understand these
+//properties in queries.
+type GameStorageRecord struct {
+	Id       string
+	Version  int
+	Winners  []int
+	Finished bool
+}
+
 //StorageManager is an interface that anything can implement to handle the
 //persistence of Games and States.
 type StorageManager interface {

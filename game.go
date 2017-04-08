@@ -143,6 +143,17 @@ func (g *Game) MarshalJSON() ([]byte, error) {
 	return json.Marshal(g.JSONForPlayer(-1))
 }
 
+//StorageRecord returns a GameStorageRecord representing the aspects of this
+//game that should be serialized to storage.
+func (g *Game) StorageRecord() *GameStorageRecord {
+	return &GameStorageRecord{
+		Version:  g.Version(),
+		Winners:  g.Winners(),
+		Finished: g.Finished(),
+		Id:       g.Id(),
+	}
+}
+
 func (g *Game) Name() string {
 	return g.manager.Delegate().Name()
 }

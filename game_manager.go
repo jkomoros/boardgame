@@ -68,6 +68,18 @@ func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage Storag
 	return result
 }
 
+func (g *GameManager) gameFromStorageRecord(record *GameStorageRecord) *Game {
+	return &Game{
+		manager:    g,
+		version:    record.Version,
+		id:         record.Id,
+		finished:   record.Finished,
+		winners:    record.Winners,
+		modifiable: false,
+		initalized: true,
+	}
+}
+
 //LoadGame is used to provide back a real Game instance based on state that
 //was stored in storage, that is ready to use like any other game (that is, it
 //operates like SetUp has already been called). If you want a new game, use
