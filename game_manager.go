@@ -265,8 +265,9 @@ func (g *GameManager) emptyDynamicComponentValues(state *state) (map[string][]Mu
 
 //StateFromBlob takes a state that was serialized in storage and reinflates
 //it. Storage sub-packages should call this to recover a real State object
-//given a serialized state blob.
-func (g *GameManager) stateFromRecord(record StateStorageRecord) (State, error) {
+//given a serialized state blob. Note: the state that is returned does not
+//have its game property set.
+func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error) {
 	//At this point, no extra state is stored in the blob other than in props.
 
 	//We can't just delegate to StateProps to unmarshal itself, because it
@@ -277,9 +278,7 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (State, error) 
 		return nil, err
 	}
 
-	result := &state{
-		manager: g,
-	}
+	result := &state{}
 
 	game, err := g.emptyGameState(result)
 

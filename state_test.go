@@ -21,6 +21,7 @@ func TestState(t *testing.T) {
 	}
 
 	state, err := game.Manager().stateFromRecord(record)
+	state.game = game
 
 	if err != nil {
 		t.Error("StateFromBlob err", err)
@@ -90,6 +91,8 @@ func TestStateSerialization(t *testing.T) {
 	if err != nil {
 		t.Error("StateFromBlob returned unexpected err", err)
 	}
+
+	reconstitutedState.game = game
 
 	gameState, _ := concreteStates(reconstitutedState)
 

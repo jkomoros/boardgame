@@ -151,6 +151,8 @@ func TestSanitization(t *testing.T) {
 		},
 	}
 
+	game := NewGame(manager)
+
 	for i, test := range tests {
 
 		inputBlob, err := ioutil.ReadFile("test/" + test.inputFileName)
@@ -158,6 +160,8 @@ func TestSanitization(t *testing.T) {
 		assert.For(t).ThatActual(err).IsNil()
 
 		state, err := manager.stateFromRecord(inputBlob)
+		//This is hacky, but we don't really need the game for much more anyway
+		state.game = game
 
 		assert.For(t).ThatActual(err).IsNil()
 

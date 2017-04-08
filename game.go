@@ -198,6 +198,8 @@ func (g *Game) State(version int) State {
 		panic("StateFromBlob failed: " + err.Error())
 	}
 
+	result.game = g
+
 	return result
 
 }
@@ -230,7 +232,7 @@ func (g *Game) SetUp(numPlayers int) error {
 	}
 
 	stateCopy := &state{
-		manager: g.Manager(),
+		game: g,
 	}
 
 	gameState, err := g.manager.emptyGameState(stateCopy)

@@ -270,6 +270,8 @@ func TestApplyMove(t *testing.T) {
 		t.Error("Error state from from blob", err)
 	}
 
+	wrapper.game = game
+
 	currentJson, _ := json.Marshal(wrapper)
 	golden := goldenJSON("basic_state_after_move.json", t)
 

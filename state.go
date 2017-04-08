@@ -73,7 +73,7 @@ type state struct {
 	computed               *computedPropertiesImpl
 	dynamicComponentValues map[string][]MutableDynamicComponentValues
 	sanitized              bool
-	manager                *GameManager
+	game                   *Game
 	//Set to true while computed is being calculating computed. Primarily so
 	//if you marshal JSON in that time we know to just elide computed.
 	calculatingComputed bool
@@ -119,7 +119,7 @@ func (s *state) copy(sanitized bool) *state {
 		playerStates:           players,
 		dynamicComponentValues: make(map[string][]MutableDynamicComponentValues),
 		sanitized:              sanitized,
-		manager:                s.manager,
+		game:                   s.game,
 		//We copy this over, because this should only be set when computed is
 		//being calculated, and during that time we'll be creating sanitized
 		//copies of ourselves. However, if there are other copies created when
@@ -177,7 +177,7 @@ func (s *state) MarshalJSON() ([]byte, error) {
 }
 
 func (s *state) Diagram() string {
-	return s.manager.delegate.Diagram(s)
+	return s.game.manager.delegate.Diagram(s)
 }
 
 func (s *state) Sanitized() bool {
@@ -210,7 +210,7 @@ func (s *state) Computed() ComputedProperties {
 	if s.computed == nil {
 
 		s.calculatingComputed = true
-		s.computed = newComputedPropertiesImpl(s.manager.delegate.ComputedPropertiesConfig(), s)
+		s.computed = newComputedPropertiesImpl(s.game.manager.delegate.ComputedPropertiesConfig(), s)
 		s.calculatingComputed = false
 	}
 	return s.computed
