@@ -38,7 +38,7 @@ func (t *Timer) Active() bool {
 }
 
 //TimeLeft returns the number of nanoseconds left until this timer fires.
-func (t *Timer) TimeLeft() int {
+func (t *Timer) TimeLeft() time.Duration {
 	if !t.Active() {
 		return 0
 	}
@@ -46,13 +46,13 @@ func (t *Timer) TimeLeft() int {
 	return t.statePtr.game.manager.timers.GetTimerRemaining(t.Id)
 }
 
-//Start starts the timer. After nanoseconds nanoseconds have passed, the Move
+//Start starts the timer. After duration has passed, the Move
 //will be proposed via proposeMove.
-func (t *Timer) Start(nanoseconds int, move Move) {
+func (t *Timer) Start(duration time.Duration, move Move) {
 	game := t.statePtr.game
 	manager := game.manager
 
-	t.Id = manager.timers.RegisterTimer(nanoseconds, game, move)
+	t.Id = manager.timers.RegisterTimer(duration, game, move)
 }
 
 //Cancel cancels an active timer. If the timer is not active, it has no
@@ -79,14 +79,14 @@ type timerRecord struct {
 	move     Move
 }
 
-func (t *timerRecord) TimeRemaining() int {
+func (t *timerRecord) TimeRemaining() time.Duration {
 	duration := t.fireTime.Sub(time.Now())
 
 	if duration < 0 {
 		duration = 0
 	}
 
-	return int(duration)
+	return duration
 }
 
 type timerQueue []*timerRecord
@@ -105,11 +105,11 @@ func newTimerManager() *timerManager {
 	}
 }
 
-func (t *timerManager) RegisterTimer(nanoseconds int, game *Game, move Move) int {
+func (t *timerManager) RegisterTimer(duration time.Duration, game *Game, move Move) int {
 	record := &timerRecord{
 		id:       t.nextId,
 		index:    -1,
-		fireTime: time.Now().Add(time.Duration(nanoseconds)),
+		fireTime: time.Now().Add(duration),
 		game:     game,
 		move:     move,
 	}
@@ -122,7 +122,7 @@ func (t *timerManager) RegisterTimer(nanoseconds int, game *Game, move Move) int
 	return record.id
 }
 
-func (t *timerManager) GetTimerRemaining(id int) int {
+func (t *timerManager) GetTimerRemaining(id int) time.Duration {
 	record := t.recordsById[id]
 
 	if record == nil {
