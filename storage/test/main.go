@@ -23,7 +23,7 @@ type StorageManager interface {
 
 	//The methods past this point are the same ones that are included in Server.StorageManager
 	Close()
-	ListGames(manager boardgame.ManagerCollection, max int) []*boardgame.GameStorageRecord
+	ListGames(max int) []*boardgame.GameStorageRecord
 }
 
 type managerMap map[string]*boardgame.GameManager
@@ -94,7 +94,7 @@ func Test(factory StorageManagerFactory, testName string, t *testing.T) {
 
 	blackjackGame.SetUp(0)
 
-	games := storage.ListGames(managers, 10)
+	games := storage.ListGames(10)
 
 	if games == nil {
 		t.Error(testName, "ListGames gave back nothing")

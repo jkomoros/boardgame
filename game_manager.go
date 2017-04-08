@@ -31,12 +31,6 @@ type GameManager struct {
 	initialized         bool
 }
 
-//ManagerCollection is a way to grab a reference to a specific manager based
-//on a game name. It's passed in to some storage methods by server and others.
-type ManagerCollection interface {
-	Get(name string) *GameManager
-}
-
 //NewGameManager creates a new game manager with the given delegate.
 func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage StorageManager) *GameManager {
 	if delegate == nil {

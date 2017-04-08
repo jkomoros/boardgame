@@ -11,7 +11,7 @@ type StorageManager interface {
 	boardgame.StorageManager
 	//Close should be called before the server is shut down.
 	Close()
-	ListGames(collection boardgame.ManagerCollection, max int) []*boardgame.GameStorageRecord
+	ListGames(max int) []*boardgame.GameStorageRecord
 
 	//Note: whenever you add methods here, also add them to boardgame/storage/test/StorageManager
 }

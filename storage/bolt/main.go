@@ -166,7 +166,7 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 
 }
 
-func (s *StorageManager) ListGames(managers boardgame.ManagerCollection, max int) []*boardgame.GameStorageRecord {
+func (s *StorageManager) ListGames(max int) []*boardgame.GameStorageRecord {
 
 	var result []*boardgame.GameStorageRecord
 
@@ -188,16 +188,6 @@ func (s *StorageManager) ListGames(managers boardgame.ManagerCollection, max int
 
 			if err := json.Unmarshal(v, &record); err != nil {
 				return errors.New("Couldn't deserialize a game: " + err.Error())
-			}
-
-			manager := managers.Get(record.Name)
-
-			if manager == nil {
-
-				//Hmm, I guess we didn't know about this type of manager...
-
-				//TODO: log an error
-				continue
 			}
 
 			result = append(result, &record)

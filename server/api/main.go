@@ -65,10 +65,6 @@ const (
 
 type managerMap map[string]*boardgame.GameManager
 
-func (m managerMap) Get(name string) *boardgame.GameManager {
-	return m[name]
-}
-
 /*
 NewServer returns a new server. Get it to run by calling Start(). storage
 should be the same underlying storage manager that is in use for manager.
@@ -180,7 +176,7 @@ func (s *Server) listGamesHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"Status": "Success",
-		"Games":  s.storage.ListGames(s.managers, 10),
+		"Games":  s.storage.ListGames(10),
 	})
 }
 
