@@ -145,9 +145,11 @@ One type of property that may be set on your States is a Timer. A timer is
 used to represent when the passage of time has semantic meaning in the rules
 of the game. For example, in Memory, once both cards are revealed, the cards
 need to be hidden within 3 seconds, and if they aren't, they should be hidden
-automatically. This is contrast to time-based things that are purely
-presentational and non-semantic, like an animation of a card moving from one
-stack to another in the client.
+automatically. As another example, at the beginning of Galaxy Trucker the
+first round of play proceeds for a specific number of minutes, with all
+players moving simultaneously until the timer is up. Timers are in contrast to
+time-based things that are purely presentational and non- semantic, like an
+animation of a card moving from one stack to another in the client.
 
 Timers function by queuing up a move to be automatically proposed (via
 proposeMove) after a certain amount of time has elapsed. Activate a timer by
