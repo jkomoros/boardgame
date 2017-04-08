@@ -160,6 +160,21 @@ func (t *timerManager) GetTimerRemaining(id int) int {
 	return record.TimeRemaining()
 }
 
+func (t *timerManager) CancelTimer(id int) {
+	record := t.recordsById[id]
+
+	if record == nil {
+		return
+	}
+
+	heap.Remove(&t.records, record.index)
+
+	record.index = -1
+
+	delete(t.recordsById, record.id)
+
+}
+
 //Should be called regularly by the manager to tell this to check and see if
 //any timers have fired, and execute them if so.
 func (t *timerManager) Tick() {
@@ -193,7 +208,11 @@ func (t *timerManager) popNext() *timerRecord {
 
 	x := heap.Pop(&t.records)
 
-	return x.(*timerRecord)
+	record := x.(*timerRecord)
+
+	delete(t.recordsById, record.id)
+
+	return record
 }
 
 func (t timerQueue) Len() int {
