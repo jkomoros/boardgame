@@ -21,3 +21,26 @@ func (t *Timer) Copy() *Timer {
 func (t *Timer) Active() bool {
 	return t.ID == 0
 }
+
+//TimeLeft returns the number of nanoseconds left until this timer fires.
+func (t *Timer) TimeLeft() int {
+	//TODO: when this is actually hooked up, return a real value.
+	return 0
+}
+
+//Start starts the timer. After nanoseconds nanoseconds have passed, the Move
+//will be proposed via proposeMove.
+func (t *Timer) Start(nanoseconds int, move Move) {
+	//TODO: actually do something here
+}
+
+//Cancel cancels an active timer. If the timer is not active, it has no
+//effect. Returns true if the timer was active and canceled, false if the
+//timer was not active.
+func (t *Timer) Cancel() bool {
+	if !t.Active() {
+		return false
+	}
+	//TODO: tell the manager to cancel here.
+	return true
+}
