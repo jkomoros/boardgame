@@ -48,6 +48,11 @@ func (t *Timer) TimeLeft() time.Duration {
 //Start starts the timer. After duration has passed, the Move
 //will be proposed via proposeMove.
 func (t *Timer) Start(duration time.Duration, move Move) {
+
+	if t.Active() {
+		t.Cancel()
+	}
+
 	game := t.statePtr.game
 	manager := game.manager
 
