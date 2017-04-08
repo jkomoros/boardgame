@@ -71,6 +71,12 @@ func TestStateSerialization(t *testing.T) {
 
 	game.SetUp(0)
 
+	gameState, _ := concreteStates(game.CurrentState())
+
+	if gameState.Timer.statePtr == nil {
+		t.Error("The set up timer did no thave a stateptr")
+	}
+
 	if err := <-game.ProposeMove(&testMove{
 		AString:           "bam",
 		ScoreIncrement:    3,
@@ -94,7 +100,7 @@ func TestStateSerialization(t *testing.T) {
 
 	reconstitutedState.game = game
 
-	gameState, _ := concreteStates(reconstitutedState)
+	gameState, _ = concreteStates(reconstitutedState)
 
 	if !gameState.DrawDeck.Inflated() {
 		t.Error("The stack was not inflated when it came back from StateFromBlob")
@@ -102,6 +108,10 @@ func TestStateSerialization(t *testing.T) {
 
 	if !gameState.DrawDeck.ComponentAt(0).DynamicValues(reconstitutedState).(*testingComponentDynamic).Stack.Inflated() {
 		t.Error("The stack on a component's dynamic value was not inflated coming back from storage.")
+	}
+
+	if gameState.Timer.statePtr == nil {
+		t.Error("The timer did not come back inflated from storage")
 	}
 
 	//This is lame, but when you create json for a State, it touches Computed,

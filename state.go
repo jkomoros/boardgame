@@ -132,7 +132,7 @@ func (s *state) copy(sanitized bool) *state {
 		arr := make([]MutableDynamicComponentValues, len(values))
 		for i := 0; i < len(values); i++ {
 			arr[i] = values[i].Copy()
-			if err := verifyReaderStacks(arr[i].Reader(), result); err != nil {
+			if err := verifyReaderObjects(arr[i].Reader(), result); err != nil {
 				return nil
 			}
 		}
@@ -140,11 +140,11 @@ func (s *state) copy(sanitized bool) *state {
 	}
 
 	//FixUp stacks to make sure they point to this new state.
-	if err := verifyReaderStacks(result.gameState.Reader(), result); err != nil {
+	if err := verifyReaderObjects(result.gameState.Reader(), result); err != nil {
 		return nil
 	}
 	for _, player := range result.playerStates {
-		if err := verifyReaderStacks(player.Reader(), result); err != nil {
+		if err := verifyReaderObjects(player.Reader(), result); err != nil {
 			return nil
 		}
 	}

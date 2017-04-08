@@ -172,10 +172,10 @@ type refriedState struct {
 	Components map[string][]json.RawMessage
 }
 
-//verifyReaderStacks goes through each property in Reader that is a stack, and
-//verifies that it is non-nil, and its state property is set to the given
-//state.
-func verifyReaderStacks(reader PropertyReader, state *state) error {
+//verifyReaderStacks goes through each property in Reader that is a stack or
+//timer, and verifies that it is non-nil, and its state property is set to the
+//given state.
+func verifyReaderObjects(reader PropertyReader, state *state) error {
 	for propName, propType := range reader.Props() {
 		switch propType {
 		case TypeGrowableStack:
@@ -196,6 +196,15 @@ func verifyReaderStacks(reader PropertyReader, state *state) error {
 				return errors.New("SizedStack prop " + propName + " had unexpected error: " + err.Error())
 			}
 			val.statePtr = state
+		case TypeTimer:
+			val, err := reader.TimerProp(propName)
+			if val == nil {
+				return errors.New("TimerProp " + propName + " was nil")
+			}
+			if err != nil {
+				return errors.New("TimerProp " + propName + " had unexpected error: " + err.Error())
+			}
+			val.statePtr = state
 		}
 	}
 	return nil
@@ -211,7 +220,7 @@ func (g *GameManager) emptyPlayerState(state *state, playerIndex int) (MutablePl
 		return nil, errors.New("EmptyPlayerState returned nil for " + strconv.Itoa(playerIndex))
 	}
 
-	if err := verifyReaderStacks(playerState.Reader(), state); err != nil {
+	if err := verifyReaderObjects(playerState.Reader(), state); err != nil {
 		return nil, err
 	}
 
@@ -229,7 +238,7 @@ func (g *GameManager) emptyGameState(state *state) (MutableGameState, error) {
 		return nil, errors.New("EmptyGameState returned nil")
 	}
 
-	if err := verifyReaderStacks(gameState.Reader(), state); err != nil {
+	if err := verifyReaderObjects(gameState.Reader(), state); err != nil {
 		return nil, err
 	}
 

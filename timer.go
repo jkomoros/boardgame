@@ -4,7 +4,8 @@ type Timer struct {
 	//ID will be an opaque identifier that is used to keep track of the
 	//corresponding underlying Timer object in the game engine. It is not
 	//meaningful to inspect yourself and should not be modified.
-	ID int
+	ID       int
+	statePtr *state
 }
 
 func NewTimer() *Timer {
