@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 //Moves is the set of all move types that are ever legal to apply in this
@@ -487,6 +488,16 @@ func (g *GameManager) SetUp() error {
 	g.modifiableGames = make(map[string]*Game)
 
 	g.timers = newTimerManager()
+
+	//Start ticking timers.
+	go func() {
+		//TODO: is there a way to turn off timer ticking for a manager we want
+		//to throw out?
+		for {
+			<-time.After(250 * time.Millisecond)
+			g.timers.Tick()
+		}
+	}()
 
 	g.initialized = true
 
