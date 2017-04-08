@@ -27,8 +27,11 @@ func (t *Timer) Copy() *Timer {
 
 func (t *Timer) MarshalJSON() ([]byte, error) {
 	obj := map[string]interface{}{
-		"Id":       t.Id,
-		"TimeLeft": t.TimeLeft(),
+		"Id": t.Id,
+		//TimeLeft is only ever for the client (it's not read back in when
+		//deserialized), so put it in the more traditional milliseconds units,
+		//not nanoseconds.
+		"TimeLeft": t.TimeLeft() / time.Millisecond,
 	}
 
 	return DefaultMarshalJSON(obj)
