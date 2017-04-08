@@ -45,8 +45,9 @@ func (t *Timer) TimeLeft() time.Duration {
 	return t.statePtr.game.manager.timers.GetTimerRemaining(t.Id)
 }
 
-//Start starts the timer. After duration has passed, the Move
-//will be proposed via proposeMove.
+//Start starts the timer. After duration has passed, the Move will be proposed
+//via proposeMove. If the timer is already active, it will be canceled before
+//the new timer is configured.
 func (t *Timer) Start(duration time.Duration, move Move) {
 
 	if t.Active() {

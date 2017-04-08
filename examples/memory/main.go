@@ -80,9 +80,10 @@ func (g *gameDelegate) EmptyGameState() boardgame.MutableGameState {
 	}
 
 	return &gameState{
-		CurrentPlayer: 0,
-		HiddenCards:   boardgame.NewSizedStack(cards, len(cards.Components())),
-		RevealedCards: boardgame.NewSizedStack(cards, len(cards.Components())),
+		CurrentPlayer:  0,
+		HiddenCards:    boardgame.NewSizedStack(cards, len(cards.Components())),
+		RevealedCards:  boardgame.NewSizedStack(cards, len(cards.Components())),
+		HideCardsTimer: boardgame.NewTimer(),
 	}
 }
 

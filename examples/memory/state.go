@@ -5,9 +5,10 @@ import (
 )
 
 type gameState struct {
-	CurrentPlayer int
-	HiddenCards   *boardgame.SizedStack
-	RevealedCards *boardgame.SizedStack
+	CurrentPlayer  int
+	HiddenCards    *boardgame.SizedStack
+	RevealedCards  *boardgame.SizedStack
+	HideCardsTimer *boardgame.Timer
 }
 
 type playerState struct {
@@ -45,6 +46,7 @@ func (g *gameState) MutableCopy() boardgame.MutableGameState {
 	result = *g
 	result.HiddenCards = g.HiddenCards.Copy()
 	result.RevealedCards = g.RevealedCards.Copy()
+	result.HideCardsTimer = g.HideCardsTimer.Copy()
 	return &result
 }
 
