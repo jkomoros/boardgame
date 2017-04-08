@@ -39,6 +39,9 @@
           value: false,
         }
       },
+      observers: [
+        "_expandedStateChanged(expandedState.*)"
+      ],
       _diagramChanged : function(newValue) {
         if (!this.renderer) {
           return;
@@ -51,9 +54,11 @@
         }
         this.renderer.state = newValue;
       },
-      _expandedStateChanged : function(newValue) {
+      _expandedStateChanged : function(record) {
         if (!this.renderer) return;
-        this.renderer.expandedState = newValue;
+        //TODO: this is really expensive because it re-data-binds everything.
+        this.renderer.expandedState = {};
+        this.renderer.expandedState = this.expandedState;
       },
       _gameNameChanged : function(newValue) {
         this.rendererLoaded = false
