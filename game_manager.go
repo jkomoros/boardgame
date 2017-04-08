@@ -28,6 +28,7 @@ type GameManager struct {
 	playerMovesByName   map[string]Move
 	modifiableGamesLock sync.RWMutex
 	modifiableGames     map[string]*Game
+	timers              *timerManager
 	initialized         bool
 }
 
@@ -484,6 +485,8 @@ func (g *GameManager) SetUp() error {
 	}
 
 	g.modifiableGames = make(map[string]*Game)
+
+	g.timers = newTimerManager()
 
 	g.initialized = true
 

@@ -43,7 +43,7 @@ func (t *Timer) TimeLeft() int {
 		return 0
 	}
 
-	return t.statePtr.game.manager.getTimer(t.Id)
+	return t.statePtr.game.manager.timers.GetTimerRemaining(t.Id)
 }
 
 //Start starts the timer. After nanoseconds nanoseconds have passed, the Move
@@ -52,7 +52,7 @@ func (t *Timer) Start(nanoseconds int, move Move) {
 	game := t.statePtr.game
 	manager := game.manager
 
-	t.Id = manager.registerTimer(nanoseconds, game, move)
+	t.Id = manager.timers.RegisterTimer(nanoseconds, game, move)
 }
 
 //Cancel cancels an active timer. If the timer is not active, it has no
@@ -64,39 +64,11 @@ func (t *Timer) Cancel() bool {
 	}
 	manager := t.statePtr.game.manager
 
-	manager.cancelTimer(t.Id)
+	manager.timers.CancelTimer(t.Id)
 
 	t.Id = 0
 
 	return true
-}
-
-/**************************************
- *
- * GameManager timer-related methods
- *
- **************************************/
-
-//registerTimer registers an implementation level-timer, so that after
-//nanoseconds have passed the given move will be proposed to the given game.
-//Returns an Id that can be used ot cancel or fetch information on the timer
-//in the future. Only designed to be called from Timer.Start()
-func (g *GameManager) registerTimer(nanoseconds int, game *Game, move Move) int {
-	//TOOD: actually implement this
-	return 0
-}
-
-//cancelTimer cancels the timer with the given Id. IF there there is no such
-//timer, or that timer is already over, it is a no-op.
-func (g *GameManager) cancelTimer(id int) {
-	//TODO: actually implement this.
-}
-
-//getTimer returns the number of nanoseconds left for the timer with the given
-//id.
-func (g *GameManager) getTimer(id int) int {
-	//TODO: actually implement this.
-	return 0
 }
 
 type timerRecord struct {
