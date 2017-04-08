@@ -23,7 +23,7 @@
       </template>
     </div>
     <paper-button id="hide" raised disabled="{{state.Computed.Global.CurrentPlayerHasCardsToReveal}}">Hide Cards</paper-button>
-    <paper-progress id="timeleft" value="{{expandedState.Game.HideCardsTimer.TimeLeft}}" max="{{expandedState.Game.HideCardsTimer.originalTimeLeft}}"></paper-progress>
+    <paper-progress id="timeleft" value="{{expandedState.Game.HideCardsTimer.TimeLeft}}" max="{{maxTimeLeft}}"></paper-progress>
   </template>
 
   <script>
@@ -36,6 +36,10 @@
         computedCards : {
           type: Array,
           computed: 'computeCards(expandedState.Game.HiddenCards, expandedState.Game.RevealedCards)'
+        },
+        maxTimeLeft: {
+          type: Number,
+          computed: 'computeMaxTimeLeft(expandedState.Game.HideCardsTimer.originalTimeLeft)'
         }
       },
       listeners: {
@@ -49,6 +53,9 @@
         this.fire("propose-move", {name: "Reveal Card", arguments: {
           "CardIndex": e.detail.index,
         }});
+      },
+      computeMaxTimeLeft: function(timeLeft) {
+        return Math.max(timeLeft, 100);
       },
       computeCards : function(hidden, revealed) {
         let result = [];

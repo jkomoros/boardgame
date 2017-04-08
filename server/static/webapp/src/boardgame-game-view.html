@@ -277,7 +277,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           if (typeof val == "object") {
             if (val.Deck) {
               result[key] = this._expandStack(val);
-            } else if (val.TimeLeft) {
+            } else if (val.TimeLeft !== undefined) {
               result[key] = this._expandTimer(val, pathToLeaf.concat([key]));
             } else {
               result[key] = val;
@@ -290,7 +290,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return result;
       },
       _expandTimer : function(timer, pathToLeaf) {
-        if (!timer.TimeLeft) {
+        if (timer.TimeLeft === undefined) {
           //Meh, I guess it's not a timer.
           return timer;
         }
