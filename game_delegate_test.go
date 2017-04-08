@@ -175,6 +175,7 @@ func (t *testGameDelegate) EmptyGameState() MutableGameState {
 	return &testGameState{
 		CurrentPlayer: 0,
 		DrawDeck:      NewGrowableStack(deck, 0),
+		Timer:         NewTimer(),
 	}
 }
 

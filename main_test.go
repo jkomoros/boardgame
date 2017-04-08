@@ -80,6 +80,7 @@ func concreteStates(state State) (*testGameState, []*testPlayerState) {
 type testGameState struct {
 	CurrentPlayer int
 	DrawDeck      *GrowableStack
+	Timer         *Timer
 	//TODO: have a Stack here.
 }
 
@@ -87,6 +88,7 @@ func (t *testGameState) MutableCopy() MutableGameState {
 	var result testGameState
 	result = *t
 	result.DrawDeck = t.DrawDeck.Copy()
+	result.Timer = t.Timer.Copy()
 	return &result
 }
 

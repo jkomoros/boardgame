@@ -4,7 +4,8 @@
         "DrawDeck": {
             "Deck" : "test",
             "Indexes" : []
-        }
+        },
+        "Timer": {}
     },
     "Players": [
         {

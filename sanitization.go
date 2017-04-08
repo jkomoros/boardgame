@@ -375,6 +375,11 @@ func randomSizedStack(stack *SizedStack) *SizedStack {
 	return result
 }
 
+func randomTimer() *Timer {
+	//TODO: actually set some of the fields randomly
+	return NewTimer()
+}
+
 func applyPolicy(policy Policy, input interface{}, propType PropertyType) interface{} {
 	if policy == PolicyVisible {
 		return input
@@ -395,6 +400,8 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 			return randomGrowableStack(input.(*GrowableStack))
 		case TypeSizedStack:
 			return randomSizedStack(input.(*SizedStack))
+		case TypeTimer:
+			return randomTimer()
 		default:
 			panic("Unknown property type for policy random")
 		}
@@ -410,6 +417,8 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 		return 0
 	case TypeString:
 		return ""
+	case TypeTimer:
+		return NewTimer()
 	}
 
 	//Now we're left with len-properties.
