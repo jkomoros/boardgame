@@ -107,6 +107,16 @@ type timerRecord struct {
 	move     Move
 }
 
+func (t *timerRecord) TimeRemaining() int {
+	duration := t.fireTime.Sub(time.Now())
+
+	if duration < 0 {
+		duration = 0
+	}
+
+	return int(duration)
+}
+
 type timerQueue []*timerRecord
 
 type timerManager struct {
@@ -147,13 +157,7 @@ func (t *timerManager) GetTimerRemaining(id int) int {
 		return 0
 	}
 
-	duration := record.fireTime.Sub(time.Now())
-
-	if duration < 0 {
-		duration = 0
-	}
-
-	return int(duration)
+	return record.TimeRemaining()
 }
 
 //Should be called regularly by the manager to tell this to check and see if
@@ -179,11 +183,7 @@ func (t *timerManager) nextTimerFired() bool {
 
 	record := t.records[0]
 
-	if record.fireTime.Sub(time.Now()) < 0 {
-		return true
-	}
-
-	return false
+	return record.TimeRemaining() <= 0
 }
 
 func (t *timerManager) popNext() *timerRecord {
