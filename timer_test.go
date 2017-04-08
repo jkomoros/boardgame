@@ -59,3 +59,45 @@ func TestTimerManager(t *testing.T) {
 	assert.For(t).ThatActual(timer.GetTimerRemaining(id)).Equals(time.Duration(0))
 
 }
+
+func TestTimerManagerMultiple(t *testing.T) {
+
+	game := testGame()
+
+	game.SetUp(2)
+
+	move := &testMoveDrawCard{
+		TargetPlayerIndex: 0,
+	}
+
+	currentVersion := game.Version()
+
+	timer := newTimerManager()
+
+	firstId := timer.RegisterTimer(time.Duration(50)*time.Millisecond, game, move)
+	secondId := timer.RegisterTimer(time.Duration(10)*time.Millisecond, game, move)
+	thirdId := timer.RegisterTimer(time.Duration(70)*time.Millisecond, game, move)
+
+	//Make sure that even though the second timer was added second, it is first.
+	assert.For(t).ThatActual(timer.records[0].id).Equals(secondId)
+	assert.For(t).ThatActual(timer.records[1].id).Equals(firstId)
+	assert.For(t).ThatActual(timer.records[2].id).Equals(thirdId)
+
+	timer.CancelTimer(secondId)
+
+	assert.For(t).ThatActual(len(timer.records)).Equals(2)
+
+	assert.For(t).ThatActual(timer.records[0].id).Equals(firstId)
+	assert.For(t).ThatActual(timer.records[1].id).Equals(thirdId)
+
+	assert.For(t).ThatActual(timer.nextTimerFired()).IsFalse()
+
+	<-time.After(70 * time.Millisecond)
+
+	timer.Tick()
+
+	assert.For(t).ThatActual(len(timer.records)).Equals(0)
+
+	assert.For(t).ThatActual(game.Version()).Equals(currentVersion + 2)
+
+}
