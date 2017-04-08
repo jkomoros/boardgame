@@ -85,7 +85,7 @@ const (
 func (s *state) SanitizedForPlayer(playerIndex int) State {
 
 	//If the playerIndex isn't an actuall player's index, just return self.
-	if playerIndex < 0 || playerIndex >= len(s.players) {
+	if playerIndex < 0 || playerIndex >= len(s.playerStates) {
 		return s
 	}
 
@@ -116,9 +116,9 @@ func (s *state) sanitizedWithDefault(policy *StatePolicy, playerIndex int, defau
 		visibleDynamicComponents[deckName] = make(map[int]int)
 	}
 
-	sanitizeStateObj(sanitized.game.ReadSetter(), policy.Game, -1, playerIndex, defaultPolicy, visibleDynamicComponents)
+	sanitizeStateObj(sanitized.gameState.ReadSetter(), policy.Game, -1, playerIndex, defaultPolicy, visibleDynamicComponents)
 
-	playerStates := sanitized.players
+	playerStates := sanitized.playerStates
 
 	for i := 0; i < len(playerStates); i++ {
 		sanitizeStateObj(playerStates[i].ReadSetter(), policy.Player, i, playerIndex, defaultPolicy, visibleDynamicComponents)

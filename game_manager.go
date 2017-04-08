@@ -308,7 +308,7 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (State, error) 
 		}
 	}
 
-	result.game = game
+	result.gameState = game
 
 	for i, blob := range refried.Players {
 		player, err := g.emptyPlayerState(result, i)
@@ -338,7 +338,7 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (State, error) 
 			}
 		}
 
-		result.players = append(result.players, player)
+		result.playerStates = append(result.playerStates, player)
 	}
 
 	dynamic, err := g.emptyDynamicComponentValues(result)

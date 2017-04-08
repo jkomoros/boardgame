@@ -239,7 +239,7 @@ func (g *Game) SetUp(numPlayers int) error {
 		return err
 	}
 
-	stateCopy.game = gameState
+	stateCopy.gameState = gameState
 
 	playerStates := make([]MutablePlayerState, numPlayers)
 
@@ -253,7 +253,7 @@ func (g *Game) SetUp(numPlayers int) error {
 		playerStates[i] = playerState
 	}
 
-	stateCopy.players = playerStates
+	stateCopy.playerStates = playerStates
 
 	dynamic, err := g.manager.emptyDynamicComponentValues(stateCopy)
 

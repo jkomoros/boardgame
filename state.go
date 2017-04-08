@@ -68,8 +68,8 @@ type MutableState interface {
 //either, and what it's interpreted as is primarily a function of what the
 //method signature is that it's passed to
 type state struct {
-	game                   MutableGameState
-	players                []MutablePlayerState
+	gameState              MutableGameState
+	playerStates           []MutablePlayerState
 	computed               *computedPropertiesImpl
 	dynamicComponentValues map[string][]MutableDynamicComponentValues
 	sanitized              bool
@@ -80,11 +80,11 @@ type state struct {
 }
 
 func (s *state) MutableGame() MutableGameState {
-	return s.game
+	return s.gameState
 }
 
 func (s *state) MutablePlayers() []MutablePlayerState {
-	return s.players
+	return s.playerStates
 }
 
 func (s *state) MutableDynamicComponentValues() map[string][]MutableDynamicComponentValues {
@@ -92,13 +92,13 @@ func (s *state) MutableDynamicComponentValues() map[string][]MutableDynamicCompo
 }
 
 func (s *state) Game() GameState {
-	return s.game
+	return s.gameState
 }
 
 func (s *state) Players() []PlayerState {
-	result := make([]PlayerState, len(s.players))
-	for i := 0; i < len(s.players); i++ {
-		result[i] = s.players[i]
+	result := make([]PlayerState, len(s.playerStates))
+	for i := 0; i < len(s.playerStates); i++ {
+		result[i] = s.playerStates[i]
 	}
 	return result
 }
@@ -108,15 +108,15 @@ func (s *state) Copy(sanitized bool) State {
 }
 
 func (s *state) copy(sanitized bool) *state {
-	players := make([]MutablePlayerState, len(s.players))
+	players := make([]MutablePlayerState, len(s.playerStates))
 
-	for i, player := range s.players {
+	for i, player := range s.playerStates {
 		players[i] = player.MutableCopy()
 	}
 
 	result := &state{
-		game:                   s.game.MutableCopy(),
-		players:                players,
+		gameState:              s.gameState.MutableCopy(),
+		playerStates:           players,
 		dynamicComponentValues: make(map[string][]MutableDynamicComponentValues),
 		sanitized:              sanitized,
 		manager:                s.manager,
@@ -140,10 +140,10 @@ func (s *state) copy(sanitized bool) *state {
 	}
 
 	//FixUp stacks to make sure they point to this new state.
-	if err := verifyReaderStacks(result.game.Reader(), result); err != nil {
+	if err := verifyReaderStacks(result.gameState.Reader(), result); err != nil {
 		return nil
 	}
-	for _, player := range result.players {
+	for _, player := range result.playerStates {
 		if err := verifyReaderStacks(player.Reader(), result); err != nil {
 			return nil
 		}
@@ -160,8 +160,8 @@ func (s *state) StorageRecord() StateStorageRecord {
 func (s *state) MarshalJSON() ([]byte, error) {
 
 	obj := map[string]interface{}{
-		"Game":     s.game,
-		"Players":  s.players,
+		"Game":     s.gameState,
+		"Players":  s.playerStates,
 		"Computed": s.Computed(),
 	}
 
