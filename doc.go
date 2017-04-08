@@ -18,8 +18,8 @@ and interacts with the storage layer.
 The majority of a game's state is stored as a State--a JSON-able object that
 represents the entirety of the semantic state for the game, in a manner
 particular to this type of game. Your State's GameState and PlayerState
-objects will primarily be composed of bools, ints, and Stacks (see the
-Components section, below).
+objects will primarily be composed of bools, ints, strings, Timers (see Timers
+section below), and Stacks (see the Components section, below).
 
 Each game has a Version() that monotonically increases as Moves are
 successfully applied to the game to modify it. Each version has precisely one
@@ -138,6 +138,34 @@ precisely one Stack at every State in your game. The design of Stack methods
 and Delegate's DistributeComponentsToStartingStacks is carefully configured so
 that it is impossible to not satisfy this invariant (as long as you do not
 call stack.UnsafeInsertNextComponent outside of testing context).
+
+Timers
+
+One type of property that may be set on your States is a Timer. A timer is
+used to represent when the passage of time has semantic meaning in the rules
+of the game. For example, in Memory, once both cards are revealed, the cards
+need to be hidden within 3 seconds, and if they aren't, they should be hidden
+automatically. This is contrast to time-based things that are purely
+presentational and non-semantic, like an animation of a card moving from one
+stack to another in the client.
+
+Timers function by queuing up a move to be automatically proposed (via
+proposeMove) after a certain amount of time has elapsed. Activate a timer by
+calling Start() on it and passing the amount of time to elapse and the move to
+propose. Timers must exist as pre-defined properties in one of your State
+objects (GameState, PlayerState, or DynamicComponentValues). The amount of
+time for any given timer may be changed dynamically when you Start() it.
+
+When a timer is active, you can inspect its TimeLeft property to see how much
+time it has until it triggers. This can be useful to, for example, render a
+progress bar in the client tha shows how much time is left. Note that although
+you generally call timer.Start in the Apply() method of a Move, the timer does
+not actually start counting down until the move is fully applied and saved in
+the database.
+
+A timer can be Cancel'd before it has been triggered. Canceling an already-
+fired or unstarted timer is a safe no-op. If you call Start() on a timer that
+is already Active(), the previously-active Timer will first be canceled.
 
 Sanitization
 
