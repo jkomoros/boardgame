@@ -23,6 +23,7 @@ type PropertyReader interface {
 	StringProp(name string) (string, error)
 	GrowableStackProp(name string) (*GrowableStack, error)
 	SizedStackProp(name string) (*SizedStack, error)
+	TimerProp(name string) (*Timer, error)
 	//Prop fetches the given property generically. If you already know the
 	//type, it's better to use the typed methods.
 	Prop(name string) (interface{}, error)
@@ -40,6 +41,7 @@ const (
 	TypeString
 	TypeGrowableStack
 	TypeSizedStack
+	TypeTimer
 )
 
 //Property read setter is a way to enumerate and set properties on an object with an
@@ -54,6 +56,7 @@ type PropertyReadSetter interface {
 	SetStringProp(name string, value string) error
 	SetGrowableStackProp(name string, value *GrowableStack) error
 	SetSizedStackProp(name string, value *SizedStack) error
+	SetTimerProp(name string, value *Timer) error
 	//SetProp sets the property with the given name. If the value does not
 	//match the underlying slot type, it should return an error. If you know
 	//the underlying type it's always better to use the typed accessors.
@@ -170,6 +173,8 @@ func (d *defaultReader) Props() map[string]PropertyType {
 					pType = TypeGrowableStack
 				} else if strings.Contains(ptrType, "SizedStack") {
 					pType = TypeSizedStack
+				} else if strings.Contains(ptrType, "Timer") {
+					pType = TypeTimer
 				} else {
 					panic("Unknown ptr type:" + ptrType)
 				}
@@ -246,6 +251,20 @@ func (d *defaultReader) SizedStackProp(name string) (*SizedStack, error) {
 
 	s := reflect.ValueOf(d.i).Elem()
 	result := s.FieldByName(name).Interface().(*SizedStack)
+
+	return result, nil
+}
+
+func (d *defaultReader) TimerProp(name string) (*Timer, error) {
+	//Verify that this seems legal.
+	props := d.Props()
+
+	if props[name] != TypeTimer {
+		return nil, errors.New("That property is not a timer " + name)
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+	result := s.FieldByName(name).Interface().(*Timer)
 
 	return result, nil
 }
@@ -381,6 +400,33 @@ func (d *defaultReader) SetSizedStackProp(name string, val *SizedStack) (err err
 
 	if props[name] != TypeSizedStack {
 		return errors.New("That property is not a settable sized stack")
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+
+	f := s.FieldByName(name)
+
+	if !f.IsValid() {
+		return errors.New("that name was not available on the struct")
+	}
+
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprint(e))
+		}
+	}()
+
+	f.Set(reflect.ValueOf(val))
+
+	return nil
+
+}
+
+func (d *defaultReader) SetTimerProp(name string, val *Timer) (err error) {
+	props := d.Props()
+
+	if props[name] != TypeTimer {
+		return errors.New("That property is not a settable Timer")
 	}
 
 	s := reflect.ValueOf(d.i).Elem()
@@ -572,6 +618,26 @@ func (g *genericReader) SizedStackProp(name string) (*SizedStack, error) {
 	return val.(*SizedStack), nil
 }
 
+func (g *genericReader) TimerProp(name string) (*Timer, error) {
+	val, err := g.Prop(name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	propType, ok := g.types[name]
+
+	if !ok {
+		return nil, errors.New("Unexpected error: Missing Prop type for " + name)
+	}
+
+	if propType != TypeTimer {
+		return nil, errors.New(name + "was expected to be TypeTimer but was not")
+	}
+
+	return val.(*Timer), nil
+}
+
 func (g *genericReader) SetProp(name string, val interface{}) error {
 
 	propType, ok := g.types[name]
@@ -646,6 +712,19 @@ func (g *genericReader) SetSizedStackProp(name string, val *SizedStack) error {
 	}
 
 	g.types[name] = TypeSizedStack
+	g.values[name] = val
+
+	return nil
+}
+
+func (g *genericReader) SetTimerProp(name string, val *Timer) error {
+	propType, ok := g.types[name]
+
+	if ok && propType != TypeTimer {
+		return errors.New("That property was already set but was not a timer")
+	}
+
+	g.types[name] = TypeTimer
 	g.values[name] = val
 
 	return nil
