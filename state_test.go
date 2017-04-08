@@ -14,10 +14,16 @@ func TestState(t *testing.T) {
 
 	game.SetUp(0)
 
-	state, err := game.Manager().Storage().State(game, game.Version())
+	record, err := game.Manager().Storage().State(game.Id(), game.Version())
 
 	if err != nil {
 		t.Error("Unexpected error", err)
+	}
+
+	state, err := game.Manager().StateFromBlob(record)
+
+	if err != nil {
+		t.Error("StateFromBlob err", err)
 	}
 
 	if state == nil {

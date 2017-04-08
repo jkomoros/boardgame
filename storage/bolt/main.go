@@ -32,12 +32,6 @@ type gameRecord struct {
 	Winners  []int
 }
 
-//stateRecord is suitable for being marshaled as JSON
-type stateRecord struct {
-	Version int
-	State   []byte
-}
-
 var (
 	statesBucket = []byte("States")
 	gamesBucket  = []byte("Games")
@@ -72,20 +66,20 @@ func NewStorageManager(fileName string) *StorageManager {
 
 }
 
-func keyForState(game *boardgame.Game, version int) []byte {
-	return []byte(game.Id() + "_" + strconv.Itoa(version))
+func keyForState(gameId string, version int) []byte {
+	return []byte(gameId + "_" + strconv.Itoa(version))
 }
 
 func keyForGame(id string) []byte {
 	return []byte(strings.ToUpper(id))
 }
 
-func (s *StorageManager) State(game *boardgame.Game, version int) (boardgame.State, error) {
-	if game == nil {
+func (s *StorageManager) State(gameId string, version int) (boardgame.StateStorageRecord, error) {
+	if gameId == "" {
 		return nil, errors.New("No game provided")
 	}
 
-	if version < 0 || version > game.Version() {
+	if version < 0 {
 		return nil, errors.New("Invalid version")
 	}
 
@@ -98,7 +92,7 @@ func (s *StorageManager) State(game *boardgame.Game, version int) (boardgame.Sta
 			return errors.New("Couldn't get bucket")
 		}
 
-		record = b.Get(keyForState(game, version))
+		record = b.Get(keyForState(gameId, version))
 		return nil
 	})
 
@@ -110,21 +104,7 @@ func (s *StorageManager) State(game *boardgame.Game, version int) (boardgame.Sta
 		return nil, errors.New("No such version for game")
 	}
 
-	//Let's try to deserialize!
-
-	var decodedRecord stateRecord
-
-	if err := json.Unmarshal(record, &decodedRecord); err != nil {
-		return nil, errors.New("Couldn't unmarshal record")
-	}
-
-	state, err := game.Manager().StateFromBlob(decodedRecord.State)
-
-	if err != nil {
-		return nil, errors.New("StateFromBlob error " + err.Error())
-	}
-
-	return state, nil
+	return record, nil
 }
 
 func (s *StorageManager) Game(manager *boardgame.GameManager, id string) (*boardgame.Game, error) {
@@ -162,7 +142,7 @@ func (s *StorageManager) Game(manager *boardgame.GameManager, id string) (*board
 
 }
 
-func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.Game, state boardgame.State) error {
+func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.Game, state boardgame.StateStorageRecord) error {
 
 	version := game.Version()
 
@@ -174,27 +154,10 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.Game, state boa
 		Winners:  game.Winners(),
 	}
 
-	serializedState, err := json.Marshal(state)
-
-	if err != nil {
-		return errors.New("Could not serialize state: " + err.Error())
-	}
-
-	stateRec := &stateRecord{
-		Version: version,
-		State:   serializedState,
-	}
-
 	serializedGameRecord, err := json.Marshal(gameRec)
 
 	if err != nil {
 		return errors.New("Couldn't serialize the internal game record: " + err.Error())
-	}
-
-	serializedStateRecord, err := json.Marshal(stateRec)
-
-	if err != nil {
-		return errors.New("Couldn't serialize the internal state record: " + err.Error())
 	}
 
 	return s.db.Update(func(tx *bolt.Tx) error {
@@ -214,7 +177,7 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.Game, state boa
 			return err
 		}
 
-		if err := sBucket.Put(keyForState(game, version), serializedStateRecord); err != nil {
+		if err := sBucket.Put(keyForState(game.Id(), version), state); err != nil {
 			return err
 		}
 

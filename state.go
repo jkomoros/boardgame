@@ -45,6 +45,9 @@ type State interface {
 	//retrieve the policy in place. See the package level comment for an overview
 	//of how state sanitization works.
 	SanitizedForPlayer(playerIndex int) State
+
+	//StorageRecord returns a StateStorageRecord representing the state.
+	StorageRecord() StateStorageRecord
 }
 
 //A MutableState is a state that is designed to be modified in place. These
@@ -147,6 +150,11 @@ func (s *state) copy(sanitized bool) *state {
 	}
 
 	return result
+}
+
+func (s *state) StorageRecord() StateStorageRecord {
+	record, _ := DefaultMarshalJSON(s)
+	return record
 }
 
 func (s *state) MarshalJSON() ([]byte, error) {

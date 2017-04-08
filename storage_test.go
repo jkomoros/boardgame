@@ -1,7 +1,6 @@
 package boardgame
 
 import (
-	"encoding/json"
 	"errors"
 	"strconv"
 	"strings"
@@ -9,11 +8,6 @@ import (
 
 //This file is actually used to just implement a shim StorageManager so our
 //own package tests can run. The shim is basically storage/memory/StorageManager.
-
-type memoryStateRecord struct {
-	Version         int
-	SerializedState []byte
-}
 
 type memoryGameRecord struct {
 	Name     string
@@ -27,7 +21,7 @@ type memoryGameRecord struct {
 }
 
 type testStorageManager struct {
-	states map[string]map[int]*memoryStateRecord
+	states map[string]map[int]StateStorageRecord
 	games  map[string]*memoryGameRecord
 }
 
@@ -35,7 +29,7 @@ func newTestStorageManager() *testStorageManager {
 	//InMemoryStorageManager is an extremely simple StorageManager that just keeps
 	//track of the objects in memory.
 	return &testStorageManager{
-		states: make(map[string]map[int]*memoryStateRecord),
+		states: make(map[string]map[int]StateStorageRecord),
 		games:  make(map[string]*memoryGameRecord),
 	}
 }
@@ -48,7 +42,7 @@ func (s *testStorageManager) String() string {
 	for key, states := range s.states {
 		results = append(results, key)
 		for version, state := range states {
-			results = append(results, strconv.Itoa(version)+": "+string(state.SerializedState))
+			results = append(results, strconv.Itoa(version)+": "+string(state))
 		}
 	}
 
@@ -61,16 +55,16 @@ func (s *testStorageManager) String() string {
 	return strings.Join(results, "\n")
 }
 
-func (i *testStorageManager) State(game *Game, version int) (State, error) {
-	if game == nil {
+func (i *testStorageManager) State(gameId string, version int) (StateStorageRecord, error) {
+	if gameId == "" {
 		return nil, errors.New("No game provided")
 	}
 
-	if version < 0 || version > game.version {
+	if version < 0 {
 		return nil, errors.New("Illegal version")
 	}
 
-	versionMap, ok := i.states[game.Id()]
+	versionMap, ok := i.states[gameId]
 
 	if !ok {
 		return nil, errors.New("That game does not exist")
@@ -82,13 +76,7 @@ func (i *testStorageManager) State(game *Game, version int) (State, error) {
 		return nil, errors.New("That version of that game doesn't exist")
 	}
 
-	state, err := game.manager.StateFromBlob(record.SerializedState)
-
-	if err != nil {
-		return nil, errors.New("StateFromBlob failed " + err.Error())
-	}
-
-	return state, nil
+	return record, nil
 }
 
 func (i *testStorageManager) Game(manager *GameManager, id string) (*Game, error) {
@@ -142,7 +130,7 @@ func (i *testStorageManager) winnersFromStorage(winners string) []int {
 	return result
 }
 
-func (i *testStorageManager) SaveGameAndCurrentState(game *Game, state State) error {
+func (i *testStorageManager) SaveGameAndCurrentState(game *Game, state StateStorageRecord) error {
 	if game == nil {
 		return errors.New("No game provided")
 	}
@@ -154,7 +142,7 @@ func (i *testStorageManager) SaveGameAndCurrentState(game *Game, state State) er
 	//TODO: validate that state.Version is reasonable.
 
 	if _, ok := i.states[game.Id()]; !ok {
-		i.states[game.Id()] = make(map[int]*memoryStateRecord)
+		i.states[game.Id()] = make(map[int]StateStorageRecord)
 	}
 
 	version := game.Version()
@@ -166,16 +154,7 @@ func (i *testStorageManager) SaveGameAndCurrentState(game *Game, state State) er
 		return errors.New("There was already a version for that game stored")
 	}
 
-	blob, err := json.Marshal(state)
-
-	if err != nil {
-		return errors.New("Error marshalling State: " + err.Error())
-	}
-
-	versionMap[version] = &memoryStateRecord{
-		Version:         version,
-		SerializedState: blob,
-	}
+	versionMap[version] = state
 
 	i.games[game.Id()] = &memoryGameRecord{
 		Version:  version,

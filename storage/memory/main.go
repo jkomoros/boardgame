@@ -10,18 +10,12 @@
 package memory
 
 import (
-	"encoding/json"
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"strconv"
 	"strings"
 	"sync"
 )
-
-type memoryStateRecord struct {
-	Version         int
-	SerializedState []byte
-}
 
 type memoryGameRecord struct {
 	Name     string
@@ -35,7 +29,7 @@ type memoryGameRecord struct {
 }
 
 type StorageManager struct {
-	states     map[string]map[int]*memoryStateRecord
+	states     map[string]map[int]boardgame.StateStorageRecord
 	games      map[string]*memoryGameRecord
 	statesLock sync.RWMutex
 	gamesLock  sync.RWMutex
@@ -45,23 +39,23 @@ func NewStorageManager() *StorageManager {
 	//InMemoryStorageManager is an extremely simple StorageManager that just keeps
 	//track of the objects in memory.
 	return &StorageManager{
-		states: make(map[string]map[int]*memoryStateRecord),
+		states: make(map[string]map[int]boardgame.StateStorageRecord),
 		games:  make(map[string]*memoryGameRecord),
 	}
 }
 
-func (s *StorageManager) State(game *boardgame.Game, version int) (boardgame.State, error) {
-	if game == nil {
+func (s *StorageManager) State(gameId string, version int) (boardgame.StateStorageRecord, error) {
+	if gameId == "" {
 		return nil, errors.New("No game provided")
 	}
 
-	if version < 0 || version > game.Version() {
+	if version < 0 {
 		return nil, errors.New("Invalid version")
 	}
 
 	s.statesLock.RLock()
 
-	versionMap, ok := s.states[game.Id()]
+	versionMap, ok := s.states[gameId]
 
 	s.statesLock.RUnlock()
 
@@ -76,13 +70,8 @@ func (s *StorageManager) State(game *boardgame.Game, version int) (boardgame.Sta
 		return nil, errors.New("No such version for that game")
 	}
 
-	state, err := game.Manager().StateFromBlob(record.SerializedState)
+	return record, nil
 
-	if err != nil {
-		return nil, errors.New("StateForBlob failed" + err.Error())
-	}
-
-	return state, nil
 }
 
 func (s *StorageManager) Game(manager *boardgame.GameManager, id string) (*boardgame.Game, error) {
@@ -139,7 +128,7 @@ func (s *StorageManager) winnersFromStorage(winners string) []int {
 	return result
 }
 
-func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.Game, state boardgame.State) error {
+func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.Game, state boardgame.StateStorageRecord) error {
 	if game == nil {
 		return errors.New("No game provided")
 	}
@@ -155,7 +144,7 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.Game, state boa
 	s.statesLock.RUnlock()
 	if !ok {
 		s.statesLock.Lock()
-		s.states[game.Id()] = make(map[int]*memoryStateRecord)
+		s.states[game.Id()] = make(map[int]boardgame.StateStorageRecord)
 		s.statesLock.Unlock()
 	}
 
@@ -171,17 +160,8 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.Game, state boa
 		return errors.New("There was already a version for that game stored")
 	}
 
-	blob, err := json.Marshal(state)
-
-	if err != nil {
-		return errors.New("Error marshalling State: " + err.Error())
-	}
-
 	s.statesLock.Lock()
-	versionMap[version] = &memoryStateRecord{
-		Version:         version,
-		SerializedState: blob,
-	}
+	versionMap[version] = state
 	s.statesLock.Unlock()
 
 	s.gamesLock.Lock()
