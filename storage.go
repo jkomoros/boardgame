@@ -1,5 +1,8 @@
 package boardgame
 
+//StateStorageRecord is a record representing a state that can be written to
+//storage and later returned. It is an opaque blob, so in most cases storage
+//managers can just write straight to disk with no transformations.
 type StateStorageRecord []byte
 
 //StorageManager is an interface that anything can implement to handle the
