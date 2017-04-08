@@ -34,7 +34,9 @@ func TestTimerManager(t *testing.T) {
 
 	remaining := timer.GetTimerRemaining(id)
 
-	assert.For(t).ThatActual(remaining > time.Second*3000000).IsTrue()
+	assert.For(t).ThatActual(remaining).Equals(registeredDuration)
+
+	assert.For(t).ThatActual(timer.records[0].fireTime.Sub(time.Now()) > time.Hour)
 
 	timer.StartTimer(id)
 
@@ -126,7 +128,7 @@ func TestTimerProp(t *testing.T) {
 
 	assert.For(t).ThatActual(gameState.Timer.Active()).IsFalse()
 
-	assert.For(t).ThatActual(gameState.Timer.TimeLeft() > time.Second*10).IsTrue()
+	assert.For(t).ThatActual(gameState.Timer.TimeLeft()).Equals(time.Millisecond * 5)
 
 	//Trigger the timers to actually be added
 	game.CurrentState().(*state).committed()

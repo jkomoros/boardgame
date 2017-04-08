@@ -90,6 +90,13 @@ type timerRecord struct {
 }
 
 func (t *timerRecord) TimeRemaining() time.Duration {
+
+	//Before a timer is Started(), just say its duration as the time
+	//remaining.
+	if t.duration > 0 {
+		return t.duration
+	}
+
 	duration := t.fireTime.Sub(time.Now())
 
 	if duration < 0 {
