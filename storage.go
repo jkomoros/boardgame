@@ -10,6 +10,9 @@ type StateStorageRecord []byte
 //are broken out specifically so that the storage layer can understand these
 //properties in queries.
 type GameStorageRecord struct {
+	//Name is the type of the game, from its manager. Used for sanity
+	//checking.
+	Name     string
 	Id       string
 	Version  int
 	Winners  []int

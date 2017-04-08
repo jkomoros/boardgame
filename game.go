@@ -147,6 +147,7 @@ func (g *Game) MarshalJSON() ([]byte, error) {
 //game that should be serialized to storage.
 func (g *Game) StorageRecord() *GameStorageRecord {
 	return &GameStorageRecord{
+		Name:     g.Manager().Delegate().Name(),
 		Version:  g.Version(),
 		Winners:  g.Winners(),
 		Finished: g.Finished(),

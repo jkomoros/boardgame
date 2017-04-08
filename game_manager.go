@@ -69,6 +69,12 @@ func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage Storag
 }
 
 func (g *GameManager) gameFromStorageRecord(record *GameStorageRecord) *Game {
+
+	//Sanity check that this game actually does match with this manager.
+	if record.Name != g.Delegate().Name() {
+		return nil
+	}
+
 	return &Game{
 		manager:    g,
 		version:    record.Version,
