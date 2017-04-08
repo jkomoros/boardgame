@@ -192,7 +192,7 @@ func (g *Game) State(version int) State {
 		panic("State retrieval failed" + err.Error() + strconv.Itoa(version))
 	}
 
-	result, err := g.manager.StateFromBlob(record)
+	result, err := g.manager.stateFromRecord(record)
 
 	if err != nil {
 		panic("StateFromBlob failed: " + err.Error())

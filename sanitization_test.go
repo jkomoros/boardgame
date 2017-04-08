@@ -157,7 +157,7 @@ func TestSanitization(t *testing.T) {
 
 		assert.For(t).ThatActual(err).IsNil()
 
-		state, err := manager.StateFromBlob(inputBlob)
+		state, err := manager.stateFromRecord(inputBlob)
 
 		assert.For(t).ThatActual(err).IsNil()
 

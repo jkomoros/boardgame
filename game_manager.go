@@ -272,14 +272,14 @@ func (g *GameManager) emptyDynamicComponentValues(state *state) (map[string][]Mu
 //StateFromBlob takes a state that was serialized in storage and reinflates
 //it. Storage sub-packages should call this to recover a real State object
 //given a serialized state blob.
-func (g *GameManager) StateFromBlob(blob []byte) (State, error) {
+func (g *GameManager) stateFromRecord(record StateStorageRecord) (State, error) {
 	//At this point, no extra state is stored in the blob other than in props.
 
 	//We can't just delegate to StateProps to unmarshal itself, because it
 	//needs a reference to delegate to inflate, and only we have that.
 	var refried refriedState
 
-	if err := json.Unmarshal(blob, &refried); err != nil {
+	if err := json.Unmarshal(record, &refried); err != nil {
 		return nil, err
 	}
 

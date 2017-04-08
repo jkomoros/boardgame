@@ -1,9 +1,7 @@
 package tictactoe
 
 import (
-	"encoding/json"
 	"github.com/jkomoros/boardgame/storage/memory"
-	"reflect"
 	"testing"
 )
 
@@ -18,46 +16,6 @@ func TestGame(t *testing.T) {
 	if game.Name() != gameName {
 		t.Error("Game didn't have right name. wanted", gameName, "got", game.Name())
 	}
-}
-
-func TestStateFromBlob(t *testing.T) {
-	game := NewGame(NewManager(memory.NewStorageManager()))
-
-	if err := <-game.ProposeMove(&MovePlaceToken{
-		Slot:              1,
-		TargetPlayerIndex: 0,
-	}); err != nil {
-		t.Fatal("Couldn't make move", err)
-	}
-
-	blob, err := json.Marshal(game.CurrentState())
-
-	if err != nil {
-		t.Fatal("Couldn't serialize state:", err)
-	}
-
-	reconstitutedState, err := game.Manager().StateFromBlob(blob)
-
-	if err != nil {
-		t.Error("StateFromBlob returned unexpected err", err)
-	}
-
-	if !reconstitutedState.Game().(*gameState).Slots.Inflated() {
-		t.Error("The stack was not inflated when it came back from StateFromBlob")
-	}
-
-	//Creating JSON touches Computed on reconsistutdeState, which will make
-	//them compare equal.
-	_, _ = json.Marshal(reconstitutedState)
-
-	if !reflect.DeepEqual(reconstitutedState, game.CurrentState()) {
-
-		rStateBlob, _ := json.Marshal(reconstitutedState)
-		oStateBlob, _ := json.Marshal(game.CurrentState())
-
-		t.Error("Reconstituted state and original state were not the same. Got", string(rStateBlob), "wanted", string(oStateBlob))
-	}
-
 }
 
 func TestCheckGameFinished(t *testing.T) {
