@@ -86,35 +86,6 @@ func (g *GameManager) gameFromStorageRecord(record *GameStorageRecord) *Game {
 	}
 }
 
-//LoadGame is used to provide back a real Game instance based on state that
-//was stored in storage, that is ready to use like any other game (that is, it
-//operates like SetUp has already been called). If you want a new game, use
-//NewGame.
-func (g *GameManager) LoadGame(name string, id string, version int, finished bool, winners []int) *Game {
-
-	//It feels really weird that this is exposed, but I think something like
-	//it has to be so that others can implement their own StorageManagers
-	//without being able to modify Game's internal fields.
-
-	//Sanity check that this game actually does match with this manager.
-	if name != g.delegate.Name() {
-		return nil
-	}
-
-	result := &Game{
-		manager:    g,
-		version:    version,
-		id:         id,
-		finished:   finished,
-		winners:    winners,
-		modifiable: false,
-		initalized: true,
-	}
-
-	return result
-
-}
-
 //modifiableGameCreated lets Manager know that a modifiable game was created
 //with the given ID, so that manager can vend that later if necessary. It is
 //designed to only be called from NewGame.
