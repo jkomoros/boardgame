@@ -6,7 +6,7 @@
             "Indexes" : []
         },
         "Timer": {
-            "ID": 0,
+            "Id": 0,
             "TimeLeft": 0
         }
     },
