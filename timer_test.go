@@ -22,15 +22,15 @@ func TestTimerManager(t *testing.T) {
 
 	assert.For(t).ThatActual(timer.nextTimerFired()).Equals(false)
 
-	assert.For(t).ThatActual(timer.nextId).Equals(0)
+	assert.For(t).ThatActual(timer.nextId).Equals(1)
 
 	registeredDuration := time.Duration(50) * time.Millisecond
 
 	id := timer.RegisterTimer(registeredDuration, game, move)
 
-	assert.For(t).ThatActual(id).Equals(0)
+	assert.For(t).ThatActual(id).Equals(1)
 
-	assert.For(t).ThatActual(timer.nextId).Equals(1)
+	assert.For(t).ThatActual(timer.nextId).Equals(2)
 
 	remaining := timer.GetTimerRemaining(id)
 
