@@ -34,7 +34,7 @@ func (t *Timer) MarshalJSON() ([]byte, error) {
 
 //Active returns true if the timer is active and counting down.
 func (t *Timer) Active() bool {
-	return t.Id == 0 && t.TimeLeft() > 0
+	return t.Id != 0 && t.TimeLeft() > 0
 }
 
 //TimeLeft returns the number of nanoseconds left until this timer fires.

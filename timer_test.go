@@ -124,11 +124,25 @@ func TestTimerProp(t *testing.T) {
 
 	gameState.Timer.Start(time.Millisecond*5, move)
 
+	assert.For(t).ThatActual(gameState.Timer.Active()).IsTrue()
+
+	assert.For(t).ThatActual(gameState.Timer.TimeLeft() > time.Second*10).IsTrue()
+
 	//Trigger the timers to actually be added
 	game.CurrentState().(*state).committed()
+
+	assert.For(t).ThatActual(gameState.Timer.Active()).IsTrue()
+
+	assert.For(t).ThatActual(gameState.Timer.TimeLeft() < time.Millisecond*50).IsTrue()
 
 	<-time.After(time.Millisecond * 300)
 
 	assert.For(t).ThatActual(game.Version()).Equals(currentVersion + 1)
+
+	gameState, _ = concreteStates(game.CurrentState())
+
+	assert.For(t).ThatActual(gameState.Timer.Active()).IsFalse()
+
+	assert.For(t).ThatActual(gameState.Timer.TimeLeft()).Equals(time.Duration(0))
 
 }
