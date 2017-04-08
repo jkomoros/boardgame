@@ -60,9 +60,9 @@ func (t *Timer) Start(duration time.Duration, move Move) {
 //effect. Returns true if the timer was active and canceled, false if the
 //timer was not active.
 func (t *Timer) Cancel() bool {
-	if !t.Active() {
-		return false
-	}
+
+	wasActive := t.Active()
+
 	manager := t.statePtr.game.manager
 
 	manager.timers.CancelTimer(t.Id)
@@ -73,7 +73,7 @@ func (t *Timer) Cancel() bool {
 
 	t.Id = 0
 
-	return true
+	return wasActive
 }
 
 type timerRecord struct {

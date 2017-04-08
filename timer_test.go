@@ -145,4 +145,8 @@ func TestTimerProp(t *testing.T) {
 
 	assert.For(t).ThatActual(gameState.Timer.TimeLeft()).Equals(time.Duration(0))
 
+	gameState.Timer.Cancel()
+
+	assert.For(t).ThatActual(gameState.Timer.Id).Equals(0)
+
 }
