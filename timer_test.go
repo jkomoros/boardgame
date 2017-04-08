@@ -101,3 +101,24 @@ func TestTimerManagerMultiple(t *testing.T) {
 	assert.For(t).ThatActual(game.Version()).Equals(currentVersion + 2)
 
 }
+
+func TestTimerProp(t *testing.T) {
+	game := testGame()
+
+	game.SetUp(2)
+
+	move := &testMoveDrawCard{
+		TargetPlayerIndex: 0,
+	}
+
+	currentVersion := game.Version()
+
+	gameState, _ := concreteStates(game.CurrentState())
+
+	gameState.Timer.Start(time.Millisecond*5, move)
+
+	<-time.After(time.Millisecond * 300)
+
+	assert.For(t).ThatActual(game.Version()).Equals(currentVersion + 1)
+
+}
