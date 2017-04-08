@@ -124,7 +124,7 @@ func TestTimerProp(t *testing.T) {
 
 	gameState.Timer.Start(time.Millisecond*5, move)
 
-	assert.For(t).ThatActual(gameState.Timer.Active()).IsTrue()
+	assert.For(t).ThatActual(gameState.Timer.Active()).IsFalse()
 
 	assert.For(t).ThatActual(gameState.Timer.TimeLeft() > time.Second*10).IsTrue()
 

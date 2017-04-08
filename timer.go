@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+//A Timer is a type of property that can be used in states that represents a
+//countdown. See the package documentation for more on timers.
 type Timer struct {
 	//Id will be an opaque identifier that is used to keep track of the
 	//corresponding underlying Timer object in the game engine. It is not
@@ -34,7 +36,7 @@ func (t *Timer) MarshalJSON() ([]byte, error) {
 
 //Active returns true if the timer is active and counting down.
 func (t *Timer) Active() bool {
-	return t.Id != 0 && t.TimeLeft() > 0
+	return t.statePtr.game.manager.timers.TimerActive(t.Id)
 }
 
 //TimeLeft returns the number of nanoseconds left until this timer fires.
@@ -140,6 +142,11 @@ func (t *timerManager) PrepareTimer(duration time.Duration, game *Game, move Mov
 //StartTimer actually triggers a timer that was previously PrepareTimer'd to
 //start counting down.
 func (t *timerManager) StartTimer(id int) {
+
+	if t.TimerActive(id) {
+		return
+	}
+
 	record := t.recordsById[id]
 
 	if record == nil {
@@ -150,6 +157,21 @@ func (t *timerManager) StartTimer(id int) {
 	record.duration = 0
 
 	heap.Fix(&t.records, record.index)
+}
+
+//TimerActive returns if the timer is active and counting down.
+func (t *timerManager) TimerActive(id int) bool {
+	record := t.recordsById[id]
+
+	if record == nil {
+		return false
+	}
+
+	if record.duration > 0 {
+		return false
+	}
+
+	return true
 }
 
 func (t *timerManager) GetTimerRemaining(id int) time.Duration {
