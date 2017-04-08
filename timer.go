@@ -127,7 +127,7 @@ func (t *timerManager) RegisterTimer(nanoseconds int, game *Game, move Move) int
 	record := &timerRecord{
 		id:       t.nextId,
 		index:    -1,
-		fireTime: time.Now(),
+		fireTime: time.Now().Add(time.Duration(nanoseconds)),
 		game:     game,
 		move:     move,
 	}
@@ -138,6 +138,22 @@ func (t *timerManager) RegisterTimer(nanoseconds int, game *Game, move Move) int
 	heap.Push(&t.records, record)
 
 	return record.id
+}
+
+func (t *timerManager) GetTimerRemaining(id int) int {
+	record := t.recordsById[id]
+
+	if record == nil {
+		return 0
+	}
+
+	duration := record.fireTime.Sub(time.Now())
+
+	if duration < 0 {
+		duration = 0
+	}
+
+	return int(duration)
 }
 
 //Should be called regularly by the manager to tell this to check and see if
