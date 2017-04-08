@@ -5,7 +5,9 @@
             "Deck" : "test",
             "Indexes" : []
         },
-        "Timer": {}
+        "Timer": {
+            "ID": 0
+        }
     },
     "Players": [
         {

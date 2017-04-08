@@ -11,7 +11,9 @@
           3
         ]
       },
-      "Timer": {}
+      "Timer": {
+        "ID": 0
+      }
     },
     "Players": [
       {
