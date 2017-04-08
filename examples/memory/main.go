@@ -228,6 +228,7 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 
 	manager.AddFixUpMove(&MoveAdvanceNextPlayer{})
 	manager.AddFixUpMove(&MoveCaptureCards{})
+	manager.AddFixUpMove(&MoveStartHideCardsTimer{})
 	manager.AddPlayerMove(&MoveRevealCard{})
 	manager.AddPlayerMove(&MoveHideCards{})
 

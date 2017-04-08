@@ -3,6 +3,7 @@ package memory
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"time"
 )
 
 type MoveAdvanceNextPlayer struct{}
@@ -11,6 +12,8 @@ type MoveRevealCard struct {
 	TargetPlayerIndex int
 	CardIndex         int
 }
+
+type MoveStartHideCardsTimer struct{}
 
 type MoveCaptureCards struct{}
 
@@ -156,6 +159,71 @@ func (m *MoveRevealCard) ReadSetter() boardgame.PropertyReadSetter {
 
 /**************************************************
  *
+ * MoveStartHideCardsTimer Implementation
+ *
+ **************************************************/
+
+func (m *MoveStartHideCardsTimer) Legal(state boardgame.State) error {
+	game, _ := concreteStates(state)
+
+	if game.RevealedCards.NumComponents() != 2 {
+		return errors.New("There aren't two cards showing!")
+	}
+
+	if game.HideCardsTimer.Active() {
+		return errors.New("The timer is already active.")
+	}
+
+	var revealedCards []*boardgame.Component
+
+	for _, c := range game.RevealedCards.Components() {
+		if c != nil {
+			revealedCards = append(revealedCards, c)
+		}
+	}
+
+	cardOneType := revealedCards[0].Values.(*cardValue).Type
+	cardTwoType := revealedCards[1].Values.(*cardValue).Type
+
+	if cardOneType == cardTwoType {
+		return errors.New("The two revealed cards are of the same type")
+	}
+
+	return nil
+}
+
+func (m *MoveStartHideCardsTimer) Apply(state boardgame.MutableState) error {
+	game, _ := concreteStates(state)
+
+	game.HideCardsTimer.Start(10*time.Second, &MoveHideCards{})
+
+	return nil
+}
+
+func (m *MoveStartHideCardsTimer) Copy() boardgame.Move {
+	var result MoveStartHideCardsTimer
+	result = *m
+	return &result
+}
+
+func (m *MoveStartHideCardsTimer) DefaultsForState(state boardgame.State) {
+	//Nothing to do
+}
+
+func (m *MoveStartHideCardsTimer) Name() string {
+	return "Start Hide Cards Timer"
+}
+
+func (m *MoveStartHideCardsTimer) Description() string {
+	return "If two cards are showing and they are not the same type and the timer is not active, start a timer to automatically hide them."
+}
+
+func (m *MoveStartHideCardsTimer) ReadSetter() boardgame.PropertyReadSetter {
+	return boardgame.DefaultReadSetter(m)
+}
+
+/**************************************************
+ *
  * MoveCaptureCards Implementation
  *
  **************************************************/
@@ -245,6 +313,9 @@ func (m *MoveHideCards) Legal(state boardgame.State) error {
 
 func (m *MoveHideCards) Apply(state boardgame.MutableState) error {
 	game, _ := concreteStates(state)
+
+	//Cancel a timer in case it was still going.
+	game.HideCardsTimer.Cancel()
 
 	for i, c := range game.RevealedCards.Components() {
 		if c != nil {
