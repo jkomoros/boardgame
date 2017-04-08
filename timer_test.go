@@ -38,6 +38,11 @@ func TestTimerManager(t *testing.T) {
 
 	assert.For(t).ThatActual(timer.nextTimerFired()).Equals(false)
 
+	timer.Tick()
+
+	//Ticking before any time has really passed shouldn't trigger the next timer.
+	assert.For(t).ThatActual(timer.nextTimerFired()).Equals(false)
+
 	<-time.After(60 * time.Millisecond)
 
 	assert.For(t).ThatActual(timer.nextTimerFired()).IsTrue()
