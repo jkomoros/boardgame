@@ -49,6 +49,9 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 				"Error":  err.Error(),
 			})
 		} else {
+
+			//TODO: use Set-Cookie to remove the cookie from the client.
+
 			c.JSON(http.StatusOK, gin.H{
 				"Status": "Success",
 			})
