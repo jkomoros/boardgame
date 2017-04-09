@@ -27,6 +27,20 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 
 	log.Println("Auth Cookie Handler called", uid, token, cookie, "*")
 
+	//If the user is already associated with that cookie it's a success, nothing more to do.
+
+	if cookie != "" {
+		userRecord := s.storage.GetUserByCookie(cookie)
+
+		if userRecord != nil {
+			if userRecord.Id == uid {
+				c.JSON(http.StatusOK, gin.H{
+					"Status": "Success",
+				})
+			}
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"Status": "Failure",
 		"Error":  "Not Yet Implemented",
