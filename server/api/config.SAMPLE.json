@@ -2,7 +2,11 @@
 	"prod" : {
 		"allowedorigins" : "https://www.mygame.com",
 		"defaultport" : "8080",
-		"firebaseprojectid": "sample-123456"
+		"firebaseprojectid": "sample-123456",
+		"adminuserids": [
+			"aH1TV07K47RC4mTNCai0ZPnQ9Kd2",
+			"uYuZl1jXWXVJ9fEk7mDFifhTGmK2"
+		]
 	},
 	"dev" : {
 		"allowedorigins" : "http://localhost:8080",

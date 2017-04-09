@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/itsjamie/gin-cors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/server/api/users"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -32,6 +33,7 @@ type ConfigMode struct {
 	AllowedOrigins    string
 	DefaultPort       string
 	FirebaseProjectId string
+	AdminUserIds      []string
 }
 
 type MoveForm struct {
@@ -271,12 +273,6 @@ func (s *Server) gameViewHandler(c *gin.Context) {
 
 	//TODO: set this in a way that isn't possible to spoof.
 
-	admin := false
-
-	if c.Query("admin") == "1" {
-		admin = true
-	}
-
 	player := c.Query("player")
 
 	var playerIndex int
@@ -286,6 +282,43 @@ func (s *Server) gameViewHandler(c *gin.Context) {
 	}
 
 	playerIndex, _ = strconv.Atoi(player)
+
+	admin := false
+
+	if c.Query("admin") == "1" {
+		admin = true
+	}
+
+	obj, ok = c.Get("user")
+
+	if !ok {
+		c.JSON(http.StatusOK, gin.H{
+			"Status": "Failure",
+			"Error":  "No user found.",
+		})
+		return
+	}
+
+	user := obj.(*users.StorageRecord)
+
+	if admin {
+		//Ok, they're asserting they're an admin. Is that for real?
+
+		matchedAdmin := false
+
+		for _, userId := range s.config.AdminUserIds {
+			if user.Id == userId {
+				matchedAdmin = true
+				break
+			}
+		}
+
+		if !matchedAdmin {
+			//Nope, you weren't an admin. Sorry!
+			admin = false
+		}
+
+	}
 
 	if !admin {
 		//The playerIndex is set automatically.
