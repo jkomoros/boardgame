@@ -56,8 +56,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           <paper-input id="email" label="Email"></paper-input>
           <paper-input id="password" label="Password" type="password"></paper-input>
           <div class="buttons">
-            <paper-button dialog-dismiss>Cancel</paper-button>
-            <paper-button dialog-confirm autofocus>Sign In</paper-button>
+            <paper-button on-tap="emailCancel">Cancel</paper-button>
+            <paper-button on-tap="emailSignIn" autofocus>Sign In</paper-button>
           </div>
         </div>
       </iron-pages>
@@ -71,25 +71,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         user: Object,
       },
 
-      listeners: {
-        "iron-overlay-closed" : "dialogClosed"
-      },
-
       ready : function(e) {
         firebase.auth().onAuthStateChanged(this.authChanged.bind(this));
       },
 
       authChanged: function(user) {
         this.user = user;
-        if (!user) {
+        if (user) {
+          this.$.dialog.close();
+        } else {
           this.showSignInDialog();
         }
       },
 
-      dialogClosed: function(e) {
-        if (!e.detail.confirmed) {
-          return;
-        }
+      emailCancel: function() {
+        this.$.pages.selected = 0;
+      },
+
+      emailSignIn: function() {
         let email = this.$.email.value;
         let password = this.$.password.value;
 
@@ -101,7 +100,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       signInWithGoogle: function() {
-        this.$.dialog.close();
         let provider = new firebase.auth.GoogleAuthProvider();
         firebase.auth().signInWithPopup(provider);
       },
