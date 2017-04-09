@@ -122,6 +122,67 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 	c.Set("game", game)
 
+	cookie, _ := c.Cookie(cookieName)
+
+	if cookie == "" {
+		log.Println("No cookie set")
+		return
+	}
+
+	user := s.storage.GetUserByCookie(cookie)
+
+	if user == nil {
+		log.Println("No user associated with that cookie")
+		return
+	}
+
+	c.Set("user", user)
+
+	userIds := s.storage.UserIdsForGame(id)
+
+	if userIds == nil {
+		log.Println("No userIds associated with game")
+	}
+
+	//Set to the generic viewer (index one beyond viewers) by default
+	c.Set("ViewingPlayerIndex", game.NumPlayers())
+
+	userInGame := false
+	emptySlot := -1
+
+	for i, userId := range userIds {
+		if userId == "" && emptySlot == -1 {
+			emptySlot = i
+		}
+		if userId == user.Id {
+			//We're here!
+			c.Set("ViewingPlayerIndex", i)
+			userInGame = true
+			break
+		}
+	}
+
+	if userInGame {
+		//We're done with set up
+		return
+	}
+
+	//We have a user but we don't have a slot in the game.
+
+	if emptySlot == -1 {
+		log.Println("The user is not in the game, but there are no empty slots to join in as.")
+		return
+	}
+
+	if err := s.storage.SetPlayerForGame(id, emptySlot, user.Id); err != nil {
+		log.Println("Tried to set this user as player", emptySlot, "but failed:", err)
+		return
+	}
+
+	log.Println("User joined game", id, "as player", emptySlot)
+
+	c.Set("ViewingPlayerIndex", emptySlot)
+
 }
 
 func (s *Server) gameStatusHandler(c *gin.Context) {
