@@ -40,7 +40,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <div>Not signed in</div>
       <a on-tap="showSignInDialog">Sign In</a>
     </template>
-    <paper-dialog id="dialog">
+    <!-- TODO: ideall this would be modal, but given its position in DOM that doesn't work.
+    See https://github.com/PolymerElements/paper-dialog/issues/7 -->
+
+    <paper-dialog id="dialog" no-cancel-on-esc-key no-cancel-on-outside-click>
       <iron-pages id="pages">
         <div>
           <h2>Sign In</h2>
