@@ -20,6 +20,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/iron-pages/iron-pages.html">
 <link rel="import" href="../bower_components/iron-selector/iron-selector.html">
 <link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="boardgame-user.html">
 <link rel="import" href="my-icons.html">
 
 <dom-module id="boardgame-app">
@@ -72,6 +73,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <app-drawer-layout fullbleed>
       <!-- Drawer content -->
       <app-drawer id="drawer">
+        <boardgame-user user="{{user}}"></boardgame-user>
         <app-toolbar>Menu</app-toolbar>
         <iron-selector selected="[[page]]" attr-for-selected="name" class="drawer-list" role="navigation">
           <a name="list-games" href="/list-games">List Games</a>
@@ -113,6 +115,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           observer: '_pageChanged',
         },
         route : Object,
+        user: Object,
       },
 
       listeners : {
@@ -122,7 +125,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       observers: [
         '_routePageChanged(routeData.page)',
       ],
-
+      
       handleNavigateTo: function(e) {
         this.set('route.path',e.detail);
       },
