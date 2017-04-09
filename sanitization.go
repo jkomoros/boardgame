@@ -85,7 +85,9 @@ const (
 func (s *state) SanitizedForPlayer(playerIndex int) State {
 
 	//If the playerIndex isn't an actuall player's index, just return self.
-	if playerIndex < 0 || playerIndex >= len(s.playerStates) {
+
+	//However, the playerIndex of len(players) is the special generic observer.
+	if playerIndex < 0 || playerIndex > len(s.playerStates) {
 		return s
 	}
 
