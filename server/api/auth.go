@@ -6,6 +6,8 @@ import (
 	"net/http"
 )
 
+const cookieName = "c"
+
 //authCookieHandler gets the JWT and the uid and the cookie. If the given uid
 //is  already tied to the given cookie, it does nothing and returns success.
 //If the cookie is tied to a different uid, it barfs. If there is no UID, but
@@ -21,7 +23,9 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 	uid := c.PostForm("uid")
 	token := c.PostForm("token")
 
-	log.Println("Auth Cookie Handler called", uid, token, "*")
+	cookie, _ := c.Cookie(cookieName)
+
+	log.Println("Auth Cookie Handler called", uid, token, cookie, "*")
 
 	c.JSON(http.StatusOK, gin.H{
 		"Status": "Failure",

@@ -11,6 +11,8 @@ import (
 	"errors"
 	"github.com/boltdb/bolt"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/server/api/users"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -24,8 +26,10 @@ type StorageManager struct {
 }
 
 var (
-	statesBucket = []byte("States")
-	gamesBucket  = []byte("Games")
+	statesBucket  = []byte("States")
+	gamesBucket   = []byte("Games")
+	usersBucket   = []byte("Users")
+	cookiesBucket = []byte("Cookies")
 )
 
 func NewStorageManager(fileName string) *StorageManager {
@@ -41,6 +45,12 @@ func NewStorageManager(fileName string) *StorageManager {
 		}
 		if _, err := tx.CreateBucketIfNotExists(statesBucket); err != nil {
 			return errors.New("Cannot create states bucket" + err.Error())
+		}
+		if _, err := tx.CreateBucketIfNotExists(usersBucket); err != nil {
+			return errors.New("Cannot create users bucket" + err.Error())
+		}
+		if _, err := tx.CreateBucketIfNotExists(cookiesBucket); err != nil {
+			return errors.New("Cannot create cookies bucket" + err.Error())
 		}
 		return nil
 	})
@@ -63,6 +73,14 @@ func keyForState(gameId string, version int) []byte {
 
 func keyForGame(id string) []byte {
 	return []byte(strings.ToUpper(id))
+}
+
+func keyForUser(uid string) []byte {
+	return []byte(uid)
+}
+
+func keyForCookie(cookie string) []byte {
+	return []byte(cookie)
 }
 
 func (s *StorageManager) State(gameId string, version int) (boardgame.StateStorageRecord, error) {
@@ -203,6 +221,91 @@ func (s *StorageManager) ListGames(max int) []*boardgame.GameStorageRecord {
 
 	return result
 
+}
+
+func (s *StorageManager) UpdateUser(user *users.StorageRecord) error {
+	err := s.db.Update(func(tx *bolt.Tx) error {
+
+		uBucket := tx.Bucket(usersBucket)
+
+		if uBucket == nil {
+			return errors.New("couldn't open users bucket")
+		}
+
+		blob, err := json.Marshal(user)
+
+		if err != nil {
+			return errors.New("Couldn't marshal user: " + err.Error())
+		}
+
+		return uBucket.Put(keyForUser(user.Id), blob)
+
+	})
+
+	return err
+}
+
+func (s *StorageManager) GetUserByCookie(cookie string) *users.StorageRecord {
+
+	var result users.StorageRecord
+
+	err := s.db.View(func(tx *bolt.Tx) error {
+
+		cBucket := tx.Bucket(cookiesBucket)
+
+		if cBucket == nil {
+			return errors.New("Couldn't open cookies bucket")
+		}
+
+		c := cBucket.Get(keyForCookie(cookie))
+
+		if c == nil {
+			return errors.New("No such cookie")
+		}
+
+		uBucket := tx.Bucket(usersBucket)
+
+		if uBucket == nil {
+			return errors.New("couldn't open users bucket")
+		}
+
+		uBlob := uBucket.Get(keyForUser(string(c)))
+
+		if uBlob == nil {
+			return errors.New("The user specified by cookie was not found")
+		}
+
+		if err := json.Unmarshal(uBlob, &result); err != nil {
+			return errors.New("Unable to unmarshal user objet: " + err.Error())
+		}
+
+		return nil
+
+	})
+
+	if err != nil {
+		log.Println("Failure in GetUserByCookie", err)
+		return nil
+	}
+
+	return &result
+
+}
+
+func (s *StorageManager) ConnectCookieToUser(cookie string, user *users.StorageRecord) error {
+	err := s.db.Update(func(tx *bolt.Tx) error {
+
+		cBucket := tx.Bucket(cookiesBucket)
+
+		if cBucket == nil {
+			return errors.New("couldn't open cookies bucket")
+		}
+
+		return cBucket.Put(keyForCookie(cookie), keyForUser(user.Id))
+
+	})
+
+	return err
 }
 
 func (s *StorageManager) Close() {
