@@ -267,7 +267,16 @@ func (s *Server) gameViewHandler(c *gin.Context) {
 		return
 	}
 
+	game := obj.(*boardgame.Game)
+
 	//TODO: set this in a way that isn't possible to spoof.
+
+	admin := false
+
+	if c.Query("admin") == "1" {
+		admin = true
+	}
+
 	player := c.Query("player")
 
 	var playerIndex int
@@ -278,7 +287,19 @@ func (s *Server) gameViewHandler(c *gin.Context) {
 
 	playerIndex, _ = strconv.Atoi(player)
 
-	game := obj.(*boardgame.Game)
+	if !admin {
+		//The playerIndex is set automatically.
+
+		obj, ok := c.Get("ViewingPlayerIndex")
+
+		if ok {
+			playerIndex = obj.(int)
+		} else {
+			//Default to generic observer
+			playerIndex = game.NumPlayers()
+		}
+
+	}
 
 	args := gin.H{
 		"Diagram":         game.CurrentState().SanitizedForPlayer(playerIndex).Diagram(),
