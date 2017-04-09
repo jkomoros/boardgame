@@ -26,10 +26,11 @@ type StorageManager struct {
 }
 
 var (
-	statesBucket  = []byte("States")
-	gamesBucket   = []byte("Games")
-	usersBucket   = []byte("Users")
-	cookiesBucket = []byte("Cookies")
+	statesBucket    = []byte("States")
+	gamesBucket     = []byte("Games")
+	usersBucket     = []byte("Users")
+	cookiesBucket   = []byte("Cookies")
+	gameUsersBucket = []byte("GameUsers")
 )
 
 func NewStorageManager(fileName string) *StorageManager {
@@ -51,6 +52,9 @@ func NewStorageManager(fileName string) *StorageManager {
 		}
 		if _, err := tx.CreateBucketIfNotExists(cookiesBucket); err != nil {
 			return errors.New("Cannot create cookies bucket" + err.Error())
+		}
+		if _, err := tx.CreateBucketIfNotExists(gameUsersBucket); err != nil {
+			return errors.New("Cannot create game users bucket" + err.Error())
 		}
 		return nil
 	})
@@ -221,6 +225,55 @@ func (s *StorageManager) ListGames(max int) []*boardgame.GameStorageRecord {
 
 	return result
 
+}
+
+func (s *StorageManager) UserIdsForGame(gameId string) []string {
+
+	noRecordErr := errors.New("No such record")
+
+	var result []string
+
+	err := s.db.View(func(tx *bolt.Tx) error {
+		gUBucket := tx.Bucket(gameUsersBucket)
+
+		if gUBucket == nil {
+			return errors.New("Couldn't open game users bucket")
+		}
+
+		blob := gUBucket.Get(keyForGame(gameId))
+
+		if blob == nil {
+			//NO such game info.
+			return noRecordErr
+		}
+
+		return json.Unmarshal(blob, &result)
+	})
+
+	if err == noRecordErr {
+		//It's possible that we just haven't stored anything for this user before.
+
+		gameRecord, err := s.Game(gameId)
+
+		if err != nil {
+			log.Println("Couldn fetch game: " + err.Error())
+			return nil
+		}
+
+		if gameRecord == nil {
+			log.Println("No such game")
+			return nil
+		}
+
+		return make([]string, gameRecord.NumPlayers)
+	}
+
+	if err != nil {
+		log.Println("Error in UserIdsForGame: ", err)
+		return nil
+	}
+
+	return result
 }
 
 func (s *StorageManager) UpdateUser(user *users.StorageRecord) error {

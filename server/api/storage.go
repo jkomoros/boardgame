@@ -14,6 +14,11 @@ type StorageManager interface {
 	Close()
 	ListGames(max int) []*boardgame.GameStorageRecord
 
+	//UserIdsForGame returns an array whose length equals game.NumPlayers.
+	//Each one is either empty if there is no user in that slot yet, or the
+	//uid representing the user.
+	UserIdsForGame(gameId string) []string
+
 	//Store or update all fields
 	UpdateUser(user *users.StorageRecord) error
 
