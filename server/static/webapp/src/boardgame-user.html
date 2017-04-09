@@ -14,6 +14,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/paper-input/paper-input.html">
 <link rel="import" href="../bower_components/iron-pages/iron-pages.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../bower_components/paper-spinner/paper-spinner-lite.html">
 
 <dom-module id="boardgame-user">
   <template>
@@ -60,6 +61,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             <paper-button on-tap="emailSignIn" autofocus>Sign In</paper-button>
           </div>
         </div>
+        <div>
+          <h2>Signing in...</h2>
+          <paper-spinner-lite active></paper-spinner-lite>
+        </div>
       </iron-pages>
     </paper-dialog>
   </template>
@@ -102,10 +107,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       signInWithGoogle: function() {
         let provider = new firebase.auth.GoogleAuthProvider();
         firebase.auth().signInWithPopup(provider);
+        this.$.pages.selected = 2;
       },
 
       signInWithEmailAndPassword: function(email, password) {
         firebase.auth().signInWithEmailAndPassword(email, password);
+        this.$.pages.selected = 2;
       },
 
       showSignInDialog: function(e) {
