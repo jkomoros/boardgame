@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/alternaDev/go-firebase-verify"
 	"github.com/gin-gonic/gin"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"log"
@@ -86,9 +87,23 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 
 	if cookie == "" && uid != "" {
 
-		//********************************
-		//TODO: (IMPORTANT) actually validate JWT
-		//********************************
+		verifiedUid, err := firebase.VerifyIDToken(token, "boardgame-159316")
+
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"Status": "Failure",
+				"Error":  "Failed to verify jwt token: " + err.Error(),
+			})
+			return
+		}
+
+		if verifiedUid != uid {
+			c.JSON(http.StatusOK, gin.H{
+				"Status": "Failure",
+				"Error":  "The decoded jwt token doesn not match with the provided uid.",
+			})
+			return
+		}
 
 		user := s.storage.GetUserById(uid)
 
