@@ -99,7 +99,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       signInWithGoogle: function() {
         this.$.dialog.close();
-        console.log("Chose sign in with Google")
+        let provider = new firebase.auth.GoogleAuthProvider();
+        firebase.auth().signInWithPopup(provider);
       },
 
       signIn: function(email, password) {
