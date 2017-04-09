@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"encoding/json"
+	"github.com/workfit/tester/assert"
 	"io/ioutil"
 	"reflect"
 	"testing"
@@ -383,9 +384,7 @@ func TestGameState(t *testing.T) {
 	//just touch state0, too. ¯\_(ツ)_/¯
 	_, _ = json.Marshal(state0)
 
-	if !reflect.DeepEqual(state, state0) {
-		t.Error("CurrentState at version 0 did not return state 0")
-	}
+	assert.For(t).ThatActual(state).Equals(state0).ThenDiffOnFail()
 
 	move := game.PlayerMoveByName("Test")
 

@@ -148,8 +148,7 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 		log.Println("No userIds associated with game")
 	}
 
-	//Set to the generic viewer (index one beyond viewers) by default
-	c.Set("ViewingPlayerIndex", game.NumPlayers())
+	c.Set("ViewingPlayerIndex", boardgame.ObserverPlayerIndex)
 
 	userInGame := false
 	emptySlot := -1
@@ -185,7 +184,7 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 	log.Println("User joined game", id, "as player", emptySlot)
 
-	c.Set("ViewingPlayerIndex", emptySlot)
+	c.Set("ViewingPlayerIndex", boardgame.PlayerIndex(emptySlot))
 
 }
 
@@ -277,13 +276,15 @@ func (s *Server) gameViewHandler(c *gin.Context) {
 
 	player := c.Query("player")
 
-	var playerIndex int
+	var playerIndex boardgame.PlayerIndex
 
 	if player == "" {
 		playerIndex = 0
 	}
 
-	playerIndex, _ = strconv.Atoi(player)
+	playerIndexInt, _ := strconv.Atoi(player)
+
+	playerIndex = boardgame.PlayerIndex(playerIndexInt)
 
 	admin := false
 
@@ -328,10 +329,10 @@ func (s *Server) gameViewHandler(c *gin.Context) {
 		obj, ok := c.Get("ViewingPlayerIndex")
 
 		if ok {
-			playerIndex = obj.(int)
+			playerIndex = obj.(boardgame.PlayerIndex)
 		} else {
 			//Default to generic observer
-			playerIndex = game.NumPlayers()
+			playerIndex = boardgame.ObserverPlayerIndex
 		}
 
 	}

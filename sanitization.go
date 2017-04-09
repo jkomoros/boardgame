@@ -82,12 +82,10 @@ const (
 	//TODO: implement the other policies.
 )
 
-func (s *state) SanitizedForPlayer(playerIndex int) State {
+func (s *state) SanitizedForPlayer(player PlayerIndex) State {
 
 	//If the playerIndex isn't an actuall player's index, just return self.
-
-	//However, the playerIndex of len(players) is the special generic observer.
-	if playerIndex < 0 || playerIndex > len(s.playerStates) {
+	if player < -1 || int(player) >= len(s.playerStates) {
 		return s
 	}
 
@@ -97,13 +95,13 @@ func (s *state) SanitizedForPlayer(playerIndex int) State {
 		policy = &StatePolicy{}
 	}
 
-	return s.sanitizedWithDefault(policy, playerIndex, PolicyVisible)
+	return s.sanitizedWithDefault(policy, player, PolicyVisible)
 }
 
 //sanitizedWithExceptions will return a Sanitized() State where properties
 //that are not in the passed policy are treated as PolicyRandom. Useful in
 //computing properties.
-func (s *state) sanitizedWithDefault(policy *StatePolicy, playerIndex int, defaultPolicy Policy) State {
+func (s *state) sanitizedWithDefault(policy *StatePolicy, playerIndex PlayerIndex, defaultPolicy Policy) State {
 
 	sanitized := s.copy(true)
 
@@ -112,18 +110,18 @@ func (s *state) sanitizedWithDefault(policy *StatePolicy, playerIndex int, defau
 	//sanitizeStateObj tell us which ones are visible, and which player's
 	//state they're visible through, by accumulating the information in
 	//visibleDyanmicComponents.
-	visibleDynamicComponents := make(map[string]map[int]int)
+	visibleDynamicComponents := make(map[string]map[int]PlayerIndex)
 
 	for deckName, _ := range s.dynamicComponentValues {
-		visibleDynamicComponents[deckName] = make(map[int]int)
+		visibleDynamicComponents[deckName] = make(map[int]PlayerIndex)
 	}
 
-	sanitizeStateObj(sanitized.gameState.ReadSetter(), policy.Game, -1, playerIndex, defaultPolicy, visibleDynamicComponents)
+	sanitizeStateObj(sanitized.gameState.ReadSetter(), policy.Game, AdminPlayerIndex, playerIndex, defaultPolicy, visibleDynamicComponents)
 
 	playerStates := sanitized.playerStates
 
 	for i := 0; i < len(playerStates); i++ {
-		sanitizeStateObj(playerStates[i].ReadSetter(), policy.Player, i, playerIndex, defaultPolicy, visibleDynamicComponents)
+		sanitizeStateObj(playerStates[i].ReadSetter(), policy.Player, PlayerIndex(i), playerIndex, defaultPolicy, visibleDynamicComponents)
 	}
 
 	//Some of the DynamicComponentValues that were marked as visible might
@@ -150,7 +148,7 @@ func (s *state) sanitizedWithDefault(policy *StatePolicy, playerIndex int, defau
 //for Game). preparingForPlayerIndex is the index that we're preparing the
 //overall santiized state for, as provied to
 //GameManager.SanitizedStateForPlayer()
-func sanitizeStateObj(readSetter PropertyReadSetter, policy SubStatePolicy, statePlayerIndex int, preparingForPlayerIndex int, defaultPolicy Policy, visibleDynamic map[string]map[int]int) {
+func sanitizeStateObj(readSetter PropertyReadSetter, policy SubStatePolicy, statePlayerIndex PlayerIndex, preparingForPlayerIndex PlayerIndex, defaultPolicy Policy, visibleDynamic map[string]map[int]PlayerIndex) {
 
 	for propName, propType := range readSetter.Props() {
 		prop, err := readSetter.Prop(propName)
@@ -184,7 +182,7 @@ func sanitizeStateObj(readSetter PropertyReadSetter, policy SubStatePolicy, stat
 
 }
 
-func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[string][]MutableDynamicComponentValues, visibleComponents map[string]map[int]int) {
+func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[string][]MutableDynamicComponentValues, visibleComponents map[string]map[int]PlayerIndex) {
 
 	//All dynamic component values are hidden, except for ones that currently
 	//reside in stacks that have resolved to being Visible based on this
@@ -252,7 +250,7 @@ func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[strin
 	}
 }
 
-func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]MutableDynamicComponentValues, visibleComponents map[string]map[int]int, dynamicPolicy map[string]SubStatePolicy, preparingForPlayerIndex int, isRandom bool) {
+func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]MutableDynamicComponentValues, visibleComponents map[string]map[int]PlayerIndex, dynamicPolicy map[string]SubStatePolicy, preparingForPlayerIndex PlayerIndex, isRandom bool) {
 
 	for name, slice := range dynamicComponentValues {
 
@@ -293,7 +291,7 @@ func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]MutableD
 
 }
 
-func calculateEffectivePolicy(prop interface{}, propType PropertyType, policyGroup GroupPolicy, statePlayerIndex int, preparingForPlayerIndex int, defaultPolicy Policy) Policy {
+func calculateEffectivePolicy(prop interface{}, propType PropertyType, policyGroup GroupPolicy, statePlayerIndex PlayerIndex, preparingForPlayerIndex PlayerIndex, defaultPolicy Policy) Policy {
 
 	//We're going to collect all of the policies that apply.
 	var applicablePolicies []Policy

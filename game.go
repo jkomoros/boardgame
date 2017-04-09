@@ -128,12 +128,12 @@ func (g *Game) NumPlayers() int {
 //json.Marshal. The object is the equivalent to what MarshalJSON would output,
 //only as an object, and with CurrentState equal to a sanitized state for the
 //given player.
-func (g *Game) JSONForPlayer(playerIndex int) interface{} {
+func (g *Game) JSONForPlayer(player PlayerIndex) interface{} {
 	return map[string]interface{}{
 		"Name":         g.Name(),
 		"Finished":     g.Finished(),
 		"Winners":      g.Winners(),
-		"CurrentState": g.CurrentState().SanitizedForPlayer(playerIndex),
+		"CurrentState": g.CurrentState().SanitizedForPlayer(player),
 		"Id":           g.Id(),
 		"NumPlayers":   g.NumPlayers(),
 		"Version":      g.Version(),
@@ -142,7 +142,7 @@ func (g *Game) JSONForPlayer(playerIndex int) interface{} {
 
 func (g *Game) MarshalJSON() ([]byte, error) {
 	//We define our own MarshalJSON because if we didn't there'd be an infinite loop because of the redirects back up.
-	return json.Marshal(g.JSONForPlayer(-1))
+	return json.Marshal(g.JSONForPlayer(AdminPlayerIndex))
 }
 
 //StorageRecord returns a GameStorageRecord representing the aspects of this

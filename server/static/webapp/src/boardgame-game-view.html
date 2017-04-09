@@ -59,7 +59,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <boardgame-render-game state="{{data.Game.CurrentState}}" expanded-state="{{data.Game.ExpandedCurrentState}}" diagram="{{data.Diagram}}" game-name="{{gameName}}"></boardgame-render-game>
     </div>
     <div class="card" hidden="{{!admin}}">
-      View as:<input is="iron-input" type="number" value-as-number="{{currentPlayer::input}}" min="-1" max="{{maxCurrentPlayerIndex}}">
+      View as:<input is="iron-input" type="number" value-as-number="{{currentPlayer::input}}" min="-2" max="{{maxCurrentPlayerIndex}}">
     </div>
 
     <template is="dom-if" if="{{!data.Game.Finished}}">

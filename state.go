@@ -44,11 +44,27 @@ type State interface {
 	//Sanitized() return true. Will call GameDelegate.StateSanitizationPolicy to
 	//retrieve the policy in place. See the package level comment for an overview
 	//of how state sanitization works.
-	SanitizedForPlayer(playerIndex int) State
+	SanitizedForPlayer(player PlayerIndex) State
 
 	//StorageRecord returns a StateStorageRecord representing the state.
 	StorageRecord() StateStorageRecord
 }
+
+//PlayerIndex is an int that represents the index of a given player in a game.
+//Normal values are [0, game.NumPlayers). Special values are AdminPlayerIndex
+//and ObserverPlayerIndex.
+type PlayerIndex int
+
+//ObserverPlayerIndex is a special PlayerIndex that denotes that the player in
+//question is not one of the normal players, but someone generically watching.
+//All hidden state should be hidden to them, and GroupSelf will never trigger
+//for them.
+const ObserverPlayerIndex PlayerIndex = -1
+
+//AdminPlayerINdex is a special PlayerIndex that denotes the omniscient admin
+//who can see all state and make moves whenever they want. This PlayerIndex
+//should only be used in rare or debug circumstances.
+const AdminPlayerIndex PlayerIndex = -2
 
 //A MutableState is a state that is designed to be modified in place. These
 //are passed to methods (instead of normal States) as a signal that

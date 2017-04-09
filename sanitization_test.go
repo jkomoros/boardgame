@@ -24,13 +24,13 @@ func TestSanitization(t *testing.T) {
 
 	tests := []struct {
 		policy           *StatePolicy
-		playerIndex      int
+		playerIndex      PlayerIndex
 		inputFileName    string
 		expectedFileName string
 	}{
 		{
 			nil,
-			-1,
+			AdminPlayerIndex,
 			"sanitization_basic_in.json",
 			"sanitization_basic_in.json",
 		},
