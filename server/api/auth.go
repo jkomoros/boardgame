@@ -4,7 +4,6 @@ import (
 	"github.com/alternaDev/go-firebase-verify"
 	"github.com/gin-gonic/gin"
 	"github.com/jkomoros/boardgame/server/api/users"
-	"log"
 	"math/rand"
 	"net/http"
 	"time"
@@ -26,6 +25,29 @@ func randomString(length int) string {
 	return result
 }
 
+func (s *Server) unsetCookie(c *gin.Context, cookie string, message string) {
+	//We must have an old cookie set. Clear it out.
+	if err := s.storage.ConnectCookieToUser(cookie, nil); err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"Status": "Failure",
+			"Error":  err.Error(),
+		})
+		return
+	}
+
+	//Delete the cookie on the client.
+
+	//TODO: might need to set the domain in production.
+	c.SetCookie(cookieName, "", int(time.Now().Add(time.Hour*10000*-1).Unix()), "", "", false, false)
+
+	c.JSON(http.StatusOK, gin.H{
+		"Status":  "Success",
+		"Message": message,
+	})
+
+	return
+}
+
 //authCookieHandler gets the JWT and the uid and the cookie. If the given uid
 //is  already tied to the given cookie, it does nothing and returns success.
 //If the cookie is tied to a different uid, it barfs. If there is no UID, but
@@ -43,46 +65,33 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 
 	cookie, _ := c.Cookie(cookieName)
 
-	log.Println("Auth Cookie Handler called", uid, token, cookie, "*")
-
 	//If the user is already associated with that cookie it's a success, nothing more to do.
 
-	if cookie != "" {
+	if cookie != "" && uid != "" {
+
 		userRecord := s.storage.GetUserByCookie(cookie)
 
-		if userRecord != nil {
+		if userRecord == nil {
+			//The cookie must be invalid
+			s.unsetCookie(c, cookie, "Cookie pointed to an user that did not exist. Unsetting.")
+			return
+		} else {
 			if userRecord.Id == uid {
 				c.JSON(http.StatusOK, gin.H{
 					"Status":  "Success",
 					"Message": "Cookie and uid already matched.",
 				})
 				return
+			} else {
+				s.unsetCookie(c, cookie, "Cookie pointed to the wrong uid. Unsetting")
+				return
 			}
 		}
 	}
 
 	if uid == "" && cookie != "" {
-		//We must have an old cookie set. Clear it out.
-		if err := s.storage.ConnectCookieToUser(cookie, nil); err != nil {
-			c.JSON(http.StatusOK, gin.H{
-				"Status": "Failure",
-				"Error":  err.Error(),
-			})
-			return
-		}
-
-		//Delete the cookie on the client.
-
-		//TODO: might need to set the domain in production.
-		c.SetCookie(cookieName, "", int(time.Now().Add(time.Hour*10000*-1).Unix()), "", "", false, false)
-
-		c.JSON(http.StatusOK, gin.H{
-			"Status":  "Success",
-			"Message": "Removed cookie for signed-out uid",
-		})
-
+		s.unsetCookie(c, cookie, "Removed cookie for signed-out uid")
 		return
-
 	}
 
 	if cookie == "" && uid != "" {
