@@ -11,6 +11,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/polymer/polymer.html">
 <link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
 
 <dom-module id="boardgame-user">
   <template>
@@ -32,8 +33,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <a on-tap="showSignInDialog">Sign In</a>
     </template>
     <paper-dialog id="dialog">
-      <div>Email: <input id="email"></div>
-      <div>Password: <input type="password" id="password"></div>
+      <paper-input id="email" label="Email"></paper-input>
+      <paper-input id="password" label="Password" type="password"></paper-input>
       <paper-button dialog-dismiss>Cancel</paper-button>
       <paper-button on-tap="signIn">Sign In</paper-button>
     </paper-dialog>
