@@ -281,12 +281,13 @@ func (s *Server) gameViewHandler(c *gin.Context) {
 	game := obj.(*boardgame.Game)
 
 	args := gin.H{
-		"Diagram": game.CurrentState().SanitizedForPlayer(playerIndex).Diagram(),
-		"Chest":   s.renderChest(game),
-		"Forms":   s.generateForms(game),
-		"Game":    game.JSONForPlayer(playerIndex),
-		"Error":   s.lastErrorMessage,
-		"Status":  "Success",
+		"Diagram":         game.CurrentState().SanitizedForPlayer(playerIndex).Diagram(),
+		"Chest":           s.renderChest(game),
+		"Forms":           s.generateForms(game),
+		"Game":            game.JSONForPlayer(playerIndex),
+		"Error":           s.lastErrorMessage,
+		"Status":          "Success",
+		"ViewingAsPlayer": playerIndex,
 	}
 
 	s.lastErrorMessage = ""
