@@ -48,9 +48,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             <paper-button on-tap="signInWithGoogle">Google</paper-button>
             <paper-button on-tap="showEmail">Email/Password</paper-button>
           </div>
-          <div class="buttons">
-            <paper-button dialog-dismiss>Cancel</paper-button>
-          </div>
         </div>
         <div>
           <paper-input id="email" label="Email"></paper-input>
@@ -81,6 +78,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       authChanged: function(user) {
         this.user = user;
+        if (!user) {
+          this.showSignInDialog();
+        }
       },
 
       dialogClosed: function(e) {
@@ -90,7 +90,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         let email = this.$.email.value;
         let password = this.$.password.value;
 
-        this.signIn(email, password);
+        this.signInWithEmailAndPassword(email, password);
       },
 
       showEmail: function() {
@@ -103,7 +103,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         firebase.auth().signInWithPopup(provider);
       },
 
-      signIn: function(email, password) {
+      signInWithEmailAndPassword: function(email, password) {
         firebase.auth().signInWithEmailAndPassword(email, password);
       },
 
