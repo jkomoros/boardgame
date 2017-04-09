@@ -125,15 +125,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       observers: [
         '_routePageChanged(routeData.page)',
       ],
-
-      ready : function(e) {
-        firebase.auth().onAuthStateChanged(this.authChanged.bind(this));
-      },
-
-      authChanged: function(user) {
-        this.user = user;
-      },
-
+      
       handleNavigateTo: function(e) {
         this.set('route.path',e.detail);
       },
