@@ -245,6 +245,33 @@ func (s *StorageManager) UpdateUser(user *users.StorageRecord) error {
 	return err
 }
 
+func (s *StorageManager) GetUserById(uid string) *users.StorageRecord {
+	var result users.StorageRecord
+
+	err := s.db.View(func(tx *bolt.Tx) error {
+		uBucket := tx.Bucket(usersBucket)
+
+		if uBucket == nil {
+			return errors.New("Couldn't open users bucket")
+		}
+
+		uBlob := uBucket.Get(keyForUser(uid))
+
+		if uBlob == nil {
+			return errors.New("No such user")
+		}
+
+		return json.Unmarshal(uBlob, &result)
+	})
+
+	if err != nil {
+		log.Println("Failure in GetUserById: ", err)
+		return nil
+	}
+
+	return &result
+}
+
 func (s *StorageManager) GetUserByCookie(cookie string) *users.StorageRecord {
 
 	var result users.StorageRecord
