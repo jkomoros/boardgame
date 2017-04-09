@@ -85,6 +85,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           <app-toolbar>
             <paper-icon-button icon="my-icons:menu" drawer-toggle></paper-icon-button>
             <div main-title>Boardgame App</div>
+            <div>{{user.uid}}</div>
           </app-toolbar>
         </app-header>
 
@@ -113,6 +114,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           observer: '_pageChanged',
         },
         route : Object,
+        user: Object,
       },
 
       listeners : {
@@ -122,6 +124,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       observers: [
         '_routePageChanged(routeData.page)',
       ],
+
+      ready : function(e) {
+        firebase.auth().onAuthStateChanged(this.authChanged.bind(this));
+      },
+
+      authChanged: function(user) {
+        this.user = user;
+      },
 
       handleNavigateTo: function(e) {
         this.set('route.path',e.detail);
