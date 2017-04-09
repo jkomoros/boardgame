@@ -2,11 +2,27 @@ package api
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/jkomoros/boardgame/server/api/users"
 	"log"
+	"math/rand"
 	"net/http"
 )
 
 const cookieName = "c"
+const cookieLength = 64
+
+const randomStringChars = "abcdefghijklmnopqrstuvwxyz0123456789"
+
+//randomString returns a random string of the given length.
+func randomString(length int) string {
+	var result = ""
+
+	for len(result) < length {
+		result += string(randomStringChars[rand.Intn(len(randomStringChars))])
+	}
+
+	return result
+}
 
 //authCookieHandler gets the JWT and the uid and the cookie. If the given uid
 //is  already tied to the given cookie, it does nothing and returns success.
@@ -37,6 +53,7 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 				c.JSON(http.StatusOK, gin.H{
 					"Status": "Success",
 				})
+				return
 			}
 		}
 	}
@@ -48,14 +65,53 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 				"Status": "Failure",
 				"Error":  err.Error(),
 			})
-		} else {
-
-			//TODO: use Set-Cookie to remove the cookie from the client.
-
-			c.JSON(http.StatusOK, gin.H{
-				"Status": "Success",
-			})
+			return
 		}
+
+		//TODO: use Set-Cookie to remove the cookie from the client.
+
+		c.JSON(http.StatusOK, gin.H{
+			"Status": "Success",
+		})
+
+		return
+
+	}
+
+	if cookie == "" && uid != "" {
+
+		//********************************
+		//TODO: (IMPORTANT) actually validate JWT
+		//********************************
+
+		user := s.storage.GetUserById(uid)
+
+		//If we've never seen this Uid before, store it.
+		if user == nil {
+
+			user = &users.StorageRecord{
+				Id: uid,
+			}
+			s.storage.UpdateUser(user)
+
+		}
+
+		cookie = randomString(cookieLength)
+
+		if err := s.storage.ConnectCookieToUser(cookie, user); err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"Status": "Failure",
+				"Error":  "Couldn't connect cookie to user: " + err.Error(),
+			})
+			return
+		}
+
+		//TODO: Set-Cookie to client
+
+		c.JSON(http.StatusOK, gin.H{
+			"Status": "Success",
+		})
+
 	}
 
 	c.JSON(http.StatusOK, gin.H{
