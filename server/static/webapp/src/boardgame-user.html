@@ -9,6 +9,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
 
 <dom-module id="boardgame-user">
   <template>
@@ -27,8 +28,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </template>
     <template is="dom-if" if="{{!user}}">
       <div>Not signed in</div>
-      <a on-tap="signIn">Sign In</a>
+      <a on-tap="showSignInDialog">Sign In</a>
     </template>
+    <paper-dialog id="dialog">
+      <div>Email: <input id="email"></div>
+      <div>Password: <input type="password" id="password"></div>
+      <input type="submit" value="Sign In" on-tap="signIn">
+    </paper-dialog>
   </template>
 
   <script>
@@ -47,7 +53,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       signIn: function(e) {
-        console.log("sign in", e);
+        this.$.dialog.close();
+        let email = this.$.email.value;
+        let password = this.$.password.value;
+
+        firebase.auth().signInWithEmailAndPassword(email, password);
+
+      },
+
+      showSignInDialog: function(e) {
+        this.$.dialog.open();
       },
 
       signOut: function(e) {
