@@ -80,7 +80,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </div>
       </iron-pages>
     </paper-dialog>
-    <iron-ajax id="auth" url="[[AuthCookieUrl(apiHost)]]" handle-as="json" last-response="{{authResponse}}" method="POST">
+    <iron-ajax id="auth" url="[[AuthCookieUrl(apiHost)]]" handle-as="json" last-response="{{authResponse}}" method="POST" with-credentials>
   </template>
 
   <script>

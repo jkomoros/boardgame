@@ -435,6 +435,7 @@ func (s *Server) Start() {
 		RequestHeaders: "content-type, Origin",
 		ExposedHeaders: "content-type",
 		Methods:        "GET, POST",
+		Credentials:    true,
 	}))
 
 	{

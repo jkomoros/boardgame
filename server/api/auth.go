@@ -52,7 +52,8 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 		if userRecord != nil {
 			if userRecord.Id == uid {
 				c.JSON(http.StatusOK, gin.H{
-					"Status": "Success",
+					"Status":  "Success",
+					"Message": "Cookie and uid already matched.",
 				})
 				return
 			}
@@ -75,7 +76,8 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 		c.SetCookie(cookieName, "", int(time.Now().Add(time.Hour*10000*-1).Unix()), "", "", false, false)
 
 		c.JSON(http.StatusOK, gin.H{
-			"Status": "Success",
+			"Status":  "Success",
+			"Message": "Removed cookie for signed-out uid",
 		})
 
 		return
@@ -114,7 +116,8 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 		c.SetCookie(cookieName, cookie, int(time.Now().Add(time.Hour*100).Unix()), "", "", false, false)
 
 		c.JSON(http.StatusOK, gin.H{
-			"Status": "Success",
+			"Status":  "Success",
+			"Message": "Created new cookie to point to uid",
 		})
 		return
 
