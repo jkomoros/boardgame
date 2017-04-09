@@ -11,6 +11,7 @@
 	"dev" : {
 		"allowedorigins" : "http://localhost:8080",
 		"defaultport" : "8888",
-		"firebaseprojectid": "sample-123456"
+		"firebaseprojectid": "sample-123456",
+		"disableadminchecking": true
 	}
 }

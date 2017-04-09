@@ -34,6 +34,8 @@ type ConfigMode struct {
 	DefaultPort       string
 	FirebaseProjectId string
 	AdminUserIds      []string
+	//This is a dangerous config. Only enable in Dev!
+	DisableAdminChecking bool
 }
 
 type MoveForm struct {
@@ -301,7 +303,7 @@ func (s *Server) gameViewHandler(c *gin.Context) {
 
 	user := obj.(*users.StorageRecord)
 
-	if admin {
+	if admin && !s.config.DisableAdminChecking {
 		//Ok, they're asserting they're an admin. Is that for real?
 
 		matchedAdmin := false
