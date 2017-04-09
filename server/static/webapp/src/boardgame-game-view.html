@@ -121,11 +121,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         originalWallClockStartTime: {
           type: Number
+        },
+        lastStatusRequestIssued: Date,
+        statusPollFrequency: {
+          type: Number,
+          value: 500,
         }
       },
       listeners: {
         'propose-move' : 'handleProposeMove',
-        'move-made': 'fetchStatus',
+        'move-made': 'fetchStatusNow',
       },
       behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
       handleProposeMove: function(e) {
@@ -163,7 +168,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
       updateData: function() {
         this.fetchData();
-        this.fetchStatus();
+        this.fetchStatusNow();
+        this.async(this.maybeFetchStatus, this.statusPollFrequency);
       },
       fetchData : function() {
         //If we're already fetchign data don't fire off another one.
@@ -176,7 +182,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
         this.$.data.generateRequest();
       },
-      fetchStatus: function() {
+      fetchStatusNow: function() {
         if (!this.gameId) {
           //The URL will be junk
           return
@@ -190,16 +196,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           return
         }
 
+        this.lastStatusRequestIssued = Date.now();
+
         this.$.status.generateRequest();
       },
-      fetchStatusAgain: function() {
+      maybeFetchStatus: function() {
+        if (this.lastStatusRequestIssued) {
+          let diff = Date.now() - this.lastStatusRequestIssued;
+          if (diff > this.statusPollFrequency) {
+            this.fetchStatusNow();
+          }
+        }
         //Fetch from server automatically in 500 ms, in case a move was made
         //or the game was updated.
 
         //We stop asking for data if the game is finished, because nothing
         //interesting can happen at that point.
         if (!this.data || (this.data && this.data.Game && !this.data.Game.Finished)){
-          this.async(this.fetchStatus, 500);
+          this.async(this.maybeFetchStatus, this.statusPollFrequency);
         }
       },
       ready: function() {
@@ -207,14 +221,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
       _statusChanged: function(newValue, oldValue) {
         if (!this.data) {
-          this.fetchStatusAgain();
           return
         }
         if (newValue.Version > this.data.Game.Version) { 
           //We're out of date! Fetch new data!
           this.fetchData();
         }
-        this.fetchStatusAgain();
       },
       doTick: function() {
         this._tick();
