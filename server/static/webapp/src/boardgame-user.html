@@ -12,7 +12,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <dom-module id="boardgame-user">
   <template>
-    <div>{{user.email}}</div>
+    <style>
+      :host {
+        padding:2em;
+      }
+    </style>
+    <template is="dom-if" if="{{user}}">
+      <div>{{user.email}}</div>
+      <a on-tap="signOut">Sign Out</a>
+    </template>
+    <template is="dom-if" if="{{!user}}">
+      <div>Not signed in</div>
+      <a on-tap="signIn">Sign In</a>
+    </template>
   </template>
 
   <script>
@@ -20,7 +32,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       is: 'boardgame-user',
       properties: {
         user: Object,
-      }
+      },
+      signIn: function(e) {
+        console.log("sign in", e);
+      },
+      signOut: function(e) {
+        console.log("sign out", e);
+      },
     });
   </script>
 </dom-module>

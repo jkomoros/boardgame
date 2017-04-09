@@ -73,12 +73,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <app-drawer-layout fullbleed>
       <!-- Drawer content -->
       <app-drawer id="drawer">
+        <boardgame-user user="{{user}}"></boardgame-user>
         <app-toolbar>Menu</app-toolbar>
         <iron-selector selected="[[page]]" attr-for-selected="name" class="drawer-list" role="navigation">
           <a name="list-games" href="/list-games">List Games</a>
         </iron-selector>
-        <app-toolbar>User</app-toolbar>
-        <boardgame-user user="{{user}}"></boardgame-user>
       </app-drawer>
 
       <!-- Main content -->
