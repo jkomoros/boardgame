@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/gin-gonic/gin"
+	"log"
 	"net/http"
 )
 
@@ -14,6 +15,8 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 	if c.Request.Method != http.MethodPost {
 		panic("This can only be called as a post.")
 	}
+
+	log.Println("Auth Cookie Handler called")
 
 	c.JSON(http.StatusOK, gin.H{
 		"Status": "Failure",
