@@ -25,6 +25,8 @@ type Game struct {
 	//The current version of State.
 	version int
 
+	numPlayers int
+
 	//Memozied answer to CurrentState. Invalidated whenever ApplyMove is
 	//called.
 	cachedCurrentState State
@@ -119,7 +121,7 @@ func (g *Game) Manager() *GameManager {
 //NumPlayers returns the number of players for this game, based on how many
 //PlayerStates are in CurrentState.
 func (g *Game) NumPlayers() int {
-	return len(g.CurrentState().Players())
+	return g.numPlayers
 }
 
 //JSONForPlayer returns an object appropriate for being json'd via
@@ -147,11 +149,12 @@ func (g *Game) MarshalJSON() ([]byte, error) {
 //game that should be serialized to storage.
 func (g *Game) StorageRecord() *GameStorageRecord {
 	return &GameStorageRecord{
-		Name:     g.Manager().Delegate().Name(),
-		Version:  g.Version(),
-		Winners:  g.Winners(),
-		Finished: g.Finished(),
-		Id:       g.Id(),
+		Name:       g.Manager().Delegate().Name(),
+		Version:    g.Version(),
+		Winners:    g.Winners(),
+		Finished:   g.Finished(),
+		Id:         g.Id(),
+		NumPlayers: g.NumPlayers(),
 	}
 }
 
@@ -230,6 +233,8 @@ func (g *Game) SetUp(numPlayers int) error {
 	if !g.manager.Delegate().LegalNumPlayers(numPlayers) {
 		return errors.New("The number of players, " + strconv.Itoa(numPlayers) + " was not legal.")
 	}
+
+	g.numPlayers = numPlayers
 
 	stateCopy := &state{
 		game: g,

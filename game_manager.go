@@ -77,6 +77,7 @@ func (g *GameManager) gameFromStorageRecord(record *GameStorageRecord) *Game {
 		id:         record.Id,
 		finished:   record.Finished,
 		winners:    record.Winners,
+		numPlayers: record.NumPlayers,
 		modifiable: false,
 		initalized: true,
 	}
