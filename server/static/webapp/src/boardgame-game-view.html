@@ -79,8 +79,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <pre>{{chest}}</pre>
       </details>
     </div>
-    <iron-ajax id="status" url="[[UrlForGameAPI(gameName, gameId, 'status')]]" handle-as="json" last-response="{{status}}">
-    <iron-ajax id="data" url="[[gameViewUrl]]" handle-as="json" last-response="{{data}}">
+    <iron-ajax id="status" with-credentials url="[[UrlForGameAPI(gameName, gameId, 'status')]]" handle-as="json" last-response="{{status}}">
+    <iron-ajax id="data" with-credentials url="[[gameViewUrl]]" handle-as="json" last-response="{{data}}">
   </template>
 
   <script>
