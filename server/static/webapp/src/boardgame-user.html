@@ -23,6 +23,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       a {
         cursor:pointer;
       }
+
+      paper-dialog {
+        min-width:300px;
+        min-height:300px;
+      }
     </style>
     <template is="dom-if" if="{{user}}">
       <div>{{user.email}}</div>
@@ -35,8 +40,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <paper-dialog id="dialog">
       <paper-input id="email" label="Email"></paper-input>
       <paper-input id="password" label="Password" type="password"></paper-input>
-      <paper-button dialog-dismiss>Cancel</paper-button>
-      <paper-button on-tap="signIn">Sign In</paper-button>
+      <div class="buttons">
+        <paper-button dialog-dismiss>Cancel</paper-button>
+        <paper-button dialog-confirm autofocus>Sign In</paper-button>
+      </div>
     </paper-dialog>
   </template>
 
@@ -47,6 +54,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         user: Object,
       },
 
+      listeners: {
+        "iron-overlay-closed" : "dialogClosed"
+      },
+
       ready : function(e) {
         firebase.auth().onAuthStateChanged(this.authChanged.bind(this));
       },
@@ -55,13 +66,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.user = user;
       },
 
-      signIn: function(e) {
-        this.$.dialog.close();
+      dialogClosed: function(e) {
+        if (e.detail.canceled) {
+          return;
+        }
         let email = this.$.email.value;
         let password = this.$.password.value;
 
-        firebase.auth().signInWithEmailAndPassword(email, password);
+        this.signIn(email, password);
+      },
 
+      signIn: function(email, password) {
+        firebase.auth().signInWithEmailAndPassword(email, password);
       },
 
       showSignInDialog: function(e) {
