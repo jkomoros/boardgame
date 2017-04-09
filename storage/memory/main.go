@@ -145,6 +145,9 @@ func (s *StorageManager) UserIdsForGame(gameId string) []string {
 
 	if ids == nil {
 		game, _ := s.Game(gameId)
+		if game == nil {
+			return nil
+		}
 		return make([]string, game.NumPlayers)
 	}
 
