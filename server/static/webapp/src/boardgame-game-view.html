@@ -125,6 +125,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
       listeners: {
         'propose-move' : 'handleProposeMove',
+        'move-made': 'fetchStatus',
       },
       behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
       handleProposeMove: function(e) {

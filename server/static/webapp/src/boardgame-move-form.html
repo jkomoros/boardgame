@@ -145,6 +145,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.$["error-content"].textContent = response.Error;
           this.$.error.open();
         }
+        //Let the game-view know that the move was made and we should see if
+        //there's an updated version.
+        this.fire("move-made");
       },
       _configChanged : function(newValue, oldValue) {
         //Must be async because databinding hasn't created the details yet.
