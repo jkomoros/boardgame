@@ -12,6 +12,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/iron-pages/iron-pages.html">
 
 <dom-module id="boardgame-user">
   <template>
@@ -39,12 +40,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <a on-tap="showSignInDialog">Sign In</a>
     </template>
     <paper-dialog id="dialog">
-      <paper-input id="email" label="Email"></paper-input>
-      <paper-input id="password" label="Password" type="password"></paper-input>
-      <div class="buttons">
-        <paper-button dialog-dismiss>Cancel</paper-button>
-        <paper-button dialog-confirm autofocus>Sign In</paper-button>
-      </div>
+      <iron-pages id="pages">
+        <div>
+          <paper-button on-tap="signInWithGoogle">Google</paper-button>
+          <paper-button on-tap="showEmail">Email/Password</paper-button>
+          <div class="buttons">
+            <paper-button dialog-dismiss>Cancel</paper-button>
+          </div>
+        </div>
+        <div>
+          <paper-input id="email" label="Email"></paper-input>
+          <paper-input id="password" label="Password" type="password"></paper-input>
+          <div class="buttons">
+            <paper-button dialog-dismiss>Cancel</paper-button>
+            <paper-button dialog-confirm autofocus>Sign In</paper-button>
+          </div>
+        </div>
+      </iron-pages>
     </paper-dialog>
   </template>
 
@@ -68,7 +80,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       dialogClosed: function(e) {
-        if (e.detail.canceled) {
+        if (!e.detail.confirmed) {
           return;
         }
         let email = this.$.email.value;
@@ -77,11 +89,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.signIn(email, password);
       },
 
+      showEmail: function() {
+        this.$.pages.selected = 1;
+      },
+
+      signInWithGoogle: function() {
+        this.$.dialog.close();
+        console.log("Chose sign in with Google")
+      },
+
       signIn: function(email, password) {
         firebase.auth().signInWithEmailAndPassword(email, password);
       },
 
       showSignInDialog: function(e) {
+        this.$.pages.selected = 0;
         this.$.dialog.open();
       },
 
