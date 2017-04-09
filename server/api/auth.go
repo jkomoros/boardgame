@@ -87,7 +87,7 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 
 	if cookie == "" && uid != "" {
 
-		verifiedUid, err := firebase.VerifyIDToken(token, "boardgame-159316")
+		verifiedUid, err := firebase.VerifyIDToken(token, s.config.FirebaseProjectId)
 
 		if err != nil {
 			c.JSON(http.StatusOK, gin.H{

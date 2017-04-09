@@ -29,8 +29,9 @@ type Config struct {
 }
 
 type ConfigMode struct {
-	AllowedOrigins string
-	DefaultPort    string
+	AllowedOrigins    string
+	DefaultPort       string
+	FirebaseProjectId string
 }
 
 type MoveForm struct {
