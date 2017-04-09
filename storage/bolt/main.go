@@ -301,6 +301,11 @@ func (s *StorageManager) ConnectCookieToUser(cookie string, user *users.StorageR
 			return errors.New("couldn't open cookies bucket")
 		}
 
+		if user == nil {
+			//Delete the cookie.
+			return cBucket.Delete(keyForCookie(cookie))
+		}
+
 		return cBucket.Put(keyForCookie(cookie), keyForUser(user.Id))
 
 	})

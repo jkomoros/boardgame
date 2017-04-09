@@ -19,6 +19,7 @@ type StorageManager interface {
 
 	GetUserByCookie(cookie string) *users.StorageRecord
 
+	//If user is nil, the cookie should be deleted if it exists.
 	ConnectCookieToUser(cookie string, user *users.StorageRecord) error
 
 	//Note: whenever you add methods here, also add them to boardgame/storage/test/StorageManager
