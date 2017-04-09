@@ -20,6 +20,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/iron-pages/iron-pages.html">
 <link rel="import" href="../bower_components/iron-selector/iron-selector.html">
 <link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="boardgame-user.html">
 <link rel="import" href="my-icons.html">
 
 <dom-module id="boardgame-app">
@@ -85,7 +86,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           <app-toolbar>
             <paper-icon-button icon="my-icons:menu" drawer-toggle></paper-icon-button>
             <div main-title>Boardgame App</div>
-            <div>{{user.uid}}</div>
+            <boardgame-user user="{{user}}"></boardgame-user>
           </app-toolbar>
         </app-header>
 
