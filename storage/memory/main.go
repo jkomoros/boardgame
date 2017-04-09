@@ -12,22 +12,32 @@ package memory
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/server/api/users"
+	"strconv"
 	"sync"
 )
 
 type StorageManager struct {
-	states     map[string]map[int]boardgame.StateStorageRecord
-	games      map[string]*boardgame.GameStorageRecord
-	statesLock sync.RWMutex
-	gamesLock  sync.RWMutex
+	states            map[string]map[int]boardgame.StateStorageRecord
+	games             map[string]*boardgame.GameStorageRecord
+	usersById         map[string]*users.StorageRecord
+	usersByCookie     map[string]*users.StorageRecord
+	usersForGames     map[string][]string
+	statesLock        sync.RWMutex
+	gamesLock         sync.RWMutex
+	usersLock         sync.RWMutex
+	usersForGamesLock sync.RWMutex
 }
 
 func NewStorageManager() *StorageManager {
 	//InMemoryStorageManager is an extremely simple StorageManager that just keeps
 	//track of the objects in memory.
 	return &StorageManager{
-		states: make(map[string]map[int]boardgame.StateStorageRecord),
-		games:  make(map[string]*boardgame.GameStorageRecord),
+		states:        make(map[string]map[int]boardgame.StateStorageRecord),
+		games:         make(map[string]*boardgame.GameStorageRecord),
+		usersById:     make(map[string]*users.StorageRecord),
+		usersByCookie: make(map[string]*users.StorageRecord),
+		usersForGames: make(map[string][]string),
 	}
 }
 
@@ -126,6 +136,95 @@ func (s *StorageManager) ListGames(max int) []*boardgame.GameStorageRecord {
 
 	return result
 
+}
+
+func (s *StorageManager) UserIdsForGame(gameId string) []string {
+	s.usersForGamesLock.RLock()
+	ids := s.usersForGames[gameId]
+	s.usersForGamesLock.RUnlock()
+
+	if ids == nil {
+		game, _ := s.Game(gameId)
+		return make([]string, game.NumPlayers)
+	}
+
+	return ids
+}
+
+func (s *StorageManager) SetPlayerForGame(gameId string, playerIndex int, userId string) error {
+	ids := s.UserIdsForGame(gameId)
+
+	if playerIndex < 0 || playerIndex >= len(ids) {
+		return errors.New("PlayerIndex " + strconv.Itoa(playerIndex) + " is not valid for this game.")
+	}
+
+	if ids[playerIndex] != "" {
+		return errors.New("PlayerIndex " + strconv.Itoa(playerIndex) + " is already taken.")
+	}
+
+	user := s.GetUserById(userId)
+
+	if user == nil {
+		return errors.New("That uid does not describe an existing user")
+	}
+
+	ids[playerIndex] = userId
+
+	s.usersForGamesLock.Lock()
+	s.usersForGames[gameId] = ids
+	s.usersForGamesLock.Unlock()
+
+	return nil
+}
+
+//Store or update all fields
+func (s *StorageManager) UpdateUser(user *users.StorageRecord) error {
+
+	s.usersLock.Lock()
+	s.usersById[user.Id] = user
+	s.usersLock.Unlock()
+
+	return nil
+
+}
+
+func (s *StorageManager) GetUserById(uid string) *users.StorageRecord {
+	s.usersLock.RLock()
+	user := s.usersById[uid]
+	s.usersLock.RUnlock()
+
+	return user
+}
+
+func (s *StorageManager) GetUserByCookie(cookie string) *users.StorageRecord {
+	s.usersLock.RLock()
+	user := s.usersByCookie[cookie]
+	s.usersLock.RUnlock()
+
+	return user
+}
+
+//If user is nil, the cookie should be deleted if it exists. If the user
+//does not yet exist, it should be added to the database.
+func (s *StorageManager) ConnectCookieToUser(cookie string, user *users.StorageRecord) error {
+	if user == nil {
+		s.usersLock.Lock()
+		delete(s.usersByCookie, cookie)
+		s.usersLock.Unlock()
+		return nil
+	}
+
+	otherUser := s.GetUserById(user.Id)
+
+	if otherUser == nil {
+		s.UpdateUser(user)
+	}
+
+	s.usersLock.Lock()
+	s.usersByCookie[cookie] = user
+	s.usersLock.Unlock()
+
+	return nil
 }
 
 func (s *StorageManager) Close() {
