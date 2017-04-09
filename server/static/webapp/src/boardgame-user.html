@@ -57,13 +57,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           <paper-input id="email" label="Email"></paper-input>
           <paper-input id="password" label="Password" type="password"></paper-input>
           <div class="buttons">
-            <paper-button on-tap="emailCancel">Cancel</paper-button>
+            <paper-button on-tap="cancel">Cancel</paper-button>
             <paper-button on-tap="emailSignIn" autofocus>Sign In</paper-button>
           </div>
         </div>
         <div>
           <h2>Signing in...</h2>
           <paper-spinner-lite active></paper-spinner-lite>
+        </div>
+        <div>
+          <h2>Sign In Error</h2>
+          <div>{{errorText}}</div>
+          <div class="buttons">
+            <paper-button on-tap="cancel">OK</paper-button>
+          </div>
         </div>
       </iron-pages>
     </paper-dialog>
@@ -89,7 +96,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
 
-      emailCancel: function() {
+      cancel: function() {
         this.$.pages.selected = 0;
       },
 
@@ -100,18 +107,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.signInWithEmailAndPassword(email, password);
       },
 
+      handleSignInError: function(err) {
+        this.errorText = err.message;
+        this.$.pages.selected = 3;
+      },
+
       showEmail: function() {
         this.$.pages.selected = 1;
       },
 
       signInWithGoogle: function() {
         let provider = new firebase.auth.GoogleAuthProvider();
-        firebase.auth().signInWithPopup(provider);
+        firebase.auth().signInWithPopup(provider).catch(this.handleSignInError.bind(this));
         this.$.pages.selected = 2;
       },
 
       signInWithEmailAndPassword: function(email, password) {
-        firebase.auth().signInWithEmailAndPassword(email, password);
+        firebase.auth().signInWithEmailAndPassword(email, password).catch(this.handleSignInError.bind(this));
         this.$.pages.selected = 2;
       },
 
