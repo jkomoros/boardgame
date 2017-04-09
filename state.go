@@ -80,6 +80,21 @@ type MutableState interface {
 	MutableDynamicComponentValues() map[string][]MutableDynamicComponentValues
 }
 
+//Valid returns true if the PlayerIndex's value is legal in the context of the
+//current State.
+func (p PlayerIndex) Valid(state State) bool {
+	if p == AdminPlayerIndex || p == ObserverPlayerIndex {
+		return true
+	}
+	if state == nil {
+		return false
+	}
+	if p < 0 || int(p) >= len(state.Players()) {
+		return false
+	}
+	return true
+}
+
 //state implements both State and MutableState, so it can always be passed for
 //either, and what it's interpreted as is primarily a function of what the
 //method signature is that it's passed to
