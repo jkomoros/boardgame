@@ -15,6 +15,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/iron-pages/iron-pages.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../bower_components/paper-spinner/paper-spinner-lite.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="boardgame-util.html">
+<link rel="import" href="../config-src/boardgame-config.html">
 
 <dom-module id="boardgame-user">
   <template>
@@ -77,6 +80,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </div>
       </iron-pages>
     </paper-dialog>
+    <iron-ajax id="auth" url="[[AuthCookieUrl(apiHost)]]" handle-as="json" last-response="{{authResponse}}" method="POST" with-credentials>
   </template>
 
   <script>
@@ -87,8 +91,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         emailFormIsSignIn: {
           type: Boolean,
           value: true,
-        }
+        },
+        authResponse: Object,
+        lastUserId: String,
       },
+
+      behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
 
       buttonText: function(isSignIn) {
         return isSignIn ? "Sign In" : "Create Account";
@@ -102,9 +110,30 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.user = user;
         if (user) {
           this.$.dialog.close();
+          if (this.lastUserId != user.uid) {
+            //User has changed!
+           this.validateCookie();
+          }
+          this.lastUserId = user.uid;
         } else {
+          this.validateCookieWithToken("");
           this.showSignInDialog();
+          this.lastUserId = "";
         }
+      },
+
+      validateCookie: function() {
+        this.user.getToken(true).then(this.validateCookieWithToken.bind(this));
+      },
+
+      validateCookieWithToken: function(token) {
+        //Reaches out to the auth endpoint to get a cookie set (or validate that our cookie is set).
+        let uid = ""
+        if (this.user &&  this.user.uid) {
+          uid = this.user.uid;
+        }
+        this.$.auth.body = "uid=" + uid + "&token=" + token;
+        this.$.auth.generateRequest();
       },
 
       createLogin: function() {

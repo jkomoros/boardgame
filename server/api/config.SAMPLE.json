@@ -1,10 +1,12 @@
 {
 	"prod" : {
 		"allowedorigins" : "https://www.mygame.com",
-		"defaultport" : "8080"
+		"defaultport" : "8080",
+		"firebaseprojectid": "sample-123456"
 	},
 	"dev" : {
 		"allowedorigins" : "http://localhost:8080",
-		"defaultport" : "8888"
+		"defaultport" : "8888",
+		"firebaseprojectid": "sample-123456"
 	}
 }
