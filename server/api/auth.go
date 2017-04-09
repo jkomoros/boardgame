@@ -116,6 +116,7 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"Status": "Success",
 		})
+		return
 
 	}
 
