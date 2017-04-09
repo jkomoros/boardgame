@@ -52,6 +52,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           <div class="layout vertical">
             <paper-button on-tap="signInWithGoogle">Google</paper-button>
             <paper-button on-tap="showEmail">Email/Password</paper-button>
+            <p style="text-align:center"><em>or</em></p>
+            <paper-button on-tap="createLogin">Create an account</paper-button>
           </div>
         </div>
         <div>
@@ -59,7 +61,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           <paper-input id="password" label="Password" type="password"></paper-input>
           <div class="buttons">
             <paper-button on-tap="cancel">Cancel</paper-button>
-            <paper-button on-tap="emailSignIn" autofocus>Sign In</paper-button>
+            <paper-button on-tap="emailSubmitted" autofocus>{{buttonText(emailFormIsSignIn)}}</paper-button>
           </div>
         </div>
         <div>
@@ -82,6 +84,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       is: 'boardgame-user',
       properties: {
         user: Object,
+        emailFormIsSignIn: {
+          type: Boolean,
+          value: true,
+        }
+      },
+
+      buttonText: function(isSignIn) {
+        return isSignIn ? "Sign In" : "Create Account";
       },
 
       ready : function(e) {
@@ -97,15 +107,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
 
+      createLogin: function() {
+        this.emailFormIsSignIn = false;
+        this.showEmailPage();
+      },
+
       cancel: function() {
         this.$.pages.selected = 0;
       },
 
-      emailSignIn: function() {
+      emailSubmitted: function() {
         let email = this.$.email.value;
         let password = this.$.password.value;
 
-        this.signInWithEmailAndPassword(email, password);
+        if (this.emailFormIsSignIn) {
+          this.signInWithEmailAndPassword(email, password);
+        } else {
+          this.createUserWithEmailAndPassword(email, password);
+        }
       },
 
       handleSignInError: function(err) {
@@ -114,7 +133,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       showEmail: function() {
-        this.$.pages.selected = 1;
+        this.emailFormIsSignIn = true;
+        this.showEmailPage();
       },
 
       signInWithGoogle: function() {
@@ -126,6 +146,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       signInWithEmailAndPassword: function(email, password) {
         firebase.auth().signInWithEmailAndPassword(email, password).catch(this.handleSignInError.bind(this));
         this.$.pages.selected = 2;
+      },
+
+      createUserWithEmailAndPassword: function(email, password) {
+        firebase.auth().createUserWithEmailAndPassword(email, password).catch(this.handleSignInError.bind(this));
+        this.$.pages.selected = 2;
+      },
+
+      showEmailPage: function() {
+        this.$.email.value = "";
+        this.$.password.value = "";
+        this.$.pages.selected = 1;
       },
 
       showSignInDialog: function(e) {
