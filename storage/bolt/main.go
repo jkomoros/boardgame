@@ -388,7 +388,7 @@ func (s *StorageManager) GetUserByCookie(cookie string) *users.StorageRecord {
 		c := cBucket.Get(keyForCookie(cookie))
 
 		if c == nil {
-			return errors.New("No such cookie")
+			return errors.New("No such cookie: " + cookie)
 		}
 
 		uBucket := tx.Bucket(usersBucket)
