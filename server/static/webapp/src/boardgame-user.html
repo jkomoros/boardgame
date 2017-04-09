@@ -15,6 +15,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/iron-pages/iron-pages.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../bower_components/paper-spinner/paper-spinner-lite.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="boardgame-util.html">
+<link rel="import" href="../config-src/boardgame-config.html">
 
 <dom-module id="boardgame-user">
   <template>
@@ -77,6 +80,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </div>
       </iron-pages>
     </paper-dialog>
+    <iron-ajax id="auth" url="[[AuthCookieUrl(apiHost)]]" handle-as="json" last-response="{{authResponse}}" method="POST">
   </template>
 
   <script>
@@ -87,8 +91,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         emailFormIsSignIn: {
           type: Boolean,
           value: true,
-        }
+        },
+        authResponse: Object,
       },
+
+      behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
 
       buttonText: function(isSignIn) {
         return isSignIn ? "Sign In" : "Create Account";
@@ -102,10 +109,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.user = user;
         if (user) {
           this.$.dialog.close();
+          this.validateCookie();
         } else {
           this.showSignInDialog();
         }
       },
+
+      validateCookie: function(token) {
+        if (!token) {
+          this.user.getToken(true).then(this.validateCookie.bind(this));
+          return
+        }
+
+        //Reaches out to the auth endpoint to get a cookie set (or validate that our cookie is set).
+        this.$.auth.body = "uid=" + this.user.uid + "&token=" + token;
+        this.$.auth.generateRequest();
+      },
+
 
       createLogin: function() {
         this.emailFormIsSignIn = false;

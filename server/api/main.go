@@ -432,14 +432,18 @@ func (s *Server) Start() {
 	mainGroup := router.Group("/api")
 	mainGroup.Use(cors.Middleware(cors.Config{
 		Origins:        s.config.AllowedOrigins,
-		RequestHeaders: "Content-Type",
+		RequestHeaders: "content-type, Origin",
+		ExposedHeaders: "content-type",
+		Methods:        "GET, POST",
 	}))
+
 	{
 		mainGroup.GET("list/game", s.listGamesHandler)
 		mainGroup.POST("new/game", s.newGameHandler)
 		mainGroup.GET("list/manager", s.listManagerHandler)
 
 		mainGroup.POST("auth/cookie", s.authCookieHandler)
+		mainGroup.OPTIONS("auth/cookie", s.authCookieHandler)
 
 		gameAPIGroup := mainGroup.Group("game/:name/:id")
 		gameAPIGroup.Use(s.gameAPISetup)
