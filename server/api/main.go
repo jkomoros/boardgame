@@ -439,6 +439,8 @@ func (s *Server) Start() {
 		mainGroup.POST("new/game", s.newGameHandler)
 		mainGroup.GET("list/manager", s.listManagerHandler)
 
+		mainGroup.POST("auth/cookie", s.authCookieHandler)
+
 		gameAPIGroup := mainGroup.Group("game/:name/:id")
 		gameAPIGroup.Use(s.gameAPISetup)
 		{
