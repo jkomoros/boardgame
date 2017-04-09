@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"time"
 )
 
 const cookieName = "c"
@@ -68,7 +69,10 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 			return
 		}
 
-		//TODO: use Set-Cookie to remove the cookie from the client.
+		//Delete the cookie on the client.
+
+		//TODO: might need to set the domain in production.
+		c.SetCookie(cookieName, "", int(time.Now().Add(time.Hour*10000*-1).Unix()), "", "", false, false)
 
 		c.JSON(http.StatusOK, gin.H{
 			"Status": "Success",
@@ -106,7 +110,8 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 			return
 		}
 
-		//TODO: Set-Cookie to client
+		//TODO: might need to set the domain in production
+		c.SetCookie(cookieName, cookie, int(time.Now().Add(time.Hour*100).Unix()), "", "", false, false)
 
 		c.JSON(http.StatusOK, gin.H{
 			"Status": "Success",
