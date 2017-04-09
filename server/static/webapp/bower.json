@@ -23,7 +23,8 @@
     "paper-dialog": "PolymerElements/paper-dialog#^1.1.0",
     "paper-button": "PolymerElements/paper-button#^1.0.14",
     "paper-progress": "PolymerElements/paper-progress#^1.0.11",
-    "paper-input": "PolymerElements/paper-input#^1.1.23"
+    "paper-input": "PolymerElements/paper-input#^1.1.23",
+    "paper-spinner": "PolymerElements/paper-spinner#^1.2.1"
   },
   "devDependencies": {
     "web-component-tester": "^4.0.0"

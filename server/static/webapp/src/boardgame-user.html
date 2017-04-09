@@ -14,6 +14,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/paper-input/paper-input.html">
 <link rel="import" href="../bower_components/iron-pages/iron-pages.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../bower_components/paper-spinner/paper-spinner-lite.html">
 
 <dom-module id="boardgame-user">
   <template>
@@ -40,24 +41,38 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <div>Not signed in</div>
       <a on-tap="showSignInDialog">Sign In</a>
     </template>
-    <paper-dialog id="dialog">
+    <!-- TODO: ideall this would be modal, but given its position in DOM that doesn't work.
+    See https://github.com/PolymerElements/paper-dialog/issues/7 -->
+
+    <paper-dialog id="dialog" no-cancel-on-esc-key no-cancel-on-outside-click>
       <iron-pages id="pages">
         <div>
           <h2>Sign In</h2>
+          <p>You must sign in to use this app.</p>
           <div class="layout vertical">
             <paper-button on-tap="signInWithGoogle">Google</paper-button>
             <paper-button on-tap="showEmail">Email/Password</paper-button>
-          </div>
-          <div class="buttons">
-            <paper-button dialog-dismiss>Cancel</paper-button>
+            <p style="text-align:center"><em>or</em></p>
+            <paper-button on-tap="createLogin">Create an account</paper-button>
           </div>
         </div>
         <div>
           <paper-input id="email" label="Email"></paper-input>
           <paper-input id="password" label="Password" type="password"></paper-input>
           <div class="buttons">
-            <paper-button dialog-dismiss>Cancel</paper-button>
-            <paper-button dialog-confirm autofocus>Sign In</paper-button>
+            <paper-button on-tap="cancel">Cancel</paper-button>
+            <paper-button on-tap="emailSubmitted" autofocus>{{buttonText(emailFormIsSignIn)}}</paper-button>
+          </div>
+        </div>
+        <div>
+          <h2>Signing in...</h2>
+          <paper-spinner-lite active></paper-spinner-lite>
+        </div>
+        <div>
+          <h2>Sign In Error</h2>
+          <div>{{errorText}}</div>
+          <div class="buttons">
+            <paper-button on-tap="cancel">OK</paper-button>
           </div>
         </div>
       </iron-pages>
@@ -69,10 +84,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       is: 'boardgame-user',
       properties: {
         user: Object,
+        emailFormIsSignIn: {
+          type: Boolean,
+          value: true,
+        }
       },
 
-      listeners: {
-        "iron-overlay-closed" : "dialogClosed"
+      buttonText: function(isSignIn) {
+        return isSignIn ? "Sign In" : "Create Account";
       },
 
       ready : function(e) {
@@ -81,30 +100,63 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       authChanged: function(user) {
         this.user = user;
+        if (user) {
+          this.$.dialog.close();
+        } else {
+          this.showSignInDialog();
+        }
       },
 
-      dialogClosed: function(e) {
-        if (!e.detail.confirmed) {
-          return;
-        }
+      createLogin: function() {
+        this.emailFormIsSignIn = false;
+        this.showEmailPage();
+      },
+
+      cancel: function() {
+        this.$.pages.selected = 0;
+      },
+
+      emailSubmitted: function() {
         let email = this.$.email.value;
         let password = this.$.password.value;
 
-        this.signIn(email, password);
+        if (this.emailFormIsSignIn) {
+          this.signInWithEmailAndPassword(email, password);
+        } else {
+          this.createUserWithEmailAndPassword(email, password);
+        }
+      },
+
+      handleSignInError: function(err) {
+        this.errorText = err.message;
+        this.$.pages.selected = 3;
       },
 
       showEmail: function() {
-        this.$.pages.selected = 1;
+        this.emailFormIsSignIn = true;
+        this.showEmailPage();
       },
 
       signInWithGoogle: function() {
-        this.$.dialog.close();
         let provider = new firebase.auth.GoogleAuthProvider();
-        firebase.auth().signInWithPopup(provider);
+        firebase.auth().signInWithPopup(provider).catch(this.handleSignInError.bind(this));
+        this.$.pages.selected = 2;
       },
 
-      signIn: function(email, password) {
-        firebase.auth().signInWithEmailAndPassword(email, password);
+      signInWithEmailAndPassword: function(email, password) {
+        firebase.auth().signInWithEmailAndPassword(email, password).catch(this.handleSignInError.bind(this));
+        this.$.pages.selected = 2;
+      },
+
+      createUserWithEmailAndPassword: function(email, password) {
+        firebase.auth().createUserWithEmailAndPassword(email, password).catch(this.handleSignInError.bind(this));
+        this.$.pages.selected = 2;
+      },
+
+      showEmailPage: function() {
+        this.$.email.value = "";
+        this.$.password.value = "";
+        this.$.pages.selected = 1;
       },
 
       showSignInDialog: function(e) {
