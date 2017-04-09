@@ -93,6 +93,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           value: true,
         },
         authResponse: Object,
+        lastUserId: String,
       },
 
       behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
@@ -109,23 +110,31 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.user = user;
         if (user) {
           this.$.dialog.close();
-          this.validateCookie();
+          if (this.lastUserId != user.uid) {
+            //User has changed!
+           this.validateCookie();
+          }
+          this.lastUserId = user.uid;
         } else {
+          this.validateCookieWithToken("");
           this.showSignInDialog();
+          this.lastUserId = "";
         }
       },
 
-      validateCookie: function(token) {
-        if (!token) {
-          this.user.getToken(true).then(this.validateCookie.bind(this));
-          return
-        }
+      validateCookie: function() {
+        this.user.getToken(true).then(this.validateCookieWithToken.bind(this));
+      },
 
+      validateCookieWithToken: function(token) {
         //Reaches out to the auth endpoint to get a cookie set (or validate that our cookie is set).
-        this.$.auth.body = "uid=" + this.user.uid + "&token=" + token;
+        let uid = ""
+        if (this.user &&  this.user.uid) {
+          uid = this.user.uid;
+        }
+        this.$.auth.body = "uid=" + uid + "&token=" + token;
         this.$.auth.generateRequest();
       },
-
 
       createLogin: function() {
         this.emailFormIsSignIn = false;
