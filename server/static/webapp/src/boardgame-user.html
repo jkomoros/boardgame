@@ -16,6 +16,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       :host {
         padding:2em;
       }
+
+      a {
+        cursor:pointer;
+      }
     </style>
     <template is="dom-if" if="{{user}}">
       <div>{{user.email}}</div>
@@ -45,9 +49,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       signIn: function(e) {
         console.log("sign in", e);
       },
-      
+
       signOut: function(e) {
-        console.log("sign out", e);
+        firebase.auth().signOut();
       },
     });
   </script>
