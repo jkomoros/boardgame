@@ -41,6 +41,20 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 		}
 	}
 
+	if uid == "" && cookie != "" {
+		//We must have an old cookie set. Clear it out.
+		if err := s.storage.ConnectCookieToUser(cookie, nil); err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"Status": "Failure",
+				"Error":  err.Error(),
+			})
+		} else {
+			c.JSON(http.StatusOK, gin.H{
+				"Status": "Success",
+			})
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"Status": "Failure",
 		"Error":  "Not Yet Implemented",
