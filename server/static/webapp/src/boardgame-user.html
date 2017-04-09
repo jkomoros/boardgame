@@ -13,10 +13,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../bower_components/paper-input/paper-input.html">
 <link rel="import" href="../bower_components/iron-pages/iron-pages.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 
 <dom-module id="boardgame-user">
   <template>
-    <style>
+    <style is="custom-style" include="iron-flex">
       :host {
         display:block;
         padding:16px;
@@ -42,8 +43,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <paper-dialog id="dialog">
       <iron-pages id="pages">
         <div>
-          <paper-button on-tap="signInWithGoogle">Google</paper-button>
-          <paper-button on-tap="showEmail">Email/Password</paper-button>
+          <div class="layout vertical">
+            <paper-button on-tap="signInWithGoogle">Google</paper-button>
+            <paper-button on-tap="showEmail">Email/Password</paper-button>
+          </div>
           <div class="buttons">
             <paper-button dialog-dismiss>Cancel</paper-button>
           </div>
