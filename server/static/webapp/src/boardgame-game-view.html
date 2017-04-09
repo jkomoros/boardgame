@@ -104,13 +104,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         gameState : String,
         gameId: String,
         gameName: String,
+        admin: {
+          type: Boolean,
+          observer: "_adminChanged"
+        },
         selected: {
           type: Boolean,
           observer: "_handleSelected",
         },
         gameViewUrl : {
           type: String,
-          computed: "_computeGameViewUrl(gameName, gameId, currentPlayer)"
+          computed: "_computeGameViewUrl(gameName, gameId, currentPlayer, admin)"
         },
         maxCurrentPlayerIndex: {
           type: Number,
@@ -151,8 +155,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.async(this.updateData);
         }
       },
-      _computeGameViewUrl: function(gameName, gameId, currentPlayer){
-        return this.UrlForGameAPI(gameName, gameId, "view") + "?player=" + currentPlayer;
+      _adminChanged: function(newValue) {
+        this.fetchData();
+      },
+      _computeGameViewUrl: function(gameName, gameId, currentPlayer, admin){
+        return this.UrlForGameAPI(gameName, gameId, "view") + "?player=" + currentPlayer+"&admin=" + (admin ? 1 : 0);
       },
       _computeMaxCurrentPlayerIndex: function(data) {
         if (!data) {
