@@ -227,6 +227,54 @@ func (s *StorageManager) ListGames(max int) []*boardgame.GameStorageRecord {
 
 }
 
+func (s *StorageManager) SetPlayerForGame(gameId string, playerIndex int, userId string) error {
+
+	ids := s.UserIdsForGame(gameId)
+
+	if ids == nil {
+		return errors.New("Couldn't fetch original player indexes for that game")
+	}
+
+	if playerIndex < 0 || playerIndex >= len(ids) {
+		return errors.New("PlayerIndex " + strconv.Itoa(playerIndex) + " is not valid for this game")
+	}
+
+	if ids[playerIndex] != "" {
+		return errors.New("PlayerIndex " + strconv.Itoa(playerIndex) + " is already taken")
+	}
+
+	user := s.GetUserById(userId)
+
+	if user == nil {
+		return errors.New("That userId does not describe an existing user")
+	}
+
+	ids[playerIndex] = userId
+
+	err := s.db.Update(func(tx *bolt.Tx) error {
+		gUBucket := tx.Bucket(gameUsersBucket)
+
+		if gUBucket == nil {
+			return errors.New("Couldn't open game useres bucket")
+		}
+
+		blob, err := json.Marshal(ids)
+
+		if err != nil {
+			return errors.New("Unable to marshal ids blob: " + err.Error())
+		}
+
+		return gUBucket.Put(keyForGame(gameId), blob)
+	})
+
+	if err != nil {
+		return errors.New("Unable to form association: " + err.Error())
+	}
+
+	return nil
+
+}
+
 func (s *StorageManager) UserIdsForGame(gameId string) []string {
 
 	noRecordErr := errors.New("No such record")

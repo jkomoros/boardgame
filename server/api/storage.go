@@ -19,6 +19,8 @@ type StorageManager interface {
 	//uid representing the user.
 	UserIdsForGame(gameId string) []string
 
+	SetPlayerForGame(gameId string, playerIndex int, userId string) error
+
 	//Store or update all fields
 	UpdateUser(user *users.StorageRecord) error
 
