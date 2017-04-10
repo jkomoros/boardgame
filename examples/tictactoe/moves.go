@@ -14,7 +14,7 @@ type MovePlaceToken struct {
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
-func (m *MovePlaceToken) Legal(state boardgame.State) error {
+func (m *MovePlaceToken) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 	game, players := concreteStates(state)
 
 	if game.CurrentPlayer != m.TargetPlayerIndex {
@@ -88,7 +88,7 @@ func (m *MovePlaceToken) ReadSetter() boardgame.PropertyReadSetter {
 
 type MoveAdvancePlayer struct{}
 
-func (m *MoveAdvancePlayer) Legal(state boardgame.State) error {
+func (m *MoveAdvancePlayer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
 	game, players := concreteStates(state)
 

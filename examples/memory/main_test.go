@@ -24,7 +24,7 @@ func TestMain(t *testing.T) {
 
 	assert.For(t).ThatActual(move).IsNotNil()
 
-	err = <-game.ProposeMove(move)
+	err = <-game.ProposeMove(move, boardgame.AdminPlayerIndex)
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -63,7 +63,7 @@ func TestMain(t *testing.T) {
 
 	assert.For(t).ThatActual(move).IsNotNil()
 
-	err = <-game.ProposeMove(move)
+	err = <-game.ProposeMove(move, boardgame.AdminPlayerIndex)
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -75,7 +75,7 @@ func TestMain(t *testing.T) {
 
 	assert.For(t).ThatActual(move).IsNotNil()
 
-	err = <-game.ProposeMove(move)
+	err = <-game.ProposeMove(move, boardgame.AdminPlayerIndex)
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -91,7 +91,7 @@ func TestMain(t *testing.T) {
 
 	move.(*MoveRevealCard).CardIndex = revealedIndex
 
-	err = <-game.ProposeMove(move)
+	err = <-game.ProposeMove(move, boardgame.AdminPlayerIndex)
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -120,7 +120,7 @@ func TestMain(t *testing.T) {
 
 	assert.For(t).ThatActual(move).IsNotNil()
 
-	err = <-game.ProposeMove(move)
+	err = <-game.ProposeMove(move, boardgame.AdminPlayerIndex)
 
 	assert.For(t).ThatActual(err).IsNil()
 

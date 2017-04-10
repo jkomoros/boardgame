@@ -32,7 +32,7 @@ type MoveCurrentPlayerStand struct {
  *
  **************************************************/
 
-func (m *MoveShuffleDiscardToDraw) Legal(state boardgame.State) error {
+func (m *MoveShuffleDiscardToDraw) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 	game, _ := concreteStates(state)
 
 	if game.DrawStack.Len() > 0 {
@@ -79,7 +79,7 @@ func (m *MoveShuffleDiscardToDraw) ReadSetter() boardgame.PropertyReadSetter {
  *
  **************************************************/
 
-func (m *MoveCurrentPlayerHit) Legal(state boardgame.State) error {
+func (m *MoveCurrentPlayerHit) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
 	game, players := concreteStates(state)
 
@@ -152,7 +152,7 @@ func (m *MoveCurrentPlayerHit) ReadSetter() boardgame.PropertyReadSetter {
  *
  **************************************************/
 
-func (m *MoveCurrentPlayerStand) Legal(state boardgame.State) error {
+func (m *MoveCurrentPlayerStand) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
 	game, players := concreteStates(state)
 
@@ -214,7 +214,7 @@ func (m *MoveCurrentPlayerStand) ReadSetter() boardgame.PropertyReadSetter {
  *
  **************************************************/
 
-func (m *MoveAdvanceNextPlayer) Legal(state boardgame.State) error {
+func (m *MoveAdvanceNextPlayer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 	game, players := concreteStates(state)
 
 	currentPlayer := players[game.CurrentPlayer]
@@ -268,7 +268,7 @@ func (m *MoveAdvanceNextPlayer) ReadSetter() boardgame.PropertyReadSetter {
  *
  **************************************************/
 
-func (m *MoveRevealHiddenCard) Legal(state boardgame.State) error {
+func (m *MoveRevealHiddenCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
 	_, players := concreteStates(state)
 
@@ -322,7 +322,7 @@ func (m *MoveRevealHiddenCard) ReadSetter() boardgame.PropertyReadSetter {
  *
  **************************************************/
 
-func (m *MoveDealInitialCard) Legal(state boardgame.State) error {
+func (m *MoveDealInitialCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 	_, players := concreteStates(state)
 
 	if !m.TargetPlayerIndex.Valid(state) {
