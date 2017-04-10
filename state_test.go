@@ -8,6 +8,51 @@ import (
 	"testing"
 )
 
+func TestPlayerIndexNextPrevious(t *testing.T) {
+
+	game := testGame()
+
+	game.SetUp(3)
+
+	state := game.CurrentState()
+
+	tests := []struct {
+		p            PlayerIndex
+		expectedNext PlayerIndex
+		expectedPrev PlayerIndex
+	}{
+		{
+			0,
+			1,
+			2,
+		},
+		{
+			2,
+			0,
+			1,
+		},
+		{
+			AdminPlayerIndex,
+			AdminPlayerIndex,
+			AdminPlayerIndex,
+		},
+		{
+			ObserverPlayerIndex,
+			ObserverPlayerIndex,
+			ObserverPlayerIndex,
+		},
+	}
+
+	for i, test := range tests {
+		result := test.p.Next(state)
+		assert.For(t, "next", i).ThatActual(result).Equals(test.expectedNext)
+
+		result = test.p.Previous(state)
+
+		assert.For(t, "prev", i).ThatActual(result).Equals(test.expectedPrev)
+	}
+}
+
 func TestPlayerIndexValid(t *testing.T) {
 
 	gameTwoPlayers := testGame()
