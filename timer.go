@@ -223,7 +223,8 @@ func (t *timerManager) Tick() {
 		if record == nil {
 			continue
 		}
-		if err := <-record.game.ProposeMove(record.move); err != nil {
+
+		if err := <-record.game.ProposeMove(record.move, AdminPlayerIndex); err != nil {
 			//TODO: log the error or something
 			panic(err)
 		}

@@ -79,7 +79,7 @@ func BasicTest(factory StorageManagerFactory, testName string, t *testing.T) {
 		t.Fatal(testName, "Couldn't find a move")
 	}
 
-	if err := <-tictactoeGame.ProposeMove(move); err != nil {
+	if err := <-tictactoeGame.ProposeMove(move, boardgame.AdminPlayerIndex); err != nil {
 		t.Fatal(testName, "Couldn't make move", err)
 	}
 

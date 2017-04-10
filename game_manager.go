@@ -406,7 +406,7 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 //have a move they want to make on a given move ID. For now it's just a simple
 //wrapper around ModifiableGame, but in multi-server situations, in the future
 //it would conceivably do an RPC or something.
-func (g *GameManager) proposeMoveOnGame(id string, move Move) DelayedError {
+func (g *GameManager) proposeMoveOnGame(id string, move Move, proposer PlayerIndex) DelayedError {
 
 	errChan := make(DelayedError, 1)
 
@@ -423,8 +423,9 @@ func (g *GameManager) proposeMoveOnGame(id string, move Move) DelayedError {
 		}
 
 		workItem := &proposedMoveItem{
-			move: move,
-			ch:   errChan,
+			move:     move,
+			ch:       errChan,
+			proposer: proposer,
 		}
 
 		game.proposedMoves <- workItem

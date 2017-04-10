@@ -177,7 +177,7 @@ func (d *DefaultGameDelegate) EmptyComputedPlayerPropertyCollection() ComputedPr
 func (d *DefaultGameDelegate) ProposeFixUpMove(state State) Move {
 	for _, move := range d.Manager().FixUpMoves() {
 		move.DefaultsForState(state)
-		if err := move.Legal(state); err == nil {
+		if err := move.Legal(state, AdminPlayerIndex); err == nil {
 			//Found it!
 			return move
 		}

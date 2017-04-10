@@ -27,7 +27,7 @@ const HideCardsDuration = 4 * time.Second
  *
  **************************************************/
 
-func (m *MoveAdvanceNextPlayer) Legal(state boardgame.State) error {
+func (m *MoveAdvanceNextPlayer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 	game, players := concreteStates(state)
 
 	p := players[game.CurrentPlayer]
@@ -83,7 +83,7 @@ func (m *MoveAdvanceNextPlayer) ReadSetter() boardgame.PropertyReadSetter {
  *
  **************************************************/
 
-func (m *MoveRevealCard) Legal(state boardgame.State) error {
+func (m *MoveRevealCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 	game, players := concreteStates(state)
 
 	if game.CurrentPlayer != m.TargetPlayerIndex {
@@ -161,7 +161,7 @@ func (m *MoveRevealCard) ReadSetter() boardgame.PropertyReadSetter {
  *
  **************************************************/
 
-func (m *MoveStartHideCardsTimer) Legal(state boardgame.State) error {
+func (m *MoveStartHideCardsTimer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 	game, _ := concreteStates(state)
 
 	if game.RevealedCards.NumComponents() != 2 {
@@ -226,7 +226,7 @@ func (m *MoveStartHideCardsTimer) ReadSetter() boardgame.PropertyReadSetter {
  *
  **************************************************/
 
-func (m *MoveCaptureCards) Legal(state boardgame.State) error {
+func (m *MoveCaptureCards) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 	game, _ := concreteStates(state)
 
 	if game.RevealedCards.NumComponents() != 2 {
@@ -293,7 +293,7 @@ func (m *MoveCaptureCards) ReadSetter() boardgame.PropertyReadSetter {
  *
  **************************************************/
 
-func (m *MoveHideCards) Legal(state boardgame.State) error {
+func (m *MoveHideCards) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 	game, players := concreteStates(state)
 
 	p := players[game.CurrentPlayer]
