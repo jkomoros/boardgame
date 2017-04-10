@@ -118,9 +118,9 @@ func TestTimerProp(t *testing.T) {
 
 	game.SetUp(2)
 
-	move := &testMoveDrawCard{
-		TargetPlayerIndex: 0,
-	}
+	move := game.PlayerMoveByName("Draw Card")
+
+	assert.For(t).ThatActual(move).IsNotNil()
 
 	currentVersion := game.Version()
 
