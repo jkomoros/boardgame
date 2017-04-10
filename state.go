@@ -141,7 +141,7 @@ func (p PlayerIndex) Equivalent(other PlayerIndex) bool {
 	if p == ObserverPlayerIndex || other == ObserverPlayerIndex {
 		return false
 	}
-	if p == AdminPlayerIndex || other == ObserverPlayerIndex {
+	if p == AdminPlayerIndex || other == AdminPlayerIndex {
 		return true
 	}
 	return p == other

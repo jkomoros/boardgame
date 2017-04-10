@@ -8,6 +8,62 @@ import (
 	"testing"
 )
 
+func TestPlayerIndex(t *testing.T) {
+
+	equivalentTests := []struct {
+		p        PlayerIndex
+		other    PlayerIndex
+		expected bool
+	}{
+		{
+			0,
+			0,
+			true,
+		},
+		{
+			0,
+			1,
+			false,
+		},
+		{
+			AdminPlayerIndex,
+			0,
+			true,
+		},
+		{
+			AdminPlayerIndex,
+			ObserverPlayerIndex,
+			false,
+		},
+		{
+			ObserverPlayerIndex,
+			1,
+			false,
+		},
+		{
+			0,
+			AdminPlayerIndex,
+			true,
+		},
+		{
+			AdminPlayerIndex,
+			AdminPlayerIndex,
+			true,
+		},
+		{
+			ObserverPlayerIndex,
+			ObserverPlayerIndex,
+			false,
+		},
+	}
+
+	for i, test := range equivalentTests {
+		result := test.p.Equivalent(test.other)
+
+		assert.For(t, "equivalent", i).ThatActual(result).Equals(test.expected)
+	}
+}
+
 func TestState(t *testing.T) {
 
 	game := testGame()
