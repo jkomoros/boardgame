@@ -146,7 +146,7 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 
 	for i, player := range players {
 		playerName := "Player " + strconv.Itoa(i)
-		if i == game.CurrentPlayer {
+		if boardgame.PlayerIndex(i) == game.CurrentPlayer {
 			playerName += " *CURRENT* " + strconv.Itoa(player.CardsLeftToReveal)
 		}
 		result = append(result, playerName)

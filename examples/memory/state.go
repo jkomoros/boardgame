@@ -5,7 +5,7 @@ import (
 )
 
 type gameState struct {
-	CurrentPlayer  int
+	CurrentPlayer  boardgame.PlayerIndex
 	HiddenCards    *boardgame.SizedStack
 	RevealedCards  *boardgame.SizedStack
 	HideCardsTimer *boardgame.Timer

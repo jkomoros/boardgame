@@ -83,7 +83,7 @@ func TestMain(t *testing.T) {
 
 	assert.For(t).ThatActual(gameState.RevealedCards.NumComponents()).Equals(0)
 
-	assert.For(t).ThatActual(gameState.CurrentPlayer).Equals(1)
+	assert.For(t).ThatActual(gameState.CurrentPlayer).Equals(boardgame.PlayerIndex(1))
 
 	move = game.PlayerMoveByName("Reveal Card")
 
@@ -130,6 +130,6 @@ func TestMain(t *testing.T) {
 
 	assert.For(t).ThatActual(playerStates[1].WonCards.NumComponents()).Equals(2)
 
-	assert.For(t).ThatActual(gameState.CurrentPlayer).Equals(0)
+	assert.For(t).ThatActual(gameState.CurrentPlayer).Equals(boardgame.PlayerIndex(0))
 
 }

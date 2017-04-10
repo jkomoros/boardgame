@@ -9,7 +9,7 @@ import (
 type MoveAdvanceNextPlayer struct{}
 
 type MoveRevealCard struct {
-	TargetPlayerIndex int
+	TargetPlayerIndex boardgame.PlayerIndex
 	CardIndex         int
 }
 
@@ -46,11 +46,7 @@ func (m *MoveAdvanceNextPlayer) Legal(state boardgame.State) error {
 func (m *MoveAdvanceNextPlayer) Apply(state boardgame.MutableState) error {
 	game, players := concreteStates(state)
 
-	game.CurrentPlayer++
-
-	if game.CurrentPlayer >= len(players) {
-		game.CurrentPlayer = 0
-	}
+	game.CurrentPlayer = game.CurrentPlayer.Next(state)
 
 	p := players[game.CurrentPlayer]
 
