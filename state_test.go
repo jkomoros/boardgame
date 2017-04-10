@@ -8,7 +8,58 @@ import (
 	"testing"
 )
 
-func TestPlayerIndex(t *testing.T) {
+func TestPlayerIndexValid(t *testing.T) {
+
+	gameTwoPlayers := testGame()
+
+	gameTwoPlayers.SetUp(2)
+
+	stateTwoPlayers := gameTwoPlayers.CurrentState()
+
+	tests := []struct {
+		p        PlayerIndex
+		state    State
+		expected bool
+	}{
+		{
+			0,
+			stateTwoPlayers,
+			true,
+		},
+		{
+			ObserverPlayerIndex,
+			stateTwoPlayers,
+			true,
+		},
+		{
+			AdminPlayerIndex,
+			stateTwoPlayers,
+			true,
+		},
+		{
+			AdminPlayerIndex - 1,
+			stateTwoPlayers,
+			false,
+		},
+		{
+			3,
+			stateTwoPlayers,
+			false,
+		},
+		{
+			2,
+			stateTwoPlayers,
+			false,
+		},
+	}
+
+	for i, test := range tests {
+		result := test.p.Valid(test.state)
+		assert.For(t, "valid", i).ThatActual(result).Equals(test.expected)
+	}
+}
+
+func TestPlayerIndexEquivalent(t *testing.T) {
 
 	equivalentTests := []struct {
 		p        PlayerIndex
