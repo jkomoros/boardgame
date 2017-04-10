@@ -168,7 +168,7 @@ func (t *testMoveInvalidPlayerIndex) Description() string {
 	return "Set one of the PlayerIndex properties to an invalid number, so we can verify that ApplyMove catches it."
 }
 
-func (t *testMoveInvalidPlayerIndex) Legal(state State) error {
+func (t *testMoveInvalidPlayerIndex) Legal(state State, propopser PlayerIndex) error {
 
 	if !t.CurrentlyLegal {
 		return errors.New("Move not currently legal")
@@ -214,10 +214,18 @@ func (t *testMoveIncrementCardInHand) Description() string {
 	return "Increments the IntValue of the card in the hand"
 }
 
-func (t *testMoveIncrementCardInHand) Legal(state State) error {
+func (t *testMoveIncrementCardInHand) Legal(state State, proposer PlayerIndex) error {
 	game, players := concreteStates(state)
 
 	player := players[game.CurrentPlayer]
+
+	if !t.TargetPlayerIndex.Equivalent(proposer) {
+		return errors.New("The proposer is not the target Player index")
+	}
+
+	if !t.TargetPlayerIndex.Equivalent(game.CurrentPlayer) {
+		return errors.New("The target player index is not the current player")
+	}
 
 	if player.Hand.NumComponents() == 0 {
 		return errors.New("The current player does not have any components in their hand")
@@ -287,10 +295,18 @@ func (t *testMoveDrawCard) Description() string {
 	return "Draws one card from draw deck into player's hand"
 }
 
-func (t *testMoveDrawCard) Legal(state State) error {
+func (t *testMoveDrawCard) Legal(state State, proposer PlayerIndex) error {
 	game, players := concreteStates(state)
 
 	player := players[game.CurrentPlayer]
+
+	if !t.TargetPlayerIndex.Equivalent(proposer) {
+		return errors.New("The proposer is not equivalent to targetplayerindex")
+	}
+
+	if !t.TargetPlayerIndex.Equivalent(game.CurrentPlayer) {
+		return errors.New("The target player is not the current player")
+	}
 
 	if player.Hand.SlotsRemaining() == 0 {
 		return errors.New("The current player does not have enough slots in their hand")
@@ -339,7 +355,7 @@ func (t *testMoveAdvanceCurentPlayer) Description() string {
 	return "Advances to the next player when the current player has no more legal moves they can make this turn."
 }
 
-func (t *testMoveAdvanceCurentPlayer) Legal(state State) error {
+func (t *testMoveAdvanceCurentPlayer) Legal(state State, proposer PlayerIndex) error {
 
 	game, players := concreteStates(state)
 
@@ -409,9 +425,17 @@ func (t *testMove) DefaultsForState(state State) {
 	t.ScoreIncrement = 3
 }
 
-func (t *testMove) Legal(state State) error {
+func (t *testMove) Legal(state State, proposer PlayerIndex) error {
 
 	game, _ := concreteStates(state)
+
+	if !t.TargetPlayerIndex.Equivalent(proposer) {
+		return errors.New("The target player index is not equivalent to the proposer")
+	}
+
+	if !t.TargetPlayerIndex.Equivalent(game.CurrentPlayer) {
+		return errors.New("The target player is not hte current player")
+	}
 
 	if game.CurrentPlayer != t.TargetPlayerIndex {
 		return errors.New("The current player is not the same as the target player")
@@ -456,7 +480,7 @@ func (t *testAlwaysLegalMove) DefaultsForState(state State) {
 	//Pass
 }
 
-func (t *testAlwaysLegalMove) Legal(state State) error {
+func (t *testAlwaysLegalMove) Legal(state State, proposer PlayerIndex) error {
 
 	return nil
 

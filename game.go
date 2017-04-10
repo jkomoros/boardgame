@@ -53,7 +53,8 @@ const gameIDLength = 16
 type DelayedError chan error
 
 type proposedMoveItem struct {
-	move Move
+	move     Move
+	proposer PlayerIndex
 	//Ch is the channel we should either return an error on and then close, or
 	//send nil and close.
 	ch DelayedError
@@ -313,7 +314,7 @@ func (g *Game) SetUp(numPlayers int) error {
 		//We apply the move immediately. This ensures that when
 		//DelayedError resolves, all of the fix up moves have been
 		//applied.
-		if err := g.applyMove(move, true, 0); err != nil {
+		if err := g.applyMove(move, AdminPlayerIndex, true, 0); err != nil {
 			//TODO: if we bail here, we haven't left Game in a consistent
 			//state because we haven't rolled back what we did.
 			return errors.New("Applying the first fix up move failed: " + err.Error())
@@ -338,7 +339,7 @@ func (g *Game) mainLoop() {
 		if item == nil {
 			return
 		}
-		item.ch <- g.applyMove(item.move, false, 0)
+		item.ch <- g.applyMove(item.move, item.proposer, false, 0)
 		close(item.ch)
 	}
 
@@ -366,8 +367,8 @@ func (g *Game) PlayerMoves() []Move {
 	return result
 }
 
-//FixUpMoves is a thin wrapper around GameManager.FixUpMoves, but with all
-//of the moves set to the right defaults for the current state of this game.
+//FixUpMoves is a thin wrapper around GameManager.FixUpMoves, but with all of
+//the moves set to the right defaults for the current state of this game.
 func (g *Game) FixUpMoves() []Move {
 
 	if !g.initalized {
@@ -452,18 +453,22 @@ func (g *Game) Refresh() {
 //will still represent its old state. If you wantt to see its current state,
 //calling game.Refresh() after DelayedError has resolved should contain the
 //move changes you proposed, if they were accepted (and of course potentially
-//more moves if other moves were applied in the meantime).
-func (g *Game) ProposeMove(move Move) DelayedError {
+//more moves if other moves were applied in the meantime). Proposer is the
+//PlayerIndex of the player who is notionally proposing the move. If you don't
+//know which player is moving it, AdminPlayerIndex is a reasonable default
+//that will generally allow any move to be made.
+func (g *Game) ProposeMove(move Move, proposer PlayerIndex) DelayedError {
 
 	if !g.Modifiable() {
-		return g.manager.proposeMoveOnGame(g.Id(), move)
+		return g.manager.proposeMoveOnGame(g.Id(), move, proposer)
 	}
 
 	errChan := make(DelayedError, 1)
 
 	workItem := &proposedMoveItem{
-		move: move,
-		ch:   errChan,
+		move:     move,
+		proposer: proposer,
+		ch:       errChan,
 	}
 
 	if !g.initalized {
@@ -480,7 +485,7 @@ func (g *Game) ProposeMove(move Move) DelayedError {
 
 //Game applies the move to the state if it is currently legal. May only be
 //called by mainLoop. Propose moves with game.ProposeMove instead.
-func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
+func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseCount int) error {
 
 	if !g.initalized {
 		return errors.New("The game has not been initalized.")
@@ -504,7 +509,7 @@ func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 
 	currentState := g.CurrentState().(*state)
 
-	if err := move.Legal(currentState); err != nil {
+	if err := move.Legal(currentState, proposer); err != nil {
 		//It's not legal, reject.
 		return errors.New("The move was not legal: " + err.Error())
 	}
@@ -557,7 +562,7 @@ func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 		//We apply the move immediately. This ensures that when
 		//DelayedError resolves, all of the fix up moves have been
 		//applied.
-		if err := g.applyMove(move, true, recurseCount+1); err != nil {
+		if err := g.applyMove(move, AdminPlayerIndex, true, recurseCount+1); err != nil {
 			//TODO: if we bail here, we haven't left Game in a consistent
 			//state because we haven't rolled back what we did.
 			return errors.New("Applying the fix up move failed: " + strconv.Itoa(recurseCount) + ": " + err.Error())

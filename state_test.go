@@ -234,7 +234,7 @@ func TestStateSerialization(t *testing.T) {
 		ScoreIncrement:    3,
 		TargetPlayerIndex: 0,
 		ABool:             true,
-	}); err != nil {
+	}, AdminPlayerIndex); err != nil {
 		t.Fatal("Couldn't make move", err)
 	}
 

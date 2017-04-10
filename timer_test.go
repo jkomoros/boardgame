@@ -14,9 +14,11 @@ func TestTimerManager(t *testing.T) {
 
 	currentVersion := game.Version()
 
-	move := &testMoveDrawCard{
-		TargetPlayerIndex: 0,
-	}
+	move := game.PlayerMoveByName("Draw Card")
+
+	assert.For(t).ThatActual(move).IsNotNil()
+
+	assert.For(t).ThatActual(move.(*testMoveDrawCard).TargetPlayerIndex).Equals(PlayerIndex(1))
 
 	timer := newTimerManager()
 

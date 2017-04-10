@@ -28,7 +28,7 @@ func TestMoveModifyDynamicValues(t *testing.T) {
 		t.Fatal("Couldn't find move draw card")
 	}
 
-	if err := <-game.ProposeMove(drawCardMove); err != nil {
+	if err := <-game.ProposeMove(drawCardMove, AdminPlayerIndex); err != nil {
 		t.Error("Unexpected error trying to draw card: " + err.Error())
 	}
 
@@ -38,13 +38,13 @@ func TestMoveModifyDynamicValues(t *testing.T) {
 		t.Fatal("Couldn't find move Increment IntValue of Card in Hand")
 	}
 
-	if err := <-game.ProposeMove(move); err != nil {
+	if err := <-game.ProposeMove(move, AdminPlayerIndex); err != nil {
 		t.Error("Unexpected error trying to increment dynamic component state: " + err.Error())
 	}
 
 	//Apply the move again. This implicitly tests that deserializing a non-zero dynamic component value works.
 
-	if err := <-game.ProposeMove(move); err != nil {
+	if err := <-game.ProposeMove(move, AdminPlayerIndex); err != nil {
 		t.Error("unexpected error trying to increment dynamic component state a second time: ", err.Error())
 	}
 
@@ -98,7 +98,7 @@ func TestProposeMoveNonModifiableGame(t *testing.T) {
 		ABool:             true,
 	}
 
-	if err := <-refriedGame.ProposeMove(move); err != nil {
+	if err := <-refriedGame.ProposeMove(move, AdminPlayerIndex); err != nil {
 		t.Error("Propose move on refried game failed:", err)
 	}
 
@@ -137,7 +137,7 @@ func TestGameSetUp(t *testing.T) {
 
 	originalTestMove := move
 
-	delayedError := game.ProposeMove(move)
+	delayedError := game.ProposeMove(move, AdminPlayerIndex)
 
 	select {
 	case <-delayedError:
@@ -234,7 +234,7 @@ func TestApplyMove(t *testing.T) {
 	manager.playerMoves = nil
 	manager.playerMovesByName = make(map[string]Move)
 
-	if err := <-game.ProposeMove(move); err == nil {
+	if err := <-game.ProposeMove(move, AdminPlayerIndex); err == nil {
 		t.Error("Game allowed a move that wasn't configured as part of game to be applied")
 	}
 
@@ -245,13 +245,13 @@ func TestApplyMove(t *testing.T) {
 
 	move.TargetPlayerIndex = 1
 
-	if err := <-game.ProposeMove(move); err == nil {
+	if err := <-game.ProposeMove(move, AdminPlayerIndex); err == nil {
 		t.Error("Game allowed a move to be applied where the wrong playe was current")
 	}
 
 	move.TargetPlayerIndex = 0
 
-	if err := <-game.ProposeMove(move); err != nil {
+	if err := <-game.ProposeMove(move, AdminPlayerIndex); err != nil {
 		t.Error("Game didn't allow a legal move to be made")
 	}
 
@@ -286,7 +286,7 @@ func TestApplyMove(t *testing.T) {
 		ABool:             true,
 	}
 
-	if err := <-game.ProposeMove(newMove); err != nil {
+	if err := <-game.ProposeMove(newMove, AdminPlayerIndex); err != nil {
 		t.Error("Game didn't allow a move to be made even though it was legal: ", err)
 	}
 
@@ -311,7 +311,7 @@ func TestApplyMove(t *testing.T) {
 		ABool:             true,
 	}
 
-	if err := <-game.ProposeMove(moveAfterFinished); err == nil {
+	if err := <-game.ProposeMove(moveAfterFinished, AdminPlayerIndex); err == nil {
 		t.Error("Game allowed a move to be applied after the game was finished")
 	}
 }
@@ -358,7 +358,7 @@ func TestIllegalPlayerIndex(t *testing.T) {
 
 	move.(*testMoveInvalidPlayerIndex).CurrentlyLegal = true
 
-	err := <-game.ProposeMove(move)
+	err := <-game.ProposeMove(move, AdminPlayerIndex)
 
 	assert.For(t).ThatActual(err).IsNotNil()
 	assert.For(t).ThatActual(game.Version()).Equals(previousVersion)
@@ -412,7 +412,7 @@ func TestGameState(t *testing.T) {
 		t.Fatal("Couldn't find a move to make")
 	}
 
-	if err := <-game.ProposeMove(move); err != nil {
+	if err := <-game.ProposeMove(move, AdminPlayerIndex); err != nil {
 		t.Error("Couldn't make move")
 	}
 
