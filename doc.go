@@ -139,6 +139,22 @@ and Delegate's DistributeComponentsToStartingStacks is carefully configured so
 that it is impossible to not satisfy this invariant (as long as you do not
 call stack.UnsafeInsertNextComponent outside of testing context).
 
+PlayerIndex
+
+A common task in States and Moves is to keep track of an index of a Player.
+PlayerIndex is a special PropertyType that helps verify that these stay in
+legal bounds, and be explicit about where such legal indexes are expected.
+
+After a move's Apply() method is called, if any of the PlayerIndexes in the
+resulting State are invalid, the move will fail to be applied.
+
+There are two special PlayerIndex values, AdminPlayerIndex, and
+ObserverPlayerIndex. These sentinels communicate when a special PlayerIndex
+semantic is used in a given context.
+
+PlayerIndex.Next() and .Previous() are convenient ways to increment and
+decrement without going out of bounds.
+
 Timers
 
 One type of property that may be set on your States is a Timer. A timer is
