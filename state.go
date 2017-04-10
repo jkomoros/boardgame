@@ -125,6 +125,28 @@ func (p PlayerIndex) Previous(state State) PlayerIndex {
 	return p
 }
 
+//Equivalent checks whether the two playerIndexes are equivalent. For most
+//indexes it checks if both are the same. ObserverPlayerIndex returns false
+//when compared to any other PlayerIndex. AdminPlayerIndex returns true when
+//compared to any other index (other than ObserverPlayerIndex). This method is
+//useful for verifying that a given TargerPlayerIndex is equivalent to the
+//proposer PlayerIndex in a move's Legal method.
+func (p PlayerIndex) Equivalent(other PlayerIndex) bool {
+
+	//Sanity check obviously-illegal values
+	if p < AdminPlayerIndex || other < AdminPlayerIndex {
+		return false
+	}
+
+	if p == ObserverPlayerIndex || other == ObserverPlayerIndex {
+		return false
+	}
+	if p == AdminPlayerIndex || other == ObserverPlayerIndex {
+		return true
+	}
+	return p == other
+}
+
 //state implements both State and MutableState, so it can always be passed for
 //either, and what it's interpreted as is primarily a function of what the
 //method signature is that it's passed to
