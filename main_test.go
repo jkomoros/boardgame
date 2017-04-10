@@ -140,6 +140,51 @@ func (t *testPlayerState) Reader() PropertyReader {
 	return DefaultReader(t)
 }
 
+type testMoveInvalidPlayerIndex struct {
+	//This move is a dangerous one and also a fix-up. So make it so by default
+	//it doesn't apply.
+	CurrentlyLegal bool
+}
+
+func (t *testMoveInvalidPlayerIndex) ReadSetter() PropertyReadSetter {
+	return DefaultReadSetter(t)
+}
+
+func (t *testMoveInvalidPlayerIndex) Copy() Move {
+	var result testMoveInvalidPlayerIndex
+	result = *t
+	return &result
+}
+
+func (t *testMoveInvalidPlayerIndex) DefaultsForState(state State) {
+	return
+}
+
+func (t *testMoveInvalidPlayerIndex) Name() string {
+	return "Invalid PlayerIndex"
+}
+
+func (t *testMoveInvalidPlayerIndex) Description() string {
+	return "Set one of the PlayerIndex properties to an invalid number, so we can verify that ApplyMove catches it."
+}
+
+func (t *testMoveInvalidPlayerIndex) Legal(state State) error {
+
+	if !t.CurrentlyLegal {
+		return errors.New("Move not currently legal")
+	}
+
+	return nil
+}
+
+func (t *testMoveInvalidPlayerIndex) Apply(state MutableState) error {
+	game, players := concreteStates(state)
+
+	game.CurrentPlayer = PlayerIndex(len(players))
+
+	return nil
+}
+
 type testMoveIncrementCardInHand struct {
 	TargetPlayerIndex PlayerIndex
 }
@@ -412,8 +457,6 @@ func (t *testAlwaysLegalMove) DefaultsForState(state State) {
 }
 
 func (t *testAlwaysLegalMove) Legal(state State) error {
-
-	//This move is always legal
 
 	return nil
 

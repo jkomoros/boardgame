@@ -515,6 +515,10 @@ func (g *Game) applyMove(move Move, isFixUp bool, recurseCount int) error {
 		return errors.New("The move's apply function returned an error:" + err.Error())
 	}
 
+	if err := newState.validatePlayerIndexes(); err != nil {
+		return errors.New("The modified state had a PlayerIndex out of bounds, so the move was not applied. " + err.Error())
+	}
+
 	//Check to see if that move made the game finished.
 
 	finished, winners := g.manager.Delegate().CheckGameFinished(newState)

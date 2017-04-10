@@ -46,6 +46,7 @@ func newTestGameManger() *GameManager {
 
 	manager.AddPlayerMove(&testMove{})
 	manager.AddFixUpMove(&testMoveAdvanceCurentPlayer{})
+	manager.AddFixUpMove(&testMoveInvalidPlayerIndex{})
 	manager.AddPlayerMove(&testMoveIncrementCardInHand{})
 	manager.AddPlayerMove(&testMoveDrawCard{})
 
