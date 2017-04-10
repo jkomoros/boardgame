@@ -97,6 +97,34 @@ func (p PlayerIndex) Valid(state State) bool {
 	return true
 }
 
+//Next returns the next PlayerIndex, wrapping around back to 0 if it
+//overflows. PlayerIndexes of AdminPlayerIndex and Observer PlayerIndex will
+//not be affected.
+func (p PlayerIndex) Next(state State) PlayerIndex {
+	if p == AdminPlayerIndex || p == ObserverPlayerIndex {
+		return p
+	}
+	p++
+	if int(p) >= len(state.Players()) {
+		p = 0
+	}
+	return p
+}
+
+//Previous returns the previous PlayerIndex, wrapping around back to len(players -1) if it
+//goes below 0. PlayerIndexes of AdminPlayerIndex and Observer PlayerIndex will
+//not be affected.
+func (p PlayerIndex) Previous(state State) PlayerIndex {
+	if p == AdminPlayerIndex || p == ObserverPlayerIndex {
+		return p
+	}
+	p--
+	if int(p) < 0 {
+		p = PlayerIndex(len(state.Players()) - 1)
+	}
+	return p
+}
+
 //state implements both State and MutableState, so it can always be passed for
 //either, and what it's interpreted as is primarily a function of what the
 //method signature is that it's passed to
