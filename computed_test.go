@@ -73,7 +73,7 @@ func TestComputedPropertyDefinitionCompute(t *testing.T) {
 		t.Error("Calling compute on the rigged definition didn't set passedState")
 	}
 
-	if val, err := passedState.Game().Reader().IntProp("CurrentPlayer"); err != nil {
+	if val, err := passedState.Game().Reader().PlayerIndexProp("CurrentPlayer"); err != nil {
 		t.Error("Unexpected error reading CurrentPlayer prop", err)
 	} else if val != gameState.CurrentPlayer {
 		t.Error("The shadow current player was not the real value. Got", val, "wanted", gameState.CurrentPlayer)
@@ -139,7 +139,7 @@ func TestStateComputed(t *testing.T) {
 						PropName: "CurrentPlayer",
 					},
 				},
-				PropType: TypeInt,
+				PropType: TypePlayerIndex,
 				Compute: func(state State) (interface{}, error) {
 
 					game, _ := concreteStates(state)
@@ -254,7 +254,7 @@ func TestStateComputed(t *testing.T) {
 		t.Error("Unexpected result for JSONDuringComputed. Expected false, got true")
 	}
 
-	if val, err := computed.Global().Reader().IntProp("CurrentPlayerPlusFive"); err != nil {
+	if val, err := computed.Global().Reader().PlayerIndexProp("CurrentPlayerPlusFive"); err != nil {
 		t.Error("Unexpected error retrieving CurrentPlayerPlusFive", err)
 	} else {
 		if val != 4+5 {

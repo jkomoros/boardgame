@@ -21,6 +21,7 @@ type PropertyReader interface {
 	IntProp(name string) (int, error)
 	BoolProp(name string) (bool, error)
 	StringProp(name string) (string, error)
+	PlayerIndexProp(name string) (PlayerIndex, error)
 	GrowableStackProp(name string) (*GrowableStack, error)
 	SizedStackProp(name string) (*SizedStack, error)
 	TimerProp(name string) (*Timer, error)
@@ -39,6 +40,7 @@ const (
 	TypeInt
 	TypeBool
 	TypeString
+	TypePlayerIndex
 	TypeGrowableStack
 	TypeSizedStack
 	TypeTimer
@@ -54,6 +56,7 @@ type PropertyReadSetter interface {
 	SetIntProp(name string, value int) error
 	SetBoolProp(name string, value bool) error
 	SetStringProp(name string, value string) error
+	SetPlayerIndexProp(name string, value PlayerIndex) error
 	SetGrowableStackProp(name string, value *GrowableStack) error
 	SetSizedStackProp(name string, value *SizedStack) error
 	SetTimerProp(name string, value *Timer) error
@@ -162,7 +165,16 @@ func (d *defaultReader) Props() map[string]PropertyType {
 			case reflect.Bool:
 				pType = TypeBool
 			case reflect.Int:
-				pType = TypeInt
+
+				//Both Int and PlayerIndex have Kind() int, so we need to
+				//disambiguate.
+				intType := field.Type().String()
+
+				if strings.Contains(intType, "PlayerIndex") {
+					pType = TypePlayerIndex
+				} else {
+					pType = TypeInt
+				}
 			case reflect.String:
 				pType = TypeString
 			case reflect.Ptr:
@@ -225,6 +237,18 @@ func (d *defaultReader) StringProp(name string) (string, error) {
 
 	s := reflect.ValueOf(d.i).Elem()
 	return s.FieldByName(name).String(), nil
+}
+
+func (d *defaultReader) PlayerIndexProp(name string) (PlayerIndex, error) {
+	//Verify that this seems legal.
+	props := d.Props()
+
+	if props[name] != TypePlayerIndex {
+		return 0, errors.New("That property is not a PlayerIndex: " + name)
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+	return PlayerIndex(s.FieldByName(name).Int()), nil
 }
 
 func (d *defaultReader) GrowableStackProp(name string) (*GrowableStack, error) {
@@ -363,6 +387,33 @@ func (d *defaultReader) SetStringProp(name string, val string) (err error) {
 	}()
 
 	f.SetString(val)
+
+	return nil
+
+}
+
+func (d *defaultReader) SetPlayerIndexProp(name string, val PlayerIndex) (err error) {
+	props := d.Props()
+
+	if props[name] != TypePlayerIndex {
+		return errors.New("That property is not a settable player index")
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+
+	f := s.FieldByName(name)
+
+	if !f.IsValid() {
+		return errors.New("that name was not available on the struct")
+	}
+
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprint(e))
+		}
+	}()
+
+	f.SetInt(int64(val))
 
 	return nil
 
@@ -578,6 +629,26 @@ func (g *genericReader) StringProp(name string) (string, error) {
 	return val.(string), nil
 }
 
+func (g *genericReader) PlayerIndexProp(name string) (PlayerIndex, error) {
+	val, err := g.Prop(name)
+
+	if err != nil {
+		return 0, err
+	}
+
+	propType, ok := g.types[name]
+
+	if !ok {
+		return 0, errors.New("Unexpected error: Missing Prop type for " + name)
+	}
+
+	if propType != TypePlayerIndex {
+		return 0, errors.New(name + "was expected to be TypePlayerIndex but was not")
+	}
+
+	return val.(PlayerIndex), nil
+}
+
 func (g *genericReader) GrowableStackProp(name string) (*GrowableStack, error) {
 	val, err := g.Prop(name)
 
@@ -686,6 +757,19 @@ func (g *genericReader) SetStringProp(name string, val string) error {
 	}
 
 	g.types[name] = TypeString
+	g.values[name] = val
+
+	return nil
+}
+
+func (g *genericReader) SetPlayerIndexProp(name string, val PlayerIndex) error {
+	propType, ok := g.types[name]
+
+	if ok && propType != TypePlayerIndex {
+		return errors.New("That property was already set but was not an PlayerIndex")
+	}
+
+	g.types[name] = TypePlayerIndex
 	g.values[name] = val
 
 	return nil

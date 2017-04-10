@@ -396,6 +396,10 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 			//game for the purposes of creating an ID. That's sufficient for
 			//this use.
 			return randomString(16)
+		case TypePlayerIndex:
+			//TODO: ideally we'd return a legitimately random playerIndex. But
+			//down here we don't know what the legal range is.
+			return 0
 		case TypeGrowableStack:
 			return randomGrowableStack(input.(*GrowableStack))
 		case TypeSizedStack:
@@ -417,6 +421,8 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 		return 0
 	case TypeString:
 		return ""
+	case TypePlayerIndex:
+		return 0
 	case TypeTimer:
 		return NewTimer()
 	}

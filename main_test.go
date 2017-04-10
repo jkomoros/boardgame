@@ -78,7 +78,7 @@ func concreteStates(state State) (*testGameState, []*testPlayerState) {
 }
 
 type testGameState struct {
-	CurrentPlayer int
+	CurrentPlayer PlayerIndex
 	DrawDeck      *GrowableStack
 	Timer         *Timer
 	//TODO: have a Stack here.
@@ -141,7 +141,7 @@ func (t *testPlayerState) Reader() PropertyReader {
 }
 
 type testMoveIncrementCardInHand struct {
-	TargetPlayerIndex int
+	TargetPlayerIndex PlayerIndex
 }
 
 func (t *testMoveIncrementCardInHand) ReadSetter() PropertyReadSetter {
@@ -214,7 +214,7 @@ func (t *testMoveIncrementCardInHand) Apply(state MutableState) error {
 }
 
 type testMoveDrawCard struct {
-	TargetPlayerIndex int
+	TargetPlayerIndex PlayerIndex
 }
 
 func (t *testMoveDrawCard) ReadSetter() PropertyReadSetter {
@@ -316,7 +316,8 @@ func (t *testMoveAdvanceCurentPlayer) Apply(state MutableState) error {
 
 	game.CurrentPlayer++
 
-	if game.CurrentPlayer >= len(players) {
+	if !game.CurrentPlayer.Valid(state) {
+		//Must have looped back around to 0
 		game.CurrentPlayer = 0
 	}
 
@@ -328,7 +329,7 @@ func (t *testMoveAdvanceCurentPlayer) Apply(state MutableState) error {
 type testMove struct {
 	AString           string
 	ScoreIncrement    int
-	TargetPlayerIndex int
+	TargetPlayerIndex PlayerIndex
 	ABool             bool
 }
 

@@ -227,6 +227,12 @@ func (c *ComputedGlobalPropertyDefinition) calculate(propName string, state *sta
 			return errors.New("Property did not return string as expected")
 		}
 		output.SetStringProp(propName, stringVal)
+	case TypePlayerIndex:
+		playerIndexVal, ok := result.(PlayerIndex)
+		if !ok {
+			return errors.New("Property did not return PlayerIndex as expected")
+		}
+		output.SetPlayerIndexProp(propName, playerIndexVal)
 	case TypeGrowableStack:
 		growableStackVal, ok := result.(*GrowableStack)
 		if !ok {
@@ -272,6 +278,12 @@ func (c *ComputedPlayerPropertyDefinition) calculate(propName string, playerInde
 			return errors.New("Property did not return string as expected")
 		}
 		output.SetStringProp(propName, stringVal)
+	case TypePlayerIndex:
+		playerIndexVal, ok := result.(PlayerIndex)
+		if !ok {
+			return errors.New("Property did not return PlayerIndex as expected")
+		}
+		output.SetPlayerIndexProp(propName, playerIndexVal)
 	case TypeGrowableStack:
 		growableStackVal, ok := result.(*GrowableStack)
 		if !ok {

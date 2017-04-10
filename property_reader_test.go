@@ -11,6 +11,7 @@ type propertyReaderTestStruct struct {
 	C string
 	G *GrowableStack
 	S *SizedStack
+	P PlayerIndex
 	//d should be excluded since it is lowercase
 	d string
 }
@@ -27,13 +28,14 @@ func TestPropertyReaderImpl(t *testing.T) {
 		C: "bam",
 		G: NewGrowableStack(deck, 3),
 		S: NewSizedStack(deck, 3),
+		P: 3,
 	}
 
 	s := p.ReadSetter()
 
 	result := s.Props()
 
-	expected := map[string]PropertyType{"A": TypeInt, "B": TypeBool, "C": TypeString, "G": TypeGrowableStack, "S": TypeSizedStack}
+	expected := map[string]PropertyType{"A": TypeInt, "B": TypeBool, "C": TypeString, "G": TypeGrowableStack, "S": TypeSizedStack, "P": TypePlayerIndex}
 
 	if !reflect.DeepEqual(result, expected) {
 		t.Error("PropertyReaderPropsImpl returned wrong result. Got", result, "expected", expected)
@@ -121,6 +123,22 @@ func TestPropertyReaderImpl(t *testing.T) {
 
 	if err == nil {
 		t.Error("Didn't error trying to string prop a non-string")
+	}
+
+	playerIndexResult, err := s.PlayerIndexProp("P")
+
+	if err != nil {
+		t.Error("Unexpected error fetching PlayerINdex", err)
+	}
+
+	if playerIndexResult != p.P {
+		t.Error("unexpected playerindex result")
+	}
+
+	playerIndexResult, err = s.PlayerIndexProp("A")
+
+	if err == nil {
+		t.Error("Didn't error trying to PlayerIndex prop an int")
 	}
 
 	growableStackResult, err := s.GrowableStackProp("G")
