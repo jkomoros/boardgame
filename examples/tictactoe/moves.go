@@ -11,7 +11,7 @@ type MovePlaceToken struct {
 	//Which token to place the token
 	Slot int
 	//Which player we THINK is making the move.
-	TargetPlayerIndex int
+	TargetPlayerIndex boardgame.PlayerIndex
 }
 
 func (m *MovePlaceToken) Legal(state boardgame.State) error {
@@ -105,11 +105,7 @@ func (m *MoveAdvancePlayer) Apply(state boardgame.MutableState) error {
 
 	game, players := concreteStates(state)
 
-	game.CurrentPlayer++
-
-	if game.CurrentPlayer >= len(players) {
-		game.CurrentPlayer = 0
-	}
+	game.CurrentPlayer = game.CurrentPlayer.Next(state)
 
 	newUser := players[game.CurrentPlayer]
 

@@ -17,7 +17,7 @@ func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 }
 
 type gameState struct {
-	CurrentPlayer int
+	CurrentPlayer boardgame.PlayerIndex
 	Slots         *boardgame.SizedStack
 }
 
