@@ -21,7 +21,7 @@ type gameState struct {
 	DiscardStack  *boardgame.GrowableStack
 	DrawStack     *boardgame.GrowableStack
 	UnusedCards   *boardgame.GrowableStack
-	CurrentPlayer int
+	CurrentPlayer boardgame.PlayerIndex
 }
 
 type playerState struct {

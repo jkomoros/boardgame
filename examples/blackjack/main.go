@@ -99,7 +99,7 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 
 		playerLine := fmt.Sprintf("Player %d", i)
 
-		if i == game.CurrentPlayer {
+		if boardgame.PlayerIndex(i) == game.CurrentPlayer {
 			playerLine += "  *CURRENT*"
 		}
 

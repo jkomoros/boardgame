@@ -10,20 +10,20 @@ type MoveShuffleDiscardToDraw struct{}
 type MoveAdvanceNextPlayer struct{}
 
 type MoveDealInitialCard struct {
-	TargetPlayerIndex int
+	TargetPlayerIndex boardgame.PlayerIndex
 	IsHidden          bool
 }
 
 type MoveRevealHiddenCard struct {
-	TargetPlayerIndex int
+	TargetPlayerIndex boardgame.PlayerIndex
 }
 
 type MoveCurrentPlayerHit struct {
-	TargetPlayerIndex int
+	TargetPlayerIndex boardgame.PlayerIndex
 }
 
 type MoveCurrentPlayerStand struct {
-	TargetPlayerIndex int
+	TargetPlayerIndex boardgame.PlayerIndex
 }
 
 /**************************************************
@@ -230,10 +230,7 @@ func (m *MoveAdvanceNextPlayer) Apply(state boardgame.MutableState) error {
 
 	game, players := concreteStates(state)
 
-	game.CurrentPlayer++
-	if game.CurrentPlayer >= len(players) {
-		game.CurrentPlayer = 0
-	}
+	game.CurrentPlayer.Next(state)
 
 	currentPlayer := players[game.CurrentPlayer]
 
@@ -328,7 +325,7 @@ func (m *MoveRevealHiddenCard) ReadSetter() boardgame.PropertyReadSetter {
 func (m *MoveDealInitialCard) Legal(state boardgame.State) error {
 	_, players := concreteStates(state)
 
-	if m.TargetPlayerIndex < 0 || m.TargetPlayerIndex >= len(players) {
+	if !m.TargetPlayerIndex.Valid(state) {
 		return errors.New("Invalid target player index")
 	}
 
@@ -392,7 +389,7 @@ func (m *MoveDealInitialCard) DefaultsForState(state boardgame.State) {
 	for i := 0; i < len(players); i++ {
 		p := players[i]
 		if p.HiddenHand.NumComponents() == 0 {
-			m.TargetPlayerIndex = i
+			m.TargetPlayerIndex = boardgame.PlayerIndex(i)
 			m.IsHidden = true
 			return
 		}
@@ -401,7 +398,7 @@ func (m *MoveDealInitialCard) DefaultsForState(state boardgame.State) {
 	for i := 0; i < len(players); i++ {
 		p := players[i]
 		if !p.GotInitialDeal {
-			m.TargetPlayerIndex = i
+			m.TargetPlayerIndex = boardgame.PlayerIndex(i)
 			m.IsHidden = false
 			return
 		}
