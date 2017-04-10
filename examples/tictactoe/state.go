@@ -57,7 +57,7 @@ func (g *gameState) Copy() boardgame.GameState {
 }
 
 type playerState struct {
-	playerIndex  int
+	playerIndex  boardgame.PlayerIndex
 	TokenValue   string
 	UnusedTokens *boardgame.GrowableStack
 	//How many tokens they have left to place this turn.
@@ -83,6 +83,6 @@ func (p *playerState) Copy() boardgame.PlayerState {
 	return p.MutableCopy()
 }
 
-func (p *playerState) PlayerIndex() int {
+func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
 	return p.playerIndex
 }

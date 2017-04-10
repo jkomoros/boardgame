@@ -90,7 +90,7 @@ type GameDelegate interface {
 	//EmptyPlayerState is similar to EmptyGameState, but playerIndex is the
 	//value that this PlayerState must return when its PlayerIndex() is
 	//called.
-	EmptyPlayerState(playerIndex int) MutablePlayerState
+	EmptyPlayerState(player PlayerIndex) MutablePlayerState
 
 	//EmptyDynamicComponentValues returns an empty DynamicComponentValues for
 	//the given deck. If nil is returned, then the components in that deck

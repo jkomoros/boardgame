@@ -105,7 +105,7 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 
 		result = append(result, playerLine)
 
-		handValue, _ := state.Computed().Player(i).Reader().IntProp("HandValue")
+		handValue, _ := state.Computed().Player(boardgame.PlayerIndex(i)).Reader().IntProp("HandValue")
 
 		statusLine := fmt.Sprintf("\tValue: %d", handValue)
 
@@ -154,7 +154,7 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, 
 			continue
 		}
 
-		handValue, _ := state.Computed().Player(i).Reader().IntProp("HandValue")
+		handValue, _ := state.Computed().Player(boardgame.PlayerIndex(i)).Reader().IntProp("HandValue")
 		if handValue > maxScore {
 			maxScore = handValue
 		}
@@ -168,7 +168,7 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, 
 		if player.Busted {
 			continue
 		}
-		handValue, _ := state.Computed().Player(i).Reader().IntProp("HandValue")
+		handValue, _ := state.Computed().Player(boardgame.PlayerIndex(i)).Reader().IntProp("HandValue")
 		if handValue == maxScore {
 			result = append(result, i)
 		}
@@ -196,7 +196,7 @@ func (g *gameDelegate) EmptyGameState() boardgame.MutableGameState {
 	}
 }
 
-func (g *gameDelegate) EmptyPlayerState(playerIndex int) boardgame.MutablePlayerState {
+func (g *gameDelegate) EmptyPlayerState(playerIndex boardgame.PlayerIndex) boardgame.MutablePlayerState {
 	cards := g.Manager().Chest().Deck("cards")
 
 	if cards == nil {

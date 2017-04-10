@@ -15,7 +15,7 @@ type ComputedProperties interface {
 	//be accessed.
 	Global() ComputedPropertyCollection
 	//To get the ComputedPlayerProperties, pass in the player index.
-	Player(index int) ComputedPropertyCollection
+	Player(index PlayerIndex) ComputedPropertyCollection
 }
 
 //ComputedPropertyCollection is an object that
@@ -327,8 +327,8 @@ func (c *computedPropertiesImpl) Global() ComputedPropertyCollection {
 	return c.global
 }
 
-func (c *computedPropertiesImpl) Player(index int) ComputedPropertyCollection {
-	return c.players[index]
+func (c *computedPropertiesImpl) Player(index PlayerIndex) ComputedPropertyCollection {
+	return c.players[int(index)]
 }
 
 func (c *computedPropertiesImpl) MarshalJSON() ([]byte, error) {

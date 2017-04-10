@@ -251,7 +251,7 @@ func (g *Game) SetUp(numPlayers int) error {
 	playerStates := make([]MutablePlayerState, numPlayers)
 
 	for i := 0; i < numPlayers; i++ {
-		playerState, err := g.manager.emptyPlayerState(stateCopy, i)
+		playerState, err := g.manager.emptyPlayerState(stateCopy, PlayerIndex(i))
 
 		if err != nil {
 			return err

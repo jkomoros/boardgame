@@ -179,13 +179,13 @@ func (t *testGameDelegate) EmptyGameState() MutableGameState {
 	}
 }
 
-func (t *testGameDelegate) EmptyPlayerState(playerIndex int) MutablePlayerState {
+func (t *testGameDelegate) EmptyPlayerState(player PlayerIndex) MutablePlayerState {
 	chest := t.Manager().Chest()
 
 	deck := chest.Deck("test")
 
 	return &testPlayerState{
-		playerIndex:       0,
+		playerIndex:       player,
 		Score:             0,
 		MovesLeftThisTurn: 0,
 		Hand:              NewSizedStack(deck, 2),

@@ -366,7 +366,7 @@ type MutableBaseState interface {
 type PlayerState interface {
 	//PlayerIndex encodes the index this user's state is in the containing
 	//state object.
-	PlayerIndex() int
+	PlayerIndex() PlayerIndex
 	//Copy produces a copy of our current state. Be sure it's a deep copy that
 	//makes a copy of any pointer arguments.
 	Copy() PlayerState

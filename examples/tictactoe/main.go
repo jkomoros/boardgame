@@ -65,7 +65,7 @@ func (g *gameDelegate) EmptyGameState() boardgame.MutableGameState {
 
 }
 
-func (g *gameDelegate) EmptyPlayerState(playerIndex int) boardgame.MutablePlayerState {
+func (g *gameDelegate) EmptyPlayerState(playerIndex boardgame.PlayerIndex) boardgame.MutablePlayerState {
 	tokens := g.Manager().Chest().Deck("tokens")
 
 	if tokens == nil {

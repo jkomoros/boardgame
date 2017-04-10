@@ -108,14 +108,14 @@ type testPlayerState struct {
 	//Note: PlayerIndex is stored ehre, but not a normal property or
 	//serialized, because it's really just a convenience method because it's
 	//implied by its position in the State.Users array.
-	playerIndex       int
+	playerIndex       PlayerIndex
 	Score             int
 	MovesLeftThisTurn int
 	Hand              *SizedStack
 	IsFoo             bool
 }
 
-func (t *testPlayerState) PlayerIndex() int {
+func (t *testPlayerState) PlayerIndex() PlayerIndex {
 	return t.playerIndex
 }
 

@@ -25,7 +25,7 @@ type gameState struct {
 }
 
 type playerState struct {
-	playerIndex    int
+	playerIndex    boardgame.PlayerIndex
 	GotInitialDeal bool
 	HiddenHand     *boardgame.GrowableStack
 	VisibleHand    *boardgame.GrowableStack
@@ -74,7 +74,7 @@ func (p *playerState) Copy() boardgame.PlayerState {
 	return p.MutableCopy()
 }
 
-func (p *playerState) PlayerIndex() int {
+func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
 	return p.playerIndex
 }
 

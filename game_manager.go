@@ -215,12 +215,12 @@ func verifyReaderObjects(reader PropertyReader, state *state) error {
 
 //emptyPlayerState is a simple wrapper around delegate.EmptyPlayerState that
 //just verifies that stacks are inflated.
-func (g *GameManager) emptyPlayerState(state *state, playerIndex int) (MutablePlayerState, error) {
+func (g *GameManager) emptyPlayerState(state *state, player PlayerIndex) (MutablePlayerState, error) {
 
-	playerState := g.delegate.EmptyPlayerState(playerIndex)
+	playerState := g.delegate.EmptyPlayerState(player)
 
 	if playerState == nil {
-		return nil, errors.New("EmptyPlayerState returned nil for " + strconv.Itoa(playerIndex))
+		return nil, errors.New("EmptyPlayerState returned nil for " + strconv.Itoa(int(player)))
 	}
 
 	if err := verifyReaderObjects(playerState.Reader(), state); err != nil {
@@ -322,7 +322,7 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 	result.gameState = game
 
 	for i, blob := range refried.Players {
-		player, err := g.emptyPlayerState(result, i)
+		player, err := g.emptyPlayerState(result, PlayerIndex(i))
 
 		if err != nil {
 			return nil, err

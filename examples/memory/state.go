@@ -12,7 +12,7 @@ type gameState struct {
 }
 
 type playerState struct {
-	playerIndex       int
+	playerIndex       boardgame.PlayerIndex
 	CardsLeftToReveal int
 	WonCards          *boardgame.GrowableStack
 }
@@ -29,7 +29,7 @@ func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 	return game, players
 }
 
-func (p *playerState) PlayerIndex() int {
+func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
 	return p.playerIndex
 }
 
