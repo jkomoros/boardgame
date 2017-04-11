@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/itsjamie/gin-cors"
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/server/api/users"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -141,6 +140,30 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 	}
 
 	c.Set("user", user)
+
+	adminAllowed := true
+
+	if !s.config.DisableAdminChecking {
+
+		//Are they allowed to be admin or not?
+
+		matchedAdmin := false
+
+		for _, userId := range s.config.AdminUserIds {
+			if user.Id == userId {
+				matchedAdmin = true
+				break
+			}
+		}
+
+		if !matchedAdmin {
+			//Nope, you weren't an admin. Sorry!
+			adminAllowed = false
+		}
+
+	}
+
+	c.Set("adminAllowed", adminAllowed)
 
 	userIds := s.storage.UserIdsForGame(id)
 
@@ -286,41 +309,18 @@ func (s *Server) gameViewHandler(c *gin.Context) {
 
 	playerIndex = boardgame.PlayerIndex(playerIndexInt)
 
+	obj, ok = c.Get("adminAllowed")
+
+	adminAllowed := false
+
+	if ok {
+		adminAllowed = obj.(bool)
+	}
+
 	admin := false
 
-	if c.Query("admin") == "1" {
+	if c.Query("admin") == "1" && adminAllowed {
 		admin = true
-	}
-
-	obj, ok = c.Get("user")
-
-	if !ok {
-		c.JSON(http.StatusOK, gin.H{
-			"Status": "Failure",
-			"Error":  "No user found.",
-		})
-		return
-	}
-
-	user := obj.(*users.StorageRecord)
-
-	if admin && !s.config.DisableAdminChecking {
-		//Ok, they're asserting they're an admin. Is that for real?
-
-		matchedAdmin := false
-
-		for _, userId := range s.config.AdminUserIds {
-			if user.Id == userId {
-				matchedAdmin = true
-				break
-			}
-		}
-
-		if !matchedAdmin {
-			//Nope, you weren't an admin. Sorry!
-			admin = false
-		}
-
 	}
 
 	if !admin {
