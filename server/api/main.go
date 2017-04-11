@@ -264,15 +264,27 @@ func (s *Server) newGameHandler(c *gin.Context) {
 
 	manager := s.managers[managerId]
 
+	s.doNewGame(r, manager)
+
+}
+
+func (s *Server) doNewGame(r *Renderer, manager *boardgame.GameManager) {
+
 	if manager == nil {
-		//TODO: communicate the error back to the client in a sane way
-		panic("Invalid manager" + c.PostForm("manager"))
+		r.Error("No manager provided")
+		return
 	}
 
-	game, err := s.newGame(manager)
+	game := boardgame.NewGame(manager)
 
-	if err != nil {
-		r.Error("Couldn't create game: " + err.Error())
+	if game == nil {
+		r.Error("No game could be created")
+		return
+	}
+
+	if err := game.SetUp(0); err != nil {
+		//TODO: communicate the error state back to the client in a sane way
+		r.Error("Couldn't set up game: " + err.Error())
 		return
 	}
 
@@ -280,17 +292,6 @@ func (s *Server) newGameHandler(c *gin.Context) {
 		"GameId":   game.Id(),
 		"GameName": game.Name(),
 	})
-}
-
-func (s *Server) newGame(manager *boardgame.GameManager) (*boardgame.Game, error) {
-	game := boardgame.NewGame(manager)
-
-	if err := game.SetUp(0); err != nil {
-		//TODO: communicate the error state back to the client in a sane way
-		return nil, err
-	}
-
-	return game, nil
 }
 
 func (s *Server) listGamesHandler(c *gin.Context) {
