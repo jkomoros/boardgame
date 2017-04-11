@@ -386,11 +386,6 @@ func (s *Server) makeMove(c *gin.Context, game *boardgame.Game) error {
 
 	move := game.PlayerMoveByName(c.PostForm("MoveType"))
 
-	//Is it  a fixup move?
-	if move == nil {
-		move = game.FixUpMoveByName(c.PostForm("MoveType"))
-	}
-
 	if move == nil {
 		return errors.New("Invalid MoveType")
 	}
