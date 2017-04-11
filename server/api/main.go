@@ -179,9 +179,9 @@ func (s *Server) gameStatusHandler(c *gin.Context) {
 
 	//TODO: use memcache for this handler
 
-	obj, _ := c.Get("game")
+	game := s.getGame(c)
 
-	if obj == nil {
+	if game == nil {
 		c.JSON(http.StatusOK, gin.H{
 			//TODO: handle this kind of rendering somewhere central
 			"Status": "Failure",
@@ -189,8 +189,6 @@ func (s *Server) gameStatusHandler(c *gin.Context) {
 		})
 		return
 	}
-
-	game := obj.(*boardgame.Game)
 
 	c.JSON(http.StatusOK, gin.H{
 		"Status":  "Success",
