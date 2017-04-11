@@ -83,14 +83,11 @@ func (s *Server) getViewingAsPlayer(c *gin.Context) boardgame.PlayerIndex {
 	return playerIndex
 }
 
-//getPlayerIndex will return invalidPlayerIndex if doesn't exist
-func (s *Server) getPlayerIndex(c *gin.Context, isAdmin bool) boardgame.PlayerIndex {
+func (s *Server) getRequestPlayerIndex(c *gin.Context) boardgame.PlayerIndex {
 	player := c.Query(qryPlayerKey)
 
-	var playerIndex boardgame.PlayerIndex
-
 	if player == "" {
-		playerIndex = invalidPlayerIndex
+		return invalidPlayerIndex
 	}
 
 	playerIndexInt, err := strconv.Atoi(player)
@@ -99,22 +96,34 @@ func (s *Server) getPlayerIndex(c *gin.Context, isAdmin bool) boardgame.PlayerIn
 		return invalidPlayerIndex
 	}
 
-	playerIndex = boardgame.PlayerIndex(playerIndexInt)
+	return boardgame.PlayerIndex(playerIndexInt)
+}
+
+func (s *Server) effectivePlayerIndex(c *gin.Context) boardgame.PlayerIndex {
+
+	adminAllowed := s.getAdminAllowed(c)
+	requestAdmin := s.getRequestAdmin(c)
+
+	isAdmin := s.calcIsAdmin(c, adminAllowed, requestAdmin)
+
+	requestPlayerIndex := s.getRequestPlayerIndex(c)
+	viewingAsPlayer := s.getViewingAsPlayer(c)
+
+	return s.calcEffectivePlayerIndex(isAdmin, requestPlayerIndex, viewingAsPlayer)
+}
+
+func (s *Server) calcEffectivePlayerIndex(isAdmin bool, requestPlayerIndex boardgame.PlayerIndex, viewingAsPlayer boardgame.PlayerIndex) boardgame.PlayerIndex {
+
+	result := requestPlayerIndex
 
 	if !isAdmin {
-		//The playerIndex is set automatically.
+		result = viewingAsPlayer
 
-		viewingAsPlayer := s.getViewingAsPlayer(c)
-
-		if viewingAsPlayer == invalidPlayerIndex {
-			//Default to generic observer
-			playerIndex = boardgame.ObserverPlayerIndex
-		} else {
-			playerIndex = viewingAsPlayer
+		if result == invalidPlayerIndex {
+			result = boardgame.ObserverPlayerIndex
 		}
 	}
-
-	return playerIndex
+	return requestPlayerIndex
 }
 
 func (s *Server) calcAdminAllowed(c *gin.Context, user *users.StorageRecord) bool {

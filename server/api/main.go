@@ -262,9 +262,7 @@ func (s *Server) gameViewHandler(c *gin.Context) {
 
 	game := s.getGame(c)
 
-	admin := s.calcIsAdmin(c, s.getAdminAllowed(c), s.getRequestAdmin(c))
-
-	playerIndex := s.getPlayerIndex(c, admin)
+	playerIndex := s.effectivePlayerIndex(c)
 
 	s.gameView(c, game, playerIndex)
 
