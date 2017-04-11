@@ -11,7 +11,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 )
 
 type Server struct {
@@ -311,7 +310,24 @@ func (s *Server) moveHandler(c *gin.Context) {
 		proposer = boardgame.AdminPlayerIndex
 	}
 
-	if err := s.makeMove(c, game, proposer); err != nil {
+	move, err := s.getMoveFromForm(c, game)
+
+	if move == nil {
+
+		errString := "No move returned"
+
+		if err != nil {
+			errString = err.Error()
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"Status": "Failure",
+			"Error":  "Couldn't make move: " + errString,
+		})
+		return
+	}
+
+	if err := s.makeMove(game, proposer, move); err != nil {
 		s.lastErrorMessage = err.Error()
 	}
 
@@ -321,50 +337,7 @@ func (s *Server) moveHandler(c *gin.Context) {
 	})
 }
 
-func (s *Server) makeMove(c *gin.Context, game *boardgame.Game, proposer boardgame.PlayerIndex) error {
-
-	//This method is passed a context mainly just to get info from request.
-
-	move := game.PlayerMoveByName(c.PostForm("MoveType"))
-
-	if move == nil {
-		return errors.New("Invalid MoveType")
-	}
-
-	//TODO: should we use gin's Binding to do this instead?
-
-	for _, field := range formFields(move) {
-
-		rawVal := c.PostForm(field.Name)
-
-		switch field.Type {
-		case boardgame.TypeInt:
-			if rawVal == "" {
-				return errors.New(fmt.Sprint("An int field had no value", field.Name))
-			}
-			num, err := strconv.Atoi(rawVal)
-			if err != nil {
-				return errors.New(fmt.Sprint("Couldn't set field", field.Name, err))
-			}
-			move.ReadSetter().SetProp(field.Name, num)
-		case boardgame.TypeBool:
-			if rawVal == "" {
-				move.ReadSetter().SetProp(field.Name, false)
-				continue
-			}
-			num, err := strconv.Atoi(rawVal)
-			if err != nil {
-				return errors.New(fmt.Sprint("Couldn't set field", field.Name, err))
-			}
-			if num == 1 {
-				move.ReadSetter().SetProp(field.Name, true)
-			} else {
-				move.ReadSetter().SetProp(field.Name, false)
-			}
-		case boardgame.TypeIllegal:
-			return errors.New(fmt.Sprint("Field", field.Name, "was an unknown value type"))
-		}
-	}
+func (s *Server) makeMove(game *boardgame.Game, proposer boardgame.PlayerIndex, move boardgame.Move) error {
 
 	if err := <-game.ProposeMove(move, proposer); err != nil {
 		return errors.New(fmt.Sprint("Applying move failed: ", err))

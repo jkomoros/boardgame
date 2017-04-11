@@ -1,6 +1,8 @@
 package api
 
 import (
+	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/users"
@@ -243,4 +245,50 @@ func (s *Server) getAdminAllowed(c *gin.Context) bool {
 
 	return adminAllowed
 
+}
+
+func (s *Server) getMoveFromForm(c *gin.Context, game *boardgame.Game) (boardgame.Move, error) {
+
+	move := game.PlayerMoveByName(c.PostForm("MoveType"))
+
+	if move == nil {
+		return nil, errors.New("Invalid MoveType")
+	}
+
+	//TODO: should we use gin's Binding to do this instead?
+
+	for _, field := range formFields(move) {
+
+		rawVal := c.PostForm(field.Name)
+
+		switch field.Type {
+		case boardgame.TypeInt:
+			if rawVal == "" {
+				return nil, errors.New(fmt.Sprint("An int field had no value", field.Name))
+			}
+			num, err := strconv.Atoi(rawVal)
+			if err != nil {
+				return nil, errors.New(fmt.Sprint("Couldn't set field", field.Name, err))
+			}
+			move.ReadSetter().SetProp(field.Name, num)
+		case boardgame.TypeBool:
+			if rawVal == "" {
+				move.ReadSetter().SetProp(field.Name, false)
+				continue
+			}
+			num, err := strconv.Atoi(rawVal)
+			if err != nil {
+				return nil, errors.New(fmt.Sprint("Couldn't set field", field.Name, err))
+			}
+			if num == 1 {
+				move.ReadSetter().SetProp(field.Name, true)
+			} else {
+				move.ReadSetter().SetProp(field.Name, false)
+			}
+		case boardgame.TypeIllegal:
+			return nil, errors.New(fmt.Sprint("Field", field.Name, "was an unknown value type"))
+		}
+	}
+
+	return move, nil
 }
