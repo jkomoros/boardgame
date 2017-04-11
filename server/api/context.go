@@ -214,7 +214,14 @@ func (s *Server) calcIsAdmin(adminAllowed bool, requestAdmin bool) bool {
 }
 
 func (s *Server) getRequestAdmin(c *gin.Context) bool {
-	return c.Query(qryAdminKey) == "1"
+
+	result := c.Query(qryAdminKey) == "1"
+
+	if result {
+		return result
+	}
+
+	return c.PostForm(qryAdminKey) == "1"
 }
 
 //returns true if the request asserts the user is an admin, and the user is

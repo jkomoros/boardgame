@@ -298,7 +298,14 @@ func (s *Server) moveHandler(c *gin.Context) {
 		return
 	}
 
-	if err := s.makeMove(c, game); err != nil {
+	viewingPlayerIndex := s.getViewingAsPlayer(c)
+
+	adminAllowed := s.getAdminAllowed(c)
+	requestAdmin := s.getRequestAdmin(c)
+
+	isAdmin := s.calcIsAdmin(adminAllowed, requestAdmin)
+
+	if err := s.makeMove(c, game, viewingPlayerIndex, isAdmin); err != nil {
 		s.lastErrorMessage = err.Error()
 	}
 
@@ -308,7 +315,7 @@ func (s *Server) moveHandler(c *gin.Context) {
 	})
 }
 
-func (s *Server) makeMove(c *gin.Context, game *boardgame.Game) error {
+func (s *Server) makeMove(c *gin.Context, game *boardgame.Game, viewingPlayerIndex boardgame.PlayerIndex, isAdmin bool) error {
 
 	//This method is passed a context mainly just to get info from request.
 
@@ -353,23 +360,9 @@ func (s *Server) makeMove(c *gin.Context, game *boardgame.Game) error {
 		}
 	}
 
-	obj, ok := c.Get("ViewingPlayerIndex")
+	proposer := viewingPlayerIndex
 
-	var proposer boardgame.PlayerIndex
-
-	if ok {
-		proposer = obj.(boardgame.PlayerIndex)
-	}
-
-	obj, ok = c.Get("adminAllowed")
-
-	adminAllowed := false
-
-	if ok {
-		adminAllowed = obj.(bool)
-	}
-
-	if adminAllowed && c.PostForm("admin") == "1" {
+	if isAdmin {
 		proposer = boardgame.AdminPlayerIndex
 	}
 
