@@ -430,8 +430,27 @@ func (s *Server) makeMove(c *gin.Context, game *boardgame.Game) error {
 		}
 	}
 
-	//TODO: pipe in the actual player index
-	if err := <-game.ProposeMove(move, boardgame.AdminPlayerIndex); err != nil {
+	obj, ok := c.Get("ViewingPlayerIndex")
+
+	var proposer boardgame.PlayerIndex
+
+	if ok {
+		proposer = obj.(boardgame.PlayerIndex)
+	}
+
+	obj, ok = c.Get("adminAllowed")
+
+	adminAllowed := false
+
+	if ok {
+		adminAllowed = obj.(bool)
+	}
+
+	if adminAllowed && c.PostForm("admin") == "1" {
+		proposer = boardgame.AdminPlayerIndex
+	}
+
+	if err := <-game.ProposeMove(move, proposer); err != nil {
 		return errors.New(fmt.Sprint("Applying move failed: ", err))
 	}
 	//TODO: it would be nice if we could show which fixup moves we made, too,
