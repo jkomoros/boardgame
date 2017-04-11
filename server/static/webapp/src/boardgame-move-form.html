@@ -34,6 +34,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           <form is="iron-form" method="POST" action$="[[UrlForGameAPI(gameName, gameId, 'move')]]">
             <p><em>{{item.Description}}</em></p>
             <input type="hidden" name="MoveType" value="{{item.Name}}">
+            <input type="hidden" name="admin" value="{{boolToInt(admin)}}">
             <template is="dom-repeat" items="{{item.Fields}}">
               <strong>{{item.Name}}</strong>
               <input name="{{item.Name}}" value="{{item.DefaultValue}}">
@@ -63,6 +64,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Object,
           observer: '_configChanged'
         },
+        admin: Boolean,
         gameId: String,
         gameName: String,
       },
@@ -70,6 +72,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         'iron-form-response' : 'formResponse',
       },
       behaviors : [ApiHostBehavior, BoardgameUtilBehavior],
+      boolToInt: function(bool) {
+        return bool ? "1" : "0"
+      },
       proposeMove: function(moveName, arguments) {
         if (!this.config) {
           console.warn("proposeMove called but no forms configed")
