@@ -17,7 +17,9 @@ type MoveStartHideCardsTimer struct{}
 
 type MoveCaptureCards struct{}
 
-type MoveHideCards struct{}
+type MoveHideCards struct {
+	TargetPlayerIndex boardgame.PlayerIndex
+}
 
 const HideCardsDuration = 4 * time.Second
 
@@ -86,7 +88,11 @@ func (m *MoveAdvanceNextPlayer) ReadSetter() boardgame.PropertyReadSetter {
 func (m *MoveRevealCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 	game, players := concreteStates(state)
 
-	if game.CurrentPlayer != m.TargetPlayerIndex {
+	if !m.TargetPlayerIndex.Equivalent(proposer) {
+		return errors.New("The proposing player is not the player the move is on behalf of.")
+	}
+
+	if !m.TargetPlayerIndex.Equivalent(game.CurrentPlayer) {
 		return errors.New("The target player is not the current player")
 	}
 
@@ -298,6 +304,14 @@ func (m *MoveHideCards) Legal(state boardgame.State, proposer boardgame.PlayerIn
 
 	p := players[game.CurrentPlayer]
 
+	if !m.TargetPlayerIndex.Equivalent(proposer) {
+		return errors.New("The proposing player is not the same as who the move is on behalf of.")
+	}
+
+	if !m.TargetPlayerIndex.Equivalent(game.CurrentPlayer) {
+		return errors.New("The target player is not the current player")
+	}
+
 	if p.CardsLeftToReveal > 0 {
 		return errors.New("The current player still has cards left to reveal")
 	}
@@ -331,7 +345,9 @@ func (m *MoveHideCards) Copy() boardgame.Move {
 }
 
 func (m *MoveHideCards) DefaultsForState(state boardgame.State) {
-	//Nothing to do
+	game, _ := concreteStates(state)
+
+	m.TargetPlayerIndex = game.CurrentPlayer
 }
 
 func (m *MoveHideCards) Name() string {
