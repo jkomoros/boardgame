@@ -28,6 +28,14 @@ func TestMoveModifyDynamicValues(t *testing.T) {
 		t.Fatal("Couldn't find move draw card")
 	}
 
+	if err := <-game.ProposeMove(drawCardMove, ObserverPlayerIndex); err == nil {
+		t.Error("Expected error proposing move from ObserverPlayerIndex")
+	}
+
+	if err := <-game.ProposeMove(drawCardMove, PlayerIndex(5)); err == nil {
+		t.Error("Expected error proposing move with invalid Proposer")
+	}
+
 	if err := <-game.ProposeMove(drawCardMove, AdminPlayerIndex); err != nil {
 		t.Error("Unexpected error trying to draw card: " + err.Error())
 	}

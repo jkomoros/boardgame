@@ -509,6 +509,14 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 
 	currentState := g.CurrentState().(*state)
 
+	if !proposer.Valid(currentState) {
+		return errors.New("The proposer was not valid.")
+	}
+
+	if proposer == ObserverPlayerIndex {
+		return errors.New("The proposer was the ObserverPlayerIndex, but observers may never make moves.")
+	}
+
 	if err := move.Legal(currentState, proposer); err != nil {
 		//It's not legal, reject.
 		return errors.New("The move was not legal: " + err.Error())
