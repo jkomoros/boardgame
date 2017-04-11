@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/users"
+	"log"
 	"strconv"
 )
 
@@ -15,13 +16,34 @@ const (
 )
 
 const (
-	qryAdminKey  = "admin"
-	qryPlayerKey = "player"
+	qryAdminKey    = "admin"
+	qryPlayerKey   = "player"
+	qryGameIdKey   = "id"
+	qryGameNameKey = "name"
 )
 
 const (
 	invalidPlayerIndex = boardgame.PlayerIndex(-10)
 )
+
+func (s *Server) getRequestGameId(c *gin.Context) string {
+	return c.Param(qryGameIdKey)
+}
+
+func (s *Server) getRequestGameName(c *gin.Context) string {
+	return c.Param(qryGameNameKey)
+}
+
+func (s *Server) getRequestCookie(c *gin.Context) string {
+	result, err := c.Cookie(cookieName)
+
+	if err != nil {
+		log.Println("Couldnt' get cookie:", err)
+		return ""
+	}
+
+	return result
+}
 
 func (s *Server) setUser(c *gin.Context, user *users.StorageRecord) {
 	c.Set(ctxUserKey, user)
@@ -81,6 +103,32 @@ func (s *Server) getViewingAsPlayer(c *gin.Context) boardgame.PlayerIndex {
 	}
 
 	return playerIndex
+}
+
+func (s *Server) calcViewingAsPlayer(userIds []string, user *users.StorageRecord) (player boardgame.PlayerIndex, inGame bool) {
+
+	result := boardgame.ObserverPlayerIndex
+
+	userInGame := false
+	emptySlot := -1
+
+	for i, userId := range userIds {
+		if userId == "" && emptySlot == -1 {
+			emptySlot = i
+		}
+		if userId == user.Id {
+			//We're here!
+			result = boardgame.PlayerIndex(i)
+			userInGame = true
+			break
+		}
+	}
+
+	if !userInGame && emptySlot != -1 {
+		result = boardgame.PlayerIndex(emptySlot)
+	}
+
+	return result, userInGame
 }
 
 func (s *Server) getRequestPlayerIndex(c *gin.Context) boardgame.PlayerIndex {

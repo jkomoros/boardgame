@@ -100,12 +100,14 @@ func NewServer(storage StorageManager, managers ...*boardgame.GameManager) *Serv
 //gameAPISetup fetches the game configured in the URL and puts it in context.
 func (s *Server) gameAPISetup(c *gin.Context) {
 
-	id := c.Param("id")
+	id := s.getRequestGameId(c)
 
-	manager := s.managers[c.Param("name")]
+	gameName := s.getRequestGameName(c)
+
+	manager := s.managers[gameName]
 
 	if manager == nil {
-		log.Println("Invalid manager", c.Param("name"))
+		log.Println("Couldnt' find manager for", gameName)
 		return
 	}
 
@@ -125,7 +127,7 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 	s.setGame(c, game)
 
-	cookie, _ := c.Cookie(cookieName)
+	cookie := s.getRequestCookie(c)
 
 	if cookie == "" {
 		log.Println("No cookie set")
@@ -143,49 +145,30 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 	s.setAdminAllowed(c, s.calcAdminAllowed(user))
 
-	s.setViewingAsPlayer(c, boardgame.ObserverPlayerIndex)
-
 	userIds := s.storage.UserIdsForGame(id)
 
 	if userIds == nil {
 		log.Println("No userIds associated with game")
 	}
 
-	userInGame := false
-	emptySlot := -1
+	effectiveViewingAsPlayer, inGame := s.calcViewingAsPlayer(userIds, user)
 
-	for i, userId := range userIds {
-		if userId == "" && emptySlot == -1 {
-			emptySlot = i
+	if !inGame {
+		//We aren't yet in game, so we need to join it.
+
+		if effectiveViewingAsPlayer == boardgame.ObserverPlayerIndex {
+			//I guess there weren't any slots.
+			log.Println("The user is not in the game, but there are no empty slots to join in as.")
+		} else {
+			if err := s.storage.SetPlayerForGame(id, int(effectiveViewingAsPlayer), user.Id); err != nil {
+				log.Println("Tried to set this user as player", effectiveViewingAsPlayer, "but failed:", err)
+			} else {
+				log.Println("User joined game", id, "as player", effectiveViewingAsPlayer)
+			}
 		}
-		if userId == user.Id {
-			//We're here!
-			s.setViewingAsPlayer(c, boardgame.PlayerIndex(i))
-			userInGame = true
-			break
-		}
 	}
 
-	if userInGame {
-		//We're done with set up
-		return
-	}
-
-	//We have a user but we don't have a slot in the game.
-
-	if emptySlot == -1 {
-		log.Println("The user is not in the game, but there are no empty slots to join in as.")
-		return
-	}
-
-	if err := s.storage.SetPlayerForGame(id, emptySlot, user.Id); err != nil {
-		log.Println("Tried to set this user as player", emptySlot, "but failed:", err)
-		return
-	}
-
-	log.Println("User joined game", id, "as player", emptySlot)
-
-	s.setViewingAsPlayer(c, boardgame.PlayerIndex(emptySlot))
+	s.setViewingAsPlayer(c, effectiveViewingAsPlayer)
 
 }
 
