@@ -83,6 +83,10 @@ func (m *MoveCurrentPlayerHit) Legal(state boardgame.State, proposer boardgame.P
 
 	game, players := concreteStates(state)
 
+	if !m.TargetPlayerIndex.Equivalent(proposer) {
+		return errors.New("The proposing player is not who the move is acting on behalf of.")
+	}
+
 	if game.CurrentPlayer != m.TargetPlayerIndex {
 		return errors.New("The specified player is not the current player.")
 	}
@@ -155,6 +159,10 @@ func (m *MoveCurrentPlayerHit) ReadSetter() boardgame.PropertyReadSetter {
 func (m *MoveCurrentPlayerStand) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
 	game, players := concreteStates(state)
+
+	if !m.TargetPlayerIndex.Equivalent(proposer) {
+		return errors.New("The proposing player is not who the move is on behalf of.")
+	}
 
 	if game.CurrentPlayer != m.TargetPlayerIndex {
 		return errors.New("The specified player is not the current player.")
@@ -270,9 +278,17 @@ func (m *MoveAdvanceNextPlayer) ReadSetter() boardgame.PropertyReadSetter {
 
 func (m *MoveRevealHiddenCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
-	_, players := concreteStates(state)
+	game, players := concreteStates(state)
 
 	p := players[m.TargetPlayerIndex]
+
+	if !m.TargetPlayerIndex.Equivalent(proposer) {
+		return errors.New("The proposing player is not the player the move is on behalf of.")
+	}
+
+	if !m.TargetPlayerIndex.Equivalent(game.CurrentPlayer) {
+		return errors.New("The target player is not the current player.")
+	}
 
 	if p.HiddenHand.NumComponents() < 1 {
 		return errors.New("Target player has no cards to reveal")
