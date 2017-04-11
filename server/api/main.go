@@ -139,7 +139,7 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 		return
 	}
 
-	c.Set("user", user)
+	s.setUser(c, user)
 
 	s.setAdminAllowed(c, s.calcAdminAllowed(c, user))
 

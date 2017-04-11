@@ -11,6 +11,7 @@ const (
 	ctxGameKey            = "ctxGame"
 	ctxAdminAllowedKey    = "ctxAdminAllowed"
 	ctxViewingPlayerAsKey = "ctxViewingPlayerAs"
+	ctxUserKey            = "ctxUser"
 )
 
 const (
@@ -21,6 +22,26 @@ const (
 const (
 	invalidPlayerIndex = boardgame.PlayerIndex(-10)
 )
+
+func (s *Server) setUser(c *gin.Context, user *users.StorageRecord) {
+	c.Set(ctxUserKey, user)
+}
+
+func (s *Server) getUser(c *gin.Context) *users.StorageRecord {
+	obj, ok := c.Get(ctxUserKey)
+
+	if !ok {
+		return nil
+	}
+
+	user, ok := obj.(*users.StorageRecord)
+
+	if !ok {
+		return nil
+	}
+
+	return user
+}
 
 func (s *Server) setGame(c *gin.Context, game *boardgame.Game) {
 	c.Set(ctxGameKey, game)
