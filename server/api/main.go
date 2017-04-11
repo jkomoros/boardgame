@@ -123,7 +123,7 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 		return
 	}
 
-	c.Set("game", game)
+	s.setGame(c, game)
 
 	cookie, _ := c.Cookie(cookieName)
 
@@ -141,37 +141,15 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 	c.Set("user", user)
 
-	adminAllowed := true
+	s.setAdminAllowed(c, s.calcAdminAllowed(c, user))
 
-	if !s.config.DisableAdminChecking {
-
-		//Are they allowed to be admin or not?
-
-		matchedAdmin := false
-
-		for _, userId := range s.config.AdminUserIds {
-			if user.Id == userId {
-				matchedAdmin = true
-				break
-			}
-		}
-
-		if !matchedAdmin {
-			//Nope, you weren't an admin. Sorry!
-			adminAllowed = false
-		}
-
-	}
-
-	c.Set("adminAllowed", adminAllowed)
+	s.setViewingAsPlayer(c, boardgame.ObserverPlayerIndex)
 
 	userIds := s.storage.UserIdsForGame(id)
 
 	if userIds == nil {
 		log.Println("No userIds associated with game")
 	}
-
-	c.Set("ViewingPlayerIndex", boardgame.ObserverPlayerIndex)
 
 	userInGame := false
 	emptySlot := -1
@@ -182,7 +160,7 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 		}
 		if userId == user.Id {
 			//We're here!
-			c.Set("ViewingPlayerIndex", boardgame.PlayerIndex(i))
+			s.setViewingAsPlayer(c, boardgame.PlayerIndex(i))
 			userInGame = true
 			break
 		}
@@ -207,7 +185,7 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 	log.Println("User joined game", id, "as player", emptySlot)
 
-	c.Set("ViewingPlayerIndex", boardgame.PlayerIndex(emptySlot))
+	s.setViewingAsPlayer(c, boardgame.PlayerIndex(emptySlot))
 
 }
 
@@ -282,9 +260,18 @@ func (s *Server) listManagerHandler(c *gin.Context) {
 
 func (s *Server) gameViewHandler(c *gin.Context) {
 
-	obj, ok := c.Get("game")
+	game := s.getGame(c)
 
-	if !ok {
+	admin := s.calcIsAdmin(c, s.getAdminAllowed(c), s.getRequestAdmin(c))
+
+	playerIndex := s.getPlayerIndex(c, admin)
+
+	s.gameView(c, game, playerIndex)
+
+}
+
+func (s *Server) gameView(c *gin.Context, game *boardgame.Game, playerIndex boardgame.PlayerIndex) {
+	if game == nil {
 		c.JSON(http.StatusOK, gin.H{
 			//TODO: handle this kind of rendering somewhere central
 			"Status": "Failure",
@@ -293,48 +280,12 @@ func (s *Server) gameViewHandler(c *gin.Context) {
 		return
 	}
 
-	game := obj.(*boardgame.Game)
-
-	//TODO: set this in a way that isn't possible to spoof.
-
-	player := c.Query("player")
-
-	var playerIndex boardgame.PlayerIndex
-
-	if player == "" {
-		playerIndex = 0
-	}
-
-	playerIndexInt, _ := strconv.Atoi(player)
-
-	playerIndex = boardgame.PlayerIndex(playerIndexInt)
-
-	obj, ok = c.Get("adminAllowed")
-
-	adminAllowed := false
-
-	if ok {
-		adminAllowed = obj.(bool)
-	}
-
-	admin := false
-
-	if c.Query("admin") == "1" && adminAllowed {
-		admin = true
-	}
-
-	if !admin {
-		//The playerIndex is set automatically.
-
-		obj, ok := c.Get("ViewingPlayerIndex")
-
-		if ok {
-			playerIndex = obj.(boardgame.PlayerIndex)
-		} else {
-			//Default to generic observer
-			playerIndex = boardgame.ObserverPlayerIndex
-		}
-
+	if playerIndex == invalidPlayerIndex {
+		c.JSON(http.StatusOK, gin.H{
+			"Status": "Failure",
+			"Error":  "Got invalid playerIndex",
+		})
+		return
 	}
 
 	args := gin.H{
