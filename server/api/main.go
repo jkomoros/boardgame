@@ -159,7 +159,7 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 		}
 		if userId == user.Id {
 			//We're here!
-			c.Set("ViewingPlayerIndex", i)
+			c.Set("ViewingPlayerIndex", boardgame.PlayerIndex(i))
 			userInGame = true
 			break
 		}
