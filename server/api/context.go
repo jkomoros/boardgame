@@ -104,7 +104,7 @@ func (s *Server) effectivePlayerIndex(c *gin.Context) boardgame.PlayerIndex {
 	adminAllowed := s.getAdminAllowed(c)
 	requestAdmin := s.getRequestAdmin(c)
 
-	isAdmin := s.calcIsAdmin(c, adminAllowed, requestAdmin)
+	isAdmin := s.calcIsAdmin(adminAllowed, requestAdmin)
 
 	requestPlayerIndex := s.getRequestPlayerIndex(c)
 	viewingAsPlayer := s.getViewingAsPlayer(c)
@@ -126,7 +126,7 @@ func (s *Server) calcEffectivePlayerIndex(isAdmin bool, requestPlayerIndex board
 	return requestPlayerIndex
 }
 
-func (s *Server) calcAdminAllowed(c *gin.Context, user *users.StorageRecord) bool {
+func (s *Server) calcAdminAllowed(user *users.StorageRecord) bool {
 	adminAllowed := true
 
 	if user == nil {
@@ -161,7 +161,7 @@ func (s *Server) setAdminAllowed(c *gin.Context, allowed bool) {
 	c.Set(ctxAdminAllowedKey, allowed)
 }
 
-func (s *Server) calcIsAdmin(c *gin.Context, adminAllowed bool, requestAdmin bool) bool {
+func (s *Server) calcIsAdmin(adminAllowed bool, requestAdmin bool) bool {
 	return adminAllowed && requestAdmin
 }
 

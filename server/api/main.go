@@ -141,7 +141,7 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 	s.setUser(c, user)
 
-	s.setAdminAllowed(c, s.calcAdminAllowed(c, user))
+	s.setAdminAllowed(c, s.calcAdminAllowed(user))
 
 	s.setViewingAsPlayer(c, boardgame.ObserverPlayerIndex)
 
