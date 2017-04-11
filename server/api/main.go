@@ -241,6 +241,11 @@ func (s *Server) gameStatusHandler(c *gin.Context) {
 
 	r := NewRenderer(c)
 
+	s.doGameStatus(r, game)
+
+}
+
+func (s *Server) doGameStatus(r *Renderer, game *boardgame.Game) {
 	if game == nil {
 		r.Error("Not Found")
 		return
