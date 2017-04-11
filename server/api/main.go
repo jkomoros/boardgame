@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/itsjamie/gin-cors"
 	"github.com/jkomoros/boardgame"
@@ -362,11 +361,13 @@ func (s *Server) gameView(r *Renderer, game *boardgame.Game, playerIndex boardga
 }
 
 func (s *Server) moveHandler(c *gin.Context) {
-	if c.Request.Method != http.MethodPost {
-		panic("This can only be called as a post.")
-	}
 
 	r := NewRenderer(c)
+
+	if c.Request.Method != http.MethodPost {
+		r.Error("This method only supports post.")
+		return
+	}
 
 	game := s.getGame(c)
 
@@ -392,6 +393,8 @@ func (s *Server) moveHandler(c *gin.Context) {
 
 	if move == nil {
 
+		//TODO: move this to doMakeMove once getMoveFromForm is refactored correctly.
+
 		errString := "No move returned"
 
 		if err != nil {
@@ -402,23 +405,20 @@ func (s *Server) moveHandler(c *gin.Context) {
 		return
 	}
 
-	if err := s.makeMove(game, proposer, move); err != nil {
-		r.Error("Couldn't mave move: " + err.Error())
-		return
-	}
+	s.doMakeMove(r, game, proposer, move)
 
-	r.Success(nil)
 }
 
-func (s *Server) makeMove(game *boardgame.Game, proposer boardgame.PlayerIndex, move boardgame.Move) error {
+func (s *Server) doMakeMove(r *Renderer, game *boardgame.Game, proposer boardgame.PlayerIndex, move boardgame.Move) {
 
 	if err := <-game.ProposeMove(move, proposer); err != nil {
-		return errors.New(fmt.Sprint("Applying move failed: ", err))
+		r.Error("Couldn't make move: " + err.Error())
+		return
 	}
 	//TODO: it would be nice if we could show which fixup moves we made, too,
 	//somehow.
 
-	return nil
+	r.Success(nil)
 }
 
 func (s *Server) generateForms(game *boardgame.Game) []*MoveForm {
