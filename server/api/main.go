@@ -305,7 +305,13 @@ func (s *Server) moveHandler(c *gin.Context) {
 
 	isAdmin := s.calcIsAdmin(adminAllowed, requestAdmin)
 
-	if err := s.makeMove(c, game, viewingPlayerIndex, isAdmin); err != nil {
+	proposer := viewingPlayerIndex
+
+	if isAdmin {
+		proposer = boardgame.AdminPlayerIndex
+	}
+
+	if err := s.makeMove(c, game, proposer); err != nil {
 		s.lastErrorMessage = err.Error()
 	}
 
@@ -315,7 +321,7 @@ func (s *Server) moveHandler(c *gin.Context) {
 	})
 }
 
-func (s *Server) makeMove(c *gin.Context, game *boardgame.Game, viewingPlayerIndex boardgame.PlayerIndex, isAdmin bool) error {
+func (s *Server) makeMove(c *gin.Context, game *boardgame.Game, proposer boardgame.PlayerIndex) error {
 
 	//This method is passed a context mainly just to get info from request.
 
@@ -358,12 +364,6 @@ func (s *Server) makeMove(c *gin.Context, game *boardgame.Game, viewingPlayerInd
 		case boardgame.TypeIllegal:
 			return errors.New(fmt.Sprint("Field", field.Name, "was an unknown value type"))
 		}
-	}
-
-	proposer := viewingPlayerIndex
-
-	if isAdmin {
-		proposer = boardgame.AdminPlayerIndex
 	}
 
 	if err := <-game.ProposeMove(move, proposer); err != nil {
