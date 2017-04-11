@@ -287,9 +287,9 @@ func (s *Server) moveHandler(c *gin.Context) {
 		panic("This can only be called as a post.")
 	}
 
-	obj, _ := c.Get("game")
+	game := s.getGame(c)
 
-	if obj == nil {
+	if game == nil {
 		c.JSON(http.StatusOK, gin.H{
 			//TODO: handle this kind of rendering somewhere central
 			"Status": "Failure",
@@ -297,8 +297,6 @@ func (s *Server) moveHandler(c *gin.Context) {
 		})
 		return
 	}
-
-	game := obj.(*boardgame.Game)
 
 	if err := s.makeMove(c, game); err != nil {
 		s.lastErrorMessage = err.Error()
