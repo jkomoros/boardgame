@@ -21,6 +21,10 @@ func (m *MovePlaceToken) Legal(state boardgame.State, proposer boardgame.PlayerI
 		return errors.New("The specified player is not the current player.")
 	}
 
+	if !m.TargetPlayerIndex.Equivalent(proposer) {
+		return errors.New("The proposing player is not the target player.")
+	}
+
 	if players[m.TargetPlayerIndex].UnusedTokens.Len() < 1 {
 		return errors.New("There aren't any remaining tokens for the current player to place.")
 	}
