@@ -297,7 +297,10 @@ func (s *Server) doNewGame(r *Renderer, manager *boardgame.GameManager) {
 func (s *Server) listGamesHandler(c *gin.Context) {
 
 	r := NewRenderer(c)
+	s.doListGames(r)
+}
 
+func (s *Server) doListGames(r *Renderer) {
 	r.Success(gin.H{
 		"Games": s.storage.ListGames(10),
 	})
