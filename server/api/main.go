@@ -22,6 +22,11 @@ type Server struct {
 	config           *ConfigMode
 }
 
+type Renderer struct {
+	c        *gin.Context
+	rendered bool
+}
+
 type Config struct {
 	Dev  *ConfigMode
 	Prod *ConfigMode
@@ -94,6 +99,48 @@ func NewServer(storage StorageManager, managers ...*boardgame.GameManager) *Serv
 
 	return result
 
+}
+
+func NewRenderer(c *gin.Context) *Renderer {
+	return &Renderer{
+		c,
+		false,
+	}
+}
+
+func (r *Renderer) Error(message string) {
+	if r.rendered {
+		panic("Error called on already-rendered renderer")
+	}
+	r.c.JSON(http.StatusOK, gin.H{
+		"Status": "Failure",
+		"Error":  message,
+	})
+
+	r.rendered = true
+}
+
+func (r *Renderer) Success(keys gin.H) {
+
+	if r.rendered {
+		panic("Success called on alread-rendered renderer")
+	}
+
+	if keys == nil {
+		keys = gin.H{}
+	}
+
+	result := gin.H{}
+
+	for key, val := range keys {
+		result[key] = val
+	}
+
+	result["Status"] = "Success"
+
+	r.c.JSON(http.StatusOK, result)
+
+	r.rendered = true
 }
 
 //gameAPISetup fetches the game configured in the URL and puts it in context.
@@ -180,49 +227,61 @@ func (s *Server) gameStatusHandler(c *gin.Context) {
 
 	game := s.getGame(c)
 
+	r := NewRenderer(c)
+
 	if game == nil {
-		c.JSON(http.StatusOK, gin.H{
-			//TODO: handle this kind of rendering somewhere central
-			"Status": "Failure",
-			"Error":  "Not Found",
-		})
+		r.Error("Not Found")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"Status":  "Success",
+	r.Success(gin.H{
 		"Version": game.Version(),
 	})
 }
 
 func (s *Server) newGameHandler(c *gin.Context) {
 
-	manager := s.managers[c.PostForm("manager")]
+	r := NewRenderer(c)
+
+	managerId := s.getRequestManager(c)
+
+	manager := s.managers[managerId]
 
 	if manager == nil {
 		//TODO: communicate the error back to the client in a sane way
 		panic("Invalid manager" + c.PostForm("manager"))
 	}
 
-	game := boardgame.NewGame(manager)
+	game, err := s.newGame(manager)
 
-	if err := game.SetUp(0); err != nil {
-		//TODO: communicate the error state back to the client in a sane way
-		panic(err)
+	if err != nil {
+		r.Error("Couldn't create game: " + err.Error())
+		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"Status":   "Success",
+	r.Success(gin.H{
 		"GameId":   game.Id(),
 		"GameName": game.Name(),
 	})
 }
 
+func (s *Server) newGame(manager *boardgame.GameManager) (*boardgame.Game, error) {
+	game := boardgame.NewGame(manager)
+
+	if err := game.SetUp(0); err != nil {
+		//TODO: communicate the error state back to the client in a sane way
+		return nil, err
+	}
+
+	return game, nil
+}
+
 func (s *Server) listGamesHandler(c *gin.Context) {
 
-	c.JSON(http.StatusOK, gin.H{
-		"Status": "Success",
-		"Games":  s.storage.ListGames(10),
+	r := NewRenderer(c)
+
+	r.Success(gin.H{
+		"Games": s.storage.ListGames(10),
 	})
 }
 
@@ -232,8 +291,9 @@ func (s *Server) listManagerHandler(c *gin.Context) {
 		managerNames = append(managerNames, name)
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"Status":   "Success",
+	r := NewRenderer(c)
+
+	r.Success(gin.H{
 		"Managers": managerNames,
 	})
 }
@@ -244,25 +304,20 @@ func (s *Server) gameViewHandler(c *gin.Context) {
 
 	playerIndex := s.effectivePlayerIndex(c)
 
-	s.gameView(c, game, playerIndex)
+	r := NewRenderer(c)
+
+	s.gameView(r, game, playerIndex)
 
 }
 
-func (s *Server) gameView(c *gin.Context, game *boardgame.Game, playerIndex boardgame.PlayerIndex) {
+func (s *Server) gameView(r *Renderer, game *boardgame.Game, playerIndex boardgame.PlayerIndex) {
 	if game == nil {
-		c.JSON(http.StatusOK, gin.H{
-			//TODO: handle this kind of rendering somewhere central
-			"Status": "Failure",
-			"Error":  "Not Found",
-		})
+		r.Error("Couldn't find game")
 		return
 	}
 
 	if playerIndex == invalidPlayerIndex {
-		c.JSON(http.StatusOK, gin.H{
-			"Status": "Failure",
-			"Error":  "Got invalid playerIndex",
-		})
+		r.Error("Got invalid playerIndex")
 		return
 	}
 
@@ -272,13 +327,13 @@ func (s *Server) gameView(c *gin.Context, game *boardgame.Game, playerIndex boar
 		"Forms":           s.generateForms(game),
 		"Game":            game.JSONForPlayer(playerIndex),
 		"Error":           s.lastErrorMessage,
-		"Status":          "Success",
 		"ViewingAsPlayer": playerIndex,
 	}
 
 	s.lastErrorMessage = ""
 
-	c.JSON(http.StatusOK, args)
+	r.Success(args)
+
 }
 
 func (s *Server) moveHandler(c *gin.Context) {
@@ -286,14 +341,12 @@ func (s *Server) moveHandler(c *gin.Context) {
 		panic("This can only be called as a post.")
 	}
 
+	r := NewRenderer(c)
+
 	game := s.getGame(c)
 
 	if game == nil {
-		c.JSON(http.StatusOK, gin.H{
-			//TODO: handle this kind of rendering somewhere central
-			"Status": "Failure",
-			"Error":  "Not Found",
-		})
+		r.Error("Game not found")
 		return
 	}
 
@@ -320,21 +373,16 @@ func (s *Server) moveHandler(c *gin.Context) {
 			errString = err.Error()
 		}
 
-		c.JSON(http.StatusOK, gin.H{
-			"Status": "Failure",
-			"Error":  "Couldn't make move: " + errString,
-		})
+		r.Error("Couldn't get move: " + errString)
 		return
 	}
 
 	if err := s.makeMove(game, proposer, move); err != nil {
-		s.lastErrorMessage = err.Error()
+		r.Error("Couldn't mave move: " + err.Error())
+		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"Status": "Success",
-		"Error":  s.lastErrorMessage,
-	})
+	r.Success(nil)
 }
 
 func (s *Server) makeMove(game *boardgame.Game, proposer boardgame.PlayerIndex, move boardgame.Move) error {

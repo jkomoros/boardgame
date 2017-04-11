@@ -22,11 +22,16 @@ const (
 	qryPlayerKey   = "player"
 	qryGameIdKey   = "id"
 	qryGameNameKey = "name"
+	qryManagerKey  = "manager"
 )
 
 const (
 	invalidPlayerIndex = boardgame.PlayerIndex(-10)
 )
+
+func (s *Server) getRequestManager(c *gin.Context) string {
+	return c.PostForm(qryManagerKey)
+}
 
 func (s *Server) getRequestGameId(c *gin.Context) string {
 	return c.Param(qryGameIdKey)
