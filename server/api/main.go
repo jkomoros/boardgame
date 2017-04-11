@@ -307,16 +307,20 @@ func (s *Server) doListGames(r *Renderer) {
 }
 
 func (s *Server) listManagerHandler(c *gin.Context) {
+	r := NewRenderer(c)
+	s.doListManager(r)
+}
+
+func (s *Server) doListManager(r *Renderer) {
 	var managerNames []string
 	for name, _ := range s.managers {
 		managerNames = append(managerNames, name)
 	}
 
-	r := NewRenderer(c)
-
 	r.Success(gin.H{
 		"Managers": managerNames,
 	})
+
 }
 
 func (s *Server) gameViewHandler(c *gin.Context) {
