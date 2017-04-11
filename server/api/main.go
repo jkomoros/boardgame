@@ -74,6 +74,18 @@ const (
 type managerMap map[string]*boardgame.GameManager
 
 /*
+
+Overview of the types of handlers and methods
+
+server.fooHandler take a context. They grab all of the dependencies and pass them to the doers.
+server.doFoo takes a renderer and all dependencies. It renders the result.
+server.getRequestFoo fetches an argument from the context's request and nothing else
+server.getFoo grabs a thing that was stored in Context and nothing else
+server.setFoo sets a thing into context and nothing else
+server.calcFoo takes dependencies and returns a result, with no touching context.
+*/
+
+/*
 NewServer returns a new server. Get it to run by calling Start(). storage
 should be the same underlying storage manager that is in use for manager.
 
