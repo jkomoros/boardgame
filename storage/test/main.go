@@ -30,7 +30,7 @@ type StorageManager interface {
 
 	UserIdsForGame(gameId string) []string
 
-	SetPlayerForGame(gameId string, playerIndex int, userId string) error
+	SetPlayerForGame(gameId string, playerIndex boardgame.PlayerIndex, userId string) error
 
 	UpdateUser(user *users.StorageRecord) error
 

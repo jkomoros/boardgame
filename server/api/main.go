@@ -159,7 +159,7 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 			//I guess there weren't any slots.
 			log.Println("The user is not in the game, but there are no empty slots to join in as.")
 		} else {
-			if err := s.storage.SetPlayerForGame(id, int(effectiveViewingAsPlayer), user.Id); err != nil {
+			if err := s.storage.SetPlayerForGame(id, effectiveViewingAsPlayer, user.Id); err != nil {
 				log.Println("Tried to set this user as player", effectiveViewingAsPlayer, "but failed:", err)
 			} else {
 				log.Println("User joined game", id, "as player", effectiveViewingAsPlayer)

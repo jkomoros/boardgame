@@ -227,7 +227,7 @@ func (s *StorageManager) ListGames(max int) []*boardgame.GameStorageRecord {
 
 }
 
-func (s *StorageManager) SetPlayerForGame(gameId string, playerIndex int, userId string) error {
+func (s *StorageManager) SetPlayerForGame(gameId string, playerIndex boardgame.PlayerIndex, userId string) error {
 
 	ids := s.UserIdsForGame(gameId)
 
@@ -235,12 +235,12 @@ func (s *StorageManager) SetPlayerForGame(gameId string, playerIndex int, userId
 		return errors.New("Couldn't fetch original player indexes for that game")
 	}
 
-	if playerIndex < 0 || playerIndex >= len(ids) {
-		return errors.New("PlayerIndex " + strconv.Itoa(playerIndex) + " is not valid for this game")
+	if int(playerIndex) < 0 || int(playerIndex) >= len(ids) {
+		return errors.New("PlayerIndex " + playerIndex.String() + " is not valid for this game")
 	}
 
 	if ids[playerIndex] != "" {
-		return errors.New("PlayerIndex " + strconv.Itoa(playerIndex) + " is already taken")
+		return errors.New("PlayerIndex " + playerIndex.String() + " is already taken")
 	}
 
 	user := s.GetUserById(userId)

@@ -147,6 +147,10 @@ func (p PlayerIndex) Equivalent(other PlayerIndex) bool {
 	return p == other
 }
 
+func (p PlayerIndex) String() string {
+	return strconv.Itoa(int(p))
+}
+
 //state implements both State and MutableState, so it can always be passed for
 //either, and what it's interpreted as is primarily a function of what the
 //method signature is that it's passed to
