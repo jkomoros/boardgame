@@ -176,6 +176,8 @@ func (s *Server) effectivePlayerIndex(c *gin.Context) boardgame.PlayerIndex {
 	requestPlayerIndex := s.getRequestPlayerIndex(c)
 	viewingAsPlayer := s.getViewingAsPlayer(c)
 
+	log.Println(viewingAsPlayer)
+
 	return s.calcEffectivePlayerIndex(isAdmin, requestPlayerIndex, viewingAsPlayer)
 }
 
@@ -190,7 +192,7 @@ func (s *Server) calcEffectivePlayerIndex(isAdmin bool, requestPlayerIndex board
 			result = boardgame.ObserverPlayerIndex
 		}
 	}
-	return requestPlayerIndex
+	return result
 }
 
 func (s *Server) calcAdminAllowed(user *users.StorageRecord) bool {
