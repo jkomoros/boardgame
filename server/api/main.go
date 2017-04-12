@@ -593,11 +593,7 @@ func (s *Server) Start() {
 	router := gin.Default()
 
 	router.NoRoute(s.genericHandler)
-
-	//We have everything prefixed by /api just in case at some point we do
-	//want to host both static and api on the same logical server.
-	mainGroup := router.Group("/api")
-	mainGroup.Use(cors.Middleware(cors.Config{
+	router.Use(cors.Middleware(cors.Config{
 		Origins:        s.config.AllowedOrigins,
 		RequestHeaders: "content-type, Origin",
 		ExposedHeaders: "content-type",
@@ -605,13 +601,16 @@ func (s *Server) Start() {
 		Credentials:    true,
 	}))
 
+	//We have everything prefixed by /api just in case at some point we do
+	//want to host both static and api on the same logical server.
+	mainGroup := router.Group("/api")
+
 	{
 		mainGroup.GET("list/game", s.listGamesHandler)
 		mainGroup.POST("new/game", s.newGameHandler)
 		mainGroup.GET("list/manager", s.listManagerHandler)
 
 		mainGroup.POST("auth/cookie", s.authCookieHandler)
-		mainGroup.OPTIONS("auth/cookie", s.authCookieHandler)
 
 		gameAPIGroup := mainGroup.Group("game/:name/:id")
 		gameAPIGroup.Use(s.gameAPISetup)
