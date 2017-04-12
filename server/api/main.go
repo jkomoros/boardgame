@@ -244,6 +244,10 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 		}
 	}
 
+	//TODO: technically this is incorrect if we just filled one. But we're
+	//removing that logic in next commit anyway...
+	s.setHasEmptySlots(c, len(emptySlots) != 0)
+
 	s.setViewingAsPlayer(c, effectiveViewingAsPlayer)
 
 }
@@ -347,13 +351,15 @@ func (s *Server) gameViewHandler(c *gin.Context) {
 
 	playerIndex := s.effectivePlayerIndex(c)
 
+	hasEmptySlots := s.getHasEmptySlots(c)
+
 	r := NewRenderer(c)
 
-	s.gameView(r, game, playerIndex)
+	s.gameView(r, game, playerIndex, hasEmptySlots)
 
 }
 
-func (s *Server) gameView(r *Renderer, game *boardgame.Game, playerIndex boardgame.PlayerIndex) {
+func (s *Server) gameView(r *Renderer, game *boardgame.Game, playerIndex boardgame.PlayerIndex, hasEmptySlots bool) {
 	if game == nil {
 		r.Error("Couldn't find game")
 		return
@@ -371,6 +377,7 @@ func (s *Server) gameView(r *Renderer, game *boardgame.Game, playerIndex boardga
 		"Game":            game.JSONForPlayer(playerIndex),
 		"Error":           s.lastErrorMessage,
 		"ViewingAsPlayer": playerIndex,
+		"HasEmptySlots":   hasEmptySlots,
 	}
 
 	s.lastErrorMessage = ""

@@ -15,6 +15,7 @@ const (
 	ctxAdminAllowedKey    = "ctxAdminAllowed"
 	ctxViewingPlayerAsKey = "ctxViewingPlayerAs"
 	ctxUserKey            = "ctxUser"
+	ctxHasEmptySlots      = "ctxHasEmptySlots"
 )
 
 const (
@@ -110,6 +111,26 @@ func (s *Server) getViewingAsPlayer(c *gin.Context) boardgame.PlayerIndex {
 	}
 
 	return playerIndex
+}
+
+func (s *Server) setHasEmptySlots(c *gin.Context, hasEmptySlots bool) {
+	c.Set(ctxHasEmptySlots, hasEmptySlots)
+}
+
+func (s *Server) getHasEmptySlots(c *gin.Context) bool {
+	obj, ok := c.Get(ctxHasEmptySlots)
+
+	if !ok {
+		return false
+	}
+
+	emptySlots, ok := obj.(bool)
+
+	if !ok {
+		return false
+	}
+
+	return emptySlots
 }
 
 func (s *Server) calcViewingAsPlayerAndEmptySlots(userIds []string, user *users.StorageRecord) (player boardgame.PlayerIndex, emptySlots []boardgame.PlayerIndex) {
