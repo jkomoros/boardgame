@@ -223,19 +223,20 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 		log.Println("No userIds associated with game")
 	}
 
-	effectiveViewingAsPlayer, inGame := s.calcViewingAsPlayer(userIds, user)
+	effectiveViewingAsPlayer, emptySlot := s.calcViewingAsPlayerAndEmptySlot(userIds, user)
 
-	if !inGame {
+	if effectiveViewingAsPlayer == boardgame.ObserverPlayerIndex {
 		//We aren't yet in game, so we need to join it.
 
-		if effectiveViewingAsPlayer == boardgame.ObserverPlayerIndex {
+		if emptySlot == boardgame.ObserverPlayerIndex {
 			//I guess there weren't any slots.
 			log.Println("The user is not in the game, but there are no empty slots to join in as.")
 		} else {
-			if err := s.storage.SetPlayerForGame(id, effectiveViewingAsPlayer, user.Id); err != nil {
-				log.Println("Tried to set this user as player", effectiveViewingAsPlayer, "but failed:", err)
+			if err := s.storage.SetPlayerForGame(id, emptySlot, user.Id); err != nil {
+				log.Println("Tried to set this user as player", emptySlot, "but failed:", err)
 			} else {
-				log.Println("User joined game", id, "as player", effectiveViewingAsPlayer)
+				log.Println("User joined game", id, "as player", emptySlot)
+				effectiveViewingAsPlayer = emptySlot
 			}
 		}
 	}

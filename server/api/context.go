@@ -112,30 +112,24 @@ func (s *Server) getViewingAsPlayer(c *gin.Context) boardgame.PlayerIndex {
 	return playerIndex
 }
 
-func (s *Server) calcViewingAsPlayer(userIds []string, user *users.StorageRecord) (player boardgame.PlayerIndex, inGame bool) {
+func (s *Server) calcViewingAsPlayerAndEmptySlot(userIds []string, user *users.StorageRecord) (player boardgame.PlayerIndex, emptySlot boardgame.PlayerIndex) {
 
 	result := boardgame.ObserverPlayerIndex
 
-	userInGame := false
-	emptySlot := -1
+	emptySlot = boardgame.ObserverPlayerIndex
 
 	for i, userId := range userIds {
-		if userId == "" && emptySlot == -1 {
-			emptySlot = i
+		if userId == "" && emptySlot == boardgame.ObserverPlayerIndex {
+			emptySlot = boardgame.PlayerIndex(i)
 		}
 		if userId == user.Id {
 			//We're here!
 			result = boardgame.PlayerIndex(i)
-			userInGame = true
 			break
 		}
 	}
 
-	if !userInGame && emptySlot != -1 {
-		result = boardgame.PlayerIndex(emptySlot)
-	}
-
-	return result, userInGame
+	return result, emptySlot
 }
 
 func (s *Server) getRequestPlayerIndex(c *gin.Context) boardgame.PlayerIndex {
