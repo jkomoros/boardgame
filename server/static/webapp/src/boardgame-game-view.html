@@ -12,6 +12,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="../bower_components/iron-input/iron-input.html">
 <link rel="import" href="boardgame-move-form.html">
+<link rel="import" href="boardgame-join-game.html">
 <link rel="import" href="shared-styles.html">
 <link rel="import" href="boardgame-render-game.html">
 <link rel="import" href="../config-src/boardgame-config.html">
@@ -52,7 +53,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </div>
       </div>
       <div hidden$="{{data.Game.Finished}}">
-        <h3>Playing (player {{data.ViewingAsPlayer}})</h3>
+        <boardgame-join-game viewing-as-player="{{data.ViewingAsPlayer}}" has-empty-slots="{{data.HasEmptySlots}}"></boardgame-join-game>
       </div>
     </div>
     <div class="card">
