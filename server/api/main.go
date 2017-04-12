@@ -280,6 +280,11 @@ func (s *Server) joinGameHandler(c *gin.Context) {
 
 func (s *Server) doJoinGame(r *Renderer, game *boardgame.Game, viewingAsPlayer boardgame.PlayerIndex, emptySlots []boardgame.PlayerIndex, user *users.StorageRecord) {
 
+	if user == nil {
+		r.Error("No user provided.")
+		return
+	}
+
 	if viewingAsPlayer != boardgame.ObserverPlayerIndex {
 		r.Error("The given player is already in the game.")
 		return
