@@ -540,6 +540,15 @@ func (s *Server) renderChest(game *boardgame.Game) map[string][]interface{} {
 	return deck
 }
 
+//genericHandler doesn't do much. We just register it so we automatically get
+//CORS handlers triggered with the middelware.
+func (s *Server) genericHandler(c *gin.Context) {
+	r := NewRenderer(c)
+	r.Success(gin.H{
+		"Message": "Nothing to see here.",
+	})
+}
+
 //Start is where you start the server, and it never returns until it's time to shut down.
 func (s *Server) Start() {
 
@@ -582,6 +591,8 @@ func (s *Server) Start() {
 	}
 
 	router := gin.Default()
+
+	router.NoRoute(s.genericHandler)
 
 	//We have everything prefixed by /api just in case at some point we do
 	//want to host both static and api on the same logical server.
