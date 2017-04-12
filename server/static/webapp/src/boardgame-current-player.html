@@ -10,7 +10,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../bower_components/polymer/polymer.html">
 
-<dom-module id="boardgame-join-game">
+<dom-module id="boardgame-current-player">
   <template>
     <h3>Playing as {{viewingAsPlayer}}</h3>
     <h5>Can join: {{hasEmptySlots}}</h5>
@@ -18,7 +18,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   <script>
     Polymer({
-      is: 'boardgame-join-game',
+      is: 'boardgame-current-player',
       properties: {
         viewingAsPlayer: Number,
         hasEmptySlots: Boolean,
