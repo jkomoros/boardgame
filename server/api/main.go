@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
 type Server struct {
@@ -152,6 +153,20 @@ func (r *Renderer) Success(keys gin.H) {
 	r.c.JSON(http.StatusOK, result)
 
 	r.rendered = true
+}
+
+func (r *Renderer) SetAuthCookie(value string) {
+
+	//TODO: might need to set the domain in production.
+
+	if value == "" {
+		//Unset the cookie
+		r.c.SetCookie(cookieName, "", int(time.Now().Add(time.Hour*10000*-1).Unix()), "", "", false, false)
+		return
+	}
+
+	r.c.SetCookie(cookieName, value, int(time.Now().Add(time.Hour*100).Unix()), "", "", false, false)
+
 }
 
 //gameAPISetup fetches the game configured in the URL and puts it in context.

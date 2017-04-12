@@ -6,7 +6,6 @@ import (
 	"github.com/jkomoros/boardgame/server/api/users"
 	"math/rand"
 	"net/http"
-	"time"
 )
 
 const cookieName = "c"
@@ -25,26 +24,20 @@ func randomString(length int) string {
 	return result
 }
 
-func (s *Server) unsetCookie(c *gin.Context, cookie string, message string) {
+func (s *Server) unsetCookie(r *Renderer, cookie string, message string) {
 	//We must have an old cookie set. Clear it out.
 	if err := s.storage.ConnectCookieToUser(cookie, nil); err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"Status": "Failure",
-			"Error":  err.Error(),
-		})
+
+		r.Error(err.Error())
 		return
 	}
 
 	//Delete the cookie on the client.
+	r.SetAuthCookie("")
 
-	//TODO: might need to set the domain in production.
-	c.SetCookie(cookieName, "", int(time.Now().Add(time.Hour*10000*-1).Unix()), "", "", false, false)
-
-	c.JSON(http.StatusOK, gin.H{
-		"Status":  "Success",
+	r.Success(gin.H{
 		"Message": message,
 	})
-
 	return
 }
 
@@ -56,8 +49,12 @@ func (s *Server) unsetCookie(c *gin.Context, cookie string, message string) {
 //new cookie tyied to that uid (creating that user record if necessary), and
 //Set-Cookie's it back.
 func (s *Server) authCookieHandler(c *gin.Context) {
+
+	r := NewRenderer(c)
+
 	if c.Request.Method != http.MethodPost {
-		panic("This can only be called as a post.")
+		r.Error("This method only supports post.")
+		return
 	}
 
 	uid := c.PostForm("uid")
@@ -73,24 +70,24 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 
 		if userRecord == nil {
 			//The cookie must be invalid
-			s.unsetCookie(c, cookie, "Cookie pointed to an user that did not exist. Unsetting.")
+			s.unsetCookie(r, cookie, "Cookie pointed to an user that did not exist. Unsetting.")
 			return
 		} else {
 			if userRecord.Id == uid {
-				c.JSON(http.StatusOK, gin.H{
-					"Status":  "Success",
+
+				r.Success(gin.H{
 					"Message": "Cookie and uid already matched.",
 				})
 				return
 			} else {
-				s.unsetCookie(c, cookie, "Cookie pointed to the wrong uid. Unsetting")
+				s.unsetCookie(r, cookie, "Cookie pointed to the wrong uid. Unsetting")
 				return
 			}
 		}
 	}
 
 	if uid == "" && cookie != "" {
-		s.unsetCookie(c, cookie, "Removed cookie for signed-out uid")
+		s.unsetCookie(r, cookie, "Removed cookie for signed-out uid")
 		return
 	}
 
@@ -99,18 +96,13 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 		verifiedUid, err := firebase.VerifyIDToken(token, s.config.FirebaseProjectId)
 
 		if err != nil {
-			c.JSON(http.StatusOK, gin.H{
-				"Status": "Failure",
-				"Error":  "Failed to verify jwt token: " + err.Error(),
-			})
+			r.Error("Failed to verify jwt token: " + err.Error())
 			return
 		}
 
 		if verifiedUid != uid {
-			c.JSON(http.StatusOK, gin.H{
-				"Status": "Failure",
-				"Error":  "The decoded jwt token doesn not match with the provided uid.",
-			})
+
+			r.Error("The decoded jwt token doesn not match with the provided uid.")
 			return
 		}
 
@@ -129,26 +121,21 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 		cookie = randomString(cookieLength)
 
 		if err := s.storage.ConnectCookieToUser(cookie, user); err != nil {
-			c.JSON(http.StatusOK, gin.H{
-				"Status": "Failure",
-				"Error":  "Couldn't connect cookie to user: " + err.Error(),
-			})
+
+			r.Error("Couldn't connect cookie to user: " + err.Error())
 			return
 		}
 
-		//TODO: might need to set the domain in production
-		c.SetCookie(cookieName, cookie, int(time.Now().Add(time.Hour*100).Unix()), "", "", false, false)
+		r.SetAuthCookie(cookie)
 
-		c.JSON(http.StatusOK, gin.H{
-			"Status":  "Success",
+		r.Success(gin.H{
 			"Message": "Created new cookie to point to uid",
 		})
+
 		return
 
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"Status": "Failure",
-		"Error":  "Not Yet Implemented",
-	})
+	r.Error("Unexpectedly reached end of function")
+
 }
