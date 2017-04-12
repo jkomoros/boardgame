@@ -62,6 +62,11 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 
 	cookie, _ := c.Cookie(cookieName)
 
+	s.doAuthCookie(r, uid, token, cookie)
+
+}
+
+func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie string) {
 	//If the user is already associated with that cookie it's a success, nothing more to do.
 
 	if cookie != "" && uid != "" {
@@ -137,5 +142,4 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 	}
 
 	r.Error("Unexpectedly reached end of function")
-
 }
