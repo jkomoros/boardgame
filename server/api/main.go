@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/itsjamie/gin-cors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/server/api/users"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -225,27 +226,6 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 	effectiveViewingAsPlayer, emptySlots := s.calcViewingAsPlayerAndEmptySlots(userIds, user)
 
-	if effectiveViewingAsPlayer == boardgame.ObserverPlayerIndex {
-		//We aren't yet in game, so we need to join it.
-
-		if len(emptySlots) == 0 {
-			//I guess there weren't any slots.
-			log.Println("The user is not in the game, but there are no empty slots to join in as.")
-		} else {
-
-			slot := emptySlots[0]
-
-			if err := s.storage.SetPlayerForGame(id, slot, user.Id); err != nil {
-				log.Println("Tried to set this user as player", slot, "but failed:", err)
-			} else {
-				log.Println("User joined game", id, "as player", slot)
-				effectiveViewingAsPlayer = slot
-			}
-		}
-	}
-
-	//TODO: technically this is incorrect if we just filled one. But we're
-	//removing that logic in next commit anyway...
 	s.setHasEmptySlots(c, len(emptySlots) != 0)
 
 	s.setViewingAsPlayer(c, effectiveViewingAsPlayer)
@@ -276,6 +256,49 @@ func (s *Server) doGameStatus(r *Renderer, game *boardgame.Game) {
 	r.Success(gin.H{
 		"Version": game.Version(),
 	})
+}
+
+func (s *Server) joinGameHandler(c *gin.Context) {
+	r := NewRenderer(c)
+
+	game := s.getGame(c)
+
+	if game == nil {
+		r.Error("No such game")
+		return
+	}
+
+	user := s.getUser(c)
+
+	userIds := s.storage.UserIdsForGame(game.Id())
+
+	viewingAsPlayer, emptySlots := s.calcViewingAsPlayerAndEmptySlots(userIds, user)
+
+	s.doJoinGame(r, game, viewingAsPlayer, emptySlots, user)
+
+}
+
+func (s *Server) doJoinGame(r *Renderer, game *boardgame.Game, viewingAsPlayer boardgame.PlayerIndex, emptySlots []boardgame.PlayerIndex, user *users.StorageRecord) {
+
+	if viewingAsPlayer != boardgame.ObserverPlayerIndex {
+		r.Error("The given player is already in the game.")
+		return
+	}
+
+	if len(emptySlots) == 0 {
+		r.Error("There aren't any empty slots in the game to join.")
+		return
+	}
+
+	slot := emptySlots[0]
+
+	if err := s.storage.SetPlayerForGame(game.Id(), slot, user.Id); err != nil {
+		r.Error("Tried to set the user as player " + slot.String() + " but failed: " + err.Error())
+		return
+	}
+
+	r.Success(nil)
+
 }
 
 func (s *Server) newGameHandler(c *gin.Context) {
@@ -579,6 +602,7 @@ func (s *Server) Start() {
 		{
 			gameAPIGroup.GET("view", s.gameViewHandler)
 			gameAPIGroup.POST("move", s.moveHandler)
+			gameAPIGroup.POST("join", s.joinGameHandler)
 			gameAPIGroup.GET("status", s.gameStatusHandler)
 		}
 	}
