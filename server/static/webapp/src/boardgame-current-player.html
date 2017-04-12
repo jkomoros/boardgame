@@ -9,11 +9,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
 
 <dom-module id="boardgame-current-player">
   <template>
-    <h3>Playing as {{viewingAsPlayer}}</h3>
-    <h5>Can join: {{hasEmptySlots}}</h5>
+    <h3>
+      Playing as {{viewingAsPlayer}}
+      <div hidden$="{{showJoin}}">
+        <paper-button on-tap="showDialog">Join game</paper-button>
+      </div>
+    </h3>
+    <paper-dialog id="join">
+      <h2>Join game?</h2>
+      <p>We're still looking for players for this game.</p>
+      <div class="buttons">
+        <paper-button dialog-dismiss>I'll just watch</paper-button>
+        <paper-button dialog-confirm>I'm in!</paper-button>
+      </div>
+    </paper-dialog>
   </template>
 
   <script>
@@ -23,6 +37,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         viewingAsPlayer: Number,
         hasEmptySlots: Boolean,
       },
+
+      showDialog: function() {
+        if (this.$.join.opened) return;
+        //TODO: have OserverPlayerIndex as a clientside constant
+        if (this.viewingAsPlayer == -1) return;
+        this.$.join.open();
+      }
+
     });
   </script>
 </dom-module>
