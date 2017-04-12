@@ -11,6 +11,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/polymer/polymer.html">
 <link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../config-src/boardgame-config.html">
+<link rel="import" href="boardgame-util.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
 
 <dom-module id="boardgame-current-player">
   <template>
@@ -28,6 +31,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <paper-button dialog-confirm>I'm in!</paper-button>
       </div>
     </paper-dialog>
+    <iron-ajax id="request" with-credentials url="[[UrlForGameAPI(gameName, gameId, 'join')]]" handle-as="json" last-response="{{response}}">
   </template>
 
   <script>
@@ -36,14 +40,39 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       properties: {
         viewingAsPlayer: Number,
         hasEmptySlots: Boolean,
+        response: {
+          type: Object,
+          observer: "_responseChanged",
+        }
       },
+
+      listeners: {
+        "iron-overlay-closed": "dialogClosed",
+      },
+
+      behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
 
       showDialog: function() {
         if (this.$.join.opened) return;
         //TODO: have OserverPlayerIndex as a clientside constant
-        if (this.viewingAsPlayer == -1) return;
+        if (this.viewingAsPlayer != -1) return;
         this.$.join.open();
-      }
+      },
+
+      dialogClosed: function(e) {
+        if (e.detail.canceled) return;
+
+        //Otherwise, assume it was confirmed.
+        this.doJoin();
+      },
+
+      doJoin: function() {
+        this.$.request.generateRequest();
+      },
+
+      _responseChanged: function(newValue) {
+        console.log(newValue);
+      },
 
     });
   </script>
