@@ -197,6 +197,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         if (this.$.data.loading) {
           return
         }
+
+        if (!this.selected) {
+          return
+        }
+
         if (!this.gameId) {
           //The URL will be junk
           return

@@ -83,7 +83,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <app-drawer-layout fullbleed>
       <!-- Drawer content -->
       <app-drawer id="drawer">
-        <boardgame-user user="{{user}}"></boardgame-user>
+        <boardgame-user id="user" user="{{user}}"></boardgame-user>
         <paper-toggle-button checked="{{admin}}">Admin Mode</paper-toggle-button>
         <app-toolbar>Menu</app-toolbar>
         <iron-selector selected="[[page]]" attr-for-selected="name" class="drawer-list" role="navigation">
@@ -142,7 +142,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       listeners : {
         'navigate-to':'handleNavigateTo',
-        'show-error': 'handleShowError'
+        'show-error': 'handleShowError',
+        'show-login': 'handleShowLogIn',
       },
 
       observers: [
@@ -158,6 +159,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.errorMessage = (details.message || "There was an error");
         this.errorTitle = (details.title || "Error");
         this.$.error.open();
+      },
+
+      handleShowLogIn: function(e) {
+        this.$.user.showSignInDialog();
       },
 
       _routePageChanged: function(page) {
