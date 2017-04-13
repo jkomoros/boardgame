@@ -53,7 +53,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </div>
       </div>
       <div hidden$="{{data.Game.Finished}}">
-        <boardgame-current-player id="player" game-name="{{gameName}}" game-id="{{gameId}}" viewing-as-player="{{data.ViewingAsPlayer}}" has-empty-slots="{{data.HasEmptySlots}}"></boardgame-current-player>
+        <boardgame-current-player id="player" logged-in="{{loggedIn}}" game-name="{{gameName}}" game-id="{{gameId}}" viewing-as-player="{{data.ViewingAsPlayer}}" has-empty-slots="{{data.HasEmptySlots}}"></boardgame-current-player>
       </div>
     </div>
     <div class="card">
