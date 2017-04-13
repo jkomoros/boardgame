@@ -170,6 +170,26 @@ func (r *Renderer) SetAuthCookie(value string) {
 
 }
 
+func (s *Server) userSetup(c *gin.Context) {
+	cookie := s.getRequestCookie(c)
+
+	if cookie == "" {
+		log.Println("No cookie set")
+		return
+	}
+
+	user := s.storage.GetUserByCookie(cookie)
+
+	if user == nil {
+		log.Println("No user associated with that cookie")
+		return
+	}
+
+	s.setUser(c, user)
+
+	s.setAdminAllowed(c, s.calcAdminAllowed(user))
+}
+
 //gameAPISetup fetches the game configured in the URL and puts it in context.
 func (s *Server) gameAPISetup(c *gin.Context) {
 
@@ -200,28 +220,17 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 	s.setGame(c, game)
 
-	cookie := s.getRequestCookie(c)
-
-	if cookie == "" {
-		log.Println("No cookie set")
-		return
-	}
-
-	user := s.storage.GetUserByCookie(cookie)
-
-	if user == nil {
-		log.Println("No user associated with that cookie")
-		return
-	}
-
-	s.setUser(c, user)
-
-	s.setAdminAllowed(c, s.calcAdminAllowed(user))
-
 	userIds := s.storage.UserIdsForGame(id)
 
 	if userIds == nil {
 		log.Println("No userIds associated with game")
+	}
+
+	user := s.getUser(c)
+
+	if user == nil {
+		log.Println("No user provided")
+		return
 	}
 
 	effectiveViewingAsPlayer, emptySlots := s.calcViewingAsPlayerAndEmptySlots(userIds, user)
@@ -620,21 +629,22 @@ func (s *Server) Start() {
 	//We have everything prefixed by /api just in case at some point we do
 	//want to host both static and api on the same logical server.
 	mainGroup := router.Group("/api")
+	mainGroup.Use(s.userSetup)
 
 	{
 		mainGroup.GET("list/game", s.listGamesHandler)
-		mainGroup.POST("new/game", s.newGameHandler)
 		mainGroup.GET("list/manager", s.listManagerHandler)
 
+		mainGroup.POST("new/game", s.newGameHandler)
 		mainGroup.POST("auth/cookie", s.authCookieHandler)
 
 		gameAPIGroup := mainGroup.Group("game/:name/:id")
 		gameAPIGroup.Use(s.gameAPISetup)
 		{
 			gameAPIGroup.GET("view", s.gameViewHandler)
+			gameAPIGroup.GET("status", s.gameStatusHandler)
 			gameAPIGroup.POST("move", s.moveHandler)
 			gameAPIGroup.POST("join", s.joinGameHandler)
-			gameAPIGroup.GET("status", s.gameStatusHandler)
 		}
 	}
 
