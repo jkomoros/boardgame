@@ -226,8 +226,22 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 	effectiveViewingAsPlayer, emptySlots := s.calcViewingAsPlayerAndEmptySlots(userIds, user)
 
-	s.setHasEmptySlots(c, len(emptySlots) != 0)
+	if effectiveViewingAsPlayer == boardgame.ObserverPlayerIndex && len(emptySlots) == game.NumPlayers() {
+		//Special case: we're the first player, we likely just created it. Just join the thing!
 
+		slot := emptySlots[0]
+
+		if err := s.storage.SetPlayerForGame(game.Id(), slot, user.Id); err != nil {
+			log.Println("Tried to set the user as player " + slot.String() + " but failed: " + err.Error())
+			return
+		} else {
+			s.setHasEmptySlots(c, false)
+			effectiveViewingAsPlayer = slot
+		}
+
+	} else {
+		s.setHasEmptySlots(c, len(emptySlots) != 0)
+	}
 	s.setViewingAsPlayer(c, effectiveViewingAsPlayer)
 
 }
