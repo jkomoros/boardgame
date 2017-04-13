@@ -81,7 +81,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       _responseChanged: function(newValue) {
-        console.log(newValue);
+        if (newValue && newValue.Status == "Success") {
+          //Tell game-view to fetch data now
+          this.fire("refresh-data");
+        }
       },
 
     });
