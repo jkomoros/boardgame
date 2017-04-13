@@ -18,10 +18,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="boardgame-util.html">
 <link rel="import" href="../config-src/boardgame-config.html">
+<link rel="import" href="shared-styles.html">
 
 <dom-module id="boardgame-user">
   <template>
-    <style is="custom-style" include="iron-flex">
+    <style is="custom-style" include="iron-flex shared-styles">
       :host {
         display:block;
         padding:16px;
@@ -64,7 +65,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           <paper-input id="password" label="Password" type="password"></paper-input>
           <div class="buttons">
             <paper-button on-tap="cancel">Cancel</paper-button>
-            <paper-button on-tap="emailSubmitted" autofocus>{{buttonText(emailFormIsSignIn)}}</paper-button>
+            <paper-button on-tap="emailSubmitted" autofocus default>{{buttonText(emailFormIsSignIn)}}</paper-button>
           </div>
         </div>
         <div>
@@ -75,7 +76,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           <h2>Sign In Error</h2>
           <div>{{errorText}}</div>
           <div class="buttons">
-            <paper-button on-tap="cancel">OK</paper-button>
+            <paper-button on-tap="cancel" default>OK</paper-button>
           </div>
         </div>
       </iron-pages>
