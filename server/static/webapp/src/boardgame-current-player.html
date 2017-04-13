@@ -31,7 +31,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <paper-button dialog-confirm>I'm in!</paper-button>
       </div>
     </paper-dialog>
-    <iron-ajax id="request" with-credentials url="[[UrlForGameAPI(gameName, gameId, 'join')]]" handle-as="json" last-response="{{response}}">
+    <iron-ajax id="request" with-credentials url="[[UrlForGameAPI(gameName, gameId, 'join')]]" handle-as="json" method="POST" last-response="{{response}}">
   </template>
 
   <script>
