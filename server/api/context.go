@@ -19,11 +19,12 @@ const (
 )
 
 const (
-	qryAdminKey    = "admin"
-	qryPlayerKey   = "player"
-	qryGameIdKey   = "id"
-	qryGameNameKey = "name"
-	qryManagerKey  = "manager"
+	qryAdminKey      = "admin"
+	qryPlayerKey     = "player"
+	qryGameIdKey     = "id"
+	qryGameNameKey   = "name"
+	qryManagerKey    = "manager"
+	qryNumPlayersKey = "numplayers"
 )
 
 const (
@@ -32,6 +33,23 @@ const (
 
 func (s *Server) getRequestManager(c *gin.Context) string {
 	return c.PostForm(qryManagerKey)
+}
+
+func (s *Server) getRequestNumPlayers(c *gin.Context) int {
+	rawValue := c.PostForm(qryNumPlayersKey)
+
+	if rawValue == "" {
+		rawValue = "0"
+	}
+
+	numPlayers, err := strconv.Atoi(rawValue)
+
+	if err != nil {
+		return 0
+	}
+
+	return numPlayers
+
 }
 
 func (s *Server) getRequestGameId(c *gin.Context) string {

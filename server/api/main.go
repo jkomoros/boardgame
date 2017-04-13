@@ -326,13 +326,15 @@ func (s *Server) newGameHandler(c *gin.Context) {
 
 	managerId := s.getRequestManager(c)
 
+	numPlayers := s.getRequestNumPlayers(c)
+
 	manager := s.managers[managerId]
 
-	s.doNewGame(r, manager)
+	s.doNewGame(r, manager, numPlayers)
 
 }
 
-func (s *Server) doNewGame(r *Renderer, manager *boardgame.GameManager) {
+func (s *Server) doNewGame(r *Renderer, manager *boardgame.GameManager, numPlayers int) {
 
 	if manager == nil {
 		r.Error("No manager provided")
@@ -346,7 +348,7 @@ func (s *Server) doNewGame(r *Renderer, manager *boardgame.GameManager) {
 		return
 	}
 
-	if err := game.SetUp(0); err != nil {
+	if err := game.SetUp(numPlayers); err != nil {
 		//TODO: communicate the error state back to the client in a sane way
 		r.Error("Couldn't set up game: " + err.Error())
 		return
