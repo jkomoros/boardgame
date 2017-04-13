@@ -64,6 +64,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         var result = e.detail.parseResponse();
         if (result.Status == "Success") {
           this.fire("navigate-to", this.UrlForGame(result.GameName, result.GameId))
+        } else {
+          this.fire("show-error", {message:result.Error});
         }
       }
     });
