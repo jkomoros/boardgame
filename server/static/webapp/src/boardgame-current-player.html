@@ -49,6 +49,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         response: {
           type: Object,
           observer: "_responseChanged",
+        },
+        //TODO: there must be a better way to do constants...
+        OBSERVER_PLAYER_INDEX : {
+          type: Number,
+          value: -1,
         }
       },
 
@@ -59,13 +64,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
 
       _computeShowJoin: function(viewingAsPlayer, hasEmptySlots) {
-        return viewingAsPlayer == -1 && hasEmptySlots;
+        return viewingAsPlayer == this.OBSERVER_PLAYER_INDEX && hasEmptySlots;
       },
 
       showDialog: function() {
         if (this.$.join.opened) return;
-        //TODO: have OserverPlayerIndex as a clientside constant
-        if (this.viewingAsPlayer != -1) return;
+        if (this.viewingAsPlayer != this.OBSERVER_PLAYER_INDEX) return;
         this.$.join.open();
       },
 
