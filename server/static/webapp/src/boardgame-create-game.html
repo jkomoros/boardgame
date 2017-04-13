@@ -18,23 +18,26 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
 <link rel="import" href="../bower_components/paper-listbox/paper-listbox.html">
 <link rel="import" href="../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
 <link rel="import" href="shared-styles.html">
 
 <dom-module id="boardgame-create-game">
   <template>
     <style is="custom-style" include="iron-flex shared-styles">
-
+      paper-input {
+        margin-left: 1em;
+      }
     </style>
       <form id="creategame" is="iron-form" method="POST" action="[[NewGameUrl(apiHost)]]" class="horizontal layout center">
-        <div class="flex">
-          <paper-dropdown-menu name="manager" label="Game Type">
-            <paper-listbox class="dropdown-content" selected="0">
-              <template is="dom-repeat" items="{{managers.Managers}}">
-                <paper-item value="{{item}}">{{item}}</paper-item> 
-              </template>
-            </paper-listbox>
-          </paper-dropdown-menu>
-        </div>
+        <paper-dropdown-menu name="manager" label="Game Type">
+          <paper-listbox class="dropdown-content" selected="0">
+            <template is="dom-repeat" items="{{managers.Managers}}">
+              <paper-item value="{{item}}">{{item}}</paper-item> 
+            </template>
+          </paper-listbox>
+        </paper-dropdown-menu>
+        <paper-input name="numplayers" label="Number of Players (0 for default)" value="0"></paper-input>
+        <div class="flex"></div>
         <paper-button on-tap="createGame" default raised>Create Game</paper-button>
       </form>
     <iron-ajax auto url="[[ListManagersUrl(apiHost)]]" handle-as="json" last-response="{{managers}}">
