@@ -21,6 +21,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/iron-selector/iron-selector.html">
 <link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../bower_components/paper-toggle-button/paper-toggle-button.html">
+<link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
 <link rel="import" href="boardgame-user.html">
 <link rel="import" href="my-icons.html">
 
@@ -108,6 +110,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </iron-pages>
       </app-header-layout>
     </app-drawer-layout>
+    <paper-dialog id="error">
+      <h2>{{errorTitle}}</h2>
+      <p>{{errorMessage}}</p>
+      <div class="buttons">
+        <paper-button dialog-dismiss>OK</paper-button>
+      </div>
+    </paper-dialog>
   </template>
 
   <script>
@@ -129,7 +138,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       listeners : {
-        'navigate-to':'handleNavigateTo'
+        'navigate-to':'handleNavigateTo',
+        'show-error': 'handleShowError'
       },
 
       observers: [
@@ -138,6 +148,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       
       handleNavigateTo: function(e) {
         this.set('route.path',e.detail);
+      },
+
+      handleShowError: function(e) {
+        let details = e.detail;
+        this.errorMessage = (details.message || "There was an error");
+        this.errorTitle = (details.title || "Error");
+        this.$.error.open();
       },
 
       _routePageChanged: function(page) {

@@ -81,9 +81,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       _responseChanged: function(newValue) {
-        if (newValue && newValue.Status == "Success") {
+        if (!newValue) return;
+
+        if (newValue.Status == "Success") {
           //Tell game-view to fetch data now
           this.fire("refresh-data");
+        } else {
+          this.fire("show-error", {"message" : newValue.Error, "title": "Couldn't Join"})
         }
       },
 
