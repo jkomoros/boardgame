@@ -26,7 +26,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
       <div hidden$="{{isObserver}}">
         <h3>
-          Playing as {{viewingAsPlayer}}
+          Playing as {{playerName(viewingAsPlayer)}}
         </h3>
       </div>
       <div hidden$="{{!isObserver}}">
@@ -75,6 +75,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         OBSERVER_PLAYER_INDEX : {
           type: Number,
           value: -1,
+        },
+        ADMIN_PLAYER_INDEX: {
+          type: Number,
+          value: -2,
         }
       },
 
@@ -83,6 +87,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
+
+      playerName: function(viewingAsPlayer) {
+        if (viewingAsPlayer == this.ADMIN_PLAYER_INDEX) return "Admin"
+        return "player " + viewingAsPlayer;
+      },
 
       _computeIsObserver: function(viewingAsPlayer) {
         return viewingAsPlayer == this.OBSERVER_PLAYER_INDEX;
