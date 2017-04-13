@@ -288,6 +288,15 @@ func (s *Server) getMoveFromForm(c *gin.Context, game *boardgame.Game) (boardgam
 				return nil, errors.New(fmt.Sprint("Couldn't set field", field.Name, err))
 			}
 			move.ReadSetter().SetProp(field.Name, num)
+		case boardgame.TypePlayerIndex:
+			if rawVal == "" {
+				return nil, errors.New("An int field had no value " + field.Name)
+			}
+			num, err := strconv.Atoi(rawVal)
+			if err != nil {
+				return nil, errors.New("Couldn't set field " + field.Name + " " + err.Error())
+			}
+			move.ReadSetter().SetProp(field.Name, boardgame.PlayerIndex(num))
 		case boardgame.TypeBool:
 			if rawVal == "" {
 				move.ReadSetter().SetProp(field.Name, false)
