@@ -107,8 +107,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             fallback-selection="view404"
             selected-attribute="selected"
             role="main">
-          <boardgame-game-view admin="{{admin}}" name="game" game-id="[[gameData.id]]" game-name="[[gameData.name]]"></boardgame-game-view>
-          <boardgame-list-games-view name="list-games"></boardgame-list-games-view>
+          <boardgame-game-view logged-in="{{loggedIn}}" admin="{{admin}}" name="game" game-id="[[gameData.id]]" game-name="[[gameData.name]]"></boardgame-game-view>
+          <boardgame-list-games-view name="list-games" logged-in"{{loggedIn}}""></boardgame-list-games-view>
           <boardgame-404-view name="404"></boardgame-404-view>
         </iron-pages>
       </app-header-layout>
@@ -134,6 +134,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         route : Object,
         user: Object,
+        loggedIn : {
+          type: Boolean,
+          computed: "_computeLoggedIn(user)",
+        },
         admin: {
           type: Boolean,
           value: false,
@@ -159,6 +163,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.errorMessage = (details.message || "There was an error");
         this.errorTitle = (details.title || "Error");
         this.$.error.open();
+      },
+
+      _computeLoggedIn: function(user) {
+        if (!user) return false;
+        return true;
       },
 
       handleShowLogIn: function(e) {
