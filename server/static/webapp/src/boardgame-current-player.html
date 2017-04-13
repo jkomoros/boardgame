@@ -42,6 +42,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         hasEmptySlots: Boolean,
         gameName: String,
         gameId: String,
+        showJoin: {
+          type: Boolean,
+          computed: "_computeShowJoin(viewingAsPlayer, hasEmptySlots)"
+        },
         response: {
           type: Object,
           observer: "_responseChanged",
@@ -53,6 +57,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
+
+      _computeShowJoin: function(viewingAsPlayer, hasEmptySlots) {
+        return !(viewingAsPlayer == -1 && hasEmptySlots);
+      },
 
       showDialog: function() {
         if (this.$.join.opened) return;
