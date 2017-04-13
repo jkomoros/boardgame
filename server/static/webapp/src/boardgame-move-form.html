@@ -10,8 +10,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../bower_components/polymer/polymer.html">
 <link rel="import" href="../bower_components/iron-form/iron-form.html">
-<link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
-<link rel="import" href="../bower_components/paper-button/paper-button.html">
 <link rel="import" href="shared-styles.html">
 <link rel="import" href="../config-src/boardgame-config.html">
 <link rel="import" href="boardgame-util.html">
@@ -47,13 +45,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           </form>
         </details>
       </template>
-      <paper-dialog id="error">
-        <h2>There was an error</h2>
-        <div id="error-content">
-
-        </div>
-        <paper-button dialog-dismiss>OK</paper-button>
-      </paper-dialog>
   </template>
 
   <script>
@@ -147,8 +138,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       formResponse: function(e) {
         let response = e.detail.parseResponse();
         if (response.Error) {
-          this.$["error-content"].textContent = response.Error;
-          this.$.error.open();
+          this.fire("show-error", {message:response.Error, title: "Couldn't make move"})
         }
         //Let the game-view know that the move was made and we should see if
         //there's an updated version.
