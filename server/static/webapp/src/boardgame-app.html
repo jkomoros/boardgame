@@ -162,7 +162,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       handleShowLogIn: function(e) {
-        this.$.user.showSignInDialog();
+        //The event might have things like a nextAction, so forward it.
+        this.$.user.showSignInDialog(e);
       },
 
       _routePageChanged: function(page) {

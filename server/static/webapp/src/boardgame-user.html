@@ -93,8 +93,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Boolean,
           value: true,
         },
-        authResponse: Object,
+        authResponse: {
+          type: Object,
+          observer: "_authResponseChanged",
+        },
         lastUserId: String,
+        //When the user signs in successfully, if this is not undefined, will be called.
+        signedInAction: Object,
       },
 
       behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
@@ -105,6 +110,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       ready : function(e) {
         firebase.auth().onAuthStateChanged(this.authChanged.bind(this));
+      },
+
+      _authResponseChanged: function(newValue) {
+        if (newValue.Status != "Success") return;
+        //Must have been a log out
+        if (!this.user) return;
+        if (!this.signedInAction) return;
+
+        this.signedInAction();
+        
+        this.signedInAction = null;
       },
 
       authChanged: function(user) {
@@ -189,6 +205,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       showSignInDialog: function(e) {
+
+        //Might be undefined, that's fine
+        this.signedInAction = e.detail.nextAction;
+
         this.$.pages.selected = 0;
         this.$.dialog.open();
       },
