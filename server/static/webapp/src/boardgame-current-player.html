@@ -103,6 +103,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       showDialog: function() {
+        if (!this.loggedIn) {
+          this.fire('show-login', {nextAction:this.showDialog.bind(this)});
+          return;
+        }
         if (this.$.join.opened) return;
         if (this.viewingAsPlayer != this.OBSERVER_PLAYER_INDEX) return;
         this.$.join.open();
