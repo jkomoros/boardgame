@@ -15,6 +15,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="../bower_components/iron-form/iron-form.html">
+<link rel="import" href="../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../bower_components/paper-listbox/paper-listbox.html">
+<link rel="import" href="../bower_components/paper-item/paper-item.html">
 <link rel="import" href="shared-styles.html">
 
 <dom-module id="boardgame-create-game">
@@ -24,11 +27,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
       <form id="creategame" is="iron-form" method="POST" action="[[NewGameUrl(apiHost)]]" class="horizontal layout center">
         <div class="flex">
-          <select name="manager">
-            <template is="dom-repeat" items="{{managers.Managers}}">
-              <option value="{{item}}">{{item}}</option> 
-            </template>
-          </select>
+          <paper-dropdown-menu name="manager" label="Game Type">
+            <paper-listbox class="dropdown-content" selected="0">
+              <template is="dom-repeat" items="{{managers.Managers}}">
+                <paper-item value="{{item}}">{{item}}</paper-item> 
+              </template>
+            </paper-listbox>
+          </paper-dropdown-menu>
         </div>
         <paper-button on-tap="createGame" default raised>Create Game</paper-button>
       </form>
