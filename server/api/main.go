@@ -255,6 +255,22 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 }
 
+//Checks to make sure the user is logged in, fails if not.
+func (s *Server) requireLoggedIn(c *gin.Context) {
+
+	r := NewRenderer(c)
+
+	user := s.getUser(c)
+
+	if user == nil {
+		r.Error("Not logged in")
+		c.Abort()
+		return
+	}
+
+	//All good!
+}
+
 func (s *Server) gameStatusHandler(c *gin.Context) {
 	//This handler is designed to be a very simple status marker for the
 	//current version of the specific game. It will be hit hard by all
@@ -635,16 +651,22 @@ func (s *Server) Start() {
 		mainGroup.GET("list/game", s.listGamesHandler)
 		mainGroup.GET("list/manager", s.listManagerHandler)
 
-		mainGroup.POST("new/game", s.newGameHandler)
 		mainGroup.POST("auth/cookie", s.authCookieHandler)
+
+		protectedMainGroup := mainGroup.Group("")
+		protectedMainGroup.Use(s.requireLoggedIn)
+		protectedMainGroup.POST("new/game", s.newGameHandler)
 
 		gameAPIGroup := mainGroup.Group("game/:name/:id")
 		gameAPIGroup.Use(s.gameAPISetup)
 		{
 			gameAPIGroup.GET("view", s.gameViewHandler)
 			gameAPIGroup.GET("status", s.gameStatusHandler)
-			gameAPIGroup.POST("move", s.moveHandler)
-			gameAPIGroup.POST("join", s.joinGameHandler)
+
+			protectedGameAPIGroup := gameAPIGroup.Group("")
+			protectedGameAPIGroup.Use(s.requireLoggedIn)
+			protectedGameAPIGroup.POST("move", s.moveHandler)
+			protectedGameAPIGroup.POST("join", s.joinGameHandler)
 		}
 	}
 
