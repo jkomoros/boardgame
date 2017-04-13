@@ -12,33 +12,39 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="../bower_components/iron-form/iron-form.html">
 <link rel="import" href="../config-src/boardgame-config.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="shared-styles.html">
 <link rel="import" href="boardgame-util.html">
 
 <dom-module id="boardgame-list-games-view">
   <template>
-    <style include="shared-styles">
+    <style include="shared-styles iron-flex">
       :host {
         display: block;
 
         padding: 10px;
       }
     </style>
+    <div class="card">
+      <form id="creategame" is="iron-form" method="POST" action="[[NewGameUrl(apiHost)]]" class="horizontal layout center">
+        <div class="flex">
+          <select name="manager">
+            <template is="dom-repeat" items="{{managers.Managers}}">
+              <option value="{{item}}">{{item}}</option> 
+            </template>
+          </select>
+        </div>
+        <paper-button on-tap="createGame" default raised>Create Game</paper-button>
+      </form>
+    </div>
     <template is="dom-repeat" items="{{data.Games}}">
+
       <div class="card">
         <a href="[[UrlForGame(item.Name,item.Id)]]">{{item.Id}}</a>
       </div>
     </template>
-    <div class="card">
-      <form is="iron-form" method="POST" action="[[NewGameUrl(apiHost)]]">
-        <select name="manager">
-          <template is="dom-repeat" items="{{managers.Managers}}">
-            <option value="{{item}}">{{item}}</option> 
-          </template>
-        </select>
-        <input type="submit" value="Make new game">
-      </form>
-    </div>
+
     <iron-ajax auto url="[[ListManagersUrl(apiHost)]]" handle-as="json" last-response="{{managers}}">
     <iron-ajax id="games" url="[[ListGamesUrl(apiHost)]]" handle-as="json" last-response="{{data}}">
   </template>
@@ -58,6 +64,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       listeners: {
         'iron-form-response': 'handleResponse',
       },
+
+      createGame: function() {
+        this.$.creategame.submit();
+      },
+
       _selectedChanged: function(newValue) {
         if (newValue) {
           this.$.games.generateRequest();
