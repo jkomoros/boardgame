@@ -70,9 +70,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       dialogClosed: function(e) {
-        if (e.detail.canceled) return;
 
-        //Otherwise, assume it was confirmed.
+        //If it wasn't confirmed, it was effectively canceled.
+
+        if (!e.detail.confirmed) return;
+
         this.doJoin();
       },
 
