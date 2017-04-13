@@ -22,6 +22,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
      h3 {
       margin:0;
      }
+     paper-button[default] {
+      background-color: var(--app-primary-color);
+      color: white;
+     }
     </style>
       <div hidden$="{{isObserver}}">
         <h3>
@@ -33,7 +37,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           Observing
         </h3>
         <div hidden$="{{!showJoin}}">
-          <paper-button on-tap="showDialog" raised>Join game</paper-button>
+          <paper-button on-tap="showDialog" raised default>Join game</paper-button>
         </div>
       </div>
     </h3>
