@@ -1,0 +1,52 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../config-src/boardgame-config.html">
+<link rel="import" href="boardgame-util.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../bower_components/iron-form/iron-form.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="boardgame-create-game">
+  <template>
+    <style is="custom-style" include="iron-flex shared-styles">
+
+    </style>
+      <form id="creategame" is="iron-form" method="POST" action="[[NewGameUrl(apiHost)]]" class="horizontal layout center">
+        <div class="flex">
+          <select name="manager">
+            <template is="dom-repeat" items="{{managers.Managers}}">
+              <option value="{{item}}">{{item}}</option> 
+            </template>
+          </select>
+        </div>
+        <paper-button on-tap="createGame" default raised>Create Game</paper-button>
+      </form>
+    <iron-ajax auto url="[[ListManagersUrl(apiHost)]]" handle-as="json" last-response="{{managers}}">
+  </template>
+
+  <script>
+    Polymer({
+      is: 'boardgame-create-game',
+      properties: {
+        managers: Object,
+      },
+      behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
+
+      createGame: function() {
+        this.$.creategame.submit();
+      },
+
+    });
+  </script>
+</dom-module>
