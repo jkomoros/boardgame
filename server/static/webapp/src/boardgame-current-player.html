@@ -19,7 +19,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <template>
     <h3>
       Playing as {{viewingAsPlayer}}
-      <div hidden$="{{showJoin}}">
+      <div hidden$="{{!showJoin}}">
         <paper-button on-tap="showDialog">Join game</paper-button>
       </div>
     </h3>
@@ -59,7 +59,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
 
       _computeShowJoin: function(viewingAsPlayer, hasEmptySlots) {
-        return !(viewingAsPlayer == -1 && hasEmptySlots);
+        return viewingAsPlayer == -1 && hasEmptySlots;
       },
 
       showDialog: function() {

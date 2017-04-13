@@ -53,7 +53,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </div>
       </div>
       <div hidden$="{{data.Game.Finished}}">
-        <boardgame-current-player game-name="{{gameName}}" game-id="{{gameId}}" viewing-as-player="{{data.ViewingAsPlayer}}" has-empty-slots="{{data.HasEmptySlots}}"></boardgame-current-player>
+        <boardgame-current-player id="player" game-name="{{gameName}}" game-id="{{gameId}}" viewing-as-player="{{data.ViewingAsPlayer}}" has-empty-slots="{{data.HasEmptySlots}}"></boardgame-current-player>
       </div>
     </div>
     <div class="card">
@@ -103,7 +103,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         chest : String,
         gameState : String,
-        gameId: String,
+        gameId: {
+          type: String,
+          observer: "_gameIdChanged",
+        },
         gameName: String,
         admin: {
           type: Boolean,
@@ -120,6 +123,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         maxCurrentPlayerIndex: {
           type: Number,
           computed: "_computeMaxCurrentPlayerIndex(data)"
+        },
+        promptedToJoin: {
+          type: Boolean,
+          value: false,
         },
         pathsToTick: {
           type: Array
@@ -156,6 +163,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.data = null;
           this.async(this.updateData);
         }
+      },
+      _gameIdChanged: function() {
+        //reset this so the next time we get data set and notice that we COULD
+        //login we prompt for it.
+        this.promptedToJoin = false
       },
       _adminChanged: function(newValue) {
         this.fetchData();
@@ -379,6 +391,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.gameState = JSON.stringify(newValue.Game.CurrentState, null, 2);
           //Have to use this.set to get databinding system to notice the change.
           this.set("data.Game.ExpandedCurrentState", this._expandState(newValue.Game.CurrentState));
+        }
+
+        if (this.selected && this.$.player.showJoin) {
+          //Prompt the user to join!
+          this.$.player.showDialog();
         }
 
       },
