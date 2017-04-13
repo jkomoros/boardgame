@@ -18,8 +18,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <dom-module id="boardgame-current-player">
   <template>
     <h3>
-      Playing as {{viewingAsPlayer}}
+      <div hidden$="{{showJoin}}">
+        Playing as {{viewingAsPlayer}}
+      </div>
       <div hidden$="{{!showJoin}}">
+        Observing
         <paper-button on-tap="showDialog">Join game</paper-button>
       </div>
     </h3>
