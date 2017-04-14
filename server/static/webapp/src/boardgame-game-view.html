@@ -120,7 +120,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: String,
           computed: "_computeGameViewUrl(gameName, gameId, currentPlayer, admin)"
         },
-        loggedIn: Boolean,
+        loggedIn: {
+          type: Boolean,
+          observer: "_handleLoggedInChanged",
+        },
         maxCurrentPlayerIndex: {
           type: Number,
           computed: "_computeMaxCurrentPlayerIndex(data)"
@@ -165,13 +168,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.async(this.updateData);
         }
       },
+      _handleLoggedInChanged: function(newValue) {
+        this.debounce("fetch-data", this.fetchData.bind(this));
+      },
       _gameIdChanged: function() {
         //reset this so the next time we get data set and notice that we COULD
         //login we prompt for it.
         this.promptedToJoin = false
       },
       _adminChanged: function(newValue) {
-        this.fetchData();
+        this.debounce("fetch-data", this.fetchData.bind(this));
       },
       _computeGameViewUrl: function(gameName, gameId, currentPlayer, admin){
         return this.UrlForGameAPI(gameName, gameId, "view") + "?player=" + currentPlayer+"&admin=" + (admin ? 1 : 0);
@@ -186,7 +192,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return data.Game.NumPlayers - 1;
       },
       _currentPlayerChanged : function() {
-        this.async(this.fetchData);
+        this.debounce("fetch-data", this.fetchData.bind(this));
       },
       updateData: function() {
         this.fetchData();
