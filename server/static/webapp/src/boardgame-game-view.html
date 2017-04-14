@@ -60,7 +60,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <boardgame-render-game state="{{data.Game.CurrentState}}" expanded-state="{{data.Game.ExpandedCurrentState}}" diagram="{{data.Diagram}}" game-name="{{gameName}}"></boardgame-render-game>
     </div>
     <div class="card" hidden="{{!admin}}">
-      View as:<input is="iron-input" type="number" value-as-number="{{currentPlayer::input}}" min="-2" max="{{maxCurrentPlayerIndex}}">
+      View as:<input is="iron-input" type="number" value-as-number="{{requestedPlayer::input}}" min="-2" max="{{maxRequestedPlayerIndex}}">
     </div>
 
     <template is="dom-if" if="{{!data.Game.Finished}}">
@@ -96,10 +96,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Object,
           observer: '_statusChanged'
         },
-        currentPlayer: {
+        requestedPlayer: {
           type: Number,
           value: 0,
-          observer: "_currentPlayerChanged"
+          observer: "_requestedPlayerChanged"
         },
         chest : String,
         gameState : String,
@@ -118,15 +118,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         gameViewUrl : {
           type: String,
-          computed: "_computeGameViewUrl(gameName, gameId, currentPlayer, admin)"
+          computed: "_computeGameViewUrl(gameName, gameId, requestedPlayer, admin)"
         },
         loggedIn: {
           type: Boolean,
           observer: "_handleLoggedInChanged",
         },
-        maxCurrentPlayerIndex: {
+        maxRequestedPlayerIndex: {
           type: Number,
-          computed: "_computeMaxCurrentPlayerIndex(data)"
+          computed: "_computeMaxRequestedPlayerIndex(data)"
         },
         promptedToJoin: {
           type: Boolean,
@@ -179,10 +179,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _adminChanged: function(newValue) {
         this.debounce("fetch-data", this.fetchData.bind(this));
       },
-      _computeGameViewUrl: function(gameName, gameId, currentPlayer, admin){
-        return this.UrlForGameAPI(gameName, gameId, "view") + "?player=" + currentPlayer+"&admin=" + (admin ? 1 : 0);
+      _computeGameViewUrl: function(gameName, gameId, requestedPlayer, admin){
+        return this.UrlForGameAPI(gameName, gameId, "view") + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0);
       },
-      _computeMaxCurrentPlayerIndex: function(data) {
+      _computeMaxRequestedPlayerIndex: function(data) {
         if (!data) {
           return 0;
         }
@@ -191,7 +191,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
         return data.Game.NumPlayers - 1;
       },
-      _currentPlayerChanged : function() {
+      _requestedPlayerChanged : function() {
         this.debounce("fetch-data", this.fetchData.bind(this));
       },
       updateData: function() {
