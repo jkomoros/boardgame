@@ -28,7 +28,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         margin-left: 1em;
       }
     </style>
-      <form id="creategame" is="iron-form" method="POST" action="[[NewGameUrl(apiHost)]]" class="horizontal layout center">
+      <form id="creategame" is="iron-form" method="POST" with-credentials action="[[NewGameUrl(apiHost)]]" class="horizontal layout center">
         <paper-dropdown-menu name="manager" label="Game Type">
           <paper-listbox class="dropdown-content" selected="0">
             <template is="dom-repeat" items="{{managers.Managers}}">
