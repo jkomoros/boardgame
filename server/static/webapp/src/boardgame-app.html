@@ -83,7 +83,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <app-drawer-layout fullbleed>
       <!-- Drawer content -->
       <app-drawer id="drawer">
-        <boardgame-user id="user" user="{{user}}"></boardgame-user>
+        <boardgame-user id="user" logged-in="{{loggedIn}}"></boardgame-user>
         <paper-toggle-button checked="{{admin}}">Admin Mode</paper-toggle-button>
         <app-toolbar>Menu</app-toolbar>
         <iron-selector selected="[[page]]" attr-for-selected="name" class="drawer-list" role="navigation">
@@ -134,10 +134,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         route : Object,
         user: Object,
-        loggedIn : {
-          type: Boolean,
-          computed: "_computeLoggedIn(user)",
-        },
+        loggedIn : Boolean,
         admin: {
           type: Boolean,
           value: false,
@@ -163,11 +160,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.errorMessage = (details.message || "There was an error");
         this.errorTitle = (details.title || "Error");
         this.$.error.open();
-      },
-
-      _computeLoggedIn: function(user) {
-        if (!user) return false;
-        return true;
       },
 
       handleShowLogIn: function(e) {

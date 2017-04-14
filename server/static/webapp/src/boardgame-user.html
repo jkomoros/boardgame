@@ -88,10 +88,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     Polymer({
       is: 'boardgame-user',
       properties: {
-        user: {
-          type: Object,
-          notify: true,
-        },
+        user: Object,
         emailFormIsSignIn: {
           type: Boolean,
           value: true,
@@ -100,6 +97,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Object,
           observer: "_authResponseChanged",
         },
+        loggedIn : {
+          type: Boolean,
+          notify:true,
+          computed: "_computeLoggedIn(user, userConfirmed)",
+        },
+        //userConfirmed is if we have or own auth token for this user.
+        userConfirmed : Boolean,
         lastUserId: String,
         //When the user signs in successfully, if this is not undefined, will be called.
         signedInAction: Object,
@@ -115,8 +119,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         firebase.auth().onAuthStateChanged(this.authChanged.bind(this));
       },
 
+      _computeLoggedIn: function(user, userConfirmed) {
+        if (!user) return false;
+        if (!userConfirmed) return false;
+        return true;
+      },
+
       _authResponseChanged: function(newValue) {
         if (newValue.Status != "Success") return;
+
+        this.userConfirmed = true;
         //Must have been a log out
         if (!this.user) return;
         if (!this.signedInAction) return;
@@ -128,6 +140,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       authChanged: function(user) {
         this.user = user;
+        this.userConfirmed = false;
         if (user) {
           this.$.dialog.close();
           if (this.lastUserId != user.uid) {
