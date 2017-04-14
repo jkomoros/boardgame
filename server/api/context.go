@@ -159,7 +159,7 @@ func (s *Server) calcViewingAsPlayerAndEmptySlots(userIds []string, user *users.
 		if userId == "" {
 			emptySlots = append(emptySlots, boardgame.PlayerIndex(i))
 		}
-		if userId == user.Id {
+		if user != nil && userId == user.Id {
 			//We're here!
 			result = boardgame.PlayerIndex(i)
 		}

@@ -230,12 +230,12 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 	if user == nil {
 		log.Println("No user provided")
-		return
+		//The rest of the flow will handle a nil user fine
 	}
 
 	effectiveViewingAsPlayer, emptySlots := s.calcViewingAsPlayerAndEmptySlots(userIds, user)
 
-	if effectiveViewingAsPlayer == boardgame.ObserverPlayerIndex && len(emptySlots) == game.NumPlayers() {
+	if user != nil && effectiveViewingAsPlayer == boardgame.ObserverPlayerIndex && len(emptySlots) == game.NumPlayers() {
 		//Special case: we're the first player, we likely just created it. Just join the thing!
 
 		slot := emptySlots[0]
