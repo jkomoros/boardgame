@@ -53,6 +53,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
 
       createGame: function() {
+        if (!this.loggedIn) {
+          this.fire('show-login', {nextAction:this.createGame.bind(this)});
+          return;
+        }
         this.$.creategame.submit();
       },
 
