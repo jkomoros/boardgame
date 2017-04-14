@@ -399,7 +399,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.set("data.Game.ExpandedCurrentState", this._expandState(newValue.Game.CurrentState));
         }
 
-        if (this.selected && this.$.player.showJoin && !this.promptedToJoin) {
+        if (this.selected && this.loggedIn && this.$.player.showJoin && !this.promptedToJoin) {
 
           //Take note that we already prompted them, and don't prompt again unless the game changes.
           this.promptedToJoin = true;
