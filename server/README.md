@@ -42,7 +42,7 @@ import (
 func main() {
 	storage := api.NewDefaultStorageManager()
 	defer storage.Close()
-	api.NewServer(mygame.NewManager(storage), storage).Start()
+	api.NewServer(storage, mygame.NewManager(storage)).Start()
 }
 
 ```
