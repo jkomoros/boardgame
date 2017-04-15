@@ -67,7 +67,6 @@ func main() {
 * src 
 * config-src
 * index.html
-* manifest.json
 
 Example symlink:
 ```
