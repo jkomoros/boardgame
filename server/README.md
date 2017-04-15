@@ -55,14 +55,16 @@ func main() {
 
 6. Copy boardgame/server/api/config.SAMPLE.json to be mygame/server/api/config.SECRET.json . Do not commit this file to version control (your gitignore should help you avoid doing that)
 7. Create mygame/server/static/webapp directory
-8. Create mygame/server/webapp/game-src directory, which is where you will create all of your game-rendering subviews.
-9. In mygame/server/static/webapp/game-src, create boardgame-render-game-<gamename>.html (where <gamename> is the short name of the game) and define a polymer element in it. This is the entrypoint for the rendering of your view, and will be passed Game object.
-10. Copy the following items from boardgame/server/static/webapp to your own webapp. None of them require modification by default.
+8. Create mygame/server/webapp/game-src directory, which is where you will link to all of your game-rendering subviews.
+9. Create mygame/client/mygame/
+10. Create a relative symlink from mygame/server/webapp/game-src to mygame/client/mygame/ (see #14 for an example)
+11. In mygame/client/mygame, create boardgame-render-game-<gamename>.html (where <gamename> is the short name of the game) and define a polymer element in it. This is the entrypoint for the rendering of your view, and will be passed Game object.
+12. Copy the following items from boardgame/server/static/webapp to your own webapp. None of them require modification by default.
 * bower.json
 * manifest.json
 * .gitignore
-10. Copy polymer.json to your own webapp. Modify it to add the game-src/boardgame-render-game-<gamename>.html fragment.
-11. Create symlinks from the following items:
+13. Copy polymer.json to your own webapp. Modify it to add the game-src/mygame/boardgame-render-game-<gamename>.html fragment.
+14. Create symlinks from the following items:
 * src 
 * config-src
 * index.html
@@ -75,7 +77,7 @@ ln -s ../../../../server/static/webapp/index.html
 
 By doing relative paths, they can be checked into and managed by git, as long as everything is in its canonical path in $GOPATH--because it will work for everyone.
 
-11. In mygame/server/webapp directory, run:
+15. In mygame/server/webapp directory, run:
 ```
 bower update
 ```
@@ -102,7 +104,7 @@ If you're doing a fresh check out of a webapp server, you'll have to recreate th
 In particular:
 
 1) Create your own server/api/config.SECRET.json
-2) Run step 11 in the "starting a new game from scrathc section above"
+2) Run step 15 in the "starting a new game from scrathc section above"
 
 ## Installing dependencies
 

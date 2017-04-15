@@ -70,7 +70,7 @@
         this.renderer = null;
 
 
-        var resolvedUrl = this.resolveUrl("../game-src/boardgame-render-game-" + newValue + ".html")
+        var resolvedUrl = this.resolveUrl("../game-src/" +newValue + "/boardgame-render-game-" + newValue + ".html")
         this.importHref(resolvedUrl, this._instantiateRenderer, null, true);
       },
       _instantiateRenderer : function(e) {
