@@ -23,7 +23,6 @@ You can now visit localhost:8080.
 package main
 
 import (
-	"<mygame import>"
 	"github.com/jkomoros/boardgame/server/static"
 )
 
