@@ -36,6 +36,10 @@
         rendererLoaded: {
           type: Boolean,
           value: false,
+        },
+        viewingAsPlayer: {
+          type: Number,
+          observer: "_viewingAsPlayerChanged",
         }
       },
       observers: [
@@ -61,6 +65,10 @@
 
 
       },
+      _viewingAsPlayerChanged: function(newValue) {
+        if (!this.renderer) return;
+        this.renderer.viewingAsPlayer = newValue;
+      },
       _gameNameChanged : function(newValue) {
         this.rendererLoaded = false
 
@@ -83,6 +91,7 @@
         ele.diagram = this.diagram;
         ele.state = this.state;
         ele.expandedState = this.expandedState;
+        ele.viewingAsPlayer = this.viewingAsPlayer;
 
         this.renderer = ele;
 
