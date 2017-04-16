@@ -160,7 +160,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       validateCookieWithToken: function(token) {
         //Reaches out to the auth endpoint to get a cookie set (or validate that our cookie is set).
-        let uid = ""
+        var uid = ""
         if (this.user &&  this.user.uid) {
           uid = this.user.uid;
         }
@@ -178,8 +178,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       emailSubmitted: function() {
-        let email = this.$.email.value;
-        let password = this.$.password.value;
+        var email = this.$.email.value;
+        var password = this.$.password.value;
 
         if (this.emailFormIsSignIn) {
           this.signInWithEmailAndPassword(email, password);
@@ -199,7 +199,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       signInWithGoogle: function() {
-        let provider = new firebase.auth.GoogleAuthProvider();
+        var provider = new firebase.auth.GoogleAuthProvider();
         firebase.auth().signInWithPopup(provider).catch(this.handleSignInError.bind(this));
         this.$.pages.selected = 2;
       },

@@ -156,7 +156,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       handleShowError: function(e) {
-        let details = e.detail;
+        var details = e.detail;
         this.errorMessage = (details.message || "There was an error");
         this.errorTitle = (details.title || "Error");
         this.$.error.open();
