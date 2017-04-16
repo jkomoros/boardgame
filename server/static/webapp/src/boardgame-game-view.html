@@ -11,6 +11,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/polymer/polymer.html">
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="../bower_components/iron-input/iron-input.html">
+<link rel="import" href="../bower_components/paper-checkbox/paper-checkbox.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="boardgame-move-form.html">
 <link rel="import" href="boardgame-current-player.html">
 <link rel="import" href="shared-styles.html">
@@ -20,7 +22,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <dom-module id="boardgame-game-view">
   <template>
-    <style include="shared-styles">
+    <style include="shared-styles iron-flex">
       :host {
         display: block;
 
@@ -59,8 +61,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <div class="card">
       <boardgame-render-game state="{{data.Game.CurrentState}}" expanded-state="{{data.Game.ExpandedCurrentState}}" diagram="{{data.Diagram}}" game-name="{{gameName}}" viewing-as-player="{{data.ViewingAsPlayer}}"></boardgame-render-game>
     </div>
-    <div class="card" hidden="{{!admin}}">
-      View as:<input is="iron-input" type="number" value-as-number="{{requestedPlayer::input}}" min="-2" max="{{maxRequestedPlayerIndex}}">
+    <div class="card horizontal layout" hidden="{{!admin}}">
+      <div class="flex">
+        View as:<input is="iron-input" type="number" value-as-number="{{requestedPlayer::input}}" min="-2" max="{{maxRequestedPlayerIndex}}">
+      </div>
+      <div>
+        <paper-checkbox id="move-as-player" checked>Make Moves As ViewingAsPlayer</paper-checkbox>
+      </div>
     </div>
 
     <template is="dom-if" if="{{!data.Game.Finished}}">
