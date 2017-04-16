@@ -172,7 +172,12 @@ func (s *Server) getRequestPlayerIndex(c *gin.Context) boardgame.PlayerIndex {
 	player := c.Query(qryPlayerKey)
 
 	if player == "" {
-		return invalidPlayerIndex
+
+		player = c.PostForm(qryPlayerKey)
+
+		if player == "" {
+			return invalidPlayerIndex
+		}
 	}
 
 	playerIndexInt, err := strconv.Atoi(player)

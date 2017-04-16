@@ -471,18 +471,7 @@ func (s *Server) moveHandler(c *gin.Context) {
 		return
 	}
 
-	viewingPlayerIndex := s.getViewingAsPlayer(c)
-
-	adminAllowed := s.getAdminAllowed(c)
-	requestAdmin := s.getRequestAdmin(c)
-
-	isAdmin := s.calcIsAdmin(adminAllowed, requestAdmin)
-
-	proposer := viewingPlayerIndex
-
-	if isAdmin {
-		proposer = boardgame.AdminPlayerIndex
-	}
+	proposer := s.effectivePlayerIndex(c)
 
 	move, err := s.getMoveFromForm(c, game)
 

@@ -33,6 +33,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             <p><em>{{item.Description}}</em></p>
             <input type="hidden" name="MoveType" value="{{item.Name}}">
             <input type="hidden" name="admin" value="{{boolToInt(admin)}}">
+            <input type="hidden" name="player" value="{{moveAsPlayer}}">
             <template is="dom-repeat" items="{{item.Fields}}">
               <strong>{{item.Name}}</strong>
               <input name="{{item.Name}}" value="{{item.DefaultValue}}">
@@ -58,6 +59,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         admin: Boolean,
         gameId: String,
         gameName: String,
+        moveAsPlayer: Number,
       },
       listeners : {
         'iron-form-response' : 'formResponse',

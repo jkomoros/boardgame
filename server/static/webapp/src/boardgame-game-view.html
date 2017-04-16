@@ -65,7 +65,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     <template is="dom-if" if="{{!data.Game.Finished}}">
       <div class="card">
-        <boardgame-move-form admin="{{admin}}" id="moves" config="{{data.Forms}}" game-id="[[gameId]]" game-name="[[gameName]]"></boardgame-move-form>
+        <boardgame-move-form admin="{{admin}}" move-as-player="{{data.ViewingAsPlayer}}" id="moves" config="{{data.Forms}}" game-id="[[gameId]]" game-name="[[gameName]]"></boardgame-move-form>
       </div>
     </template>
     <div class="card">
