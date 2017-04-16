@@ -76,7 +76,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     <template is="dom-if" if="{{!data.Game.Finished}}">
       <div class="card">
-        <boardgame-move-form admin="{{admin}}" move-as-player="{{data.ViewingAsPlayer}}" id="moves" config="{{data.Forms}}" game-id="[[gameId]]" game-name="[[gameName]]"></boardgame-move-form>
+        <boardgame-move-form admin="{{admin}}" move-as-player="{{moveAsPlayer}}" id="moves" config="{{data.Forms}}" game-id="[[gameId]]" game-name="[[gameName]]"></boardgame-move-form>
       </div>
     </template>
     <div class="card">
@@ -157,6 +157,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         makeMovesAsViewingAsPlayer: {
           type:Boolean,
           value: true,
+        },
+        moveAsPlayer: {
+          type:Number,
+          computed: "_computeMoveAsPlayer(data.ViewingAsPlayer, makeMovesAsViewingAsPlayer)"
         }
       },
       listeners: {
@@ -196,6 +200,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
       _computeGameViewUrl: function(gameName, gameId, requestedPlayer, admin){
         return this.UrlForGameAPI(gameName, gameId, "view") + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0);
+      },
+      _computeMoveAsPlayer: function(viewingAsPlayer, moveAsViewingAsPlayer) {
+        if (moveAsViewingAsPlayer) return viewingAsPlayer;
+        return this.$.player.ADMIN_PLAYER_INDEX;
       },
       _computeMaxRequestedPlayerIndex: function(data) {
         if (!data) {
