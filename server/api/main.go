@@ -40,6 +40,7 @@ type ConfigMode struct {
 	AdminUserIds      []string
 	//This is a dangerous config. Only enable in Dev!
 	DisableAdminChecking bool
+	StorageConfig        map[string]string
 }
 
 type MoveForm struct {
@@ -64,6 +65,9 @@ func (c *ConfigMode) Validate() error {
 	if c.AllowedOrigins == "" {
 		log.Println("No AllowedOrigins found. Defaulting to '*'")
 		c.AllowedOrigins = "*"
+	}
+	if c.StorageConfig == nil {
+		c.StorageConfig = make(map[string]string)
 	}
 	return nil
 }
@@ -617,6 +621,17 @@ func (s *Server) Start() {
 
 	if err := s.config.Validate(); err != nil {
 		log.Println("The provided config was not valid: ", err)
+		return
+	}
+
+	name := s.storage.Name()
+
+	storageConfig := s.config.StorageConfig[name]
+
+	log.Println("Connecting to storage", name, "with config '"+storageConfig+"'")
+
+	if err := s.storage.Connect(storageConfig); err != nil {
+		log.Println("Couldnt' connect to storage manager: ", err)
 		return
 	}
 

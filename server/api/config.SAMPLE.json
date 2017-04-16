@@ -6,12 +6,18 @@
 		"adminuserids": [
 			"aH1TV07K47RC4mTNCai0ZPnQ9Kd2",
 			"uYuZl1jXWXVJ9fEk7mDFifhTGmK2"
-		]
+		],
+		"storageconfig": {
+			"bolt": "",
+		}
 	},
 	"dev" : {
 		"allowedorigins" : "http://localhost:8080",
 		"defaultport" : "8888",
 		"firebaseprojectid": "sample-123456",
-		"disableadminchecking": true
+		"disableadminchecking": true,
+		"storageconfig": {
+			"bolt": "",
+		}
 	}
 }
