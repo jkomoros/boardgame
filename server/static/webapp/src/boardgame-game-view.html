@@ -331,7 +331,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           "Game" : this._expandLeafState(currentState.Game, ["Game"]),
           "Players" : currentState.Players.map(function(item, i) {
             return that._expandLeafState(item, ["Players", i]);
-          })
+          }),
+          "Computed" :  currentState.Computed,
         };
 
         this.async(this.doTick);
