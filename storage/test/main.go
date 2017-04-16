@@ -65,7 +65,7 @@ func BasicTest(factory StorageManagerFactory, testName string, t *testing.T) {
 
 	defer storage.CleanUp()
 
-	assert.For(t).ThatActual(storage.Name()).DoesNotEqual("")
+	assert.For(t).ThatActual(storage.Name()).Equals(testName)
 
 	managers := make(managerMap)
 
