@@ -79,7 +79,7 @@ func (g *gameDelegate) EmptyPlayerState(playerIndex boardgame.PlayerIndex) board
 	}
 }
 
-func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, winners []int) {
+func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, winners []boardgame.PlayerIndex) {
 
 	game, players := concreteStates(state)
 
@@ -106,7 +106,7 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, 
 			}
 		}
 
-		return true, []int{winningPlayer}
+		return true, []boardgame.PlayerIndex{boardgame.PlayerIndex(winningPlayer)}
 	}
 
 	return false, nil

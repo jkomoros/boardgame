@@ -174,7 +174,7 @@ func (g *gameDelegate) StateSanitizationPolicy() *boardgame.StatePolicy {
 
 }
 
-func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, winners []int) {
+func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, winners []boardgame.PlayerIndex) {
 	game, players := concreteStates(state)
 
 	if game.HiddenCards.NumComponents() != 0 || game.RevealedCards.NumComponents() != 0 {
@@ -195,7 +195,7 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, 
 		score := player.WonCards.NumComponents()
 
 		if score >= maxScore {
-			winners = append(winners, i)
+			winners = append(winners, boardgame.PlayerIndex(i))
 		}
 	}
 

@@ -308,7 +308,7 @@ func TestApplyMove(t *testing.T) {
 		t.Error("Game didn't notice that a user had won")
 	}
 
-	if !reflect.DeepEqual(game.Winners(), []int{1}) {
+	if !reflect.DeepEqual(game.Winners(), []PlayerIndex{PlayerIndex(1)}) {
 		t.Error("Game thought the wrong players had won")
 	}
 

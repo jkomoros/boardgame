@@ -49,7 +49,7 @@ type GameDelegate interface {
 
 	//CheckGameFinished should return true if the game is finished, and who
 	//the winners are. Called after every move is applied.
-	CheckGameFinished(state State) (finished bool, winners []int)
+	CheckGameFinished(state State) (finished bool, winners []PlayerIndex)
 
 	//ProposeFixUpMove is called after a move has been applied. It may return
 	//a FixUp move, which will be applied before any other moves are applied.
@@ -209,7 +209,7 @@ func (d *DefaultGameDelegate) FinishSetUp(state MutableState) {
 	//Don't need to do anything by default
 }
 
-func (d *DefaultGameDelegate) CheckGameFinished(state State) (finished bool, winners []int) {
+func (d *DefaultGameDelegate) CheckGameFinished(state State) (finished bool, winners []PlayerIndex) {
 	return false, nil
 }
 

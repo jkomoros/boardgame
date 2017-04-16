@@ -20,7 +20,7 @@ type Game struct {
 
 	finished bool
 
-	winners []int
+	winners []PlayerIndex
 
 	//The current version of State.
 	version int
@@ -102,7 +102,7 @@ func NewGame(manager *GameManager) *Game {
 //Winners is the player indexes who were winners. Typically, this will be
 //one player, but it could be multiple in the case of tie, or 0 in the
 //case of a draw.
-func (g *Game) Winners() []int {
+func (g *Game) Winners() []PlayerIndex {
 	return g.winners
 }
 

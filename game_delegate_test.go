@@ -112,15 +112,15 @@ func (t *testGameDelegate) EmptyComputedPlayerPropertyCollection() ComputedPrope
 	return &testPlayerPropertiesCollection{}
 }
 
-func (t *testGameDelegate) CheckGameFinished(state State) (bool, []int) {
+func (t *testGameDelegate) CheckGameFinished(state State) (bool, []PlayerIndex) {
 	_, players := concreteStates(state)
 
-	var winners []int
+	var winners []PlayerIndex
 
 	for i, player := range players {
 		if player.Score >= 5 {
 			//This user won!
-			winners = append(winners, i)
+			winners = append(winners, PlayerIndex(i))
 
 			//Keep going through to see if anyone else won at the same time
 		}

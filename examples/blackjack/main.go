@@ -135,7 +135,7 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 	return strings.Join(result, "\n")
 }
 
-func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, winners []int) {
+func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, winners []boardgame.PlayerIndex) {
 
 	_, players := concreteStates(state)
 
@@ -162,7 +162,7 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, 
 
 	//OK, now who got the maxScore?
 
-	var result []int
+	var result []boardgame.PlayerIndex
 
 	for i, player := range players {
 		if player.Busted {
@@ -170,7 +170,7 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, 
 		}
 		handValue, _ := state.Computed().Player(boardgame.PlayerIndex(i)).Reader().IntProp("HandValue")
 		if handValue == maxScore {
-			result = append(result, i)
+			result = append(result, boardgame.PlayerIndex(i))
 		}
 	}
 

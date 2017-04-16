@@ -15,7 +15,7 @@ type GameStorageRecord struct {
 	Name     string
 	Id       string
 	Version  int
-	Winners  []int
+	Winners  []PlayerIndex
 	Finished bool
 	//NumPlayers is the reported number of players when it was created.
 	//Primarily for convenience to storage layer so they know how many players
