@@ -61,8 +61,8 @@
         return Math.max(timeLeft, 100);
       },
       computeCards : function(hidden, revealed) {
-        var result = [];
-        for (var i = 0; i < hidden.length; i++) {
+        let result = [];
+        for (let i = 0; i < hidden.length; i++) {
           result.push(hidden[i]);
           if (!result[i]) {
             result[i] = revealed[i];

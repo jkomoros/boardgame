@@ -170,7 +170,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
       behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
       handleProposeMove: function(e) {
-        var movesEle = this.$$("#moves");
+        let movesEle = this.$$("#moves");
 
         if (!movesEle) {
           console.warn("propose-move fired, but no moves element to forward to.");
@@ -258,7 +258,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
       maybeFetchStatus: function() {
         if (this.lastStatusRequestIssued) {
-          var diff = Date.now() - this.lastStatusRequestIssued;
+          let diff = Date.now() - this.lastStatusRequestIssued;
           if (diff > this.statusPollFrequency) {
             this.fetchStatusNow();
           }
@@ -291,21 +291,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
       _tick: function() {
-        var newPaths = [];
+        let newPaths = [];
 
-        var pathToExpanded = ["data.Game.ExpandedCurrentState"]
+        let pathToExpanded = ["data.Game.ExpandedCurrentState"]
 
-        for (var i = 0; i < this.pathsToTick.length; i++) {
-          var currentPath = this.pathsToTick[i];
+        for (let i = 0; i < this.pathsToTick.length; i++) {
+          let currentPath = this.pathsToTick[i];
 
-          var pathToFetch = pathToExpanded.concat(currentPath);
+          let pathToFetch = pathToExpanded.concat(currentPath);
 
-          var timer = this.get(pathToFetch);
+          let timer = this.get(pathToFetch);
 
-          var now = Date.now();
-          var difference = now - this.originalWallClockStartTime;
+          let now = Date.now();
+          let difference = now - this.originalWallClockStartTime;
 
-          var result = Math.max(0, timer.originalTimeLeft - difference);
+          let result = Math.max(0, timer.originalTimeLeft - difference);
 
           this.set(pathToExpanded.concat(currentPath).concat(["TimeLeft"]), result);
 
@@ -345,9 +345,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         var result = {};
         var entries = Object.entries(leafState);
         for (var i = 0; i < entries.length; i++) {
-          var item = entries[i];
-          var key = item[0];
-          var val = item[1];
+          let item = entries[i];
+          let key = item[0];
+          let val = item[1];
           if (typeof val == "object") {
             if (val.Deck) {
               result[key] = this._expandStack(val);
@@ -368,7 +368,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           //Meh, I guess it's not a timer.
           return timer;
         }
-        var result = this._copyObj(timer);
+        let result = this._copyObj(timer);
         result.originalTimeLeft = timer.TimeLeft;
         this.pathsToTick.push(pathToLeaf);
         return result;
@@ -384,7 +384,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         var result = [];
 
         for (var i = 0; i < stack.Indexes.length; i++) {
-          var index = stack.Indexes[i];
+          let index = stack.Indexes[i];
           if (index == -1) {
             result[i] = null;
           } else if(index == -2) {
@@ -400,11 +400,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       },
       _componentForDeckAndIndex: function(deckName, index) {
-        var deck = this.data.Chest[deckName];
+        let deck = this.data.Chest[deckName];
 
         if (!deck) return null;
 
-        var result = this._copyObj(deck[index]);
+        let result = this._copyObj(deck[index]);
 
         if (this.data.Game.CurrentState && this.data.Game.CurrentState.Components) {
           if (this.data.Game.CurrentState.Components[deckName]) {
@@ -439,8 +439,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       },
       _copyObj: function(obj) {
-        var copy = {}
-        for (var attr in obj) {
+        let copy = {}
+        for (let attr in obj) {
           if (obj.hasOwnProperty(attr)) copy[attr] = obj[attr]
         }
         return copy

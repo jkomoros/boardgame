@@ -73,9 +73,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           console.warn("proposeMove called but no forms configed")
           return;
         }
-        var moveConfig;
-        for (var i = 0; i < this.config.length; i++) {
-          var item = this.config[i];
+        let moveConfig;
+        for (let i = 0; i < this.config.length; i++) {
+          let item = this.config[i];
           //TODO: fuzzy matching (remove whitespace and lowercase compare)
           if (item.Name == moveName) {
             moveConfig = item;
@@ -88,31 +88,31 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           return;
         }
 
-        var targetEleID = "#moves-" + this._normalizeID(moveConfig.Name);
+        let targetEleID = "#moves-" + this._normalizeID(moveConfig.Name);
 
-        var containerEle = this.$$(targetEleID);
+        let containerEle = this.$$(targetEleID);
 
         if (!containerEle) {
           console.warn("Couldn't find move dom ele ", targetEleID);
           return;
         }
 
-        var formEle = containerEle.querySelector("form");
+        let formEle = containerEle.querySelector("form");
 
         if (!formEle) {
           console.warn("Couldn't find form ele");
           return;
         }
 
-        var inputs = formEle.elements;
+        let inputs = formEle.elements;
 
         for (var key in arguments) {
           if (!arguments.hasOwnProperty(key)) continue;
 
-          var fieldFilled = false;
+          let fieldFilled = false;
 
-          for (var i = 0; i < inputs.length; i++) {
-            var element = inputs[i];
+          for (let i = 0; i < inputs.length; i++) {
+            let element = inputs[i];
             if (element.type == "hidden") continue;
             if (element.type == "submit") continue;
 
@@ -138,7 +138,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return str.split(" ").join("")
       },
       formResponse: function(e) {
-        var response = e.detail.parseResponse();
+        let response = e.detail.parseResponse();
         if (response.Error) {
           this.fire("show-error", {message:response.Error, title: "Couldn't make move"})
         }
