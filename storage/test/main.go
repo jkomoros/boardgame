@@ -61,6 +61,8 @@ func Test(factory StorageManagerFactory, testName string, t *testing.T) {
 func BasicTest(factory StorageManagerFactory, testName string, t *testing.T) {
 	storage := factory()
 
+	defer storage.CleanUp()
+
 	assert.For(t).ThatActual(storage.Name()).DoesNotEqual("")
 
 	managers := make(managerMap)
@@ -131,11 +133,12 @@ func BasicTest(factory StorageManagerFactory, testName string, t *testing.T) {
 
 	//TODO: figure out how to test that name is matched when retrieving from store.
 
-	storage.CleanUp()
 }
 
 func UsersTest(factory StorageManagerFactory, testName string, t *testing.T) {
 	storage := factory()
+
+	defer storage.CleanUp()
 
 	manager := tictactoe.NewManager(storage)
 
