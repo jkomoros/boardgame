@@ -10,6 +10,10 @@ import (
 //methods necessary to make server work.
 type StorageManager interface {
 	boardgame.StorageManager
+
+	//Name returns the name of the storage manager type, for example "memory", "bolt", or "mysql"
+	Name() string
+
 	//Close should be called before the server is shut down.
 	Close()
 	ListGames(max int) []*boardgame.GameStorageRecord

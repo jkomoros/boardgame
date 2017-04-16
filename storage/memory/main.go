@@ -40,6 +40,10 @@ func NewStorageManager() *StorageManager {
 	}
 }
 
+func (s *StorageManager) Name() string {
+	return "memory"
+}
+
 func (s *StorageManager) State(gameId string, version int) (boardgame.StateStorageRecord, error) {
 	if gameId == "" {
 		return nil, errors.New("No game provided")

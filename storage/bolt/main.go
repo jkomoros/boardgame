@@ -87,6 +87,10 @@ func keyForCookie(cookie string) []byte {
 	return []byte(cookie)
 }
 
+func (s *StorageManager) Name() string {
+	return "bolt"
+}
+
 func (s *StorageManager) State(gameId string, version int) (boardgame.StateStorageRecord, error) {
 	if gameId == "" {
 		return nil, errors.New("No game provided")

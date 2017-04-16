@@ -24,6 +24,8 @@ type StorageManager interface {
 	CleanUp()
 
 	//The methods past this point are the same ones that are included in Server.StorageManager
+	Name() string
+
 	Close()
 
 	ListGames(max int) []*boardgame.GameStorageRecord
@@ -58,6 +60,8 @@ func Test(factory StorageManagerFactory, testName string, t *testing.T) {
 
 func BasicTest(factory StorageManagerFactory, testName string, t *testing.T) {
 	storage := factory()
+
+	assert.For(t).ThatActual(storage.Name()).DoesNotEqual("")
 
 	managers := make(managerMap)
 
