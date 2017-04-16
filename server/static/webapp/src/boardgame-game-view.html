@@ -29,6 +29,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         padding: 10px;
       }
 
+      [hidden] {
+        display:none !important;
+      }
+
       #moves > details {
         margin-left:1em;
       }
@@ -66,7 +70,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         View as:<input is="iron-input" type="number" value-as-number="{{requestedPlayer::input}}" min="-2" max="{{maxRequestedPlayerIndex}}">
       </div>
       <div>
-        <paper-checkbox id="move-as-player" checked>Make Moves As ViewingAsPlayer</paper-checkbox>
+        <paper-checkbox id="move-as-player" checked="{{makeMovesAsViewingAsPlayer}}">Make Moves As ViewingAsPlayer</paper-checkbox>
       </div>
     </div>
 
@@ -149,6 +153,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         statusPollFrequency: {
           type: Number,
           value: 500,
+        },
+        makeMovesAsViewingAsPlayer: {
+          type:Boolean,
+          value: true,
         }
       },
       listeners: {
