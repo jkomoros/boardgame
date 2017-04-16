@@ -445,6 +445,10 @@ func (s *StorageManager) ConnectCookieToUser(cookie string, user *users.StorageR
 	return err
 }
 
+func (s *StorageManager) Connect(config string) error {
+	return nil
+}
+
 func (s *StorageManager) Close() {
 	s.db.Close()
 }

@@ -233,6 +233,10 @@ func (s *StorageManager) ConnectCookieToUser(cookie string, user *users.StorageR
 	return nil
 }
 
+func (s *StorageManager) Connect(config string) error {
+	return nil
+}
+
 func (s *StorageManager) Close() {
 	//Don't need to do anything
 }

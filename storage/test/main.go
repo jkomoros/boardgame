@@ -26,6 +26,8 @@ type StorageManager interface {
 	//The methods past this point are the same ones that are included in Server.StorageManager
 	Name() string
 
+	Connect(config string) error
+
 	Close()
 
 	ListGames(max int) []*boardgame.GameStorageRecord

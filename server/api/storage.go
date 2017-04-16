@@ -14,6 +14,11 @@ type StorageManager interface {
 	//Name returns the name of the storage manager type, for example "memory", "bolt", or "mysql"
 	Name() string
 
+	//Connect will be called before issuing any other substantive calls. The
+	//config string is specific to the type of storage layer, which can be
+	//interrogated with Nmae().
+	Connect(config string) error
+
 	//Close should be called before the server is shut down.
 	Close()
 	ListGames(max int) []*boardgame.GameStorageRecord
