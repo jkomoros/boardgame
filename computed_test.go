@@ -241,6 +241,32 @@ func TestStateComputed(t *testing.T) {
 
 				},
 			},
+			"EffectiveScoreGlobal": ComputedPlayerPropertyDefinition{
+				Dependencies: []StatePropertyRef{
+					{
+						Group:    StateGroupPlayer,
+						PropName: "Score",
+					},
+					{
+						Group:    StateGroupGame,
+						PropName: "DrawDeck",
+					},
+				},
+				PropType: TypeInt,
+				GlobalCompute: func(state State, index PlayerIndex) (interface{}, error) {
+					game, players := concreteStates(state)
+
+					p := players[index]
+
+					if p.Score == 0 {
+						return game.DrawDeck.NumComponents(), nil
+					}
+
+					nextIndex := index.Next(state)
+
+					return players[nextIndex].Score, nil
+				},
+			},
 		},
 	}
 
@@ -289,6 +315,12 @@ func TestStateComputed(t *testing.T) {
 	} else if val != 12 {
 		//We set player 0 score to 10 a the top of this test, and there are two items in hand.
 		t.Error("Got wrong value for EffectiveScore. Got", val, "wanted 12")
+	}
+
+	if val, err := computed.Player(0).Reader().IntProp("EffectiveScoreGlobal"); err != nil {
+		t.Error("Got error for EffectiveScoreGlobal", err)
+	} else if val != 5 {
+		t.Error("Got wrong value for EffectiveScoreGlobal. Got", val, "wanted 5")
 	}
 
 }

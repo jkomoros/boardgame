@@ -85,8 +85,17 @@ type ComputedPlayerPropertyDefinition struct {
 	//sanitized. In many cases it makes sense to factor your compute
 	//computation out into a shim that fetches the relevant properties from
 	//the ShadowState and then passes them to the core computation function,
-	//so that other methods can reuse the same logic.
+	//so that other methods can reuse the same logic. If you need more state
+	//than what is available on just the playerState, consider defining
+	//GlobalCompute instead.
 	Compute func(playerState PlayerState) (interface{}, error)
+
+	//If Compute is nil but GlobalCompute is non-nil, then GlobalCompute will
+	//be called instead. Instead of passing in just the single playerState for
+	//the player in question, it passes the fullState, as well as the
+	//PlayerIndex currently being prepared for, and expects the caller to
+	//return the value for the specific playerIndex.
+	GlobalCompute func(state State, player PlayerIndex) (interface{}, error)
 }
 
 //StateGroupType is the top-level grouping object used in a StatePropertyRef.
@@ -171,7 +180,7 @@ func newComputedPropertiesImpl(config *ComputedPropertiesConfig, state *state) *
 		reader := collection.Reader()
 
 		for name, propConfig := range config.Player {
-			if err := propConfig.calculate(name, i, state, reader); err != nil {
+			if err := propConfig.calculate(name, PlayerIndex(i), state, reader); err != nil {
 				//TODO: do something better here.
 				panic(err)
 			}
@@ -251,7 +260,7 @@ func (c *ComputedGlobalPropertyDefinition) calculate(propName string, state *sta
 
 }
 
-func (c *ComputedPlayerPropertyDefinition) calculate(propName string, playerIndex int, state *state, output PropertyReadSetter) error {
+func (c *ComputedPlayerPropertyDefinition) calculate(propName string, playerIndex PlayerIndex, state *state, output PropertyReadSetter) error {
 
 	result, err := c.compute(state, playerIndex)
 
@@ -314,13 +323,21 @@ func (c *ComputedGlobalPropertyDefinition) compute(state *state) (interface{}, e
 
 }
 
-func (c *ComputedPlayerPropertyDefinition) compute(state *state, playerIndex int) (interface{}, error) {
+func (c *ComputedPlayerPropertyDefinition) compute(state *state, playerIndex PlayerIndex) (interface{}, error) {
 
 	policy := policyForDependencies(c.Dependencies)
 
 	sanitized := state.sanitizedWithDefault(policy, -1, PolicyRandom)
 
-	return c.Compute(sanitized.Players()[playerIndex])
+	if c.Compute != nil {
+		return c.Compute(sanitized.Players()[playerIndex])
+	}
+
+	if c.GlobalCompute != nil {
+		return c.GlobalCompute(sanitized, playerIndex)
+	}
+
+	return nil, errors.New("Neither Compute nor GlobalCompute were defined. One of them must be.")
 }
 
 func (c *computedPropertiesImpl) Global() ComputedPropertyCollection {

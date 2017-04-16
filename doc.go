@@ -290,6 +290,16 @@ return the same value. These objects are normally heavy and large (they often
 include method definitions), so it is recommended to define a single Config at
 init() time and always pass a reference to that config.
 
+ComputedPlayerProperties come in two flavors: Compute and GlobalCompute,
+depending on which of those properties is non-nil. Compute takes as its only
+argument just the specific PlayerState corresponding to the player whose value
+is being computed. But in some cases that might not be enough information; for
+example, sometimes there are properties per player that depend on the location
+of other players, too. In those cases, you shoul define a GlobalCompute
+instead. It is passed the whole state object and the target PlayerIndex. In
+that case it is up to you to return only the value associated with the target
+PlayerIndex, but you have all other values available to you.
+
 For convenience you can have your delegate return objects that implement
 ComputedPropertyCollections to an underlying concrete struct, that use
 DefaultReadSetter(). This allows you to only have to cast once to get a type-
