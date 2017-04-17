@@ -48,7 +48,7 @@ func (s *StorageManager) Connect(config string) error {
 		Db: db,
 		Dialect: gorp.MySQLDialect{
 			Engine:   "MyISAM",
-			Encoding: "latin1_general_ci",
+			Encoding: "utf8",
 		},
 	}
 
