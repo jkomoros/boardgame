@@ -63,6 +63,8 @@ func Test(factory StorageManagerFactory, testName string, connectConfig string, 
 func BasicTest(factory StorageManagerFactory, testName string, connectConfig string, t *testing.T) {
 	storage := factory()
 
+	defer storage.Close()
+
 	defer storage.CleanUp()
 
 	if err := storage.Connect(connectConfig); err != nil {
@@ -143,6 +145,8 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 func UsersTest(factory StorageManagerFactory, testName string, connectConfig string, t *testing.T) {
 	storage := factory()
+
+	defer storage.Close()
 
 	defer storage.CleanUp()
 
