@@ -9,6 +9,6 @@ func TestStorageManager(t *testing.T) {
 
 	test.Test(func() test.StorageManager {
 		return NewStorageManager(".testdb")
-	}, "bolt", t)
+	}, "bolt", "", t)
 
 }

@@ -53,17 +53,21 @@ func (m managerMap) Get(name string) *boardgame.GameManager {
 
 type StorageManagerFactory func() StorageManager
 
-func Test(factory StorageManagerFactory, testName string, t *testing.T) {
+func Test(factory StorageManagerFactory, testName string, connectConfig string, t *testing.T) {
 
-	BasicTest(factory, testName, t)
-	UsersTest(factory, testName, t)
+	BasicTest(factory, testName, connectConfig, t)
+	UsersTest(factory, testName, connectConfig, t)
 
 }
 
-func BasicTest(factory StorageManagerFactory, testName string, t *testing.T) {
+func BasicTest(factory StorageManagerFactory, testName string, connectConfig string, t *testing.T) {
 	storage := factory()
 
 	defer storage.CleanUp()
+
+	if err := storage.Connect(connectConfig); err != nil {
+		t.Fatal("Unexpected error connecting: ", err.Error())
+	}
 
 	assert.For(t).ThatActual(storage.Name()).Equals(testName)
 
@@ -137,10 +141,14 @@ func BasicTest(factory StorageManagerFactory, testName string, t *testing.T) {
 
 }
 
-func UsersTest(factory StorageManagerFactory, testName string, t *testing.T) {
+func UsersTest(factory StorageManagerFactory, testName string, connectConfig string, t *testing.T) {
 	storage := factory()
 
 	defer storage.CleanUp()
+
+	if err := storage.Connect(connectConfig); err != nil {
+		t.Fatal("Err connecting to storage: ", err)
+	}
 
 	manager := tictactoe.NewManager(storage)
 
