@@ -45,9 +45,13 @@ func (s *StorageManager) Connect(config string) error {
 
 	s.dbMap = &gorp.DbMap{
 		Db: db,
+		Dialect: gorp.MySQLDialect{
+			Engine:   "MyISAM",
+			Encoding: "latin1_general_ci",
+		},
 	}
 
-	s.dbMap.AddTableWithName(&UserStorageRecord{}, TableUsers)
+	s.dbMap.AddTableWithName(UserStorageRecord{}, TableUsers)
 	//TODO: Add other to DBMap
 
 	if err := s.dbMap.CreateTablesIfNotExists(); err != nil {
