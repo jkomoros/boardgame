@@ -1,4 +1,4 @@
-package bolt
+package mysql
 
 import (
 	"github.com/jkomoros/boardgame/storage/test"

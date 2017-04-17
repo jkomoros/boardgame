@@ -4,7 +4,7 @@ bolt provides a bolt-backed database that implements both
 boardgame.StorageManager and boardgame/server.StorageManager.
 
 */
-package bolt
+package mysql
 
 import (
 	"database/sql"
@@ -47,7 +47,8 @@ func (s *StorageManager) Connect(config string) error {
 		Db: db,
 	}
 
-	//TODO: Add Tables to DBMap
+	s.dbMap.AddTableWithName(&UserStorageRecord{}, TableUsers)
+	//TODO: Add other to DBMap
 
 	if err := s.dbMap.CreateTablesIfNotExists(); err != nil {
 		return errors.New("Couldn't create tables: " + err.Error())
