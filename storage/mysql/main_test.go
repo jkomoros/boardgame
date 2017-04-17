@@ -9,6 +9,6 @@ func TestStorageManager(t *testing.T) {
 
 	test.Test(func() test.StorageManager {
 		return NewStorageManager(true)
-	}, "mysql", "root:root@(localhost:3306)/boardgame-test", t)
+	}, "mysql", "root:root@tcp(localhost:3306)/boardgame-test", t)
 
 }

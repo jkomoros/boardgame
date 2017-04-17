@@ -36,6 +36,7 @@ func NewStorageManager(testMode bool) *StorageManager {
 }
 
 func (s *StorageManager) Connect(config string) error {
+
 	db, err := sql.Open("mysql", config)
 	if err != nil {
 		return errors.New("Unable to open database: " + err.Error())
