@@ -184,7 +184,23 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 }
 
 func (s *StorageManager) ListGames(max int) []*boardgame.GameStorageRecord {
-	return nil
+	var games []GameStorageRecord
+
+	if max < 1 {
+		max = 100
+	}
+
+	if _, err := s.dbMap.Select(&games, "select * from "+TableGames+" limit ?", max); err != nil {
+		return nil
+	}
+
+	result := make([]*boardgame.GameStorageRecord, len(games))
+
+	for i, record := range games {
+		result[i] = (&record).ToStorageRecord()
+	}
+
+	return result
 }
 
 func (s *StorageManager) SetPlayerForGame(gameId string, playerIndex boardgame.PlayerIndex, userId string) error {
