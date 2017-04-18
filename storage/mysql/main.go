@@ -115,7 +115,19 @@ func (s *StorageManager) Name() string {
 }
 
 func (s *StorageManager) State(gameId string, version int) (boardgame.StateStorageRecord, error) {
-	return nil, errors.New("Not yet implemented")
+	var state StateStorageRecord
+
+	err := s.dbMap.SelectOne(&state, "select * from "+TableStates+" where GameId=? and Version=?", gameId, version)
+
+	if err == sql.ErrNoRows {
+		return nil, errors.New("No such state")
+	}
+
+	if err != nil {
+		return nil, errors.New("Unexpected error: " + err.Error())
+	}
+
+	return (&state).ToStorageRecord(), nil
 }
 
 func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
