@@ -200,15 +200,26 @@ func (s *StorageManager) UserIdsForGame(gameId string) []string {
 func (s *StorageManager) UpdateUser(user *users.StorageRecord) error {
 	userRecord := NewUserStorageRecord(user)
 
-	//TODO: I wonder if this will fail if the user is not yet in the database.
-	count, err := s.dbMap.Update(userRecord)
+	existingRecord, _ := s.dbMap.SelectInt("select count(*) from "+TableUsers+" where Id=?", user.Id)
 
-	if err != nil {
-		return errors.New("Couldn't update user: " + err.Error())
-	}
+	if existingRecord < 1 {
+		//Need to insert
+		err := s.dbMap.Insert(userRecord)
 
-	if count < 1 {
-		return errors.New("Row could not be updated.")
+		if err != nil {
+			return errors.New("Couldn't insert user: " + err.Error())
+		}
+	} else {
+		//Need to update
+		//TODO: I wonder if this will fail if the user is not yet in the database.
+		count, err := s.dbMap.Update(userRecord)
+		if err != nil {
+			return errors.New("Couldn't update user: " + err.Error())
+		}
+
+		if count < 1 {
+			return errors.New("Row could not be updated.")
+		}
 	}
 
 	return nil
