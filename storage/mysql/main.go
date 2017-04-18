@@ -59,6 +59,7 @@ func (s *StorageManager) Connect(config string) error {
 	}
 
 	s.dbMap.AddTableWithName(UserStorageRecord{}, TableUsers).SetKeys(false, "Id")
+	s.dbMap.AddTableWithName(GameStorageRecord{}, TableGames).SetKeys(false, "Id")
 	//TODO: Add other to DBMap
 
 	if err := s.dbMap.CreateTablesIfNotExists(); err != nil {
@@ -117,7 +118,19 @@ func (s *StorageManager) State(gameId string, version int) (boardgame.StateStora
 }
 
 func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
-	return nil, errors.New("Not yet implemented")
+	var game GameStorageRecord
+
+	err := s.dbMap.SelectOne(&game, "select * from "+TableGames+" where id=?", id)
+
+	if err == sql.ErrNoRows {
+		return nil, errors.New("No such game")
+	}
+
+	if err != nil {
+		return nil, errors.New("Unexpected error: " + err.Error())
+	}
+
+	return (&game).ToStorageRecord(), nil
 }
 
 func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord) error {
