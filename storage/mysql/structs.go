@@ -9,8 +9,7 @@ import (
 //way we actually want to store in DB.
 
 type UserStorageRecord struct {
-	Id     string `db:",size:16"`
-	Cookie string `db:",size:64"`
+	Id string `db:",size:16"`
 }
 
 func (s *UserStorageRecord) ToStorageRecord() *users.StorageRecord {
