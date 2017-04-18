@@ -60,6 +60,7 @@ func (s *StorageManager) Connect(config string) error {
 
 	s.dbMap.AddTableWithName(UserStorageRecord{}, TableUsers).SetKeys(false, "Id")
 	s.dbMap.AddTableWithName(GameStorageRecord{}, TableGames).SetKeys(false, "Id")
+	s.dbMap.AddTableWithName(StateStorageRecord{}, TableStates).SetKeys(true, "Id")
 	//TODO: Add other to DBMap
 
 	if err := s.dbMap.CreateTablesIfNotExists(); err != nil {

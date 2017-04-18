@@ -28,6 +28,13 @@ type GameStorageRecord struct {
 	NumPlayers int64
 }
 
+type StateStorageRecord struct {
+	Id      int64
+	GameId  string `db:",size:16"`
+	Version int64
+	Blob    []byte
+}
+
 func winnersToString(winners []boardgame.PlayerIndex) string {
 	if winners == nil {
 		return ""
@@ -105,5 +112,20 @@ func (s *UserStorageRecord) ToStorageRecord() *users.StorageRecord {
 func NewUserStorageRecord(user *users.StorageRecord) *UserStorageRecord {
 	return &UserStorageRecord{
 		Id: user.Id,
+	}
+}
+
+func (s *StateStorageRecord) ToStorageRecord() boardgame.StateStorageRecord {
+	if s == nil {
+		return nil
+	}
+	return s.Blob
+}
+
+func NewStateStorageRecord(gameId string, version int, record boardgame.StateStorageRecord) *StateStorageRecord {
+	return &StateStorageRecord{
+		GameId:  gameId,
+		Version: int64(version),
+		Blob:    []byte(record),
 	}
 }
