@@ -120,7 +120,7 @@ func (s *StorageManager) State(gameId string, version int) (boardgame.StateStora
 func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 	var game GameStorageRecord
 
-	err := s.dbMap.SelectOne(&game, "select * from "+TableGames+" where id=?", id)
+	err := s.dbMap.SelectOne(&game, "select * from "+TableGames+" where Id=?", id)
 
 	if err == sql.ErrNoRows {
 		return nil, errors.New("No such game")
@@ -160,7 +160,7 @@ func (s *StorageManager) UpdateUser(user *users.StorageRecord) error {
 func (s *StorageManager) GetUserById(uid string) *users.StorageRecord {
 	var user UserStorageRecord
 
-	err := s.dbMap.SelectOne(&user, "select * from "+TableUsers+" where id=?", uid)
+	err := s.dbMap.SelectOne(&user, "select * from "+TableUsers+" where Id=?", uid)
 
 	if err == sql.ErrNoRows {
 		//Normal
