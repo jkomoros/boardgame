@@ -145,7 +145,21 @@ func (s *StorageManager) UpdateUser(user *users.StorageRecord) error {
 }
 
 func (s *StorageManager) GetUserById(uid string) *users.StorageRecord {
-	return nil
+	var user UserStorageRecord
+
+	err := s.dbMap.SelectOne(&user, "select * from "+TableUsers+" where id=?", uid)
+
+	if err == sql.ErrNoRows {
+		//Normal
+		return nil
+	}
+
+	if err != nil {
+		log.Println("Unexpected error getting user:", err)
+		return nil
+	}
+
+	return (&user).ToStorageRecord()
 }
 
 func (s *StorageManager) GetUserByCookie(cookie string) *users.StorageRecord {
