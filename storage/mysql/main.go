@@ -183,7 +183,20 @@ func (s *StorageManager) UserIdsForGame(gameId string) []string {
 }
 
 func (s *StorageManager) UpdateUser(user *users.StorageRecord) error {
-	return errors.New("not yet implemented")
+	userRecord := NewUserStorageRecord(user)
+
+	//TODO: I wonder if this will fail if the user is not yet in the database.
+	count, err := s.dbMap.Update(userRecord)
+
+	if err != nil {
+		return errors.New("Couldn't update user: " + err.Error())
+	}
+
+	if count < 1 {
+		return errors.New("Row could not be updated.")
+	}
+
+	return nil
 }
 
 func (s *StorageManager) GetUserById(uid string) *users.StorageRecord {
