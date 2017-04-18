@@ -52,7 +52,7 @@ func (s *StorageManager) Connect(config string) error {
 		},
 	}
 
-	s.dbMap.AddTableWithName(UserStorageRecord{}, TableUsers)
+	s.dbMap.AddTableWithName(UserStorageRecord{}, TableUsers).SetKeys(false, "Id")
 	//TODO: Add other to DBMap
 
 	if err := s.dbMap.CreateTablesIfNotExists(); err != nil {
