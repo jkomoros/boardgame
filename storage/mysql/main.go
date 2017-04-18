@@ -148,8 +148,24 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 
 func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord) error {
 
-	return errors.New("Not yet implemented")
+	version := game.Version
 
+	gameRecord := NewGameStorageRecord(game)
+	stateRecord := NewStateStorageRecord(game.Id, version, state)
+
+	err := s.dbMap.Insert(gameRecord)
+
+	if err != nil {
+		return errors.New("Couldn't insert game: " + err.Error())
+	}
+
+	err = s.dbMap.Insert(stateRecord)
+
+	if err != nil {
+		return errors.New("Couldn't insert state: " + err.Error())
+	}
+
+	return nil
 }
 
 func (s *StorageManager) ListGames(max int) []*boardgame.GameStorageRecord {
