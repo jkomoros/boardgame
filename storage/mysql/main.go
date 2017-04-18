@@ -13,6 +13,8 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/users"
+	"log"
+	"strings"
 )
 
 const (
@@ -26,6 +28,8 @@ type StorageManager struct {
 	dbMap *gorp.DbMap
 	//If in test mode we'll... mock stuff, I guess?
 	testMode bool
+	//The config string that we were provided in connect.
+	config string
 }
 
 func NewStorageManager(testMode bool) *StorageManager {
@@ -41,6 +45,8 @@ func (s *StorageManager) Connect(config string) error {
 	if err != nil {
 		return errors.New("Unable to open database: " + err.Error())
 	}
+
+	s.config = config
 
 	s.db = db
 
@@ -68,6 +74,38 @@ func (s *StorageManager) Close() {
 		return
 	}
 	s.db.Close()
+	s.db = nil
+}
+
+//Cleanup will only drop tables if we're in test mode, and the config string
+//used to open the database talked about a test database on localhost (as
+//sanity check).
+func (s *StorageManager) CleanUp() {
+
+	if !s.testMode {
+		return
+	}
+
+	if !strings.Contains(s.config, "_test") {
+		log.Println("Sanity check on boardgame config before cleanup didn't find _test")
+		return
+	}
+
+	if !strings.Contains(s.config, "localhost") {
+		log.Println("Sanity check on boardgame config before cleanup didn't find localhost")
+	}
+
+	if s.db == nil {
+		log.Println("Couldn't clean up; db already closed")
+		return
+	}
+
+	log.Println("Sanity checks passed. Dropping tables to cleanup...")
+
+	if err := s.dbMap.DropTables(); err != nil {
+		log.Println("Error dropping tables:", err)
+		return
+	}
 }
 
 func (s *StorageManager) Name() string {
@@ -118,8 +156,4 @@ func (s *StorageManager) GetUserByCookie(cookie string) *users.StorageRecord {
 
 func (s *StorageManager) ConnectCookieToUser(cookie string, user *users.StorageRecord) error {
 	return errors.New("Not yet implemented")
-}
-
-func (s *StorageManager) CleanUp() {
-	//Pass
 }
