@@ -18,9 +18,10 @@ import (
 )
 
 const (
-	TableGames  = "games"
-	TableUsers  = "users"
-	TableStates = "states"
+	TableGames   = "games"
+	TableUsers   = "users"
+	TableStates  = "states"
+	TableCookies = "cookies"
 )
 
 type StorageManager struct {
@@ -61,6 +62,7 @@ func (s *StorageManager) Connect(config string) error {
 	s.dbMap.AddTableWithName(UserStorageRecord{}, TableUsers).SetKeys(false, "Id")
 	s.dbMap.AddTableWithName(GameStorageRecord{}, TableGames).SetKeys(false, "Id")
 	s.dbMap.AddTableWithName(StateStorageRecord{}, TableStates).SetKeys(true, "Id")
+	s.dbMap.AddTableWithName(CookieStorageRecord{}, TableCookies).SetKeys(false, "Cookie")
 	//TODO: Add other to DBMap
 
 	if err := s.dbMap.CreateTablesIfNotExists(); err != nil {
@@ -261,10 +263,70 @@ func (s *StorageManager) GetUserById(uid string) *users.StorageRecord {
 
 func (s *StorageManager) GetUserByCookie(cookie string) *users.StorageRecord {
 
-	return nil
+	var cookieRecord CookieStorageRecord
+
+	err := s.dbMap.SelectOne(&cookieRecord, "select * from "+TableCookies+" where Cookie=?", cookie)
+
+	if err == sql.ErrNoRows {
+		//No user
+		return nil
+	}
+
+	if err != nil {
+		log.Println("Unexpected error getting user by cookie: " + err.Error())
+		return nil
+	}
+
+	return s.GetUserById(cookieRecord.UserId)
 
 }
 
 func (s *StorageManager) ConnectCookieToUser(cookie string, user *users.StorageRecord) error {
-	return errors.New("Not yet implemented")
+	//If user is nil, then delete any records with that cookie.
+	if user == nil {
+
+		var cookieRecord CookieStorageRecord
+
+		err := s.dbMap.SelectOne(&cookieRecord, "select * from "+TableCookies+" where Cookie=?", cookie)
+
+		if err == sql.ErrNoRows {
+			//We're fine, because it wasn't in the table any way!
+			return nil
+		}
+
+		if err != nil {
+			return errors.New("Unexpected error: " + err.Error())
+		}
+
+		//It was there, so we need to delete it.
+
+		count, err := s.dbMap.Delete(&cookieRecord)
+
+		if count < 1 && err != nil {
+			return errors.New("Couldnt' delete cookie record when instructed to: " + err.Error())
+		}
+
+		return nil
+	}
+
+	//If user does not yet exist in database, put them in.
+	otherUser := s.GetUserById(user.Id)
+
+	if otherUser == nil {
+
+		//Have to save the user for the first time
+		if err := s.UpdateUser(user); err != nil {
+			return errors.New("Couldn't add a new user to the database when connecting to cookie: " + err.Error())
+		}
+	}
+
+	record := &CookieStorageRecord{
+		Cookie: cookie,
+		UserId: user.Id,
+	}
+
+	if err := s.dbMap.Insert(record); err != nil {
+		return errors.New("Failed to insert cookie pointer record: " + err.Error())
+	}
+	return nil
 }

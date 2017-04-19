@@ -16,6 +16,11 @@ type UserStorageRecord struct {
 	Id string `db:",size:16"`
 }
 
+type CookieStorageRecord struct {
+	Cookie string `db:",size:64"`
+	UserId string `db:",size:16"`
+}
+
 type GameStorageRecord struct {
 	Name     string `db:",size:64"`
 	Id       string `db:",size:16"`
