@@ -170,7 +170,7 @@ func UsersTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	assert.For(t).ThatActual(ids).Equals([]string{"", ""})
 
-	userId := "MYUSERID"
+	userId := "THISISAVERYLONGUSERIDTOTESTTHATWEDONTCLIPSHORTUSERIDSTOOAGGRESSIVELY"
 
 	cookie := "MYCOOKIE"
 

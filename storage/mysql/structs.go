@@ -13,12 +13,12 @@ import (
 //way we actually want to store in DB.
 
 type UserStorageRecord struct {
-	Id string `db:",size:16"`
+	Id string `db:",size:128"`
 }
 
 type CookieStorageRecord struct {
 	Cookie string `db:",size:64"`
-	UserId string `db:",size:16"`
+	UserId string `db:",size:128"`
 }
 
 type GameStorageRecord struct {
@@ -44,7 +44,7 @@ type PlayerStorageRecord struct {
 	Id          int64
 	GameId      string `db:",size:16"`
 	PlayerIndex int64
-	UserId      string `db:",size:16"`
+	UserId      string `db:",size:128"`
 }
 
 func winnersToString(winners []boardgame.PlayerIndex) string {

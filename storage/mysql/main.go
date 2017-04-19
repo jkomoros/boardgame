@@ -411,6 +411,8 @@ func (s *StorageManager) ConnectCookieToUser(cookie string, user *users.StorageR
 		if err := s.UpdateUser(user); err != nil {
 			return errors.New("Couldn't add a new user to the database when connecting to cookie: " + err.Error())
 		}
+
+		return nil
 	}
 
 	record := &CookieStorageRecord{
