@@ -3,7 +3,7 @@ package api
 import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/users"
-	"github.com/jkomoros/boardgame/storage/bolt"
+	"github.com/jkomoros/boardgame/storage/mysql"
 )
 
 //StorageManager extends the base boardgame.StorageManager with a few more
@@ -44,14 +44,14 @@ type StorageManager interface {
 	//Note: whenever you add methods here, also add them to boardgame/storage/test/StorageManager
 }
 
-//DefaultStorageManager currently uses bolt. It will create the database file
-//in the same directory the server is run.
+//DefaultStorageManager currently uses mysql. See the README in
+//github.com/jkomoros/boardgame/storage/mysql for how to set up and configure it.
 type DefaultStorageManager struct {
-	*bolt.StorageManager
+	*mysql.StorageManager
 }
 
 func NewDefaultStorageManager() *DefaultStorageManager {
 	return &DefaultStorageManager{
-		bolt.NewStorageManager(".database"),
+		mysql.NewStorageManager(false),
 	}
 }

@@ -8,7 +8,7 @@
 			"uYuZl1jXWXVJ9fEk7mDFifhTGmK2"
 		],
 		"storageconfig": {
-			"bolt": "",
+			"mysql": "Your production server config goes here, See https://github.com/go-sql-driver/mysql for examples"
 		}
 	},
 	"dev" : {
@@ -17,7 +17,7 @@
 		"firebaseprojectid": "sample-123456",
 		"disableadminchecking": true,
 		"storageconfig": {
-			"bolt": "",
+			"mysql": "root:root@tcp(localhost:3306)/boardgame"
 		}
 	}
 }
