@@ -41,10 +41,10 @@ type StateStorageRecord struct {
 }
 
 type PlayerStorageRecord struct {
-	Id     int64
-	GameId string `db:",size:16"`
-	Index  int64
-	UserId string `db:",size:16"`
+	Id          int64
+	GameId      string `db:",size:16"`
+	PlayerIndex int64
+	UserId      string `db:",size:16"`
 }
 
 func winnersToString(winners []boardgame.PlayerIndex) string {

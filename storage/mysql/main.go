@@ -65,7 +65,6 @@ func (s *StorageManager) Connect(config string) error {
 	s.dbMap.AddTableWithName(StateStorageRecord{}, TableStates).SetKeys(true, "Id")
 	s.dbMap.AddTableWithName(CookieStorageRecord{}, TableCookies).SetKeys(false, "Cookie")
 	s.dbMap.AddTableWithName(PlayerStorageRecord{}, TablePlayers).SetKeys(true, "Id")
-	//TODO: Add other to DBMap
 
 	if err := s.dbMap.CreateTablesIfNotExists(); err != nil {
 		return errors.New("Couldn't create tables: " + err.Error())
@@ -227,15 +226,15 @@ func (s *StorageManager) SetPlayerForGame(gameId string, playerIndex boardgame.P
 
 	var player PlayerStorageRecord
 
-	err = s.dbMap.SelectOne(&player, "select * from "+TablePlayers+" where GameId=? and Index=?", game.Id, int(playerIndex))
+	err = s.dbMap.SelectOne(&player, "select * from "+TablePlayers+" where GameId=? and PlayerIndex=?", game.Id, int(playerIndex))
 
 	if err == sql.ErrNoRows {
 		// Insert the row
 
 		player = PlayerStorageRecord{
-			GameId: game.Id,
-			Index:  int64(playerIndex),
-			UserId: userId,
+			GameId:      game.Id,
+			PlayerIndex: int64(playerIndex),
+			UserId:      userId,
 		}
 
 		err = s.dbMap.Insert(&player)
@@ -281,7 +280,7 @@ func (s *StorageManager) UserIdsForGame(gameId string) []string {
 
 	var players []PlayerStorageRecord
 
-	_, err = s.dbMap.Select(&players, "select * from "+TablePlayers+" where GameId=? order by Index desc", game.Id)
+	_, err = s.dbMap.Select(&players, "select * from "+TablePlayers+" where GameId=? order by PlayerIndex desc", game.Id)
 
 	result := make([]string, game.NumPlayers)
 
@@ -295,7 +294,7 @@ func (s *StorageManager) UserIdsForGame(gameId string) []string {
 	}
 
 	for _, rec := range players {
-		index := int(rec.Index)
+		index := int(rec.PlayerIndex)
 
 		if index < 0 || index >= len(result) {
 			log.Println("Invalid index", rec)
