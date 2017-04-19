@@ -209,7 +209,59 @@ func (s *StorageManager) ListGames(max int) []*boardgame.GameStorageRecord {
 
 func (s *StorageManager) SetPlayerForGame(gameId string, playerIndex boardgame.PlayerIndex, userId string) error {
 
-	return errors.New("Not yet implemented")
+	game, err := s.Game(gameId)
+
+	if err != nil {
+		return errors.New("Couldn't get game: " + err.Error())
+	}
+
+	if game == nil {
+		return errors.New("No game returned")
+	}
+
+	if playerIndex < 0 || int(playerIndex) >= int(game.NumPlayers) {
+		return errors.New("Invalid player index")
+	}
+
+	//TODO: should we validate that this is a real userId?
+
+	var player PlayerStorageRecord
+
+	err = s.dbMap.SelectOne(&player, "select * from "+TablePlayers+" where GameId=? and Index=?", game.Id, int(playerIndex))
+
+	if err == sql.ErrNoRows {
+		// Insert the row
+
+		player = PlayerStorageRecord{
+			GameId: game.Id,
+			Index:  int64(playerIndex),
+			UserId: userId,
+		}
+
+		err = s.dbMap.Insert(&player)
+
+		if err != nil {
+			return errors.New("Couldn't insert new player line: " + err.Error())
+		}
+
+		return nil
+	}
+
+	//Update the row, if it wasn't an error.
+
+	if err != nil {
+		return errors.New("Failed to retrieve existing Player line: " + err.Error())
+	}
+
+	player.UserId = userId
+
+	_, err = s.dbMap.Update(player)
+
+	if err != nil {
+		return errors.New("Couldn't update player line: " + err.Error())
+	}
+
+	return nil
 
 }
 
