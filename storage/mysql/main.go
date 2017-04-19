@@ -22,6 +22,7 @@ const (
 	TableUsers   = "users"
 	TableStates  = "states"
 	TableCookies = "cookies"
+	TablePlayers = "players"
 )
 
 type StorageManager struct {
@@ -63,6 +64,7 @@ func (s *StorageManager) Connect(config string) error {
 	s.dbMap.AddTableWithName(GameStorageRecord{}, TableGames).SetKeys(false, "Id")
 	s.dbMap.AddTableWithName(StateStorageRecord{}, TableStates).SetKeys(true, "Id")
 	s.dbMap.AddTableWithName(CookieStorageRecord{}, TableCookies).SetKeys(false, "Cookie")
+	s.dbMap.AddTableWithName(PlayerStorageRecord{}, TablePlayers).SetKeys(true, "Id")
 	//TODO: Add other to DBMap
 
 	if err := s.dbMap.CreateTablesIfNotExists(); err != nil {
@@ -212,7 +214,47 @@ func (s *StorageManager) SetPlayerForGame(gameId string, playerIndex boardgame.P
 }
 
 func (s *StorageManager) UserIdsForGame(gameId string) []string {
-	return nil
+
+	game, err := s.Game(gameId)
+
+	if err != nil {
+		log.Println("Couldn't get game: " + err.Error())
+		return nil
+	}
+
+	if game == nil {
+		log.Println("No game returned.")
+		return nil
+	}
+
+	var players []PlayerStorageRecord
+
+	_, err = s.dbMap.Select(&players, "select * from "+TablePlayers+" where GameId=? order by Index desc", game.Id)
+
+	result := make([]string, game.NumPlayers)
+
+	if err == sql.ErrNoRows {
+		return result
+	}
+
+	if err != nil {
+		log.Println("Couldn't get rows: ", err.Error())
+		return result
+	}
+
+	for _, rec := range players {
+		index := int(rec.Index)
+
+		if index < 0 || index >= len(result) {
+			log.Println("Invalid index", rec)
+			continue
+		}
+
+		result[index] = rec.UserId
+	}
+
+	return result
+
 }
 
 func (s *StorageManager) UpdateUser(user *users.StorageRecord) error {

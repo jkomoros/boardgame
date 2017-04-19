@@ -40,6 +40,13 @@ type StateStorageRecord struct {
 	Blob    []byte
 }
 
+type PlayerStorageRecord struct {
+	Id     int64
+	GameId string `db:",size:16"`
+	Index  int64
+	UserId string `db:",size:16"`
+}
+
 func winnersToString(winners []boardgame.PlayerIndex) string {
 	if winners == nil {
 		return ""
