@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"container/heap"
+	"log"
 	"time"
 )
 
@@ -226,7 +227,7 @@ func (t *timerManager) Tick() {
 
 		if err := <-record.game.ProposeMove(record.move, AdminPlayerIndex); err != nil {
 			//TODO: log the error or something
-			panic(err)
+			log.Println("When timer failed the move could not be made: ", err, record.move)
 		}
 	}
 }
