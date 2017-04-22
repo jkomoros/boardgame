@@ -444,13 +444,14 @@ func (s *Server) gameView(r *Renderer, game *boardgame.Game, playerIndex boardga
 	}
 
 	args := gin.H{
-		"Diagram":         game.CurrentState().SanitizedForPlayer(playerIndex).Diagram(),
-		"Chest":           s.renderChest(game),
-		"Forms":           s.generateForms(game),
-		"Game":            game.JSONForPlayer(playerIndex),
-		"Error":           s.lastErrorMessage,
-		"ViewingAsPlayer": playerIndex,
-		"HasEmptySlots":   hasEmptySlots,
+		"Diagram":            game.CurrentState().SanitizedForPlayer(playerIndex).Diagram(),
+		"Chest":              s.renderChest(game),
+		"Forms":              s.generateForms(game),
+		"Game":               game.JSONForPlayer(playerIndex),
+		"Error":              s.lastErrorMessage,
+		"CurrentPlayerIndex": game.CurrentPlayerIndex(),
+		"ViewingAsPlayer":    playerIndex,
+		"HasEmptySlots":      hasEmptySlots,
 	}
 
 	s.lastErrorMessage = ""
