@@ -139,8 +139,9 @@ type GameDelegate interface {
 
 //DefaultGameDelegate is a struct that implements stubs for all of
 //GameDelegate's methods. This makes it easy to override just one or two
-//methods by creating your own struct that anonymously embeds this one. You
-//almost certainly want to override StartingState.
+//methods by creating your own struct that anonymously embeds this one.
+//EmptyGameState and EmptyPlayerState are not implemented, since those almost
+//certainly must be overridden for your particular game.
 type DefaultGameDelegate struct {
 	manager *GameManager
 }
