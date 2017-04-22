@@ -44,14 +44,8 @@ type StorageManager interface {
 	//Note: whenever you add methods here, also add them to boardgame/storage/test/StorageManager
 }
 
-//DefaultStorageManager currently uses mysql. See the README in
+//NewDefaultStorageManager currently uses mysql. See the README in
 //github.com/jkomoros/boardgame/storage/mysql for how to set up and configure it.
-type DefaultStorageManager struct {
-	*mysql.StorageManager
-}
-
-func NewDefaultStorageManager() *DefaultStorageManager {
-	return &DefaultStorageManager{
-		mysql.NewStorageManager(false),
-	}
+func NewDefaultStorageManager() StorageManager {
+	return mysql.NewStorageManager(false)
 }
