@@ -184,7 +184,7 @@ Sitting in mygame/server/static/webapp, run `firebase deploy`
 
 #### Static Hosting on Google Cloud Storage
 
-This section describes how to deploy to Google Cloud Storage.
+This section describes how to deploy to Google Cloud Storage (and may be slightly out of date)
 
 You will be storing as a static domain-backed bucket on Google Cloud Storage. The main instructions to follow are [https://cloud.google.com/storage/docs/hosting-static-website](here), but this guide pulls out the main steps.
 
