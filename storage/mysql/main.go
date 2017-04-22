@@ -55,7 +55,7 @@ func (s *StorageManager) Connect(config string) error {
 	s.dbMap = &gorp.DbMap{
 		Db: db,
 		Dialect: gorp.MySQLDialect{
-			Engine:   "MyISAM",
+			Engine:   "InnoDB",
 			Encoding: "utf8",
 		},
 	}

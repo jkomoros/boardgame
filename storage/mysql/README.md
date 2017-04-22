@@ -19,4 +19,5 @@ current version.
 ## Generating create_tables.sql
 
 After making a change that would affect the schema, go to main_test.go, flip
-outputTables to true, run go test, then flip it back off.
+outputTables to true, run go test, then flip it back off. Then go through and
+remove the (<time>) at the end of each line.
