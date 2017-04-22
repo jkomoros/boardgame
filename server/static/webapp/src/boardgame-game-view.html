@@ -36,6 +36,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       #moves > details {
         margin-left:1em;
       }
+
+      .admin > div:first-child {
+        margin-left: 0;
+      }
+
+      .admin > div {
+        margin-left:1em;
+      }
     </style>
     <template is="dom-if" if="{{data.error}}">
     <div class="card">
@@ -65,9 +73,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <div class="card">
       <boardgame-render-game state="{{data.Game.CurrentState}}" expanded-state="{{data.Game.ExpandedCurrentState}}" diagram="{{data.Diagram}}" game-name="{{gameName}}" viewing-as-player="{{data.ViewingAsPlayer}}"></boardgame-render-game>
     </div>
-    <div class="card horizontal layout" hidden="{{!admin}}">
+    <div class="card horizontal layout admin" hidden="{{!admin}}">
       <div class="flex">
         View as:<input is="iron-input" type="number" value-as-number="{{requestedPlayer::input}}" min="-2" max="{{maxRequestedPlayerIndex}}">
+      </div>
+      <div>
+        <paper-checkbox id="viewing-is-current" checked="{{viewingAsPlayerIsCurrentPlayer}}">ViewingAsPlayer is CurrentPlayer</paper-checkbox>
       </div>
       <div>
         <paper-checkbox id="move-as-player" checked="{{makeMovesAsViewingAsPlayer}}">Make Moves As ViewingAsPlayer</paper-checkbox>
@@ -156,6 +167,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         makeMovesAsViewingAsPlayer: {
           type:Boolean,
+          value: true,
+        },
+        viewingAsPlayerIsCurrentPlayer: {
+          type: Boolean,
           value: true,
         },
         moveAsPlayer: {
