@@ -636,7 +636,9 @@ func (s *Server) Start() {
 		return
 	}
 
-	router := gin.Default()
+	router := gin.New()
+
+	router.Use(gin.Recovery(), gin.LoggerWithWriter(os.Stdout, "/_ah/health"))
 
 	router.NoRoute(s.genericHandler)
 	router.Use(cors.Middleware(cors.Config{
