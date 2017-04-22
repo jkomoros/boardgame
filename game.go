@@ -208,6 +208,17 @@ func (g *Game) State(version int) State {
 
 }
 
+//CurrentPlayerIndex is a simple convenience wrapper around game.Delegate().CurrentPlayerIndex(game.CurrentState())
+func (g *Game) CurrentPlayerIndex() PlayerIndex {
+	state := g.CurrentState()
+
+	if state == nil {
+		return ObserverPlayerIndex
+	}
+
+	return g.manager.delegate.CurrentPlayerIndex(state)
+}
+
 //SetUp should be called a single time after all of the member variables are
 //set correctly, including Chest. SetUp must be called before ProposeMove can
 //be called. Even if an error is returned, the game should be in a consistent
