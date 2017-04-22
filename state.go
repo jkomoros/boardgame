@@ -28,6 +28,11 @@ type State interface {
 	//DynamicComponentValues returns a map of deck name to array of component
 	//values, one per component in that deck.
 	DynamicComponentValues() map[string][]DynamicComponentValues
+
+	//CurrentPlayer returns the PlayerState corresponding to the result of
+	//delegate.CurrentPlayerIndex(), or nil if the index isn't valid.
+	CurrentPlayer() PlayerState
+
 	//Copy returns a deep copy of the State, including copied version of the Game
 	//and Player States.
 	Copy(sanitized bool) State
@@ -193,6 +198,14 @@ func (s *state) Players() []PlayerState {
 		result[i] = s.playerStates[i]
 	}
 	return result
+}
+
+func (s *state) CurrentPlayer() PlayerState {
+	index := s.game.manager.delegate.CurrentPlayerIndex(s)
+	if index < 0 || int(index) >= len(s.playerStates) {
+		return nil
+	}
+	return s.playerStates[index]
 }
 
 func (s *state) Copy(sanitized bool) State {
