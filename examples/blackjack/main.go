@@ -67,6 +67,11 @@ func (g *gameDelegate) DefaultNumPlayers() int {
 	return 4
 }
 
+func (g *gameDelegate) CurrentPlayerIndex(state boardgame.State) boardgame.PlayerIndex {
+	game, _ := concreteStates(state)
+	return game.CurrentPlayer
+}
+
 func (g *gameDelegate) ComputedPropertiesConfig() *boardgame.ComputedPropertiesConfig {
 	return computedPropertiesConfig
 }

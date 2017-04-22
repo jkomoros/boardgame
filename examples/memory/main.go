@@ -71,6 +71,11 @@ func (g *gameDelegate) LegalNumPlayers(numPlayers int) bool {
 	return numPlayers < 4 && numPlayers > 1
 }
 
+func (g *gameDelegate) CurrentPlayerIndex(state boardgame.State) boardgame.PlayerIndex {
+	game, _ := concreteStates(state)
+	return game.CurrentPlayer
+}
+
 func (g *gameDelegate) EmptyGameState() boardgame.MutableGameState {
 
 	cards := g.Manager().Chest().Deck(cardsDeckName)

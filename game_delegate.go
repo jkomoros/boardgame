@@ -71,6 +71,14 @@ type GameDelegate interface {
 	//one player existing.
 	LegalNumPlayers(numPlayers int) bool
 
+	//CurrentPlayerIndex returns the index of the "current" player--a notion
+	//that is game specific (and sometimes inapplicable). If CurrentPlayer
+	//doesn't make sense (perhaps the game never has a notion of current
+	//player, or the type of round that we're in has no current player), this
+	//should return ObserverPlayerIndex. The result of this method is used to
+	//power state.CurrentPlayer.
+	CurrentPlayerIndex(state State) PlayerIndex
+
 	//EmptyGameState and EmptyPlayerState are called to get an instantiation
 	//of the concrete game/player structs that your package defines. This is
 	//used both to create the initial state, but also to inflate states from
@@ -184,6 +192,10 @@ func (d *DefaultGameDelegate) ProposeFixUpMove(state State) Move {
 	}
 	//No moves apply now.
 	return nil
+}
+
+func (d *DefaultGameDelegate) CurrentPlayerIndex(state State) PlayerIndex {
+	return ObserverPlayerIndex
 }
 
 func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state State, c *Component) (Stack, error) {
