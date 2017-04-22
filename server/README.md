@@ -46,7 +46,7 @@ func main() {
 }
 
 ```
-5. Copy boardgame/server/api/app.yaml to be in your mygame/server/api folder.
+5. Copy boardgame/server/api/app.yaml to be in your mygame/server/api folder. You  may need to modify the cloud_sql_instances property (see the README in the mysql directory on how to set that).
 5. Ensure your .gitignore file contains the following line:
 
 ```
@@ -68,7 +68,7 @@ func main() {
 14. Create symlinks from the following items:
 * src 
 * config-src
-* index.html
+* index.html (note that you may want to copy this to put in your firebase id and analytics code)
 
 Example symlink:
 ```
@@ -106,6 +106,55 @@ In particular:
 
 1) Create your own server/api/config.SECRET.json
 2) Run step 15 in the "starting a new game from scrathc section above"
+
+## configuring the server
+
+This is technically about the api server, but here just to have it in one place.
+
+You configure the api server with a file called config.SECRET.json, which
+should be in the directory you start the server from. If you follow the
+instructions above, it will be impossible to accidentally commmit that secret
+config file to source control.
+
+There are two configs: "dev" and "prod". Both have the same possible fields to
+set. The server picks which one to use at start up based on the GIN_MODE
+environment variable.
+
+### AllowedOrigins
+
+AllowedOrigins*is a comma-delimited list of origins to use in CORS that should
+be allowed to access your endpoint.
+
+### DefaultPort
+
+DefaultPort is the port (e.g. "8080") to use when no port is specified in
+environment variables.
+
+### FirebaseProjectId
+
+FirebaseProjectId is the ID of your firebase project. It is necessary for user
+authentication. Note that you'll also likely need to update it in index.html
+
+### DisableAdminChecking
+
+This option *should only be enabled in dev*. When set to true, it disables all
+admin checking. That means that any user can enable admin mode clientside and
+then operate as an admin (e.g. make whatever moves they want on a game, view
+the state from the perspective of any user, etc).
+
+### AdminUserIds
+
+When adminmode chcecking is enabled (which is the default, see above), only
+users whose userId is in this list will be allowed to enable admin mode. You
+can find the userIds in the Firebase user console.
+
+### StorageConfig
+
+StorageConfig is how you configure the parameter to be passed to
+Storage.Connect(). Different storage backends have different expectations, and
+many are fine with just "". When the server is started up, it will fetch the
+connection string from this map that matches the Name of the storage engine in
+use.
 
 ## Installing dependencies
 
