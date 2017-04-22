@@ -16,7 +16,7 @@ import (
 
 type Server struct {
 	managers managerMap
-	storage  StorageManager
+	storage  *ServerStorageManager
 	//We store the last error so that next time viewHandler is called we can
 	//display it. Yes, this is a hack.
 	lastErrorMessage string
@@ -91,8 +91,10 @@ server.calcFoo takes dependencies and returns a result, with no touching context
 */
 
 /*
+
 NewServer returns a new server. Get it to run by calling Start(). storage
-should be the same underlying storage manager that is in use for manager.
+should a *ServerStorageManager, which can be created either from
+NewDefaultStorageManager or NewServerStorageManager.
 
 Use it like so:
 
@@ -103,7 +105,7 @@ Use it like so:
 	}
 
 */
-func NewServer(storage StorageManager, managers ...*boardgame.GameManager) *Server {
+func NewServer(storage *ServerStorageManager, managers ...*boardgame.GameManager) *Server {
 	result := &Server{
 		managers: make(managerMap),
 		storage:  storage,

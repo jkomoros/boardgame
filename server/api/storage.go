@@ -7,7 +7,9 @@ import (
 )
 
 //StorageManager extends the base boardgame.StorageManager with a few more
-//methods necessary to make server work.
+//methods necessary to make server work. When creating a new Server, you need
+//to pass in a ServerStorageManager, which wraps one of these objects and thus
+//implements these methods, too.
 type StorageManager interface {
 	boardgame.StorageManager
 
@@ -44,8 +46,22 @@ type StorageManager interface {
 	//Note: whenever you add methods here, also add them to boardgame/storage/test/StorageManager
 }
 
+//ServerStorageManager implements the ServerStorage interface by wrapping an
+//object that supports StorageManager.
+type ServerStorageManager struct {
+	StorageManager
+}
+
+//NewServerStorageManager takes an object that implements StorageManager and
+//wraps it.
+func NewServerStorageManager(manager StorageManager) *ServerStorageManager {
+	return &ServerStorageManager{
+		manager,
+	}
+}
+
 //NewDefaultStorageManager currently uses mysql. See the README in
 //github.com/jkomoros/boardgame/storage/mysql for how to set up and configure it.
-func NewDefaultStorageManager() StorageManager {
-	return mysql.NewStorageManager(false)
+func NewDefaultStorageManager() *ServerStorageManager {
+	return NewServerStorageManager(mysql.NewStorageManager(false))
 }
