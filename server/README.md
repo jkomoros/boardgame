@@ -130,11 +130,6 @@ bower install
 
 Install the [https://cloud.google.com/sdk/docs/](Google Cloud SDK).
 
-Install aedeploy:
-```
-go get google.golang.org/appengine/cmd/aedeploy
-```
-
 Install firebase tool:
 
 ```
@@ -248,5 +243,5 @@ Cd into mygame/server/api.
 Run:
 
 ```
-aedeploy gcloud app deploy
+gcloud app deploy
 ```
