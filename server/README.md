@@ -245,3 +245,11 @@ Run:
 ```
 gcloud app deploy
 ```
+
+If it's been awhile since you installed gcloud, you can run:
+
+```
+gcloud components update
+```
+
+To make sure everything is up to date.
