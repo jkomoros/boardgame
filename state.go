@@ -152,15 +152,7 @@ func (p PlayerIndex) Equivalent(other PlayerIndex) bool {
 	return p == other
 }
 
-//String returns a human-readable string representing the player index (e.g.
-//'1', '2'), with 'Admin' and 'Observer' for those values.
 func (p PlayerIndex) String() string {
-	if p == AdminPlayerIndex {
-		return "Admin"
-	}
-	if p == ObserverPlayerIndex {
-		return "Observer"
-	}
 	return strconv.Itoa(int(p))
 }
 
