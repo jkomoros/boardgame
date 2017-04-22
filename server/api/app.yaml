@@ -2,5 +2,7 @@ runtime: go
 env: flex
 manual_scaling:
   instances: 1
+beta_settings:
+  cloud_sql_instances: boardgame-159316:us-east1:prod
 env_variables:
   GIN_MODE: 'release'
