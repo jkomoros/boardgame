@@ -1,4 +1,6 @@
 runtime: go
 env: flex
+manual_scaling:
+  instances: 1
 env_variables:
   GIN_MODE: 'release'
