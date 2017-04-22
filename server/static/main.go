@@ -104,7 +104,7 @@ func (s *Server) Start() {
 
 	fs.AddRedirect("/config-src/boardgame-config.html", "/config-src/boardgame-config-dev.html")
 
-	router.StaticFS("/static", fs)
+	router.StaticFS("/", fs)
 
 	router.Run(":8080")
 

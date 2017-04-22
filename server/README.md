@@ -62,6 +62,7 @@ func main() {
 12. Copy the following items from boardgame/server/static/webapp to your own webapp. None of them require modification by default.
 * bower.json
 * manifest.json
+* firebase.json
 * .gitignore
 13. Copy polymer.json to your own webapp. Modify it to add the game-src/mygame/boardgame-render-game-<gamename>.html fragment.
 14. Create symlinks from the following items:
@@ -134,6 +135,14 @@ Install aedeploy:
 go get google.golang.org/appengine/cmd/aedeploy
 ```
 
+Install firebase tool:
+
+```
+npm install -g firebase-tools
+
+firebase login
+```
+
 
 ## Building
 
@@ -149,6 +158,14 @@ To create results in mygame/server/webapp/build/{bundled, unbundled}.
 
 Make sure you have created a project for the static and api servers.
 
+
+### First deploy for static hosting on firebase
+
+Go to console.firebase.google.com, enable hosting for your project, and then
+follow the steps in connect domain.
+
+### First Deploy for static hosting on Google Cloud STorage
+
 Tell the gcloud commands which project you're operating on.
 
 ```
@@ -157,7 +174,22 @@ gcloud config set project <project-id>
 
 ### Static
 
-The static app can be hosted anywhere you want. This section describes how to deploy to Google Cloud Storage.
+The static app can be hosted anywhere you want. 
+
+#### Static hosting on Firebase
+
+Make sure that you have a firebase config file in the
+mygame/server/static/webapp directory. You can create one with `firebase init`
+in that directory, or just link in the one from
+boardgame/server/static/webapp. This file configures where the root item is.
+
+Run your build
+
+Sitting in mygame/server/static/webapp, run `firebase deploy`
+
+#### Static Hosting on Google Cloud Storage
+
+This section describes how to deploy to Google Cloud Storage.
 
 You will be storing as a static domain-backed bucket on Google Cloud Storage. The main instructions to follow are [https://cloud.google.com/storage/docs/hosting-static-website](here), but this guide pulls out the main steps.
 
