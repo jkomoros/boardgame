@@ -1,0 +1,5 @@
+create table if not exists `users` (`Id` varchar(128) not null primary key)  engine=MyISAM charset=utf8; [] (254.362µs)
+create table if not exists `games` (`Name` varchar(64), `Id` varchar(16) not null primary key, `Version` bigint, `Winners` varchar(128), `Finished` boolean, `NumPlayers` bigint)  engine=MyISAM charset=utf8; [] (188.542µs)
+create table if not exists `states` (`Id` bigint not null primary key auto_increment, `GameId` varchar(16), `Version` bigint, `Blob` mediumblob)  engine=MyISAM charset=utf8; [] (177.059µs)
+create table if not exists `cookies` (`Cookie` varchar(64) not null primary key, `UserId` varchar(128))  engine=MyISAM charset=utf8; [] (181.12µs)
+create table if not exists `players` (`Id` bigint not null primary key auto_increment, `GameId` varchar(16), `PlayerIndex` bigint, `UserId` varchar(128))  engine=MyISAM charset=utf8; [] (221.197µs)

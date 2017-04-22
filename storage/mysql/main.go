@@ -66,8 +66,12 @@ func (s *StorageManager) Connect(config string) error {
 	s.dbMap.AddTableWithName(CookieStorageRecord{}, TableCookies).SetKeys(false, "Cookie")
 	s.dbMap.AddTableWithName(PlayerStorageRecord{}, TablePlayers).SetKeys(true, "Id")
 
-	if err := s.dbMap.CreateTablesIfNotExists(); err != nil {
-		return errors.New("Couldn't create tables: " + err.Error())
+	if s.testMode {
+
+		if err := s.dbMap.CreateTablesIfNotExists(); err != nil {
+			return errors.New("Couldn't create tables: " + err.Error())
+		}
+
 	}
 
 	return nil
