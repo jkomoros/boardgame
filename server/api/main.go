@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -21,6 +22,9 @@ type Server struct {
 	//display it. Yes, this is a hack.
 	lastErrorMessage string
 	config           *ConfigMode
+
+	gameVersionCacheLock sync.RWMutex
+	gameVersionCache     map[string]int
 }
 
 type Renderer struct {
@@ -106,10 +110,14 @@ Use it like so:
 
 */
 func NewServer(storage *ServerStorageManager, managers ...*boardgame.GameManager) *Server {
+
 	result := &Server{
-		managers: make(managerMap),
-		storage:  storage,
+		managers:         make(managerMap),
+		storage:          storage,
+		gameVersionCache: make(map[string]int),
 	}
+
+	storage.server = result
 
 	for _, manager := range managers {
 		name := manager.Delegate().Name()
