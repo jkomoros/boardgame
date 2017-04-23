@@ -17,8 +17,26 @@ func (t *testAgent) SetUpForGame(game *Game, player PlayerIndex) (state []byte) 
 	return nil
 }
 
-func (t *testAgent) ProposeMove(game *Game, player PlayerIndex, state []byte) (move Move, newState []byte) {
-	return nil, nil
+func (t *testAgent) ProposeMove(game *Game, player PlayerIndex, agentState []byte) (move Move, newAgentState []byte) {
+
+	state := game.CurrentState()
+
+	gameState, _ := concreteStates(state)
+
+	if gameState.CurrentPlayer != player {
+		return nil, nil
+	}
+
+	move = game.PlayerMoveByName("Test")
+
+	if move == nil {
+		log.Println("Couldn't find move Test")
+		return nil, nil
+	}
+
+	move.(*testMove).TargetPlayerIndex = player
+
+	return move, nil
 }
 
 //testingComponent is a very basic thing that fufills the Component interface.

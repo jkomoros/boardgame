@@ -377,6 +377,36 @@ func TestIllegalPlayerIndex(t *testing.T) {
 
 }
 
+func TestAgent(t *testing.T) {
+	game := testGame()
+
+	err := game.SetUp(3, []string{"", "Test", "Test"})
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(game.Version()).Equals(0)
+
+	move := game.PlayerMoveByName("Test")
+
+	assert.For(t).ThatActual(move).IsNotNil()
+
+	err = <-game.ProposeMove(move, 0)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	//After we make that move, the next two players will make moves and it
+	//will advance back to main player.
+
+	<-time.After(time.Millisecond * 50)
+
+	assert.For(t).ThatActual(game.Version()).Equals(6)
+
+	gameState, _ := concreteStates(game.CurrentState())
+
+	assert.For(t).ThatActual(gameState.CurrentPlayer).Equals(PlayerIndex(0))
+
+}
+
 func TestGameState(t *testing.T) {
 	game := testGame()
 
