@@ -12,7 +12,7 @@ func TestPlayerIndexNextPrevious(t *testing.T) {
 
 	game := testGame()
 
-	game.SetUp(3)
+	game.SetUp(3, nil)
 
 	state := game.CurrentState()
 
@@ -57,7 +57,7 @@ func TestPlayerIndexValid(t *testing.T) {
 
 	gameTwoPlayers := testGame()
 
-	gameTwoPlayers.SetUp(2)
+	gameTwoPlayers.SetUp(2, nil)
 
 	stateTwoPlayers := gameTwoPlayers.CurrentState()
 
@@ -164,7 +164,7 @@ func TestState(t *testing.T) {
 
 	game := testGame()
 
-	game.SetUp(0)
+	game.SetUp(0, nil)
 
 	record, err := game.Manager().Storage().State(game.Id(), game.Version())
 
@@ -221,7 +221,7 @@ func TestStateSerialization(t *testing.T) {
 
 	game := testGame()
 
-	game.SetUp(0)
+	game.SetUp(0, nil)
 
 	gameState, _ := concreteStates(game.CurrentState())
 

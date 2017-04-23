@@ -21,6 +21,7 @@ type GameStorageRecord struct {
 	//Primarily for convenience to storage layer so they know how many players
 	//are in the game.
 	NumPlayers int
+	Agents     []string
 }
 
 //StorageManager is an interface that anything can implement to handle the

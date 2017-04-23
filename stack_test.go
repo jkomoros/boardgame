@@ -10,7 +10,7 @@ import (
 func TestInflate(t *testing.T) {
 	game := testGame()
 
-	game.SetUp(0)
+	game.SetUp(0, nil)
 
 	chest := game.Chest()
 

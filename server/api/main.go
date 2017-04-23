@@ -421,7 +421,7 @@ func (s *Server) doNewGame(r *Renderer, manager *boardgame.GameManager, numPlaye
 		return
 	}
 
-	if err := game.SetUp(numPlayers); err != nil {
+	if err := game.SetUp(numPlayers, nil); err != nil {
 		//TODO: communicate the error state back to the client in a sane way
 		r.Error("Couldn't set up game: " + err.Error())
 		return

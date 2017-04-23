@@ -20,7 +20,7 @@ func (t *testInfiniteLoopGameDelegate) ProposeFixUpMove(state State) Move {
 func TestMoveModifyDynamicValues(t *testing.T) {
 	game := testGame()
 
-	game.SetUp(0)
+	game.SetUp(0, nil)
 
 	drawCardMove := game.PlayerMoveByName("Draw Card")
 
@@ -85,7 +85,7 @@ func TestMoveModifyDynamicValues(t *testing.T) {
 func TestProposeMoveNonModifiableGame(t *testing.T) {
 	game := testGame()
 
-	game.SetUp(0)
+	game.SetUp(0, nil)
 
 	manager := game.Manager()
 
@@ -154,17 +154,21 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("We never got an error from proposing a move on a game that hadn't even started")
 	}
 
-	if err := game.SetUp(15); err == nil {
+	if err := game.SetUp(15, nil); err == nil {
 		t.Error("Calling set up with an illegal number of players didn't fail")
 	}
 
-	if err := game.SetUp(-5); err == nil {
+	if err := game.SetUp(-5, nil); err == nil {
 		t.Error("Calling set up with negative number of players didn't fail")
+	}
+
+	if err := game.SetUp(3, []string{"", "bam"}); err == nil {
+		t.Error("Calling set up with wrong-sized agent config didn't fail")
 	}
 
 	//TODO: we no longer test that SetUp calls the Component distribution logic.
 
-	if err := game.SetUp(0); err != nil {
+	if err := game.SetUp(0, nil); err != nil {
 		t.Error("Calling SetUp on a previously errored game did not succeed", err)
 	}
 
@@ -225,7 +229,7 @@ func TestGameSetUp(t *testing.T) {
 func TestApplyMove(t *testing.T) {
 	game := testGame()
 
-	game.SetUp(0)
+	game.SetUp(0, nil)
 
 	move := &testMove{
 		AString:           "foo",
@@ -343,7 +347,7 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 				didPanic = true
 			}
 		}()
-		game.SetUp(0)
+		game.SetUp(0, nil)
 		return
 	}
 
@@ -356,7 +360,7 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 func TestIllegalPlayerIndex(t *testing.T) {
 	game := testGame()
 
-	game.SetUp(2)
+	game.SetUp(2, nil)
 
 	previousVersion := game.Version()
 
@@ -379,7 +383,7 @@ func TestGameState(t *testing.T) {
 	//Force a deterministic ID
 	game.id = "483BD9BC8D1A2F27"
 
-	game.SetUp(0)
+	game.SetUp(0, nil)
 
 	if game.Name() != testGameName {
 		t.Error("Game name was not correct")

@@ -14,7 +14,7 @@ func TestMain(t *testing.T) {
 
 	assert.For(t).ThatActual(game).IsNotNil()
 
-	err := game.SetUp(2)
+	err := game.SetUp(2, nil)
 
 	if !assert.For(t).ThatActual(err).IsNil().Passed() {
 		t.FailNow()

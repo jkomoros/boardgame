@@ -276,7 +276,7 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 func NewGame(manager *boardgame.GameManager) *boardgame.Game {
 	game := boardgame.NewGame(manager)
 
-	if err := game.SetUp(0); err != nil {
+	if err := game.SetUp(0, nil); err != nil {
 		panic(err)
 	}
 

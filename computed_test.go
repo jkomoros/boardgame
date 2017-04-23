@@ -32,7 +32,7 @@ func TestComputedPropertyDefinitionCompute(t *testing.T) {
 
 	game := testGame()
 
-	if err := game.SetUp(0); err != nil {
+	if err := game.SetUp(0, nil); err != nil {
 		t.Fatal("Game failed to set up", err)
 	}
 
@@ -101,7 +101,7 @@ func TestStateComputed(t *testing.T) {
 
 	game := NewGame(manager)
 
-	game.SetUp(0)
+	game.SetUp(0, nil)
 
 	state := game.CurrentState().(*state)
 

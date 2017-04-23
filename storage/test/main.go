@@ -57,6 +57,7 @@ func Test(factory StorageManagerFactory, testName string, connectConfig string, 
 
 	BasicTest(factory, testName, connectConfig, t)
 	UsersTest(factory, testName, connectConfig, t)
+	AgentsTest(factory, testName, connectConfig, t)
 
 }
 
@@ -85,7 +86,7 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	tictactoeGame := boardgame.NewGame(tictactoeManager)
 
-	tictactoeGame.SetUp(0)
+	tictactoeGame.SetUp(0, nil)
 
 	move := tictactoeGame.PlayerMoveByName("Place Token")
 
@@ -127,7 +128,7 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	blackjackGame := boardgame.NewGame(blackjackManager)
 
-	blackjackGame.SetUp(0)
+	blackjackGame.SetUp(0, nil)
 
 	games := storage.ListGames(10)
 
@@ -158,7 +159,7 @@ func UsersTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	game := boardgame.NewGame(manager)
 
-	game.SetUp(2)
+	game.SetUp(2, nil)
 
 	var nilIds []string
 
@@ -213,6 +214,31 @@ func UsersTest(factory StorageManagerFactory, testName string, connectConfig str
 	err = storage.SetPlayerForGame(game.Id(), 0, userId)
 
 	assert.For(t).ThatActual(err).IsNotNil()
+}
+
+func AgentsTest(factory StorageManagerFactory, testName string, connectConfig string, t *testing.T) {
+
+	storage := factory()
+
+	defer storage.Close()
+	defer storage.CleanUp()
+
+	if err := storage.Connect(connectConfig); err != nil {
+		t.Fatal("Err connecting to storage: ", err)
+	}
+
+	manager := tictactoe.NewManager(storage)
+
+	game := boardgame.NewGame(manager)
+
+	err := game.SetUp(2, []string{"", "ai"})
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	refriedGame := manager.Game(game.Id())
+
+	assert.For(t).ThatActual(refriedGame.Agents()).Equals(game.Agents())
+
 }
 
 func compareJSONObjects(in []byte, golden []byte, message string, t *testing.T) {

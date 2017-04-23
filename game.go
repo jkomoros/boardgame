@@ -22,6 +22,8 @@ type Game struct {
 
 	winners []PlayerIndex
 
+	agents []string
+
 	//The current version of State.
 	version int
 
@@ -137,6 +139,7 @@ func (g *Game) JSONForPlayer(player PlayerIndex) interface{} {
 		"CurrentState": g.CurrentState().SanitizedForPlayer(player),
 		"Id":           g.Id(),
 		"NumPlayers":   g.NumPlayers(),
+		"Agents":       g.Agents(),
 		"Version":      g.Version(),
 	}
 }
@@ -156,6 +159,7 @@ func (g *Game) StorageRecord() *GameStorageRecord {
 		Finished:   g.Finished(),
 		Id:         g.Id(),
 		NumPlayers: g.NumPlayers(),
+		Agents:     g.Agents(),
 	}
 }
 
@@ -165,6 +169,10 @@ func (g *Game) Name() string {
 
 func (g *Game) Id() string {
 	return g.id
+}
+
+func (g *Game) Agents() []string {
+	return g.agents
 }
 
 //Version returns the version number of the highest State that is stored for
@@ -222,8 +230,11 @@ func (g *Game) CurrentPlayerIndex() PlayerIndex {
 //SetUp should be called a single time after all of the member variables are
 //set correctly, including Chest. SetUp must be called before ProposeMove can
 //be called. Even if an error is returned, the game should be in a consistent
-//state. If numPlayers is 0, we will use delegate.DefaultNumPlayers().
-func (g *Game) SetUp(numPlayers int) error {
+//state. If numPlayers is 0, we will use delegate.DefaultNumPlayers(). if
+//agentNames is not nil, it should have len(numPlayers). The strings in each
+//index represent the agent to install for that player (empty strings mean a
+//human player).
+func (g *Game) SetUp(numPlayers int, agentNames []string) error {
 
 	if g.initalized {
 		return errors.New("Game already initalized")
@@ -245,6 +256,16 @@ func (g *Game) SetUp(numPlayers int) error {
 	if !g.manager.Delegate().LegalNumPlayers(numPlayers) {
 		return errors.New("The number of players, " + strconv.Itoa(numPlayers) + " was not legal.")
 	}
+
+	if agentNames != nil && len(agentNames) != numPlayers {
+		return errors.New("If agentNames is not nil, it must have length equivalent to numPlayers.")
+	}
+
+	if agentNames == nil {
+		agentNames = make([]string, numPlayers)
+	}
+
+	g.agents = agentNames
 
 	g.numPlayers = numPlayers
 
@@ -331,6 +352,8 @@ func (g *Game) SetUp(numPlayers int) error {
 			return errors.New("Applying the first fix up move failed: " + err.Error())
 		}
 	}
+
+	//TODO: start up agents.
 
 	if g.Modifiable() {
 

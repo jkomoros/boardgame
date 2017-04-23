@@ -31,6 +31,7 @@ type GameStorageRecord struct {
 	//Primarily for convenience to storage layer so they know how many players
 	//are in the game.
 	NumPlayers int64
+	Agents     string `db:",size:1024"`
 }
 
 type StateStorageRecord struct {
@@ -47,6 +48,13 @@ type PlayerStorageRecord struct {
 	UserId      string `db:",size:128"`
 }
 
+func agentsToString(agents []string) string {
+	if agents == nil {
+		return ""
+	}
+	return strings.Join(agents, ",")
+}
+
 func winnersToString(winners []boardgame.PlayerIndex) string {
 	if winners == nil {
 		return ""
@@ -56,6 +64,14 @@ func winnersToString(winners []boardgame.PlayerIndex) string {
 		strs[i] = player.String()
 	}
 	return strings.Join(strs, ",")
+}
+
+func stringToAgents(agents string) []string {
+	if agents == "" {
+		return nil
+	}
+
+	return strings.Split(agents, ",")
 }
 
 func stringToWinners(winners string) ([]boardgame.PlayerIndex, error) {
@@ -98,6 +114,7 @@ func (g *GameStorageRecord) ToStorageRecord() *boardgame.GameStorageRecord {
 		Version:    int(g.Version),
 		Winners:    winners,
 		NumPlayers: int(g.NumPlayers),
+		Agents:     stringToAgents(g.Agents),
 	}
 }
 
@@ -112,6 +129,7 @@ func NewGameStorageRecord(game *boardgame.GameStorageRecord) *GameStorageRecord 
 		Version:    int64(game.Version),
 		Winners:    winnersToString(game.Winners),
 		NumPlayers: int64(game.NumPlayers),
+		Agents:     agentsToString(game.Agents),
 	}
 }
 
