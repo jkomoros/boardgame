@@ -122,6 +122,10 @@ func NewServer(storage *ServerStorageManager, managers ...*boardgame.GameManager
 	for _, manager := range managers {
 		name := manager.Delegate().Name()
 		result.managers[name] = manager
+		if manager.Storage() != storage {
+			log.Println("The storage for one of the managers was not the same item passed in as major storage.")
+			return nil
+		}
 	}
 
 	return result
