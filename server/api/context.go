@@ -151,12 +151,16 @@ func (s *Server) getHasEmptySlots(c *gin.Context) bool {
 	return emptySlots
 }
 
-func (s *Server) calcViewingAsPlayerAndEmptySlots(userIds []string, user *users.StorageRecord) (player boardgame.PlayerIndex, emptySlots []boardgame.PlayerIndex) {
+func (s *Server) calcViewingAsPlayerAndEmptySlots(userIds []string, user *users.StorageRecord, agents []string) (player boardgame.PlayerIndex, emptySlots []boardgame.PlayerIndex) {
 
 	result := boardgame.ObserverPlayerIndex
 
+	if len(userIds) != len(agents) {
+		panic("Agents and UserIds were different sizes")
+	}
+
 	for i, userId := range userIds {
-		if userId == "" {
+		if userId == "" && agents[i] == "" {
 			emptySlots = append(emptySlots, boardgame.PlayerIndex(i))
 		}
 		if user != nil && userId == user.Id {
