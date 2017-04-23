@@ -23,10 +23,12 @@ type GameManager struct {
 	delegate            GameDelegate
 	chest               *ComponentChest
 	storage             StorageManager
+	agents              []Agent
 	fixUpMoves          []Move
 	playerMoves         []Move
 	fixUpMovesByName    map[string]Move
 	playerMovesByName   map[string]Move
+	agentsByName        map[string]Agent
 	modifiableGamesLock sync.RWMutex
 	modifiableGames     map[string]*Game
 	timers              *timerManager
@@ -477,6 +479,11 @@ func (g *GameManager) SetUp() error {
 
 	}
 
+	g.agentsByName = make(map[string]Agent)
+	for _, agent := range g.agents {
+		g.agentsByName[strings.ToLower(agent.Name())] = agent
+	}
+
 	g.playerMovesByName = make(map[string]Move)
 	for _, move := range g.playerMoves {
 		g.playerMovesByName[strings.ToLower(move.Name())] = move
@@ -506,6 +513,15 @@ func (g *GameManager) SetUp() error {
 	return nil
 }
 
+//AddAgent is called before set up to configure an agent that is available to
+//play in games.
+func (g *GameManager) AddAgent(agent Agent) {
+	if g.initialized {
+		return
+	}
+	g.agents = append(g.agents, agent)
+}
+
 //AddPlayerMove adds the specified move to the game as a move that Players can
 //make. It may only be called during initalization.
 func (g *GameManager) AddPlayerMove(move Move) {
@@ -523,6 +539,16 @@ func (g *GameManager) AddFixUpMove(move Move) {
 		return
 	}
 	g.fixUpMoves = append(g.fixUpMoves, move)
+}
+
+//Agents returns a slice of all agents configured on this Manager. Will return
+//nil before SetUp is called.
+func (g *GameManager) Agents() []Agent {
+	if !g.initialized {
+		return nil
+	}
+
+	return g.agents
 }
 
 //PlayerMoves returns all moves that are valid in this game to be made my
@@ -562,6 +588,19 @@ func (g *GameManager) FixUpMoves() []Move {
 	}
 
 	return result
+}
+
+//AgentByName will return the agent with the given name, or nil if one doesn't
+//exist. Will return nil before SetUp is called.
+func (g *GameManager) AgentByName(name string) Agent {
+
+	if !g.initialized {
+		return nil
+	}
+
+	name = strings.ToLower(name)
+
+	return g.agentsByName[name]
 }
 
 //PlayerMoveByName returns the Move of that name from game.PlayerMoves(), if
