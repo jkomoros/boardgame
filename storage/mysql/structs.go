@@ -37,7 +37,7 @@ type StateStorageRecord struct {
 	Id      int64
 	GameId  string `db:",size:16"`
 	Version int64
-	Blob    []byte
+	Blob    string `db:",size:10000000"`
 }
 
 type PlayerStorageRecord struct {
@@ -131,13 +131,13 @@ func (s *StateStorageRecord) ToStorageRecord() boardgame.StateStorageRecord {
 	if s == nil {
 		return nil
 	}
-	return s.Blob
+	return []byte(s.Blob)
 }
 
 func NewStateStorageRecord(gameId string, version int, record boardgame.StateStorageRecord) *StateStorageRecord {
 	return &StateStorageRecord{
 		GameId:  gameId,
 		Version: int64(version),
-		Blob:    []byte(record),
+		Blob:    string(record),
 	}
 }
