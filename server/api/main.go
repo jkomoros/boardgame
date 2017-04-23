@@ -204,6 +204,32 @@ func (s *Server) userSetup(c *gin.Context) {
 	s.setAdminAllowed(c, s.calcAdminAllowed(user))
 }
 
+func (s *Server) gameFromId(gameId, gameName string) *boardgame.Game {
+
+	manager := s.managers[gameName]
+
+	if manager == nil {
+		log.Println("Couldnt' find manager for", gameName)
+		return nil
+	}
+
+	game := manager.Game(gameId)
+
+	//TODO: figure out a way to return a meaningful error
+
+	if game == nil {
+		log.Println("Couldn't find game with id", gameId)
+		return nil
+	}
+
+	if game.Name() != gameName {
+		log.Println("The name of the game was not what we were expecting. Wanted", gameName, "got", game.Name())
+		return nil
+	}
+
+	return game
+}
+
 //gameAPISetup fetches the game configured in the URL and puts it in context.
 func (s *Server) gameAPISetup(c *gin.Context) {
 
@@ -211,24 +237,9 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 	gameName := s.getRequestGameName(c)
 
-	manager := s.managers[gameName]
-
-	if manager == nil {
-		log.Println("Couldnt' find manager for", gameName)
-		return
-	}
-
-	game := manager.Game(id)
-
-	//TODO: figure out a way to return a meaningful error
+	game := s.gameFromId(id, gameName)
 
 	if game == nil {
-		log.Println("Couldn't find game with id", id)
-		return
-	}
-
-	if game.Name() != c.Param("name") {
-		log.Println("The name of the game was not what we were expecting. Wanted", c.Param("name"), "got", game.Name())
 		return
 	}
 
@@ -290,24 +301,43 @@ func (s *Server) gameStatusHandler(c *gin.Context) {
 	//current version of the specific game. It will be hit hard by all
 	//clients, repeatedly, so it should be very fast.
 
-	//TODO: use memcache for this handler
-
-	game := s.getGame(c)
+	id := s.getRequestGameId(c)
+	name := s.getRequestGameName(c)
 
 	r := NewRenderer(c)
 
-	s.doGameStatus(r, game)
+	s.doGameStatus(r, id, name)
 
 }
 
-func (s *Server) doGameStatus(r *Renderer, game *boardgame.Game) {
-	if game == nil {
-		r.Error("Not Found")
-		return
+func (s *Server) doGameStatus(r *Renderer, gameId, gameName string) {
+
+	s.gameVersionCacheLock.RLock()
+
+	version, ok := s.gameVersionCache[gameId]
+
+	s.gameVersionCacheLock.RUnlock()
+
+	if !ok {
+		//Guess for whatever reason the game's version wasn't in the cache. Fetch it.
+
+		game := s.gameFromId(gameId, gameName)
+
+		if game == nil {
+			r.Error("Couldn't find game with that name")
+			return
+		}
+
+		s.gameVersionCacheLock.Lock()
+		s.gameVersionCache[game.Id()] = game.Version()
+		s.gameVersionCacheLock.Unlock()
+
+		version = game.Version()
+
 	}
 
 	r.Success(gin.H{
-		"Version": game.Version(),
+		"Version": version,
 	})
 }
 
@@ -659,6 +689,10 @@ func (s *Server) Start() {
 		Credentials:    true,
 	}))
 
+	//The status endpoint for a game gets POUNDED so we don't want to touch
+	//the database if we can help it.
+	router.GET("/api/game/:name/:id/status", s.gameStatusHandler)
+
 	//We have everything prefixed by /api just in case at some point we do
 	//want to host both static and api on the same logical server.
 	mainGroup := router.Group("/api")
@@ -678,7 +712,9 @@ func (s *Server) Start() {
 		gameAPIGroup.Use(s.gameAPISetup)
 		{
 			gameAPIGroup.GET("view", s.gameViewHandler)
-			gameAPIGroup.GET("status", s.gameStatusHandler)
+
+			//The statusHandler is conceptually here, but becuase we want to
+			//optimize it so much we have it congfigured at the top level.
 
 			protectedGameAPIGroup := gameAPIGroup.Group("")
 			protectedGameAPIGroup.Use(s.requireLoggedIn)
