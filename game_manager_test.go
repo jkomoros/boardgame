@@ -44,6 +44,8 @@ func newTestGameChest() *ComponentChest {
 func newTestGameManger() *GameManager {
 	manager := NewGameManager(&testGameDelegate{}, newTestGameChest(), newTestStorageManager())
 
+	manager.AddAgent(&testAgent{})
+
 	manager.AddPlayerMove(&testMove{})
 	manager.AddFixUpMove(&testMoveAdvanceCurentPlayer{})
 	manager.AddFixUpMove(&testMoveInvalidPlayerIndex{})
@@ -169,6 +171,14 @@ func TestGameManagerSetUp(t *testing.T) {
 		t.Error("Move by name returned a move before SetUp was called")
 	}
 
+	if manager.Agents() != nil {
+		t.Error("Agent before setup was not nil")
+	}
+
+	if manager.AgentByName("Test") != nil {
+		t.Error("Agent test before setup was not nil")
+	}
+
 	manager.SetUp()
 
 	moves := manager.PlayerMoves()
@@ -181,6 +191,14 @@ func TestGameManagerSetUp(t *testing.T) {
 		if moves[i] == manager.playerMoves[i] {
 			t.Error("PlayerMoves didn't return a copy; got same item at", i)
 		}
+	}
+
+	if manager.Agents() == nil {
+		t.Error("Agents after setup was nil")
+	}
+
+	if manager.AgentByName("test") == nil {
+		t.Error("Agent test after setup was nil")
 	}
 
 	if manager.PlayerMoveByName("Test") == nil {

@@ -7,6 +7,20 @@ import (
 
 //Place to define testing structs and helpers that are useful throughout
 
+type testAgent struct{}
+
+func (t *testAgent) Name() string {
+	return "Test"
+}
+
+func (t *testAgent) SetUpForGame(game *Game, player PlayerIndex) (state []byte) {
+	return nil
+}
+
+func (t *testAgent) ProposeMove(game *Game, player PlayerIndex, state []byte) (move Move, newState []byte) {
+	return nil, nil
+}
+
 //testingComponent is a very basic thing that fufills the Component interface.
 type testingComponent struct {
 	String  string
