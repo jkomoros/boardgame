@@ -186,6 +186,16 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 	return nil
 }
 
+func (s *StorageManager) AgentState(gameId string, player boardgame.PlayerIndex) ([]byte, error) {
+	//TODO: implement
+	return nil, nil
+}
+
+func (s *StorageManager) SaveAgentState(gameId string, player boardgame.PlayerIndex, state []byte) error {
+	//TODO: implement
+	return nil
+}
+
 func (s *StorageManager) ListGames(max int) []*boardgame.GameStorageRecord {
 	var games []GameStorageRecord
 

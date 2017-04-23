@@ -105,3 +105,13 @@ func (i *testStorageManager) SaveGameAndCurrentState(game *GameStorageRecord, st
 
 	return nil
 }
+
+func (i *testStorageManager) AgentState(gameId string, player PlayerIndex) ([]byte, error) {
+	//TODO: implement
+	return nil, nil
+}
+
+func (i *testStorageManager) SaveAgentState(gameId string, player PlayerIndex, state []byte) error {
+	//TODO: implement
+	return nil
+}

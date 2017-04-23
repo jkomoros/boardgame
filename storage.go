@@ -34,8 +34,14 @@ type StorageManager interface {
 	//Game fetches the game with the given ID from the store, if it exists.
 	Game(id string) (*GameStorageRecord, error)
 
+	//AgentState retrieves the most recent state for the given agent
+	AgentState(gameId string, player PlayerIndex) ([]byte, error)
+
 	//SaveGameAndCurrentState stores the game and the current state (at
 	//game.Version()) into the store at the same time in a transaction. If
 	//Game.Modifiable() is false, storage should fail.
 	SaveGameAndCurrentState(game *GameStorageRecord, state StateStorageRecord) error
+
+	//SaveAgentState saves the agent state for the given player
+	SaveAgentState(gameId string, player PlayerIndex, state []byte) error
 }
