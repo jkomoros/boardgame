@@ -10,7 +10,7 @@ import (
 )
 
 //If outputTables is true, then will print create_tables.sql
-const outputTables = false
+const outputTables = true
 
 func TestOutputTables(t *testing.T) {
 	if !outputTables {

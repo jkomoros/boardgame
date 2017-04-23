@@ -22,10 +22,12 @@ type StorageManager struct {
 	usersById         map[string]*users.StorageRecord
 	usersByCookie     map[string]*users.StorageRecord
 	usersForGames     map[string][]string
+	agentStates       map[string][]byte
 	statesLock        sync.RWMutex
 	gamesLock         sync.RWMutex
 	usersLock         sync.RWMutex
 	usersForGamesLock sync.RWMutex
+	agentStatesLock   sync.RWMutex
 }
 
 func NewStorageManager() *StorageManager {
@@ -37,6 +39,7 @@ func NewStorageManager() *StorageManager {
 		usersById:     make(map[string]*users.StorageRecord),
 		usersByCookie: make(map[string]*users.StorageRecord),
 		usersForGames: make(map[string][]string),
+		agentStates:   make(map[string][]byte),
 	}
 }
 
@@ -124,13 +127,28 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 	return nil
 }
 
+func keyForAgent(gameId string, player boardgame.PlayerIndex) string {
+	return gameId + "-" + player.String()
+}
+
 func (s *StorageManager) AgentState(gameId string, player boardgame.PlayerIndex) ([]byte, error) {
-	//TODO: implement
-	return nil, nil
+
+	key := keyForAgent(gameId, player)
+
+	s.agentStatesLock.RLock()
+	result := s.agentStates[key]
+	s.agentStatesLock.RUnlock()
+
+	return result, nil
 }
 
 func (s *StorageManager) SaveAgentState(gameId string, player boardgame.PlayerIndex, state []byte) error {
-	//TODO: implement
+	key := keyForAgent(gameId, player)
+
+	s.agentStatesLock.Lock()
+	s.agentStates[key] = state
+	s.agentStatesLock.Unlock()
+
 	return nil
 }
 

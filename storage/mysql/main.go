@@ -18,11 +18,12 @@ import (
 )
 
 const (
-	TableGames   = "games"
-	TableUsers   = "users"
-	TableStates  = "states"
-	TableCookies = "cookies"
-	TablePlayers = "players"
+	TableGames       = "games"
+	TableUsers       = "users"
+	TableStates      = "states"
+	TableCookies     = "cookies"
+	TablePlayers     = "players"
+	TableAgentStates = "agentstates"
 )
 
 type StorageManager struct {
@@ -65,6 +66,7 @@ func (s *StorageManager) Connect(config string) error {
 	s.dbMap.AddTableWithName(StateStorageRecord{}, TableStates).SetKeys(true, "Id")
 	s.dbMap.AddTableWithName(CookieStorageRecord{}, TableCookies).SetKeys(false, "Cookie")
 	s.dbMap.AddTableWithName(PlayerStorageRecord{}, TablePlayers).SetKeys(true, "Id")
+	s.dbMap.AddTableWithName(AgentStateStorageRecord{}, TableAgentStates).SetKeys(true, "Id")
 
 	if err := s.dbMap.CreateTablesIfNotExists(); err != nil {
 		return errors.New("Couldn't create tables: " + err.Error())
@@ -187,12 +189,32 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 }
 
 func (s *StorageManager) AgentState(gameId string, player boardgame.PlayerIndex) ([]byte, error) {
-	//TODO: implement
-	return nil, nil
+
+	var agent AgentStateStorageRecord
+
+	err := s.dbMap.SelectOne(&agent, "select * from "+TableAgentStates+" where GameId=? and PlayerIndex=? order by Id desc limit 1", gameId, int64(player))
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return agent.ToStorageRecord(), nil
+
 }
 
 func (s *StorageManager) SaveAgentState(gameId string, player boardgame.PlayerIndex, state []byte) error {
-	//TODO: implement
+	record := NewAgentStateStorageRecord(gameId, player, state)
+
+	err := s.dbMap.Insert(record)
+
+	if err != nil {
+		return errors.New("Couldn't save record: " + err.Error())
+	}
+
 	return nil
 }
 

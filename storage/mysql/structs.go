@@ -48,6 +48,13 @@ type PlayerStorageRecord struct {
 	UserId      string `db:",size:128"`
 }
 
+type AgentStateStorageRecord struct {
+	Id          int64
+	GameId      string `db:",size:16"`
+	PlayerIndex int64
+	Blob        string `db:",size:1000000"`
+}
+
 func agentsToString(agents []string) string {
 	if agents == nil {
 		return ""
@@ -157,5 +164,20 @@ func NewStateStorageRecord(gameId string, version int, record boardgame.StateSto
 		GameId:  gameId,
 		Version: int64(version),
 		Blob:    string(record),
+	}
+}
+
+func (a *AgentStateStorageRecord) ToStorageRecord() []byte {
+	if a == nil {
+		return nil
+	}
+	return []byte(a.Blob)
+}
+
+func NewAgentStateStorageRecord(gameId string, player boardgame.PlayerIndex, state []byte) *AgentStateStorageRecord {
+	return &AgentStateStorageRecord{
+		GameId:      gameId,
+		PlayerIndex: int64(player),
+		Blob:        string(state),
 	}
 }

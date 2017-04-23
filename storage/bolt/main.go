@@ -26,11 +26,12 @@ type StorageManager struct {
 }
 
 var (
-	statesBucket    = []byte("States")
-	gamesBucket     = []byte("Games")
-	usersBucket     = []byte("Users")
-	cookiesBucket   = []byte("Cookies")
-	gameUsersBucket = []byte("GameUsers")
+	statesBucket      = []byte("States")
+	gamesBucket       = []byte("Games")
+	usersBucket       = []byte("Users")
+	cookiesBucket     = []byte("Cookies")
+	gameUsersBucket   = []byte("GameUsers")
+	agentStatesBucket = []byte("AgentStates")
 )
 
 func NewStorageManager(fileName string) *StorageManager {
@@ -55,6 +56,9 @@ func NewStorageManager(fileName string) *StorageManager {
 		}
 		if _, err := tx.CreateBucketIfNotExists(gameUsersBucket); err != nil {
 			return errors.New("Cannot create game users bucket" + err.Error())
+		}
+		if _, err := tx.CreateBucketIfNotExists(agentStatesBucket); err != nil {
+			return errors.New("Cannot create agent states bucket" + err.Error())
 		}
 		return nil
 	})
@@ -85,6 +89,10 @@ func keyForUser(uid string) []byte {
 
 func keyForCookie(cookie string) []byte {
 	return []byte(cookie)
+}
+
+func keyForAgentState(gameId string, player boardgame.PlayerIndex) []byte {
+	return []byte(gameId + "-" + player.String())
 }
 
 func (s *StorageManager) Name() string {
@@ -193,13 +201,45 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 }
 
 func (s *StorageManager) AgentState(gameId string, player boardgame.PlayerIndex) ([]byte, error) {
-	//TODO: implement
-	return nil, nil
+
+	var result []byte
+
+	err := s.db.View(func(tx *bolt.Tx) error {
+
+		aBucket := tx.Bucket(agentStatesBucket)
+
+		if aBucket == nil {
+			return errors.New("Couldn't open agent states bucket")
+		}
+
+		result = aBucket.Get(keyForAgentState(gameId, player))
+		return nil
+
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+
 }
 
 func (s *StorageManager) SaveAgentState(gameId string, player boardgame.PlayerIndex, state []byte) error {
-	//TODO: implement
-	return nil
+
+	return s.db.Update(func(tx *bolt.Tx) error {
+		aBucket := tx.Bucket(agentStatesBucket)
+
+		if aBucket == nil {
+			return errors.New("Couldn't open agent states bucket")
+		}
+
+		if err := aBucket.Put(keyForAgentState(gameId, player), state); err != nil {
+			return err
+		}
+		return nil
+	})
+
 }
 
 func (s *StorageManager) ListGames(max int) []*boardgame.GameStorageRecord {

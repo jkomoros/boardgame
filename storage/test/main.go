@@ -239,6 +239,38 @@ func AgentsTest(factory StorageManagerFactory, testName string, connectConfig st
 
 	assert.For(t).ThatActual(refriedGame.Agents()).Equals(game.Agents())
 
+	refriedBlob, err := storage.AgentState(game.Id(), 0)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	var nilBlob []byte
+
+	assert.For(t).ThatActual(refriedBlob).Equals(nilBlob)
+
+	blob := []byte("ThisIsABlob")
+
+	err = storage.SaveAgentState(game.Id(), 0, blob)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	refriedBlob, err = storage.AgentState(game.Id(), 0)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(refriedBlob).Equals(blob)
+
+	newBlob := []byte("ThisIsANewBlob")
+
+	err = storage.SaveAgentState(game.Id(), 0, newBlob)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	refriedBlob, err = storage.AgentState(game.Id(), 0)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(refriedBlob).Equals(newBlob)
+
 }
 
 func compareJSONObjects(in []byte, golden []byte, message string, t *testing.T) {
