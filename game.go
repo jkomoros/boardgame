@@ -336,6 +336,27 @@ func (g *Game) SetUp(numPlayers int, agentNames []string) error {
 
 	g.initalized = true
 
+	for i, name := range g.agents {
+		if name == "" {
+			continue
+		}
+		agent := g.Manager().AgentByName(name)
+
+		if agent == nil {
+			return errors.New("Couldn't find the agent for the " + strconv.Itoa(i) + " player: " + name)
+		}
+
+		agentState := agent.SetUpForGame(g, PlayerIndex(i))
+
+		if agentState == nil {
+			continue
+		}
+
+		if err := g.Manager().storage.SaveAgentState(g.Id(), PlayerIndex(i), agentState); err != nil {
+			return errors.New("Couldn't save state for agent " + strconv.Itoa(i) + ": " + err.Error())
+		}
+	}
+
 	//See if any fixup moves apply
 
 	//TODO: test that fixup moves are applied at the beginning.
@@ -517,6 +538,42 @@ func (g *Game) ProposeMove(move Move, proposer PlayerIndex) DelayedError {
 
 }
 
+//triggerAgents is called after a PlayerMove (and its chain of fixUp moves) is called.
+func (g *Game) triggerAgents() error {
+
+	for i, name := range g.agents {
+
+		if name == "" {
+			continue
+		}
+
+		agent := g.Manager().AgentByName(name)
+
+		if agent == nil {
+			return errors.New("Couldn't find agent for #" + strconv.Itoa(i) + ": " + name)
+		}
+
+		agentState, err := g.Manager().Storage().AgentState(g.Id(), PlayerIndex(i))
+
+		if err != nil {
+			return errors.New("Couldn't load state for agent #" + strconv.Itoa(i) + ": " + err.Error())
+		}
+
+		move, newState := agent.ProposeMove(g, PlayerIndex(i), agentState)
+
+		if newState != nil {
+			if err := g.Manager().Storage().SaveAgentState(g.Id(), PlayerIndex(i), newState); err != nil {
+				return errors.New("Failed to store new state for agent #" + strconv.Itoa(i) + ": " + err.Error())
+			}
+		}
+
+		if move != nil {
+			g.ProposeMove(move, PlayerIndex(i))
+		}
+	}
+	return nil
+}
+
 //Game applies the move to the state if it is currently legal. May only be
 //called by mainLoop. Propose moves with game.ProposeMove instead.
 func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseCount int) error {
@@ -609,6 +666,10 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 			//state because we haven't rolled back what we did.
 			return errors.New("Applying the fix up move failed: " + strconv.Itoa(recurseCount) + ": " + err.Error())
 		}
+	}
+
+	if err := g.triggerAgents(); err != nil {
+		return errors.New("Failed to trigger agent: " + err.Error())
 	}
 
 	return nil
