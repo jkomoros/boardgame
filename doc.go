@@ -360,6 +360,28 @@ components. That is, if the parent component is visible, and the stack
 property of the component is also visible, the child component will also be
 considered visible.
 
+Agents
+
+Agents are artificial intelligent agents who play as a particular player in a
+given game.
+
+Managers must have agents congfigured on them when they are created, and at
+the Game creation it is specified in SetUp which players (if any) should
+actually be represented as agents.
+
+Agents have the option to have extra state (over and beyond what is
+represented in the Game's state). For example, in a game of deduction, an
+agent might keep track of what cards it thinks the other player has in their
+hand. The agent is responsible for serializing and deserializing this state to
+a slice of bytes. The Game engine will store and retrieve these state blobs.
+Each time it is called the agent has the opportunity to return a new state; if
+it does, that state blob will be stored. Each time an Agent is called, it is
+passed the most recent state it had saved.
+
+After each time a Player has made a move (and any resulting FixUp moves have
+been applied), agents are woken up and given a chance to propose a move. If
+they return a move, it is Proposed, via ProposeMove, to the game.
+
 Implementing Your Own Game
 
 When you are implementing your own game, at a high level you must do the
