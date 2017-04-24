@@ -22,6 +22,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 )
 
 type Server struct {
@@ -49,8 +50,14 @@ const (
 
 func (s *Server) staticHandler(c *gin.Context) {
 	request := c.Request
-	url := request.URL
-	file, _ := s.fs.Open(url.String())
+	url := request.URL.String()
+
+	if strings.HasSuffix(url, "/") {
+		c.HTML(http.StatusOK, "index.html", nil)
+		return
+	}
+
+	file, _ := s.fs.Open(url)
 
 	if file != nil {
 
