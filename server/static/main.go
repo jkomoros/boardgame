@@ -18,12 +18,15 @@ package static
 
 import (
 	"github.com/gin-gonic/gin"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 )
 
-type Server struct{}
+type Server struct {
+	fs http.FileSystem
+}
 
 /*
 NewServer returns a new server. Get it to run by calling Start().
@@ -44,11 +47,23 @@ const (
 	pathToLib = "$GOPATH/src/github.com/jkomoros/boardgame/server/static/"
 )
 
-func (s *Server) viewHandler(c *gin.Context) {
-	//We serve the main app for every thing that we don't otherwise have a
-	//handler for.
-	c.HTML(http.StatusOK, "index.html", nil)
+func (s *Server) staticHandler(c *gin.Context) {
+	request := c.Request
+	url := request.URL
+	file, _ := s.fs.Open(url.String())
 
+	if file != nil {
+
+		contents, _ := ioutil.ReadAll(file)
+
+		c.Status(http.StatusOK)
+
+		c.Writer.Write(contents)
+		return
+
+	}
+
+	c.HTML(http.StatusOK, "index.html", nil)
 }
 
 //ShadowedFS is a simple FileSystem that tries the first FS and if that fails falls back on the Secondary.
@@ -96,7 +111,7 @@ func (s *Server) Start() {
 
 	expandedPathToLib := os.ExpandEnv(pathToLib)
 
-	router.NoRoute(s.viewHandler)
+	router.NoRoute(s.staticHandler)
 
 	router.LoadHTMLFiles(expandedPathToLib + "webapp/index.html")
 
@@ -104,7 +119,7 @@ func (s *Server) Start() {
 
 	fs.AddRedirect("/config-src/boardgame-config.html", "/config-src/boardgame-config-dev.html")
 
-	router.StaticFS("/", fs)
+	s.fs = fs
 
 	router.Run(":8080")
 
