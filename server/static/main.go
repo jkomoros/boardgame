@@ -17,6 +17,7 @@ different endpoints configured in production and in dev.
 package static
 
 import (
+	"errors"
 	"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"log"
@@ -26,7 +27,8 @@ import (
 )
 
 type Server struct {
-	fs http.FileSystem
+	fs       http.FileSystem
+	prefixes []string
 }
 
 /*
@@ -70,6 +72,14 @@ func (s *Server) staticHandler(c *gin.Context) {
 
 	}
 
+	for _, prefix := range s.prefixes {
+		if strings.HasPrefix(url, prefix) {
+			//We expected to ahve this file but didn't!
+			c.AbortWithError(http.StatusNotFound, errors.New("Not found"))
+			return
+		}
+	}
+
 	c.HTML(http.StatusOK, "index.html", nil)
 }
 
@@ -111,6 +121,10 @@ func (s *shadowedFS) AddRedirect(from string, to string) {
 	s.Redirects[from] = to
 }
 
+func (s *Server) ExpectPrefix(prefix string) {
+	s.prefixes = append(s.prefixes, prefix)
+}
+
 //Start is where you start the server, and it never returns until it's time to shut down.
 func (s *Server) Start() {
 
@@ -127,6 +141,15 @@ func (s *Server) Start() {
 	fs.AddRedirect("/config-src/boardgame-config.html", "/config-src/boardgame-config-dev.html")
 
 	s.fs = fs
+
+	//Tell the server the prefixes for URLs that we do expect to be there, so
+	//it can serve a 404 (insted of index.html) if they're not there.
+	s.ExpectPrefix("/service-worker.js")
+	s.ExpectPrefix("/manifest.json")
+	s.ExpectPrefix("/src")
+	s.ExpectPrefix("/bower_components")
+	s.ExpectPrefix("/config-src")
+	s.ExpectPrefix("/game-src")
 
 	router.Run(":8080")
 
