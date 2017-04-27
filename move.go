@@ -35,10 +35,11 @@ type Move interface {
 	//If ImmediateFixUp returns a Move, it will immediately be applied (if
 	//Legal) to the game before Delegate's ProposeFixUp is consulted. The move
 	//returned need not have been registered with the GameManager via
-	//AddFixUpMove. This is useful when you've broken a fixup task into
-	//multiple moves only so the observable semantics are granular enough, and
-	//saves awkward and error-prone signaling in State fields. When in doubt,
-	//just return nil for this method.
+	//AddFixUpMove, and if the returned move is not legal is fine, it just
+	//won't be applied. ImmediateFixUp is useful when you've broken a fixup
+	//task into multiple moves only so the observable semantics are granular
+	//enough, and saves awkward and error-prone signaling in State fields.
+	//When in doubt, just return nil for this method.
 	ImmediateFixUp(state State) Move
 
 	//Name should return the name for this type of move. No other Move structs
