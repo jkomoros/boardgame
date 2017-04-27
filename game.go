@@ -681,6 +681,8 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 			if fixUpErr != nil {
 				return errors.New("The move worked, but an ImmediateFixUp failed in the chain: " + fixUpErr.Error())
 			}
+
+			newState = g.CurrentState().(*state)
 		}
 	}
 
