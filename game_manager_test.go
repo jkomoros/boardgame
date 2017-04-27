@@ -91,6 +91,11 @@ func TestDefaultMove(t *testing.T) {
 	assert.For(t).ThatActual(move).IsNotNil()
 
 	assert.For(t).ThatActualString(move.Name()).Equals("Advance Current Player")
+
+	convertedMove, ok := move.(*testMoveAdvanceCurentPlayer)
+
+	assert.For(t).ThatActual(ok).Equals(true)
+	assert.For(t).ThatActual(convertedMove).IsNotNil()
 }
 
 func TestNilStackErrors(t *testing.T) {
