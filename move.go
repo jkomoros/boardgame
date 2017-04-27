@@ -59,3 +59,31 @@ type Move interface {
 
 	ReadSetter() PropertyReadSetter
 }
+
+//DefaultMove is an optional, convenience struct designed to be embedded
+//anonymously in your own Moves. It implements no-op methods for many of the
+//required methods on Moves (although it can't implement the ones that require
+//access to the top level struct, like Copy() and ReadSetter()). Legal and
+//Apply are not covered, because every Move should implement their own, and if
+//this implemented them it would obscure errors where for example your Legal()
+//was incorrectly named and thus not used.
+type DefaultMove struct {
+	MoveName        string
+	MoveDescription string
+}
+
+func (d *DefaultMove) DefaultsForState(state State) {
+	return
+}
+
+func (d *DefaultMove) ImmediateFixUp(state State) Move {
+	return nil
+}
+
+func (d *DefaultMove) Name() string {
+	return d.MoveName
+}
+
+func (d *DefaultMove) Description() string {
+	return d.MoveDescription
+}

@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"github.com/workfit/tester/assert"
 	"strings"
 	"testing"
 )
@@ -47,7 +48,10 @@ func newTestGameManger() *GameManager {
 	manager.AddAgent(&testAgent{})
 
 	manager.AddPlayerMove(&testMove{})
-	manager.AddFixUpMove(&testMoveAdvanceCurentPlayer{})
+	manager.AddFixUpMove(&testMoveAdvanceCurentPlayer{DefaultMove{
+		"Advance Current Player",
+		"Advances to the next player when the current player has no more legal moves they can make this turn.",
+	}})
 	manager.AddFixUpMove(&testMoveInvalidPlayerIndex{})
 	manager.AddPlayerMove(&testMoveIncrementCardInHand{})
 	manager.AddPlayerMove(&testMoveDrawCard{})
@@ -72,6 +76,21 @@ func (n *nilStackGameDelegate) EmptyGameState() MutableGameState {
 	}
 
 	return &testGameState{}
+}
+
+func TestDefaultMove(t *testing.T) {
+	//Tests that Moves based on DefaultMove copy correctly
+
+	game := testGame()
+
+	game.SetUp(0, nil)
+
+	//FixUpMoveByName calls Copy under the covers.
+	move := game.FixUpMoveByName("Advance Current Player")
+
+	assert.For(t).ThatActual(move).IsNotNil()
+
+	assert.For(t).ThatActualString(move.Name()).Equals("Advance Current Player")
 }
 
 func TestNilStackErrors(t *testing.T) {

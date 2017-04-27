@@ -375,10 +375,8 @@ func (t *testMoveDrawCard) Apply(state MutableState) error {
 	return nil
 }
 
-type testMoveAdvanceCurentPlayer struct{}
-
-func (t *testMoveAdvanceCurentPlayer) ImmediateFixUp(state State) Move {
-	return nil
+type testMoveAdvanceCurentPlayer struct {
+	DefaultMove
 }
 
 func (t *testMoveAdvanceCurentPlayer) ReadSetter() PropertyReadSetter {
@@ -389,18 +387,6 @@ func (t *testMoveAdvanceCurentPlayer) Copy() Move {
 	var result testMoveAdvanceCurentPlayer
 	result = *t
 	return &result
-}
-
-func (t *testMoveAdvanceCurentPlayer) DefaultsForState(state State) {
-	//No defaults to set
-}
-
-func (t *testMoveAdvanceCurentPlayer) Name() string {
-	return "Advance Current Player"
-}
-
-func (t *testMoveAdvanceCurentPlayer) Description() string {
-	return "Advances to the next player when the current player has no more legal moves they can make this turn."
 }
 
 func (t *testMoveAdvanceCurentPlayer) Legal(state State, proposer PlayerIndex) error {
