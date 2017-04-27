@@ -79,6 +79,29 @@ checks to see if the game is now over by asking its Delegate (see below). If
 so, the game is marked as Finished, and the winners are noted. At that point
 no more moves may be applied.
 
+You should make your moves granular enough that any semantically-relevant in-
+betweeen state happens between moves, because a move is a bit of a black box
+itself, because players can only see the result after the move was made. Think
+about it as yielding to the event loop in a UI-driven application.
+
+This means that in some games you'll have LOTS of granular fixUp moves. A
+common pattern is to have a chain of FixUp moves that apply one after another
+without fail, and are primarily broken into separate moves just to be granular
+enough semantically. This creates a lot of cruft--a lot of extra FixUp moves
+on manager, and also generally requires some awkward and error-prone signaling
+in GameState about SubPhases, and writing finicky Legal() methods for the
+later FixUp moves in the chain that only trigger in the precise right
+condition.
+
+As an advanced optimization, your move can define an ImmediateFixUp() that
+takes a state and returns a Move. After a move is a applied, if the Move has
+an ImmediateFixUp, it will be immediately applied BEFORE delegate.ProposeFixUp
+is called. Importantly, the moves returned from this method do not need to be
+registered on GameManager, because somewhere in their ancestor chain must have
+been registered in order to have successfully been Proposed in the first
+place. This allows games with many long fix-up chains to be a bit cleaner and
+not have to have error-prone Legal logic signaling.
+
 Game Delegates
 
 Each GameManager has a reference to a GameDelegate that is specific to this
