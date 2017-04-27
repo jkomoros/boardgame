@@ -79,6 +79,11 @@ checks to see if the game is now over by asking its Delegate (see below). If
 so, the game is marked as Finished, and the winners are noted. At that point
 no more moves may be applied.
 
+Moves have a number of required methods, and most of them will be no-ops in
+many cases. DefaultMove is an optional convenience struct that is designed to
+be embedded in your own Moves that implements a bit of the boilerplate
+automatically.
+
 You should make your moves granular enough that any semantically-relevant in-
 betweeen state happens between moves, because a move is a bit of a black box
 itself, because players can only see the result after the move was made. Think
