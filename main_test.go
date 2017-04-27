@@ -178,6 +178,10 @@ type testMoveInvalidPlayerIndex struct {
 	CurrentlyLegal bool
 }
 
+func (t *testMoveInvalidPlayerIndex) ImmediateFixUp(state State) Move {
+	return nil
+}
+
 func (t *testMoveInvalidPlayerIndex) ReadSetter() PropertyReadSetter {
 	return DefaultReadSetter(t)
 }
@@ -219,6 +223,10 @@ func (t *testMoveInvalidPlayerIndex) Apply(state MutableState) error {
 
 type testMoveIncrementCardInHand struct {
 	TargetPlayerIndex PlayerIndex
+}
+
+func (t *testMoveIncrementCardInHand) ImmediateFixUp(state State) Move {
+	return nil
 }
 
 func (t *testMoveIncrementCardInHand) ReadSetter() PropertyReadSetter {
@@ -302,6 +310,10 @@ type testMoveDrawCard struct {
 	TargetPlayerIndex PlayerIndex
 }
 
+func (t *testMoveDrawCard) ImmediateFixUp(state State) Move {
+	return nil
+}
+
 func (t *testMoveDrawCard) ReadSetter() PropertyReadSetter {
 	return DefaultReadSetter(t)
 }
@@ -365,6 +377,10 @@ func (t *testMoveDrawCard) Apply(state MutableState) error {
 
 type testMoveAdvanceCurentPlayer struct{}
 
+func (t *testMoveAdvanceCurentPlayer) ImmediateFixUp(state State) Move {
+	return nil
+}
+
 func (t *testMoveAdvanceCurentPlayer) ReadSetter() PropertyReadSetter {
 	return DefaultReadSetter(t)
 }
@@ -424,6 +440,10 @@ type testMove struct {
 	ScoreIncrement    int
 	TargetPlayerIndex PlayerIndex
 	ABool             bool
+}
+
+func (t *testMove) ImmediateFixUp(state State) Move {
+	return nil
 }
 
 func (t *testMove) ReadSetter() PropertyReadSetter {
@@ -489,6 +509,10 @@ func (t *testMove) Apply(state MutableState) error {
 }
 
 type testAlwaysLegalMove struct{}
+
+func (t *testAlwaysLegalMove) ImmediateFixUp(state State) Move {
+	return nil
+}
 
 func (t *testAlwaysLegalMove) ReadSetter() PropertyReadSetter {
 	return DefaultReadSetter(t)

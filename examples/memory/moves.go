@@ -79,6 +79,10 @@ func (m *MoveAdvanceNextPlayer) ReadSetter() boardgame.PropertyReadSetter {
 	return boardgame.DefaultReadSetter(m)
 }
 
+func (t *MoveAdvanceNextPlayer) ImmediateFixUp(state boardgame.State) boardgame.Move {
+	return nil
+}
+
 /**************************************************
  *
  * MoveRevealCard Implementation
@@ -161,6 +165,10 @@ func (m *MoveRevealCard) ReadSetter() boardgame.PropertyReadSetter {
 	return boardgame.DefaultReadSetter(m)
 }
 
+func (t *MoveRevealCard) ImmediateFixUp(state boardgame.State) boardgame.Move {
+	return nil
+}
+
 /**************************************************
  *
  * MoveStartHideCardsTimer Implementation
@@ -224,6 +232,10 @@ func (m *MoveStartHideCardsTimer) Description() string {
 
 func (m *MoveStartHideCardsTimer) ReadSetter() boardgame.PropertyReadSetter {
 	return boardgame.DefaultReadSetter(m)
+}
+
+func (t *MoveStartHideCardsTimer) ImmediateFixUp(state boardgame.State) boardgame.Move {
+	return nil
 }
 
 /**************************************************
@@ -293,6 +305,10 @@ func (m *MoveCaptureCards) ReadSetter() boardgame.PropertyReadSetter {
 	return boardgame.DefaultReadSetter(m)
 }
 
+func (t *MoveCaptureCards) ImmediateFixUp(state boardgame.State) boardgame.Move {
+	return nil
+}
+
 /**************************************************
  *
  * MoveHideCards Implementation
@@ -360,4 +376,8 @@ func (m *MoveHideCards) Description() string {
 
 func (m *MoveHideCards) ReadSetter() boardgame.PropertyReadSetter {
 	return boardgame.DefaultReadSetter(m)
+}
+
+func (t *MoveHideCards) ImmediateFixUp(state boardgame.State) boardgame.Move {
+	return nil
 }

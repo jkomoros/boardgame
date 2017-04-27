@@ -90,6 +90,10 @@ func (m *MovePlaceToken) ReadSetter() boardgame.PropertyReadSetter {
 	return boardgame.DefaultReadSetter(m)
 }
 
+func (t *MovePlaceToken) ImmediateFixUp(state boardgame.State) boardgame.Move {
+	return nil
+}
+
 type MoveAdvancePlayer struct{}
 
 func (m *MoveAdvancePlayer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -140,4 +144,8 @@ func (m *MoveAdvancePlayer) Copy() boardgame.Move {
 
 func (m *MoveAdvancePlayer) ReadSetter() boardgame.PropertyReadSetter {
 	return boardgame.DefaultReadSetter(m)
+}
+
+func (t *MoveAdvancePlayer) ImmediateFixUp(state boardgame.State) boardgame.Move {
+	return nil
 }

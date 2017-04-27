@@ -73,6 +73,10 @@ func (m *MoveShuffleDiscardToDraw) ReadSetter() boardgame.PropertyReadSetter {
 	return boardgame.DefaultReadSetter(m)
 }
 
+func (t *MoveShuffleDiscardToDraw) ImmediateFixUp(state boardgame.State) boardgame.Move {
+	return nil
+}
+
 /**************************************************
  *
  * MoveCurrentPlayerHit Implementation
@@ -150,6 +154,10 @@ func (m *MoveCurrentPlayerHit) ReadSetter() boardgame.PropertyReadSetter {
 	return boardgame.DefaultReadSetter(m)
 }
 
+func (t *MoveCurrentPlayerHit) ImmediateFixUp(state boardgame.State) boardgame.Move {
+	return nil
+}
+
 /**************************************************
  *
  * MoveCurrentPlayerStand Implementation
@@ -216,6 +224,10 @@ func (m *MoveCurrentPlayerStand) ReadSetter() boardgame.PropertyReadSetter {
 	return boardgame.DefaultReadSetter(m)
 }
 
+func (t *MoveCurrentPlayerStand) ImmediateFixUp(state boardgame.State) boardgame.Move {
+	return nil
+}
+
 /**************************************************
  *
  * MoveAdvanceNextPlayer Implementation
@@ -268,6 +280,10 @@ func (m *MoveAdvanceNextPlayer) Description() string {
 
 func (m *MoveAdvanceNextPlayer) ReadSetter() boardgame.PropertyReadSetter {
 	return boardgame.DefaultReadSetter(m)
+}
+
+func (t *MoveAdvanceNextPlayer) ImmediateFixUp(state boardgame.State) boardgame.Move {
+	return nil
 }
 
 /**************************************************
@@ -330,6 +346,10 @@ func (m *MoveRevealHiddenCard) Description() string {
 
 func (m *MoveRevealHiddenCard) ReadSetter() boardgame.PropertyReadSetter {
 	return boardgame.DefaultReadSetter(m)
+}
+
+func (t *MoveRevealHiddenCard) ImmediateFixUp(state boardgame.State) boardgame.Move {
+	return nil
 }
 
 /**************************************************
@@ -433,4 +453,8 @@ func (m *MoveDealInitialCard) Description() string {
 
 func (m *MoveDealInitialCard) ReadSetter() boardgame.PropertyReadSetter {
 	return boardgame.DefaultReadSetter(m)
+}
+
+func (t *MoveDealInitialCard) ImmediateFixUp(state boardgame.State) boardgame.Move {
+	return nil
 }

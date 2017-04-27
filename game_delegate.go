@@ -56,7 +56,11 @@ type GameDelegate interface {
 	//If it returns nil, we may take the next move off of the queue. FixUp
 	//moves are useful for things like shuffling a discard deck back into a
 	//draw deck, or other moves that are necessary to get the GameState back
-	//into reasonable shape.
+	//into reasonable shape. Note that if you have a FixUp move that is only
+	//ever legal immediately after another move (i.e. you only split it into
+	//two moves so that the obserable semantics are granular enough), it might
+	//be better to have a move that is not returned from this method, but
+	//instead from the previous Move's ImmediateFixUp().
 	ProposeFixUpMove(state State) Move
 
 	//DefaultNumPlayers returns the number of users that this game defaults to.
