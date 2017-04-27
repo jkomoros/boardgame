@@ -590,10 +590,10 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 		//We only check to validate that a non-immediate fixUp is actually
 		//configured on game. This is because immediateFixUp moves can only
 		//come from a move who either was configured on Game or whose ancestor
-		//was was. Also, the use case for immediateFixUp is moves htat
-		//generally only should be applied immediately after another item, so
-		//it makes sense for them to not be listed in FixUpMoves (which, with
-		//the default delegate, is always checked for proposefixup).
+		//was. Also, the use case for immediateFixUp is moves htat generally
+		//only should be applied immediately after another item, so it makes
+		//sense for them to not be listed in FixUpMoves (which, with the
+		//default delegate, is always checked for proposefixup).
 		if !isImmediateFixUp {
 			if g.manager.FixUpMoveByName(move.Name()) == nil {
 				return errors.New("That move is not configured as a Fix Up move for this game.")
