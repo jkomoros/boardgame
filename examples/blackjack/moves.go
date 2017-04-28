@@ -32,6 +32,10 @@ type MoveCurrentPlayerStand struct {
  *
  **************************************************/
 
+func MoveShuffleDiscardToDrawFactory(state boardgame.State) boardgame.Move {
+	return &MoveShuffleDiscardToDraw{}
+}
+
 func (m *MoveShuffleDiscardToDraw) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 	game, _ := concreteStates(state)
 
@@ -49,16 +53,6 @@ func (m *MoveShuffleDiscardToDraw) Apply(state boardgame.MutableState) error {
 	game.DrawStack.Shuffle()
 
 	return nil
-}
-
-func (m *MoveShuffleDiscardToDraw) Copy() boardgame.Move {
-	var result MoveShuffleDiscardToDraw
-	result = *m
-	return &result
-}
-
-func (m *MoveShuffleDiscardToDraw) DefaultsForState(state boardgame.State) {
-	//Nothing to do
 }
 
 func (m *MoveShuffleDiscardToDraw) Name() string {
@@ -82,6 +76,16 @@ func (t *MoveShuffleDiscardToDraw) ImmediateFixUp(state boardgame.State) boardga
  * MoveCurrentPlayerHit Implementation
  *
  **************************************************/
+
+func MoveCurrentPlayerHitFactory(state boardgame.State) boardgame.Move {
+	result := &MoveCurrentPlayerHit{}
+
+	if state != nil {
+		result.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
+	}
+
+	return result
+}
 
 func (m *MoveCurrentPlayerHit) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
@@ -130,18 +134,6 @@ func (m *MoveCurrentPlayerHit) Apply(state boardgame.MutableState) error {
 	return nil
 }
 
-func (m *MoveCurrentPlayerHit) Copy() boardgame.Move {
-	var result MoveCurrentPlayerHit
-	result = *m
-	return &result
-}
-
-func (m *MoveCurrentPlayerHit) DefaultsForState(state boardgame.State) {
-	game, _ := concreteStates(state)
-
-	m.TargetPlayerIndex = game.CurrentPlayer
-}
-
 func (m *MoveCurrentPlayerHit) Name() string {
 	return "Current Player Hit"
 }
@@ -163,6 +155,16 @@ func (t *MoveCurrentPlayerHit) ImmediateFixUp(state boardgame.State) boardgame.M
  * MoveCurrentPlayerStand Implementation
  *
  **************************************************/
+
+func MoveCurrentPlayerStandFactory(state boardgame.State) boardgame.Move {
+	result := &MoveCurrentPlayerStand{}
+
+	if state != nil {
+		result.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
+	}
+
+	return result
+}
 
 func (m *MoveCurrentPlayerStand) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
@@ -201,17 +203,6 @@ func (m *MoveCurrentPlayerStand) Apply(state boardgame.MutableState) error {
 	return nil
 }
 
-func (m *MoveCurrentPlayerStand) Copy() boardgame.Move {
-	var result MoveCurrentPlayerStand
-	result = *m
-	return &result
-}
-
-func (m *MoveCurrentPlayerStand) DefaultsForState(state boardgame.State) {
-	game, _ := concreteStates(state)
-	m.TargetPlayerIndex = game.CurrentPlayer
-}
-
 func (m *MoveCurrentPlayerStand) Name() string {
 	return "Current Player Stand"
 }
@@ -233,6 +224,10 @@ func (t *MoveCurrentPlayerStand) ImmediateFixUp(state boardgame.State) boardgame
  * MoveAdvanceNextPlayer Implementation
  *
  **************************************************/
+
+func MoveAdvanceNextPlayerFactory(state boardgame.State) boardgame.Move {
+	return &MoveAdvanceNextPlayer{}
+}
 
 func (m *MoveAdvanceNextPlayer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 	game, players := concreteStates(state)
@@ -260,16 +255,6 @@ func (m *MoveAdvanceNextPlayer) Apply(state boardgame.MutableState) error {
 
 }
 
-func (m *MoveAdvanceNextPlayer) Copy() boardgame.Move {
-	var result MoveAdvanceNextPlayer
-	result = *m
-	return &result
-}
-
-func (m *MoveAdvanceNextPlayer) DefaultsForState(state boardgame.State) {
-	//TODO: implement
-}
-
 func (m *MoveAdvanceNextPlayer) Name() string {
 	return "Advance Next Player"
 }
@@ -291,6 +276,16 @@ func (t *MoveAdvanceNextPlayer) ImmediateFixUp(state boardgame.State) boardgame.
  * MoveRevealHiddenCard Implementation
  *
  **************************************************/
+
+func MoveRevealHiddenCardFactory(state boardgame.State) boardgame.Move {
+	result := &MoveRevealHiddenCard{}
+
+	if state != nil {
+		result.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
+	}
+
+	return result
+}
 
 func (m *MoveRevealHiddenCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
@@ -323,19 +318,6 @@ func (m *MoveRevealHiddenCard) Apply(state boardgame.MutableState) error {
 	return nil
 }
 
-func (m *MoveRevealHiddenCard) Copy() boardgame.Move {
-	var result MoveRevealHiddenCard
-	result = *m
-	return &result
-}
-
-func (m *MoveRevealHiddenCard) DefaultsForState(state boardgame.State) {
-	game, _ := concreteStates(state)
-
-	m.TargetPlayerIndex = game.CurrentPlayer
-
-}
-
 func (m *MoveRevealHiddenCard) Name() string {
 	return "Reveal Hidden Card"
 }
@@ -357,6 +339,35 @@ func (t *MoveRevealHiddenCard) ImmediateFixUp(state boardgame.State) boardgame.M
  * MoveDealInitialHiddenCard Implementation
  *
  **************************************************/
+
+func MoveDealInitialCardFactory(state boardgame.State) boardgame.Move {
+	result := &MoveDealInitialCard{}
+
+	if state != nil {
+		_, players := concreteStates(state)
+
+		//First look for the first player with no hidden card dealt
+		for i := 0; i < len(players); i++ {
+			p := players[i]
+			if p.HiddenHand.NumComponents() == 0 {
+				result.TargetPlayerIndex = boardgame.PlayerIndex(i)
+				result.IsHidden = true
+				return result
+			}
+		}
+		//OK, hidden hands were full. Anyone who hasn't had the other card now gets it.
+		for i := 0; i < len(players); i++ {
+			p := players[i]
+			if !p.GotInitialDeal {
+				result.TargetPlayerIndex = boardgame.PlayerIndex(i)
+				result.IsHidden = false
+				return result
+			}
+		}
+	}
+
+	return result
+}
 
 func (m *MoveDealInitialCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 	_, players := concreteStates(state)
@@ -406,41 +417,6 @@ func (m *MoveDealInitialCard) Apply(state boardgame.MutableState) error {
 
 	return nil
 
-}
-
-func (m *MoveDealInitialCard) Copy() boardgame.Move {
-	var result MoveDealInitialCard
-	result = *m
-	return &result
-}
-
-func (m *MoveDealInitialCard) DefaultsForState(state boardgame.State) {
-
-	//The default game delegate will cycle around calling this, so
-	//DefaultsForState should pick the next one each time.
-
-	_, players := concreteStates(state)
-
-	//First look for the first player with no hidden card dealt
-	for i := 0; i < len(players); i++ {
-		p := players[i]
-		if p.HiddenHand.NumComponents() == 0 {
-			m.TargetPlayerIndex = boardgame.PlayerIndex(i)
-			m.IsHidden = true
-			return
-		}
-	}
-	//OK, hidden hands were full. Anyone who hasn't had the other card now gets it.
-	for i := 0; i < len(players); i++ {
-		p := players[i]
-		if !p.GotInitialDeal {
-			m.TargetPlayerIndex = boardgame.PlayerIndex(i)
-			m.IsHidden = false
-			return
-		}
-	}
-
-	return
 }
 
 func (m *MoveDealInitialCard) Name() string {

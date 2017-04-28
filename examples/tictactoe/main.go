@@ -275,8 +275,8 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 		panic("No manager returned")
 	}
 
-	manager.AddPlayerMove(&MovePlaceToken{})
-	manager.AddFixUpMove(&MoveAdvancePlayer{})
+	manager.AddPlayerMoveFactory(MovePlaceTokenFactory)
+	manager.AddFixUpMoveFactory(MoveAdvancePlayerFactory)
 
 	manager.AddAgent(&Agent{})
 

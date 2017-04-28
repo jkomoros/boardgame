@@ -14,6 +14,26 @@ type MovePlaceToken struct {
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
+func MovePlaceTokenFactory(state boardgame.State) boardgame.Move {
+	result := &MovePlaceToken{}
+
+	if state != nil {
+		game, _ := concreteStates(state)
+
+		result.TargetPlayerIndex = game.CurrentPlayer
+
+		//Default to setting a slot that's empty.
+		for i, token := range game.Slots.ComponentValues() {
+			if token == nil {
+				result.Slot = i
+				break
+			}
+		}
+	}
+
+	return result
+}
+
 func (m *MovePlaceToken) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 	game, players := concreteStates(state)
 
@@ -56,34 +76,12 @@ func (m *MovePlaceToken) Apply(state boardgame.MutableState) error {
 	return nil
 }
 
-func (m *MovePlaceToken) DefaultsForState(state boardgame.State) {
-
-	game, _ := concreteStates(state)
-
-	m.TargetPlayerIndex = game.CurrentPlayer
-
-	//Default to setting a slot that's empty.
-	for i, token := range game.Slots.ComponentValues() {
-		if token == nil {
-			m.Slot = i
-			break
-		}
-	}
-
-}
-
 func (m *MovePlaceToken) Name() string {
 	return "Place Token"
 }
 
 func (m *MovePlaceToken) Description() string {
 	return "Place a player's token in a specific space."
-}
-
-func (m *MovePlaceToken) Copy() boardgame.Move {
-	var result MovePlaceToken
-	result = *m
-	return &result
 }
 
 func (m *MovePlaceToken) ReadSetter() boardgame.PropertyReadSetter {
@@ -95,6 +93,10 @@ func (t *MovePlaceToken) ImmediateFixUp(state boardgame.State) boardgame.Move {
 }
 
 type MoveAdvancePlayer struct{}
+
+func MoveAdvancePlayerFactory(state boardgame.State) boardgame.Move {
+	return &MoveAdvancePlayer{}
+}
 
 func (m *MoveAdvancePlayer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
@@ -123,10 +125,6 @@ func (m *MoveAdvancePlayer) Apply(state boardgame.MutableState) error {
 
 }
 
-func (m *MoveAdvancePlayer) DefaultsForState(state boardgame.State) {
-	//Nothing to set.
-}
-
 func (m *MoveAdvancePlayer) Name() string {
 	//TODO: these should be package constants
 	return "Advance Player"
@@ -134,12 +132,6 @@ func (m *MoveAdvancePlayer) Name() string {
 
 func (m *MoveAdvancePlayer) Description() string {
 	return "After the current player has made all of their moves, this fix-up move advances to the next player."
-}
-
-func (m *MoveAdvancePlayer) Copy() boardgame.Move {
-	var result MoveAdvancePlayer
-	result = *m
-	return &result
 }
 
 func (m *MoveAdvancePlayer) ReadSetter() boardgame.PropertyReadSetter {

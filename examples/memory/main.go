@@ -231,11 +231,11 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 		panic("No manager returned")
 	}
 
-	manager.AddFixUpMove(&MoveAdvanceNextPlayer{})
-	manager.AddFixUpMove(&MoveCaptureCards{})
-	manager.AddFixUpMove(&MoveStartHideCardsTimer{})
-	manager.AddPlayerMove(&MoveRevealCard{})
-	manager.AddPlayerMove(&MoveHideCards{})
+	manager.AddFixUpMoveFactory(MoveAdvanceNextPlayerFactory)
+	manager.AddFixUpMoveFactory(MoveCaptureCardsFactory)
+	manager.AddFixUpMoveFactory(MoveStartHideCardsTimerFactory)
+	manager.AddPlayerMoveFactory(MoveRevealCardFactory)
+	manager.AddPlayerMoveFactory(MoveHideCardsFactory)
 
 	manager.SetUp()
 

@@ -6,23 +6,32 @@ import (
 	"testing"
 )
 
-type MoveTestImmediatePlayerMove struct {
+type moveTestImmediatePlayerMove struct {
 	DefaultMove
 }
 
-type MoveImmediateFixUpOne struct {
+type moveImmediateFixUpOne struct {
 	DefaultMove
 }
 
-type MoveImmediateFixUpTWo struct {
+type moveImmediateFixUpTWo struct {
 	DefaultMove
 }
 
-func (m *MoveTestImmediatePlayerMove) Legal(state State, proposer PlayerIndex) error {
+func moveTestImmediatePlayerMoveFactory(state State) Move {
+	return &moveTestImmediatePlayerMove{
+		DefaultMove{
+			"Test",
+			"This is a test",
+		},
+	}
+}
+
+func (m *moveTestImmediatePlayerMove) Legal(state State, proposer PlayerIndex) error {
 	return nil
 }
 
-func (m *MoveTestImmediatePlayerMove) Apply(state MutableState) error {
+func (m *moveTestImmediatePlayerMove) Apply(state MutableState) error {
 	game, _ := concreteStates(state)
 
 	game.CurrentPlayer = game.CurrentPlayer.Next(state)
@@ -30,18 +39,16 @@ func (m *MoveTestImmediatePlayerMove) Apply(state MutableState) error {
 	return nil
 }
 
-func (m *MoveTestImmediatePlayerMove) Copy() Move {
-	var result MoveTestImmediatePlayerMove
-	result = *m
-	return &result
-}
-
-func (m *MoveTestImmediatePlayerMove) ReadSetter() PropertyReadSetter {
+func (m *moveTestImmediatePlayerMove) ReadSetter() PropertyReadSetter {
 	return DefaultReadSetter(m)
 }
 
-func (m *MoveTestImmediatePlayerMove) ImmediateFixUp(state State) Move {
-	return &MoveImmediateFixUpOne{
+func (m *moveTestImmediatePlayerMove) ImmediateFixUp(state State) Move {
+	return moveImmediateFixUpOneFactory(state)
+}
+
+func moveImmediateFixUpOneFactory(state State) Move {
+	return &moveImmediateFixUpOne{
 		DefaultMove{
 			"Immediate FixUp 1",
 			"",
@@ -49,7 +56,7 @@ func (m *MoveTestImmediatePlayerMove) ImmediateFixUp(state State) Move {
 	}
 }
 
-func (m *MoveImmediateFixUpOne) Legal(state State, proposer PlayerIndex) error {
+func (m *moveImmediateFixUpOne) Legal(state State, proposer PlayerIndex) error {
 	game, players := concreteStates(state)
 
 	if game.CurrentPlayer == 0 {
@@ -64,7 +71,7 @@ func (m *MoveImmediateFixUpOne) Legal(state State, proposer PlayerIndex) error {
 	return nil
 }
 
-func (m *MoveImmediateFixUpOne) Apply(state MutableState) error {
+func (m *moveImmediateFixUpOne) Apply(state MutableState) error {
 	game, players := concreteStates(state)
 
 	p := players[game.CurrentPlayer]
@@ -74,18 +81,16 @@ func (m *MoveImmediateFixUpOne) Apply(state MutableState) error {
 	return nil
 }
 
-func (m *MoveImmediateFixUpOne) Copy() Move {
-	var result MoveImmediateFixUpOne
-	result = *m
-	return &result
-}
-
-func (m *MoveImmediateFixUpOne) ReadSetter() PropertyReadSetter {
+func (m *moveImmediateFixUpOne) ReadSetter() PropertyReadSetter {
 	return DefaultReadSetter(m)
 }
 
-func (m *MoveImmediateFixUpOne) ImmediateFixUp(state State) Move {
-	return &MoveImmediateFixUpTWo{
+func (m *moveImmediateFixUpOne) ImmediateFixUp(state State) Move {
+	return moveImmediateFixUpTwoFactory(state)
+}
+
+func moveImmediateFixUpTwoFactory(state State) Move {
+	return &moveImmediateFixUpTWo{
 		DefaultMove{
 			"Immediate FixUp 2",
 			"",
@@ -93,11 +98,11 @@ func (m *MoveImmediateFixUpOne) ImmediateFixUp(state State) Move {
 	}
 }
 
-func (m *MoveImmediateFixUpTWo) Legal(state State, proposer PlayerIndex) error {
+func (m *moveImmediateFixUpTWo) Legal(state State, proposer PlayerIndex) error {
 	return errors.New("This move is never legal and that's OK")
 }
 
-func (m *MoveImmediateFixUpTWo) Apply(state MutableState) error {
+func (m *moveImmediateFixUpTWo) Apply(state MutableState) error {
 	game, players := concreteStates(state)
 
 	p := players[game.CurrentPlayer]
@@ -107,13 +112,7 @@ func (m *MoveImmediateFixUpTWo) Apply(state MutableState) error {
 	return nil
 }
 
-func (m *MoveImmediateFixUpTWo) Copy() Move {
-	var result MoveImmediateFixUpTWo
-	result = *m
-	return &result
-}
-
-func (m *MoveImmediateFixUpTWo) ReadSetter() PropertyReadSetter {
+func (m *moveImmediateFixUpTWo) ReadSetter() PropertyReadSetter {
 	return DefaultReadSetter(m)
 }
 
@@ -121,19 +120,9 @@ func TestImmediateFixUp(t *testing.T) {
 
 	manager := NewGameManager(&testGameDelegate{}, newTestGameChest(), newTestStorageManager())
 
-	manager.AddPlayerMove(&MoveTestImmediatePlayerMove{
-		DefaultMove{
-			"Test",
-			"This is a test",
-		},
-	})
+	manager.AddPlayerMoveFactory(moveTestImmediatePlayerMoveFactory)
 
-	manager.AddFixUpMove(&MoveImmediateFixUpOne{
-		DefaultMove{
-			"Immediate FixUp 1",
-			"",
-		},
-	})
+	manager.AddFixUpMoveFactory(moveImmediateFixUpOneFactory)
 
 	//TODO: add the FixUp with a fixup chain
 
@@ -152,7 +141,7 @@ func TestImmediateFixUp(t *testing.T) {
 	//Gut check that the move we're proposing actually is a
 	//MoveTestImmediatePlayerMove.
 
-	convertedMove, ok := move.(*MoveTestImmediatePlayerMove)
+	convertedMove, ok := move.(*moveTestImmediatePlayerMove)
 
 	assert.For(t).ThatActual(ok).IsTrue()
 

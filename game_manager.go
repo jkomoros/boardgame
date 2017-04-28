@@ -24,10 +24,10 @@ type GameManager struct {
 	chest               *ComponentChest
 	storage             StorageManager
 	agents              []Agent
-	fixUpMoves          []Move
-	playerMoves         []Move
-	fixUpMovesByName    map[string]Move
-	playerMovesByName   map[string]Move
+	fixUpMoves          []MoveFactory
+	playerMoves         []MoveFactory
+	fixUpMovesByName    map[string]MoveFactory
+	playerMovesByName   map[string]MoveFactory
 	agentsByName        map[string]Agent
 	modifiableGamesLock sync.RWMutex
 	modifiableGames     map[string]*Game
@@ -485,14 +485,16 @@ func (g *GameManager) SetUp() error {
 		g.agentsByName[strings.ToLower(agent.Name())] = agent
 	}
 
-	g.playerMovesByName = make(map[string]Move)
-	for _, move := range g.playerMoves {
-		g.playerMovesByName[strings.ToLower(move.Name())] = move
+	g.playerMovesByName = make(map[string]MoveFactory)
+	for _, factory := range g.playerMoves {
+		sampleMove := factory(nil)
+		g.playerMovesByName[strings.ToLower(sampleMove.Name())] = factory
 	}
 
-	g.fixUpMovesByName = make(map[string]Move)
-	for _, move := range g.fixUpMoves {
-		g.fixUpMovesByName[strings.ToLower(move.Name())] = move
+	g.fixUpMovesByName = make(map[string]MoveFactory)
+	for _, factory := range g.fixUpMoves {
+		sampleMove := factory(nil)
+		g.fixUpMovesByName[strings.ToLower(sampleMove.Name())] = factory
 	}
 
 	g.modifiableGames = make(map[string]*Game)
@@ -523,23 +525,23 @@ func (g *GameManager) AddAgent(agent Agent) {
 	g.agents = append(g.agents, agent)
 }
 
-//AddPlayerMove adds the specified move to the game as a move that Players can
-//make. It may only be called during initalization.
-func (g *GameManager) AddPlayerMove(move Move) {
+//AddPlayerMoveFactories adds the specified move factory to the game as a move
+//that Players can make. It may only be called during initalization.
+func (g *GameManager) AddPlayerMoveFactory(factory MoveFactory) {
 
 	if g.initialized {
 		return
 	}
-	g.playerMoves = append(g.playerMoves, move)
+	g.playerMoves = append(g.playerMoves, factory)
 }
 
-//AddFixUpMove adds a move that can only be legally made by GameDelegate as a
-//FixUp move. It can only be called during initialization.
-func (g *GameManager) AddFixUpMove(move Move) {
+//AddFixUpMoveFactory adds a move factory that can only be legally made by
+//GameDelegate as a FixUp move. It can only be called during initialization.
+func (g *GameManager) AddFixUpMoveFactory(factory MoveFactory) {
 	if g.initialized {
 		return
 	}
-	g.fixUpMoves = append(g.fixUpMoves, move)
+	g.fixUpMoves = append(g.fixUpMoves, factory)
 }
 
 //Agents returns a slice of all agents configured on this Manager. Will return
@@ -552,43 +554,28 @@ func (g *GameManager) Agents() []Agent {
 	return g.agents
 }
 
-//PlayerMoves returns all moves that are valid in this game to be made my
+//PlayerMoveFactories returns all moves that are valid in this game to be made my
 //players--all of the Moves that have been added via AddPlayerMove  during
-//initalization. Returns nil until game.SetUp() has been called. Will return
-//moves that are all copies.
-func (g *GameManager) PlayerMoves() []Move {
+//initalization. Returns nil until game.SetUp() has been called.
+func (g *GameManager) PlayerMoveFactories() []MoveFactory {
 	if !g.initialized {
 		return nil
 	}
 
-	result := make([]Move, len(g.playerMoves))
-
-	for i, move := range g.playerMoves {
-		result[i] = move.Copy()
-	}
-
-	return result
+	return g.playerMoves
 }
 
-//FixUpMoves returns all moves that are valid in this game to be made as fixup
-//moves--all of the Moves that have been added via AddPlayerMove  during
-//initalization. Returns nil until game.SetUp() has been called. Will return
-//moves that are all copies.
-func (g *GameManager) FixUpMoves() []Move {
-
-	//TODO: test all of these fixup moves
+//FixUpMoveFactoriess returns all move factories that are valid in this game
+//to be made as fixup moves--all of the Moves that have been added via
+//AddPlayerMove  during initalization. Returns nil until game.SetUp() has been
+//called.
+func (g *GameManager) FixUpMoveFactories() []MoveFactory {
 
 	if !g.initialized {
 		return nil
 	}
 
-	result := make([]Move, len(g.fixUpMoves))
-
-	for i, move := range g.fixUpMoves {
-		result[i] = move.Copy()
-	}
-
-	return result
+	return g.fixUpMoves
 }
 
 //AgentByName will return the agent with the given name, or nil if one doesn't
@@ -604,9 +591,10 @@ func (g *GameManager) AgentByName(name string) Agent {
 	return g.agentsByName[name]
 }
 
-//PlayerMoveByName returns the Move of that name from game.PlayerMoves(), if
-//it exists. Names are considered without regard to case.  Will return a copy.
-func (g *GameManager) PlayerMoveByName(name string) Move {
+//PlayerMoveByName returns the MoveFactory of that name from
+//game.PlayerMoves(), if it exists. Names are considered without regard to
+//case.  Will return a copy.
+func (g *GameManager) PlayerMoveFactoryByName(name string) MoveFactory {
 	if !g.initialized {
 		return nil
 	}
@@ -617,12 +605,13 @@ func (g *GameManager) PlayerMoveByName(name string) Move {
 		return nil
 	}
 
-	return move.Copy()
+	return move
 }
 
-//FixUpMoveByName returns the Move of that name from game.FixUpMoves(), if
-//it exists. Names are considered without regard to case.  Will return a copy.
-func (g *GameManager) FixUpMoveByName(name string) Move {
+//FixUpMoveFactoryByName returns the MoveFactory of that name from
+//game.FixUpMoves(), if it exists. Names are considered without regard to
+//case.  Will return a copy.
+func (g *GameManager) FixUpMoveFactoryByName(name string) MoveFactory {
 	if !g.initialized {
 		return nil
 	}
@@ -633,7 +622,7 @@ func (g *GameManager) FixUpMoveByName(name string) Move {
 		return nil
 	}
 
-	return move.Copy()
+	return move
 }
 
 //Chest is the ComponentChest in use for this game. Will return nil until

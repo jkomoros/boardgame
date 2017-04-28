@@ -147,6 +147,10 @@ func (t *testPlayerState) Reader() PropertyReader {
 	return DefaultReader(t)
 }
 
+func moveInvalidPlayerIndexFactory(state State) Move {
+	return &testMoveInvalidPlayerIndex{}
+}
+
 type testMoveInvalidPlayerIndex struct {
 	//This move is a dangerous one and also a fix-up. So make it so by default
 	//it doesn't apply.
@@ -159,16 +163,6 @@ func (t *testMoveInvalidPlayerIndex) ImmediateFixUp(state State) Move {
 
 func (t *testMoveInvalidPlayerIndex) ReadSetter() PropertyReadSetter {
 	return DefaultReadSetter(t)
-}
-
-func (t *testMoveInvalidPlayerIndex) Copy() Move {
-	var result testMoveInvalidPlayerIndex
-	result = *t
-	return &result
-}
-
-func (t *testMoveInvalidPlayerIndex) DefaultsForState(state State) {
-	return
 }
 
 func (t *testMoveInvalidPlayerIndex) Name() string {
@@ -196,6 +190,16 @@ func (t *testMoveInvalidPlayerIndex) Apply(state MutableState) error {
 	return nil
 }
 
+func moveIncrementCardInHandFactory(state State) Move {
+	result := &testMoveIncrementCardInHand{}
+
+	if state != nil {
+		result.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
+	}
+
+	return result
+}
+
 type testMoveIncrementCardInHand struct {
 	TargetPlayerIndex PlayerIndex
 }
@@ -206,19 +210,6 @@ func (t *testMoveIncrementCardInHand) ImmediateFixUp(state State) Move {
 
 func (t *testMoveIncrementCardInHand) ReadSetter() PropertyReadSetter {
 	return DefaultReadSetter(t)
-}
-
-func (t *testMoveIncrementCardInHand) Copy() Move {
-	var result testMoveIncrementCardInHand
-	result = *t
-	return &result
-}
-
-func (t *testMoveIncrementCardInHand) DefaultsForState(state State) {
-
-	game, _ := concreteStates(state)
-
-	t.TargetPlayerIndex = game.CurrentPlayer
 }
 
 func (t *testMoveIncrementCardInHand) Name() string {
@@ -281,6 +272,16 @@ func (t *testMoveIncrementCardInHand) Apply(state MutableState) error {
 	return errors.New("Didn't find a component in hand")
 }
 
+func moveDrawCardFactory(state State) Move {
+	result := &testMoveDrawCard{}
+
+	if state != nil {
+		result.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
+	}
+
+	return result
+}
+
 type testMoveDrawCard struct {
 	TargetPlayerIndex PlayerIndex
 }
@@ -291,19 +292,6 @@ func (t *testMoveDrawCard) ImmediateFixUp(state State) Move {
 
 func (t *testMoveDrawCard) ReadSetter() PropertyReadSetter {
 	return DefaultReadSetter(t)
-}
-
-func (t *testMoveDrawCard) Copy() Move {
-	var result testMoveDrawCard
-	result = *t
-	return &result
-}
-
-func (t *testMoveDrawCard) DefaultsForState(state State) {
-
-	game, _ := concreteStates(state)
-
-	t.TargetPlayerIndex = game.CurrentPlayer
 }
 
 func (t *testMoveDrawCard) Name() string {
@@ -350,18 +338,21 @@ func (t *testMoveDrawCard) Apply(state MutableState) error {
 	return nil
 }
 
+func moveAdvanceCurrentPlayerFactory(state State) Move {
+	return &testMoveAdvanceCurentPlayer{
+		DefaultMove{
+			"Advance Current Player",
+			"Advances to the next player when the current player has no more legal moves they can make this turn.",
+		},
+	}
+}
+
 type testMoveAdvanceCurentPlayer struct {
 	DefaultMove
 }
 
 func (t *testMoveAdvanceCurentPlayer) ReadSetter() PropertyReadSetter {
 	return DefaultReadSetter(t)
-}
-
-func (t *testMoveAdvanceCurentPlayer) Copy() Move {
-	var result testMoveAdvanceCurentPlayer
-	result = *t
-	return &result
 }
 
 func (t *testMoveAdvanceCurentPlayer) Legal(state State, proposer PlayerIndex) error {
@@ -396,6 +387,26 @@ func (t *testMoveAdvanceCurentPlayer) Apply(state MutableState) error {
 	return nil
 }
 
+func moveTestFactory(state State) Move {
+	result := &testMove{}
+
+	if state != nil {
+		game, _ := concreteStates(state)
+
+		if game == nil {
+			blob, _ := DefaultMarshalJSON(state)
+			log.Println(string(blob))
+			return nil
+		}
+
+		result.TargetPlayerIndex = game.CurrentPlayer
+		result.ScoreIncrement = 3
+	}
+
+	return result
+
+}
+
 type testMove struct {
 	AString           string
 	ScoreIncrement    int
@@ -411,12 +422,6 @@ func (t *testMove) ReadSetter() PropertyReadSetter {
 	return DefaultReadSetter(t)
 }
 
-func (t *testMove) Copy() Move {
-	var result testMove
-	result = *t
-	return &result
-}
-
 func (t *testMove) Name() string {
 	return "Test"
 }
@@ -426,16 +431,7 @@ func (t *testMove) Description() string {
 }
 
 func (t *testMove) DefaultsForState(state State) {
-	game, _ := concreteStates(state)
 
-	if game == nil {
-		blob, _ := DefaultMarshalJSON(state)
-		log.Println(string(blob))
-		return
-	}
-
-	t.TargetPlayerIndex = game.CurrentPlayer
-	t.ScoreIncrement = 3
 }
 
 func (t *testMove) Legal(state State, proposer PlayerIndex) error {
@@ -469,6 +465,10 @@ func (t *testMove) Apply(state MutableState) error {
 	return nil
 }
 
+func moveAlwaysLegalFactory(state State) Move {
+	return &testAlwaysLegalMove{}
+}
+
 type testAlwaysLegalMove struct{}
 
 func (t *testAlwaysLegalMove) ImmediateFixUp(state State) Move {
@@ -479,22 +479,12 @@ func (t *testAlwaysLegalMove) ReadSetter() PropertyReadSetter {
 	return DefaultReadSetter(t)
 }
 
-func (t *testAlwaysLegalMove) Copy() Move {
-	var result testAlwaysLegalMove
-	result = *t
-	return &result
-}
-
 func (t *testAlwaysLegalMove) Name() string {
 	return "Test Always Legal Move"
 }
 
 func (t *testAlwaysLegalMove) Description() string {
 	return "A move that is always legal"
-}
-
-func (t *testAlwaysLegalMove) DefaultsForState(state State) {
-	//Pass
 }
 
 func (t *testAlwaysLegalMove) Legal(state State, proposer PlayerIndex) error {

@@ -29,6 +29,10 @@ const HideCardsDuration = 4 * time.Second
  *
  **************************************************/
 
+func MoveAdvanceNextPlayerFactory(state boardgame.State) boardgame.Move {
+	return &MoveAdvanceNextPlayer{}
+}
+
 func (m *MoveAdvanceNextPlayer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 	game, players := concreteStates(state)
 
@@ -57,16 +61,6 @@ func (m *MoveAdvanceNextPlayer) Apply(state boardgame.MutableState) error {
 	return nil
 }
 
-func (m *MoveAdvanceNextPlayer) Copy() boardgame.Move {
-	var result MoveAdvanceNextPlayer
-	result = *m
-	return &result
-}
-
-func (m *MoveAdvanceNextPlayer) DefaultsForState(state boardgame.State) {
-	//Nothing to do
-}
-
 func (m *MoveAdvanceNextPlayer) Name() string {
 	return "Advance To Next Player"
 }
@@ -88,6 +82,26 @@ func (t *MoveAdvanceNextPlayer) ImmediateFixUp(state boardgame.State) boardgame.
  * MoveRevealCard Implementation
  *
  **************************************************/
+
+func MoveRevealCardFactory(state boardgame.State) boardgame.Move {
+	result := &MoveRevealCard{}
+
+	if state != nil {
+
+		result.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
+
+		game, _ := concreteStates(state)
+
+		for i, c := range game.HiddenCards.Components() {
+			if c != nil {
+				result.CardIndex = i
+				break
+			}
+		}
+	}
+
+	return result
+}
 
 func (m *MoveRevealCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 	game, players := concreteStates(state)
@@ -134,25 +148,6 @@ func (m *MoveRevealCard) Apply(state boardgame.MutableState) error {
 	return nil
 }
 
-func (m *MoveRevealCard) Copy() boardgame.Move {
-	var result MoveRevealCard
-	result = *m
-	return &result
-}
-
-func (m *MoveRevealCard) DefaultsForState(state boardgame.State) {
-	game, _ := concreteStates(state)
-	m.TargetPlayerIndex = game.CurrentPlayer
-
-	for i, c := range game.HiddenCards.Components() {
-		if c != nil {
-			m.CardIndex = i
-			return
-		}
-	}
-
-}
-
 func (m *MoveRevealCard) Name() string {
 	return "Reveal Card"
 }
@@ -174,6 +169,10 @@ func (t *MoveRevealCard) ImmediateFixUp(state boardgame.State) boardgame.Move {
  * MoveStartHideCardsTimer Implementation
  *
  **************************************************/
+
+func MoveStartHideCardsTimerFactory(state boardgame.State) boardgame.Move {
+	return &MoveStartHideCardsTimer{}
+}
 
 func (m *MoveStartHideCardsTimer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 	game, _ := concreteStates(state)
@@ -212,16 +211,6 @@ func (m *MoveStartHideCardsTimer) Apply(state boardgame.MutableState) error {
 	return nil
 }
 
-func (m *MoveStartHideCardsTimer) Copy() boardgame.Move {
-	var result MoveStartHideCardsTimer
-	result = *m
-	return &result
-}
-
-func (m *MoveStartHideCardsTimer) DefaultsForState(state boardgame.State) {
-	//Nothing to do
-}
-
 func (m *MoveStartHideCardsTimer) Name() string {
 	return "Start Hide Cards Timer"
 }
@@ -243,6 +232,10 @@ func (t *MoveStartHideCardsTimer) ImmediateFixUp(state boardgame.State) boardgam
  * MoveCaptureCards Implementation
  *
  **************************************************/
+
+func MoveCaptureCardsFactory(state boardgame.State) boardgame.Move {
+	return &MoveCaptureCards{}
+}
 
 func (m *MoveCaptureCards) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 	game, _ := concreteStates(state)
@@ -283,16 +276,6 @@ func (m *MoveCaptureCards) Apply(state boardgame.MutableState) error {
 	return nil
 }
 
-func (m *MoveCaptureCards) Copy() boardgame.Move {
-	var result MoveCaptureCards
-	result = *m
-	return &result
-}
-
-func (m *MoveCaptureCards) DefaultsForState(state boardgame.State) {
-	//Nothing to do
-}
-
 func (m *MoveCaptureCards) Name() string {
 	return "Capture Cards"
 }
@@ -314,6 +297,16 @@ func (t *MoveCaptureCards) ImmediateFixUp(state boardgame.State) boardgame.Move 
  * MoveHideCards Implementation
  *
  **************************************************/
+
+func MoveHideCardsFactory(state boardgame.State) boardgame.Move {
+	result := &MoveHideCards{}
+
+	if state != nil {
+		result.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
+	}
+
+	return result
+}
 
 func (m *MoveHideCards) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 	game, players := concreteStates(state)
@@ -352,18 +345,6 @@ func (m *MoveHideCards) Apply(state boardgame.MutableState) error {
 	}
 
 	return nil
-}
-
-func (m *MoveHideCards) Copy() boardgame.Move {
-	var result MoveHideCards
-	result = *m
-	return &result
-}
-
-func (m *MoveHideCards) DefaultsForState(state boardgame.State) {
-	game, _ := concreteStates(state)
-
-	m.TargetPlayerIndex = game.CurrentPlayer
 }
 
 func (m *MoveHideCards) Name() string {

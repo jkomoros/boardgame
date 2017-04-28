@@ -407,72 +407,75 @@ func (g *Game) Modifiable() bool {
 	return g.modifiable
 }
 
-//PlayerMoves is a thin wrapper around GameManager.PlayerMoves, but with all
-//of the moves set to the right defaults for the current state of this game.
+//PlayerMoves returns an array of all Moves with their defaults set for this
+//current state.
 func (g *Game) PlayerMoves() []Move {
 
 	if !g.initalized {
 		return nil
 	}
 
-	result := g.manager.PlayerMoves()
-	for _, move := range result {
-		move.DefaultsForState(g.CurrentState())
+	factories := g.manager.PlayerMoveFactories()
+
+	result := make([]Move, len(factories))
+
+	for i, factory := range factories {
+		result[i] = factory(g.CurrentState())
 	}
 	return result
 }
 
-//FixUpMoves is a thin wrapper around GameManager.FixUpMoves, but with all of
-//the moves set to the right defaults for the current state of this game.
+//FixUpMoves returns an array of all Moves with their defaults set for this
+//current state.
 func (g *Game) FixUpMoves() []Move {
 
 	if !g.initalized {
 		return nil
 	}
 
-	result := g.manager.FixUpMoves()
-	for _, move := range result {
-		move.DefaultsForState(g.CurrentState())
+	factories := g.manager.FixUpMoveFactories()
+
+	result := make([]Move, len(factories))
+
+	for i, factory := range factories {
+		result[i] = factory(g.CurrentState())
 	}
 	return result
 
 }
 
-//PlayerMoveByName is a thin wrapper around GameManager.PlayerMoveByName, but
-//with it set to the right defaults for the current state of this game.
+//PlayerMoveByName returns a move of the given name set to reasonable defaults
+//for the game at its current state.
 func (g *Game) PlayerMoveByName(name string) Move {
 	if !g.initalized {
 		return nil
 	}
 
-	result := g.manager.PlayerMoveByName(name)
+	factory := g.manager.PlayerMoveFactoryByName(name)
 
-	if result == nil {
-		return result
+	if factory == nil {
+		return nil
 	}
 
-	result.DefaultsForState(g.CurrentState())
-
-	return result
+	return factory(g.CurrentState())
 }
 
-//FixUpMoveByName is a thin wrapper around GameManager.FixUpMoveByName, but
-//with it set to the right defaults for the current state of this game.
+//FixUpMoveByName returns a move of the given name set to reasonable defaults
+//for the game at its current state.
 func (g *Game) FixUpMoveByName(name string) Move {
 
 	if !g.initalized {
 		return nil
 	}
 
-	result := g.manager.FixUpMoveByName(name)
+	factory := g.manager.FixUpMoveFactoryByName(name)
 
-	if result == nil {
-		return result
+	if factory == nil {
+		return nil
 	}
 
-	result.DefaultsForState(g.CurrentState())
+	return factory(g.CurrentState())
 
-	return result
 }
 
 //Chest is the ComponentChest in use for this game.
@@ -595,14 +598,14 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 		//sense for them to not be listed in FixUpMoves (which, with the
 		//default delegate, is always checked for proposefixup).
 		if !isImmediateFixUp {
-			if g.manager.FixUpMoveByName(move.Name()) == nil {
+			if g.FixUpMoveByName(move.Name()) == nil {
 				return errors.New("That move is not configured as a Fix Up move for this game.")
 			}
 		}
 	} else {
 
 		//Verify that the Move is actually configured to be part of this game.
-		if g.manager.PlayerMoveByName(move.Name()) == nil {
+		if g.PlayerMoveByName(move.Name()) == nil {
 			return errors.New("That move is not configured as a Player move for this game.")
 		}
 	}

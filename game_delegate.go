@@ -188,8 +188,8 @@ func (d *DefaultGameDelegate) EmptyComputedPlayerPropertyCollection() ComputedPr
 //that your FixUpMoves have a conservative Legal function, otherwise you could
 //get a panic from applying too many FixUp moves.
 func (d *DefaultGameDelegate) ProposeFixUpMove(state State) Move {
-	for _, move := range d.Manager().FixUpMoves() {
-		move.DefaultsForState(state)
+	for _, factory := range d.Manager().FixUpMoveFactories() {
+		move := factory(state)
 		if err := move.Legal(state, AdminPlayerIndex); err == nil {
 			//Found it!
 			return move

@@ -558,9 +558,9 @@ func (s *Server) generateForms(game *boardgame.Game) []*MoveForm {
 
 	var result []*MoveForm
 
-	for _, move := range game.PlayerMoves() {
+	for _, factory := range game.Manager().PlayerMoveFactories() {
 
-		move.DefaultsForState(game.CurrentState())
+		move := factory(game.CurrentState())
 
 		moveItem := &MoveForm{
 			Name:        move.Name(),

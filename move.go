@@ -1,5 +1,12 @@
 package boardgame
 
+//A MoveFactory takes a state and returns a Move. The state may be nil, in
+//which case it should just be an empty (generally, zero-valued) Move of the
+//given type. If state is non-nil, the move that is returned should be set to
+//reasonable defaults for the given state. For example, if the Move has a
+//TargetPlayerIndex property, a reasonable default is state.CurrentPlayer().
+type MoveFactory func(state State) Move
+
 //Move's are how all modifications are made to Game States after
 //initialization. Packages define structs that implement Move for all
 //modifications.
@@ -22,15 +29,6 @@ type Move interface {
 	//modify. If error is non-nil it will not be applied to the game. It
 	//should not be called directly; use Game.ProposeMove.
 	Apply(state MutableState) error
-
-	//Copy creates a new move based on this one.
-	Copy() Move
-
-	//DefaultsForState should set this move up so that obvious defaults, given
-	//the state, are set. For example, for moves that have a
-	//TargetPlayerIndex, it makes sense to have this set that to
-	//game.CurrentPlayerIndex. Note: this will modify the move!
-	DefaultsForState(state State)
 
 	//If ImmediateFixUp returns a Move, it will immediately be applied (if
 	//Legal) to the game before Delegate's ProposeFixUp is consulted. The move
@@ -70,10 +68,6 @@ type Move interface {
 type DefaultMove struct {
 	MoveName        string
 	MoveDescription string
-}
-
-func (d *DefaultMove) DefaultsForState(state State) {
-	return
 }
 
 func (d *DefaultMove) ImmediateFixUp(state State) Move {

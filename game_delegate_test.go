@@ -168,6 +168,12 @@ func (t *testGameDelegate) FinishSetUp(state MutableState) {
 	}
 }
 
+func (t *testGameDelegate) CurrentPlayerIndex(state State) PlayerIndex {
+	game, _ := concreteStates(state)
+
+	return game.CurrentPlayer
+}
+
 func (t *testGameDelegate) EmptyGameState() MutableBaseState {
 	chest := t.Manager().Chest()
 

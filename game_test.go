@@ -244,7 +244,7 @@ func TestApplyMove(t *testing.T) {
 	oldMovesByName := manager.playerMovesByName
 
 	manager.playerMoves = nil
-	manager.playerMovesByName = make(map[string]Move)
+	manager.playerMovesByName = make(map[string]MoveFactory)
 
 	if err := <-game.ProposeMove(move, AdminPlayerIndex); err == nil {
 		t.Error("Game allowed a move that wasn't configured as part of game to be applied")
@@ -334,8 +334,8 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 
 	manager := NewGameManager(&testInfiniteLoopGameDelegate{}, newTestGameChest(), newTestStorageManager())
 
-	manager.AddPlayerMove(&testMove{})
-	manager.AddFixUpMove(&testAlwaysLegalMove{})
+	manager.AddPlayerMoveFactory(moveTestFactory)
+	manager.AddFixUpMoveFactory(moveAlwaysLegalFactory)
 
 	manager.SetUp()
 
