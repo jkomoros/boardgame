@@ -3,6 +3,7 @@ package boardgame
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"strconv"
 )
 
@@ -22,7 +23,7 @@ import (
 //will return a state.
 type State interface {
 	//Game returns the GameState for this State
-	Game() GameState
+	Game() BaseState
 	//Players returns a slice of all PlayerStates for this State
 	Players() []PlayerState
 	//DynamicComponentValues returns a map of deck name to array of component
@@ -80,7 +81,7 @@ type MutableState interface {
 	//MutableState contains all of the methods of a read-only state.
 	State
 	//MutableGame is a reference to the MutableGameState for this MutableState.
-	MutableGame() MutableGameState
+	MutableGame() MutableBaseState
 	//MutablePlayers returns a slice of MutablePlayerStates for this MutableState.
 	MutablePlayers() []MutablePlayerState
 
@@ -160,7 +161,7 @@ func (p PlayerIndex) String() string {
 //either, and what it's interpreted as is primarily a function of what the
 //method signature is that it's passed to
 type state struct {
-	gameState              MutableGameState
+	gameState              MutableBaseState
 	playerStates           []MutablePlayerState
 	computed               *computedPropertiesImpl
 	dynamicComponentValues map[string][]MutableDynamicComponentValues
@@ -176,7 +177,7 @@ type state struct {
 	timersToStart []int
 }
 
-func (s *state) MutableGame() MutableGameState {
+func (s *state) MutableGame() MutableBaseState {
 	return s.gameState
 }
 
@@ -188,7 +189,7 @@ func (s *state) MutableDynamicComponentValues() map[string][]MutableDynamicCompo
 	return s.dynamicComponentValues
 }
 
-func (s *state) Game() GameState {
+func (s *state) Game() BaseState {
 	return s.gameState
 }
 
@@ -216,11 +217,11 @@ func (s *state) copy(sanitized bool) *state {
 	players := make([]MutablePlayerState, len(s.playerStates))
 
 	for i, player := range s.playerStates {
-		players[i] = player.MutableCopy()
+		players[i] = s.copyPlayerState(player)
 	}
 
 	result := &state{
-		gameState:              s.gameState.MutableCopy(),
+		gameState:              s.copyGameState(s.gameState),
 		playerStates:           players,
 		dynamicComponentValues: make(map[string][]MutableDynamicComponentValues),
 		sanitized:              sanitized,
@@ -255,6 +256,102 @@ func (s *state) copy(sanitized bool) *state {
 	}
 
 	return result
+}
+
+func (s *state) copyPlayerState(input PlayerState) MutablePlayerState {
+	output := s.game.manager.delegate.EmptyPlayerState(input.PlayerIndex())
+	if err := copyReader(input.Reader(), output.ReadSetter()); err != nil {
+		log.Println("WARNING: couldn't copy player state: " + err.Error())
+	}
+
+	return output
+}
+
+func (s *state) copyGameState(input BaseState) MutableBaseState {
+	output := s.game.manager.delegate.EmptyGameState()
+	if err := copyReader(input.Reader(), output.ReadSetter()); err != nil {
+		log.Println("WARNING: couldn't copy game state: " + err.Error())
+	}
+	return output
+}
+
+//copyReader assumes input and output container are the same "shape" (that is,
+//outputContainer can have all of input's properties set). It goes through
+//each property, copies it if necessary, and outputs on PropertyReadSetter.
+func copyReader(input PropertyReader, outputContainer PropertyReadSetter) error {
+
+	for propName, propType := range input.Props() {
+		switch propType {
+		case TypeBool:
+			boolVal, err := input.BoolProp(propName)
+			if err != nil {
+				return errors.New(propName + " did not return a bool as expected: " + err.Error())
+			}
+			err = outputContainer.SetBoolProp(propName, boolVal)
+			if err != nil {
+				return errors.New(propName + " could not be set on output: " + err.Error())
+			}
+		case TypeInt:
+			intVal, err := input.IntProp(propName)
+			if err != nil {
+				return errors.New(propName + " did not return an int as expected: " + err.Error())
+			}
+			err = outputContainer.SetIntProp(propName, intVal)
+			if err != nil {
+				return errors.New(propName + " could not be set on output: " + err.Error())
+			}
+		case TypeString:
+			stringVal, err := input.StringProp(propName)
+			if err != nil {
+				return errors.New(propName + " did not return a string as expected: " + err.Error())
+			}
+			err = outputContainer.SetStringProp(propName, stringVal)
+			if err != nil {
+				return errors.New(propName + " could not be set on output: " + err.Error())
+			}
+		case TypePlayerIndex:
+			playerIndexVal, err := input.PlayerIndexProp(propName)
+			if err != nil {
+				return errors.New(propName + " did not return a player index as expected: " + err.Error())
+			}
+			err = outputContainer.SetPlayerIndexProp(propName, playerIndexVal)
+			if err != nil {
+				return errors.New(propName + " could not be set on output: " + err.Error())
+			}
+		case TypeGrowableStack:
+			growableStackVal, err := input.GrowableStackProp(propName)
+			if err != nil {
+				return errors.New(propName + " did not return a growableStack as expected: " + err.Error())
+			}
+			err = outputContainer.SetGrowableStackProp(propName, growableStackVal.Copy())
+			if err != nil {
+				return errors.New(propName + " could not be set on output: " + err.Error())
+			}
+		case TypeSizedStack:
+			sizedStackVal, err := input.SizedStackProp(propName)
+			if err != nil {
+				return errors.New(propName + " did not return a sizedStack as expected: " + err.Error())
+			}
+			err = outputContainer.SetSizedStackProp(propName, sizedStackVal.Copy())
+			if err != nil {
+				return errors.New(propName + " could not be set on output: " + err.Error())
+			}
+		case TypeTimer:
+			timerVal, err := input.TimerProp(propName)
+			if err != nil {
+				return errors.New(propName + " did not return a timer as expected: " + err.Error())
+			}
+			err = outputContainer.SetTimerProp(propName, timerVal.Copy())
+			if err != nil {
+				return errors.New(propName + " could not be set on output: " + err.Error())
+			}
+		default:
+			return errors.New(propName + " was an unsupported property type: " + strconv.Itoa(int(propType)))
+		}
+	}
+
+	return nil
+
 }
 
 //validatePlayerIndexes checks all of the PropertyReaders in State and
@@ -398,6 +495,7 @@ type BaseState interface {
 //MutableBaseState is the interface that Mutable{Game,Player}State's
 //implement.
 type MutableBaseState interface {
+	BaseState
 	ReadSetter() PropertyReadSetter
 }
 
@@ -406,33 +504,14 @@ type PlayerState interface {
 	//PlayerIndex encodes the index this user's state is in the containing
 	//state object.
 	PlayerIndex() PlayerIndex
-	//Copy produces a copy of our current state. Be sure it's a deep copy that
-	//makes a copy of any pointer arguments.
-	Copy() PlayerState
 	BaseState
 }
 
 //A MutablePlayerState is a PlayerState that is allowed to be mutated.
 type MutablePlayerState interface {
-	PlayerState
-	MutableCopy() MutablePlayerState
-	MutableBaseState
-}
-
-//GameState represents the state of a game that is not associated with a
-//particular user. For example, the draw stack of cards, who the current
-//player is, and other properites.
-type GameState interface {
-	//Copy returns a copy of our current state. Be sure it's a deep copy that
-	//makes a copy of any pointer arguments.
-	Copy() GameState
-	BaseState
-}
-
-//A MutableGameState is a GameState that is allowed to be mutated.
-type MutableGameState interface {
-	GameState
-	MutableCopy() MutableGameState
+	//PlayerIndex encodes the index this user's state is in the containing
+	//state object.
+	PlayerIndex() PlayerIndex
 	MutableBaseState
 }
 

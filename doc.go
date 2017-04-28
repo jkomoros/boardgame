@@ -470,5 +470,11 @@ do this manipulation. Implementing these methods can be a pain, which is why
 this package provides a set of implementation methods that rely on reflection
 to satisfy these interfaces.
 
+Note that when we make a copy of your PlayerState or GameStates, we only
+enumerate and copy allowed property types that are visible via the
+PropertyReader interface. So do not rely on other hidden properties, because
+they will not be copied over. (This should go without saying as when those are
+marshaled to JSON they are not included anyway).
+
 */
 package boardgame

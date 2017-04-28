@@ -168,7 +168,7 @@ func (t *testGameDelegate) FinishSetUp(state MutableState) {
 	}
 }
 
-func (t *testGameDelegate) EmptyGameState() MutableGameState {
+func (t *testGameDelegate) EmptyGameState() MutableBaseState {
 	chest := t.Manager().Chest()
 
 	deck := chest.Deck("test")

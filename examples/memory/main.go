@@ -76,7 +76,7 @@ func (g *gameDelegate) CurrentPlayerIndex(state boardgame.State) boardgame.Playe
 	return game.CurrentPlayer
 }
 
-func (g *gameDelegate) EmptyGameState() boardgame.MutableGameState {
+func (g *gameDelegate) EmptyGameState() boardgame.MutableBaseState {
 
 	cards := g.Manager().Chest().Deck(cardsDeckName)
 

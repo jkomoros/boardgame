@@ -236,7 +236,7 @@ func (g *GameManager) emptyPlayerState(state *state, player PlayerIndex) (Mutabl
 
 //emptyGameState is a simple wrapper around delegate.EmptyPlayerState that
 //just verifies that stacks are inflated.
-func (g *GameManager) emptyGameState(state *state) (MutableGameState, error) {
+func (g *GameManager) emptyGameState(state *state) (MutableBaseState, error) {
 
 	gameState := g.delegate.EmptyGameState()
 

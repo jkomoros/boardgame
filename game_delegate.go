@@ -98,7 +98,7 @@ type GameDelegate interface {
 	//always required and always specific to each game type,
 	//DefaultGameDelegate does not implement them, as an extra reminder that
 	//you must implement them yourself.
-	EmptyGameState() MutableGameState
+	EmptyGameState() MutableBaseState
 	//EmptyPlayerState is similar to EmptyGameState, but playerIndex is the
 	//value that this PlayerState must return when its PlayerIndex() is
 	//called.

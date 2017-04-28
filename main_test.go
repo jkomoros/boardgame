@@ -116,18 +116,6 @@ type testGameState struct {
 	//TODO: have a Stack here.
 }
 
-func (t *testGameState) MutableCopy() MutableGameState {
-	var result testGameState
-	result = *t
-	result.DrawDeck = t.DrawDeck.Copy()
-	result.Timer = t.Timer.Copy()
-	return &result
-}
-
-func (t *testGameState) Copy() GameState {
-	return t.MutableCopy()
-}
-
 func (t *testGameState) Reader() PropertyReader {
 	return DefaultReader(t)
 }
@@ -149,19 +137,6 @@ type testPlayerState struct {
 
 func (t *testPlayerState) PlayerIndex() PlayerIndex {
 	return t.playerIndex
-}
-
-func (t *testPlayerState) MutableCopy() MutablePlayerState {
-	var result testPlayerState
-	result = *t
-
-	result.Hand = t.Hand.Copy()
-
-	return &result
-}
-
-func (t *testPlayerState) Copy() PlayerState {
-	return t.MutableCopy()
 }
 
 func (t *testPlayerState) ReadSetter() PropertyReadSetter {

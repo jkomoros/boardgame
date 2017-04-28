@@ -33,30 +33,6 @@ func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
 	return p.playerIndex
 }
 
-func (g *gameState) Copy() boardgame.GameState {
-	return g.MutableCopy()
-}
-
-func (p *playerState) Copy() boardgame.PlayerState {
-	return p.MutableCopy()
-}
-
-func (g *gameState) MutableCopy() boardgame.MutableGameState {
-	var result gameState
-	result = *g
-	result.HiddenCards = g.HiddenCards.Copy()
-	result.RevealedCards = g.RevealedCards.Copy()
-	result.HideCardsTimer = g.HideCardsTimer.Copy()
-	return &result
-}
-
-func (p *playerState) MutableCopy() boardgame.MutablePlayerState {
-	var result playerState
-	result = *p
-	result.WonCards = p.WonCards.Copy()
-	return &result
-}
-
 func (g *gameState) Reader() boardgame.PropertyReader {
 	return boardgame.DefaultReader(g)
 }
