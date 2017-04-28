@@ -40,8 +40,9 @@ next section.
 Moves
 
 Moves are the only way to modify a game's state. A given type of game has a
-collection of Moves that may be used. The GameManager maintains a set of all
-of the different types of moves that may be used in this game type.
+collection of factories that produce Moves that may be used. The GameManager
+maintains a set of all of the different types of move factories that may be
+used in this game type.
 
 Moves can be serialized as JSON and contain a set of properties that together
 define all of the information necessary to fully describe the Move.
