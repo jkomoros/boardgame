@@ -30,6 +30,7 @@ const magicDocLinePrefix = "+autoreader"
 type appOptions struct {
 	OutputFile       string
 	PackageDirectory string
+	PrintToConsole   bool
 	Help             bool
 	flagSet          *flag.FlagSet
 }
@@ -49,6 +50,7 @@ func defineFlags(options *appOptions) {
 	options.flagSet.StringVar(&options.OutputFile, "out", "auto_reader.go", "Defines which file to render output to. WARNING: it will be overwritten!")
 	options.flagSet.StringVar(&options.PackageDirectory, "pkg", "examplepkg/", "Which package to process")
 	options.flagSet.BoolVar(&options.Help, "h", false, "If set, print help message and quit.")
+	options.flagSet.BoolVar(&options.PrintToConsole, "print", false, "If true, will print result to console instead of writing to out.")
 }
 
 func getOptions(flagSet *flag.FlagSet, flagArguments []string) *appOptions {
@@ -78,7 +80,12 @@ func process(options *appOptions, errOut io.ReadWriter) {
 		return
 	}
 
-	ioutil.WriteFile(options.OutputFile, []byte(output), 0644)
+	if options.PrintToConsole {
+		fmt.Fprintln(errOut, output)
+	} else {
+		ioutil.WriteFile(options.OutputFile, []byte(output), 0644)
+	}
+
 }
 
 func processPackage(location string) (output string, err error) {
