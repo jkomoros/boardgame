@@ -10,6 +10,9 @@
 	PropertyReader() method that just use boardgame.DefaultReader and
 	boardgame.DefaultReadSetter.
 
+	If you want only a reader or only a readsetter for a given struct, include
+	the keyword "reader" or "readsetter", like so: "+autoreader reader"
+
 	You can configure which package to process and where to write output via
 	command-line flags. By default it processes the current package and writes
 	its output to auto_reader.go, overwriting whatever file was there before.
@@ -141,11 +144,26 @@ func processPackage(location string) (output string, err error) {
 func structConfig(docLines []string) (outputReader bool, outputReadSetter bool) {
 
 	for _, docLine := range docLines {
+		docLine = strings.ToLower(docLine)
 		docLine = strings.TrimPrefix(docLine, "//")
 		docLine = strings.TrimSpace(docLine)
-		if strings.HasPrefix(docLine, magicDocLinePrefix) {
-			return true, true
+		if !strings.HasPrefix(docLine, magicDocLinePrefix) {
+			continue
 		}
+		docLine = strings.TrimPrefix(docLine, magicDocLinePrefix)
+		docLine = strings.TrimSpace(docLine)
+
+		switch docLine {
+		case "":
+			return true, true
+		case "both":
+			return true, true
+		case "reader":
+			return true, false
+		case "readsetter":
+			return false, true
+		}
+
 	}
 	return false, false
 }

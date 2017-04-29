@@ -29,3 +29,11 @@ func (m *myOtherStruct) ReadSetter() boardgame.PropertyReadSetter {
 	return boardgame.DefaultReadSetter(m)
 }
 
+func (o *onlyReader) Reader() boardgame.PropertyReader {
+	return boardgame.DefaultReader(o)
+}
+
+func (o *onlyReadSetter) ReadSetter() boardgame.PropertyReadSetter {
+	return boardgame.DefaultReadSetter(o)
+}
+

@@ -9,7 +9,7 @@ import (
 
 //go:generate autoreader
 
-//+autoreader
+//+autoreader both
 type myStruct struct {
 	MyInt  int
 	MyBool bool
@@ -21,5 +21,15 @@ type myOtherStruct struct {
 }
 
 type noReaderStruct struct {
+	MyInt int
+}
+
+// +autoreader reader
+type onlyReader struct {
+	MyString string
+}
+
+// +autoreader    readSetter
+type onlyReadSetter struct {
 	MyInt int
 }
