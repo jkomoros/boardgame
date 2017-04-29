@@ -14,6 +14,8 @@ import (
 	"strings"
 )
 
+//go:generate autoreader
+
 const targetScore = 21
 
 const gameDisplayname = "Blackjack"

@@ -5,23 +5,29 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
+//+autoreader readsetter
 type MoveShuffleDiscardToDraw struct{}
 
+//+autoreader readsetter
 type MoveAdvanceNextPlayer struct{}
 
+//+autoreader readsetter
 type MoveDealInitialCard struct {
 	TargetPlayerIndex boardgame.PlayerIndex
 	IsHidden          bool
 }
 
+//+autoreader readsetter
 type MoveRevealHiddenCard struct {
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
+//+autoreader readsetter
 type MoveCurrentPlayerHit struct {
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
+//+autoreader readsetter
 type MoveCurrentPlayerStand struct {
 	TargetPlayerIndex boardgame.PlayerIndex
 }
@@ -61,10 +67,6 @@ func (m *MoveShuffleDiscardToDraw) Name() string {
 
 func (m *MoveShuffleDiscardToDraw) Description() string {
 	return "When the draw deck is empty, shuffles the discard deck into draw deck."
-}
-
-func (m *MoveShuffleDiscardToDraw) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(m)
 }
 
 func (t *MoveShuffleDiscardToDraw) ImmediateFixUp(state boardgame.State) boardgame.Move {
@@ -142,10 +144,6 @@ func (m *MoveCurrentPlayerHit) Description() string {
 	return "The current player hits, drawing a card."
 }
 
-func (m *MoveCurrentPlayerHit) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(m)
-}
-
 func (t *MoveCurrentPlayerHit) ImmediateFixUp(state boardgame.State) boardgame.Move {
 	return nil
 }
@@ -211,10 +209,6 @@ func (m *MoveCurrentPlayerStand) Description() string {
 	return "If the current player no longer wants to draw cards, they can stand."
 }
 
-func (m *MoveCurrentPlayerStand) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(m)
-}
-
 func (t *MoveCurrentPlayerStand) ImmediateFixUp(state boardgame.State) boardgame.Move {
 	return nil
 }
@@ -261,10 +255,6 @@ func (m *MoveAdvanceNextPlayer) Name() string {
 
 func (m *MoveAdvanceNextPlayer) Description() string {
 	return "When the current player has either busted or decided to stand, we advance to next player."
-}
-
-func (m *MoveAdvanceNextPlayer) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(m)
 }
 
 func (t *MoveAdvanceNextPlayer) ImmediateFixUp(state boardgame.State) boardgame.Move {
@@ -324,10 +314,6 @@ func (m *MoveRevealHiddenCard) Name() string {
 
 func (m *MoveRevealHiddenCard) Description() string {
 	return "Reveals the hidden card in the user's hand"
-}
-
-func (m *MoveRevealHiddenCard) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(m)
 }
 
 func (t *MoveRevealHiddenCard) ImmediateFixUp(state boardgame.State) boardgame.Move {
@@ -425,10 +411,6 @@ func (m *MoveDealInitialCard) Name() string {
 
 func (m *MoveDealInitialCard) Description() string {
 	return "Deals a card to the a player who has not gotten their initial deal"
-}
-
-func (m *MoveDealInitialCard) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(m)
 }
 
 func (t *MoveDealInitialCard) ImmediateFixUp(state boardgame.State) boardgame.Move {
