@@ -48,7 +48,7 @@ func init() {
 
 func defineFlags(options *appOptions) {
 	options.flagSet.StringVar(&options.OutputFile, "out", "auto_reader.go", "Defines which file to render output to. WARNING: it will be overwritten!")
-	options.flagSet.StringVar(&options.PackageDirectory, "pkg", "examplepkg/", "Which package to process")
+	options.flagSet.StringVar(&options.PackageDirectory, "pkg", ".", "Which package to process")
 	options.flagSet.BoolVar(&options.Help, "h", false, "If set, print help message and quit.")
 	options.flagSet.BoolVar(&options.PrintToConsole, "print", false, "If true, will print result to console instead of writing to out.")
 }
