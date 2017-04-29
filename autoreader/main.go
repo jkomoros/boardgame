@@ -21,7 +21,7 @@ var headerTemplate *template.Template
 var readerTemplate *template.Template
 var readSetterTemplate *template.Template
 
-const magicDocLinePrefix = "autoreader"
+const magicDocLinePrefix = "+autoreader"
 
 type templateConfig struct {
 	FirstLetter string
