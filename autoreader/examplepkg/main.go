@@ -7,6 +7,7 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
+//autoreader
 type myStruct struct {
 	MyInt  int
 	MyBool bool

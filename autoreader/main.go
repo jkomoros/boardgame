@@ -9,7 +9,9 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"github.com/MarcGrol/golangAnnotations/parser"
 	"log"
 	"text/template"
 )
@@ -28,8 +30,29 @@ func init() {
 }
 
 func main() {
-	fmt.Println(readerForStruct("myStruct"))
-	fmt.Println(readSetterForStruct("myStruct"))
+	output, err := processPackage("examplepkg/")
+
+	if err != nil {
+		fmt.Println("ERROR", err)
+		return
+	}
+
+	fmt.Println(output)
+}
+
+func processPackage(location string) (output string, err error) {
+	sources, err := parser.ParseSourceDir(location, ".*")
+
+	if err != nil {
+		return "", errors.New("Couldn't parse sources: " + err.Error())
+	}
+
+	for _, theStruct := range sources.Structs {
+		output += readerForStruct(theStruct.Name)
+		output += readSetterForStruct(theStruct.Name)
+	}
+
+	return output, nil
 }
 
 func readerForStruct(structName string) string {
