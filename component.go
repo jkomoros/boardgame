@@ -21,7 +21,6 @@ type DynamicComponentValues interface {
 
 type MutableDynamicComponentValues interface {
 	DynamicComponentValues
-	Copy() MutableDynamicComponentValues
 	ReadSetter() PropertyReadSetter
 }
 

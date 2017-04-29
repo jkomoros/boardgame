@@ -237,7 +237,7 @@ func (s *state) copy(sanitized bool) *state {
 	for deckName, values := range s.dynamicComponentValues {
 		arr := make([]MutableDynamicComponentValues, len(values))
 		for i := 0; i < len(values); i++ {
-			arr[i] = values[i].Copy()
+			arr[i] = s.copyDynamicComponentValues(values[i], deckName)
 			if err := verifyReaderObjects(arr[i].Reader(), result); err != nil {
 				return nil
 			}
@@ -256,6 +256,19 @@ func (s *state) copy(sanitized bool) *state {
 	}
 
 	return result
+}
+
+func (s *state) copyDynamicComponentValues(input DynamicComponentValues, deckName string) MutableDynamicComponentValues {
+	deck := s.game.manager.chest.Deck(deckName)
+	if deck == nil {
+		log.Println("Invalid deck: " + deckName)
+		return nil
+	}
+	output := s.game.Manager().delegate.EmptyDynamicComponentValues(deck)
+	if err := copyReader(input.Reader(), output.ReadSetter()); err != nil {
+		log.Println("WARNING: couldn't copy dynamic value state: " + err.Error())
+	}
+	return output
 }
 
 func (s *state) copyPlayerState(input PlayerState) MutablePlayerState {

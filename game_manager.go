@@ -269,7 +269,7 @@ func (g *GameManager) emptyDynamicComponentValues(state *state) (map[string][]Mu
 		}
 		arr := make([]MutableDynamicComponentValues, len(deck.Components()))
 		for i := 0; i < len(deck.Components()); i++ {
-			arr[i] = values.Copy()
+			arr[i] = g.Delegate().EmptyDynamicComponentValues(deck)
 		}
 		result[deckName] = arr
 
