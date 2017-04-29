@@ -59,7 +59,7 @@ func (c *Card) String() string {
 }
 
 //ValuesToCards is designed to be used with stack.ComponentValues().
-func ValuesToCards(in []boardgame.ComponentValues) []*Card {
+func ValuesToCards(in []boardgame.SubState) []*Card {
 	result := make([]*Card, len(in))
 	for i := 0; i < len(in); i++ {
 		c := in[i]

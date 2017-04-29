@@ -72,7 +72,7 @@ func FromConfig(blob []byte, container interface{}) (*boardgame.ComponentChest, 
 				if (nameOne == "Repeat" && nameZero == "Component") || (nameZero == "Repeat" && nameOne == "Component") {
 
 					//It's a repeat component!
-					deck.AddComponentMulti(val.Elem().FieldByName("Component").Interface().(boardgame.ComponentValues), val.Elem().FieldByName("Repeat").Interface().(int))
+					deck.AddComponentMulti(val.Elem().FieldByName("Component").Interface().(boardgame.SubState), val.Elem().FieldByName("Repeat").Interface().(int))
 
 					//Signal that we already added it.
 					simpleComponent = false
@@ -82,7 +82,7 @@ func FromConfig(blob []byte, container interface{}) (*boardgame.ComponentChest, 
 			if simpleComponent {
 				deck.AddComponent(
 					//TODO: verify this works so we don't panic
-					val.Interface().(boardgame.ComponentValues),
+					val.Interface().(boardgame.SubState),
 				)
 			}
 		}

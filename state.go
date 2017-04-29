@@ -28,7 +28,7 @@ type State interface {
 	Players() []PlayerState
 	//DynamicComponentValues returns a map of deck name to array of component
 	//values, one per component in that deck.
-	DynamicComponentValues() map[string][]DynamicComponentValues
+	DynamicComponentValues() map[string][]SubState
 
 	//CurrentPlayer returns the PlayerState corresponding to the result of
 	//delegate.CurrentPlayerIndex(), or nil if the index isn't valid.
@@ -85,7 +85,7 @@ type MutableState interface {
 	//MutablePlayers returns a slice of MutablePlayerStates for this MutableState.
 	MutablePlayers() []MutablePlayerState
 
-	MutableDynamicComponentValues() map[string][]MutableDynamicComponentValues
+	MutableDynamicComponentValues() map[string][]MutableSubState
 }
 
 //Valid returns true if the PlayerIndex's value is legal in the context of the
@@ -164,7 +164,7 @@ type state struct {
 	gameState              MutableSubState
 	playerStates           []MutablePlayerState
 	computed               *computedPropertiesImpl
-	dynamicComponentValues map[string][]MutableDynamicComponentValues
+	dynamicComponentValues map[string][]MutableSubState
 	sanitized              bool
 	game                   *Game
 	//Set to true while computed is being calculating computed. Primarily so
@@ -185,7 +185,7 @@ func (s *state) MutablePlayers() []MutablePlayerState {
 	return s.playerStates
 }
 
-func (s *state) MutableDynamicComponentValues() map[string][]MutableDynamicComponentValues {
+func (s *state) MutableDynamicComponentValues() map[string][]MutableSubState {
 	return s.dynamicComponentValues
 }
 
@@ -223,7 +223,7 @@ func (s *state) copy(sanitized bool) *state {
 	result := &state{
 		gameState:              s.copyGameState(s.gameState),
 		playerStates:           players,
-		dynamicComponentValues: make(map[string][]MutableDynamicComponentValues),
+		dynamicComponentValues: make(map[string][]MutableSubState),
 		sanitized:              sanitized,
 		game:                   s.game,
 		//We copy this over, because this should only be set when computed is
@@ -235,7 +235,7 @@ func (s *state) copy(sanitized bool) *state {
 	}
 
 	for deckName, values := range s.dynamicComponentValues {
-		arr := make([]MutableDynamicComponentValues, len(values))
+		arr := make([]MutableSubState, len(values))
 		for i := 0; i < len(values); i++ {
 			arr[i] = s.copyDynamicComponentValues(values[i], deckName)
 			if err := verifyReaderObjects(arr[i].Reader(), result); err != nil {
@@ -258,7 +258,7 @@ func (s *state) copy(sanitized bool) *state {
 	return result
 }
 
-func (s *state) copyDynamicComponentValues(input DynamicComponentValues, deckName string) MutableDynamicComponentValues {
+func (s *state) copyDynamicComponentValues(input SubState, deckName string) MutableSubState {
 	deck := s.game.manager.chest.Deck(deckName)
 	if deck == nil {
 		log.Println("Invalid deck: " + deckName)
@@ -465,12 +465,12 @@ func (s *state) Sanitized() bool {
 	return s.sanitized
 }
 
-func (s *state) DynamicComponentValues() map[string][]DynamicComponentValues {
+func (s *state) DynamicComponentValues() map[string][]SubState {
 
-	result := make(map[string][]DynamicComponentValues)
+	result := make(map[string][]SubState)
 
 	for key, val := range s.dynamicComponentValues {
-		slice := make([]DynamicComponentValues, len(val))
+		slice := make([]SubState, len(val))
 		for i := 0; i < len(slice); i++ {
 			slice[i] = val[i]
 		}
@@ -499,8 +499,10 @@ func (s *state) Computed() ComputedProperties {
 
 //SanitizedForPlayer is in sanitized.go
 
-//SubState is the interface that all sub-state objects--PlayerStates and GameStates
-//--implement.
+//SubState is the interface that all sub-state objects--PlayerStates and
+//GameStates --implement. It is also the interface that
+//ComputedPropertyCollections, ComponentValues, and DynamicComponentValues
+//implement.
 type SubState interface {
 	Reader() PropertyReader
 }

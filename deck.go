@@ -17,7 +17,7 @@ type Deck struct {
 	//Components should only ever be added at initalization time. After
 	//initalization, Components should be read-only.
 	components             []*Component
-	shadowValues           ComponentValues
+	shadowValues           SubState
 	vendedShadowComponents map[int]*Component
 	//TODO: protect shadowComponents cache with mutex to make threadsafe.
 }
@@ -33,7 +33,7 @@ func NewDeck() *Deck {
 //AddComponent adds a new component with the given values to the next spot in
 //the deck. If the deck has already been added to a componentchest, this will
 //do nothing.
-func (d *Deck) AddComponent(v ComponentValues) {
+func (d *Deck) AddComponent(v SubState) {
 	if d.chest != nil {
 		return
 	}
@@ -50,7 +50,7 @@ func (d *Deck) AddComponent(v ComponentValues) {
 //AddComponentMulti is like AddComponent, but creates multiple versions of the
 //same component. The exact same ComponentValues will be re-used, which is
 //reasonable becasue components are read-only anyway.
-func (d *Deck) AddComponentMulti(v ComponentValues, count int) {
+func (d *Deck) AddComponentMulti(v SubState, count int) {
 	for i := 0; i < count; i++ {
 		d.AddComponent(v)
 	}
@@ -93,11 +93,11 @@ func (d *Deck) ComponentAt(index int) *Component {
 
 }
 
-//SetShadowValues sets the ComponentValues to return for every shadow
+//SetShadowValues sets the SubState to return for every shadow
 //component that is returned. May only be set before added to a chest. Should
 //generally be the same shape of componentValues as used for other components
 //in the deck.
-func (d *Deck) SetShadowValues(v ComponentValues) {
+func (d *Deck) SetShadowValues(v SubState) {
 	if d.chest != nil {
 		return
 	}

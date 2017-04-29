@@ -46,7 +46,7 @@ type Stack interface {
 
 	//Components returns all components. Equivalent to calling ComponentAt
 	//from 0 to Len(), and extracting the Values of each.
-	ComponentValues() []ComponentValues
+	ComponentValues() []SubState
 	//SlotsRemaining returns how many slots there are left in this stack to
 	//add items.
 	SlotsRemaining() int
@@ -401,7 +401,7 @@ func (s *SizedStack) ComponentAt(index int) *Component {
 //ComponentValues returns the Values of each Component in order. Useful for
 //then running through a converter to the underlying struct type you know it
 //is.
-func (g *GrowableStack) ComponentValues() []ComponentValues {
+func (g *GrowableStack) ComponentValues() []SubState {
 	//TODO: memoize this, as long as indexes hasn't changed
 
 	if !g.Inflated() {
@@ -409,7 +409,7 @@ func (g *GrowableStack) ComponentValues() []ComponentValues {
 	}
 
 	//Substantially recreated in SizedStack.ComponentValues
-	result := make([]ComponentValues, g.Len())
+	result := make([]SubState, g.Len())
 	for i := 0; i < g.Len(); i++ {
 		c := g.ComponentAt(i)
 		if c == nil {
@@ -424,7 +424,7 @@ func (g *GrowableStack) ComponentValues() []ComponentValues {
 //ComponentValues returns the Values of each Component in order. Useful for
 //then running through a converter to the underlying struct type you know it
 //is.
-func (s *SizedStack) ComponentValues() []ComponentValues {
+func (s *SizedStack) ComponentValues() []SubState {
 	//TODO: memoize this, as long as indexes hasn't changed
 
 	if !s.Inflated() {
@@ -432,7 +432,7 @@ func (s *SizedStack) ComponentValues() []ComponentValues {
 	}
 
 	//Substantially recreated in GrowableStack.ComponentValues
-	result := make([]ComponentValues, s.Len())
+	result := make([]SubState, s.Len())
 	for i := 0; i < s.Len(); i++ {
 		c := s.ComponentAt(i)
 		if c == nil {

@@ -64,7 +64,7 @@ func (t *testingComponentDynamic) ReadSetter() PropertyReadSetter {
 	return DefaultReadSetter(t)
 }
 
-func (t *testingComponentDynamic) Copy() MutableDynamicComponentValues {
+func (t *testingComponentDynamic) Copy() MutableSubState {
 	var result testingComponentDynamic
 	result = *t
 	result.Stack = t.Stack.Copy()
@@ -503,7 +503,7 @@ func (t *testAlwaysLegalMove) Apply(state MutableState) error {
 //testingComponentValues is designed to be run on a stack.ComponentValues() of
 //a stack of testingComponents, in order to convert them all to the specified
 //underlying struct.
-func testingComponentValues(in []ComponentValues) []*testingComponent {
+func testingComponentValues(in []SubState) []*testingComponent {
 	result := make([]*testingComponent, len(in))
 	for i := 0; i < len(in); i++ {
 		if in[i] == nil {

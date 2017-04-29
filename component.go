@@ -4,27 +4,14 @@ package boardgame
 //resource tokens, etc are all components. Values is a struct that stores the
 //specific values for the component.
 type Component struct {
-	Values ComponentValues
+	Values SubState
 	//The deck we're a part of.
 	Deck *Deck
 	//The index we are in the deck we're in.
 	DeckIndex int
 }
 
-type ComponentValues interface {
-	Reader() PropertyReader
-}
-
-type DynamicComponentValues interface {
-	ComponentValues
-}
-
-type MutableDynamicComponentValues interface {
-	DynamicComponentValues
-	ReadSetter() PropertyReadSetter
-}
-
-func (c *Component) DynamicValues(state State) DynamicComponentValues {
+func (c *Component) DynamicValues(state State) SubState {
 
 	//TODO: test this
 

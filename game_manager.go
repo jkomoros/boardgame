@@ -252,8 +252,8 @@ func (g *GameManager) emptyGameState(state *state) (MutableSubState, error) {
 
 }
 
-func (g *GameManager) emptyDynamicComponentValues(state *state) (map[string][]MutableDynamicComponentValues, error) {
-	result := make(map[string][]MutableDynamicComponentValues)
+func (g *GameManager) emptyDynamicComponentValues(state *state) (map[string][]MutableSubState, error) {
+	result := make(map[string][]MutableSubState)
 
 	for _, deckName := range g.Chest().DeckNames() {
 
@@ -267,7 +267,7 @@ func (g *GameManager) emptyDynamicComponentValues(state *state) (map[string][]Mu
 		if values == nil {
 			continue
 		}
-		arr := make([]MutableDynamicComponentValues, len(deck.Components()))
+		arr := make([]MutableSubState, len(deck.Components()))
 		for i := 0; i < len(deck.Components()); i++ {
 			arr[i] = g.Delegate().EmptyDynamicComponentValues(deck)
 		}

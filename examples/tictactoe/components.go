@@ -19,7 +19,7 @@ func (p *playerToken) Reader() boardgame.PropertyReader {
 }
 
 //Designed to be used with stack.ComponentValues()
-func playerTokenValues(in []boardgame.ComponentValues) []*playerToken {
+func playerTokenValues(in []boardgame.SubState) []*playerToken {
 	result := make([]*playerToken, len(in))
 	for i := 0; i < len(in); i++ {
 		c := in[i]

@@ -182,7 +182,7 @@ func sanitizeStateObj(readSetter PropertyReadSetter, policy SubStatePolicy, stat
 
 }
 
-func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[string][]MutableDynamicComponentValues, visibleComponents map[string]map[int]PlayerIndex) {
+func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[string][]MutableSubState, visibleComponents map[string]map[int]PlayerIndex) {
 
 	//All dynamic component values are hidden, except for ones that currently
 	//reside in stacks that have resolved to being Visible based on this
@@ -250,7 +250,7 @@ func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[strin
 	}
 }
 
-func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]MutableDynamicComponentValues, visibleComponents map[string]map[int]PlayerIndex, dynamicPolicy map[string]SubStatePolicy, preparingForPlayerIndex PlayerIndex, isRandom bool) {
+func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]MutableSubState, visibleComponents map[string]map[int]PlayerIndex, dynamicPolicy map[string]SubStatePolicy, preparingForPlayerIndex PlayerIndex, isRandom bool) {
 
 	for name, slice := range dynamicComponentValues {
 

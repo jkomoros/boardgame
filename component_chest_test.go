@@ -36,13 +36,13 @@ func TestComponentChest(t *testing.T) {
 
 	chest.AddDeck("test", deckOne)
 
-	componentValues := make([]ComponentValues, 2)
+	componentValues := make([]SubState, 2)
 
 	for i, component := range deckOne.Components() {
 		componentValues[i] = component.Values
 	}
 
-	if !reflect.DeepEqual(componentValues, []ComponentValues{componentOne, componentTwo}) {
+	if !reflect.DeepEqual(componentValues, []SubState{componentOne, componentTwo}) {
 		t.Error("Deck gave back wrong items after being added to chest")
 	}
 
@@ -51,13 +51,13 @@ func TestComponentChest(t *testing.T) {
 		-1,
 	})
 
-	componentValues = make([]ComponentValues, 2)
+	componentValues = make([]SubState, 2)
 
 	for i, component := range deckOne.Components() {
 		componentValues[i] = component.Values
 	}
 
-	if !reflect.DeepEqual(componentValues, []ComponentValues{componentOne, componentTwo}) {
+	if !reflect.DeepEqual(componentValues, []SubState{componentOne, componentTwo}) {
 		t.Error("Deck allowed itself to be mutated after it was added to chest")
 	}
 
