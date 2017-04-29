@@ -119,23 +119,14 @@ func processPackage(location string) (output string, err error) {
 			haveOutputHeader = true
 		}
 
-		enableAutoReader := false
+		outputReader, outputReadSetter := structConfig(theStruct.DocLines)
 
-		for _, docLine := range theStruct.DocLines {
-			docLine = strings.TrimPrefix(docLine, "//")
-			docLine = strings.TrimSpace(docLine)
-			if strings.HasPrefix(docLine, magicDocLinePrefix) {
-				enableAutoReader = true
-				break
-			}
+		if outputReader {
+			output += readerForStruct(theStruct.Name)
 		}
-
-		if !enableAutoReader {
-			continue
+		if outputReadSetter {
+			output += readSetterForStruct(theStruct.Name)
 		}
-
-		output += readerForStruct(theStruct.Name)
-		output += readSetterForStruct(theStruct.Name)
 	}
 
 	formattedBytes, err := format.Source([]byte(output))
@@ -145,6 +136,18 @@ func processPackage(location string) (output string, err error) {
 	}
 
 	return string(formattedBytes), nil
+}
+
+func structConfig(docLines []string) (outputReader bool, outputReadSetter bool) {
+
+	for _, docLine := range docLines {
+		docLine = strings.TrimPrefix(docLine, "//")
+		docLine = strings.TrimSpace(docLine)
+		if strings.HasPrefix(docLine, magicDocLinePrefix) {
+			return true, true
+		}
+	}
+	return false, false
 }
 
 func templateOutput(template *template.Template, values interface{}) string {
