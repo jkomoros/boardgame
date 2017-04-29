@@ -477,5 +477,9 @@ PropertyReader interface. So do not rely on other hidden properties, because
 they will not be copied over. (This should go without saying as when those are
 marshaled to JSON they are not included anyway).
 
+The cmd autoreader makes it easy to automatically generate Reader and
+ReadSetter implementations with just a few comment lines and go:generate. See
+that packages's documentation for how to use it.
+
 */
 package boardgame
