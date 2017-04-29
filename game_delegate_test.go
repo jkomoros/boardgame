@@ -174,7 +174,7 @@ func (t *testGameDelegate) CurrentPlayerIndex(state State) PlayerIndex {
 	return game.CurrentPlayer
 }
 
-func (t *testGameDelegate) EmptyGameState() MutableBaseState {
+func (t *testGameDelegate) EmptyGameState() MutableSubState {
 	chest := t.Manager().Chest()
 
 	deck := chest.Deck("test")

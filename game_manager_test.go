@@ -66,7 +66,7 @@ func (n *nilStackGameDelegate) EmptyPlayerState(playe PlayerIndex) MutablePlayer
 	return &testPlayerState{}
 }
 
-func (n *nilStackGameDelegate) EmptyGameState() MutableBaseState {
+func (n *nilStackGameDelegate) EmptyGameState() MutableSubState {
 	if n.nilForPlayer {
 		//return a non-nil one.
 		return n.testGameDelegate.EmptyGameState()

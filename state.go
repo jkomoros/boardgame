@@ -23,7 +23,7 @@ import (
 //will return a state.
 type State interface {
 	//Game returns the GameState for this State
-	Game() BaseState
+	Game() SubState
 	//Players returns a slice of all PlayerStates for this State
 	Players() []PlayerState
 	//DynamicComponentValues returns a map of deck name to array of component
@@ -81,7 +81,7 @@ type MutableState interface {
 	//MutableState contains all of the methods of a read-only state.
 	State
 	//MutableGame is a reference to the MutableGameState for this MutableState.
-	MutableGame() MutableBaseState
+	MutableGame() MutableSubState
 	//MutablePlayers returns a slice of MutablePlayerStates for this MutableState.
 	MutablePlayers() []MutablePlayerState
 
@@ -161,7 +161,7 @@ func (p PlayerIndex) String() string {
 //either, and what it's interpreted as is primarily a function of what the
 //method signature is that it's passed to
 type state struct {
-	gameState              MutableBaseState
+	gameState              MutableSubState
 	playerStates           []MutablePlayerState
 	computed               *computedPropertiesImpl
 	dynamicComponentValues map[string][]MutableDynamicComponentValues
@@ -177,7 +177,7 @@ type state struct {
 	timersToStart []int
 }
 
-func (s *state) MutableGame() MutableBaseState {
+func (s *state) MutableGame() MutableSubState {
 	return s.gameState
 }
 
@@ -189,7 +189,7 @@ func (s *state) MutableDynamicComponentValues() map[string][]MutableDynamicCompo
 	return s.dynamicComponentValues
 }
 
-func (s *state) Game() BaseState {
+func (s *state) Game() SubState {
 	return s.gameState
 }
 
@@ -267,7 +267,7 @@ func (s *state) copyPlayerState(input PlayerState) MutablePlayerState {
 	return output
 }
 
-func (s *state) copyGameState(input BaseState) MutableBaseState {
+func (s *state) copyGameState(input SubState) MutableSubState {
 	output := s.game.manager.delegate.EmptyGameState()
 	if err := copyReader(input.Reader(), output.ReadSetter()); err != nil {
 		log.Println("WARNING: couldn't copy game state: " + err.Error())
@@ -486,25 +486,26 @@ func (s *state) Computed() ComputedProperties {
 
 //SanitizedForPlayer is in sanitized.go
 
-//BaseState is the interface that all state objects--PlayerStates and GameStates
+//SubState is the interface that all sub-state objects--PlayerStates and GameStates
 //--implement.
-type BaseState interface {
+type SubState interface {
 	Reader() PropertyReader
 }
 
-//MutableBaseState is the interface that Mutable{Game,Player}State's
+//MutableSubState is the interface that Mutable{Game,Player}State's
 //implement.
-type MutableBaseState interface {
-	BaseState
+type MutableSubState interface {
+	SubState
 	ReadSetter() PropertyReadSetter
 }
 
 //PlayerState represents the state of a game associated with a specific user.
+//It is just a SubState with the addition of a PlayerIndex().
 type PlayerState interface {
 	//PlayerIndex encodes the index this user's state is in the containing
 	//state object.
 	PlayerIndex() PlayerIndex
-	BaseState
+	SubState
 }
 
 //A MutablePlayerState is a PlayerState that is allowed to be mutated.
@@ -512,7 +513,7 @@ type MutablePlayerState interface {
 	//PlayerIndex encodes the index this user's state is in the containing
 	//state object.
 	PlayerIndex() PlayerIndex
-	MutableBaseState
+	MutableSubState
 }
 
 //DefaultMarshalJSON is a simple wrapper around json.MarshalIndent, with the
