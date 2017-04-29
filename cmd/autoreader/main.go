@@ -29,6 +29,7 @@ const magicDocLinePrefix = "+autoreader"
 type appOptions struct {
 	OutputFile       string
 	PackageDirectory string
+	Help             bool
 	flagSet          *flag.FlagSet
 }
 
@@ -46,6 +47,7 @@ func init() {
 func defineFlags(options *appOptions) {
 	options.flagSet.StringVar(&options.OutputFile, "out", "auto_reader.go", "Defines which file to render output to. WARNING: it will be overwritten!")
 	options.flagSet.StringVar(&options.PackageDirectory, "pkg", "examplepkg/", "Which package to process")
+	options.flagSet.BoolVar(&options.Help, "h", false, "If set, print help message and quit.")
 }
 
 func getOptions(flagSet *flag.FlagSet, flagArguments []string) *appOptions {
@@ -61,6 +63,13 @@ func main() {
 }
 
 func process(options *appOptions, errOut io.ReadWriter) {
+
+	if options.Help {
+		options.flagSet.SetOutput(errOut)
+		options.flagSet.PrintDefaults()
+		return
+	}
+
 	output, err := processPackage(options.PackageDirectory)
 
 	if err != nil {
