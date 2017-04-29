@@ -14,14 +14,14 @@ func (s *stateComputeDelegate) ComputedPropertiesConfig() *ComputedPropertiesCon
 	return s.config
 }
 
-func (s *stateComputeDelegate) EmptyComputedGlobalPropertyCollection() ComputedPropertyCollection {
+func (s *stateComputeDelegate) EmptyComputedGlobalPropertyCollection() MutableSubState {
 	if s.returnDefaultCollection {
 		return s.testGameDelegate.EmptyComputedGlobalPropertyCollection()
 	}
 	return nil
 }
 
-func (s *stateComputeDelegate) EmptyComputedPlayerPropertyCollection() ComputedPropertyCollection {
+func (s *stateComputeDelegate) EmptyComputedPlayerPropertyCollection() MutableSubState {
 	if s.returnDefaultCollection {
 		return s.testGameDelegate.EmptyComputedPlayerPropertyCollection()
 	}

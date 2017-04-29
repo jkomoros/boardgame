@@ -551,7 +551,11 @@ func newGenericReader() *genericReader {
 
 //Implement reader so we can be used directly or in e.g.
 //ComputedPropertyCollection.
-func (g *genericReader) Reader() PropertyReadSetter {
+func (g *genericReader) ReadSetter() PropertyReadSetter {
+	return g
+}
+
+func (g *genericReader) Reader() PropertyReader {
 	return g
 }
 

@@ -116,8 +116,8 @@ type GameDelegate interface {
 	//do a single cast of the underlying object and then access the properties
 	//in a type-checked way after that. If you return nil, we will use a
 	//generic, flexible PropertyReadSetter instead.
-	EmptyComputedGlobalPropertyCollection() ComputedPropertyCollection
-	EmptyComputedPlayerPropertyCollection() ComputedPropertyCollection
+	EmptyComputedGlobalPropertyCollection() MutableSubState
+	EmptyComputedPlayerPropertyCollection() MutableSubState
 
 	//StateSanitizationPolicy returns the policy for sanitizing states in this
 	//game. The policy should not change over time. See StatePolicy for more
@@ -174,11 +174,11 @@ func (d *DefaultGameDelegate) EmptyDynamicComponentValues(deck *Deck) MutableDyn
 	return nil
 }
 
-func (d *DefaultGameDelegate) EmptyComputedGlobalPropertyCollection() ComputedPropertyCollection {
+func (d *DefaultGameDelegate) EmptyComputedGlobalPropertyCollection() MutableSubState {
 	return nil
 }
 
-func (d *DefaultGameDelegate) EmptyComputedPlayerPropertyCollection() ComputedPropertyCollection {
+func (d *DefaultGameDelegate) EmptyComputedPlayerPropertyCollection() MutableSubState {
 	return nil
 }
 

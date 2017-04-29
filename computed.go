@@ -13,14 +13,9 @@ import (
 type ComputedProperties interface {
 	//The primary property reader is where top-level computed properties can
 	//be accessed.
-	Global() ComputedPropertyCollection
+	Global() MutableSubState
 	//To get the ComputedPlayerProperties, pass in the player index.
-	Player(index PlayerIndex) ComputedPropertyCollection
-}
-
-//ComputedPropertyCollection is an object that
-type ComputedPropertyCollection interface {
-	Reader() PropertyReadSetter
+	Player(index PlayerIndex) MutableSubState
 }
 
 //ComputedPropertiesConfig is the struct that contains configuration for which
@@ -120,8 +115,8 @@ type StatePropertyRef struct {
 }
 
 type computedPropertiesImpl struct {
-	global  ComputedPropertyCollection
-	players []ComputedPropertyCollection
+	global  MutableSubState
+	players []MutableSubState
 }
 
 func policyForDependencies(dependencies []StatePropertyRef) *StatePolicy {
@@ -163,7 +158,7 @@ func newComputedPropertiesImpl(config *ComputedPropertiesConfig, state *state) *
 		return nil
 	}
 
-	playerBags := make([]ComputedPropertyCollection, len(state.Players()))
+	playerBags := make([]MutableSubState, len(state.Players()))
 
 	//TODO: calculate all properties.
 	for i, _ := range state.Players() {
@@ -177,7 +172,7 @@ func newComputedPropertiesImpl(config *ComputedPropertiesConfig, state *state) *
 			continue
 		}
 
-		reader := collection.Reader()
+		reader := collection.ReadSetter()
 
 		for name, propConfig := range config.Player {
 			if err := propConfig.calculate(name, PlayerIndex(i), state, reader); err != nil {
@@ -196,7 +191,7 @@ func newComputedPropertiesImpl(config *ComputedPropertiesConfig, state *state) *
 
 	if config.Global != nil {
 		for name, propConfig := range config.Global {
-			if err := propConfig.calculate(name, state, globalBag.Reader()); err != nil {
+			if err := propConfig.calculate(name, state, globalBag.ReadSetter()); err != nil {
 				//TODO: do something better here.
 				panic(err)
 			}
@@ -340,11 +335,11 @@ func (c *ComputedPlayerPropertyDefinition) compute(state *state, playerIndex Pla
 	return nil, errors.New("Neither Compute nor GlobalCompute were defined. One of them must be.")
 }
 
-func (c *computedPropertiesImpl) Global() ComputedPropertyCollection {
+func (c *computedPropertiesImpl) Global() MutableSubState {
 	return c.global
 }
 
-func (c *computedPropertiesImpl) Player(index PlayerIndex) ComputedPropertyCollection {
+func (c *computedPropertiesImpl) Player(index PlayerIndex) MutableSubState {
 	return c.players[int(index)]
 }
 

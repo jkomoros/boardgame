@@ -14,12 +14,20 @@ type testPlayerPropertiesCollection struct {
 	EffectiveMovesLeftThisTurn int
 }
 
-func (t *testGlobalPropertiesCollection) Reader() PropertyReadSetter {
+func (t *testGlobalPropertiesCollection) ReadSetter() PropertyReadSetter {
 	return DefaultReadSetter(t)
 }
 
-func (t *testPlayerPropertiesCollection) Reader() PropertyReadSetter {
+func (t *testGlobalPropertiesCollection) Reader() PropertyReader {
+	return DefaultReader(t)
+}
+
+func (t *testPlayerPropertiesCollection) ReadSetter() PropertyReadSetter {
 	return DefaultReadSetter(t)
+}
+
+func (t *testPlayerPropertiesCollection) Reader() PropertyReader {
+	return DefaultReader(t)
 }
 
 func init() {
@@ -104,11 +112,11 @@ func (t *testGameDelegate) EmptyDynamicComponentValues(deck *Deck) MutableDynami
 	return nil
 }
 
-func (t *testGameDelegate) EmptyComputedGlobalPropertyCollection() ComputedPropertyCollection {
+func (t *testGameDelegate) EmptyComputedGlobalPropertyCollection() MutableSubState {
 	return &testGlobalPropertiesCollection{}
 }
 
-func (t *testGameDelegate) EmptyComputedPlayerPropertyCollection() ComputedPropertyCollection {
+func (t *testGameDelegate) EmptyComputedPlayerPropertyCollection() MutableSubState {
 	return &testPlayerPropertiesCollection{}
 }
 
