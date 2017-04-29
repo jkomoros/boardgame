@@ -4,6 +4,20 @@
 	helps generate the annoying boilerplate to implement
 	boardgame.PropertyReader and boardgame.PropertyReadSetter.
 
+	Autoreader processes a package of go files, searching for structs that
+	have a comment immediately above their declaration that begins with
+	"+autoreader". For each such struct, it creates a Reader() and
+	PropertyReader() method that just use boardgame.DefaultReader and
+	boardgame.DefaultReadSetter.
+
+	You can configure which package to process and where to write output via
+	command-line flags. By default it processes the current package and writes
+	its output to auto_reader.go, overwriting whatever file was there before.
+	See command-line options by passing -h.
+
+	The defaults are set reasonably so that you can use go:generate very
+	easily. See examplepkg/ for a very simple example.
+
 */
 package main
 
