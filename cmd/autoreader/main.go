@@ -27,6 +27,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/MarcGrol/golangAnnotations/parser"
+	"go/format"
 	"io"
 	"io/ioutil"
 	"log"
@@ -137,7 +138,13 @@ func processPackage(location string) (output string, err error) {
 		output += readSetterForStruct(theStruct.Name)
 	}
 
-	return output, nil
+	formattedBytes, err := format.Source([]byte(output))
+
+	if err != nil {
+		return "", errors.New("Couldn't go fmt code: " + err.Error())
+	}
+
+	return string(formattedBytes), nil
 }
 
 func templateOutput(template *template.Template, values interface{}) string {
