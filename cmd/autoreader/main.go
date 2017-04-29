@@ -62,13 +62,13 @@ func getOptions(flagSet *flag.FlagSet, flagArguments []string) *appOptions {
 
 func main() {
 	flagSet := flag.CommandLine
-	process(getOptions(flagSet, os.Args[1:]), os.Stderr)
+	process(getOptions(flagSet, os.Args[1:]), os.Stdout, os.Stderr)
 }
 
-func process(options *appOptions, errOut io.ReadWriter) {
+func process(options *appOptions, out io.ReadWriter, errOut io.ReadWriter) {
 
 	if options.Help {
-		options.flagSet.SetOutput(errOut)
+		options.flagSet.SetOutput(out)
 		options.flagSet.PrintDefaults()
 		return
 	}
@@ -81,7 +81,7 @@ func process(options *appOptions, errOut io.ReadWriter) {
 	}
 
 	if options.PrintToConsole {
-		fmt.Fprintln(errOut, output)
+		fmt.Fprintln(out, output)
 	} else {
 		ioutil.WriteFile(options.OutputFile, []byte(output), 0644)
 	}
