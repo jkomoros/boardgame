@@ -48,3 +48,23 @@ func (M *MoveCurrentPlayerHit) ReadSetter() boardgame.PropertyReadSetter {
 func (M *MoveCurrentPlayerStand) ReadSetter() boardgame.PropertyReadSetter {
 	return boardgame.DefaultReadSetter(M)
 }
+
+// Implementation for gameState
+
+func (g *gameState) Reader() boardgame.PropertyReader {
+	return boardgame.DefaultReader(g)
+}
+
+func (g *gameState) ReadSetter() boardgame.PropertyReadSetter {
+	return boardgame.DefaultReadSetter(g)
+}
+
+// Implementation for playerState
+
+func (p *playerState) Reader() boardgame.PropertyReader {
+	return boardgame.DefaultReader(p)
+}
+
+func (p *playerState) ReadSetter() boardgame.PropertyReadSetter {
+	return boardgame.DefaultReadSetter(p)
+}

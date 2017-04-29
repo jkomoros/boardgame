@@ -17,6 +17,7 @@ func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 	return game, players
 }
 
+//+autoreader
 type gameState struct {
 	DiscardStack  *boardgame.GrowableStack
 	DrawStack     *boardgame.GrowableStack
@@ -24,6 +25,7 @@ type gameState struct {
 	CurrentPlayer boardgame.PlayerIndex
 }
 
+//+autoreader
 type playerState struct {
 	playerIndex    boardgame.PlayerIndex
 	GotInitialDeal bool
@@ -31,22 +33,6 @@ type playerState struct {
 	VisibleHand    *boardgame.GrowableStack
 	Busted         bool
 	Stood          bool
-}
-
-func (g *gameState) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(g)
-}
-
-func (g *gameState) Reader() boardgame.PropertyReader {
-	return boardgame.DefaultReader(g)
-}
-
-func (p *playerState) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(p)
-}
-
-func (p *playerState) Reader() boardgame.PropertyReader {
-	return boardgame.DefaultReader(p)
 }
 
 func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
