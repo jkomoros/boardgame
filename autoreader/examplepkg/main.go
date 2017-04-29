@@ -12,3 +12,12 @@ type myStruct struct {
 	MyInt  int
 	MyBool bool
 }
+
+//	 autoreader
+type myOtherStruct struct {
+	blarg int
+}
+
+type noReaderStruct struct {
+	MyInt int
+}

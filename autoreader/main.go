@@ -13,11 +13,14 @@ import (
 	"fmt"
 	"github.com/MarcGrol/golangAnnotations/parser"
 	"log"
+	"strings"
 	"text/template"
 )
 
 var readerTemplate *template.Template
 var readSetterTemplate *template.Template
+
+const magicDocLinePrefix = "autoreader"
 
 type templateConfig struct {
 	FirstLetter string
@@ -48,6 +51,22 @@ func processPackage(location string) (output string, err error) {
 	}
 
 	for _, theStruct := range sources.Structs {
+
+		enableAutoReader := false
+
+		for _, docLine := range theStruct.DocLines {
+			docLine = strings.TrimPrefix(docLine, "//")
+			docLine = strings.TrimSpace(docLine)
+			if strings.HasPrefix(docLine, magicDocLinePrefix) {
+				enableAutoReader = true
+				break
+			}
+		}
+
+		if !enableAutoReader {
+			continue
+		}
+
 		output += readerForStruct(theStruct.Name)
 		output += readSetterForStruct(theStruct.Name)
 	}
