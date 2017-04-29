@@ -10,9 +10,12 @@ package main
 import (
 	"bytes"
 	"errors"
+	"flag"
 	"fmt"
 	"github.com/MarcGrol/golangAnnotations/parser"
+	"io"
 	"log"
+	"os"
 	"strings"
 	"text/template"
 )
@@ -22,6 +25,12 @@ var readerTemplate *template.Template
 var readSetterTemplate *template.Template
 
 const magicDocLinePrefix = "+autoreader"
+
+type appOptions struct {
+	OutputFile       string
+	PackageDirectory string
+	flagSet          *flag.FlagSet
+}
 
 type templateConfig struct {
 	FirstLetter string
@@ -34,15 +43,32 @@ func init() {
 	readSetterTemplate = template.Must(template.New("readsetter").Parse(readSetterTemplateText))
 }
 
+func defineFlags(options *appOptions) {
+	options.flagSet.StringVar(&options.OutputFile, "out", "auto_reader.go", "Defines which file to render output to. WARNING: it will be overwritten!")
+	options.flagSet.StringVar(&options.PackageDirectory, "pkg", "examplepkg/", "Which package to process")
+}
+
+func getOptions(flagSet *flag.FlagSet, flagArguments []string) *appOptions {
+	options := &appOptions{flagSet: flagSet}
+	defineFlags(options)
+	flagSet.Parse(flagArguments)
+	return options
+}
+
 func main() {
-	output, err := processPackage("examplepkg/")
+	flagSet := flag.CommandLine
+	process(getOptions(flagSet, os.Args[1:]), os.Stderr)
+}
+
+func process(options *appOptions, errOut io.ReadWriter) {
+	output, err := processPackage(options.PackageDirectory)
 
 	if err != nil {
-		fmt.Println("ERROR", err)
+		fmt.Fprintln(errOut, "ERROR", err)
 		return
 	}
 
-	fmt.Println(output)
+	fmt.Fprintln(errOut, output)
 }
 
 func processPackage(location string) (output string, err error) {
