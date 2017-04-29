@@ -13,6 +13,8 @@ import (
 	"strings"
 )
 
+//go:generate autoreader
+
 const gameDisplayname = "Tic Tac Toe"
 const gameName = "tictactoe"
 

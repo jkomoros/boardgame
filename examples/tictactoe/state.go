@@ -16,6 +16,7 @@ func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 	return game, players
 }
 
+//+autoreader
 type gameState struct {
 	CurrentPlayer boardgame.PlayerIndex
 	Slots         *boardgame.SizedStack
@@ -37,28 +38,13 @@ func rowColToIndex(row, col int) int {
 	return row*DIM + col
 }
 
-func (g *gameState) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(g)
-}
-
-func (g *gameState) Reader() boardgame.PropertyReader {
-	return boardgame.DefaultReader(g)
-}
-
+//+autoreader
 type playerState struct {
 	playerIndex  boardgame.PlayerIndex
 	TokenValue   string
 	UnusedTokens *boardgame.GrowableStack
 	//How many tokens they have left to place this turn.
 	TokensToPlaceThisTurn int
-}
-
-func (p *playerState) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(p)
-}
-
-func (p *playerState) Reader() boardgame.PropertyReader {
-	return boardgame.DefaultReader(p)
 }
 
 func (p *playerState) PlayerIndex() boardgame.PlayerIndex {

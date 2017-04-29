@@ -7,6 +7,7 @@ import (
 
 //TODO: test this!!
 
+//+autoreader readsetter
 type MovePlaceToken struct {
 	//Which token to place the token
 	Slot int
@@ -84,14 +85,11 @@ func (m *MovePlaceToken) Description() string {
 	return "Place a player's token in a specific space."
 }
 
-func (m *MovePlaceToken) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(m)
-}
-
 func (t *MovePlaceToken) ImmediateFixUp(state boardgame.State) boardgame.Move {
 	return nil
 }
 
+//+autoreader readsetter
 type MoveAdvancePlayer struct{}
 
 func MoveAdvancePlayerFactory(state boardgame.State) boardgame.Move {
@@ -132,10 +130,6 @@ func (m *MoveAdvancePlayer) Name() string {
 
 func (m *MoveAdvancePlayer) Description() string {
 	return "After the current player has made all of their moves, this fix-up move advances to the next player."
-}
-
-func (m *MoveAdvancePlayer) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(m)
 }
 
 func (t *MoveAdvancePlayer) ImmediateFixUp(state boardgame.State) boardgame.Move {

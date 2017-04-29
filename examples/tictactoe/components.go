@@ -10,12 +10,9 @@ const (
 	Empty = ""
 )
 
+//+autoreader reader
 type playerToken struct {
 	Value string
-}
-
-func (p *playerToken) Reader() boardgame.PropertyReader {
-	return boardgame.DefaultReader(p)
 }
 
 //Designed to be used with stack.ComponentValues()
