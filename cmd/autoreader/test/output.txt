@@ -13,6 +13,8 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
+// Implementation for myStruct
+
 func (m *myStruct) Reader() boardgame.PropertyReader {
 	return boardgame.DefaultReader(m)
 }
@@ -20,6 +22,8 @@ func (m *myStruct) Reader() boardgame.PropertyReader {
 func (m *myStruct) ReadSetter() boardgame.PropertyReadSetter {
 	return boardgame.DefaultReadSetter(m)
 }
+
+// Implementation for myOtherStruct
 
 func (m *myOtherStruct) Reader() boardgame.PropertyReader {
 	return boardgame.DefaultReader(m)
@@ -29,9 +33,13 @@ func (m *myOtherStruct) ReadSetter() boardgame.PropertyReadSetter {
 	return boardgame.DefaultReadSetter(m)
 }
 
+// Implementation for onlyReader
+
 func (o *onlyReader) Reader() boardgame.PropertyReader {
 	return boardgame.DefaultReader(o)
 }
+
+// Implementation for onlyReadSetter
 
 func (o *onlyReadSetter) ReadSetter() boardgame.PropertyReadSetter {
 	return boardgame.DefaultReadSetter(o)

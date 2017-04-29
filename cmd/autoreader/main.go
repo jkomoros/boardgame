@@ -40,6 +40,7 @@ import (
 )
 
 var headerTemplate *template.Template
+var structHeaderTemplate *template.Template
 var readerTemplate *template.Template
 var readSetterTemplate *template.Template
 
@@ -60,6 +61,7 @@ type templateConfig struct {
 
 func init() {
 	headerTemplate = template.Must(template.New("header").Parse(headerTemplateText))
+	structHeaderTemplate = template.Must(template.New("structHeader").Parse(structHeaderTemplateText))
 	readerTemplate = template.Must(template.New("reader").Parse(readerTemplateText))
 	readSetterTemplate = template.Must(template.New("readsetter").Parse(readSetterTemplateText))
 }
@@ -124,6 +126,10 @@ func processPackage(location string) (output string, err error) {
 
 		outputReader, outputReadSetter := structConfig(theStruct.DocLines)
 
+		if outputReader || outputReadSetter {
+			output += headerForStruct(theStruct.Name)
+		}
+
 		if outputReader {
 			output += readerForStruct(theStruct.Name)
 		}
@@ -186,6 +192,12 @@ func headerForPackage(packageName string) string {
 	})
 }
 
+func headerForStruct(structName string) string {
+	return templateOutput(structHeaderTemplate, map[string]string{
+		"structName": structName,
+	})
+}
+
 func readerForStruct(structName string) string {
 
 	return templateOutput(readerTemplate, templateConfig{
@@ -218,6 +230,10 @@ import (
 )
 
 `
+
+const structHeaderTemplateText = `// Implementation for {{.structName}}
+
+ `
 
 const readerTemplateText = `func ({{.FirstLetter}} *{{.StructName}}) Reader() boardgame.PropertyReader {
 	return boardgame.DefaultReader({{.FirstLetter}})
