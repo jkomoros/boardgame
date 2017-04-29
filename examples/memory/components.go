@@ -1,9 +1,5 @@
 package memory
 
-import (
-	"github.com/jkomoros/boardgame"
-)
-
 var cardNames []string = []string{
 	"Apple",
 	"Orange",
@@ -17,10 +13,7 @@ var cardNames []string = []string{
 
 const cardsDeckName = "cards"
 
+//+autoreader reader
 type cardValue struct {
 	Type string
-}
-
-func (c *cardValue) Reader() boardgame.PropertyReader {
-	return boardgame.DefaultReader(c)
 }

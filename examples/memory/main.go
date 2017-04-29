@@ -13,6 +13,8 @@ import (
 	"strings"
 )
 
+//go:generate autoreader
+
 var computedPropertiesConfig *boardgame.ComputedPropertiesConfig
 
 //computeCurrentPlayerHasCardsToReveal is used in our ComputedPropertyConfig.

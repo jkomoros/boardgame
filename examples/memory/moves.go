@@ -6,17 +6,22 @@ import (
 	"time"
 )
 
+//+autoreader readsetter
 type MoveAdvanceNextPlayer struct{}
 
+//+autoreader readsetter
 type MoveRevealCard struct {
 	TargetPlayerIndex boardgame.PlayerIndex
 	CardIndex         int
 }
 
+//+autoreader readsetter
 type MoveStartHideCardsTimer struct{}
 
+//+autoreader readsetter
 type MoveCaptureCards struct{}
 
+//+autoreader readsetter
 type MoveHideCards struct {
 	TargetPlayerIndex boardgame.PlayerIndex
 }
@@ -67,10 +72,6 @@ func (m *MoveAdvanceNextPlayer) Name() string {
 
 func (m *MoveAdvanceNextPlayer) Description() string {
 	return "Advances to the next player when the current player has no more legal moves."
-}
-
-func (m *MoveAdvanceNextPlayer) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(m)
 }
 
 func (t *MoveAdvanceNextPlayer) ImmediateFixUp(state boardgame.State) boardgame.Move {
@@ -156,10 +157,6 @@ func (m *MoveRevealCard) Description() string {
 	return "Reveals the card at the specified location"
 }
 
-func (m *MoveRevealCard) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(m)
-}
-
 func (t *MoveRevealCard) ImmediateFixUp(state boardgame.State) boardgame.Move {
 	return nil
 }
@@ -217,10 +214,6 @@ func (m *MoveStartHideCardsTimer) Name() string {
 
 func (m *MoveStartHideCardsTimer) Description() string {
 	return "If two cards are showing and they are not the same type and the timer is not active, start a timer to automatically hide them."
-}
-
-func (m *MoveStartHideCardsTimer) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(m)
 }
 
 func (t *MoveStartHideCardsTimer) ImmediateFixUp(state boardgame.State) boardgame.Move {
@@ -282,10 +275,6 @@ func (m *MoveCaptureCards) Name() string {
 
 func (m *MoveCaptureCards) Description() string {
 	return "If two cards are showing and they are the same type, capture them to the current player's hand."
-}
-
-func (m *MoveCaptureCards) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(m)
 }
 
 func (t *MoveCaptureCards) ImmediateFixUp(state boardgame.State) boardgame.Move {
@@ -353,10 +342,6 @@ func (m *MoveHideCards) Name() string {
 
 func (m *MoveHideCards) Description() string {
 	return "After the current player has revealed both cards and tried to memorize them, this move hides the cards so that play can continue to next player."
-}
-
-func (m *MoveHideCards) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(m)
 }
 
 func (t *MoveHideCards) ImmediateFixUp(state boardgame.State) boardgame.Move {

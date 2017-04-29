@@ -4,6 +4,7 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
+//+autoreader
 type gameState struct {
 	CurrentPlayer  boardgame.PlayerIndex
 	HiddenCards    *boardgame.SizedStack
@@ -11,6 +12,7 @@ type gameState struct {
 	HideCardsTimer *boardgame.Timer
 }
 
+//+autoreader
 type playerState struct {
 	playerIndex       boardgame.PlayerIndex
 	CardsLeftToReveal int
@@ -31,20 +33,4 @@ func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 
 func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
 	return p.playerIndex
-}
-
-func (g *gameState) Reader() boardgame.PropertyReader {
-	return boardgame.DefaultReader(g)
-}
-
-func (p *playerState) Reader() boardgame.PropertyReader {
-	return boardgame.DefaultReader(p)
-}
-
-func (g *gameState) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(g)
-}
-
-func (p *playerState) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(p)
 }
