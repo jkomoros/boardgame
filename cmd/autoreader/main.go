@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"github.com/MarcGrol/golangAnnotations/parser"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -77,7 +78,7 @@ func process(options *appOptions, errOut io.ReadWriter) {
 		return
 	}
 
-	fmt.Fprintln(errOut, output)
+	ioutil.WriteFile(options.OutputFile, []byte(output), 0644)
 }
 
 func processPackage(location string) (output string, err error) {
