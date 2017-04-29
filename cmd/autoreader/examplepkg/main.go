@@ -7,6 +7,8 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
+//go:generate autoreader
+
 //+autoreader
 type myStruct struct {
 	MyInt  int
