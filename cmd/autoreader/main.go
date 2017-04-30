@@ -239,9 +239,16 @@ func templateOutput(template *template.Template, values interface{}) string {
 }
 
 func headerForPackage(useReflection bool, packageName string) string {
+
+	importTextToUse := importText
+
+	if useReflection {
+		importTextToUse = reflectImportText
+	}
+
 	return templateOutput(headerTemplate, map[string]string{
 		"packageName": packageName,
-	}) + reflectImportText
+	}) + importTextToUse
 }
 
 func headerForStruct(useReflection bool, structName string, types map[string]boardgame.PropertyType) string {
@@ -289,7 +296,7 @@ const reflectImportText = `import (
 
 `
 
-const prodImportText = `import (
+const importText = `import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 )
