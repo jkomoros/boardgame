@@ -122,21 +122,21 @@ func processPackage(useReflection bool, location string) (output string, err err
 	for _, theStruct := range sources.Structs {
 
 		if !haveOutputHeader {
-			output += headerForPackage(theStruct.PackageName)
+			output += headerForPackage(useReflection, theStruct.PackageName)
 			haveOutputHeader = true
 		}
 
 		outputReader, outputReadSetter := structConfig(theStruct.DocLines)
 
 		if outputReader || outputReadSetter {
-			output += headerForStruct(theStruct.Name)
+			output += headerForStruct(useReflection, theStruct.Name)
 		}
 
 		if outputReader {
-			output += readerForStruct(theStruct.Name)
+			output += readerForStruct(useReflection, theStruct.Name)
 		}
 		if outputReadSetter {
-			output += readSetterForStruct(theStruct.Name)
+			output += readSetterForStruct(useReflection, theStruct.Name)
 		}
 	}
 
@@ -188,19 +188,19 @@ func templateOutput(template *template.Template, values interface{}) string {
 	return buf.String()
 }
 
-func headerForPackage(packageName string) string {
+func headerForPackage(useReflection bool, packageName string) string {
 	return templateOutput(headerTemplate, map[string]string{
 		"packageName": packageName,
 	}) + reflectImportText
 }
 
-func headerForStruct(structName string) string {
+func headerForStruct(useReflection bool, structName string) string {
 	return templateOutput(structHeaderTemplate, map[string]string{
 		"structName": structName,
 	})
 }
 
-func readerForStruct(structName string) string {
+func readerForStruct(useReflection bool, structName string) string {
 
 	return templateOutput(readerTemplate, templateConfig{
 		FirstLetter: structName[:1],
@@ -209,7 +209,7 @@ func readerForStruct(structName string) string {
 
 }
 
-func readSetterForStruct(structName string) string {
+func readSetterForStruct(useReflection bool, structName string) string {
 	return templateOutput(readSetterTemplate, templateConfig{
 		FirstLetter: structName[:1],
 		StructName:  structName,
