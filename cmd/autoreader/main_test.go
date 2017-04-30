@@ -26,3 +26,23 @@ func TestOutput(t *testing.T) {
 	assert.For(t).ThatActual(out.String()).Equals(string(expectedBytes)).ThenDiffOnFail()
 
 }
+
+func TestNonReflectOutput(t *testing.T) {
+	options := &appOptions{
+		PrintToConsole:   true,
+		PackageDirectory: "examplepkg/",
+		UseReflection:    false,
+	}
+
+	out := &bytes.Buffer{}
+	errOut := &bytes.Buffer{}
+
+	process(options, out, errOut)
+
+	expectedBytes, err := ioutil.ReadFile("test/non_reflect_output.txt")
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(out.String()).Equals(string(expectedBytes)).ThenDiffOnFail()
+
+}

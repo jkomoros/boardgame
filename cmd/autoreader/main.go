@@ -43,6 +43,7 @@ import (
 )
 
 var headerTemplate *template.Template
+var structHeaderTemplate *template.Template
 var reflectStructHeaderTemplate *template.Template
 var reflectReaderTemplate *template.Template
 var reflectReadSetterTemplate *template.Template
@@ -65,9 +66,11 @@ type templateConfig struct {
 
 func init() {
 	headerTemplate = template.Must(template.New("header").Parse(headerTemplateText))
+	structHeaderTemplate = template.Must(template.New("structHeader").Parse(structHeaderTemplateText))
 	reflectStructHeaderTemplate = template.Must(template.New("structHeader").Parse(reflectStructHeaderTemplateText))
 	reflectReaderTemplate = template.Must(template.New("reader").Parse(reflectReaderTemplateText))
 	reflectReadSetterTemplate = template.Must(template.New("readsetter").Parse(reflectReadSetterTemplateText))
+
 }
 
 func defineFlags(options *appOptions) {
@@ -259,7 +262,11 @@ func headerForStruct(useReflection bool, structName string, types map[string]boa
 		})
 	}
 
-	return "// Not yet implemented"
+	return templateOutput(structHeaderTemplate, map[string]interface{}{
+		"structName": structName,
+		"types":      types,
+	})
+
 }
 
 func readerForStruct(useReflection bool, structName string) string {
@@ -305,7 +312,17 @@ const importText = `import (
 
 const reflectStructHeaderTemplateText = `// Implementation for {{.structName}}
 
- `
+`
+
+const structHeaderTemplateText = `// Implementation for {{.structName}}
+
+var {{.structName}}ReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
+	{{range $key, $value := .types -}}
+		"{{$key}}": boardgame.{{$value.String}},
+	{{end}}
+}
+
+`
 
 const reflectReaderTemplateText = `func ({{.FirstLetter}} *{{.StructName}}) Reader() boardgame.PropertyReader {
 	return boardgame.DefaultReader({{.FirstLetter}})
