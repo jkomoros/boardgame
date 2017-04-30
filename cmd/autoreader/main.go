@@ -29,7 +29,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/MarcGrol/golangAnnotations/model"
 	"github.com/MarcGrol/golangAnnotations/parser"
+	"github.com/jkomoros/boardgame"
 	"go/format"
 	"io"
 	"io/ioutil"
@@ -37,6 +39,7 @@ import (
 	"os"
 	"strings"
 	"text/template"
+	"unicode"
 )
 
 var headerTemplate *template.Template
@@ -128,6 +131,8 @@ func processPackage(useReflection bool, location string) (output string, err err
 
 		outputReader, outputReadSetter := structConfig(theStruct.DocLines)
 
+		_ = structTypes(theStruct)
+
 		if outputReader || outputReadSetter {
 			output += headerForStruct(useReflection, theStruct.Name)
 		}
@@ -147,6 +152,51 @@ func processPackage(useReflection bool, location string) (output string, err err
 	}
 
 	return string(formattedBytes), nil
+}
+
+func fieldNamePublic(name string) bool {
+	if len(name) < 1 {
+		return false
+	}
+
+	firstChar := []rune(name)[0]
+
+	if firstChar != unicode.ToUpper(firstChar) {
+		//It was not upper case, thus private, thus should not be included.
+		return false
+	}
+
+	//TODO: check if the struct says propertyreader:omit
+
+	return true
+}
+
+func structTypes(theStruct model.Struct) map[string]boardgame.PropertyType {
+	result := make(map[string]boardgame.PropertyType)
+	for _, field := range theStruct.Fields {
+		if !fieldNamePublic(field.Name) {
+			continue
+		}
+		switch field.TypeName {
+		case "int":
+			result[field.Name] = boardgame.TypeInt
+		case "bool":
+			result[field.Name] = boardgame.TypeBool
+		case "string":
+			result[field.Name] = boardgame.TypeString
+		case "boardgame.SizedStack":
+			result[field.Name] = boardgame.TypeSizedStack
+		case "boardgame.GrowableStack":
+			result[field.Name] = boardgame.TypeGrowableStack
+		case "boardgame.PlayerIndex":
+			result[field.Name] = boardgame.TypePlayerIndex
+		case "boardgame.Timer":
+			result[field.Name] = boardgame.TypeTimer
+		default:
+			log.Println("Unknown type on " + theStruct.Name + ": " + field.Name + ": " + field.TypeName)
+		}
+	}
+	return result
 }
 
 func structConfig(docLines []string) (outputReader bool, outputReadSetter bool) {
