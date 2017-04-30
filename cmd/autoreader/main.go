@@ -189,7 +189,7 @@ func templateOutput(template *template.Template, values interface{}) string {
 func headerForPackage(packageName string) string {
 	return templateOutput(headerTemplate, map[string]string{
 		"packageName": packageName,
-	})
+	}) + reflectImportText
 }
 
 func headerForStruct(structName string) string {
@@ -224,8 +224,9 @@ const headerTemplateText = `/************************************
  *
  ************************************/
 package {{.packageName}}
+`
 
-import (
+const reflectImportText = `import (
 	"github.com/jkomoros/boardgame"
 )
 
