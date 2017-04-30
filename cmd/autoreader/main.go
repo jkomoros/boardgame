@@ -416,7 +416,22 @@ const typedPropertyTemplateText = `func ({{.firstLetter}} *{{.readerName}}) {{.p
 	}
 	{{end}}
 
-	return {{.zeroValue}}, errors.New("No such int prop: " + name)
+	return {{.zeroValue}}, errors.New("No such {{.propType}} prop: " + name)
+
+}
+
+func ({{.firstLetter}} *{{.readerName}}) Set{{.propType}}Prop(name string, value {{.goLangType}}) error {
+	{{if .namesForType}}
+	switch name {
+		{{range .namesForType -}}
+			case "{{.}}":
+				m.data.{{.}} = value
+				return nil
+		{{end}}
+	}
+	{{end}}
+
+	return errors.New("No such {{.propType}} prop: " + name)
 
 }
 
