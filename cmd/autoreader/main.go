@@ -43,9 +43,9 @@ import (
 )
 
 var headerTemplate *template.Template
-var structHeaderTemplate *template.Template
-var readerTemplate *template.Template
-var readSetterTemplate *template.Template
+var reflectStructHeaderTemplate *template.Template
+var reflectReaderTemplate *template.Template
+var reflectReadSetterTemplate *template.Template
 
 const magicDocLinePrefix = "+autoreader"
 
@@ -65,9 +65,9 @@ type templateConfig struct {
 
 func init() {
 	headerTemplate = template.Must(template.New("header").Parse(headerTemplateText))
-	structHeaderTemplate = template.Must(template.New("structHeader").Parse(structHeaderTemplateText))
-	readerTemplate = template.Must(template.New("reader").Parse(readerTemplateText))
-	readSetterTemplate = template.Must(template.New("readsetter").Parse(readSetterTemplateText))
+	reflectStructHeaderTemplate = template.Must(template.New("structHeader").Parse(reflectStructHeaderTemplateText))
+	reflectReaderTemplate = template.Must(template.New("reader").Parse(reflectReaderTemplateText))
+	reflectReadSetterTemplate = template.Must(template.New("readsetter").Parse(reflectReadSetterTemplateText))
 }
 
 func defineFlags(options *appOptions) {
@@ -254,7 +254,7 @@ func headerForPackage(useReflection bool, packageName string) string {
 func headerForStruct(useReflection bool, structName string, types map[string]boardgame.PropertyType) string {
 
 	if useReflection {
-		return templateOutput(structHeaderTemplate, map[string]string{
+		return templateOutput(reflectStructHeaderTemplate, map[string]string{
 			"structName": structName,
 		})
 	}
@@ -264,7 +264,7 @@ func headerForStruct(useReflection bool, structName string, types map[string]boa
 
 func readerForStruct(useReflection bool, structName string) string {
 
-	return templateOutput(readerTemplate, templateConfig{
+	return templateOutput(reflectReaderTemplate, templateConfig{
 		FirstLetter: structName[:1],
 		StructName:  structName,
 	})
@@ -272,7 +272,7 @@ func readerForStruct(useReflection bool, structName string) string {
 }
 
 func readSetterForStruct(useReflection bool, structName string) string {
-	return templateOutput(readSetterTemplate, templateConfig{
+	return templateOutput(reflectReadSetterTemplate, templateConfig{
 		FirstLetter: structName[:1],
 		StructName:  structName,
 	})
@@ -303,17 +303,17 @@ const importText = `import (
 
 `
 
-const structHeaderTemplateText = `// Implementation for {{.structName}}
+const reflectStructHeaderTemplateText = `// Implementation for {{.structName}}
 
  `
 
-const readerTemplateText = `func ({{.FirstLetter}} *{{.StructName}}) Reader() boardgame.PropertyReader {
+const reflectReaderTemplateText = `func ({{.FirstLetter}} *{{.StructName}}) Reader() boardgame.PropertyReader {
 	return boardgame.DefaultReader({{.FirstLetter}})
 }
 
 `
 
-const readSetterTemplateText = `func ({{.FirstLetter}} *{{.StructName}}) ReadSetter() boardgame.PropertyReadSetter {
+const reflectReadSetterTemplateText = `func ({{.FirstLetter}} *{{.StructName}}) ReadSetter() boardgame.PropertyReadSetter {
 	return boardgame.DefaultReadSetter({{.FirstLetter}})
 }
 
