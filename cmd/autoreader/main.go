@@ -131,10 +131,10 @@ func processPackage(useReflection bool, location string) (output string, err err
 
 		outputReader, outputReadSetter := structConfig(theStruct.DocLines)
 
-		_ = structTypes(theStruct)
+		types := structTypes(theStruct)
 
 		if outputReader || outputReadSetter {
-			output += headerForStruct(useReflection, theStruct.Name)
+			output += headerForStruct(useReflection, theStruct.Name, types)
 		}
 
 		if outputReader {
@@ -244,10 +244,15 @@ func headerForPackage(useReflection bool, packageName string) string {
 	}) + reflectImportText
 }
 
-func headerForStruct(useReflection bool, structName string) string {
-	return templateOutput(structHeaderTemplate, map[string]string{
-		"structName": structName,
-	})
+func headerForStruct(useReflection bool, structName string, types map[string]boardgame.PropertyType) string {
+
+	if useReflection {
+		return templateOutput(structHeaderTemplate, map[string]string{
+			"structName": structName,
+		})
+	}
+
+	return "// Not yet implemented"
 }
 
 func readerForStruct(useReflection bool, structName string) string {

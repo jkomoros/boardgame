@@ -11,6 +11,7 @@ func TestOutput(t *testing.T) {
 	options := &appOptions{
 		PrintToConsole:   true,
 		PackageDirectory: "examplepkg/",
+		UseReflection:    true,
 	}
 
 	out := &bytes.Buffer{}
