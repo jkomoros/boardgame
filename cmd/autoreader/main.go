@@ -262,11 +262,18 @@ func headerForStruct(useReflection bool, structName string, types map[string]boa
 		})
 	}
 
+	var propertyTypesInOrder []string
+
+	for i := boardgame.TypeInt; i <= boardgame.TypeTimer; i++ {
+		propertyTypesInOrder = append(propertyTypesInOrder, strings.TrimPrefix(i.String(), "Type"))
+	}
+
 	return templateOutput(structHeaderTemplate, map[string]interface{}{
-		"structName":  structName,
-		"firstLetter": structName[:1],
-		"readerName":  "__" + structName + "Reader",
-		"types":       types,
+		"structName":    structName,
+		"firstLetter":   structName[:1],
+		"readerName":    "__" + structName + "Reader",
+		"propertyTypes": propertyTypesInOrder,
+		"types":         types,
 	})
 
 }
@@ -333,28 +340,20 @@ func ({{.firstLetter}} *{{.readerName}}) Props() map[string]boardgame.PropertyTy
 }
 
 func ({{.firstLetter}} *{{.readerName}}) Prop(name string) (interface{}, error) {
-	props := m.Props()
+	props := {{.firstLetter}}.Props()
 	propType, ok := props[name]
 
 	if !ok {
 		return nil, errors.New("No such property with that name: " + name)
 	}
 
+	{{$firstLetter := .firstLetter}}
+
 	switch propType {
-	case boardgame.TypeInt:
-		return {{.firstLetter}}.IntProp(name)
-	case boardgame.TypeBool:
-		return {{.firstLetter}}.BoolProp(name)
-	case boardgame.TypeString:
-		return {{.firstLetter}}.StringProp(name)
-	case boardgame.TypePlayerIndex:
-		return {{.firstLetter}}.PlayerIndexProp(name)
-	case boardgame.TypeSizedStack:
-		return {{.firstLetter}}.SizedStackProp(name)
-	case boardgame.TypeGrowableStack:
-		return {{.firstLetter}}.GrowableStackProp(name)
-	case boardgame.TypeTimer:
-		return {{.firstLetter}}.TimerProp(name)
+	{{range $type := .propertyTypes -}}
+	case boardgame.Type{{$type}}:
+		return {{$firstLetter}}.{{$type}}Prop(name)
+	{{end}}
 	}
 
 	return nil, errors.New("Unexpected property type: " + propType)

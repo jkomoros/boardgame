@@ -27,6 +27,39 @@ type __myStructReader struct {
 	data *myStruct
 }
 
+func (m *__myStructReader) Props() map[string]boardgame.PropertyType {
+	return __myStructReaderProps
+}
+
+func (m *__myStructReader) Prop(name string) (interface{}, error) {
+	props := m.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return nil, errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeInt:
+		return m.IntProp(name)
+	case boardgame.TypeBool:
+		return m.BoolProp(name)
+	case boardgame.TypeString:
+		return m.StringProp(name)
+	case boardgame.TypePlayerIndex:
+		return m.PlayerIndexProp(name)
+	case boardgame.TypeGrowableStack:
+		return m.GrowableStackProp(name)
+	case boardgame.TypeSizedStack:
+		return m.SizedStackProp(name)
+	case boardgame.TypeTimer:
+		return m.TimerProp(name)
+
+	}
+
+	return nil, errors.New("Unexpected property type: " + propType)
+}
+
 func (m *myStruct) Reader() boardgame.PropertyReader {
 	return boardgame.DefaultReader(m)
 }
@@ -44,6 +77,39 @@ var __myOtherStructReaderProps map[string]boardgame.PropertyType = map[string]bo
 
 type __myOtherStructReader struct {
 	data *myOtherStruct
+}
+
+func (m *__myOtherStructReader) Props() map[string]boardgame.PropertyType {
+	return __myOtherStructReaderProps
+}
+
+func (m *__myOtherStructReader) Prop(name string) (interface{}, error) {
+	props := m.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return nil, errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeInt:
+		return m.IntProp(name)
+	case boardgame.TypeBool:
+		return m.BoolProp(name)
+	case boardgame.TypeString:
+		return m.StringProp(name)
+	case boardgame.TypePlayerIndex:
+		return m.PlayerIndexProp(name)
+	case boardgame.TypeGrowableStack:
+		return m.GrowableStackProp(name)
+	case boardgame.TypeSizedStack:
+		return m.SizedStackProp(name)
+	case boardgame.TypeTimer:
+		return m.TimerProp(name)
+
+	}
+
+	return nil, errors.New("Unexpected property type: " + propType)
 }
 
 func (m *myOtherStruct) Reader() boardgame.PropertyReader {
@@ -64,6 +130,39 @@ type __onlyReaderReader struct {
 	data *onlyReader
 }
 
+func (o *__onlyReaderReader) Props() map[string]boardgame.PropertyType {
+	return __onlyReaderReaderProps
+}
+
+func (o *__onlyReaderReader) Prop(name string) (interface{}, error) {
+	props := o.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return nil, errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeInt:
+		return o.IntProp(name)
+	case boardgame.TypeBool:
+		return o.BoolProp(name)
+	case boardgame.TypeString:
+		return o.StringProp(name)
+	case boardgame.TypePlayerIndex:
+		return o.PlayerIndexProp(name)
+	case boardgame.TypeGrowableStack:
+		return o.GrowableStackProp(name)
+	case boardgame.TypeSizedStack:
+		return o.SizedStackProp(name)
+	case boardgame.TypeTimer:
+		return o.TimerProp(name)
+
+	}
+
+	return nil, errors.New("Unexpected property type: " + propType)
+}
+
 func (o *onlyReader) Reader() boardgame.PropertyReader {
 	return boardgame.DefaultReader(o)
 }
@@ -76,6 +175,39 @@ var __onlyReadSetterReaderProps map[string]boardgame.PropertyType = map[string]b
 
 type __onlyReadSetterReader struct {
 	data *onlyReadSetter
+}
+
+func (o *__onlyReadSetterReader) Props() map[string]boardgame.PropertyType {
+	return __onlyReadSetterReaderProps
+}
+
+func (o *__onlyReadSetterReader) Prop(name string) (interface{}, error) {
+	props := o.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return nil, errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeInt:
+		return o.IntProp(name)
+	case boardgame.TypeBool:
+		return o.BoolProp(name)
+	case boardgame.TypeString:
+		return o.StringProp(name)
+	case boardgame.TypePlayerIndex:
+		return o.PlayerIndexProp(name)
+	case boardgame.TypeGrowableStack:
+		return o.GrowableStackProp(name)
+	case boardgame.TypeSizedStack:
+		return o.SizedStackProp(name)
+	case boardgame.TypeTimer:
+		return o.TimerProp(name)
+
+	}
+
+	return nil, errors.New("Unexpected property type: " + propType)
 }
 
 func (o *onlyReadSetter) ReadSetter() boardgame.PropertyReadSetter {
