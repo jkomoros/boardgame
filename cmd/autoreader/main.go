@@ -51,6 +51,7 @@ type appOptions struct {
 	PackageDirectory string
 	PrintToConsole   bool
 	Help             bool
+	UseReflection    bool
 	flagSet          *flag.FlagSet
 }
 
@@ -71,6 +72,7 @@ func defineFlags(options *appOptions) {
 	options.flagSet.StringVar(&options.PackageDirectory, "pkg", ".", "Which package to process")
 	options.flagSet.BoolVar(&options.Help, "h", false, "If set, print help message and quit.")
 	options.flagSet.BoolVar(&options.PrintToConsole, "print", false, "If true, will print result to console instead of writing to out.")
+	options.flagSet.BoolVar(&options.UseReflection, "reflect", true, "If true, will use reflection based output.")
 }
 
 func getOptions(flagSet *flag.FlagSet, flagArguments []string) *appOptions {
@@ -93,7 +95,7 @@ func process(options *appOptions, out io.ReadWriter, errOut io.ReadWriter) {
 		return
 	}
 
-	output, err := processPackage(options.PackageDirectory)
+	output, err := processPackage(options.UseReflection, options.PackageDirectory)
 
 	if err != nil {
 		fmt.Fprintln(errOut, "ERROR", err)
@@ -108,7 +110,7 @@ func process(options *appOptions, out io.ReadWriter, errOut io.ReadWriter) {
 
 }
 
-func processPackage(location string) (output string, err error) {
+func processPackage(useReflection bool, location string) (output string, err error) {
 	sources, err := parser.ParseSourceDir(location, ".*")
 
 	if err != nil {
@@ -227,6 +229,13 @@ package {{.packageName}}
 `
 
 const reflectImportText = `import (
+	"github.com/jkomoros/boardgame"
+)
+
+`
+
+const prodImportText = `import (
+	"errors"
 	"github.com/jkomoros/boardgame"
 )
 
