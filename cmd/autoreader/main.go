@@ -263,8 +263,10 @@ func headerForStruct(useReflection bool, structName string, types map[string]boa
 	}
 
 	return templateOutput(structHeaderTemplate, map[string]interface{}{
-		"structName": structName,
-		"types":      types,
+		"structName":  structName,
+		"firstLetter": structName[:1],
+		"readerName":  "__" + structName + "Reader",
+		"types":       types,
 	})
 
 }
@@ -316,10 +318,46 @@ const reflectStructHeaderTemplateText = `// Implementation for {{.structName}}
 
 const structHeaderTemplateText = `// Implementation for {{.structName}}
 
-var {{.structName}}ReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
+var __{{.structName}}ReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
 	{{range $key, $value := .types -}}
 		"{{$key}}": boardgame.{{$value.String}},
 	{{end}}
+}
+
+type {{.readerName}} struct {
+	data *{{.structName}}
+}
+
+func ({{.firstLetter}} *{{.readerName}}) Props() map[string]boardgame.PropertyType {
+	return __{{.structName}}ReaderProps
+}
+
+func ({{.firstLetter}} *{{.readerName}}) Prop(name string) (interface{}, error) {
+	props := m.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return nil, errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeInt:
+		return {{.firstLetter}}.IntProp(name)
+	case boardgame.TypeBool:
+		return {{.firstLetter}}.BoolProp(name)
+	case boardgame.TypeString:
+		return {{.firstLetter}}.StringProp(name)
+	case boardgame.TypePlayerIndex:
+		return {{.firstLetter}}.PlayerIndexProp(name)
+	case boardgame.TypeSizedStack:
+		return {{.firstLetter}}.SizedStackProp(name)
+	case boardgame.TypeGrowableStack:
+		return {{.firstLetter}}.GrowableStackProp(name)
+	case boardgame.TypeTimer:
+		return {{.firstLetter}}.TimerProp(name)
+	}
+
+	return nil, errors.New("Unexpected property type: " + propType)
 }
 
 `
