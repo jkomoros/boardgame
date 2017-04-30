@@ -281,26 +281,41 @@ func headerForStruct(useReflection bool, structName string, types map[string]boa
 	for _, propType := range propertyTypesInOrder {
 
 		goLangType := propType
+		zeroValue := "nil"
 
 		switch goLangType {
 		case "Bool":
 			goLangType = "bool"
+			zeroValue = "false"
 		case "Int":
 			goLangType = "int"
+			zeroValue = "0"
 		case "String":
 			goLangType = "string"
+			zeroValue = "\"\""
 		case "PlayerIndex":
 			goLangType = "boardgame.PlayerIndex"
+			zeroValue = "0"
 		default:
 			goLangType = "*boardgame." + goLangType
 		}
 
+		var namesForType []string
+
+		for key, val := range types {
+			if val.String() == "Type"+propType {
+				namesForType = append(namesForType, key)
+			}
+		}
+
 		output += templateOutput(typedPropertyTemplate, map[string]interface{}{
-			"structName":  structName,
-			"firstLetter": structName[:1],
-			"readerName":  "__" + structName + "Reader",
-			"propType":    propType,
-			"goLangType":  goLangType,
+			"structName":   structName,
+			"firstLetter":  structName[:1],
+			"readerName":   "__" + structName + "Reader",
+			"propType":     propType,
+			"namesForType": namesForType,
+			"goLangType":   goLangType,
+			"zeroValue":    zeroValue,
 		})
 	}
 
@@ -392,7 +407,17 @@ func ({{.firstLetter}} *{{.readerName}}) Prop(name string) (interface{}, error) 
 `
 
 const typedPropertyTemplateText = `func ({{.firstLetter}} *{{.readerName}}) {{.propType}}Prop(name string) ({{.goLangType}}, error) {
-	//TODO: implement
+	{{if .namesForType}}
+	switch name {
+		{{range .namesForType -}}
+			case "{{.}}":
+				return m.data.{{.}}, nil
+		{{end}}
+	}
+	{{end}}
+
+	return {{.zeroValue}}, errors.New("No such int prop: " + name)
+
 }
 
 `

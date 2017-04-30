@@ -61,31 +61,69 @@ func (m *__myStructReader) Prop(name string) (interface{}, error) {
 }
 
 func (m *__myStructReader) IntProp(name string) (int, error) {
-	//TODO: implement
+
+	switch name {
+	case "MyInt":
+		return m.data.MyInt, nil
+
+	}
+
+	return 0, errors.New("No such int prop: " + name)
+
 }
 
 func (m *__myStructReader) BoolProp(name string) (bool, error) {
-	//TODO: implement
+
+	switch name {
+	case "MyBool":
+		return m.data.MyBool, nil
+
+	}
+
+	return false, errors.New("No such int prop: " + name)
+
 }
 
 func (m *__myStructReader) StringProp(name string) (string, error) {
-	//TODO: implement
+
+	return "", errors.New("No such int prop: " + name)
+
 }
 
 func (m *__myStructReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
-	//TODO: implement
+
+	return 0, errors.New("No such int prop: " + name)
+
 }
 
 func (m *__myStructReader) GrowableStackProp(name string) (*boardgame.GrowableStack, error) {
-	//TODO: implement
+
+	return nil, errors.New("No such int prop: " + name)
+
 }
 
 func (m *__myStructReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
-	//TODO: implement
+
+	switch name {
+	case "MySizedStack":
+		return m.data.MySizedStack, nil
+
+	}
+
+	return nil, errors.New("No such int prop: " + name)
+
 }
 
 func (m *__myStructReader) TimerProp(name string) (*boardgame.Timer, error) {
-	//TODO: implement
+
+	switch name {
+	case "TheTimer":
+		return m.data.TheTimer, nil
+
+	}
+
+	return nil, errors.New("No such int prop: " + name)
+
 }
 
 func (m *myStruct) Reader() boardgame.PropertyReader {
@@ -141,31 +179,57 @@ func (m *__myOtherStructReader) Prop(name string) (interface{}, error) {
 }
 
 func (m *__myOtherStructReader) IntProp(name string) (int, error) {
-	//TODO: implement
+
+	return 0, errors.New("No such int prop: " + name)
+
 }
 
 func (m *__myOtherStructReader) BoolProp(name string) (bool, error) {
-	//TODO: implement
+
+	return false, errors.New("No such int prop: " + name)
+
 }
 
 func (m *__myOtherStructReader) StringProp(name string) (string, error) {
-	//TODO: implement
+
+	return "", errors.New("No such int prop: " + name)
+
 }
 
 func (m *__myOtherStructReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
-	//TODO: implement
+
+	switch name {
+	case "ThePlayerIndex":
+		return m.data.ThePlayerIndex, nil
+
+	}
+
+	return 0, errors.New("No such int prop: " + name)
+
 }
 
 func (m *__myOtherStructReader) GrowableStackProp(name string) (*boardgame.GrowableStack, error) {
-	//TODO: implement
+
+	switch name {
+	case "MyGrowableStack":
+		return m.data.MyGrowableStack, nil
+
+	}
+
+	return nil, errors.New("No such int prop: " + name)
+
 }
 
 func (m *__myOtherStructReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
-	//TODO: implement
+
+	return nil, errors.New("No such int prop: " + name)
+
 }
 
 func (m *__myOtherStructReader) TimerProp(name string) (*boardgame.Timer, error) {
-	//TODO: implement
+
+	return nil, errors.New("No such int prop: " + name)
+
 }
 
 func (m *myOtherStruct) Reader() boardgame.PropertyReader {
@@ -220,31 +284,51 @@ func (o *__onlyReaderReader) Prop(name string) (interface{}, error) {
 }
 
 func (o *__onlyReaderReader) IntProp(name string) (int, error) {
-	//TODO: implement
+
+	return 0, errors.New("No such int prop: " + name)
+
 }
 
 func (o *__onlyReaderReader) BoolProp(name string) (bool, error) {
-	//TODO: implement
+
+	return false, errors.New("No such int prop: " + name)
+
 }
 
 func (o *__onlyReaderReader) StringProp(name string) (string, error) {
-	//TODO: implement
+
+	switch name {
+	case "MyString":
+		return m.data.MyString, nil
+
+	}
+
+	return "", errors.New("No such int prop: " + name)
+
 }
 
 func (o *__onlyReaderReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
-	//TODO: implement
+
+	return 0, errors.New("No such int prop: " + name)
+
 }
 
 func (o *__onlyReaderReader) GrowableStackProp(name string) (*boardgame.GrowableStack, error) {
-	//TODO: implement
+
+	return nil, errors.New("No such int prop: " + name)
+
 }
 
 func (o *__onlyReaderReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
-	//TODO: implement
+
+	return nil, errors.New("No such int prop: " + name)
+
 }
 
 func (o *__onlyReaderReader) TimerProp(name string) (*boardgame.Timer, error) {
-	//TODO: implement
+
+	return nil, errors.New("No such int prop: " + name)
+
 }
 
 func (o *onlyReader) Reader() boardgame.PropertyReader {
@@ -295,31 +379,51 @@ func (o *__onlyReadSetterReader) Prop(name string) (interface{}, error) {
 }
 
 func (o *__onlyReadSetterReader) IntProp(name string) (int, error) {
-	//TODO: implement
+
+	switch name {
+	case "MyInt":
+		return m.data.MyInt, nil
+
+	}
+
+	return 0, errors.New("No such int prop: " + name)
+
 }
 
 func (o *__onlyReadSetterReader) BoolProp(name string) (bool, error) {
-	//TODO: implement
+
+	return false, errors.New("No such int prop: " + name)
+
 }
 
 func (o *__onlyReadSetterReader) StringProp(name string) (string, error) {
-	//TODO: implement
+
+	return "", errors.New("No such int prop: " + name)
+
 }
 
 func (o *__onlyReadSetterReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
-	//TODO: implement
+
+	return 0, errors.New("No such int prop: " + name)
+
 }
 
 func (o *__onlyReadSetterReader) GrowableStackProp(name string) (*boardgame.GrowableStack, error) {
-	//TODO: implement
+
+	return nil, errors.New("No such int prop: " + name)
+
 }
 
 func (o *__onlyReadSetterReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
-	//TODO: implement
+
+	return nil, errors.New("No such int prop: " + name)
+
 }
 
 func (o *__onlyReadSetterReader) TimerProp(name string) (*boardgame.Timer, error) {
-	//TODO: implement
+
+	return nil, errors.New("No such int prop: " + name)
+
 }
 
 func (o *onlyReadSetter) ReadSetter() boardgame.PropertyReadSetter {
