@@ -66,6 +66,29 @@ type PropertyReadSetter interface {
 	SetProp(name string, value interface{}) error
 }
 
+func (t PropertyType) String() string {
+	switch t {
+	case TypeIllegal:
+		return "TypeIllegal"
+	case TypeInt:
+		return "TypeInt"
+	case TypeBool:
+		return "TypeBool"
+	case TypeString:
+		return "TypeString"
+	case TypePlayerIndex:
+		return "TypePlayerIndex"
+	case TypeGrowableStack:
+		return "TypeGrowableStack"
+	case TypeSizedStack:
+		return "TypeSizedStack"
+	case TypeTimer:
+		return "TypeTimer"
+	default:
+		return "TypeIllegal"
+	}
+}
+
 //TODO: protect access to this with a mutex.
 var defaultReaderCacheLock sync.RWMutex
 var defaultReaderCache map[interface{}]*defaultReader
