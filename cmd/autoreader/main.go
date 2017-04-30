@@ -44,6 +44,7 @@ import (
 
 var headerTemplate *template.Template
 var structHeaderTemplate *template.Template
+var typedPropertyTemplate *template.Template
 var reflectStructHeaderTemplate *template.Template
 var reflectReaderTemplate *template.Template
 var reflectReadSetterTemplate *template.Template
@@ -67,6 +68,7 @@ type templateConfig struct {
 func init() {
 	headerTemplate = template.Must(template.New("header").Parse(headerTemplateText))
 	structHeaderTemplate = template.Must(template.New("structHeader").Parse(structHeaderTemplateText))
+	typedPropertyTemplate = template.Must(template.New("typedProperty").Parse(typedPropertyTemplateText))
 	reflectStructHeaderTemplate = template.Must(template.New("structHeader").Parse(reflectStructHeaderTemplateText))
 	reflectReaderTemplate = template.Must(template.New("reader").Parse(reflectReaderTemplateText))
 	reflectReadSetterTemplate = template.Must(template.New("readsetter").Parse(reflectReadSetterTemplateText))
@@ -268,13 +270,41 @@ func headerForStruct(useReflection bool, structName string, types map[string]boa
 		propertyTypesInOrder = append(propertyTypesInOrder, strings.TrimPrefix(i.String(), "Type"))
 	}
 
-	return templateOutput(structHeaderTemplate, map[string]interface{}{
+	output := templateOutput(structHeaderTemplate, map[string]interface{}{
 		"structName":    structName,
 		"firstLetter":   structName[:1],
 		"readerName":    "__" + structName + "Reader",
 		"propertyTypes": propertyTypesInOrder,
 		"types":         types,
 	})
+
+	for _, propType := range propertyTypesInOrder {
+
+		goLangType := propType
+
+		switch goLangType {
+		case "Bool":
+			goLangType = "bool"
+		case "Int":
+			goLangType = "int"
+		case "String":
+			goLangType = "string"
+		case "PlayerIndex":
+			goLangType = "boardgame.PlayerIndex"
+		default:
+			goLangType = "*boardgame." + goLangType
+		}
+
+		output += templateOutput(typedPropertyTemplate, map[string]interface{}{
+			"structName":  structName,
+			"firstLetter": structName[:1],
+			"readerName":  "__" + structName + "Reader",
+			"propType":    propType,
+			"goLangType":  goLangType,
+		})
+	}
+
+	return output
 
 }
 
@@ -357,6 +387,12 @@ func ({{.firstLetter}} *{{.readerName}}) Prop(name string) (interface{}, error) 
 	}
 
 	return nil, errors.New("Unexpected property type: " + propType)
+}
+
+`
+
+const typedPropertyTemplateText = `func ({{.firstLetter}} *{{.readerName}}) {{.propType}}Prop(name string) ({{.goLangType}}, error) {
+	//TODO: implement
 }
 
 `

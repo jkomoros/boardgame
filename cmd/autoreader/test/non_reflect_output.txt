@@ -60,6 +60,34 @@ func (m *__myStructReader) Prop(name string) (interface{}, error) {
 	return nil, errors.New("Unexpected property type: " + propType)
 }
 
+func (m *__myStructReader) IntProp(name string) (int, error) {
+	//TODO: implement
+}
+
+func (m *__myStructReader) BoolProp(name string) (bool, error) {
+	//TODO: implement
+}
+
+func (m *__myStructReader) StringProp(name string) (string, error) {
+	//TODO: implement
+}
+
+func (m *__myStructReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
+	//TODO: implement
+}
+
+func (m *__myStructReader) GrowableStackProp(name string) (*boardgame.GrowableStack, error) {
+	//TODO: implement
+}
+
+func (m *__myStructReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
+	//TODO: implement
+}
+
+func (m *__myStructReader) TimerProp(name string) (*boardgame.Timer, error) {
+	//TODO: implement
+}
+
 func (m *myStruct) Reader() boardgame.PropertyReader {
 	return boardgame.DefaultReader(m)
 }
@@ -110,6 +138,34 @@ func (m *__myOtherStructReader) Prop(name string) (interface{}, error) {
 	}
 
 	return nil, errors.New("Unexpected property type: " + propType)
+}
+
+func (m *__myOtherStructReader) IntProp(name string) (int, error) {
+	//TODO: implement
+}
+
+func (m *__myOtherStructReader) BoolProp(name string) (bool, error) {
+	//TODO: implement
+}
+
+func (m *__myOtherStructReader) StringProp(name string) (string, error) {
+	//TODO: implement
+}
+
+func (m *__myOtherStructReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
+	//TODO: implement
+}
+
+func (m *__myOtherStructReader) GrowableStackProp(name string) (*boardgame.GrowableStack, error) {
+	//TODO: implement
+}
+
+func (m *__myOtherStructReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
+	//TODO: implement
+}
+
+func (m *__myOtherStructReader) TimerProp(name string) (*boardgame.Timer, error) {
+	//TODO: implement
 }
 
 func (m *myOtherStruct) Reader() boardgame.PropertyReader {
@@ -163,6 +219,34 @@ func (o *__onlyReaderReader) Prop(name string) (interface{}, error) {
 	return nil, errors.New("Unexpected property type: " + propType)
 }
 
+func (o *__onlyReaderReader) IntProp(name string) (int, error) {
+	//TODO: implement
+}
+
+func (o *__onlyReaderReader) BoolProp(name string) (bool, error) {
+	//TODO: implement
+}
+
+func (o *__onlyReaderReader) StringProp(name string) (string, error) {
+	//TODO: implement
+}
+
+func (o *__onlyReaderReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
+	//TODO: implement
+}
+
+func (o *__onlyReaderReader) GrowableStackProp(name string) (*boardgame.GrowableStack, error) {
+	//TODO: implement
+}
+
+func (o *__onlyReaderReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
+	//TODO: implement
+}
+
+func (o *__onlyReaderReader) TimerProp(name string) (*boardgame.Timer, error) {
+	//TODO: implement
+}
+
 func (o *onlyReader) Reader() boardgame.PropertyReader {
 	return boardgame.DefaultReader(o)
 }
@@ -208,6 +292,34 @@ func (o *__onlyReadSetterReader) Prop(name string) (interface{}, error) {
 	}
 
 	return nil, errors.New("Unexpected property type: " + propType)
+}
+
+func (o *__onlyReadSetterReader) IntProp(name string) (int, error) {
+	//TODO: implement
+}
+
+func (o *__onlyReadSetterReader) BoolProp(name string) (bool, error) {
+	//TODO: implement
+}
+
+func (o *__onlyReadSetterReader) StringProp(name string) (string, error) {
+	//TODO: implement
+}
+
+func (o *__onlyReadSetterReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
+	//TODO: implement
+}
+
+func (o *__onlyReadSetterReader) GrowableStackProp(name string) (*boardgame.GrowableStack, error) {
+	//TODO: implement
+}
+
+func (o *__onlyReadSetterReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
+	//TODO: implement
+}
+
+func (o *__onlyReadSetterReader) TimerProp(name string) (*boardgame.Timer, error) {
+	//TODO: implement
 }
 
 func (o *onlyReadSetter) ReadSetter() boardgame.PropertyReadSetter {
