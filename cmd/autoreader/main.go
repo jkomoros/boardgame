@@ -18,6 +18,15 @@
 	its output to auto_reader.go, overwriting whatever file was there before.
 	See command-line options by passing -h.
 
+	By default readers and readSetters that rely on hard-coded lists of
+	properties will be generated. These are faster to execute because they
+	don't rely on reflection. However, every time you add or change properties
+	to a struct, you must re-run go generate. Another option is available that
+	uses reflection (via board.DefaultReader) to implement the Readers and
+	ReadSetters (by passing -reflect). The pro is that you only need to run
+	`go generate` when you add or remove a struct; the downside is that run-
+	time performance will be worse.
+
 	The defaults are set reasonably so that you can use go:generate very
 	easily. See examplepkg/ for a very simple example.
 
@@ -85,7 +94,7 @@ func defineFlags(options *appOptions) {
 	options.flagSet.StringVar(&options.PackageDirectory, "pkg", ".", "Which package to process")
 	options.flagSet.BoolVar(&options.Help, "h", false, "If set, print help message and quit.")
 	options.flagSet.BoolVar(&options.PrintToConsole, "print", false, "If true, will print result to console instead of writing to out.")
-	options.flagSet.BoolVar(&options.UseReflection, "reflect", true, "If true, will use reflection based output.")
+	options.flagSet.BoolVar(&options.UseReflection, "reflect", false, "If true, will use reflection based output.")
 }
 
 func getOptions(flagSet *flag.FlagSet, flagArguments []string) *appOptions {
