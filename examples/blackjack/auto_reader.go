@@ -10,61 +10,1664 @@
 package blackjack
 
 import (
+	"errors"
 	"github.com/jkomoros/boardgame"
 )
 
 // Implementation for MoveShuffleDiscardToDraw
 
+var __MoveShuffleDiscardToDrawReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{}
+
+type __MoveShuffleDiscardToDrawReader struct {
+	data *MoveShuffleDiscardToDraw
+}
+
+func (M *__MoveShuffleDiscardToDrawReader) Props() map[string]boardgame.PropertyType {
+	return __MoveShuffleDiscardToDrawReaderProps
+}
+
+func (M *__MoveShuffleDiscardToDrawReader) Prop(name string) (interface{}, error) {
+	props := M.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return nil, errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeBool:
+		return M.BoolProp(name)
+	case boardgame.TypeGrowableStack:
+		return M.GrowableStackProp(name)
+	case boardgame.TypeInt:
+		return M.IntProp(name)
+	case boardgame.TypePlayerIndex:
+		return M.PlayerIndexProp(name)
+	case boardgame.TypeSizedStack:
+		return M.SizedStackProp(name)
+	case boardgame.TypeString:
+		return M.StringProp(name)
+	case boardgame.TypeTimer:
+		return M.TimerProp(name)
+
+	}
+
+	return nil, errors.New("Unexpected property type: " + propType.String())
+}
+
+func (M *__MoveShuffleDiscardToDrawReader) SetProp(name string, value interface{}) error {
+	props := M.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeBool:
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return M.SetBoolProp(name, val)
+	case boardgame.TypeGrowableStack:
+		val, ok := value.(*boardgame.GrowableStack)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.GrowableStack")
+		}
+		return M.SetGrowableStackProp(name, val)
+	case boardgame.TypeInt:
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return M.SetIntProp(name, val)
+	case boardgame.TypePlayerIndex:
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return M.SetPlayerIndexProp(name, val)
+	case boardgame.TypeSizedStack:
+		val, ok := value.(*boardgame.SizedStack)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.SizedStack")
+		}
+		return M.SetSizedStackProp(name, val)
+	case boardgame.TypeString:
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return M.SetStringProp(name, val)
+	case boardgame.TypeTimer:
+		val, ok := value.(*boardgame.Timer)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.Timer")
+		}
+		return M.SetTimerProp(name, val)
+
+	}
+
+	return errors.New("Unexpected property type: " + propType.String())
+}
+
+func (M *__MoveShuffleDiscardToDrawReader) BoolProp(name string) (bool, error) {
+
+	return false, errors.New("No such Bool prop: " + name)
+
+}
+
+func (M *__MoveShuffleDiscardToDrawReader) SetBoolProp(name string, value bool) error {
+
+	return errors.New("No such Bool prop: " + name)
+
+}
+
+func (M *__MoveShuffleDiscardToDrawReader) GrowableStackProp(name string) (*boardgame.GrowableStack, error) {
+
+	return nil, errors.New("No such GrowableStack prop: " + name)
+
+}
+
+func (M *__MoveShuffleDiscardToDrawReader) SetGrowableStackProp(name string, value *boardgame.GrowableStack) error {
+
+	return errors.New("No such GrowableStack prop: " + name)
+
+}
+
+func (M *__MoveShuffleDiscardToDrawReader) IntProp(name string) (int, error) {
+
+	return 0, errors.New("No such Int prop: " + name)
+
+}
+
+func (M *__MoveShuffleDiscardToDrawReader) SetIntProp(name string, value int) error {
+
+	return errors.New("No such Int prop: " + name)
+
+}
+
+func (M *__MoveShuffleDiscardToDrawReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
+
+	return 0, errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (M *__MoveShuffleDiscardToDrawReader) SetPlayerIndexProp(name string, value boardgame.PlayerIndex) error {
+
+	return errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (M *__MoveShuffleDiscardToDrawReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
+
+	return nil, errors.New("No such SizedStack prop: " + name)
+
+}
+
+func (M *__MoveShuffleDiscardToDrawReader) SetSizedStackProp(name string, value *boardgame.SizedStack) error {
+
+	return errors.New("No such SizedStack prop: " + name)
+
+}
+
+func (M *__MoveShuffleDiscardToDrawReader) StringProp(name string) (string, error) {
+
+	return "", errors.New("No such String prop: " + name)
+
+}
+
+func (M *__MoveShuffleDiscardToDrawReader) SetStringProp(name string, value string) error {
+
+	return errors.New("No such String prop: " + name)
+
+}
+
+func (M *__MoveShuffleDiscardToDrawReader) TimerProp(name string) (*boardgame.Timer, error) {
+
+	return nil, errors.New("No such Timer prop: " + name)
+
+}
+
+func (M *__MoveShuffleDiscardToDrawReader) SetTimerProp(name string, value *boardgame.Timer) error {
+
+	return errors.New("No such Timer prop: " + name)
+
+}
+
 func (M *MoveShuffleDiscardToDraw) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(M)
+	return &__MoveShuffleDiscardToDrawReader{M}
 }
 
 // Implementation for MoveAdvanceNextPlayer
 
+var __MoveAdvanceNextPlayerReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{}
+
+type __MoveAdvanceNextPlayerReader struct {
+	data *MoveAdvanceNextPlayer
+}
+
+func (M *__MoveAdvanceNextPlayerReader) Props() map[string]boardgame.PropertyType {
+	return __MoveAdvanceNextPlayerReaderProps
+}
+
+func (M *__MoveAdvanceNextPlayerReader) Prop(name string) (interface{}, error) {
+	props := M.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return nil, errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeBool:
+		return M.BoolProp(name)
+	case boardgame.TypeGrowableStack:
+		return M.GrowableStackProp(name)
+	case boardgame.TypeInt:
+		return M.IntProp(name)
+	case boardgame.TypePlayerIndex:
+		return M.PlayerIndexProp(name)
+	case boardgame.TypeSizedStack:
+		return M.SizedStackProp(name)
+	case boardgame.TypeString:
+		return M.StringProp(name)
+	case boardgame.TypeTimer:
+		return M.TimerProp(name)
+
+	}
+
+	return nil, errors.New("Unexpected property type: " + propType.String())
+}
+
+func (M *__MoveAdvanceNextPlayerReader) SetProp(name string, value interface{}) error {
+	props := M.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeBool:
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return M.SetBoolProp(name, val)
+	case boardgame.TypeGrowableStack:
+		val, ok := value.(*boardgame.GrowableStack)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.GrowableStack")
+		}
+		return M.SetGrowableStackProp(name, val)
+	case boardgame.TypeInt:
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return M.SetIntProp(name, val)
+	case boardgame.TypePlayerIndex:
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return M.SetPlayerIndexProp(name, val)
+	case boardgame.TypeSizedStack:
+		val, ok := value.(*boardgame.SizedStack)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.SizedStack")
+		}
+		return M.SetSizedStackProp(name, val)
+	case boardgame.TypeString:
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return M.SetStringProp(name, val)
+	case boardgame.TypeTimer:
+		val, ok := value.(*boardgame.Timer)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.Timer")
+		}
+		return M.SetTimerProp(name, val)
+
+	}
+
+	return errors.New("Unexpected property type: " + propType.String())
+}
+
+func (M *__MoveAdvanceNextPlayerReader) BoolProp(name string) (bool, error) {
+
+	return false, errors.New("No such Bool prop: " + name)
+
+}
+
+func (M *__MoveAdvanceNextPlayerReader) SetBoolProp(name string, value bool) error {
+
+	return errors.New("No such Bool prop: " + name)
+
+}
+
+func (M *__MoveAdvanceNextPlayerReader) GrowableStackProp(name string) (*boardgame.GrowableStack, error) {
+
+	return nil, errors.New("No such GrowableStack prop: " + name)
+
+}
+
+func (M *__MoveAdvanceNextPlayerReader) SetGrowableStackProp(name string, value *boardgame.GrowableStack) error {
+
+	return errors.New("No such GrowableStack prop: " + name)
+
+}
+
+func (M *__MoveAdvanceNextPlayerReader) IntProp(name string) (int, error) {
+
+	return 0, errors.New("No such Int prop: " + name)
+
+}
+
+func (M *__MoveAdvanceNextPlayerReader) SetIntProp(name string, value int) error {
+
+	return errors.New("No such Int prop: " + name)
+
+}
+
+func (M *__MoveAdvanceNextPlayerReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
+
+	return 0, errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (M *__MoveAdvanceNextPlayerReader) SetPlayerIndexProp(name string, value boardgame.PlayerIndex) error {
+
+	return errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (M *__MoveAdvanceNextPlayerReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
+
+	return nil, errors.New("No such SizedStack prop: " + name)
+
+}
+
+func (M *__MoveAdvanceNextPlayerReader) SetSizedStackProp(name string, value *boardgame.SizedStack) error {
+
+	return errors.New("No such SizedStack prop: " + name)
+
+}
+
+func (M *__MoveAdvanceNextPlayerReader) StringProp(name string) (string, error) {
+
+	return "", errors.New("No such String prop: " + name)
+
+}
+
+func (M *__MoveAdvanceNextPlayerReader) SetStringProp(name string, value string) error {
+
+	return errors.New("No such String prop: " + name)
+
+}
+
+func (M *__MoveAdvanceNextPlayerReader) TimerProp(name string) (*boardgame.Timer, error) {
+
+	return nil, errors.New("No such Timer prop: " + name)
+
+}
+
+func (M *__MoveAdvanceNextPlayerReader) SetTimerProp(name string, value *boardgame.Timer) error {
+
+	return errors.New("No such Timer prop: " + name)
+
+}
+
 func (M *MoveAdvanceNextPlayer) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(M)
+	return &__MoveAdvanceNextPlayerReader{M}
 }
 
 // Implementation for MoveDealInitialCard
 
+var __MoveDealInitialCardReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
+	"IsHidden":          boardgame.TypeBool,
+	"TargetPlayerIndex": boardgame.TypePlayerIndex,
+}
+
+type __MoveDealInitialCardReader struct {
+	data *MoveDealInitialCard
+}
+
+func (M *__MoveDealInitialCardReader) Props() map[string]boardgame.PropertyType {
+	return __MoveDealInitialCardReaderProps
+}
+
+func (M *__MoveDealInitialCardReader) Prop(name string) (interface{}, error) {
+	props := M.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return nil, errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeBool:
+		return M.BoolProp(name)
+	case boardgame.TypeGrowableStack:
+		return M.GrowableStackProp(name)
+	case boardgame.TypeInt:
+		return M.IntProp(name)
+	case boardgame.TypePlayerIndex:
+		return M.PlayerIndexProp(name)
+	case boardgame.TypeSizedStack:
+		return M.SizedStackProp(name)
+	case boardgame.TypeString:
+		return M.StringProp(name)
+	case boardgame.TypeTimer:
+		return M.TimerProp(name)
+
+	}
+
+	return nil, errors.New("Unexpected property type: " + propType.String())
+}
+
+func (M *__MoveDealInitialCardReader) SetProp(name string, value interface{}) error {
+	props := M.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeBool:
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return M.SetBoolProp(name, val)
+	case boardgame.TypeGrowableStack:
+		val, ok := value.(*boardgame.GrowableStack)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.GrowableStack")
+		}
+		return M.SetGrowableStackProp(name, val)
+	case boardgame.TypeInt:
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return M.SetIntProp(name, val)
+	case boardgame.TypePlayerIndex:
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return M.SetPlayerIndexProp(name, val)
+	case boardgame.TypeSizedStack:
+		val, ok := value.(*boardgame.SizedStack)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.SizedStack")
+		}
+		return M.SetSizedStackProp(name, val)
+	case boardgame.TypeString:
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return M.SetStringProp(name, val)
+	case boardgame.TypeTimer:
+		val, ok := value.(*boardgame.Timer)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.Timer")
+		}
+		return M.SetTimerProp(name, val)
+
+	}
+
+	return errors.New("Unexpected property type: " + propType.String())
+}
+
+func (M *__MoveDealInitialCardReader) BoolProp(name string) (bool, error) {
+
+	switch name {
+	case "IsHidden":
+		return M.data.IsHidden, nil
+
+	}
+
+	return false, errors.New("No such Bool prop: " + name)
+
+}
+
+func (M *__MoveDealInitialCardReader) SetBoolProp(name string, value bool) error {
+
+	switch name {
+	case "IsHidden":
+		M.data.IsHidden = value
+		return nil
+
+	}
+
+	return errors.New("No such Bool prop: " + name)
+
+}
+
+func (M *__MoveDealInitialCardReader) GrowableStackProp(name string) (*boardgame.GrowableStack, error) {
+
+	return nil, errors.New("No such GrowableStack prop: " + name)
+
+}
+
+func (M *__MoveDealInitialCardReader) SetGrowableStackProp(name string, value *boardgame.GrowableStack) error {
+
+	return errors.New("No such GrowableStack prop: " + name)
+
+}
+
+func (M *__MoveDealInitialCardReader) IntProp(name string) (int, error) {
+
+	return 0, errors.New("No such Int prop: " + name)
+
+}
+
+func (M *__MoveDealInitialCardReader) SetIntProp(name string, value int) error {
+
+	return errors.New("No such Int prop: " + name)
+
+}
+
+func (M *__MoveDealInitialCardReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
+
+	switch name {
+	case "TargetPlayerIndex":
+		return M.data.TargetPlayerIndex, nil
+
+	}
+
+	return 0, errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (M *__MoveDealInitialCardReader) SetPlayerIndexProp(name string, value boardgame.PlayerIndex) error {
+
+	switch name {
+	case "TargetPlayerIndex":
+		M.data.TargetPlayerIndex = value
+		return nil
+
+	}
+
+	return errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (M *__MoveDealInitialCardReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
+
+	return nil, errors.New("No such SizedStack prop: " + name)
+
+}
+
+func (M *__MoveDealInitialCardReader) SetSizedStackProp(name string, value *boardgame.SizedStack) error {
+
+	return errors.New("No such SizedStack prop: " + name)
+
+}
+
+func (M *__MoveDealInitialCardReader) StringProp(name string) (string, error) {
+
+	return "", errors.New("No such String prop: " + name)
+
+}
+
+func (M *__MoveDealInitialCardReader) SetStringProp(name string, value string) error {
+
+	return errors.New("No such String prop: " + name)
+
+}
+
+func (M *__MoveDealInitialCardReader) TimerProp(name string) (*boardgame.Timer, error) {
+
+	return nil, errors.New("No such Timer prop: " + name)
+
+}
+
+func (M *__MoveDealInitialCardReader) SetTimerProp(name string, value *boardgame.Timer) error {
+
+	return errors.New("No such Timer prop: " + name)
+
+}
+
 func (M *MoveDealInitialCard) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(M)
+	return &__MoveDealInitialCardReader{M}
 }
 
 // Implementation for MoveRevealHiddenCard
 
+var __MoveRevealHiddenCardReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
+	"TargetPlayerIndex": boardgame.TypePlayerIndex,
+}
+
+type __MoveRevealHiddenCardReader struct {
+	data *MoveRevealHiddenCard
+}
+
+func (M *__MoveRevealHiddenCardReader) Props() map[string]boardgame.PropertyType {
+	return __MoveRevealHiddenCardReaderProps
+}
+
+func (M *__MoveRevealHiddenCardReader) Prop(name string) (interface{}, error) {
+	props := M.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return nil, errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeBool:
+		return M.BoolProp(name)
+	case boardgame.TypeGrowableStack:
+		return M.GrowableStackProp(name)
+	case boardgame.TypeInt:
+		return M.IntProp(name)
+	case boardgame.TypePlayerIndex:
+		return M.PlayerIndexProp(name)
+	case boardgame.TypeSizedStack:
+		return M.SizedStackProp(name)
+	case boardgame.TypeString:
+		return M.StringProp(name)
+	case boardgame.TypeTimer:
+		return M.TimerProp(name)
+
+	}
+
+	return nil, errors.New("Unexpected property type: " + propType.String())
+}
+
+func (M *__MoveRevealHiddenCardReader) SetProp(name string, value interface{}) error {
+	props := M.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeBool:
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return M.SetBoolProp(name, val)
+	case boardgame.TypeGrowableStack:
+		val, ok := value.(*boardgame.GrowableStack)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.GrowableStack")
+		}
+		return M.SetGrowableStackProp(name, val)
+	case boardgame.TypeInt:
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return M.SetIntProp(name, val)
+	case boardgame.TypePlayerIndex:
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return M.SetPlayerIndexProp(name, val)
+	case boardgame.TypeSizedStack:
+		val, ok := value.(*boardgame.SizedStack)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.SizedStack")
+		}
+		return M.SetSizedStackProp(name, val)
+	case boardgame.TypeString:
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return M.SetStringProp(name, val)
+	case boardgame.TypeTimer:
+		val, ok := value.(*boardgame.Timer)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.Timer")
+		}
+		return M.SetTimerProp(name, val)
+
+	}
+
+	return errors.New("Unexpected property type: " + propType.String())
+}
+
+func (M *__MoveRevealHiddenCardReader) BoolProp(name string) (bool, error) {
+
+	return false, errors.New("No such Bool prop: " + name)
+
+}
+
+func (M *__MoveRevealHiddenCardReader) SetBoolProp(name string, value bool) error {
+
+	return errors.New("No such Bool prop: " + name)
+
+}
+
+func (M *__MoveRevealHiddenCardReader) GrowableStackProp(name string) (*boardgame.GrowableStack, error) {
+
+	return nil, errors.New("No such GrowableStack prop: " + name)
+
+}
+
+func (M *__MoveRevealHiddenCardReader) SetGrowableStackProp(name string, value *boardgame.GrowableStack) error {
+
+	return errors.New("No such GrowableStack prop: " + name)
+
+}
+
+func (M *__MoveRevealHiddenCardReader) IntProp(name string) (int, error) {
+
+	return 0, errors.New("No such Int prop: " + name)
+
+}
+
+func (M *__MoveRevealHiddenCardReader) SetIntProp(name string, value int) error {
+
+	return errors.New("No such Int prop: " + name)
+
+}
+
+func (M *__MoveRevealHiddenCardReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
+
+	switch name {
+	case "TargetPlayerIndex":
+		return M.data.TargetPlayerIndex, nil
+
+	}
+
+	return 0, errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (M *__MoveRevealHiddenCardReader) SetPlayerIndexProp(name string, value boardgame.PlayerIndex) error {
+
+	switch name {
+	case "TargetPlayerIndex":
+		M.data.TargetPlayerIndex = value
+		return nil
+
+	}
+
+	return errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (M *__MoveRevealHiddenCardReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
+
+	return nil, errors.New("No such SizedStack prop: " + name)
+
+}
+
+func (M *__MoveRevealHiddenCardReader) SetSizedStackProp(name string, value *boardgame.SizedStack) error {
+
+	return errors.New("No such SizedStack prop: " + name)
+
+}
+
+func (M *__MoveRevealHiddenCardReader) StringProp(name string) (string, error) {
+
+	return "", errors.New("No such String prop: " + name)
+
+}
+
+func (M *__MoveRevealHiddenCardReader) SetStringProp(name string, value string) error {
+
+	return errors.New("No such String prop: " + name)
+
+}
+
+func (M *__MoveRevealHiddenCardReader) TimerProp(name string) (*boardgame.Timer, error) {
+
+	return nil, errors.New("No such Timer prop: " + name)
+
+}
+
+func (M *__MoveRevealHiddenCardReader) SetTimerProp(name string, value *boardgame.Timer) error {
+
+	return errors.New("No such Timer prop: " + name)
+
+}
+
 func (M *MoveRevealHiddenCard) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(M)
+	return &__MoveRevealHiddenCardReader{M}
 }
 
 // Implementation for MoveCurrentPlayerHit
 
+var __MoveCurrentPlayerHitReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
+	"TargetPlayerIndex": boardgame.TypePlayerIndex,
+}
+
+type __MoveCurrentPlayerHitReader struct {
+	data *MoveCurrentPlayerHit
+}
+
+func (M *__MoveCurrentPlayerHitReader) Props() map[string]boardgame.PropertyType {
+	return __MoveCurrentPlayerHitReaderProps
+}
+
+func (M *__MoveCurrentPlayerHitReader) Prop(name string) (interface{}, error) {
+	props := M.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return nil, errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeBool:
+		return M.BoolProp(name)
+	case boardgame.TypeGrowableStack:
+		return M.GrowableStackProp(name)
+	case boardgame.TypeInt:
+		return M.IntProp(name)
+	case boardgame.TypePlayerIndex:
+		return M.PlayerIndexProp(name)
+	case boardgame.TypeSizedStack:
+		return M.SizedStackProp(name)
+	case boardgame.TypeString:
+		return M.StringProp(name)
+	case boardgame.TypeTimer:
+		return M.TimerProp(name)
+
+	}
+
+	return nil, errors.New("Unexpected property type: " + propType.String())
+}
+
+func (M *__MoveCurrentPlayerHitReader) SetProp(name string, value interface{}) error {
+	props := M.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeBool:
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return M.SetBoolProp(name, val)
+	case boardgame.TypeGrowableStack:
+		val, ok := value.(*boardgame.GrowableStack)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.GrowableStack")
+		}
+		return M.SetGrowableStackProp(name, val)
+	case boardgame.TypeInt:
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return M.SetIntProp(name, val)
+	case boardgame.TypePlayerIndex:
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return M.SetPlayerIndexProp(name, val)
+	case boardgame.TypeSizedStack:
+		val, ok := value.(*boardgame.SizedStack)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.SizedStack")
+		}
+		return M.SetSizedStackProp(name, val)
+	case boardgame.TypeString:
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return M.SetStringProp(name, val)
+	case boardgame.TypeTimer:
+		val, ok := value.(*boardgame.Timer)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.Timer")
+		}
+		return M.SetTimerProp(name, val)
+
+	}
+
+	return errors.New("Unexpected property type: " + propType.String())
+}
+
+func (M *__MoveCurrentPlayerHitReader) BoolProp(name string) (bool, error) {
+
+	return false, errors.New("No such Bool prop: " + name)
+
+}
+
+func (M *__MoveCurrentPlayerHitReader) SetBoolProp(name string, value bool) error {
+
+	return errors.New("No such Bool prop: " + name)
+
+}
+
+func (M *__MoveCurrentPlayerHitReader) GrowableStackProp(name string) (*boardgame.GrowableStack, error) {
+
+	return nil, errors.New("No such GrowableStack prop: " + name)
+
+}
+
+func (M *__MoveCurrentPlayerHitReader) SetGrowableStackProp(name string, value *boardgame.GrowableStack) error {
+
+	return errors.New("No such GrowableStack prop: " + name)
+
+}
+
+func (M *__MoveCurrentPlayerHitReader) IntProp(name string) (int, error) {
+
+	return 0, errors.New("No such Int prop: " + name)
+
+}
+
+func (M *__MoveCurrentPlayerHitReader) SetIntProp(name string, value int) error {
+
+	return errors.New("No such Int prop: " + name)
+
+}
+
+func (M *__MoveCurrentPlayerHitReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
+
+	switch name {
+	case "TargetPlayerIndex":
+		return M.data.TargetPlayerIndex, nil
+
+	}
+
+	return 0, errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (M *__MoveCurrentPlayerHitReader) SetPlayerIndexProp(name string, value boardgame.PlayerIndex) error {
+
+	switch name {
+	case "TargetPlayerIndex":
+		M.data.TargetPlayerIndex = value
+		return nil
+
+	}
+
+	return errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (M *__MoveCurrentPlayerHitReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
+
+	return nil, errors.New("No such SizedStack prop: " + name)
+
+}
+
+func (M *__MoveCurrentPlayerHitReader) SetSizedStackProp(name string, value *boardgame.SizedStack) error {
+
+	return errors.New("No such SizedStack prop: " + name)
+
+}
+
+func (M *__MoveCurrentPlayerHitReader) StringProp(name string) (string, error) {
+
+	return "", errors.New("No such String prop: " + name)
+
+}
+
+func (M *__MoveCurrentPlayerHitReader) SetStringProp(name string, value string) error {
+
+	return errors.New("No such String prop: " + name)
+
+}
+
+func (M *__MoveCurrentPlayerHitReader) TimerProp(name string) (*boardgame.Timer, error) {
+
+	return nil, errors.New("No such Timer prop: " + name)
+
+}
+
+func (M *__MoveCurrentPlayerHitReader) SetTimerProp(name string, value *boardgame.Timer) error {
+
+	return errors.New("No such Timer prop: " + name)
+
+}
+
 func (M *MoveCurrentPlayerHit) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(M)
+	return &__MoveCurrentPlayerHitReader{M}
 }
 
 // Implementation for MoveCurrentPlayerStand
 
+var __MoveCurrentPlayerStandReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
+	"TargetPlayerIndex": boardgame.TypePlayerIndex,
+}
+
+type __MoveCurrentPlayerStandReader struct {
+	data *MoveCurrentPlayerStand
+}
+
+func (M *__MoveCurrentPlayerStandReader) Props() map[string]boardgame.PropertyType {
+	return __MoveCurrentPlayerStandReaderProps
+}
+
+func (M *__MoveCurrentPlayerStandReader) Prop(name string) (interface{}, error) {
+	props := M.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return nil, errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeBool:
+		return M.BoolProp(name)
+	case boardgame.TypeGrowableStack:
+		return M.GrowableStackProp(name)
+	case boardgame.TypeInt:
+		return M.IntProp(name)
+	case boardgame.TypePlayerIndex:
+		return M.PlayerIndexProp(name)
+	case boardgame.TypeSizedStack:
+		return M.SizedStackProp(name)
+	case boardgame.TypeString:
+		return M.StringProp(name)
+	case boardgame.TypeTimer:
+		return M.TimerProp(name)
+
+	}
+
+	return nil, errors.New("Unexpected property type: " + propType.String())
+}
+
+func (M *__MoveCurrentPlayerStandReader) SetProp(name string, value interface{}) error {
+	props := M.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeBool:
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return M.SetBoolProp(name, val)
+	case boardgame.TypeGrowableStack:
+		val, ok := value.(*boardgame.GrowableStack)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.GrowableStack")
+		}
+		return M.SetGrowableStackProp(name, val)
+	case boardgame.TypeInt:
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return M.SetIntProp(name, val)
+	case boardgame.TypePlayerIndex:
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return M.SetPlayerIndexProp(name, val)
+	case boardgame.TypeSizedStack:
+		val, ok := value.(*boardgame.SizedStack)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.SizedStack")
+		}
+		return M.SetSizedStackProp(name, val)
+	case boardgame.TypeString:
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return M.SetStringProp(name, val)
+	case boardgame.TypeTimer:
+		val, ok := value.(*boardgame.Timer)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.Timer")
+		}
+		return M.SetTimerProp(name, val)
+
+	}
+
+	return errors.New("Unexpected property type: " + propType.String())
+}
+
+func (M *__MoveCurrentPlayerStandReader) BoolProp(name string) (bool, error) {
+
+	return false, errors.New("No such Bool prop: " + name)
+
+}
+
+func (M *__MoveCurrentPlayerStandReader) SetBoolProp(name string, value bool) error {
+
+	return errors.New("No such Bool prop: " + name)
+
+}
+
+func (M *__MoveCurrentPlayerStandReader) GrowableStackProp(name string) (*boardgame.GrowableStack, error) {
+
+	return nil, errors.New("No such GrowableStack prop: " + name)
+
+}
+
+func (M *__MoveCurrentPlayerStandReader) SetGrowableStackProp(name string, value *boardgame.GrowableStack) error {
+
+	return errors.New("No such GrowableStack prop: " + name)
+
+}
+
+func (M *__MoveCurrentPlayerStandReader) IntProp(name string) (int, error) {
+
+	return 0, errors.New("No such Int prop: " + name)
+
+}
+
+func (M *__MoveCurrentPlayerStandReader) SetIntProp(name string, value int) error {
+
+	return errors.New("No such Int prop: " + name)
+
+}
+
+func (M *__MoveCurrentPlayerStandReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
+
+	switch name {
+	case "TargetPlayerIndex":
+		return M.data.TargetPlayerIndex, nil
+
+	}
+
+	return 0, errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (M *__MoveCurrentPlayerStandReader) SetPlayerIndexProp(name string, value boardgame.PlayerIndex) error {
+
+	switch name {
+	case "TargetPlayerIndex":
+		M.data.TargetPlayerIndex = value
+		return nil
+
+	}
+
+	return errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (M *__MoveCurrentPlayerStandReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
+
+	return nil, errors.New("No such SizedStack prop: " + name)
+
+}
+
+func (M *__MoveCurrentPlayerStandReader) SetSizedStackProp(name string, value *boardgame.SizedStack) error {
+
+	return errors.New("No such SizedStack prop: " + name)
+
+}
+
+func (M *__MoveCurrentPlayerStandReader) StringProp(name string) (string, error) {
+
+	return "", errors.New("No such String prop: " + name)
+
+}
+
+func (M *__MoveCurrentPlayerStandReader) SetStringProp(name string, value string) error {
+
+	return errors.New("No such String prop: " + name)
+
+}
+
+func (M *__MoveCurrentPlayerStandReader) TimerProp(name string) (*boardgame.Timer, error) {
+
+	return nil, errors.New("No such Timer prop: " + name)
+
+}
+
+func (M *__MoveCurrentPlayerStandReader) SetTimerProp(name string, value *boardgame.Timer) error {
+
+	return errors.New("No such Timer prop: " + name)
+
+}
+
 func (M *MoveCurrentPlayerStand) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(M)
+	return &__MoveCurrentPlayerStandReader{M}
 }
 
 // Implementation for gameState
 
+var __gameStateReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
+	"CurrentPlayer": boardgame.TypePlayerIndex,
+	"DiscardStack":  boardgame.TypeGrowableStack,
+	"DrawStack":     boardgame.TypeGrowableStack,
+	"UnusedCards":   boardgame.TypeGrowableStack,
+}
+
+type __gameStateReader struct {
+	data *gameState
+}
+
+func (g *__gameStateReader) Props() map[string]boardgame.PropertyType {
+	return __gameStateReaderProps
+}
+
+func (g *__gameStateReader) Prop(name string) (interface{}, error) {
+	props := g.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return nil, errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeBool:
+		return g.BoolProp(name)
+	case boardgame.TypeGrowableStack:
+		return g.GrowableStackProp(name)
+	case boardgame.TypeInt:
+		return g.IntProp(name)
+	case boardgame.TypePlayerIndex:
+		return g.PlayerIndexProp(name)
+	case boardgame.TypeSizedStack:
+		return g.SizedStackProp(name)
+	case boardgame.TypeString:
+		return g.StringProp(name)
+	case boardgame.TypeTimer:
+		return g.TimerProp(name)
+
+	}
+
+	return nil, errors.New("Unexpected property type: " + propType.String())
+}
+
+func (g *__gameStateReader) SetProp(name string, value interface{}) error {
+	props := g.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeBool:
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return g.SetBoolProp(name, val)
+	case boardgame.TypeGrowableStack:
+		val, ok := value.(*boardgame.GrowableStack)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.GrowableStack")
+		}
+		return g.SetGrowableStackProp(name, val)
+	case boardgame.TypeInt:
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return g.SetIntProp(name, val)
+	case boardgame.TypePlayerIndex:
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return g.SetPlayerIndexProp(name, val)
+	case boardgame.TypeSizedStack:
+		val, ok := value.(*boardgame.SizedStack)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.SizedStack")
+		}
+		return g.SetSizedStackProp(name, val)
+	case boardgame.TypeString:
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return g.SetStringProp(name, val)
+	case boardgame.TypeTimer:
+		val, ok := value.(*boardgame.Timer)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.Timer")
+		}
+		return g.SetTimerProp(name, val)
+
+	}
+
+	return errors.New("Unexpected property type: " + propType.String())
+}
+
+func (g *__gameStateReader) BoolProp(name string) (bool, error) {
+
+	return false, errors.New("No such Bool prop: " + name)
+
+}
+
+func (g *__gameStateReader) SetBoolProp(name string, value bool) error {
+
+	return errors.New("No such Bool prop: " + name)
+
+}
+
+func (g *__gameStateReader) GrowableStackProp(name string) (*boardgame.GrowableStack, error) {
+
+	switch name {
+	case "DiscardStack":
+		return g.data.DiscardStack, nil
+	case "DrawStack":
+		return g.data.DrawStack, nil
+	case "UnusedCards":
+		return g.data.UnusedCards, nil
+
+	}
+
+	return nil, errors.New("No such GrowableStack prop: " + name)
+
+}
+
+func (g *__gameStateReader) SetGrowableStackProp(name string, value *boardgame.GrowableStack) error {
+
+	switch name {
+	case "DiscardStack":
+		g.data.DiscardStack = value
+		return nil
+	case "DrawStack":
+		g.data.DrawStack = value
+		return nil
+	case "UnusedCards":
+		g.data.UnusedCards = value
+		return nil
+
+	}
+
+	return errors.New("No such GrowableStack prop: " + name)
+
+}
+
+func (g *__gameStateReader) IntProp(name string) (int, error) {
+
+	return 0, errors.New("No such Int prop: " + name)
+
+}
+
+func (g *__gameStateReader) SetIntProp(name string, value int) error {
+
+	return errors.New("No such Int prop: " + name)
+
+}
+
+func (g *__gameStateReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
+
+	switch name {
+	case "CurrentPlayer":
+		return g.data.CurrentPlayer, nil
+
+	}
+
+	return 0, errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (g *__gameStateReader) SetPlayerIndexProp(name string, value boardgame.PlayerIndex) error {
+
+	switch name {
+	case "CurrentPlayer":
+		g.data.CurrentPlayer = value
+		return nil
+
+	}
+
+	return errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (g *__gameStateReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
+
+	return nil, errors.New("No such SizedStack prop: " + name)
+
+}
+
+func (g *__gameStateReader) SetSizedStackProp(name string, value *boardgame.SizedStack) error {
+
+	return errors.New("No such SizedStack prop: " + name)
+
+}
+
+func (g *__gameStateReader) StringProp(name string) (string, error) {
+
+	return "", errors.New("No such String prop: " + name)
+
+}
+
+func (g *__gameStateReader) SetStringProp(name string, value string) error {
+
+	return errors.New("No such String prop: " + name)
+
+}
+
+func (g *__gameStateReader) TimerProp(name string) (*boardgame.Timer, error) {
+
+	return nil, errors.New("No such Timer prop: " + name)
+
+}
+
+func (g *__gameStateReader) SetTimerProp(name string, value *boardgame.Timer) error {
+
+	return errors.New("No such Timer prop: " + name)
+
+}
+
 func (g *gameState) Reader() boardgame.PropertyReader {
-	return boardgame.DefaultReader(g)
+	return &__gameStateReader{g}
 }
 
 func (g *gameState) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(g)
+	return &__gameStateReader{g}
 }
 
 // Implementation for playerState
 
+var __playerStateReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
+	"Busted":         boardgame.TypeBool,
+	"GotInitialDeal": boardgame.TypeBool,
+	"HiddenHand":     boardgame.TypeGrowableStack,
+	"Stood":          boardgame.TypeBool,
+	"VisibleHand":    boardgame.TypeGrowableStack,
+}
+
+type __playerStateReader struct {
+	data *playerState
+}
+
+func (p *__playerStateReader) Props() map[string]boardgame.PropertyType {
+	return __playerStateReaderProps
+}
+
+func (p *__playerStateReader) Prop(name string) (interface{}, error) {
+	props := p.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return nil, errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeBool:
+		return p.BoolProp(name)
+	case boardgame.TypeGrowableStack:
+		return p.GrowableStackProp(name)
+	case boardgame.TypeInt:
+		return p.IntProp(name)
+	case boardgame.TypePlayerIndex:
+		return p.PlayerIndexProp(name)
+	case boardgame.TypeSizedStack:
+		return p.SizedStackProp(name)
+	case boardgame.TypeString:
+		return p.StringProp(name)
+	case boardgame.TypeTimer:
+		return p.TimerProp(name)
+
+	}
+
+	return nil, errors.New("Unexpected property type: " + propType.String())
+}
+
+func (p *__playerStateReader) SetProp(name string, value interface{}) error {
+	props := p.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeBool:
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return p.SetBoolProp(name, val)
+	case boardgame.TypeGrowableStack:
+		val, ok := value.(*boardgame.GrowableStack)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.GrowableStack")
+		}
+		return p.SetGrowableStackProp(name, val)
+	case boardgame.TypeInt:
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return p.SetIntProp(name, val)
+	case boardgame.TypePlayerIndex:
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return p.SetPlayerIndexProp(name, val)
+	case boardgame.TypeSizedStack:
+		val, ok := value.(*boardgame.SizedStack)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.SizedStack")
+		}
+		return p.SetSizedStackProp(name, val)
+	case boardgame.TypeString:
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return p.SetStringProp(name, val)
+	case boardgame.TypeTimer:
+		val, ok := value.(*boardgame.Timer)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.Timer")
+		}
+		return p.SetTimerProp(name, val)
+
+	}
+
+	return errors.New("Unexpected property type: " + propType.String())
+}
+
+func (p *__playerStateReader) BoolProp(name string) (bool, error) {
+
+	switch name {
+	case "GotInitialDeal":
+		return p.data.GotInitialDeal, nil
+	case "Busted":
+		return p.data.Busted, nil
+	case "Stood":
+		return p.data.Stood, nil
+
+	}
+
+	return false, errors.New("No such Bool prop: " + name)
+
+}
+
+func (p *__playerStateReader) SetBoolProp(name string, value bool) error {
+
+	switch name {
+	case "GotInitialDeal":
+		p.data.GotInitialDeal = value
+		return nil
+	case "Busted":
+		p.data.Busted = value
+		return nil
+	case "Stood":
+		p.data.Stood = value
+		return nil
+
+	}
+
+	return errors.New("No such Bool prop: " + name)
+
+}
+
+func (p *__playerStateReader) GrowableStackProp(name string) (*boardgame.GrowableStack, error) {
+
+	switch name {
+	case "HiddenHand":
+		return p.data.HiddenHand, nil
+	case "VisibleHand":
+		return p.data.VisibleHand, nil
+
+	}
+
+	return nil, errors.New("No such GrowableStack prop: " + name)
+
+}
+
+func (p *__playerStateReader) SetGrowableStackProp(name string, value *boardgame.GrowableStack) error {
+
+	switch name {
+	case "HiddenHand":
+		p.data.HiddenHand = value
+		return nil
+	case "VisibleHand":
+		p.data.VisibleHand = value
+		return nil
+
+	}
+
+	return errors.New("No such GrowableStack prop: " + name)
+
+}
+
+func (p *__playerStateReader) IntProp(name string) (int, error) {
+
+	return 0, errors.New("No such Int prop: " + name)
+
+}
+
+func (p *__playerStateReader) SetIntProp(name string, value int) error {
+
+	return errors.New("No such Int prop: " + name)
+
+}
+
+func (p *__playerStateReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
+
+	return 0, errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (p *__playerStateReader) SetPlayerIndexProp(name string, value boardgame.PlayerIndex) error {
+
+	return errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (p *__playerStateReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
+
+	return nil, errors.New("No such SizedStack prop: " + name)
+
+}
+
+func (p *__playerStateReader) SetSizedStackProp(name string, value *boardgame.SizedStack) error {
+
+	return errors.New("No such SizedStack prop: " + name)
+
+}
+
+func (p *__playerStateReader) StringProp(name string) (string, error) {
+
+	return "", errors.New("No such String prop: " + name)
+
+}
+
+func (p *__playerStateReader) SetStringProp(name string, value string) error {
+
+	return errors.New("No such String prop: " + name)
+
+}
+
+func (p *__playerStateReader) TimerProp(name string) (*boardgame.Timer, error) {
+
+	return nil, errors.New("No such Timer prop: " + name)
+
+}
+
+func (p *__playerStateReader) SetTimerProp(name string, value *boardgame.Timer) error {
+
+	return errors.New("No such Timer prop: " + name)
+
+}
+
 func (p *playerState) Reader() boardgame.PropertyReader {
-	return boardgame.DefaultReader(p)
+	return &__playerStateReader{p}
 }
 
 func (p *playerState) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter(p)
+	return &__playerStateReader{p}
 }
