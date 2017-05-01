@@ -264,40 +264,55 @@ func headerForStruct(useReflection bool, structName string, types map[string]boa
 		})
 	}
 
-	var propertyTypesInOrder []string
+	//propertyTypes is short name, golangValue
+	propertyTypes := make(map[string]string)
 
 	for i := boardgame.TypeInt; i <= boardgame.TypeTimer; i++ {
-		propertyTypesInOrder = append(propertyTypesInOrder, strings.TrimPrefix(i.String(), "Type"))
+
+		key := strings.TrimPrefix(i.String(), "Type")
+
+		goLangType := key
+		switch key {
+		case "Bool":
+			goLangType = "bool"
+		case "Int":
+			goLangType = "int"
+		case "String":
+			goLangType = "string"
+		case "PlayerIndex":
+			goLangType = "boardgame.PlayerIndex"
+		default:
+			goLangType = "*boardgame." + goLangType
+		}
+
+		propertyTypes[key] = goLangType
 	}
 
 	output := templateOutput(structHeaderTemplate, map[string]interface{}{
 		"structName":    structName,
 		"firstLetter":   structName[:1],
 		"readerName":    "__" + structName + "Reader",
-		"propertyTypes": propertyTypesInOrder,
+		"propertyTypes": propertyTypes,
 		"types":         types,
 	})
 
-	for _, propType := range propertyTypesInOrder {
+	for propType, goLangType := range propertyTypes {
 
-		goLangType := propType
 		zeroValue := "nil"
 
-		switch goLangType {
+		switch propType {
 		case "Bool":
-			goLangType = "bool"
+
 			zeroValue = "false"
 		case "Int":
-			goLangType = "int"
+
 			zeroValue = "0"
 		case "String":
-			goLangType = "string"
+
 			zeroValue = "\"\""
 		case "PlayerIndex":
-			goLangType = "boardgame.PlayerIndex"
+
 			zeroValue = "0"
-		default:
-			goLangType = "*boardgame." + goLangType
 		}
 
 		var namesForType []string
@@ -395,7 +410,7 @@ func ({{.firstLetter}} *{{.readerName}}) Prop(name string) (interface{}, error) 
 	{{$firstLetter := .firstLetter}}
 
 	switch propType {
-	{{range $type := .propertyTypes -}}
+	{{range $type, $goLangtype := .propertyTypes -}}
 	case boardgame.Type{{$type}}:
 		return {{$firstLetter}}.{{$type}}Prop(name)
 	{{end}}
@@ -404,6 +419,27 @@ func ({{.firstLetter}} *{{.readerName}}) Prop(name string) (interface{}, error) 
 	return nil, errors.New("Unexpected property type: " + propType)
 }
 
+func ({{.firstLetter}} *{{.readerName}}) SetProp(name string, value interface{}) error {
+	props := {{.firstLetter}}.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	{{range $type, $goLangType := .propertyTypes -}}
+	case boardgame.Type{{$type}}:
+		val, ok := value.({{$goLangType}})
+		if !ok {
+			return errors.New("Provided value was not of type {{$goLangType}}")
+		}
+		return {{$firstLetter}}.Set{{$type}}Prop(name, val)
+	{{end}}
+	}
+
+	return errors.New("Unexpected property type: " + propType)
+}
 `
 
 const typedPropertyTemplateText = `func ({{.firstLetter}} *{{.readerName}}) {{.propType}}Prop(name string) ({{.goLangType}}, error) {
