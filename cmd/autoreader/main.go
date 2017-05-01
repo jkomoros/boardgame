@@ -482,11 +482,12 @@ func ({{.firstLetter}} *{{.readerName}}) SetProp(name string, value interface{})
 `
 
 const typedPropertyTemplateText = `func ({{.firstLetter}} *{{.readerName}}) {{.propType}}Prop(name string) ({{.goLangType}}, error) {
+	{{$firstLetter := .firstLetter}}
 	{{if .namesForType}}
 	switch name {
 		{{range .namesForType -}}
 			case "{{.}}":
-				return m.data.{{.}}, nil
+				return {{$firstLetter}}.data.{{.}}, nil
 		{{end}}
 	}
 	{{end}}
@@ -501,7 +502,7 @@ func ({{.firstLetter}} *{{.readerName}}) Set{{.propType}}Prop(name string, value
 	switch name {
 		{{range .namesForType -}}
 			case "{{.}}":
-				m.data.{{.}} = value
+				{{$firstLetter}}.data.{{.}} = value
 				return nil
 		{{end}}
 	}

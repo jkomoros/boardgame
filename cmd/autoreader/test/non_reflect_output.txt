@@ -557,7 +557,7 @@ func (o *__onlyReaderReader) StringProp(name string) (string, error) {
 
 	switch name {
 	case "MyString":
-		return m.data.MyString, nil
+		return o.data.MyString, nil
 
 	}
 
@@ -703,7 +703,7 @@ func (o *__onlyReadSetterReader) IntProp(name string) (int, error) {
 
 	switch name {
 	case "MyInt":
-		return m.data.MyInt, nil
+		return o.data.MyInt, nil
 
 	}
 
@@ -715,7 +715,7 @@ func (o *__onlyReadSetterReader) SetIntProp(name string, value int) error {
 
 	switch name {
 	case "MyInt":
-		m.data.MyInt = value
+		o.data.MyInt = value
 		return nil
 
 	}
