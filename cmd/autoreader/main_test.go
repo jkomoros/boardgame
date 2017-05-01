@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"github.com/workfit/tester/assert"
 	"io/ioutil"
+	"log"
+	"os/exec"
 	"testing"
 )
 
@@ -44,5 +46,32 @@ func TestNonReflectOutput(t *testing.T) {
 	assert.For(t).ThatActual(err).IsNil()
 
 	assert.For(t).ThatActual(out.String()).Equals(string(expectedBytes)).ThenDiffOnFail()
+
+}
+
+func TestBuild(t *testing.T) {
+
+	log.Println("WARNING: running this command builds and `go install`s autoreader")
+
+	//Make sure a recent version of us is built
+	cmd := exec.Command("go", "install")
+
+	err := cmd.Run()
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	cmd = exec.Command("go", "generate")
+	cmd.Dir = "examplepkg/"
+
+	err = cmd.Run()
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	cmd = exec.Command("go", "test")
+	cmd.Dir = "./examplepkg/"
+
+	err = cmd.Run()
+
+	assert.For(t).ThatActual(err).IsNil()
 
 }
