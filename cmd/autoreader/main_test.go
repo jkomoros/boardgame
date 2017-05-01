@@ -58,20 +58,26 @@ func TestBuild(t *testing.T) {
 
 	err := cmd.Run()
 
-	assert.For(t).ThatActual(err).IsNil()
+	if !assert.For(t).ThatActual(err).IsNil().Passed() {
+		log.Println(err)
+	}
 
 	cmd = exec.Command("go", "generate")
 	cmd.Dir = "examplepkg/"
 
 	err = cmd.Run()
 
-	assert.For(t).ThatActual(err).IsNil()
+	if !assert.For(t).ThatActual(err).IsNil().Passed() {
+		log.Println(err)
+	}
 
 	cmd = exec.Command("go", "test")
 	cmd.Dir = "./examplepkg/"
 
 	err = cmd.Run()
 
-	assert.For(t).ThatActual(err).IsNil()
+	if !assert.For(t).ThatActual(err).IsNil().Passed() {
+		log.Println(err)
+	}
 
 }
