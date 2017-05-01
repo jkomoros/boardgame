@@ -304,7 +304,7 @@ func headerForStruct(useReflection bool, structName string, types map[string]boa
 
 	output := templateOutput(structHeaderTemplate, map[string]interface{}{
 		"structName":       structName,
-		"firstLetter":      structName[:1],
+		"firstLetter":      strings.ToLower(structName[:1]),
 		"readerName":       "__" + structName + "Reader",
 		"propertyTypes":    propertyTypes,
 		"types":            types,
@@ -352,7 +352,7 @@ func headerForStruct(useReflection bool, structName string, types map[string]boa
 
 		output += templateOutput(typedPropertyTemplate, map[string]interface{}{
 			"structName":       structName,
-			"firstLetter":      structName[:1],
+			"firstLetter":      strings.ToLower(structName[:1]),
 			"readerName":       "__" + structName + "Reader",
 			"propType":         propType,
 			"namesForType":     namesForType,
@@ -376,7 +376,7 @@ func readerForStruct(useReflection bool, structName string) string {
 	}
 
 	return templateOutput(readerTemplate, map[string]string{
-		"firstLetter": structName[:1],
+		"firstLetter": strings.ToLower(structName[:1]),
 		"structName":  structName,
 		"readerName":  "__" + structName + "Reader",
 	})
@@ -392,7 +392,7 @@ func readSetterForStruct(useReflection bool, structName string) string {
 	}
 
 	return templateOutput(readSetterTemplate, map[string]string{
-		"firstLetter": structName[:1],
+		"firstLetter": strings.ToLower(structName[:1]),
 		"structName":  structName,
 		"readerName":  "__" + structName + "Reader",
 	})
