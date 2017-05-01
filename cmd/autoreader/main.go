@@ -46,7 +46,9 @@ var headerTemplate *template.Template
 var structHeaderTemplate *template.Template
 var typedPropertyTemplate *template.Template
 var reflectStructHeaderTemplate *template.Template
+var readerTemplate *template.Template
 var reflectReaderTemplate *template.Template
+var readSetterTemplate *template.Template
 var reflectReadSetterTemplate *template.Template
 
 const magicDocLinePrefix = "+autoreader"
@@ -70,7 +72,9 @@ func init() {
 	structHeaderTemplate = template.Must(template.New("structHeader").Parse(structHeaderTemplateText))
 	typedPropertyTemplate = template.Must(template.New("typedProperty").Parse(typedPropertyTemplateText))
 	reflectStructHeaderTemplate = template.Must(template.New("structHeader").Parse(reflectStructHeaderTemplateText))
+	readerTemplate = template.Must(template.New("reader").Parse(readerTemplateText))
 	reflectReaderTemplate = template.Must(template.New("reader").Parse(reflectReaderTemplateText))
+	readSetterTemplate = template.Must(template.New("readsetter").Parse(readSetterTemplateText))
 	reflectReadSetterTemplate = template.Must(template.New("readsetter").Parse(reflectReadSetterTemplateText))
 
 }
@@ -340,18 +344,35 @@ func headerForStruct(useReflection bool, structName string, types map[string]boa
 
 func readerForStruct(useReflection bool, structName string) string {
 
-	return templateOutput(reflectReaderTemplate, templateConfig{
-		FirstLetter: structName[:1],
-		StructName:  structName,
+	if useReflection {
+		return templateOutput(reflectReaderTemplate, templateConfig{
+			FirstLetter: structName[:1],
+			StructName:  structName,
+		})
+	}
+
+	return templateOutput(readerTemplate, map[string]string{
+		"firstLetter": structName[:1],
+		"structName":  structName,
+		"readerName":  "__" + structName + "Reader",
 	})
 
 }
 
 func readSetterForStruct(useReflection bool, structName string) string {
-	return templateOutput(reflectReadSetterTemplate, templateConfig{
-		FirstLetter: structName[:1],
-		StructName:  structName,
+	if useReflection {
+		return templateOutput(reflectReadSetterTemplate, templateConfig{
+			FirstLetter: structName[:1],
+			StructName:  structName,
+		})
+	}
+
+	return templateOutput(readSetterTemplate, map[string]string{
+		"firstLetter": structName[:1],
+		"structName":  structName,
+		"readerName":  "__" + structName + "Reader",
 	})
+
 }
 
 const headerTemplateText = `/************************************
@@ -473,8 +494,20 @@ func ({{.firstLetter}} *{{.readerName}}) Set{{.propType}}Prop(name string, value
 
 `
 
+const readerTemplateText = `func ({{.firstLetter}} *{{.structName}}) Reader() boardgame.PropertyReader {
+	return &{{.readerName}}{ {{.firstLetter}} }
+}
+
+`
+
 const reflectReaderTemplateText = `func ({{.FirstLetter}} *{{.StructName}}) Reader() boardgame.PropertyReader {
 	return boardgame.DefaultReader({{.FirstLetter}})
+}
+
+`
+
+const readSetterTemplateText = `func ({{.firstLetter}} *{{.structName}}) ReadSetter() boardgame.PropertyReadSetter {
+	return &{{.readerName}}{ {{.firstLetter}} }
 }
 
 `
