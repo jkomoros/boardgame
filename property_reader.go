@@ -21,6 +21,10 @@ type PropertyReader interface {
 	IntProp(name string) (int, error)
 	BoolProp(name string) (bool, error)
 	StringProp(name string) (string, error)
+	IntSliceProp(name string) ([]int, error)
+	BoolSliceProp(name string) ([]bool, error)
+	StringSliceProp(name string) ([]string, error)
+	PlayerIndexSliceProp(name string) ([]PlayerIndex, error)
 	PlayerIndexProp(name string) (PlayerIndex, error)
 	GrowableStackProp(name string) (*GrowableStack, error)
 	SizedStackProp(name string) (*SizedStack, error)
@@ -41,6 +45,10 @@ const (
 	TypeBool
 	TypeString
 	TypePlayerIndex
+	TypeIntSlice
+	TypeBoolSlice
+	TypeStringSlice
+	TypePlayerIndexSlice
 	TypeGrowableStack
 	TypeSizedStack
 	TypeTimer
@@ -57,6 +65,10 @@ type PropertyReadSetter interface {
 	SetBoolProp(name string, value bool) error
 	SetStringProp(name string, value string) error
 	SetPlayerIndexProp(name string, value PlayerIndex) error
+	SetIntSliceProp(name string, value []int) error
+	SetBoolSliceProp(name string, value []bool) error
+	SetStringSliceProp(name string, value []string) error
+	SetPlayerIndexSliceProp(name string, value []PlayerIndex) error
 	SetGrowableStackProp(name string, value *GrowableStack) error
 	SetSizedStackProp(name string, value *SizedStack) error
 	SetTimerProp(name string, value *Timer) error
@@ -78,6 +90,14 @@ func (t PropertyType) String() string {
 		return "TypeString"
 	case TypePlayerIndex:
 		return "TypePlayerIndex"
+	case TypeIntSlice:
+		return "TypeIntSlice"
+	case TypeBoolSlice:
+		return "TypeBoolSlice"
+	case TypeStringSlice:
+		return "TypeStringSlice"
+	case TypePlayerIndexSlice:
+		return "TypePlayerIndexSlice"
 	case TypeGrowableStack:
 		return "TypeGrowableStack"
 	case TypeSizedStack:
@@ -200,6 +220,18 @@ func (d *defaultReader) Props() map[string]PropertyType {
 				}
 			case reflect.String:
 				pType = TypeString
+			case reflect.Slice:
+				sliceType := field.Type().String()
+
+				if strings.Contains(sliceType, "string") {
+					pType = TypeStringSlice
+				} else if strings.Contains(sliceType, "int") {
+					pType = TypeIntSlice
+				} else if strings.Contains(sliceType, "bool") {
+					pType = TypeBoolSlice
+				} else if strings.Contains(sliceType, "PlayerIndex") {
+					pType = TypePlayerIndexSlice
+				}
 			case reflect.Ptr:
 				//Is it a growable stack or a sizedStack?
 				ptrType := field.Type().String()
@@ -272,6 +304,86 @@ func (d *defaultReader) PlayerIndexProp(name string) (PlayerIndex, error) {
 
 	s := reflect.ValueOf(d.i).Elem()
 	return PlayerIndex(s.FieldByName(name).Int()), nil
+}
+
+func (d *defaultReader) IntSliceProp(name string) ([]int, error) {
+	//Verify that this seems legal.
+	props := d.Props()
+
+	if props[name] != TypeIntSlice {
+		return nil, errors.New("That property is not an int slice: " + name)
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+	field := s.FieldByName(name)
+
+	result := make([]int, field.Len())
+
+	for i := 0; i < field.Len(); i++ {
+		result[i] = int(field.Index(i).Int())
+	}
+
+	return result, nil
+}
+
+func (d *defaultReader) BoolSliceProp(name string) ([]bool, error) {
+	//Verify that this seems legal.
+	props := d.Props()
+
+	if props[name] != TypeBoolSlice {
+		return nil, errors.New("That property is not a bool slice: " + name)
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+	field := s.FieldByName(name)
+
+	result := make([]bool, field.Len())
+
+	for i := 0; i < field.Len(); i++ {
+		result[i] = field.Index(i).Bool()
+	}
+
+	return result, nil
+}
+
+func (d *defaultReader) StringSliceProp(name string) ([]string, error) {
+	//Verify that this seems legal.
+	props := d.Props()
+
+	if props[name] != TypeStringSlice {
+		return nil, errors.New("That property is not a string slice: " + name)
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+	field := s.FieldByName(name)
+
+	result := make([]string, field.Len())
+
+	for i := 0; i < field.Len(); i++ {
+		result[i] = field.Index(i).String()
+	}
+
+	return result, nil
+}
+
+func (d *defaultReader) PlayerIndexSliceProp(name string) ([]PlayerIndex, error) {
+	//Verify that this seems legal.
+	props := d.Props()
+
+	if props[name] != TypePlayerIndexSlice {
+		return nil, errors.New("That property is not a player index slice: " + name)
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+	field := s.FieldByName(name)
+
+	result := make([]PlayerIndex, field.Len())
+
+	for i := 0; i < field.Len(); i++ {
+		result[i] = PlayerIndex(field.Index(i).Int())
+	}
+
+	return result, nil
 }
 
 func (d *defaultReader) GrowableStackProp(name string) (*GrowableStack, error) {
