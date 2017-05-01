@@ -37,6 +37,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"sort"
 	"strings"
 	"text/template"
 	"unicode"
@@ -300,7 +301,19 @@ func headerForStruct(useReflection bool, structName string, types map[string]boa
 		"types":         types,
 	})
 
-	for propType, goLangType := range propertyTypes {
+	sortedKeys := make([]string, len(propertyTypes))
+	i := 0
+
+	for propType, _ := range propertyTypes {
+		sortedKeys[i] = propType
+		i++
+	}
+
+	sort.Strings(sortedKeys)
+
+	for _, propType := range sortedKeys {
+
+		goLangType := propertyTypes[propType]
 
 		zeroValue := "nil"
 
