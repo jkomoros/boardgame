@@ -7,6 +7,33 @@ import (
 	"testing"
 )
 
+func BenchmarkMoves(b *testing.B) {
+	manager := NewManager(memory.NewStorageManager())
+
+	for j := 0; j < b.N; j++ {
+
+		game := boardgame.NewGame(manager)
+
+		game.SetUp(2, nil)
+
+		for i := 0; i < 10; i++ {
+
+			move := game.PlayerMoveByName("Reveal Card")
+
+			<-game.ProposeMove(move, game.CurrentPlayerIndex())
+
+			move = game.PlayerMoveByName("Reveal Card")
+
+			<-game.ProposeMove(move, game.CurrentPlayerIndex())
+
+			move = game.PlayerMoveByName("Hide Cards")
+
+			<-game.ProposeMove(move, game.CurrentPlayerIndex())
+		}
+	}
+
+}
+
 func TestMain(t *testing.T) {
 	manager := NewManager(memory.NewStorageManager())
 

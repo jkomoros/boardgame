@@ -25,7 +25,7 @@
 	uses reflection (via board.DefaultReader) to implement the Readers and
 	ReadSetters (by passing -reflect). The pro is that you only need to run
 	`go generate` when you add or remove a struct; the downside is that run-
-	time performance will be worse.
+	time performance will be worse (roughly 30% worse in typical workloads).
 
 	The defaults are set reasonably so that you can use go:generate very
 	easily. See examplepkg/ for a very simple example.
