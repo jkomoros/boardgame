@@ -144,7 +144,7 @@ func processPackage(useReflection bool, location string) (output string, err err
 		types := structTypes(theStruct)
 
 		if outputReader || outputReadSetter {
-			output += headerForStruct(useReflection, theStruct.Name, types)
+			output += headerForStruct(useReflection, theStruct.Name, types, outputReadSetter)
 		}
 
 		if outputReader {
@@ -261,7 +261,7 @@ func headerForPackage(useReflection bool, packageName string) string {
 	}) + importTextToUse
 }
 
-func headerForStruct(useReflection bool, structName string, types map[string]boardgame.PropertyType) string {
+func headerForStruct(useReflection bool, structName string, types map[string]boardgame.PropertyType, outputReadSetter bool) string {
 
 	if useReflection {
 		return templateOutput(reflectStructHeaderTemplate, map[string]string{
@@ -294,11 +294,12 @@ func headerForStruct(useReflection bool, structName string, types map[string]boa
 	}
 
 	output := templateOutput(structHeaderTemplate, map[string]interface{}{
-		"structName":    structName,
-		"firstLetter":   structName[:1],
-		"readerName":    "__" + structName + "Reader",
-		"propertyTypes": propertyTypes,
-		"types":         types,
+		"structName":       structName,
+		"firstLetter":      structName[:1],
+		"readerName":       "__" + structName + "Reader",
+		"propertyTypes":    propertyTypes,
+		"types":            types,
+		"outputReadSetter": outputReadSetter,
 	})
 
 	sortedKeys := make([]string, len(propertyTypes))
@@ -341,13 +342,14 @@ func headerForStruct(useReflection bool, structName string, types map[string]boa
 		}
 
 		output += templateOutput(typedPropertyTemplate, map[string]interface{}{
-			"structName":   structName,
-			"firstLetter":  structName[:1],
-			"readerName":   "__" + structName + "Reader",
-			"propType":     propType,
-			"namesForType": namesForType,
-			"goLangType":   goLangType,
-			"zeroValue":    zeroValue,
+			"structName":       structName,
+			"firstLetter":      structName[:1],
+			"readerName":       "__" + structName + "Reader",
+			"propType":         propType,
+			"namesForType":     namesForType,
+			"goLangType":       goLangType,
+			"zeroValue":        zeroValue,
+			"outputReadSetter": outputReadSetter,
 		})
 	}
 
@@ -453,6 +455,7 @@ func ({{.firstLetter}} *{{.readerName}}) Prop(name string) (interface{}, error) 
 	return nil, errors.New("Unexpected property type: " + propType)
 }
 
+{{if .outputReadSetter -}}
 func ({{.firstLetter}} *{{.readerName}}) SetProp(name string, value interface{}) error {
 	props := {{.firstLetter}}.Props()
 	propType, ok := props[name]
@@ -474,6 +477,8 @@ func ({{.firstLetter}} *{{.readerName}}) SetProp(name string, value interface{})
 
 	return errors.New("Unexpected property type: " + propType)
 }
+
+{{end}}
 `
 
 const typedPropertyTemplateText = `func ({{.firstLetter}} *{{.readerName}}) {{.propType}}Prop(name string) ({{.goLangType}}, error) {
@@ -490,6 +495,7 @@ const typedPropertyTemplateText = `func ({{.firstLetter}} *{{.readerName}}) {{.p
 
 }
 
+{{if .outputReadSetter -}}
 func ({{.firstLetter}} *{{.readerName}}) Set{{.propType}}Prop(name string, value {{.goLangType}}) error {
 	{{if .namesForType}}
 	switch name {
@@ -505,6 +511,7 @@ func ({{.firstLetter}} *{{.readerName}}) Set{{.propType}}Prop(name string, value
 
 }
 
+{{end}}
 `
 
 const readerTemplateText = `func ({{.firstLetter}} *{{.structName}}) Reader() boardgame.PropertyReader {
