@@ -25,7 +25,7 @@ type myStruct struct {
 type myOtherStruct struct {
 	blarg           int
 	MyGrowableStack *boardgame.GrowableStack
-	ThePlayerIndex  *boardgame.PlayerIndex
+	ThePlayerIndex  boardgame.PlayerIndex
 }
 
 type noReaderStruct struct {
