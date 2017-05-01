@@ -57,7 +57,7 @@ func (m *__myStructReader) Prop(name string) (interface{}, error) {
 
 	}
 
-	return nil, errors.New("Unexpected property type: " + propType)
+	return nil, errors.New("Unexpected property type: " + propType.String())
 }
 
 func (m *__myStructReader) SetProp(name string, value interface{}) error {
@@ -114,7 +114,7 @@ func (m *__myStructReader) SetProp(name string, value interface{}) error {
 
 	}
 
-	return errors.New("Unexpected property type: " + propType)
+	return errors.New("Unexpected property type: " + propType.String())
 }
 
 func (m *__myStructReader) BoolProp(name string) (bool, error) {
@@ -302,7 +302,7 @@ func (m *__myOtherStructReader) Prop(name string) (interface{}, error) {
 
 	}
 
-	return nil, errors.New("Unexpected property type: " + propType)
+	return nil, errors.New("Unexpected property type: " + propType.String())
 }
 
 func (m *__myOtherStructReader) SetProp(name string, value interface{}) error {
@@ -359,7 +359,7 @@ func (m *__myOtherStructReader) SetProp(name string, value interface{}) error {
 
 	}
 
-	return errors.New("Unexpected property type: " + propType)
+	return errors.New("Unexpected property type: " + propType.String())
 }
 
 func (m *__myOtherStructReader) BoolProp(name string) (bool, error) {
@@ -520,7 +520,7 @@ func (o *__onlyReaderReader) Prop(name string) (interface{}, error) {
 
 	}
 
-	return nil, errors.New("Unexpected property type: " + propType)
+	return nil, errors.New("Unexpected property type: " + propType.String())
 }
 
 func (o *__onlyReaderReader) BoolProp(name string) (bool, error) {
@@ -615,7 +615,7 @@ func (o *__onlyReadSetterReader) Prop(name string) (interface{}, error) {
 
 	}
 
-	return nil, errors.New("Unexpected property type: " + propType)
+	return nil, errors.New("Unexpected property type: " + propType.String())
 }
 
 func (o *__onlyReadSetterReader) SetProp(name string, value interface{}) error {
@@ -672,7 +672,7 @@ func (o *__onlyReadSetterReader) SetProp(name string, value interface{}) error {
 
 	}
 
-	return errors.New("Unexpected property type: " + propType)
+	return errors.New("Unexpected property type: " + propType.String())
 }
 
 func (o *__onlyReadSetterReader) BoolProp(name string) (bool, error) {

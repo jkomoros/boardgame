@@ -452,7 +452,7 @@ func ({{.firstLetter}} *{{.readerName}}) Prop(name string) (interface{}, error) 
 	{{end}}
 	}
 
-	return nil, errors.New("Unexpected property type: " + propType)
+	return nil, errors.New("Unexpected property type: " + propType.String())
 }
 
 {{if .outputReadSetter -}}
@@ -475,7 +475,7 @@ func ({{.firstLetter}} *{{.readerName}}) SetProp(name string, value interface{})
 	{{end}}
 	}
 
-	return errors.New("Unexpected property type: " + propType)
+	return errors.New("Unexpected property type: " + propType.String())
 }
 
 {{end}}
