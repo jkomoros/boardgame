@@ -331,6 +331,42 @@ func copyReader(input PropertyReader, outputContainer PropertyReadSetter) error 
 			if err != nil {
 				return errors.New(propName + " could not be set on output: " + err.Error())
 			}
+		case TypeIntSlice:
+			intSliceVal, err := input.IntSliceProp(propName)
+			if err != nil {
+				return errors.New(propName + " did not return an int slice as expected: " + err.Error())
+			}
+			err = outputContainer.SetIntSliceProp(propName, intSliceVal)
+			if err != nil {
+				return errors.New(propName + " could not be set on output: " + err.Error())
+			}
+		case TypeBoolSlice:
+			boolSliceVal, err := input.BoolSliceProp(propName)
+			if err != nil {
+				return errors.New(propName + " did not return an bool slice as expected: " + err.Error())
+			}
+			err = outputContainer.SetBoolSliceProp(propName, boolSliceVal)
+			if err != nil {
+				return errors.New(propName + " could not be set on output: " + err.Error())
+			}
+		case TypeStringSlice:
+			stringSliceVal, err := input.StringSliceProp(propName)
+			if err != nil {
+				return errors.New(propName + " did not return an string slice as expected: " + err.Error())
+			}
+			err = outputContainer.SetStringSliceProp(propName, stringSliceVal)
+			if err != nil {
+				return errors.New(propName + " could not be set on output: " + err.Error())
+			}
+		case TypePlayerIndexSlice:
+			playerIndexSliceVal, err := input.PlayerIndexSliceProp(propName)
+			if err != nil {
+				return errors.New(propName + " did not return a player index slice as expected: " + err.Error())
+			}
+			err = outputContainer.SetPlayerIndexSliceProp(propName, playerIndexSliceVal)
+			if err != nil {
+				return errors.New(propName + " could not be set on output: " + err.Error())
+			}
 		case TypeGrowableStack:
 			growableStackVal, err := input.GrowableStackProp(propName)
 			if err != nil {
