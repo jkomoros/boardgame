@@ -19,6 +19,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/paper-listbox/paper-listbox.html">
 <link rel="import" href="../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-radio-button/paper-radio-button.html">
+<link rel="import" href="../bower_components/paper-radio-group/paper-radio-group.html">
 <link rel="import" href="shared-styles.html">
 
 <dom-module id="boardgame-create-game">
@@ -46,6 +48,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             <template is="dom-repeat" items="{{players}}">
               <div class="flex">
                 Player {{index}}
+                <paper-radio-group name="agent-player-{{index}}" selected="player">
+                  <paper-radio-button name="player">Real Live Human</paper-radio-button>
+                  <template is="dom-repeat" items="{{selectedManager.data.Agents}}">
+                    <paper-radio-button name="{{item}}">{{item}}</paper-radio-button>
+                  </template>
+                </paper-radio-group>
               </div>
             </template>
           </div>
