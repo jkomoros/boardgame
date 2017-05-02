@@ -28,17 +28,29 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         margin-left: 1em;
       }
     </style>
-      <form id="creategame" is="iron-form" method="POST" with-credentials action="[[NewGameUrl(apiHost)]]" class="horizontal layout center">
-        <paper-dropdown-menu name="manager" label="Game Type">
-          <paper-listbox class="dropdown-content" selected="0">
-            <template is="dom-repeat" items="{{data.Managers}}">
-              <paper-item value="{{item.Name}}">{{item.Name}}</paper-item> 
+      <form id="creategame" is="iron-form" method="POST" with-credentials action="[[NewGameUrl(apiHost)]]"horizontal layout center>
+        <div class="vertical layout">
+          <div class="horizontal layout center">
+            <paper-dropdown-menu name="manager" label="Game Type">
+              <paper-listbox class="dropdown-content" selected="0" selected-item="{{selectedManager}}">
+                <template is="dom-repeat" items="{{data.Managers}}">
+                  <paper-item value="{{item.Name}}" data="{{item}}">{{item.Name}}</paper-item> 
+                </template>
+              </paper-listbox>
+            </paper-dropdown-menu>
+            <paper-input name="numplayers" label="Number of Players (0 for default)" value="{{numPlayers}}" min="0" type="number" prevent-invalid-input></paper-input>
+            <div class="flex"></div>
+            <paper-button on-tap="createGame" default raised>Create Game</paper-button>
+          </div>
+          <div class="horizontal layout justified">
+            <template is="dom-repeat" items="{{players}}">
+              <div class="flex">
+                Player {{index}}
+              </div>
             </template>
-          </paper-listbox>
-        </paper-dropdown-menu>
-        <paper-input name="numplayers" label="Number of Players (0 for default)" value="0" min="0" type="number" prevent-invalid-input></paper-input>
-        <div class="flex"></div>
-        <paper-button on-tap="createGame" default raised>Create Game</paper-button>
+          </div>
+        </div>
+
       </form>
     <iron-ajax auto url="[[ListManagersUrl(apiHost)]]" handle-as="json" last-response="{{data}}">
   </template>
@@ -49,8 +61,27 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       properties: {
         data: Object,
         loggedIn: Boolean,
+        selectedManager: Object,
+        numPlayers: Number,
+        players: {
+          type: Object,
+          computed: "_computePlayers(selectedManager, numPlayers)",
+        }
       },
       behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
+
+      _computePlayers: function(selectedManager, numPlayers) {
+        if (!selectedManager) return [];
+        var data = selectedManager.data;
+        if (numPlayers == 0) {
+          numPlayers = data.DefaultNumPlayers;
+        }
+        var result = [];
+        for (var i = 0; i < numPlayers; i++) {
+          result.push("");
+        }
+        return result;
+      },
 
       createGame: function() {
         if (!this.loggedIn) {
