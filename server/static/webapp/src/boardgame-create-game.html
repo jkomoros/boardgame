@@ -31,8 +31,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <form id="creategame" is="iron-form" method="POST" with-credentials action="[[NewGameUrl(apiHost)]]" class="horizontal layout center">
         <paper-dropdown-menu name="manager" label="Game Type">
           <paper-listbox class="dropdown-content" selected="0">
-            <template is="dom-repeat" items="{{managers.Managers}}">
-              <paper-item value="{{item}}">{{item}}</paper-item> 
+            <template is="dom-repeat" items="{{data.Managers}}">
+              <paper-item value="{{item.Name}}">{{item.Name}}</paper-item> 
             </template>
           </paper-listbox>
         </paper-dropdown-menu>
@@ -40,14 +40,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <div class="flex"></div>
         <paper-button on-tap="createGame" default raised>Create Game</paper-button>
       </form>
-    <iron-ajax auto url="[[ListManagersUrl(apiHost)]]" handle-as="json" last-response="{{managers}}">
+    <iron-ajax auto url="[[ListManagersUrl(apiHost)]]" handle-as="json" last-response="{{data}}">
   </template>
 
   <script>
     Polymer({
       is: 'boardgame-create-game',
       properties: {
-        managers: Object,
+        data: Object,
         loggedIn: Boolean,
       },
       behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
