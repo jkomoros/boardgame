@@ -40,6 +40,18 @@ func TestSanitization(t *testing.T) {
 					"DrawDeck": GroupPolicy{
 						GroupAll: PolicyLen,
 					},
+					"MyIntSlice": GroupPolicy{
+						GroupAll: PolicyLen,
+					},
+					"MyBoolSlice": GroupPolicy{
+						GroupAll: PolicyLen,
+					},
+					"MyStringSlice": GroupPolicy{
+						GroupAll: PolicyLen,
+					},
+					"MyPlayerIndexSlice": GroupPolicy{
+						GroupAll: PolicyLen,
+					},
 				},
 			},
 			0,

@@ -14,10 +14,10 @@
             "Id": 0,
             "TimeLeft": 0
         },
-        "MyIntSlice": [],
-        "MyBoolSlice": [],
-        "MyStringSlice": [],
-        "MyPlayerIndexSlice": []
+        "MyIntSlice": [3,4,5],
+        "MyBoolSlice": [true, false, true],
+        "MyStringSlice": ["a", "b", "c"],
+        "MyPlayerIndexSlice": [0, 1, 2]
     },
     "Players": [
         {
