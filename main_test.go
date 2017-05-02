@@ -110,9 +110,13 @@ func concreteStates(state State) (*testGameState, []*testPlayerState) {
 }
 
 type testGameState struct {
-	CurrentPlayer PlayerIndex
-	DrawDeck      *GrowableStack
-	Timer         *Timer
+	CurrentPlayer      PlayerIndex
+	DrawDeck           *GrowableStack
+	Timer              *Timer
+	MyIntSlice         []int
+	MyStringSlice      []string
+	MyBoolSlice        []bool
+	MyPlayerIndexSlice []PlayerIndex
 	//TODO: have a Stack here.
 }
 
