@@ -505,7 +505,7 @@ func applySanitizationPolicyIntSlice(policy Policy, input []int) []int {
 	}
 
 	if policy == PolicyLen {
-		return randomIntSlice(len(input))
+		return make([]int, len(input))
 	}
 
 	if policy == PolicyHidden {
@@ -514,7 +514,7 @@ func applySanitizationPolicyIntSlice(policy Policy, input []int) []int {
 
 	if policy == PolicyNonEmpty {
 		if len(input) > 0 {
-			return randomIntSlice(1)
+			return make([]int, 1)
 		}
 		return make([]int, 0)
 	}
@@ -528,7 +528,7 @@ func applySanitizationPolicyBoolSlice(policy Policy, input []bool) []bool {
 	}
 
 	if policy == PolicyLen {
-		return randomBoolSlice(len(input))
+		return make([]bool, len(input))
 	}
 
 	if policy == PolicyHidden {
@@ -537,7 +537,7 @@ func applySanitizationPolicyBoolSlice(policy Policy, input []bool) []bool {
 
 	if policy == PolicyNonEmpty {
 		if len(input) > 0 {
-			return randomBoolSlice(1)
+			return make([]bool, 1)
 		}
 		return make([]bool, 0)
 	}
@@ -551,7 +551,7 @@ func applySanitizationPolicyStringSlice(policy Policy, input []string) []string 
 	}
 
 	if policy == PolicyLen {
-		return randomStringSlice(len(input))
+		return make([]string, len(input))
 	}
 
 	if policy == PolicyHidden {
@@ -560,7 +560,7 @@ func applySanitizationPolicyStringSlice(policy Policy, input []string) []string 
 
 	if policy == PolicyNonEmpty {
 		if len(input) > 0 {
-			return randomStringSlice(1)
+			return make([]string, 1)
 		}
 		return make([]string, 0)
 	}
@@ -574,7 +574,7 @@ func applySanitizationPolicyPlayerIndexSlice(policy Policy, input []PlayerIndex)
 	}
 
 	if policy == PolicyLen {
-		return randomPlayerIndexSlice(len(input))
+		return make([]PlayerIndex, len(input))
 	}
 
 	if policy == PolicyHidden {
@@ -583,7 +583,7 @@ func applySanitizationPolicyPlayerIndexSlice(policy Policy, input []PlayerIndex)
 
 	if policy == PolicyNonEmpty {
 		if len(input) > 0 {
-			return randomPlayerIndexSlice(1)
+			return make([]PlayerIndex, 1)
 		}
 		return make([]PlayerIndex, 0)
 	}
