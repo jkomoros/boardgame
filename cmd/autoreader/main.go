@@ -198,17 +198,33 @@ func structTypes(theStruct model.Struct) map[string]boardgame.PropertyType {
 		}
 		switch field.TypeName {
 		case "int":
-			result[field.Name] = boardgame.TypeInt
+			if field.IsSlice {
+				result[field.Name] = boardgame.TypeIntSlice
+			} else {
+				result[field.Name] = boardgame.TypeInt
+			}
 		case "bool":
-			result[field.Name] = boardgame.TypeBool
+			if field.IsSlice {
+				result[field.Name] = boardgame.TypeBoolSlice
+			} else {
+				result[field.Name] = boardgame.TypeBool
+			}
 		case "string":
-			result[field.Name] = boardgame.TypeString
+			if field.IsSlice {
+				result[field.Name] = boardgame.TypeStringSlice
+			} else {
+				result[field.Name] = boardgame.TypeString
+			}
 		case "boardgame.SizedStack":
 			result[field.Name] = boardgame.TypeSizedStack
 		case "boardgame.GrowableStack":
 			result[field.Name] = boardgame.TypeGrowableStack
 		case "boardgame.PlayerIndex":
-			result[field.Name] = boardgame.TypePlayerIndex
+			if field.IsSlice {
+				result[field.Name] = boardgame.TypePlayerIndexSlice
+			} else {
+				result[field.Name] = boardgame.TypePlayerIndex
+			}
 		case "boardgame.Timer":
 			result[field.Name] = boardgame.TypeTimer
 		default:
@@ -295,6 +311,14 @@ func headerForStruct(useReflection bool, structName string, types map[string]boa
 			goLangType = "string"
 		case "PlayerIndex":
 			goLangType = "boardgame.PlayerIndex"
+		case "IntSlice":
+			goLangType = "[]int"
+		case "BoolSlice":
+			goLangType = "[]bool"
+		case "StringSlice":
+			goLangType = "[]string"
+		case "PlayerIndexSlice":
+			goLangType = "[]boardgame.PlayerIndex"
 		default:
 			goLangType = "*boardgame." + goLangType
 		}
@@ -340,6 +364,14 @@ func headerForStruct(useReflection bool, structName string, types map[string]boa
 		case "PlayerIndex":
 
 			zeroValue = "0"
+		case "IntSlice":
+			zeroValue = "[]int{}"
+		case "BoolSlice":
+			zeroValue = "[]bool{}"
+		case "StringSlice":
+			zeroValue = "[]string{}"
+		case "PlayerIndexSlice":
+			zeroValue = "[]boardgame.PlayerIndex{}"
 		}
 
 		var namesForType []string

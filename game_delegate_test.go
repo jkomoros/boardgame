@@ -187,9 +187,13 @@ func (t *testGameDelegate) EmptyGameState() MutableSubState {
 
 	deck := chest.Deck("test")
 	return &testGameState{
-		CurrentPlayer: 0,
-		DrawDeck:      NewGrowableStack(deck, 0),
-		Timer:         NewTimer(),
+		CurrentPlayer:      0,
+		DrawDeck:           NewGrowableStack(deck, 0),
+		Timer:              NewTimer(),
+		MyIntSlice:         make([]int, 0),
+		MyBoolSlice:        make([]bool, 0),
+		MyStringSlice:      make([]string, 0),
+		MyPlayerIndexSlice: make([]PlayerIndex, 0),
 	}
 }
 

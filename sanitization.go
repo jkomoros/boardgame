@@ -343,6 +343,48 @@ func randomInt() int {
 	return rand.Int()
 }
 
+func randomIntSlice(length int) []int {
+	result := make([]int, rand.Intn(length))
+
+	for i := 0; i < len(result); i++ {
+		result[i] = randomInt()
+	}
+
+	return result
+}
+
+func randomBoolSlice(length int) []bool {
+	result := make([]bool, rand.Intn(length))
+
+	for i := 0; i < len(result); i++ {
+		result[i] = randomBool()
+	}
+
+	return result
+}
+
+func randomStringSlice(length int) []string {
+	result := make([]string, rand.Intn(length))
+
+	for i := 0; i < len(result); i++ {
+		result[i] = randomString(16)
+	}
+
+	return result
+}
+
+func randomPlayerIndexSlice(length int) []PlayerIndex {
+	result := make([]PlayerIndex, rand.Intn(length))
+
+	for i := 0; i < len(result); i++ {
+		//TODO: ideally we'd actually return a random player index that is
+		//valid given the size of hte game.
+		result[i] = 0
+	}
+
+	return result
+}
+
 func randomGrowableStack(stack *GrowableStack) *GrowableStack {
 	result := stack.Copy()
 
@@ -400,6 +442,14 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 			//TODO: ideally we'd return a legitimately random playerIndex. But
 			//down here we don't know what the legal range is.
 			return 0
+		case TypeIntSlice:
+			return randomIntSlice(5)
+		case TypeBoolSlice:
+			return randomBoolSlice(5)
+		case TypeStringSlice:
+			return randomStringSlice(5)
+		case TypePlayerIndexSlice:
+			return randomPlayerIndexSlice(5)
 		case TypeGrowableStack:
 			return randomGrowableStack(input.(*GrowableStack))
 		case TypeSizedStack:
@@ -427,6 +477,18 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 		return NewTimer()
 	}
 
+	//Now the ones that are non-stack containers
+	switch propType {
+	case TypeIntSlice:
+		return applySanitizationPolicyIntSlice(policy, input.([]int))
+	case TypeBoolSlice:
+		return applySanitizationPolicyBoolSlice(policy, input.([]bool))
+	case TypeStringSlice:
+		return applySanitizationPolicyStringSlice(policy, input.([]string))
+	case TypePlayerIndexSlice:
+		return applySanitizationPolicyPlayerIndexSlice(policy, input.([]PlayerIndex))
+	}
+
 	//Now we're left with len-properties.
 
 	stack := input.(Stack)
@@ -435,6 +497,98 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 
 	return input
 
+}
+
+func applySanitizationPolicyIntSlice(policy Policy, input []int) []int {
+	if policy == PolicyVisible {
+		return input
+	}
+
+	if policy == PolicyLen {
+		return make([]int, len(input))
+	}
+
+	if policy == PolicyHidden {
+		return make([]int, 0)
+	}
+
+	if policy == PolicyNonEmpty {
+		if len(input) > 0 {
+			return make([]int, 1)
+		}
+		return make([]int, 0)
+	}
+
+	panic("Unknown Policy")
+}
+
+func applySanitizationPolicyBoolSlice(policy Policy, input []bool) []bool {
+	if policy == PolicyVisible {
+		return input
+	}
+
+	if policy == PolicyLen {
+		return make([]bool, len(input))
+	}
+
+	if policy == PolicyHidden {
+		return make([]bool, 0)
+	}
+
+	if policy == PolicyNonEmpty {
+		if len(input) > 0 {
+			return make([]bool, 1)
+		}
+		return make([]bool, 0)
+	}
+
+	panic("Unknown Policy")
+}
+
+func applySanitizationPolicyStringSlice(policy Policy, input []string) []string {
+	if policy == PolicyVisible {
+		return input
+	}
+
+	if policy == PolicyLen {
+		return make([]string, len(input))
+	}
+
+	if policy == PolicyHidden {
+		return make([]string, 0)
+	}
+
+	if policy == PolicyNonEmpty {
+		if len(input) > 0 {
+			return make([]string, 1)
+		}
+		return make([]string, 0)
+	}
+
+	panic("Unknown Policy")
+}
+
+func applySanitizationPolicyPlayerIndexSlice(policy Policy, input []PlayerIndex) []PlayerIndex {
+	if policy == PolicyVisible {
+		return input
+	}
+
+	if policy == PolicyLen {
+		return make([]PlayerIndex, len(input))
+	}
+
+	if policy == PolicyHidden {
+		return make([]PlayerIndex, 0)
+	}
+
+	if policy == PolicyNonEmpty {
+		if len(input) > 0 {
+			return make([]PlayerIndex, 1)
+		}
+		return make([]PlayerIndex, 0)
+	}
+
+	panic("Unknown Policy")
 }
 
 func (g *GrowableStack) applySanitizationPolicy(policy Policy) {

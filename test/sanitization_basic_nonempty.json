@@ -10,7 +10,11 @@
         "Timer": {
             "Id": 0,
             "TimeLeft": 0
-        }
+        },
+        "MyIntSlice": [0],
+        "MyBoolSlice": [false],
+        "MyStringSlice": [""],
+        "MyPlayerIndexSlice": [0]
     },
     "Players": [
         {

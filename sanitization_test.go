@@ -40,6 +40,18 @@ func TestSanitization(t *testing.T) {
 					"DrawDeck": GroupPolicy{
 						GroupAll: PolicyLen,
 					},
+					"MyIntSlice": GroupPolicy{
+						GroupAll: PolicyLen,
+					},
+					"MyBoolSlice": GroupPolicy{
+						GroupAll: PolicyLen,
+					},
+					"MyStringSlice": GroupPolicy{
+						GroupAll: PolicyLen,
+					},
+					"MyPlayerIndexSlice": GroupPolicy{
+						GroupAll: PolicyLen,
+					},
 				},
 			},
 			0,
@@ -64,6 +76,18 @@ func TestSanitization(t *testing.T) {
 					"DrawDeck": GroupPolicy{
 						GroupAll: PolicyHidden,
 					},
+					"MyIntSlice": GroupPolicy{
+						GroupAll: PolicyHidden,
+					},
+					"MyBoolSlice": GroupPolicy{
+						GroupAll: PolicyHidden,
+					},
+					"MyStringSlice": GroupPolicy{
+						GroupAll: PolicyHidden,
+					},
+					"MyPlayerIndexSlice": GroupPolicy{
+						GroupAll: PolicyHidden,
+					},
 				},
 				Player: map[string]GroupPolicy{
 					"Hand": GroupPolicy{
@@ -86,6 +110,18 @@ func TestSanitization(t *testing.T) {
 			&StatePolicy{
 				Game: map[string]GroupPolicy{
 					"DrawDeck": GroupPolicy{
+						GroupAll: PolicyNonEmpty,
+					},
+					"MyIntSlice": GroupPolicy{
+						GroupAll: PolicyNonEmpty,
+					},
+					"MyBoolSlice": GroupPolicy{
+						GroupAll: PolicyNonEmpty,
+					},
+					"MyStringSlice": GroupPolicy{
+						GroupAll: PolicyNonEmpty,
+					},
+					"MyPlayerIndexSlice": GroupPolicy{
 						GroupAll: PolicyNonEmpty,
 					},
 				},

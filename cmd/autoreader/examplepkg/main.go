@@ -15,10 +15,14 @@ import (
 
 //+autoreader both
 type myStruct struct {
-	MyInt        int
-	MyBool       bool
-	MySizedStack *boardgame.SizedStack
-	TheTimer     *boardgame.Timer
+	MyInt              int
+	MyBool             bool
+	MySizedStack       *boardgame.SizedStack
+	TheTimer           *boardgame.Timer
+	MyIntSlice         []int
+	MyBoolSlice        []bool
+	MyStringSlice      []string
+	MyPlayerIndexSlice []boardgame.PlayerIndex
 }
 
 //	 +autoreader
