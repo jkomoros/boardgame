@@ -554,6 +554,114 @@ func (d *defaultReader) SetPlayerIndexProp(name string, val PlayerIndex) (err er
 
 }
 
+func (d *defaultReader) SetIntSliceProp(name string, val []int) (err error) {
+	props := d.Props()
+
+	if props[name] != TypeIntSlice {
+		return errors.New("That property is not a settable int slice")
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+
+	f := s.FieldByName(name)
+
+	if !f.IsValid() {
+		return errors.New("that name was not available on the struct")
+	}
+
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprint(e))
+		}
+	}()
+
+	f.Set(reflect.ValueOf(val))
+
+	return nil
+
+}
+
+func (d *defaultReader) SetBoolSliceProp(name string, val []bool) (err error) {
+	props := d.Props()
+
+	if props[name] != TypeBoolSlice {
+		return errors.New("That property is not a settable int slice")
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+
+	f := s.FieldByName(name)
+
+	if !f.IsValid() {
+		return errors.New("that name was not available on the struct")
+	}
+
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprint(e))
+		}
+	}()
+
+	f.Set(reflect.ValueOf(val))
+
+	return nil
+
+}
+
+func (d *defaultReader) SetStringSliceProp(name string, val []string) (err error) {
+	props := d.Props()
+
+	if props[name] != TypeStringSlice {
+		return errors.New("That property is not a settable string slice")
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+
+	f := s.FieldByName(name)
+
+	if !f.IsValid() {
+		return errors.New("that name was not available on the struct")
+	}
+
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprint(e))
+		}
+	}()
+
+	f.Set(reflect.ValueOf(val))
+
+	return nil
+
+}
+
+func (d *defaultReader) SetPlayerIndexSliceProp(name string, val []PlayerIndex) (err error) {
+	props := d.Props()
+
+	if props[name] != TypePlayerIndexSlice {
+		return errors.New("That property is not a settable player index slice")
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+
+	f := s.FieldByName(name)
+
+	if !f.IsValid() {
+		return errors.New("that name was not available on the struct")
+	}
+
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprint(e))
+		}
+	}()
+
+	f.Set(reflect.ValueOf(val))
+
+	return nil
+
+}
+
 func (d *defaultReader) SetGrowableStackProp(name string, val *GrowableStack) (err error) {
 	props := d.Props()
 
@@ -788,6 +896,86 @@ func (g *genericReader) PlayerIndexProp(name string) (PlayerIndex, error) {
 	return val.(PlayerIndex), nil
 }
 
+func (g *genericReader) IntSliceProp(name string) ([]int, error) {
+	val, err := g.Prop(name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	propType, ok := g.types[name]
+
+	if !ok {
+		return nil, errors.New("Unexpected error: Missing Prop type for " + name)
+	}
+
+	if propType != TypeIntSlice {
+		return nil, errors.New(name + "was expected to be TypeIntSlice but was not")
+	}
+
+	return val.([]int), nil
+}
+
+func (g *genericReader) BoolSliceProp(name string) ([]bool, error) {
+	val, err := g.Prop(name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	propType, ok := g.types[name]
+
+	if !ok {
+		return nil, errors.New("Unexpected error: Missing Prop type for " + name)
+	}
+
+	if propType != TypeBoolSlice {
+		return nil, errors.New(name + "was expected to be TypeBoolSlice but was not")
+	}
+
+	return val.([]bool), nil
+}
+
+func (g *genericReader) StringSliceProp(name string) ([]string, error) {
+	val, err := g.Prop(name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	propType, ok := g.types[name]
+
+	if !ok {
+		return nil, errors.New("Unexpected error: Missing Prop type for " + name)
+	}
+
+	if propType != TypeStringSlice {
+		return nil, errors.New(name + "was expected to be TypeStringSlice but was not")
+	}
+
+	return val.([]string), nil
+}
+
+func (g *genericReader) PlayerIndexSliceProp(name string) ([]PlayerIndex, error) {
+	val, err := g.Prop(name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	propType, ok := g.types[name]
+
+	if !ok {
+		return nil, errors.New("Unexpected error: Missing Prop type for " + name)
+	}
+
+	if propType != TypePlayerIndexSlice {
+		return nil, errors.New(name + "was expected to be TypePlayerIndexSlice but was not")
+	}
+
+	return val.([]PlayerIndex), nil
+}
+
 func (g *genericReader) GrowableStackProp(name string) (*GrowableStack, error) {
 	val, err := g.Prop(name)
 
@@ -909,6 +1097,58 @@ func (g *genericReader) SetPlayerIndexProp(name string, val PlayerIndex) error {
 	}
 
 	g.types[name] = TypePlayerIndex
+	g.values[name] = val
+
+	return nil
+}
+
+func (g *genericReader) SetIntSliceProp(name string, val []int) error {
+	propType, ok := g.types[name]
+
+	if ok && propType != TypeIntSlice {
+		return errors.New("That property was already set but was not an int slice")
+	}
+
+	g.types[name] = TypeIntSlice
+	g.values[name] = val
+
+	return nil
+}
+
+func (g *genericReader) SetBoolSliceProp(name string, val []bool) error {
+	propType, ok := g.types[name]
+
+	if ok && propType != TypeBoolSlice {
+		return errors.New("That property was already set but was not an bool slice")
+	}
+
+	g.types[name] = TypeBoolSlice
+	g.values[name] = val
+
+	return nil
+}
+
+func (g *genericReader) SetStringSliceProp(name string, val []string) error {
+	propType, ok := g.types[name]
+
+	if ok && propType != TypeStringSlice {
+		return errors.New("That property was already set but was not an string slice")
+	}
+
+	g.types[name] = TypeStringSlice
+	g.values[name] = val
+
+	return nil
+}
+
+func (g *genericReader) SetPlayerIndexSliceProp(name string, val []PlayerIndex) error {
+	propType, ok := g.types[name]
+
+	if ok && propType != TypePlayerIndexSlice {
+		return errors.New("That property was already set but was not an PlayerIndex slice")
+	}
+
+	g.types[name] = TypePlayerIndexSlice
 	g.values[name] = val
 
 	return nil
