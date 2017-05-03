@@ -17,7 +17,7 @@ type UserStorageRecord struct {
 	Created     int64
 	LastSeen    int64
 	DisplayName string `db:",size:64"`
-	PictureUrl  string `db:",size:1024"`
+	PhotoUrl    string `db:",size:1024"`
 	Email       string `db:",size:128"`
 }
 
