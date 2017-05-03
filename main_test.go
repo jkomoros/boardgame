@@ -13,6 +13,10 @@ func (t *testAgent) Name() string {
 	return "Test"
 }
 
+func (t *testAgent) DisplayName() string {
+	return "Robby the Robot"
+}
+
 func (t *testAgent) SetUpForGame(game *Game, player PlayerIndex) (state []byte) {
 	return nil
 }

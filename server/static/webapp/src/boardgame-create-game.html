@@ -52,7 +52,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                   <paper-radio-group selected="" disabled="{{managerHasAgents}}" attr-for-selected="value">
                     <paper-radio-button name="agent-player-{{index}}" value="" disabled="{{managerHasAgents}}">Real Live Human</paper-radio-button>
                     <template is="dom-repeat" items="{{selectedManager.data.Agents}}" index-as="agentIndex">
-                      <paper-radio-button name="agent-player-{{index}}" value="{{item}}">{{item}}</paper-radio-button>
+                      <paper-radio-button name="agent-player-{{index}}" value="{{item.Name}}">{{item.DisplayName}}</paper-radio-button>
                     </template>
                   </paper-radio-group>
                 </div>

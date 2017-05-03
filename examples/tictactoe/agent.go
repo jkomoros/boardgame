@@ -10,6 +10,10 @@ func (a *Agent) Name() string {
 	return "ai"
 }
 
+func (a *Agent) DisplayName() string {
+	return "Robby The Robot"
+}
+
 func (a *Agent) SetUpForGame(game *boardgame.Game, player boardgame.PlayerIndex) (agentState []byte) {
 	return nil
 }

@@ -14,6 +14,11 @@ type Agent interface {
 	//The name is how agents will be looked up within a manager.
 	Name() string
 
+	//DisplayName is a name for the agent that is human-friendly and need not
+	//be unique. "Artificial Intelligence", "Computer", "Robby the Robot" are
+	//all reasonable examples.
+	DisplayName() string
+
 	//SetUpForGame is called when SetUp is called on a Game and Agents are
 	//configured for some of the players. This is the chance of the Agent to
 	//initialize its state. Whatever state is returned will be stored in the

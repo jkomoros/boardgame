@@ -457,17 +457,24 @@ func (s *Server) listManagerHandler(c *gin.Context) {
 }
 
 func (s *Server) doListManager(r *Renderer) {
+	type agentInfo struct {
+		Name        string
+		DisplayName string
+	}
 	type managerInfo struct {
 		Name              string
 		DisplayName       string
 		DefaultNumPlayers int
-		Agents            []string
+		Agents            []agentInfo
 	}
 	var managers []managerInfo
 	for name, manager := range s.managers {
-		agents := make([]string, len(manager.Agents()))
+		agents := make([]agentInfo, len(manager.Agents()))
 		for i, agent := range manager.Agents() {
-			agents[i] = agent.Name()
+			agents[i] = agentInfo{
+				agent.Name(),
+				agent.DisplayName(),
+			}
 		}
 		managers = append(managers, managerInfo{
 			Name:              name,
