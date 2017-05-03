@@ -49,8 +49,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               <div class="flex">
                 <div class="vertical layout">
                   Player {{index}}
-                  <paper-radio-group selected="player" disabled="{{managerHasAgents}}" attr-for-selected="value">
-                    <paper-radio-button name="agent-player-{{index}}" value="player" disabled="{{managerHasAgents}}">Real Live Human</paper-radio-button>
+                  <paper-radio-group selected="" disabled="{{managerHasAgents}}" attr-for-selected="value">
+                    <paper-radio-button name="agent-player-{{index}}" value="" disabled="{{managerHasAgents}}">Real Live Human</paper-radio-button>
                     <template is="dom-repeat" items="{{selectedManager.data.Agents}}" index-as="agentIndex">
                       <paper-radio-button name="agent-player-{{index}}" value="{{item}}">{{item}}</paper-radio-button>
                     </template>
