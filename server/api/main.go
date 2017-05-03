@@ -264,7 +264,7 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 	effectiveViewingAsPlayer, emptySlots := s.calcViewingAsPlayerAndEmptySlots(userIds, user, game.Agents())
 
-	if user != nil && effectiveViewingAsPlayer == boardgame.ObserverPlayerIndex && len(emptySlots) == game.NumPlayers() {
+	if user != nil && effectiveViewingAsPlayer == boardgame.ObserverPlayerIndex && len(emptySlots) > 0 && len(emptySlots) == game.NumPlayers()-game.NumAgentPlayers() {
 		//Special case: we're the first player, we likely just created it. Just join the thing!
 
 		slot := emptySlots[0]
