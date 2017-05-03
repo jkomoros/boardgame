@@ -47,13 +47,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           <div class="horizontal layout justified">
             <template is="dom-repeat" items="{{players}}">
               <div class="flex">
-                Player {{index}}
-                <paper-radio-group name="agent-player-{{index}}" selected="player">
-                  <paper-radio-button name="player">Real Live Human</paper-radio-button>
-                  <template is="dom-repeat" items="{{selectedManager.data.Agents}}">
-                    <paper-radio-button name="{{item}}">{{item}}</paper-radio-button>
-                  </template>
-                </paper-radio-group>
+                <div class="vertical layout">
+                  Player {{index}}
+                  <paper-radio-group name="agent-player-{{index}}" selected="player">
+                    <paper-radio-button name="player">Real Live Human</paper-radio-button>
+                    <template is="dom-repeat" items="{{selectedManager.data.Agents}}">
+                      <paper-radio-button name="{{item}}">{{item}}</paper-radio-button>
+                    </template>
+                  </paper-radio-group>
+                </div>
               </div>
             </template>
           </div>
