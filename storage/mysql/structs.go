@@ -153,7 +153,12 @@ func (s *UserStorageRecord) ToStorageRecord() *users.StorageRecord {
 
 func NewUserStorageRecord(user *users.StorageRecord) *UserStorageRecord {
 	return &UserStorageRecord{
-		Id: user.Id,
+		Id:          user.Id,
+		DisplayName: user.DisplayName,
+		Created:     user.Created,
+		LastSeen:    user.LastSeen,
+		PhotoUrl:    user.PhotoUrl,
+		Email:       user.Email,
 	}
 }
 
