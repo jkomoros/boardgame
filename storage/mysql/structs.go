@@ -13,7 +13,12 @@ import (
 //way we actually want to store in DB.
 
 type UserStorageRecord struct {
-	Id string `db:",size:128"`
+	Id          string `db:",size:128"`
+	Created     int64
+	LastSeen    int64
+	DisplayName string `db:",size:64"`
+	PictureUrl  string `db:",size:1024"`
+	Email       string `db:",size:128"`
 }
 
 type CookieStorageRecord struct {

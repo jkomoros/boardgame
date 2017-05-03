@@ -5,5 +5,10 @@ package users
 
 type StorageRecord struct {
 	//The Firebase user id
-	Id string
+	Id          string
+	Created     int64
+	LastSeen    int64
+	DisplayName string
+	PictureUrl  string
+	Email       string
 }
