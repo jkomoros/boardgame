@@ -227,6 +227,26 @@ func (g *Game) CurrentPlayerIndex() PlayerIndex {
 	return g.manager.delegate.CurrentPlayerIndex(state)
 }
 
+//NumAgentPlayers returns the number of players who have agents configured on
+//them. Returns 0 before game is SetUp.
+func (g *Game) NumAgentPlayers() int {
+
+	if !g.initalized {
+		return 0
+	}
+
+	result := 0
+
+	for _, agent := range g.agents {
+		if agent != "" {
+			result++
+		}
+	}
+
+	return result
+
+}
+
 //SetUp should be called a single time after all of the member variables are
 //set correctly, including Chest. SetUp must be called before ProposeMove can
 //be called. Even if an error is returned, the game should be in a consistent
