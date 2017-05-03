@@ -147,7 +147,12 @@ func NewGameStorageRecord(game *boardgame.GameStorageRecord) *GameStorageRecord 
 
 func (s *UserStorageRecord) ToStorageRecord() *users.StorageRecord {
 	return &users.StorageRecord{
-		Id: s.Id,
+		Id:          s.Id,
+		DisplayName: s.DisplayName,
+		Created:     s.Created,
+		LastSeen:    s.LastSeen,
+		PhotoUrl:    s.PhotoUrl,
+		Email:       s.Email,
 	}
 }
 

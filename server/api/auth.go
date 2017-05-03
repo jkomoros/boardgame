@@ -6,6 +6,7 @@ import (
 	"github.com/jkomoros/boardgame/server/api/users"
 	"math/rand"
 	"net/http"
+	"time"
 )
 
 const cookieName = "c"
@@ -59,14 +60,17 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 
 	uid := c.PostForm("uid")
 	token := c.PostForm("token")
+	email := c.PostForm("email")
+	photoUrl := c.PostForm("photo")
+	displayName := c.PostForm("displayname")
 
 	cookie, _ := c.Cookie(cookieName)
 
-	s.doAuthCookie(r, uid, token, cookie)
+	s.doAuthCookie(r, uid, token, cookie, email, photoUrl, displayName)
 
 }
 
-func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie string) {
+func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie, email, photoUrl, displayName string) {
 	//If the user is already associated with that cookie it's a success, nothing more to do.
 
 	if cookie != "" && uid != "" {
@@ -79,6 +83,10 @@ func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie string) {
 			return
 		} else {
 			if userRecord.Id == uid {
+
+				userRecord.LastSeen = time.Now().UnixNano()
+
+				s.storage.UpdateUser(userRecord)
 
 				r.Success(gin.H{
 					"Message": "Cookie and uid already matched.",
@@ -117,7 +125,12 @@ func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie string) {
 		if user == nil {
 
 			user = &users.StorageRecord{
-				Id: uid,
+				Id:          uid,
+				Email:       email,
+				PhotoUrl:    photoUrl,
+				DisplayName: displayName,
+				Created:     time.Now().UnixNano(),
+				LastSeen:    time.Now().UnixNano(),
 			}
 			s.storage.UpdateUser(user)
 
