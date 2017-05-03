@@ -49,8 +49,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               <div class="flex">
                 <div class="vertical layout">
                   Player {{index}}
-                  <paper-radio-group name="agent-player-{{index}}" selected="player">
-                    <paper-radio-button name="player">Real Live Human</paper-radio-button>
+                  <paper-radio-group name="agent-player-{{index}}" selected="player" disabled="{{managerHasAgents}}">
+                    <paper-radio-button name="player" disabled="{{managerHasAgents}}">Real Live Human</paper-radio-button>
                     <template is="dom-repeat" items="{{selectedManager.data.Agents}}">
                       <paper-radio-button name="{{item}}">{{item}}</paper-radio-button>
                     </template>
@@ -72,6 +72,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         data: Object,
         loggedIn: Boolean,
         selectedManager: Object,
+        managerHasAgents: {
+          type: Boolean,
+          computed: "_computeManagerHasAgents(selectedManager)"
+        },
         numPlayers: Number,
         players: {
           type: Object,
@@ -91,6 +95,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           result.push("");
         }
         return result;
+      },
+
+      _computeManagerHasAgents: function(selectedManager) {
+        return selectedManager.data.Agents.length == 0
       },
 
       createGame: function() {
