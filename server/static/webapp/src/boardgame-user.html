@@ -161,10 +161,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       validateCookieWithToken: function(token) {
         //Reaches out to the auth endpoint to get a cookie set (or validate that our cookie is set).
         let uid = ""
-        if (this.user &&  this.user.uid) {
+        let email = ""
+        let photoUrl = ""
+        let displayName = ""
+        if (this.user) {
           uid = this.user.uid;
+          email = this.user.email;
+          photoUrl = this.user.photoURL;
+          displayName = this.user.displayName;
         }
-        this.$.auth.body = "uid=" + uid + "&token=" + token;
+        this.$.auth.body = "uid=" + uid + "&token=" + token + "&email=" + email + "&photo=" + photoUrl + "&displayname=" + displayName;
         this.$.auth.generateRequest();
       },
 
