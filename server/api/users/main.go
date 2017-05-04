@@ -12,3 +12,13 @@ type StorageRecord struct {
 	PhotoUrl    string
 	Email       string
 }
+
+func (s *StorageRecord) EffectiveDisplayName() string {
+	if s.DisplayName != "" {
+		return s.DisplayName
+	}
+	if s.Email != "" {
+		return s.Email
+	}
+	return ""
+}

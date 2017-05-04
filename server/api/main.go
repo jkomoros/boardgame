@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -507,6 +508,66 @@ func (s *Server) gameViewHandler(c *gin.Context) {
 
 }
 
+type playerBoardInfo struct {
+	DisplayName string
+	IsAgent     bool
+	IsEmpty     bool
+}
+
+func (s *Server) gamePlayerInfo(game *boardgame.Game) []*playerBoardInfo {
+	result := make([]*playerBoardInfo, game.NumPlayers())
+
+	userIds := s.storage.UserIdsForGame(game.Id())
+	agentNames := game.Agents()
+
+	for i, _ := range result {
+
+		player := &playerBoardInfo{}
+
+		result[i] = player
+
+		if agentNames[i] != "" {
+			agent := game.Manager().AgentByName(agentNames[i])
+
+			if agent != nil {
+				player.DisplayName = agent.DisplayName()
+			}
+			player.IsAgent = true
+			player.IsEmpty = false
+			continue
+		}
+
+		userId := userIds[i]
+
+		if userId == "" {
+			player.IsEmpty = true
+			player.IsAgent = false
+			player.DisplayName = ""
+			continue
+		}
+
+		user := s.storage.GetUserById(userId)
+
+		if user == nil {
+			player.IsAgent = false
+			player.IsEmpty = false
+			player.DisplayName = "Unknown user"
+			continue
+		}
+
+		player.IsAgent = false
+		player.IsEmpty = false
+		player.DisplayName = user.EffectiveDisplayName()
+
+		if player.DisplayName == "" {
+			player.DisplayName = "Player " + strconv.Itoa(i)
+		}
+
+	}
+
+	return result
+}
+
 func (s *Server) gameView(r *Renderer, game *boardgame.Game, playerIndex boardgame.PlayerIndex, hasEmptySlots bool) {
 	if game == nil {
 		r.Error("Couldn't find game")
@@ -525,6 +586,7 @@ func (s *Server) gameView(r *Renderer, game *boardgame.Game, playerIndex boardga
 		"Game":               game.JSONForPlayer(playerIndex),
 		"Error":              s.lastErrorMessage,
 		"CurrentPlayerIndex": game.CurrentPlayerIndex(),
+		"Players":            s.gamePlayerInfo(game),
 		"ViewingAsPlayer":    playerIndex,
 		"HasEmptySlots":      hasEmptySlots,
 	}
