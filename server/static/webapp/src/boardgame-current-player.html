@@ -24,6 +24,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       margin:0;
      }
     </style>
+      <div class="layout horizontal justified">
+        <template is="dom-repeat" items="{{playersInfo}}">
+          <div class="flex">
+            <div class="layout vertical">
+              <strong>{{item.DisplayName}}</strong>
+              <span>{{playerDescription(item, index, viewingAsPlayer)}}</span>
+            </div>
+          </div>
+        </template>
+      </div>
       <div hidden$="{{isObserver}}">
         <h3>
           Playing as {{playerName(viewingAsPlayer)}}
@@ -59,6 +69,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         hasEmptySlots: Boolean,
         gameName: String,
         gameId: String,
+        playersInfo: Array,
         isObserver: {
           type: Number,
           computed: "_computeIsObserver(viewingAsPlayer)"
@@ -88,6 +99,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
+
+      playerDescription: function(playerInfo, index,  viewingAsPlayer) {
+        console.log(playerInfo, index, viewingAsPlayer)
+        if (!playerInfo) return "";
+        if (playerInfo.IsEmpty) return "No one";
+        if (playerInfo.IsAgent) return "Robot";
+        if (index == viewingAsPlayer) return "You";
+        return "Human";
+      },
 
       playerName: function(viewingAsPlayer) {
         if (viewingAsPlayer == this.ADMIN_PLAYER_INDEX) return "Admin"
