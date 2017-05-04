@@ -201,6 +201,9 @@ func (s *Server) userSetup(c *gin.Context) {
 	if user == nil {
 		log.Println("No user associated with that cookie")
 		return
+	} else {
+		user.LastSeen = time.Now().UnixNano()
+		s.storage.UpdateUser(user)
 	}
 
 	s.setUser(c, user)
