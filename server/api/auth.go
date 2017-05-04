@@ -84,6 +84,18 @@ func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie, email, photoUrl, 
 		} else {
 			if userRecord.Id == uid {
 
+				if userRecord.PhotoUrl == "" && photoUrl != "" {
+					userRecord.PhotoUrl = photoUrl
+				}
+
+				if userRecord.DisplayName == "" && displayName != "" {
+					userRecord.DisplayName = displayName
+				}
+
+				if userRecord.Email == "" && email != "" {
+					userRecord.Email = email
+				}
+
 				userRecord.LastSeen = time.Now().UnixNano()
 
 				s.storage.UpdateUser(userRecord)
