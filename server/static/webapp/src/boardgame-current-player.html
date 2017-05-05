@@ -42,11 +42,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       color: var(--secondary-text-color);
      }
 
+     .players .viewing span {
+      font-weight:bold;
+      color: var(--accent-color);
+     }
+
     </style>
       <div class="layout horizontal justified players">
         <template is="dom-repeat" items="{{playersInfo}}">
           <div class="flex">
-            <div class="layout horizontal center">
+            <div class$="layout horizontal center {{classForViewingAsPlayer(index, viewingAsPlayer)}}">
               <strong class="number">{{index}}</strong>
               <div class="layout vertical">
                 <strong>{{item.DisplayName}}</strong>
@@ -123,6 +128,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         if (playerInfo.IsAgent) return "Robot";
         if (index == viewingAsPlayer) return "You";
         return "Human";
+      },
+
+      classForViewingAsPlayer: function(index, viewingAsPlayer) {
+        return (index == viewingAsPlayer) ? "viewing" : ""
       },
 
       playerName: function(viewingAsPlayer) {
