@@ -118,7 +118,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
 
       playerDescription: function(playerInfo, index,  viewingAsPlayer) {
-        console.log(playerInfo, index, viewingAsPlayer)
         if (!playerInfo) return "";
         if (playerInfo.IsEmpty) return "No one";
         if (playerInfo.IsAgent) return "Robot";
