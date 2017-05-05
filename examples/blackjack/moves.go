@@ -239,7 +239,7 @@ func (m *MoveAdvanceNextPlayer) Apply(state boardgame.MutableState) error {
 
 	game, players := concreteStates(state)
 
-	game.CurrentPlayer.Next(state)
+	game.CurrentPlayer = game.CurrentPlayer.Next(state)
 
 	currentPlayer := players[game.CurrentPlayer]
 
