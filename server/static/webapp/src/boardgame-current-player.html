@@ -37,6 +37,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       padding-right:10px;
      }
 
+     .players .current strong.number {
+      color: var(--light-accent-color);
+     }
+
      .players span {
       @apply(--paper-font-caption);
       color: var(--secondary-text-color);
@@ -51,7 +55,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <div class="layout horizontal justified players">
         <template is="dom-repeat" items="{{playersInfo}}">
           <div class="flex">
-            <div class$="layout horizontal center {{classForViewingAsPlayer(index, viewingAsPlayer)}}">
+            <div class$="layout horizontal center {{classForPlayer(index, viewingAsPlayer, currentPlayerIndex)}}">
               <strong class="number">{{index}}</strong>
               <div class="layout vertical">
                 <strong>{{item.DisplayName}}</strong>
@@ -92,6 +96,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         gameName: String,
         gameId: String,
         playersInfo: Array,
+        currentPlayerIndex: Number,
         isObserver: {
           type: Number,
           computed: "_computeIsObserver(viewingAsPlayer)"
@@ -130,8 +135,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return "Human";
       },
 
-      classForViewingAsPlayer: function(index, viewingAsPlayer) {
-        return (index == viewingAsPlayer) ? "viewing" : ""
+      classForPlayer: function(index, viewingAsPlayer, currentPlayerIndex) {
+        var result = [];
+        if (index == viewingAsPlayer) result.push("viewing");
+        if (index == currentPlayerIndex) result.push("current");
+        return result.join(" ");
       },
 
       playerName: function(viewingAsPlayer) {
