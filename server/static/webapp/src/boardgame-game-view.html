@@ -75,7 +75,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </div>
     <div class="card horizontal layout admin" hidden="{{!admin}}">
       <div class="flex">
-        View as:<input is="iron-input" type="number" value-as-number="{{requestedPlayer::input}}" min="-2" max="{{maxRequestedPlayerIndex}}">
+        View as:<input is="iron-input" type="number" disabled="{{viewingAsPlayerIsCurrentPlayer}}" value-as-number="{{requestedPlayer::input}}" min="-2" max="{{maxRequestedPlayerIndex}}">
       </div>
       <div>
         <paper-checkbox id="viewing-is-current" checked="{{viewingAsPlayerIsCurrentPlayer}}">ViewingAsPlayer is CurrentPlayer</paper-checkbox>
