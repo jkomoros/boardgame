@@ -164,12 +164,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         let email = ""
         let photoUrl = ""
         let displayName = ""
+
         if (this.user) {
           uid = this.user.uid || "";
           email = this.user.email || "";
           photoUrl = this.user.photoURL || "";
           displayName = this.user.displayName || "";
+
+          if (this.user.providerData) {
+            for (var i = 0; i < this.user.providerData.length; i++) {
+              var provider = this.user.providerData[i];
+              if (!email && provider.email) email = provider.email;
+              if (!photoUrl && provider.photoURL) photoUrl = provider.photoURL;
+              if (!displayName && provider.displayName) displayName = provider.displayName;
+            }
+          }
         }
+
         this.$.auth.body = "uid=" + uid + "&token=" + token + "&email=" + email + "&photo=" + photoUrl + "&displayname=" + displayName;
         this.$.auth.generateRequest();
       },
