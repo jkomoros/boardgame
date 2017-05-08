@@ -70,6 +70,15 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 
 }
 
+func authSuccess(r *Renderer, user *users.StorageRecord, message string) {
+
+	r.Success(gin.H{
+		"User":    user,
+		"Message": message,
+	})
+
+}
+
 func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie, email, photoUrl, displayName string) {
 	//If the user is already associated with that cookie it's a success, nothing more to do.
 
@@ -111,9 +120,7 @@ func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie, email, photoUrl, 
 
 				s.storage.UpdateUser(userRecord)
 
-				r.Success(gin.H{
-					"Message": "Cookie and uid already matched.",
-				})
+				authSuccess(r, userRecord, "Cookie and uid already matched.")
 				return
 			} else {
 				s.unsetCookie(r, cookie, "Cookie pointed to the wrong uid. Unsetting")
@@ -169,9 +176,7 @@ func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie, email, photoUrl, 
 
 		r.SetAuthCookie(cookie)
 
-		r.Success(gin.H{
-			"Message": "Created new cookie to point to uid",
-		})
+		authSuccess(r, user, "Created new cookie to point to uid")
 
 		return
 
