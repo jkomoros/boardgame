@@ -72,6 +72,20 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 
 func authSuccess(r *Renderer, user *users.StorageRecord, message string) {
 
+	if user != nil {
+		//Make a copy so tha twe don't overwrite the user storage record and
+		//accidentally persist this EffectiveDisplayName to disk.
+		var userCopy users.StorageRecord
+
+		userCopy = *user
+
+		user = &userCopy
+
+		if user.DisplayName == "" {
+			user.DisplayName = user.EffectiveDisplayName()
+		}
+	}
+
 	r.Success(gin.H{
 		"User":    user,
 		"Message": message,
