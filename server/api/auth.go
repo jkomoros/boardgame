@@ -78,9 +78,20 @@ func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie, email, photoUrl, 
 		userRecord := s.storage.GetUserByCookie(cookie)
 
 		if userRecord == nil {
-			//The cookie must be invalid
-			s.unsetCookie(r, cookie, "Cookie pointed to an user that did not exist. Unsetting.")
-			return
+			//The cookie must be invalid; perhaps we have reset the database.
+
+			//Unset the cookie in the database
+			s.storage.ConnectCookieToUser(cookie, nil)
+
+			//Tell the renderer to unset the cookie
+			r.SetAuthCookie("")
+
+			//Tell the rest of this handler to pretend there is no cookie,
+			//which will likely sign us in.
+			cookie = ""
+
+			//Do NOT return; fall through to the rest of handler.
+
 		} else {
 			if userRecord.Id == uid {
 

@@ -29,8 +29,10 @@ type Server struct {
 }
 
 type Renderer struct {
-	c        *gin.Context
-	rendered bool
+	c            *gin.Context
+	rendered     bool
+	cookieCalled bool
+	cookieValue  string
 }
 
 type Config struct {
@@ -137,6 +139,8 @@ func NewRenderer(c *gin.Context) *Renderer {
 	return &Renderer{
 		c,
 		false,
+		false,
+		"",
 	}
 }
 
@@ -144,6 +148,9 @@ func (r *Renderer) Error(message string) {
 	if r.rendered {
 		panic("Error called on already-rendered renderer")
 	}
+
+	r.writeCookie()
+
 	r.c.JSON(http.StatusOK, gin.H{
 		"Status": "Failure",
 		"Error":  message,
@@ -157,6 +164,8 @@ func (r *Renderer) Success(keys gin.H) {
 	if r.rendered {
 		panic("Success called on alread-rendered renderer")
 	}
+
+	r.writeCookie()
 
 	if keys == nil {
 		keys = gin.H{}
@@ -175,17 +184,35 @@ func (r *Renderer) Success(keys gin.H) {
 	r.rendered = true
 }
 
-func (r *Renderer) SetAuthCookie(value string) {
+func (r *Renderer) writeCookie() {
+	if r.rendered {
+		return
+	}
+	if !r.cookieCalled {
+		return
+	}
 
 	//TODO: might need to set the domain in production.
 
-	if value == "" {
+	if r.cookieValue == "" {
 		//Unset the cookie
 		r.c.SetCookie(cookieName, "", int(time.Now().Add(time.Hour*10000*-1).Unix()), "", "", false, false)
 		return
 	}
 
-	r.c.SetCookie(cookieName, value, int(time.Now().Add(time.Hour*100).Unix()), "", "", false, false)
+	r.c.SetCookie(cookieName, r.cookieValue, int(time.Now().Add(time.Hour*100).Unix()), "", "", false, false)
+}
+
+//SetAuthCookie will set the auth cookie to the specified value. If called
+//multiple times for a single request will only actually write headers for the
+//last one.
+func (r *Renderer) SetAuthCookie(value string) {
+
+	//We don't write the cookies to the response yet because we might get
+	//multiple SetAuthCookie calls in one response.
+
+	r.cookieCalled = true
+	r.cookieValue = value
 
 }
 
