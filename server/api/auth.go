@@ -196,5 +196,8 @@ func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie, email, photoUrl, 
 
 	}
 
-	r.Error("Unexpectedly reached end of function")
+	r.Success(gin.H{
+		"Message": "Not logged in, but no info passed.",
+	})
+
 }
