@@ -826,7 +826,7 @@ func (s *Server) Start() {
 		mainGroup.GET("list/game", s.listGamesHandler)
 		mainGroup.GET("list/manager", s.listManagerHandler)
 
-		mainGroup.POST("auth/cookie", s.authCookieHandler)
+		mainGroup.POST("auth", s.authCookieHandler)
 
 		protectedMainGroup := mainGroup.Group("")
 		protectedMainGroup.Use(s.requireLoggedIn)
