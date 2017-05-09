@@ -16,6 +16,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../bower_components/paper-spinner/paper-spinner-lite.html">
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="boardgame-player-chip.html">
 <link rel="import" href="boardgame-util.html">
 <link rel="import" href="../config-src/boardgame-config.html">
 <link rel="import" href="shared-styles.html">
@@ -41,18 +42,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         font-style: italic;
       }
 
-      .photo {
-        height: 3.5em;
-        width: 3.5em;
-        border-radius: 50%;
-        margin-right: 0.5em;
-        background-color:#ddd;
-      }
-
     </style>
     <div class$="{{_classForVerifyingAuth(verifyingAuth)}}">
       <div class="horizontal layout">
-        <img src$="{{user.PhotoUrl}}" class="photo">
+        <boardgame-player-chip photo-url="{{user.PhotoUrl}}"></boardgame-player-chip>
         <div class="vertical layout">
           <template is="dom-if" if="{{user}}">
               <div>{{user.DisplayName}}</div>
