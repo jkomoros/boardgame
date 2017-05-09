@@ -36,15 +36,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         min-width:300px;
         min-height:300px;
       }
+
+      .verifying {
+        font-style: italic;
+      }
+
     </style>
-    <template is="dom-if" if="{{user}}">
-      <div>{{user.DisplayName}}</div>
-      <a on-tap="signOut">Sign Out</a>
-    </template>
-    <template is="dom-if" if="{{!user}}">
-      <div>Not signed in</div>
-      <a on-tap="showSignInDialog">Sign In</a>
-    </template>
+    <div class$="{{_classForVerifyingAuth(verifyingAuth)}}">
+      <template is="dom-if" if="{{user}}">
+        <div>{{user.DisplayName}}</div>
+        <a on-tap="signOut">Sign Out</a>
+      </template>
+      <template is="dom-if" if="{{!user}}">
+        <div>Not signed in</div>
+        <a on-tap="showSignInDialog">Sign In</a>
+      </template>
+    </div>
     <!-- TODO: ideall this would be modal, but given its position in DOM that doesn't work.
     See https://github.com/PolymerElements/paper-dialog/issues/7 -->
 
@@ -100,8 +107,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         loggedIn : {
           type: Boolean,
           notify:true,
-          computed: "_computeLoggedIn(user, userConfirmed)",
+          computed: "_computeLoggedIn(user)",
         },
+        //set to true after firebase has a user but before our server has ack'd.
+        verifyingAuth : Boolean,
         //The firebaseUser object
         firebaseUser: Object,
         //The confirmed user object from our server
@@ -109,8 +118,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Object,
           value: null,
         },
-        //userConfirmed is if we have or own auth token for this user.
-        userConfirmed : Boolean,
         lastUserId: String,
         //When the user signs in successfully, if this is not undefined, will be called.
         signedInAction: Object,
@@ -126,20 +133,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         firebase.auth().onAuthStateChanged(this.authChanged.bind(this));
       },
 
-      _computeLoggedIn: function(user, userConfirmed) {
+      _computeLoggedIn: function(user) {
         if (!user) return false;
-        if (!userConfirmed) return false;
         return true;
       },
 
+      _classForVerifyingAuth: function(verifyingAuth) {
+        return (verifyingAuth) ? "verifying" : "";
+      },
+
       _authResponseChanged: function(newValue) {
-        if (!newValue) {
+        if (!newValue || newValue.Status != "Success") {
           this.user = null;
           return;
         }
-        if (newValue.Status != "Success") return;
 
-        this.userConfirmed = true;
+        this.verifyingAuth = false;
+
         this.user = newValue.User;
 
         //Must have been a log out
@@ -153,7 +163,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       authChanged: function(user) {
         this.firebaseUser = user;
-        this.userConfirmed = false;
+        this.user = null;
+        this.verifyingAuth = true;
         if (user) {
           this.$.dialog.close();
           if (this.lastUserId != user.uid) {
