@@ -65,9 +65,20 @@ func (s *Server) staticHandler(c *gin.Context) {
 
 		contents, _ := ioutil.ReadAll(file)
 
-		c.Status(http.StatusOK)
+		mimeType := "text/plain"
 
-		c.Writer.Write(contents)
+		//TODO: it seems brittle to roll our own here...
+
+		if strings.HasSuffix(url, ".js") {
+			mimeType = "text/javascript"
+		} else if strings.HasSuffix(url, ".svg") {
+			mimeType = "image/svg+xml"
+		} else if strings.HasSuffix(url, ".html") {
+			mimeType = "text/html"
+		}
+
+		c.Data(http.StatusOK, mimeType, contents)
+
 		return
 
 	}

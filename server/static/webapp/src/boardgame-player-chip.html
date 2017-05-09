@@ -24,7 +24,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     </style>
 
-    <img src$="{{photoUrl}}" class="photo">
+    <img src$="{{_effectivePhotoUrl(photoUrl)}}" class="photo">
   </template>
 
   <script>
@@ -33,6 +33,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       properties: {
         photoUrl: String,
       },
+
+      _effectivePhotoUrl: function(photoUrl) {
+        return (photoUrl) ? photoUrl : this.resolveUrl("player.svg");
+      }
 
     });
   </script>
