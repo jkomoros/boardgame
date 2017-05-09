@@ -41,16 +41,29 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         font-style: italic;
       }
 
+      .photo {
+        height: 3.5em;
+        width: 3.5em;
+        border-radius: 50%;
+        margin-right: 0.5em;
+        background-color:#ddd;
+      }
+
     </style>
     <div class$="{{_classForVerifyingAuth(verifyingAuth)}}">
-      <template is="dom-if" if="{{user}}">
-        <div>{{user.DisplayName}}</div>
-        <a on-tap="signOut">Sign Out</a>
-      </template>
-      <template is="dom-if" if="{{!user}}">
-        <div>Not signed in</div>
-        <a on-tap="showSignInDialog">Sign In</a>
-      </template>
+      <div class="horizontal layout">
+        <img src$="{{user.PhotoUrl}}" class="photo">
+        <div class="vertical layout">
+          <template is="dom-if" if="{{user}}">
+              <div>{{user.DisplayName}}</div>
+              <a on-tap="signOut">Sign Out</a>
+          </template>
+          <template is="dom-if" if="{{!user}}">
+            <div>Not signed in</div>
+            <a on-tap="showSignInDialog">Sign In</a>
+          </template>
+        </div>
+      </div>
     </div>
     <!-- TODO: ideall this would be modal, but given its position in DOM that doesn't work.
     See https://github.com/PolymerElements/paper-dialog/issues/7 -->
