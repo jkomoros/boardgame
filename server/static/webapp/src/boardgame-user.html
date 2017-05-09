@@ -105,7 +105,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         //The firebaseUser object
         firebaseUser: Object,
         //The confirmed user object from our server
-        user: Object,
+        user: {
+          type: Object,
+          value: null,
+        },
         //userConfirmed is if we have or own auth token for this user.
         userConfirmed : Boolean,
         lastUserId: String,
@@ -130,6 +133,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       _authResponseChanged: function(newValue) {
+        if (!newValue) {
+          this.user = null;
+          return;
+        }
         if (newValue.Status != "Success") return;
 
         this.userConfirmed = true;
