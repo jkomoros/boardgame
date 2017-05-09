@@ -38,7 +38,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     </style>
     <template is="dom-if" if="{{user}}">
-      <div>{{user.email}}</div>
+      <div>{{user.DisplayName}}</div>
       <a on-tap="signOut">Sign Out</a>
     </template>
     <template is="dom-if" if="{{!user}}">
@@ -102,6 +102,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify:true,
           computed: "_computeLoggedIn(user, userConfirmed)",
         },
+        //The firebaseUser object
+        firebaseUser: Object,
+        //The confirmed user object from our server
+        user: Object,
         //userConfirmed is if we have or own auth token for this user.
         userConfirmed : Boolean,
         lastUserId: String,
@@ -129,6 +133,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         if (newValue.Status != "Success") return;
 
         this.userConfirmed = true;
+        this.user = newValue.User;
+
         //Must have been a log out
         if (!this.user) return;
         if (!this.signedInAction) return;
@@ -139,7 +145,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       authChanged: function(user) {
-        this.user = user;
+        this.firebaseUser = user;
         this.userConfirmed = false;
         if (user) {
           this.$.dialog.close();
@@ -155,7 +161,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       validateCookie: function() {
-        this.user.getToken(true).then(this.validateCookieWithToken.bind(this));
+        this.firebaseUser.getToken(true).then(this.validateCookieWithToken.bind(this));
       },
 
       validateCookieWithToken: function(token) {
@@ -165,15 +171,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         let photoUrl = ""
         let displayName = ""
 
-        if (this.user) {
-          uid = this.user.uid || "";
-          email = this.user.email || "";
-          photoUrl = this.user.photoURL || "";
-          displayName = this.user.displayName || "";
+        if (this.firebaseUser) {
+          var user = this.firebaseUser
 
-          if (this.user.providerData) {
-            for (var i = 0; i < this.user.providerData.length; i++) {
-              var provider = this.user.providerData[i];
+          uid = user.uid || "";
+          email = user.email || "";
+          photoUrl = user.photoURL || "";
+          displayName = user.displayName || "";
+
+          if (user.providerData) {
+            for (var i = 0; i < user.providerData.length; i++) {
+              var provider = user.providerData[i];
               if (!email && provider.email) email = provider.email;
               if (!photoUrl && provider.photoURL) photoUrl = provider.photoURL;
               if (!displayName && provider.displayName) displayName = provider.displayName;
