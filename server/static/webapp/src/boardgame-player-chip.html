@@ -31,7 +31,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     Polymer({
       is: 'boardgame-player-chip',
       properties: {
-        photoUrl: String,
+        photoUrl: {
+          type: String,
+          value: "",
+        }
       },
 
       _effectivePhotoUrl: function(photoUrl) {

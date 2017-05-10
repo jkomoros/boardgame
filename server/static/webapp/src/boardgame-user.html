@@ -45,7 +45,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
     <div class$="{{_classForVerifyingAuth(verifyingAuth)}}">
       <div class="horizontal layout">
-        <boardgame-player-chip photo-url="{{user.PhotoUrl}}"></boardgame-player-chip>
+        <boardgame-player-chip photo-url="{{_string(user.PhotoUrl)}}"></boardgame-player-chip>
         <div class="vertical layout">
           <template is="dom-if" if="{{user}}">
               <div>{{user.DisplayName}}</div>
@@ -146,6 +146,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       _classForVerifyingAuth: function(verifyingAuth) {
         return (verifyingAuth) ? "verifying" : "";
+      },
+
+      _string : function(str) {
+        //Necessary for a thing that might be undefined to make it the empty
+        //string instead, because Polymer's databinding treats setting as
+        //undefined as a signal that nothing has changed.
+        return (str) ? str : ""
       },
 
       _authResponseChanged: function(newValue) {
