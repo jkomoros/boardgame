@@ -19,7 +19,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         width: 3.5em;
         border-radius: 50%;
         margin-right: 0.5em;
-        background-color:hsl(0, 100%, 50%);
+        background-color:hsl(0, 0%, 60%);
         transition: background-color 1s ease-in-out;
       }
 
@@ -47,13 +47,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       _displayNameChanged: function(newValue) {
-        var hash = this._hashString(newValue);
-        //Hash is between Number.MIN_VALUE and Number.MAX_VALUE, but needs to
-        //be between 0 and 360
 
-        var degree = hash % 360;
+        var result = "hsl(0, 0%, 60%)";
 
-        this.$.chip.style.backgroundColor = "hsl(" + degree + ", 100%, 50%)"
+        if (newValue) {
+          var hash = this._hashString(newValue);
+          //Hash is between Number.MIN_VALUE and Number.MAX_VALUE, but needs to
+          //be between 0 and 360
+
+          var degree = hash % 360;
+          result = "hsl(" + degree + ", 100%, 50%)";
+        }
+
+        this.$.chip.style.backgroundColor = result;
 
       },
 
