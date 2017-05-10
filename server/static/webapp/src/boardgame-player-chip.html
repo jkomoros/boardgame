@@ -52,9 +52,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         var degree = hash % 360;
 
-        console.log(newValue, degree)
-
-        this.$.chip.style.filter = "hue-rotate(" + degree + "deg)"
+        this.$.chip.style.backgroundColor = "hsl(" + degree + ", 100%, 50%)"
 
       },
 
