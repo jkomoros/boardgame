@@ -45,7 +45,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
     <div class$="{{_classForVerifyingAuth(verifyingAuth)}}">
       <div class="horizontal layout">
-        <boardgame-player-chip photo-url="{{_string(user.PhotoUrl)}}"></boardgame-player-chip>
+        <boardgame-player-chip photo-url="{{_string(user.PhotoUrl)}}" display-name="{{_string(user.DisplayName)}}"></boardgame-player-chip>
         <div class="vertical layout">
           <template is="dom-if" if="{{user}}">
               <div>{{user.DisplayName}}</div>

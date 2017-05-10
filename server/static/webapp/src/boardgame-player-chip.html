@@ -19,12 +19,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         width: 3.5em;
         border-radius: 50%;
         margin-right: 0.5em;
-        background-color:#ddd;
+        background-color:hsl(0, 100%, 50%);
       }
 
     </style>
 
-    <img src$="{{_effectivePhotoUrl(photoUrl)}}" class="photo">
+    <img id="chip" src$="{{_effectivePhotoUrl(photoUrl)}}" class="photo">
   </template>
 
   <script>
@@ -34,11 +34,40 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         photoUrl: {
           type: String,
           value: "",
+        },
+        displayName: {
+          type: String,
+          observer: "_displayNameChanged"
         }
       },
 
       _effectivePhotoUrl: function(photoUrl) {
         return (photoUrl) ? photoUrl : this.resolveUrl("player.svg");
+      },
+
+      _displayNameChanged: function(newValue) {
+        var hash = this._hashString(newValue);
+        //Hash is between Number.MIN_VALUE and Number.MAX_VALUE, but needs to
+        //be between 0 and 360
+
+        var degree = hash % 360;
+
+        console.log(newValue, degree)
+
+        this.$.chip.style.filter = "hue-rotate(" + degree + "deg)"
+
+      },
+
+      _hashString: function(str) {
+        //Based on code at http://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript-jquery
+        var hash = 0, i, chr;
+        if (str.length === 0) return hash;
+        for (i = 0; i < str.length; i++) {
+          chr   = str.charCodeAt(i);
+          hash  = ((hash << 5) - hash) + chr;
+          hash |= 0; // Convert to 32bit integer
+        }
+        return hash;
       }
 
     });
