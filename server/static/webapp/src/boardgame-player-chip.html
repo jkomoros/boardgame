@@ -25,7 +25,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     </style>
 
-    <img id="chip" src$="{{_effectivePhotoUrl(photoUrl)}}" class="photo">
+    <img id="chip" src$="{{_effectivePhotoUrl(photoUrl, isAgent)}}" class="photo">
   </template>
 
   <script>
@@ -39,10 +39,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         displayName: {
           type: String,
           observer: "_displayNameChanged"
+        },  
+        //Whether or not the user is an agent or not
+        isAgent: {
+          type: Boolean,
+          value: false,
         }
       },
 
-      _effectivePhotoUrl: function(photoUrl) {
+      _effectivePhotoUrl: function(photoUrl, isAgent) {
+        //TODO: if isAgent, return the agent svg.
         return (photoUrl) ? photoUrl : this.resolveUrl("player.svg");
       },
 
