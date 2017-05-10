@@ -13,6 +13,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../config-src/boardgame-config.html">
 <link rel="import" href="boardgame-util.html">
+<link rel="import" href="boardgame-player-chip.html">
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../bower_components/paper-styles/typography.html">
@@ -31,14 +32,27 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       color: var(--primary-text-color);
      }
 
+     boardgame-player-chip {
+      padding-right: 10px;
+     }
+
      .players strong.number {
-      @apply(--paper-font-display3);
-      color: var(--disabled-text-color);
-      padding-right:10px;
+      @apply(--paper-font-caption);
+      background-color: var(--disabled-text-color);
+      color: white;
+      padding:0.25em;
+      height:1em;
+      width:1em;
+      box-sizing:content-box;
+      text-align:center;
+      border-radius:50%;
+      position:absolute;
+      bottom:0px;
+      right:0px;
      }
 
      .players .current strong.number {
-      color: var(--light-accent-color);
+      background-color: var(--light-accent-color);
      }
 
      .players span {
@@ -56,7 +70,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <template is="dom-repeat" items="{{playersInfo}}">
           <div class="flex">
             <div class$="layout horizontal center {{classForPlayer(index, viewingAsPlayer, currentPlayerIndex)}}">
-              <strong class="number">{{index}}</strong>
+              <div style="position:relative">
+                <boardgame-player-chip display-name="{{item.DisplayName}}" is-agent="{{item.IsAgent}}"></boardgame-player-chip>
+                <strong class="number">{{index}}</strong>
+              </div>
               <div class="layout vertical">
                 <strong>{{item.DisplayName}}</strong>
                 <span>{{playerDescription(item, index, viewingAsPlayer)}}</span>
