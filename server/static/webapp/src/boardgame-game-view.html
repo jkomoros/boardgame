@@ -71,7 +71,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </div>
     </div>
     <div class="card">
-      <boardgame-render-game state="{{data.Game.CurrentState}}" expanded-state="{{data.Game.ExpandedCurrentState}}" diagram="{{data.Game.Diagram}}" game-name="{{gameName}}" viewing-as-player="{{data.ViewingAsPlayer}}"></boardgame-render-game>
+      <boardgame-render-game state="{{game.CurrentState}}" expanded-state="{{game.ExpandedCurrentState}}" diagram="{{game.Diagram}}" game-name="{{gameName}}" viewing-as-player="{{data.ViewingAsPlayer}}"></boardgame-render-game>
     </div>
     <div class="card horizontal layout admin" hidden="{{!admin}}">
       <div class="flex">
@@ -125,6 +125,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         chest : String,
         gameState : String,
+        game: {
+          type: Object,
+          observer: "_gameChanged"
+        },
         gameId: {
           type: String,
           observer: "_gameIdChanged",
@@ -430,6 +434,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return result
 
       },
+
+      _gameChanged: function(newValue) {
+
+        if (!newValue) return;
+
+        this.gameState = JSON.stringify(newValue.CurrentState, null, 2);
+        //Have to use this.set to get databinding system to notice the change.
+        this.set("game.ExpandedCurrentState", this._expandState(newValue.CurrentState));
+      },
+
       _dataChanged: function(newValue, oldValue) {
         if (!newValue) {
           //Sometimes we set null, like when we select the view.
@@ -438,11 +452,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         if (newValue.Chest) {
           this.chest = JSON.stringify(newValue.Chest, null, 2)
         }
-        if (newValue.Game && newValue.Game.CurrentState) {
-          this.gameState = JSON.stringify(newValue.Game.CurrentState, null, 2);
-          //Have to use this.set to get databinding system to notice the change.
-          this.set("data.Game.ExpandedCurrentState", this._expandState(newValue.Game.CurrentState));
-        }
+
+        this.game = newValue.Game
 
         if (this.viewingAsPlayerIsCurrentPlayer) {
           this.requestedPlayer = newValue.CurrentPlayerIndex;
