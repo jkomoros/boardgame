@@ -20,7 +20,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/paper-styles/color.html">
 <link rel="import" href="shared-styles.html">
 
-<dom-module id="boardgame-current-player">
+<dom-module id="boardgame-player-roster">
   <template>
     <style is="custom-style" include="iron-flex shared-styles">
      h3 {
@@ -109,7 +109,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   <script>
     Polymer({
-      is: 'boardgame-current-player',
+      is: 'boardgame-player-roster',
       properties: {
         viewingAsPlayer: Number,
         hasEmptySlots: Boolean,

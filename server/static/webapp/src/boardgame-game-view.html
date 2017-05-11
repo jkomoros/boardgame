@@ -14,7 +14,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/paper-checkbox/paper-checkbox.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="boardgame-move-form.html">
-<link rel="import" href="boardgame-current-player.html">
+<link rel="import" href="boardgame-player-roster.html">
 <link rel="import" href="shared-styles.html">
 <link rel="import" href="boardgame-render-game.html">
 <link rel="import" href="../config-src/boardgame-config.html">
@@ -67,7 +67,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </div>
       </div>
       <div hidden$="{{data.Game.Finished}}">
-        <boardgame-current-player id="player" logged-in="{{loggedIn}}" game-name="{{gameName}}" game-id="{{gameId}}" viewing-as-player="{{data.ViewingAsPlayer}}" has-empty-slots="{{data.HasEmptySlots}}" current-player-index="{{data.CurrentPlayerIndex}}" players-info="{{data.Players}}"></boardgame-current-player>
+        <boardgame-player-roster id="player" logged-in="{{loggedIn}}" game-name="{{gameName}}" game-id="{{gameId}}" viewing-as-player="{{data.ViewingAsPlayer}}" has-empty-slots="{{data.HasEmptySlots}}" current-player-index="{{data.CurrentPlayerIndex}}" players-info="{{data.Players}}"></boardgame-player-roster>
       </div>
     </div>
     <div class="card">
