@@ -214,7 +214,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.debounce("fetch-data", this.fetchData.bind(this));
       },
       _computeGameViewUrl: function(gameName, gameId, requestedPlayer, admin){
-        return this.UrlForGameAPI(gameName, gameId, "view") + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0);
+        return this.UrlForGameAPI(gameName, gameId, "info") + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0);
       },
       _computeMoveAsPlayer: function(viewingAsPlayer, moveAsViewingAsPlayer) {
         if (moveAsViewingAsPlayer) return viewingAsPlayer;

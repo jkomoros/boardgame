@@ -521,7 +521,9 @@ func (s *Server) doListManager(r *Renderer) {
 
 }
 
-func (s *Server) gameViewHandler(c *gin.Context) {
+//gameInfo is the first payload when a game is loaded, including immutables
+//like chest, but also the initial game state payload as a convenience.
+func (s *Server) gameInfoHandler(c *gin.Context) {
 
 	game := s.getGame(c)
 
@@ -531,7 +533,7 @@ func (s *Server) gameViewHandler(c *gin.Context) {
 
 	r := NewRenderer(c)
 
-	s.gameView(r, game, playerIndex, hasEmptySlots)
+	s.doGameInfo(r, game, playerIndex, hasEmptySlots)
 
 }
 
@@ -597,7 +599,7 @@ func (s *Server) gamePlayerInfo(game *boardgame.Game) []*playerBoardInfo {
 	return result
 }
 
-func (s *Server) gameView(r *Renderer, game *boardgame.Game, playerIndex boardgame.PlayerIndex, hasEmptySlots bool) {
+func (s *Server) doGameInfo(r *Renderer, game *boardgame.Game, playerIndex boardgame.PlayerIndex, hasEmptySlots bool) {
 	if game == nil {
 		r.Error("Couldn't find game")
 		return
@@ -836,7 +838,7 @@ func (s *Server) Start() {
 		gameAPIGroup := mainGroup.Group("game/:name/:id")
 		gameAPIGroup.Use(s.gameAPISetup)
 		{
-			gameAPIGroup.GET("view", s.gameViewHandler)
+			gameAPIGroup.GET("info", s.gameInfoHandler)
 
 			//The statusHandler is conceptually here, but becuase we want to
 			//optimize it so much we have it congfigured at the top level.
