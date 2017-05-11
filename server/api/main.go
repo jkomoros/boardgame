@@ -539,6 +539,7 @@ type playerBoardInfo struct {
 	DisplayName string
 	IsAgent     bool
 	IsEmpty     bool
+	PhotoUrl    string
 }
 
 func (s *Server) gamePlayerInfo(game *boardgame.Game) []*playerBoardInfo {
@@ -584,6 +585,7 @@ func (s *Server) gamePlayerInfo(game *boardgame.Game) []*playerBoardInfo {
 
 		player.IsAgent = false
 		player.IsEmpty = false
+		player.PhotoUrl = user.PhotoUrl
 		player.DisplayName = user.EffectiveDisplayName()
 
 		if player.DisplayName == "" {
