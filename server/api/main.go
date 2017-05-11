@@ -521,6 +521,40 @@ func (s *Server) doListManager(r *Renderer) {
 
 }
 
+func (s *Server) gameVersionHandler(c *gin.Context) {
+
+	game := s.getGame(c)
+
+	playerIndex := s.effectivePlayerIndex(c)
+
+	version := s.getRequestGameVersion(c)
+
+	r := NewRenderer(c)
+
+	s.doGameVersion(r, game, version, playerIndex)
+
+}
+
+func (s *Server) doGameVersion(r *Renderer, game *boardgame.Game, version int, playerIndex boardgame.PlayerIndex) {
+	if game == nil {
+		r.Error("Couldn't find game")
+		return
+	}
+
+	if playerIndex == invalidPlayerIndex {
+		r.Error("Got invalid playerIndex")
+		return
+	}
+
+	//TODO: actually use Version
+
+	args := gin.H{
+		"Game": game.JSONForPlayer(playerIndex),
+	}
+
+	r.Success(args)
+}
+
 //gameInfo is the first payload when a game is loaded, including immutables
 //like chest, but also the initial game state payload as a convenience.
 func (s *Server) gameInfoHandler(c *gin.Context) {
@@ -839,6 +873,7 @@ func (s *Server) Start() {
 		gameAPIGroup.Use(s.gameAPISetup)
 		{
 			gameAPIGroup.GET("info", s.gameInfoHandler)
+			gameAPIGroup.GET("version/:version", s.gameVersionHandler)
 
 			//The statusHandler is conceptually here, but becuase we want to
 			//optimize it so much we have it congfigured at the top level.

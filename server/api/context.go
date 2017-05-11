@@ -26,6 +26,7 @@ const (
 	qryManagerKey    = "manager"
 	qryNumPlayersKey = "numplayers"
 	qryAgentKey      = "agent-player-"
+	qryGameVersion   = "version"
 )
 
 const (
@@ -58,6 +59,14 @@ func (s *Server) getRequestAgents(c *gin.Context, expectedNum int) []string {
 	for i := 0; i < expectedNum; i++ {
 		result = append(result, c.PostForm(qryAgentKey+strconv.Itoa(i)))
 	}
+	return result
+}
+
+func (s *Server) getRequestGameVersion(c *gin.Context) int {
+	rawVal := c.Param(qryGameVersion)
+
+	result, _ := strconv.Atoi(rawVal)
+
 	return result
 }
 
