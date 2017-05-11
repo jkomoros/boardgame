@@ -609,7 +609,6 @@ func (s *Server) gameView(r *Renderer, game *boardgame.Game, playerIndex boardga
 	}
 
 	args := gin.H{
-		"Diagram":            game.CurrentState().SanitizedForPlayer(playerIndex).Diagram(),
 		"Chest":              s.renderChest(game),
 		"Forms":              s.generateForms(game),
 		"Game":               game.JSONForPlayer(playerIndex),

@@ -132,11 +132,15 @@ func (g *Game) NumPlayers() int {
 //only as an object, and with CurrentState equal to a sanitized state for the
 //given player.
 func (g *Game) JSONForPlayer(player PlayerIndex) interface{} {
+
+	state := g.CurrentState().SanitizedForPlayer(player)
+
 	return map[string]interface{}{
 		"Name":         g.Name(),
 		"Finished":     g.Finished(),
 		"Winners":      g.Winners(),
-		"CurrentState": g.CurrentState().SanitizedForPlayer(player),
+		"CurrentState": state,
+		"Diagram":      state.Diagram(),
 		"Id":           g.Id(),
 		"NumPlayers":   g.NumPlayers(),
 		"Agents":       g.Agents(),
