@@ -152,7 +152,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         maxRequestedPlayerIndex: {
           type: Number,
-          computed: "_computeMaxRequestedPlayerIndex(data)"
+          computed: "_computeMaxRequestedPlayerIndex(game)"
         },
         promptedToJoin: {
           type: Boolean,
@@ -224,14 +224,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         if (moveAsViewingAsPlayer) return viewingAsPlayer;
         return this.$.player.ADMIN_PLAYER_INDEX;
       },
-      _computeMaxRequestedPlayerIndex: function(data) {
-        if (!data) {
+      _computeMaxRequestedPlayerIndex: function(game) {
+        if (!game) {
           return 0;
         }
-        if (!data.Game) {
-          return 0;
-        }
-        return data.Game.NumPlayers - 1;
+        return game.NumPlayers - 1;
       },
       _requestedPlayerChanged : function() {
         this.debounce("fetch-data", this.fetchData.bind(this));
@@ -287,7 +284,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         //We stop asking for data if the game is finished, because nothing
         //interesting can happen at that point.
-        if (!this.data || (this.data && this.data.Game && !this.data.Game.Finished)){
+        if (!this.gata || (this.game && !this.game.Finished)){
           this.async(this.maybeFetchStatus, this.statusPollFrequency);
         }
       },
@@ -298,7 +295,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         if (!this.data) {
           return
         }
-        if (newValue.Version > this.data.Game.Version) { 
+        if (newValue.Version > this.game.Version) { 
           //We're out of date! Fetch new data!
           this.fetchData();
         }
@@ -425,9 +422,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         let result = this._copyObj(deck[index]);
 
-        if (this.data.Game.CurrentState && this.data.Game.CurrentState.Components) {
-          if (this.data.Game.CurrentState.Components[deckName]) {
-            result.DynamicValues = this.data.Game.CurrentState.Components[deckName][index];
+        if (this.game.CurrentState && this.game.CurrentState.Components) {
+          if (this.game.CurrentState.Components[deckName]) {
+            result.DynamicValues = this.game.CurrentState.Components[deckName][index];
           }
         }
 
