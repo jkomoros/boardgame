@@ -549,7 +549,7 @@ func (s *Server) doGameVersion(r *Renderer, game *boardgame.Game, version int, p
 	//TODO: actually use Version
 
 	args := gin.H{
-		"Game": game.JSONForPlayer(playerIndex),
+		"Game": game.JSONForPlayer(playerIndex, nil),
 	}
 
 	r.Success(args)
@@ -647,7 +647,7 @@ func (s *Server) doGameInfo(r *Renderer, game *boardgame.Game, playerIndex board
 	args := gin.H{
 		"Chest":           s.renderChest(game),
 		"Forms":           s.generateForms(game),
-		"Game":            game.JSONForPlayer(playerIndex),
+		"Game":            game.JSONForPlayer(playerIndex, nil),
 		"Error":           s.lastErrorMessage,
 		"Players":         s.gamePlayerInfo(game),
 		"ViewingAsPlayer": playerIndex,
