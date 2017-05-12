@@ -125,6 +125,7 @@ func (g *GameStorageRecord) ToStorageRecord() *boardgame.GameStorageRecord {
 		Id:         g.Id,
 		Version:    int(g.Version),
 		Winners:    winners,
+		Finished:   g.Finished,
 		NumPlayers: int(g.NumPlayers),
 		Agents:     stringToAgents(g.Agents),
 	}
@@ -141,6 +142,7 @@ func NewGameStorageRecord(game *boardgame.GameStorageRecord) *GameStorageRecord 
 		Version:    int64(game.Version),
 		Winners:    winnersToString(game.Winners),
 		NumPlayers: int64(game.NumPlayers),
+		Finished:   game.Finished,
 		Agents:     agentsToString(game.Agents),
 	}
 }
