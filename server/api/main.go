@@ -645,14 +645,13 @@ func (s *Server) doGameInfo(r *Renderer, game *boardgame.Game, playerIndex board
 	}
 
 	args := gin.H{
-		"Chest":              s.renderChest(game),
-		"Forms":              s.generateForms(game),
-		"Game":               game.JSONForPlayer(playerIndex),
-		"Error":              s.lastErrorMessage,
-		"CurrentPlayerIndex": game.CurrentPlayerIndex(),
-		"Players":            s.gamePlayerInfo(game),
-		"ViewingAsPlayer":    playerIndex,
-		"HasEmptySlots":      hasEmptySlots,
+		"Chest":           s.renderChest(game),
+		"Forms":           s.generateForms(game),
+		"Game":            game.JSONForPlayer(playerIndex),
+		"Error":           s.lastErrorMessage,
+		"Players":         s.gamePlayerInfo(game),
+		"ViewingAsPlayer": playerIndex,
+		"HasEmptySlots":   hasEmptySlots,
 	}
 
 	s.lastErrorMessage = ""

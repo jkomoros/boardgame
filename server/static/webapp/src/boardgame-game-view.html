@@ -67,7 +67,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </div>
       </div>
       <div hidden$="{{game.Finished}}">
-        <boardgame-player-roster id="player" logged-in="{{loggedIn}}" game-name="{{gameName}}" game-id="{{gameId}}" viewing-as-player="{{data.ViewingAsPlayer}}" has-empty-slots="{{data.HasEmptySlots}}" current-player-index="{{data.CurrentPlayerIndex}}" players-info="{{data.Players}}"></boardgame-player-roster>
+        <boardgame-player-roster id="player" logged-in="{{loggedIn}}" game-name="{{gameName}}" game-id="{{gameId}}" viewing-as-player="{{data.ViewingAsPlayer}}" has-empty-slots="{{data.HasEmptySlots}}" current-player-index="{{game.CurrentPlayerIndex}}" players-info="{{data.Players}}"></boardgame-player-roster>
       </div>
     </div>
     <div class="card">
@@ -442,6 +442,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.gameState = JSON.stringify(newValue.CurrentState, null, 2);
         //Have to use this.set to get databinding system to notice the change.
         this.set("game.ExpandedCurrentState", this._expandState(newValue.CurrentState));
+
+        if (this.viewingAsPlayerIsCurrentPlayer) {
+          this.requestedPlayer = newValue.CurrentPlayerIndex;
+        }
+
       },
 
       _dataChanged: function(newValue, oldValue) {
@@ -454,10 +459,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
 
         this.game = newValue.Game
-
-        if (this.viewingAsPlayerIsCurrentPlayer) {
-          this.requestedPlayer = newValue.CurrentPlayerIndex;
-        }
 
         if (this.selected && this.loggedIn && this.$.player.showJoin && !this.promptedToJoin) {
 

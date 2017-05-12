@@ -136,15 +136,16 @@ func (g *Game) JSONForPlayer(player PlayerIndex) interface{} {
 	state := g.CurrentState().SanitizedForPlayer(player)
 
 	return map[string]interface{}{
-		"Name":         g.Name(),
-		"Finished":     g.Finished(),
-		"Winners":      g.Winners(),
-		"CurrentState": state,
-		"Diagram":      state.Diagram(),
-		"Id":           g.Id(),
-		"NumPlayers":   g.NumPlayers(),
-		"Agents":       g.Agents(),
-		"Version":      g.Version(),
+		"Name":               g.Name(),
+		"Finished":           g.Finished(),
+		"Winners":            g.Winners(),
+		"CurrentState":       state,
+		"CurrentPlayerIndex": g.manager.delegate.CurrentPlayerIndex(state),
+		"Diagram":            state.Diagram(),
+		"Id":                 g.Id(),
+		"NumPlayers":         g.NumPlayers(),
+		"Agents":             g.Agents(),
+		"Version":            g.Version(),
 	}
 }
 
