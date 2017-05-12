@@ -203,7 +203,7 @@ func (m *MoveStartHideCardsTimer) Legal(state boardgame.State, proposer boardgam
 func (m *MoveStartHideCardsTimer) Apply(state boardgame.MutableState) error {
 	game, _ := concreteStates(state)
 
-	game.HideCardsTimer.Start(HideCardsDuration, &MoveHideCards{})
+	game.HideCardsTimer.Start(HideCardsDuration, MoveHideCardsFactory(state))
 
 	return nil
 }
