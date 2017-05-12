@@ -546,10 +546,13 @@ func (s *Server) doGameVersion(r *Renderer, game *boardgame.Game, version int, p
 		return
 	}
 
-	//TODO: actually use Version
+	state := game.State(version)
+
+	//If state is nil, JSONForPlayer will basically treat it as just "give the
+	//current version" which is a reasonable fallback.
 
 	args := gin.H{
-		"Game": game.JSONForPlayer(playerIndex, nil),
+		"Game": game.JSONForPlayer(playerIndex, state),
 	}
 
 	r.Success(args)
