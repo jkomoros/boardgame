@@ -1,13 +1,16 @@
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../../bower_components/paper-styles/typography.html">
+<link rel="import" href="../../bower_components/paper-styles/color.html">
 
 <dom-module id="boardgame-tictactoe-cell">
   <template>
     <style include="iron-flex">
       :host {
-        height:6em;
-        width:6em;
+        height:100px;
+        width:100px;
         cursor:pointer;
+        @apply(--paper-font-display2);
       }
       .cell {
         height: 100%;
