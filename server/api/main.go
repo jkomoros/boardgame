@@ -554,6 +554,7 @@ func (s *Server) doGameVersion(r *Renderer, game *boardgame.Game, version int, p
 	args := gin.H{
 		"Game":            game.JSONForPlayer(playerIndex, state),
 		"ViewingAsPlayer": playerIndex,
+		"Forms":           s.generateForms(game),
 	}
 
 	r.Success(args)
