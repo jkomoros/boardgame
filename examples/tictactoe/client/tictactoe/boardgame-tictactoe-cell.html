@@ -6,9 +6,10 @@
       div {
         height:3em;
         width:3em;
+        cursor:pointer;
       }
     </style>
-    <div>
+    <div on-tap="handleTap">
       {{value}}
     </div>
   </template>
@@ -21,6 +22,7 @@
           type: Object,
           observer: "_tokenChanged",
         },
+        index: Number,
         value: String,
       },
 
@@ -31,6 +33,12 @@
         }
         console.log(newValue);
         this.value = newValue.Values.Value;
+      },
+
+      handleTap: function() {
+        this.fire("propose-move", {name: "Place Token", arguments: {
+          "Slot": this.index,
+        }});
       }
 
 
