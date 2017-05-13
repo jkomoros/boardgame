@@ -1,0 +1,39 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<dom-module id="boardgame-tictactoe-cell">
+  <template>
+    <style>
+      div {
+        height:3em;
+        width:3em;
+      }
+    </style>
+    <div>
+      {{value}}
+    </div>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'boardgame-tictactoe-cell',
+      properties: {
+        token: {
+          type: Object,
+          observer: "_tokenChanged",
+        },
+        value: String,
+      },
+
+      _tokenChanged: function(newValue) {
+        if (!newValue) {
+          this.value = "";
+          return
+        }
+        console.log(newValue);
+        this.value = newValue.Values.Value;
+      }
+
+
+    });
+  </script>
+</dom-module>
