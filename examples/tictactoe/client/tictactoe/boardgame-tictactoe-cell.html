@@ -1,15 +1,23 @@
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 
 <dom-module id="boardgame-tictactoe-cell">
   <template>
-    <style>
-      div {
-        height:3em;
-        width:3em;
+    <style include="iron-flex">
+      :host {
+        height:6em;
+        width:6em;
         cursor:pointer;
       }
+      .cell {
+        height: 100%;
+        width: 100%;
+      }
+      .cell>div {
+        text-align:center;
+      }
     </style>
-    <div on-tap="handleTap">
+    <div class="cell layout vertical center center-justified" on-tap="handleTap">
       {{value}}
     </div>
   </template>
@@ -31,7 +39,6 @@
           this.value = "";
           return
         }
-        console.log(newValue);
         this.value = newValue.Values.Value;
       },
 
