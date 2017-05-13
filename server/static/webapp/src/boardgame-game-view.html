@@ -67,11 +67,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </div>
       </div>
       <div hidden$="{{game.Finished}}">
-        <boardgame-player-roster id="player" logged-in="{{loggedIn}}" game-name="{{gameName}}" game-id="{{gameId}}" viewing-as-player="{{data.ViewingAsPlayer}}" has-empty-slots="{{data.HasEmptySlots}}" current-player-index="{{game.CurrentPlayerIndex}}" players-info="{{data.Players}}"></boardgame-player-roster>
+        <boardgame-player-roster id="player" logged-in="{{loggedIn}}" game-name="{{gameName}}" game-id="{{gameId}}" viewing-as-player="{{viewingAsPlayer}}" has-empty-slots="{{data.HasEmptySlots}}" current-player-index="{{game.CurrentPlayerIndex}}" players-info="{{data.Players}}"></boardgame-player-roster>
       </div>
     </div>
     <div class="card">
-      <boardgame-render-game state="{{game.CurrentState}}" expanded-state="{{game.ExpandedCurrentState}}" diagram="{{game.Diagram}}" game-name="{{gameName}}" viewing-as-player="{{data.ViewingAsPlayer}}"></boardgame-render-game>
+      <boardgame-render-game state="{{game.CurrentState}}" expanded-state="{{game.ExpandedCurrentState}}" diagram="{{game.Diagram}}" game-name="{{gameName}}" viewing-as-player="{{viewingAsPlayer}}"></boardgame-render-game>
     </div>
     <div class="card horizontal layout admin" hidden="{{!admin}}">
       <div class="flex">
@@ -87,7 +87,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     <template is="dom-if" if="{{!data.Game.Finished}}">
       <div class="card">
-        <boardgame-move-form admin="{{admin}}" move-as-player="{{moveAsPlayer}}" id="moves" config="{{data.Forms}}" game-id="[[gameId]]" game-name="[[gameName]]"></boardgame-move-form>
+        <boardgame-move-form admin="{{admin}}" move-as-player="{{moveAsPlayer}}" id="moves" config="{{moveForms}}" game-id="[[gameId]]" game-name="[[gameName]]"></boardgame-move-form>
       </div>
     </template>
     <div class="card">
@@ -102,6 +102,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <pre>{{chest}}</pre>
       </details>
     </div>
+    <iron-ajax id="version" with-credentials url="[[gameVersionUrl]]" handle-as="json" last-response="{{versionData}}"></iron-ajax>
     <iron-ajax id="status" with-credentials url="[[UrlForGameAPI(gameName, gameId, 'status')]]" handle-as="json" last-response="{{status}}">
     <iron-ajax id="data" with-credentials url="[[gameViewUrl]]" handle-as="json" last-response="{{data}}">
   </template>
@@ -146,6 +147,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: String,
           computed: "_computeGameViewUrl(gameName, gameId, requestedPlayer, admin)"
         },
+        gameVersionUrl: {
+          type: String,
+          computed: "_computeGameVersionUrl(gameName, gameId, requestedPlayer, admin, targetVersion)"
+        },
         loggedIn: {
           type: Boolean,
           observer: "_handleLoggedInChanged",
@@ -179,8 +184,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         moveAsPlayer: {
           type:Number,
-          computed: "_computeMoveAsPlayer(data.ViewingAsPlayer, makeMovesAsViewingAsPlayer)"
-        }
+          computed: "_computeMoveAsPlayer(viewingAsPlayer, makeMovesAsViewingAsPlayer)"
+        },
+        versionData: {
+          type: Object,
+          observer: "_versionDataChanged"
+        },
+        targetVersion: {
+          type: Number,
+          observer: "_targetVersionChanged"
+        },
+        viewingAsPlayer: {
+          type: Number,
+          value: 0,
+        },
+        moveForms: Object,
       },
       listeners: {
         'propose-move' : 'handleProposeMove',
@@ -220,6 +238,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _computeGameViewUrl: function(gameName, gameId, requestedPlayer, admin){
         return this.UrlForGameAPI(gameName, gameId, "info") + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0);
       },
+      _computeGameVersionUrl: function(gameName, gameId, requestedPlayer, admin, version) {
+        //TODO: factor this out with computeGameViewUrl a bit
+        return this.UrlForGameAPI(gameName, gameId, "version/") + version + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0);
+      },
       _computeMoveAsPlayer: function(viewingAsPlayer, moveAsViewingAsPlayer) {
         if (moveAsViewingAsPlayer) return viewingAsPlayer;
         return this.$.player.ADMIN_PLAYER_INDEX;
@@ -234,12 +256,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.debounce("fetch-data", this.fetchData.bind(this));
       },
       updateData: function() {
-        this.fetchData();
+        this.fetchInfo();
         this.fetchStatusNow();
         this.async(this.maybeFetchStatus, this.statusPollFrequency);
       },
-      fetchData : function() {
-        //If we're already fetchign data don't fire off another one.
+      fetchInfo: function() {
         if (this.$.data.loading) {
           return
         }
@@ -253,6 +274,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           return
         }
         this.$.data.generateRequest();
+      },
+      fetchData : function() {
+        //If we're already fetchign data don't fire off another one.
+        if (this.$.version.loading) {
+          return
+        }
+
+        if (!this.selected) {
+          return
+        }
+
+        if (!this.gameId) {
+          //The URL will be junk
+          return
+        }
+        this.$.version.generateRequest();
       },
       fetchStatusNow: function() {
         if (!this.gameId) {
@@ -295,10 +332,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         if (!this.data) {
           return
         }
-        if (newValue.Version > this.game.Version) { 
+
+        this.targetVersion = newValue.Version
+
+      },
+      _targetVersionChanged: function(newValue, oldValue) {
+        if (newValue > oldValue) {
           //We're out of date! Fetch new data!
           this.fetchData();
         }
+      },
+      _versionDataChanged: function(newValue) {
+        if (!newValue) return;
+        if (newValue.Error) {
+          console.log("Version getter returned error: " + newValue.Error)
+          return
+        }
+        this.game = newValue.Game;
+        this.viewingAsPlayer = newValue.ViewingAsPlayer;
+        this.moveForms = newValue.Forms;
       },
       doTick: function() {
         this._tick();
