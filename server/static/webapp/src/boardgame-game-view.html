@@ -85,23 +85,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </div>
     </div>
 
-    <template is="dom-if" if="{{!data.Game.Finished}}">
+    <template is="dom-if" if="{{admin}}">
+      <template is="dom-if" if="{{!data.Game.Finished}}">
+        <div class="card">
+          <boardgame-move-form admin="{{admin}}" move-as-player="{{moveAsPlayer}}" id="moves" config="{{moveForms}}" game-id="[[gameId]]" game-name="[[gameName]]"></boardgame-move-form>
+        </div>
+      </template>
       <div class="card">
-        <boardgame-move-form admin="{{admin}}" move-as-player="{{moveAsPlayer}}" id="moves" config="{{moveForms}}" game-id="[[gameId]]" game-name="[[gameName]]"></boardgame-move-form>
+        <details>
+          <summary>State</summary>
+          <pre>{{gameState}}</pre>
+        </details>
+      </div>
+      <div class="card">
+        <details>
+          <summary>Chest</summary>
+          <pre>{{chest}}</pre>
+        </details>
       </div>
     </template>
-    <div class="card">
-      <details>
-        <summary>State</summary>
-        <pre>{{gameState}}</pre>
-      </details>
-    </div>
-    <div class="card">
-      <details>
-        <summary>Chest</summary>
-        <pre>{{chest}}</pre>
-      </details>
-    </div>
     <iron-ajax id="version" with-credentials url="[[gameVersionUrl]]" handle-as="json" last-response="{{versionData}}"></iron-ajax>
     <iron-ajax id="status" with-credentials url="[[UrlForGameAPI(gameName, gameId, 'status')]]" handle-as="json" last-response="{{status}}">
     <iron-ajax id="data" with-credentials url="[[gameViewUrl]]" handle-as="json" last-response="{{data}}">
