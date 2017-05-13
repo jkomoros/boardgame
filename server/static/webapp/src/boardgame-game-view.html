@@ -73,19 +73,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <div class="card">
       <boardgame-render-game state="{{game.CurrentState}}" expanded-state="{{game.ExpandedCurrentState}}" diagram="{{game.Diagram}}" game-name="{{gameName}}" viewing-as-player="{{viewingAsPlayer}}"></boardgame-render-game>
     </div>
-    <div class="card horizontal layout admin" hidden="{{!admin}}">
-      <div class="flex">
-        View as:<input is="iron-input" type="number" disabled="{{viewingAsPlayerIsCurrentPlayer}}" value-as-number="{{requestedPlayer::input}}" min="-2" max="{{maxRequestedPlayerIndex}}">
-      </div>
-      <div>
-        <paper-checkbox id="viewing-is-current" checked="{{viewingAsPlayerIsCurrentPlayer}}">ViewingAsPlayer is CurrentPlayer</paper-checkbox>
-      </div>
-      <div>
-        <paper-checkbox id="move-as-player" checked="{{makeMovesAsViewingAsPlayer}}">Make Moves As ViewingAsPlayer</paper-checkbox>
-      </div>
-    </div>
-
     <div hidden$="{{!admin}}">
+      <div class="card horizontal layout admin">
+        <div class="flex">
+          View as:<input is="iron-input" type="number" disabled="{{viewingAsPlayerIsCurrentPlayer}}" value-as-number="{{requestedPlayer::input}}" min="-2" max="{{maxRequestedPlayerIndex}}">
+        </div>
+        <div>
+          <paper-checkbox id="viewing-is-current" checked="{{viewingAsPlayerIsCurrentPlayer}}">ViewingAsPlayer is CurrentPlayer</paper-checkbox>
+        </div>
+        <div>
+          <paper-checkbox id="move-as-player" checked="{{makeMovesAsViewingAsPlayer}}">Make Moves As ViewingAsPlayer</paper-checkbox>
+        </div>
+      </div>
       <template is="dom-if" if="{{!data.Game.Finished}}">
         <div class="card">
           <boardgame-move-form admin="{{admin}}" move-as-player="{{moveAsPlayer}}" id="moves" config="{{moveForms}}" game-id="[[gameId]]" game-name="[[gameName]]"></boardgame-move-form>
