@@ -1,0 +1,18 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<dom-module id="boardgame-render-game-tictactoe">
+  <template>
+  <h2>Tictactoe renderer!</h2>
+  <pre>{{diagram}}</pre>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'boardgame-render-game-tictactoe',
+      properties: {
+        state: Object,
+        diagram : String
+      }
+    });
+  </script>
+</dom-module>
