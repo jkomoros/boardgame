@@ -7,6 +7,8 @@ import (
 	"math/rand"
 )
 
+const DefaultMemoryLength = 6
+
 type Agent struct{}
 
 type agentCardInfo struct {
@@ -29,7 +31,7 @@ func (a *Agent) DisplayName() string {
 
 func (a *Agent) SetUpForGame(game *boardgame.Game, player boardgame.PlayerIndex) []byte {
 	agent := &agentState{
-		MemoryLength: 4,
+		MemoryLength: DefaultMemoryLength,
 	}
 
 	blob, err := json.MarshalIndent(agent, "", "\t")
