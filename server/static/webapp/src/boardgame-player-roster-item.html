@@ -47,6 +47,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       .current strong.chip {
         background-color: var(--light-accent-color);
+        box-shadow: 0 0 0 4px var(--light-accent-color);
       }
 
       span {
@@ -113,7 +114,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       _styleForChip: function(chipColor) {
-        if (!chipColor) return "";
+        if (!chipColor) return "box-shadow: none";
         return "background-color: " + chipColor;
       },
 
