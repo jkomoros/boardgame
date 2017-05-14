@@ -1,0 +1,22 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<!-- TODO: pop this out and make it more of a generic card in the webapp/src for all to use -->
+<dom-module id="boardgame-render-player-info-blackjack">
+  <template>
+    Score <strong>{{_calculateScore(state, playerIndex)}}</strong>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'boardgame-render-player-info-blackjack',
+      properties: {
+        state: Object,
+        expandedState: Object,
+        playerIndex: Number,
+      },
+      _calculateScore: function(state, playerIndex) {
+        return state.Computed.Players[playerIndex].HandValue;
+      }
+    });
+  </script>
+</dom-module>
