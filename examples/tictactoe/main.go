@@ -78,9 +78,16 @@ func (g *gameDelegate) EmptyPlayerState(playerIndex boardgame.PlayerIndex) board
 	if tokens == nil {
 		return nil
 	}
+
+	value := X
+
+	if playerIndex == 1 {
+		value = O
+	}
+
 	return &playerState{
 		TokensToPlaceThisTurn: 1,
-		TokenValue:            X,
+		TokenValue:            value,
 		UnusedTokens:          boardgame.NewGrowableStack(tokens, 0),
 		playerIndex:           playerIndex,
 	}
