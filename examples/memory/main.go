@@ -239,6 +239,8 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 	manager.AddPlayerMoveFactory(MoveRevealCardFactory)
 	manager.AddPlayerMoveFactory(MoveHideCardsFactory)
 
+	manager.AddAgent(&Agent{})
+
 	manager.SetUp()
 
 	return manager
