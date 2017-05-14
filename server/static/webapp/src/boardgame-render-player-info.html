@@ -25,7 +25,14 @@
           value: false,
           observer: "_rendererLoadedChanged",
         },
+        chipText: {
+          type: String,
+          notify: true,
+        },
         playerIndex: Number,
+      },
+      listeners: {
+        "chip-text-changed": "_chipTextChanged",
       },
       observers: [
         "_expandedStateChanged(expandedState.*)"
@@ -34,6 +41,9 @@
         if (this.instantiateWhenReady) {
           this.instantiateRenderer();
         }
+      },
+      _chipTextChanged: function(e) {
+        this.chipText = e.detail.value;
       },
       _rendererLoadedChanged: function(newValue) {
         if (!newValue) return;
@@ -68,6 +78,8 @@
         ele.state = this.state;
         ele.expandedState = this.expandedState;
         ele.playerIndex = this.playerIndex;
+
+        this.chipText = ele.chipText || "";
 
         this.renderer = ele;
 
