@@ -184,4 +184,20 @@ func TestCardsToFlip(t *testing.T) {
 	assert.For(t).ThatActual(two == 2 || two == 3).IsTrue()
 	assert.For(t).ThatActual(one).DoesNotEqual(two)
 
+	//Verify that cards that are not in hidden are never suggested by CardsToFlip.
+	gameState.HiddenCards.MoveComponent(0, gameState.RevealedCards, 0)
+	gameState.HiddenCards.MoveComponent(1, gameState.RevealedCards, 1)
+	gameState.HiddenCards.MoveComponent(2, gameState.RevealedCards, 2)
+
+	for i := 0; i < 50; i++ {
+		one, two = agent.CardsToFlip(gameState)
+
+		assert.For(t).ThatActual(one).DoesNotEqual(0)
+		assert.For(t).ThatActual(one).DoesNotEqual(1)
+		assert.For(t).ThatActual(one).DoesNotEqual(2)
+		assert.For(t).ThatActual(two).DoesNotEqual(0)
+		assert.For(t).ThatActual(two).DoesNotEqual(1)
+		assert.For(t).ThatActual(two).DoesNotEqual(2)
+	}
+
 }

@@ -84,6 +84,8 @@ func (a *agentState) CardSeen(value string, index int) bool {
 func (a *agentState) CardsToFlip(gameState *gameState) (one, two int) {
 	//In our memory is there a pair?
 
+	a.CullInvalidCards(gameState)
+
 	seenValues := make(map[string]bool)
 	valueToFlip := ""
 
