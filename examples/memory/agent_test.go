@@ -140,17 +140,23 @@ func TestCullInvalidCards(t *testing.T) {
 	})
 }
 
-func TestCardsToFlip(t *testing.T) {
-	cards := []string{
-		"boop",
-		"boop",
-		"bam",
-		"bam",
-		"slam",
-		"slam",
-		"foo",
-		"foo",
+func cardsLess(i, j *boardgame.Component) bool {
+	if i == nil {
+		return true
 	}
+	if j == nil {
+		return false
+	}
+	iType := i.Values.(*cardValue).Type
+	jType := j.Values.(*cardValue).Type
+	//Break ties with the component that has a lower deckIndex.
+	if iType == jType {
+		return i.DeckIndex < j.DeckIndex
+	}
+	return iType < jType
+}
+
+func TestCardsToFlip(t *testing.T) {
 
 	agent := &agentState{
 		MemoryLength: 4,
@@ -166,13 +172,9 @@ func TestCardsToFlip(t *testing.T) {
 
 	gameState, _ := concreteStates(game.CurrentState())
 
-	//Cheat and stuff in values we know what they are into the cards. We're
-	//the only one using the chest.
-	for i, card := range cards {
-		c := gameState.HiddenCards.ComponentAt(i)
-		values := c.Values.(*cardValue)
-		values.Type = card
-	}
+	err = gameState.HiddenCards.SortComponents(cardsLess)
+
+	assert.For(t).ThatActual(err).IsNil()
 
 	one := agent.FirstCardToFlip(gameState)
 
@@ -187,9 +189,9 @@ func TestCardsToFlip(t *testing.T) {
 
 	gameState.RevealedCards.MoveComponent(one, gameState.HiddenCards, one)
 
-	agent.CardSeen(cards[0], 0)
-	agent.CardSeen(cards[2], 2)
-	agent.CardSeen(cards[3], 3)
+	agent.CardSeen(gameState.HiddenCards.ComponentAt(0).Values.(*cardValue).Type, 0)
+	agent.CardSeen(gameState.HiddenCards.ComponentAt(2).Values.(*cardValue).Type, 2)
+	agent.CardSeen(gameState.HiddenCards.ComponentAt(3).Values.(*cardValue).Type, 3)
 
 	one = agent.FirstCardToFlip(gameState)
 
@@ -197,9 +199,13 @@ func TestCardsToFlip(t *testing.T) {
 
 	gameState.HiddenCards.MoveComponent(one, gameState.RevealedCards, one)
 
-	two = agent.SecondCardToFlip(gameState)
+	//This test has been flaky in the past
+	for i := 0; i < 20; i++ {
 
-	assert.For(t).ThatActual(two).Equals(2)
+		two = agent.SecondCardToFlip(gameState)
+
+		assert.For(t).ThatActual(two).Equals(2)
+	}
 
 	//Verify that cards that are not in hidden are never suggested by CardsToFlip.
 	gameState.HiddenCards.MoveComponent(0, gameState.RevealedCards, 0)
