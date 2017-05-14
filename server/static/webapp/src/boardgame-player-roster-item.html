@@ -1,0 +1,126 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="boardgame-player-chip.html">
+<link rel="import" href="../bower_components/paper-styles/typography.html">
+<link rel="import" href="../bower_components/paper-styles/color.html">
+<link rel="import" href="boardgame-render-player-info.html">
+
+<dom-module id="boardgame-player-roster-item">
+  <template>
+    <style is="custom-style" include="iron-flex">
+      strong {
+        @apply(--paper-font-title);
+        color: var(--primary-text-color);
+      }
+
+      boardgame-player-chip {
+        padding-right: 10px;
+      }
+
+      strong.number {
+        @apply(--paper-font-caption);
+        background-color: var(--disabled-text-color);
+        color: white;
+        padding:0.25em;
+        height:1em;
+        width:1em;
+        box-sizing:content-box;
+        text-align:center;
+        border-radius:50%;
+        position:absolute;
+
+        /* TODO: the following are all a nudging hack */
+        line-height:14px;
+        bottom:0.5em;
+        right:1.5em;
+      }
+
+      .current strong.number {
+        background-color: var(--light-accent-color);
+      }
+
+      span {
+        @apply(--paper-font-caption);
+        color: var(--secondary-text-color);
+      }
+
+      .viewing span {
+        font-weight:bold;
+        color: var(--accent-color);
+      }
+
+      boardgame-render-player-info {
+        @apply(--paper-font-caption)
+      }
+
+    </style>
+    <div class$="layout horizontal center {{classForPlayer(playerIndex, viewingAsPlayer, currentPlayerIndex)}}">
+      <div style="position:relative">
+        <boardgame-player-chip display-name="{{displayName}}" is-agent="{{isAgent}}" photo-url="{{photoUrl}}"></boardgame-player-chip>
+        <strong class="number">{{playerIndex}}</strong>
+      </div>
+      <div class="layout vertical">
+        <strong>{{displayName}}</strong>
+        <span>{{playerDescription(isEmpty, isAgent, playerIndex, viewingAsPlayer)}}</span>
+        <boardgame-render-player-info state="{{state}}" expanded-state="{{expandedState}}" player-index="{{playerIndex}}" renderer-loaded="{{rendererLoaded}}" game-name="{{gameName}}"></boardgame-render-player-info>
+      </div>
+    </div>
+         
+  </template>
+
+  <script>
+    Polymer({
+      is: 'boardgame-player-roster-item',
+      properties: {
+        gameName: String,
+        isEmpty: {
+          type: Boolean,
+          value: false,
+        },
+        isAgent: {
+          type: Boolean,
+          value: false,
+        },
+        photoUrl: String,
+        displayName: String,
+        state: Object,
+        playerIndex: Number,
+        expandedState: Object,
+        viewingAsPlayer: Number,
+        currentPlayerIndex: Number,
+        rendererLoaded: {
+          type: Boolean,
+          value: false,
+        }
+      },
+
+
+
+      playerDescription: function(isEmpty, isAgent, index,  viewingAsPlayer) {
+        if (isEmpty) return "No one";
+        if (isAgent) return "Robot";
+        if (index == viewingAsPlayer) return "You";
+        return "Human";
+      },
+
+      classForPlayer: function(index, viewingAsPlayer, currentPlayerIndex) {
+        var result = [];
+        if (index == viewingAsPlayer) result.push("viewing");
+        if (index == currentPlayerIndex) result.push("current");
+        return result.join(" ");
+      },
+
+
+    });
+  </script>
+</dom-module>
