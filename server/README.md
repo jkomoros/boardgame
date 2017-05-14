@@ -58,13 +58,13 @@ func main() {
 8. Create mygame/server/webapp/game-src directory, which is where you will link to all of your game-rendering subviews.
 9. Create mygame/client/mygame/
 10. Create a relative symlink from mygame/server/webapp/game-src to mygame/client/mygame/ (see #14 for an example)
-11. In mygame/client/mygame, create boardgame-render-game-<gamename>.html (where <gamename> is the short name of the game) and define a polymer element in it. This is the entrypoint for the rendering of your view, and will be passed Game object.
+11. In mygame/client/mygame, create boardgame-render-game-GAMENAME.html (where GAMENAME is the short name of the game) and define a polymer element in it. This is the entrypoint for the rendering of your view, and will be passed Game object.
 12. Copy the following items from boardgame/server/static/webapp to your own webapp. None of them require modification by default.
 * bower.json
 * manifest.json
 * firebase.json
 * .gitignore
-13. Copy polymer.json to your own webapp. Modify it to add the game-src/mygame/boardgame-render-game-<gamename>.html fragment.
+13. Copy polymer.json to your own webapp. Modify it to add the game-src/mygame/boardgame-render-game-GAMENAME.html fragment.
 14. Create symlinks from the following items:
 * src 
 * config-src
@@ -86,9 +86,15 @@ This will create bower_components.
 
 ## Writing your client-side views
 
-boardgame-render-game-<yourgamename> is the Polymer element that will be instantiated and passed both state and expandedState. Your view should render that to the screen in whatever way is reasonable.
+boardgame-render-game-GAMENAME is the Polymer element that will be instantiated and passed both state and expandedState. Your view should render that to the screen in whatever way is reasonable.
 
 That view can fire events of the type "propose-move", with a detail containing "name" for the precise name of the Move to make, and "arguments", which is an object containing the non-default arguments for the move. When that move is emitted, it will effectively fill in the corresponding form fileds for that move (ignoring, and thus leaving at their default, any fields that were not explicitly listed in the arguments object), and then submit the move.
+
+### Optional: player info
+
+If you define an element in your GAMENAME/ folder called boardgame-render-player-info-GAMENAME, then it will be insantiated and passed state, expandedState, and playerIndex. Whatever it renders will be shown in the player roster for that player. This is a natural place to put things like score per player and other important status. 
+
+If you don't, don't forget to add it to the polymer.json fragments list above.
 
 ## Adding new views
 
