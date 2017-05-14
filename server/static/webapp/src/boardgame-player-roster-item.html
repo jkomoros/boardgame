@@ -27,7 +27,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         padding-right: 10px;
       }
 
-      strong.number {
+      strong.chip {
         @apply(--paper-font-caption);
         background-color: var(--disabled-text-color);
         color: white;
@@ -45,7 +45,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         right:1.5em;
       }
 
-      .current strong.number {
+      .current strong.chip {
         background-color: var(--light-accent-color);
       }
 
@@ -67,12 +67,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <div class$="layout horizontal center {{classForPlayer(playerIndex, viewingAsPlayer, currentPlayerIndex)}}">
       <div style="position:relative">
         <boardgame-player-chip display-name="{{displayName}}" is-agent="{{isAgent}}" photo-url="{{photoUrl}}"></boardgame-player-chip>
-        <strong class="number">{{playerIndex}}</strong>
+        <strong class="chip">{{_textForChip(chipText, playerIndex)}}</strong>
       </div>
       <div class="layout vertical">
         <strong>{{displayName}}</strong>
         <span>{{playerDescription(isEmpty, isAgent, playerIndex, viewingAsPlayer)}}</span>
-        <boardgame-render-player-info state="{{state}}" expanded-state="{{expandedState}}" player-index="{{playerIndex}}" renderer-loaded="{{rendererLoaded}}" game-name="{{gameName}}"></boardgame-render-player-info>
+        <boardgame-render-player-info state="{{state}}" expanded-state="{{expandedState}}" player-index="{{playerIndex}}" renderer-loaded="{{rendererLoaded}}" game-name="{{gameName}}" chip-text="{{chipText}}"></boardgame-render-player-info>
       </div>
     </div>
          
@@ -101,10 +101,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         rendererLoaded: {
           type: Boolean,
           value: false,
+        },
+        chipText: {
+          type: String,
+          value: "",
         }
       },
 
-
+      _textForChip: function(chipText, playerIndex) {
+        console.log(chipText, playerIndex)
+        return (chipText) ? chipText : playerIndex;
+      },
 
       playerDescription: function(isEmpty, isAgent, index,  viewingAsPlayer) {
         if (isEmpty) return "No one";
