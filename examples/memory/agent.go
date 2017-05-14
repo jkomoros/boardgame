@@ -81,7 +81,8 @@ func (a *agentState) CardSeen(value string, index int) bool {
 
 }
 
-func (a *agentState) CardsToFlip(gameState *gameState) (one, two int) {
+//FlippedCard should be -1 if no cards are currently flipped.
+func (a *agentState) FirstCardToFlip(gameState *gameState) int {
 	//In our memory is there a pair?
 
 	a.CullInvalidCards(gameState)
@@ -100,32 +101,21 @@ func (a *agentState) CardsToFlip(gameState *gameState) (one, two int) {
 
 	if valueToFlip != "" {
 		//Find the cards and return them.
-		one = -1
-		two = -1
 		for _, card := range a.LastCards {
 			if card.Value == valueToFlip {
-				if one == -1 {
-					one = card.Index
-				} else {
-					two = card.Index
-					return
-				}
+				return card.Index
 			}
 		}
-		//If we got to here something weird happened.
-		log.Println("We thought we found two cards with same value in memory, but I guess we didnt")
-		//Reset one and two and just return random cards, below
-		one = -1
-		two = -1
 	}
 
 	//Meh, we don't know which one to flip, flip any cards that haven't been
 	//seen in memory and are not empty.
+	return a.PickRandomCard(gameState)
 
-	one = -1
-	two = -1
+}
 
-	for one == -1 || two == -1 {
+func (a *agentState) PickRandomCard(gameState *gameState) int {
+	for {
 		index := rand.Intn(gameState.HiddenCards.Len())
 
 		//Make sure that index actually is for a card that exists.
@@ -148,17 +138,36 @@ func (a *agentState) CardsToFlip(gameState *gameState) (one, two int) {
 		}
 
 		//OK, this sems like a good index.
-		if one == -1 {
-			one = index
-		} else {
-			//Don't pick a value we already returned
-			if index == one {
-				continue
-			}
-			two = index
+		return index
+	}
+
+	return -1
+}
+
+func (a *agentState) SecondCardToFlip(gameState *gameState) int {
+	a.CullInvalidCards(gameState)
+
+	flippedCard := ""
+
+	for _, c := range gameState.RevealedCards.Components() {
+		if c == nil {
+			continue
+		}
+		flippedCard = c.Values.(*cardValue).Type
+	}
+
+	if flippedCard == "" {
+		log.Println("We were told to flip the second card but there wasn't already one flipped")
+		return -1
+	}
+
+	//Is the flippedCard one where we know where the other one is?
+	for _, card := range a.LastCards {
+		if card.Value == flippedCard {
+			return card.Index
 		}
 	}
 
-	return
-
+	//Otherwise, just pick a random card
+	return a.PickRandomCard(gameState)
 }

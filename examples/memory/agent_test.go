@@ -166,38 +166,51 @@ func TestCardsToFlip(t *testing.T) {
 
 	gameState, _ := concreteStates(game.CurrentState())
 
-	one, two := agent.CardsToFlip(gameState)
+	//Cheat and stuff in values we know what they are into the cards. We're
+	//the only one using the chest.
+	for i, card := range cards {
+		c := gameState.HiddenCards.ComponentAt(i)
+		values := c.Values.(*cardValue)
+		values.Type = card
+	}
+
+	one := agent.FirstCardToFlip(gameState)
 
 	assert.For(t).ThatActual(one).DoesNotEqual(-1)
-	assert.For(t).ThatActual(two).DoesNotEqual(-1)
 
-	assert.For(t).ThatActual(one).DoesNotEqual(two)
+	gameState.HiddenCards.MoveComponent(one, gameState.RevealedCards, one)
+
+	two := agent.SecondCardToFlip(gameState)
+
+	assert.For(t).ThatActual(two).DoesNotEqual(-1)
+	assert.For(t).ThatActual(two).DoesNotEqual(one)
+
+	gameState.RevealedCards.MoveComponent(one, gameState.HiddenCards, one)
 
 	agent.CardSeen(cards[0], 0)
 	agent.CardSeen(cards[2], 2)
 	agent.CardSeen(cards[3], 3)
 
-	one, two = agent.CardsToFlip(gameState)
+	one = agent.FirstCardToFlip(gameState)
 
-	//Order of one and two is fine
-	assert.For(t).ThatActual(one == 2 || one == 3).IsTrue()
-	assert.For(t).ThatActual(two == 2 || two == 3).IsTrue()
-	assert.For(t).ThatActual(one).DoesNotEqual(two)
+	assert.For(t).ThatActual(one).Equals(3)
+
+	gameState.HiddenCards.MoveComponent(one, gameState.RevealedCards, one)
+
+	two = agent.SecondCardToFlip(gameState)
+
+	assert.For(t).ThatActual(two).Equals(2)
 
 	//Verify that cards that are not in hidden are never suggested by CardsToFlip.
 	gameState.HiddenCards.MoveComponent(0, gameState.RevealedCards, 0)
 	gameState.HiddenCards.MoveComponent(1, gameState.RevealedCards, 1)
-	gameState.HiddenCards.MoveComponent(2, gameState.RevealedCards, 2)
 
 	for i := 0; i < 50; i++ {
-		one, two = agent.CardsToFlip(gameState)
+		one = agent.FirstCardToFlip(gameState)
 
 		assert.For(t).ThatActual(one).DoesNotEqual(0)
 		assert.For(t).ThatActual(one).DoesNotEqual(1)
 		assert.For(t).ThatActual(one).DoesNotEqual(2)
-		assert.For(t).ThatActual(two).DoesNotEqual(0)
-		assert.For(t).ThatActual(two).DoesNotEqual(1)
-		assert.For(t).ThatActual(two).DoesNotEqual(2)
 	}
 
 }
