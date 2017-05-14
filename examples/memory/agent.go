@@ -37,11 +37,6 @@ func (a *Agent) ProposeMove(game *boardgame.Game, player boardgame.PlayerIndex, 
 	return nil, nil
 }
 
-//TODO: cull LastCards of cards that are no longer visible.
-
-//TODO: with some random chance, forget a card or two from the end of memory
-//(as in, memory gets fuzzier)
-
 //CardSeen is called when a card is visible. If will return true if that was
 //new information, or false if not.
 func (a *agentState) CardSeen(value string, index int) bool {
