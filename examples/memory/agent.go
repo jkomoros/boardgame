@@ -8,6 +8,7 @@ import (
 )
 
 const DefaultMemoryLength = 6
+const DefaultMemoryFuzziness = 0.07
 
 type Agent struct{}
 
@@ -17,8 +18,12 @@ type agentCardInfo struct {
 }
 
 type agentState struct {
-	LastCards    []agentCardInfo
+	LastCards []agentCardInfo
+	//How many cards to remember
 	MemoryLength int
+	//How likely we are every time we see a card to forget the last one. Note
+	//that we see cards often so this value should be pretty low.
+	MemoryFuzziness float32
 }
 
 func (a *Agent) Name() string {
@@ -31,7 +36,8 @@ func (a *Agent) DisplayName() string {
 
 func (a *Agent) SetUpForGame(game *boardgame.Game, player boardgame.PlayerIndex) []byte {
 	agent := &agentState{
-		MemoryLength: DefaultMemoryLength,
+		MemoryLength:    DefaultMemoryLength,
+		MemoryFuzziness: DefaultMemoryFuzziness,
 	}
 
 	blob, err := json.MarshalIndent(agent, "", "\t")
@@ -69,6 +75,10 @@ func (a *Agent) ProposeMove(game *boardgame.Game, player boardgame.PlayerIndex, 
 		if agent.CardSeen(card.Type, i) {
 			doSave = true
 		}
+	}
+
+	if agent.PerhapsForgetCard() {
+		doSave = true
 	}
 
 	if gameState.CurrentPlayer == player {
@@ -111,6 +121,17 @@ func (a *Agent) ProposeMove(game *boardgame.Game, player boardgame.PlayerIndex, 
 
 	return
 
+}
+
+func (a *agentState) PerhapsForgetCard() bool {
+	if len(a.LastCards) < 1 {
+		return false
+	}
+	if rand.Float32() < a.MemoryFuzziness {
+		a.LastCards = a.LastCards[:len(a.LastCards)-1]
+		return true
+	}
+	return false
 }
 
 //CullInvalidCards removes any remembered cards that no longer exist.
