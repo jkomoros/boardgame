@@ -10,6 +10,8 @@ import (
 const DefaultMemoryLength = 6
 const DefaultMemoryFuzziness = 0.07
 
+const debugMode = false
+
 type Agent struct{}
 
 type agentCardInfo struct {
@@ -54,6 +56,10 @@ func (a *Agent) ProposeMove(game *boardgame.Game, player boardgame.PlayerIndex, 
 
 	agent := &agentState{}
 
+	if debugMode {
+		log.Println(string(aState))
+	}
+
 	if err := json.Unmarshal(aState, agent); err != nil {
 		log.Println("Failed to unmarshal agent state:", err)
 		return nil, nil
@@ -73,11 +79,17 @@ func (a *Agent) ProposeMove(game *boardgame.Game, player boardgame.PlayerIndex, 
 		}
 		card := c.Values.(*cardValue)
 		if agent.CardSeen(card.Type, i) {
+			if debugMode {
+				log.Println("Card", card.Type, i, "is seen")
+			}
 			doSave = true
 		}
 	}
 
 	if agent.PerhapsForgetCard() {
+		if debugMode {
+			log.Println("Forgetting a card")
+		}
 		doSave = true
 	}
 
@@ -200,12 +212,19 @@ func (a *agentState) FirstCardToFlip(gameState *gameState) int {
 	}
 
 	if valueToFlip != "" {
+		if debugMode {
+			log.Println("Targeting card", valueToFlip, "for first card")
+		}
 		//Find the cards and return them.
 		for _, card := range a.LastCards {
 			if card.Value == valueToFlip {
 				return card.Index
 			}
 		}
+	}
+
+	if debugMode {
+		log.Println("Targeting random card for first card")
 	}
 
 	//Meh, we don't know which one to flip, flip any cards that haven't been
@@ -264,8 +283,15 @@ func (a *agentState) SecondCardToFlip(gameState *gameState) int {
 	//Is the flippedCard one where we know where the other one is?
 	for _, card := range a.LastCards {
 		if card.Value == flippedCard {
+			if debugMode {
+				log.Println("For second card targeting a card we know is there", card.Index)
+			}
 			return card.Index
 		}
+	}
+
+	if debugMode {
+		log.Println("For second card picking a random card")
 	}
 
 	//Otherwise, just pick a random card
