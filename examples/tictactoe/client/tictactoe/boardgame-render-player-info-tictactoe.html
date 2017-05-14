@@ -1,0 +1,25 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<dom-module id="boardgame-render-player-info-tictactoe">
+  <template>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'boardgame-render-player-info-tictactoe',
+      properties: {
+        state: Object,
+        expandedState: Object,
+        playerIndex: Number,
+        chipText: {
+          type: String,
+          notify: true,
+          computed: "_computeChipText(state, playerIndex)"
+        }
+      },
+      _computeChipText: function(state, playerIndex) {
+        return state.Players[playerIndex].TokenValue
+      }
+    });
+  </script>
+</dom-module>
