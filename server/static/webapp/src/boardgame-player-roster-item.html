@@ -27,6 +27,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         padding-right: 10px;
       }
 
+      .nobody {
+        opacitY:0.5;
+      }
+
       strong.chip {
         @apply(--paper-font-caption);
         background-color: var(--disabled-text-color);
@@ -71,7 +75,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <strong class="chip" style$="{{_styleForChip(chipColor)}}">{{_textForChip(chipText, playerIndex)}}</strong>
       </div>
       <div class="layout vertical">
-        <strong>{{displayName}}</strong>
+        <strong class$="{{classForName(displayName)}}">{{nameOrNobody(displayName)}}</strong>
         <span>{{playerDescription(isEmpty, isAgent, playerIndex, viewingAsPlayer)}}</span>
         <boardgame-render-player-info state="{{state}}" expanded-state="{{expandedState}}" player-index="{{playerIndex}}" renderer-loaded="{{rendererLoaded}}" game-name="{{gameName}}" chip-text="{{chipText}}" chip-color="{{chipColor}}"></boardgame-render-player-info>
       </div>
@@ -111,6 +115,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: String,
           value: "",
         }
+      },
+
+      nameOrNobody: function(displayName) {
+        return (displayName) ? displayName : "Nobody"
+      },
+
+      classForName: function(displayName) {
+        if (!displayName) return "nobody"
+        return ""
       },
 
       _styleForChip: function(chipColor) {
