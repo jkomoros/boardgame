@@ -92,7 +92,9 @@ That view can fire events of the type "propose-move", with a detail containing "
 
 ### Optional: player info
 
-If you define an element in your GAMENAME/ folder called boardgame-render-player-info-GAMENAME, then it will be insantiated and passed state, expandedState, and playerIndex. Whatever it renders will be shown in the player roster for that player. This is a natural place to put things like score per player and other important status. 
+If you define an element in your GAMENAME/ folder called boardgame-render-player-info-GAMENAME, then it will be insantiated and passed state, expandedState, and playerIndex. Whatever it renders will be shown in the player roster for that player. This is a natural place to put things like score per player and other important status.
+
+if your player-info renderer contains a property called chipText that is a string and has notify:true, that text will be used in the chip on the player picture (a single character is best). If "" is returned, that chip's text will default to just being the index of the player.
 
 If you don't, don't forget to add it to the polymer.json fragments list above.
 
