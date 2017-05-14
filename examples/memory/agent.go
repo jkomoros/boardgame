@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"encoding/json"
 	"github.com/jkomoros/boardgame"
 	"log"
 	"math/rand"
@@ -14,9 +15,8 @@ type agentCardInfo struct {
 }
 
 type agentState struct {
-	LastCards      []agentCardInfo
-	MemoryLength   int
-	NextCardToFlip int
+	LastCards    []agentCardInfo
+	MemoryLength int
 }
 
 func (a *Agent) Name() string {
@@ -28,18 +28,93 @@ func (a *Agent) DisplayName() string {
 }
 
 func (a *Agent) SetUpForGame(game *boardgame.Game, player boardgame.PlayerIndex) []byte {
-	//TODO: do something
-	return nil
+	agent := &agentState{
+		MemoryLength: 4,
+	}
+
+	blob, err := json.MarshalIndent(agent, "", "\t")
+
+	if err != nil {
+		log.Println("Failued to marshal in set up for game", err)
+		return nil
+	}
+
+	return blob
 }
 
-func (a *Agent) ProposeMove(game *boardgame.Game, player boardgame.PlayerIndex, agentState []byte) (move boardgame.Move, newState []byte) {
-	//TODO: do something
-	return nil, nil
+func (a *Agent) ProposeMove(game *boardgame.Game, player boardgame.PlayerIndex, aState []byte) (move boardgame.Move, newState []byte) {
+
+	agent := &agentState{}
+
+	if err := json.Unmarshal(aState, agent); err != nil {
+		log.Println("Failed to unmarshal agent state:", err)
+		return nil, nil
+	}
+
+	state := game.CurrentState()
+
+	gameState, _ := concreteStates(state)
+
+	//Cull any cards taht are no longer valid
+	doSave := agent.CullInvalidCards(gameState)
+
+	//Take note of the position of any revealed cards
+	for i, c := range gameState.RevealedCards.Components() {
+		if c == nil {
+			continue
+		}
+		card := c.Values.(*cardValue)
+		if agent.CardSeen(card.Type, i) {
+			doSave = true
+		}
+	}
+
+	if gameState.CurrentPlayer == player {
+
+		//It's our turn!
+
+		if gameState.RevealedCards.NumComponents() == 0 {
+			//First card to reveal
+
+			move = MoveRevealCardFactory(state)
+			revealMove := move.(*MoveRevealCard)
+			revealMove.CardIndex = agent.FirstCardToFlip(gameState)
+			doSave = true
+		}
+
+		if gameState.RevealedCards.NumComponents() == 1 {
+
+			//One more card to reveal
+
+			move = MoveRevealCardFactory(state)
+			revealMove := move.(*MoveRevealCard)
+			revealMove.CardIndex = agent.SecondCardToFlip(gameState)
+			doSave = true
+
+		}
+
+	}
+
+	//Save back out agent state if something changed
+
+	if doSave {
+		//Marshal agent here
+		var err error
+		newState, err = json.MarshalIndent(agent, "", "\t")
+
+		if err != nil {
+			log.Println("Unable to marshal agent state:", err)
+		}
+	}
+
+	return
+
 }
 
 //CullInvalidCards removes any remembered cards that no longer exist.
-func (a *agentState) CullInvalidCards(gameState *gameState) {
+func (a *agentState) CullInvalidCards(gameState *gameState) bool {
 	i := 0
+	cardsCulled := false
 	for i < len(a.LastCards) {
 		card := a.LastCards[i]
 		if c := gameState.HiddenCards.ComponentAt(card.Index); c != nil {
@@ -48,8 +123,10 @@ func (a *agentState) CullInvalidCards(gameState *gameState) {
 			continue
 		}
 		a.LastCards = append(a.LastCards[:i], a.LastCards[i+1:]...)
+		cardsCulled = true
 		//DON'T increment i; the next index is now i
 	}
+	return cardsCulled
 }
 
 //CardSeen is called when a card is visible. If will return true if that was
