@@ -105,7 +105,10 @@ func (a *agentState) CardsToFlip(gameState *gameState) (one, two int) {
 	//Meh, we don't know which one to flip, flip any cards that haven't been
 	//seen in memory and are not empty.
 
-	for one == -1 && two == -1 {
+	one = -1
+	two = -1
+
+	for one == -1 || two == -1 {
 		index := rand.Intn(gameState.HiddenCards.Len())
 
 		//Make sure that index actually is for a card that exists.
@@ -131,6 +134,10 @@ func (a *agentState) CardsToFlip(gameState *gameState) (one, two int) {
 		if one == -1 {
 			one = index
 		} else {
+			//Don't pick a value we already returned
+			if index == one {
+				continue
+			}
 			two = index
 		}
 	}
