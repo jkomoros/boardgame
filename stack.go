@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math"
 	"math/rand"
+	"sort"
 	"strconv"
 	"testing"
 )
@@ -82,6 +83,11 @@ type Stack interface {
 	//{First,Last}{Component,Slot}Index constants to automatically set these
 	//indexes to common values.
 	MoveComponent(componentIndex int, destination Stack, slotIndex int) error
+
+	//SortComponents sorts the stack's components in the order implied by less
+	//by repeatedly calling SwapComponents. Errors if any SwapComponents
+	//errors. If error is non-nil, the stack may be left in an arbitrary order.
+	SortComponents(less func(i, j *Component) bool) error
 
 	//UnsafeInsertNextComponent is designed only to be used in tests, because
 	//it makes it trivial to violate the component-in-one-stack invariant. It
@@ -689,6 +695,48 @@ func (s *SizedStack) effectiveIndex(index int) int {
 	//slots/components to return.
 	return index
 
+}
+
+type stackSorter struct {
+	stack Stack
+	less  func(i, j *Component) bool
+	err   error
+}
+
+func (s *stackSorter) Len() int {
+	return s.stack.Len()
+}
+
+func (s *stackSorter) Swap(i, j int) {
+	err := s.stack.SwapComponents(i, j)
+
+	if err != nil {
+		s.err = err
+	}
+}
+
+func (s *stackSorter) Less(i, j int) bool {
+	return s.less(s.stack.ComponentAt(i), s.stack.ComponentAt(j))
+}
+
+func (g *GrowableStack) SortComponents(less func(i, j *Component) bool) error {
+	return sortComponentsImpl(g, less)
+}
+
+func (s *SizedStack) SortComponents(less func(i, j *Component) bool) error {
+	return sortComponentsImpl(s, less)
+}
+
+func sortComponentsImpl(s Stack, less func(i, j *Component) bool) error {
+	sorter := &stackSorter{
+		stack: s,
+		less:  less,
+		err:   nil,
+	}
+
+	sort.Sort(sorter)
+
+	return sorter.err
 }
 
 func (g *GrowableStack) MoveComponent(componentIndex int, destination Stack, slotIndex int) error {

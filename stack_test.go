@@ -3,9 +3,108 @@ package boardgame
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/workfit/tester/assert"
 	"reflect"
 	"testing"
 )
+
+func TestSort(t *testing.T) {
+
+	game := testGame()
+
+	game.SetUp(0, nil)
+
+	chest := game.Chest()
+
+	testDeck := chest.Deck("test")
+
+	gStack := NewGrowableStack(testDeck, 0)
+
+	gStack.Inflate(chest)
+
+	gStack.statePtr = game.CurrentState().(*state)
+
+	gStack.insertNext(testDeck.Components()[0])
+	gStack.insertNext(testDeck.Components()[1])
+	gStack.insertNext(testDeck.Components()[2])
+	gStack.insertNext(testDeck.Components()[3])
+
+	for stackSorted(gStack) {
+		if err := gStack.Shuffle(); err != nil {
+			t.Fatal("Couldn't shuffle: " + err.Error())
+		}
+	}
+
+	lessFunc := func(i, j *Component) bool {
+		if i == nil {
+			return true
+		}
+		if j == nil {
+			return false
+		}
+		return i.Values.(*testingComponent).Integer < j.Values.(*testingComponent).Integer
+	}
+
+	err := gStack.SortComponents(lessFunc)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	sorted := stackSorted(gStack)
+
+	assert.For(t).ThatActual(sorted).IsTrue()
+
+	sStack := NewSizedStack(testDeck, 5)
+
+	sStack.Inflate(chest)
+	sStack.statePtr = game.CurrentState().(*state)
+
+	sStack.insertComponentAt(0, testDeck.Components()[0])
+	sStack.insertComponentAt(1, testDeck.Components()[1])
+	sStack.insertComponentAt(2, testDeck.Components()[2])
+	//Deliberately leave a nil
+	sStack.insertComponentAt(4, testDeck.Components()[3])
+
+	//Shuffle at least once. But if we happen to accidentally shuffle ito
+	//sorted order, shuffle again.
+	sStack.Shuffle()
+
+	for stackSorted(sStack) {
+		if err := sStack.Shuffle(); err != nil {
+			t.Fatal("Couldn't shuffle: " + err.Error())
+		}
+	}
+
+	err = sStack.SortComponents(lessFunc)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	sorted = stackSorted(sStack)
+
+	assert.For(t).ThatActual(sorted).IsTrue()
+
+}
+
+func stackSorted(stack Stack) bool {
+	last := -1
+
+	for _, c := range stack.Components() {
+		if c == nil {
+			if last == -1 {
+				//That's OK
+				continue
+			}
+			return false
+		}
+		current := c.Values.(*testingComponent).Integer
+		if last < current {
+			last = current
+		} else {
+			return false
+		}
+	}
+
+	return true
+}
 
 func TestInflate(t *testing.T) {
 	game := testGame()
