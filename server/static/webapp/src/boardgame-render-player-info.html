@@ -1,0 +1,70 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+
+<dom-module id="boardgame-render-player-info.html">
+  <template>
+    <div id="container">
+    <!-- This is where renderer will go -->
+    </div>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'boardgame-render-player-info',
+      properties: {
+        state: {
+          type: Object,
+          observer: "_stateChanged",
+        },
+        expandedState: {
+          type: Object,
+        },
+        gameName: String,
+        renderer: Object,
+        rendererLoaded: {
+          type: Boolean,
+          value: false,
+          observer: "_rendererLoadedChanged",
+        },
+        playerIndex: Number,
+      },
+      observers: [
+        "_expandedStateChanged(expandedState.*)"
+      ],
+      _rendererLoadedChanged: function(newValue) {
+        if (!this.renderer) {
+          this.instantiateRenderer();
+        }
+      },
+      _stateChanged: function(newValue) {
+        if (!this.renderer) {
+          return;
+        }
+        this.renderer.state = newValue;
+      },
+      _expandedStateChanged: function(record) {
+
+        if (!this.renderer) return;
+
+        this.renderer.set(record.path, record.value);
+
+      },
+      instantiateRenderer : function() {
+
+        if (!this.rendererLoaded) return;
+
+        var ele = document.createElement("boardgame-render-player-info-" + this.gameName);
+
+
+        ele.state = this.state;
+        ele.expandedState = this.expandedState;
+        ele.playerIndex = this.playerIndex;
+
+        this.renderer = ele;
+
+        Polymer.dom(this.$.container).appendChild(ele);
+
+      }
+
+    });
+  </script>
+</dom-module>

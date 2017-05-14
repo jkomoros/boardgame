@@ -18,6 +18,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../bower_components/paper-styles/typography.html">
 <link rel="import" href="../bower_components/paper-styles/color.html">
+<link rel="import" href="boardgame-render-player-info.html">
 <link rel="import" href="shared-styles.html">
 
 <dom-module id="boardgame-player-roster">
@@ -80,6 +81,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               <div class="layout vertical">
                 <strong>{{item.DisplayName}}</strong>
                 <span>{{playerDescription(item, index, viewingAsPlayer)}}</span>
+                <boardgame-render-player-info state="{{state}}" expanded-state="{{expandedState}}" player-index="{{index}}" renderer-loaded="{{rendererLoaded}}" game-name="{{gameName}}"></boardgame-render-player-info>
               </div>
             </div>
           </div>
@@ -113,7 +115,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       properties: {
         viewingAsPlayer: Number,
         hasEmptySlots: Boolean,
-        gameName: String,
+        gameName: {
+          type: String,
+          observer: "_gameNameChanged",
+        },
         gameId: String,
         playersInfo: Array,
         currentPlayerIndex: Number,
@@ -140,6 +145,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         ADMIN_PLAYER_INDEX: {
           type: Number,
           value: -2,
+        },
+        rendererLoaded: {
+          type: Boolean,
+          value: false,
         }
       },
 
@@ -198,6 +207,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           return;
         }
         this.$.request.generateRequest();
+      },
+
+      _gameNameChanged: function(newValue) {
+        this.rendererLoaded = false;
+        var resolvedUrl = this.resolveUrl("../game-src/" +newValue + "/boardgame-render-player-info-" + newValue + ".html")
+        this.importHref(resolvedUrl, this._rendererLoaded, null, true);
+      },
+
+      _rendererLoaded: function(e) {
+        this.rendererLoaded = true;
       },
 
       _responseChanged: function(newValue) {
