@@ -15,7 +15,18 @@
           type: String,
           notify: true,
           computed: "_computeChipText(state, playerIndex)"
+        },
+        chipColor: {
+          type: String,
+          notify: true,
+          computed: "_computeChipColor(state, playerIndex)"
         }
+      },
+      _computeChipColor: function(state, playerIndex) {
+        if (state.Players[playerIndex].TokenValue == "X") {
+          return "blue";
+        }
+        return "red";
       },
       _computeChipText: function(state, playerIndex) {
         return state.Players[playerIndex].TokenValue

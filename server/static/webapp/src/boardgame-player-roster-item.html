@@ -67,12 +67,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <div class$="layout horizontal center {{classForPlayer(playerIndex, viewingAsPlayer, currentPlayerIndex)}}">
       <div style="position:relative">
         <boardgame-player-chip display-name="{{displayName}}" is-agent="{{isAgent}}" photo-url="{{photoUrl}}"></boardgame-player-chip>
-        <strong class="chip">{{_textForChip(chipText, playerIndex)}}</strong>
+        <strong class="chip" style$="{{_styleForChip(chipColor)}}">{{_textForChip(chipText, playerIndex)}}</strong>
       </div>
       <div class="layout vertical">
         <strong>{{displayName}}</strong>
         <span>{{playerDescription(isEmpty, isAgent, playerIndex, viewingAsPlayer)}}</span>
-        <boardgame-render-player-info state="{{state}}" expanded-state="{{expandedState}}" player-index="{{playerIndex}}" renderer-loaded="{{rendererLoaded}}" game-name="{{gameName}}" chip-text="{{chipText}}"></boardgame-render-player-info>
+        <boardgame-render-player-info state="{{state}}" expanded-state="{{expandedState}}" player-index="{{playerIndex}}" renderer-loaded="{{rendererLoaded}}" game-name="{{gameName}}" chip-text="{{chipText}}" chip-color="{{chipColor}}"></boardgame-render-player-info>
       </div>
     </div>
          
@@ -105,7 +105,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         chipText: {
           type: String,
           value: "",
+        },
+        chipColor: {
+          type: String,
+          value: "",
         }
+      },
+
+      _styleForChip: function(chipColor) {
+        if (!chipColor) return "";
+        return "background-color: " + chipColor;
       },
 
       _textForChip: function(chipText, playerIndex) {

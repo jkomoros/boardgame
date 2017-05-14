@@ -29,10 +29,15 @@
           type: String,
           notify: true,
         },
+        chipColor: {
+          type: String,
+          notify: true,
+        },
         playerIndex: Number,
       },
       listeners: {
         "chip-text-changed": "_chipTextChanged",
+        "chip-color-changed": "_chipColorChanged",
       },
       observers: [
         "_expandedStateChanged(expandedState.*)"
@@ -44,6 +49,9 @@
       },
       _chipTextChanged: function(e) {
         this.chipText = e.detail.value;
+      },
+      _chipColorChanged: function(e) {
+        this.chipColor = e.detail.value;
       },
       _rendererLoadedChanged: function(newValue) {
         if (!newValue) return;
@@ -80,6 +88,7 @@
         ele.playerIndex = this.playerIndex;
 
         this.chipText = ele.chipText || "";
+        this.chipColor = ele.chipColor || "";
 
         this.renderer = ele;
 
