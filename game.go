@@ -574,6 +574,10 @@ func (g *Game) ProposeMove(move Move, proposer PlayerIndex) DelayedError {
 //triggerAgents is called after a PlayerMove (and its chain of fixUp moves) is called.
 func (g *Game) triggerAgents() error {
 
+	if g.Finished() {
+		return nil
+	}
+
 	for i, name := range g.agents {
 
 		if name == "" {
