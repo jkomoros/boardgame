@@ -3,7 +3,7 @@
 <!-- TODO: pop this out and make it more of a generic card in the webapp/src for all to use -->
 <dom-module id="boardgame-render-player-info-memory">
   <template>
-    This is from my renderer {{playerIndex}}
+    Won Cards: {{_calculateWonCards(state, playerIndex)}}
   </template>
 
   <script>
@@ -14,6 +14,9 @@
         expandedState: Object,
         playerIndex: Number,
       },
+      _calculateWonCards: function(state, playerIndex) {
+        return state.Players[playerIndex].WonCards.Indexes.length;
+      }
     });
   </script>
 </dom-module>

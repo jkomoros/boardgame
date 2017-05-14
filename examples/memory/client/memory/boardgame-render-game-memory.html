@@ -15,11 +15,6 @@
       }
     </style>
     <h2>Memory</h2>
-    <template is="dom-repeat" items="{{expandedState.Players}}">
-      <div class$="{{IsCurrentPlayer(index, expandedState.Game.CurrentPlayer)}}">
-        <span>Player {{index}}: {{item.WonCards.length}}</span>
-      </div>
-    </template>
     <div class="horizontal layout wrap container">
       <template is="dom-repeat" items="{{computedCards}}">
           <boardgame-memory-card title="{{index}}" rank="{{item.Values.Type}}" hidden="{{!Exists(item.Values)}}" spacer="{{!Exists(item)}}" index="{{index}}"></boardgame-memory-card>
