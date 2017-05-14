@@ -293,6 +293,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.$.version.generateRequest();
       },
       fetchStatusNow: function() {
+
         if (!this.gameId) {
           //The URL will be junk
           return
@@ -322,7 +323,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         //We stop asking for data if the game is finished, because nothing
         //interesting can happen at that point.
-        if (!this.gata || (this.game && !this.game.Finished)){
+        if (!this.data || (this.game && !this.game.Finished)){
           this.async(this.maybeFetchStatus, this.statusPollFrequency);
         }
       },
