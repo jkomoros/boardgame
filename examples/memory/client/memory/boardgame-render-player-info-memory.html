@@ -1,0 +1,19 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<!-- TODO: pop this out and make it more of a generic card in the webapp/src for all to use -->
+<dom-module id="boardgame-render-player-info-memory">
+  <template>
+    This is from my renderer {{playerIndex}}
+  </template>
+
+  <script>
+    Polymer({
+      is: 'boardgame-render-player-info-memory',
+      properties: {
+        state: Object,
+        expandedState: Object,
+        playerIndex: Number,
+      },
+    });
+  </script>
+</dom-module>

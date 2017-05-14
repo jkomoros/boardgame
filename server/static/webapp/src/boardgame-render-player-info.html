@@ -1,6 +1,6 @@
 <link rel="import" href="../bower_components/polymer/polymer.html">
 
-<dom-module id="boardgame-render-player-info.html">
+<dom-module id="boardgame-render-player-info">
   <template>
     <div id="container">
     <!-- This is where renderer will go -->
@@ -30,7 +30,13 @@
       observers: [
         "_expandedStateChanged(expandedState.*)"
       ],
+      ready: function() {
+        if (this.instantiateWhenReady) {
+          this.instantiateRenderer();
+        }
+      },
       _rendererLoadedChanged: function(newValue) {
+        if (!newValue) return;
         if (!this.renderer) {
           this.instantiateRenderer();
         }
@@ -51,6 +57,10 @@
       instantiateRenderer : function() {
 
         if (!this.rendererLoaded) return;
+        if (!this.$) {
+          this.instantiateWhenReady = true;
+          return
+        }
 
         var ele = document.createElement("boardgame-render-player-info-" + this.gameName);
 
