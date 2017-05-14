@@ -67,6 +67,79 @@ func TestCardSeen(t *testing.T) {
 
 }
 
+func TestCullInvalidCards(t *testing.T) {
+	manager := NewManager(memory.NewStorageManager())
+
+	game := boardgame.NewGame(manager)
+
+	err := game.SetUp(2, nil)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	gameState, _ := concreteStates(game.CurrentState())
+
+	agent := &agentState{
+		MemoryLength: 4,
+		LastCards: []agentCardInfo{
+			{
+				Index: 0,
+			},
+			{
+				Index: 1,
+			},
+			{
+				Index: 2,
+			},
+			{
+				Index: 3,
+			},
+		},
+	}
+
+	agent.CullInvalidCards(gameState)
+
+	assert.For(t).ThatActual(len(agent.LastCards)).Equals(4)
+
+	gameState.HiddenCards.MoveComponent(0, gameState.RevealedCards, 0)
+
+	agent.CullInvalidCards(gameState)
+
+	assert.For(t).ThatActual(agent.LastCards).Equals([]agentCardInfo{
+		{
+			Index: 1,
+		},
+		{
+			Index: 2,
+		},
+		{
+			Index: 3,
+		},
+	})
+
+	gameState.HiddenCards.MoveComponent(2, gameState.RevealedCards, 2)
+
+	agent.CullInvalidCards(gameState)
+
+	assert.For(t).ThatActual(agent.LastCards).Equals([]agentCardInfo{
+		{
+			Index: 1,
+		},
+		{
+			Index: 3,
+		},
+	})
+
+	gameState.HiddenCards.MoveComponent(3, gameState.RevealedCards, 3)
+
+	agent.CullInvalidCards(gameState)
+
+	assert.For(t).ThatActual(agent.LastCards).Equals([]agentCardInfo{
+		{
+			Index: 1,
+		},
+	})
+}
+
 func TestCardsToFlip(t *testing.T) {
 	cards := []string{
 		"boop",

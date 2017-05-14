@@ -37,6 +37,21 @@ func (a *Agent) ProposeMove(game *boardgame.Game, player boardgame.PlayerIndex, 
 	return nil, nil
 }
 
+//CullInvalidCards removes any remembered cards that no longer exist.
+func (a *agentState) CullInvalidCards(gameState *gameState) {
+	i := 0
+	for i < len(a.LastCards) {
+		card := a.LastCards[i]
+		if c := gameState.HiddenCards.ComponentAt(card.Index); c != nil {
+			//This card is still legit.
+			i++
+			continue
+		}
+		a.LastCards = append(a.LastCards[:i], a.LastCards[i+1:]...)
+		//DON'T increment i; the next index is now i
+	}
+}
+
 //CardSeen is called when a card is visible. If will return true if that was
 //new information, or false if not.
 func (a *agentState) CardSeen(value string, index int) bool {
