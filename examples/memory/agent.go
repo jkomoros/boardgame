@@ -8,7 +8,7 @@ import (
 )
 
 const DefaultMemoryLength = 6
-const DefaultMemoryFuzziness = 0.07
+const DefaultMemoryFuzziness = 0.03
 
 const debugMode = false
 
