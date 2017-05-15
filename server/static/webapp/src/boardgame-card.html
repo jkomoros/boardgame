@@ -1,4 +1,5 @@
 <link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/paper-styles/shadow.html">
 
 <dom-module id="boardgame-card">
   <template>
@@ -15,7 +16,12 @@
         cursor: pointer;
         border-radius: 0.25em;
         overflow: hidden;
-        box-shadow:0em 0.10em 0.25em rgba(0,0,0,0.2);
+        @apply(--shadow-elevation-2dp);
+        @apply(--shadow-transition);
+      }
+
+      #card:hover {
+        @apply(--shadow-elevation-8dp);
       }
 
       #card #front {
