@@ -18,7 +18,10 @@
         expandedState: {
           type: Object,
         },
-        gameName: String,
+        gameName: {
+          type: String,
+          observer: "_gameNameChanged"
+        },
         renderer: Object,
         rendererLoaded: {
           type: Boolean,
@@ -53,6 +56,11 @@
       _chipColorChanged: function(e) {
         this.chipColor = e.detail.value;
       },
+      _gameNameChanged: function(newValue) {
+        if (!newValue) return;
+        if (!this.instantiateWhenGameNameSet) return;
+        this.instantiateRenderer();
+      },
       _rendererLoadedChanged: function(newValue) {
         if (!newValue) return;
         if (!this.renderer) {
@@ -78,6 +86,11 @@
         if (!this.$) {
           this.instantiateWhenReady = true;
           return
+        }
+
+        if (!this.gameName) {
+          this.instantiateWhenGameNameSet = true;
+          return;
         }
 
         var ele = document.createElement("boardgame-render-player-info-" + this.gameName);
