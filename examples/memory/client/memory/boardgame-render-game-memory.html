@@ -2,7 +2,7 @@
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../../bower_components/paper-progress/paper-progress.html">
-<link rel="import" href="boardgame-memory-card.html">
+<link rel="import" href="../../src/boardgame-card.html">
 
 <dom-module id="boardgame-render-game-memory">
   <template>
@@ -17,7 +17,7 @@
     <h2>Memory</h2>
     <div class="horizontal layout wrap container">
       <template is="dom-repeat" items="{{computedCards}}">
-          <boardgame-memory-card title="{{index}}" rank="{{item.Values.Type}}" hidden="{{!Exists(item.Values)}}" spacer="{{!Exists(item)}}" index="{{index}}"></boardgame-memory-card>
+          <boardgame-card title="{{index}}" rank="{{item.Values.Type}}" hidden="{{!Exists(item.Values)}}" spacer="{{!Exists(item)}}" index="{{index}}"></boardgame-card>
       </template>
     </div>
     <paper-button id="hide" raised disabled="{{state.Computed.Global.CurrentPlayerHasCardsToReveal}}">Hide Cards</paper-button>
