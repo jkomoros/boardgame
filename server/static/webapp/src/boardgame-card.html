@@ -1,9 +1,11 @@
 <link rel="import" href="../bower_components/polymer/polymer.html">
 <link rel="import" href="../bower_components/paper-styles/shadow.html">
+<link rel="import" href="../bower_components/paper-styles/typography.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 
 <dom-module id="boardgame-card">
   <template>
-    <style>
+    <style include="iron-flex">
 
       .spacer {
         visibility: hidden;
@@ -38,6 +40,13 @@
         width:100%;
       }
 
+      #default-back {
+        height:100%;
+        width:100%;
+        opacity: 0.5;
+        @apply(--paper-font-display1);
+      }
+
       #card.hidden  #front {
         display:none;
       }
@@ -56,7 +65,9 @@
       </div>
       <div id="back">
         <content select=".back">
-          Hidden
+          <div id="default-back" class="layout vertical center center-justified">
+              Back
+          </div>
         </content>
       </div>
     </div>
