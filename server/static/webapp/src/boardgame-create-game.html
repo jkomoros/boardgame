@@ -98,7 +98,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       _computeManagerHasAgents: function(selectedManager) {
-        return selectedManager.data.Agents.length == 0
+        if (!selectedManager) return false;
+        return selectedManager.data.Agents.length == 0;
       },
 
       createGame: function() {
