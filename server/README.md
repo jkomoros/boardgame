@@ -98,6 +98,10 @@ if your player-info renderer contains a property called chipText that is a strin
 
 If you don't, don't forget to add it to the polymer.json fragments list above.
 
+### Optional: boardgame-card
+
+One useful element in src/ is boardgame-card, which implements a card that can have an overridable front and back, and can do animations and such.
+
 ## Adding new views
 
 You can add new views in game-src/ that are imported directly from other views in game-src/. Remember that game-render-view is the polymer element that is the root of your game rendering.
