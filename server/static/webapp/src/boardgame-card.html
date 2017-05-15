@@ -41,7 +41,9 @@
 
     <div id="card" class$="{{Classes(hidden, spacer)}}">
       <div id="front">
-        {{suit}}{{rank}}
+        <content select=".front">
+          {{suit}}{{rank}}
+        </content>
       </div>
       <div id="back">
         Hidden
