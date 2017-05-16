@@ -425,6 +425,22 @@ func TestGameSalt(t *testing.T) {
 	}
 
 	assert.For(t).ThatActual(game.SecretSalt()).Equals(refriedGame.SecretSalt())
+
+	mainC := game.Chest().Deck("test").ComponentAt(0)
+	refriedC := refriedGame.Chest().Deck("test").ComponentAt(0)
+
+	mainCId := mainC.Id(game.CurrentState())
+
+	assert.For(t).ThatActual(mainCId).DoesNotEqual("")
+	assert.For(t).ThatActual(mainCId).Equals(refriedC.Id(refriedGame.CurrentState()))
+
+	otherGame := testGame()
+
+	otherGame.SetUp(0, nil)
+
+	otherC := otherGame.Chest().Deck("test").ComponentAt(0)
+
+	assert.For(t).ThatActual(mainCId).DoesNotEqual(otherC.Id(otherGame.CurrentState()))
 }
 
 func TestGameState(t *testing.T) {
