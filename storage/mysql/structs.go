@@ -27,11 +27,12 @@ type CookieStorageRecord struct {
 }
 
 type GameStorageRecord struct {
-	Name     string `db:",size:64"`
-	Id       string `db:",size:16"`
-	Version  int64
-	Winners  string `db:",size:128"`
-	Finished bool
+	Name       string `db:",size:64"`
+	Id         string `db:",size:16"`
+	SecretSalt string `db:",size:16"`
+	Version    int64
+	Winners    string `db:",size:128"`
+	Finished   bool
 	//NumPlayers is the reported number of players when it was created.
 	//Primarily for convenience to storage layer so they know how many players
 	//are in the game.
@@ -123,6 +124,7 @@ func (g *GameStorageRecord) ToStorageRecord() *boardgame.GameStorageRecord {
 	return &boardgame.GameStorageRecord{
 		Name:       g.Name,
 		Id:         g.Id,
+		SecretSalt: g.SecretSalt,
 		Version:    int(g.Version),
 		Winners:    winners,
 		Finished:   g.Finished,
@@ -139,6 +141,7 @@ func NewGameStorageRecord(game *boardgame.GameStorageRecord) *GameStorageRecord 
 	return &GameStorageRecord{
 		Name:       game.Name,
 		Id:         game.Id,
+		SecretSalt: game.SecretSalt,
 		Version:    int64(game.Version),
 		Winners:    winnersToString(game.Winners),
 		NumPlayers: int64(game.NumPlayers),

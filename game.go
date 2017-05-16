@@ -39,6 +39,10 @@ type Game struct {
 	//A unique ID provided to this game when it is created.
 	id string
 
+	//A secret salt that is used to generate semi-stable Ids for components.
+	//Never transmitted to client.
+	secretSalt string
+
 	//Proposed moves is where moves that have been proposed but have not yet been applied go.
 	proposedMoves chan *proposedMoveItem
 
@@ -92,6 +96,7 @@ func NewGame(manager *GameManager) *Game {
 		//Note: this is also set similarly in manager.ModifiableGame
 		proposedMoves: make(chan *proposedMoveItem, 20),
 		id:            randomString(gameIDLength),
+		secretSalt:    randomString(gameIDLength),
 		modifiable:    true,
 	}
 
@@ -140,6 +145,8 @@ func (g *Game) JSONForPlayer(player PlayerIndex, state State) interface{} {
 
 	state = state.SanitizedForPlayer(player)
 
+	//We deliberately never include SecretSalt in the JSON blobs we create.
+
 	return map[string]interface{}{
 		"Name":               g.Name(),
 		"Finished":           g.Finished(),
@@ -168,6 +175,7 @@ func (g *Game) StorageRecord() *GameStorageRecord {
 		Winners:    g.Winners(),
 		Finished:   g.Finished(),
 		Id:         g.Id(),
+		SecretSalt: g.SecretSalt(),
 		NumPlayers: g.NumPlayers(),
 		Agents:     g.Agents(),
 	}
@@ -179,6 +187,10 @@ func (g *Game) Name() string {
 
 func (g *Game) Id() string {
 	return g.id
+}
+
+func (g *Game) SecretSalt() string {
+	return g.secretSalt
 }
 
 func (g *Game) Agents() []string {

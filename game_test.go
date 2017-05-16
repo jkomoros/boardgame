@@ -411,6 +411,22 @@ func TestAgent(t *testing.T) {
 
 }
 
+func TestGameSalt(t *testing.T) {
+	game := testGame()
+
+	game.SetUp(0, nil)
+
+	assert.For(t).ThatActual(game.SecretSalt()).DoesNotEqual("")
+
+	refriedGame := game.Manager().Game(game.Id())
+
+	if !assert.For(t).ThatActual(refriedGame).IsNotNil().Passed() {
+		t.FailNow()
+	}
+
+	assert.For(t).ThatActual(game.SecretSalt()).Equals(refriedGame.SecretSalt())
+}
+
 func TestGameState(t *testing.T) {
 	game := testGame()
 

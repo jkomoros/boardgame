@@ -110,6 +110,8 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 		t.Fatal(testName, "Couldn't get game copy out")
 	}
 
+	assert.For(t).ThatActual(tictactoeGame.SecretSalt()).Equals(localGame.SecretSalt)
+
 	blob, err := json.MarshalIndent(tictactoeGame.StorageRecord(), "", "  ")
 
 	if err != nil {

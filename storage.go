@@ -12,11 +12,12 @@ type StateStorageRecord []byte
 type GameStorageRecord struct {
 	//Name is the type of the game, from its manager. Used for sanity
 	//checking.
-	Name     string
-	Id       string
-	Version  int
-	Winners  []PlayerIndex
-	Finished bool
+	Name       string
+	Id         string
+	SecretSalt string
+	Version    int
+	Winners    []PlayerIndex
+	Finished   bool
 	//NumPlayers is the reported number of players when it was created.
 	//Primarily for convenience to storage layer so they know how many players
 	//are in the game.
