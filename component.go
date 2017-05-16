@@ -24,9 +24,17 @@ type Component struct {
 //game.SecretSalt. See the package doc for more on semi-stable Ids for
 //components, what they can be used for, and when they do (and don't) change.
 func (c *Component) Id(s State) string {
-	game := s.(*state).game
 
-	input := game.Id() + game.SecretSalt() + c.Deck.Name() + strconv.Itoa(c.DeckIndex)
+	var input string
+
+	//In some limited cases state will be nil, but in that case just make a
+	//(worse) hash.
+	if s != nil {
+		game := s.(*state).game
+		input = game.Id() + game.SecretSalt()
+	}
+
+	input += c.Deck.Name() + strconv.Itoa(c.DeckIndex)
 
 	hash := sha1.Sum([]byte(input))
 
