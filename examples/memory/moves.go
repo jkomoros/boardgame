@@ -107,18 +107,20 @@ func MoveRevealCardFactory(state boardgame.State) boardgame.Move {
 func (m *MoveRevealCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 	game, players := concreteStates(state)
 
-	if !m.TargetPlayerIndex.Equivalent(proposer) {
-		return errors.New("The proposing player is not the player the move is on behalf of.")
+	if !m.TargetPlayerIndex.Equivalent(game.CurrentPlayer) {
+		return errors.New("It isn't your turn")
 	}
 
-	if !m.TargetPlayerIndex.Equivalent(game.CurrentPlayer) {
-		return errors.New("The target player is not the current player")
+	//TargetPlayer is set automatically, so this is the message that will be
+	//shown if the user tries to move when it's not their turn.
+	if !m.TargetPlayerIndex.Equivalent(proposer) {
+		return errors.New("It isn't your turn")
 	}
 
 	p := players[game.CurrentPlayer]
 
 	if p.CardsLeftToReveal < 1 {
-		return errors.New("The current player has no cards left to reveal")
+		return errors.New("You have no cards left to reveal this turn")
 	}
 
 	if m.CardIndex < 0 || m.CardIndex >= game.HiddenCards.Len() {
@@ -302,16 +304,18 @@ func (m *MoveHideCards) Legal(state boardgame.State, proposer boardgame.PlayerIn
 
 	p := players[game.CurrentPlayer]
 
-	if !m.TargetPlayerIndex.Equivalent(proposer) {
-		return errors.New("The proposing player is not the same as who the move is on behalf of.")
+	if !m.TargetPlayerIndex.Equivalent(game.CurrentPlayer) {
+		return errors.New("It's not your turn")
 	}
 
-	if !m.TargetPlayerIndex.Equivalent(game.CurrentPlayer) {
-		return errors.New("The target player is not the current player")
+	//TargetPlayer is set automatically, so this is the message that will be
+	//shown if the user tries to move when it's not their turn.
+	if !m.TargetPlayerIndex.Equivalent(proposer) {
+		return errors.New("It's not your turn")
 	}
 
 	if p.CardsLeftToReveal > 0 {
-		return errors.New("The current player still has cards left to reveal")
+		return errors.New("You still have to reveal more cards before your turn is over")
 	}
 
 	if game.RevealedCards.NumComponents() < 1 {
