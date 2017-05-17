@@ -56,8 +56,9 @@ func (s *StorageManager) Connect(config string) error {
 	s.dbMap = &gorp.DbMap{
 		Db: db,
 		Dialect: gorp.MySQLDialect{
-			Engine:   "InnoDB",
-			Encoding: "utf8",
+			Engine: "InnoDB",
+			//the mb4 is necessary to support e.g. emojis
+			Encoding: "utf8mb4",
 		},
 	}
 
