@@ -74,6 +74,10 @@ func TestMoveModifyDynamicValues(t *testing.T) {
 		t.Error("Dynamic state of component unexpected value: ", easyDynamic.IntVar)
 	}
 
+	var stateNil *state
+
+	assert.For(t).ThatActual(easyDynamic.Stack.state()).DoesNotEqual(stateNil)
+
 	currentJSON, _ := json.MarshalIndent(game.CurrentState(), "", "\t")
 
 	golden := goldenJSON("basic_state_after_dynamic_component_move.json", t)

@@ -271,6 +271,9 @@ func (g *GameManager) emptyDynamicComponentValues(state *state) (map[string][]Mu
 		arr := make([]MutableSubState, len(deck.Components()))
 		for i := 0; i < len(deck.Components()); i++ {
 			arr[i] = g.Delegate().EmptyDynamicComponentValues(deck)
+			if err := verifyReaderObjects(arr[i].Reader(), state); err != nil {
+				return nil, errors.New("VeriyReaderObject failed at " + deckName + " " + strconv.Itoa(i) + ": " + err.Error())
+			}
 		}
 		result[deckName] = arr
 
