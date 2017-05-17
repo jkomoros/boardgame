@@ -10,7 +10,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/go-gorp/gorp"
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-sql-driver/mysql"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"log"
@@ -44,7 +44,17 @@ func NewStorageManager(testMode bool) *StorageManager {
 
 func (s *StorageManager) Connect(config string) error {
 
-	db, err := sql.Open("mysql", config)
+	parsedDSN, err := mysql.ParseDSN(config)
+
+	if err != nil {
+		return errors.New("config provided was not valid DSN: " + err.Error())
+	}
+
+	parsedDSN.Collation = "utf8mb4_unicode_ci"
+
+	configToUse := parsedDSN.FormatDSN()
+
+	db, err := sql.Open("mysql", configToUse)
 	if err != nil {
 		return errors.New("Unable to open database: " + err.Error())
 	}
