@@ -624,15 +624,21 @@ func (g *Game) triggerAgents() error {
 			//(e.g. the agent was thinking for awhile), then apply
 			//immediately.
 
-			timeToWait := time.Duration(rand.Intn(int(2*time.Second))) + (500 * time.Millisecond)
-			player := i
-			go func() {
-				<-time.After(timeToWait)
-				g.ProposeMove(move, PlayerIndex(player))
-			}()
+			g.delayedProposeMove(move, PlayerIndex(i), 500*time.Millisecond, 2*time.Second)
 		}
 	}
 	return nil
+}
+
+func (g *Game) delayedProposeMove(move Move, proposer PlayerIndex, low time.Duration, high time.Duration) {
+
+	diff := high - low
+
+	timeToWait := time.Duration(rand.Intn(int(diff))) + low
+	go func() {
+		<-time.After(timeToWait)
+		g.ProposeMove(move, proposer)
+	}()
 }
 
 //Game applies the move to the state if it is currently legal. May only be
