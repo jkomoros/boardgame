@@ -2,6 +2,7 @@
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../../bower_components/paper-progress/paper-progress.html">
+<link rel="import" href="../../bower_components/paper-styles/typography.html">
 <link rel="import" href="../../src/boardgame-card.html">
 
 <dom-module id="boardgame-render-game-memory">
@@ -13,11 +14,19 @@
       .current {
         font-weight:bold;
       }
+      boardgame-card .front {
+        height:100%;
+        @apply(--paper-font-title);
+      }
     </style>
     <h2>Memory</h2>
     <div class="horizontal layout wrap container">
       <template is="dom-repeat" items="{{computedCards}}">
-          <boardgame-card title="{{index}}" rank="{{item.Values.Type}}" hidden="{{!Exists(item.Values)}}" spacer="{{!Exists(item)}}" index="{{index}}"></boardgame-card>
+          <boardgame-card title="{{index}}" rank="{{item.Values.Type}}" hidden="{{!Exists(item.Values)}}" spacer="{{!Exists(item)}}" index="{{index}}">
+            <div class="front horizontal layout center center-justified">
+              {{item.Values.Type}}
+            </div>
+          </boardgame-card>
       </template>
     </div>
     <paper-button id="hide" raised disabled="{{state.Computed.Global.CurrentPlayerHasCardsToReveal}}">Hide Cards</paper-button>
