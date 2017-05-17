@@ -617,7 +617,19 @@ func (g *Game) triggerAgents() error {
 		}
 
 		if move != nil {
-			g.ProposeMove(move, PlayerIndex(i))
+
+			//Slow down the playback of moves to more accurately emulate a human.
+
+			//TODO: if it's already been awhile since the last move was made
+			//(e.g. the agent was thinking for awhile), then apply
+			//immediately.
+
+			timeToWait := time.Duration(rand.Intn(int(2*time.Second))) + (500 * time.Millisecond)
+			player := i
+			go func() {
+				<-time.After(timeToWait)
+				g.ProposeMove(move, PlayerIndex(player))
+			}()
 		}
 	}
 	return nil
