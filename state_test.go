@@ -176,7 +176,11 @@ func TestSecretMoveCount(t *testing.T) {
 		assert.For(t, i).ThatActual(c.secretMoveCount(s)).Equals(0)
 	}
 
+	idBefore := gameState.DrawDeck.ComponentAt(0).Id(s)
+
 	gameState.DrawDeck.ComponentAt(0).movedSecretly(s)
+
+	assert.For(t).ThatActual(gameState.DrawDeck.ComponentAt(0).Id(s)).DoesNotEqual(idBefore)
 
 	for i, c := range gameState.DrawDeck.Components() {
 		if i == 0 {

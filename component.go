@@ -37,10 +37,15 @@ func (c *Component) Id(s State) string {
 		return ""
 	}
 
-	game := s.(*state).game
+	st := s.(*state)
+
+	game := st.game
 	input := game.Id() + game.SecretSalt()
 
 	input += c.Deck.Name() + strconv.Itoa(c.DeckIndex)
+
+	//The id only ever changes when the item has moved secretly.
+	input += strconv.Itoa(c.secretMoveCount(st))
 
 	hash := sha1.Sum([]byte(input))
 
