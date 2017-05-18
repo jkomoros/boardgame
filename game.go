@@ -46,6 +46,10 @@ type Game struct {
 	//Proposed moves is where moves that have been proposed but have not yet been applied go.
 	proposedMoves chan *proposedMoveItem
 
+	//if true, we will not wait to propose agent moves (mainly used for
+	//testing.)
+	instantAgentMoves bool
+
 	//Initalized is set to True after SetUp is called.
 	initalized bool
 
@@ -624,7 +628,11 @@ func (g *Game) triggerAgents() error {
 			//(e.g. the agent was thinking for awhile), then apply
 			//immediately.
 
-			g.delayedProposeMove(move, PlayerIndex(i), 500*time.Millisecond, 2*time.Second)
+			if g.instantAgentMoves {
+				g.ProposeMove(move, PlayerIndex(i))
+			} else {
+				g.delayedProposeMove(move, PlayerIndex(i), 500*time.Millisecond, 2*time.Second)
+			}
 		}
 	}
 	return nil

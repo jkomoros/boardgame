@@ -384,6 +384,8 @@ func TestIllegalPlayerIndex(t *testing.T) {
 func TestAgent(t *testing.T) {
 	game := testGame()
 
+	game.instantAgentMoves = true
+
 	assert.For(t).ThatActual(game.NumAgentPlayers()).Equals(0)
 
 	err := game.SetUp(3, []string{"", "Test", "Test"})
