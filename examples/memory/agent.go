@@ -44,6 +44,10 @@ func (a *Agent) SetUpForGame(game *boardgame.Game, player boardgame.PlayerIndex)
 
 	blob, err := json.MarshalIndent(agent, "", "\t")
 
+	if debugMode {
+		log.Println(string(blob))
+	}
+
 	if err != nil {
 		log.Println("Failued to marshal in set up for game", err)
 		return nil
@@ -125,6 +129,10 @@ func (a *Agent) ProposeMove(game *boardgame.Game, player boardgame.PlayerIndex, 
 		//Marshal agent here
 		var err error
 		newState, err = json.MarshalIndent(agent, "", "\t")
+
+		if debugMode {
+			log.Println(string(newState))
+		}
 
 		if err != nil {
 			log.Println("Unable to marshal agent state:", err)
