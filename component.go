@@ -25,19 +25,20 @@ type Component struct {
 //components, what they can be used for, and when they do (and don't) change.
 func (c *Component) Id(s State) string {
 
-	var input string
-
 	//Shadow components shouldn't get an Id
 	if c == c.Deck.GenericComponent() {
 		return ""
 	}
 
-	//In some limited cases state will be nil, but in that case just make a
-	//(worse) hash.
-	if s != nil {
-		game := s.(*state).game
-		input = game.Id() + game.SecretSalt()
+	//S should  never be nil in normal circumstances, but if it is, return an
+	//obviously-special Id so it doesn't appear to be the actual Id for this
+	//component.
+	if s == nil {
+		return ""
 	}
+
+	game := s.(*state).game
+	input := game.Id() + game.SecretSalt()
 
 	input += c.Deck.Name() + strconv.Itoa(c.DeckIndex)
 
