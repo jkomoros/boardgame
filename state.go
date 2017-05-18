@@ -165,6 +165,7 @@ type state struct {
 	playerStates           []MutablePlayerState
 	computed               *computedPropertiesImpl
 	dynamicComponentValues map[string][]MutableSubState
+	secretMoveCount        map[string][]int
 	sanitized              bool
 	game                   *Game
 	//Set to true while computed is being calculating computed. Primarily so
@@ -224,6 +225,7 @@ func (s *state) copy(sanitized bool) *state {
 		gameState:              s.copyGameState(s.gameState),
 		playerStates:           players,
 		dynamicComponentValues: make(map[string][]MutableSubState),
+		secretMoveCount:        make(map[string][]int),
 		sanitized:              sanitized,
 		game:                   s.game,
 		//We copy this over, because this should only be set when computed is
@@ -480,6 +482,16 @@ func (s *state) MarshalJSON() ([]byte, error) {
 		"Game":     s.gameState,
 		"Players":  s.playerStates,
 		"Computed": s.Computed(),
+	}
+
+	//We emit the secretMoveCount only when the state isn't sanitized. Any
+	//time the state is sent via StateForPlayer sanitized will be true, so
+	//this has the effect of persisting SecretMoveCount when serialized for
+	//storage layer, but not when sanitized state.
+	if !s.sanitized {
+		if len(s.secretMoveCount) > 0 {
+			obj["SecretMoveCount"] = s.secretMoveCount
+		}
 	}
 
 	dynamic := s.DynamicComponentValues()

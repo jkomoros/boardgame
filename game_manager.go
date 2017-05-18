@@ -174,9 +174,10 @@ func (g *GameManager) Game(id string) *Game {
 }
 
 type refriedState struct {
-	Game       json.RawMessage
-	Players    []json.RawMessage
-	Components map[string][]json.RawMessage
+	Game            json.RawMessage
+	Players         []json.RawMessage
+	Components      map[string][]json.RawMessage
+	SecretMoveCount map[string][]int
 }
 
 //verifyReaderStacks goes through each property in Reader that is a stack or
@@ -297,7 +298,13 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 		return nil, err
 	}
 
-	result := &state{}
+	result := &state{
+		secretMoveCount: refried.SecretMoveCount,
+	}
+
+	if result.secretMoveCount == nil {
+		result.secretMoveCount = make(map[string][]int)
+	}
 
 	game, err := g.emptyGameState(result)
 

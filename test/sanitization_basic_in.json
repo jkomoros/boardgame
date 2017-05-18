@@ -157,5 +157,13 @@
                 "EffectiveMovesLeftThisTurn" : 5
             }
         ]
+    },
+    "SecretMoveCount": {
+        "test": [
+            1,
+            0,
+            0,
+            0
+        ]
     }
 }

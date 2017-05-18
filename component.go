@@ -47,6 +47,72 @@ func (c *Component) Id(s State) string {
 	return fmt.Sprintf("%x", hash)
 }
 
+//secretMoveCount returns the secret move count for this component in the
+//given state.
+func (c *Component) secretMoveCount(s *state) int {
+
+	if c == c.Deck.GenericComponent() {
+		return 0
+	}
+
+	if s == nil {
+		return 0
+	}
+
+	deckMoveCount, ok := s.secretMoveCount[c.Deck.Name()]
+
+	//No components in that deck have been moved secretly, I guess.
+	if !ok {
+		return 0
+	}
+
+	if c.DeckIndex >= len(deckMoveCount) {
+		//TODO: warn?
+		return 0
+	}
+
+	if c.DeckIndex < 0 {
+		//This should never happen
+		return 0
+	}
+
+	return deckMoveCount[c.DeckIndex]
+}
+
+//movedSecretly increments the secretMoveCount for this component.
+func (c *Component) movedSecretly(s *state) {
+	if c == c.Deck.GenericComponent() {
+		return
+	}
+
+	if s == nil {
+		return
+	}
+
+	deckMoveCount, ok := s.secretMoveCount[c.Deck.Name()]
+
+	//We must be the first component in this deck that has been secretly
+	//moved. Create the whole int stack for this group.
+	if !ok {
+		//The zero-value will be fine
+		deckMoveCount = make([]int, len(c.Deck.Components()))
+		s.secretMoveCount[c.Deck.Name()] = deckMoveCount
+	}
+
+	if c.DeckIndex >= len(deckMoveCount) {
+		//TODO: warn?
+		return
+	}
+
+	if c.DeckIndex < 0 {
+		//This should never happen
+		return
+	}
+
+	deckMoveCount[c.DeckIndex]++
+
+}
+
 func (c *Component) DynamicValues(state State) SubState {
 
 	//TODO: test this

@@ -316,7 +316,8 @@ func (g *Game) SetUp(numPlayers int, agentNames []string) error {
 	g.numPlayers = numPlayers
 
 	stateCopy := &state{
-		game: g,
+		game:            g,
+		secretMoveCount: make(map[string][]int),
 	}
 
 	gameState, err := g.manager.emptyGameState(stateCopy)

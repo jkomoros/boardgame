@@ -160,6 +160,59 @@ func TestPlayerIndexEquivalent(t *testing.T) {
 	}
 }
 
+func TestSecretMoveCount(t *testing.T) {
+
+	game := testGame()
+
+	makeTestGameIdsStable(game)
+
+	game.SetUp(0, nil)
+
+	gameState, _ := concreteStates(game.CurrentState())
+
+	s := game.CurrentState().(*state)
+
+	for i, c := range gameState.DrawDeck.Components() {
+		assert.For(t, i).ThatActual(c.secretMoveCount(s)).Equals(0)
+	}
+
+	gameState.DrawDeck.ComponentAt(0).movedSecretly(s)
+
+	for i, c := range gameState.DrawDeck.Components() {
+		if i == 0 {
+			assert.For(t, i).ThatActual(c.secretMoveCount(s)).Equals(1)
+		} else {
+			assert.For(t, i).ThatActual(c.secretMoveCount(s)).Equals(0)
+		}
+	}
+
+	//We're going to do a faked save to verify that these things round trip
+	game.version++
+
+	blob, err := json.MarshalIndent(s, "", "\t")
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	game.manager.Storage().SaveGameAndCurrentState(game.StorageRecord(), blob)
+
+	//Read back in the game and verify that the secretMoveCount round-tripped.
+
+	refriedGame := game.manager.Game(game.Id())
+
+	refriedS := refriedGame.CurrentState().(*state)
+
+	refriedGameState, _ := concreteStates(refriedGame.CurrentState())
+
+	for i, c := range refriedGameState.DrawDeck.Components() {
+		if i == 0 {
+			assert.For(t, i).ThatActual(c.secretMoveCount(refriedS)).Equals(1)
+		} else {
+			assert.For(t, i).ThatActual(c.secretMoveCount(refriedS)).Equals(0)
+		}
+	}
+
+}
+
 func TestState(t *testing.T) {
 
 	game := testGame()
