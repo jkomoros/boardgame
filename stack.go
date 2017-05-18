@@ -149,6 +149,9 @@ type Stack interface {
 	//insertNext is a convenience wrapper around insertComponentAt.
 	insertNext(c *Component)
 
+	//addPersistentPossibleId adds the id to possibleIds in a way that will persist.
+	addPersistentPossibleId(id string)
+
 	//Returns the state that this Stack is currently part of. Mainly a
 	//convenience method when you have a Stack but don't know its underlying
 	//type.
@@ -531,6 +534,14 @@ func (s *SizedStack) PossibleIds() map[string]bool {
 		result[key] = val
 	}
 	return result
+}
+
+func (g *GrowableStack) addPersistentPossibleId(id string) {
+	g.possibleIds[id] = true
+}
+
+func (s *SizedStack) addPersistentPossibleId(id string) {
+	s.possibleIds[id] = true
 }
 
 //SlotsRemaining returns the count of slots left in this stack. If Cap is 0
