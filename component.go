@@ -27,6 +27,11 @@ func (c *Component) Id(s State) string {
 
 	var input string
 
+	//Shadow components shouldn't get an Id
+	if c == c.Deck.GenericComponent() {
+		return ""
+	}
+
 	//In some limited cases state will be nil, but in that case just make a
 	//(worse) hash.
 	if s != nil {
