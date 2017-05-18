@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/workfit/tester/assert"
 	"io/ioutil"
+	"log"
 	"strconv"
 	"testing"
 )
@@ -18,6 +19,7 @@ func (t *testSanitizationDelegate) StateSanitizationPolicy() *StatePolicy {
 }
 
 func TestSanitization(t *testing.T) {
+
 	manager := NewGameManager(&testSanitizationDelegate{}, newTestGameChest(), newTestStorageManager())
 
 	manager.SetUp()
@@ -189,6 +191,8 @@ func TestSanitization(t *testing.T) {
 
 	game := NewGame(manager)
 
+	makeTestGameIdsStable(game)
+
 	for i, test := range tests {
 
 		inputBlob, err := ioutil.ReadFile("test/" + test.inputFileName)
@@ -196,6 +200,11 @@ func TestSanitization(t *testing.T) {
 		assert.For(t).ThatActual(err).IsNil()
 
 		state, err := manager.stateFromRecord(inputBlob)
+
+		if !assert.For(t).ThatActual(err).IsNil().Passed() {
+			log.Println(test.inputFileName)
+		}
+
 		//This is hacky, but we don't really need the game for much more anyway
 		state.game = game
 
@@ -215,7 +224,7 @@ func TestSanitization(t *testing.T) {
 
 		assert.For(t, i, test.expectedFileName).ThatActual(err).IsNil()
 
-		compareJSONObjects(sanitizedBlob, goldenBlob, "Test Sanitization "+strconv.Itoa(i), t)
+		compareJSONObjects(sanitizedBlob, goldenBlob, "Test Sanitization "+strconv.Itoa(i)+" "+test.inputFileName+" "+test.expectedFileName, t)
 
 	}
 

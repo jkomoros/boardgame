@@ -164,6 +164,8 @@ func TestState(t *testing.T) {
 
 	game := testGame()
 
+	makeTestGameIdsStable(game)
+
 	game.SetUp(0, nil)
 
 	record, err := game.Manager().Storage().State(game.Id(), game.Version())

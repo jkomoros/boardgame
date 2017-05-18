@@ -523,6 +523,13 @@ func testingComponentValues(in []SubState) []*testingComponent {
 	return result
 }
 
+func makeTestGameIdsStable(game *Game) {
+	//having the same fixed salt helps make the test predictable regarding
+	//component ids.
+	game.secretSalt = "FAKESALTFORTESTING"
+	game.id = "FAKEIDFORTESTING"
+}
+
 //testGame returns a Game that has not yet had SetUp() called.
 func testGame() *Game {
 

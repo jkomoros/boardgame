@@ -48,6 +48,20 @@ type Stack interface {
 	//Components returns all components. Equivalent to calling ComponentAt
 	//from 0 to Len(), and extracting the Values of each.
 	ComponentValues() []SubState
+
+	//Ids returns a slice of strings representing the Ids of each
+	//component at each index. This information will be elided if the
+	//Sanitization policy in effect is more restrictive than PolicyOrder.
+	Ids() []string
+
+	//PossibleIds represents an undordered list of Ids that MAY be in this
+	//Stack currently. There are two classes of items that may be represented
+	//in this collection: 1) items whose last known location, before their Id
+	//changed, was this stack, and 2) items who are in this stack, but the
+	//current Sanitization policy does not allow their precise order or even
+	//the length of the stack to be recovered.
+	PossibleIds() map[string]bool
+
 	//SlotsRemaining returns how many slots there are left in this stack to
 	//add items.
 	SlotsRemaining() int
@@ -179,6 +193,14 @@ type GrowableStack struct {
 	deckName string
 	//The indexes from the given deck that this stack contains, in order.
 	indexes []int
+
+	//We don't need to store Ids because it can be recovered fully
+	//from the components in the stack.
+
+	//We do need to store the possibleIds--at least, the ones that were last
+	//known to be in this location.
+	possibleIds map[string]bool
+
 	//size, if set, says the maxmimum number of items allowed in the Stack. 0
 	//means that the Stack may grow without bound.
 	maxLen int
@@ -199,6 +221,14 @@ type SizedStack struct {
 	//Indexes will always have a len of size. Slots that are "empty" will have
 	//index of -1.
 	indexes []int
+
+	//We don't need to store Ids because it can be recovered fully
+	//from the components in the stack.
+
+	//We do need to store the possibleIds--at least, the ones that were last
+	//known to be in this location.
+	possibleIds map[string]bool
+
 	//Size is the number of slots.
 	size int
 	//Each stack is associated with precisely one state. This is consulted to
@@ -210,10 +240,12 @@ type SizedStack struct {
 //stackJSONObj is an internal struct that we populate and use to implement
 //MarshalJSON so stacks can be saved in output JSON with minimum fuss.
 type stackJSONObj struct {
-	Deck    string
-	Indexes []int
-	Size    int `json:",omitempty"`
-	MaxLen  int `json:",omitempty"`
+	Deck        string
+	Indexes     []int
+	Ids         []string
+	PossibleIds map[string]bool
+	Size        int `json:",omitempty"`
+	MaxLen      int `json:",omitempty"`
 }
 
 //NewGrowableStack creates a new growable stack with the given Deck and Cap.
@@ -224,10 +256,11 @@ func NewGrowableStack(deck *Deck, maxLen int) *GrowableStack {
 	}
 
 	return &GrowableStack{
-		deckPtr:  deck,
-		deckName: deck.Name(),
-		indexes:  make([]int, 0),
-		maxLen:   maxLen,
+		deckPtr:     deck,
+		deckName:    deck.Name(),
+		indexes:     make([]int, 0),
+		possibleIds: make(map[string]bool),
+		maxLen:      maxLen,
 	}
 }
 
@@ -245,10 +278,11 @@ func NewSizedStack(deck *Deck, size int) *SizedStack {
 	}
 
 	return &SizedStack{
-		deckPtr:  deck,
-		deckName: deck.Name(),
-		indexes:  indexes,
-		size:     size,
+		deckPtr:     deck,
+		deckName:    deck.Name(),
+		indexes:     indexes,
+		possibleIds: make(map[string]bool),
+		size:        size,
 	}
 }
 
@@ -258,6 +292,10 @@ func (g *GrowableStack) Copy() *GrowableStack {
 	result = *g
 	result.indexes = make([]int, len(g.indexes))
 	copy(result.indexes, g.indexes)
+	result.possibleIds = make(map[string]bool, len(g.possibleIds))
+	for key, val := range g.possibleIds {
+		result.possibleIds[key] = val
+	}
 	return &result
 }
 
@@ -266,6 +304,10 @@ func (s *SizedStack) Copy() *SizedStack {
 	result = *s
 	result.indexes = make([]int, len(s.indexes))
 	copy(result.indexes, s.indexes)
+	result.possibleIds = make(map[string]bool, len(s.possibleIds))
+	for key, val := range s.possibleIds {
+		result.possibleIds[key] = val
+	}
 	return &result
 }
 
@@ -446,6 +488,45 @@ func (s *SizedStack) ComponentValues() []SubState {
 			continue
 		}
 		result[i] = c.Values
+	}
+	return result
+}
+
+func (g *GrowableStack) Ids() []string {
+	return stackIdsImpl(g)
+}
+
+func (s *SizedStack) Ids() []string {
+	return stackIdsImpl(s)
+}
+
+func stackIdsImpl(s Stack) []string {
+	result := make([]string, s.Len())
+	for i, c := range s.Components() {
+		if c == nil {
+			continue
+		}
+		result[i] = c.Id(s.state())
+	}
+	return result
+}
+
+func (g *GrowableStack) PossibleIds() map[string]bool {
+	//return a copy because this is important state to preserve, just in case
+	//someone messes with it.
+	result := make(map[string]bool, len(g.possibleIds))
+	for key, val := range g.possibleIds {
+		result[key] = val
+	}
+	return result
+}
+
+func (s *SizedStack) PossibleIds() map[string]bool {
+	//return a copy because this is important state to preserve, just in case
+	//someone messes with it.
+	result := make(map[string]bool, len(s.possibleIds))
+	for key, val := range s.possibleIds {
+		result[key] = val
 	}
 	return result
 }
@@ -897,9 +978,11 @@ func (s *SizedStack) SwapComponents(i, j int) error {
 
 func (g *GrowableStack) MarshalJSON() ([]byte, error) {
 	obj := &stackJSONObj{
-		Deck:    g.deckName,
-		Indexes: g.indexes,
-		MaxLen:  g.maxLen,
+		Deck:        g.deckName,
+		Indexes:     g.indexes,
+		Ids:         g.Ids(),
+		PossibleIds: g.possibleIds,
+		MaxLen:      g.maxLen,
 	}
 	return json.Marshal(obj)
 }
@@ -907,9 +990,11 @@ func (g *GrowableStack) MarshalJSON() ([]byte, error) {
 func (s *SizedStack) MarshalJSON() ([]byte, error) {
 	//TODO: test this, including Size
 	obj := &stackJSONObj{
-		Deck:    s.deckName,
-		Indexes: s.indexes,
-		Size:    s.size,
+		Deck:        s.deckName,
+		Indexes:     s.indexes,
+		Ids:         s.Ids(),
+		PossibleIds: s.possibleIds,
+		Size:        s.size,
 	}
 	return json.Marshal(obj)
 }
@@ -923,6 +1008,7 @@ func (g *GrowableStack) UnmarshalJSON(blob []byte) error {
 	//error?
 	g.deckName = obj.Deck
 	g.indexes = obj.Indexes
+	g.possibleIds = obj.PossibleIds
 	g.maxLen = obj.MaxLen
 	return nil
 }
@@ -936,6 +1022,7 @@ func (s *SizedStack) UnmarshalJSON(blob []byte) error {
 	//error?
 	s.deckName = obj.Deck
 	s.indexes = obj.Indexes
+	s.possibleIds = obj.PossibleIds
 	s.size = obj.Size
 	return nil
 }

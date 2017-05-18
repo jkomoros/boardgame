@@ -117,9 +117,13 @@ func TestInflate(t *testing.T) {
 
 	gStack := NewGrowableStack(testDeck, 0)
 
+	gStack.statePtr = game.CurrentState().(*state)
+
 	gStack.insertNext(testDeck.Components()[0])
 
 	sStack := NewSizedStack(testDeck, 2)
+
+	sStack.statePtr = game.CurrentState().(*state)
 
 	sStack.insertNext(testDeck.Components()[1])
 

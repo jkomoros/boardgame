@@ -20,6 +20,8 @@ func (t *testInfiniteLoopGameDelegate) ProposeFixUpMove(state State) Move {
 func TestMoveModifyDynamicValues(t *testing.T) {
 	game := testGame()
 
+	makeTestGameIdsStable(game)
+
 	game.SetUp(0, nil)
 
 	drawCardMove := game.PlayerMoveByName("Draw Card")
@@ -232,6 +234,8 @@ func TestGameSetUp(t *testing.T) {
 
 func TestApplyMove(t *testing.T) {
 	game := testGame()
+
+	makeTestGameIdsStable(game)
 
 	game.SetUp(0, nil)
 
@@ -452,8 +456,7 @@ func TestGameSalt(t *testing.T) {
 func TestGameState(t *testing.T) {
 	game := testGame()
 
-	//Force a deterministic ID
-	game.id = "483BD9BC8D1A2F27"
+	makeTestGameIdsStable(game)
 
 	game.SetUp(0, nil)
 

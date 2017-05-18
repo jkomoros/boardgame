@@ -597,6 +597,17 @@ func (g *GrowableStack) applySanitizationPolicy(policy Policy) {
 		return
 	}
 
+	//Anything other than PolicyVisible (at least currently) will move Ids to
+	//PossibleIds.
+
+	for _, c := range g.Components() {
+		if c == nil {
+			continue
+		}
+		id := c.Id(g.statePtr)
+		g.possibleIds[id] = true
+	}
+
 	if policy == PolicyLen {
 
 		indexes := make([]int, len(g.indexes))
@@ -632,6 +643,17 @@ func (s *SizedStack) applySanitizationPolicy(policy Policy) {
 
 	if policy == PolicyVisible {
 		return
+	}
+
+	//Anything other than PolicyVisible (at least currently) will move Ids to
+	//PossibleIds.
+
+	for _, c := range s.Components() {
+		if c == nil {
+			continue
+		}
+		id := c.Id(s.statePtr)
+		s.possibleIds[id] = true
 	}
 
 	if policy == PolicyLen {

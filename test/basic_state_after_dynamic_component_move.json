@@ -8,6 +8,10 @@
                     "Indexes": [
                         3
                     ],
+                    "Ids" : [
+                        "b1c3b9ceaffd2b479037a67128a7f600c30829c2"
+                    ],
+                    "PossibleIds": {},
                     "Size": 1
                 }
             },
@@ -18,6 +22,10 @@
                     "Indexes": [
                         -1
                     ],
+                    "Ids" : [
+                        ""
+                    ],
+                    "PossibleIds": {},
                     "Size": 1
                 }
             },
@@ -28,6 +36,10 @@
                     "Indexes": [
                         -1
                     ],
+                    "Ids" : [
+                        ""
+                    ],
+                    "PossibleIds": {},
                     "Size": 1
                 }
             },
@@ -38,6 +50,10 @@
                     "Indexes": [
                         -1
                     ],
+                    "Ids" : [
+                        ""
+                    ],
+                    "PossibleIds": {},
                     "Size": 1
                 }
             }
@@ -66,7 +82,12 @@
             "Indexes": [
                 1,
                 2
-            ]
+            ],
+            "Ids": [
+                "77d6543d13f0919e21a3d542472b4e964b1c2759",
+                "64426822829232c25317fdbb81f828b29c2bd610"
+            ],
+            "PossibleIds": {}
         },
         "Timer": {
             "Id": 0,
@@ -80,42 +101,57 @@
     "Players": [
         {
             "Score": 0,
+            "IsFoo": false,
             "MovesLeftThisTurn": 1,
-            "Hand": {
-                "Deck": "test",
-                "Indexes": [
+            "Hand" : {
+                "Deck" : "test",
+                "Indexes" : [
                     0,
                     -1
                 ],
-                "Size": 2
-            },
-            "IsFoo": false
+                "Ids": [
+                    "04dfbe454d724f1357ede9dda760db873a725a79",
+                    ""
+                ],
+                "PossibleIds": {},
+                "Size" : 2
+            }
         },
         {
             "Score": 0,
+            "IsFoo": false,
             "MovesLeftThisTurn": 0,
-            "Hand": {
-                "Deck": "test",
-                "Indexes": [
+            "Hand" : {
+                "Deck" : "test",
+                "Indexes" : [
                     -1,
                     -1
                 ],
-                "Size": 2
-            },
-            "IsFoo": false
+                "Ids": [
+                    "",
+                    ""
+                ],
+                "PossibleIds": {},
+                "Size" : 2
+            }
         },
         {
             "Score": 0,
+            "IsFoo": true,
             "MovesLeftThisTurn": 0,
-            "Hand": {
-                "Deck": "test",
-                "Indexes": [
+            "Hand" : {
+                "Deck" : "test",
+                "Indexes" : [
                     -1,
                     -1
                 ],
-                "Size": 2
-            },
-            "IsFoo": true
+                "Ids": [
+                    "",
+                    ""
+                ],
+                "PossibleIds": {},
+                "Size" : 2
+            }
         }
     ]
 }

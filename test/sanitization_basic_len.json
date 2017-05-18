@@ -8,7 +8,19 @@
                 -2,
                 -2,
                 -2
-            ]
+            ],
+            "Ids": [
+                "",
+                "",
+                "",
+                ""
+            ],
+            "PossibleIds": {
+                "04dfbe454d724f1357ede9dda760db873a725a79": true,
+                "64426822829232c25317fdbb81f828b29c2bd610": true,
+                "77d6543d13f0919e21a3d542472b4e964b1c2759": true,
+                "b1c3b9ceaffd2b479037a67128a7f600c30829c2": true
+            }
         },
         "Timer": {
             "Id": 0,
@@ -30,6 +42,11 @@
                     0,
                     -1
                 ],
+                "Ids": [
+                    "04dfbe454d724f1357ede9dda760db873a725a79",
+                    ""
+                ],
+                "PossibleIds": {},
                 "Size" : 2
             }
         },
@@ -43,6 +60,11 @@
                     1,
                     -1
                 ],
+                "Ids": [
+                    "77d6543d13f0919e21a3d542472b4e964b1c2759",
+                    ""
+                ],
+                "PossibleIds": {},
                 "Size" : 2
             }
         },
@@ -56,6 +78,11 @@
                     -1,
                     -1
                 ],
+                "Ids": [
+                    "",
+                    ""
+                ],
+                "PossibleIds": {},
                 "Size" : 2
             }
         }
@@ -69,6 +96,10 @@
                     "Indexes" : [
                         -1
                     ],
+                    "Ids": [
+                        ""
+                    ],
+                    "PossibleIds": {},
                     "Size": 1
                 }
             },
@@ -79,6 +110,10 @@
                     "Indexes" : [
                         -1
                     ],
+                    "Ids": [
+                        ""
+                    ],
+                    "PossibleIds": {},
                     "Size": 1
                 }
             },
@@ -89,6 +124,10 @@
                     "Indexes" : [
                         -1
                     ],
+                    "Ids": [
+                        ""
+                    ],
+                    "PossibleIds": {},
                     "Size": 1
                 }
             },
@@ -99,6 +138,10 @@
                     "Indexes" : [
                         -1
                     ],
+                    "Ids": [
+                        ""
+                    ],
+                    "PossibleIds": {},
                     "Size": 1
                 }
             }
