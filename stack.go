@@ -49,9 +49,11 @@ type Stack interface {
 	//from 0 to Len(), and extracting the Values of each.
 	ComponentValues() []SubState
 
-	//Ids returns a slice of strings representing the Ids of each
-	//component at each index. This information will be elided if the
-	//Sanitization policy in effect is more restrictive than PolicyOrder.
+	//Ids returns a slice of strings representing the Ids of each component at
+	//each index. Under normal circumstances this will be the results of
+	//calling c.Id() on each component in order. This information will be
+	//elided if the Sanitization policy in effect is more restrictive than
+	//PolicyOrder, and tweaked if PolicyOrder is in effect.
 	Ids() []string
 
 	//PossibleIds represents an undordered list of Ids that MAY be in this
