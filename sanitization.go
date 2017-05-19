@@ -622,6 +622,7 @@ func (g *GrowableStack) applySanitizationPolicy(policy Policy) {
 
 	if policy == PolicyHidden {
 		g.indexes = make([]int, 0)
+		g.possibleIds = make(map[string]bool)
 		return
 	}
 
@@ -685,6 +686,10 @@ func (s *SizedStack) applySanitizationPolicy(policy Policy) {
 
 		if policy == PolicyNonEmpty && hasComponents {
 			s.indexes[0] = genericComponentSentinel
+		}
+
+		if policy == PolicyHidden {
+			s.possibleIds = make(map[string]bool)
 		}
 
 		return

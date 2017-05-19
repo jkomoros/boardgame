@@ -11,9 +11,7 @@
                     "Ids": [
                         ""
                     ],
-                    "PossibleIds": {
-                        "667bc729077137a8932a2cffc5ca4b0cec905956": true
-                    },
+                    "PossibleIds": {},
                     "Size": 1
                 }
             },
@@ -114,9 +112,7 @@
                     "",
                     ""
                 ],
-                "PossibleIds": {
-                    "2a7effe5e4000914791f95f6c1a711e54d346020": true
-                },
+                "PossibleIds": {},
                 "Size": 2
             },
             "IsFoo": false
