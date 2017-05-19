@@ -152,6 +152,10 @@ type Stack interface {
 	//addPersistentPossibleId adds the id to possibleIds in a way that will persist.
 	addPersistentPossibleId(id string)
 
+	//scrambleIds copies all component ids to persistentPossibleIds, then
+	//increments all components secretMoveCount.
+	scrambleIds()
+
 	//Returns the state that this Stack is currently part of. Mainly a
 	//convenience method when you have a Stack but don't know its underlying
 	//type.
@@ -542,6 +546,26 @@ func (g *GrowableStack) addPersistentPossibleId(id string) {
 
 func (s *SizedStack) addPersistentPossibleId(id string) {
 	s.possibleIds[id] = true
+}
+
+func (g *GrowableStack) scrambleIds() {
+	for _, c := range g.Components() {
+		if c == nil {
+			continue
+		}
+		g.addPersistentPossibleId(c.Id(g.state()))
+		c.movedSecretly(g.state())
+	}
+}
+
+func (s *SizedStack) scrambleIds() {
+	for _, c := range s.Components() {
+		if c == nil {
+			continue
+		}
+		s.addPersistentPossibleId(c.Id(s.state()))
+		c.movedSecretly(s.state())
+	}
 }
 
 //SlotsRemaining returns the count of slots left in this stack. If Cap is 0
