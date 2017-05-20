@@ -14,7 +14,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="boardgame-util.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
-<link rel="import" href="../bower_components/iron-form/iron-form.html">
 <link rel="import" href="../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
 <link rel="import" href="../bower_components/paper-listbox/paper-listbox.html">
 <link rel="import" href="../bower_components/paper-item/paper-item.html">
@@ -30,39 +29,37 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         margin-left: 1em;
       }
     </style>
-      <form id="creategame" is="iron-form" method="POST" with-credentials action="[[NewGameUrl(apiHost)]]"horizontal layout center>
-        <div class="vertical layout">
-          <div class="horizontal layout center">
-            <paper-dropdown-menu name="manager" label="Game Type">
-              <paper-listbox class="dropdown-content" selected="0" selected-item="{{selectedManager}}">
-                <template is="dom-repeat" items="{{data.Managers}}">
-                  <paper-item value="{{item.Name}}" data="{{item}}">{{item.Name}}</paper-item> 
-                </template>
-              </paper-listbox>
-            </paper-dropdown-menu>
-            <paper-input name="numplayers" label="Number of Players (0 for default)" value="{{numPlayers}}" min="0" type="number" prevent-invalid-input></paper-input>
-            <div class="flex"></div>
-            <paper-button on-tap="createGame" default raised>Create Game</paper-button>
-          </div>
-          <div class="horizontal layout justified">
-            <template is="dom-repeat" items="{{players}}">
-              <div class="flex">
-                <div class="vertical layout">
-                  Player {{index}}
-                  <paper-radio-group selected="" disabled="{{managerHasAgents}}" attr-for-selected="value">
-                    <paper-radio-button name="agent-player-{{index}}" value="" disabled="{{managerHasAgents}}">Real Live Human</paper-radio-button>
-                    <template is="dom-repeat" items="{{selectedManager.data.Agents}}" index-as="agentIndex">
-                      <paper-radio-button name="agent-player-{{index}}" value="{{item.Name}}">{{item.DisplayName}}</paper-radio-button>
-                    </template>
-                  </paper-radio-group>
-                </div>
-              </div>
+    <div class="vertical layout">
+      <div class="horizontal layout center">
+        <paper-dropdown-menu name="manager" label="Game Type">
+          <paper-listbox class="dropdown-content" selected="0" selected-item="{{selectedManager}}">
+            <template is="dom-repeat" items="{{data.Managers}}">
+              <paper-item value="{{item.Name}}" data="{{item}}">{{item.Name}}</paper-item> 
             </template>
+          </paper-listbox>
+        </paper-dropdown-menu>
+        <paper-input name="numplayers" label="Number of Players (0 for default)" value="{{numPlayers}}" min="0" type="number" prevent-invalid-input></paper-input>
+        <div class="flex"></div>
+        <paper-button on-tap="createGame" default raised>Create Game</paper-button>
+      </div>
+      <div class="horizontal layout justified">
+        <template is="dom-repeat" items="{{players}}">
+          <div class="flex">
+            <div class="vertical layout">
+              Player {{index}}
+              <paper-radio-group selected="" disabled="{{managerHasAgents}}" name="agent-player-{{index}}"attr-for-selected="value">
+                <paper-radio-button name="agent-player-{{index}}" value="" disabled="{{managerHasAgents}}">Real Live Human</paper-radio-button>
+                <template is="dom-repeat" items="{{selectedManager.data.Agents}}" index-as="agentIndex">
+                  <paper-radio-button name="agent-player-{{index}}" value="{{item.Name}}">{{item.DisplayName}}</paper-radio-button>
+                </template>
+              </paper-radio-group>
+            </div>
           </div>
-        </div>
-
-      </form>
-    <iron-ajax auto url="[[ListManagersUrl(apiHost)]]" handle-as="json" last-response="{{data}}">
+        </template>
+      </div>
+    </div>
+    <iron-ajax id="create" url="[[NewGameUrl(apiHost)]]" with-credentials method="POST" content-type="application/x-www-form-urlencoded" last-response="{{createGameResponse}}"></iron-ajax>
+    <iron-ajax auto url="[[ListManagersUrl(apiHost)]]" handle-as="json" last-response="{{data}}"></iron-ajax>
   </template>
 
   <script>
@@ -76,10 +73,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Boolean,
           computed: "_computeManagerHasAgents(selectedManager)"
         },
-        numPlayers: Number,
+        numPlayers: {
+          type: Number,
+          value: 0,
+        },
         players: {
           type: Object,
           computed: "_computePlayers(selectedManager, numPlayers)",
+        },
+        createGameResponse: {
+          type: Object,
+          observer: "_createGameResponseChanged"
         }
       },
       behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
@@ -102,12 +106,41 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return selectedManager.data.Agents.length == 0;
       },
 
+      serialize: function() {
+        var body = {};
+
+        var eles = Polymer.dom(this.root).querySelectorAll("paper-radio-group") || [];
+        eles.push(this.$$("paper-dropdown-menu"));
+        eles.push(this.$$("paper-input"));
+
+
+        for (var i = 0; i < eles.length; i++) {
+          var ele = eles[i];
+          if (ele.disabled) csontinue;
+          if (ele.localName == "paper-radio-group") {
+            ele = ele.selectedItem;
+          }
+          body[ele.name] = ele.value;
+        }
+
+        return body;
+      },
+
+      _createGameResponseChanged : function(newValue) {
+        if (newValue.Status == "Success") {
+          this.fire("navigate-to", this.UrlForGame(newValue.GameName, newValue.GameId))
+        } else {
+          this.fire("show-error", {message:newValue.Error});
+        }
+      },
+
       createGame: function() {
         if (!this.loggedIn) {
           this.fire('show-login', {nextAction:this.createGame.bind(this)});
           return;
         }
-        this.$.creategame.submit();
+        this.$.create.body = this.serialize();
+        this.$.create.generateRequest();
       },
 
     });
