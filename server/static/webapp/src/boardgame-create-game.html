@@ -109,7 +109,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       serialize: function() {
         var body = {};
 
-        var eles = Polymer.dom(this.root).querySelectorAll("paper-radio-group") || [];
+        var eles = Array.prototype.slice.call(this.shadowRoot.querySelectorAll("paper-radio-group"));
+
         eles.push(this.$$("paper-dropdown-menu"));
         eles.push(this.$$("paper-input"));
 
