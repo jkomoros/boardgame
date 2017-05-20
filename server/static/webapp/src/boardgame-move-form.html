@@ -9,9 +9,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../bower_components/polymer/polymer.html">
-<link rel="import" href="../bower_components/iron-form/iron-form.html">
 <link rel="import" href="shared-styles.html">
 <link rel="import" href="../config-src/boardgame-config.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="boardgame-util.html">
 
 <dom-module id="boardgame-move-form">
@@ -26,26 +26,29 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     </style>
       <h2>Moves</h2>
-      <template is="dom-repeat" items="{{config}}">
-        <details id="moves-{{_normalizeID(item.Name)}}" >
-          <summary on-tap="saveZippyState">Move {{item.Name}}</summary>
-          <form is="iron-form" method="POST" action$="[[UrlForGameAPI(gameName, gameId, 'move')]]" with-credentials>
-            <p><em>{{item.Description}}</em></p>
-            <input type="hidden" name="MoveType" value="{{item.Name}}">
-            <input type="hidden" name="admin" value="{{boolToInt(admin)}}">
-            <input type="hidden" name="player" value="{{moveAsPlayer}}">
-            <template is="dom-repeat" items="{{item.Fields}}">
-              <strong>{{item.Name}}</strong>
-              <input name="{{item.Name}}" value="{{item.DefaultValue}}">
-              <br/>
-            </template>
-            <div hidden$="{{item.Fields}}">
-              <em>No modifiable fields</em><br/>
-            </div>
-            <input type="submit" value="Make Move">
-          </form>
-        </details>
-      </template>
+      <div id="container">
+        <template is="dom-repeat" items="{{config}}">
+          <details id="moves-{{_normalizeID(item.Name)}}" >
+            <summary on-tap="saveZippyState">Move {{item.Name}}</summary>
+            <form>
+              <p><em>{{item.Description}}</em></p>
+              <input type="hidden" name="MoveType" value="{{item.Name}}">
+              <input type="hidden" name="admin" value="{{boolToInt(admin)}}">
+              <input type="hidden" name="player" value="{{moveAsPlayer}}">
+              <template is="dom-repeat" items="{{item.Fields}}">
+                <strong>{{item.Name}}</strong>
+                <input name="{{item.Name}}" value="{{item.DefaultValue}}">
+                <br/>
+              </template>
+              <div hidden$="{{item.Fields}}">
+                <em>No modifiable fields</em><br/>
+              </div>
+              <input type="button" on-tap="doSubmitForm" value="Make Move">
+            </form>
+          </details>
+        </template>
+        <iron-ajax id="ajax" url="[[UrlForGameAPI(gameName, gameId, 'move')]]" method="POST" with-credentials last-response="{{formResponse}}" content-type="application/x-www-form-urlencoded"></iron-ajax>
+      </div>
   </template>
 
   <script>
@@ -60,9 +63,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         gameId: String,
         gameName: String,
         moveAsPlayer: Number,
-      },
-      listeners : {
-        'iron-form-response' : 'formResponse',
+        formResponse: {
+          type: Object,
+          observer: "_formResponseChanged"
+        }
       },
       behaviors : [ApiHostBehavior, BoardgameUtilBehavior],
       boolToInt: function(bool) {
@@ -129,18 +133,29 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           }
 
         }
+        this.submitForm(formEle);
 
-        formEle.submit();
-
-
+      },
+      doSubmitForm: function(e) {
+        var evt = Polymer.dom(e);
+        this.submitForm(evt.localTarget.form);
+      },
+      submitForm: function(formEle) {
+        var body = {};
+        var eles = formEle.elements;
+        for (var i = 0; i < eles.length; i++) {
+          var ele = eles[i];
+          body[ele.name] = ele.value;
+        }
+        this.$.ajax.body = body;
+        this.$.ajax.generateRequest();
       },
       _normalizeID: function(str) {
         return str.split(" ").join("")
       },
-      formResponse: function(e) {
-        let response = e.detail.parseResponse();
-        if (response.Error) {
-          this.fire("show-error", {message:response.Error, title: "Couldn't make move"})
+      _formResponseChanged: function(newValue) {
+        if (newValue.Error) {
+          this.fire("show-error", {message: newValue.Error, title: "Couldn't make move"})
         }
         //Let the game-view know that the move was made and we should see if
         //there's an updated version.
