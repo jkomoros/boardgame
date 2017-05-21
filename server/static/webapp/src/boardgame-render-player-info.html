@@ -55,8 +55,8 @@
       ready() {
         super.ready();
 
-        this.addEventListener("chip-text-changed", e => _chipTextChanged(e));
-        this.addEventListener("chip-color-changed", e => _chipColorChanged(e));
+        this.addEventListener("chip-text-changed", e => this._chipTextChanged(e));
+        this.addEventListener("chip-color-changed", e => this._chipColorChanged(e));
 
         if (this.instantiateWhenReady) {
           this.instantiateRenderer();
