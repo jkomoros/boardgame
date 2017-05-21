@@ -1,12 +1,5 @@
 <script>
 
-//TODO: remove once no longer used by any legacy elements
-ApiHostBehavior = {
-	get apiHost() {
-		return "https://boardgame-159316.appspot.com"
-	}
-}
-
 ApiHostMixin = function(superClass) {
 	return class extends superClass {
 		get apiHost() {
