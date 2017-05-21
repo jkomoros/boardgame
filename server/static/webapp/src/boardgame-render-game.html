@@ -57,12 +57,11 @@
         this.renderer.state = newValue;
       },
       _expandedStateChanged: function(record) {
-
         if (!this.renderer) return;
-
         this.renderer.set(record.path, record.value);
-
-
+        //This shiouldn't be necessary... set should have already done
+        //notifyPath. Bug in Polymer 2?
+        this.renderer.notifyPath(record.path);
       },
       _viewingAsPlayerChanged: function(newValue) {
         if (!this.renderer) return;
