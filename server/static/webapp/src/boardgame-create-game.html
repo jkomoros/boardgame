@@ -8,7 +8,8 @@ Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 -->
 
-<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/polymer/lib/elements/dom-repeat.html">
 <link rel="import" href="../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../config-src/boardgame-config.html">
 <link rel="import" href="boardgame-util.html">
@@ -63,32 +64,38 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   </template>
 
   <script>
-    Polymer({
-      is: 'boardgame-create-game',
-      properties: {
-        data: Object,
-        loggedIn: Boolean,
-        selectedManager: Object,
-        managerHasAgents: {
-          type: Boolean,
-          computed: "_computeManagerHasAgents(selectedManager)"
-        },
-        numPlayers: {
-          type: Number,
-          value: 0,
-        },
-        players: {
-          type: Object,
-          computed: "_computePlayers(selectedManager, numPlayers)",
-        },
-        createGameResponse: {
-          type: Object,
-          observer: "_createGameResponseChanged"
-        }
-      },
-      behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
 
-      _computePlayers: function(selectedManager, numPlayers) {
+    class BoardgameCreateGame extends ApiHostMixin(BoardgameUtilMixin(Polymer.Element)) {
+
+      static get is() {
+        return "boardgame-create-game";
+      }
+
+      static get properties() {
+        return {
+          data: Object,
+          loggedIn: Boolean,
+          selectedManager: Object,
+          managerHasAgents: {
+            type: Boolean,
+            computed: "_computeManagerHasAgents(selectedManager)"
+          },
+          numPlayers: {
+            type: Number,
+            value: 0,
+          },
+          players: {
+            type: Object,
+            computed: "_computePlayers(selectedManager, numPlayers)",
+          },
+          createGameResponse: {
+            type: Object,
+            observer: "_createGameResponseChanged"
+          }
+        }
+      }
+
+      _computePlayers(selectedManager, numPlayers) {
         if (!selectedManager) return [];
         var data = selectedManager.data;
         if (numPlayers == 0) {
@@ -99,20 +106,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           result.push("");
         }
         return result;
-      },
+      }
 
-      _computeManagerHasAgents: function(selectedManager) {
+      _computeManagerHasAgents(selectedManager) {
         if (!selectedManager) return false;
         return selectedManager.data.Agents.length == 0;
-      },
+      }
 
-      serialize: function() {
+      serialize() {
         var body = {};
 
         var eles = [...this.shadowRoot.querySelectorAll("paper-radio-group")];
 
-        eles.push(this.$$("paper-dropdown-menu"));
-        eles.push(this.$$("paper-input"));
+        eles.push(this.shadowRoot.querySelector("paper-dropdown-menu"));
+        eles.push(this.shadowRoot.querySelector("paper-input"));
 
 
         for (var i = 0; i < eles.length; i++) {
@@ -125,25 +132,28 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
 
         return body;
-      },
+      }
 
-      _createGameResponseChanged : function(newValue) {
+      _createGameResponseChanged(newValue) {
         if (newValue.Status == "Success") {
-          this.fire("navigate-to", this.UrlForGame(newValue.GameName, newValue.GameId))
+          this.dispatchEvent(new CustomEvent("navigate-to", {composed: true, detail: this.UrlForGame(newValue.GameName, newValue.GameId)}));
         } else {
-          this.fire("show-error", {message:newValue.Error});
+          this.dispatchEvent(new CustomEvent("show-error", {composed: true, detail:{message:newValue.Error}}));
         }
-      },
+      }
 
-      createGame: function() {
+      createGame() {
         if (!this.loggedIn) {
-          this.fire('show-login', {nextAction:this.createGame.bind(this)});
+          this.dispatchEvent(new CustomEvent('show-login', {composed: true, detail: {nextAction:this.createGame.bind(this)}}));
           return;
         }
         this.$.create.body = this.serialize();
         this.$.create.generateRequest();
-      },
+      }
 
-    });
+    }
+
+    customElements.define(BoardgameCreateGame.is, BoardgameCreateGame);
+
   </script>
 </dom-module>
