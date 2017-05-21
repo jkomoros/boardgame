@@ -1,4 +1,4 @@
-<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
 
 <dom-module id="boardgame-render-game">
   <template>
@@ -13,73 +13,89 @@
   </template>
 
   <script>
-    Polymer({
-      is: 'boardgame-render-game',
-      properties: {
-        state: {
-          type: Object,
-          observer: "_stateChanged",
-        },
-        expandedState: {
-          type: Object,
-        },
-        diagram : {
-          type: String,
-          observer: "_diagramChanged",
-        },
-        gameName: {
-          type: String,
-          observer: "_gameNameChanged",
-        },
-        renderer: Object,
-        rendererLoaded: {
-          type: Boolean,
-          value: false,
-        },
-        viewingAsPlayer: {
-          type: Number,
-          observer: "_viewingAsPlayerChanged",
+
+    class BoardgameRenderGame extends Polymer.Element {
+
+      static get is() {
+        return "boardgame-render-game"
+      }
+
+      static get properties() {
+        return {
+          state: {
+            type: Object,
+            observer: "_stateChanged",
+          },
+          expandedState: {
+            type: Object,
+          },
+          diagram : {
+            type: String,
+            observer: "_diagramChanged",
+          },
+          gameName: {
+            type: String,
+            observer: "_gameNameChanged",
+          },
+          renderer: Object,
+          rendererLoaded: {
+            type: Boolean,
+            value: false,
+          },
+          viewingAsPlayer: {
+            type: Number,
+            observer: "_viewingAsPlayerChanged",
+          }
         }
-      },
-      observers: [
-        "_expandedStateChanged(expandedState.*)"
-      ],
-      _diagramChanged : function(newValue) {
+      }
+
+      static get observers() {
+        return [
+          "_expandedStateChanged(expandedState.*)"
+        ]
+      }
+
+      _diagramChanged(newValue) {
         if (!this.renderer) {
           return;
         }
         this.renderer.diagram = newValue;
-      },
-      _stateChanged: function(newValue) {
+      }
+
+      _stateChanged(newValue) {
         if (!this.renderer) {
           return;
         }
         this.renderer.state = newValue;
-      },
-      _expandedStateChanged: function(record) {
+      }
+
+      _expandedStateChanged(record) {
         if (!this.renderer) return;
         this.renderer.set(record.path, record.value);
         //This shiouldn't be necessary... set should have already done
         //notifyPath. Bug in Polymer 2?
         this.renderer.notifyPath(record.path);
-      },
-      _viewingAsPlayerChanged: function(newValue) {
+      }
+
+      _viewingAsPlayerChanged(newValue) {
         if (!this.renderer) return;
         this.renderer.viewingAsPlayer = newValue;
-      },
-      _gameNameChanged : function(newValue) {
+      }
+
+      _gameNameChanged(newValue) {
         this.rendererLoaded = false
 
         if (this.renderer) {
-          Polymer.dom(this.$.container).removeChild(this.renderer);
+          this.$.container.removeChild(this.renderer);
         }
         this.renderer = null;
 
 
         var resolvedUrl = this.resolveUrl("../game-src/" +newValue + "/boardgame-render-game-" + newValue + ".html")
-        this.importHref(resolvedUrl, this._instantiateRenderer, null, true);
-      },
-      _instantiateRenderer : function(e) {
+        Polymer.importHref(resolvedUrl, () => this._instantiateRenderer(), null, true);
+      }
+
+      _instantiateRenderer(e) {
         //The import loaded! Add it!
         this.rendererLoaded = true;
 
@@ -93,10 +109,12 @@
 
         this.renderer = ele;
 
-        Polymer.dom(this.$.container).appendChild(ele);
+        this.$.container.appendChild(ele);
 
       }
 
-    });
+    }
+
+    customElements.define(BoardgameRenderGame.is, BoardgameRenderGame)
   </script>
 </dom-module>
