@@ -67,11 +67,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </div>
       </div>
       <div hidden$="{{game.Finished}}">
-        <boardgame-player-roster id="player" logged-in="{{loggedIn}}" game-name="{{gameName}}" game-id="{{gameId}}" viewing-as-player="{{viewingAsPlayer}}" has-empty-slots="{{data.HasEmptySlots}}" current-player-index="{{game.CurrentPlayerIndex}}" players-info="{{data.Players}}" state="{{game.CurrentState}}" expanded-state="{{game.ExpandedCurrentState}}"></boardgame-player-roster>
+        <boardgame-player-roster id="player" logged-in="{{loggedIn}}" game-name="{{gameName}}" game-id="{{gameId}}" viewing-as-player="{{viewingAsPlayer}}" has-empty-slots="{{data.HasEmptySlots}}" current-player-index="{{game.CurrentPlayerIndex}}" players-info="{{data.Players}}" state="{{currentState}}" expanded-state="{{expandedCurrentState}}"></boardgame-player-roster>
       </div>
     </div>
     <div class="card">
-      <boardgame-render-game state="{{game.CurrentState}}" expanded-state="{{game.ExpandedCurrentState}}" diagram="{{game.Diagram}}" game-name="{{gameName}}" viewing-as-player="{{viewingAsPlayer}}"></boardgame-render-game>
+      <boardgame-render-game state="{{currentState}}" expanded-state="{{expandedCurrentState}}" diagram="{{game.Diagram}}" game-name="{{gameName}}" viewing-as-player="{{viewingAsPlayer}}"></boardgame-render-game>
     </div>
     <div hidden$="{{!admin}}">
       <div class="card horizontal layout admin">
@@ -131,6 +131,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Object,
           observer: "_gameChanged"
         },
+        currentState: Object,
+        expandedCurrentState: Object,
         gameId: {
           type: String,
           observer: "_gameIdChanged",
@@ -365,7 +367,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _tick: function() {
         let newPaths = [];
 
-        let pathToExpanded = ["game.ExpandedCurrentState"]
+        let pathToExpanded = ["expandedCurrentState"]
 
         for (let i = 0; i < this.pathsToTick.length; i++) {
           let currentPath = this.pathsToTick[i];
@@ -497,7 +499,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         this.gameState = JSON.stringify(newValue.CurrentState, null, 2);
         //Have to use this.set to get databinding system to notice the change.
-        this.set("game.ExpandedCurrentState", this._expandState(newValue.CurrentState));
+
+        this.currentState = newValue.CurrentState;
+        this.expandedCurrentState = this._expandState(newValue.CurrentState);
 
         if (this.viewingAsPlayerIsCurrentPlayer) {
           this.requestedPlayer = newValue.CurrentPlayerIndex;
