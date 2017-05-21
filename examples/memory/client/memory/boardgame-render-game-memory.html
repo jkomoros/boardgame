@@ -14,7 +14,7 @@
       .current {
         font-weight:bold;
       }
-      boardgame-card .front {
+      boardgame-card > div {
         height:100%;
         @apply(--paper-font-display2);
       }
@@ -23,7 +23,7 @@
     <div class="horizontal layout wrap container">
       <template is="dom-repeat" items="{{computedCards}}">
           <boardgame-card title="{{index}}" rank="{{item.Values.Type}}" hidden="{{!Exists(item.Values)}}" spacer="{{!Exists(item)}}" index="{{index}}">
-            <div class="front horizontal layout center center-justified">
+            <div class="horizontal layout center center-justified">
               {{item.Values.Type}}
             </div>
           </boardgame-card>

@@ -62,16 +62,16 @@
 
     <div id="card" class$="{{Classes(hidden, spacer)}}">
       <div id="front">
-        <content select=".front">
+        <slot>
           {{suit}}{{rank}}
-        </content>
+        </slot>
       </div>
       <div id="back">
-        <content select=".back">
+        <slot name="back">
           <div id="default-back" class="layout vertical center center-justified">
                 &#x2605; &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606;
           </div>
-        </content>
+        </slot>
       </div>
     </div>
   </template>
