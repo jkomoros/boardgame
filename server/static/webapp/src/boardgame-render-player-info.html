@@ -96,6 +96,9 @@
         if (!this.renderer) return;
 
         this.renderer.set(record.path, record.value);
+        //This shiouldn't be necessary... set should have already done
+        //notifyPath. Bug in Polymer 2?
+        this.renderer.notifyPath(record.path);
 
       }
 
