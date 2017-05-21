@@ -117,7 +117,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         for (var i = 0; i < eles.length; i++) {
           var ele = eles[i];
-          if (ele.disabled) csontinue;
+          if (ele.disabled) continue;
           if (ele.localName == "paper-radio-group") {
             ele = ele.selectedItem;
           }
