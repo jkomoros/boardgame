@@ -1,4 +1,4 @@
-<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
 
 <dom-module id="boardgame-render-player-info-memory">
   <template>
@@ -6,16 +6,27 @@
   </template>
 
   <script>
-    Polymer({
-      is: 'boardgame-render-player-info-memory',
-      properties: {
-        state: Object,
-        expandedState: Object,
-        playerIndex: Number,
-      },
-      _calculateWonCards: function(state, playerIndex) {
+
+    class BoardgameRenderPlayerInfoMemory extends Polymer.Element {
+
+      static get is() {
+        return "boardgame-render-player-info-memory"
+      }
+
+      static get properties() {
+        return {
+          state: Object,
+          expandedState: Object,
+          playerIndex: Number,
+        }
+      }
+
+      _calculateWonCards(state, playerIndex) {
         return state.Players[playerIndex].WonCards.Indexes.length;
       }
-    });
+
+    }
+
+    customElements.define(BoardgameRenderPlayerInfoMemory.is, BoardgameRenderPlayerInfoMemory);
   </script>
 </dom-module>
