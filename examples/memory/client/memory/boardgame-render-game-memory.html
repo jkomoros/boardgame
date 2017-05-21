@@ -65,6 +65,11 @@
         return Math.max(timeLeft, 100);
       },
       computeCards : function(hidden, revealed) {
+
+        if (hidden === undefined || revealed === undefined) {
+          return [];
+        }
+
         let result = [];
         for (let i = 0; i < hidden.length; i++) {
           result.push(hidden[i]);
