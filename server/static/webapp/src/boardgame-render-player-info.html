@@ -55,9 +55,6 @@
       ready() {
         super.ready();
 
-        this.addEventListener("chip-text-changed", e => this._chipTextChanged(e));
-        this.addEventListener("chip-color-changed", e => this._chipColorChanged(e));
-
         if (this.instantiateWhenReady) {
           this.instantiateRenderer();
         }
@@ -126,6 +123,13 @@
         this.chipColor = ele.chipColor || "";
 
         this.renderer = ele;
+
+        //I believe in Polymer 2 (or in native shadow dom), the change events
+        //don't have composed set to true, so we have to listen for them
+        //directly on the renderer.
+        this.renderer.addEventListener("chip-text-changed", e => this._chipTextChanged(e));
+        this.renderer.addEventListener("chip-color-changed", e => this._chipColorChanged(e));
+
 
         this.$.container.appendChild(ele);
 
