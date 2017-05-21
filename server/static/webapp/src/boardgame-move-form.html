@@ -8,7 +8,8 @@ Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 -->
 
-<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/polymer/lib/elements/dom-repeat.html">
 <link rel="import" href="shared-styles.html">
 <link rel="import" href="../config-src/boardgame-config.html">
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
@@ -47,32 +48,40 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             </form>
           </details>
         </template>
-        <iron-ajax id="ajax" url="[[UrlForGameAPI(gameName, gameId, 'move')]]" method="POST" with-credentials last-response="{{formResponse}}" content-type="application/x-www-form-urlencoded"></iron-ajax>
+        <iron-ajax id="ajax" url="[[UrlForGameAPI(apiHost, gameName, gameId, 'move')]]" method="POST" with-credentials last-response="{{formResponse}}" content-type="application/x-www-form-urlencoded"></iron-ajax>
       </div>
   </template>
 
   <script>
-    Polymer({
-      is: 'boardgame-move-form',
-      properties: {
-        config : {
-          type: Object,
-          observer: '_configChanged'
-        },
-        admin: Boolean,
-        gameId: String,
-        gameName: String,
-        moveAsPlayer: Number,
-        formResponse: {
-          type: Object,
-          observer: "_formResponseChanged"
+
+    class BoardgameMoveForm extends ApiHostMixin(BoardgameUtilMixin(Polymer.Element)) {
+      
+      static get is() {
+        return "boardgame-move-form"
+      }
+
+      static get properties() {
+        return {
+          config : {
+            type: Object,
+            observer: '_configChanged'
+          },
+          admin: Boolean,
+          gameId: String,
+          gameName: String,
+          moveAsPlayer: Number,
+          formResponse: {
+            type: Object,
+            observer: "_formResponseChanged"
+          }
         }
-      },
-      behaviors : [ApiHostBehavior, BoardgameUtilBehavior],
-      boolToInt: function(bool) {
+      }
+
+      boolToInt(bool) {
         return bool ? "1" : "0"
-      },
-      proposeMove: function(moveName, arguments) {
+      }
+
+      proposeMove(moveName, args) {
         if (!this.config) {
           console.warn("proposeMove called but no forms configed")
           return;
@@ -94,7 +103,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         let targetEleID = "#moves-" + this._normalizeID(moveConfig.Name);
 
-        let containerEle = this.$$(targetEleID);
+        let containerEle = this.shadowRoot.querySelector(targetEleID);
 
         if (!containerEle) {
           console.warn("Couldn't find move dom ele ", targetEleID);
@@ -110,8 +119,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         let inputs = formEle.elements;
 
-        for (var key in arguments) {
-          if (!arguments.hasOwnProperty(key)) continue;
+        for (var key in args) {
+          if (!args.hasOwnProperty(key)) continue;
 
           let fieldFilled = false;
 
@@ -121,7 +130,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             if (element.type == "submit") continue;
 
             if (element.name == key) {
-              element.value = arguments[key];
+              element.value = args[key];
               fieldFilled = true;
             }
 
@@ -135,12 +144,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
         this.submitForm(formEle);
 
-      },
-      doSubmitForm: function(e) {
+      }
+
+      doSubmitForm(e) {
         var evt = Polymer.dom(e);
+        console.log(e);
         this.submitForm(evt.localTarget.form);
-      },
-      submitForm: function(formEle) {
+      }
+
+      submitForm(formEle) {
         var body = {};
         var eles = formEle.elements;
         for (var i = 0; i < eles.length; i++) {
@@ -149,29 +161,32 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
         this.$.ajax.body = body;
         this.$.ajax.generateRequest();
-      },
-      _normalizeID: function(str) {
+      }
+
+      _normalizeID(str) {
         return str.split(" ").join("")
-      },
-      _formResponseChanged: function(newValue) {
+      }
+
+      _formResponseChanged(newValue) {
         if (newValue.Error) {
-          this.fire("show-error", {message: newValue.Error, title: "Couldn't make move"})
+          this.dispatchEvent(new CustomEvent("show-error", {composed: true, detail: {message: newValue.Error, title: "Couldn't make move"}}));
         }
         //Let the game-view know that the move was made and we should see if
         //there's an updated version.
-        this.fire("move-made");
-      },
-      _configChanged : function(newValue, oldValue) {
+        this.dispatchEvent(new CustomEvent("move-made", {composed:true}));
+      }
+
+      _configChanged(newValue, oldValue) {
         //Must be async because databinding hasn't created the details yet.
-        this.async(this.loadZippyState);
-      },
-      _storageKey : function(id) {
+        window.requestAnimationFrame(() => this.loadZippyState());
+      }
+
+      _storageKey(id) {
         //TODO: store the game ID in here too when we have one.
         return "move-form-zippy-" + id
-      },
-      saveZippyState : function(e) {
+      }
 
-
+      saveZippyState(e) {
         var zippy = e.currentTarget.parentElement;
         if (!zippy.id.startsWith("moves")) {
           return
@@ -188,10 +203,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         } else {
           sessionStorage.setItem(storageKey, true)
         }
-      },
-      loadZippyState : function() {
+      }
+
+      loadZippyState() {
         var that = this;
-        Polymer.dom(this.root).querySelectorAll("details").forEach(function(el) {
+        this.shadowRoot.querySelectorAll("details").forEach(function(el) {
           if (!el.id.startsWith("moves")) {
             return;
           }
@@ -203,6 +219,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           }
         });
       }
-    });
+
+    }
+
+    customElements.define(BoardgameMoveForm.is, BoardgameMoveForm);
+
   </script>
 </dom-module>

@@ -1,4 +1,4 @@
-<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
 
 <dom-module id="boardgame-render-player-info">
   <template>
@@ -8,79 +8,101 @@
   </template>
 
   <script>
-    Polymer({
-      is: 'boardgame-render-player-info',
-      properties: {
-        state: {
-          type: Object,
-          observer: "_stateChanged",
-        },
-        expandedState: {
-          type: Object,
-        },
-        gameName: {
-          type: String,
-          observer: "_gameNameChanged"
-        },
-        renderer: Object,
-        rendererLoaded: {
-          type: Boolean,
-          value: false,
-          observer: "_rendererLoadedChanged",
-        },
-        chipText: {
-          type: String,
-          notify: true,
-        },
-        chipColor: {
-          type: String,
-          notify: true,
-        },
-        playerIndex: Number,
-      },
-      listeners: {
-        "chip-text-changed": "_chipTextChanged",
-        "chip-color-changed": "_chipColorChanged",
-      },
-      observers: [
-        "_expandedStateChanged(expandedState.*)"
-      ],
-      ready: function() {
+
+    class BoardgameRenderPlayerInfo extends Polymer.Element {
+
+      static get is() {
+        return "boardgame-render-player-info"
+      }
+
+      static get properties() {
+        return {
+          state: {
+            type: Object,
+            observer: "_stateChanged",
+          },
+          expandedState: {
+            type: Object,
+          },
+          gameName: {
+            type: String,
+            observer: "_gameNameChanged"
+          },
+          renderer: Object,
+          rendererLoaded: {
+            type: Boolean,
+            value: false,
+            observer: "_rendererLoadedChanged",
+          },
+          chipText: {
+            type: String,
+            notify: true,
+          },
+          chipColor: {
+            type: String,
+            notify: true,
+          },
+          playerIndex: Number,
+        }
+      }
+
+      static get observers() {
+        return [
+          "_expandedStateChanged(expandedState.*)"
+        ]
+      }
+
+      ready() {
+        super.ready();
+
+        this.addEventListener("chip-text-changed", e => _chipTextChanged(e));
+        this.addEventListener("chip-color-changed", e => _chipColorChanged(e));
+
         if (this.instantiateWhenReady) {
           this.instantiateRenderer();
         }
-      },
-      _chipTextChanged: function(e) {
+      }
+
+      _chipTextChanged(e) {
         this.chipText = e.detail.value;
-      },
-      _chipColorChanged: function(e) {
+      }
+
+      _chipColorChanged(e) {
         this.chipColor = e.detail.value;
-      },
-      _gameNameChanged: function(newValue) {
+      }
+
+      _gameNameChanged(newValue) {
         if (!newValue) return;
         if (!this.instantiateWhenGameNameSet) return;
         this.instantiateRenderer();
-      },
-      _rendererLoadedChanged: function(newValue) {
+      }
+
+      _rendererLoadedChanged(newValue) {
         if (!newValue) return;
         if (!this.renderer) {
           this.instantiateRenderer();
         }
-      },
-      _stateChanged: function(newValue) {
+      }
+
+      _stateChanged(newValue) {
         if (!this.renderer) {
           return;
         }
         this.renderer.state = newValue;
-      },
-      _expandedStateChanged: function(record) {
+      }
+
+      _expandedStateChanged(record) {
 
         if (!this.renderer) return;
 
         this.renderer.set(record.path, record.value);
+        //This shiouldn't be necessary... set should have already done
+        //notifyPath. Bug in Polymer 2?
+        this.renderer.notifyPath(record.path);
 
-      },
-      instantiateRenderer : function() {
+      }
+
+      instantiateRenderer() {
 
         if (!this.rendererLoaded) return;
         if (!this.$) {
@@ -105,10 +127,13 @@
 
         this.renderer = ele;
 
-        Polymer.dom(this.$.container).appendChild(ele);
+        this.$.container.appendChild(ele);
 
       }
 
-    });
+    }
+
+    customElements.define(BoardgameRenderPlayerInfo.is, BoardgameRenderPlayerInfo);
+
   </script>
 </dom-module>

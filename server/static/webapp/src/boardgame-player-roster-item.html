@@ -8,7 +8,7 @@ Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 -->
 
-<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="boardgame-player-chip.html">
 <link rel="import" href="../bower_components/paper-styles/typography.html">
@@ -19,7 +19,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <template>
     <style is="custom-style" include="iron-flex">
       strong {
-        @apply(--paper-font-title);
+        @apply --paper-font-title;
         color: var(--primary-text-color);
       }
 
@@ -32,7 +32,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       strong.chip {
-        @apply(--paper-font-caption);
+        @apply --paper-font-caption;
         background-color: var(--disabled-text-color);
         color: white;
         padding:0.25em;
@@ -57,7 +57,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       span {
-        @apply(--paper-font-caption);
+        @apply --paper-font-caption;
         color: var(--secondary-text-color);
       }
 
@@ -67,7 +67,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       boardgame-render-player-info {
-        @apply(--paper-font-caption)
+        @apply --paper-font-caption;
       }
 
     </style>
@@ -86,72 +86,79 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   </template>
 
   <script>
-    Polymer({
-      is: 'boardgame-player-roster-item',
-      properties: {
-        gameName: String,
-        isEmpty: {
-          type: Boolean,
-          value: false,
-        },
-        isAgent: {
-          type: Boolean,
-          value: false,
-        },
-        photoUrl: String,
-        displayName: String,
-        state: Object,
-        playerIndex: Number,
-        expandedState: Object,
-        viewingAsPlayer: Number,
-        currentPlayerIndex: Number,
-        rendererLoaded: {
-          type: Boolean,
-          value: false,
-        },
-        chipText: {
-          type: String,
-          value: "",
-        },
-        chipColor: {
-          type: String,
-          value: "",
+
+    class BoardgamePlayerRosterItem extends Polymer.Element {
+      static get is() {
+        return "boardgame-player-roster-item"
+      }
+
+      static get properties() {
+        return {
+          gameName: String,
+          isEmpty: {
+            type: Boolean,
+            value: false,
+          },
+          isAgent: {
+            type: Boolean,
+            value: false,
+          },
+          photoUrl: String,
+          displayName: String,
+          state: Object,
+          playerIndex: Number,
+          expandedState: Object,
+          viewingAsPlayer: Number,
+          currentPlayerIndex: Number,
+          rendererLoaded: {
+            type: Boolean,
+            value: false,
+          },
+          chipText: {
+            type: String,
+            value: "",
+          },
+          chipColor: {
+            type: String,
+            value: "",
+          }
         }
-      },
+      }
 
-      nameOrNobody: function(displayName) {
+      nameOrNobody(displayName) {
         return (displayName) ? displayName : "Nobody"
-      },
+      }
 
-      classForName: function(displayName) {
+      classForName(displayName) {
         if (!displayName) return "nobody"
         return ""
-      },
+      }
 
-      _styleForChip: function(chipColor) {
+      _styleForChip(chipColor) {
         if (!chipColor) return "box-shadow: none";
         return "background-color: " + chipColor;
-      },
+      }
 
-      _textForChip: function(chipText, playerIndex) {
+      _textForChip(chipText, playerIndex) {
         return (chipText) ? chipText : playerIndex;
-      },
+      }
 
-      playerDescription: function(isEmpty, isAgent, index,  viewingAsPlayer) {
+      playerDescription(isEmpty, isAgent, index,  viewingAsPlayer) {
         if (isEmpty) return "No one";
         if (isAgent) return "Robot";
         if (index == viewingAsPlayer) return "You";
         return "Human";
-      },
+      }
 
-      classForPlayer: function(index, viewingAsPlayer, currentPlayerIndex) {
+      classForPlayer(index, viewingAsPlayer, currentPlayerIndex) {
         var result = [];
         if (index == viewingAsPlayer) result.push("viewing");
         if (index == currentPlayerIndex) result.push("current");
         return result.join(" ");
-      },
+      }
 
+    }
 
-    });
+    customElements.define(BoardgamePlayerRosterItem.is, BoardgamePlayerRosterItem);
   </script>
 </dom-module>

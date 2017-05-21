@@ -1,4 +1,4 @@
-<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
 
 <dom-module id="boardgame-render-game-blackjack">
   <template>
@@ -7,12 +7,23 @@
   </template>
 
   <script>
-    Polymer({
-      is: 'boardgame-render-game-blackjack',
-      properties: {
-        state: Object,
-        diagram : String
+
+    class BoardgameRenderGameBlackjack extends Polymer.Element {
+
+      static get is() {
+        return "boardgame-render-game-blackjack"
       }
-    });
+
+      static get properties() {
+        return {
+          state: Object,
+          diagram : String
+        }
+      }
+
+    }
+
+    customElements.define(BoardgameRenderGameBlackjack.is, BoardgameRenderGameBlackjack);
+
   </script>
 </dom-module>

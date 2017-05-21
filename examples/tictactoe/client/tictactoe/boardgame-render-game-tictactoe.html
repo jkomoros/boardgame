@@ -1,4 +1,4 @@
-<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="boardgame-tictactoe-cell.html">
 
@@ -44,13 +44,23 @@
   </template>
 
   <script>
-    Polymer({
-      is: 'boardgame-render-game-tictactoe',
-      properties: {
-        state: Object,
-        diagram : String,
-        expandedState: Object,
+    class BoardgameRenderGameTictactoe extends Polymer.Element {
+      
+      static get is() {
+        return "boardgame-render-game-tictactoe"
       }
-    });
+
+      static get properties() {
+        return {
+          state: Object,
+          diagram : String,
+          expandedState: Object,
+        }
+      }
+
+    }
+
+    customElements.define(BoardgameRenderGameTictactoe.is, BoardgameRenderGameTictactoe);
+
   </script>
 </dom-module>

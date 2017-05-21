@@ -3,11 +3,10 @@
 //NOTE: this is a file that the dev static server will return instead of
 //boardgame-config.html. So the behavior should be named the same thign.
 
-ApiHostBehavior = {
-	properties : {
-		apiHost : {
-			type: String,
-			value: "http://localhost:8888"
+ApiHostMixin = function(superClass) {
+	return class extends superClass {
+		get apiHost() {
+			return "http://localhost:8888"
 		}
 	}
 }

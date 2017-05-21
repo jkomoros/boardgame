@@ -8,7 +8,8 @@ Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 -->
 
-<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/polymer/lib/elements/dom-repeat.html">
 <link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../config-src/boardgame-config.html">
@@ -54,115 +55,120 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <paper-button dialog-confirm default autofocus>I'm in!</paper-button>
       </div>
     </paper-dialog>
-    <iron-ajax id="request" with-credentials url="[[UrlForGameAPI(gameName, gameId, 'join')]]" handle-as="json" method="POST" last-response="{{response}}">
+    <iron-ajax id="request" with-credentials url="[[UrlForGameAPI(apiHost, gameName, gameId, 'join')]]" handle-as="json" method="POST" last-response="{{response}}">
   </template>
 
   <script>
-    Polymer({
-      is: 'boardgame-player-roster',
-      properties: {
-        viewingAsPlayer: Number,
-        hasEmptySlots: Boolean,
-        gameName: {
-          type: String,
-          observer: "_gameNameChanged",
-        },
-        gameId: String,
-        playersInfo: Array,
-        currentPlayerIndex: Number,
-        state: Object,
-        expandedState: Object,
-        isObserver: {
-          type: Number,
-          computed: "_computeIsObserver(viewingAsPlayer)"
-        },
-        showJoin: {
-          type: Boolean,
-          computed: "_computeShowJoin(viewingAsPlayer, hasEmptySlots)"
-        },
-        loggedIn: Boolean,
-        response: {
-          type: Object,
-          observer: "_responseChanged",
-        },
-        //TODO: there must be a better way to do constants...
-        OBSERVER_PLAYER_INDEX : {
-          type: Number,
-          value: -1,
-        },
-        ADMIN_PLAYER_INDEX: {
-          type: Number,
-          value: -2,
-        },
-        rendererLoaded: {
-          type: Boolean,
-          value: false,
+    class BoardgamePlayerRoster extends ApiHostMixin(BoardgameUtilMixin(Polymer.Element)) {
+      static get is() {
+        return "boardgame-player-roster"
+      }
+
+      static get properties() {
+        return {
+          viewingAsPlayer: Number,
+          hasEmptySlots: Boolean,
+          gameName: {
+            type: String,
+            observer: "_gameNameChanged",
+          },
+          gameId: String,
+          playersInfo: Array,
+          currentPlayerIndex: Number,
+          state: Object,
+          expandedState: Object,
+          isObserver: {
+            type: Number,
+            computed: "_computeIsObserver(viewingAsPlayer)"
+          },
+          showJoin: {
+            type: Boolean,
+            computed: "_computeShowJoin(viewingAsPlayer, hasEmptySlots)"
+          },
+          loggedIn: Boolean,
+          response: {
+            type: Object,
+            observer: "_responseChanged",
+          },
+          //TODO: there must be a better way to do constants...
+          OBSERVER_PLAYER_INDEX : {
+            type: Number,
+            value: -1,
+          },
+          ADMIN_PLAYER_INDEX: {
+            type: Number,
+            value: -2,
+          },
+          rendererLoaded: {
+            type: Boolean,
+            value: false,
+          }
         }
-      },
+      }
 
-      listeners: {
-        "iron-overlay-closed": "dialogClosed",
-      },
+      ready() {
+        super.ready();
+        this.addEventListener('iron-overlay-closed', e => this.dialogClosed(e));
+      }
 
-      behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
-
-      playerName: function(viewingAsPlayer) {
+      playerName(viewingAsPlayer) {
         if (viewingAsPlayer == this.ADMIN_PLAYER_INDEX) return "Admin"
         return "player " + viewingAsPlayer;
-      },
+      }
 
-      _computeIsObserver: function(viewingAsPlayer) {
+      _computeIsObserver(viewingAsPlayer) {
         return viewingAsPlayer == this.OBSERVER_PLAYER_INDEX;
-      },
+      }
 
-      _computeShowJoin: function(viewingAsPlayer, hasEmptySlots) {
+      _computeShowJoin(viewingAsPlayer, hasEmptySlots) {
         return viewingAsPlayer == this.OBSERVER_PLAYER_INDEX && hasEmptySlots;
-      },
+      }
 
-      showDialog: function() {
+      showDialog() {
         if (this.$.join.opened) return;
         if (this.viewingAsPlayer != this.OBSERVER_PLAYER_INDEX) return;
         this.$.join.open();
-      },
+      }
 
-      dialogClosed: function(e) {
+      dialogClosed(e) {
 
         //If it wasn't confirmed, it was effectively canceled.
 
         if (!e.detail.confirmed) return;
 
         this.doJoin();
-      },
+      }
 
-      doJoin: function() {
+      doJoin() {
         if (!this.loggedIn) {
-          this.fire('show-login', {nextAction:this.doJoin.bind(this)});
+          this.dispatchEvent(new CustomEvent('show-login', {composed: true, detail: {nextAction:this.doJoin.bind(this)}}));
           return;
         }
         this.$.request.generateRequest();
-      },
+      }
 
-      _gameNameChanged: function(newValue) {
+      _gameNameChanged(newValue) {
         this.rendererLoaded = false;
         var resolvedUrl = this.resolveUrl("../game-src/" +newValue + "/boardgame-render-player-info-" + newValue + ".html")
-        this.importHref(resolvedUrl, this._rendererLoaded, null, true);
-      },
+        Polymer.importHref(resolvedUrl, () => this._rendererLoaded(), null, true);
+      }
 
-      _rendererLoaded: function(e) {
+      _rendererLoaded(e) {
         this.rendererLoaded = true;
-      },
+      }
 
-      _responseChanged: function(newValue) {
+      _responseChanged(newValue) {
         if (!newValue) return;
 
         if (newValue.Status == "Success") {
           //Tell game-view to fetch data now
-          this.fire("refresh-data");
+          this.dispatchEvent(new CustomEvent("refresh-data", {composed: true}));
         } else {
-          this.fire("show-error", {"message" : newValue.Error, "title": "Couldn't Join"})
+          this.dispatchEvent(new CustomEvent("show-error", {composed: true, detail: {"message" : newValue.Error, "title": "Couldn't Join"}}));
         }
-      },
+      }
+    }
 
-    });
+    customElements.define(BoardgamePlayerRoster.is, BoardgamePlayerRoster);
   </script>
 </dom-module>

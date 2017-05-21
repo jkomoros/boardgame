@@ -8,7 +8,8 @@ Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 -->
 
-<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/polymer/lib/elements/dom-repeat.html">
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="../config-src/boardgame-config.html">
 <link rel="import" href="shared-styles.html">
@@ -40,24 +41,33 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   </template>
 
   <script>
-    Polymer({
-      is: 'boardgame-list-games-view',
-      properties: {
-        data: Object,
-        managers: Array,
-        selected: {
-          type: Boolean,
-          observer: '_selectedChanged',
-        },
-        loggedIn: Boolean,
-      },
-      behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
 
-      _selectedChanged: function(newValue) {
+    class BoardgameListGamesView extends ApiHostMixin(BoardgameUtilMixin(Polymer.Element)) {
+      static get is() {
+        return "boardgame-list-games-view"
+      }
+
+      static get properties() {
+        return {
+          data: Object,
+          managers: Array,
+          selected: {
+            type: Boolean,
+            observer: '_selectedChanged',
+          },
+          loggedIn: Boolean,
+        }
+      }
+
+      _selectedChanged(newValue) {
         if (newValue) {
           this.$.games.generateRequest();
         }
       }
-    });
+
+    }
+
+    customElements.define(BoardgameListGamesView.is, BoardgameListGamesView);
+    
   </script>
 </dom-module>

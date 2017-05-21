@@ -8,7 +8,7 @@ Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 -->
 
-<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
 <link rel="import" href="shared-styles.html">
 
 <dom-module id="boardgame-player-chip">
@@ -29,30 +29,36 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   </template>
 
   <script>
-    Polymer({
-      is: 'boardgame-player-chip',
-      properties: {
-        photoUrl: {
-          type: String,
-          value: "",
-        },
-        displayName: {
-          type: String,
-          observer: "_displayNameChanged"
-        },  
-        //Whether or not the user is an agent or not
-        isAgent: {
-          type: Boolean,
-          value: false,
-        }
-      },
 
-      _effectivePhotoUrl: function(photoUrl, isAgent) {
+    class BoardgamePlayerChip extends Polymer.Element {
+      static get is() {
+        return "boardgame-player-chip"
+      }
+
+      static get properties() {
+        return {
+          photoUrl: {
+            type: String,
+            value: "",
+          },
+          displayName: {
+            type: String,
+            observer: "_displayNameChanged"
+          },  
+          //Whether or not the user is an agent or not
+          isAgent: {
+            type: Boolean,
+            value: false,
+          }
+        }
+      }
+
+      _effectivePhotoUrl(photoUrl, isAgent) {
         if (isAgent) return this.resolveUrl("agent.svg");
         return (photoUrl) ? photoUrl : this.resolveUrl("player.svg");
-      },
+      }
 
-      _displayNameChanged: function(newValue) {
+      _displayNameChanged(newValue) {
 
         var result = "hsl(0, 0%, 90%)";
 
@@ -67,9 +73,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         this.$.chip.style.backgroundColor = result;
 
-      },
+      }
 
-      _hashString: function(str) {
+      _hashString(str) {
         //Based on code at http://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript-jquery
         var hash = 0, i, chr;
         if (str.length === 0) return hash;
@@ -80,7 +86,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
         return hash;
       }
+    }
 
-    });
+    customElements.define(BoardgamePlayerChip.is, BoardgamePlayerChip);
+
   </script>
 </dom-module>

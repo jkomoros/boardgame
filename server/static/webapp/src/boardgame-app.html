@@ -8,7 +8,7 @@ Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 -->
 
-<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
 <link rel="import" href="../bower_components/app-layout/app-drawer/app-drawer.html">
 <link rel="import" href="../bower_components/app-layout/app-drawer-layout/app-drawer-layout.html">
 <link rel="import" href="../bower_components/app-layout/app-header/app-header.html">
@@ -82,7 +82,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     <app-drawer-layout fullbleed>
       <!-- Drawer content -->
-      <app-drawer id="drawer">
+      <app-drawer slot="drawer" id="drawer">
         <boardgame-user id="user" logged-in="{{loggedIn}}"></boardgame-user>
         <paper-toggle-button checked="{{admin}}">Admin Mode</paper-toggle-button>
         <app-toolbar>Menu</app-toolbar>
@@ -123,67 +123,80 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   </template>
 
   <script>
-    Polymer({
-      is: 'boardgame-app',
 
-      properties: {
-        page: {
-          type: String,
-          reflectToAttribute: true,
-          observer: '_pageChanged',
-        },
-        route : Object,
-        user: Object,
-        loggedIn : Boolean,
-        admin: {
-          type: Boolean,
-          value: false,
+    class BoardgameApp extends Polymer.Element {
+
+      static get is() {
+        return "boardgame-app"
+      }
+
+      static get properties() {
+        return {
+          page: {
+            type: String,
+            reflectToAttribute: true,
+            observer: '_pageChanged',
+          },
+          route : Object,
+          user: Object,
+          loggedIn : Boolean,
+          admin: {
+            type: Boolean,
+            value: false,
+          }
         }
-      },
+      }
 
-      listeners : {
-        'navigate-to':'handleNavigateTo',
-        'show-error': 'handleShowError',
-        'show-login': 'handleShowLogIn',
-      },
+      static get observers() {
+        return [
+          '_routePageChanged(routeData.page)',
+        ] 
+      }
 
-      observers: [
-        '_routePageChanged(routeData.page)',
-      ],
-      
-      handleNavigateTo: function(e) {
+      ready() {
+        super.ready();
+        this.addEventListener('navigate-to', e => this.handleNavigateTo(e));
+        this.addEventListener('show-error', e => this.handleShowError(e));
+        this.addEventListener('show-login', e => this.handleShowLogIn(e));
+      }
+
+      handleNavigateTo(e) {
         this.set('route.path',e.detail);
-      },
+      }
 
-      handleShowError: function(e) {
+      handleShowError(e) {
         let details = e.detail;
         this.errorMessage = (details.message || "There was an error");
         this.errorTitle = (details.title || "Error");
         this.$.error.open();
-      },
+      }
 
-      handleShowLogIn: function(e) {
+      handleShowLogIn(e) {
         //The event might have things like a nextAction, so forward it.
         this.$.user.showSignInDialog(e);
-      },
+      }
 
-      _routePageChanged: function(page) {
+      _routePageChanged(page) {
         this.page = page || 'list-games';
 
         if (!this.$.drawer.persistent) {
           this.$.drawer.close();
         }
-      },
+      }
 
-      _pageChanged: function(page) {
+      _pageChanged(page) {
         // Load page import on demand. Show 404 page if fails
         var resolvedPageUrl = this.resolveUrl('boardgame-' + page + '-view.html');
-        this.importHref(resolvedPageUrl, null, this._showPage404, true);
-      },
+        Polymer.importHref(resolvedPageUrl, null, () => this._showPage404(), true);
+      }
 
-      _showPage404: function() {
+      _showPage404() {
         this.page = '404';
-      },
-    });
+      }
+
+    }
+
+    customElements.define(BoardgameApp.is, BoardgameApp);
+
   </script>
 </dom-module>

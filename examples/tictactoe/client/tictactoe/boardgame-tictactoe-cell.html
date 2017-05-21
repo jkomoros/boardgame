@@ -1,4 +1,4 @@
-<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
 <link rel="import" href="../../bower_components/paper-styles/color.html">
@@ -26,32 +26,40 @@
   </template>
 
   <script>
-    Polymer({
-      is: 'boardgame-tictactoe-cell',
-      properties: {
-        token: {
-          type: Object,
-          observer: "_tokenChanged",
-        },
-        index: Number,
-        value: String,
-      },
 
-      _tokenChanged: function(newValue) {
+    class BoardgameTictactoeCell extends Polymer.Element {
+
+      static get is() {
+        return "boardgame-tictactoe-cell"
+      }
+
+      static get properties() {
+        return {
+          token: {
+            type: Object,
+            observer: "_tokenChanged",
+          },
+          index: Number,
+          value: String,
+        }
+      }
+
+      _tokenChanged(newValue) {
         if (!newValue) {
           this.value = "";
           return
         }
         this.value = newValue.Values.Value;
-      },
-
-      handleTap: function() {
-        this.fire("propose-move", {name: "Place Token", arguments: {
-          "Slot": this.index,
-        }});
       }
 
+      handleTap() {
+        this.dispatchEvent(new CustomEvent("propose-move", {composed: true, detail: {name: "Place Token", arguments: {
+          "Slot": this.index,
+        }}}));
+      }
 
-    });
+    }
+
+    customElements.define(BoardgameTictactoeCell.is, BoardgameTictactoeCell);
   </script>
 </dom-module>

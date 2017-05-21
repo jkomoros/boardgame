@@ -1,4 +1,4 @@
-<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
 <link rel="import" href="../bower_components/paper-styles/shadow.html">
 <link rel="import" href="../bower_components/paper-styles/typography.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
@@ -18,12 +18,12 @@
         cursor: pointer;
         border-radius: 0.25em;
         overflow: hidden;
-        @apply(--shadow-elevation-2dp);
-        @apply(--shadow-transition);
+        @apply --shadow-elevation-2dp;
+        @apply --shadow-transition;
       }
 
       #card:hover {
-        @apply(--shadow-elevation-8dp);
+        @apply --shadow-elevation-8dp;
       }
 
       #card #front {
@@ -60,42 +60,48 @@
 
     </style>
 
-    <div id="card" class$="{{Classes(hidden, spacer)}}">
+    <div id="card" class$="{{Classes(hidden, spacer)}}" on-tap="handleTap">
       <div id="front">
-        <content select=".front">
+        <slot>
           {{suit}}{{rank}}
-        </content>
+        </slot>
       </div>
       <div id="back">
-        <content select=".back">
+        <slot name="back">
           <div id="default-back" class="layout vertical center center-justified">
                 &#x2605; &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606;
           </div>
-        </content>
+        </slot>
       </div>
     </div>
   </template>
 
   <script>
-    Polymer({
-      is: 'boardgame-card',
-      properties: {
-        suit: String,
-        rank: String,
-        index: Number,
-        hidden: Boolean,
-        spacer: Boolean,
-      },
-      listeners : {
-        'tap' : 'handleTap',
-      },
-      handleTap: function(e) {
+
+    class BoardgameCard extends Polymer.Element {
+
+      static get is() {
+        return "boardgame-card"
+      }
+
+      static get properties() {
+        return {
+          suit: String,
+          rank: String,
+          index: Number,
+          hidden: Boolean,
+          spacer: Boolean,
+        }
+      }
+
+      handleTap(e) {
         if (this.spacer) {
           return;
         }
-        this.fire('card-tapped', {index: this.index});
-      },
-      Classes: function(hidden, spacer) {
+        this.dispatchEvent(new CustomEvent('card-tapped', {composed: true, detail: {index: this.index}}));
+      }
+
+      Classes(hidden, spacer) {
         let result = ["card"];
         if (hidden) {
           result.push("hidden");
@@ -104,7 +110,9 @@
           result.push("spacer");
         }
         return result.join(" ");
-      },
-    });
+      }
+    }
+
+    customElements.define(BoardgameCard.is, BoardgameCard);
   </script>
 </dom-module>

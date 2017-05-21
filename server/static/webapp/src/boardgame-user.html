@@ -8,7 +8,8 @@ Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 -->
 
-<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/polymer/lib/elements/dom-if.html">
 <link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../bower_components/paper-input/paper-input.html">
@@ -98,64 +99,70 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   </template>
 
   <script>
-    Polymer({
-      is: 'boardgame-user',
-      properties: {
-        user: Object,
-        emailFormIsSignIn: {
-          type: Boolean,
-          value: true,
-        },
-        authResponse: {
-          type: Object,
-          observer: "_authResponseChanged",
-        },
-        loggedIn : {
-          type: Boolean,
-          notify:true,
-          computed: "_computeLoggedIn(user)",
-        },
-        //set to true after firebase has a user but before our server has ack'd.
-        verifyingAuth : Boolean,
-        //The firebaseUser object
-        firebaseUser: Object,
-        //The confirmed user object from our server
-        user: {
-          type: Object,
-          value: null,
-        },
-        lastUserId: String,
-        //When the user signs in successfully, if this is not undefined, will be called.
-        signedInAction: Object,
-      },
 
-      behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
+    class BoardgameUser extends ApiHostMixin(BoardgameUtilMixin(Polymer.Element)) {
 
-      buttonText: function(isSignIn) {
+      static get is() {
+        return "boardgame-user"
+      }
+
+      static get properties() {
+        return {
+          user: Object,
+          emailFormIsSignIn: {
+            type: Boolean,
+            value: true,
+          },
+          authResponse: {
+            type: Object,
+            observer: "_authResponseChanged",
+          },
+          loggedIn : {
+            type: Boolean,
+            notify:true,
+            computed: "_computeLoggedIn(user)",
+          },
+          //set to true after firebase has a user but before our server has ack'd.
+          verifyingAuth : Boolean,
+          //The firebaseUser object
+          firebaseUser: Object,
+          //The confirmed user object from our server
+          user: {
+            type: Object,
+            value: null,
+          },
+          lastUserId: String,
+          //When the user signs in successfully, if this is not undefined, will be called.
+          signedInAction: Object,
+        }
+      }
+
+      buttonText(isSignIn) {
         return isSignIn ? "Sign In" : "Create Account";
-      },
+      }
 
-      ready : function(e) {
+      ready() {
+        super.ready()
         firebase.auth().onAuthStateChanged(this.authChanged.bind(this));
-      },
+      }
 
-      _computeLoggedIn: function(user) {
+      _computeLoggedIn(user) {
         if (!user) return false;
         return true;
-      },
+      }
 
-      _classForVerifyingAuth: function(verifyingAuth) {
+      _classForVerifyingAuth(verifyingAuth) {
         return (verifyingAuth) ? "verifying" : "";
-      },
+      }
 
-      _string : function(str) {
+      _string(str) {
         //Necessary for a thing that might be undefined to make it the empty
         //string instead, because Polymer's databinding treats setting as
         //undefined as a signal that nothing has changed.
         return (str) ? str : ""
-      },
+      }
 
-      _authResponseChanged: function(newValue) {
+      _authResponseChanged(newValue) {
         if (!newValue || newValue.Status != "Success") {
           this.user = null;
           return;
@@ -172,9 +179,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.signedInAction();
 
         this.signedInAction = null;
-      },
+      }
 
-      authChanged: function(user) {
+      authChanged(user) {
         this.firebaseUser = user;
         this.user = null;
         this.verifyingAuth = true;
@@ -189,13 +196,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.validateCookieWithToken("");
           this.lastUserId = "";
         }
-      },
+      }
 
-      validateCookie: function() {
+      validateCookie() {
         this.firebaseUser.getToken(true).then(this.validateCookieWithToken.bind(this));
-      },
+      }
 
-      validateCookieWithToken: function(token) {
+      validateCookieWithToken(token) {
         //Reaches out to the auth endpoint to get a cookie set (or validate that our cookie is set).
         let uid = ""
         let email = ""
@@ -222,18 +229,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         this.$.auth.body = "uid=" + uid + "&token=" + token + "&email=" + email + "&photo=" + photoUrl + "&displayname=" + displayName;
         this.$.auth.generateRequest();
-      },
+      }
 
-      createLogin: function() {
+      createLogin() {
         this.emailFormIsSignIn = false;
         this.showEmailPage();
-      },
+      }
 
-      cancel: function() {
+      cancel() {
         this.$.pages.selected = 0;
-      },
+      }
 
-      emailSubmitted: function() {
+      emailSubmitted() {
         let email = this.$.email.value;
         let password = this.$.password.value;
 
@@ -242,52 +249,56 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         } else {
           this.createUserWithEmailAndPassword(email, password);
         }
-      },
+      }
 
-      handleSignInError: function(err) {
+      handleSignInError(err) {
         this.errorText = err.message;
         this.$.pages.selected = 3;
-      },
+      }
 
-      showEmail: function() {
+      showEmail() {
         this.emailFormIsSignIn = true;
         this.showEmailPage();
-      },
+      }
 
-      signInWithGoogle: function() {
+      signInWithGoogle() {
         let provider = new firebase.auth.GoogleAuthProvider();
         firebase.auth().signInWithPopup(provider).catch(this.handleSignInError.bind(this));
         this.$.pages.selected = 2;
-      },
+      }
 
-      signInWithEmailAndPassword: function(email, password) {
+      signInWithEmailAndPassword(email, password) {
         firebase.auth().signInWithEmailAndPassword(email, password).catch(this.handleSignInError.bind(this));
         this.$.pages.selected = 2;
-      },
+      }
 
-      createUserWithEmailAndPassword: function(email, password) {
+      createUserWithEmailAndPassword(email, password) {
         firebase.auth().createUserWithEmailAndPassword(email, password).catch(this.handleSignInError.bind(this));
         this.$.pages.selected = 2;
-      },
+      }
 
-      showEmailPage: function() {
+      showEmailPage() {
         this.$.email.value = "";
         this.$.password.value = "";
         this.$.pages.selected = 1;
-      },
+      }
 
-      showSignInDialog: function(e) {
+      showSignInDialog(e) {
 
         //Might be undefined, that's fine
         this.signedInAction = e.detail.nextAction;
 
         this.$.pages.selected = 0;
         this.$.dialog.open();
-      },
+      }
 
-      signOut: function(e) {
+      signOut(e) {
         firebase.auth().signOut();
-      },
-    });
+      }
+
+    }
+
+    customElements.define(BoardgameUser.is, BoardgameUser);
+
   </script>
 </dom-module>

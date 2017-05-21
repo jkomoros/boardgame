@@ -1,25 +1,27 @@
 <script>
 
-BoardgameUtilBehavior = {
-	UrlForGame : function(gameName, gameId) {
-		return "game/" + gameName + "/" + gameId;
-	},
-	UrlForGameAPI : function(gameName, gameId, action) {
-		return (this.apiHost || "http://nohost.com") + "/api/" + this.UrlForGame(gameName, gameId) + "/" + action;
-	},
-	ListGamesUrl: function(apiHost) {
-		//We take the apiHost, so we'll be re-evaluated when apiHost is set.
-		return (apiHost || "http://nohost.com") + "/api/list/game";
-	},
-	NewGameUrl: function(apiHost) {
-		//We take the apiHost, so we'll be re-evaluated when apiHost is set.
-		return (apiHost || "http://nohost.com") + "/api/new/game";
-	},
-	ListManagersUrl: function(apiHost) {
-		return (apiHost || "http://nohost.com") + "/api/list/manager";
-	},
-	AuthCookieUrl: function(apiHost) {
-		return (apiHost || "http://nohost.com") + "/api/auth";
+BoardgameUtilMixin = function(superClass) {
+	return class extends superClass {
+		UrlForGame(gameName, gameId) {
+			return "game/" + gameName + "/" + gameId;
+		}
+		UrlForGameAPI(apiHost, gameName, gameId, action) {
+			return (apiHost || "http://nohost.com") + "/api/" + this.UrlForGame(gameName, gameId) + "/" + action;
+		}
+		ListGamesUrl(apiHost) {
+			//We take the apiHost, so we'll be re-evaluated when apiHost is set.
+			return (apiHost || "http://nohost.com") + "/api/list/game";
+		}
+		NewGameUrl(apiHost) {
+			//We take the apiHost, so we'll be re-evaluated when apiHost is set.
+			return (apiHost || "http://nohost.com") + "/api/new/game";
+		}
+		ListManagersUrl(apiHost) {
+			return (apiHost || "http://nohost.com") + "/api/list/manager";
+		}
+		AuthCookieUrl(apiHost) {
+			return (apiHost || "http://nohost.com") + "/api/auth";
+		}
 	}
 }
 
