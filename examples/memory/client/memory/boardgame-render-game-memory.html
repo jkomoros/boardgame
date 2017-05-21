@@ -1,4 +1,5 @@
-<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../bower_components/polymer/lib/elements/dom-repeat.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../../bower_components/paper-progress/paper-progress.html">
@@ -29,42 +30,55 @@
           </boardgame-card>
       </template>
     </div>
-    <paper-button id="hide" raised disabled="{{state.Computed.Global.CurrentPlayerHasCardsToReveal}}">Hide Cards</paper-button>
+    <paper-button id="hide" on-tap="hideTapped" raised disabled="{{state.Computed.Global.CurrentPlayerHasCardsToReveal}}">Hide Cards</paper-button>
     <paper-progress id="timeleft" value="{{expandedState.Game.HideCardsTimer.TimeLeft}}" max="{{maxTimeLeft}}"></paper-progress>
   </template>
 
   <script>
-    Polymer({
-      is: 'boardgame-render-game-memory',
-      properties: {
-        state: Object,
-        expandedState: Object,
-        diagram : String,
-        computedCards : {
-          type: Array,
-          computed: 'computeCards(expandedState.Game.HiddenCards, expandedState.Game.RevealedCards)'
-        },
-        maxTimeLeft: {
-          type: Number,
-          computed: 'computeMaxTimeLeft(expandedState.Game.HideCardsTimer.originalTimeLeft)'
+
+    class BoardgameRenderGameMemory extends Polymer.Element {
+
+      static get is() {
+        return "boardgame-render-game-memory"
+      }
+
+      static get properties() {
+        return {
+          state: Object,
+          expandedState: Object,
+          diagram : String,
+          computedCards : {
+            type: Array,
+            computed: 'computeCards(expandedState.Game.HiddenCards, expandedState.Game.RevealedCards)'
+          },
+          maxTimeLeft: {
+            type: Number,
+            computed: 'computeMaxTimeLeft(expandedState.Game.HideCardsTimer.originalTimeLeft)'
+          }
         }
-      },
-      listeners: {
-        'card-tapped' : 'handleCardTapped',
-        'hide.tap' : 'hideTapped',
-      },
-      hideTapped : function(e) {
-        this.fire("propose-move", {name: "Hide Cards", arguments: {}});
-      },
-      handleCardTapped: function(e) {
-        this.fire("propose-move", {name: "Reveal Card", arguments: {
+      }
+
+      ready() {
+        super.ready();
+
+        this.addEventListener("card-tapped", e => this.handleCardTapped(e));
+      }
+
+      hideTapped(e) {
+        this.dispatchEvent(new CustomEvent("propose-move", {composed: true, detail: {name: "Hide Cards", arguments: {}}}));
+      }
+
+      handleCardTapped(e) {
+        this.dispatchEvent(new CustomEvent("propose-move", {composed: true, detail: {name: "Reveal Card", arguments: {
           "CardIndex": e.detail.index,
-        }});
-      },
-      computeMaxTimeLeft: function(timeLeft) {
+        }}}));
+      }
+
+      computeMaxTimeLeft(timeLeft) {
         return Math.max(timeLeft, 100);
-      },
-      computeCards : function(hidden, revealed) {
+      }
+
+      computeCards(hidden, revealed) {
 
         if (hidden === undefined || revealed === undefined) {
           return [];
@@ -78,13 +92,18 @@
           }
         }
         return result;
-      },
-      IsCurrentPlayer : function(i, currentPlayer) {
+      }
+
+      IsCurrentPlayer(i, currentPlayer) {
         return (i == currentPlayer) ? "current" : "";
-      },
-      Exists: function(item) {
+      }
+
+      Exists(item) {
         return (item) ? true : false
-      },
-    });
+      }
+
+    }
+
+    customElements.define(BoardgameRenderGameMemory.is, BoardgameRenderGameMemory);
   </script>
 </dom-module>
