@@ -290,7 +290,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           //The URL will be junk
           return
         }
-        this.$.version.generateRequest();
+        //The gameVersion URL isn't ready until microtask timing (targetVersion will be undefined)
+        this.async(() => this.$.version.generateRequest());
       },
       fetchStatusNow: function() {
 
