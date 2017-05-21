@@ -1,4 +1,4 @@
-<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
 <link rel="import" href="../bower_components/paper-styles/shadow.html">
 <link rel="import" href="../bower_components/paper-styles/typography.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
@@ -60,7 +60,7 @@
 
     </style>
 
-    <div id="card" class$="{{Classes(hidden, spacer)}}">
+    <div id="card" class$="{{Classes(hidden, spacer)}}" on-tap="handleTap">
       <div id="front">
         <slot>
           {{suit}}{{rank}}
@@ -77,25 +77,31 @@
   </template>
 
   <script>
-    Polymer({
-      is: 'boardgame-card',
-      properties: {
-        suit: String,
-        rank: String,
-        index: Number,
-        hidden: Boolean,
-        spacer: Boolean,
-      },
-      listeners : {
-        'tap' : 'handleTap',
-      },
-      handleTap: function(e) {
+
+    class BoardgameCard extends Polymer.Element {
+
+      static get is() {
+        return "boardgame-card"
+      }
+
+      static get properties() {
+        return {
+          suit: String,
+          rank: String,
+          index: Number,
+          hidden: Boolean,
+          spacer: Boolean,
+        }
+      }
+
+      handleTap(e) {
         if (this.spacer) {
           return;
         }
-        this.fire('card-tapped', {index: this.index});
-      },
-      Classes: function(hidden, spacer) {
+        this.dispatchEvent(new CustomEvent('card-tapped', {composed: true, detail: {index: this.index}}));
+      }
+
+      Classes(hidden, spacer) {
         let result = ["card"];
         if (hidden) {
           result.push("hidden");
@@ -104,7 +110,9 @@
           result.push("spacer");
         }
         return result.join(" ");
-      },
-    });
+      }
+    }
+
+    customElements.define(BoardgameCard.is, BoardgameCard);
   </script>
 </dom-module>
