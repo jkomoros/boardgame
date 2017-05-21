@@ -1,11 +1,8 @@
 <script>
 
 ApiHostBehavior = {
-	properties : {
-		apiHost : {
-			type: String,
-			value: "https://boardgame-159316.appspot.com"
-		}
+	get apiHost() {
+		return "https://boardgame-159316.appspot.com"
 	}
 }
 
