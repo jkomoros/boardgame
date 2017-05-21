@@ -1,4 +1,4 @@
-<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
 
 <dom-module id="boardgame-render-player-info-blackjack">
   <template>
@@ -6,16 +6,27 @@
   </template>
 
   <script>
-    Polymer({
-      is: 'boardgame-render-player-info-blackjack',
-      properties: {
-        state: Object,
-        expandedState: Object,
-        playerIndex: Number,
-      },
-      _calculateScore: function(state, playerIndex) {
+
+    class BoardgameRenderPlayerInfoBlackjack extends Polymer.Element {
+      static get is() {
+        return "boardgame-render-player-info-blackjack"
+      }
+
+      static get properties() {
+        return {
+          state: Object,
+          expandedState: Object,
+          playerIndex: Number,
+        }
+      }
+
+      _calculateScore(state, playerIndex) {
         return state.Computed.Players[playerIndex].HandValue;
       }
-    });
+
+    }
+
+    customElements.define(BoardgameRenderPlayerInfoBlackjack.is, BoardgameRenderPlayerInfoBlackjack);
+
   </script>
 </dom-module>
