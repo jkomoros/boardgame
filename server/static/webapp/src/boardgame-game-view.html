@@ -104,7 +104,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </div>
     </div>
     <iron-ajax id="version" with-credentials url="[[gameVersionUrl]]" handle-as="json" last-response="{{versionData}}"></iron-ajax>
-    <iron-ajax id="status" with-credentials url="[[UrlForGameAPI(gameName, gameId, 'status')]]" handle-as="json" last-response="{{status}}">
+    <iron-ajax id="status" with-credentials url="[[UrlForGameAPI(apiHost, gameName, gameId, 'status')]]" handle-as="json" last-response="{{status}}">
     <iron-ajax id="data" with-credentials url="[[gameViewUrl]]" handle-as="json" last-response="{{data}}">
   </template>
 
@@ -148,11 +148,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         gameViewUrl : {
           type: String,
-          computed: "_computeGameViewUrl(gameName, gameId, requestedPlayer, admin)"
+          computed: "_computeGameViewUrl(apiHost, gameName, gameId, requestedPlayer, admin)"
         },
         gameVersionUrl: {
           type: String,
-          computed: "_computeGameVersionUrl(gameName, gameId, requestedPlayer, admin, targetVersion)"
+          computed: "_computeGameVersionUrl(apiHost, gameName, gameId, requestedPlayer, admin, targetVersion)"
         },
         loggedIn: {
           type: Boolean,
@@ -239,12 +239,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _adminChanged: function(newValue) {
         this.debounce("fetch-data", this.fetchData.bind(this));
       },
-      _computeGameViewUrl: function(gameName, gameId, requestedPlayer, admin){
-        return this.UrlForGameAPI(gameName, gameId, "info") + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0);
+      _computeGameViewUrl: function(apiHost, gameName, gameId, requestedPlayer, admin){
+        return this.UrlForGameAPI(apiHost, gameName, gameId, "info") + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0);
       },
-      _computeGameVersionUrl: function(gameName, gameId, requestedPlayer, admin, version) {
+      _computeGameVersionUrl: function(apiHost, gameName, gameId, requestedPlayer, admin, version) {
         //TODO: factor this out with computeGameViewUrl a bit
-        return this.UrlForGameAPI(gameName, gameId, "version/") + version + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0);
+        return this.UrlForGameAPI(apiHost, gameName, gameId, "version/") + version + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0);
       },
       _computeMoveAsPlayer: function(viewingAsPlayer, moveAsViewingAsPlayer) {
         if (moveAsViewingAsPlayer) return viewingAsPlayer;

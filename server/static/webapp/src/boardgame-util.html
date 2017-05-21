@@ -4,8 +4,8 @@ BoardgameUtilBehavior = {
 	UrlForGame : function(gameName, gameId) {
 		return "game/" + gameName + "/" + gameId;
 	},
-	UrlForGameAPI : function(gameName, gameId, action) {
-		return (this.apiHost || "http://nohost.com") + "/api/" + this.UrlForGame(gameName, gameId) + "/" + action;
+	UrlForGameAPI : function(apiHost, gameName, gameId, action) {
+		return (apiHost || "http://nohost.com") + "/api/" + this.UrlForGame(gameName, gameId) + "/" + action;
 	},
 	ListGamesUrl: function(apiHost) {
 		//We take the apiHost, so we'll be re-evaluated when apiHost is set.
