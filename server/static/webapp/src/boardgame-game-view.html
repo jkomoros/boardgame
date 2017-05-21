@@ -8,7 +8,9 @@ Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 -->
 
-<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/polymer/lib/elements/dom-if.html">
+<link rel="import" href="../bower_components/polymer/lib/elements/dom-repeat.html">
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="../bower_components/iron-input/iron-input.html">
 <link rel="import" href="../bower_components/paper-checkbox/paper-checkbox.html">
@@ -109,109 +111,122 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   </template>
 
   <script>
-    Polymer({
-      is: 'boardgame-game-view',
-      properties: {
-        data: {
-          type: Object,
-          observer: '_dataChanged',
-        },
-        status:{
-          type: Object,
-          observer: '_statusChanged'
-        },
-        requestedPlayer: {
-          type: Number,
-          value: 0,
-          observer: "_requestedPlayerChanged"
-        },
-        chest : String,
-        gameState : String,
-        game: {
-          type: Object,
-          observer: "_gameChanged"
-        },
-        currentState: Object,
-        expandedCurrentState: Object,
-        gameId: {
-          type: String,
-          observer: "_gameIdChanged",
-        },
-        gameName: String,
-        admin: {
-          type: Boolean,
-          observer: "_adminChanged"
-        },
-        selected: {
-          type: Boolean,
-          observer: "_handleSelected",
-        },
-        gameViewUrl : {
-          type: String,
-          computed: "_computeGameViewUrl(apiHost, gameName, gameId, requestedPlayer, admin)"
-        },
-        gameVersionUrl: {
-          type: String,
-          computed: "_computeGameVersionUrl(apiHost, gameName, gameId, requestedPlayer, admin, targetVersion)"
-        },
-        loggedIn: {
-          type: Boolean,
-          observer: "_handleLoggedInChanged",
-        },
-        maxRequestedPlayerIndex: {
-          type: Number,
-          computed: "_computeMaxRequestedPlayerIndex(game)"
-        },
-        promptedToJoin: {
-          type: Boolean,
-          value: false,
-        },
-        pathsToTick: {
-          type: Array
-        },
-        originalWallClockStartTime: {
-          type: Number
-        },
-        lastStatusRequestIssued: Date,
-        statusPollFrequency: {
-          type: Number,
-          value: 500,
-        },
-        makeMovesAsViewingAsPlayer: {
-          type:Boolean,
-          value: true,
-        },
-        viewingAsPlayerIsCurrentPlayer: {
-          type: Boolean,
-          value: true,
-        },
-        moveAsPlayer: {
-          type:Number,
-          computed: "_computeMoveAsPlayer(viewingAsPlayer, makeMovesAsViewingAsPlayer)"
-        },
-        versionData: {
-          type: Object,
-          observer: "_versionDataChanged"
-        },
-        targetVersion: {
-          type: Number,
-          observer: "_targetVersionChanged",
-          value: -1
-        },
-        viewingAsPlayer: {
-          type: Number,
-          value: 0,
-        },
-        moveForms: Object,
-      },
-      listeners: {
-        'propose-move' : 'handleProposeMove',
-        'move-made': 'fetchStatusNow',
-        'refresh-data': 'fetchData',
-      },
-      behaviors: [ApiHostBehavior, BoardgameUtilBehavior],
-      handleProposeMove: function(e) {
-        let movesEle = this.$$("#moves");
+
+    class BoardgameGameView extends ApiHostMixin(BoardgameUtilMixin(Polymer.Element)) {
+
+      static get is() {
+        return "boardgame-game-view"
+      }
+
+      static get properties() {
+        return {
+          data: {
+            type: Object,
+            observer: '_dataChanged',
+          },
+          status:{
+            type: Object,
+            observer: '_statusChanged'
+          },
+          requestedPlayer: {
+            type: Number,
+            value: 0,
+            observer: "_requestedPlayerChanged"
+          },
+          chest : String,
+          gameState : String,
+          game: {
+            type: Object,
+            observer: "_gameChanged"
+          },
+          currentState: Object,
+          expandedCurrentState: Object,
+          gameId: {
+            type: String,
+            observer: "_gameIdChanged",
+          },
+          gameName: String,
+          admin: {
+            type: Boolean,
+            observer: "_adminChanged"
+          },
+          selected: {
+            type: Boolean,
+            observer: "_handleSelected",
+          },
+          gameViewUrl : {
+            type: String,
+            computed: "_computeGameViewUrl(apiHost, gameName, gameId, requestedPlayer, admin)"
+          },
+          gameVersionUrl: {
+            type: String,
+            computed: "_computeGameVersionUrl(apiHost, gameName, gameId, requestedPlayer, admin, targetVersion)"
+          },
+          loggedIn: {
+            type: Boolean,
+            observer: "_handleLoggedInChanged",
+          },
+          maxRequestedPlayerIndex: {
+            type: Number,
+            computed: "_computeMaxRequestedPlayerIndex(game)"
+          },
+          promptedToJoin: {
+            type: Boolean,
+            value: false,
+          },
+          pathsToTick: {
+            type: Array
+          },
+          originalWallClockStartTime: {
+            type: Number
+          },
+          lastStatusRequestIssued: Date,
+          statusPollFrequency: {
+            type: Number,
+            value: 500,
+          },
+          makeMovesAsViewingAsPlayer: {
+            type:Boolean,
+            value: true,
+          },
+          viewingAsPlayerIsCurrentPlayer: {
+            type: Boolean,
+            value: true,
+          },
+          moveAsPlayer: {
+            type:Number,
+            computed: "_computeMoveAsPlayer(viewingAsPlayer, makeMovesAsViewingAsPlayer)"
+          },
+          versionData: {
+            type: Object,
+            observer: "_versionDataChanged"
+          },
+          targetVersion: {
+            type: Number,
+            observer: "_targetVersionChanged",
+            value: -1
+          },
+          viewingAsPlayer: {
+            type: Number,
+            value: 0,
+          },
+          moveForms: Object,
+        }
+      }
+
+      ready() {
+        super.ready();
+
+        this.addEventListener('propose-move', e => this.handleProposeMove(e));
+        this.addEventListener('move-made', e => this.fetchStatusNow(e));
+        this.addEventListener('refresh-data', e => this.fetchData(e));
+
+        this.updateData();
+      }
+
+
+      handleProposeMove(e) {
+        let movesEle = this.shadowRoot.querySelector("#moves");
 
         if (!movesEle) {
           console.warn("propose-move fired, but no moves element to forward to.");
@@ -219,52 +234,64 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
 
         movesEle.proposeMove(e.detail.name, e.detail.arguments);
-      },
-      _handleSelected: function(newValue) {
+      }
+
+      _handleSelected(newValue) {
         if (newValue) {
           //Clear out any old data. If we kept it, we could get in a weird
           //race.
           this.data = null;
-          this.async(this.updateData);
+          window.requestAnimationFrame(() => this.updateData());
         }
-      },
-      _handleLoggedInChanged: function(newValue) {
-        this.debounce("fetch-data", this.fetchData.bind(this));
-      },
-      _gameIdChanged: function() {
+      }
+
+
+      _handleLoggedInChanged(newValue) {
+        window.requestAnimationFrame(() => this.fetchData());
+      }
+
+      _gameIdChanged() {
         //reset this so the next time we get data set and notice that we COULD
         //login we prompt for it.
         this.promptedToJoin = false
-      },
-      _adminChanged: function(newValue) {
-        this.debounce("fetch-data", this.fetchData.bind(this));
-      },
-      _computeGameViewUrl: function(apiHost, gameName, gameId, requestedPlayer, admin){
+      }
+
+      _adminChanged(newValue) {
+        window.requestAnimationFrame(() => this.fetchData());
+      }
+
+      _requestedPlayerChanged() {
+        window.requestAnimationFrame( () => this.fetchData());
+      }
+
+      _computeGameViewUrl(apiHost, gameName, gameId, requestedPlayer, admin){
         return this.UrlForGameAPI(apiHost, gameName, gameId, "info") + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0);
-      },
-      _computeGameVersionUrl: function(apiHost, gameName, gameId, requestedPlayer, admin, version) {
+      }
+
+      _computeGameVersionUrl(apiHost, gameName, gameId, requestedPlayer, admin, version) {
         //TODO: factor this out with computeGameViewUrl a bit
         return this.UrlForGameAPI(apiHost, gameName, gameId, "version/") + version + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0);
-      },
-      _computeMoveAsPlayer: function(viewingAsPlayer, moveAsViewingAsPlayer) {
+      }
+
+      _computeMoveAsPlayer(viewingAsPlayer, moveAsViewingAsPlayer) {
         if (moveAsViewingAsPlayer) return viewingAsPlayer;
         return this.$.player.ADMIN_PLAYER_INDEX;
-      },
-      _computeMaxRequestedPlayerIndex: function(game) {
+      }
+
+      _computeMaxRequestedPlayerIndex(game) {
         if (!game) {
           return 0;
         }
         return game.NumPlayers - 1;
-      },
-      _requestedPlayerChanged : function() {
-        this.debounce("fetch-data", this.fetchData.bind(this));
-      },
-      updateData: function() {
+      }
+
+      updateData() {
         this.fetchInfo();
         this.fetchStatusNow();
-        this.async(this.maybeFetchStatus, this.statusPollFrequency);
-      },
-      fetchInfo: function() {
+        window.setTimeout(() => this.maybeFetchStatus(), this.statusPollFrequency);
+      }
+
+      fetchInfo() {
         if (this.$.data.loading) {
           return
         }
@@ -278,8 +305,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           return
         }
         this.$.data.generateRequest();
-      },
-      fetchData : function() {
+      }
+
+      fetchData() {
         //If we're already fetchign data don't fire off another one.
         if (this.$.version.loading) {
           return
@@ -294,9 +322,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           return
         }
         //The gameVersion URL isn't ready until microtask timing (targetVersion will be undefined)
-        this.async(() => this.$.version.generateRequest());
-      },
-      fetchStatusNow: function() {
+        window.requestAnimationFrame(() => this.$.version.generateRequest());
+      }
+
+
+      fetchStatusNow() {
 
         if (!this.gameId) {
           //The URL will be junk
@@ -314,8 +344,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.lastStatusRequestIssued = Date.now();
 
         this.$.status.generateRequest();
-      },
-      maybeFetchStatus: function() {
+      }
+
+      maybeFetchStatus() {
         if (this.lastStatusRequestIssued) {
           let diff = Date.now() - this.lastStatusRequestIssued;
           if (diff > this.statusPollFrequency) {
@@ -328,27 +359,27 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         //We stop asking for data if the game is finished, because nothing
         //interesting can happen at that point.
         if (!this.data || (this.game && !this.game.Finished)){
-          this.async(this.maybeFetchStatus, this.statusPollFrequency);
+          window.setTimeout(() => this.maybeFetchStatus(), this.statusPollFrequency);
         }
-      },
-      ready: function() {
-        this.updateData();
-      },
-      _statusChanged: function(newValue, oldValue) {
+      }
+
+      _statusChanged(newValue, oldValue) {
         if (!this.data) {
           return
         }
 
         this.targetVersion = newValue.Version
 
-      },
-      _targetVersionChanged: function(newValue, oldValue) {
+      }
+
+      _targetVersionChanged(newValue, oldValue) {
         if (newValue > oldValue) {
           //We're out of date! Fetch new data!
           this.fetchData();
         }
-      },
-      _versionDataChanged: function(newValue) {
+      }
+
+      _versionDataChanged(newValue) {
         if (!newValue) return;
         if (newValue.Error) {
           console.log("Version getter returned error: " + newValue.Error)
@@ -357,14 +388,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.game = newValue.Game;
         this.viewingAsPlayer = newValue.ViewingAsPlayer;
         this.moveForms = newValue.Forms;
-      },
-      doTick: function() {
+      }
+
+      doTick() {
         this._tick();
         if (this.pathsToTick.length > 0) {
           window.requestAnimationFrame(this.doTick.bind(this));
         }
-      },
-      _tick: function() {
+      }
+
+      _tick() {
         let newPaths = [];
 
         let pathToExpanded = ["expandedCurrentState"]
@@ -391,8 +424,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
 
         this.pathsToTick = newPaths;
-      },
-      _expandState: function(currentState) {
+      }
+
+      _expandState(currentState) {
         //Takes the currentState and returns an object where all of the Stacks are replaced by actual references to the component they reference.
 
         var that = this;
@@ -409,12 +443,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           "Computed" :  currentState.Computed,
         };
 
-        this.async(this.doTick);
+        window.requestAnimationFrame(() => this.doTick());
 
         return result;
 
-      },
-      _expandLeafState: function(leafState, pathToLeaf) {
+      }
+
+      _expandLeafState(leafState, pathToLeaf) {
         //Returns an expanded version of leafState. leafState should have keys that are either bools, floats, strings, or Stacks.
         var result = {};
         var entries = Object.entries(leafState);
@@ -436,8 +471,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           }
         }
         return result;
-      },
-      _expandTimer : function(timer, pathToLeaf) {
+      }
+
+      _expandTimer(timer, pathToLeaf) {
         if (timer.TimeLeft === undefined) {
           //Meh, I guess it's not a timer.
           return timer;
@@ -446,8 +482,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         result.originalTimeLeft = timer.TimeLeft;
         this.pathsToTick.push(pathToLeaf);
         return result;
-      },
-      _expandStack: function(stack) {
+      }
+
+      _expandStack(stack) {
         if (!stack.Deck) {
           //Meh, I guess it's not a stack
           return stack;
@@ -475,8 +512,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         return result;
 
-      },
-      _componentForDeckAndIndex: function(deckName, index) {
+      }
+
+      _componentForDeckAndIndex(deckName, index) {
         let deck = this.data.Chest[deckName];
 
         if (!deck) return null;
@@ -491,9 +529,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         return result
 
-      },
+      }
 
-      _gameChanged: function(newValue) {
+      _gameChanged(newValue) {
 
         if (!newValue) return;
 
@@ -507,9 +545,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.requestedPlayer = newValue.CurrentPlayerIndex;
         }
 
-      },
+      }
 
-      _dataChanged: function(newValue, oldValue) {
+      _dataChanged(newValue, oldValue) {
         if (!newValue) {
           //Sometimes we set null, like when we select the view.
           return
@@ -529,14 +567,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.$.player.showDialog();
         }
 
-      },
-      _copyObj: function(obj) {
+      }
+
+      _copyObj(obj) {
         let copy = {}
         for (let attr in obj) {
           if (obj.hasOwnProperty(attr)) copy[attr] = obj[attr]
         }
         return copy
       }
-    });
+
+    }
+
+    customElements.define(BoardgameGameView.is, BoardgameGameView);
+
   </script>
 </dom-module>
