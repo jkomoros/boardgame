@@ -275,6 +275,72 @@ prepared for is in. Then the effective policy is the *least* restrictive
 policy that applies. In practice this means that policies like
 GroupAll:PolicyLen, GroupSelf:PolicyVisible make sense to do.
 
+Sanitization Policies by default control whether the value and identity of a
+given component can be known at any given time. However, in many cases the
+identity of a given component can be tracked, even when its value is not
+known. For example, a player grabs the top card from the draw deck and places
+it face down in front of himself. A couple of turns later he reveals that the
+card is a blue card. That card is then flipped back face down. Later, it is
+transferred to the hand of another player.
+
+In that example, the specific value of the card is only known at a single
+point in time. However, it should be possible to keep track of the fact that
+it is the same card through that entire series of steps. An astute observer
+should be able to deduce that it is the blue card all along--which might allow
+the player to deduce other relevant information, like that an earlier secret
+play must have been a non-blue card.
+
+In addition, in general, keeping track of the identity of cards, in order to
+animate them from moving from one stack to another, or show that a given card
+is the same card when it is flipped over and its value is revealed, requires
+being able to keep track of the card's identity.
+
+In order to do this, every component has a semi-stable Id. This Id is
+calculated based on a hash of the component, deck, deckIndex, gameId, and also
+a secret salt for the game. This way, the same component in different games
+will have different Ids, and if you have never observed the value of the
+component in a given game, it is impossible to guess it. However, it is
+possible to keep track of the component as it moves between different stacks
+within a game.
+
+Every stack has an ordered list of Ids representing the Id for each component.
+Components can also be queried for their Id.
+
+Stacks also have an unordered set of PossibleIds. Different Sanitization
+Policies will do different things to Ids and PossibleIds, according to the
+following table:
+
+	Policy         | Id behavior
+	-----------------------------------------------------
+	PolicyVisible  | Ids reveals all Ids in order
+	-----------------------------------------------------
+	PolicyLen      | Ids is empty; all Ids are instead
+	               | shown unordered in PossibleIds
+	-----------------------------------------------------
+	PolicyNonEmpty | Ids is empty; all Ids are instead
+	               | shown unordered in PossibleIds
+	-----------------------------------------------------
+	PolicyHidden   | Both Ids and PossibleIds are empty
+	-----------------------------------------------------
+
+However, in some cases it is not possible to keep track of the precise order
+of components, even with perfect observation. The canonical example is when a
+stack is shuffled. Another example would be when a card is inserted at an
+unknown location in a deck.
+
+For this reason, a component's Id is only semi-stable. When one of these
+secret moves has occurred, the component's Id is copied to its current stack's
+PossibleIds permanently, and then its Id is randomized. In this case case, the
+Id being in the PossibleIds set represents that that stack was its last-seen
+location. This operation is known as "scrambling" the stack's Ids.
+
+stack.Shuffle() automatically scrambles the ids of all items in the stack.
+SecretMoveComponent, which is similar to the normal MoveComponent, moves the
+component to the target stack and then scrambles the Ids of ALL components in
+that stack as described above. This is because if only the new item's id
+changed, it would be trivial to observe that the new Id is equivalent to the
+old Id.
+
 Computed Properties
 
 In some cases there are properties on your State whose value is
