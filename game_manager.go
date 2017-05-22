@@ -178,6 +178,7 @@ type refriedState struct {
 	Players         []json.RawMessage
 	Components      map[string][]json.RawMessage
 	SecretMoveCount map[string][]int
+	Version         int
 }
 
 //verifyReaderStacks goes through each property in Reader that is a stack or
@@ -300,6 +301,7 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 
 	result := &state{
 		secretMoveCount: refried.SecretMoveCount,
+		version:         refried.Version,
 	}
 
 	if result.secretMoveCount == nil {

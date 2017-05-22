@@ -34,6 +34,10 @@ type State interface {
 	//delegate.CurrentPlayerIndex(), or nil if the index isn't valid.
 	CurrentPlayer() PlayerState
 
+	//Version returns the version number the state is (or will be once
+	//committed).
+	Version() int
+
 	//Copy returns a deep copy of the State, including copied version of the Game
 	//and Player States.
 	Copy(sanitized bool) State
@@ -167,6 +171,7 @@ type state struct {
 	dynamicComponentValues map[string][]MutableSubState
 	secretMoveCount        map[string][]int
 	sanitized              bool
+	version                int
 	game                   *Game
 	//Set to true while computed is being calculating computed. Primarily so
 	//if you marshal JSON in that time we know to just elide computed.
@@ -176,6 +181,10 @@ type state struct {
 	//we accumulate the timers that still need to be fully started at that
 	//point.
 	timersToStart []int
+}
+
+func (s *state) Version() int {
+	return s.version
 }
 
 func (s *state) MutableGame() MutableSubState {
@@ -227,6 +236,7 @@ func (s *state) copy(sanitized bool) *state {
 		dynamicComponentValues: make(map[string][]MutableSubState),
 		secretMoveCount:        make(map[string][]int),
 		sanitized:              sanitized,
+		version:                s.version,
 		game:                   s.game,
 		//We copy this over, because this should only be set when computed is
 		//being calculated, and during that time we'll be creating sanitized
@@ -482,6 +492,7 @@ func (s *state) MarshalJSON() ([]byte, error) {
 		"Game":     s.gameState,
 		"Players":  s.playerStates,
 		"Computed": s.Computed(),
+		"Version":  s.version,
 	}
 
 	//We emit the secretMoveCount only when the state isn't sanitized. Any

@@ -1,4 +1,5 @@
 {
+    "Version": 2,
     "Game": {
         "CurrentPlayer": 1,
         "DrawDeck": {                

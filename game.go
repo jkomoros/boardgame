@@ -317,6 +317,7 @@ func (g *Game) SetUp(numPlayers int, agentNames []string) error {
 
 	stateCopy := &state{
 		game:            g,
+		version:         0,
 		secretMoveCount: make(map[string][]int),
 	}
 
@@ -699,6 +700,7 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	}
 
 	newState := currentState.copy(false)
+	newState.version = g.version + 1
 
 	if err := move.Apply(newState); err != nil {
 		return errors.New("The move's apply function returned an error:" + err.Error())

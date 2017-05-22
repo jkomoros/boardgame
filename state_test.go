@@ -168,9 +168,13 @@ func TestSecretMoveCount(t *testing.T) {
 
 	game.SetUp(0, nil)
 
-	gameState, _ := concreteStates(game.CurrentState())
+	currentState := game.CurrentState()
 
-	s := game.CurrentState().(*state)
+	assert.For(t).ThatActual(currentState.Version()).Equals(game.Version())
+
+	gameState, _ := concreteStates(currentState)
+
+	s := currentState.(*state)
 
 	for i, c := range gameState.DrawDeck.Components() {
 		assert.For(t, i).ThatActual(c.secretMoveCount(s)).Equals(0)
@@ -225,6 +229,8 @@ func TestState(t *testing.T) {
 
 	game.SetUp(0, nil)
 
+	assert.For(t).ThatActual(game.CurrentState().Version()).Equals(game.Version())
+
 	record, err := game.Manager().Storage().State(game.Id(), game.Version())
 
 	if err != nil {
@@ -241,6 +247,8 @@ func TestState(t *testing.T) {
 	if state == nil {
 		t.Error("State could not be created")
 	}
+
+	assert.For(t).ThatActual(state.Version()).Equals(game.Version())
 
 	currentJson, _ := json.Marshal(state)
 	golden := goldenJSON("basic_state.json", t)
