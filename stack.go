@@ -75,7 +75,8 @@ type Stack interface {
 
 	//Shuffle shuffles the order of the stack, so that it has the same items,
 	//but in a different order. In a SizedStack, the empty slots will move
-	//around as part of a shuffle.
+	//around as part of a shuffle. Shuffling will scramble all of the ids in
+	//the stack, such that
 	Shuffle() error
 
 	//SwapComponents swaps the position of two components within this stack

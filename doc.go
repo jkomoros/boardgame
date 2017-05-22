@@ -310,18 +310,13 @@ Stacks also have an unordered set of PossibleIds. Different Sanitization
 Policies will do different things to Ids and PossibleIds, according to the
 following table:
 
-	Policy         | Id behavior
-	-----------------------------------------------------
-	PolicyVisible  | Ids reveals all Ids in order
-	-----------------------------------------------------
-	PolicyLen      | Ids is empty; all Ids are instead
-	               | shown unordered in PossibleIds
-	-----------------------------------------------------
-	PolicyNonEmpty | Ids is empty; all Ids are instead
-	               | shown unordered in PossibleIds
-	-----------------------------------------------------
-	PolicyHidden   | Both Ids and PossibleIds are empty
-	-----------------------------------------------------
+	| Policy         | Values Behavior                                                 | Id behavior                                                      | Notes                                                                                                 |
+	|----------------|-----------------------------------------------------------------|------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|
+	| PolicyVisible  | All values visible                                              | Ids reveals all Ids in order                                     | Visible is effectively no transformation                                                              |
+	| PolicyLen      | All values replaced by generic component                        | Ids is empty; all Ids are instead shown unordered in PossibleIds | PolicyLen makes it so it's only possible to see the length of a stack, not its order.                 |
+	| PolicyNonEmpty | Values will e either 0 components or a single generic component | Ids is empty; all Ids are instead shown unordered in PossibleIds | PolicyNonEmpty makes it so it's only possible to tell if a stack had 0 items in it or more than zero. |
+	| PolicyHidden   | Values are completely empty                                     | Both Ids and PossibleIds are empty                               | PolicyHidden is the most restrictive; stacks look entirely empty.                                     |
+
 
 However, in some cases it is not possible to keep track of the precise order
 of components, even with perfect observation. The canonical example is when a
