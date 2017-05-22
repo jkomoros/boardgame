@@ -233,7 +233,9 @@ func TestMoveComponent(t *testing.T) {
 		sStackMaxLen.insertNext(c)
 	}
 
-	fakeState := &state{}
+	fakeState := &state{
+		game: game,
+	}
 
 	gStack.statePtr = fakeState
 	sStack.statePtr = fakeState
@@ -726,7 +728,9 @@ func TestMoveAllTo(t *testing.T) {
 
 	deck := game.Chest().Deck("test")
 
-	fakeState := &state{}
+	fakeState := &state{
+		game: game,
+	}
 
 	to := NewGrowableStack(deck, 1)
 	to.statePtr = fakeState

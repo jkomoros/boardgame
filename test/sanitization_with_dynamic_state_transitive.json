@@ -12,7 +12,9 @@
                     "Ids" : [
                         "667bc729077137a8932a2cffc5ca4b0cec905956"
                     ],
-                    "IdsLastSeen": {},
+                    "IdsLastSeen": {
+                        "667bc729077137a8932a2cffc5ca4b0cec905956": 2
+                    },
                     "Size": 1
                 }
             },
@@ -116,7 +118,9 @@
                     "2a7effe5e4000914791f95f6c1a711e54d346020",
                     ""
                 ],
-                "IdsLastSeen": {},
+                "IdsLastSeen": {
+                    "2a7effe5e4000914791f95f6c1a711e54d346020": 1
+                },
                 "Size": 2
             },
             "IsFoo": false

@@ -917,6 +917,8 @@ func moveComonentImpl(source Stack, componentIndex int, destination Stack, slotI
 
 	destination.insertComponentAt(slotIndex, c)
 
+	destination.idSeen(c.Id(destination.state()))
+
 	return nil
 
 }
