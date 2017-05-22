@@ -6,7 +6,7 @@
             "Deck" : "test",
             "Indexes" : [],
             "Ids": [],
-            "PossibleIds": {}
+            "IdsLastSeen": {}
         },
         "Timer": {
             "Id": 0,
@@ -32,7 +32,7 @@
                     "2a7effe5e4000914791f95f6c1a711e54d346020",
                     ""
                 ],
-                "PossibleIds": {},
+                "IdsLastSeen": {},
                 "Size" : 2
             }
         },
@@ -50,7 +50,7 @@
                     "",
                     ""
                 ],
-                "PossibleIds": {},
+                "IdsLastSeen": {},
                 "Size" : 2
             }
         },
@@ -68,7 +68,7 @@
                     "",
                     ""
                 ],
-                "PossibleIds": {},
+                "IdsLastSeen": {},
                 "Size" : 2
             }
         }
@@ -85,7 +85,7 @@
                     "Ids": [
                         ""
                     ],
-                    "PossibleIds": {},
+                    "IdsLastSeen": {},
                     "Size": 1
                 }
             },
@@ -99,7 +99,7 @@
                     "Ids": [
                         ""
                     ],
-                    "PossibleIds": {},
+                    "IdsLastSeen": {},
                     "Size": 1
                 }
             },
@@ -113,7 +113,7 @@
                     "Ids": [
                         ""
                     ],
-                    "PossibleIds": {},
+                    "IdsLastSeen": {},
                     "Size": 1
                 }
             },
@@ -127,7 +127,7 @@
                     "Ids": [
                         ""
                     ],
-                    "PossibleIds": {},
+                    "IdsLastSeen": {},
                     "Size": 1
                 }
             }

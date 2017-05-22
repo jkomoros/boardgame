@@ -12,7 +12,7 @@
                     "Ids": [
                         ""
                     ],
-                    "PossibleIds": {},
+                    "IdsLastSeen": {},
                     "Size": 1
                 }
             },
@@ -26,7 +26,7 @@
                     "Ids": [
                         ""
                     ],
-                    "PossibleIds": {},
+                    "IdsLastSeen": {},
                     "Size": 1
                 }
             },
@@ -40,7 +40,7 @@
                     "Ids": [
                         ""
                     ],
-                    "PossibleIds": {},
+                    "IdsLastSeen": {},
                     "Size": 1
                 }
             },
@@ -54,7 +54,7 @@
                     "Ids": [
                         ""
                     ],
-                    "PossibleIds": {},
+                    "IdsLastSeen": {},
                     "Size": 1
                 }
             }
@@ -88,7 +88,7 @@
                 "26367debb9c2ce3d0a24de425c5797f43ac43909",
                 "eb8210726e015b0e472c225e512166e7f1ac34de"
             ],
-            "PossibleIds": {}
+            "IdsLastSeen": {}
         },
         "Timer": {
             "Id": 0,
@@ -113,7 +113,7 @@
                     "",
                     ""
                 ],
-                "PossibleIds": {},
+                "IdsLastSeen": {},
                 "Size": 2
             },
             "IsFoo": false
@@ -131,7 +131,7 @@
                     "",
                     ""
                 ],
-                "PossibleIds": {},
+                "IdsLastSeen": {},
                 "Size": 2
             },
             "IsFoo": false
@@ -149,7 +149,7 @@
                     "",
                     ""
                 ],
-                "PossibleIds": {},
+                "IdsLastSeen": {},
                 "Size": 2
             },
             "IsFoo": true

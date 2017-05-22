@@ -56,13 +56,13 @@ type Stack interface {
 	//PolicyOrder, and tweaked if PolicyOrder is in effect.
 	Ids() []string
 
-	//PossibleIds represents an undordered list of Ids that MAY be in this
-	//Stack currently. There are two classes of items that may be represented
-	//in this collection: 1) items whose last known location, before their Id
-	//changed, was this stack, and 2) items who are in this stack, but the
-	//current Sanitization policy does not allow their precise order or even
-	//the length of the stack to be recovered.
-	PossibleIds() map[string]bool
+	//LastSeen represents an unordered list of the last version number at
+	//which the given ID was seen in this stack. A component is "seen" at two
+	//moments: 1) when it is moved to this stack, and 2) when its Id is
+	//scrambled. LastSeen thus represents the last time that we knew for sure
+	//it was in this stack--although it may have been in this stack after
+	//that, and may no longer be in this stack.
+	IdsLastSeen() map[string]int
 
 	//SlotsRemaining returns how many slots there are left in this stack to
 	//add items.
@@ -150,8 +150,9 @@ type Stack interface {
 	//insertNext is a convenience wrapper around insertComponentAt.
 	insertNext(c *Component)
 
-	//addPersistentPossibleId adds the id to possibleIds in a way that will persist.
-	addPersistentPossibleId(id string)
+	//idSeen is called when an Id is seen (that is, either when added to the
+	//item or right before being scrambled)
+	idSeen(id string)
 
 	//scrambleIds copies all component ids to persistentPossibleIds, then
 	//increments all components secretMoveCount.
@@ -207,9 +208,7 @@ type GrowableStack struct {
 	//We don't need to store Ids because it can be recovered fully
 	//from the components in the stack.
 
-	//We do need to store the possibleIds--at least, the ones that were last
-	//known to be in this location.
-	possibleIds map[string]bool
+	idsLastSeen map[string]int
 
 	//size, if set, says the maxmimum number of items allowed in the Stack. 0
 	//means that the Stack may grow without bound.
@@ -235,9 +234,7 @@ type SizedStack struct {
 	//We don't need to store Ids because it can be recovered fully
 	//from the components in the stack.
 
-	//We do need to store the possibleIds--at least, the ones that were last
-	//known to be in this location.
-	possibleIds map[string]bool
+	idsLastSeen map[string]int
 
 	//Size is the number of slots.
 	size int
@@ -253,7 +250,7 @@ type stackJSONObj struct {
 	Deck        string
 	Indexes     []int
 	Ids         []string
-	PossibleIds map[string]bool
+	IdsLastSeen map[string]int
 	Size        int `json:",omitempty"`
 	MaxLen      int `json:",omitempty"`
 }
@@ -269,7 +266,7 @@ func NewGrowableStack(deck *Deck, maxLen int) *GrowableStack {
 		deckPtr:     deck,
 		deckName:    deck.Name(),
 		indexes:     make([]int, 0),
-		possibleIds: make(map[string]bool),
+		idsLastSeen: make(map[string]int),
 		maxLen:      maxLen,
 	}
 }
@@ -291,7 +288,7 @@ func NewSizedStack(deck *Deck, size int) *SizedStack {
 		deckPtr:     deck,
 		deckName:    deck.Name(),
 		indexes:     indexes,
-		possibleIds: make(map[string]bool),
+		idsLastSeen: make(map[string]int),
 		size:        size,
 	}
 }
@@ -302,9 +299,9 @@ func (g *GrowableStack) Copy() *GrowableStack {
 	result = *g
 	result.indexes = make([]int, len(g.indexes))
 	copy(result.indexes, g.indexes)
-	result.possibleIds = make(map[string]bool, len(g.possibleIds))
-	for key, val := range g.possibleIds {
-		result.possibleIds[key] = val
+	result.idsLastSeen = make(map[string]int, len(g.idsLastSeen))
+	for key, val := range g.idsLastSeen {
+		result.idsLastSeen[key] = val
 	}
 	return &result
 }
@@ -314,9 +311,9 @@ func (s *SizedStack) Copy() *SizedStack {
 	result = *s
 	result.indexes = make([]int, len(s.indexes))
 	copy(result.indexes, s.indexes)
-	result.possibleIds = make(map[string]bool, len(s.possibleIds))
-	for key, val := range s.possibleIds {
-		result.possibleIds[key] = val
+	result.idsLastSeen = make(map[string]int, len(s.idsLastSeen))
+	for key, val := range s.idsLastSeen {
+		result.idsLastSeen[key] = val
 	}
 	return &result
 }
@@ -521,32 +518,32 @@ func stackIdsImpl(s Stack) []string {
 	return result
 }
 
-func (g *GrowableStack) PossibleIds() map[string]bool {
+func (g *GrowableStack) IdsLastSeen() map[string]int {
 	//return a copy because this is important state to preserve, just in case
 	//someone messes with it.
-	result := make(map[string]bool, len(g.possibleIds))
-	for key, val := range g.possibleIds {
+	result := make(map[string]int, len(g.idsLastSeen))
+	for key, val := range g.idsLastSeen {
 		result[key] = val
 	}
 	return result
 }
 
-func (s *SizedStack) PossibleIds() map[string]bool {
+func (s *SizedStack) IdsLastSeen() map[string]int {
 	//return a copy because this is important state to preserve, just in case
 	//someone messes with it.
-	result := make(map[string]bool, len(s.possibleIds))
-	for key, val := range s.possibleIds {
+	result := make(map[string]int, len(s.idsLastSeen))
+	for key, val := range s.idsLastSeen {
 		result[key] = val
 	}
 	return result
 }
 
-func (g *GrowableStack) addPersistentPossibleId(id string) {
-	g.possibleIds[id] = true
+func (g *GrowableStack) idSeen(id string) {
+	g.idsLastSeen[id] = g.statePtr.Version()
 }
 
-func (s *SizedStack) addPersistentPossibleId(id string) {
-	s.possibleIds[id] = true
+func (s *SizedStack) idSeen(id string) {
+	s.idsLastSeen[id] = s.statePtr.Version()
 }
 
 func (g *GrowableStack) scrambleIds() {
@@ -554,7 +551,7 @@ func (g *GrowableStack) scrambleIds() {
 		if c == nil {
 			continue
 		}
-		g.addPersistentPossibleId(c.Id(g.state()))
+		g.idSeen(c.Id(g.state()))
 		c.movedSecretly(g.state())
 	}
 }
@@ -564,7 +561,7 @@ func (s *SizedStack) scrambleIds() {
 		if c == nil {
 			continue
 		}
-		s.addPersistentPossibleId(c.Id(s.state()))
+		s.idSeen(c.Id(s.state()))
 		c.movedSecretly(s.state())
 	}
 }
@@ -1019,7 +1016,7 @@ func (g *GrowableStack) MarshalJSON() ([]byte, error) {
 		Deck:        g.deckName,
 		Indexes:     g.indexes,
 		Ids:         g.Ids(),
-		PossibleIds: g.possibleIds,
+		IdsLastSeen: g.idsLastSeen,
 		MaxLen:      g.maxLen,
 	}
 	return json.Marshal(obj)
@@ -1031,7 +1028,7 @@ func (s *SizedStack) MarshalJSON() ([]byte, error) {
 		Deck:        s.deckName,
 		Indexes:     s.indexes,
 		Ids:         s.Ids(),
-		PossibleIds: s.possibleIds,
+		IdsLastSeen: s.idsLastSeen,
 		Size:        s.size,
 	}
 	return json.Marshal(obj)
@@ -1046,7 +1043,7 @@ func (g *GrowableStack) UnmarshalJSON(blob []byte) error {
 	//error?
 	g.deckName = obj.Deck
 	g.indexes = obj.Indexes
-	g.possibleIds = obj.PossibleIds
+	g.idsLastSeen = obj.IdsLastSeen
 	g.maxLen = obj.MaxLen
 	return nil
 }
@@ -1060,7 +1057,7 @@ func (s *SizedStack) UnmarshalJSON(blob []byte) error {
 	//error?
 	s.deckName = obj.Deck
 	s.indexes = obj.Indexes
-	s.possibleIds = obj.PossibleIds
+	s.idsLastSeen = obj.IdsLastSeen
 	s.size = obj.Size
 	return nil
 }

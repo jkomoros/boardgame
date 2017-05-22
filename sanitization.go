@@ -605,7 +605,7 @@ func (g *GrowableStack) applySanitizationPolicy(policy Policy) {
 			continue
 		}
 		id := c.Id(g.statePtr)
-		g.possibleIds[id] = true
+		g.idSeen(id)
 	}
 
 	if policy == PolicyLen {
@@ -622,7 +622,7 @@ func (g *GrowableStack) applySanitizationPolicy(policy Policy) {
 
 	if policy == PolicyHidden {
 		g.indexes = make([]int, 0)
-		g.possibleIds = make(map[string]bool)
+		g.idsLastSeen = make(map[string]int)
 		return
 	}
 
@@ -654,7 +654,7 @@ func (s *SizedStack) applySanitizationPolicy(policy Policy) {
 			continue
 		}
 		id := c.Id(s.statePtr)
-		s.possibleIds[id] = true
+		s.idSeen(id)
 	}
 
 	if policy == PolicyLen {
@@ -689,7 +689,7 @@ func (s *SizedStack) applySanitizationPolicy(policy Policy) {
 		}
 
 		if policy == PolicyHidden {
-			s.possibleIds = make(map[string]bool)
+			s.idsLastSeen = make(map[string]int)
 		}
 
 		return
