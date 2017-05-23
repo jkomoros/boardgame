@@ -77,7 +77,8 @@ type Stack interface {
 	//Shuffle shuffles the order of the stack, so that it has the same items,
 	//but in a different order. In a SizedStack, the empty slots will move
 	//around as part of a shuffle. Shuffling will scramble all of the ids in
-	//the stack, such that
+	//the stack, such that the Ids of all items in the stack change. See the
+	//package doc section on sanitization for more on Id scrambling.
 	Shuffle() error
 
 	//SwapComponents swaps the position of two components within this stack
@@ -547,10 +548,16 @@ func (s *SizedStack) IdsLastSeen() map[string]int {
 }
 
 func (g *GrowableStack) idSeen(id string) {
+	if id == "" {
+		return
+	}
 	g.idsLastSeen[id] = g.statePtr.Version()
 }
 
 func (s *SizedStack) idSeen(id string) {
+	if id == "" {
+		return
+	}
 	s.idsLastSeen[id] = s.statePtr.Version()
 }
 
@@ -948,6 +955,8 @@ func (g *GrowableStack) Shuffle() error {
 		g.indexes[i] = currentComponents[j]
 	}
 
+	g.scrambleIds()
+
 	return nil
 
 }
@@ -966,6 +975,8 @@ func (s *SizedStack) Shuffle() error {
 	for i, j := range perm {
 		s.indexes[i] = currentComponents[j]
 	}
+
+	s.scrambleIds()
 
 	return nil
 }

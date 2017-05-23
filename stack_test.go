@@ -656,7 +656,11 @@ func TestShuffle(t *testing.T) {
 
 	stack := NewGrowableStack(deck, 0)
 
-	fakeState := &state{}
+	fakeState := &state{
+		game:            game,
+		version:         0,
+		secretMoveCount: make(map[string][]int),
+	}
 
 	stack.statePtr = fakeState
 
@@ -672,10 +676,29 @@ func TestShuffle(t *testing.T) {
 
 	lastStackState := fmt.Sprint(stack.indexes)
 
+	lastIds := stack.Ids()
+	assert.For(t).ThatActual(stack.IdsLastSeen()).Equals(map[string]int{})
+
 	for i := 0; i < numShuffles; i++ {
 		if err := stack.Shuffle(); err != nil {
 			t.Error("Shuffle failed", err)
 		}
+
+		if i == 0 {
+			//First time through, check that ids are scrambled correctly
+			assert.For(t).ThatActual(len(stack.IdsLastSeen())).Equals(len(lastIds) * 2)
+			for j, id := range lastIds {
+				version, ok := stack.IdsLastSeen()[id]
+				assert.For(t, j, id).ThatActual(ok).IsTrue()
+				assert.For(t, j, id).ThatActual(version).Equals(0)
+			}
+			for j, id := range stack.Ids() {
+				version, ok := stack.IdsLastSeen()[id]
+				assert.For(t, j, id).ThatActual(ok).IsTrue()
+				assert.For(t, j, id).ThatActual(version).Equals(0)
+			}
+		}
+
 		stackState := fmt.Sprint(stack.indexes)
 		if stackState == lastStackState {
 			//Stack was teh same before and after. That's suspicious...
@@ -701,12 +724,45 @@ func TestShuffle(t *testing.T) {
 	//Number of shuffles that were the same (which is bad)
 	numShufflesTheSame = 0
 
+	//Reset lastIds to be for sStack but skip empty ones.
+	lastIds = nil
+	for _, id := range sStack.Ids() {
+		if id == "" {
+			continue
+		}
+		lastIds = append(lastIds, id)
+	}
+
+	assert.For(t).ThatActual(sStack.IdsLastSeen()).Equals(map[string]int{})
+
 	lastStackState = fmt.Sprint(sStack.indexes)
 
 	for i := 0; i < numShuffles; i++ {
 		if err := sStack.Shuffle(); err != nil {
 			t.Error("couldn't shuffle stack: ", err)
 		}
+
+		if i == 0 {
+			//First time through, check that ids are scrambled correctly
+			assert.For(t).ThatActual(len(sStack.IdsLastSeen())).Equals(len(lastIds) * 2)
+			for j, id := range lastIds {
+				if id == "" {
+					continue
+				}
+				version, ok := sStack.IdsLastSeen()[id]
+				assert.For(t, j, id).ThatActual(ok).IsTrue()
+				assert.For(t, j, id).ThatActual(version).Equals(0)
+			}
+			for j, id := range sStack.Ids() {
+				if id == "" {
+					continue
+				}
+				version, ok := sStack.IdsLastSeen()[id]
+				assert.For(t, j, id).ThatActual(ok).IsTrue()
+				assert.For(t, j, id).ThatActual(version).Equals(0)
+			}
+		}
+
 		stackState := fmt.Sprint(sStack.indexes)
 		if stackState == lastStackState {
 			//Stack was teh same before and after. That's suspicious...
