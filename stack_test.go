@@ -226,13 +226,6 @@ func TestMoveComponent(t *testing.T) {
 
 	sStackMaxLen := NewSizedStack(deck, 4)
 
-	for _, c := range deck.Components() {
-		gStack.insertNext(c)
-		gStackMaxLen.insertNext(c)
-		sStack.insertNext(c)
-		sStackMaxLen.insertNext(c)
-	}
-
 	fakeState := &state{
 		game: game,
 	}
@@ -241,6 +234,13 @@ func TestMoveComponent(t *testing.T) {
 	sStack.statePtr = fakeState
 	gStackMaxLen.statePtr = fakeState
 	sStackMaxLen.statePtr = fakeState
+
+	for _, c := range deck.Components() {
+		gStack.insertNext(c)
+		gStackMaxLen.insertNext(c)
+		sStack.insertNext(c)
+		sStackMaxLen.insertNext(c)
+	}
 
 	if !reflect.DeepEqual(gStack.indexes, []int{0, 1, 2, 3}) {
 		t.Error("gStack was not initialized like expected. Got", gStack.indexes)
@@ -455,6 +455,12 @@ func TestSwapComponents(t *testing.T) {
 
 	stack := NewGrowableStack(deck, 0)
 
+	fakeState := &state{
+		game: game,
+	}
+
+	stack.statePtr = fakeState
+
 	for _, c := range deck.Components() {
 		stack.insertNext(c)
 	}
@@ -462,6 +468,8 @@ func TestSwapComponents(t *testing.T) {
 	swapComponentsTests(stack, t)
 
 	sStack := NewSizedStack(deck, 10)
+
+	sStack.statePtr = fakeState
 
 	for _, c := range deck.Components() {
 		sStack.insertNext(c)
@@ -472,20 +480,6 @@ func TestSwapComponents(t *testing.T) {
 }
 
 func swapComponentsTests(stack Stack, t *testing.T) {
-	if err := stack.SwapComponents(0, 1); err == nil {
-		t.Error("Stack with no state allowed a swap")
-	}
-
-	fakeState := &state{}
-
-	switch s := stack.(type) {
-	case *GrowableStack:
-		s.statePtr = fakeState
-	case *SizedStack:
-		s.statePtr = fakeState
-	default:
-		t.Fatal("Unknown type of stack")
-	}
 
 	zero := stack.ComponentAt(0)
 	one := stack.ComponentAt(1)
@@ -521,9 +515,13 @@ func TestGrowableStackInsertComponentAt(t *testing.T) {
 
 	game := testGame()
 
+	makeTestGameIdsStable(game)
+
 	deck := game.Chest().Deck("test")
 
-	fakeState := &state{}
+	fakeState := &state{
+		game: game,
+	}
 
 	stack := NewGrowableStack(deck, 0)
 
@@ -592,9 +590,13 @@ func TestGrowableStackRemoveComponentAt(t *testing.T) {
 
 	game := testGame()
 
+	makeTestGameIdsStable(game)
+
 	deck := game.Chest().Deck("test")
 
-	fakeState := &state{}
+	fakeState := &state{
+		game: game,
+	}
 
 	stack := NewGrowableStack(deck, 0)
 
@@ -677,7 +679,7 @@ func TestShuffle(t *testing.T) {
 	lastStackState := fmt.Sprint(stack.indexes)
 
 	lastIds := stack.Ids()
-	assert.For(t).ThatActual(stack.IdsLastSeen()).Equals(map[string]int{})
+	assert.For(t).ThatActual(len(stack.IdsLastSeen())).Equals(len(lastIds))
 
 	for i := 0; i < numShuffles; i++ {
 		if err := stack.Shuffle(); err != nil {
@@ -733,7 +735,7 @@ func TestShuffle(t *testing.T) {
 		lastIds = append(lastIds, id)
 	}
 
-	assert.For(t).ThatActual(sStack.IdsLastSeen()).Equals(map[string]int{})
+	assert.For(t).ThatActual(len(sStack.IdsLastSeen())).Equals(len(lastIds))
 
 	lastStackState = fmt.Sprint(sStack.indexes)
 
@@ -814,8 +816,10 @@ func TestMoveAllTo(t *testing.T) {
 	}
 
 	to = NewGrowableStack(deck, 1)
+	to.statePtr = fakeState
 
 	from = NewSizedStack(deck, 2)
+	from.statePtr = fakeState
 
 	from.insertNext(zero)
 	from.insertNext(one)

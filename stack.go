@@ -735,10 +735,13 @@ func (g *GrowableStack) insertComponentAt(slotIndex int, component *Component) {
 		g.indexes = append(firstPartCopy, g.indexes[slotIndex:]...)
 	}
 
+	g.idSeen(component.Id(g.state()))
+
 }
 
 func (s *SizedStack) insertComponentAt(slotIndex int, component *Component) {
 	s.indexes[slotIndex] = component.DeckIndex
+	s.idSeen(component.Id(s.state()))
 }
 
 func (g *GrowableStack) UnsafeInsertNextComponent(t *testing.T, c *Component) error {
@@ -933,8 +936,6 @@ func moveComonentImpl(source Stack, componentIndex int, destination Stack, slotI
 	}
 
 	destination.insertComponentAt(slotIndex, c)
-
-	destination.idSeen(c.Id(destination.state()))
 
 	return nil
 
