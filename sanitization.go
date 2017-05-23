@@ -55,6 +55,15 @@ const (
 	//policy other than PolicyVisible or PolicyRandom is effectively
 	//PolicyHidden.
 	PolicyVisible Policy = iota
+
+	//For groups (e.g. stacks, int slices), return a group that has the same
+	//length, and whose Ids() represents the identity of the items. In
+	//practice, stacks will be set so that their NumComponents() is the same,
+	//but every component that exists returns the GenericComponent. This
+	//policy is similar to Len, but allows observers to keep track of the
+	//identity of cards as they are reordered in the stack.
+	PolicyOrder
+
 	//For groups (e.g. stacks, int slices), return a group that has the same
 	//length. For all else, it's effectively PolicyHidden. In practice, stacks
 	//will be set so that their NumComponents() is the same, but every
@@ -505,7 +514,7 @@ func applySanitizationPolicyIntSlice(policy Policy, input []int) []int {
 		return input
 	}
 
-	if policy == PolicyLen {
+	if policy == PolicyLen || policy == PolicyOrder {
 		return make([]int, len(input))
 	}
 
@@ -528,7 +537,7 @@ func applySanitizationPolicyBoolSlice(policy Policy, input []bool) []bool {
 		return input
 	}
 
-	if policy == PolicyLen {
+	if policy == PolicyLen || policy == PolicyOrder {
 		return make([]bool, len(input))
 	}
 
@@ -551,7 +560,7 @@ func applySanitizationPolicyStringSlice(policy Policy, input []string) []string 
 		return input
 	}
 
-	if policy == PolicyLen {
+	if policy == PolicyLen || policy == PolicyOrder {
 		return make([]string, len(input))
 	}
 
@@ -574,7 +583,7 @@ func applySanitizationPolicyPlayerIndexSlice(policy Policy, input []PlayerIndex)
 		return input
 	}
 
-	if policy == PolicyLen {
+	if policy == PolicyLen || policy == PolicyOrder {
 		return make([]PlayerIndex, len(input))
 	}
 
@@ -598,20 +607,26 @@ func (g *GrowableStack) applySanitizationPolicy(policy Policy) {
 		return
 	}
 
-	if policy == PolicyLen {
+	if policy == PolicyLen || policy == PolicyOrder {
 
 		//Keep Ids before we blank-out components, but put them in a random
 		//order.
 		g.overrideIds = make([]string, len(g.indexes))
 
-		perm := randPermForStack(g)
-
 		for i, c := range g.Components() {
 			if c == nil {
 				continue
 			}
-			j := perm[i]
-			g.overrideIds[j] = c.Id(g.state())
+			g.overrideIds[i] = c.Id(g.state())
+		}
+
+		if policy == PolicyLen {
+			perm := randPermForStack(g)
+			shuffledIds := make([]string, len(g.overrideIds))
+			for i, j := range perm {
+				shuffledIds[i] = g.overrideIds[j]
+			}
+			g.overrideIds = shuffledIds
 		}
 
 		indexes := make([]int, len(g.indexes))
@@ -681,20 +696,26 @@ func (s *SizedStack) applySanitizationPolicy(policy Policy) {
 		return
 	}
 
-	if policy == PolicyLen {
+	if policy == PolicyLen || policy == PolicyOrder {
 
 		//Keep Ids before we blank-out components, but put them in a random
 		//order.
 		s.overrideIds = make([]string, len(s.indexes))
 
-		perm := randPermForStack(s)
-
 		for i, c := range s.Components() {
 			if c == nil {
 				continue
 			}
-			j := perm[i]
-			s.overrideIds[j] = c.Id(s.state())
+			s.overrideIds[i] = c.Id(s.state())
+		}
+
+		if policy == PolicyLen {
+			perm := randPermForStack(s)
+			shuffledIds := make([]string, len(s.overrideIds))
+			for i, j := range perm {
+				shuffledIds[i] = s.overrideIds[j]
+			}
+			s.overrideIds = shuffledIds
 		}
 
 		indexes := make([]int, len(s.indexes))

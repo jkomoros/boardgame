@@ -76,6 +76,42 @@ func TestSanitization(t *testing.T) {
 			&StatePolicy{
 				Game: map[string]GroupPolicy{
 					"DrawDeck": GroupPolicy{
+						GroupAll: PolicyOrder,
+					},
+					"MyIntSlice": GroupPolicy{
+						GroupAll: PolicyOrder,
+					},
+					"MyBoolSlice": GroupPolicy{
+						GroupAll: PolicyOrder,
+					},
+					"MyStringSlice": GroupPolicy{
+						GroupAll: PolicyOrder,
+					},
+					"MyPlayerIndexSlice": GroupPolicy{
+						GroupAll: PolicyOrder,
+					},
+				},
+			},
+			0,
+			"sanitization_basic_in.json",
+			"sanitization_basic_order.json",
+		},
+		{
+			&StatePolicy{
+				Player: map[string]GroupPolicy{
+					"Hand": GroupPolicy{
+						GroupOther: PolicyOrder,
+					},
+				},
+			},
+			0,
+			"sanitization_basic_in.json",
+			"sanitization_basic_order_player.json",
+		},
+		{
+			&StatePolicy{
+				Game: map[string]GroupPolicy{
+					"DrawDeck": GroupPolicy{
 						GroupAll: PolicyHidden,
 					},
 					"MyIntSlice": GroupPolicy{
