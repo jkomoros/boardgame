@@ -171,7 +171,7 @@ func (g *gameDelegate) StateSanitizationPolicy() *boardgame.StatePolicy {
 		policy = &boardgame.StatePolicy{
 			Game: map[string]boardgame.GroupPolicy{
 				"HiddenCards": boardgame.GroupPolicy{
-					boardgame.GroupAll: boardgame.PolicyLen,
+					boardgame.GroupAll: boardgame.PolicyOrder,
 				},
 			},
 		}
