@@ -306,9 +306,13 @@ within a game.
 Every stack has an ordered list of Ids representing the Id for each component.
 Components can also be queried for their Id.
 
-Stacks also have an unordered set of PossibleIds. Different Sanitization
-Policies will do different things to Ids and PossibleIds, according to the
-following table:
+Stacks also have an unordered set of IdsLastSeen, which tracks the last time
+the Id was affirmitively seen in a stack. The basic time this happens is when
+a component is first inserted into a stack. (See below for additional times
+when this hapepns)
+
+Different Sanitization Policies will do different things to Ids and
+IdsLastSeen, according to the following table:
 
 	| Policy         | Values Behavior                                                  | Ids()        | IdsLastSeen() | Notes                                                                                                 |
 	|----------------|------------------------------------------------------------------|--------------|---------------|-------------------------------------------------------------------------------------------------------|
@@ -325,10 +329,10 @@ stack is shuffled. Another example would be when a card is inserted at an
 unknown location in a deck.
 
 For this reason, a component's Id is only semi-stable. When one of these
-secret moves has occurred, the component's Id is copied to its current stack's
-PossibleIds permanently, and then its Id is randomized. In this case case, the
-Id being in the PossibleIds set represents that that stack was its last-seen
-location. This operation is known as "scrambling" the stack's Ids.
+secret moves has occurred, the Ids is randomized. However, in order to be able
+to keep track of where the component is, the component is "seen" in
+IdsLastSeen immediately before having its Id scrambled, and immediately after.
+This procedure is referred to as "scrambling" the Ids.
 
 stack.Shuffle() automatically scrambles the ids of all items in the stack.
 SecretMoveComponent, which is similar to the normal MoveComponent, moves the
