@@ -206,8 +206,8 @@ type GrowableStack struct {
 	//The indexes from the given deck that this stack contains, in order.
 	indexes []int
 
-	//We don't need to store Ids because it can be recovered fully
-	//from the components in the stack.
+	//If overrideIds is nil, we'll just fetch them from all of component's Id.
+	overrideIds []string
 
 	idsLastSeen map[string]int
 
@@ -232,8 +232,8 @@ type SizedStack struct {
 	//index of -1.
 	indexes []int
 
-	//We don't need to store Ids because it can be recovered fully
-	//from the components in the stack.
+	//If overrideIds is nil, we'll just fetch them from all of component's Id.
+	overrideIds []string
 
 	idsLastSeen map[string]int
 
@@ -501,14 +501,21 @@ func (s *SizedStack) ComponentValues() []SubState {
 }
 
 func (g *GrowableStack) Ids() []string {
+	if g.overrideIds != nil {
+		return g.overrideIds
+	}
 	return stackIdsImpl(g)
 }
 
 func (s *SizedStack) Ids() []string {
+	if s.overrideIds != nil {
+		return s.overrideIds
+	}
 	return stackIdsImpl(s)
 }
 
 func stackIdsImpl(s Stack) []string {
+
 	result := make([]string, s.Len())
 	for i, c := range s.Components() {
 		if c == nil {
