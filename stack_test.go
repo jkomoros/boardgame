@@ -464,7 +464,7 @@ func TestSwapComponents(t *testing.T) {
 	sStack := NewSizedStack(deck, 10)
 
 	for _, c := range deck.Components() {
-		stack.insertNext(c)
+		sStack.insertNext(c)
 	}
 
 	swapComponentsTests(sStack, t)
