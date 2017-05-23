@@ -87,13 +87,10 @@
                 -2
             ],
             "Ids": [
-                "",
-                ""
+                "26367debb9c2ce3d0a24de425c5797f43ac43909",
+                "eb8210726e015b0e472c225e512166e7f1ac34de"
             ],
-            "IdsLastSeen": {
-                "eb8210726e015b0e472c225e512166e7f1ac34de": 3,
-                "26367debb9c2ce3d0a24de425c5797f43ac43909": 3
-            }
+            "IdsLastSeen": {}
         },
         "Timer": {
             "Id": 0,

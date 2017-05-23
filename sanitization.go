@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"hash/fnv"
 	"math"
 	"math/rand"
 	"strconv"
@@ -597,18 +598,21 @@ func (g *GrowableStack) applySanitizationPolicy(policy Policy) {
 		return
 	}
 
-	//Anything other than PolicyVisible (at least currently) will move Ids to
-	//PossibleIds.
-
-	for _, c := range g.Components() {
-		if c == nil {
-			continue
-		}
-		id := c.Id(g.statePtr)
-		g.idSeen(id)
-	}
-
 	if policy == PolicyLen {
+
+		//Keep Ids before we blank-out components, but put them in a random
+		//order.
+		g.overrideIds = make([]string, len(g.indexes))
+
+		perm := randPermForStack(g)
+
+		for i, c := range g.Components() {
+			if c == nil {
+				continue
+			}
+			j := perm[i]
+			g.overrideIds[j] = c.Id(g.state())
+		}
 
 		indexes := make([]int, len(g.indexes))
 
@@ -618,6 +622,16 @@ func (g *GrowableStack) applySanitizationPolicy(policy Policy) {
 
 		g.indexes = indexes
 		return
+	}
+
+	//Anything other than PolicyVisible and PolicyLen (at least currently)
+	//will move Ids to PossibleIds.
+	for _, c := range g.Components() {
+		if c == nil {
+			continue
+		}
+		id := c.Id(g.statePtr)
+		g.idSeen(id)
 	}
 
 	if policy == PolicyHidden {
@@ -640,24 +654,48 @@ func (g *GrowableStack) applySanitizationPolicy(policy Policy) {
 
 }
 
+//returns a random permutation of size stack.Len(). The permutation will be
+//predictable given this exact stack and its state, but unpredictable in
+//general. This makes it give predictable results for testing but still be
+//unguessable if you don't have the stack's game's SecretSalt.
+func randPermForStack(stack Stack) []int {
+
+	//TODO: we really only do this in order to have straight-forward testing
+	//via golden json blobs. That feels like the wrong trade-off...
+
+	seedStr := stack.state().game.SecretSalt() + strconv.Itoa(stack.state().Version())
+
+	h := fnv.New64()
+	h.Write([]byte(seedStr))
+	seed := h.Sum64()
+
+	r := rand.New(rand.NewSource(int64(seed)))
+
+	return r.Perm(stack.Len())
+
+}
+
 func (s *SizedStack) applySanitizationPolicy(policy Policy) {
 
 	if policy == PolicyVisible {
 		return
 	}
 
-	//Anything other than PolicyVisible (at least currently) will move Ids to
-	//PossibleIds.
-
-	for _, c := range s.Components() {
-		if c == nil {
-			continue
-		}
-		id := c.Id(s.statePtr)
-		s.idSeen(id)
-	}
-
 	if policy == PolicyLen {
+
+		//Keep Ids before we blank-out components, but put them in a random
+		//order.
+		s.overrideIds = make([]string, len(s.indexes))
+
+		perm := randPermForStack(s)
+
+		for i, c := range s.Components() {
+			if c == nil {
+				continue
+			}
+			j := perm[i]
+			s.overrideIds[j] = c.Id(s.state())
+		}
 
 		indexes := make([]int, len(s.indexes))
 
@@ -672,6 +710,16 @@ func (s *SizedStack) applySanitizationPolicy(policy Policy) {
 		s.indexes = indexes
 
 		return
+	}
+
+	//Anything other than PolicyVisible and PolicyLen (at least currently)
+	//will move Ids to PossibleIds.
+	for _, c := range s.Components() {
+		if c == nil {
+			continue
+		}
+		id := c.Id(s.statePtr)
+		s.idSeen(id)
 	}
 
 	if policy == PolicyHidden || policy == PolicyNonEmpty {
