@@ -100,8 +100,17 @@ type Stack interface {
 	//component between existing componnets if necessary. For SizedStack,
 	//slotIndex must point to a currently empty slot. Use
 	//{First,Last}{Component,Slot}Index constants to automatically set these
-	//indexes to common values.
+	//indexes to common values. If you want the precise location of the
+	//inserted component to not be visible, see SecretMoveComponent.
 	MoveComponent(componentIndex int, destination Stack, slotIndex int) error
+
+	//SecretMoveComponent is equivalent to MoveComponent, but after the move
+	//the Ids of all components in destination will be scrambled.
+	//SecretMoveComponent is useful when the destination stack will be
+	//sanitized with something like PolicyOrder, but the precise location of
+	//this insertion should not be observable. Read the package doc for more
+	//about when this is useful.
+	SecretMoveComponent(componentIndex int, destination Stack, slotIndex int) error
 
 	//SortComponents sorts the stack's components in the order implied by less
 	//by repeatedly calling SwapComponents. Errors if any SwapComponents
@@ -873,6 +882,24 @@ func sortComponentsImpl(s Stack, less func(i, j *Component) bool) error {
 	sort.Sort(sorter)
 
 	return sorter.err
+}
+
+func (g *GrowableStack) SecretMoveComponent(componentIndex int, destination Stack, slotIndex int) error {
+	err := moveComonentImpl(g, componentIndex, destination, slotIndex)
+	if err != nil {
+		return err
+	}
+	destination.scrambleIds()
+	return nil
+}
+
+func (s *SizedStack) SecretMoveComponent(componentIndex int, destination Stack, slotIndex int) error {
+	err := moveComonentImpl(s, componentIndex, destination, slotIndex)
+	if err != nil {
+		return err
+	}
+	destination.scrambleIds()
+	return nil
 }
 
 func (g *GrowableStack) MoveComponent(componentIndex int, destination Stack, slotIndex int) error {

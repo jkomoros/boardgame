@@ -212,6 +212,121 @@ func TestInflate(t *testing.T) {
 	}
 }
 
+func TestSecretMoveComponentGrowable(t *testing.T) {
+	game := testGame()
+
+	deck := game.Chest().Deck("test")
+
+	gStack := NewGrowableStack(deck, 0)
+	sStack := NewSizedStack(deck, 5)
+
+	fakeState := &state{
+		game:            game,
+		secretMoveCount: make(map[string][]int),
+	}
+
+	gStack.statePtr = fakeState
+	sStack.statePtr = fakeState
+
+	for i, c := range deck.Components() {
+		if i%2 == 0 {
+			gStack.insertNext(c)
+		} else {
+			sStack.insertNext(c)
+		}
+	}
+
+	assert.For(t).ThatActual(gStack.NumComponents()).Equals(len(deck.Components()) / 2)
+	assert.For(t).ThatActual(sStack.NumComponents()).Equals(len(deck.Components()) / 2)
+
+	secretMoveTestHelper(t, gStack, sStack, "growable to sized")
+
+}
+
+func TestSecretMoveComponentSized(t *testing.T) {
+	game := testGame()
+
+	deck := game.Chest().Deck("test")
+
+	gStack := NewGrowableStack(deck, 0)
+	sStack := NewSizedStack(deck, 5)
+
+	fakeState := &state{
+		game:            game,
+		secretMoveCount: make(map[string][]int),
+	}
+
+	gStack.statePtr = fakeState
+	sStack.statePtr = fakeState
+
+	for i, c := range deck.Components() {
+		if i%2 == 0 {
+			gStack.insertNext(c)
+		} else {
+			sStack.insertNext(c)
+		}
+	}
+
+	assert.For(t).ThatActual(gStack.NumComponents()).Equals(len(deck.Components()) / 2)
+	assert.For(t).ThatActual(sStack.NumComponents()).Equals(len(deck.Components()) / 2)
+
+	secretMoveTestHelper(t, sStack, gStack, "sized to growable")
+
+}
+
+func secretMoveTestHelper(t *testing.T, from Stack, to Stack, description string) {
+	lastIds := from.Ids()
+	lastIdsSeen := from.IdsLastSeen()
+
+	toLastIds := to.Ids()
+	toLastIdsSeen := to.IdsLastSeen()
+
+	err := from.SecretMoveComponent(FirstComponentIndex, to, FirstSlotIndex)
+
+	assert.For(t, description).ThatActual(err).IsNil()
+
+	assert.For(t, description).ThatActual(from.Ids()).DoesNotEqual(lastIds)
+
+	actualNumIdsBefore := 0
+
+	for _, id := range lastIds {
+		if id == "" {
+			continue
+		}
+		actualNumIdsBefore++
+	}
+
+	actualNumIds := 0
+
+	for _, id := range from.Ids() {
+		if id == "" {
+			continue
+		}
+		actualNumIds++
+	}
+
+	assert.For(t, description).ThatActual(actualNumIds).Equals(actualNumIdsBefore - 1)
+
+	assert.For(t, description).ThatActual(to.Ids()).DoesNotEqual(toLastIds)
+
+	//Make sure all of hte Ids have changed
+	for _, id := range to.Ids() {
+		if id == "" {
+			continue
+		}
+		for _, oldId := range toLastIds {
+			if oldId == "" {
+				continue
+			}
+			assert.For(t, description).ThatActual(id).DoesNotEqual(oldId)
+		}
+	}
+
+	assert.For(t, description).ThatActual(len(from.IdsLastSeen())).Equals(len(lastIdsSeen))
+
+	assert.For(t, description).ThatActual(len(to.IdsLastSeen())).Equals(len(toLastIdsSeen)*2 + 2)
+}
+
 func TestMoveComponent(t *testing.T) {
 
 	game := testGame()
