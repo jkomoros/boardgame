@@ -57,11 +57,12 @@ type Stack interface {
 	Ids() []string
 
 	//LastSeen represents an unordered list of the last version number at
-	//which the given ID was seen in this stack. A component is "seen" at two
-	//moments: 1) when it is moved to this stack, and 2) when its Id is
-	//scrambled. LastSeen thus represents the last time that we knew for sure
-	//it was in this stack--although it may have been in this stack after
-	//that, and may no longer be in this stack.
+	//which the given ID was seen in this stack. A component is "seen" at
+	//three moments: 1) when it is moved to this stack, 2) immediately before
+	//its Id is scrambled, and 3) immediately after its Id is scrambled.
+	//LastSeen thus represents the last time that we knew for sure it was in
+	//this stack --although it may have been in this stack after that, and may
+	//no longer be in this stack.
 	IdsLastSeen() map[string]int
 
 	//SlotsRemaining returns how many slots there are left in this stack to
@@ -553,6 +554,7 @@ func (g *GrowableStack) scrambleIds() {
 		}
 		g.idSeen(c.Id(g.state()))
 		c.movedSecretly(g.state())
+		g.idSeen(c.Id(g.state()))
 	}
 }
 
@@ -563,6 +565,7 @@ func (s *SizedStack) scrambleIds() {
 		}
 		s.idSeen(c.Id(s.state()))
 		c.movedSecretly(s.state())
+		s.idSeen(c.Id(s.state()))
 	}
 }
 
