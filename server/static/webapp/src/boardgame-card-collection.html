@@ -1,0 +1,36 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
+
+<dom-module id="boardgame-card-collection">
+  <template>
+    <style>
+      .grid {
+        @apply --layout-horizontal;
+        @apply --layout-wrap;
+      }
+
+    </style>
+
+    <div id="container" class$="{{layout}}">
+      <slot></slot>
+    </div>
+  </template>
+
+  <script>
+
+    class BoardgameCardCollection extends Polymer.Element {
+
+      static get is() {
+        return "boardgame-card-collection"
+      }
+
+      static get properties() {
+        return {
+          layout: String
+        }
+      }
+    }
+
+    customElements.define(BoardgameCardCollection.is, BoardgameCardCollection);
+  </script>
+</dom-module>

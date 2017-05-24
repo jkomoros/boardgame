@@ -5,6 +5,7 @@
 <link rel="import" href="../../bower_components/paper-progress/paper-progress.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
 <link rel="import" href="../../src/boardgame-card.html">
+<link rel="import" href="../../src/boardgame-card-collection.html">
 
 <dom-module id="boardgame-render-game-memory">
   <template>
@@ -21,7 +22,7 @@
       }
     </style>
     <h2>Memory</h2>
-    <div class="horizontal layout wrap container">
+    <boardgame-card-collection layout="grid">
       <template is="dom-repeat" items="{{computedCards}}">
           <boardgame-card title="{{index}}" rank="{{item.Values.Type}}" hidden="{{!Exists(item.Values)}}" spacer="{{!Exists(item)}}" index="{{index}}">
             <div class="horizontal layout center center-justified">
@@ -29,7 +30,7 @@
             </div>
           </boardgame-card>
       </template>
-    </div>
+    </boardgame-card-collection>
     <paper-button id="hide" on-tap="hideTapped" raised disabled="{{state.Computed.Global.CurrentPlayerHasCardsToReveal}}">Hide Cards</paper-button>
     <paper-progress id="timeleft" value="{{state.Game.HideCardsTimer.TimeLeft}}" max="{{maxTimeLeft}}"></paper-progress>
   </template>
