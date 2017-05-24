@@ -25,19 +25,19 @@
     <div class="horizontal layout">
       <div class="board vertical layout">
         <div class="row layout horizontal">
-          <boardgame-tictactoe-cell token="{{expandedState.Game.Slots.0}}" index="0"></boardgame-tictactoe-cell>
-          <boardgame-tictactoe-cell token="{{expandedState.Game.Slots.1}}" index="1"></boardgame-tictactoe-cell>
-          <boardgame-tictactoe-cell token="{{expandedState.Game.Slots.2}}" index="2"></boardgame-tictactoe-cell>
+          <boardgame-tictactoe-cell token="{{state.Game.Slots.Components.0}}" index="0"></boardgame-tictactoe-cell>
+          <boardgame-tictactoe-cell token="{{state.Game.Slots.Components.1}}" index="1"></boardgame-tictactoe-cell>
+          <boardgame-tictactoe-cell token="{{state.Game.Slots.Components.2}}" index="2"></boardgame-tictactoe-cell>
         </div>
         <div class="row layout horizontal">
-          <boardgame-tictactoe-cell token="{{expandedState.Game.Slots.3}}" index="3"></boardgame-tictactoe-cell>
-          <boardgame-tictactoe-cell token="{{expandedState.Game.Slots.4}}" index="4"></boardgame-tictactoe-cell>
-          <boardgame-tictactoe-cell token="{{expandedState.Game.Slots.5}}" index="5"></boardgame-tictactoe-cell>
+          <boardgame-tictactoe-cell token="{{state.Game.Slots.Components.3}}" index="3"></boardgame-tictactoe-cell>
+          <boardgame-tictactoe-cell token="{{state.Game.Slots.Components.4}}" index="4"></boardgame-tictactoe-cell>
+          <boardgame-tictactoe-cell token="{{state.Game.Slots.Components.5}}" index="5"></boardgame-tictactoe-cell>
         </div>
         <div class="row layout horizontal">
-          <boardgame-tictactoe-cell token="{{expandedState.Game.Slots.6}}" index="6"></boardgame-tictactoe-cell>
-          <boardgame-tictactoe-cell token="{{expandedState.Game.Slots.7}}" index="7"></boardgame-tictactoe-cell>
-          <boardgame-tictactoe-cell token="{{expandedState.Game.Slots.8}}" index="8"></boardgame-tictactoe-cell>
+          <boardgame-tictactoe-cell token="{{state.Game.Slots.Components.6}}" index="6"></boardgame-tictactoe-cell>
+          <boardgame-tictactoe-cell token="{{state.Game.Slots.Components.7}}" index="7"></boardgame-tictactoe-cell>
+          <boardgame-tictactoe-cell token="{{state.Game.Slots.Components.8}}" index="8"></boardgame-tictactoe-cell>
         </div>
       </div>
     </div>
@@ -53,8 +53,7 @@
       static get properties() {
         return {
           state: Object,
-          diagram : String,
-          expandedState: Object,
+          diagram : String
         }
       }
 

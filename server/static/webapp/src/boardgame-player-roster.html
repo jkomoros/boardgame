@@ -32,7 +32,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
       <div class="layout horizontal justified players">
         <template is="dom-repeat" items="{{playersInfo}}">
-          <boardgame-player-roster-item class="flex" state="{{state}}" expanded-state="{{expandedState}}" game-name="{{gameName}}" is-empty="{{item.IsEmpty}}" is-agent="{{item.IsAgent}}" photo-url="{{item.PhotoUrl}}" display-name="{{item.DisplayName}}" player-index="{{index}}" viewing-as-player="{{viewingAsPlayer}}" current-player-index="{{currentPlayerIndex}}" renderer-loaded="{{rendererLoaded}}">
+          <boardgame-player-roster-item class="flex" state="{{state}}" game-name="{{gameName}}" is-empty="{{item.IsEmpty}}" is-agent="{{item.IsAgent}}" photo-url="{{item.PhotoUrl}}" display-name="{{item.DisplayName}}" player-index="{{index}}" viewing-as-player="{{viewingAsPlayer}}" current-player-index="{{currentPlayerIndex}}" renderer-loaded="{{rendererLoaded}}">
           </boardgame-player-roster-item>
         </template>
       </div>
@@ -76,7 +76,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           playersInfo: Array,
           currentPlayerIndex: Number,
           state: Object,
-          expandedState: Object,
           isObserver: {
             type: Number,
             computed: "_computeIsObserver(viewingAsPlayer)"

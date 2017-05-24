@@ -31,7 +31,7 @@
       </template>
     </div>
     <paper-button id="hide" on-tap="hideTapped" raised disabled="{{state.Computed.Global.CurrentPlayerHasCardsToReveal}}">Hide Cards</paper-button>
-    <paper-progress id="timeleft" value="{{expandedState.Game.HideCardsTimer.TimeLeft}}" max="{{maxTimeLeft}}"></paper-progress>
+    <paper-progress id="timeleft" value="{{state.Game.HideCardsTimer.TimeLeft}}" max="{{maxTimeLeft}}"></paper-progress>
   </template>
 
   <script>
@@ -45,15 +45,14 @@
       static get properties() {
         return {
           state: Object,
-          expandedState: Object,
           diagram : String,
           computedCards : {
             type: Array,
-            computed: 'computeCards(expandedState.Game.HiddenCards, expandedState.Game.RevealedCards)'
+            computed: 'computeCards(state.Game.HiddenCards, state.Game.RevealedCards)'
           },
           maxTimeLeft: {
             type: Number,
-            computed: 'computeMaxTimeLeft(expandedState.Game.HideCardsTimer.originalTimeLeft)'
+            computed: 'computeMaxTimeLeft(state.Game.HideCardsTimer.originalTimeLeft)'
           }
         }
       }
@@ -85,10 +84,10 @@
         }
 
         let result = [];
-        for (let i = 0; i < hidden.length; i++) {
-          result.push(hidden[i]);
+        for (let i = 0; i < hidden.Components.length; i++) {
+          result.push(hidden.Components[i]);
           if (!result[i]) {
-            result[i] = revealed[i];
+            result[i] = revealed.Components[i];
           }
         }
         return result;

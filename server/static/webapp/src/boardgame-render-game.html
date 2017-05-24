@@ -24,10 +24,6 @@
         return {
           state: {
             type: Object,
-            observer: "_stateChanged",
-          },
-          expandedState: {
-            type: Object,
           },
           diagram : {
             type: String,
@@ -51,7 +47,7 @@
 
       static get observers() {
         return [
-          "_expandedStateChanged(expandedState.*)"
+          "_stateChanged(state.*)"
         ]
       }
 
@@ -62,14 +58,7 @@
         this.renderer.diagram = newValue;
       }
 
-      _stateChanged(newValue) {
-        if (!this.renderer) {
-          return;
-        }
-        this.renderer.state = newValue;
-      }
-
-      _expandedStateChanged(record) {
+      _stateChanged(record) {
         if (!this.renderer) return;
         this.renderer.set(record.path, record.value);
         //This shiouldn't be necessary... set should have already done
@@ -104,7 +93,6 @@
 
         ele.diagram = this.diagram;
         ele.state = this.state;
-        ele.expandedState = this.expandedState;
         ele.viewingAsPlayer = this.viewingAsPlayer;
 
         this.renderer = ele;

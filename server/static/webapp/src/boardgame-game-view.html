@@ -69,11 +69,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </div>
       </div>
       <div hidden$="{{game.Finished}}">
-        <boardgame-player-roster id="player" logged-in="{{loggedIn}}" game-name="{{gameName}}" game-id="{{gameId}}" viewing-as-player="{{viewingAsPlayer}}" has-empty-slots="{{data.HasEmptySlots}}" current-player-index="{{game.CurrentPlayerIndex}}" players-info="{{data.Players}}" state="{{currentState}}" expanded-state="{{expandedCurrentState}}"></boardgame-player-roster>
+        <boardgame-player-roster id="player" logged-in="{{loggedIn}}" game-name="{{gameName}}" game-id="{{gameId}}" viewing-as-player="{{viewingAsPlayer}}" has-empty-slots="{{data.HasEmptySlots}}" current-player-index="{{game.CurrentPlayerIndex}}" players-info="{{data.Players}}" state="{{currentState}}"></boardgame-player-roster>
       </div>
     </div>
     <div class="card">
-      <boardgame-render-game state="{{currentState}}" expanded-state="{{expandedCurrentState}}" diagram="{{game.Diagram}}" game-name="{{gameName}}" viewing-as-player="{{viewingAsPlayer}}"></boardgame-render-game>
+      <boardgame-render-game state="{{currentState}}" diagram="{{game.Diagram}}" game-name="{{gameName}}" viewing-as-player="{{viewingAsPlayer}}"></boardgame-render-game>
     </div>
     <div hidden$="{{!admin}}">
       <div class="card horizontal layout admin">
@@ -140,7 +140,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             observer: "_gameChanged"
           },
           currentState: Object,
-          expandedCurrentState: Object,
           gameId: {
             type: String,
             observer: "_gameIdChanged",
@@ -400,7 +399,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _tick() {
         let newPaths = [];
 
-        let pathToExpanded = ["expandedCurrentState"]
+        let pathToExpanded = ["currentState"]
 
         for (let i = 0; i < this.pathsToTick.length; i++) {
           let currentPath = this.pathsToTick[i];
@@ -434,24 +433,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.originalWallClockStartTime = Date.now();
         this.pathsToTick = [];
 
-        //We expect the top-level shape to be {Game:obj, Players: array}
-        var result = {
-          "Game" : this._expandLeafState(currentState.Game, ["Game"]),
-          "Players" : currentState.Players.map(function(item, i) {
-            return that._expandLeafState(item, ["Players", i]);
-          }),
-          "Computed" :  currentState.Computed,
-        };
+
+        this._expandLeafState(currentState.Game, ["Game"])
+        for (var i = 0; i < currentState.Players.length; i++) {
+          this._expandLeafState(currentState.Players[i], ["Players", i])
+        }
 
         window.requestAnimationFrame(() => this.doTick());
-
-        return result;
 
       }
 
       _expandLeafState(leafState, pathToLeaf) {
         //Returns an expanded version of leafState. leafState should have keys that are either bools, floats, strings, or Stacks.
-        var result = {};
         var entries = Object.entries(leafState);
         for (var i = 0; i < entries.length; i++) {
           let item = entries[i];
@@ -459,58 +452,49 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           let val = item[1];
           if (typeof val == "object") {
             if (val.Deck) {
-              result[key] = this._expandStack(val);
+              this._expandStack(val);
             } else if (val.TimeLeft !== undefined) {
-              result[key] = this._expandTimer(val, pathToLeaf.concat([key]));
-            } else {
-              result[key] = val;
-            }
-            
-          } else {
-            result[key] = val;
+              this._expandTimer(val, pathToLeaf.concat([key]));
+            }   
           }
         }
-        return result;
       }
 
       _expandTimer(timer, pathToLeaf) {
         if (timer.TimeLeft === undefined) {
-          //Meh, I guess it's not a timer.
-          return timer;
+          return;
         }
-        let result = this._copyObj(timer);
-        result.originalTimeLeft = timer.TimeLeft;
+        timer.originalTimeLeft = timer.TimeLeft;
         this.pathsToTick.push(pathToLeaf);
-        return result;
       }
 
       _expandStack(stack) {
         if (!stack.Deck) {
           //Meh, I guess it's not a stack
-          return stack;
+          return;
         }
 
         var deck = this.data.Chest[stack.Deck];
 
-        var result = [];
+        var components = [];
 
         for (var i = 0; i < stack.Indexes.length; i++) {
           let index = stack.Indexes[i];
           if (index == -1) {
-            result[i] = null;
+            components[i] = null;
           } else if(index == -2) {
             //TODO: to handle this appropriately we'd need to know how to
             //produce a GenericComponent for each Deck clientside.
-            result[i] = {};
+            components[i] = {};
           } else {
-            result[i] = this._componentForDeckAndIndex(stack.Deck, index);
+            components[i] = this._componentForDeckAndIndex(stack.Deck, index);
             if (stack.Ids) {
-              result[i].Id = stack.Ids[i];
+              components[i].Id = stack.Ids[i];
             }
           }
         }
 
-        return result;
+        stack.Components = components;
 
       }
 
@@ -521,9 +505,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         let result = this._copyObj(deck[index]);
 
-        if (this.game.CurrentState && this.game.CurrentState.Components) {
-          if (this.game.CurrentState.Components[deckName]) {
-            result.DynamicValues = this.game.CurrentState.Components[deckName][index];
+        if (this.currentState && this.currentState.Components) {
+          if (this.currentState.Components[deckName]) {
+            result.DynamicValues = this.currentState.Components[deckName][index];
           }
         }
 
@@ -538,8 +522,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.gameState = JSON.stringify(newValue.CurrentState, null, 2);
         //Have to use this.set to get databinding system to notice the change.
 
+        this._expandState(newValue.CurrentState);
         this.currentState = newValue.CurrentState;
-        this.expandedCurrentState = this._expandState(newValue.CurrentState);
 
         if (this.viewingAsPlayerIsCurrentPlayer) {
           this.requestedPlayer = newValue.CurrentPlayerIndex;

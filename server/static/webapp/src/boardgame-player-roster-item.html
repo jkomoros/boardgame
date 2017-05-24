@@ -79,7 +79,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <div class="layout vertical">
         <strong class$="{{classForName(displayName)}}">{{nameOrNobody(displayName)}}</strong>
         <span>{{playerDescription(isEmpty, isAgent, playerIndex, viewingAsPlayer)}}</span>
-        <boardgame-render-player-info state="{{state}}" expanded-state="{{expandedState}}" player-index="{{playerIndex}}" renderer-loaded="{{rendererLoaded}}" game-name="{{gameName}}" chip-text="{{chipText}}" chip-color="{{chipColor}}"></boardgame-render-player-info>
+        <boardgame-render-player-info state="{{state}}" player-index="{{playerIndex}}" renderer-loaded="{{rendererLoaded}}" game-name="{{gameName}}" chip-text="{{chipText}}" chip-color="{{chipColor}}"></boardgame-render-player-info>
       </div>
     </div>
          
@@ -107,7 +107,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           displayName: String,
           state: Object,
           playerIndex: Number,
-          expandedState: Object,
           viewingAsPlayer: Number,
           currentPlayerIndex: Number,
           rendererLoaded: {
