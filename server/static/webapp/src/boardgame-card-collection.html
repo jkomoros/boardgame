@@ -70,7 +70,7 @@
     </style>
 
     <div id="container" class$="{{_classes(layout, messy)}}">
-      <slot></slot>
+      <slot id="cards"></slot>
     </div>
   </template>
 
@@ -84,8 +84,54 @@
 
       static get properties() {
         return {
-          layout: String,
+          layout: {
+            type: String,
+            observer: "_updateCardShadows"
+          },
           messy: Boolean
+        }
+      }
+
+      ready() {
+        super.ready();
+        this.$.cards.addEventListener("slotchange", () => this._updateCardShadows());
+      }
+
+      _updateCardShadows() {
+
+        //Called when layout changes, or when items are added or removed from
+        //the slot.
+
+        //TODO: the fact that we do this imperatively (and trample on whatever
+        //shadow setting was explicilty set by the element to start) seems
+        //like a smell. However, doing this just with CSS was quite hard.
+
+
+        var cards = this.$.cards.assignedNodes();
+
+        var cardIndex = -1;
+
+        for (var i = 0; i < cards.length; i++) {
+          var card = cards[i];
+
+          if (!card.localName || card.localName != "boardgame-card") {
+            //Skip text nodes and nodes that aren't cards
+            continue;
+          }
+
+          cardIndex++;
+
+          if (this.layout != "stack") {
+            card.noShadow = false;
+            continue
+          }
+
+          if (cardIndex < 4) {
+            card.noShadow = false;
+          } else {
+            card.noShadow = true;
+          }
+
         }
       }
 
