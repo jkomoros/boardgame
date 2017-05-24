@@ -94,7 +94,10 @@
           rank: String,
           index: Number,
           hidden: Boolean,
-          spacer: Boolean,
+          spacer: {
+            type: Boolean,
+            reflectToAttribute: true
+          },
           noShadow: Boolean,
         }
       }

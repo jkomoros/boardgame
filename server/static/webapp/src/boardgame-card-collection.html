@@ -8,7 +8,10 @@
       #container {
         position: relative;
         @apply --layout-horizontal;
-        @apply --layout-wrap;
+      }
+
+      #container.grid, #container.stack {
+         @apply --layout-wrap;
       }
 
       #container ::slotted(boardgame-card) {
@@ -45,6 +48,26 @@
       .stack ::slotted(boardgame-card:nth-child(3)) {
         z-index: 8;
         top:4px;
+      }
+
+      #container.hand {
+        @apply --layout-around-justified;
+      }
+
+      .hand ::slotted(boardgame-card[spacer]) {
+        display:none;
+      }
+
+      .hand ::slotted(boardgame-card:hover) {
+        z-index:1;
+      }
+
+      #container.hand ::slotted(boardgame-card) {
+        margin-right: -6.0em;
+      }
+
+      #container.hand ::slotted(boardgame-card:last-of-type) {
+        margin-right: 0;
       }
 
       .messy ::slotted(boardgame-card:nth-child(even)) {
