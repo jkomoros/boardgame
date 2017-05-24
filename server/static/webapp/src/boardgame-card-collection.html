@@ -4,13 +4,47 @@
 <dom-module id="boardgame-card-collection">
   <template>
     <style>
-      .grid {
+
+      #container {
+        position: relative;
         @apply --layout-horizontal;
         @apply --layout-wrap;
       }
 
-      .grid ::slotted(boardgame-card) {
+      #container ::slotted(boardgame-card) {
         margin: 1em;
+      }
+
+      /* most cards in stacks should be at the front, and a few pixels down so
+      /* you can see them behind the first few cards */
+
+      .stack ::slotted(boardgame-card) {
+        position: absolute;
+        top: 6px;
+        left: 0px;
+      }
+
+      /* the first child should actually take up layout space for the entire
+      /* stack, and not be offset any. */
+
+      .stack ::slotted(boardgame-card:first-child) {
+        z-index: 10;
+        position: relative;
+        top:0px;
+      }
+
+      /* The second card should stick out justa bit */
+
+      .stack ::slotted(boardgame-card:nth-child(2)) {
+        top:2px;
+        z-index: 9;
+      }
+
+      /* The third card should stick out just a bit more */
+
+      .stack ::slotted(boardgame-card:nth-child(3)) {
+        z-index: 8;
+        top:2px;
       }
 
       .messy ::slotted(boardgame-card:nth-child(even)) {
@@ -26,7 +60,7 @@
       }
 
       .messy ::slotted(boardgame-card:nth-child(3n+2)) {
-        transform:rotate(0.7deg);
+        transform: rotate(0.7deg);
       }
 
       .messy ::slotted(boardgame-card:nth-child(4n+1)) {
