@@ -110,7 +110,7 @@
         return {
           layout: {
             type: String,
-            observer: "_updateCardShadows"
+            observer: "_updateCardClasses"
           },
           messy: Boolean,
           fauxCards: {
@@ -123,22 +123,15 @@
 
       ready() {
         super.ready();
-        this.$.cards.addEventListener("slotchange", () => this._updateCardShadows());
+        this.$.cards.addEventListener("slotchange", () => this._slotChanged());
+        //If the children are already stamped, update now.
+        this._slotChanged();
       }
 
-      _updateCardShadows() {
-
-        //Called when layout changes, or when items are added or removed from
-        //the slot.
-
-        //TODO: the fact that we do this imperatively (and trample on whatever
-        //shadow setting was explicilty set by the element to start) seems
-        //like a smell. However, doing this just with CSS was quite hard.
-
-
+      _realCards() {
         var cards = this.$.cards.assignedNodes();
 
-        var cardIndex = -1;
+        var result = [];
 
         for (var i = 0; i < cards.length; i++) {
           var card = cards[i];
@@ -148,23 +141,57 @@
             continue;
           }
 
-          cardIndex++;
+          result.push(card);
+        }
 
+        return result;
+      }
+
+      _fauxCards() {
+        var fauxCards = this.$.container.querySelectorAll("boardgame-card");
+
+        return [...fauxCards];
+      }
+
+      _allCards() {
+        return this._realCards().concat(this._fauxCards());
+      }
+
+      _slotChanged() {
+
+        var realCards = this._realCards();
+
+        if (realCards.length < this.fauxCards) {
+          this._fauxCardsToAdd = new Array(this.fauxCards - realCards.length);
+        }
+
+        this._updateCardClasses();
+
+      }
+
+      _updateCardClasses() {
+
+        //Called when layout changes, or when items are added or removed from
+        //the slot.
+
+        //TODO: the fact that we do this imperatively (and trample on whatever
+        //shadow setting was explicilty set by the element to start) seems
+        //like a smell. However, doing this just with CSS was quite hard.
+
+        var cards = this._allCards();
+
+        for (var i = 0; i < cards.length; i++) {
+          var card = cards[i];
           if (this.layout != "stack") {
             card.noShadow = false;
             continue
           }
 
-          if (cardIndex < 4) {
+          if (index < 4) {
             card.noShadow = false;
           } else {
             card.noShadow = true;
           }
-
-        }
-
-        if (cardIndex < this.fauxCards) {
-          this._fauxCardsToAdd = new Array(this.fauxCards - (cardIndex + 1));
         }
 
       }
