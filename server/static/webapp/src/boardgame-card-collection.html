@@ -1,5 +1,7 @@
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../bower_components/polymer/lib/elements/dom-repeat.html">
+<link rel="import" href="boardgame-card.html">
 
 <dom-module id="boardgame-card-collection">
   <template>
@@ -14,14 +16,14 @@
          @apply --layout-wrap;
       }
 
-      #container ::slotted(boardgame-card) {
+      #container ::slotted(boardgame-card), #container boardgame-card {
         margin: 1em;
       }
 
       /* most cards in stacks should be at the front, and a few pixels down so
       /* you can see them behind the first few cards */
 
-      .stack ::slotted(boardgame-card) {
+      .stack ::slotted(boardgame-card), .stack boardgame-card {
         position: absolute;
         top: 6px;
         left: 0px;
@@ -30,7 +32,7 @@
       /* the first child should actually take up layout space for the entire
       /* stack, and not be offset any. */
 
-      .stack ::slotted(boardgame-card:first-child) {
+      .stack ::slotted(boardgame-card:first-child), .stack boardgame-card:first-child {
         z-index: 10;
         position: relative;
         top:0px;
@@ -38,14 +40,14 @@
 
       /* The second card should stick out justa bit */
 
-      .stack ::slotted(boardgame-card:nth-child(2)) {
+      .stack ::slotted(boardgame-card:nth-child(2)), .stack boardgame-card:nth-child(2) {
         top:2px;
         z-index: 9;
       }
 
       /* The third card should stick out just a bit more */
 
-      .stack ::slotted(boardgame-card:nth-child(3)) {
+      .stack ::slotted(boardgame-card:nth-child(3)), .stack boardgame-card:nth-child(3) {
         z-index: 8;
         top:4px;
       }
@@ -54,35 +56,35 @@
         @apply --layout-around-justified;
       }
 
-      .hand ::slotted(boardgame-card:hover) {
+      .hand ::slotted(boardgame-card:hover), .hand boardgame-card:hover {
         z-index:1;
       }
 
-      #container.hand ::slotted(boardgame-card) {
+      #container.hand ::slotted(boardgame-card), #container.hand boardgame-card {
         margin-right: -6.0em;
       }
 
-      #container.hand ::slotted(boardgame-card:last-of-type) {
+      #container.hand ::slotted(boardgame-card:last-of-type), #container.hand boardgame-card:last-of-type {
         margin-right: 0;
       }
 
-      .messy ::slotted(boardgame-card:nth-child(even)) {
+      .messy ::slotted(boardgame-card:nth-child(even)), .messy boardgame-card:nth-child(even) {
         transform: rotate(-0.1deg);
       }
 
-      .messy ::slotted(boardgame-card:nth-child(odd)) {
+      .messy ::slotted(boardgame-card:nth-child(odd)), .messy boardgame-card:nth-child(odd) {
         transform: rotate(0.2deg);
       }
 
-      .messy ::slotted(boardgame-card:nth-child(3n+0)) {
+      .messy ::slotted(boardgame-card:nth-child(3n+0)), .messy boardgame-card:nth-child(3n+0) {
         transform: rotate(-0.5deg);
       }
 
-      .messy ::slotted(boardgame-card:nth-child(3n+2)) {
+      .messy ::slotted(boardgame-card:nth-child(3n+2)), .messy boardgame-card:nth-child(3n+2) {
         transform: rotate(0.7deg);
       }
 
-      .messy ::slotted(boardgame-card:nth-child(4n+1)) {
+      .messy ::slotted(boardgame-card:nth-child(4n+1)), .messy boardgame-card:nth-child(4n+1) {
         transform: rotate(2deg);
       }
 
@@ -90,6 +92,9 @@
 
     <div id="container" class$="{{_classes(layout, messy)}}">
       <slot id="cards"></slot>
+      <template is="dom-repeat" items="{{_fauxCardsToAdd}}">
+        <boardgame-card index="{{index}}"></boardgame-card>
+      </template>
     </div>
   </template>
 
@@ -107,7 +112,12 @@
             type: String,
             observer: "_updateCardShadows"
           },
-          messy: Boolean
+          messy: Boolean,
+          fauxCards: {
+            type: Number,
+            value: 0
+          },
+          _fauxCardsToAdd: Array
         }
       }
 
@@ -152,6 +162,11 @@
           }
 
         }
+
+        if (cardIndex < this.fauxCards) {
+          this._fauxCardsToAdd = new Array(this.fauxCards - (cardIndex + 1));
+        }
+
       }
 
       _classes(layout, messy) {
