@@ -30,14 +30,14 @@
       }
 
       #card #front {
-        display:block;
+        display:none;
         background-color: #CCFCFC;
         height:100%;
         width:100%;
       }
 
       #card #back {
-        display:none;
+        display:block;
         background-color: #00CCCC;
         height:100%;
         width:100%;
@@ -54,17 +54,17 @@
         user-select:none;
       }
 
-      #card.hidden  #front {
-        display:none;
+      #card.face-up  #front {
+        display:block;
       }
 
-      #card.hidden #back {
-        display:block;
+      #card.face-up #back {
+        display:none;
       }
 
     </style>
 
-    <div id="card" class$="{{Classes(hidden, spacer, noShadow)}}" on-tap="handleTap">
+    <div id="card" class$="{{Classes(faceUp, spacer, noShadow)}}" on-tap="handleTap">
       <div id="front">
         <slot>
           {{suit}}{{rank}}
@@ -93,7 +93,7 @@
           suit: String,
           rank: String,
           index: Number,
-          hidden: Boolean,
+          faceUp: Boolean,
           spacer: {
             type: Boolean,
             reflectToAttribute: true
@@ -109,10 +109,10 @@
         this.dispatchEvent(new CustomEvent('card-tapped', {composed: true, detail: {index: this.index}}));
       }
 
-      Classes(hidden, spacer, noShadow) {
+      Classes(faceUp, spacer, noShadow) {
         let result = ["card"];
-        if (hidden) {
-          result.push("hidden");
+        if (faceUp) {
+          result.push("face-up");
         }
         if (spacer) {
           result.push("spacer");
