@@ -14,10 +14,12 @@
       #card {
         height: 4em;
         width: 6em;
-        cursor: pointer;
         border-radius: 0.25em;
         overflow: hidden;
-
+        @apply --layout-vertical;
+        @apply --layout-center;
+        @apply --layout-center-justified;
+        cursor: default;
       }
 
       #card.rotated {
@@ -25,15 +27,17 @@
         width: 4em;
       }
 
-      #card {
-        @apply --layout-vertical;
-        @apply --layout-center;
-        @apply --layout-center-justified;
+      #card.interactive {
+        cursor: pointer;
       }
 
       .inner {
         height: 4em;
         width: 6em;
+      }
+
+      .disabled .inner {
+        filter: saturate(20%) brightness(125%);
       }
 
       .rotated .inner {
@@ -87,7 +91,7 @@
 
     </style>
 
-    <div id="card" class$="{{_classes(faceUp, spacer, noShadow, rotated, interactive)}}" on-tap="handleTap">
+    <div id="card" class$="{{_classes(faceUp, spacer, noShadow, rotated, interactive, disabled)}}" on-tap="handleTap">
       <div class="inner">
         <div id="front">
           <slot>
@@ -120,10 +124,11 @@
           index: Number,
           faceUp: Boolean,
           rotated: Boolean,
+          disabled: Boolean,
           interactive: {
             type: Boolean,
             readOnly: true,
-            computed: "_computeInteractive(spacer)"
+            computed: "_computeInteractive(spacer, disabled)"
           },
           spacer: {
             type: Boolean,
@@ -140,11 +145,11 @@
         this.dispatchEvent(new CustomEvent('card-tapped', {composed: true, detail: {index: this.index}}));
       }
 
-      _computeInteractive(spacer) {
-        return !spacer;
+      _computeInteractive(spacer, disabled) {
+        return !spacer && !disabled;
       }
 
-      _classes(faceUp, spacer, noShadow, rotated, interactive) {
+      _classes(faceUp, spacer, noShadow, rotated, interactive, disabled) {
         let result = ["card"];
         if (faceUp) {
           result.push("face-up");
@@ -160,6 +165,9 @@
         }
         if (interactive) {
           result.push("interactive");
+        }
+        if (disabled) {
+          result.push("disabled");
         }
         return result.join(" ");
       }
