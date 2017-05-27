@@ -20,6 +20,11 @@
         @apply --layout-center;
         @apply --layout-center-justified;
         cursor: default;
+        perspective: 1000px;
+      }
+
+      #card.face-up .inner {
+        transform: rotateY(180deg);
       }
 
       #card.rotated {
@@ -34,6 +39,9 @@
       .inner {
         height: 4em;
         width: 6em;
+        transform-style: preserve-3d;
+        position: relative;
+        transition: 0.6s;
       }
 
       .disabled .inner {
@@ -53,18 +61,24 @@
         @apply --shadow-elevation-8dp;
       }
 
-      #card #front {
-        display:none;
-        background-color: #CCFCFC;
+      #front, #back {
         height:100%;
         width:100%;
+        position:absolute;
+        top:0;
+        left: 0;
+        backface-visibility: hidden;
+      }
+
+      #card #front {
+        background-color: #CCFCFC;
+        z-index: 2;
+        transform: rotateY(180deg);
       }
 
       #card #back {
-        display:block;
         background-color: #00CCCC;
-        height:100%;
-        width:100%;
+        transform: rotateY(0deg);
       }
 
       #default-back {
@@ -79,14 +93,6 @@
         @apply --layout-vertical;
         @apply --layout-center;
         @apply --layout-center-justified;
-      }
-
-      #card.face-up  #front {
-        display:block;
-      }
-
-      #card.face-up #back {
-        display:none;
       }
 
     </style>
