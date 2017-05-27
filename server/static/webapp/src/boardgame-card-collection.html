@@ -68,26 +68,6 @@
         margin-right: 0;
       }
 
-      .messy ::slotted(boardgame-card:nth-child(even)), .messy boardgame-card:nth-child(even) {
-        transform: rotate(-0.1deg);
-      }
-
-      .messy ::slotted(boardgame-card:nth-child(odd)), .messy boardgame-card:nth-child(odd) {
-        transform: rotate(0.2deg);
-      }
-
-      .messy ::slotted(boardgame-card:nth-child(3n+0)), .messy boardgame-card:nth-child(3n+0) {
-        transform: rotate(-0.5deg);
-      }
-
-      .messy ::slotted(boardgame-card:nth-child(3n+2)), .messy boardgame-card:nth-child(3n+2) {
-        transform: rotate(0.7deg);
-      }
-
-      .messy ::slotted(boardgame-card:nth-child(4n+1)), .messy boardgame-card:nth-child(4n+1) {
-        transform: rotate(2deg);
-      }
-
     </style>
 
     <div id="container" class$="{{_classes(layout, messy)}}">
@@ -182,6 +162,11 @@
 
         for (var i = 0; i < cards.length; i++) {
           var card = cards[i];
+
+          if (this.messy) {
+            card.style.transform = "rotate(" + this._messyRotationForIndex(i) + "deg)";
+          }
+
           if (this.layout != "stack") {
             card.noShadow = false;
             continue
@@ -196,13 +181,20 @@
 
       }
 
-      _classes(layout, messy) {
+      _messyRotationForIndex(index) {
+
+        var values = [-1.4, -0.8, 1.5, -0.3, 0.8, -1.2, -0.3, 1.2, -1.8, 0.7, -0.9, 0.9, 0.1, 1.8, 0.7, -0.5];
+
+        index = index % values.length;
+
+        return values[index];
+
+      }
+
+      _classes(layout) {
         var result = [];
         if (layout) {
           result.push(layout);
-        }
-        if (messy) {
-          result.push("messy");
         }
         return result.join(" ");
       }
