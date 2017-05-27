@@ -124,7 +124,10 @@
           index: Number,
           faceUp: Boolean,
           rotated: Boolean,
-          disabled: Boolean,
+          disabled: {
+            type: Boolean,
+            value: false
+          },
           interactive: {
             type: Boolean,
             readOnly: true,
@@ -132,7 +135,8 @@
           },
           spacer: {
             type: Boolean,
-            reflectToAttribute: true
+            reflectToAttribute: true,
+            value: false
           },
           noShadow: Boolean,
         }
