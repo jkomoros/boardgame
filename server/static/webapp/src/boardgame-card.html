@@ -14,8 +14,6 @@
       #card {
         height: 4em;
         width: 6em;
-        border-radius: 0.25em;
-        overflow: hidden;
         @apply --layout-vertical;
         @apply --layout-center;
         @apply --layout-center-justified;
@@ -39,9 +37,12 @@
       .inner {
         height: 4em;
         width: 6em;
+
+        border-radius: 0.25em;
+
         transform-style: preserve-3d;
         position: relative;
-        transition: 0.6s;
+        transition: transform 0.6s ease-in-out, var(--shadow-transition_-_transition);
       }
 
       .disabled .inner {
@@ -52,12 +53,11 @@
         transform: rotate(-90deg);
       }
 
-      #card.shadow {
+      #card.shadow .inner {
         @apply --shadow-elevation-2dp;
-        @apply --shadow-transition;
       }
 
-      #card.shadow.interactive:hover {
+      #card.shadow.interactive:hover .inner {
         @apply --shadow-elevation-8dp;
       }
 
@@ -68,6 +68,7 @@
         top:0;
         left: 0;
         backface-visibility: hidden;
+        overflow: hidden;
       }
 
       #card #front {
@@ -87,7 +88,7 @@
         opacity: 0.2;
         font-size: 13.5px;
         line-height: 14px;
-        overflow:hidden;
+        overflow: hidden;
         text-overflow:clip;
         user-select:none;
         @apply --layout-vertical;
