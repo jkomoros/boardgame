@@ -211,8 +211,8 @@
         var minRotation = maxRotation * -1;
         var rotationSpread = maxRotation - minRotation;
 
-        var maxTranslate = 0.5;
-        var minTranslate = -3.0;
+        var maxTranslate = -1.0;
+        var minTranslate = 1.5;
         var translateSpread = maxTranslate - minTranslate;
 
         for (var i = 0; i < cards.length; i++) {
@@ -225,13 +225,13 @@
             //TODO: preserve the messiness transformations
             var rotationTransformation = "rotate(" + rotation + "deg)";
 
-            var translatePercent = 2.0 * percent - 1.0;
+            var translateRadians = 3.0 * percent - 1.5;
 
-            if (translatePercent < 0) {
-              translatePercent = translatePercent * -1;
+            if (percent < 0) {
+              translateRadians = translateRadians * -1;
             }
 
-            var translate = translatePercent * translateSpread + minTranslate;
+            var translate = Math.cos(translateRadians) * translateSpread + minTranslate;
 
             var translateTransformation = "translateY(" + translate + "em)";
 
