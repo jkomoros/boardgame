@@ -56,7 +56,7 @@
         @apply --layout-around-justified;
       }
 
-      .spread ::slotted(boardgame-card:hover), .spread boardgame-card:hover {
+      .spread ::slotted(boardgame-card:hover), .spread boardgame-card:hover, .fan ::slotted(boardgame-card:hover), .fan boardgame-card:hover {
         z-index:1;
       }
 
@@ -65,6 +65,14 @@
       }
 
       #container.spread ::slotted(boardgame-card.bcc-last), #container.spread boardgame-card.bcc-last {
+        margin-right: 0;
+      }
+
+      #container.fan ::slotted(boardgame-card), #container.fan boardgame-card {
+        margin-right: -3.0em;
+      }
+
+      #container.fan ::slotted(boardgame-card.bcc-last), #container.fan boardgame-card.bcc-last {
         margin-right: 0;
       }
 
@@ -187,6 +195,35 @@
           } else {
             card.noShadow = true;
           }
+        }
+
+        if (this.layout == "fan") {
+          this._fanCards();
+        }
+
+      }
+
+      _fanCards() {
+        var cards = this._allCards();
+
+        //TODO: set the amount of max rotation based on length of stack;
+        var maxRotation = 20;
+        var minRotation = maxRotation * -1;
+        var rotationSpread = maxRotation - minRotation;
+
+        for (var i = 0; i < cards.length; i++) {
+            var card = cards[i];
+
+            var percent = (i / (cards.length - 1));
+
+            var rotation = percent * rotationSpread + minRotation;
+
+            //TODO: preserve the messiness transformations
+            var rotationTransformation = "rotate(" + rotation + "deg)";
+
+            //TODO: also translate
+            card.style.transform = rotationTransformation;
+
         }
 
       }
