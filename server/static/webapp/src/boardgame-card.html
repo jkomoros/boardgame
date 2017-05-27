@@ -1,7 +1,7 @@
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
 <link rel="import" href="../bower_components/paper-styles/shadow.html">
 <link rel="import" href="../bower_components/paper-styles/typography.html">
-<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
 
 <dom-module id="boardgame-card">
   <template>
@@ -18,6 +18,26 @@
         border-radius: 0.25em;
         overflow: hidden;
 
+      }
+
+      #card.rotated {
+        height: 6em;
+        width: 4em;
+      }
+
+      #card {
+        @apply --layout-vertical;
+        @apply --layout-center;
+        @apply --layout-center-justified;
+      }
+
+      .inner {
+        height: 4em;
+        width: 6em;
+      }
+
+      .rotated .inner {
+        transform: rotate(-90deg);
       }
 
       #card.shadow {
@@ -52,6 +72,9 @@
         overflow:hidden;
         text-overflow:clip;
         user-select:none;
+        @apply --layout-vertical;
+        @apply --layout-center;
+        @apply --layout-center-justified;
       }
 
       #card.face-up  #front {
@@ -64,18 +87,20 @@
 
     </style>
 
-    <div id="card" class$="{{Classes(faceUp, spacer, noShadow)}}" on-tap="handleTap">
-      <div id="front">
-        <slot>
-          {{suit}}{{rank}}
-        </slot>
-      </div>
-      <div id="back">
-        <slot name="back">
-          <div id="default-back" class="layout vertical center center-justified">
-                &#x2605; &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606;
-          </div>
-        </slot>
+    <div id="card" class$="{{_classes(faceUp, spacer, noShadow, rotated)}}" on-tap="handleTap">
+      <div class="inner">
+        <div id="front">
+          <slot>
+            {{suit}}{{rank}}
+          </slot>
+        </div>
+        <div id="back">
+          <slot name="back">
+            <div id="default-back">
+                  &#x2605; &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606;
+            </div>
+          </slot>
+        </div>
       </div>
     </div>
   </template>
@@ -94,6 +119,7 @@
           rank: String,
           index: Number,
           faceUp: Boolean,
+          rotated: Boolean,
           spacer: {
             type: Boolean,
             reflectToAttribute: true
@@ -109,7 +135,7 @@
         this.dispatchEvent(new CustomEvent('card-tapped', {composed: true, detail: {index: this.index}}));
       }
 
-      Classes(faceUp, spacer, noShadow) {
+      _classes(faceUp, spacer, noShadow, rotated) {
         let result = ["card"];
         if (faceUp) {
           result.push("face-up");
@@ -119,6 +145,9 @@
         }
         if (!noShadow) {
           result.push("shadow");
+        }
+        if (rotated) {
+          result.push("rotated");
         }
         return result.join(" ");
       }
