@@ -64,7 +64,7 @@
         margin-right: -6.0em;
       }
 
-      #container.hand ::slotted(boardgame-card:last-of-type), #container.hand boardgame-card:last-of-type {
+      #container.hand ::slotted(boardgame-card.bcc-last), #container.hand boardgame-card.bcc-last {
         margin-right: 0;
       }
 
@@ -145,7 +145,7 @@
           this._fauxCardsToAdd = new Array(this.fauxCards - realCards.length);
         }
 
-        this._updateCardClasses();
+        window.requestAnimationFrame(() => this._updateCardClasses());
 
       }
 
@@ -163,8 +163,18 @@
         for (var i = 0; i < cards.length; i++) {
           var card = cards[i];
 
+          var classes = ["bcc-last"];
+
+          for (var j = 0; j < classes.length; j++) {
+            card.classList.remove(classes[j]);
+          }
+
           if (this.messy) {
             card.style.transform = "rotate(" + this._messyRotationForIndex(i) + "deg)";
+          }
+
+          if (i == cards.length - 1) {
+            card.classList.add("bcc-last");
           }
 
           if (this.layout != "stack") {
