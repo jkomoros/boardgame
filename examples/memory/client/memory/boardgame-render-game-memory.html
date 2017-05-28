@@ -102,13 +102,13 @@
 
         var result = {};
 
-        if (hiddenCards.IdsLastSeen) {
+        if (hiddenCards && hiddenCards.IdsLastSeen) {
           for (let pair of Object.entries(hiddenCards.IdsLastSeen)) {
             result[pair[0]] = hiddenCards.IdsLastSeen[pair[0]];
           }
         }
 
-        if (revealedCards.IdsLastSeen) {
+        if (revealedCards && revealedCards.IdsLastSeen) {
           for (let pair of Object.entries(revealedCards.IdsLastSeen)) {
             result[pair[0]] = revealedCards.IdsLastSeen[pair[0]];
           }
