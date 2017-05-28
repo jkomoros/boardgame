@@ -22,7 +22,7 @@
       }
     </style>
     <h2>Memory</h2>
-    <boardgame-card-collection layout="grid" messy>
+    <boardgame-card-collection layout="grid" messy ids-last-seen="{{computedCardsIdsLastSeen}}">
       <template is="dom-repeat" items="{{computedCards}}">
           <boardgame-card title="{{index}}" rank="{{item.Values.Type}}" face-up="{{Exists(item.Values)}}" spacer="{{!Exists(item)}}" index="{{index}}" id="{{item.Id}}">
             <div class="horizontal layout center center-justified">
@@ -50,6 +50,10 @@
           computedCards : {
             type: Array,
             computed: 'computeCards(state.Game.HiddenCards, state.Game.RevealedCards)'
+          },
+          computedCardsIdsLastSeen: {
+            type: Object,
+            computed: 'computeCardsIdsLastSeen(state.Game.HiddenCards, state.Game.RevealedCards)'
           },
           maxTimeLeft: {
             type: Number,
@@ -92,6 +96,26 @@
           }
         }
         return result;
+      }
+
+      computeCardsIdsLastSeen(hiddenCards, revealedCards) {
+
+        var result = {};
+
+        if (hiddenCards.IdsLastSeen) {
+          for (let pair of Object.entries(hiddenCards.IdsLastSeen)) {
+            result[pair[0]] = hiddenCards.IdsLastSeen[pair[0]];
+          }
+        }
+
+        if (revealedCards.IdsLastSeen) {
+          for (let pair of Object.entries(revealedCards.IdsLastSeen)) {
+            result[pair[0]] = revealedCards.IdsLastSeen[pair[0]];
+          }
+        }
+
+        return result;
+
       }
 
       IsCurrentPlayer(i, currentPlayer) {
