@@ -13,8 +13,31 @@
         return "boardgame-component-animator"
       }
 
+      static get properties() {
+        return {
+          _infoById: Object
+        }
+      }
+
       prepare() {
-        console.log("Prepare called")
+
+        var collections = this.$.collection._sharedCollectionList;
+
+        var result = {};
+
+        for (var i = 0; i < collections.length; i++) {
+          var cards = collections[i].Cards;
+          for (var j = 0; j < cards.length; j++) {
+            var card = cards[j];
+            var record = {};
+            record.rect = card.getBoundingClientRect();
+            record.transform = window.getComputedStyle(card).transform;
+            record.faceUp = card.faceUp;
+            //TODO: record the innerHTML
+            result[card.id] = record;
+          }
+        }
+        this._infoById = result;
       }
 
       animate() {
