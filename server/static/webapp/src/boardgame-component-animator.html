@@ -25,18 +25,52 @@
 
         var result = {};
 
+        //We need to go through each card and take information on it. We need
+        //information in order to do the transforms for animating later, but
+        //the best way to get that info (getClientBoundingRect) INCLUDES the
+        //transforms in a way that isn't useful for us. So we'll fetch
+        //transform info on first pass, then unset transforms, then pass
+        //through again and get client rect, then re-set the transform back
+        //in. We do this in three passes so we (in theory) only cause two
+        //synchronous layouts, instead of O(n) layouts if we did only one
+        //pass.
+
         for (var i = 0; i < collections.length; i++) {
           var cards = collections[i].Cards;
           for (var j = 0; j < cards.length; j++) {
             var card = cards[j];
             var record = {};
-            record.rect = card.getBoundingClientRect();
+            //The transform that we'll need for animating
             record.transform = window.getComputedStyle(card).transform;
+            //The style we'll unset and then reset in this method.
+            record.previousTransform = card.style.transform;
+            //Unset the transform
+            card.style.transform = "none";
+
             record.faceUp = card.faceUp;
             //TODO: record the innerHTML
             result[card.id] = record;
           }
         }
+
+        for (var i = 0; i < collections.length; i++) {
+          var cards = collections[i].Cards;
+          for (var j = 0; j < cards.length; j++) {
+            var card = cards[j];
+            record = result[card.id];
+            record.rect = card.getBoundingClientRect();
+          }
+        }
+
+        for (var i = 0; i < collections.length; i++) {
+          var cards = collections[i].Cards;
+          for (var j = 0; j < cards.length; j++) {
+            var card = cards[j];
+            record = result[card.id];
+            card.style.transform = record.previousTransform;
+          }
+        }
+
         this._infoById = result;
       }
 
