@@ -123,7 +123,7 @@
             var transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`
             
             if (invertTop != 0 && invertLeft != 0) {
-              console.log(transform + " " + record.postPreviousTransform);
+              console.log(transform + " " + record.postPreviousTransform,i, j);
             }
 
             card.style.transform = transform + " " + record.postPreviousTransform;
