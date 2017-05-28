@@ -47,6 +47,9 @@
             //Unset the transform
             card.style.transform = "none";
 
+            record.transition = card.style.transition;
+            card.style.transition = "none";
+
             record.faceUp = card.faceUp;
             //TODO: record the innerHTML
             result[card.id] = record;
@@ -75,7 +78,67 @@
       }
 
       animate() {
-        console.log("animate called");
+        var collections = this.$.collection._sharedCollectionList;
+
+        //First pass: turn off transforms
+        //Second pass: calculate diff transform
+        //Third pass: actually set the transforms
+
+        for (var i = 0; i < collections.length; i++) {
+          var cards = collections[i].Cards;
+          for (var j = 0; j < cards.length; j++) {
+            var card = cards[j];
+            var record = this._infoById[card.id];
+            record.postPreviousTransform = card.style.transform;
+            card.style.transform = "none";
+          }
+        }
+
+        for (var i = 0; i < collections.length; i++) {
+          var cards = collections[i].Cards;
+          for (var j = 0; j < cards.length; j++) {
+            var card = cards[j];
+            var record = this._infoById[card.id];
+            record.newRect = card.getBoundingClientRect();
+          }
+        }
+
+        for (var i = 0; i < collections.length; i++) {
+          var cards = collections[i].Cards;
+          for (var j = 0; j < cards.length; j++) {
+            var card = cards[j];
+            var record = this._infoById[card.id];
+
+            var invertTop = record.rect.top - record.newRect.top;
+            var invertLeft = record.rect.left - record.newRect.left;
+
+            if (invertTop != 0 && invertLeft != 0) {
+              var a = 5;
+            }
+
+            var transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`
+
+            card.style.transform = transform;
+          }
+        }
+
+        //Wait for styles to be set to do the animations
+        window.requestAnimationFrame(() => this._startAnimations());
+
+      }
+
+      _startAnimations() {
+        var collections = this.$.collection._sharedCollectionList;
+
+        for (var i = 0; i < collections.length; i++) {
+          var cards = collections[i].Cards;
+          for (var j = 0; j < cards.length; j++) {
+            var card = cards[j];
+            var record = this._infoById[card.id];
+            card.style.transform = record.postPreviousTransform;
+            card.style.transition = record.transition;
+          }
+        }
       }
 
     }
