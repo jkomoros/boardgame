@@ -31,6 +31,20 @@
           </boardgame-card>
       </template>
     </boardgame-card-collection>
+    <div class="layout horizontal around-justified">
+      <boardgame-card-collection layout="stack" messy ids-last-seen="{{state.Players.0.WonCards}}">
+        <template is="dom-repeat" items="{{state.Players.0.WonCards.Components}}">
+          <boardgame-card id="{{item.Id}}" index="{{index}}" disabled></boardgame-card>
+        </template>
+      </boardgame-card-collection>
+      <!-- have a boardgame-card spacer just to keep that row height sane even with no cards -->
+      <boardgame-card spacer></boardgame-card>
+      <boardgame-card-collection layout="stack" messy ids-last-seen="{{state.Players.1.WonCards}}">
+        <template is="dom-repeat" items="{{state.Players.1.WonCards.Components}}">
+          <boardgame-card id="{{item.Id}}" index="{{index}}" disabled></boardgame-card>
+        </template>
+      </boardgame-card-collection>
+    </div>
     <paper-button id="hide" on-tap="hideTapped" raised disabled="{{state.Computed.Global.CurrentPlayerHasCardsToReveal}}">Hide Cards</paper-button>
     <paper-progress id="timeleft" value="{{state.Game.HideCardsTimer.TimeLeft}}" max="{{maxTimeLeft}}"></paper-progress>
   </template>
