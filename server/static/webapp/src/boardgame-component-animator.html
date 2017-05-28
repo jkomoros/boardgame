@@ -43,9 +43,7 @@
 
             record.transition = card.style.transition;
             card.style.transition = "unset";
-            
-            //The transform that we'll need for animating
-            record.transform = window.getComputedStyle(card).transform;
+
             //The style we'll unset and then reset in this method.
             record.previousTransform = card.style.transform;
             //Unset the transform
@@ -129,7 +127,7 @@
 
             var transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`
             
-            card.style.transform = transform;
+            card.style.transform = transform + " " + record.postPreviousTransform;
           }
         }
 
