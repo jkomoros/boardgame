@@ -486,6 +486,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             //TODO: to handle this appropriately we'd need to know how to
             //produce a GenericComponent for each Deck clientside.
             components[i] = {};
+            if (stack.Ids) {
+              components[i].Id = stack.Ids[i];
+            }
           } else {
             components[i] = this._componentForDeckAndIndex(stack.Deck, index);
             if (stack.Ids) {
