@@ -48,7 +48,7 @@
             card.style.transform = "none";
 
             record.transition = card.style.transition;
-            card.style.transition = "none";
+            card.style.transition = "unset";
 
             record.faceUp = card.faceUp;
             //TODO: record the innerHTML
@@ -78,6 +78,10 @@
       }
 
       animate() {
+        window.requestAnimationFrame(()=> this._doAnimate());
+      }
+
+      _doAnimate() {
         var collections = this.$.collection._sharedCollectionList;
 
         //First pass: turn off transforms
@@ -89,6 +93,7 @@
           for (var j = 0; j < cards.length; j++) {
             var card = cards[j];
             var record = this._infoById[card.id];
+            if (!record) continue;
             record.postPreviousTransform = card.style.transform;
             card.style.transform = "none";
           }
@@ -99,6 +104,7 @@
           for (var j = 0; j < cards.length; j++) {
             var card = cards[j];
             var record = this._infoById[card.id];
+            if (!record) continue;
             record.newRect = card.getBoundingClientRect();
           }
         }
@@ -109,6 +115,8 @@
             var card = cards[j];
             var record = this._infoById[card.id];
 
+            if (!record) continue;
+
             var invertTop = record.rect.top - record.newRect.top;
             var invertLeft = record.rect.left - record.newRect.left;
 
@@ -117,7 +125,7 @@
             }
 
             var transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`
-
+            
             card.style.transform = transform;
           }
         }
@@ -135,8 +143,9 @@
           for (var j = 0; j < cards.length; j++) {
             var card = cards[j];
             var record = this._infoById[card.id];
-            card.style.transform = record.postPreviousTransform;
+            if (!record) continue;
             card.style.transition = record.transition;
+            card.style.transform = record.postPreviousTransform;
           }
         }
       }
