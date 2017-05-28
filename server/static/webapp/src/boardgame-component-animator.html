@@ -40,6 +40,10 @@
           for (var j = 0; j < cards.length; j++) {
             var card = cards[j];
             var record = {};
+
+            record.transition = card.style.transition;
+            card.style.transition = "unset";
+            
             //The transform that we'll need for animating
             record.transform = window.getComputedStyle(card).transform;
             //The style we'll unset and then reset in this method.
@@ -47,8 +51,7 @@
             //Unset the transform
             card.style.transform = "none";
 
-            record.transition = card.style.transition;
-            card.style.transition = "unset";
+
 
             record.faceUp = card.faceUp;
             //TODO: record the innerHTML
