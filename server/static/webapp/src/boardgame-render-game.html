@@ -1,8 +1,9 @@
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="boardgame-component-animator.html">
 
 <dom-module id="boardgame-render-game">
   <template>
-    <!--TODO: override with your own rendering here -->
+    <boardgame-component-animator id="animator"></boardgame-component-animator>
     <div hidden$="{{rendererLoaded}}">
       <h2>Diagram of {{gameName}}</h2>
       <pre>{{diagram}}</pre>
@@ -60,10 +61,16 @@
 
       _stateChanged(record) {
         if (!this.renderer) return;
+        if (record.path == "state") {
+          this.$.animator.prepare();
+        }
         this.renderer.set(record.path, record.value);
         //This shiouldn't be necessary... set should have already done
         //notifyPath. Bug in Polymer 2?
         this.renderer.notifyPath(record.path);
+        if (record.path == "state") {
+          this.$.animator.animate();
+        }
       }
 
       _viewingAsPlayerChanged(newValue) {

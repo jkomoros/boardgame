@@ -1,0 +1,29 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="boardgame-card-collection.html">
+
+<dom-module id="boardgame-component-animator">
+  <template>
+    <boardgame-card-collection id='collection'></boardgame-card-collection>
+  </template>
+
+  <script>
+
+    class BoardgameComponentAnimator extends Polymer.Element {
+      static get is() {
+        return "boardgame-component-animator"
+      }
+
+      prepare() {
+        console.log("Prepare called")
+      }
+
+      animate() {
+        console.log("animate called");
+      }
+
+    }
+
+    customElements.define(BoardgameComponentAnimator.is, BoardgameComponentAnimator);
+
+  </script>
+</dom-module>
