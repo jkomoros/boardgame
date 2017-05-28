@@ -95,179 +95,207 @@
 
   <script>
 
-    class BoardgameCardCollection extends Polymer.Element {
+    var BoardgameCardCollection;
 
-      static get is() {
-        return "boardgame-card-collection"
-      }
+    (function(){ 
 
-      static get properties() {
-        return {
-          layout: {
-            type: String,
-            observer: "_updateCardClasses"
-          },
-          messy: Boolean,
-          idsLastSeen: Object,
-          fauxCards: {
-            type: Number,
-            value: 0
-          },
-          _fauxCardsToAdd: Array
-        }
-      }
+      var sharedCollectionList = [];
 
-      ready() {
-        super.ready();
-        this.$.cards.addEventListener("slotchange", () => this._slotChanged());
-        //If the children are already stamped, update now.
-        this._slotChanged();
-      }
+      BoardgameCardCollection = class extends Polymer.Element {
 
-      _realCards() {
-        var cards = this.$.cards.assignedNodes();
-
-        var result = [];
-
-        for (var i = 0; i < cards.length; i++) {
-          var card = cards[i];
-
-          if (!card.localName || card.localName != "boardgame-card") {
-            //Skip text nodes and nodes that aren't cards
-            continue;
-          }
-
-          result.push(card);
+        static get is() {
+          return "boardgame-card-collection"
         }
 
-        return result;
-      }
-
-      _fauxCards() {
-        var fauxCards = this.$.container.querySelectorAll("boardgame-card");
-
-        return [...fauxCards];
-      }
-
-      _allCards() {
-        return this._realCards().concat(this._fauxCards());
-      }
-
-      _slotChanged() {
-
-        var realCards = this._realCards();
-
-        if (realCards.length < this.fauxCards) {
-          this._fauxCardsToAdd = new Array(this.fauxCards - realCards.length);
-        }
-
-        window.requestAnimationFrame(() => this._updateCardClasses());
-
-      }
-
-      _updateCardClasses() {
-
-        //Called when layout changes, or when items are added or removed from
-        //the slot.
-
-        //TODO: the fact that we do this imperatively (and trample on whatever
-        //shadow setting was explicilty set by the element to start) seems
-        //like a smell. However, doing this just with CSS was quite hard.
-
-        var cards = this._allCards();
-
-        for (var i = 0; i < cards.length; i++) {
-          var card = cards[i];
-
-          var classes = ["bcc-last"];
-
-          for (var j = 0; j < classes.length; j++) {
-            card.classList.remove(classes[j]);
-          }
-
-          if (this.messy) {
-            card.style.transform = "rotate(" + this._messyRotationForIndex(i) + "deg)";
-          }
-
-          if (i == cards.length - 1) {
-            card.classList.add("bcc-last");
-          }
-
-          if (this.layout != "stack") {
-            card.noShadow = false;
-            continue
-          }
-
-          if (i < 4) {
-            card.noShadow = false;
-          } else {
-            card.noShadow = true;
+        static get properties() {
+          return {
+            layout: {
+              type: String,
+              observer: "_updateCardClasses"
+            },
+            messy: Boolean,
+            idsLastSeen: Object,
+            fauxCards: {
+              type: Number,
+              value: 0
+            },
+            _fauxCardsToAdd: Array
           }
         }
 
-        if (this.layout == "fan") {
-          this._fanCards();
+        get _sharedCollectionList() {
+          return sharedCollectionList;
         }
 
-      }
+        connectedCallback() {
+          sharedCollectionList.push(this);
+        }
 
-      _fanCards() {
-        var cards = this._allCards();
+        disconnectedCallback() {
+          var i = 0;
+          while (i < sharedCollectionList.length) {
+            var item = sharedCollectionList[i];
+            if (i == this) {
+              sharedCollectionList.splice(i, 1);
+            } else {
+              i++;
+            }
+          }
+        }
 
-        //TODO: set the amount of max rotation based on length of stack;
-        var maxRotation = 20;
-        var minRotation = maxRotation * -1;
-        var rotationSpread = maxRotation - minRotation;
+        ready() {
+          super.ready();
+          this.$.cards.addEventListener("slotchange", () => this._slotChanged());
+          //If the children are already stamped, update now.
+          this._slotChanged();
+        }
 
-        var maxTranslate = -1.0;
-        var minTranslate = 1.5;
-        var translateSpread = maxTranslate - minTranslate;
+        _realCards() {
+          var cards = this.$.cards.assignedNodes();
 
-        for (var i = 0; i < cards.length; i++) {
+          var result = [];
+
+          for (var i = 0; i < cards.length; i++) {
             var card = cards[i];
 
-            var percent = (i / (cards.length - 1));
-
-            var rotation = percent * rotationSpread + minRotation;
-
-            //TODO: preserve the messiness transformations
-            var rotationTransformation = "rotate(" + rotation + "deg)";
-
-            var translateRadians = 3.0 * percent - 1.5;
-
-            if (percent < 0) {
-              translateRadians = translateRadians * -1;
+            if (!card.localName || card.localName != "boardgame-card") {
+              //Skip text nodes and nodes that aren't cards
+              continue;
             }
 
-            var translate = Math.cos(translateRadians) * translateSpread + minTranslate;
+            result.push(card);
+          }
 
-            var translateTransformation = "translateY(" + translate + "em)";
+          return result;
+        }
 
-            card.style.transform += rotationTransformation + " " + translateTransformation;
+        _fauxCards() {
+          var fauxCards = this.$.container.querySelectorAll("boardgame-card");
 
+          return [...fauxCards];
+        }
+
+        _allCards() {
+          return this._realCards().concat(this._fauxCards());
+        }
+
+        _slotChanged() {
+
+          var realCards = this._realCards();
+
+          if (realCards.length < this.fauxCards) {
+            this._fauxCardsToAdd = new Array(this.fauxCards - realCards.length);
+          }
+
+          window.requestAnimationFrame(() => this._updateCardClasses());
+
+        }
+
+        _updateCardClasses() {
+
+          //Called when layout changes, or when items are added or removed from
+          //the slot.
+
+          //TODO: the fact that we do this imperatively (and trample on whatever
+          //shadow setting was explicilty set by the element to start) seems
+          //like a smell. However, doing this just with CSS was quite hard.
+
+          var cards = this._allCards();
+
+          for (var i = 0; i < cards.length; i++) {
+            var card = cards[i];
+
+            var classes = ["bcc-last"];
+
+            for (var j = 0; j < classes.length; j++) {
+              card.classList.remove(classes[j]);
+            }
+
+            if (this.messy) {
+              card.style.transform = "rotate(" + this._messyRotationForIndex(i) + "deg)";
+            }
+
+            if (i == cards.length - 1) {
+              card.classList.add("bcc-last");
+            }
+
+            if (this.layout != "stack") {
+              card.noShadow = false;
+              continue
+            }
+
+            if (i < 4) {
+              card.noShadow = false;
+            } else {
+              card.noShadow = true;
+            }
+          }
+
+          if (this.layout == "fan") {
+            this._fanCards();
+          }
+
+        }
+
+        _fanCards() {
+          var cards = this._allCards();
+
+          //TODO: set the amount of max rotation based on length of stack;
+          var maxRotation = 20;
+          var minRotation = maxRotation * -1;
+          var rotationSpread = maxRotation - minRotation;
+
+          var maxTranslate = -1.0;
+          var minTranslate = 1.5;
+          var translateSpread = maxTranslate - minTranslate;
+
+          for (var i = 0; i < cards.length; i++) {
+              var card = cards[i];
+
+              var percent = (i / (cards.length - 1));
+
+              var rotation = percent * rotationSpread + minRotation;
+
+              //TODO: preserve the messiness transformations
+              var rotationTransformation = "rotate(" + rotation + "deg)";
+
+              var translateRadians = 3.0 * percent - 1.5;
+
+              if (percent < 0) {
+                translateRadians = translateRadians * -1;
+              }
+
+              var translate = Math.cos(translateRadians) * translateSpread + minTranslate;
+
+              var translateTransformation = "translateY(" + translate + "em)";
+
+              card.style.transform += rotationTransformation + " " + translateTransformation;
+
+          }
+
+        }
+
+        _messyRotationForIndex(index) {
+
+          var values = [-0.3, 0.8, -1.4, 1.2, -0.8, 1.5, -0.3, -1.2, -1.8, 0.7, -0.9, 0.9, 0.1, 1.8, 0.7, -0.5];
+
+          index = index % values.length;
+
+          return values[index];
+
+        }
+
+        _classes(layout) {
+          var result = [];
+          if (layout) {
+            result.push(layout);
+          }
+          return result.join(" ");
         }
 
       }
 
-      _messyRotationForIndex(index) {
-
-        var values = [-0.3, 0.8, -1.4, 1.2, -0.8, 1.5, -0.3, -1.2, -1.8, 0.7, -0.9, 0.9, 0.1, 1.8, 0.7, -0.5];
-
-        index = index % values.length;
-
-        return values[index];
-
-      }
-
-      _classes(layout) {
-        var result = [];
-        if (layout) {
-          result.push(layout);
-        }
-        return result.join(" ");
-      }
-
-    }
+    })();
 
     customElements.define(BoardgameCardCollection.is, BoardgameCardCollection);
   </script>
