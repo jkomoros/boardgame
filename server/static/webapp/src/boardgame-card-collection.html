@@ -13,6 +13,14 @@
         @apply --layout-center;
       }
 
+      #container ::slotted(boardgame-card), #container boardgame-card {
+        transition: transform 2s ease-in-out;
+      }
+
+      #container.no-animate ::slotted(boardgame-card), #container.no-animate boardgame-card {
+        transition: unset;
+      }
+
       #container.grid, #container.stack {
          @apply --layout-wrap;
       }
@@ -85,7 +93,7 @@
 
     </style>
 
-    <div id="container" class$="{{_classes(layout, messy)}}">
+    <div id="container" class$="{{_classes(layout, noAnimate)}}">
       <slot id="cards"></slot>
       <template is="dom-repeat" items="{{_fauxCardsToAdd}}">
         <boardgame-card index="{{index}}"></boardgame-card>
@@ -115,6 +123,7 @@
             },
             messy: Boolean,
             idsLastSeen: Object,
+            noAnimate: Boolean,
             fauxCards: {
               type: Number,
               value: 0
@@ -285,10 +294,13 @@
 
         }
 
-        _classes(layout) {
+        _classes(layout, noAnimate) {
           var result = [];
           if (layout) {
             result.push(layout);
+          }
+          if (noAnimate) {
+            result.push("no-animate");
           }
           return result.join(" ");
         }

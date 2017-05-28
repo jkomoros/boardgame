@@ -36,20 +36,19 @@
         //pass.
 
         for (var i = 0; i < collections.length; i++) {
-          var cards = collections[i].Cards;
+
+          var collection = collections[i];
+          collection.noAnimate = true;
+
+          var cards = collection.Cards;
           for (var j = 0; j < cards.length; j++) {
             var card = cards[j];
             var record = {};
-
-            record.transition = card.style.transition;
-            card.style.transition = "unset";
 
             //The style we'll unset and then reset in this method.
             record.previousTransform = card.style.transform;
             //Unset the transform
             card.style.transform = "none";
-
-
 
             record.faceUp = card.faceUp;
             //TODO: record the innerHTML
@@ -121,12 +120,12 @@
             var invertTop = record.rect.top - record.newRect.top;
             var invertLeft = record.rect.left - record.newRect.left;
 
-            if (invertTop != 0 && invertLeft != 0) {
-              var a = 5;
-            }
-
             var transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`
             
+            if (invertTop != 0 && invertLeft != 0) {
+              console.log(transform + " " + record.postPreviousTransform);
+            }
+
             card.style.transform = transform + " " + record.postPreviousTransform;
           }
         }
@@ -140,12 +139,13 @@
         var collections = this.$.collection._sharedCollectionList;
 
         for (var i = 0; i < collections.length; i++) {
-          var cards = collections[i].Cards;
+          var collection = collections[i];
+          collection.noAnimate = false;
+          var cards = collection.Cards;
           for (var j = 0; j < cards.length; j++) {
             var card = cards[j];
             var record = this._infoById[card.id];
             if (!record) continue;
-            card.style.transition = record.transition;
             card.style.transform = record.postPreviousTransform;
           }
         }
