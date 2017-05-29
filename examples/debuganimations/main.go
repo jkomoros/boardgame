@@ -47,9 +47,11 @@ func (g *gameDelegate) EmptyGameState() boardgame.MutableSubState {
 	}
 
 	return &gameState{
-		CurrentPlayer: 0,
-		DrawStack:     boardgame.NewGrowableStack(cards, 0),
-		DiscardStack:  boardgame.NewGrowableStack(cards, 0),
+		CurrentPlayer:    0,
+		DrawStack:        boardgame.NewGrowableStack(cards, 0),
+		DiscardStack:     boardgame.NewGrowableStack(cards, 0),
+		FirstShortStack:  boardgame.NewGrowableStack(cards, 0),
+		SecondShortStack: boardgame.NewGrowableStack(cards, 0),
 	}
 }
 
@@ -69,6 +71,10 @@ func (g *gameDelegate) EmptyPlayerState(playerIndex boardgame.PlayerIndex) board
 
 func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c *boardgame.Component) (boardgame.Stack, error) {
 	game, _ := concreteStates(state)
+
+	if game.FirstShortStack.NumComponents() < 1 {
+		return game.FirstShortStack, nil
+	}
 
 	return game.DrawStack, nil
 
@@ -93,6 +99,12 @@ func (g *gameDelegate) StateSanitizationPolicy() *boardgame.StatePolicy {
 		policy = &boardgame.StatePolicy{
 			Game: map[string]boardgame.GroupPolicy{
 				"DrawStack": {
+					boardgame.GroupAll: boardgame.PolicyOrder,
+				},
+				"FirstShortStack": {
+					boardgame.GroupAll: boardgame.PolicyOrder,
+				},
+				"SecondShortStack": {
 					boardgame.GroupAll: boardgame.PolicyOrder,
 				},
 			},
@@ -130,6 +142,8 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 	if manager == nil {
 		panic("No manager returned")
 	}
+
+	manager.AddPlayerMoveFactory(MoveMoveCardBetweenShortStacksFactory)
 
 	manager.SetUp()
 

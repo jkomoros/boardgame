@@ -18,9 +18,11 @@ func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 
 //+autoreader
 type gameState struct {
-	DiscardStack  *boardgame.GrowableStack
-	DrawStack     *boardgame.GrowableStack
-	CurrentPlayer boardgame.PlayerIndex
+	DiscardStack     *boardgame.GrowableStack
+	DrawStack        *boardgame.GrowableStack
+	FirstShortStack  *boardgame.GrowableStack
+	SecondShortStack *boardgame.GrowableStack
+	CurrentPlayer    boardgame.PlayerIndex
 }
 
 //+autoreader
