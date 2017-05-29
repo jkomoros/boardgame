@@ -1,0 +1,28 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+
+<dom-module id="boardgame-render-game-debuganimations">
+  <template>
+    Debug animations renderer or whatever!
+  </template>
+
+  <script>
+
+    class BoardgameRenderGameDebuganimations extends Polymer.Element {
+
+      static get is() {
+        return "boardgame-render-game-debuganimations"
+      }
+
+      static get properties() {
+        return {
+          state: Object,
+          diagram : String
+        }
+      }
+
+    }
+
+    customElements.define(BoardgameRenderGameDebuganimations.is, BoardgameRenderGameDebuganimations);
+
+  </script>
+</dom-module>
