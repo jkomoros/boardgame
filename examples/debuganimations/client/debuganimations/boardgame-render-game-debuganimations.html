@@ -1,8 +1,47 @@
 <link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../bower_components/polymer/lib/elements/dom-repeat.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../src/boardgame-card.html">
+<link rel="import" href="../../src/boardgame-card-collection.html">
 
 <dom-module id="boardgame-render-game-debuganimations">
   <template>
-    Debug animations renderer or whatever!
+    <style>
+
+      #shortstacks {
+        @apply --layout-horizontal;
+      }
+
+      #shortstacks boardgame-card > div {
+        @apply --layout-horizontal;
+        @apply --layout-center;
+        @apply --layout-center-justified;
+      }
+    </style>
+
+    <div id='shortstacks'>
+      <boardgame-card-collection layout='stack' ids-last-seen="{{state.Game.FirstShortStack.IdsLastSeen}}">
+        <template is='dom-repeat' items='{{state.Game.FirstShortStack.Components}}'>
+          <boardgame-card id="{{item.id}}" index="{{index}}">
+            <div>
+              {{item.Values.Type}}
+            </div>
+          </boardgame-card>
+        </template>
+      </boardgame-card-collection>
+      <boardgame-card-collection layout='stack' ids-last-seen="{{state.Game.SecondShortStack.IdsLastSeen}}">
+        <template is='dom-repeat' items='{{state.Game.SecondShortStack.Components}}'>
+          <boardgame-card id="{{item.id}}" index="{{index}}">
+            <div>
+              {{item.Values.Type}}
+            </div>
+          </boardgame-card>
+        </template>
+      </boardgame-card-collection>
+      <paper-button on-tap="handleSwapTapped">Swap</paper-button>
+    </div>
+
   </template>
 
   <script>
@@ -18,6 +57,10 @@
           state: Object,
           diagram : String
         }
+      }
+
+      handleSwapTapped(e) {
+        this.dispatchEvent(new CustomEvent("propose-move", {composed: true, detail: {name: "Move Card Between Short Stacks", arguments:{}}}));
       }
 
     }
