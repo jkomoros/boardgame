@@ -1,6 +1,7 @@
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
 <link rel="import" href="../bower_components/polymer/lib/elements/dom-repeat.html">
+<link rel="import" href="../bower_components/polymer/lib/elements/dom-if.html">
 <link rel="import" href="boardgame-card.html">
 
 <dom-module id="boardgame-card-collection">
@@ -94,7 +95,11 @@
     </style>
 
     <div id="container" class$="{{_classes(layout, noAnimate)}}">
-      <slot id="cards"></slot>
+      <slot id="cards">
+        <template is="dom-if" if="{{!noDefaultSpacer}}">
+          <boardgame-card spacer></boardgame-card>
+        </template>
+      </slot>
       <template is="dom-repeat" items="{{_fauxCardsToAdd}}">
         <boardgame-card index="{{index}}"></boardgame-card>
       </template>
@@ -124,6 +129,7 @@
             messy: Boolean,
             idsLastSeen: Object,
             noAnimate: Boolean,
+            noDefaultSpacer: Boolean,
             fauxCards: {
               type: Number,
               value: 0
