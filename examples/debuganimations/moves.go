@@ -25,6 +25,15 @@ func MoveMoveCardBetweenShortStacksFactory(state boardgame.State) boardgame.Move
 		},
 		true,
 	}
+
+	if state != nil {
+		gameState, _ := concreteStates(state)
+
+		if gameState.FirstShortStack.NumComponents() < 1 {
+			result.FromFirst = false
+		}
+	}
+
 	return result
 }
 

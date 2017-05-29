@@ -76,6 +76,10 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, 
 		return game.FirstShortStack, nil
 	}
 
+	if game.SecondShortStack.NumComponents() < 1 {
+		return game.SecondShortStack, nil
+	}
+
 	return game.DrawStack, nil
 
 }
