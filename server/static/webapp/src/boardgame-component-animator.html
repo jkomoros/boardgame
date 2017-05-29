@@ -15,8 +15,32 @@
 
       static get properties() {
         return {
-          _infoById: Object
+          _infoById: Object,
+          ancestorOffsetParent: Object
         }
+      }
+
+      _calculateOffsets(ele) {
+        var top = 0;
+        var left = 0;
+
+        var offsetEle = ele;
+        while (offsetEle) {
+
+          top += offsetEle.offsetTop;
+          left += offsetEle.offsetLeft;
+
+          if (offsetEle == this.ancestorOffsetParent) {
+            offsetEle = null;
+          } else {
+            offsetEle = offsetEle.offsetParent;
+          }
+        }
+
+        return {
+          top: top,
+          left: left
+        };
       }
 
       prepare() {
@@ -25,18 +49,7 @@
 
         var result = {};
 
-        //We need to go through each card and take information on it. We need
-        //information in order to do the transforms for animating later, but
-        //the best way to get that info (getClientBoundingRect) INCLUDES the
-        //transforms in a way that isn't useful for us. So we'll fetch
-        //transform info on first pass, then unset transforms, then pass
-        //through again and get client rect, then re-set the transform back
-        //in. We do this in three passes so we (in theory) only cause two
-        //synchronous layouts, instead of O(n) layouts if we did only one
-        //pass.
-
         for (var i = 0; i < collections.length; i++) {
-
           var collection = collections[i];
           collection.noAnimate = true;
 
@@ -45,32 +58,12 @@
             var card = cards[j];
             var record = {};
 
-            //The style we'll unset and then reset in this method.
-            record.previousTransform = card.style.transform;
-            //Unset the transform
-            card.style.transform = "none";
+            record.offsets = this._calculateOffsets(card);
 
             record.faceUp = card.faceUp;
+
             //TODO: record the innerHTML
             result[card.id] = record;
-          }
-        }
-
-        for (var i = 0; i < collections.length; i++) {
-          var cards = collections[i].Cards;
-          for (var j = 0; j < cards.length; j++) {
-            var card = cards[j];
-            record = result[card.id];
-            record.rect = card.getBoundingClientRect();
-          }
-        }
-
-        for (var i = 0; i < collections.length; i++) {
-          var cards = collections[i].Cards;
-          for (var j = 0; j < cards.length; j++) {
-            var card = cards[j];
-            record = result[card.id];
-            card.style.transform = record.previousTransform;
           }
         }
 
@@ -84,49 +77,29 @@
       _doAnimate() {
         var collections = this.$.collection._sharedCollectionList;
 
-        //First pass: turn off transforms
-        //Second pass: calculate diff transform
-        //Third pass: actually set the transforms
-
         for (var i = 0; i < collections.length; i++) {
           var cards = collections[i].Cards;
           for (var j = 0; j < cards.length; j++) {
             var card = cards[j];
             var record = this._infoById[card.id];
+
             if (!record) continue;
+
             record.postPreviousTransform = card.style.transform;
-            card.style.transform = "none";
-          }
-        }
+            record.newOffsets = this._calculateOffsets(card);
 
-        for (var i = 0; i < collections.length; i++) {
-          var cards = collections[i].Cards;
-          for (var j = 0; j < cards.length; j++) {
-            var card = cards[j];
-            var record = this._infoById[card.id];
-            if (!record) continue;
-            record.newRect = card.getBoundingClientRect();
-          }
-        }
 
-        for (var i = 0; i < collections.length; i++) {
-          var cards = collections[i].Cards;
-          for (var j = 0; j < cards.length; j++) {
-            var card = cards[j];
-            var record = this._infoById[card.id];
+            //TODO: if calculating offsetTop,Left is expensive here, split all
+            //reads into a separate pass before this
 
-            if (!record) continue;
+            var invertTop = record.offsets.top - record.newOffsets.top;
+            var invertLeft = record.offsets.left - record.newOffsets.left;
 
-            var invertTop = record.rect.top - record.newRect.top;
-            var invertLeft = record.rect.left - record.newRect.left;
-
-            var transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`
-            
-            if (invertTop != 0 && invertLeft != 0) {
-              console.log(transform + " " + record.postPreviousTransform,i, j);
+            if (invertTop != 0 || invertLeft != 0) {
+              var transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`
+              card.style.transform = transform + " " + record.postPreviousTransform;
             }
-
-            card.style.transform = transform + " " + record.postPreviousTransform;
+            
           }
         }
 

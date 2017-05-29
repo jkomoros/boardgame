@@ -3,7 +3,12 @@
 
 <dom-module id="boardgame-render-game">
   <template>
-    <boardgame-component-animator id="animator"></boardgame-component-animator>
+    <style>
+      #container {
+        position:relative;
+      }
+    </style>
+    <boardgame-component-animator id="animator" ancestor-offset-parent="{{$.container}}"></boardgame-component-animator>
     <div hidden$="{{rendererLoaded}}">
       <h2>Diagram of {{gameName}}</h2>
       <pre>{{diagram}}</pre>
