@@ -80,6 +80,10 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, 
 		return game.SecondShortStack, nil
 	}
 
+	if game.DiscardStack.NumComponents() < 2 {
+		return game.DiscardStack, nil
+	}
+
 	return game.DrawStack, nil
 
 }
@@ -148,6 +152,7 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 	}
 
 	manager.AddPlayerMoveFactory(MoveMoveCardBetweenShortStacksFactory)
+	manager.AddPlayerMoveFactory(MoveMoveCardBetweenDrawAndDiscardStacksFactory)
 
 	manager.SetUp()
 

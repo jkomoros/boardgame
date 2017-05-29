@@ -13,6 +13,10 @@
         @apply --layout-horizontal;
       }
 
+      #draw {
+        @apply --layout-horizontal;
+      }
+
       #shortstacks boardgame-card > div {
         @apply --layout-horizontal;
         @apply --layout-center;
@@ -42,6 +46,28 @@
       <paper-button on-tap="handleSwapTapped">Swap</paper-button>
     </div>
 
+    <div id='draw'>
+      <boardgame-card-collection layout='stack' messy ids-last-seen="{{state.Game.DrawStack.IdsLastSeen}}">
+        <template is='dom-repeat' items='{{state.Game.DrawStack.Components}}'>
+          <boardgame-card id="{{item.Id}}" index="{{index}}" face-up="{{_exists(item.Values)}}">
+            <div>
+              {{item.Values.Type}}
+            </div>
+          </boardgame-card>
+        </template>
+      </boardgame-card-collection>
+      <boardgame-card-collection layout='stack' messy ids-last-seen="{{state.Game.DiscardStack.IdsLastSeen}}">
+        <template is='dom-repeat' items='{{state.Game.DiscardStack.Components}}'>
+          <boardgame-card id="{{item.Id}}" index="{{index}}" face-up="{{_exists(item.Values)}}">
+            <div>
+              {{item.Values.Type}}
+            </div>
+          </boardgame-card>
+        </template>
+      </boardgame-card-collection>
+      <paper-button on-tap="handleDrawTapped">Draw</paper-button>
+    </div>
+
   </template>
 
   <script>
@@ -61,6 +87,14 @@
 
       handleSwapTapped(e) {
         this.dispatchEvent(new CustomEvent("propose-move", {composed: true, detail: {name: "Move Card Between Short Stacks", arguments:{}}}));
+      }
+
+      handleDrawTapped(e) {
+        this.dispatchEvent(new CustomEvent("propose-move", {composed: true, detail: {name: "Move Card Between Draw and Discard Stacks", arguments:{}}}));
+      }
+
+      _exists(val) {
+        return (val) ? true : false;
       }
 
     }
