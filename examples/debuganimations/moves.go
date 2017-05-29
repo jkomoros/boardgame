@@ -17,6 +17,11 @@ type moveMoveCardBetweenDrawAndDiscardStacks struct {
 	FromDraw bool
 }
 
+//+autoreader readsetter
+type moveFlipHiddenCard struct {
+	boardgame.DefaultMove
+}
+
 /**************************************************
  *
  * moveMoveCardBetweenShortStacks Implementation
@@ -130,6 +135,57 @@ func (m *moveMoveCardBetweenDrawAndDiscardStacks) Apply(state boardgame.MutableS
 	if m.FromDraw {
 		from = game.DrawStack
 		to = game.DiscardStack
+	}
+
+	if err := from.MoveComponent(boardgame.FirstComponentIndex, to, boardgame.FirstSlotIndex); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+/**************************************************
+ *
+ * moveFlipHiddenCard Implementation
+ *
+ **************************************************/
+
+func MoveFlipHiddenCardFactory(state boardgame.State) boardgame.Move {
+	result := &moveFlipHiddenCard{
+		boardgame.DefaultMove{
+			"Flip Card Between Hidden and Revealed",
+			"Flips the card between hidden and revealed",
+		},
+	}
+
+	return result
+}
+
+func (m *moveFlipHiddenCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+
+	game, _ := concreteStates(state)
+
+	if game.HiddenCard.NumComponents() < 1 && game.RevealedCard.NumComponents() < 1 {
+		return errors.New("Neither the HiddenCard nor RevealedCard is set")
+	}
+
+	if game.HiddenCard.NumComponents() > 0 && game.RevealedCard.NumComponents() > 0 {
+		return errors.New("Both hidden and revealed are full!")
+	}
+
+	return nil
+}
+
+func (m *moveFlipHiddenCard) Apply(state boardgame.MutableState) error {
+
+	game, _ := concreteStates(state)
+
+	from := game.RevealedCard
+	to := game.HiddenCard
+
+	if game.HiddenCard.NumComponents() > 0 {
+		from = game.HiddenCard
+		to = game.RevealedCard
 	}
 
 	if err := from.MoveComponent(boardgame.FirstComponentIndex, to, boardgame.FirstSlotIndex); err != nil {
