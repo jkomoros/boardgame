@@ -38,7 +38,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               <input type="hidden" name="player" value="{{moveAsPlayer}}">
               <template is="dom-repeat" items="{{item.Fields}}">
                 <strong>{{item.Name}}</strong>
-                <input name="{{item.Name}}" value="{{item.DefaultValue}}">
+                <input name="{{item.Name}}" value="{{_prepareValue(item.DefaultValue)}}">
                 <br/>
               </template>
               <div hidden$="{{item.Fields}}">
@@ -79,6 +79,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       boolToInt(bool) {
         return bool ? "1" : "0"
+      }
+
+      _prepareValue(val) {
+        if (val === true || val === false) {
+          return this.boolToInt(val);
+        }
+        return val;
       }
 
       proposeMove(moveName, args) {
