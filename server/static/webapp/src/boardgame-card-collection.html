@@ -100,7 +100,7 @@
           <boardgame-card spacer id="spacer"></boardgame-card>
       </template>
       <div id="faux-cards">
-        <template is="dom-repeat" items="{{_fauxCardsToAdd}}">
+        <template is="dom-repeat" id="faux-cards-repeater" items="{{_fauxCardsToAdd}}">
           <boardgame-card index="{{index}}"></boardgame-card>
         </template>
       </div>
@@ -202,6 +202,7 @@
 
           if (realCards.length < this.fauxCards) {
             this._fauxCardsToAdd = new Array(this.fauxCards - realCards.length);
+            this.$['faux-cards-repeater'].render();
           }
 
           if (realCards.length < 1 && !this.noDefaultSpacer) {
@@ -210,7 +211,7 @@
             this._createSpacer = false;
           }
 
-          window.requestAnimationFrame(() => this._updateCardClasses());
+          this._updateCardClasses();
 
         }
 
