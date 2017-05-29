@@ -42,7 +42,7 @@
       /* the first child should actually take up layout space for the entire
       /* stack, and not be offset any. */
 
-      .stack ::slotted(boardgame-card:first-child), .stack boardgame-card:first-child {
+      .stack ::slotted(boardgame-card:first-child), .stack boardgame-card:first-child, .stack boardgame-card#spacer {
         z-index: 10;
         position: relative;
         top:0px;
@@ -95,14 +95,15 @@
     </style>
 
     <div id="container" class$="{{_classes(layout, noAnimate)}}">
-      <slot id="cards">
-        <template is="dom-if" if="{{!noDefaultSpacer}}">
-          <boardgame-card spacer></boardgame-card>
-        </template>
-      </slot>
-      <template is="dom-repeat" items="{{_fauxCardsToAdd}}">
-        <boardgame-card index="{{index}}"></boardgame-card>
+      <slot id="cards"></slot>
+      <template is="dom-if" if="{{_createSpacer}}">
+          <boardgame-card spacer id="spacer"></boardgame-card>
       </template>
+      <div id="faux-cards">
+        <template is="dom-repeat" items="{{_fauxCardsToAdd}}">
+          <boardgame-card index="{{index}}"></boardgame-card>
+        </template>
+      </div>
     </div>
   </template>
 
@@ -134,6 +135,7 @@
               type: Number,
               value: 0
             },
+            _createSpacer: Boolean,
             _fauxCardsToAdd: Array
           }
         }
@@ -185,7 +187,7 @@
         }
 
         get _fauxCards() {
-          var fauxCards = this.$.container.querySelectorAll("boardgame-card");
+          var fauxCards = this.$['faux-cards'].querySelectorAll("boardgame-card");
 
           return [...fauxCards];
         }
@@ -200,6 +202,12 @@
 
           if (realCards.length < this.fauxCards) {
             this._fauxCardsToAdd = new Array(this.fauxCards - realCards.length);
+          }
+
+          if (realCards.length < 1 && !this.noDefaultSpacer) {
+            this._createSpacer = true;
+          } else {
+            this._createSpacer = false;
           }
 
           window.requestAnimationFrame(() => this._updateCardClasses());
