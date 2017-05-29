@@ -64,7 +64,7 @@ func (m *moveMoveCardBetweenShortStacks) Apply(state boardgame.MutableState) err
 		to = game.SecondShortStack
 	}
 
-	if err := from.MoveComponent(boardgame.FirstComponentIndex, to, boardgame.LastSlotIndex); err != nil {
+	if err := from.MoveComponent(boardgame.FirstComponentIndex, to, boardgame.FirstSlotIndex); err != nil {
 		return err
 	}
 
