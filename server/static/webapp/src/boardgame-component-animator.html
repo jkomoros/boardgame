@@ -51,7 +51,6 @@
 
         for (var i = 0; i < collections.length; i++) {
           var collection = collections[i];
-          collection.noAnimate = true;
 
           var cards = collection.Cards;
           for (var j = 0; j < cards.length; j++) {
@@ -59,6 +58,7 @@
             var record = {};
 
             record.offsets = this._calculateOffsets(card);
+            record.previousTransform = card.style.transform;
 
             record.faceUp = card.faceUp;
 
@@ -78,7 +78,11 @@
         var collections = this.$.collection._sharedCollectionList;
 
         for (var i = 0; i < collections.length; i++) {
-          var cards = collections[i].Cards;
+
+          var collection = collections[i];
+          collection.noAnimate = true;
+
+          var cards = collection.Cards;
           for (var j = 0; j < cards.length; j++) {
             var card = cards[j];
             var record = this._infoById[card.id];
@@ -119,7 +123,7 @@
             var card = cards[j];
             var record = this._infoById[card.id];
             if (!record) continue;
-            card.style.transform = record.postPreviousTransform;
+            card.style.transform = record.previousTransform;
           }
         }
       }
