@@ -51,7 +51,6 @@
 
         for (var i = 0; i < collections.length; i++) {
           var collection = collections[i];
-
           var cards = collection.Cards;
           for (var j = 0; j < cards.length; j++) {
             var card = cards[j];
@@ -81,7 +80,6 @@
 
           var collection = collections[i];
           collection.noAnimate = true;
-
           var cards = collection.Cards;
           for (var j = 0; j < cards.length; j++) {
             var card = cards[j];
@@ -101,7 +99,7 @@
 
             if (invertTop != 0 || invertLeft != 0) {
               var transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`
-              card.style.transform = transform + " " + record.postPreviousTransform;
+              card.style.transform = transform + " " + record.previousTransform;
             }
             
           }
@@ -123,7 +121,7 @@
             var card = cards[j];
             var record = this._infoById[card.id];
             if (!record) continue;
-            card.style.transform = record.previousTransform;
+            card.style.transform = record.postPreviousTransform;
           }
         }
       }
