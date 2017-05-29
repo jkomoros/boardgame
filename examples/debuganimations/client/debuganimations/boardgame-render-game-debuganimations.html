@@ -21,7 +21,7 @@
     </style>
 
     <div id='shortstacks'>
-      <boardgame-card-collection layout='stack' ids-last-seen="{{state.Game.FirstShortStack.IdsLastSeen}}">
+      <boardgame-card-collection layout='stack' messy ids-last-seen="{{state.Game.FirstShortStack.IdsLastSeen}}">
         <template is='dom-repeat' items='{{state.Game.FirstShortStack.Components}}'>
           <boardgame-card id="{{item.Id}}" index="{{index}}">
             <div>
@@ -30,7 +30,7 @@
           </boardgame-card>
         </template>
       </boardgame-card-collection>
-      <boardgame-card-collection layout='stack' ids-last-seen="{{state.Game.SecondShortStack.IdsLastSeen}}">
+      <boardgame-card-collection layout='stack' messy ids-last-seen="{{state.Game.SecondShortStack.IdsLastSeen}}">
         <template is='dom-repeat' items='{{state.Game.SecondShortStack.Components}}'>
           <boardgame-card id="{{item.Id}}" index="{{index}}">
             <div>
