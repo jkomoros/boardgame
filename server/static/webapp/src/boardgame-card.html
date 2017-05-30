@@ -11,6 +11,23 @@
         visibility: hidden;
       }
 
+      #card div.old {
+        display:none;
+      }
+
+      #card.old-front div.normal {
+        display:none;
+      }
+
+      #card.old-front div.old {
+        display:block;
+      }
+
+      #front>div {
+        height: 100%;
+        width: 100%;
+      }
+
       #card {
         height: 4em;
         width: 6em;
@@ -98,12 +115,17 @@
 
     </style>
 
-    <div id="card" class$="{{_classes(faceUp, spacer, noShadow, rotated, interactive, disabled)}}" on-tap="handleTap">
+    <div id="card" class$="{{_classes(faceUp, spacer, noShadow, rotated, interactive, disabled, oldFront)}}" on-tap="handleTap">
       <div class="inner">
         <div id="front">
-          <slot>
-            {{suit}}{{rank}}
-          </slot>
+          <div class="normal">
+            <slot>
+              {{suit}}{{rank}}
+            </slot>
+          </div>
+          <div class="old">
+            <slot class="old" name="old"></slot>
+          </div>
         </div>
         <div id="back">
           <slot name="back">
@@ -131,6 +153,11 @@
           index: Number,
           faceUp: Boolean,
           rotated: Boolean,
+          //If true, will show oldContent, not normal front conten
+          oldFront: {
+            type: Boolean,
+            value: false,
+          },
           id: String,
           disabled: {
             type: Boolean,
@@ -161,7 +188,7 @@
         return !spacer && !disabled;
       }
 
-      _classes(faceUp, spacer, noShadow, rotated, interactive, disabled) {
+      _classes(faceUp, spacer, noShadow, rotated, interactive, disabled, oldFront) {
         let result = ["card"];
         if (faceUp) {
           result.push("face-up");
@@ -180,6 +207,9 @@
         }
         if (disabled) {
           result.push("disabled");
+        }
+        if (oldFront) {
+          result.push("old-front")
         }
         return result.join(" ");
       }
