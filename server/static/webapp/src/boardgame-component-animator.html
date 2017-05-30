@@ -61,6 +61,22 @@
 
             record.faceUp = card.faceUp;
 
+            record.clonedNodes = [];
+
+            if (!card.oldFront) {
+              //If the card has old-front, that's a signal that content is bad
+              //and not worth copying.
+              var children = card.children;
+              for (var k = 0; k < children.length; k++) {
+                var child = children[k];
+                if (child.slot) {
+                  //Skip content that doesn't go in default slot
+                  continue
+                }
+                record.clonedNodes.push(child.cloneNode(true));
+              }
+            }
+
             //TODO: record the innerHTML
             result[card.id] = record;
           }
@@ -102,6 +118,33 @@
               card.style.transform = transform + " " + record.previousTransform;
             }
             
+          }
+        }
+
+        //Do a second pass because this will affect layout
+        for (var i = 0; i < collections.length; i++) {
+          var collection = collections[i]; 
+          for (var j = 0; j < cards.length; j++) {
+            var card = cards[j];
+            var record = this._infoById[card.id];
+
+            if (!record) continue;
+
+            if (record.clonedNodes.length > 0) {
+
+              //Clear out old nodes.
+              for (var k = 0; k < card.children.length; k++) {
+                var child = card.children[k];
+                if (child.slot == "old") {
+                  card.removeChild(child);
+                }
+              }
+              for (var k = 0; k < record.clonedNodes.length; k++) {
+                var node = record.clonedNodes[k];
+                node.slot = "old";
+                card.appendChild(node);
+              }
+            }
           }
         }
 
