@@ -113,6 +113,8 @@
       singleCard(state) {
         var result = [];
 
+        if (!state) return result;
+
         if (state.Game.HiddenCard.Components[0]) {
           result.push(state.Game.HiddenCard.Components[0]);
         } else {
