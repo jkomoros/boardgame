@@ -47,23 +47,22 @@
 
         var collections = this.$.collection._sharedCollectionList;
 
-        var result = {};
+        var result = this._infoById || {};
 
         for (var i = 0; i < collections.length; i++) {
           var collection = collections[i];
           var cards = collection.Cards;
           for (var j = 0; j < cards.length; j++) {
             var card = cards[j];
-            var record = {};
+            var record = result[card.id] || {};
 
             record.offsets = this._calculateOffsets(card);
             record.previousTransform = card.style.transform;
 
             record.faceUp = card.faceUp;
 
-            record.clonedNodes = [];
-
             if (!card.noContent) {
+              var newNodes = [];
               //If the card has old-front, that's a signal that content is bad
               //and not worth copying.
               var children = card.children;
@@ -73,11 +72,12 @@
                   //Skip content that doesn't go in default slot
                   continue
                 }
-                record.clonedNodes.push(child.cloneNode(true));
+                newNodes.push(child.cloneNode(true));
+              }
+              if (newNodes.length > 0) {
+                record.clonedNodes = newNodes;
               }
             }
-
-            //TODO: record the innerHTML
             result[card.id] = record;
           }
         }
@@ -124,13 +124,14 @@
         //Do a second pass because this will affect layout
         for (var i = 0; i < collections.length; i++) {
           var collection = collections[i]; 
+          var cards = collection.Cards;
           for (var j = 0; j < cards.length; j++) {
             var card = cards[j];
             var record = this._infoById[card.id];
 
             if (!record) continue;
 
-            if (record.clonedNodes.length > 0) {
+            if (record.clonedNodes && record.clonedNodes.length > 0) {
 
               //Clear out old nodes.
               for (var k = 0; k < card.children.length; k++) {

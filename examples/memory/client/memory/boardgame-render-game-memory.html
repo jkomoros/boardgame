@@ -24,7 +24,7 @@
     <h2>Memory</h2>
     <boardgame-card-collection layout="grid" messy ids-last-seen="{{computedCardsIdsLastSeen}}">
       <template is="dom-repeat" items="{{computedCards}}">
-          <boardgame-card title="{{index}}" rank="{{item.Values.Type}}" face-up="{{Exists(item.Values)}}" spacer="{{!Exists(item)}}" index="{{index}}" id="{{item.Id}}">
+          <boardgame-card title="{{index}}" rank="{{item.Values.Type}}" face-up="{{Exists(item.Values)}}" no-content="{{!Exists(item.Values)}}" spacer="{{!Exists(item)}}" index="{{index}}" id="{{item.Id}}">
             <div class="horizontal layout center center-justified">
               {{item.Values.Type}}
             </div>
