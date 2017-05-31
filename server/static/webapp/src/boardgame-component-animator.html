@@ -63,7 +63,7 @@
 
             record.clonedNodes = [];
 
-            if (!card.oldFront) {
+            if (!card.noContent) {
               //If the card has old-front, that's a signal that content is bad
               //and not worth copying.
               var children = card.children;
@@ -135,13 +135,13 @@
               //Clear out old nodes.
               for (var k = 0; k < card.children.length; k++) {
                 var child = card.children[k];
-                if (child.slot == "old") {
+                if (child.slot == "fallback") {
                   card.removeChild(child);
                 }
               }
               for (var k = 0; k < record.clonedNodes.length; k++) {
                 var node = record.clonedNodes[k];
-                node.slot = "old";
+                node.slot = "fallback";
                 card.appendChild(node);
               }
             }

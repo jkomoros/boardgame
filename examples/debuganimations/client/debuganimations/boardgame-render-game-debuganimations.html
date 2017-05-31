@@ -71,7 +71,7 @@
     <div id='draw'>
       <boardgame-card-collection layout='stack' messy>
         <template is='dom-repeat' items='{{singleCard(state)}}'>
-          <boardgame-card id="{{item.Id}}" index="{{index}}" face-up="{{_exists(item.Values)}}" old-front="{{!_exists(item.Values)}}">
+          <boardgame-card id="{{item.Id}}" index="{{index}}" face-up="{{_exists(item.Values)}}" no-content="{{!_exists(item.Values)}}">
             <div>
               {{item.Values.Type}}
             </div>
