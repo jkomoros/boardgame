@@ -59,7 +59,12 @@
 
         transform-style: preserve-3d;
         position: relative;
-        transition: transform 0.6s ease-in-out, var(--shadow-transition_-_transition);
+        /* same duration as card-collection's animation */
+        transition: transform 0.25s ease-in-out, var(--shadow-transition_-_transition);
+      }
+
+      .no-animate .inner {
+        transition: unset;
       }
 
       .disabled .inner {
@@ -115,7 +120,7 @@
 
     </style>
 
-    <div id="card" class$="{{_classes(faceUp, spacer, noShadow, rotated, interactive, disabled, noContent)}}" on-tap="handleTap">
+    <div id="card" class$="{{_classes(faceUp, spacer, noShadow, rotated, interactive, disabled, noContent, noAnimate)}}" on-tap="handleTap">
       <div class="inner">
         <div id="front">
           <div class="normal">
@@ -158,6 +163,10 @@
             type: Boolean,
             value: false,
           },
+          noAnimate: {
+            type: Boolean,
+            value: false
+          },
           id: String,
           disabled: {
             type: Boolean,
@@ -188,7 +197,7 @@
         return !spacer && !disabled;
       }
 
-      _classes(faceUp, spacer, noShadow, rotated, interactive, disabled, noContent) {
+      _classes(faceUp, spacer, noShadow, rotated, interactive, disabled, noContent, noAnimate) {
         let result = ["card"];
         if (faceUp) {
           result.push("face-up");
@@ -210,6 +219,9 @@
         }
         if (noContent) {
           result.push("no-content")
+        }
+        if (noAnimate) {
+          result.push("no-animate")
         }
         return result.join(" ");
       }

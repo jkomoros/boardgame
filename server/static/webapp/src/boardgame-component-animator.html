@@ -59,7 +59,7 @@
             record.offsets = this._calculateOffsets(card);
             record.previousTransform = card.style.transform;
 
-            record.faceUp = card.faceUp;
+            record.beforeFaceUp = card.faceUp;
 
             if (!card.noContent) {
               var newNodes = [];
@@ -103,10 +103,14 @@
 
             if (!record) continue;
 
+            card.noAnimate = true;
+
             record.postPreviousTransform = card.style.transform;
             record.newOffsets = this._calculateOffsets(card);
 
 
+            record.afterFaceUp = card.faceUp;
+            card.faceUp = record.beforeFaceUp;
             //TODO: if calculating offsetTop,Left is expensive here, split all
             //reads into a separate pass before this
 
@@ -165,7 +169,10 @@
             var card = cards[j];
             var record = this._infoById[card.id];
             if (!record) continue;
+            card.noAnimate = false;
             card.style.transform = record.postPreviousTransform;
+            card.faceUp = record.afterFaceUp;
+
           }
         }
       }
