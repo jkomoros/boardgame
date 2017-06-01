@@ -92,10 +92,43 @@
       _doAnimate() {
         var collections = this.$.collection._sharedCollectionList;
 
+        //Turning off animations and setting card flip all require recalcing
+        //style so do them once before readback in the second loop.
+
+        for (var i = 0; i < collections.length; i++) {
+          var collection = collections[i];
+          collection.noAnimate = true;
+          var cards = collection.Cards;
+          for (var j = 0; j < cards.length; j++) {
+            var card = cards[j];
+            card.noAnimate = true; 
+
+            var record = this._infoById[card.id];
+
+            if (!record) continue;
+            record.afterFaceUp = card.faceUp;
+            card.faceUp = record.beforeFaceUp;           
+          }
+        }
+
+        //This layout readback is the most important thing to do quickly
+        //because if we thrash the DOM there will be a lot of recalc style. So
+        //do it in its own pass.
+        for (var i = 0; i < collections.length; i++) {
+          var collection = collections[i];
+          var cards = collection.Cards;
+          for (var j = 0; j < cards.length; j++) {
+            var card = cards[j];
+            var record = this._infoById[card.id];
+
+            if (!record) continue;
+            record.newOffsets = this._calculateOffsets(card);        
+          }
+        }
+
         for (var i = 0; i < collections.length; i++) {
 
           var collection = collections[i];
-          collection.noAnimate = true;
           var cards = collection.Cards;
           for (var j = 0; j < cards.length; j++) {
             var card = cards[j];
@@ -103,14 +136,9 @@
 
             if (!record) continue;
 
-            card.noAnimate = true;
-
             record.postPreviousTransform = card.style.transform;
-            record.newOffsets = this._calculateOffsets(card);
+           
 
-
-            record.afterFaceUp = card.faceUp;
-            card.faceUp = record.beforeFaceUp;
             //TODO: if calculating offsetTop,Left is expensive here, split all
             //reads into a separate pass before this
 
