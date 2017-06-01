@@ -22,6 +22,11 @@ type moveFlipHiddenCard struct {
 	boardgame.DefaultMove
 }
 
+//+autoreader readsetter
+type moveMoveCardBetweenFanStacks struct {
+	boardgame.DefaultMove
+}
+
 /**************************************************
  *
  * moveMoveCardBetweenShortStacks Implementation
@@ -189,6 +194,61 @@ func (m *moveFlipHiddenCard) Apply(state boardgame.MutableState) error {
 	}
 
 	if err := from.MoveComponent(boardgame.FirstComponentIndex, to, boardgame.FirstSlotIndex); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+/**************************************************
+ *
+ * moveMoveCardBetweenFanStacks Implementation
+ *
+ **************************************************/
+
+func MoveMoveCardBetweenFanStacksFactory(state boardgame.State) boardgame.Move {
+	result := &moveMoveCardBetweenFanStacks{
+		boardgame.DefaultMove{
+			"Move Fan Card",
+			"Moves a card from or to Fan and Fan Discard",
+		},
+	}
+
+	return result
+}
+
+func (m *moveMoveCardBetweenFanStacks) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+
+	game, _ := concreteStates(state)
+
+	if game.FanStack.NumComponents() == 6 && game.FanDiscard.NumComponents() == 3 {
+		return nil
+	}
+
+	if game.FanStack.NumComponents() == 5 && game.FanDiscard.NumComponents() == 4 {
+		return nil
+	}
+
+	return errors.New("Fan stacks aren't in known toggle state")
+}
+
+func (m *moveMoveCardBetweenFanStacks) Apply(state boardgame.MutableState) error {
+
+	game, _ := concreteStates(state)
+
+	from := game.FanStack
+	to := game.FanDiscard
+	fromIndex := 2
+	toIndex := boardgame.FirstSlotIndex
+
+	if game.FanStack.NumComponents() < 6 {
+		from = game.FanDiscard
+		to = game.FanStack
+		fromIndex = boardgame.FirstComponentIndex
+		toIndex = 2
+	}
+
+	if err := from.MoveComponent(fromIndex, to, toIndex); err != nil {
 		return err
 	}
 

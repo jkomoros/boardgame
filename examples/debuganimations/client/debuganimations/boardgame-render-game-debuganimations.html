@@ -22,6 +22,14 @@
         @apply --layout-center;
         @apply --layout-center-justified;
       }
+
+      #fan {
+        @apply --layout-horizontal;
+      }
+
+      .flex {
+        @apply --layout-flex;
+      }
     </style>
 
     <div id='shortstacks'>
@@ -81,6 +89,29 @@
       <paper-button on-tap="handleFlipTapped">Flip</paper-button>
     </div>
 
+    <div id="fan">
+      <boardgame-card-collection layout='fan' messy ids-last-seen="{{state.Game.FanStack.IdsLastSeen}}">
+        <template is='dom-repeat' items='{{state.Game.FanStack.Components}}'>
+          <boardgame-card id="{{item.Id}}" index="{{index}}" face-up="{{_exists(item.Values)}}">
+            <div>
+              {{item.Values.Type}}
+            </div>
+          </boardgame-card>
+        </template>
+      </boardgame-card-collection>
+      <div class="flex"></div>
+      <boardgame-card-collection layout='stack' messy ids-last-seen="{{state.Game.FanDiscard.IdsLastSeen}}">
+        <template is='dom-repeat' items='{{state.Game.FanDiscard.Components}}'>
+          <boardgame-card id="{{item.Id}}" index="{{index}}" face-up="{{_exists(item.Values)}}">
+            <div>
+              {{item.Values.Type}}
+            </div>
+          </boardgame-card>
+        </template>
+      </boardgame-card-collection>
+      <paper-button on-tap="handleFanTapped">Draw</paper-button>
+    </div>
+
   </template>
 
   <script>
@@ -108,6 +139,10 @@
 
       handleFlipTapped(e) {
         this.dispatchEvent(new CustomEvent("propose-move", {composed: true, detail: {name: "Flip Card Between Hidden and Revealed", arguments:{}}}));
+      }
+
+      handleFanTapped(e) {
+        this.dispatchEvent(new CustomEvent("propose-move", {composed: true, detail: {name: "Move Fan Card", arguments:{}}}));
       }
 
       singleCard(state) {
