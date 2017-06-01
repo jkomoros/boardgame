@@ -102,12 +102,6 @@
           for (var j = 0; j < cards.length; j++) {
             var card = cards[j];
             card.noAnimate = true; 
-
-            var record = this._infoById[card.id];
-
-            if (!record) continue;
-            record.afterFaceUp = card.faceUp;
-            card.faceUp = record.beforeFaceUp;           
           }
         }
 
@@ -126,6 +120,8 @@
           }
         }
 
+        //This is the meat of the method, where we set all layout-affecting
+        //properties, append fake dom, etc.
         for (var i = 0; i < collections.length; i++) {
 
           var collection = collections[i];
@@ -137,7 +133,9 @@
             if (!record) continue;
 
             record.postPreviousTransform = card.style.transform;
-           
+
+            record.afterFaceUp = card.faceUp;
+            card.faceUp = record.beforeFaceUp;       
 
             //TODO: if calculating offsetTop,Left is expensive here, split all
             //reads into a separate pass before this
@@ -149,19 +147,6 @@
               var transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`
               card.style.transform = transform + " " + record.previousTransform;
             }
-            
-          }
-        }
-
-        //Do a second pass because this will affect layout
-        for (var i = 0; i < collections.length; i++) {
-          var collection = collections[i]; 
-          var cards = collection.Cards;
-          for (var j = 0; j < cards.length; j++) {
-            var card = cards[j];
-            var record = this._infoById[card.id];
-
-            if (!record) continue;
 
             if (record.clonedNodes && record.clonedNodes.length > 0) {
 
@@ -178,6 +163,7 @@
                 card.appendChild(node);
               }
             }
+            
           }
         }
 
