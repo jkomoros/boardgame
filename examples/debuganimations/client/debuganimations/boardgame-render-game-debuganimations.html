@@ -2,6 +2,9 @@
 <link rel="import" href="../../bower_components/polymer/lib/elements/dom-repeat.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout.html">
 <link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
+<link rel="import" href="../../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../../src/boardgame-card.html">
 <link rel="import" href="../../src/boardgame-card-collection.html">
 
@@ -90,7 +93,7 @@
     </div>
 
     <div id="fan">
-      <boardgame-card-collection layout='fan' messy ids-last-seen="{{state.Game.FanStack.IdsLastSeen}}">
+      <boardgame-card-collection layout='{{fromStackLayout}}' messy ids-last-seen="{{state.Game.FanStack.IdsLastSeen}}">
         <template is='dom-repeat' items='{{state.Game.FanStack.Components}}'>
           <boardgame-card id="{{item.Id}}" index="{{index}}" face-up="{{_exists(item.Values)}}">
             <div>
@@ -110,6 +113,14 @@
         </template>
       </boardgame-card-collection>
       <paper-button on-tap="handleFanTapped">Draw</paper-button>
+      <paper-dropdown-menu label="Layout">
+        <paper-listbox slot="dropdown-content" selected="{{fromStackLayout}}" attr-for-selected="value">
+          <paper-item value="fan">fan</paper-item>
+          <paper-item value="hand">hand</paper-item>
+          <paper-item value="stack">stack</paper-item>
+          <paper-item value="grid">grid</paper-item>
+        </paper-listbox>
+      </paper-dropdown-menu>
     </div>
 
   </template>
@@ -125,7 +136,11 @@
       static get properties() {
         return {
           state: Object,
-          diagram : String
+          diagram : String,
+          fromStackLayout: {
+            type: String,
+            value: "fan"
+          }
         }
       }
 
