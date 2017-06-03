@@ -154,37 +154,63 @@
         return {
           suit: String,
           rank: String,
+          //Index is the index of this card in the collection. Included in
+          //card-tapped events.
           index: Number,
+          //If item is set, it is assumed to be a Component from a stack in a
+          //state. faceUp, coContent, spacer, and id will all be set based on
+          //its value. A convenient way to stamp out cards with minimal fuss
+          //in the default case.
           item: {
             type: Object,
             observer: "_itemChanged"
           },
+          //If true, the card will be rendered with its face showing, not its
+          //back. If noAnimate is false, will animate the card flip.
           faceUp: Boolean,
+          //If true, the card is rotated 90 degrees.
           rotated: Boolean,
-          //If true, will show old content, not normal front conten
+          //If true, content with a slot of "fallback" will be rendered
+          //instead of the normal front content. boardgame-component-animator
+          //uses this functionality to inject old content that technically has
+          //disappeared when a card flips, so that visually the content
+          //doesn't disappear before the flip.
           noContent: {
             type: Boolean,
             value: false,
           },
+          //If true, no animations will be played.
           noAnimate: {
             type: Boolean,
             value: false
           },
+          //id  should be set to the component's Id from the framework.
+          //boardgame-component-animator will look for this id to figure out
+          //which cards are logically the same and thus should be animated
+          //from one place to another.
           id: String,
+          //if true, the card will be rendered differently, no card-tapped
+          //events will be triggered.
           disabled: {
             type: Boolean,
             value: false
           },
+          //True if the card is neither disabled nor a spacer.
           interactive: {
             type: Boolean,
             readOnly: true,
             computed: "_computeInteractive(spacer, disabled)"
           },
+          //If true, the card is "empty" and should take up space but not
+          //render a card. Useful for sizedStacks that have an empty slot.
           spacer: {
             type: Boolean,
             reflectToAttribute: true,
             value: false
           },
+          //if true, no drop-shadow will be rendered. boardgame-card-
+          //collection will set this in some cases, like in a stack, so that
+          //all of the shadows for 10's of cards don't multiply together.
           noShadow: Boolean,
         }
       }
