@@ -1,9 +1,9 @@
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
-<link rel="import" href="boardgame-card-collection.html">
+<link rel="import" href="boardgame-card-stack.html">
 
 <dom-module id="boardgame-component-animator">
   <template>
-    <boardgame-card-collection id='collection' no-default-spacer></boardgame-card-collection>
+    <boardgame-card-stack id='stack' no-default-spacer></boardgame-card-stack>
   </template>
 
   <script>
@@ -45,7 +45,7 @@
 
       prepare() {
 
-        var collections = this.$.collection._sharedCollectionList;
+        var collections = this.$.stack._sharedStackList;
 
         var result = this._infoById || {};
 
@@ -95,7 +95,7 @@
       }
 
       _doAnimate() {
-        var collections = this.$.collection._sharedCollectionList;
+        var collections = this.$.stack._sharedStackList;
 
         //Turning off animations and setting card flip all require recalcing
         //style so do them once before readback in the second loop.
@@ -183,7 +183,7 @@
       }
 
       _startAnimations() {
-        var collections = this.$.collection._sharedCollectionList;
+        var collections = this.$.stack._sharedStackList;
 
         for (var i = 0; i < collections.length; i++) {
           var collection = collections[i];

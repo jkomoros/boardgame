@@ -151,7 +151,7 @@
         return {
           suit: String,
           rank: String,
-          //Index is the index of this card in the collection. Included in
+          //Index is the index of this card in the stack. Included in
           //card-tapped events.
           index: Number,
           //If item is set, it is assumed to be a Component from a stack in a
@@ -208,9 +208,9 @@
             reflectToAttribute: true,
             value: false
           },
-          //if true, no drop-shadow will be rendered. boardgame-card-
-          //collection will set this in some cases, like in a stack, so that
-          //all of the shadows for 10's of cards don't multiply together.
+          //if true, no drop-shadow will be rendered. boardgame-card- stack
+          //will set this in some cases, like in a stack, so that all of the
+          //shadows for 10's of cards don't multiply together.
           noShadow: Boolean,
           _animating: {
             type: Boolean,

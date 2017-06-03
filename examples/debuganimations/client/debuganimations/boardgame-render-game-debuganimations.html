@@ -6,7 +6,7 @@
 <link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
 <link rel="import" href="../../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../../src/boardgame-card.html">
-<link rel="import" href="../../src/boardgame-card-collection.html">
+<link rel="import" href="../../src/boardgame-card-stack.html">
 
 <dom-module id="boardgame-render-game-debuganimations">
   <template>
@@ -36,7 +36,7 @@
     </style>
 
     <div id='shortstacks'>
-      <boardgame-card-collection layout='stack' stack="{{state.Game.FirstShortStack}}" messy>
+      <boardgame-card-stack layout='stack' stack="{{state.Game.FirstShortStack}}" messy>
         <template is='dom-repeat'>
           <boardgame-card item="{{item}}" index="{{index}}">
             <div>
@@ -44,8 +44,8 @@
             </div>
           </boardgame-card>
         </template>
-      </boardgame-card-collection>
-      <boardgame-card-collection layout='stack' messy stack="{{state.Game.SecondShortStack}}">
+      </boardgame-card-stack>
+      <boardgame-card-stack layout='stack' messy stack="{{state.Game.SecondShortStack}}">
         <template is='dom-repeat'>
           <boardgame-card item="{{item}}" index="{{index}}">
             <div>
@@ -53,12 +53,12 @@
             </div>
           </boardgame-card>
         </template>
-      </boardgame-card-collection>
+      </boardgame-card-stack>
       <paper-button on-tap="handleSwapTapped">Swap</paper-button>
     </div>
 
     <div id='draw'>
-      <boardgame-card-collection layout='stack' messy stack="{{state.Game.DrawStack}}">
+      <boardgame-card-stack layout='stack' messy stack="{{state.Game.DrawStack}}">
         <template is='dom-repeat'>
           <boardgame-card item="{{item}}" index="{{index}}">
             <div>
@@ -66,8 +66,8 @@
             </div>
           </boardgame-card>
         </template>
-      </boardgame-card-collection>
-      <boardgame-card-collection layout='stack' messy stack="{{state.Game.DiscardStack}}">
+      </boardgame-card-stack>
+      <boardgame-card-stack layout='stack' messy stack="{{state.Game.DiscardStack}}">
         <template is='dom-repeat'>
           <boardgame-card item="{{item}}" index="{{index}}">
             <div>
@@ -75,12 +75,12 @@
             </div>
           </boardgame-card>
         </template>
-      </boardgame-card-collection>
+      </boardgame-card-stack>
       <paper-button on-tap="handleDrawTapped">Draw</paper-button>
     </div>
 
     <div id='draw'>
-      <boardgame-card-collection layout='stack' messy primary-stack="{{state.Game.HiddenCard}}" secondary-stack="{{state.Game.RevealedCard}}"> 
+      <boardgame-card-stack layout='stack' messy primary-stack="{{state.Game.HiddenCard}}" secondary-stack="{{state.Game.RevealedCard}}"> 
         <template is='dom-repeat'>
           <boardgame-card index="{{index}}" item="{{item}}">
             <div>
@@ -88,12 +88,12 @@
             </div>
           </boardgame-card>
         </template>
-      </boardgame-card-collection>
+      </boardgame-card-stack>
       <paper-button on-tap="handleFlipTapped">Flip</paper-button>
     </div>
 
     <div id="fan">
-      <boardgame-card-collection layout='{{fromStackLayout}}' messy stack="{{state.Game.FanStack}}">
+      <boardgame-card-stack layout='{{fromStackLayout}}' messy stack="{{state.Game.FanStack}}">
         <template is='dom-repeat'>
           <boardgame-card item="{{item}}" index="{{index}}">
             <div>
@@ -101,9 +101,9 @@
             </div>
           </boardgame-card>
         </template>
-      </boardgame-card-collection>
+      </boardgame-card-stack>
       <div class="flex"></div>
-      <boardgame-card-collection layout='stack' messy stack="{{state.Game.FanDiscard}}">
+      <boardgame-card-stack layout='stack' messy stack="{{state.Game.FanDiscard}}">
         <template is='dom-repeat'>
           <boardgame-card item="{{item}}" index="{{index}}">
             <div>
@@ -111,7 +111,7 @@
             </div>
           </boardgame-card>
         </template>
-      </boardgame-card-collection>
+      </boardgame-card-stack>
       <paper-button on-tap="handleFanTapped">Draw</paper-button>
       <paper-dropdown-menu label="Layout">
         <paper-listbox slot="dropdown-content" selected="{{fromStackLayout}}" attr-for-selected="value">

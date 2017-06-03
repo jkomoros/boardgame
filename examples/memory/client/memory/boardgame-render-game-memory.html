@@ -5,7 +5,7 @@
 <link rel="import" href="../../bower_components/paper-progress/paper-progress.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
 <link rel="import" href="../../src/boardgame-card.html">
-<link rel="import" href="../../src/boardgame-card-collection.html">
+<link rel="import" href="../../src/boardgame-card-stack.html">
 
 <dom-module id="boardgame-render-game-memory">
   <template>
@@ -21,7 +21,7 @@
       }
     </style>
     <h2>Memory</h2>
-    <boardgame-card-collection layout="grid" messy primary-stack="{{state.Game.RevealedCards}}" secondary-stack="{{state.Game.HiddenCards}}">
+    <boardgame-card-stack layout="grid" messy primary-stack="{{state.Game.RevealedCards}}" secondary-stack="{{state.Game.HiddenCards}}">
       <template is="dom-repeat">
           <boardgame-card title="{{index}}" item="{{item}}" index="{{index}}">
             <div>
@@ -29,9 +29,9 @@
             </div>
           </boardgame-card>
       </template>
-    </boardgame-card-collection>
+    </boardgame-card-stack>
     <div class="layout horizontal around-justified">
-      <boardgame-card-collection layout="stack" stack="{{state.Players.0.WonCards}}" messy>
+      <boardgame-card-stack layout="stack" stack="{{state.Players.0.WonCards}}" messy>
         <template is="dom-repeat">
           <boardgame-card item="{{item}}" index="{{index}}" disabled>
             <div>
@@ -39,10 +39,10 @@
             </div>
           </boardgame-card>
         </template>
-      </boardgame-card-collection>
+      </boardgame-card-stack>
       <!-- have a boardgame-card spacer just to keep that row height sane even with no cards -->
       <boardgame-card spacer></boardgame-card>
-      <boardgame-card-collection layout="stack" messy stack="{{state.Players.1.WonCards}}">
+      <boardgame-card-stack layout="stack" messy stack="{{state.Players.1.WonCards}}">
         <template is="dom-repeat">
           <boardgame-card item="{{item}}" index="{{index}}" disabled>
             <div>
@@ -50,7 +50,7 @@
             </div>
           </boardgame-card>
         </template>
-      </boardgame-card-collection>
+      </boardgame-card-stack>
     </div>
     <paper-button id="hide" on-tap="hideTapped" raised disabled="{{state.Computed.Global.CurrentPlayerHasCardsToReveal}}">Hide Cards</paper-button>
     <paper-progress id="timeleft" value="{{state.Game.HideCardsTimer.TimeLeft}}" max="{{maxTimeLeft}}"></paper-progress>
