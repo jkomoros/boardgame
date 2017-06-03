@@ -177,6 +177,7 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 	manager.AddPlayerMoveFactory(MoveMoveCardBetweenDrawAndDiscardStacksFactory)
 	manager.AddPlayerMoveFactory(MoveFlipHiddenCardFactory)
 	manager.AddPlayerMoveFactory(MoveMoveCardBetweenFanStacksFactory)
+	manager.AddPlayerMoveFactory(MoveVisibleShuffleCardsFactory)
 
 	manager.SetUp()
 

@@ -33,6 +33,10 @@
       .flex {
         @apply --layout-flex;
       }
+
+      .controls {
+        @apply --layout-vertical;
+      }
     </style>
 
     <div id='shortstacks'>
@@ -112,15 +116,18 @@
           </boardgame-card>
         </template>
       </boardgame-card-stack>
-      <paper-button on-tap="handleFanTapped">Draw</paper-button>
-      <paper-dropdown-menu label="Layout">
-        <paper-listbox slot="dropdown-content" selected="{{fromStackLayout}}" attr-for-selected="value">
-          <paper-item value="fan">fan</paper-item>
-          <paper-item value="hand">hand</paper-item>
-          <paper-item value="stack">stack</paper-item>
-          <paper-item value="grid">grid</paper-item>
-        </paper-listbox>
-      </paper-dropdown-menu>
+      <div class="controls">
+        <paper-button on-tap="handleFanTapped">Draw</paper-button>
+        <paper-button on-tap="handleShuffleTapped">Shuffle</paper-button>
+        <paper-dropdown-menu label="Layout">
+          <paper-listbox slot="dropdown-content" selected="{{fromStackLayout}}" attr-for-selected="value">
+            <paper-item value="fan">fan</paper-item>
+            <paper-item value="hand">hand</paper-item>
+            <paper-item value="stack">stack</paper-item>
+            <paper-item value="grid">grid</paper-item>
+          </paper-listbox>
+        </paper-dropdown-menu>
+      </div>
     </div>
 
   </template>
@@ -158,6 +165,10 @@
 
       handleFanTapped(e) {
         this.dispatchEvent(new CustomEvent("propose-move", {composed: true, detail: {name: "Move Fan Card", arguments:{}}}));
+      }
+
+      handleShuffleTapped(e) {
+        this.dispatchEvent(new CustomEvent("propose-move", {composed: true, detail: {name: "Visible Shuffle", arguments:{}}}));
       }
 
     }
