@@ -138,7 +138,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             type: Number,
             value: 0,
             observer: "_requestedPlayerChanged",
-            computed: "_computeRequestedPlayer(viewAs, customRequestedPlayer, game.CurrentPlayerIndex)"
+            computed: "_computeRequestedPlayer(admin, viewingAsPlayer, viewAs, customRequestedPlayer, game.CurrentPlayerIndex)"
           },
           //Valid values: 'custom', 'admin', 'current', 'observer'
           viewAs: {
@@ -256,7 +256,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       }
 
-      _computeRequestedPlayer(viewAs, customRequestedPlayer, currentPlayer) {
+      _computeRequestedPlayer(admin, viewingAsPlayer, viewAs, customRequestedPlayer, currentPlayer) {
+        if (!admin) return viewingAsPlayer;
         switch (viewAs) {
           case "admin":
             return -2;
