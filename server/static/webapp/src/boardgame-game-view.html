@@ -191,6 +191,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           viewingAsPlayerIsCurrentPlayer: {
             type: Boolean,
             value: true,
+            observer: "_viewingAsPlayerIsCurrentPlayerChanged"
           },
           moveAsPlayer: {
             type:Number,
@@ -261,6 +262,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       _requestedPlayerChanged() {
         window.requestAnimationFrame( () => this.fetchData());
+      }
+
+      _viewingAsPlayerIsCurrentPlayerChanged(newValue) {
+        if (!newValue) return;
+        if (!this.game) return;
+        this.requestedPlayer = this.game.CurrentPlayerIndex;
       }
 
       _computeGameViewUrl(apiHost, gameName, gameId, requestedPlayer, admin){
