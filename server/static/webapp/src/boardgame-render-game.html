@@ -84,6 +84,11 @@
       }
 
       _gameNameChanged(newValue) {
+
+        //If there was a state, it might for a different game type which would
+        //cause a render error.
+        this.state = null;
+
         this.rendererLoaded = false
 
         if (this.renderer) {
