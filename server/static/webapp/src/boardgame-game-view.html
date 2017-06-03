@@ -15,6 +15,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/iron-input/iron-input.html">
 <link rel="import" href="../bower_components/paper-checkbox/paper-checkbox.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../bower_components/paper-radio-button/paper-radio-button.html">
+<link rel="import" href="../bower_components/paper-radio-group/paper-radio-group.html">
 <link rel="import" href="boardgame-move-form.html">
 <link rel="import" href="boardgame-player-roster.html">
 <link rel="import" href="shared-styles.html">
@@ -76,12 +78,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <boardgame-render-game state="{{currentState}}" diagram="{{game.Diagram}}" game-name="{{gameName}}" viewing-as-player="{{viewingAsPlayer}}"></boardgame-render-game>
     </div>
     <div hidden$="{{!admin}}">
-      <div class="card horizontal layout admin">
+      <div class="card horizontal layout admin center">
         <div class="flex">
-          View as:<input is="iron-input" type="number" disabled="{{viewingAsPlayerIsCurrentPlayer}}" value-as-number="{{requestedPlayer::input}}" min="-2" max="{{maxRequestedPlayerIndex}}">
-        </div>
-        <div>
-          <paper-checkbox id="viewing-is-current" checked="{{viewingAsPlayerIsCurrentPlayer}}">ViewingAsPlayer is CurrentPlayer</paper-checkbox>
+          View as
+          <paper-radio-group selected="{{viewAs}}">
+            <paper-radio-button name="admin">Admin</paper-radio-button>
+            <paper-radio-button name="observer">Observer</paper-radio-button>
+            <paper-radio-button name="current">Current Player</paper-radio-button>
+            <paper-radio-button name="custom">Custom</paper-radio-button>
+          </paper-radio-group>
+          <input is="iron-input" type="number" value-as-number="{{customRequestedPlayer::input}}" min="0" max="{{maxRequestedPlayerIndex}}">
         </div>
         <div>
           <paper-checkbox id="move-as-player" checked="{{makeMovesAsViewingAsPlayer}}">Make Moves As ViewingAsPlayer</paper-checkbox>
@@ -131,7 +137,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           requestedPlayer: {
             type: Number,
             value: 0,
-            observer: "_requestedPlayerChanged"
+            observer: "_requestedPlayerChanged",
+            computed: "_computeRequestedPlayer(viewAs, customRequestedPlayer, game.CurrentPlayerIndex)"
+          },
+          //Valid values: 'custom', 'admin', 'current', 'observer'
+          viewAs: {
+            type: String,
+            value: "current"
+          },
+          customRequestedPlayer: {
+            type: Number,
+            value: 0
           },
           chest : String,
           gameState : String,
@@ -188,11 +204,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             type:Boolean,
             value: true,
           },
-          viewingAsPlayerIsCurrentPlayer: {
-            type: Boolean,
-            value: true,
-            observer: "_viewingAsPlayerIsCurrentPlayerChanged"
-          },
           moveAsPlayer: {
             type:Number,
             computed: "_computeMoveAsPlayer(viewingAsPlayer, makeMovesAsViewingAsPlayer)"
@@ -245,6 +256,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       }
 
+      _computeRequestedPlayer(viewAs, customRequestedPlayer, currentPlayer) {
+        switch (viewAs) {
+          case "admin":
+            return -2;
+          case "observer":
+            return -1;
+          case "custom":
+            return customRequestedPlayer;
+          case "current":
+            return currentPlayer;
+        }
+      }
 
       _handleLoggedInChanged(newValue) {
         window.requestAnimationFrame(() => this.fetchData());
@@ -262,12 +285,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       _requestedPlayerChanged() {
         window.requestAnimationFrame( () => this.fetchData());
-      }
-
-      _viewingAsPlayerIsCurrentPlayerChanged(newValue) {
-        if (!newValue) return;
-        if (!this.game) return;
-        this.requestedPlayer = this.game.CurrentPlayerIndex;
       }
 
       _computeGameViewUrl(apiHost, gameName, gameId, requestedPlayer, admin){
@@ -534,10 +551,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         this._expandState(newValue.CurrentState);
         this.currentState = newValue.CurrentState;
-
-        if (this.viewingAsPlayerIsCurrentPlayer) {
-          this.requestedPlayer = newValue.CurrentPlayerIndex;
-        }
 
       }
 
