@@ -156,6 +156,10 @@
           suit: String,
           rank: String,
           index: Number,
+          componentItem: {
+            type: Object,
+            observer: "_componentItemChanged"
+          },
           faceUp: Boolean,
           rotated: Boolean,
           //If true, will show old content, not normal front conten
@@ -191,6 +195,24 @@
           return;
         }
         this.dispatchEvent(new CustomEvent('card-tapped', {composed: true, detail: {index: this.index}}));
+      }
+
+      _componentItemChanged(newValue) {
+        if (newValue === undefined) return;
+        if (newValue === null) {
+          this.spacer = true;
+          this.noContent = true;
+          this.faceUp = false;
+          return;
+        }
+        if (newValue.Values) {
+          this.faceUp = true;
+          this.noContent = false;
+        } else {
+          this.faceUp = false;
+          this.noContent = true;
+        }
+        this.id = newValue.Id || "";
       }
 
       _computeInteractive(spacer, disabled) {

@@ -24,7 +24,7 @@
     <h2>Memory</h2>
     <boardgame-card-collection layout="grid" messy ids-last-seen="{{computedCardsIdsLastSeen}}">
       <template is="dom-repeat" items="{{computedCards}}">
-          <boardgame-card title="{{index}}" rank="{{item.Values.Type}}" face-up="{{Exists(item.Values)}}" no-content="{{!Exists(item.Values)}}" spacer="{{!Exists(item)}}" index="{{index}}" id="{{item.Id}}">
+          <boardgame-card title="{{index}}" component-item="{{item}}" index="{{index}}">
             <div class="horizontal layout center center-justified">
               {{item.Values.Type}}
             </div>
@@ -34,14 +34,14 @@
     <div class="layout horizontal around-justified">
       <boardgame-card-collection layout="stack" messy ids-last-seen="{{state.Players.0.WonCards}}">
         <template is="dom-repeat" items="{{state.Players.0.WonCards.Components}}">
-          <boardgame-card id="{{item.Id}}" index="{{index}}" disabled></boardgame-card>
+          <boardgame-card component-item="{{item}}" index="{{index}}" disabled></boardgame-card>
         </template>
       </boardgame-card-collection>
       <!-- have a boardgame-card spacer just to keep that row height sane even with no cards -->
       <boardgame-card spacer></boardgame-card>
       <boardgame-card-collection layout="stack" messy ids-last-seen="{{state.Players.1.WonCards}}">
         <template is="dom-repeat" items="{{state.Players.1.WonCards.Components}}">
-          <boardgame-card id="{{item.Id}}" index="{{index}}" disabled></boardgame-card>
+          <boardgame-card component-item="{{item}}" index="{{index}}" disabled></boardgame-card>
         </template>
       </boardgame-card-collection>
     </div>
@@ -134,10 +134,6 @@
 
       IsCurrentPlayer(i, currentPlayer) {
         return (i == currentPlayer) ? "current" : "";
-      }
-
-      Exists(item) {
-        return (item) ? true : false
       }
 
     }
