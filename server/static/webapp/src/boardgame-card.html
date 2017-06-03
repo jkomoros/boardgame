@@ -212,6 +212,10 @@
           //collection will set this in some cases, like in a stack, so that
           //all of the shadows for 10's of cards don't multiply together.
           noShadow: Boolean,
+          _animating: {
+            type: Boolean,
+            value: false
+          }
         }
       }
 
@@ -220,6 +224,11 @@
           return;
         }
         this.dispatchEvent(new CustomEvent('card-tapped', {composed: true, detail: {index: this.index}}));
+      }
+
+      ready() {
+        super.ready();
+        this.$.inner.addEventListener("transitionend", e => this._animationEnded(e));
       }
 
       _itemChanged(newValue) {
@@ -246,6 +255,13 @@
         } else {
           this.$.inner.style.transform = "none";
         }
+        if (!this.noAnimate) {
+          this._animating = true;
+        }
+      }
+
+      _animationEnded(e) {
+        this._animating = false;
       }
 
       _computeInteractive(spacer, disabled) {
