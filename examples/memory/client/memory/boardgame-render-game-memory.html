@@ -32,15 +32,15 @@
       </template>
     </boardgame-card-collection>
     <div class="layout horizontal around-justified">
-      <boardgame-card-collection layout="stack" messy ids-last-seen="{{state.Players.0.WonCards}}">
-        <template is="dom-repeat" items="{{state.Players.0.WonCards.Components}}">
+      <boardgame-card-collection layout="stack" stack="{{state.Players.0.WonCards}}" messy>
+        <template is="dom-repeat">
           <boardgame-card component-item="{{item}}" index="{{index}}" disabled></boardgame-card>
         </template>
       </boardgame-card-collection>
       <!-- have a boardgame-card spacer just to keep that row height sane even with no cards -->
       <boardgame-card spacer></boardgame-card>
-      <boardgame-card-collection layout="stack" messy ids-last-seen="{{state.Players.1.WonCards}}">
-        <template is="dom-repeat" items="{{state.Players.1.WonCards.Components}}">
+      <boardgame-card-collection layout="stack" messy stack="{{state.Players.1.WonCards}}">
+        <template is="dom-repeat">
           <boardgame-card component-item="{{item}}" index="{{index}}" disabled></boardgame-card>
         </template>
       </boardgame-card-collection>

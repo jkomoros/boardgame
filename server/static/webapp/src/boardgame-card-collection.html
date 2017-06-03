@@ -128,6 +128,14 @@
               type: String,
               observer: "_updateCardClasses"
             },
+            //stack should be set to the state value corresponding to a stack.
+            //It will set idsLastSeen, and also set the first dom-repeat it
+            //finds as a child's items to stack.Components.
+            stack : {
+              type: Object,
+              value: null,
+              observer: "_stackChanged"
+            },
             messy: Boolean,
             idsLastSeen: Object,
             noAnimate: Boolean,
@@ -166,6 +174,17 @@
           this.$.cards.addEventListener("slotchange", () => this._slotChanged());
           //If the children are already stamped, update now.
           this._slotChanged();
+        }
+
+        _stackChanged(newValue) {
+          if (!newValue) return;
+          this.idsLastSeen = newValue.IdsLastSeen || {};
+          var repeater = this.querySelector("dom-repeat");
+          if (!repeater) {
+            console.warn("Couldn't find a repeater to stamp stack items into")
+            return;
+          }
+          repeater.items = newValue.Components;
         }
 
         get _realCards() {
