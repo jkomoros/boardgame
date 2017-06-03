@@ -57,7 +57,12 @@
             var record = result[card.id] || {};
 
             record.offsets = this._calculateOffsets(card);
-            record.previousTransform = card.style.transform;
+
+            //We use getComputedStyle instead of just card.style.transform,
+            //because if the card is in the middle of transforming, we want
+            //the exact value at that second, not what the logical final value
+            //is.
+            record.previousTransform = getComputedStyle(card).transform;
 
             record.beforeFaceUp = card.faceUp;
 
