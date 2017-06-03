@@ -39,10 +39,6 @@
         perspective: 1000px;
       }
 
-      #card.face-up .inner {
-        transform: rotateY(180deg);
-      }
-
       #card.rotated {
         height: 6em;
         width: 4em;
@@ -52,7 +48,7 @@
         cursor: pointer;
       }
 
-      .inner {
+      #inner {
         height: 4em;
         width: 6em;
 
@@ -63,23 +59,23 @@
         transition: transform var(--animation-length, 0.25s) ease-in-out, var(--shadow-transition_-_transition);
       }
 
-      .no-animate .inner {
+      .no-animate #inner {
         transition: unset;
       }
 
-      .disabled .inner {
+      .disabled #inner {
         filter: saturate(20%) brightness(125%);
       }
 
-      .rotated .inner {
+      .rotated #inner {
         transform: rotate(-90deg);
       }
 
-      #card.shadow .inner {
+      #card.shadow #inner {
         @apply --shadow-elevation-2dp;
       }
 
-      #card.shadow.interactive:hover .inner {
+      #card.shadow.interactive:hover #inner {
         @apply --shadow-elevation-8dp;
       }
 
@@ -120,8 +116,8 @@
 
     </style>
 
-    <div id="card" class$="{{_classes(faceUp, spacer, noShadow, rotated, interactive, disabled, noContent, noAnimate)}}" on-tap="handleTap">
-      <div class="inner">
+    <div id="card" class$="{{_classes(spacer, noShadow, rotated, interactive, disabled, noContent, noAnimate)}}" on-tap="handleTap">
+      <div id="inner">
         <div id="front">
           <div class="normal">
             <slot>
@@ -168,7 +164,10 @@
           },
           //If true, the card will be rendered with its face showing, not its
           //back. If noAnimate is false, will animate the card flip.
-          faceUp: Boolean,
+          faceUp: {
+            type: Boolean,
+            observer: "_faceUpChanged"
+          },
           //If true, the card is rotated 90 degrees.
           rotated: Boolean,
           //If true, content with a slot of "fallback" will be rendered
@@ -241,15 +240,20 @@
         this.id = newValue.Id || "";
       }
 
+      _faceUpChanged(newValue) {
+        if (newValue) {
+          this.$.inner.style.transform = "rotateY(180deg)";
+        } else {
+          this.$.inner.style.transform = "none";
+        }
+      }
+
       _computeInteractive(spacer, disabled) {
         return !spacer && !disabled;
       }
 
-      _classes(faceUp, spacer, noShadow, rotated, interactive, disabled, noContent, noAnimate) {
+      _classes(spacer, noShadow, rotated, interactive, disabled, noContent, noAnimate) {
         let result = ["card"];
-        if (faceUp) {
-          result.push("face-up");
-        }
         if (spacer) {
           result.push("spacer");
         }
