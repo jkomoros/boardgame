@@ -80,8 +80,8 @@
     </div>
 
     <div id='draw'>
-      <boardgame-card-collection layout='stack' messy>
-        <template is='dom-repeat' items='{{singleCard(state)}}'>
+      <boardgame-card-collection layout='stack' messy primary-stack="{{state.Game.HiddenCard}}" secondary-stack="{{state.Game.RevealedCard}}"> 
+        <template is='dom-repeat'>
           <boardgame-card index="{{index}}" component-item="{{item}}">
             <div>
               {{item.Values.Type}}
@@ -158,20 +158,6 @@
 
       handleFanTapped(e) {
         this.dispatchEvent(new CustomEvent("propose-move", {composed: true, detail: {name: "Move Fan Card", arguments:{}}}));
-      }
-
-      singleCard(state) {
-        var result = [];
-
-        if (!state) return result;
-
-        if (state.Game.HiddenCard.Components[0]) {
-          result.push(state.Game.HiddenCard.Components[0]);
-        } else {
-          result.push(state.Game.RevealedCard.Components[0]);
-        }
-
-        return result;
       }
 
     }
