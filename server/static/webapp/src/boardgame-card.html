@@ -155,9 +155,9 @@
           suit: String,
           rank: String,
           index: Number,
-          componentItem: {
+          item: {
             type: Object,
-            observer: "_componentItemChanged"
+            observer: "_itemChanged"
           },
           faceUp: Boolean,
           rotated: Boolean,
@@ -196,7 +196,7 @@
         this.dispatchEvent(new CustomEvent('card-tapped', {composed: true, detail: {index: this.index}}));
       }
 
-      _componentItemChanged(newValue) {
+      _itemChanged(newValue) {
         if (newValue === undefined) return;
         if (newValue === null) {
           this.spacer = true;

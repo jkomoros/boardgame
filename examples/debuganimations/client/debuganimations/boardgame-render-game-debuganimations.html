@@ -38,7 +38,7 @@
     <div id='shortstacks'>
       <boardgame-card-collection layout='stack' stack="{{state.Game.FirstShortStack}}" messy>
         <template is='dom-repeat'>
-          <boardgame-card component-item="{{item}}" index="{{index}}">
+          <boardgame-card item="{{item}}" index="{{index}}">
             <div>
               {{item.Values.Type}}
             </div>
@@ -47,7 +47,7 @@
       </boardgame-card-collection>
       <boardgame-card-collection layout='stack' messy stack="{{state.Game.SecondShortStack}}">
         <template is='dom-repeat'>
-          <boardgame-card component-item="{{item}}" index="{{index}}">
+          <boardgame-card item="{{item}}" index="{{index}}">
             <div>
               {{item.Values.Type}}
             </div>
@@ -60,7 +60,7 @@
     <div id='draw'>
       <boardgame-card-collection layout='stack' messy stack="{{state.Game.DrawStack}}">
         <template is='dom-repeat'>
-          <boardgame-card component-item="{{item}}" index="{{index}}">
+          <boardgame-card item="{{item}}" index="{{index}}">
             <div>
               {{item.Values.Type}}
             </div>
@@ -69,7 +69,7 @@
       </boardgame-card-collection>
       <boardgame-card-collection layout='stack' messy stack="{{state.Game.DiscardStack}}">
         <template is='dom-repeat'>
-          <boardgame-card component-item="{{item}}" index="{{index}}">
+          <boardgame-card item="{{item}}" index="{{index}}">
             <div>
               {{item.Values.Type}}
             </div>
@@ -82,7 +82,7 @@
     <div id='draw'>
       <boardgame-card-collection layout='stack' messy primary-stack="{{state.Game.HiddenCard}}" secondary-stack="{{state.Game.RevealedCard}}"> 
         <template is='dom-repeat'>
-          <boardgame-card index="{{index}}" component-item="{{item}}">
+          <boardgame-card index="{{index}}" item="{{item}}">
             <div>
               {{item.Values.Type}}
             </div>
@@ -95,7 +95,7 @@
     <div id="fan">
       <boardgame-card-collection layout='{{fromStackLayout}}' messy stack="{{state.Game.FanStack}}">
         <template is='dom-repeat'>
-          <boardgame-card component-item="{{item}}" index="{{index}}">
+          <boardgame-card item="{{item}}" index="{{index}}">
             <div>
               {{item.Values.Type}}
             </div>
@@ -105,7 +105,7 @@
       <div class="flex"></div>
       <boardgame-card-collection layout='stack' messy stack="{{state.Game.FanDiscard}}">
         <template is='dom-repeat'>
-          <boardgame-card component-item="{{item}}" index="{{index}}">
+          <boardgame-card item="{{item}}" index="{{index}}">
             <div>
               {{item.Values.Type}}
             </div>
