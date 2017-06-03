@@ -7,6 +7,12 @@
     <title>Board Game</title>
     <meta name="description" content="Board Game allows you to play board games! ">
 
+    <!--
+      If deploying to a non-root path, replace href="/" with the full path to the project root.
+      For example: href="/polymer-starter-kit/relative-path-example/"
+    -->
+    <base href="/">
+
     <link rel="icon" href="/images/favicon.ico">
 
     <!-- See https://goo.gl/OOhYW5 -->
@@ -52,51 +58,19 @@
     </script>
 
     <script>
-      // Setup Polymer options
-      window.Polymer = {
-        dom: 'shadow',
-        lazyRegister: true,
-      };
+      // Register the base URL
+      const baseUrl = document.querySelector('base').href;
 
-      // Load webcomponentsjs polyfill if browser does not support native
-      // Web Components
-      (function() {
-        'use strict';
-
-        var onload = function() {
-          // For native Imports, manually fire WebComponentsReady so user code
-          // can use the same code path for native and polyfill'd imports.
-          if (!window.HTMLImports) {
-            document.dispatchEvent(
-              new CustomEvent('WebComponentsReady', {bubbles: true})
-            );
-          }
-        };
-
-        var webComponentsSupported = (
-          'registerElement' in document
-          && 'import' in document.createElement('link')
-          && 'content' in document.createElement('template')
-        );
-
-        if (!webComponentsSupported) {
-          var script = document.createElement('script');
-          script.async = true;
-          script.src = '/bower_components/webcomponentsjs/webcomponents-lite.min.js';
-          script.onload = onload;
-          document.head.appendChild(script);
-        } else {
-          onload();
-        }
-      })();
-
-      // Load pre-caching Service Worker
+      // Load and register pre-caching Service Worker
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/service-worker.js');
+          navigator.serviceWorker.register(baseUrl + 'service-worker.js');
         });
       }
     </script>
+
+    <!-- Load webcomponents-loader.js to check and load any polyfills your browser needs -->
+    <script src="bower_components/webcomponentsjs/webcomponents-loader.js"></script>
 
     <link rel="import" href="/src/boardgame-app.html">
 
