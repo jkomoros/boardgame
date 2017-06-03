@@ -143,10 +143,15 @@
             var invertTop = record.offsets.top - record.newOffsets.top;
             var invertLeft = record.offsets.left - record.newOffsets.left;
 
-            if (invertTop != 0 || invertLeft != 0) {
-              var transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`
-              card.style.transform = transform + " " + record.previousTransform;
-            }
+            //We used to only bother setting transforms for items that had
+            //physically moved. However, the browser is smart enough to ignore
+            //transforms that are basically no ops. And if we don't set it
+            //then cards that don't physically move but do have transform
+            //changes won't animate because the transform was set during
+            //noAnimate and is never set to anything different. In testing
+            //this didn't appear to have any appreciable performance difference.
+            var transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`
+            card.style.transform = transform + " " + record.previousTransform;
 
             if (record.clonedNodes && record.clonedNodes.length > 0) {
 
