@@ -81,6 +81,13 @@ type Stack interface {
 	//package doc section on sanitization for more on Id scrambling.
 	Shuffle() error
 
+	//PublicShuffle is the same as Shuffle, but the Ids are not scrambled
+	//after the shuffle. PublicShuffle makes sense in cases where only a small
+	//number of cards are shuffled and a preternaturally savvy observer should
+	//be able to keep track of them. The normal Shuffle() is almost always
+	//what you want.
+	PublicShuffle() error
+
 	//SwapComponents swaps the position of two components within this stack
 	//without changing the size of the stack (in SizedStacks, it is legal to
 	//swap empty slots). i,j must be between [0, stack.Len()).
@@ -968,8 +975,7 @@ func moveComonentImpl(source Stack, componentIndex int, destination Stack, slotI
 
 }
 
-func (g *GrowableStack) Shuffle() error {
-
+func (g *GrowableStack) PublicShuffle() error {
 	if err := g.modificationsAllowed(); err != nil {
 		return err
 	}
@@ -983,14 +989,21 @@ func (g *GrowableStack) Shuffle() error {
 		g.indexes[i] = currentComponents[j]
 	}
 
+	return nil
+}
+
+func (g *GrowableStack) Shuffle() error {
+
+	if err := g.PublicShuffle(); err != nil {
+		return err
+	}
+
 	g.scrambleIds()
 
 	return nil
-
 }
 
-func (s *SizedStack) Shuffle() error {
-
+func (s *SizedStack) PublicShuffle() error {
 	if err := s.modificationsAllowed(); err != nil {
 		return err
 	}
@@ -1002,6 +1015,15 @@ func (s *SizedStack) Shuffle() error {
 
 	for i, j := range perm {
 		s.indexes[i] = currentComponents[j]
+	}
+
+	return nil
+}
+
+func (s *SizedStack) Shuffle() error {
+
+	if err := s.PublicShuffle(); err != nil {
+		return err
 	}
 
 	s.scrambleIds()
