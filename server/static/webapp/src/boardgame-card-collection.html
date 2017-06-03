@@ -159,7 +159,11 @@
               value: 0
             },
             _createSpacer: Boolean,
-            _fauxCardsToAdd: Array
+            _fauxCardsToAdd: Array,
+            _randomRotationOffset: {
+              type: Number,
+              value: 0
+            }
           }
         }
 
@@ -194,6 +198,11 @@
           this.$.cards.addEventListener("slotchange", () => this._slotChanged());
           //If the children are already stamped, update now.
           this._slotChanged();
+          //Generate a random rotation offset from 0 to 20 that will make this
+          //stack have rotatons that are stable as long as the collection
+          //exists (which it will in general because Polymer databinding will
+          //reuse elements) but different from most other stacks.
+          this._randomRotationOffset = Math.floor(Math.random() * 21);
         }
 
         _stackChanged(newValue) {
@@ -429,7 +438,7 @@
 
           var values = [-0.3, 0.8, -1.4, 1.2, -0.8, 1.5, -0.3, -1.2, -1.8, 0.7, -0.9, 0.9, 0.1, 1.8, 0.7, -0.5];
 
-          index = index % values.length;
+          index = (index  + this._randomRotationOffset) % values.length;
 
           return values[index];
 
