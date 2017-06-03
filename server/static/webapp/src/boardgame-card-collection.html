@@ -372,6 +372,9 @@
 
             if (this.messy) {
               card.style.transform = "rotate(" + this._messyRotationForIndex(i) + "deg)";
+            } else {
+              //_fanCards assumes that the transform has been "reset" in this layout pass.
+              card.style.transform = "";
             }
 
             if (i == cards.length - 1) {
