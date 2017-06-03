@@ -16,8 +16,7 @@
       .current {
         font-weight:bold;
       }
-      boardgame-card > div {
-        height:100%;
+      boardgame-card>div{
         @apply(--paper-font-display2);
       }
     </style>
@@ -25,7 +24,7 @@
     <boardgame-card-collection layout="grid" messy primary-stack="{{state.Game.RevealedCards}}" secondary-stack="{{state.Game.HiddenCards}}">
       <template is="dom-repeat">
           <boardgame-card title="{{index}}" item="{{item}}" index="{{index}}">
-            <div class="horizontal layout center center-justified">
+            <div>
               {{item.Values.Type}}
             </div>
           </boardgame-card>
