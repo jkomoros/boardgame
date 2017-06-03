@@ -123,9 +123,12 @@
 
         static get properties() {
           return {
+            //layout sets the layout style to use. One of `stack` (default),
+            //`grid`, `hand` and `fan`
             layout: {
               type: String,
-              observer: "_updateCardClasses"
+              observer: "_updateCardClasses",
+              value: "stack"
             },
             //stack should be set to the state value corresponding to a stack.
             //It will set idsLastSeen, and also set the first dom-repeat it
@@ -150,10 +153,24 @@
               type: String,
               value: "overlap"
             },
+            //if true, all cards will have a slight rotation transformation
+            //applied to make the layout not look artificially tidy
             messy: Boolean,
+            //idsLastSeen should be the IdsLastSeen for the stack that this
+            //collection represents. boardgame-component-animator will use
+            //this value to figure out where to animate from and to.
             idsLastSeen: Object,
+            //if true, animations will be suppressed
             noAnimate: Boolean,
+            //If there are no cards, by default we'll inject a single spacer
+            //(invisibled) card, just to make sure the overall layout doesn't
+            //jump when a card is added to this collection. If this property
+            //is true, we won't do that.
             noDefaultSpacer: Boolean,
+            //If there aren't more than fauxCards "real" cards in the
+            //collection, we'll make fake cards until there are this many
+            //cards. This is useful if you have, for example, a very big draw
+            //deck and only want to actually render the first few cards.
             fauxCards: {
               type: Number,
               value: 0
