@@ -478,7 +478,7 @@ func (s *Server) listGamesHandler(c *gin.Context) {
 
 func (s *Server) doListGames(r *Renderer) {
 	r.Success(gin.H{
-		"Games": s.storage.ListGames(10),
+		"Games": s.storage.ListGames(100),
 	})
 }
 
@@ -589,7 +589,7 @@ func (s *Server) gamePlayerInfo(game *boardgame.Game) []*playerBoardInfo {
 	userIds := s.storage.UserIdsForGame(game.Id())
 	agentNames := game.Agents()
 
-	for i, _ := range result {
+	for i := range result {
 
 		player := &playerBoardInfo{}
 
