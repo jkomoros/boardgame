@@ -15,8 +15,7 @@
       }
 
       #container ::slotted(boardgame-card), #container boardgame-card {
-        /* same duration as card's flip animation */
-        transition: transform 0.25s ease-in-out;
+        transition: transform var(--animation-length, 0.25s) ease-in-out;
       }
 
       #container.no-animate ::slotted(boardgame-card), #container.no-animate boardgame-card {

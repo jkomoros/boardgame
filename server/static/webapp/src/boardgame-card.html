@@ -59,8 +59,7 @@
 
         transform-style: preserve-3d;
         position: relative;
-        /* same duration as card-collection's animation */
-        transition: transform 0.25s ease-in-out, var(--shadow-transition_-_transition);
+        transition: transform var(--animation-length, 0.25s) ease-in-out, var(--shadow-transition_-_transition);
       }
 
       .no-animate .inner {
