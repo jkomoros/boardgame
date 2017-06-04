@@ -33,6 +33,11 @@ type moveVisibleShuffleCards struct {
 }
 
 //+autoreader readsetter
+type moveShuffleCards struct {
+	boardgame.DefaultMove
+}
+
+//+autoreader readsetter
 type moveMoveBetweenHidden struct {
 	boardgame.DefaultMove
 }
@@ -298,6 +303,42 @@ func (m *moveVisibleShuffleCards) Apply(state boardgame.MutableState) error {
 	game, _ := concreteStates(state)
 
 	return game.FanStack.PublicShuffle()
+
+}
+
+/**************************************************
+ *
+ * moveShuffleCards Implementation
+ *
+ **************************************************/
+
+func MoveShuffleCardsFactory(state boardgame.State) boardgame.Move {
+	result := &moveShuffleCards{
+		boardgame.DefaultMove{
+			"Shuffle",
+			"Performs a secret shuffle",
+		},
+	}
+
+	return result
+}
+
+func (m *moveShuffleCards) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+
+	game, _ := concreteStates(state)
+
+	if game.FanStack.NumComponents() > 1 {
+		return nil
+	}
+
+	return errors.New("Aren't enough cards to shuffle")
+}
+
+func (m *moveShuffleCards) Apply(state boardgame.MutableState) error {
+
+	game, _ := concreteStates(state)
+
+	return game.FanStack.Shuffle()
 
 }
 
