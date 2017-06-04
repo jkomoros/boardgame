@@ -16,6 +16,7 @@
       static get properties() {
         return {
           _infoById: Object,
+          _beforeSeenIds: Object,
           ancestorOffsetParent: Object
         }
       }
@@ -23,12 +24,16 @@
       _calculateOffsets(ele) {
         var top = 0;
         var left = 0;
+        var width = 0;
+        var height = 0;
 
         var offsetEle = ele;
         while (offsetEle) {
 
           top += offsetEle.offsetTop;
           left += offsetEle.offsetLeft;
+          width += offsetEle.offsetWidth;
+          height += offsetEle.offsetHeight;
 
           if (offsetEle == this.ancestorOffsetParent) {
             offsetEle = null;
@@ -39,7 +44,9 @@
 
         return {
           top: top,
-          left: left
+          left: left,
+          width: width,
+          height: height
         };
       }
 
@@ -49,12 +56,18 @@
 
         var result = this._infoById || {};
 
+        //keep track of all of the ids we've seen this round to make sure we
+        //found a home for all of them in the end.
+        this._beforeSeenIds = new Set();
+
         for (var i = 0; i < collections.length; i++) {
           var collection = collections[i];
           var cards = collection.Cards;
           for (var j = 0; j < cards.length; j++) {
             var card = cards[j];
             var record = result[card.id] || {};
+
+            this._beforeSeenIds.add(card.id);
 
             record.offsets = this._calculateOffsets(card);
 
@@ -97,6 +110,11 @@
       _doAnimate() {
         var collections = this.$.stack._sharedStackList;
 
+        //Sizing information of a collection
+        var collectionLocations = {};
+        //The last seen location of a given card ID
+        var idToPossibleCollection = new Map();
+
         //Turning off animations and setting card flip all require recalcing
         //style so do them once before readback in the second loop.
 
@@ -115,6 +133,11 @@
         //do it in its own pass.
         for (var i = 0; i < collections.length; i++) {
           var collection = collections[i];
+
+          //Keep track of offsets of collection in case we need to animate a
+          //card to it generically
+          collectionLocations[collection.id] = this._calculateOffsets(collection);
+
           var cards = collection.Cards;
           for (var j = 0; j < cards.length; j++) {
             var card = cards[j];
@@ -130,12 +153,19 @@
         for (var i = 0; i < collections.length; i++) {
 
           var collection = collections[i];
+
+          //Note which Ids were last seen here
+          this._ingestStack(idToPossibleCollection, collection);
+
           var cards = collection.Cards;
           for (var j = 0; j < cards.length; j++) {
             var card = cards[j];
             var record = this._infoById[card.id];
 
             if (!record) continue;
+
+            //Mark that we've seen where this one is going.
+            this._beforeSeenIds.delete(card.id);
 
             record.postPreviousTransform = card.style.transform;
 
@@ -177,6 +207,13 @@
           }
         }
 
+        //Any items still in _beforeSeenIds did not have a specific card to
+        //animate to. Let's see if we can figure out which collection they
+        //went to.
+
+        //TODO: animate things that are not yet seen.
+        console.log(collectionLocations, idToPossibleCollection);
+
         //Wait for styles to be set to do the animations
         window.requestAnimationFrame(() => this._startAnimations());
 
@@ -199,6 +236,37 @@
 
           }
         }
+      }
+
+      _ingestStack(possibleLocations, stack) {
+
+        var idsLastSeen = stack.idsLastSeen;
+
+        for (var key in idsLastSeen) {
+          if (!idsLastSeen.hasOwnProperty(key)) continue;
+
+          if (possibleLocations.has(key)) {
+
+            var record = possibleLocations.get(key);
+
+            if (idsLastSeen[key] > record.version) {
+              //new winner
+              possibleLocations.set(key, {
+                version: idsLastSeen[key],
+                stack: stack
+              })
+            }
+
+          } else {
+            //We're the first one that's been seen; add it.
+            possibleLocations.set(key, {
+              version: idsLastSeen[key],
+              stack: stack
+            })
+          }
+
+        }
+
       }
 
     }
