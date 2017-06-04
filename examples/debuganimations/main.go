@@ -148,7 +148,7 @@ func (g *gameDelegate) StateSanitizationPolicy() *boardgame.StatePolicy {
 					boardgame.GroupAll: boardgame.PolicyOrder,
 				},
 				"HiddenStack": {
-					boardgame.GroupAll: boardgame.PolicyLen,
+					boardgame.GroupAll: boardgame.PolicyNonEmpty,
 				},
 			},
 		}
