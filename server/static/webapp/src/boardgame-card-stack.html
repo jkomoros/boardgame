@@ -210,6 +210,13 @@
           }
         }
 
+        //id will be set to a long, stable Id for this stack during its
+        //lifetime. Primarily useful to identify itself to the animation-
+        //coordinator.
+        get id() {
+          return this._id;
+        }
+
         ready() {
           super.ready();
           this.$.cards.addEventListener("slotchange", () => this._slotChanged());
@@ -220,6 +227,7 @@
           //(which it will in general because Polymer databinding will reuse
           //elements) but different from most other stacks.
           this._randomRotationOffset = Math.floor(Math.random() * 21);
+          this._id = this._randomId(8);
         }
 
         _stackChanged(newValue) {
@@ -483,7 +491,17 @@
           return copy
         }
 
-      }
+        _randomId(length) {
+            var text = "";
+            var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+            for( var i=0; i < length; i++ ) {
+              text += possible.charAt(Math.floor(Math.random() * possible.length));
+            }
+
+            return text;
+        }
+      } 
 
     })();
 
