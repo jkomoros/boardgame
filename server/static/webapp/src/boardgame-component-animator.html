@@ -145,11 +145,17 @@
           var offsetCard = collection.offsetCard;
           collectionOffsets.set(collection.id, this._calculateOffsets(offsetCard));
 
+          //Note which Ids were last seen here
+          this._ingestStack(idToPossibleCollection, collection);
+
           var cards = collection.Cards;
           for (var j = 0; j < cards.length; j++) {
             var card = cards[j];
             var record = this._infoById[card.id];
-            if (!record) continue;
+            if (!record) {
+              record = {};
+              this._infoById[card.id] = record;
+            }
             record.newOffsets = this._calculateOffsets(card);        
           }
         }
@@ -160,15 +166,27 @@
 
           var collection = collections[i];
 
-          //Note which Ids were last seen here
-          this._ingestStack(idToPossibleCollection, collection);
-
           var cards = collection.Cards;
           for (var j = 0; j < cards.length; j++) {
             var card = cards[j];
             var record = this._infoById[card.id];
 
-            if (!record) continue;
+            if (!record.offsets) {
+
+              //Hmm, a record who didn't have its offsets set in prepare(),
+              //presumably because it didn't exist. This MAY be an element who
+              //came from a PolicyNonEmpty stack.
+
+              var collectionRecord = idToPossibleCollection.get(card.id);
+
+              if (!collectionRecord) {
+                //Nah, we don't know where it came from. Just skip animating it.
+                continue;
+              }
+
+              record.offsets = collectionOffsets.get(collectionRecord.stack.id);
+
+            }
 
             //Mark that we've seen where this one is going.
             this._beforeSeenIds.delete(card.id);
