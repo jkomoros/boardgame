@@ -226,6 +226,8 @@
 
           var card = record.stack.newAnimatingCard();
 
+          card.faceUp = this._infoById[id].beforeFaceUp;
+
           this._animatingCards.push({
             card: card,
             previousTransform: card.style.transform
@@ -273,6 +275,8 @@
 
         for (var i = 0; i < this._animatingCards.length; i++) {
           var record = this._animatingCards[i];
+          record.card.noAnimate = false;
+          record.card.faceUp = false;
           record.card.style.transform = record.previousTransform;
         }
 
