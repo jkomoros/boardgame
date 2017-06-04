@@ -20,7 +20,7 @@
       }
 
       #container ::slotted(boardgame-card), #container boardgame-card {
-        transition: transform var(--animation-length, 0.25s) ease-in-out;
+        transition: transform var(--animation-length, 0.25s) ease-in-out, opacity var(--animation-length, 0.25s) ease-in-out;
       }
 
       #container.no-animate ::slotted(boardgame-card), #container.no-animate boardgame-card {
@@ -241,7 +241,8 @@
           var card = document.createElement("boardgame-card");
           card.noAnimate = true;
           card.noContent = true;
-          card.style.transform = "scale(0.01)";
+          card.style.transform = "scale(0.6)";
+          card.style.opacity = "0.0";
           this.$["animating-cards"].appendChild(card);
           card.addEventListener("transitionend", e => this._clearAnimatingCards(e));
           return card;
