@@ -102,6 +102,10 @@ If you don't, don't forget to add it to the polymer.json fragments list above.
 
 One useful element in src/ is boardgame-card, which implements a card that can have an overridable front and back, and can do animations and such.
 
+When you use boardgame-card-stack and boardgame-card in conjunction you'll get powerful animations that just do what you want. They use card.Id and stack.LastIdsSeen to calculate which card is which and animate. It will also do advanced things like cloning old content into the card for when the new state has flipped the card hidden. 
+
+It can be finicky to set all of the cards correctly for the animation to work as you want; the easiest way is to set boardgame-card-stack's stack property to the stack in the state, and then have a dom-repeat with boardgame-card that have item="{{item}}" index="{{index}}", and the card's children how to render if there is content. If you do that, everything will work as expected!
+
 ## Adding new views
 
 You can add new views in game-src/ that are imported directly from other views in game-src/. Remember that game-render-view is the polymer element that is the root of your game rendering.
