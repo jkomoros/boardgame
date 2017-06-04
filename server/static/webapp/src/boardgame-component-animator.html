@@ -184,8 +184,17 @@
                 continue;
               }
 
-              record.offsets = collectionOffsets.get(collectionRecord.stack.id);
+              var theStack = collectionRecord.stack;
+              //We actually want the runner up, if it exists. the winner is
+              //the stack it's now in, and teh runner up should be where it
+              //just came from.
+              if (collectionRecord.runnerUpStack) {
+                theStack = collectionRecord.runnerUpStack;
+              }
 
+              record.offsets = collectionOffsets.get(theStack.id);
+              record.beforeFaceUp = false;
+              record.previousTransform = theStack.offsetCard.style.transform;
             }
 
             //Mark that we've seen where this one is going.
@@ -335,9 +344,23 @@
 
             if (idsLastSeen[key] > record.version) {
               //new winner
-              possibleLocations.set(key, {
+              var newRecord = {
                 version: idsLastSeen[key],
-                stack: stack
+                stack: stack,
+                runnerUpVersion: record.version,
+                runnerUpStack: record.stack
+              };
+              possibleLocations.set(key, newRecord)
+              record = newRecord;
+            }
+
+            if (!record.runnerUpStack || idsLastSeen[key] > record.runnerUpVersion) {
+              //Found a new second!
+              possibleLocations.set(key, {
+                version: record.version,
+                stack: record.stack,
+                runnerUpVersion: idsLastSeen[key],
+                runnerUpStack: stack
               })
             }
 
