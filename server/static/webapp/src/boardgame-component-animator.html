@@ -17,6 +17,7 @@
         return {
           _infoById: Object,
           _beforeSeenIds: Object,
+          _animatingCards: Array,
           ancestorOffsetParent: Object
         }
       }
@@ -207,12 +208,45 @@
           }
         }
 
+
+        this._animatingCards = [];
+
         //Any items still in _beforeSeenIds did not have a specific card to
         //animate to. Let's see if we can figure out which collection they
         //went to.
+        for (let id of this._beforeSeenIds) {
 
-        //TODO: animate things that are not yet seen.
-        console.log(collectionLocations, idToPossibleCollection);
+          //Which stack do we think this is in now?
+          var record = idToPossibleCollection.get(id);
+
+          if (!record) {
+            //Guess it's a mystery. :-(
+            continue;
+          }
+
+          var card = record.stack.newAnimatingCard();
+
+          this._animatingCards.push({
+            card: card,
+            previousTransform: card.style.transform
+          })
+
+          var stackLocation = collectionLocations[record.stack.id];
+          var oldLocation = this._infoById[id].offsets;
+
+          var invertTop = oldLocation.top - stackLocation.top;
+          var invertLeft = oldLocation.left - stackLocation.left;
+
+          //We used to only bother setting transforms for items that had
+          //physically moved. However, the browser is smart enough to ignore
+          //transforms that are basically no ops. And if we don't set it
+          //then cards that don't physically move but do have transform
+          //changes won't animate because the transform was set during
+          //noAnimate and is never set to anything different. In testing
+          //this didn't appear to have any appreciable performance difference.
+          var transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`
+          card.style.transform = transform;
+        }
 
         //Wait for styles to be set to do the animations
         window.requestAnimationFrame(() => this._startAnimations());
@@ -236,6 +270,12 @@
 
           }
         }
+
+        for (var i = 0; i < this._animatingCards.length; i++) {
+          var record = this._animatingCards[i];
+          record.card.style.transform = record.previousTransform;
+        }
+
       }
 
       _ingestStack(possibleLocations, stack) {

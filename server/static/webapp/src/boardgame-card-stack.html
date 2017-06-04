@@ -238,11 +238,11 @@
 
         //Returns a new card to animate its position. When its transition ends it will be removed.
         newAnimatingCard() {
-          var card = document.createelement("boardgame-card");
+          var card = document.createElement("boardgame-card");
           card.style.transform = "scale(0.01)";
           this.$["animating-cards"].appendChild(card);
           card.addEventListener("transitionend", e => this._clearAnimatingCards);
-
+          return card;
         }
 
         _clearAnimatingCards(e) {
