@@ -111,8 +111,6 @@
       _doAnimate() {
         var collections = this.$.stack._sharedStackList;
 
-        //Sizing information of a collection
-        var collectionLocations = {};
         //The last seen location of a given card ID
         var idToPossibleCollection = new Map();
 
@@ -134,11 +132,6 @@
         //do it in its own pass.
         for (var i = 0; i < collections.length; i++) {
           var collection = collections[i];
-
-          //Keep track of offsets of collection in case we need to animate a
-          //card to it generically
-          collectionLocations[collection.id] = this._calculateOffsets(collection);
-
           var cards = collection.Cards;
           for (var j = 0; j < cards.length; j++) {
             var card = cards[j];
@@ -232,11 +225,14 @@
 
           this._animatingCards.push({
             card: card,
-            previousTransform: card.style.transform,
-            previousOpacity: card.style.opacity
+            postPreviousTransform: card.style.transform,
+            postPreviousOpacity: card.style.opacity
           })
 
-          var stackLocation = collectionLocations[record.stack.id];
+          //TODO: this could be expensive since we're reading back layout in a
+          //loop. It shouldn't be THAT bad, because we only do it for cards
+          //that have "disappeared", but still something to address.
+          var stackLocation = this._calculateOffsets(card);
           var oldLocation = infoForCard.offsets;
 
           var invertTop = oldLocation.top - stackLocation.top;
@@ -250,7 +246,7 @@
           //noAnimate and is never set to anything different. In testing
           //this didn't appear to have any appreciable performance difference.
           var transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`
-          card.style.transform = transform;
+          card.style.transform = transform + " " + infoForCard.previousTransform;
 
           card.style.opacity = "1.0";
 
@@ -288,8 +284,8 @@
           var record = this._animatingCards[i];
           record.card.noAnimate = false;
           record.card.faceUp = false;
-          record.card.style.opacity = record.previousOpacity;
-          record.card.style.transform = record.previousTransform;
+          record.card.style.opacity = record.postPreviousOpacity;
+          record.card.style.transform = record.postPreviousTransform;
         }
 
       }
