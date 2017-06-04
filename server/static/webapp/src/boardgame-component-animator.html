@@ -194,14 +194,23 @@
 
               record.offsets = collectionOffsets.get(theStack.id);
               record.beforeFaceUp = false;
-              record.previousTransform = theStack.offsetCard.style.transform;
+              
+
+              record.postPreviousOpacity = card.style.opacity;
+              record.postPreviousTransform = card.style.transform;
+
+              theStack.setUnknownAnimationState(card);
+
+              record.previousTransform = card.style.transform;
+
+            } else {
+              record.postPreviousOpacity = card.style.opacity;
+              record.postPreviousTransform = card.style.transform;
             }
 
             //Mark that we've seen where this one is going.
             this._beforeSeenIds.delete(card.id);
-
-            record.postPreviousTransform = card.style.transform;
-
+            
             record.afterFaceUp = card.faceUp;
             card.faceUp = record.beforeFaceUp;       
 
@@ -316,6 +325,7 @@
             if (!record) continue;
             card.noAnimate = false;
             card.style.transform = record.postPreviousTransform;
+            card.style.opacity = record.postPreviousOpacity;
             card.faceUp = record.afterFaceUp;
 
           }

@@ -245,13 +245,17 @@
           this._id = this._randomId(8);
         }
 
+        setUnknownAnimationState(card) {
+          card.style.transform = "scale(0.6)";
+          card.style.opacity = "0.0";
+        }
+
         //Returns a new card to animate its position. When its transition ends it will be removed.
         newAnimatingCard() {
           var card = document.createElement("boardgame-card");
           card.noAnimate = true;
           card.noContent = true;
-          card.style.transform = "scale(0.6)";
-          card.style.opacity = "0.0";
+          this.setUnknownAnimationState(card);
           this.$["animating-cards"].appendChild(card);
           card.addEventListener("transitionend", e => this._clearAnimatingCards(e));
           return card;
