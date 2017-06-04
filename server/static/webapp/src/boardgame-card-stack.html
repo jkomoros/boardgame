@@ -240,6 +240,7 @@
         newAnimatingCard() {
           var card = document.createElement("boardgame-card");
           card.noAnimate = true;
+          card.noContent = true;
           card.style.transform = "scale(0.01)";
           this.$["animating-cards"].appendChild(card);
           card.addEventListener("transitionend", e => this._clearAnimatingCards(e));

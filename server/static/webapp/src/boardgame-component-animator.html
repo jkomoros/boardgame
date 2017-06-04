@@ -226,7 +226,9 @@
 
           var card = record.stack.newAnimatingCard();
 
-          card.faceUp = this._infoById[id].beforeFaceUp;
+          var infoForCard = this._infoById[id]
+
+          card.faceUp = infoForCard.beforeFaceUp;
 
           this._animatingCards.push({
             card: card,
@@ -234,10 +236,16 @@
           })
 
           var stackLocation = collectionLocations[record.stack.id];
-          var oldLocation = this._infoById[id].offsets;
+          var oldLocation = infoForCard.offsets;
 
           var invertTop = oldLocation.top - stackLocation.top;
           var invertLeft = oldLocation.left - stackLocation.left;
+
+          for (var k = 0; k < infoForCard.clonedNodes.length; k++) {
+            var node = infoForCard.clonedNodes[k];
+            node.slot = "fallback";
+            card.appendChild(node);
+          }
 
           //We used to only bother setting transforms for items that had
           //physically moved. However, the browser is smart enough to ignore
