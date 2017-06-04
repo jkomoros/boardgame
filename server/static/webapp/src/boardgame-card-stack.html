@@ -14,6 +14,11 @@
         @apply --layout-center;
       }
 
+      #animating-cards boardgame-card {
+        /* don't mess with the general layout because the card will be gone soon */
+        position: absolute;
+      }
+
       #container ::slotted(boardgame-card), #container boardgame-card {
         transition: transform var(--animation-length, 0.25s) ease-in-out;
       }
@@ -104,6 +109,7 @@
           <boardgame-card index="{{index}}"></boardgame-card>
         </template>
       </div>
+      <div id="animating-cards"></div>
     </div>
   </template>
 
@@ -175,8 +181,6 @@
               type: Number,
               value: 0
             },
-
-
             _createSpacer: Boolean,
             _fauxCardsToAdd: Array,
             _randomRotationOffset: {
@@ -230,6 +234,23 @@
           //elements) but different from most other stacks.
           this._randomRotationOffset = Math.floor(Math.random() * 21);
           this._id = this._randomId(8);
+        }
+
+        //Returns a new card to animate its position. When its transition ends it will be removed.
+        newAnimatingCard() {
+          var card = document.createelement("boardgame-card");
+          card.style.transform = "scale(0.01)";
+          this.$["animating-cards"].appendChild(card);
+          card.addEventListener("transitionend", e => this._clearAnimatingCards);
+
+        }
+
+        _clearAnimatingCards(e) {
+          var container = this.$['animatign-cards'];
+          while(container.children.length > 0) {
+            var child = container.children[0];
+            container.removeChild(child);
+          }
         }
 
         _stackChanged(newValue) {
