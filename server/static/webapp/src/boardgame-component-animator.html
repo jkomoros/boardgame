@@ -19,6 +19,7 @@
           _lastSeenNodesById: Object,
           _beforeSeenIds: Object,
           _animatingCards: Array,
+          _beforeCollectionOffsets: Object,
           ancestorOffsetParent: Object
         }
       }
@@ -62,6 +63,8 @@
 
         var collections = this.$.stack._sharedStackList;
 
+        this._beforeCollectionOffsets = new Map();
+
         var result = {};
 
         //keep track of all of the ids we've seen this round to make sure we
@@ -70,6 +73,10 @@
 
         for (var i = 0; i < collections.length; i++) {
           var collection = collections[i];
+
+          var offsetCard = collection.offsetCard;
+          this._beforeCollectionOffsets.set(collection.id, this._calculateOffsets(offsetCard));
+
           var cards = collection.Cards;
           for (var j = 0; j < cards.length; j++) {
             var card = cards[j];
@@ -192,7 +199,7 @@
                 theStack = collectionRecord.runnerUpStack;
               }
 
-              record.offsets = collectionOffsets.get(theStack.id);
+              record.offsets = this._beforeCollectionOffsets.get(theStack.id);
               record.beforeFaceUp = false;
               
 
@@ -210,7 +217,7 @@
 
             //Mark that we've seen where this one is going.
             this._beforeSeenIds.delete(card.id);
-            
+
             record.afterFaceUp = card.faceUp;
             card.faceUp = record.beforeFaceUp;       
 
