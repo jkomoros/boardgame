@@ -120,8 +120,6 @@
         //The last seen location of a given card ID
         var idToPossibleCollection = new Map();
 
-        var newSeenIds = new Set();
-
         //Turning off animations and setting card flip all require recalcing
         //style so do them once before readback in the second loop.
 
@@ -164,12 +162,7 @@
             var card = cards[j];
             var record = this._infoById[card.id];
 
-            if (!record) {
-              //Where did this card come from? It may have come from a stack
-              //that was PolicyNonEmpty. Take a note to process later.
-              newSeenIds.add(card.id);
-              continue;
-            }
+            if (!record) continue;
 
             //Mark that we've seen where this one is going.
             this._beforeSeenIds.delete(card.id);
@@ -273,12 +266,6 @@
               card.appendChild(node);
             }
           }
-        }
-
-        //Any items that we saw after animate but not during prepare may have
-        //come from a PolicyNonEmpty stack.
-        for (let id of newSeenIds) {
-          console.log("New seen id to process", id);
         }
 
         //Wait for styles to be set to do the animations
