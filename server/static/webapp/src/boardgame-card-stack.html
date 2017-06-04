@@ -101,7 +101,7 @@
 
     <div id="container" class$="{{_classes(layout, noAnimate)}}">
       <slot id="cards"></slot>
-      <template is="dom-if" if="{{_createSpacer}}">
+      <template is="dom-if" if="{{_createSpacer}}" restamp>
           <boardgame-card spacer id="spacer"></boardgame-card>
       </template>
       <div id="faux-cards">
@@ -214,6 +214,15 @@
               i++;
             }
           }
+        }
+
+        //offsetCard returns a card in the stack to use for positioning.
+        get offsetCard() {
+          var cards = this._realCards;
+          if (cards.length > 0) return cards[0];
+          var card = this.shadowRoot.querySelector("boardgame-card");
+          if (card) return card;
+          return this;
         }
 
         //id will be set to a long, stable Id for this stack during its
@@ -378,7 +387,7 @@
           return [...fauxCards];
         }
 
-         get Cards() {
+        get Cards() {
           return this._realCards.concat(this._fauxCards);
         }
 

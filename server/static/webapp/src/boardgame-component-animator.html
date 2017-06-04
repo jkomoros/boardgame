@@ -24,6 +24,7 @@
       }
 
       _calculateOffsets(ele) {
+
         var top = 0;
         var left = 0;
         var width = 0;
@@ -120,6 +121,8 @@
         //The last seen location of a given card ID
         var idToPossibleCollection = new Map();
 
+        var collectionOffsets = new Map();
+
         //Turning off animations and setting card flip all require recalcing
         //style so do them once before readback in the second loop.
 
@@ -138,11 +141,14 @@
         //do it in its own pass.
         for (var i = 0; i < collections.length; i++) {
           var collection = collections[i];
+
+          var offsetCard = collection.offsetCard;
+          collectionOffsets.set(collection.id, this._calculateOffsets(offsetCard));
+
           var cards = collection.Cards;
           for (var j = 0; j < cards.length; j++) {
             var card = cards[j];
             var record = this._infoById[card.id];
-
             if (!record) continue;
             record.newOffsets = this._calculateOffsets(card);        
           }
@@ -237,10 +243,7 @@
             postPreviousOpacity: card.style.opacity
           })
 
-          //TODO: this could be expensive since we're reading back layout in a
-          //loop. It shouldn't be THAT bad, because we only do it for cards
-          //that have "disappeared", but still something to address.
-          var stackLocation = this._calculateOffsets(card);
+          var stackLocation = collectionOffsets.get(record.stack.id);
           var oldLocation = infoForCard.offsets;
 
           var invertTop = oldLocation.top - stackLocation.top;
