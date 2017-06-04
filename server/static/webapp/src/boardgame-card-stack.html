@@ -241,12 +241,12 @@
           var card = document.createElement("boardgame-card");
           card.style.transform = "scale(0.01)";
           this.$["animating-cards"].appendChild(card);
-          card.addEventListener("transitionend", e => this._clearAnimatingCards);
+          card.addEventListener("transitionend", e => this._clearAnimatingCards(e));
           return card;
         }
 
         _clearAnimatingCards(e) {
-          var container = this.$['animatign-cards'];
+          var container = this.$['animating-cards'];
           while(container.children.length > 0) {
             var child = container.children[0];
             container.removeChild(child);
