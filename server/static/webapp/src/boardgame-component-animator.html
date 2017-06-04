@@ -16,6 +16,7 @@
       static get properties() {
         return {
           _infoById: Object,
+          _lastSeenNodesById: Object,
           _beforeSeenIds: Object,
           _animatingCards: Array,
           ancestorOffsetParent: Object
@@ -51,11 +52,16 @@
         };
       }
 
+      ready() {
+        super.ready();
+        this._lastSeenNodesById = new Map();
+      }
+
       prepare() {
 
         var collections = this.$.stack._sharedStackList;
 
-        var result = this._infoById || {};
+        var result = {};
 
         //keep track of all of the ids we've seen this round to make sure we
         //found a home for all of them in the end.
@@ -94,7 +100,7 @@
                 newNodes.push(child.cloneNode(true));
               }
               if (newNodes.length > 0) {
-                record.clonedNodes = newNodes;
+                this._lastSeenNodesById.set(card.id, newNodes);
               }
             }
             result[card.id] = record;
@@ -182,7 +188,9 @@
             var transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`
             card.style.transform = transform + " " + record.previousTransform;
 
-            if (record.clonedNodes && record.clonedNodes.length > 0) {
+            var clonedNodes = this._lastSeenNodesById.get(card.id);
+
+            if (clonedNodes && clonedNodes.length > 0) {
 
               //Clear out old nodes.
               for (var k = 0; k < card.children.length; k++) {
@@ -191,8 +199,8 @@
                   card.removeChild(child);
                 }
               }
-              for (var k = 0; k < record.clonedNodes.length; k++) {
-                var node = record.clonedNodes[k];
+              for (var k = 0; k < clonedNodes.length; k++) {
+                var node = clonedNodes[k];
                 node.slot = "fallback";
                 card.appendChild(node);
               }
@@ -250,10 +258,13 @@
 
           card.style.opacity = "1.0";
 
-          for (var k = 0; k < infoForCard.clonedNodes.length; k++) {
-            var node = infoForCard.clonedNodes[k];
-            node.slot = "fallback";
-            card.appendChild(node);
+          var clonedNodes = this._lastSeenNodesById.get(id);
+          if (clonedNodes) {
+            for (var k = 0; k < clonedNodes.length; k++) {
+              var node = clonedNodes[k];
+              node.slot = "fallback";
+              card.appendChild(node);
+            }
           }
         }
 
