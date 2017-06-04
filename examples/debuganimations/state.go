@@ -26,6 +26,8 @@ type gameState struct {
 	RevealedCard     *boardgame.SizedStack
 	FanStack         *boardgame.GrowableStack
 	FanDiscard       *boardgame.GrowableStack
+	VisibleStack     *boardgame.GrowableStack
+	HiddenStack      *boardgame.GrowableStack
 	CurrentPlayer    boardgame.PlayerIndex
 }
 

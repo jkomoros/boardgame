@@ -37,6 +37,11 @@
       .controls {
         @apply --layout-vertical;
       }
+
+      #hidden {
+        @apply --layout-horizontal;
+      }
+
     </style>
 
     <div id='shortstacks'>
@@ -130,6 +135,28 @@
       </div>
     </div>
 
+    <div id="hidden">
+      <boardgame-card-stack layout="fan" messy stack="{{state.Game.VisibleStack}}">
+        <template is="dom-repeat">
+          <boardgame-card item="{{item}}" index="{{index}}">
+            <div>
+              {{item.Values.Type}}
+            </div>
+          </boardgame-card>
+        </template>
+      </boardgame-card-stack>
+      <boardgame-card-stack layout="stack" messy stack="{{state.Game.HiddenStack}}">
+        <template is="dom-repeat">
+          <boardgame-card item="{{item}}" index="{{index}}">
+            <div>
+              {{item.Values.Type}}
+            </div>
+          </boardgame-card>
+        </template>
+      </boardgame-card-stack>
+      <paper-button on-tap="handleHiddenTapped">Draw</paper-button>
+    </div>
+
   </template>
 
   <script>
@@ -169,6 +196,10 @@
 
       handleShuffleTapped(e) {
         this.dispatchEvent(new CustomEvent("propose-move", {composed: true, detail: {name: "Visible Shuffle", arguments:{}}}));
+      }
+
+      handleHiddenTapped(e) {
+        this.dispatchEvent(new CustomEvent("propose-move", {composed: true, detail: {name: "Move Between Hidden", arguments:{}}}));
       }
 
     }

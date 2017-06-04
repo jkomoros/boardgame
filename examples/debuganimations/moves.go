@@ -32,6 +32,11 @@ type moveVisibleShuffleCards struct {
 	boardgame.DefaultMove
 }
 
+//+autoreader readsetter
+type moveMoveBetweenHidden struct {
+	boardgame.DefaultMove
+}
+
 /**************************************************
  *
  * moveMoveCardBetweenShortStacks Implementation
@@ -293,5 +298,61 @@ func (m *moveVisibleShuffleCards) Apply(state boardgame.MutableState) error {
 	game, _ := concreteStates(state)
 
 	return game.FanStack.PublicShuffle()
+
+}
+
+/**************************************************
+ *
+ * moveMoveBetweenHidden Implementation
+ *
+ **************************************************/
+
+func MoveMoveBetweenHiddenFactory(state boardgame.State) boardgame.Move {
+	result := &moveMoveBetweenHidden{
+		boardgame.DefaultMove{
+			"Move Between Hidden",
+			"Moves between hidden and visible stacks",
+		},
+	}
+
+	return result
+}
+
+func (m *moveMoveBetweenHidden) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+
+	game, _ := concreteStates(state)
+
+	if game.VisibleStack.NumComponents() == 5 && game.HiddenStack.NumComponents() == 4 {
+		return nil
+	}
+
+	if game.VisibleStack.NumComponents() == 4 && game.HiddenStack.NumComponents() == 5 {
+		return nil
+	}
+
+	return errors.New("Cards aren't in known position")
+}
+
+func (m *moveMoveBetweenHidden) Apply(state boardgame.MutableState) error {
+
+	game, _ := concreteStates(state)
+
+	from := game.VisibleStack
+	to := game.HiddenStack
+	fromIndex := 2
+	toIndex := boardgame.FirstSlotIndex
+
+	if game.VisibleStack.NumComponents() < 5 {
+		from = game.HiddenStack
+		to = game.VisibleStack
+		fromIndex = boardgame.FirstComponentIndex
+		toIndex = 2
+	}
+
+	if err := from.MoveComponent(fromIndex, to, toIndex); err != nil {
+		return err
+	}
+
+	return nil
 
 }

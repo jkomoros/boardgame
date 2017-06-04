@@ -56,6 +56,8 @@ func (g *gameDelegate) EmptyGameState() boardgame.MutableSubState {
 		RevealedCard:     boardgame.NewSizedStack(cards, 1),
 		FanStack:         boardgame.NewGrowableStack(cards, 0),
 		FanDiscard:       boardgame.NewGrowableStack(cards, 0),
+		VisibleStack:     boardgame.NewGrowableStack(cards, 0),
+		HiddenStack:      boardgame.NewGrowableStack(cards, 0),
 	}
 }
 
@@ -100,6 +102,14 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, 
 		return game.FanDiscard, nil
 	}
 
+	if game.VisibleStack.NumComponents() < 5 {
+		return game.VisibleStack, nil
+	}
+
+	if game.HiddenStack.NumComponents() < 4 {
+		return game.HiddenStack, nil
+	}
+
 	return game.DrawStack, nil
 
 }
@@ -136,6 +146,9 @@ func (g *gameDelegate) StateSanitizationPolicy() *boardgame.StatePolicy {
 				},
 				"FanDiscard": {
 					boardgame.GroupAll: boardgame.PolicyOrder,
+				},
+				"HiddenStack": {
+					boardgame.GroupAll: boardgame.PolicyLen,
 				},
 			},
 		}
@@ -178,6 +191,7 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 	manager.AddPlayerMoveFactory(MoveFlipHiddenCardFactory)
 	manager.AddPlayerMoveFactory(MoveMoveCardBetweenFanStacksFactory)
 	manager.AddPlayerMoveFactory(MoveVisibleShuffleCardsFactory)
+	manager.AddPlayerMoveFactory(MoveMoveBetweenHiddenFactory)
 
 	manager.SetUp()
 
