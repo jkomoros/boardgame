@@ -245,6 +245,9 @@
           this._id = this._randomId(8);
         }
 
+        //setUnknownAnimationState sets the "final" state of the styling on a
+        //card that is flying to the unknown state. Used by boardgame-
+        //component-animator.
         setUnknownAnimationState(card) {
           card.style.transform = "scale(0.6)";
           card.style.opacity = "0.0";
