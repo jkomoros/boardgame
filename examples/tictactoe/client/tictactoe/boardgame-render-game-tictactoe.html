@@ -1,5 +1,6 @@
 <link rel="import" href="../../bower_components/polymer/polymer-element.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../../src/boardgame-base-game-renderer.html">
 <link rel="import" href="boardgame-tictactoe-cell.html">
 
 <dom-module id="boardgame-render-game-tictactoe">
@@ -44,7 +45,7 @@
   </template>
 
   <script>
-    class BoardgameRenderGameTictactoe extends Polymer.Element {
+    class BoardgameRenderGameTictactoe extends BoardgameBaseGameRenderer {
       
       static get is() {
         return "boardgame-render-game-tictactoe"
