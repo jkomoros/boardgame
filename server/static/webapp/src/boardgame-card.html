@@ -10,6 +10,7 @@
       :host {
         --card-effective-width: var(--card-length, 6em);
         --card-effective-height: calc(var(--card-effective-width) * var(--card-aspect-ratio, 0.6666666));
+        --card-effective-border-radius: 5px;
       }
 
       .spacer {
@@ -57,7 +58,7 @@
         height: var(--card-effective-height);
         width: var(--card-effective-width);
 
-        border-radius: 0.25em;
+        border-radius: var(--card-effective-border-radius);
 
         transform-style: preserve-3d;
         position: relative;
@@ -92,6 +93,7 @@
         left: 0;
         backface-visibility: hidden;
         overflow: hidden;
+        border-radius:var(--card-effective-border-radius);
       }
 
       #card #front {
