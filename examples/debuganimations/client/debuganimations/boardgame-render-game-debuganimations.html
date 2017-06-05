@@ -85,7 +85,7 @@
           </boardgame-card>
         </template>
       </boardgame-card-stack>
-      <paper-button on-tap="handleDrawTapped">Draw</paper-button>
+      <paper-button move-name="Move Card Between Draw and Discard Stacks">Draw</paper-button>
     </div>
 
     <div id='draw'>
@@ -98,7 +98,7 @@
           </boardgame-card>
         </template>
       </boardgame-card-stack>
-      <paper-button on-tap="handleFlipTapped">Flip</paper-button>
+      <paper-button move-name="Flip Card Between Hidden and Revealed">Flip</paper-button>
     </div>
 
     <div id="fan">
@@ -122,9 +122,9 @@
         </template>
       </boardgame-card-stack>
       <div class="controls">
-        <paper-button on-tap="handleFanTapped">Draw</paper-button>
-        <paper-button on-tap="handleShuffleTapped">Public Shuffle</paper-button>
-        <paper-button on-tap="handleSecretShuffleTapped">Shuffle</paper-button>
+        <paper-button move-name="Move Fan Card">Draw</paper-button>
+        <paper-button move-name="Visible Shuffle">Public Shuffle</paper-button>
+        <paper-button move-name="Shuffle">Shuffle</paper-button>
         <paper-dropdown-menu label="Layout">
           <paper-listbox slot="dropdown-content" selected="{{fromStackLayout}}" attr-for-selected="value">
             <paper-item value="fan">fan</paper-item>
@@ -155,7 +155,7 @@
           </boardgame-card>
         </template>
       </boardgame-card-stack>
-      <paper-button on-tap="handleHiddenTapped">Draw</paper-button>
+      <paper-button move-name="Move Between Hidden">Draw</paper-button>
     </div>
 
   </template>
@@ -189,30 +189,6 @@
         var moveName = ele.getAttribute("move-name");
         if (!moveName) return;
         this.dispatchEvent(new CustomEvent("propose-move", {composed: true, detail: {name: moveName, arguments:{}}}));
-      }
-
-      handleDrawTapped(e) {
-        this.dispatchEvent(new CustomEvent("propose-move", {composed: true, detail: {name: "Move Card Between Draw and Discard Stacks", arguments:{}}}));
-      }
-
-      handleFlipTapped(e) {
-        this.dispatchEvent(new CustomEvent("propose-move", {composed: true, detail: {name: "Flip Card Between Hidden and Revealed", arguments:{}}}));
-      }
-
-      handleFanTapped(e) {
-        this.dispatchEvent(new CustomEvent("propose-move", {composed: true, detail: {name: "Move Fan Card", arguments:{}}}));
-      }
-
-      handleShuffleTapped(e) {
-        this.dispatchEvent(new CustomEvent("propose-move", {composed: true, detail: {name: "Visible Shuffle", arguments:{}}}));
-      }
-
-      handleSecretShuffleTapped(e) {
-        this.dispatchEvent(new CustomEvent("propose-move", {composed: true, detail: {name: "Shuffle", arguments:{}}}));
-      }
-
-      handleHiddenTapped(e) {
-        this.dispatchEvent(new CustomEvent("propose-move", {composed: true, detail: {name: "Move Between Hidden", arguments:{}}}));
       }
 
     }
