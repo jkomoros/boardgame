@@ -63,7 +63,7 @@
           </boardgame-card>
         </template>
       </boardgame-card-stack>
-      <paper-button on-tap="handleButtonTapped" move-name="Move Card Between Short Stacks">Swap</paper-button>
+      <paper-button move-name="Move Card Between Short Stacks">Swap</paper-button>
     </div>
 
     <div id='draw'>
@@ -179,7 +179,12 @@
         }
       }
 
-      handleButtonTapped(e) {
+      ready() {
+        super.ready();
+        this.addEventListener("tap", e => this._handleButtonTapped(e));
+      }
+
+      _handleButtonTapped(e) {
         var ele = e.composedPath()[0];
         var moveName = ele.getAttribute("move-name");
         if (!moveName) return;
