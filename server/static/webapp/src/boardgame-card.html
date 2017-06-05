@@ -7,6 +7,11 @@
   <template>
     <style include="iron-flex">
 
+      :host {
+        --card-effective-width: var(--card-length, 6em);
+        --card-effective-height: calc(var(--card-effective-width) * var(--card-aspect-ratio, 0.6666666));
+      }
+
       .spacer {
         visibility: hidden;
       }
@@ -30,8 +35,8 @@
       }
 
       #card {
-        height: 4em;
-        width: 6em;
+        height: var(--card-effective-height);
+        width: var(--card-effective-width);
         @apply --layout-vertical;
         @apply --layout-center;
         @apply --layout-center-justified;
@@ -40,8 +45,8 @@
       }
 
       #card.rotated {
-        height: 6em;
-        width: 4em;
+        height: var(--card-effective-width);
+        width: var(--card-effective-height);
       }
 
       #card.interactive {
@@ -49,8 +54,8 @@
       }
 
       #inner {
-        height: 4em;
-        width: 6em;
+        height: var(--card-effective-height);
+        width: var(--card-effective-width);
 
         border-radius: 0.25em;
 
