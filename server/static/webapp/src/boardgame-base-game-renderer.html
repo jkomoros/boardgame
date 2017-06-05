@@ -21,7 +21,18 @@
         var ele = e.composedPath()[0];
         var moveName = ele.getAttribute("propose-move");
         if (!moveName) return;
-        this.dispatchEvent(new CustomEvent("propose-move", {composed: true, detail: {name: moveName, arguments:{}}}));
+        var data = ele.dataset;
+        var args = {};
+        for (var key in data) {
+          if (!data.hasOwnProperty(key)) continue;
+          if (!key.startsWith("arg")) continue;
+          var effectiveKey = key.replace("arg", "");
+          //Handle the case where the attribute was literally just data-arg
+          if (!effectiveKey) continue;
+          //The first character is now upperCase, which is desired as per Move field convention
+          args[effectiveKey] = data[key];
+        }
+        this.dispatchEvent(new CustomEvent("propose-move", {composed: true, detail: {name: moveName, arguments:args}}));
       }
 
     }
