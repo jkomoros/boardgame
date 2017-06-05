@@ -106,6 +106,12 @@ When you use boardgame-card-stack and boardgame-card in conjunction you'll get p
 
 It can be finicky to set all of the cards correctly for the animation to work as you want; the easiest way is to set boardgame-card-stack's stack property to the stack in the state, and then have a dom-repeat with boardgame-card that have item="{{item}}" index="{{index}}", and the card's children how to render if there is content. If you do that, everything will work as expected!
 
+### Optional: BoardgameBaseGameRenderer
+
+If your game renderer inherits from BoardgameBaseGameRenderer, you'll get a few convenience goodies.
+
+Elements that have a propose-move attribute on them anywhere below will, when tapped, fire a propose-move event with that name. It will also include as arguments to that move any attributes named like `data-arg-my-foo`, where the argument would be represnted in the event as `MyFoo`. If you data-bind to that attribute, remember to use `$=` so that Polymer binds them as attributes, not as properties.
+
 ## Adding new views
 
 You can add new views in game-src/ that are imported directly from other views in game-src/. Remember that game-render-view is the polymer element that is the root of your game rendering.
