@@ -5,6 +5,7 @@
 <link rel="import" href="../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
 <link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
 <link rel="import" href="../../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../../src/boardgame-base-game-renderer.html">
 <link rel="import" href="../../src/boardgame-card.html">
 <link rel="import" href="../../src/boardgame-card-stack.html">
 
@@ -162,7 +163,7 @@
 
   <script>
 
-    class BoardgameRenderGameDebuganimations extends Polymer.Element {
+    class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
 
       static get is() {
         return "boardgame-render-game-debuganimations"
@@ -177,18 +178,6 @@
             value: "fan"
           }
         }
-      }
-
-      ready() {
-        super.ready();
-        this.addEventListener("tap", e => this._handleButtonTapped(e));
-      }
-
-      _handleButtonTapped(e) {
-        var ele = e.composedPath()[0];
-        var moveName = ele.getAttribute("propose-move");
-        if (!moveName) return;
-        this.dispatchEvent(new CustomEvent("propose-move", {composed: true, detail: {name: moveName, arguments:{}}}));
       }
 
     }

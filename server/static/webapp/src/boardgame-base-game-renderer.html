@@ -1,0 +1,31 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+
+<dom-module id="boardgame-base-game-renderer">
+  <template>
+  </template>
+
+  <script>
+
+    class BoardgameBaseGameRenderer extends Polymer.Element {
+      static get is() {
+        return "boardgame-base-game-renderer"
+      }
+
+      ready() {
+        super.ready();
+        this.addEventListener("tap", e => this._handleButtonTapped(e));
+      }
+
+      _handleButtonTapped(e) {
+        var ele = e.composedPath()[0];
+        var moveName = ele.getAttribute("propose-move");
+        if (!moveName) return;
+        this.dispatchEvent(new CustomEvent("propose-move", {composed: true, detail: {name: moveName, arguments:{}}}));
+      }
+
+    }
+
+    customElements.define(BoardgameBaseGameRenderer.is, BoardgameBaseGameRenderer);
+
+  </script>
+</dom-module>
