@@ -14,6 +14,7 @@
       ready() {
         super.ready();
         this.addEventListener("tap", e => this._handleButtonTapped(e));
+        this.addEventListener("card-tapped", e => this._handleButtonTapped(e));
       }
 
       _handleButtonTapped(e) {

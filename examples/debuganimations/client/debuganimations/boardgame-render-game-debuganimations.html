@@ -48,7 +48,7 @@
     <div id='shortstacks'>
       <boardgame-card-stack layout='stack' stack="{{state.Game.FirstShortStack}}" messy>
         <template is='dom-repeat'>
-          <boardgame-card item="{{item}}" index="{{index}}">
+          <boardgame-card item="{{item}}" index="{{index}}" propose-move="Move Card Between Short Stacks">
             <div>
               {{item.Values.Type}}
             </div>
