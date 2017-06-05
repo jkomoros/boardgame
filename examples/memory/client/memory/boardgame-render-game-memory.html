@@ -4,6 +4,7 @@
 <link rel="import" href="../../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../../bower_components/paper-progress/paper-progress.html">
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
+<link rel="import" href="../../src/boardgame-base-game-renderer.html">
 <link rel="import" href="../../src/boardgame-card.html">
 <link rel="import" href="../../src/boardgame-card-stack.html">
 
@@ -23,7 +24,7 @@
     <h2>Memory</h2>
     <boardgame-card-stack layout="grid" messy primary-stack="{{state.Game.RevealedCards}}" secondary-stack="{{state.Game.HiddenCards}}">
       <template is="dom-repeat">
-          <boardgame-card title="{{index}}" item="{{item}}" index="{{index}}">
+          <boardgame-card title="{{index}}" item="{{item}}" index="{{index}}" propose-move="Reveal Card" data-arg-card-index$="{{index}}">
             <div>
               {{item.Values.Type}}
             </div>
@@ -52,13 +53,13 @@
         </template>
       </boardgame-card-stack>
     </div>
-    <paper-button id="hide" on-tap="hideTapped" raised disabled="{{state.Computed.Global.CurrentPlayerHasCardsToReveal}}">Hide Cards</paper-button>
+    <paper-button id="hide" propose-move="Hide Cards" raised disabled="{{state.Computed.Global.CurrentPlayerHasCardsToReveal}}">Hide Cards</paper-button>
     <paper-progress id="timeleft" value="{{state.Game.HideCardsTimer.TimeLeft}}" max="{{maxTimeLeft}}"></paper-progress>
   </template>
 
   <script>
 
-    class BoardgameRenderGameMemory extends Polymer.Element {
+    class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer {
 
       static get is() {
         return "boardgame-render-game-memory"
@@ -73,22 +74,6 @@
             computed: 'computeMaxTimeLeft(state.Game.HideCardsTimer.originalTimeLeft)'
           }
         }
-      }
-
-      ready() {
-        super.ready();
-
-        this.addEventListener("card-tapped", e => this.handleCardTapped(e));
-      }
-
-      hideTapped(e) {
-        this.dispatchEvent(new CustomEvent("propose-move", {composed: true, detail: {name: "Hide Cards", arguments: {}}}));
-      }
-
-      handleCardTapped(e) {
-        this.dispatchEvent(new CustomEvent("propose-move", {composed: true, detail: {name: "Reveal Card", arguments: {
-          "CardIndex": e.detail.index,
-        }}}));
       }
 
       computeMaxTimeLeft(timeLeft) {
