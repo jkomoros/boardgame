@@ -97,7 +97,7 @@
 
             //We need the effective length (default + cascade). This is kinda
             //sorta a private css var, so it feels kind of weird to use it here.
-            record.previousCardLength = computedStyle.getPropertyValue("--card-effective-length-unitless");
+            record.previousCardScale = computedStyle.getPropertyValue("--card-effective-scale");
 
             record.beforeFaceUp = card.faceUp;
 
@@ -225,8 +225,8 @@
             //Mark that we've seen where this one is going.
             this._beforeSeenIds.delete(card.id);
 
-            record.postPreviousCardLength = card.style.getPropertyValue("--card-length");
-            card.style.setProperty("--card-length", record.previousCardLength);
+            record.postPreviousCardScale = card.style.getPropertyValue("--card-scale");
+            card.style.setProperty("--card-scale", record.previousCardScale);
 
             record.afterFaceUp = card.faceUp;
             card.faceUp = record.beforeFaceUp;       
@@ -343,7 +343,7 @@
             card.noAnimate = false;
             card.style.transform = record.postPreviousTransform;
             card.style.opacity = record.postPreviousOpacity;
-            card.style.setProperty("--card-length", record.postPreviousCardLength);
+            card.style.setProperty("--card-scale", record.postPreviousCardScale);
             card.faceUp = record.afterFaceUp;
 
           }

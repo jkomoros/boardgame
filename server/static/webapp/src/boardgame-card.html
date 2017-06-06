@@ -8,11 +8,10 @@
     <style include="iron-flex">
 
       :host {
-        --default-card-length-unitless: 100;
-        --default-card-length: calc(var(--default-card-length-unitless) * 1px);
-        --card-effective-length-unitless: var(--card-length, var(--default-card-length-unitless));
-        --card-effective-width: calc(var(--card-effective-length-unitless) * 1px);
-        --card-effective-scale-factor: calc(var(--card-effective-length-unitless) / var(--default-card-length-unitless));
+        --default-card-scale: 1.0;
+        --default-card-width: 100px;
+        --card-effective-scale: var(--card-scale, var(--default-card-scale));
+        --card-effective-width: calc(var(--card-effective-scale) * var(--default-card-width));
         --card-effective-aspect-ratio: var(--card-aspect-ratio, 0.6666666);
         --card-effective-height: calc(var(--card-effective-width) * var(--card-effective-aspect-ratio));
         --card-effective-border-radius: 5px;
@@ -60,9 +59,9 @@
       }
 
       #scaler {
-        width: var(--default-card-length);
-        height: calc(var(--default-card-length) * var(--card-effective-aspect-ratio));
-        transform: scale(var(--card-effective-scale-factor));
+        width: var(--default-card-width);
+        height: calc(var(--default-card-width) * var(--card-effective-aspect-ratio));
+        transform: scale(var(--card-effective-scale));
         transition: transform var(--animation-length, 0.25) ease-in-out;
       }
 
