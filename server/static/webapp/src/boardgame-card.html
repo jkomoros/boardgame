@@ -10,9 +10,9 @@
       :host {
         --default-card-length-unitless: 100;
         --default-card-length: calc(var(--default-card-length-unitless) * 1px);
-        --card-effective-width-unitless: var(--card-length, var(--default-card-length-unitless));
-        --card-effective-width: calc(var(--card-effective-width-unitless) * 1px);
-        --card-effective-scale-factor: calc(var(--card-effective-width-unitless) / var(--default-card-length-unitless));
+        --card-effective-length-unitless: var(--card-length, var(--default-card-length-unitless));
+        --card-effective-width: calc(var(--card-effective-length-unitless) * 1px);
+        --card-effective-scale-factor: calc(var(--card-effective-length-unitless) / var(--default-card-length-unitless));
         --card-effective-aspect-ratio: var(--card-aspect-ratio, 0.6666666);
         --card-effective-height: calc(var(--card-effective-width) * var(--card-effective-aspect-ratio));
         --card-effective-border-radius: 5px;

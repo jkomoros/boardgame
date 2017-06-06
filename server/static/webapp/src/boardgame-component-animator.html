@@ -95,7 +95,9 @@
 
             record.previousTransform = computedStyle.transform;
 
-            record.previousCardLength = computedStyle.getPropertyValue("--card-length");
+            //We need the effective length (default + cascade). This is kinda
+            //sorta a private css var, so it feels kind of weird to use it here.
+            record.previousCardLength = computedStyle.getPropertyValue("--card-effective-length-unitless");
 
             record.beforeFaceUp = card.faceUp;
 
