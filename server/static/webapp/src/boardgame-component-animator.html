@@ -222,13 +222,16 @@
             record.afterFaceUp = card.faceUp;
             card.faceUp = record.beforeFaceUp;       
 
-            //TODO: if calculating offsetTop,Left is expensive here, split all
-            //reads into a separate pass before this
-
             var invertTop = record.offsets.top - record.newOffsets.top;
             var invertLeft = record.offsets.left - record.newOffsets.left;
 
             var scaleFactor= record.offsets.width / record.newOffsets.width;
+
+            //The containing box has physically shrunk (or grown), and the
+            //transform will make its apparent edge be that much smaller or
+            //bigger, so correct for that.
+            invertTop -= (record.newOffsets.height - record.offsets.height) / 2;
+            invertLeft -= (record.newOffsets.width - record.offsets.width) / 2;
 
             //We used to only bother setting transforms for items that had
             //physically moved. However, the browser is smart enough to ignore
