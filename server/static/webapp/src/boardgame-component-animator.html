@@ -28,16 +28,14 @@
 
         var top = 0;
         var left = 0;
-        var width = 0;
-        var height = 0;
+        var width = ele.offsetWidth;
+        var height = ele.offsetHeight;
 
         var offsetEle = ele;
         while (offsetEle) {
 
           top += offsetEle.offsetTop;
           left += offsetEle.offsetLeft;
-          width += offsetEle.offsetWidth;
-          height += offsetEle.offsetHeight;
 
           if (offsetEle == this.ancestorOffsetParent) {
             offsetEle = null;
@@ -94,10 +92,6 @@
             var computedStyle = getComputedStyle(card)
 
             record.previousTransform = computedStyle.transform;
-
-            //We need the effective length (default + cascade). This is kinda
-            //sorta a private css var, so it feels kind of weird to use it here.
-            record.previousCardScale = computedStyle.getPropertyValue("--card-effective-scale");
 
             record.beforeFaceUp = card.faceUp;
 
@@ -225,9 +219,6 @@
             //Mark that we've seen where this one is going.
             this._beforeSeenIds.delete(card.id);
 
-            record.postPreviousCardScale = card.style.getPropertyValue("--card-scale");
-            card.style.setProperty("--card-scale", record.previousCardScale);
-
             record.afterFaceUp = card.faceUp;
             card.faceUp = record.beforeFaceUp;       
 
@@ -237,6 +228,8 @@
             var invertTop = record.offsets.top - record.newOffsets.top;
             var invertLeft = record.offsets.left - record.newOffsets.left;
 
+            var scaleFactor= record.offsets.width / record.newOffsets.width;
+
             //We used to only bother setting transforms for items that had
             //physically moved. However, the browser is smart enough to ignore
             //transforms that are basically no ops. And if we don't set it
@@ -244,7 +237,7 @@
             //changes won't animate because the transform was set during
             //noAnimate and is never set to anything different. In testing
             //this didn't appear to have any appreciable performance difference.
-            var transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`
+            var transform = `translateY(${invertTop}px) translateX(${invertLeft}px) scale(${scaleFactor})`
             card.style.transform = transform + " " + record.previousTransform;
 
             var clonedNodes = this._lastSeenNodesById.get(card.id);
@@ -343,7 +336,6 @@
             card.noAnimate = false;
             card.style.transform = record.postPreviousTransform;
             card.style.opacity = record.postPreviousOpacity;
-            card.style.setProperty("--card-scale", record.postPreviousCardScale);
             card.faceUp = record.afterFaceUp;
 
           }
