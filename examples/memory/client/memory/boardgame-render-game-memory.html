@@ -20,6 +20,9 @@
       boardgame-card>div{
         @apply(--paper-font-display2);
       }
+      .discards {
+        --card-scale: 0.7;
+      }
     </style>
     <h2>Memory</h2>
     <boardgame-card-stack layout="grid" messy primary-stack="{{state.Game.RevealedCards}}" secondary-stack="{{state.Game.HiddenCards}}">
@@ -31,7 +34,7 @@
           </boardgame-card>
       </template>
     </boardgame-card-stack>
-    <div class="layout horizontal around-justified">
+    <div class="layout horizontal around-justified discards">
       <boardgame-card-stack layout="stack" stack="{{state.Players.0.WonCards}}" messy>
         <template is="dom-repeat">
           <boardgame-card item="{{item}}" index="{{index}}" disabled>
