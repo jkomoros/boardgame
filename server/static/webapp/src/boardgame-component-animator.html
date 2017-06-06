@@ -240,8 +240,9 @@
             //changes won't animate because the transform was set during
             //noAnimate and is never set to anything different. In testing
             //this didn't appear to have any appreciable performance difference.
-            var transform = `translateY(${invertTop}px) translateX(${invertLeft}px) scale(${scaleFactor})`
-            card.style.transform = transform + " " + record.previousTransform;
+            var transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`
+            var scaleTransform = `scale(${scaleFactor})`
+            card.style.transform = transform + " " + record.previousTransform + " " + scaleTransform;
 
             var clonedNodes = this._lastSeenNodesById.get(card.id);
 
