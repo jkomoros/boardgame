@@ -90,7 +90,12 @@
             //because if the card is in the middle of transforming, we want
             //the exact value at that second, not what the logical final value
             //is.
-            record.previousTransform = getComputedStyle(card).transform;
+
+            var computedStyle = getComputedStyle(card)
+
+            record.previousTransform = computedStyle.transform;
+
+            record.previousCardLength = computedStyle.getPropertyValue("--card-length");
 
             record.beforeFaceUp = card.faceUp;
 
@@ -163,7 +168,7 @@
               record = {};
               this._infoById[card.id] = record;
             }
-            record.newOffsets = this._calculateOffsets(card);        
+            record.newOffsets = this._calculateOffsets(card);
           }
         }
 
@@ -217,6 +222,9 @@
 
             //Mark that we've seen where this one is going.
             this._beforeSeenIds.delete(card.id);
+
+            record.postPreviousCardLength = card.style.getPropertyValue("--card-length");
+            card.style.setProperty("--card-length", record.previousCardLength);
 
             record.afterFaceUp = card.faceUp;
             card.faceUp = record.beforeFaceUp;       
@@ -333,6 +341,7 @@
             card.noAnimate = false;
             card.style.transform = record.postPreviousTransform;
             card.style.opacity = record.postPreviousOpacity;
+            card.style.setProperty("--card-length", record.postPreviousCardLength);
             card.faceUp = record.afterFaceUp;
 
           }
