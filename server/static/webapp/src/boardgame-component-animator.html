@@ -310,6 +310,7 @@
           })
 
           this._animatingCards.push({
+            stack: record.stack,
             card: card,
             postPreviousTransform: card.style.transform,
             postPreviousOpacity: card.style.opacity
@@ -327,6 +328,15 @@
           invertTop -= (stackLocation.height - oldLocation.height) / 2;
           invertLeft -= (stackLocation.width - oldLocation.width) / 2;
 
+          var scaleFactor= oldLocation.width / stackLocation.width;
+
+          //If the before and after are rotated differently then the scale
+          //factor will need to compare height vs width to get the right
+          //scale factor.
+          if (infoForCard.beforeRotated != record.stack.cardsRotated) {
+            scaleFactor = stackLocation.height / oldLocation.width;
+          }
+
           //We used to only bother setting transforms for items that had
           //physically moved. However, the browser is smart enough to ignore
           //transforms that are basically no ops. And if we don't set it
@@ -335,7 +345,8 @@
           //noAnimate and is never set to anything different. In testing
           //this didn't appear to have any appreciable performance difference.
           var transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`
-          card.style.transform = transform + " " + infoForCard.previousTransform;
+          var scaleTransform = `scale(${scaleFactor})`
+          card.style.transform = transform + " " + infoForCard.previousTransform + " " + scaleTransform;
 
           card.style.opacity = "1.0";
 
@@ -383,11 +394,7 @@
           record.card.noAnimate = false;
           record.card.setProperties({
             faceUp: false,
-            overrideRotated: false,
-            //TODO: even in cases where other cards in this stack are rotated
-            //this will be wrong; ideally we'd inspect other cards in the from
-            //stack to know what the stater value should be.
-            basicRotated: false
+            basicRotated: record.stack.cardsRotated
           })
 
           record.card.style.opacity = record.postPreviousOpacity;

@@ -206,6 +206,27 @@
           return sharedStackList;
         }
 
+        //returns true if it appears that at least some cards in this stack
+        //are rotated.
+        get cardsRotated() {
+          var cards = this.Cards;
+          var rotatedCards = 0;
+          var totalCards = 0;
+          for (var i = 0; i < cards.length; i++) {
+            totalCards++;
+            if (cards[i].rotated) {
+              rotatedCards++
+            }
+          }
+
+          if (!totalCards) {
+            return false;
+          }
+
+          return (rotatedCards / totalCards > 0.5);
+
+        }
+
         connectedCallback() {
           sharedStackList.push(this);
         }
