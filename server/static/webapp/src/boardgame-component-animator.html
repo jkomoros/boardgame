@@ -94,6 +94,7 @@
             record.previousTransform = computedStyle.transform;
 
             record.beforeFaceUp = card.faceUp;
+            record.beforeRotated = card.rotated;
 
             if (!card.noContent) {
               var newNodes = [];
@@ -220,12 +221,25 @@
             this._beforeSeenIds.delete(card.id);
 
             record.afterFaceUp = card.faceUp;
-            card.faceUp = record.beforeFaceUp;       
+
+            //All of these set inner rotation on card, so do them all at once
+            card.setProperties({
+              faceUp: record.beforeFaceUp,
+              overrideRotated: true,
+              basicRotated: record.beforeRotated
+            })
 
             var invertTop = record.offsets.top - record.newOffsets.top;
             var invertLeft = record.offsets.left - record.newOffsets.left;
 
             var scaleFactor= record.offsets.width / record.newOffsets.width;
+
+            //If the before and after are rotated differently then the scale
+            //factor will need to compare height vs width to get the right
+            //scale factor.
+            if (record.beforeRotated != card.rotated) {
+              scaleFactor = record.offsets.height / record.newOffsets.width;
+            }
 
             //The containing box has physically shrunk (or grown), and the
             //transform will make its apparent edge be that much smaller or
@@ -286,6 +300,7 @@
           var infoForCard = this._infoById[id]
 
           card.faceUp = infoForCard.beforeFaceUp;
+          card.rotated = infoForCard.rotated;
 
           this._animatingCards.push({
             card: card,
@@ -340,8 +355,13 @@
             card.noAnimate = false;
             card.style.transform = record.postPreviousTransform;
             card.style.opacity = record.postPreviousOpacity;
-            card.faceUp = record.afterFaceUp;
-
+            //All of these affect innerRotation on card, so do them all at
+            //once. When they weren't batched we were getting odd transforms.
+            card.setProperties({
+              faceUp: record.afterFaceUp,
+              overrideRotated: false,
+              basicRotated: false
+            });
           }
         }
 
@@ -349,6 +369,10 @@
           var record = this._animatingCards[i];
           record.card.noAnimate = false;
           record.card.faceUp = false;
+          //TODO: even in cases where other cards in this stack are rotated
+          //this will be wrong; ideally we'd inspect other cards in the from
+          //stack to know what the stater value should be.
+          record.card.rotated = false;
           record.card.style.opacity = record.postPreviousOpacity;
           record.card.style.transform = record.postPreviousTransform;
         }

@@ -183,7 +183,27 @@
           //If true, the card is rotated 90 degrees.
           rotated: {
             type: Boolean,
-            observer: "_updateInnerTransform"
+            observer: "_updateInnerTransform",
+            value: false
+          },
+          //basicRotated is similar to rotation, but it doesn't affect
+          //containing layout. The inner tranform will be applied though.
+          //Designed for being used in component-animator where we don't want
+          //to affect layout in thie main loop. Only active when
+          //overrideRotated is true. When in doubt, use rotated instead.
+          basicRotated: {
+            type: Boolean,
+            observer: "_updateInnerTransform",
+            value: false
+          },
+          //If true, rotated's value for transform will come from basicRotate,
+          //not normal rotate. Designed to switch between rotated and
+          //basicRotated, which is mainly necessary for during component-
+          //animator.
+          overrideRotated : {
+            type: Boolean,
+            obserer: "_updateInnerTransform",
+            value: false
           },
           //If true, content with a slot of "fallback" will be rendered
           //instead of the normal front content. boardgame-component-animator
@@ -269,7 +289,7 @@
         if (this.faceUp) {
           transformPieces.push("rotateY(180deg)");
         } 
-        if (this.rotated) {
+        if ((this.overrideRotated) ? this.basicRotated : this.rotated) {
           transformPieces.push("rotate(-90deg)");
         }
         var transform = transformPieces.join(" ")
