@@ -14,6 +14,10 @@
   <template>
     <style>
 
+      .slow {
+        --animation-length: 5s;
+      }
+
       #shortstacks {
         @apply --layout-horizontal;
       }
@@ -53,125 +57,127 @@
       }
 
     </style>
-    <div id="controls">
-      <paper-toggle-button checked="{{fromStackRotated}}">From Rotated</paper-toggle-button>
-      <paper-toggle-button checked="{{toStackRotated}}">To Rotated</paper-toggle-button>
-      <paper-toggle-button checked="{{messy}}">Messy</paper-toggle-button>
-    </div>
-    <div id='shortstacks'>
-      <boardgame-card-stack layout='stack' stack="{{state.Game.FirstShortStack}}" messy="{{messy}}">
-        <template is='dom-repeat'>
-          <boardgame-card item="{{item}}" index="{{index}}" propose-move="Move Card Between Short Stacks">
-            <div>
-              {{item.Values.Type}}
-            </div>
-          </boardgame-card>
-        </template>
-      </boardgame-card-stack>
-      <boardgame-card-stack layout='stack' messy="{{messy}}" stack="{{state.Game.SecondShortStack}}">
-        <template is='dom-repeat'>
-          <boardgame-card item="{{item}}" index="{{index}}">
-            <div>
-              {{item.Values.Type}}
-            </div>
-          </boardgame-card>
-        </template>
-      </boardgame-card-stack>
-      <paper-button propose-move="Move Card Between Short Stacks">Swap</paper-button>
-    </div>
+    <div id="container" class$="{{_classes(slowAnimations)}}">
+      <div id="controls">
+        <paper-toggle-button checked="{{fromStackRotated}}">From Rotated</paper-toggle-button>
+        <paper-toggle-button checked="{{toStackRotated}}">To Rotated</paper-toggle-button>
+        <paper-toggle-button checked="{{messy}}">Messy</paper-toggle-button>
+        <paper-toggle-button checked="{{slowAnimations}}">Slow Animation</paper-toggle-button>
+      </div>
+      <div id='shortstacks'>
+        <boardgame-card-stack layout='stack' stack="{{state.Game.FirstShortStack}}" messy="{{messy}}">
+          <template is='dom-repeat'>
+            <boardgame-card item="{{item}}" index="{{index}}" propose-move="Move Card Between Short Stacks">
+              <div>
+                {{item.Values.Type}}
+              </div>
+            </boardgame-card>
+          </template>
+        </boardgame-card-stack>
+        <boardgame-card-stack layout='stack' messy="{{messy}}" stack="{{state.Game.SecondShortStack}}">
+          <template is='dom-repeat'>
+            <boardgame-card item="{{item}}" index="{{index}}">
+              <div>
+                {{item.Values.Type}}
+              </div>
+            </boardgame-card>
+          </template>
+        </boardgame-card-stack>
+        <paper-button propose-move="Move Card Between Short Stacks">Swap</paper-button>
+      </div>
 
-    <div id='draw'>
-      <boardgame-card-stack layout='stack' messy="{{messy}}" stack="{{state.Game.DrawStack}}">
-        <template is='dom-repeat'>
-          <boardgame-card item="{{item}}" index="{{index}}">
-            <div>
-              {{item.Values.Type}}
-            </div>
-          </boardgame-card>
-        </template>
-      </boardgame-card-stack>
-      <boardgame-card-stack layout='stack' messy="{{messy}}" stack="{{state.Game.DiscardStack}}">
-        <template is='dom-repeat'>
-          <boardgame-card item="{{item}}" index="{{index}}">
-            <div>
-              {{item.Values.Type}}
-            </div>
-          </boardgame-card>
-        </template>
-      </boardgame-card-stack>
-      <paper-button propose-move="Move Card Between Draw and Discard Stacks">Draw</paper-button>
-    </div>
+      <div id='draw'>
+        <boardgame-card-stack layout='stack' messy="{{messy}}" stack="{{state.Game.DrawStack}}">
+          <template is='dom-repeat'>
+            <boardgame-card item="{{item}}" index="{{index}}">
+              <div>
+                {{item.Values.Type}}
+              </div>
+            </boardgame-card>
+          </template>
+        </boardgame-card-stack>
+        <boardgame-card-stack layout='stack' messy="{{messy}}" stack="{{state.Game.DiscardStack}}">
+          <template is='dom-repeat'>
+            <boardgame-card item="{{item}}" index="{{index}}">
+              <div>
+                {{item.Values.Type}}
+              </div>
+            </boardgame-card>
+          </template>
+        </boardgame-card-stack>
+        <paper-button propose-move="Move Card Between Draw and Discard Stacks">Draw</paper-button>
+      </div>
 
-    <div id='draw'>
-      <boardgame-card-stack layout='stack' messy="{{messy}}" primary-stack="{{state.Game.HiddenCard}}" secondary-stack="{{state.Game.RevealedCard}}"> 
-        <template is='dom-repeat'>
-          <boardgame-card index="{{index}}" item="{{item}}">
-            <div>
-              {{item.Values.Type}}
-            </div>
-          </boardgame-card>
-        </template>
-      </boardgame-card-stack>
-      <paper-button propose-move="Flip Card Between Hidden and Revealed">Flip</paper-button>
-    </div>
+      <div id='draw'>
+        <boardgame-card-stack layout='stack' messy="{{messy}}" primary-stack="{{state.Game.HiddenCard}}" secondary-stack="{{state.Game.RevealedCard}}"> 
+          <template is='dom-repeat'>
+            <boardgame-card index="{{index}}" item="{{item}}">
+              <div>
+                {{item.Values.Type}}
+              </div>
+            </boardgame-card>
+          </template>
+        </boardgame-card-stack>
+        <paper-button propose-move="Flip Card Between Hidden and Revealed">Flip</paper-button>
+      </div>
 
-    <div id="fan">
-      <boardgame-card-stack layout='{{fromStackLayout}}' messy="{{messy}}" stack="{{state.Game.FanStack}}">
-        <template is='dom-repeat'>
-          <boardgame-card item="{{item}}" index="{{index}}" rotated="{{fromStackRotated}}">
-            <div>
-              {{item.Values.Type}}
-            </div>
-          </boardgame-card>
-        </template>
-      </boardgame-card-stack>
-      <div class="flex"></div>
-      <boardgame-card-stack layout='stack' messy="{{messy}}" stack="{{state.Game.FanDiscard}}">
-        <template is='dom-repeat'>
-          <boardgame-card item="{{item}}" index="{{index}}" rotated="{{toStackRotated}}">
-            <div>
-              {{item.Values.Type}}
-            </div>
-          </boardgame-card>
-        </template>
-      </boardgame-card-stack>
-      <div class="controls">
-        <paper-button propose-move="Move Fan Card">Draw</paper-button>
-        <paper-button propose-move="Visible Shuffle">Public Shuffle</paper-button>
-        <paper-button propose-move="Shuffle">Shuffle</paper-button>
-        <paper-dropdown-menu label="Layout">
-          <paper-listbox slot="dropdown-content" selected="{{fromStackLayout}}" attr-for-selected="value">
-            <paper-item value="fan">fan</paper-item>
-            <paper-item value="spread">spread</paper-item>
-            <paper-item value="stack">stack</paper-item>
-            <paper-item value="grid">grid</paper-item>
-          </paper-listbox>
-        </paper-dropdown-menu>
+      <div id="fan">
+        <boardgame-card-stack layout='{{fromStackLayout}}' messy="{{messy}}" stack="{{state.Game.FanStack}}">
+          <template is='dom-repeat'>
+            <boardgame-card item="{{item}}" index="{{index}}" rotated="{{fromStackRotated}}">
+              <div>
+                {{item.Values.Type}}
+              </div>
+            </boardgame-card>
+          </template>
+        </boardgame-card-stack>
+        <div class="flex"></div>
+        <boardgame-card-stack layout='stack' messy="{{messy}}" stack="{{state.Game.FanDiscard}}">
+          <template is='dom-repeat'>
+            <boardgame-card item="{{item}}" index="{{index}}" rotated="{{toStackRotated}}">
+              <div>
+                {{item.Values.Type}}
+              </div>
+            </boardgame-card>
+          </template>
+        </boardgame-card-stack>
+        <div class="controls">
+          <paper-button propose-move="Move Fan Card">Draw</paper-button>
+          <paper-button propose-move="Visible Shuffle">Public Shuffle</paper-button>
+          <paper-button propose-move="Shuffle">Shuffle</paper-button>
+          <paper-dropdown-menu label="Layout">
+            <paper-listbox slot="dropdown-content" selected="{{fromStackLayout}}" attr-for-selected="value">
+              <paper-item value="fan">fan</paper-item>
+              <paper-item value="spread">spread</paper-item>
+              <paper-item value="stack">stack</paper-item>
+              <paper-item value="grid">grid</paper-item>
+            </paper-listbox>
+          </paper-dropdown-menu>
+        </div>
+      </div>
+
+      <div id="hidden">
+        <boardgame-card-stack layout="fan" messy="{{messy}}" stack="{{state.Game.VisibleStack}}">
+          <template is="dom-repeat">
+            <boardgame-card item="{{item}}" index="{{index}}" rotated="{{fromStackRotated}}">
+              <div>
+                {{item.Values.Type}}
+              </div>
+            </boardgame-card>
+          </template>
+        </boardgame-card-stack>
+        <boardgame-card-stack layout="stack" messy="{{messy}}" stack="{{state.Game.HiddenStack}}">
+          <template is="dom-repeat">
+            <boardgame-card item="{{item}}" index="{{index}}" rotated="{{toStackRotated}}">
+              <div>
+                {{item.Values.Type}}
+              </div>
+            </boardgame-card>
+          </template>
+        </boardgame-card-stack>
+        <paper-button propose-move="Move Between Hidden">Draw</paper-button>
       </div>
     </div>
-
-    <div id="hidden">
-      <boardgame-card-stack layout="fan" messy="{{messy}}" stack="{{state.Game.VisibleStack}}">
-        <template is="dom-repeat">
-          <boardgame-card item="{{item}}" index="{{index}}" rotated="{{fromStackRotated}}">
-            <div>
-              {{item.Values.Type}}
-            </div>
-          </boardgame-card>
-        </template>
-      </boardgame-card-stack>
-      <boardgame-card-stack layout="stack" messy="{{messy}}" stack="{{state.Game.HiddenStack}}">
-        <template is="dom-repeat">
-          <boardgame-card item="{{item}}" index="{{index}}" rotated="{{toStackRotated}}">
-            <div>
-              {{item.Values.Type}}
-            </div>
-          </boardgame-card>
-        </template>
-      </boardgame-card-stack>
-      <paper-button propose-move="Move Between Hidden">Draw</paper-button>
-    </div>
-
   </template>
 
   <script>
@@ -201,8 +207,19 @@
           messy: {
             type: Boolean,
             value: true
+          },
+          slowAnimations: {
+            type: Boolean,
+            value: false,
           }
         }
+      }
+
+      _classes() {
+        if (this.slowAnimations) {
+          return "slow"
+        }
+        return "";
       }
 
     }
