@@ -303,8 +303,11 @@
 
           var infoForCard = this._infoById[id]
 
-          card.faceUp = infoForCard.beforeFaceUp;
-          card.rotated = infoForCard.rotated;
+          card.setProperties({
+            faceUp: infoForCard.beforeFaceUp,
+            overrideRotated: true,
+            basicRotated: infoForCard.beforeRotated
+          })
 
           this._animatingCards.push({
             card: card,
@@ -372,11 +375,15 @@
         for (var i = 0; i < this._animatingCards.length; i++) {
           var record = this._animatingCards[i];
           record.card.noAnimate = false;
-          record.card.faceUp = false;
-          //TODO: even in cases where other cards in this stack are rotated
-          //this will be wrong; ideally we'd inspect other cards in the from
-          //stack to know what the stater value should be.
-          record.card.rotated = false;
+          record.card.setProperties({
+            faceUp: false,
+            overrideRotated: false,
+            //TODO: even in cases where other cards in this stack are rotated
+            //this will be wrong; ideally we'd inspect other cards in the from
+            //stack to know what the stater value should be.
+            basicRotated: false
+          })
+
           record.card.style.opacity = record.postPreviousOpacity;
           record.card.style.transform = record.postPreviousTransform;
         }
