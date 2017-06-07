@@ -321,6 +321,12 @@
           var invertTop = oldLocation.top - stackLocation.top;
           var invertLeft = oldLocation.left - stackLocation.left;
 
+          //The containing box has physically shrunk (or grown), and the
+          //transform will make its apparent edge be that much smaller or
+          //bigger, so correct for that.
+          invertTop -= (stackLocation.height - oldLocation.height) / 2;
+          invertLeft -= (stackLocation.width - oldLocation.width) / 2;
+
           //We used to only bother setting transforms for items that had
           //physically moved. However, the browser is smart enough to ignore
           //transforms that are basically no ops. And if we don't set it
