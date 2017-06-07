@@ -93,6 +93,10 @@
 
             record.previousTransform = computedStyle.transform;
 
+            if (record.previousTransform == "none") {
+              record.previousTransform = "";
+            }
+
             record.beforeFaceUp = card.faceUp;
             record.beforeRotated = card.rotated;
 
