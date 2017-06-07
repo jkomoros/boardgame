@@ -5,6 +5,7 @@
 <link rel="import" href="../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
 <link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
 <link rel="import" href="../../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../../bower_components/paper-toggle-button/paper-toggle-button.html">
 <link rel="import" href="../../src/boardgame-base-game-renderer.html">
 <link rel="import" href="../../src/boardgame-card.html">
 <link rel="import" href="../../src/boardgame-card-stack.html">
@@ -109,7 +110,7 @@
     <div id="fan">
       <boardgame-card-stack layout='{{fromStackLayout}}' messy stack="{{state.Game.FanStack}}">
         <template is='dom-repeat'>
-          <boardgame-card item="{{item}}" index="{{index}}">
+          <boardgame-card item="{{item}}" index="{{index}}" rotated="{{fromStackRotated}}">
             <div>
               {{item.Values.Type}}
             </div>
@@ -130,6 +131,7 @@
         <paper-button propose-move="Move Fan Card">Draw</paper-button>
         <paper-button propose-move="Visible Shuffle">Public Shuffle</paper-button>
         <paper-button propose-move="Shuffle">Shuffle</paper-button>
+        <paper-toggle-button checked="{{fromStackRotated}}">Rotated</paper-toggle-button>
         <paper-dropdown-menu label="Layout">
           <paper-listbox slot="dropdown-content" selected="{{fromStackLayout}}" attr-for-selected="value">
             <paper-item value="fan">fan</paper-item>
@@ -180,6 +182,10 @@
           fromStackLayout: {
             type: String,
             value: "fan"
+          },
+          fromStackRotated: {
+            type: Boolean,
+            value: false
           }
         }
       }
