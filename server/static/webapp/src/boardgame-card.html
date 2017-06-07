@@ -58,17 +58,11 @@
         cursor: pointer;
       }
 
-      #scaler {
+      #inner {
+
         width: var(--default-card-width);
         height: calc(var(--default-card-width) * var(--card-effective-aspect-ratio));
         transform: scale(var(--card-effective-scale));
-        /*transition: transform var(--animation-length, 0.25) ease-in-out;*/
-      }
-
-      #inner {
-
-        height:100%;
-        width:100%;
 
         border-radius: var(--card-effective-border-radius);
 
@@ -83,10 +77,6 @@
 
       .disabled {
         filter: saturate(60%);
-      }
-
-      .rotated #inner {
-        transform: rotate(-90deg);
       }
 
       #card.shadow #inner {
@@ -187,10 +177,13 @@
           //back. If noAnimate is false, will animate the card flip.
           faceUp: {
             type: Boolean,
-            observer: "_faceUpChanged"
+            observer: "_updateInnerTransform"
           },
           //If true, the card is rotated 90 degrees.
-          rotated: Boolean,
+          rotated: {
+            type: Boolean,
+            observer: "_updateInnerTransform"
+          },
           //If true, content with a slot of "fallback" will be rendered
           //instead of the normal front content. boardgame-component-animator
           //uses this functionality to inject old content that technically has
@@ -270,12 +263,19 @@
         this.id = newValue.Id || "";
       }
 
-      _faceUpChanged(newValue) {
-        if (newValue) {
-          this.$.inner.style.transform = "rotateY(180deg)";
-        } else {
-          this.$.inner.style.transform = "none";
+      _updateInnerTransform() {
+        var transformPieces = ["scale(var(--card-effective-scale))"];
+        if (this.faceUp) {
+          transformPieces.push("rotateY(180deg)");
+        } 
+        if (this.rotated) {
+          transformPieces.push("rotate(-90deg)");
         }
+        var transform = transformPieces.join(" ")
+        if (!transform) {
+          transform = "none";
+        }
+        this.$.inner.style.transform = transform;
         if (!this.noAnimate) {
           this._animating = true;
         }
