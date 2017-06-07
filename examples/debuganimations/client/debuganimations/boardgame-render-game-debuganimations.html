@@ -54,7 +54,8 @@
 
     </style>
     <div id="controls">
-      <paper-toggle-button checked="{{fromStackRotated}}">Rotated</paper-toggle-button>
+      <paper-toggle-button checked="{{fromStackRotated}}">From Rotated</paper-toggle-button>
+      <paper-toggle-button checked="{{toStackRotated}}">To Rotated</paper-toggle-button>
       <paper-toggle-button checked="{{messy}}">Messy</paper-toggle-button>
     </div>
     <div id='shortstacks'>
@@ -127,7 +128,7 @@
       <div class="flex"></div>
       <boardgame-card-stack layout='stack' messy="{{messy}}" stack="{{state.Game.FanDiscard}}">
         <template is='dom-repeat'>
-          <boardgame-card item="{{item}}" index="{{index}}">
+          <boardgame-card item="{{item}}" index="{{index}}" rotated="{{toStackRotated}}">
             <div>
               {{item.Values.Type}}
             </div>
@@ -152,7 +153,7 @@
     <div id="hidden">
       <boardgame-card-stack layout="fan" messy="{{messy}}" stack="{{state.Game.VisibleStack}}">
         <template is="dom-repeat">
-          <boardgame-card item="{{item}}" index="{{index}}">
+          <boardgame-card item="{{item}}" index="{{index}}" rotated="{{fromStackRotated}}">
             <div>
               {{item.Values.Type}}
             </div>
@@ -161,7 +162,7 @@
       </boardgame-card-stack>
       <boardgame-card-stack layout="stack" messy="{{messy}}" stack="{{state.Game.HiddenStack}}">
         <template is="dom-repeat">
-          <boardgame-card item="{{item}}" index="{{index}}">
+          <boardgame-card item="{{item}}" index="{{index}}" rotated="{{toStackRotated}}">
             <div>
               {{item.Values.Type}}
             </div>
@@ -190,6 +191,10 @@
             value: "fan"
           },
           fromStackRotated: {
+            type: Boolean,
+            value: false
+          },
+          toStackRotated: {
             type: Boolean,
             value: false
           },
