@@ -48,10 +48,17 @@
         @apply --layout-horizontal;
       }
 
-    </style>
+      #controls {
+        @apply --layout-horizontal;
+      }
 
+    </style>
+    <div id="controls">
+      <paper-toggle-button checked="{{fromStackRotated}}">Rotated</paper-toggle-button>
+      <paper-toggle-button checked="{{messy}}">Messy</paper-toggle-button>
+    </div>
     <div id='shortstacks'>
-      <boardgame-card-stack layout='stack' stack="{{state.Game.FirstShortStack}}" messy>
+      <boardgame-card-stack layout='stack' stack="{{state.Game.FirstShortStack}}" messy="{{messy}}">
         <template is='dom-repeat'>
           <boardgame-card item="{{item}}" index="{{index}}" propose-move="Move Card Between Short Stacks">
             <div>
@@ -60,7 +67,7 @@
           </boardgame-card>
         </template>
       </boardgame-card-stack>
-      <boardgame-card-stack layout='stack' messy stack="{{state.Game.SecondShortStack}}">
+      <boardgame-card-stack layout='stack' messy="{{messy}}" stack="{{state.Game.SecondShortStack}}">
         <template is='dom-repeat'>
           <boardgame-card item="{{item}}" index="{{index}}">
             <div>
@@ -73,7 +80,7 @@
     </div>
 
     <div id='draw'>
-      <boardgame-card-stack layout='stack' messy stack="{{state.Game.DrawStack}}">
+      <boardgame-card-stack layout='stack' messy="{{messy}}" stack="{{state.Game.DrawStack}}">
         <template is='dom-repeat'>
           <boardgame-card item="{{item}}" index="{{index}}">
             <div>
@@ -82,7 +89,7 @@
           </boardgame-card>
         </template>
       </boardgame-card-stack>
-      <boardgame-card-stack layout='stack' messy stack="{{state.Game.DiscardStack}}">
+      <boardgame-card-stack layout='stack' messy="{{messy}}" stack="{{state.Game.DiscardStack}}">
         <template is='dom-repeat'>
           <boardgame-card item="{{item}}" index="{{index}}">
             <div>
@@ -95,7 +102,7 @@
     </div>
 
     <div id='draw'>
-      <boardgame-card-stack layout='stack' messy primary-stack="{{state.Game.HiddenCard}}" secondary-stack="{{state.Game.RevealedCard}}"> 
+      <boardgame-card-stack layout='stack' messy="{{messy}}" primary-stack="{{state.Game.HiddenCard}}" secondary-stack="{{state.Game.RevealedCard}}"> 
         <template is='dom-repeat'>
           <boardgame-card index="{{index}}" item="{{item}}">
             <div>
@@ -108,7 +115,7 @@
     </div>
 
     <div id="fan">
-      <boardgame-card-stack layout='{{fromStackLayout}}' messy stack="{{state.Game.FanStack}}">
+      <boardgame-card-stack layout='{{fromStackLayout}}' messy="{{messy}}" stack="{{state.Game.FanStack}}">
         <template is='dom-repeat'>
           <boardgame-card item="{{item}}" index="{{index}}" rotated="{{fromStackRotated}}">
             <div>
@@ -118,7 +125,7 @@
         </template>
       </boardgame-card-stack>
       <div class="flex"></div>
-      <boardgame-card-stack layout='stack' messy stack="{{state.Game.FanDiscard}}">
+      <boardgame-card-stack layout='stack' messy="{{messy}}" stack="{{state.Game.FanDiscard}}">
         <template is='dom-repeat'>
           <boardgame-card item="{{item}}" index="{{index}}">
             <div>
@@ -131,7 +138,6 @@
         <paper-button propose-move="Move Fan Card">Draw</paper-button>
         <paper-button propose-move="Visible Shuffle">Public Shuffle</paper-button>
         <paper-button propose-move="Shuffle">Shuffle</paper-button>
-        <paper-toggle-button checked="{{fromStackRotated}}">Rotated</paper-toggle-button>
         <paper-dropdown-menu label="Layout">
           <paper-listbox slot="dropdown-content" selected="{{fromStackLayout}}" attr-for-selected="value">
             <paper-item value="fan">fan</paper-item>
@@ -144,7 +150,7 @@
     </div>
 
     <div id="hidden">
-      <boardgame-card-stack layout="fan" messy stack="{{state.Game.VisibleStack}}">
+      <boardgame-card-stack layout="fan" messy="{{messy}}" stack="{{state.Game.VisibleStack}}">
         <template is="dom-repeat">
           <boardgame-card item="{{item}}" index="{{index}}">
             <div>
@@ -153,7 +159,7 @@
           </boardgame-card>
         </template>
       </boardgame-card-stack>
-      <boardgame-card-stack layout="stack" messy stack="{{state.Game.HiddenStack}}">
+      <boardgame-card-stack layout="stack" messy="{{messy}}" stack="{{state.Game.HiddenStack}}">
         <template is="dom-repeat">
           <boardgame-card item="{{item}}" index="{{index}}">
             <div>
@@ -186,6 +192,10 @@
           fromStackRotated: {
             type: Boolean,
             value: false
+          },
+          messy: {
+            type: Boolean,
+            value: true
           }
         }
       }

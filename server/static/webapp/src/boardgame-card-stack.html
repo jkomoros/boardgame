@@ -163,7 +163,11 @@
             },
             //if true, all cards will have a slight rotation transformation
             //applied to make the layout not look artificially tidy
-            messy: Boolean,
+            messy: {
+              type: Boolean,
+              value: false,
+              observer: "_updateCardClasses"
+            },
             //idsLastSeen should be the IdsLastSeen for the stack that this
             //stack represents. boardgame-component-animator will use this
             //value to figure out where to animate from and to.
