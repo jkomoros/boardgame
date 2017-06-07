@@ -76,7 +76,8 @@
       }
 
       #container.spread ::slotted(boardgame-card), #container.spread boardgame-card {
-        margin-right: -6.0em;
+        /* default card width */
+        margin-right: calc(100px * -1);
       }
 
       #container.spread ::slotted(boardgame-card.bcc-last), #container.spread boardgame-card.bcc-last {
@@ -84,7 +85,8 @@
       }
 
       #container.fan ::slotted(boardgame-card), #container.fan boardgame-card {
-        margin-right: -3.0em;
+        /* default card width */
+        margin-right: calc(100px * -0.5);
       }
 
       #container.fan ::slotted(boardgame-card.bcc-last), #container.fan boardgame-card.bcc-last {

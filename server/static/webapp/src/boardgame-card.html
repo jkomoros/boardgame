@@ -9,6 +9,7 @@
 
       :host {
         --default-card-scale: 1.0;
+        /* note that boardgame-card-stack has a couple of hard-coded margins based on this value in its stylesheet */
         --default-card-width: 100px;
         --card-effective-scale: var(--card-scale, var(--default-card-scale));
         --card-effective-width: calc(var(--card-effective-scale) * var(--default-card-width));
