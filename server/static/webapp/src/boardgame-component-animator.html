@@ -306,6 +306,9 @@
 
           card.setProperties({
             faceUp: infoForCard.beforeFaceUp,
+            //Want the to location to have layout correctly. Setting layout is
+            //OK because there are no layout/style readbacks in this loop.
+            rotated: record.stack.cardsRotated,
             overrideRotated: true,
             basicRotated: infoForCard.beforeRotated
           })
