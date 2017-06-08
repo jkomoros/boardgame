@@ -323,21 +323,6 @@
           var invertTop = oldLocation.top - stackLocation.top;
           var invertLeft = oldLocation.left - stackLocation.left;
 
-          //The containing box has physically shrunk (or grown), and the
-          //transform will make its apparent edge be that much smaller or
-          //bigger, so correct for that.
-          invertTop -= (stackLocation.height - oldLocation.height) / 2;
-          invertLeft -= (stackLocation.width - oldLocation.width) / 2;
-
-          var scaleFactor= oldLocation.width / stackLocation.width;
-
-          //If the before and after are rotated differently then the scale
-          //factor will need to compare height vs width to get the right
-          //scale factor.
-          if (infoForCard.beforeRotated != record.stack.cardsRotated) {
-            scaleFactor = stackLocation.height / oldLocation.width;
-          }
-
           //We used to only bother setting transforms for items that had
           //physically moved. However, the browser is smart enough to ignore
           //transforms that are basically no ops. And if we don't set it
@@ -345,9 +330,9 @@
           //changes won't animate because the transform was set during
           //noAnimate and is never set to anything different. In testing
           //this didn't appear to have any appreciable performance difference.
-          var transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`
-          var scaleTransform = `scale(${scaleFactor})`
-          card.style.transform = transform + " " + infoForCard.previousTransform + " " + scaleTransform;
+          var transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`;
+          
+          card.style.transform = transform + " " + infoForCard.previousTransform;
 
           card.style.opacity = "1.0";
 
