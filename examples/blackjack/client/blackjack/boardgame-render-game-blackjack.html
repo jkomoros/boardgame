@@ -36,9 +36,9 @@
     <div id="players">
       <template is="dom-repeat" items="{{state.Players}}">
         <strong>Player {{index}}</strong>
-        <boardgame-card-stack primary-stack="{{item.VisibleHand}}" secondary-stack="{{item.HiddenHand}}" stack-combine="concatenate" layout="fan" messy>
+        <boardgame-card-stack secondary-stack="{{item.VisibleHand}}" primary-stack="{{item.HiddenHand}}" stack-combine="concatenate" layout="fan" messy>
           <template is="dom-repeat">
-            <boardgame-card item="{{item}}" index="{{index}}" suit="{{item.Values.Suit}}" rank="{{item.Values.Rank}}"></boardgame-card>
+            <boardgame-card item="{{item}}" index="{{index}}" suit="{{item.Values.Suit}}" rank="{{item.Values.Rank}}" rotated></boardgame-card>
           </template>
         </boardgame-card-stack>
       </template>
