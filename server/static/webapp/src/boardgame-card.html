@@ -99,6 +99,13 @@
         border-radius:var(--card-effective-border-radius);
       }
 
+      #top-rank {
+        position:absolute;
+        bottom: 5px;
+        left: 5px;
+        transform: rotate(-90deg);
+      }
+
       #card #front {
         background-color: #CCFCFC;
         z-index: 2;
@@ -132,7 +139,9 @@
           <div id="front">
             <div class="normal">
               <slot>
-                {{suit}}{{rank}}
+                <div id="top-rank">
+                  {{suit}}{{rank}}
+                </div>
               </slot>
             </div>
             <div class="fallback">
