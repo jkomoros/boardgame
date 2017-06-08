@@ -4,6 +4,7 @@
 <link rel="import" href="../../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../../src/boardgame-card-stack.html">
 <link rel="import" href="../../src/boardgame-card.html">
+<link rel="import" href="../../src/boardgame-base-game-renderer.html">
 
 <dom-module id="boardgame-render-game-blackjack">
   <template>
@@ -19,12 +20,12 @@
     <div id="draw">
       <boardgame-card-stack stack="{{state.Game.DrawStack}}" layout="stack" messy>
         <template is="dom-repeat">
-          <boardgame-card item="{{item}}" index="{{index}}"></boardgame-card>
+          <boardgame-card item="{{item}}" index="{{index}}" propose-move="Current Player Hit"></boardgame-card>
         </template>
       </boardgame-card-stack>
       <div class="flex">
-        <paper-button raised>Hit</paper-button>
-        <paper-button raised>Stand</paper-button>
+        <paper-button raised propose-move="Current Player Hit">Hit</paper-button>
+        <paper-button raised propose-move="Current Player Stand">Stand</paper-button>
       </div>
       <boardgame-card-stack stack="{{state.Game.DiscardStack}}" layout="stack" messy>
         <template is="dom-repeat">
@@ -46,7 +47,7 @@
 
   <script>
 
-    class BoardgameRenderGameBlackjack extends Polymer.Element {
+    class BoardgameRenderGameBlackjack extends BoardgameBaseGameRenderer {
 
       static get is() {
         return "boardgame-render-game-blackjack"
