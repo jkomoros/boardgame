@@ -99,11 +99,21 @@
         border-radius:var(--card-effective-border-radius);
       }
 
-      #top-rank {
+      #top-rank, #bottom-rank {
         position:absolute;
+        @apply --paper-font-caption;
+      }
+
+      #top-rank {
         bottom: 5px;
         left: 5px;
         transform: rotate(-90deg);
+      }
+
+      #bottom-rank {
+        right: 5px;
+        top: 5px;
+        transform: rotate(90deg);
       }
 
       #card #front {
@@ -140,6 +150,9 @@
             <div class="normal">
               <slot>
                 <div id="top-rank">
+                  {{suit}}{{rank}}
+                </div>
+                <div id="bottom-rank">
                   {{suit}}{{rank}}
                 </div>
               </slot>
