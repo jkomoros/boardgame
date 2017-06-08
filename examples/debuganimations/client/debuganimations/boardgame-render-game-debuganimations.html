@@ -6,6 +6,7 @@
 <link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
 <link rel="import" href="../../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../../bower_components/paper-toggle-button/paper-toggle-button.html">
+<link rel="import" href="../../bower_components/paper-slider/paper-slider.html">
 <link rel="import" href="../../src/boardgame-base-game-renderer.html">
 <link rel="import" href="../../src/boardgame-card.html">
 <link rel="import" href="../../src/boardgame-card-stack.html">
@@ -63,6 +64,8 @@
         <paper-toggle-button checked="{{toStackRotated}}">To Rotated</paper-toggle-button>
         <paper-toggle-button checked="{{messy}}">Messy</paper-toggle-button>
         <paper-toggle-button checked="{{slowAnimations}}">Slow Animation</paper-toggle-button>
+        From scale:<paper-slider min="0.0" max="2.0" value="{{fromCardScale}}"></paper-slider>
+        To Scale: <paper-slider min="0.0" max="2.0" value="{{toCardScale}}"></paper-slider>
       </div>
       <div id='shortstacks'>
         <boardgame-card-stack layout='stack' stack="{{state.Game.FirstShortStack}}" messy="{{messy}}">
@@ -122,7 +125,7 @@
       </div>
 
       <div id="fan">
-        <boardgame-card-stack layout='{{fromStackLayout}}' messy="{{messy}}" stack="{{state.Game.FanStack}}">
+        <boardgame-card-stack layout='{{fromStackLayout}}' messy="{{messy}}" stack="{{state.Game.FanStack}}" style="--card-scale:{{fromCardScale}}">
           <template is='dom-repeat'>
             <boardgame-card item="{{item}}" index="{{index}}" rotated="{{fromStackRotated}}">
               <div>
@@ -132,7 +135,7 @@
           </template>
         </boardgame-card-stack>
         <div class="flex"></div>
-        <boardgame-card-stack layout='stack' messy="{{messy}}" stack="{{state.Game.FanDiscard}}">
+        <boardgame-card-stack layout='stack' messy="{{messy}}" stack="{{state.Game.FanDiscard}}" style="--card-scale:{{toCardScale}}">
           <template is='dom-repeat'>
             <boardgame-card item="{{item}}" index="{{index}}" rotated="{{toStackRotated}}">
               <div>
@@ -157,7 +160,7 @@
       </div>
 
       <div id="hidden">
-        <boardgame-card-stack layout="fan" messy="{{messy}}" stack="{{state.Game.VisibleStack}}">
+        <boardgame-card-stack layout="fan" messy="{{messy}}" stack="{{state.Game.VisibleStack}}" style="--card-scale:{{fromCardScale}}">
           <template is="dom-repeat">
             <boardgame-card item="{{item}}" index="{{index}}" rotated="{{fromStackRotated}}">
               <div>
@@ -166,7 +169,7 @@
             </boardgame-card>
           </template>
         </boardgame-card-stack>
-        <boardgame-card-stack layout="stack" messy="{{messy}}" stack="{{state.Game.HiddenStack}}">
+        <boardgame-card-stack layout="stack" messy="{{messy}}" stack="{{state.Game.HiddenStack}}" style="--card-scale:{{toCardScale}}">
           <template is="dom-repeat">
             <boardgame-card item="{{item}}" index="{{index}}" rotated="{{toStackRotated}}">
               <div>
@@ -211,6 +214,14 @@
           slowAnimations: {
             type: Boolean,
             value: false,
+          },
+          fromCardScale: {
+            type: Number,
+            value: 1.0
+          },
+          toCardScale: {
+            type: Number,
+            value: 1.0
           }
         }
       }
