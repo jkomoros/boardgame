@@ -64,8 +64,8 @@
         <paper-toggle-button checked="{{toStackRotated}}">To Rotated</paper-toggle-button>
         <paper-toggle-button checked="{{messy}}">Messy</paper-toggle-button>
         <paper-toggle-button checked="{{slowAnimations}}">Slow Animation</paper-toggle-button>
-        From scale:<paper-slider min="0.0" max="2.0" value="{{fromCardScale}}"></paper-slider>
-        To Scale: <paper-slider min="0.0" max="2.0" value="{{toCardScale}}"></paper-slider>
+        From scale:<paper-slider min="0.5" max="2.0" value="{{fromCardScale}}" pin step=".05"></paper-slider>
+        To Scale: <paper-slider min="0.5" max="2.0" value="{{toCardScale}}" pin step=".05"></paper-slider>
       </div>
       <div id='shortstacks'>
         <boardgame-card-stack layout='stack' stack="{{state.Game.FirstShortStack}}" messy="{{messy}}">
