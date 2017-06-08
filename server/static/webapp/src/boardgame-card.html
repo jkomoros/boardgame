@@ -206,7 +206,8 @@
           rotated: {
             type: Boolean,
             observer: "_updateInnerTransform",
-            value: false
+            value: false,
+            reflectToAttribute: true
           },
           //basicRotated is similar to rotation, but it doesn't affect
           //containing layout. The inner tranform will be applied though.
