@@ -499,11 +499,21 @@
           //TODO: set the amount of max rotation based on length of stack;
           var maxRotation = 20;
           var minRotation = maxRotation * -1;
-          var rotationSpread = maxRotation - minRotation;
-
+          
           var maxTranslate = -1.0;
           var minTranslate = 1.5;
+          
+          if (cards.length < 8) {
+            var percent = 0.5
+            maxRotation *= percent;
+            minRotation *= percent;
+            maxTranslate *= percent;
+            minTranslate *= percent;
+          }
+
+          var rotationSpread = maxRotation - minRotation;
           var translateSpread = maxTranslate - minTranslate;
+
 
           for (var i = 0; i < cards.length; i++) {
               var card = cards[i];
