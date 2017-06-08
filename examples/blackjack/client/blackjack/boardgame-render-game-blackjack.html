@@ -1,9 +1,47 @@
 <link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../bower_components/polymer/lib/elements/dom-repeat.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../src/boardgame-card-stack.html">
+<link rel="import" href="../../src/boardgame-card.html">
 
 <dom-module id="boardgame-render-game-blackjack">
   <template>
-  <h2>Hey y'all this comes from a custom renderer</h2>
-  <pre>{{diagram}}</pre>
+    <style>
+      #draw, #players {
+        @apply --layout-horizontal;
+        @apply --layout-center;
+      }
+      .flex {
+        @apply --layout-flex;
+      }
+    </style>
+    <div id="draw">
+      <boardgame-card-stack stack="{{state.Game.DrawStack}}" layout="stack" messy>
+        <template is="dom-repeat">
+          <boardgame-card item="{{item}}" index="{{index}}"></boardgame-card>
+        </template>
+      </boardgame-card-stack>
+      <div class="flex">
+        <paper-button raised>Hit</paper-button>
+        <paper-button raised>Stand</paper-button>
+      </div>
+      <boardgame-card-stack stack="{{state.Game.DiscardStack}}" layout="stack" messy>
+        <template is="dom-repeat">
+          <boardgame-card item="{{item}}" index="{{index}}" suit="{{item.Values.Suit}}" rank="{{item.Values.Rank}}"></boardgame-card>
+        </template>
+      </boardgame-card-stack>
+    </div>
+    <div id="players">
+      <template is="dom-repeat" items="{{state.Players}}">
+        <strong>Player {{index}}</strong>
+        <boardgame-card-stack primary-stack="{{item.VisibleHand}}" secondary-stack="{{item.HiddenHand}}" stack-combine="concatenate" layout="fan" messy>
+          <template is="dom-repeat">
+            <boardgame-card item="{{item}}" index="{{index}}" suit="{{item.Values.Suit}}" rank="{{item.Values.Rank}}"></boardgame-card>
+          </template>
+        </boardgame-card-stack>
+      </template>
+    </div>
   </template>
 
   <script>

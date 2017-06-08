@@ -2,7 +2,8 @@
 
 <dom-module id="boardgame-render-player-info-blackjack">
   <template>
-    Score <strong>{{_calculateScore(state, playerIndex)}}</strong>
+    <div>Score <strong>{{_calculateScore(state, playerIndex)}}</strong></div>
+    <div>{{_calculateStatus(state, playerIndex)}}</div>
   </template>
 
   <script>
@@ -21,6 +22,16 @@
 
       _calculateScore(state, playerIndex) {
         return state.Computed.Players[playerIndex].HandValue;
+      }
+
+      _calculateStatus(state, playerIndex) {
+        var playerState = state.Players[playerIndex];
+        if (playerState.Busted) {
+          return "Busted"
+        }
+        if (playerState.Stood) {
+          return "Stood"
+        }
       }
 
     }
