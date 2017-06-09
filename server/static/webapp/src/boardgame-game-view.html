@@ -343,6 +343,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           //The URL will be junk
           return
         }
+
+        if (this.targetVersion < 0) {
+          return
+        }
+
+        //TODO: if this.targetVersion equals this.game.version AND the
+        //requested Player hasn't changed, then bail here
+
         //The gameVersion URL isn't ready until microtask timing (targetVersion will be undefined)
         window.requestAnimationFrame(() => this.$.version.generateRequest());
       }
