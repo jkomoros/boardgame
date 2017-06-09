@@ -72,7 +72,7 @@
         transition: transform var(--animation-length, 0.25s) ease-in-out, var(--shadow-transition_-_transition);
       }
 
-      .no-animate #inner, .no-animate #scaler {
+      .no-animate #inner {
         transition: unset;
       }
 
@@ -144,30 +144,28 @@
     </style>
 
     <div id="card" class$="{{_classes(spacer, noShadow, rotated, interactive, disabled, noContent, noAnimate)}}" on-tap="handleTap">
-      <div id="scaler">
-        <div id="inner">
-          <div id="front">
-            <div class="normal">
-              <slot>
-                <div id="top-rank">
-                  {{suit}}{{rank}}
-                </div>
-                <div id="bottom-rank">
-                  {{suit}}{{rank}}
-                </div>
-              </slot>
-            </div>
-            <div class="fallback">
-              <slot name="fallback"></slot>
-            </div>
-          </div>
-          <div id="back">
-            <slot name="back">
-              <div id="default-back">
-                    &#x2605; &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606;
+      <div id="inner">
+        <div id="front">
+          <div class="normal">
+            <slot>
+              <div id="top-rank">
+                {{suit}}{{rank}}
+              </div>
+              <div id="bottom-rank">
+                {{suit}}{{rank}}
               </div>
             </slot>
           </div>
+          <div class="fallback">
+            <slot name="fallback"></slot>
+          </div>
+        </div>
+        <div id="back">
+          <slot name="back">
+            <div id="default-back">
+                  &#x2605; &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606;
+            </div>
+          </slot>
         </div>
       </div>
     </div>
