@@ -19,6 +19,10 @@
       .player {
         @apply --layout-vertical;
       }
+
+      .busted {
+        filter: saturate(0.5) blur(1px);
+      }
     </style>
     <div id="draw">
       <boardgame-card-stack stack="{{state.Game.DrawStack}}" layout="stack" messy>
@@ -38,7 +42,7 @@
     </div>
     <div id="players">
       <template is="dom-repeat" items="{{state.Players}}">
-        <div class="player flex">
+        <div class$="player flex {{_bustedClass(item.Busted)}}">
           <strong>Player {{index}}</strong>
           <boardgame-card-stack secondary-stack="{{item.VisibleHand}}" primary-stack="{{item.HiddenHand}}" stack-combine="concatenate" layout="fan" messy>
             <template is="dom-repeat">
@@ -63,6 +67,10 @@
           state: Object,
           diagram : String
         }
+      }
+
+      _bustedClass(busted) {
+        return (busted) ? "busted" : ""
       }
 
     }
