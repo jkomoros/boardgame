@@ -3,7 +3,7 @@
 <dom-module id="boardgame-render-player-info-blackjack">
   <template>
     <div>Score <strong>{{_calculateScore(state, playerIndex)}}</strong></div>
-    <div>{{_calculateStatus(state, playerIndex)}}</div>
+    <div><strong>{{_calculateStatus(state, playerIndex)}}</strong></div>
   </template>
 
   <script>
@@ -32,6 +32,7 @@
         if (playerState.Stood) {
           return "Stood"
         }
+        return " "
       }
 
     }
