@@ -220,6 +220,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             value: 0,
           },
           moveForms: Object,
+          _lastRequestedVersionUrl: String,
         }
       }
 
@@ -348,8 +349,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           return
         }
 
-        //TODO: if this.targetVersion equals this.game.version AND the
-        //requested Player hasn't changed, then bail here
+        if (this._lastRequestedVersionUrl == this.gameVersionUrl) {
+          return
+        }
+
+        this._lastRequestedVersionUrl = this.gameVersionUrl
 
         //The gameVersion URL isn't ready until microtask timing (targetVersion will be undefined)
         window.requestAnimationFrame(() => this.$.version.generateRequest());
