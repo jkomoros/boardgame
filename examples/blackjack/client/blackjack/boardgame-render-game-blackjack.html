@@ -31,8 +31,8 @@
         </template>
       </boardgame-card-stack>
       <div class="flex">
-        <paper-button raised propose-move="Current Player Hit">Hit</paper-button>
-        <paper-button raised propose-move="Current Player Stand">Stand</paper-button>
+        <paper-button raised propose-move="Current Player Hit" disabled="{{!isCurrentPlayer}}">Hit</paper-button>
+        <paper-button raised propose-move="Current Player Stand" disabled="{{!isCurrentPlayer}}">Stand</paper-button>
       </div>
       <boardgame-card-stack stack="{{state.Game.DiscardStack}}" layout="stack" messy>
         <template is="dom-repeat">
@@ -67,8 +67,17 @@
           state: Object,
           diagram : String,
           viewingAsPlayer: Number,
-          currentPlayerIndex: Number
+          currentPlayerIndex: Number,
+          isCurrentPlayer: {
+            type: Boolean,
+            computed: "_computeIsCurrentPlayer(currentPlayerIndex, viewingAsPlayer)"
+          }
         }
+      }
+
+      _computeIsCurrentPlayer(currentPlayerIndex, viewingAsPlayer) {
+        if (viewingAsPlayer == -2) return true;
+        return currentPlayerIndex == viewingAsPlayer;
       }
 
       _bustedClass(busted) {
