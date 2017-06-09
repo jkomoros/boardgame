@@ -48,6 +48,10 @@
           viewingAsPlayer: {
             type: Number,
             observer: "_viewingAsPlayerChanged",
+          },
+          currentPlayerIndex: {
+            type: Number,
+            observer: "_currentPlayerIndexChanged"
           }
         }
       }
@@ -85,6 +89,11 @@
         this.renderer.viewingAsPlayer = newValue;
       }
 
+      _currentPlayerIndexChanged(newValue) {
+        if (!this.renderer) return;
+        this.renderer.currentPlayerIndex = newValue;
+      }
+
       _gameNameChanged(newValue) {
 
         //If there was a state, it might for a different game type which would
@@ -113,6 +122,7 @@
         ele.diagram = this.diagram;
         ele.state = this.state;
         ele.viewingAsPlayer = this.viewingAsPlayer;
+        ele.currentPlayerIndex = this.currentPlayerIndex;
 
         this.renderer = ele;
 

@@ -72,6 +72,8 @@
         return {
           state: Object,
           diagram : String,
+          viewingAsPlayer: Number,
+          currentPlayerIndex: Number,
           maxTimeLeft: {
             type: Number,
             computed: 'computeMaxTimeLeft(state.Game.HideCardsTimer.originalTimeLeft)'
