@@ -67,14 +67,15 @@
 
       _stateChanged(record) {
         if (!this.renderer) return;
-        if (record.path == "state") {
+        var stateWasNull = (this.renderer.state == null);
+        if (record.path == "state" && !stateWasNull) {
           this.$.animator.prepare();
         }
         this.renderer.set(record.path, record.value);
         //This shiouldn't be necessary... set should have already done
         //notifyPath. Bug in Polymer 2?
         this.renderer.notifyPath(record.path);
-        if (record.path == "state") {
+        if (record.path == "state" && !stateWasNull) {
           this.$.animator.animate();
         }
       }
