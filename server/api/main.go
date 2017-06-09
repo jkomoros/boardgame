@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -514,6 +515,10 @@ func (s *Server) doListManager(r *Renderer) {
 			Agents:            agents,
 		})
 	}
+
+	sort.Slice(managers, func(i, j int) bool {
+		return managers[i].Name < managers[j].Name
+	})
 
 	r.Success(gin.H{
 		"Managers": managers,
