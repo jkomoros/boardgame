@@ -6,29 +6,37 @@ import (
 )
 
 //+autoreader readsetter
-type MoveShuffleDiscardToDraw struct{}
+type MoveShuffleDiscardToDraw struct {
+	boardgame.DefaultMove
+}
 
 //+autoreader readsetter
-type MoveAdvanceNextPlayer struct{}
+type MoveAdvanceNextPlayer struct {
+	boardgame.DefaultMove
+}
 
 //+autoreader readsetter
 type MoveDealInitialCard struct {
+	boardgame.DefaultMove
 	TargetPlayerIndex boardgame.PlayerIndex
 	IsHidden          bool
 }
 
 //+autoreader readsetter
 type MoveRevealHiddenCard struct {
+	boardgame.DefaultMove
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
 //+autoreader readsetter
 type MoveCurrentPlayerHit struct {
+	boardgame.DefaultMove
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
 //+autoreader readsetter
 type MoveCurrentPlayerStand struct {
+	boardgame.DefaultMove
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
@@ -39,7 +47,12 @@ type MoveCurrentPlayerStand struct {
  **************************************************/
 
 func MoveShuffleDiscardToDrawFactory(state boardgame.State) boardgame.Move {
-	return &MoveShuffleDiscardToDraw{}
+	return &MoveShuffleDiscardToDraw{
+		boardgame.DefaultMove{
+			"Shuffle Discard To Draw",
+			"When the draw deck is empty, shuffles the discard deck into draw deck.",
+		},
+	}
 }
 
 func (m *MoveShuffleDiscardToDraw) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -61,18 +74,6 @@ func (m *MoveShuffleDiscardToDraw) Apply(state boardgame.MutableState) error {
 	return nil
 }
 
-func (m *MoveShuffleDiscardToDraw) Name() string {
-	return "Shuffle Discard To Draw"
-}
-
-func (m *MoveShuffleDiscardToDraw) Description() string {
-	return "When the draw deck is empty, shuffles the discard deck into draw deck."
-}
-
-func (t *MoveShuffleDiscardToDraw) ImmediateFixUp(state boardgame.State) boardgame.Move {
-	return nil
-}
-
 /**************************************************
  *
  * MoveCurrentPlayerHit Implementation
@@ -80,7 +81,13 @@ func (t *MoveShuffleDiscardToDraw) ImmediateFixUp(state boardgame.State) boardga
  **************************************************/
 
 func MoveCurrentPlayerHitFactory(state boardgame.State) boardgame.Move {
-	result := &MoveCurrentPlayerHit{}
+	result := &MoveCurrentPlayerHit{
+		boardgame.DefaultMove{
+			"Current Player Hit",
+			"The current player hits, drawing a card.",
+		},
+		0,
+	}
 
 	if state != nil {
 		result.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
@@ -136,18 +143,6 @@ func (m *MoveCurrentPlayerHit) Apply(state boardgame.MutableState) error {
 	return nil
 }
 
-func (m *MoveCurrentPlayerHit) Name() string {
-	return "Current Player Hit"
-}
-
-func (m *MoveCurrentPlayerHit) Description() string {
-	return "The current player hits, drawing a card."
-}
-
-func (t *MoveCurrentPlayerHit) ImmediateFixUp(state boardgame.State) boardgame.Move {
-	return nil
-}
-
 /**************************************************
  *
  * MoveCurrentPlayerStand Implementation
@@ -155,7 +150,13 @@ func (t *MoveCurrentPlayerHit) ImmediateFixUp(state boardgame.State) boardgame.M
  **************************************************/
 
 func MoveCurrentPlayerStandFactory(state boardgame.State) boardgame.Move {
-	result := &MoveCurrentPlayerStand{}
+	result := &MoveCurrentPlayerStand{
+		boardgame.DefaultMove{
+			"Current Player Stand",
+			"If the current player no longer wants to draw cards, they can stand.",
+		},
+		0,
+	}
 
 	if state != nil {
 		result.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
@@ -201,18 +202,6 @@ func (m *MoveCurrentPlayerStand) Apply(state boardgame.MutableState) error {
 	return nil
 }
 
-func (m *MoveCurrentPlayerStand) Name() string {
-	return "Current Player Stand"
-}
-
-func (m *MoveCurrentPlayerStand) Description() string {
-	return "If the current player no longer wants to draw cards, they can stand."
-}
-
-func (t *MoveCurrentPlayerStand) ImmediateFixUp(state boardgame.State) boardgame.Move {
-	return nil
-}
-
 /**************************************************
  *
  * MoveAdvanceNextPlayer Implementation
@@ -220,7 +209,12 @@ func (t *MoveCurrentPlayerStand) ImmediateFixUp(state boardgame.State) boardgame
  **************************************************/
 
 func MoveAdvanceNextPlayerFactory(state boardgame.State) boardgame.Move {
-	return &MoveAdvanceNextPlayer{}
+	return &MoveAdvanceNextPlayer{
+		boardgame.DefaultMove{
+			"Advance Next Player",
+			"When the current player has either busted or decided to stand, we advance to next player.",
+		},
+	}
 }
 
 func (m *MoveAdvanceNextPlayer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -249,18 +243,6 @@ func (m *MoveAdvanceNextPlayer) Apply(state boardgame.MutableState) error {
 
 }
 
-func (m *MoveAdvanceNextPlayer) Name() string {
-	return "Advance Next Player"
-}
-
-func (m *MoveAdvanceNextPlayer) Description() string {
-	return "When the current player has either busted or decided to stand, we advance to next player."
-}
-
-func (t *MoveAdvanceNextPlayer) ImmediateFixUp(state boardgame.State) boardgame.Move {
-	return nil
-}
-
 /**************************************************
  *
  * MoveRevealHiddenCard Implementation
@@ -268,7 +250,13 @@ func (t *MoveAdvanceNextPlayer) ImmediateFixUp(state boardgame.State) boardgame.
  **************************************************/
 
 func MoveRevealHiddenCardFactory(state boardgame.State) boardgame.Move {
-	result := &MoveRevealHiddenCard{}
+	result := &MoveRevealHiddenCard{
+		boardgame.DefaultMove{
+			"Reveal Hidden Card",
+			"Reveals the hidden card in the user's hand",
+		},
+		0,
+	}
 
 	if state != nil {
 		result.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
@@ -308,18 +296,6 @@ func (m *MoveRevealHiddenCard) Apply(state boardgame.MutableState) error {
 	return nil
 }
 
-func (m *MoveRevealHiddenCard) Name() string {
-	return "Reveal Hidden Card"
-}
-
-func (m *MoveRevealHiddenCard) Description() string {
-	return "Reveals the hidden card in the user's hand"
-}
-
-func (t *MoveRevealHiddenCard) ImmediateFixUp(state boardgame.State) boardgame.Move {
-	return nil
-}
-
 /**************************************************
  *
  * MoveDealInitialHiddenCard Implementation
@@ -327,7 +303,14 @@ func (t *MoveRevealHiddenCard) ImmediateFixUp(state boardgame.State) boardgame.M
  **************************************************/
 
 func MoveDealInitialCardFactory(state boardgame.State) boardgame.Move {
-	result := &MoveDealInitialCard{}
+	result := &MoveDealInitialCard{
+		boardgame.DefaultMove{
+			"Deal Initial Card",
+			"Deals a card to the a player who has not gotten their initial deal",
+		},
+		0,
+		false,
+	}
 
 	if state != nil {
 		_, players := concreteStates(state)
@@ -403,16 +386,4 @@ func (m *MoveDealInitialCard) Apply(state boardgame.MutableState) error {
 
 	return nil
 
-}
-
-func (m *MoveDealInitialCard) Name() string {
-	return "Deal Initial Card"
-}
-
-func (m *MoveDealInitialCard) Description() string {
-	return "Deals a card to the a player who has not gotten their initial deal"
-}
-
-func (t *MoveDealInitialCard) ImmediateFixUp(state boardgame.State) boardgame.Move {
-	return nil
 }
