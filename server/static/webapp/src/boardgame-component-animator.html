@@ -111,6 +111,9 @@
                   //Skip content that doesn't go in default slot
                   continue
                 }
+                if (child.localName == "dom-bind") {
+                  continue;
+                }
                 newNodes.push(child.cloneNode(true));
               }
               if (newNodes.length > 0) {

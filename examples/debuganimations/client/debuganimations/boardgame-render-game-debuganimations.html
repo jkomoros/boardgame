@@ -11,6 +11,14 @@
 <link rel="import" href="../../src/boardgame-card.html">
 <link rel="import" href="../../src/boardgame-card-stack.html">
 
+<dom-module id="animation-card">
+  <template>
+    <div>
+      {{item.Values.Type}}
+    </div>
+  </template>
+</dom-module>
+
 <dom-module id="boardgame-render-game-debuganimations">
   <template>
     <style>
@@ -70,19 +78,13 @@
       <div id='shortstacks'>
         <boardgame-card-stack layout='stack' stack="{{state.Game.FirstShortStack}}" messy="{{messy}}">
           <template is='dom-repeat'>
-            <boardgame-card item="{{item}}" index="{{index}}" propose-move="Move Card Between Short Stacks">
-              <div>
-                {{item.Values.Type}}
-              </div>
+            <boardgame-card item="{{item}}" index="{{index}}" propose-move="Move Card Between Short Stacks" card-type="animation-card">
             </boardgame-card>
           </template>
         </boardgame-card-stack>
         <boardgame-card-stack layout='stack' messy="{{messy}}" stack="{{state.Game.SecondShortStack}}">
           <template is='dom-repeat'>
-            <boardgame-card item="{{item}}" index="{{index}}">
-              <div>
-                {{item.Values.Type}}
-              </div>
+            <boardgame-card item="{{item}}" index="{{index}}" card-type="animation-card">
             </boardgame-card>
           </template>
         </boardgame-card-stack>
@@ -92,19 +94,13 @@
       <div id='draw'>
         <boardgame-card-stack layout='stack' messy="{{messy}}" stack="{{state.Game.DrawStack}}">
           <template is='dom-repeat'>
-            <boardgame-card item="{{item}}" index="{{index}}">
-              <div>
-                {{item.Values.Type}}
-              </div>
+            <boardgame-card item="{{item}}" index="{{index}}" card-type="animation-card">
             </boardgame-card>
           </template>
         </boardgame-card-stack>
         <boardgame-card-stack layout='stack' messy="{{messy}}" stack="{{state.Game.DiscardStack}}">
           <template is='dom-repeat'>
-            <boardgame-card item="{{item}}" index="{{index}}">
-              <div>
-                {{item.Values.Type}}
-              </div>
+            <boardgame-card item="{{item}}" index="{{index}}" card-type="animation-card">
             </boardgame-card>
           </template>
         </boardgame-card-stack>
@@ -114,10 +110,7 @@
       <div id='draw'>
         <boardgame-card-stack layout='stack' messy="{{messy}}" primary-stack="{{state.Game.HiddenCard}}" secondary-stack="{{state.Game.RevealedCard}}"> 
           <template is='dom-repeat'>
-            <boardgame-card index="{{index}}" item="{{item}}">
-              <div>
-                {{item.Values.Type}}
-              </div>
+            <boardgame-card index="{{index}}" item="{{item}}" card-type="animation-card">
             </boardgame-card>
           </template>
         </boardgame-card-stack>
@@ -127,20 +120,14 @@
       <div id="fan">
         <boardgame-card-stack layout='{{fromStackLayout}}' messy="{{messy}}" stack="{{state.Game.FanStack}}" style="--card-scale:{{fromCardScale}}">
           <template is='dom-repeat'>
-            <boardgame-card item="{{item}}" index="{{index}}" rotated="{{fromStackRotated}}">
-              <div>
-                {{item.Values.Type}}
-              </div>
+            <boardgame-card item="{{item}}" index="{{index}}" rotated="{{fromStackRotated}}" card-type="animation-card">
             </boardgame-card>
           </template>
         </boardgame-card-stack>
         <div class="flex"></div>
         <boardgame-card-stack layout='stack' messy="{{messy}}" stack="{{state.Game.FanDiscard}}" style="--card-scale:{{toCardScale}}">
           <template is='dom-repeat'>
-            <boardgame-card item="{{item}}" index="{{index}}" rotated="{{toStackRotated}}">
-              <div>
-                {{item.Values.Type}}
-              </div>
+            <boardgame-card item="{{item}}" index="{{index}}" rotated="{{toStackRotated}}" card-type="animation-card">
             </boardgame-card>
           </template>
         </boardgame-card-stack>
@@ -162,19 +149,13 @@
       <div id="hidden">
         <boardgame-card-stack layout="fan" messy="{{messy}}" stack="{{state.Game.VisibleStack}}" style="--card-scale:{{fromCardScale}}">
           <template is="dom-repeat">
-            <boardgame-card item="{{item}}" index="{{index}}" rotated="{{fromStackRotated}}">
-              <div>
-                {{item.Values.Type}}
-              </div>
+            <boardgame-card item="{{item}}" index="{{index}}" rotated="{{fromStackRotated}}" card-type="animation-card">
             </boardgame-card>
           </template>
         </boardgame-card-stack>
         <boardgame-card-stack layout="stack" messy="{{messy}}" stack="{{state.Game.HiddenStack}}" style="--card-scale:{{toCardScale}}">
           <template is="dom-repeat">
-            <boardgame-card item="{{item}}" index="{{index}}" rotated="{{toStackRotated}}">
-              <div>
-                {{item.Values.Type}}
-              </div>
+            <boardgame-card item="{{item}}" index="{{index}}" rotated="{{toStackRotated}}" card-type="animation-card">
             </boardgame-card>
           </template>
         </boardgame-card-stack>

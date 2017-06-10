@@ -2,6 +2,7 @@
 <link rel="import" href="../bower_components/paper-styles/shadow.html">
 <link rel="import" href="../bower_components/paper-styles/typography.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../bower_components/polymer/lib/elements/dom-bind.html">
 
 <dom-module id="boardgame-card">
   <template>
@@ -194,6 +195,15 @@
             type: Object,
             observer: "_itemChanged"
           },
+          //If provided, will search for a dom module with the given name and
+          //use its first template content as the card's contents, bound with
+          //item equivalent to this card's item. . Make sure your dom-module
+          //is not contained within another dom-module, but is at the top-
+          //level.
+          cardType: {
+            type:String,
+            observer: "_cardTypeChanged"
+          },
           //If true, the card will be rendered with its face showing, not its
           //back. If noAnimate is false, will animate the card flip.
           faceUp: {
@@ -271,7 +281,8 @@
           _animating: {
             type: Boolean,
             value: false
-          }
+          },
+          _binder: Object
         }
       }
 
@@ -303,6 +314,18 @@
           this.noContent = true;
         }
         this.id = newValue.Id || "";
+        if (this._binder) this._binder.item = newValue;
+      }
+
+      _cardTypeChanged(newValue) {
+        if (!newValue) return;
+        var template = Polymer.DomModule.import(newValue, "template");
+        var clone = document.importNode(template, true);
+        var bind = document.createElement("dom-bind");
+        bind.appendChild(clone);
+        this.appendChild(bind);
+        bind.item = this.item;
+        this._binder = bind;
       }
 
       _updateInnerTransform() {

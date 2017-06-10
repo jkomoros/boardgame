@@ -8,6 +8,14 @@
 <link rel="import" href="../../src/boardgame-card.html">
 <link rel="import" href="../../src/boardgame-card-stack.html">
 
+<dom-module id="memory-card">
+  <template>
+    <div>
+      {{item.Values.Type}}
+    </div>
+  </template>
+</dom-module>
+
 <dom-module id="boardgame-render-game-memory">
   <template>
     <style include="iron-flex iron-flex-alignment">
@@ -27,20 +35,14 @@
     <h2>Memory</h2>
     <boardgame-card-stack layout="grid" messy primary-stack="{{state.Game.RevealedCards}}" secondary-stack="{{state.Game.HiddenCards}}">
       <template is="dom-repeat">
-          <boardgame-card title="{{index}}" item="{{item}}" index="{{index}}" propose-move="Reveal Card" data-arg-card-index$="{{index}}">
-            <div>
-              {{item.Values.Type}}
-            </div>
+          <boardgame-card title="{{index}}" item="{{item}}" index="{{index}}" propose-move="Reveal Card" data-arg-card-index$="{{index}}" card-type="memory-card">
           </boardgame-card>
       </template>
     </boardgame-card-stack>
     <div class="layout horizontal around-justified discards">
       <boardgame-card-stack layout="stack" stack="{{state.Players.0.WonCards}}" messy>
         <template is="dom-repeat">
-          <boardgame-card item="{{item}}" index="{{index}}" disabled>
-            <div>
-              {{item.Values.Type}}
-            </div>
+          <boardgame-card item="{{item}}" index="{{index}}" disabled card-type="memory-card">
           </boardgame-card>
         </template>
       </boardgame-card-stack>
@@ -48,10 +50,7 @@
       <boardgame-card spacer></boardgame-card>
       <boardgame-card-stack layout="stack" messy stack="{{state.Players.1.WonCards}}">
         <template is="dom-repeat">
-          <boardgame-card item="{{item}}" index="{{index}}" disabled>
-            <div>
-              {{item.Values.Type}}
-            </div>
+          <boardgame-card item="{{item}}" index="{{index}}" disabled card-type="memory-card">
           </boardgame-card>
         </template>
       </boardgame-card-stack>
