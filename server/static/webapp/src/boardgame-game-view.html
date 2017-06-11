@@ -231,13 +231,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 
       _installStateBundle(bundle) {
-        this.game = bundle.game;
-        this.currentState = bundle.game.CurrentState;
-        this.moveForms = bundle.moveForms;
-        this.viewingAsPlayer = bundle.viewingAsPlayer;
-        this.originalWallClockStartTime = bundle.originalWallClockStartTime;
-        this.gameState = bundle.gameState;
-        this.pathsToTick = bundle.pathsToTick;
+
+        this.setProperties({
+          game: bundle.game,
+          currentState: bundle.game.CurrentState,
+          moveForms: bundle.moveForms,
+          viewingAsPlayer: bundle.viewingAsPlayer,
+          originalWallClockStartTime: bundle.originalWallClockStartTime,
+          gameState: bundle.gameState,
+          pathsToTick: bundle.pathsToTick
+        })
 
         if (this._firstStateBundle) {
           this._firstStateBundleInstalled();
