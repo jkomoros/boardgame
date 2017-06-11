@@ -101,10 +101,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           },
           chest : Object,
           gameState : String,
-          game: {
-            type: Object,
-            observer: "_gameChanged"
-          },
+          game: Object,
           currentState: Object,
           gameId: {
             type: String,
@@ -335,9 +332,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           console.log("Version getter returned error: " + newValue.Error)
           return
         }
-        this.game = newValue.Game;
-        this.viewingAsPlayer = newValue.ViewingAsPlayer;
-        this.moveForms = newValue.Forms;
+
+        var bundle = this._prepareStateBundle(newValue.Game, newValue.Forms, newValue.ViewingAsPlayer);
+        this._installStateBundle(bundle);
       }
 
       doTick() {
@@ -379,22 +376,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _expandState(currentState) {
         //Takes the currentState and returns an object where all of the Stacks are replaced by actual references to the component they reference.
 
-        var that = this;
-
-        this.originalWallClockStartTime = Date.now();
-        this.pathsToTick = [];
+        var pathsToTick = [];
 
 
-        this._expandLeafState(currentState.Game, ["Game"])
+        this._expandLeafState(currentState.Game, ["Game"], pathsToTick)
         for (var i = 0; i < currentState.Players.length; i++) {
-          this._expandLeafState(currentState.Players[i], ["Players", i])
+          this._expandLeafState(currentState.Players[i], ["Players", i], pathsToTick)
         }
 
-        window.requestAnimationFrame(() => this.doTick());
+        return pathsToTick;
 
       }
 
-      _expandLeafState(leafState, pathToLeaf) {
+      _expandLeafState(leafState, pathToLeaf, pathsToTick) {
         //Returns an expanded version of leafState. leafState should have keys that are either bools, floats, strings, or Stacks.
         var entries = Object.entries(leafState);
         for (var i = 0; i < entries.length; i++) {
@@ -405,18 +399,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             if (val.Deck) {
               this._expandStack(val);
             } else if (val.TimeLeft !== undefined) {
-              this._expandTimer(val, pathToLeaf.concat([key]));
+              this._expandTimer(val, pathToLeaf.concat([key]), pathsToTick);
             }   
           }
         }
       }
 
-      _expandTimer(timer, pathToLeaf) {
+      _expandTimer(timer, pathToLeaf, pathsToTick) {
         if (timer.TimeLeft === undefined) {
           return;
         }
         timer.originalTimeLeft = timer.TimeLeft;
-        this.pathsToTick.push(pathToLeaf);
+        pathsToTick.push(pathToLeaf);
       }
 
       _expandStack(stack) {
@@ -452,6 +446,36 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       }
 
+      _installStateBundle(bundle) {
+        this.game = bundle.game;
+        this.currentState = bundle.game.CurrentState;
+        this.moveForms = bundle.moveForms;
+        this.viewingAsPlayer = bundle.viewingAsPlayer;
+        this.originalWallClockStartTime = bundle.originalWallClockStartTime;
+        this.gameState = bundle.gameState;
+        this.pathsToTick = bundle.pathsToTick;
+        window.requestAnimationFrame(() => this.doTick());
+      }
+
+      _prepareStateBundle(game, moveForms, viewingAsPlayer) {
+
+
+        var bundle = {};
+
+        bundle.gameState = JSON.stringify(game.CurrentState, null, 2);
+        //Have to use this.set to get databinding system to notice the change.
+
+        bundle.originalWallClockStartTime = Date.now();
+
+        bundle.pathsToTick = this._expandState(game.CurrentState);
+
+        bundle.game = game;
+        bundle.moveForms = moveForms;
+        bundle.viewingAsPlayer = viewingAsPlayer;
+
+        return bundle;
+      }
+
       _componentForDeckAndIndex(deckName, index) {
         let deck = this.chest[deckName];
 
@@ -469,18 +493,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       }
 
-      _gameChanged(newValue) {
-
-        if (!newValue) return;
-
-        this.gameState = JSON.stringify(newValue.CurrentState, null, 2);
-        //Have to use this.set to get databinding system to notice the change.
-
-        this._expandState(newValue.CurrentState);
-        this.currentState = newValue.CurrentState;
-
-      }
-
       _dataChanged(newValue, oldValue) {
         if (!newValue) {
           //Sometimes we set null, like when we select the view.
@@ -490,9 +502,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.chest = newValue.Chest;
         }
 
-        this.game = newValue.Game;
-        this.moveForms = newValue.Forms;
-        this.viewingAsPlayer = newValue.ViewingAsPlayer;
+        var bundle = this._prepareStateBundle(newValue.Game, newValue.Forms, newValue.ViewingAsPlayer);
+
+        this._installStateBundle(bundle);
 
         if (this.selected && this.loggedIn && this.$.player.showJoin && !this.promptedToJoin) {
 
