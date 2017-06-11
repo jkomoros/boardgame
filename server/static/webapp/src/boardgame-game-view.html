@@ -207,6 +207,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       }
 
+      _resetState() {
+        this.game = null;
+        this.currentState = null;
+        this.moveForms = null;
+        this.viewingAsPlayer = 0;
+        this.originalWallClockStartTime = null;
+        this.gameState = "";
+        this.pathsToTick = null;
+        this._firstStateBundle = true;
+      }
+
 
       _installStateBundle(bundle) {
         this.game = bundle.game;
