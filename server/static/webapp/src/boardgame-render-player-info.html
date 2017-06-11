@@ -25,6 +25,7 @@
             observer: "_gameNameChanged"
           },
           renderer: Object,
+          rendererGameName: String,
           rendererLoaded: {
             type: Boolean,
             value: false,
@@ -66,6 +67,9 @@
 
       _gameNameChanged(newValue) {
         if (!newValue) return;
+        if (newValue != this.rendererGameName) {
+          this.resetRenderer();
+        }
         if (!this.instantiateWhenGameNameSet) return;
         this.instantiateRenderer();
       }
@@ -91,10 +95,9 @@
       resetRenderer() {
         if (!this.$ || !this.$.container) return;
         var container = this.$.container;
-        while(container.firstChild) {
-          container.removeChild(container.firstChild);
-        }
+        container.removeChild(this.renderer);
         this.renderer = null;
+        this.rendererGameName = "";
       }
 
       instantiateRenderer() {
@@ -120,6 +123,7 @@
         this.chipColor = ele.chipColor || "";
 
         this.renderer = ele;
+        this.rendererGameName = this.gameName;
 
         //I believe in Polymer 2 (or in native shadow dom), the change events
         //don't have composed set to true, so we have to listen for them
