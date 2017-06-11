@@ -56,6 +56,7 @@
             value: 0,
             observer: "_requestedPlayerChanged",
           },
+          gameVersion: Number,
           data: {
             type: Object,
             observer: '_dataChanged',
@@ -207,6 +208,11 @@
         }
 
         if (this._lastRequestedVersionUrl == this.gameVersionUrl) {
+          return
+        }
+
+        if (this.autoCurrentPlayer && this.requestedPlayer == this.viewingAsPlayer && this.targetVersion == this.gameVersion) {
+          //If we're in autoCurrentPlayer and the requestedPlayer is 
           return
         }
 
