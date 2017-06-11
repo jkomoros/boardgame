@@ -1,0 +1,158 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../bower_components/paper-radio-button/paper-radio-button.html">
+<link rel="import" href="../bower_components/paper-radio-group/paper-radio-group.html">
+<link rel="import" href="../bower_components/iron-input/iron-input.html">
+<link rel="import" href="../bower_components/paper-checkbox/paper-checkbox.html">
+<link rel="import" href="../bower_components/polymer/lib/elements/dom-if.html">
+<link rel="import" href="boardgame-move-form.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="boardgame-admin-controls">
+  <template>
+    <style include="iron-flex shared-styles">
+
+    </style>
+    <div hidden="{{!active}}">
+      <div class="card horizontal layout admin center">
+        <div class="flex">
+          View as
+          <paper-radio-group selected="{{viewAs}}">
+            <paper-radio-button name="admin">Admin</paper-radio-button>
+            <paper-radio-button name="observer">Observer</paper-radio-button>
+            <paper-radio-button name="current">Current Player</paper-radio-button>
+            <paper-radio-button name="custom">Custom</paper-radio-button>
+          </paper-radio-group>
+          <input is="iron-input" type="number" value-as-number="{{customRequestedPlayer::input}}" min="0" max="{{maxRequestedPlayerIndex}}">
+        </div>
+        <div>
+          <paper-checkbox id="move-as-player" checked="{{makeMovesAsViewingAsPlayer}}">Make Moves As ViewingAsPlayer</paper-checkbox>
+        </div>
+      </div>
+      <template is="dom-if" if="{{!game.Finished}}">
+        <div class="card">
+          <boardgame-move-form admin="{{active}}" move-as-player="{{moveAsPlayer}}" id="moves" config="{{moveForms}}" game-id="[[gameId]]" game-name="[[gameName]]"></boardgame-move-form>
+        </div>
+      </template>
+      <div class="card">
+        <details>
+          <summary>State</summary>
+          <pre>{{gameState}}</pre>
+        </details>
+      </div>
+      <div class="card">
+        <details>
+          <summary>Chest</summary>
+          <pre>{{chest}}</pre>
+        </details>
+      </div>
+    </div>
+  </template>
+
+  <script>
+
+    class BoardgameAdminControls extends ApiHostMixin(BoardgameUtilMixin(Polymer.Element)) {
+
+      static get is() {
+        return "boardgame-admin-controls";
+      }
+
+      static get properties() {
+        return {
+          active: {
+            type: Boolean,
+            value: false,
+          },
+          gameId: String,
+          gameName: String,
+          //Valid values: 'custom', 'admin', 'current', 'observer'
+          viewAs: {
+            type: String,
+            value: "current"
+          },
+          requestedPlayer: {
+            type: Number,
+            value: 0,
+            notify: true,
+            computed: "_computeRequestedPlayer(active, viewingAsPlayer, viewAs, customRequestedPlayer, game.CurrentPlayerIndex)"
+          },
+          customRequestedPlayer: {
+            type: Number,
+            value: 0
+          },
+          maxRequestedPlayerIndex: {
+            type: Number,
+            computed: "_computeMaxRequestedPlayerIndex(game)"
+          },
+          makeMovesAsViewingAsPlayer: {
+            type:Boolean,
+            value: true,
+          },
+          moveAsPlayer: {
+            type:Number,
+            computed: "_computeMoveAsPlayer(viewingAsPlayer, makeMovesAsViewingAsPlayer)"
+          },
+          viewingAsPlayer: {
+            type: Number,
+            value: 0,
+          },
+          chest : String,
+          gameState : String,
+          //TODO: there must be a better way to do constants...
+          OBSERVER_PLAYER_INDEX : {
+            type: Number,
+            value: -1,
+          },
+          ADMIN_PLAYER_INDEX: {
+            type: Number,
+            value: -2,
+          },
+          moveForms: Object,
+          game: Object
+        }
+      }
+
+      proposeMove(moveName, moveArguments) {
+        let movesEle = this.shadowRoot.querySelector("#moves");
+
+        if (!movesEle) {
+          console.warn("propose-move fired, but no moves element to forward to.");
+          return;
+        }
+
+        movesEle.proposeMove(moveName, moveArguments);
+      }
+
+      _computeMoveAsPlayer(viewingAsPlayer, moveAsViewingAsPlayer) {
+        if (moveAsViewingAsPlayer) return viewingAsPlayer;
+        return this.ADMIN_PLAYER_INDEX;
+      }
+
+      _computeMaxRequestedPlayerIndex(game) {
+        if (!game) {
+          return 0;
+        }
+        return game.NumPlayers - 1;
+      }
+
+      _computeRequestedPlayer(admin, viewingAsPlayer, viewAs, customRequestedPlayer, currentPlayer) {
+        if (!admin) return viewingAsPlayer;
+        switch (viewAs) {
+          case "admin":
+            return this.ADMIN_PLAYER_INDEX;
+          case "observer":
+            return this.OBSERVER_PLAYER_INDEX;
+          case "custom":
+            return customRequestedPlayer;
+          case "current":
+            return currentPlayer;
+        }
+      }
+
+
+    }
+
+    customElements.define(BoardgameAdminControls.is, BoardgameAdminControls);
+
+  </script>
+</dom-module>

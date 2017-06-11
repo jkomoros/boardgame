@@ -12,15 +12,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/polymer/lib/elements/dom-if.html">
 <link rel="import" href="../bower_components/polymer/lib/elements/dom-repeat.html">
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
-<link rel="import" href="../bower_components/iron-input/iron-input.html">
-<link rel="import" href="../bower_components/paper-checkbox/paper-checkbox.html">
-<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
-<link rel="import" href="../bower_components/paper-radio-button/paper-radio-button.html">
-<link rel="import" href="../bower_components/paper-radio-group/paper-radio-group.html">
-<link rel="import" href="boardgame-move-form.html">
 <link rel="import" href="boardgame-player-roster.html">
 <link rel="import" href="shared-styles.html">
 <link rel="import" href="boardgame-render-game.html">
+<link rel="import" href="boardgame-admin-controls.html">
 <link rel="import" href="../config-src/boardgame-config.html">
 <link rel="import" href="boardgame-util.html">
 
@@ -75,40 +70,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <div class="card">
       <boardgame-render-game state="{{currentState}}" diagram="{{game.Diagram}}" game-name="{{gameName}}" viewing-as-player="{{viewingAsPlayer}}" current-player-index="{{game.CurrentPlayerIndex}}"></boardgame-render-game>
     </div>
-    <div hidden$="{{!admin}}">
-      <div class="card horizontal layout admin center">
-        <div class="flex">
-          View as
-          <paper-radio-group selected="{{viewAs}}">
-            <paper-radio-button name="admin">Admin</paper-radio-button>
-            <paper-radio-button name="observer">Observer</paper-radio-button>
-            <paper-radio-button name="current">Current Player</paper-radio-button>
-            <paper-radio-button name="custom">Custom</paper-radio-button>
-          </paper-radio-group>
-          <input is="iron-input" type="number" value-as-number="{{customRequestedPlayer::input}}" min="0" max="{{maxRequestedPlayerIndex}}">
-        </div>
-        <div>
-          <paper-checkbox id="move-as-player" checked="{{makeMovesAsViewingAsPlayer}}">Make Moves As ViewingAsPlayer</paper-checkbox>
-        </div>
-      </div>
-      <template is="dom-if" if="{{!data.Game.Finished}}">
-        <div class="card">
-          <boardgame-move-form admin="{{admin}}" move-as-player="{{moveAsPlayer}}" id="moves" config="{{moveForms}}" game-id="[[gameId]]" game-name="[[gameName]]"></boardgame-move-form>
-        </div>
-      </template>
-      <div class="card">
-        <details>
-          <summary>State</summary>
-          <pre>{{gameState}}</pre>
-        </details>
-      </div>
-      <div class="card">
-        <details>
-          <summary>Chest</summary>
-          <pre>{{chest}}</pre>
-        </details>
-      </div>
-    </div>
+    <boardgame-admin-controls id="admin" active="{{admin}}" game="[[game]]" viewing-as-player="[[viewingAsPlayer]]" move-forms="[[moveForms]]" game-id="[[gameId]]" game-name="[[gameName]]" chest="[[chest]]" game-state="[[gameState]]" requested-player="{{requestedPlayer}}"></boardgame-admin-controls>
     <iron-ajax id="version" with-credentials url="[[gameVersionUrl]]" handle-as="json" last-response="{{versionData}}"></iron-ajax>
     <iron-ajax id="status" with-credentials url="[[UrlForGameAPI(apiHost, gameName, gameId, 'status')]]" handle-as="json" last-response="{{status}}">
     <iron-ajax id="data" with-credentials url="[[gameViewUrl]]" handle-as="json" last-response="{{data}}">
@@ -136,16 +98,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             type: Number,
             value: 0,
             observer: "_requestedPlayerChanged",
-            computed: "_computeRequestedPlayer(admin, viewingAsPlayer, viewAs, customRequestedPlayer, game.CurrentPlayerIndex)"
-          },
-          //Valid values: 'custom', 'admin', 'current', 'observer'
-          viewAs: {
-            type: String,
-            value: "current"
-          },
-          customRequestedPlayer: {
-            type: Number,
-            value: 0
           },
           chest : String,
           gameState : String,
@@ -179,10 +131,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             type: Boolean,
             observer: "_handleLoggedInChanged",
           },
-          maxRequestedPlayerIndex: {
-            type: Number,
-            computed: "_computeMaxRequestedPlayerIndex(game)"
-          },
           promptedToJoin: {
             type: Boolean,
             value: false,
@@ -197,14 +145,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           statusPollFrequency: {
             type: Number,
             value: 500,
-          },
-          makeMovesAsViewingAsPlayer: {
-            type:Boolean,
-            value: true,
-          },
-          moveAsPlayer: {
-            type:Number,
-            computed: "_computeMoveAsPlayer(viewingAsPlayer, makeMovesAsViewingAsPlayer)"
           },
           versionData: {
             type: Object,
@@ -236,14 +176,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 
       handleProposeMove(e) {
-        let movesEle = this.shadowRoot.querySelector("#moves");
+        let adminEle = this.shadowRoot.querySelector("#admin");
 
-        if (!movesEle) {
+        if (!adminEle) {
           console.warn("propose-move fired, but no moves element to forward to.");
           return;
         }
 
-        movesEle.proposeMove(e.detail.name, e.detail.arguments);
+        adminEle.proposeMove(e.detail.name, e.detail.arguments);
       }
 
       _handleSelected(newValue) {
@@ -252,20 +192,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           //race.
           this.data = null;
           window.requestAnimationFrame(() => this.updateData());
-        }
-      }
-
-      _computeRequestedPlayer(admin, viewingAsPlayer, viewAs, customRequestedPlayer, currentPlayer) {
-        if (!admin) return viewingAsPlayer;
-        switch (viewAs) {
-          case "admin":
-            return -2;
-          case "observer":
-            return -1;
-          case "custom":
-            return customRequestedPlayer;
-          case "current":
-            return currentPlayer;
         }
       }
 
@@ -296,17 +222,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return this.UrlForGameAPI(apiHost, gameName, gameId, "version/") + version + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0);
       }
 
-      _computeMoveAsPlayer(viewingAsPlayer, moveAsViewingAsPlayer) {
-        if (moveAsViewingAsPlayer) return viewingAsPlayer;
-        return this.$.player.ADMIN_PLAYER_INDEX;
-      }
 
-      _computeMaxRequestedPlayerIndex(game) {
-        if (!game) {
-          return 0;
-        }
-        return game.NumPlayers - 1;
-      }
 
       updateData() {
         this.fetchInfo();
