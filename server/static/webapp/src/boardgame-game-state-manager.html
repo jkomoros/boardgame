@@ -29,6 +29,7 @@
             type: Boolean,
             observer: "_adminChanged"
           },
+          autoCurrentPlayer: Boolean,
           active: {
             type: Boolean,
             observer: "_activeChanged"
@@ -44,7 +45,7 @@
           },
           gameVersionUrl: {
             type: String,
-            computed: "_computeGameVersionUrl(apiHost, gameRoute, requestedPlayer, admin, targetVersion)"
+            computed: "_computeGameVersionUrl(apiHost, gameRoute, requestedPlayer, admin, targetVersion, autoCurrentPlayer)"
           },
           gameViewUrl : {
             type: String,
@@ -81,9 +82,9 @@
         this.updateData();
       }
 
-      _computeGameVersionUrl(apiHost, gameRoute, requestedPlayer, admin, version) {
+      _computeGameVersionUrl(apiHost, gameRoute, requestedPlayer, admin, version, autoCurrentPlayer) {
         //TODO: factor this out with computeGameViewUrl a bit
-        return this.UrlForGameAPI(apiHost, gameRoute, "version/") + version + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0);
+        return this.UrlForGameAPI(apiHost, gameRoute, "version/") + version + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0) + "&current=" + (autoCurrentPlayer ? 1 : 0);
       }
 
       _computeGameViewUrl(apiHost, gameRoute, requestedPlayer, admin){

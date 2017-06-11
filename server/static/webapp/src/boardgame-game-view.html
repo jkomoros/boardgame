@@ -68,8 +68,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <div class="card">
       <boardgame-render-game state="{{currentState}}" diagram="{{game.Diagram}}" game-name="[[gameRoute.name]]" viewing-as-player="{{viewingAsPlayer}}" current-player-index="{{game.CurrentPlayerIndex}}"></boardgame-render-game>
     </div>
-    <boardgame-admin-controls id="admin" active="{{admin}}" game="[[game]]" viewing-as-player="[[viewingAsPlayer]]" move-forms="[[moveForms]]" game-route="[[gameRoute]]" chest="[[chest]]" game-state="[[gameState]]" requested-player="{{requestedPlayer}}"></boardgame-admin-controls>
-    <boardgame-game-state-manager id="manager" game-route="[[gameRoute]]" requested-player="[[requestedPlayer]]" active="[[selected]]" admin="[[admin]]" game-finished="[[game.Finished]]" logged-in="[[loggedIn]]"></boardgame-game-state-manager>
+    <boardgame-admin-controls id="admin" active="{{admin}}" game="[[game]]" viewing-as-player="[[viewingAsPlayer]]" move-forms="[[moveForms]]" game-route="[[gameRoute]]" chest="[[chest]]" game-state="[[gameState]]" requested-player="{{requestedPlayer}}" auto-current-player="{{autoCurrentPlayer}}"></boardgame-admin-controls>
+    <boardgame-game-state-manager id="manager" game-route="[[gameRoute]]" requested-player="[[requestedPlayer]]" active="[[selected]]" admin="[[admin]]" game-finished="[[game.Finished]]" logged-in="[[loggedIn]]" auto-current-player="{{autoCurrentPlayer}}"></boardgame-game-state-manager>
   </template>
 
   <script>
@@ -97,6 +97,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             type: Object,
             observer: "_gameRouteChanged"
           },
+          autoCurrentPlayer: Boolean,
           admin: Boolean,
           selected: Boolean,
           loggedIn: Boolean,
