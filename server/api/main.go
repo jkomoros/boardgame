@@ -534,13 +534,15 @@ func (s *Server) gameVersionHandler(c *gin.Context) {
 
 	version := s.getRequestGameVersion(c)
 
+	autoCurrentPlayer := s.effectiveAutoCurrentPlayer(c)
+
 	r := NewRenderer(c)
 
-	s.doGameVersion(r, game, version, playerIndex)
+	s.doGameVersion(r, game, version, playerIndex, autoCurrentPlayer)
 
 }
 
-func (s *Server) doGameVersion(r *Renderer, game *boardgame.Game, version int, playerIndex boardgame.PlayerIndex) {
+func (s *Server) doGameVersion(r *Renderer, game *boardgame.Game, version int, playerIndex boardgame.PlayerIndex, autoCurrentPlayer bool) {
 	if game == nil {
 		r.Error("Couldn't find game")
 		return
@@ -552,6 +554,13 @@ func (s *Server) doGameVersion(r *Renderer, game *boardgame.Game, version int, p
 	}
 
 	state := game.State(version)
+
+	if autoCurrentPlayer {
+		newPlayerIndex := game.CurrentPlayerIndex()
+		if newPlayerIndex.Valid(state) {
+			playerIndex = newPlayerIndex
+		}
+	}
 
 	//If state is nil, JSONForPlayer will basically treat it as just "give the
 	//current version" which is a reasonable fallback.

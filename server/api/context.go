@@ -19,14 +19,15 @@ const (
 )
 
 const (
-	qryAdminKey      = "admin"
-	qryPlayerKey     = "player"
-	qryGameIdKey     = "id"
-	qryGameNameKey   = "name"
-	qryManagerKey    = "manager"
-	qryNumPlayersKey = "numplayers"
-	qryAgentKey      = "agent-player-"
-	qryGameVersion   = "version"
+	qryAdminKey             = "admin"
+	qryPlayerKey            = "player"
+	qryAutoCurrentPlayerKey = "current"
+	qryGameIdKey            = "id"
+	qryGameNameKey          = "name"
+	qryManagerKey           = "manager"
+	qryNumPlayersKey        = "numplayers"
+	qryAgentKey             = "agent-player-"
+	qryGameVersion          = "version"
 )
 
 const (
@@ -224,6 +225,19 @@ func (s *Server) effectivePlayerIndex(c *gin.Context) boardgame.PlayerIndex {
 	return s.calcEffectivePlayerIndex(isAdmin, requestPlayerIndex, viewingAsPlayer)
 }
 
+func (s *Server) effectiveAutoCurrentPlayer(c *gin.Context) bool {
+	adminAllowed := s.getAdminAllowed(c)
+	requestAdmin := s.getRequestAdmin(c)
+
+	isAdmin := s.calcIsAdmin(adminAllowed, requestAdmin)
+
+	if !isAdmin {
+		return false
+	}
+
+	return s.getRequestAutoCurrentPlayer(c)
+}
+
 func (s *Server) calcEffectivePlayerIndex(isAdmin bool, requestPlayerIndex boardgame.PlayerIndex, viewingAsPlayer boardgame.PlayerIndex) boardgame.PlayerIndex {
 
 	result := requestPlayerIndex
@@ -286,6 +300,17 @@ func (s *Server) getRequestAdmin(c *gin.Context) bool {
 	}
 
 	return c.PostForm(qryAdminKey) == "1"
+}
+
+func (s *Server) getRequestAutoCurrentPlayer(c *gin.Context) bool {
+
+	result := c.Query(qryAutoCurrentPlayerKey) == "1"
+
+	if result {
+		return result
+	}
+
+	return c.PostForm(qryAutoCurrentPlayerKey) == "1"
 }
 
 //returns true if the request asserts the user is an admin, and the user is
