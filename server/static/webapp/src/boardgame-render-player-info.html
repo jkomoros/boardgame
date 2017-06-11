@@ -88,6 +88,15 @@
 
       }
 
+      resetRenderer() {
+        if (!this.$ || !this.$.container) return;
+        var container = this.$.container;
+        while(container.firstChild) {
+          container.removeChild(container.firstChild);
+        }
+        this.renderer = null;
+      }
+
       instantiateRenderer() {
 
         if (!this.rendererLoaded) return;
