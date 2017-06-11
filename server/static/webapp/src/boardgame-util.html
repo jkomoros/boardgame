@@ -5,8 +5,8 @@ BoardgameUtilMixin = function(superClass) {
 		UrlForGame(gameName, gameId) {
 			return "game/" + gameName + "/" + gameId;
 		}
-		UrlForGameAPI(apiHost, gameName, gameId, action) {
-			return (apiHost || "http://nohost.com") + "/api/" + this.UrlForGame(gameName, gameId) + "/" + action;
+		UrlForGameAPI(apiHost, gameRoute, action) {
+			return (apiHost || "http://nohost.com") + "/api/" + this.UrlForGame(gameRoute.name, gameRoute.id) + "/" + action;
 		}
 		ListGamesUrl(apiHost) {
 			//We take the apiHost, so we'll be re-evaluated when apiHost is set.

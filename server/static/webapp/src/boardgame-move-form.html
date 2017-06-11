@@ -48,7 +48,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             </form>
           </details>
         </template>
-        <iron-ajax id="ajax" url="[[UrlForGameAPI(apiHost, gameName, gameId, 'move')]]" method="POST" with-credentials last-response="{{formResponse}}" content-type="application/x-www-form-urlencoded"></iron-ajax>
+        <iron-ajax id="ajax" url="[[UrlForGameAPI(apiHost, gameRoute, 'move')]]" method="POST" with-credentials last-response="{{formResponse}}" content-type="application/x-www-form-urlencoded"></iron-ajax>
       </div>
   </template>
 
@@ -67,8 +67,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             observer: '_configChanged'
           },
           admin: Boolean,
-          gameId: String,
-          gameName: String,
+          gameRoute: Object,
           moveAsPlayer: Number,
           formResponse: {
             type: Object,

@@ -31,7 +31,7 @@
       </div>
       <template is="dom-if" if="{{!game.Finished}}">
         <div class="card">
-          <boardgame-move-form admin="{{active}}" move-as-player="{{moveAsPlayer}}" id="moves" config="{{moveForms}}" game-id="[[gameId]]" game-name="[[gameName]]"></boardgame-move-form>
+          <boardgame-move-form admin="{{active}}" move-as-player="{{moveAsPlayer}}" id="moves" config="{{moveForms}}" game-route="[[gameRoute]]"></boardgame-move-form>
         </div>
       </template>
       <div class="card">
@@ -63,8 +63,7 @@
             type: Boolean,
             value: false,
           },
-          gameId: String,
-          gameName: String,
+          gameRoute: Object,
           //Valid values: 'custom', 'admin', 'current', 'observer'
           viewAs: {
             type: String,

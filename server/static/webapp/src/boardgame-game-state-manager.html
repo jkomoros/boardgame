@@ -6,7 +6,7 @@
 <dom-module id="boardgame-game-state-manager">
   <template>
     <iron-ajax id="version" with-credentials url="[[gameVersionUrl]]" handle-as="json" last-response="{{versionData}}"></iron-ajax>
-    <iron-ajax id="status" with-credentials url="[[UrlForGameAPI(apiHost, gameName, gameId, 'status')]]" handle-as="json" last-response="{{status}}">
+    <iron-ajax id="status" with-credentials url="[[UrlForGameAPI(apiHost, gameRoute, 'status')]]" handle-as="json" last-response="{{status}}">
     <iron-ajax id="data" with-credentials url="[[gameViewUrl]]" handle-as="json" last-response="{{data}}">
   </template>
 
@@ -19,8 +19,7 @@
 
       static get properties() {
         return {
-          gameId: String,
-          gameName: String,
+          gameRoute: Object,
           chest: {
             type: Object,
             notify: true,
@@ -56,11 +55,11 @@
           },
           gameVersionUrl: {
             type: String,
-            computed: "_computeGameVersionUrl(apiHost, gameName, gameId, requestedPlayer, admin, targetVersion)"
+            computed: "_computeGameVersionUrl(apiHost, gameRoute, requestedPlayer, admin, targetVersion)"
           },
           gameViewUrl : {
             type: String,
-            computed: "_computeGameViewUrl(apiHost, gameName, gameId, requestedPlayer, admin)"
+            computed: "_computeGameViewUrl(apiHost, gameRoute, requestedPlayer, admin)"
           },
           requestedPlayer: {
             type: Number,
@@ -93,13 +92,13 @@
         this.updateData();
       }
 
-      _computeGameVersionUrl(apiHost, gameName, gameId, requestedPlayer, admin, version) {
+      _computeGameVersionUrl(apiHost, gameRoute, requestedPlayer, admin, version) {
         //TODO: factor this out with computeGameViewUrl a bit
-        return this.UrlForGameAPI(apiHost, gameName, gameId, "version/") + version + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0);
+        return this.UrlForGameAPI(apiHost, gameRoute, "version/") + version + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0);
       }
 
-      _computeGameViewUrl(apiHost, gameName, gameId, requestedPlayer, admin){
-        return this.UrlForGameAPI(apiHost, gameName, gameId, "info") + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0);
+      _computeGameViewUrl(apiHost, gameRoute, requestedPlayer, admin){
+        return this.UrlForGameAPI(apiHost, gameRoute, "info") + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0);
       }
 
       _requestedPlayerChanged() {
@@ -154,7 +153,7 @@
           return
         }
 
-        if (!this.gameId) {
+        if (!this.gameRoute) {
           //The URL will be junk
           return
         }
@@ -163,7 +162,7 @@
 
       fetchStatusNow() {
 
-        if (!this.gameId) {
+        if (!this.gameRoute) {
           //The URL will be junk
           return
         }
@@ -208,7 +207,7 @@
           return
         }
 
-        if (!this.gameId) {
+        if (!this.gameRoute) {
           //The URL will be junk
           return
         }

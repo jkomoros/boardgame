@@ -62,14 +62,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </div>
       </div>
       <div hidden$="{{game.Finished}}">
-        <boardgame-player-roster id="player" logged-in="{{loggedIn}}" game-name="{{gameName}}" game-id="{{gameId}}" viewing-as-player="{{viewingAsPlayer}}" has-empty-slots="{{hasEmptySlots}}" current-player-index="{{game.CurrentPlayerIndex}}" players-info="[[playersInfo]]" state="{{currentState}}"></boardgame-player-roster>
+        <boardgame-player-roster id="player" logged-in="{{loggedIn}}" game-route="[[gameRoute]]" viewing-as-player="{{viewingAsPlayer}}" has-empty-slots="{{hasEmptySlots}}" current-player-index="{{game.CurrentPlayerIndex}}" players-info="[[playersInfo]]" state="{{currentState}}"></boardgame-player-roster>
       </div>
     </div>
     <div class="card">
-      <boardgame-render-game state="{{currentState}}" diagram="{{game.Diagram}}" game-name="{{gameName}}" viewing-as-player="{{viewingAsPlayer}}" current-player-index="{{game.CurrentPlayerIndex}}"></boardgame-render-game>
+      <boardgame-render-game state="{{currentState}}" diagram="{{game.Diagram}}" game-name="[[gameRoute.name]]" viewing-as-player="{{viewingAsPlayer}}" current-player-index="{{game.CurrentPlayerIndex}}"></boardgame-render-game>
     </div>
-    <boardgame-admin-controls id="admin" active="{{admin}}" game="[[game]]" viewing-as-player="[[viewingAsPlayer]]" move-forms="[[moveForms]]" game-id="[[gameId]]" game-name="[[gameName]]" chest="[[chest]]" game-state="[[gameState]]" requested-player="{{requestedPlayer}}"></boardgame-admin-controls>
-    <boardgame-game-state-manager id="manager" game-name="[[gameName]]" game-id="[[gameId]]" requested-player="[[requestedPlayer]]" active="[[selected]]" chest="{{chest}}" admin="[[admin]]" game-finished="[[game.Finished]]" logged-in="[[loggedIn]]" players-info="{{playersInfo}}" has-empty-slots="{{hasEmptySlots}}"></boardgame-game-state-manager>
+    <boardgame-admin-controls id="admin" active="{{admin}}" game="[[game]]" viewing-as-player="[[viewingAsPlayer]]" move-forms="[[moveForms]]" game-route="[[gameRoute]]" chest="[[chest]]" game-state="[[gameState]]" requested-player="{{requestedPlayer}}"></boardgame-admin-controls>
+    <boardgame-game-state-manager id="manager" game-route="[[gameRoute]]" requested-player="[[requestedPlayer]]" active="[[selected]]" chest="{{chest}}" admin="[[admin]]" game-finished="[[game.Finished]]" logged-in="[[loggedIn]]" players-info="{{playersInfo}}" has-empty-slots="{{hasEmptySlots}}"></boardgame-game-state-manager>
   </template>
 
   <script>
@@ -91,13 +91,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           gameState : String,
           game: Object,
           currentState: Object,
-          gameId: {
-            type: String,
-            observer: "_gameIdChanged",
-          },
           playersInfo: Array,
           hasEmptySlots: Boolean,
-          gameName: String,
+          gameRoute: {
+            type: Object,
+            observer: "_gameRouteChanged"
+          },
           admin: Boolean,
           selected: Boolean,
           loggedIn: Boolean,
@@ -151,7 +150,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         adminEle.proposeMove(e.detail.name, e.detail.arguments);
       }
 
-      _gameIdChanged() {
+      _gameRouteChanged() {
         //reset this so the next time we get data set and notice that we COULD
         //login we prompt for it.
         this.promptedToJoin = false

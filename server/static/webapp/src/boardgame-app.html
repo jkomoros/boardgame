@@ -77,7 +77,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         tail="{{subroute}}"></app-route>
     <app-route route="{{route}}"
                pattern="/game/:name/:id"
-               data="{{gameData}}"
+               data="{{gameRoute}}"
                tail="{{gameSubRoute}}"></app-route>
 
     <app-drawer-layout fullbleed>
@@ -107,7 +107,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             fallback-selection="view404"
             selected-attribute="selected"
             role="main">
-          <boardgame-game-view logged-in="{{loggedIn}}" admin="{{admin}}" name="game" game-id="[[gameData.id]]" game-name="[[gameData.name]]"></boardgame-game-view>
+          <boardgame-game-view logged-in="{{loggedIn}}" admin="{{admin}}" name="game" game-route="[[gameRoute]]"></boardgame-game-view>
           <boardgame-list-games-view name="list-games" logged-in="{{loggedIn}}""></boardgame-list-games-view>
           <boardgame-404-view name="404"></boardgame-404-view>
         </iron-pages>

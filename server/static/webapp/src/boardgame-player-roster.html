@@ -32,7 +32,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
       <div class="layout horizontal justified players">
         <template is="dom-repeat" items="{{playersInfo}}">
-          <boardgame-player-roster-item class="flex" state="{{state}}" game-name="{{gameName}}" is-empty="{{item.IsEmpty}}" is-agent="{{item.IsAgent}}" photo-url="{{item.PhotoUrl}}" display-name="{{item.DisplayName}}" player-index="{{index}}" viewing-as-player="{{viewingAsPlayer}}" current-player-index="{{currentPlayerIndex}}" renderer-loaded="{{rendererLoaded}}">
+          <boardgame-player-roster-item class="flex" state="{{state}}" game-name="{{gameRoute.name}}" is-empty="{{item.IsEmpty}}" is-agent="{{item.IsAgent}}" photo-url="{{item.PhotoUrl}}" display-name="{{item.DisplayName}}" player-index="{{index}}" viewing-as-player="{{viewingAsPlayer}}" current-player-index="{{currentPlayerIndex}}" renderer-loaded="{{rendererLoaded}}">
           </boardgame-player-roster-item>
         </template>
       </div>
@@ -55,7 +55,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <paper-button dialog-confirm default autofocus>I'm in!</paper-button>
       </div>
     </paper-dialog>
-    <iron-ajax id="request" with-credentials url="[[UrlForGameAPI(apiHost, gameName, gameId, 'join')]]" handle-as="json" method="POST" last-response="{{response}}">
+    <iron-ajax id="request" with-credentials url="[[UrlForGameAPI(apiHost, gameRoute, 'join')]]" handle-as="json" method="POST" last-response="{{response}}">
   </template>
 
   <script>
@@ -68,11 +68,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return {
           viewingAsPlayer: Number,
           hasEmptySlots: Boolean,
-          gameName: {
-            type: String,
-            observer: "_gameNameChanged",
+          gameRoute: {
+            type: Object,
+            observer: "_gameRouteChanged"
           },
-          gameId: String,
           playersInfo: Array,
           currentPlayerIndex: Number,
           state: Object,
@@ -146,9 +145,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.$.request.generateRequest();
       }
 
-      _gameNameChanged(newValue) {
+      _gameRouteChanged(newValue) {
+        if (!newValue) return;
         this.rendererLoaded = false;
-        var resolvedUrl = this.resolveUrl("../game-src/" +newValue + "/boardgame-render-player-info-" + newValue + ".html")
+        var resolvedUrl = this.resolveUrl("../game-src/" +newValue.name + "/boardgame-render-player-info-" + newValue.name + ".html")
         Polymer.importHref(resolvedUrl, () => this._rendererLoaded(), null, true);
       }
 
