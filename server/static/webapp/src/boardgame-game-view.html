@@ -379,16 +379,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         var pathsToTick = [];
 
 
-        this._expandLeafState(currentState.Game, ["Game"], pathsToTick)
+        this._expandLeafState(currentState, currentState.Game, ["Game"], pathsToTick)
         for (var i = 0; i < currentState.Players.length; i++) {
-          this._expandLeafState(currentState.Players[i], ["Players", i], pathsToTick)
+          this._expandLeafState(currentState, currentState.Players[i], ["Players", i], pathsToTick)
         }
 
         return pathsToTick;
 
       }
 
-      _expandLeafState(leafState, pathToLeaf, pathsToTick) {
+      _expandLeafState(wholeState, leafState, pathToLeaf, pathsToTick) {
         //Returns an expanded version of leafState. leafState should have keys that are either bools, floats, strings, or Stacks.
         var entries = Object.entries(leafState);
         for (var i = 0; i < entries.length; i++) {
@@ -397,7 +397,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           let val = item[1];
           if (typeof val == "object") {
             if (val.Deck) {
-              this._expandStack(val);
+              this._expandStack(val, wholeState);
             } else if (val.TimeLeft !== undefined) {
               this._expandTimer(val, pathToLeaf.concat([key]), pathsToTick);
             }   
@@ -413,7 +413,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         pathsToTick.push(pathToLeaf);
       }
 
-      _expandStack(stack) {
+      _expandStack(stack, wholeState) {
         if (!stack.Deck) {
           //Meh, I guess it's not a stack
           return;
@@ -435,7 +435,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               components[i].Id = stack.Ids[i];
             }
           } else {
-            components[i] = this._componentForDeckAndIndex(stack.Deck, index);
+            components[i] = this._componentForDeckAndIndex(stack.Deck, index, wholeState);
             if (stack.Ids) {
               components[i].Id = stack.Ids[i];
             }
@@ -476,16 +476,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return bundle;
       }
 
-      _componentForDeckAndIndex(deckName, index) {
+      _componentForDeckAndIndex(deckName, index, wholeState) {
         let deck = this.chest[deckName];
 
         if (!deck) return null;
 
         let result = this._copyObj(deck[index]);
 
-        if (this.currentState && this.currentState.Components) {
-          if (this.currentState.Components[deckName]) {
-            result.DynamicValues = this.currentState.Components[deckName][index];
+        if (wholeState && wholeState.Components) {
+          if (wholeState.Components[deckName]) {
+            result.DynamicValues = wholeState.Components[deckName][index];
           }
         }
 
