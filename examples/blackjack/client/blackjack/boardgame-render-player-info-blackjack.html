@@ -32,7 +32,8 @@
         if (playerState.Stood) {
           return "Stood"
         }
-        return " "
+        //Non breakable space so when the first player busts the layout doesn't jump
+        return "\xa0"
       }
 
     }
