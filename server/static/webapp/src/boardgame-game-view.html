@@ -99,7 +99,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             value: 0,
             observer: "_requestedPlayerChanged",
           },
-          chest : String,
+          chest : Object,
           gameState : String,
           game: {
             type: Object,
@@ -425,7 +425,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           return;
         }
 
-        var deck = this.data.Chest[stack.Deck];
+        var deck = this.chest[stack.Deck];
 
         var components = [];
 
@@ -453,7 +453,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       _componentForDeckAndIndex(deckName, index) {
-        let deck = this.data.Chest[deckName];
+        let deck = this.chest[deckName];
 
         if (!deck) return null;
 
@@ -487,7 +487,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           return
         }
         if (newValue.Chest) {
-          this.chest = JSON.stringify(newValue.Chest, null, 2)
+          this.chest = newValue.Chest;
         }
 
         this.game = newValue.Game

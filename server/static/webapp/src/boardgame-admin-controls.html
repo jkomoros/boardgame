@@ -43,7 +43,7 @@
       <div class="card">
         <details>
           <summary>Chest</summary>
-          <pre>{{chest}}</pre>
+          <pre>{{_chestAsString}}</pre>
         </details>
       </div>
     </div>
@@ -96,7 +96,11 @@
             type: Number,
             value: 0,
           },
-          chest : String,
+          chest : Object,
+          _chestAsString: {
+            type: String,
+            computed: "_computeChestAsString(chest)"
+          },
           gameState : String,
           //TODO: there must be a better way to do constants...
           OBSERVER_PLAYER_INDEX : {
@@ -110,6 +114,10 @@
           moveForms: Object,
           game: Object
         }
+      }
+
+      _computeChestAsString(chest) {
+        return JSON.stringify(chest, null, 2);
       }
 
       proposeMove(moveName, moveArguments) {
