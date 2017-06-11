@@ -94,8 +94,10 @@
 
       resetRenderer() {
         if (!this.$ || !this.$.container) return;
-        var container = this.$.container;
-        container.removeChild(this.renderer);
+        if (this.renderer) {
+          var container = this.$.container;
+          container.removeChild(this.renderer);
+        }
         this.renderer = null;
         this.rendererGameName = "";
       }
