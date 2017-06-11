@@ -154,7 +154,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _gameRouteChanged() {
         //reset this so the next time we get data set and notice that we COULD
         //login we prompt for it.
-        this.promptedToJoin = false
+        this.promptedToJoin = false;
+        this._resetState();
       }
 
       doTick() {
@@ -220,6 +221,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.gameState = "";
         this.pathsToTick = null;
         this._firstStateBundle = true;
+        this.chest = null;
+        this.playersInfo = null;
+        this.hasEmptySlots = false;
       }
 
 
