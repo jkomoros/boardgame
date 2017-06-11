@@ -20,22 +20,11 @@
       static get properties() {
         return {
           gameRoute: Object,
-          chest: {
-            type: Object,
-            notify: true,
-          },
-          playersInfo: {
-            type: Array,
-            notify: true,
-          },
-          hasEmptySlots: {
-            type: Boolean,
-            notify: true,
-          },
           gameFinished: {
             type: Boolean,
             value: false,
           },
+          chest: Object,
           admin: {
             type: Boolean,
             observer: "_adminChanged"
@@ -354,10 +343,15 @@
           return
         }
 
-        //Theese all notify up to parent
         this.chest = newValue.Chest;
-        this.playersInfo = newValue.Players;
-        this.hasEmptySlots = newValue.HasEmptySlots;
+
+        var gameInfo = {
+          chest: newValue.Chest,
+          playersInfo: newValue.Players,
+          hasEmptySlots: newValue.HasEmptySlots
+        }
+
+        this.dispatchEvent(new CustomEvent("install-game-static-info", {composed: true, detail: gameInfo}))
 
         var bundle = this._prepareStateBundle(newValue.Game, newValue.Forms, newValue.ViewingAsPlayer);
         this._addStateBundle(bundle);
