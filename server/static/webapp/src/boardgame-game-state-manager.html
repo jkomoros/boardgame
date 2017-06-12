@@ -6,8 +6,8 @@
 <dom-module id="boardgame-game-state-manager">
   <template>
     <iron-ajax id="version" with-credentials url="[[gameVersionUrl]]" handle-as="json" last-response="{{versionData}}"></iron-ajax>
-    <iron-ajax id="status" with-credentials url="[[UrlForGameAPI(apiHost, gameRoute, 'status')]]" handle-as="json" last-response="{{status}}">
-    <iron-ajax id="data" with-credentials url="[[gameViewUrl]]" handle-as="json" last-response="{{data}}">
+    <iron-ajax id="status" with-credentials url="[[UrlForGameAPI(apiHost, gameRoute, 'status')]]" handle-as="json" last-response="{{statusData}}">
+    <iron-ajax id="info" with-credentials url="[[gameViewUrl]]" handle-as="json" last-response="{{infoData}}">
   </template>
 
   <script>
@@ -58,13 +58,13 @@
             observer: "_requestedPlayerChanged",
           },
           gameVersion: Number,
-          data: {
+          infoData: {
             type: Object,
-            observer: '_dataChanged',
+            observer: '_infoDataChanged',
           },
-          status:{
+          statusData:{
             type: Object,
-            observer: '_statusChanged'
+            observer: '_statusDataChanged'
           },
           versionData: {
             type: Object,
@@ -108,8 +108,8 @@
         window.requestAnimationFrame(() => this.fetchData());
       }
 
-      _statusChanged(newValue, oldValue) {
-        if (!this.data) {
+      _statusDataChanged(newValue, oldValue) {
+        if (!this.infoData) {
           return
         }
         this.targetVersion = newValue.Version
@@ -132,12 +132,12 @@
       }
 
       reset() {
-          this.data = null;
+          this.infoData = null;
           window.requestAnimationFrame(() => this.updateData());
       }
 
       fetchInfo() {
-        if (this.$.data.loading) {
+        if (this.$.info.loading) {
           return
         }
 
@@ -149,7 +149,7 @@
           //The URL will be junk
           return
         }
-        this.$.data.generateRequest();
+        this.$.info.generateRequest();
       }
 
       fetchStatusNow() {
@@ -184,7 +184,7 @@
 
         //We stop asking for data if the game is finished, because nothing
         //interesting can happen at that point.
-        if (!this.data || !this.gameFinished){
+        if (!this.infoData || !this.gameFinished){
           window.setTimeout(() => this.maybeFetchStatus(), this.statusPollFrequency);
         }
       }
@@ -345,7 +345,7 @@
         this.dispatchEvent(new CustomEvent('install-state-bundle', {composed: true, detail: bundle}));
       }
 
-      _dataChanged(newValue, oldValue) {
+      _infoDataChanged(newValue, oldValue) {
         if (!newValue) {
           //Sometimes we set null, like when we select the view.
           return
