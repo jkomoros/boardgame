@@ -30,23 +30,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 
     </style>
-      <div class="layout horizontal justified players">
-        <template is="dom-repeat" items="{{playersInfo}}">
-          <boardgame-player-roster-item class="flex" state="{{state}}" game-name="{{gameRoute.name}}" is-empty="{{item.IsEmpty}}" is-agent="{{item.IsAgent}}" photo-url="{{item.PhotoUrl}}" display-name="{{item.DisplayName}}" player-index="{{index}}" viewing-as-player="{{viewingAsPlayer}}" current-player-index="{{currentPlayerIndex}}" renderer-loaded="{{rendererLoaded}}">
-          </boardgame-player-roster-item>
-        </template>
-      </div>
-      <div hidden$="{{!isObserver}}">
-        <div class="layout horizontal center">
-          <h3 class="flex">
-            Observing
-          </h3>
-          <div hidden$="{{!showJoin}}">
-            <paper-button on-tap="showDialog" raised default>Join game</paper-button>
-          </div>
+    <h3>{{_bannerText(finished, winners)}}</h3>
+    <div class="layout horizontal justified players">
+      <template is="dom-repeat" items="{{playersInfo}}">
+        <boardgame-player-roster-item class="flex" state="{{state}}" game-name="{{gameRoute.name}}" is-empty="{{item.IsEmpty}}" finished="[[finished]]" winner="[[_isWinner(index, winners)]]" is-agent="{{item.IsAgent}}" photo-url="{{item.PhotoUrl}}" display-name="{{item.DisplayName}}" player-index="{{index}}" viewing-as-player="{{viewingAsPlayer}}" current-player-index="{{currentPlayerIndex}}" renderer-loaded="{{rendererLoaded}}">
+        </boardgame-player-roster-item>
+      </template>
+    </div>
+    <div hidden$="{{!isObserver}}">
+      <div class="layout horizontal center">
+        <h3 class="flex">
+          Observing
+        </h3>
+        <div hidden$="{{!showJoin}}">
+          <paper-button on-tap="showDialog" raised default>Join game</paper-button>
         </div>
       </div>
-    </h3>
+    </div>
     <paper-dialog id="join">
       <h2>Join game?</h2>
       <p>We're still looking for players for this game.</p>
@@ -83,6 +83,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             type: Boolean,
             computed: "_computeShowJoin(viewingAsPlayer, hasEmptySlots)"
           },
+          finished: Boolean,
+          winners: Array,
           loggedIn: Boolean,
           response: {
             type: Object,
@@ -107,6 +109,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       ready() {
         super.ready();
         this.addEventListener('iron-overlay-closed', e => this.dialogClosed(e));
+      }
+
+      _isWinner(index, winners) {
+        if (!winners) return false;
+        for (var i = 0; i < winners.length; i++) {
+          if (winners[i] == index) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      _bannerText(finished, winners) {
+        if (!finished) {
+          return "Playing"
+        }
+        return "Game Over"
       }
 
       playerName(viewingAsPlayer) {

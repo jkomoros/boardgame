@@ -31,6 +31,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         opacitY:0.5;
       }
 
+      .loser {
+        filter: saturate(0.5) brightness(1.5) blur(1px);
+      }
+
       strong.chip {
         @apply --paper-font-caption;
         background-color: var(--disabled-text-color);
@@ -71,10 +75,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
     </style>
-    <div class$="layout horizontal center {{classForPlayer(playerIndex, viewingAsPlayer, currentPlayerIndex)}}">
+    <div class$="layout horizontal center {{classForPlayer(playerIndex, viewingAsPlayer, currentPlayerIndex, finished, winner)}}">
       <div style="position:relative">
         <boardgame-player-chip display-name="{{displayName}}" is-agent="{{isAgent}}" photo-url="{{photoUrl}}"></boardgame-player-chip>
-        <strong class="chip" style$="{{_styleForChip(chipColor)}}">{{_textForChip(chipText, playerIndex)}}</strong>
+        <strong class="chip" style$="{{_styleForChip(chipColor, finished, winner)}}">{{_textForChip(chipText, playerIndex, finished, winner)}}</strong>
       </div>
       <div class="layout vertical">
         <strong class$="{{classForName(displayName)}}">{{nameOrNobody(displayName)}}</strong>
@@ -109,6 +113,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           playerIndex: Number,
           viewingAsPlayer: Number,
           currentPlayerIndex: Number,
+          finished: Boolean,
+          winner: Boolean,
           rendererLoaded: {
             type: Boolean,
             value: false,
@@ -133,12 +139,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return ""
       }
 
-      _styleForChip(chipColor) {
+      _styleForChip(chipColor, finished, winner) {
+        if (finished) {
+          return "box-shadow: none; background-color: " + (winner ? "var(--paper-green-800)" : "var(--paper-red-300)");_ 
+        }
         if (!chipColor) return "box-shadow: none";
         return "background-color: " + chipColor;
       }
 
-      _textForChip(chipText, playerIndex) {
+      _textForChip(chipText, playerIndex, finished, winner) {
+        if (finished) {
+          return winner ? "\u2605" : "\u2715";
+        }
         return (chipText) ? chipText : playerIndex;
       }
 
@@ -149,8 +161,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return "Human";
       }
 
-      classForPlayer(index, viewingAsPlayer, currentPlayerIndex) {
+      classForPlayer(index, viewingAsPlayer, currentPlayerIndex, finished, winner) {
         var result = [];
+        if (finished) result.push(winner ? "winner" : "loser");
         if (index == viewingAsPlayer) result.push("viewing");
         if (index == currentPlayerIndex) result.push("current");
         return result.join(" ");

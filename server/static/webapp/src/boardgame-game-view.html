@@ -48,22 +48,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </template>
 
     <div class="card">
-      <div hidden$="{{!game.Finished}}">
-        <h1>Game over</h1>
-        <div hidden$="{{!game.Winners}}">
-          <h2>Winners:
-            <template is="dom-repeat" items="{{game.Winners}}">
-            {{item}}
-            </template>
-          </h2>
-        </div>
-        <div hidden$="{{game.Winners}}">
-          <h3>It's a draw!</h3>
-        </div>
-      </div>
-      <div hidden$="{{game.Finished}}">
-        <boardgame-player-roster id="player" logged-in="{{loggedIn}}" game-route="[[gameRoute]]" viewing-as-player="{{viewingAsPlayer}}" has-empty-slots="{{hasEmptySlots}}" current-player-index="{{game.CurrentPlayerIndex}}" players-info="[[playersInfo]]" state="{{currentState}}"></boardgame-player-roster>
-      </div>
+      <boardgame-player-roster id="player" logged-in="{{loggedIn}}" game-route="[[gameRoute]]" viewing-as-player="{{viewingAsPlayer}}" has-empty-slots="{{hasEmptySlots}}" current-player-index="{{game.CurrentPlayerIndex}}" players-info="[[playersInfo]]" state="{{currentState}}" finished="[[game.Finished]]" winners="[[game.Winners]]"></boardgame-player-roster>
     </div>
     <div class="card">
       <boardgame-render-game state="{{currentState}}" diagram="{{game.Diagram}}" game-name="[[gameRoute.name]]" viewing-as-player="{{viewingAsPlayer}}" current-player-index="{{game.CurrentPlayerIndex}}"></boardgame-render-game>
