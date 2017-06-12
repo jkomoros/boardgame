@@ -43,9 +43,18 @@
             observer: "_targetVersionChanged",
             value: -1
           },
+          fetchedVersion: {
+            type: Number,
+            observer: "_fetchedVersionChanged",
+            value: -1
+          },
+          versionToFetch: {
+            type: Number,
+            computed: "_computeVersionToFetch(fetchedVersion)"
+          },
           gameVersionUrl: {
             type: String,
-            computed: "_computeGameVersionUrl(apiHost, gameRoute, requestedPlayer, admin, targetVersion, autoCurrentPlayer)"
+            computed: "_computeGameVersionUrl(apiHost, gameRoute, requestedPlayer, admin, versionToFetch, autoCurrentPlayer)"
           },
           gameViewUrl : {
             type: String,
@@ -85,9 +94,9 @@
         this.updateData();
       }
 
-      _computeGameVersionUrl(apiHost, gameRoute, requestedPlayer, admin, version, autoCurrentPlayer) {
+      _computeGameVersionUrl(apiHost, gameRoute, requestedPlayer, admin, versionToFetch, autoCurrentPlayer) {
         //TODO: factor this out with computeGameViewUrl a bit
-        return this.UrlForGameAPI(apiHost, gameRoute, "version/") + version + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0) + "&current=" + (autoCurrentPlayer ? 1 : 0);
+        return this.UrlForGameAPI(apiHost, gameRoute, "version/") + versionToFetch + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0) + "&current=" + (autoCurrentPlayer ? 1 : 0);
       }
 
       _computeGameViewUrl(apiHost, gameRoute, requestedPlayer, admin){
@@ -98,9 +107,19 @@
         window.requestAnimationFrame( () => this.fetchData());
       }
 
+      _computeVersionToFetch(fetchedVersion) {
+        return fetchedVersion + 1;
+      }
+
       _targetVersionChanged(newValue, oldValue) {
-        if (newValue > oldValue) {
+        if (newValue > this.fetchedVersion) {
           //We're out of date! Fetch new data!
+          this.fetchData();
+        }
+      }
+
+      _fetchedVersionChanged(newValue, oldValue) {
+        if (newValue < this.targetVersion) {
           this.fetchData();
         }
       }
@@ -209,11 +228,15 @@
           return
         }
 
+        if (this.versionToFetch > this.targetVersion) {
+          return;
+        }
+
         if (this._lastRequestedVersionUrl == this.gameVersionUrl) {
           return
         }
 
-        if (this.autoCurrentPlayer && this.requestedPlayer == this.viewingAsPlayer && this.targetVersion == this.gameVersion) {
+        if (this.autoCurrentPlayer && this.requestedPlayer == this.viewingAsPlayer && this.versionToFetch == this.gameVersion) {
           //If we're in autoCurrentPlayer and the requestedPlayer is 
           return
         }
@@ -356,6 +379,8 @@
 
       _addStateBundle(bundle) {
         if (!this._stateQueue) this._stateQueue = [];
+        if (!bundle) return;
+        if (bundle.game && bundle.game.Version) this.fetchedVersion = bundle.game.Version;
         this._stateQueue.push(bundle);
         this._tickStateQueue();
       }
