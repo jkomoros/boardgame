@@ -40,12 +40,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         margin-left:1em;
       }
     </style>
-    <template is="dom-if" if="{{data.error}}">
-    <div class="card">
-    <h2>Error</h2>
-    {{data.error}}
-    </div>
-    </template>
 
     <div class="card">
       <boardgame-player-roster id="player" logged-in="{{loggedIn}}" game-route="[[gameRoute]]" viewing-as-player="{{viewingAsPlayer}}" has-empty-slots="{{hasEmptySlots}}" current-player-index="{{game.CurrentPlayerIndex}}" players-info="[[playersInfo]]" state="{{currentState}}" finished="[[game.Finished]]" winners="[[game.Winners]]"></boardgame-player-roster>
