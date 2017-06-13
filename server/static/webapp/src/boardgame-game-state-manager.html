@@ -85,7 +85,11 @@
           },
           lastStatusRequestIssued: Date,
           _lastRequestedVersionUrl: String,
-          _stateQueue: Array
+          _stateQueue: Array,
+          _stateTickTimeout: {
+            type: Number,
+            value: 0
+          }
         }
       }
 
@@ -210,7 +214,7 @@
       }
 
       fetchData() {
-        
+
         if (!this.active) {
           return
         }
@@ -362,15 +366,21 @@
       }
 
       _tickStateQueue() {
-        //TODO: if there's not a pending tick scheduled, schedule one for some
-        //period of time in the future.
-        this._stateQueueTicked();
+        if (!this._stateTickTimeout) {
+          this._stateQueueTicked();
+        }        
       }
 
       _stateQueueTicked() {
+        this._stateTickTimeout = 0;
         if (!this._stateQueue || this._stateQueue.length < 1) return;
         var bundle = this._stateQueue.shift();
         this.dispatchEvent(new CustomEvent('install-state-bundle', {composed: true, detail: bundle}));
+        //TODO: set this based on the post timeout of the bundle
+
+        //TODO: if this value is less than the length of state animations the
+        //wrong thing happens with state animator.
+        this._stateTickTimeout = setTimeout(() => this._stateQueueTicked(), 300);
       }
 
       _addStateBundle(bundle) {
