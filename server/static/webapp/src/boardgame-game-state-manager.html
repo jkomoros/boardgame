@@ -76,7 +76,6 @@
           },
           lastStatusRequestIssued: Date,
           _lastRequestedVersionUrl: String,
-          _stateQueue: Array
         }
       }
 
@@ -342,22 +341,8 @@
         return copy
       }
 
-      _tickStateQueue() {
-        //TODO: if there's not a pending tick scheduled, schedule one for some
-        //period of time in the future.
-        this._stateQueueTicked();
-      }
-
-      _stateQueueTicked() {
-        if (!this._stateQueue || this._stateQueue.length < 1) return;
-        var bundle = this._stateQueue.shift();
-        this.dispatchEvent(new CustomEvent('install-state-bundle', {composed: true, detail: bundle}));
-      }
-
       _addStateBundle(bundle) {
-        if (!this._stateQueue) this._stateQueue = [];
-        this._stateQueue.push(bundle);
-        this._tickStateQueue();
+        this.dispatchEvent(new CustomEvent('install-state-bundle', {composed: true, detail: bundle}));
       }
 
       _infoDataChanged(newValue, oldValue) {
