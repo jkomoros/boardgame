@@ -210,11 +210,7 @@
       }
 
       fetchData() {
-        //If we're already fetchign data don't fire off another one.
-        if (this.$.version.loading) {
-          return
-        }
-
+        
         if (!this.active) {
           return
         }
