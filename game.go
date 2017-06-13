@@ -161,7 +161,7 @@ func (g *Game) JSONForPlayer(player PlayerIndex, state State) interface{} {
 		"Id":                 g.Id(),
 		"NumPlayers":         g.NumPlayers(),
 		"Agents":             g.Agents(),
-		"Version":            state.Version(),
+		"Version":            g.Version(),
 	}
 }
 

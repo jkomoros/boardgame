@@ -43,18 +43,9 @@
             observer: "_targetVersionChanged",
             value: -1
           },
-          fetchedVersion: {
-            type: Number,
-            observer: "_fetchedVersionChanged",
-            value: -1
-          },
-          versionToFetch: {
-            type: Number,
-            computed: "_computeVersionToFetch(fetchedVersion)"
-          },
           gameVersionUrl: {
             type: String,
-            computed: "_computeGameVersionUrl(apiHost, gameRoute, requestedPlayer, admin, versionToFetch, autoCurrentPlayer)"
+            computed: "_computeGameVersionUrl(apiHost, gameRoute, requestedPlayer, admin, targetVersion, autoCurrentPlayer)"
           },
           gameViewUrl : {
             type: String,
@@ -85,11 +76,7 @@
           },
           lastStatusRequestIssued: Date,
           _lastRequestedVersionUrl: String,
-          _stateQueue: Array,
-          _stateTickTimeout: {
-            type: Number,
-            value: 0
-          }
+          _stateQueue: Array
         }
       }
 
@@ -98,9 +85,9 @@
         this.updateData();
       }
 
-      _computeGameVersionUrl(apiHost, gameRoute, requestedPlayer, admin, versionToFetch, autoCurrentPlayer) {
+      _computeGameVersionUrl(apiHost, gameRoute, requestedPlayer, admin, version, autoCurrentPlayer) {
         //TODO: factor this out with computeGameViewUrl a bit
-        return this.UrlForGameAPI(apiHost, gameRoute, "version/") + versionToFetch + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0) + "&current=" + (autoCurrentPlayer ? 1 : 0);
+        return this.UrlForGameAPI(apiHost, gameRoute, "version/") + version + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0) + "&current=" + (autoCurrentPlayer ? 1 : 0);
       }
 
       _computeGameViewUrl(apiHost, gameRoute, requestedPlayer, admin){
@@ -111,19 +98,9 @@
         window.requestAnimationFrame( () => this.fetchData());
       }
 
-      _computeVersionToFetch(fetchedVersion) {
-        return fetchedVersion + 1;
-      }
-
       _targetVersionChanged(newValue, oldValue) {
-        if (newValue > this.fetchedVersion) {
+        if (newValue > oldValue) {
           //We're out of date! Fetch new data!
-          this.fetchData();
-        }
-      }
-
-      _fetchedVersionChanged(newValue, oldValue) {
-        if (newValue < this.targetVersion) {
           this.fetchData();
         }
       }
@@ -214,6 +191,10 @@
       }
 
       fetchData() {
+        //If we're already fetchign data don't fire off another one.
+        if (this.$.version.loading) {
+          return
+        }
 
         if (!this.active) {
           return
@@ -228,15 +209,11 @@
           return
         }
 
-        if (this.versionToFetch > this.targetVersion) {
-          return;
-        }
-
         if (this._lastRequestedVersionUrl == this.gameVersionUrl) {
           return
         }
 
-        if (this.autoCurrentPlayer && this.requestedPlayer == this.viewingAsPlayer && this.versionToFetch == this.gameVersion) {
+        if (this.autoCurrentPlayer && this.requestedPlayer == this.viewingAsPlayer && this.targetVersion == this.gameVersion) {
           //If we're in autoCurrentPlayer and the requestedPlayer is 
           return
         }
@@ -366,27 +343,19 @@
       }
 
       _tickStateQueue() {
-        if (!this._stateTickTimeout) {
-          this._stateQueueTicked();
-        }        
+        //TODO: if there's not a pending tick scheduled, schedule one for some
+        //period of time in the future.
+        this._stateQueueTicked();
       }
 
       _stateQueueTicked() {
-        this._stateTickTimeout = 0;
         if (!this._stateQueue || this._stateQueue.length < 1) return;
         var bundle = this._stateQueue.shift();
         this.dispatchEvent(new CustomEvent('install-state-bundle', {composed: true, detail: bundle}));
-        //TODO: set this based on the post timeout of the bundle
-
-        //TODO: if this value is less than the length of state animations the
-        //wrong thing happens with state animator.
-        this._stateTickTimeout = setTimeout(() => this._stateQueueTicked(), 300);
       }
 
       _addStateBundle(bundle) {
         if (!this._stateQueue) this._stateQueue = [];
-        if (!bundle) return;
-        if (bundle.game && bundle.game.Version) this.fetchedVersion = bundle.game.Version;
         this._stateQueue.push(bundle);
         this._tickStateQueue();
       }
