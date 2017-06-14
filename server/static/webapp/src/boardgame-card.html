@@ -51,9 +51,19 @@
         perspective: 1000px;
       }
 
+      #card.tall {
+        height: var(--card-effective-width);
+        width: var(--card-effective-height);
+      }
+
       #card.rotated {
         height: var(--card-effective-width);
         width: var(--card-effective-height);
+      }
+
+      #card.tall.rotated {
+        height: var(--card-effective-height);
+        width: var(--card-effective-width);
       }
 
       #card.interactive {
@@ -71,6 +81,11 @@
         transform-style: preserve-3d;
         position: absolute;
         transition: transform var(--animation-length, 0.25s) ease-in-out, var(--shadow-transition_-_transition);
+      }
+
+      .tall #inner {
+        height: var(--default-card-width);
+        width: calc(var(--default-card-width) * var(--card-effective-aspect-ratio)); 
       }
 
       .no-animate #inner {
@@ -144,11 +159,11 @@
 
     </style>
 
-    <div id="card" class$="{{_classes(spacer, noShadow, rotated, interactive, disabled, noContent, noAnimate)}}" on-tap="handleTap">
+    <div id="card" class$="{{_classes(spacer, noShadow, rotated, interactive, disabled, noContent, noAnimate, tall)}}" on-tap="handleTap">
       <div id="inner">
         <div id="front">
           <div class="normal">
-            <slot>
+            <slot id="front-slot">
               <div id="top-rank">
                 {{suit}}{{rank}}
               </div>
@@ -250,6 +265,16 @@
             type: Boolean,
             value: false
           },
+          //tall will be true IFF the content for the front of the card has a
+          //`tall` attribute. This reflects the *natural* orientation of the
+          //card, and should be the same for all cards of a given type without
+          //changing. If a card is tall, its size for layout will have its
+          //major axis be the vertical axis.
+          tall: {
+            type: Boolean,
+            value: false,
+            readOnly: true,
+          },
           //id  should be set to the component's Id from the framework.
           //boardgame-component-animator will look for this id to figure out
           //which cards are logically the same and thus should be animated
@@ -296,6 +321,7 @@
       ready() {
         super.ready();
         this.$.inner.addEventListener("transitionend", e => this._animationEnded(e));
+        this.$['front-slot'].addEventListener("slotchange", e => this._frontChanged(e));
       }
 
       _itemChanged(newValue) {
@@ -315,6 +341,20 @@
         }
         this.id = newValue.Id || "";
         if (this._binder) this._binder.item = newValue;
+      }
+
+      _frontChanged(e) {
+        var nodes = this.$["front-slot"].assignedNodes();
+        var newValue = false;
+        for (var i = 0; i < nodes.length; i++) {
+          var node = nodes[i];
+          if (node.nodeType != 1) continue;
+          if (node.hasAttribute("tall")) {
+            newValue = true;
+            break;
+          }
+        }
+        this._setTall(newValue);
       }
 
       _cardTypeChanged(newValue) {
@@ -354,7 +394,7 @@
         return !spacer && !disabled;
       }
 
-      _classes(spacer, noShadow, rotated, interactive, disabled, noContent, noAnimate) {
+      _classes(spacer, noShadow, rotated, interactive, disabled, noContent, noAnimate, tall) {
         let result = ["card"];
         if (spacer) {
           result.push("spacer");
@@ -377,6 +417,7 @@
         if (noAnimate) {
           result.push("no-animate")
         }
+        result.push(tall ? "tall" : "wide");
         return result.join(" ");
       }
     }
