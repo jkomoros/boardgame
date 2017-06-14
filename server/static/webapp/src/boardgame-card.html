@@ -331,6 +331,7 @@
           this.spacer = true;
           this.noContent = true;
           this.faceUp = false;
+          this.cardType = "";
           return;
         }
         if (newValue.Values) {
@@ -339,6 +340,11 @@
         } else {
           this.faceUp = false;
           this.noContent = true;
+        }
+        if (newValue.Deck) {
+          this.cardType = "card-" + newValue.Deck;
+        } else {
+          this.cardType = "";
         }
         this.id = newValue.Id || "";
         if (this._binder) this._binder.item = newValue;
@@ -361,6 +367,10 @@
       _cardTypeChanged(newValue) {
         if (!newValue) return;
         var template = Polymer.DomModule.import(newValue, "template");
+        if (!template) {
+          console.warn("couldn't find template for id " + newValue);
+          return;
+        }
         var clone = document.importNode(template, true);
         var bind = document.createElement("dom-bind");
         bind.appendChild(clone);
