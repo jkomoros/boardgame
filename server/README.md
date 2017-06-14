@@ -134,7 +134,7 @@ If you wanted to do more complex processing, you can create your own custom elem
 <boardgame-card card-type="my-card"></boardgame-card>
 ```
 
-When you provide a stack to boardgame-card-stack and then bind the resulting cards' item properties, we will also set the card-type property to be "card-DECKNAME" where DECKNAME is the name of the deck that stack is based on. This means that the best practice in most game renderers is to provide a "card-MYDECK" dom-module in the top-level and then everything will work as expected. See the debuganimations example for a sample.
+When you provide a stack to boardgame-card-stack and then bind the resulting cards' item properties, we will also set the card-type property to be "deck-DECKNAME-card" where DECKNAME is the name of the deck that stack is based on. This means that the best practice in most game renderers is to provide a "deck-MYDECK-card" dom-module in the top-level and then everything will work as expected. See the debuganimations example for a sample.
 
 
 ### Optional: BoardgameBaseGameRenderer
