@@ -109,14 +109,12 @@
     <div id="container" class$="{{_classes(layout, noAnimate)}}">
       <slot id="cards"></slot>
       <template is="dom-if" if="{{_createSpacer}}" restamp>
-          <boardgame-card spacer id="spacer">
-            <div tall$="{{defaultTall}}"></div>
+          <boardgame-card spacer id="spacer" card-type="{{_effectiveCardType}}">
           </boardgame-card>
       </template>
       <div id="faux-cards">
         <template is="dom-repeat" id="faux-cards-repeater" items="{{_fauxCardsToAdd}}">
-          <boardgame-card index="{{index}}">
-            <div tall$="{{defaultTall}}"></div>
+          <boardgame-card index="{{index}}" card-type="{{_effectiveCardType}}">
           </boardgame-card>
         </template>
       </div>
@@ -209,6 +207,10 @@
             _randomRotationOffset: {
               type: Number,
               value: 0
+            },
+            _effectiveCardType: {
+              type: String,
+              computed: "_computeEffectiveCardType(stack)"
             }
           }
         }
@@ -221,6 +223,13 @@
 
         get _sharedStackList() {
           return sharedStackList;
+        }
+
+        _computeEffectiveCardType(stack) {
+          if (!stack) return "";
+          var deck = stack.Deck;
+          if (!deck) return "";
+          return "card-" + deck;
         }
 
         //returns true if it appears that at least some cards in this stack
