@@ -1,5 +1,4 @@
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
-<link rel="import" href="../bower_components/paper-styles/shadow.html">
 <link rel="import" href="../bower_components/paper-styles/typography.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
 <link rel="import" href="../bower_components/polymer/lib/elements/dom-bind.html">
@@ -7,6 +6,30 @@
 <dom-module id="boardgame-card">
   <template>
     <style include="iron-flex">
+
+      :root {
+        /* These are copied and lightly modified from paper-styles/shadow, because we need rotated versions, too. */
+        --shadow-elevation-normal: {
+          box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14),
+                      0 1px 5px 0 rgba(0, 0, 0, 0.12),
+                      0 3px 1px -2px rgba(0, 0, 0, 0.2);
+        };
+        --shadow-elevation-normal-rotated: {
+          box-shadow: 2px 0 2px 0 rgba(0, 0, 0, 0.14),
+                      1px 0 5px 0 rgba(0, 0, 0, 0.12),
+                      3px 0 1px -2px rgba(0, 0, 0, 0.2);
+        };
+        --shadow-elevation-raised: {
+          box-shadow: 0 8px 10px 1px rgba(0, 0, 0, 0.14),
+                      0 3px 14px 2px rgba(0, 0, 0, 0.12),
+                      0 5px 5px -3px rgba(0, 0, 0, 0.4);
+        };
+        --shadow-elevation-raised-rotated: {
+          box-shadow: 8px 0 10px 1px rgba(0, 0, 0, 0.14),
+                      3px 0 14px 2px rgba(0, 0, 0, 0.12),
+                      5px 0 5px -3px rgba(0, 0, 0, 0.4);
+        };
+      }
 
       :host {
         --default-card-scale: 1.0;
@@ -80,7 +103,8 @@
 
         transform-style: preserve-3d;
         position: absolute;
-        transition: transform var(--animation-length, 0.25s) ease-in-out, var(--shadow-transition_-_transition);
+        /* The second part of this transition is from paper-styles/shadow, because we need to do our own to get rotated */
+        transition: transform var(--animation-length, 0.25s) ease-in-out, box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       .tall #inner {
@@ -97,11 +121,19 @@
       }
 
       #card.shadow #inner {
-        @apply --shadow-elevation-2dp;
+        @apply --shadow-elevation-normal;
+      }
+
+      #card.shadow.rotated #inner {
+        @apply --shadow-elevation-normal-rotated;
       }
 
       #card.shadow.interactive:hover #inner {
-        @apply --shadow-elevation-8dp;
+        @apply --shadow-elevation-raised;
+      }
+
+      #card.shadow.interactive.rotated:hover #inner {
+        @apply --shadow-elevation-raised-rotated;
       }
 
       #front, #back {
@@ -385,7 +417,7 @@
           transformPieces.push("rotateY(180deg)");
         } 
         if ((this.overrideRotated) ? this.basicRotated : this.rotated) {
-          transformPieces.push("rotate(-90deg)");
+          transformPieces.push("rotate(90deg)");
         }
         var transform = transformPieces.join(" ")
         if (!transform) {
