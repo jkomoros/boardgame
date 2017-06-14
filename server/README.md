@@ -108,14 +108,7 @@ It can be finicky to set all of the cards correctly for the animation to work as
 
 boardgame-card's size can be affected by two css properties: --card-scale (a float, with 1.0 being default size) and --card-aspect-ratio (a float, defaulting to 0.6666). Cards are always 100px width by default, with scale affecting the amount of space they take up physically in the layout, as well as applying a transform to their contents to get them to be the right size. --card-aspect-ratio changes how long the minor-axis is compared to the first. If the scale and aspect-ratio are set based on the position in the layout, the size will animate via boardgame-component-animator as expected.
 
-In many cases you only have a small number of types of cards in a game, and you want to define their layout only once if possible for consitency. There are two options to do this easily: defining a new custom element for the card front, and using boardgame-card's `card-type` attribute. The latter is sufficient if the template only needs access to the item and no other processing or support methods. Use the former if you need support methods (e.g. _classForItem).
-
-```
-<!-- define your own front -->
-<boardgame-card>
-	<mygame-card-front item="{{item}}"></mygame-card-front>
-</boardgame-card>
-```
+In many cases you only have a small number of types of cards in a game, and you want to define their layout only once if possible for consitency. The way to do this is to define a dom-module containing a template. Your cards should then include card-type="<inner card id>" and the content will be stamped and passed the item databound to the card.
 
 ```
 <!-- define a simple front if no processing required -->
@@ -129,6 +122,17 @@ In many cases you only have a small number of types of cards in a game, and you 
 <boardgame-card card-type="my-card"></boardgame-card>
 ```
 
+If you wanted to do more complex processing, you can create your own custom element and bind that in the same pattern:
+
+```
+<link rel='import' href='my-complex-card.html'>
+<dom-module id="my-card">
+    <template>
+        <my-complex-card item="{{item}}"></my-complex-card>
+    </template>
+</dom-module>
+<boardgame-card card-type="my-card"></boardgame-card>
+```
 
 
 ### Optional: BoardgameBaseGameRenderer
