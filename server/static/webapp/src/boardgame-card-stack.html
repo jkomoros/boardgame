@@ -109,11 +109,15 @@
     <div id="container" class$="{{_classes(layout, noAnimate)}}">
       <slot id="cards"></slot>
       <template is="dom-if" if="{{_createSpacer}}" restamp>
-          <boardgame-card spacer id="spacer"></boardgame-card>
+          <boardgame-card spacer id="spacer">
+            <div tall$="{{defaultTall}}"></div>
+          </boardgame-card>
       </template>
       <div id="faux-cards">
         <template is="dom-repeat" id="faux-cards-repeater" items="{{_fauxCardsToAdd}}">
-          <boardgame-card index="{{index}}"></boardgame-card>
+          <boardgame-card index="{{index}}">
+            <div tall$="{{defaultTall}}"></div>
+          </boardgame-card>
         </template>
       </div>
       <div id="animating-cards"></div>
@@ -172,6 +176,14 @@
               type: Boolean,
               value: false,
               observer: "_updateCardClasses"
+            },
+            //defaultTall is the default orientation of cards to be stamped
+            //automatically by this stack (e.g faux cards and the auto-spacer
+            //card). It's useful to set this so that if the stack is empty of
+            //"real" cards the layout and visual will be oriented the right way.
+            defaultTall: {
+              type: Boolean,
+              value: false
             },
             //idsLastSeen should be the IdsLastSeen for the stack that this
             //stack represents. boardgame-component-animator will use this

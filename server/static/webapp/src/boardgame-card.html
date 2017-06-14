@@ -321,7 +321,8 @@
       ready() {
         super.ready();
         this.$.inner.addEventListener("transitionend", e => this._animationEnded(e));
-        this.$['front-slot'].addEventListener("slotchange", e => this._frontChanged(e));
+        this.$['front-slot'].addEventListener("slotchange", e => this._frontChanged());
+        this._frontChanged();
       }
 
       _itemChanged(newValue) {
@@ -343,7 +344,7 @@
         if (this._binder) this._binder.item = newValue;
       }
 
-      _frontChanged(e) {
+      _frontChanged() {
         var nodes = this.$["front-slot"].assignedNodes();
         var newValue = false;
         for (var i = 0; i < nodes.length; i++) {
