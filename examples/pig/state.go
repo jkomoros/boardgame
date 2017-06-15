@@ -13,6 +13,9 @@ type gameState struct {
 //+autoreader
 type playerState struct {
 	playerIndex boardgame.PlayerIndex
+	Busted      bool
+	Passed      bool
+	DieCounted  bool
 	RoundScore  int
 	TotalScore  int
 }

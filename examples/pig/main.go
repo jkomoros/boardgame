@@ -76,7 +76,7 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 		panic("No manager returned")
 	}
 
-	//TODO: configure moves here
+	manager.AddPlayerMoveFactory(MoveRollDiceFactory)
 
 	manager.SetUp()
 
