@@ -44,6 +44,15 @@ func (g *gameDelegate) EmptyPlayerState(index boardgame.PlayerIndex) boardgame.M
 	}
 }
 
+func (g *gameDelegate) EmptyDynamicComponentValues(deck *boardgame.Deck) boardgame.MutableSubState {
+	if deck.Name() == diceDeckName {
+		return &dieDynamicValue{
+			Value: 1,
+		}
+	}
+	return nil
+}
+
 func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 	chest := boardgame.NewComponentChest()
 
