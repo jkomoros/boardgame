@@ -14,7 +14,7 @@ type gameState struct {
 type playerState struct {
 	playerIndex boardgame.PlayerIndex
 	Busted      bool
-	Passed      bool
+	Done        bool
 	DieCounted  bool
 	RoundScore  int
 	TotalScore  int
