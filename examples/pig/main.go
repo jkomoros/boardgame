@@ -23,6 +23,14 @@ func (g *gameDelegate) DisplayName() string {
 	return "Pig"
 }
 
+func (g *gameDelegate) LegalNumPlayers(numPlayers int) bool {
+	return numPlayers > 0 && numPlayers < 6
+}
+
+func (g *gameDelegate) DefaultNumPlayers() int {
+	return 2
+}
+
 func (g *gameDelegate) EmptyGameState() boardgame.MutableSubState {
 	dice := g.Manager().Chest().Deck(diceDeckName)
 
