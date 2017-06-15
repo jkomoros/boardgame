@@ -80,6 +80,7 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 	manager.AddPlayerMoveFactory(MoveDoneTurnFactory)
 
 	manager.AddFixUpMoveFactory(MoveCountDieFactory)
+	manager.AddFixUpMoveFactory(MoveAdvanceNextPlayerFactory)
 
 	manager.SetUp()
 

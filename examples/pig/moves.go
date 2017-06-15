@@ -23,6 +23,12 @@ type moveCountDie struct {
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
+//+autoreader readsetter
+type moveAdvanceNextPlayer struct {
+	boardgame.DefaultMove
+	TargetPlayerIndex boardgame.PlayerIndex
+}
+
 /**************************************************
  *
  * MoveRollDice Implementation
@@ -192,6 +198,69 @@ func (m *moveCountDie) Apply(state boardgame.MutableState) error {
 	} else {
 		p.RoundScore += value
 	}
+
+	return nil
+}
+
+/**************************************************
+ *
+ * MoveAdvanceNextPlayer Implementation
+ *
+ **************************************************/
+
+func MoveAdvanceNextPlayerFactory(state boardgame.State) boardgame.Move {
+	result := &moveAdvanceNextPlayer{
+		boardgame.DefaultMove{
+			"Advance Next Player",
+			"Advance to the next player when the current player has busted or said they are done.",
+		},
+		0,
+	}
+
+	if state != nil {
+		result.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
+	}
+
+	return result
+}
+
+func (m *moveAdvanceNextPlayer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+	game, players := concreteStates(state)
+
+	if !proposer.Equivalent(game.CurrentPlayer) {
+		return errors.New("You are not the current player!")
+	}
+
+	if !m.TargetPlayerIndex.Equivalent(proposer) {
+		return errors.New("You are not the current player!")
+	}
+
+	p := players[game.CurrentPlayer]
+
+	if !p.DieCounted {
+		return errors.New("The most recent die roll has not been counted!")
+	}
+
+	if !p.Busted && !p.Done {
+		return errors.New("The player has not either busted or signaled that they are done.")
+	}
+
+	return nil
+}
+
+func (m *moveAdvanceNextPlayer) Apply(state boardgame.MutableState) error {
+	game, players := concreteStates(state)
+
+	p := players[game.CurrentPlayer]
+
+	p.TotalScore += p.RoundScore
+	p.ResetForTurn()
+
+	game.CurrentPlayer = game.CurrentPlayer.Next(state)
+
+	p = players[game.CurrentPlayer]
+
+	p.ResetForTurn()
 
 	return nil
 }

@@ -35,3 +35,10 @@ func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
 	return p.playerIndex
 }
+
+func (p *playerState) ResetForTurn() {
+	p.Done = false
+	p.Busted = false
+	p.RoundScore = 0
+	p.DieCounted = true
+}
