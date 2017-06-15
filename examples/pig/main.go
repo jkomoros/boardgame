@@ -12,6 +12,9 @@ import (
 
 //go:generate autoreader
 
+//TODO: this should be configurable, and thus in the gameState.
+const TargetScore = 100
+
 type gameDelegate struct {
 	boardgame.DefaultGameDelegate
 }
@@ -46,6 +49,22 @@ func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) {
 
 	game.CurrentPlayer = startingPlayer
 
+}
+
+func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, winners []boardgame.PlayerIndex) {
+	_, players := concreteStates(state)
+
+	for i, player := range players {
+		if player.TotalScore >= TargetScore {
+			winners = append(winners, boardgame.PlayerIndex(i))
+		}
+	}
+
+	if len(winners) > 0 {
+		return true, winners
+	}
+
+	return false, nil
 }
 
 func (g *gameDelegate) EmptyGameState() boardgame.MutableSubState {
