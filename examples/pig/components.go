@@ -1,5 +1,7 @@
 package pig
 
+const diceDeckName = "dice"
+
 //+autoreader
 type dieValue struct {
 	Min int
@@ -9,4 +11,11 @@ type dieValue struct {
 //+autoreader
 type dieDynamicValue struct {
 	Value int
+}
+
+func DefaultDie() *dieValue {
+	return &dieValue{
+		Min: 1,
+		Max: 6,
+	}
 }
