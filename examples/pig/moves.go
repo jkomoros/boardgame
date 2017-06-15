@@ -253,7 +253,9 @@ func (m *moveAdvanceNextPlayer) Apply(state boardgame.MutableState) error {
 
 	p := players[game.CurrentPlayer]
 
-	p.TotalScore += p.RoundScore
+	if p.Done {
+		p.TotalScore += p.RoundScore
+	}
 	p.ResetForTurn()
 
 	game.CurrentPlayer = game.CurrentPlayer.Next(state)
