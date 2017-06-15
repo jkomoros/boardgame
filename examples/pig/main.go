@@ -7,6 +7,7 @@ package pig
 
 import (
 	"github.com/jkomoros/boardgame"
+	"math/rand"
 )
 
 //go:generate autoreader
@@ -34,6 +35,17 @@ func (g *gameDelegate) DefaultNumPlayers() int {
 func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c *boardgame.Component) (boardgame.Stack, error) {
 	game, _ := concreteStates(state)
 	return game.Die, nil
+}
+
+func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) {
+
+	game, _ := concreteStates(state)
+
+	//Pick a player to start randomly.
+	startingPlayer := boardgame.PlayerIndex(rand.Intn(len(state.Players())))
+
+	game.CurrentPlayer = startingPlayer
+
 }
 
 func (g *gameDelegate) EmptyGameState() boardgame.MutableSubState {
