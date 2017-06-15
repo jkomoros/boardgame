@@ -17,6 +17,12 @@ type moveDoneTurn struct {
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
+//+autoreader readsetter
+type moveCountDie struct {
+	boardgame.DefaultMove
+	TargetPlayerIndex boardgame.PlayerIndex
+}
+
 /**************************************************
  *
  * MoveRollDice Implementation
@@ -127,6 +133,65 @@ func (m *moveDoneTurn) Apply(state boardgame.MutableState) error {
 	p := players[game.CurrentPlayer]
 
 	p.Done = true
+
+	return nil
+}
+
+/**************************************************
+ *
+ * MoveCountDie Implementation
+ *
+ **************************************************/
+
+func MoveCountDieFactory(state boardgame.State) boardgame.Move {
+	result := &moveCountDie{
+		boardgame.DefaultMove{
+			"Count Die",
+			"After a die has been rolled, tabulating its impact",
+		},
+		0,
+	}
+
+	if state != nil {
+		result.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
+	}
+
+	return result
+}
+
+func (m *moveCountDie) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+	game, players := concreteStates(state)
+
+	if !proposer.Equivalent(game.CurrentPlayer) {
+		return errors.New("You are not the current player!")
+	}
+
+	if !m.TargetPlayerIndex.Equivalent(proposer) {
+		return errors.New("You are not the current player!")
+	}
+
+	p := players[game.CurrentPlayer]
+
+	if p.DieCounted {
+		return errors.New("The most recent die roll has already been counted.")
+	}
+
+	return nil
+}
+
+func (m *moveCountDie) Apply(state boardgame.MutableState) error {
+	game, players := concreteStates(state)
+
+	p := players[game.CurrentPlayer]
+
+	value := game.Die.ComponentAt(0).DynamicValues(state).(*dieDynamicValue).Value
+
+	if value == 1 {
+		//Bust!
+		p.Busted = true
+	} else {
+		p.RoundScore += value
+	}
 
 	return nil
 }

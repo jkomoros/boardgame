@@ -79,6 +79,8 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 	manager.AddPlayerMoveFactory(MoveRollDiceFactory)
 	manager.AddPlayerMoveFactory(MoveDoneTurnFactory)
 
+	manager.AddFixUpMoveFactory(MoveCountDieFactory)
+
 	manager.SetUp()
 
 	return manager
