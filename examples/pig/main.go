@@ -24,13 +24,24 @@ func (g *gameDelegate) DisplayName() string {
 }
 
 func (g *gameDelegate) EmptyGameState() boardgame.MutableSubState {
-	//TODO: implement
-	return nil
+	dice := g.Manager().Chest().Deck(diceDeckName)
+
+	if dice == nil {
+		return nil
+	}
+
+	return &gameState{
+		CurrentPlayer: 0,
+		Die:           boardgame.NewSizedStack(dice, 1),
+	}
 }
 
 func (g *gameDelegate) EmptyPlayerState(index boardgame.PlayerIndex) boardgame.MutablePlayerState {
-	//TODO: implement
-	return nil
+	return &playerState{
+		playerIndex: index,
+		TotalScore:  0,
+		RoundScore:  0,
+	}
 }
 
 func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
