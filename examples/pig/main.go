@@ -49,6 +49,9 @@ func (g *gameDelegate) EmptyPlayerState(index boardgame.PlayerIndex) boardgame.M
 		playerIndex: index,
 		TotalScore:  0,
 		RoundScore:  0,
+		DieCounted:  true,
+		Done:        false,
+		Busted:      false,
 	}
 }
 
