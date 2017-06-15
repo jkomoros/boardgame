@@ -8,6 +8,8 @@ package pig
 import (
 	"github.com/jkomoros/boardgame"
 	"math/rand"
+	"strconv"
+	"strings"
 )
 
 //go:generate autoreader
@@ -65,6 +67,24 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, 
 	}
 
 	return false, nil
+}
+
+func (g *gameDelegate) Diagram(state boardgame.State) string {
+	var parts []string
+
+	game, players := concreteStates(state)
+
+	dieValue := game.Die.ComponentAt(0).DynamicValues(state).(*dieDynamicValue).Value
+
+	parts = append(parts, "Die: "+strconv.Itoa(dieValue))
+
+	parts = append(parts, "\nPlayers")
+
+	for i, player := range players {
+		parts = append(parts, "Player "+strconv.Itoa(i)+": "+strconv.Itoa(player.RoundScore)+", "+strconv.Itoa(player.TotalScore))
+	}
+
+	return strings.Join(parts, "\n")
 }
 
 func (g *gameDelegate) EmptyGameState() boardgame.MutableSubState {
