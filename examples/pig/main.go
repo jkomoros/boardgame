@@ -9,6 +9,8 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
+//go:generate autoreader
+
 type gameDelegate struct {
 	boardgame.DefaultGameDelegate
 }
