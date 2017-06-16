@@ -18,7 +18,21 @@
       }
 
       _handleButtonTapped(e) {
-        var ele = e.composedPath()[0];
+        var composedPath = e.composedPath();
+        var ele = null;
+        for (var i = 0; i < composedPath.length; i++) {
+          var tempEle = composedPath[i];
+          //Skip things like shadow roots
+          if (!tempEle.getAttribute) continue;
+          if (tempEle.getAttribute("propose-move")) {
+            //found it!
+            ele = tempEle;
+            break;
+          }
+        }
+        if (!ele) {
+          return;
+        }
         var moveName = ele.getAttribute("propose-move");
         if (!moveName) return;
         var data = ele.dataset;
