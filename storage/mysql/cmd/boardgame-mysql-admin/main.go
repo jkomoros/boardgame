@@ -4,10 +4,14 @@
 package main
 
 import (
+	"database/sql"
 	"errors"
 	"flag"
-	"github.com/go-sql-driver/mysql"
+	dsnparser "github.com/go-sql-driver/mysql"
 	"github.com/jkomoros/boardgame/server/config"
+	"github.com/mattes/migrate"
+	"github.com/mattes/migrate/database/mysql"
+	_ "github.com/mattes/migrate/source/file"
 	"log"
 	"os"
 )
@@ -40,21 +44,41 @@ func process(options *appOptions) {
 		return
 	}
 
-	_, err := config.Get()
+	cfg, err := config.Get()
 
 	if err != nil {
 		log.Println("invalid config: " + err.Error())
 		return
 	}
 
-	log.Println("Hello world!")
+	configToUse := cfg.Dev
+
+	if configToUse.StorageConfig["mysql"] == "" {
+		log.Println("No connection string configured for mysql")
+		return
+	}
+
+	dsn, err := getDSN(configToUse.StorageConfig["mysql"])
+
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	db, _ := sql.Open("mysql", dsn)
+	driver, _ := mysql.WithInstance(db, &mysql.Config{})
+	_, _ = migrate.NewWithDatabaseInstance(
+		"file:///migrations",
+		"mysql",
+		driver,
+	)
 }
 
 func getDSN(config string) (string, error) {
 
 	//Substantially recreated in mysql/main.go
 
-	parsedDSN, err := mysql.ParseDSN(config)
+	parsedDSN, err := dsnparser.ParseDSN(config)
 
 	if err != nil {
 		return "", errors.New("config provided was not valid DSN: " + err.Error())
