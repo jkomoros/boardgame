@@ -8,8 +8,18 @@
     <style>
 
       :host {
-        --effective-die-size: var(--die-size, 50px);
+        --effective-die-scale: var(--die-scale, 1.0);
+        --effective-die-size: 50px;
         --pip-size: 7px; 
+      }
+
+      #scaler {
+        height: calc(var(--effective-die-size) * var(--effective-die-scale));
+        width: calc(var(--effective-die-size) * var(--effective-die-scale));
+        position: relative;
+        @apply --layout-vertical;
+        @apply --layout-center;
+        @apply --layout-center-justified;
       }
 
       #main.disabled {
@@ -25,6 +35,8 @@
         cursor: pointer;
         @apply --shadow-elevation-2dp;
         @apply --shadow-transition;
+        transform: scale(var(--effective-die-scale));
+        transition: transform var(--animation-length) ease-in-out;
       }
 
       #main.interactive:hover {
@@ -111,20 +123,22 @@
 
     </style>
 
-    <div id="main" style$="--selected-face:{{selectedFace}}" class$="{{_classes(disabled)}}">
-      <div id="inner">
-        <template is="dom-repeat" items="{{faces}}">
-          <div class$="{{_classForFace(item)}}">
-            <span>{{item}}</span>
-            <div class="pip mid center"></div>
-            <div class="pip top left"></div>
-            <div class="pip top right"></div>
-            <div class="pip bottom left"></div>
-            <div class="pip bottom right"></div>
-            <div class="pip mid left"></div>
-            <div class="pip mid right"
-          </div>
-        </template>
+    <div id ="scaler">
+      <div id="main" style$="--selected-face:{{selectedFace}}" class$="{{_classes(disabled)}}">
+        <div id="inner">
+          <template is="dom-repeat" items="{{faces}}">
+            <div class$="{{_classForFace(item)}}">
+              <span>{{item}}</span>
+              <div class="pip mid center"></div>
+              <div class="pip top left"></div>
+              <div class="pip top right"></div>
+              <div class="pip bottom left"></div>
+              <div class="pip bottom right"></div>
+              <div class="pip mid left"></div>
+              <div class="pip mid right"></div>
+            </div>
+          </template>
+        </div>
       </div>
     </div>
 
