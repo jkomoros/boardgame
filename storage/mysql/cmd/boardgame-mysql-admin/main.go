@@ -7,6 +7,7 @@ import (
 	"errors"
 	"flag"
 	"github.com/go-sql-driver/mysql"
+	"github.com/jkomoros/boardgame/server/config"
 	"log"
 	"os"
 )
@@ -33,10 +34,19 @@ func main() {
 }
 
 func process(options *appOptions) {
+
 	if options.Help {
 		log.Println("You asked for help!")
 		return
 	}
+
+	_, err := config.Get()
+
+	if err != nil {
+		log.Println("invalid config: " + err.Error())
+		return
+	}
+
 	log.Println("Hello world!")
 }
 
