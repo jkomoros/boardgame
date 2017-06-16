@@ -2,6 +2,7 @@
 <link rel="import" href="../../bower_components/polymer/lib/elements/dom-repeat.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout.html">
 <link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../src/boardgame-die.html">
 <link rel="import" href="../../src/boardgame-base-game-renderer.html">
 
 <dom-module id="boardgame-render-game-pig">
@@ -14,14 +15,10 @@
         background-color: #ccc;
       }
 
-
-
     </style>
 
     <div class="horizontal layout">
-      <div class="die" propose-move="Roll Dice">
-        {{state.Game.Die.Components.0.DynamicValues.Value}}
-      </div>
+      <boardgame-die propose-move="Roll Dice" item="{{state.Game.Die.Components.0}}"></boardgame-die>
       <div class="flex"></div>
       <paper-button propose-move="Done Turn" disabled="{{!isCurrentPlayer}}" raised>Done</paper-button>
     </div>

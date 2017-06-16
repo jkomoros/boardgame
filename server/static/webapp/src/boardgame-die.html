@@ -1,0 +1,60 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
+
+<dom-module id="boardgame-die">
+  <template>
+    <style>
+      #main {
+        @apply --layout-vertical;
+        @apply --layout-center;
+        @apply --layout-center-justified;
+        height: 50px;
+        width: 50px;
+        border-radius: 2px;
+        background-color: #CCC;
+        @apply --paper-font-title;
+      }      
+    </style>
+
+    <div id="main">
+      {{value}}
+    </div>
+
+  </template>
+
+  <script>
+
+    class BoardgameDie extends Polymer.Element {
+
+      static get is() {
+        return "boardgame-die";
+      }
+
+      static get properties() {
+        return {
+          item: {
+            type: Object,
+            observer: "_itemChanged"
+          },
+          value: Number,
+        }
+      }
+
+      _itemChanged(newValue) {
+        if (!newValue) {
+          this.value = 0;
+
+          return;
+        }
+
+        this.value = newValue.DynamicValues.Value;
+
+      }
+
+
+    }
+
+    customElements.define(BoardgameDie.is, BoardgameDie);
+
+  </script>
+</dom-module>
