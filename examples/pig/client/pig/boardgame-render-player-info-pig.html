@@ -1,0 +1,35 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+
+<dom-module id="boardgame-render-player-info-pig">
+  <template>
+    <div>Round Score <strong>{{_calculateRoundScore(state, playerIndex)}}</strong></div>
+    <div>Total Score <strong>{{_calculateTotalScore(state, playerIndex)}}</strong></div>
+  </template>
+
+  <script>
+
+    class BoardgameRenderPlayerInfoPig extends Polymer.Element {
+
+      static get is() {
+        return "boardgame-render-player-info-pig"
+      }
+
+      static get properties() {
+        return {
+          state: Object,
+          playerIndex: Number,
+        }
+      }
+
+      _calculateRoundScore(state, playerIndex) {
+        return state.Players[playerIndex].RoundScore;
+      }
+      _calculateTotalScore(state, playerIndex) {
+        return state.Players[playerIndex].TotalScore;
+      }
+
+    }
+
+    customElements.define(BoardgameRenderPlayerInfoPig.is, BoardgameRenderPlayerInfoPig);
+  </script>
+</dom-module>

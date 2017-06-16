@@ -1,0 +1,62 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../bower_components/polymer/lib/elements/dom-repeat.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../src/boardgame-base-game-renderer.html">
+
+<dom-module id="boardgame-render-game-pig">
+  <template>
+    <style include="iron-flex">
+
+      .die {
+        height: 100px;
+        width: 100px;
+        background-color: #ccc;
+      }
+
+
+
+    </style>
+
+    <div class="horizontal layout">
+      <div class="die" propose-move="Roll Dice">
+        {{state.Game.Die.Components.0.DynamicValues.Value}}
+      </div>
+      <div class="flex"></div>
+      <paper-button propose-move="Done Turn" disabled="{{!isCurrentPlayer}}" raised>Done</paper-button>
+    </div>
+
+  </template>
+
+  <script>
+
+    class BoardgameRenderGamePig extends BoardgameBaseGameRenderer {
+
+      static get is() {
+        return "boardgame-render-game-pig"
+      }
+
+      static get properties() {
+        return {
+          state: Object,
+          diagram : String,
+          viewingAsPlayer: Number,
+          currentPlayerIndex: Number,
+          isCurrentPlayer: {
+            type: Boolean,
+            computed: "_computeIsCurrentPlayer(currentPlayerIndex, viewingAsPlayer)"
+          }
+        }
+      }
+
+      _computeIsCurrentPlayer(currentPlayerIndex, viewingAsPlayer) {
+        if (viewingAsPlayer == -2) return true;
+        return currentPlayerIndex == viewingAsPlayer;
+      }
+
+    }
+
+    customElements.define(BoardgameRenderGamePig.is, BoardgameRenderGamePig);
+
+  </script>
+</dom-module>
