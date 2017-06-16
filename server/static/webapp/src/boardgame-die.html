@@ -1,23 +1,48 @@
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../bower_components/polymer/lib/elements/dom-repeat.html">
 
 <dom-module id="boardgame-die">
   <template>
     <style>
+
+      :host {
+        --effective-die-size: var(--die-size, 50px);
+      }
+
       #main {
+        height: var(--effective-die-size);
+        width: var(--effective-die-size);
+        border-radius: 2px;
+        background-color: #CCC;
+        overflow: hidden;
+      }
+
+      #inner {
+        position:relative;
+        transform: translateY(calc(-1 * var(--effective-die-size) * var(--selected-face)));
+        transition: transform var(--animation-length) ease-in-out;
+      }
+
+      .face {
         @apply --layout-vertical;
         @apply --layout-center;
         @apply --layout-center-justified;
-        height: 50px;
-        width: 50px;
-        border-radius: 2px;
-        background-color: #CCC;
+        height: var(--effective-die-size);
+        width: var(--effective-die-size);
         @apply --paper-font-title;
-      }      
+      }
+
     </style>
 
-    <div id="main">
-      {{value}}
+    <div id="main" style$="--selected-face:{{selectedFace}}">
+      <div id="inner">
+        <template is="dom-repeat" items="{{faces}}">
+          <div class="face">
+            {{item}}
+          </div>
+        </template>
+      </div>
     </div>
 
   </template>
@@ -37,18 +62,25 @@
             observer: "_itemChanged"
           },
           value: Number,
+          faces: Array,
+          selectedFace: Number,
         }
       }
 
       _itemChanged(newValue) {
         if (!newValue) {
-          this.value = 0;
-
+          this.setProperties({
+            faces: [],
+            selectedFace: 0,
+            value: 0,
+          })
           return;
         }
-
-        this.value = newValue.DynamicValues.Value;
-
+        this.setProperties({
+          faces: newValue.Values.Faces,
+          selectedFace: newValue.DynamicValues.SelectedFace,
+          value: newValue.DynamicValues.Value,
+        })
       }
 
 
