@@ -1,4 +1,4 @@
-package pig
+package dice
 
 import (
 	"github.com/jkomoros/boardgame"
@@ -7,7 +7,7 @@ import (
 
 func TestDieRoll(t *testing.T) {
 
-	dynamic := &dieDynamicValue{
+	dynamic := &DynamicValue{
 		Value: 0,
 	}
 

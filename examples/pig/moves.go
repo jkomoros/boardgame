@@ -3,6 +3,7 @@ package pig
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/components/dice"
 )
 
 //+autoreader readsetter
@@ -78,7 +79,7 @@ func (m *moveRollDice) Apply(state boardgame.MutableState) error {
 
 	die := game.Die.ComponentAt(0)
 
-	if err := die.DynamicValues(state).(*dieDynamicValue).Roll(die); err != nil {
+	if err := die.DynamicValues(state).(*dice.DynamicValue).Roll(die); err != nil {
 		return errors.New("Couldn't roll die: " + err.Error())
 	}
 
@@ -190,7 +191,7 @@ func (m *moveCountDie) Apply(state boardgame.MutableState) error {
 
 	p := players[game.CurrentPlayer]
 
-	value := game.Die.ComponentAt(0).DynamicValues(state).(*dieDynamicValue).Value
+	value := game.Die.ComponentAt(0).DynamicValues(state).(*dice.DynamicValue).Value
 
 	if value == 1 {
 		//Bust!

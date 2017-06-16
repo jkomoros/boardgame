@@ -1,4 +1,7 @@
-package pig
+/*
+ * dice is a simple package that defines die components with variable numbers of sides.
+ */
+package dice
 
 import (
 	"errors"
@@ -6,21 +9,21 @@ import (
 	"math/rand"
 )
 
-const diceDeckName = "dice"
+//go:generate autoreader
 
 //+autoreader
-type dieValue struct {
+type Value struct {
 	Min int
 	Max int
 }
 
 //+autoreader
-type dieDynamicValue struct {
+type DynamicValue struct {
 	Value int
 }
 
-func DefaultDie() *dieValue {
-	return &dieValue{
+func DefaultDie() *Value {
+	return &Value{
 		Min: 1,
 		Max: 6,
 	}
@@ -28,13 +31,13 @@ func DefaultDie() *dieValue {
 
 //Roll sets the Value of the Die randomly to a new legal value. The component
 //you pass should be the same Die component that we're rolling.
-func (d *dieDynamicValue) Roll(c *boardgame.Component) error {
+func (d *DynamicValue) Roll(c *boardgame.Component) error {
 
 	if c == nil {
 		return errors.New("No component provided")
 	}
 
-	values, ok := c.Values.(*dieValue)
+	values, ok := c.Values.(*Value)
 
 	if !ok {
 		return errors.New("Component passed was not a die")

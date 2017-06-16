@@ -7,6 +7,7 @@ package pig
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/components/dice"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -16,6 +17,7 @@ import (
 
 //TODO: this should be configurable, and thus in the gameState.
 const TargetScore = 100
+const diceDeckName = "dice"
 
 type gameDelegate struct {
 	boardgame.DefaultGameDelegate
@@ -79,7 +81,7 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 
 	game, players := concreteStates(state)
 
-	dieValue := game.Die.ComponentAt(0).DynamicValues(state).(*dieDynamicValue).Value
+	dieValue := game.Die.ComponentAt(0).DynamicValues(state).(*dice.DynamicValue).Value
 
 	parts = append(parts, "Die: "+strconv.Itoa(dieValue))
 
@@ -118,7 +120,7 @@ func (g *gameDelegate) EmptyPlayerState(index boardgame.PlayerIndex) boardgame.M
 
 func (g *gameDelegate) EmptyDynamicComponentValues(deck *boardgame.Deck) boardgame.MutableSubState {
 	if deck.Name() == diceDeckName {
-		return &dieDynamicValue{
+		return &dice.DynamicValue{
 			Value: 1,
 		}
 	}
@@ -128,11 +130,11 @@ func (g *gameDelegate) EmptyDynamicComponentValues(deck *boardgame.Deck) boardga
 func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 	chest := boardgame.NewComponentChest()
 
-	dice := boardgame.NewDeck()
+	diceDeck := boardgame.NewDeck()
 
-	dice.AddComponent(DefaultDie())
+	diceDeck.AddComponent(dice.DefaultDie())
 
-	chest.AddDeck(diceDeckName, dice)
+	chest.AddDeck(diceDeckName, diceDeck)
 
 	manager := boardgame.NewGameManager(&gameDelegate{}, chest, storage)
 
