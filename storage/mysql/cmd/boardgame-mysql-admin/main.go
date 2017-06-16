@@ -44,7 +44,7 @@ func main() {
 func process(options *appOptions) {
 
 	if options.Help {
-		log.Println("You asked for help!")
+		doHelp()
 		return
 	}
 
@@ -98,6 +98,11 @@ func process(options *appOptions) {
 		doVersion(m)
 	}
 
+}
+
+func doHelp() {
+	help := `Commands: 'version', 'up', 'down'`
+	log.Println(help)
 }
 
 func doUp(m *migrate.Migrate) {
