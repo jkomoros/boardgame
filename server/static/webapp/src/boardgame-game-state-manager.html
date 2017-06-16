@@ -259,6 +259,14 @@
 
       _expandLeafState(wholeState, leafState, pathToLeaf, pathsToTick) {
         //Returns an expanded version of leafState. leafState should have keys that are either bools, floats, strings, or Stacks.
+        
+        //Copy in Player computed state if it exists, for convenience.
+        if (pathToLeaf && pathToLeaf.length == 2 && pathToLeaf[0] == "Players") {
+          if (wholeState.Computed && wholeState.Computed.Players && wholeState.Computed.Players.length) {
+            leafState.Computed = wholeState.Computed.Players[pathToLeaf[1]];
+          }
+        }
+
         var entries = Object.entries(leafState);
         for (var i = 0; i < entries.length; i++) {
           let item = entries[i];
