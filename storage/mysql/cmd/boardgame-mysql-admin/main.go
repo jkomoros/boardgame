@@ -89,10 +89,32 @@ func process(options *appOptions) {
 		return
 	}
 
+	switch options.flagSet.Arg(0) {
+	case "up":
+		doUp(m)
+	case "down":
+		doDown(m)
+	default:
+		doVersion(m)
+	}
+
+}
+
+func doUp(m *migrate.Migrate) {
+	if err := m.Up(); err != nil {
+		log.Println("Up failed: " + err.Error())
+	}
+}
+
+func doDown(m *migrate.Migrate) {
+	if err := m.Down(); err != nil {
+		log.Println("Down failed: " + err.Error())
+	}
+}
+
+func doVersion(m *migrate.Migrate) {
 	version, _, _ := m.Version()
-
 	log.Println("Version: ", version)
-
 }
 
 func getDSN(config string) (string, error) {
