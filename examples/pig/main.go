@@ -37,6 +37,11 @@ func (g *gameDelegate) DefaultNumPlayers() int {
 	return 2
 }
 
+func (g *gameDelegate) CurrentPlayerIndex(state boardgame.State) boardgame.PlayerIndex {
+	game, _ := concreteStates(state)
+	return game.CurrentPlayer
+}
+
 func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c *boardgame.Component) (boardgame.Stack, error) {
 	game, _ := concreteStates(state)
 	return game.Die, nil
