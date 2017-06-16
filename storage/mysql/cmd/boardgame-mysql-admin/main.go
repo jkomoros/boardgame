@@ -4,7 +4,9 @@
 package main
 
 import (
+	"errors"
 	"flag"
+	"github.com/go-sql-driver/mysql"
 	"log"
 	"os"
 )
@@ -36,4 +38,20 @@ func process(options *appOptions) {
 		return
 	}
 	log.Println("Hello world!")
+}
+
+func getDSN(config string) (string, error) {
+
+	//Substantially recreated in mysql/main.go
+
+	parsedDSN, err := mysql.ParseDSN(config)
+
+	if err != nil {
+		return "", errors.New("config provided was not valid DSN: " + err.Error())
+	}
+
+	parsedDSN.Collation = "utf8mb4_unicode_ci"
+	parsedDSN.MultiStatements = true
+
+	return parsedDSN.FormatDSN(), nil
 }

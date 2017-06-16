@@ -42,17 +42,29 @@ func NewStorageManager(testMode bool) *StorageManager {
 	}
 }
 
-func (s *StorageManager) Connect(config string) error {
+func getDSN(config string) (string, error) {
+
+	//Substantially recreated in boardgame-mysqL-admin
 
 	parsedDSN, err := mysql.ParseDSN(config)
 
 	if err != nil {
-		return errors.New("config provided was not valid DSN: " + err.Error())
+		return "", errors.New("config provided was not valid DSN: " + err.Error())
 	}
 
 	parsedDSN.Collation = "utf8mb4_unicode_ci"
+	parsedDSN.MultiStatements = true
 
-	configToUse := parsedDSN.FormatDSN()
+	return parsedDSN.FormatDSN(), nil
+}
+
+func (s *StorageManager) Connect(config string) error {
+
+	configToUse, err := getDSN(config)
+
+	if err != nil {
+		return err
+	}
 
 	db, err := sql.Open("mysql", configToUse)
 	if err != nil {
