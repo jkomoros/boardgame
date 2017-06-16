@@ -17,8 +17,7 @@ import (
 // Implementation for Value
 
 var __ValueReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
-	"Max": boardgame.TypeInt,
-	"Min": boardgame.TypeInt,
+	"Faces": boardgame.TypeIntSlice,
 }
 
 type __ValueReader struct {
@@ -185,29 +184,11 @@ func (v *__ValueReader) SetGrowableStackProp(name string, value *boardgame.Growa
 
 func (v *__ValueReader) IntProp(name string) (int, error) {
 
-	switch name {
-	case "Min":
-		return v.data.Min, nil
-	case "Max":
-		return v.data.Max, nil
-
-	}
-
 	return 0, errors.New("No such Int prop: " + name)
 
 }
 
 func (v *__ValueReader) SetIntProp(name string, value int) error {
-
-	switch name {
-	case "Min":
-		v.data.Min = value
-		return nil
-	case "Max":
-		v.data.Max = value
-		return nil
-
-	}
 
 	return errors.New("No such Int prop: " + name)
 
@@ -215,11 +196,24 @@ func (v *__ValueReader) SetIntProp(name string, value int) error {
 
 func (v *__ValueReader) IntSliceProp(name string) ([]int, error) {
 
+	switch name {
+	case "Faces":
+		return v.data.Faces, nil
+
+	}
+
 	return []int{}, errors.New("No such IntSlice prop: " + name)
 
 }
 
 func (v *__ValueReader) SetIntSliceProp(name string, value []int) error {
+
+	switch name {
+	case "Faces":
+		v.data.Faces = value
+		return nil
+
+	}
 
 	return errors.New("No such IntSlice prop: " + name)
 
@@ -308,7 +302,8 @@ func (v *Value) ReadSetter() boardgame.PropertyReadSetter {
 // Implementation for DynamicValue
 
 var __DynamicValueReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
-	"Value": boardgame.TypeInt,
+	"SelectedFace": boardgame.TypeInt,
+	"Value":        boardgame.TypeInt,
 }
 
 type __DynamicValueReader struct {
@@ -476,6 +471,8 @@ func (d *__DynamicValueReader) SetGrowableStackProp(name string, value *boardgam
 func (d *__DynamicValueReader) IntProp(name string) (int, error) {
 
 	switch name {
+	case "SelectedFace":
+		return d.data.SelectedFace, nil
 	case "Value":
 		return d.data.Value, nil
 
@@ -488,6 +485,9 @@ func (d *__DynamicValueReader) IntProp(name string) (int, error) {
 func (d *__DynamicValueReader) SetIntProp(name string, value int) error {
 
 	switch name {
+	case "SelectedFace":
+		d.data.SelectedFace = value
+		return nil
 	case "Value":
 		d.data.Value = value
 		return nil
