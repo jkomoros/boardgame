@@ -8,8 +8,11 @@
 
       :host {
         --effective-die-size: var(--die-size, 50px);
-        --pip-size: 7px;
-        cursor: pointer;
+        --pip-size: 7px; 
+      }
+
+      #main.disabled {
+        cursor:default;
       }
 
       #main {
@@ -18,6 +21,7 @@
         border-radius: 2px;
         background-color: #CCC;
         overflow: hidden;
+        cursor: pointer;
       }
 
       #inner {
@@ -100,7 +104,7 @@
 
     </style>
 
-    <div id="main" style$="--selected-face:{{selectedFace}}">
+    <div id="main" style$="--selected-face:{{selectedFace}}" class$="{{_classes(disabled)}}">
       <div id="inner">
         <template is="dom-repeat" items="{{faces}}">
           <div class$="{{_classForFace(item)}}">
@@ -136,6 +140,19 @@
           value: Number,
           faces: Array,
           selectedFace: Number,
+          disabled: Boolean,
+        }
+      }
+
+      ready() {
+        super.ready();
+
+        this.shadowRoot.addEventListener("tap", (e) => this._handleTap(e))
+      }
+
+      _handleTap(e) {
+        if (this.disabled) {
+          e.stopPropagation();
         }
       }
 
@@ -179,6 +196,12 @@
         }
 
         return "face " + str;
+      }
+
+      _classes(disabled) {
+        var pieces = [];
+        pieces.push(disabled ? "disabled" : "interactive")
+        return pieces.join(" ");
       }
 
 

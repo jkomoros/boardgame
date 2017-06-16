@@ -18,7 +18,7 @@
     </style>
 
     <div class="horizontal layout">
-      <boardgame-die propose-move="Roll Dice" item="{{state.Game.Die.Components.0}}"></boardgame-die>
+      <boardgame-die propose-move="Roll Dice" item="{{state.Game.Die.Components.0}}" disabled="{{!isCurrentPlayer}}"></boardgame-die>
       <div class="flex"></div>
       <paper-button propose-move="Done Turn" disabled="{{!isCurrentPlayer}}" raised>Done</paper-button>
     </div>
