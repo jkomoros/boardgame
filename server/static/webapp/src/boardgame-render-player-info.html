@@ -40,6 +40,11 @@
             notify: true,
           },
           playerIndex: Number,
+          playerState: {
+            type: Object,
+            computed: "_computePlayerState(state, playerIndex)",
+            observer: "_playerStateChanged",
+          }
         }
       }
 
@@ -97,6 +102,16 @@
 
       }
 
+      _computePlayerState(state, playerIndex) {
+        if (!state) return;
+        return state.Players[playerIndex];
+      }
+
+      _playerStateChanged(newValue) {
+        if (!this.renderer) return;
+        this.renderer.playerState = newValue;
+      }
+
       resetRenderer() {
         if (!this.$ || !this.$.container) return;
         if (this.renderer) {
@@ -125,6 +140,7 @@
 
         ele.state = this.state;
         ele.playerIndex = this.playerIndex;
+        ele.playerState = this.playerState;
 
         this.chipText = ele.chipText || "";
         this.chipColor = ele.chipColor || "";

@@ -2,7 +2,7 @@
 
 <dom-module id="boardgame-render-player-info-memory">
   <template>
-    Won Cards <strong>{{_calculateWonCards(state, playerIndex)}}</strong>
+    Won Cards <strong>{{playerState.WonCards.Indexes.length}}</strong>
   </template>
 
   <script>
@@ -17,11 +17,8 @@
         return {
           state: Object,
           playerIndex: Number,
+          playerState: Object,
         }
-      }
-
-      _calculateWonCards(state, playerIndex) {
-        return state.Players[playerIndex].WonCards.Indexes.length;
       }
 
     }

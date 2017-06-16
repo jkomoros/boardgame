@@ -2,8 +2,8 @@
 
 <dom-module id="boardgame-render-player-info-pig">
   <template>
-    <div>Round Score <strong>{{_calculateRoundScore(state, playerIndex)}}</strong></div>
-    <div>Total Score <strong>{{_calculateTotalScore(state, playerIndex)}}</strong></div>
+    <div>Round Score <strong>{{playerState.RoundScore}}</strong></div>
+    <div>Total Score <strong>{{playerState.TotalScore}}</strong></div>
   </template>
 
   <script>
@@ -18,14 +18,8 @@
         return {
           state: Object,
           playerIndex: Number,
+          playerState: Object,
         }
-      }
-
-      _calculateRoundScore(state, playerIndex) {
-        return state.Players[playerIndex].RoundScore;
-      }
-      _calculateTotalScore(state, playerIndex) {
-        return state.Players[playerIndex].TotalScore;
       }
 
     }
