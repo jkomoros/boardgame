@@ -91,9 +91,7 @@ func (s *StorageManager) Connect(config string) error {
 	s.dbMap.AddTableWithName(PlayerStorageRecord{}, TablePlayers).SetKeys(true, "Id")
 	s.dbMap.AddTableWithName(AgentStateStorageRecord{}, TableAgentStates).SetKeys(true, "Id")
 
-	if err := s.dbMap.CreateTablesIfNotExists(); err != nil {
-		return errors.New("Couldn't create tables: " + err.Error())
-	}
+	//TODO: sanity check that the tables exist
 
 	return nil
 
