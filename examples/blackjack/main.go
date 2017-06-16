@@ -10,7 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/playingcards"
+	"github.com/jkomoros/boardgame/components/playingcards"
 	"strings"
 )
 

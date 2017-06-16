@@ -2,7 +2,7 @@ package blackjack
 
 import (
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/playingcards"
+	"github.com/jkomoros/boardgame/components/playingcards"
 )
 
 func concreteStates(state boardgame.State) (*gameState, []*playerState) {

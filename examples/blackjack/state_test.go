@@ -2,7 +2,7 @@ package blackjack
 
 import (
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/playingcards"
+	"github.com/jkomoros/boardgame/components/playingcards"
 	"github.com/jkomoros/boardgame/storage/memory"
 	"testing"
 )
