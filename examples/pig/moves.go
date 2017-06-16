@@ -199,6 +199,8 @@ func (m *moveCountDie) Apply(state boardgame.MutableState) error {
 		p.RoundScore += value
 	}
 
+	p.DieCounted = true
+
 	return nil
 }
 
