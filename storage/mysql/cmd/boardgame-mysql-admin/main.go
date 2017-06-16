@@ -67,11 +67,21 @@ func process(options *appOptions) {
 
 	db, _ := sql.Open("mysql", dsn)
 	driver, _ := mysql.WithInstance(db, &mysql.Config{})
-	_, _ = migrate.NewWithDatabaseInstance(
+	m, err := migrate.NewWithDatabaseInstance(
 		"file:///migrations",
 		"mysql",
 		driver,
 	)
+
+	if err != nil {
+		log.Println("Couldnt' create migration instance: " + err.Error())
+		return
+	}
+
+	version, _, _ := m.Version()
+
+	log.Println("Version: ", version)
+
 }
 
 func getDSN(config string) (string, error) {
