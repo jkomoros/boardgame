@@ -1,13 +1,11 @@
 package api
 
 import (
-	"encoding/json"
-	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/itsjamie/gin-cors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/users"
-	"io/ioutil"
+	"github.com/jkomoros/boardgame/server/config"
 	"log"
 	"net/http"
 	"os"
@@ -23,7 +21,7 @@ type Server struct {
 	//We store the last error so that next time viewHandler is called we can
 	//display it. Yes, this is a hack.
 	lastErrorMessage string
-	config           *ConfigMode
+	config           *config.ConfigMode
 
 	gameVersionCacheLock sync.RWMutex
 	gameVersionCache     map[string]int
@@ -34,21 +32,6 @@ type Renderer struct {
 	rendered     bool
 	cookieCalled bool
 	cookieValue  string
-}
-
-type Config struct {
-	Dev  *ConfigMode
-	Prod *ConfigMode
-}
-
-type ConfigMode struct {
-	AllowedOrigins    string
-	DefaultPort       string
-	FirebaseProjectId string
-	AdminUserIds      []string
-	//This is a dangerous config. Only enable in Dev!
-	DisableAdminChecking bool
-	StorageConfig        map[string]string
 }
 
 type MoveForm struct {
@@ -64,25 +47,6 @@ type MoveFormField struct {
 	Type         boardgame.PropertyType
 	DefaultValue interface{}
 }
-
-func (c *ConfigMode) Validate() error {
-	if c.DefaultPort == "" {
-		return errors.New("No default port provided")
-	}
-	//AllowedOrigins will just be default allow
-	if c.AllowedOrigins == "" {
-		log.Println("No AllowedOrigins found. Defaulting to '*'")
-		c.AllowedOrigins = "*"
-	}
-	if c.StorageConfig == nil {
-		c.StorageConfig = make(map[string]string)
-	}
-	return nil
-}
-
-const (
-	configFileName = "config.SECRET.json"
-)
 
 type managerMap map[string]*boardgame.GameManager
 
@@ -806,23 +770,10 @@ func (s *Server) genericHandler(c *gin.Context) {
 //Start is where you start the server, and it never returns until it's time to shut down.
 func (s *Server) Start() {
 
-	if _, err := os.Stat(configFileName); os.IsNotExist(err) {
-		log.Println("Couldn't find a " + configFileName + " in current directory. This file is required. Copy a starter one from boardgame/server/api/config.SAMPLE.json")
-		return
-	}
-
-	contents, err := ioutil.ReadFile(configFileName)
+	config, err := config.Get()
 
 	if err != nil {
-		log.Println("Couldn't read config file:", err)
-		return
-	}
-
-	var config Config
-
-	if err := json.Unmarshal(contents, &config); err != nil {
-		log.Println("couldn't unmarshal config file:", err)
-		return
+		log.Println("Configuration error: " + err.Error())
 	}
 
 	log.Println("Environment Variables")
@@ -837,11 +788,6 @@ func (s *Server) Start() {
 	} else {
 		log.Println("Using dev mode config")
 		s.config = config.Dev
-	}
-
-	if err := s.config.Validate(); err != nil {
-		log.Println("The provided config was not valid: ", err)
-		return
 	}
 
 	name := s.storage.Name()
