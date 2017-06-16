@@ -23,11 +23,13 @@ const (
 
 type appOptions struct {
 	Help    bool
+	Prod    bool
 	flagSet *flag.FlagSet
 }
 
 func defineFlags(options *appOptions) {
 	options.flagSet.BoolVar(&options.Help, "help", false, "If true, will print help and exit.")
+	options.flagSet.BoolVar(&options.Prod, "prod", false, "If true will operate on prod. If omitted will default to dev")
 }
 
 func getOptions(flagSet *flag.FlagSet, flagArguments []string) *appOptions {
@@ -65,6 +67,10 @@ func process(options *appOptions) {
 
 	configToUse := cfg.Dev
 
+	if options.Prod {
+		configToUse = cfg.Prod
+	}
+
 	if configToUse.StorageConfig["mysql"] == "" {
 		log.Println("No connection string configured for mysql")
 		return
@@ -92,12 +98,12 @@ func process(options *appOptions) {
 
 	switch options.flagSet.Arg(0) {
 	case "up":
-		if prodConfirm(true) {
+		if prodConfirm(options.Prod) {
 			doUp(m)
 		}
 
 	case "down":
-		if prodConfirm(true) {
+		if prodConfirm(options.Prod) {
 			doDown(m)
 		}
 	default:
