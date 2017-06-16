@@ -1,6 +1,7 @@
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
 <link rel="import" href="../bower_components/polymer/lib/elements/dom-repeat.html">
+<link rel="import" href="../bower_components/paper-styles/shadow.html">
 
 <dom-module id="boardgame-die">
   <template>
@@ -22,6 +23,12 @@
         background-color: #CCC;
         overflow: hidden;
         cursor: pointer;
+        @apply --shadow-elevation-2dp;
+        @apply --shadow-transition;
+      }
+
+      #main.interactive:hover {
+        @apply --shadow-elevation-8dp;
       }
 
       #inner {
