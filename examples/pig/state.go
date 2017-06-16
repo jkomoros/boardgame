@@ -8,6 +8,7 @@ import (
 type gameState struct {
 	CurrentPlayer boardgame.PlayerIndex
 	Die           *boardgame.SizedStack
+	TargetScore   int
 }
 
 //+autoreader
