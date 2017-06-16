@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"errors"
 	"flag"
+	"fmt"
 	dsnparser "github.com/go-sql-driver/mysql"
 	"github.com/jkomoros/boardgame/server/config"
 	"github.com/mattes/migrate"
@@ -91,13 +92,34 @@ func process(options *appOptions) {
 
 	switch options.flagSet.Arg(0) {
 	case "up":
-		doUp(m)
+		if prodConfirm(true) {
+			doUp(m)
+		}
+
 	case "down":
-		doDown(m)
+		if prodConfirm(true) {
+			doDown(m)
+		}
 	default:
 		doVersion(m)
 	}
 
+}
+
+func prodConfirm(isProd bool) bool {
+	if !isProd {
+		return true
+	}
+	log.Println("You have selected a destructive action on prod. Are you sure? (y/N)")
+	var response string
+	fmt.Scanln(&response)
+	yesResponses := []string{"Yes", "Y", "yes"}
+	for _, responseToTest := range yesResponses {
+		if response == responseToTest {
+			return true
+		}
+	}
+	return false
 }
 
 func doHelp() {
