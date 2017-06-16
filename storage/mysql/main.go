@@ -93,6 +93,12 @@ func (s *StorageManager) Connect(config string) error {
 
 	//TODO: sanity check that the tables exist
 
+	_, err = s.dbMap.SelectInt("select count(*) from " + TableGames)
+
+	if err != nil {
+		return errors.New("Sanity check failed for db. Have you used the admin tool to migrate it up? " + err.Error())
+	}
+
 	return nil
 
 }
