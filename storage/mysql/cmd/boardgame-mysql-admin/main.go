@@ -16,6 +16,10 @@ import (
 	"os"
 )
 
+const (
+	pathToMigrations = "$GOPATH/src/github.com/jkomoros/boardgame/storage/mysql/migrations/"
+)
+
 type appOptions struct {
 	Help    bool
 	flagSet *flag.FlagSet
@@ -44,6 +48,13 @@ func process(options *appOptions) {
 		return
 	}
 
+	path := os.ExpandEnv(pathToMigrations)
+
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		log.Println("The migrations path does not appear to exist")
+		return
+	}
+
 	cfg, err := config.Get()
 
 	if err != nil {
@@ -68,7 +79,7 @@ func process(options *appOptions) {
 	db, _ := sql.Open("mysql", dsn)
 	driver, _ := mysql.WithInstance(db, &mysql.Config{})
 	m, err := migrate.NewWithDatabaseInstance(
-		"file:///migrations",
+		"file://"+path,
 		"mysql",
 		driver,
 	)
