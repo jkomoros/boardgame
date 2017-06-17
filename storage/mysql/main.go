@@ -14,7 +14,6 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"log"
-	"strings"
 )
 
 const (
@@ -29,17 +28,13 @@ const (
 type StorageManager struct {
 	db    *sql.DB
 	dbMap *gorp.DbMap
-	//If in test mode we'll... mock stuff, I guess?
-	testMode bool
 	//The config string that we were provided in connect.
 	config string
 }
 
-func NewStorageManager(testMode bool) *StorageManager {
+func NewStorageManager() *StorageManager {
 	//We actually don't do much; we do more of our work in Connect()
-	return &StorageManager{
-		testMode: testMode,
-	}
+	return &StorageManager{}
 }
 
 func getDSN(config string) (string, error) {
@@ -91,12 +86,6 @@ func (s *StorageManager) Connect(config string) error {
 	s.dbMap.AddTableWithName(PlayerStorageRecord{}, TablePlayers).SetKeys(true, "Id")
 	s.dbMap.AddTableWithName(AgentStateStorageRecord{}, TableAgentStates).SetKeys(true, "Id")
 
-	if s.testMode {
-		//TODO: it's weird that tests exercse a code path that we don't use in
-		//general. Ideally we'd run the exact same migrations on test db.
-		s.dbMap.CreateTablesIfNotExists()
-	}
-
 	_, err = s.dbMap.SelectInt("select count(*) from " + TableGames)
 
 	if err != nil {
@@ -115,35 +104,8 @@ func (s *StorageManager) Close() {
 	s.db = nil
 }
 
-//Cleanup will only drop tables if we're in test mode, and the config string
-//used to open the database talked about a test database on localhost (as
-//sanity check).
 func (s *StorageManager) CleanUp() {
-
-	if !s.testMode {
-		return
-	}
-
-	if !strings.Contains(s.config, "_test") {
-		log.Println("Sanity check on boardgame config before cleanup didn't find _test")
-		return
-	}
-
-	if !strings.Contains(s.config, "localhost") {
-		log.Println("Sanity check on boardgame config before cleanup didn't find localhost")
-	}
-
-	if s.db == nil {
-		log.Println("Couldn't clean up; db already closed")
-		return
-	}
-
-	log.Println("Sanity checks passed. Dropping tables to cleanup...")
-
-	if err := s.dbMap.DropTables(); err != nil {
-		log.Println("Error dropping tables:", err)
-		return
-	}
+	//Don't do anything; if we're in test mode tests will clean up.
 }
 
 func (s *StorageManager) Name() string {

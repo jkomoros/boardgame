@@ -66,7 +66,7 @@ func NewServerStorageManager(manager StorageManager) *ServerStorageManager {
 //NewDefaultStorageManager currently uses mysql. See the README in
 //github.com/jkomoros/boardgame/storage/mysql for how to set up and configure it.
 func NewDefaultStorageManager() *ServerStorageManager {
-	return NewServerStorageManager(mysql.NewStorageManager(false))
+	return NewServerStorageManager(mysql.NewStorageManager())
 }
 
 //We wrap SaveGameandCurrentState so we can update our game version cache
