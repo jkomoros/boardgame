@@ -27,10 +27,20 @@ type ConfigMode struct {
 }
 
 func (c *Config) validate() error {
-	if err := c.Dev.validate(true); err != nil {
-		return err
+
+	if c.Dev == nil && c.Prod == nil {
+		return errors.New("Neither dev nor prod configuration was valid")
 	}
-	return c.Prod.validate(false)
+
+	if c.Dev != nil {
+		if err := c.Dev.validate(true); err != nil {
+			return err
+		}
+	}
+	if c.Prod != nil {
+		return c.Prod.validate(false)
+	}
+	return nil
 }
 
 func (c *ConfigMode) validate(isDev bool) error {
