@@ -91,7 +91,11 @@ func (s *StorageManager) Connect(config string) error {
 	s.dbMap.AddTableWithName(PlayerStorageRecord{}, TablePlayers).SetKeys(true, "Id")
 	s.dbMap.AddTableWithName(AgentStateStorageRecord{}, TableAgentStates).SetKeys(true, "Id")
 
-	//TODO: sanity check that the tables exist
+	if s.testMode {
+		//TODO: it's weird that tests exercse a code path that we don't use in
+		//general. Ideally we'd run the exact same migrations on test db.
+		s.dbMap.CreateTablesIfNotExists()
+	}
 
 	_, err = s.dbMap.SelectInt("select count(*) from " + TableGames)
 
