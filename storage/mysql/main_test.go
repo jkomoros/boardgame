@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	testDSN          = "root:root@tcp(localhost:3306)/boardgame_test"
+	testDSN          = "root:root@tcp(localhost:3306)/TEMPORARY_DATABASE_boardgame_test"
 	pathToMigrations = "$GOPATH/src/github.com/jkomoros/boardgame/storage/mysql/migrations/"
 )
 
@@ -79,7 +79,7 @@ func GetTestDatabase(t *testing.T) (*StorageManager, *migrate.Migrate) {
 
 func TestStorageManager(t *testing.T) {
 
-	manager, m := GetTestDatabase(t)
+	manager, _ := GetTestDatabase(t)
 
 	if manager == nil {
 		//GetTestDatabase will have already fatal'd for us
@@ -90,9 +90,7 @@ func TestStorageManager(t *testing.T) {
 		return manager
 	}, "mysql", testDSN, t)
 
-	if err := m.Drop(); err != nil {
-		log.Println(err)
-	}
+	connect.DropTestDb(testDSN)
 
 }
 

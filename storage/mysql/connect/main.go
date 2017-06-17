@@ -12,6 +12,7 @@ import (
 
 const (
 	pathToMigrations = "$GOPATH/src/github.com/jkomoros/boardgame/storage/mysql/migrations/"
+	testDbName       = "TEMPORARY_DATABASE_boardgame_test"
 )
 
 func Db(dsn string, testMode bool, createDb bool) (*sql.DB, error) {
@@ -19,7 +20,7 @@ func Db(dsn string, testMode bool, createDb bool) (*sql.DB, error) {
 	dbName := "boardgame"
 
 	if testMode {
-		dbName = "boardgame_test"
+		dbName = testDbName
 	}
 
 	//TODO: if createDb is true, make sure the DB exists and create if not.
@@ -90,4 +91,32 @@ func Migrations(db *sql.DB) (*migrate.Migrate, error) {
 		return nil, errors.New("Couldnt' create migration instance: " + err.Error())
 	}
 	return m, nil
+}
+
+func DropTestDb(dsn string) error {
+
+	parsedDSN, err := dsnparser.ParseDSN(dsn)
+
+	if err != nil {
+		return errors.New("config provided was not valid DSN: " + err.Error())
+	}
+
+	if parsedDSN.DBName != testDbName {
+		return errors.New("Database to connect to wasn't test db name")
+	}
+
+	db, err := sql.Open("mysql", parsedDSN.FormatDSN())
+
+	if err != nil {
+		return errors.New("Couldn't connect to db: " + err.Error())
+	}
+
+	defer db.Close()
+
+	_, err = db.Exec("drop database `" + testDbName + "`;")
+
+	if err != nil {
+		return errors.New("Couldnt' drop test db: " + err.Error())
+	}
+	return nil
 }
