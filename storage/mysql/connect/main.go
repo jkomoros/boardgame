@@ -33,6 +33,15 @@ func Db(dsn string, testMode bool, createDb bool) (*sql.DB, error) {
 	parsedDSN.Collation = "utf8mb4_unicode_ci"
 	parsedDSN.MultiStatements = true
 
+	if createDb {
+		oldDbName := parsedDSN.DBName
+		parsedDSN.DBName = ""
+		if err := doCreateDb(parsedDSN.FormatDSN(), dbName); err != nil {
+			return nil, errors.New("Couldn't create database: " + err.Error())
+		}
+		parsedDSN.DBName = oldDbName
+	}
+
 	if parsedDSN.DBName != dbName {
 		return nil, errors.New("DBName did not mach expectations. Got " + parsedDSN.DBName + " expected " + dbName)
 	}
@@ -46,6 +55,21 @@ func Db(dsn string, testMode bool, createDb bool) (*sql.DB, error) {
 	}
 
 	return db, nil
+}
+
+func doCreateDb(dsn string, dbName string) error {
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return errors.New("couldn't open database: " + err.Error())
+	}
+
+	defer db.Close()
+
+	_, err = db.Exec("create database if not exists `" + dbName + "`;")
+	if err != nil {
+		return errors.New("Couldn't create database: " + err.Error())
+	}
+	return nil
 }
 
 func Migrations(db *sql.DB) (*migrate.Migrate, error) {
