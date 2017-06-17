@@ -9,6 +9,8 @@ The connections trings that are passed to storage.Connect() are of a Data Source
 Normally these strings contain the password, and so they shouldn't be checked
 into source control. They are generally configured in config.SECRET.json, in the storageconfig section.
 
+Currently the only db name that is supported is `boardgame`
+
 A few examples:
 
 Default for just a basic mamp installation
@@ -23,16 +25,13 @@ where the part after the /cloudsql/ can be derived from running `gcloud sql
 instances describe prod`, and noting the connectionName in the result.  Full instructions for that string are here: https://cloud.google.com/appengine/docs/flexible/go/using-cloud-sql
 
 
-# Databases in production
+# Creating the database
 
-The engine will only create tables when testmode is true. Otherwise, it will
-just assume they exist.
+The `boardgame-mysql-admin` tool is designed to help administer your database. 
 
-create_tables.sql contains the SQL necessary to create the tables at the
-current version.
+To set up a database, configure the DSN as described above. Then, sitting in the same folder as config.SECRET.json, run `boardgame-mysql-admin setup` (include `-prod` if you want to run on the prod database.
 
-## Generating create_tables.sql
+# Making sure the database is up-to-date
 
-After making a change that would affect the schema, go to main_test.go, flip
-outputTables to true, run go test, then flip it back off. Then go through and
-remove the (<time>) at the end of each line.
+Before doing a push to prod it's a good idea to make sure the database is set up correctly with the most recent changes since the last push. Run `boardgame-mysql-admin up` to make sure all migrations are applied.
+
