@@ -10,9 +10,9 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/go-gorp/gorp"
-	"github.com/go-sql-driver/mysql"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/users"
+	"github.com/jkomoros/boardgame/storage/mysql/connect"
 	"log"
 )
 
@@ -26,44 +26,26 @@ const (
 )
 
 type StorageManager struct {
-	db    *sql.DB
-	dbMap *gorp.DbMap
+	db       *sql.DB
+	dbMap    *gorp.DbMap
+	testMode bool
 	//The config string that we were provided in connect.
 	config string
 }
 
-func NewStorageManager() *StorageManager {
+func NewStorageManager(testMode bool) *StorageManager {
 	//We actually don't do much; we do more of our work in Connect()
-	return &StorageManager{}
-}
-
-func getDSN(config string) (string, error) {
-
-	//Substantially recreated in boardgame-mysqL-admin
-
-	parsedDSN, err := mysql.ParseDSN(config)
-
-	if err != nil {
-		return "", errors.New("config provided was not valid DSN: " + err.Error())
+	return &StorageManager{
+		testMode: testMode,
 	}
-
-	parsedDSN.Collation = "utf8mb4_unicode_ci"
-	parsedDSN.MultiStatements = true
-
-	return parsedDSN.FormatDSN(), nil
 }
 
 func (s *StorageManager) Connect(config string) error {
 
-	configToUse, err := getDSN(config)
+	db, err := connect.Db(config, s.testMode, s.testMode)
 
 	if err != nil {
-		return err
-	}
-
-	db, err := sql.Open("mysql", configToUse)
-	if err != nil {
-		return errors.New("Unable to open database: " + err.Error())
+		return errors.New("Couldn't connect to db: " + err.Error())
 	}
 
 	s.config = config

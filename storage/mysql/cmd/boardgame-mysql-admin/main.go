@@ -4,21 +4,13 @@
 package main
 
 import (
-	"database/sql"
-	"errors"
 	"flag"
 	"fmt"
-	dsnparser "github.com/go-sql-driver/mysql"
 	"github.com/jkomoros/boardgame/server/config"
+	"github.com/jkomoros/boardgame/storage/mysql/connect"
 	"github.com/mattes/migrate"
-	"github.com/mattes/migrate/database/mysql"
-	_ "github.com/mattes/migrate/source/file"
 	"log"
 	"os"
-)
-
-const (
-	pathToMigrations = "$GOPATH/src/github.com/jkomoros/boardgame/storage/mysql/migrations/"
 )
 
 type appOptions struct {
@@ -51,13 +43,6 @@ func process(options *appOptions) {
 		return
 	}
 
-	path := os.ExpandEnv(pathToMigrations)
-
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		log.Println("The migrations path does not appear to exist")
-		return
-	}
-
 	cfg, err := config.Get()
 
 	if err != nil {
@@ -76,20 +61,14 @@ func process(options *appOptions) {
 		return
 	}
 
-	dsn, err := getDSN(configToUse.StorageConfig["mysql"])
+	db, err := connect.Db(configToUse.StorageConfig["mysql"], false, false)
 
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	db, _ := sql.Open("mysql", dsn)
-	driver, _ := mysql.WithInstance(db, &mysql.Config{})
-	m, err := migrate.NewWithDatabaseInstance(
-		"file://"+path,
-		"mysql",
-		driver,
-	)
+	m, err := connect.Migrations(db)
 
 	if err != nil {
 		log.Println("Couldnt' create migration instance: " + err.Error())
@@ -148,20 +127,4 @@ func doDown(m *migrate.Migrate) {
 func doVersion(m *migrate.Migrate) {
 	version, _, _ := m.Version()
 	log.Println("Version: ", version)
-}
-
-func getDSN(config string) (string, error) {
-
-	//Substantially recreated in mysql/main.go
-
-	parsedDSN, err := dsnparser.ParseDSN(config)
-
-	if err != nil {
-		return "", errors.New("config provided was not valid DSN: " + err.Error())
-	}
-
-	parsedDSN.Collation = "utf8mb4_unicode_ci"
-	parsedDSN.MultiStatements = true
-
-	return parsedDSN.FormatDSN(), nil
 }

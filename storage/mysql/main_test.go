@@ -1,13 +1,10 @@
 package mysql
 
 import (
-	"database/sql"
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/storage/mysql/connect"
 	"github.com/jkomoros/boardgame/storage/test"
 	"github.com/mattes/migrate"
-	"github.com/mattes/migrate/database/mysql"
-	_ "github.com/mattes/migrate/source/file"
 	"github.com/workfit/tester/assert"
 	"log"
 	"os"
@@ -44,7 +41,7 @@ func TestOutputTables(t *testing.T) {
 
 	defer f.Close()
 
-	manager := NewStorageManager()
+	manager := NewStorageManager(true)
 	manager.Connect("root:root@tcp(localhost:3306)/boardgame_test")
 
 	logger := log.New(f, "", 0x0)
@@ -57,34 +54,26 @@ func TestOutputTables(t *testing.T) {
 
 func GetTestDatabase(t *testing.T) (*StorageManager, *migrate.Migrate) {
 
-	dsn, err := getDSN(testDSN)
+	db, err := connect.Db(testDSN, true, true)
 
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("Couldn't get db: " + err.Error())
 		return nil, nil
 	}
 
-	path := os.ExpandEnv(pathToMigrations)
+	m, err := connect.Migrations(db)
 
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		t.Fatal("The migrations path does not appear to exist")
+	if err != nil {
+		t.Fatal("Couldn't get migrations: " + err.Error())
 		return nil, nil
 	}
-
-	db, _ := sql.Open("mysql", dsn)
-	driver, _ := mysql.WithInstance(db, &mysql.Config{})
-	m, err := migrate.NewWithDatabaseInstance(
-		"file://"+path,
-		"mysql",
-		driver,
-	)
 
 	if err := m.Up(); err != nil {
 		t.Fatal("Couldn't upgrade test database: ", err.Error())
 		return nil, nil
 	}
 
-	return NewStorageManager(), m
+	return NewStorageManager(true), m
 
 }
 
