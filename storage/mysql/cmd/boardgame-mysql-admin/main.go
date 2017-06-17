@@ -11,6 +11,7 @@ import (
 	"github.com/mattes/migrate"
 	"log"
 	"os"
+	"strings"
 )
 
 type appOptions struct {
@@ -61,7 +62,12 @@ func process(options *appOptions) {
 		return
 	}
 
-	db, err := connect.Db(configToUse.StorageConfig["mysql"], false, false)
+	createDb := false
+	if strings.ToLower(options.flagSet.Arg(0)) == "setup" {
+		createDb = true
+	}
+
+	db, err := connect.Db(configToUse.StorageConfig["mysql"], false, createDb)
 
 	if err != nil {
 		log.Println(err)
@@ -75,8 +81,8 @@ func process(options *appOptions) {
 		return
 	}
 
-	switch options.flagSet.Arg(0) {
-	case "up":
+	switch strings.ToLower(options.flagSet.Arg(0)) {
+	case "up", "setup":
 		if prodConfirm(options.Prod) {
 			doUp(m)
 		}
@@ -108,7 +114,11 @@ func prodConfirm(isProd bool) bool {
 }
 
 func doHelp() {
-	help := `Commands: 'version', 'up', 'down'`
+	help := `Commands: 
+* 'version' = Print version of migration and quit.
+* 'up' = Apply all migrations forward (run on an existing db to make sure it's up to date)
+* 'down' = Apply all migrations downward
+* 'setup' = Create the 'boardgame' database and apply all migrations forward`
 	log.Println(help)
 }
 
