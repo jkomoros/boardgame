@@ -35,3 +35,7 @@ To set up a database, configure the DSN as described above. Then, sitting in the
 
 Before doing a push to prod it's a good idea to make sure the database is set up correctly with the most recent changes since the last push. Run `boardgame-mysql-admin up` to make sure all migrations are applied.
 
+# Updating the database structure
+
+When making a change to the database structure, create two files in mysql/migrations, named `NNNN_<name-of-change>.down.sql` and `NNNN_<name-of-change>.up.sql` where `NNNN` is the next sequence number. (Don't forget to add them with `git add`)
+
