@@ -114,13 +114,21 @@ func doHelp() {
 
 func doUp(m *migrate.Migrate) {
 	if err := m.Up(); err != nil {
-		log.Println("Up failed: " + err.Error())
+		if err == migrate.ErrNoChange {
+			log.Println("Already up to date")
+		} else {
+			log.Println("Up failed: " + err.Error())
+		}
 	}
 }
 
 func doDown(m *migrate.Migrate) {
 	if err := m.Down(); err != nil {
-		log.Println("Down failed: " + err.Error())
+		if err == migrate.ErrNoChange {
+			log.Println("Already at version 0")
+		} else {
+			log.Println("Down failed: " + err.Error())
+		}
 	}
 }
 
