@@ -103,6 +103,7 @@ func (g *gameDelegate) EmptyGameState() boardgame.MutableSubState {
 
 	return &gameState{
 		CurrentPlayer: 0,
+		TargetScore:   DefaultTargetScore,
 		Die:           boardgame.NewSizedStack(dice, 1),
 	}
 }
