@@ -70,9 +70,9 @@ func NewDefaultStorageManager() *ServerStorageManager {
 }
 
 //We wrap SaveGameandCurrentState so we can update our game version cache
-func (s *ServerStorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord) error {
+func (s *ServerStorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord, move *boardgame.MoveStorageRecord) error {
 
-	result := s.StorageManager.SaveGameAndCurrentState(game, state)
+	result := s.StorageManager.SaveGameAndCurrentState(game, state, move)
 
 	if result != nil {
 		return result
