@@ -150,11 +150,13 @@ func processPackage(useReflection bool, location string) (output string, err err
 
 		outputReader, outputReadSetter := structConfig(theStruct.DocLines)
 
+		if !outputReader && !outputReadSetter {
+			continue
+		}
+
 		types := structTypes(theStruct)
 
-		if outputReader || outputReadSetter {
-			output += headerForStruct(useReflection, theStruct.Name, types, outputReadSetter)
-		}
+		output += headerForStruct(useReflection, theStruct.Name, types, outputReadSetter)
 
 		if outputReader {
 			output += readerForStruct(useReflection, theStruct.Name)
