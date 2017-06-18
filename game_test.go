@@ -336,6 +336,32 @@ func TestApplyMove(t *testing.T) {
 	}
 }
 
+func TestMoveRoundTrip(t *testing.T) {
+	game := testGame()
+
+	err := game.SetUp(0, nil)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	move := &testMove{
+		AString:           "foo",
+		ScoreIncrement:    3,
+		TargetPlayerIndex: 0,
+		ABool:             true,
+	}
+
+	err = <-game.ProposeMove(move, AdminPlayerIndex)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	refriedMove, err := game.Move(1)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(move).Equals(refriedMove)
+
+}
+
 func TestInfiniteProposeFixUp(t *testing.T) {
 	//This test makes sure that if our GameDelegate is going to always return
 	//moves that are legal, we'll bail at a certain point.
