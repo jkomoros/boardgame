@@ -150,7 +150,12 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 
 	gameRecord := NewGameStorageRecord(game)
 	stateRecord := NewStateStorageRecord(game.Id, version, state)
-	moveRecord := NewMoveStorageRecord(game.Id, version, move)
+
+	var moveRecord *MoveStorageRecord
+
+	if move != nil {
+		moveRecord = NewMoveStorageRecord(game.Id, version, move)
+	}
 
 	count, _ := s.dbMap.SelectInt("select count(*) from "+TableGames+" where Id=?", game.Id)
 
@@ -179,10 +184,12 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		return errors.New("Couldn't insert state: " + err.Error())
 	}
 
-	err = s.dbMap.Insert(moveRecord)
+	if moveRecord != nil {
+		err = s.dbMap.Insert(moveRecord)
 
-	if err != nil {
-		return errors.New("couldn't insert move: " + err.Error())
+		if err != nil {
+			return errors.New("couldn't insert move: " + err.Error())
+		}
 	}
 
 	return nil

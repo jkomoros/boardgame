@@ -51,7 +51,7 @@ type MoveStorageRecord struct {
 	Id      int64
 	GameId  string `db:",size:16"`
 	Version int64
-	Name    string `db:":size:128"`
+	Name    string `db:",size:128"`
 	Blob    string `db:",size:100000"`
 }
 
