@@ -39,6 +39,10 @@ type StorageManager interface {
 	//nil.
 	State(gameId string, version int) (StateStorageRecord, error)
 
+	//Move returns the MoveStorageRecord for the game at the given version, or
+	//nil.
+	Move(gameId string, version int) (*MoveStorageRecord, error)
+
 	//Game fetches the game with the given ID from the store, if it exists.
 	Game(id string) (*GameStorageRecord, error)
 

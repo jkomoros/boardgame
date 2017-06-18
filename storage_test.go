@@ -70,6 +70,30 @@ func (i *testStorageManager) State(gameId string, version int) (StateStorageReco
 	return record, nil
 }
 
+func (i *testStorageManager) Move(gameId string, version int) (*MoveStorageRecord, error) {
+	if gameId == "" {
+		return nil, errors.New("No game provided")
+	}
+
+	if version < 0 {
+		return nil, errors.New("Illegal version")
+	}
+
+	versionMap, ok := i.moves[gameId]
+
+	if !ok {
+		return nil, errors.New("That game does not exist")
+	}
+
+	record, ok := versionMap[version]
+
+	if !ok {
+		return nil, errors.New("That version of that game doesn't exist")
+	}
+
+	return record, nil
+}
+
 func (i *testStorageManager) Game(id string) (*GameStorageRecord, error) {
 	record := i.games[id]
 
