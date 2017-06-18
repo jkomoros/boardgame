@@ -18,6 +18,7 @@ import (
 
 const (
 	TableGames       = "games"
+	TableMoves       = "moves"
 	TableUsers       = "users"
 	TableStates      = "states"
 	TableCookies     = "cookies"
@@ -67,6 +68,7 @@ func (s *StorageManager) Connect(config string) error {
 	s.dbMap.AddTableWithName(CookieStorageRecord{}, TableCookies).SetKeys(false, "Cookie")
 	s.dbMap.AddTableWithName(PlayerStorageRecord{}, TablePlayers).SetKeys(true, "Id")
 	s.dbMap.AddTableWithName(AgentStateStorageRecord{}, TableAgentStates).SetKeys(true, "Id")
+	s.dbMap.AddTableWithName(MoveStorageRecord{}, TableMoves).SetKeys(true, "Id")
 
 	_, err = s.dbMap.SelectInt("select count(*) from " + TableGames)
 
@@ -110,6 +112,22 @@ func (s *StorageManager) State(gameId string, version int) (boardgame.StateStora
 	return (&state).ToStorageRecord(), nil
 }
 
+func (s *StorageManager) Move(gameId string, version int) (*boardgame.MoveStorageRecord, error) {
+	var move MoveStorageRecord
+
+	err := s.dbMap.SelectOne(&move, "select * from "+TableMoves+" where GameId=? and Version=?", gameId, version)
+
+	if err == sql.ErrNoRows {
+		return nil, errors.New("No such state")
+	}
+
+	if err != nil {
+		return nil, errors.New("Unexpected error: " + err.Error())
+	}
+
+	return (&move).ToStorageRecord(), nil
+}
+
 func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 	var game GameStorageRecord
 
@@ -126,12 +144,13 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 	return (&game).ToStorageRecord(), nil
 }
 
-func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord) error {
+func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord, move *boardgame.MoveStorageRecord) error {
 
 	version := game.Version
 
 	gameRecord := NewGameStorageRecord(game)
 	stateRecord := NewStateStorageRecord(game.Id, version, state)
+	moveRecord := NewMoveStorageRecord(game.Id, version, move)
 
 	count, _ := s.dbMap.SelectInt("select count(*) from "+TableGames+" where Id=?", game.Id)
 
@@ -158,6 +177,12 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 
 	if err != nil {
 		return errors.New("Couldn't insert state: " + err.Error())
+	}
+
+	err = s.dbMap.Insert(moveRecord)
+
+	if err != nil {
+		return errors.New("couldn't insert move: " + err.Error())
 	}
 
 	return nil

@@ -47,6 +47,14 @@ type StateStorageRecord struct {
 	Blob    string `db:",size:10000000"`
 }
 
+type MoveStorageRecord struct {
+	Id      int64
+	GameId  string `db:",size:16"`
+	Version int64
+	Name    string `db:":size:128"`
+	Blob    string `db:",size:100000"`
+}
+
 type PlayerStorageRecord struct {
 	Id          int64
 	GameId      string `db:",size:16"`
@@ -147,6 +155,22 @@ func NewGameStorageRecord(game *boardgame.GameStorageRecord) *GameStorageRecord 
 		NumPlayers: int64(game.NumPlayers),
 		Finished:   game.Finished,
 		Agents:     agentsToString(game.Agents),
+	}
+}
+
+func (m *MoveStorageRecord) ToStorageRecord() *boardgame.MoveStorageRecord {
+	return &boardgame.MoveStorageRecord{
+		Name: m.Name,
+		Blob: []byte(m.Blob),
+	}
+}
+
+func NewMoveStorageRecord(gameId string, version int, record *boardgame.MoveStorageRecord) *MoveStorageRecord {
+	return &MoveStorageRecord{
+		GameId:  gameId,
+		Version: int64(version),
+		Name:    record.Name,
+		Blob:    string(record.Blob),
 	}
 }
 
