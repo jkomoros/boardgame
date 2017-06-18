@@ -81,7 +81,7 @@ func (m *MovePlaceToken) Name() string {
 	return "Place Token"
 }
 
-func (m *MovePlaceToken) Description() string {
+func (m *MovePlaceToken) HelpText() string {
 	return "Place a player's token in a specific space."
 }
 
@@ -128,7 +128,7 @@ func (m *MoveAdvancePlayer) Name() string {
 	return "Advance Player"
 }
 
-func (m *MoveAdvancePlayer) Description() string {
+func (m *MoveAdvancePlayer) HelpText() string {
 	return "After the current player has made all of their moves, this fix-up move advances to the next player."
 }
 

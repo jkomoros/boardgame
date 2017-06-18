@@ -53,12 +53,12 @@ type Move interface {
 	//should generally return a constant.
 	Name() string
 
-	//Description is a human-readable sentence describing what the move does.
-	//Description should be the same for all moves of the same type, and
+	//HelpText is a human-readable sentence describing what the move does.
+	//HelpText should be the same for all moves of the same type, and
 	//should not vary with the Move's specific properties. For example, the
-	//Description for "Place Token" might be "Places the current user's token
+	//HelpText for "Place Token" might be "Places the current user's token
 	//in the specified slot on the board."
-	Description() string
+	HelpText() string
 
 	ReadSetter() PropertyReadSetter
 }
@@ -87,8 +87,8 @@ func StorageRecordForMove(move Move) *MoveStorageRecord {
 //this implemented them it would obscure errors where for example your Legal()
 //was incorrectly named and thus not used.
 type DefaultMove struct {
-	MoveName        string
-	MoveDescription string
+	MoveName     string
+	MoveHelpText string
 }
 
 func (d *DefaultMove) ImmediateFixUp(state State) Move {
@@ -99,6 +99,6 @@ func (d *DefaultMove) Name() string {
 	return d.MoveName
 }
 
-func (d *DefaultMove) Description() string {
-	return d.MoveDescription
+func (d *DefaultMove) HelpText() string {
+	return d.MoveHelpText
 }

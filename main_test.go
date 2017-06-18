@@ -177,7 +177,7 @@ func (t *testMoveInvalidPlayerIndex) Name() string {
 	return "Invalid PlayerIndex"
 }
 
-func (t *testMoveInvalidPlayerIndex) Description() string {
+func (t *testMoveInvalidPlayerIndex) HelpText() string {
 	return "Set one of the PlayerIndex properties to an invalid number, so we can verify that ApplyMove catches it."
 }
 
@@ -224,7 +224,7 @@ func (t *testMoveIncrementCardInHand) Name() string {
 	return "Increment IntValue of Card in Hand"
 }
 
-func (t *testMoveIncrementCardInHand) Description() string {
+func (t *testMoveIncrementCardInHand) HelpText() string {
 	return "Increments the IntValue of the card in the hand"
 }
 
@@ -306,7 +306,7 @@ func (t *testMoveDrawCard) Name() string {
 	return "Draw Card"
 }
 
-func (t *testMoveDrawCard) Description() string {
+func (t *testMoveDrawCard) HelpText() string {
 	return "Draws one card from draw deck into player's hand"
 }
 
@@ -434,7 +434,7 @@ func (t *testMove) Name() string {
 	return "Test"
 }
 
-func (t *testMove) Description() string {
+func (t *testMove) HelpText() string {
 	return "Advances the score of the current player by the specified amount."
 }
 
@@ -491,7 +491,7 @@ func (t *testAlwaysLegalMove) Name() string {
 	return "Test Always Legal Move"
 }
 
-func (t *testAlwaysLegalMove) Description() string {
+func (t *testAlwaysLegalMove) HelpText() string {
 	return "A move that is always legal"
 }
 

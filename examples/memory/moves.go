@@ -70,7 +70,7 @@ func (m *MoveAdvanceNextPlayer) Name() string {
 	return "Advance To Next Player"
 }
 
-func (m *MoveAdvanceNextPlayer) Description() string {
+func (m *MoveAdvanceNextPlayer) HelpText() string {
 	return "Advances to the next player when the current player has no more legal moves."
 }
 
@@ -155,7 +155,7 @@ func (m *MoveRevealCard) Name() string {
 	return "Reveal Card"
 }
 
-func (m *MoveRevealCard) Description() string {
+func (m *MoveRevealCard) HelpText() string {
 	return "Reveals the card at the specified location"
 }
 
@@ -214,7 +214,7 @@ func (m *MoveStartHideCardsTimer) Name() string {
 	return "Start Hide Cards Timer"
 }
 
-func (m *MoveStartHideCardsTimer) Description() string {
+func (m *MoveStartHideCardsTimer) HelpText() string {
 	return "If two cards are showing and they are not the same type and the timer is not active, start a timer to automatically hide them."
 }
 
@@ -275,7 +275,7 @@ func (m *MoveCaptureCards) Name() string {
 	return "Capture Cards"
 }
 
-func (m *MoveCaptureCards) Description() string {
+func (m *MoveCaptureCards) HelpText() string {
 	return "If two cards are showing and they are the same type, capture them to the current player's hand."
 }
 
@@ -344,7 +344,7 @@ func (m *MoveHideCards) Name() string {
 	return "Hide Cards"
 }
 
-func (m *MoveHideCards) Description() string {
+func (m *MoveHideCards) HelpText() string {
 	return "After the current player has revealed both cards and tried to memorize them, this move hides the cards so that play can continue to next player."
 }
 
