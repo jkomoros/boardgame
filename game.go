@@ -242,6 +242,41 @@ func (g *Game) State(version int) State {
 
 }
 
+//Move returns the Move that was applied to get the Game to the given version.
+func (g *Game) Move(version int) (Move, error) {
+
+	if version < 0 || version > g.Version() {
+		return nil, errors.New("Invalid version")
+	}
+
+	record, err := g.manager.Storage().Move(g.Id(), version)
+
+	if err != nil {
+		return nil, errors.New("State retrieval failed" + err.Error() + strconv.Itoa(version))
+	}
+
+	if record == nil {
+		return nil, errors.New("No such record")
+	}
+
+	move := g.PlayerMoveByName(record.Name)
+
+	if move == nil {
+		move = g.FixUpMoveByName(record.Name)
+	}
+
+	if move == nil {
+		return nil, errors.New("Couldn't find a move with name: " + record.Name)
+	}
+
+	if err := json.Unmarshal(record.Blob, move); err != nil {
+		return nil, errors.New("Couldn't unmarshal move: " + err.Error())
+	}
+
+	return move, nil
+
+}
+
 //CurrentPlayerIndex is a simple convenience wrapper around game.Delegate().CurrentPlayerIndex(game.CurrentState())
 func (g *Game) CurrentPlayerIndex() PlayerIndex {
 	state := g.CurrentState()
