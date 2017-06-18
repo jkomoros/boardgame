@@ -13,7 +13,8 @@ type MoveFactory func(state State) Move
 
 //Move's are how all modifications are made to Game States after
 //initialization. Packages define structs that implement Move for all
-//modifications.
+//modifications. The Move should be JSON-able (that is, all persistable state
+//should be in public fields).
 type Move interface {
 	//Legal returns nil if this proposed move is legal, or an error if the
 	//move is not legal. The error message may be shown directly to the end-
