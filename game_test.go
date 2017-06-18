@@ -14,7 +14,7 @@ type testInfiniteLoopGameDelegate struct {
 }
 
 func (t *testInfiniteLoopGameDelegate) ProposeFixUpMove(state State) Move {
-	return &testAlwaysLegalMove{}
+	return t.Manager().FixUpMoveFactoryByName("Test Always Legal Move")(state)
 }
 
 func TestMoveModifyDynamicValues(t *testing.T) {
@@ -105,12 +105,14 @@ func TestProposeMoveNonModifiableGame(t *testing.T) {
 		t.Fatal("Couldn't get a game out refried")
 	}
 
-	move := &testMove{
-		AString:           "foo",
-		ScoreIncrement:    3,
-		TargetPlayerIndex: 0,
-		ABool:             true,
-	}
+	rawMove := game.PlayerMoveByName("test")
+
+	move := rawMove.(*testMove)
+
+	move.AString = "foo"
+	move.ScoreIncrement = 3
+	move.TargetPlayerIndex = 0
+	move.ABool = true
 
 	if err := <-refriedGame.ProposeMove(move, AdminPlayerIndex); err != nil {
 		t.Error("Propose move on refried game failed:", err)
@@ -239,12 +241,14 @@ func TestApplyMove(t *testing.T) {
 
 	game.SetUp(0, nil)
 
-	move := &testMove{
-		AString:           "foo",
-		ScoreIncrement:    3,
-		TargetPlayerIndex: 0,
-		ABool:             true,
-	}
+	rawMove := game.PlayerMoveByName("test")
+
+	move := rawMove.(*testMove)
+
+	move.AString = "foo"
+	move.ScoreIncrement = 3
+	move.TargetPlayerIndex = 0
+	move.ABool = true
 
 	manager := game.Manager()
 
@@ -299,12 +303,14 @@ func TestApplyMove(t *testing.T) {
 	compareJSONObjects(currentJson, golden, "Basic state after test move", t)
 
 	//Apply a move that should finish the game (any player has score > 5)
-	newMove := &testMove{
-		AString:           "foo",
-		ScoreIncrement:    6,
-		TargetPlayerIndex: 1,
-		ABool:             true,
-	}
+	newRawMove := game.PlayerMoveByName("test")
+
+	newMove := newRawMove.(*testMove)
+
+	newMove.AString = "foo"
+	newMove.ScoreIncrement = 6
+	newMove.TargetPlayerIndex = 1
+	newMove.ABool = true
 
 	if err := <-game.ProposeMove(newMove, AdminPlayerIndex); err != nil {
 		t.Error("Game didn't allow a move to be made even though it was legal: ", err)
@@ -343,12 +349,14 @@ func TestMoveRoundTrip(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	move := &testMove{
-		AString:           "foo",
-		ScoreIncrement:    3,
-		TargetPlayerIndex: 0,
-		ABool:             true,
-	}
+	move := game.PlayerMoveByName("test")
+
+	testMove := move.(*testMove)
+
+	testMove.AString = "foo"
+	testMove.ScoreIncrement = 3
+	testMove.TargetPlayerIndex = 0
+	testMove.ABool = true
 
 	err = <-game.ProposeMove(move, AdminPlayerIndex)
 
@@ -381,7 +389,9 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 				didPanic = true
 			}
 		}()
-		game.SetUp(0, nil)
+		if err := game.SetUp(0, nil); err != nil {
+			t.Error("Game failed to setup: ", err.Error())
+		}
 		return
 	}
 

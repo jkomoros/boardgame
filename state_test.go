@@ -296,12 +296,16 @@ func TestStateSerialization(t *testing.T) {
 		t.Error("The set up timer did no thave a stateptr")
 	}
 
-	if err := <-game.ProposeMove(&testMove{
-		AString:           "bam",
-		ScoreIncrement:    3,
-		TargetPlayerIndex: 0,
-		ABool:             true,
-	}, AdminPlayerIndex); err != nil {
+	rawMove := game.PlayerMoveByName("test")
+
+	move := rawMove.(*testMove)
+
+	move.AString = "bam"
+	move.ScoreIncrement = 3
+	move.TargetPlayerIndex = 0
+	move.ABool = true
+
+	if err := <-game.ProposeMove(move, AdminPlayerIndex); err != nil {
 		t.Fatal("Couldn't make move", err)
 	}
 

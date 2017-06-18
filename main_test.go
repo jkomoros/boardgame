@@ -156,33 +156,24 @@ func (t *testPlayerState) Reader() PropertyReader {
 }
 
 func moveInvalidPlayerIndexFactory(state State) Move {
-	return &testMoveInvalidPlayerIndex{}
+	return &testMoveInvalidPlayerIndex{
+		DefaultMove{
+			"Invalid PlayerIndex",
+			"Set one of the PlayerIndex properties to an invalid number, so we can verify that ApplyMove catches it.",
+		},
+		false,
+	}
 }
 
 type testMoveInvalidPlayerIndex struct {
+	DefaultMove
 	//This move is a dangerous one and also a fix-up. So make it so by default
 	//it doesn't apply.
 	CurrentlyLegal bool
 }
 
-func (t *testMoveInvalidPlayerIndex) ImmediateFixUp(state State) Move {
-	return nil
-}
-
 func (t *testMoveInvalidPlayerIndex) ReadSetter() PropertyReadSetter {
 	return DefaultReadSetter(t)
-}
-
-func (t *testMoveInvalidPlayerIndex) Name() string {
-	return "Invalid PlayerIndex"
-}
-
-func (t *testMoveInvalidPlayerIndex) HelpText() string {
-	return "Set one of the PlayerIndex properties to an invalid number, so we can verify that ApplyMove catches it."
-}
-
-func (t *testMoveInvalidPlayerIndex) Description() string {
-	return ""
 }
 
 func (t *testMoveInvalidPlayerIndex) Legal(state State, propopser PlayerIndex) error {
@@ -203,7 +194,13 @@ func (t *testMoveInvalidPlayerIndex) Apply(state MutableState) error {
 }
 
 func moveIncrementCardInHandFactory(state State) Move {
-	result := &testMoveIncrementCardInHand{}
+	result := &testMoveIncrementCardInHand{
+		DefaultMove{
+			"Increment IntValue of Card in Hand",
+			"Increments the IntValue of the card in the hand",
+		},
+		0,
+	}
 
 	if state != nil {
 		result.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
@@ -213,27 +210,12 @@ func moveIncrementCardInHandFactory(state State) Move {
 }
 
 type testMoveIncrementCardInHand struct {
+	DefaultMove
 	TargetPlayerIndex PlayerIndex
-}
-
-func (t *testMoveIncrementCardInHand) ImmediateFixUp(state State) Move {
-	return nil
 }
 
 func (t *testMoveIncrementCardInHand) ReadSetter() PropertyReadSetter {
 	return DefaultReadSetter(t)
-}
-
-func (t *testMoveIncrementCardInHand) Name() string {
-	return "Increment IntValue of Card in Hand"
-}
-
-func (t *testMoveIncrementCardInHand) HelpText() string {
-	return "Increments the IntValue of the card in the hand"
-}
-
-func (t *testMoveIncrementCardInHand) Description() string {
-	return ""
 }
 
 func (t *testMoveIncrementCardInHand) Legal(state State, proposer PlayerIndex) error {
@@ -289,7 +271,13 @@ func (t *testMoveIncrementCardInHand) Apply(state MutableState) error {
 }
 
 func moveDrawCardFactory(state State) Move {
-	result := &testMoveDrawCard{}
+	result := &testMoveDrawCard{
+		DefaultMove{
+			"Draw Card",
+			"Draws one card from draw deck into player's hand",
+		},
+		0,
+	}
 
 	if state != nil {
 		result.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
@@ -299,27 +287,12 @@ func moveDrawCardFactory(state State) Move {
 }
 
 type testMoveDrawCard struct {
+	DefaultMove
 	TargetPlayerIndex PlayerIndex
-}
-
-func (t *testMoveDrawCard) ImmediateFixUp(state State) Move {
-	return nil
 }
 
 func (t *testMoveDrawCard) ReadSetter() PropertyReadSetter {
 	return DefaultReadSetter(t)
-}
-
-func (t *testMoveDrawCard) Name() string {
-	return "Draw Card"
-}
-
-func (t *testMoveDrawCard) HelpText() string {
-	return "Draws one card from draw deck into player's hand"
-}
-
-func (t *testMoveDrawCard) Description() string {
-	return ""
 }
 
 func (t *testMoveDrawCard) Legal(state State, proposer PlayerIndex) error {
@@ -408,7 +381,16 @@ func (t *testMoveAdvanceCurentPlayer) Apply(state MutableState) error {
 }
 
 func moveTestFactory(state State) Move {
-	result := &testMove{}
+	result := &testMove{
+		DefaultMove{
+			"Test",
+			"Advances the score of the current player by the specified amount.",
+		},
+		"",
+		0,
+		0,
+		false,
+	}
 
 	if state != nil {
 		game, _ := concreteStates(state)
@@ -428,34 +410,15 @@ func moveTestFactory(state State) Move {
 }
 
 type testMove struct {
+	DefaultMove
 	AString           string
 	ScoreIncrement    int
 	TargetPlayerIndex PlayerIndex
 	ABool             bool
 }
 
-func (t *testMove) ImmediateFixUp(state State) Move {
-	return nil
-}
-
 func (t *testMove) ReadSetter() PropertyReadSetter {
 	return DefaultReadSetter(t)
-}
-
-func (t *testMove) Name() string {
-	return "Test"
-}
-
-func (t *testMove) HelpText() string {
-	return "Advances the score of the current player by the specified amount."
-}
-
-func (t *testMove) Description() string {
-	return ""
-}
-
-func (t *testMove) DefaultsForState(state State) {
-
 }
 
 func (t *testMove) Legal(state State, proposer PlayerIndex) error {
@@ -490,29 +453,20 @@ func (t *testMove) Apply(state MutableState) error {
 }
 
 func moveAlwaysLegalFactory(state State) Move {
-	return &testAlwaysLegalMove{}
+	return &testAlwaysLegalMove{
+		DefaultMove{
+			"Test Always Legal Move",
+			"A move that is always legal",
+		},
+	}
 }
 
-type testAlwaysLegalMove struct{}
-
-func (t *testAlwaysLegalMove) ImmediateFixUp(state State) Move {
-	return nil
+type testAlwaysLegalMove struct {
+	DefaultMove
 }
 
 func (t *testAlwaysLegalMove) ReadSetter() PropertyReadSetter {
 	return DefaultReadSetter(t)
-}
-
-func (t *testAlwaysLegalMove) Name() string {
-	return "Test Always Legal Move"
-}
-
-func (t *testAlwaysLegalMove) HelpText() string {
-	return "A move that is always legal"
-}
-
-func (t *testAlwaysLegalMove) Description() string {
-	return ""
 }
 
 func (t *testAlwaysLegalMove) Legal(state State, proposer PlayerIndex) error {
