@@ -172,7 +172,7 @@ func (s *StorageManager) Move(gameId string, version int) (*boardgame.MoveStorag
 
 	var result boardgame.MoveStorageRecord
 
-	if err := json.Unmarshal(record, result); err != nil {
+	if err := json.Unmarshal(record, &result); err != nil {
 		return nil, errors.New("Couldn't unmarshal internal blob: " + err.Error())
 	}
 
@@ -220,7 +220,11 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		return errors.New("Couldn't serialize the internal game record: " + err.Error())
 	}
 
-	serializedMoveRecord, err := json.Marshal(move)
+	var serializedMoveRecord []byte
+
+	if move != nil {
+		serializedMoveRecord, err = json.Marshal(move)
+	}
 
 	if err != nil {
 		return errors.New("Couldn't serialize the internal move record: " + err.Error())
@@ -253,8 +257,11 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 			return err
 		}
 
-		if err := mBucket.Put(keyForMove(game.Id, version), serializedMoveRecord); err != nil {
-			return err
+		if serializedMoveRecord != nil {
+			if err := mBucket.Put(keyForMove(game.Id, version), serializedMoveRecord); err != nil {
+				return err
+			}
+
 		}
 
 		return nil
