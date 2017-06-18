@@ -98,6 +98,11 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 		t.Fatal(testName, "Couldn't make move", err)
 	}
 
+	refriedMove, err := tictactoeGame.Move(1)
+
+	assert.For(t).ThatActual(err).IsNil()
+	assert.For(t).ThatActual(refriedMove).Equals(move)
+
 	//OK, now test that the manager and SetUp and everyone did the right thing.
 
 	localGame, err := storage.Game(tictactoeGame.Id())
