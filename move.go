@@ -60,6 +60,12 @@ type Move interface {
 	//in the specified slot on the board."
 	HelpText() string
 
+	//Description is a human-readable prose description of the effects that
+	//this particular move will have, including any move configuration. For
+	//example the Description for "Place Token" might be "Player 0 places a
+	//token in position 3".
+	Description() string
+
 	ReadSetter() PropertyReadSetter
 }
 
@@ -100,5 +106,9 @@ func (d *DefaultMove) Name() string {
 }
 
 func (d *DefaultMove) HelpText() string {
+	return d.MoveHelpText
+}
+
+func (d *DefaultMove) Description() string {
 	return d.MoveHelpText
 }

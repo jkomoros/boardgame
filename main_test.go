@@ -181,6 +181,10 @@ func (t *testMoveInvalidPlayerIndex) HelpText() string {
 	return "Set one of the PlayerIndex properties to an invalid number, so we can verify that ApplyMove catches it."
 }
 
+func (t *testMoveInvalidPlayerIndex) Description() string {
+	return ""
+}
+
 func (t *testMoveInvalidPlayerIndex) Legal(state State, propopser PlayerIndex) error {
 
 	if !t.CurrentlyLegal {
@@ -226,6 +230,10 @@ func (t *testMoveIncrementCardInHand) Name() string {
 
 func (t *testMoveIncrementCardInHand) HelpText() string {
 	return "Increments the IntValue of the card in the hand"
+}
+
+func (t *testMoveIncrementCardInHand) Description() string {
+	return ""
 }
 
 func (t *testMoveIncrementCardInHand) Legal(state State, proposer PlayerIndex) error {
@@ -308,6 +316,10 @@ func (t *testMoveDrawCard) Name() string {
 
 func (t *testMoveDrawCard) HelpText() string {
 	return "Draws one card from draw deck into player's hand"
+}
+
+func (t *testMoveDrawCard) Description() string {
+	return ""
 }
 
 func (t *testMoveDrawCard) Legal(state State, proposer PlayerIndex) error {
@@ -438,6 +450,10 @@ func (t *testMove) HelpText() string {
 	return "Advances the score of the current player by the specified amount."
 }
 
+func (t *testMove) Description() string {
+	return ""
+}
+
 func (t *testMove) DefaultsForState(state State) {
 
 }
@@ -493,6 +509,10 @@ func (t *testAlwaysLegalMove) Name() string {
 
 func (t *testAlwaysLegalMove) HelpText() string {
 	return "A move that is always legal"
+}
+
+func (t *testAlwaysLegalMove) Description() string {
+	return ""
 }
 
 func (t *testAlwaysLegalMove) Legal(state State, proposer PlayerIndex) error {
