@@ -39,8 +39,14 @@ func (c *Component) Id(s State) string {
 
 	st := s.(*state)
 
-	game := st.game
-	input := game.Id() + game.SecretSalt()
+	input := "insecuredefaultinput"
+
+	//This is only nil in very weird, testing use cases, like
+	//blackjack.handvalue.
+	if st != nil {
+		game := st.game
+		input = game.Id() + game.SecretSalt()
+	}
 
 	input += c.Deck.Name() + strconv.Itoa(c.DeckIndex)
 

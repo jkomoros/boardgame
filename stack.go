@@ -567,11 +567,19 @@ func (g *GrowableStack) idSeen(id string) {
 	if id == "" {
 		return
 	}
+	if g.statePtr == nil {
+		//Should only happen in weird tests
+		return
+	}
 	g.idsLastSeen[id] = g.statePtr.Version()
 }
 
 func (s *SizedStack) idSeen(id string) {
 	if id == "" {
+		return
+	}
+	if s.statePtr == nil {
+		//Should only happen in weird tests
 		return
 	}
 	s.idsLastSeen[id] = s.statePtr.Version()
@@ -746,7 +754,7 @@ func (g *GrowableStack) insertComponentAt(slotIndex int, component *Component) {
 		firstPartCopy := make([]int, len(firstPart))
 		copy(firstPartCopy, firstPart)
 		//If we just append, it will put the component.DeckIndex in the
-		//underlying slice, which will then be copied again in the last append.
+		//underlying slice, which will then be copied again in th`e last append.
 		firstPartCopy = append(firstPartCopy, component.DeckIndex)
 		g.indexes = append(firstPartCopy, g.indexes[slotIndex:]...)
 	}
