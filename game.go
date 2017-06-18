@@ -377,7 +377,7 @@ func (g *Game) SetUp(numPlayers int, agentNames []string) error {
 	if g.Modifiable() {
 
 		//Save the initial state to DB.
-		if err := g.manager.Storage().SaveGameAndCurrentState(g.StorageRecord(), stateCopy.StorageRecord()); err != nil {
+		if err := g.manager.Storage().SaveGameAndCurrentState(g.StorageRecord(), stateCopy.StorageRecord(), nil); err != nil {
 			return errors.New("Storage failed: " + err.Error())
 		}
 	}
@@ -725,7 +725,7 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	g.cachedCurrentState = nil
 
 	//TODO: test that if we fail to save state to storage everything's fine.
-	if err := g.manager.Storage().SaveGameAndCurrentState(g.StorageRecord(), newState.StorageRecord()); err != nil {
+	if err := g.manager.Storage().SaveGameAndCurrentState(g.StorageRecord(), newState.StorageRecord(), StorageRecordForMove(move)); err != nil {
 		//TODO: we need to undo the temporary changes we made directly to ourselves (vesrion, finished, winners)
 		return errors.New("Storage returned an error:" + err.Error())
 	}

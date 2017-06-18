@@ -11,6 +11,7 @@ import (
 
 type testStorageManager struct {
 	states map[string]map[int]StateStorageRecord
+	moves  map[string]map[int]*MoveStorageRecord
 	games  map[string]*GameStorageRecord
 }
 
@@ -19,6 +20,7 @@ func newTestStorageManager() *testStorageManager {
 	//track of the objects in memory.
 	return &testStorageManager{
 		states: make(map[string]map[int]StateStorageRecord),
+		moves:  make(map[string]map[int]*MoveStorageRecord),
 		games:  make(map[string]*GameStorageRecord),
 	}
 }
@@ -79,7 +81,7 @@ func (i *testStorageManager) Game(id string) (*GameStorageRecord, error) {
 
 }
 
-func (i *testStorageManager) SaveGameAndCurrentState(game *GameStorageRecord, state StateStorageRecord) error {
+func (i *testStorageManager) SaveGameAndCurrentState(game *GameStorageRecord, state StateStorageRecord, move *MoveStorageRecord) error {
 	if game == nil {
 		return errors.New("No game provided")
 	}
@@ -90,16 +92,27 @@ func (i *testStorageManager) SaveGameAndCurrentState(game *GameStorageRecord, st
 		i.states[game.Id] = make(map[int]StateStorageRecord)
 	}
 
+	if _, ok := i.moves[game.Id]; !ok {
+		i.moves[game.Id] = make(map[int]*MoveStorageRecord)
+	}
+
 	version := game.Version
 
 	versionMap := i.states[game.Id]
+	moveMap := i.moves[game.Id]
 
 	if _, ok := versionMap[version]; ok {
 		//Wait, there was already a version stored there?
 		return errors.New("There was already a version for that game stored")
 	}
 
+	if _, ok := moveMap[version]; ok {
+		//Wait, there was already a version stored there?
+		return errors.New("There was already a version for that game stored")
+	}
+
 	versionMap[version] = state
+	moveMap[version] = move
 
 	i.games[game.Id] = game
 

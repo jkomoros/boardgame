@@ -201,7 +201,7 @@ func TestSecretMoveCount(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	game.manager.Storage().SaveGameAndCurrentState(game.StorageRecord(), blob)
+	game.manager.Storage().SaveGameAndCurrentState(game.StorageRecord(), blob, nil)
 
 	//Read back in the game and verify that the secretMoveCount round-tripped.
 

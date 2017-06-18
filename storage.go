@@ -5,6 +5,13 @@ package boardgame
 //managers can just write straight to disk with no transformations.
 type StateStorageRecord []byte
 
+//MoveStorageRecord is a record representing the Move that was made to get the
+//game to its most recent version.
+type MoveStorageRecord struct {
+	Name string
+	Blob []byte
+}
+
 //GameStorageRecord is a simple struct with public fields representing the
 //important aspects of a game that should be serialized to storage. The fields
 //are broken out specifically so that the storage layer can understand these
@@ -40,8 +47,8 @@ type StorageManager interface {
 
 	//SaveGameAndCurrentState stores the game and the current state (at
 	//game.Version()) into the store at the same time in a transaction. If
-	//Game.Modifiable() is false, storage should fail.
-	SaveGameAndCurrentState(game *GameStorageRecord, state StateStorageRecord) error
+	//Game.Modifiable() is false, storage should fail. Move can be nil (if game.Version() is 0)
+	SaveGameAndCurrentState(game *GameStorageRecord, state StateStorageRecord, move *MoveStorageRecord) error
 
 	//SaveAgentState saves the agent state for the given player
 	SaveAgentState(gameId string, player PlayerIndex, state []byte) error

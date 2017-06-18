@@ -1,5 +1,9 @@
 package boardgame
 
+import (
+	"encoding/json"
+)
+
 //A MoveFactory takes a state and returns a Move. The state may be nil, in
 //which case it should just be an empty (generally, zero-valued) Move of the
 //given type. If state is non-nil, the move that is returned should be set to
@@ -56,6 +60,22 @@ type Move interface {
 	Description() string
 
 	ReadSetter() PropertyReadSetter
+}
+
+//StorageRecordForMove returns a MoveStorageRecord. Can't hang off of Move
+//itself since Moves are provided by users of the library.
+func StorageRecordForMove(move Move) *MoveStorageRecord {
+
+	blob, err := json.MarshalIndent(move, "", "\t")
+
+	if err != nil {
+		return nil
+	}
+
+	return &MoveStorageRecord{
+		Name: move.Name(),
+		Blob: blob,
+	}
 }
 
 //DefaultMove is an optional, convenience struct designed to be embedded
