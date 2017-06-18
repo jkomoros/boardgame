@@ -143,11 +143,19 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 		panic("No manager returned")
 	}
 
-	manager.AddPlayerMoveFactory(MoveRollDiceFactory)
-	manager.AddPlayerMoveFactory(MoveDoneTurnFactory)
+	playerMoveTypeConfigs := []*boardgame.MoveTypeConfig{
+		&moveRollDiceConfig,
+		&moveDoneTurnConfig,
+	}
 
-	manager.AddFixUpMoveFactory(MoveCountDieFactory)
-	manager.AddFixUpMoveFactory(MoveAdvanceNextPlayerFactory)
+	fixUpMoveTypeConfigs := []*boardgame.MoveTypeConfig{
+		&moveCountDieConfig,
+		&moveAdvanceNextPlayerConfig,
+	}
+
+	if err := manager.BulkAddMoveTypes(playerMoveTypeConfigs, fixUpMoveTypeConfigs); err != nil {
+		panic("couldnt add move types: " + err.Error())
+	}
 
 	manager.SetUp()
 
