@@ -9,6 +9,7 @@ import (
 
 //+autoreader readsetter
 type MovePlaceToken struct {
+	boardgame.DefaultMove
 	//Which token to place the token
 	Slot int
 	//Which player we THINK is making the move.
@@ -16,7 +17,14 @@ type MovePlaceToken struct {
 }
 
 func MovePlaceTokenFactory(state boardgame.State) boardgame.Move {
-	result := &MovePlaceToken{}
+	result := &MovePlaceToken{
+		boardgame.DefaultMove{
+			"Place Token",
+			"Place a player's token in a specific space.",
+		},
+		0,
+		0,
+	}
 
 	if state != nil {
 		game, _ := concreteStates(state)
@@ -77,23 +85,18 @@ func (m *MovePlaceToken) Apply(state boardgame.MutableState) error {
 	return nil
 }
 
-func (m *MovePlaceToken) Name() string {
-	return "Place Token"
-}
-
-func (m *MovePlaceToken) HelpText() string {
-	return "Place a player's token in a specific space."
-}
-
-func (t *MovePlaceToken) ImmediateFixUp(state boardgame.State) boardgame.Move {
-	return nil
-}
-
 //+autoreader readsetter
-type MoveAdvancePlayer struct{}
+type MoveAdvancePlayer struct {
+	boardgame.DefaultMove
+}
 
 func MoveAdvancePlayerFactory(state boardgame.State) boardgame.Move {
-	return &MoveAdvancePlayer{}
+	return &MoveAdvancePlayer{
+		boardgame.DefaultMove{
+			"Advance Player",
+			"After the current player has made all of their moves, this fix-up move advances to the next player.",
+		},
+	}
 }
 
 func (m *MoveAdvancePlayer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -121,17 +124,4 @@ func (m *MoveAdvancePlayer) Apply(state boardgame.MutableState) error {
 
 	return nil
 
-}
-
-func (m *MoveAdvancePlayer) Name() string {
-	//TODO: these should be package constants
-	return "Advance Player"
-}
-
-func (m *MoveAdvancePlayer) HelpText() string {
-	return "After the current player has made all of their moves, this fix-up move advances to the next player."
-}
-
-func (t *MoveAdvancePlayer) ImmediateFixUp(state boardgame.State) boardgame.Move {
-	return nil
 }
