@@ -35,9 +35,9 @@ type Renderer struct {
 }
 
 type MoveForm struct {
-	Name        string
-	Description string
-	Fields      []*MoveFormField
+	Name     string
+	HelpText string
+	Fields   []*MoveFormField
 }
 
 type MoveFormFieldType int
@@ -702,9 +702,9 @@ func (s *Server) generateForms(game *boardgame.Game) []*MoveForm {
 		move := factory(game.CurrentState())
 
 		moveItem := &MoveForm{
-			Name:        move.Name(),
-			Description: move.Description(),
-			Fields:      formFields(move),
+			Name:     move.Name(),
+			HelpText: move.HelpText(),
+			Fields:   formFields(move),
 		}
 		result = append(result, moveItem)
 	}
