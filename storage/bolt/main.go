@@ -27,6 +27,7 @@ type StorageManager struct {
 
 var (
 	statesBucket      = []byte("States")
+	movesBucket       = []byte("Moves")
 	gamesBucket       = []byte("Games")
 	usersBucket       = []byte("Users")
 	cookiesBucket     = []byte("Cookies")
@@ -47,6 +48,9 @@ func NewStorageManager(fileName string) *StorageManager {
 		}
 		if _, err := tx.CreateBucketIfNotExists(statesBucket); err != nil {
 			return errors.New("Cannot create states bucket" + err.Error())
+		}
+		if _, err := tx.CreateBucketIfNotExists(movesBucket); err != nil {
+			return errors.New("Cannot create moves bucket" + err.Error())
 		}
 		if _, err := tx.CreateBucketIfNotExists(usersBucket); err != nil {
 			return errors.New("Cannot create users bucket" + err.Error())
@@ -76,6 +80,10 @@ func NewStorageManager(fileName string) *StorageManager {
 }
 
 func keyForState(gameId string, version int) []byte {
+	return []byte(gameId + "_" + strconv.Itoa(version))
+}
+
+func keyForMove(gameId string, version int) []byte {
 	return []byte(gameId + "_" + strconv.Itoa(version))
 }
 
@@ -132,6 +140,45 @@ func (s *StorageManager) State(gameId string, version int) (boardgame.StateStora
 	return record, nil
 }
 
+func (s *StorageManager) Move(gameId string, version int) (*boardgame.MoveStorageRecord, error) {
+	if gameId == "" {
+		return nil, errors.New("No game provided")
+	}
+
+	if version < 0 {
+		return nil, errors.New("Invalid version")
+	}
+
+	var record []byte
+
+	err := s.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(movesBucket)
+
+		if b == nil {
+			return errors.New("Couldn't get bucket")
+		}
+
+		record = b.Get(keyForMove(gameId, version))
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if record == nil {
+		return nil, errors.New("No such version for game")
+	}
+
+	var result boardgame.MoveStorageRecord
+
+	if err := json.Unmarshal(record, result); err != nil {
+		return nil, errors.New("Couldn't unmarshal internal blob: " + err.Error())
+	}
+
+	return &result, nil
+}
+
 func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 
 	var rawRecord []byte
@@ -163,7 +210,7 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 
 }
 
-func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord) error {
+func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord, move *boardgame.MoveStorageRecord) error {
 
 	version := game.Version
 
@@ -173,11 +220,23 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		return errors.New("Couldn't serialize the internal game record: " + err.Error())
 	}
 
+	serializedMoveRecord, err := json.Marshal(move)
+
+	if err != nil {
+		return errors.New("Couldn't serialize the internal move record: " + err.Error())
+	}
+
 	return s.db.Update(func(tx *bolt.Tx) error {
 		gBucket := tx.Bucket(gamesBucket)
 
 		if gBucket == nil {
 			return errors.New("Couldn't open games bucket")
+		}
+
+		mBucket := tx.Bucket(movesBucket)
+
+		if mBucket == nil {
+			return errors.New("Couldn't open moves bucket")
 		}
 
 		sBucket := tx.Bucket(statesBucket)
@@ -191,6 +250,10 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		}
 
 		if err := sBucket.Put(keyForState(game.Id, version), state); err != nil {
+			return err
+		}
+
+		if err := mBucket.Put(keyForMove(game.Id, version), serializedMoveRecord); err != nil {
 			return err
 		}
 
