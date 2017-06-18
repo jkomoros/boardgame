@@ -18,12 +18,14 @@ import (
 
 type StorageManager struct {
 	states            map[string]map[int]boardgame.StateStorageRecord
+	moves             map[string]map[int]*boardgame.MoveStorageRecord
 	games             map[string]*boardgame.GameStorageRecord
 	usersById         map[string]*users.StorageRecord
 	usersByCookie     map[string]*users.StorageRecord
 	usersForGames     map[string][]string
 	agentStates       map[string][]byte
 	statesLock        sync.RWMutex
+	movesLock         sync.RWMutex
 	gamesLock         sync.RWMutex
 	usersLock         sync.RWMutex
 	usersForGamesLock sync.RWMutex
@@ -35,6 +37,7 @@ func NewStorageManager() *StorageManager {
 	//track of the objects in memory.
 	return &StorageManager{
 		states:        make(map[string]map[int]boardgame.StateStorageRecord),
+		moves:         make(map[string]map[int]*boardgame.MoveStorageRecord),
 		games:         make(map[string]*boardgame.GameStorageRecord),
 		usersById:     make(map[string]*users.StorageRecord),
 		usersByCookie: make(map[string]*users.StorageRecord),
@@ -77,6 +80,36 @@ func (s *StorageManager) State(gameId string, version int) (boardgame.StateStora
 
 }
 
+func (s *StorageManager) Move(gameId string, version int) (*boardgame.MoveStorageRecord, error) {
+	if gameId == "" {
+		return nil, errors.New("No game provided")
+	}
+
+	if version < 0 {
+		return nil, errors.New("Invalid version")
+	}
+
+	s.movesLock.RLock()
+
+	versionMap, ok := s.moves[gameId]
+
+	s.movesLock.RUnlock()
+
+	if !ok {
+		return nil, errors.New("No such game")
+	}
+	s.movesLock.RLock()
+	record, ok := versionMap[version]
+	s.movesLock.RUnlock()
+
+	if !ok {
+		return nil, errors.New("No such version for that game")
+	}
+
+	return record, nil
+
+}
+
 func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 
 	s.gamesLock.RLock()
@@ -90,7 +123,7 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 	return record, nil
 }
 
-func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord) error {
+func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord, move *boardgame.MoveStorageRecord) error {
 	if game == nil {
 		return errors.New("No game provided")
 	}
@@ -102,6 +135,15 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		s.statesLock.Lock()
 		s.states[game.Id] = make(map[int]boardgame.StateStorageRecord)
 		s.statesLock.Unlock()
+	}
+
+	s.movesLock.RLock()
+	_, ok = s.moves[game.Id]
+	s.movesLock.RUnlock()
+	if !ok {
+		s.movesLock.Lock()
+		s.moves[game.Id] = make(map[int]*boardgame.MoveStorageRecord)
+		s.movesLock.Unlock()
 	}
 
 	version := game.Version
@@ -116,9 +158,23 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		return errors.New("There was already a version for that game stored")
 	}
 
+	s.movesLock.RLock()
+	moveMap := s.moves[game.Id]
+	_, ok = moveMap[version]
+	s.movesLock.RUnlock()
+
+	if ok {
+		//Wait, there was already a version stored there?
+		return errors.New("There was already a version for that game stored")
+	}
+
 	s.statesLock.Lock()
 	versionMap[version] = state
 	s.statesLock.Unlock()
+
+	s.movesLock.Lock()
+	moveMap[version] = move
+	s.movesLock.Unlock()
 
 	s.gamesLock.Lock()
 	s.games[game.Id] = game
