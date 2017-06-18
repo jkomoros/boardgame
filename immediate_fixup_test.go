@@ -18,13 +18,18 @@ type moveImmediateFixUpTWo struct {
 	DefaultMove
 }
 
-func moveTestImmediatePlayerMoveFactory(state State) Move {
-	return &moveTestImmediatePlayerMove{
-		DefaultMove{
-			"Test",
-			"This is a test",
-		},
-	}
+var moveTestImmediatePlayerMoveConfig = MoveTypeConfig{
+	Name:     "Test",
+	HelpText: "This is a test",
+	MoveConstructor: func(mType *MoveType) Move {
+		return &moveTestImmediatePlayerMove{
+			DefaultMove{mType},
+		}
+	},
+	ImmediateFixUp: func(state State) Move {
+		moveType, _ := NewMoveType(&moveTestImmediateFixUpOneConfig)
+		return moveType.NewMove(state)
+	},
 }
 
 func (m *moveTestImmediatePlayerMove) Legal(state State, proposer PlayerIndex) error {
@@ -43,17 +48,17 @@ func (m *moveTestImmediatePlayerMove) ReadSetter() PropertyReadSetter {
 	return DefaultReadSetter(m)
 }
 
-func (m *moveTestImmediatePlayerMove) ImmediateFixUp(state State) Move {
-	return moveImmediateFixUpOneFactory(state)
-}
-
-func moveImmediateFixUpOneFactory(state State) Move {
-	return &moveImmediateFixUpOne{
-		DefaultMove{
-			"Immediate FixUp 1",
-			"",
-		},
-	}
+var moveTestImmediateFixUpOneConfig = MoveTypeConfig{
+	Name: "Immediate FixUp 1",
+	MoveConstructor: func(mType *MoveType) Move {
+		return &moveImmediateFixUpOne{
+			DefaultMove{mType},
+		}
+	},
+	ImmediateFixUp: func(state State) Move {
+		moveType, _ := NewMoveType(&moveTestImmediateFixUpTwoConfig)
+		return moveType.NewMove(state)
+	},
 }
 
 func (m *moveImmediateFixUpOne) Legal(state State, proposer PlayerIndex) error {
@@ -85,17 +90,13 @@ func (m *moveImmediateFixUpOne) ReadSetter() PropertyReadSetter {
 	return DefaultReadSetter(m)
 }
 
-func (m *moveImmediateFixUpOne) ImmediateFixUp(state State) Move {
-	return moveImmediateFixUpTwoFactory(state)
-}
-
-func moveImmediateFixUpTwoFactory(state State) Move {
-	return &moveImmediateFixUpTWo{
-		DefaultMove{
-			"Immediate FixUp 2",
-			"",
-		},
-	}
+var moveTestImmediateFixUpTwoConfig = MoveTypeConfig{
+	Name: "Immediate FixUp 2",
+	MoveConstructor: func(mType *MoveType) Move {
+		return &moveImmediateFixUpTWo{
+			DefaultMove{mType},
+		}
+	},
 }
 
 func (m *moveImmediateFixUpTWo) Legal(state State, proposer PlayerIndex) error {
@@ -120,9 +121,11 @@ func TestImmediateFixUp(t *testing.T) {
 
 	manager := NewGameManager(&testGameDelegate{}, newTestGameChest(), newTestStorageManager())
 
-	manager.AddPlayerMoveFactory(moveTestImmediatePlayerMoveFactory)
-
-	manager.AddFixUpMoveFactory(moveImmediateFixUpOneFactory)
+	manager.BulkAddMoveTypes([]*MoveTypeConfig{
+		&moveTestImmediatePlayerMoveConfig,
+	}, []*MoveTypeConfig{
+		&moveTestImmediateFixUpOneConfig,
+	})
 
 	//TODO: add the FixUp with a fixup chain
 

@@ -47,11 +47,14 @@ func newTestGameManger() *GameManager {
 
 	manager.AddAgent(&testAgent{})
 
-	manager.AddPlayerMoveFactory(moveTestFactory)
-	manager.AddFixUpMoveFactory(moveAdvanceCurrentPlayerFactory)
-	manager.AddFixUpMoveFactory(moveInvalidPlayerIndexFactory)
-	manager.AddPlayerMoveFactory(moveIncrementCardInHandFactory)
-	manager.AddPlayerMoveFactory(moveDrawCardFactory)
+	manager.BulkAddMoveTypes([]*MoveTypeConfig{
+		&testMoveConfig,
+		&testMoveIncrementCardInHandConfig,
+		&testMoveDrawCardConfig,
+	}, []*MoveTypeConfig{
+		&testMoveAdvanceCurrentPlayerConfig,
+		&testMoveInvalidPlayerIndexConfig,
+	})
 
 	return manager
 }
@@ -87,7 +90,7 @@ func TestDefaultMove(t *testing.T) {
 
 	assert.For(t).ThatActual(move).IsNotNil()
 
-	assert.For(t).ThatActualString(move.Name()).Equals("Advance Current Player")
+	assert.For(t).ThatActualString(move.Type().Name()).Equals("Advance Current Player")
 
 	convertedMove, ok := move.(*testMoveAdvanceCurentPlayer)
 
@@ -184,11 +187,11 @@ func TestGameManagerSetUp(t *testing.T) {
 
 	manager := newTestGameManger()
 
-	if manager.PlayerMoveFactories() != nil {
+	if manager.PlayerMoveTypes() != nil {
 		t.Error("Got moves back before SetUp was called")
 	}
 
-	if manager.PlayerMoveFactoryByName("Test") != nil {
+	if manager.PlayerMoveTypeByName("Test") != nil {
 		t.Error("Move by name returned a move before SetUp was called")
 	}
 
@@ -202,7 +205,7 @@ func TestGameManagerSetUp(t *testing.T) {
 
 	manager.SetUp()
 
-	moves := manager.PlayerMoveFactories()
+	moves := manager.PlayerMoveTypes()
 
 	if moves == nil {
 		t.Error("Got nil player moves even after setting up")
@@ -216,11 +219,11 @@ func TestGameManagerSetUp(t *testing.T) {
 		t.Error("Agent test after setup was nil")
 	}
 
-	if manager.PlayerMoveFactoryByName("Test") == nil {
+	if manager.PlayerMoveTypeByName("Test") == nil {
 		t.Error("MoveByName didn't return a valid move when provided the proper name after calling setup")
 	}
 
-	if manager.PlayerMoveFactoryByName("test") == nil {
+	if manager.PlayerMoveTypeByName("test") == nil {
 		t.Error("MoveByName didn't return a valid move when provided with a lowercase name after calling SetUp.")
 	}
 

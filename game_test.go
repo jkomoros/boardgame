@@ -14,7 +14,7 @@ type testInfiniteLoopGameDelegate struct {
 }
 
 func (t *testInfiniteLoopGameDelegate) ProposeFixUpMove(state State) Move {
-	return t.Manager().FixUpMoveFactoryByName("Test Always Legal Move")(state)
+	return t.Manager().FixUpMoveTypeByName("Test Always Legal Move").NewMove(state)
 }
 
 func TestMoveModifyDynamicValues(t *testing.T) {
@@ -256,7 +256,7 @@ func TestApplyMove(t *testing.T) {
 	oldMovesByName := manager.playerMovesByName
 
 	manager.playerMoves = nil
-	manager.playerMovesByName = make(map[string]MoveFactory)
+	manager.playerMovesByName = make(map[string]*MoveType)
 
 	if err := <-game.ProposeMove(move, AdminPlayerIndex); err == nil {
 		t.Error("Game allowed a move that wasn't configured as part of game to be applied")
@@ -376,8 +376,11 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 
 	manager := NewGameManager(&testInfiniteLoopGameDelegate{}, newTestGameChest(), newTestStorageManager())
 
-	manager.AddPlayerMoveFactory(moveTestFactory)
-	manager.AddFixUpMoveFactory(moveAlwaysLegalFactory)
+	manager.BulkAddMoveTypes([]*MoveTypeConfig{
+		&testMoveConfig,
+	}, []*MoveTypeConfig{
+		&testAlwaysLegalMoveConfig,
+	})
 
 	manager.SetUp()
 

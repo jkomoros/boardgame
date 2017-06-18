@@ -498,12 +498,12 @@ func (g *Game) PlayerMoves() []Move {
 		return nil
 	}
 
-	factories := g.manager.PlayerMoveFactories()
+	types := g.manager.PlayerMoveTypes()
 
-	result := make([]Move, len(factories))
+	result := make([]Move, len(types))
 
-	for i, factory := range factories {
-		result[i] = factory(g.CurrentState())
+	for i, moveType := range types {
+		result[i] = moveType.NewMove(g.CurrentState())
 	}
 	return result
 }
@@ -516,12 +516,12 @@ func (g *Game) FixUpMoves() []Move {
 		return nil
 	}
 
-	factories := g.manager.FixUpMoveFactories()
+	types := g.manager.FixUpMoveTypes()
 
-	result := make([]Move, len(factories))
+	result := make([]Move, len(types))
 
-	for i, factory := range factories {
-		result[i] = factory(g.CurrentState())
+	for i, moveType := range types {
+		result[i] = moveType.NewMove(g.CurrentState())
 	}
 	return result
 
@@ -534,13 +534,13 @@ func (g *Game) PlayerMoveByName(name string) Move {
 		return nil
 	}
 
-	factory := g.manager.PlayerMoveFactoryByName(name)
+	moveType := g.manager.PlayerMoveTypeByName(name)
 
-	if factory == nil {
+	if moveType == nil {
 		return nil
 	}
 
-	return factory(g.CurrentState())
+	return moveType.NewMove(g.CurrentState())
 }
 
 //FixUpMoveByName returns a move of the given name set to reasonable defaults
@@ -551,13 +551,13 @@ func (g *Game) FixUpMoveByName(name string) Move {
 		return nil
 	}
 
-	factory := g.manager.FixUpMoveFactoryByName(name)
+	moveType := g.manager.FixUpMoveTypeByName(name)
 
-	if factory == nil {
+	if moveType == nil {
 		return nil
 	}
 
-	return factory(g.CurrentState())
+	return moveType.NewMove(g.CurrentState())
 
 }
 
@@ -707,14 +707,14 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 		//sense for them to not be listed in FixUpMoves (which, with the
 		//default delegate, is always checked for proposefixup).
 		if !isImmediateFixUp {
-			if g.FixUpMoveByName(move.Name()) == nil {
+			if g.FixUpMoveByName(move.Type().Name()) == nil {
 				return errors.New("That move is not configured as a Fix Up move for this game.")
 			}
 		}
 	} else {
 
 		//Verify that the Move is actually configured to be part of this game.
-		if g.PlayerMoveByName(move.Name()) == nil {
+		if g.PlayerMoveByName(move.Type().Name()) == nil {
 			return errors.New("That move is not configured as a Player move for this game.")
 		}
 	}
@@ -777,7 +777,7 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 		return nil
 	}
 
-	immediateFixUp := move.ImmediateFixUp(newState)
+	immediateFixUp := move.Type().ImmediateFixUp(newState)
 
 	if immediateFixUp != nil {
 
