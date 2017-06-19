@@ -163,25 +163,36 @@ func (m *MoveType) NewMove(state State) Move {
 	return move
 }
 
-//BaseMove is an optional, convenience struct designed to be embedded
-//anonymously in your own Moves. It implements no-op methods for many of the
-//required methods on Moves (although it can't implement the ones that require
-//access to the top level struct, like Copy() and ReadSetter()). Legal and
-//Apply are not covered, because every Move should implement their own, and if
-//this implemented them it would obscure errors where for example your Legal()
-//was incorrectly named and thus not used.
+/*
+BaseMove is an optional, convenience struct designed to be embedded
+anonymously in your own Moves. It implements no-op methods for many of the
+required methods on Moves. Legal and Apply are not covered, because every Move
+should implement their own, and if this implemented them it would obscure
+errors where for example your Legal() was incorrectly named and thus not used.
+In general your MoveConstructor can always be exactly the same, modulo the
+name of your underlying move type:
+
+	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
+ 		return &myMoveStruct{
+			BaseMove: boardgame.BaseMove{mType},
+		}
+	}
+*/
 type BaseMove struct {
 	MoveType *MoveType
 }
 
+//Type simply returns BaseMove.MoveType
 func (d *BaseMove) Type() *MoveType {
 	return d.MoveType
 }
 
+//DefaultsForState doesn't do anything
 func (d *BaseMove) DefaultsForState(state State) {
 	return
 }
 
+//Description defaults to returning the Type's HelpText()
 func (d *BaseMove) Description() string {
 	return d.Type().HelpText()
 }
