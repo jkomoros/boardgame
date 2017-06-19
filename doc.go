@@ -40,8 +40,8 @@ next section.
 Moves
 
 Moves are the only way to modify a game's state. A given type of game has a
-collection of factories that produce Moves that may be used. The GameManager
-maintains a set of all of the different types of move factories that may be
+collection of MoveTypes that produce Moves that may be used. The GameManager
+maintains a set of all of the different MoveTypes that may be
 used in this game type.
 
 Moves can be serialized as JSON and contain a set of properties that together
@@ -81,7 +81,7 @@ so, the game is marked as Finished, and the winners are noted. At that point
 no more moves may be applied.
 
 Moves have a number of required methods, and most of them will be no-ops in
-many cases. DefaultMove is an optional convenience struct that is designed to
+many cases. BaseMove is an optional convenience struct that is designed to
 be embedded in your own Moves that implements a bit of the boilerplate
 automatically. Moves also should generally use the autoreader codegen tool to
 generate their reader methods.
@@ -100,14 +100,15 @@ in GameState about SubPhases, and writing finicky Legal() methods for the
 later FixUp moves in the chain that only trigger in the precise right
 condition.
 
-As an advanced optimization, your move can define an ImmediateFixUp() that
-takes a state and returns a Move. After a move is a applied, if the Move has
-an ImmediateFixUp, it will be immediately applied BEFORE delegate.ProposeFixUp
-is called. Importantly, the moves returned from this method do not need to be
-registered on GameManager, because somewhere in their ancestor chain must have
-been registered in order to have successfully been Proposed in the first
-place. This allows games with many long fix-up chains to be a bit cleaner and
-not have to have error-prone Legal logic signaling.
+As an advanced optimization, your MoveType can provide an ImmediateFixUp
+function in its MoveTypeConfig that takes a state and returns a Move. After a
+move is a applied, if the Move's Type has an ImmediateFixUp, it will be
+immediately applied BEFORE delegate.ProposeFixUp is called. Importantly, the
+moves returned from this method do not need to be registered on GameManager,
+because somewhere in their ancestor chain must have been registered in order
+to have successfully been Proposed in the first place. This allows games with
+many long fix-up chains to be a bit cleaner and not have to have error-prone
+Legal logic signaling.
 
 Game Delegates
 

@@ -7,36 +7,36 @@ import (
 
 //+autoreader readsetter
 type MoveShuffleDiscardToDraw struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 }
 
 //+autoreader readsetter
 type MoveAdvanceNextPlayer struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 }
 
 //+autoreader readsetter
 type MoveDealInitialCard struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 	TargetPlayerIndex boardgame.PlayerIndex
 	IsHidden          bool
 }
 
 //+autoreader readsetter
 type MoveRevealHiddenCard struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
 //+autoreader readsetter
 type MoveCurrentPlayerHit struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
 //+autoreader readsetter
 type MoveCurrentPlayerStand struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
@@ -46,13 +46,14 @@ type MoveCurrentPlayerStand struct {
  *
  **************************************************/
 
-func MoveShuffleDiscardToDrawFactory(state boardgame.State) boardgame.Move {
-	return &MoveShuffleDiscardToDraw{
-		boardgame.DefaultMove{
-			"Shuffle Discard To Draw",
-			"When the draw deck is empty, shuffles the discard deck into draw deck.",
-		},
-	}
+var moveShuffleDiscardToDrawConfig = boardgame.MoveTypeConfig{
+	Name:     "Shuffle Discard To Draw",
+	HelpText: "When the draw deck is empty, shuffles the discard deck into draw deck.",
+	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
+		return &MoveShuffleDiscardToDraw{
+			boardgame.BaseMove{mType},
+		}
+	},
 }
 
 func (m *MoveShuffleDiscardToDraw) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -80,20 +81,18 @@ func (m *MoveShuffleDiscardToDraw) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-func MoveCurrentPlayerHitFactory(state boardgame.State) boardgame.Move {
-	result := &MoveCurrentPlayerHit{
-		boardgame.DefaultMove{
-			"Current Player Hit",
-			"The current player hits, drawing a card.",
-		},
-		0,
-	}
+var moveCurrentPlayerHitConfig = boardgame.MoveTypeConfig{
+	Name:     "Current Player Hit",
+	HelpText: "The current player hits, drawing a card.",
+	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
+		return &MoveCurrentPlayerHit{
+			BaseMove: boardgame.BaseMove{mType},
+		}
+	},
+}
 
-	if state != nil {
-		result.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
-	}
-
-	return result
+func (m *MoveCurrentPlayerHit) DefaultsForState(state boardgame.State) {
+	m.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
 }
 
 func (m *MoveCurrentPlayerHit) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -149,20 +148,18 @@ func (m *MoveCurrentPlayerHit) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-func MoveCurrentPlayerStandFactory(state boardgame.State) boardgame.Move {
-	result := &MoveCurrentPlayerStand{
-		boardgame.DefaultMove{
-			"Current Player Stand",
-			"If the current player no longer wants to draw cards, they can stand.",
-		},
-		0,
-	}
+var moveCurrentPlayerStandConfig = boardgame.MoveTypeConfig{
+	Name:     "Current Player Stand",
+	HelpText: "If the current player no longer wants to draw cards, they can stand.",
+	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
+		return &MoveCurrentPlayerStand{
+			BaseMove: boardgame.BaseMove{mType},
+		}
+	},
+}
 
-	if state != nil {
-		result.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
-	}
-
-	return result
+func (m *MoveCurrentPlayerStand) DefaultsForState(state boardgame.State) {
+	m.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
 }
 
 func (m *MoveCurrentPlayerStand) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -208,13 +205,14 @@ func (m *MoveCurrentPlayerStand) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-func MoveAdvanceNextPlayerFactory(state boardgame.State) boardgame.Move {
-	return &MoveAdvanceNextPlayer{
-		boardgame.DefaultMove{
-			"Advance Next Player",
-			"When the current player has either busted or decided to stand, we advance to next player.",
-		},
-	}
+var moveAdvanceNextPlayerConfig = boardgame.MoveTypeConfig{
+	Name:     "Advance Next Player",
+	HelpText: "When the current player has either busted or decided to stand, we advance to next player.",
+	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
+		return &MoveAdvanceNextPlayer{
+			boardgame.BaseMove{mType},
+		}
+	},
 }
 
 func (m *MoveAdvanceNextPlayer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -249,20 +247,18 @@ func (m *MoveAdvanceNextPlayer) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-func MoveRevealHiddenCardFactory(state boardgame.State) boardgame.Move {
-	result := &MoveRevealHiddenCard{
-		boardgame.DefaultMove{
-			"Reveal Hidden Card",
-			"Reveals the hidden card in the user's hand",
-		},
-		0,
-	}
+var moveRevealHiddenCardConfig = boardgame.MoveTypeConfig{
+	Name:     "Reveal Hidden Card",
+	HelpText: "Reveals the hidden card in the user's hand",
+	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
+		return &MoveRevealHiddenCard{
+			BaseMove: boardgame.BaseMove{mType},
+		}
+	},
+}
 
-	if state != nil {
-		result.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
-	}
-
-	return result
+func (m *MoveRevealHiddenCard) DefaultsForState(state boardgame.State) {
+	m.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
 }
 
 func (m *MoveRevealHiddenCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -302,40 +298,37 @@ func (m *MoveRevealHiddenCard) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-func MoveDealInitialCardFactory(state boardgame.State) boardgame.Move {
-	result := &MoveDealInitialCard{
-		boardgame.DefaultMove{
-			"Deal Initial Card",
-			"Deals a card to the a player who has not gotten their initial deal",
-		},
-		0,
-		false,
-	}
-
-	if state != nil {
-		_, players := concreteStates(state)
-
-		//First look for the first player with no hidden card dealt
-		for i := 0; i < len(players); i++ {
-			p := players[i]
-			if p.HiddenHand.NumComponents() == 0 {
-				result.TargetPlayerIndex = boardgame.PlayerIndex(i)
-				result.IsHidden = true
-				return result
-			}
+var moveDealInitialCardConfig = boardgame.MoveTypeConfig{
+	Name:     "Deal Initial Card",
+	HelpText: "Deals a card to the a player who has not gotten their initial deal",
+	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
+		return &MoveDealInitialCard{
+			BaseMove: boardgame.BaseMove{mType},
 		}
-		//OK, hidden hands were full. Anyone who hasn't had the other card now gets it.
-		for i := 0; i < len(players); i++ {
-			p := players[i]
-			if !p.GotInitialDeal {
-				result.TargetPlayerIndex = boardgame.PlayerIndex(i)
-				result.IsHidden = false
-				return result
-			}
+	},
+}
+
+func (m *MoveDealInitialCard) DefaultsForState(state boardgame.State) {
+	_, players := concreteStates(state)
+
+	//First look for the first player with no hidden card dealt
+	for i := 0; i < len(players); i++ {
+		p := players[i]
+		if p.HiddenHand.NumComponents() == 0 {
+			m.TargetPlayerIndex = boardgame.PlayerIndex(i)
+			m.IsHidden = true
+			return
 		}
 	}
-
-	return result
+	//OK, hidden hands were full. Anyone who hasn't had the other card now gets it.
+	for i := 0; i < len(players); i++ {
+		p := players[i]
+		if !p.GotInitialDeal {
+			m.TargetPlayerIndex = boardgame.PlayerIndex(i)
+			m.IsHidden = false
+			return
+		}
+	}
 }
 
 func (m *MoveDealInitialCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {

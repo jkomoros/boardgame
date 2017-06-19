@@ -9,38 +9,35 @@ import (
 
 //+autoreader readsetter
 type MovePlaceToken struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 	//Which token to place the token
 	Slot int
 	//Which player we THINK is making the move.
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
-func MovePlaceTokenFactory(state boardgame.State) boardgame.Move {
-	result := &MovePlaceToken{
-		boardgame.DefaultMove{
-			"Place Token",
-			"Place a player's token in a specific space.",
-		},
-		0,
-		0,
-	}
+var movePlayTokenConfig = boardgame.MoveTypeConfig{
+	Name:     "Place Token",
+	HelpText: "Place a player's token in a specific space.",
+	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
+		return &MovePlaceToken{
+			BaseMove: boardgame.BaseMove{mType},
+		}
+	},
+}
 
-	if state != nil {
-		game, _ := concreteStates(state)
+func (m *MovePlaceToken) DefaultsForState(state boardgame.State) {
+	game, _ := concreteStates(state)
 
-		result.TargetPlayerIndex = game.CurrentPlayer
+	m.TargetPlayerIndex = game.CurrentPlayer
 
-		//Default to setting a slot that's empty.
-		for i, token := range game.Slots.ComponentValues() {
-			if token == nil {
-				result.Slot = i
-				break
-			}
+	//Default to setting a slot that's empty.
+	for i, token := range game.Slots.ComponentValues() {
+		if token == nil {
+			m.Slot = i
+			break
 		}
 	}
-
-	return result
 }
 
 func (m *MovePlaceToken) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -87,16 +84,17 @@ func (m *MovePlaceToken) Apply(state boardgame.MutableState) error {
 
 //+autoreader readsetter
 type MoveAdvancePlayer struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 }
 
-func MoveAdvancePlayerFactory(state boardgame.State) boardgame.Move {
-	return &MoveAdvancePlayer{
-		boardgame.DefaultMove{
-			"Advance Player",
-			"After the current player has made all of their moves, this fix-up move advances to the next player.",
-		},
-	}
+var moveAdvancePlayerConfig = boardgame.MoveTypeConfig{
+	Name:     "Advance Player",
+	HelpText: "After the current player has made all of their moves, this fix-up move advances to the next player.",
+	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
+		return &MoveAdvancePlayer{
+			boardgame.BaseMove{mType},
+		}
+	},
 }
 
 func (m *MoveAdvancePlayer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {

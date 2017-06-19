@@ -158,10 +158,10 @@ func newComputedPropertiesImpl(config *ComputedPropertiesConfig, state *state) *
 		return nil
 	}
 
-	playerBags := make([]MutableSubState, len(state.Players()))
+	playerBags := make([]MutableSubState, len(state.PlayerStates()))
 
 	//TODO: calculate all properties.
-	for i, _ := range state.Players() {
+	for i, _ := range state.PlayerStates() {
 		collection := state.game.manager.delegate.EmptyComputedPlayerPropertyCollection()
 		if collection == nil {
 			collection = newGenericReader()
@@ -325,7 +325,7 @@ func (c *ComputedPlayerPropertyDefinition) compute(state *state, playerIndex Pla
 	sanitized := state.sanitizedWithDefault(policy, -1, PolicyRandom)
 
 	if c.Compute != nil {
-		return c.Compute(sanitized.Players()[playerIndex])
+		return c.Compute(sanitized.PlayerStates()[playerIndex])
 	}
 
 	if c.GlobalCompute != nil {

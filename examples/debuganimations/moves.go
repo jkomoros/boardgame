@@ -7,39 +7,39 @@ import (
 
 //+autoreader readsetter
 type moveMoveCardBetweenShortStacks struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 	FromFirst bool
 }
 
 //+autoreader readsetter
 type moveMoveCardBetweenDrawAndDiscardStacks struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 	FromDraw bool
 }
 
 //+autoreader readsetter
 type moveFlipHiddenCard struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 }
 
 //+autoreader readsetter
 type moveMoveCardBetweenFanStacks struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 }
 
 //+autoreader readsetter
 type moveVisibleShuffleCards struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 }
 
 //+autoreader readsetter
 type moveShuffleCards struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 }
 
 //+autoreader readsetter
 type moveMoveBetweenHidden struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 }
 
 /**************************************************
@@ -48,24 +48,22 @@ type moveMoveBetweenHidden struct {
  *
  **************************************************/
 
-func MoveMoveCardBetweenShortStacksFactory(state boardgame.State) boardgame.Move {
-	result := &moveMoveCardBetweenShortStacks{
-		boardgame.DefaultMove{
-			"Move Card Between Short Stacks",
-			"Moves a card between two short stacks",
-		},
-		true,
-	}
-
-	if state != nil {
-		gameState, _ := concreteStates(state)
-
-		if gameState.FirstShortStack.NumComponents() < 1 {
-			result.FromFirst = false
+var moveMoveCardBetweenShortStacksConfig = boardgame.MoveTypeConfig{
+	Name:     "Move Card Between Short Stacks",
+	HelpText: "Moves a card between two short stacks",
+	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
+		return &moveMoveCardBetweenShortStacks{
+			BaseMove: boardgame.BaseMove{mType},
 		}
-	}
+	},
+}
 
-	return result
+func (m *moveMoveCardBetweenShortStacks) DefaultsForState(state boardgame.State) {
+	gameState, _ := concreteStates(state)
+
+	if gameState.FirstShortStack.NumComponents() < 1 {
+		m.FromFirst = false
+	}
 }
 
 func (m *moveMoveCardBetweenShortStacks) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -108,26 +106,24 @@ func (m *moveMoveCardBetweenShortStacks) Apply(state boardgame.MutableState) err
  *
  **************************************************/
 
-func MoveMoveCardBetweenDrawAndDiscardStacksFactory(state boardgame.State) boardgame.Move {
-	result := &moveMoveCardBetweenDrawAndDiscardStacks{
-		boardgame.DefaultMove{
-			"Move Card Between Draw and Discard Stacks",
-			"Moves a card between draw and discard stacks",
-		},
-		true,
-	}
-
-	if state != nil {
-		gameState, _ := concreteStates(state)
-
-		if gameState.DiscardStack.NumComponents() < 3 {
-			result.FromDraw = true
-		} else {
-			result.FromDraw = false
+var moveMoveCardBetweenDrawAndDiscardStacksConfig = boardgame.MoveTypeConfig{
+	Name:     "Move Card Between Draw and Discard Stacks",
+	HelpText: "Moves a card between draw and discard stacks",
+	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
+		return &moveMoveCardBetweenDrawAndDiscardStacks{
+			BaseMove: boardgame.BaseMove{mType},
 		}
-	}
+	},
+}
 
-	return result
+func (m *moveMoveCardBetweenDrawAndDiscardStacks) DefaultsForState(state boardgame.State) {
+	gameState, _ := concreteStates(state)
+
+	if gameState.DiscardStack.NumComponents() < 3 {
+		m.FromDraw = true
+	} else {
+		m.FromDraw = false
+	}
 }
 
 func (m *moveMoveCardBetweenDrawAndDiscardStacks) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -170,15 +166,14 @@ func (m *moveMoveCardBetweenDrawAndDiscardStacks) Apply(state boardgame.MutableS
  *
  **************************************************/
 
-func MoveFlipHiddenCardFactory(state boardgame.State) boardgame.Move {
-	result := &moveFlipHiddenCard{
-		boardgame.DefaultMove{
-			"Flip Card Between Hidden and Revealed",
-			"Flips the card between hidden and revealed",
-		},
-	}
-
-	return result
+var moveFlipHiddenCardConfig = boardgame.MoveTypeConfig{
+	Name:     "Flip Card Between Hidden and Revealed",
+	HelpText: "Flips the card between hidden and revealed",
+	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
+		return &moveFlipHiddenCard{
+			BaseMove: boardgame.BaseMove{mType},
+		}
+	},
 }
 
 func (m *moveFlipHiddenCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -221,15 +216,14 @@ func (m *moveFlipHiddenCard) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-func MoveMoveCardBetweenFanStacksFactory(state boardgame.State) boardgame.Move {
-	result := &moveMoveCardBetweenFanStacks{
-		boardgame.DefaultMove{
-			"Move Fan Card",
-			"Moves a card from or to Fan and Fan Discard",
-		},
-	}
-
-	return result
+var moveMoveCardBetweenFanStacksConfig = boardgame.MoveTypeConfig{
+	Name:     "Move Fan Card",
+	HelpText: "Moves a card from or to Fan and Fan Discard",
+	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
+		return &moveMoveCardBetweenFanStacks{
+			BaseMove: boardgame.BaseMove{mType},
+		}
+	},
 }
 
 func (m *moveMoveCardBetweenFanStacks) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -276,15 +270,14 @@ func (m *moveMoveCardBetweenFanStacks) Apply(state boardgame.MutableState) error
  *
  **************************************************/
 
-func MoveVisibleShuffleCardsFactory(state boardgame.State) boardgame.Move {
-	result := &moveVisibleShuffleCards{
-		boardgame.DefaultMove{
-			"Visible Shuffle",
-			"Performs a visible shuffle",
-		},
-	}
-
-	return result
+var moveVisibleShuffleCardsConfig = boardgame.MoveTypeConfig{
+	Name:     "Visible Shuffle",
+	HelpText: "Performs a visible shuffle",
+	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
+		return &moveVisibleShuffleCards{
+			BaseMove: boardgame.BaseMove{mType},
+		}
+	},
 }
 
 func (m *moveVisibleShuffleCards) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -312,15 +305,14 @@ func (m *moveVisibleShuffleCards) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-func MoveShuffleCardsFactory(state boardgame.State) boardgame.Move {
-	result := &moveShuffleCards{
-		boardgame.DefaultMove{
-			"Shuffle",
-			"Performs a secret shuffle",
-		},
-	}
-
-	return result
+var moveShuffleCardsConfig = boardgame.MoveTypeConfig{
+	Name:     "Shuffle",
+	HelpText: "Performs a secret shuffle",
+	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
+		return &moveShuffleCards{
+			BaseMove: boardgame.BaseMove{mType},
+		}
+	},
 }
 
 func (m *moveShuffleCards) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -348,15 +340,14 @@ func (m *moveShuffleCards) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-func MoveMoveBetweenHiddenFactory(state boardgame.State) boardgame.Move {
-	result := &moveMoveBetweenHidden{
-		boardgame.DefaultMove{
-			"Move Between Hidden",
-			"Moves between hidden and visible stacks",
-		},
-	}
-
-	return result
+var moveMoveBetweenHiddenConfig = boardgame.MoveTypeConfig{
+	Name:     "Move Between Hidden",
+	HelpText: "Moves between hidden and visible stacks",
+	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
+		return &moveMoveBetweenHidden{
+			BaseMove: boardgame.BaseMove{mType},
+		}
+	},
 }
 
 func (m *moveMoveBetweenHidden) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {

@@ -8,25 +8,25 @@ import (
 
 //+autoreader readsetter
 type moveRollDice struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
 //+autoreader readsetter
 type moveDoneTurn struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
 //+autoreader readsetter
 type moveCountDie struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
 //+autoreader readsetter
 type moveAdvanceNextPlayer struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
@@ -36,20 +36,18 @@ type moveAdvanceNextPlayer struct {
  *
  **************************************************/
 
-func MoveRollDiceFactory(state boardgame.State) boardgame.Move {
-	result := &moveRollDice{
-		boardgame.DefaultMove{
-			"Roll Dice",
-			"Rolls the dice for the current player",
-		},
-		0,
-	}
+var moveRollDiceConfig = boardgame.MoveTypeConfig{
+	Name:     "Roll Dice",
+	HelpText: "Rolls the dice for the current player",
+	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
+		return &moveRollDice{
+			BaseMove: boardgame.BaseMove{mType},
+		}
+	},
+}
 
-	if state != nil {
-		result.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
-	}
-
-	return result
+func (m *moveRollDice) DefaultsForState(state boardgame.State) {
+	m.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
 }
 
 func (m *moveRollDice) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -94,20 +92,18 @@ func (m *moveRollDice) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-func MoveDoneTurnFactory(state boardgame.State) boardgame.Move {
-	result := &moveDoneTurn{
-		boardgame.DefaultMove{
-			"Done Turn",
-			"Played when a player is done with their turn and wants to keep their score.",
-		},
-		0,
-	}
+var moveDoneTurnConfig = boardgame.MoveTypeConfig{
+	Name:     "Done Turn",
+	HelpText: "Played when a player is done with their turn and wants to keep their score.",
+	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
+		return &moveDoneTurn{
+			BaseMove: boardgame.BaseMove{mType},
+		}
+	},
+}
 
-	if state != nil {
-		result.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
-	}
-
-	return result
+func (m *moveDoneTurn) DefaultsForState(state boardgame.State) {
+	m.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
 }
 
 func (m *moveDoneTurn) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -150,20 +146,18 @@ func (m *moveDoneTurn) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-func MoveCountDieFactory(state boardgame.State) boardgame.Move {
-	result := &moveCountDie{
-		boardgame.DefaultMove{
-			"Count Die",
-			"After a die has been rolled, tabulating its impact",
-		},
-		0,
-	}
+var moveCountDieConfig = boardgame.MoveTypeConfig{
+	Name:     "Count Die",
+	HelpText: "After a die has been rolled, tabulating its impact",
+	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
+		return &moveCountDie{
+			BaseMove: boardgame.BaseMove{mType},
+		}
+	},
+}
 
-	if state != nil {
-		result.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
-	}
-
-	return result
+func (m *moveCountDie) DefaultsForState(state boardgame.State) {
+	m.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
 }
 
 func (m *moveCountDie) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -211,20 +205,18 @@ func (m *moveCountDie) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-func MoveAdvanceNextPlayerFactory(state boardgame.State) boardgame.Move {
-	result := &moveAdvanceNextPlayer{
-		boardgame.DefaultMove{
-			"Advance Next Player",
-			"Advance to the next player when the current player has busted or said they are done.",
-		},
-		0,
-	}
+var moveAdvanceNextPlayerConfig = boardgame.MoveTypeConfig{
+	Name:     "Advance Next Player",
+	HelpText: "Advance to the next player when the current player has busted or said they are done.",
+	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
+		return &moveAdvanceNextPlayer{
+			BaseMove: boardgame.BaseMove{mType},
+		}
+	},
+}
 
-	if state != nil {
-		result.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
-	}
-
-	return result
+func (m *moveAdvanceNextPlayer) DefaultsForState(state boardgame.State) {
+	m.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
 }
 
 func (m *moveAdvanceNextPlayer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {

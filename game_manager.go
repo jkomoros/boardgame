@@ -24,10 +24,10 @@ type GameManager struct {
 	chest               *ComponentChest
 	storage             StorageManager
 	agents              []Agent
-	fixUpMoves          []MoveFactory
-	playerMoves         []MoveFactory
-	fixUpMovesByName    map[string]MoveFactory
-	playerMovesByName   map[string]MoveFactory
+	fixUpMoves          []*MoveType
+	playerMoves         []*MoveType
+	fixUpMovesByName    map[string]*MoveType
+	playerMovesByName   map[string]*MoveType
 	agentsByName        map[string]Agent
 	modifiableGamesLock sync.RWMutex
 	modifiableGames     map[string]*Game
@@ -498,16 +498,14 @@ func (g *GameManager) SetUp() error {
 		g.agentsByName[strings.ToLower(agent.Name())] = agent
 	}
 
-	g.playerMovesByName = make(map[string]MoveFactory)
-	for _, factory := range g.playerMoves {
-		sampleMove := factory(nil)
-		g.playerMovesByName[strings.ToLower(sampleMove.Name())] = factory
+	g.playerMovesByName = make(map[string]*MoveType)
+	for _, moveType := range g.playerMoves {
+		g.playerMovesByName[strings.ToLower(moveType.Name())] = moveType
 	}
 
-	g.fixUpMovesByName = make(map[string]MoveFactory)
-	for _, factory := range g.fixUpMoves {
-		sampleMove := factory(nil)
-		g.fixUpMovesByName[strings.ToLower(sampleMove.Name())] = factory
+	g.fixUpMovesByName = make(map[string]*MoveType)
+	for _, moveType := range g.fixUpMoves {
+		g.fixUpMovesByName[strings.ToLower(moveType.Name())] = moveType
 	}
 
 	g.modifiableGames = make(map[string]*Game)
@@ -529,6 +527,39 @@ func (g *GameManager) SetUp() error {
 	return nil
 }
 
+//BulkAddMoveTypes is a convenience wrapper around AddPlayerMoveType and
+//AddFixUpMoveType. Will error if any of the configs do not produce a valid
+//MoveType.
+func (g *GameManager) BulkAddMoveTypes(playerMoveTypeConfigs []*MoveTypeConfig, fixUpMoveTypeConfigs []*MoveTypeConfig) error {
+
+	if playerMoveTypeConfigs == nil && fixUpMoveTypeConfigs == nil {
+		return errors.New("No configs passed")
+	}
+
+	if playerMoveTypeConfigs != nil {
+		for i, config := range playerMoveTypeConfigs {
+			if moveType, err := NewMoveType(config); err == nil {
+				g.AddPlayerMoveType(moveType)
+			} else {
+				return errors.New("Player Config " + strconv.Itoa(i) + " failed with error: " + err.Error())
+			}
+		}
+	}
+
+	if fixUpMoveTypeConfigs != nil {
+		for i, config := range fixUpMoveTypeConfigs {
+			if moveType, err := NewMoveType(config); err == nil {
+				g.AddFixUpMoveType(moveType)
+			} else {
+				return errors.New("FixUp Config " + strconv.Itoa(i) + " failed with error: " + err.Error())
+			}
+		}
+	}
+
+	return nil
+
+}
+
 //AddAgent is called before set up to configure an agent that is available to
 //play in games.
 func (g *GameManager) AddAgent(agent Agent) {
@@ -538,23 +569,23 @@ func (g *GameManager) AddAgent(agent Agent) {
 	g.agents = append(g.agents, agent)
 }
 
-//AddPlayerMoveFactories adds the specified move factory to the game as a move
+//AddPlayerMove adds the specified move type to the game as a move
 //that Players can make. It may only be called during initalization.
-func (g *GameManager) AddPlayerMoveFactory(factory MoveFactory) {
+func (g *GameManager) AddPlayerMoveType(moveType *MoveType) {
 
 	if g.initialized {
 		return
 	}
-	g.playerMoves = append(g.playerMoves, factory)
+	g.playerMoves = append(g.playerMoves, moveType)
 }
 
-//AddFixUpMoveFactory adds a move factory that can only be legally made by
-//GameDelegate as a FixUp move. It can only be called during initialization.
-func (g *GameManager) AddFixUpMoveFactory(factory MoveFactory) {
+//AddFixUpMoveType adds a move type that can only be legally made by GameDelegate
+//as a FixUp move. It can only be called during initialization.
+func (g *GameManager) AddFixUpMoveType(moveType *MoveType) {
 	if g.initialized {
 		return
 	}
-	g.fixUpMoves = append(g.fixUpMoves, factory)
+	g.fixUpMoves = append(g.fixUpMoves, moveType)
 }
 
 //Agents returns a slice of all agents configured on this Manager. Will return
@@ -567,10 +598,10 @@ func (g *GameManager) Agents() []Agent {
 	return g.agents
 }
 
-//PlayerMoveFactories returns all moves that are valid in this game to be made my
+//PlayerMoves returns all moves that are valid in this game to be made my
 //players--all of the Moves that have been added via AddPlayerMove  during
 //initalization. Returns nil until game.SetUp() has been called.
-func (g *GameManager) PlayerMoveFactories() []MoveFactory {
+func (g *GameManager) PlayerMoveTypes() []*MoveType {
 	if !g.initialized {
 		return nil
 	}
@@ -578,11 +609,11 @@ func (g *GameManager) PlayerMoveFactories() []MoveFactory {
 	return g.playerMoves
 }
 
-//FixUpMoveFactoriess returns all move factories that are valid in this game
+//FixUpMoveTypes returns all move types that are valid in this game
 //to be made as fixup moves--all of the Moves that have been added via
 //AddPlayerMove  during initalization. Returns nil until game.SetUp() has been
 //called.
-func (g *GameManager) FixUpMoveFactories() []MoveFactory {
+func (g *GameManager) FixUpMoveTypes() []*MoveType {
 
 	if !g.initialized {
 		return nil
@@ -604,10 +635,10 @@ func (g *GameManager) AgentByName(name string) Agent {
 	return g.agentsByName[name]
 }
 
-//PlayerMoveByName returns the MoveFactory of that name from
+//PlayerMoveByName returns the MoveType of that name from
 //game.PlayerMoves(), if it exists. Names are considered without regard to
 //case.  Will return a copy.
-func (g *GameManager) PlayerMoveFactoryByName(name string) MoveFactory {
+func (g *GameManager) PlayerMoveTypeByName(name string) *MoveType {
 	if !g.initialized {
 		return nil
 	}
@@ -621,10 +652,10 @@ func (g *GameManager) PlayerMoveFactoryByName(name string) MoveFactory {
 	return move
 }
 
-//FixUpMoveFactoryByName returns the MoveFactory of that name from
+//FixUpMoveTypeByName returns the MoveType of that name from
 //game.FixUpMoves(), if it exists. Names are considered without regard to
 //case.  Will return a copy.
-func (g *GameManager) FixUpMoveFactoryByName(name string) MoveFactory {
+func (g *GameManager) FixUpMoveTypeByName(name string) *MoveType {
 	if !g.initialized {
 		return nil
 	}
