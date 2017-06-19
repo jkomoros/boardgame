@@ -286,7 +286,6 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 
 	manager.BulkAddMoveTypes([]*boardgame.MoveTypeConfig{
 		&movePlayTokenConfig,
-	}, []*boardgame.MoveTypeConfig{
 		&moveAdvancePlayerConfig,
 	})
 

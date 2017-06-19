@@ -530,29 +530,17 @@ func (g *GameManager) SetUp() error {
 //BulkAddMoveTypes is a convenience wrapper around AddPlayerMoveType and
 //AddFixUpMoveType. Will error if any of the configs do not produce a valid
 //MoveType.
-func (g *GameManager) BulkAddMoveTypes(playerMoveTypeConfigs []*MoveTypeConfig, fixUpMoveTypeConfigs []*MoveTypeConfig) error {
+func (g *GameManager) BulkAddMoveTypes(moveTypeConfigs []*MoveTypeConfig) error {
 
-	if playerMoveTypeConfigs == nil && fixUpMoveTypeConfigs == nil {
-		return errors.New("No configs passed")
+	if moveTypeConfigs == nil {
+		return errors.New("No moveTypeConfigs provided")
 	}
 
-	if playerMoveTypeConfigs != nil {
-		for i, config := range playerMoveTypeConfigs {
-			if moveType, err := NewMoveType(config); err == nil {
-				g.AddPlayerMoveType(moveType)
-			} else {
-				return errors.New("Player Config " + strconv.Itoa(i) + " failed with error: " + err.Error())
-			}
-		}
-	}
-
-	if fixUpMoveTypeConfigs != nil {
-		for i, config := range fixUpMoveTypeConfigs {
-			if moveType, err := NewMoveType(config); err == nil {
-				g.AddFixUpMoveType(moveType)
-			} else {
-				return errors.New("FixUp Config " + strconv.Itoa(i) + " failed with error: " + err.Error())
-			}
+	for i, config := range moveTypeConfigs {
+		if moveType, err := NewMoveType(config); err == nil {
+			g.AddMoveType(moveType)
+		} else {
+			return errors.New("Config " + strconv.Itoa(i) + " failed with error: " + err.Error())
 		}
 	}
 
@@ -571,21 +559,16 @@ func (g *GameManager) AddAgent(agent Agent) {
 
 //AddPlayerMove adds the specified move type to the game as a move
 //that Players can make. It may only be called during initalization.
-func (g *GameManager) AddPlayerMoveType(moveType *MoveType) {
+func (g *GameManager) AddMoveType(moveType *MoveType) {
 
 	if g.initialized {
 		return
 	}
-	g.playerMoves = append(g.playerMoves, moveType)
-}
-
-//AddFixUpMoveType adds a move type that can only be legally made by GameDelegate
-//as a FixUp move. It can only be called during initialization.
-func (g *GameManager) AddFixUpMoveType(moveType *MoveType) {
-	if g.initialized {
-		return
+	if moveType.IsFixUp() {
+		g.fixUpMoves = append(g.fixUpMoves, moveType)
+	} else {
+		g.playerMoves = append(g.playerMoves, moveType)
 	}
-	g.fixUpMoves = append(g.fixUpMoves, moveType)
 }
 
 //Agents returns a slice of all agents configured on this Manager. Will return

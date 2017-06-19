@@ -59,6 +59,7 @@ var moveTestImmediateFixUpOneConfig = MoveTypeConfig{
 		moveType, _ := NewMoveType(&moveTestImmediateFixUpTwoConfig)
 		return moveType.NewMove(state)
 	},
+	IsFixUp: true,
 }
 
 func (m *moveImmediateFixUpOne) Legal(state State, proposer PlayerIndex) error {
@@ -123,7 +124,6 @@ func TestImmediateFixUp(t *testing.T) {
 
 	manager.BulkAddMoveTypes([]*MoveTypeConfig{
 		&moveTestImmediatePlayerMoveConfig,
-	}, []*MoveTypeConfig{
 		&moveTestImmediateFixUpOneConfig,
 	})
 

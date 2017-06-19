@@ -35,7 +35,7 @@ func computeHandValue(state boardgame.PlayerState) (interface{}, error) {
 func init() {
 	computedPropertiesConfig = &boardgame.ComputedPropertiesConfig{
 		Player: map[string]boardgame.ComputedPlayerPropertyDefinition{
-			"HandValue": boardgame.ComputedPlayerPropertyDefinition{
+			"HandValue": {
 				Dependencies: []boardgame.StatePropertyRef{
 					{
 						Group:    boardgame.StateGroupPlayer,
@@ -232,15 +232,15 @@ func (g *gameDelegate) StateSanitizationPolicy() *boardgame.StatePolicy {
 	if policy == nil {
 		policy = &boardgame.StatePolicy{
 			Player: map[string]boardgame.GroupPolicy{
-				"HiddenHand": boardgame.GroupPolicy{
+				"HiddenHand": {
 					boardgame.GroupOther: boardgame.PolicyLen,
 				},
 			},
 			Game: map[string]boardgame.GroupPolicy{
-				"DiscardStack": boardgame.GroupPolicy{
+				"DiscardStack": {
 					boardgame.GroupAll: boardgame.PolicyLen,
 				},
-				"DrawStack": boardgame.GroupPolicy{
+				"DrawStack": {
 					boardgame.GroupAll: boardgame.PolicyLen,
 				},
 			},
@@ -265,7 +265,6 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 	manager.BulkAddMoveTypes([]*boardgame.MoveTypeConfig{
 		&moveCurrentPlayerHitConfig,
 		&moveCurrentPlayerStandConfig,
-	}, []*boardgame.MoveTypeConfig{
 		&moveDealInitialCardConfig,
 		&moveRevealHiddenCardConfig,
 		&moveShuffleDiscardToDrawConfig,

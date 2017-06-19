@@ -13,6 +13,7 @@ type MoveType struct {
 	helpText       string
 	constructor    func(*MoveType) Move
 	immediateFixUp func(state State) Move
+	isFixUp        bool
 }
 
 //MoveTypeConfig is a collection of information used to create a MoveType.
@@ -42,6 +43,10 @@ type MoveTypeConfig struct {
 	//State fields. When in doubt, just return nil for this method, or do not
 	//supply one.
 	ImmediateFixUp func(State) Move
+
+	//If IsFixUp is true, the moveType will be a FixUp move--that is, players
+	//may not propose it, only ProposeFixUp moves may.
+	IsFixUp bool
 }
 
 //Move's are how all modifications are made to Game States after
@@ -121,6 +126,7 @@ func NewMoveType(config *MoveTypeConfig) (*MoveType, error) {
 		helpText:       config.HelpText,
 		constructor:    config.MoveConstructor,
 		immediateFixUp: config.ImmediateFixUp,
+		isFixUp:        config.IsFixUp,
 	}, nil
 
 }
@@ -140,6 +146,10 @@ func (m *MoveType) ImmediateFixUp(state State) Move {
 		return nil
 	}
 	return m.immediateFixUp(state)
+}
+
+func (m *MoveType) IsFixUp() bool {
+	return m.isFixUp
 }
 
 //NewMove returns a new move of this type, with defaults set for the given

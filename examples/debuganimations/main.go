@@ -186,7 +186,7 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 		panic("No manager returned")
 	}
 
-	playerMoveTypeConfigs := []*boardgame.MoveTypeConfig{
+	moveTypeConfigs := []*boardgame.MoveTypeConfig{
 		&moveMoveCardBetweenShortStacksConfig,
 		&moveMoveCardBetweenDrawAndDiscardStacksConfig,
 		&moveFlipHiddenCardConfig,
@@ -196,7 +196,7 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 		&moveMoveBetweenHiddenConfig,
 	}
 
-	if err := manager.BulkAddMoveTypes(playerMoveTypeConfigs, nil); err != nil {
+	if err := manager.BulkAddMoveTypes(moveTypeConfigs); err != nil {
 		panic("Couldn't create moves: " + err.Error())
 	}
 

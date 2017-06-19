@@ -50,6 +50,7 @@ var moveAdvanceNextPlayerConfig = boardgame.MoveTypeConfig{
 			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
+	IsFixUp: true,
 }
 
 func (m *MoveAdvanceNextPlayer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -170,6 +171,7 @@ var moveStartHideCardsTimerConfig = boardgame.MoveTypeConfig{
 			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
+	IsFixUp: true,
 }
 
 func (m *MoveStartHideCardsTimer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -227,6 +229,7 @@ var moveCaptureCardsConfig = boardgame.MoveTypeConfig{
 			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
+	IsFixUp: true,
 }
 
 func (m *MoveCaptureCards) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {

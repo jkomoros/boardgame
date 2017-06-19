@@ -154,6 +154,7 @@ var moveCountDieConfig = boardgame.MoveTypeConfig{
 			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
+	IsFixUp: true,
 }
 
 func (m *moveCountDie) DefaultsForState(state boardgame.State) {
@@ -213,6 +214,7 @@ var moveAdvanceNextPlayerConfig = boardgame.MoveTypeConfig{
 			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
+	IsFixUp: true,
 }
 
 func (m *moveAdvanceNextPlayer) DefaultsForState(state boardgame.State) {

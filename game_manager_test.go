@@ -51,7 +51,6 @@ func newTestGameManger() *GameManager {
 		&testMoveConfig,
 		&testMoveIncrementCardInHandConfig,
 		&testMoveDrawCardConfig,
-	}, []*MoveTypeConfig{
 		&testMoveAdvanceCurrentPlayerConfig,
 		&testMoveInvalidPlayerIndexConfig,
 	})
@@ -129,7 +128,7 @@ func TestMisshappenComputedProperties(t *testing.T) {
 	delegate := &stateComputeDelegate{
 		config: &ComputedPropertiesConfig{
 			Global: map[string]ComputedGlobalPropertyDefinition{
-				"ThisPropertyIsNotSupported": ComputedGlobalPropertyDefinition{
+				"ThisPropertyIsNotSupported": {
 					Dependencies: []StatePropertyRef{},
 					PropType:     TypeGrowableStack,
 					Compute: func(state State) (interface{}, error) {

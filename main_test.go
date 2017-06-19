@@ -171,6 +171,7 @@ var testMoveInvalidPlayerIndexConfig = MoveTypeConfig{
 			false,
 		}
 	},
+	IsFixUp: true,
 }
 
 func (t *testMoveInvalidPlayerIndex) ReadSetter() PropertyReadSetter {
@@ -342,6 +343,7 @@ var testMoveAdvanceCurrentPlayerConfig = MoveTypeConfig{
 			BaseMove{moveType},
 		}
 	},
+	IsFixUp: true,
 }
 
 func (t *testMoveAdvanceCurentPlayer) ReadSetter() PropertyReadSetter {
@@ -458,6 +460,7 @@ var testAlwaysLegalMoveConfig = MoveTypeConfig{
 			BaseMove{moveType},
 		}
 	},
+	IsFixUp: true,
 }
 
 func (t *testAlwaysLegalMove) ReadSetter() PropertyReadSetter {

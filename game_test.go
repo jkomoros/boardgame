@@ -378,7 +378,6 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 
 	manager.BulkAddMoveTypes([]*MoveTypeConfig{
 		&testMoveConfig,
-	}, []*MoveTypeConfig{
 		&testAlwaysLegalMoveConfig,
 	})
 

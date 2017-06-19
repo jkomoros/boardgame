@@ -54,6 +54,7 @@ var moveShuffleDiscardToDrawConfig = boardgame.MoveTypeConfig{
 			boardgame.BaseMove{mType},
 		}
 	},
+	IsFixUp: true,
 }
 
 func (m *MoveShuffleDiscardToDraw) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -213,6 +214,7 @@ var moveAdvanceNextPlayerConfig = boardgame.MoveTypeConfig{
 			boardgame.BaseMove{mType},
 		}
 	},
+	IsFixUp: true,
 }
 
 func (m *MoveAdvanceNextPlayer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -255,6 +257,7 @@ var moveRevealHiddenCardConfig = boardgame.MoveTypeConfig{
 			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
+	IsFixUp: true,
 }
 
 func (m *MoveRevealHiddenCard) DefaultsForState(state boardgame.State) {
@@ -306,6 +309,7 @@ var moveDealInitialCardConfig = boardgame.MoveTypeConfig{
 			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
+	IsFixUp: true,
 }
 
 func (m *MoveDealInitialCard) DefaultsForState(state boardgame.State) {

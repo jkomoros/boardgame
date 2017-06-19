@@ -95,6 +95,7 @@ var moveAdvancePlayerConfig = boardgame.MoveTypeConfig{
 			boardgame.BaseMove{mType},
 		}
 	},
+	IsFixUp: true,
 }
 
 func (m *MoveAdvancePlayer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {

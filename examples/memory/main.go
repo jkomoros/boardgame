@@ -31,7 +31,7 @@ func computeCurrentPlayerHasCardsToReveal(state boardgame.State) (interface{}, e
 func init() {
 	computedPropertiesConfig = &boardgame.ComputedPropertiesConfig{
 		Global: map[string]boardgame.ComputedGlobalPropertyDefinition{
-			"CurrentPlayerHasCardsToReveal": boardgame.ComputedGlobalPropertyDefinition{
+			"CurrentPlayerHasCardsToReveal": {
 				Dependencies: []boardgame.StatePropertyRef{
 					{
 						Group:    boardgame.StateGroupGame,
@@ -170,7 +170,7 @@ func (g *gameDelegate) StateSanitizationPolicy() *boardgame.StatePolicy {
 	if policy == nil {
 		policy = &boardgame.StatePolicy{
 			Game: map[string]boardgame.GroupPolicy{
-				"HiddenCards": boardgame.GroupPolicy{
+				"HiddenCards": {
 					boardgame.GroupAll: boardgame.PolicyOrder,
 				},
 			},
@@ -233,18 +233,15 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 		panic("No manager returned")
 	}
 
-	playerMoveTypeConfigs := []*boardgame.MoveTypeConfig{
+	moveTypeConfigs := []*boardgame.MoveTypeConfig{
 		&moveRevealCardConfig,
 		&moveHideCardsConfig,
-	}
-
-	fixUpMoveTypeConfigs := []*boardgame.MoveTypeConfig{
 		&moveAdvanceNextPlayerConfig,
 		&moveCaptureCardsConfig,
 		&moveStartHideCardsTimerConfig,
 	}
 
-	if err := manager.BulkAddMoveTypes(playerMoveTypeConfigs, fixUpMoveTypeConfigs); err != nil {
+	if err := manager.BulkAddMoveTypes(moveTypeConfigs); err != nil {
 		panic("Couldn't add moves: " + err.Error())
 	}
 
