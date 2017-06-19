@@ -177,6 +177,10 @@ name of your underlying move type:
 			BaseMove: boardgame.BaseMove{mType},
 		}
 	}
+
+BaseMove cannot help your move implement PropertyReadSetter; use autoreader to
+generate that code for you.
+
 */
 type BaseMove struct {
 	MoveType *MoveType
