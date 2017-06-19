@@ -42,13 +42,14 @@ const HideCardsDuration = 4 * time.Second
  *
  **************************************************/
 
-func MoveAdvanceNextPlayerFactory(state boardgame.State) boardgame.Move {
-	return &MoveAdvanceNextPlayer{
-		boardgame.DefaultMove{
-			"Advance To Next Player",
-			"Advances to the next player when the current player has no more legal moves.",
-		},
-	}
+var moveAdvanceNextPlayerConfig = boardgame.MoveTypeConfig{
+	Name:     "Advance To Next Player",
+	HelpText: "Advances to the next player when the current player has no more legal moves.",
+	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
+		return &MoveAdvanceNextPlayer{
+			DefaultMove: boardgame.DefaultMove{mType},
+		}
+	},
 }
 
 func (m *MoveAdvanceNextPlayer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -85,31 +86,27 @@ func (m *MoveAdvanceNextPlayer) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-func MoveRevealCardFactory(state boardgame.State) boardgame.Move {
-	result := &MoveRevealCard{
-		boardgame.DefaultMove{
-			"Reveal Card",
-			"Reveals the card at the specified location",
-		},
-		0,
-		0,
-	}
+var moveRevealCardConfig = boardgame.MoveTypeConfig{
+	Name:     "Reveal Card",
+	HelpText: "Reveals the card at the specified location",
+	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
+		return &MoveRevealCard{
+			DefaultMove: boardgame.DefaultMove{mType},
+		}
+	},
+}
 
-	if state != nil {
+func (m *MoveRevealCard) DefaultsForState(state boardgame.State) {
+	m.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
 
-		result.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
+	game, _ := concreteStates(state)
 
-		game, _ := concreteStates(state)
-
-		for i, c := range game.HiddenCards.Components() {
-			if c != nil {
-				result.CardIndex = i
-				break
-			}
+	for i, c := range game.HiddenCards.Components() {
+		if c != nil {
+			m.CardIndex = i
+			break
 		}
 	}
-
-	return result
 }
 
 func (m *MoveRevealCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -165,13 +162,14 @@ func (m *MoveRevealCard) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-func MoveStartHideCardsTimerFactory(state boardgame.State) boardgame.Move {
-	return &MoveStartHideCardsTimer{
-		boardgame.DefaultMove{
-			"Start Hide Cards Timer",
-			"If two cards are showing and they are not the same type and the timer is not active, start a timer to automatically hide them.",
-		},
-	}
+var moveStartHideCardsTimerConfig = boardgame.MoveTypeConfig{
+	Name:     "Start Hide Cards Timer",
+	HelpText: "If two cards are showing and they are not the same type and the timer is not active, start a timer to automatically hide them.",
+	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
+		return &MoveStartHideCardsTimer{
+			DefaultMove: boardgame.DefaultMove{mType},
+		}
+	},
 }
 
 func (m *MoveStartHideCardsTimer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -206,7 +204,13 @@ func (m *MoveStartHideCardsTimer) Legal(state boardgame.State, proposer boardgam
 func (m *MoveStartHideCardsTimer) Apply(state boardgame.MutableState) error {
 	game, _ := concreteStates(state)
 
-	game.HideCardsTimer.Start(HideCardsDuration, MoveHideCardsFactory(state))
+	//TODO when #430 is fixed, don't make a copy just return the real one.
+
+	moveType, _ := boardgame.NewMoveType(&moveHideCardsConfig)
+
+	move := moveType.NewMove(state)
+
+	game.HideCardsTimer.Start(HideCardsDuration, move)
 
 	return nil
 }
@@ -217,13 +221,14 @@ func (m *MoveStartHideCardsTimer) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-func MoveCaptureCardsFactory(state boardgame.State) boardgame.Move {
-	return &MoveCaptureCards{
-		boardgame.DefaultMove{
-			"Capture Cards",
-			"If two cards are showing and they are the same type, capture them to the current player's hand.",
-		},
-	}
+var moveCaptureCardsConfig = boardgame.MoveTypeConfig{
+	Name:     "Capture Cards",
+	HelpText: "If two cards are showing and they are the same type, capture them to the current player's hand.",
+	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
+		return &MoveCaptureCards{
+			DefaultMove: boardgame.DefaultMove{mType},
+		}
+	},
 }
 
 func (m *MoveCaptureCards) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -271,20 +276,18 @@ func (m *MoveCaptureCards) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-func MoveHideCardsFactory(state boardgame.State) boardgame.Move {
-	result := &MoveHideCards{
-		boardgame.DefaultMove{
-			"Hide Cards",
-			"After the current player has revealed both cards and tried to memorize them, this move hides the cards so that play can continue to next player.",
-		},
-		0,
-	}
+var moveHideCardsConfig = boardgame.MoveTypeConfig{
+	Name:     "Hide Cards",
+	HelpText: "After the current player has revealed both cards and tried to memorize them, this move hides the cards so that play can continue to next player.",
+	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
+		return &MoveHideCards{
+			DefaultMove: boardgame.DefaultMove{mType},
+		}
+	},
+}
 
-	if state != nil {
-		result.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
-	}
-
-	return result
+func (m *MoveHideCards) DefaultsForState(state boardgame.State) {
+	m.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
 }
 
 func (m *MoveHideCards) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
