@@ -8,25 +8,25 @@ import (
 
 //+autoreader readsetter
 type moveRollDice struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
 //+autoreader readsetter
 type moveDoneTurn struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
 //+autoreader readsetter
 type moveCountDie struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
 //+autoreader readsetter
 type moveAdvanceNextPlayer struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
@@ -41,7 +41,7 @@ var moveRollDiceConfig = boardgame.MoveTypeConfig{
 	HelpText: "Rolls the dice for the current player",
 	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
 		return &moveRollDice{
-			DefaultMove: boardgame.DefaultMove{mType},
+			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
 }
@@ -97,7 +97,7 @@ var moveDoneTurnConfig = boardgame.MoveTypeConfig{
 	HelpText: "Played when a player is done with their turn and wants to keep their score.",
 	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
 		return &moveDoneTurn{
-			DefaultMove: boardgame.DefaultMove{mType},
+			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
 }
@@ -151,7 +151,7 @@ var moveCountDieConfig = boardgame.MoveTypeConfig{
 	HelpText: "After a die has been rolled, tabulating its impact",
 	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
 		return &moveCountDie{
-			DefaultMove: boardgame.DefaultMove{mType},
+			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
 }
@@ -210,7 +210,7 @@ var moveAdvanceNextPlayerConfig = boardgame.MoveTypeConfig{
 	HelpText: "Advance to the next player when the current player has busted or said they are done.",
 	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
 		return &moveAdvanceNextPlayer{
-			DefaultMove: boardgame.DefaultMove{mType},
+			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
 }

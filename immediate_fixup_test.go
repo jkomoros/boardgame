@@ -7,15 +7,15 @@ import (
 )
 
 type moveTestImmediatePlayerMove struct {
-	DefaultMove
+	BaseMove
 }
 
 type moveImmediateFixUpOne struct {
-	DefaultMove
+	BaseMove
 }
 
 type moveImmediateFixUpTWo struct {
-	DefaultMove
+	BaseMove
 }
 
 var moveTestImmediatePlayerMoveConfig = MoveTypeConfig{
@@ -23,7 +23,7 @@ var moveTestImmediatePlayerMoveConfig = MoveTypeConfig{
 	HelpText: "This is a test",
 	MoveConstructor: func(mType *MoveType) Move {
 		return &moveTestImmediatePlayerMove{
-			DefaultMove{mType},
+			BaseMove{mType},
 		}
 	},
 	ImmediateFixUp: func(state State) Move {
@@ -52,7 +52,7 @@ var moveTestImmediateFixUpOneConfig = MoveTypeConfig{
 	Name: "Immediate FixUp 1",
 	MoveConstructor: func(mType *MoveType) Move {
 		return &moveImmediateFixUpOne{
-			DefaultMove{mType},
+			BaseMove{mType},
 		}
 	},
 	ImmediateFixUp: func(state State) Move {
@@ -94,7 +94,7 @@ var moveTestImmediateFixUpTwoConfig = MoveTypeConfig{
 	Name: "Immediate FixUp 2",
 	MoveConstructor: func(mType *MoveType) Move {
 		return &moveImmediateFixUpTWo{
-			DefaultMove{mType},
+			BaseMove{mType},
 		}
 	},
 }

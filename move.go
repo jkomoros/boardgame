@@ -153,25 +153,25 @@ func (m *MoveType) NewMove(state State) Move {
 	return move
 }
 
-//DefaultMove is an optional, convenience struct designed to be embedded
+//BaseMove is an optional, convenience struct designed to be embedded
 //anonymously in your own Moves. It implements no-op methods for many of the
 //required methods on Moves (although it can't implement the ones that require
 //access to the top level struct, like Copy() and ReadSetter()). Legal and
 //Apply are not covered, because every Move should implement their own, and if
 //this implemented them it would obscure errors where for example your Legal()
 //was incorrectly named and thus not used.
-type DefaultMove struct {
+type BaseMove struct {
 	MoveType *MoveType
 }
 
-func (d *DefaultMove) Type() *MoveType {
+func (d *BaseMove) Type() *MoveType {
 	return d.MoveType
 }
 
-func (d *DefaultMove) DefaultsForState(state State) {
+func (d *BaseMove) DefaultsForState(state State) {
 	return
 }
 
-func (d *DefaultMove) Description() string {
+func (d *BaseMove) Description() string {
 	return d.Type().HelpText()
 }

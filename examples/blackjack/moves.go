@@ -7,36 +7,36 @@ import (
 
 //+autoreader readsetter
 type MoveShuffleDiscardToDraw struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 }
 
 //+autoreader readsetter
 type MoveAdvanceNextPlayer struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 }
 
 //+autoreader readsetter
 type MoveDealInitialCard struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 	TargetPlayerIndex boardgame.PlayerIndex
 	IsHidden          bool
 }
 
 //+autoreader readsetter
 type MoveRevealHiddenCard struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
 //+autoreader readsetter
 type MoveCurrentPlayerHit struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
 //+autoreader readsetter
 type MoveCurrentPlayerStand struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
@@ -51,7 +51,7 @@ var moveShuffleDiscardToDrawConfig = boardgame.MoveTypeConfig{
 	HelpText: "When the draw deck is empty, shuffles the discard deck into draw deck.",
 	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
 		return &MoveShuffleDiscardToDraw{
-			boardgame.DefaultMove{mType},
+			boardgame.BaseMove{mType},
 		}
 	},
 }
@@ -86,7 +86,7 @@ var moveCurrentPlayerHitConfig = boardgame.MoveTypeConfig{
 	HelpText: "The current player hits, drawing a card.",
 	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
 		return &MoveCurrentPlayerHit{
-			DefaultMove: boardgame.DefaultMove{mType},
+			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
 }
@@ -153,7 +153,7 @@ var moveCurrentPlayerStandConfig = boardgame.MoveTypeConfig{
 	HelpText: "If the current player no longer wants to draw cards, they can stand.",
 	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
 		return &MoveCurrentPlayerStand{
-			DefaultMove: boardgame.DefaultMove{mType},
+			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
 }
@@ -210,7 +210,7 @@ var moveAdvanceNextPlayerConfig = boardgame.MoveTypeConfig{
 	HelpText: "When the current player has either busted or decided to stand, we advance to next player.",
 	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
 		return &MoveAdvanceNextPlayer{
-			boardgame.DefaultMove{mType},
+			boardgame.BaseMove{mType},
 		}
 	},
 }
@@ -252,7 +252,7 @@ var moveRevealHiddenCardConfig = boardgame.MoveTypeConfig{
 	HelpText: "Reveals the hidden card in the user's hand",
 	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
 		return &MoveRevealHiddenCard{
-			DefaultMove: boardgame.DefaultMove{mType},
+			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
 }
@@ -303,7 +303,7 @@ var moveDealInitialCardConfig = boardgame.MoveTypeConfig{
 	HelpText: "Deals a card to the a player who has not gotten their initial deal",
 	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
 		return &MoveDealInitialCard{
-			DefaultMove: boardgame.DefaultMove{mType},
+			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
 }

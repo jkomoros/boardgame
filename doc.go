@@ -81,7 +81,7 @@ so, the game is marked as Finished, and the winners are noted. At that point
 no more moves may be applied.
 
 Moves have a number of required methods, and most of them will be no-ops in
-many cases. DefaultMove is an optional convenience struct that is designed to
+many cases. BaseMove is an optional convenience struct that is designed to
 be embedded in your own Moves that implements a bit of the boilerplate
 automatically. Moves also should generally use the autoreader codegen tool to
 generate their reader methods.

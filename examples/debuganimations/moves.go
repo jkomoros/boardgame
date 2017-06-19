@@ -7,39 +7,39 @@ import (
 
 //+autoreader readsetter
 type moveMoveCardBetweenShortStacks struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 	FromFirst bool
 }
 
 //+autoreader readsetter
 type moveMoveCardBetweenDrawAndDiscardStacks struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 	FromDraw bool
 }
 
 //+autoreader readsetter
 type moveFlipHiddenCard struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 }
 
 //+autoreader readsetter
 type moveMoveCardBetweenFanStacks struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 }
 
 //+autoreader readsetter
 type moveVisibleShuffleCards struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 }
 
 //+autoreader readsetter
 type moveShuffleCards struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 }
 
 //+autoreader readsetter
 type moveMoveBetweenHidden struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 }
 
 /**************************************************
@@ -53,7 +53,7 @@ var moveMoveCardBetweenShortStacksConfig = boardgame.MoveTypeConfig{
 	HelpText: "Moves a card between two short stacks",
 	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
 		return &moveMoveCardBetweenShortStacks{
-			DefaultMove: boardgame.DefaultMove{mType},
+			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
 }
@@ -111,7 +111,7 @@ var moveMoveCardBetweenDrawAndDiscardStacksConfig = boardgame.MoveTypeConfig{
 	HelpText: "Moves a card between draw and discard stacks",
 	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
 		return &moveMoveCardBetweenDrawAndDiscardStacks{
-			DefaultMove: boardgame.DefaultMove{mType},
+			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
 }
@@ -171,7 +171,7 @@ var moveFlipHiddenCardConfig = boardgame.MoveTypeConfig{
 	HelpText: "Flips the card between hidden and revealed",
 	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
 		return &moveFlipHiddenCard{
-			DefaultMove: boardgame.DefaultMove{mType},
+			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
 }
@@ -221,7 +221,7 @@ var moveMoveCardBetweenFanStacksConfig = boardgame.MoveTypeConfig{
 	HelpText: "Moves a card from or to Fan and Fan Discard",
 	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
 		return &moveMoveCardBetweenFanStacks{
-			DefaultMove: boardgame.DefaultMove{mType},
+			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
 }
@@ -275,7 +275,7 @@ var moveVisibleShuffleCardsConfig = boardgame.MoveTypeConfig{
 	HelpText: "Performs a visible shuffle",
 	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
 		return &moveVisibleShuffleCards{
-			DefaultMove: boardgame.DefaultMove{mType},
+			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
 }
@@ -310,7 +310,7 @@ var moveShuffleCardsConfig = boardgame.MoveTypeConfig{
 	HelpText: "Performs a secret shuffle",
 	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
 		return &moveShuffleCards{
-			DefaultMove: boardgame.DefaultMove{mType},
+			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
 }
@@ -345,7 +345,7 @@ var moveMoveBetweenHiddenConfig = boardgame.MoveTypeConfig{
 	HelpText: "Moves between hidden and visible stacks",
 	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
 		return &moveMoveBetweenHidden{
-			DefaultMove: boardgame.DefaultMove{mType},
+			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
 }

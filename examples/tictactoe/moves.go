@@ -9,7 +9,7 @@ import (
 
 //+autoreader readsetter
 type MovePlaceToken struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 	//Which token to place the token
 	Slot int
 	//Which player we THINK is making the move.
@@ -21,7 +21,7 @@ var movePlayTokenConfig = boardgame.MoveTypeConfig{
 	HelpText: "Place a player's token in a specific space.",
 	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
 		return &MovePlaceToken{
-			DefaultMove: boardgame.DefaultMove{mType},
+			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
 }
@@ -84,7 +84,7 @@ func (m *MovePlaceToken) Apply(state boardgame.MutableState) error {
 
 //+autoreader readsetter
 type MoveAdvancePlayer struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 }
 
 var moveAdvancePlayerConfig = boardgame.MoveTypeConfig{
@@ -92,7 +92,7 @@ var moveAdvancePlayerConfig = boardgame.MoveTypeConfig{
 	HelpText: "After the current player has made all of their moves, this fix-up move advances to the next player.",
 	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
 		return &MoveAdvancePlayer{
-			boardgame.DefaultMove{mType},
+			boardgame.BaseMove{mType},
 		}
 	},
 }

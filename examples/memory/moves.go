@@ -8,29 +8,29 @@ import (
 
 //+autoreader readsetter
 type MoveAdvanceNextPlayer struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 }
 
 //+autoreader readsetter
 type MoveRevealCard struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 	TargetPlayerIndex boardgame.PlayerIndex
 	CardIndex         int
 }
 
 //+autoreader readsetter
 type MoveStartHideCardsTimer struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 }
 
 //+autoreader readsetter
 type MoveCaptureCards struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 }
 
 //+autoreader readsetter
 type MoveHideCards struct {
-	boardgame.DefaultMove
+	boardgame.BaseMove
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
@@ -47,7 +47,7 @@ var moveAdvanceNextPlayerConfig = boardgame.MoveTypeConfig{
 	HelpText: "Advances to the next player when the current player has no more legal moves.",
 	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
 		return &MoveAdvanceNextPlayer{
-			DefaultMove: boardgame.DefaultMove{mType},
+			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
 }
@@ -91,7 +91,7 @@ var moveRevealCardConfig = boardgame.MoveTypeConfig{
 	HelpText: "Reveals the card at the specified location",
 	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
 		return &MoveRevealCard{
-			DefaultMove: boardgame.DefaultMove{mType},
+			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
 }
@@ -167,7 +167,7 @@ var moveStartHideCardsTimerConfig = boardgame.MoveTypeConfig{
 	HelpText: "If two cards are showing and they are not the same type and the timer is not active, start a timer to automatically hide them.",
 	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
 		return &MoveStartHideCardsTimer{
-			DefaultMove: boardgame.DefaultMove{mType},
+			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
 }
@@ -224,7 +224,7 @@ var moveCaptureCardsConfig = boardgame.MoveTypeConfig{
 	HelpText: "If two cards are showing and they are the same type, capture them to the current player's hand.",
 	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
 		return &MoveCaptureCards{
-			DefaultMove: boardgame.DefaultMove{mType},
+			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
 }
@@ -279,7 +279,7 @@ var moveHideCardsConfig = boardgame.MoveTypeConfig{
 	HelpText: "After the current player has revealed both cards and tried to memorize them, this move hides the cards so that play can continue to next player.",
 	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
 		return &MoveHideCards{
-			DefaultMove: boardgame.DefaultMove{mType},
+			BaseMove: boardgame.BaseMove{mType},
 		}
 	},
 }

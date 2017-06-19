@@ -156,7 +156,7 @@ func (t *testPlayerState) Reader() PropertyReader {
 }
 
 type testMoveInvalidPlayerIndex struct {
-	DefaultMove
+	BaseMove
 	//This move is a dangerous one and also a fix-up. So make it so by default
 	//it doesn't apply.
 	CurrentlyLegal bool
@@ -167,7 +167,7 @@ var testMoveInvalidPlayerIndexConfig = MoveTypeConfig{
 	HelpText: "Set one of the PlayerIndex properties to an invalid number, so we can verify that ApplyMove catches it.",
 	MoveConstructor: func(moveType *MoveType) Move {
 		return &testMoveInvalidPlayerIndex{
-			DefaultMove{moveType},
+			BaseMove{moveType},
 			false,
 		}
 	},
@@ -195,7 +195,7 @@ func (t *testMoveInvalidPlayerIndex) Apply(state MutableState) error {
 }
 
 type testMoveIncrementCardInHand struct {
-	DefaultMove
+	BaseMove
 	TargetPlayerIndex PlayerIndex
 }
 
@@ -204,7 +204,7 @@ var testMoveIncrementCardInHandConfig = MoveTypeConfig{
 	HelpText: "Increments the IntValue of the card in the hand",
 	MoveConstructor: func(moveType *MoveType) Move {
 		return &testMoveIncrementCardInHand{
-			DefaultMove{moveType},
+			BaseMove{moveType},
 			0,
 		}
 	},
@@ -271,7 +271,7 @@ func (t *testMoveIncrementCardInHand) Apply(state MutableState) error {
 }
 
 type testMoveDrawCard struct {
-	DefaultMove
+	BaseMove
 	TargetPlayerIndex PlayerIndex
 }
 
@@ -280,7 +280,7 @@ var testMoveDrawCardConfig = MoveTypeConfig{
 	HelpText: "Draws one card from draw deck into player's hand",
 	MoveConstructor: func(moveType *MoveType) Move {
 		return &testMoveDrawCard{
-			DefaultMove{moveType},
+			BaseMove{moveType},
 			0,
 		}
 	},
@@ -331,7 +331,7 @@ func (t *testMoveDrawCard) Apply(state MutableState) error {
 }
 
 type testMoveAdvanceCurentPlayer struct {
-	DefaultMove
+	BaseMove
 }
 
 var testMoveAdvanceCurrentPlayerConfig = MoveTypeConfig{
@@ -339,7 +339,7 @@ var testMoveAdvanceCurrentPlayerConfig = MoveTypeConfig{
 	HelpText: "Advances to the next player when the current player has no more legal moves they can make this turn.",
 	MoveConstructor: func(moveType *MoveType) Move {
 		return &testMoveAdvanceCurentPlayer{
-			DefaultMove{moveType},
+			BaseMove{moveType},
 		}
 	},
 }
@@ -381,7 +381,7 @@ func (t *testMoveAdvanceCurentPlayer) Apply(state MutableState) error {
 }
 
 type testMove struct {
-	DefaultMove
+	BaseMove
 	AString           string
 	ScoreIncrement    int
 	TargetPlayerIndex PlayerIndex
@@ -393,7 +393,7 @@ var testMoveConfig = MoveTypeConfig{
 	HelpText: "Advances the score of the current player by the specified amount.",
 	MoveConstructor: func(moveType *MoveType) Move {
 		return &testMove{
-			DefaultMove: DefaultMove{moveType},
+			BaseMove: BaseMove{moveType},
 		}
 	},
 }
@@ -447,7 +447,7 @@ func (t *testMove) Apply(state MutableState) error {
 }
 
 type testAlwaysLegalMove struct {
-	DefaultMove
+	BaseMove
 }
 
 var testAlwaysLegalMoveConfig = MoveTypeConfig{
@@ -455,7 +455,7 @@ var testAlwaysLegalMoveConfig = MoveTypeConfig{
 	HelpText: "A move that is always legal",
 	MoveConstructor: func(moveType *MoveType) Move {
 		return &testAlwaysLegalMove{
-			DefaultMove{moveType},
+			BaseMove{moveType},
 		}
 	},
 }
