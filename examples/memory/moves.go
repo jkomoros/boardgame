@@ -204,9 +204,7 @@ func (m *MoveStartHideCardsTimer) Legal(state boardgame.State, proposer boardgam
 func (m *MoveStartHideCardsTimer) Apply(state boardgame.MutableState) error {
 	game, _ := concreteStates(state)
 
-	//TODO when #430 is fixed, don't make a copy just return the real one.
-
-	moveType, _ := boardgame.NewMoveType(&moveHideCardsConfig)
+	moveType := state.Game().Manager().PlayerMoveTypeByName(moveHideCardsConfig.Name)
 
 	move := moveType.NewMove(state)
 
