@@ -53,7 +53,7 @@ func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) {
 	game, _ := concreteStates(state)
 
 	//Pick a player to start randomly.
-	startingPlayer := boardgame.PlayerIndex(rand.Intn(len(state.Players())))
+	startingPlayer := boardgame.PlayerIndex(rand.Intn(len(state.PlayerStates())))
 
 	game.CurrentPlayer = startingPlayer
 	game.TargetScore = DefaultTargetScore

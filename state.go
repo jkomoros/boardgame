@@ -22,10 +22,10 @@ import (
 //storage. Given a blob serialized in that fashion, GameManager.StateFromBlob
 //will return a state.
 type State interface {
-	//Game returns the GameState for this State
-	Game() SubState
-	//Players returns a slice of all PlayerStates for this State
-	Players() []PlayerState
+	//GameState returns the GameState for this State
+	GameState() SubState
+	//PlayerStates returns a slice of all PlayerStates for this State
+	PlayerStates() []PlayerState
 	//DynamicComponentValues returns a map of deck name to array of component
 	//values, one per component in that deck.
 	DynamicComponentValues() map[string][]SubState
@@ -84,10 +84,10 @@ const AdminPlayerIndex PlayerIndex = -2
 type MutableState interface {
 	//MutableState contains all of the methods of a read-only state.
 	State
-	//MutableGame is a reference to the MutableGameState for this MutableState.
-	MutableGame() MutableSubState
-	//MutablePlayers returns a slice of MutablePlayerStates for this MutableState.
-	MutablePlayers() []MutablePlayerState
+	//MutableGameState is a reference to the MutableGameState for this MutableState.
+	MutableGameState() MutableSubState
+	//MutablePlayerstates returns a slice of MutablePlayerStates for this MutableState.
+	MutablePlayerStates() []MutablePlayerState
 
 	MutableDynamicComponentValues() map[string][]MutableSubState
 }
@@ -101,7 +101,7 @@ func (p PlayerIndex) Valid(state State) bool {
 	if state == nil {
 		return false
 	}
-	if p < 0 || int(p) >= len(state.Players()) {
+	if p < 0 || int(p) >= len(state.PlayerStates()) {
 		return false
 	}
 	return true
@@ -115,7 +115,7 @@ func (p PlayerIndex) Next(state State) PlayerIndex {
 		return p
 	}
 	p++
-	if int(p) >= len(state.Players()) {
+	if int(p) >= len(state.PlayerStates()) {
 		p = 0
 	}
 	return p
@@ -130,7 +130,7 @@ func (p PlayerIndex) Previous(state State) PlayerIndex {
 	}
 	p--
 	if int(p) < 0 {
-		p = PlayerIndex(len(state.Players()) - 1)
+		p = PlayerIndex(len(state.PlayerStates()) - 1)
 	}
 	return p
 }
@@ -187,11 +187,11 @@ func (s *state) Version() int {
 	return s.version
 }
 
-func (s *state) MutableGame() MutableSubState {
+func (s *state) MutableGameState() MutableSubState {
 	return s.gameState
 }
 
-func (s *state) MutablePlayers() []MutablePlayerState {
+func (s *state) MutablePlayerStates() []MutablePlayerState {
 	return s.playerStates
 }
 
@@ -199,11 +199,11 @@ func (s *state) MutableDynamicComponentValues() map[string][]MutableSubState {
 	return s.dynamicComponentValues
 }
 
-func (s *state) Game() SubState {
+func (s *state) GameState() SubState {
 	return s.gameState
 }
 
-func (s *state) Players() []PlayerState {
+func (s *state) PlayerStates() []PlayerState {
 	result := make([]PlayerState, len(s.playerStates))
 	for i := 0; i < len(s.playerStates); i++ {
 		result[i] = s.playerStates[i]
@@ -421,9 +421,9 @@ func (s *state) validatePlayerIndexes() error {
 
 	var errs []error
 
-	errs = append(errs, validatePlayerIndexesForReader(s.Game().Reader(), "Game", s))
+	errs = append(errs, validatePlayerIndexesForReader(s.GameState().Reader(), "Game", s))
 
-	for i, player := range s.Players() {
+	for i, player := range s.PlayerStates() {
 		errs = append(errs, validatePlayerIndexesForReader(player.Reader(), "Player "+strconv.Itoa(i), s))
 	}
 

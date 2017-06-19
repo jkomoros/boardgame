@@ -73,14 +73,14 @@ func TestComputedPropertyDefinitionCompute(t *testing.T) {
 		t.Error("Calling compute on the rigged definition didn't set passedState")
 	}
 
-	if val, err := passedState.Game().Reader().PlayerIndexProp("CurrentPlayer"); err != nil {
+	if val, err := passedState.GameState().Reader().PlayerIndexProp("CurrentPlayer"); err != nil {
 		t.Error("Unexpected error reading CurrentPlayer prop", err)
 	} else if val != gameState.CurrentPlayer {
 		t.Error("The shadow current player was not the real value. Got", val, "wanted", gameState.CurrentPlayer)
 	}
 
 	for i, playerState := range playerStates {
-		playerShadow := passedState.Players()[i]
+		playerShadow := passedState.PlayerStates()[i]
 
 		if val, err := playerShadow.Reader().IntProp("Score"); err != nil {
 			t.Error("Unexpected error reading Score prop", err)

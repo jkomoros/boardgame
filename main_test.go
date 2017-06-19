@@ -98,13 +98,13 @@ func concreteStates(state State) (*testGameState, []*testPlayerState) {
 		return nil, nil
 	}
 
-	players := make([]*testPlayerState, len(state.Players()))
+	players := make([]*testPlayerState, len(state.PlayerStates()))
 
-	for i, player := range state.Players() {
+	for i, player := range state.PlayerStates() {
 		players[i] = player.(*testPlayerState)
 	}
 
-	game, ok := state.Game().(*testGameState)
+	game, ok := state.GameState().(*testGameState)
 
 	if !ok {
 		return nil, nil
