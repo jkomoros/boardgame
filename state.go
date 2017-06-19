@@ -58,6 +58,11 @@ type State interface {
 	//of how state sanitization works.
 	SanitizedForPlayer(player PlayerIndex) State
 
+	//Game is the Game that this state is part of. Calling
+	//Game.State(s.Version()) should return a state equivalent to this State
+	//(module sanitization, if applied).
+	Game() *Game
+
 	//StorageRecord returns a StateStorageRecord representing the state.
 	StorageRecord() StateStorageRecord
 }
@@ -197,6 +202,10 @@ func (s *state) MutablePlayerStates() []MutablePlayerState {
 
 func (s *state) MutableDynamicComponentValues() map[string][]MutableSubState {
 	return s.dynamicComponentValues
+}
+
+func (s *state) Game() *Game {
+	return s.game
 }
 
 func (s *state) GameState() SubState {
