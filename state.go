@@ -8,19 +8,19 @@ import (
 )
 
 //State represents the entire semantic state of a game at a given version. For
-//your specific game, Game and Players will actually be concrete structs to
-//your particular game. Games often define a top-level concreteStates()
-//*myGameState, []*myPlayerState so at the top of methods that accept a State
-//they can quickly get concrete, type-checked types with only a single
-//conversion leap of faith at the top. States are intended to be read-only;
-//methods where you are allowed to mutate the state (e.g. Move.Apply()) will
-//take a MutableState instead as a signal that it is permissable to modify the
-//state. That is why the states only return non-mutable states
-//(PropertyReaders, not PropertyReadSetters, although realistically it is
-//possible to cast them and modify directly. The MarshalJSON output of a State
-//is appropriate for sending to a client or serializing a state to be put in
-//storage. Given a blob serialized in that fashion, GameManager.StateFromBlob
-//will return a state.
+//your specific game, GameState and PlayerStates will actually be concrete
+//structs to your particular game. Games often define a top-level
+//concreteStates() *myGameState, []*myPlayerState so at the top of methods
+//that accept a State they can quickly get concrete, type-checked types with
+//only a single conversion leap of faith at the top. States are intended to be
+//read-only; methods where you are allowed to mutate the state (e.g.
+//Move.Apply()) will take a MutableState instead as a signal that it is
+//permissable to modify the state. That is why the states only return non-
+//mutable states (PropertyReaders, not PropertyReadSetters, although
+//realistically it is possible to cast them and modify directly. The
+//MarshalJSON output of a State is appropriate for sending to a client or
+//serializing a state to be put in storage. Given a blob serialized in that
+//fashion, GameManager.StateFromBlob will return a state.
 type State interface {
 	//GameState returns the GameState for this State
 	GameState() SubState
