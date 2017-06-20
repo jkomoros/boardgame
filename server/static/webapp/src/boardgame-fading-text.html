@@ -62,6 +62,10 @@
             type: String,
             value: "Point Scored",
           },
+          trigger: {
+            type: Object,
+            observer: "_triggerChanged",
+          },
           _animating: Boolean,
         }
       }
@@ -77,6 +81,10 @@
 
       animate() {
         this._animating = true;
+      }
+
+      _triggerChanged(newValue, oldValue) {
+        this.animate();
       }
 
       _classes(_animating) {

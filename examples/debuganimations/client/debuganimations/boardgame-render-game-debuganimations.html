@@ -90,7 +90,6 @@
           </template>
         </boardgame-card-stack>
         <paper-button propose-move="Move Card Between Short Stacks">Swap</paper-button>
-        <boardgame-fading-text></boardgame-fading-text>
       </div>
 
       <div id='draw'>
@@ -107,6 +106,7 @@
           </template>
         </boardgame-card-stack>
         <paper-button propose-move="Move Card Between Draw and Discard Stacks">Draw</paper-button>
+        <boardgame-fading-text trigger="{{state.Game.DrawStack.Components.length}}"></boardgame-fading-text>
       </div>
 
       <div id='draw'>
