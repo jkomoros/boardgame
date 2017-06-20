@@ -1,0 +1,80 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/paper-styles/typography.html">
+
+<dom-module id="boardgame-fading-text">
+  <template>
+    <style>
+
+      #message {
+        @apply --paper-font-display2;
+        opacity: 0.0;
+      }
+
+      .animating {
+        animation-name: fadetext;
+        animation-duration: calc(var(--animation-length) * 2);
+      }
+
+      @keyframes fadetext {
+        from {
+          opacity: 1.0;
+          transform: scale(1.0);
+        }
+        to {
+          opacity: 0.0;
+          transform: scale(3.0);
+        }
+      }
+
+    </style>
+
+    <div id="message" class$="{{_classes(_animating)}}">
+      {{message}}
+    </div>
+
+  </template>
+
+  <script>
+
+    class BoardgameFadingText extends Polymer.Element {
+
+      static get is() {
+        return "boardgame-fading-text";
+      }
+
+      static get properties() {
+        return {
+          message: {
+            type: String,
+            value: "Point Scored",
+          },
+          _animating: Boolean,
+        }
+      }
+
+      ready() {
+        super.ready()
+        this.$.message.addEventListener("animationend", () => this._animationEnded());
+      }
+
+      _animationEnded() {
+        this._animating = false;
+      }
+
+      animate() {
+        this._animating = true;
+      }
+
+      _classes(_animating) {
+        let classes = [];
+        if (_animating) {
+          classes.push("animating");
+        }
+        return classes.join(" ");
+      }
+    }
+
+    customElements.define(BoardgameFadingText.is, BoardgameFadingText);
+
+  </script>
+</dom-module>

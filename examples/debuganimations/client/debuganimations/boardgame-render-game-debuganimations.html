@@ -10,6 +10,7 @@
 <link rel="import" href="../../src/boardgame-base-game-renderer.html">
 <link rel="import" href="../../src/boardgame-card.html">
 <link rel="import" href="../../src/boardgame-card-stack.html">
+<link rel="import" href="../../src/boardgame-fading-text.html">
 
 <dom-module id="deck-cards-card">
   <template>
@@ -89,6 +90,7 @@
           </template>
         </boardgame-card-stack>
         <paper-button propose-move="Move Card Between Short Stacks">Swap</paper-button>
+        <boardgame-fading-text></boardgame-fading-text>
       </div>
 
       <div id='draw'>
