@@ -72,6 +72,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       boardgame-render-player-info {
         @apply --paper-font-caption;
+        /* --paper-font-caption sets overflow, but we want it to not be set so boardgame-status-text will not clip */
+        overflow:visible;
       }
 
     </style>
