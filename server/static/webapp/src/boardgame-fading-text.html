@@ -71,6 +71,13 @@
             type: Object,
             observer: "_triggerChanged",
           },
+          //Values: 'fixed' - no change, 'new' - autoamtically set to
+          //newvalue, 'diff' - if both new and old are numbers, set to the
+          //difference.
+          autoMessage: {
+            type: String,
+            value: "fixed",
+          },
           _animating: Boolean,
         }
       }
@@ -90,6 +97,21 @@
 
       _triggerChanged(newValue, oldValue) {
         if (oldValue === undefined) return;
+
+        switch (this.autoMessage) {
+          case "diff":
+            if (typeof newValue == "number" && typeof oldValue == "number") {
+              this.message = newValue - oldValue;
+            } else {
+              this.message = newValue;
+            }
+            break;
+          case "new":
+            this.message = newValue;
+            break;
+        }
+
+
         this.animate();
       }
 
