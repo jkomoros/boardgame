@@ -63,6 +63,8 @@ func (m *moveMoveCardBetweenShortStacks) DefaultsForState(state boardgame.State)
 
 	if gameState.FirstShortStack.NumComponents() < 1 {
 		m.FromFirst = false
+	} else {
+		m.FromFirst = true
 	}
 }
 
