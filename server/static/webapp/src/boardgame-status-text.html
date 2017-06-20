@@ -10,8 +10,15 @@
         display: inline-block;
       }
 
+      .hidden {
+        display:none;
+      }
+
     </style>
     <span>{{message}}</span>
+    <div class="hidden">
+      <slot id="content"></slot>
+    </div>
     <boardgame-fading-text trigger="{{message}}" auto-message="{{autoMessage}}"></boardgame-fading-text>
   </template>
 
@@ -31,6 +38,43 @@
           autoMessage: {
             type: String,
             value: "diff",
+          },
+          _textContentNode: Object,
+          _observer: Object,
+        }
+      }
+
+      ready() {
+        super.ready();
+        this.$.content.addEventListener("slotchanged", (e) => this._slotChanged(e));
+        this._slotChanged();
+      }
+
+      _textContentChanged(rec) {
+
+        let ele = rec[rec.length - 1].target;
+        let message = ele.textContent ? ele.textContent : ele.innerText;
+        message = message.trim(); 
+        this.message = message;
+      }
+
+      _slotChanged(e) {
+        var nodes = this.$.content.assignedNodes();
+        if (!nodes.length) return;
+        for (var i = 0; i < nodes.length; i++) {
+          let ele = nodes[i];
+          let message = ele.textContent ? ele.textContent : ele.innerText;
+          message = message.trim(); 
+          if (message) {
+            if (this._observer) {
+              this._observer.disconnect();
+              this._observer = null;
+              this._node = null;
+            }
+            this._observer = new MutationObserver(rec => this._textContentChanged(rec));
+            this._observer.observe(ele, {characterData: true});
+            this.message = message;
+            return;
           }
         }
       }
