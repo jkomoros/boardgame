@@ -413,12 +413,10 @@
 
       _updateInnerTransform() {
         var transformPieces = ["scale(var(--card-effective-scale))"];
-        if (this.faceUp) {
-          transformPieces.push("rotateY(180deg)");
-        } 
-        if ((this.overrideRotated) ? this.basicRotated : this.rotated) {
-          transformPieces.push("rotate(90deg)");
-        }
+        //Chrome Canary used to interprolate fine if you left out the 0deg
+        //rotation term, but then broke. Setting it explicitly fixes the bug.
+        transformPieces.push(this.faceUp ? "rotateY(180deg)" : "rotateY(0deg)");
+        transformPieces.push(((this.overrideRotated) ? this.basicRotated : this.rotated) ? "rotate(90deg)" : "rotate(0deg)");
         var transform = transformPieces.join(" ")
         if (!transform) {
           transform = "none";
