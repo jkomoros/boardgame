@@ -63,10 +63,13 @@
 
       static get properties() {
         return {
+          //The message to show. If autoMessage is set to something other than
+          //'fixed' this will be set based on trigger.
           message: {
             type: String,
             value: "Point Scored",
           },
+          //When Trigger changes, the element will animate.
           trigger: {
             type: Object,
             observer: "_triggerChanged",
