@@ -1,9 +1,10 @@
 <link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../src/boardgame-status-text.html">
 
 <dom-module id="boardgame-render-player-info-pig">
   <template>
-    <div>Round Score <strong>{{playerState.RoundScore}}</strong></div>
-    <div>Total Score <strong>{{playerState.TotalScore}}</strong></div>
+    <div>Round Score <boardgame-status-text message="{{playerState.RoundScore}}"></boardgame-status-text></div>
+    <div>Total Score <boardgame-status-text message="{{playerState.TotalScore}}"></boardgame-status-text></div>
   </template>
 
   <script>

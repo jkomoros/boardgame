@@ -1,0 +1,43 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="boardgame-fading-text.html">
+ 
+<dom-module id="boardgame-status-text">
+  <template>
+    <style>
+
+      :host {
+        position: relative;
+        display: inline-block;
+      }
+
+    </style>
+    <span>{{message}}</span>
+    <boardgame-fading-text trigger="{{message}}" auto-message="{{autoMessage}}"></boardgame-fading-text>
+  </template>
+
+  <script>
+
+    class BoardgameStatusText extends Polymer.Element {
+
+      static get is() {
+        return "boardgame-status-text";
+      }
+
+      static get properties() {
+        return {
+          //The message to show. If autoMessage is set to something other than
+          //'fixed' this will be set based on trigger.
+          message: String,
+          autoMessage: {
+            type: String,
+            value: "diff",
+          }
+        }
+      }
+
+    }
+
+    customElements.define(BoardgameStatusText.is, BoardgameStatusText);
+
+  </script>
+</dom-module>
