@@ -1,5 +1,4 @@
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
-<link rel="import" href="../bower_components/paper-styles/typography.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
 
 <dom-module id="boardgame-fading-text">
@@ -24,7 +23,7 @@
       }
 
       #message {
-        @apply --paper-font-display2;
+        font-size: var(--message-font-size, 16px);
       }
 
       .animating #message {
@@ -40,7 +39,7 @@
         }
         to {
           opacity: 0.0;
-          transform: scale(3.0);
+          transform: scale(6.0);
         }
       }
 
