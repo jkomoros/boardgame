@@ -84,6 +84,7 @@
       }
 
       _triggerChanged(newValue, oldValue) {
+        if (oldValue === undefined) return;
         this.animate();
       }
 
