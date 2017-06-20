@@ -1,9 +1,21 @@
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
 <link rel="import" href="../bower_components/paper-styles/typography.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
 
 <dom-module id="boardgame-fading-text">
   <template>
     <style>
+
+      #container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+        @apply --layout-vertical;
+        @apply --layout-center;
+        @apply --layout-center-justified;
+      }
 
       #message {
         @apply --paper-font-display2;
@@ -28,8 +40,10 @@
 
     </style>
 
-    <div id="message" class$="{{_classes(_animating)}}">
-      {{message}}
+    <div id="container">
+      <div id="message" class$="{{_classes(_animating)}}">
+        {{message}}
+      </div>
     </div>
 
   </template>
