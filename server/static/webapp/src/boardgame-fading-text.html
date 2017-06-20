@@ -15,14 +15,18 @@
         @apply --layout-vertical;
         @apply --layout-center;
         @apply --layout-center-justified;
+        visibility: hidden;
+      }
+
+      #container.animating {
+        visibility: visible;
       }
 
       #message {
         @apply --paper-font-display2;
-        opacity: 0.0;
       }
 
-      .animating {
+      .animating #message {
         animation-name: fadetext;
         animation-duration: calc(var(--animation-length) * 2);
       }
@@ -40,8 +44,8 @@
 
     </style>
 
-    <div id="container">
-      <div id="message" class$="{{_classes(_animating)}}">
+    <div id="container" class$="{{_classes(_animating)}}">
+      <div id="message">
         {{message}}
       </div>
     </div>
