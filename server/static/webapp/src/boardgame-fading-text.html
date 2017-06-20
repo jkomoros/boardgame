@@ -29,7 +29,8 @@
 
       .animating #message {
         animation-name: fadetext;
-        animation-duration: calc(var(--animation-length) * 2);
+        animation-duration: var(--animation-length);
+        animation-timing-function: ease-out;
       }
 
       @keyframes fadetext {
@@ -110,7 +111,6 @@
             this.message = newValue;
             break;
         }
-
 
         this.animate();
       }
