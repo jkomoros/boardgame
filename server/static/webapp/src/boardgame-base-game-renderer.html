@@ -33,6 +33,10 @@
         if (!ele) {
           return;
         }
+        if (ele.localName == "boardgame-card" && e.type == "tap") {
+          //Cards we'll fire on the card-tapped, not the tap.
+          return;
+        }
         var moveName = ele.getAttribute("propose-move");
         if (!moveName) return;
         var data = ele.dataset;
