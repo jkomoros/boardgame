@@ -137,6 +137,10 @@ If you wanted to do more complex processing, you can create your own custom elem
 When you provide a stack to boardgame-card-stack and then bind the resulting cards' item properties, we will also set the card-type property to be "deck-DECKNAME-card" where DECKNAME is the name of the deck that stack is based on. This means that the best practice in most game renderers is to provide a "deck-MYDECK-card" dom-module in the top-level and then everything will work as expected. See the debuganimations example for a sample.
 
 
+### Optional: boardgame-fading-text
+
+The boardgame-fading-text element will render text that animates when changed. The font size can be changed with `--message-font-size`. The text will be centered in the nearest ancestor positoned block.
+
 ### Optional: BoardgameBaseGameRenderer
 
 If your game renderer inherits from BoardgameBaseGameRenderer, you'll get a few convenience goodies.
