@@ -76,7 +76,8 @@
           },
           //Values: 'fixed' - no change, 'new' - autoamtically set to
           //newvalue, 'diff' - if both new and old are numbers, set to the
-          //difference.
+          //difference, and 'diff-up' which is like 'diff' but if the
+          //difference is a number and it's less than 0 don't animate.
           autoMessage: {
             type: String,
             value: "fixed",
@@ -101,10 +102,27 @@
       _triggerChanged(newValue, oldValue) {
         if (oldValue === undefined) return;
 
+        //If people use us directly newValue and oldValue might be a number...
+        //but for example boardgame-status-text will pass us strings.
+        var newValueAsNumber = parseInt(newValue);
+        var oldValueAsNumber = parseInt(oldValue);
+
         switch (this.autoMessage) {
           case "diff":
-            if (typeof newValue == "number" && typeof oldValue == "number") {
-              this.message = newValue - oldValue;
+            if (!isNaN(newValueAsNumber) && !isNaN(oldValueAsNumber)) {
+              this.message = newValueAsNumber - oldValueAsNumber;
+            } else {
+              this.message = newValue;
+            }
+            break;
+          case "diff-up":
+            if (!isNaN(newValueAsNumber) && !isNaN(oldValueAsNumber)) {
+              let diff = newValueAsNumber - oldValueAsNumber;
+              if (diff < 0) {
+                //Skip animating
+                return;
+              }
+              this.message = diff;
             } else {
               this.message = newValue;
             }
