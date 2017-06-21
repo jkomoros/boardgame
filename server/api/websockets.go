@@ -18,16 +18,18 @@ type versionNotifier struct {
 }
 
 type socket struct {
+	gameId   string
 	notifier *versionNotifier
 	conn     *websocket.Conn
 	send     chan []byte
 }
 
-func newSocket(conn *websocket.Conn, notifier *versionNotifier) *socket {
+func newSocket(gameId string, conn *websocket.Conn, notifier *versionNotifier) *socket {
 	result := &socket{
 		notifier: notifier,
 		conn:     conn,
 		send:     make(chan []byte, 256),
+		gameId:   gameId,
 	}
 	go result.readPump()
 	go result.writePump()
@@ -61,14 +63,26 @@ func (v *versionNotifier) done() {
 func (v *versionNotifier) workLoop() {
 	for {
 		select {
-		case <-v.register:
-			//register s
-		case <-v.unregister:
-			//unregister s
+		case s := <-v.register:
+			v.registerSocket(s)
+		case s := <-v.unregister:
+			v.unregisterSocket(s)
 		case <-v.notifyVersion:
 			//Send message
 		case <-v.doneChan:
 			break
 		}
 	}
+}
+
+func (v *versionNotifier) registerSocket(s *socket) {
+	//Should only be called by workLoop
+
+	//TODO: implement
+}
+
+func (v *versionNotifier) unregisterSocket(s *socket) {
+	//Should only be called by workloop
+
+	//TODO: implement
 }
