@@ -112,7 +112,7 @@
           case "diff-up":
             if (!isNaN(newValueAsNumber) && !isNaN(oldValueAsNumber)) {
               let diff = newValueAsNumber - oldValueAsNumber;
-              if (this.autoMessage && diff < 0) {
+              if (this.autoMessage == "diff-up" && diff < 0) {
                 //Skip animating
                 return;
               }
