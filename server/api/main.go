@@ -25,6 +25,8 @@ type Server struct {
 
 	gameVersionCacheLock sync.RWMutex
 	gameVersionCache     map[string]int
+
+	notifier *versionNotifier
 }
 
 type Renderer struct {
@@ -798,6 +800,8 @@ func (s *Server) Start() {
 		log.Println("Couldnt' connect to storage manager: ", err)
 		return
 	}
+
+	s.notifier = newVersionNotifier()
 
 	router := gin.New()
 
