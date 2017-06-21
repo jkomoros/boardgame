@@ -7,8 +7,10 @@ import (
 )
 
 const (
-	maxMessageSize = 1024
+	maxMessageSize = 512
+	writeWait      = 10 * time.Second
 	pongWait       = 60 * time.Second
+	pingPeriod     = (pongWait * 9) / 10
 )
 
 type gameVersionChanged struct {
@@ -70,7 +72,33 @@ func (s *socket) readPump() {
 }
 
 func (s *socket) writePump() {
-	//TODO: do work here
+
+	//Based on implementation at https://github.com/gorilla/websocket/blob/master/examples/chat/client.go
+
+	ticker := time.NewTicker(pingPeriod)
+	defer func() {
+		ticker.Stop()
+		s.conn.Close()
+	}()
+	for {
+		select {
+		case message, ok := <-s.send:
+			s.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if !ok {
+				// The hub closed the channel.
+				s.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
+
+			s.conn.WriteMessage(websocket.TextMessage, message)
+		case <-ticker.C:
+			s.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := s.conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+				return
+			}
+		}
+	}
+
 }
 
 func newVersionNotifier() *versionNotifier {
