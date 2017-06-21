@@ -141,6 +141,17 @@ When you provide a stack to boardgame-card-stack and then bind the resulting car
 
 The boardgame-fading-text element will render text that animates when changed. The font size can be changed with `--message-font-size`. The text will be centered in the nearest ancestor positoned block.
 
+You can use boardgame-status-text to render text that will also show the fading effect if the value changes. It uses the 'diff-up' strategy by default for fading text, which can be overriden.
+
+```
+<!-- you can bind to message attribute -->
+<boardgame-status-text message="{{state.Game.Cards.Components.length}}"></boardgame-status-text>
+
+<!-- you can also just include content which automatically sets message -->
+<boardgame-status-text>{{state.Game.Cards.Components.length}}</boardgame-status-text>
+
+```
+
 ### Optional: BoardgameBaseGameRenderer
 
 If your game renderer inherits from BoardgameBaseGameRenderer, you'll get a few convenience goodies.
