@@ -175,6 +175,13 @@
               value: false,
               observer: "_updateCardClasses"
             },
+            //If the cards are messy, how messy are they? 1.0 is default
+            //messiness, 2.0 is twice as messy.
+            messiness: {
+              type: Number,
+              value: 1.0,
+              observer: "_updateCardClasses"
+            },
             //idsLastSeen should be the IdsLastSeen for the stack that this
             //stack represents. boardgame-component-animator will use this
             //value to figure out where to animate from and to.
@@ -561,11 +568,11 @@
 
         _messyRotationForIndex(index) {
 
-          var values = [-0.3, 0.8, -1.4, 1.2, -0.8, 1.5, -0.3, -1.2, -1.8, 0.7, -0.9, 0.9, 0.1, 1.8, 0.7, -0.5];
+          var values = [-0.6, 1.6, -2.8, 2.4, -1.6, 3.0, -0.6, -2.4, -3.6, 1.4, -1.8, 1.8, 0.2, 3.6, 1.4, -1.0];
 
           index = (index  + this._randomRotationOffset) % values.length;
 
-          return values[index];
+          return values[index] * this.messiness;
 
         }
 
