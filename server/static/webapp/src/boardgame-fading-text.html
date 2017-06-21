@@ -74,6 +74,13 @@
             type: Object,
             observer: "_triggerChanged",
           },
+          //Policy of when to suppress animation triggering. 'none' (default):
+          //trigger always, 'falsey' : suppress triggering when value is
+          //false-y, 'truthy' : suppress when value is truthy.
+          suppress: {
+            type: String,
+            value: "none"
+          }
           //Values: 'fixed' - no change, 'new' - autoamtically set to
           //newvalue, 'diff' - if both new and old are numbers, set to the
           //difference, and 'diff-up' which is like 'diff' but if the
@@ -123,6 +130,15 @@
             break;
           case "new":
             this.message = newValue;
+            break;
+        }
+
+        switch(this.suppress) {
+          case "falsey":
+            if (!newValue) return;
+            break;
+          case "truthy":
+            if (newValue) return;
             break;
         }
 
