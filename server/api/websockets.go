@@ -2,6 +2,13 @@ package api
 
 import (
 	"github.com/gorilla/websocket"
+	"log"
+	"time"
+)
+
+const (
+	maxMessageSize = 1024
+	pongWait       = 60 * time.Second
 )
 
 type gameVersionChanged struct {
@@ -37,7 +44,29 @@ func newSocket(gameId string, conn *websocket.Conn, notifier *versionNotifier) *
 }
 
 func (s *socket) readPump() {
-	//TODO: do work here
+
+	//Based on implementation from https://github.com/gorilla/websocket/blob/master/examples/chat/client.go
+
+	defer func() {
+		s.notifier.unregister <- s
+		s.conn.Close()
+	}()
+
+	s.conn.SetReadLimit(maxMessageSize)
+	s.conn.SetReadDeadline(time.Now().Add(pongWait))
+	s.conn.SetPongHandler(func(string) error { s.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+
+	for {
+		_, message, err := s.conn.ReadMessage()
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
+				log.Printf("error: %v", err)
+			}
+			break
+		}
+		log.Println("Unexpectedly got a message: ", message)
+	}
+
 }
 
 func (s *socket) writePump() {
