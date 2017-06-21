@@ -4,6 +4,7 @@
 <link rel="import" href="../../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../../src/boardgame-die.html">
 <link rel="import" href="../../src/boardgame-base-game-renderer.html">
+<link rel="import" href="../../src/boardgame-fading-text.html">
 
 <dom-module id="boardgame-render-game-pig">
   <template>
@@ -22,6 +23,7 @@
       <div class="flex"></div>
       <paper-button propose-move="Done Turn" disabled="{{!isCurrentPlayer}}" raised>Done</paper-button>
     </div>
+    <boardgame-fading-text trigger="{{isCurrentPlayer}}" message="Your Turn" suppress="falsey"></boardgame-fading-text>
 
   </template>
 
