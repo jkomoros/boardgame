@@ -109,20 +109,14 @@
 
         switch (this.autoMessage) {
           case "diff":
-            if (!isNaN(newValueAsNumber) && !isNaN(oldValueAsNumber)) {
-              this.message = newValueAsNumber - oldValueAsNumber;
-            } else {
-              this.message = newValue;
-            }
-            break;
           case "diff-up":
             if (!isNaN(newValueAsNumber) && !isNaN(oldValueAsNumber)) {
               let diff = newValueAsNumber - oldValueAsNumber;
-              if (diff < 0) {
+              if (this.autoMessage && diff < 0) {
                 //Skip animating
                 return;
               }
-              this.message = diff;
+              this.message = (diff > 0) ? "+" + diff : diff;
             } else {
               this.message = newValue;
             }
