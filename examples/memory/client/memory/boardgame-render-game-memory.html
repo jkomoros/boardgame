@@ -7,6 +7,7 @@
 <link rel="import" href="../../src/boardgame-base-game-renderer.html">
 <link rel="import" href="../../src/boardgame-card.html">
 <link rel="import" href="../../src/boardgame-card-stack.html">
+<link rel="import" href="../../src/boardgame-fading-text.html">
 
 <dom-module id="deck-cards-card">
   <template>
@@ -38,6 +39,7 @@
           <boardgame-card title="{{index}}" item="{{item}}" index="{{index}}" propose-move="Reveal Card" data-arg-card-index$="{{index}}">
           </boardgame-card>
       </template>
+      <boardgame-fading-text message="Match" trigger="{{state.Computed.Global.CardsInGrid}}"></boardgame-fading-text>
     </boardgame-card-stack>
     <div class="layout horizontal around-justified discards">
       <boardgame-card-stack layout="stack" stack="{{state.Players.0.WonCards}}" messy>

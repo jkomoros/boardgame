@@ -34,3 +34,7 @@ func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
 	return p.playerIndex
 }
+
+func (g *gameState) CardsInGrid() int {
+	return g.HiddenCards.NumComponents() + g.RevealedCards.NumComponents()
+}

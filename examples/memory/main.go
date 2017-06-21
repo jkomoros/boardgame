@@ -45,6 +45,23 @@ func init() {
 				PropType: boardgame.TypeBool,
 				Compute:  computeCurrentPlayerHasCardsToReveal,
 			},
+			"CardsInGrid": {
+				Dependencies: []boardgame.StatePropertyRef{
+					{
+						Group:    boardgame.StateGroupGame,
+						PropName: "HiddenCards",
+					},
+					{
+						Group:    boardgame.StateGroupGame,
+						PropName: "RevealedCards",
+					},
+				},
+				PropType: boardgame.TypeInt,
+				Compute: func(state boardgame.State) (interface{}, error) {
+					game, _ := concreteStates(state)
+					return game.CardsInGrid(), nil
+				},
+			},
 		},
 	}
 }
