@@ -158,6 +158,22 @@ If your game renderer inherits from BoardgameBaseGameRenderer, you'll get a few 
 
 Elements that have a propose-move attribute on them anywhere below will, when tapped, fire a propose-move event with that name. It will also include as arguments to that move any attributes named like `data-arg-my-foo`, where the argument would be represnted in the event as `MyFoo`. If you data-bind to that attribute, remember to use `$=` so that Polymer binds them as attributes, not as properties.
 
+BoardgameBaseGameRenderer also defines a few extra properties, like isCurrentPlayer. 
+
+In many cases the base properties are sufficient and your subclass doesn't need to define a `static get properties()` at all. If you want to define your own properties, you can't just return an object from a properties() getter because you'll override the base properties. Instead:
+
+```
+static get properties() {
+    return BoardgameBaseGameRenderer.ExtendProperties({
+        myProp: Number,
+        state: {
+            type: Object,
+            observer: "_myOverrideObserver"
+        }
+    })
+}
+```
+
 ## Adding new views
 
 You can add new views in game-src/ that are imported directly from other views in game-src/. Remember that game-render-view is the polymer element that is the root of your game rendering.

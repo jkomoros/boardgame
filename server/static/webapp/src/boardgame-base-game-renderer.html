@@ -24,6 +24,11 @@
         }
       }
 
+      //BoardgameBaseGameRenderer defines a set of default properties that
+      //suffice in many cases. For subclasses who want to add their own
+      //properties (or override ones on this class), instead of returning a
+      //normal object from your static get properties(), return
+      //BoardgameBaseGameRenderer.ExtendProperties(<your-properties-obj>).
       static ExtendProperties(subProperties) {
         var baseProperties = BoardgameBaseGameRenderer.properties;
         var result = {};
