@@ -11,10 +11,40 @@
         return "boardgame-base-game-renderer"
       }
 
+      static get properties() {
+        return {
+          state: Object,
+          diagram : String,
+          viewingAsPlayer: Number,
+          currentPlayerIndex: Number,
+          isCurrentPlayer: {
+            type: Boolean,
+            computed: "_computeIsCurrentPlayer(currentPlayerIndex, viewingAsPlayer)"
+          }
+        }
+      }
+
+      static ExtendProperties(subProperties) {
+        var baseProperties = BoardgameBaseGameRenderer.properties;
+        var result = {};
+        for (let [key, item] of Object.entries(baseProperties)) {
+          result[key] = item;
+        }
+        for (let [key, item] of Object.entries(subProperties)) {
+          result[key] = item;
+        }
+        return result;
+      }
+
       ready() {
         super.ready();
         this.addEventListener("tap", e => this._handleButtonTapped(e));
         this.addEventListener("card-tapped", e => this._handleButtonTapped(e));
+      }
+
+      _computeIsCurrentPlayer(currentPlayerIndex, viewingAsPlayer) {
+        if (viewingAsPlayer == -2) return true;
+        return currentPlayerIndex == viewingAsPlayer;
       }
 
       _handleButtonTapped(e) {

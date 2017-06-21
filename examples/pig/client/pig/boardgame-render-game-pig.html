@@ -33,23 +33,8 @@
         return "boardgame-render-game-pig"
       }
 
-      static get properties() {
-        return {
-          state: Object,
-          diagram : String,
-          viewingAsPlayer: Number,
-          currentPlayerIndex: Number,
-          isCurrentPlayer: {
-            type: Boolean,
-            computed: "_computeIsCurrentPlayer(currentPlayerIndex, viewingAsPlayer)"
-          }
-        }
-      }
-
-      _computeIsCurrentPlayer(currentPlayerIndex, viewingAsPlayer) {
-        if (viewingAsPlayer == -2) return true;
-        return currentPlayerIndex == viewingAsPlayer;
-      }
+      //We don't define our own properties, so the properties on
+      //BoardgameBaseGameRenderer are fine.
 
     }
 

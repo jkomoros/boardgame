@@ -65,23 +65,8 @@
         return "boardgame-render-game-blackjack"
       }
 
-      static get properties() {
-        return {
-          state: Object,
-          diagram : String,
-          viewingAsPlayer: Number,
-          currentPlayerIndex: Number,
-          isCurrentPlayer: {
-            type: Boolean,
-            computed: "_computeIsCurrentPlayer(currentPlayerIndex, viewingAsPlayer)"
-          }
-        }
-      }
-
-      _computeIsCurrentPlayer(currentPlayerIndex, viewingAsPlayer) {
-        if (viewingAsPlayer == -2) return true;
-        return currentPlayerIndex == viewingAsPlayer;
-      }
+      //We don't need to compute any properties that BoardgameBaseGamErenderer
+      //doesn't have.
 
       _bustedClass(busted) {
         return (busted) ? "busted" : ""
