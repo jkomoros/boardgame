@@ -78,11 +78,24 @@ func (v *versionNotifier) workLoop() {
 func (v *versionNotifier) registerSocket(s *socket) {
 	//Should only be called by workLoop
 
-	//TODO: implement
+	bucket, ok := v.sockets[s.gameId]
+
+	if !ok {
+		bucket = make(map[*socket]bool)
+		v.sockets[s.gameId] = bucket
+	}
+
+	bucket[s] = true
 }
 
 func (v *versionNotifier) unregisterSocket(s *socket) {
 	//Should only be called by workloop
 
-	//TODO: implement
+	bucket, ok := v.sockets[s.gameId]
+
+	if !ok {
+		return
+	}
+
+	delete(bucket, s)
 }
