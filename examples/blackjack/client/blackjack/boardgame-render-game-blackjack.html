@@ -5,6 +5,7 @@
 <link rel="import" href="../../src/boardgame-card-stack.html">
 <link rel="import" href="../../src/boardgame-card.html">
 <link rel="import" href="../../src/boardgame-base-game-renderer.html">
+<link rel="import" href="../../src/boardgame-fading-text.html">
 
 <dom-module id="boardgame-render-game-blackjack">
   <template>
@@ -48,6 +49,8 @@
             <template is="dom-repeat">
               <boardgame-card item="{{item}}" index="{{index}}" suit="{{item.Values.Suit}}" rank="{{item.Values.Rank}}" rotated></boardgame-card>
             </template>
+            <boardgame-fading-text trigger="{{item.Busted}}" message="Busted!"></boardgame-fading-text>
+            <boardgame-fading-text trigger="{{item.Stood}}" message="Stand!"></boardgame-fading-text>
           </boardgame-card-stack>
         </div>
       </template>
