@@ -165,8 +165,8 @@ func (v *versionNotifier) workLoop() {
 			bucket, ok := v.sockets[rec.Id]
 			if ok {
 				//Someone's listening!
-				for socket, _ := range bucket {
-					socket.send <- []byte(rec.Id + "." + strconv.Itoa(rec.Version))
+				for socket := range bucket {
+					socket.send <- []byte(strconv.Itoa(rec.Version))
 				}
 			}
 		case <-v.doneChan:
