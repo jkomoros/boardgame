@@ -5,6 +5,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/jkomoros/boardgame"
 	"log"
+	"net/http"
 	"strconv"
 	"time"
 )
@@ -41,9 +42,14 @@ type socket struct {
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		//TODO: lock this down to only allow origins
+		return true
+	},
 }
 
 func (s *Server) socketHandler(c *gin.Context) {
+
 	game := s.getGame(c)
 
 	renderer := NewRenderer(c)
