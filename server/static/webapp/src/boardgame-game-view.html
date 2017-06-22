@@ -114,7 +114,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       _handleMoveMade(e) {
-        this.$.manager.fetchStatusNow();
+        //TODO: no longer needed now that we have websockets
+        //this.$.manager.fetchStatusNow();
       }
 
       _handleRefreshData(e) {

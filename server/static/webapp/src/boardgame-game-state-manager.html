@@ -6,7 +6,6 @@
 <dom-module id="boardgame-game-state-manager">
   <template>
     <iron-ajax id="version" with-credentials url="[[gameVersionUrl]]" handle-as="json" last-response="{{versionData}}"></iron-ajax>
-    <iron-ajax id="status" with-credentials url="[[UrlForGameAPI(apiHost, gameRoute, 'status')]]" handle-as="json" last-response="{{statusData}}">
     <iron-ajax id="info" with-credentials url="[[gameViewUrl]]" handle-as="json" last-response="{{infoData}}">
   </template>
 
@@ -62,20 +61,17 @@
             type: Object,
             observer: '_infoDataChanged',
           },
-          statusData:{
-            type: Object,
-            observer: '_statusDataChanged'
-          },
           versionData: {
             type: Object,
             observer: "_versionDataChanged"
           },
-          statusPollFrequency: {
-            type: Number,
-            value: 500,
+          _socketUrl: {
+            type: String,
+            computed: "_computeSocketUrl(apiHost, gameRoute, active)",
+            observer: "_socketUrlChanged",
           },
-          lastStatusRequestIssued: Date,
           _lastRequestedVersionUrl: String,
+          _socket: Object,
         }
       }
 
@@ -93,6 +89,15 @@
         return this.UrlForGameAPI(apiHost, gameRoute, "info") + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0);
       }
 
+      _computeSocketUrl(apiHost, gameRoute, active) {
+        if (!active) return "";
+        if (!gameRoute) return "";
+        let result = this.UrlForGameAPI(apiHost, gameRoute, 'socket');
+        result = result.split("http:").join("ws:");
+        result = result.split("https:").join("wss:");
+        return result;
+      }
+
       _requestedPlayerChanged() {
         window.requestAnimationFrame( () => this.fetchData());
       }
@@ -108,13 +113,6 @@
         window.requestAnimationFrame(() => this.fetchData());
       }
 
-      _statusDataChanged(newValue, oldValue) {
-        if (!this.infoData) {
-          return
-        }
-        this.targetVersion = newValue.Version
-      }
-
       _adminChanged(newValue) {
         window.requestAnimationFrame(() => this.fetchData());
       }
@@ -125,10 +123,43 @@
         }
       }
 
+      _socketUrlChanged(newValue) {
+        if (this._socket) {
+          this._socket.close();
+          this._socket = "";
+        }
+
+        //Ifthere's no URL, don't establish a socket.
+        if (!newValue) return;
+
+        this._socket = new WebSocket(newValue);
+
+        this._socket.onclose = e => this._socketClosed(e);
+        this._socket.onerror = e => this._socketError(e);
+        this._socket.onmessage = e => this._socketMessage(e);
+
+      }
+
+      _socketMessage(e) {
+        let version = parseInt(e.data);
+        if (isNaN(version)) {
+          return;
+        }
+        this.targetVersion = version;
+      }
+
+      _socketError(e) {
+        //TOOD: do something more substantive
+        console.warn("Socket error", e)
+      }
+
+      _socketClosed(e) {
+        //TODO: reestablish it?
+        console.warn("Socket closed", e)
+      }
+
       updateData() {
         this.fetchInfo();
-        this.fetchStatusNow();
-        window.setTimeout(() => this.maybeFetchStatus(), this.statusPollFrequency);
       }
 
       reset() {
@@ -150,43 +181,6 @@
           return
         }
         this.$.info.generateRequest();
-      }
-
-      fetchStatusNow() {
-
-        if (!this.gameRoute) {
-          //The URL will be junk
-          return
-        }
-
-        if (!this.active) {
-          return
-        }
-
-        if (this.$.status.loading) {
-          return
-        }
-
-        this.lastStatusRequestIssued = Date.now();
-
-        this.$.status.generateRequest();
-      }
-
-      maybeFetchStatus() {
-        if (this.lastStatusRequestIssued) {
-          let diff = Date.now() - this.lastStatusRequestIssued;
-          if (diff > this.statusPollFrequency) {
-            this.fetchStatusNow();
-          }
-        }
-        //Fetch from server automatically in 500 ms, in case a move was made
-        //or the game was updated.
-
-        //We stop asking for data if the game is finished, because nothing
-        //interesting can happen at that point.
-        if (!this.infoData || !this.gameFinished){
-          window.setTimeout(() => this.maybeFetchStatus(), this.statusPollFrequency);
-        }
       }
 
       fetchData() {
