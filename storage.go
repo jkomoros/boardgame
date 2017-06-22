@@ -56,4 +56,10 @@ type StorageManager interface {
 
 	//SaveAgentState saves the agent state for the given player
 	SaveAgentState(gameId string, player PlayerIndex, state []byte) error
+
+	//PlayerMoveApplied is called after a PlayerMove and all of its resulting
+	//FixUp moves have been applied. Most StorageManagers don't need to do
+	//anything here; it's primarily useful for signaling that a run of moves
+	//has been applied, e.g. in the server.
+	PlayerMoveApplied(game *GameStorageRecord)
 }

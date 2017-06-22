@@ -823,6 +823,8 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 		return errors.New("Failed to trigger agent: " + err.Error())
 	}
 
+	g.manager.Storage().PlayerMoveApplied(g.StorageRecord())
+
 	return nil
 
 }

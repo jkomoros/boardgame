@@ -93,3 +93,10 @@ func (s *ServerStorageManager) SaveGameAndCurrentState(game *boardgame.GameStora
 	return nil
 
 }
+
+func (s *ServerStorageManager) PlayerMoveApplied(game *boardgame.GameStorageRecord) {
+	//Notify the web sockets that the game was changed
+	s.server.notifier.gameChanged(game)
+	//Do the wrapped manager's PlayerMoveApplied in case it has one.
+	s.StorageManager.PlayerMoveApplied(game)
+}

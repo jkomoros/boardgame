@@ -576,3 +576,7 @@ func (s *StorageManager) Close() {
 func (s *StorageManager) CleanUp() {
 	os.Remove(s.filename)
 }
+
+func (s *StorageManager) PlayerMoveApplied(game *boardgame.GameStorageRecord) {
+	//Don't need to do anything
+}

@@ -152,10 +152,10 @@ func newVersionNotifier() *versionNotifier {
 	return result
 }
 
-func (v *versionNotifier) gameChanged(game *boardgame.Game) {
+func (v *versionNotifier) gameChanged(game *boardgame.GameStorageRecord) {
 	v.notifyVersion <- gameVersionChanged{
-		Id:      game.Id(),
-		Version: game.Version(),
+		Id:      game.Id,
+		Version: game.Version,
 	}
 }
 
