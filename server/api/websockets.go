@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"log"
 	"time"
@@ -33,6 +34,31 @@ type socket struct {
 	send     chan []byte
 }
 
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
+
+func (s *Server) socketHandler(c *gin.Context) {
+	game := s.getGame(c)
+
+	renderer := NewRenderer(c)
+
+	if game == nil {
+		renderer.Error("No such game")
+	}
+
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+
+	if err != nil {
+		renderer.Error("Couldn't upgrade socket: " + err.Error())
+	}
+
+	socket := newSocket(game.Id(), conn, s.notifier)
+	s.notifier.register <- socket
+
+}
+
 func newSocket(gameId string, conn *websocket.Conn, notifier *versionNotifier) *socket {
 	result := &socket{
 		notifier: notifier,
@@ -42,6 +68,7 @@ func newSocket(gameId string, conn *websocket.Conn, notifier *versionNotifier) *
 	}
 	go result.readPump()
 	go result.writePump()
+
 	return result
 }
 
