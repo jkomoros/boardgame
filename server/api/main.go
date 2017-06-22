@@ -692,6 +692,8 @@ func (s *Server) doMakeMove(r *Renderer, game *boardgame.Game, proposer boardgam
 	//TODO: it would be nice if we could show which fixup moves we made, too,
 	//somehow.
 
+	game.Refresh()
+
 	s.notifier.gameChanged(game)
 
 	r.Success(nil)
