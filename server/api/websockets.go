@@ -50,12 +50,14 @@ func (s *Server) socketHandler(c *gin.Context) {
 
 	if game == nil {
 		renderer.Error("No such game")
+		return
 	}
 
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 
 	if err != nil {
 		renderer.Error("Couldn't upgrade socket: " + err.Error())
+		return
 	}
 
 	socket := newSocket(game.Id(), conn, s.notifier)
