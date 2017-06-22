@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/jkomoros/boardgame"
 	"log"
 	"time"
 )
@@ -138,6 +139,13 @@ func newVersionNotifier() *versionNotifier {
 	}
 	go result.workLoop()
 	return result
+}
+
+func (v *versionNotifier) gameChanged(game *boardgame.Game) {
+	v.notifyVersion <- gameVersionChanged{
+		Id:      game.Id(),
+		Version: game.Version(),
+	}
 }
 
 func (v *versionNotifier) done() {
