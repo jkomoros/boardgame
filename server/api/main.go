@@ -838,6 +838,7 @@ func (s *Server) Start() {
 		gameAPIGroup := mainGroup.Group("game/:name/:id")
 		gameAPIGroup.Use(s.gameAPISetup)
 		{
+			gameAPIGroup.GET("socket", s.socketHandler)
 			gameAPIGroup.GET("info", s.gameInfoHandler)
 			gameAPIGroup.GET("version/:version", s.gameVersionHandler)
 
