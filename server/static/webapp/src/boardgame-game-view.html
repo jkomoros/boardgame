@@ -107,15 +107,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         super.ready();
 
         this.addEventListener('propose-move', e => this.handleProposeMove(e));
-        this.addEventListener('move-made', e => this._handleMoveMade(e));
         this.addEventListener('refresh-data', e => this._handleRefreshData(e));
         this.addEventListener('install-state-bundle', e => this._handleStateBundle(e));
         this.addEventListener('install-game-static-info', e => this._handleGameStaticInfo(e));
-      }
-
-      _handleMoveMade(e) {
-        //TODO: no longer needed now that we have websockets
-        //this.$.manager.fetchStatusNow();
       }
 
       _handleRefreshData(e) {

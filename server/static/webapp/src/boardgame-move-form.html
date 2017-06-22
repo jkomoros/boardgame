@@ -177,9 +177,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         if (newValue.Error) {
           this.dispatchEvent(new CustomEvent("show-error", {composed: true, detail: {message: newValue.Error, title: "Couldn't make move"}}));
         }
-        //Let the game-view know that the move was made and we should see if
-        //there's an updated version.
-        this.dispatchEvent(new CustomEvent("move-made", {composed:true}));
       }
 
       _configChanged(newValue, oldValue) {
