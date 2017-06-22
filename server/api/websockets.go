@@ -16,6 +16,8 @@ const (
 	pingPeriod     = (pongWait * 9) / 10
 )
 
+const debugSockets = true
+
 type gameVersionChanged struct {
 	Id      string
 	Version int
@@ -161,6 +163,7 @@ func (v *versionNotifier) workLoop() {
 		case s := <-v.unregister:
 			v.unregisterSocket(s)
 		case rec := <-v.notifyVersion:
+			debugLog("Sending message for " + rec.Id + " " + strconv.Itoa(rec.Version))
 			//Send message
 			bucket, ok := v.sockets[rec.Id]
 			if ok {
@@ -175,8 +178,18 @@ func (v *versionNotifier) workLoop() {
 	}
 }
 
+func debugLog(message string) {
+	if !debugSockets {
+		return
+	}
+
+	log.Println(message)
+}
+
 func (v *versionNotifier) registerSocket(s *socket) {
 	//Should only be called by workLoop
+
+	debugLog("Socket registering")
 
 	bucket, ok := v.sockets[s.gameId]
 
@@ -190,6 +203,8 @@ func (v *versionNotifier) registerSocket(s *socket) {
 
 func (v *versionNotifier) unregisterSocket(s *socket) {
 	//Should only be called by workloop
+
+	debugLog("Socket unregistering")
 
 	bucket, ok := v.sockets[s.gameId]
 
