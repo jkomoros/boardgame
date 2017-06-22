@@ -5,6 +5,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/jkomoros/boardgame"
 	"log"
+	"strconv"
 	"time"
 )
 
@@ -159,8 +160,15 @@ func (v *versionNotifier) workLoop() {
 			v.registerSocket(s)
 		case s := <-v.unregister:
 			v.unregisterSocket(s)
-		case <-v.notifyVersion:
+		case rec := <-v.notifyVersion:
 			//Send message
+			bucket, ok := v.sockets[rec.Id]
+			if ok {
+				//Someone's listening!
+				for socket, _ := range bucket {
+					socket.send <- []byte(rec.Id + "." + strconv.Itoa(rec.Version))
+				}
+			}
 		case <-v.doneChan:
 			break
 		}
