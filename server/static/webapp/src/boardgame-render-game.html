@@ -1,11 +1,42 @@
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
 <link rel="import" href="boardgame-component-animator.html">
+<link rel="import" href="../bower_components/paper-spinner/paper-spinner-lite.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
 
 <dom-module id="boardgame-render-game">
   <template>
     <style>
       #container {
         position:relative;
+      }
+
+
+      [hidden] {
+        display:none !important;
+      }
+
+      #loading {
+        position:absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+        background-color: rgba(255,255,255,0.7);
+        z-index: 10;
+      }
+
+      #loading > div {
+        height:100%;
+        width:100%;
+        @apply --layout-vertical;
+        @apply --layout-center;
+        @apply --layout-center-justified;
+      }
+
+      paper-spinner-lite {
+        height: 100px;
+        width: 100px;
+        --paper-spinner-stroke-width: 10px;
       }
     </style>
     <boardgame-component-animator id="animator" ancestor-offset-parent="{{$.container}}"></boardgame-component-animator>
@@ -15,6 +46,11 @@
     </div>
     <div id="container">
     <!-- This is where renderer will go -->
+    </div>
+    <div id="loading" hidden="{{socketActive}}">
+      <div>
+        <paper-spinner-lite active="{{!socketActive}}"></paper-spinner-lite>
+      </div>
     </div>
   </template>
 
@@ -51,6 +87,10 @@
           currentPlayerIndex: {
             type: Number,
             observer: "_currentPlayerIndexChanged"
+          },
+          socketActive: {
+            type: Boolean,
+            value: true,
           }
         }
       }
