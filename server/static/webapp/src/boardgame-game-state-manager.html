@@ -65,6 +65,11 @@
             type: Object,
             observer: "_versionDataChanged"
           },
+          socketActive: {
+            type: Boolean,
+            notify: true,
+            value: false,
+          },
           _socketUrl: {
             type: String,
             computed: "_computeSocketUrl(apiHost, gameRoute, active)",
@@ -145,6 +150,7 @@
         this._socket.onclose = e => this._socketClosed(e);
         this._socket.onerror = e => this._socketError(e);
         this._socket.onmessage = e => this._socketMessage(e);
+        this._socket.onopen = e => this._socketOpened(e);
       }
 
       _socketMessage(e) {
@@ -160,9 +166,13 @@
         console.warn("Socket error", e)
       }
 
+      _socketOpened(e) {
+        this.socketActive = true;
+      }
+
       _socketClosed(e) {
-        //TODO: reestablish it?
-        console.warn("Socket closed", e)
+        console.warn("Socket closed", e);
+        this.socketActive = false;
         //We alawyas want a socket, so connect. Wait a bit so we don't just
         //busy spin if the server is down.
 
