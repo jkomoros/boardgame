@@ -129,15 +129,22 @@
           this._socket = "";
         }
 
-        //Ifthere's no URL, don't establish a socket.
-        if (!newValue) return;
+        this._connectSocket();
 
-        this._socket = new WebSocket(newValue);
+      }
+
+      _connectSocket() {
+
+        var theUrl = this._socketUrl;
+        
+        //Ifthere's no URL, don't establish a socket.
+        if (!theUrl) return;
+
+        this._socket = new WebSocket(theUrl);
 
         this._socket.onclose = e => this._socketClosed(e);
         this._socket.onerror = e => this._socketError(e);
         this._socket.onmessage = e => this._socketMessage(e);
-
       }
 
       _socketMessage(e) {
@@ -156,6 +163,14 @@
       _socketClosed(e) {
         //TODO: reestablish it?
         console.warn("Socket closed", e)
+        //We alawyas want a socket, so connect. Wait a bit so we don't just
+        //busy spin if the server is down.
+
+        //If we closed because we no longer have a valid URL, then
+        //_connectSocket will just exit, and this loop won't be called.
+
+        //TOOD: exponentional backoff on server connect.
+        setTimeout(() => this._connectSocket(), 250);
       }
 
       updateData() {
