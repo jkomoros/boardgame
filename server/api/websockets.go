@@ -66,20 +66,27 @@ func (s *Server) socketHandler(c *gin.Context) {
 		return
 	}
 
-	socket := newSocket(game.Id(), conn, s.notifier)
+	socket := newSocket(game, conn, s.notifier)
 	s.notifier.register <- socket
 
 }
 
-func newSocket(gameId string, conn *websocket.Conn, notifier *versionNotifier) *socket {
+func newSocket(game *boardgame.Game, conn *websocket.Conn, notifier *versionNotifier) *socket {
 	result := &socket{
 		notifier: notifier,
 		conn:     conn,
 		send:     make(chan []byte, 256),
-		gameId:   gameId,
+		gameId:   game.Id(),
 	}
 	go result.readPump()
 	go result.writePump()
+
+	//As soon as the socke tis opened, send the current version. That way if
+	//the connection broke right when the version changed, we'll still catch up.
+	result.SendMessage(gameVersionChanged{
+		Id:      game.Id(),
+		Version: game.Version(),
+	})
 
 	return result
 }
@@ -140,6 +147,10 @@ func (s *socket) writePump() {
 
 }
 
+func (s *socket) SendMessage(message gameVersionChanged) {
+	s.send <- []byte(strconv.Itoa(message.Version))
+}
+
 func newVersionNotifier() *versionNotifier {
 	result := &versionNotifier{
 		sockets:       make(map[string]map[*socket]bool),
@@ -177,7 +188,7 @@ func (v *versionNotifier) workLoop() {
 			if ok {
 				//Someone's listening!
 				for socket := range bucket {
-					socket.send <- []byte(strconv.Itoa(rec.Version))
+					socket.SendMessage(rec)
 				}
 			}
 		case <-v.doneChan:
