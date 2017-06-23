@@ -774,6 +774,11 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	}
 
 	if g.finished {
+
+		if !isFixUp {
+			g.manager.Storage().PlayerMoveApplied(g.StorageRecord())
+		}
+
 		return nil
 	}
 
