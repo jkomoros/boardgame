@@ -39,13 +39,15 @@ type socket struct {
 	send     chan []byte
 }
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		//TODO: lock this down to only allow origins
+func (s *Server) checkOriginForSocket(r *http.Request) bool {
+	origin := r.Header["Origin"]
+
+	if len(origin) == 0 {
+		log.Println("No origin headers provided")
 		return true
-	},
+	}
+
+	return s.config.OriginAllowed(origin[0])
 }
 
 func (s *Server) socketHandler(c *gin.Context) {
@@ -59,7 +61,7 @@ func (s *Server) socketHandler(c *gin.Context) {
 		return
 	}
 
-	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	conn, err := s.upgrader.Upgrade(c.Writer, c.Request, nil)
 
 	if err != nil {
 		renderer.Error("Couldn't upgrade socket: " + err.Error())

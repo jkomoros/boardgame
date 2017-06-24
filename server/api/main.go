@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"github.com/itsjamie/gin-cors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/users"
@@ -21,6 +22,8 @@ type Server struct {
 	//display it. Yes, this is a hack.
 	lastErrorMessage string
 	config           *config.ConfigMode
+
+	upgrader websocket.Upgrader
 
 	notifier *versionNotifier
 }
@@ -91,6 +94,12 @@ func NewServer(storage *ServerStorageManager, managers ...*boardgame.GameManager
 			log.Println("The storage for one of the managers was not the same item passed in as major storage.")
 			return nil
 		}
+	}
+
+	result.upgrader = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+		CheckOrigin:     result.checkOriginForSocket,
 	}
 
 	return result

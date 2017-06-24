@@ -8,7 +8,9 @@ import (
 	"errors"
 	"io/ioutil"
 	"log"
+	"net/url"
 	"os"
+	"strings"
 )
 
 type Config struct {
@@ -59,6 +61,35 @@ func (c *ConfigMode) validate(isDev bool) error {
 		return errors.New("DisableAdminChecking enabled in prod, which is illegal")
 	}
 	return nil
+}
+
+func (c *ConfigMode) OriginAllowed(origin string) bool {
+
+	originUrl, err := url.Parse(origin)
+
+	if err != nil {
+		return false
+	}
+
+	if c.AllowedOrigins == "" {
+		return false
+	}
+	if c.AllowedOrigins == "*" {
+		return true
+	}
+	allowedOrigins := strings.Split(c.AllowedOrigins, ",")
+	for _, allowedOrigin := range allowedOrigins {
+		u, err := url.Parse(allowedOrigin)
+
+		if err != nil {
+			continue
+		}
+
+		if u.Scheme == originUrl.Scheme && u.Host == originUrl.Host {
+			return true
+		}
+	}
+	return false
 }
 
 const (
