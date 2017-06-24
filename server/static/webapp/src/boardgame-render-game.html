@@ -10,9 +10,10 @@
         position:relative;
       }
 
-
-      [hidden] {
-        display:none !important;
+      #loading[active] {
+        visibility: visible;
+        opacity: 1;
+        transition: visibility var(--animation-length) step-start, opacity var(--animation-length, 0.25s) linear;
       }
 
       #loading {
@@ -23,6 +24,9 @@
         width: 100%;
         background-color: rgba(255,255,255,0.7);
         z-index: 10;
+        visibility: hidden;
+        opacity: 0;
+        transition: visibility var(--animation-length) step-end, opacity var(--animation-length, 0.25s) linear;
       }
 
       #loading > div {
@@ -47,7 +51,7 @@
     <div id="container">
     <!-- This is where renderer will go -->
     </div>
-    <div id="loading" hidden="{{socketActive}}">
+    <div id="loading" active$="{{!socketActive}}">
       <div>
         <paper-spinner-lite active="{{!socketActive}}"></paper-spinner-lite>
       </div>
