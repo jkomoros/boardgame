@@ -61,5 +61,5 @@ type StorageManager interface {
 	//FixUp moves have been applied. Most StorageManagers don't need to do
 	//anything here; it's primarily useful for signaling that a run of moves
 	//has been applied, e.g. in the server.
-	PlayerMoveApplied(game *GameStorageRecord)
+	PlayerMoveApplied(game *GameStorageRecord) error
 }

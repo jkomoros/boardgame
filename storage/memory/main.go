@@ -329,6 +329,7 @@ func (s *StorageManager) CleanUp() {
 	//Don't need to do
 }
 
-func (s *StorageManager) PlayerMoveApplied(game *boardgame.GameStorageRecord) {
+func (s *StorageManager) PlayerMoveApplied(game *boardgame.GameStorageRecord) error {
 	//Don't need to do anything
+	return nil
 }

@@ -11,7 +11,6 @@ import (
 	"os"
 	"sort"
 	"strconv"
-	"sync"
 	"time"
 )
 
@@ -22,9 +21,6 @@ type Server struct {
 	//display it. Yes, this is a hack.
 	lastErrorMessage string
 	config           *config.ConfigMode
-
-	gameVersionCacheLock sync.RWMutex
-	gameVersionCache     map[string]int
 
 	notifier *versionNotifier
 }
@@ -82,9 +78,8 @@ Use it like so:
 func NewServer(storage *ServerStorageManager, managers ...*boardgame.GameManager) *Server {
 
 	result := &Server{
-		managers:         make(managerMap),
-		storage:          storage,
-		gameVersionCache: make(map[string]int),
+		managers: make(managerMap),
+		storage:  storage,
 	}
 
 	storage.server = result
@@ -296,51 +291,6 @@ func (s *Server) requireLoggedIn(c *gin.Context) {
 	}
 
 	//All good!
-}
-
-func (s *Server) gameStatusHandler(c *gin.Context) {
-	//This handler is designed to be a very simple status marker for the
-	//current version of the specific game. It will be hit hard by all
-	//clients, repeatedly, so it should be very fast.
-
-	id := s.getRequestGameId(c)
-	name := s.getRequestGameName(c)
-
-	r := NewRenderer(c)
-
-	s.doGameStatus(r, id, name)
-
-}
-
-func (s *Server) doGameStatus(r *Renderer, gameId, gameName string) {
-
-	s.gameVersionCacheLock.RLock()
-
-	version, ok := s.gameVersionCache[gameId]
-
-	s.gameVersionCacheLock.RUnlock()
-
-	if !ok {
-		//Guess for whatever reason the game's version wasn't in the cache. Fetch it.
-
-		game := s.gameFromId(gameId, gameName)
-
-		if game == nil {
-			r.Error("Couldn't find game with that name")
-			return
-		}
-
-		s.gameVersionCacheLock.Lock()
-		s.gameVersionCache[game.Id()] = game.Version()
-		s.gameVersionCacheLock.Unlock()
-
-		version = game.Version()
-
-	}
-
-	r.Success(gin.H{
-		"Version": version,
-	})
 }
 
 func (s *Server) joinGameHandler(c *gin.Context) {
@@ -815,10 +765,6 @@ func (s *Server) Start() {
 		Methods:        "GET, POST",
 		Credentials:    true,
 	}))
-
-	//The status endpoint for a game gets POUNDED so we don't want to touch
-	//the database if we can help it.
-	router.GET("/api/game/:name/:id/status", s.gameStatusHandler)
 
 	//We have everything prefixed by /api just in case at some point we do
 	//want to host both static and api on the same logical server.

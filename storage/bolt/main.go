@@ -577,6 +577,7 @@ func (s *StorageManager) CleanUp() {
 	os.Remove(s.filename)
 }
 
-func (s *StorageManager) PlayerMoveApplied(game *boardgame.GameStorageRecord) {
+func (s *StorageManager) PlayerMoveApplied(game *boardgame.GameStorageRecord) error {
 	//Don't need to do anything
+	return nil
 }

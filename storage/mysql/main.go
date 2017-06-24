@@ -465,6 +465,7 @@ func (s *StorageManager) ConnectCookieToUser(cookie string, user *users.StorageR
 	return nil
 }
 
-func (s *StorageManager) PlayerMoveApplied(game *boardgame.GameStorageRecord) {
+func (s *StorageManager) PlayerMoveApplied(game *boardgame.GameStorageRecord) error {
 	//Don't need to do anything
+	return nil
 }

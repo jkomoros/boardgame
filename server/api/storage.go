@@ -69,13 +69,11 @@ func NewDefaultStorageManager() *ServerStorageManager {
 	return NewServerStorageManager(mysql.NewStorageManager(false))
 }
 
-//We wrap SaveGameandCurrentState so we can update our game version cache
-func (s *ServerStorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord, move *boardgame.MoveStorageRecord) error {
+func (s *ServerStorageManager) PlayerMoveApplied(game *boardgame.GameStorageRecord) error {
 
-	result := s.StorageManager.SaveGameAndCurrentState(game, state, move)
-
-	if result != nil {
-		return result
+	//Do the wrapped manager's PlayerMoveApplied in case it has one.
+	if err := s.StorageManager.PlayerMoveApplied(game); err != nil {
+		return err
 	}
 
 	server := s.server
@@ -84,19 +82,9 @@ func (s *ServerStorageManager) SaveGameAndCurrentState(game *boardgame.GameStora
 		return errors.New("No server configured. The storage manager should be added to a Server before it's used.")
 	}
 
-	server.gameVersionCacheLock.Lock()
-
-	server.gameVersionCache[game.Id] = game.Version
-
-	server.gameVersionCacheLock.Unlock()
+	//Notify the web sockets that the game was changed
+	server.notifier.gameChanged(game)
 
 	return nil
 
-}
-
-func (s *ServerStorageManager) PlayerMoveApplied(game *boardgame.GameStorageRecord) {
-	//Notify the web sockets that the game was changed
-	s.server.notifier.gameChanged(game)
-	//Do the wrapped manager's PlayerMoveApplied in case it has one.
-	s.StorageManager.PlayerMoveApplied(game)
 }
