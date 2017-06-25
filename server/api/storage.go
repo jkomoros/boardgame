@@ -27,6 +27,9 @@ type StorageManager interface {
 	//with additional fields necessary for Server.
 	ExtendedGame(id string) (*extendedgame.CombinedStorageRecord, error)
 
+	//UpdateExtendedGame updates the extended game with the given Id.
+	UpdateExtendedGame(id string, eGame *extendedgame.StorageRecord) error
+
 	//Close should be called before the server is shut down.
 	Close()
 	ListGames(max int) []*extendedgame.CombinedStorageRecord

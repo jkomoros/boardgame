@@ -155,7 +155,7 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 func (s *StorageManager) ExtendedGame(id string) (*extendedgame.CombinedStorageRecord, error) {
 	var record CombinedGameStorageRecord
 
-	err := s.dbMap.SelectOne(&record, combinedGameStorageRecordQuery)
+	err := s.dbMap.SelectOne(&record, combinedGameStorageRecordQuery+" and g.Id = ?", id)
 
 	if err != nil {
 		return nil, err
@@ -251,6 +251,15 @@ func (s *StorageManager) SaveAgentState(gameId string, player boardgame.PlayerIn
 	}
 
 	return nil
+}
+
+func (s *StorageManager) UpdateExtendedGame(id string, eGame *extendedgame.StorageRecord) error {
+	record := NewExtendedGameStorageRecord(eGame)
+	record.Id = id
+
+	_, err := s.dbMap.Update(record)
+
+	return err
 }
 
 func (s *StorageManager) ListGames(max int) []*extendedgame.CombinedStorageRecord {

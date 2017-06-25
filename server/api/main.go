@@ -366,11 +366,13 @@ func (s *Server) newGameHandler(c *gin.Context) {
 
 	agents := s.getRequestAgents(c, numPlayers)
 
-	s.doNewGame(r, manager, numPlayers, agents)
+	owner := s.getUser(c)
+
+	s.doNewGame(r, owner, manager, numPlayers, agents)
 
 }
 
-func (s *Server) doNewGame(r *Renderer, manager *boardgame.GameManager, numPlayers int, agents []string) {
+func (s *Server) doNewGame(r *Renderer, owner *users.StorageRecord, manager *boardgame.GameManager, numPlayers int, agents []string) {
 
 	if manager == nil {
 		r.Error("No manager provided")
@@ -387,6 +389,22 @@ func (s *Server) doNewGame(r *Renderer, manager *boardgame.GameManager, numPlaye
 	if err := game.SetUp(numPlayers, agents); err != nil {
 		//TODO: communicate the error state back to the client in a sane way
 		r.Error("Couldn't set up game: " + err.Error())
+		return
+	}
+
+	combined, err := s.storage.ExtendedGame(game.Id())
+
+	if err != nil {
+		r.Error("Couldn't retrieve saved game: " + err.Error())
+		return
+	}
+
+	combined.Owner = owner.Id
+
+	//TODO: set Open, Visible based on query params.
+
+	if err := s.storage.UpdateExtendedGame(game.Id(), &combined.StorageRecord); err != nil {
+		r.Error("Couldn't save extended game metadata: " + err.Error())
 		return
 	}
 
