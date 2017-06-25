@@ -231,7 +231,10 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 
 	if previousGame != nil {
 		//This is not a new game!
-
+		eGame, err = s.ExtendedGame(game.Id)
+		if err != nil {
+			return errors.New("Couldnt' find extended game for an already created game: " + err.Error())
+		}
 	}
 
 	serializedExtendedGameRecord, err := json.Marshal(eGame)
@@ -269,11 +272,21 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 			return errors.New("Could open states bucket")
 		}
 
+		eBucket := tx.Bucket(extendedGamesBucket)
+
+		if eBucket == nil {
+			return errors.New("Couldn't open extended games bucket")
+		}
+
 		if err := gBucket.Put(keyForGame(game.Id), serializedGameRecord); err != nil {
 			return err
 		}
 
 		if err := sBucket.Put(keyForState(game.Id, version), state); err != nil {
+			return err
+		}
+
+		if err := eBucket.Put(keyForGame(game.Id), serializedExtendedGameRecord); err != nil {
 			return err
 		}
 
@@ -386,7 +399,7 @@ func (s *StorageManager) ExtendedGame(id string) (*extendedgame.StorageRecord, e
 
 	var rawRecord []byte
 
-	err = s.db.View(func(tx *bolt.Tx) error {
+	err := s.db.View(func(tx *bolt.Tx) error {
 		eBucket := tx.Bucket(extendedGamesBucket)
 
 		if eBucket == nil {
