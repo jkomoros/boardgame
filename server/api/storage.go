@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/jkomoros/boardgame/storage/mysql"
 )
@@ -21,6 +22,10 @@ type StorageManager interface {
 	//config string is specific to the type of storage layer, which can be
 	//interrogated with Nmae().
 	Connect(config string) error
+
+	//ExtendedGame is like Game(), but it returns an extended storage record
+	//with additional fields necessary for Server.
+	ExtendedGame(id string) (*extendedgame.StorageRecord, error)
 
 	//Close should be called before the server is shut down.
 	Close()
