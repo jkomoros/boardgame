@@ -12,6 +12,7 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
+	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"log"
 	"os"
@@ -348,7 +349,7 @@ func (s *StorageManager) SaveAgentState(gameId string, player boardgame.PlayerIn
 
 }
 
-func (s *StorageManager) ListGames(max int) []*extendedgame.CombinedStorageRecord {
+func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []*extendedgame.CombinedStorageRecord {
 
 	var resultIds []string
 

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
+	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/jkomoros/boardgame/storage/mysql"
 )
@@ -44,7 +45,7 @@ type StorageManager interface {
 
 	//ListGames should list up to max games, in descending order based on the
 	//LastActivity.
-	ListGames(max int) []*extendedgame.CombinedStorageRecord
+	ListGames(max int, list listing.Type, userId string) []*extendedgame.CombinedStorageRecord
 
 	//UserIdsForGame returns an array whose length equals game.NumPlayers.
 	//Each one is either empty if there is no user in that slot yet, or the

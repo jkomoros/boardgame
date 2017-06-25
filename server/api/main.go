@@ -5,6 +5,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/itsjamie/gin-cors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/jkomoros/boardgame/server/config"
 	"log"
@@ -427,12 +428,19 @@ func (s *Server) doNewGame(r *Renderer, owner *users.StorageRecord, manager *boa
 func (s *Server) listGamesHandler(c *gin.Context) {
 
 	r := NewRenderer(c)
-	s.doListGames(r)
+
+	user := s.getUser(c)
+
+	s.doListGames(r, user)
 }
 
-func (s *Server) doListGames(r *Renderer) {
+func (s *Server) doListGames(r *Renderer, user *users.StorageRecord) {
+	var userId string
+	if user != nil {
+		userId = user.Id
+	}
 	r.Success(gin.H{
-		"Games": s.storage.ListGames(100),
+		"Games": s.storage.ListGames(100, listing.All, userId),
 	})
 }
 

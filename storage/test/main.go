@@ -12,6 +12,7 @@ import (
 	"github.com/jkomoros/boardgame/examples/blackjack"
 	"github.com/jkomoros/boardgame/examples/tictactoe"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
+	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/workfit/tester/assert"
 	"math"
@@ -37,7 +38,7 @@ type StorageManager interface {
 	UpdateExtendedGame(id string, eGame *extendedgame.StorageRecord) error
 
 	Close()
-	ListGames(max int) []*extendedgame.CombinedStorageRecord
+	ListGames(max int, list listing.Type, userId string) []*extendedgame.CombinedStorageRecord
 
 	UserIdsForGame(gameId string) []string
 
@@ -178,7 +179,7 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	blackjackGame.SetUp(0, nil)
 
-	games := storage.ListGames(10)
+	games := storage.ListGames(10, listing.All, "")
 
 	if games == nil {
 		t.Error(testName, "ListGames gave back nothing")
