@@ -11,6 +11,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/examples/blackjack"
 	"github.com/jkomoros/boardgame/examples/tictactoe"
+	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/workfit/tester/assert"
 	"reflect"
@@ -28,9 +29,12 @@ type StorageManager interface {
 
 	Connect(config string) error
 
-	Close()
+	ExtendedGame(id string) (*extendedgame.CombinedStorageRecord, error)
 
-	ListGames(max int) []*boardgame.GameStorageRecord
+	UpdateExtendedGame(id string, eGame *extendedgame.StorageRecord) error
+
+	Close()
+	ListGames(max int) []*extendedgame.CombinedStorageRecord
 
 	UserIdsForGame(gameId string) []string
 
