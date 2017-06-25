@@ -3,6 +3,7 @@ package mysql
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"strconv"
 	"strings"
@@ -38,6 +39,32 @@ type GameStorageRecord struct {
 	//are in the game.
 	NumPlayers int64
 	Agents     string `db:",size:1024"`
+}
+
+type ExtendedGameStorageRecord struct {
+	Id           string `db:",size:16"`
+	Created      int64
+	LastActivity int64
+	Open         bool
+	Visible      bool
+	Owner        string `db:",size:128"`
+}
+
+//Used for pulling out of a db with a join
+type CombinedGameStorageRecord struct {
+	Name         string
+	Id           string
+	SecretSalt   string
+	Version      int64
+	Winners      string
+	Finished     bool
+	NumPlayers   int64
+	Agents       string
+	Created      int64
+	LastActivity int64
+	Open         bool
+	Visible      bool
+	Owner        string
 }
 
 type StateStorageRecord struct {
@@ -155,6 +182,91 @@ func NewGameStorageRecord(game *boardgame.GameStorageRecord) *GameStorageRecord 
 		NumPlayers: int64(game.NumPlayers),
 		Finished:   game.Finished,
 		Agents:     agentsToString(game.Agents),
+	}
+}
+
+func (c *CombinedGameStorageRecord) ToStorageRecord() *extendedgame.CombinedStorageRecord {
+	if c == nil {
+		return nil
+	}
+
+	winners, err := stringToWinners(c.Winners)
+
+	if err != nil {
+		return nil
+	}
+
+	return &extendedgame.CombinedStorageRecord{
+		boardgame.GameStorageRecord{
+			Name:       c.Name,
+			Id:         c.Id,
+			SecretSalt: c.SecretSalt,
+			Version:    int(c.Version),
+			Winners:    winners,
+			Finished:   c.Finished,
+			NumPlayers: int(c.NumPlayers),
+			Agents:     stringToAgents(c.Agents),
+		},
+		extendedgame.StorageRecord{
+			Created:      c.Created,
+			LastActivity: c.LastActivity,
+			Open:         c.Open,
+			Visible:      c.Visible,
+			Owner:        c.Owner,
+		},
+	}
+
+}
+
+func NewCombinedGameStorageRecord(combined *extendedgame.CombinedStorageRecord) *CombinedGameStorageRecord {
+
+	if combined == nil {
+		return nil
+	}
+
+	return &CombinedGameStorageRecord{
+		Name:         combined.Name,
+		Id:           combined.Id,
+		SecretSalt:   combined.SecretSalt,
+		Version:      int64(combined.Version),
+		Winners:      winnersToString(combined.Winners),
+		NumPlayers:   int64(combined.NumPlayers),
+		Finished:     combined.Finished,
+		Agents:       agentsToString(combined.Agents),
+		Created:      combined.Created,
+		LastActivity: combined.LastActivity,
+		Open:         combined.Open,
+		Visible:      combined.Visible,
+		Owner:        combined.Owner,
+	}
+
+}
+
+func (e *ExtendedGameStorageRecord) ToStorageRecord() *extendedgame.StorageRecord {
+	if e == nil {
+		return nil
+	}
+
+	return &extendedgame.StorageRecord{
+		Created:      e.Created,
+		LastActivity: e.LastActivity,
+		Open:         e.Open,
+		Visible:      e.Visible,
+		Owner:        e.Owner,
+	}
+}
+
+func NewExtendedGameStorageRecord(eGame *extendedgame.StorageRecord) *ExtendedGameStorageRecord {
+	if eGame == nil {
+		return nil
+	}
+
+	return &ExtendedGameStorageRecord{
+		Created:      eGame.Created,
+		LastActivity: eGame.LastActivity,
+		Open:         eGame.Open,
+		Visible:      eGame.Visible,
+		Owner:        eGame.Owner,
 	}
 }
 

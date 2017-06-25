@@ -25,7 +25,7 @@ type StorageManager interface {
 
 	//ExtendedGame is like Game(), but it returns an extended storage record
 	//with additional fields necessary for Server.
-	ExtendedGame(id string) (*extendedgame.StorageRecord, error)
+	ExtendedGame(id string) (*extendedgame.CombinedStorageRecord, error)
 
 	//Close should be called before the server is shut down.
 	Close()
