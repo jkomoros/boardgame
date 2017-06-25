@@ -368,11 +368,14 @@ func (s *Server) newGameHandler(c *gin.Context) {
 
 	owner := s.getUser(c)
 
-	s.doNewGame(r, owner, manager, numPlayers, agents)
+	open := s.getRequestOpen(c)
+	visible := s.getRequestVisible(c)
+
+	s.doNewGame(r, owner, manager, numPlayers, agents, open, visible)
 
 }
 
-func (s *Server) doNewGame(r *Renderer, owner *users.StorageRecord, manager *boardgame.GameManager, numPlayers int, agents []string) {
+func (s *Server) doNewGame(r *Renderer, owner *users.StorageRecord, manager *boardgame.GameManager, numPlayers int, agents []string, open bool, visible bool) {
 
 	if manager == nil {
 		r.Error("No manager provided")
@@ -400,6 +403,8 @@ func (s *Server) doNewGame(r *Renderer, owner *users.StorageRecord, manager *boa
 	}
 
 	combined.Owner = owner.Id
+	combined.Open = open
+	combined.Visible = visible
 
 	//TODO: set Open, Visible based on query params.
 

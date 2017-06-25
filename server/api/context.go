@@ -28,6 +28,8 @@ const (
 	qryNumPlayersKey        = "numplayers"
 	qryAgentKey             = "agent-player-"
 	qryGameVersion          = "version"
+	qryOpen                 = "open"
+	qryVisible              = "visible"
 )
 
 const (
@@ -69,6 +71,48 @@ func (s *Server) getRequestGameVersion(c *gin.Context) int {
 	result, _ := strconv.Atoi(rawVal)
 
 	return result
+}
+
+func (s *Server) getRequestOpen(c *gin.Context) bool {
+	open := c.Query(qryOpen)
+
+	if open == "" {
+
+		open = c.PostForm(qryOpen)
+
+		if open == "" {
+			return false
+		}
+	}
+
+	openInt, err := strconv.Atoi(open)
+
+	if err != nil {
+		return false
+	}
+
+	return openInt > 0
+}
+
+func (s *Server) getRequestVisible(c *gin.Context) bool {
+	visible := c.Query(qryVisible)
+
+	if visible == "" {
+
+		visible = c.PostForm(qryVisible)
+
+		if visible == "" {
+			return false
+		}
+	}
+
+	visibleInt, err := strconv.Atoi(visible)
+
+	if err != nil {
+		return false
+	}
+
+	return visibleInt > 0
 }
 
 func (s *Server) getRequestGameId(c *gin.Context) string {
