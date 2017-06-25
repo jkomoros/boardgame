@@ -69,8 +69,10 @@ func GetTestDatabase(t *testing.T) (*StorageManager, *migrate.Migrate) {
 	}
 
 	if err := m.Up(); err != nil {
-		t.Fatal("Couldn't upgrade test database: ", err.Error())
-		return nil, nil
+		if err != migrate.ErrNoChange {
+			t.Fatal("Couldn't upgrade test database: ", err.Error())
+			return nil, nil
+		}
 	}
 
 	return NewStorageManager(true), m
@@ -87,10 +89,9 @@ func TestStorageManager(t *testing.T) {
 	}
 
 	test.Test(func() test.StorageManager {
+		manager, _ := GetTestDatabase(t)
 		return manager
 	}, "mysql", testDSN, t)
-
-	connect.DropTestDb(testDSN)
 
 }
 

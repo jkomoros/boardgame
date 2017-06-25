@@ -99,7 +99,11 @@ func (s *StorageManager) Close() {
 }
 
 func (s *StorageManager) CleanUp() {
-	//Don't do anything; if we're in test mode tests will clean up.
+	if !s.testMode {
+		return
+	}
+	//connect will refuse to drop the db if it's not the test db name.
+	connect.DropTestDb(s.config)
 }
 
 func (s *StorageManager) Name() string {

@@ -66,6 +66,7 @@ func Test(factory StorageManagerFactory, testName string, connectConfig string, 
 	BasicTest(factory, testName, connectConfig, t)
 	UsersTest(factory, testName, connectConfig, t)
 	AgentsTest(factory, testName, connectConfig, t)
+	ListingTest(factory, testName, connectConfig, t)
 
 }
 
@@ -329,6 +330,87 @@ func AgentsTest(factory StorageManagerFactory, testName string, connectConfig st
 
 	assert.For(t).ThatActual(refriedBlob).Equals(newBlob)
 
+}
+
+func ListingTest(factory StorageManagerFactory, testName string, connectConfig string, t *testing.T) {
+
+	storage := factory()
+
+	defer storage.Close()
+	defer storage.CleanUp()
+
+	if err := storage.Connect(connectConfig); err != nil {
+		t.Fatal("Err connecting to storage: ", err)
+	}
+
+	manager := tictactoe.NewManager(storage)
+
+	configs := []struct {
+		UserZero string
+		UserOne  string
+		Finished bool
+		Open     bool
+		Visible  bool
+	}{
+		{
+			"Foo",
+			"",
+			false,
+			true,
+			true,
+		},
+		{
+			"",
+			"",
+			false,
+			true,
+			true,
+		},
+		{
+			"",
+			"Foo",
+			false,
+			true,
+			true,
+		},
+	}
+
+	for _, config := range configs {
+		game := boardgame.NewGame(manager)
+		if err := game.SetUp(0, nil); err != nil {
+			t.Fatal("Couldn't create game: " + err.Error())
+		}
+		if config.UserZero != "" {
+			storage.SetPlayerForGame(game.Id(), 0, config.UserZero)
+		}
+		if config.UserOne != "" {
+			storage.SetPlayerForGame(game.Id(), 1, config.UserOne)
+		}
+		eGame, err := storage.ExtendedGame(game.Id())
+		if err != nil {
+			t.Fatal("Couldn't get extended game info: " + err.Error())
+		}
+		eGame.Open = config.Open
+		eGame.Visible = config.Visible
+		storage.UpdateExtendedGame(game.Id(), eGame)
+		if config.Finished {
+			gameRec, err := storage.Game(game.Id())
+			if err != nil {
+				t.Fatal("Couldn't get game: " + err.Error())
+			}
+			gameRec.Finished = true
+			err = storage.SaveGameAndCurrentState(gameRec, game.CurrentState().StorageRecord(), nil)
+			if err != nil {
+				t.Fatal("Couldn't save the game: " + err.Error())
+			}
+		}
+	}
+
+	games := storage.ListGames(10, listing.All, "")
+
+	if len(games) != 3 {
+		t.Error("Expected three games", games)
+	}
 }
 
 func compareJSONObjects(in []byte, golden []byte, message string, t *testing.T) {
