@@ -32,7 +32,9 @@ type StorageManager interface {
 
 	//ExtendedGame is like Game(), but it returns an extended storage record
 	//with additional fields necessary for Server.
-	ExtendedGame(id string) (*extendedgame.CombinedStorageRecord, error)
+	ExtendedGame(id string) (*extendedgame.StorageRecord, error)
+
+	CombinedGame(id string) (*extendedgame.CombinedStorageRecord, error)
 
 	//UpdateExtendedGame updates the extended game with the given Id.
 	UpdateExtendedGame(id string, eGame *extendedgame.StorageRecord) error

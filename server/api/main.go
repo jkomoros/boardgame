@@ -400,20 +400,20 @@ func (s *Server) doNewGame(r *Renderer, owner *users.StorageRecord, manager *boa
 		return
 	}
 
-	combined, err := s.storage.ExtendedGame(game.Id())
+	eGame, err := s.storage.ExtendedGame(game.Id())
 
 	if err != nil {
 		r.Error("Couldn't retrieve saved game: " + err.Error())
 		return
 	}
 
-	combined.Owner = owner.Id
-	combined.Open = open
-	combined.Visible = visible
+	eGame.Owner = owner.Id
+	eGame.Open = open
+	eGame.Visible = visible
 
 	//TODO: set Open, Visible based on query params.
 
-	if err := s.storage.UpdateExtendedGame(game.Id(), &combined.StorageRecord); err != nil {
+	if err := s.storage.UpdateExtendedGame(game.Id(), eGame); err != nil {
 		r.Error("Couldn't save extended game metadata: " + err.Error())
 		return
 	}

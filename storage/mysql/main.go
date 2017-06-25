@@ -153,7 +153,19 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 	return (&game).ToStorageRecord(), nil
 }
 
-func (s *StorageManager) ExtendedGame(id string) (*extendedgame.CombinedStorageRecord, error) {
+func (s *StorageManager) ExtendedGame(id string) (*extendedgame.StorageRecord, error) {
+	var record ExtendedGameStorageRecord
+
+	err := s.dbMap.SelectOne(&record, "select * from "+TableExtendedGames+" where Id=?", id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return (&record).ToStorageRecord(), nil
+}
+
+func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageRecord, error) {
 	var record CombinedGameStorageRecord
 
 	err := s.dbMap.SelectOne(&record, combinedGameStorageRecordQuery+" and g.Id = ?", id)

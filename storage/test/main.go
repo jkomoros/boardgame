@@ -29,7 +29,9 @@ type StorageManager interface {
 
 	Connect(config string) error
 
-	ExtendedGame(id string) (*extendedgame.CombinedStorageRecord, error)
+	ExtendedGame(id string) (*extendedgame.StorageRecord, error)
+
+	CombinedGame(id string) (*extendedgame.CombinedStorageRecord, error)
 
 	UpdateExtendedGame(id string, eGame *extendedgame.StorageRecord) error
 

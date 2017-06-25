@@ -247,7 +247,18 @@ func (s *StorageManager) ListGames(max int) []*extendedgame.CombinedStorageRecor
 
 }
 
-func (s *StorageManager) ExtendedGame(id string) (*extendedgame.CombinedStorageRecord, error) {
+func (s *StorageManager) ExtendedGame(id string) (*extendedgame.StorageRecord, error) {
+	s.extendedGamesLock.RLock()
+	eGame := s.extendedGames[id]
+	s.extendedGamesLock.RUnlock()
+	if eGame == nil {
+		return nil, errors.New("No such extended game")
+	}
+
+	return eGame, nil
+}
+
+func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageRecord, error) {
 	s.extendedGamesLock.RLock()
 	eGame := s.extendedGames[id]
 	s.extendedGamesLock.RUnlock()
