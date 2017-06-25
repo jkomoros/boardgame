@@ -17,6 +17,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
 <link rel="import" href="../bower_components/paper-listbox/paper-listbox.html">
+<link rel="import" href="../bower_components/paper-toggle-button/paper-toggle-button.html">
 <link rel="import" href="../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../bower_components/paper-input/paper-input.html">
 <link rel="import" href="../bower_components/paper-radio-button/paper-radio-button.html">
@@ -28,6 +29,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <style is="custom-style" include="iron-flex shared-styles">
       paper-input {
         margin-left: 1em;
+      }
+      paper-toggle-button {
+        margin-right: 1em;
       }
     </style>
     <div class="vertical layout">
@@ -57,6 +61,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             </div>
           </div>
         </template>
+      </div>
+      <div class="horizontal layout">
+        <paper-toggle-button name="visible" checked>Allow strangers to find the game</paper-toggle-button>
+        <paper-toggle-button name="open" checked>Allow anyone who can view the game to join</paper-toggle-button>
       </div>
     </div>
     <iron-ajax id="create" url="[[NewGameUrl(apiHost)]]" with-credentials method="POST" content-type="application/x-www-form-urlencoded" last-response="{{createGameResponse}}"></iron-ajax>
@@ -120,13 +128,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         eles.push(this.shadowRoot.querySelector("paper-dropdown-menu"));
         eles.push(this.shadowRoot.querySelector("paper-input"));
-
+        eles = eles.concat([...this.shadowRoot.querySelectorAll("paper-toggle-button")]);
 
         for (var i = 0; i < eles.length; i++) {
           var ele = eles[i];
           if (ele.disabled) continue;
           if (ele.localName == "paper-radio-group") {
             ele = ele.selectedItem;
+          }
+          if (ele.localName == "paper-toggle-button") {
+            body[ele.name] = ele.checked ? "1" : "0";
+            continue;
           }
           body[ele.name] = ele.value;
         }
