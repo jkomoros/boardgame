@@ -29,7 +29,7 @@ type StorageManager interface {
 
 	//Close should be called before the server is shut down.
 	Close()
-	ListGames(max int) []*boardgame.GameStorageRecord
+	ListGames(max int) []*extendedgame.CombinedStorageRecord
 
 	//UserIdsForGame returns an array whose length equals game.NumPlayers.
 	//Each one is either empty if there is no user in that slot yet, or the

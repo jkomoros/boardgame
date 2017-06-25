@@ -28,6 +28,11 @@ const (
 	TableAgentStates   = "agentstates"
 )
 
+const combinedGameStorageRecordQuery = "select g.Name, g.Id, g.SecretSalt, g.Version, g.Winners, g.Finished, g.NumPlayers, g.Agents, " +
+	"e.Created, e.LastActivity, e.Open, e.Visible, e.Owner " +
+	"from " + TableGames + " g, " + TableExtendedGames + " e " +
+	"where g.Id = e.Id"
+
 type StorageManager struct {
 	db       *sql.DB
 	dbMap    *gorp.DbMap
@@ -150,12 +155,7 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 func (s *StorageManager) ExtendedGame(id string) (*extendedgame.CombinedStorageRecord, error) {
 	var record CombinedGameStorageRecord
 
-	query := "select g.Name, g.Id, g.SecretSalt, g.Version, g.Winners, g.Finished, g.NumPlayers, g.Agents, " +
-		"e.Created, e.LastActivity, e.Open, e.Visible, e.Owner " +
-		"from " + TableGames + " g, " + TableExtendedGames + " e " +
-		"where g.Id = e.Id"
-
-	err := s.dbMap.SelectOne(&record, query)
+	err := s.dbMap.SelectOne(&record, combinedGameStorageRecordQuery)
 
 	if err != nil {
 		return nil, err
@@ -253,18 +253,18 @@ func (s *StorageManager) SaveAgentState(gameId string, player boardgame.PlayerIn
 	return nil
 }
 
-func (s *StorageManager) ListGames(max int) []*boardgame.GameStorageRecord {
-	var games []GameStorageRecord
+func (s *StorageManager) ListGames(max int) []*extendedgame.CombinedStorageRecord {
+	var games []CombinedGameStorageRecord
 
 	if max < 1 {
 		max = 100
 	}
 
-	if _, err := s.dbMap.Select(&games, "select * from "+TableGames+" limit ?", max); err != nil {
+	if _, err := s.dbMap.Select(&games, combinedGameStorageRecordQuery+" limit ?", max); err != nil {
 		return nil
 	}
 
-	result := make([]*boardgame.GameStorageRecord, len(games))
+	result := make([]*extendedgame.CombinedStorageRecord, len(games))
 
 	for i, record := range games {
 		result[i] = (&record).ToStorageRecord()
