@@ -345,14 +345,18 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 
 	manager := tictactoe.NewManager(storage)
 
+	blackjackManager := blackjack.NewManager(storage)
+
 	configs := []struct {
-		UserZero string
-		UserOne  string
-		Finished bool
-		Open     bool
-		Visible  bool
+		IsBlackjack bool
+		UserZero    string
+		UserOne     string
+		Finished    bool
+		Open        bool
+		Visible     bool
 	}{
 		{
+			false,
 			"Foo",
 			"",
 			false,
@@ -360,6 +364,15 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 			true,
 		},
 		{
+			true,
+			"Foo",
+			"",
+			false,
+			true,
+			true,
+		},
+		{
+			false,
 			"",
 			"",
 			false,
@@ -367,6 +380,7 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 			true,
 		},
 		{
+			false,
 			"",
 			"Foo",
 			false,
@@ -376,7 +390,15 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 	}
 
 	for _, config := range configs {
-		game := boardgame.NewGame(manager)
+
+		var game *boardgame.Game
+
+		if config.IsBlackjack {
+			game = boardgame.NewGame(blackjackManager)
+		} else {
+			game = boardgame.NewGame(manager)
+		}
+
 		if err := game.SetUp(0, nil); err != nil {
 			t.Fatal("Couldn't create game: " + err.Error())
 		}
@@ -408,7 +430,7 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 
 	games := storage.ListGames(10, listing.All, "")
 
-	if len(games) != 3 {
+	if len(games) != 4 {
 		t.Error("Expected three games", games)
 	}
 }
