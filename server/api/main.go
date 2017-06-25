@@ -382,6 +382,11 @@ func (s *Server) doNewGame(r *Renderer, owner *users.StorageRecord, manager *boa
 		return
 	}
 
+	if owner == nil {
+		r.Error("You must be signed in to create a game.")
+		return
+	}
+
 	game := boardgame.NewGame(manager)
 
 	if game == nil {
