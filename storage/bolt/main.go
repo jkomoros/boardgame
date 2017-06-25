@@ -11,6 +11,7 @@ import (
 	"errors"
 	"github.com/boltdb/bolt"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"log"
 	"os"
@@ -26,13 +27,14 @@ type StorageManager struct {
 }
 
 var (
-	statesBucket      = []byte("States")
-	movesBucket       = []byte("Moves")
-	gamesBucket       = []byte("Games")
-	usersBucket       = []byte("Users")
-	cookiesBucket     = []byte("Cookies")
-	gameUsersBucket   = []byte("GameUsers")
-	agentStatesBucket = []byte("AgentStates")
+	statesBucket        = []byte("States")
+	movesBucket         = []byte("Moves")
+	gamesBucket         = []byte("Games")
+	extendedGamesBucket = []byte("ExtendedGames")
+	usersBucket         = []byte("Users")
+	cookiesBucket       = []byte("Cookies")
+	gameUsersBucket     = []byte("GameUsers")
+	agentStatesBucket   = []byte("AgentStates")
 )
 
 func NewStorageManager(fileName string) *StorageManager {
@@ -45,6 +47,9 @@ func NewStorageManager(fileName string) *StorageManager {
 	err = db.Update(func(tx *bolt.Tx) error {
 		if _, err := tx.CreateBucketIfNotExists(gamesBucket); err != nil {
 			return errors.New("Cannot create games bucket" + err.Error())
+		}
+		if _, err := tx.CreateBucketIfNotExists(extendedGamesBucket); err != nil {
+			return errors.New("Could not create extended games bucket" + err.Error())
 		}
 		if _, err := tx.CreateBucketIfNotExists(statesBucket); err != nil {
 			return errors.New("Cannot create states bucket" + err.Error())
@@ -220,6 +225,21 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		return errors.New("Couldn't serialize the internal game record: " + err.Error())
 	}
 
+	previousGame, _ := s.Game(game.Id)
+
+	eGame := extendedgame.DefaultStorageRecord()
+
+	if previousGame != nil {
+		//This is not a new game!
+
+	}
+
+	serializedExtendedGameRecord, err := json.Marshal(eGame)
+
+	if err != nil {
+		return errors.New("Couldn't serialize the internal extended game record: " + err.Error())
+	}
+
 	var serializedMoveRecord []byte
 
 	if move != nil {
@@ -312,9 +332,9 @@ func (s *StorageManager) SaveAgentState(gameId string, player boardgame.PlayerIn
 
 }
 
-func (s *StorageManager) ListGames(max int) []*boardgame.GameStorageRecord {
+func (s *StorageManager) ListGames(max int) []*extendedgame.CombinedStorageRecord {
 
-	var result []*boardgame.GameStorageRecord
+	var resultIds []string
 
 	err := s.db.View(func(tx *bolt.Tx) error {
 
@@ -323,10 +343,9 @@ func (s *StorageManager) ListGames(max int) []*boardgame.GameStorageRecord {
 		if gBucket == nil {
 			return errors.New("couldn't open games bucket")
 		}
-
 		c := gBucket.Cursor()
 		for k, v := c.First(); k != nil; k, v = c.Next() {
-			if len(result) >= max {
+			if len(resultIds) >= max {
 				break
 			}
 
@@ -336,7 +355,7 @@ func (s *StorageManager) ListGames(max int) []*boardgame.GameStorageRecord {
 				return errors.New("Couldn't deserialize a game: " + err.Error())
 			}
 
-			result = append(result, &record)
+			resultIds = append(resultIds, record.Id)
 		}
 
 		return nil
@@ -347,7 +366,121 @@ func (s *StorageManager) ListGames(max int) []*boardgame.GameStorageRecord {
 		return nil
 	}
 
+	var result []*extendedgame.CombinedStorageRecord
+
+	for _, id := range resultIds {
+		game, err := s.CombinedGame(id)
+
+		if err != nil {
+			continue
+		}
+
+		result = append(result, game)
+	}
+
 	return result
+
+}
+
+func (s *StorageManager) ExtendedGame(id string) (*extendedgame.StorageRecord, error) {
+
+	var rawRecord []byte
+
+	err = s.db.View(func(tx *bolt.Tx) error {
+		eBucket := tx.Bucket(extendedGamesBucket)
+
+		if eBucket == nil {
+			return errors.New("Couldn't open extended games bucket")
+		}
+
+		rawRecord = eBucket.Get(keyForGame(id))
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, errors.New("Couldn't get raw record: " + err.Error())
+	}
+
+	if rawRecord == nil {
+		return nil, errors.New("No such extended game found")
+	}
+
+	var eGame *extendedgame.StorageRecord
+
+	if err = json.Unmarshal(rawRecord, &eGame); err != nil {
+		return nil, errors.New("Couldn't unmarshal record: " + err.Error())
+	}
+
+	return eGame, nil
+}
+
+func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageRecord, error) {
+
+	game, err := s.Game(id)
+
+	if err != nil {
+		return nil, errors.New("Couldn't get game: " + err.Error())
+	}
+
+	var rawRecord []byte
+
+	err = s.db.View(func(tx *bolt.Tx) error {
+		eBucket := tx.Bucket(extendedGamesBucket)
+
+		if eBucket == nil {
+			return errors.New("Couldn't open extended games bucket")
+		}
+
+		rawRecord = eBucket.Get(keyForGame(id))
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, errors.New("Couldn't get raw record: " + err.Error())
+	}
+
+	if rawRecord == nil {
+		return nil, errors.New("No such extended game found")
+	}
+
+	var eGame *extendedgame.StorageRecord
+
+	if err = json.Unmarshal(rawRecord, &eGame); err != nil {
+		return nil, errors.New("Couldn't unmarshal record: " + err.Error())
+	}
+
+	return &extendedgame.CombinedStorageRecord{
+		*game,
+		*eGame,
+	}, nil
+}
+
+func (s *StorageManager) UpdateExtendedGame(id string, eGame *extendedgame.StorageRecord) error {
+
+	serializedExtendedGameRecord, err := json.Marshal(eGame)
+
+	if err != nil {
+		return errors.New("couldn't serialize record: " + err.Error())
+	}
+
+	err = s.db.Update(func(tx *bolt.Tx) error {
+
+		eBucket := tx.Bucket(extendedGamesBucket)
+
+		if eBucket == nil {
+			return errors.New("Couldn't open extended games bucket")
+		}
+
+		return eBucket.Put(keyForGame(id), serializedExtendedGameRecord)
+	})
+
+	if err != nil {
+		return errors.New("Couldn't save extended game: " + err.Error())
+	}
+
+	return nil
 
 }
 
