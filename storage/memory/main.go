@@ -12,14 +12,17 @@ package memory
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"sync"
+	"time"
 )
 
 type StorageManager struct {
 	states            map[string]map[int]boardgame.StateStorageRecord
 	moves             map[string]map[int]*boardgame.MoveStorageRecord
 	games             map[string]*boardgame.GameStorageRecord
+	extendedGames     map[string]*extendedgame.StorageRecord
 	usersById         map[string]*users.StorageRecord
 	usersByCookie     map[string]*users.StorageRecord
 	usersForGames     map[string][]string
@@ -27,6 +30,7 @@ type StorageManager struct {
 	statesLock        sync.RWMutex
 	movesLock         sync.RWMutex
 	gamesLock         sync.RWMutex
+	extendedGamesLock sync.RWMutex
 	usersLock         sync.RWMutex
 	usersForGamesLock sync.RWMutex
 	agentStatesLock   sync.RWMutex
@@ -39,6 +43,7 @@ func NewStorageManager() *StorageManager {
 		states:        make(map[string]map[int]boardgame.StateStorageRecord),
 		moves:         make(map[string]map[int]*boardgame.MoveStorageRecord),
 		games:         make(map[string]*boardgame.GameStorageRecord),
+		extendedGames: make(map[string]*extendedgame.StorageRecord),
 		usersById:     make(map[string]*users.StorageRecord),
 		usersByCookie: make(map[string]*users.StorageRecord),
 		usersForGames: make(map[string][]string),
@@ -168,6 +173,17 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		return errors.New("There was already a version for that game stored")
 	}
 
+	s.extendedGamesLock.RLock()
+	eGame, ok := s.extendedGames[game.Id]
+	s.extendedGamesLock.RUnlock()
+	if !ok {
+		s.extendedGamesLock.Lock()
+		s.extendedGames[game.Id] = extendedgame.DefaultStorageRecord()
+		s.extendedGamesLock.Unlock()
+	} else {
+		eGame.LastActivity = time.Now().UnixNano()
+	}
+
 	s.statesLock.Lock()
 	versionMap[version] = state
 	s.statesLock.Unlock()
@@ -209,13 +225,19 @@ func (s *StorageManager) SaveAgentState(gameId string, player boardgame.PlayerIn
 }
 
 //ListGames will return game objects for up to max number of games
-func (s *StorageManager) ListGames(max int) []*boardgame.GameStorageRecord {
+func (s *StorageManager) ListGames(max int) []*extendedgame.CombinedStorageRecord {
 
-	var result []*boardgame.GameStorageRecord
+	var result []*extendedgame.CombinedStorageRecord
 
 	for _, game := range s.games {
 
-		result = append(result, game)
+		eGame := s.extendedGames[game.Id]
+
+		result = append(result, &extendedgame.CombinedStorageRecord{
+			*game,
+			*eGame,
+		})
+
 		if len(result) >= max {
 			break
 		}
@@ -223,6 +245,46 @@ func (s *StorageManager) ListGames(max int) []*boardgame.GameStorageRecord {
 
 	return result
 
+}
+
+func (s *StorageManager) ExtendedGame(id string) (*extendedgame.StorageRecord, error) {
+	s.extendedGamesLock.RLock()
+	eGame := s.extendedGames[id]
+	s.extendedGamesLock.RUnlock()
+	if eGame == nil {
+		return nil, errors.New("No such extended game")
+	}
+
+	return eGame, nil
+}
+
+func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageRecord, error) {
+	s.extendedGamesLock.RLock()
+	eGame := s.extendedGames[id]
+	s.extendedGamesLock.RUnlock()
+	if eGame == nil {
+		return nil, errors.New("No such extended game")
+	}
+
+	game, err := s.Game(id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	result := &extendedgame.CombinedStorageRecord{
+		*game,
+		*eGame,
+	}
+
+	return result, nil
+}
+
+func (s *StorageManager) UpdateExtendedGame(id string, eGame *extendedgame.StorageRecord) error {
+	s.extendedGamesLock.Lock()
+	s.extendedGames[id] = eGame
+	s.extendedGamesLock.Unlock()
+	return nil
 }
 
 func (s *StorageManager) UserIdsForGame(gameId string) []string {

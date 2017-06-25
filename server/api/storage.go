@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/jkomoros/boardgame/storage/mysql"
 )
@@ -12,6 +13,13 @@ import (
 //to pass in a ServerStorageManager, which wraps one of these objects and thus
 //implements these methods, too.
 type StorageManager interface {
+
+	//StorageManager extends the boardgame.StorageManager interface. Those
+	//methods have two additional semantic expectations, however:
+	//SaveGameAndCurrentState should create an ExtendedGameStorageRecord on
+	//the first save of a game. And each time SaveGameAndCurrentState is
+	//called, that game's Extended storage record's LastActivity should be set
+	//to the current time.
 	boardgame.StorageManager
 
 	//Name returns the name of the storage manager type, for example "memory", "bolt", or "mysql"
@@ -22,9 +30,18 @@ type StorageManager interface {
 	//interrogated with Nmae().
 	Connect(config string) error
 
+	//ExtendedGame is like Game(), but it returns an extended storage record
+	//with additional fields necessary for Server.
+	ExtendedGame(id string) (*extendedgame.StorageRecord, error)
+
+	CombinedGame(id string) (*extendedgame.CombinedStorageRecord, error)
+
+	//UpdateExtendedGame updates the extended game with the given Id.
+	UpdateExtendedGame(id string, eGame *extendedgame.StorageRecord) error
+
 	//Close should be called before the server is shut down.
 	Close()
-	ListGames(max int) []*boardgame.GameStorageRecord
+	ListGames(max int) []*extendedgame.CombinedStorageRecord
 
 	//UserIdsForGame returns an array whose length equals game.NumPlayers.
 	//Each one is either empty if there is no user in that slot yet, or the

@@ -11,6 +11,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/examples/blackjack"
 	"github.com/jkomoros/boardgame/examples/tictactoe"
+	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/workfit/tester/assert"
 	"reflect"
@@ -28,9 +29,14 @@ type StorageManager interface {
 
 	Connect(config string) error
 
-	Close()
+	ExtendedGame(id string) (*extendedgame.StorageRecord, error)
 
-	ListGames(max int) []*boardgame.GameStorageRecord
+	CombinedGame(id string) (*extendedgame.CombinedStorageRecord, error)
+
+	UpdateExtendedGame(id string, eGame *extendedgame.StorageRecord) error
+
+	Close()
+	ListGames(max int) []*extendedgame.CombinedStorageRecord
 
 	UserIdsForGame(gameId string) []string
 
@@ -86,7 +92,35 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	tictactoeGame := boardgame.NewGame(tictactoeManager)
 
-	tictactoeGame.SetUp(0, nil)
+	if err := tictactoeGame.SetUp(0, nil); err != nil {
+		t.Fatal("Got error on tictactoe set up: " + err.Error())
+	}
+
+	eGame, err := storage.ExtendedGame(tictactoeGame.Id())
+
+	if err != nil {
+		t.Error("Error getting eGame: " + err.Error())
+	}
+
+	assert.For(t).ThatActual(eGame).IsNotNil()
+
+	assert.For(t).ThatActual(eGame.Created-eGame.LastActivity < 100).IsTrue()
+
+	assert.For(t).ThatActual(eGame.Owner).Equals("")
+
+	eGame.Owner = "Foo"
+
+	lastSeenTimestamp := eGame.LastActivity
+
+	err = storage.UpdateExtendedGame(tictactoeGame.Id(), eGame)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	newEGame, err := storage.ExtendedGame(tictactoeGame.Id())
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(newEGame).Equals(eGame)
 
 	move := tictactoeGame.PlayerMoveByName("Place Token")
 
@@ -97,6 +131,12 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 	if err := <-tictactoeGame.ProposeMove(move, boardgame.AdminPlayerIndex); err != nil {
 		t.Fatal(testName, "Couldn't make move", err)
 	}
+
+	eGame, err = storage.ExtendedGame(tictactoeGame.Id())
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(eGame.LastActivity > lastSeenTimestamp).IsTrue()
 
 	refriedMove, err := tictactoeGame.Move(1)
 

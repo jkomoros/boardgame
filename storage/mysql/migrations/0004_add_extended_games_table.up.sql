@@ -1,0 +1,1 @@
+create table if not exists `extendedgames` (`Id` varchar(16) not null primary key, `Created` bigint, `LastActivity` bigint, `Open` boolean, `Visible` boolean, `Owner` varchar(16))  engine=InnoDB charset=utf8;

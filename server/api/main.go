@@ -366,14 +366,24 @@ func (s *Server) newGameHandler(c *gin.Context) {
 
 	agents := s.getRequestAgents(c, numPlayers)
 
-	s.doNewGame(r, manager, numPlayers, agents)
+	owner := s.getUser(c)
+
+	open := s.getRequestOpen(c)
+	visible := s.getRequestVisible(c)
+
+	s.doNewGame(r, owner, manager, numPlayers, agents, open, visible)
 
 }
 
-func (s *Server) doNewGame(r *Renderer, manager *boardgame.GameManager, numPlayers int, agents []string) {
+func (s *Server) doNewGame(r *Renderer, owner *users.StorageRecord, manager *boardgame.GameManager, numPlayers int, agents []string, open bool, visible bool) {
 
 	if manager == nil {
 		r.Error("No manager provided")
+		return
+	}
+
+	if owner == nil {
+		r.Error("You must be signed in to create a game.")
 		return
 	}
 
@@ -387,6 +397,24 @@ func (s *Server) doNewGame(r *Renderer, manager *boardgame.GameManager, numPlaye
 	if err := game.SetUp(numPlayers, agents); err != nil {
 		//TODO: communicate the error state back to the client in a sane way
 		r.Error("Couldn't set up game: " + err.Error())
+		return
+	}
+
+	eGame, err := s.storage.ExtendedGame(game.Id())
+
+	if err != nil {
+		r.Error("Couldn't retrieve saved game: " + err.Error())
+		return
+	}
+
+	eGame.Owner = owner.Id
+	eGame.Open = open
+	eGame.Visible = visible
+
+	//TODO: set Open, Visible based on query params.
+
+	if err := s.storage.UpdateExtendedGame(game.Id(), eGame); err != nil {
+		r.Error("Couldn't save extended game metadata: " + err.Error())
 		return
 	}
 

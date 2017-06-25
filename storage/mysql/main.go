@@ -11,20 +11,28 @@ import (
 	"errors"
 	"github.com/go-gorp/gorp"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/jkomoros/boardgame/storage/mysql/connect"
 	"log"
+	"time"
 )
 
 const (
-	TableGames       = "games"
-	TableMoves       = "moves"
-	TableUsers       = "users"
-	TableStates      = "states"
-	TableCookies     = "cookies"
-	TablePlayers     = "players"
-	TableAgentStates = "agentstates"
+	TableGames         = "games"
+	TableExtendedGames = "extendedgames"
+	TableMoves         = "moves"
+	TableUsers         = "users"
+	TableStates        = "states"
+	TableCookies       = "cookies"
+	TablePlayers       = "players"
+	TableAgentStates   = "agentstates"
 )
+
+const combinedGameStorageRecordQuery = "select g.Name, g.Id, g.SecretSalt, g.Version, g.Winners, g.Finished, g.NumPlayers, g.Agents, " +
+	"e.Created, e.LastActivity, e.Open, e.Visible, e.Owner " +
+	"from " + TableGames + " g, " + TableExtendedGames + " e " +
+	"where g.Id = e.Id"
 
 type StorageManager struct {
 	db       *sql.DB
@@ -64,6 +72,7 @@ func (s *StorageManager) Connect(config string) error {
 
 	s.dbMap.AddTableWithName(UserStorageRecord{}, TableUsers).SetKeys(false, "Id")
 	s.dbMap.AddTableWithName(GameStorageRecord{}, TableGames).SetKeys(false, "Id")
+	s.dbMap.AddTableWithName(ExtendedGameStorageRecord{}, TableExtendedGames).SetKeys(false, "Id")
 	s.dbMap.AddTableWithName(StateStorageRecord{}, TableStates).SetKeys(true, "Id")
 	s.dbMap.AddTableWithName(CookieStorageRecord{}, TableCookies).SetKeys(false, "Cookie")
 	s.dbMap.AddTableWithName(PlayerStorageRecord{}, TablePlayers).SetKeys(true, "Id")
@@ -144,6 +153,30 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 	return (&game).ToStorageRecord(), nil
 }
 
+func (s *StorageManager) ExtendedGame(id string) (*extendedgame.StorageRecord, error) {
+	var record ExtendedGameStorageRecord
+
+	err := s.dbMap.SelectOne(&record, "select * from "+TableExtendedGames+" where Id=?", id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return (&record).ToStorageRecord(), nil
+}
+
+func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageRecord, error) {
+	var record CombinedGameStorageRecord
+
+	err := s.dbMap.SelectOne(&record, combinedGameStorageRecordQuery+" and g.Id = ?", id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return (&record).ToStorageRecord(), nil
+}
+
 func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord, move *boardgame.MoveStorageRecord) error {
 
 	version := game.Version
@@ -164,9 +197,17 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		err := s.dbMap.Insert(gameRecord)
 
 		if err != nil {
-
 			return errors.New("Couldn't update game: " + err.Error())
+		}
 
+		extendedRecord := NewExtendedGameStorageRecord(extendedgame.DefaultStorageRecord())
+
+		extendedRecord.Id = game.Id
+
+		err = s.dbMap.Insert(extendedRecord)
+
+		if err != nil {
+			return errors.New("Couldn't insert the extended game info: " + err.Error())
 		}
 
 	} else {
@@ -176,6 +217,13 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		if err != nil {
 			return errors.New("Couldn't insert game: " + err.Error())
 		}
+
+		err = s.touchExtendedGameLastActivity(game.Id)
+
+		if err != nil {
+			return errors.New("Couldn't update LastActivty on game: " + err.Error())
+		}
+
 	}
 
 	err := s.dbMap.Insert(stateRecord)
@@ -190,6 +238,22 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		if err != nil {
 			return errors.New("couldn't insert move: " + err.Error())
 		}
+	}
+
+	return nil
+}
+
+func (s *StorageManager) touchExtendedGameLastActivity(id string) error {
+	var rec ExtendedGameStorageRecord
+
+	if err := s.dbMap.SelectOne(&rec, "select * from "+TableExtendedGames+" where Id=? limit 1", id); err != nil {
+		return errors.New("Couldn't fetch lastActivity: " + err.Error())
+	}
+
+	rec.LastActivity = time.Now().UnixNano()
+
+	if _, err := s.dbMap.Update(&rec); err != nil {
+		return errors.New("Couldn't update lastActivity: " + err.Error())
 	}
 
 	return nil
@@ -225,18 +289,27 @@ func (s *StorageManager) SaveAgentState(gameId string, player boardgame.PlayerIn
 	return nil
 }
 
-func (s *StorageManager) ListGames(max int) []*boardgame.GameStorageRecord {
-	var games []GameStorageRecord
+func (s *StorageManager) UpdateExtendedGame(id string, eGame *extendedgame.StorageRecord) error {
+	record := NewExtendedGameStorageRecord(eGame)
+	record.Id = id
+
+	_, err := s.dbMap.Update(record)
+
+	return err
+}
+
+func (s *StorageManager) ListGames(max int) []*extendedgame.CombinedStorageRecord {
+	var games []CombinedGameStorageRecord
 
 	if max < 1 {
 		max = 100
 	}
 
-	if _, err := s.dbMap.Select(&games, "select * from "+TableGames+" limit ?", max); err != nil {
+	if _, err := s.dbMap.Select(&games, combinedGameStorageRecordQuery+" limit ?", max); err != nil {
 		return nil
 	}
 
-	result := make([]*boardgame.GameStorageRecord, len(games))
+	result := make([]*extendedgame.CombinedStorageRecord, len(games))
 
 	for i, record := range games {
 		result[i] = (&record).ToStorageRecord()
