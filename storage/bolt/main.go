@@ -17,6 +17,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 //TODO: test this package
@@ -235,6 +236,7 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		if err != nil {
 			return errors.New("Couldnt' find extended game for an already created game: " + err.Error())
 		}
+		eGame.LastActivity = time.Now().UnixNano()
 	}
 
 	serializedExtendedGameRecord, err := json.Marshal(eGame)
