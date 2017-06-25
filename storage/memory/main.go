@@ -14,6 +14,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/users"
+	"sort"
 	"sync"
 	"time"
 )
@@ -242,6 +243,10 @@ func (s *StorageManager) ListGames(max int) []*extendedgame.CombinedStorageRecor
 			break
 		}
 	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].LastActivity > result[j].LastActivity
+	})
 
 	return result
 

@@ -305,7 +305,7 @@ func (s *StorageManager) ListGames(max int) []*extendedgame.CombinedStorageRecor
 		max = 100
 	}
 
-	if _, err := s.dbMap.Select(&games, combinedGameStorageRecordQuery+" limit ?", max); err != nil {
+	if _, err := s.dbMap.Select(&games, combinedGameStorageRecordQuery+" order by e.LastActivity desc limit ?", max); err != nil {
 		return nil
 	}
 

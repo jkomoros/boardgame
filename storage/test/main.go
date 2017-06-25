@@ -14,6 +14,7 @@ import (
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/workfit/tester/assert"
+	"math"
 	"reflect"
 	"testing"
 )
@@ -185,6 +186,15 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	if len(games) != 2 {
 		t.Error(testName, "We called listgames with a tictactoe game and a blackjack game, but got", len(games), "back.")
+	}
+
+	lastSeenTimestamp = math.MaxInt64
+
+	for _, game := range games {
+		if game.LastActivity >= lastSeenTimestamp {
+			t.Error("Games were not sorted descending by lastSeenTimeStamp")
+		}
+		lastSeenTimestamp = game.LastActivity
 	}
 
 	//TODO: figure out how to test that name is matched when retrieving from store.

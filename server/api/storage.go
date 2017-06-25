@@ -41,6 +41,9 @@ type StorageManager interface {
 
 	//Close should be called before the server is shut down.
 	Close()
+
+	//ListGames should list up to max games, in descending order based on the
+	//LastActivity.
 	ListGames(max int) []*extendedgame.CombinedStorageRecord
 
 	//UserIdsForGame returns an array whose length equals game.NumPlayers.
