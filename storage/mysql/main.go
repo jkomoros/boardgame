@@ -15,6 +15,7 @@ import (
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/jkomoros/boardgame/storage/mysql/connect"
 	"log"
+	"time"
 )
 
 const (
@@ -204,6 +205,13 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		if err != nil {
 			return errors.New("Couldn't insert game: " + err.Error())
 		}
+
+		err = s.touchExtendedGameLastActivity(game.Id)
+
+		if err != nil {
+			return errors.New("Couldn't update LastActivty on game: " + err.Error())
+		}
+
 	}
 
 	err := s.dbMap.Insert(stateRecord)
@@ -218,6 +226,22 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		if err != nil {
 			return errors.New("couldn't insert move: " + err.Error())
 		}
+	}
+
+	return nil
+}
+
+func (s *StorageManager) touchExtendedGameLastActivity(id string) error {
+	var rec ExtendedGameStorageRecord
+
+	if err := s.dbMap.SelectOne(&rec, "select * from "+TableExtendedGames+" where Id=? limit 1", id); err != nil {
+		return errors.New("Couldn't fetch lastActivity: " + err.Error())
+	}
+
+	rec.LastActivity = time.Now().UnixNano()
+
+	if _, err := s.dbMap.Update(&rec); err != nil {
+		return errors.New("Couldn't update lastActivity: " + err.Error())
 	}
 
 	return nil
