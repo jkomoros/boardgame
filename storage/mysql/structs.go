@@ -39,6 +39,8 @@ type GameStorageRecord struct {
 	//are in the game.
 	NumPlayers int64
 	Agents     string `db:",size:1024"`
+	//Derived field to enable HasEmptySlots SQL query
+	NumAgents int64
 }
 
 type ExtendedGameStorageRecord struct {
@@ -173,6 +175,14 @@ func NewGameStorageRecord(game *boardgame.GameStorageRecord) *GameStorageRecord 
 		return nil
 	}
 
+	numAgents := 0
+
+	for _, agent := range game.Agents {
+		if agent != "" {
+			numAgents++
+		}
+	}
+
 	return &GameStorageRecord{
 		Name:       game.Name,
 		Id:         game.Id,
@@ -182,6 +192,7 @@ func NewGameStorageRecord(game *boardgame.GameStorageRecord) *GameStorageRecord 
 		NumPlayers: int64(game.NumPlayers),
 		Finished:   game.Finished,
 		Agents:     agentsToString(game.Agents),
+		NumAgents:  int64(numAgents),
 	}
 }
 
