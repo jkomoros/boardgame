@@ -52,45 +52,39 @@ func TestOutputTables(t *testing.T) {
 
 }
 
-func GetTestDatabase(t *testing.T) (*StorageManager, *migrate.Migrate) {
+func GetTestDatabase(t *testing.T) *StorageManager {
 
 	db, err := connect.Db(testDSN, true, true)
 
 	if err != nil {
 		t.Fatal("Couldn't get db: " + err.Error())
-		return nil, nil
+		return nil
 	}
 
 	m, err := connect.Migrations(db)
 
 	if err != nil {
 		t.Fatal("Couldn't get migrations: " + err.Error())
-		return nil, nil
+		return nil
 	}
 
 	if err := m.Up(); err != nil {
 		if err != migrate.ErrNoChange {
 			t.Fatal("Couldn't upgrade test database: ", err.Error())
-			return nil, nil
+			return nil
 		}
 	}
 
-	return NewStorageManager(true), m
+	m.Close()
+
+	return NewStorageManager(true)
 
 }
 
 func TestStorageManager(t *testing.T) {
 
-	manager, _ := GetTestDatabase(t)
-
-	if manager == nil {
-		//GetTestDatabase will have already fatal'd for us
-		return
-	}
-
 	test.Test(func() test.StorageManager {
-		manager, _ := GetTestDatabase(t)
-		return manager
+		return GetTestDatabase(t)
 	}, "mysql", testDSN, t)
 
 }
