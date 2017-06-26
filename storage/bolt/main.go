@@ -362,9 +362,6 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []
 		}
 		c := gBucket.Cursor()
 		for k, v := c.First(); k != nil; k, v = c.Next() {
-			if len(resultIds) >= max {
-				break
-			}
 
 			var record boardgame.GameStorageRecord
 
@@ -386,10 +383,33 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []
 	var result []*extendedgame.CombinedStorageRecord
 
 	for _, id := range resultIds {
+
+		if len(result) >= max {
+			break
+		}
+
 		game, err := s.CombinedGame(id)
 
 		if err != nil {
 			continue
+		}
+
+		usersForGame := s.UserIdsForGame(game.Id)
+
+		hasUser := false
+
+		for _, user := range usersForGame {
+			if user == userId {
+				hasUser = true
+				break
+			}
+		}
+
+		switch list {
+		case listing.ParticipatingActive:
+			if game.Finished || !hasUser {
+				continue
+			}
 		}
 
 		result = append(result, game)

@@ -235,6 +235,24 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []
 
 		eGame := s.extendedGames[game.Id]
 
+		usersForGame := s.UserIdsForGame(game.Id)
+
+		hasUser := false
+
+		for _, user := range usersForGame {
+			if user == userId {
+				hasUser = true
+				break
+			}
+		}
+
+		switch list {
+		case listing.ParticipatingActive:
+			if game.Finished || !hasUser {
+				continue
+			}
+		}
+
 		result = append(result, &extendedgame.CombinedStorageRecord{
 			*game,
 			*eGame,

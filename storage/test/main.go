@@ -457,6 +457,12 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 	if len(games) != len(configs) {
 		t.Error("Expected len(config) games", games)
 	}
+
+	games = storage.ListGames(10, listing.ParticipatingActive, testUser)
+
+	if len(games) != 3 {
+		t.Error("Expected three games: ", games)
+	}
 }
 
 func compareJSONObjects(in []byte, golden []byte, message string, t *testing.T) {

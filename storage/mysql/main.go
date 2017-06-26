@@ -30,10 +30,17 @@ const (
 	TableAgentStates   = "agentstates"
 )
 
-const combinedGameStorageRecordQuery = "select g.Name, g.Id, g.SecretSalt, g.Version, g.Winners, g.Finished, g.NumPlayers, g.Agents, " +
-	"e.Created, e.LastActivity, e.Open, e.Visible, e.Owner " +
-	"from " + TableGames + " g, " + TableExtendedGames + " e " +
-	"where g.Id = e.Id"
+const baseCombinedSelectQuery = "select g.Name, g.Id, g.SecretSalt, g.Version, g.Winners, g.Finished, g.NumPlayers, g.Agents, " +
+	"e.Created, e.LastActivity, e.Open, e.Visible, e.Owner"
+
+const baseCombinedFromQuery = "from " + TableGames + " g, " + TableExtendedGames + " e"
+
+const baseCombinedWhereQuery = "where g.Id = e.Id"
+
+const combinedPlayerFilterQuery = baseCombinedSelectQuery + " " + baseCombinedFromQuery + ", players p " + baseCombinedWhereQuery +
+	" and p.GameId = g.Id and p.UserId = ?"
+
+const combinedGameStorageRecordQuery = baseCombinedSelectQuery + " " + baseCombinedFromQuery + " " + baseCombinedWhereQuery
 
 type StorageManager struct {
 	db       *sql.DB
@@ -48,6 +55,7 @@ func NewStorageManager(testMode bool) *StorageManager {
 	return &StorageManager{
 		testMode: testMode,
 	}
+
 }
 
 func (s *StorageManager) Connect(config string) error {
@@ -310,8 +318,28 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []
 		max = 100
 	}
 
-	if _, err := s.dbMap.Select(&games, combinedGameStorageRecordQuery+" order by e.LastActivity desc limit ?", max); err != nil {
-		return nil
+	query := combinedGameStorageRecordQuery
+
+	if list != listing.All && userId != "" {
+		query = combinedPlayerFilterQuery
+	}
+
+	if list == listing.ParticipatingActive {
+		query += " and g.Finished = 0"
+	}
+
+	query += " order by e.LastActivity desc limit ?"
+
+	if list != listing.All && userId != "" {
+		if _, err := s.dbMap.Select(&games, query, userId, max); err != nil {
+			log.Println("List games failed: " + err.Error())
+			return nil
+		}
+	} else {
+		if _, err := s.dbMap.Select(&games, query, max); err != nil {
+			log.Println("List games failed: " + err.Error())
+			return nil
+		}
 	}
 
 	result := make([]*extendedgame.CombinedStorageRecord, len(games))
