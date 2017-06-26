@@ -442,6 +442,7 @@ func (s *Server) doListGames(r *Renderer, user *users.StorageRecord) {
 	r.Success(gin.H{
 		"ActiveGames":   s.storage.ListGames(100, listing.ParticipatingActive, userId),
 		"FinishedGames": s.storage.ListGames(100, listing.ParticipatingFinished, userId),
+		"AllGames":      s.storage.ListGames(100, listing.All, ""),
 	})
 }
 

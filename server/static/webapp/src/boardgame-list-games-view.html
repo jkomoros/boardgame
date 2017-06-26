@@ -42,6 +42,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <template is="dom-repeat" items="{{data.FinishedGames}}">
       <boardgame-game-item item="{{item}}"></boardgame-game-item>
     </template>
+    <h2>All Games</h2>
+    <template is="dom-repeat" items="{{data.AllGames}}">
+      <boardgame-game-item item="{{item}}"></boardgame-game-item>
+    </template>
 
     
     <iron-ajax id="games" url="[[ListGamesUrl(apiHost)]]" handle-as="json" last-response="{{data}}">
