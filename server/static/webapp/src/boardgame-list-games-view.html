@@ -28,8 +28,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <div class="card">
       <boardgame-create-game logged-in="{{loggedIn}}"></boardgame-create-game>
     </div>
-    <template is="dom-repeat" items="{{data.Games}}">
-
+    <h2>Active</h2>
+    <template is="dom-repeat" items="{{data.ActiveGames}}">
+      <div class="card">
+        <a href="[[UrlForGame(item.Name,item.Id)]]">{{item.Id}}</a>
+        {{item.Name}}
+      </div>
+    </template>
+    <h2>Finished</h2>
+    <template is="dom-repeat" items="{{data.FinishedGames}}">
       <div class="card">
         <a href="[[UrlForGame(item.Name,item.Id)]]">{{item.Id}}</a>
         {{item.Name}}
