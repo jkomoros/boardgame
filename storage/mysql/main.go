@@ -324,8 +324,11 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []
 		query = combinedPlayerFilterQuery
 	}
 
-	if list == listing.ParticipatingActive {
+	switch list {
+	case listing.ParticipatingActive:
 		query += " and g.Finished = 0"
+	case listing.ParticipatingFinished:
+		query += " and g.Finished = 1"
 	}
 
 	query += " order by e.LastActivity desc limit ?"

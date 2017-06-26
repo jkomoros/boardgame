@@ -463,6 +463,12 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 	if len(games) != 3 {
 		t.Error("Expected three games: ", games)
 	}
+
+	games = storage.ListGames(10, listing.ParticipatingFinished, testUser)
+
+	if len(games) != 1 {
+		t.Error("Expected one game: ", games)
+	}
 }
 
 func compareJSONObjects(in []byte, golden []byte, message string, t *testing.T) {

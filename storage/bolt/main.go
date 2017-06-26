@@ -410,6 +410,10 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []
 			if game.Finished || !hasUser {
 				continue
 			}
+		case listing.ParticipatingFinished:
+			if !game.Finished || !hasUser {
+				continue
+			}
 		}
 
 		result = append(result, game)
