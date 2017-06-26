@@ -398,6 +398,14 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 			true,
 			true,
 		},
+		{
+			false,
+			testUserOther,
+			testUser,
+			true,
+			false,
+			false,
+		},
 	}
 
 	for _, config := range configs {
@@ -436,6 +444,7 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 				t.Fatal("Couldn't get game: " + err.Error())
 			}
 			gameRec.Finished = true
+			gameRec.Version++
 			err = storage.SaveGameAndCurrentState(gameRec, game.CurrentState().StorageRecord(), nil)
 			if err != nil {
 				t.Fatal("Couldn't save the game: " + err.Error())
@@ -445,8 +454,8 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 
 	games := storage.ListGames(10, listing.All, "")
 
-	if len(games) != 4 {
-		t.Error("Expected three games", games)
+	if len(games) != len(configs) {
+		t.Error("Expected len(config) games", games)
 	}
 }
 
