@@ -1,0 +1,33 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../config-src/boardgame-config.html">
+<link rel="import" href="boardgame-util.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="boardgame-game-item">
+  <template>
+    <style include="shared-styles">
+    </style>
+    <div class="card">
+        <a href="[[UrlForGame(item.Name,item.Id)]]">{{item.Id}}</a>
+        {{item.Name}}
+      </div>
+  </template>
+
+  <script>
+
+    class BoardgameGameItem extends ApiHostMixin(BoardgameUtilMixin(Polymer.Element)) {
+      static get is() {
+        return "boardgame-game-item"
+      }
+
+      static get properties() {
+        return {
+          item: Object,
+        }
+      }
+    }
+
+    customElements.define(BoardgameGameItem.is, BoardgameGameItem);
+    
+  </script>
+</dom-module>

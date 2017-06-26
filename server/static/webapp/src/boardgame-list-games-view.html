@@ -16,6 +16,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="shared-styles.html">
 <link rel="import" href="boardgame-util.html">
 <link rel="import" href="boardgame-create-game.html">
+<link rel="import" href="boardgame-game-item.html">
 
 <dom-module id="boardgame-list-games-view">
   <template>
@@ -35,17 +36,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </div>
     <h2>Active</h2>
     <template is="dom-repeat" items="{{data.ActiveGames}}">
-      <div class="card">
-        <a href="[[UrlForGame(item.Name,item.Id)]]">{{item.Id}}</a>
-        {{item.Name}}
-      </div>
+      <boardgame-game-item item="{{item}}"></boardgame-game-item>
     </template>
     <h2>Finished</h2>
     <template is="dom-repeat" items="{{data.FinishedGames}}">
-      <div class="card">
-        <a href="[[UrlForGame(item.Name,item.Id)]]">{{item.Id}}</a>
-        {{item.Name}}
-      </div>
+      <boardgame-game-item item="{{item}}"></boardgame-game-item>
     </template>
 
     
