@@ -320,9 +320,14 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []
 
 	query := combinedGameStorageRecordQuery
 
+	var args []interface{}
+
 	if list != listing.All && userId != "" {
 		query = combinedPlayerFilterQuery
+		args = append(args, userId)
 	}
+
+	args = append(args, max)
 
 	switch list {
 	case listing.ParticipatingActive:
@@ -333,16 +338,9 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []
 
 	query += " order by e.LastActivity desc limit ?"
 
-	if list != listing.All && userId != "" {
-		if _, err := s.dbMap.Select(&games, query, userId, max); err != nil {
-			log.Println("List games failed: " + err.Error())
-			return nil
-		}
-	} else {
-		if _, err := s.dbMap.Select(&games, query, max); err != nil {
-			log.Println("List games failed: " + err.Error())
-			return nil
-		}
+	if _, err := s.dbMap.Select(&games, query, args...); err != nil {
+		log.Println("List games failed: " + err.Error())
+		return nil
 	}
 
 	result := make([]*extendedgame.CombinedStorageRecord, len(games))
