@@ -12,6 +12,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/polymer/lib/elements/dom-repeat.html">
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="../config-src/boardgame-config.html">
+<link rel="import" href="../bower_components/paper-styles/typography.html">
 <link rel="import" href="shared-styles.html">
 <link rel="import" href="boardgame-util.html">
 <link rel="import" href="boardgame-create-game.html">
@@ -23,6 +24,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         display: block;
 
         padding: 10px;
+      }
+      h2 {
+        margin: 0 24px;
+        @apply --paper-font-title;
       }
     </style>
     <div class="card">
