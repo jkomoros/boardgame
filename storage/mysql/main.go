@@ -347,8 +347,6 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []
 
 	query += " order by e.LastActivity desc limit ?"
 
-	log.Println(query)
-
 	if _, err := s.dbMap.Select(&games, query, args...); err != nil {
 		log.Println("List games failed: " + err.Error())
 		return nil
