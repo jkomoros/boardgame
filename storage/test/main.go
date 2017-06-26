@@ -343,6 +343,17 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 		t.Fatal("Err connecting to storage: ", err)
 	}
 
+	testUser := "Foo"
+	testUserOther := "Bam"
+
+	storage.UpdateUser(&users.StorageRecord{
+		Id: testUser,
+	})
+
+	storage.UpdateUser(&users.StorageRecord{
+		Id: testUserOther,
+	})
+
 	manager := tictactoe.NewManager(storage)
 
 	blackjackManager := blackjack.NewManager(storage)
@@ -357,7 +368,7 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 	}{
 		{
 			false,
-			"Foo",
+			testUser,
 			"",
 			false,
 			true,
@@ -365,15 +376,7 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 		},
 		{
 			true,
-			"Foo",
-			"",
-			false,
-			true,
-			true,
-		},
-		{
-			false,
-			"",
+			testUser,
 			"",
 			false,
 			true,
@@ -382,7 +385,15 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 		{
 			false,
 			"",
-			"Foo",
+			"",
+			false,
+			true,
+			true,
+		},
+		{
+			false,
+			"",
+			testUser,
 			false,
 			true,
 			true,
@@ -403,10 +414,14 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 			t.Fatal("Couldn't create game: " + err.Error())
 		}
 		if config.UserZero != "" {
-			storage.SetPlayerForGame(game.Id(), 0, config.UserZero)
+			if err := storage.SetPlayerForGame(game.Id(), 0, config.UserZero); err != nil {
+				t.Error("Couldn't store user: " + err.Error())
+			}
 		}
 		if config.UserOne != "" {
-			storage.SetPlayerForGame(game.Id(), 1, config.UserOne)
+			if err := storage.SetPlayerForGame(game.Id(), 1, config.UserOne); err != nil {
+				t.Error("Couldn't store user: " + err.Error())
+			}
 		}
 		eGame, err := storage.ExtendedGame(game.Id())
 		if err != nil {
