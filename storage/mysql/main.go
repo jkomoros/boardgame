@@ -42,6 +42,8 @@ const combinedPlayerFilterQuery = baseCombinedSelectQuery + " " + baseCombinedFr
 
 const combinedGameStorageRecordQuery = baseCombinedSelectQuery + " " + baseCombinedFromQuery + " " + baseCombinedWhereQuery
 
+const combinedNotPlayerFilterQuery = combinedGameStorageRecordQuery + " and g.Id not in (select GameId as Id from players where UserId = ?)"
+
 type StorageManager struct {
 	db       *sql.DB
 	dbMap    *gorp.DbMap
@@ -323,7 +325,11 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []
 	var args []interface{}
 
 	if list != listing.All && userId != "" {
-		query = combinedPlayerFilterQuery
+		if list != listing.VisibleJoinableActive {
+			query = combinedPlayerFilterQuery
+		} else {
+			query = combinedNotPlayerFilterQuery
+		}
 		args = append(args, userId)
 	}
 
@@ -334,9 +340,14 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []
 		query += " and g.Finished = 0"
 	case listing.ParticipatingFinished:
 		query += " and g.Finished = 1"
+	case listing.VisibleJoinableActive:
+		//TODO: this isn't correct because it doesn't verify that there is an available slot
+		query += " and g.Finished = 0 and e.Visible = 1"
 	}
 
 	query += " order by e.LastActivity desc limit ?"
+
+	log.Println(query)
 
 	if _, err := s.dbMap.Select(&games, query, args...); err != nil {
 		log.Println("List games failed: " + err.Error())

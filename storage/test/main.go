@@ -406,6 +406,16 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 			false,
 			false,
 		},
+		{
+			false,
+			testUserOther,
+			"",
+			false,
+			false,
+			false,
+		},
+		//TODO: add a test here where there's a game that doesn't have testUser but is filled with normal players
+		//TODO: add a test here where there's a game that doesn't have testUser but is filled with one agent and one normal player
 	}
 
 	for _, config := range configs {
@@ -465,6 +475,12 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 	}
 
 	games = storage.ListGames(10, listing.ParticipatingFinished, testUser)
+
+	if len(games) != 1 {
+		t.Error("Expected one game: ", games)
+	}
+
+	games = storage.ListGames(10, listing.VisibleJoinableActive, testUser)
 
 	if len(games) != 1 {
 		t.Error("Expected one game: ", games)

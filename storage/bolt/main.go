@@ -414,6 +414,11 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []
 			if !game.Finished || !hasUser {
 				continue
 			}
+		case listing.VisibleJoinableActive:
+			//TODO: also check for HasEmptySlots
+			if game.Finished || hasUser || !game.Visible || !game.Open {
+				continue
+			}
 		}
 
 		result = append(result, game)
