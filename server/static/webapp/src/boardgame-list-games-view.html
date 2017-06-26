@@ -48,7 +48,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </template>
 
     
-    <iron-ajax id="games" url="[[ListGamesUrl(apiHost)]]" handle-as="json" last-response="{{data}}">
+    <iron-ajax id="games" url="[[ListGamesUrl(apiHost)]]" handle-as="json" with-credentials last-response="{{data}}">
   </template>
 
   <script>
