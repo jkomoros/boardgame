@@ -42,16 +42,22 @@ const combinedPlayerFilterQuery = baseCombinedSelectQuery + " " + baseCombinedFr
 
 const combinedGameStorageRecordQuery = baseCombinedSelectQuery + " " + baseCombinedFromQuery + " " + baseCombinedWhereQuery
 
-const userNotInQuery = "and not exists (select * from players where GameId = g.Id and UserId = ?)"
+const userNotInQuery = "not exists (select * from players where GameId = g.Id and UserId = ?)"
+
+const emptySlotsQuery = "(g.NumPlayers > coalesce(c.NumActivePlayers, 0) + g.NumAgents)"
 
 const combinedHasSlots = baseCombinedSelectQuery + ` from games as g
 left join extendedgames as e
 	left join (select GameId as Id, count(*) as NumActivePlayers from players group by GameId) as c
 	on e.Id = c.Id
 on g.Id = e.Id
-where (g.NumPlayers > coalesce(c.NumActivePlayers, 0) + g.NumAgents)`
+where`
 
 const combinedNotPlayerFilterQuery = combinedHasSlots + " " + userNotInQuery
+
+const combinedNotPlayerOpenSlotsQuery = combinedNotPlayerFilterQuery + " and " + emptySlotsQuery
+
+const combinedNotPlayerNoOpenSlotsQuery = combinedNotPlayerFilterQuery + " and (not " + emptySlotsQuery + " or e.Open = 0)"
 
 type StorageManager struct {
 	db       *sql.DB
@@ -334,10 +340,14 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []
 	var args []interface{}
 
 	if list != listing.All && userId != "" {
-		if list != listing.VisibleJoinableActive {
+
+		switch list {
+		case listing.VisibleActive:
+			query = combinedNotPlayerNoOpenSlotsQuery
+		case listing.VisibleJoinableActive:
+			query = combinedNotPlayerOpenSlotsQuery
+		default:
 			query = combinedPlayerFilterQuery
-		} else {
-			query = combinedNotPlayerFilterQuery
 		}
 		args = append(args, userId)
 	}
@@ -351,6 +361,8 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []
 		query += " and g.Finished = 1"
 	case listing.VisibleJoinableActive:
 		query += " and g.Finished = 0 and e.Visible = 1 and e.Open = 1"
+	case listing.VisibleActive:
+		query += " and g.Finished = 0 and e.Visible = 1"
 	}
 
 	query += " order by e.LastActivity desc limit ?"

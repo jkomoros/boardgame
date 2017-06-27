@@ -433,6 +433,10 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []
 			if game.Finished || hasUser || !game.Visible || !game.Open || !hasSlots {
 				continue
 			}
+		case listing.VisibleActive:
+			if game.Finished || hasUser || !game.Visible || (hasSlots && game.Open) {
+				continue
+			}
 		}
 
 		result = append(result, game)

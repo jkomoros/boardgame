@@ -18,7 +18,7 @@ const (
 	//Games that this player is not in that are visible, possible to join
 	//(open + slots) and Active
 	VisibleJoinableActive
-	//Games that this player is not in that are visible and active. (Popcorn
-	//games)
+	//Games that this player is not in that are visible and active but not
+	//joinable. (Popcorn games)
 	VisibleActive
 )

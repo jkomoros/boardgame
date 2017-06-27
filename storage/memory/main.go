@@ -273,6 +273,10 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []
 			if game.Finished || hasUser || !eGame.Visible || !eGame.Open || !hasSlots {
 				continue
 			}
+		case listing.VisibleActive:
+			if game.Finished || hasUser || !eGame.Visible || (eGame.Open && hasSlots) {
+				continue
+			}
 		}
 
 		result = append(result, &extendedgame.CombinedStorageRecord{

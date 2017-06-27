@@ -384,6 +384,7 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 		//ParticipatingActive: Yes
 		//ParticipatingFinished: No, not Finished
 		//VisibleJoinableActive: No, testuser is player
+		//VisibleActive: No, testUser is player
 		{
 			false,
 			testUser,
@@ -397,6 +398,7 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 		//ParticipatingActive: Yes
 		//ParticipatingFinished: No, not Finished
 		//VisibleJoinableActive: No, testuser is player
+		//VisibleActive: No, testUser is player
 		{
 			true,
 			testUser,
@@ -410,6 +412,7 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 		//ParticipatingActive: No, not user
 		//ParticipatingFinished: No, not user
 		//VisibleJoinableActive: Yes
+		//VisibleActive: No, game is joinable
 		{
 			false,
 			"",
@@ -423,6 +426,7 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 		//ParticipatingActive: Yes
 		//ParticipatingFinished: No, not Finished
 		//VisibleJoinableActive: No, testuser is player
+		//VisibleActive: No, testUser is player
 		{
 			false,
 			"",
@@ -436,6 +440,7 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 		//ParticipatingActive: No, game finished
 		//ParticipatingFinished: Yes
 		//VisibleJoinableActive: No, testuser is player
+		//VisibleActive: No, testuser is player
 		{
 			false,
 			testUserOther,
@@ -449,6 +454,7 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 		//ParticipatingActive: No, not player
 		//ParticipatingFinished: No, not player
 		//VisibleJoinableActive: No, game is not visible
+		//VisibleActive: No, game is not visible
 		{
 			false,
 			testUserOther,
@@ -462,6 +468,7 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 		//ParticipatingActive: No, not player
 		//ParticipatingFinished: No, not player
 		//VisibleJoinableActive: No, no open slots
+		//VisibleActive: Yes
 		{
 			false,
 			testUserOther,
@@ -475,6 +482,7 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 		//ParticipatingActive: No, not player
 		//ParticipatingFinished: No, not player
 		//VisibleJoinableActive: No, not open
+		//VisibleActive: Yes
 		{
 			false,
 			testUserOther,
@@ -488,6 +496,7 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 		//ParticipatingActive: No, not player
 		//ParticipatingFinished: No, not player
 		//VisibleJoinableActive: No no slots (one player, one agent)
+		//VisibleActive: Yes
 		{
 			false,
 			testUserOther,
@@ -575,6 +584,12 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 
 	if len(games) != 1 {
 		t.Error("Expected one game: ", games)
+	}
+
+	games = storage.ListGames(10, listing.VisibleActive, testUser)
+
+	if len(games) != 3 {
+		t.Error("Expected three games: ", games)
 	}
 }
 
