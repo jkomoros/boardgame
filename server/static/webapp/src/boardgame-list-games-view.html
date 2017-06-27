@@ -35,11 +35,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <boardgame-create-game logged-in="{{loggedIn}}"></boardgame-create-game>
     </div>
     <h2>Active</h2>
-    <template is="dom-repeat" items="{{data.ActiveGames}}">
+    <template is="dom-repeat" items="{{data.ParticipatingActiveGames}}">
       <boardgame-game-item item="{{item}}"></boardgame-game-item>
     </template>
     <h2>Finished</h2>
-    <template is="dom-repeat" items="{{data.FinishedGames}}">
+    <template is="dom-repeat" items="{{data.PaticipatingFinishedGames}}">
+      <boardgame-game-item item="{{item}}"></boardgame-game-item>
+    </template>
+    <h2>Joinable</h2>
+    <template is="dom-repeat" items="{{data.VisibleJoinableActiveGames}}">
+      <boardgame-game-item item="{{item}}"></boardgame-game-item>
+    </template>
+    <h2>Spectator</h2>
+    <template is="dom-repeat" items="{{data.VisibleActiveGames}}">
       <boardgame-game-item item="{{item}}"></boardgame-game-item>
     </template>
     <h2>All Games</h2>
