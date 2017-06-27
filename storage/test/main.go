@@ -15,8 +15,10 @@ import (
 	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/workfit/tester/assert"
+	"log"
 	"math"
 	"reflect"
+	"sort"
 	"testing"
 )
 
@@ -380,11 +382,14 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 		Open        bool
 		Visible     bool
 	}{
+		//0
 		//All: Yes
 		//ParticipatingActive: Yes
 		//ParticipatingFinished: No, not Finished
 		//VisibleJoinableActive: No, testuser is player
 		//VisibleActive: No, testUser is player
+		//VisibleJoinableActive (No User): Yes
+		//VisibleActive (No User): No, open slots
 		{
 			false,
 			testUser,
@@ -394,11 +399,14 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 			true,
 			true,
 		},
+		//1
 		//All: Yes
 		//ParticipatingActive: Yes
 		//ParticipatingFinished: No, not Finished
 		//VisibleJoinableActive: No, testuser is player
 		//VisibleActive: No, testUser is player
+		//VisibleJoinableActive (No User): Yes
+		//VisibleActive (No User): No, open slots
 		{
 			true,
 			testUser,
@@ -408,11 +416,14 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 			true,
 			true,
 		},
+		//2
 		//All: Yes
 		//ParticipatingActive: No, not user
 		//ParticipatingFinished: No, not user
 		//VisibleJoinableActive: Yes
 		//VisibleActive: No, game is joinable
+		//VisibleJoinableActive (No User): Yes
+		//VisibleActive (No User): No, open slots
 		{
 			false,
 			"",
@@ -422,11 +433,14 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 			true,
 			true,
 		},
+		//3
 		//All: Yes
 		//ParticipatingActive: Yes
 		//ParticipatingFinished: No, not Finished
 		//VisibleJoinableActive: No, testuser is player
 		//VisibleActive: No, testUser is player
+		//VisibleJoinableActive (No User): Yes
+		//VisibleActive (No User): No, open slots
 		{
 			false,
 			"",
@@ -436,11 +450,14 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 			true,
 			true,
 		},
+		//4
 		//All: Yes
 		//ParticipatingActive: No, game finished
 		//ParticipatingFinished: Yes
 		//VisibleJoinableActive: No, testuser is player
 		//VisibleActive: No, testuser is player
+		//VisibleJoinableActive (No User): No, Finished
+		//VisibleActive (No User): No, Finished
 		{
 			false,
 			testUserOther,
@@ -450,11 +467,14 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 			false,
 			false,
 		},
+		//5
 		//All: Yes
 		//ParticipatingActive: No, not player
 		//ParticipatingFinished: No, not player
 		//VisibleJoinableActive: No, game is not visible
 		//VisibleActive: No, game is not visible
+		//VisibleJoinableActive (No User): No, not visible
+		//VisibleActive (No User): No, not visible
 		{
 			false,
 			testUserOther,
@@ -464,11 +484,14 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 			false,
 			false,
 		},
+		//6
 		//All: Yes
 		//ParticipatingActive: No, not player
 		//ParticipatingFinished: No, not player
 		//VisibleJoinableActive: No, no open slots
 		//VisibleActive: Yes
+		//VisibleJoinableActive (No User): No, no slots
+		//VisibleActive (No User): Yes
 		{
 			false,
 			testUserOther,
@@ -478,11 +501,14 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 			true,
 			true,
 		},
+		//7
 		//All: Yes
 		//ParticipatingActive: No, not player
 		//ParticipatingFinished: No, not player
 		//VisibleJoinableActive: No, not open
 		//VisibleActive: Yes
+		//VisibleJoinableActive (No User): No, not open
+		//VisibleActive (No User): Yes
 		{
 			false,
 			testUserOther,
@@ -492,11 +518,14 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 			false,
 			true,
 		},
+		//8
 		//All: Yes
 		//ParticipatingActive: No, not player
 		//ParticipatingFinished: No, not player
 		//VisibleJoinableActive: No no slots (one player, one agent)
 		//VisibleActive: Yes
+		//VisibleJoinableActive (No User): No, no slots
+		//VisibleActive (No User): Yes
 		{
 			false,
 			testUserOther,
@@ -506,10 +535,11 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 			true,
 			true,
 		},
-		//TODO: add a test here where there's a game that doesn't have testUser but is filled with one agent and one normal player
 	}
 
-	for _, config := range configs {
+	goldenRecords := make([]*extendedgame.CombinedStorageRecord, len(configs))
+
+	for i, config := range configs {
 
 		var game *boardgame.Game
 
@@ -560,37 +590,100 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 				t.Fatal("Couldn't save the game: " + err.Error())
 			}
 		}
+
+		goldenRecords[i], err = storage.CombinedGame(game.Id())
+
+		if err != nil {
+			t.Fatal("Couldn't get combined record: ", err.Error())
+		}
 	}
 
-	games := storage.ListGames(10, listing.All, "")
-
-	if len(games) != len(configs) {
-		t.Error("Expected len(config) games", games)
+	expectations := []struct {
+		list   listing.Type
+		user   string
+		result []int
+	}{
+		{
+			listing.All,
+			"",
+			[]int{0, 1, 2, 3, 4, 5, 6, 7, 8},
+		},
+		{
+			listing.ParticipatingActive,
+			testUser,
+			[]int{0, 1, 3},
+		},
+		{
+			listing.ParticipatingActive,
+			"",
+			[]int{},
+		},
+		{
+			listing.ParticipatingFinished,
+			testUser,
+			[]int{4},
+		},
+		{
+			listing.ParticipatingFinished,
+			"",
+			[]int{},
+		},
+		{
+			listing.VisibleJoinableActive,
+			testUser,
+			[]int{2},
+		},
+		{
+			listing.VisibleJoinableActive,
+			"",
+			[]int{0, 1, 2, 3},
+		},
+		{
+			listing.VisibleActive,
+			testUser,
+			[]int{6, 7, 8},
+		},
+		{
+			listing.VisibleActive,
+			"",
+			[]int{6, 7, 8},
+		},
 	}
 
-	games = storage.ListGames(10, listing.ParticipatingActive, testUser)
+	for i, expectation := range expectations {
+		games := storage.ListGames(10, expectation.list, expectation.user)
 
-	if len(games) != 3 {
-		t.Error("Expected three games: ", games)
+		golden := make([]*extendedgame.CombinedStorageRecord, len(expectation.result))
+
+		for i, index := range expectation.result {
+			golden[i] = goldenRecords[index]
+		}
+
+		sort.Slice(games, func(i, j int) bool {
+			return games[i].Id < games[j].Id
+		})
+		sort.Slice(golden, func(i, j int) bool {
+			return golden[i].Id < golden[j].Id
+		})
+
+		if len(games) == 0 && len(golden) == 0 {
+			//For some reason assert thinks that two that are both len(0) are not the same, even when they are.
+			continue
+		}
+		if !assert.For(t, i).ThatActual(games).Equals(golden).Passed() {
+			//The Diff for when they aren't the same isn't very good, so do our own.
+			log.Println("Games")
+			for i, item := range games {
+				log.Println(i, item, storage.UserIdsForGame(item.Id))
+			}
+			log.Println("Golden")
+			for i, item := range golden {
+				log.Println(i, item, storage.UserIdsForGame(item.Id))
+			}
+
+		}
 	}
 
-	games = storage.ListGames(10, listing.ParticipatingFinished, testUser)
-
-	if len(games) != 1 {
-		t.Error("Expected one game: ", games)
-	}
-
-	games = storage.ListGames(10, listing.VisibleJoinableActive, testUser)
-
-	if len(games) != 1 {
-		t.Error("Expected one game: ", games)
-	}
-
-	games = storage.ListGames(10, listing.VisibleActive, testUser)
-
-	if len(games) != 3 {
-		t.Error("Expected three games: ", games)
-	}
 }
 
 func compareJSONObjects(in []byte, golden []byte, message string, t *testing.T) {

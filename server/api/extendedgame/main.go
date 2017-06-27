@@ -7,6 +7,7 @@
 package extendedgame
 
 import (
+	"encoding/json"
 	"github.com/jkomoros/boardgame"
 	"time"
 )
@@ -32,4 +33,9 @@ func DefaultStorageRecord() *StorageRecord {
 		Visible:      true,
 		Owner:        "",
 	}
+}
+
+func (c *CombinedStorageRecord) String() string {
+	blob, _ := json.Marshal(c)
+	return string(blob) + "\n"
 }

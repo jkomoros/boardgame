@@ -335,11 +335,17 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []
 		max = 100
 	}
 
+	if (list == listing.ParticipatingActive || list == listing.ParticipatingFinished) && userId == "" {
+		//If we're filtering to only participating games and there's no userId, then there can't be any games,
+		//because the non-user can't be participating in any games.
+		return nil
+	}
+
 	query := combinedGameStorageRecordQuery
 
 	var args []interface{}
 
-	if list != listing.All && userId != "" {
+	if list != listing.All {
 
 		switch list {
 		case listing.VisibleActive:

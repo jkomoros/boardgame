@@ -229,6 +229,12 @@ func (s *StorageManager) SaveAgentState(gameId string, player boardgame.PlayerIn
 //ListGames will return game objects for up to max number of games
 func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []*extendedgame.CombinedStorageRecord {
 
+	if (list == listing.ParticipatingActive || list == listing.ParticipatingActive) && userId == "" {
+		//If we're filtering to only participating games and there's no userId, then there can't be any games,
+		//because the non-user can't be participating in any games.
+		return nil
+	}
+
 	var result []*extendedgame.CombinedStorageRecord
 
 	for _, game := range s.games {
@@ -244,7 +250,7 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []
 			if user != "" {
 				numUsers++
 			}
-			if user == userId {
+			if userId != "" && user == userId {
 				hasUser = true
 				break
 			}
