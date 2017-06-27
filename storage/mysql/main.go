@@ -42,7 +42,16 @@ const combinedPlayerFilterQuery = baseCombinedSelectQuery + " " + baseCombinedFr
 
 const combinedGameStorageRecordQuery = baseCombinedSelectQuery + " " + baseCombinedFromQuery + " " + baseCombinedWhereQuery
 
-const combinedNotPlayerFilterQuery = combinedGameStorageRecordQuery + " and g.Id not in (select GameId as Id from players where UserId = ?)"
+const userNotInQuery = "and not exists (select * from players where GameId = g.Id and UserId = ?)"
+
+const combinedHasSlots = baseCombinedSelectQuery + ` from games as g
+left join extendedgames as e
+	left join (select GameId as Id, count(*) as NumActivePlayers from players group by GameId) as c
+	on e.Id = c.Id
+on g.Id = e.Id
+where (g.NumPlayers > coalesce(c.NumActivePlayers, 0) + g.NumAgents)`
+
+const combinedNotPlayerFilterQuery = combinedHasSlots + " " + userNotInQuery
 
 type StorageManager struct {
 	db       *sql.DB
@@ -341,8 +350,7 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []
 	case listing.ParticipatingFinished:
 		query += " and g.Finished = 1"
 	case listing.VisibleJoinableActive:
-		//TODO: this isn't correct because it doesn't verify that there is an available slot
-		query += " and g.Finished = 0 and e.Visible = 1"
+		query += " and g.Finished = 0 and e.Visible = 1 and e.Open = 1"
 	}
 
 	query += " order by e.LastActivity desc limit ?"

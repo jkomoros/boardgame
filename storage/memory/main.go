@@ -238,13 +238,27 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []
 		usersForGame := s.UserIdsForGame(game.Id)
 
 		hasUser := false
+		numUsers := 0
 
 		for _, user := range usersForGame {
+			if user != "" {
+				numUsers++
+			}
 			if user == userId {
 				hasUser = true
 				break
 			}
 		}
+
+		numAgents := 0
+
+		for _, agent := range game.Agents {
+			if agent != "" {
+				numAgents++
+			}
+		}
+
+		hasSlots := game.NumPlayers > (numUsers + numAgents)
 
 		switch list {
 		case listing.ParticipatingActive:
@@ -256,8 +270,7 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []
 				continue
 			}
 		case listing.VisibleJoinableActive:
-			//TODO: also check for hasEmptySlots
-			if game.Finished || hasUser || !eGame.Visible || !eGame.Open {
+			if game.Finished || hasUser || !eGame.Visible || !eGame.Open || !hasSlots {
 				continue
 			}
 		}

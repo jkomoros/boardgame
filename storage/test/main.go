@@ -345,6 +345,7 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 
 	testUser := "Foo"
 	testUserOther := "Bam"
+	testUserAnother := "Slam"
 
 	storage.UpdateUser(&users.StorageRecord{
 		Id: testUser,
@@ -354,7 +355,19 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 		Id: testUserOther,
 	})
 
+	storage.UpdateUser(&users.StorageRecord{
+		Id: testUserAnother,
+	})
+
 	manager := tictactoe.NewManager(storage)
+
+	agents := manager.Agents()
+
+	agentName := ""
+
+	if len(agents) > 0 {
+		agentName = agents[0].Name()
+	}
 
 	blackjackManager := blackjack.NewManager(storage)
 
@@ -362,59 +375,128 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 		IsBlackjack bool
 		UserZero    string
 		UserOne     string
+		IsAgent     []bool
 		Finished    bool
 		Open        bool
 		Visible     bool
 	}{
+		//All: Yes
+		//ParticipatingActive: Yes
+		//ParticipatingFinished: No, not Finished
+		//VisibleJoinableActive: No, testuser is player
 		{
 			false,
 			testUser,
 			"",
+			[]bool{false, false},
 			false,
 			true,
 			true,
 		},
+		//All: Yes
+		//ParticipatingActive: Yes
+		//ParticipatingFinished: No, not Finished
+		//VisibleJoinableActive: No, testuser is player
 		{
 			true,
 			testUser,
 			"",
+			[]bool{false, false},
 			false,
 			true,
 			true,
 		},
+		//All: Yes
+		//ParticipatingActive: No, not user
+		//ParticipatingFinished: No, not user
+		//VisibleJoinableActive: Yes
 		{
 			false,
 			"",
 			"",
+			[]bool{false, false},
 			false,
 			true,
 			true,
 		},
+		//All: Yes
+		//ParticipatingActive: Yes
+		//ParticipatingFinished: No, not Finished
+		//VisibleJoinableActive: No, testuser is player
 		{
 			false,
 			"",
 			testUser,
+			[]bool{false, false},
 			false,
 			true,
 			true,
 		},
+		//All: Yes
+		//ParticipatingActive: No, game finished
+		//ParticipatingFinished: Yes
+		//VisibleJoinableActive: No, testuser is player
 		{
 			false,
 			testUserOther,
 			testUser,
+			[]bool{false, false},
 			true,
 			false,
 			false,
 		},
+		//All: Yes
+		//ParticipatingActive: No, not player
+		//ParticipatingFinished: No, not player
+		//VisibleJoinableActive: No, game is not visible
 		{
 			false,
 			testUserOther,
 			"",
+			[]bool{false, false},
 			false,
 			false,
 			false,
 		},
-		//TODO: add a test here where there's a game that doesn't have testUser but is filled with normal players
+		//All: Yes
+		//ParticipatingActive: No, not player
+		//ParticipatingFinished: No, not player
+		//VisibleJoinableActive: No, no open slots
+		{
+			false,
+			testUserOther,
+			testUserAnother,
+			[]bool{false, false},
+			false,
+			true,
+			true,
+		},
+		//All: Yes
+		//ParticipatingActive: No, not player
+		//ParticipatingFinished: No, not player
+		//VisibleJoinableActive: No, not open
+		{
+			false,
+			testUserOther,
+			"",
+			[]bool{false, false},
+			false,
+			false,
+			true,
+		},
+		//All: Yes
+		//ParticipatingActive: No, not player
+		//ParticipatingFinished: No, not player
+		//VisibleJoinableActive: No no slots (one player, one agent)
+		{
+			false,
+			testUserOther,
+			"",
+			[]bool{false, true},
+			false,
+			true,
+			true,
+		},
 		//TODO: add a test here where there's a game that doesn't have testUser but is filled with one agent and one normal player
 	}
 
@@ -428,7 +510,16 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 			game = boardgame.NewGame(manager)
 		}
 
-		if err := game.SetUp(0, nil); err != nil {
+		var agents []string
+		for _, isAgent := range config.IsAgent {
+			name := ""
+			if isAgent {
+				name = agentName
+			}
+			agents = append(agents, name)
+		}
+
+		if err := game.SetUp(2, agents); err != nil {
 			t.Fatal("Couldn't create game: " + err.Error())
 		}
 		if config.UserZero != "" {
