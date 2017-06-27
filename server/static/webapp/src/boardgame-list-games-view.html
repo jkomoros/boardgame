@@ -34,25 +34,35 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <div class="card">
       <boardgame-create-game logged-in="{{loggedIn}}"></boardgame-create-game>
     </div>
-    <h2>Active</h2>
-    <template is="dom-repeat" items="{{data.ParticipatingActiveGames}}">
-      <boardgame-game-item item="{{item}}"></boardgame-game-item>
+    <template is="dom-if" if="{{data.ParticipatingActiveGames.length}}">
+      <h2>Active</h2>
+      <template is="dom-repeat" items="{{data.ParticipatingActiveGames}}">
+        <boardgame-game-item item="{{item}}"></boardgame-game-item>
+      </template>
     </template>
-    <h2>Finished</h2>
-    <template is="dom-repeat" items="{{data.PaticipatingFinishedGames}}">
-      <boardgame-game-item item="{{item}}"></boardgame-game-item>
+    <template is="dom-if" if="{{data.PaticipatingFinishedGames.length}}">
+      <h2>Finished</h2>
+      <template is="dom-repeat" items="{{data.PaticipatingFinishedGames}}">
+        <boardgame-game-item item="{{item}}"></boardgame-game-item>
+      </template>
     </template>
-    <h2>Joinable</h2>
-    <template is="dom-repeat" items="{{data.VisibleJoinableActiveGames}}">
-      <boardgame-game-item item="{{item}}"></boardgame-game-item>
+    <template is="dom-if" if="{{data.VisibleJoinableActiveGames.length}}">
+      <h2>Joinable</h2>
+      <template is="dom-repeat" items="{{data.VisibleJoinableActiveGames}}">
+        <boardgame-game-item item="{{item}}"></boardgame-game-item>
+      </template>
     </template>
-    <h2>Spectator</h2>
-    <template is="dom-repeat" items="{{data.VisibleActiveGames}}">
-      <boardgame-game-item item="{{item}}"></boardgame-game-item>
+    <template is="dom-if" if="{{data.VisibleActiveGames.length}}">
+      <h2>Spectator</h2>
+      <template is="dom-repeat" items="{{data.VisibleActiveGames}}">
+        <boardgame-game-item item="{{item}}"></boardgame-game-item>
+      </template>
     </template>
-    <h2>All Games</h2>
-    <template is="dom-repeat" items="{{data.AllGames}}">
-      <boardgame-game-item item="{{item}}"></boardgame-game-item>
+    <template is="dom-if" if="{{data.AllGames.length}}">
+      <h2>All Games</h2>
+      <template is="dom-repeat" items="{{data.AllGames}}">
+        <boardgame-game-item item="{{item}}"></boardgame-game-item>
+      </template>
     </template>
 
     
