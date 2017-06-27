@@ -84,8 +84,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             type: Boolean,
             observer: '_selectedChanged',
           },
-          loggedIn: Boolean,
+          loggedIn: {
+            type: Boolean,
+            observer: "_loggedInChanged",
+          }
         }
+      }
+
+      _loggedInChanged(newValue) {
+        //TODO: this is a race. Ideally loggedIn wouldn't change until the
+        //user was logged out as far as server was concerned.
+        setTimeout(() => this.$.games.generateRequest(), 250);
       }
 
       _selectedChanged(newValue) {
