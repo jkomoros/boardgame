@@ -44,8 +44,9 @@ type StorageManager interface {
 	Close()
 
 	//ListGames should list up to max games, in descending order based on the
-	//LastActivity.
-	ListGames(max int, list listing.Type, userId string) []*extendedgame.CombinedStorageRecord
+	//LastActivity. If gameType is not "", only returns games that are that
+	//gameType. If gameType is "", all gametypes are fine.
+	ListGames(max int, list listing.Type, userId string, gameType string) []*extendedgame.CombinedStorageRecord
 
 	//UserIdsForGame returns an array whose length equals game.NumPlayers.
 	//Each one is either empty if there is no user in that slot yet, or the

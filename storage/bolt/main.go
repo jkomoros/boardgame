@@ -349,7 +349,7 @@ func (s *StorageManager) SaveAgentState(gameId string, player boardgame.PlayerIn
 
 }
 
-func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []*extendedgame.CombinedStorageRecord {
+func (s *StorageManager) ListGames(max int, list listing.Type, userId string, gameType string) []*extendedgame.CombinedStorageRecord {
 
 	if (list == listing.ParticipatingActive || list == listing.ParticipatingActive) && userId == "" {
 		//If we're filtering to only participating games and there's no userId, then there can't be any games,
@@ -398,6 +398,12 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []
 
 		if err != nil {
 			continue
+		}
+
+		if gameType != "" {
+			if game.Name != gameType {
+				continue
+			}
 		}
 
 		usersForGame := s.UserIdsForGame(game.Id)

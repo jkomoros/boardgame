@@ -328,7 +328,7 @@ func (s *StorageManager) UpdateExtendedGame(id string, eGame *extendedgame.Stora
 	return err
 }
 
-func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []*extendedgame.CombinedStorageRecord {
+func (s *StorageManager) ListGames(max int, list listing.Type, userId string, gameType string) []*extendedgame.CombinedStorageRecord {
 	var games []CombinedGameStorageRecord
 
 	if max < 1 {
@@ -358,8 +358,6 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []
 		args = append(args, userId)
 	}
 
-	args = append(args, max)
-
 	switch list {
 	case listing.ParticipatingActive:
 		query += " and g.Finished = 0"
@@ -371,7 +369,14 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string) []
 		query += " and g.Finished = 0 and e.Visible = 1"
 	}
 
+	if gameType != "" {
+		query += " and g.Name = ?"
+		args = append(args, gameType)
+	}
+
 	query += " order by e.LastActivity desc limit ?"
+
+	args = append(args, max)
 
 	if _, err := s.dbMap.Select(&games, query, args...); err != nil {
 		log.Println("List games failed: " + err.Error())

@@ -40,7 +40,7 @@ type StorageManager interface {
 	UpdateExtendedGame(id string, eGame *extendedgame.StorageRecord) error
 
 	Close()
-	ListGames(max int, list listing.Type, userId string) []*extendedgame.CombinedStorageRecord
+	ListGames(max int, list listing.Type, userId string, gameType string) []*extendedgame.CombinedStorageRecord
 
 	UserIdsForGame(gameId string) []string
 
@@ -182,7 +182,7 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	blackjackGame.SetUp(0, nil)
 
-	games := storage.ListGames(10, listing.All, "")
+	games := storage.ListGames(10, listing.All, "", "")
 
 	if games == nil {
 		t.Error(testName, "ListGames gave back nothing")
@@ -599,59 +599,75 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 	}
 
 	expectations := []struct {
-		list   listing.Type
-		user   string
-		result []int
+		list     listing.Type
+		user     string
+		gameType string
+		result   []int
 	}{
 		{
 			listing.All,
+			"",
 			"",
 			[]int{0, 1, 2, 3, 4, 5, 6, 7, 8},
 		},
 		{
 			listing.ParticipatingActive,
 			testUser,
+			"",
 			[]int{0, 1, 3},
 		},
 		{
 			listing.ParticipatingActive,
 			"",
+			"",
 			[]int{},
 		},
 		{
 			listing.ParticipatingFinished,
 			testUser,
+			"",
 			[]int{4},
 		},
 		{
 			listing.ParticipatingFinished,
+			"",
 			"",
 			[]int{},
 		},
 		{
 			listing.VisibleJoinableActive,
 			testUser,
+			"",
 			[]int{2},
 		},
 		{
 			listing.VisibleJoinableActive,
+			"",
 			"",
 			[]int{0, 1, 2, 3},
 		},
 		{
 			listing.VisibleActive,
 			testUser,
+			"",
 			[]int{6, 7, 8},
 		},
 		{
 			listing.VisibleActive,
 			"",
+			"",
 			[]int{6, 7, 8},
+		},
+		{
+			listing.ParticipatingActive,
+			testUser,
+			"tictactoe",
+			[]int{0, 3},
 		},
 	}
 
 	for i, expectation := range expectations {
-		games := storage.ListGames(10, expectation.list, expectation.user)
+		games := storage.ListGames(10, expectation.list, expectation.user, expectation.gameType)
 
 		golden := make([]*extendedgame.CombinedStorageRecord, len(expectation.result))
 
