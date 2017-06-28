@@ -32,7 +32,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     </style>
     <div class="card">
-      <boardgame-create-game logged-in="{{loggedIn}}"></boardgame-create-game>
+      <boardgame-create-game logged-in="{{loggedIn}}" managers="{{managerData.Managers}}"></boardgame-create-game>
     </div>
     <template is="dom-if" if="{{data.ParticipatingActiveGames.length}}">
       <h2>Active</h2>
@@ -67,6 +67,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     
     <iron-ajax id="games" url="[[ListGamesUrl(apiHost)]]" handle-as="json" with-credentials last-response="{{data}}">
+    <iron-ajax auto url="[[ListManagersUrl(apiHost)]]" handle-as="json" with-credentials last-response="{{managerData}}"></iron-ajax>
   </template>
 
   <script>
@@ -79,7 +80,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       static get properties() {
         return {
           data: Object,
-          managers: Array,
+          managerData: Object,
           selected: {
             type: Boolean,
             observer: '_selectedChanged',

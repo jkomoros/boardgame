@@ -38,7 +38,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <div class="horizontal layout center">
         <paper-dropdown-menu name="manager" label="Game Type">
           <paper-listbox slot="dropdown-content" selected="0" selected-item="{{selectedManager}}">
-            <template is="dom-repeat" items="{{data.Managers}}">
+            <template is="dom-repeat" items="{{managers}}">
               <paper-item value="{{item.Name}}" data="{{item}}">{{item.Name}}</paper-item> 
             </template>
           </paper-listbox>
@@ -68,7 +68,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </div>
     </div>
     <iron-ajax id="create" url="[[NewGameUrl(apiHost)]]" with-credentials method="POST" content-type="application/x-www-form-urlencoded" last-response="{{createGameResponse}}"></iron-ajax>
-    <iron-ajax auto url="[[ListManagersUrl(apiHost)]]" handle-as="json" with-credentials last-response="{{data}}"></iron-ajax>
   </template>
 
   <script>
@@ -81,9 +80,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       static get properties() {
         return {
-          data: Object,
           loggedIn: Boolean,
           selectedManager: Object,
+          managers: Array,
           managerHasAgents: {
             type: Boolean,
             computed: "_computeManagerHasAgents(selectedManager)"
