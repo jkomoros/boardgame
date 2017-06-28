@@ -330,6 +330,18 @@ func (s *Server) doJoinGame(r *Renderer, game *boardgame.Game, viewingAsPlayer b
 		return
 	}
 
+	eGame, err := s.storage.ExtendedGame(game.Id())
+
+	if err != nil {
+		r.Error("Couldn't get extended information about game: " + err.Error())
+		return
+	}
+
+	if !eGame.Open {
+		r.Error("The game is not open to people joining.")
+		return
+	}
+
 	if viewingAsPlayer != boardgame.ObserverPlayerIndex {
 		r.Error("The given player is already in the game.")
 		return
