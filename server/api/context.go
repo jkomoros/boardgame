@@ -120,7 +120,11 @@ func (s *Server) getRequestGameId(c *gin.Context) string {
 }
 
 func (s *Server) getRequestGameName(c *gin.Context) string {
-	return c.Param(qryGameNameKey)
+	result := c.Param(qryGameNameKey)
+	if result != "" {
+		return result
+	}
+	return c.Query(qryGameNameKey)
 }
 
 func (s *Server) getRequestCookie(c *gin.Context) string {

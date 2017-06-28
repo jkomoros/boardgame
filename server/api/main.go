@@ -431,20 +431,22 @@ func (s *Server) listGamesHandler(c *gin.Context) {
 
 	user := s.getUser(c)
 
-	s.doListGames(r, user)
+	gameName := s.getRequestGameName(c)
+
+	s.doListGames(r, user, gameName)
 }
 
-func (s *Server) doListGames(r *Renderer, user *users.StorageRecord) {
+func (s *Server) doListGames(r *Renderer, user *users.StorageRecord, gameName string) {
 	var userId string
 	if user != nil {
 		userId = user.Id
 	}
 	r.Success(gin.H{
-		"ParticipatingActiveGames":   s.storage.ListGames(100, listing.ParticipatingActive, userId, ""),
-		"ParticipatingFinishedGames": s.storage.ListGames(100, listing.ParticipatingFinished, userId, ""),
-		"VisibleJoinableActiveGames": s.storage.ListGames(100, listing.VisibleJoinableActive, userId, ""),
-		"VisibleActiveGames":         s.storage.ListGames(100, listing.VisibleActive, userId, ""),
-		"AllGames":                   s.storage.ListGames(100, listing.All, "", ""),
+		"ParticipatingActiveGames":   s.storage.ListGames(100, listing.ParticipatingActive, userId, gameName),
+		"ParticipatingFinishedGames": s.storage.ListGames(100, listing.ParticipatingFinished, userId, gameName),
+		"VisibleJoinableActiveGames": s.storage.ListGames(100, listing.VisibleJoinableActive, userId, gameName),
+		"VisibleActiveGames":         s.storage.ListGames(100, listing.VisibleActive, userId, gameName),
+		"AllGames":                   s.storage.ListGames(100, listing.All, "", gameName),
 	})
 }
 
