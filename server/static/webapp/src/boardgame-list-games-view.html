@@ -13,6 +13,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="../config-src/boardgame-config.html">
 <link rel="import" href="../bower_components/paper-styles/typography.html">
+<link rel="import" href="../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../bower_components/paper-listbox/paper-listbox.html">
 <link rel="import" href="shared-styles.html">
 <link rel="import" href="boardgame-util.html">
 <link rel="import" href="boardgame-create-game.html">
@@ -33,6 +35,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
     <div class="card">
       <boardgame-create-game logged-in="{{loggedIn}}" managers="{{managerData.Managers}}"></boardgame-create-game>
+    </div>
+    <div class="card">
+      <paper-dropdown-menu name="manager" label="Game Type Filter">
+        <paper-listbox slot="dropdown-content" selected="0" selected-item="{{selectedManager}}">
+          <paper-item value="">All Games</paper-item>
+          <template is="dom-repeat" items="{{managerData.Managers}}">
+            <paper-item value="{{item.Name}}" data="{{item}}">{{item.Name}}</paper-item> 
+          </template>
+        </paper-listbox>
+      </paper-dropdown-menu>
     </div>
     <template is="dom-if" if="{{data.ParticipatingActiveGames.length}}">
       <h2>Active</h2>
@@ -66,7 +78,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </template>
 
     
-    <iron-ajax id="games" url="[[ListGamesUrl(apiHost)]]" handle-as="json" with-credentials last-response="{{data}}">
+    <iron-ajax auto debounce-duration="100" id="games" url="[[ListGamesUrl(apiHost)]]" handle-as="json" params="{{gamesArgs}}" with-credentials last-response="{{data}}">
     <iron-ajax auto url="[[ListManagersUrl(apiHost)]]" handle-as="json" with-credentials last-response="{{managerData}}"></iron-ajax>
   </template>
 
@@ -81,6 +93,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return {
           data: Object,
           managerData: Object,
+          selectedManager: Object,
+          gameType: {
+            type: String,
+            value: "",
+            computed: "_computeGameType(selectedManager)",
+          },
+          gamesArgs: {
+            type: Object,
+            computed: "_computeGamesArgs(gameType)"
+          },
           selected: {
             type: Boolean,
             observer: '_selectedChanged',
@@ -92,6 +114,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       }
 
+      _computeGamesArgs(gameType) {
+        return {"name": gameType}
+      }
+
+      _computeGameType(selectedManager) {
+        if (!selectedManager) return "";
+        return selectedManager.value || selectedManager.getAttribute("value") || "";
+      }
+
       _loggedInChanged(newValue) {
         //TODO: this is a race. Ideally loggedIn wouldn't change until the
         //user was logged out as far as server was concerned.
@@ -100,6 +131,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       _selectedChanged(newValue) {
         if (newValue) {
+          if (this.$.games.loading) return;
           this.$.games.generateRequest();
         }
       }
