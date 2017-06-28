@@ -433,21 +433,29 @@ func (s *Server) listGamesHandler(c *gin.Context) {
 
 	gameName := s.getRequestGameName(c)
 
-	s.doListGames(r, user, gameName)
+	adminAllowed := s.getAdminAllowed(c)
+	requestAdmin := s.getRequestAdmin(c)
+
+	isAdmin := s.calcIsAdmin(adminAllowed, requestAdmin)
+
+	s.doListGames(r, user, gameName, isAdmin)
 }
 
-func (s *Server) doListGames(r *Renderer, user *users.StorageRecord, gameName string) {
+func (s *Server) doListGames(r *Renderer, user *users.StorageRecord, gameName string, isAdmin bool) {
 	var userId string
 	if user != nil {
 		userId = user.Id
 	}
-	r.Success(gin.H{
+	result := gin.H{
 		"ParticipatingActiveGames":   s.storage.ListGames(100, listing.ParticipatingActive, userId, gameName),
 		"ParticipatingFinishedGames": s.storage.ListGames(100, listing.ParticipatingFinished, userId, gameName),
 		"VisibleJoinableActiveGames": s.storage.ListGames(100, listing.VisibleJoinableActive, userId, gameName),
 		"VisibleActiveGames":         s.storage.ListGames(100, listing.VisibleActive, userId, gameName),
-		"AllGames":                   s.storage.ListGames(100, listing.All, "", gameName),
-	})
+	}
+	if isAdmin {
+		result["AllGames"] = s.storage.ListGames(100, listing.All, "", gameName)
+	}
+	r.Success(result)
 }
 
 func (s *Server) listManagerHandler(c *gin.Context) {

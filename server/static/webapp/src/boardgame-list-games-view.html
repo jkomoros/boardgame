@@ -94,6 +94,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           data: Object,
           managerData: Object,
           selectedManager: Object,
+          admin: {
+            type: Boolean,
+            value: false,
+          },
           gameType: {
             type: String,
             value: "",
@@ -101,7 +105,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           },
           gamesArgs: {
             type: Object,
-            computed: "_computeGamesArgs(gameType)"
+            computed: "_computeGamesArgs(gameType, admin)"
           },
           selected: {
             type: Boolean,
@@ -114,8 +118,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       }
 
-      _computeGamesArgs(gameType) {
-        return {"name": gameType}
+      _computeGamesArgs(gameType, admin) {
+        return {"name": gameType, "admin" : (admin ? 1 : 0)}
       }
 
       _computeGameType(selectedManager) {
