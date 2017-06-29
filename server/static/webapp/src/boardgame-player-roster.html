@@ -68,6 +68,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return {
           viewingAsPlayer: Number,
           hasEmptySlots: Boolean,
+          openForJoining: Boolean,
           gameRoute: {
             type: Object,
             observer: "_gameRouteChanged"
@@ -81,7 +82,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           },
           showJoin: {
             type: Boolean,
-            computed: "_computeShowJoin(viewingAsPlayer, hasEmptySlots)"
+            computed: "_computeShowJoin(viewingAsPlayer, hasEmptySlots, openForJoining)"
           },
           finished: Boolean,
           winners: Array,
@@ -137,8 +138,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return viewingAsPlayer == this.OBSERVER_PLAYER_INDEX;
       }
 
-      _computeShowJoin(viewingAsPlayer, hasEmptySlots) {
-        return viewingAsPlayer == this.OBSERVER_PLAYER_INDEX && hasEmptySlots;
+      _computeShowJoin(viewingAsPlayer, hasEmptySlots, openForJoining) {
+        return viewingAsPlayer == this.OBSERVER_PLAYER_INDEX && hasEmptySlots && openForJoining;
       }
 
       showDialog() {

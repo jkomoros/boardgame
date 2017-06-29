@@ -5,6 +5,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/itsjamie/gin-cors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/jkomoros/boardgame/server/config"
@@ -571,9 +572,12 @@ func (s *Server) gameInfoHandler(c *gin.Context) {
 
 	hasEmptySlots := s.getHasEmptySlots(c)
 
+	//TODO: should this be done in gameAPISetup?
+	gameInfo, _ := s.storage.ExtendedGame(game.Id())
+
 	r := NewRenderer(c)
 
-	s.doGameInfo(r, game, playerIndex, hasEmptySlots)
+	s.doGameInfo(r, game, playerIndex, hasEmptySlots, gameInfo)
 
 }
 
@@ -639,7 +643,7 @@ func (s *Server) gamePlayerInfo(game *boardgame.Game) []*playerBoardInfo {
 	return result
 }
 
-func (s *Server) doGameInfo(r *Renderer, game *boardgame.Game, playerIndex boardgame.PlayerIndex, hasEmptySlots bool) {
+func (s *Server) doGameInfo(r *Renderer, game *boardgame.Game, playerIndex boardgame.PlayerIndex, hasEmptySlots bool, gameInfo *extendedgame.StorageRecord) {
 	if game == nil {
 		r.Error("Couldn't find game")
 		return
@@ -647,6 +651,11 @@ func (s *Server) doGameInfo(r *Renderer, game *boardgame.Game, playerIndex board
 
 	if playerIndex == invalidPlayerIndex {
 		r.Error("Got invalid playerIndex")
+		return
+	}
+
+	if gameInfo == nil {
+		r.Error("Game info could not be fetched")
 		return
 	}
 
@@ -658,6 +667,7 @@ func (s *Server) doGameInfo(r *Renderer, game *boardgame.Game, playerIndex board
 		"Players":         s.gamePlayerInfo(game),
 		"ViewingAsPlayer": playerIndex,
 		"HasEmptySlots":   hasEmptySlots,
+		"OpenForJoining":  gameInfo.Open,
 	}
 
 	s.lastErrorMessage = ""

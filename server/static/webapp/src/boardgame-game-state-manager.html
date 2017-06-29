@@ -385,7 +385,8 @@
         var gameInfo = {
           chest: newValue.Chest,
           playersInfo: newValue.Players,
-          hasEmptySlots: newValue.HasEmptySlots
+          hasEmptySlots: newValue.HasEmptySlots,
+          openForJoining: newValue.OpenForJoining,
         }
 
         this.dispatchEvent(new CustomEvent("install-game-static-info", {composed: true, detail: gameInfo}))
