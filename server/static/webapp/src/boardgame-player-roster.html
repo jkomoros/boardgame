@@ -180,7 +180,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         if (newValue.Status == "Success") {
           //Tell game-view to fetch data now
-          this.dispatchEvent(new CustomEvent("refresh-data", {composed: true}));
+          this.dispatchEvent(new CustomEvent("refresh-info", {composed: true}));
         } else {
           this.dispatchEvent(new CustomEvent("show-error", {composed: true, detail: {"message" : newValue.Error, "title": "Couldn't Join"}}));
         }
