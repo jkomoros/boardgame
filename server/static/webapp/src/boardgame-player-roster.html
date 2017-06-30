@@ -18,6 +18,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../bower_components/paper-styles/typography.html">
 <link rel="import" href="../bower_components/paper-styles/color.html">
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../bower_components/iron-icons/social-icons.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="boardgame-player-roster-item.html">
 <link rel="import" href="shared-styles.html">
 
@@ -30,7 +33,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 
     </style>
-    <h3>{{_bannerText(finished, winners)}}</h3>
+    <div class="layout horizontal center">
+      <h3 class="flex">{{_bannerText(finished, winners)}}</h3>
+      <paper-icon-button icon="{{_openIcon(gameOpen)}}" disabled></paper-icon-button>
+      <paper-icon-button icon="{{_visibleIcon(gameVisible)}}" disabled></paper-icon-button>
+    </div>
     <div class="layout horizontal justified players">
       <template is="dom-repeat" items="{{playersInfo}}">
         <boardgame-player-roster-item class="flex" state="{{state}}" game-name="{{gameRoute.name}}" is-empty="{{item.IsEmpty}}" finished="[[finished]]" winner="[[_isWinner(index, winners)]]" is-agent="{{item.IsAgent}}" photo-url="{{item.PhotoUrl}}" display-name="{{item.DisplayName}}" player-index="{{index}}" viewing-as-player="{{viewingAsPlayer}}" current-player-index="{{currentPlayerIndex}}" renderer-loaded="{{rendererLoaded}}">
@@ -111,6 +118,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       ready() {
         super.ready();
         this.addEventListener('iron-overlay-closed', e => this.dialogClosed(e));
+      }
+
+      _visibleIcon(gameVisible) {
+        return gameVisible ? "visibility" : "visibility-off"
+      }
+
+      _openIcon(gameOpen) {
+        return gameOpen ? "social:people" : "social:people-outline"
       }
 
       _isWinner(index, winners) {
