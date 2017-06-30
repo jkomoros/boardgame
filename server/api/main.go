@@ -667,7 +667,7 @@ func (s *Server) doGameInfo(r *Renderer, game *boardgame.Game, playerIndex board
 		"Players":         s.gamePlayerInfo(game),
 		"ViewingAsPlayer": playerIndex,
 		"HasEmptySlots":   hasEmptySlots,
-		"OpenForJoining":  gameInfo.Open,
+		"GameOpen":        gameInfo.Open,
 	}
 
 	s.lastErrorMessage = ""
