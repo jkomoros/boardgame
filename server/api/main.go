@@ -642,9 +642,11 @@ func (s *Server) gameInfoHandler(c *gin.Context) {
 	//TODO: should this be done in gameAPISetup?
 	gameInfo, _ := s.storage.ExtendedGame(gameId)
 
+	user := s.getUser(c)
+
 	r := NewRenderer(c)
 
-	s.doGameInfo(r, game, playerIndex, hasEmptySlots, gameInfo)
+	s.doGameInfo(r, game, playerIndex, hasEmptySlots, gameInfo, user)
 
 }
 
@@ -710,7 +712,7 @@ func (s *Server) gamePlayerInfo(game *boardgame.Game) []*playerBoardInfo {
 	return result
 }
 
-func (s *Server) doGameInfo(r *Renderer, game *boardgame.Game, playerIndex boardgame.PlayerIndex, hasEmptySlots bool, gameInfo *extendedgame.StorageRecord) {
+func (s *Server) doGameInfo(r *Renderer, game *boardgame.Game, playerIndex boardgame.PlayerIndex, hasEmptySlots bool, gameInfo *extendedgame.StorageRecord, user *users.StorageRecord) {
 	if game == nil {
 		r.Error("Couldn't find game")
 		return
@@ -726,6 +728,12 @@ func (s *Server) doGameInfo(r *Renderer, game *boardgame.Game, playerIndex board
 		return
 	}
 
+	isOwner := false
+
+	if user != nil {
+		isOwner = gameInfo.Owner == user.Id
+	}
+
 	args := gin.H{
 		"Chest":           s.renderChest(game),
 		"Forms":           s.generateForms(game),
@@ -736,6 +744,7 @@ func (s *Server) doGameInfo(r *Renderer, game *boardgame.Game, playerIndex board
 		"HasEmptySlots":   hasEmptySlots,
 		"GameOpen":        gameInfo.Open,
 		"GameVisible":     gameInfo.Visible,
+		"IsOwner":         isOwner,
 	}
 
 	s.lastErrorMessage = ""

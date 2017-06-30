@@ -33,7 +33,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
     <div class="layout horizontal center">
       <h3 class="flex">{{_bannerText(finished, winners)}}</h3>
-      <boardgame-configure-game-properties game-visible="{{gameVisible}}" game-open="{{gameOpen}}" admin="{{admin}}">
+      <boardgame-configure-game-properties game-visible="{{gameVisible}}" game-open="{{gameOpen}}" admin="{{admin}}" is-owner="{{isOwner}}">
       </boardgame-configure-game-properties>
     </div>
     <div class="layout horizontal justified players">
@@ -80,6 +80,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             observer: "_gameRouteChanged"
           },
           admin: Boolean,
+          isOwner: Boolean,
           playersInfo: Array,
           currentPlayerIndex: Number,
           state: Object,
