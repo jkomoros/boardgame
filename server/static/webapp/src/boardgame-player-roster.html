@@ -18,9 +18,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../bower_components/paper-styles/typography.html">
 <link rel="import" href="../bower_components/paper-styles/color.html">
-<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
-<link rel="import" href="../bower_components/iron-icons/social-icons.html">
-<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="boardgame-configure-game-properties.html">
 <link rel="import" href="boardgame-player-roster-item.html">
 <link rel="import" href="shared-styles.html">
 
@@ -35,8 +33,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
     <div class="layout horizontal center">
       <h3 class="flex">{{_bannerText(finished, winners)}}</h3>
-      <paper-icon-button icon="{{_openIcon(gameOpen)}}" disabled></paper-icon-button>
-      <paper-icon-button icon="{{_visibleIcon(gameVisible)}}" disabled></paper-icon-button>
+      <boardgame-configure-game-properties game-visible="{{gameVisible}}" game-open="{{gameOpen}}">
+      </boardgame-configure-game-properties>
     </div>
     <div class="layout horizontal justified players">
       <template is="dom-repeat" items="{{playersInfo}}">
@@ -118,14 +116,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       ready() {
         super.ready();
         this.addEventListener('iron-overlay-closed', e => this.dialogClosed(e));
-      }
-
-      _visibleIcon(gameVisible) {
-        return gameVisible ? "visibility" : "visibility-off"
-      }
-
-      _openIcon(gameOpen) {
-        return gameOpen ? "social:people" : "social:people-outline"
       }
 
       _isWinner(index, winners) {

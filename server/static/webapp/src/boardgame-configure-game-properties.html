@@ -1,0 +1,41 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../bower_components/iron-icons/social-icons.html">
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+
+<dom-module id="boardgame-configure-game-properties">
+  <template>
+      <paper-icon-button icon="{{_openIcon(gameOpen)}}" disabled></paper-icon-button>
+      <paper-icon-button icon="{{_visibleIcon(gameVisible)}}" disabled></paper-icon-button>
+  </template>
+
+  <script>
+
+    class BoardgameConfigureGameProperties extends Polymer.Element {
+      static get is() {
+        return "boardgame-configure-game-properties"
+      }
+
+      static get properties() {
+        return {
+          gameVisible: Boolean,
+          gameOpen: Boolean,
+          admin: Boolean,
+        }
+      }
+
+      _visibleIcon(gameVisible) {
+        return gameVisible ? "visibility" : "visibility-off"
+      }
+
+      _openIcon(gameOpen) {
+        return gameOpen ? "social:people" : "social:people-outline"
+      }
+
+
+    }
+
+    customElements.define(BoardgameConfigureGameProperties.is, BoardgameConfigureGameProperties);
+
+  </script>
+</dom-module>
