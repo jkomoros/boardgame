@@ -562,6 +562,67 @@ func (s *Server) doGameVersion(r *Renderer, game *boardgame.Game, version int, p
 	r.Success(args)
 }
 
+func (s *Server) configureGameHandler(c *gin.Context) {
+	game := s.getGame(c)
+
+	var gameId string
+
+	if game != nil {
+		gameId = game.Id()
+	}
+
+	gameInfo, _ := s.storage.ExtendedGame(gameId)
+
+	adminAllowed := s.getAdminAllowed(c)
+	requestAdmin := s.getRequestAdmin(c)
+
+	isAdmin := s.calcIsAdmin(adminAllowed, requestAdmin)
+
+	user := s.getUser(c)
+
+	open := s.getRequestOpen(c)
+	visible := s.getRequestVisible(c)
+
+	r := NewRenderer(c)
+
+	s.doConfigureGame(r, user, isAdmin, game, gameInfo, open, visible)
+
+}
+
+func (s *Server) doConfigureGame(r *Renderer, user *users.StorageRecord, isAdmin bool, game *boardgame.Game, gameInfo *extendedgame.StorageRecord, open, visible bool) {
+
+	if user == nil {
+		r.Error("No user provided")
+		return
+	}
+
+	if game == nil {
+		r.Error("Invalid game")
+		return
+	}
+
+	if gameInfo == nil {
+		r.Error("Couldn't fetch game info")
+		return
+	}
+
+	if !isAdmin && user.Id != gameInfo.Owner {
+		r.Error("You are neither the owner nor an admin.")
+		return
+	}
+
+	gameInfo.Open = open
+	gameInfo.Visible = visible
+
+	if err := s.storage.UpdateExtendedGame(game.Id(), gameInfo); err != nil {
+		r.Error("Error updating the extended game: " + err.Error())
+		return
+	}
+
+	r.Success(nil)
+
+}
+
 //gameInfo is the first payload when a game is loaded, including immutables
 //like chest, but also the initial game state payload as a convenience.
 func (s *Server) gameInfoHandler(c *gin.Context) {
@@ -883,6 +944,7 @@ func (s *Server) Start() {
 			protectedGameAPIGroup.Use(s.requireLoggedIn)
 			protectedGameAPIGroup.POST("move", s.moveHandler)
 			protectedGameAPIGroup.POST("join", s.joinGameHandler)
+			protectedGameAPIGroup.POST("configure", s.configureGameHandler)
 		}
 	}
 
