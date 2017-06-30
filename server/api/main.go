@@ -572,8 +572,14 @@ func (s *Server) gameInfoHandler(c *gin.Context) {
 
 	hasEmptySlots := s.getHasEmptySlots(c)
 
+	var gameId string
+
+	if game != nil {
+		gameId = game.Id()
+	}
+
 	//TODO: should this be done in gameAPISetup?
-	gameInfo, _ := s.storage.ExtendedGame(game.Id())
+	gameInfo, _ := s.storage.ExtendedGame(gameId)
 
 	r := NewRenderer(c)
 
