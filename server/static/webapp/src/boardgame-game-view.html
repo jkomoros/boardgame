@@ -47,7 +47,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
 
     <div class="card">
-      <boardgame-player-roster id="player" logged-in="{{loggedIn}}" game-route="[[gameRoute]]" viewing-as-player="{{viewingAsPlayer}}" has-empty-slots="{{hasEmptySlots}}" game-open="{{gameOpen}}" current-player-index="{{game.CurrentPlayerIndex}}" players-info="[[playersInfo]]" state="{{currentState}}" finished="[[game.Finished]]" winners="[[game.Winners]]"></boardgame-player-roster>
+      <boardgame-player-roster id="player" logged-in="{{loggedIn}}" game-route="[[gameRoute]]" viewing-as-player="{{viewingAsPlayer}}" has-empty-slots="{{hasEmptySlots}}" game-open="{{gameOpen}}" game-visible="{{gameVisible}}" current-player-index="{{game.CurrentPlayerIndex}}" players-info="[[playersInfo]]" state="{{currentState}}" finished="[[game.Finished]]" winners="[[game.Winners]]"></boardgame-player-roster>
     </div>
     <div class="card">
       <boardgame-render-game state="{{currentState}}" diagram="{{game.Diagram}}" game-name="[[gameRoute.name]]" viewing-as-player="{{viewingAsPlayer}}" current-player-index="{{game.CurrentPlayerIndex}}" socket-active="{{socketActive}}"></boardgame-render-game>
@@ -78,6 +78,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           playersInfo: Array,
           hasEmptySlots: Boolean,
           gameOpen: Boolean,
+          gameVisible: Boolean,
           gameRoute: {
             type: Object,
             observer: "_gameRouteChanged"
@@ -210,6 +211,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.playersInfo = null;
         this.hasEmptySlots = false;
         this.gameOpen = false;
+        this.gameVisible = false;
       }
 
 

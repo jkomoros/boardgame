@@ -387,6 +387,7 @@
           playersInfo: newValue.Players,
           hasEmptySlots: newValue.HasEmptySlots,
           gameOpen: newValue.GameOpen,
+          gameVisible: newValue.GameVisible,
         }
 
         this.dispatchEvent(new CustomEvent("install-game-static-info", {composed: true, detail: gameInfo}))
