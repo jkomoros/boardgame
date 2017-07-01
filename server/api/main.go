@@ -657,11 +657,11 @@ type playerBoardInfo struct {
 	PhotoUrl    string
 }
 
-func (s *Server) gamePlayerInfo(game *boardgame.Game) []*playerBoardInfo {
-	result := make([]*playerBoardInfo, game.NumPlayers())
+func (s *Server) gamePlayerInfo(game *boardgame.GameStorageRecord, manager *boardgame.GameManager) []*playerBoardInfo {
+	result := make([]*playerBoardInfo, game.NumPlayers)
 
-	userIds := s.storage.UserIdsForGame(game.Id())
-	agentNames := game.Agents()
+	userIds := s.storage.UserIdsForGame(game.Id)
+	agentNames := game.Agents
 
 	for i := range result {
 
@@ -670,7 +670,7 @@ func (s *Server) gamePlayerInfo(game *boardgame.Game) []*playerBoardInfo {
 		result[i] = player
 
 		if agentNames[i] != "" {
-			agent := game.Manager().AgentByName(agentNames[i])
+			agent := manager.AgentByName(agentNames[i])
 
 			if agent != nil {
 				player.DisplayName = agent.DisplayName()
@@ -739,7 +739,7 @@ func (s *Server) doGameInfo(r *Renderer, game *boardgame.Game, playerIndex board
 		"Forms":           s.generateForms(game),
 		"Game":            game.JSONForPlayer(playerIndex, nil),
 		"Error":           s.lastErrorMessage,
-		"Players":         s.gamePlayerInfo(game),
+		"Players":         s.gamePlayerInfo(game.StorageRecord(), game.Manager()),
 		"ViewingAsPlayer": playerIndex,
 		"HasEmptySlots":   hasEmptySlots,
 		"GameOpen":        gameInfo.Open,
