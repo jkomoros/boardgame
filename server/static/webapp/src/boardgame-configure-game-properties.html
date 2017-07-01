@@ -2,26 +2,41 @@
 <link rel="import" href="../bower_components/iron-icons/iron-icons.html">
 <link rel="import" href="../bower_components/iron-icons/social-icons.html">
 <link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../config-src/boardgame-config.html">
+<link rel="import" href="boardgame-util.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
 
 <dom-module id="boardgame-configure-game-properties">
   <template>
-      <paper-icon-button icon="{{_openIcon(gameOpen)}}" alt="{{_openAlt(gameOpen)}}" disabled></paper-icon-button>
-      <paper-icon-button icon="{{_visibleIcon(gameVisible)}}" alt="{{_visibleAlt(gameVisible)}}" disabled></paper-icon-button>
+      <paper-icon-button icon="{{_openIcon(gameOpen)}}" alt="{{_openAlt(gameOpen)}}" disabled on-tap="_handleOpenTapped"></paper-icon-button>
+      <paper-icon-button icon="{{_visibleIcon(gameVisible)}}" alt="{{_visibleAlt(gameVisible)}}" disabled on-tap="_handleVisibleTapped"></paper-icon-button>
+      <iron-ajax id="ajax" url="[[UrlForGameAPI(apiHost, gameRoute, 'configure')]]" with-credentials method="POST" content-type="application/x-www-form-urlencoded" last-response="{{_response}}"></iron-ajax>
   </template>
 
   <script>
 
-    class BoardgameConfigureGameProperties extends Polymer.Element {
+    class BoardgameConfigureGameProperties extends ApiHostMixin(BoardgameUtilMixin(Polymer.Element)) {
       static get is() {
         return "boardgame-configure-game-properties"
       }
 
       static get properties() {
         return {
-          gameVisible: Boolean,
-          gameOpen: Boolean,
+          gameVisible: {
+            type: Boolean,
+            value: false,
+          },
+          gameOpen: {
+            type: Boolean,
+            value: false,
+          },
           admin: Boolean,
           isOwner: Boolean,
+          gameRoute: Object,
+          _response: {
+            type: Object,
+            observer: "_responseChanged"
+          }
         }
       }
 
@@ -39,6 +54,28 @@
 
       _visibleAlt(gameVisible) {
         return gameVisible ? "Your game is publicly listed so random people can find it" : "Your game is unlisted so only people you share the link with can find it"
+      }
+
+      _handleOpenTapped() {
+        this._submit(!this.gameOpen, this.gameVisible);
+      }
+
+      _handleVisibleTapped() {
+        this._submit(this.gameOpen, !this.gameVisible);
+      }
+
+      _submit(open, visible) {
+        this.$.ajax.body = {"open": open ? 1 : 0, "visible": visible ? 1 : 0 , "admin" : this.admin ? 1 : 0};
+        this.$.ajax.generateRequest();
+      }
+
+      _responseChanged(newValue) {
+        if (newValue.Status == "Success") {
+          //Tell game-view to fetch data now
+          this.dispatchEvent(new CustomEvent("refresh-info", {composed: true}));
+        } else {
+          this.dispatchEvent(new CustomEvent("show-error", {composed: true, detail: {"message" : newValue.Error, "title": "Couldn't toggle"}}));
+        }
       }
 
 
