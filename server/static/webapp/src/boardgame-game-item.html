@@ -10,7 +10,7 @@
     <style include="shared-styles iron-flex">
     </style>
     <div class="card layout horizontal center">
-      <a href="[[UrlForGame(item.Name,item.Id)]]">{{item.Name}}</a>
+      <a href="[[UrlForGame(item.Name,item.Id)]]">{{gameDisplayName}}</a>
       <div class="flex"></div>
       <span class="minor">{{item.Id}}</span>
       <boardgame-configure-game-properties game-open="{{item.Open}}" game-visible="{{item.Visible}}"></boardgame-configure-game-properties>
@@ -27,8 +27,26 @@
       static get properties() {
         return {
           item: Object,
+          managers: Array,
+          gameDisplayName: {
+            type: String,
+            computed: "_computeGameDisplayName(item, managers)"
+          }
         }
       }
+
+      _computeGameDisplayName(item, managers) {
+        if (!item) return "";
+        for (let i = 0; i < managers.length; i++) {
+          let manager = managers[i];
+          if (manager.Name == item.Name) {
+            return manager.DisplayName;
+          }
+        }
+        return item.Name;
+      }
+
+
     }
 
     customElements.define(BoardgameGameItem.is, BoardgameGameItem);

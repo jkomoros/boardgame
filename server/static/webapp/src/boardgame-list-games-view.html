@@ -34,13 +34,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     </style>
     <div class="card">
-      <boardgame-create-game logged-in="{{loggedIn}}" managers="{{managerData.Managers}}"></boardgame-create-game>
+      <boardgame-create-game logged-in="{{loggedIn}}" managers="{{managers}}"></boardgame-create-game>
     </div>
     <div class="card">
       <paper-dropdown-menu name="manager" label="Game Type Filter">
         <paper-listbox slot="dropdown-content" selected="0" selected-item="{{selectedManager}}">
           <paper-item value="">All Games</paper-item>
-          <template is="dom-repeat" items="{{managerData.Managers}}">
+          <template is="dom-repeat" items="{{managers}}">
             <paper-item value="{{item.Name}}" data="{{item}}">{{item.Name}}</paper-item> 
           </template>
         </paper-listbox>
@@ -49,31 +49,31 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <template is="dom-if" if="{{data.ParticipatingActiveGames.length}}">
       <h2>Active</h2>
       <template is="dom-repeat" items="{{data.ParticipatingActiveGames}}">
-        <boardgame-game-item item="{{item}}"></boardgame-game-item>
+        <boardgame-game-item item="{{item}}" managers="{{managers}}"></boardgame-game-item>
       </template>
     </template>
     <template is="dom-if" if="{{data.PaticipatingFinishedGames.length}}">
       <h2>Finished</h2>
       <template is="dom-repeat" items="{{data.PaticipatingFinishedGames}}">
-        <boardgame-game-item item="{{item}}"></boardgame-game-item>
+        <boardgame-game-item item="{{item}}"  managers="{{managers}}"></boardgame-game-item>
       </template>
     </template>
     <template is="dom-if" if="{{data.VisibleJoinableActiveGames.length}}">
       <h2>Joinable</h2>
       <template is="dom-repeat" items="{{data.VisibleJoinableActiveGames}}">
-        <boardgame-game-item item="{{item}}"></boardgame-game-item>
+        <boardgame-game-item item="{{item}}" managers="{{managers}}"></boardgame-game-item>
       </template>
     </template>
     <template is="dom-if" if="{{data.VisibleActiveGames.length}}">
       <h2>Spectator</h2>
       <template is="dom-repeat" items="{{data.VisibleActiveGames}}">
-        <boardgame-game-item item="{{item}}"></boardgame-game-item>
+        <boardgame-game-item item="{{item}}" managers="{{managers}}"></boardgame-game-item>
       </template>
     </template>
     <template is="dom-if" if="{{data.AllGames.length}}">
       <h2>All Games</h2>
       <template is="dom-repeat" items="{{data.AllGames}}">
-        <boardgame-game-item item="{{item}}"></boardgame-game-item>
+        <boardgame-game-item item="{{item}}" managers="{{managers}}"></boardgame-game-item>
       </template>
     </template>
 
@@ -92,6 +92,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       static get properties() {
         return {
           data: Object,
+          managers: {
+            type: Array,
+            computed: "_computeManagers(managerData)"
+          },
           managerData: Object,
           selectedManager: Object,
           admin: {
@@ -116,6 +120,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             observer: "_loggedInChanged",
           }
         }
+      }
+
+      _computeManagers(managerData) {
+        if (!managerData) return [];
+        return managerData.Managers;
       }
 
       _computeGamesArgs(gameType, admin) {
