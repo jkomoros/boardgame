@@ -33,9 +33,13 @@
           admin: Boolean,
           isOwner: Boolean,
           gameRoute: Object,
+          configurable: {
+            type: Boolean,
+            value: false,
+          },
           disabled: {
             type: Boolean,
-            computed: "_computeDisabled(admin, isOwner)"
+            computed: "_computeDisabled(admin, isOwner, configurable)"
           },
           _response: {
             type: Object,
@@ -44,8 +48,8 @@
         }
       }
 
-      _computeDisabled(admin, isOwner) {
-        return !(admin || isOwner);
+      _computeDisabled(admin, isOwner, configurable) {
+        return !(admin || isOwner || configurable);
       }
 
       _visibleIcon(gameVisible) {
