@@ -2,15 +2,21 @@
 <link rel="import" href="../config-src/boardgame-config.html">
 <link rel="import" href="boardgame-util.html">
 <link rel="import" href="shared-styles.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="boardgame-configure-game-properties.html">
 
 <dom-module id="boardgame-game-item">
   <template>
-    <style include="shared-styles">
+    <style include="shared-styles iron-flex">
     </style>
-    <div class="card">
-        <a href="[[UrlForGame(item.Name,item.Id)]]">{{item.Id}}</a>
+    <div class="card layout horizontal center">
+      <a href="[[UrlForGame(item.Name,item.Id)]]">{{item.Id}}</a>
+      <div>
         {{item.Name}}
       </div>
+      <div class="flex"></div>
+      <boardgame-configure-game-properties game-open="{{item.Open}}" game-visible="{{item.Visible}}"></boardgame-configure-game-properties>
+    </div>
   </template>
 
   <script>

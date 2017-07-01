@@ -6,6 +6,7 @@ BoardgameUtilMixin = function(superClass) {
 			return "game/" + gameName + "/" + gameId;
 		}
 		UrlForGameAPI(apiHost, gameRoute, action) {
+			if (!gameRoute) return "";
 			return (apiHost || "http://nohost.com") + "/api/" + this.UrlForGame(gameRoute.name, gameRoute.id) + "/" + action;
 		}
 		ListGamesUrl(apiHost) {
