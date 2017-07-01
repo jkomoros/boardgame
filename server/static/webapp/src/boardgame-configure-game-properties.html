@@ -8,8 +8,8 @@
 
 <dom-module id="boardgame-configure-game-properties">
   <template>
-      <paper-icon-button icon="{{_openIcon(gameOpen)}}" alt="{{_openAlt(gameOpen)}}" disabled on-tap="_handleOpenTapped"></paper-icon-button>
-      <paper-icon-button icon="{{_visibleIcon(gameVisible)}}" alt="{{_visibleAlt(gameVisible)}}" disabled on-tap="_handleVisibleTapped"></paper-icon-button>
+      <paper-icon-button icon="{{_openIcon(gameOpen)}}" alt="{{_openAlt(gameOpen)}}" disabled="{{disabled}}" on-tap="_handleOpenTapped"></paper-icon-button>
+      <paper-icon-button icon="{{_visibleIcon(gameVisible)}}" alt="{{_visibleAlt(gameVisible)}}" disabled="{{disabled}}" on-tap="_handleVisibleTapped"></paper-icon-button>
       <iron-ajax id="ajax" url="[[UrlForGameAPI(apiHost, gameRoute, 'configure')]]" with-credentials method="POST" content-type="application/x-www-form-urlencoded" last-response="{{_response}}"></iron-ajax>
   </template>
 
@@ -33,11 +33,19 @@
           admin: Boolean,
           isOwner: Boolean,
           gameRoute: Object,
+          disabled: {
+            type: Boolean,
+            computed: "_computeDisabled(admin, isOwner)"
+          },
           _response: {
             type: Object,
             observer: "_responseChanged"
           }
         }
+      }
+
+      _computeDisabled(admin, isOwner) {
+        return !(admin || isOwner);
       }
 
       _visibleIcon(gameVisible) {
