@@ -10,11 +10,9 @@
     <style include="shared-styles iron-flex">
     </style>
     <div class="card layout horizontal center">
-      <a href="[[UrlForGame(item.Name,item.Id)]]">{{item.Id}}</a>
-      <div>
-        {{item.Name}}
-      </div>
+      <a href="[[UrlForGame(item.Name,item.Id)]]">{{item.Name}}</a>
       <div class="flex"></div>
+      <span class="minor">{{item.Id}}</span>
       <boardgame-configure-game-properties game-open="{{item.Open}}" game-visible="{{item.Visible}}"></boardgame-configure-game-properties>
     </div>
   </template>
