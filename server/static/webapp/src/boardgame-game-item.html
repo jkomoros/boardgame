@@ -1,10 +1,12 @@
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/polymer/lib/elements/dom-repeat.html">
 <link rel="import" href="../config-src/boardgame-config.html">
 <link rel="import" href="boardgame-util.html">
 <link rel="import" href="shared-styles.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="boardgame-configure-game-properties.html">
 <link rel="import" href="../bower_components/paper-styles/typography.html">
+<link rel="import" href="boardgame-player-chip.html">
 
 <dom-module id="boardgame-game-item">
   <template>
@@ -15,6 +17,9 @@
     </style>
     <div class="card layout horizontal center">
       <a href="[[UrlForGame(item.Name,item.Id)]]">{{gameDisplayName}}</a>
+      <template is="dom-repeat" items="{{item.Players}}">
+        <boardgame-player-chip photo-url="{{item.PhotoUrl}}" display-name="{{item.DisplayName}}" is-agent="{{item.IsAgent}}"></boardgame-player-chip>
+      </template>
       <div class="flex"></div>
       <span class="minor">{{item.Id}}</span>
       <boardgame-configure-game-properties game-open="{{item.Open}}" game-visible="{{item.Visible}}"></boardgame-configure-game-properties>
