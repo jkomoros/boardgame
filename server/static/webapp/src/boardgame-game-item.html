@@ -4,10 +4,14 @@
 <link rel="import" href="shared-styles.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="boardgame-configure-game-properties.html">
+<link rel="import" href="../bower_components/paper-styles/typography.html">
 
 <dom-module id="boardgame-game-item">
   <template>
     <style include="shared-styles iron-flex">
+      .minor {
+        @apply --paper-font-caption;
+      }
     </style>
     <div class="card layout horizontal center">
       <a href="[[UrlForGame(item.Name,item.Id)]]">{{gameDisplayName}}</a>
