@@ -5,8 +5,8 @@
 
 <dom-module id="boardgame-configure-game-properties">
   <template>
-      <paper-icon-button icon="{{_openIcon(gameOpen)}}" disabled></paper-icon-button>
-      <paper-icon-button icon="{{_visibleIcon(gameVisible)}}" disabled></paper-icon-button>
+      <paper-icon-button icon="{{_openIcon(gameOpen)}}" alt="{{_openAlt(gameOpen)}}" disabled></paper-icon-button>
+      <paper-icon-button icon="{{_visibleIcon(gameVisible)}}" alt="{{_visibleAlt(gameVisible)}}" disabled></paper-icon-button>
   </template>
 
   <script>
@@ -31,6 +31,14 @@
 
       _openIcon(gameOpen) {
         return gameOpen ? "social:people" : "social:people-outline"
+      }
+
+      _openAlt(gameOpen) {
+        return gameOpen ? "Anyone who has the link can join" : "Only specifically invited people may join"
+      }
+
+      _visibleAlt(gameVisible) {
+        return gameVisible ? "Your game is publicly listed so random people can find it" : "Your game is unlisted so only people you share the link with can find it"
       }
 
 
