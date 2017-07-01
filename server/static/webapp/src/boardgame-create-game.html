@@ -22,6 +22,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/paper-input/paper-input.html">
 <link rel="import" href="../bower_components/paper-radio-button/paper-radio-button.html">
 <link rel="import" href="../bower_components/paper-radio-group/paper-radio-group.html">
+<link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../bower_components/iron-icons/social-icons.html">
+<link rel="import" href="../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="shared-styles.html">
 
 <dom-module id="boardgame-create-game">
@@ -63,8 +66,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </template>
       </div>
       <div class="horizontal layout">
-        <paper-toggle-button name="visible" checked>Allow strangers to find the game</paper-toggle-button>
-        <paper-toggle-button name="open" checked>Allow anyone who can view the game to join</paper-toggle-button>
+        <paper-toggle-button name="visible" checked><iron-icon icon="visibility"></iron-icon> Allow strangers to find the game</paper-toggle-button>
+        <paper-toggle-button name="open" checked><iron-icon icon="social:people"></iron-icon> Allow anyone who can view the game to join</paper-toggle-button>
       </div>
     </div>
     <iron-ajax id="create" url="[[NewGameUrl(apiHost)]]" with-credentials method="POST" content-type="application/x-www-form-urlencoded" last-response="{{createGameResponse}}"></iron-ajax>
