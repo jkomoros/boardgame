@@ -1,0 +1,1 @@
+alter table extendedgames modify Owner varchar(128);
