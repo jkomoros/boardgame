@@ -117,6 +117,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             type: Object,
             observer: "_authResponseChanged",
           },
+          adminAllowed: {
+            type: Boolean,
+            notify: true,
+          },
           loggedIn : {
             type: Boolean,
             notify:true,
@@ -171,6 +175,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.verifyingAuth = false;
 
         this.user = newValue.User;
+        this.adminAllowed = newValue.AdminAllowed;
 
         //Must have been a log out
         if (!this.user) return;

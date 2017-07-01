@@ -70,7 +70,7 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 
 }
 
-func authSuccess(r *Renderer, user *users.StorageRecord, message string) {
+func (s *Server) authSuccess(r *Renderer, user *users.StorageRecord, message string) {
 
 	if user != nil {
 		//Make a copy so tha twe don't overwrite the user storage record and
@@ -86,9 +86,12 @@ func authSuccess(r *Renderer, user *users.StorageRecord, message string) {
 		}
 	}
 
+	adminAllowed := s.calcAdminAllowed(user)
+
 	r.Success(gin.H{
-		"User":    user,
-		"Message": message,
+		"User":         user,
+		"AdminAllowed": adminAllowed,
+		"Message":      message,
 	})
 
 }
@@ -134,7 +137,7 @@ func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie, email, photoUrl, 
 
 				s.storage.UpdateUser(userRecord)
 
-				authSuccess(r, userRecord, "Cookie and uid already matched.")
+				s.authSuccess(r, userRecord, "Cookie and uid already matched.")
 				return
 			} else {
 				s.unsetCookie(r, cookie, "Cookie pointed to the wrong uid. Unsetting")
@@ -190,7 +193,7 @@ func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie, email, photoUrl, 
 
 		r.SetAuthCookie(cookie)
 
-		authSuccess(r, user, "Created new cookie to point to uid")
+		s.authSuccess(r, user, "Created new cookie to point to uid")
 
 		return
 

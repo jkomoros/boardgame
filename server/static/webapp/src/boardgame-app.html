@@ -39,6 +39,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         display: block;
       }
 
+      [hidden] {
+        display:none !important;
+      }
+
       app-header {
         color: #fff;
         background-color: var(--app-primary-color);
@@ -83,8 +87,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <app-drawer-layout fullbleed>
       <!-- Drawer content -->
       <app-drawer slot="drawer" id="drawer">
-        <boardgame-user id="user" logged-in="{{loggedIn}}"></boardgame-user>
-        <paper-toggle-button checked="{{admin}}">Admin Mode</paper-toggle-button>
+        <boardgame-user id="user" logged-in="{{loggedIn}}" admin-allowed="{{adminAllowed}}"></boardgame-user>
+        <paper-toggle-button checked="{{admin}}" hidden="{{!adminAllowed}}">Admin Mode</paper-toggle-button>
         <app-toolbar>Menu</app-toolbar>
         <iron-selector selected="[[page]]" attr-for-selected="name" class="drawer-list" role="navigation">
           <a name="list-games" href="/list-games">List Games</a>
@@ -141,6 +145,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           user: Object,
           loggedIn : Boolean,
           admin: {
+            type: Boolean,
+            value: false,
+          },
+          adminAllowed: {
             type: Boolean,
             value: false,
           }
