@@ -460,15 +460,39 @@ func (s *Server) doListGames(r *Renderer, user *users.StorageRecord, gameName st
 		userId = user.Id
 	}
 	result := gin.H{
-		"ParticipatingActiveGames":   s.storage.ListGames(100, listing.ParticipatingActive, userId, gameName),
-		"ParticipatingFinishedGames": s.storage.ListGames(100, listing.ParticipatingFinished, userId, gameName),
-		"VisibleJoinableActiveGames": s.storage.ListGames(100, listing.VisibleJoinableActive, userId, gameName),
-		"VisibleActiveGames":         s.storage.ListGames(100, listing.VisibleActive, userId, gameName),
+		"ParticipatingActiveGames":   s.listGamesWithUsers(100, listing.ParticipatingActive, userId, gameName),
+		"ParticipatingFinishedGames": s.listGamesWithUsers(100, listing.ParticipatingFinished, userId, gameName),
+		"VisibleJoinableActiveGames": s.listGamesWithUsers(100, listing.VisibleJoinableActive, userId, gameName),
+		"VisibleActiveGames":         s.listGamesWithUsers(100, listing.VisibleActive, userId, gameName),
 	}
 	if isAdmin {
 		result["AllGames"] = s.storage.ListGames(100, listing.All, "", gameName)
 	}
 	r.Success(result)
+}
+
+type gameStorageRecordWithUsers struct {
+	*extendedgame.CombinedStorageRecord
+	Players []*playerBoardInfo
+}
+
+func (s *Server) listGamesWithUsers(max int, list listing.Type, userId string, gameName string) []*gameStorageRecordWithUsers {
+	games := s.storage.ListGames(max, list, userId, gameName)
+
+	result := make([]*gameStorageRecordWithUsers, len(games))
+
+	for i, game := range games {
+
+		manager := s.managers[game.Name]
+
+		result[i] = &gameStorageRecordWithUsers{
+			game,
+			s.gamePlayerInfo(&game.GameStorageRecord, manager),
+		}
+	}
+
+	return result
+
 }
 
 func (s *Server) listManagerHandler(c *gin.Context) {
@@ -658,6 +682,11 @@ type playerBoardInfo struct {
 }
 
 func (s *Server) gamePlayerInfo(game *boardgame.GameStorageRecord, manager *boardgame.GameManager) []*playerBoardInfo {
+
+	if manager == nil {
+		return nil
+	}
+
 	result := make([]*playerBoardInfo, game.NumPlayers)
 
 	userIds := s.storage.UserIdsForGame(game.Id)
