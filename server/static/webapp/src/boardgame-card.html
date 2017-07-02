@@ -264,7 +264,7 @@
           //If true, the card is rotated 90 degrees.
           rotated: {
             type: Boolean,
-            observer: "_updateInnerTransform",
+            observer: "_rotatedChanged",
             value: false,
             reflectToAttribute: true
           },
@@ -413,6 +413,17 @@
         this.appendChild(bind);
         bind.item = this.item;
         this._binder = bind;
+      }
+
+      _rotatedChanged(newValue) {
+        //there's a class of bugs where basicRotation isn't set the same as
+        //rotation at beginning of rotation. The most recent one was when
+        //moving a card that DIDN'T flip faceUp but did change from not
+        //rotated to rotated, the first animation wouldn't work. To fix that,
+        //we have basicRotated mirror rotated whenever rotated is explicitly
+        //set, to verify basicRotated defaults to a reasonable value.
+        this.basicRotated = newValue;
+        this._updateInnerTransform();
       }
 
       _updateInnerTransform() {
