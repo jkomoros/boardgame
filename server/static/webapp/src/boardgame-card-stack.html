@@ -71,8 +71,18 @@
         top:4px;
       }
 
-      #container.spread {
+      #container.spread #slot-holder {
+        
+        /* If we just applied layout-around-justified to #container.spread, it
+        /* wouldn't work because the children are actually the four containers */
+        @apply --layout-horizontal;
         @apply --layout-around-justified;
+        width:100%;
+      }
+
+      #container.spread #slot-holder ::slotted(dom-repeat) {
+        /* If we don't do this then oddly enough the dom-repeats will take up space in the layout! */
+        display: none;
       }
 
       .spread ::slotted(boardgame-card:hover), .spread boardgame-card:hover, .fan ::slotted(boardgame-card:hover), .fan boardgame-card:hover {
@@ -111,7 +121,9 @@
     </style>
 
     <div id="container" class$="{{_classes(layout, noAnimate)}}">
-      <slot id="cards"></slot>
+      <div id="slot-holder">
+        <slot id="cards"></slot>
+      </div>
       <template is="dom-if" if="{{_createSpacer}}" restamp>
           <boardgame-card spacer id="spacer" card-type="{{_effectiveCardType}}">
           </boardgame-card>
