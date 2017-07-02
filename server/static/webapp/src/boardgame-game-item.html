@@ -28,7 +28,6 @@
       <a href="[[UrlForGame(item.Name,item.Id)]]">{{gameDisplayName}}</a>
       <template is="dom-repeat" items="{{item.Players}}">
         <boardgame-player-chip photo-url="{{item.PhotoUrl}}" display-name="{{item.DisplayName}}" is-agent="{{item.IsAgent}}"></boardgame-player-chip>
-        <span class$="{{_playerItemClasses(item)}}">{{_displayNameForPlayerItem(item)}}</span>
       </template>
       <div class="flex"></div>
       <span class="minor">{{item.Id}}</span>
