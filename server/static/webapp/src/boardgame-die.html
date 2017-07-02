@@ -34,9 +34,9 @@
         overflow: hidden;
         cursor: pointer;
         @apply --shadow-elevation-2dp;
-        @apply --shadow-transition;
         transform: scale(var(--effective-die-scale));
-        transition: transform var(--animation-length) ease-in-out;
+        /* The second part of this transition is from paper-styles/shadow, because we need to do our own to get rotated */
+        transition: transform var(--animation-length) ease-in-out, box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       #main.interactive:hover {
