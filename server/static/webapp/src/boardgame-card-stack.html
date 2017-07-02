@@ -8,6 +8,10 @@
   <template>
     <style>
 
+      :host {
+        width:100%;
+      }
+
       #container {
         position: relative;
         @apply --layout-horizontal;
@@ -77,7 +81,7 @@
 
       #container.spread ::slotted(boardgame-card), #container.spread boardgame-card {
         /* default card width */
-        margin-right: calc(100px * -1);
+        margin-right: calc(100px * -0.75);
       }
 
       #container.spread ::slotted(boardgame-card.bcc-last), #container.spread boardgame-card.bcc-last {
