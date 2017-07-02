@@ -17,11 +17,18 @@
       :host {
         --player-chip-size: 32px;
       }
+      .empty {
+        font-style: italic;
+      }
+      boardgame-player-chip {
+        margin-left: 0.5em;
+      }
     </style>
     <div class="card layout horizontal center">
       <a href="[[UrlForGame(item.Name,item.Id)]]">{{gameDisplayName}}</a>
       <template is="dom-repeat" items="{{item.Players}}">
         <boardgame-player-chip photo-url="{{item.PhotoUrl}}" display-name="{{item.DisplayName}}" is-agent="{{item.IsAgent}}"></boardgame-player-chip>
+        <span class$="{{_playerItemClasses(item)}}">{{_displayNameForPlayerItem(item)}}</span>
       </template>
       <div class="flex"></div>
       <span class="minor">{{item.Id}}</span>
@@ -45,6 +52,14 @@
             computed: "_computeGameDisplayName(item, managers)"
           }
         }
+      }
+
+      _playerItemClasses(playerItem) {
+        return playerItem.IsEmpty ? "empty" : "";
+      }
+
+      _displayNameForPlayerItem(playerItem) {
+        return playerItem.IsEmpty ? "No one" : playerItem.DisplayName;
       }
 
       _computeGameDisplayName(item, managers) {
