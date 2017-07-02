@@ -229,6 +229,7 @@
             this._beforeSeenIds.delete(card.id);
 
             record.afterFaceUp = card.faceUp;
+            record.afterRotated = card.rotated;
 
             //All of these set inner rotation on card, so do them all at once
             card.setProperties({
@@ -388,7 +389,7 @@
             card.setProperties({
               faceUp: record.afterFaceUp,
               overrideRotated: false,
-              basicRotated: false
+              basicRotated: record.afterRotated,
             });
           }
         }
