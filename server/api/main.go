@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/dustin/go-humanize"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/itsjamie/gin-cors"
@@ -473,7 +474,8 @@ func (s *Server) doListGames(r *Renderer, user *users.StorageRecord, gameName st
 
 type gameStorageRecordWithUsers struct {
 	*extendedgame.CombinedStorageRecord
-	Players []*playerBoardInfo
+	Players              []*playerBoardInfo
+	ReadableLastActivity string
 }
 
 func (s *Server) listGamesWithUsers(max int, list listing.Type, userId string, gameName string) []*gameStorageRecordWithUsers {
@@ -488,6 +490,7 @@ func (s *Server) listGamesWithUsers(max int, list listing.Type, userId string, g
 		result[i] = &gameStorageRecordWithUsers{
 			game,
 			s.gamePlayerInfo(&game.GameStorageRecord, manager),
+			humanize.Time(time.Unix(0, game.LastActivity)),
 		}
 	}
 
