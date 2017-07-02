@@ -14,6 +14,9 @@
       .minor {
         @apply --paper-font-caption;
       }
+      :host {
+        --player-chip-size: 32px;
+      }
     </style>
     <div class="card layout horizontal center">
       <a href="[[UrlForGame(item.Name,item.Id)]]">{{gameDisplayName}}</a>
