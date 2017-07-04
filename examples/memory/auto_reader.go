@@ -141,19 +141,19 @@ func (c *cardValue) Reader() boardgame.PropertyReader {
 	return &__cardValueReader{c}
 }
 
-// Implementation for MoveAdvanceNextPlayer
+// Implementation for MoveFinishTurn
 
-var __MoveAdvanceNextPlayerReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{}
+var __MoveFinishTurnReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{}
 
-type __MoveAdvanceNextPlayerReader struct {
-	data *MoveAdvanceNextPlayer
+type __MoveFinishTurnReader struct {
+	data *MoveFinishTurn
 }
 
-func (m *__MoveAdvanceNextPlayerReader) Props() map[string]boardgame.PropertyType {
-	return __MoveAdvanceNextPlayerReaderProps
+func (m *__MoveFinishTurnReader) Props() map[string]boardgame.PropertyType {
+	return __MoveFinishTurnReaderProps
 }
 
-func (m *__MoveAdvanceNextPlayerReader) Prop(name string) (interface{}, error) {
+func (m *__MoveFinishTurnReader) Prop(name string) (interface{}, error) {
 	props := m.Props()
 	propType, ok := props[name]
 
@@ -190,7 +190,7 @@ func (m *__MoveAdvanceNextPlayerReader) Prop(name string) (interface{}, error) {
 	return nil, errors.New("Unexpected property type: " + propType.String())
 }
 
-func (m *__MoveAdvanceNextPlayerReader) SetProp(name string, value interface{}) error {
+func (m *__MoveFinishTurnReader) SetProp(name string, value interface{}) error {
 	props := m.Props()
 	propType, ok := props[name]
 
@@ -271,140 +271,140 @@ func (m *__MoveAdvanceNextPlayerReader) SetProp(name string, value interface{}) 
 	return errors.New("Unexpected property type: " + propType.String())
 }
 
-func (m *__MoveAdvanceNextPlayerReader) BoolProp(name string) (bool, error) {
+func (m *__MoveFinishTurnReader) BoolProp(name string) (bool, error) {
 
 	return false, errors.New("No such Bool prop: " + name)
 
 }
 
-func (m *__MoveAdvanceNextPlayerReader) SetBoolProp(name string, value bool) error {
+func (m *__MoveFinishTurnReader) SetBoolProp(name string, value bool) error {
 
 	return errors.New("No such Bool prop: " + name)
 
 }
 
-func (m *__MoveAdvanceNextPlayerReader) BoolSliceProp(name string) ([]bool, error) {
+func (m *__MoveFinishTurnReader) BoolSliceProp(name string) ([]bool, error) {
 
 	return []bool{}, errors.New("No such BoolSlice prop: " + name)
 
 }
 
-func (m *__MoveAdvanceNextPlayerReader) SetBoolSliceProp(name string, value []bool) error {
+func (m *__MoveFinishTurnReader) SetBoolSliceProp(name string, value []bool) error {
 
 	return errors.New("No such BoolSlice prop: " + name)
 
 }
 
-func (m *__MoveAdvanceNextPlayerReader) GrowableStackProp(name string) (*boardgame.GrowableStack, error) {
+func (m *__MoveFinishTurnReader) GrowableStackProp(name string) (*boardgame.GrowableStack, error) {
 
 	return nil, errors.New("No such GrowableStack prop: " + name)
 
 }
 
-func (m *__MoveAdvanceNextPlayerReader) SetGrowableStackProp(name string, value *boardgame.GrowableStack) error {
+func (m *__MoveFinishTurnReader) SetGrowableStackProp(name string, value *boardgame.GrowableStack) error {
 
 	return errors.New("No such GrowableStack prop: " + name)
 
 }
 
-func (m *__MoveAdvanceNextPlayerReader) IntProp(name string) (int, error) {
+func (m *__MoveFinishTurnReader) IntProp(name string) (int, error) {
 
 	return 0, errors.New("No such Int prop: " + name)
 
 }
 
-func (m *__MoveAdvanceNextPlayerReader) SetIntProp(name string, value int) error {
+func (m *__MoveFinishTurnReader) SetIntProp(name string, value int) error {
 
 	return errors.New("No such Int prop: " + name)
 
 }
 
-func (m *__MoveAdvanceNextPlayerReader) IntSliceProp(name string) ([]int, error) {
+func (m *__MoveFinishTurnReader) IntSliceProp(name string) ([]int, error) {
 
 	return []int{}, errors.New("No such IntSlice prop: " + name)
 
 }
 
-func (m *__MoveAdvanceNextPlayerReader) SetIntSliceProp(name string, value []int) error {
+func (m *__MoveFinishTurnReader) SetIntSliceProp(name string, value []int) error {
 
 	return errors.New("No such IntSlice prop: " + name)
 
 }
 
-func (m *__MoveAdvanceNextPlayerReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
+func (m *__MoveFinishTurnReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
 
 	return 0, errors.New("No such PlayerIndex prop: " + name)
 
 }
 
-func (m *__MoveAdvanceNextPlayerReader) SetPlayerIndexProp(name string, value boardgame.PlayerIndex) error {
+func (m *__MoveFinishTurnReader) SetPlayerIndexProp(name string, value boardgame.PlayerIndex) error {
 
 	return errors.New("No such PlayerIndex prop: " + name)
 
 }
 
-func (m *__MoveAdvanceNextPlayerReader) PlayerIndexSliceProp(name string) ([]boardgame.PlayerIndex, error) {
+func (m *__MoveFinishTurnReader) PlayerIndexSliceProp(name string) ([]boardgame.PlayerIndex, error) {
 
 	return []boardgame.PlayerIndex{}, errors.New("No such PlayerIndexSlice prop: " + name)
 
 }
 
-func (m *__MoveAdvanceNextPlayerReader) SetPlayerIndexSliceProp(name string, value []boardgame.PlayerIndex) error {
+func (m *__MoveFinishTurnReader) SetPlayerIndexSliceProp(name string, value []boardgame.PlayerIndex) error {
 
 	return errors.New("No such PlayerIndexSlice prop: " + name)
 
 }
 
-func (m *__MoveAdvanceNextPlayerReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
+func (m *__MoveFinishTurnReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
 
 	return nil, errors.New("No such SizedStack prop: " + name)
 
 }
 
-func (m *__MoveAdvanceNextPlayerReader) SetSizedStackProp(name string, value *boardgame.SizedStack) error {
+func (m *__MoveFinishTurnReader) SetSizedStackProp(name string, value *boardgame.SizedStack) error {
 
 	return errors.New("No such SizedStack prop: " + name)
 
 }
 
-func (m *__MoveAdvanceNextPlayerReader) StringProp(name string) (string, error) {
+func (m *__MoveFinishTurnReader) StringProp(name string) (string, error) {
 
 	return "", errors.New("No such String prop: " + name)
 
 }
 
-func (m *__MoveAdvanceNextPlayerReader) SetStringProp(name string, value string) error {
+func (m *__MoveFinishTurnReader) SetStringProp(name string, value string) error {
 
 	return errors.New("No such String prop: " + name)
 
 }
 
-func (m *__MoveAdvanceNextPlayerReader) StringSliceProp(name string) ([]string, error) {
+func (m *__MoveFinishTurnReader) StringSliceProp(name string) ([]string, error) {
 
 	return []string{}, errors.New("No such StringSlice prop: " + name)
 
 }
 
-func (m *__MoveAdvanceNextPlayerReader) SetStringSliceProp(name string, value []string) error {
+func (m *__MoveFinishTurnReader) SetStringSliceProp(name string, value []string) error {
 
 	return errors.New("No such StringSlice prop: " + name)
 
 }
 
-func (m *__MoveAdvanceNextPlayerReader) TimerProp(name string) (*boardgame.Timer, error) {
+func (m *__MoveFinishTurnReader) TimerProp(name string) (*boardgame.Timer, error) {
 
 	return nil, errors.New("No such Timer prop: " + name)
 
 }
 
-func (m *__MoveAdvanceNextPlayerReader) SetTimerProp(name string, value *boardgame.Timer) error {
+func (m *__MoveFinishTurnReader) SetTimerProp(name string, value *boardgame.Timer) error {
 
 	return errors.New("No such Timer prop: " + name)
 
 }
 
-func (m *MoveAdvanceNextPlayer) ReadSetter() boardgame.PropertyReadSetter {
-	return &__MoveAdvanceNextPlayerReader{m}
+func (m *MoveFinishTurn) ReadSetter() boardgame.PropertyReadSetter {
+	return &__MoveFinishTurnReader{m}
 }
 
 // Implementation for MoveRevealCard
@@ -1750,10 +1750,10 @@ func (g *__gameStateReader) SetPlayerIndexSliceProp(name string, value []boardga
 func (g *__gameStateReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
 
 	switch name {
-	case "RevealedCards":
-		return g.data.RevealedCards, nil
 	case "HiddenCards":
 		return g.data.HiddenCards, nil
+	case "RevealedCards":
+		return g.data.RevealedCards, nil
 
 	}
 
@@ -1764,11 +1764,11 @@ func (g *__gameStateReader) SizedStackProp(name string) (*boardgame.SizedStack, 
 func (g *__gameStateReader) SetSizedStackProp(name string, value *boardgame.SizedStack) error {
 
 	switch name {
-	case "RevealedCards":
-		g.data.RevealedCards = value
-		return nil
 	case "HiddenCards":
 		g.data.HiddenCards = value
+		return nil
+	case "RevealedCards":
+		g.data.RevealedCards = value
 		return nil
 
 	}

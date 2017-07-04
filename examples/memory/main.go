@@ -253,7 +253,7 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 	moveTypeConfigs := []*boardgame.MoveTypeConfig{
 		&moveRevealCardConfig,
 		&moveHideCardsConfig,
-		&moveAdvanceNextPlayerConfig,
+		&moveFinishTurnConfig,
 		&moveCaptureCardsConfig,
 		&moveStartHideCardsTimerConfig,
 	}

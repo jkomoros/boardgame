@@ -8,8 +8,8 @@ import (
 )
 
 //+autoreader readsetter
-type MoveAdvanceNextPlayer struct {
-	moves.Base
+type MoveFinishTurn struct {
+	moves.FinishTurn
 }
 
 //+autoreader readsetter
@@ -37,45 +37,17 @@ const HideCardsDuration = 4 * time.Second
 
 /**************************************************
  *
- * MoveAdvanceNextPlayer Implementation
+ * MoveFinishTurn Implementation
  *
  **************************************************/
 
-var moveAdvanceNextPlayerConfig = boardgame.MoveTypeConfig{
-	Name:     "Advance To Next Player",
+var moveFinishTurnConfig = boardgame.MoveTypeConfig{
+	Name:     "Finish Turn",
 	HelpText: "Advances to the next player when the current player has no more legal moves.",
 	MoveConstructor: func() boardgame.Move {
-		return new(MoveAdvanceNextPlayer)
+		return new(MoveFinishTurn)
 	},
 	IsFixUp: true,
-}
-
-func (m *MoveAdvanceNextPlayer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
-	game, players := concreteStates(state)
-
-	p := players[game.CurrentPlayer]
-
-	if p.CardsLeftToReveal > 0 {
-		return errors.New("The current player still has cards left to reveal")
-	}
-
-	if game.RevealedCards.NumComponents() > 0 {
-		return errors.New("There are still some cards revealed. The current player must play MoveHideCards")
-	}
-
-	return nil
-}
-
-func (m *MoveAdvanceNextPlayer) Apply(state boardgame.MutableState) error {
-	game, players := concreteStates(state)
-
-	game.CurrentPlayer = game.CurrentPlayer.Next(state)
-
-	p := players[game.CurrentPlayer]
-
-	p.CardsLeftToReveal = 2
-
-	return nil
 }
 
 /**************************************************
