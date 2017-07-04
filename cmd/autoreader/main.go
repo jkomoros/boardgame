@@ -37,12 +37,12 @@ import (
 	"github.com/MarcGrol/golangAnnotations/model"
 	"github.com/MarcGrol/golangAnnotations/parser"
 	"github.com/jkomoros/boardgame"
+	"go/build"
 	"go/format"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 	"text/template"
@@ -143,7 +143,7 @@ func processPackage(location string) (output string, err error) {
 			continue
 		}
 
-		types := structTypes(theStruct)
+		types := structTypes(location, theStruct)
 
 		output += headerForStruct(theStruct.Name, types, outputReadSetter)
 
@@ -198,11 +198,11 @@ func fieldNamePossibleEmbeddedStruct(theField model.Field) bool {
 	return false
 }
 
-func structTypes(theStruct model.Struct) map[string]boardgame.PropertyType {
+func structTypes(location string, theStruct model.Struct) map[string]boardgame.PropertyType {
 	result := make(map[string]boardgame.PropertyType)
 	for _, field := range theStruct.Fields {
 		if fieldNamePossibleEmbeddedStruct(field) {
-			embeddedInfo := typesForPossibleEmbeddedStruct(field)
+			embeddedInfo := typesForPossibleEmbeddedStruct(location, field)
 			if embeddedInfo != nil {
 				for key, val := range embeddedInfo {
 					result[key] = val
@@ -255,12 +255,18 @@ func structTypes(theStruct model.Struct) map[string]boardgame.PropertyType {
 //field MIGHT be an embedded struct. If it is, we will identify the package it
 //appears to be built from, parse those structs, try to find the struct, and
 //return a map of property types in it.
-func typesForPossibleEmbeddedStruct(theField model.Field) map[string]boardgame.PropertyType {
+func typesForPossibleEmbeddedStruct(location string, theField model.Field) map[string]boardgame.PropertyType {
 
 	//TODO: memoize this
-	//TODO: import from canonical location using go/build to identify path to import
 
-	importPath := filepath.Join(os.ExpandEnv("$GOPATH/src/"), theField.PackageName)
+	pkg, err := build.Import(theField.PackageName, location, build.FindOnly)
+
+	if err != nil {
+		log.Println("Couldn't find canonical import: " + err.Error())
+		return nil
+	}
+
+	importPath := pkg.Dir
 
 	targetTypeParts := strings.Split(theField.TypeName, ".")
 
@@ -282,7 +288,7 @@ func typesForPossibleEmbeddedStruct(theField model.Field) map[string]boardgame.P
 			continue
 		}
 		//Found it!
-		return structTypes(theStruct)
+		return structTypes(location, theStruct)
 	}
 
 	return nil
