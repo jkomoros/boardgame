@@ -66,7 +66,7 @@ func (f *FinishTurn) Legal(state boardgame.State, proposer boardgame.PlayerIndex
 //Aoply resets the current player via ResetForTurnEnd, then advances to the
 //next player (using game.SetCurrentPlayer), then calls ResetForTurnStart on
 //the new player.
-func (f *FinishTurn) Apply(state boardgame.State) error {
+func (f *FinishTurn) Apply(state boardgame.MutableState) error {
 	currentPlayer := state.PlayerStates()[state.Game().CurrentPlayerIndex()]
 
 	currentPlayerTurnFinisher, ok := currentPlayer.(PlayerTurnFinisher)
