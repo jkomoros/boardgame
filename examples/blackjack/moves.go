@@ -25,20 +25,17 @@ type MoveDealInitialCard struct {
 
 //+autoreader readsetter
 type MoveRevealHiddenCard struct {
-	moves.Base
-	TargetPlayerIndex boardgame.PlayerIndex
+	moves.CurrentPlayer
 }
 
 //+autoreader readsetter
 type MoveCurrentPlayerHit struct {
-	moves.Base
-	TargetPlayerIndex boardgame.PlayerIndex
+	moves.CurrentPlayer
 }
 
 //+autoreader readsetter
 type MoveCurrentPlayerStand struct {
-	moves.Base
-	TargetPlayerIndex boardgame.PlayerIndex
+	moves.CurrentPlayer
 }
 
 /**************************************************
@@ -89,21 +86,13 @@ var moveCurrentPlayerHitConfig = boardgame.MoveTypeConfig{
 	},
 }
 
-func (m *MoveCurrentPlayerHit) DefaultsForState(state boardgame.State) {
-	m.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
-}
-
 func (m *MoveCurrentPlayerHit) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
+	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
+		return err
+	}
+
 	game, players := concreteStates(state)
-
-	if !m.TargetPlayerIndex.Equivalent(proposer) {
-		return errors.New("The proposing player is not who the move is acting on behalf of.")
-	}
-
-	if game.CurrentPlayer != m.TargetPlayerIndex {
-		return errors.New("The specified player is not the current player.")
-	}
 
 	currentPlayer := players[game.CurrentPlayer]
 
@@ -154,21 +143,13 @@ var moveCurrentPlayerStandConfig = boardgame.MoveTypeConfig{
 	},
 }
 
-func (m *MoveCurrentPlayerStand) DefaultsForState(state boardgame.State) {
-	m.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
-}
-
 func (m *MoveCurrentPlayerStand) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
+	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
+		return err
+	}
+
 	game, players := concreteStates(state)
-
-	if !m.TargetPlayerIndex.Equivalent(proposer) {
-		return errors.New("The proposing player is not who the move is on behalf of.")
-	}
-
-	if game.CurrentPlayer != m.TargetPlayerIndex {
-		return errors.New("The specified player is not the current player.")
-	}
 
 	currentPlayer := players[game.CurrentPlayer]
 
@@ -251,23 +232,15 @@ var moveRevealHiddenCardConfig = boardgame.MoveTypeConfig{
 	IsFixUp: true,
 }
 
-func (m *MoveRevealHiddenCard) DefaultsForState(state boardgame.State) {
-	m.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
-}
-
 func (m *MoveRevealHiddenCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
-	game, players := concreteStates(state)
+	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
+		return err
+	}
+
+	_, players := concreteStates(state)
 
 	p := players[m.TargetPlayerIndex]
-
-	if !m.TargetPlayerIndex.Equivalent(proposer) {
-		return errors.New("The proposing player is not the player the move is on behalf of.")
-	}
-
-	if !m.TargetPlayerIndex.Equivalent(game.CurrentPlayer) {
-		return errors.New("The target player is not the current player.")
-	}
 
 	if p.HiddenHand.NumComponents() < 1 {
 		return errors.New("Target player has no cards to reveal")

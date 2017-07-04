@@ -2134,12 +2134,12 @@ func (p *__playerStateReader) SetProp(name string, value interface{}) error {
 func (p *__playerStateReader) BoolProp(name string) (bool, error) {
 
 	switch name {
+	case "Busted":
+		return p.data.Busted, nil
 	case "Stood":
 		return p.data.Stood, nil
 	case "GotInitialDeal":
 		return p.data.GotInitialDeal, nil
-	case "Busted":
-		return p.data.Busted, nil
 
 	}
 
@@ -2150,14 +2150,14 @@ func (p *__playerStateReader) BoolProp(name string) (bool, error) {
 func (p *__playerStateReader) SetBoolProp(name string, value bool) error {
 
 	switch name {
+	case "Busted":
+		p.data.Busted = value
+		return nil
 	case "Stood":
 		p.data.Stood = value
 		return nil
 	case "GotInitialDeal":
 		p.data.GotInitialDeal = value
-		return nil
-	case "Busted":
-		p.data.Busted = value
 		return nil
 
 	}
