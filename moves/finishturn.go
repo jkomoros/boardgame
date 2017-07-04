@@ -87,7 +87,7 @@ func (f *FinishTurn) Apply(state boardgame.MutableState) error {
 
 	playerSetter.SetCurrentPlayer(newPlayerIndex)
 
-	currentPlayer = state.PlayerStates()[state.Game().CurrentPlayerIndex()]
+	currentPlayer = state.PlayerStates()[newPlayerIndex]
 
 	currentPlayerTurnFinisher, ok = currentPlayer.(PlayerTurnFinisher)
 
