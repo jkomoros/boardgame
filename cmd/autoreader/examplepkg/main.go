@@ -9,6 +9,7 @@ package examplepkg
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves"
 )
 
 //go:generate autoreader
@@ -23,6 +24,12 @@ type myStruct struct {
 	MyBoolSlice        []bool
 	MyStringSlice      []string
 	MyPlayerIndexSlice []boardgame.PlayerIndex
+}
+
+//+autoreader
+type embeddedStruct struct {
+	moves.CurrentPlayer
+	MyInt int
 }
 
 //	 +autoreader

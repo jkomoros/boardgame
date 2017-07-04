@@ -23,6 +23,16 @@ func (m *myStruct) ReadSetter() boardgame.PropertyReadSetter {
 	return boardgame.DefaultReadSetter(m)
 }
 
+// Implementation for embeddedStruct
+
+func (e *embeddedStruct) Reader() boardgame.PropertyReader {
+	return boardgame.DefaultReader(e)
+}
+
+func (e *embeddedStruct) ReadSetter() boardgame.PropertyReadSetter {
+	return boardgame.DefaultReadSetter(e)
+}
+
 // Implementation for myOtherStruct
 
 func (m *myOtherStruct) Reader() boardgame.PropertyReader {

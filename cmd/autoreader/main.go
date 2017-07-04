@@ -46,6 +46,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"text/template"
@@ -133,6 +134,7 @@ func process(options *appOptions, out io.ReadWriter, errOut io.ReadWriter) {
 }
 
 func processPackage(useReflection bool, location string) (output string, err error) {
+
 	sources, err := parser.ParseSourceDir(location, ".*")
 
 	if err != nil {
@@ -192,9 +194,35 @@ func fieldNamePublic(name string) bool {
 	return true
 }
 
+//fieldNamePossibleEmbeddedStruct returns true if it's possible that the field
+//is an embedded struct.
+func fieldNamePossibleEmbeddedStruct(theField model.Field) bool {
+
+	theTypeParts := strings.Split(theField.TypeName, ".")
+
+	if len(theTypeParts) != 2 {
+		return false
+	}
+
+	if theField.Name == theTypeParts[0] {
+		return true
+	}
+
+	return false
+}
+
 func structTypes(theStruct model.Struct) map[string]boardgame.PropertyType {
 	result := make(map[string]boardgame.PropertyType)
 	for _, field := range theStruct.Fields {
+		if fieldNamePossibleEmbeddedStruct(field) {
+			embeddedInfo := typesForPossibleEmbeddedStruct(field)
+			if embeddedInfo != nil {
+				for key, val := range embeddedInfo {
+					result[key] = val
+				}
+				continue
+			}
+		}
 		if !fieldNamePublic(field.Name) {
 			continue
 		}
@@ -234,6 +262,44 @@ func structTypes(theStruct model.Struct) map[string]boardgame.PropertyType {
 		}
 	}
 	return result
+}
+
+//typeforPossibleEmbeddedStruct should be called when we think that an unknown
+//field MIGHT be an embedded struct. If it is, we will identify the package it
+//appears to be built from, parse those structs, try to find the struct, and
+//return a map of property types in it.
+func typesForPossibleEmbeddedStruct(theField model.Field) map[string]boardgame.PropertyType {
+
+	//TODO: memoize this
+	//TODO: import from canonical location using go/build to identify path to import
+
+	importPath := filepath.Join(os.ExpandEnv("$GOPATH/src/"), theField.PackageName)
+
+	targetTypeParts := strings.Split(theField.TypeName, ".")
+
+	if len(targetTypeParts) != 2 {
+		return nil
+	}
+
+	targetType := targetTypeParts[1]
+
+	sources, err := parser.ParseSourceDir(importPath, ".*")
+
+	if err != nil {
+		log.Println("Error in sources for ", theField, err.Error())
+		return nil
+	}
+
+	for _, theStruct := range sources.Structs {
+		if theStruct.Name != targetType {
+			continue
+		}
+		//Found it!
+		return structTypes(theStruct)
+	}
+
+	return nil
+
 }
 
 func structConfig(docLines []string) (outputReader bool, outputReadSetter bool) {

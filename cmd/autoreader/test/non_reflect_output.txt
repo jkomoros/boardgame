@@ -397,6 +397,305 @@ func (m *myStruct) ReadSetter() boardgame.PropertyReadSetter {
 	return &__myStructReader{m}
 }
 
+// Implementation for embeddedStruct
+
+var __embeddedStructReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
+	"MyInt":             boardgame.TypeInt,
+	"TargetPlayerIndex": boardgame.TypePlayerIndex,
+}
+
+type __embeddedStructReader struct {
+	data *embeddedStruct
+}
+
+func (e *__embeddedStructReader) Props() map[string]boardgame.PropertyType {
+	return __embeddedStructReaderProps
+}
+
+func (e *__embeddedStructReader) Prop(name string) (interface{}, error) {
+	props := e.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return nil, errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeBool:
+		return e.BoolProp(name)
+	case boardgame.TypeBoolSlice:
+		return e.BoolSliceProp(name)
+	case boardgame.TypeGrowableStack:
+		return e.GrowableStackProp(name)
+	case boardgame.TypeInt:
+		return e.IntProp(name)
+	case boardgame.TypeIntSlice:
+		return e.IntSliceProp(name)
+	case boardgame.TypePlayerIndex:
+		return e.PlayerIndexProp(name)
+	case boardgame.TypePlayerIndexSlice:
+		return e.PlayerIndexSliceProp(name)
+	case boardgame.TypeSizedStack:
+		return e.SizedStackProp(name)
+	case boardgame.TypeString:
+		return e.StringProp(name)
+	case boardgame.TypeStringSlice:
+		return e.StringSliceProp(name)
+	case boardgame.TypeTimer:
+		return e.TimerProp(name)
+
+	}
+
+	return nil, errors.New("Unexpected property type: " + propType.String())
+}
+
+func (e *__embeddedStructReader) SetProp(name string, value interface{}) error {
+	props := e.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeBool:
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return e.SetBoolProp(name, val)
+	case boardgame.TypeBoolSlice:
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
+		}
+		return e.SetBoolSliceProp(name, val)
+	case boardgame.TypeGrowableStack:
+		val, ok := value.(*boardgame.GrowableStack)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.GrowableStack")
+		}
+		return e.SetGrowableStackProp(name, val)
+	case boardgame.TypeInt:
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return e.SetIntProp(name, val)
+	case boardgame.TypeIntSlice:
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
+		}
+		return e.SetIntSliceProp(name, val)
+	case boardgame.TypePlayerIndex:
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return e.SetPlayerIndexProp(name, val)
+	case boardgame.TypePlayerIndexSlice:
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
+		}
+		return e.SetPlayerIndexSliceProp(name, val)
+	case boardgame.TypeSizedStack:
+		val, ok := value.(*boardgame.SizedStack)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.SizedStack")
+		}
+		return e.SetSizedStackProp(name, val)
+	case boardgame.TypeString:
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return e.SetStringProp(name, val)
+	case boardgame.TypeStringSlice:
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
+		}
+		return e.SetStringSliceProp(name, val)
+	case boardgame.TypeTimer:
+		val, ok := value.(*boardgame.Timer)
+		if !ok {
+			return errors.New("Provided value was not of type *boardgame.Timer")
+		}
+		return e.SetTimerProp(name, val)
+
+	}
+
+	return errors.New("Unexpected property type: " + propType.String())
+}
+
+func (e *__embeddedStructReader) BoolProp(name string) (bool, error) {
+
+	return false, errors.New("No such Bool prop: " + name)
+
+}
+
+func (e *__embeddedStructReader) SetBoolProp(name string, value bool) error {
+
+	return errors.New("No such Bool prop: " + name)
+
+}
+
+func (e *__embeddedStructReader) BoolSliceProp(name string) ([]bool, error) {
+
+	return []bool{}, errors.New("No such BoolSlice prop: " + name)
+
+}
+
+func (e *__embeddedStructReader) SetBoolSliceProp(name string, value []bool) error {
+
+	return errors.New("No such BoolSlice prop: " + name)
+
+}
+
+func (e *__embeddedStructReader) GrowableStackProp(name string) (*boardgame.GrowableStack, error) {
+
+	return nil, errors.New("No such GrowableStack prop: " + name)
+
+}
+
+func (e *__embeddedStructReader) SetGrowableStackProp(name string, value *boardgame.GrowableStack) error {
+
+	return errors.New("No such GrowableStack prop: " + name)
+
+}
+
+func (e *__embeddedStructReader) IntProp(name string) (int, error) {
+
+	switch name {
+	case "MyInt":
+		return e.data.MyInt, nil
+
+	}
+
+	return 0, errors.New("No such Int prop: " + name)
+
+}
+
+func (e *__embeddedStructReader) SetIntProp(name string, value int) error {
+
+	switch name {
+	case "MyInt":
+		e.data.MyInt = value
+		return nil
+
+	}
+
+	return errors.New("No such Int prop: " + name)
+
+}
+
+func (e *__embeddedStructReader) IntSliceProp(name string) ([]int, error) {
+
+	return []int{}, errors.New("No such IntSlice prop: " + name)
+
+}
+
+func (e *__embeddedStructReader) SetIntSliceProp(name string, value []int) error {
+
+	return errors.New("No such IntSlice prop: " + name)
+
+}
+
+func (e *__embeddedStructReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
+
+	switch name {
+	case "TargetPlayerIndex":
+		return e.data.TargetPlayerIndex, nil
+
+	}
+
+	return 0, errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (e *__embeddedStructReader) SetPlayerIndexProp(name string, value boardgame.PlayerIndex) error {
+
+	switch name {
+	case "TargetPlayerIndex":
+		e.data.TargetPlayerIndex = value
+		return nil
+
+	}
+
+	return errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (e *__embeddedStructReader) PlayerIndexSliceProp(name string) ([]boardgame.PlayerIndex, error) {
+
+	return []boardgame.PlayerIndex{}, errors.New("No such PlayerIndexSlice prop: " + name)
+
+}
+
+func (e *__embeddedStructReader) SetPlayerIndexSliceProp(name string, value []boardgame.PlayerIndex) error {
+
+	return errors.New("No such PlayerIndexSlice prop: " + name)
+
+}
+
+func (e *__embeddedStructReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
+
+	return nil, errors.New("No such SizedStack prop: " + name)
+
+}
+
+func (e *__embeddedStructReader) SetSizedStackProp(name string, value *boardgame.SizedStack) error {
+
+	return errors.New("No such SizedStack prop: " + name)
+
+}
+
+func (e *__embeddedStructReader) StringProp(name string) (string, error) {
+
+	return "", errors.New("No such String prop: " + name)
+
+}
+
+func (e *__embeddedStructReader) SetStringProp(name string, value string) error {
+
+	return errors.New("No such String prop: " + name)
+
+}
+
+func (e *__embeddedStructReader) StringSliceProp(name string) ([]string, error) {
+
+	return []string{}, errors.New("No such StringSlice prop: " + name)
+
+}
+
+func (e *__embeddedStructReader) SetStringSliceProp(name string, value []string) error {
+
+	return errors.New("No such StringSlice prop: " + name)
+
+}
+
+func (e *__embeddedStructReader) TimerProp(name string) (*boardgame.Timer, error) {
+
+	return nil, errors.New("No such Timer prop: " + name)
+
+}
+
+func (e *__embeddedStructReader) SetTimerProp(name string, value *boardgame.Timer) error {
+
+	return errors.New("No such Timer prop: " + name)
+
+}
+
+func (e *embeddedStruct) Reader() boardgame.PropertyReader {
+	return &__embeddedStructReader{e}
+}
+
+func (e *embeddedStruct) ReadSetter() boardgame.PropertyReadSetter {
+	return &__embeddedStructReader{e}
+}
+
 // Implementation for myOtherStruct
 
 var __myOtherStructReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
