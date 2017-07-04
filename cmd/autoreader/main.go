@@ -55,6 +55,13 @@ var typedPropertyTemplate *template.Template
 var readerTemplate *template.Template
 var readSetterTemplate *template.Template
 
+type memoizedEmbeddedStructKey struct {
+	Import           string
+	TargetStructName string
+}
+
+var memoizedEmbeddedStructs map[memoizedEmbeddedStructKey]map[string]boardgame.PropertyType
+
 const magicDocLinePrefix = "+autoreader"
 
 type appOptions struct {
@@ -76,6 +83,8 @@ func init() {
 	typedPropertyTemplate = template.Must(template.New("typedProperty").Parse(typedPropertyTemplateText))
 	readerTemplate = template.Must(template.New("reader").Parse(readerTemplateText))
 	readSetterTemplate = template.Must(template.New("readsetter").Parse(readSetterTemplateText))
+
+	memoizedEmbeddedStructs = make(map[memoizedEmbeddedStructKey]map[string]boardgame.PropertyType)
 }
 
 func defineFlags(options *appOptions) {
@@ -257,7 +266,24 @@ func structTypes(location string, theStruct model.Struct) map[string]boardgame.P
 //return a map of property types in it.
 func typesForPossibleEmbeddedStruct(location string, theField model.Field) map[string]boardgame.PropertyType {
 
-	//TODO: memoize this
+	targetTypeParts := strings.Split(theField.TypeName, ".")
+
+	if len(targetTypeParts) != 2 {
+		return nil
+	}
+
+	targetType := targetTypeParts[1]
+
+	key := memoizedEmbeddedStructKey{
+		Import:           theField.PackageName,
+		TargetStructName: targetType,
+	}
+
+	result := memoizedEmbeddedStructs[key]
+
+	if result != nil {
+		return result
+	}
 
 	pkg, err := build.Import(theField.PackageName, location, build.FindOnly)
 
@@ -267,14 +293,6 @@ func typesForPossibleEmbeddedStruct(location string, theField model.Field) map[s
 	}
 
 	importPath := pkg.Dir
-
-	targetTypeParts := strings.Split(theField.TypeName, ".")
-
-	if len(targetTypeParts) != 2 {
-		return nil
-	}
-
-	targetType := targetTypeParts[1]
 
 	sources, err := parser.ParseSourceDir(importPath, ".*")
 
@@ -288,7 +306,11 @@ func typesForPossibleEmbeddedStruct(location string, theField model.Field) map[s
 			continue
 		}
 		//Found it!
-		return structTypes(location, theStruct)
+		result = structTypes(location, theStruct)
+
+		memoizedEmbeddedStructs[key] = result
+
+		return result
 	}
 
 	return nil
