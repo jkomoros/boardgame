@@ -13,9 +13,9 @@ type CurrentPlayerSetter interface {
 //PlayerTurnFinisher is the interface your playerState is expected to adhere
 //to when you use FinishTurn.
 type PlayerTurnFinisher interface {
-	//TurnDone should return true when this player's turn is done, false
-	//otherwise.
-	TurnDone() bool
+	//TurnDone should return nil when the turn is done, or a descriptive error
+	//if the turn is not done.
+	TurnDone() error
 	//ResetForTurnStart will be called when this player begins their turn.
 	ResetForTurnStart()
 	//ResetForTurnEnd will be called right before the CurrentPlayer is
@@ -55,8 +55,8 @@ func (f *FinishTurn) Legal(state boardgame.State, proposer boardgame.PlayerIndex
 		return errors.New("The current player interface did not implement PlayerTurnFinisher")
 	}
 
-	if !currentPlayerTurnFinisher.TurnDone() {
-		return errors.New("The current player is not done with their turn")
+	if err := currentPlayerTurnFinisher.TurnDone(); err != nil {
+		return errors.New("The current player is not done with their turn: " + err.Error())
 	}
 
 	return nil
