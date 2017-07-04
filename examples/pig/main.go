@@ -147,7 +147,7 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 		&moveRollDiceConfig,
 		&moveDoneTurnConfig,
 		&moveCountDieConfig,
-		&moveAdvanceNextPlayerConfig,
+		&moveFinishTurnConfig,
 	}
 
 	if err := manager.BulkAddMoveTypes(moveTypeConfigs); err != nil {
