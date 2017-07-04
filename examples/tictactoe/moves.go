@@ -10,11 +10,9 @@ import (
 
 //+autoreader readsetter
 type MovePlaceToken struct {
-	moves.Base
+	moves.CurrentPlayer
 	//Which token to place the token
 	Slot int
-	//Which player we THINK is making the move.
-	TargetPlayerIndex boardgame.PlayerIndex
 }
 
 var movePlayTokenConfig = boardgame.MoveTypeConfig{
@@ -28,7 +26,7 @@ var movePlayTokenConfig = boardgame.MoveTypeConfig{
 func (m *MovePlaceToken) DefaultsForState(state boardgame.State) {
 	game, _ := concreteStates(state)
 
-	m.TargetPlayerIndex = game.CurrentPlayer
+	m.CurrentPlayer.DefaultsForState(state)
 
 	//Default to setting a slot that's empty.
 	for i, token := range game.Slots.ComponentValues() {
@@ -40,15 +38,12 @@ func (m *MovePlaceToken) DefaultsForState(state boardgame.State) {
 }
 
 func (m *MovePlaceToken) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+
+	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
+		return err
+	}
+
 	game, players := concreteStates(state)
-
-	if game.CurrentPlayer != m.TargetPlayerIndex {
-		return errors.New("The specified player is not the current player.")
-	}
-
-	if !m.TargetPlayerIndex.Equivalent(proposer) {
-		return errors.New("The proposing player is not the target player.")
-	}
 
 	if players[m.TargetPlayerIndex].UnusedTokens.Len() < 1 {
 		return errors.New("There aren't any remaining tokens for the current player to place.")
