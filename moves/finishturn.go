@@ -15,12 +15,12 @@ type CurrentPlayerSetter interface {
 type PlayerTurnFinisher interface {
 	//TurnDone should return nil when the turn is done, or a descriptive error
 	//if the turn is not done.
-	TurnDone() error
+	TurnDone(state boardgame.State) error
 	//ResetForTurnStart will be called when this player begins their turn.
-	ResetForTurnStart()
+	ResetForTurnStart(state boardgame.State)
 	//ResetForTurnEnd will be called right before the CurrentPlayer is
 	//advanced to the next player.
-	ResetForTurnEnd()
+	ResetForTurnEnd(state boardgame.State)
 }
 
 /*
@@ -55,7 +55,7 @@ func (f *FinishTurn) Legal(state boardgame.State, proposer boardgame.PlayerIndex
 		return errors.New("The current player interface did not implement PlayerTurnFinisher")
 	}
 
-	if err := currentPlayerTurnFinisher.TurnDone(); err != nil {
+	if err := currentPlayerTurnFinisher.TurnDone(state); err != nil {
 		return errors.New("The current player is not done with their turn because " + err.Error())
 	}
 
@@ -75,7 +75,7 @@ func (f *FinishTurn) Apply(state boardgame.MutableState) error {
 		return errors.New("The current player interface did not implement PlayerTurnFinisher")
 	}
 
-	currentPlayerTurnFinisher.ResetForTurnEnd()
+	currentPlayerTurnFinisher.ResetForTurnEnd(state)
 
 	newPlayerIndex := state.Game().CurrentPlayerIndex().Next(state)
 
@@ -87,10 +87,6 @@ func (f *FinishTurn) Apply(state boardgame.MutableState) error {
 
 	playerSetter.SetCurrentPlayer(newPlayerIndex)
 
-	if state.Game().CurrentPlayerIndex() != newPlayerIndex {
-		return errors.New("Calling SetCurrentPlayer did not set the CurrentPlayer to the  new index")
-	}
-
 	currentPlayer = state.PlayerStates()[state.Game().CurrentPlayerIndex()]
 
 	currentPlayerTurnFinisher, ok = currentPlayer.(PlayerTurnFinisher)
@@ -99,7 +95,7 @@ func (f *FinishTurn) Apply(state boardgame.MutableState) error {
 		return errors.New("The current player interface did not implement PlayerTurnFinisher")
 	}
 
-	currentPlayerTurnFinisher.ResetForTurnStart()
+	currentPlayerTurnFinisher.ResetForTurnStart(state)
 
 	return nil
 

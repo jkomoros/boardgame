@@ -3,7 +3,27 @@ package tictactoe
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves"
 )
+
+func init() {
+
+	//Make sure that we get compile-time errors if our player and game state
+	//don't adhere to the interfaces that moves.FinishTurn expects
+	var playerTurnFinisher moves.PlayerTurnFinisher
+	playerTurnFinisher = &playerState{}
+
+	if playerTurnFinisher == nil {
+		panic("Nil")
+	}
+
+	var currentPlayerSetter moves.CurrentPlayerSetter
+	currentPlayerSetter = &gameState{}
+
+	if currentPlayerSetter == nil {
+		panic("Nil")
+	}
+}
 
 func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 	game := state.GameState().(*gameState)
@@ -56,15 +76,15 @@ func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
 	return p.playerIndex
 }
 
-func (p *playerState) ResetForTurnStart() {
+func (p *playerState) ResetForTurnStart(state boardgame.State) {
 	p.TokensToPlaceThisTurn = 1
 }
 
-func (p *playerState) ResetForTurnEnd() {
+func (p *playerState) ResetForTurnEnd(state boardgame.State) {
 	//Pass
 }
 
-func (p *playerState) TurnDone() error {
+func (p *playerState) TurnDone(state boardgame.State) error {
 	if p.TokensToPlaceThisTurn > 0 {
 		return errors.New("they still have tokens left to place this turn")
 	}
