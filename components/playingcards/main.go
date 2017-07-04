@@ -11,21 +11,19 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
-type Suit string
+//go:generate autoreader
 
 const (
-	SuitUnknown  Suit = "\uFFFD"
-	SuitSpades        = "\u2660"
-	SuitHearts        = "\u2665"
-	SuitClubs         = "\u2663"
-	SuitDiamonds      = "\u2666"
-	SuitJokers        = "Jokers"
+	SuitUnknown  = "\uFFFD"
+	SuitSpades   = "\u2660"
+	SuitHearts   = "\u2665"
+	SuitClubs    = "\u2663"
+	SuitDiamonds = "\u2666"
+	SuitJokers   = "Jokers"
 )
 
-type Rank int
-
 const (
-	RankUnknown Rank = iota
+	RankUnknown = iota
 	RankAce
 	Rank2
 	Rank3
@@ -42,13 +40,10 @@ const (
 	RankJoker
 )
 
+//+autoreader reader
 type Card struct {
-	Suit Suit
-	Rank Rank
-}
-
-func (c *Card) Reader() boardgame.PropertyReader {
-	return boardgame.DefaultReader(c)
+	Suit string
+	Rank int
 }
 
 func (c *Card) String() string {
@@ -102,8 +97,8 @@ func NewDeck(withJokers bool) *boardgame.Deck {
 }
 
 func deckCanonicalOrder(cards *boardgame.Deck, withJokers bool) {
-	ranks := []Rank{RankAce, Rank2, Rank3, Rank4, Rank5, Rank6, Rank7, Rank8, Rank9, Rank10, RankJack, RankQueen, RankKing}
-	suits := []Suit{SuitSpades, SuitHearts, SuitClubs, SuitDiamonds}
+	ranks := []int{RankAce, Rank2, Rank3, Rank4, Rank5, Rank6, Rank7, Rank8, Rank9, Rank10, RankJack, RankQueen, RankKing}
+	suits := []string{SuitSpades, SuitHearts, SuitClubs, SuitDiamonds}
 
 	for _, suit := range suits {
 		for _, rank := range ranks {

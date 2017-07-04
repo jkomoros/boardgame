@@ -73,7 +73,7 @@ func checkExpectedRun(deck *boardgame.Deck, startingIndex int, t *testing.T) {
 		t.Error("Deck didn't have enough items")
 	}
 
-	suits := []Suit{SuitSpades, SuitHearts, SuitClubs, SuitDiamonds}
+	suits := []string{SuitSpades, SuitHearts, SuitClubs, SuitDiamonds}
 
 	expectedRank := RankAce
 	expectedSuitIndex := 0

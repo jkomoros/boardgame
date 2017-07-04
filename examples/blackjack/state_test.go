@@ -58,7 +58,7 @@ func TestHandValue(t *testing.T) {
 	}
 }
 
-func createHand(t *testing.T, deck *boardgame.Deck, ranks ...playingcards.Rank) *boardgame.GrowableStack {
+func createHand(t *testing.T, deck *boardgame.Deck, ranks ...int) *boardgame.GrowableStack {
 	result := boardgame.NewGrowableStack(deck, 0)
 
 	givenCards := make(map[int]bool)
