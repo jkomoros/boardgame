@@ -77,42 +77,15 @@ func (m *MovePlaceToken) Apply(state boardgame.MutableState) error {
 }
 
 //+autoreader readsetter
-type MoveAdvancePlayer struct {
-	moves.Base
+type MoveFinishTurn struct {
+	moves.FinishTurn
 }
 
-var moveAdvancePlayerConfig = boardgame.MoveTypeConfig{
-	Name:     "Advance Player",
+var moveFinishTurnConfig = boardgame.MoveTypeConfig{
+	Name:     "Finish Turn",
 	HelpText: "After the current player has made all of their moves, this fix-up move advances to the next player.",
 	MoveConstructor: func() boardgame.Move {
-		return new(MoveAdvancePlayer)
+		return new(MoveFinishTurn)
 	},
 	IsFixUp: true,
-}
-
-func (m *MoveAdvancePlayer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
-
-	game, players := concreteStates(state)
-
-	user := players[game.CurrentPlayer]
-
-	if user.TokensToPlaceThisTurn > 0 {
-		return errors.New("The current player still has tokens left to place this turn.")
-	}
-
-	return nil
-}
-
-func (m *MoveAdvancePlayer) Apply(state boardgame.MutableState) error {
-
-	game, players := concreteStates(state)
-
-	game.CurrentPlayer = game.CurrentPlayer.Next(state)
-
-	newUser := players[game.CurrentPlayer]
-
-	newUser.TokensToPlaceThisTurn = 1
-
-	return nil
-
 }

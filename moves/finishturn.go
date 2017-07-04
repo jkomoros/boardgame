@@ -56,7 +56,7 @@ func (f *FinishTurn) Legal(state boardgame.State, proposer boardgame.PlayerIndex
 	}
 
 	if err := currentPlayerTurnFinisher.TurnDone(); err != nil {
-		return errors.New("The current player is not done with their turn: " + err.Error())
+		return errors.New("The current player is not done with their turn because " + err.Error())
 	}
 
 	return nil

@@ -1,6 +1,7 @@
 package tictactoe
 
 import (
+	"errors"
 	"github.com/jkomoros/boardgame"
 )
 
@@ -38,6 +39,10 @@ func rowColToIndex(row, col int) int {
 	return row*DIM + col
 }
 
+func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {
+	g.CurrentPlayer = currentPlayer
+}
+
 //+autoreader
 type playerState struct {
 	playerIndex  boardgame.PlayerIndex
@@ -49,4 +54,19 @@ type playerState struct {
 
 func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
 	return p.playerIndex
+}
+
+func (p *playerState) ResetForTurnStart() {
+	p.TokensToPlaceThisTurn = 1
+}
+
+func (p *playerState) ResetForTurnEnd() {
+	//Pass
+}
+
+func (p *playerState) TurnDone() error {
+	if p.TokensToPlaceThisTurn > 0 {
+		return errors.New("they still have tokens left to place this turn")
+	}
+	return nil
 }

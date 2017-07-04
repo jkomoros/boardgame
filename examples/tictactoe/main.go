@@ -286,7 +286,7 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 
 	manager.BulkAddMoveTypes([]*boardgame.MoveTypeConfig{
 		&movePlayTokenConfig,
-		&moveAdvancePlayerConfig,
+		&moveFinishTurnConfig,
 	})
 
 	manager.AddAgent(&Agent{})
