@@ -39,10 +39,8 @@ type moveAdvanceNextPlayer struct {
 var moveRollDiceConfig = boardgame.MoveTypeConfig{
 	Name:     "Roll Dice",
 	HelpText: "Rolls the dice for the current player",
-	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
-		return &moveRollDice{
-			BaseMove: boardgame.BaseMove{mType},
-		}
+	MoveConstructor: func() boardgame.Move {
+		return new(moveRollDice)
 	},
 }
 
@@ -95,10 +93,8 @@ func (m *moveRollDice) Apply(state boardgame.MutableState) error {
 var moveDoneTurnConfig = boardgame.MoveTypeConfig{
 	Name:     "Done Turn",
 	HelpText: "Played when a player is done with their turn and wants to keep their score.",
-	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
-		return &moveDoneTurn{
-			BaseMove: boardgame.BaseMove{mType},
-		}
+	MoveConstructor: func() boardgame.Move {
+		return new(moveDoneTurn)
 	},
 }
 
@@ -149,10 +145,8 @@ func (m *moveDoneTurn) Apply(state boardgame.MutableState) error {
 var moveCountDieConfig = boardgame.MoveTypeConfig{
 	Name:     "Count Die",
 	HelpText: "After a die has been rolled, tabulating its impact",
-	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
-		return &moveCountDie{
-			BaseMove: boardgame.BaseMove{mType},
-		}
+	MoveConstructor: func() boardgame.Move {
+		return new(moveCountDie)
 	},
 	IsFixUp: true,
 }
@@ -209,10 +203,8 @@ func (m *moveCountDie) Apply(state boardgame.MutableState) error {
 var moveAdvanceNextPlayerConfig = boardgame.MoveTypeConfig{
 	Name:     "Advance Next Player",
 	HelpText: "Advance to the next player when the current player has busted or said they are done.",
-	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
-		return &moveAdvanceNextPlayer{
-			BaseMove: boardgame.BaseMove{mType},
-		}
+	MoveConstructor: func() boardgame.Move {
+		return new(moveAdvanceNextPlayer)
 	},
 	IsFixUp: true,
 }

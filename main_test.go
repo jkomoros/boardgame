@@ -165,11 +165,8 @@ type testMoveInvalidPlayerIndex struct {
 var testMoveInvalidPlayerIndexConfig = MoveTypeConfig{
 	Name:     "Invalid PlayerIndex",
 	HelpText: "Set one of the PlayerIndex properties to an invalid number, so we can verify that ApplyMove catches it.",
-	MoveConstructor: func(moveType *MoveType) Move {
-		return &testMoveInvalidPlayerIndex{
-			BaseMove{moveType},
-			false,
-		}
+	MoveConstructor: func() Move {
+		return new(testMoveInvalidPlayerIndex)
 	},
 	IsFixUp: true,
 }
@@ -203,11 +200,8 @@ type testMoveIncrementCardInHand struct {
 var testMoveIncrementCardInHandConfig = MoveTypeConfig{
 	Name:     "Increment IntValue of Card in Hand",
 	HelpText: "Increments the IntValue of the card in the hand",
-	MoveConstructor: func(moveType *MoveType) Move {
-		return &testMoveIncrementCardInHand{
-			BaseMove{moveType},
-			0,
-		}
+	MoveConstructor: func() Move {
+		return new(testMoveIncrementCardInHand)
 	},
 }
 
@@ -279,11 +273,8 @@ type testMoveDrawCard struct {
 var testMoveDrawCardConfig = MoveTypeConfig{
 	Name:     "Draw Card",
 	HelpText: "Draws one card from draw deck into player's hand",
-	MoveConstructor: func(moveType *MoveType) Move {
-		return &testMoveDrawCard{
-			BaseMove{moveType},
-			0,
-		}
+	MoveConstructor: func() Move {
+		return new(testMoveDrawCard)
 	},
 }
 
@@ -338,10 +329,8 @@ type testMoveAdvanceCurentPlayer struct {
 var testMoveAdvanceCurrentPlayerConfig = MoveTypeConfig{
 	Name:     "Advance Current Player",
 	HelpText: "Advances to the next player when the current player has no more legal moves they can make this turn.",
-	MoveConstructor: func(moveType *MoveType) Move {
-		return &testMoveAdvanceCurentPlayer{
-			BaseMove{moveType},
-		}
+	MoveConstructor: func() Move {
+		return new(testMoveAdvanceCurentPlayer)
 	},
 	IsFixUp: true,
 }
@@ -393,10 +382,8 @@ type testMove struct {
 var testMoveConfig = MoveTypeConfig{
 	Name:     "Test",
 	HelpText: "Advances the score of the current player by the specified amount.",
-	MoveConstructor: func(moveType *MoveType) Move {
-		return &testMove{
-			BaseMove: BaseMove{moveType},
-		}
+	MoveConstructor: func() Move {
+		return new(testMove)
 	},
 }
 
@@ -455,10 +442,8 @@ type testAlwaysLegalMove struct {
 var testAlwaysLegalMoveConfig = MoveTypeConfig{
 	Name:     "Test Always Legal Move",
 	HelpText: "A move that is always legal",
-	MoveConstructor: func(moveType *MoveType) Move {
-		return &testAlwaysLegalMove{
-			BaseMove{moveType},
-		}
+	MoveConstructor: func() Move {
+		return new(testAlwaysLegalMove)
 	},
 	IsFixUp: true,
 }

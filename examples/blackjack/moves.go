@@ -49,10 +49,8 @@ type MoveCurrentPlayerStand struct {
 var moveShuffleDiscardToDrawConfig = boardgame.MoveTypeConfig{
 	Name:     "Shuffle Discard To Draw",
 	HelpText: "When the draw deck is empty, shuffles the discard deck into draw deck.",
-	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
-		return &MoveShuffleDiscardToDraw{
-			boardgame.BaseMove{mType},
-		}
+	MoveConstructor: func() boardgame.Move {
+		return new(MoveShuffleDiscardToDraw)
 	},
 	IsFixUp: true,
 }
@@ -85,10 +83,8 @@ func (m *MoveShuffleDiscardToDraw) Apply(state boardgame.MutableState) error {
 var moveCurrentPlayerHitConfig = boardgame.MoveTypeConfig{
 	Name:     "Current Player Hit",
 	HelpText: "The current player hits, drawing a card.",
-	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
-		return &MoveCurrentPlayerHit{
-			BaseMove: boardgame.BaseMove{mType},
-		}
+	MoveConstructor: func() boardgame.Move {
+		return new(MoveCurrentPlayerHit)
 	},
 }
 
@@ -152,10 +148,8 @@ func (m *MoveCurrentPlayerHit) Apply(state boardgame.MutableState) error {
 var moveCurrentPlayerStandConfig = boardgame.MoveTypeConfig{
 	Name:     "Current Player Stand",
 	HelpText: "If the current player no longer wants to draw cards, they can stand.",
-	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
-		return &MoveCurrentPlayerStand{
-			BaseMove: boardgame.BaseMove{mType},
-		}
+	MoveConstructor: func() boardgame.Move {
+		return new(MoveCurrentPlayerStand)
 	},
 }
 
@@ -209,10 +203,8 @@ func (m *MoveCurrentPlayerStand) Apply(state boardgame.MutableState) error {
 var moveAdvanceNextPlayerConfig = boardgame.MoveTypeConfig{
 	Name:     "Advance Next Player",
 	HelpText: "When the current player has either busted or decided to stand, we advance to next player.",
-	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
-		return &MoveAdvanceNextPlayer{
-			boardgame.BaseMove{mType},
-		}
+	MoveConstructor: func() boardgame.Move {
+		return new(MoveAdvanceNextPlayer)
 	},
 	IsFixUp: true,
 }
@@ -252,10 +244,8 @@ func (m *MoveAdvanceNextPlayer) Apply(state boardgame.MutableState) error {
 var moveRevealHiddenCardConfig = boardgame.MoveTypeConfig{
 	Name:     "Reveal Hidden Card",
 	HelpText: "Reveals the hidden card in the user's hand",
-	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
-		return &MoveRevealHiddenCard{
-			BaseMove: boardgame.BaseMove{mType},
-		}
+	MoveConstructor: func() boardgame.Move {
+		return new(MoveRevealHiddenCard)
 	},
 	IsFixUp: true,
 }
@@ -304,10 +294,8 @@ func (m *MoveRevealHiddenCard) Apply(state boardgame.MutableState) error {
 var moveDealInitialCardConfig = boardgame.MoveTypeConfig{
 	Name:     "Deal Initial Card",
 	HelpText: "Deals a card to the a player who has not gotten their initial deal",
-	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
-		return &MoveDealInitialCard{
-			BaseMove: boardgame.BaseMove{mType},
-		}
+	MoveConstructor: func() boardgame.Move {
+		return new(MoveDealInitialCard)
 	},
 	IsFixUp: true,
 }

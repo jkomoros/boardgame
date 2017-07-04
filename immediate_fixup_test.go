@@ -21,10 +21,8 @@ type moveImmediateFixUpTWo struct {
 var moveTestImmediatePlayerMoveConfig = MoveTypeConfig{
 	Name:     "Test",
 	HelpText: "This is a test",
-	MoveConstructor: func(mType *MoveType) Move {
-		return &moveTestImmediatePlayerMove{
-			BaseMove{mType},
-		}
+	MoveConstructor: func() Move {
+		return new(moveTestImmediatePlayerMove)
 	},
 	ImmediateFixUp: func(state State) Move {
 		moveType, _ := NewMoveType(&moveTestImmediateFixUpOneConfig)
@@ -50,10 +48,8 @@ func (m *moveTestImmediatePlayerMove) ReadSetter() PropertyReadSetter {
 
 var moveTestImmediateFixUpOneConfig = MoveTypeConfig{
 	Name: "Immediate FixUp 1",
-	MoveConstructor: func(mType *MoveType) Move {
-		return &moveImmediateFixUpOne{
-			BaseMove{mType},
-		}
+	MoveConstructor: func() Move {
+		return new(moveImmediateFixUpOne)
 	},
 	ImmediateFixUp: func(state State) Move {
 		moveType, _ := NewMoveType(&moveTestImmediateFixUpTwoConfig)
@@ -93,10 +89,8 @@ func (m *moveImmediateFixUpOne) ReadSetter() PropertyReadSetter {
 
 var moveTestImmediateFixUpTwoConfig = MoveTypeConfig{
 	Name: "Immediate FixUp 2",
-	MoveConstructor: func(mType *MoveType) Move {
-		return &moveImmediateFixUpTWo{
-			BaseMove{mType},
-		}
+	MoveConstructor: func() Move {
+		return new(moveImmediateFixUpTWo)
 	},
 }
 

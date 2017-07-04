@@ -19,10 +19,8 @@ type MovePlaceToken struct {
 var movePlayTokenConfig = boardgame.MoveTypeConfig{
 	Name:     "Place Token",
 	HelpText: "Place a player's token in a specific space.",
-	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
-		return &MovePlaceToken{
-			BaseMove: boardgame.BaseMove{mType},
-		}
+	MoveConstructor: func() boardgame.Move {
+		return new(MovePlaceToken)
 	},
 }
 
@@ -90,10 +88,8 @@ type MoveAdvancePlayer struct {
 var moveAdvancePlayerConfig = boardgame.MoveTypeConfig{
 	Name:     "Advance Player",
 	HelpText: "After the current player has made all of their moves, this fix-up move advances to the next player.",
-	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
-		return &MoveAdvancePlayer{
-			boardgame.BaseMove{mType},
-		}
+	MoveConstructor: func() boardgame.Move {
+		return new(MoveAdvancePlayer)
 	},
 	IsFixUp: true,
 }

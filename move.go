@@ -11,7 +11,7 @@ import (
 type MoveType struct {
 	name           string
 	helpText       string
-	constructor    func(*MoveType) Move
+	constructor    func() Move
 	immediateFixUp func(state State) Move
 	isFixUp        bool
 }
@@ -30,8 +30,8 @@ type MoveTypeConfig struct {
 	//in the specified slot on the board."
 	HelpText string
 	//Constructor should return a zero-valued Move of the given type. Normally
-	//very simple. Required.
-	MoveConstructor func(*MoveType) Move
+	//very simple: just a new(MyMoveType). Required.
+	MoveConstructor func() Move
 
 	//If ImmediateFixUp is defined and returns a Move, it will immediately be
 	//applied (if Legal) to the game before Delegate's ProposeFixUp is
@@ -54,6 +54,11 @@ type MoveTypeConfig struct {
 //modifications. The Move should be JSON-able (that is, all persistable state
 //should be in public fields).
 type Move interface {
+
+	//SetType will be called after the constructor is called to set the type.
+	//Splitting this out allows the basic constructors not in the base classes
+	//to be very small, because in most cases you'll compose a moves.Base.
+	SetType(m *MoveType)
 
 	//Type is the MoveType that this Move is.
 	Type() *MoveType
@@ -155,10 +160,11 @@ func (m *MoveType) IsFixUp() bool {
 //NewMove returns a new move of this type, with defaults set for the given
 //state.
 func (m *MoveType) NewMove(state State) Move {
-	move := m.constructor(m)
+	move := m.constructor()
 	if move == nil {
 		return nil
 	}
+	move.SetType(m)
 	move.DefaultsForState(state)
 	return move
 }
@@ -172,10 +178,8 @@ errors where for example your Legal() was incorrectly named and thus not used.
 In general your MoveConstructor can always be exactly the same, modulo the
 name of your underlying move type:
 
-	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
- 		return &myMoveStruct{
-			BaseMove: boardgame.BaseMove{mType},
-		}
+	MoveConstructor: func() boardgame.Move {
+ 		return new(myMoveStruct)
 	}
 
 BaseMove cannot help your move implement PropertyReadSetter; use autoreader to
@@ -183,12 +187,16 @@ generate that code for you.
 
 */
 type BaseMove struct {
-	MoveType *MoveType
+	moveType *MoveType
+}
+
+func (d *BaseMove) SetType(m *MoveType) {
+	d.moveType = m
 }
 
 //Type simply returns BaseMove.MoveType
 func (d *BaseMove) Type() *MoveType {
-	return d.MoveType
+	return d.moveType
 }
 
 //DefaultsForState doesn't do anything

@@ -45,10 +45,8 @@ const HideCardsDuration = 4 * time.Second
 var moveAdvanceNextPlayerConfig = boardgame.MoveTypeConfig{
 	Name:     "Advance To Next Player",
 	HelpText: "Advances to the next player when the current player has no more legal moves.",
-	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
-		return &MoveAdvanceNextPlayer{
-			BaseMove: boardgame.BaseMove{mType},
-		}
+	MoveConstructor: func() boardgame.Move {
+		return new(MoveAdvanceNextPlayer)
 	},
 	IsFixUp: true,
 }
@@ -90,10 +88,8 @@ func (m *MoveAdvanceNextPlayer) Apply(state boardgame.MutableState) error {
 var moveRevealCardConfig = boardgame.MoveTypeConfig{
 	Name:     "Reveal Card",
 	HelpText: "Reveals the card at the specified location",
-	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
-		return &MoveRevealCard{
-			BaseMove: boardgame.BaseMove{mType},
-		}
+	MoveConstructor: func() boardgame.Move {
+		return new(MoveRevealCard)
 	},
 }
 
@@ -166,10 +162,8 @@ func (m *MoveRevealCard) Apply(state boardgame.MutableState) error {
 var moveStartHideCardsTimerConfig = boardgame.MoveTypeConfig{
 	Name:     "Start Hide Cards Timer",
 	HelpText: "If two cards are showing and they are not the same type and the timer is not active, start a timer to automatically hide them.",
-	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
-		return &MoveStartHideCardsTimer{
-			BaseMove: boardgame.BaseMove{mType},
-		}
+	MoveConstructor: func() boardgame.Move {
+		return new(MoveStartHideCardsTimer)
 	},
 	IsFixUp: true,
 }
@@ -224,10 +218,8 @@ func (m *MoveStartHideCardsTimer) Apply(state boardgame.MutableState) error {
 var moveCaptureCardsConfig = boardgame.MoveTypeConfig{
 	Name:     "Capture Cards",
 	HelpText: "If two cards are showing and they are the same type, capture them to the current player's hand.",
-	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
-		return &MoveCaptureCards{
-			BaseMove: boardgame.BaseMove{mType},
-		}
+	MoveConstructor: func() boardgame.Move {
+		return new(MoveCaptureCards)
 	},
 	IsFixUp: true,
 }
@@ -280,10 +272,8 @@ func (m *MoveCaptureCards) Apply(state boardgame.MutableState) error {
 var moveHideCardsConfig = boardgame.MoveTypeConfig{
 	Name:     "Hide Cards",
 	HelpText: "After the current player has revealed both cards and tried to memorize them, this move hides the cards so that play can continue to next player.",
-	MoveConstructor: func(mType *boardgame.MoveType) boardgame.Move {
-		return &MoveHideCards{
-			BaseMove: boardgame.BaseMove{mType},
-		}
+	MoveConstructor: func() boardgame.Move {
+		return new(MoveHideCards)
 	},
 }
 
