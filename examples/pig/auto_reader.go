@@ -1143,6 +1143,7 @@ func (m *moveAdvanceNextPlayer) ReadSetter() boardgame.PropertyReadSetter {
 var __gameStateReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
 	"CurrentPlayer": boardgame.TypePlayerIndex,
 	"Die":           boardgame.TypeSizedStack,
+	"TargetScore":   boardgame.TypeInt,
 }
 
 type __gameStateReader struct {
@@ -1309,11 +1310,24 @@ func (g *__gameStateReader) SetGrowableStackProp(name string, value *boardgame.G
 
 func (g *__gameStateReader) IntProp(name string) (int, error) {
 
+	switch name {
+	case "TargetScore":
+		return g.data.TargetScore, nil
+
+	}
+
 	return 0, errors.New("No such Int prop: " + name)
 
 }
 
 func (g *__gameStateReader) SetIntProp(name string, value int) error {
+
+	switch name {
+	case "TargetScore":
+		g.data.TargetScore = value
+		return nil
+
+	}
 
 	return errors.New("No such Int prop: " + name)
 
@@ -1576,12 +1590,12 @@ func (p *__playerStateReader) SetProp(name string, value interface{}) error {
 func (p *__playerStateReader) BoolProp(name string) (bool, error) {
 
 	switch name {
+	case "DieCounted":
+		return p.data.DieCounted, nil
 	case "Busted":
 		return p.data.Busted, nil
 	case "Done":
 		return p.data.Done, nil
-	case "DieCounted":
-		return p.data.DieCounted, nil
 
 	}
 
@@ -1592,14 +1606,14 @@ func (p *__playerStateReader) BoolProp(name string) (bool, error) {
 func (p *__playerStateReader) SetBoolProp(name string, value bool) error {
 
 	switch name {
+	case "DieCounted":
+		p.data.DieCounted = value
+		return nil
 	case "Busted":
 		p.data.Busted = value
 		return nil
 	case "Done":
 		p.data.Done = value
-		return nil
-	case "DieCounted":
-		p.data.DieCounted = value
 		return nil
 
 	}

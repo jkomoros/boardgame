@@ -9,26 +9,22 @@ import (
 
 //+autoreader readsetter
 type moveRollDice struct {
-	moves.Base
-	TargetPlayerIndex boardgame.PlayerIndex
+	moves.CurrentPlayer
 }
 
 //+autoreader readsetter
 type moveDoneTurn struct {
-	moves.Base
-	TargetPlayerIndex boardgame.PlayerIndex
+	moves.CurrentPlayer
 }
 
 //+autoreader readsetter
 type moveCountDie struct {
-	moves.Base
-	TargetPlayerIndex boardgame.PlayerIndex
+	moves.CurrentPlayer
 }
 
 //+autoreader readsetter
 type moveAdvanceNextPlayer struct {
-	moves.Base
-	TargetPlayerIndex boardgame.PlayerIndex
+	moves.CurrentPlayer
 }
 
 /**************************************************
@@ -45,20 +41,13 @@ var moveRollDiceConfig = boardgame.MoveTypeConfig{
 	},
 }
 
-func (m *moveRollDice) DefaultsForState(state boardgame.State) {
-	m.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
-}
-
 func (m *moveRollDice) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+
+	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
+		return nil
+	}
+
 	game, players := concreteStates(state)
-
-	if !proposer.Equivalent(game.CurrentPlayer) {
-		return errors.New("You are not the current player!")
-	}
-
-	if !m.TargetPlayerIndex.Equivalent(proposer) {
-		return errors.New("You are not the current player!")
-	}
 
 	p := players[game.CurrentPlayer]
 
@@ -99,20 +88,13 @@ var moveDoneTurnConfig = boardgame.MoveTypeConfig{
 	},
 }
 
-func (m *moveDoneTurn) DefaultsForState(state boardgame.State) {
-	m.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
-}
-
 func (m *moveDoneTurn) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+
+	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
+		return err
+	}
+
 	game, players := concreteStates(state)
-
-	if !proposer.Equivalent(game.CurrentPlayer) {
-		return errors.New("You are not the current player!")
-	}
-
-	if !m.TargetPlayerIndex.Equivalent(proposer) {
-		return errors.New("You are not the current player!")
-	}
 
 	p := players[game.CurrentPlayer]
 
@@ -152,20 +134,13 @@ var moveCountDieConfig = boardgame.MoveTypeConfig{
 	IsFixUp: true,
 }
 
-func (m *moveCountDie) DefaultsForState(state boardgame.State) {
-	m.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
-}
-
 func (m *moveCountDie) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+
+	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
+		return err
+	}
+
 	game, players := concreteStates(state)
-
-	if !proposer.Equivalent(game.CurrentPlayer) {
-		return errors.New("You are not the current player!")
-	}
-
-	if !m.TargetPlayerIndex.Equivalent(proposer) {
-		return errors.New("You are not the current player!")
-	}
 
 	p := players[game.CurrentPlayer]
 
@@ -210,20 +185,13 @@ var moveAdvanceNextPlayerConfig = boardgame.MoveTypeConfig{
 	IsFixUp: true,
 }
 
-func (m *moveAdvanceNextPlayer) DefaultsForState(state boardgame.State) {
-	m.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
-}
-
 func (m *moveAdvanceNextPlayer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+
+	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
+		return err
+	}
+
 	game, players := concreteStates(state)
-
-	if !proposer.Equivalent(game.CurrentPlayer) {
-		return errors.New("You are not the current player!")
-	}
-
-	if !m.TargetPlayerIndex.Equivalent(proposer) {
-		return errors.New("You are not the current player!")
-	}
 
 	p := players[game.CurrentPlayer]
 
