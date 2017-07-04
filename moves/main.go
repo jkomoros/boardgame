@@ -9,6 +9,7 @@ minimal boilerplate.
 package moves
 
 import (
+	"errors"
 	"github.com/jkomoros/boardgame"
 )
 
@@ -50,4 +51,42 @@ func (d *Base) DefaultsForState(state boardgame.State) {
 //Description defaults to returning the Type's HelpText()
 func (d *Base) Description() string {
 	return d.Type().HelpText()
+}
+
+/*
+
+CurrentPlayer is a convenience embeddable move that represents a move made by
+the CurrentPlayer.
+
+The target player is encoded as TargetPlayerIndex. This is checked to make
+sure it is equivalent to the delegate's CurrentPlayerIndex, as well as to the
+proposer. This means that your Delegate should return a reasonable result from
+CurrentPlayerIndex. If your game has different rounds where no one may move,
+return boardgame.ObserverPlayerIndex. If there are rounds where anyone may
+move, return boardgame.AdminPlayerIndex.
+
+Typically you'd implement your own Legal method that calls
+CurrentPlayer.Legal() first, then do your own specific checking after that,
+too.
+
+*/
+type CurrentPlayer struct {
+	Base
+	TargetPlayerIndex boardgame.PlayerIndex
+}
+
+func (c *CurrentPlayer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+
+	currentPlayer := state.Game().CurrentPlayerIndex()
+
+	if !c.TargetPlayerIndex.Equivalent(currentPlayer) {
+		return errors.New("It's not your turn")
+	}
+
+	if !c.TargetPlayerIndex.Equivalent(proposer) {
+		return errors.New("It's not your turn")
+	}
+
+	return nil
+
 }
