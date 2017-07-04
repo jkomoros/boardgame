@@ -35,6 +35,13 @@ type FinishTurn struct {
 	Base
 }
 
+//VerifyFinishTurnStates is a convenience method that you can use to gutcheck
+//at compile time that your gameState and playerStates, respectively, satisfy
+//the FinishTurn interfaces. Designed to be used in an init() method.
+func VerifyFinishTurnStates(c CurrentPlayerSetter, p PlayerTurnFinisher) {
+	return
+}
+
 //Legal checks if the game's CurrentPlayer's TurnDone() returns true.
 func (f *FinishTurn) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 	currentPlayerIndex := state.Game().CurrentPlayerIndex()

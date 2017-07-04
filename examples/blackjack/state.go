@@ -11,19 +11,7 @@ func init() {
 
 	//Make sure that we get compile-time errors if our player and game state
 	//don't adhere to the interfaces that moves.FinishTurn expects
-	var playerTurnFinisher moves.PlayerTurnFinisher
-	playerTurnFinisher = &playerState{}
-
-	if playerTurnFinisher == nil {
-		panic("Nil")
-	}
-
-	var currentPlayerSetter moves.CurrentPlayerSetter
-	currentPlayerSetter = &gameState{}
-
-	if currentPlayerSetter == nil {
-		panic("Nil")
-	}
+	moves.VerifyFinishTurnStates(&gameState{}, &playerState{})
 }
 
 func concreteStates(state boardgame.State) (*gameState, []*playerState) {
