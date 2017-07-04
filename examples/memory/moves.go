@@ -14,9 +14,8 @@ type MoveAdvanceNextPlayer struct {
 
 //+autoreader readsetter
 type MoveRevealCard struct {
-	moves.Base
-	TargetPlayerIndex boardgame.PlayerIndex
-	CardIndex         int
+	moves.CurrentPlayer
+	CardIndex int
 }
 
 //+autoreader readsetter
@@ -31,8 +30,7 @@ type MoveCaptureCards struct {
 
 //+autoreader readsetter
 type MoveHideCards struct {
-	moves.Base
-	TargetPlayerIndex boardgame.PlayerIndex
+	moves.CurrentPlayer
 }
 
 const HideCardsDuration = 4 * time.Second
@@ -95,7 +93,8 @@ var moveRevealCardConfig = boardgame.MoveTypeConfig{
 }
 
 func (m *MoveRevealCard) DefaultsForState(state boardgame.State) {
-	m.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
+
+	m.CurrentPlayer.DefaultsForState(state)
 
 	game, _ := concreteStates(state)
 
@@ -108,17 +107,12 @@ func (m *MoveRevealCard) DefaultsForState(state boardgame.State) {
 }
 
 func (m *MoveRevealCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+
+	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
+		return err
+	}
+
 	game, players := concreteStates(state)
-
-	if !m.TargetPlayerIndex.Equivalent(game.CurrentPlayer) {
-		return errors.New("It isn't your turn")
-	}
-
-	//TargetPlayer is set automatically, so this is the message that will be
-	//shown if the user tries to move when it's not their turn.
-	if !m.TargetPlayerIndex.Equivalent(proposer) {
-		return errors.New("It isn't your turn")
-	}
 
 	p := players[game.CurrentPlayer]
 
@@ -278,24 +272,15 @@ var moveHideCardsConfig = boardgame.MoveTypeConfig{
 	},
 }
 
-func (m *MoveHideCards) DefaultsForState(state boardgame.State) {
-	m.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
-}
-
 func (m *MoveHideCards) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+
+	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
+		return err
+	}
+
 	game, players := concreteStates(state)
 
 	p := players[game.CurrentPlayer]
-
-	if !m.TargetPlayerIndex.Equivalent(game.CurrentPlayer) {
-		return errors.New("It's not your turn")
-	}
-
-	//TargetPlayer is set automatically, so this is the message that will be
-	//shown if the user tries to move when it's not their turn.
-	if !m.TargetPlayerIndex.Equivalent(proposer) {
-		return errors.New("It's not your turn")
-	}
 
 	if p.CardsLeftToReveal > 0 {
 		return errors.New("You still have to reveal more cards before your turn is over")

@@ -1750,10 +1750,10 @@ func (g *__gameStateReader) SetPlayerIndexSliceProp(name string, value []boardga
 func (g *__gameStateReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
 
 	switch name {
-	case "HiddenCards":
-		return g.data.HiddenCards, nil
 	case "RevealedCards":
 		return g.data.RevealedCards, nil
+	case "HiddenCards":
+		return g.data.HiddenCards, nil
 
 	}
 
@@ -1764,11 +1764,11 @@ func (g *__gameStateReader) SizedStackProp(name string) (*boardgame.SizedStack, 
 func (g *__gameStateReader) SetSizedStackProp(name string, value *boardgame.SizedStack) error {
 
 	switch name {
-	case "HiddenCards":
-		g.data.HiddenCards = value
-		return nil
 	case "RevealedCards":
 		g.data.RevealedCards = value
+		return nil
+	case "HiddenCards":
+		g.data.HiddenCards = value
 		return nil
 
 	}
