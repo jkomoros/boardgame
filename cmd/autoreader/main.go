@@ -7,8 +7,8 @@
 	Autoreader processes a package of go files, searching for structs that
 	have a comment immediately above their declaration that begins with
 	"+autoreader". For each such struct, it creates a Reader() and
-	PropertyReader() method that just use boardgame.DefaultReader and
-	boardgame.DefaultReadSetter.
+	PropertyReader() method that implement boardgame.Reader and
+	boardgame.ReadSetter.
 
 	If you want only a reader or only a readsetter for a given struct, include
 	the keyword "reader" or "readsetter", like so: "+autoreader reader"
@@ -18,14 +18,10 @@
 	its output to auto_reader.go, overwriting whatever file was there before.
 	See command-line options by passing -h.
 
-	By default readers and readSetters that rely on hard-coded lists of
-	properties will be generated. These are faster to execute because they
-	don't rely on reflection. However, every time you add or change properties
-	to a struct, you must re-run go generate. Another option is available that
-	uses reflection (via board.DefaultReader) to implement the Readers and
-	ReadSetters (by passing -reflect). The pro is that you only need to run
-	`go generate` when you add or remove a struct; the downside is that run-
-	time performance will be worse (roughly 30% worse in typical workloads).
+	The outputted readers and readsetters use a hard-coded list of fields for
+	performance (reflection would be about 30% slower under normal usage). You
+	should re-run go generate every time you add a struct or modify the fields
+	on a struct.
 
 	The defaults are set reasonably so that you can use go:generate very
 	easily. See examplepkg/ for a very simple example.
@@ -56,11 +52,8 @@ import (
 var headerTemplate *template.Template
 var structHeaderTemplate *template.Template
 var typedPropertyTemplate *template.Template
-var reflectStructHeaderTemplate *template.Template
 var readerTemplate *template.Template
-var reflectReaderTemplate *template.Template
 var readSetterTemplate *template.Template
-var reflectReadSetterTemplate *template.Template
 
 const magicDocLinePrefix = "+autoreader"
 
@@ -69,7 +62,6 @@ type appOptions struct {
 	PackageDirectory string
 	PrintToConsole   bool
 	Help             bool
-	UseReflection    bool
 	flagSet          *flag.FlagSet
 }
 
@@ -82,12 +74,8 @@ func init() {
 	headerTemplate = template.Must(template.New("header").Parse(headerTemplateText))
 	structHeaderTemplate = template.Must(template.New("structHeader").Parse(structHeaderTemplateText))
 	typedPropertyTemplate = template.Must(template.New("typedProperty").Parse(typedPropertyTemplateText))
-	reflectStructHeaderTemplate = template.Must(template.New("structHeader").Parse(reflectStructHeaderTemplateText))
 	readerTemplate = template.Must(template.New("reader").Parse(readerTemplateText))
-	reflectReaderTemplate = template.Must(template.New("reader").Parse(reflectReaderTemplateText))
 	readSetterTemplate = template.Must(template.New("readsetter").Parse(readSetterTemplateText))
-	reflectReadSetterTemplate = template.Must(template.New("readsetter").Parse(reflectReadSetterTemplateText))
-
 }
 
 func defineFlags(options *appOptions) {
@@ -95,7 +83,6 @@ func defineFlags(options *appOptions) {
 	options.flagSet.StringVar(&options.PackageDirectory, "pkg", ".", "Which package to process")
 	options.flagSet.BoolVar(&options.Help, "h", false, "If set, print help message and quit.")
 	options.flagSet.BoolVar(&options.PrintToConsole, "print", false, "If true, will print result to console instead of writing to out.")
-	options.flagSet.BoolVar(&options.UseReflection, "reflect", false, "If true, will use reflection based output.")
 }
 
 func getOptions(flagSet *flag.FlagSet, flagArguments []string) *appOptions {
@@ -118,7 +105,7 @@ func process(options *appOptions, out io.ReadWriter, errOut io.ReadWriter) {
 		return
 	}
 
-	output, err := processPackage(options.UseReflection, options.PackageDirectory)
+	output, err := processPackage(options.PackageDirectory)
 
 	if err != nil {
 		fmt.Fprintln(errOut, "ERROR", err)
@@ -133,7 +120,7 @@ func process(options *appOptions, out io.ReadWriter, errOut io.ReadWriter) {
 
 }
 
-func processPackage(useReflection bool, location string) (output string, err error) {
+func processPackage(location string) (output string, err error) {
 
 	sources, err := parser.ParseSourceDir(location, ".*")
 
@@ -146,7 +133,7 @@ func processPackage(useReflection bool, location string) (output string, err err
 	for _, theStruct := range sources.Structs {
 
 		if !haveOutputHeader {
-			output += headerForPackage(useReflection, theStruct.PackageName)
+			output += headerForPackage(theStruct.PackageName)
 			haveOutputHeader = true
 		}
 
@@ -158,13 +145,13 @@ func processPackage(useReflection bool, location string) (output string, err err
 
 		types := structTypes(theStruct)
 
-		output += headerForStruct(useReflection, theStruct.Name, types, outputReadSetter)
+		output += headerForStruct(theStruct.Name, types, outputReadSetter)
 
 		if outputReader {
-			output += readerForStruct(useReflection, theStruct.Name)
+			output += readerForStruct(theStruct.Name)
 		}
 		if outputReadSetter {
-			output += readSetterForStruct(useReflection, theStruct.Name)
+			output += readSetterForStruct(theStruct.Name)
 		}
 	}
 
@@ -341,26 +328,14 @@ func templateOutput(template *template.Template, values interface{}) string {
 	return buf.String()
 }
 
-func headerForPackage(useReflection bool, packageName string) string {
-
-	importTextToUse := importText
-
-	if useReflection {
-		importTextToUse = reflectImportText
-	}
+func headerForPackage(packageName string) string {
 
 	return templateOutput(headerTemplate, map[string]string{
 		"packageName": packageName,
-	}) + importTextToUse
+	}) + importText
 }
 
-func headerForStruct(useReflection bool, structName string, types map[string]boardgame.PropertyType, outputReadSetter bool) string {
-
-	if useReflection {
-		return templateOutput(reflectStructHeaderTemplate, map[string]string{
-			"structName": structName,
-		})
-	}
+func headerForStruct(structName string, types map[string]boardgame.PropertyType, outputReadSetter bool) string {
 
 	//propertyTypes is short name, golangValue
 	propertyTypes := make(map[string]string)
@@ -466,14 +441,7 @@ func headerForStruct(useReflection bool, structName string, types map[string]boa
 
 }
 
-func readerForStruct(useReflection bool, structName string) string {
-
-	if useReflection {
-		return templateOutput(reflectReaderTemplate, templateConfig{
-			FirstLetter: structName[:1],
-			StructName:  structName,
-		})
-	}
+func readerForStruct(structName string) string {
 
 	return templateOutput(readerTemplate, map[string]string{
 		"firstLetter": strings.ToLower(structName[:1]),
@@ -483,13 +451,7 @@ func readerForStruct(useReflection bool, structName string) string {
 
 }
 
-func readSetterForStruct(useReflection bool, structName string) string {
-	if useReflection {
-		return templateOutput(reflectReadSetterTemplate, templateConfig{
-			FirstLetter: structName[:1],
-			StructName:  structName,
-		})
-	}
+func readSetterForStruct(structName string) string {
 
 	return templateOutput(readSetterTemplate, map[string]string{
 		"firstLetter": strings.ToLower(structName[:1]),
@@ -511,20 +473,10 @@ const headerTemplateText = `/************************************
 package {{.packageName}}
 `
 
-const reflectImportText = `import (
-	"github.com/jkomoros/boardgame"
-)
-
-`
-
 const importText = `import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 )
-
-`
-
-const reflectStructHeaderTemplateText = `// Implementation for {{.structName}}
 
 `
 
@@ -630,20 +582,8 @@ const readerTemplateText = `func ({{.firstLetter}} *{{.structName}}) Reader() bo
 
 `
 
-const reflectReaderTemplateText = `func ({{.FirstLetter}} *{{.StructName}}) Reader() boardgame.PropertyReader {
-	return boardgame.DefaultReader({{.FirstLetter}})
-}
-
-`
-
 const readSetterTemplateText = `func ({{.firstLetter}} *{{.structName}}) ReadSetter() boardgame.PropertyReadSetter {
 	return &{{.readerName}}{ {{.firstLetter}} }
-}
-
-`
-
-const reflectReadSetterTemplateText = `func ({{.FirstLetter}} *{{.StructName}}) ReadSetter() boardgame.PropertyReadSetter {
-	return boardgame.DefaultReadSetter({{.FirstLetter}})
 }
 
 `

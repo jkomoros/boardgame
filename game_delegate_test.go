@@ -15,19 +15,19 @@ type testPlayerPropertiesCollection struct {
 }
 
 func (t *testGlobalPropertiesCollection) ReadSetter() PropertyReadSetter {
-	return DefaultReadSetter(t)
+	return getDefaultReadSetter(t)
 }
 
 func (t *testGlobalPropertiesCollection) Reader() PropertyReader {
-	return DefaultReader(t)
+	return getDefaultReader(t)
 }
 
 func (t *testPlayerPropertiesCollection) ReadSetter() PropertyReadSetter {
-	return DefaultReadSetter(t)
+	return getDefaultReadSetter(t)
 }
 
 func (t *testPlayerPropertiesCollection) Reader() PropertyReader {
-	return DefaultReader(t)
+	return getDefaultReader(t)
 }
 
 func init() {

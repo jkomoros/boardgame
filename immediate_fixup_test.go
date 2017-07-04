@@ -43,7 +43,7 @@ func (m *moveTestImmediatePlayerMove) Apply(state MutableState) error {
 }
 
 func (m *moveTestImmediatePlayerMove) ReadSetter() PropertyReadSetter {
-	return DefaultReadSetter(m)
+	return getDefaultReadSetter(m)
 }
 
 var moveTestImmediateFixUpOneConfig = MoveTypeConfig{
@@ -84,7 +84,7 @@ func (m *moveImmediateFixUpOne) Apply(state MutableState) error {
 }
 
 func (m *moveImmediateFixUpOne) ReadSetter() PropertyReadSetter {
-	return DefaultReadSetter(m)
+	return getDefaultReadSetter(m)
 }
 
 var moveTestImmediateFixUpTwoConfig = MoveTypeConfig{
@@ -109,7 +109,7 @@ func (m *moveImmediateFixUpTWo) Apply(state MutableState) error {
 }
 
 func (m *moveImmediateFixUpTWo) ReadSetter() PropertyReadSetter {
-	return DefaultReadSetter(m)
+	return getDefaultReadSetter(m)
 }
 
 func TestImmediateFixUp(t *testing.T) {

@@ -57,15 +57,15 @@ type testingComponentDynamic struct {
 const testGameName = "Test Game"
 
 func (t *testingComponent) Reader() PropertyReader {
-	return DefaultReader(t)
+	return getDefaultReader(t)
 }
 
 func (t *testingComponentDynamic) Reader() PropertyReader {
-	return DefaultReader(t)
+	return getDefaultReader(t)
 }
 
 func (t *testingComponentDynamic) ReadSetter() PropertyReadSetter {
-	return DefaultReadSetter(t)
+	return getDefaultReadSetter(t)
 }
 
 func (t *testingComponentDynamic) Copy() MutableSubState {
@@ -125,11 +125,11 @@ type testGameState struct {
 }
 
 func (t *testGameState) Reader() PropertyReader {
-	return DefaultReader(t)
+	return getDefaultReader(t)
 }
 
 func (t *testGameState) ReadSetter() PropertyReadSetter {
-	return DefaultReadSetter(t)
+	return getDefaultReadSetter(t)
 }
 
 type testPlayerState struct {
@@ -148,11 +148,11 @@ func (t *testPlayerState) PlayerIndex() PlayerIndex {
 }
 
 func (t *testPlayerState) ReadSetter() PropertyReadSetter {
-	return DefaultReadSetter(t)
+	return getDefaultReadSetter(t)
 }
 
 func (t *testPlayerState) Reader() PropertyReader {
-	return DefaultReader(t)
+	return getDefaultReader(t)
 }
 
 type testMoveInvalidPlayerIndex struct {
@@ -172,7 +172,7 @@ var testMoveInvalidPlayerIndexConfig = MoveTypeConfig{
 }
 
 func (t *testMoveInvalidPlayerIndex) ReadSetter() PropertyReadSetter {
-	return DefaultReadSetter(t)
+	return getDefaultReadSetter(t)
 }
 
 func (t *testMoveInvalidPlayerIndex) Legal(state State, propopser PlayerIndex) error {
@@ -210,7 +210,7 @@ func (t *testMoveIncrementCardInHand) DefaultsForState(state State) {
 }
 
 func (t *testMoveIncrementCardInHand) ReadSetter() PropertyReadSetter {
-	return DefaultReadSetter(t)
+	return getDefaultReadSetter(t)
 }
 
 func (t *testMoveIncrementCardInHand) Legal(state State, proposer PlayerIndex) error {
@@ -283,7 +283,7 @@ func (t *testMoveDrawCard) DefaultsForState(state State) {
 }
 
 func (t *testMoveDrawCard) ReadSetter() PropertyReadSetter {
-	return DefaultReadSetter(t)
+	return getDefaultReadSetter(t)
 }
 
 func (t *testMoveDrawCard) Legal(state State, proposer PlayerIndex) error {
@@ -336,7 +336,7 @@ var testMoveAdvanceCurrentPlayerConfig = MoveTypeConfig{
 }
 
 func (t *testMoveAdvanceCurentPlayer) ReadSetter() PropertyReadSetter {
-	return DefaultReadSetter(t)
+	return getDefaultReadSetter(t)
 }
 
 func (t *testMoveAdvanceCurentPlayer) Legal(state State, proposer PlayerIndex) error {
@@ -401,7 +401,7 @@ func (t *testMove) DefaultsForState(state State) {
 }
 
 func (t *testMove) ReadSetter() PropertyReadSetter {
-	return DefaultReadSetter(t)
+	return getDefaultReadSetter(t)
 }
 
 func (t *testMove) Legal(state State, proposer PlayerIndex) error {
@@ -449,7 +449,7 @@ var testAlwaysLegalMoveConfig = MoveTypeConfig{
 }
 
 func (t *testAlwaysLegalMove) ReadSetter() PropertyReadSetter {
-	return DefaultReadSetter(t)
+	return getDefaultReadSetter(t)
 }
 
 func (t *testAlwaysLegalMove) Legal(state State, proposer PlayerIndex) error {

@@ -9,7 +9,7 @@ type testShadowValues struct {
 }
 
 func (t *testShadowValues) Reader() PropertyReader {
-	return DefaultReader(t)
+	return getDefaultReader(t)
 }
 
 func TestDeckShadowComponent(t *testing.T) {
