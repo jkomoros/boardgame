@@ -76,11 +76,19 @@ type CurrentPlayer struct {
 }
 
 //Legal will return an error if the TargetPlayerIndex is not the
-//CurrentPlayerIndex, or if the TargetPlayerIndex is not equivalent to the
-//proposer.
+//CurrentPlayerIndex, if the TargetPlayerIndex is not equivalent to the
+//proposer, or if the TargetPlayerIndex is not one of the players.
 func (c *CurrentPlayer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
 	currentPlayer := state.Game().CurrentPlayerIndex()
+
+	if !c.TargetPlayerIndex.Valid(state) {
+		return errors.New("The specified target player is not valid")
+	}
+
+	if c.TargetPlayerIndex < 0 {
+		return errors.New("The specified target player is not valid")
+	}
 
 	if !c.TargetPlayerIndex.Equivalent(currentPlayer) {
 		return errors.New("It's not your turn")
