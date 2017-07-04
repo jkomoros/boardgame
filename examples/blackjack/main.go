@@ -268,7 +268,7 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 		&moveDealInitialCardConfig,
 		&moveRevealHiddenCardConfig,
 		&moveShuffleDiscardToDrawConfig,
-		&moveAdvanceNextPlayerConfig,
+		&moveFinishTurnConfig,
 	})
 
 	manager.SetUp()

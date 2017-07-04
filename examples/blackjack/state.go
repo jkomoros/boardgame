@@ -1,9 +1,30 @@
 package blackjack
 
 import (
+	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/components/playingcards"
+	"github.com/jkomoros/boardgame/moves"
 )
+
+func init() {
+
+	//Make sure that we get compile-time errors if our player and game state
+	//don't adhere to the interfaces that moves.FinishTurn expects
+	var playerTurnFinisher moves.PlayerTurnFinisher
+	playerTurnFinisher = &playerState{}
+
+	if playerTurnFinisher == nil {
+		panic("Nil")
+	}
+
+	var currentPlayerSetter moves.CurrentPlayerSetter
+	currentPlayerSetter = &gameState{}
+
+	if currentPlayerSetter == nil {
+		panic("Nil")
+	}
+}
 
 func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 	game := state.GameState().(*gameState)
@@ -35,8 +56,27 @@ type playerState struct {
 	Stood          bool
 }
 
+func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {
+	g.CurrentPlayer = currentPlayer
+}
+
 func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
 	return p.playerIndex
+}
+
+func (p *playerState) TurnDone(state boardgame.State) error {
+	if !p.Busted && !p.Stood {
+		return errors.New("they have neither busted nor decided to stand")
+	}
+	return nil
+}
+
+func (p *playerState) ResetForTurnStart(state boardgame.State) {
+	p.Stood = false
+}
+
+func (p *playerState) ResetForTurnEnd(state boardgame.State) {
+
 }
 
 func (p *playerState) EffectiveHand() []*playingcards.Card {

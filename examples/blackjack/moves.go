@@ -12,8 +12,8 @@ type MoveShuffleDiscardToDraw struct {
 }
 
 //+autoreader readsetter
-type MoveAdvanceNextPlayer struct {
-	moves.Base
+type MoveFinishTurn struct {
+	moves.FinishTurn
 }
 
 //+autoreader readsetter
@@ -182,39 +182,13 @@ func (m *MoveCurrentPlayerStand) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-var moveAdvanceNextPlayerConfig = boardgame.MoveTypeConfig{
-	Name:     "Advance Next Player",
+var moveFinishTurnConfig = boardgame.MoveTypeConfig{
+	Name:     "Finish Turn",
 	HelpText: "When the current player has either busted or decided to stand, we advance to next player.",
 	MoveConstructor: func() boardgame.Move {
-		return new(MoveAdvanceNextPlayer)
+		return new(MoveFinishTurn)
 	},
 	IsFixUp: true,
-}
-
-func (m *MoveAdvanceNextPlayer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
-	game, players := concreteStates(state)
-
-	currentPlayer := players[game.CurrentPlayer]
-
-	if currentPlayer.Busted || currentPlayer.Stood {
-		return nil
-	}
-
-	return errors.New("The current player has neither busted nor decided to stand.")
-}
-
-func (m *MoveAdvanceNextPlayer) Apply(state boardgame.MutableState) error {
-
-	game, players := concreteStates(state)
-
-	game.CurrentPlayer = game.CurrentPlayer.Next(state)
-
-	currentPlayer := players[game.CurrentPlayer]
-
-	currentPlayer.Stood = false
-
-	return nil
-
 }
 
 /**************************************************
