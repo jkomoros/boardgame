@@ -3,34 +3,35 @@ package memory
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves"
 	"time"
 )
 
 //+autoreader readsetter
 type MoveAdvanceNextPlayer struct {
-	boardgame.BaseMove
+	moves.Base
 }
 
 //+autoreader readsetter
 type MoveRevealCard struct {
-	boardgame.BaseMove
+	moves.Base
 	TargetPlayerIndex boardgame.PlayerIndex
 	CardIndex         int
 }
 
 //+autoreader readsetter
 type MoveStartHideCardsTimer struct {
-	boardgame.BaseMove
+	moves.Base
 }
 
 //+autoreader readsetter
 type MoveCaptureCards struct {
-	boardgame.BaseMove
+	moves.Base
 }
 
 //+autoreader readsetter
 type MoveHideCards struct {
-	boardgame.BaseMove
+	moves.Base
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 

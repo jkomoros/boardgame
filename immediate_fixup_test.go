@@ -7,15 +7,15 @@ import (
 )
 
 type moveTestImmediatePlayerMove struct {
-	BaseMove
+	baseMove
 }
 
 type moveImmediateFixUpOne struct {
-	BaseMove
+	baseMove
 }
 
 type moveImmediateFixUpTWo struct {
-	BaseMove
+	baseMove
 }
 
 var moveTestImmediatePlayerMoveConfig = MoveTypeConfig{

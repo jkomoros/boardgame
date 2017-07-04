@@ -156,7 +156,7 @@ func (t *testPlayerState) Reader() PropertyReader {
 }
 
 type testMoveInvalidPlayerIndex struct {
-	BaseMove
+	baseMove
 	//This move is a dangerous one and also a fix-up. So make it so by default
 	//it doesn't apply.
 	CurrentlyLegal bool
@@ -193,7 +193,7 @@ func (t *testMoveInvalidPlayerIndex) Apply(state MutableState) error {
 }
 
 type testMoveIncrementCardInHand struct {
-	BaseMove
+	baseMove
 	TargetPlayerIndex PlayerIndex
 }
 
@@ -266,7 +266,7 @@ func (t *testMoveIncrementCardInHand) Apply(state MutableState) error {
 }
 
 type testMoveDrawCard struct {
-	BaseMove
+	baseMove
 	TargetPlayerIndex PlayerIndex
 }
 
@@ -323,7 +323,7 @@ func (t *testMoveDrawCard) Apply(state MutableState) error {
 }
 
 type testMoveAdvanceCurentPlayer struct {
-	BaseMove
+	baseMove
 }
 
 var testMoveAdvanceCurrentPlayerConfig = MoveTypeConfig{
@@ -372,7 +372,7 @@ func (t *testMoveAdvanceCurentPlayer) Apply(state MutableState) error {
 }
 
 type testMove struct {
-	BaseMove
+	baseMove
 	AString           string
 	ScoreIncrement    int
 	TargetPlayerIndex PlayerIndex
@@ -436,7 +436,7 @@ func (t *testMove) Apply(state MutableState) error {
 }
 
 type testAlwaysLegalMove struct {
-	BaseMove
+	baseMove
 }
 
 var testAlwaysLegalMoveConfig = MoveTypeConfig{

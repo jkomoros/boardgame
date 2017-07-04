@@ -3,40 +3,41 @@ package blackjack
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves"
 )
 
 //+autoreader readsetter
 type MoveShuffleDiscardToDraw struct {
-	boardgame.BaseMove
+	moves.Base
 }
 
 //+autoreader readsetter
 type MoveAdvanceNextPlayer struct {
-	boardgame.BaseMove
+	moves.Base
 }
 
 //+autoreader readsetter
 type MoveDealInitialCard struct {
-	boardgame.BaseMove
+	moves.Base
 	TargetPlayerIndex boardgame.PlayerIndex
 	IsHidden          bool
 }
 
 //+autoreader readsetter
 type MoveRevealHiddenCard struct {
-	boardgame.BaseMove
+	moves.Base
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
 //+autoreader readsetter
 type MoveCurrentPlayerHit struct {
-	boardgame.BaseMove
+	moves.Base
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
 //+autoreader readsetter
 type MoveCurrentPlayerStand struct {
-	boardgame.BaseMove
+	moves.Base
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 

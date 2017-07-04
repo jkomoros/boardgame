@@ -4,29 +4,30 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/components/dice"
+	"github.com/jkomoros/boardgame/moves"
 )
 
 //+autoreader readsetter
 type moveRollDice struct {
-	boardgame.BaseMove
+	moves.Base
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
 //+autoreader readsetter
 type moveDoneTurn struct {
-	boardgame.BaseMove
+	moves.Base
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
 //+autoreader readsetter
 type moveCountDie struct {
-	boardgame.BaseMove
+	moves.Base
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
 //+autoreader readsetter
 type moveAdvanceNextPlayer struct {
-	boardgame.BaseMove
+	moves.Base
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 

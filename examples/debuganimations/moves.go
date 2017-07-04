@@ -3,43 +3,44 @@ package debuganimations
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves"
 )
 
 //+autoreader readsetter
 type moveMoveCardBetweenShortStacks struct {
-	boardgame.BaseMove
+	moves.Base
 	FromFirst bool
 }
 
 //+autoreader readsetter
 type moveMoveCardBetweenDrawAndDiscardStacks struct {
-	boardgame.BaseMove
+	moves.Base
 	FromDraw bool
 }
 
 //+autoreader readsetter
 type moveFlipHiddenCard struct {
-	boardgame.BaseMove
+	moves.Base
 }
 
 //+autoreader readsetter
 type moveMoveCardBetweenFanStacks struct {
-	boardgame.BaseMove
+	moves.Base
 }
 
 //+autoreader readsetter
 type moveVisibleShuffleCards struct {
-	boardgame.BaseMove
+	moves.Base
 }
 
 //+autoreader readsetter
 type moveShuffleCards struct {
-	boardgame.BaseMove
+	moves.Base
 }
 
 //+autoreader readsetter
 type moveMoveBetweenHidden struct {
-	boardgame.BaseMove
+	moves.Base
 }
 
 /**************************************************

@@ -3,13 +3,14 @@ package tictactoe
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves"
 )
 
 //TODO: test this!!
 
 //+autoreader readsetter
 type MovePlaceToken struct {
-	boardgame.BaseMove
+	moves.Base
 	//Which token to place the token
 	Slot int
 	//Which player we THINK is making the move.
@@ -82,7 +83,7 @@ func (m *MovePlaceToken) Apply(state boardgame.MutableState) error {
 
 //+autoreader readsetter
 type MoveAdvancePlayer struct {
-	boardgame.BaseMove
+	moves.Base
 }
 
 var moveAdvancePlayerConfig = boardgame.MoveTypeConfig{

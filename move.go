@@ -52,7 +52,8 @@ type MoveTypeConfig struct {
 //Move's are how all modifications are made to Game States after
 //initialization. Packages define structs that implement Move for all
 //modifications. The Move should be JSON-able (that is, all persistable state
-//should be in public fields).
+//should be in public fields). Use moves.Base for a convenient composable base
+//Move that will allow you to skip most of the boilerplate overhead.
 type Move interface {
 
 	//SetType will be called after the constructor is called to set the type.
@@ -169,42 +170,27 @@ func (m *MoveType) NewMove(state State) Move {
 	return move
 }
 
-/*
-BaseMove is an optional, convenience struct designed to be embedded
-anonymously in your own Moves. It implements no-op methods for many of the
-required methods on Moves. Legal and Apply are not covered, because every Move
-should implement their own, and if this implemented them it would obscure
-errors where for example your Legal() was incorrectly named and thus not used.
-In general your MoveConstructor can always be exactly the same, modulo the
-name of your underlying move type:
-
-	MoveConstructor: func() boardgame.Move {
- 		return new(myMoveStruct)
-	}
-
-BaseMove cannot help your move implement PropertyReadSetter; use autoreader to
-generate that code for you.
-
-*/
-type BaseMove struct {
+//We implement a private stub of moves.Base in this package just for the
+//convience of our own test structs.
+type baseMove struct {
 	moveType *MoveType
 }
 
-func (d *BaseMove) SetType(m *MoveType) {
+func (d *baseMove) SetType(m *MoveType) {
 	d.moveType = m
 }
 
 //Type simply returns BaseMove.MoveType
-func (d *BaseMove) Type() *MoveType {
+func (d *baseMove) Type() *MoveType {
 	return d.moveType
 }
 
 //DefaultsForState doesn't do anything
-func (d *BaseMove) DefaultsForState(state State) {
+func (d *baseMove) DefaultsForState(state State) {
 	return
 }
 
 //Description defaults to returning the Type's HelpText()
-func (d *BaseMove) Description() string {
+func (d *baseMove) Description() string {
 	return d.Type().HelpText()
 }
