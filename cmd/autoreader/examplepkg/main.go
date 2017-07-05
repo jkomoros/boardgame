@@ -32,6 +32,11 @@ type embeddedStruct struct {
 	MyInt int
 }
 
+//+autoreader
+type doubleEmbeddedStruct struct {
+	embeddedStruct
+}
+
 //	 +autoreader
 type myOtherStruct struct {
 	blarg           int

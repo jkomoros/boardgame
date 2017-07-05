@@ -152,7 +152,7 @@ func processPackage(location string) (output string, err error) {
 			continue
 		}
 
-		types := structTypes(location, theStruct)
+		types := structTypes(location, theStruct, sources.Structs)
 
 		output += headerForStruct(theStruct.Name, types, outputReadSetter)
 
@@ -207,15 +207,32 @@ func fieldNamePossibleEmbeddedStruct(theField model.Field) bool {
 	return false
 }
 
-func structTypes(location string, theStruct model.Struct) map[string]boardgame.PropertyType {
+func structTypes(location string, theStruct model.Struct, allStructs []model.Struct) map[string]boardgame.PropertyType {
 	result := make(map[string]boardgame.PropertyType)
 	for _, field := range theStruct.Fields {
 		if fieldNamePossibleEmbeddedStruct(field) {
-			embeddedInfo := typesForPossibleEmbeddedStruct(location, field)
+			embeddedInfo := typesForPossibleEmbeddedStruct(location, field, allStructs)
 			if embeddedInfo != nil {
 				for key, val := range embeddedInfo {
 					result[key] = val
 				}
+				continue
+			}
+		}
+		//Check if it's a local-to-package anonymous embedded struct
+		if field.Name == "" {
+			foundStruct := false
+			for _, otherStruct := range allStructs {
+				if otherStruct.Name == field.TypeName {
+					embeddedInfo := structTypes(location, otherStruct, allStructs)
+					for key, val := range embeddedInfo {
+						result[key] = val
+					}
+					foundStruct = true
+					break
+				}
+			}
+			if foundStruct {
 				continue
 			}
 		}
@@ -264,7 +281,7 @@ func structTypes(location string, theStruct model.Struct) map[string]boardgame.P
 //field MIGHT be an embedded struct. If it is, we will identify the package it
 //appears to be built from, parse those structs, try to find the struct, and
 //return a map of property types in it.
-func typesForPossibleEmbeddedStruct(location string, theField model.Field) map[string]boardgame.PropertyType {
+func typesForPossibleEmbeddedStruct(location string, theField model.Field, allStructs []model.Struct) map[string]boardgame.PropertyType {
 
 	targetTypeParts := strings.Split(theField.TypeName, ".")
 
@@ -306,7 +323,7 @@ func typesForPossibleEmbeddedStruct(location string, theField model.Field) map[s
 			continue
 		}
 		//Found it!
-		result = structTypes(location, theStruct)
+		result = structTypes(location, theStruct, allStructs)
 
 		memoizedEmbeddedStructs[key] = result
 
