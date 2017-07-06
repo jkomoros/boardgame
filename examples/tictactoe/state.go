@@ -64,12 +64,13 @@ func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
 	return p.playerIndex
 }
 
-func (p *playerState) ResetForTurnStart(state boardgame.State) {
+func (p *playerState) ResetForTurnStart(state boardgame.State) error {
 	p.TokensToPlaceThisTurn = 1
+	return nil
 }
 
-func (p *playerState) ResetForTurnEnd(state boardgame.State) {
-	//Pass
+func (p *playerState) ResetForTurnEnd(state boardgame.State) error {
+	return nil
 }
 
 func (p *playerState) TurnDone(state boardgame.State) error {

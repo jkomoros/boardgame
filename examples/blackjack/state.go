@@ -59,12 +59,13 @@ func (p *playerState) TurnDone(state boardgame.State) error {
 	return nil
 }
 
-func (p *playerState) ResetForTurnStart(state boardgame.State) {
+func (p *playerState) ResetForTurnStart(state boardgame.State) error {
 	p.Stood = false
+	return nil
 }
 
-func (p *playerState) ResetForTurnEnd(state boardgame.State) {
-
+func (p *playerState) ResetForTurnEnd(state boardgame.State) error {
+	return nil
 }
 
 func (p *playerState) EffectiveHand() []*playingcards.Card {

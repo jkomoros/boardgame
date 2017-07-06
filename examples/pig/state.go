@@ -69,13 +69,15 @@ func (p *playerState) ResetForTurn() {
 	p.DieCounted = true
 }
 
-func (p *playerState) ResetForTurnStart(state boardgame.State) {
+func (p *playerState) ResetForTurnStart(state boardgame.State) error {
 	p.ResetForTurn()
+	return nil
 }
 
-func (p *playerState) ResetForTurnEnd(state boardgame.State) {
+func (p *playerState) ResetForTurnEnd(state boardgame.State) error {
 	if p.Done {
 		p.TotalScore += p.RoundScore
 	}
 	p.ResetForTurn()
+	return nil
 }
