@@ -2,6 +2,8 @@ package boardgame
 
 import (
 	"errors"
+	"math"
+	"strconv"
 )
 
 type enumRecord struct {
@@ -13,7 +15,10 @@ type enumRecord struct {
 //sanity checking that certain properties are always set in a known way and
 //also have convenient String values.
 type EnumManager struct {
-	enums map[int]enumRecord
+	//enums encodes the set of named enums in the manager, along with the
+	//lowest-observed value for that set.
+	enums  map[string]int
+	values map[int]enumRecord
 }
 
 //NewEnumManager returns a new, initialized EnumManager ready for use. In
@@ -21,6 +26,7 @@ type EnumManager struct {
 //created.
 func NewEnumManager() *EnumManager {
 	return &EnumManager{
+		make(map[string]int),
 		make(map[int]enumRecord),
 	}
 }
@@ -44,13 +50,28 @@ within a manager. The idiomatic way to do this is using chained iota's, like so:
 	)
 */
 func (e *EnumManager) Add(name string, values ...int) error {
+
+	if len(values) == 0 {
+		return errors.New("No values provided")
+	}
+
+	if _, ok := e.enums[name]; ok {
+		return errors.New("That enum name has already been provided")
+	}
+
+	e.enums[name] = math.MaxInt32
+
 	for _, v := range values {
-		if _, ok := e.enums[v]; ok {
+		if _, ok := e.values[v]; ok {
 			//Already registered
-			return errors.New("Already registered")
+			return errors.New("Value " + strconv.Itoa(v) + " was registered twice")
 		}
 		//TODO: set default str using reflection or something
-		e.enums[v] = enumRecord{name, ""}
+		e.values[v] = enumRecord{name, ""}
+
+		if v < e.enums[name] {
+			e.enums[name] = v
+		}
 	}
 	return nil
 }
@@ -58,5 +79,5 @@ func (e *EnumManager) Add(name string, values ...int) error {
 //Membership returns the string name of the enum that that value is part of,
 //or "" if not part of an enum.
 func (e *EnumManager) Membership(value int) string {
-	return e.enums[value].enumName
+	return e.values[value].enumName
 }
