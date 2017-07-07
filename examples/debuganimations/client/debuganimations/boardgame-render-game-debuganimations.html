@@ -120,14 +120,14 @@
       </div>
 
       <div id="fan">
-        <boardgame-card-stack layout='{{fromStackLayout}}' messy="{{messy}}" stack="{{state.Game.FanStack}}" style="--card-scale:{{fromCardScale}}">
+        <boardgame-card-stack layout='{{fromStackLayout}}' messy="{{messy}}" stack="{{state.Game.FanStack}}" style$="--card-scale:{{fromCardScale}}">
           <template is='dom-repeat'>
             <boardgame-card item="{{item}}" index="{{index}}" rotated="{{fromStackRotated}}">
             </boardgame-card>
           </template>
         </boardgame-card-stack>
         <div class="flex"></div>
-        <boardgame-card-stack layout='stack' messy="{{messy}}" stack="{{state.Game.FanDiscard}}" style="--card-scale:{{toCardScale}}">
+        <boardgame-card-stack layout='stack' messy="{{messy}}" stack="{{state.Game.FanDiscard}}" style$="--card-scale:{{toCardScale}}">
           <template is='dom-repeat'>
             <boardgame-card item="{{item}}" index="{{index}}" rotated="{{toStackRotated}}">
             </boardgame-card>
@@ -149,13 +149,13 @@
       </div>
 
       <div id="hidden">
-        <boardgame-card-stack layout="fan" messy="{{messy}}" stack="{{state.Game.VisibleStack}}" style="--card-scale:{{fromCardScale}}">
+        <boardgame-card-stack layout="fan" messy="{{messy}}" stack="{{state.Game.VisibleStack}}" style$="--card-scale:{{fromCardScale}}">
           <template is="dom-repeat">
             <boardgame-card item="{{item}}" index="{{index}}" rotated="{{fromStackRotated}}">
             </boardgame-card>
           </template>
         </boardgame-card-stack>
-        <boardgame-card-stack layout="stack" messy="{{messy}}" stack="{{state.Game.HiddenStack}}" style="--card-scale:{{toCardScale}}">
+        <boardgame-card-stack layout="stack" messy="{{messy}}" stack="{{state.Game.HiddenStack}}" style$="--card-scale:{{toCardScale}}">
           <template is="dom-repeat">
             <boardgame-card item="{{item}}" index="{{index}}" rotated="{{toStackRotated}}">
             </boardgame-card>
