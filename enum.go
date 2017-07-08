@@ -89,7 +89,7 @@ func (e *EnumValue) Inflate(manager *EnumManager) {
 		return
 	}
 	if e.stringToInflate != "" {
-		e.manager.ValueFromString(e.enumName, e.stringToInflate)
+		e.val = e.manager.ValueFromString(e.enumName, e.stringToInflate)
 		e.stringToInflate = ""
 	}
 	if e.manager.Membership(e.val) != e.enumName {
