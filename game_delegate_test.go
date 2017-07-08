@@ -153,14 +153,17 @@ func (t *testGameDelegate) LegalNumPlayers(numPlayers int) bool {
 }
 
 func (t *testGameDelegate) BeginSetUp(state MutableState) {
-	_, players := concreteStates(state)
+	game, players := concreteStates(state)
 
 	if len(players) != 3 {
 		return
 	}
 
+	game.MyEnumValue.SetValue(colorGreen)
+
 	players[0].MovesLeftThisTurn = 1
 	players[2].IsFoo = true
+	players[1].EnumVal.SetValue(colorGreen)
 }
 
 func (t *testGameDelegate) FinishSetUp(state MutableState) {
@@ -174,6 +177,7 @@ func (t *testGameDelegate) FinishSetUp(state MutableState) {
 		values := c.DynamicValues(state).(*testingComponentDynamic)
 
 		values.IntVar = 1
+		values.Enum.SetValue(colorBlue)
 	}
 }
 
