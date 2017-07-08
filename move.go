@@ -52,8 +52,9 @@ type MoveTypeConfig struct {
 //Move's are how all modifications are made to Game States after
 //initialization. Packages define structs that implement Move for all
 //modifications. The Move should be JSON-able (that is, all persistable state
-//should be in public fields). Use moves.Base for a convenient composable base
-//Move that will allow you to skip most of the boilerplate overhead.
+//should be in public fields), and it may not include Timers, Stacks, or
+//EnumValues. Use moves.Base for a convenient composable base Move that will
+//allow you to skip most of the boilerplate overhead.
 type Move interface {
 
 	//SetType will be called after the constructor is called to set the type.
@@ -125,6 +126,29 @@ func NewMoveType(config *MoveTypeConfig) (*MoveType, error) {
 
 	if config.MoveConstructor == nil {
 		return nil, errors.New("No MoveConstructor provided")
+	}
+
+	testMove := config.MoveConstructor()
+
+	for propName, propType := range testMove.ReadSetter().Props() {
+
+		illegalType := ""
+		switch propType {
+		case TypeTimer:
+			illegalType = "Timer"
+		case TypeGrowableStack:
+			illegalType = "GrowableStack"
+		case TypeSizedStack:
+			illegalType = "SizedStack"
+		case TypeEnumValue:
+			illegalType = "EnumValue"
+		case TypeIllegal:
+			illegalType = "general illegal value"
+		}
+
+		if illegalType != "" {
+			return nil, errors.New("Property " + propName + " is a " + illegalType + " which is illegal on moves")
+		}
 	}
 
 	return &MoveType{

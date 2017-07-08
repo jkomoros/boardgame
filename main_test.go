@@ -468,6 +468,31 @@ func (t *testAlwaysLegalMove) Apply(state MutableState) error {
 	return nil
 }
 
+type illegalMove struct {
+	baseMove
+	Enum *EnumValue
+}
+
+func (i *illegalMove) ReadSetter() PropertyReadSetter {
+	return getDefaultReadSetter(i)
+}
+
+func (i *illegalMove) Legal(state State, proposer PlayerIndex) error {
+	return nil
+}
+
+func (i *illegalMove) Apply(state MutableState) error {
+	return nil
+}
+
+var testIllegalMoveConfig = MoveTypeConfig{
+	Name:     "Illegal Move",
+	HelpText: "Move that is illegal because it has an illegal property type on it",
+	MoveConstructor: func() Move {
+		return new(illegalMove)
+	},
+}
+
 //testingComponentValues is designed to be run on a stack.ComponentValues() of
 //a stack of testingComponents, in order to convert them all to the specified
 //underlying struct.

@@ -370,6 +370,14 @@ func TestMoveRoundTrip(t *testing.T) {
 
 }
 
+func TestIllegalMove(t *testing.T) {
+
+	_, err := NewMoveType(&testIllegalMoveConfig)
+
+	assert.For(t).ThatActual(err).IsNotNil()
+
+}
+
 func TestInfiniteProposeFixUp(t *testing.T) {
 	//This test makes sure that if our GameDelegate is going to always return
 	//moves that are legal, we'll bail at a certain point.
