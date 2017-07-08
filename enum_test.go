@@ -74,7 +74,7 @@ func TestEnum(t *testing.T) {
 
 	val = enum.ValueFromString("InvalidEnum", "Blue")
 
-	assert.For(t).ThatActual(val).Equals(0)
+	assert.For(t).ThatActual(val).Equals(-1)
 
 	enum = NewEnumManager()
 

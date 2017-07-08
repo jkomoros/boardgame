@@ -39,7 +39,7 @@ func (e *EnumValue) Valid() bool {
 		return false
 	}
 
-	if e.manager.DefaultValue(e.enumName) == 0 {
+	if e.manager.DefaultValue(e.enumName) == -1 {
 		return false
 	}
 
@@ -85,7 +85,7 @@ func (e *EnumValue) Inflated() bool {
 
 func (e *EnumValue) Inflate(manager *EnumManager) {
 	e.manager = manager
-	if e.manager.DefaultValue(e.enumName) == 0 {
+	if e.manager.DefaultValue(e.enumName) == -1 {
 		return
 	}
 	if e.stringToInflate != "" {
@@ -200,22 +200,26 @@ func (e *EnumManager) Membership(value int) string {
 }
 
 //ValueFromString returns the underlying constant value associtaed with that
-//str within enumName, or 0 if the enum doesn't exist.
+//str within enumName, or -1 if the enum doesn't exist.
 func (e *EnumManager) ValueFromString(enumName string, str string) int {
 
 	rec, ok := e.enums[enumName]
 
 	if !ok {
-		return 0
+		return -1
 	}
 
 	return rec.strsToValues[str]
 }
 
-//DefaultValue returns the lowest value in that enum, or 0 if that enum
+//DefaultValue returns the lowest value in that enum, or -1 if that enum
 //doesn't exist.
 func (e *EnumManager) DefaultValue(enumName string) int {
-	return e.enums[enumName].min
+	rec, ok := e.enums[enumName]
+	if !ok {
+		return -1
+	}
+	return rec.min
 }
 
 //Finish makes it so future calls to Add() will fail.
