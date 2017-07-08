@@ -22,8 +22,8 @@ type EnumManager struct {
 }
 
 //NewEnumManager returns a new, initialized EnumManager ready for use. In
-//general you only need to create one to pass to the manager when it's
-//created.
+//general you can just use the one that is automatically available on
+//ComponentChest.
 func NewEnumManager() *EnumManager {
 	return &EnumManager{
 		make(map[string]int),
