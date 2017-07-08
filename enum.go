@@ -7,6 +7,10 @@ import (
 	"strconv"
 )
 
+//An EnumValue is an instantiation of a value that must be set to a value in
+//the given enum. Inflate() must be called passing the EnumManager it should
+//use. If you use an EnumValue in your gameState, playerState, or
+//dynamicComponentState it will automatically be inflated for you.
 type EnumValue struct {
 	locked          bool
 	enumName        string
@@ -74,7 +78,15 @@ func (e *EnumValue) String() string {
 	return e.manager.String(e.val)
 }
 
+//SetValue changes the value. Returns true if successful. Will fail if the
+//value is locked or the val you want to set is not a valid number for the
+//enum this value is associated with.
 func (e *EnumValue) SetValue(val int) bool {
+
+	if !e.Inflated() {
+		return false
+	}
+
 	if e.locked {
 		return false
 	}
@@ -95,6 +107,11 @@ func (e *EnumValue) Inflated() bool {
 	return e.manager != nil
 }
 
+//Inflate associates this Value with the EnumManager it is part of, so it can
+//check whether its value is legal and retrieve other information about it.
+//Inflate must be called to do most actions. If you use an EnumValue in your
+//gameState, playerState, or dynamicComponentState it will automatically be
+//inflated for you.
 func (e *EnumValue) Inflate(manager *EnumManager) {
 	e.manager = manager
 	if e.manager.DefaultValue(e.enumName) == -1 {
