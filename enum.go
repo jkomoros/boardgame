@@ -20,6 +20,7 @@ type enumRecord struct {
 //sanity checking that certain properties are always set in a known way and
 //also have convenient String values.
 type EnumManager struct {
+	frozen bool
 	//enums encodes the set of named enums in the manager, along with the
 	//lowest-observed value for that set.
 	enums  map[string]enumRecord
@@ -31,6 +32,7 @@ type EnumManager struct {
 //ComponentChest.
 func NewEnumManager() *EnumManager {
 	return &EnumManager{
+		false,
 		make(map[string]enumRecord),
 		make(map[int]valueRecord),
 	}
@@ -55,6 +57,10 @@ within a manager. The idiomatic way to do this is using chained iota's, like so:
 	)
 */
 func (e *EnumManager) Add(name string, values map[int]string) error {
+
+	if e.frozen {
+		return errors.New("The enum has been frozen")
+	}
 
 	if len(values) == 0 {
 		return errors.New("No values provided")
@@ -119,4 +125,9 @@ func (e *EnumManager) ValueFromString(enumName string, str string) int {
 //doesn't exist.
 func (e *EnumManager) DefaultValue(enumName string) int {
 	return e.enums[enumName].min
+}
+
+//Finish makes it so future calls to Add() will fail.
+func (e *EnumManager) Finish() {
+	e.frozen = true
 }

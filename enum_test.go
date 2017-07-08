@@ -85,4 +85,13 @@ func TestEnum(t *testing.T) {
 	})
 
 	assert.For(t).ThatActual(err).IsNotNil()
+
+	enum.Finish()
+
+	err = enum.Add("Card", map[int]string{
+		CardSpade: "Spade",
+		CardClub:  "Club",
+	})
+
+	assert.For(t).ThatActual(err).IsNotNil()
 }

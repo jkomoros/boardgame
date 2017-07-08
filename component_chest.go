@@ -83,6 +83,8 @@ func (c *ComponentChest) Finish() {
 		return
 	}
 
+	c.enum.Finish()
+
 	c.initialized = true
 
 	//Now that no more decks are coming, we can create deckNames once and be
