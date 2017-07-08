@@ -164,17 +164,35 @@ error if that name has already been added, or any of the int values has been
 used for any other enum item already. This means that enums must be unique
 within a manager. The idiomatic way to do this is using chained iota's, like so:
 	const (
+		//The first enum can start at 0
 		ColorRed = iota
 		ColorBlue
 		ColorGreen
 	)
 
 	const (
+		//The second enum should start at 1 plus the last item in the previous
+		//enum.
 		CardSpade = ColorGreen + 1 + iota
 		CardHeart
 		CardDiamond
 		CardClub
 	)
+
+	func addEnumsToManager(e *EnumManager) {
+		e.Add("Color", map[int]string{
+			ColorRed:   "Red",
+			ColorBlue:  "Blue",
+			ColorGreen: "Green",
+		})
+
+		e.Add("Card", map[int]string{
+			CardSpade:   "Spade",
+			CardHeart:   "Heart",
+			CardDiamond: "Diamond",
+			CardClub:    "Club",
+		})
+	}
 */
 func (e *EnumManager) Add(name string, values map[int]string) error {
 
