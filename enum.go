@@ -6,9 +6,14 @@ import (
 	"strconv"
 )
 
-type enumRecord struct {
+type valueRecord struct {
 	enumName string
 	str      string
+}
+
+type enumRecord struct {
+	min          int
+	strsToValues map[string]int
 }
 
 //EnumManager manages all of the enums for a given Game. Enums are useful for
@@ -17,8 +22,8 @@ type enumRecord struct {
 type EnumManager struct {
 	//enums encodes the set of named enums in the manager, along with the
 	//lowest-observed value for that set.
-	enums  map[string]int
-	values map[int]enumRecord
+	enums  map[string]enumRecord
+	values map[int]valueRecord
 }
 
 //NewEnumManager returns a new, initialized EnumManager ready for use. In
@@ -26,8 +31,8 @@ type EnumManager struct {
 //ComponentChest.
 func NewEnumManager() *EnumManager {
 	return &EnumManager{
-		make(map[string]int),
-		make(map[int]enumRecord),
+		make(map[string]enumRecord),
+		make(map[int]valueRecord),
 	}
 }
 
@@ -59,18 +64,29 @@ func (e *EnumManager) Add(name string, values map[int]string) error {
 		return errors.New("That enum name has already been provided")
 	}
 
-	e.enums[name] = math.MaxInt32
+	eRecord := enumRecord{
+		min:          math.MaxInt32,
+		strsToValues: make(map[string]int),
+	}
 
 	for v, s := range values {
 		if _, ok := e.values[v]; ok {
 			//Already registered
 			return errors.New("Value " + strconv.Itoa(v) + " was registered twice")
 		}
-		e.values[v] = enumRecord{name, s}
 
-		if v < e.enums[name] {
-			e.enums[name] = v
+		if _, ok := eRecord.strsToValues[s]; ok {
+			return errors.New("String " + s + " was not unique within enum " + name)
 		}
+
+		e.values[v] = valueRecord{name, s}
+		eRecord.strsToValues[s] = v
+
+		if v < eRecord.min {
+			eRecord.min = v
+		}
+
+		e.enums[name] = eRecord
 	}
 	return nil
 }
@@ -89,5 +105,5 @@ func (e *EnumManager) Membership(value int) string {
 //DefaultValue returns the lowest value in that enum, or 0 if that enum
 //doesn't exist.
 func (e *EnumManager) DefaultValue(enumName string) int {
-	return e.enums[enumName]
+	return e.enums[enumName].min
 }

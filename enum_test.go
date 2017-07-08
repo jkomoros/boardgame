@@ -64,4 +64,13 @@ func TestEnum(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
+	enum = NewEnumManager()
+
+	err = enum.Add("Color", map[int]string{
+		ColorBlue:  "Blue",
+		ColorGreen: "Green",
+		ColorRed:   "Blue",
+	})
+
+	assert.For(t).ThatActual(err).IsNotNil()
 }
