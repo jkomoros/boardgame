@@ -102,6 +102,19 @@ func (e *EnumManager) Membership(value int) string {
 	return e.values[value].enumName
 }
 
+//ValueFromString returns the underlying constant value associtaed with that
+//str within enumName, or 0 if the enum doesn't exist.
+func (e *EnumManager) ValueFromString(enumName string, str string) int {
+
+	rec, ok := e.enums[enumName]
+
+	if !ok {
+		return 0
+	}
+
+	return rec.strsToValues[str]
+}
+
 //DefaultValue returns the lowest value in that enum, or 0 if that enum
 //doesn't exist.
 func (e *EnumManager) DefaultValue(enumName string) int {

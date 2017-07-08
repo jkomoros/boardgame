@@ -64,6 +64,18 @@ func TestEnum(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
+	val := enum.ValueFromString("Color", "Blue")
+
+	assert.For(t).ThatActual(val).Equals(ColorBlue)
+
+	val = enum.ValueFromString("Color", "Turquoise")
+
+	assert.For(t).ThatActual(val).Equals(0)
+
+	val = enum.ValueFromString("InvalidEnum", "Blue")
+
+	assert.For(t).ThatActual(val).Equals(0)
+
 	enum = NewEnumManager()
 
 	err = enum.Add("Color", map[int]string{
