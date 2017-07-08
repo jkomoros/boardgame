@@ -8,6 +8,7 @@ import (
 )
 
 type EnumValue struct {
+	locked          bool
 	enumName        string
 	val             int
 	stringToInflate string
@@ -16,6 +17,7 @@ type EnumValue struct {
 
 func NewEnumValue(enumName string) *EnumValue {
 	return &EnumValue{
+		false,
 		enumName,
 		0,
 		"",
@@ -25,6 +27,7 @@ func NewEnumValue(enumName string) *EnumValue {
 
 func (e *EnumValue) copy() *EnumValue {
 	return &EnumValue{
+		e.locked,
 		e.enumName,
 		e.val,
 		e.stringToInflate,
@@ -72,11 +75,20 @@ func (e *EnumValue) String() string {
 }
 
 func (e *EnumValue) SetValue(val int) bool {
+	if e.locked {
+		return false
+	}
 	if e.manager.Membership(val) != e.enumName {
 		return false
 	}
 	e.val = val
 	return true
+}
+
+//Lock locks in the value of the EnumValue, so that in the future all calls to
+//SetValue will fail.
+func (e *EnumValue) Lock() {
+	e.locked = true
 }
 
 func (e *EnumValue) Inflated() bool {

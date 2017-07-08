@@ -76,6 +76,32 @@ func TestEnum(t *testing.T) {
 
 	assert.For(t).ThatActual(val).Equals(-1)
 
+	eVal := NewEnumValue("Color")
+
+	assert.For(t).ThatActual(eVal.Inflated()).IsFalse()
+
+	eVal.Inflate(enum)
+
+	assert.For(t).ThatActual(eVal.Inflated()).IsTrue()
+
+	assert.For(t).ThatActual(eVal.Value()).Equals(ColorBlue)
+
+	result := eVal.SetValue(ColorGreen)
+
+	assert.For(t).ThatActual(result).IsTrue()
+
+	assert.For(t).ThatActual(eVal.Value()).Equals(ColorGreen)
+
+	eVal.Lock()
+
+	result = eVal.SetValue(ColorRed)
+
+	assert.For(t).ThatActual(result).IsFalse()
+
+	assert.For(t).ThatActual(eVal.Value()).Equals(ColorGreen)
+
+	//Do a new manager to check that adding enums after finished doesn't work
+
 	enum = NewEnumManager()
 
 	err = enum.Add("Color", map[int]string{
