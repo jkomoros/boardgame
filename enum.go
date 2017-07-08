@@ -49,7 +49,7 @@ within a manager. The idiomatic way to do this is using chained iota's, like so:
 		CardClub
 	)
 */
-func (e *EnumManager) Add(name string, values ...int) error {
+func (e *EnumManager) Add(name string, values map[int]string) error {
 
 	if len(values) == 0 {
 		return errors.New("No values provided")
@@ -61,13 +61,12 @@ func (e *EnumManager) Add(name string, values ...int) error {
 
 	e.enums[name] = math.MaxInt32
 
-	for _, v := range values {
+	for v, s := range values {
 		if _, ok := e.values[v]; ok {
 			//Already registered
 			return errors.New("Value " + strconv.Itoa(v) + " was registered twice")
 		}
-		//TODO: set default str using reflection or something
-		e.values[v] = enumRecord{name, ""}
+		e.values[v] = enumRecord{name, s}
 
 		if v < e.enums[name] {
 			e.enums[name] = v

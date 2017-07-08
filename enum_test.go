@@ -25,7 +25,11 @@ func TestEnum(t *testing.T) {
 
 	assert.For(t).ThatActual(enum).IsNotNil()
 
-	err := enum.Add("Color", ColorBlue, ColorGreen, ColorRed)
+	err := enum.Add("Color", map[int]string{
+		ColorBlue:  "Blue",
+		ColorGreen: "Green",
+		ColorRed:   "Red",
+	})
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -33,17 +37,26 @@ func TestEnum(t *testing.T) {
 
 	assert.For(t).ThatActual(enum.DefaultValue("Color")).Equals(ColorBlue)
 
-	err = enum.Add("Color", ColorBlue)
+	err = enum.Add("Color", map[int]string{
+		ColorBlue: "Blue",
+	})
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
-	err = enum.Add("Card", CardSpade, CardClub, CardDiamond, CardHeart)
+	err = enum.Add("Card", map[int]string{
+		CardSpade:   "Spade",
+		CardClub:    "Club",
+		CardDiamond: "Diamond",
+		CardHeart:   "Heart",
+	})
 
 	assert.For(t).ThatActual(err).IsNil()
 
 	assert.For(t).ThatActual(enum.Membership(CardDiamond)).Equals("Card")
 
-	err = enum.Add("Another", ConstDuplicate)
+	err = enum.Add("Another", map[int]string{
+		ConstDuplicate: "Duplicate",
+	})
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
