@@ -24,7 +24,8 @@
         "MyIntSlice": [0],
         "MyBoolSlice": [false],
         "MyStringSlice": [""],
-        "MyPlayerIndexSlice": [0]
+        "MyPlayerIndexSlice": [0],
+        "MyEnumValue" : "Red"
     },
     "Players": [
         {
@@ -45,7 +46,8 @@
                     "2a7effe5e4000914791f95f6c1a711e54d346020": 0
                 },
                 "Size" : 2
-            }
+            },
+            "EnumVal": "Red"
         },
         {
             "Score": 0,
@@ -65,7 +67,8 @@
                     "26367debb9c2ce3d0a24de425c5797f43ac43909": 0
                 },
                 "Size" : 2
-            }
+            },
+            "EnumVal": "Red"
         },
         {
             "Score": 0,
@@ -83,7 +86,8 @@
                 ],
                 "IdsLastSeen": {},
                 "Size" : 2
-            }
+            },
+            "EnumVal": "Red"
         }
     ],
     "Components": {
@@ -100,7 +104,8 @@
                     ],
                     "IdsLastSeen": {},
                     "Size": 1
-                }
+                },
+                "Enum": "Red"
             },
             {
                 "IntVar" : 0,
@@ -114,7 +119,8 @@
                     ],
                     "IdsLastSeen": {},
                     "Size": 1
-                }
+                },
+                "Enum": "Red"
             },
             {
                 "IntVar" : 0,
@@ -128,7 +134,8 @@
                     ],
                     "IdsLastSeen": {},
                     "Size": 1
-                }
+                },
+                "Enum": "Red"
             },
             {
                 "IntVar" : 0,
@@ -142,7 +149,8 @@
                     ],
                     "IdsLastSeen": {},
                     "Size": 1
-                }
+                },
+                "Enum": "Red"
             }
         ]
     },

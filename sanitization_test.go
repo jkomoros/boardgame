@@ -126,6 +126,9 @@ func TestSanitization(t *testing.T) {
 					"MyPlayerIndexSlice": GroupPolicy{
 						GroupAll: PolicyHidden,
 					},
+					"MyEnumValue": GroupPolicy{
+						GroupAll: PolicyHidden,
+					},
 				},
 				Player: map[string]GroupPolicy{
 					"Hand": GroupPolicy{
@@ -136,6 +139,9 @@ func TestSanitization(t *testing.T) {
 						GroupAll: PolicyHidden,
 					},
 					"IsFoo": GroupPolicy{
+						GroupAll: PolicyHidden,
+					},
+					"EnumVal": GroupPolicy{
 						GroupAll: PolicyHidden,
 					},
 				},

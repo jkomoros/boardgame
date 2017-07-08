@@ -1,22 +1,34 @@
 package boardgame
 
 import (
+	"encoding/json"
 	"errors"
 	"math"
 	"strconv"
 )
 
 type EnumValue struct {
-	enumName string
-	val      int
-	manager  *EnumManager
+	enumName        string
+	val             int
+	stringToInflate string
+	manager         *EnumManager
 }
 
 func NewEnumValue(enumName string) *EnumValue {
 	return &EnumValue{
 		enumName,
 		0,
+		"",
 		nil,
+	}
+}
+
+func (e *EnumValue) copy() *EnumValue {
+	return &EnumValue{
+		e.enumName,
+		e.val,
+		e.stringToInflate,
+		e.manager,
 	}
 }
 
@@ -36,6 +48,19 @@ func (e *EnumValue) Valid() bool {
 	}
 
 	return true
+}
+
+func (e *EnumValue) MarshalJSON() ([]byte, error) {
+	return json.Marshal(e.String())
+}
+
+func (e *EnumValue) UnmarshalJSON(blob []byte) error {
+	var str string
+	if err := json.Unmarshal(blob, &str); err != nil {
+		return err
+	}
+	e.stringToInflate = str
+	return nil
 }
 
 func (e *EnumValue) Value() int {
@@ -62,6 +87,10 @@ func (e *EnumValue) Inflate(manager *EnumManager) {
 	e.manager = manager
 	if e.manager.DefaultValue(e.enumName) == 0 {
 		return
+	}
+	if e.stringToInflate != "" {
+		e.manager.ValueFromString(e.enumName, e.stringToInflate)
+		e.stringToInflate = ""
 	}
 	if e.manager.Membership(e.val) != e.enumName {
 		e.val = e.manager.DefaultValue(e.enumName)

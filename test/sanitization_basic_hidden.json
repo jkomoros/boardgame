@@ -15,7 +15,8 @@
         "MyIntSlice": [],
         "MyBoolSlice": [],
         "MyStringSlice": [],
-        "MyPlayerIndexSlice": []
+        "MyPlayerIndexSlice": [],
+        "MyEnumValue" : "Red"
     },
     "Players": [
         {
@@ -34,7 +35,8 @@
                 ],
                 "IdsLastSeen": {},
                 "Size" : 2
-            }
+            },
+            "EnumVal": "Red"
         },
         {
             "Score": 0,
@@ -52,7 +54,8 @@
                 ],
                 "IdsLastSeen": {},
                 "Size" : 2
-            }
+            },
+            "EnumVal": "Red"
         },
         {
             "Score": 0,
@@ -70,7 +73,8 @@
                 ],
                 "IdsLastSeen": {},
                 "Size" : 2
-            }
+            },
+            "EnumVal": "Red"
         }
     ],
     "Components": {
@@ -87,7 +91,8 @@
                     ],
                     "IdsLastSeen": {},
                     "Size": 1
-                }
+                },
+                "Enum": "Red"
             },
             {
                 "IntVar" : 0,
@@ -101,7 +106,8 @@
                     ],
                     "IdsLastSeen": {},
                     "Size": 1
-                }
+                },
+                "Enum": "Red"
             },
             {
                 "IntVar" : 0,
@@ -115,7 +121,8 @@
                     ],
                     "IdsLastSeen": {},
                     "Size": 1
-                }
+                },
+                "Enum": "Red"
             },
             {
                 "IntVar" : 0,
@@ -129,7 +136,8 @@
                     ],
                     "IdsLastSeen": {},
                     "Size": 1
-                }
+                },
+                "Enum": "Red"
             }
         ]
     },

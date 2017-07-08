@@ -107,6 +107,7 @@ func (t *testGameDelegate) EmptyDynamicComponentValues(deck *Deck) MutableSubSta
 	if deck.Name() == "test" {
 		return &testingComponentDynamic{
 			Stack: NewSizedStack(deck, 1),
+			Enum:  NewEnumValue("color"),
 		}
 	}
 	return nil
@@ -194,6 +195,7 @@ func (t *testGameDelegate) EmptyGameState() MutableSubState {
 		MyBoolSlice:        make([]bool, 0),
 		MyStringSlice:      make([]string, 0),
 		MyPlayerIndexSlice: make([]PlayerIndex, 0),
+		MyEnumValue:        NewEnumValue("color"),
 	}
 }
 
@@ -208,6 +210,7 @@ func (t *testGameDelegate) EmptyPlayerState(player PlayerIndex) MutablePlayerSta
 		MovesLeftThisTurn: 0,
 		Hand:              NewSizedStack(deck, 2),
 		IsFoo:             false,
+		EnumVal:           NewEnumValue("color"),
 	}
 }
 

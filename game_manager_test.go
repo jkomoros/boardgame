@@ -6,6 +6,12 @@ import (
 	"testing"
 )
 
+const (
+	colorRed = iota
+	colorBlue
+	colorGreen
+)
+
 func newTestGameChest() *ComponentChest {
 	chest := NewComponentChest()
 
@@ -36,6 +42,12 @@ func newTestGameChest() *ComponentChest {
 	})
 
 	chest.AddDeck("test", deck)
+
+	chest.Enum().Add("color", map[int]string{
+		colorRed:   "Red",
+		colorBlue:  "Blue",
+		colorGreen: "Green",
+	})
 
 	chest.Finish()
 

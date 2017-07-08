@@ -21,6 +21,7 @@ type PropertyReader interface {
 	IntProp(name string) (int, error)
 	BoolProp(name string) (bool, error)
 	StringProp(name string) (string, error)
+	EnumValueProp(name string) (*EnumValue, error)
 	IntSliceProp(name string) ([]int, error)
 	BoolSliceProp(name string) ([]bool, error)
 	StringSliceProp(name string) ([]string, error)
@@ -45,6 +46,7 @@ const (
 	TypeBool
 	TypeString
 	TypePlayerIndex
+	TypeEnumValue
 	TypeIntSlice
 	TypeBoolSlice
 	TypeStringSlice
@@ -65,6 +67,7 @@ type PropertyReadSetter interface {
 	SetBoolProp(name string, value bool) error
 	SetStringProp(name string, value string) error
 	SetPlayerIndexProp(name string, value PlayerIndex) error
+	SetEnumValueProp(name string, value *EnumValue) error
 	SetIntSliceProp(name string, value []int) error
 	SetBoolSliceProp(name string, value []bool) error
 	SetStringSliceProp(name string, value []string) error
@@ -90,6 +93,8 @@ func (t PropertyType) String() string {
 		return "TypeString"
 	case TypePlayerIndex:
 		return "TypePlayerIndex"
+	case TypeEnumValue:
+		return "TypeEnumValue"
 	case TypeIntSlice:
 		return "TypeIntSlice"
 	case TypeBoolSlice:
@@ -246,6 +251,8 @@ func (d *defaultReader) Props() map[string]PropertyType {
 					pType = TypeSizedStack
 				} else if strings.Contains(ptrType, "Timer") {
 					pType = TypeTimer
+				} else if strings.Contains(ptrType, "EnumValue") {
+					pType = TypeEnumValue
 				} else {
 					panic("Unknown ptr type:" + ptrType)
 				}
@@ -308,6 +315,19 @@ func (d *defaultReader) PlayerIndexProp(name string) (PlayerIndex, error) {
 
 	s := reflect.ValueOf(d.i).Elem()
 	return PlayerIndex(s.FieldByName(name).Int()), nil
+}
+
+func (d *defaultReader) EnumValueProp(name string) (*EnumValue, error) {
+	//Verify that this seems legal.
+	props := d.Props()
+
+	if props[name] != TypeEnumValue {
+		return nil, errors.New("That property is not a EnumValue: " + name)
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+	result := s.FieldByName(name).Interface().(*EnumValue)
+	return result, nil
 }
 
 func (d *defaultReader) IntSliceProp(name string) ([]int, error) {
@@ -553,6 +573,33 @@ func (d *defaultReader) SetPlayerIndexProp(name string, val PlayerIndex) (err er
 	}()
 
 	f.SetInt(int64(val))
+
+	return nil
+
+}
+
+func (d *defaultReader) SetEnumValueProp(name string, val *EnumValue) (err error) {
+	props := d.Props()
+
+	if props[name] != TypeEnumValue {
+		return errors.New("That property is not a settable enum value")
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+
+	f := s.FieldByName(name)
+
+	if !f.IsValid() {
+		return errors.New("that name was not available on the struct")
+	}
+
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprint(e))
+		}
+	}()
+
+	f.Set(reflect.ValueOf(val))
 
 	return nil
 
@@ -900,6 +947,26 @@ func (g *genericReader) PlayerIndexProp(name string) (PlayerIndex, error) {
 	return val.(PlayerIndex), nil
 }
 
+func (g *genericReader) EnumValueProp(name string) (*EnumValue, error) {
+	val, err := g.Prop(name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	propType, ok := g.types[name]
+
+	if !ok {
+		return nil, errors.New("Unexpected error: Missing Prop type for " + name)
+	}
+
+	if propType != TypeEnumValue {
+		return nil, errors.New(name + "was expected to be TypeEnumValue but was not")
+	}
+
+	return val.(*EnumValue), nil
+}
+
 func (g *genericReader) IntSliceProp(name string) ([]int, error) {
 	val, err := g.Prop(name)
 
@@ -1101,6 +1168,19 @@ func (g *genericReader) SetPlayerIndexProp(name string, val PlayerIndex) error {
 	}
 
 	g.types[name] = TypePlayerIndex
+	g.values[name] = val
+
+	return nil
+}
+
+func (g *genericReader) SetEnumValueProp(name string, val *EnumValue) error {
+	propType, ok := g.types[name]
+
+	if ok && propType != TypeEnumValue {
+		return errors.New("That property was already set but was not an enum value")
+	}
+
+	g.types[name] = TypeEnumValue
 	g.values[name] = val
 
 	return nil

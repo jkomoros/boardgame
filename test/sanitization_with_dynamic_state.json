@@ -16,7 +16,8 @@
                         "667bc729077137a8932a2cffc5ca4b0cec905956": 2
                     },
                     "Size": 1
-                }
+                },
+                "Enum": "Red"
             },
             {
                 "IntVar": 0,
@@ -30,7 +31,8 @@
                     ],
                     "IdsLastSeen": {},
                     "Size": 1
-                }
+                },
+                "Enum": "Red"
             },
             {
                 "IntVar": 0,
@@ -44,7 +46,8 @@
                     ],
                     "IdsLastSeen": {},
                     "Size": 1
-                }
+                },
+                "Enum": "Red"
             },
             {
                 "IntVar": 0,
@@ -58,7 +61,8 @@
                     ],
                     "IdsLastSeen": {},
                     "Size": 1
-                }
+                },
+                "Enum": "Red"
             }
         ]
     },
@@ -104,7 +108,8 @@
         "MyIntSlice": [],
         "MyBoolSlice": [],
         "MyStringSlice": [],
-        "MyPlayerIndexSlice": []
+        "MyPlayerIndexSlice": [],
+        "MyEnumValue" : "Red"
     },
     "Players": [
         {
@@ -125,7 +130,8 @@
                 },
                 "Size": 2
             },
-            "IsFoo": false
+            "IsFoo": false,
+            "EnumVal": "Red"
         },
         {
             "Score": 0,
@@ -143,7 +149,8 @@
                 "IdsLastSeen": {},
                 "Size": 2
             },
-            "IsFoo": false
+            "IsFoo": false,
+            "EnumVal": "Red"
         },
         {
             "Score": 0,
@@ -161,7 +168,8 @@
                 "IdsLastSeen": {},
                 "Size": 2
             },
-            "IsFoo": true
+            "IsFoo": true,
+            "EnumVal": "Red"
         }
     ]
 }

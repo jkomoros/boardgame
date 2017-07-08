@@ -452,6 +452,11 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 			//TODO: ideally we'd return a legitimately random playerIndex. But
 			//down here we don't know what the legal range is.
 			return 0
+		case TypeEnumValue:
+			e := input.(*EnumValue).copy()
+			//TODO: set this to a random legal value in the enum
+			e.val = e.manager.DefaultValue(e.enumName)
+			return e
 		case TypeIntSlice:
 			return randomIntSlice(5)
 		case TypeBoolSlice:
@@ -485,6 +490,10 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 		return 0
 	case TypeTimer:
 		return NewTimer()
+	case TypeEnumValue:
+		e := input.(*EnumValue).copy()
+		e.val = e.manager.DefaultValue(e.enumName)
+		return e
 	}
 
 	//Now the ones that are non-stack containers

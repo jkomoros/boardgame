@@ -52,6 +52,7 @@ type testingComponent struct {
 type testingComponentDynamic struct {
 	IntVar int
 	Stack  *SizedStack
+	Enum   *EnumValue
 }
 
 const testGameName = "Test Game"
@@ -121,6 +122,7 @@ type testGameState struct {
 	MyStringSlice      []string
 	MyBoolSlice        []bool
 	MyPlayerIndexSlice []PlayerIndex
+	MyEnumValue        *EnumValue
 	//TODO: have a Stack here.
 }
 
@@ -141,6 +143,7 @@ type testPlayerState struct {
 	MovesLeftThisTurn int
 	Hand              *SizedStack
 	IsFoo             bool
+	EnumVal           *EnumValue
 }
 
 func (t *testPlayerState) PlayerIndex() PlayerIndex {

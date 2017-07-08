@@ -262,6 +262,8 @@ func structTypes(location string, theStruct model.Struct, allStructs []model.Str
 			result[field.Name] = boardgame.TypeSizedStack
 		case "boardgame.GrowableStack":
 			result[field.Name] = boardgame.TypeGrowableStack
+		case "boardgame.EnumValue":
+			result[field.Name] = boardgame.TypeEnumValue
 		case "boardgame.PlayerIndex":
 			if field.IsSlice {
 				result[field.Name] = boardgame.TypePlayerIndexSlice
