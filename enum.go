@@ -6,6 +6,68 @@ import (
 	"strconv"
 )
 
+type EnumValue struct {
+	enumName string
+	val      int
+	manager  *EnumManager
+}
+
+func NewEnumValue(enumName string) *EnumValue {
+	return &EnumValue{
+		enumName,
+		0,
+		nil,
+	}
+}
+
+//Valid will return true if the enumName exists for this game's enum manager,
+//and the val is a member of that enum.
+func (e *EnumValue) Valid() bool {
+	if e.manager == nil {
+		return false
+	}
+
+	if e.manager.DefaultValue(e.enumName) == 0 {
+		return false
+	}
+
+	if e.manager.Membership(e.val) != e.enumName {
+		return false
+	}
+
+	return true
+}
+
+func (e *EnumValue) Value() int {
+	return e.val
+}
+
+func (e *EnumValue) String() string {
+	return e.manager.String(e.val)
+}
+
+func (e *EnumValue) SetValue(val int) bool {
+	if e.manager.Membership(val) != e.enumName {
+		return false
+	}
+	e.val = val
+	return true
+}
+
+func (e *EnumValue) Inflated() bool {
+	return e.manager != nil
+}
+
+func (e *EnumValue) Inflate(manager *EnumManager) {
+	e.manager = manager
+	if e.manager.DefaultValue(e.enumName) == 0 {
+		return
+	}
+	if e.manager.Membership(e.val) != e.enumName {
+		e.val = e.manager.DefaultValue(e.enumName)
+	}
+}
+
 type valueRecord struct {
 	enumName string
 	str      string
