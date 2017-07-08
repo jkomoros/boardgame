@@ -37,6 +37,10 @@ func TestEnum(t *testing.T) {
 
 	assert.For(t).ThatActual(enum.DefaultValue("Color")).Equals(ColorBlue)
 
+	assert.For(t).ThatActual(enum.String(ColorBlue)).Equals("Blue")
+
+	assert.For(t).ThatActual(enum.String(125)).Equals("")
+
 	err = enum.Add("Color", map[int]string{
 		ColorBlue: "Blue",
 	})

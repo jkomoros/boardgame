@@ -75,6 +75,11 @@ func (e *EnumManager) Add(name string, values map[int]string) error {
 	return nil
 }
 
+//String returns the string for the given value that was configured.
+func (e *EnumManager) String(value int) string {
+	return e.values[value].str
+}
+
 //Membership returns the string name of the enum that that value is part of,
 //or "" if not part of an enum.
 func (e *EnumManager) Membership(value int) string {
