@@ -81,3 +81,9 @@ func (e *EnumManager) Add(name string, values ...int) error {
 func (e *EnumManager) Membership(value int) string {
 	return e.values[value].enumName
 }
+
+//DefaultValue returns the lowest value in that enum, or 0 if that enum
+//doesn't exist.
+func (e *EnumManager) DefaultValue(enumName string) int {
+	return e.enums[enumName]
+}

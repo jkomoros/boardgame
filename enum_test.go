@@ -31,6 +31,8 @@ func TestEnum(t *testing.T) {
 
 	assert.For(t).ThatActual(enum.Membership(ColorBlue)).Equals("Color")
 
+	assert.For(t).ThatActual(enum.DefaultValue("Color")).Equals(ColorBlue)
+
 	err = enum.Add("Color", ColorBlue)
 
 	assert.For(t).ThatActual(err).IsNotNil()
