@@ -8,6 +8,8 @@ import (
 func TestEnum(t *testing.T) {
 	enums := NewEnumSet()
 
+	assert.For(t).ThatActual(len(enums.EnumNames())).Equals(0)
+
 	const (
 		ColorBlue = iota
 		ColorGreen
@@ -34,6 +36,10 @@ func TestEnum(t *testing.T) {
 	assert.For(t).ThatActual(colorEnum).IsNotNil()
 
 	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(len(enums.EnumNames())).Equals(1)
+
+	assert.For(t).ThatActual(enums.Enum("Color")).Equals(colorEnum)
 
 	assert.For(t).ThatActual(enums.Membership(ColorBlue)).Equals(colorEnum)
 

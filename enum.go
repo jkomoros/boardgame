@@ -52,6 +52,21 @@ func (e *EnumSet) Finish() {
 	e.finished = true
 }
 
+//EnumNames returns a list of all names in the Enum.
+func (e *EnumSet) EnumNames() []string {
+	var result []string
+	for key, _ := range e.enums {
+		result = append(result, key)
+	}
+	return result
+}
+
+//Returns the Enum with the given name. In general you keep a reference to the
+//enum yourself, but this is useful for programatically enumerating the enums.
+func (e *EnumSet) Enum(name string) *Enum {
+	return e.enums[name]
+}
+
 //Membership returns the enum that the given val is a member of.
 func (e *EnumSet) Membership(val int) *Enum {
 	return e.values[val]
