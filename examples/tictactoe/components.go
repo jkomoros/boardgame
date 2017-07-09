@@ -28,3 +28,34 @@ func playerTokenValues(in []boardgame.SubState) []*playerToken {
 	}
 	return result
 }
+
+const (
+	ColorUnknown = iota
+	ColorRed
+	ColorGreen
+)
+
+type EnumManager struct {
+	myInt int
+}
+
+type Enum struct {
+	Name    string
+	Manager *EnumManager
+}
+
+func NewEnumManager() *EnumManager {
+	return &EnumManager{}
+}
+
+func (e *EnumManager) NewEnum(name string, values map[int]string) *Enum {
+	return &Enum{name, e}
+}
+
+var enumManager = NewEnumManager()
+
+var ColorEnum = enumManager.NewEnum("Color", map[int]string{
+	ColorUnknown: "Unknown",
+	ColorRed:     "Red",
+	ColorGreen:   "Green",
+})

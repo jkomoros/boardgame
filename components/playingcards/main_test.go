@@ -7,7 +7,7 @@ import (
 
 func TestNewDeck(t *testing.T) {
 
-	chest := boardgame.NewComponentChest()
+	chest := boardgame.NewComponentChest(nil)
 
 	deck := NewDeck(false)
 

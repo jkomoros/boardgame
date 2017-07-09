@@ -8,7 +8,7 @@ import (
 
 func TestComponentChest(t *testing.T) {
 
-	chest := NewComponentChest()
+	chest := NewComponentChest(nil)
 
 	if chest.DeckNames() != nil {
 		t.Error("We got a deck names array before we'd added anything")

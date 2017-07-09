@@ -14,19 +14,23 @@ type ComponentChest struct {
 	initialized bool
 	deckNames   []string
 	decks       map[string]*Deck
-	enum        *EnumManager
+	enums       *EnumSet
 
 	manager *GameManager
 }
 
-func NewComponentChest() *ComponentChest {
+func NewComponentChest(enums *EnumSet) *ComponentChest {
+	if enums == nil {
+		enums = NewEnumSet()
+	}
+	enums.Finish()
 	return &ComponentChest{
-		enum: NewEnumManager(),
+		enums: enums,
 	}
 }
 
-func (c *ComponentChest) Enum() *EnumManager {
-	return c.enum
+func (c *ComponentChest) Enums() *EnumSet {
+	return c.enums
 }
 
 func (c *ComponentChest) Manager() *GameManager {
@@ -82,8 +86,6 @@ func (c *ComponentChest) Finish() {
 	if c.initialized {
 		return
 	}
-
-	c.enum.Finish()
 
 	c.initialized = true
 

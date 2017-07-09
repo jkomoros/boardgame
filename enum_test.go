@@ -6,7 +6,7 @@ import (
 )
 
 func TestEnum(t *testing.T) {
-	enum := NewEnumManager()
+	enums := NewEnumSet()
 
 	const (
 		ColorBlue = iota
@@ -23,88 +23,82 @@ func TestEnum(t *testing.T) {
 
 	const ConstDuplicate = iota
 
-	assert.For(t).ThatActual(enum).IsNotNil()
+	assert.For(t).ThatActual(enums).IsNotNil()
 
-	err := enum.Add("Color", map[int]string{
+	colorEnum, err := enums.Add("Color", map[int]string{
 		ColorBlue:  "Blue",
 		ColorGreen: "Green",
 		ColorRed:   "Red",
 	})
 
+	assert.For(t).ThatActual(colorEnum).IsNotNil()
+
 	assert.For(t).ThatActual(err).IsNil()
 
-	assert.For(t).ThatActual(enum.Membership(ColorBlue)).Equals("Color")
+	assert.For(t).ThatActual(enums.Membership(ColorBlue)).Equals(colorEnum)
 
-	assert.For(t).ThatActual(enum.DefaultValue("Color")).Equals(ColorBlue)
+	assert.For(t).ThatActual(colorEnum.DefaultValue()).Equals(ColorBlue)
 
-	assert.For(t).ThatActual(enum.String(ColorBlue)).Equals("Blue")
+	assert.For(t).ThatActual(colorEnum.String(ColorBlue)).Equals("Blue")
 
-	assert.For(t).ThatActual(enum.String(125)).Equals("")
+	assert.For(t).ThatActual(colorEnum.String(125)).Equals("")
 
-	err = enum.Add("Color", map[int]string{
+	_, err = enums.Add("Color", map[int]string{
 		ColorBlue: "Blue",
 	})
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
-	err = enum.Add("Card", map[int]string{
+	cardEnum, err := enums.Add("Card", map[int]string{
 		CardSpade:   "Spade",
 		CardClub:    "Club",
 		CardDiamond: "Diamond",
 		CardHeart:   "Heart",
 	})
 
+	assert.For(t).ThatActual(cardEnum).IsNotNil()
+
 	assert.For(t).ThatActual(err).IsNil()
 
-	assert.For(t).ThatActual(enum.Membership(CardDiamond)).Equals("Card")
+	assert.For(t).ThatActual(enums.Membership(CardDiamond)).Equals(cardEnum)
 
-	err = enum.Add("Another", map[int]string{
+	_, err = enums.Add("Another", map[int]string{
 		ConstDuplicate: "Duplicate",
 	})
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
-	val := enum.ValueFromString("Color", "Blue")
+	val := colorEnum.ValueFromString("Blue")
 
 	assert.For(t).ThatActual(val).Equals(ColorBlue)
 
-	val = enum.ValueFromString("Color", "Turquoise")
-
-	assert.For(t).ThatActual(val).Equals(0)
-
-	val = enum.ValueFromString("InvalidEnum", "Blue")
+	val = colorEnum.ValueFromString("Turquoise")
 
 	assert.For(t).ThatActual(val).Equals(-1)
 
-	eVal := NewEnumValue("Color")
-
-	assert.For(t).ThatActual(eVal.Inflated()).IsFalse()
-
-	eVal.Inflate(enum)
-
-	assert.For(t).ThatActual(eVal.Inflated()).IsTrue()
+	eVal := colorEnum.NewEnumValue()
 
 	assert.For(t).ThatActual(eVal.Value()).Equals(ColorBlue)
 
-	result := eVal.SetValue(ColorGreen)
+	err = eVal.SetValue(ColorGreen)
 
-	assert.For(t).ThatActual(result).IsTrue()
+	assert.For(t).ThatActual(err).IsNil()
 
 	assert.For(t).ThatActual(eVal.Value()).Equals(ColorGreen)
 
 	eVal.Lock()
 
-	result = eVal.SetValue(ColorRed)
+	err = eVal.SetValue(ColorRed)
 
-	assert.For(t).ThatActual(result).IsFalse()
+	assert.For(t).ThatActual(err).IsNotNil()
 
 	assert.For(t).ThatActual(eVal.Value()).Equals(ColorGreen)
 
 	//Do a new manager to check that adding enums after finished doesn't work
 
-	enum = NewEnumManager()
+	enums = NewEnumSet()
 
-	err = enum.Add("Color", map[int]string{
+	_, err = enums.Add("Color", map[int]string{
 		ColorBlue:  "Blue",
 		ColorGreen: "Green",
 		ColorRed:   "Blue",
@@ -112,9 +106,9 @@ func TestEnum(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
-	enum.Finish()
+	enums.Finish()
 
-	err = enum.Add("Card", map[int]string{
+	_, err = enums.Add("Card", map[int]string{
 		CardSpade: "Spade",
 		CardClub:  "Club",
 	})

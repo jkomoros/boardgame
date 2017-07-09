@@ -129,7 +129,7 @@ func (g *gameDelegate) EmptyDynamicComponentValues(deck *boardgame.Deck) boardga
 }
 
 func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
-	chest := boardgame.NewComponentChest()
+	chest := boardgame.NewComponentChest(nil)
 
 	diceDeck := boardgame.NewDeck()
 

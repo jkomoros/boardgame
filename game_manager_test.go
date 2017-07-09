@@ -12,8 +12,17 @@ const (
 	colorGreen
 )
 
+var testEnums = NewEnumSet()
+
+var testColorEnum = testEnums.MustAdd("color", map[int]string{
+	colorRed:   "Red",
+	colorBlue:  "Blue",
+	colorGreen: "Green",
+})
+
 func newTestGameChest() *ComponentChest {
-	chest := NewComponentChest()
+
+	chest := NewComponentChest(testEnums)
 
 	deck := NewDeck()
 
@@ -42,12 +51,6 @@ func newTestGameChest() *ComponentChest {
 	})
 
 	chest.AddDeck("test", deck)
-
-	chest.Enum().Add("color", map[int]string{
-		colorRed:   "Red",
-		colorBlue:  "Blue",
-		colorGreen: "Green",
-	})
 
 	chest.Finish()
 

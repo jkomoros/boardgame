@@ -228,7 +228,7 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, 
 }
 
 func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
-	chest := boardgame.NewComponentChest()
+	chest := boardgame.NewComponentChest(nil)
 
 	cards := boardgame.NewDeck()
 

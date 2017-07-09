@@ -222,9 +222,6 @@ func verifyReaderObjects(reader PropertyReader, state *state) error {
 			if err != nil {
 				return errors.New("EnumValueProp " + propName + " had unexpected error: " + err.Error())
 			}
-			if state.game != nil {
-				val.Inflate(state.game.manager.chest.enum)
-			}
 		}
 	}
 	return nil
@@ -325,9 +322,6 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 		return nil, err
 	}
 
-	//We'll use refGame to figure out what enumName to set on EnumValues.
-	refGame, _ := g.emptyGameState(result)
-
 	if err := json.Unmarshal(refried.Game, game); err != nil {
 		return nil, errors.New("Unmarshal of GameState failed: " + err.Error())
 	}
@@ -348,16 +342,10 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 			stack.Inflate(g.Chest())
 
 		case TypeEnumValue:
-			enumValue, err := game.Reader().EnumValueProp(propName)
+			_, err := game.Reader().EnumValueProp(propName)
 			if err != nil {
 				return nil, errors.New("Unable to inflate enum: " + propName + " in game")
 			}
-			refEnumValue, err := refGame.Reader().EnumValueProp(propName)
-			if err != nil {
-				return nil, errors.New("Unable to inflate ref enum: " + propName + " in game")
-			}
-			enumValue.enumName = refEnumValue.enumName
-			enumValue.Inflate(g.Chest().Enum())
 		}
 	}
 
@@ -369,9 +357,6 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 		if err != nil {
 			return nil, err
 		}
-
-		//We'll use refGame to figure out what enumName to set on EnumValues.
-		refPlayer, _ := g.emptyPlayerState(result, PlayerIndex(i))
 
 		if err := json.Unmarshal(blob, player); err != nil {
 			return nil, errors.New("Unmarshal into player state failed for " + strconv.Itoa(i) + " player: " + err.Error())
@@ -392,16 +377,10 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 				}
 				stack.Inflate(g.Chest())
 			case TypeEnumValue:
-				enumValue, err := player.Reader().EnumValueProp(propName)
+				_, err := player.Reader().EnumValueProp(propName)
 				if err != nil {
 					return nil, errors.New("Unable to inflate enum: " + propName + " in player " + strconv.Itoa(i))
 				}
-				refEnumValue, err := refPlayer.Reader().EnumValueProp(propName)
-				if err != nil {
-					return nil, errors.New("Unable to inflate ref enum: " + propName + " in game")
-				}
-				enumValue.enumName = refEnumValue.enumName
-				enumValue.Inflate(g.Chest().Enum())
 			}
 		}
 
@@ -414,13 +393,10 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 		return nil, errors.New("Couldn't create empty dynamic component values: " + err.Error())
 	}
 
-	refDynamic, _ := g.emptyDynamicComponentValues(result)
-
 	result.dynamicComponentValues = dynamic
 
 	for deckName, values := range refried.Components {
 		resultDeckValues := result.dynamicComponentValues[deckName]
-		refResultDeckValues := refDynamic[deckName]
 		//TODO: detect the case where the emptycompontentvalues has decknames that are not in the JSON.
 		if resultDeckValues == nil {
 			return nil, errors.New("The empty dynamic component state didn't have deck name: " + deckName)
@@ -432,7 +408,6 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 
 			value := values[i]
 			resultDeckValue := resultDeckValues[i]
-			refResultDeckValue := refResultDeckValues[i]
 
 			if err := json.Unmarshal(value, resultDeckValue); err != nil {
 				return nil, errors.New("Error unmarshaling component state for deck " + deckName + " index " + strconv.Itoa(i) + ": " + err.Error())
@@ -453,17 +428,10 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 					}
 					stack.Inflate(g.Chest())
 				case TypeEnumValue:
-					enumValue, err := resultDeckValue.Reader().EnumValueProp(propName)
+					_, err := resultDeckValue.Reader().EnumValueProp(propName)
 					if err != nil {
 						return nil, errors.New("Unable to inflate enum: " + propName + " in deck " + deckName + " component " + strconv.Itoa(i))
 					}
-					refEnumValue, err := refResultDeckValue.Reader().EnumValueProp(propName)
-					if err != nil {
-						return nil, errors.New("Unable to inflate  ref enum: " + propName + " in deck " + deckName + " component " + strconv.Itoa(i))
-					}
-					enumValue.enumName = refEnumValue.enumName
-					enumValue.Inflate(g.Chest().Enum())
-
 				}
 			}
 

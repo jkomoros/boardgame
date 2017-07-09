@@ -455,7 +455,7 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 		case TypeEnumValue:
 			e := input.(*EnumValue).copy()
 			//TODO: set this to a random legal value in the enum
-			e.val = e.manager.DefaultValue(e.enumName)
+			e.val = e.enum.DefaultValue()
 			return e
 		case TypeIntSlice:
 			return randomIntSlice(5)
@@ -492,7 +492,7 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 		return NewTimer()
 	case TypeEnumValue:
 		e := input.(*EnumValue).copy()
-		e.val = e.manager.DefaultValue(e.enumName)
+		e.val = e.enum.DefaultValue()
 		return e
 	}
 
