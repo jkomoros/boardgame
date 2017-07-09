@@ -21,7 +21,6 @@ type EnumSet struct {
 //enumSet.Add().
 type Enum struct {
 	name         string
-	set          *EnumSet
 	values       map[int]string
 	defaultValue int
 }
@@ -106,7 +105,6 @@ func (e *EnumSet) Add(enumName string, values map[int]string) (*Enum, error) {
 
 	enum := &Enum{
 		enumName,
-		e,
 		make(map[int]string),
 		math.MaxInt64,
 	}
