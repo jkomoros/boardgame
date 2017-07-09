@@ -19,6 +19,9 @@ type ComponentChest struct {
 	manager *GameManager
 }
 
+//NewComponentChest returns a new ComponentChest with the given enumset. If no
+//enumset is provided, an empty one will be created. Calls Finish() on the
+//enumset to verify that it cannot be modified.
 func NewComponentChest(enums *EnumSet) *ComponentChest {
 	if enums == nil {
 		enums = NewEnumSet()
