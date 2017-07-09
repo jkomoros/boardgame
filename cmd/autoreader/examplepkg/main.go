@@ -9,6 +9,7 @@ package examplepkg
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves"
 )
 
@@ -20,7 +21,7 @@ type myStruct struct {
 	MyBool             bool
 	MySizedStack       *boardgame.SizedStack
 	TheTimer           *boardgame.Timer
-	EnumVal            *boardgame.EnumValue
+	EnumVal            *enum.Value
 	MyIntSlice         []int
 	MyBoolSlice        []bool
 	MyStringSlice      []string

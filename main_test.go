@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"errors"
+	"github.com/jkomoros/boardgame/enum"
 	"log"
 )
 
@@ -52,7 +53,7 @@ type testingComponent struct {
 type testingComponentDynamic struct {
 	IntVar int
 	Stack  *SizedStack
-	Enum   *EnumValue
+	Enum   *enum.Value
 }
 
 const testGameName = "Test Game"
@@ -122,7 +123,7 @@ type testGameState struct {
 	MyStringSlice      []string
 	MyBoolSlice        []bool
 	MyPlayerIndexSlice []PlayerIndex
-	MyEnumValue        *EnumValue
+	MyEnumValue        *enum.Value
 	//TODO: have a Stack here.
 }
 
@@ -143,7 +144,7 @@ type testPlayerState struct {
 	MovesLeftThisTurn int
 	Hand              *SizedStack
 	IsFoo             bool
-	EnumVal           *EnumValue
+	EnumVal           *enum.Value
 }
 
 func (t *testPlayerState) PlayerIndex() PlayerIndex {
@@ -470,7 +471,7 @@ func (t *testAlwaysLegalMove) Apply(state MutableState) error {
 
 type illegalMove struct {
 	baseMove
-	Enum *EnumValue
+	Enum *enum.Value
 }
 
 func (i *illegalMove) ReadSetter() PropertyReadSetter {

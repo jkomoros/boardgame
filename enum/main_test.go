@@ -1,4 +1,4 @@
-package boardgame
+package enum
 
 import (
 	"github.com/workfit/tester/assert"
@@ -7,7 +7,7 @@ import (
 )
 
 func TestEnum(t *testing.T) {
-	enums := NewEnumSet()
+	enums := NewSet()
 
 	assert.For(t).ThatActual(len(enums.EnumNames())).Equals(0)
 
@@ -103,7 +103,7 @@ func TestEnum(t *testing.T) {
 
 	//Do a new manager to check that adding enums after finished doesn't work
 
-	enums = NewEnumSet()
+	enums = NewSet()
 
 	_, err = enums.Add("Color", map[int]string{
 		ColorBlue:  "Blue",
@@ -125,8 +125,8 @@ func TestEnum(t *testing.T) {
 
 func TestCombinedEnumSets(t *testing.T) {
 
-	firstSet := NewEnumSet()
-	secondSet := NewEnumSet()
+	firstSet := NewSet()
+	secondSet := NewSet()
 
 	const (
 		ColorBlue = iota
@@ -154,7 +154,7 @@ func TestCombinedEnumSets(t *testing.T) {
 		CardHeart:   "Heart",
 	})
 
-	combinedSet, err := CombineEnumSets(firstSet, secondSet)
+	combinedSet, err := CombineSets(firstSet, secondSet)
 
 	assert.For(t).ThatActual(err).IsNil()
 

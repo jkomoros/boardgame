@@ -3,6 +3,7 @@ package boardgame
 import (
 	"errors"
 	"fmt"
+	"github.com/jkomoros/boardgame/enum"
 	"reflect"
 	"strconv"
 	"strings"
@@ -21,7 +22,7 @@ type PropertyReader interface {
 	IntProp(name string) (int, error)
 	BoolProp(name string) (bool, error)
 	StringProp(name string) (string, error)
-	EnumValueProp(name string) (*EnumValue, error)
+	EnumValueProp(name string) (*enum.Value, error)
 	IntSliceProp(name string) ([]int, error)
 	BoolSliceProp(name string) ([]bool, error)
 	StringSliceProp(name string) ([]string, error)
@@ -67,7 +68,7 @@ type PropertyReadSetter interface {
 	SetBoolProp(name string, value bool) error
 	SetStringProp(name string, value string) error
 	SetPlayerIndexProp(name string, value PlayerIndex) error
-	SetEnumValueProp(name string, value *EnumValue) error
+	SetEnumValueProp(name string, value *enum.Value) error
 	SetIntSliceProp(name string, value []int) error
 	SetBoolSliceProp(name string, value []bool) error
 	SetStringSliceProp(name string, value []string) error
@@ -251,7 +252,7 @@ func (d *defaultReader) Props() map[string]PropertyType {
 					pType = TypeSizedStack
 				} else if strings.Contains(ptrType, "Timer") {
 					pType = TypeTimer
-				} else if strings.Contains(ptrType, "EnumValue") {
+				} else if strings.Contains(ptrType, "enum.Value") {
 					pType = TypeEnumValue
 				} else {
 					panic("Unknown ptr type:" + ptrType)
@@ -317,7 +318,7 @@ func (d *defaultReader) PlayerIndexProp(name string) (PlayerIndex, error) {
 	return PlayerIndex(s.FieldByName(name).Int()), nil
 }
 
-func (d *defaultReader) EnumValueProp(name string) (*EnumValue, error) {
+func (d *defaultReader) EnumValueProp(name string) (*enum.Value, error) {
 	//Verify that this seems legal.
 	props := d.Props()
 
@@ -326,7 +327,7 @@ func (d *defaultReader) EnumValueProp(name string) (*EnumValue, error) {
 	}
 
 	s := reflect.ValueOf(d.i).Elem()
-	result := s.FieldByName(name).Interface().(*EnumValue)
+	result := s.FieldByName(name).Interface().(*enum.Value)
 	return result, nil
 }
 
@@ -578,7 +579,7 @@ func (d *defaultReader) SetPlayerIndexProp(name string, val PlayerIndex) (err er
 
 }
 
-func (d *defaultReader) SetEnumValueProp(name string, val *EnumValue) (err error) {
+func (d *defaultReader) SetEnumValueProp(name string, val *enum.Value) (err error) {
 	props := d.Props()
 
 	if props[name] != TypeEnumValue {
@@ -947,7 +948,7 @@ func (g *genericReader) PlayerIndexProp(name string) (PlayerIndex, error) {
 	return val.(PlayerIndex), nil
 }
 
-func (g *genericReader) EnumValueProp(name string) (*EnumValue, error) {
+func (g *genericReader) EnumValueProp(name string) (*enum.Value, error) {
 	val, err := g.Prop(name)
 
 	if err != nil {
@@ -964,7 +965,7 @@ func (g *genericReader) EnumValueProp(name string) (*EnumValue, error) {
 		return nil, errors.New(name + "was expected to be TypeEnumValue but was not")
 	}
 
-	return val.(*EnumValue), nil
+	return val.(*enum.Value), nil
 }
 
 func (g *genericReader) IntSliceProp(name string) ([]int, error) {
@@ -1173,7 +1174,7 @@ func (g *genericReader) SetPlayerIndexProp(name string, val PlayerIndex) error {
 	return nil
 }
 
-func (g *genericReader) SetEnumValueProp(name string, val *EnumValue) error {
+func (g *genericReader) SetEnumValueProp(name string, val *enum.Value) error {
 	propType, ok := g.types[name]
 
 	if ok && propType != TypeEnumValue {

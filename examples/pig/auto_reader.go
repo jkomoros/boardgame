@@ -12,6 +12,7 @@ package pig
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/enum"
 )
 
 // Implementation for moveRollDice
@@ -89,9 +90,9 @@ func (m *__moveRollDiceReader) SetProp(name string, value interface{}) error {
 		}
 		return m.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnumValue:
-		val, ok := value.(*boardgame.EnumValue)
+		val, ok := value.(*enum.Value)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.EnumValue")
+			return errors.New("Provided value was not of type *enum.Value")
 		}
 		return m.SetEnumValueProp(name, val)
 	case boardgame.TypeGrowableStack:
@@ -178,13 +179,13 @@ func (m *__moveRollDiceReader) SetBoolSliceProp(name string, value []bool) error
 
 }
 
-func (m *__moveRollDiceReader) EnumValueProp(name string) (*boardgame.EnumValue, error) {
+func (m *__moveRollDiceReader) EnumValueProp(name string) (*enum.Value, error) {
 
 	return nil, errors.New("No such EnumValue prop: " + name)
 
 }
 
-func (m *__moveRollDiceReader) SetEnumValueProp(name string, value *boardgame.EnumValue) error {
+func (m *__moveRollDiceReader) SetEnumValueProp(name string, value *enum.Value) error {
 
 	return errors.New("No such EnumValue prop: " + name)
 
@@ -390,9 +391,9 @@ func (m *__moveDoneTurnReader) SetProp(name string, value interface{}) error {
 		}
 		return m.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnumValue:
-		val, ok := value.(*boardgame.EnumValue)
+		val, ok := value.(*enum.Value)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.EnumValue")
+			return errors.New("Provided value was not of type *enum.Value")
 		}
 		return m.SetEnumValueProp(name, val)
 	case boardgame.TypeGrowableStack:
@@ -479,13 +480,13 @@ func (m *__moveDoneTurnReader) SetBoolSliceProp(name string, value []bool) error
 
 }
 
-func (m *__moveDoneTurnReader) EnumValueProp(name string) (*boardgame.EnumValue, error) {
+func (m *__moveDoneTurnReader) EnumValueProp(name string) (*enum.Value, error) {
 
 	return nil, errors.New("No such EnumValue prop: " + name)
 
 }
 
-func (m *__moveDoneTurnReader) SetEnumValueProp(name string, value *boardgame.EnumValue) error {
+func (m *__moveDoneTurnReader) SetEnumValueProp(name string, value *enum.Value) error {
 
 	return errors.New("No such EnumValue prop: " + name)
 
@@ -691,9 +692,9 @@ func (m *__moveCountDieReader) SetProp(name string, value interface{}) error {
 		}
 		return m.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnumValue:
-		val, ok := value.(*boardgame.EnumValue)
+		val, ok := value.(*enum.Value)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.EnumValue")
+			return errors.New("Provided value was not of type *enum.Value")
 		}
 		return m.SetEnumValueProp(name, val)
 	case boardgame.TypeGrowableStack:
@@ -780,13 +781,13 @@ func (m *__moveCountDieReader) SetBoolSliceProp(name string, value []bool) error
 
 }
 
-func (m *__moveCountDieReader) EnumValueProp(name string) (*boardgame.EnumValue, error) {
+func (m *__moveCountDieReader) EnumValueProp(name string) (*enum.Value, error) {
 
 	return nil, errors.New("No such EnumValue prop: " + name)
 
 }
 
-func (m *__moveCountDieReader) SetEnumValueProp(name string, value *boardgame.EnumValue) error {
+func (m *__moveCountDieReader) SetEnumValueProp(name string, value *enum.Value) error {
 
 	return errors.New("No such EnumValue prop: " + name)
 
@@ -990,9 +991,9 @@ func (m *__moveFinishTurnReader) SetProp(name string, value interface{}) error {
 		}
 		return m.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnumValue:
-		val, ok := value.(*boardgame.EnumValue)
+		val, ok := value.(*enum.Value)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.EnumValue")
+			return errors.New("Provided value was not of type *enum.Value")
 		}
 		return m.SetEnumValueProp(name, val)
 	case boardgame.TypeGrowableStack:
@@ -1079,13 +1080,13 @@ func (m *__moveFinishTurnReader) SetBoolSliceProp(name string, value []bool) err
 
 }
 
-func (m *__moveFinishTurnReader) EnumValueProp(name string) (*boardgame.EnumValue, error) {
+func (m *__moveFinishTurnReader) EnumValueProp(name string) (*enum.Value, error) {
 
 	return nil, errors.New("No such EnumValue prop: " + name)
 
 }
 
-func (m *__moveFinishTurnReader) SetEnumValueProp(name string, value *boardgame.EnumValue) error {
+func (m *__moveFinishTurnReader) SetEnumValueProp(name string, value *enum.Value) error {
 
 	return errors.New("No such EnumValue prop: " + name)
 
@@ -1280,9 +1281,9 @@ func (g *__gameStateReader) SetProp(name string, value interface{}) error {
 		}
 		return g.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnumValue:
-		val, ok := value.(*boardgame.EnumValue)
+		val, ok := value.(*enum.Value)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.EnumValue")
+			return errors.New("Provided value was not of type *enum.Value")
 		}
 		return g.SetEnumValueProp(name, val)
 	case boardgame.TypeGrowableStack:
@@ -1369,13 +1370,13 @@ func (g *__gameStateReader) SetBoolSliceProp(name string, value []bool) error {
 
 }
 
-func (g *__gameStateReader) EnumValueProp(name string) (*boardgame.EnumValue, error) {
+func (g *__gameStateReader) EnumValueProp(name string) (*enum.Value, error) {
 
 	return nil, errors.New("No such EnumValue prop: " + name)
 
 }
 
-func (g *__gameStateReader) SetEnumValueProp(name string, value *boardgame.EnumValue) error {
+func (g *__gameStateReader) SetEnumValueProp(name string, value *enum.Value) error {
 
 	return errors.New("No such EnumValue prop: " + name)
 
@@ -1615,9 +1616,9 @@ func (p *__playerStateReader) SetProp(name string, value interface{}) error {
 		}
 		return p.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnumValue:
-		val, ok := value.(*boardgame.EnumValue)
+		val, ok := value.(*enum.Value)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.EnumValue")
+			return errors.New("Provided value was not of type *enum.Value")
 		}
 		return p.SetEnumValueProp(name, val)
 	case boardgame.TypeGrowableStack:
@@ -1683,12 +1684,12 @@ func (p *__playerStateReader) SetProp(name string, value interface{}) error {
 func (p *__playerStateReader) BoolProp(name string) (bool, error) {
 
 	switch name {
-	case "DieCounted":
-		return p.data.DieCounted, nil
 	case "Busted":
 		return p.data.Busted, nil
 	case "Done":
 		return p.data.Done, nil
+	case "DieCounted":
+		return p.data.DieCounted, nil
 
 	}
 
@@ -1699,14 +1700,14 @@ func (p *__playerStateReader) BoolProp(name string) (bool, error) {
 func (p *__playerStateReader) SetBoolProp(name string, value bool) error {
 
 	switch name {
-	case "DieCounted":
-		p.data.DieCounted = value
-		return nil
 	case "Busted":
 		p.data.Busted = value
 		return nil
 	case "Done":
 		p.data.Done = value
+		return nil
+	case "DieCounted":
+		p.data.DieCounted = value
 		return nil
 
 	}
@@ -1727,13 +1728,13 @@ func (p *__playerStateReader) SetBoolSliceProp(name string, value []bool) error 
 
 }
 
-func (p *__playerStateReader) EnumValueProp(name string) (*boardgame.EnumValue, error) {
+func (p *__playerStateReader) EnumValueProp(name string) (*enum.Value, error) {
 
 	return nil, errors.New("No such EnumValue prop: " + name)
 
 }
 
-func (p *__playerStateReader) SetEnumValueProp(name string, value *boardgame.EnumValue) error {
+func (p *__playerStateReader) SetEnumValueProp(name string, value *enum.Value) error {
 
 	return errors.New("No such EnumValue prop: " + name)
 

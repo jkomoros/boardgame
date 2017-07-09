@@ -12,6 +12,7 @@ package dice
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/enum"
 )
 
 // Implementation for Value
@@ -89,9 +90,9 @@ func (v *__ValueReader) SetProp(name string, value interface{}) error {
 		}
 		return v.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnumValue:
-		val, ok := value.(*boardgame.EnumValue)
+		val, ok := value.(*enum.Value)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.EnumValue")
+			return errors.New("Provided value was not of type *enum.Value")
 		}
 		return v.SetEnumValueProp(name, val)
 	case boardgame.TypeGrowableStack:
@@ -178,13 +179,13 @@ func (v *__ValueReader) SetBoolSliceProp(name string, value []bool) error {
 
 }
 
-func (v *__ValueReader) EnumValueProp(name string) (*boardgame.EnumValue, error) {
+func (v *__ValueReader) EnumValueProp(name string) (*enum.Value, error) {
 
 	return nil, errors.New("No such EnumValue prop: " + name)
 
 }
 
-func (v *__ValueReader) SetEnumValueProp(name string, value *boardgame.EnumValue) error {
+func (v *__ValueReader) SetEnumValueProp(name string, value *enum.Value) error {
 
 	return errors.New("No such EnumValue prop: " + name)
 
@@ -395,9 +396,9 @@ func (d *__DynamicValueReader) SetProp(name string, value interface{}) error {
 		}
 		return d.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnumValue:
-		val, ok := value.(*boardgame.EnumValue)
+		val, ok := value.(*enum.Value)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.EnumValue")
+			return errors.New("Provided value was not of type *enum.Value")
 		}
 		return d.SetEnumValueProp(name, val)
 	case boardgame.TypeGrowableStack:
@@ -484,13 +485,13 @@ func (d *__DynamicValueReader) SetBoolSliceProp(name string, value []bool) error
 
 }
 
-func (d *__DynamicValueReader) EnumValueProp(name string) (*boardgame.EnumValue, error) {
+func (d *__DynamicValueReader) EnumValueProp(name string) (*enum.Value, error) {
 
 	return nil, errors.New("No such EnumValue prop: " + name)
 
 }
 
-func (d *__DynamicValueReader) SetEnumValueProp(name string, value *boardgame.EnumValue) error {
+func (d *__DynamicValueReader) SetEnumValueProp(name string, value *enum.Value) error {
 
 	return errors.New("No such EnumValue prop: " + name)
 

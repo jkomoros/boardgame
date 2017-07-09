@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"github.com/jkomoros/boardgame/enum"
 	"hash/fnv"
 	"math"
 	"math/rand"
@@ -453,9 +454,9 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 			//down here we don't know what the legal range is.
 			return 0
 		case TypeEnumValue:
-			e := input.(*EnumValue).copy()
+			e := input.(*enum.Value).Copy()
 			//TODO: set this to a random legal value in the enum
-			e.val = e.enum.DefaultValue()
+			e.SetValue(e.Enum().DefaultValue())
 			return e
 		case TypeIntSlice:
 			return randomIntSlice(5)
@@ -491,8 +492,8 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 	case TypeTimer:
 		return NewTimer()
 	case TypeEnumValue:
-		e := input.(*EnumValue).copy()
-		e.val = e.enum.DefaultValue()
+		e := input.(*enum.Value).Copy()
+		e.SetValue(e.Enum().DefaultValue())
 		return e
 	}
 

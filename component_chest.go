@@ -1,5 +1,9 @@
 package boardgame
 
+import (
+	"github.com/jkomoros/boardgame/enum"
+)
+
 //TODO: consider making ComponentChest be an interface again (in some cases it
 //might be nice to be able to cast the Deck directly to its underlying type to
 //minimize later casts)
@@ -14,7 +18,7 @@ type ComponentChest struct {
 	initialized bool
 	deckNames   []string
 	decks       map[string]*Deck
-	enums       *EnumSet
+	enums       *enum.Set
 
 	manager *GameManager
 }
@@ -22,9 +26,9 @@ type ComponentChest struct {
 //NewComponentChest returns a new ComponentChest with the given enumset. If no
 //enumset is provided, an empty one will be created. Calls Finish() on the
 //enumset to verify that it cannot be modified.
-func NewComponentChest(enums *EnumSet) *ComponentChest {
+func NewComponentChest(enums *enum.Set) *ComponentChest {
 	if enums == nil {
-		enums = NewEnumSet()
+		enums = enum.NewSet()
 	}
 	enums.Finish()
 	return &ComponentChest{
@@ -32,7 +36,7 @@ func NewComponentChest(enums *EnumSet) *ComponentChest {
 	}
 }
 
-func (c *ComponentChest) Enums() *EnumSet {
+func (c *ComponentChest) Enums() *enum.Set {
 	return c.enums
 }
 

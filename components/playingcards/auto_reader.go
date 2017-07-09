@@ -12,6 +12,7 @@ package playingcards
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/enum"
 )
 
 // Implementation for Card
@@ -80,7 +81,7 @@ func (c *__CardReader) BoolSliceProp(name string) ([]bool, error) {
 
 }
 
-func (c *__CardReader) EnumValueProp(name string) (*boardgame.EnumValue, error) {
+func (c *__CardReader) EnumValueProp(name string) (*enum.Value, error) {
 
 	return nil, errors.New("No such EnumValue prop: " + name)
 

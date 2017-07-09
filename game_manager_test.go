@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/workfit/tester/assert"
 	"strings"
 	"testing"
@@ -12,7 +13,7 @@ const (
 	colorGreen
 )
 
-var testEnums = NewEnumSet()
+var testEnums = enum.NewSet()
 
 var testColorEnum = testEnums.MustAdd("color", map[int]string{
 	colorRed:   "Red",

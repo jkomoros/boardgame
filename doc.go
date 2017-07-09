@@ -186,6 +186,12 @@ semantic is used in a given context.
 PlayerIndex.Next() and .Previous() are convenient ways to increment and
 decrement without going out of bounds.
 
+Enums
+
+Sometimes you have a property who can only be a set of defined values. Enums
+are useful for that and are an officially supported PropertyType; see the sub-
+package enum for more.
+
 Timers
 
 One type of property that may be set on your States is a Timer. A timer is
@@ -456,71 +462,6 @@ visibility of the "parent" component is expanded to apply to the "children"
 components. That is, if the parent component is visible, and the stack
 property of the component is also visible, the child component will also be
 considered visible.
-
-Enums
-
-In a number of cases you have a property that can only have a handful of
-possible values. You want to verify that the value is always one of those
-legal values, and make sure that you can compare it to a known constant so you
-can make sure you don't have a typo at compile time instead of run time. It's
-also nice to have them have an order in many cases, and to be serialized with
-the string value so it's easier to read.
-
-Enums are useful for this case. An EnumSet contains multiple enums, and you
-can create an EnumValue which can be used as a property on a PropertyReader
-object.
-
-The idiomatic way to create an enum is the following:
-	const (
-		//The first enum can start at 0
-		ColorRed = iota
-		ColorBlue
-		ColorGreen
-	)
-
-	const (
-		//The second enum should start at 1 plus the last item in the
-		//previous, because all int vals in an EnumSet must be unique.
-		CardSpade = ColorGreen + 1 + iota
-		CardHeart
-		CardDiamond
-		CardClub
-	)
-
-	var Enums = NewEnumSet()
-
-	var ColorEnum = Enums.MustAdd("Color", map[int]string{
-		ColorRed: "Red",
-		ColorBlue: "Blue",
-		ColorGreen: "Green",
-	})
-
-	var CardEnum = Enums.MustAdd("Card", map[int]string{
-		CardSpade: "Spade",
-		CardHeart: "Heart",
-		CardDiamond: "Diamond",
-		CardClub: "Club",
-	})
-
-	//...
-
-	func (g *GameDelegate) EmptyGameState() boardgame.SubState {
-		return &gameState{
-			MyIntProp: 0,
-			MyColorEnumProp: ColorEnum.NewEnumValue(),
-		}
-	}
-
-	//...
-
-	func NewManager() *boardgame.GameManager {
-		//...
-
-		//NewComponentChest will call Finish() on our Enums
-		chest := boardgame.NewComponentChest(Enums)
-
-		//...
-	}
 
 Agents
 

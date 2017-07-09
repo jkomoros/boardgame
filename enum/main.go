@@ -1,4 +1,70 @@
-package boardgame
+/*
+
+In a number of cases you have a property that can only have a handful of
+possible values. You want to verify that the value is always one of those
+legal values, and make sure that you can compare it to a known constant so you
+can make sure you don't have a typo at compile time instead of run time. It's
+also nice to have them have an order in many cases, and to be serialized with
+the string value so it's easier to read.
+
+Enums are useful for this case. An EnumSet contains multiple enums, and you
+can create an EnumValue which can be used as a property on a PropertyReader
+object.
+
+The idiomatic way to create an enum is the following:
+	const (
+		//The first enum can start at 0
+		ColorRed = iota
+		ColorBlue
+		ColorGreen
+	)
+
+	const (
+		//The second enum should start at 1 plus the last item in the
+		//previous, because all int vals in an EnumSet must be unique.
+		CardSpade = ColorGreen + 1 + iota
+		CardHeart
+		CardDiamond
+		CardClub
+	)
+
+	var Enums = enum.NewSet()
+
+	var ColorEnum = Enums.MustAdd("Color", map[int]string{
+		ColorRed: "Red",
+		ColorBlue: "Blue",
+		ColorGreen: "Green",
+	})
+
+	var CardEnum = Enums.MustAdd("Card", map[int]string{
+		CardSpade: "Spade",
+		CardHeart: "Heart",
+		CardDiamond: "Diamond",
+		CardClub: "Club",
+	})
+
+	//...
+
+	func (g *GameDelegate) EmptyGameState() boardgame.SubState {
+		return &gameState{
+			MyIntProp: 0,
+			MyColorEnumProp: ColorEnum.NewEnumValue(),
+		}
+	}
+
+	//...
+
+	func NewManager() *boardgame.GameManager {
+		//...
+
+		//NewComponentChest will call Finish() on our Enums
+		chest := boardgame.NewComponentChest(Enums)
+
+		//...
+	}
+
+*/
+package enum
 
 import (
 	"encoding/json"
@@ -10,7 +76,7 @@ import (
 //EnumSet is a set of enums where each Enum's values are unique. Normally you
 //will create one in your package, add enums to it during initalization, and
 //then use it for all managers you create.
-type EnumSet struct {
+type Set struct {
 	finished bool
 	enums    map[string]*Enum
 	//A map of which int goes to which Enum
@@ -27,39 +93,39 @@ type Enum struct {
 
 //An EnumValue is an instantiation of a value that must be set to a value in
 //the given enum. You retrieve one from enum.NewEnumValue().
-type EnumValue struct {
+type Value struct {
 	enum   *Enum
 	locked bool
 	val    int
 }
 
-//NewEnumSet returns a new EnumSet. Generally you'll call this once in a
+//NewSet returns a new Set. Generally you'll call this once in a
 //package and create the set during initalization.
-func NewEnumSet() *EnumSet {
-	return &EnumSet{
+func NewSet() *Set {
+	return &Set{
 		false,
 		make(map[string]*Enum),
 		make(map[int]*Enum),
 	}
 }
 
-//MustCombineEnumSets wraps CombineEnumSets, but instead of erroring will
+//MustCombineSets wraps CombineEnumSets, but instead of erroring will
 //panic. Useful for package-level declarations outside of init().
-func MustCombineEnumSets(sets ...*EnumSet) *EnumSet {
-	result, err := CombineEnumSets(sets...)
+func MustCombineSets(sets ...*Set) *Set {
+	result, err := CombineSets(sets...)
 	if err != nil {
 		panic("Couldn't combine sets: " + err.Error())
 	}
 	return result
 }
 
-//CombineEnumSets returns a new EnumSet that contains all of the EnumSets
+//CombineSets returns a new EnumSet that contains all of the EnumSets
 //combined into one. The individual enums will literally be the same as the
 //enums from the provided sets, so enum equality will work. Generally the sets
 //have to know about each other, otherwise they are liable to overlap, which
 //will error.
-func CombineEnumSets(sets ...*EnumSet) (*EnumSet, error) {
-	result := NewEnumSet()
+func CombineSets(sets ...*Set) (*Set, error) {
+	result := NewSet()
 	for i, set := range sets {
 		for _, enumName := range set.EnumNames() {
 			enum := set.Enum(enumName)
@@ -75,12 +141,12 @@ func CombineEnumSets(sets ...*EnumSet) (*EnumSet, error) {
 //is called it is safe to use this in a multi-threaded environment. Repeated
 //calls do nothing. ComponenChest automatically calls Finish() on the set you
 //pass it.
-func (e *EnumSet) Finish() {
+func (e *Set) Finish() {
 	e.finished = true
 }
 
 //EnumNames returns a list of all names in the Enum.
-func (e *EnumSet) EnumNames() []string {
+func (e *Set) EnumNames() []string {
 	var result []string
 	for key, _ := range e.enums {
 		result = append(result, key)
@@ -90,19 +156,19 @@ func (e *EnumSet) EnumNames() []string {
 
 //Returns the Enum with the given name. In general you keep a reference to the
 //enum yourself, but this is useful for programatically enumerating the enums.
-func (e *EnumSet) Enum(name string) *Enum {
+func (e *Set) Enum(name string) *Enum {
 	return e.enums[name]
 }
 
 //Membership returns the enum that the given val is a member of.
-func (e *EnumSet) Membership(val int) *Enum {
+func (e *Set) Membership(val int) *Enum {
 	return e.values[val]
 }
 
 //MustAdd is like Add, but instead of an error it will panic if the enum
 //cannot be added. This is useful for defining your enums at the package level
 //outside of an init().
-func (e *EnumSet) MustAdd(enumName string, values map[int]string) *Enum {
+func (e *Set) MustAdd(enumName string, values map[int]string) *Enum {
 	result, err := e.Add(enumName, values)
 
 	if err != nil {
@@ -118,7 +184,7 @@ if that name has already been added, or any of the int values has been used
 for any other enum item already. This means that enums must be unique within a
 manager. Check out the package doc for the idiomatic way to initalize enums.
 */
-func (e *EnumSet) Add(enumName string, values map[int]string) (*Enum, error) {
+func (e *Set) Add(enumName string, values map[int]string) (*Enum, error) {
 
 	if len(values) == 0 {
 		return nil, errors.New("No values provided")
@@ -153,7 +219,7 @@ func (e *EnumSet) Add(enumName string, values map[int]string) (*Enum, error) {
 	return enum, nil
 }
 
-func (e *EnumSet) addEnum(enumName string, enum *Enum) error {
+func (e *Set) addEnum(enumName string, enum *Enum) error {
 
 	if e.finished {
 		return errors.New("The set has been finished so no more enums can be added")
@@ -205,18 +271,20 @@ func (e *Enum) ValueFromString(in string) int {
 	return -1
 }
 
-func (e *EnumValue) copy() *EnumValue {
-	return &EnumValue{
+//Copy returns a copy of the Value, that is equivalent, but will not be
+//locked.
+func (e *Value) Copy() *Value {
+	return &Value{
 		e.enum,
-		e.locked,
+		false,
 		e.val,
 	}
 }
 
 //NewEnumValue returns a new EnumValue associated with this enum, set to the
 //Enum's DefaultValue to start.
-func (e *Enum) NewEnumValue() *EnumValue {
-	return &EnumValue{
+func (e *Enum) NewEnumValue() *Value {
+	return &Value{
 		e,
 		false,
 		e.DefaultValue(),
@@ -224,13 +292,13 @@ func (e *Enum) NewEnumValue() *EnumValue {
 }
 
 //The enum marshals as the string value of the enum so it's more readable.
-func (e *EnumValue) MarshalJSON() ([]byte, error) {
+func (e *Value) MarshalJSON() ([]byte, error) {
 	return json.Marshal(e.String())
 }
 
 //UnmarshalJSON expects the blob to be the string value. Will error if that
 //doesn't correspond to a valid value for this enum.
-func (e *EnumValue) UnmarshalJSON(blob []byte) error {
+func (e *Value) UnmarshalJSON(blob []byte) error {
 	var str string
 	if err := json.Unmarshal(blob, &str); err != nil {
 		return err
@@ -242,22 +310,22 @@ func (e *EnumValue) UnmarshalJSON(blob []byte) error {
 	return e.SetValue(val)
 }
 
-func (e *EnumValue) Enum() *Enum {
+func (e *Value) Enum() *Enum {
 	return e.enum
 }
 
-func (e *EnumValue) Value() int {
+func (e *Value) Value() int {
 	return e.val
 }
 
-func (e *EnumValue) String() string {
+func (e *Value) String() string {
 	return e.enum.String(e.val)
 }
 
 //SetValue changes the value. Returns true if successful. Will fail if the
 //value is locked or the val you want to set is not a valid number for the
 //enum this value is associated with.
-func (e *EnumValue) SetValue(val int) error {
+func (e *Value) SetValue(val int) error {
 	if e.locked {
 		return errors.New("Value is locked")
 	}
@@ -270,6 +338,6 @@ func (e *EnumValue) SetValue(val int) error {
 
 //Lock locks in the value of the EnumValue, so that in the future all calls to
 //SetValue will fail.
-func (e *EnumValue) Lock() {
+func (e *Value) Lock() {
 	e.locked = true
 }
