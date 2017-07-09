@@ -12,13 +12,13 @@ func TestEnum(t *testing.T) {
 	assert.For(t).ThatActual(len(enums.EnumNames())).Equals(0)
 
 	const (
-		ColorBlue = iota
+		ColorBlue Constant = iota
 		ColorGreen
 		ColorRed
 	)
 
 	const (
-		CardSpade = ColorRed + 1 + iota
+		CardSpade Constant = ColorRed + 1 + iota
 		CardClub
 		CardDiamond
 		CardHeart
@@ -28,7 +28,7 @@ func TestEnum(t *testing.T) {
 
 	assert.For(t).ThatActual(enums).IsNotNil()
 
-	colorEnum, err := enums.Add("Color", map[int]string{
+	colorEnum, err := enums.Add("Color", map[Constant]string{
 		ColorBlue:  "Blue",
 		ColorGreen: "Green",
 		ColorRed:   "Red",
@@ -50,13 +50,13 @@ func TestEnum(t *testing.T) {
 
 	assert.For(t).ThatActual(colorEnum.String(125)).Equals("")
 
-	_, err = enums.Add("Color", map[int]string{
+	_, err = enums.Add("Color", map[Constant]string{
 		ColorBlue: "Blue",
 	})
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
-	cardEnum, err := enums.Add("Card", map[int]string{
+	cardEnum, err := enums.Add("Card", map[Constant]string{
 		CardSpade:   "Spade",
 		CardClub:    "Club",
 		CardDiamond: "Diamond",
@@ -69,7 +69,7 @@ func TestEnum(t *testing.T) {
 
 	assert.For(t).ThatActual(enums.Membership(CardDiamond)).Equals(cardEnum)
 
-	_, err = enums.Add("Another", map[int]string{
+	_, err = enums.Add("Another", map[Constant]string{
 		ConstDuplicate: "Duplicate",
 	})
 
@@ -81,7 +81,7 @@ func TestEnum(t *testing.T) {
 
 	val = colorEnum.ValueFromString("Turquoise")
 
-	assert.For(t).ThatActual(val).Equals(-1)
+	assert.For(t).ThatActual(val).Equals(InvalidConstant)
 
 	eVal := colorEnum.NewEnumValue()
 
@@ -105,7 +105,7 @@ func TestEnum(t *testing.T) {
 
 	enums = NewSet()
 
-	_, err = enums.Add("Color", map[int]string{
+	_, err = enums.Add("Color", map[Constant]string{
 		ColorBlue:  "Blue",
 		ColorGreen: "Green",
 		ColorRed:   "Blue",
@@ -115,7 +115,7 @@ func TestEnum(t *testing.T) {
 
 	enums.Finish()
 
-	_, err = enums.Add("Card", map[int]string{
+	_, err = enums.Add("Card", map[Constant]string{
 		CardSpade: "Spade",
 		CardClub:  "Club",
 	})
@@ -129,25 +129,25 @@ func TestCombinedEnumSets(t *testing.T) {
 	secondSet := NewSet()
 
 	const (
-		ColorBlue = iota
+		ColorBlue Constant = iota
 		ColorGreen
 		ColorRed
 	)
 
 	const (
-		CardSpade = ColorRed + 1 + iota
+		CardSpade Constant = ColorRed + 1 + iota
 		CardClub
 		CardDiamond
 		CardHeart
 	)
 
-	colorEnum, err := firstSet.Add("Color", map[int]string{
+	colorEnum, err := firstSet.Add("Color", map[Constant]string{
 		ColorBlue:  "Blue",
 		ColorGreen: "Green",
 		ColorRed:   "Red",
 	})
 
-	cardEnum, err := secondSet.Add("Card", map[int]string{
+	cardEnum, err := secondSet.Add("Card", map[Constant]string{
 		CardSpade:   "Spade",
 		CardClub:    "Club",
 		CardDiamond: "Diamond",
