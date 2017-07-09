@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"github.com/workfit/tester/assert"
+	"sort"
 	"testing"
 )
 
@@ -120,4 +121,49 @@ func TestEnum(t *testing.T) {
 	})
 
 	assert.For(t).ThatActual(err).IsNotNil()
+}
+
+func TestCombinedEnumSets(t *testing.T) {
+
+	firstSet := NewEnumSet()
+	secondSet := NewEnumSet()
+
+	const (
+		ColorBlue = iota
+		ColorGreen
+		ColorRed
+	)
+
+	const (
+		CardSpade = ColorRed + 1 + iota
+		CardClub
+		CardDiamond
+		CardHeart
+	)
+
+	colorEnum, err := firstSet.Add("Color", map[int]string{
+		ColorBlue:  "Blue",
+		ColorGreen: "Green",
+		ColorRed:   "Red",
+	})
+
+	cardEnum, err := secondSet.Add("Card", map[int]string{
+		CardSpade:   "Spade",
+		CardClub:    "Club",
+		CardDiamond: "Diamond",
+		CardHeart:   "Heart",
+	})
+
+	combinedSet, err := CombineEnumSets(firstSet, secondSet)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	enumNames := combinedSet.EnumNames()
+
+	sort.Strings(enumNames)
+
+	assert.For(t).ThatActual(enumNames).Equals([]string{"Card", "Color"})
+
+	assert.For(t).ThatActual(combinedSet.Enum("Color")).Equals(colorEnum)
+	assert.For(t).ThatActual(combinedSet.Enum("Card")).Equals(cardEnum)
 }

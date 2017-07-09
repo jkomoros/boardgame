@@ -7,9 +7,9 @@ import (
 	"strconv"
 )
 
-//EnumSet is a set of enums. Normally you will create one in your package, add
-//enums to it during initalization, and then use it for all managers you
-//create.
+//EnumSet is a set of enums where each Enum's values are unique. Normally you
+//will create one in your package, add enums to it during initalization, and
+//then use it for all managers you create.
 type EnumSet struct {
 	finished bool
 	enums    map[string]*Enum
@@ -26,7 +26,7 @@ type Enum struct {
 }
 
 //An EnumValue is an instantiation of a value that must be set to a value in
-//the given enum.
+//the given enum. You retrieve one from enum.NewEnumValue().
 type EnumValue struct {
 	enum   *Enum
 	locked bool
@@ -41,6 +41,34 @@ func NewEnumSet() *EnumSet {
 		make(map[string]*Enum),
 		make(map[int]*Enum),
 	}
+}
+
+//MustCombineEnumSets wraps CombineEnumSets, but instead of erroring will
+//panic. Useful for package-level declarations outside of init().
+func MustCombineEnumSets(sets ...*EnumSet) *EnumSet {
+	result, err := CombineEnumSets(sets...)
+	if err != nil {
+		panic("Couldn't combine sets: " + err.Error())
+	}
+	return result
+}
+
+//CombineEnumSets returns a new EnumSet that contains all of the EnumSets
+//combined into one. The individual enums will literally be the same as the
+//enums from the provided sets, so enum equality will work. Generally the sets
+//have to know about each other, otherwise they are liable to overlap, which
+//will error.
+func CombineEnumSets(sets ...*EnumSet) (*EnumSet, error) {
+	result := NewEnumSet()
+	for i, set := range sets {
+		for _, enumName := range set.EnumNames() {
+			enum := set.Enum(enumName)
+			if err := result.addEnum(enumName, enum); err != nil {
+				return nil, errors.New("Couldn't add the " + strconv.Itoa(i) + " enumset because " + enumName + " had error: " + err.Error())
+			}
+		}
+	}
+	return result, nil
 }
 
 //Finish finalizes an EnumSet so that no more enums may be added. After this
@@ -91,16 +119,9 @@ for any other enum item already. This means that enums must be unique within a
 manager. Check out the package doc for the idiomatic way to initalize enums.
 */
 func (e *EnumSet) Add(enumName string, values map[int]string) (*Enum, error) {
-	if e.finished {
-		return nil, errors.New("The set has been finished so no more enums can be added")
-	}
 
 	if len(values) == 0 {
 		return nil, errors.New("No values provided")
-	}
-
-	if _, ok := e.enums[enumName]; ok {
-		return nil, errors.New("That enum name has already been provided")
 	}
 
 	enum := &Enum{
@@ -112,12 +133,6 @@ func (e *EnumSet) Add(enumName string, values map[int]string) (*Enum, error) {
 	seenValues := make(map[string]bool)
 
 	for v, s := range values {
-		if _, ok := e.values[v]; ok {
-			//Already registered
-			return nil, errors.New("Value " + strconv.Itoa(v) + " was registered twice")
-		}
-
-		e.values[v] = enum
 
 		if seenValues[s] {
 			return nil, errors.New("String " + s + " was not unique within enum " + enumName)
@@ -131,9 +146,35 @@ func (e *EnumSet) Add(enumName string, values map[int]string) (*Enum, error) {
 			enum.defaultValue = v
 		}
 
-		e.enums[enumName] = enum
+	}
+	if err := e.addEnum(enumName, enum); err != nil {
+		return nil, err
 	}
 	return enum, nil
+}
+
+func (e *EnumSet) addEnum(enumName string, enum *Enum) error {
+
+	if e.finished {
+		return errors.New("The set has been finished so no more enums can be added")
+	}
+
+	if _, ok := e.enums[enumName]; ok {
+		return errors.New("That enum name has already been provided")
+	}
+
+	for v, _ := range enum.values {
+		if _, ok := e.values[v]; ok {
+			//Already registered
+			return errors.New("Value " + strconv.Itoa(v) + " was registered twice")
+		}
+
+		e.values[v] = enum
+	}
+
+	e.enums[enumName] = enum
+
+	return nil
 }
 
 //DefaultValue returns the default value for this enum (the lowest valid value
