@@ -3,6 +3,7 @@ package boardgame
 import (
 	"encoding/json"
 	"errors"
+	"reflect"
 )
 
 //MoveType represents a type of a move in a game, and information about that
@@ -114,6 +115,27 @@ func StorageRecordForMove(move Move) *MoveStorageRecord {
 	}
 }
 
+//enumStructTagForField will use reflection to fetch the named field from the
+//object and return the value of its `enum` field. Works even if fieldName is
+//in an embedded struct.
+func enumStructTagForField(obj interface{}, fieldName string) string {
+
+	v := reflect.Indirect(reflect.ValueOf(obj))
+
+	t := reflect.TypeOf(v.Interface())
+
+	field, ok := t.FieldByNameFunc(func(str string) bool {
+		return str == fieldName
+	})
+
+	if !ok {
+		return ""
+	}
+
+	return field.Tag.Get("enum")
+
+}
+
 //NewMoveType returns a new MoveType based on the given config.
 func NewMoveType(config *MoveTypeConfig) (*MoveType, error) {
 	if config == nil {
@@ -141,6 +163,8 @@ func NewMoveType(config *MoveTypeConfig) (*MoveType, error) {
 		case TypeSizedStack:
 			illegalType = "SizedStack"
 		case TypeEnumVar:
+			//TODO: this is technically legal; if the enum tag names an Enum
+			//and we have it, keep track of that.
 			illegalType = "EnumVar"
 		case TypeIllegal:
 			illegalType = "general illegal value"
