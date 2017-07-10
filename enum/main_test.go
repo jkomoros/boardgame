@@ -93,6 +93,16 @@ func TestEnum(t *testing.T) {
 
 	assert.For(t).ThatActual(eVal.Value()).Equals(ColorGreen)
 
+	constant, err := colorEnum.NewConst(ColorGreen)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(constant.Value()).Equals(ColorGreen)
+
+	constant, err = colorEnum.NewConst(150)
+
+	assert.For(t).ThatActual(err).IsNotNil()
+
 	//Do a new manager to check that adding enums after finished doesn't work
 
 	enums = NewSet()

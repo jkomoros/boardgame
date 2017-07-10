@@ -97,17 +97,17 @@ type variable struct {
 	val  int
 }
 
-type Constant interface {
+type Const interface {
 	Enum() *Enum
 	Value() int
 	String() string
-	Copy() Constant
+	Copy() Const
 }
 
 //An EnumValue is an instantiation of a value that must be set to a value in
 //the given enum. You retrieve one from enum.NewEnumValue().
 type Var interface {
-	Constant
+	Const
 	SetValue(int) error
 	CopyVar() Var
 }
@@ -286,7 +286,7 @@ func (e *Enum) ValueFromString(in string) int {
 
 //Copy returns a copy of the Value, that is equivalent, but will not be
 //locked.
-func (e *variable) Copy() Constant {
+func (e *variable) Copy() Const {
 	return &variable{
 		e.enum,
 		e.val,
@@ -307,6 +307,28 @@ func (e *Enum) NewVar() Var {
 		e,
 		e.DefaultValue(),
 	}
+}
+
+//MustNewConst is like NewConst, but if it would have errored it panics
+//instead. It's convenient for initial set up where the whole app should fail
+//to startup if it can't be configured anyway, and dealing with errors would
+//be a lot of boilerplate.
+func (e *Enum) MustNewConst(val int) Const {
+	result, err := e.NewConst(val)
+	if err != nil {
+		panic("Couldn't create constant: " + err.Error())
+	}
+	return result
+}
+
+//NewConstant returns an enum.Constant that is permanently set to the provided
+//val. If that value is not valid for this enum, it will error.
+func (e *Enum) NewConst(val int) (Const, error) {
+	variable := e.NewVar()
+	if err := variable.SetValue(val); err != nil {
+		return nil, err
+	}
+	return variable, nil
 }
 
 //The enum marshals as the string value of the enum so it's more readable.
