@@ -48,7 +48,7 @@ The idiomatic way to create an enum is the following:
 	func (g *GameDelegate) EmptyGameState() boardgame.SubState {
 		return &gameState{
 			MyIntProp: 0,
-			MyColorEnumProp: ColorEnum.NewEnumValue(),
+			MyColorEnumProp: ColorEnum.NewVar(),
 		}
 	}
 
