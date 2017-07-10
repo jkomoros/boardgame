@@ -67,6 +67,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
+	"math/rand"
 	"strconv"
 )
 
@@ -239,6 +240,18 @@ func (e *Set) addEnum(enumName string, enum *Enum) error {
 //in it).
 func (e *Enum) DefaultValue() int {
 	return e.defaultValue
+}
+
+//RandomValue returns a random value that is Valid() for this enum.
+func (e *Enum) RandomValue() int {
+	keys := make([]int, len(e.values))
+
+	i := 0
+	for key, _ := range e.values {
+		keys[i] = key
+		i++
+	}
+	return keys[rand.Intn(len(keys))]
 }
 
 //Valid returns whether the given value is a valid member of this enum.

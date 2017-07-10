@@ -455,12 +455,11 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 			return 0
 		case TypeEnumVar:
 			e := input.(enum.Var).CopyVar()
-			//TODO: set this to a random legal value in the enum
-			e.SetValue(e.Enum().DefaultValue())
+			e.SetValue(e.Enum().RandomValue())
 			return e
 		case TypeEnumConst:
 			e := input.(enum.Const).Copy()
-			res, _ := e.Enum().NewConst(e.Enum().DefaultValue())
+			res, _ := e.Enum().NewConst(e.Enum().RandomValue())
 			return res
 		case TypeIntSlice:
 			return randomIntSlice(5)
