@@ -429,6 +429,14 @@ func (s *Server) getMoveFromForm(c *gin.Context, game *boardgame.Game) (boardgam
 			} else {
 				move.ReadSetter().SetProp(field.Name, false)
 			}
+		case boardgame.TypeEnumVar:
+			eVar, err := move.ReadSetter().EnumVarProp(field.Name)
+			if err != nil {
+				return nil, errors.New("Invalid field name: " + err.Error())
+			}
+			if err := eVar.SetStringValue(rawVal); err != nil {
+				return nil, errors.New("Couldn't set field value: " + err.Error())
+			}
 		case boardgame.TypeIllegal:
 			return nil, errors.New(fmt.Sprint("Field", field.Name, "was an unknown value type"))
 		}
