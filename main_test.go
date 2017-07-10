@@ -124,6 +124,7 @@ type testGameState struct {
 	MyBoolSlice        []bool
 	MyPlayerIndexSlice []PlayerIndex
 	MyEnumValue        enum.Var
+	MyEnumConst        enum.Const
 	//TODO: have a Stack here.
 }
 

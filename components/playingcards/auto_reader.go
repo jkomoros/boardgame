@@ -43,6 +43,8 @@ func (c *__CardReader) Prop(name string) (interface{}, error) {
 		return c.BoolProp(name)
 	case boardgame.TypeBoolSlice:
 		return c.BoolSliceProp(name)
+	case boardgame.TypeEnumConst:
+		return c.EnumConstProp(name)
 	case boardgame.TypeEnumVar:
 		return c.EnumVarProp(name)
 	case boardgame.TypeGrowableStack:
@@ -78,6 +80,12 @@ func (c *__CardReader) BoolProp(name string) (bool, error) {
 func (c *__CardReader) BoolSliceProp(name string) ([]bool, error) {
 
 	return []bool{}, errors.New("No such BoolSlice prop: " + name)
+
+}
+
+func (c *__CardReader) EnumConstProp(name string) (enum.Const, error) {
+
+	return nil, errors.New("No such EnumConst prop: " + name)
 
 }
 

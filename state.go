@@ -361,6 +361,15 @@ func copyReader(input PropertyReader, outputContainer PropertyReadSetter) error 
 			if err != nil {
 				return errors.New(propName + " could not be set on output: " + err.Error())
 			}
+		case TypeEnumConst:
+			enumConst, err := input.EnumConstProp(propName)
+			if err != nil {
+				return errors.New(propName + " did not return an EnumConst as expected: " + err.Error())
+			}
+			err = outputContainer.SetEnumConstProp(propName, enumConst.Copy())
+			if err != nil {
+				return errors.New(propName + " could not be set on output: " + err.Error())
+			}
 		case TypeIntSlice:
 			intSliceVal, err := input.IntSliceProp(propName)
 			if err != nil {

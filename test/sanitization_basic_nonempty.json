@@ -25,7 +25,8 @@
         "MyBoolSlice": [false],
         "MyStringSlice": [""],
         "MyPlayerIndexSlice": [0],
-        "MyEnumValue" : "Red"
+        "MyEnumValue" : "Red",
+        "MyEnumConst": "Blue"
     },
     "Players": [
         {

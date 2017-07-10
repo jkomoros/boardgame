@@ -200,6 +200,7 @@ func (t *testGameDelegate) EmptyGameState() MutableSubState {
 		MyStringSlice:      make([]string, 0),
 		MyPlayerIndexSlice: make([]PlayerIndex, 0),
 		MyEnumValue:        testColorEnum.NewVar(),
+		MyEnumConst:        testColorEnum.MustNewConst(colorBlue),
 	}
 }
 

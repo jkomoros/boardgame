@@ -458,6 +458,10 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 			//TODO: set this to a random legal value in the enum
 			e.SetValue(e.Enum().DefaultValue())
 			return e
+		case TypeEnumConst:
+			e := input.(enum.Const).Copy()
+			res, _ := e.Enum().NewConst(e.Enum().DefaultValue())
+			return res
 		case TypeIntSlice:
 			return randomIntSlice(5)
 		case TypeBoolSlice:
@@ -495,6 +499,10 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 		e := input.(enum.Var).CopyVar()
 		e.SetValue(e.Enum().DefaultValue())
 		return e
+	case TypeEnumConst:
+		e := input.(enum.Const).Copy()
+		res, _ := e.Enum().NewConst(e.Enum().DefaultValue())
+		return res
 	}
 
 	//Now the ones that are non-stack containers

@@ -23,6 +23,7 @@ type PropertyReader interface {
 	BoolProp(name string) (bool, error)
 	StringProp(name string) (string, error)
 	EnumVarProp(name string) (enum.Var, error)
+	EnumConstProp(name string) (enum.Const, error)
 	IntSliceProp(name string) ([]int, error)
 	BoolSliceProp(name string) ([]bool, error)
 	StringSliceProp(name string) ([]string, error)
@@ -48,6 +49,7 @@ const (
 	TypeString
 	TypePlayerIndex
 	TypeEnumVar
+	TypeEnumConst
 	TypeIntSlice
 	TypeBoolSlice
 	TypeStringSlice
@@ -69,6 +71,7 @@ type PropertyReadSetter interface {
 	SetStringProp(name string, value string) error
 	SetPlayerIndexProp(name string, value PlayerIndex) error
 	SetEnumVarProp(name string, value enum.Var) error
+	SetEnumConstProp(name string, value enum.Const) error
 	SetIntSliceProp(name string, value []int) error
 	SetBoolSliceProp(name string, value []bool) error
 	SetStringSliceProp(name string, value []string) error
@@ -96,6 +99,8 @@ func (t PropertyType) String() string {
 		return "TypePlayerIndex"
 	case TypeEnumVar:
 		return "TypeEnumVar"
+	case TypeEnumConst:
+		return "TypeEnumConst"
 	case TypeIntSlice:
 		return "TypeIntSlice"
 	case TypeBoolSlice:
@@ -246,6 +251,8 @@ func (d *defaultReader) Props() map[string]PropertyType {
 				interfaceType := field.Type().String()
 				if strings.Contains(interfaceType, "enum.Var") {
 					pType = TypeEnumVar
+				} else if strings.Contains(interfaceType, "enum.Const") {
+					pType = TypeEnumConst
 				}
 			case reflect.Ptr:
 				//Is it a growable stack or a sizedStack?
@@ -335,6 +342,23 @@ func (d *defaultReader) EnumVarProp(name string) (enum.Var, error) {
 		return nil, errors.New("That property is nil")
 	}
 	result := field.Interface().(enum.Var)
+	return result, nil
+}
+
+func (d *defaultReader) EnumConstProp(name string) (enum.Const, error) {
+	//Verify that this seems legal.
+	props := d.Props()
+
+	if props[name] != TypeEnumConst {
+		return nil, errors.New("That property is not a EnumConst: " + name)
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+	field := s.FieldByName(name)
+	if field.IsNil() {
+		return nil, errors.New("That property is nil")
+	}
+	result := field.Interface().(enum.Const)
 	return result, nil
 }
 
@@ -591,6 +615,33 @@ func (d *defaultReader) SetEnumVarProp(name string, val enum.Var) (err error) {
 
 	if props[name] != TypeEnumVar {
 		return errors.New("That property is not a settable enum var")
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+
+	f := s.FieldByName(name)
+
+	if !f.IsValid() {
+		return errors.New("that name was not available on the struct")
+	}
+
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprint(e))
+		}
+	}()
+
+	f.Set(reflect.ValueOf(val))
+
+	return nil
+
+}
+
+func (d *defaultReader) SetEnumConstProp(name string, val enum.Const) (err error) {
+	props := d.Props()
+
+	if props[name] != TypeEnumConst {
+		return errors.New("That property is not a settable enum const")
 	}
 
 	s := reflect.ValueOf(d.i).Elem()
@@ -975,6 +1026,26 @@ func (g *genericReader) EnumVarProp(name string) (enum.Var, error) {
 	return val.(enum.Var), nil
 }
 
+func (g *genericReader) EnumConstProp(name string) (enum.Const, error) {
+	val, err := g.Prop(name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	propType, ok := g.types[name]
+
+	if !ok {
+		return nil, errors.New("Unexpected error: Missing Prop type for " + name)
+	}
+
+	if propType != TypeEnumConst {
+		return nil, errors.New(name + "was expected to be TypeEnumConst but was not")
+	}
+
+	return val.(enum.Const), nil
+}
+
 func (g *genericReader) IntSliceProp(name string) ([]int, error) {
 	val, err := g.Prop(name)
 
@@ -1189,6 +1260,19 @@ func (g *genericReader) SetEnumVarProp(name string, val enum.Var) error {
 	}
 
 	g.types[name] = TypeEnumVar
+	g.values[name] = val
+
+	return nil
+}
+
+func (g *genericReader) SetEnumConstProp(name string, val enum.Const) error {
+	propType, ok := g.types[name]
+
+	if ok && propType != TypeEnumConst {
+		return errors.New("That property was already set but was not an enum const")
+	}
+
+	g.types[name] = TypeEnumConst
 	g.values[name] = val
 
 	return nil
