@@ -83,6 +83,16 @@ func TestEnum(t *testing.T) {
 
 	assert.For(t).ThatActual(eVal.Value()).Equals(ColorGreen)
 
+	err = eVal.SetStringValue("Blue")
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(eVal.Value()).Equals(ColorBlue)
+
+	err = eVal.SetStringValue("Turquoise")
+
+	assert.For(t).ThatActual(err).IsNotNil()
+
 	constant, err := colorEnum.NewConst(ColorGreen)
 
 	assert.For(t).ThatActual(err).IsNil()

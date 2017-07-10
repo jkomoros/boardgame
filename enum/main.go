@@ -106,7 +106,12 @@ type Const interface {
 //the given enum. You retrieve one from enum.NewVar().
 type Var interface {
 	Const
+	//SetValue changes the value. Returns true if successful. Will fail if the
+	//value is locked or the val you want to set is not a valid number for the
+	//enum this value is associated with.
 	SetValue(int) error
+	//SetStringValue sets the value to the value associated with that string.
+	SetStringValue(string) error
 	CopyVar() Var
 }
 
@@ -360,13 +365,15 @@ func (e *variable) String() string {
 	return e.enum.String(e.val)
 }
 
-//SetValue changes the value. Returns true if successful. Will fail if the
-//value is locked or the val you want to set is not a valid number for the
-//enum this value is associated with.
 func (e *variable) SetValue(val int) error {
 	if !e.enum.Valid(val) {
 		return errors.New("That value is not valid for this enum")
 	}
 	e.val = val
 	return nil
+}
+
+func (e *variable) SetStringValue(str string) error {
+	val := e.Enum().ValueFromString(str)
+	return e.SetValue(val)
 }
