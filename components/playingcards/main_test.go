@@ -23,23 +23,23 @@ func TestNewDeck(t *testing.T) {
 		t.Error("Generic components had no values")
 	}
 
-	r, err := g.Values.Reader().IntProp("Rank")
+	r, err := g.Values.Reader().EnumConstProp("Rank")
 
 	if err != nil {
 		t.Error("Values on Reader had no Rank property")
 	}
 
-	if r != int(RankUnknown) {
+	if r.Value() != RankUnknown {
 		t.Error("generic rank was not RankUnknown")
 	}
 
-	s, err := g.Values.Reader().StringProp("Suit")
+	s, err := g.Values.Reader().EnumConstProp("Suit")
 
 	if err != nil {
 		t.Error("Values on reader had no Suit property")
 	}
 
-	if s != string(SuitUnknown) {
+	if s.Value() != SuitUnknown {
 		t.Error("Generic suit was not suitunknown")
 	}
 
@@ -73,7 +73,7 @@ func checkExpectedRun(deck *boardgame.Deck, startingIndex int, t *testing.T) {
 		t.Error("Deck didn't have enough items")
 	}
 
-	suits := []string{SuitSpades, SuitHearts, SuitClubs, SuitDiamonds}
+	suits := []int{SuitSpades, SuitHearts, SuitClubs, SuitDiamonds}
 
 	expectedRank := RankAce
 	expectedSuitIndex := 0
@@ -84,12 +84,12 @@ func checkExpectedRun(deck *boardgame.Deck, startingIndex int, t *testing.T) {
 	for i := startingIndex; i < (startingIndex + 52); i++ {
 		card := components[i].Values.(*Card)
 
-		if card.Rank != expectedRank {
-			t.Error("Card", i, "had wrong rank. Wanted", expectedRank, "Got", card.Rank)
+		if card.Rank.Value() != expectedRank {
+			t.Error("Card", i, "had wrong rank. Wanted", expectedRank, "Got", card.Rank.Value())
 		}
 
-		if card.Suit != expectedSuit {
-			t.Error("Card", i, "had wrong suit. Wanted", expectedSuit, "Got", card.Suit)
+		if card.Suit.Value() != expectedSuit {
+			t.Error("Card", i, "had wrong suit. Wanted", expectedSuit, "Got", card.Suit.Value())
 		}
 
 		expectedRank++

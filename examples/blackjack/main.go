@@ -84,7 +84,7 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, 
 
 	card := c.Values.(*playingcards.Card)
 
-	if card.Rank == playingcards.RankJoker {
+	if card.Rank.Value() == playingcards.RankJoker {
 		return game.UnusedCards, nil
 	} else {
 		return game.DrawStack, nil

@@ -73,7 +73,7 @@ func createHand(t *testing.T, deck *boardgame.Deck, ranks ...int) *boardgame.Gro
 
 			card := c.Values.(*playingcards.Card)
 
-			if card.Rank == rank {
+			if card.Rank.Value() == rank {
 				//Found one!
 				result.UnsafeInsertNextComponent(t, c)
 				givenCards[i] = true

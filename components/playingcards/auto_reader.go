@@ -18,8 +18,8 @@ import (
 // Implementation for Card
 
 var __CardReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
-	"Rank": boardgame.TypeInt,
-	"Suit": boardgame.TypeString,
+	"Rank": boardgame.TypeEnumConst,
+	"Suit": boardgame.TypeEnumConst,
 }
 
 type __CardReader struct {
@@ -85,6 +85,14 @@ func (c *__CardReader) BoolSliceProp(name string) ([]bool, error) {
 
 func (c *__CardReader) EnumConstProp(name string) (enum.Const, error) {
 
+	switch name {
+	case "Suit":
+		return c.data.Suit, nil
+	case "Rank":
+		return c.data.Rank, nil
+
+	}
+
 	return nil, errors.New("No such EnumConst prop: " + name)
 
 }
@@ -102,12 +110,6 @@ func (c *__CardReader) GrowableStackProp(name string) (*boardgame.GrowableStack,
 }
 
 func (c *__CardReader) IntProp(name string) (int, error) {
-
-	switch name {
-	case "Rank":
-		return c.data.Rank, nil
-
-	}
 
 	return 0, errors.New("No such Int prop: " + name)
 
@@ -138,12 +140,6 @@ func (c *__CardReader) SizedStackProp(name string) (*boardgame.SizedStack, error
 }
 
 func (c *__CardReader) StringProp(name string) (string, error) {
-
-	switch name {
-	case "Suit":
-		return c.data.Suit, nil
-
-	}
 
 	return "", errors.New("No such String prop: " + name)
 

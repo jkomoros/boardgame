@@ -79,7 +79,7 @@ func (p *playerState) HandValue() int {
 	var currentValue int
 
 	for _, card := range p.EffectiveHand() {
-		switch card.Rank {
+		switch card.Rank.Value() {
 		case playingcards.RankAce:
 			numUnconvertedAces++
 			//We count the ace as 1 now. Later we'll check to see if we can
@@ -88,7 +88,7 @@ func (p *playerState) HandValue() int {
 		case playingcards.RankJack, playingcards.RankQueen, playingcards.RankKing:
 			currentValue += 10
 		default:
-			currentValue += int(card.Rank)
+			currentValue += card.Rank.Value()
 		}
 	}
 
