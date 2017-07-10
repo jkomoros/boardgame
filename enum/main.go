@@ -97,6 +97,8 @@ type variable struct {
 	val  int
 }
 
+//Const is an instantiation of an Enum that cannot be changed. You retrieve it
+//from enum.NewConst(val).
 type Const interface {
 	Enum() *Enum
 	Value() int
@@ -104,8 +106,8 @@ type Const interface {
 	Copy() Const
 }
 
-//An EnumValue is an instantiation of a value that must be set to a value in
-//the given enum. You retrieve one from enum.NewEnumValue().
+//Var is an instantiation of a value that must be set to a value in
+//the given enum. You retrieve one from enum.NewVar().
 type Var interface {
 	Const
 	SetValue(int) error
