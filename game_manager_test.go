@@ -8,14 +8,14 @@ import (
 )
 
 const (
-	colorRed enum.Constant = iota
+	colorRed = iota
 	colorBlue
 	colorGreen
 )
 
 var testEnums = enum.NewSet()
 
-var testColorEnum = testEnums.MustAdd("color", map[enum.Constant]string{
+var testColorEnum = testEnums.MustAdd("color", map[int]string{
 	colorRed:   "Red",
 	colorBlue:  "Blue",
 	colorGreen: "Green",
