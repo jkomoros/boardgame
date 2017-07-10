@@ -18,13 +18,11 @@ func TestEnum(t *testing.T) {
 	)
 
 	const (
-		CardSpade = ColorRed + 1 + iota
+		CardSpade = iota
 		CardClub
 		CardDiamond
 		CardHeart
 	)
-
-	const ConstDuplicate = iota
 
 	assert.For(t).ThatActual(enums).IsNotNil()
 
@@ -43,8 +41,6 @@ func TestEnum(t *testing.T) {
 	assert.For(t).ThatActual(len(enums.EnumNames())).Equals(1)
 
 	assert.For(t).ThatActual(enums.Enum("Color")).Equals(colorEnum)
-
-	assert.For(t).ThatActual(enums.Membership(ColorBlue)).Equals(colorEnum)
 
 	assert.For(t).ThatActual(colorEnum.DefaultValue()).Equals(ColorBlue)
 
@@ -68,14 +64,6 @@ func TestEnum(t *testing.T) {
 	assert.For(t).ThatActual(cardEnum).IsNotNil()
 
 	assert.For(t).ThatActual(err).IsNil()
-
-	assert.For(t).ThatActual(enums.Membership(CardDiamond)).Equals(cardEnum)
-
-	_, err = enums.Add("Another", map[int]string{
-		ConstDuplicate: "Duplicate",
-	})
-
-	assert.For(t).ThatActual(err).IsNotNil()
 
 	val := colorEnum.ValueFromString("Blue")
 

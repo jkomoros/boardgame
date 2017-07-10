@@ -13,16 +13,13 @@ object.
 
 The idiomatic way to create an enum is the following:
 	const (
-		//The first enum can start at 0
 		ColorRed = iota
 		ColorBlue
 		ColorGreen
 	)
 
 	const (
-		//The second enum should start at 1 plus the last item in the
-		//previous, because all int vals in an EnumSet must be unique.
-		CardSpade = ColorGreen + 1 + iota
+		CardSpade = iota
 		CardHeart
 		CardDiamond
 		CardClub
@@ -79,8 +76,6 @@ import (
 type Set struct {
 	finished bool
 	enums    map[string]*Enum
-	//A map of which int goes to which Enum
-	values map[int]*Enum
 }
 
 //Enum is a named set of values within a set. Get a new one with
@@ -120,7 +115,6 @@ func NewSet() *Set {
 	return &Set{
 		false,
 		make(map[string]*Enum),
-		make(map[int]*Enum),
 	}
 }
 
@@ -136,9 +130,7 @@ func MustCombineSets(sets ...*Set) *Set {
 
 //CombineSets returns a new EnumSet that contains all of the EnumSets
 //combined into one. The individual enums will literally be the same as the
-//enums from the provided sets, so enum equality will work. Generally the sets
-//have to know about each other, otherwise they are liable to overlap, which
-//will error.
+//enums from the provided sets, so enum equality will work.
 func CombineSets(sets ...*Set) (*Set, error) {
 	result := NewSet()
 	for i, set := range sets {
@@ -175,11 +167,6 @@ func (e *Set) Enum(name string) *Enum {
 	return e.enums[name]
 }
 
-//Membership returns the enum that the given val is a member of.
-func (e *Set) Membership(val int) *Enum {
-	return e.values[val]
-}
-
 //MustAdd is like Add, but instead of an error it will panic if the enum
 //cannot be added. This is useful for defining your enums at the package level
 //outside of an init().
@@ -195,9 +182,8 @@ func (e *Set) MustAdd(enumName string, values map[int]string) *Enum {
 
 /*
 Add ads an enum with the given name and values to the enum manager. Will error
-if that name has already been added, or any of the int values has been used
-for any other enum item already. This means that enums must be unique within a
-manager. Check out the package doc for the idiomatic way to initalize enums.
+if that name has already been added or if the config you provide has more than
+one string with the same value.
 */
 func (e *Set) Add(enumName string, values map[int]string) (*Enum, error) {
 
@@ -242,15 +228,6 @@ func (e *Set) addEnum(enumName string, enum *Enum) error {
 
 	if _, ok := e.enums[enumName]; ok {
 		return errors.New("That enum name has already been provided")
-	}
-
-	for v, _ := range enum.values {
-		if _, ok := e.values[v]; ok {
-			//Already registered
-			return errors.New("Value " + strconv.Itoa(v) + " was registered twice")
-		}
-
-		e.values[v] = enum
 	}
 
 	e.enums[enumName] = enum
