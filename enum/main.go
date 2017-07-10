@@ -273,6 +273,12 @@ func (e *Enum) String(val int) string {
 	return e.values[val]
 }
 
+//Name returns the name of this enum; if set is the set this enum is part of,
+//set.Enum(enum.Name()) == enum will be true.
+func (e *Enum) Name() string {
+	return e.name
+}
+
 //ValueFromString returns the enum value that corresponds to the given string,
 //or -1 if no value has that string.
 func (e *Enum) ValueFromString(in string) int {

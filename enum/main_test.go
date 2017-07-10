@@ -38,6 +38,8 @@ func TestEnum(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
+	assert.For(t).ThatActual(colorEnum.Name()).Equals("Color")
+
 	assert.For(t).ThatActual(len(enums.EnumNames())).Equals(1)
 
 	assert.For(t).ThatActual(enums.Enum("Color")).Equals(colorEnum)
