@@ -545,9 +545,7 @@ func (g *GameManager) BulkAddMoveTypes(moveTypeConfigs []*MoveTypeConfig) error 
 	}
 
 	for i, config := range moveTypeConfigs {
-		if moveType, err := NewMoveType(config); err == nil {
-			g.AddMoveType(moveType)
-		} else {
+		if err := g.AddMoveType(config); err != nil {
 			return errors.New("Config " + strconv.Itoa(i) + " failed with error: " + err.Error())
 		}
 	}
@@ -565,18 +563,26 @@ func (g *GameManager) AddAgent(agent Agent) {
 	g.agents = append(g.agents, agent)
 }
 
-//AddPlayerMove adds the specified move type to the game as a move
-//that Players can make. It may only be called during initalization.
-func (g *GameManager) AddMoveType(moveType *MoveType) {
+//AddMoveType adds the specified move type to the game as a move. It may only
+//be called during initalization.
+func (g *GameManager) AddMoveType(config *MoveTypeConfig) error {
+
+	moveType, err := newMoveType(config)
+
+	if err != nil {
+		return err
+	}
 
 	if g.initialized {
-		return
+		return errors.New("GameManager has already been SetUp so no new moves may be added.")
 	}
 	if moveType.IsFixUp() {
 		g.fixUpMoves = append(g.fixUpMoves, moveType)
 	} else {
 		g.playerMoves = append(g.playerMoves, moveType)
 	}
+
+	return nil
 }
 
 //Agents returns a slice of all agents configured on this Manager. Will return

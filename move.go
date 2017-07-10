@@ -8,7 +8,9 @@ import (
 
 //MoveType represents a type of a move in a game, and information about that
 //MoveType. New Moves are constructed by calling its NewMove() method. Fields
-//are hidden to prevent modifying them once a game has been SetUp.
+//are hidden to prevent modifying them once a game has been SetUp. New ones
+//cannot be created directly; they are created via
+//GameManager.AddMoveType(moveTypeConfig).
 type MoveType struct {
 	name           string
 	helpText       string
@@ -136,8 +138,7 @@ func enumStructTagForField(obj interface{}, fieldName string) string {
 
 }
 
-//NewMoveType returns a new MoveType based on the given config.
-func NewMoveType(config *MoveTypeConfig) (*MoveType, error) {
+func newMoveType(config *MoveTypeConfig) (*MoveType, error) {
 	if config == nil {
 		return nil, errors.New("No config provided")
 	}

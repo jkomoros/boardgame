@@ -372,7 +372,7 @@ func TestMoveRoundTrip(t *testing.T) {
 
 func TestIllegalMove(t *testing.T) {
 
-	_, err := NewMoveType(&testIllegalMoveConfig)
+	_, err := newMoveType(&testIllegalMoveConfig)
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
