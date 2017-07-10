@@ -340,12 +340,6 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 				return nil, errors.New("Unable to inflate stack " + propName + " in game.")
 			}
 			stack.Inflate(g.Chest())
-
-		case TypeEnumVar:
-			_, err := game.Reader().EnumVarProp(propName)
-			if err != nil {
-				return nil, errors.New("Unable to inflate enum: " + propName + " in game")
-			}
 		}
 	}
 
@@ -376,11 +370,6 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 					return nil, errors.New("Unable to inflate stack " + propName + " in player " + strconv.Itoa(i))
 				}
 				stack.Inflate(g.Chest())
-			case TypeEnumVar:
-				_, err := player.Reader().EnumVarProp(propName)
-				if err != nil {
-					return nil, errors.New("Unable to inflate enum: " + propName + " in player " + strconv.Itoa(i))
-				}
 			}
 		}
 
@@ -427,11 +416,6 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 						return nil, errors.New("Unable to inflate stack " + propName + " in deck " + deckName + " component " + strconv.Itoa(i))
 					}
 					stack.Inflate(g.Chest())
-				case TypeEnumVar:
-					_, err := resultDeckValue.Reader().EnumVarProp(propName)
-					if err != nil {
-						return nil, errors.New("Unable to inflate enum: " + propName + " in deck " + deckName + " component " + strconv.Itoa(i))
-					}
 				}
 			}
 
