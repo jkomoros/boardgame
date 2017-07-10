@@ -352,12 +352,12 @@ func copyReader(input PropertyReader, outputContainer PropertyReadSetter) error 
 			if err != nil {
 				return errors.New(propName + " could not be set on output: " + err.Error())
 			}
-		case TypeEnumValue:
-			enumValue, err := input.EnumValueProp(propName)
+		case TypeEnumVar:
+			enumValue, err := input.EnumVarProp(propName)
 			if err != nil {
-				return errors.New(propName + " did not return an EnumValue as expected: " + err.Error())
+				return errors.New(propName + " did not return an EnumVar as expected: " + err.Error())
 			}
-			err = outputContainer.SetEnumValueProp(propName, enumValue.Copy())
+			err = outputContainer.SetEnumVarProp(propName, enumValue.CopyVar())
 			if err != nil {
 				return errors.New(propName + " could not be set on output: " + err.Error())
 			}

@@ -453,8 +453,8 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 			//TODO: ideally we'd return a legitimately random playerIndex. But
 			//down here we don't know what the legal range is.
 			return 0
-		case TypeEnumValue:
-			e := input.(*enum.Value).Copy()
+		case TypeEnumVar:
+			e := input.(enum.Var).CopyVar()
 			//TODO: set this to a random legal value in the enum
 			e.SetValue(e.Enum().DefaultValue())
 			return e
@@ -491,8 +491,8 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 		return 0
 	case TypeTimer:
 		return NewTimer()
-	case TypeEnumValue:
-		e := input.(*enum.Value).Copy()
+	case TypeEnumVar:
+		e := input.(enum.Var).CopyVar()
 		e.SetValue(e.Enum().DefaultValue())
 		return e
 	}

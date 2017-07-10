@@ -214,13 +214,13 @@ func verifyReaderObjects(reader PropertyReader, state *state) error {
 				return errors.New("TimerProp " + propName + " had unexpected error: " + err.Error())
 			}
 			val.statePtr = state
-		case TypeEnumValue:
-			val, err := reader.EnumValueProp(propName)
+		case TypeEnumVar:
+			val, err := reader.EnumVarProp(propName)
 			if val == nil {
-				return errors.New("EnumValueProp " + propName + " was nil")
+				return errors.New("EnumVarProp " + propName + " was nil")
 			}
 			if err != nil {
-				return errors.New("EnumValueProp " + propName + " had unexpected error: " + err.Error())
+				return errors.New("EnumVarProp " + propName + " had unexpected error: " + err.Error())
 			}
 		}
 	}
@@ -341,8 +341,8 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 			}
 			stack.Inflate(g.Chest())
 
-		case TypeEnumValue:
-			_, err := game.Reader().EnumValueProp(propName)
+		case TypeEnumVar:
+			_, err := game.Reader().EnumVarProp(propName)
 			if err != nil {
 				return nil, errors.New("Unable to inflate enum: " + propName + " in game")
 			}
@@ -376,8 +376,8 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 					return nil, errors.New("Unable to inflate stack " + propName + " in player " + strconv.Itoa(i))
 				}
 				stack.Inflate(g.Chest())
-			case TypeEnumValue:
-				_, err := player.Reader().EnumValueProp(propName)
+			case TypeEnumVar:
+				_, err := player.Reader().EnumVarProp(propName)
 				if err != nil {
 					return nil, errors.New("Unable to inflate enum: " + propName + " in player " + strconv.Itoa(i))
 				}
@@ -427,8 +427,8 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 						return nil, errors.New("Unable to inflate stack " + propName + " in deck " + deckName + " component " + strconv.Itoa(i))
 					}
 					stack.Inflate(g.Chest())
-				case TypeEnumValue:
-					_, err := resultDeckValue.Reader().EnumValueProp(propName)
+				case TypeEnumVar:
+					_, err := resultDeckValue.Reader().EnumVarProp(propName)
 					if err != nil {
 						return nil, errors.New("Unable to inflate enum: " + propName + " in deck " + deckName + " component " + strconv.Itoa(i))
 					}

@@ -91,12 +91,25 @@ type Enum struct {
 	defaultValue int
 }
 
+//variable is the underlying type we'll return for both Value and Constant.
+type variable struct {
+	enum *Enum
+	val  int
+}
+
+type Constant interface {
+	Enum() *Enum
+	Value() int
+	String() string
+	Copy() Constant
+}
+
 //An EnumValue is an instantiation of a value that must be set to a value in
 //the given enum. You retrieve one from enum.NewEnumValue().
-type Value struct {
-	enum   *Enum
-	locked bool
-	val    int
+type Var interface {
+	Constant
+	SetValue(int) error
+	CopyVar() Var
 }
 
 //NewSet returns a new Set. Generally you'll call this once in a
@@ -273,32 +286,37 @@ func (e *Enum) ValueFromString(in string) int {
 
 //Copy returns a copy of the Value, that is equivalent, but will not be
 //locked.
-func (e *Value) Copy() *Value {
-	return &Value{
+func (e *variable) Copy() Constant {
+	return &variable{
 		e.enum,
-		false,
+		e.val,
+	}
+}
+
+func (e *variable) CopyVar() Var {
+	return &variable{
+		e.enum,
 		e.val,
 	}
 }
 
 //NewEnumValue returns a new EnumValue associated with this enum, set to the
 //Enum's DefaultValue to start.
-func (e *Enum) NewEnumValue() *Value {
-	return &Value{
+func (e *Enum) NewVar() Var {
+	return &variable{
 		e,
-		false,
 		e.DefaultValue(),
 	}
 }
 
 //The enum marshals as the string value of the enum so it's more readable.
-func (e *Value) MarshalJSON() ([]byte, error) {
+func (e *variable) MarshalJSON() ([]byte, error) {
 	return json.Marshal(e.String())
 }
 
 //UnmarshalJSON expects the blob to be the string value. Will error if that
 //doesn't correspond to a valid value for this enum.
-func (e *Value) UnmarshalJSON(blob []byte) error {
+func (e *variable) UnmarshalJSON(blob []byte) error {
 	var str string
 	if err := json.Unmarshal(blob, &str); err != nil {
 		return err
@@ -310,34 +328,25 @@ func (e *Value) UnmarshalJSON(blob []byte) error {
 	return e.SetValue(val)
 }
 
-func (e *Value) Enum() *Enum {
+func (e *variable) Enum() *Enum {
 	return e.enum
 }
 
-func (e *Value) Value() int {
+func (e *variable) Value() int {
 	return e.val
 }
 
-func (e *Value) String() string {
+func (e *variable) String() string {
 	return e.enum.String(e.val)
 }
 
 //SetValue changes the value. Returns true if successful. Will fail if the
 //value is locked or the val you want to set is not a valid number for the
 //enum this value is associated with.
-func (e *Value) SetValue(val int) error {
-	if e.locked {
-		return errors.New("Value is locked")
-	}
+func (e *variable) SetValue(val int) error {
 	if !e.enum.Valid(val) {
 		return errors.New("That value is not valid for this enum")
 	}
 	e.val = val
 	return nil
-}
-
-//Lock locks in the value of the EnumValue, so that in the future all calls to
-//SetValue will fail.
-func (e *Value) Lock() {
-	e.locked = true
 }

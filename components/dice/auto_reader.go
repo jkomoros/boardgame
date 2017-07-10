@@ -42,8 +42,8 @@ func (v *__ValueReader) Prop(name string) (interface{}, error) {
 		return v.BoolProp(name)
 	case boardgame.TypeBoolSlice:
 		return v.BoolSliceProp(name)
-	case boardgame.TypeEnumValue:
-		return v.EnumValueProp(name)
+	case boardgame.TypeEnumVar:
+		return v.EnumVarProp(name)
 	case boardgame.TypeGrowableStack:
 		return v.GrowableStackProp(name)
 	case boardgame.TypeInt:
@@ -89,12 +89,12 @@ func (v *__ValueReader) SetProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type []bool")
 		}
 		return v.SetBoolSliceProp(name, val)
-	case boardgame.TypeEnumValue:
-		val, ok := value.(*enum.Value)
+	case boardgame.TypeEnumVar:
+		val, ok := value.(enum.Var)
 		if !ok {
-			return errors.New("Provided value was not of type *enum.Value")
+			return errors.New("Provided value was not of type enum.Var")
 		}
-		return v.SetEnumValueProp(name, val)
+		return v.SetEnumVarProp(name, val)
 	case boardgame.TypeGrowableStack:
 		val, ok := value.(*boardgame.GrowableStack)
 		if !ok {
@@ -179,15 +179,15 @@ func (v *__ValueReader) SetBoolSliceProp(name string, value []bool) error {
 
 }
 
-func (v *__ValueReader) EnumValueProp(name string) (*enum.Value, error) {
+func (v *__ValueReader) EnumVarProp(name string) (enum.Var, error) {
 
-	return nil, errors.New("No such EnumValue prop: " + name)
+	return nil, errors.New("No such EnumVar prop: " + name)
 
 }
 
-func (v *__ValueReader) SetEnumValueProp(name string, value *enum.Value) error {
+func (v *__ValueReader) SetEnumVarProp(name string, value enum.Var) error {
 
-	return errors.New("No such EnumValue prop: " + name)
+	return errors.New("No such EnumVar prop: " + name)
 
 }
 
@@ -348,8 +348,8 @@ func (d *__DynamicValueReader) Prop(name string) (interface{}, error) {
 		return d.BoolProp(name)
 	case boardgame.TypeBoolSlice:
 		return d.BoolSliceProp(name)
-	case boardgame.TypeEnumValue:
-		return d.EnumValueProp(name)
+	case boardgame.TypeEnumVar:
+		return d.EnumVarProp(name)
 	case boardgame.TypeGrowableStack:
 		return d.GrowableStackProp(name)
 	case boardgame.TypeInt:
@@ -395,12 +395,12 @@ func (d *__DynamicValueReader) SetProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type []bool")
 		}
 		return d.SetBoolSliceProp(name, val)
-	case boardgame.TypeEnumValue:
-		val, ok := value.(*enum.Value)
+	case boardgame.TypeEnumVar:
+		val, ok := value.(enum.Var)
 		if !ok {
-			return errors.New("Provided value was not of type *enum.Value")
+			return errors.New("Provided value was not of type enum.Var")
 		}
-		return d.SetEnumValueProp(name, val)
+		return d.SetEnumVarProp(name, val)
 	case boardgame.TypeGrowableStack:
 		val, ok := value.(*boardgame.GrowableStack)
 		if !ok {
@@ -485,15 +485,15 @@ func (d *__DynamicValueReader) SetBoolSliceProp(name string, value []bool) error
 
 }
 
-func (d *__DynamicValueReader) EnumValueProp(name string) (*enum.Value, error) {
+func (d *__DynamicValueReader) EnumVarProp(name string) (enum.Var, error) {
 
-	return nil, errors.New("No such EnumValue prop: " + name)
+	return nil, errors.New("No such EnumVar prop: " + name)
 
 }
 
-func (d *__DynamicValueReader) SetEnumValueProp(name string, value *enum.Value) error {
+func (d *__DynamicValueReader) SetEnumVarProp(name string, value enum.Var) error {
 
-	return errors.New("No such EnumValue prop: " + name)
+	return errors.New("No such EnumVar prop: " + name)
 
 }
 

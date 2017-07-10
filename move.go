@@ -140,8 +140,8 @@ func NewMoveType(config *MoveTypeConfig) (*MoveType, error) {
 			illegalType = "GrowableStack"
 		case TypeSizedStack:
 			illegalType = "SizedStack"
-		case TypeEnumValue:
-			illegalType = "EnumValue"
+		case TypeEnumVar:
+			illegalType = "EnumVar"
 		case TypeIllegal:
 			illegalType = "general illegal value"
 		}
