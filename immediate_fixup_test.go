@@ -25,7 +25,7 @@ var moveTestImmediatePlayerMoveConfig = MoveTypeConfig{
 		return new(moveTestImmediatePlayerMove)
 	},
 	ImmediateFixUp: func(state State) Move {
-		moveType, _ := newMoveType(&moveTestImmediateFixUpOneConfig)
+		moveType, _ := newMoveType(&moveTestImmediateFixUpOneConfig, state.Game().Manager())
 		return moveType.NewMove(state)
 	},
 }
@@ -52,7 +52,7 @@ var moveTestImmediateFixUpOneConfig = MoveTypeConfig{
 		return new(moveImmediateFixUpOne)
 	},
 	ImmediateFixUp: func(state State) Move {
-		moveType, _ := newMoveType(&moveTestImmediateFixUpTwoConfig)
+		moveType, _ := newMoveType(&moveTestImmediateFixUpTwoConfig, state.Game().Manager())
 		return moveType.NewMove(state)
 	},
 	IsFixUp: true,

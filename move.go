@@ -138,7 +138,7 @@ func enumStructTagForField(obj interface{}, fieldName string) string {
 
 }
 
-func newMoveType(config *MoveTypeConfig) (*MoveType, error) {
+func newMoveType(config *MoveTypeConfig, manager *GameManager) (*MoveType, error) {
 	if config == nil {
 		return nil, errors.New("No config provided")
 	}

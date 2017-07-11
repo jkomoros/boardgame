@@ -372,7 +372,9 @@ func TestMoveRoundTrip(t *testing.T) {
 
 func TestIllegalMove(t *testing.T) {
 
-	_, err := newMoveType(&testIllegalMoveConfig)
+	manager := newTestGameManger()
+
+	_, err := newMoveType(&testIllegalMoveConfig, manager)
 
 	assert.For(t).ThatActual(err).IsNotNil()
 

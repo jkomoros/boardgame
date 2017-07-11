@@ -567,7 +567,7 @@ func (g *GameManager) AddAgent(agent Agent) {
 //be called during initalization.
 func (g *GameManager) AddMoveType(config *MoveTypeConfig) error {
 
-	moveType, err := newMoveType(config)
+	moveType, err := newMoveType(config, g)
 
 	if err != nil {
 		return err
