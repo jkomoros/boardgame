@@ -345,6 +345,17 @@ func (e *Enum) MustNewConst(val int) Const {
 	return result
 }
 
+//NewDefaultConst is a convenience shortcut for creating a new const that is
+//set to the default value, which is moderately common enough that it makes
+//sense to do it without the possibility of errors.
+func (e *Enum) NewDefaultConst() Const {
+	c, err := e.NewConst(e.DefaultValue())
+	if err != nil {
+		panic("Unexpected error in NewDefaultConst: " + err.Error())
+	}
+	return c
+}
+
 //NewConstant returns an enum.Constant that is permanently set to the provided
 //val. If that value is not valid for this enum, it will error.
 func (e *Enum) NewConst(val int) (Const, error) {
