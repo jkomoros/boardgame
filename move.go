@@ -189,13 +189,14 @@ func newMoveType(config *MoveTypeConfig, manager *GameManager) (*MoveType, error
 			}
 			if enumName := enumStructTagForField(testMove, propName); enumName != "" {
 				theEnum := manager.Chest().Enums().Enum(enumName)
-				if theEnum != nil {
-					//Found one!
-					autoEnumFields[propName] = theEnum
-					continue
+				if theEnum == nil {
+					return nil, errors.New(propName + " was a nil enum.Var and the struct tag named " + enumName + " was not a valid enum.")
 				}
+				//Found one!
+				autoEnumFields[propName] = theEnum
+			} else {
+				return nil, errors.New(propName + " was a nil enum.Var")
 			}
-			return nil, errors.New(propName + " was a nil enum.Var")
 		}
 
 		if illegalType != "" {
