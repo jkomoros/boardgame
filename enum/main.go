@@ -103,6 +103,7 @@ type Const interface {
 	Value() int
 	String() string
 	Copy() Const
+	Equals(other Const) bool
 }
 
 //Var is an instantiation of a value that must be set to a value in
@@ -379,4 +380,18 @@ func (e *variable) SetValue(val int) error {
 func (e *variable) SetStringValue(str string) error {
 	val := e.Enum().ValueFromString(str)
 	return e.SetValue(val)
+}
+
+//Equals returns true if the two Consts are equivalent.
+func (e *variable) Equals(other Const) bool {
+	if other == nil {
+		return false
+	}
+	if e.Enum() != other.Enum() {
+		return false
+	}
+	if e.Value() != other.Value() {
+		return false
+	}
+	return true
 }
