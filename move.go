@@ -165,6 +165,16 @@ func newMoveType(config *MoveTypeConfig) (*MoveType, error) {
 			illegalType = "SizedStack"
 		case TypeIllegal:
 			illegalType = "general illegal value"
+		case TypeEnumVar:
+			//TODO: this should be just in the general Reader verifier
+			//described in #457 and #464.
+			enumVal, err := testMove.ReadSetter().EnumVarProp(propName)
+			if err != nil {
+				return nil, err
+			}
+			if enumVal == nil {
+				return nil, errors.New(propName + " was a nil enum.Var")
+			}
 		}
 
 		if illegalType != "" {
