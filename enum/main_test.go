@@ -180,3 +180,44 @@ func TestCombinedEnumSets(t *testing.T) {
 	assert.For(t).ThatActual(combinedSet.Enum("Color")).Equals(colorEnum)
 	assert.For(t).ThatActual(combinedSet.Enum("Card")).Equals(cardEnum)
 }
+
+func TestIntStringOverlap(t *testing.T) {
+
+	set := NewSet()
+
+	const (
+		ColorBlue = iota
+		ColorGreen
+		ColorRed
+	)
+
+	//Illegal because ColorRed value will overlap with ColorGreen's string
+	//value.
+	_, err := set.Add("Color", map[int]string{
+		ColorBlue:  "Blue",
+		ColorGreen: "2",
+		ColorRed:   "Red",
+	})
+
+	assert.For(t).ThatActual(err).IsNotNil()
+
+	//Illegal becuase ColorGreen's string value overlaps with already-existing
+	//int ColorBlue.
+	_, err = set.Add("Color", map[int]string{
+		ColorBlue:  "Blue",
+		ColorGreen: "0",
+		ColorRed:   "Red",
+	})
+
+	assert.For(t).ThatActual(err).IsNotNil()
+
+	//Legal because ColorGreen is 1, so it may have the string value of 1.
+	_, err = set.Add("Color", map[int]string{
+		ColorBlue:  "Blue",
+		ColorGreen: "1",
+		ColorRed:   "Red",
+	})
+
+	assert.For(t).ThatActual(err).IsNil()
+
+}

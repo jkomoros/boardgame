@@ -211,10 +211,20 @@ func (e *Set) Add(enumName string, values map[int]string) (*Enum, error) {
 
 	for v, s := range values {
 
+		numString := strconv.Itoa(v)
+
+		if seenValues[numString] {
+			return nil, errors.New("The string value of " + numString + " was already in the enum")
+		}
+
 		if seenValues[s] {
 			return nil, errors.New("String " + s + " was not unique within enum " + enumName)
 		}
 
+		//We put in both values into seenValues here because it's legal for a
+		//const to have its string-value be the stringification of its own
+		//int.
+		seenValues[numString] = true
 		seenValues[s] = true
 
 		enum.values[v] = s
@@ -286,6 +296,13 @@ func (e *Enum) ValueFromString(in string) int {
 	for v, str := range e.values {
 		if str == in {
 			return v
+		}
+	}
+	//Hmmm... see if they gave us the string equivalent of the int?
+	num, err := strconv.Atoi(in)
+	if err == nil {
+		if _, ok := e.values[num]; ok {
+			return num
 		}
 	}
 	return IllegalValue

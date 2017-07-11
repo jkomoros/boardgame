@@ -434,19 +434,10 @@ func (s *Server) getMoveFromForm(c *gin.Context, game *boardgame.Game) (boardgam
 			if err != nil {
 				return nil, errors.New("Invalid field name: " + err.Error())
 			}
-
-			num, err := strconv.Atoi(rawVal)
-			if err == nil {
-				if err := eVar.SetValue(num); err != nil {
-					return nil, errors.New("Couldn't set number value: " + err.Error())
-				}
-			} else {
-				//Guess it was a string value
-				if err := eVar.SetStringValue(rawVal); err != nil {
-					return nil, errors.New("Couldn't set field value: " + err.Error())
-				}
+			//SetStringValue will also try converting to an int.
+			if err := eVar.SetStringValue(rawVal); err != nil {
+				return nil, errors.New("Couldn't set field value: " + err.Error())
 			}
-
 		case boardgame.TypeIllegal:
 			return nil, errors.New(fmt.Sprint("Field", field.Name, "was an unknown value type"))
 		}
