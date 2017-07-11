@@ -3,6 +3,7 @@ package boardgame
 import (
 	"encoding/json"
 	"errors"
+	"github.com/jkomoros/boardgame/enum"
 	"reflect"
 )
 
@@ -17,6 +18,7 @@ type MoveType struct {
 	constructor    func() Move
 	immediateFixUp func(state State) Move
 	isFixUp        bool
+	autoEnumFields map[string]*enum.Enum
 }
 
 //MoveTypeConfig is a collection of information used to create a MoveType.
@@ -33,7 +35,14 @@ type MoveTypeConfig struct {
 	//in the specified slot on the board."
 	HelpText string
 	//Constructor should return a zero-valued Move of the given type. Normally
-	//very simple: just a new(MyMoveType). Required.
+	//very simple: just a new(MyMoveType). Required. If you have a field that
+	//is an enum.Var you'll need to initalize it with a variable for the
+	//correct enum (generally necessitating a multi-line constructor),
+	//otherwise your move will fail to register. If that field has a struct
+	//tag of `enum:"ENUMNAME"` then so long as ENUMNAME is the name of a valid
+	//enum in the game's Chest.Enums, it will auto-instantiate a enum.Var for
+	//the correct enum for that field, allowing you to maintain a single-line
+	//constructor.
 	MoveConstructor func() Move
 
 	//If ImmediateFixUp is defined and returns a Move, it will immediately be
@@ -151,6 +160,8 @@ func newMoveType(config *MoveTypeConfig, manager *GameManager) (*MoveType, error
 		return nil, errors.New("No MoveConstructor provided")
 	}
 
+	autoEnumFields := make(map[string]*enum.Enum)
+
 	testMove := config.MoveConstructor()
 
 	for propName, propType := range testMove.ReadSetter().Props() {
@@ -172,9 +183,19 @@ func newMoveType(config *MoveTypeConfig, manager *GameManager) (*MoveType, error
 			if err != nil {
 				return nil, err
 			}
-			if enumVal == nil {
-				return nil, errors.New(propName + " was a nil enum.Var")
+			if enumVal != nil {
+				//It's fine.
+				continue
 			}
+			if enumName := enumStructTagForField(testMove, propName); enumName != "" {
+				theEnum := manager.Chest().Enums().Enum(enumName)
+				if theEnum != nil {
+					//Found one!
+					autoEnumFields[propName] = theEnum
+					continue
+				}
+			}
+			return nil, errors.New(propName + " was a nil enum.Var")
 		}
 
 		if illegalType != "" {
@@ -188,6 +209,7 @@ func newMoveType(config *MoveTypeConfig, manager *GameManager) (*MoveType, error
 		constructor:    config.MoveConstructor,
 		immediateFixUp: config.ImmediateFixUp,
 		isFixUp:        config.IsFixUp,
+		autoEnumFields: autoEnumFields,
 	}, nil
 
 }
@@ -221,6 +243,11 @@ func (m *MoveType) NewMove(state State) Move {
 		return nil
 	}
 	move.SetType(m)
+
+	for key, val := range m.autoEnumFields {
+		move.ReadSetter().SetEnumVarProp(key, val.NewVar())
+	}
+
 	move.DefaultsForState(state)
 	return move
 }

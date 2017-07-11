@@ -98,7 +98,9 @@ func TestDefaultMove(t *testing.T) {
 
 	game := testGame()
 
-	game.SetUp(0, nil)
+	if err := game.SetUp(0, nil); err != nil {
+		t.Fatal("Couldn't set up game: " + err.Error())
+	}
 
 	//FixUpMoveByName calls Copy under the covers.
 	move := game.FixUpMoveByName("Advance Current Player")

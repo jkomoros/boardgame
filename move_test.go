@@ -34,3 +34,71 @@ func TestStructTag(t *testing.T) {
 	assert.For(t).ThatActual(enumStructTagForField(theStruct, "Illegal")).Equals("")
 
 }
+
+type testAutoEnumMove struct {
+	moveType *MoveType
+	A        enum.Var `enum:"color"`
+}
+
+func (t *testAutoEnumMove) ReadSetter() PropertyReadSetter {
+	return getDefaultReadSetter(t)
+}
+
+func (t *testAutoEnumMove) Legal(state State, proposer PlayerIndex) error {
+	return nil
+}
+
+func (t *testAutoEnumMove) Apply(state MutableState) error {
+	return nil
+}
+
+func (t *testAutoEnumMove) DefaultsForState(state State) {
+	//Pass
+}
+
+func (t *testAutoEnumMove) SetType(mType *MoveType) {
+	t.moveType = mType
+}
+
+func (t *testAutoEnumMove) Type() *MoveType {
+	return t.moveType
+}
+
+func (t *testAutoEnumMove) Description() string {
+	return t.Type().HelpText()
+}
+
+var testAutoEnumMoveConfig = MoveTypeConfig{
+	Name:     "AutoEnumMove",
+	HelpText: "Test move that has a enum.Var that has to be created",
+	MoveConstructor: func() Move {
+		return new(testAutoEnumMove)
+	},
+}
+
+func TestAutoEnum(t *testing.T) {
+	manager := NewGameManager(&testGameDelegate{}, newTestGameChest(), newTestStorageManager())
+
+	err := manager.AddMoveType(&testAutoEnumMoveConfig)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	manager.SetUp()
+
+	game := NewGame(manager)
+
+	game.SetUp(0, nil)
+
+	moveType := manager.PlayerMoveTypeByName("AutoEnumMove")
+
+	assert.For(t).ThatActual(moveType).IsNotNil()
+
+	move := moveType.NewMove(game.CurrentState())
+
+	assert.For(t).ThatActual(move).IsNotNil()
+
+	enumVar := move.(*testAutoEnumMove).A
+
+	assert.For(t).ThatActual(enumVar.Enum()).Equals(testColorEnum)
+
+}

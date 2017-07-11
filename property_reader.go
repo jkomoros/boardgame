@@ -339,7 +339,8 @@ func (d *defaultReader) EnumVarProp(name string) (enum.Var, error) {
 	s := reflect.ValueOf(d.i).Elem()
 	field := s.FieldByName(name)
 	if field.IsNil() {
-		return nil, errors.New("That property is nil")
+		//This isn't an error; it's just that we shouldn't dereference it.
+		return nil, nil
 	}
 	result := field.Interface().(enum.Var)
 	return result, nil
@@ -356,7 +357,8 @@ func (d *defaultReader) EnumConstProp(name string) (enum.Const, error) {
 	s := reflect.ValueOf(d.i).Elem()
 	field := s.FieldByName(name)
 	if field.IsNil() {
-		return nil, errors.New("That property is nil")
+		//This isn't an error; it's just that we shouldn't dereference it.
+		return nil, nil
 	}
 	result := field.Interface().(enum.Const)
 	return result, nil
