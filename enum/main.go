@@ -103,6 +103,7 @@ type Const interface {
 	Value() int
 	String() string
 	Copy() Const
+	CopyVar() Var
 	Equals(other Const) bool
 }
 
@@ -116,7 +117,6 @@ type Var interface {
 	SetValue(int) error
 	//SetStringValue sets the value to the value associated with that string.
 	SetStringValue(string) error
-	CopyVar() Var
 }
 
 //NewSet returns a new Set. Generally you'll call this once in a
