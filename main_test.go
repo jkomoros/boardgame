@@ -472,7 +472,7 @@ func (t *testAlwaysLegalMove) Apply(state MutableState) error {
 
 type illegalMove struct {
 	baseMove
-	Enum enum.Var
+	Stack *GrowableStack
 }
 
 func (i *illegalMove) ReadSetter() PropertyReadSetter {

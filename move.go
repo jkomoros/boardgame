@@ -163,10 +163,6 @@ func newMoveType(config *MoveTypeConfig) (*MoveType, error) {
 			illegalType = "GrowableStack"
 		case TypeSizedStack:
 			illegalType = "SizedStack"
-		case TypeEnumVar:
-			//TODO: this is technically legal; if the enum tag names an Enum
-			//and we have it, keep track of that.
-			illegalType = "EnumVar"
 		case TypeIllegal:
 			illegalType = "general illegal value"
 		}
