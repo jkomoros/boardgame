@@ -71,6 +71,9 @@ import (
 	"strconv"
 )
 
+//IllegalValue is the senitnel value that will be returned for illegal values.
+const IllegalValue = math.MaxInt64
+
 //EnumSet is a set of enums where each Enum's values are unique. Normally you
 //will create one in your package, add enums to it during initalization, and
 //then use it for all managers you create.
@@ -277,14 +280,14 @@ func (e *Enum) Name() string {
 }
 
 //ValueFromString returns the enum value that corresponds to the given string,
-//or -1 if no value has that string.
+//or IllegalValue if no value has that string.
 func (e *Enum) ValueFromString(in string) int {
 	for v, str := range e.values {
 		if str == in {
 			return v
 		}
 	}
-	return -1
+	return IllegalValue
 }
 
 //Copy returns a copy of the Value, that is equivalent, but will not be
@@ -347,7 +350,7 @@ func (e *variable) UnmarshalJSON(blob []byte) error {
 		return err
 	}
 	val := e.enum.ValueFromString(str)
-	if val == -1 {
+	if val == IllegalValue {
 		return errors.New("That string value had no enum in the value")
 	}
 	return e.SetValue(val)

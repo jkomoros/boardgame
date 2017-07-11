@@ -71,7 +71,7 @@ func TestEnum(t *testing.T) {
 
 	val = colorEnum.ValueFromString("Turquoise")
 
-	assert.For(t).ThatActual(val).Equals(-1)
+	assert.For(t).ThatActual(val).Equals(IllegalValue)
 
 	eVal := colorEnum.NewVar()
 
