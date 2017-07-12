@@ -150,7 +150,11 @@ func (d *Deck) GenericComponent() *Component {
 //finish is called when the deck is added to a component chest. It signifies that no more items may be added.
 func (d *Deck) finish(chest *ComponentChest, name string) error {
 
+	//TODO: this should use the generic reader tester infrastructure we're building out in #464
 	for i, c := range d.components {
+		if c.Values == nil {
+			continue
+		}
 		for propName, propType := range c.Values.Reader().Props() {
 			if propType == TypeEnumVar || propType == TypeGrowableStack || propType == TypeSizedStack || propType == TypeTimer {
 				return errors.New("Component " + strconv.Itoa(i) + " has an illegal property type for property " + propName)
