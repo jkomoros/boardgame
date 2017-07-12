@@ -135,7 +135,9 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 
 	diceDeck.AddComponent(dice.DefaultDie())
 
-	chest.AddDeck(diceDeckName, diceDeck)
+	if err := chest.AddDeck(diceDeckName, diceDeck); err != nil {
+		panic("Couldn't add deck: " + err.Error())
+	}
 
 	manager := boardgame.NewGameManager(&gameDelegate{}, chest, storage)
 

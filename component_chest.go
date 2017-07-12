@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"errors"
 	"github.com/jkomoros/boardgame/enum"
 )
 
@@ -62,10 +63,10 @@ func (c *ComponentChest) Deck(name string) *Deck {
 }
 
 //AddDeck adds a deck with a given name, but only if Freeze() has not yet been called.
-func (c *ComponentChest) AddDeck(name string, deck *Deck) {
+func (c *ComponentChest) AddDeck(name string, deck *Deck) error {
 	//Only add the deck if we haven't finished initalizing
 	if c.initialized {
-		return
+		return errors.New("The chest was already finished, so no new decks may be added.")
 	}
 	if c.decks == nil {
 		c.decks = make(map[string]*Deck)
@@ -75,10 +76,18 @@ func (c *ComponentChest) AddDeck(name string, deck *Deck) {
 		name = "NONAMEPROVIDED"
 	}
 
+	if _, ok := c.decks[name]; ok {
+		return errors.New("A deck with name " + name + " was already in the deck.")
+	}
+
 	//Tell the deck that no more items will be added to it.
-	deck.finish(c, name)
+	if err := deck.finish(c, name); err != nil {
+		return errors.New("Couldn't finish deck: " + err.Error())
+	}
 
 	c.decks[name] = deck
+
+	return nil
 
 }
 

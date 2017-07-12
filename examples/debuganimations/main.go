@@ -178,7 +178,9 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 		Type: "<hidden>",
 	})
 
-	chest.AddDeck(cardsDeckName, cards)
+	if err := chest.AddDeck(cardsDeckName, cards); err != nil {
+		panic("Couldn't add deck: " + err.Error())
+	}
 
 	manager := boardgame.NewGameManager(&gameDelegate{}, chest, storage)
 

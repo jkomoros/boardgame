@@ -51,7 +51,9 @@ func newTestGameChest() *ComponentChest {
 		Message: "Foo",
 	})
 
-	chest.AddDeck("test", deck)
+	if err := chest.AddDeck("test", deck); err != nil {
+		panic("Couldn't instantiate chest: " + err.Error())
+	}
 
 	chest.Finish()
 

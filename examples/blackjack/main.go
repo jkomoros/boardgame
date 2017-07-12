@@ -254,7 +254,9 @@ func (g *gameDelegate) StateSanitizationPolicy() *boardgame.StatePolicy {
 func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 	chest := boardgame.NewComponentChest(nil)
 
-	chest.AddDeck("cards", playingcards.NewDeck(false))
+	if err := chest.AddDeck("cards", playingcards.NewDeck(false)); err != nil {
+		panic("Couldn't add deck: " + err.Error())
+	}
 
 	manager := boardgame.NewGameManager(&gameDelegate{}, chest, storage)
 
