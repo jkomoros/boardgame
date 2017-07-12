@@ -114,9 +114,9 @@ type Var interface {
 	//SetValue changes the value. Returns true if successful. Will fail if the
 	//value is locked or the val you want to set is not a valid number for the
 	//enum this value is associated with.
-	SetValue(int) error
+	SetValue(val int) error
 	//SetStringValue sets the value to the value associated with that string.
-	SetStringValue(string) error
+	SetStringValue(str string) error
 }
 
 //NewSet returns a new Set. Generally you'll call this once in a
