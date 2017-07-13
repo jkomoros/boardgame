@@ -3,8 +3,7 @@ package boardgame
 import (
 	"encoding/json"
 	"errors"
-	"github.com/jkomoros/boardgame/enum"
-	"reflect"
+	"log"
 )
 
 //MoveType represents a type of a move in a game, and information about that
@@ -18,7 +17,7 @@ type MoveType struct {
 	constructor    func() Move
 	immediateFixUp func(state State) Move
 	isFixUp        bool
-	autoEnumFields map[string]*enum.Enum
+	validator      *readerValidator
 }
 
 //MoveTypeConfig is a collection of information used to create a MoveType.
@@ -126,25 +125,10 @@ func StorageRecordForMove(move Move) *MoveStorageRecord {
 	}
 }
 
-//enumStructTagForField will use reflection to fetch the named field from the
-//object and return the value of its `enum` field. Works even if fieldName is
-//in an embedded struct.
-func enumStructTagForField(obj interface{}, fieldName string) string {
-
-	v := reflect.Indirect(reflect.ValueOf(obj))
-
-	t := reflect.TypeOf(v.Interface())
-
-	field, ok := t.FieldByNameFunc(func(str string) bool {
-		return str == fieldName
-	})
-
-	if !ok {
-		return ""
-	}
-
-	return field.Tag.Get("enum")
-
+var moveTypeIllegalPropTypes = map[PropertyType]bool{
+	TypeGrowableStack: true,
+	TypeSizedStack:    true,
+	TypeTimer:         true,
 }
 
 func newMoveType(config *MoveTypeConfig, manager *GameManager) (*MoveType, error) {
@@ -160,48 +144,16 @@ func newMoveType(config *MoveTypeConfig, manager *GameManager) (*MoveType, error
 		return nil, errors.New("No MoveConstructor provided")
 	}
 
-	autoEnumFields := make(map[string]*enum.Enum)
+	exampleMove := config.MoveConstructor()
 
-	testMove := config.MoveConstructor()
+	if exampleMove == nil {
+		return nil, errors.New("MoveConstructor returned nil")
+	}
 
-	for propName, propType := range testMove.ReadSetter().Props() {
+	validator, err := newReaderValidator(exampleMove.ReadSetter(), exampleMove, moveTypeIllegalPropTypes, manager.Chest())
 
-		illegalType := ""
-		switch propType {
-		case TypeTimer:
-			illegalType = "Timer"
-		case TypeGrowableStack:
-			illegalType = "GrowableStack"
-		case TypeSizedStack:
-			illegalType = "SizedStack"
-		case TypeIllegal:
-			illegalType = "general illegal value"
-		case TypeEnumVar:
-			//TODO: this should be just in the general Reader verifier
-			//described in #457 and #464.
-			enumVal, err := testMove.ReadSetter().EnumVarProp(propName)
-			if err != nil {
-				return nil, err
-			}
-			if enumVal != nil {
-				//It's fine.
-				continue
-			}
-			if enumName := enumStructTagForField(testMove, propName); enumName != "" {
-				theEnum := manager.Chest().Enums().Enum(enumName)
-				if theEnum == nil {
-					return nil, errors.New(propName + " was a nil enum.Var and the struct tag named " + enumName + " was not a valid enum.")
-				}
-				//Found one!
-				autoEnumFields[propName] = theEnum
-			} else {
-				return nil, errors.New(propName + " was a nil enum.Var")
-			}
-		}
-
-		if illegalType != "" {
-			return nil, errors.New("Property " + propName + " is a " + illegalType + " which is illegal on moves")
-		}
+	if err != nil {
+		return nil, errors.New("Couldn't create validator: " + err.Error())
 	}
 
 	return &MoveType{
@@ -210,7 +162,7 @@ func newMoveType(config *MoveTypeConfig, manager *GameManager) (*MoveType, error
 		constructor:    config.MoveConstructor,
 		immediateFixUp: config.ImmediateFixUp,
 		isFixUp:        config.IsFixUp,
-		autoEnumFields: autoEnumFields,
+		validator:      validator,
 	}, nil
 
 }
@@ -245,8 +197,14 @@ func (m *MoveType) NewMove(state State) Move {
 	}
 	move.SetType(m)
 
-	for key, val := range m.autoEnumFields {
-		move.ReadSetter().SetEnumVarProp(key, val.NewVar())
+	if err := m.validator.AutoInflate(move.ReadSetter(), state); err != nil {
+		log.Println("AutoInflate had an error: " + err.Error())
+		return nil
+	}
+
+	if err := m.validator.Valid(move.ReadSetter()); err != nil {
+		log.Println("Move was not valid: " + err.Error())
+		return nil
 	}
 
 	move.DefaultsForState(state)
