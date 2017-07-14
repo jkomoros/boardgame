@@ -6,6 +6,8 @@ import (
 	"reflect"
 )
 
+const enumStructTag = "enum"
+
 type readerValidator struct {
 	autoEnumVarFields   map[string]*enum.Enum
 	autoEnumConstFields map[string]*enum.Enum
@@ -38,7 +40,7 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 				//any processing to tell how to inflate it.
 				continue
 			}
-			if enumName := enumStructTagForField(exampleObj, propName); enumName != "" {
+			if enumName := structTagForField(exampleObj, propName, enumStructTag); enumName != "" {
 				theEnum := chest.Enums().Enum(enumName)
 				if theEnum == nil {
 					return nil, errors.New(propName + " was a nil enum.Const and the struct tag named " + enumName + " was not a valid enum.")
@@ -56,7 +58,7 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 				//any processing to tell how to inflate it.
 				continue
 			}
-			if enumName := enumStructTagForField(exampleObj, propName); enumName != "" {
+			if enumName := structTagForField(exampleObj, propName, enumStructTag); enumName != "" {
 				theEnum := chest.Enums().Enum(enumName)
 				if theEnum == nil {
 					return nil, errors.New(propName + " was a nil enum.Var and the struct tag named " + enumName + " was not a valid enum.")
@@ -220,10 +222,10 @@ func (r *readerValidator) Valid(reader PropertyReader) error {
 	return nil
 }
 
-//enumStructTagForField will use reflection to fetch the named field from the
+//structTagForField will use reflection to fetch the named field from the
 //object and return the value of its `enum` field. Works even if fieldName is
 //in an embedded struct.
-func enumStructTagForField(obj interface{}, fieldName string) string {
+func structTagForField(obj interface{}, fieldName string, structTag string) string {
 
 	v := reflect.Indirect(reflect.ValueOf(obj))
 
@@ -237,6 +239,6 @@ func enumStructTagForField(obj interface{}, fieldName string) string {
 		return ""
 	}
 
-	return field.Tag.Get("enum")
+	return field.Tag.Get(structTag)
 
 }

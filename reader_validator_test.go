@@ -27,11 +27,11 @@ func TestStructTag(t *testing.T) {
 		anonPointerTestStruct: &anonPointerTestStruct{},
 	}
 
-	assert.For(t).ThatActual(enumStructTagForField(theStruct, "A")).Equals("")
-	assert.For(t).ThatActual(enumStructTagForField(theStruct, "B")).Equals("B")
-	assert.For(t).ThatActual(enumStructTagForField(theStruct, "C")).Equals("C")
-	assert.For(t).ThatActual(enumStructTagForField(theStruct, "D")).Equals("D")
-	assert.For(t).ThatActual(enumStructTagForField(theStruct, "Illegal")).Equals("")
+	assert.For(t).ThatActual(structTagForField(theStruct, "A", enumStructTag)).Equals("")
+	assert.For(t).ThatActual(structTagForField(theStruct, "B", enumStructTag)).Equals("B")
+	assert.For(t).ThatActual(structTagForField(theStruct, "C", enumStructTag)).Equals("C")
+	assert.For(t).ThatActual(structTagForField(theStruct, "D", enumStructTag)).Equals("D")
+	assert.For(t).ThatActual(structTagForField(theStruct, "Illegal", enumStructTag)).Equals("")
 
 }
 
