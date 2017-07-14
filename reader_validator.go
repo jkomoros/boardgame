@@ -85,6 +85,16 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 //this validator.
 func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) error {
 
+	var statePtr *state
+
+	if st != nil {
+		var ok bool
+		statePtr, ok = st.(*state)
+		if !ok {
+			return errors.New("The provided non-nil State could not be conveted to a state ptr")
+		}
+	}
+
 	for propName, enum := range r.autoEnumVarFields {
 		enumVar, err := readSetter.EnumVarProp(propName)
 		if enumVar != nil {
@@ -118,6 +128,18 @@ func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) e
 			return errors.New("Couldn't set " + propName + " to NewDefaultConst: " + err.Error())
 		}
 	}
+
+	for propName, propType := range readSetter.Props() {
+		switch propType {
+		case TypeTimer:
+			timer := NewTimer()
+			timer.statePtr = statePtr
+			if err := readSetter.SetTimerProp(propName, timer); err != nil {
+				return errors.New("Couldn't set " + propName + " to a new timer: " + err.Error())
+			}
+		}
+	}
+
 	//TODO: process Stack, Timer fields (convert to state pointer if non-nil)
 	return nil
 }

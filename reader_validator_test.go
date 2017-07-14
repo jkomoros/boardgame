@@ -107,6 +107,7 @@ type testGeneralReadSetter struct {
 	TheInt    int
 	EnumConst enum.Const `enum:"color"`
 	EnumVar   enum.Var   `enum:"color"`
+	TheTimer  *Timer
 }
 
 func (t *testGeneralReadSetter) ReadSetter() PropertyReadSetter {
@@ -142,4 +143,6 @@ func TestReaderValidator(t *testing.T) {
 	assert.For(t).ThatActual(autoFilledObj.EnumConst.Enum()).Equals(testColorEnum)
 
 	assert.For(t).ThatActual(autoFilledObj.EnumVar.Enum()).Equals(testColorEnum)
+
+	assert.For(t).ThatActual(autoFilledObj.TheTimer).IsNotNil()
 }
