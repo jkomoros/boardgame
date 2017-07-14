@@ -102,3 +102,44 @@ func TestAutoEnum(t *testing.T) {
 	assert.For(t).ThatActual(enumVar.Enum()).Equals(testColorEnum)
 
 }
+
+type testGeneralReadSetter struct {
+	TheInt    int
+	EnumConst enum.Const `enum:"color"`
+	EnumVar   enum.Var   `enum:"color"`
+}
+
+func (t *testGeneralReadSetter) ReadSetter() PropertyReadSetter {
+	return getDefaultReadSetter(t)
+}
+
+func TestReaderValidator(t *testing.T) {
+
+	example := &testGeneralReadSetter{}
+
+	game := testGame()
+
+	game.SetUp(0, nil)
+
+	validator, err := newReaderValidator(example.ReadSetter(), example, nil, game.manager.Chest())
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	autoFilledObj := &testGeneralReadSetter{}
+
+	err = validator.Valid(autoFilledObj.ReadSetter())
+
+	assert.For(t).ThatActual(err).IsNotNil()
+
+	err = validator.AutoInflate(autoFilledObj.ReadSetter(), game.CurrentState())
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	err = validator.Valid(autoFilledObj.ReadSetter())
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(autoFilledObj.EnumConst.Enum()).Equals(testColorEnum)
+
+	assert.For(t).ThatActual(autoFilledObj.EnumVar.Enum()).Equals(testColorEnum)
+}

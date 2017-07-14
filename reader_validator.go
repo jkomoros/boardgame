@@ -7,8 +7,9 @@ import (
 )
 
 type readerValidator struct {
-	autoEnumVarFields map[string]*enum.Enum
-	illegalTypes      map[PropertyType]bool
+	autoEnumVarFields   map[string]*enum.Enum
+	autoEnumConstFields map[string]*enum.Enum
+	illegalTypes        map[PropertyType]bool
 }
 
 //newReaderValidator returns a new readerValidator configured to disallow the
@@ -23,10 +24,28 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 	}
 
 	autoEnumVarFields := make(map[string]*enum.Enum)
+	autoEnumConstFields := make(map[string]*enum.Enum)
 
 	for propName, propType := range exampleReader.Props() {
 		switch propType {
-		//TODO: support TypeEnumConst
+		case TypeEnumConst:
+			enumConst, err := exampleReader.EnumConstProp(propName)
+			if err != nil {
+				return nil, errors.New("Couldn't fetch enum const prop: " + propName)
+			}
+			if enumConst != nil {
+				//This enum prop is already non-nil, so we don't need to do
+				//any processing to tell how to inflate it.
+				continue
+			}
+			if enumName := enumStructTagForField(exampleObj, propName); enumName != "" {
+				theEnum := chest.Enums().Enum(enumName)
+				if theEnum == nil {
+					return nil, errors.New(propName + " was a nil enum.Const and the struct tag named " + enumName + " was not a valid enum.")
+				}
+				//Found one!
+				autoEnumConstFields[propName] = theEnum
+			}
 		case TypeEnumVar:
 			enumVar, err := exampleReader.EnumVarProp(propName)
 			if err != nil {
@@ -50,6 +69,7 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 
 	result := &readerValidator{
 		autoEnumVarFields,
+		autoEnumConstFields,
 		illegalTypes,
 	}
 
@@ -81,7 +101,23 @@ func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) e
 			return errors.New("Couldn't set " + propName + " to NewVar: " + err.Error())
 		}
 	}
-	//TODO: process EnumConst fields
+
+	for propName, enum := range r.autoEnumConstFields {
+		enumConst, err := readSetter.EnumConstProp(propName)
+		if enumConst != nil {
+			//Guess it was already set!
+			continue
+		}
+		if err != nil {
+			return errors.New(propName + " had error fetching EnumConst: " + err.Error())
+		}
+		if enum == nil {
+			return errors.New("The enum for " + propName + " was unexpectedly nil")
+		}
+		if err := readSetter.SetEnumConstProp(propName, enum.NewDefaultConst()); err != nil {
+			return errors.New("Couldn't set " + propName + " to NewDefaultConst: " + err.Error())
+		}
+	}
 	//TODO: process Stack, Timer fields (convert to state pointer if non-nil)
 	return nil
 }
