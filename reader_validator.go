@@ -4,14 +4,24 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame/enum"
 	"reflect"
+	"strconv"
+	"strings"
 )
 
 const enumStructTag = "enum"
+const stackStructTag = "stack"
+
+type autoStackConfig struct {
+	deck *Deck
+	size int
+}
 
 type readerValidator struct {
-	autoEnumVarFields   map[string]*enum.Enum
-	autoEnumConstFields map[string]*enum.Enum
-	illegalTypes        map[PropertyType]bool
+	autoEnumVarFields       map[string]*enum.Enum
+	autoEnumConstFields     map[string]*enum.Enum
+	autoGrowableStackFields map[string]*autoStackConfig
+	autoSizedStackFields    map[string]*autoStackConfig
+	illegalTypes            map[PropertyType]bool
 }
 
 //newReaderValidator returns a new readerValidator configured to disallow the
@@ -27,9 +37,57 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 
 	autoEnumVarFields := make(map[string]*enum.Enum)
 	autoEnumConstFields := make(map[string]*enum.Enum)
+	autoSizedStackFields := make(map[string]*autoStackConfig)
+	autoGrowableStackFields := make(map[string]*autoStackConfig)
 
 	for propName, propType := range exampleReader.Props() {
 		switch propType {
+		case TypeSizedStack:
+			sizedStack, err := exampleReader.SizedStackProp(propName)
+			if err != nil {
+				return nil, errors.New("Couldn't fetch sized stack prop: " + propName)
+			}
+			if sizedStack != nil {
+				//This stack prop is already non-nil, so we don't need to do
+				//any processing to tell how to inflate it.
+				continue
+			}
+			if tag := structTagForField(exampleObj, propName, stackStructTag); tag != "" {
+
+				deck, size, err := unpackStackStructTag(tag, chest)
+
+				if err != nil {
+					return nil, errors.New(propName + " was a nil SizedStack and its struct tag was not valid: " + err.Error())
+				}
+
+				autoSizedStackFields[propName] = &autoStackConfig{
+					deck,
+					size,
+				}
+			}
+		case TypeGrowableStack:
+			growableStack, err := exampleReader.GrowableStackProp(propName)
+			if err != nil {
+				return nil, errors.New("Couldn't fetch sized growable prop: " + propName)
+			}
+			if growableStack != nil {
+				//This stack prop is already non-nil, so we don't need to do
+				//any processing to tell how to inflate it.
+				continue
+			}
+			if tag := structTagForField(exampleObj, propName, stackStructTag); tag != "" {
+
+				deck, size, err := unpackStackStructTag(tag, chest)
+
+				if err != nil {
+					return nil, errors.New(propName + " was a nil growable stack and its struct tag was not valid: " + err.Error())
+				}
+
+				autoGrowableStackFields[propName] = &autoStackConfig{
+					deck,
+					size,
+				}
+			}
 		case TypeEnumConst:
 			enumConst, err := exampleReader.EnumConstProp(propName)
 			if err != nil {
@@ -72,6 +130,8 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 	result := &readerValidator{
 		autoEnumVarFields,
 		autoEnumConstFields,
+		autoGrowableStackFields,
+		autoSizedStackFields,
 		illegalTypes,
 	}
 
@@ -94,6 +154,64 @@ func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) e
 		statePtr, ok = st.(*state)
 		if !ok {
 			return errors.New("The provided non-nil State could not be conveted to a state ptr")
+		}
+	}
+
+	for propName, config := range r.autoGrowableStackFields {
+
+		if statePtr == nil {
+			return errors.New("Provided state was nil but there are growable stacks to expand")
+		}
+
+		growableStack, err := readSetter.GrowableStackProp(propName)
+		if growableStack != nil {
+			//Guess it was already set!
+			continue
+		}
+		if err != nil {
+			return errors.New(propName + " had error fetching growable stack: " + err.Error())
+		}
+		if config == nil {
+			return errors.New("The config for " + propName + " was unexpectedly nil")
+		}
+		if config.deck == nil {
+			return errors.New("The deck for " + propName + " was unexpectedly nil")
+		}
+
+		stack := NewGrowableStack(config.deck, config.size)
+		stack.statePtr = statePtr
+
+		if err := readSetter.SetGrowableStackProp(propName, stack); err != nil {
+			return errors.New("Couldn't set " + propName + " to growable stack: " + err.Error())
+		}
+	}
+
+	for propName, config := range r.autoSizedStackFields {
+
+		if statePtr == nil {
+			return errors.New("Provided state was nil but there are sized stacks to expand")
+		}
+
+		sizedStack, err := readSetter.SizedStackProp(propName)
+		if sizedStack != nil {
+			//Guess it was already set!
+			continue
+		}
+		if err != nil {
+			return errors.New(propName + " had error fetching sized stack: " + err.Error())
+		}
+		if config == nil {
+			return errors.New("The config for " + propName + " was unexpectedly nil")
+		}
+		if config.deck == nil {
+			return errors.New("The deck for " + propName + " was unexpectedly nil")
+		}
+
+		stack := NewSizedStack(config.deck, config.size)
+		stack.statePtr = statePtr
+
+		if err := readSetter.SetSizedStackProp(propName, stack); err != nil {
+			return errors.New("Couldn't set " + propName + " to sized stack: " + err.Error())
 		}
 	}
 
@@ -134,6 +252,9 @@ func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) e
 	for propName, propType := range readSetter.Props() {
 		switch propType {
 		case TypeTimer:
+			if statePtr == nil {
+				return errors.New("Provided state was nil but there are timers to expand")
+			}
 			timer := NewTimer()
 			timer.statePtr = statePtr
 			if err := readSetter.SetTimerProp(propName, timer); err != nil {
@@ -220,6 +341,35 @@ func (r *readerValidator) Valid(reader PropertyReader) error {
 		}
 	}
 	return nil
+}
+
+func unpackStackStructTag(tag string, chest *ComponentChest) (*Deck, int, error) {
+	pieces := strings.Split(tag, ",")
+
+	if len(pieces) > 2 {
+		return nil, 0, errors.New("There were more fields in the struct tag than expected")
+	}
+
+	deckName := pieces[0]
+
+	deck := chest.Deck(deckName)
+
+	if deck == nil {
+		return nil, 0, errors.New("The deck name " + deckName + " was not a valid deck")
+	}
+
+	size := 0
+
+	if len(pieces) > 1 {
+		var err error
+		size, err = strconv.Atoi(pieces[1])
+		if err != nil {
+			return nil, 0, errors.New("The size in the struct tag was not a valid int: " + err.Error())
+		}
+	}
+
+	return deck, size, nil
+
 }
 
 //structTagForField will use reflection to fetch the named field from the
