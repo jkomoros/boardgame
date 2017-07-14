@@ -147,27 +147,26 @@ func (d *Deck) GenericComponent() *Component {
 	return d.ShadowComponent(genericComponentSentinel)
 }
 
+var illegalComponentValuesProps = map[PropertyType]bool{
+	TypeEnumVar:       true,
+	TypeGrowableStack: true,
+	TypeSizedStack:    true,
+	TypeTimer:         true,
+}
+
 //finish is called when the deck is added to a component chest. It signifies that no more items may be added.
 func (d *Deck) finish(chest *ComponentChest, name string) error {
 
-	//TODO: this should use the generic reader tester infrastructure we're building out in #464
 	for i, c := range d.components {
 		if c.Values == nil {
 			continue
 		}
-		for propName, propType := range c.Values.Reader().Props() {
-			if propType == TypeEnumVar || propType == TypeGrowableStack || propType == TypeSizedStack || propType == TypeTimer {
-				return errors.New("Component " + strconv.Itoa(i) + " has an illegal property type for property " + propName)
-			}
-			if propType == TypeEnumConst {
-				enumConst, err := c.Values.Reader().EnumConstProp(propName)
-				if err != nil {
-					return errors.New("Unexpected error for component " + strconv.Itoa(i) + ": " + err.Error())
-				}
-				if enumConst == nil {
-					return errors.New("Component " + strconv.Itoa(i) + " had a nil enum.Const for property " + propName)
-				}
-			}
+		validator, err := newReaderValidator(c.Values.Reader(), c.Values, illegalComponentValuesProps, chest)
+		if err != nil {
+			return errors.New("Component " + strconv.Itoa(i) + "failed to validate: " + err.Error())
+		}
+		if err := validator.Valid(c.Values.Reader()); err != nil {
+			return errors.New("Component " + strconv.Itoa(i) + " failed to validate: " + err.Error())
 		}
 	}
 
