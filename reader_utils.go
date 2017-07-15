@@ -506,7 +506,7 @@ func unpackStackStructTag(tag string, chest *ComponentChest) (*Deck, int, error)
 		return nil, 0, errors.New("There were more fields in the struct tag than expected")
 	}
 
-	deckName := pieces[0]
+	deckName := strings.TrimSpace(pieces[0])
 
 	deck := chest.Deck(deckName)
 
@@ -518,7 +518,7 @@ func unpackStackStructTag(tag string, chest *ComponentChest) (*Deck, int, error)
 
 	if len(pieces) > 1 {
 		var err error
-		size, err = strconv.Atoi(pieces[1])
+		size, err = strconv.Atoi(strings.TrimSpace(pieces[1]))
 		if err != nil {
 			return nil, 0, errors.New("The size in the struct tag was not a valid int: " + err.Error())
 		}
