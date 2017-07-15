@@ -20,19 +20,22 @@ import (
 //across multiple games. It is specifically designed to be used with multiple
 //games.
 type GameManager struct {
-	delegate            GameDelegate
-	chest               *ComponentChest
-	storage             StorageManager
-	agents              []Agent
-	fixUpMoves          []*MoveType
-	playerMoves         []*MoveType
-	fixUpMovesByName    map[string]*MoveType
-	playerMovesByName   map[string]*MoveType
-	agentsByName        map[string]Agent
-	modifiableGamesLock sync.RWMutex
-	modifiableGames     map[string]*Game
-	timers              *timerManager
-	initialized         bool
+	delegate                  GameDelegate
+	gameValidator             *readerValidator
+	playerValidator           *readerValidator
+	dynamicComponentValidator map[string]*readerValidator
+	chest                     *ComponentChest
+	storage                   StorageManager
+	agents                    []Agent
+	fixUpMoves                []*MoveType
+	playerMoves               []*MoveType
+	fixUpMovesByName          map[string]*MoveType
+	playerMovesByName         map[string]*MoveType
+	agentsByName              map[string]Agent
+	modifiableGamesLock       sync.RWMutex
+	modifiableGames           map[string]*Game
+	timers                    *timerManager
+	initialized               bool
 }
 
 //NewGameManager creates a new game manager with the given delegate.
@@ -191,8 +194,12 @@ func (g *GameManager) emptyPlayerState(state *state, player PlayerIndex) (Mutabl
 		return nil, errors.New("EmptyPlayerState returned nil for " + strconv.Itoa(int(player)))
 	}
 
-	if err := verifyReaderObjects(playerState.Reader(), state); err != nil {
-		return nil, err
+	if err := g.playerValidator.AutoInflate(playerState.ReadSetter(), state); err != nil {
+		return nil, errors.New("Couldn't auto-inflate empty player state: " + err.Error())
+	}
+
+	if err := g.playerValidator.Valid(playerState.Reader()); err != nil {
+		return nil, errors.New("Player State was not valid: " + err.Error())
 	}
 
 	return playerState, nil
@@ -209,8 +216,12 @@ func (g *GameManager) emptyGameState(state *state) (MutableSubState, error) {
 		return nil, errors.New("EmptyGameState returned nil")
 	}
 
-	if err := verifyReaderObjects(gameState.Reader(), state); err != nil {
-		return nil, err
+	if err := g.gameValidator.AutoInflate(gameState.ReadSetter(), state); err != nil {
+		return nil, errors.New("Couldn't auto-inflate empty game state: " + err.Error())
+	}
+
+	if err := g.gameValidator.Valid(gameState.Reader()); err != nil {
+		return nil, errors.New("game State was not valid: " + err.Error())
 	}
 
 	return gameState, nil
@@ -232,12 +243,25 @@ func (g *GameManager) emptyDynamicComponentValues(state *state) (map[string][]Mu
 		if values == nil {
 			continue
 		}
+
+		validator := g.dynamicComponentValidator[deckName]
+
+		if validator == nil {
+			return nil, errors.New("Unexpectedly couldn't find validator for deck " + deckName)
+		}
+
 		arr := make([]MutableSubState, len(deck.Components()))
 		for i := 0; i < len(deck.Components()); i++ {
 			arr[i] = g.Delegate().EmptyDynamicComponentValues(deck)
-			if err := verifyReaderObjects(arr[i].Reader(), state); err != nil {
-				return nil, errors.New("VeriyReaderObject failed at " + deckName + " " + strconv.Itoa(i) + ": " + err.Error())
+
+			if err := validator.AutoInflate(arr[i].ReadSetter(), state); err != nil {
+				return nil, errors.New("Couldn't auto-inflate dynamic compoonent values for " + deckName + " " + strconv.Itoa(i) + ": " + err.Error())
 			}
+
+			if err := validator.Valid(arr[i].Reader()); err != nil {
+				return nil, errors.New("Dynamic compoonent values for " + deckName + " " + strconv.Itoa(i) + " was not valid: " + err.Error())
+			}
+
 		}
 		result[deckName] = arr
 
@@ -424,6 +448,83 @@ func (g *GameManager) SetUp() error {
 
 	if g.storage == nil {
 		return errors.New("Storage not provided")
+	}
+
+	fakeState := &state{}
+
+	exampleGameState := g.delegate.EmptyGameState()
+
+	if exampleGameState == nil {
+		return errors.New("EmptyGameState returned nil")
+	}
+
+	validator, err := newReaderValidator(exampleGameState.Reader(), exampleGameState, nil, g.chest)
+
+	if err != nil {
+		return errors.New("Could not validate empty game state: " + err.Error())
+	}
+
+	//Technically we don't need to do this test inflation now, but we might as
+	//well catch these problems at SetUp instead of later.
+
+	if err = validator.AutoInflate(exampleGameState.ReadSetter(), fakeState); err != nil {
+		return errors.New("Couldn't auto inflate empty game state: " + err.Error())
+	}
+
+	if err = validator.Valid(exampleGameState.Reader()); err != nil {
+		return errors.New("Default infflated empty game state was not valid: " + err.Error())
+	}
+
+	g.gameValidator = validator
+
+	examplePlayerState := g.delegate.EmptyPlayerState(0)
+
+	if examplePlayerState == nil {
+		return errors.New("EmptyPlayerState returned nil")
+	}
+
+	validator, err = newReaderValidator(examplePlayerState.Reader(), examplePlayerState, nil, g.chest)
+
+	if err != nil {
+		return errors.New("Could not validate empty player state: " + err.Error())
+	}
+
+	if err = validator.AutoInflate(examplePlayerState.ReadSetter(), fakeState); err != nil {
+		return errors.New("Couldn't auto inflate empty player state: " + err.Error())
+	}
+
+	if err = validator.Valid(examplePlayerState.Reader()); err != nil {
+		return errors.New("Default infflated empty player state was not valid: " + err.Error())
+	}
+
+	g.playerValidator = validator
+
+	g.dynamicComponentValidator = make(map[string]*readerValidator)
+
+	for _, deckName := range g.chest.DeckNames() {
+		deck := g.chest.Deck(deckName)
+
+		exampleDynamicComponentValue := g.delegate.EmptyDynamicComponentValues(deck)
+
+		if exampleDynamicComponentValue == nil {
+			continue
+		}
+
+		validator, err = newReaderValidator(exampleDynamicComponentValue.Reader(), exampleDynamicComponentValue, nil, g.chest)
+
+		if err != nil {
+			return errors.New("Could not validate empty dynamic component state for " + deckName + ": " + err.Error())
+		}
+
+		if err = validator.AutoInflate(exampleDynamicComponentValue.ReadSetter(), fakeState); err != nil {
+			return errors.New("Couldn't auto inflate empty dynamic component state for " + deckName + ": " + err.Error())
+		}
+
+		if err = validator.Valid(exampleDynamicComponentValue.Reader()); err != nil {
+			return errors.New("Default infflated empty dynamic component state for " + deckName + " was not valid: " + err.Error())
+		}
+
+		g.dynamicComponentValidator[deckName] = validator
 	}
 
 	//Verify that the shape of the computed property collections fits with the config.

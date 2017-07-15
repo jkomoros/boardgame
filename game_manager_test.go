@@ -120,26 +120,16 @@ func TestDefaultMove(t *testing.T) {
 func TestNilStackErrors(t *testing.T) {
 	manager := NewGameManager(&nilStackGameDelegate{}, newTestGameChest(), newTestStorageManager())
 
-	if err := manager.SetUp(); err != nil {
-		t.Fatal("Couldn't set up nilStackGameDelegate-based manager")
-	}
-
-	game := NewGame(manager)
-
-	if game == nil {
-		t.Error("No game provided from new game")
-	}
-
-	if err := game.SetUp(0, nil); err == nil {
-		t.Error("Didn't get error when setting up with an empty game state with nil stacks")
+	if err := manager.SetUp(); err == nil {
+		t.Fatal("We were able to set up a manager that had nil stacks")
 	}
 
 	//Switch so gameState is valid, but playerState is still not, so we can
 	//make sure we do the same test for playerStates.
 	manager.delegate.(*nilStackGameDelegate).nilForPlayer = true
 
-	if err := game.SetUp(0, nil); err == nil {
-		t.Error("Didn't get an error when given an empty player state with nil stacks")
+	if err := manager.SetUp(); err == nil {
+		t.Fatal("We were able to set up a manger that had nil stacks")
 	}
 
 }

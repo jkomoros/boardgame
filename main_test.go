@@ -522,7 +522,9 @@ func testGame() *Game {
 
 	manager := newTestGameManger()
 
-	manager.SetUp()
+	if err := manager.SetUp(); err != nil {
+		panic("Failed to set up manager: " + err.Error())
+	}
 
 	game := NewGame(manager)
 
