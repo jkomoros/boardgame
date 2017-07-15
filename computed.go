@@ -3,6 +3,7 @@ package boardgame
 import (
 	"encoding/json"
 	"errors"
+	"github.com/jkomoros/boardgame/enum"
 	"strconv"
 )
 
@@ -249,6 +250,20 @@ func (c *ComputedGlobalPropertyDefinition) calculate(propName string, state *sta
 			return errors.New("Property did not return sized stack as expected")
 		}
 		output.SetSizedStackProp(propName, sizedStackVal)
+	case TypeEnumConst:
+		enumConstVal, ok := result.(enum.Const)
+		if !ok {
+			return errors.New("Property did not return enum const as expected")
+		}
+		output.SetEnumConstProp(propName, enumConstVal)
+	case TypeEnumVar:
+		enumVarVal, ok := result.(enum.Var)
+		if !ok {
+			return errors.New("Property did not return enum var as expected")
+		}
+		output.SetEnumVarProp(propName, enumVarVal)
+	default:
+		return errors.New("That property type, " + c.PropType.String() + " is not currently supported")
 	}
 
 	return nil
@@ -300,6 +315,20 @@ func (c *ComputedPlayerPropertyDefinition) calculate(propName string, playerInde
 			return errors.New("Property did not return sized stack as expected")
 		}
 		output.SetSizedStackProp(propName, sizedStackVal)
+	case TypeEnumConst:
+		enumConstVal, ok := result.(enum.Const)
+		if !ok {
+			return errors.New("Property did not return enum const as expected")
+		}
+		output.SetEnumConstProp(propName, enumConstVal)
+	case TypeEnumVar:
+		enumVarVal, ok := result.(enum.Var)
+		if !ok {
+			return errors.New("Property did not return enum var as expected")
+		}
+		output.SetEnumVarProp(propName, enumVarVal)
+	default:
+		return errors.New("That property type, " + c.PropType.String() + " is not currently supported")
 	}
 
 	return nil
