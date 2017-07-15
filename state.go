@@ -259,7 +259,7 @@ func (s *state) copy(sanitized bool) *state {
 		arr := make([]MutableSubState, len(values))
 		for i := 0; i < len(values); i++ {
 			arr[i] = s.copyDynamicComponentValues(values[i], deckName)
-			if err := verifyReaderObjects(arr[i].Reader(), result); err != nil {
+			if err := setReaderStatePtr(arr[i].Reader(), result); err != nil {
 				return nil
 			}
 		}
@@ -267,11 +267,11 @@ func (s *state) copy(sanitized bool) *state {
 	}
 
 	//FixUp stacks to make sure they point to this new state.
-	if err := verifyReaderObjects(result.gameState.Reader(), result); err != nil {
+	if err := setReaderStatePtr(result.gameState.Reader(), result); err != nil {
 		return nil
 	}
 	for _, player := range result.playerStates {
-		if err := verifyReaderObjects(player.Reader(), result); err != nil {
+		if err := setReaderStatePtr(player.Reader(), result); err != nil {
 			return nil
 		}
 	}
