@@ -525,6 +525,57 @@ definition will live.
 need to do a few more things, as described in the boardgame/server package, to
 complete the web app.
 
+Constructors
+
+In a number of cases you need to implent your own concrete types that
+implement given interfaces. (For example: GameState, PlayerState,
+DynamicComponentValue, and Moves.) GameDelegate and MoveTypeConfig have
+*Constructor methods that you implement that should return a new instance of
+your concrete type.
+
+In general these constructors should just return the zero-value for each
+property. However, there are a handful of properties that are pointers, and
+which contain important config information in their instantiation. For
+example, a SizedStack has a reference to its deck, and a size. If you just
+left it as its nil zero value, we wouldn't know which deck it referenced or
+how many items it could hold.
+
+One easy option is to instantiate those values yourself:
+
+	func (g *gameDelegate) GameStateConstructor() boardgame.MutableSubState {
+		deck := g.Manager().Chest().Deck("cards")
+
+		if deck == nil {
+			return nil
+		}
+
+		return &gameState{
+			Deck: boardgame.NewSizedStack(deck, 5),
+		}
+	}
+
+However, this is a fair bit of logic to include. It is also possible to use
+tag-based auto-inflation, where you annotate your structs with information
+about how to instantiate those properties. At SetUp time reflection is used to
+discover that configuration, and from then on each time an object is created
+via that constructor it will have those fields instantiated without needing
+reflection, so it is fast. This allows you to create single-line constructors
+in many cases:
+
+	type gameState struct {
+		Deck *boardgame.SizedStack `stack:"deck,5"`
+		//The size may be omitted to default to 0
+		Hand *boardgame.GrowableStack `stack:"deck"`
+		Color enum.Var `enum:"Color"`
+		//Timers don't require any struct tags; they will be initalized
+		//automatically.
+		Timer *boardgame.Timer
+	}
+
+	func (g *gameDelegate) GameStateConstructor() boardgame.MutableSubState {
+		return new(gameState)
+	}
+
 Reflection and Properties
 
 The aim of the boardgame package is to make it as easy as possible for you to

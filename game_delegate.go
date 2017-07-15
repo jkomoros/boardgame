@@ -91,13 +91,14 @@ type GameDelegate interface {
 	//players have very different roles in a game, there might be many
 	//properties that are not in use for any given player. The simple
 	//properties (ints, bools, strings) should all be their zero-value.
-	//Importantly, all Stacks should be non- nil, because an initialized
-	//struct contains information about things like MaxSize, Size, and a
-	//reference to the deck they are affiliated with. Game methods that use
-	//these will fail if the State objects return have uninitialized stacks.
-	//Since these two methods are always required and always specific to each
-	//game type, DefaultGameDelegate does not implement them, as an extra
-	//reminder that you must implement them yourself.
+	//Importantly, all Stacks, Timers, and Enums should be non- nil, because
+	//an initialized struct contains information about things like MaxSize,
+	//Size, and a reference to the deck they are affiliated with. It is also
+	//possible to use tag-based auto-initalization for these fields; see the
+	//package doc on Constructors.  Since these two methods are always
+	//required and always specific to each game type, DefaultGameDelegate does
+	//not implement them, as an extra reminder that you must implement them
+	//yourself.
 	GameStateConstructor() MutableSubState
 	//PlayerStateConstructor is similar to GameStateConstructor, but
 	//playerIndex is the value that this PlayerState must return when its
