@@ -4,12 +4,15 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/components/playingcards"
 	"github.com/jkomoros/boardgame/storage/memory"
+	"github.com/workfit/tester/assert"
 	"testing"
 )
 
 func TestHandValue(t *testing.T) {
 
-	manager := NewManager(memory.NewStorageManager())
+	manager, err := NewManager(memory.NewStorageManager())
+
+	assert.For(t).ThatActual(err).IsNil()
 
 	chest := manager.Chest()
 

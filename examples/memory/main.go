@@ -7,6 +7,7 @@ flipping over two cards, and keeping them if they match.
 package memory
 
 import (
+	"errors"
 	"fmt"
 	"github.com/jkomoros/boardgame"
 	"strconv"
@@ -227,7 +228,19 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, 
 
 }
 
-func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
+func MustNewManager(storage boardgame.StorageManager) *boardgame.GameManager {
+
+	manager, err := NewManager(storage)
+
+	if err != nil {
+		panic("Couldn't create manager: " + err.Error())
+	}
+
+	return manager
+
+}
+
+func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) {
 	chest := boardgame.NewComponentChest(nil)
 
 	cards := boardgame.NewDeck()
@@ -243,13 +256,13 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 	})
 
 	if err := chest.AddDeck(cardsDeckName, cards); err != nil {
-		panic("Couldn't add deck: " + err.Error())
+		return nil, errors.New("Couldn't add deck: " + err.Error())
 	}
 
 	manager := boardgame.NewGameManager(&gameDelegate{}, chest, storage)
 
 	if manager == nil {
-		panic("No manager returned")
+		return nil, errors.New("No manager returned")
 	}
 
 	moveTypeConfigs := []*boardgame.MoveTypeConfig{
@@ -261,12 +274,14 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 	}
 
 	if err := manager.BulkAddMoveTypes(moveTypeConfigs); err != nil {
-		panic("Couldn't add moves: " + err.Error())
+		return nil, errors.New("Couldn't add moves: " + err.Error())
 	}
 
 	manager.AddAgent(&Agent{})
 
-	manager.SetUp()
+	if err := manager.SetUp(); err != nil {
+		return nil, errors.New("Couldn't set up manager: " + err.Error())
+	}
 
-	return manager
+	return manager, nil
 }

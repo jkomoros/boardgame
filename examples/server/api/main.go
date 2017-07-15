@@ -19,10 +19,10 @@ func main() {
 	storage := api.NewDefaultStorageManager()
 	defer storage.Close()
 	api.NewServer(storage,
-		blackjack.NewManager(storage),
-		tictactoe.NewManager(storage),
-		memory.NewManager(storage),
-		debuganimations.NewManager(storage),
-		pig.NewManager(storage),
+		blackjack.MustNewManager(storage),
+		tictactoe.MustNewManager(storage),
+		memory.MustNewManager(storage),
+		debuganimations.MustNewManager(storage),
+		pig.MustNewManager(storage),
 	).Start()
 }

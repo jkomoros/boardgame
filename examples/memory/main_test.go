@@ -8,7 +8,7 @@ import (
 )
 
 func BenchmarkMoves(b *testing.B) {
-	manager := NewManager(memory.NewStorageManager())
+	manager, _ := NewManager(memory.NewStorageManager())
 
 	for j := 0; j < b.N; j++ {
 
@@ -35,13 +35,15 @@ func BenchmarkMoves(b *testing.B) {
 }
 
 func TestMain(t *testing.T) {
-	manager := NewManager(memory.NewStorageManager())
+	manager, err := NewManager(memory.NewStorageManager())
+
+	assert.For(t).ThatActual(err).IsNil()
 
 	game := boardgame.NewGame(manager)
 
 	assert.For(t).ThatActual(game).IsNotNil()
 
-	err := game.SetUp(2, nil)
+	err = game.SetUp(2, nil)
 
 	if !assert.For(t).ThatActual(err).IsNil().Passed() {
 		t.FailNow()

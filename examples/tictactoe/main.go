@@ -259,7 +259,19 @@ func checkRunWon(runState []string) string {
 	return targetToken
 }
 
-func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
+func MustNewManager(storage boardgame.StorageManager) *boardgame.GameManager {
+
+	manager, err := NewManager(storage)
+
+	if err != nil {
+		panic("Couldn't create manager: " + err.Error())
+	}
+
+	return manager
+
+}
+
+func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) {
 	chest := boardgame.NewComponentChest(nil)
 
 	tokens := boardgame.NewDeck()
@@ -277,25 +289,31 @@ func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
 	}, numTokens)
 
 	if err := chest.AddDeck("tokens", tokens); err != nil {
-		panic("couldn't add deck: " + err.Error())
+		return nil, errors.New("couldn't add deck: " + err.Error())
 	}
 
 	manager := boardgame.NewGameManager(&gameDelegate{}, chest, storage)
 
 	if manager == nil {
-		panic("No manager returned")
+		return nil, errors.New("No manager returned")
 	}
 
-	manager.BulkAddMoveTypes([]*boardgame.MoveTypeConfig{
+	bulkMoveTypeConfigs := []*boardgame.MoveTypeConfig{
 		&movePlayTokenConfig,
 		&moveFinishTurnConfig,
-	})
+	}
+
+	if err := manager.BulkAddMoveTypes(bulkMoveTypeConfigs); err != nil {
+		return nil, errors.New("Couldn't add moves: " + err.Error())
+	}
 
 	manager.AddAgent(&Agent{})
 
-	manager.SetUp()
+	if err := manager.SetUp(); err != nil {
+		return nil, errors.New("Couldn't set up manager: " + err.Error())
+	}
 
-	return manager
+	return manager, nil
 }
 
 func NewGame(manager *boardgame.GameManager) *boardgame.Game {

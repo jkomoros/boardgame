@@ -2,12 +2,17 @@ package tictactoe
 
 import (
 	"github.com/jkomoros/boardgame/storage/memory"
+	"github.com/workfit/tester/assert"
 	"testing"
 )
 
 func TestGame(t *testing.T) {
 
-	game := NewGame(NewManager(memory.NewStorageManager()))
+	manager, err := NewManager(memory.NewStorageManager())
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	game := NewGame(manager)
 
 	if game == nil {
 		t.Error("Didn't get tictactoe game back")

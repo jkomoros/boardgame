@@ -87,11 +87,11 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	managers := make(managerMap)
 
-	tictactoeManager := tictactoe.NewManager(storage)
+	tictactoeManager, _ := tictactoe.NewManager(storage)
 
 	managers[tictactoeManager.Delegate().Name()] = tictactoeManager
 
-	blackjackManager := blackjack.NewManager(storage)
+	blackjackManager, _ := blackjack.NewManager(storage)
 
 	managers[blackjackManager.Delegate().Name()] = blackjackManager
 
@@ -216,7 +216,7 @@ func UsersTest(factory StorageManagerFactory, testName string, connectConfig str
 		t.Fatal("Err connecting to storage: ", err)
 	}
 
-	manager := tictactoe.NewManager(storage)
+	manager, _ := tictactoe.NewManager(storage)
 
 	game := boardgame.NewGame(manager)
 
@@ -288,7 +288,7 @@ func AgentsTest(factory StorageManagerFactory, testName string, connectConfig st
 		t.Fatal("Err connecting to storage: ", err)
 	}
 
-	manager := tictactoe.NewManager(storage)
+	manager, _ := tictactoe.NewManager(storage)
 
 	game := boardgame.NewGame(manager)
 
@@ -361,7 +361,7 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 		Id: testUserAnother,
 	})
 
-	manager := tictactoe.NewManager(storage)
+	manager, _ := tictactoe.NewManager(storage)
 
 	agents := manager.Agents()
 
@@ -371,7 +371,7 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 		agentName = agents[0].Name()
 	}
 
-	blackjackManager := blackjack.NewManager(storage)
+	blackjackManager, _ := blackjack.NewManager(storage)
 
 	configs := []struct {
 		IsBlackjack bool
