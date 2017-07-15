@@ -25,7 +25,7 @@ type gameState struct {
 type playerState struct {
 	playerIndex       boardgame.PlayerIndex
 	CardsLeftToReveal int
-	WonCards          *boardgame.GrowableStack
+	WonCards          *boardgame.GrowableStack `stack:"cards"`
 }
 
 func concreteStates(state boardgame.State) (*gameState, []*playerState) {

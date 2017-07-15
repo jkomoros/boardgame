@@ -16,7 +16,7 @@ func init() {
 //+autoreader
 type gameState struct {
 	CurrentPlayer boardgame.PlayerIndex
-	Die           *boardgame.SizedStack
+	Die           *boardgame.SizedStack `stack:"dice"`
 	TargetScore   int
 }
 

@@ -40,39 +40,12 @@ func (g *gameDelegate) CurrentPlayerIndex(state boardgame.State) boardgame.Playe
 }
 
 func (g *gameDelegate) GameStateConstructor() boardgame.MutableSubState {
-
-	cards := g.Manager().Chest().Deck(cardsDeckName)
-
-	if cards == nil {
-		return nil
-	}
-
-	return &gameState{
-		CurrentPlayer:    0,
-		DrawStack:        boardgame.NewGrowableStack(cards, 0),
-		DiscardStack:     boardgame.NewGrowableStack(cards, 0),
-		FirstShortStack:  boardgame.NewGrowableStack(cards, 0),
-		SecondShortStack: boardgame.NewGrowableStack(cards, 0),
-		HiddenCard:       boardgame.NewSizedStack(cards, 1),
-		RevealedCard:     boardgame.NewSizedStack(cards, 1),
-		FanStack:         boardgame.NewGrowableStack(cards, 0),
-		FanDiscard:       boardgame.NewGrowableStack(cards, 0),
-		VisibleStack:     boardgame.NewGrowableStack(cards, 0),
-		HiddenStack:      boardgame.NewGrowableStack(cards, 0),
-	}
+	return new(gameState)
 }
 
 func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex) boardgame.MutablePlayerState {
-
-	cards := g.Manager().Chest().Deck(cardsDeckName)
-
-	if cards == nil {
-		return nil
-	}
-
 	return &playerState{
 		playerIndex: playerIndex,
-		Hand:        boardgame.NewGrowableStack(cards, 0),
 	}
 }
 

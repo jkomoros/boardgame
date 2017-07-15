@@ -66,18 +66,14 @@ func (g *gameDelegate) GameStateConstructor() boardgame.MutableSubState {
 		return nil
 	}
 
+	//We want to set the sized stack to a certain value imperatively, so we'll
+	//do it ourselves and not rely on tag-based auto-inflation.
 	return &gameState{
 		Slots: boardgame.NewSizedStack(tokens, DIM*DIM),
 	}
-
 }
 
 func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex) boardgame.MutablePlayerState {
-	tokens := g.Manager().Chest().Deck("tokens")
-
-	if tokens == nil {
-		return nil
-	}
 
 	value := X
 
@@ -88,7 +84,6 @@ func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex)
 	return &playerState{
 		TokensToPlaceThisTurn: 1,
 		TokenValue:            value,
-		UnusedTokens:          boardgame.NewGrowableStack(tokens, 0),
 		playerIndex:           playerIndex,
 	}
 }

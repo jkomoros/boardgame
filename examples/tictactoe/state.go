@@ -55,7 +55,7 @@ func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {
 type playerState struct {
 	playerIndex  boardgame.PlayerIndex
 	TokenValue   string
-	UnusedTokens *boardgame.GrowableStack
+	UnusedTokens *boardgame.GrowableStack `stack:"tokens"`
 	//How many tokens they have left to place this turn.
 	TokensToPlaceThisTurn int
 }

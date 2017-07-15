@@ -96,27 +96,15 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 }
 
 func (g *gameDelegate) GameStateConstructor() boardgame.MutableSubState {
-	dice := g.Manager().Chest().Deck(diceDeckName)
-
-	if dice == nil {
-		return nil
-	}
-
 	return &gameState{
 		CurrentPlayer: 0,
 		TargetScore:   DefaultTargetScore,
-		Die:           boardgame.NewSizedStack(dice, 1),
 	}
 }
 
 func (g *gameDelegate) PlayerStateConstructor(index boardgame.PlayerIndex) boardgame.MutablePlayerState {
 	return &playerState{
 		playerIndex: index,
-		TotalScore:  0,
-		RoundScore:  0,
-		DieCounted:  true,
-		Done:        false,
-		Busted:      false,
 	}
 }
 

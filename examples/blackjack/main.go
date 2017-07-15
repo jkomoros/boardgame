@@ -190,32 +190,12 @@ func (g *gameDelegate) LegalNumPlayers(numPlayers int) bool {
 }
 
 func (g *gameDelegate) GameStateConstructor() boardgame.MutableSubState {
-	cards := g.Manager().Chest().Deck("cards")
-
-	if cards == nil {
-		return nil
-	}
-	return &gameState{
-		DiscardStack:  boardgame.NewGrowableStack(cards, 0),
-		DrawStack:     boardgame.NewGrowableStack(cards, 0),
-		UnusedCards:   boardgame.NewGrowableStack(cards, 0),
-		CurrentPlayer: 0,
-	}
+	return new(gameState)
 }
 
 func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex) boardgame.MutablePlayerState {
-	cards := g.Manager().Chest().Deck("cards")
-
-	if cards == nil {
-		return nil
-	}
 	return &playerState{
-		playerIndex:    playerIndex,
-		GotInitialDeal: false,
-		HiddenHand:     boardgame.NewGrowableStack(cards, 1),
-		VisibleHand:    boardgame.NewGrowableStack(cards, 0),
-		Busted:         false,
-		Stood:          false,
+		playerIndex: playerIndex,
 	}
 }
 
