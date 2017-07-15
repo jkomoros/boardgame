@@ -205,17 +205,8 @@ func (t *testGameDelegate) EmptyGameState() MutableSubState {
 }
 
 func (t *testGameDelegate) EmptyPlayerState(player PlayerIndex) MutablePlayerState {
-	chest := t.Manager().Chest()
-
-	deck := chest.Deck("test")
-
 	return &testPlayerState{
-		playerIndex:       player,
-		Score:             0,
-		MovesLeftThisTurn: 0,
-		Hand:              NewSizedStack(deck, 2),
-		IsFoo:             false,
-		EnumVal:           testColorEnum.NewVar(),
+		playerIndex: player,
 	}
 }
 

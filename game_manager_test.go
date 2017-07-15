@@ -124,13 +124,8 @@ func TestNilStackErrors(t *testing.T) {
 		t.Fatal("We were able to set up a manager that had nil stacks")
 	}
 
-	//Switch so gameState is valid, but playerState is still not, so we can
-	//make sure we do the same test for playerStates.
-	manager.delegate.(*nilStackGameDelegate).nilForPlayer = true
-
-	if err := manager.SetUp(); err == nil {
-		t.Fatal("We were able to set up a manger that had nil stacks")
-	}
+	//playerState will already work for nil stacks, so no need to flip the
+	//delegate's behavior to test playerstate like we used to do here.
 
 }
 

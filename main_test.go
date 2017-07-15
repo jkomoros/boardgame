@@ -143,9 +143,9 @@ type testPlayerState struct {
 	playerIndex       PlayerIndex
 	Score             int
 	MovesLeftThisTurn int
-	Hand              *SizedStack
+	Hand              *SizedStack `stack:"test,2"`
 	IsFoo             bool
-	EnumVal           enum.Var
+	EnumVal           enum.Var `enum:"color"`
 }
 
 func (t *testPlayerState) PlayerIndex() PlayerIndex {
