@@ -356,7 +356,7 @@ func (g *Game) SetUp(numPlayers int, agentNames []string) error {
 		secretMoveCount: make(map[string][]int),
 	}
 
-	gameState, err := g.manager.emptyGameState(stateCopy)
+	gameState, err := g.manager.gameStateConstructor(stateCopy)
 
 	if err != nil {
 		return err
@@ -367,7 +367,7 @@ func (g *Game) SetUp(numPlayers int, agentNames []string) error {
 	playerStates := make([]MutablePlayerState, numPlayers)
 
 	for i := 0; i < numPlayers; i++ {
-		playerState, err := g.manager.emptyPlayerState(stateCopy, PlayerIndex(i))
+		playerState, err := g.manager.playerStateConstructor(stateCopy, PlayerIndex(i))
 
 		if err != nil {
 			return err
@@ -378,7 +378,7 @@ func (g *Game) SetUp(numPlayers int, agentNames []string) error {
 
 	stateCopy.playerStates = playerStates
 
-	dynamic, err := g.manager.emptyDynamicComponentValues(stateCopy)
+	dynamic, err := g.manager.dynamicComponentValuesConstructor(stateCopy)
 
 	if err != nil {
 		return errors.New("Couldn't create empty dynamic component values: " + err.Error())

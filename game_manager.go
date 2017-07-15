@@ -184,14 +184,14 @@ type refriedState struct {
 	Version         int
 }
 
-//emptyPlayerState is a simple wrapper around delegate.EmptyPlayerState that
-//just verifies that stacks are inflated.
-func (g *GameManager) emptyPlayerState(state *state, player PlayerIndex) (MutablePlayerState, error) {
+//playerStateConstructor is a simple wrapper around
+//delegate.PlayerStateConstructor that just verifies that stacks are inflated.
+func (g *GameManager) playerStateConstructor(state *state, player PlayerIndex) (MutablePlayerState, error) {
 
-	playerState := g.delegate.EmptyPlayerState(player)
+	playerState := g.delegate.PlayerStateConstructor(player)
 
 	if playerState == nil {
-		return nil, errors.New("EmptyPlayerState returned nil for " + strconv.Itoa(int(player)))
+		return nil, errors.New("PlayerStateConstructor returned nil for " + strconv.Itoa(int(player)))
 	}
 
 	if err := g.playerValidator.AutoInflate(playerState.ReadSetter(), state); err != nil {
@@ -206,14 +206,14 @@ func (g *GameManager) emptyPlayerState(state *state, player PlayerIndex) (Mutabl
 
 }
 
-//emptyGameState is a simple wrapper around delegate.EmptyPlayerState that
-//just verifies that stacks are inflated.
-func (g *GameManager) emptyGameState(state *state) (MutableSubState, error) {
+//GameStateConstructor is a simple wrapper around
+//delegate.GameStateConstructor that just verifies that stacks are inflated.
+func (g *GameManager) gameStateConstructor(state *state) (MutableSubState, error) {
 
-	gameState := g.delegate.EmptyGameState()
+	gameState := g.delegate.GameStateConstructor()
 
 	if gameState == nil {
-		return nil, errors.New("EmptyGameState returned nil")
+		return nil, errors.New("GameStateConstructor returned nil")
 	}
 
 	if err := g.gameValidator.AutoInflate(gameState.ReadSetter(), state); err != nil {
@@ -228,7 +228,7 @@ func (g *GameManager) emptyGameState(state *state) (MutableSubState, error) {
 
 }
 
-func (g *GameManager) emptyDynamicComponentValues(state *state) (map[string][]MutableSubState, error) {
+func (g *GameManager) dynamicComponentValuesConstructor(state *state) (map[string][]MutableSubState, error) {
 	result := make(map[string][]MutableSubState)
 
 	for _, deckName := range g.Chest().DeckNames() {
@@ -239,7 +239,7 @@ func (g *GameManager) emptyDynamicComponentValues(state *state) (map[string][]Mu
 			return nil, errors.New("Couldn't find deck for " + deckName)
 		}
 
-		values := g.Delegate().EmptyDynamicComponentValues(deck)
+		values := g.Delegate().DynamicComponentValuesConstructor(deck)
 		if values == nil {
 			continue
 		}
@@ -252,7 +252,7 @@ func (g *GameManager) emptyDynamicComponentValues(state *state) (map[string][]Mu
 
 		arr := make([]MutableSubState, len(deck.Components()))
 		for i := 0; i < len(deck.Components()); i++ {
-			arr[i] = g.Delegate().EmptyDynamicComponentValues(deck)
+			arr[i] = g.Delegate().DynamicComponentValuesConstructor(deck)
 
 			if err := validator.AutoInflate(arr[i].ReadSetter(), state); err != nil {
 				return nil, errors.New("Couldn't auto-inflate dynamic compoonent values for " + deckName + " " + strconv.Itoa(i) + ": " + err.Error())
@@ -294,7 +294,7 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 		result.secretMoveCount = make(map[string][]int)
 	}
 
-	game, err := g.emptyGameState(result)
+	game, err := g.gameStateConstructor(result)
 
 	if err != nil {
 		return nil, err
@@ -324,7 +324,7 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 	result.gameState = game
 
 	for i, blob := range refried.Players {
-		player, err := g.emptyPlayerState(result, PlayerIndex(i))
+		player, err := g.playerStateConstructor(result, PlayerIndex(i))
 
 		if err != nil {
 			return nil, err
@@ -354,7 +354,7 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 		result.playerStates = append(result.playerStates, player)
 	}
 
-	dynamic, err := g.emptyDynamicComponentValues(result)
+	dynamic, err := g.dynamicComponentValuesConstructor(result)
 
 	if err != nil {
 		return nil, errors.New("Couldn't create empty dynamic component values: " + err.Error())
@@ -452,10 +452,10 @@ func (g *GameManager) SetUp() error {
 
 	fakeState := &state{}
 
-	exampleGameState := g.delegate.EmptyGameState()
+	exampleGameState := g.delegate.GameStateConstructor()
 
 	if exampleGameState == nil {
-		return errors.New("EmptyGameState returned nil")
+		return errors.New("GameStateConstructor returned nil")
 	}
 
 	validator, err := newReaderValidator(exampleGameState.Reader(), exampleGameState, nil, g.chest)
@@ -477,10 +477,10 @@ func (g *GameManager) SetUp() error {
 
 	g.gameValidator = validator
 
-	examplePlayerState := g.delegate.EmptyPlayerState(0)
+	examplePlayerState := g.delegate.PlayerStateConstructor(0)
 
 	if examplePlayerState == nil {
-		return errors.New("EmptyPlayerState returned nil")
+		return errors.New("PlayerStateConstructor returned nil")
 	}
 
 	validator, err = newReaderValidator(examplePlayerState.Reader(), examplePlayerState, nil, g.chest)
@@ -504,7 +504,7 @@ func (g *GameManager) SetUp() error {
 	for _, deckName := range g.chest.DeckNames() {
 		deck := g.chest.Deck(deckName)
 
-		exampleDynamicComponentValue := g.delegate.EmptyDynamicComponentValues(deck)
+		exampleDynamicComponentValue := g.delegate.DynamicComponentValuesConstructor(deck)
 
 		if exampleDynamicComponentValue == nil {
 			continue
@@ -531,7 +531,7 @@ func (g *GameManager) SetUp() error {
 	if config := g.delegate.ComputedPropertiesConfig(); config != nil {
 
 		if global := config.Global; global != nil {
-			if collection := g.delegate.EmptyComputedGlobalPropertyCollection(); collection != nil {
+			if collection := g.delegate.ComputedGlobalPropertyCollectionConstructor(); collection != nil {
 				//Verify the shape has slots for all of the configed properties
 				for propName, propConfig := range global {
 					propType := propConfig.PropType
@@ -543,7 +543,7 @@ func (g *GameManager) SetUp() error {
 		}
 
 		if player := config.Player; player != nil {
-			if collection := g.delegate.EmptyComputedPlayerPropertyCollection(); collection != nil {
+			if collection := g.delegate.ComputedPlayerPropertyCollectionConstructor(); collection != nil {
 				//Verify the shape has slots for all of the configed properties
 				for propName, propConfig := range player {
 					propType := propConfig.PropType

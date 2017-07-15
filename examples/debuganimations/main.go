@@ -38,7 +38,7 @@ func (g *gameDelegate) CurrentPlayerIndex(state boardgame.State) boardgame.Playe
 	return game.CurrentPlayer
 }
 
-func (g *gameDelegate) EmptyGameState() boardgame.MutableSubState {
+func (g *gameDelegate) GameStateConstructor() boardgame.MutableSubState {
 
 	cards := g.Manager().Chest().Deck(cardsDeckName)
 
@@ -61,7 +61,7 @@ func (g *gameDelegate) EmptyGameState() boardgame.MutableSubState {
 	}
 }
 
-func (g *gameDelegate) EmptyPlayerState(playerIndex boardgame.PlayerIndex) boardgame.MutablePlayerState {
+func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex) boardgame.MutablePlayerState {
 
 	cards := g.Manager().Chest().Deck(cardsDeckName)
 

@@ -103,7 +103,7 @@ func (t *testGameDelegate) ComputedPropertiesConfig() *ComputedPropertiesConfig 
 	return testPropertiesConfig
 }
 
-func (t *testGameDelegate) EmptyDynamicComponentValues(deck *Deck) MutableSubState {
+func (t *testGameDelegate) DynamicComponentValuesConstructor(deck *Deck) MutableSubState {
 	if deck.Name() == "test" {
 		return &testingComponentDynamic{
 			Stack: NewSizedStack(deck, 1),
@@ -113,11 +113,11 @@ func (t *testGameDelegate) EmptyDynamicComponentValues(deck *Deck) MutableSubSta
 	return nil
 }
 
-func (t *testGameDelegate) EmptyComputedGlobalPropertyCollection() MutableSubState {
+func (t *testGameDelegate) ComputedGlobalPropertyCollectionConstructor() MutableSubState {
 	return &testGlobalPropertiesCollection{}
 }
 
-func (t *testGameDelegate) EmptyComputedPlayerPropertyCollection() MutableSubState {
+func (t *testGameDelegate) ComputedPlayerPropertyCollectionConstructor() MutableSubState {
 	return &testPlayerPropertiesCollection{}
 }
 
@@ -187,7 +187,7 @@ func (t *testGameDelegate) CurrentPlayerIndex(state State) PlayerIndex {
 	return game.CurrentPlayer
 }
 
-func (t *testGameDelegate) EmptyGameState() MutableSubState {
+func (t *testGameDelegate) GameStateConstructor() MutableSubState {
 	chest := t.Manager().Chest()
 
 	deck := chest.Deck("test")
@@ -204,7 +204,7 @@ func (t *testGameDelegate) EmptyGameState() MutableSubState {
 	}
 }
 
-func (t *testGameDelegate) EmptyPlayerState(player PlayerIndex) MutablePlayerState {
+func (t *testGameDelegate) PlayerStateConstructor(player PlayerIndex) MutablePlayerState {
 	return &testPlayerState{
 		playerIndex: player,
 	}

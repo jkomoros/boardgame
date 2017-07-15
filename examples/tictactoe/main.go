@@ -59,7 +59,7 @@ func (g *gameDelegate) LegalNumPlayers(numPlayers int) bool {
 	return numPlayers == 2
 }
 
-func (g *gameDelegate) EmptyGameState() boardgame.MutableSubState {
+func (g *gameDelegate) GameStateConstructor() boardgame.MutableSubState {
 	tokens := g.Manager().Chest().Deck("tokens")
 
 	if tokens == nil {
@@ -72,7 +72,7 @@ func (g *gameDelegate) EmptyGameState() boardgame.MutableSubState {
 
 }
 
-func (g *gameDelegate) EmptyPlayerState(playerIndex boardgame.PlayerIndex) boardgame.MutablePlayerState {
+func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex) boardgame.MutablePlayerState {
 	tokens := g.Manager().Chest().Deck("tokens")
 
 	if tokens == nil {

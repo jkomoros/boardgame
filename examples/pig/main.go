@@ -94,7 +94,7 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 	return strings.Join(parts, "\n")
 }
 
-func (g *gameDelegate) EmptyGameState() boardgame.MutableSubState {
+func (g *gameDelegate) GameStateConstructor() boardgame.MutableSubState {
 	dice := g.Manager().Chest().Deck(diceDeckName)
 
 	if dice == nil {
@@ -108,7 +108,7 @@ func (g *gameDelegate) EmptyGameState() boardgame.MutableSubState {
 	}
 }
 
-func (g *gameDelegate) EmptyPlayerState(index boardgame.PlayerIndex) boardgame.MutablePlayerState {
+func (g *gameDelegate) PlayerStateConstructor(index boardgame.PlayerIndex) boardgame.MutablePlayerState {
 	return &playerState{
 		playerIndex: index,
 		TotalScore:  0,
@@ -119,7 +119,7 @@ func (g *gameDelegate) EmptyPlayerState(index boardgame.PlayerIndex) boardgame.M
 	}
 }
 
-func (g *gameDelegate) EmptyDynamicComponentValues(deck *boardgame.Deck) boardgame.MutableSubState {
+func (g *gameDelegate) DynamicComponentValuesConstructor(deck *boardgame.Deck) boardgame.MutableSubState {
 	if deck.Name() == diceDeckName {
 		return &dice.DynamicValue{
 			Value: 1,

@@ -141,7 +141,8 @@ func (c *Component) DynamicValues(state State) SubState {
 	}
 
 	if c.DeckIndex < 0 {
-		return c.Deck.Chest().Manager().Delegate().EmptyDynamicComponentValues(c.Deck)
+		//TODO: is this the right beahvior now that we have auto-inflation?
+		return c.Deck.Chest().Manager().Delegate().DynamicComponentValuesConstructor(c.Deck)
 	}
 
 	return values[c.DeckIndex]

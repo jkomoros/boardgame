@@ -83,41 +83,41 @@ type GameDelegate interface {
 	//power state.CurrentPlayer.
 	CurrentPlayerIndex(state State) PlayerIndex
 
-	//EmptyGameState and EmptyPlayerState are called to get an instantiation
-	//of the concrete game/player structs that your package defines. This is
-	//used both to create the initial state, but also to inflate states from
-	//the database. These methods should always return the underlying same
-	//type of struct when called. This means that if different players have
-	//very different roles in a game, there might be many properties that are
-	//not in use for any given player. The simple properties (ints, bools,
-	//strings) should all be their zero-value. Importantly, all Stacks should
-	//be non- nil, because an initialized struct contains information about
-	//things like MaxSize, Size, and a reference to the deck they are
-	//affiliated with. Game methods that use these will fail if the State
-	//objects return have uninitialized stacks. Since these two methods are
-	//always required and always specific to each game type,
-	//DefaultGameDelegate does not implement them, as an extra reminder that
-	//you must implement them yourself.
-	EmptyGameState() MutableSubState
-	//EmptyPlayerState is similar to EmptyGameState, but playerIndex is the
-	//value that this PlayerState must return when its PlayerIndex() is
-	//called.
-	EmptyPlayerState(player PlayerIndex) MutablePlayerState
+	//GameStateConstructor and PlayerStateConstructor are called to get an
+	//instantiation of the concrete game/player structs that your package
+	//defines. This is used both to create the initial state, but also to
+	//inflate states from the database. These methods should always return the
+	//underlying same type of struct when called. This means that if different
+	//players have very different roles in a game, there might be many
+	//properties that are not in use for any given player. The simple
+	//properties (ints, bools, strings) should all be their zero-value.
+	//Importantly, all Stacks should be non- nil, because an initialized
+	//struct contains information about things like MaxSize, Size, and a
+	//reference to the deck they are affiliated with. Game methods that use
+	//these will fail if the State objects return have uninitialized stacks.
+	//Since these two methods are always required and always specific to each
+	//game type, DefaultGameDelegate does not implement them, as an extra
+	//reminder that you must implement them yourself.
+	GameStateConstructor() MutableSubState
+	//PlayerStateConstructor is similar to GameStateConstructor, but
+	//playerIndex is the value that this PlayerState must return when its
+	//PlayerIndex() is called.
+	PlayerStateConstructor(player PlayerIndex) MutablePlayerState
 
-	//EmptyDynamicComponentValues returns an empty DynamicComponentValues for
+	//DynamicComponentValuesConstructor returns an empty DynamicComponentValues for
 	//the given deck. If nil is returned, then the components in that deck
 	//don't have any dynamic component state. This method must always return
 	//the same underlying type of struct for the same deck.
-	EmptyDynamicComponentValues(deck *Deck) MutableSubState
+	DynamicComponentValuesConstructor(deck *Deck) MutableSubState
 
-	//EmptyComputed{Global,Player}PropertyCollection should return a struct
-	//that implements PropertyReadSetter. Computed properties will be stored
-	//in the objects that are returned. This allows users of the framework to
-	//do a single cast of the underlying object and then access the properties
-	//in a type-checked way after that. If you return nil, we will use a
-	//generic, flexible PropertyReadSetter instead.
-	EmptyComputedGlobalPropertyCollection() MutableSubState
-	EmptyComputedPlayerPropertyCollection() MutableSubState
+	//Computed{Global,Player}PropertyCollectionConstructor should return a
+	//struct that implements PropertyReadSetter. Computed properties will be
+	//stored in the objects that are returned. This allows users of the
+	//framework to do a single cast of the underlying object and then access
+	//the properties in a type-checked way after that. If you return nil, we
+	//will use a generic, flexible PropertyReadSetter instead.
+	ComputedGlobalPropertyCollectionConstructor() MutableSubState
+	ComputedPlayerPropertyCollectionConstructor() MutableSubState
 
 	//StateSanitizationPolicy returns the policy for sanitizing states in this
 	//game. The policy should not change over time. See StatePolicy for more
@@ -170,15 +170,15 @@ func (d *DefaultGameDelegate) SetManager(manager *GameManager) {
 	d.manager = manager
 }
 
-func (d *DefaultGameDelegate) EmptyDynamicComponentValues(deck *Deck) MutableSubState {
+func (d *DefaultGameDelegate) DynamicComponentValuesConstructor(deck *Deck) MutableSubState {
 	return nil
 }
 
-func (d *DefaultGameDelegate) EmptyComputedGlobalPropertyCollection() MutableSubState {
+func (d *DefaultGameDelegate) ComputedGlobalPropertyCollectionConstructor() MutableSubState {
 	return nil
 }
 
-func (d *DefaultGameDelegate) EmptyComputedPlayerPropertyCollection() MutableSubState {
+func (d *DefaultGameDelegate) ComputedPlayerPropertyCollectionConstructor() MutableSubState {
 	return nil
 }
 
