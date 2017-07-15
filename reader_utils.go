@@ -147,21 +147,7 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 //this validator.
 func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) error {
 
-	var statePtr *state
-
-	if st != nil {
-		var ok bool
-		statePtr, ok = st.(*state)
-		if !ok {
-			return errors.New("The provided non-nil State could not be conveted to a state ptr")
-		}
-	}
-
 	for propName, config := range r.autoGrowableStackFields {
-
-		if statePtr == nil {
-			return errors.New("Provided state was nil but there are growable stacks to expand")
-		}
 
 		growableStack, err := readSetter.GrowableStackProp(propName)
 		if growableStack != nil {
@@ -179,7 +165,6 @@ func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) e
 		}
 
 		stack := NewGrowableStack(config.deck, config.size)
-		stack.statePtr = statePtr
 
 		if err := readSetter.SetGrowableStackProp(propName, stack); err != nil {
 			return errors.New("Couldn't set " + propName + " to growable stack: " + err.Error())
@@ -187,10 +172,6 @@ func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) e
 	}
 
 	for propName, config := range r.autoSizedStackFields {
-
-		if statePtr == nil {
-			return errors.New("Provided state was nil but there are sized stacks to expand")
-		}
 
 		sizedStack, err := readSetter.SizedStackProp(propName)
 		if sizedStack != nil {
@@ -208,7 +189,6 @@ func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) e
 		}
 
 		stack := NewSizedStack(config.deck, config.size)
-		stack.statePtr = statePtr
 
 		if err := readSetter.SetSizedStackProp(propName, stack); err != nil {
 			return errors.New("Couldn't set " + propName + " to sized stack: " + err.Error())
@@ -252,14 +232,16 @@ func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) e
 	for propName, propType := range readSetter.Props() {
 		switch propType {
 		case TypeTimer:
-			if statePtr == nil {
-				return errors.New("Provided state was nil but there are timers to expand")
-			}
 			timer := NewTimer()
-			timer.statePtr = statePtr
 			if err := readSetter.SetTimerProp(propName, timer); err != nil {
 				return errors.New("Couldn't set " + propName + " to a new timer: " + err.Error())
 			}
+		}
+	}
+
+	if st != nil {
+		if err := setReaderStatePtr(readSetter, st); err != nil {
+			return errors.New("Couldn't set state ptrs: " + err.Error())
 		}
 	}
 
@@ -338,6 +320,47 @@ func (r *readerValidator) Valid(reader PropertyReader) error {
 			if err != nil {
 				return errors.New("EnumConstProp " + propName + " had unexpected error: " + err.Error())
 			}
+		}
+	}
+	return nil
+}
+
+func setReaderStatePtr(reader PropertyReader, st State) error {
+
+	statePtr, ok := st.(*state)
+	if !ok {
+		return errors.New("The provided non-nil State could not be conveted to a state ptr")
+	}
+
+	for propName, propType := range reader.Props() {
+		switch propType {
+		case TypeGrowableStack:
+			val, err := reader.GrowableStackProp(propName)
+			if val == nil {
+				return errors.New("GrowableStack Prop " + propName + " was nil")
+			}
+			if err != nil {
+				return errors.New("GrowableStack prop " + propName + " had unexpected error: " + err.Error())
+			}
+			val.statePtr = statePtr
+		case TypeSizedStack:
+			val, err := reader.SizedStackProp(propName)
+			if val == nil {
+				return errors.New("SizedStackProp " + propName + " was nil")
+			}
+			if err != nil {
+				return errors.New("SizedStack prop " + propName + " had unexpected error: " + err.Error())
+			}
+			val.statePtr = statePtr
+		case TypeTimer:
+			val, err := reader.TimerProp(propName)
+			if val == nil {
+				return errors.New("TimerProp " + propName + " was nil")
+			}
+			if err != nil {
+				return errors.New("TimerProp " + propName + " had unexpected error: " + err.Error())
+			}
+			val.statePtr = statePtr
 		}
 	}
 	return nil
