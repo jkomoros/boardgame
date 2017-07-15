@@ -181,52 +181,6 @@ type refriedState struct {
 	Version         int
 }
 
-//verifyReaderStacks goes through each property in Reader that is a stack or
-//timer, and verifies that it is non-nil, and its state property is set to the
-//given state.
-func verifyReaderObjects(reader PropertyReader, state *state) error {
-	for propName, propType := range reader.Props() {
-		switch propType {
-		case TypeGrowableStack:
-			val, err := reader.GrowableStackProp(propName)
-			if val == nil {
-				return errors.New("GrowableStack Prop " + propName + " was nil")
-			}
-			if err != nil {
-				return errors.New("GrowableStack prop " + propName + " had unexpected error: " + err.Error())
-			}
-			val.statePtr = state
-		case TypeSizedStack:
-			val, err := reader.SizedStackProp(propName)
-			if val == nil {
-				return errors.New("SizedStackProp " + propName + " was nil")
-			}
-			if err != nil {
-				return errors.New("SizedStack prop " + propName + " had unexpected error: " + err.Error())
-			}
-			val.statePtr = state
-		case TypeTimer:
-			val, err := reader.TimerProp(propName)
-			if val == nil {
-				return errors.New("TimerProp " + propName + " was nil")
-			}
-			if err != nil {
-				return errors.New("TimerProp " + propName + " had unexpected error: " + err.Error())
-			}
-			val.statePtr = state
-		case TypeEnumVar:
-			val, err := reader.EnumVarProp(propName)
-			if val == nil {
-				return errors.New("EnumVarProp " + propName + " was nil")
-			}
-			if err != nil {
-				return errors.New("EnumVarProp " + propName + " had unexpected error: " + err.Error())
-			}
-		}
-	}
-	return nil
-}
-
 //emptyPlayerState is a simple wrapper around delegate.EmptyPlayerState that
 //just verifies that stacks are inflated.
 func (g *GameManager) emptyPlayerState(state *state, player PlayerIndex) (MutablePlayerState, error) {

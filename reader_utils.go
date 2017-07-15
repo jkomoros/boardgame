@@ -343,6 +343,185 @@ func (r *readerValidator) Valid(reader PropertyReader) error {
 	return nil
 }
 
+//verifyReaderStacks goes through each property in Reader that is a stack or
+//timer, and verifies that it is non-nil, and its state property is set to the
+//given state.
+func verifyReaderObjects(reader PropertyReader, state *state) error {
+	for propName, propType := range reader.Props() {
+		switch propType {
+		case TypeGrowableStack:
+			val, err := reader.GrowableStackProp(propName)
+			if val == nil {
+				return errors.New("GrowableStack Prop " + propName + " was nil")
+			}
+			if err != nil {
+				return errors.New("GrowableStack prop " + propName + " had unexpected error: " + err.Error())
+			}
+			val.statePtr = state
+		case TypeSizedStack:
+			val, err := reader.SizedStackProp(propName)
+			if val == nil {
+				return errors.New("SizedStackProp " + propName + " was nil")
+			}
+			if err != nil {
+				return errors.New("SizedStack prop " + propName + " had unexpected error: " + err.Error())
+			}
+			val.statePtr = state
+		case TypeTimer:
+			val, err := reader.TimerProp(propName)
+			if val == nil {
+				return errors.New("TimerProp " + propName + " was nil")
+			}
+			if err != nil {
+				return errors.New("TimerProp " + propName + " had unexpected error: " + err.Error())
+			}
+			val.statePtr = state
+		case TypeEnumVar:
+			val, err := reader.EnumVarProp(propName)
+			if val == nil {
+				return errors.New("EnumVarProp " + propName + " was nil")
+			}
+			if err != nil {
+				return errors.New("EnumVarProp " + propName + " had unexpected error: " + err.Error())
+			}
+		}
+	}
+	return nil
+}
+
+//copyReader assumes input and output container are the same "shape" (that is,
+//outputContainer can have all of input's properties set). It goes through
+//each property, copies it if necessary, and outputs on PropertyReadSetter.
+func copyReader(input PropertyReader, outputContainer PropertyReadSetter) error {
+
+	for propName, propType := range input.Props() {
+		switch propType {
+		case TypeBool:
+			boolVal, err := input.BoolProp(propName)
+			if err != nil {
+				return errors.New(propName + " did not return a bool as expected: " + err.Error())
+			}
+			err = outputContainer.SetBoolProp(propName, boolVal)
+			if err != nil {
+				return errors.New(propName + " could not be set on output: " + err.Error())
+			}
+		case TypeInt:
+			intVal, err := input.IntProp(propName)
+			if err != nil {
+				return errors.New(propName + " did not return an int as expected: " + err.Error())
+			}
+			err = outputContainer.SetIntProp(propName, intVal)
+			if err != nil {
+				return errors.New(propName + " could not be set on output: " + err.Error())
+			}
+		case TypeString:
+			stringVal, err := input.StringProp(propName)
+			if err != nil {
+				return errors.New(propName + " did not return a string as expected: " + err.Error())
+			}
+			err = outputContainer.SetStringProp(propName, stringVal)
+			if err != nil {
+				return errors.New(propName + " could not be set on output: " + err.Error())
+			}
+		case TypePlayerIndex:
+			playerIndexVal, err := input.PlayerIndexProp(propName)
+			if err != nil {
+				return errors.New(propName + " did not return a player index as expected: " + err.Error())
+			}
+			err = outputContainer.SetPlayerIndexProp(propName, playerIndexVal)
+			if err != nil {
+				return errors.New(propName + " could not be set on output: " + err.Error())
+			}
+		case TypeEnumVar:
+			enumValue, err := input.EnumVarProp(propName)
+			if err != nil {
+				return errors.New(propName + " did not return an EnumVar as expected: " + err.Error())
+			}
+			err = outputContainer.SetEnumVarProp(propName, enumValue.CopyVar())
+			if err != nil {
+				return errors.New(propName + " could not be set on output: " + err.Error())
+			}
+		case TypeEnumConst:
+			enumConst, err := input.EnumConstProp(propName)
+			if err != nil {
+				return errors.New(propName + " did not return an EnumConst as expected: " + err.Error())
+			}
+			err = outputContainer.SetEnumConstProp(propName, enumConst.Copy())
+			if err != nil {
+				return errors.New(propName + " could not be set on output: " + err.Error())
+			}
+		case TypeIntSlice:
+			intSliceVal, err := input.IntSliceProp(propName)
+			if err != nil {
+				return errors.New(propName + " did not return an int slice as expected: " + err.Error())
+			}
+			err = outputContainer.SetIntSliceProp(propName, intSliceVal)
+			if err != nil {
+				return errors.New(propName + " could not be set on output: " + err.Error())
+			}
+		case TypeBoolSlice:
+			boolSliceVal, err := input.BoolSliceProp(propName)
+			if err != nil {
+				return errors.New(propName + " did not return an bool slice as expected: " + err.Error())
+			}
+			err = outputContainer.SetBoolSliceProp(propName, boolSliceVal)
+			if err != nil {
+				return errors.New(propName + " could not be set on output: " + err.Error())
+			}
+		case TypeStringSlice:
+			stringSliceVal, err := input.StringSliceProp(propName)
+			if err != nil {
+				return errors.New(propName + " did not return an string slice as expected: " + err.Error())
+			}
+			err = outputContainer.SetStringSliceProp(propName, stringSliceVal)
+			if err != nil {
+				return errors.New(propName + " could not be set on output: " + err.Error())
+			}
+		case TypePlayerIndexSlice:
+			playerIndexSliceVal, err := input.PlayerIndexSliceProp(propName)
+			if err != nil {
+				return errors.New(propName + " did not return a player index slice as expected: " + err.Error())
+			}
+			err = outputContainer.SetPlayerIndexSliceProp(propName, playerIndexSliceVal)
+			if err != nil {
+				return errors.New(propName + " could not be set on output: " + err.Error())
+			}
+		case TypeGrowableStack:
+			growableStackVal, err := input.GrowableStackProp(propName)
+			if err != nil {
+				return errors.New(propName + " did not return a growableStack as expected: " + err.Error())
+			}
+			err = outputContainer.SetGrowableStackProp(propName, growableStackVal.Copy())
+			if err != nil {
+				return errors.New(propName + " could not be set on output: " + err.Error())
+			}
+		case TypeSizedStack:
+			sizedStackVal, err := input.SizedStackProp(propName)
+			if err != nil {
+				return errors.New(propName + " did not return a sizedStack as expected: " + err.Error())
+			}
+			err = outputContainer.SetSizedStackProp(propName, sizedStackVal.Copy())
+			if err != nil {
+				return errors.New(propName + " could not be set on output: " + err.Error())
+			}
+		case TypeTimer:
+			timerVal, err := input.TimerProp(propName)
+			if err != nil {
+				return errors.New(propName + " did not return a timer as expected: " + err.Error())
+			}
+			err = outputContainer.SetTimerProp(propName, timerVal.Copy())
+			if err != nil {
+				return errors.New(propName + " could not be set on output: " + err.Error())
+			}
+		default:
+			return errors.New(propName + " was an unsupported property type: " + strconv.Itoa(int(propType)))
+		}
+	}
+
+	return nil
+
+}
+
 func unpackStackStructTag(tag string, chest *ComponentChest) (*Deck, int, error) {
 	pieces := strings.Split(tag, ",")
 
