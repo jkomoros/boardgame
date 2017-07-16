@@ -1,9 +1,10 @@
 <link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../src/boardgame-status-text.html">
 
 <dom-module id="boardgame-render-player-info-blackjack">
   <template>
     <div>Score <strong>{{playerState.Computed.HandValue}}</strong></div>
-    <div><strong>{{_calculateStatus(playerState)}}</strong></div>
+    <div><boardgame-status-text>{{_calculateStatus(playerState)}}</boardgame-status-text></div>
   </template>
 
   <script>
