@@ -54,6 +54,7 @@
 
         let ele = rec[rec.length - 1].target;
         let message = ele.textContent ? ele.textContent : ele.innerText;
+        if (!message) message = "";
         message = message.trim(); 
         this.message = message;
       }
@@ -74,7 +75,7 @@
               this._node = null;
             }
             this._observer = new MutationObserver(rec => this._textContentChanged(rec));
-            this._observer.observe(ele, {characterData: true});
+            this._observer.observe(ele, {characterData: true, subTree: true});
             this.message = message;
             return;
           }
