@@ -68,17 +68,18 @@
           //This could happen if it's an empy text node for example.
           if (!message) message = "";
           message = message.trim(); 
-          if (message) {
-            if (this._observer) {
-              this._observer.disconnect();
-              this._observer = null;
-              this._node = null;
-            }
-            this._observer = new MutationObserver(rec => this._textContentChanged(rec));
-            this._observer.observe(ele, {characterData: true, subTree: true});
-            this.message = message;
-            return;
+          //We used to only register these if the message existed, but in many
+          //real cases like the BUSTED line in blackjack it starts off as a
+          //nil message.
+          if (this._observer) {
+            this._observer.disconnect();
+            this._observer = null;
+            this._node = null;
           }
+          this._observer = new MutationObserver(rec => this._textContentChanged(rec));
+          this._observer.observe(ele, {characterData: true});
+          this.message = message;
+          return;
         }
       }
 
