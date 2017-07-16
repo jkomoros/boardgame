@@ -42,7 +42,7 @@
           playerIndex: Number,
           playerState: {
             type: Object,
-            computed: "_computePlayerState(state, playerIndex)",
+            computed: "_computePlayerState(state.*, playerIndex)",
             observer: "_playerStateChanged",
           }
         }
@@ -104,6 +104,7 @@
 
       _computePlayerState(state, playerIndex) {
         if (!state) return;
+        state = state.value;
         return state.Players[playerIndex];
       }
 
