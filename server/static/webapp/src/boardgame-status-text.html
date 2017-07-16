@@ -64,6 +64,8 @@
         for (var i = 0; i < nodes.length; i++) {
           let ele = nodes[i];
           let message = ele.textContent ? ele.textContent : ele.innerText;
+          //This could happen if it's an empy text node for example.
+          if (!message) message = "";
           message = message.trim(); 
           if (message) {
             if (this._observer) {
