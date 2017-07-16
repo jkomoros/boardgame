@@ -393,7 +393,7 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 
 	manager.SetUp()
 
-	game := NewGame(manager)
+	game := manager.NewGame()
 
 	checkForPanic := func() (didPanic bool) {
 		defer func() {

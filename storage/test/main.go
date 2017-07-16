@@ -95,7 +95,7 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	managers[blackjackManager.Delegate().Name()] = blackjackManager
 
-	tictactoeGame := boardgame.NewGame(tictactoeManager)
+	tictactoeGame := tictactoeManager.NewGame()
 
 	if err := tictactoeGame.SetUp(0, nil); err != nil {
 		t.Fatal("Got error on tictactoe set up: " + err.Error())
@@ -178,7 +178,7 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	//Verify that if the game is stored with wrong name that doesn't match manager it won't load up.
 
-	blackjackGame := boardgame.NewGame(blackjackManager)
+	blackjackGame := blackjackManager.NewGame()
 
 	blackjackGame.SetUp(0, nil)
 
@@ -218,7 +218,7 @@ func UsersTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	manager, _ := tictactoe.NewManager(storage)
 
-	game := boardgame.NewGame(manager)
+	game := manager.NewGame()
 
 	game.SetUp(2, nil)
 
@@ -290,7 +290,7 @@ func AgentsTest(factory StorageManagerFactory, testName string, connectConfig st
 
 	manager, _ := tictactoe.NewManager(storage)
 
-	game := boardgame.NewGame(manager)
+	game := manager.NewGame()
 
 	err := game.SetUp(2, []string{"", "ai"})
 
@@ -544,9 +544,9 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 		var game *boardgame.Game
 
 		if config.IsBlackjack {
-			game = boardgame.NewGame(blackjackManager)
+			game = blackjackManager.NewGame()
 		} else {
-			game = boardgame.NewGame(manager)
+			game = manager.NewGame()
 		}
 
 		var agents []string

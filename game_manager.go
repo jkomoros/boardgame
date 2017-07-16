@@ -69,6 +69,29 @@ func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage Storag
 	return result
 }
 
+//NewGame returns a new game. You must call SetUp before using it.
+func (g *GameManager) NewGame() *Game {
+
+	if g == nil {
+		return nil
+	}
+
+	result := &Game{
+		manager: g,
+		//TODO: set the size of chan based on something more reasonable.
+		//Note: this is also set similarly in manager.ModifiableGame
+		proposedMoves: make(chan *proposedMoveItem, 20),
+		id:            randomString(gameIDLength),
+		secretSalt:    randomString(gameIDLength),
+		modifiable:    true,
+	}
+
+	g.modifiableGameCreated(result)
+
+	return result
+
+}
+
 func (g *GameManager) gameFromStorageRecord(record *GameStorageRecord) *Game {
 
 	//Sanity check that this game actually does match with this manager.

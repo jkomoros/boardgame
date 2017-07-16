@@ -526,7 +526,7 @@ func testGame() *Game {
 		panic("Failed to set up manager: " + err.Error())
 	}
 
-	game := NewGame(manager)
+	game := manager.NewGame()
 
 	return game
 }

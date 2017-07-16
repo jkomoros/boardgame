@@ -402,7 +402,7 @@ func (s *Server) doNewGame(r *Renderer, owner *users.StorageRecord, manager *boa
 		return
 	}
 
-	game := boardgame.NewGame(manager)
+	game := manager.NewGame()
 
 	if game == nil {
 		r.Error("No game could be created")

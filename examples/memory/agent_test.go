@@ -72,7 +72,7 @@ func TestCullInvalidCards(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	game := boardgame.NewGame(manager)
+	game := manager.NewGame()
 
 	err = game.SetUp(2, nil)
 
@@ -168,7 +168,7 @@ func TestCardsToFlip(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	game := boardgame.NewGame(manager)
+	game := manager.NewGame()
 
 	err = game.SetUp(2, nil)
 

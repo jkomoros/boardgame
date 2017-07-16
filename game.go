@@ -87,29 +87,6 @@ func randomString(length int) string {
 	return result
 }
 
-//NewGame returns a new game. You must call SetUp before using it.
-func NewGame(manager *GameManager) *Game {
-
-	if manager == nil {
-		return nil
-	}
-
-	result := &Game{
-		manager: manager,
-		//TODO: set the size of chan based on something more reasonable.
-		//Note: this is also set similarly in manager.ModifiableGame
-		proposedMoves: make(chan *proposedMoveItem, 20),
-		id:            randomString(gameIDLength),
-		secretSalt:    randomString(gameIDLength),
-		modifiable:    true,
-	}
-
-	manager.modifiableGameCreated(result)
-
-	return result
-
-}
-
 //Winners is the player indexes who were winners. Typically, this will be
 //one player, but it could be multiple in the case of tie, or 0 in the
 //case of a draw.

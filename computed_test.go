@@ -99,7 +99,7 @@ func TestStateComputed(t *testing.T) {
 
 	manager.SetUp()
 
-	game := NewGame(manager)
+	game := manager.NewGame()
 
 	game.SetUp(0, nil)
 
