@@ -592,6 +592,11 @@ You can use them like so:
 		//just handle it as a generic error.
 	}
 
+The methods you implement to integrate with this package will just be treated
+like generic errors (that is, only their Error() method will be inspected).
+The result of their Error() message will be used in different ways (e.g. in
+FriendlyError() or Error()) depending on the context.
+
 Reflection and Properties
 
 The aim of the boardgame package is to make it as easy as possible for you to
