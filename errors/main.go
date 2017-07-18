@@ -112,10 +112,7 @@ func (f *Friendly) Extend(msg string, fields ...Fields) *Friendly {
 }
 
 //WithFriendly returns a copy of err where the friendlyMsg is set to friendlyMsg
-func (f *Friendly) WithFriendly(err *Friendly, friendlyMsg string, fields ...Fields) *Friendly {
-	if err == nil {
-		return NewFriendly(friendlyMsg, fields...)
-	}
+func (f *Friendly) WithFriendly(friendlyMsg string, fields ...Fields) *Friendly {
 	return &Friendly{
 		secureMsg:   f.secureMsg,
 		msg:         f.msg,
@@ -126,10 +123,7 @@ func (f *Friendly) WithFriendly(err *Friendly, friendlyMsg string, fields ...Fie
 
 //WithError returns a copy of err where the Error() is set to msg. See a;so
 //Extend, which prepends a new message to the front of the existing message.
-func (f *Friendly) WithError(err *Friendly, msg string, fields ...Fields) *Friendly {
-	if err == nil {
-		return New(msg, fields...)
-	}
+func (f *Friendly) WithError(msg string, fields ...Fields) *Friendly {
 	return &Friendly{
 		secureMsg:   f.secureMsg,
 		msg:         msg,
@@ -139,10 +133,7 @@ func (f *Friendly) WithError(err *Friendly, msg string, fields ...Fields) *Frien
 }
 
 //WithSecure returns a copy of err where the SecureError() is set to secureMsg.
-func (f *Friendly) WithSecure(err *Friendly, secureMsg string, fields ...Fields) *Friendly {
-	if err == nil {
-		return NewSecure(secureMsg, fields...)
-	}
+func (f *Friendly) WithSecure(secureMsg string, fields ...Fields) *Friendly {
 	return &Friendly{
 		secureMsg:   secureMsg,
 		msg:         f.msg,
