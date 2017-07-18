@@ -43,6 +43,14 @@ func NewFriendly(friendlyMsg string, fields ...Fields) *Friendly {
 	}
 }
 
+//NewSecure returns a new errors.Friendly with the given SecureError.
+func NewSecure(secureMsg string, fields ...Fields) *Friendly {
+	return &Friendly{
+		secureMsg: secureMsg,
+		fields:    combineFields(fields...),
+	}
+}
+
 func combineFields(fields ...Fields) Fields {
 	var result = make(Fields)
 	for _, field := range fields {
@@ -116,7 +124,7 @@ func (f *Friendly) WithFriendly(err *Friendly, friendlyMsg string, fields ...Fie
 	}
 }
 
-//WithFriendly returns a copy of err where the Error() is set to msg. See a;so
+//WithError returns a copy of err where the Error() is set to msg. See a;so
 //Extend, which prepends a new message to the front of the existing message.
 func (f *Friendly) WithError(err *Friendly, msg string, fields ...Fields) *Friendly {
 	if err == nil {
@@ -125,6 +133,19 @@ func (f *Friendly) WithError(err *Friendly, msg string, fields ...Fields) *Frien
 	return &Friendly{
 		secureMsg:   f.secureMsg,
 		msg:         msg,
+		friendlyMsg: f.friendlyMsg,
+		fields:      combineFields(append([]Fields{f.fields}, fields...)...),
+	}
+}
+
+//WithSecure returns a copy of err where the SecureError() is set to secureMsg.
+func (f *Friendly) WithSecure(err *Friendly, secureMsg string, fields ...Fields) *Friendly {
+	if err == nil {
+		return NewSecure(secureMsg, fields...)
+	}
+	return &Friendly{
+		secureMsg:   secureMsg,
+		msg:         f.msg,
 		friendlyMsg: f.friendlyMsg,
 		fields:      combineFields(append([]Fields{f.fields}, fields...)...),
 	}
