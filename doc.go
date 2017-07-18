@@ -576,6 +576,22 @@ in many cases:
 		return new(gameState)
 	}
 
+Errors
+
+Although the signature of methods in the package often returns a generic
+error, in practice under the covers they are always an *errors.Friendly, which
+contain more information.
+
+You can use them like so:
+
+	err := Method()
+
+	if friendly, ok := err.(*errors.Friendly); ok {
+		log.Println(friendly.FriendlyError())
+	} else {
+		//just handle it as a generic error.
+	}
+
 Reflection and Properties
 
 The aim of the boardgame package is to make it as easy as possible for you to

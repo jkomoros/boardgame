@@ -2,7 +2,7 @@ package boardgame
 
 import (
 	"encoding/json"
-	"errors"
+	"github.com/jkomoros/boardgame/errors"
 	"math/rand"
 	"strconv"
 	"time"

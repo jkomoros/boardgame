@@ -2,8 +2,8 @@ package boardgame
 
 import (
 	"encoding/json"
-	"errors"
 	"github.com/jkomoros/boardgame/enum"
+	"github.com/jkomoros/boardgame/errors"
 	"strconv"
 )
 

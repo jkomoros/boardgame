@@ -1,7 +1,7 @@
 package boardgame
 
 import (
-	"errors"
+	"github.com/jkomoros/boardgame/errors"
 	"strconv"
 )
 

@@ -1,7 +1,7 @@
 package boardgame
 
 import (
-	"errors"
+	"github.com/jkomoros/boardgame/errors"
 )
 
 //GameDelegate is the place that various parts of the game lifecycle can be

@@ -2,7 +2,7 @@ package boardgame
 
 import (
 	"encoding/json"
-	"errors"
+	"github.com/jkomoros/boardgame/errors"
 	"math"
 	"math/rand"
 	"sort"
@@ -896,7 +896,7 @@ func sortComponentsImpl(s Stack, less func(i, j *Component) bool) error {
 
 	sort.Sort(sorter)
 
-	return sorter.err
+	return errors.NewWrapped(sorter.err)
 }
 
 func (g *GrowableStack) SecretMoveComponent(componentIndex int, destination Stack, slotIndex int) error {

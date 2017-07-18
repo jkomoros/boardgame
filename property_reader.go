@@ -1,9 +1,9 @@
 package boardgame
 
 import (
-	"errors"
 	"fmt"
 	"github.com/jkomoros/boardgame/enum"
+	"github.com/jkomoros/boardgame/errors"
 	"reflect"
 	"strconv"
 	"strings"
