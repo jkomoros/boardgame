@@ -84,7 +84,9 @@ func (f *Friendly) FriendlyError() string {
 	return f.friendlyMsg
 }
 
-//Fields returns the Fields object for this error.
+//Fields returns the Fields object for this error. Fields should only be used
+//in secure contexts (e.g. logging on a server) because they may contain
+//private information.
 func (f *Friendly) Fields() Fields {
 	return f.fields
 }
