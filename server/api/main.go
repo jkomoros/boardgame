@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/itsjamie/gin-cors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/errors"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/server/api/users"
@@ -118,16 +119,21 @@ func NewRenderer(c *gin.Context) *Renderer {
 	}
 }
 
-func (r *Renderer) Error(message string) {
+func (r *Renderer) Error(f *errors.Friendly) {
 	if r.rendered {
 		panic("Error called on already-rendered renderer")
+	}
+
+	if f == nil {
+		f = errors.New("Nil error provided to r.Error")
 	}
 
 	r.writeCookie()
 
 	r.c.JSON(http.StatusOK, gin.H{
-		"Status": "Failure",
-		"Error":  message,
+		"Status":        "Failure",
+		"Error":         f.Error(),
+		"FriendlyError": f.FriendlyError(),
 	})
 
 	r.rendered = true
@@ -297,7 +303,7 @@ func (s *Server) requireLoggedIn(c *gin.Context) {
 	user := s.getUser(c)
 
 	if user == nil {
-		r.Error("Not logged in")
+		r.Error(errors.NewFriendly("Not logged in"))
 		c.Abort()
 		return
 	}
@@ -311,7 +317,7 @@ func (s *Server) joinGameHandler(c *gin.Context) {
 	game := s.getGame(c)
 
 	if game == nil {
-		r.Error("No such game")
+		r.Error(errors.NewFriendly("No such game"))
 		return
 	}
 
@@ -328,36 +334,36 @@ func (s *Server) joinGameHandler(c *gin.Context) {
 func (s *Server) doJoinGame(r *Renderer, game *boardgame.Game, viewingAsPlayer boardgame.PlayerIndex, emptySlots []boardgame.PlayerIndex, user *users.StorageRecord) {
 
 	if user == nil {
-		r.Error("No user provided.")
+		r.Error(errors.New("No user provided."))
 		return
 	}
 
 	eGame, err := s.storage.ExtendedGame(game.Id())
 
 	if err != nil {
-		r.Error("Couldn't get extended information about game: " + err.Error())
+		r.Error(errors.New("Couldn't get extended information about game: " + err.Error()))
 		return
 	}
 
 	if !eGame.Open {
-		r.Error("The game is not open to people joining.")
+		r.Error(errors.NewFriendly("The game is not open to people joining."))
 		return
 	}
 
 	if viewingAsPlayer != boardgame.ObserverPlayerIndex {
-		r.Error("The given player is already in the game.")
+		r.Error(errors.NewFriendly("The given player is already in the game."))
 		return
 	}
 
 	if len(emptySlots) == 0 {
-		r.Error("There aren't any empty slots in the game to join.")
+		r.Error(errors.NewFriendly("There aren't any empty slots in the game to join."))
 		return
 	}
 
 	slot := emptySlots[0]
 
 	if err := s.storage.SetPlayerForGame(game.Id(), slot, user.Id); err != nil {
-		r.Error("Tried to set the user as player " + slot.String() + " but failed: " + err.Error())
+		r.Error(errors.New("Tried to set the user as player " + slot.String() + " but failed: " + err.Error()))
 		return
 	}
 
@@ -393,32 +399,32 @@ func (s *Server) newGameHandler(c *gin.Context) {
 func (s *Server) doNewGame(r *Renderer, owner *users.StorageRecord, manager *boardgame.GameManager, numPlayers int, agents []string, open bool, visible bool) {
 
 	if manager == nil {
-		r.Error("No manager provided")
+		r.Error(errors.New("No manager provided"))
 		return
 	}
 
 	if owner == nil {
-		r.Error("You must be signed in to create a game.")
+		r.Error(errors.NewFriendly("You must be signed in to create a game."))
 		return
 	}
 
 	game := manager.NewGame()
 
 	if game == nil {
-		r.Error("No game could be created")
+		r.Error(errors.New("No game could be created"))
 		return
 	}
 
 	if err := game.SetUp(numPlayers, agents); err != nil {
 		//TODO: communicate the error state back to the client in a sane way
-		r.Error("Couldn't set up game: " + err.Error())
+		r.Error(errors.New("Couldn't set up game: " + err.Error()))
 		return
 	}
 
 	eGame, err := s.storage.ExtendedGame(game.Id())
 
 	if err != nil {
-		r.Error("Couldn't retrieve saved game: " + err.Error())
+		r.Error(errors.New("Couldn't retrieve saved game: " + err.Error()))
 		return
 	}
 
@@ -429,7 +435,7 @@ func (s *Server) doNewGame(r *Renderer, owner *users.StorageRecord, manager *boa
 	//TODO: set Open, Visible based on query params.
 
 	if err := s.storage.UpdateExtendedGame(game.Id(), eGame); err != nil {
-		r.Error("Couldn't save extended game metadata: " + err.Error())
+		r.Error(errors.New("Couldn't save extended game metadata: " + err.Error()))
 		return
 	}
 
@@ -559,12 +565,12 @@ func (s *Server) gameVersionHandler(c *gin.Context) {
 
 func (s *Server) doGameVersion(r *Renderer, game *boardgame.Game, version int, playerIndex boardgame.PlayerIndex, autoCurrentPlayer bool) {
 	if game == nil {
-		r.Error("Couldn't find game")
+		r.Error(errors.NewFriendly("Couldn't find game"))
 		return
 	}
 
 	if playerIndex == invalidPlayerIndex {
-		r.Error("Got invalid playerIndex")
+		r.Error(errors.New("Got invalid playerIndex"))
 		return
 	}
 
@@ -619,22 +625,22 @@ func (s *Server) configureGameHandler(c *gin.Context) {
 func (s *Server) doConfigureGame(r *Renderer, user *users.StorageRecord, isAdmin bool, game *boardgame.Game, gameInfo *extendedgame.StorageRecord, open, visible bool) {
 
 	if user == nil {
-		r.Error("No user provided")
+		r.Error(errors.New("No user provided"))
 		return
 	}
 
 	if game == nil {
-		r.Error("Invalid game")
+		r.Error(errors.New("Invalid game"))
 		return
 	}
 
 	if gameInfo == nil {
-		r.Error("Couldn't fetch game info")
+		r.Error(errors.New("Couldn't fetch game info"))
 		return
 	}
 
 	if !isAdmin && user.Id != gameInfo.Owner {
-		r.Error("You are neither the owner nor an admin.")
+		r.Error(errors.NewFriendly("You are neither the owner nor an admin."))
 		return
 	}
 
@@ -642,7 +648,7 @@ func (s *Server) doConfigureGame(r *Renderer, user *users.StorageRecord, isAdmin
 	gameInfo.Visible = visible
 
 	if err := s.storage.UpdateExtendedGame(game.Id(), gameInfo); err != nil {
-		r.Error("Error updating the extended game: " + err.Error())
+		r.Error(errors.New("Error updating the extended game: " + err.Error()))
 		return
 	}
 
@@ -746,17 +752,17 @@ func (s *Server) gamePlayerInfo(game *boardgame.GameStorageRecord, manager *boar
 
 func (s *Server) doGameInfo(r *Renderer, game *boardgame.Game, playerIndex boardgame.PlayerIndex, hasEmptySlots bool, gameInfo *extendedgame.StorageRecord, user *users.StorageRecord) {
 	if game == nil {
-		r.Error("Couldn't find game")
+		r.Error(errors.New("Couldn't find game"))
 		return
 	}
 
 	if playerIndex == invalidPlayerIndex {
-		r.Error("Got invalid playerIndex")
+		r.Error(errors.New("Got invalid playerIndex"))
 		return
 	}
 
 	if gameInfo == nil {
-		r.Error("Game info could not be fetched")
+		r.Error(errors.New("Game info could not be fetched"))
 		return
 	}
 
@@ -790,14 +796,14 @@ func (s *Server) moveHandler(c *gin.Context) {
 	r := NewRenderer(c)
 
 	if c.Request.Method != http.MethodPost {
-		r.Error("This method only supports post.")
+		r.Error(errors.New("This method only supports post."))
 		return
 	}
 
 	game := s.getGame(c)
 
 	if game == nil {
-		r.Error("Game not found")
+		r.Error(errors.New("Game not found"))
 		return
 	}
 
@@ -815,7 +821,7 @@ func (s *Server) moveHandler(c *gin.Context) {
 			errString = err.Error()
 		}
 
-		r.Error("Couldn't get move: " + errString)
+		r.Error(errors.New("Couldn't get move: " + errString))
 		return
 	}
 
@@ -826,7 +832,12 @@ func (s *Server) moveHandler(c *gin.Context) {
 func (s *Server) doMakeMove(r *Renderer, game *boardgame.Game, proposer boardgame.PlayerIndex, move boardgame.Move) {
 
 	if err := <-game.ProposeMove(move, proposer); err != nil {
-		r.Error("Couldn't make move: " + err.Error())
+
+		if f, ok := err.(*errors.Friendly); ok {
+			r.Error(f)
+		} else {
+			r.Error(errors.New(err.Error()))
+		}
 		return
 	}
 	//TODO: it would be nice if we could show which fixup moves we made, too,

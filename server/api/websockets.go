@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -57,14 +58,14 @@ func (s *Server) socketHandler(c *gin.Context) {
 	renderer := NewRenderer(c)
 
 	if game == nil {
-		renderer.Error("No such game")
+		renderer.Error(errors.New("No such game"))
 		return
 	}
 
 	conn, err := s.upgrader.Upgrade(c.Writer, c.Request, nil)
 
 	if err != nil {
-		renderer.Error("Couldn't upgrade socket: " + err.Error())
+		renderer.Error(errors.New("Couldn't upgrade socket: " + err.Error()))
 		return
 	}
 

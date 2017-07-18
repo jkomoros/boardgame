@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/alternaDev/go-firebase-verify"
 	"github.com/gin-gonic/gin"
+	"github.com/jkomoros/boardgame/errors"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"math/rand"
 	"net/http"
@@ -29,7 +30,7 @@ func (s *Server) unsetCookie(r *Renderer, cookie string, message string) {
 	//We must have an old cookie set. Clear it out.
 	if err := s.storage.ConnectCookieToUser(cookie, nil); err != nil {
 
-		r.Error(err.Error())
+		r.Error(errors.New(err.Error()))
 		return
 	}
 
@@ -54,7 +55,7 @@ func (s *Server) authCookieHandler(c *gin.Context) {
 	r := NewRenderer(c)
 
 	if c.Request.Method != http.MethodPost {
-		r.Error("This method only supports post.")
+		r.Error(errors.New("This method only supports post."))
 		return
 	}
 
@@ -156,13 +157,13 @@ func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie, email, photoUrl, 
 		verifiedUid, err := firebase.VerifyIDToken(token, s.config.FirebaseProjectId)
 
 		if err != nil {
-			r.Error("Failed to verify jwt token: " + err.Error())
+			r.Error(errors.New("Failed to verify jwt token: " + err.Error()))
 			return
 		}
 
 		if verifiedUid != uid {
 
-			r.Error("The decoded jwt token doesn not match with the provided uid.")
+			r.Error(errors.New("The decoded jwt token doesn not match with the provided uid."))
 			return
 		}
 
@@ -187,7 +188,7 @@ func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie, email, photoUrl, 
 
 		if err := s.storage.ConnectCookieToUser(cookie, user); err != nil {
 
-			r.Error("Couldn't connect cookie to user: " + err.Error())
+			r.Error(errors.New("Couldn't connect cookie to user: " + err.Error()))
 			return
 		}
 
