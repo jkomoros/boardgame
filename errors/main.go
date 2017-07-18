@@ -51,6 +51,15 @@ func NewSecure(secureMsg string, fields ...Fields) *Friendly {
 	}
 }
 
+//NewWrapped takes a generic error. It returns either a new error with that
+//message or, if nil, returns nil.
+func NewWrapped(err error, fields ...Fields) *Friendly {
+	if err == nil {
+		return nil
+	}
+	return New(err.Error(), fields...)
+}
+
 func combineFields(fields ...Fields) Fields {
 	var result = make(Fields)
 	for _, field := range fields {
