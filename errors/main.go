@@ -52,8 +52,9 @@ func NewSecure(secureMsg string, fields ...Fields) *Friendly {
 }
 
 //NewWrapped takes a generic error. It returns either a new error with that
-//message or, if nil, returns nil.
-func NewWrapped(err error, fields ...Fields) *Friendly {
+//message or, if nil, returns nil. Returns a generic error so if it returns
+//nil it will no be a nil interface value to a *Friendly.
+func NewWrapped(err error, fields ...Fields) error {
 	if err == nil {
 		return nil
 	}
