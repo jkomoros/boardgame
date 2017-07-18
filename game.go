@@ -667,12 +667,14 @@ func (g *Game) delayedProposeMove(move Move, proposer PlayerIndex, low time.Dura
 //called by mainLoop. Propose moves with game.ProposeMove instead.
 func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseCount int, isImmediateFixUp bool) error {
 
+	baseErr := errors.NewFriendly("The move could not be made")
+
 	if !g.initalized {
-		return errors.New("The game has not been initalized.")
+		return baseErr.WithError("The game has not been initalized.")
 	}
 
 	if g.finished {
-		return errors.New("Game was already finished")
+		return errors.NewFriendly("Game was already finished")
 	}
 
 	if isFixUp {
@@ -685,41 +687,41 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 		//default delegate, is always checked for proposefixup).
 		if !isImmediateFixUp {
 			if g.FixUpMoveByName(move.Type().Name()) == nil {
-				return errors.New("That move is not configured as a Fix Up move for this game.")
+				return baseErr.WithError("That move is not configured as a Fix Up move for this game.")
 			}
 		}
 	} else {
 
 		//Verify that the Move is actually configured to be part of this game.
 		if g.PlayerMoveByName(move.Type().Name()) == nil {
-			return errors.New("That move is not configured as a Player move for this game.")
+			return baseErr.WithError("That move is not configured as a Player move for this game.")
 		}
 	}
 
 	currentState := g.CurrentState().(*state)
 
 	if !proposer.Valid(currentState) {
-		return errors.New("The proposer was not valid.")
+		return baseErr.WithError("The proposer was not valid.")
 	}
 
 	if proposer == ObserverPlayerIndex {
-		return errors.New("The proposer was the ObserverPlayerIndex, but observers may never make moves.")
+		return baseErr.WithError("The proposer was the ObserverPlayerIndex, but observers may never make moves.")
 	}
 
 	if err := move.Legal(currentState, proposer); err != nil {
 		//It's not legal, reject.
-		return errors.New("The move was not legal: " + err.Error())
+		return errors.NewFriendly(err.Error())
 	}
 
 	newState := currentState.copy(false)
 	newState.version = g.version + 1
 
 	if err := move.Apply(newState); err != nil {
-		return errors.New("The move's apply function returned an error:" + err.Error())
+		return baseErr.WithError("The move's apply function returned an error:" + err.Error())
 	}
 
 	if err := newState.validatePlayerIndexes(); err != nil {
-		return errors.New("The modified state had a PlayerIndex out of bounds, so the move was not applied. " + err.Error())
+		return baseErr.WithError("The modified state had a PlayerIndex out of bounds, so the move was not applied. " + err.Error())
 	}
 
 	//Check to see if that move made the game finished.
@@ -739,7 +741,7 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	//TODO: test that if we fail to save state to storage everything's fine.
 	if err := g.manager.Storage().SaveGameAndCurrentState(g.StorageRecord(), newState.StorageRecord(), StorageRecordForMove(move)); err != nil {
 		//TODO: we need to undo the temporary changes we made directly to ourselves (vesrion, finished, winners)
-		return errors.New("Storage returned an error:" + err.Error())
+		return baseErr.WithError("Storage returned an error:" + err.Error())
 	}
 
 	//Ok, the state stuck and is now canonical--trigger the actions it was
@@ -774,7 +776,7 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 			fixUpErr := g.applyMove(immediateFixUp, proposer, true, recurseCount, true)
 
 			if fixUpErr != nil {
-				return errors.New("The move worked, but an ImmediateFixUp failed in the chain: " + fixUpErr.Error())
+				return baseErr.WithError("The move worked, but an ImmediateFixUp failed in the chain: " + fixUpErr.Error())
 			}
 
 			newState = g.CurrentState().(*state)
@@ -797,12 +799,12 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 		if err := g.applyMove(move, AdminPlayerIndex, true, recurseCount+1, false); err != nil {
 			//TODO: if we bail here, we haven't left Game in a consistent
 			//state because we haven't rolled back what we did.
-			return errors.New("Applying the fix up move failed: " + strconv.Itoa(recurseCount) + ": " + err.Error())
+			return baseErr.WithError("Applying the fix up move failed: " + strconv.Itoa(recurseCount) + ": " + err.Error())
 		}
 	}
 
 	if err := g.triggerAgents(); err != nil {
-		return errors.New("Failed to trigger agent: " + err.Error())
+		return baseErr.WithError("Failed to trigger agent: " + err.Error())
 	}
 
 	//We only want to alert that the run is done if it was a player move that
