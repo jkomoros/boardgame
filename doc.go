@@ -75,6 +75,17 @@ After each Move is Apply'd, the Game's Delegate (see below) is given an
 opportunity to examine the new State of the game and decide if a FixUp move
 should be applied.
 
+This means that each PlayerMove that is applied may be followed by 0 to n
+FixUp moves in order to get the state back to a known good state at which
+point other PlayerMoves may be applied. This chain of moves is known as a
+causal chain, with the first move in the chain--the PlayerMove--as the
+Initiator of the causal chain. When inspecting a Move, the version number of
+the Initiator can be recovered via move.Info().Initiator(). Generally only the
+last version in a causal chain makes sense to render to a user, because in the
+middle of a causal chain the state could be in an odd state. The dowstream
+package server introduces the notion of breaks that can also introduce pauses
+where state is rendered in the middle of a causal chain.
+
 After each move, and when there are no more FixUp moves to apply, the Game
 checks to see if the game is now over by asking its Delegate (see below). If
 so, the game is marked as Finished, and the winners are noted. At that point
