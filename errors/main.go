@@ -110,14 +110,26 @@ func (f *Friendly) Fields() Fields {
 }
 
 //Extend returns a new FriendlyError where the Error() message is prepended
-//with this new message and a delimiter. The SecureError and FriendlyError
-//message are left untouched.
-func (f *Friendly) Extend(msg string, fields ...Fields) *Friendly {
+//with this new message and a delimiter. If err is an *errors.Friendly then
+//the secure message, friendly message, and fields will all be included
+//unchanged.
+func Extend(err error, msg string, fields ...Fields) *Friendly {
+
+	var base *Friendly
+
+	if f, ok := err.(*Friendly); ok {
+		base = f
+	}
+
+	if base == nil {
+		base = New(err.Error())
+	}
+
 	return &Friendly{
-		secureMsg:   f.secureMsg,
-		friendlyMsg: f.friendlyMsg,
-		msg:         msg + " : " + f.Error(),
-		fields:      combineFields(append([]Fields{f.fields}, fields...)...),
+		secureMsg:   base.secureMsg,
+		friendlyMsg: base.friendlyMsg,
+		msg:         msg + " : " + base.Error(),
+		fields:      combineFields(append([]Fields{base.fields}, fields...)...),
 	}
 }
 
