@@ -368,6 +368,12 @@ func TestMoveRoundTrip(t *testing.T) {
 
 	assert.For(t).ThatActual(move).Equals(refriedMove)
 
+	fixUpMove, err := game.Move(2)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(fixUpMove.Info().Initiator()).Equals(1)
+
 }
 
 func TestIllegalMove(t *testing.T) {

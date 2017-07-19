@@ -62,8 +62,9 @@ type MoveTypeConfig struct {
 
 //MoveInfo is an object that contains meta-information about a move.
 type MoveInfo struct {
-	moveType *MoveType
-	version  int
+	moveType  *MoveType
+	version   int
+	initiator int
 }
 
 //Move's are how all modifications are made to Game States after
@@ -128,8 +129,9 @@ func StorageRecordForMove(move Move) *MoveStorageRecord {
 	}
 
 	return &MoveStorageRecord{
-		Name: move.Info().Type().Name(),
-		Blob: blob,
+		Name:      move.Info().Type().Name(),
+		Initiator: move.Info().initiator,
+		Blob:      blob,
 	}
 }
 
@@ -142,6 +144,15 @@ func (m *MoveInfo) Type() *MoveType {
 //when successfully committed.
 func (m *MoveInfo) Version() int {
 	return m.version
+}
+
+//Initiator returns the move version that initiated this causal chain: the
+//PlayerMove that was applied that led to this chain of FixUp moves. The
+//Initiator of a PlayerMove is its own version, so this value will be less
+//than or equal to its own version. The value of Initator is unspecified until
+//after the move has been successfully committed.
+func (m *MoveInfo) Initiator() int {
+	return m.initiator
 }
 
 var moveTypeIllegalPropTypes = map[PropertyType]bool{

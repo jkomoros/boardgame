@@ -77,11 +77,12 @@ type StateStorageRecord struct {
 }
 
 type MoveStorageRecord struct {
-	Id      int64
-	GameId  string `db:",size:16"`
-	Version int64
-	Name    string `db:",size:128"`
-	Blob    string `db:",size:100000"`
+	Id        int64
+	GameId    string `db:",size:16"`
+	Version   int64
+	Initiator int64
+	Name      string `db:",size:128"`
+	Blob      string `db:",size:100000"`
 }
 
 type PlayerStorageRecord struct {
@@ -283,17 +284,19 @@ func NewExtendedGameStorageRecord(eGame *extendedgame.StorageRecord) *ExtendedGa
 
 func (m *MoveStorageRecord) ToStorageRecord() *boardgame.MoveStorageRecord {
 	return &boardgame.MoveStorageRecord{
-		Name: m.Name,
-		Blob: []byte(m.Blob),
+		Name:      m.Name,
+		Initiator: int(m.Initiator),
+		Blob:      []byte(m.Blob),
 	}
 }
 
 func NewMoveStorageRecord(gameId string, version int, record *boardgame.MoveStorageRecord) *MoveStorageRecord {
 	return &MoveStorageRecord{
-		GameId:  gameId,
-		Version: int64(version),
-		Name:    record.Name,
-		Blob:    string(record.Blob),
+		GameId:    gameId,
+		Version:   int64(version),
+		Initiator: int64(record.Initiator),
+		Name:      record.Name,
+		Blob:      string(record.Blob),
 	}
 }
 

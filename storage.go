@@ -8,8 +8,9 @@ type StateStorageRecord []byte
 //MoveStorageRecord is a record representing the Move that was made to get the
 //game to its most recent version.
 type MoveStorageRecord struct {
-	Name string
-	Blob []byte
+	Name      string
+	Initiator int
+	Blob      []byte
 }
 
 //GameStorageRecord is a simple struct with public fields representing the

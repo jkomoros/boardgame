@@ -251,6 +251,7 @@ func (g *Game) Move(version int) (Move, error) {
 	}
 
 	move.Info().version = version
+	move.Info().initiator = record.Initiator
 
 	return move, nil
 
@@ -431,7 +432,7 @@ func (g *Game) SetUp(numPlayers int, agentNames []string) error {
 		//We apply the move immediately. This ensures that when
 		//DelayedError resolves, all of the fix up moves have been
 		//applied.
-		if err := g.applyMove(move, AdminPlayerIndex, true, 0, false); err != nil {
+		if err := g.applyMove(move, AdminPlayerIndex, true, 0, false, -1); err != nil {
 			//TODO: if we bail here, we haven't left Game in a consistent
 			//state because we haven't rolled back what we did.
 			return baseErr.WithError("Applying the first fix up move failed: " + err.Error())
@@ -458,7 +459,7 @@ func (g *Game) mainLoop() {
 		if item == nil {
 			return
 		}
-		item.ch <- g.applyMove(item.move, item.proposer, false, 0, false)
+		item.ch <- g.applyMove(item.move, item.proposer, false, 0, false, -1)
 		close(item.ch)
 	}
 
@@ -669,7 +670,7 @@ func (g *Game) delayedProposeMove(move Move, proposer PlayerIndex, low time.Dura
 
 //Game applies the move to the state if it is currently legal. May only be
 //called by mainLoop. Propose moves with game.ProposeMove instead.
-func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseCount int, isImmediateFixUp bool) error {
+func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseCount int, isImmediateFixUp bool, initiator int) error {
 
 	baseErr := errors.NewFriendly("The move could not be made")
 
@@ -700,6 +701,8 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 		if g.PlayerMoveByName(move.Info().Type().Name()) == nil {
 			return baseErr.WithError("That move is not configured as a Player move for this game.")
 		}
+		//The initiator for player moves is the version that we will be
+		initiator = g.version + 1
 	}
 
 	currentState := g.CurrentState().(*state)
@@ -711,6 +714,8 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	if proposer == ObserverPlayerIndex {
 		return baseErr.WithError("The proposer was the ObserverPlayerIndex, but observers may never make moves.")
 	}
+
+	move.Info().initiator = initiator
 
 	if err := move.Legal(currentState, proposer); err != nil {
 		//It's not legal, reject.
@@ -739,6 +744,7 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	}
 
 	g.version = g.version + 1
+
 	//Expire the currentState cache; it's no longer valid.
 	g.cachedCurrentState = nil
 
@@ -777,7 +783,7 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 
 		if illegal == nil {
 
-			fixUpErr := g.applyMove(immediateFixUp, proposer, true, recurseCount, true)
+			fixUpErr := g.applyMove(immediateFixUp, proposer, true, recurseCount, true, initiator)
 
 			if fixUpErr != nil {
 				return baseErr.WithError("The move worked, but an ImmediateFixUp failed in the chain: " + fixUpErr.Error())
@@ -800,7 +806,7 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 		//We apply the move immediately. This ensures that when
 		//DelayedError resolves, all of the fix up moves have been
 		//applied.
-		if err := g.applyMove(move, AdminPlayerIndex, true, recurseCount+1, false); err != nil {
+		if err := g.applyMove(move, AdminPlayerIndex, true, recurseCount+1, false, initiator); err != nil {
 			//TODO: if we bail here, we haven't left Game in a consistent
 			//state because we haven't rolled back what we did.
 			return baseErr.WithError("Applying the fix up move failed: " + strconv.Itoa(recurseCount) + ": " + err.Error())
