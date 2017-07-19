@@ -417,7 +417,11 @@ func (s *Server) doNewGame(r *Renderer, owner *users.StorageRecord, manager *boa
 
 	if err := game.SetUp(numPlayers, agents); err != nil {
 		//TODO: communicate the error state back to the client in a sane way
-		r.Error(errors.New("Couldn't set up game: " + err.Error()))
+		if f, ok := err.(*errors.Friendly); ok {
+			r.Error(f)
+		} else {
+			r.Error(errors.New(err.Error()))
+		}
 		return
 	}
 
