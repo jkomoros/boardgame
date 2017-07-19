@@ -109,7 +109,7 @@ func TestDefaultMove(t *testing.T) {
 
 	assert.For(t).ThatActual(move).IsNotNil()
 
-	assert.For(t).ThatActualString(move.Type().Name()).Equals("Advance Current Player")
+	assert.For(t).ThatActualString(move.Info().Type().Name()).Equals("Advance Current Player")
 
 	convertedMove, ok := move.(*testMoveAdvanceCurentPlayer)
 

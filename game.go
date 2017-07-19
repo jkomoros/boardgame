@@ -250,6 +250,8 @@ func (g *Game) Move(version int) (Move, error) {
 		return nil, errors.New("Couldn't unmarshal move: " + err.Error())
 	}
 
+	move.Info().version = version
+
 	return move, nil
 
 }
@@ -688,14 +690,14 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 		//sense for them to not be listed in FixUpMoves (which, with the
 		//default delegate, is always checked for proposefixup).
 		if !isImmediateFixUp {
-			if g.FixUpMoveByName(move.Type().Name()) == nil {
+			if g.FixUpMoveByName(move.Info().Type().Name()) == nil {
 				return baseErr.WithError("That move is not configured as a Fix Up move for this game.")
 			}
 		}
 	} else {
 
 		//Verify that the Move is actually configured to be part of this game.
-		if g.PlayerMoveByName(move.Type().Name()) == nil {
+		if g.PlayerMoveByName(move.Info().Type().Name()) == nil {
 			return baseErr.WithError("That move is not configured as a Player move for this game.")
 		}
 	}
@@ -763,7 +765,7 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 		return nil
 	}
 
-	immediateFixUp := move.Type().ImmediateFixUp(newState)
+	immediateFixUp := move.Info().Type().ImmediateFixUp(newState)
 
 	if immediateFixUp != nil {
 

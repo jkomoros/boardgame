@@ -60,6 +60,12 @@ type MoveTypeConfig struct {
 	IsFixUp bool
 }
 
+//MoveInfo is an object that contains meta-information about a move.
+type MoveInfo struct {
+	moveType *MoveType
+	version  int
+}
+
 //Move's are how all modifications are made to Game States after
 //initialization. Packages define structs that implement Move for all
 //modifications. The Move should be JSON-able (that is, all persistable state
@@ -68,13 +74,15 @@ type MoveTypeConfig struct {
 //allow you to skip most of the boilerplate overhead.
 type Move interface {
 
-	//SetType will be called after the constructor is called to set the type.
-	//Splitting this out allows the basic constructors not in the base classes
-	//to be very small, because in most cases you'll compose a moves.Base.
-	SetType(m *MoveType)
+	//SetInfo will be called after the constructor is called to set the
+	//information, including what type the move is. Splitting this out allows
+	//the basic constructors not in the base classes to be very small, because
+	//in most cases you'll compose a moves.Base.
+	SetInfo(m *MoveInfo)
 
-	//Type is the MoveType that this Move is.
-	Type() *MoveType
+	//Info returns the MoveInfo objec that was affiliated with this object by
+	//SetInfo.
+	Info() *MoveInfo
 
 	//Legal returns nil if this proposed move is legal, or an error if the
 	//move is not legal. The error message may be shown directly to the end-
@@ -120,9 +128,20 @@ func StorageRecordForMove(move Move) *MoveStorageRecord {
 	}
 
 	return &MoveStorageRecord{
-		Name: move.Type().Name(),
+		Name: move.Info().Type().Name(),
 		Blob: blob,
 	}
+}
+
+//Type returns the MoveType of this Move.
+func (m *MoveInfo) Type() *MoveType {
+	return m.moveType
+}
+
+//Version returns the version of this move--or the version that it will be
+//when successfully committed.
+func (m *MoveInfo) Version() int {
+	return m.version
 }
 
 var moveTypeIllegalPropTypes = map[PropertyType]bool{
@@ -195,7 +214,13 @@ func (m *MoveType) NewMove(state State) Move {
 	if move == nil {
 		return nil
 	}
-	move.SetType(m)
+
+	info := &MoveInfo{
+		moveType: m,
+		version:  state.Version() + 1,
+	}
+
+	move.SetInfo(info)
 
 	if err := m.validator.AutoInflate(move.ReadSetter(), state); err != nil {
 		log.Println("AutoInflate had an error: " + err.Error())
@@ -214,16 +239,15 @@ func (m *MoveType) NewMove(state State) Move {
 //We implement a private stub of moves.Base in this package just for the
 //convience of our own test structs.
 type baseMove struct {
-	moveType *MoveType
+	info MoveInfo
 }
 
-func (d *baseMove) SetType(m *MoveType) {
-	d.moveType = m
+func (d *baseMove) SetInfo(m *MoveInfo) {
+	d.info = *m
 }
 
-//Type simply returns BaseMove.MoveType
-func (d *baseMove) Type() *MoveType {
-	return d.moveType
+func (d *baseMove) Info() *MoveInfo {
+	return &d.info
 }
 
 //DefaultsForState doesn't do anything
@@ -233,5 +257,5 @@ func (d *baseMove) DefaultsForState(state State) {
 
 //Description defaults to returning the Type's HelpText()
 func (d *baseMove) Description() string {
-	return d.Type().HelpText()
+	return d.Info().Type().HelpText()
 }

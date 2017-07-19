@@ -30,16 +30,16 @@ generate that code for you.
 
 */
 type Base struct {
-	moveType *boardgame.MoveType
+	info *boardgame.MoveInfo
 }
 
-func (d *Base) SetType(m *boardgame.MoveType) {
-	d.moveType = m
+func (d *Base) SetInfo(m *boardgame.MoveInfo) {
+	d.info = m
 }
 
-//Type simply returns BaseMove.MoveType
-func (d *Base) Type() *boardgame.MoveType {
-	return d.moveType
+//Type simply returns BaseMove.MoveInfo
+func (d *Base) Info() *boardgame.MoveInfo {
+	return d.info
 }
 
 //DefaultsForState doesn't do anything
@@ -49,5 +49,5 @@ func (d *Base) DefaultsForState(state boardgame.State) {
 
 //Description defaults to returning the Type's HelpText()
 func (d *Base) Description() string {
-	return d.Type().HelpText()
+	return d.Info().Type().HelpText()
 }

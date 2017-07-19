@@ -36,8 +36,8 @@ func TestStructTag(t *testing.T) {
 }
 
 type testAutoEnumMove struct {
-	moveType *MoveType
-	A        enum.Var `enum:"color"`
+	info *MoveInfo
+	A    enum.Var `enum:"color"`
 }
 
 func (t *testAutoEnumMove) ReadSetter() PropertyReadSetter {
@@ -56,16 +56,16 @@ func (t *testAutoEnumMove) DefaultsForState(state State) {
 	//Pass
 }
 
-func (t *testAutoEnumMove) SetType(mType *MoveType) {
-	t.moveType = mType
+func (t *testAutoEnumMove) SetInfo(m *MoveInfo) {
+	t.info = m
 }
 
-func (t *testAutoEnumMove) Type() *MoveType {
-	return t.moveType
+func (t *testAutoEnumMove) Info() *MoveInfo {
+	return t.info
 }
 
 func (t *testAutoEnumMove) Description() string {
-	return t.Type().HelpText()
+	return t.Info().Type().HelpText()
 }
 
 var testAutoEnumMoveConfig = MoveTypeConfig{
