@@ -294,13 +294,15 @@ func (g *Game) NumAgentPlayers() int {
 //human player).
 func (g *Game) SetUp(numPlayers int, agentNames []string) error {
 
+	baseErr := errors.NewFriendly("Game couldn't be set up")
+
 	if g.initalized {
-		return errors.New("Game already initalized")
+		return baseErr.WithError("Game already initalized")
 	}
 
 	//TODO: we don't need this anymore because managers can't be created without chests.
 	if g.manager.Chest() == nil {
-		return errors.New("No component chest set on manager")
+		return baseErr.WithError("No component chest set on manager")
 	}
 
 	if numPlayers == 0 {
@@ -308,15 +310,15 @@ func (g *Game) SetUp(numPlayers int, agentNames []string) error {
 	}
 
 	if numPlayers < 1 {
-		return errors.New("The number of players, " + strconv.Itoa(numPlayers) + " is not legal. There must be one or more players.")
+		return errors.NewFriendly("The number of players, " + strconv.Itoa(numPlayers) + " is not legal. There must be one or more players.")
 	}
 
 	if !g.manager.Delegate().LegalNumPlayers(numPlayers) {
-		return errors.New("The number of players, " + strconv.Itoa(numPlayers) + " was not legal.")
+		return errors.NewFriendly("The number of players, " + strconv.Itoa(numPlayers) + " was not legal.")
 	}
 
 	if agentNames != nil && len(agentNames) != numPlayers {
-		return errors.New("If agentNames is not nil, it must have length equivalent to numPlayers.")
+		return baseErr.WithError("If agentNames is not nil, it must have length equivalent to numPlayers.")
 	}
 
 	if agentNames == nil {
@@ -358,7 +360,7 @@ func (g *Game) SetUp(numPlayers int, agentNames []string) error {
 	dynamic, err := g.manager.dynamicComponentValuesConstructor(stateCopy)
 
 	if err != nil {
-		return errors.New("Couldn't create empty dynamic component values: " + err.Error())
+		return baseErr.WithError("Couldn't create empty dynamic component values: " + err.Error())
 	}
 
 	stateCopy.dynamicComponentValues = dynamic
@@ -372,13 +374,13 @@ func (g *Game) SetUp(numPlayers int, agentNames []string) error {
 		for i, component := range deck.Components() {
 			stack, err := g.manager.Delegate().DistributeComponentToStarterStack(stateCopy, component)
 			if err != nil {
-				return errors.New("Distributing components failed for deck " + name + ":" + strconv.Itoa(i) + ":" + err.Error())
+				return baseErr.WithError("Distributing components failed for deck " + name + ":" + strconv.Itoa(i) + ":" + err.Error())
 			}
 			if stack == nil {
-				return errors.New("Distributing components failed for deck " + name + ":" + strconv.Itoa(i) + ": the delegate returned no stack.")
+				return baseErr.WithError("Distributing components failed for deck " + name + ":" + strconv.Itoa(i) + ": the delegate returned no stack.")
 			}
 			if stack.SlotsRemaining() < 1 {
-				return errors.New("Distributing components failed for deck " + name + ":" + strconv.Itoa(i) + ": the stack the delegate returned had no more slots.")
+				return baseErr.WithError("Distributing components failed for deck " + name + ":" + strconv.Itoa(i) + ": the stack the delegate returned had no more slots.")
 			}
 			stack.insertComponentAt(stack.effectiveIndex(NextSlotIndex), component)
 		}
@@ -390,7 +392,7 @@ func (g *Game) SetUp(numPlayers int, agentNames []string) error {
 
 		//Save the initial state to DB.
 		if err := g.manager.Storage().SaveGameAndCurrentState(g.StorageRecord(), stateCopy.StorageRecord(), nil); err != nil {
-			return errors.New("Storage failed: " + err.Error())
+			return baseErr.WithError("Storage failed: " + err.Error())
 		}
 	}
 
@@ -403,7 +405,7 @@ func (g *Game) SetUp(numPlayers int, agentNames []string) error {
 		agent := g.Manager().AgentByName(name)
 
 		if agent == nil {
-			return errors.New("Couldn't find the agent for the " + strconv.Itoa(i) + " player: " + name)
+			return baseErr.WithError("Couldn't find the agent for the " + strconv.Itoa(i) + " player: " + name)
 		}
 
 		agentState := agent.SetUpForGame(g, PlayerIndex(i))
@@ -413,7 +415,7 @@ func (g *Game) SetUp(numPlayers int, agentNames []string) error {
 		}
 
 		if err := g.Manager().storage.SaveAgentState(g.Id(), PlayerIndex(i), agentState); err != nil {
-			return errors.New("Couldn't save state for agent " + strconv.Itoa(i) + ": " + err.Error())
+			return baseErr.WithError("Couldn't save state for agent " + strconv.Itoa(i) + ": " + err.Error())
 		}
 	}
 
@@ -430,7 +432,7 @@ func (g *Game) SetUp(numPlayers int, agentNames []string) error {
 		if err := g.applyMove(move, AdminPlayerIndex, true, 0, false); err != nil {
 			//TODO: if we bail here, we haven't left Game in a consistent
 			//state because we haven't rolled back what we did.
-			return errors.New("Applying the first fix up move failed: " + err.Error())
+			return baseErr.WithError("Applying the first fix up move failed: " + err.Error())
 		}
 	}
 
