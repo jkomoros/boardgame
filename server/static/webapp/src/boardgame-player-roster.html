@@ -191,7 +191,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           //Tell game-view to fetch data now
           this.dispatchEvent(new CustomEvent("refresh-info", {composed: true}));
         } else {
-          this.dispatchEvent(new CustomEvent("show-error", {composed: true, detail: {"message" : newValue.Error, "title": "Couldn't Join"}}));
+          this.dispatchEvent(new CustomEvent("show-error", {composed: true, detail: {"message" : newValue.Error,"friendlyMessage": newValue.FriendlyError, "title": "Couldn't Join"}}));
         }
       }
     }

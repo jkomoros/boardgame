@@ -23,6 +23,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/paper-toggle-button/paper-toggle-button.html">
 <link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-styles/typography.html">
+<link rel="import" href="../bower_components/paper-styles/default-theme.html">
 <link rel="import" href="boardgame-user.html">
 <link rel="import" href="my-icons.html">
 
@@ -70,6 +72,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       .drawer-list a.iron-selected {
         color: black;
         font-weight: bold;
+      }
+
+      #error p.detail {
+        color: var(--disabled-text-color);
+        @apply --paper-font-caption;
       }
     </style>
 
@@ -119,7 +126,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </app-drawer-layout>
     <paper-dialog id="error">
       <h2>{{errorTitle}}</h2>
-      <p>{{errorMessage}}</p>
+      <p>{{friendlyErrorMessage}}</p>
+      <p class="detail">{{errorMessage}}</p>
       <div class="buttons">
         <paper-button dialog-dismiss>OK</paper-button>
       </div>
@@ -174,9 +182,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       handleShowError(e) {
         let details = e.detail;
-        this.errorMessage = (details.message || "There was an error");
-        this.errorTitle = (details.title || "Error");
-        this.$.error.open();
+        this.showError(details.title, details.friendlyMessage, details.message);
+      }
+
+      showError(title, friendlyMessage, message) {
+          this.errorTitle = (title || "Error");
+          this.friendlyErrorMessage = (friendlyMessage || "There was an error");
+          this.errorMessage = (message != friendlyMessage) ? message : "";
+          this.$.error.open();
       }
 
       handleShowLogIn(e) {

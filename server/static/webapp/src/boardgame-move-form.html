@@ -175,7 +175,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       _formResponseChanged(newValue) {
         if (newValue.Error) {
-          this.dispatchEvent(new CustomEvent("show-error", {composed: true, detail: {message: newValue.Error, title: "Couldn't make move"}}));
+          this.dispatchEvent(new CustomEvent("show-error", {composed: true, detail: {message: newValue.Error, friendlyMessage: newValue.FriendlyError, title: "Couldn't make move"}}));
         }
       }
 
