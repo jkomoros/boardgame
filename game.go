@@ -13,6 +13,8 @@ import (
 //to return fixup moves forever.
 const maxRecurseCount = 50
 
+const selfInitiatorSentinel = -1
+
 //A Game represents a specific game between a collection of Players. Create a
 //new one with NewGame().
 type Game struct {
@@ -432,7 +434,7 @@ func (g *Game) SetUp(numPlayers int, agentNames []string) error {
 		//We apply the move immediately. This ensures that when
 		//DelayedError resolves, all of the fix up moves have been
 		//applied.
-		if err := g.applyMove(move, AdminPlayerIndex, true, 0, false, -1); err != nil {
+		if err := g.applyMove(move, AdminPlayerIndex, true, 0, false, selfInitiatorSentinel); err != nil {
 			//TODO: if we bail here, we haven't left Game in a consistent
 			//state because we haven't rolled back what we did.
 			return baseErr.WithError("Applying the first fix up move failed: " + err.Error())
@@ -459,7 +461,7 @@ func (g *Game) mainLoop() {
 		if item == nil {
 			return
 		}
-		item.ch <- g.applyMove(item.move, item.proposer, false, 0, false, -1)
+		item.ch <- g.applyMove(item.move, item.proposer, false, 0, false, selfInitiatorSentinel)
 		close(item.ch)
 	}
 
@@ -701,7 +703,12 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 		if g.PlayerMoveByName(move.Info().Type().Name()) == nil {
 			return baseErr.WithError("That move is not configured as a Player move for this game.")
 		}
-		//The initiator for player moves is the version that we will be
+	}
+
+	if initiator == selfInitiatorSentinel {
+		//If we were passed the selfInitiatorSentinel that means that it's the
+		//start of a causal chain and our initiator should be what our version
+		//will be.
 		initiator = g.version + 1
 	}
 
