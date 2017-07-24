@@ -403,6 +403,10 @@
       }
 
       _cardTypeChanged(newValue) {
+        if (this._binder) {
+          this._binder.parentElement.removeChild(this._binder);
+          this._binder = null;
+        }
         if (!newValue) return;
         var template = Polymer.DomModule.import(newValue, "template");
         if (!template) {

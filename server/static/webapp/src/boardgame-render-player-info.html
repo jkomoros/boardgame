@@ -20,6 +20,10 @@
           state: {
             type: Object,
           },
+          active: {
+            type: Boolean,
+            observer: "_activeChanged"
+          },
           gameName: {
             type: String,
             observer: "_gameNameChanged"
@@ -59,6 +63,14 @@
 
         if (this.instantiateWhenReady) {
           this.instantiateRenderer();
+        }
+      }
+
+      _activeChanged(newValue) {
+        if (!newValue) {
+          if (!this.renderer) return;
+          this.renderer.parentElement.removeChild(this.renderer);
+          this.renderer = null;
         }
       }
 

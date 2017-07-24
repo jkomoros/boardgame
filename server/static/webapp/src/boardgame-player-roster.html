@@ -38,7 +38,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </div>
     <div class="layout horizontal justified players">
       <template is="dom-repeat" items="{{playersInfo}}">
-        <boardgame-player-roster-item class="flex" state="{{state}}" game-name="{{gameRoute.name}}" is-empty="{{item.IsEmpty}}" finished="[[finished]]" winner="[[_isWinner(index, winners)]]" is-agent="{{item.IsAgent}}" photo-url="{{item.PhotoUrl}}" display-name="{{item.DisplayName}}" player-index="{{index}}" viewing-as-player="{{viewingAsPlayer}}" current-player-index="{{currentPlayerIndex}}" renderer-loaded="{{rendererLoaded}}">
+        <boardgame-player-roster-item class="flex" state="{{state}}" game-name="{{gameRoute.name}}" is-empty="{{item.IsEmpty}}" finished="[[finished]]" winner="[[_isWinner(index, winners)]]" is-agent="{{item.IsAgent}}" photo-url="{{item.PhotoUrl}}" display-name="{{item.DisplayName}}" player-index="{{index}}" viewing-as-player="{{viewingAsPlayer}}" current-player-index="{{currentPlayerIndex}}" renderer-loaded="{{rendererLoaded}}" active="[[active]]">
         </boardgame-player-roster-item>
       </template>
     </div>
@@ -79,6 +79,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             type: Object,
             observer: "_gameRouteChanged"
           },
+          active: Boolean,
           admin: Boolean,
           isOwner: Boolean,
           playersInfo: Array,

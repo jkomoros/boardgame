@@ -71,6 +71,10 @@
           state: {
             type: Object,
           },
+          active: {
+            type: Boolean,
+            observer: "_activeChanged",
+          },
           diagram : {
             type: String,
             observer: "_diagramChanged",
@@ -110,6 +114,14 @@
           return;
         }
         this.renderer.diagram = newValue;
+      }
+
+      _activeChanged(newValue) {
+        if (!newValue) {
+          if (!this.renderer) return;
+          this.renderer.parentElement.removeChild(this.renderer);
+          this.renderer = null;
+        }
       }
 
       _stateChanged(record) {
