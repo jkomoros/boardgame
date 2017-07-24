@@ -125,6 +125,11 @@
       _activeChanged(newValue) {
         if (newValue) {
           this.reset();
+        } else {
+          //If we don't clear this out when we deactivate then when we become
+          //re-active there might be a brief period where our gameRoute is the
+          //old one.
+          this.gameRoute = null;
         }
       }
 

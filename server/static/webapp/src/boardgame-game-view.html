@@ -86,7 +86,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           },
           autoCurrentPlayer: Boolean,
           admin: Boolean,
-          selected: Boolean,
+          selected: {
+            type: Boolean,
+            observer: "_selectedChanged",
+          },
           loggedIn: Boolean,
           promptedToJoin: {
             type: Boolean,
@@ -133,6 +136,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
 
         adminEle.proposeMove(e.detail.name, e.detail.arguments);
+      }
+
+      _selectedChanged(newValue) {
+        if (!newValue) {
+          this._resetState();
+        }
       }
 
       _gameRouteChanged() {
