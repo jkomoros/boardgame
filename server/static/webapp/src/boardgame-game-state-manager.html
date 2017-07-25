@@ -314,6 +314,8 @@
 
         var deck = this.chest[stack.Deck];
 
+        var gameName = (this.gameRoute) ? this.gameRoute.name : "";
+
         var components = [];
 
         for (var i = 0; i < stack.Indexes.length; i++) {
@@ -335,6 +337,7 @@
             components[i].Id = stack.Ids[i];
           }
           components[i].Deck = stack.Deck;
+          components[i].GameName = gameName;
         }
 
         stack.Components = components;

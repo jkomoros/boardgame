@@ -380,7 +380,7 @@
           this.noContent = true;
         }
         if (newValue.Deck) {
-          this.cardType = "deck-" + newValue.Deck + "-card";
+          this.cardType = newValue.GameName + "-deck-" + newValue.Deck + "-card";
         } else {
           this.cardType = "";
         }
