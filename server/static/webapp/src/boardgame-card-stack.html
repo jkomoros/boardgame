@@ -249,7 +249,7 @@
           if (!stack) return "";
           var deck = stack.Deck;
           if (!deck) return "";
-          return "deck-" + deck + "-card";
+          return stack.GameName + "-deck-" + deck + "-card";
         }
 
         //returns true if it appears that at least some cards in this stack
