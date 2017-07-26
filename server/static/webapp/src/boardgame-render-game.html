@@ -118,9 +118,19 @@
 
       _activeChanged(newValue) {
         if (!newValue) {
-          if (!this.renderer) return;
-          this.renderer.parentElement.removeChild(this.renderer);
-          this.renderer = null;
+
+          //The game view has gone inactive.
+
+          //Clear out state now so by the time we switch back it will be null
+          //and we minimize chance of trying to render state with the wrong
+          //renderer.
+
+          //We don't throw out the renderer here because if we come back to a
+          //game of the same type we should keep it around.
+          this.state = null;
+          this.diagram = "";
+          this.viewingAsPlayer = 0;
+          this.currentPlayerIndex = 0;
         }
       }
 
