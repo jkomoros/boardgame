@@ -20,9 +20,11 @@ type MoveStorageRecord struct {
 type GameStorageRecord struct {
 	//Name is the type of the game, from its manager. Used for sanity
 	//checking.
-	Name       string
-	Id         string
-	SecretSalt string
+	Name string
+	Id   string
+	//SecretSalt for this game for things like component Ids. Should never be
+	//transmitted to an insecure or untrusted environment.
+	SecretSalt string `json:",omitempty"`
 	Version    int
 	Winners    []PlayerIndex
 	Finished   bool

@@ -497,6 +497,12 @@ func (s *Server) listGamesWithUsers(max int, list listing.Type, userId string, g
 
 		manager := s.managers[game.Name]
 
+		//When SecretSalt is empty it will be omitted from the JSON output.
+
+		//TODO: isn't it brittle that we only sanitize the critically
+		//important SecretSalt here?
+		game.SecretSalt = ""
+
 		result[i] = &gameStorageRecordWithUsers{
 			game,
 			s.gamePlayerInfo(&game.GameStorageRecord, manager),
