@@ -103,7 +103,7 @@
         return result;
       }
 
-      _requestedPlayerChanged() {
+      _requestedPlayerChanged(newValue) {
         window.requestAnimationFrame( () => this.fetchData());
       }
 
@@ -194,6 +194,7 @@
 
       reset() {
           this.infoData = null;
+          this._lastRequestedVersionUrl = "";
           window.requestAnimationFrame(() => this.updateData());
       }
 

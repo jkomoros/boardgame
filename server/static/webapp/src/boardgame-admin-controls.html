@@ -162,7 +162,12 @@
           case "custom":
             return customRequestedPlayer;
           case "current":
-            return currentPlayer;
+            //When we first come back to a view with admin mode already on
+            //currentPlayer will be undefined because game is not yet set. In
+            //that case just default to player 0; the info result will have
+            //the CurrentPlayerIndex which will then recalc this and set to
+            //its proper value.
+            return currentPlayer || 0;
         }
       }
 
