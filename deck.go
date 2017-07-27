@@ -35,6 +35,21 @@ func NewDeck() *Deck {
 	}
 }
 
+//NewSizedStack returns a new sized stack with the given size based on this
+//deck. You normally do this in Empty*State delegate methods, if you aren't
+//using the auto-inflating struct tags to configure your stacks.
+func (d *Deck) NewSizedStack(size int) *SizedStack {
+	return newSizedStack(d, size)
+}
+
+//NewGrowableStack returns a new growable stack with the given size based on
+//this deck. If the growable stack has no size limit, pass 0 for maxLen. You
+//normally do this in Empty*State delegate methods, if you aren't using the
+//auto-inflating struct tags to configure your stacks.
+func (d *Deck) NewGrowableStack(maxLen int) *GrowableStack {
+	return newGrowableStack(d, maxLen)
+}
+
 //AddComponent adds a new component with the given values to the next spot in
 //the deck. If the deck has already been added to a componentchest, this will
 //do nothing.

@@ -274,7 +274,7 @@ type stackJSONObj struct {
 }
 
 //NewGrowableStack creates a new growable stack with the given Deck and Cap.
-func NewGrowableStack(deck *Deck, maxLen int) *GrowableStack {
+func newGrowableStack(deck *Deck, maxLen int) *GrowableStack {
 
 	if maxLen < 0 {
 		maxLen = 0
@@ -291,7 +291,7 @@ func NewGrowableStack(deck *Deck, maxLen int) *GrowableStack {
 
 //NewSizedStack creates a new SizedStack for the given deck, with the
 //specified size.
-func NewSizedStack(deck *Deck, size int) *SizedStack {
+func newSizedStack(deck *Deck, size int) *SizedStack {
 	if size < 0 {
 		size = 0
 	}

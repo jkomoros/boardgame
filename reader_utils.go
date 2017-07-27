@@ -164,7 +164,7 @@ func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) e
 			return errors.New("The deck for " + propName + " was unexpectedly nil")
 		}
 
-		stack := NewGrowableStack(config.deck, config.size)
+		stack := config.deck.NewGrowableStack(config.size)
 
 		if err := readSetter.SetGrowableStackProp(propName, stack); err != nil {
 			return errors.New("Couldn't set " + propName + " to growable stack: " + err.Error())
@@ -188,7 +188,7 @@ func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) e
 			return errors.New("The deck for " + propName + " was unexpectedly nil")
 		}
 
-		stack := NewSizedStack(config.deck, config.size)
+		stack := config.deck.NewSizedStack(config.size)
 
 		if err := readSetter.SetSizedStackProp(propName, stack); err != nil {
 			return errors.New("Couldn't set " + propName + " to sized stack: " + err.Error())

@@ -69,7 +69,7 @@ func (g *gameDelegate) GameStateConstructor() boardgame.MutableSubState {
 	//We want to set the sized stack to a certain value imperatively, so we'll
 	//do it ourselves and not rely on tag-based auto-inflation.
 	return &gameState{
-		Slots: boardgame.NewSizedStack(tokens, DIM*DIM),
+		Slots: tokens.NewSizedStack(DIM * DIM),
 	}
 }
 
