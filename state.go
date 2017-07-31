@@ -286,7 +286,22 @@ func (s *state) copyDynamicComponentValues(input SubState, deckName string) Muta
 		return nil
 	}
 	output := s.game.Manager().delegate.DynamicComponentValuesConstructor(deck)
-	if err := copyReader(input.Reader(), output.ReadSetter()); err != nil {
+
+	inputReader := input.Reader()
+
+	if inputReader == nil {
+		log.Println("InputReader was unexpectedly nil")
+		return nil
+	}
+
+	outputReadSetter := output.ReadSetter()
+
+	if outputReadSetter == nil {
+		log.Println("Output read setter was unexpectedly nil")
+		return nil
+	}
+
+	if err := copyReader(inputReader, outputReadSetter); err != nil {
 		log.Println("WARNING: couldn't copy dynamic value state: " + err.Error())
 	}
 	return output
@@ -294,7 +309,22 @@ func (s *state) copyDynamicComponentValues(input SubState, deckName string) Muta
 
 func (s *state) copyPlayerState(input PlayerState) MutablePlayerState {
 	output := s.game.manager.delegate.PlayerStateConstructor(input.PlayerIndex())
-	if err := copyReader(input.Reader(), output.ReadSetter()); err != nil {
+
+	inputReader := input.Reader()
+
+	if inputReader == nil {
+		log.Println("InputReader was unexpectedly nil")
+		return nil
+	}
+
+	outputReadSetter := output.ReadSetter()
+
+	if outputReadSetter == nil {
+		log.Println("Output read setter was unexpectedly nil")
+		return nil
+	}
+
+	if err := copyReader(inputReader, outputReadSetter); err != nil {
 		log.Println("WARNING: couldn't copy player state: " + err.Error())
 	}
 
@@ -303,7 +333,22 @@ func (s *state) copyPlayerState(input PlayerState) MutablePlayerState {
 
 func (s *state) copyGameState(input SubState) MutableSubState {
 	output := s.game.manager.delegate.GameStateConstructor()
-	if err := copyReader(input.Reader(), output.ReadSetter()); err != nil {
+
+	inputReader := input.Reader()
+
+	if inputReader == nil {
+		log.Println("InputReader was unexpectedly nil")
+		return nil
+	}
+
+	outputReadSetter := output.ReadSetter()
+
+	if outputReadSetter == nil {
+		log.Println("Output read setter was unexpectedly nil")
+		return nil
+	}
+
+	if err := copyReader(inputReader, outputReadSetter); err != nil {
 		log.Println("WARNING: couldn't copy game state: " + err.Error())
 	}
 	return output

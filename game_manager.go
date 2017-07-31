@@ -217,11 +217,23 @@ func (g *GameManager) playerStateConstructor(state *state, player PlayerIndex) (
 		return nil, errors.New("PlayerStateConstructor returned nil for " + strconv.Itoa(int(player)))
 	}
 
-	if err := g.playerValidator.AutoInflate(playerState.ReadSetter(), state); err != nil {
+	readSetter := playerState.ReadSetter()
+
+	if readSetter == nil {
+		return nil, errors.New("PlayerState ReadSetter returned nil")
+	}
+
+	if err := g.playerValidator.AutoInflate(readSetter, state); err != nil {
 		return nil, errors.New("Couldn't auto-inflate empty player state: " + err.Error())
 	}
 
-	if err := g.playerValidator.Valid(playerState.Reader()); err != nil {
+	reader := playerState.Reader()
+
+	if reader == nil {
+		return nil, errors.New("PlayerState Reader returned nil")
+	}
+
+	if err := g.playerValidator.Valid(reader); err != nil {
 		return nil, errors.New("Player State was not valid: " + err.Error())
 	}
 
@@ -239,11 +251,23 @@ func (g *GameManager) gameStateConstructor(state *state) (MutableSubState, error
 		return nil, errors.New("GameStateConstructor returned nil")
 	}
 
-	if err := g.gameValidator.AutoInflate(gameState.ReadSetter(), state); err != nil {
+	readSetter := gameState.ReadSetter()
+
+	if readSetter == nil {
+		return nil, errors.New("GameState ReadSetter returned nil")
+	}
+
+	if err := g.gameValidator.AutoInflate(readSetter, state); err != nil {
 		return nil, errors.New("Couldn't auto-inflate empty game state: " + err.Error())
 	}
 
-	if err := g.gameValidator.Valid(gameState.Reader()); err != nil {
+	reader := gameState.Reader()
+
+	if reader == nil {
+		return nil, errors.New("GameState reader returned nil")
+	}
+
+	if err := g.gameValidator.Valid(reader); err != nil {
 		return nil, errors.New("game State was not valid: " + err.Error())
 	}
 
@@ -277,11 +301,23 @@ func (g *GameManager) dynamicComponentValuesConstructor(state *state) (map[strin
 		for i := 0; i < len(deck.Components()); i++ {
 			arr[i] = g.Delegate().DynamicComponentValuesConstructor(deck)
 
-			if err := validator.AutoInflate(arr[i].ReadSetter(), state); err != nil {
+			readSetter := arr[i].ReadSetter()
+
+			if readSetter == nil {
+				return nil, errors.New("ReadSetter for dynamic component values for " + deckName + " " + strconv.Itoa(i) + " was nil")
+			}
+
+			if err := validator.AutoInflate(readSetter, state); err != nil {
 				return nil, errors.New("Couldn't auto-inflate dynamic compoonent values for " + deckName + " " + strconv.Itoa(i) + ": " + err.Error())
 			}
 
-			if err := validator.Valid(arr[i].Reader()); err != nil {
+			reader := arr[i].Reader()
+
+			if reader == nil {
+				return nil, errors.New("Reader for dynamic component values for " + deckName + " " + strconv.Itoa(i) + " was nil")
+			}
+
+			if err := validator.Valid(reader); err != nil {
 				return nil, errors.New("Dynamic compoonent values for " + deckName + " " + strconv.Itoa(i) + " was not valid: " + err.Error())
 			}
 
@@ -481,7 +517,13 @@ func (g *GameManager) SetUp() error {
 		return errors.New("GameStateConstructor returned nil")
 	}
 
-	validator, err := newReaderValidator(exampleGameState.Reader(), exampleGameState, nil, g.chest)
+	reader := exampleGameState.Reader()
+
+	if reader == nil {
+		return errors.New("GameStateConstructor's returned value returned nil for Reader")
+	}
+
+	validator, err := newReaderValidator(reader, exampleGameState, nil, g.chest)
 
 	if err != nil {
 		return errors.New("Could not validate empty game state: " + err.Error())
@@ -490,11 +532,17 @@ func (g *GameManager) SetUp() error {
 	//Technically we don't need to do this test inflation now, but we might as
 	//well catch these problems at SetUp instead of later.
 
-	if err = validator.AutoInflate(exampleGameState.ReadSetter(), fakeState); err != nil {
+	readSetter := exampleGameState.ReadSetter()
+
+	if readSetter == nil {
+		return errors.New("GameStateConstructor's returned value returned nil for ReadSetter")
+	}
+
+	if err = validator.AutoInflate(readSetter, fakeState); err != nil {
 		return errors.New("Couldn't auto inflate empty game state: " + err.Error())
 	}
 
-	if err = validator.Valid(exampleGameState.Reader()); err != nil {
+	if err = validator.Valid(reader); err != nil {
 		return errors.New("Default infflated empty game state was not valid: " + err.Error())
 	}
 
@@ -506,17 +554,29 @@ func (g *GameManager) SetUp() error {
 		return errors.New("PlayerStateConstructor returned nil")
 	}
 
-	validator, err = newReaderValidator(examplePlayerState.Reader(), examplePlayerState, nil, g.chest)
+	reader = examplePlayerState.Reader()
+
+	if reader == nil {
+		return errors.New("PlayerStateConstructor's returned value returned nil for Reader")
+	}
+
+	validator, err = newReaderValidator(reader, examplePlayerState, nil, g.chest)
 
 	if err != nil {
 		return errors.New("Could not validate empty player state: " + err.Error())
 	}
 
-	if err = validator.AutoInflate(examplePlayerState.ReadSetter(), fakeState); err != nil {
+	readSetter = examplePlayerState.ReadSetter()
+
+	if readSetter == nil {
+		return errors.New("PlayerStateConstructor's returned value returned nil for ReadSetter")
+	}
+
+	if err = validator.AutoInflate(readSetter, fakeState); err != nil {
 		return errors.New("Couldn't auto inflate empty player state: " + err.Error())
 	}
 
-	if err = validator.Valid(examplePlayerState.Reader()); err != nil {
+	if err = validator.Valid(reader); err != nil {
 		return errors.New("Default infflated empty player state was not valid: " + err.Error())
 	}
 
@@ -524,7 +584,7 @@ func (g *GameManager) SetUp() error {
 
 	g.dynamicComponentValidator = make(map[string]*readerValidator)
 
-	for _, deckName := range g.chest.DeckNames() {
+	for i, deckName := range g.chest.DeckNames() {
 		deck := g.chest.Deck(deckName)
 
 		exampleDynamicComponentValue := g.delegate.DynamicComponentValuesConstructor(deck)
@@ -533,17 +593,29 @@ func (g *GameManager) SetUp() error {
 			continue
 		}
 
-		validator, err = newReaderValidator(exampleDynamicComponentValue.Reader(), exampleDynamicComponentValue, nil, g.chest)
+		reader = exampleDynamicComponentValue.Reader()
+
+		if reader == nil {
+			return errors.New("DynamicComponentValue for " + deckName + " " + strconv.Itoa(i) + " reader returned nil")
+		}
+
+		validator, err = newReaderValidator(reader, exampleDynamicComponentValue, nil, g.chest)
 
 		if err != nil {
 			return errors.New("Could not validate empty dynamic component state for " + deckName + ": " + err.Error())
 		}
 
-		if err = validator.AutoInflate(exampleDynamicComponentValue.ReadSetter(), fakeState); err != nil {
+		readSetter = exampleDynamicComponentValue.ReadSetter()
+
+		if readSetter == nil {
+			return errors.New("DynamicComponentValue for " + deckName + " " + strconv.Itoa(i) + " readsetter returned nil")
+		}
+
+		if err = validator.AutoInflate(readSetter, fakeState); err != nil {
 			return errors.New("Couldn't auto inflate empty dynamic component state for " + deckName + ": " + err.Error())
 		}
 
-		if err = validator.Valid(exampleDynamicComponentValue.Reader()); err != nil {
+		if err = validator.Valid(reader); err != nil {
 			return errors.New("Default infflated empty dynamic component state for " + deckName + " was not valid: " + err.Error())
 		}
 
@@ -555,10 +627,17 @@ func (g *GameManager) SetUp() error {
 
 		if global := config.Global; global != nil {
 			if collection := g.delegate.ComputedGlobalPropertyCollectionConstructor(); collection != nil {
+
+				reader = collection.Reader()
+
+				if reader == nil {
+					return errors.New("GlobalProperyCollection Reader returned nil")
+				}
+
 				//Verify the shape has slots for all of the configed properties
 				for propName, propConfig := range global {
 					propType := propConfig.PropType
-					if collection.Reader().Props()[propName] != propType {
+					if reader.Props()[propName] != propType {
 						return errors.New("The global property collection the delegate returns has a mismatch for property " + propName)
 					}
 				}
@@ -567,10 +646,17 @@ func (g *GameManager) SetUp() error {
 
 		if player := config.Player; player != nil {
 			if collection := g.delegate.ComputedPlayerPropertyCollectionConstructor(); collection != nil {
+
+				reader = collection.Reader()
+
+				if reader == nil {
+					return errors.New("PlayerPropertyCollection reader returned nil")
+				}
+
 				//Verify the shape has slots for all of the configed properties
 				for propName, propConfig := range player {
 					propType := propConfig.PropType
-					if collection.Reader().Props()[propName] != propType {
+					if reader.Props()[propName] != propType {
 						return errors.New("The global property collection the delegate returns has a mismatch for property " + propName)
 					}
 				}

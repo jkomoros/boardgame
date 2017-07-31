@@ -172,6 +172,12 @@ func getDefaultReadSetter(i interface{}) PropertyReadSetter {
 		i: i,
 	}
 
+	//Sanity check right now if the object we were just passed will have
+	//serious errors trying to parse it.
+	if _, err := result.propsImpl(); err != nil {
+		return nil
+	}
+
 	defaultReaderCacheLock.Lock()
 	defaultReaderCache[i] = result
 	defaultReaderCacheLock.Unlock()
@@ -196,6 +202,11 @@ func propertyReaderImplNameShouldBeIncluded(name string) bool {
 }
 
 func (d *defaultReader) Props() map[string]PropertyType {
+	result, _ := d.propsImpl()
+	return result
+}
+
+func (d *defaultReader) propsImpl() (map[string]PropertyType, error) {
 
 	//TODO: skip fields that have a propertyreader:omit
 
@@ -265,10 +276,10 @@ func (d *defaultReader) Props() map[string]PropertyType {
 				} else if strings.Contains(ptrType, "Timer") {
 					pType = TypeTimer
 				} else {
-					panic("Unknown ptr type:" + ptrType)
+					return nil, errors.New("Unknown ptr type:" + ptrType)
 				}
 			default:
-				panic("Unsupported field in underlying type" + strconv.Itoa(int(field.Type().Kind())))
+				return nil, errors.New("Unsupported field in underlying type" + strconv.Itoa(int(field.Type().Kind())))
 			}
 
 			result[name] = pType
@@ -277,7 +288,7 @@ func (d *defaultReader) Props() map[string]PropertyType {
 		d.props = result
 	}
 
-	return d.props
+	return d.props, nil
 }
 
 func (d *defaultReader) IntProp(name string) (int, error) {

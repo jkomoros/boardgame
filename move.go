@@ -180,7 +180,13 @@ func newMoveType(config *MoveTypeConfig, manager *GameManager) (*MoveType, error
 		return nil, errors.New("MoveConstructor returned nil")
 	}
 
-	validator, err := newReaderValidator(exampleMove.ReadSetter(), exampleMove, moveTypeIllegalPropTypes, manager.Chest())
+	readSetter := exampleMove.ReadSetter()
+
+	if readSetter == nil {
+		return nil, errors.New("MoveConstructor's readsetter returned nil")
+	}
+
+	validator, err := newReaderValidator(readSetter, exampleMove, moveTypeIllegalPropTypes, manager.Chest())
 
 	if err != nil {
 		return nil, errors.New("Couldn't create validator: " + err.Error())
@@ -233,12 +239,21 @@ func (m *MoveType) NewMove(state State) Move {
 
 	move.SetInfo(info)
 
-	if err := m.validator.AutoInflate(move.ReadSetter(), state); err != nil {
+	readSetter := move.ReadSetter()
+
+	if readSetter == nil {
+		//This shouldn't happen because we verified that ReadSetter returned
+		//non-nil when the movetype was registered.
+		log.Println("ReadSetter for move unexpectedly returned nil")
+		return nil
+	}
+
+	if err := m.validator.AutoInflate(readSetter, state); err != nil {
 		log.Println("AutoInflate had an error: " + err.Error())
 		return nil
 	}
 
-	if err := m.validator.Valid(move.ReadSetter()); err != nil {
+	if err := m.validator.Valid(readSetter); err != nil {
 		log.Println("Move was not valid: " + err.Error())
 		return nil
 	}

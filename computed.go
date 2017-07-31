@@ -166,7 +166,10 @@ func newComputedPropertiesImpl(config *ComputedPropertiesConfig, state *state) *
 		collection := state.game.manager.delegate.ComputedPlayerPropertyCollectionConstructor()
 		if collection == nil {
 			collection = newGenericReader()
+		} else if collection.ReadSetter() == nil {
+			panic("Player State readsetter returned nil")
 		}
+
 		playerBags[i] = collection
 
 		if config.Player == nil {
@@ -188,6 +191,8 @@ func newComputedPropertiesImpl(config *ComputedPropertiesConfig, state *state) *
 
 	if globalBag == nil {
 		globalBag = newGenericReader()
+	} else if globalBag.ReadSetter() == nil {
+		panic("Global bag readSetter returned nil")
 	}
 
 	if config.Global != nil {
