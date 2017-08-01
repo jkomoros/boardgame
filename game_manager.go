@@ -3,6 +3,7 @@ package boardgame
 import (
 	"encoding/json"
 	"github.com/jkomoros/boardgame/errors"
+	"log"
 	"strconv"
 	"strings"
 	"sync"
@@ -86,7 +87,10 @@ func (g *GameManager) NewGame() *Game {
 		modifiable:    true,
 	}
 
-	g.modifiableGameCreated(result)
+	if err := g.modifiableGameCreated(result); err != nil {
+		log.Println("Couldn't warn that a modifiable game was created: " + err.Error())
+		return nil
+	}
 
 	return result
 
@@ -116,9 +120,9 @@ func (g *GameManager) gameFromStorageRecord(record *GameStorageRecord) *Game {
 //modifiableGameCreated lets Manager know that a modifiable game was created
 //with the given ID, so that manager can vend that later if necessary. It is
 //designed to only be called from NewGame.
-func (g *GameManager) modifiableGameCreated(game *Game) {
+func (g *GameManager) modifiableGameCreated(game *Game) error {
 	if !g.initialized {
-		return
+		return errors.New("Game is not setup yet")
 	}
 
 	g.modifiableGamesLock.RLock()
@@ -126,7 +130,7 @@ func (g *GameManager) modifiableGameCreated(game *Game) {
 	g.modifiableGamesLock.RUnlock()
 
 	if ok {
-		panic("modifiableGameCreated collided with existing game")
+		return errors.New("modifiableGameCreated collided with existing game")
 	}
 
 	id := strings.ToUpper(game.Id())
@@ -134,6 +138,8 @@ func (g *GameManager) modifiableGameCreated(game *Game) {
 	g.modifiableGamesLock.Lock()
 	g.modifiableGames[id] = game
 	g.modifiableGamesLock.Unlock()
+
+	return nil
 }
 
 //ModifiableGameForId returns a modifiable game with the given ID. Either it
