@@ -10,8 +10,8 @@ import (
 )
 
 //maxRecurseCount is the number of fixUp moves that can be considered normal--
-//anything more than that and we'll panic because the delegate is likely going
-//to return fixup moves forever.
+//anything more than that and we'll return an error because the delegate is
+//likely going to return fixup moves forever.
 const maxRecurseCount = 50
 
 const selfInitiatorSentinel = -1

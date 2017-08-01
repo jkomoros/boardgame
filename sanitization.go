@@ -504,7 +504,7 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 		case TypeTimer:
 			return randomTimer()
 		default:
-			panic("Unknown property type for policy random")
+			//Hmm, it's an unknwon type I guess. This shouldn't happen!
 		}
 	}
 
