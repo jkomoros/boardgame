@@ -16,6 +16,11 @@ const maxRecurseCount = 50
 
 const selfInitiatorSentinel = -1
 
+//ErrTooManyFixUps is returned from game.ProposeMove if too many fix up moves
+//are applied, which implies that there is a FixUp move configured to always
+//be legal, and is evidence of a serious error in your game logic.
+var ErrTooManyFixUps = errors.New("We recursed deeply in fixup, which implies that ProposeFixUp has a move that is always legal.")
+
 //A Game represents a specific game between a collection of Players. Create a
 //new one with NewGame().
 type Game struct {
@@ -438,6 +443,11 @@ func (g *Game) SetUp(numPlayers int, agentNames []string) error {
 		//DelayedError resolves, all of the fix up moves have been
 		//applied.
 		if err := g.applyMove(move, AdminPlayerIndex, true, 0, false, selfInitiatorSentinel); err != nil {
+
+			if err == ErrTooManyFixUps {
+				return err
+			}
+
 			//TODO: if we bail here, we haven't left Game in a consistent
 			//state because we haven't rolled back what we did.
 			return baseErr.WithError("Applying the first fix up move failed: " + err.Error())
@@ -769,7 +779,7 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	newState.committed()
 
 	if recurseCount > maxRecurseCount {
-		panic("We recursed deeply in fixup, which implies that ProposeFixUp has a move that is always legal. Quitting.")
+		return ErrTooManyFixUps
 	}
 
 	if g.finished {
@@ -817,6 +827,11 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 		//DelayedError resolves, all of the fix up moves have been
 		//applied.
 		if err := g.applyMove(move, AdminPlayerIndex, true, recurseCount+1, false, initiator); err != nil {
+
+			if err == ErrTooManyFixUps {
+				return err
+			}
+
 			//TODO: if we bail here, we haven't left Game in a consistent
 			//state because we haven't rolled back what we did.
 			return baseErr.WithError("Applying the fix up move failed: " + strconv.Itoa(recurseCount) + ": " + err.Error())

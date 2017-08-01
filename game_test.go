@@ -401,21 +401,9 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 
 	game := manager.NewGame()
 
-	checkForPanic := func() (didPanic bool) {
-		defer func() {
-			if e := recover(); e != nil {
-				didPanic = true
-			}
-		}()
-		if err := game.SetUp(0, nil); err != nil {
-			t.Error("Game failed to setup: ", err.Error())
-		}
-		return
-	}
+	err := game.SetUp(0, nil)
 
-	if !checkForPanic() {
-		t.Error("We didn't get an error when we had a badly behaved ProposeFixUpMove.")
-	}
+	assert.For(t).ThatActual(err).Equals(ErrTooManyFixUps)
 
 }
 
