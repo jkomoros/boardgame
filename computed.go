@@ -149,14 +149,16 @@ func policyForDependencies(dependencies []StatePropertyRef) *StatePolicy {
 	return result
 }
 
-func newComputedPropertiesImpl(config *ComputedPropertiesConfig, state *state) *computedPropertiesImpl {
+func newComputedPropertiesImpl(config *ComputedPropertiesConfig, state *state) (*computedPropertiesImpl, error) {
 
 	if !state.calculatingComputed {
-		panic("State didn't think it was calculatingComputed when it was")
+		return nil, errors.New("State didn't think it was calculatingComputed when it was")
 	}
 
 	if config == nil {
-		return nil
+		//It's fine if no config is provided--that just means no computed
+		//properties.
+		return nil, nil
 	}
 
 	playerBags := make([]MutableSubState, len(state.PlayerStates()))
@@ -167,7 +169,7 @@ func newComputedPropertiesImpl(config *ComputedPropertiesConfig, state *state) *
 		if collection == nil {
 			collection = newGenericReader()
 		} else if collection.ReadSetter() == nil {
-			panic("Player State readsetter returned nil")
+			return nil, errors.New("Player State readsetter returned nil")
 		}
 
 		playerBags[i] = collection
@@ -181,7 +183,7 @@ func newComputedPropertiesImpl(config *ComputedPropertiesConfig, state *state) *
 		for name, propConfig := range config.Player {
 			if err := propConfig.calculate(name, PlayerIndex(i), state, reader); err != nil {
 				//TODO: do something better here.
-				panic(err)
+				return nil, errors.Extend(err, "Player failed")
 			}
 		}
 
@@ -192,14 +194,14 @@ func newComputedPropertiesImpl(config *ComputedPropertiesConfig, state *state) *
 	if globalBag == nil {
 		globalBag = newGenericReader()
 	} else if globalBag.ReadSetter() == nil {
-		panic("Global bag readSetter returned nil")
+		return nil, errors.New("Global bag readSetter returned nil")
 	}
 
 	if config.Global != nil {
 		for name, propConfig := range config.Global {
 			if err := propConfig.calculate(name, state, globalBag.ReadSetter()); err != nil {
 				//TODO: do something better here.
-				panic(err)
+				return nil, errors.Extend(err, "global failed")
 			}
 		}
 	}
@@ -207,7 +209,7 @@ func newComputedPropertiesImpl(config *ComputedPropertiesConfig, state *state) *
 	return &computedPropertiesImpl{
 		global:  globalBag,
 		players: playerBags,
-	}
+	}, nil
 }
 
 func (c *ComputedGlobalPropertyDefinition) calculate(propName string, state *state, output PropertyReadSetter) error {

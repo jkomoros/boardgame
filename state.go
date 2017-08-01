@@ -489,7 +489,12 @@ func (s *state) Computed() ComputedProperties {
 	if s.computed == nil {
 
 		s.calculatingComputed = true
-		s.computed = newComputedPropertiesImpl(s.game.manager.delegate.ComputedPropertiesConfig(), s)
+		computedResult, err := newComputedPropertiesImpl(s.game.manager.delegate.ComputedPropertiesConfig(), s)
+		if err != nil {
+			log.Println("Couldn't create computed properties: " + err.Error())
+			return nil
+		}
+		s.computed = computedResult
 		s.calculatingComputed = false
 	}
 	return s.computed
