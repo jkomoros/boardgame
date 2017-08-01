@@ -2,7 +2,9 @@ package boardgame
 
 import (
 	"github.com/jkomoros/boardgame/enum"
+	"github.com/jkomoros/boardgame/errors"
 	"hash/fnv"
+	"log"
 	"math"
 	"math/rand"
 	"strconv"
@@ -106,13 +108,20 @@ func (s *state) SanitizedForPlayer(player PlayerIndex) State {
 		policy = &StatePolicy{}
 	}
 
-	return s.sanitizedWithDefault(policy, player, PolicyVisible)
+	sanitized, err := s.sanitizedWithDefault(policy, player, PolicyVisible)
+
+	if err != nil {
+		log.Println("Couldn't sanitize for player: " + err.Error())
+		return nil
+	}
+
+	return sanitized
 }
 
 //sanitizedWithExceptions will return a Sanitized() State where properties
 //that are not in the passed policy are treated as PolicyRandom. Useful in
 //computing properties.
-func (s *state) sanitizedWithDefault(policy *StatePolicy, playerIndex PlayerIndex, defaultPolicy Policy) State {
+func (s *state) sanitizedWithDefault(policy *StatePolicy, playerIndex PlayerIndex, defaultPolicy Policy) (State, error) {
 
 	sanitized := s.copy(true)
 
@@ -127,12 +136,19 @@ func (s *state) sanitizedWithDefault(policy *StatePolicy, playerIndex PlayerInde
 		visibleDynamicComponents[deckName] = make(map[int]PlayerIndex)
 	}
 
-	sanitizeStateObj(sanitized.gameState.ReadSetter(), policy.Game, AdminPlayerIndex, playerIndex, defaultPolicy, visibleDynamicComponents)
+	err := sanitizeStateObj(sanitized.gameState.ReadSetter(), policy.Game, AdminPlayerIndex, playerIndex, defaultPolicy, visibleDynamicComponents)
+
+	if err != nil {
+		return nil, errors.Extend(err, "Couldn't sanitize game state")
+	}
 
 	playerStates := sanitized.playerStates
 
 	for i := 0; i < len(playerStates); i++ {
-		sanitizeStateObj(playerStates[i].ReadSetter(), policy.Player, PlayerIndex(i), playerIndex, defaultPolicy, visibleDynamicComponents)
+		err = sanitizeStateObj(playerStates[i].ReadSetter(), policy.Player, PlayerIndex(i), playerIndex, defaultPolicy, visibleDynamicComponents)
+		if err != nil {
+			return nil, errors.Extend(err, "Couldn't sanitize player state number "+strconv.Itoa(i))
+		}
 	}
 
 	//Some of the DynamicComponentValues that were marked as visible might
@@ -149,9 +165,11 @@ func (s *state) sanitizedWithDefault(policy *StatePolicy, playerIndex PlayerInde
 		shouldRandomizeCompontentValues = true
 	}
 
-	sanitizeDynamicComponentValues(sanitized.dynamicComponentValues, visibleDynamicComponents, policy.DynamicComponentValues, playerIndex, shouldRandomizeCompontentValues)
+	if err := sanitizeDynamicComponentValues(sanitized.dynamicComponentValues, visibleDynamicComponents, policy.DynamicComponentValues, playerIndex, shouldRandomizeCompontentValues); err != nil {
+		return nil, errors.Extend(err, "Couldn't sanitize dyanmic component values")
+	}
 
-	return sanitized
+	return sanitized, nil
 
 }
 
@@ -159,17 +177,20 @@ func (s *state) sanitizedWithDefault(policy *StatePolicy, playerIndex PlayerInde
 //for Game). preparingForPlayerIndex is the index that we're preparing the
 //overall santiized state for, as provied to
 //GameManager.SanitizedStateForPlayer()
-func sanitizeStateObj(readSetter PropertyReadSetter, policy SubStatePolicy, statePlayerIndex PlayerIndex, preparingForPlayerIndex PlayerIndex, defaultPolicy Policy, visibleDynamic map[string]map[int]PlayerIndex) {
+func sanitizeStateObj(readSetter PropertyReadSetter, policy SubStatePolicy, statePlayerIndex PlayerIndex, preparingForPlayerIndex PlayerIndex, defaultPolicy Policy, visibleDynamic map[string]map[int]PlayerIndex) error {
 
 	for propName, propType := range readSetter.Props() {
 		prop, err := readSetter.Prop(propName)
 
 		if err != nil {
-			//TODO: shouldn't we return an error or something?
-			continue
+			return errors.Extend(err, propName+" had an error")
 		}
 
-		effectivePolicy := calculateEffectivePolicy(prop, propType, policy[propName], statePlayerIndex, preparingForPlayerIndex, defaultPolicy)
+		effectivePolicy, err := calculateEffectivePolicy(prop, propType, policy[propName], statePlayerIndex, preparingForPlayerIndex, defaultPolicy)
+
+		if err != nil {
+			return errors.Extend(err, "Couldn't calculate effective policy")
+		}
 
 		if visibleDynamic != nil {
 			if propType == TypeGrowableStack || propType == TypeSizedStack {
@@ -190,6 +211,8 @@ func sanitizeStateObj(readSetter PropertyReadSetter, policy SubStatePolicy, stat
 
 		readSetter.SetProp(propName, applyPolicy(effectivePolicy, prop, propType))
 	}
+
+	return nil
 
 }
 
@@ -261,7 +284,7 @@ func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[strin
 	}
 }
 
-func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]MutableSubState, visibleComponents map[string]map[int]PlayerIndex, dynamicPolicy map[string]SubStatePolicy, preparingForPlayerIndex PlayerIndex, isRandom bool) {
+func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]MutableSubState, visibleComponents map[string]map[int]PlayerIndex, dynamicPolicy map[string]SubStatePolicy, preparingForPlayerIndex PlayerIndex, isRandom bool) error {
 
 	for name, slice := range dynamicComponentValues {
 
@@ -275,9 +298,13 @@ func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]MutableS
 
 				//The fact that we do such different things here seems like a bug in how we've structed these methods?
 				if isRandom {
-					sanitizeStateObj(readSetter, dynamicPolicy[name], player, preparingForPlayerIndex, PolicyRandom, nil)
+					if err := sanitizeStateObj(readSetter, dynamicPolicy[name], player, preparingForPlayerIndex, PolicyRandom, nil); err != nil {
+						return errors.Extend(err, "Couldn't sanitize random dynamic component")
+					}
 				} else {
-					sanitizeStateObj(readSetter, dynamicPolicy[name], player, preparingForPlayerIndex, PolicyVisible, nil)
+					if err := sanitizeStateObj(readSetter, dynamicPolicy[name], player, preparingForPlayerIndex, PolicyVisible, nil); err != nil {
+						return errors.Extend(err, "Couldn't sanitize non-random dynamic component")
+					}
 				}
 
 			} else {
@@ -299,10 +326,11 @@ func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]MutableS
 			}
 		}
 	}
+	return nil
 
 }
 
-func calculateEffectivePolicy(prop interface{}, propType PropertyType, policyGroup GroupPolicy, statePlayerIndex PlayerIndex, preparingForPlayerIndex PlayerIndex, defaultPolicy Policy) Policy {
+func calculateEffectivePolicy(prop interface{}, propType PropertyType, policyGroup GroupPolicy, statePlayerIndex PlayerIndex, preparingForPlayerIndex PlayerIndex, defaultPolicy Policy) (Policy, error) {
 
 	//We're going to collect all of the policies that apply.
 	var applicablePolicies []Policy
@@ -319,7 +347,7 @@ func calculateEffectivePolicy(prop interface{}, propType PropertyType, policyGro
 		default:
 			//In the future we'll interrogate whether the given group index is
 			//in the specified property at this point.
-			panic("Unsupported policy group")
+			return PolicyVisible, errors.New("Unknown policy: " + strconv.Itoa(int(policy)))
 		}
 		if policyApplies {
 			applicablePolicies = append(applicablePolicies, policy)
@@ -339,7 +367,7 @@ func calculateEffectivePolicy(prop interface{}, propType PropertyType, policyGro
 		effectivePolicy = defaultPolicy
 	}
 
-	return effectivePolicy
+	return effectivePolicy, nil
 }
 
 func randomBool() bool {

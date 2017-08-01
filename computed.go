@@ -348,7 +348,11 @@ func (c *ComputedGlobalPropertyDefinition) compute(state *state) (interface{}, e
 
 	policy := policyForDependencies(c.Dependencies)
 
-	sanitized := state.sanitizedWithDefault(policy, -1, PolicyRandom)
+	sanitized, err := state.sanitizedWithDefault(policy, -1, PolicyRandom)
+
+	if err != nil {
+		return nil, errors.Extend(err, "Couldn't create randomized state for globals")
+	}
 
 	return c.Compute(sanitized)
 
@@ -358,7 +362,11 @@ func (c *ComputedPlayerPropertyDefinition) compute(state *state, playerIndex Pla
 
 	policy := policyForDependencies(c.Dependencies)
 
-	sanitized := state.sanitizedWithDefault(policy, -1, PolicyRandom)
+	sanitized, err := state.sanitizedWithDefault(policy, -1, PolicyRandom)
+
+	if err != nil {
+		return nil, errors.Extend(err, "Couldn't create randomized state for players")
+	}
 
 	if c.Compute != nil {
 		return c.Compute(sanitized.PlayerStates()[playerIndex])
