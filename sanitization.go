@@ -563,10 +563,6 @@ func applySanitizationPolicyIntSlice(policy Policy, input []int) []int {
 		return make([]int, len(input))
 	}
 
-	if policy == PolicyHidden {
-		return make([]int, 0)
-	}
-
 	if policy == PolicyNonEmpty {
 		if len(input) > 0 {
 			return make([]int, 1)
@@ -574,7 +570,9 @@ func applySanitizationPolicyIntSlice(policy Policy, input []int) []int {
 		return make([]int, 0)
 	}
 
-	panic("Unknown Policy")
+	//if we get to here it's either PolicyHidden, or an unknown policy. If the
+	//latter, it's better to fail by being restrictive.
+	return make([]int, 0)
 }
 
 func applySanitizationPolicyBoolSlice(policy Policy, input []bool) []bool {
@@ -586,10 +584,6 @@ func applySanitizationPolicyBoolSlice(policy Policy, input []bool) []bool {
 		return make([]bool, len(input))
 	}
 
-	if policy == PolicyHidden {
-		return make([]bool, 0)
-	}
-
 	if policy == PolicyNonEmpty {
 		if len(input) > 0 {
 			return make([]bool, 1)
@@ -597,7 +591,9 @@ func applySanitizationPolicyBoolSlice(policy Policy, input []bool) []bool {
 		return make([]bool, 0)
 	}
 
-	panic("Unknown Policy")
+	//if we get to here it's either PolicyHidden, or an unknown policy. If the
+	//latter, it's better to fail by being restrictive.
+	return make([]bool, 0)
 }
 
 func applySanitizationPolicyStringSlice(policy Policy, input []string) []string {
@@ -609,10 +605,6 @@ func applySanitizationPolicyStringSlice(policy Policy, input []string) []string 
 		return make([]string, len(input))
 	}
 
-	if policy == PolicyHidden {
-		return make([]string, 0)
-	}
-
 	if policy == PolicyNonEmpty {
 		if len(input) > 0 {
 			return make([]string, 1)
@@ -620,7 +612,10 @@ func applySanitizationPolicyStringSlice(policy Policy, input []string) []string 
 		return make([]string, 0)
 	}
 
-	panic("Unknown Policy")
+	//if we get to here it's either PolicyHidden, or an unknown policy. If the
+	//latter, it's better to fail by being restrictive.
+	return make([]string, 0)
+
 }
 
 func applySanitizationPolicyPlayerIndexSlice(policy Policy, input []PlayerIndex) []PlayerIndex {
@@ -632,10 +627,6 @@ func applySanitizationPolicyPlayerIndexSlice(policy Policy, input []PlayerIndex)
 		return make([]PlayerIndex, len(input))
 	}
 
-	if policy == PolicyHidden {
-		return make([]PlayerIndex, 0)
-	}
-
 	if policy == PolicyNonEmpty {
 		if len(input) > 0 {
 			return make([]PlayerIndex, 1)
@@ -643,7 +634,9 @@ func applySanitizationPolicyPlayerIndexSlice(policy Policy, input []PlayerIndex)
 		return make([]PlayerIndex, 0)
 	}
 
-	panic("Unknown Policy")
+	//if we get to here it's either PolicyHidden, or an unknown policy. If the
+	//latter, it's better to fail by being restrictive.
+	return make([]PlayerIndex, 0)
 }
 
 func (g *GrowableStack) applySanitizationPolicy(policy Policy) {
@@ -694,12 +687,6 @@ func (g *GrowableStack) applySanitizationPolicy(policy Policy) {
 		g.idSeen(id)
 	}
 
-	if policy == PolicyHidden {
-		g.indexes = make([]int, 0)
-		g.idsLastSeen = make(map[string]int)
-		return
-	}
-
 	if policy == PolicyNonEmpty {
 		if g.NumComponents() == 0 {
 			g.indexes = make([]int, 0)
@@ -710,7 +697,11 @@ func (g *GrowableStack) applySanitizationPolicy(policy Policy) {
 		return
 	}
 
-	panic("Unknown sanitization policy" + strconv.Itoa(int(policy)))
+	//if we get to here it's either PolicyHidden, or an unknown policy. If the
+	//latter, it's better to fail by being restrictive.
+	g.indexes = make([]int, 0)
+	g.idsLastSeen = make(map[string]int)
+	return
 
 }
 
@@ -788,26 +779,24 @@ func (s *SizedStack) applySanitizationPolicy(policy Policy) {
 		s.idSeen(id)
 	}
 
-	if policy == PolicyHidden || policy == PolicyNonEmpty {
+	//if we get to here it's either PolicyHidden, PolicyNonEmpty or an unknown
+	//policy. If the latter, it's better to fail by being restrictive.
 
-		hasComponents := s.NumComponents() > 0
+	hasComponents := s.NumComponents() > 0
 
-		indexes := make([]int, len(s.indexes))
-		for i := 0; i < len(indexes); i++ {
-			indexes[i] = -1
-		}
-		s.indexes = indexes
+	indexes := make([]int, len(s.indexes))
+	for i := 0; i < len(indexes); i++ {
+		indexes[i] = -1
+	}
+	s.indexes = indexes
 
-		if policy == PolicyNonEmpty && hasComponents {
-			s.indexes[0] = genericComponentSentinel
-		}
-
-		if policy == PolicyHidden {
-			s.idsLastSeen = make(map[string]int)
-		}
-
-		return
+	if policy == PolicyNonEmpty && hasComponents {
+		s.indexes[0] = genericComponentSentinel
 	}
 
-	panic("Unknown sanitization policy" + strconv.Itoa(int(policy)))
+	if policy == PolicyHidden {
+		s.idsLastSeen = make(map[string]int)
+	}
+
+	return
 }
