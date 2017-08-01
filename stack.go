@@ -974,7 +974,7 @@ func moveComonentImpl(source Stack, componentIndex int, destination Stack, slotI
 	c := source.removeComponentAt(componentIndex)
 
 	if c == nil {
-		panic("Unexpected nil component returned from removeComponentAt")
+		return errors.New("Unexpected nil component returned from removeComponentAt")
 	}
 
 	destination.insertComponentAt(slotIndex, c)
