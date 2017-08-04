@@ -149,6 +149,20 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 	assert.For(t).ThatActual(refriedMove.Info().Version()).Equals(1)
 	assert.For(t).ThatActual(refriedMove).Equals(move)
 
+	refriedMoves, err := storage.Moves(tictactoeGame.Id(), 0, 2)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	//The 0'th move doesn't exist
+	assert.For(t).ThatActual(len(refriedMoves)).Equals(2)
+
+	//Make sure they're ascending
+	lastVersion := 0
+	for i, move := range refriedMoves {
+		assert.For(t, i).ThatActual(move.Version > lastVersion).IsTrue()
+		lastVersion = move.Version
+	}
+
 	//OK, now test that the manager and SetUp and everyone did the right thing.
 
 	localGame, err := storage.Game(tictactoeGame.Id())

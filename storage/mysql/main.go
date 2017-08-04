@@ -151,6 +151,30 @@ func (s *StorageManager) State(gameId string, version int) (boardgame.StateStora
 	return (&state).ToStorageRecord(), nil
 }
 
+func (s *StorageManager) Moves(gameId string, fromVersion, toVersion int) ([]*boardgame.MoveStorageRecord, error) {
+
+	var moves []*MoveStorageRecord
+
+	_, err := s.dbMap.Select(&moves, "select * from "+TableMoves+" where GameId=? and Version>=? and Version<=? order by Version", gameId, fromVersion, toVersion)
+
+	if err == sql.ErrNoRows {
+		return nil, errors.New("No moves returned")
+	}
+
+	if err != nil {
+		return nil, errors.New("Unexpected error: " + err.Error())
+	}
+
+	result := make([]*boardgame.MoveStorageRecord, len(moves))
+
+	for i, move := range moves {
+		result[i] = move.ToStorageRecord()
+	}
+
+	return result, nil
+
+}
+
 func (s *StorageManager) Move(gameId string, version int) (*boardgame.MoveStorageRecord, error) {
 	var move MoveStorageRecord
 

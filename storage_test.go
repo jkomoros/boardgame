@@ -70,6 +70,21 @@ func (i *testStorageManager) State(gameId string, version int) (StateStorageReco
 	return record, nil
 }
 
+func (t *testStorageManager) Moves(gameId string, fromVersion, toVersion int) ([]*MoveStorageRecord, error) {
+	result := make([]*MoveStorageRecord, toVersion-fromVersion+1)
+
+	index := 0
+	for i := fromVersion; i <= toVersion; i++ {
+		move, err := t.Move(gameId, i)
+		if err != nil {
+			return nil, err
+		}
+		result[index] = move
+		index++
+	}
+	return result, nil
+}
+
 func (i *testStorageManager) Move(gameId string, version int) (*MoveStorageRecord, error) {
 	if gameId == "" {
 		return nil, errors.New("No game provided")
