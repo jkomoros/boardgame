@@ -9,7 +9,26 @@
     <iron-ajax id="info" with-credentials url="[[gameViewUrl]]" handle-as="json" last-response="{{infoData}}">
   </template>
 
+
+
   <script>
+
+  /*
+
+    StateManager keeps track of fetching state bundles from the server and
+    figuring out when it makes sense to have the game-view install them.
+
+    When the game-view becomes active, the info bundle is feteched. This
+    includes information about who the current viewing player is and also
+    includes the initial state bundle.
+
+    Once the first state bundle has been installed, a socket is connected to
+    receive updates about when the state increases. When the state version
+    increases, that increments TargetVersion, which changes the URL to fetch.
+
+  */
+
+
 
     class BoardgameGameStateManager extends ApiHostMixin(BoardgameUtilMixin(Polymer.Element)) {
       static get is() {
@@ -24,27 +43,21 @@
             value: false,
           },
           chest: Object,
-          admin: {
-            type: Boolean,
-            observer: "_adminChanged"
-          },
+          admin: Boolean,
           autoCurrentPlayer: Boolean,
           active: {
             type: Boolean,
             observer: "_activeChanged"
           },
-          loggedIn: {
-            type: Boolean,
-            observer: "_loggedInChanged"
-          },
+          loggedIn: Boolean,
           targetVersion: {  
             type: Number,
-            observer: "_targetVersionChanged",
             value: -1
           },
           gameVersionUrl: {
             type: String,
-            computed: "_computeGameVersionUrl(apiHost, gameRoute, requestedPlayer, admin, targetVersion, autoCurrentPlayer)"
+            computed: "_computeGameVersionUrl(apiHost, gameRoute, active, requestedPlayer, admin, targetVersion, autoCurrentPlayer)",
+            observer: "_gameVersionUrlChanged"
           },
           gameViewUrl : {
             type: String,
@@ -53,8 +66,7 @@
           viewingAsPlayer: Number,
           requestedPlayer: {
             type: Number,
-            value: 0,
-            observer: "_requestedPlayerChanged",
+            value: 0
           },
           gameVersion: Number,
           infoData: {
@@ -72,10 +84,13 @@
           },
           _socketUrl: {
             type: String,
-            computed: "_computeSocketUrl(apiHost, gameRoute, active)",
+            computed: "_computeSocketUrl(apiHost, gameRoute, active, _infoInstalled)",
             observer: "_socketUrlChanged",
           },
-          _lastRequestedVersionUrl: String,
+          _infoInstalled: {
+            type: Boolean,
+            value: false,
+          },
           _socket: Object,
         }
       }
@@ -85,7 +100,10 @@
         this.updateData();
       }
 
-      _computeGameVersionUrl(apiHost, gameRoute, requestedPlayer, admin, version, autoCurrentPlayer) {
+      _computeGameVersionUrl(apiHost, gameRoute, active, requestedPlayer, admin, version, autoCurrentPlayer) {
+        if (!active) return "";
+        if (version < 0) return "";
+        if (!gameRoute) return "";
         //TODO: factor this out with computeGameViewUrl a bit
         return this.UrlForGameAPI(apiHost, gameRoute, "version/") + version + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0) + "&current=" + (autoCurrentPlayer ? 1 : 0);
       }
@@ -94,32 +112,14 @@
         return this.UrlForGameAPI(apiHost, gameRoute, "info") + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0);
       }
 
-      _computeSocketUrl(apiHost, gameRoute, active) {
+      _computeSocketUrl(apiHost, gameRoute, active, infoInstalled) {
         if (!active) return "";
         if (!gameRoute) return "";
+        if (!infoInstalled) return "";
         let result = this.UrlForGameAPI(apiHost, gameRoute, 'socket');
         result = result.split("http:").join("ws:");
         result = result.split("https:").join("wss:");
         return result;
-      }
-
-      _requestedPlayerChanged(newValue) {
-        window.requestAnimationFrame( () => this.fetchData());
-      }
-
-      _targetVersionChanged(newValue, oldValue) {
-        if (newValue > oldValue) {
-          //We're out of date! Fetch new data!
-          this.fetchData();
-        }
-      }
-
-      _loggedInChanged(newValue) {
-        window.requestAnimationFrame(() => this.fetchData());
-      }
-
-      _adminChanged(newValue) {
-        window.requestAnimationFrame(() => this.fetchData());
       }
 
       _activeChanged(newValue) {
@@ -131,6 +131,22 @@
           //old one.
           this.gameRoute = null;
         }
+      }
+
+      _gameVersionUrlChanged(newValue, oldValue) {
+        if (!newValue) return;
+
+        //The first time there is a non-empty URL is not worth fetching
+        //because it represents the state right after the info bundle has been
+        //installed, and so the state will be duplicative.
+        if (!oldValue) return;
+
+        if (this.autoCurrentPlayer && this.requestedPlayer == this.viewingAsPlayer && this.targetVersion == this.gameVersion) {
+          return
+        }
+
+        //TODO: the autoCurrent player stuff has to be done here...
+        requestAnimationFrame(() => this.$.version.generateRequest());
       }
 
       _socketUrlChanged(newValue) {
@@ -194,7 +210,7 @@
 
       reset() {
           this.infoData = null;
-          this._lastRequestedVersionUrl = "";
+          this._infoInstalled = false;
           window.requestAnimationFrame(() => this.updateData());
       }
 
@@ -212,40 +228,6 @@
           return
         }
         this.$.info.generateRequest();
-      }
-
-      fetchData() {
-        //If we're already fetchign data don't fire off another one.
-        if (this.$.version.loading) {
-          return
-        }
-
-        if (!this.active) {
-          return
-        }
-
-        if (!this.gameRoute) {
-          //The URL will be junk
-          return
-        }
-
-        if (this.targetVersion < 0) {
-          return
-        }
-
-        if (this._lastRequestedVersionUrl == this.gameVersionUrl) {
-          return
-        }
-
-        if (this.autoCurrentPlayer && this.requestedPlayer == this.viewingAsPlayer && this.targetVersion == this.gameVersion) {
-          //If we're in autoCurrentPlayer and the requestedPlayer is 
-          return
-        }
-
-        this._lastRequestedVersionUrl = this.gameVersionUrl
-
-        //The gameVersion URL isn't ready until microtask timing (targetVersion will be undefined)
-        window.requestAnimationFrame(() => this.$.version.generateRequest());
       }
 
       _prepareStateBundle(game, moveForms, viewingAsPlayer) {
@@ -406,6 +388,9 @@
 
         var bundle = this._prepareStateBundle(newValue.Game, newValue.Forms, newValue.ViewingAsPlayer);
         this._addStateBundle(bundle);
+
+        this._infoInstalled = true;
+
       }
 
       _versionDataChanged(newValue) {
