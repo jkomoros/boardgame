@@ -586,7 +586,8 @@ func (s *Server) doGameVersion(r *Renderer, game *boardgame.Game, version, fromV
 		return
 	}
 
-	//TODO: do something with fromVersion.
+	//TODO: do something with fromVersion. Note that fromVersion might equal
+	//version if playerIndex or autoCurrentPlayer changed.
 
 	state := game.State(version)
 
