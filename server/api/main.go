@@ -597,9 +597,13 @@ func (s *Server) doGameVersion(r *Renderer, game *boardgame.Game, version int, p
 	//current version" which is a reasonable fallback.
 
 	args := gin.H{
-		"Game":            game.JSONForPlayer(playerIndex, state),
-		"ViewingAsPlayer": playerIndex,
-		"Forms":           s.generateForms(game),
+		"Bundles": []gin.H{
+			gin.H{
+				"Game":            game.JSONForPlayer(playerIndex, state),
+				"ViewingAsPlayer": playerIndex,
+				"Forms":           s.generateForms(game),
+			},
+		},
 	}
 
 	r.Success(args)
