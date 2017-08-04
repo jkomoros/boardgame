@@ -587,7 +587,7 @@ func (s *Server) doGameVersion(r *Renderer, game *boardgame.Game, version int, p
 	state := game.State(version)
 
 	if autoCurrentPlayer {
-		newPlayerIndex := game.CurrentPlayerIndex()
+		newPlayerIndex := game.Manager().Delegate().CurrentPlayerIndex(state)
 		if newPlayerIndex.Valid(state) {
 			playerIndex = newPlayerIndex
 		}
