@@ -565,15 +565,17 @@ func (s *Server) gameVersionHandler(c *gin.Context) {
 
 	version := s.getRequestGameVersion(c)
 
+	fromVersion := s.getRequestFromVersion(c)
+
 	autoCurrentPlayer := s.effectiveAutoCurrentPlayer(c)
 
 	r := NewRenderer(c)
 
-	s.doGameVersion(r, game, version, playerIndex, autoCurrentPlayer)
+	s.doGameVersion(r, game, version, fromVersion, playerIndex, autoCurrentPlayer)
 
 }
 
-func (s *Server) doGameVersion(r *Renderer, game *boardgame.Game, version int, playerIndex boardgame.PlayerIndex, autoCurrentPlayer bool) {
+func (s *Server) doGameVersion(r *Renderer, game *boardgame.Game, version, fromVersion int, playerIndex boardgame.PlayerIndex, autoCurrentPlayer bool) {
 	if game == nil {
 		r.Error(errors.NewFriendly("Couldn't find game"))
 		return
@@ -583,6 +585,8 @@ func (s *Server) doGameVersion(r *Renderer, game *boardgame.Game, version int, p
 		r.Error(errors.New("Got invalid playerIndex"))
 		return
 	}
+
+	//TODO: do something with fromVersion.
 
 	state := game.State(version)
 

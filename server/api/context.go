@@ -30,6 +30,7 @@ const (
 	qryGameVersion          = "version"
 	qryOpen                 = "open"
 	qryVisible              = "visible"
+	qryFromVersion          = "from"
 )
 
 const (
@@ -67,6 +68,14 @@ func (s *Server) getRequestAgents(c *gin.Context, expectedNum int) []string {
 
 func (s *Server) getRequestGameVersion(c *gin.Context) int {
 	rawVal := c.Param(qryGameVersion)
+
+	result, _ := strconv.Atoi(rawVal)
+
+	return result
+}
+
+func (s *Server) getRequestFromVersion(c *gin.Context) int {
+	rawVal := c.Query(qryFromVersion)
 
 	result, _ := strconv.Atoi(rawVal)
 
