@@ -586,32 +586,56 @@ func (s *Server) doGameVersion(r *Renderer, game *boardgame.Game, version, fromV
 		return
 	}
 
-	//TODO: do something with fromVersion. Note that fromVersion might equal
-	//version if playerIndex or autoCurrentPlayer changed.
+	moves, err := s.storage.Moves(game.Id(), fromVersion, version)
 
-	state := game.State(version)
+	if err != nil {
+		r.Error(errors.New(err.Error()))
+		return
+	}
 
-	if autoCurrentPlayer {
-		newPlayerIndex := game.Manager().Delegate().CurrentPlayerIndex(state)
-		if newPlayerIndex.Valid(state) {
-			playerIndex = newPlayerIndex
+	if len(moves) == 0 {
+		r.Error(errors.New("No moves in that range"))
+		return
+	}
+
+	var bundles []gin.H
+
+	currentInitiator := moves[0].Initiator
+
+	for i, move := range moves {
+
+		//Slide along until we find the last move in an initator chain, or the last move
+		if move.Initiator == currentInitiator && i != len(moves)-1 {
+			continue
 		}
+
+		//This is the state for the end of the bundle.
+		state := game.State(move.Version)
+
+		if autoCurrentPlayer {
+			newPlayerIndex := game.Manager().Delegate().CurrentPlayerIndex(state)
+			if newPlayerIndex.Valid(state) {
+				playerIndex = newPlayerIndex
+			}
+		}
+
+		//If state is nil, JSONForPlayer will basically treat it as just "give the
+		//current version" which is a reasonable fallback.
+		bundle := gin.H{
+			"Game":            game.JSONForPlayer(playerIndex, state),
+			"Move":            move,
+			"ViewingAsPlayer": playerIndex,
+			"Forms":           s.generateForms(game),
+		}
+
+		bundles = append(bundles, bundle)
+
+		currentInitiator = move.Initiator
 	}
 
-	//If state is nil, JSONForPlayer will basically treat it as just "give the
-	//current version" which is a reasonable fallback.
-
-	args := gin.H{
-		"Bundles": []gin.H{
-			gin.H{
-				"Game":            game.JSONForPlayer(playerIndex, state),
-				"ViewingAsPlayer": playerIndex,
-				"Forms":           s.generateForms(game),
-			},
-		},
-	}
-
-	r.Success(args)
+	r.Success(gin.H{
+		"Bundles": bundles,
+	})
 }
 
 func (s *Server) configureGameHandler(c *gin.Context) {
