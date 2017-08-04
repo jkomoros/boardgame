@@ -61,6 +61,8 @@ type Game struct {
 	//Initalized is set to True after SetUp is called.
 	initalized bool
 
+	created time.Time
+
 	//TODO: HistoricalState(index int) and HistoryLen() int
 
 	//TODO: an array of Player objects.
@@ -93,6 +95,11 @@ func randomString(length int) string {
 	}
 
 	return result
+}
+
+//Created returns the time stamp when this game was SetUp().
+func (g *Game) Created() time.Time {
+	return g.created
 }
 
 //Winners is the player indexes who were winners. Typically, this will be
@@ -163,6 +170,7 @@ func (g *Game) StorageRecord() *GameStorageRecord {
 		Version:    g.Version(),
 		Winners:    g.Winners(),
 		Finished:   g.Finished(),
+		Created:    g.Created(),
 		Id:         g.Id(),
 		SecretSalt: g.SecretSalt(),
 		NumPlayers: g.NumPlayers(),
@@ -401,6 +409,8 @@ func (g *Game) SetUp(numPlayers int, agentNames []string) error {
 	}
 
 	g.manager.delegate.FinishSetUp(stateCopy)
+
+	g.created = time.Now()
 
 	if g.Modifiable() {
 

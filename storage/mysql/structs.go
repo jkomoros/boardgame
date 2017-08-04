@@ -35,6 +35,7 @@ type GameStorageRecord struct {
 	Version    int64
 	Winners    string `db:",size:128"`
 	Finished   bool
+	Created    int64
 	//NumPlayers is the reported number of players when it was created.
 	//Primarily for convenience to storage layer so they know how many players
 	//are in the game.
@@ -46,7 +47,6 @@ type GameStorageRecord struct {
 
 type ExtendedGameStorageRecord struct {
 	Id           string `db:",size:16"`
-	Created      int64
 	LastActivity int64
 	Open         bool
 	Visible      bool
@@ -167,6 +167,7 @@ func (g *GameStorageRecord) ToStorageRecord() *boardgame.GameStorageRecord {
 		SecretSalt: g.SecretSalt,
 		Version:    int(g.Version),
 		Winners:    winners,
+		Created:    time.Unix(0, g.Created),
 		Finished:   g.Finished,
 		NumPlayers: int(g.NumPlayers),
 		Agents:     stringToAgents(g.Agents),
@@ -194,6 +195,7 @@ func NewGameStorageRecord(game *boardgame.GameStorageRecord) *GameStorageRecord 
 		Winners:    winnersToString(game.Winners),
 		NumPlayers: int64(game.NumPlayers),
 		Finished:   game.Finished,
+		Created:    game.Created.UnixNano(),
 		Agents:     agentsToString(game.Agents),
 		NumAgents:  int64(numAgents),
 	}
@@ -220,9 +222,9 @@ func (c *CombinedGameStorageRecord) ToStorageRecord() *extendedgame.CombinedStor
 			Finished:   c.Finished,
 			NumPlayers: int(c.NumPlayers),
 			Agents:     stringToAgents(c.Agents),
+			Created:    time.Unix(0, c.Created),
 		},
 		extendedgame.StorageRecord{
-			Created:      c.Created,
 			LastActivity: c.LastActivity,
 			Open:         c.Open,
 			Visible:      c.Visible,
@@ -247,7 +249,7 @@ func NewCombinedGameStorageRecord(combined *extendedgame.CombinedStorageRecord) 
 		NumPlayers:   int64(combined.NumPlayers),
 		Finished:     combined.Finished,
 		Agents:       agentsToString(combined.Agents),
-		Created:      combined.Created,
+		Created:      combined.Created.UnixNano(),
 		LastActivity: combined.LastActivity,
 		Open:         combined.Open,
 		Visible:      combined.Visible,
@@ -262,7 +264,6 @@ func (e *ExtendedGameStorageRecord) ToStorageRecord() *extendedgame.StorageRecor
 	}
 
 	return &extendedgame.StorageRecord{
-		Created:      e.Created,
 		LastActivity: e.LastActivity,
 		Open:         e.Open,
 		Visible:      e.Visible,
@@ -276,7 +277,6 @@ func NewExtendedGameStorageRecord(eGame *extendedgame.StorageRecord) *ExtendedGa
 	}
 
 	return &ExtendedGameStorageRecord{
-		Created:      eGame.Created,
 		LastActivity: eGame.LastActivity,
 		Open:         eGame.Open,
 		Visible:      eGame.Visible,

@@ -109,7 +109,7 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	assert.For(t).ThatActual(eGame).IsNotNil()
 
-	assert.For(t).ThatActual(eGame.Created-eGame.LastActivity < 100).IsTrue()
+	assert.For(t).ThatActual(tictactoeGame.Created().UnixNano()-eGame.LastActivity < 100).IsTrue()
 
 	assert.For(t).ThatActual(eGame.Owner).Equals("")
 

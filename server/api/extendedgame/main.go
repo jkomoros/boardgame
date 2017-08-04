@@ -13,7 +13,6 @@ import (
 )
 
 type StorageRecord struct {
-	Created      int64
 	LastActivity int64
 	Open         bool
 	Visible      bool
@@ -27,7 +26,6 @@ type CombinedStorageRecord struct {
 
 func DefaultStorageRecord() *StorageRecord {
 	return &StorageRecord{
-		Created:      time.Now().UnixNano(),
 		LastActivity: time.Now().UnixNano(),
 		Open:         true,
 		Visible:      true,

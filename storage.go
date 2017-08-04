@@ -33,6 +33,7 @@ type GameStorageRecord struct {
 	Version    int
 	Winners    []PlayerIndex
 	Finished   bool
+	Created    time.Time
 	//NumPlayers is the reported number of players when it was created.
 	//Primarily for convenience to storage layer so they know how many players
 	//are in the game.

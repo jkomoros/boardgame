@@ -111,6 +111,7 @@ func (g *GameManager) gameFromStorageRecord(record *GameStorageRecord) *Game {
 		finished:   record.Finished,
 		winners:    record.Winners,
 		numPlayers: record.NumPlayers,
+		created:    record.Created,
 		agents:     record.Agents,
 		modifiable: false,
 		initalized: true,
