@@ -254,6 +254,10 @@ func (g *Game) Move(version int) (Move, error) {
 		return nil, errors.New("No such record")
 	}
 
+	if record.Version != version {
+		return nil, errors.New("The version of the returned move was not what was expected.")
+	}
+
 	move := g.PlayerMoveByName(record.Name)
 
 	if move == nil {
@@ -268,7 +272,7 @@ func (g *Game) Move(version int) (Move, error) {
 		return nil, errors.New("Couldn't unmarshal move: " + err.Error())
 	}
 
-	move.Info().version = version
+	move.Info().version = record.Version
 	move.Info().initiator = record.Initiator
 	move.Info().timestamp = record.Timestamp
 
@@ -700,6 +704,8 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 
 	baseErr := errors.NewFriendly("The move could not be made")
 
+	versionToSet := g.version + 1
+
 	if !g.initalized {
 		return baseErr.WithError("The game has not been initalized.")
 	}
@@ -733,7 +739,7 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 		//If we were passed the selfInitiatorSentinel that means that it's the
 		//start of a causal chain and our initiator should be what our version
 		//will be.
-		initiator = g.version + 1
+		initiator = versionToSet
 	}
 
 	currentState := g.CurrentState().(*state)
@@ -748,6 +754,7 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 
 	move.Info().initiator = initiator
 	move.Info().timestamp = time.Now()
+	move.Info().version = versionToSet
 
 	if err := move.Legal(currentState, proposer); err != nil {
 		//It's not legal, reject.
@@ -755,7 +762,7 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	}
 
 	newState := currentState.copy(false)
-	newState.version = g.version + 1
+	newState.version = versionToSet
 
 	if err := move.Apply(newState); err != nil {
 		return baseErr.WithError("The move's apply function returned an error:" + err.Error())
@@ -775,7 +782,7 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 		//TODO: persist to database here.
 	}
 
-	g.version = g.version + 1
+	g.version = versionToSet
 
 	//Expire the currentState cache; it's no longer valid.
 	g.cachedCurrentState = nil

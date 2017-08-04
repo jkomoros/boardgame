@@ -287,6 +287,7 @@ func NewExtendedGameStorageRecord(eGame *extendedgame.StorageRecord) *ExtendedGa
 func (m *MoveStorageRecord) ToStorageRecord() *boardgame.MoveStorageRecord {
 	return &boardgame.MoveStorageRecord{
 		Name:      m.Name,
+		Version:   int(m.Version),
 		Initiator: int(m.Initiator),
 		Timestamp: time.Unix(0, m.Timestamp),
 		Blob:      []byte(m.Blob),

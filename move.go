@@ -132,6 +132,7 @@ func StorageRecordForMove(move Move) *MoveStorageRecord {
 
 	return &MoveStorageRecord{
 		Name:      move.Info().Type().Name(),
+		Version:   move.Info().version,
 		Initiator: move.Info().initiator,
 		Timestamp: move.Info().timestamp,
 		Blob:      blob,

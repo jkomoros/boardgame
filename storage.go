@@ -13,6 +13,7 @@ type StateStorageRecord []byte
 //game to its most recent version.
 type MoveStorageRecord struct {
 	Name      string
+	Version   int
 	Initiator int
 	Timestamp time.Time
 	Blob      []byte
