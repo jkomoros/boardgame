@@ -5,7 +5,7 @@
 
 <dom-module id="boardgame-game-state-manager">
   <template>
-    <iron-ajax id="version" with-credentials url="[[gameVersionUrl]]" handle-as="json" last-response="{{versionData}}"></iron-ajax>
+    <iron-ajax id="version" with-credentials url="[[effectiveGameVersionUrl]]" handle-as="json" last-response="{{versionData}}"></iron-ajax>
     <iron-ajax id="info" with-credentials url="[[gameViewUrl]]" handle-as="json" last-response="{{infoData}}">
   </template>
 
@@ -63,12 +63,24 @@
             type: String,
             computed: "_computeGameViewUrl(apiHost, gameRoute, requestedPlayer, admin)"
           },
+          //This is split out because lastFetchedVersion should be current
+          //when it's sent, but when its value is changed it shouldn't be
+          //considered a meaningful change that needs a refetch.
+          effectiveGameVersionUrl: {
+            type: String,
+            computed: "_computeEffectiveGameVersionUrl(gameVersionUrl, lastFetchedVersion)",
+          },
           viewingAsPlayer: Number,
           requestedPlayer: {
             type: Number,
             value: 0
           },
           gameVersion: Number,
+          //lastFetchedVersion is the last version we've fetched from the server.
+          lastFetchedVersion: {
+            type: Number,
+            value: 0,
+          },
           infoData: {
             type: Object,
             observer: '_infoDataChanged',
@@ -98,6 +110,11 @@
       ready() {
         super.ready();
         this.updateData();
+      }
+
+      _computeEffectiveGameVersionUrl(gameVersionUrl, lastFetchedVersion) {
+        if (!gameVersionUrl) return "";
+        return gameVersionUrl + "&from=" + lastFetchedVersion
       }
 
       _computeGameVersionUrl(apiHost, gameRoute, active, requestedPlayer, admin, version, autoCurrentPlayer) {
@@ -211,6 +228,7 @@
       reset() {
           this.infoData = null;
           this._infoInstalled = false;
+          this.lastFetchedVersion = 0;
           window.requestAnimationFrame(() => this.updateData());
       }
 
@@ -391,6 +409,8 @@
 
         this._infoInstalled = true;
 
+        this.lastFetchedVersion = newValue.Game.Version;
+
       }
 
       _versionDataChanged(newValue) {
@@ -402,8 +422,12 @@
 
         var serverBundle = newValue.Bundles[newValue.Bundles.length - 1];
 
+
+
         var bundle = this._prepareStateBundle(serverBundle.Game, serverBundle.Forms, serverBundle.ViewingAsPlayer);
         this._addStateBundle(bundle);
+
+        this.lastFetchedVersion = serverBundle.Game.Version;
       }
 
 
