@@ -7,6 +7,7 @@ import (
 	"github.com/jkomoros/boardgame/server/api/users"
 	"strconv"
 	"strings"
+	"time"
 )
 
 //We define our own records, primarily to decorate with tags for Gorp, but
@@ -81,6 +82,7 @@ type MoveStorageRecord struct {
 	GameId    string `db:",size:16"`
 	Version   int64
 	Initiator int64
+	Timestamp int64
 	Name      string `db:",size:128"`
 	Blob      string `db:",size:100000"`
 }
@@ -286,6 +288,7 @@ func (m *MoveStorageRecord) ToStorageRecord() *boardgame.MoveStorageRecord {
 	return &boardgame.MoveStorageRecord{
 		Name:      m.Name,
 		Initiator: int(m.Initiator),
+		Timestamp: time.Unix(0, m.Timestamp),
 		Blob:      []byte(m.Blob),
 	}
 }
@@ -295,6 +298,7 @@ func NewMoveStorageRecord(gameId string, version int, record *boardgame.MoveStor
 		GameId:    gameId,
 		Version:   int64(version),
 		Initiator: int64(record.Initiator),
+		Timestamp: record.Timestamp.UnixNano(),
 		Name:      record.Name,
 		Blob:      string(record.Blob),
 	}

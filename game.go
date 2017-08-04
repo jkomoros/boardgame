@@ -262,6 +262,7 @@ func (g *Game) Move(version int) (Move, error) {
 
 	move.Info().version = version
 	move.Info().initiator = record.Initiator
+	move.Info().timestamp = record.Timestamp
 
 	return move, nil
 
@@ -736,6 +737,7 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	}
 
 	move.Info().initiator = initiator
+	move.Info().timestamp = time.Now()
 
 	if err := move.Legal(currentState, proposer); err != nil {
 		//It's not legal, reject.

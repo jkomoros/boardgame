@@ -1,5 +1,9 @@
 package boardgame
 
+import (
+	"time"
+)
+
 //StateStorageRecord is a record representing a state that can be written to
 //storage and later returned. It is an opaque blob, so in most cases storage
 //managers can just write straight to disk with no transformations.
@@ -10,6 +14,7 @@ type StateStorageRecord []byte
 type MoveStorageRecord struct {
 	Name      string
 	Initiator int
+	Timestamp time.Time
 	Blob      []byte
 }
 

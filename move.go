@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/jkomoros/boardgame/errors"
 	"log"
+	"time"
 )
 
 //MoveType represents a type of a move in a game, and information about that
@@ -65,6 +66,7 @@ type MoveInfo struct {
 	moveType  *MoveType
 	version   int
 	initiator int
+	timestamp time.Time
 }
 
 //Move's are how all modifications are made to Game States after
@@ -131,6 +133,7 @@ func StorageRecordForMove(move Move) *MoveStorageRecord {
 	return &MoveStorageRecord{
 		Name:      move.Info().Type().Name(),
 		Initiator: move.Info().initiator,
+		Timestamp: move.Info().timestamp,
 		Blob:      blob,
 	}
 }
@@ -144,6 +147,11 @@ func (m *MoveInfo) Type() *MoveType {
 //when successfully committed.
 func (m *MoveInfo) Version() int {
 	return m.version
+}
+
+//Timestamp returns the time that the given move was made.
+func (m *MoveInfo) Timestamp() time.Time {
+	return m.timestamp
 }
 
 //Initiator returns the move version that initiated this causal chain: the

@@ -362,11 +362,15 @@ func TestMoveRoundTrip(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
+	assert.For(t).ThatActual(testMove.Info().Timestamp().IsZero()).IsFalse()
+
 	refriedMove, err := game.Move(1)
 
 	assert.For(t).ThatActual(err).IsNil()
 
 	assert.For(t).ThatActual(move).Equals(refriedMove)
+
+	assert.For(t).ThatActual(refriedMove.Info().Timestamp()).Equals(move.Info().Timestamp())
 
 	fixUpMove, err := game.Move(2)
 
