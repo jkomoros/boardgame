@@ -89,17 +89,16 @@ func (s *StorageManager) State(gameId string, version int) (boardgame.StateStora
 
 func (s *StorageManager) Moves(gameId string, fromVersion, toVersion int) ([]*boardgame.MoveStorageRecord, error) {
 
-	//There is no move associated with version 0
-	if fromVersion == 0 {
-		fromVersion = 1
-	}
-
 	//There's no efficiency boost for fetching multiple moves at once so just wrap around Move()
 
-	result := make([]*boardgame.MoveStorageRecord, toVersion-fromVersion+1)
+	if fromVersion == toVersion {
+		fromVersion = fromVersion - 1
+	}
+
+	result := make([]*boardgame.MoveStorageRecord, toVersion-fromVersion)
 
 	index := 0
-	for i := fromVersion; i <= toVersion; i++ {
+	for i := fromVersion + 1; i <= toVersion; i++ {
 		move, err := s.Move(gameId, i)
 		if err != nil {
 			return nil, err

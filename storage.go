@@ -53,8 +53,9 @@ type StorageManager interface {
 	//nil.
 	Move(gameId string, version int) (*MoveStorageRecord, error)
 
-	//Moves is like Move but returns all moves from fromVersion to toVersion,
-	//inclusive. In many storage subsystems this is cheaper than repeated
+	//Moves is like Move but returns all moves from fromVersion (exclusive) to
+	//toVersion (inclusive). If fromVersion == toVersion, should return
+	//toVersion. In many storage subsystems this is cheaper than repeated
 	//calls to Move.
 	Moves(gameId string, fromVersion, toVersion int) ([]*MoveStorageRecord, error)
 
