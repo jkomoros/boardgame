@@ -619,11 +619,18 @@ func (s *Server) doGameVersion(r *Renderer, game *boardgame.Game, version, fromV
 			}
 		}
 
+		delay := 500
+
+		if len(bundles) == 0 {
+			delay = 0
+		}
+
 		//If state is nil, JSONForPlayer will basically treat it as just "give the
 		//current version" which is a reasonable fallback.
 		bundle := gin.H{
 			"Game":            game.JSONForPlayer(playerIndex, state),
 			"Move":            move,
+			"Delay":           delay,
 			"ViewingAsPlayer": playerIndex,
 			"Forms":           s.generateForms(game),
 		}
