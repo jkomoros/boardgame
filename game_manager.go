@@ -629,6 +629,12 @@ func (g *GameManager) SetUp() error {
 		g.dynamicComponentValidator[deckName] = validator
 	}
 
+	//Verify that sanitization policies are all reasonable
+
+	if err := g.delegate.StateSanitizationPolicy().valid(); err != nil {
+		return errors.Extend(err, "State sanitization policy was invalid")
+	}
+
 	//Verify that the shape of the computed property collections fits with the config.
 	if config := g.delegate.ComputedPropertiesConfig(); config != nil {
 

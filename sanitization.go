@@ -173,6 +173,92 @@ func (s *state) sanitizedWithDefault(policy *StatePolicy, playerIndex PlayerInde
 
 }
 
+func (s *StatePolicy) valid() error {
+
+	if s == nil {
+		return nil
+	}
+
+	//Sholud these helpers just be methods on StatePolicy and its children?
+
+	if s.Game != nil {
+		if err := s.Game.valid(); err != nil {
+			return errors.Extend(err, "Game policy was invalid")
+		}
+	}
+
+	if s.Player != nil {
+		if err := s.Player.valid(); err != nil {
+			return errors.Extend(err, "Player policy was invalid")
+		}
+	}
+
+	if s.DynamicComponentValues != nil {
+		for name, subPolicy := range s.DynamicComponentValues {
+			if err := subPolicy.valid(); err != nil {
+				return errors.Extend(err, "DynamicComponentValues policy for "+name+"was invalid")
+			}
+		}
+	}
+
+	return nil
+
+}
+
+func (s SubStatePolicy) valid() error {
+	if s == nil {
+		return nil
+	}
+
+	for prop, group := range s {
+		if err := group.valid(); err != nil {
+			return errors.Extend(err, "Property "+prop+" was invalid")
+		}
+	}
+
+	return nil
+}
+
+func (g GroupPolicy) valid() error {
+	if g == nil {
+		return nil
+	}
+
+	for groupNumber, policy := range g {
+
+		switch groupNumber {
+		case GroupAll:
+			//Fine
+		case GroupSelf:
+			//Fine
+		case GroupOther:
+			//Fine
+		default:
+			return errors.New("GroupNumber was not legal: " + strconv.Itoa(groupNumber))
+		}
+
+		switch policy {
+		case PolicyVisible:
+			//Fine
+		case PolicyOrder:
+			//Fine
+		case PolicyLen:
+			//Fine
+		case PolicyNonEmpty:
+		//Fine
+		case PolicyHidden:
+			//Fine
+		case PolicyRandom:
+			//Fine
+		default:
+			return errors.New("Policy was not legal: " + strconv.Itoa(int(policy)))
+		}
+
+	}
+
+	return nil
+}
+
 //statePlayerIndex is the index of the PlayerState that we're working on (-1
 //for Game). preparingForPlayerIndex is the index that we're preparing the
 //overall santiized state for, as provied to
