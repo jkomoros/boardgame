@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/Sirupsen/logrus"
 	"github.com/dustin/go-humanize"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -983,12 +984,19 @@ func (s *Server) Start() {
 		log.Println("Environ:", config)
 	}
 
+	logLevel := logrus.InfoLevel
+
 	if v := os.Getenv("GIN_MODE"); v == "release" {
 		log.Println("Using release mode config")
 		s.config = config.Prod
 	} else {
 		log.Println("Using dev mode config")
 		s.config = config.Dev
+		logLevel = logrus.DebugLevel
+	}
+
+	for _, manager := range s.managers {
+		manager.Logger().SetLevel(logLevel)
 	}
 
 	name := s.storage.Name()

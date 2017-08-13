@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"github.com/Sirupsen/logrus"
 	"github.com/jkomoros/boardgame/errors"
 )
 
@@ -187,14 +188,43 @@ func (d *DefaultGameDelegate) ComputedPlayerPropertyCollectionConstructor() Muta
 //and returns the first one that is legal at the current state. In many cases,
 //this behavior should be suficient and need not be overwritten. Be extra sure
 //that your FixUpMoves have a conservative Legal function, otherwise you could
-//get a panic from applying too many FixUp moves.
+//get a panic from applying too many FixUp moves. Wil emit debug information
+//about why certain fixup moves didn't apply if the Manager's log level is
+//Debug or higher.
 func (d *DefaultGameDelegate) ProposeFixUpMove(state State) Move {
+
+	isDebug := d.Manager().Logger().Level >= logrus.DebugLevel
+
+	var logEntry *logrus.Entry
+
+	if isDebug {
+		logEntry = d.Manager().Logger().WithFields(logrus.Fields{
+			"game":    state.Game().Id(),
+			"version": state.Version(),
+		})
+		logEntry.Debug("***** ProposeFixUpMove called *****")
+	}
+
 	for _, moveType := range d.Manager().FixUpMoveTypes() {
+		var entry *logrus.Entry
+		if isDebug {
+			entry = logEntry.WithField("movetype", moveType.Name())
+		}
 		move := moveType.NewMove(state)
 		if err := move.Legal(state, AdminPlayerIndex); err == nil {
+			if isDebug {
+				entry.Debug(moveType.Name() + " : MATCH")
+			}
 			//Found it!
 			return move
+		} else {
+			if isDebug {
+				entry.Debug(moveType.Name() + " : " + err.Error())
+			}
 		}
+	}
+	if isDebug {
+		logEntry.Debug("NO MATCH")
 	}
 	//No moves apply now.
 	return nil
