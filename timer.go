@@ -2,7 +2,6 @@ package boardgame
 
 import (
 	"container/heap"
-	"log"
 	"time"
 )
 
@@ -122,14 +121,16 @@ type timerManager struct {
 	nextId      int
 	records     timerQueue
 	recordsById map[int]*timerRecord
+	manager     *GameManager
 }
 
-func newTimerManager() *timerManager {
+func newTimerManager(gameManager *GameManager) *timerManager {
 	return &timerManager{
 		//the default id in TimerProps is 0, so we should start beyond that.
 		nextId:      1,
 		records:     make(timerQueue, 0),
 		recordsById: make(map[int]*timerRecord),
+		manager:     gameManager,
 	}
 }
 
@@ -227,7 +228,7 @@ func (t *timerManager) Tick() {
 
 		if err := <-record.game.ProposeMove(record.move, AdminPlayerIndex); err != nil {
 			//TODO: log the error or something
-			log.Println("When timer failed the move could not be made: ", err, record.move)
+			t.manager.Logger().Info("When timer failed the move could not be made: ", err, record.move)
 		}
 	}
 }

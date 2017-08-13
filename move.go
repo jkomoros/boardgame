@@ -3,7 +3,6 @@ package boardgame
 import (
 	"encoding/json"
 	"github.com/jkomoros/boardgame/errors"
-	"log"
 	"time"
 )
 
@@ -19,6 +18,7 @@ type MoveType struct {
 	immediateFixUp func(state State) Move
 	isFixUp        bool
 	validator      *readerValidator
+	manager        *GameManager
 }
 
 //MoveTypeConfig is a collection of information used to create a MoveType.
@@ -208,6 +208,7 @@ func newMoveType(config *MoveTypeConfig, manager *GameManager) (*MoveType, error
 		immediateFixUp: config.ImmediateFixUp,
 		isFixUp:        config.IsFixUp,
 		validator:      validator,
+		manager:        manager,
 	}, nil
 
 }
@@ -253,17 +254,17 @@ func (m *MoveType) NewMove(state State) Move {
 	if readSetter == nil {
 		//This shouldn't happen because we verified that ReadSetter returned
 		//non-nil when the movetype was registered.
-		log.Println("ReadSetter for move unexpectedly returned nil")
+		m.manager.Logger().Error("ReadSetter for move unexpectedly returned nil")
 		return nil
 	}
 
 	if err := m.validator.AutoInflate(readSetter, state); err != nil {
-		log.Println("AutoInflate had an error: " + err.Error())
+		m.manager.Logger().Error("AutoInflate had an error: " + err.Error())
 		return nil
 	}
 
 	if err := m.validator.Valid(readSetter); err != nil {
-		log.Println("Move was not valid: " + err.Error())
+		m.manager.Logger().Error("Move was not valid: " + err.Error())
 		return nil
 	}
 

@@ -20,7 +20,7 @@ func TestTimerManager(t *testing.T) {
 
 	assert.For(t).ThatActual(move.(*testMoveDrawCard).TargetPlayerIndex).Equals(PlayerIndex(1))
 
-	timer := newTimerManager()
+	timer := newTimerManager(game.manager)
 
 	assert.For(t).ThatActual(timer.nextTimerFired()).Equals(false)
 
@@ -80,7 +80,7 @@ func TestTimerManagerMultiple(t *testing.T) {
 
 	currentVersion := game.Version()
 
-	timer := newTimerManager()
+	timer := newTimerManager(game.manager)
 
 	firstId := timer.PrepareTimer(time.Duration(50)*time.Millisecond, game, move)
 	timer.StartTimer(firstId)

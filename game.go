@@ -3,7 +3,6 @@ package boardgame
 import (
 	"encoding/json"
 	"github.com/jkomoros/boardgame/errors"
-	"log"
 	"math/rand"
 	"strconv"
 	"time"
@@ -220,14 +219,14 @@ func (g *Game) State(version int) State {
 	record, err := g.manager.Storage().State(g.Id(), version)
 
 	if err != nil {
-		log.Println("State retrieval failed" + err.Error() + strconv.Itoa(version))
+		g.manager.Logger().WithField("version", version).Error("State retrieval failed" + err.Error())
 		return nil
 	}
 
 	result, err := g.manager.stateFromRecord(record)
 
 	if err != nil {
-		log.Println("StateFromBlob failed: " + err.Error())
+		g.manager.Logger().Error("StateFromBlob failed: " + err.Error())
 		return nil
 	}
 

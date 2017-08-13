@@ -2,8 +2,8 @@ package boardgame
 
 import (
 	"encoding/json"
+	"github.com/Sirupsen/logrus"
 	"github.com/jkomoros/boardgame/errors"
-	"log"
 	"strconv"
 	"strings"
 	"sync"
@@ -37,6 +37,7 @@ type GameManager struct {
 	modifiableGames           map[string]*Game
 	timers                    *timerManager
 	initialized               bool
+	logger                    *logrus.Logger
 }
 
 //NewGameManager creates a new game manager with the given delegate.
@@ -61,6 +62,7 @@ func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage Storag
 		delegate: delegate,
 		chest:    chest,
 		storage:  storage,
+		logger:   logrus.New(),
 	}
 
 	chest.manager = result
@@ -68,6 +70,12 @@ func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage Storag
 	delegate.SetManager(result)
 
 	return result
+}
+
+//Logger returns the logrus.Logger that is in use for this game. This is a
+//reasonable place to emit info or debug information specific to your game.
+func (g *GameManager) Logger() *logrus.Logger {
+	return g.logger
 }
 
 //NewGame returns a new game. You must call SetUp before using it.
@@ -88,7 +96,7 @@ func (g *GameManager) NewGame() *Game {
 	}
 
 	if err := g.modifiableGameCreated(result); err != nil {
-		log.Println("Couldn't warn that a modifiable game was created: " + err.Error())
+		g.logger.Warn("Couldn't warn that a modifiable game was created: " + err.Error())
 		return nil
 	}
 
@@ -695,7 +703,7 @@ func (g *GameManager) SetUp() error {
 
 	g.modifiableGames = make(map[string]*Game)
 
-	g.timers = newTimerManager()
+	g.timers = newTimerManager(g)
 
 	//Start ticking timers.
 	go func() {

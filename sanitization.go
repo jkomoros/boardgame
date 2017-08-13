@@ -4,7 +4,6 @@ import (
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/errors"
 	"hash/fnv"
-	"log"
 	"math"
 	"math/rand"
 	"strconv"
@@ -111,7 +110,7 @@ func (s *state) SanitizedForPlayer(player PlayerIndex) State {
 	sanitized, err := s.sanitizedWithDefault(policy, player, PolicyVisible)
 
 	if err != nil {
-		log.Println("Couldn't sanitize for player: " + err.Error())
+		s.game.manager.Logger().Error("Couldn't sanitize for player: " + err.Error())
 		return nil
 	}
 
