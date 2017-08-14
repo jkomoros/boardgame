@@ -74,8 +74,20 @@ func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage Storag
 
 //Logger returns the logrus.Logger that is in use for this game. This is a
 //reasonable place to emit info or debug information specific to your game.
+//This is initialized to a default logger when NewGameManager is called, and
+//calls to SetLogger will fail if the logger is nil, so this will always
+//return a non-nil logger.
 func (g *GameManager) Logger() *logrus.Logger {
 	return g.logger
+}
+
+//SetLogger configures the manager to use the given logger. Will fail if
+//logger is nil.
+func (g *GameManager) SetLogger(logger *logrus.Logger) {
+	if logger == nil {
+		return
+	}
+	g.logger = logger
 }
 
 //NewGame returns a new game. You must call SetUp before using it.

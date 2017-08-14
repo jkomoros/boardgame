@@ -31,6 +31,7 @@ type Server struct {
 	upgrader websocket.Upgrader
 
 	notifier *versionNotifier
+	logger   *logrus.Logger
 }
 
 type Renderer struct {
@@ -85,15 +86,19 @@ Use it like so:
 */
 func NewServer(storage *ServerStorageManager, managers ...*boardgame.GameManager) *Server {
 
+	logger := logrus.New()
+
 	result := &Server{
 		managers: make(managerMap),
 		storage:  storage,
+		logger:   logger,
 	}
 
 	storage.server = result
 
 	for _, manager := range managers {
 		name := manager.Delegate().Name()
+		manager.SetLogger(logger)
 		result.managers[name] = manager
 		if manager.Storage() != storage {
 			log.Println("The storage for one of the managers was not the same item passed in as major storage.")
@@ -984,19 +989,13 @@ func (s *Server) Start() {
 		log.Println("Environ:", config)
 	}
 
-	logLevel := logrus.InfoLevel
-
 	if v := os.Getenv("GIN_MODE"); v == "release" {
 		log.Println("Using release mode config")
 		s.config = config.Prod
 	} else {
 		log.Println("Using dev mode config")
 		s.config = config.Dev
-		logLevel = logrus.DebugLevel
-	}
-
-	for _, manager := range s.managers {
-		manager.Logger().SetLevel(logLevel)
+		s.logger.SetLevel(logrus.DebugLevel)
 	}
 
 	name := s.storage.Name()
