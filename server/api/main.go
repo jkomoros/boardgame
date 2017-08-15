@@ -34,6 +34,7 @@ type Server struct {
 }
 
 type Renderer struct {
+	s            *Server
 	c            *gin.Context
 	rendered     bool
 	cookieCalled bool
@@ -115,8 +116,9 @@ func NewServer(storage *ServerStorageManager, managers ...*boardgame.GameManager
 
 }
 
-func NewRenderer(c *gin.Context) *Renderer {
+func (s *Server) NewRenderer(c *gin.Context) *Renderer {
 	return &Renderer{
+		s,
 		c,
 		false,
 		false,
@@ -126,7 +128,7 @@ func NewRenderer(c *gin.Context) *Renderer {
 
 func (r *Renderer) Error(f *errors.Friendly) {
 	if r.rendered {
-		panic("Error called on already-rendered renderer")
+		r.s.logger.Errorln("Error called on already-rendered renderer")
 	}
 
 	if f == nil {
@@ -140,6 +142,18 @@ func (r *Renderer) Error(f *errors.Friendly) {
 		"Error":         f.Error(),
 		"FriendlyError": f.FriendlyError(),
 	})
+
+	fields := logrus.Fields{}
+
+	for key, val := range f.Fields() {
+		fields[key] = val
+	}
+
+	fields["Friendly"] = f.FriendlyError()
+	fields["Error"] = f.Error()
+	fields["Secure"] = f.SecureError()
+
+	r.s.logger.WithFields(fields).Errorln("Server error")
 
 	r.rendered = true
 }
@@ -306,7 +320,7 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 //Checks to make sure the user is logged in, fails if not.
 func (s *Server) requireLoggedIn(c *gin.Context) {
 
-	r := NewRenderer(c)
+	r := s.NewRenderer(c)
 
 	user := s.getUser(c)
 
@@ -320,7 +334,7 @@ func (s *Server) requireLoggedIn(c *gin.Context) {
 }
 
 func (s *Server) joinGameHandler(c *gin.Context) {
-	r := NewRenderer(c)
+	r := s.NewRenderer(c)
 
 	game := s.getGame(c)
 
@@ -381,7 +395,7 @@ func (s *Server) doJoinGame(r *Renderer, game *boardgame.Game, viewingAsPlayer b
 
 func (s *Server) newGameHandler(c *gin.Context) {
 
-	r := NewRenderer(c)
+	r := s.NewRenderer(c)
 
 	managerId := s.getRequestManager(c)
 
@@ -459,7 +473,7 @@ func (s *Server) doNewGame(r *Renderer, owner *users.StorageRecord, manager *boa
 
 func (s *Server) listGamesHandler(c *gin.Context) {
 
-	r := NewRenderer(c)
+	r := s.NewRenderer(c)
 
 	user := s.getUser(c)
 
@@ -523,7 +537,7 @@ func (s *Server) listGamesWithUsers(max int, list listing.Type, userId string, g
 }
 
 func (s *Server) listManagerHandler(c *gin.Context) {
-	r := NewRenderer(c)
+	r := s.NewRenderer(c)
 	s.doListManager(r)
 }
 
@@ -577,7 +591,7 @@ func (s *Server) gameVersionHandler(c *gin.Context) {
 
 	autoCurrentPlayer := s.effectiveAutoCurrentPlayer(c)
 
-	r := NewRenderer(c)
+	r := s.NewRenderer(c)
 
 	s.doGameVersion(r, game, version, fromVersion, playerIndex, autoCurrentPlayer)
 
@@ -674,7 +688,7 @@ func (s *Server) configureGameHandler(c *gin.Context) {
 	open := s.getRequestOpen(c)
 	visible := s.getRequestVisible(c)
 
-	r := NewRenderer(c)
+	r := s.NewRenderer(c)
 
 	s.doConfigureGame(r, user, isAdmin, game, gameInfo, open, visible)
 
@@ -735,7 +749,7 @@ func (s *Server) gameInfoHandler(c *gin.Context) {
 
 	user := s.getUser(c)
 
-	r := NewRenderer(c)
+	r := s.NewRenderer(c)
 
 	s.doGameInfo(r, game, playerIndex, hasEmptySlots, gameInfo, user)
 
@@ -851,7 +865,7 @@ func (s *Server) doGameInfo(r *Renderer, game *boardgame.Game, playerIndex board
 
 func (s *Server) moveHandler(c *gin.Context) {
 
-	r := NewRenderer(c)
+	r := s.NewRenderer(c)
 
 	if c.Request.Method != http.MethodPost {
 		r.Error(errors.New("This method only supports post."))
@@ -970,7 +984,7 @@ func (s *Server) renderChest(game *boardgame.Game) map[string][]interface{} {
 //genericHandler doesn't do much. We just register it so we automatically get
 //CORS handlers triggered with the middelware.
 func (s *Server) genericHandler(c *gin.Context) {
-	r := NewRenderer(c)
+	r := s.NewRenderer(c)
 	r.Success(gin.H{
 		"Message": "Nothing to see here.",
 	})

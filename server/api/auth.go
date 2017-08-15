@@ -52,7 +52,7 @@ func (s *Server) unsetCookie(r *Renderer, cookie string, message string) {
 //Set-Cookie's it back.
 func (s *Server) authCookieHandler(c *gin.Context) {
 
-	r := NewRenderer(c)
+	r := s.NewRenderer(c)
 
 	if c.Request.Method != http.MethodPost {
 		r.Error(errors.New("This method only supports post."))
