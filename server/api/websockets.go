@@ -1,11 +1,11 @@
 package api
 
 import (
+	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/errors"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -18,8 +18,6 @@ const (
 	pingPeriod     = (pongWait * 9) / 10
 )
 
-const debugSockets = true
-
 type gameVersionChanged struct {
 	Id      string
 	Version int
@@ -31,6 +29,7 @@ type versionNotifier struct {
 	unregister    chan *socket
 	notifyVersion chan gameVersionChanged
 	doneChan      chan bool
+	server        *Server
 }
 
 type socket struct {
@@ -44,7 +43,7 @@ func (s *Server) checkOriginForSocket(r *http.Request) bool {
 	origin := r.Header["Origin"]
 
 	if len(origin) == 0 {
-		log.Println("No origin headers provided")
+		s.logger.Warnln("No origin headers provided")
 		return true
 	}
 
@@ -111,11 +110,16 @@ func (s *socket) readPump() {
 		_, message, err := s.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
-				log.Printf("error: %v", err)
+				s.notifier.server.logger.Errorln("Unexpected socket close error: "+err.Error(), logrus.Fields{
+					"Id": s.gameId,
+				})
 			}
 			break
 		}
-		log.Println("Unexpectedly got a message: ", message)
+		s.notifier.server.logger.Warnln("Unexpectedly got a message from client", logrus.Fields{
+			"Message": message,
+			"Id":      s.gameId,
+		})
 	}
 
 }
@@ -154,13 +158,14 @@ func (s *socket) SendMessage(message gameVersionChanged) {
 	s.send <- []byte(strconv.Itoa(message.Version))
 }
 
-func newVersionNotifier() *versionNotifier {
+func newVersionNotifier(s *Server) *versionNotifier {
 	result := &versionNotifier{
 		sockets:       make(map[string]map[*socket]bool),
 		register:      make(chan *socket),
 		unregister:    make(chan *socket),
 		notifyVersion: make(chan gameVersionChanged),
 		doneChan:      make(chan bool),
+		server:        s,
 	}
 	go result.workLoop()
 	return result
@@ -185,7 +190,10 @@ func (v *versionNotifier) workLoop() {
 		case s := <-v.unregister:
 			v.unregisterSocket(s)
 		case rec := <-v.notifyVersion:
-			debugLog("Sending message for " + rec.Id + " " + strconv.Itoa(rec.Version))
+			v.server.logger.Debugln("Sending socket message", logrus.Fields{
+				"Id":      rec.Id,
+				"Version": rec.Version,
+			})
 			//Send message
 			bucket, ok := v.sockets[rec.Id]
 			if ok {
@@ -200,18 +208,12 @@ func (v *versionNotifier) workLoop() {
 	}
 }
 
-func debugLog(message string) {
-	if !debugSockets {
-		return
-	}
-
-	log.Println(message)
-}
-
 func (v *versionNotifier) registerSocket(s *socket) {
 	//Should only be called by workLoop
 
-	debugLog("Socket registering")
+	v.server.logger.Debugln("Socket registering", logrus.Fields{
+		"Id": s.gameId,
+	})
 
 	bucket, ok := v.sockets[s.gameId]
 
@@ -226,7 +228,9 @@ func (v *versionNotifier) registerSocket(s *socket) {
 func (v *versionNotifier) unregisterSocket(s *socket) {
 	//Should only be called by workloop
 
-	debugLog("Socket unregistering")
+	v.server.logger.Debugln("Socket unregistering", logrus.Fields{
+		"Id": s.gameId,
+	})
 
 	bucket, ok := v.sockets[s.gameId]
 

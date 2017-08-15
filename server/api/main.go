@@ -1011,7 +1011,7 @@ func (s *Server) Start() {
 		return
 	}
 
-	s.notifier = newVersionNotifier()
+	s.notifier = newVersionNotifier(s)
 
 	router := gin.New()
 

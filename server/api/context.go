@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/users"
-	"log"
 	"strconv"
 )
 
@@ -140,7 +139,7 @@ func (s *Server) getRequestCookie(c *gin.Context) string {
 	result, err := c.Cookie(cookieName)
 
 	if err != nil {
-		log.Println("Couldnt' get cookie:", err)
+		s.logger.Errorln("Couldnt' get cookie:", err)
 		return ""
 	}
 
