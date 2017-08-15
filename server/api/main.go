@@ -12,7 +12,6 @@ import (
 	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/jkomoros/boardgame/server/config"
-	"log"
 	"net/http"
 	"os"
 	"sort"
@@ -101,7 +100,7 @@ func NewServer(storage *ServerStorageManager, managers ...*boardgame.GameManager
 		manager.SetLogger(logger)
 		result.managers[name] = manager
 		if manager.Storage() != storage {
-			log.Println("The storage for one of the managers was not the same item passed in as major storage.")
+			logger.Fatalln("The storage for one of the managers was not the same item passed in as major storage.")
 			return nil
 		}
 	}
@@ -206,14 +205,14 @@ func (s *Server) userSetup(c *gin.Context) {
 	cookie := s.getRequestCookie(c)
 
 	if cookie == "" {
-		log.Println("No cookie set")
+		s.logger.Debugln("No cookie set")
 		return
 	}
 
 	user := s.storage.GetUserByCookie(cookie)
 
 	if user == nil {
-		log.Println("No user associated with that cookie")
+		s.logger.Debugln("No user associated with that cookie")
 		return
 	} else {
 		user.LastSeen = time.Now().UnixNano()
@@ -230,7 +229,7 @@ func (s *Server) gameFromId(gameId, gameName string) *boardgame.Game {
 	manager := s.managers[gameName]
 
 	if manager == nil {
-		log.Println("Couldnt' find manager for", gameName)
+		s.logger.Errorln("Couldnt' find manager for", gameName)
 		return nil
 	}
 
@@ -239,12 +238,12 @@ func (s *Server) gameFromId(gameId, gameName string) *boardgame.Game {
 	//TODO: figure out a way to return a meaningful error
 
 	if game == nil {
-		log.Println("Couldn't find game with id", gameId)
+		s.logger.Errorln("Couldn't find game with id", gameId)
 		return nil
 	}
 
 	if game.Name() != gameName {
-		log.Println("The name of the game was not what we were expecting. Wanted", gameName, "got", game.Name())
+		s.logger.Errorln("The name of the game was not what we were expecting. Wanted", gameName, "got", game.Name())
 		return nil
 	}
 
@@ -269,13 +268,16 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 	userIds := s.storage.UserIdsForGame(id)
 
 	if userIds == nil {
-		log.Println("No userIds associated with game")
+		s.logger.Errorln("No userIds associated with game", logrus.Fields{
+			"gameName": gameName,
+			"gamdId":   id,
+		})
 	}
 
 	user := s.getUser(c)
 
 	if user == nil {
-		log.Println("No user provided")
+		s.logger.Warnln("No user provided")
 		//The rest of the flow will handle a nil user fine
 	}
 
@@ -287,7 +289,7 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 		slot := emptySlots[0]
 
 		if err := s.storage.SetPlayerForGame(game.Id(), slot, user.Id); err != nil {
-			log.Println("Tried to set the user as player " + slot.String() + " but failed: " + err.Error())
+			s.logger.Errorln("Tried to set the user as player " + slot.String() + " but failed: " + err.Error())
 			return
 		} else {
 			s.setHasEmptySlots(c, false)
@@ -980,20 +982,20 @@ func (s *Server) Start() {
 	config, err := config.Get()
 
 	if err != nil {
-		log.Println("Configuration error: " + err.Error())
+		s.logger.Errorln("Configuration error: " + err.Error())
 	}
 
-	log.Println("Environment Variables")
+	s.logger.Infoln("Environment Variables")
 	//Dbug print out the current environment
 	for _, config := range os.Environ() {
-		log.Println("Environ:", config)
+		s.logger.Infoln("Environ:", config)
 	}
 
 	if v := os.Getenv("GIN_MODE"); v == "release" {
-		log.Println("Using release mode config")
+		s.logger.Infoln("Using release mode config")
 		s.config = config.Prod
 	} else {
-		log.Println("Using dev mode config")
+		s.logger.Infoln("Using dev mode config")
 		s.config = config.Dev
 		s.logger.SetLevel(logrus.DebugLevel)
 	}
@@ -1002,10 +1004,10 @@ func (s *Server) Start() {
 
 	storageConfig := s.config.StorageConfig[name]
 
-	log.Println("Connecting to storage", name, "with config '"+storageConfig+"'")
+	s.logger.Infoln("Connecting to storage", name, "with config '"+storageConfig+"'")
 
 	if err := s.storage.Connect(storageConfig); err != nil {
-		log.Println("Couldnt' connect to storage manager: ", err)
+		s.logger.Fatalln("Couldnt' connect to storage manager: ", err)
 		return
 	}
 
