@@ -1,6 +1,8 @@
 /*
- * boardgame-mysql-admin helps create and migrate sql databases for boardgame.
- */
+
+boardgame-mysql-admin helps create and migrate sql databases for boardgame.
+
+*/
 package main
 
 import (

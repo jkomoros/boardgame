@@ -7,6 +7,7 @@
  * DO NOT EDIT by hand.
  *
  ************************************/
+
 package debuganimations
 
 import (
@@ -2539,22 +2540,22 @@ func (g *__gameStateReader) SetEnumVarProp(name string, value enum.Var) error {
 func (g *__gameStateReader) GrowableStackProp(name string) (*boardgame.GrowableStack, error) {
 
 	switch name {
-	case "VisibleStack":
-		return g.data.VisibleStack, nil
-	case "HiddenStack":
-		return g.data.HiddenStack, nil
-	case "FirstShortStack":
-		return g.data.FirstShortStack, nil
-	case "DrawStack":
-		return g.data.DrawStack, nil
-	case "SecondShortStack":
-		return g.data.SecondShortStack, nil
 	case "FanStack":
 		return g.data.FanStack, nil
-	case "FanDiscard":
-		return g.data.FanDiscard, nil
+	case "VisibleStack":
+		return g.data.VisibleStack, nil
+	case "DrawStack":
+		return g.data.DrawStack, nil
+	case "FirstShortStack":
+		return g.data.FirstShortStack, nil
 	case "DiscardStack":
 		return g.data.DiscardStack, nil
+	case "SecondShortStack":
+		return g.data.SecondShortStack, nil
+	case "FanDiscard":
+		return g.data.FanDiscard, nil
+	case "HiddenStack":
+		return g.data.HiddenStack, nil
 
 	}
 
@@ -2565,29 +2566,29 @@ func (g *__gameStateReader) GrowableStackProp(name string) (*boardgame.GrowableS
 func (g *__gameStateReader) SetGrowableStackProp(name string, value *boardgame.GrowableStack) error {
 
 	switch name {
+	case "FanStack":
+		g.data.FanStack = value
+		return nil
 	case "VisibleStack":
 		g.data.VisibleStack = value
-		return nil
-	case "HiddenStack":
-		g.data.HiddenStack = value
-		return nil
-	case "FirstShortStack":
-		g.data.FirstShortStack = value
 		return nil
 	case "DrawStack":
 		g.data.DrawStack = value
 		return nil
+	case "FirstShortStack":
+		g.data.FirstShortStack = value
+		return nil
+	case "DiscardStack":
+		g.data.DiscardStack = value
+		return nil
 	case "SecondShortStack":
 		g.data.SecondShortStack = value
-		return nil
-	case "FanStack":
-		g.data.FanStack = value
 		return nil
 	case "FanDiscard":
 		g.data.FanDiscard = value
 		return nil
-	case "DiscardStack":
-		g.data.DiscardStack = value
+	case "HiddenStack":
+		g.data.HiddenStack = value
 		return nil
 
 	}
@@ -2660,10 +2661,10 @@ func (g *__gameStateReader) SetPlayerIndexSliceProp(name string, value []boardga
 func (g *__gameStateReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
 
 	switch name {
-	case "RevealedCard":
-		return g.data.RevealedCard, nil
 	case "HiddenCard":
 		return g.data.HiddenCard, nil
+	case "RevealedCard":
+		return g.data.RevealedCard, nil
 
 	}
 
@@ -2674,11 +2675,11 @@ func (g *__gameStateReader) SizedStackProp(name string) (*boardgame.SizedStack, 
 func (g *__gameStateReader) SetSizedStackProp(name string, value *boardgame.SizedStack) error {
 
 	switch name {
-	case "RevealedCard":
-		g.data.RevealedCard = value
-		return nil
 	case "HiddenCard":
 		g.data.HiddenCard = value
+		return nil
+	case "RevealedCard":
+		g.data.RevealedCard = value
 		return nil
 
 	}

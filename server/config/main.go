@@ -1,6 +1,8 @@
 /*
- * Config is a simple library that manages config set-up for servers based on a config file.
- */
+
+Config is a simple library that manages config set-up for servers based on a config file.
+
+*/
 package config
 
 import (

@@ -1,8 +1,8 @@
 /*
- *
- * pig is a very simple game involving dice rolls.
- *
- */
+
+pig is a very simple game involving dice rolls.
+
+*/
 package pig
 
 import (

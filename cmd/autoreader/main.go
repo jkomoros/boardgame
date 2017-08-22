@@ -523,6 +523,7 @@ const headerTemplateText = `/************************************
  * DO NOT EDIT by hand.
  *
  ************************************/
+
 package {{.packageName}}
 `
 

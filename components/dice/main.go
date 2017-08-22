@@ -1,6 +1,8 @@
 /*
- * dice is a simple package that defines die components with variable numbers of sides.
- */
+
+dice is a simple package that defines die components with variable numbers of sides.
+
+*/
 package dice
 
 import (

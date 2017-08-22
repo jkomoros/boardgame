@@ -7,6 +7,7 @@
  * DO NOT EDIT by hand.
  *
  ************************************/
+
 package pig
 
 import (

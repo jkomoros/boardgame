@@ -1,6 +1,6 @@
 /*
 
-bolt provides a bolt-backed database that implements both
+mysql provides a bolt-backed database that implements both
 boardgame.StorageManager and boardgame/server.StorageManager.
 
 */
