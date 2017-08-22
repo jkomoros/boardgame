@@ -213,6 +213,9 @@ const (
 	NextSlotIndex = -5
 )
 
+//GrowableStack is a Stack that has a variable number of slots, none of which
+//may be empty. It can optionally have a max size. Create a new one with
+//deck.NewGrowableStack.
 type GrowableStack struct {
 	//Deck is the deck that we're a part of. This will be nil if we aren't
 	//inflated.
@@ -238,7 +241,7 @@ type GrowableStack struct {
 }
 
 //SizedStack is a Stack that has a fixed number of slots, any of which may be
-//empty. Create a new one with NewSizedStack.
+//empty. Create a new one with deck.NewSizedStack.
 type SizedStack struct {
 	//Deck is the deck we're a part of. This will be nil if we aren't inflated.
 	deckPtr *Deck
