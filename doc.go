@@ -561,7 +561,7 @@ One easy option is to instantiate those values yourself:
 		}
 
 		return &gameState{
-			Deck: boardgame.NewSizedStack(deck, 5),
+			Deck: deck.NewSizedStack(5),
 		}
 	}
 
@@ -570,21 +570,35 @@ tag-based auto-inflation, where you annotate your structs with information
 about how to instantiate those properties. At SetUp time reflection is used to
 discover that configuration, and from then on each time an object is created
 via that constructor it will have those fields instantiated without needing
-reflection, so it is fast. This allows you to create single-line constructors
-in many cases:
+reflection, so it is fast. This works for Stacks and Enums. This allows you to
+create single-line constructors in many cases:
 
 	type gameState struct {
-		Deck *boardgame.SizedStack `stack:"deck,5"`
+		//The syntax is name of deck follow by a comma followed by the size
+		//argument.
+		Deck *boardgame.SizedStack `stack:"cards,5"`
+
 		//The size may be omitted to default to 0
-		Hand *boardgame.GrowableStack `stack:"deck"`
+		Hand *boardgame.GrowableStack `stack:"cards"`
+
+		//Enums also work. The argument is just the name of the Enum to
+		//retrieve from manager.Chest().Enums().Enum(arg).
 		Color enum.Var `enum:"Color"`
-		//Timers don't require any struct tags; they will be initalized
-		//automatically.
+
+		//Timers don't require any struct tags because they don't have any
+		//configuration; they will be initalized automatically.
 		Timer *boardgame.Timer
 	}
 
 	func (g *gameDelegate) GameStateConstructor() boardgame.MutableSubState {
+
+		//Even though the Timers, Enums, and Stacks are nil, when the manager
+		//is SetUp() reflection will be used once to discover where these
+		//properties exist and what their tag-based configuration is. In the
+		//future when a new item is constructed those things can be inflated
+		//automatically without reflection.
 		return new(gameState)
+
 	}
 
 Errors
