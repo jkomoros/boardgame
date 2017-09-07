@@ -95,6 +95,87 @@ which will start a server at `localhost:8080` by default.
 
 Now you can visit the web app in your browser by navigating to `localhost:8080`
 
+## Game Managers
+
+Now that you have the server set up, let's dig into how a given game is constructed.
+
+We'll dig into examples/blackjack because it covers many of the core concepts.
+
+At the core of every game is the GameManager. This is an object that encapsulates all of the logic about a game and can be installed into a server.
+
+Each game type, fundamentally, is about representing all of the semantics of a given game state in a **State** and then configuring when and how modifications may be made by defining **Moves**.
+
+### State
+
+The state is the complete encapsulation of all semantically relevant information for your game at any point. Every time a move is succesfully applied, a new state is created, with a version number one greater than the previous current state.
+
+Game states are represented by a handful of structs specific to your game type. All of these structs are composed only of certain types of simple properties, which are enumerated in `boardgame.PropertyType`. The two most common structs for your game are `GameState` and `PlayerState`.
+
+GameState represents all of the state of the game that is not specific to any player. For example, this is where you might capture who the current player is, and the Draw and Discard decks for a game of cards.
+
+PlayerStates represent the state specific to each individual player in the game. For example, this is where each player's current score would be encoded, and also which cards they have in their hand.
+
+Let's dig into concrete examples in blackjac, in `examples/blackjack/state.go`.
+
+The core of the states are represented here:
+
+```
+//+autoreader
+type gameState struct {
+    DiscardStack  *boardgame.GrowableStack `stack:"cards"`
+    DrawStack     *boardgame.GrowableStack `stack:"cards"`
+    UnusedCards   *boardgame.GrowableStack `stack:"cards"`
+    CurrentPlayer boardgame.PlayerIndex
+}
+
+//+autoreader
+type playerState struct {
+    playerIndex    boardgame.PlayerIndex
+    GotInitialDeal bool
+    HiddenHand     *boardgame.GrowableStack `stack:"cards,1"`
+    VisibleHand    *boardgame.GrowableStack `stack:"cards"`
+    Busted         bool
+    Stood          bool
+}
+```
+
+There's a lot going on here, so we'll unpack it piece by piece.
+
+At the core you can see that these objects are simple structs with (mostly) public properties. The game engine will marshal your objects to JSON and back often, so it's important that the properties be public.
+
+Most of the properties are straightforward. Each player has whether they have Busted or Stood, for example.
+
+####Stacks and Components
+
+As you can see, stacks of cards are represented by something called a GrowableStack. There is also a type of stack called a SizedStack, but they aren't used in blackjack.
+
+Stacks contain 0 or more **Components**. Components are anything in a game that can move around: cards, meeples, resource tokens, dice, etc. Each game type defines a complete enumeration of all components included in their game in something called a **ComponentChest**. We'll get back to that later in the tutorial.
+
+Each component is organized into exactly one **Deck**. A deck is a collection of components all of the same type. For example, you might have a deck of playing cards, a deck of meeples, and a deck of dice in a game. Blackjack only has a single deck of playing cards.
+
+Each Stack is associated with exactly one deck, and only components that are in that deck may be inserted into that stack. In blackjack you can see struct tags that associate a given stack with a given deck. We'll get into how that works later in the tutorial.
+
+**Each component must be in precisely one stack in every state**. Later we will see how the methods available on stacks to move around components help enforce that invariant.
+
+When a blackjack game starts, most of the cards will be in GameState.DrawStack. When new rounds start, players will discard their cards into GameState.DiscardStack. And players can also have cards in a stack in their Hand. You'll note that there are actually two Hand stacks for each player: VisibleHand and HiddenHand. We'll get into why that is later.
+
+Note also that the invariant requires that each card must be in precisely one stack in every version. This means that cards that are included in a normal deck but aren't used in blackjack have to go *somewhere*. That's what GameState.UnusedCards is for in blackjack. In practice those cards will never be used in the UI; conceptually they're left behind in the game box and out of sight.
+
+####autoreader
+*TODO*
+
+
+####PlayerIndex
+*TODO*
+
+### Property sanitization
+*TODO*
+
+### Renderers
+*TODO*
+
+
+
 *Tutorial to be continued...*
 
 
