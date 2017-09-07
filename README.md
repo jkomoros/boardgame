@@ -1,9 +1,7 @@
 # boardgame
 
-boardgame aspires to be a go library that makes it easy to create arbitrarily complex board game progressive web apps.
+boardgame is a work-in-progress package that makes it easy to define multi-player boardgames that can be easily hosted in a high-quality web app with minimal configuration.
 
-It is just a hobby project I'm messing around with in my spare time and is most likely in a broken (and wildly incomplete) state. I don't encourage anyone to use it at this point at all. :-)
+The core of your game logic is constructed using the core library into a *game manager* for each game. The server package makes it easy to take those game managers and install them into a server instance. Each game manager defines a basic view that knows how to render any given state of one of its game for the user.
 
-The package has a core library to define the game logic and then a server sub-package to create a progressive web app based on that formal logic. Check out boardgame/examples/server for an example server with three games (blackjack, tictactoe, and memory).
-
-Real documentation is in the [godoc package docs](https://godoc.org/github.com/jkomoros/boardgame).
+A number of example games are defined in the examples sub-package to demonstrate how to use many of the key concepts. Real documentation for the core game engine is in the [godoc package docs](https://godoc.org/github.com/jkomoros/boardgame).
