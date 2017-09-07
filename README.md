@@ -143,9 +143,11 @@ There's a lot going on here, so we'll unpack it piece by piece.
 
 At the core you can see that these objects are simple structs with (mostly) public properties. The game engine will marshal your objects to JSON and back often, so it's important that the properties be public.
 
+It's not explicitly listed, but the only properties on these objects are ones that are legal according to `boardgame.PropertyType`. Your GameManager would fail to be created if your state structs included illegal property types.
+
 Most of the properties are straightforward. Each player has whether they have Busted or Stood, for example.
 
-####Stacks and Components
+#### Stacks and Components
 
 As you can see, stacks of cards are represented by something called a GrowableStack. There is also a type of stack called a SizedStack, but they aren't used in blackjack.
 
