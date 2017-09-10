@@ -85,7 +85,7 @@ Most of the properties are straightforward. Each player has how many cards they 
 
 #### Stacks and Components
 
-As you can see, stacks of cards are represented by either `GrowableStack` or `SizedStack`.
+As you can see, stacks of cards are represented by either `GrowableStack` or `SizedStack`. A SizedStack has a fixed number of slots, each of which may be empty or contain a single component. A GrowableStack is a variable-length stack with no gaps, that can grow and shrink as components are inserted and removed.
 
 Stacks contain 0 or more **Components**. Components are anything in a game that can move around: cards, meeples, resource tokens, dice, etc. Each game type defines a complete enumeration of all components included in their game in something called a **ComponentChest**. We'll get back to that later in the tutorial.
 
@@ -276,6 +276,8 @@ The reason GameState can't use it is because the size of the SizedStack is not k
 
 ### Property sanitization
 *TODO*
+
+### Enums
 
 ### Renderers
 *TODO*
