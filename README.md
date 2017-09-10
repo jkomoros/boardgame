@@ -97,7 +97,7 @@ Each Stack is associated with exactly one deck, and only components that are in 
 
 When a memory game starts, most of the cards will be in GameState.HiddenCards. And players can also have cards in a stack in their hand when they win them, in WonCards. You'll note that there are actually two stacks for cards in GameState: HiddenCards and RevealedCards. We'll get into why that is later.
 
-####autoreader
+#### autoreader
 
 Both of the State objects also have a cryptic comment above them: `//+autoreader`. These are actually a critical concept to understand about the core engine.
 
@@ -144,10 +144,10 @@ type MyStruct struct {
 
 Then, every time you change the shape of one of your objects, run `go generate` on the command line. That will create `autoreader.go`, with generated getters and setters for all of your objects.
 
-####PlayerIndex
+#### PlayerIndex
 *TODO*
 
-####Timer
+#### Timer
 *TODO* 
 
 ### Moves
