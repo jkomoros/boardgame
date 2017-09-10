@@ -98,10 +98,59 @@ Each Stack is associated with exactly one deck, and only components that are in 
 When a memory game starts, most of the cards will be in GameState.HiddenCards. And players can also have cards in a stack in their hand when they win them, in WonCards. You'll note that there are actually two stacks for cards in GameState: HiddenCards and RevealedCards. We'll get into why that is later.
 
 ####autoreader
-*TODO*
 
+Both of the State objects also have a cryptic comment above them: `//+autoreader`. These are actually a critical concept to understand about the core engine.
+
+In a number of cases (including your GameState and PlayerState), the game package provides the structs to operate on. The core engine doesn't know their shape. In a number of cases, however, it is necessary to interact with specific fields of that struct, or enumerate how many of a certain type of property there are. It's possible to do that via reflection, but that would be slow. In addition, the engine requires that your structs be simple and only have known types of properties, but if general reflection were used it would be harder to detect that.
+
+The core package has a notion of a `PropertyReader`, which makes it possible to enumerate, read, and set properties on these types of objects. The signature looks something like this:
+
+```
+type PropertyReader interface {
+	Props() map[string]PropertyType
+	IntProp(name string) (int, error)
+	//... Getters for all of the other PropertyTypes
+	Prop(name string) (interface{}, error)
+}
+
+type PropertyReadSetter interface {
+	PropertyReader
+	SetIntProp(name string, value int) error
+	//... setters for all of the other PropertyTypes
+	SetProp(name string, value interface{}) error
+}
+```
+
+This known signature is used a lot within the package for the engine to interact with objects specific to a given game type.
+
+Implementing all of those getters and setters for each custom object type you have is a complete pain. That's why there's a cmd, suitable for use with `go generate`, that automatically creates PropertyReaders for your structs.
+
+Somewhere in the package, include:
+
+```
+//go:generate autoreader
+```
+
+(You'll find it near the top of examples/memory/main.go)
+
+And then immediately before every struct you want to have a PropertyReader for, include the magic comment:
+
+```
+//+autoreader
+type MyStruct struct {
+	//....
+}
+```
+
+Then, every time you change the shape of one of your objects, run `go generate` on the command line. That will create `autoreader.go`, with generated getters and setters for all of your objects.
 
 ####PlayerIndex
+*TODO*
+
+####Timer
+*TODO* 
+
+### Moves
 *TODO*
 
 ### Property sanitization
