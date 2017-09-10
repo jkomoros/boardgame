@@ -172,13 +172,29 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 ```
 
 #### PlayerIndex
-*TODO*
+
+gameState has a property named `CurrentPlayer` of type `boardgame.PlayerIndex`. This property, as you might expect, encodes whose turn it currently is.
+
+It would be reasonable to encode that bit of state as a simple int (and indeed, that's basically what a PlayerIndex property is). However, it's so common to have to encode a PlayerIndex (for example, if there's a move to attack another player), and there are enough convenience methods that apply, that the core engine defines the type as a fundamental type.
+
+PlayerIndexes make it easy to increment the PlayerIndex to the next player (wrapping around at the end). The engine also won't let you save a State with a PlayerIndex that is set to an invalid value.
+
+PlayerIndexes have two special values: the `AdminPlayerIndex` and the `ObserverPlayerIndex`. The AdminPlayerIndex encodes the special omnsicient, all-powerful player who can do everything. Special moves like FixUp Moves (more on those below) are applied by the AdminPlayerIndex. In dev mode it's also possible to turn on Admin mode in the UI, which allows you to make moves on behalf of any player. The ObserverPlayerIndex encodes a run-of-the-mill observer: someone who can only see public state (more on public and private state later) and is not allowed to make any moves.
 
 #### Timer
 *TODO* 
 
+#### GameDelegate
+*TODO*
+
 ### Moves
 *TODO*
+
+#### Player Moves
+
+#### FixUp Moves
+
+#### common Move Types
 
 ### Property sanitization
 *TODO*
