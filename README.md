@@ -274,13 +274,19 @@ The reason GameState can't use it is because the size of the SizedStack is not k
 
 #### common Move Types
 
+### BeginSetup, FinishSetup, and DistributeComponents
+
+### NewManager
+
 ### Property sanitization
 *TODO*
 
 ### Enums
 
-### Renderers
+### Renderers / Client
 *TODO*
+
+### Agents
 
 
 
