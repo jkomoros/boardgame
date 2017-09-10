@@ -142,7 +142,7 @@ type MyStruct struct {
 }
 ```
 
-Then, every time you change the shape of one of your objects, run `go generate` on the command line. That will create `autoreader.go`, with generated getters and setters for all of your objects.
+Then, every time you change the shape of one of your objects, run `go generate` on the command line. (That assumes that you have already run `go install` from within `$GOPATH/github.com/jkomoros/boardgame/cmd/autoreader` to install the autoreader command.) That will create `autoreader.go`, with generated getters and setters for all of your objects.
 
 The game engine generally reasons about States as one concrete object made up of one GameState, and n PlayerStates (one for each player). (There are other components of State that we'll get into later.) This object is defined in the core package, and the getters for Game and Player states return things that generically implement the interface. Many of the methods you implement will accept a State object. Of course, it would be a total pain if you had to interact with all of your objects within your own package that way--to say nothing of losing a lot of type safety.
 
