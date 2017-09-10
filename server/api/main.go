@@ -997,6 +997,7 @@ func (s *Server) Start() {
 
 	if err != nil {
 		s.logger.Errorln("Configuration error: " + err.Error())
+		return
 	}
 
 	s.logger.Infoln("Environment Variables")

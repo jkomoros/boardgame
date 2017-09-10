@@ -95,16 +95,25 @@ func (c *ConfigMode) OriginAllowed(origin string) bool {
 }
 
 const (
-	configFileName = "config.SECRET.json"
+	configFileName       = "config.SECRET.json"
+	sampleConfigFileName = "config.SAMPLE.json"
 )
 
 func Get() (*Config, error) {
 
+	fileNameToUse := configFileName
+
 	if _, err := os.Stat(configFileName); os.IsNotExist(err) {
-		return nil, errors.New("Couldn't find a " + configFileName + " in current directory. This file is required. Copy a starter one from boardgame/server/api/config.SAMPLE.json")
+
+		if _, err := os.Stat(sampleConfigFileName); os.IsNotExist(err) {
+			return nil, errors.New("Couldn't find a " + configFileName + " in current directory (or a SAMPLE). This file is required. Copy a starter one from boardgame/server/api/config.SAMPLE.json")
+		}
+
+		fileNameToUse = sampleConfigFileName
+
 	}
 
-	contents, err := ioutil.ReadFile(configFileName)
+	contents, err := ioutil.ReadFile(fileNameToUse)
 
 	if err != nil {
 		return nil, errors.New("Couldn't read config file: " + err.Error())
