@@ -187,8 +187,83 @@ The last type of property in the states for Memory is the HideCardsTimer, which 
 
 Timers are rare because they represent parts of the game logic where the time is semantic to the rules of the game. Contrast that with animations, where the time that passes is merely presentational.
 
-#### GameDelegate
-*TODO*
+### GameDelegate
+
+OK, so we've defined our state objects. How do we tell the engine to actually use them?
+
+The answer to that, and many other questions, is the `GameDelegate`. The `GameManager` is a concrete type of object in the main engine, with many methods and fields. But there are lots of instances where your game type needs to customize the precise behavior. The answer is to define the logic in your `GameDelegate` object. The GameManager will consult your GameDelegate at key points to see if there is behavior it should do specially.
+
+The most basic methods are about the name of your gametype:
+
+```
+type GameDelegate interface {
+	Name() string
+	DisplayName() string
+	//... many more methods follow
+}
+```
+
+Those methods are how you configure the name of the type of the game (e.g. 'memory' or 'blackjack', or 'pig') and also what the game type should be called when presented to users (e.g. "Memory", "Blackjack", or "Pig").
+
+
+The GameDelegate interface is long and complex. In many cases you only need to override a handful out of the tens of methods. That's why the core engine provides a `DefaultGameDelegate` struct that has default stubs for each of the methods a `GameDelegate` must implement. That way you can embed a `DefaultGameDelegate` in your concrete GameDelegate and only implement the methods where you need special behavior.
+
+Most of the methods on GameDelegate are straightforward, like `LegalNumPlayers(num int) bool` which is consulted when a game is created to ensure that it includes a legal number of players.
+
+GameDelegates are also where you have "Constructors" for your core concrete types:
+
+```
+type GameDelegate interface {
+	//...
+	GameStateConstructor() MutableSubState
+	PlayerStateConstructor(player PlayerIndex) MutablePlayerState
+	//...
+}
+```
+
+GameStateConstructor and PlayerStateConstructor should return zero-value objects of your concrete types. The only special thing is that PlayerStates should come back with a hidden property encoding which PlayerIndex they are.
+
+In many cases they can just be a single line or two, as you can see for the PlayerStateConstructor in main.go:
+
+```
+func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex) boardgame.MutablePlayerState {
+
+	return &playerState{
+		playerIndex: playerIndex,
+	}
+}
+```
+However, if you look at the GameStateConstructor for memory, you'll see that it is a bit more complicated:
+
+```
+func (g *gameDelegate) GameStateConstructor() boardgame.MutableSubState {
+
+	cards := g.Manager().Chest().Deck(cardsDeckName)
+
+	if cards == nil {
+		return nil
+	}
+
+	//We want to size the stack based on the size of the deck, so we'll do it
+	//ourselves and not use tag-based auto-inflation.
+	return &gameState{
+		HiddenCards:   cards.NewSizedStack(len(cards.Components())),
+		RevealedCards: cards.NewSizedStack(len(cards.Components())),
+	}
+}
+```
+
+The reason is because some of the pointer-based types (like Stacks) do not have a reasonable zero-value. Stacks are tied specifically to a particular deck; it is illegal to add a component to a stack that doesn't match its deck. But a nil stack doesn't encode which deck it is affiliated with. You need a zero-valued stack that is tied to the given deck.
+
+The GameState constructor does this by getting a reference to the deck in question and then returning an object with those stacks initalized. You'll note that the other properties are omitted because their zero value is reasonable.
+
+However, it's kind of a pain to have to do this imperative instantitation for all of your pointer types.
+
+If you look closely at the playerState, you'll see that it has a stack, too, of WonCards. But that stack isn't initalized in the PlayerStateConstructor. What gives?
+
+The answer is in the struct tag for playerState. For stacks, you can provide a struct tag that has the name of the deck it's affiliated with. Then you can return a nil value from your constructor for that property, and the system will automatically instantiate a zero-value stack of that shape. (Even cooler, this uses reflection only a single time, at engine start up, so it's fast.) Memory doesn't demonstrate it, but it's also possible to include the size of the stack in that struct tag.
+
+The reason GameState can't use it is because the size of the SizedStack is not known statically, because it varies with the size of the deck. So it has to be done the old fashioned way.
 
 ### Moves
 *TODO*
