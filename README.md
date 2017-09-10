@@ -144,6 +144,33 @@ type MyStruct struct {
 
 Then, every time you change the shape of one of your objects, run `go generate` on the command line. That will create `autoreader.go`, with generated getters and setters for all of your objects.
 
+The game engine generally reasons about States as one concrete object made up of one GameState, and n PlayerStates (one for each player). (There are other components of State that we'll get into later.) This object is defined in the core package, and the getters for Game and Player states return things that generically implement the interface. Many of the methods you implement will accept a State object. Of course, it would be a total pain if you had to interact with all of your objects within your own package that way--to say nothing of losing a lot of type safety.
+
+That's why it's convention for each game package to define the following private method in their package:
+
+```
+func concreteStates(state boardgame.State) (*gameState, []*playerState) {
+	game := state.GameState().(*gameState)
+
+	players := make([]*playerState, len(state.PlayerStates()))
+
+	for i, player := range state.PlayerStates() {
+		players[i] = player.(*playerState)
+	}
+
+	return game, players
+}
+```
+
+Whenever the game engine hands you a state object, this one-liner will hand you back the concrete states specific to your game type:
+
+```
+func (g *gameDelegate) Diagram(state boardgame.State) string {
+	game, players := concreteStates(state)
+	//do something with game and players, since they are now the concrete types defined in this package
+}
+```
+
 #### PlayerIndex
 *TODO*
 
