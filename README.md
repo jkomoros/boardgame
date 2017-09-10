@@ -182,7 +182,10 @@ PlayerIndexes make it easy to increment the PlayerIndex to the next player (wrap
 PlayerIndexes have two special values: the `AdminPlayerIndex` and the `ObserverPlayerIndex`. The AdminPlayerIndex encodes the special omnsicient, all-powerful player who can do everything. Special moves like FixUp Moves (more on those below) are applied by the AdminPlayerIndex. In dev mode it's also possible to turn on Admin mode in the UI, which allows you to make moves on behalf of any player. The ObserverPlayerIndex encodes a run-of-the-mill observer: someone who can only see public state (more on public and private state later) and is not allowed to make any moves.
 
 #### Timer
-*TODO* 
+
+The last type of property in the states for Memory is the HideCardsTimer, which is of type *boardgame.Timer. Timers aren't used in most types of games. After a certain amount of time has passed they automatically propose a move. For Memory the timer is used to ensure that the cards that are revealed are re-hidden within 3 seconds by the player who flipped them--and if not, flip them back over automatically.
+
+Timers are rare because they represent parts of the game logic where the time is semantic to the rules of the game. Contrast that with animations, where the time that passes is merely presentational.
 
 #### GameDelegate
 *TODO*
