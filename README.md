@@ -8,7 +8,7 @@ A number of example games are defined in the examples sub-package to demonstrate
 
 ## Tutorial
 
-*This tutorial will walk through some concrete examples of how to configure a server and create games. For more in-depth documentation of the core concepts, check out the core library's package doc*
+*This tutorial will walk through some concrete examples of how to configure a server and create games, in a way that narratively makes sense but leaves a number of topics unexplored or lightly developed. For more in-depth documentation of the core concepts, check out the core library's package doc, and for more about the server, see `server/README.md`*
 
 Each instantitation of a server includes multiple game packages, each of which defines a Game Manager that describes the logic necessary to run that type of game. These game packages are organized in a canonical way to make it easy to link in game packages into your server even if you didn't write them.
 
@@ -285,6 +285,8 @@ The reason GameState can't use it is because the size of the SizedStack is not k
 
 ### Renderers / Client
 *TODO*
+
+#### Users vs Players (roles and responsibilities of server and core engine)
 
 ### Agents
 
