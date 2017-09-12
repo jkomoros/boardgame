@@ -271,6 +271,41 @@ The GameDelegate has a number of other important methods to override.
 
 One of them is `CheckGameFinished`, which is run after every Move is applied. In it you should check whether the state of the game denotes a game that is finished, and if it is finished, which players (if any) are winners. This allows you to express situations like draws and ties.
 
+Memory's `CheckGameFinished` looks like this:
+
+```
+func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, winners []boardgame.PlayerIndex) {
+    game, players := concreteStates(state)
+
+    if game.HiddenCards.NumComponents() != 0 || game.RevealedCards.NumComponents() != 0 {
+        return false, nil
+    }
+
+    //If we get to here, the game is over. Who won?
+    maxScore := 0
+
+    for _, player := range players {
+        score := player.WonCards.NumComponents()
+        if score > maxScore {
+            maxScore = score
+        }
+    }
+
+    for i, player := range players {
+        score := player.WonCards.NumComponents()
+
+        if score >= maxScore {
+            winners = append(winners, boardgame.PlayerIndex(i))
+        }
+    }
+
+    return true, winners
+
+}
+```
+
+If there are no cards left in the grid, it figures out which player has the most cards, and denotes them the winner.
+
 After `CheckGameFinished` returns true, the game is over and no more moves may be applied.
 
 Another method is `CurrentPlayerIndex`. This method should inspect the provided state and return the `PlayerIndex` corresponding to the current player. If any player may make a move, you should return `AdminPlayerIndex`, and if no player may make a move, you should return `ObserverPlayerIndex`. This method is consulted for various convenience methods elsewhere.
@@ -315,19 +350,36 @@ type Move interface {
 }
 ```
 
-Your moves also must implement the `PropertyReader` interface. Some moves contain no extra fields, but many will encode things like which player the move operates on, and also things like which slot from a stack the player drew the card from.
+Your moves also must implement the `PropertyReader` interface. Some moves contain no extra fields, but many will encode things like which player the move operates on, and also things like which slot from a stack the player drew the card from. Moves also implement a method called `DefaultsForState` which is provided a state and sets the values on the Move to reasonable states. For example, a common pattern is for the property that encodes which player the move should operates on; this is generally set to the `CurrentPlayerIndex` for the given state via `DefaultsForState`.
 
 A `MoveType` is a conceptual type of Move that can be made in a game and is a generic struct in the main package. It vends new concrete Moves of this type via `MoveConstructor` and also has metadata specific to all moves of this type, like what the name of the move is. All of a MoveType's fields and methods return constants except for `MoveConstructor`.
 
 A `MoveTypeConfig` is a configuration object used to create a `MoveType` when you are setting up your `GameManager` to receive a fully formed and ready-to-use `MoveType`.
 
-#### Worked Move Example
+#### Player and FixUp Moves
 
-#### Player Moves
+There are two types of Moves: Player Moves, and FixUp moves. Player moves are any moves that are legal for normal players to propose at some point in the game. FixUp moves are special moves that are never legal for players to propose, and are instead useful for fixing up a state to ensure it is valid. For example, a common type of FixUp move examines if the DrawStack is empty, and if so moves all cards from the DiscardStack to the DrawStack and then shuffles it.
 
-#### FixUp Moves
+After each move is succesfully applied via ProposeMove, and before the next move in the queue of moves is considered, the engine checks if any FixUp moves should be applied. It does this by consulting the `ProposeFixUpMove` method on the GameDelegate. If that method returns a move, it will be immediately applied, so long as it is legal. This will continue until `ProposeFixUpMove` returns nil, at which point the next player move in the proposed move queue will be considered.
+
+Technically it is possible to override the behavior of exactly when to apply certain FixUp moves. Realistically, however, the behavior of `ProposeFixUpMove` on `DefaultGameDelegate` is almost always sufficient. It simply runs through each FixUp move configured on the gametype in order, setting its values by calling DefaultsForState, and then checking if it is `Legal`. It returns the first fix up move it finds that is legal. This means that it is **important to make sure that your FixUp moves always have well-constructed `Legal` methods**. If a given FixUp move always returns Legal for some state, then the engine will get in an infinite loop. (Technically the engine will detect that it is in an unreasonable state and will panic.)
+
+#### What should be a move?
+
+One of the most important decisions you make when implementing a game is what actions should be broken up into separate Moves. In general each move should represent the *smallest semantically meaningful and coherent modification on the state*. Operations "within" a move are not "visible" to the engine or to observers. In some cases, this means that operations that should have animations in the webapp won't have them because the operations aren't granular enough.
+
+For example, the memory game is broken into the following moves:
+**RevealCard** (Player Move): If the current player's `CardsLeftToReveal` is 1 or greater, reveal the card at the specified index in `HiddenCards`.
+**HideCards** (Player Move): Once two cards are revealed, this move hides them both. It can be applied manually by players, but is also applied automatically when the HideCardsTimer fires.
+**FinishTurn** (FixUp Move): If the current player has done all of their actions and no cards are visible, advances to the next player, and sets the `CardsLeftToReveal` property of the newly selected player to 2.
+**CaptureCards** (FixUp Move): If two cards are visible and they are the same card, move them to the current player's `WonCards` stack.
+**StartHideCardsTimer** (FixUp Move): If two cards are visible, start a countdown timer. If *HideCards* isn't called by the current player before the timer fires, this will propse *HideCards*.
 
 #### common Move Types
+
+
+
+#### Worked Move Example
 
 ### NewManager
 
