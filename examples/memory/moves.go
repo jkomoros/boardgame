@@ -7,32 +7,6 @@ import (
 	"time"
 )
 
-//+autoreader readsetter
-type MoveFinishTurn struct {
-	moves.FinishTurn
-}
-
-//+autoreader readsetter
-type MoveRevealCard struct {
-	moves.CurrentPlayer
-	CardIndex int
-}
-
-//+autoreader readsetter
-type MoveStartHideCardsTimer struct {
-	moves.Base
-}
-
-//+autoreader readsetter
-type MoveCaptureCards struct {
-	moves.Base
-}
-
-//+autoreader readsetter
-type MoveHideCards struct {
-	moves.CurrentPlayer
-}
-
 const HideCardsDuration = 4 * time.Second
 
 /**************************************************
@@ -40,6 +14,11 @@ const HideCardsDuration = 4 * time.Second
  * MoveFinishTurn Implementation
  *
  **************************************************/
+
+//+autoreader readsetter
+type MoveFinishTurn struct {
+	moves.FinishTurn
+}
 
 var moveFinishTurnConfig = boardgame.MoveTypeConfig{
 	Name:     "Finish Turn",
@@ -55,6 +34,12 @@ var moveFinishTurnConfig = boardgame.MoveTypeConfig{
  * MoveRevealCard Implementation
  *
  **************************************************/
+
+//+autoreader readsetter
+type MoveRevealCard struct {
+	moves.CurrentPlayer
+	CardIndex int
+}
 
 var moveRevealCardConfig = boardgame.MoveTypeConfig{
 	Name:     "Reveal Card",
@@ -126,6 +111,11 @@ func (m *MoveRevealCard) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
+//+autoreader readsetter
+type MoveStartHideCardsTimer struct {
+	moves.Base
+}
+
 var moveStartHideCardsTimerConfig = boardgame.MoveTypeConfig{
 	Name:     "Start Hide Cards Timer",
 	HelpText: "If two cards are showing and they are not the same type and the timer is not active, start a timer to automatically hide them.",
@@ -182,6 +172,11 @@ func (m *MoveStartHideCardsTimer) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
+//+autoreader readsetter
+type MoveCaptureCards struct {
+	moves.Base
+}
+
 var moveCaptureCardsConfig = boardgame.MoveTypeConfig{
 	Name:     "Capture Cards",
 	HelpText: "If two cards are showing and they are the same type, capture them to the current player's hand.",
@@ -235,6 +230,11 @@ func (m *MoveCaptureCards) Apply(state boardgame.MutableState) error {
  * MoveHideCards Implementation
  *
  **************************************************/
+
+//+autoreader readsetter
+type MoveHideCards struct {
+	moves.CurrentPlayer
+}
 
 var moveHideCardsConfig = boardgame.MoveTypeConfig{
 	Name:     "Hide Cards",
