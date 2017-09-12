@@ -377,7 +377,104 @@ For example, the memory game is broken into the following moves:
 
 #### common Move Types
 
+There is a fair bit of boilerplate to implement a move, and you'll define a large number of them for your game. There are also patterns that recur often and are tedious and error-prone to implement.
 
+That's why theres a `moves` package that defines three common move types. You embed these moves anonymously in your move struct and then only override the methods you need to change. In some cases you don't even need to implement your own `Legal` or `Apply` because the base ones are sufficent.
+
+##### moves.Base
+
+Base is the simplest possible base move. It implements stubs for every required method, with the exception of `Legal` and `Apply` which you must implement yourself. This allows you to minimize the boilerplate you have to implement for simple moves. Almost every move you make will embed this move type either directly or indirectly.
+
+##### moves.CurrentPlayer
+
+Many Player moves can only be made by the CurrentPlayer. This move encodes which player the move applies to (set automatically in `DefaultsForState`) and also includes the logic to verify that the `proposer` of the move is allowed to make the move, and is modifiying their own state. (This logic is slightly tricky because it needs to accomodate `AdminPlayerIndex` making moves on behalf of any player).
+
+In typical use you embed this struct, and then check its Legal method at the top of your own Legal method, as in this example from memory:
+```
+type MoveRevealCard struct {
+    moves.CurrentPlayer
+    CardIndex int
+}
+
+func (m *MoveRevealCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+
+    if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
+        return err
+    }
+
+    // Logic specific to this move type goes here.
+}
+```
+
+##### moves.FinishTurn
+
+Another common pattern is to have a FixUp move that inspects the state to see if the current player's turn is done, and if it is, advances to the next player and resets their properties for turn start.
+
+moves.FinishTurn defines two interafaces that your sub-state objects must implement:
+
+```
+type CurrentPlayerSetter interface {
+    SetCurrentPlayer(currentPlayer boardgame.PlayerIndex)
+}
+```
+
+must be implemented by your gameState. Generally this is as simple as setting the CurrentPlayer index to that value, as you can see in the example from memory:
+
+```
+func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {
+    g.CurrentPlayer = currentPlayer
+}
+```
+
+The next interface must be implemented by your playerStates:
+
+```
+type PlayerTurnFinisher interface {
+    //TurnDone should return nil when the turn is done, or a descriptive error
+    //if the turn is not done.
+    TurnDone(state boardgame.State) error
+    //ResetForTurnStart will be called when this player begins their turn.
+    ResetForTurnStart(state boardgame.State) error
+    //ResetForTurnEnd will be called right before the CurrentPlayer is
+    //advanced to the next player.
+    ResetForTurnEnd(state boardgame.State) error
+}
+```
+
+In most cases, your playerState has enough information to return an answer for each of these. However, some games have more complicated logic that must look at other aspects of the State as well, which is why a full copy of the state is also provided.
+
+`moves.FinishTurn` uses the GameDelegate's `CurrentPlayerIndex` to figure out who the current player is. It then calls `TurnDone` on the playerState for the player whose turn it is. If the turn is done, it calls `ResetForTurnEnd` on the given PlayerState, then advances to the next player by calling gameState.`SetCurrentPlayer` (wrapping around if it's currently the last player's turn), and then calls `ResetForTurnStart` on the player whose turn it now is. This is where you typically configure how many actions of each type the current player has remaining.
+
+Memory's implementation of these methods looks like follows:
+
+```
+func (p *playerState) TurnDone(state boardgame.State) error {
+    if p.CardsLeftToReveal > 0 {
+        return errors.New("they still have cards left to reveal")
+    }
+
+    game, _ := concreteStates(state)
+
+    if game.RevealedCards.NumComponents() > 0 {
+        return errors.New("there are still some cards revealed, which they must hide")
+    }
+
+    return nil
+}
+
+func (p *playerState) ResetForTurnStart(state boardgame.State) error {
+    p.CardsLeftToReveal = 2
+    return nil
+}
+
+func (p *playerState) ResetForTurnEnd(state boardgame.State) error {
+    return nil
+}
+```
+
+As you can see from the way the errors are constructed in `TurnDone`, the error message will be included in a larger error message. In practice it will return messages like "The current player is not done with their turn because they still have cards left to reveal". 
+
+Because most of the logic for moves that embed `moves.FinishTurn` lives in methods on gameState and playerState, it's common to not need to override the `Legal` or `Apply` methods on `moves.FinishTurn` at all. You can see this in practice on memory's `MoveFinishTurn` which simply embeds `moves.FinishTurn`.
 
 #### Worked Move Example
 
