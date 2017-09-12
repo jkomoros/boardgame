@@ -136,7 +136,9 @@ type PropertyReadSetter interface {
 
 This known signature is used a lot within the package for the engine to interact with objects specific to a given game type.
 
-Implementing all of those getters and setters for each custom object type you have is a complete pain. That's why there's a cmd, suitable for use with `go generate`, that automatically creates PropertyReaders for your structs.
+Implementing all of those getters and setters for each custom object type you have is a complete pain. That's why there's a command, suitable for use with `go generate`, that automatically creates PropertyReaders for your structs.
+
+First, install the command by running `go install` from within `$GOPATH/github.com/jkomoros/boardgame/cmd/autoreader`. You only need to do this once.
 
 Somewhere in the package, include:
 
@@ -144,7 +146,7 @@ Somewhere in the package, include:
 //go:generate autoreader
 ```
 
-(You'll find it near the top of examples/memory/main.go)
+(In the memory package you'll find it near the top of `examples/memory/main.go`)
 
 And then immediately before every struct you want to have a PropertyReader for, include the magic comment:
 
@@ -155,9 +157,9 @@ type MyStruct struct {
 }
 ```
 
-Then, every time you change the shape of one of your objects, run `go generate` on the command line. (That assumes that you have already run `go install` from within `$GOPATH/github.com/jkomoros/boardgame/cmd/autoreader` to install the autoreader command.) That will create `autoreader.go`, with generated getters and setters for all of your objects.
+Then, every time you change the shape of one of your objects, run `go generate` on the command line. That will create `autoreader.go`, with generated getters and setters for all of your objects.
 
-The game engine generally reasons about States as one concrete object made up of one GameState, and n PlayerStates (one for each player). (There are other components of State that we'll get into later.) This object is defined in the core package, and the getters for Game and Player states return things that generically implement the interface. Many of the methods you implement will accept a State object. Of course, it would be a total pain if you had to interact with all of your objects within your own package that way--to say nothing of losing a lot of type safety.
+The game engine generally reasons about States as one concrete object made up of one GameState, and **n** PlayerStates (one for each player). (There are other components of State that we'll get into later.) The `State` object is defined in the core package, and the getters for Game and Player states return things that generically implement the interface, although under the covers they are the concrete type specific to your game type. Many of the methods you implement will accept a State object. Of course, it would be a total pain if you had to interact with all of your objects within your own package that way--to say nothing of losing a lot of type safety.
 
 That's why it's convention for each game package to define the following private method in their package:
 
