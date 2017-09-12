@@ -12,7 +12,7 @@ A number of example games are defined in the examples sub-package to demonstrate
 
 Each instantitation of a server includes multiple game packages, each of which defines a Game Manager that describes the logic necessary to run that type of game. These game packages are organized in a canonical way to make it easy to link in game packages into your server even if you didn't write them.
 
-An example server can be found in examples/server. This tutorial will walk through how those work.
+An example server can be found in `examples/server`. This tutorial will walk through how those work.
 
 ## Quickstart servers
 
@@ -54,7 +54,7 @@ Game states are represented by a handful of structs specific to your game type. 
 
 `PlayerState`s represent the state specific to each individual player in the game. For example, this is where each player's current score would be encoded, and also which cards they have in their hand.
 
-Let's dig into concrete examples in blackjack, in `examples/memory/state.go`.
+Let's dig into concrete examples in memory, in `examples/memory/state.go`.
 
 The core of the states are represented here:
 
@@ -85,38 +85,51 @@ Most of the properties are straightforward. Each player has how many cards they 
 
 #### Stacks and Components
 
-As you can see, stacks of cards are represented by either `GrowableStack` or `SizedStack`. A SizedStack has a fixed number of slots, each of which may be empty or contain a single component. A GrowableStack is a variable-length stack with no gaps, that can grow and shrink as components are inserted and removed.
+As you can see, stacks of cards are represented by either `GrowableStack` or `SizedStack`.
 
 Stacks contain 0 or more **Components**. Components are anything in a game that can move around: cards, meeples, resource tokens, dice, etc. Each game type defines a complete enumeration of all components included in their game in something called a **ComponentChest**. We'll get back to that later in the tutorial.
 
-Each component is organized into exactly one **Deck**. A deck is a collection of components all of the same type. For example, you might have a deck of playing cards, a deck of meeples, and a deck of dice in a game. (The terminology makes most sense for cards, but applies to any group of components in a game.) Memory has only has a single deck of cards.
+A SizedStack has a fixed number of slots, each of which may be empty or contain a single component. A GrowableStack is a variable-length stack with no gaps, that can grow and shrink as components are inserted and removed.
 
-Each Stack is associated with exactly one deck, and only components that are in that deck may be inserted into that stack. The deck is the complete enumeration of all components in a given set within the game. In blackjack you can see struct tags that associate a given stack with a given deck. We'll get into how that works later in the tutorial.
+Each component is organized into exactly one **Deck**. A deck is a collection of components all of the same type. For example, you might have a deck of playing cards, a deck of meeples, and a deck of dice in a game. (The terminology makes most sense for cards, but applies to any group of components in a game.) The ComponentChest is simply an enumeration of all of the Decks for this game type. Memory has only has a single deck of cards, but other games will have significantly more decks.
 
-**Each component must be in precisely one stack in every state**. Later we will see how the methods available on stacks to move around components help enforce that invariant.
+Each Stack is associated with exactly one deck, and only components that are members of that deck may be inserted into that stack. The deck is the complete enumeration of all components in a given set within the game. In memory you can see struct tags that associate a given stack with a given deck. We'll get into how that works later in the tutorial.
 
-When a memory game starts, most of the cards will be in GameState.HiddenCards. And players can also have cards in a stack in their hand when they win them, in WonCards. You'll note that there are actually two stacks for cards in GameState: HiddenCards and RevealedCards. We'll get into why that is later.
+**Each component must be in precisely one stack in every state**. This reflects the notion that components are phsyical objects that are in only one location at any given time, and must exist *somewhere*. Later we will see how the methods available on stacks to move around components help enforce that invariant.
+
+When a memory game starts, most of the cards will be in GameState.HiddenCards. Players can also have cards in a stack in their hand when they win them, in WonCards. You'll note that there are actually two stacks for cards in GameState: HiddenCards and RevealedCards. We'll get into why that is later.
 
 #### autoreader
 
 Both of the State objects also have a cryptic comment above them: `//+autoreader`. These are actually a critical concept to understand about the core engine.
 
-In a number of cases (including your GameState and PlayerState), the game package provides the structs to operate on. The core engine doesn't know their shape. In a number of cases, however, it is necessary to interact with specific fields of that struct, or enumerate how many of a certain type of property there are. It's possible to do that via reflection, but that would be slow. In addition, the engine requires that your structs be simple and only have known types of properties, but if general reflection were used it would be harder to detect that.
+In a number of cases (including your GameState and PlayerState), your specific game package provides the structs to operate on. The core engine doesn't know their shape. In a number of cases, however, it is necessary to interact with specific fields of that struct, or enumerate how many of a certain type of property there are. It's possible to do that via reflection, but that would be slow. In addition, the engine requires that your structs be simple and only have known types of properties, but if general reflection were used it would be harder to detect that.
 
 The core package has a notion of a `PropertyReader`, which makes it possible to enumerate, read, and set properties on these types of objects. The signature looks something like this:
 
 ```
 type PropertyReader interface {
+    //Enumerate all properties it is valid to read and set on this object, and their types.
 	Props() map[string]PropertyType
+    //Retrieve the IntProp with the given name.
 	IntProp(name string) (int, error)
-	//... Getters for all of the other PropertyTypes
+
+	//... Getters for all of the other PropertyTypes, similar to IntProp
+
+    //An untyped getter for the property with that name
 	Prop(name string) (interface{}, error)
 }
 
 type PropertyReadSetter interface {
+    //PropertyReadSetters have all of the read-only properties of PropertyReader.
 	PropertyReader
+
+    //Set the IntProp with the given name to the given value.
 	SetIntProp(name string, value int) error
+
 	//... setters for all of the other PropertyTypes
+
+    //An untyped setter for the property with that name.
 	SetProp(name string, value interface{}) error
 }
 ```
