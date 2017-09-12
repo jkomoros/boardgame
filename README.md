@@ -293,6 +293,36 @@ After a game is succesfully `SetUp` it is ready to have Moves applied.
 
 ### Moves
 
+Up until this point games have existed as a static snapshot of a given state. Outside of the `SetUp` routines, the only modifications to state must be made by `Move`s. 
+
+The bulk of the logic for your game type will be defined as Move structs and then configured onto your GameManager.
+
+The two most important parts of Moves are the methods `Legal` and `Apply`. When a move is proposed on a game, first its `Legal` method will be called. If it returns an error, the move will be rejected. If it returns `nil`, then `Apply` will be called, which should modify the state according to the semantics and configuration of the move. If `Apply` does not return an error, and if the modified state is legal (for example, if all `PlayerIndex` properties are within legal bounds), then the state will be persisted to the database, the `Version` of the game will be incremented, and the game will be ready for the next move.
+
+Moves are proposed on a game by calling `ProposeMove` and providing the Move, along with which player it is being proposed on behalf of. (The server package keeps track of which user corresponds to which player; more on that later.) The moves is appended to a queue. One a time the engine will remove the first move in the queue, see if it is Legal for the current state, and if it is will Apply it, as described above.
+
+#### Moves, MoveTypes, and MoveTypeConfigs
+
+There are three types of objects related to Moves: `MoveType`, `MoveTypeConfig`, and `Move`s.
+
+A `Move` is a specific instantiation of a particular type of Move. It is a concrete struct that you define and that adheres to the `Move` interface:
+
+```
+type Move interface {
+    Legal(state State, proposer PlayerIndex) error
+    Apply(state MutableState) error
+    //... Other minor methods follow
+}
+```
+
+Your moves also must implement the `PropertyReader` interface. Some moves contain no extra fields, but many will encode things like which player the move operates on, and also things like which slot from a stack the player drew the card from.
+
+A `MoveType` is a conceptual type of Move that can be made in a game and is a generic struct in the main package. It vends new concrete Moves of this type via `MoveConstructor` and also has metadata specific to all moves of this type, like what the name of the move is. All of a MoveType's fields and methods return constants except for `MoveConstructor`.
+
+A `MoveTypeConfig` is a configuration object used to create a `MoveType` when you are setting up your `GameManager` to receive a fully formed and ready-to-use `MoveType`.
+
+#### Worked Move Example
+
 #### Player Moves
 
 #### FixUp Moves
