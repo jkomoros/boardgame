@@ -265,6 +265,22 @@ The answer is in the struct tag for playerState. For stacks, you can provide a s
 
 The reason GameState can't use it is because the size of the SizedStack is not known statically, because it varies with the size of the deck. So it has to be done the old fashioned way.
 
+#### SetUp
+
+Once you have a GameManager, you can create individual games from it by calling `NewGame`.
+
+Before a Game may be used it must be `SetUp` by passing the number of players in the game. This is where the game's state is initalized and made ready for the first moves to be applied. `SetUp` may fail for any number of reasons. For example, if the provided number of players is not legal according to the `GameDelegate`'s `LegalNumPlayers` method, `SetUp` will fail.
+
+The initalization of the state object is handled in three phases that can be customized by the `GameDelegate`: `BeginSetup`, `DistributeComponentToStarterStack` and `FinishSetup`.
+
+`BeginSetup` is called first. It provides the State, which will be everything's zero-value (as returned from the Constructors, with minimal fixup and sanitization applied by the engine). This is the chance to do any modifications to the state before components are distributed.
+
+`DistributeComponentToStarterStack` is called repeatedly, once per Compoonent in the game. This is the opportunity to distribute each component to the stack that it will reside in. After this phase is completed, components can only be moved around by calling `SwapComponents`, `MoveComponent`, or `Shuffle` (or their variants). This is how the invariant that each component must reside in precisely one stack at every state version is maintained. Each time that `DistributeComponentToStarterStack` is called, your method should return a reference to the `Stack` that they should be inserted into. If no stack is returned, or if there isn't room in that stack, then the Game's `SetUp` will return an error. Components in this phase are always put into the next space in the stack from front to back. If you desire a different ordering you will fix it up in `FinishSetup`.
+
+`FinishSetup` is the last configurable phase of setting up a game. This is the phase after all components are distributed to their starter stacks. This is where stacks will traditionally be `Shuffle`d or otherwise have their components put into the correct order.
+
+After a game is succesfully `SetUp` it is ready to have Moves applied.
+
 ### Moves
 *TODO*
 
@@ -273,8 +289,6 @@ The reason GameState can't use it is because the size of the SizedStack is not k
 #### FixUp Moves
 
 #### common Move Types
-
-### BeginSetup, FinishSetup, and DistributeComponents
 
 ### NewManager
 
