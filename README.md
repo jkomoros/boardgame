@@ -265,6 +265,16 @@ The answer is in the struct tag for playerState. For stacks, you can provide a s
 
 The reason GameState can't use it is because the size of the SizedStack is not known statically, because it varies with the size of the deck. So it has to be done the old fashioned way.
 
+#### Other GameDelegate methods
+
+The GameDelegate has a number of other important methods to override.
+
+One of them is `CheckGameFinished`, which is run after every Move is applied. In it you should check whether the state of the game denotes a game that is finished, and if it is finished, which players (if any) are winners. This allows you to express situations like draws and ties.
+
+After `CheckGameFinished` returns true, the game is over and no more moves may be applied.
+
+Another method is `CurrentPlayerIndex`. This method should inspect the provided state and return the `PlayerIndex` corresponding to the current player. If any player may make a move, you should return `AdminPlayerIndex`, and if no player may make a move, you should return `ObserverPlayerIndex`. This method is consulted for various convenience methods elsewhere.
+
 #### SetUp
 
 Once you have a GameManager, you can create individual games from it by calling `NewGame`.
@@ -282,7 +292,6 @@ The initalization of the state object is handled in three phases that can be cus
 After a game is succesfully `SetUp` it is ready to have Moves applied.
 
 ### Moves
-*TODO*
 
 #### Player Moves
 
@@ -294,6 +303,8 @@ After a game is succesfully `SetUp` it is ready to have Moves applied.
 
 ### Property sanitization
 *TODO*
+
+#### Computed properties
 
 ### Enums
 
