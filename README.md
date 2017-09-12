@@ -190,17 +190,17 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 
 gameState has a property named `CurrentPlayer` of type `boardgame.PlayerIndex`. This property, as you might expect, encodes whose turn it currently is.
 
-It would be reasonable to encode that bit of state as a simple int (and indeed, that's basically what a PlayerIndex property is). However, it's so common to have to encode a PlayerIndex (for example, if there's a move to attack another player), and there are enough convenience methods that apply, that the core engine defines the type as a fundamental type.
+It would be reasonable to encode that bit of state as a simple `int` (and indeed, that's basically what a `PlayerIndex` property is). However, it's so common to have to encode a `PlayerIndex` (for example, if there's a move to attack another player), and there are enough convenience methods that apply, that the core engine defines the type as a fundamental type.
 
-PlayerIndexes make it easy to increment the PlayerIndex to the next player (wrapping around at the end). The engine also won't let you save a State with a PlayerIndex that is set to an invalid value.
+`PlayerIndex`es make it easy to increment the `PlayerIndex` to the next player (wrapping around at the end). The engine also won't let you save a State with a `PlayerIndex` that is set to an invalid value.
 
-PlayerIndexes have two special values: the `AdminPlayerIndex` and the `ObserverPlayerIndex`. The AdminPlayerIndex encodes the special omnsicient, all-powerful player who can do everything. Special moves like FixUp Moves (more on those below) are applied by the AdminPlayerIndex. In dev mode it's also possible to turn on Admin mode in the UI, which allows you to make moves on behalf of any player. The ObserverPlayerIndex encodes a run-of-the-mill observer: someone who can only see public state (more on public and private state later) and is not allowed to make any moves.
+`PlayerIndex`es have two special values: the `AdminPlayerIndex` and the `ObserverPlayerIndex`. The AdminPlayerIndex encodes the special omnsicient, all-powerful player who can do everything. Special moves like FixUp Moves (more on those below) are applied by the AdminPlayerIndex. In dev mode it's also possible to turn on Admin mode in the UI, which allows you to make moves on behalf of any player. The ObserverPlayerIndex encodes a run-of-the-mill observer: someone who can only see public state (more on public and private state later) and is not allowed to make any moves.
 
 #### Timer
 
-The last type of property in the states for Memory is the HideCardsTimer, which is of type *boardgame.Timer. Timers aren't used in most types of games. After a certain amount of time has passed they automatically propose a move. For Memory the timer is used to ensure that the cards that are revealed are re-hidden within 3 seconds by the player who flipped them--and if not, flip them back over automatically.
+The last type of property in the states for Memory is the HideCardsTimer, which is of type `*boardgame.Timer`. Timers aren't used in most types of games. After a certain amount of time has passed they automatically propose a move. For Memory the timer is used to ensure that the cards that are revealed are re-hidden within 3 seconds by the player who flipped them--and if not, flip them back over automatically.
 
-Timers are rare because they represent parts of the game logic where the time is semantic to the rules of the game. Contrast that with animations, where the time that passes is merely presentational.
+Timers are rare because they represent parts of the game logic where the time is semantic to the rules of the game. In memory, for example, if players could leave revealed cards showing indefinitely the game would drag on as players competed to exhaustively commit the location of each card to their memory. Contrast that with animations, where the time that passes is merely presentational, to allow the state changes to be visibly demonstrated to players.
 
 ### GameDelegate
 
@@ -220,7 +220,6 @@ type GameDelegate interface {
 
 Those methods are how you configure the name of the type of the game (e.g. 'memory' or 'blackjack', or 'pig') and also what the game type should be called when presented to users (e.g. "Memory", "Blackjack", or "Pig").
 
-
 The GameDelegate interface is long and complex. In many cases you only need to override a handful out of the tens of methods. That's why the core engine provides a `DefaultGameDelegate` struct that has default stubs for each of the methods a `GameDelegate` must implement. That way you can embed a `DefaultGameDelegate` in your concrete GameDelegate and only implement the methods where you need special behavior.
 
 Most of the methods on GameDelegate are straightforward, like `LegalNumPlayers(num int) bool` which is consulted when a game is created to ensure that it includes a legal number of players.
@@ -236,7 +235,9 @@ type GameDelegate interface {
 }
 ```
 
-GameStateConstructor and PlayerStateConstructor should return zero-value objects of your concrete types. The only special thing is that PlayerStates should come back with a hidden property encoding which PlayerIndex they are.
+MutableSubState and MutablePlayerState are simple interfaces that primarily define how to get a `PropertyReader` and `PropertyReadSetter` from the object. Many other sub-state values that we'll encounter later have the same shape, which is why the name is generic.
+
+GameStateConstructor and PlayerStateConstructor should return zero-value objects of your concrete types. The only thing that differentiates GameStates (of type MutableSubState) and PlayerStates (of type MutablePlayerState) is that PlayerStates should come back with a hidden property encoding which PlayerIndex they are.
 
 In many cases they can just be a single line or two, as you can see for the PlayerStateConstructor in main.go:
 
