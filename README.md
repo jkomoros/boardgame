@@ -700,19 +700,25 @@ Finally, we call `SetUp` to finalize the GameManager and make it ready for use. 
 
 By following this convention, it will be very easy for instantiations of a server to easily include this game type with minimal overhead.
 
-### Dynamic Component Values
+
 
 ### Property sanitization
 *TODO*
 
-#### Computed properties
 
-### Enums
 
 ### Renderers / Client
 *TODO*
 
 #### Users vs Players (roles and responsibilities of server and core engine)
+
+## Other important concepts
+
+### Dynamic Component Values
+
+### Computed properties
+
+### Enums
 
 ### Agents
 
