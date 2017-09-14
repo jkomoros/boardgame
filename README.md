@@ -324,7 +324,7 @@ If there are no cards left in the grid, it figures out which player has the most
 
 After `CheckGameFinished` returns true, the game is over and no more moves may be applied.
 
-Another method is `CurrentPlayerIndex`. This method should inspect the provided state and return the `PlayerIndex` corresponding to the current player. If any player may make a move, you should return `AdminPlayerIndex`, and if no player may make a move, you should return `ObserverPlayerIndex`. This method is consulted for various convenience methods elsewhere.
+Another method is `CurrentPlayerIndex`. This method should inspect the provided state and return the `PlayerIndex` corresponding to the current player. If any player may make a move, you should return `AdminPlayerIndex`, and if no player may make a move, you should return `ObserverPlayerIndex`. This method is consulted for various convenience methods elsewhere. The reason it can't be done fully automatically is because different games might store this value in a differently-named field, have non obvious rules for when it changes (for example, return the value in this field in the first phase of the game, but a value in another field in the second phase of the game), or not have a notion of current player at all.
 
 #### SetUp
 
