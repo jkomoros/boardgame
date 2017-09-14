@@ -395,7 +395,7 @@ For example, the memory game is broken into the following moves:
 
 There is a fair bit of boilerplate to implement a move, and you'll define a large number of them for your game. There are also patterns that recur often and are tedious and error-prone to implement.
 
-That's why theres a `moves` package that defines three common move types. You embed these moves anonymously in your move struct and then only override the methods you need to change. In some cases you don't even need to implement your own `Legal` or `Apply` because the base ones are sufficent.
+That's why there's a `moves` package that defines three common move types. You embed these moves anonymously in your move struct and then only override the methods you need to change. In some cases you don't even need to implement your own `Legal` or `Apply` because the base ones are sufficent.
 
 ##### moves.Base
 
@@ -422,11 +422,13 @@ func (m *MoveRevealCard) Legal(state boardgame.State, proposer boardgame.PlayerI
 }
 ```
 
+Similarly, note that if you have your own logic in `DefaultsForState`, you should not forget to also call the embedded `DefaultsForState`.
+
 ##### moves.FinishTurn
 
 Another common pattern is to have a FixUp move that inspects the state to see if the current player's turn is done, and if it is, advances to the next player and resets their properties for turn start.
 
-moves.FinishTurn defines two interafaces that your sub-state objects must implement:
+`moves.FinishTurn` defines two interafaces that your sub-state objects must implement:
 
 ```
 type CurrentPlayerSetter interface {
@@ -457,9 +459,9 @@ type PlayerTurnFinisher interface {
 }
 ```
 
-In most cases, your playerState has enough information to return an answer for each of these. However, some games have more complicated logic that must look at other aspects of the State as well, which is why a full copy of the state is also provided.
+In most cases, your playerState has enough information to return an answer for each of these. However, some games have more complicated logic that must look at other aspects of the State as well, which is why a full copy of the state is also provided in the method signatures.
 
-`moves.FinishTurn` uses the GameDelegate's `CurrentPlayerIndex` to figure out who the current player is. It then calls `TurnDone` on the playerState for the player whose turn it is. If the turn is done, it calls `ResetForTurnEnd` on the given PlayerState, then advances to the next player by calling gameState.`SetCurrentPlayer` (wrapping around if it's currently the last player's turn), and then calls `ResetForTurnStart` on the player whose turn it now is. This is where you typically configure how many actions of each type the current player has remaining.
+`moves.FinishTurn` uses the GameDelegate's `CurrentPlayerIndex` to figure out who the current player is. It then calls `TurnDone` on the playerState for the player whose turn it is. If the turn is done (that is, `nil` is returned), it calls `ResetForTurnEnd` on the given PlayerState, then advances to the next player by calling gameState.`SetCurrentPlayer` (wrapping around if it's currently the last player's turn), and then calls `ResetForTurnStart` on the player whose turn it now is. This is where you typically configure how many actions of each type the current player has remaining.
 
 Memory's implementation of these methods looks like follows:
 
