@@ -273,7 +273,9 @@ func (m *MoveHideCards) Apply(state boardgame.MutableState) error {
 
 	for i, c := range game.RevealedCards.Components() {
 		if c != nil {
-			game.RevealedCards.MoveComponent(i, game.HiddenCards, i)
+			if err := game.RevealedCards.MoveComponent(i, game.HiddenCards, i); err != nil {
+				return errors.New("Couldn't move component: " + err.Error())
+			}
 		}
 	}
 

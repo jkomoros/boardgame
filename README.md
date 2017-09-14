@@ -494,6 +494,87 @@ As you can see from the way the errors are constructed in `TurnDone`, the error 
 
 Because most of the logic for moves that embed `moves.FinishTurn` lives in methods on gameState and playerState, it's common to not need to override the `Legal` or `Apply` methods on `moves.FinishTurn` at all. You can see this in practice on memory's `MoveFinishTurn` which simply embeds `moves.FinishTurn`.
 
+#### Worked Move Example
+
+Let's look at a fully-worked example of defining a specific move from memory:
+
+```
+//+autoreader readsetter
+type MoveHideCards struct {
+    moves.CurrentPlayer
+}
+```
+
+MoveHideCards is a simple concrete struct that embeds a `moves.CurrentPlayer`. This means it is a move that may only be made by the player who turn it is.
+
+MoveHideCards is decorated by the magic autoreader comment, which means its ReadSetter will be automatically generated. The `readsetter` at the end of the comment tells `autoreader` to only bother creating the `PropertyReadSetter` method and not worry about the `PropertyReader` method. It would work fine (just with a tiny bit more code generated) with that argument omitted.
+
+```
+var moveHideCardsConfig = boardgame.MoveTypeConfig{
+    Name:     "Hide Cards",
+    HelpText: "After the current player has revealed both cards and tried to memorize them, this move hides the cards so that play can continue to next player.",
+    MoveConstructor: func() boardgame.Move {
+        return new(MoveHideCards)
+    },
+}
+```
+
+This is the moveTypeConfig object. This is what we will actually use to install the move type in the GameManager (more on that later).
+
+A `MoveTypeConfig` is basically a bag of straight forward properties. The reason you don't define a MoveType yourself is because it's important that these properties not change once they are configured onto a GameManager. You can think of a MoveTypeConfig as basically just the starter values for properties that will be read-only on the actual MoveType.
+
+The `Name` property is a unique-within-this-game-package, human-readable name for the move. It is the string that will be used to retrieve this move type from within the game manager. (You'll rarely do this yourself, but the server package will do this for example to deserialize `POST`s that propose a move).
+
+`HelpText` is a short descriptive stirng that describes generically what this move type accomplishes. It is similar to the `Description` method on `Move`, except that `Description` should include information about the specific properties of this particular instantiation of the move, while `HelpText` is generic. In fact, `moves.Base`'s `Description` method defaults to just returning the `HelpText` for the movetype.
+
+The most important aspect of `MoveType` is the `MoveConstructor`. Similar to other Constructor methods, this is where your concrete type that implements the interface from the core library will be returned. In almost every case this is a single line method that just `new`'s your concrete Move struct. If you use properties whose zero-value isn't legal (like Enums, which we haven't encountered yet in the tutorial), then as long as you use struct tags, the engine will automatically instantiate them for you, similar to how `GameStateConstructor` works.
+
+```
+func (m *MoveHideCards) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+
+    if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
+        return err
+    }
+
+    game, players := concreteStates(state)
+
+    p := players[game.CurrentPlayer]
+
+    if p.CardsLeftToReveal > 0 {
+        return errors.New("You still have to reveal more cards before your turn is over")
+    }
+
+    if game.RevealedCards.NumComponents() < 1 {
+        return errors.New("No cards left to hide!")
+    }
+
+    return nil
+}
+```
+
+This is our Legal method. We embed `moves.CurrentPlayer`, but add on our own logic. That's why we call `m.CurrentPlayer.Legal` first, since we want to extend our "superclass".
+
+```
+func (m *MoveHideCards) Apply(state boardgame.MutableState) error {
+    game, _ := concreteStates(state)
+
+    //Cancel a timer in case it was still going.
+    game.HideCardsTimer.Cancel()
+
+    for i, c := range game.RevealedCards.Components() {
+        if c != nil {
+            if err := game.RevealedCards.MoveComponent(i, game.HiddenCards, i); err != nil {
+                return errors.New("Couldn't move component: " + err.Error())
+            }
+        }
+    }
+
+    return nil
+}
+```
+
+This is our Apply method. There's not much interesting going on--except to note that calling MoveComponent can fail (for example, if the stack we're moving to is already max size), so we check for that and return an error. If your Move's `Apply` method returns an error than the move will not be applied. In general it is best practice in `Legal` to check for any condition that could cause your `Apply` to fail, so that failures in `Apply` are truly unexpected. But as this example shows, sometimes that's more of a pain than it's worth, as long as you catch those errors in `Apply`. If you didn't catch them in either `Legal` or `Apply` then you could start persisting illegal states to the storage layer, which would get really confusing really fast.
+
 ### NewManager
 
 We've now explored enough concepts to build a game. The last remaining piece is to combine everything into a ready-to-use `GameManager` that we can then pass to a server or use in other contexts.
@@ -616,8 +697,6 @@ We then install an Agent (more on those later).
 Finally, we call `SetUp` to finalize the GameManager and make it ready for use. This is when final checks are performed. Then we can return the manager.
 
 By following this convention, it will be very easy for instantiations of a server to easily include this game type with minimal overhead.
-
-#### Worked Move Example
 
 ### Dynamic Component Values
 
