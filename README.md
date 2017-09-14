@@ -615,7 +615,7 @@ We then install an Agent (more on those later).
 
 Finally, we call `SetUp` to finalize the GameManager and make it ready for use. This is when final checks are performed. Then we can return the manager.
 
-#### MustNewManager
+By following this convention, it will be very easy for instantiations of a server to easily include this game type with minimal overhead.
 
 #### Worked Move Example
 
@@ -634,6 +634,9 @@ Finally, we call `SetUp` to finalize the GameManager and make it ready for use. 
 #### Users vs Players (roles and responsibilities of server and core engine)
 
 ### Agents
+
+### Hooking into your own server
+*TODO: talk about MustNewManager*
 
 
 
