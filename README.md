@@ -494,9 +494,132 @@ As you can see from the way the errors are constructed in `TurnDone`, the error 
 
 Because most of the logic for moves that embed `moves.FinishTurn` lives in methods on gameState and playerState, it's common to not need to override the `Legal` or `Apply` methods on `moves.FinishTurn` at all. You can see this in practice on memory's `MoveFinishTurn` which simply embeds `moves.FinishTurn`.
 
+### NewManager
+
+We've now explored enough concepts to build a game. The last remaining piece is to combine everything into a ready-to-use `GameManager` that we can then pass to a server or use in other contexts.
+
+By convention, each game package has a `NewManager` method with the following signature:
+
+```
+func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) 
+```
+
+The storage argument is a reference to the specific storage backend the manager should use to persist objects. This will generally be provided by the server that your game manager factory is plugged into. A number of different storage implementations can be found in the `storage` directory. In most cases you'll use the MySQL storage layer, but that can be a pain to configure so in some cases, like the simple no-nonsense example server listed in the quickstart above a no-config storage layer like `bolt` is used instead. But in any case your `NewManager` method will generally just pass that directly to the core engine's `NewGameManager` method without inspecting it.
+
+In general your `NewManager` method will define all of the immutable configuration specific to your game. This includes defining all of the components for the game in a ComponentChest, plugging in your `GameDelegate`, and installing all of your MoveTypes.
+
+#### Component structs
+
+Remember that each component is immutable, and lives in precisely one deck in the `ComponentChest` for a game type. Specific instantiations of a Game of this GameType will ensure that each component in the chest lives in exactly one position in one stack at every version. Since the component is immutable, each game's version's stacks have pointers to the same shared components across all games that come from that gametype.
+
+The `Component` struct is a concrete struct defined in the core package. It is immutable, and includes a reference to the deck this component is in, what its index is within that stack, and the `Values` of this Component--the specific properties of this particular component within this game's semantics.
+
+For example, a component that is a card from a traditional American deck of playing cards would have two properties in its Values object; `Rank` and `Suit`. (In fact, American playing cards are so common that for convenience a ready-to-use version of them are defined in `components/playingcards`). The `Values` object will be a concrete struct that you define in your package that adheres to the `SubState` interface. This mean--you guessed it--that the `autoreader` package will be useful.
+
+The components for memory are quite simple:
+
+```
+var cardNames []string = []string{
+    "🏇",
+    "🚴",
+    "✋",
+    "💘",
+    "🎓",
+    "🐕",
+    "🐄",
+    "🐘",
+    "🐍",
+    "🦀",
+    "🍒",
+    "🍔",
+    "🍭",
+}
+
+const cardsDeckName = "cards"
+
+//+autoreader reader
+type cardValue struct {
+    Type string
+}
+```
+
+The file primarily consists of two constants--the icons that we will have on the cards, and tha name that we will refer to the deck of cards as. Decks are canonically refered to within a `ComponentChest` by a string name. It's convention to define a constant for that name to make sure that typos in that name will be caught by the compiler.
+
+And then the concrete struct we will use for `Values` is a trivial struct with a single string property, and the `autoreader` magic comment.
+
+In more complicated games, your components and their related constants might be much, much more verbose and effectively be a transcription of the values of a large deck of cards.
+
+#### Worked NewManager example
+
+Let's look at memory's NewManager implementation:
+
+```
+func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) {
+    chest := boardgame.NewComponentChest(nil)
+
+    cards := boardgame.NewDeck()
+
+    for _, val := range cardNames {
+        cards.AddComponentMulti(&cardValue{
+            Type: val,
+        }, 2)
+    }
+
+    cards.SetShadowValues(&cardValue{
+        Type: "<hidden>",
+    })
+
+    if err := chest.AddDeck(cardsDeckName, cards); err != nil {
+        return nil, errors.New("Couldn't add deck: " + err.Error())
+    }
+
+    manager := boardgame.NewGameManager(&gameDelegate{}, chest, storage)
+
+    if manager == nil {
+        return nil, errors.New("No manager returned")
+    }
+
+    moveTypeConfigs := []*boardgame.MoveTypeConfig{
+        &moveRevealCardConfig,
+        &moveHideCardsConfig,
+        &moveFinishTurnConfig,
+        &moveCaptureCardsConfig,
+        &moveStartHideCardsTimerConfig,
+    }
+
+    if err := manager.BulkAddMoveTypes(moveTypeConfigs); err != nil {
+        return nil, errors.New("Couldn't add moves: " + err.Error())
+    }
+
+    manager.AddAgent(&Agent{})
+
+    if err := manager.SetUp(); err != nil {
+        return nil, errors.New("Couldn't set up manager: " + err.Error())
+    }
+
+    return manager, nil
+}
+```
+
+First, we create a new empty `ComponentChest`. Then we start defining the single deck of cards. We create an empty deck, then for each constant in our cardNames we insert two components into the deck with those values.
+
+We then define a `ShadowValue` for the deck. The ShadowValue is the values object that will be returned if the values in a deck are sanitized--more on that later. 
+
+Then we add the deck to the chest.
+
+Now we have the three things we need to get a manager object: the delegate, the chest we just created, and the storage manager that we were passed in.
+
+Next we install each move type for our game, in order, by passing a reference to the moveTypeConfig for each.
+
+We then install an Agent (more on those later).
+
+Finally, we call `SetUp` to finalize the GameManager and make it ready for use. This is when final checks are performed. Then we can return the manager.
+
+#### MustNewManager
+
 #### Worked Move Example
 
-### NewManager
+### Dynamic Component Values
 
 ### Property sanitization
 *TODO*
