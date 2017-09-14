@@ -704,10 +704,29 @@ Finally, we call `SetUp` to finalize the GameManager and make it ready for use. 
 
 By following this convention, it will be very easy for instantiations of a server to easily include this game type with minimal overhead.
 
-
-
 ### Property sanitization
-*TODO*
+
+So far all of the properties on State are visible to anyone who cares to look at them. But many (most?) games have some kind of hidden state that should only be revealed to particular players in particular circumstances. Often, the whole point of the game is to deduce what that hidden state is.
+
+One way would just be to never show that state to the user directly and take care to never render it in the UI. But that's effectively security by obscurity--anyone who was curious could poke in DevTools, discover the secret, and then gain an unfair advantage.
+
+For this reason, the core engine introduces the notion of **sanitization**.
+
+The core engine always keeps track of the full, unsanitized state, and all moves operate on that sanitized state. However, states can be sanitized to be appropriate to show to any given player, for example before the JSON serialization is transmitted to the client. Then, even if a savvy user pokes in DevTools, they'll never be able to discover the hidden information.
+
+Conceptually, every property in your substate objects has a **sanitization policy** (which may vary by player--more on that in a second) that defines how to sanitize that property. The least restrictive is `PolicyVisible`, which doesn't modify the value at all. The most restrictive is `PolicyHidden`, which hides all information. Stacks have many more subtle policies that obscure some or all information (more on those in a bit).
+
+Your delegate implements `StateSanitizationPolicy() *StatePolicy` method, which returns the configuration for sanitization for all games of this type. This configuration is a constant and may never change. Policies apply at the granularity of a property, which means that all components in a given stack will have the same policy applied.
+
+This immutability of the policy explains why memory's GameState has two stacks: HiddenCards and RevealedCards. HiddenCards has a policy to never show the value of the cards in that stack (only the presence or abscence of a card in each slot), whereas RevealCard always shows the values of the cards in it. To "flip" a card from hidden to visible, the `RevealCard` move moves the given card from the HiddenCards stack to the same slot in the RevealedCards stack. On the client the two stacks are merged into one logical stack and rendered appropriately (we'll dig into client rendering, and this particular pattern, more later in the tutorial).
+
+#### Groups
+
+#### Aside: Ids
+
+#### Policies in Detail
+
+#### Worked example
 
 
 
