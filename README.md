@@ -186,6 +186,10 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 }
 ```
 
+Many of the methods you'll implement will be passed `State` objects. In the vast majority of cases you are not allowed to modify the State object. To help make the intention clear, you will be passed either a `State` or `MutableState` object (the latter embedding the `State` interface and adding mutation methods) to make the expectation clear.
+
+... Of course, when you pass the State or MutableState object through your concreteStates method you'll just get the naked, modifiable, concrete structs back, and there's nothing to prevent you from changing the properties. Don't do that--at best it won't actually make a change that will be persisted, but at worse it could lead to odd inconsitencies later, if the engine for example re-used the same state object.
+
 #### PlayerIndex
 
 gameState has a property named `CurrentPlayer` of type `boardgame.PlayerIndex`. This property, as you might expect, encodes whose turn it currently is.
