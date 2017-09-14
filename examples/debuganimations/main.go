@@ -137,18 +137,6 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, 
 	return false, nil
 }
 
-func MustNewManager(storage boardgame.StorageManager) *boardgame.GameManager {
-
-	manager, err := NewManager(storage)
-
-	if err != nil {
-		panic("Couldn't create manager: " + err.Error())
-	}
-
-	return manager
-
-}
-
 func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) {
 	chest := boardgame.NewComponentChest(nil)
 

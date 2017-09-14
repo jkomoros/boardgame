@@ -57,6 +57,19 @@ type MoveFormField struct {
 
 type managerMap map[string]*boardgame.GameManager
 
+//MustNewManager takes a *boardgame.GameManager and an err. If err is non-nil
+//it will panic, otherwise it will just return the manager. Simple convenience
+//method for wrapping the conventional NewManager method for game pacakges and
+//installing them into a server without fiddling with checking for errors.
+func MustNewManager(manager *boardgame.GameManager, err error) *boardgame.GameManager {
+
+	if err != nil {
+		panic("Couldn't create manager: " + err.Error())
+	}
+
+	return manager
+}
+
 /*
 
 Overview of the types of handlers and methods
