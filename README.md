@@ -527,6 +527,8 @@ The `Name` property is a unique-within-this-game-package, human-readable name fo
 
 `HelpText` is a short descriptive stirng that describes generically what this move type accomplishes. It is similar to the `Description` method on `Move`, except that `Description` should include information about the specific properties of this particular instantiation of the move, while `HelpText` is generic. In fact, `moves.Base`'s `Description` method defaults to just returning the `HelpText` for the movetype.
 
+If this move type were a fixUp move, your MoveTypeConfig would also set `IsFixUp` to true.
+
 The most important aspect of `MoveType` is the `MoveConstructor`. Similar to other Constructor methods, this is where your concrete type that implements the interface from the core library will be returned. In almost every case this is a single line method that just `new`'s your concrete Move struct. If you use properties whose zero-value isn't legal (like Enums, which we haven't encountered yet in the tutorial), then as long as you use struct tags, the engine will automatically instantiate them for you, similar to how `GameStateConstructor` works.
 
 ```
