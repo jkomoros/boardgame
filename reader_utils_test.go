@@ -152,12 +152,12 @@ func TestAutoEnum(t *testing.T) {
 }
 
 type testGeneralReadSetter struct {
-	TheInt           int
+	TheInt           int        `sanitize:"hidden"`
 	EnumConst        enum.Const `enum:"color"`
 	EnumVar          enum.Var   `enum:"color"`
 	TheTimer         *Timer
 	TheSizedStack    *SizedStack    `stack:"test,0"`
-	TheGrowableStack *GrowableStack `stack:"test"`
+	TheGrowableStack *GrowableStack `stack:"test" sanitize:"order"`
 }
 
 func (t *testGeneralReadSetter) ReadSetter() PropertyReadSetter {
@@ -195,4 +195,17 @@ func TestReaderValidator(t *testing.T) {
 	assert.For(t).ThatActual(autoFilledObj.EnumVar.Enum()).Equals(testColorEnum)
 
 	assert.For(t).ThatActual(autoFilledObj.TheTimer).IsNotNil()
+
+	assert.For(t).ThatActual(validator.sanitizationPolicy["TheInt"]).Equals(map[int]Policy{
+		GroupAll: PolicyHidden,
+	})
+
+	assert.For(t).ThatActual(validator.sanitizationPolicy["TheGrowableStack"]).Equals(map[int]Policy{
+		GroupAll: PolicyOrder,
+	})
+
+	assert.For(t).ThatActual(validator.sanitizationPolicy["TheTimer"]).Equals(map[int]Policy{
+		GroupAll: PolicyVisible,
+	})
+
 }
