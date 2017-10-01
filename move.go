@@ -195,7 +195,7 @@ func newMoveType(config *MoveTypeConfig, manager *GameManager) (*MoveType, error
 		return nil, errors.New("MoveConstructor's readsetter returned nil")
 	}
 
-	validator, err := newReaderValidator(readSetter, exampleMove, moveTypeIllegalPropTypes, manager.Chest())
+	validator, err := newReaderValidator(readSetter, exampleMove, moveTypeIllegalPropTypes, manager.Chest(), false)
 
 	if err != nil {
 		return nil, errors.New("Couldn't create validator: " + err.Error())

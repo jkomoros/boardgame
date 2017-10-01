@@ -48,7 +48,7 @@ func TestPolicyFromStructTag(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		result := policyFromStructTag(test.in)
+		result := policyFromStructTag(test.in, "all")
 		assert.For(t, i).ThatActual(result).Equals(test.expected)
 	}
 
@@ -172,7 +172,7 @@ func TestReaderValidator(t *testing.T) {
 
 	game.SetUp(0, nil)
 
-	validator, err := newReaderValidator(example.ReadSetter(), example, nil, game.manager.Chest())
+	validator, err := newReaderValidator(example.ReadSetter(), example, nil, game.manager.Chest(), false)
 
 	assert.For(t).ThatActual(err).IsNil()
 

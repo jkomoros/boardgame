@@ -30,7 +30,7 @@ type readerValidator struct {
 //given types. It will also do an expensive processing for any nil pointer-
 //properties to see if they have struct tags that tell us how to inflate them.
 //This processing uses reflection, but afterwards AutoInflate can run quickly.
-func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, illegalTypes map[PropertyType]bool, chest *ComponentChest) (*readerValidator, error) {
+func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, illegalTypes map[PropertyType]bool, chest *ComponentChest, isPlayerState bool) (*readerValidator, error) {
 	//TODO: there's got to be a way to not need both exampleReader and exampleObj, but only one.
 
 	if illegalTypes == nil {
@@ -42,6 +42,11 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 	autoSizedStackFields := make(map[string]*autoStackConfig)
 	autoGrowableStackFields := make(map[string]*autoStackConfig)
 	sanitizationPolicy := make(map[string]map[int]Policy)
+
+	defaultGroup := "all"
+	if isPlayerState {
+		defaultGroup = "other"
+	}
 
 	for propName, propType := range exampleReader.Props() {
 		switch propType {
@@ -129,7 +134,7 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 			}
 		}
 
-		sanitizationPolicy[propName] = policyFromStructTag(structTagForField(exampleObj, propName, sanitizationStructTag))
+		sanitizationPolicy[propName] = policyFromStructTag(structTagForField(exampleObj, propName, sanitizationStructTag), defaultGroup)
 
 	}
 
@@ -149,7 +154,7 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 	return result, nil
 }
 
-func policyFromStructTag(tag string) map[int]Policy {
+func policyFromStructTag(tag string, defaultGroup string) map[int]Policy {
 	if tag == "" {
 		tag = "visible"
 	}
@@ -169,8 +174,7 @@ func policyFromStructTag(tag string) map[int]Policy {
 			return errorMap
 		}
 		if len(splitPiece) == 1 {
-			//TODO: default to "other" for Playerstates
-			groupString = "all"
+			groupString = defaultGroup
 			policyString = splitPiece[0]
 		} else {
 			groupString = splitPiece[0]
