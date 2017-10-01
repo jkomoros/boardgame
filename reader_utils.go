@@ -49,6 +49,9 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 	}
 
 	for propName, propType := range exampleReader.Props() {
+
+		sanitizationPolicy[propName] = policyFromStructTag(structTagForField(exampleObj, propName, sanitizationStructTag), defaultGroup)
+
 		switch propType {
 		case TypeSizedStack:
 			sizedStack, err := exampleReader.SizedStackProp(propName)
@@ -133,8 +136,6 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 				autoEnumVarFields[propName] = theEnum
 			}
 		}
-
-		sanitizationPolicy[propName] = policyFromStructTag(structTagForField(exampleObj, propName, sanitizationStructTag), defaultGroup)
 
 	}
 
@@ -318,6 +319,19 @@ func (r *readerValidator) Valid(reader PropertyReader) error {
 		return err
 	}
 	for propName, propType := range reader.Props() {
+
+		policyMap := r.sanitizationPolicy[propName]
+
+		if policyMap == nil {
+			return errors.New(propName + " had no sanitization policy")
+		}
+
+		for group, policy := range policyMap {
+			if policy == PolicyInvalid {
+				return errors.New(propName + " had invalid policy for group " + strconv.Itoa(group))
+			}
+		}
+
 		//TODO: verifyReader should be gotten rid of in favor of this
 		switch propType {
 		case TypeGrowableStack:
@@ -371,6 +385,7 @@ func (r *readerValidator) Valid(reader PropertyReader) error {
 				return errors.New("EnumConstProp " + propName + " had unexpected error: " + err.Error())
 			}
 		}
+
 	}
 	return nil
 }
