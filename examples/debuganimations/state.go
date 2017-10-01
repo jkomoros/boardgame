@@ -19,15 +19,15 @@ func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 //+autoreader
 type gameState struct {
 	DiscardStack     *boardgame.GrowableStack `stack:"cards"`
-	DrawStack        *boardgame.GrowableStack `stack:"cards"`
-	FirstShortStack  *boardgame.GrowableStack `stack:"cards"`
-	SecondShortStack *boardgame.GrowableStack `stack:"cards"`
-	HiddenCard       *boardgame.SizedStack    `stack:"cards,1"`
+	DrawStack        *boardgame.GrowableStack `stack:"cards" sanitize:"order"`
+	FirstShortStack  *boardgame.GrowableStack `stack:"cards" sanitize:"order"`
+	SecondShortStack *boardgame.GrowableStack `stack:"cards" sanitize:"order"`
+	HiddenCard       *boardgame.SizedStack    `stack:"cards,1" sanitize:"hidden"`
 	RevealedCard     *boardgame.SizedStack    `stack:"cards,1"`
 	FanStack         *boardgame.GrowableStack `stack:"cards"`
-	FanDiscard       *boardgame.GrowableStack `stack:"cards"`
+	FanDiscard       *boardgame.GrowableStack `stack:"cards" sanitize:"order"`
 	VisibleStack     *boardgame.GrowableStack `stack:"cards"`
-	HiddenStack      *boardgame.GrowableStack `stack:"cards"`
+	HiddenStack      *boardgame.GrowableStack `stack:"cards" sanitize:"nonempty"`
 	CurrentPlayer    boardgame.PlayerIndex
 }
 

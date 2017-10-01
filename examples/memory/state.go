@@ -16,7 +16,7 @@ func init() {
 //+autoreader
 type gameState struct {
 	CurrentPlayer  boardgame.PlayerIndex
-	HiddenCards    *boardgame.SizedStack
+	HiddenCards    *boardgame.SizedStack `sanitize:"order"`
 	RevealedCards  *boardgame.SizedStack
 	HideCardsTimer *boardgame.Timer
 }
