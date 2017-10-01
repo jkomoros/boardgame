@@ -7,6 +7,7 @@ import (
 	"math"
 	"math/rand"
 	"strconv"
+	"strings"
 )
 
 //StatePolicy defines a sanitization policy for a State object. In particular,
@@ -91,8 +92,34 @@ const (
 	//they didn't explicitly list in their dependencies.
 	PolicyRandom
 
+	//PolicyInvalid is not a valid Policy. It can be provided to signal an
+	//illegal policy, which will cause the sanitization policy pipeline to
+	//error.
+	PolicyInvalid
+
 	//TODO: implement the other policies.
 )
+
+func policyFromString(policyName string) Policy {
+	policyName = strings.ToLower(policyName)
+	policyName = strings.TrimSpace(policyName)
+
+	switch policyName {
+	case "visible":
+		return PolicyVisible
+	case "order":
+		return PolicyOrder
+	case "len":
+		return PolicyLen
+	case "nonempty":
+		return PolicyNonEmpty
+	case "hidden":
+		return PolicyHidden
+	case "random":
+		return PolicyRandom
+	}
+	return PolicyInvalid
+}
 
 func (s *state) SanitizedForPlayer(player PlayerIndex) State {
 
@@ -275,6 +302,10 @@ func sanitizeStateObj(readSetter PropertyReadSetter, policy SubStatePolicy, stat
 
 		if err != nil {
 			return errors.Extend(err, "Couldn't calculate effective policy")
+		}
+
+		if effectivePolicy == PolicyInvalid {
+			return errors.New("Effective policy computed to PolicyInvalid")
 		}
 
 		if visibleDynamic != nil {

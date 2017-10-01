@@ -9,6 +9,50 @@ import (
 	"testing"
 )
 
+func TestPolicyFromString(t *testing.T) {
+	tests := []struct {
+		in       string
+		expected Policy
+	}{
+		{
+			"VisibLE",
+			PolicyVisible,
+		},
+		{
+			"order ",
+			PolicyOrder,
+		},
+		{
+			"len",
+			PolicyLen,
+		},
+		{
+			"nonempty",
+			PolicyNonEmpty,
+		},
+		{
+			"Hidden",
+			PolicyHidden,
+		},
+		{
+			"random",
+			PolicyRandom,
+		},
+		{
+			"visibl",
+			PolicyInvalid,
+		},
+	}
+
+	for i, test := range tests {
+		result := policyFromString(test.in)
+
+		if result != test.expected {
+			t.Error("For test ", i, "wanted", test.expected, "got", result)
+		}
+	}
+}
+
 type testSanitizationDelegate struct {
 	testGameDelegate
 	policy *StatePolicy
