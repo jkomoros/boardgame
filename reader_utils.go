@@ -10,6 +10,7 @@ import (
 
 const enumStructTag = "enum"
 const stackStructTag = "stack"
+const sanitizationStructTag = "sanitize"
 
 type autoStackConfig struct {
 	deck *Deck
@@ -21,6 +22,7 @@ type readerValidator struct {
 	autoEnumConstFields     map[string]*enum.Enum
 	autoGrowableStackFields map[string]*autoStackConfig
 	autoSizedStackFields    map[string]*autoStackConfig
+	sanitizationPolicy      map[string]map[int]Policy
 	illegalTypes            map[PropertyType]bool
 }
 
@@ -39,6 +41,7 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 	autoEnumConstFields := make(map[string]*enum.Enum)
 	autoSizedStackFields := make(map[string]*autoStackConfig)
 	autoGrowableStackFields := make(map[string]*autoStackConfig)
+	sanitizationPolicy := make(map[string]map[int]Policy)
 
 	for propName, propType := range exampleReader.Props() {
 		switch propType {
@@ -125,6 +128,9 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 				autoEnumVarFields[propName] = theEnum
 			}
 		}
+
+		sanitizationPolicy[propName] = policyFromStructTag(structTagForField(exampleObj, propName, sanitizationStructTag))
+
 	}
 
 	result := &readerValidator{
@@ -132,6 +138,7 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 		autoEnumConstFields,
 		autoGrowableStackFields,
 		autoSizedStackFields,
+		sanitizationPolicy,
 		illegalTypes,
 	}
 
@@ -140,6 +147,45 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 	}
 
 	return result, nil
+}
+
+func policyFromStructTag(tag string) map[int]Policy {
+	if tag == "" {
+		tag = "visible"
+	}
+
+	errorMap := map[int]Policy{
+		GroupAll: PolicyInvalid,
+	}
+
+	result := make(map[int]Policy)
+
+	pieces := strings.Split(tag, ",")
+	for _, piece := range pieces {
+		splitPiece := strings.Split(piece, ":")
+		var groupString string
+		var policyString string
+		if len(splitPiece) > 2 {
+			return errorMap
+		}
+		if len(splitPiece) == 1 {
+			//TODO: default to "other" for Playerstates
+			groupString = "all"
+			policyString = splitPiece[0]
+		} else {
+			groupString = splitPiece[0]
+			policyString = splitPiece[1]
+		}
+
+		group := groupFromString(groupString)
+		policy := policyFromString(policyString)
+
+		result[group] = policy
+
+	}
+
+	return result
+
 }
 
 //AutoInflate will go through and inflate fields that are nil that it knows

@@ -6,6 +6,54 @@ import (
 	"testing"
 )
 
+func TestPolicyFromStructTag(t *testing.T) {
+
+	errorMap := map[int]Policy{
+		GroupAll: PolicyInvalid,
+	}
+
+	tests := []struct {
+		in       string
+		expected map[int]Policy
+	}{
+		{
+			"",
+			map[int]Policy{
+				GroupAll: PolicyVisible,
+			},
+		},
+		{
+			"hidden",
+			map[int]Policy{
+				GroupAll: PolicyHidden,
+			},
+		},
+		{
+			"other:hidden",
+			map[int]Policy{
+				GroupOther: PolicyHidden,
+			},
+		},
+		{
+			"all:random,other:hidden",
+			map[int]Policy{
+				GroupOther: PolicyHidden,
+				GroupAll:   PolicyRandom,
+			},
+		},
+		{
+			"all:random:foo",
+			errorMap,
+		},
+	}
+
+	for i, test := range tests {
+		result := policyFromStructTag(test.in)
+		assert.For(t, i).ThatActual(result).Equals(test.expected)
+	}
+
+}
+
 func TestStructTag(t *testing.T) {
 
 	type anonTestStruct struct {
