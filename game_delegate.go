@@ -3,6 +3,7 @@ package boardgame
 import (
 	"github.com/Sirupsen/logrus"
 	"github.com/jkomoros/boardgame/errors"
+	"sort"
 )
 
 //GameDelegate is the place that various parts of the game lifecycle can be
@@ -131,7 +132,7 @@ type GameDelegate interface {
 	//a mamber of. In practice the default behavior of DefaultGameDelegate,
 	//which uses struct tags to figure out the policy, is sufficient and you
 	//do not need to override this.
-	SanitizationPolicy(prop StatePropertyRef, groupMembership map[string]bool) Policy
+	SanitizationPolicy(prop StatePropertyRef, groupMembership map[int]bool) Policy
 
 	//ComputedPropertiesConfig returns a pointer to the config for how
 	//computed properties for this game should be constructed.
@@ -252,9 +253,52 @@ func (d *DefaultGameDelegate) StateSanitizationPolicy() *StatePolicy {
 	return nil
 }
 
-func (d *DefaultGameDelegate) SanitizationPolicy(prop StatePropertyRef, groupMembership map[string]bool) Policy {
-	//TODO: better behavior based on struct-tags.
-	return PolicyVisible
+//SanitizatinoPolicy uses struct tags to identify the right policy to apply
+//(see the package doc on SanitizationPolicy for how to configure those tags).
+//It sees which policies apply given the provided group membership, and then
+//returns the LEAST restrictive policy that applies. This behavior is almost
+//always what you want; it is rare to need to override this method.
+func (d *DefaultGameDelegate) SanitizationPolicy(prop StatePropertyRef, groupMembership map[int]bool) Policy {
+
+	manager := d.Manager()
+
+	var validator *readerValidator
+	switch prop.Group {
+	case StateGroupGame:
+		validator = manager.gameValidator
+	case StateGroupPlayer:
+		validator = manager.playerValidator
+	case StateGroupDynamicComponentValues:
+		validator = manager.dynamicComponentValidator[prop.DeckName]
+	}
+
+	if validator == nil {
+		return PolicyInvalid
+	}
+
+	policyMap := validator.sanitizationPolicy[prop.PropName]
+
+	var applicablePolicies []int
+
+	for group, isMember := range groupMembership {
+
+		//The only ones that are in the map should be `true` but sanity check
+		//just in case.
+		if !isMember {
+			continue
+		}
+
+		applicablePolicies = append(applicablePolicies, int(policyMap[group]))
+	}
+
+	if len(applicablePolicies) == 0 {
+		return PolicyInvalid
+	}
+
+	sort.Ints(applicablePolicies)
+
+	return Policy(applicablePolicies[0])
+
 }
 
 func (d *DefaultGameDelegate) ComputedPropertiesConfig() *ComputedPropertiesConfig {
