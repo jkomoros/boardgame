@@ -126,6 +126,13 @@ type GameDelegate interface {
 	//on how sanitization policies are calculated and applied.
 	StateSanitizationPolicy() *StatePolicy
 
+	//SanitizationPolicy is consulted when sanitizing states. It is called for
+	//each prop in the state, including the set of groups that this player is
+	//a mamber of. In practice the default behavior of DefaultGameDelegate,
+	//which uses struct tags to figure out the policy, is sufficient and you
+	//do not need to override this.
+	SanitizationPolicy(prop StatePropertyRef, groupMembership map[string]bool) Policy
+
 	//ComputedPropertiesConfig returns a pointer to the config for how
 	//computed properties for this game should be constructed.
 	ComputedPropertiesConfig() *ComputedPropertiesConfig
@@ -243,6 +250,11 @@ func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state State, c *
 
 func (d *DefaultGameDelegate) StateSanitizationPolicy() *StatePolicy {
 	return nil
+}
+
+func (d *DefaultGameDelegate) SanitizationPolicy(prop StatePropertyRef, groupMembership map[string]bool) Policy {
+	//TODO: better behavior based on struct-tags.
+	return PolicyVisible
 }
 
 func (d *DefaultGameDelegate) ComputedPropertiesConfig() *ComputedPropertiesConfig {
