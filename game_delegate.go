@@ -288,11 +288,14 @@ func (d *DefaultGameDelegate) SanitizationPolicy(prop StatePropertyRef, groupMem
 			continue
 		}
 
-		applicablePolicies = append(applicablePolicies, int(policyMap[group]))
+		//Only if the policy is actually in the map should we use it
+		if policy, ok := policyMap[group]; ok {
+			applicablePolicies = append(applicablePolicies, int(policy))
+		}
 	}
 
 	if len(applicablePolicies) == 0 {
-		return PolicyInvalid
+		return PolicyVisible
 	}
 
 	sort.Ints(applicablePolicies)
