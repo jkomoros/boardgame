@@ -145,6 +145,8 @@ func (s *state) SanitizedForPlayer(player PlayerIndex) State {
 	return sanitized
 }
 
+//generateSanitizationTransformation creates a sanitizationTransformation by
+//consulting the delegate for each property on each sub-state.
 func (s *state) generateSanitizationTransformation(player PlayerIndex) *sanitizationTransformation {
 
 	delegate := s.game.manager.delegate
@@ -210,9 +212,11 @@ func generateSubStateSanitizationTransformation(subState SubState, propertyRef S
 
 }
 
-//sanitizedWithExceptions will return a Sanitized() State where properties
-//that are not in the passed policy are treated as PolicyRandom. Useful in
-//computing properties.
+//applySanitizationTransformation takes a generated sanitizationTransformation
+//and applies it to the given tate, returning a new state that has been
+//transformed accordingly. The DynamicComponentValues transformations are set
+//to Hidden (instead of how they are configured) unless the stacks that
+//contain them in Game and Player states resolve to PolicyVisible.
 func (s *state) applySanitizationTransformation(transformation *sanitizationTransformation) (State, error) {
 
 	sanitized := s.copy(true)
@@ -263,10 +267,11 @@ func (s *state) applySanitizationTransformation(transformation *sanitizationTran
 
 }
 
-//statePlayerIndex is the index of the PlayerState that we're working on (-1
-//for Game). preparingForPlayerIndex is the index that we're preparing the
-//overall santiized state for, as provied to
-//GameManager.SanitizedStateForPlayer()
+//sanitizeStateObj applies the given sanitizationTransformation to the given
+//sub-state. It also keeps track of which components within it resolve to
+//PolicyVisible, so later that information can be used to only reveal that
+//information in DynamicComponentValues if the components they're related to
+//were visible.
 func sanitizeStateObj(readSetter PropertyReadSetter, transformation subStateSanitizationTransformation, visibleDynamic map[string]map[int]bool) error {
 
 	for propName, propType := range readSetter.Props() {
@@ -306,6 +311,9 @@ func sanitizeStateObj(readSetter PropertyReadSetter, transformation subStateSani
 
 }
 
+//transitivelyMarkDynamicComponentsAsVisible expands which
+//dynamiccomponentvalues are visible by extending the visibility throughout
+//any items that are in stacks on dynamiccomponentvalues that are visible.
 func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[string][]MutableSubState, visibleComponents map[string]map[int]bool) {
 
 	//All dynamic component values are hidden, except for ones that currently
@@ -373,6 +381,10 @@ func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[strin
 	}
 }
 
+//sanitizeDynamicComponentValues is more complex than just applying a
+//straightforward sanitizationTransformation because the components should
+//only folow the configured property if the component they're affiliated with
+//was PolicyVisible.
 func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]MutableSubState, visibleComponents map[string]map[int]bool, transformation map[string]subStateSanitizationTransformation) error {
 
 	for name, slice := range dynamicComponentValues {
