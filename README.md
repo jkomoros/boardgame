@@ -62,7 +62,7 @@ The core of the states are represented here:
 //+autoreader
 type gameState struct {
 	CurrentPlayer  boardgame.PlayerIndex
-	HiddenCards    *boardgame.SizedStack
+	HiddenCards    *boardgame.SizedStack `sanitize:"order"`
 	RevealedCards  *boardgame.SizedStack
 	HideCardsTimer *boardgame.Timer
 }
@@ -710,31 +710,23 @@ So far all of the properties on State are visible to anyone who cares to look at
 
 One way would just be to never show that state to the user directly and take care to never render it in the UI. But that's effectively security by obscurity--anyone who was curious could poke in DevTools, discover the secret, and then gain an unfair advantage.
 
-For this reason, the core engine introduces the notion of **sanitization**.
+For this reason, the core engine introduces the notion of **sanitization**. This also finally explains that last struct tag in the memory example (HiddenCards having `sanitize:"order"`).
 
 The core engine always keeps track of the full, unsanitized state, and all moves operate on that sanitized state. However, states can be sanitized to be appropriate to show to any given player, for example before the JSON serialization is transmitted to the client. Then, even if a savvy user pokes in DevTools, they'll never be able to discover the hidden information.
 
 Conceptually, every property in your substate objects has a **sanitization policy** (which may vary by player--more on that in a second) that defines how to sanitize that property. The least restrictive is `PolicyVisible`, which doesn't modify the value at all. The most restrictive is `PolicyHidden`, which hides all information. Stacks have many more subtle policies that obscure some or all information (more on those in a bit).
 
-Your delegate implements `StateSanitizationPolicy() *StatePolicy` method, which returns the configuration for sanitization for all games of this type. This configuration is a constant and may never change. Policies apply at the granularity of a property, which means that all components in a given stack will have the same policy applied.
+In almost all cases you will define your policy with struct tags. It is possible to override this behavior by re-implementing SanitizationPolicy on your delegate, see the package doc for more. If no sanitization policy is configured for a property, it defaults to PolicyVisible.
+
+The sanitization configuration is a constant and may never change. Policies apply at the granularity of a property, which means that all components in a given stack will have the same policy applied.
 
 This immutability of the policy explains why memory's GameState has two stacks: HiddenCards and RevealedCards. HiddenCards has a policy to never show the value of the cards in that stack (only the presence or abscence of a card in each slot), whereas RevealCard always shows the values of the cards in it. To "flip" a card from hidden to visible, the `RevealCard` move moves the given card from the HiddenCards stack to the same slot in the RevealedCards stack. On the client the two stacks are merged into one logical stack and rendered appropriately (we'll dig into client rendering, and this particular pattern, more later in the tutorial).
 
-#### Groups
-
 Policies are immutable, but different players might see different things for the same property. For example, in a game of poker no player (except an Admin) should ever be able to see the values (or order) of cards in the DrawStack. Similiarly, the only person who should be able to see the values of the cards in a player's poker hand is that particular player (or the admin).
 
-The way this is configured is with the notion of **Groups**. There are a number of notional groups of player, and each player is either in or out of each group. For each property you can define a different policy that would apply to each group. When trying to figure out which policy to apply for a given property for a given viewing player, we collect up all of the policies for that property that match groups the viewing player is in. Then we take the *least* restrictive policy that applies and use that.
+By default, the policy you apply for GameStates and DynamicComponentValues apply to *all* players (except for Admin, who can always see all state). For PlayerStates, the policies by default apply to *other* players. That means that individual players will, by default, always be able to see all of the properties on their *own* PlayerState, but for other PlayerStates the provided policy will apply.
 
-In the future it will be possible to define a fixed set of custom groups whose membership might change over the course of a game. But for now, there are only the three custom groups:
-
-**GroupAll**: Every player is always a member of this group. Useful for setting defaults or a policy that applies to all players.
-**GroupSelf**: The viewing player is in this group only for their own PlayerState, not for other players' PlayerStates. This allows you to for example reveal each player's cards only to themselves.
-**GroupOther**: Similar to GroupSelf, but opposite. 
-
-Properties default to PolicyVisible.
-
-If you wanted to make it so each player could only view the values of the card in your own hand, you could either apply `GroupAll: PolicyHidden; GroupSelf: PolicyVisible` (setting the default to hidden but revealing it for each player), or `GroupOther: PolicyHidden`; both are equivalent.
+This behavior can be overridden in more detail by being more explicit about which groups the policies apply to and also by defining policies for multiple groups. For more on that, see the package doc. In almost all cases the default behavior is sufficient.
 
 #### Aside: Ids
 
