@@ -53,51 +53,68 @@ func TestPolicyFromString(t *testing.T) {
 	}
 }
 
-type testSanitizationDelegate struct {
-	testGameDelegate
-	policy *StatePolicy
+//Basically has the information that WOULD have been provided by sruct tags
+type sanitizationTestConfig struct {
+	Game                   map[string]string
+	Player                 map[string]string
+	DynamicComponentValues map[string]map[string]string
 }
 
-func (t *testSanitizationDelegate) StateSanitizationPolicy() *StatePolicy {
-	return t.policy
+//Install sets up the given manager's iternal methods as though the config was
+//read in from the struct tags.
+func (s *sanitizationTestConfig) Install(manager *GameManager) {
+
+	manager.gameValidator.sanitizationPolicy = s.policyForSubObject(manager.Delegate().GameStateConstructor().Reader(), s.Game, false)
+	manager.playerValidator.sanitizationPolicy = s.policyForSubObject(manager.Delegate().PlayerStateConstructor(0).Reader(), s.Player, true)
+
+	for _, deckName := range manager.Chest().DeckNames() {
+		deck := manager.Chest().Deck(deckName)
+		manager.dynamicComponentValidator[deckName].sanitizationPolicy = s.policyForSubObject(manager.Delegate().DynamicComponentValuesConstructor(deck).Reader(), s.DynamicComponentValues[deckName], false)
+	}
+
+}
+
+func (s *sanitizationTestConfig) policyForSubObject(reader PropertyReader, config map[string]string, isPlayer bool) map[string]map[int]Policy {
+
+	result := make(map[string]map[int]Policy)
+
+	defaultGroup := "all"
+
+	if isPlayer {
+		defaultGroup = "other"
+	}
+
+	for propName, _ := range reader.Props() {
+		result[propName] = policyFromStructTag(config[propName], defaultGroup)
+	}
+
+	return result
+
 }
 
 func TestSanitization(t *testing.T) {
 
-	manager := NewGameManager(&testSanitizationDelegate{}, newTestGameChest(), newTestStorageManager())
-
-	manager.SetUp()
-
 	tests := []struct {
-		policy           *StatePolicy
+		policy           *sanitizationTestConfig
 		playerIndex      PlayerIndex
 		inputFileName    string
 		expectedFileName string
 	}{
 		{
-			nil,
+			&sanitizationTestConfig{},
 			AdminPlayerIndex,
 			"sanitization_basic_in.json",
 			"sanitization_basic_in.json",
 		},
 		{
-			&StatePolicy{
-				Game: map[string]GroupPolicy{
-					"DrawDeck": GroupPolicy{
-						GroupAll: PolicyLen,
-					},
-					"MyIntSlice": GroupPolicy{
-						GroupAll: PolicyLen,
-					},
-					"MyBoolSlice": GroupPolicy{
-						GroupAll: PolicyLen,
-					},
-					"MyStringSlice": GroupPolicy{
-						GroupAll: PolicyLen,
-					},
-					"MyPlayerIndexSlice": GroupPolicy{
-						GroupAll: PolicyLen,
-					},
+
+			&sanitizationTestConfig{
+				Game: map[string]string{
+					"DrawDeck":           "len",
+					"MyIntSlice":         "len",
+					"MyBoolSlice":        "len",
+					"MyStringSlice":      "len",
+					"MyPlayerIndexSlice": "len",
 				},
 			},
 			0,
@@ -105,11 +122,9 @@ func TestSanitization(t *testing.T) {
 			"sanitization_basic_len.json",
 		},
 		{
-			&StatePolicy{
-				Player: map[string]GroupPolicy{
-					"Hand": GroupPolicy{
-						GroupOther: PolicyLen,
-					},
+			&sanitizationTestConfig{
+				Player: map[string]string{
+					"Hand": "len",
 				},
 			},
 			0,
@@ -117,23 +132,13 @@ func TestSanitization(t *testing.T) {
 			"sanitization_basic_len_player.json",
 		},
 		{
-			&StatePolicy{
-				Game: map[string]GroupPolicy{
-					"DrawDeck": GroupPolicy{
-						GroupAll: PolicyOrder,
-					},
-					"MyIntSlice": GroupPolicy{
-						GroupAll: PolicyOrder,
-					},
-					"MyBoolSlice": GroupPolicy{
-						GroupAll: PolicyOrder,
-					},
-					"MyStringSlice": GroupPolicy{
-						GroupAll: PolicyOrder,
-					},
-					"MyPlayerIndexSlice": GroupPolicy{
-						GroupAll: PolicyOrder,
-					},
+			&sanitizationTestConfig{
+				Game: map[string]string{
+					"DrawDeck":           "order",
+					"MyIntSlice":         "order",
+					"MyBoolSlice":        "order",
+					"MyStringSlice":      "order",
+					"MyPlayerIndexSlice": "order",
 				},
 			},
 			0,
@@ -141,11 +146,9 @@ func TestSanitization(t *testing.T) {
 			"sanitization_basic_order.json",
 		},
 		{
-			&StatePolicy{
-				Player: map[string]GroupPolicy{
-					"Hand": GroupPolicy{
-						GroupOther: PolicyOrder,
-					},
+			&sanitizationTestConfig{
+				Player: map[string]string{
+					"Hand": "order",
 				},
 			},
 			0,
@@ -153,41 +156,20 @@ func TestSanitization(t *testing.T) {
 			"sanitization_basic_order_player.json",
 		},
 		{
-			&StatePolicy{
-				Game: map[string]GroupPolicy{
-					"DrawDeck": GroupPolicy{
-						GroupAll: PolicyHidden,
-					},
-					"MyIntSlice": GroupPolicy{
-						GroupAll: PolicyHidden,
-					},
-					"MyBoolSlice": GroupPolicy{
-						GroupAll: PolicyHidden,
-					},
-					"MyStringSlice": GroupPolicy{
-						GroupAll: PolicyHidden,
-					},
-					"MyPlayerIndexSlice": GroupPolicy{
-						GroupAll: PolicyHidden,
-					},
-					"MyEnumValue": GroupPolicy{
-						GroupAll: PolicyHidden,
-					},
+			&sanitizationTestConfig{
+				Game: map[string]string{
+					"DrawDeck":           "hidden",
+					"MyIntSlice":         "hidden",
+					"MyBoolSlice":        "hidden",
+					"MyStringSlice":      "hidden",
+					"MyPlayerIndexSlice": "hidden",
+					"MyEnumValue":        "hidden",
 				},
-				Player: map[string]GroupPolicy{
-					"Hand": GroupPolicy{
-						GroupAll:  PolicyHidden,
-						GroupSelf: PolicyVisible,
-					},
-					"MovesLeftThisTurn": GroupPolicy{
-						GroupAll: PolicyHidden,
-					},
-					"IsFoo": GroupPolicy{
-						GroupAll: PolicyHidden,
-					},
-					"EnumVal": GroupPolicy{
-						GroupAll: PolicyHidden,
-					},
+				Player: map[string]string{
+					"Hand":              "all:hidden,self:visible",
+					"MovesLeftThisTurn": "all:hidden",
+					"IsFoo":             "all:hidden",
+					"EnumVal":           "all:hidden",
 				},
 			},
 			0,
@@ -195,28 +177,16 @@ func TestSanitization(t *testing.T) {
 			"sanitization_basic_hidden.json",
 		},
 		{
-			&StatePolicy{
-				Game: map[string]GroupPolicy{
-					"DrawDeck": GroupPolicy{
-						GroupAll: PolicyNonEmpty,
-					},
-					"MyIntSlice": GroupPolicy{
-						GroupAll: PolicyNonEmpty,
-					},
-					"MyBoolSlice": GroupPolicy{
-						GroupAll: PolicyNonEmpty,
-					},
-					"MyStringSlice": GroupPolicy{
-						GroupAll: PolicyNonEmpty,
-					},
-					"MyPlayerIndexSlice": GroupPolicy{
-						GroupAll: PolicyNonEmpty,
-					},
+			&sanitizationTestConfig{
+				Game: map[string]string{
+					"DrawDeck":           "nonempty",
+					"MyIntSlice":         "nonempty",
+					"MyBoolSlice":        "nonempty",
+					"MyStringSlice":      "nonempty",
+					"MyPlayerIndexSlice": "nonempty",
 				},
-				Player: map[string]GroupPolicy{
-					"Hand": GroupPolicy{
-						GroupAll: PolicyNonEmpty,
-					},
+				Player: map[string]string{
+					"Hand": "all:nonempty",
 				},
 			},
 			0,
@@ -224,12 +194,10 @@ func TestSanitization(t *testing.T) {
 			"sanitization_basic_nonempty.json",
 		},
 		{
-			&StatePolicy{
-				DynamicComponentValues: map[string]SubStatePolicy{
-					"test": SubStatePolicy{
-						"IntVar": GroupPolicy{
-							GroupAll: PolicyHidden,
-						},
+			&sanitizationTestConfig{
+				DynamicComponentValues: map[string]map[string]string{
+					"test": map[string]string{
+						"IntVar": "hidden",
 					},
 				},
 			},
@@ -238,18 +206,14 @@ func TestSanitization(t *testing.T) {
 			"sanitization_with_dynamic_state.json",
 		},
 		{
-			&StatePolicy{
-				DynamicComponentValues: map[string]SubStatePolicy{
-					"test": SubStatePolicy{
-						"IntVar": GroupPolicy{
-							GroupAll: PolicyHidden,
-						},
+			&sanitizationTestConfig{
+				DynamicComponentValues: map[string]map[string]string{
+					"test": map[string]string{
+						"IntVar": "hidden",
 					},
 				},
-				Player: SubStatePolicy{
-					"Hand": GroupPolicy{
-						GroupOther: PolicyHidden,
-					},
+				Player: map[string]string{
+					"Hand": "hidden",
 				},
 			},
 			1,
@@ -257,16 +221,12 @@ func TestSanitization(t *testing.T) {
 			"sanitization_with_dynamic_state_sanitized.json",
 		},
 		{
-			&StatePolicy{
-				Game: SubStatePolicy{
-					"DrawDeck": GroupPolicy{
-						GroupAll: PolicyLen,
-					},
+			&sanitizationTestConfig{
+				Game: map[string]string{
+					"DrawDeck": "len",
 				},
-				Player: SubStatePolicy{
-					"Hand": GroupPolicy{
-						GroupOther: PolicyLen,
-					},
+				Player: map[string]string{
+					"Hand": "len",
 				},
 			},
 			0,
@@ -275,7 +235,7 @@ func TestSanitization(t *testing.T) {
 		},
 	}
 
-	game := manager.NewGame()
+	game := testGame()
 
 	makeTestGameIdsStable(game)
 
@@ -285,7 +245,7 @@ func TestSanitization(t *testing.T) {
 
 		assert.For(t).ThatActual(err).IsNil()
 
-		state, err := manager.stateFromRecord(inputBlob)
+		state, err := game.manager.stateFromRecord(inputBlob)
 
 		if !assert.For(t).ThatActual(err).IsNil().Passed() {
 			log.Println(test.inputFileName)
@@ -296,7 +256,7 @@ func TestSanitization(t *testing.T) {
 
 		assert.For(t).ThatActual(err).IsNil()
 
-		manager.delegate.(*testSanitizationDelegate).policy = test.policy
+		test.policy.Install(game.Manager())
 
 		sanitizedState := state.SanitizedForPlayer(test.playerIndex)
 
