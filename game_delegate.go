@@ -126,7 +126,8 @@ type GameDelegate interface {
 	//each prop in the state, including the set of groups that this player is
 	//a mamber of. In practice the default behavior of DefaultGameDelegate,
 	//which uses struct tags to figure out the policy, is sufficient and you
-	//do not need to override this.
+	//do not need to override this. For more on how sanitization works, see
+	//the package doc.
 	SanitizationPolicy(prop StatePropertyRef, groupMembership map[int]bool) Policy
 
 	//ComputedPropertiesConfig returns a pointer to the config for how
