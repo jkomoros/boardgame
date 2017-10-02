@@ -242,17 +242,18 @@ poker,the other players should not know the two hidden cards in your hand.
 boardgame handles this with a notion of sanitization. When preparing a state
 object to be sent to a client, it is possible to get a sanitized version of
 the state with GameManager.SanitizedStateForPlayer(index). This will sanitize
-certain fields according to a policy that your Delegate defines in
-StateSanitizationPolicy. The result is a copy of the input state, with the
-various fields obscured, and which will have Sanitized() return true. All of
-the fields will always have the same "shape" as before (e.g. GrowableStacks
-will not be reduced to an int), but will have key properties changed so that
-less information can be recovered.
+certain fields according to a policy that your Delegate implicitly defines
+based on what it returns from SanitizationPolicy calls. The result is a copy
+of the input state, with the various fields obscured, and which will have
+Sanitized() return true. All of the fields will always have the same "shape"
+as before (e.g. GrowableStacks will not be reduced to an int), but will have
+key properties changed so that less information can be recovered.
 
-The policy for a game will never change during the course of the game; it is
-tied to which player the state is being prepared for, which key we are
-considering, and which groups the various players are in. The same policy will
-be applied to each PlayerState in the State; use Groups to change the behavior.
+SanitizationPolicy is defined in a way that doesn't allow the State to be
+inspected, which means that that the policy is fixed throughout the game. The
+specific Policy to return is a function of which property of which SubState is
+being considered, which player the state is being prepared for, and which
+"Groups" each PlayerState is in.
 
 boardgame has no notion of who is who; it will generate a SanitizedState for
 whomever you request. Other packages, like Server, keep track of which person
@@ -266,33 +267,57 @@ For basic types (e.g. int, string, bool), these are the only two policies. For
 those property types, any Policy other than PolicyVisible or PolicyRandom
 behaves like PolicyHidden.
 
-Groups (e.g. SizedStacks and GrowableStacks) have a few extra policies.
-PolicyLen will obscure the group so that the number of items is clear, but all
-elements will be replaced by the Deck's GenericComponent. PolicyNonEmpty is
-similar to PolicyLen, but if the real Stack has 1 or more components, the
-output result will have a single GenericComponent. This allows you to observe
-whether the stack was empty or not, but not anything about how many components
-it had. PolicyOrder replaces each Component with a stable but obscured
-ShadowComponent, so that observes can keep track of the lenght, and when
-components swithc orders in the stack, but not what the underlying components
-are.
+Stacks and slice-based properties (e.g. SizedStacks and GrowableStacks) have a
+few extra policies. PolicyLen will obscure the group so that the number of
+items is clear, but all elements will be replaced by the Deck's
+GenericComponent. PolicyNonEmpty is similar to PolicyLen, but if the real
+Stack has 1 or more components, the output result will have a single
+GenericComponent. This allows you to observe whether the stack was empty or
+not, but not anything about how many components it had. PolicyOrder replaces
+each Component with a stable but obscured ShadowComponent, so that observes
+can keep track of the lenght, and when components switch orders in the stack,
+but not what the underlying components are.
 
-To compute the effective policy for a given property, we have to consider the
-Groups. Conceptually there are a number of groups, which define which players
-are in or out of each one. In the future there will be a way to define group
-membership that can be modified just like any other part of the state. At this
-point there are three special groups.  Every player is a member of GroupAll.
-GroupSelf is the group that only the player who the state is being prepared
-for is in. GroupOther contains all players who the state is not being prepared
-for.
+DefaultGameDelegate's SanitizationPolicy is configured in a way that is almost
+always sufficient, but its behavior can be overridden if absolutely
+neceassary. It uses struct tags on your state objects to figure out which
+properties to sanitize. Like tag-based auto-inflation (see below), the struct
+tags are read via reflection once and then later can be applied without
+reflection.
 
-Policies contain GroupPolicies for each key in Game and State. GroupPolicies
-are a map of Group ID to the effective policy. When preparing a sanitized
-state for a given property, we to through each group/policy pair in the
-GroupPolicy. We collect each policy where the player that the state is being
-prepared for is in. Then the effective policy is the *least* restrictive
-policy that applies. In practice this means that policies like
-GroupAll:PolicyLen, GroupSelf:PolicyVisible make sense to do.
+By default, properties are not sanitized (that is, their effective policy is
+PolicyVisible). Properties that have a sanitize tag will have that policy
+applied. For example, a tag of `sanitize:"order"` would apply the PolicyOrder
+policy for that property. For GameStates and DynamicComponentValue properties,
+that policy will be returned for all players. For PlayerStates, those policies
+will by default be returned only when the player state being considered is not
+the same as the player index the state is being prepared for. This means that
+for example a Stack with `sanitize:"order"` will hide the contents of the
+stack for every other player, but each specific player will be able to see
+their own cards. This behavior is almost always what you want.
+
+However, it is possible to have more specific control over how this
+calculation works by using the more general form of the struct tags. There is
+a notion of Groups, which a given player can be in or out of. This group
+membership is passsed to the method that considers which policy to return.
+There are three default groups. GroupAll always applies to every player.
+GroupOther applies to players who are not the player the state is being
+created for. And GroupSelf applies to players who are the player the state is
+being created for. In general, the sanitization struct tags have the form
+`sanitize:"all:other"`, where the item before the colon is the group and the
+item after is the policy for that group. For GameState and
+DynamicComponentValues, if the group name is omitted, it is considered to be
+GroupAll. For PlayerStates, if the group is omitted, it is considered to be
+GroupOther. In the future it will be possible to define your own groups, whose
+membership can change over the course of the game.
+
+It is also possible (though much more rare) to have the struct tags operate
+over multiple groups, with each group section separated by a comma, e.g.
+`sanitize:"other:hidden,self:len"`. When multiple groups are provided, the
+LEAST restrictive policy that matches is what is returned.
+
+DynamicComponentValues have slightly more complex visibility behavior,
+described in detail in that section.
 
 Sanitization Policies by default control whether the value and identity of a
 given component can be known at any given time. However, in many cases the
