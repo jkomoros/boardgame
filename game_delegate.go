@@ -122,11 +122,6 @@ type GameDelegate interface {
 	ComputedGlobalPropertyCollectionConstructor() MutableSubState
 	ComputedPlayerPropertyCollectionConstructor() MutableSubState
 
-	//StateSanitizationPolicy returns the policy for sanitizing states in this
-	//game. The policy should not change over time. See StatePolicy for more
-	//on how sanitization policies are calculated and applied.
-	StateSanitizationPolicy() *StatePolicy
-
 	//SanitizationPolicy is consulted when sanitizing states. It is called for
 	//each prop in the state, including the set of groups that this player is
 	//a mamber of. In practice the default behavior of DefaultGameDelegate,
@@ -247,10 +242,6 @@ func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state State, c *
 	//was a component in the deck. And if we didn't store it in a stack, then
 	//we are in violation of the invariant.
 	return nil, errors.New("DistributeComponentToStarterStack was called, but the component was not stored in a stack")
-}
-
-func (d *DefaultGameDelegate) StateSanitizationPolicy() *StatePolicy {
-	return nil
 }
 
 //SanitizatinoPolicy uses struct tags to identify the right policy to apply

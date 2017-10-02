@@ -205,32 +205,6 @@ func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) {
 	game.DrawStack.Shuffle()
 }
 
-var policy *boardgame.StatePolicy
-
-func (g *gameDelegate) StateSanitizationPolicy() *boardgame.StatePolicy {
-
-	if policy == nil {
-		policy = &boardgame.StatePolicy{
-			Player: map[string]boardgame.GroupPolicy{
-				"HiddenHand": {
-					boardgame.GroupOther: boardgame.PolicyLen,
-				},
-			},
-			Game: map[string]boardgame.GroupPolicy{
-				"DiscardStack": {
-					boardgame.GroupAll: boardgame.PolicyLen,
-				},
-				"DrawStack": {
-					boardgame.GroupAll: boardgame.PolicyLen,
-				},
-			},
-		}
-	}
-
-	return policy
-
-}
-
 func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) {
 	chest := boardgame.NewComponentChest(nil)
 

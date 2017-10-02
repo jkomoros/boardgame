@@ -50,11 +50,11 @@ type State interface {
 	Sanitized() bool
 	//Computed returns the computed properties for this state.
 	Computed() ComputedProperties
-	//SanitizedForPlayer produces a copy state object that has been sanitized for
-	//the player at the given index. The state object returned will have
-	//Sanitized() return true. Will call GameDelegate.StateSanitizationPolicy to
-	//retrieve the policy in place. See the package level comment for an overview
-	//of how state sanitization works.
+	//SanitizedForPlayer produces a copy state object that has been sanitized
+	//for the player at the given index. The state object returned will have
+	//Sanitized() return true. Will call GameDelegate.SanitizationPolicy to
+	//construct the effective policy to apply. See the package level comment
+	//for an overview of how state sanitization works.
 	SanitizedForPlayer(player PlayerIndex) State
 
 	//Game is the Game that this state is part of. Calling

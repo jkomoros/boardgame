@@ -99,39 +99,6 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 	return "Not implemented"
 }
 
-var policy *boardgame.StatePolicy
-
-func (g *gameDelegate) StateSanitizationPolicy() *boardgame.StatePolicy {
-
-	if policy == nil {
-		policy = &boardgame.StatePolicy{
-			Game: map[string]boardgame.GroupPolicy{
-				"DrawStack": {
-					boardgame.GroupAll: boardgame.PolicyOrder,
-				},
-				"HiddenCard": {
-					boardgame.GroupAll: boardgame.PolicyOrder,
-				},
-				"FirstShortStack": {
-					boardgame.GroupAll: boardgame.PolicyOrder,
-				},
-				"SecondShortStack": {
-					boardgame.GroupAll: boardgame.PolicyOrder,
-				},
-				"FanDiscard": {
-					boardgame.GroupAll: boardgame.PolicyOrder,
-				},
-				"HiddenStack": {
-					boardgame.GroupAll: boardgame.PolicyNonEmpty,
-				},
-			},
-		}
-	}
-
-	return policy
-
-}
-
 func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, winners []boardgame.PlayerIndex) {
 	//This debug game is never finished
 	return false, nil

@@ -174,24 +174,6 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 	return strings.Join(result, "\n")
 }
 
-var policy *boardgame.StatePolicy
-
-func (g *gameDelegate) StateSanitizationPolicy() *boardgame.StatePolicy {
-
-	if policy == nil {
-		policy = &boardgame.StatePolicy{
-			Game: map[string]boardgame.GroupPolicy{
-				"HiddenCards": {
-					boardgame.GroupAll: boardgame.PolicyOrder,
-				},
-			},
-		}
-	}
-
-	return policy
-
-}
-
 func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, winners []boardgame.PlayerIndex) {
 	game, players := concreteStates(state)
 

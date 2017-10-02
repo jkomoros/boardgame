@@ -4,23 +4,10 @@ import (
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/errors"
 	"hash/fnv"
-	"math"
 	"math/rand"
 	"strconv"
 	"strings"
 )
-
-//StatePolicy defines a sanitization policy for a State object. In particular,
-//it defines a policy for the Game state, and a single, fixed policy for all
-//Player states, and a policy for each deck whose components have Dynamic
-//State. Each string returns the policy for the property with that name in
-//that sub-state object. Properties with no corresponding policy are
-//effectively PolicyNoOp for all groups.
-type StatePolicy struct {
-	Game                   SubStatePolicy
-	Player                 SubStatePolicy
-	DynamicComponentValues map[string]SubStatePolicy
-}
 
 //sanitizationTransformation contains which policy to apply for every property
 //in the state. Missing properties will be treated as PolicyVisible.
@@ -48,17 +35,6 @@ const (
 	//restrictive policy.
 	GroupAll = -3
 )
-
-//SubStatePolicy is a sanitization policy for a sub-part of a State, for
-//example a Game or Player.
-type SubStatePolicy map[string]GroupPolicy
-
-//A group Santization policy represents all of the various policies that apply
-//depending on whether the player we're preparing the state for is a member of
-//the given group. To calculate the effective policy, we first collect all
-//Policies that apply to the given player, based on their group membership,
-//and then applied the *least* restrictive one.
-type GroupPolicy map[int]Policy
 
 //A sanitization policy reflects how to tranform a given State property when
 //presenting to someone outside of the target group.
@@ -287,147 +263,6 @@ func (s *state) applySanitizationTransformation(transformation *sanitizationTran
 
 }
 
-//sanitizedWithExceptions will return a Sanitized() State where properties
-//that are not in the passed policy are treated as PolicyRandom. Useful in
-//computing properties.
-func (s *state) deprecatedSanitizedWithDefault(policy *StatePolicy, playerIndex PlayerIndex, defaultPolicy Policy) (State, error) {
-
-	sanitized := s.copy(true)
-
-	//We need to figure out which components that have dynamicvalues are
-	//visible after sanitizing game and player states. We'll have
-	//sanitizeStateObj tell us which ones are visible, and which player's
-	//state they're visible through, by accumulating the information in
-	//visibleDyanmicComponents.
-	visibleDynamicComponents := make(map[string]map[int]PlayerIndex)
-
-	for deckName, _ := range s.dynamicComponentValues {
-		visibleDynamicComponents[deckName] = make(map[int]PlayerIndex)
-	}
-
-	err := deprecatedSanitizeStateObj(sanitized.gameState.ReadSetter(), policy.Game, AdminPlayerIndex, playerIndex, defaultPolicy, visibleDynamicComponents)
-
-	if err != nil {
-		return nil, errors.Extend(err, "Couldn't sanitize game state")
-	}
-
-	playerStates := sanitized.playerStates
-
-	for i := 0; i < len(playerStates); i++ {
-		err = deprecatedSanitizeStateObj(playerStates[i].ReadSetter(), policy.Player, PlayerIndex(i), playerIndex, defaultPolicy, visibleDynamicComponents)
-		if err != nil {
-			return nil, errors.Extend(err, "Couldn't sanitize player state number "+strconv.Itoa(i))
-		}
-	}
-
-	//Some of the DynamicComponentValues that were marked as visible might
-	//have their own stacks with dynamic values that are visible, so we need
-	//to go through and mark those, too..
-	deprecatedTransativelyMarkDynamicComponentsAsVisible(sanitized.dynamicComponentValues, visibleDynamicComponents)
-
-	//Now that all dynamic components are marked, we need to go through and
-	//sanitize all of those objects according to the policy.
-
-	shouldRandomizeCompontentValues := false
-
-	if defaultPolicy == PolicyRandom {
-		shouldRandomizeCompontentValues = true
-	}
-
-	if err := deprecatedSanitizeDynamicComponentValues(sanitized.dynamicComponentValues, visibleDynamicComponents, policy.DynamicComponentValues, playerIndex, shouldRandomizeCompontentValues); err != nil {
-		return nil, errors.Extend(err, "Couldn't sanitize dyanmic component values")
-	}
-
-	return sanitized, nil
-
-}
-
-func (s *StatePolicy) valid() error {
-
-	if s == nil {
-		return nil
-	}
-
-	//Sholud these helpers just be methods on StatePolicy and its children?
-
-	if s.Game != nil {
-		if err := s.Game.valid(); err != nil {
-			return errors.Extend(err, "Game policy was invalid")
-		}
-	}
-
-	if s.Player != nil {
-		if err := s.Player.valid(); err != nil {
-			return errors.Extend(err, "Player policy was invalid")
-		}
-	}
-
-	if s.DynamicComponentValues != nil {
-		for name, subPolicy := range s.DynamicComponentValues {
-			if err := subPolicy.valid(); err != nil {
-				return errors.Extend(err, "DynamicComponentValues policy for "+name+"was invalid")
-			}
-		}
-	}
-
-	return nil
-
-}
-
-func (s SubStatePolicy) valid() error {
-	if s == nil {
-		return nil
-	}
-
-	for prop, group := range s {
-		if err := group.valid(); err != nil {
-			return errors.Extend(err, "Property "+prop+" was invalid")
-		}
-	}
-
-	return nil
-}
-
-func (g GroupPolicy) valid() error {
-	if g == nil {
-		return nil
-	}
-
-	for groupNumber, policy := range g {
-
-		switch groupNumber {
-		case GroupAll:
-			//Fine
-		case GroupSelf:
-			//Fine
-		case GroupOther:
-			//Fine
-		default:
-			return errors.New("GroupNumber was not legal: " + strconv.Itoa(groupNumber))
-		}
-
-		switch policy {
-		case PolicyVisible:
-			//Fine
-		case PolicyOrder:
-			//Fine
-		case PolicyLen:
-			//Fine
-		case PolicyNonEmpty:
-		//Fine
-		case PolicyHidden:
-			//Fine
-		case PolicyRandom:
-			//Fine
-		default:
-			return errors.New("Policy was not legal: " + strconv.Itoa(int(policy)))
-		}
-
-	}
-
-	return nil
-}
-
 //statePlayerIndex is the index of the PlayerState that we're working on (-1
 //for Game). preparingForPlayerIndex is the index that we're preparing the
 //overall santiized state for, as provied to
@@ -465,53 +300,6 @@ func sanitizeStateObj(readSetter PropertyReadSetter, transformation subStateSani
 		}
 
 		readSetter.SetProp(propName, applyPolicy(policy, prop, propType))
-	}
-
-	return nil
-
-}
-
-//statePlayerIndex is the index of the PlayerState that we're working on (-1
-//for Game). preparingForPlayerIndex is the index that we're preparing the
-//overall santiized state for, as provied to
-//GameManager.SanitizedStateForPlayer()
-func deprecatedSanitizeStateObj(readSetter PropertyReadSetter, policy SubStatePolicy, statePlayerIndex PlayerIndex, preparingForPlayerIndex PlayerIndex, defaultPolicy Policy, visibleDynamic map[string]map[int]PlayerIndex) error {
-
-	for propName, propType := range readSetter.Props() {
-		prop, err := readSetter.Prop(propName)
-
-		if err != nil {
-			return errors.Extend(err, propName+" had an error")
-		}
-
-		effectivePolicy, err := deprecatedCalculateEffectivePolicy(prop, propType, policy[propName], statePlayerIndex, preparingForPlayerIndex, defaultPolicy)
-
-		if err != nil {
-			return errors.Extend(err, "Couldn't calculate effective policy")
-		}
-
-		if effectivePolicy == PolicyInvalid {
-			return errors.New("Effective policy computed to PolicyInvalid")
-		}
-
-		if visibleDynamic != nil {
-			if propType == TypeGrowableStack || propType == TypeSizedStack {
-				if effectivePolicy == PolicyVisible {
-					stackProp := prop.(Stack)
-					if _, ok := visibleDynamic[stackProp.deck().Name()]; ok {
-						for _, c := range stackProp.Components() {
-							if c == nil {
-								continue
-							}
-							visibleDynamic[c.Deck.Name()][c.DeckIndex] = statePlayerIndex
-						}
-					}
-
-				}
-			}
-		}
-
-		readSetter.SetProp(propName, applyPolicy(effectivePolicy, prop, propType))
 	}
 
 	return nil
@@ -585,74 +373,6 @@ func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[strin
 	}
 }
 
-func deprecatedTransativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[string][]MutableSubState, visibleComponents map[string]map[int]PlayerIndex) {
-
-	//All dynamic component values are hidden, except for ones that currently
-	//reside in stacks that have resolved to being Visible based on this
-	//current sanitization configuration. However, DynamicComponents may
-	//themselves have stacks that reference other dynamic components. This
-	//method effectively "spreads out" the visibility from visible dynamic
-	//compoonents to other ones they point to.
-
-	//TODO: TEST THIS!
-
-	type workItem struct {
-		deckName  string
-		deckIndex int
-	}
-
-	var workItems []workItem
-
-	//Fill the list of items to work through with all visible items.
-
-	for deckName, visibleItems := range visibleComponents {
-		for index, _ := range visibleItems {
-			workItems = append(workItems, workItem{deckName, index})
-		}
-	}
-
-	//We can't use range because we will be adding more items to it as we go.
-
-	for i := 0; i < len(workItems); i++ {
-		item := workItems[i]
-
-		playerIndex := visibleComponents[item.deckName][item.deckIndex]
-		values := dynamicComponentValues[item.deckName][item.deckIndex]
-
-		reader := values.Reader()
-
-		for propName, propType := range reader.Props() {
-			if propType != TypeGrowableStack && propType != TypeSizedStack {
-				continue
-			}
-			prop, err := reader.Prop(propName)
-
-			if err != nil {
-				continue
-			}
-
-			stackProp := prop.(Stack)
-
-			if _, ok := dynamicComponentValues[stackProp.deck().Name()]; !ok {
-				//This stack is for a deck that has no dynamic values, can skip.
-				continue
-			}
-
-			//Ok, if we get to here then we have a stack with items in a deck that does have dynamic values.
-			for _, c := range stackProp.Components() {
-				if c == nil {
-					continue
-				}
-				//There can't possibly be a collision because each component may only be in a single stack at a time.
-				visibleComponents[c.Deck.Name()][c.DeckIndex] = playerIndex
-				//Take note that there's another item to add to the queue to explore.
-				workItems = append(workItems, workItem{c.Deck.Name(), c.DeckIndex})
-			}
-		}
-
-	}
-}
-
 func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]MutableSubState, visibleComponents map[string]map[int]bool, transformation map[string]subStateSanitizationTransformation) error {
 
 	for name, slice := range dynamicComponentValues {
@@ -687,92 +407,6 @@ func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]MutableS
 	}
 	return nil
 
-}
-
-func deprecatedSanitizeDynamicComponentValues(dynamicComponentValues map[string][]MutableSubState, visibleComponents map[string]map[int]PlayerIndex, dynamicPolicy map[string]SubStatePolicy, preparingForPlayerIndex PlayerIndex, isRandom bool) error {
-
-	for name, slice := range dynamicComponentValues {
-
-		visibleDynamicDeck := visibleComponents[name]
-
-		for i, value := range slice {
-
-			readSetter := value.ReadSetter()
-
-			if player, visible := visibleDynamicDeck[i]; visible {
-
-				//The fact that we do such different things here seems like a bug in how we've structed these methods?
-				if isRandom {
-					if err := deprecatedSanitizeStateObj(readSetter, dynamicPolicy[name], player, preparingForPlayerIndex, PolicyRandom, nil); err != nil {
-						return errors.Extend(err, "Couldn't sanitize random dynamic component")
-					}
-				} else {
-					if err := deprecatedSanitizeStateObj(readSetter, dynamicPolicy[name], player, preparingForPlayerIndex, PolicyVisible, nil); err != nil {
-						return errors.Extend(err, "Couldn't sanitize non-random dynamic component")
-					}
-				}
-
-			} else {
-				//Make it a hidden
-
-				for propName, propType := range readSetter.Props() {
-					prop, err := readSetter.Prop(propName)
-
-					if err != nil {
-						continue
-					}
-
-					if isRandom {
-						readSetter.SetProp(propName, applyPolicy(PolicyRandom, prop, propType))
-					} else {
-						readSetter.SetProp(propName, applyPolicy(PolicyHidden, prop, propType))
-					}
-				}
-			}
-		}
-	}
-	return nil
-
-}
-
-func deprecatedCalculateEffectivePolicy(prop interface{}, propType PropertyType, policyGroup GroupPolicy, statePlayerIndex PlayerIndex, preparingForPlayerIndex PlayerIndex, defaultPolicy Policy) (Policy, error) {
-
-	//We're going to collect all of the policies that apply.
-	var applicablePolicies []Policy
-
-	for group, policy := range policyGroup {
-		policyApplies := false
-		switch group {
-		case GroupSelf:
-			policyApplies = (statePlayerIndex == preparingForPlayerIndex)
-		case GroupOther:
-			policyApplies = (statePlayerIndex != preparingForPlayerIndex)
-		case GroupAll:
-			policyApplies = true
-		default:
-			//In the future we'll interrogate whether the given group index is
-			//in the specified property at this point.
-			return PolicyVisible, errors.New("Unknown policy: " + strconv.Itoa(int(policy)))
-		}
-		if policyApplies {
-			applicablePolicies = append(applicablePolicies, policy)
-		}
-	}
-
-	//Now calculate the LEAST restrictive of the policies that apply.
-	effectivePolicy := PolicyVisible
-	if len(applicablePolicies) > 0 {
-		effectivePolicy = Policy(math.MaxInt64)
-		for _, policy := range applicablePolicies {
-			if policy < effectivePolicy {
-				effectivePolicy = policy
-			}
-		}
-	} else {
-		effectivePolicy = defaultPolicy
-	}
-
-	return effectivePolicy, nil
 }
 
 func randomBool() bool {
