@@ -120,32 +120,44 @@ type computedPropertiesImpl struct {
 	players []MutableSubState
 }
 
-func policyForDependencies(dependencies []StatePropertyRef) *StatePolicy {
-	result := &StatePolicy{
-		Game:                   make(SubStatePolicy),
-		Player:                 make(SubStatePolicy),
-		DynamicComponentValues: make(map[string]SubStatePolicy),
+func transformationForDependencies(state *state, dependencies []StatePropertyRef) *sanitizationTransformation {
+	result := &sanitizationTransformation{}
+
+	result.Game = basicTransformationForDepenencies(state.GameState().Reader())
+
+	result.Players = make([]subStateSanitizationTransformation, len(state.playerStates))
+
+	for i, playerState := range state.playerStates {
+		result.Players[i] = basicTransformationForDepenencies(playerState.Reader())
 	}
+
+	result.DynamicComponentValues = make(map[string]subStateSanitizationTransformation)
+
+	for deckName, deckValues := range state.dynamicComponentValues {
+		result.DynamicComponentValues[deckName] = basicTransformationForDepenencies(deckValues[0].Reader())
+	}
+
 	for _, dependency := range dependencies {
 		if dependency.Group == StateGroupGame {
-			result.Game[dependency.PropName] = GroupPolicy{
-				GroupAll: PolicyVisible,
-			}
+			result.Game[dependency.PropName] = PolicyVisible
 		} else if dependency.Group == StateGroupPlayer {
-			result.Player[dependency.PropName] = GroupPolicy{
-				GroupAll: PolicyVisible,
+			for i := 0; i < len(result.Players); i++ {
+				result.Players[i][dependency.PropName] = PolicyVisible
 			}
 		} else if dependency.Group == StateGroupDynamicComponentValues {
-			if _, ok := result.DynamicComponentValues[dependency.DeckName]; !ok {
-				result.DynamicComponentValues[dependency.DeckName] = make(SubStatePolicy)
-			}
-			policy := result.DynamicComponentValues[dependency.DeckName]
-			policy[dependency.PropName] = GroupPolicy{
-				GroupAll: PolicyVisible,
-			}
+			result.DynamicComponentValues[dependency.DeckName][dependency.PropName] = PolicyVisible
 		}
 	}
 
+	return result
+}
+
+//Creates a transformation that sets each property to Random.
+func basicTransformationForDepenencies(reader PropertyReader) subStateSanitizationTransformation {
+	result := make(subStateSanitizationTransformation)
+	for propName, _ := range reader.Props() {
+		result[propName] = PolicyRandom
+	}
 	return result
 }
 
@@ -346,9 +358,9 @@ func (c *ComputedGlobalPropertyDefinition) compute(state *state) (interface{}, e
 
 	//First, prepare a shadow state with all of the dependencies.
 
-	policy := policyForDependencies(c.Dependencies)
+	transformation := transformationForDependencies(state, c.Dependencies)
 
-	sanitized, err := state.deprecatedSanitizedWithDefault(policy, -1, PolicyRandom)
+	sanitized, err := state.applySanitizationTransformation(transformation)
 
 	if err != nil {
 		return nil, errors.Extend(err, "Couldn't create randomized state for globals")
@@ -360,9 +372,9 @@ func (c *ComputedGlobalPropertyDefinition) compute(state *state) (interface{}, e
 
 func (c *ComputedPlayerPropertyDefinition) compute(state *state, playerIndex PlayerIndex) (interface{}, error) {
 
-	policy := policyForDependencies(c.Dependencies)
+	transformation := transformationForDependencies(state, c.Dependencies)
 
-	sanitized, err := state.deprecatedSanitizedWithDefault(policy, -1, PolicyRandom)
+	sanitized, err := state.applySanitizationTransformation(transformation)
 
 	if err != nil {
 		return nil, errors.Extend(err, "Couldn't create randomized state for players")
