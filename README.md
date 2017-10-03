@@ -842,7 +842,28 @@ This means the primary thing you have to implement for the client-side portion
 of your game is a web component that takes a state bundle for your game and
 stamps out views for it, referred to as a **renderer**.
 
-#### Users vs Players (roles and responsibilities of server and core engine)
+#### Aside: Users vs Players
+
+The core game engine doesn't keep track of which player is which--it will make
+any move on behalf of any player that it is instructed to. It is up to the
+server to keep track of who is who and who is allowed to make moves on behalf of
+whom.
+
+The server has a notion of **users**. A user is a particular person, who might
+be a Player in 0 or more games. Each player in each game the server controls has
+a User that is associated. The user is authenticated via their Google identity,
+or via a username/password pair specific to your webapp. A user might have a
+display name and a picture, which will be displayed in the scoreboard on any
+game they're playing.
+
+The server makes sure to authenticate every incoming modification request and
+verify that the user has permission to play as that player. (This gets
+complicated if the user has admin privileges and wants to make a move on behalf
+of another player).
+
+All of this is handled for you automatically. The main thing to know is that the
+server contains a significant amount of logic on top of the core game engine to
+manage these kinds of concepts and security.
 
 ### Renderers
 
