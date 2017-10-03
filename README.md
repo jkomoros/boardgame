@@ -753,6 +753,58 @@ Policy, without the Policy keyword, e.g. "visible", "order", "len".
 
 #### Worked example
 
+In most cases, applying a policy is as simple as adding a struct tag to any fields that should not default to PolicyVisible.
+
+Memory's states are defined as follows:
+
+```
+//+autoreader
+type gameState struct {
+	CurrentPlayer  boardgame.PlayerIndex
+	HiddenCards    *boardgame.SizedStack `sanitize:"order"`
+	RevealedCards  *boardgame.SizedStack
+	HideCardsTimer *boardgame.Timer
+}
+
+//+autoreader
+type playerState struct {
+	playerIndex       boardgame.PlayerIndex
+	CardsLeftToReveal int
+	WonCards          *boardgame.GrowableStack `stack:"cards"`
+}
+```
+
+HiddenCards is the only stack that is sanitized; everything else is fully visible.
+
+That's not a particularly interesting example. Here's the states for blackjack:
+
+```
+//+autoreader
+type gameState struct {
+	DiscardStack  *boardgame.GrowableStack `stack:"cards" sanitize:"len"`
+	DrawStack     *boardgame.GrowableStack `stack:"cards" sanitize:"len"`
+	UnusedCards   *boardgame.GrowableStack `stack:"cards"`
+	CurrentPlayer boardgame.PlayerIndex
+}
+
+//+autoreader
+type playerState struct {
+	playerIndex    boardgame.PlayerIndex
+	GotInitialDeal bool
+	HiddenHand     *boardgame.GrowableStack `stack:"cards,1" sanitize:"len"`
+	VisibleHand    *boardgame.GrowableStack `stack:"cards"`
+	Busted         bool
+	Stood          bool
+}
+```
+
+As you can see, both the draw stack and the discard stack are hidden (via
+PolicyLen), and the hidden portion of each player's hand is also hidden. (Note
+that blackjack also uses the same pattern that memory does with a separate
+Hidden and Revealed hand, since some of the cards in the hand are hidden.) In
+these cases PolicyLen and PolicyOrder are effectively equivalent, because the
+order of the cards in those stacks never change anyway.
+
 ### Renderers / Client
 *TODO*
 
