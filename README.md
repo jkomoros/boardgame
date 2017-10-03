@@ -728,7 +728,7 @@ By default, the policy you apply for GameStates and DynamicComponentValues apply
 
 This behavior can be overridden in more detail by being more explicit about which groups the policies apply to and also by defining policies for multiple groups. For more on that, see the package doc. In almost all cases the default behavior is sufficient.
 
-#### Aside: Ids
+As an aside, sanitization is actually a bit more involved than it looks originally, because it must be possible for the client to know which components in two different states are the "same" in order to do animations of items as they move from stack to stack between states--even if the stacks themselves are sanitized. This concept is referrred to as "Ids". In general everything should just work as you expect automatically. If you want to learn more, refer to the Sanitization section of the package doc.
 
 #### Policies in Detail
 
