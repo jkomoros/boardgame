@@ -805,10 +805,52 @@ Hidden and Revealed hand, since some of the cards in the hand are hidden.) In
 these cases PolicyLen and PolicyOrder are effectively equivalent, because the
 order of the cards in those stacks never change anyway.
 
-### Renderers / Client
-*TODO*
+That's a whirlwind tour of the core concepts that you'll need to know to
+implement just about any game. There are other concepts that are useful in some
+cases, but we'll get to those later. For now, we'll turn to how the core logic
+of your game is turned into a visible, interactive game within a web app.
+
+### Client Architecture
+
+As mentioned earlier, the web app is split into two: a REST-ful API server where
+all of the game logic is conducted (effectively, the logic that we just
+described how to define above), and the single-page-app (SPA) webapp that
+interacts with that REST endpoint and creates an interactive web app.
+
+The web app itself is very generic and implemented as a collection of web
+components. With no additional configuration it makes it possible for users to
+create and manage games that are configured on this server instance, treating
+them all the same.
+
+When a user visits a URL to view a specific game, the web app fetches the meta-
+information for the game (including who is playing in it), and the current
+bundle of state. The server then imports the web-component for the renderer for
+your specific game (at a known location and name), instantiates it, and passes
+the state bundle to it to render.
+
+The client then creates a WebSocket so it will be notified when new versions of
+the state are available, at which point it will fetch the state and pass it to
+your renderer so it can update its view. It also listens for events that your
+renderer emits that instruct the engine to propose a particular move on the
+game, which is then forwarded to the server, which decides whether or not it is
+legal.
+
+Other features, like the score board, admin controls and debug information (for
+users who have admin privileges) and more are all automatically configured.
+
+This means the primary thing you have to implement for the client-side portion
+of your game is a web component that takes a state bundle for your game and
+stamps out views for it, referred to as a **renderer**.
 
 #### Users vs Players (roles and responsibilities of server and core engine)
+
+### Renderers
+
+#### location of renderers
+
+#### render-game
+
+#### player-info
 
 ## Other important concepts
 
