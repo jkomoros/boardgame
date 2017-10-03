@@ -732,9 +732,26 @@ As an aside, sanitization is actually a bit more involved than it looks original
 
 #### Policies in Detail
 
+The following policies are available:
+
+| Policy         | Description                                                                                           |
+|----------------|-------------------------------------------------------------------------------------------------------|
+| PolicyVisible  | Visible is effectively no transformation                                                              |
+| PolicyOrder    | PolicyOrder is similar to PolicyLen, but the order of components is observable                        |
+| PolicyLen      | PolicyLen makes it so it's only possible to see the length of a stack, not its order.                 |
+| PolicyNonEmpty | PolicyNonEmpty makes it so it's only possible to tell if a stack had 0 items in it or more than zero. |
+| PolicyHidden   | PolicyHidden is the most restrictive; stacks look entirely empty.                                     |
+
+Different policies will lead to different animations automatically occurring in
+the client. Typically you want PolicyLen for any large stacks, like Draw decks
+in a game, and PolicyOrder for shorter stacks, like a player's Hand, where an
+astute observer would be able to keep track of how a given player reorganized
+their cards in their hand.
+
+When using struct-tag based policies, the string to use is the name of the
+Policy, without the Policy keyword, e.g. "visible", "order", "len".
+
 #### Worked example
-
-
 
 ### Renderers / Client
 *TODO*
