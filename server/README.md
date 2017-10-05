@@ -6,11 +6,11 @@ static server and your api server.
 
 From mygame/server/static, run:
 
-```go build && ./static```
+`go build && ./static`
 
 From mygame/server/api, run:
 
-```go build && ./api```
+`go build && ./api`
 
 You can now visit localhost:8080.
 

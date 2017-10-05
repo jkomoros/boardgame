@@ -871,6 +871,8 @@ manage these kinds of concepts and security.
 
 #### render-game
 
+#### helpful components
+
 #### player-info
 
 ## Other important concepts
