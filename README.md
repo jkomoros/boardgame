@@ -867,11 +867,82 @@ manage these kinds of concepts and security.
 
 ### Renderers
 
+The renderer is a web component with a known name and defined in a known
+location that will be instantiated and passed the state object. This is the
+primary client-side object that you should define. Your renderer will be passed
+four attributes:
+
+* **State**, which is the state for the current version, with many properties expanded for
+convenience. This state object will contain all computed properties, for each
+Stack will have the DynamicValues for the component added as a direct property
+of the component, and will have the computed TimeRemaining provided on the
+timer, continuously updated as time passes.
+* **Diagram**, which is the result of your GameDelegate's Diagram() method for this state. It's
+provided primarily as a useful fallback.
+* **viewingAsPlayer**, which is the index of the player who is viewing the game. This might be -1 if
+the viewer is a generic observer who isn't themselves playing the game, or -2 if
+the player is the all-powerful Admin.
+* **currentPlayerIndex**, the index of the player whose turn it is, according to your GameDelegate's
+CurrentPlayerIndex method.
+
+The job of your renderer is to take those attributes, render a meaningful visual
+representation, and emit events of type `propose-move` when a player has
+proposed a specific move that should be passed to the server and proposed. In
+practice many renderers look quite similar and basically just define where to
+stamp out components.
+
 #### location of renderers
+
+The renderer must be in a specific, known location so it can be imported.
+
+Your renderer web component should be named `boardgame-render-game-GAMENAME`,
+where `GAMENAME` is the name of your game (what your GameDelegate returns from
+the Name() method).
+
+The import will be looked for in `../game-src/GAMENAME/boardgame-render-game-
+GAMENAME.html`.
+
+Your game type might be imported into many different servers, so it's best
+practice to keep the renderer definition near the package defining your server
+code.
+
+The idiotmatic way to do this is, within the package that defines your game
+type's go code, have a sub-folder structure, as you can see by looking at
+memory:
+
+```
+memory/
+	|	client/
+	|	|	memory/
+	|	|	| boardgame-render-game-memory.html
+	|	|	| boardgame-render-player-info-memory.html
+	|	agent.go
+	|	agent_test.go
+	|	auto_reader.go
+	|	components.go
+	|	main.go
+	|	main_test.go
+	|	moves.go
+	|	state.go
+```
+
+(We'll get to what `boardgame-render-player-info-memory.html` in just a bit).
+
+Then, when you're configuring your server, you create a `game-src/` folder in
+the right location and then take advantage of the game repo and your server repo
+both having a canonical location in your `$GOPATH` to create a relative link for
+that directory into `game-src/`, something like `ln -s ../../../../memory/client/memory`.
+You can then check that symlink into git, and be reasonably certain that it will work in other places.
+
+By following this convention, you cleanly keep your client views for a game next
+to the server logic, and also make it easy to import the game package into
+different servers with a minimum of fuss.
 
 #### render-game
 
 #### helpful components
+
+#### worked example
 
 #### player-info
 
