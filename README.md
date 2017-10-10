@@ -994,6 +994,27 @@ If you wanted to do more complex processing, you can create your own custom elem
 
 When you provide a stack to boardgame-card-stack and then bind the resulting cards' item properties, we will also set the card-type property to be "GAMENAME-deck-DECKNAME-card" where GAMENAME is the name of your game type and DECKNAME is the name of the deck that stack is based on. This means that the best practice in most game renderers is to provide a "GAMENAME-deck-MYDECK-card" dom-module in the top-level and then everything will work as expected. See the debuganimations example for a sample.
 
+##### boardgame-fading-text
+
+In many cases you want to draw attention to values that change as the result of moves. For example, when it's the current player's turn you might want to make that fact obvious. A common way to do that is to have that text expand from that location and fade as it does so, drawing attention to the changed value. `boardgame-fading-text` will do this for you.
+
+The boardgame-fading-text element will render text that animates when changed. The font size can be changed with `--message-font-size`. The text will be centered in the nearest ancestor positoned block. When the animation is over the text will be invisible. This is great for animating messages like "Your Turn" that play centered in the middle of your view when it's the user's turn. There are different policies you can apply to control how this text triggers and what text it shows, see the component documenation for more.
+
+In many cases there are parts of your UI that show a value in them, and when that value changes you want to draw attention to it. For example, if you have some text that shows the number of cards in a given stack, you might want users to notice when that changes.
+
+You can use `boardgame-status-text` to render text that will automatically show the fading effect if the value changes. It uses the 'diff-up' strategy by default for fading text, which can be overriden.
+
+```
+<!-- you can bind to message attribute -->
+<boardgame-status-text message="{{state.Game.Cards.Components.length}}"></boardgame-status-text>
+
+<!-- you can also just include content which automatically sets message -->
+<boardgame-status-text>{{state.Game.Cards.Components.length}}</boardgame-status-text>
+
+```
+
+##### boardgame-base-game-renderer
+
 #### worked example
 
 #### player-info
