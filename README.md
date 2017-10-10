@@ -938,9 +938,61 @@ By following this convention, you cleanly keep your client views for a game next
 to the server logic, and also make it easy to import the game package into
 different servers with a minimum of fuss.
 
-#### render-game
+#### Helpful Components
 
-#### helpful components
+Before we get into a specific worked example, it's important to dig into a
+collection of helpful components and what they do. In many cases the components
+the framework provides will do most of what you want, and your renderer is
+chiefly concerned with databinding the state object into a specific collection of those components.
+
+##### boardgame-card and boardgame-card-stack
+
+Many games make use of cards in different stacks. Implementing styling and
+animations (especially animating from one stack to another) is challenging to
+get right. Luckily, two key components, `boardgame-card` and `boardgame-card-
+stack`, when used in conjunction idiotmatically, almost always do exactly what
+you want using idiomatic CSS layout with things like flexbox and grid to lay them out and then, with minimal configuration, have high-quality, performant animations created.
+Their implementation is non-trivial and handles many edge cases and conditions that are not immediately obvious. They use the `Id` machinery briefly described in the Sanitization section above to keep track of which cards--even cards that are hidden--are which in between states and then animate the cards moving from stack to stack appropriately. They even handle cases like cards flipping from visible to hidden--if done naively, the content of the card would disappear immediately before the flip animation plays! In general, it is strongly recommended to use these components.
+
+boardgame-cards are the basic cards. You can instantiate yourself and set their various properties,
+but in practice it is best to bind their `item` attribute to each component item in the state.
+
+boardgame-card's size can be affected by two css properties: --card-scale (a float, with 1.0 being default size) and --card-aspect-ratio (a float, defaulting to 0.6666). Cards are always 100px width by default, with scale affecting the amount of space they take up physically in the layout, as well as applying a transform to their contents to get them to be the right size. --card-aspect-ratio changes how long the minor-axis is compared to the first. If the scale and aspect-ratio are set based on the position in the layout, the size will animate smoothly.
+
+It can be finicky to set all of the cards correctly for the animation to work as
+you want; the easiest way is to set boardgame-card-stack's stack property to the
+stack in the state, and then have a dom-repeat with boardgame-card that have
+item="{{item}}" index="{{index}}", and the card's children how to render if
+there is content. If you do that, everything will work as expected! This will
+also automatically set card-type (see below).
+
+In many cases you only have a small number of types of cards in a game, and you want to define their layout only once if possible for consitency. The way to do this is to define a dom-module containing a template. Your cards should then include card-type="<inner card id>" and the content will be stamped and passed the item databound to the card. **Be careful--this module is global and many game renderers have similarly-named decks, so make sure to use a unique name.**
+
+```
+<!-- define a simple front if no processing required -->
+<dom-module id="my-card">
+	<template>
+		<div>
+			{{item}}
+		</div>
+	</template>
+</dom-module>
+<boardgame-card card-type="my-card"></boardgame-card>
+```
+
+If you wanted to do more complex processing, you can create your own custom element and bind that in the same pattern:
+
+```
+<link rel='import' href='my-complex-card.html'>
+<dom-module id="my-card">
+    <template>
+        <my-complex-card item="{{item}}"></my-complex-card>
+    </template>
+</dom-module>
+<boardgame-card card-type="my-card"></boardgame-card>
+```
+
+When you provide a stack to boardgame-card-stack and then bind the resulting cards' item properties, we will also set the card-type property to be "GAMENAME-deck-DECKNAME-card" where GAMENAME is the name of your game type and DECKNAME is the name of the deck that stack is based on. This means that the best practice in most game renderers is to provide a "GAMENAME-deck-MYDECK-card" dom-module in the top-level and then everything will work as expected. See the debuganimations example for a sample.
 
 #### worked example
 
