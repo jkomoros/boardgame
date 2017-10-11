@@ -6,26 +6,11 @@ import (
 
 type stateComputeDelegate struct {
 	testGameDelegate
-	config                  *ComputedPropertiesConfig
-	returnDefaultCollection bool
+	config *ComputedPropertiesConfig
 }
 
 func (s *stateComputeDelegate) ComputedPropertiesConfig() *ComputedPropertiesConfig {
 	return s.config
-}
-
-func (s *stateComputeDelegate) ComputedGlobalPropertyCollectionConstructor() MutableSubState {
-	if s.returnDefaultCollection {
-		return s.testGameDelegate.ComputedGlobalPropertyCollectionConstructor()
-	}
-	return nil
-}
-
-func (s *stateComputeDelegate) ComputedPlayerPropertyCollectionConstructor() MutableSubState {
-	if s.returnDefaultCollection {
-		return s.testGameDelegate.ComputedPlayerPropertyCollectionConstructor()
-	}
-	return nil
 }
 
 func TestComputedPropertyDefinitionCompute(t *testing.T) {

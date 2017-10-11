@@ -113,15 +113,6 @@ type GameDelegate interface {
 	//the same underlying type of struct for the same deck.
 	DynamicComponentValuesConstructor(deck *Deck) MutableSubState
 
-	//Computed{Global,Player}PropertyCollectionConstructor should return a
-	//struct that implements PropertyReadSetter. Computed properties will be
-	//stored in the objects that are returned. This allows users of the
-	//framework to do a single cast of the underlying object and then access
-	//the properties in a type-checked way after that. If you return nil, we
-	//will use a generic, flexible PropertyReadSetter instead.
-	ComputedGlobalPropertyCollectionConstructor() MutableSubState
-	ComputedPlayerPropertyCollectionConstructor() MutableSubState
-
 	//SanitizationPolicy is consulted when sanitizing states. It is called for
 	//each prop in the state, including the set of groups that this player is
 	//a mamber of. In practice the default behavior of DefaultGameDelegate,
@@ -177,14 +168,6 @@ func (d *DefaultGameDelegate) SetManager(manager *GameManager) {
 }
 
 func (d *DefaultGameDelegate) DynamicComponentValuesConstructor(deck *Deck) MutableSubState {
-	return nil
-}
-
-func (d *DefaultGameDelegate) ComputedGlobalPropertyCollectionConstructor() MutableSubState {
-	return nil
-}
-
-func (d *DefaultGameDelegate) ComputedPlayerPropertyCollectionConstructor() MutableSubState {
 	return nil
 }
 

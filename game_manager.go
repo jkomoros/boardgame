@@ -649,49 +649,6 @@ func (g *GameManager) SetUp() error {
 		g.dynamicComponentValidator[deckName] = validator
 	}
 
-	//Verify that the shape of the computed property collections fits with the config.
-	if config := g.delegate.ComputedPropertiesConfig(); config != nil {
-
-		if global := config.Global; global != nil {
-			if collection := g.delegate.ComputedGlobalPropertyCollectionConstructor(); collection != nil {
-
-				reader = collection.Reader()
-
-				if reader == nil {
-					return errors.New("GlobalProperyCollection Reader returned nil")
-				}
-
-				//Verify the shape has slots for all of the configed properties
-				for propName, propConfig := range global {
-					propType := propConfig.PropType
-					if reader.Props()[propName] != propType {
-						return errors.New("The global property collection the delegate returns has a mismatch for property " + propName)
-					}
-				}
-			}
-		}
-
-		if player := config.Player; player != nil {
-			if collection := g.delegate.ComputedPlayerPropertyCollectionConstructor(); collection != nil {
-
-				reader = collection.Reader()
-
-				if reader == nil {
-					return errors.New("PlayerPropertyCollection reader returned nil")
-				}
-
-				//Verify the shape has slots for all of the configed properties
-				for propName, propConfig := range player {
-					propType := propConfig.PropType
-					if reader.Props()[propName] != propType {
-						return errors.New("The global property collection the delegate returns has a mismatch for property " + propName)
-					}
-				}
-			}
-		}
-
-	}
-
 	g.agentsByName = make(map[string]Agent)
 	for _, agent := range g.agents {
 		g.agentsByName[strings.ToLower(agent.Name())] = agent

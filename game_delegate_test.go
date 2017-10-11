@@ -6,30 +6,6 @@ import (
 
 var testPropertiesConfig *ComputedPropertiesConfig
 
-type testGlobalPropertiesCollection struct {
-	SumAllScores int
-}
-
-type testPlayerPropertiesCollection struct {
-	EffectiveMovesLeftThisTurn int
-}
-
-func (t *testGlobalPropertiesCollection) ReadSetter() PropertyReadSetter {
-	return getDefaultReadSetter(t)
-}
-
-func (t *testGlobalPropertiesCollection) Reader() PropertyReader {
-	return getDefaultReader(t)
-}
-
-func (t *testPlayerPropertiesCollection) ReadSetter() PropertyReadSetter {
-	return getDefaultReadSetter(t)
-}
-
-func (t *testPlayerPropertiesCollection) Reader() PropertyReader {
-	return getDefaultReader(t)
-}
-
 func init() {
 	testPropertiesConfig = &ComputedPropertiesConfig{
 		Global: map[string]ComputedGlobalPropertyDefinition{
@@ -111,14 +87,6 @@ func (t *testGameDelegate) DynamicComponentValuesConstructor(deck *Deck) Mutable
 		}
 	}
 	return nil
-}
-
-func (t *testGameDelegate) ComputedGlobalPropertyCollectionConstructor() MutableSubState {
-	return &testGlobalPropertiesCollection{}
-}
-
-func (t *testGameDelegate) ComputedPlayerPropertyCollectionConstructor() MutableSubState {
-	return &testPlayerPropertiesCollection{}
 }
 
 func (t *testGameDelegate) CheckGameFinished(state State) (bool, []PlayerIndex) {

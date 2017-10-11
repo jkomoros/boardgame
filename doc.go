@@ -439,14 +439,6 @@ instead. It is passed the whole state object and the target PlayerIndex. In
 that case it is up to you to return only the value associated with the target
 PlayerIndex, but you have all other values available to you.
 
-For convenience you can have your delegate return objects that implement
-ComputedPropertyCollections to an underlying concrete struct, that implement
-ReadSetter. This allows you to only have to cast once to get a type- checked
-property accessor. If those delegate methods return nil, a generic, flexible
-PropertyReadSetter will be used instead. When you call manager.SetUp(), the
-framework will verify that the concrete collections you return (if you do) are
-shaped to accept the properties that are configged.
-
 Importantly, your Compute() methods for your computed properties should be
 resilient to states that have sanitized. In cases where we are generating a
 SanitizedState, your compute method will be called and pass in the sanitized
