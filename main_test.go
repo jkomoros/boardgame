@@ -51,6 +51,7 @@ type testingComponent struct {
 }
 
 type testingComponentDynamic struct {
+	state  State
 	IntVar int
 	Stack  *SizedStack
 	Enum   enum.Var
@@ -68,6 +69,10 @@ func (t *testingComponentDynamic) Reader() PropertyReader {
 
 func (t *testingComponentDynamic) ReadSetter() PropertyReadSetter {
 	return getDefaultReadSetter(t)
+}
+
+func (t *testingComponentDynamic) SetState(state State) {
+	t.state = state
 }
 
 func (t *testingComponentDynamic) Copy() MutableSubState {
@@ -116,6 +121,7 @@ func concreteStates(state State) (*testGameState, []*testPlayerState) {
 }
 
 type testGameState struct {
+	state              State
 	CurrentPlayer      PlayerIndex
 	DrawDeck           *GrowableStack
 	Timer              *Timer
@@ -136,7 +142,12 @@ func (t *testGameState) ReadSetter() PropertyReadSetter {
 	return getDefaultReadSetter(t)
 }
 
+func (t *testGameState) SetState(state State) {
+	t.state = state
+}
+
 type testPlayerState struct {
+	state State
 	//Note: PlayerIndex is stored ehre, but not a normal property or
 	//serialized, because it's really just a convenience method because it's
 	//implied by its position in the State.Users array.
@@ -158,6 +169,10 @@ func (t *testPlayerState) ReadSetter() PropertyReadSetter {
 
 func (t *testPlayerState) Reader() PropertyReader {
 	return getDefaultReader(t)
+}
+
+func (t *testPlayerState) SetState(state State) {
+	t.state = state
 }
 
 type testMoveInvalidPlayerIndex struct {
@@ -498,7 +513,7 @@ var testIllegalMoveConfig = MoveTypeConfig{
 //testingComponentValues is designed to be run on a stack.ComponentValues() of
 //a stack of testingComponents, in order to convert them all to the specified
 //underlying struct.
-func testingComponentValues(in []SubState) []*testingComponent {
+func testingComponentValues(in []Reader) []*testingComponent {
 	result := make([]*testingComponent, len(in))
 	for i := 0; i < len(in); i++ {
 		if in[i] == nil {

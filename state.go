@@ -517,6 +517,10 @@ type ReadSetter interface {
 //GameStates, and DynamicComponentValues) implement.
 type SubState interface {
 	Reader
+	//SetState is called to give the SubState object a pointer back to the
+	//State that contains it. You can implement it yourself, or embed
+	//BaseSubState to get it for free.
+	SetState(state State)
 }
 
 //MutableSubState is the interface that Mutable{Game,Player}State's

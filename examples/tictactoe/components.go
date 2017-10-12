@@ -16,7 +16,7 @@ type playerToken struct {
 }
 
 //Designed to be used with stack.ComponentValues()
-func playerTokenValues(in []boardgame.SubState) []*playerToken {
+func playerTokenValues(in []boardgame.Reader) []*playerToken {
 	result := make([]*playerToken, len(in))
 	for i := 0; i < len(in); i++ {
 		c := in[i]

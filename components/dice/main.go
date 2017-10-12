@@ -21,6 +21,7 @@ type Value struct {
 
 //+autoreader
 type DynamicValue struct {
+	state        boardgame.State
 	Value        int
 	SelectedFace int
 }
@@ -62,6 +63,10 @@ func (v *Value) Max() int {
 		}
 	}
 	return max
+}
+
+func (d *DynamicValue) SetState(state boardgame.State) {
+	d.state = state
 }
 
 //Roll sets the Value of the Die randomly to a new legal value. The component

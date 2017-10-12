@@ -7,14 +7,13 @@ import (
 )
 
 func TestMain(t *testing.T) {
-	var mutableSubState boardgame.MutableSubState
+	var readerObj boardgame.Reader
 
 	obj := &myStruct{}
 
-	//This will fail to compile if obj doesn't implement Reader()
-	mutableSubState = obj
+	readerObj = obj
 
-	reader := mutableSubState.Reader()
+	reader := readerObj.Reader()
 
 	assert.For(t).ThatActual(reader).IsNotNil()
 
@@ -25,7 +24,12 @@ func TestMain(t *testing.T) {
 	assert.For(t).ThatActual(err).IsNil()
 	assert.For(t).ThatActual(val).IsTrue()
 
-	readSetter := mutableSubState.ReadSetter()
+	var readSetterObj boardgame.ReadSetter
+
+	//This will fail to compile if obj doesn't implement ReadSetter()
+	readSetterObj = obj
+
+	readSetter := readSetterObj.ReadSetter()
 
 	assert.For(t).ThatActual(readSetter).IsNotNil()
 

@@ -28,6 +28,7 @@ func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 
 //+autoreader
 type gameState struct {
+	state         boardgame.State
 	DiscardStack  *boardgame.GrowableStack `stack:"cards" sanitize:"len"`
 	DrawStack     *boardgame.GrowableStack `stack:"cards" sanitize:"len"`
 	UnusedCards   *boardgame.GrowableStack `stack:"cards"`
@@ -36,12 +37,21 @@ type gameState struct {
 
 //+autoreader
 type playerState struct {
+	state          boardgame.State
 	playerIndex    boardgame.PlayerIndex
 	GotInitialDeal bool
 	HiddenHand     *boardgame.GrowableStack `stack:"cards,1" sanitize:"len"`
 	VisibleHand    *boardgame.GrowableStack `stack:"cards"`
 	Busted         bool
 	Stood          bool
+}
+
+func (g *gameState) SetState(state boardgame.State) {
+	g.state = state
+}
+
+func (p *playerState) SetState(state boardgame.State) {
+	p.state = state
 }
 
 func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {

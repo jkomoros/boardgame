@@ -175,6 +175,9 @@ func getDefaultReadSetter(i interface{}) PropertyReadSetter {
 	//Sanity check right now if the object we were just passed will have
 	//serious errors trying to parse it.
 	if _, err := result.propsImpl(); err != nil {
+		//It's OK to panic here because defaultreader is only used in tests
+		//and its' not exported.
+		panic("Got error from default propsImpl: " + err.Error())
 		return nil
 	}
 
@@ -185,6 +188,7 @@ func getDefaultReadSetter(i interface{}) PropertyReadSetter {
 }
 
 func propertyReaderImplNameShouldBeIncluded(name string) bool {
+
 	if len(name) < 1 {
 		return false
 	}
@@ -202,7 +206,12 @@ func propertyReaderImplNameShouldBeIncluded(name string) bool {
 }
 
 func (d *defaultReader) Props() map[string]PropertyType {
-	result, _ := d.propsImpl()
+	result, err := d.propsImpl()
+	if err != nil {
+		//OK to panic here because we only use defaultReader for tests in this
+		//package and it's not exported.
+		panic("Default Reader got error: " + err.Error())
+	}
 	return result
 }
 
@@ -221,6 +230,11 @@ func (d *defaultReader) propsImpl() (map[string]PropertyType, error) {
 
 		for i := 0; i < s.NumField(); i++ {
 			name := typeOfObj.Field(i).Name
+
+			if typeOfObj.Field(i).Anonymous {
+				//Anonymous fields are likely BaseSubState.
+				continue
+			}
 
 			field := s.Field(i)
 
