@@ -22,7 +22,7 @@ type Deck struct {
 	//Components should only ever be added at initalization time. After
 	//initalization, Components should be read-only.
 	components             []*Component
-	shadowValues           SubState
+	shadowValues           Reader
 	vendedShadowComponents map[int]*Component
 	//TODO: protect shadowComponents cache with mutex to make threadsafe.
 }
@@ -117,7 +117,7 @@ func (d *Deck) ComponentAt(index int) *Component {
 //component that is returned. May only be set before added to a chest. Should
 //generally be the same shape of componentValues as used for other components
 //in the deck.
-func (d *Deck) SetShadowValues(v SubState) {
+func (d *Deck) SetShadowValues(v Reader) {
 	if d.chest != nil {
 		return
 	}
