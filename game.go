@@ -390,6 +390,8 @@ func (g *Game) SetUp(numPlayers int, agentNames []string) error {
 
 	stateCopy.dynamicComponentValues = dynamic
 
+	stateCopy.setStateForSubStates()
+
 	g.manager.delegate.BeginSetUp(stateCopy)
 
 	//Distribute all components to their starter locations

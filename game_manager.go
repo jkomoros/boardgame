@@ -448,6 +448,8 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 
 	result.dynamicComponentValues = dynamic
 
+	result.setStateForSubStates()
+
 	for deckName, values := range refried.Components {
 		resultDeckValues := result.dynamicComponentValues[deckName]
 		//TODO: detect the case where the emptycompontentvalues has decknames that are not in the JSON.

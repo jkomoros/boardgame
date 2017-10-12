@@ -265,6 +265,8 @@ func (s *state) copy(sanitized bool) *state {
 		result.dynamicComponentValues[deckName] = arr
 	}
 
+	s.setStateForSubStates()
+
 	//FixUp stacks to make sure they point to this new state.
 	if err := setReaderStatePtr(result.gameState.Reader(), result); err != nil {
 		return nil
@@ -276,6 +278,20 @@ func (s *state) copy(sanitized bool) *state {
 	}
 
 	return result
+}
+
+//setStateForSubStates goes through each subState on s and calls SetState on
+//it.
+func (s *state) setStateForSubStates() {
+	s.gameState.SetState(s)
+	for i := 0; i < len(s.playerStates); i++ {
+		s.playerStates[i].SetState(s)
+	}
+	for _, dynamicComponents := range s.dynamicComponentValues {
+		for _, component := range dynamicComponents {
+			component.SetState(s)
+		}
+	}
 }
 
 func (s *state) copyDynamicComponentValues(input SubState, deckName string) MutableSubState {

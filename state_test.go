@@ -221,6 +221,20 @@ func TestSecretMoveCount(t *testing.T) {
 
 }
 
+func testSubStatesHaveStateSet(t *testing.T, state *state) {
+	assert.For(t).ThatActual(state.GameState().(*testGameState).state).Equals(state)
+
+	for i := 0; i < len(state.playerStates); i++ {
+		assert.For(t, i).ThatActual(state.PlayerStates()[i].(*testPlayerState).state).Equals(state)
+	}
+
+	for _, dynamicComponents := range state.DynamicComponentValues() {
+		for i, component := range dynamicComponents {
+			assert.For(t, i).ThatActual(component.(*testingComponentDynamic).state).Equals(state)
+		}
+	}
+}
+
 func TestState(t *testing.T) {
 
 	game := testGame()
@@ -230,6 +244,8 @@ func TestState(t *testing.T) {
 	game.SetUp(0, nil)
 
 	assert.For(t).ThatActual(game.CurrentState().Version()).Equals(game.Version())
+
+	testSubStatesHaveStateSet(t, game.CurrentState().(*state))
 
 	record, err := game.Manager().Storage().State(game.Id(), game.Version())
 
@@ -249,6 +265,8 @@ func TestState(t *testing.T) {
 	}
 
 	assert.For(t).ThatActual(state.Version()).Equals(game.Version())
+
+	testSubStatesHaveStateSet(t, state)
 
 	currentJson, _ := json.Marshal(state)
 	golden := goldenJSON("basic_state.json", t)
