@@ -112,7 +112,7 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 
 		result = append(result, playerLine)
 
-		handValue, _ := state.Computed().Player(boardgame.PlayerIndex(i)).IntProp("HandValue")
+		handValue := player.HandValue()
 
 		statusLine := fmt.Sprintf("\tValue: %d", handValue)
 
@@ -156,12 +156,12 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, 
 
 	maxScore := 0
 
-	for i, player := range players {
+	for _, player := range players {
 		if player.Busted {
 			continue
 		}
 
-		handValue, _ := state.Computed().Player(boardgame.PlayerIndex(i)).IntProp("HandValue")
+		handValue := player.HandValue()
 		if handValue > maxScore {
 			maxScore = handValue
 		}
@@ -175,7 +175,7 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, 
 		if player.Busted {
 			continue
 		}
-		handValue, _ := state.Computed().Player(boardgame.PlayerIndex(i)).IntProp("HandValue")
+		handValue := player.HandValue()
 		if handValue == maxScore {
 			result = append(result, boardgame.PlayerIndex(i))
 		}

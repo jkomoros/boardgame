@@ -108,7 +108,7 @@ func TestStateComputed(t *testing.T) {
 				},
 				PropType: TypeBool,
 				Compute: func(state State) (interface{}, error) {
-					result := state.Computed()
+					result := state.computed()
 
 					if result == nil {
 						return false, nil
@@ -257,7 +257,7 @@ func TestStateComputed(t *testing.T) {
 
 	delegate.config = config
 
-	computed := state.Computed()
+	computed := state.computed()
 
 	if val, err := computed.Global().BoolProp("JSONDuringComputed"); err != nil {
 		t.Error("Unexpected error retrieving JSONDuringComputed", err)

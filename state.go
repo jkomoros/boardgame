@@ -49,7 +49,7 @@ type State interface {
 	//created with Copy(true)
 	Sanitized() bool
 	//Computed returns the computed properties for this state.
-	Computed() ComputedProperties
+	computed() ComputedProperties
 	//SanitizedForPlayer produces a copy state object that has been sanitized
 	//for the player at the given index. The state object returned will have
 	//Sanitized() return true. Will call GameDelegate.SanitizationPolicy to
@@ -171,7 +171,7 @@ func (p PlayerIndex) String() string {
 type state struct {
 	gameState              MutableSubState
 	playerStates           []MutablePlayerState
-	computed               *computedPropertiesImpl
+	computedValues         *computedPropertiesImpl
 	dynamicComponentValues map[string][]MutableSubState
 	secretMoveCount        map[string][]int
 	sanitized              bool
@@ -436,17 +436,19 @@ func (s *state) committed() {
 }
 
 func (s *state) StorageRecord() StateStorageRecord {
-	record, _ := DefaultMarshalJSON(s)
+	record, _ := s.customMarshalJSON(false, true)
 	return record
 }
 
-func (s *state) MarshalJSON() ([]byte, error) {
-
+func (s *state) customMarshalJSON(includeComputed bool, indent bool) ([]byte, error) {
 	obj := map[string]interface{}{
-		"Game":     s.gameState,
-		"Players":  s.playerStates,
-		"Computed": s.Computed(),
-		"Version":  s.version,
+		"Game":    s.gameState,
+		"Players": s.playerStates,
+		"Version": s.version,
+	}
+
+	if includeComputed {
+		obj["Computed"] = s.computed()
 	}
 
 	//We emit the secretMoveCount only when the state isn't sanitized. Any
@@ -467,7 +469,16 @@ func (s *state) MarshalJSON() ([]byte, error) {
 		obj["Components"] = map[string]interface{}{}
 	}
 
+	if indent {
+		return DefaultMarshalJSON(obj)
+	}
+
 	return json.Marshal(obj)
+
+}
+
+func (s *state) MarshalJSON() ([]byte, error) {
+	return s.customMarshalJSON(true, false)
 }
 
 func (s *state) Diagram() string {
@@ -493,7 +504,7 @@ func (s *state) DynamicComponentValues() map[string][]SubState {
 	return result
 }
 
-func (s *state) Computed() ComputedProperties {
+func (s *state) computed() ComputedProperties {
 
 	if s.calculatingComputed {
 		//This might be called in a Compute() callback either directly, or
@@ -501,7 +512,7 @@ func (s *state) Computed() ComputedProperties {
 		return nil
 	}
 
-	if s.computed == nil {
+	if s.computedValues == nil {
 
 		s.calculatingComputed = true
 		computedResult, err := newComputedPropertiesImpl(s.game.manager.delegate.ComputedPropertiesConfig(), s)
@@ -509,10 +520,10 @@ func (s *state) Computed() ComputedProperties {
 			s.game.manager.Logger().Error("Couldn't create computed properties: " + err.Error())
 			return nil
 		}
-		s.computed = computedResult
+		s.computedValues = computedResult
 		s.calculatingComputed = false
 	}
-	return s.computed
+	return s.computedValues
 }
 
 //SanitizedForPlayer is in sanitized.go
