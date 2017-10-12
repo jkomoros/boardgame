@@ -245,7 +245,11 @@ func TestState(t *testing.T) {
 
 	assert.For(t).ThatActual(game.CurrentState().Version()).Equals(game.Version())
 
-	testSubStatesHaveStateSet(t, game.CurrentState().(*state))
+	theState := game.CurrentState().(*state)
+
+	testSubStatesHaveStateSet(t, theState)
+
+	testSubStatesHaveStateSet(t, theState.Copy(false).(*state))
 
 	record, err := game.Manager().Storage().State(game.Id(), game.Version())
 

@@ -265,7 +265,7 @@ func (s *state) copy(sanitized bool) *state {
 		result.dynamicComponentValues[deckName] = arr
 	}
 
-	s.setStateForSubStates()
+	result.setStateForSubStates()
 
 	//FixUp stacks to make sure they point to this new state.
 	if err := setReaderStatePtr(result.gameState.Reader(), result); err != nil {
