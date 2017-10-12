@@ -501,12 +501,16 @@ func (s *state) Computed() ComputedProperties {
 
 //SanitizedForPlayer is in sanitized.go
 
-//SubState is the interface that all sub-state objects--PlayerStates and
-//GameStates --implement. It is also the interface that
-//ComputedPropertyCollections, ComponentValues, and DynamicComponentValues
-//implement.
-type SubState interface {
+//Reader is the interface that any object that can return a PropertyReader
+//implements.
+type Reader interface {
 	Reader() PropertyReader
+}
+
+//SubState is the interface that all sub-state objects (PlayerStates.
+//GameStates, and DynamicComponentValues) implement.
+type SubState interface {
+	Reader
 }
 
 //MutableSubState is the interface that Mutable{Game,Player}State's
