@@ -76,3 +76,11 @@ func (g *gameState) CardsInGrid() int {
 func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {
 	g.CurrentPlayer = currentPlayer
 }
+
+func (g *gameState) CurrentPlayerHasCardsToReveal() bool {
+	_, players := concreteStates(g.State())
+
+	p := players[g.CurrentPlayer]
+
+	return p.CardsLeftToReveal > 0
+}

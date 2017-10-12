@@ -49,7 +49,7 @@ type State interface {
 	//created with Copy(true)
 	Sanitized() bool
 	//Computed returns the computed properties for this state.
-	computed() ComputedProperties
+	computed() *computedProperties
 	//SanitizedForPlayer produces a copy state object that has been sanitized
 	//for the player at the given index. The state object returned will have
 	//Sanitized() return true. Will call GameDelegate.SanitizationPolicy to
@@ -64,6 +64,32 @@ type State interface {
 
 	//StorageRecord returns a StateStorageRecord representing the state.
 	StorageRecord() StateStorageRecord
+}
+
+type computedProperties struct {
+	Global  map[string]interface{}
+	Players []map[string]interface{}
+}
+
+//StateGroupType is the top-level grouping object used in a StatePropertyRef.
+type StateGroupType int
+
+const (
+	StateGroupGame StateGroupType = iota
+	StateGroupPlayer
+	StateGroupDynamicComponentValues
+)
+
+//A StatePropertyRef is a reference to a particular property in a State, in a
+//structured way. Currently used when defining your dependencies for computed
+//properties.
+type StatePropertyRef struct {
+	Group StateGroupType
+	//DeckName is only used when Group is StateGroupDynamicComponentValues
+	DeckName string
+	//PropName is the specific property on the given SubStateObject specified
+	//by the rest of the StatePropertyRef.
+	PropName string
 }
 
 //PlayerIndex is an int that represents the index of a given player in a game.
@@ -171,7 +197,7 @@ func (p PlayerIndex) String() string {
 type state struct {
 	gameState              MutableSubState
 	playerStates           []MutablePlayerState
-	computedValues         *computedPropertiesImpl
+	computedValues         *computedProperties
 	dynamicComponentValues map[string][]MutableSubState
 	secretMoveCount        map[string][]int
 	sanitized              bool
@@ -504,7 +530,7 @@ func (s *state) DynamicComponentValues() map[string][]SubState {
 	return result
 }
 
-func (s *state) computed() ComputedProperties {
+func (s *state) computed() *computedProperties {
 
 	if s.calculatingComputed {
 		//This might be called in a Compute() callback either directly, or
@@ -515,12 +541,18 @@ func (s *state) computed() ComputedProperties {
 	if s.computedValues == nil {
 
 		s.calculatingComputed = true
-		computedResult, err := newComputedPropertiesImpl(s.game.manager.delegate.ComputedPropertiesConfig(), s)
-		if err != nil {
-			s.game.manager.Logger().Error("Couldn't create computed properties: " + err.Error())
-			return nil
+
+		playerProperties := make([]map[string]interface{}, len(s.playerStates))
+
+		for i, player := range s.playerStates {
+			playerProperties[i] = s.game.manager.delegate.ComputedPlayerProperties(player)
 		}
-		s.computedValues = computedResult
+
+		s.computedValues = &computedProperties{
+			Global:  s.game.manager.delegate.ComputedGlobalProperties(s),
+			Players: playerProperties,
+		}
+
 		s.calculatingComputed = false
 	}
 	return s.computedValues

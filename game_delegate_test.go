@@ -4,64 +4,6 @@ import (
 	"testing"
 )
 
-var testPropertiesConfig *ComputedPropertiesConfig
-
-func init() {
-	testPropertiesConfig = &ComputedPropertiesConfig{
-		Global: map[string]ComputedGlobalPropertyDefinition{
-			"SumAllScores": ComputedGlobalPropertyDefinition{
-				Dependencies: []StatePropertyRef{
-					{
-						Group:    StateGroupPlayer,
-						PropName: "Score",
-					},
-				},
-				PropType: TypeInt,
-				Compute: func(state State) (interface{}, error) {
-
-					_, playerStates := concreteStates(state)
-
-					result := 0
-
-					for _, player := range playerStates {
-
-						result += player.Score
-					}
-					return result, nil
-				},
-			},
-		},
-		Player: map[string]ComputedPlayerPropertyDefinition{
-			"EffectiveMovesLeftThisTurn": ComputedPlayerPropertyDefinition{
-				Dependencies: []StatePropertyRef{
-					{
-						Group:    StateGroupPlayer,
-						PropName: "MovesLeftThisTurn",
-					},
-					{
-						Group:    StateGroupPlayer,
-						PropName: "IsFoo",
-					},
-				},
-				PropType: TypeInt,
-				Compute: func(state PlayerState) (interface{}, error) {
-
-					playerState := state.(*testPlayerState)
-
-					effectiveMovesLeftThisTurn := playerState.MovesLeftThisTurn
-
-					//Players with Isfoo get a bonus.
-					if playerState.IsFoo {
-						effectiveMovesLeftThisTurn += 5
-					}
-
-					return effectiveMovesLeftThisTurn, nil
-				},
-			},
-		},
-	}
-}
-
 type testGameDelegate struct {
 	DefaultGameDelegate
 }
@@ -75,8 +17,35 @@ func (t *testGameDelegate) Name() string {
 	return testGameName
 }
 
-func (t *testGameDelegate) ComputedPropertiesConfig() *ComputedPropertiesConfig {
-	return testPropertiesConfig
+func (t *testGameDelegate) ComputedGlobalProperties(state State) map[string]interface{} {
+	_, playerStates := concreteStates(state)
+
+	allScores := 0
+
+	for _, player := range playerStates {
+
+		allScores += player.Score
+	}
+
+	return map[string]interface{}{
+		"SumAllScores": allScores,
+	}
+}
+
+func (t *testGameDelegate) ComputedPlayerProperties(player PlayerState) map[string]interface{} {
+
+	playerState := player.(*testPlayerState)
+
+	effectiveMovesLeftThisTurn := playerState.MovesLeftThisTurn
+
+	//Players with Isfoo get a bonus.
+	if playerState.IsFoo {
+		effectiveMovesLeftThisTurn += 5
+	}
+
+	return map[string]interface{}{
+		"EffectiveMovesLeftThisTurn": effectiveMovesLeftThisTurn,
+	}
 }
 
 func (t *testGameDelegate) DynamicComponentValuesConstructor(deck *Deck) MutableSubState {

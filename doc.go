@@ -387,67 +387,15 @@ old Id.
 
 Computed Properties
 
-In some cases there are properties on your State whose value is
-deterministically defined by other properties in your state. Storing the
-derived value as well as the underlying values is redundant and has the
-possibility for the State to accidentally get out of sync. For example, in a
-game of Blackjack you might have a method for each player's hand
-that returns the effective value of their hand--which is a tricky calculation
-because Aces can be worth either 1 or 11.
+It's common to define methods on your game and player states that do things
+and also have computed properties. Sometimes it's useful to have those values
+represented in the JSON output for your state--specifically because if you're
+using the server package they're often valuable for databinding on the client.
 
-ComputedProperties are the way to model these. They are formally defined, and
-are part of the default JSON serialization of your state so are available
-automatically to your client-side renderer.
-
-There are two types of ComputedProperties: those that operate on the whole
-state ("Global"), and output a top-level value, and those that operate on a
-single player state at a time and output a value specific to that player state
-("Player"). An example of the former would be "PlayerWithLongestTrain" in
-Ticket to Ride. An example of the latter would be the effective blackjack hand
-value situation described immediately above. The former is called a
-ComputedProperty and the latter is a ComputedPlayerProperty.
-
-Both types of computed properties exhaustively identify the other state
-properties that they rely on. This helps the engine only recalculate state
-properties when the underlying values have changed, and other optimizations.
-When the value is computed, a Sanitized() State is passed instead of a normal
-state. This sanitized state object only has the properties defined that were
-explicitly listed as dependencies, with other properties obscured with
-PolicyRandom. This allows us to verify that your dependency list is a superset
-of the properties you actually rely on. This means that a common pattern is to
-define your computed properties as methods on your concrete GameStates and
-PlayerState objects. Then, your computed properties simply cast the input to
-the concrete underlying type you know it is and return the value of calling
-that method on it. As long as your dependencies are comprehensive that the
-method actually relies on, the result should be the same. This way, you can
-define a method you use directly on the server, but also have the same
-property available computed on the client.
-
-ComputedProperties are defined based on the config object your GameDelegate
-returns from the ComputedPropertiesConfig method. This method should always
-return the same value. These objects are normally heavy and large (they often
-include method definitions), so it is recommended to define a single Config at
-init() time and always pass a reference to that config.
-
-ComputedPlayerProperties come in two flavors: Compute and GlobalCompute,
-depending on which of those properties is non-nil. Compute takes as its only
-argument just the specific PlayerState corresponding to the player whose value
-is being computed. But in some cases that might not be enough information; for
-example, sometimes there are properties per player that depend on the location
-of other players, too. In those cases, you shoul define a GlobalCompute
-instead. It is passed the whole state object and the target PlayerIndex. In
-that case it is up to you to return only the value associated with the target
-PlayerIndex, but you have all other values available to you.
-
-Importantly, your Compute() methods for your computed properties should be
-resilient to states that have sanitized. In cases where we are generating a
-SanitizedState, your compute method will be called and pass in the sanitized
-values. In many cases the naive approach will do what you want, but in cases
-of Stacks with things like PolicyLen it can get trickier.
-
-Your Compute() methods should also be deterministic based on their inputs.
-This is important so that the system can be conservative about when to
-calculate them.
+There are two methods on GameDelegate that are consulted when preparing JSON
+output for a state, ComputedGlobalProperties, and ComputedPlayerProperties. In
+that method you just emit the string value you want the value to be called and
+the value, and it will be represented in your JSON output.
 
 Dynamic Component Values
 

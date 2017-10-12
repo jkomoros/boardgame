@@ -21,8 +21,6 @@ const targetScore = 21
 const gameDisplayname = "Blackjack"
 const gameName = "blackjack"
 
-var computedPropertiesConfig *boardgame.ComputedPropertiesConfig
-
 //computeHandValue is used in our ComputedPropertyConfig.
 func computeHandValue(state boardgame.PlayerState) (interface{}, error) {
 
@@ -30,27 +28,6 @@ func computeHandValue(state boardgame.PlayerState) (interface{}, error) {
 
 	return playerState.HandValue(), nil
 
-}
-
-func init() {
-	computedPropertiesConfig = &boardgame.ComputedPropertiesConfig{
-		Player: map[string]boardgame.ComputedPlayerPropertyDefinition{
-			"HandValue": {
-				Dependencies: []boardgame.StatePropertyRef{
-					{
-						Group:    boardgame.StateGroupPlayer,
-						PropName: "HiddenHand",
-					},
-					{
-						Group:    boardgame.StateGroupPlayer,
-						PropName: "VisibleHand",
-					},
-				},
-				PropType: boardgame.TypeInt,
-				Compute:  computeHandValue,
-			},
-		},
-	}
 }
 
 type gameDelegate struct {
@@ -74,8 +51,13 @@ func (g *gameDelegate) CurrentPlayerIndex(state boardgame.State) boardgame.Playe
 	return game.CurrentPlayer
 }
 
-func (g *gameDelegate) ComputedPropertiesConfig() *boardgame.ComputedPropertiesConfig {
-	return computedPropertiesConfig
+func (g *gameDelegate) ComputedPlayerProperties(player boardgame.PlayerState) map[string]interface{} {
+
+	p := player.(*playerState)
+
+	return map[string]interface{}{
+		"HandValue": p.HandValue(),
+	}
 }
 
 func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c *boardgame.Component) (boardgame.Stack, error) {

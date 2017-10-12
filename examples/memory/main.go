@@ -16,57 +16,6 @@ import (
 
 //go:generate autoreader
 
-var computedPropertiesConfig *boardgame.ComputedPropertiesConfig
-
-//computeCurrentPlayerHasCardsToReveal is used in our ComputedPropertyConfig.
-func computeCurrentPlayerHasCardsToReveal(state boardgame.State) (interface{}, error) {
-
-	game, players := concreteStates(state)
-
-	p := players[game.CurrentPlayer]
-
-	return p.CardsLeftToReveal > 0, nil
-
-}
-
-func init() {
-	computedPropertiesConfig = &boardgame.ComputedPropertiesConfig{
-		Global: map[string]boardgame.ComputedGlobalPropertyDefinition{
-			"CurrentPlayerHasCardsToReveal": {
-				Dependencies: []boardgame.StatePropertyRef{
-					{
-						Group:    boardgame.StateGroupGame,
-						PropName: "CurrentPlayer",
-					},
-					{
-						Group:    boardgame.StateGroupPlayer,
-						PropName: "CardsLeftToReveal",
-					},
-				},
-				PropType: boardgame.TypeBool,
-				Compute:  computeCurrentPlayerHasCardsToReveal,
-			},
-			"CardsInGrid": {
-				Dependencies: []boardgame.StatePropertyRef{
-					{
-						Group:    boardgame.StateGroupGame,
-						PropName: "HiddenCards",
-					},
-					{
-						Group:    boardgame.StateGroupGame,
-						PropName: "RevealedCards",
-					},
-				},
-				PropType: boardgame.TypeInt,
-				Compute: func(state boardgame.State) (interface{}, error) {
-					game, _ := concreteStates(state)
-					return game.CardsInGrid(), nil
-				},
-			},
-		},
-	}
-}
-
 type gameDelegate struct {
 	boardgame.DefaultGameDelegate
 }
@@ -83,8 +32,12 @@ func (g *gameDelegate) DefaultNumPlayeres() int {
 	return 2
 }
 
-func (g *gameDelegate) ComputedPropertiesConfig() *boardgame.ComputedPropertiesConfig {
-	return computedPropertiesConfig
+func (g *gameDelegate) ComputedGlobalProperties(state boardgame.State) map[string]interface{} {
+	game, _ := concreteStates(state)
+	return map[string]interface{}{
+		"CurrentPlayerHasCardsToReveal": game.CurrentPlayerHasCardsToReveal(),
+		"CardsInGrid":                   game.CardsInGrid(),
+	}
 }
 
 func (g *gameDelegate) LegalNumPlayers(numPlayers int) bool {

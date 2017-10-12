@@ -121,9 +121,11 @@ type GameDelegate interface {
 	//the package doc.
 	SanitizationPolicy(prop StatePropertyRef, groupMembership map[int]bool) Policy
 
-	//ComputedPropertiesConfig returns a pointer to the config for how
-	//computed properties for this game should be constructed.
-	ComputedPropertiesConfig() *ComputedPropertiesConfig
+	//If you have computed properties that you want to be included in your
+	//JSON (for example, for use clientside), export them here by creating a
+	//dictionary with their values.
+	ComputedGlobalProperties(state State) map[string]interface{}
+	ComputedPlayerProperties(player PlayerState) map[string]interface{}
 
 	//Diagram should return a basic debug rendering of state in multi-line
 	//ascii art. Useful for debugging. State.Diagram() will reach out to this
@@ -279,7 +281,11 @@ func (d *DefaultGameDelegate) SanitizationPolicy(prop StatePropertyRef, groupMem
 
 }
 
-func (d *DefaultGameDelegate) ComputedPropertiesConfig() *ComputedPropertiesConfig {
+func (d *DefaultGameDelegate) ComputedGlobalProperties(state State) map[string]interface{} {
+	return nil
+}
+
+func (d *DefaultGameDelegate) ComputedPlayerProperties(player PlayerState) map[string]interface{} {
 	return nil
 }
 
