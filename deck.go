@@ -53,7 +53,7 @@ func (d *Deck) NewGrowableStack(maxLen int) *GrowableStack {
 //AddComponent adds a new component with the given values to the next spot in
 //the deck. If the deck has already been added to a componentchest, this will
 //do nothing.
-func (d *Deck) AddComponent(v SubState) {
+func (d *Deck) AddComponent(v Reader) {
 	if d.chest != nil {
 		return
 	}
@@ -70,7 +70,7 @@ func (d *Deck) AddComponent(v SubState) {
 //AddComponentMulti is like AddComponent, but creates multiple versions of the
 //same component. The exact same ComponentValues will be re-used, which is
 //reasonable becasue components are read-only anyway.
-func (d *Deck) AddComponentMulti(v SubState, count int) {
+func (d *Deck) AddComponentMulti(v Reader, count int) {
 	for i := 0; i < count; i++ {
 		d.AddComponent(v)
 	}
