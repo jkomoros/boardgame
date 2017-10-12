@@ -27,7 +27,7 @@ func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 
 //+autoreader
 type gameState struct {
-	state         boardgame.State
+	boardgame.BaseSubState
 	CurrentPlayer boardgame.PlayerIndex
 	Slots         *boardgame.SizedStack
 }
@@ -54,20 +54,12 @@ func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {
 
 //+autoreader
 type playerState struct {
-	state        boardgame.State
+	boardgame.BaseSubState
 	playerIndex  boardgame.PlayerIndex
 	TokenValue   string
 	UnusedTokens *boardgame.GrowableStack `stack:"tokens"`
 	//How many tokens they have left to place this turn.
 	TokensToPlaceThisTurn int
-}
-
-func (g *gameState) SetState(state boardgame.State) {
-	g.state = state
-}
-
-func (p *playerState) SetState(state boardgame.State) {
-	p.state = state
 }
 
 func (p *playerState) PlayerIndex() boardgame.PlayerIndex {

@@ -61,7 +61,7 @@ The core of the states are represented here:
 ```
 //+autoreader
 type gameState struct {
-	state          boardgame.State
+	boardgame.BaseSubState
 	CurrentPlayer  boardgame.PlayerIndex
 	HiddenCards    *boardgame.SizedStack `sanitize:"order"`
 	RevealedCards  *boardgame.SizedStack
@@ -70,7 +70,7 @@ type gameState struct {
 
 //+autoreader
 type playerState struct {
-	state             boardgame.State
+	boardgame.BaseSubState
 	playerIndex       boardgame.PlayerIndex
 	CardsLeftToReveal int
 	WonCards          *boardgame.GrowableStack `stack:"cards"`
@@ -84,21 +84,9 @@ At the core you can see that these objects are simple structs with (mostly) publ
 It's not explicitly listed, but the only (public) properties on these objects are ones that are
 legal according to `boardgame.PropertyType`. Your GameManager would fail to be created if your state structs included illegal property types.
 
+Note the first anonymous field of `boardgame.BaseSubState`. This is a simple struct designed to be anonymously embedded in the substates you define that implements the SetState method that SubStates must define. You'll normally just want to anonymously embed it in your gameState and playerStates.
+
 Most of the properties are straightforward. Each player has how many cards they are still allowed to draw this turn, for example.
-
-#### state
-
-The gameState and playerState have a private state field. This is because in some cases it's necessary to have a reference back to the state that they're part of. For example, a method on a gameState might want to change its behavior based on how many players have a certain property set a certain way. If you look at the `SubState` interface that your gameState and playerState must implement, you'll see a `SetState(state boardgame.State)` method. After your sub states are constructed, SetState will be called passing in the state they're part of. That method can do whatever it wants--if you wanted you could just do nothing. But in most cases you'd simply stash it in a `state` field on your struct. Indeed, that's what memory does, in `state.go`:
-
-```
-func (g *gameState) SetState(state boardgame.State) {
-	g.state = state
-}
-
-func (p *playerState) SetState(state boardgame.State) {
-	p.state = state
-}
-```
 
 #### Stacks and Components
 

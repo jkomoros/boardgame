@@ -534,8 +534,8 @@ type ReadSetter interface {
 type SubState interface {
 	Reader
 	//SetState is called to give the SubState object a pointer back to the
-	//State that contains it. You can implement it yourself, or embed
-	//BaseSubState to get it for free.
+	//State that contains it. You can implement it yourself, or anonymously
+	//embed BaseSubState to get it for free.
 	SetState(state State)
 }
 
@@ -568,4 +568,18 @@ type MutablePlayerState interface {
 //JSON, use this to encode it.
 func DefaultMarshalJSON(obj interface{}) ([]byte, error) {
 	return json.MarshalIndent(obj, "", "  ")
+}
+
+//BaseSubState is a simple struct designed to be anonymously embedded in the
+//SubStates you create, so you don't have to implement SetState yourself.
+type BaseSubState struct {
+	state State
+}
+
+func (b *BaseSubState) SetState(state State) {
+	b.state = state
+}
+
+func (b *BaseSubState) State() State {
+	return b.state
 }

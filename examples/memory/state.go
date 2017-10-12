@@ -15,7 +15,7 @@ func init() {
 
 //+autoreader
 type gameState struct {
-	state          boardgame.State
+	boardgame.BaseSubState
 	CurrentPlayer  boardgame.PlayerIndex
 	HiddenCards    *boardgame.SizedStack `sanitize:"order"`
 	RevealedCards  *boardgame.SizedStack
@@ -24,7 +24,7 @@ type gameState struct {
 
 //+autoreader
 type playerState struct {
-	state             boardgame.State
+	boardgame.BaseSubState
 	playerIndex       boardgame.PlayerIndex
 	CardsLeftToReveal int
 	WonCards          *boardgame.GrowableStack `stack:"cards"`
@@ -42,14 +42,6 @@ func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 	return game, players
 }
 
-func (g *gameState) SetState(state boardgame.State) {
-	g.state = state
-}
-
-func (p *playerState) SetState(state boardgame.State) {
-	p.state = state
-}
-
 func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
 	return p.playerIndex
 }
@@ -59,7 +51,7 @@ func (p *playerState) TurnDone() error {
 		return errors.New("they still have cards left to reveal")
 	}
 
-	game, _ := concreteStates(p.state)
+	game, _ := concreteStates(p.State())
 
 	if game.RevealedCards.NumComponents() > 0 {
 		return errors.New("there are still some cards revealed, which they must hide")

@@ -15,7 +15,7 @@ func init() {
 
 //+autoreader
 type gameState struct {
-	state         boardgame.State
+	boardgame.BaseSubState
 	CurrentPlayer boardgame.PlayerIndex
 	Die           *boardgame.SizedStack `stack:"dice"`
 	TargetScore   int
@@ -23,7 +23,7 @@ type gameState struct {
 
 //+autoreader
 type playerState struct {
-	state       boardgame.State
+	boardgame.BaseSubState
 	playerIndex boardgame.PlayerIndex
 	Busted      bool
 	Done        bool
@@ -42,14 +42,6 @@ func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 	}
 
 	return game, players
-}
-
-func (g *gameState) SetState(state boardgame.State) {
-	g.state = state
-}
-
-func (p *playerState) SetState(state boardgame.State) {
-	p.state = state
 }
 
 func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {

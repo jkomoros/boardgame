@@ -17,6 +17,7 @@ import (
 
 //+autoreader both
 type myStruct struct {
+	boardgame.BaseSubState
 	MyInt              int
 	MyBool             bool
 	MySizedStack       *boardgame.SizedStack

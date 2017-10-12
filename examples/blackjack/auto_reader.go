@@ -2503,10 +2503,10 @@ func (p *__playerStateReader) SetEnumVarProp(name string, value enum.Var) error 
 func (p *__playerStateReader) GrowableStackProp(name string) (*boardgame.GrowableStack, error) {
 
 	switch name {
-	case "VisibleHand":
-		return p.data.VisibleHand, nil
 	case "HiddenHand":
 		return p.data.HiddenHand, nil
+	case "VisibleHand":
+		return p.data.VisibleHand, nil
 
 	}
 
@@ -2517,11 +2517,11 @@ func (p *__playerStateReader) GrowableStackProp(name string) (*boardgame.Growabl
 func (p *__playerStateReader) SetGrowableStackProp(name string, value *boardgame.GrowableStack) error {
 
 	switch name {
-	case "VisibleHand":
-		p.data.VisibleHand = value
-		return nil
 	case "HiddenHand":
 		p.data.HiddenHand = value
+		return nil
+	case "VisibleHand":
+		p.data.VisibleHand = value
 		return nil
 
 	}
