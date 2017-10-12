@@ -14,9 +14,9 @@ import (
 type ComputedProperties interface {
 	//The primary property reader is where top-level computed properties can
 	//be accessed.
-	Global() MutableSubState
+	Global() SubState
 	//To get the ComputedPlayerProperties, pass in the player index.
-	Player(index PlayerIndex) MutableSubState
+	Player(index PlayerIndex) SubState
 }
 
 //ComputedPropertiesConfig is the struct that contains configuration for which
@@ -116,8 +116,8 @@ type StatePropertyRef struct {
 }
 
 type computedPropertiesImpl struct {
-	global  MutableSubState
-	players []MutableSubState
+	global  SubState
+	players []SubState
 }
 
 func transformationForDependencies(state *state, dependencies []StatePropertyRef) *sanitizationTransformation {
@@ -173,7 +173,7 @@ func newComputedPropertiesImpl(config *ComputedPropertiesConfig, state *state) (
 		return nil, nil
 	}
 
-	playerBags := make([]MutableSubState, len(state.PlayerStates()))
+	playerBags := make([]SubState, len(state.PlayerStates()))
 
 	//TODO: calculate all properties.
 	for i, _ := range state.PlayerStates() {
@@ -380,11 +380,11 @@ func (c *ComputedPlayerPropertyDefinition) compute(state *state, playerIndex Pla
 	return nil, errors.New("Neither Compute nor GlobalCompute were defined. One of them must be.")
 }
 
-func (c *computedPropertiesImpl) Global() MutableSubState {
+func (c *computedPropertiesImpl) Global() SubState {
 	return c.global
 }
 
-func (c *computedPropertiesImpl) Player(index PlayerIndex) MutableSubState {
+func (c *computedPropertiesImpl) Player(index PlayerIndex) SubState {
 	return c.players[int(index)]
 }
 
