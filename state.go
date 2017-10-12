@@ -507,6 +507,12 @@ type Reader interface {
 	Reader() PropertyReader
 }
 
+//ReadSetter is the interface that any object that can return a
+//PropertyReadSetter implements.
+type ReadSetter interface {
+	ReadSetter() PropertyReadSetter
+}
+
 //SubState is the interface that all sub-state objects (PlayerStates.
 //GameStates, and DynamicComponentValues) implement.
 type SubState interface {
@@ -517,7 +523,7 @@ type SubState interface {
 //implement.
 type MutableSubState interface {
 	SubState
-	ReadSetter() PropertyReadSetter
+	ReadSetter
 }
 
 //PlayerState represents the state of a game associated with a specific user.
