@@ -259,13 +259,13 @@ func TestStateComputed(t *testing.T) {
 
 	computed := state.Computed()
 
-	if val, err := computed.Global().Reader().BoolProp("JSONDuringComputed"); err != nil {
+	if val, err := computed.Global().BoolProp("JSONDuringComputed"); err != nil {
 		t.Error("Unexpected error retrieving JSONDuringComputed", err)
 	} else if val {
 		t.Error("Unexpected result for JSONDuringComputed. Expected false, got true")
 	}
 
-	if val, err := computed.Global().Reader().PlayerIndexProp("CurrentPlayerPlusFive"); err != nil {
+	if val, err := computed.Global().PlayerIndexProp("CurrentPlayerPlusFive"); err != nil {
 		t.Error("Unexpected error retrieving CurrentPlayerPlusFive", err)
 	} else {
 		if val != 4+5 {
@@ -273,36 +273,36 @@ func TestStateComputed(t *testing.T) {
 		}
 	}
 
-	if val, err := computed.Global().Reader().IntProp("SumAllScores"); err != nil {
+	if val, err := computed.Global().IntProp("SumAllScores"); err != nil {
 		t.Error("Unexpected error retrieving SumAllScores", err)
 	} else if val != 15 {
 		t.Error("Unexpected result for SumAllScores. Got", val, "wanted", 15)
 	}
 
-	if val, err := computed.Global().Reader().IntProp("SumIntVarsInDrawDeck"); err != nil {
+	if val, err := computed.Global().IntProp("SumIntVarsInDrawDeck"); err != nil {
 		t.Error("Unexpected error retrieving SumIntVarsInDrawDeck", err)
 	} else if val != 4 {
 		t.Error("Unexpected result for SumIntVarsInDrawDeck. Got", val, "wanted", 4)
 	}
 
-	if val, err := computed.Global().Reader().IntProp("SumIntVarsInDrawDeckWrongDependencies"); err != nil {
+	if val, err := computed.Global().IntProp("SumIntVarsInDrawDeckWrongDependencies"); err != nil {
 		t.Error("Unexpected error retrieving SumIntVarsInDrawDeckWrongDependencies", err)
 	} else if val == 4 {
 		t.Error("Unexpected result for SumIntVarsInDrawDeckWrongDependencies. Got", val, "but we shouldn't have because it should have been randomized")
 	}
 
-	if _, err := computed.Global().Reader().BoolProp("Foo"); err == nil {
+	if _, err := computed.Global().BoolProp("Foo"); err == nil {
 		t.Error("Didn't get an error reading an unexpected bool prop")
 	}
 
-	if val, err := computed.Player(0).Reader().IntProp("EffectiveScore"); err != nil {
+	if val, err := computed.Player(0).IntProp("EffectiveScore"); err != nil {
 		t.Error("Got error for EffectiveScore", err)
 	} else if val != 12 {
 		//We set player 0 score to 10 a the top of this test, and there are two items in hand.
 		t.Error("Got wrong value for EffectiveScore. Got", val, "wanted 12")
 	}
 
-	if val, err := computed.Player(0).Reader().IntProp("EffectiveScoreGlobal"); err != nil {
+	if val, err := computed.Player(0).IntProp("EffectiveScoreGlobal"); err != nil {
 		t.Error("Got error for EffectiveScoreGlobal", err)
 	} else if val != 5 {
 		t.Error("Got wrong value for EffectiveScoreGlobal. Got", val, "wanted 5")

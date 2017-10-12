@@ -14,9 +14,9 @@ import (
 type ComputedProperties interface {
 	//The primary property reader is where top-level computed properties can
 	//be accessed.
-	Global() SubState
+	Global() PropertyReader
 	//To get the ComputedPlayerProperties, pass in the player index.
-	Player(index PlayerIndex) SubState
+	Player(index PlayerIndex) PropertyReader
 }
 
 //ComputedPropertiesConfig is the struct that contains configuration for which
@@ -116,8 +116,8 @@ type StatePropertyRef struct {
 }
 
 type computedPropertiesImpl struct {
-	global  SubState
-	players []SubState
+	global  PropertyReadSetter
+	players []PropertyReadSetter
 }
 
 func transformationForDependencies(state *state, dependencies []StatePropertyRef) *sanitizationTransformation {
@@ -173,7 +173,7 @@ func newComputedPropertiesImpl(config *ComputedPropertiesConfig, state *state) (
 		return nil, nil
 	}
 
-	playerBags := make([]SubState, len(state.PlayerStates()))
+	playerBags := make([]PropertyReadSetter, len(state.PlayerStates()))
 
 	//TODO: calculate all properties.
 	for i, _ := range state.PlayerStates() {
@@ -380,11 +380,11 @@ func (c *ComputedPlayerPropertyDefinition) compute(state *state, playerIndex Pla
 	return nil, errors.New("Neither Compute nor GlobalCompute were defined. One of them must be.")
 }
 
-func (c *computedPropertiesImpl) Global() SubState {
+func (c *computedPropertiesImpl) Global() PropertyReader {
 	return c.global
 }
 
-func (c *computedPropertiesImpl) Player(index PlayerIndex) SubState {
+func (c *computedPropertiesImpl) Player(index PlayerIndex) PropertyReader {
 	return c.players[int(index)]
 }
 
@@ -396,8 +396,8 @@ func (c *computedPropertiesImpl) MarshalJSON() ([]byte, error) {
 
 	for i, player := range c.players {
 		playerProperties[i] = make(map[string]interface{})
-		for propName, _ := range player.Reader().Props() {
-			val, err := player.Reader().Prop(propName)
+		for propName, _ := range player.Props() {
+			val, err := player.Prop(propName)
 
 			if err != nil {
 				return nil, errors.New("Player computed prop " + propName + " for player " + strconv.Itoa(i) + " returned an error: " + err.Error())
@@ -410,8 +410,8 @@ func (c *computedPropertiesImpl) MarshalJSON() ([]byte, error) {
 
 	globalProperties := make(map[string]interface{})
 
-	for propName, _ := range props.Reader().Props() {
-		val, err := props.Reader().Prop(propName)
+	for propName, _ := range props.Props() {
+		val, err := props.Prop(propName)
 
 		if err != nil {
 			return nil, errors.New("Computed Prop " + propName + " returned an error: " + err.Error())
