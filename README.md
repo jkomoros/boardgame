@@ -454,16 +454,16 @@ The next interface must be implemented by your playerStates:
 type PlayerTurnFinisher interface {
     //TurnDone should return nil when the turn is done, or a descriptive error
     //if the turn is not done.
-    TurnDone(state boardgame.State) error
+    TurnDone() error
     //ResetForTurnStart will be called when this player begins their turn.
-    ResetForTurnStart(state boardgame.State) error
+    ResetForTurnStart() error
     //ResetForTurnEnd will be called right before the CurrentPlayer is
     //advanced to the next player.
-    ResetForTurnEnd(state boardgame.State) error
+    ResetForTurnEnd() error
 }
 ```
 
-In most cases, your playerState has enough information to return an answer for each of these. However, some games have more complicated logic that must look at other aspects of the State as well, which is why a full copy of the state is also provided in the method signatures.
+In most cases, your playerState has enough information to return an answer for each of these. However, some games have more complicated logic that must look at other aspects of the State as well. If that's necessary, you can find the state your playerState is part of by inspecting the state that was passed to it via SetState().
 
 `moves.FinishTurn` uses the GameDelegate's `CurrentPlayerIndex` to figure out who the current player is. It then calls `TurnDone` on the playerState for the player whose turn it is. If the turn is done (that is, `nil` is returned), it calls `ResetForTurnEnd` on the given PlayerState, then advances to the next player by calling gameState.`SetCurrentPlayer` (wrapping around if it's currently the last player's turn), and then calls `ResetForTurnStart` on the player whose turn it now is. This is where you typically configure how many actions of each type the current player has remaining.
 

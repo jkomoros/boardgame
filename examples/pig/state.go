@@ -60,7 +60,7 @@ func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
 	return p.playerIndex
 }
 
-func (p *playerState) TurnDone(state boardgame.State) error {
+func (p *playerState) TurnDone() error {
 	if !p.DieCounted {
 		return errors.New("the most recent die roll has not been counted")
 	}
@@ -79,12 +79,12 @@ func (p *playerState) ResetForTurn() {
 	p.DieCounted = true
 }
 
-func (p *playerState) ResetForTurnStart(state boardgame.State) error {
+func (p *playerState) ResetForTurnStart() error {
 	p.ResetForTurn()
 	return nil
 }
 
-func (p *playerState) ResetForTurnEnd(state boardgame.State) error {
+func (p *playerState) ResetForTurnEnd() error {
 	if p.Done {
 		p.TotalScore += p.RoundScore
 	}

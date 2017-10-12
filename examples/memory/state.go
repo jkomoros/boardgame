@@ -54,12 +54,12 @@ func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
 	return p.playerIndex
 }
 
-func (p *playerState) TurnDone(state boardgame.State) error {
+func (p *playerState) TurnDone() error {
 	if p.CardsLeftToReveal > 0 {
 		return errors.New("they still have cards left to reveal")
 	}
 
-	game, _ := concreteStates(state)
+	game, _ := concreteStates(p.state)
 
 	if game.RevealedCards.NumComponents() > 0 {
 		return errors.New("there are still some cards revealed, which they must hide")
@@ -68,12 +68,12 @@ func (p *playerState) TurnDone(state boardgame.State) error {
 	return nil
 }
 
-func (p *playerState) ResetForTurnStart(state boardgame.State) error {
+func (p *playerState) ResetForTurnStart() error {
 	p.CardsLeftToReveal = 2
 	return nil
 }
 
-func (p *playerState) ResetForTurnEnd(state boardgame.State) error {
+func (p *playerState) ResetForTurnEnd() error {
 	return nil
 }
 

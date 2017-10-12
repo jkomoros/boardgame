@@ -15,12 +15,12 @@ type CurrentPlayerSetter interface {
 type PlayerTurnFinisher interface {
 	//TurnDone should return nil when the turn is done, or a descriptive error
 	//if the turn is not done.
-	TurnDone(state boardgame.State) error
+	TurnDone() error
 	//ResetForTurnStart will be called when this player begins their turn.
-	ResetForTurnStart(state boardgame.State) error
+	ResetForTurnStart() error
 	//ResetForTurnEnd will be called right before the CurrentPlayer is
 	//advanced to the next player.
-	ResetForTurnEnd(state boardgame.State) error
+	ResetForTurnEnd() error
 }
 
 /*
@@ -62,7 +62,7 @@ func (f *FinishTurn) Legal(state boardgame.State, proposer boardgame.PlayerIndex
 		return errors.New("The current player interface did not implement PlayerTurnFinisher")
 	}
 
-	if err := currentPlayerTurnFinisher.TurnDone(state); err != nil {
+	if err := currentPlayerTurnFinisher.TurnDone(); err != nil {
 		return errors.New("The current player is not done with their turn because " + err.Error())
 	}
 
@@ -82,7 +82,7 @@ func (f *FinishTurn) Apply(state boardgame.MutableState) error {
 		return errors.New("The current player interface did not implement PlayerTurnFinisher")
 	}
 
-	if err := currentPlayerTurnFinisher.ResetForTurnEnd(state); err != nil {
+	if err := currentPlayerTurnFinisher.ResetForTurnEnd(); err != nil {
 		return errors.New("Couldn't reset for turn end: " + err.Error())
 	}
 
@@ -104,7 +104,7 @@ func (f *FinishTurn) Apply(state boardgame.MutableState) error {
 		return errors.New("The current player interface did not implement PlayerTurnFinisher")
 	}
 
-	if err := currentPlayerTurnFinisher.ResetForTurnStart(state); err != nil {
+	if err := currentPlayerTurnFinisher.ResetForTurnStart(); err != nil {
 		return errors.New("Couldn't reset for turn start: " + err.Error())
 	}
 

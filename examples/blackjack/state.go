@@ -62,19 +62,19 @@ func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
 	return p.playerIndex
 }
 
-func (p *playerState) TurnDone(state boardgame.State) error {
+func (p *playerState) TurnDone() error {
 	if !p.Busted && !p.Stood {
 		return errors.New("they have neither busted nor decided to stand")
 	}
 	return nil
 }
 
-func (p *playerState) ResetForTurnStart(state boardgame.State) error {
+func (p *playerState) ResetForTurnStart() error {
 	p.Stood = false
 	return nil
 }
 
-func (p *playerState) ResetForTurnEnd(state boardgame.State) error {
+func (p *playerState) ResetForTurnEnd() error {
 	return nil
 }
 

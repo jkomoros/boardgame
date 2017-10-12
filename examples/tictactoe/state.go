@@ -74,16 +74,16 @@ func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
 	return p.playerIndex
 }
 
-func (p *playerState) ResetForTurnStart(state boardgame.State) error {
+func (p *playerState) ResetForTurnStart() error {
 	p.TokensToPlaceThisTurn = 1
 	return nil
 }
 
-func (p *playerState) ResetForTurnEnd(state boardgame.State) error {
+func (p *playerState) ResetForTurnEnd() error {
 	return nil
 }
 
-func (p *playerState) TurnDone(state boardgame.State) error {
+func (p *playerState) TurnDone() error {
 	if p.TokensToPlaceThisTurn > 0 {
 		return errors.New("they still have tokens left to place this turn")
 	}
