@@ -397,6 +397,11 @@ output for a state, ComputedGlobalProperties, and ComputedPlayerProperties. In
 that method you just emit the string value you want the value to be called and
 the value, and it will be represented in your JSON output.
 
+Make sure your methods behave reasonably when the State has been sanitized,
+because the Computed Properties are not requested until after a State has been
+sanitized, if it will be. As long as they rely on normal properties, the
+sanitized result should be sanitized itself.
+
 Dynamic Component Values
 
 Components are always read-only and have the same values across every game.
