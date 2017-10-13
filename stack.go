@@ -24,6 +24,11 @@ type Stack interface {
 	//of slots--even if some are unfilled.
 	Len() int
 
+	//FixedSize returns if the stack has a fixed number of slots (any number
+	//of which may be empty), or a non-fixed size that can grow up to MaxSize
+	//and not have any nil slots.
+	FixedSize() bool
+
 	//NumComponents returns the number of components that are in this stack.
 	//For GrowableStacks this is the same as Len(); for SizedStacks, this is
 	//the number of non-nil slots.
@@ -361,6 +366,14 @@ func (s *SizedStack) NumComponents() int {
 		}
 	}
 	return count
+}
+
+func (g *GrowableStack) FixedSize() bool {
+	return false
+}
+
+func (s *SizedStack) FixedSize() bool {
+	return true
 }
 
 func (s *GrowableStack) Inflated() bool {

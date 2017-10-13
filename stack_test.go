@@ -8,6 +8,24 @@ import (
 	"testing"
 )
 
+func TestFixedSize(t *testing.T) {
+
+	game := testGame()
+
+	chest := game.Chest()
+
+	testDeck := chest.Deck("test")
+
+	sized := testDeck.NewSizedStack(5)
+
+	assert.For(t).ThatActual(sized.FixedSize()).IsTrue()
+
+	growable := testDeck.NewGrowableStack(0)
+
+	assert.For(t).ThatActual(growable.FixedSize()).IsFalse()
+
+}
+
 func TestSort(t *testing.T) {
 
 	game := testGame()
