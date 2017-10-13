@@ -258,10 +258,8 @@ func structTypes(location string, theStruct model.Struct, allStructs []model.Str
 			} else {
 				result[field.Name] = boardgame.TypeString
 			}
-		case "boardgame.SizedStack":
-			result[field.Name] = boardgame.TypeSizedStack
-		case "boardgame.GrowableStack":
-			result[field.Name] = boardgame.TypeGrowableStack
+		case "boardgame.Stack":
+			result[field.Name] = boardgame.TypeStack
 		case "enum.Var":
 			result[field.Name] = boardgame.TypeEnumVar
 		case "enum.Const":
@@ -412,6 +410,8 @@ func headerForStruct(structName string, types map[string]boardgame.PropertyType,
 			goLangType = "enum.Var"
 		case "EnumConst":
 			goLangType = "enum.Const"
+		case "Stack":
+			goLangType = "boardgame.Stack"
 		case "IntSlice":
 			goLangType = "[]int"
 		case "BoolSlice":
