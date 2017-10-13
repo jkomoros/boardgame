@@ -38,11 +38,13 @@ func NewDeck() *Deck {
 //NewSizedStack returns a new sized stack with the given size based on this
 //deck. You normally do this in Empty*State delegate methods, if you aren't
 //using the auto-inflating struct tags to configure your stacks.
-func (d *Deck) NewStack(fixedSize bool, size int) Stack {
-	if fixedSize {
-		return newSizedStack(d, size)
-	}
-	return newGrowableStack(d, size)
+func (d *Deck) NewStack(maxLen int) Stack {
+	return newGrowableStack(d, maxLen)
+}
+
+//NewSizedStack returns a stack of fixed size (stack.FixedSize will return true).
+func (d *Deck) NewSizedStack(size int) Stack {
+	return newSizedStack(d, size)
 }
 
 //AddComponent adds a new component with the given values to the next spot in

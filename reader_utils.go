@@ -204,7 +204,11 @@ func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) e
 			return errors.New("The deck for " + propName + " was unexpectedly nil")
 		}
 
-		stack = config.deck.NewStack(config.fixedSize, config.size)
+		if config.fixedSize {
+			stack = config.deck.NewSizedStack(config.size)
+		} else {
+			stack = config.deck.NewStack(config.size)
+		}
 
 		if err := readSetter.SetStackProp(propName, stack); err != nil {
 			return errors.New("Couldn't set " + propName + " to stack: " + err.Error())

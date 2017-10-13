@@ -51,7 +51,7 @@ func (t *testGameDelegate) ComputedPlayerProperties(player PlayerState) Property
 func (t *testGameDelegate) DynamicComponentValuesConstructor(deck *Deck) MutableSubState {
 	if deck.Name() == "test" {
 		return &testingComponentDynamic{
-			Stack: deck.NewStack(true, 1),
+			Stack: deck.NewSizedStack(1),
 			Enum:  testColorEnum.NewVar(),
 		}
 	}
@@ -130,7 +130,7 @@ func (t *testGameDelegate) GameStateConstructor() MutableSubState {
 	deck := chest.Deck("test")
 	return &testGameState{
 		CurrentPlayer:      0,
-		DrawDeck:           deck.NewStack(false, 0),
+		DrawDeck:           deck.NewStack(0),
 		Timer:              NewTimer(),
 		MyIntSlice:         make([]int, 0),
 		MyBoolSlice:        make([]bool, 0),

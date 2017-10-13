@@ -25,7 +25,7 @@ func TestPropertyReaderImpl(t *testing.T) {
 
 	p := &propertyReaderTestStruct{
 		C: "bam",
-		S: deck.NewStack(true, 3),
+		S: deck.NewSizedStack(3),
 		P: 3,
 	}
 
