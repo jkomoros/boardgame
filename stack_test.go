@@ -8,6 +8,24 @@ import (
 	"testing"
 )
 
+func TestFixedSize(t *testing.T) {
+
+	game := testGame()
+
+	chest := game.Chest()
+
+	testDeck := chest.Deck("test")
+
+	sized := testDeck.NewSizedStack(5)
+
+	assert.For(t).ThatActual(sized.FixedSize()).IsTrue()
+
+	growable := testDeck.NewStack(0)
+
+	assert.For(t).ThatActual(growable.FixedSize()).IsFalse()
+
+}
+
 func TestSort(t *testing.T) {
 
 	game := testGame()
@@ -18,11 +36,11 @@ func TestSort(t *testing.T) {
 
 	testDeck := chest.Deck("test")
 
-	gStack := testDeck.NewGrowableStack(0)
+	gStack := testDeck.NewStack(0)
 
 	gStack.Inflate(chest)
 
-	gStack.statePtr = game.CurrentState().(*state)
+	gStack.setState(game.CurrentState().(*state))
 
 	gStack.insertNext(testDeck.Components()[0])
 	gStack.insertNext(testDeck.Components()[1])
@@ -56,7 +74,7 @@ func TestSort(t *testing.T) {
 	sStack := testDeck.NewSizedStack(5)
 
 	sStack.Inflate(chest)
-	sStack.statePtr = game.CurrentState().(*state)
+	sStack.setState(game.CurrentState().(*state))
 
 	sStack.insertComponentAt(0, testDeck.Components()[0])
 	sStack.insertComponentAt(1, testDeck.Components()[1])
@@ -115,15 +133,15 @@ func TestInflate(t *testing.T) {
 
 	testDeck := chest.Deck("test")
 
-	gStack := testDeck.NewGrowableStack(0)
+	gStack := testDeck.NewStack(0)
 
-	gStack.statePtr = game.CurrentState().(*state)
+	gStack.setState(game.CurrentState().(*state))
 
 	gStack.insertNext(testDeck.Components()[0])
 
 	sStack := testDeck.NewSizedStack(2)
 
-	sStack.statePtr = game.CurrentState().(*state)
+	sStack.setState(game.CurrentState().(*state))
 
 	sStack.insertNext(testDeck.Components()[1])
 
@@ -155,13 +173,13 @@ func TestInflate(t *testing.T) {
 		t.Error("SStack didn't serialize", err)
 	}
 
-	reGStack := &GrowableStack{}
+	reGStack := &growableStack{}
 
 	if err := json.Unmarshal(gStackBlob, reGStack); err != nil {
 		t.Error("Couldn't reconstitute gStack", err)
 	}
 
-	reSStack := &SizedStack{}
+	reSStack := &sizedStack{}
 
 	if err := json.Unmarshal(sStackBlob, reSStack); err != nil {
 		t.Error("Couldn't reconstitute sStack", err)
@@ -217,7 +235,7 @@ func TestSecretMoveComponentGrowable(t *testing.T) {
 
 	deck := game.Chest().Deck("test")
 
-	gStack := deck.NewGrowableStack(0)
+	gStack := deck.NewStack(0)
 	sStack := deck.NewSizedStack(5)
 
 	fakeState := &state{
@@ -225,8 +243,8 @@ func TestSecretMoveComponentGrowable(t *testing.T) {
 		secretMoveCount: make(map[string][]int),
 	}
 
-	gStack.statePtr = fakeState
-	sStack.statePtr = fakeState
+	gStack.setState(fakeState)
+	sStack.setState(fakeState)
 
 	for i, c := range deck.Components() {
 		if i%2 == 0 {
@@ -248,7 +266,7 @@ func TestSecretMoveComponentSized(t *testing.T) {
 
 	deck := game.Chest().Deck("test")
 
-	gStack := deck.NewGrowableStack(0)
+	gStack := deck.NewStack(0)
 	sStack := deck.NewSizedStack(5)
 
 	fakeState := &state{
@@ -256,8 +274,8 @@ func TestSecretMoveComponentSized(t *testing.T) {
 		secretMoveCount: make(map[string][]int),
 	}
 
-	gStack.statePtr = fakeState
-	sStack.statePtr = fakeState
+	gStack.setState(fakeState)
+	sStack.setState(fakeState)
 
 	for i, c := range deck.Components() {
 		if i%2 == 0 {
@@ -333,22 +351,22 @@ func TestMoveComponent(t *testing.T) {
 
 	deck := game.Chest().Deck("test")
 
-	gStack := deck.NewGrowableStack(0)
+	gStack := deck.NewStack(0).(*growableStack)
 
-	sStack := deck.NewSizedStack(5)
+	sStack := deck.NewSizedStack(5).(*sizedStack)
 
-	gStackMaxLen := deck.NewGrowableStack(4)
+	gStackMaxLen := deck.NewStack(4).(*growableStack)
 
-	sStackMaxLen := deck.NewSizedStack(4)
+	sStackMaxLen := deck.NewSizedStack(4).(*sizedStack)
 
 	fakeState := &state{
 		game: game,
 	}
 
-	gStack.statePtr = fakeState
-	sStack.statePtr = fakeState
-	gStackMaxLen.statePtr = fakeState
-	sStackMaxLen.statePtr = fakeState
+	gStack.setState(fakeState)
+	sStack.setState(fakeState)
+	gStackMaxLen.setState(fakeState)
+	sStackMaxLen.setState(fakeState)
 
 	for _, c := range deck.Components() {
 		gStack.insertNext(c)
@@ -373,8 +391,8 @@ func TestMoveComponent(t *testing.T) {
 		t.Error("sStackMaxLen was not initalized like expected. Got", sStackMaxLen.indexes)
 	}
 
-	sStackOtherState := sStack.Copy()
-	sStackOtherState.statePtr = &state{}
+	sStackOtherState := sStack.copy()
+	sStackOtherState.setState(&state{})
 
 	tests := []struct {
 		source                 Stack
@@ -513,10 +531,10 @@ func TestMoveComponent(t *testing.T) {
 		var destination Stack
 
 		switch s := test.source.(type) {
-		case *GrowableStack:
-			source = s.Copy()
-		case *SizedStack:
-			source = s.Copy()
+		case *growableStack:
+			source = s.copy()
+		case *sizedStack:
+			source = s.copy()
 		}
 
 		//Some tests deliberately want to make sure that copies within same source and dest aren't allowed
@@ -525,10 +543,10 @@ func TestMoveComponent(t *testing.T) {
 		} else {
 
 			switch s := test.destination.(type) {
-			case *GrowableStack:
-				destination = s.Copy()
-			case *SizedStack:
-				destination = s.Copy()
+			case *growableStack:
+				destination = s.copy()
+			case *sizedStack:
+				destination = s.copy()
 			}
 		}
 
@@ -568,13 +586,13 @@ func TestSwapComponents(t *testing.T) {
 
 	deck := game.Chest().Deck("test")
 
-	stack := deck.NewGrowableStack(0)
+	stack := deck.NewStack(0)
 
 	fakeState := &state{
 		game: game,
 	}
 
-	stack.statePtr = fakeState
+	stack.setState(fakeState)
 
 	for _, c := range deck.Components() {
 		stack.insertNext(c)
@@ -584,7 +602,7 @@ func TestSwapComponents(t *testing.T) {
 
 	sStack := deck.NewSizedStack(10)
 
-	sStack.statePtr = fakeState
+	sStack.setState(fakeState)
 
 	for _, c := range deck.Components() {
 		sStack.insertNext(c)
@@ -638,9 +656,9 @@ func TestGrowableStackInsertComponentAt(t *testing.T) {
 		game: game,
 	}
 
-	stack := deck.NewGrowableStack(0)
+	stack := deck.NewStack(0)
 
-	stack.statePtr = fakeState
+	stack.setState(fakeState)
 
 	for _, c := range deck.Components() {
 		stack.insertNext(c)
@@ -683,7 +701,7 @@ func TestGrowableStackInsertComponentAt(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		stackCopy := stack.Copy()
+		stackCopy := stack.copy().(*growableStack)
 
 		component := deck.ComponentAt(test.componentDeckIndex)
 
@@ -713,9 +731,9 @@ func TestGrowableStackRemoveComponentAt(t *testing.T) {
 		game: game,
 	}
 
-	stack := deck.NewGrowableStack(0)
+	stack := deck.NewStack(0)
 
-	stack.statePtr = fakeState
+	stack.setState(fakeState)
 
 	for _, c := range deck.Components() {
 		stack.insertNext(c)
@@ -752,7 +770,7 @@ func TestGrowableStackRemoveComponentAt(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		stackCopy := stack.Copy()
+		stackCopy := stack.copy().(*growableStack)
 
 		if !reflect.DeepEqual(stackCopy.indexes, startingIndexes) {
 			t.Error("Sanity check failed for", i, "Starting indexes were", stackCopy.indexes, "wanted", startingIndexes)
@@ -771,7 +789,7 @@ func TestShuffle(t *testing.T) {
 
 	deck := game.Chest().Deck("test")
 
-	stack := deck.NewGrowableStack(0)
+	stack := deck.NewStack(0).(*growableStack)
 
 	fakeState := &state{
 		game:            game,
@@ -779,7 +797,7 @@ func TestShuffle(t *testing.T) {
 		secretMoveCount: make(map[string][]int),
 	}
 
-	stack.statePtr = fakeState
+	stack.setState(fakeState)
 
 	for _, c := range deck.Components() {
 		stack.insertNext(c)
@@ -830,9 +848,9 @@ func TestShuffle(t *testing.T) {
 		t.Error("When we shuffled", numShuffles, "times, got the same state", numShufflesTheSame, "which is suspicious")
 	}
 
-	sStack := deck.NewSizedStack(5)
+	sStack := deck.NewSizedStack(5).(*sizedStack)
 
-	sStack.statePtr = fakeState
+	sStack.setState(fakeState)
 
 	for _, c := range deck.Components() {
 		sStack.insertNext(c)
@@ -905,11 +923,11 @@ func TestMoveAllTo(t *testing.T) {
 		game: game,
 	}
 
-	to := deck.NewGrowableStack(1)
-	to.statePtr = fakeState
+	to := deck.NewStack(1)
+	to.setState(fakeState)
 
 	from := deck.NewSizedStack(2)
-	from.statePtr = fakeState
+	from.setState(fakeState)
 
 	zero := deck.Components()[0]
 	one := deck.Components()[1]
@@ -930,11 +948,11 @@ func TestMoveAllTo(t *testing.T) {
 		t.Error("MoveAllTo did not move the components to other")
 	}
 
-	to = deck.NewGrowableStack(1)
-	to.statePtr = fakeState
+	to = deck.NewStack(1)
+	to.setState(fakeState)
 
 	from = deck.NewSizedStack(2)
-	from.statePtr = fakeState
+	from.setState(fakeState)
 
 	from.insertNext(zero)
 	from.insertNext(one)

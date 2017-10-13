@@ -63,8 +63,8 @@ The core of the states are represented here:
 type gameState struct {
 	boardgame.BaseSubState
 	CurrentPlayer  boardgame.PlayerIndex
-	HiddenCards    *boardgame.SizedStack `sanitize:"order"`
-	RevealedCards  *boardgame.SizedStack
+	HiddenCards    boardgame.Stack `sanitize:"order"`
+	RevealedCards  boardgame.Stack
 	HideCardsTimer *boardgame.Timer
 }
 
@@ -73,7 +73,7 @@ type playerState struct {
 	boardgame.BaseSubState
 	playerIndex       boardgame.PlayerIndex
 	CardsLeftToReveal int
-	WonCards          *boardgame.GrowableStack `stack:"cards"`
+	WonCards          boardgame.Stack `stack:"cards"`
 }
 ```
 
@@ -90,11 +90,13 @@ Most of the properties are straightforward. Each player has how many cards they 
 
 #### Stacks and Components
 
-As you can see, stacks of cards are represented by either `GrowableStack` or `SizedStack`.
+As you can see, stacks of cards are represented by type `Stack`.
 
 Stacks contain 0 or more **Components**. Components are anything in a game that can move around: cards, meeples, resource tokens, dice, etc. Each game type defines a complete enumeration of all components included in their game in something called a **ComponentChest**. We'll get back to that later in the tutorial.
 
-A SizedStack has a fixed number of slots, each of which may be empty or contain a single component. A GrowableStack is a variable-length stack with no gaps, that can grow and shrink as components are inserted and removed.
+By default Stacks can grow to accomodate new components and have no empty spaces in the middle. Adding a new component to a slot in the middle of a stack would simply push components from there onward down a slot, and grow the stack by one.
+
+A SizedStack is a special kind of Stack that has a fixed number of slots, each of which may be empty or contain a single component. The default growable Stacks are useful in most instances, including representing a player's Hand or a Draw or Discard deck. SizedStacks are useful when there's a specific fixed size or where there might be gaps between components.
 
 Each component is organized into exactly one **Deck**. A deck is a collection of components all of the same type. For example, you might have a deck of playing cards, a deck of meeples, and a deck of dice in a game. (The terminology makes most sense for cards, but applies to any group of components in a game.) The ComponentChest is simply an enumeration of all of the Decks for this game type. Memory has only has a single deck of cards, but other games will have significantly more decks.
 
@@ -765,17 +767,19 @@ Memory's states are defined as follows:
 ```
 //+autoreader
 type gameState struct {
+	boardgame.BaseSubState
 	CurrentPlayer  boardgame.PlayerIndex
-	HiddenCards    *boardgame.SizedStack `sanitize:"order"`
-	RevealedCards  *boardgame.SizedStack
+	HiddenCards    boardgame.Stack `sanitize:"order"`
+	RevealedCards  boardgame.Stack
 	HideCardsTimer *boardgame.Timer
 }
 
 //+autoreader
 type playerState struct {
+	boardgame.BaseSubState
 	playerIndex       boardgame.PlayerIndex
 	CardsLeftToReveal int
-	WonCards          *boardgame.GrowableStack `stack:"cards"`
+	WonCards          boardgame.Stack `stack:"cards"`
 }
 ```
 
@@ -786,18 +790,20 @@ That's not a particularly interesting example. Here's the states for blackjack:
 ```
 //+autoreader
 type gameState struct {
-	DiscardStack  *boardgame.GrowableStack `stack:"cards" sanitize:"len"`
-	DrawStack     *boardgame.GrowableStack `stack:"cards" sanitize:"len"`
-	UnusedCards   *boardgame.GrowableStack `stack:"cards"`
+	boardgame.BaseSubState
+	DiscardStack  boardgame.Stack `stack:"cards" sanitize:"len"`
+	DrawStack     boardgame.Stack `stack:"cards" sanitize:"len"`
+	UnusedCards   boardgame.Stack `stack:"cards"`
 	CurrentPlayer boardgame.PlayerIndex
 }
 
 //+autoreader
 type playerState struct {
+	boardgame.BaseSubState
 	playerIndex    boardgame.PlayerIndex
 	GotInitialDeal bool
-	HiddenHand     *boardgame.GrowableStack `stack:"cards,1" sanitize:"len"`
-	VisibleHand    *boardgame.GrowableStack `stack:"cards"`
+	HiddenHand     boardgame.Stack `stack:"cards,1" sanitize:"len"`
+	VisibleHand    boardgame.Stack `stack:"cards"`
 	Busted         bool
 	Stood          bool
 }

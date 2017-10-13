@@ -156,8 +156,8 @@ type testGeneralReadSetter struct {
 	EnumConst        enum.Const `enum:"color"`
 	EnumVar          enum.Var   `enum:"color"`
 	TheTimer         *Timer
-	TheSizedStack    *SizedStack    `stack:"test,0"`
-	TheGrowableStack *GrowableStack `stack:"test" sanitize:"order"`
+	TheSizedStack    Stack `sizedstack:"test,0"`
+	TheGrowableStack Stack `stack:"test" sanitize:"order"`
 }
 
 func (t *testGeneralReadSetter) ReadSetter() PropertyReadSetter {

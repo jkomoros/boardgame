@@ -246,7 +246,7 @@ certain fields according to a policy that your Delegate implicitly defines
 based on what it returns from SanitizationPolicy calls. The result is a copy
 of the input state, with the various fields obscured, and which will have
 Sanitized() return true. All of the fields will always have the same "shape"
-as before (e.g. GrowableStacks will not be reduced to an int), but will have
+as before (e.g. Stacks will not be reduced to an int), but will have
 key properties changed so that less information can be recovered.
 
 SanitizationPolicy is defined in a way that doesn't allow the State to be
@@ -267,16 +267,16 @@ For basic types (e.g. int, string, bool), these are the only two policies. For
 those property types, any Policy other than PolicyVisible behaves like
 PolicyHidden.
 
-Stacks and slice-based properties (e.g. SizedStacks and GrowableStacks) have a
-few extra policies. PolicyLen will obscure the group so that the number of
-items is clear, but all elements will be replaced by the Deck's
-GenericComponent. PolicyNonEmpty is similar to PolicyLen, but if the real
-Stack has 1 or more components, the output result will have a single
-GenericComponent. This allows you to observe whether the stack was empty or
-not, but not anything about how many components it had. PolicyOrder replaces
-each Component with a stable but obscured ShadowComponent, so that observes
-can keep track of the lenght, and when components switch orders in the stack,
-but not what the underlying components are.
+Stacks and slice-based properties have a few extra policies. PolicyLen will
+obscure the group so that the number of items is clear, but all elements will
+be replaced by the Deck's GenericComponent. PolicyNonEmpty is similar to
+PolicyLen, but if the real Stack has 1 or more components, the output result
+will have a single GenericComponent. This allows you to observe whether the
+stack was empty or not, but not anything about how many components it had.
+PolicyOrder replaces each Component with a stable but obscured
+ShadowComponent, so that observes can keep track of the lenght, and when
+components switch orders in the stack, but not what the underlying components
+are.
 
 DefaultGameDelegate's SanitizationPolicy is configured in a way that is almost
 always sufficient, but its behavior can be overridden if absolutely
@@ -516,9 +516,9 @@ your concrete type.
 In general these constructors should just return the zero-value for each
 property. However, there are a handful of properties that are pointers, and
 which contain important config information in their instantiation. For
-example, a SizedStack has a reference to its deck, and a size. If you just
-left it as its nil zero value, we wouldn't know which deck it referenced or
-how many items it could hold.
+example, a Stack has a reference to its deck, and a size. If you just left it
+as its nil zero value, we wouldn't know which deck it referenced or how many
+items it could hold.
 
 One easy option is to instantiate those values yourself:
 
@@ -544,11 +544,12 @@ create single-line constructors in many cases:
 
 	type gameState struct {
 		//The syntax is name of deck follow by a comma followed by the size
-		//argument.
-		Deck *boardgame.SizedStack `stack:"cards,5"`
+		//argument. 'sizedstack' will create a SizedStack, and 'stack' will
+		//create a normal stack.
+		Deck Stack `sizedstack:"cards,5"`
 
 		//The size may be omitted to default to 0
-		Hand *boardgame.GrowableStack `stack:"cards"`
+		Hand Stack `stack:"cards"`
 
 		//Enums also work. The argument is just the name of the Enum to
 		//retrieve from manager.Chest().Enums().Enum(arg).

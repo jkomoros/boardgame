@@ -29,7 +29,7 @@ func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 type gameState struct {
 	boardgame.BaseSubState
 	CurrentPlayer boardgame.PlayerIndex
-	Slots         *boardgame.SizedStack
+	Slots         boardgame.Stack
 }
 
 func (g *gameState) tokenValue(row, col int) string {
@@ -57,7 +57,7 @@ type playerState struct {
 	boardgame.BaseSubState
 	playerIndex  boardgame.PlayerIndex
 	TokenValue   string
-	UnusedTokens *boardgame.GrowableStack `stack:"tokens"`
+	UnusedTokens boardgame.Stack `stack:"tokens"`
 	//How many tokens they have left to place this turn.
 	TokensToPlaceThisTurn int
 }

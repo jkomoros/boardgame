@@ -130,7 +130,7 @@ func (t *testGameDelegate) GameStateConstructor() MutableSubState {
 	deck := chest.Deck("test")
 	return &testGameState{
 		CurrentPlayer:      0,
-		DrawDeck:           deck.NewGrowableStack(0),
+		DrawDeck:           deck.NewStack(0),
 		Timer:              NewTimer(),
 		MyIntSlice:         make([]int, 0),
 		MyBoolSlice:        make([]bool, 0),

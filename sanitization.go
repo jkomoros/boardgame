@@ -61,7 +61,7 @@ const (
 
 	//For groups, PolicyNonEmpty will allow it to be observed that the stack's
 	//NumComponents is either Empty (0 components) or non-empty (1
-	//components). So for GrowableStacks, it will either have no components or
+	//components). So for default Stacks, it will either have no components or
 	//1 component. And for SizedStack, either all of the slots will be empty,
 	//or the first slot will be non-empty. In all cases, the Component
 	//present, if there is one, will be the deck's GenericComponent.
@@ -279,7 +279,7 @@ func sanitizeStateObj(readSetter PropertyReadSetter, transformation subStateSani
 		}
 
 		if visibleDynamic != nil {
-			if propType == TypeGrowableStack || propType == TypeSizedStack {
+			if propType == TypeStack {
 				if policy == PolicyVisible {
 					stackProp := prop.(Stack)
 					if _, ok := visibleDynamic[stackProp.deck().Name()]; ok {
@@ -341,7 +341,7 @@ func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[strin
 		reader := values.Reader()
 
 		for propName, propType := range reader.Props() {
-			if propType != TypeGrowableStack && propType != TypeSizedStack {
+			if propType != TypeStack {
 				continue
 			}
 			prop, err := reader.Prop(propName)
@@ -548,7 +548,7 @@ func applySanitizationPolicyPlayerIndexSlice(policy Policy, input []PlayerIndex)
 	return make([]PlayerIndex, 0)
 }
 
-func (g *GrowableStack) applySanitizationPolicy(policy Policy) {
+func (g *growableStack) applySanitizationPolicy(policy Policy) {
 
 	if policy == PolicyVisible {
 		return
@@ -635,7 +635,7 @@ func randPermForStack(stack Stack) []int {
 
 }
 
-func (s *SizedStack) applySanitizationPolicy(policy Policy) {
+func (s *sizedStack) applySanitizationPolicy(policy Policy) {
 
 	if policy == PolicyVisible {
 		return

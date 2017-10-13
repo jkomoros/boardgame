@@ -35,19 +35,20 @@ func NewDeck() *Deck {
 	}
 }
 
-//NewSizedStack returns a new sized stack with the given size based on this
-//deck. You normally do this in Empty*State delegate methods, if you aren't
-//using the auto-inflating struct tags to configure your stacks.
-func (d *Deck) NewSizedStack(size int) *SizedStack {
-	return newSizedStack(d, size)
+//NewSizedStack returns a new default (growable Stack) with the given size
+//based on this deck. You normally do this in *Constructor delegate methods,
+//if you aren't using the auto-inflating struct tags to configure your stacks.
+//The returned stack will allow up to maxLen items to be inserted. If you
+//don't want to set a maxLen on the stack (you often don't) pass 0 for maxLen.
+func (d *Deck) NewStack(maxLen int) Stack {
+	return newGrowableStack(d, maxLen)
 }
 
-//NewGrowableStack returns a new growable stack with the given size based on
-//this deck. If the growable stack has no size limit, pass 0 for maxLen. You
-//normally do this in Empty*State delegate methods, if you aren't using the
-//auto-inflating struct tags to configure your stacks.
-func (d *Deck) NewGrowableStack(maxLen int) *GrowableStack {
-	return newGrowableStack(d, maxLen)
+//NewSizedStack returns a new SizedStack (a stack whose FixedSize() will
+//return true). Refer to the Stack interface documentation for more about the
+//difference.
+func (d *Deck) NewSizedStack(size int) Stack {
+	return newSizedStack(d, size)
 }
 
 //AddComponent adds a new component with the given values to the next spot in
@@ -163,10 +164,9 @@ func (d *Deck) GenericComponent() *Component {
 }
 
 var illegalComponentValuesProps = map[PropertyType]bool{
-	TypeEnumVar:       true,
-	TypeGrowableStack: true,
-	TypeSizedStack:    true,
-	TypeTimer:         true,
+	TypeEnumVar: true,
+	TypeStack:   true,
+	TypeTimer:   true,
 }
 
 //finish is called when the deck is added to a component chest. It signifies that no more items may be added.

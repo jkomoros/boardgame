@@ -16,16 +16,29 @@ const emptyIndexSentinel = -1
 //stack of 0 or more Components, all from the same Deck. Each deck has 0 or
 //more Stacks based off of it, and together they include all components in
 //that deck, with no component residing in more than one stack. Stacks model
-//things like a stack of cards, a collection of resource tokens, etc. There
-//are two concrete types of Stacks: GrowableStack's and SizedStack's.
+//things like a stack of cards, a collection of resource tokens, etc. Stacks
+//can either be growable (the default), or of a fixed size (called
+//SizedStacks). The default stacks have a FixedSize() of false and can grow to
+//accomodate as many components as desired (up to maxLen), with no gaps in
+//between components. An insertion at an index in the middle of a stack will
+//simply move later components down. SizedStacks, however, have a specific size, with
+//empty slots being allowed. Each insertion puts the component at precisely
+//that slot, and will fail if it is already taken.
 type Stack interface {
-	//Len returns the number of slots in the Stack. For a GrowableStack this
-	//is the number of items in the stack. For SizedStacks, this is the number
-	//of slots--even if some are unfilled.
+	//Len returns the number of slots in the Stack. For a normal Stack this is
+	//the number of items in the stack. For SizedStacks, this is the number of
+	//slots--even if some are unfilled.
 	Len() int
 
+	//FixedSize returns if the stack has a fixed number of slots (any number
+	//of which may be empty), or a non-fixed size that can grow up to MaxSize
+	//and not have any nil slots. Stacks that return FixedSize() false are
+	//considered default stacks, and stacks that return FixedSize() true are
+	//referred to as SizedStacks.
+	FixedSize() bool
+
 	//NumComponents returns the number of components that are in this stack.
-	//For GrowableStacks this is the same as Len(); for SizedStacks, this is
+	//For default Stacks this is the same as Len(); for SizedStacks, this is
 	//the number of non-nil slots.
 	NumComponents() int
 
@@ -66,7 +79,9 @@ type Stack interface {
 	IdsLastSeen() map[string]int
 
 	//SlotsRemaining returns how many slots there are left in this stack to
-	//add items.
+	//add items. For default stacks this will be the number of slots until
+	//maxLen is reached (or MaxInt64 if there is no maxLen). For SizedStacks
+	//this will be the number of empty slots.
 	SlotsRemaining() int
 
 	//MoveAllTo moves all of the components in this stack to the other stack,
@@ -102,9 +117,9 @@ type Stack interface {
 	//source.ComponentAt() will return a component. In destination, slotIndex
 	//must point to a valid "slot" to put a component, such that after
 	//insertion, using that index on the destination will return that
-	//component. In GrowableStacks, slots are any index from 0 up to and
-	//including stack.Len(), because the growable stack will insert the
-	//component between existing componnets if necessary. For SizedStack,
+	//component. In defaults Stacks, slots are any index from 0 up to and
+	//including stack.Len(), because the stack will grow toinsert the
+	//component between existing components if necessary. For SizedStacks,
 	//slotIndex must point to a currently empty slot. Use
 	//{First,Last}{Component,Slot}Index constants to automatically set these
 	//indexes to common values. If you want the precise location of the
@@ -181,42 +196,48 @@ type Stack interface {
 	//type.
 	state() *state
 
+	//setState sets the state ptr that will be returned by state().
+	setState(state *state)
+
 	//deck returns the Deck in this stack. Just a conveniene wrapper if you
 	//don't know what kind of stack you have.
 	deck() *Deck
+
+	//Copy returns a copy of this stack.
+	copy() Stack
 }
 
 //These special Indexes are designed to be provided to stack.MoveComponent.
 const (
 	//FirstComponentIndex is computed to be the first  index, from the left,
-	//where ComponentAt() will return a component. For GrowableStacks this is
+	//where ComponentAt() will return a component. For default Stacks this is
 	//always 0 (for non-empty stacks); for SizedStacks, it's the first non-
 	//empty slot from the left.
 	FirstComponentIndex = -1
 	//LastComponentIndex is computed to be the largest index where
-	//ComponentAt() will return a component. For GrowableStacks, this is
+	//ComponentAt() will return a component. For default Stacks, this is
 	//always Len() - 1 (for non-empty stacks); for SizedStacks, it's the first
 	//non-empty slot from the right.
 	LastComponentIndex = -2
 	//FirstSlotIndex is computed to be the first index that it is valid to
-	//insert a component at (a "slot"). For GrowableStacks, this is always 0.
+	//insert a component at (a "slot"). For default Stacks, this is always 0.
 	//For SizedStacks, this is the first empty slot from the left.
 	FirstSlotIndex = -3
 	//LastSlotIndex is computed to be the last index that it is valid to
-	//insert a component at (a "slot"). For GrowableStacks, this is always
+	//insert a component at (a "slot"). For default Stacks, this is always
 	//Len(). For SizedStacks, this is the first empty slot from the right.
 	LastSlotIndex = -4
 	//NextSlotIndex returns the next slot index, from the left, where a
 	//component could be inserted without splicing--that is, without shifting
 	//other components to the right. For SizedStacks, this is equivalent to
-	//FirstSlotIndex. For GrowableStacks, this is equivalent to LastSlotIndex.
+	//FirstSlotIndex. For default Stacks, this is equivalent to LastSlotIndex.
 	NextSlotIndex = -5
 )
 
-//GrowableStack is a Stack that has a variable number of slots, none of which
+//growableStack is a Stack that has a variable number of slots, none of which
 //may be empty. It can optionally have a max size. Create a new one with
 //deck.NewGrowableStack.
-type GrowableStack struct {
+type growableStack struct {
 	//Deck is the deck that we're a part of. This will be nil if we aren't
 	//inflated.
 	deckPtr *Deck
@@ -240,9 +261,9 @@ type GrowableStack struct {
 	statePtr *state
 }
 
-//SizedStack is a Stack that has a fixed number of slots, any of which may be
+//sizedStack is a Stack that has a fixed number of slots, any of which may be
 //empty. Create a new one with deck.NewSizedStack.
-type SizedStack struct {
+type sizedStack struct {
 	//Deck is the deck we're a part of. This will be nil if we aren't inflated.
 	deckPtr *Deck
 	//We need to maintain the name of deck because sometimes we aren't
@@ -277,13 +298,13 @@ type stackJSONObj struct {
 }
 
 //NewGrowableStack creates a new growable stack with the given Deck and Cap.
-func newGrowableStack(deck *Deck, maxLen int) *GrowableStack {
+func newGrowableStack(deck *Deck, maxLen int) *growableStack {
 
 	if maxLen < 0 {
 		maxLen = 0
 	}
 
-	return &GrowableStack{
+	return &growableStack{
 		deckPtr:     deck,
 		deckName:    deck.Name(),
 		indexes:     make([]int, 0),
@@ -294,7 +315,7 @@ func newGrowableStack(deck *Deck, maxLen int) *GrowableStack {
 
 //NewSizedStack creates a new SizedStack for the given deck, with the
 //specified size.
-func newSizedStack(deck *Deck, size int) *SizedStack {
+func newSizedStack(deck *Deck, size int) *sizedStack {
 	if size < 0 {
 		size = 0
 	}
@@ -305,7 +326,7 @@ func newSizedStack(deck *Deck, size int) *SizedStack {
 		indexes[i] = emptyIndexSentinel
 	}
 
-	return &SizedStack{
+	return &sizedStack{
 		deckPtr:     deck,
 		deckName:    deck.Name(),
 		indexes:     indexes,
@@ -314,9 +335,9 @@ func newSizedStack(deck *Deck, size int) *SizedStack {
 	}
 }
 
-func (g *GrowableStack) Copy() *GrowableStack {
+func (g *growableStack) copy() Stack {
 
-	var result GrowableStack
+	var result growableStack
 	result = *g
 	result.indexes = make([]int, len(g.indexes))
 	copy(result.indexes, g.indexes)
@@ -327,8 +348,8 @@ func (g *GrowableStack) Copy() *GrowableStack {
 	return &result
 }
 
-func (s *SizedStack) Copy() *SizedStack {
-	var result SizedStack
+func (s *sizedStack) copy() Stack {
+	var result sizedStack
 	result = *s
 	result.indexes = make([]int, len(s.indexes))
 	copy(result.indexes, s.indexes)
@@ -340,20 +361,20 @@ func (s *SizedStack) Copy() *SizedStack {
 }
 
 //Len returns the number of items in the stack.
-func (s *GrowableStack) Len() int {
+func (s *growableStack) Len() int {
 	return len(s.indexes)
 }
 
 //Len returns the number of slots in the stack. It will always equal Size.
-func (s *SizedStack) Len() int {
+func (s *sizedStack) Len() int {
 	return len(s.indexes)
 }
 
-func (g *GrowableStack) NumComponents() int {
+func (g *growableStack) NumComponents() int {
 	return len(g.indexes)
 }
 
-func (s *SizedStack) NumComponents() int {
+func (s *sizedStack) NumComponents() int {
 	count := 0
 	for _, index := range s.indexes {
 		if index != emptyIndexSentinel {
@@ -363,15 +384,23 @@ func (s *SizedStack) NumComponents() int {
 	return count
 }
 
-func (s *GrowableStack) Inflated() bool {
+func (g *growableStack) FixedSize() bool {
+	return false
+}
+
+func (s *sizedStack) FixedSize() bool {
+	return true
+}
+
+func (s *growableStack) Inflated() bool {
 	return s.deck() != nil
 }
 
-func (s *SizedStack) Inflated() bool {
+func (s *sizedStack) Inflated() bool {
 	return s.deck() != nil
 }
 
-func (g *GrowableStack) Inflate(chest *ComponentChest) error {
+func (g *growableStack) Inflate(chest *ComponentChest) error {
 
 	if g.Inflated() {
 		return errors.New("Stack already inflated")
@@ -389,7 +418,7 @@ func (g *GrowableStack) Inflate(chest *ComponentChest) error {
 
 }
 
-func (s *SizedStack) Inflate(chest *ComponentChest) error {
+func (s *sizedStack) Inflate(chest *ComponentChest) error {
 
 	if s.Inflated() {
 		return errors.New("Stack already inflated")
@@ -407,7 +436,7 @@ func (s *SizedStack) Inflate(chest *ComponentChest) error {
 
 }
 
-func (g *GrowableStack) Components() []*Component {
+func (g *growableStack) Components() []*Component {
 	result := make([]*Component, len(g.indexes))
 
 	for i := 0; i < len(result); i++ {
@@ -417,7 +446,7 @@ func (g *GrowableStack) Components() []*Component {
 	return result
 }
 
-func (s *SizedStack) Components() []*Component {
+func (s *sizedStack) Components() []*Component {
 	result := make([]*Component, len(s.indexes))
 
 	for i := 0; i < len(result); i++ {
@@ -429,7 +458,7 @@ func (s *SizedStack) Components() []*Component {
 
 //ComponentAt fetches the component object representing the n-th object in
 //this stack.
-func (s *GrowableStack) ComponentAt(index int) *Component {
+func (s *growableStack) ComponentAt(index int) *Component {
 
 	if !s.Inflated() {
 		return nil
@@ -452,7 +481,7 @@ func (s *GrowableStack) ComponentAt(index int) *Component {
 
 //ComponentAt fetches the component object representing the n-th object in
 //this stack.
-func (s *SizedStack) ComponentAt(index int) *Component {
+func (s *sizedStack) ComponentAt(index int) *Component {
 
 	if !s.Inflated() {
 		return nil
@@ -477,7 +506,7 @@ func (s *SizedStack) ComponentAt(index int) *Component {
 //ComponentValues returns the Values of each Component in order. Useful for
 //then running through a converter to the underlying struct type you know it
 //is.
-func (g *GrowableStack) ComponentValues() []Reader {
+func (g *growableStack) ComponentValues() []Reader {
 	//TODO: memoize this, as long as indexes hasn't changed
 
 	if !g.Inflated() {
@@ -500,7 +529,7 @@ func (g *GrowableStack) ComponentValues() []Reader {
 //ComponentValues returns the Values of each Component in order. Useful for
 //then running through a converter to the underlying struct type you know it
 //is.
-func (s *SizedStack) ComponentValues() []Reader {
+func (s *sizedStack) ComponentValues() []Reader {
 	//TODO: memoize this, as long as indexes hasn't changed
 
 	if !s.Inflated() {
@@ -520,14 +549,14 @@ func (s *SizedStack) ComponentValues() []Reader {
 	return result
 }
 
-func (g *GrowableStack) Ids() []string {
+func (g *growableStack) Ids() []string {
 	if g.overrideIds != nil {
 		return g.overrideIds
 	}
 	return stackIdsImpl(g)
 }
 
-func (s *SizedStack) Ids() []string {
+func (s *sizedStack) Ids() []string {
 	if s.overrideIds != nil {
 		return s.overrideIds
 	}
@@ -546,7 +575,7 @@ func stackIdsImpl(s Stack) []string {
 	return result
 }
 
-func (g *GrowableStack) IdsLastSeen() map[string]int {
+func (g *growableStack) IdsLastSeen() map[string]int {
 	//return a copy because this is important state to preserve, just in case
 	//someone messes with it.
 	result := make(map[string]int, len(g.idsLastSeen))
@@ -556,7 +585,7 @@ func (g *GrowableStack) IdsLastSeen() map[string]int {
 	return result
 }
 
-func (s *SizedStack) IdsLastSeen() map[string]int {
+func (s *sizedStack) IdsLastSeen() map[string]int {
 	//return a copy because this is important state to preserve, just in case
 	//someone messes with it.
 	result := make(map[string]int, len(s.idsLastSeen))
@@ -566,7 +595,7 @@ func (s *SizedStack) IdsLastSeen() map[string]int {
 	return result
 }
 
-func (g *GrowableStack) idSeen(id string) {
+func (g *growableStack) idSeen(id string) {
 	if id == "" {
 		return
 	}
@@ -577,7 +606,7 @@ func (g *GrowableStack) idSeen(id string) {
 	g.idsLastSeen[id] = g.statePtr.Version()
 }
 
-func (s *SizedStack) idSeen(id string) {
+func (s *sizedStack) idSeen(id string) {
 	if id == "" {
 		return
 	}
@@ -588,7 +617,7 @@ func (s *SizedStack) idSeen(id string) {
 	s.idsLastSeen[id] = s.statePtr.Version()
 }
 
-func (g *GrowableStack) scrambleIds() {
+func (g *growableStack) scrambleIds() {
 	for _, c := range g.Components() {
 		if c == nil {
 			continue
@@ -599,7 +628,7 @@ func (g *GrowableStack) scrambleIds() {
 	}
 }
 
-func (s *SizedStack) scrambleIds() {
+func (s *sizedStack) scrambleIds() {
 	for _, c := range s.Components() {
 		if c == nil {
 			continue
@@ -612,7 +641,7 @@ func (s *SizedStack) scrambleIds() {
 
 //SlotsRemaining returns the count of slots left in this stack. If Cap is 0
 //(inifinite) this will be MaxInt64.
-func (s *GrowableStack) SlotsRemaining() int {
+func (s *growableStack) SlotsRemaining() int {
 	if s.maxLen <= 0 {
 		return math.MaxInt64
 	}
@@ -620,7 +649,7 @@ func (s *GrowableStack) SlotsRemaining() int {
 }
 
 //SlotsRemaining returns the count of unfilled slots in this stack.
-func (s *SizedStack) SlotsRemaining() int {
+func (s *sizedStack) SlotsRemaining() int {
 	count := 0
 	for _, index := range s.indexes {
 		if index == emptyIndexSentinel {
@@ -630,11 +659,11 @@ func (s *SizedStack) SlotsRemaining() int {
 	return count
 }
 
-func (s *SizedStack) MoveAllTo(other Stack) error {
+func (s *sizedStack) MoveAllTo(other Stack) error {
 	return moveAllToImpl(s, other)
 }
 
-func (g *GrowableStack) MoveAllTo(other Stack) error {
+func (g *growableStack) MoveAllTo(other Stack) error {
 	return moveAllToImpl(g, other)
 }
 
@@ -653,23 +682,31 @@ func moveAllToImpl(from Stack, to Stack) error {
 	return nil
 }
 
-func (g *GrowableStack) state() *state {
+func (g *growableStack) state() *state {
 	return g.statePtr
 }
 
-func (s *SizedStack) state() *state {
+func (s *sizedStack) state() *state {
 	return s.statePtr
 }
 
-func (g *GrowableStack) deck() *Deck {
+func (g *growableStack) setState(state *state) {
+	g.statePtr = state
+}
+
+func (s *sizedStack) setState(state *state) {
+	s.statePtr = state
+}
+
+func (g *growableStack) deck() *Deck {
 	return g.deckPtr
 }
 
-func (s *SizedStack) deck() *Deck {
+func (s *sizedStack) deck() *Deck {
 	return s.deckPtr
 }
 
-func (g *GrowableStack) modificationsAllowed() error {
+func (g *growableStack) modificationsAllowed() error {
 	if !g.Inflated() {
 		return errors.New("Modifications not allowed: stack is not inflated")
 	}
@@ -682,7 +719,7 @@ func (g *GrowableStack) modificationsAllowed() error {
 	return nil
 }
 
-func (s *SizedStack) modificationsAllowed() error {
+func (s *sizedStack) modificationsAllowed() error {
 	if !s.Inflated() {
 		return errors.New("Modifications not allowed: stack is not inflated")
 	}
@@ -695,7 +732,7 @@ func (s *SizedStack) modificationsAllowed() error {
 	return nil
 }
 
-func (g *GrowableStack) legalSlot(index int) bool {
+func (g *growableStack) legalSlot(index int) bool {
 	if index < 0 {
 		return false
 	}
@@ -706,7 +743,7 @@ func (g *GrowableStack) legalSlot(index int) bool {
 	return true
 }
 
-func (s *SizedStack) legalSlot(index int) bool {
+func (s *sizedStack) legalSlot(index int) bool {
 	if index < 0 {
 		return false
 	}
@@ -722,7 +759,7 @@ func (s *SizedStack) legalSlot(index int) bool {
 	return true
 }
 
-func (g *GrowableStack) removeComponentAt(componentIndex int) *Component {
+func (g *growableStack) removeComponentAt(componentIndex int) *Component {
 
 	component := g.ComponentAt(componentIndex)
 
@@ -738,7 +775,7 @@ func (g *GrowableStack) removeComponentAt(componentIndex int) *Component {
 
 }
 
-func (s *SizedStack) removeComponentAt(componentIndex int) *Component {
+func (s *sizedStack) removeComponentAt(componentIndex int) *Component {
 	component := s.ComponentAt(componentIndex)
 
 	s.indexes[componentIndex] = emptyIndexSentinel
@@ -746,7 +783,7 @@ func (s *SizedStack) removeComponentAt(componentIndex int) *Component {
 	return component
 }
 
-func (g *GrowableStack) insertComponentAt(slotIndex int, component *Component) {
+func (g *growableStack) insertComponentAt(slotIndex int, component *Component) {
 
 	if slotIndex == 0 {
 		g.indexes = append([]int{component.DeckIndex}, g.indexes...)
@@ -766,12 +803,12 @@ func (g *GrowableStack) insertComponentAt(slotIndex int, component *Component) {
 
 }
 
-func (s *SizedStack) insertComponentAt(slotIndex int, component *Component) {
+func (s *sizedStack) insertComponentAt(slotIndex int, component *Component) {
 	s.indexes[slotIndex] = component.DeckIndex
 	s.idSeen(component.Id(s.state()))
 }
 
-func (g *GrowableStack) UnsafeInsertNextComponent(t *testing.T, c *Component) error {
+func (g *growableStack) UnsafeInsertNextComponent(t *testing.T, c *Component) error {
 	if t == nil {
 		return errors.New("You must provide a non-nil testing.T")
 	}
@@ -782,7 +819,7 @@ func (g *GrowableStack) UnsafeInsertNextComponent(t *testing.T, c *Component) er
 	return nil
 }
 
-func (s *SizedStack) UnsafeInsertNextComponent(t *testing.T, c *Component) error {
+func (s *sizedStack) UnsafeInsertNextComponent(t *testing.T, c *Component) error {
 	if t == nil {
 		return errors.New("You must provide a non-nil testing.T")
 	}
@@ -793,15 +830,15 @@ func (s *SizedStack) UnsafeInsertNextComponent(t *testing.T, c *Component) error
 	return nil
 }
 
-func (g *GrowableStack) insertNext(c *Component) {
+func (g *growableStack) insertNext(c *Component) {
 	g.insertComponentAt(g.effectiveIndex(NextSlotIndex), c)
 }
 
-func (s *SizedStack) insertNext(c *Component) {
+func (s *sizedStack) insertNext(c *Component) {
 	s.insertComponentAt(s.effectiveIndex(NextSlotIndex), c)
 }
 
-func (g *GrowableStack) effectiveIndex(index int) int {
+func (g *growableStack) effectiveIndex(index int) int {
 
 	switch index {
 	case FirstComponentIndex:
@@ -820,7 +857,7 @@ func (g *GrowableStack) effectiveIndex(index int) int {
 
 }
 
-func (s *SizedStack) effectiveIndex(index int) int {
+func (s *sizedStack) effectiveIndex(index int) int {
 
 	if index == FirstComponentIndex {
 		for i, componentIndex := range s.indexes {
@@ -882,11 +919,11 @@ func (s *stackSorter) Less(i, j int) bool {
 	return s.less(s.stack.ComponentAt(i), s.stack.ComponentAt(j))
 }
 
-func (g *GrowableStack) SortComponents(less func(i, j *Component) bool) error {
+func (g *growableStack) SortComponents(less func(i, j *Component) bool) error {
 	return sortComponentsImpl(g, less)
 }
 
-func (s *SizedStack) SortComponents(less func(i, j *Component) bool) error {
+func (s *sizedStack) SortComponents(less func(i, j *Component) bool) error {
 	return sortComponentsImpl(s, less)
 }
 
@@ -902,7 +939,7 @@ func sortComponentsImpl(s Stack, less func(i, j *Component) bool) error {
 	return errors.NewWrapped(sorter.err)
 }
 
-func (g *GrowableStack) SecretMoveComponent(componentIndex int, destination Stack, slotIndex int) error {
+func (g *growableStack) SecretMoveComponent(componentIndex int, destination Stack, slotIndex int) error {
 	err := moveComonentImpl(g, componentIndex, destination, slotIndex)
 	if err != nil {
 		return err
@@ -911,7 +948,7 @@ func (g *GrowableStack) SecretMoveComponent(componentIndex int, destination Stac
 	return nil
 }
 
-func (s *SizedStack) SecretMoveComponent(componentIndex int, destination Stack, slotIndex int) error {
+func (s *sizedStack) SecretMoveComponent(componentIndex int, destination Stack, slotIndex int) error {
 	err := moveComonentImpl(s, componentIndex, destination, slotIndex)
 	if err != nil {
 		return err
@@ -920,11 +957,11 @@ func (s *SizedStack) SecretMoveComponent(componentIndex int, destination Stack, 
 	return nil
 }
 
-func (g *GrowableStack) MoveComponent(componentIndex int, destination Stack, slotIndex int) error {
+func (g *growableStack) MoveComponent(componentIndex int, destination Stack, slotIndex int) error {
 	return moveComonentImpl(g, componentIndex, destination, slotIndex)
 }
 
-func (s *SizedStack) MoveComponent(componentIndex int, destination Stack, slotIndex int) error {
+func (s *sizedStack) MoveComponent(componentIndex int, destination Stack, slotIndex int) error {
 	return moveComonentImpl(s, componentIndex, destination, slotIndex)
 }
 
@@ -986,7 +1023,7 @@ func moveComonentImpl(source Stack, componentIndex int, destination Stack, slotI
 
 }
 
-func (g *GrowableStack) PublicShuffle() error {
+func (g *growableStack) PublicShuffle() error {
 	if err := g.modificationsAllowed(); err != nil {
 		return err
 	}
@@ -1003,7 +1040,7 @@ func (g *GrowableStack) PublicShuffle() error {
 	return nil
 }
 
-func (g *GrowableStack) Shuffle() error {
+func (g *growableStack) Shuffle() error {
 
 	if err := g.PublicShuffle(); err != nil {
 		return err
@@ -1014,7 +1051,7 @@ func (g *GrowableStack) Shuffle() error {
 	return nil
 }
 
-func (s *SizedStack) PublicShuffle() error {
+func (s *sizedStack) PublicShuffle() error {
 	if err := s.modificationsAllowed(); err != nil {
 		return err
 	}
@@ -1031,7 +1068,7 @@ func (s *SizedStack) PublicShuffle() error {
 	return nil
 }
 
-func (s *SizedStack) Shuffle() error {
+func (s *sizedStack) Shuffle() error {
 
 	if err := s.PublicShuffle(); err != nil {
 		return err
@@ -1042,7 +1079,7 @@ func (s *SizedStack) Shuffle() error {
 	return nil
 }
 
-func (g *GrowableStack) SwapComponents(i, j int) error {
+func (g *growableStack) SwapComponents(i, j int) error {
 	if err := g.modificationsAllowed(); err != nil {
 		return err
 	}
@@ -1069,7 +1106,7 @@ func (g *GrowableStack) SwapComponents(i, j int) error {
 
 }
 
-func (s *SizedStack) SwapComponents(i, j int) error {
+func (s *sizedStack) SwapComponents(i, j int) error {
 	if err := s.modificationsAllowed(); err != nil {
 		return err
 	}
@@ -1095,7 +1132,7 @@ func (s *SizedStack) SwapComponents(i, j int) error {
 	return nil
 }
 
-func (g *GrowableStack) MarshalJSON() ([]byte, error) {
+func (g *growableStack) MarshalJSON() ([]byte, error) {
 	obj := &stackJSONObj{
 		Deck:        g.deckName,
 		Indexes:     g.indexes,
@@ -1106,7 +1143,7 @@ func (g *GrowableStack) MarshalJSON() ([]byte, error) {
 	return json.Marshal(obj)
 }
 
-func (s *SizedStack) MarshalJSON() ([]byte, error) {
+func (s *sizedStack) MarshalJSON() ([]byte, error) {
 	//TODO: test this, including Size
 	obj := &stackJSONObj{
 		Deck:        s.deckName,
@@ -1118,7 +1155,7 @@ func (s *SizedStack) MarshalJSON() ([]byte, error) {
 	return json.Marshal(obj)
 }
 
-func (g *GrowableStack) UnmarshalJSON(blob []byte) error {
+func (g *growableStack) UnmarshalJSON(blob []byte) error {
 	obj := &stackJSONObj{}
 	if err := json.Unmarshal(blob, obj); err != nil {
 		return err
@@ -1132,7 +1169,7 @@ func (g *GrowableStack) UnmarshalJSON(blob []byte) error {
 	return nil
 }
 
-func (s *SizedStack) UnmarshalJSON(blob []byte) error {
+func (s *sizedStack) UnmarshalJSON(blob []byte) error {
 	obj := &stackJSONObj{}
 	if err := json.Unmarshal(blob, obj); err != nil {
 		return err

@@ -9,8 +9,7 @@ type propertyReaderTestStruct struct {
 	A int
 	B bool
 	C string
-	G *GrowableStack
-	S *SizedStack
+	S Stack
 	P PlayerIndex
 	//d should be excluded since it is lowercase
 	d string
@@ -26,7 +25,6 @@ func TestPropertyReaderImpl(t *testing.T) {
 
 	p := &propertyReaderTestStruct{
 		C: "bam",
-		G: deck.NewGrowableStack(3),
 		S: deck.NewSizedStack(3),
 		P: 3,
 	}
@@ -35,7 +33,7 @@ func TestPropertyReaderImpl(t *testing.T) {
 
 	result := s.Props()
 
-	expected := map[string]PropertyType{"A": TypeInt, "B": TypeBool, "C": TypeString, "G": TypeGrowableStack, "S": TypeSizedStack, "P": TypePlayerIndex}
+	expected := map[string]PropertyType{"A": TypeInt, "B": TypeBool, "C": TypeString, "S": TypeStack, "P": TypePlayerIndex}
 
 	if !reflect.DeepEqual(result, expected) {
 		t.Error("PropertyReaderPropsImpl returned wrong result. Got", result, "expected", expected)
@@ -141,33 +139,17 @@ func TestPropertyReaderImpl(t *testing.T) {
 		t.Error("Didn't error trying to PlayerIndex prop an int")
 	}
 
-	growableStackResult, err := s.GrowableStackProp("G")
+	stackResult, err := s.StackProp("S")
 
 	if err != nil {
-		t.Error("Unexpted error fetching growable stack", err)
+		t.Error("Unexpted error fetching stack", err)
 	}
 
-	if growableStackResult != p.G {
-		t.Error("Unexpected growable stack result")
-	}
-
-	growableStackResult, err = s.GrowableStackProp("A")
-
-	if err == nil {
-		t.Error("didn't get error for unreasonable growable stack fetch")
-	}
-
-	sizedStackResult, err := s.SizedStackProp("S")
-
-	if err != nil {
-		t.Error("Unexpted error fetching sized stack", err)
-	}
-
-	if sizedStackResult != p.S {
+	if stackResult != p.S {
 		t.Error("Unexpected sized stack result")
 	}
 
-	sizedStackResult, err = s.SizedStackProp("A")
+	stackResult, err = s.StackProp("A")
 
 	if err == nil {
 		t.Error("didn't get error for unreasonable sized stack fetch")
