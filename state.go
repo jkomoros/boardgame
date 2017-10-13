@@ -67,8 +67,8 @@ type State interface {
 }
 
 type computedProperties struct {
-	Global  map[string]interface{}
-	Players []map[string]interface{}
+	Global  PropertyCollection
+	Players []PropertyCollection
 }
 
 //StateGroupType is the top-level grouping object used in a StatePropertyRef.
@@ -542,7 +542,7 @@ func (s *state) computed() *computedProperties {
 
 		s.calculatingComputed = true
 
-		playerProperties := make([]map[string]interface{}, len(s.playerStates))
+		playerProperties := make([]PropertyCollection, len(s.playerStates))
 
 		for i, player := range s.playerStates {
 			playerProperties[i] = s.game.manager.delegate.ComputedPlayerProperties(player)

@@ -124,8 +124,8 @@ type GameDelegate interface {
 	//If you have computed properties that you want to be included in your
 	//JSON (for example, for use clientside), export them here by creating a
 	//dictionary with their values.
-	ComputedGlobalProperties(state State) map[string]interface{}
-	ComputedPlayerProperties(player PlayerState) map[string]interface{}
+	ComputedGlobalProperties(state State) PropertyCollection
+	ComputedPlayerProperties(player PlayerState) PropertyCollection
 
 	//Diagram should return a basic debug rendering of state in multi-line
 	//ascii art. Useful for debugging. State.Diagram() will reach out to this
@@ -139,6 +139,9 @@ type GameDelegate interface {
 	//Manager returns the Manager that was set on this delegate.
 	Manager() *GameManager
 }
+
+//PropertyCollection is just an alias for map[string]interface{}
+type PropertyCollection map[string]interface{}
 
 //DefaultGameDelegate is a struct that implements stubs for all of
 //GameDelegate's methods. This makes it easy to override just one or two
@@ -281,11 +284,11 @@ func (d *DefaultGameDelegate) SanitizationPolicy(prop StatePropertyRef, groupMem
 
 }
 
-func (d *DefaultGameDelegate) ComputedGlobalProperties(state State) map[string]interface{} {
+func (d *DefaultGameDelegate) ComputedGlobalProperties(state State) PropertyCollection {
 	return nil
 }
 
-func (d *DefaultGameDelegate) ComputedPlayerProperties(player PlayerState) map[string]interface{} {
+func (d *DefaultGameDelegate) ComputedPlayerProperties(player PlayerState) PropertyCollection {
 	return nil
 }
 

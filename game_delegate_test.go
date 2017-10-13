@@ -17,7 +17,7 @@ func (t *testGameDelegate) Name() string {
 	return testGameName
 }
 
-func (t *testGameDelegate) ComputedGlobalProperties(state State) map[string]interface{} {
+func (t *testGameDelegate) ComputedGlobalProperties(state State) PropertyCollection {
 	_, playerStates := concreteStates(state)
 
 	allScores := 0
@@ -27,12 +27,12 @@ func (t *testGameDelegate) ComputedGlobalProperties(state State) map[string]inte
 		allScores += player.Score
 	}
 
-	return map[string]interface{}{
+	return PropertyCollection{
 		"SumAllScores": allScores,
 	}
 }
 
-func (t *testGameDelegate) ComputedPlayerProperties(player PlayerState) map[string]interface{} {
+func (t *testGameDelegate) ComputedPlayerProperties(player PlayerState) PropertyCollection {
 
 	playerState := player.(*testPlayerState)
 
@@ -43,7 +43,7 @@ func (t *testGameDelegate) ComputedPlayerProperties(player PlayerState) map[stri
 		effectiveMovesLeftThisTurn += 5
 	}
 
-	return map[string]interface{}{
+	return PropertyCollection{
 		"EffectiveMovesLeftThisTurn": effectiveMovesLeftThisTurn,
 	}
 }

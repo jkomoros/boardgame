@@ -32,9 +32,9 @@ func (g *gameDelegate) DefaultNumPlayeres() int {
 	return 2
 }
 
-func (g *gameDelegate) ComputedGlobalProperties(state boardgame.State) map[string]interface{} {
+func (g *gameDelegate) ComputedGlobalProperties(state boardgame.State) boardgame.PropertyCollection {
 	game, _ := concreteStates(state)
-	return map[string]interface{}{
+	return boardgame.PropertyCollection{
 		"CurrentPlayerHasCardsToReveal": game.CurrentPlayerHasCardsToReveal(),
 		"CardsInGrid":                   game.CardsInGrid(),
 	}

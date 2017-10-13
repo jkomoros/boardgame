@@ -51,11 +51,11 @@ func (g *gameDelegate) CurrentPlayerIndex(state boardgame.State) boardgame.Playe
 	return game.CurrentPlayer
 }
 
-func (g *gameDelegate) ComputedPlayerProperties(player boardgame.PlayerState) map[string]interface{} {
+func (g *gameDelegate) ComputedPlayerProperties(player boardgame.PlayerState) boardgame.PropertyCollection {
 
 	p := player.(*playerState)
 
-	return map[string]interface{}{
+	return boardgame.PropertyCollection{
 		"HandValue": p.HandValue(),
 	}
 }
