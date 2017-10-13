@@ -173,13 +173,13 @@ func TestInflate(t *testing.T) {
 		t.Error("SStack didn't serialize", err)
 	}
 
-	reGStack := &GrowableStack{}
+	reGStack := &growableStack{}
 
 	if err := json.Unmarshal(gStackBlob, reGStack); err != nil {
 		t.Error("Couldn't reconstitute gStack", err)
 	}
 
-	reSStack := &SizedStack{}
+	reSStack := &sizedStack{}
 
 	if err := json.Unmarshal(sStackBlob, reSStack); err != nil {
 		t.Error("Couldn't reconstitute sStack", err)
@@ -351,13 +351,13 @@ func TestMoveComponent(t *testing.T) {
 
 	deck := game.Chest().Deck("test")
 
-	gStack := deck.NewStack(false, 0).(*GrowableStack)
+	gStack := deck.NewStack(false, 0).(*growableStack)
 
-	sStack := deck.NewStack(true, 5).(*SizedStack)
+	sStack := deck.NewStack(true, 5).(*sizedStack)
 
-	gStackMaxLen := deck.NewStack(false, 4).(*GrowableStack)
+	gStackMaxLen := deck.NewStack(false, 4).(*growableStack)
 
-	sStackMaxLen := deck.NewStack(true, 4).(*SizedStack)
+	sStackMaxLen := deck.NewStack(true, 4).(*sizedStack)
 
 	fakeState := &state{
 		game: game,
@@ -531,9 +531,9 @@ func TestMoveComponent(t *testing.T) {
 		var destination Stack
 
 		switch s := test.source.(type) {
-		case *GrowableStack:
+		case *growableStack:
 			source = s.Copy()
-		case *SizedStack:
+		case *sizedStack:
 			source = s.Copy()
 		}
 
@@ -543,9 +543,9 @@ func TestMoveComponent(t *testing.T) {
 		} else {
 
 			switch s := test.destination.(type) {
-			case *GrowableStack:
+			case *growableStack:
 				destination = s.Copy()
-			case *SizedStack:
+			case *sizedStack:
 				destination = s.Copy()
 			}
 		}
@@ -701,7 +701,7 @@ func TestGrowableStackInsertComponentAt(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		stackCopy := stack.copy().(*GrowableStack)
+		stackCopy := stack.copy().(*growableStack)
 
 		component := deck.ComponentAt(test.componentDeckIndex)
 
@@ -770,7 +770,7 @@ func TestGrowableStackRemoveComponentAt(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		stackCopy := stack.copy().(*GrowableStack)
+		stackCopy := stack.copy().(*growableStack)
 
 		if !reflect.DeepEqual(stackCopy.indexes, startingIndexes) {
 			t.Error("Sanity check failed for", i, "Starting indexes were", stackCopy.indexes, "wanted", startingIndexes)
@@ -789,7 +789,7 @@ func TestShuffle(t *testing.T) {
 
 	deck := game.Chest().Deck("test")
 
-	stack := deck.NewStack(false, 0).(*GrowableStack)
+	stack := deck.NewStack(false, 0).(*growableStack)
 
 	fakeState := &state{
 		game:            game,
@@ -848,7 +848,7 @@ func TestShuffle(t *testing.T) {
 		t.Error("When we shuffled", numShuffles, "times, got the same state", numShufflesTheSame, "which is suspicious")
 	}
 
-	sStack := deck.NewStack(true, 5).(*SizedStack)
+	sStack := deck.NewStack(true, 5).(*sizedStack)
 
 	sStack.setState(fakeState)
 

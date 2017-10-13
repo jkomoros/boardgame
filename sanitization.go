@@ -548,7 +548,7 @@ func applySanitizationPolicyPlayerIndexSlice(policy Policy, input []PlayerIndex)
 	return make([]PlayerIndex, 0)
 }
 
-func (g *GrowableStack) applySanitizationPolicy(policy Policy) {
+func (g *growableStack) applySanitizationPolicy(policy Policy) {
 
 	if policy == PolicyVisible {
 		return
@@ -635,7 +635,7 @@ func randPermForStack(stack Stack) []int {
 
 }
 
-func (s *SizedStack) applySanitizationPolicy(policy Policy) {
+func (s *sizedStack) applySanitizationPolicy(policy Policy) {
 
 	if policy == PolicyVisible {
 		return

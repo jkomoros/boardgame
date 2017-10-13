@@ -487,7 +487,7 @@ func (t *testAlwaysLegalMove) Apply(state MutableState) error {
 
 type illegalMove struct {
 	baseMove
-	Stack *GrowableStack
+	Stack Stack
 }
 
 func (i *illegalMove) ReadSetter() PropertyReadSetter {
