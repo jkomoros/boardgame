@@ -391,8 +391,8 @@ func TestMoveComponent(t *testing.T) {
 		t.Error("sStackMaxLen was not initalized like expected. Got", sStackMaxLen.indexes)
 	}
 
-	sStackOtherState := sStack.Copy()
-	sStackOtherState.statePtr = &state{}
+	sStackOtherState := sStack.copy()
+	sStackOtherState.setState(&state{})
 
 	tests := []struct {
 		source                 Stack
@@ -532,9 +532,9 @@ func TestMoveComponent(t *testing.T) {
 
 		switch s := test.source.(type) {
 		case *growableStack:
-			source = s.Copy()
+			source = s.copy()
 		case *sizedStack:
-			source = s.Copy()
+			source = s.copy()
 		}
 
 		//Some tests deliberately want to make sure that copies within same source and dest aren't allowed
@@ -544,9 +544,9 @@ func TestMoveComponent(t *testing.T) {
 
 			switch s := test.destination.(type) {
 			case *growableStack:
-				destination = s.Copy()
+				destination = s.copy()
 			case *sizedStack:
-				destination = s.Copy()
+				destination = s.copy()
 			}
 		}
 

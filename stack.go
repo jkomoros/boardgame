@@ -325,7 +325,7 @@ func newSizedStack(deck *Deck, size int) *sizedStack {
 	}
 }
 
-func (g *growableStack) Copy() *growableStack {
+func (g *growableStack) copy() Stack {
 
 	var result growableStack
 	result = *g
@@ -338,11 +338,7 @@ func (g *growableStack) Copy() *growableStack {
 	return &result
 }
 
-func (g *growableStack) copy() Stack {
-	return g.Copy()
-}
-
-func (s *sizedStack) Copy() *sizedStack {
+func (s *sizedStack) copy() Stack {
 	var result sizedStack
 	result = *s
 	result.indexes = make([]int, len(s.indexes))
@@ -352,10 +348,6 @@ func (s *sizedStack) Copy() *sizedStack {
 		result.idsLastSeen[key] = val
 	}
 	return &result
-}
-
-func (s *sizedStack) copy() Stack {
-	return s.Copy()
 }
 
 //Len returns the number of items in the stack.
