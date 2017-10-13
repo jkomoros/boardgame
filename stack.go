@@ -16,21 +16,29 @@ const emptyIndexSentinel = -1
 //stack of 0 or more Components, all from the same Deck. Each deck has 0 or
 //more Stacks based off of it, and together they include all components in
 //that deck, with no component residing in more than one stack. Stacks model
-//things like a stack of cards, a collection of resource tokens, etc. There
-//are two concrete types of Stacks: GrowableStack's and SizedStack's.
+//things like a stack of cards, a collection of resource tokens, etc. Stacks
+//can either be growable (the default), or of a fixed size (called
+//SizedStacks). The default stacks have a FixedSize() of false and can grow to
+//accomodate as many components as desired (up to maxLen), with no gaps in
+//between components. An insertion at an index in the middle of a stack will
+//simply move later components down. SizedStacks, however, have a specific size, with
+//empty slots being allowed. Each insertion puts the component at precisely
+//that slot, and will fail if it is already taken.
 type Stack interface {
-	//Len returns the number of slots in the Stack. For a GrowableStack this
-	//is the number of items in the stack. For SizedStacks, this is the number
-	//of slots--even if some are unfilled.
+	//Len returns the number of slots in the Stack. For a normal Stack this is
+	//the number of items in the stack. For SizedStacks, this is the number of
+	//slots--even if some are unfilled.
 	Len() int
 
 	//FixedSize returns if the stack has a fixed number of slots (any number
 	//of which may be empty), or a non-fixed size that can grow up to MaxSize
-	//and not have any nil slots.
+	//and not have any nil slots. Stacks that return FixedSize() false are
+	//considered default stacks, and stacks that return FixedSize() true are
+	//referred to as SizedStacks.
 	FixedSize() bool
 
 	//NumComponents returns the number of components that are in this stack.
-	//For GrowableStacks this is the same as Len(); for SizedStacks, this is
+	//For default Stacks this is the same as Len(); for SizedStacks, this is
 	//the number of non-nil slots.
 	NumComponents() int
 
@@ -71,7 +79,9 @@ type Stack interface {
 	IdsLastSeen() map[string]int
 
 	//SlotsRemaining returns how many slots there are left in this stack to
-	//add items.
+	//add items. For default stacks this will be the number of slots until
+	//maxLen is reached (or MaxInt64 if there is no maxLen). For SizedStacks
+	//this will be the number of empty slots.
 	SlotsRemaining() int
 
 	//MoveAllTo moves all of the components in this stack to the other stack,
@@ -107,9 +117,9 @@ type Stack interface {
 	//source.ComponentAt() will return a component. In destination, slotIndex
 	//must point to a valid "slot" to put a component, such that after
 	//insertion, using that index on the destination will return that
-	//component. In GrowableStacks, slots are any index from 0 up to and
-	//including stack.Len(), because the growable stack will insert the
-	//component between existing componnets if necessary. For SizedStack,
+	//component. In defaults Stacks, slots are any index from 0 up to and
+	//including stack.Len(), because the stack will grow toinsert the
+	//component between existing components if necessary. For SizedStacks,
 	//slotIndex must point to a currently empty slot. Use
 	//{First,Last}{Component,Slot}Index constants to automatically set these
 	//indexes to common values. If you want the precise location of the
@@ -200,27 +210,27 @@ type Stack interface {
 //These special Indexes are designed to be provided to stack.MoveComponent.
 const (
 	//FirstComponentIndex is computed to be the first  index, from the left,
-	//where ComponentAt() will return a component. For GrowableStacks this is
+	//where ComponentAt() will return a component. For default Stacks this is
 	//always 0 (for non-empty stacks); for SizedStacks, it's the first non-
 	//empty slot from the left.
 	FirstComponentIndex = -1
 	//LastComponentIndex is computed to be the largest index where
-	//ComponentAt() will return a component. For GrowableStacks, this is
+	//ComponentAt() will return a component. For default Stacks, this is
 	//always Len() - 1 (for non-empty stacks); for SizedStacks, it's the first
 	//non-empty slot from the right.
 	LastComponentIndex = -2
 	//FirstSlotIndex is computed to be the first index that it is valid to
-	//insert a component at (a "slot"). For GrowableStacks, this is always 0.
+	//insert a component at (a "slot"). For default Stacks, this is always 0.
 	//For SizedStacks, this is the first empty slot from the left.
 	FirstSlotIndex = -3
 	//LastSlotIndex is computed to be the last index that it is valid to
-	//insert a component at (a "slot"). For GrowableStacks, this is always
+	//insert a component at (a "slot"). For default Stacks, this is always
 	//Len(). For SizedStacks, this is the first empty slot from the right.
 	LastSlotIndex = -4
 	//NextSlotIndex returns the next slot index, from the left, where a
 	//component could be inserted without splicing--that is, without shifting
 	//other components to the right. For SizedStacks, this is equivalent to
-	//FirstSlotIndex. For GrowableStacks, this is equivalent to LastSlotIndex.
+	//FirstSlotIndex. For default Stacks, this is equivalent to LastSlotIndex.
 	NextSlotIndex = -5
 )
 

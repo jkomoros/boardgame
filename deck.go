@@ -35,14 +35,18 @@ func NewDeck() *Deck {
 	}
 }
 
-//NewSizedStack returns a new sized stack with the given size based on this
-//deck. You normally do this in Empty*State delegate methods, if you aren't
-//using the auto-inflating struct tags to configure your stacks.
+//NewSizedStack returns a new default (growable Stack) with the given size
+//based on this deck. You normally do this in *Constructor delegate methods,
+//if you aren't using the auto-inflating struct tags to configure your stacks.
+//The returned stack will allow up to maxLen items to be inserted. If you
+//don't want to set a maxLen on the stack (you often don't) pass 0 for maxLen.
 func (d *Deck) NewStack(maxLen int) Stack {
 	return newGrowableStack(d, maxLen)
 }
 
-//NewSizedStack returns a stack of fixed size (stack.FixedSize will return true).
+//NewSizedStack returns a new SizedStack (a stack whose FixedSize() will
+//return true). Refer to the Stack interface documentation for more about the
+//difference.
 func (d *Deck) NewSizedStack(size int) Stack {
 	return newSizedStack(d, size)
 }

@@ -61,7 +61,7 @@ const (
 
 	//For groups, PolicyNonEmpty will allow it to be observed that the stack's
 	//NumComponents is either Empty (0 components) or non-empty (1
-	//components). So for GrowableStacks, it will either have no components or
+	//components). So for default Stacks, it will either have no components or
 	//1 component. And for SizedStack, either all of the slots will be empty,
 	//or the first slot will be non-empty. In all cases, the Component
 	//present, if there is one, will be the deck's GenericComponent.
