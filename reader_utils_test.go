@@ -35,10 +35,10 @@ func TestPolicyFromStructTag(t *testing.T) {
 			},
 		},
 		{
-			"all:random,other:hidden",
+			"all:order,other:hidden",
 			map[int]Policy{
 				GroupOther: PolicyHidden,
-				GroupAll:   PolicyRandom,
+				GroupAll:   PolicyOrder,
 			},
 		},
 		{

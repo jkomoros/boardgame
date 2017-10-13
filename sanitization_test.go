@@ -35,10 +35,6 @@ func TestPolicyFromString(t *testing.T) {
 			PolicyHidden,
 		},
 		{
-			"random",
-			PolicyRandom,
-		},
-		{
 			"visibl",
 			PolicyInvalid,
 		},

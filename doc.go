@@ -264,8 +264,8 @@ Policy. PolicyVisible is the default; if there is no effective policy in
 place, it defaults to PolicyVisible. It leaves the property unchanged.
 PolicyHidden is the most restrictive; it sets the property to its zero value.
 For basic types (e.g. int, string, bool), these are the only two policies. For
-those property types, any Policy other than PolicyVisible or PolicyRandom
-behaves like PolicyHidden.
+those property types, any Policy other than PolicyVisible behaves like
+PolicyHidden.
 
 Stacks and slice-based properties (e.g. SizedStacks and GrowableStacks) have a
 few extra policies. PolicyLen will obscure the group so that the number of
@@ -431,8 +431,7 @@ more complex than normal state. The dynamic component values associated with
 any one component will only be visible if the component is in a Stack whose
 effective policy is PolicyVisible--if its containing stack is anything else,
 then every property on that dynamic component value will be set to
-PolicyHidden (or PolicyRandom when Computed Property dependencies are being
-calculated). Then, the policy for each property on the DynamicComponentValue,
+PolicyHidden. Then, the policy for each property on the DynamicComponentValue,
 as configured on Policy.DynamicComponentValues, is applied to each property to
 achieve the final dynamic component values visbility.
 

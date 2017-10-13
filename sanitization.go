@@ -42,8 +42,7 @@ type Policy int
 
 const (
 	//Non sanitized. For non-group properties (e.g. strings, ints, bools), any
-	//policy other than PolicyVisible or PolicyRandom is effectively
-	//PolicyHidden.
+	//policy other than PolicyVisible is effectively PolicyHidden.
 	PolicyVisible Policy = iota
 
 	//For groups (e.g. stacks, int slices), return a group that has the same
@@ -72,12 +71,6 @@ const (
 	//stacks, the deck it is, and the Size (for SizedStack) is set, but
 	//nothing else is.
 	PolicyHidden
-
-	//PolicyRandom sets the property to a random but legal value to obscure
-	//it. Not practically useful often, but is used in ComputedProperties to
-	//ensure that people do not take an accidental dependency on a property
-	//they didn't explicitly list in their dependencies.
-	PolicyRandom
 
 	//PolicyInvalid is not a valid Policy. It can be provided to signal an
 	//illegal policy, which will cause the sanitization policy pipeline to
@@ -120,8 +113,6 @@ func policyFromString(policyName string) Policy {
 		return PolicyNonEmpty
 	case "hidden":
 		return PolicyHidden
-	case "random":
-		return PolicyRandom
 	}
 	return PolicyInvalid
 }
@@ -421,142 +412,9 @@ func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]MutableS
 
 }
 
-func randomBool() bool {
-	r := rand.Intn(2)
-	if r == 0 {
-		return false
-	}
-	return true
-}
-
-func randomInt() int {
-	return rand.Int()
-}
-
-func randomIntSlice(length int) []int {
-	result := make([]int, rand.Intn(length))
-
-	for i := 0; i < len(result); i++ {
-		result[i] = randomInt()
-	}
-
-	return result
-}
-
-func randomBoolSlice(length int) []bool {
-	result := make([]bool, rand.Intn(length))
-
-	for i := 0; i < len(result); i++ {
-		result[i] = randomBool()
-	}
-
-	return result
-}
-
-func randomStringSlice(length int) []string {
-	result := make([]string, rand.Intn(length))
-
-	for i := 0; i < len(result); i++ {
-		result[i] = randomString(16)
-	}
-
-	return result
-}
-
-func randomPlayerIndexSlice(length int) []PlayerIndex {
-	result := make([]PlayerIndex, rand.Intn(length))
-
-	for i := 0; i < len(result); i++ {
-		//TODO: ideally we'd actually return a random player index that is
-		//valid given the size of hte game.
-		result[i] = 0
-	}
-
-	return result
-}
-
-func randomGrowableStack(stack *GrowableStack) *GrowableStack {
-	result := stack.Copy()
-
-	indexes := make([]int, rand.Intn(16))
-
-	for i, _ := range indexes {
-		indexes[i] = emptyIndexSentinel
-	}
-
-	result.indexes = indexes
-
-	return result
-}
-
-func randomSizedStack(stack *SizedStack) *SizedStack {
-	result := stack.Copy()
-
-	indexes := make([]int, len(result.indexes))
-
-	for i, _ := range indexes {
-		if randomBool() {
-			indexes[i] = emptyIndexSentinel
-		} else {
-			indexes[i] = genericComponentSentinel
-		}
-	}
-
-	result.indexes = indexes
-
-	return result
-}
-
-func randomTimer() *Timer {
-	//TODO: actually set some of the fields randomly
-	return NewTimer()
-}
-
 func applyPolicy(policy Policy, input interface{}, propType PropertyType) interface{} {
 	if policy == PolicyVisible {
 		return input
-	}
-
-	if policy == PolicyRandom {
-		switch propType {
-		case TypeBool:
-			return randomBool()
-		case TypeInt:
-			return randomInt()
-		case TypeString:
-			//Note: unlike the other random*() functions, this is defined in
-			//game for the purposes of creating an ID. That's sufficient for
-			//this use.
-			return randomString(16)
-		case TypePlayerIndex:
-			//TODO: ideally we'd return a legitimately random playerIndex. But
-			//down here we don't know what the legal range is.
-			return 0
-		case TypeEnumVar:
-			e := input.(enum.Var).CopyVar()
-			e.SetValue(e.Enum().RandomValue())
-			return e
-		case TypeEnumConst:
-			e := input.(enum.Const).Copy()
-			res, _ := e.Enum().NewConst(e.Enum().RandomValue())
-			return res
-		case TypeIntSlice:
-			return randomIntSlice(5)
-		case TypeBoolSlice:
-			return randomBoolSlice(5)
-		case TypeStringSlice:
-			return randomStringSlice(5)
-		case TypePlayerIndexSlice:
-			return randomPlayerIndexSlice(5)
-		case TypeGrowableStack:
-			return randomGrowableStack(input.(*GrowableStack))
-		case TypeSizedStack:
-			return randomSizedStack(input.(*SizedStack))
-		case TypeTimer:
-			return randomTimer()
-		default:
-			//Hmm, it's an unknwon type I guess. This shouldn't happen!
-		}
 	}
 
 	//Go through the propTypes where everythign that's not PolicyVisible is
