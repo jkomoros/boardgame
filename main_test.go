@@ -53,7 +53,7 @@ type testingComponent struct {
 type testingComponentDynamic struct {
 	state  State
 	IntVar int
-	Stack  *SizedStack
+	Stack  Stack
 	Enum   enum.Var
 }
 
@@ -78,7 +78,7 @@ func (t *testingComponentDynamic) SetState(state State) {
 func (t *testingComponentDynamic) Copy() MutableSubState {
 	var result testingComponentDynamic
 	result = *t
-	result.Stack = t.Stack.Copy()
+	result.Stack = t.Stack.copy()
 	return &result
 }
 
@@ -123,7 +123,7 @@ func concreteStates(state State) (*testGameState, []*testPlayerState) {
 type testGameState struct {
 	state              State
 	CurrentPlayer      PlayerIndex
-	DrawDeck           *GrowableStack
+	DrawDeck           Stack
 	Timer              *Timer
 	MyIntSlice         []int
 	MyStringSlice      []string

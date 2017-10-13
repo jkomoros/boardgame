@@ -16,11 +16,11 @@ func TestFixedSize(t *testing.T) {
 
 	testDeck := chest.Deck("test")
 
-	sized := testDeck.NewSizedStack(5)
+	sized := testDeck.NewStack(true, 5)
 
 	assert.For(t).ThatActual(sized.FixedSize()).IsTrue()
 
-	growable := testDeck.NewGrowableStack(0)
+	growable := testDeck.NewStack(false, 0)
 
 	assert.For(t).ThatActual(growable.FixedSize()).IsFalse()
 
@@ -36,11 +36,11 @@ func TestSort(t *testing.T) {
 
 	testDeck := chest.Deck("test")
 
-	gStack := testDeck.NewGrowableStack(0)
+	gStack := testDeck.NewStack(false, 0)
 
 	gStack.Inflate(chest)
 
-	gStack.statePtr = game.CurrentState().(*state)
+	gStack.setState(game.CurrentState().(*state))
 
 	gStack.insertNext(testDeck.Components()[0])
 	gStack.insertNext(testDeck.Components()[1])
@@ -71,10 +71,10 @@ func TestSort(t *testing.T) {
 
 	assert.For(t).ThatActual(sorted).IsTrue()
 
-	sStack := testDeck.NewSizedStack(5)
+	sStack := testDeck.NewStack(true, 5)
 
 	sStack.Inflate(chest)
-	sStack.statePtr = game.CurrentState().(*state)
+	sStack.setState(game.CurrentState().(*state))
 
 	sStack.insertComponentAt(0, testDeck.Components()[0])
 	sStack.insertComponentAt(1, testDeck.Components()[1])
@@ -133,15 +133,15 @@ func TestInflate(t *testing.T) {
 
 	testDeck := chest.Deck("test")
 
-	gStack := testDeck.NewGrowableStack(0)
+	gStack := testDeck.NewStack(false, 0)
 
-	gStack.statePtr = game.CurrentState().(*state)
+	gStack.setState(game.CurrentState().(*state))
 
 	gStack.insertNext(testDeck.Components()[0])
 
-	sStack := testDeck.NewSizedStack(2)
+	sStack := testDeck.NewStack(true, 2)
 
-	sStack.statePtr = game.CurrentState().(*state)
+	sStack.setState(game.CurrentState().(*state))
 
 	sStack.insertNext(testDeck.Components()[1])
 
@@ -235,16 +235,16 @@ func TestSecretMoveComponentGrowable(t *testing.T) {
 
 	deck := game.Chest().Deck("test")
 
-	gStack := deck.NewGrowableStack(0)
-	sStack := deck.NewSizedStack(5)
+	gStack := deck.NewStack(false, 0)
+	sStack := deck.NewStack(true, 5)
 
 	fakeState := &state{
 		game:            game,
 		secretMoveCount: make(map[string][]int),
 	}
 
-	gStack.statePtr = fakeState
-	sStack.statePtr = fakeState
+	gStack.setState(fakeState)
+	sStack.setState(fakeState)
 
 	for i, c := range deck.Components() {
 		if i%2 == 0 {
@@ -266,16 +266,16 @@ func TestSecretMoveComponentSized(t *testing.T) {
 
 	deck := game.Chest().Deck("test")
 
-	gStack := deck.NewGrowableStack(0)
-	sStack := deck.NewSizedStack(5)
+	gStack := deck.NewStack(false, 0)
+	sStack := deck.NewStack(true, 5)
 
 	fakeState := &state{
 		game:            game,
 		secretMoveCount: make(map[string][]int),
 	}
 
-	gStack.statePtr = fakeState
-	sStack.statePtr = fakeState
+	gStack.setState(fakeState)
+	sStack.setState(fakeState)
 
 	for i, c := range deck.Components() {
 		if i%2 == 0 {
@@ -351,22 +351,22 @@ func TestMoveComponent(t *testing.T) {
 
 	deck := game.Chest().Deck("test")
 
-	gStack := deck.NewGrowableStack(0)
+	gStack := deck.NewStack(false, 0).(*GrowableStack)
 
-	sStack := deck.NewSizedStack(5)
+	sStack := deck.NewStack(true, 5).(*SizedStack)
 
-	gStackMaxLen := deck.NewGrowableStack(4)
+	gStackMaxLen := deck.NewStack(false, 4).(*GrowableStack)
 
-	sStackMaxLen := deck.NewSizedStack(4)
+	sStackMaxLen := deck.NewStack(true, 4).(*SizedStack)
 
 	fakeState := &state{
 		game: game,
 	}
 
-	gStack.statePtr = fakeState
-	sStack.statePtr = fakeState
-	gStackMaxLen.statePtr = fakeState
-	sStackMaxLen.statePtr = fakeState
+	gStack.setState(fakeState)
+	sStack.setState(fakeState)
+	gStackMaxLen.setState(fakeState)
+	sStackMaxLen.setState(fakeState)
 
 	for _, c := range deck.Components() {
 		gStack.insertNext(c)
@@ -586,13 +586,13 @@ func TestSwapComponents(t *testing.T) {
 
 	deck := game.Chest().Deck("test")
 
-	stack := deck.NewGrowableStack(0)
+	stack := deck.NewStack(false, 0)
 
 	fakeState := &state{
 		game: game,
 	}
 
-	stack.statePtr = fakeState
+	stack.setState(fakeState)
 
 	for _, c := range deck.Components() {
 		stack.insertNext(c)
@@ -600,9 +600,9 @@ func TestSwapComponents(t *testing.T) {
 
 	swapComponentsTests(stack, t)
 
-	sStack := deck.NewSizedStack(10)
+	sStack := deck.NewStack(true, 10)
 
-	sStack.statePtr = fakeState
+	sStack.setState(fakeState)
 
 	for _, c := range deck.Components() {
 		sStack.insertNext(c)
@@ -656,9 +656,9 @@ func TestGrowableStackInsertComponentAt(t *testing.T) {
 		game: game,
 	}
 
-	stack := deck.NewGrowableStack(0)
+	stack := deck.NewStack(false, 0)
 
-	stack.statePtr = fakeState
+	stack.setState(fakeState)
 
 	for _, c := range deck.Components() {
 		stack.insertNext(c)
@@ -701,7 +701,7 @@ func TestGrowableStackInsertComponentAt(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		stackCopy := stack.Copy()
+		stackCopy := stack.copy().(*GrowableStack)
 
 		component := deck.ComponentAt(test.componentDeckIndex)
 
@@ -731,9 +731,9 @@ func TestGrowableStackRemoveComponentAt(t *testing.T) {
 		game: game,
 	}
 
-	stack := deck.NewGrowableStack(0)
+	stack := deck.NewStack(false, 0)
 
-	stack.statePtr = fakeState
+	stack.setState(fakeState)
 
 	for _, c := range deck.Components() {
 		stack.insertNext(c)
@@ -770,7 +770,7 @@ func TestGrowableStackRemoveComponentAt(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		stackCopy := stack.Copy()
+		stackCopy := stack.copy().(*GrowableStack)
 
 		if !reflect.DeepEqual(stackCopy.indexes, startingIndexes) {
 			t.Error("Sanity check failed for", i, "Starting indexes were", stackCopy.indexes, "wanted", startingIndexes)
@@ -789,7 +789,7 @@ func TestShuffle(t *testing.T) {
 
 	deck := game.Chest().Deck("test")
 
-	stack := deck.NewGrowableStack(0)
+	stack := deck.NewStack(false, 0).(*GrowableStack)
 
 	fakeState := &state{
 		game:            game,
@@ -797,7 +797,7 @@ func TestShuffle(t *testing.T) {
 		secretMoveCount: make(map[string][]int),
 	}
 
-	stack.statePtr = fakeState
+	stack.setState(fakeState)
 
 	for _, c := range deck.Components() {
 		stack.insertNext(c)
@@ -848,9 +848,9 @@ func TestShuffle(t *testing.T) {
 		t.Error("When we shuffled", numShuffles, "times, got the same state", numShufflesTheSame, "which is suspicious")
 	}
 
-	sStack := deck.NewSizedStack(5)
+	sStack := deck.NewStack(true, 5).(*SizedStack)
 
-	sStack.statePtr = fakeState
+	sStack.setState(fakeState)
 
 	for _, c := range deck.Components() {
 		sStack.insertNext(c)
@@ -923,11 +923,11 @@ func TestMoveAllTo(t *testing.T) {
 		game: game,
 	}
 
-	to := deck.NewGrowableStack(1)
-	to.statePtr = fakeState
+	to := deck.NewStack(false, 1)
+	to.setState(fakeState)
 
-	from := deck.NewSizedStack(2)
-	from.statePtr = fakeState
+	from := deck.NewStack(true, 2)
+	from.setState(fakeState)
 
 	zero := deck.Components()[0]
 	one := deck.Components()[1]
@@ -948,11 +948,11 @@ func TestMoveAllTo(t *testing.T) {
 		t.Error("MoveAllTo did not move the components to other")
 	}
 
-	to = deck.NewGrowableStack(1)
-	to.statePtr = fakeState
+	to = deck.NewStack(false, 1)
+	to.setState(fakeState)
 
-	from = deck.NewSizedStack(2)
-	from.statePtr = fakeState
+	from = deck.NewStack(true, 2)
+	from.setState(fakeState)
 
 	from.insertNext(zero)
 	from.insertNext(one)

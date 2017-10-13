@@ -25,28 +25,28 @@ func TestHandValue(t *testing.T) {
 		{
 			&playerState{
 				VisibleHand: createHand(t, deck, playingcards.Rank2, playingcards.Rank3, playingcards.Rank4),
-				HiddenHand:  deck.NewGrowableStack(0),
+				HiddenHand:  deck.NewStack(false, 0),
 			},
 			9,
 		},
 		{
 			&playerState{
 				VisibleHand: createHand(t, deck, playingcards.RankAce),
-				HiddenHand:  deck.NewGrowableStack(0),
+				HiddenHand:  deck.NewStack(false, 0),
 			},
 			11,
 		},
 		{
 			&playerState{
 				VisibleHand: createHand(t, deck, playingcards.RankAce, playingcards.RankAce),
-				HiddenHand:  deck.NewGrowableStack(0),
+				HiddenHand:  deck.NewStack(false, 0),
 			},
 			12,
 		},
 		{
 			&playerState{
 				VisibleHand: createHand(t, deck, playingcards.RankJack, playingcards.RankKing, playingcards.RankAce),
-				HiddenHand:  deck.NewGrowableStack(0),
+				HiddenHand:  deck.NewStack(false, 0),
 			},
 			21,
 		},
@@ -61,8 +61,8 @@ func TestHandValue(t *testing.T) {
 	}
 }
 
-func createHand(t *testing.T, deck *boardgame.Deck, ranks ...int) *boardgame.GrowableStack {
-	result := deck.NewGrowableStack(0)
+func createHand(t *testing.T, deck *boardgame.Deck, ranks ...int) boardgame.Stack {
+	result := deck.NewStack(false, 0)
 
 	givenCards := make(map[int]bool)
 

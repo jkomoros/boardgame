@@ -60,8 +60,8 @@ func (g *gameDelegate) GameStateConstructor() boardgame.MutableSubState {
 	//We want to size the stack based on the size of the deck, so we'll do it
 	//ourselves and not use tag-based auto-inflation.
 	return &gameState{
-		HiddenCards:   cards.NewSizedStack(len(cards.Components())),
-		RevealedCards: cards.NewSizedStack(len(cards.Components())),
+		HiddenCards:   cards.NewStack(true, len(cards.Components())),
+		RevealedCards: cards.NewStack(true, len(cards.Components())),
 	}
 }
 
