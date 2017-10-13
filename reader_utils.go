@@ -10,7 +10,7 @@ import (
 
 const enumStructTag = "enum"
 const stackStructTag = "stack"
-const fixedStackStructTag = "fixedstack"
+const fixedStackStructTag = "sizedstack"
 const sanitizationStructTag = "sanitize"
 
 type autoStackConfig struct {
