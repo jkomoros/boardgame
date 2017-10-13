@@ -165,9 +165,8 @@ func (m *MoveInfo) Initiator() int {
 }
 
 var moveTypeIllegalPropTypes = map[PropertyType]bool{
-	TypeGrowableStack: true,
-	TypeSizedStack:    true,
-	TypeTimer:         true,
+	TypeStack: true,
+	TypeTimer: true,
 }
 
 func newMoveType(config *MoveTypeConfig, manager *GameManager) (*MoveType, error) {

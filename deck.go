@@ -163,10 +163,9 @@ func (d *Deck) GenericComponent() *Component {
 }
 
 var illegalComponentValuesProps = map[PropertyType]bool{
-	TypeEnumVar:       true,
-	TypeGrowableStack: true,
-	TypeSizedStack:    true,
-	TypeTimer:         true,
+	TypeEnumVar: true,
+	TypeStack:   true,
+	TypeTimer:   true,
 }
 
 //finish is called when the deck is added to a component chest. It signifies that no more items may be added.

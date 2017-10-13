@@ -186,9 +186,15 @@ type Stack interface {
 	//type.
 	state() *state
 
+	//setState sets the state ptr that will be returned by state().
+	setState(state *state)
+
 	//deck returns the Deck in this stack. Just a conveniene wrapper if you
 	//don't know what kind of stack you have.
 	deck() *Deck
+
+	//Copy returns a copy of this stack.
+	copy() Stack
 }
 
 //These special Indexes are designed to be provided to stack.MoveComponent.
@@ -332,6 +338,10 @@ func (g *GrowableStack) Copy() *GrowableStack {
 	return &result
 }
 
+func (g *GrowableStack) copy() Stack {
+	return g.Copy()
+}
+
 func (s *SizedStack) Copy() *SizedStack {
 	var result SizedStack
 	result = *s
@@ -342,6 +352,10 @@ func (s *SizedStack) Copy() *SizedStack {
 		result.idsLastSeen[key] = val
 	}
 	return &result
+}
+
+func (s *SizedStack) copy() Stack {
+	return s.Copy()
 }
 
 //Len returns the number of items in the stack.
@@ -672,6 +686,14 @@ func (g *GrowableStack) state() *state {
 
 func (s *SizedStack) state() *state {
 	return s.statePtr
+}
+
+func (g *GrowableStack) setState(state *state) {
+	g.statePtr = state
+}
+
+func (s *SizedStack) setState(state *state) {
+	s.statePtr = state
 }
 
 func (g *GrowableStack) deck() *Deck {

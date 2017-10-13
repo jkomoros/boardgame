@@ -29,8 +29,7 @@ type PropertyReader interface {
 	StringSliceProp(name string) ([]string, error)
 	PlayerIndexSliceProp(name string) ([]PlayerIndex, error)
 	PlayerIndexProp(name string) (PlayerIndex, error)
-	GrowableStackProp(name string) (*GrowableStack, error)
-	SizedStackProp(name string) (*SizedStack, error)
+	StackProp(name string) (Stack, error)
 	TimerProp(name string) (*Timer, error)
 	//Prop fetches the given property generically. If you already know the
 	//type, it's better to use the typed methods.
@@ -54,8 +53,7 @@ const (
 	TypeBoolSlice
 	TypeStringSlice
 	TypePlayerIndexSlice
-	TypeGrowableStack
-	TypeSizedStack
+	TypeStack
 	TypeTimer
 )
 
@@ -76,8 +74,7 @@ type PropertyReadSetter interface {
 	SetBoolSliceProp(name string, value []bool) error
 	SetStringSliceProp(name string, value []string) error
 	SetPlayerIndexSliceProp(name string, value []PlayerIndex) error
-	SetGrowableStackProp(name string, value *GrowableStack) error
-	SetSizedStackProp(name string, value *SizedStack) error
+	SetStackProp(name string, value Stack) error
 	SetTimerProp(name string, value *Timer) error
 	//SetProp sets the property with the given name. If the value does not
 	//match the underlying slot type, it should return an error. If you know
@@ -109,10 +106,8 @@ func (t PropertyType) String() string {
 		return "TypeStringSlice"
 	case TypePlayerIndexSlice:
 		return "TypePlayerIndexSlice"
-	case TypeGrowableStack:
-		return "TypeGrowableStack"
-	case TypeSizedStack:
-		return "TypeSizedStack"
+	case TypeStack:
+		return "TypeStack"
 	case TypeTimer:
 		return "TypeTimer"
 	default:
@@ -278,15 +273,17 @@ func (d *defaultReader) propsImpl() (map[string]PropertyType, error) {
 					pType = TypeEnumVar
 				} else if strings.Contains(interfaceType, "enum.Const") {
 					pType = TypeEnumConst
+				} else if strings.Contains(interfaceType, "Stack") {
+					pType = TypeStack
 				}
 			case reflect.Ptr:
 				//Is it a growable stack or a sizedStack?
 				ptrType := field.Type().String()
 
 				if strings.Contains(ptrType, "GrowableStack") {
-					pType = TypeGrowableStack
+					pType = TypeStack
 				} else if strings.Contains(ptrType, "SizedStack") {
-					pType = TypeSizedStack
+					pType = TypeStack
 				} else if strings.Contains(ptrType, "Timer") {
 					pType = TypeTimer
 				} else {
@@ -469,31 +466,21 @@ func (d *defaultReader) PlayerIndexSliceProp(name string) ([]PlayerIndex, error)
 	return result, nil
 }
 
-func (d *defaultReader) GrowableStackProp(name string) (*GrowableStack, error) {
+func (d *defaultReader) StackProp(name string) (Stack, error) {
 	//Verify that this seems legal.
 	props := d.Props()
 
-	if props[name] != TypeGrowableStack {
-		return nil, errors.New("That property is not a growable stack: " + name)
+	if props[name] != TypeStack {
+		return nil, errors.New("That property is not a Stack: " + name)
 	}
 
 	s := reflect.ValueOf(d.i).Elem()
-	result := s.FieldByName(name).Interface().(*GrowableStack)
-
-	return result, nil
-}
-
-func (d *defaultReader) SizedStackProp(name string) (*SizedStack, error) {
-	//Verify that this seems legal.
-	props := d.Props()
-
-	if props[name] != TypeSizedStack {
-		return nil, errors.New("That property is not a sized stack: " + name)
+	field := s.FieldByName(name)
+	if field.IsNil() {
+		//This isn't an error; it's just that we shouldn't dereference it.
+		return nil, nil
 	}
-
-	s := reflect.ValueOf(d.i).Elem()
-	result := s.FieldByName(name).Interface().(*SizedStack)
-
+	result := field.Interface().(Stack)
 	return result, nil
 }
 
@@ -799,38 +786,11 @@ func (d *defaultReader) SetPlayerIndexSliceProp(name string, val []PlayerIndex) 
 
 }
 
-func (d *defaultReader) SetGrowableStackProp(name string, val *GrowableStack) (err error) {
+func (d *defaultReader) SetStackProp(name string, val Stack) (err error) {
 	props := d.Props()
 
-	if props[name] != TypeGrowableStack {
-		return errors.New("That property is not a settable growable stack")
-	}
-
-	s := reflect.ValueOf(d.i).Elem()
-
-	f := s.FieldByName(name)
-
-	if !f.IsValid() {
-		return errors.New("that name was not available on the struct")
-	}
-
-	defer func() {
-		if e := recover(); e != nil {
-			err = errors.New(fmt.Sprint(e))
-		}
-	}()
-
-	f.Set(reflect.ValueOf(val))
-
-	return nil
-
-}
-
-func (d *defaultReader) SetSizedStackProp(name string, val *SizedStack) (err error) {
-	props := d.Props()
-
-	if props[name] != TypeSizedStack {
-		return errors.New("That property is not a settable sized stack")
+	if props[name] != TypeStack {
+		return errors.New("That property is not a settable stack")
 	}
 
 	s := reflect.ValueOf(d.i).Elem()
@@ -1153,7 +1113,7 @@ func (g *genericReader) PlayerIndexSliceProp(name string) ([]PlayerIndex, error)
 	return val.([]PlayerIndex), nil
 }
 
-func (g *genericReader) GrowableStackProp(name string) (*GrowableStack, error) {
+func (g *genericReader) StackProp(name string) (Stack, error) {
 	val, err := g.Prop(name)
 
 	if err != nil {
@@ -1166,31 +1126,11 @@ func (g *genericReader) GrowableStackProp(name string) (*GrowableStack, error) {
 		return nil, errors.New("Unexpected error: Missing Prop type for " + name)
 	}
 
-	if propType != TypeGrowableStack {
-		return nil, errors.New(name + "was expected to be TypeGrowableStack but was not")
+	if propType != TypeStack {
+		return nil, errors.New(name + "was expected to be TypeStack but was not")
 	}
 
-	return val.(*GrowableStack), nil
-}
-
-func (g *genericReader) SizedStackProp(name string) (*SizedStack, error) {
-	val, err := g.Prop(name)
-
-	if err != nil {
-		return nil, err
-	}
-
-	propType, ok := g.types[name]
-
-	if !ok {
-		return nil, errors.New("Unexpected error: Missing Prop type for " + name)
-	}
-
-	if propType != TypeSizedStack {
-		return nil, errors.New(name + "was expected to be TypeSizedStack but was not")
-	}
-
-	return val.(*SizedStack), nil
+	return val.(Stack), nil
 }
 
 func (g *genericReader) TimerProp(name string) (*Timer, error) {
@@ -1357,27 +1297,14 @@ func (g *genericReader) SetPlayerIndexSliceProp(name string, val []PlayerIndex) 
 	return nil
 }
 
-func (g *genericReader) SetGrowableStackProp(name string, val *GrowableStack) error {
+func (g *genericReader) SetStackProp(name string, val Stack) error {
 	propType, ok := g.types[name]
 
-	if ok && propType != TypeGrowableStack {
-		return errors.New("That property was already set but was not an growable stack")
+	if ok && propType != TypeStack {
+		return errors.New("That property was already set but was not a stack")
 	}
 
-	g.types[name] = TypeGrowableStack
-	g.values[name] = val
-
-	return nil
-}
-
-func (g *genericReader) SetSizedStackProp(name string, val *SizedStack) error {
-	propType, ok := g.types[name]
-
-	if ok && propType != TypeSizedStack {
-		return errors.New("That property was already set but was not an sized stack")
-	}
-
-	g.types[name] = TypeSizedStack
+	g.types[name] = TypeStack
 	g.values[name] = val
 
 	return nil

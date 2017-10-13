@@ -279,7 +279,7 @@ func sanitizeStateObj(readSetter PropertyReadSetter, transformation subStateSani
 		}
 
 		if visibleDynamic != nil {
-			if propType == TypeGrowableStack || propType == TypeSizedStack {
+			if propType == TypeStack {
 				if policy == PolicyVisible {
 					stackProp := prop.(Stack)
 					if _, ok := visibleDynamic[stackProp.deck().Name()]; ok {
@@ -341,7 +341,7 @@ func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[strin
 		reader := values.Reader()
 
 		for propName, propType := range reader.Props() {
-			if propType != TypeGrowableStack && propType != TypeSizedStack {
+			if propType != TypeStack {
 				continue
 			}
 			prop, err := reader.Prop(propName)

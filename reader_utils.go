@@ -10,20 +10,21 @@ import (
 
 const enumStructTag = "enum"
 const stackStructTag = "stack"
+const fixedStackStructTag = "fixedstack"
 const sanitizationStructTag = "sanitize"
 
 type autoStackConfig struct {
-	deck *Deck
-	size int
+	deck      *Deck
+	size      int
+	fixedSize bool
 }
 
 type readerValidator struct {
-	autoEnumVarFields       map[string]*enum.Enum
-	autoEnumConstFields     map[string]*enum.Enum
-	autoGrowableStackFields map[string]*autoStackConfig
-	autoSizedStackFields    map[string]*autoStackConfig
-	sanitizationPolicy      map[string]map[int]Policy
-	illegalTypes            map[PropertyType]bool
+	autoEnumVarFields   map[string]*enum.Enum
+	autoEnumConstFields map[string]*enum.Enum
+	autoStackFields     map[string]*autoStackConfig
+	sanitizationPolicy  map[string]map[int]Policy
+	illegalTypes        map[PropertyType]bool
 }
 
 //newReaderValidator returns a new readerValidator configured to disallow the
@@ -39,8 +40,7 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 
 	autoEnumVarFields := make(map[string]*enum.Enum)
 	autoEnumConstFields := make(map[string]*enum.Enum)
-	autoSizedStackFields := make(map[string]*autoStackConfig)
-	autoGrowableStackFields := make(map[string]*autoStackConfig)
+	autoStackFields := make(map[string]*autoStackConfig)
 	sanitizationPolicy := make(map[string]map[int]Policy)
 
 	defaultGroup := "all"
@@ -53,17 +53,29 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 		sanitizationPolicy[propName] = policyFromStructTag(structTagForField(exampleObj, propName, sanitizationStructTag), defaultGroup)
 
 		switch propType {
-		case TypeSizedStack:
-			sizedStack, err := exampleReader.SizedStackProp(propName)
+		case TypeStack:
+			stack, err := exampleReader.StackProp(propName)
 			if err != nil {
-				return nil, errors.New("Couldn't fetch sized stack prop: " + propName)
+				return nil, errors.New("Couldn't fetch stack prop: " + propName)
 			}
-			if sizedStack != nil {
+			if stack != nil {
 				//This stack prop is already non-nil, so we don't need to do
 				//any processing to tell how to inflate it.
 				continue
 			}
-			if tag := structTagForField(exampleObj, propName, stackStructTag); tag != "" {
+
+			isFixed := false
+
+			tag := structTagForField(exampleObj, propName, stackStructTag)
+
+			if tag == "" {
+				tag = structTagForField(exampleObj, propName, fixedStackStructTag)
+				if tag != "" {
+					isFixed = true
+				}
+			}
+
+			if tag != "" {
 
 				deck, size, err := unpackStackStructTag(tag, chest)
 
@@ -71,32 +83,10 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 					return nil, errors.New(propName + " was a nil SizedStack and its struct tag was not valid: " + err.Error())
 				}
 
-				autoSizedStackFields[propName] = &autoStackConfig{
+				autoStackFields[propName] = &autoStackConfig{
 					deck,
 					size,
-				}
-			}
-		case TypeGrowableStack:
-			growableStack, err := exampleReader.GrowableStackProp(propName)
-			if err != nil {
-				return nil, errors.New("Couldn't fetch sized growable prop: " + propName)
-			}
-			if growableStack != nil {
-				//This stack prop is already non-nil, so we don't need to do
-				//any processing to tell how to inflate it.
-				continue
-			}
-			if tag := structTagForField(exampleObj, propName, stackStructTag); tag != "" {
-
-				deck, size, err := unpackStackStructTag(tag, chest)
-
-				if err != nil {
-					return nil, errors.New(propName + " was a nil growable stack and its struct tag was not valid: " + err.Error())
-				}
-
-				autoGrowableStackFields[propName] = &autoStackConfig{
-					deck,
-					size,
+					isFixed,
 				}
 			}
 		case TypeEnumConst:
@@ -142,8 +132,7 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 	result := &readerValidator{
 		autoEnumVarFields,
 		autoEnumConstFields,
-		autoGrowableStackFields,
-		autoSizedStackFields,
+		autoStackFields,
 		sanitizationPolicy,
 		illegalTypes,
 	}
@@ -198,15 +187,15 @@ func policyFromStructTag(tag string, defaultGroup string) map[int]Policy {
 //this validator.
 func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) error {
 
-	for propName, config := range r.autoGrowableStackFields {
+	for propName, config := range r.autoStackFields {
 
-		growableStack, err := readSetter.GrowableStackProp(propName)
-		if growableStack != nil {
+		stack, err := readSetter.StackProp(propName)
+		if stack != nil {
 			//Guess it was already set!
 			continue
 		}
 		if err != nil {
-			return errors.New(propName + " had error fetching growable stack: " + err.Error())
+			return errors.New(propName + " had error fetching stack: " + err.Error())
 		}
 		if config == nil {
 			return errors.New("The config for " + propName + " was unexpectedly nil")
@@ -215,34 +204,14 @@ func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) e
 			return errors.New("The deck for " + propName + " was unexpectedly nil")
 		}
 
-		stack := config.deck.NewGrowableStack(config.size)
-
-		if err := readSetter.SetGrowableStackProp(propName, stack); err != nil {
-			return errors.New("Couldn't set " + propName + " to growable stack: " + err.Error())
-		}
-	}
-
-	for propName, config := range r.autoSizedStackFields {
-
-		sizedStack, err := readSetter.SizedStackProp(propName)
-		if sizedStack != nil {
-			//Guess it was already set!
-			continue
-		}
-		if err != nil {
-			return errors.New(propName + " had error fetching sized stack: " + err.Error())
-		}
-		if config == nil {
-			return errors.New("The config for " + propName + " was unexpectedly nil")
-		}
-		if config.deck == nil {
-			return errors.New("The deck for " + propName + " was unexpectedly nil")
+		if config.fixedSize {
+			stack = config.deck.NewSizedStack(config.size)
+		} else {
+			stack = config.deck.NewGrowableStack(config.size)
 		}
 
-		stack := config.deck.NewSizedStack(config.size)
-
-		if err := readSetter.SetSizedStackProp(propName, stack); err != nil {
-			return errors.New("Couldn't set " + propName + " to sized stack: " + err.Error())
+		if err := readSetter.SetStackProp(propName, stack); err != nil {
+			return errors.New("Couldn't set " + propName + " to stack: " + err.Error())
 		}
 	}
 
@@ -334,28 +303,16 @@ func (r *readerValidator) Valid(reader PropertyReader) error {
 
 		//TODO: verifyReader should be gotten rid of in favor of this
 		switch propType {
-		case TypeGrowableStack:
-			val, err := reader.GrowableStackProp(propName)
+		case TypeStack:
+			val, err := reader.StackProp(propName)
 			if val == nil {
-				return errors.New("GrowableStack Prop " + propName + " was nil")
+				return errors.New("Stack Prop " + propName + " was nil")
 			}
 			if err != nil {
-				return errors.New("GrowableStack prop " + propName + " had unexpected error: " + err.Error())
+				return errors.New("Stack prop " + propName + " had unexpected error: " + err.Error())
 			}
 			if val.state() == nil {
-				return errors.New("GrowableStack prop " + propName + " didn't have its state set")
-			}
-		case TypeSizedStack:
-			val, err := reader.SizedStackProp(propName)
-			if val == nil {
-				return errors.New("SizedStackProp " + propName + " was nil")
-			}
-			if err != nil {
-				return errors.New("SizedStack prop " + propName + " had unexpected error: " + err.Error())
-			}
-
-			if val.state() == nil {
-				return errors.New("SizedStack prop " + propName + " didn't have its state set")
+				return errors.New("Stack prop " + propName + " didn't have its state set")
 			}
 		case TypeTimer:
 			val, err := reader.TimerProp(propName)
@@ -399,24 +356,15 @@ func setReaderStatePtr(reader PropertyReader, st State) error {
 
 	for propName, propType := range reader.Props() {
 		switch propType {
-		case TypeGrowableStack:
-			val, err := reader.GrowableStackProp(propName)
+		case TypeStack:
+			val, err := reader.StackProp(propName)
 			if val == nil {
-				return errors.New("GrowableStack Prop " + propName + " was nil")
+				return errors.New("Stack Prop " + propName + " was nil")
 			}
 			if err != nil {
-				return errors.New("GrowableStack prop " + propName + " had unexpected error: " + err.Error())
+				return errors.New("Stack prop " + propName + " had unexpected error: " + err.Error())
 			}
-			val.statePtr = statePtr
-		case TypeSizedStack:
-			val, err := reader.SizedStackProp(propName)
-			if val == nil {
-				return errors.New("SizedStackProp " + propName + " was nil")
-			}
-			if err != nil {
-				return errors.New("SizedStack prop " + propName + " had unexpected error: " + err.Error())
-			}
-			val.statePtr = statePtr
+			val.setState(statePtr)
 		case TypeTimer:
 			val, err := reader.TimerProp(propName)
 			if val == nil {
@@ -528,21 +476,12 @@ func copyReader(input PropertyReader, outputContainer PropertyReadSetter) error 
 			if err != nil {
 				return errors.New(propName + " could not be set on output: " + err.Error())
 			}
-		case TypeGrowableStack:
-			growableStackVal, err := input.GrowableStackProp(propName)
+		case TypeStack:
+			stackVal, err := input.StackProp(propName)
 			if err != nil {
-				return errors.New(propName + " did not return a growableStack as expected: " + err.Error())
+				return errors.New(propName + " did not return a stack as expected: " + err.Error())
 			}
-			err = outputContainer.SetGrowableStackProp(propName, growableStackVal.Copy())
-			if err != nil {
-				return errors.New(propName + " could not be set on output: " + err.Error())
-			}
-		case TypeSizedStack:
-			sizedStackVal, err := input.SizedStackProp(propName)
-			if err != nil {
-				return errors.New(propName + " did not return a sizedStack as expected: " + err.Error())
-			}
-			err = outputContainer.SetSizedStackProp(propName, sizedStackVal.Copy())
+			err = outputContainer.SetStackProp(propName, stackVal.copy())
 			if err != nil {
 				return errors.New(propName + " could not be set on output: " + err.Error())
 			}

@@ -392,14 +392,8 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 
 	for propName, propType := range game.Reader().Props() {
 		switch propType {
-		case TypeSizedStack:
-			stack, err := game.Reader().SizedStackProp(propName)
-			if err != nil {
-				return nil, errors.New("Unable to inflate stack " + propName + " in game.")
-			}
-			stack.Inflate(g.Chest())
-		case TypeGrowableStack:
-			stack, err := game.Reader().GrowableStackProp(propName)
+		case TypeStack:
+			stack, err := game.Reader().StackProp(propName)
 			if err != nil {
 				return nil, errors.New("Unable to inflate stack " + propName + " in game.")
 			}
@@ -422,14 +416,8 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 
 		for propName, propType := range player.Reader().Props() {
 			switch propType {
-			case TypeSizedStack:
-				stack, err := player.Reader().SizedStackProp(propName)
-				if err != nil {
-					return nil, errors.New("Unable to inflate stack " + propName + " in player " + strconv.Itoa(i))
-				}
-				stack.Inflate(g.Chest())
-			case TypeGrowableStack:
-				stack, err := player.Reader().GrowableStackProp(propName)
+			case TypeStack:
+				stack, err := player.Reader().StackProp(propName)
 				if err != nil {
 					return nil, errors.New("Unable to inflate stack " + propName + " in player " + strconv.Itoa(i))
 				}
@@ -470,14 +458,8 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 
 			for propName, propType := range resultDeckValue.Reader().Props() {
 				switch propType {
-				case TypeSizedStack:
-					stack, err := resultDeckValue.Reader().SizedStackProp(propName)
-					if err != nil {
-						return nil, errors.New("Unable to inflate stack " + propName + " in deck " + deckName + " component " + strconv.Itoa(i))
-					}
-					stack.Inflate(g.Chest())
-				case TypeGrowableStack:
-					stack, err := resultDeckValue.Reader().GrowableStackProp(propName)
+				case TypeStack:
+					stack, err := resultDeckValue.Reader().StackProp(propName)
 					if err != nil {
 						return nil, errors.New("Unable to inflate stack " + propName + " in deck " + deckName + " component " + strconv.Itoa(i))
 					}

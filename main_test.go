@@ -154,7 +154,7 @@ type testPlayerState struct {
 	playerIndex       PlayerIndex
 	Score             int
 	MovesLeftThisTurn int
-	Hand              *SizedStack `stack:"test,2"`
+	Hand              Stack `fixedstack:"test,2"`
 	IsFoo             bool
 	EnumVal           enum.Var `enum:"color"`
 }
