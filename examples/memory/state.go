@@ -17,8 +17,8 @@ func init() {
 type gameState struct {
 	boardgame.BaseSubState
 	CurrentPlayer  boardgame.PlayerIndex
-	HiddenCards    *boardgame.SizedStack `sanitize:"order"`
-	RevealedCards  *boardgame.SizedStack
+	HiddenCards    boardgame.Stack `sanitize:"order"`
+	RevealedCards  boardgame.Stack
 	HideCardsTimer *boardgame.Timer
 }
 
@@ -27,7 +27,7 @@ type playerState struct {
 	boardgame.BaseSubState
 	playerIndex       boardgame.PlayerIndex
 	CardsLeftToReveal int
-	WonCards          *boardgame.GrowableStack `stack:"cards"`
+	WonCards          boardgame.Stack `stack:"cards"`
 }
 
 func concreteStates(state boardgame.State) (*gameState, []*playerState) {

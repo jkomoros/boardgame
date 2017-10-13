@@ -47,8 +47,6 @@ func (p *__playerTokenReader) Prop(name string) (interface{}, error) {
 		return p.EnumConstProp(name)
 	case boardgame.TypeEnumVar:
 		return p.EnumVarProp(name)
-	case boardgame.TypeGrowableStack:
-		return p.GrowableStackProp(name)
 	case boardgame.TypeInt:
 		return p.IntProp(name)
 	case boardgame.TypeIntSlice:
@@ -57,8 +55,8 @@ func (p *__playerTokenReader) Prop(name string) (interface{}, error) {
 		return p.PlayerIndexProp(name)
 	case boardgame.TypePlayerIndexSlice:
 		return p.PlayerIndexSliceProp(name)
-	case boardgame.TypeSizedStack:
-		return p.SizedStackProp(name)
+	case boardgame.TypeStack:
+		return p.StackProp(name)
 	case boardgame.TypeString:
 		return p.StringProp(name)
 	case boardgame.TypeStringSlice:
@@ -95,12 +93,6 @@ func (p *__playerTokenReader) EnumVarProp(name string) (enum.Var, error) {
 
 }
 
-func (p *__playerTokenReader) GrowableStackProp(name string) (*boardgame.GrowableStack, error) {
-
-	return nil, errors.New("No such GrowableStack prop: " + name)
-
-}
-
 func (p *__playerTokenReader) IntProp(name string) (int, error) {
 
 	return 0, errors.New("No such Int prop: " + name)
@@ -125,9 +117,9 @@ func (p *__playerTokenReader) PlayerIndexSliceProp(name string) ([]boardgame.Pla
 
 }
 
-func (p *__playerTokenReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
+func (p *__playerTokenReader) StackProp(name string) (boardgame.Stack, error) {
 
-	return nil, errors.New("No such SizedStack prop: " + name)
+	return nil, errors.New("No such Stack prop: " + name)
 
 }
 
@@ -191,8 +183,6 @@ func (m *__MovePlaceTokenReader) Prop(name string) (interface{}, error) {
 		return m.EnumConstProp(name)
 	case boardgame.TypeEnumVar:
 		return m.EnumVarProp(name)
-	case boardgame.TypeGrowableStack:
-		return m.GrowableStackProp(name)
 	case boardgame.TypeInt:
 		return m.IntProp(name)
 	case boardgame.TypeIntSlice:
@@ -201,8 +191,8 @@ func (m *__MovePlaceTokenReader) Prop(name string) (interface{}, error) {
 		return m.PlayerIndexProp(name)
 	case boardgame.TypePlayerIndexSlice:
 		return m.PlayerIndexSliceProp(name)
-	case boardgame.TypeSizedStack:
-		return m.SizedStackProp(name)
+	case boardgame.TypeStack:
+		return m.StackProp(name)
 	case boardgame.TypeString:
 		return m.StringProp(name)
 	case boardgame.TypeStringSlice:
@@ -248,12 +238,6 @@ func (m *__MovePlaceTokenReader) SetProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type enum.Var")
 		}
 		return m.SetEnumVarProp(name, val)
-	case boardgame.TypeGrowableStack:
-		val, ok := value.(*boardgame.GrowableStack)
-		if !ok {
-			return errors.New("Provided value was not of type *boardgame.GrowableStack")
-		}
-		return m.SetGrowableStackProp(name, val)
 	case boardgame.TypeInt:
 		val, ok := value.(int)
 		if !ok {
@@ -278,12 +262,12 @@ func (m *__MovePlaceTokenReader) SetProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
 		}
 		return m.SetPlayerIndexSliceProp(name, val)
-	case boardgame.TypeSizedStack:
-		val, ok := value.(*boardgame.SizedStack)
+	case boardgame.TypeStack:
+		val, ok := value.(boardgame.Stack)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.SizedStack")
+			return errors.New("Provided value was not of type boardgame.Stack")
 		}
-		return m.SetSizedStackProp(name, val)
+		return m.SetStackProp(name, val)
 	case boardgame.TypeString:
 		val, ok := value.(string)
 		if !ok {
@@ -353,18 +337,6 @@ func (m *__MovePlaceTokenReader) EnumVarProp(name string) (enum.Var, error) {
 func (m *__MovePlaceTokenReader) SetEnumVarProp(name string, value enum.Var) error {
 
 	return errors.New("No such EnumVar prop: " + name)
-
-}
-
-func (m *__MovePlaceTokenReader) GrowableStackProp(name string) (*boardgame.GrowableStack, error) {
-
-	return nil, errors.New("No such GrowableStack prop: " + name)
-
-}
-
-func (m *__MovePlaceTokenReader) SetGrowableStackProp(name string, value *boardgame.GrowableStack) error {
-
-	return errors.New("No such GrowableStack prop: " + name)
 
 }
 
@@ -442,15 +414,15 @@ func (m *__MovePlaceTokenReader) SetPlayerIndexSliceProp(name string, value []bo
 
 }
 
-func (m *__MovePlaceTokenReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
+func (m *__MovePlaceTokenReader) StackProp(name string) (boardgame.Stack, error) {
 
-	return nil, errors.New("No such SizedStack prop: " + name)
+	return nil, errors.New("No such Stack prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) SetSizedStackProp(name string, value *boardgame.SizedStack) error {
+func (m *__MovePlaceTokenReader) SetStackProp(name string, value boardgame.Stack) error {
 
-	return errors.New("No such SizedStack prop: " + name)
+	return errors.New("No such Stack prop: " + name)
 
 }
 
@@ -523,8 +495,6 @@ func (m *__MoveFinishTurnReader) Prop(name string) (interface{}, error) {
 		return m.EnumConstProp(name)
 	case boardgame.TypeEnumVar:
 		return m.EnumVarProp(name)
-	case boardgame.TypeGrowableStack:
-		return m.GrowableStackProp(name)
 	case boardgame.TypeInt:
 		return m.IntProp(name)
 	case boardgame.TypeIntSlice:
@@ -533,8 +503,8 @@ func (m *__MoveFinishTurnReader) Prop(name string) (interface{}, error) {
 		return m.PlayerIndexProp(name)
 	case boardgame.TypePlayerIndexSlice:
 		return m.PlayerIndexSliceProp(name)
-	case boardgame.TypeSizedStack:
-		return m.SizedStackProp(name)
+	case boardgame.TypeStack:
+		return m.StackProp(name)
 	case boardgame.TypeString:
 		return m.StringProp(name)
 	case boardgame.TypeStringSlice:
@@ -580,12 +550,6 @@ func (m *__MoveFinishTurnReader) SetProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type enum.Var")
 		}
 		return m.SetEnumVarProp(name, val)
-	case boardgame.TypeGrowableStack:
-		val, ok := value.(*boardgame.GrowableStack)
-		if !ok {
-			return errors.New("Provided value was not of type *boardgame.GrowableStack")
-		}
-		return m.SetGrowableStackProp(name, val)
 	case boardgame.TypeInt:
 		val, ok := value.(int)
 		if !ok {
@@ -610,12 +574,12 @@ func (m *__MoveFinishTurnReader) SetProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
 		}
 		return m.SetPlayerIndexSliceProp(name, val)
-	case boardgame.TypeSizedStack:
-		val, ok := value.(*boardgame.SizedStack)
+	case boardgame.TypeStack:
+		val, ok := value.(boardgame.Stack)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.SizedStack")
+			return errors.New("Provided value was not of type boardgame.Stack")
 		}
-		return m.SetSizedStackProp(name, val)
+		return m.SetStackProp(name, val)
 	case boardgame.TypeString:
 		val, ok := value.(string)
 		if !ok {
@@ -688,18 +652,6 @@ func (m *__MoveFinishTurnReader) SetEnumVarProp(name string, value enum.Var) err
 
 }
 
-func (m *__MoveFinishTurnReader) GrowableStackProp(name string) (*boardgame.GrowableStack, error) {
-
-	return nil, errors.New("No such GrowableStack prop: " + name)
-
-}
-
-func (m *__MoveFinishTurnReader) SetGrowableStackProp(name string, value *boardgame.GrowableStack) error {
-
-	return errors.New("No such GrowableStack prop: " + name)
-
-}
-
 func (m *__MoveFinishTurnReader) IntProp(name string) (int, error) {
 
 	return 0, errors.New("No such Int prop: " + name)
@@ -748,15 +700,15 @@ func (m *__MoveFinishTurnReader) SetPlayerIndexSliceProp(name string, value []bo
 
 }
 
-func (m *__MoveFinishTurnReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
+func (m *__MoveFinishTurnReader) StackProp(name string) (boardgame.Stack, error) {
 
-	return nil, errors.New("No such SizedStack prop: " + name)
+	return nil, errors.New("No such Stack prop: " + name)
 
 }
 
-func (m *__MoveFinishTurnReader) SetSizedStackProp(name string, value *boardgame.SizedStack) error {
+func (m *__MoveFinishTurnReader) SetStackProp(name string, value boardgame.Stack) error {
 
-	return errors.New("No such SizedStack prop: " + name)
+	return errors.New("No such Stack prop: " + name)
 
 }
 
@@ -804,7 +756,7 @@ func (m *MoveFinishTurn) ReadSetter() boardgame.PropertyReadSetter {
 
 var __gameStateReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
 	"CurrentPlayer": boardgame.TypePlayerIndex,
-	"Slots":         boardgame.TypeSizedStack,
+	"Slots":         boardgame.TypeStack,
 }
 
 type __gameStateReader struct {
@@ -832,8 +784,6 @@ func (g *__gameStateReader) Prop(name string) (interface{}, error) {
 		return g.EnumConstProp(name)
 	case boardgame.TypeEnumVar:
 		return g.EnumVarProp(name)
-	case boardgame.TypeGrowableStack:
-		return g.GrowableStackProp(name)
 	case boardgame.TypeInt:
 		return g.IntProp(name)
 	case boardgame.TypeIntSlice:
@@ -842,8 +792,8 @@ func (g *__gameStateReader) Prop(name string) (interface{}, error) {
 		return g.PlayerIndexProp(name)
 	case boardgame.TypePlayerIndexSlice:
 		return g.PlayerIndexSliceProp(name)
-	case boardgame.TypeSizedStack:
-		return g.SizedStackProp(name)
+	case boardgame.TypeStack:
+		return g.StackProp(name)
 	case boardgame.TypeString:
 		return g.StringProp(name)
 	case boardgame.TypeStringSlice:
@@ -889,12 +839,6 @@ func (g *__gameStateReader) SetProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type enum.Var")
 		}
 		return g.SetEnumVarProp(name, val)
-	case boardgame.TypeGrowableStack:
-		val, ok := value.(*boardgame.GrowableStack)
-		if !ok {
-			return errors.New("Provided value was not of type *boardgame.GrowableStack")
-		}
-		return g.SetGrowableStackProp(name, val)
 	case boardgame.TypeInt:
 		val, ok := value.(int)
 		if !ok {
@@ -919,12 +863,12 @@ func (g *__gameStateReader) SetProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
 		}
 		return g.SetPlayerIndexSliceProp(name, val)
-	case boardgame.TypeSizedStack:
-		val, ok := value.(*boardgame.SizedStack)
+	case boardgame.TypeStack:
+		val, ok := value.(boardgame.Stack)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.SizedStack")
+			return errors.New("Provided value was not of type boardgame.Stack")
 		}
-		return g.SetSizedStackProp(name, val)
+		return g.SetStackProp(name, val)
 	case boardgame.TypeString:
 		val, ok := value.(string)
 		if !ok {
@@ -997,18 +941,6 @@ func (g *__gameStateReader) SetEnumVarProp(name string, value enum.Var) error {
 
 }
 
-func (g *__gameStateReader) GrowableStackProp(name string) (*boardgame.GrowableStack, error) {
-
-	return nil, errors.New("No such GrowableStack prop: " + name)
-
-}
-
-func (g *__gameStateReader) SetGrowableStackProp(name string, value *boardgame.GrowableStack) error {
-
-	return errors.New("No such GrowableStack prop: " + name)
-
-}
-
 func (g *__gameStateReader) IntProp(name string) (int, error) {
 
 	return 0, errors.New("No such Int prop: " + name)
@@ -1070,7 +1002,7 @@ func (g *__gameStateReader) SetPlayerIndexSliceProp(name string, value []boardga
 
 }
 
-func (g *__gameStateReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
+func (g *__gameStateReader) StackProp(name string) (boardgame.Stack, error) {
 
 	switch name {
 	case "Slots":
@@ -1078,11 +1010,11 @@ func (g *__gameStateReader) SizedStackProp(name string) (*boardgame.SizedStack, 
 
 	}
 
-	return nil, errors.New("No such SizedStack prop: " + name)
+	return nil, errors.New("No such Stack prop: " + name)
 
 }
 
-func (g *__gameStateReader) SetSizedStackProp(name string, value *boardgame.SizedStack) error {
+func (g *__gameStateReader) SetStackProp(name string, value boardgame.Stack) error {
 
 	switch name {
 	case "Slots":
@@ -1091,7 +1023,7 @@ func (g *__gameStateReader) SetSizedStackProp(name string, value *boardgame.Size
 
 	}
 
-	return errors.New("No such SizedStack prop: " + name)
+	return errors.New("No such Stack prop: " + name)
 
 }
 
@@ -1144,7 +1076,7 @@ func (g *gameState) ReadSetter() boardgame.PropertyReadSetter {
 var __playerStateReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
 	"TokenValue":            boardgame.TypeString,
 	"TokensToPlaceThisTurn": boardgame.TypeInt,
-	"UnusedTokens":          boardgame.TypeGrowableStack,
+	"UnusedTokens":          boardgame.TypeStack,
 }
 
 type __playerStateReader struct {
@@ -1172,8 +1104,6 @@ func (p *__playerStateReader) Prop(name string) (interface{}, error) {
 		return p.EnumConstProp(name)
 	case boardgame.TypeEnumVar:
 		return p.EnumVarProp(name)
-	case boardgame.TypeGrowableStack:
-		return p.GrowableStackProp(name)
 	case boardgame.TypeInt:
 		return p.IntProp(name)
 	case boardgame.TypeIntSlice:
@@ -1182,8 +1112,8 @@ func (p *__playerStateReader) Prop(name string) (interface{}, error) {
 		return p.PlayerIndexProp(name)
 	case boardgame.TypePlayerIndexSlice:
 		return p.PlayerIndexSliceProp(name)
-	case boardgame.TypeSizedStack:
-		return p.SizedStackProp(name)
+	case boardgame.TypeStack:
+		return p.StackProp(name)
 	case boardgame.TypeString:
 		return p.StringProp(name)
 	case boardgame.TypeStringSlice:
@@ -1229,12 +1159,6 @@ func (p *__playerStateReader) SetProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type enum.Var")
 		}
 		return p.SetEnumVarProp(name, val)
-	case boardgame.TypeGrowableStack:
-		val, ok := value.(*boardgame.GrowableStack)
-		if !ok {
-			return errors.New("Provided value was not of type *boardgame.GrowableStack")
-		}
-		return p.SetGrowableStackProp(name, val)
 	case boardgame.TypeInt:
 		val, ok := value.(int)
 		if !ok {
@@ -1259,12 +1183,12 @@ func (p *__playerStateReader) SetProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
 		}
 		return p.SetPlayerIndexSliceProp(name, val)
-	case boardgame.TypeSizedStack:
-		val, ok := value.(*boardgame.SizedStack)
+	case boardgame.TypeStack:
+		val, ok := value.(boardgame.Stack)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.SizedStack")
+			return errors.New("Provided value was not of type boardgame.Stack")
 		}
-		return p.SetSizedStackProp(name, val)
+		return p.SetStackProp(name, val)
 	case boardgame.TypeString:
 		val, ok := value.(string)
 		if !ok {
@@ -1337,31 +1261,6 @@ func (p *__playerStateReader) SetEnumVarProp(name string, value enum.Var) error 
 
 }
 
-func (p *__playerStateReader) GrowableStackProp(name string) (*boardgame.GrowableStack, error) {
-
-	switch name {
-	case "UnusedTokens":
-		return p.data.UnusedTokens, nil
-
-	}
-
-	return nil, errors.New("No such GrowableStack prop: " + name)
-
-}
-
-func (p *__playerStateReader) SetGrowableStackProp(name string, value *boardgame.GrowableStack) error {
-
-	switch name {
-	case "UnusedTokens":
-		p.data.UnusedTokens = value
-		return nil
-
-	}
-
-	return errors.New("No such GrowableStack prop: " + name)
-
-}
-
 func (p *__playerStateReader) IntProp(name string) (int, error) {
 
 	switch name {
@@ -1423,15 +1322,28 @@ func (p *__playerStateReader) SetPlayerIndexSliceProp(name string, value []board
 
 }
 
-func (p *__playerStateReader) SizedStackProp(name string) (*boardgame.SizedStack, error) {
+func (p *__playerStateReader) StackProp(name string) (boardgame.Stack, error) {
 
-	return nil, errors.New("No such SizedStack prop: " + name)
+	switch name {
+	case "UnusedTokens":
+		return p.data.UnusedTokens, nil
+
+	}
+
+	return nil, errors.New("No such Stack prop: " + name)
 
 }
 
-func (p *__playerStateReader) SetSizedStackProp(name string, value *boardgame.SizedStack) error {
+func (p *__playerStateReader) SetStackProp(name string, value boardgame.Stack) error {
 
-	return errors.New("No such SizedStack prop: " + name)
+	switch name {
+	case "UnusedTokens":
+		p.data.UnusedTokens = value
+		return nil
+
+	}
+
+	return errors.New("No such Stack prop: " + name)
 
 }
 

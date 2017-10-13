@@ -17,7 +17,7 @@ func init() {
 type gameState struct {
 	boardgame.BaseSubState
 	CurrentPlayer boardgame.PlayerIndex
-	Die           *boardgame.SizedStack `stack:"dice"`
+	Die           boardgame.Stack `fixedstack:"dice"`
 	TargetScore   int
 }
 
