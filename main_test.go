@@ -54,7 +54,7 @@ type testingComponentDynamic struct {
 	state  State
 	IntVar int
 	Stack  Stack
-	Enum   enum.Var
+	Enum   enum.MutableVal
 }
 
 const testGameName = "Test Game"
@@ -129,8 +129,8 @@ type testGameState struct {
 	MyStringSlice      []string
 	MyBoolSlice        []bool
 	MyPlayerIndexSlice []PlayerIndex
-	MyEnumValue        enum.Var
-	MyEnumConst        enum.Const
+	MyEnumValue        enum.MutableVal
+	MyEnumConst        enum.Val
 	//TODO: have a Stack here.
 }
 
@@ -156,7 +156,7 @@ type testPlayerState struct {
 	MovesLeftThisTurn int
 	Hand              Stack `sizedstack:"test,2"`
 	IsFoo             bool
-	EnumVal           enum.Var `enum:"color"`
+	EnumVal           enum.MutableVal `enum:"color"`
 }
 
 func (t *testPlayerState) PlayerIndex() PlayerIndex {

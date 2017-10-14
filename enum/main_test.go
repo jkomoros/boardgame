@@ -73,7 +73,7 @@ func TestEnum(t *testing.T) {
 
 	assert.For(t).ThatActual(val).Equals(IllegalValue)
 
-	eVal := colorEnum.NewVar()
+	eVal := colorEnum.NewMutableVal()
 
 	assert.For(t).ThatActual(eVal.Value()).Equals(ColorBlue)
 
@@ -83,7 +83,7 @@ func TestEnum(t *testing.T) {
 
 	assert.For(t).ThatActual(eVal.Value()).Equals(ColorGreen)
 
-	otherVal := colorEnum.NewVar()
+	otherVal := colorEnum.NewMutableVal()
 
 	otherVal.SetValue(ColorGreen)
 
@@ -104,13 +104,13 @@ func TestEnum(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
-	constant, err := colorEnum.NewConst(ColorGreen)
+	constant, err := colorEnum.NewVal(ColorGreen)
 
 	assert.For(t).ThatActual(err).IsNil()
 
 	assert.For(t).ThatActual(constant.Value()).Equals(ColorGreen)
 
-	constant, err = colorEnum.NewConst(150)
+	constant, err = colorEnum.NewVal(150)
 
 	assert.For(t).ThatActual(err).IsNotNil()
 

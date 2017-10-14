@@ -45,7 +45,7 @@ The idiomatic way to create an enum is the following:
 	func (g *GameDelegate) EmptyGameState() boardgame.SubState {
 		return &gameState{
 			MyIntProp: 0,
-			MyColorEnumProp: ColorEnum.NewVar(),
+			MyColorEnumProp: ColorEnum.NewMutableVal(),
 		}
 	}
 
@@ -96,21 +96,21 @@ type variable struct {
 	val  int
 }
 
-//Const is an instantiation of an Enum that cannot be changed. You retrieve it
-//from enum.NewConst(val).
-type Const interface {
+//Val is an instantiation of an Enum that cannot be changed. You retrieve it
+//from enum.NewVal(val).
+type Val interface {
 	Enum() *Enum
 	Value() int
 	String() string
-	Copy() Const
-	CopyVar() Var
-	Equals(other Const) bool
+	Copy() Val
+	MutableCopy() MutableVal
+	Equals(other Val) bool
 }
 
-//Var is an instantiation of a value that must be set to a value in
-//the given enum. You retrieve one from enum.NewVar().
-type Var interface {
-	Const
+//MutableVal is an instantiation of a value that must be set to a value in the
+//given enum. You retrieve one from enum.NewMutableVal().
+type MutableVal interface {
+	Val
 	//SetValue changes the value. Returns true if successful. Will fail if the
 	//value is locked or the val you want to set is not a valid number for the
 	//enum this value is associated with.
@@ -310,56 +310,56 @@ func (e *Enum) ValueFromString(in string) int {
 
 //Copy returns a copy of the Value, that is equivalent, but will not be
 //locked.
-func (e *variable) Copy() Const {
+func (e *variable) Copy() Val {
 	return &variable{
 		e.enum,
 		e.val,
 	}
 }
 
-func (e *variable) CopyVar() Var {
+func (e *variable) MutableCopy() MutableVal {
 	return &variable{
 		e.enum,
 		e.val,
 	}
 }
 
-//NewEnumValue returns a new EnumValue associated with this enum, set to the
+//NewMutableVal returns a new EnumValue associated with this enum, set to the
 //Enum's DefaultValue to start.
-func (e *Enum) NewVar() Var {
+func (e *Enum) NewMutableVal() MutableVal {
 	return &variable{
 		e,
 		e.DefaultValue(),
 	}
 }
 
-//MustNewConst is like NewConst, but if it would have errored it panics
+//MustNewVal is like NewVal, but if it would have errored it panics
 //instead. It's convenient for initial set up where the whole app should fail
 //to startup if it can't be configured anyway, and dealing with errors would
 //be a lot of boilerplate.
-func (e *Enum) MustNewConst(val int) Const {
-	result, err := e.NewConst(val)
+func (e *Enum) MustNewVal(val int) Val {
+	result, err := e.NewVal(val)
 	if err != nil {
 		panic("Couldn't create constant: " + err.Error())
 	}
 	return result
 }
 
-//NewDefaultConst is a convenience shortcut for creating a new const that is
+//NewDefaultVal is a convenience shortcut for creating a new const that is
 //set to the default value, which is moderately common enough that it makes
 //sense to do it without the possibility of errors.
-func (e *Enum) NewDefaultConst() Const {
-	c, err := e.NewConst(e.DefaultValue())
+func (e *Enum) NewDefaultVal() Val {
+	c, err := e.NewVal(e.DefaultValue())
 	if err != nil {
 		panic("Unexpected error in NewDefaultConst: " + err.Error())
 	}
 	return c
 }
 
-//NewConstant returns an enum.Constant that is permanently set to the provided
+//NewVal returns an enum.Val that is permanently set to the provided
 //val. If that value is not valid for this enum, it will error.
-func (e *Enum) NewConst(val int) (Const, error) {
-	variable := e.NewVar()
+func (e *Enum) NewVal(val int) (Val, error) {
+	variable := e.NewMutableVal()
 	if err := variable.SetValue(val); err != nil {
 		return nil, err
 	}
@@ -411,7 +411,7 @@ func (e *variable) SetStringValue(str string) error {
 }
 
 //Equals returns true if the two Consts are equivalent.
-func (e *variable) Equals(other Const) bool {
+func (e *variable) Equals(other Val) bool {
 	if other == nil {
 		return false
 	}

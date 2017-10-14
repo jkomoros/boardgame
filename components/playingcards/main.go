@@ -72,8 +72,8 @@ var RankEnum = Enums.MustAdd("Rank", map[int]string{
 
 //+autoreader reader
 type Card struct {
-	Suit enum.Const
-	Rank enum.Const
+	Suit enum.Val
+	Rank enum.Val
 }
 
 func (c *Card) String() string {
@@ -130,8 +130,8 @@ func deckCanonicalOrder(cards *boardgame.Deck, withJokers bool) {
 	for _, suit := range suits {
 		for _, rank := range ranks {
 			cards.AddComponent(&Card{
-				Suit: SuitEnum.MustNewConst(suit),
-				Rank: RankEnum.MustNewConst(rank),
+				Suit: SuitEnum.MustNewVal(suit),
+				Rank: RankEnum.MustNewVal(rank),
 			})
 		}
 	}
@@ -139,13 +139,13 @@ func deckCanonicalOrder(cards *boardgame.Deck, withJokers bool) {
 	if withJokers {
 		//Add two Jokers
 		cards.AddComponentMulti(&Card{
-			Suit: SuitEnum.MustNewConst(SuitJokers),
-			Rank: RankEnum.MustNewConst(RankJoker),
+			Suit: SuitEnum.MustNewVal(SuitJokers),
+			Rank: RankEnum.MustNewVal(RankJoker),
 		}, 2)
 	}
 
 	cards.SetShadowValues(&Card{
-		Suit: SuitEnum.MustNewConst(SuitUnknown),
-		Rank: RankEnum.MustNewConst(RankUnknown),
+		Suit: SuitEnum.MustNewVal(SuitUnknown),
+		Rank: RankEnum.MustNewVal(RankUnknown),
 	})
 }

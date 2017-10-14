@@ -23,7 +23,7 @@ func TestNewDeck(t *testing.T) {
 		t.Error("Generic components had no values")
 	}
 
-	r, err := g.Values.Reader().EnumConstProp("Rank")
+	r, err := g.Values.Reader().EnumValProp("Rank")
 
 	if err != nil {
 		t.Error("Values on Reader had no Rank property")
@@ -33,7 +33,7 @@ func TestNewDeck(t *testing.T) {
 		t.Error("generic rank was not RankUnknown")
 	}
 
-	s, err := g.Values.Reader().EnumConstProp("Suit")
+	s, err := g.Values.Reader().EnumValProp("Suit")
 
 	if err != nil {
 		t.Error("Values on reader had no Suit property")

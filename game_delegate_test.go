@@ -52,7 +52,7 @@ func (t *testGameDelegate) DynamicComponentValuesConstructor(deck *Deck) Mutable
 	if deck.Name() == "test" {
 		return &testingComponentDynamic{
 			Stack: deck.NewSizedStack(1),
-			Enum:  testColorEnum.NewVar(),
+			Enum:  testColorEnum.NewMutableVal(),
 		}
 	}
 	return nil
@@ -136,8 +136,8 @@ func (t *testGameDelegate) GameStateConstructor() MutableSubState {
 		MyBoolSlice:        make([]bool, 0),
 		MyStringSlice:      make([]string, 0),
 		MyPlayerIndexSlice: make([]PlayerIndex, 0),
-		MyEnumValue:        testColorEnum.NewVar(),
-		MyEnumConst:        testColorEnum.MustNewConst(colorBlue),
+		MyEnumValue:        testColorEnum.NewMutableVal(),
+		MyEnumConst:        testColorEnum.MustNewVal(colorBlue),
 	}
 }
 

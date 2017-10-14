@@ -19,8 +19,8 @@ import (
 // Implementation for myStruct
 
 var __myStructReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
-	"EnumConst":          boardgame.TypeEnumConst,
-	"EnumVar":            boardgame.TypeEnumVar,
+	"EnumConst":          boardgame.TypeEnumVal,
+	"EnumVar":            boardgame.TypeEnumMutableVal,
 	"MyBool":             boardgame.TypeBool,
 	"MyBoolSlice":        boardgame.TypeBoolSlice,
 	"MyInt":              boardgame.TypeInt,
@@ -52,10 +52,10 @@ func (m *__myStructReader) Prop(name string) (interface{}, error) {
 		return m.BoolProp(name)
 	case boardgame.TypeBoolSlice:
 		return m.BoolSliceProp(name)
-	case boardgame.TypeEnumConst:
-		return m.EnumConstProp(name)
-	case boardgame.TypeEnumVar:
-		return m.EnumVarProp(name)
+	case boardgame.TypeEnumMutableVal:
+		return m.EnumMutableValProp(name)
+	case boardgame.TypeEnumVal:
+		return m.EnumValProp(name)
 	case boardgame.TypeInt:
 		return m.IntProp(name)
 	case boardgame.TypeIntSlice:
@@ -99,18 +99,18 @@ func (m *__myStructReader) SetProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type []bool")
 		}
 		return m.SetBoolSliceProp(name, val)
-	case boardgame.TypeEnumConst:
-		val, ok := value.(enum.Const)
+	case boardgame.TypeEnumMutableVal:
+		val, ok := value.(enum.MutableVal)
 		if !ok {
-			return errors.New("Provided value was not of type enum.Const")
+			return errors.New("Provided value was not of type enum.MutableVal")
 		}
-		return m.SetEnumConstProp(name, val)
-	case boardgame.TypeEnumVar:
-		val, ok := value.(enum.Var)
+		return m.SetEnumMutableValProp(name, val)
+	case boardgame.TypeEnumVal:
+		val, ok := value.(enum.Val)
 		if !ok {
-			return errors.New("Provided value was not of type enum.Var")
+			return errors.New("Provided value was not of type enum.Val")
 		}
-		return m.SetEnumVarProp(name, val)
+		return m.SetEnumValProp(name, val)
 	case boardgame.TypeInt:
 		val, ok := value.(int)
 		if !ok {
@@ -215,32 +215,7 @@ func (m *__myStructReader) SetBoolSliceProp(name string, value []bool) error {
 
 }
 
-func (m *__myStructReader) EnumConstProp(name string) (enum.Const, error) {
-
-	switch name {
-	case "EnumConst":
-		return m.data.EnumConst, nil
-
-	}
-
-	return nil, errors.New("No such EnumConst prop: " + name)
-
-}
-
-func (m *__myStructReader) SetEnumConstProp(name string, value enum.Const) error {
-
-	switch name {
-	case "EnumConst":
-		m.data.EnumConst = value
-		return nil
-
-	}
-
-	return errors.New("No such EnumConst prop: " + name)
-
-}
-
-func (m *__myStructReader) EnumVarProp(name string) (enum.Var, error) {
+func (m *__myStructReader) EnumMutableValProp(name string) (enum.MutableVal, error) {
 
 	switch name {
 	case "EnumVar":
@@ -248,11 +223,11 @@ func (m *__myStructReader) EnumVarProp(name string) (enum.Var, error) {
 
 	}
 
-	return nil, errors.New("No such EnumVar prop: " + name)
+	return nil, errors.New("No such EnumMutableVal prop: " + name)
 
 }
 
-func (m *__myStructReader) SetEnumVarProp(name string, value enum.Var) error {
+func (m *__myStructReader) SetEnumMutableValProp(name string, value enum.MutableVal) error {
 
 	switch name {
 	case "EnumVar":
@@ -261,7 +236,32 @@ func (m *__myStructReader) SetEnumVarProp(name string, value enum.Var) error {
 
 	}
 
-	return errors.New("No such EnumVar prop: " + name)
+	return errors.New("No such EnumMutableVal prop: " + name)
+
+}
+
+func (m *__myStructReader) EnumValProp(name string) (enum.Val, error) {
+
+	switch name {
+	case "EnumConst":
+		return m.data.EnumConst, nil
+
+	}
+
+	return nil, errors.New("No such EnumVal prop: " + name)
+
+}
+
+func (m *__myStructReader) SetEnumValProp(name string, value enum.Val) error {
+
+	switch name {
+	case "EnumConst":
+		m.data.EnumConst = value
+		return nil
+
+	}
+
+	return errors.New("No such EnumVal prop: " + name)
 
 }
 
@@ -475,10 +475,10 @@ func (e *__embeddedStructReader) Prop(name string) (interface{}, error) {
 		return e.BoolProp(name)
 	case boardgame.TypeBoolSlice:
 		return e.BoolSliceProp(name)
-	case boardgame.TypeEnumConst:
-		return e.EnumConstProp(name)
-	case boardgame.TypeEnumVar:
-		return e.EnumVarProp(name)
+	case boardgame.TypeEnumMutableVal:
+		return e.EnumMutableValProp(name)
+	case boardgame.TypeEnumVal:
+		return e.EnumValProp(name)
 	case boardgame.TypeInt:
 		return e.IntProp(name)
 	case boardgame.TypeIntSlice:
@@ -522,18 +522,18 @@ func (e *__embeddedStructReader) SetProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type []bool")
 		}
 		return e.SetBoolSliceProp(name, val)
-	case boardgame.TypeEnumConst:
-		val, ok := value.(enum.Const)
+	case boardgame.TypeEnumMutableVal:
+		val, ok := value.(enum.MutableVal)
 		if !ok {
-			return errors.New("Provided value was not of type enum.Const")
+			return errors.New("Provided value was not of type enum.MutableVal")
 		}
-		return e.SetEnumConstProp(name, val)
-	case boardgame.TypeEnumVar:
-		val, ok := value.(enum.Var)
+		return e.SetEnumMutableValProp(name, val)
+	case boardgame.TypeEnumVal:
+		val, ok := value.(enum.Val)
 		if !ok {
-			return errors.New("Provided value was not of type enum.Var")
+			return errors.New("Provided value was not of type enum.Val")
 		}
-		return e.SetEnumVarProp(name, val)
+		return e.SetEnumValProp(name, val)
 	case boardgame.TypeInt:
 		val, ok := value.(int)
 		if !ok {
@@ -612,27 +612,27 @@ func (e *__embeddedStructReader) SetBoolSliceProp(name string, value []bool) err
 
 }
 
-func (e *__embeddedStructReader) EnumConstProp(name string) (enum.Const, error) {
+func (e *__embeddedStructReader) EnumMutableValProp(name string) (enum.MutableVal, error) {
 
-	return nil, errors.New("No such EnumConst prop: " + name)
-
-}
-
-func (e *__embeddedStructReader) SetEnumConstProp(name string, value enum.Const) error {
-
-	return errors.New("No such EnumConst prop: " + name)
+	return nil, errors.New("No such EnumMutableVal prop: " + name)
 
 }
 
-func (e *__embeddedStructReader) EnumVarProp(name string) (enum.Var, error) {
+func (e *__embeddedStructReader) SetEnumMutableValProp(name string, value enum.MutableVal) error {
 
-	return nil, errors.New("No such EnumVar prop: " + name)
+	return errors.New("No such EnumMutableVal prop: " + name)
 
 }
 
-func (e *__embeddedStructReader) SetEnumVarProp(name string, value enum.Var) error {
+func (e *__embeddedStructReader) EnumValProp(name string) (enum.Val, error) {
 
-	return errors.New("No such EnumVar prop: " + name)
+	return nil, errors.New("No such EnumVal prop: " + name)
+
+}
+
+func (e *__embeddedStructReader) SetEnumValProp(name string, value enum.Val) error {
+
+	return errors.New("No such EnumVal prop: " + name)
 
 }
 
@@ -794,10 +794,10 @@ func (d *__doubleEmbeddedStructReader) Prop(name string) (interface{}, error) {
 		return d.BoolProp(name)
 	case boardgame.TypeBoolSlice:
 		return d.BoolSliceProp(name)
-	case boardgame.TypeEnumConst:
-		return d.EnumConstProp(name)
-	case boardgame.TypeEnumVar:
-		return d.EnumVarProp(name)
+	case boardgame.TypeEnumMutableVal:
+		return d.EnumMutableValProp(name)
+	case boardgame.TypeEnumVal:
+		return d.EnumValProp(name)
 	case boardgame.TypeInt:
 		return d.IntProp(name)
 	case boardgame.TypeIntSlice:
@@ -841,18 +841,18 @@ func (d *__doubleEmbeddedStructReader) SetProp(name string, value interface{}) e
 			return errors.New("Provided value was not of type []bool")
 		}
 		return d.SetBoolSliceProp(name, val)
-	case boardgame.TypeEnumConst:
-		val, ok := value.(enum.Const)
+	case boardgame.TypeEnumMutableVal:
+		val, ok := value.(enum.MutableVal)
 		if !ok {
-			return errors.New("Provided value was not of type enum.Const")
+			return errors.New("Provided value was not of type enum.MutableVal")
 		}
-		return d.SetEnumConstProp(name, val)
-	case boardgame.TypeEnumVar:
-		val, ok := value.(enum.Var)
+		return d.SetEnumMutableValProp(name, val)
+	case boardgame.TypeEnumVal:
+		val, ok := value.(enum.Val)
 		if !ok {
-			return errors.New("Provided value was not of type enum.Var")
+			return errors.New("Provided value was not of type enum.Val")
 		}
-		return d.SetEnumVarProp(name, val)
+		return d.SetEnumValProp(name, val)
 	case boardgame.TypeInt:
 		val, ok := value.(int)
 		if !ok {
@@ -931,27 +931,27 @@ func (d *__doubleEmbeddedStructReader) SetBoolSliceProp(name string, value []boo
 
 }
 
-func (d *__doubleEmbeddedStructReader) EnumConstProp(name string) (enum.Const, error) {
+func (d *__doubleEmbeddedStructReader) EnumMutableValProp(name string) (enum.MutableVal, error) {
 
-	return nil, errors.New("No such EnumConst prop: " + name)
-
-}
-
-func (d *__doubleEmbeddedStructReader) SetEnumConstProp(name string, value enum.Const) error {
-
-	return errors.New("No such EnumConst prop: " + name)
+	return nil, errors.New("No such EnumMutableVal prop: " + name)
 
 }
 
-func (d *__doubleEmbeddedStructReader) EnumVarProp(name string) (enum.Var, error) {
+func (d *__doubleEmbeddedStructReader) SetEnumMutableValProp(name string, value enum.MutableVal) error {
 
-	return nil, errors.New("No such EnumVar prop: " + name)
+	return errors.New("No such EnumMutableVal prop: " + name)
 
 }
 
-func (d *__doubleEmbeddedStructReader) SetEnumVarProp(name string, value enum.Var) error {
+func (d *__doubleEmbeddedStructReader) EnumValProp(name string) (enum.Val, error) {
 
-	return errors.New("No such EnumVar prop: " + name)
+	return nil, errors.New("No such EnumVal prop: " + name)
+
+}
+
+func (d *__doubleEmbeddedStructReader) SetEnumValProp(name string, value enum.Val) error {
+
+	return errors.New("No such EnumVal prop: " + name)
 
 }
 
@@ -1113,10 +1113,10 @@ func (m *__myOtherStructReader) Prop(name string) (interface{}, error) {
 		return m.BoolProp(name)
 	case boardgame.TypeBoolSlice:
 		return m.BoolSliceProp(name)
-	case boardgame.TypeEnumConst:
-		return m.EnumConstProp(name)
-	case boardgame.TypeEnumVar:
-		return m.EnumVarProp(name)
+	case boardgame.TypeEnumMutableVal:
+		return m.EnumMutableValProp(name)
+	case boardgame.TypeEnumVal:
+		return m.EnumValProp(name)
 	case boardgame.TypeInt:
 		return m.IntProp(name)
 	case boardgame.TypeIntSlice:
@@ -1160,18 +1160,18 @@ func (m *__myOtherStructReader) SetProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type []bool")
 		}
 		return m.SetBoolSliceProp(name, val)
-	case boardgame.TypeEnumConst:
-		val, ok := value.(enum.Const)
+	case boardgame.TypeEnumMutableVal:
+		val, ok := value.(enum.MutableVal)
 		if !ok {
-			return errors.New("Provided value was not of type enum.Const")
+			return errors.New("Provided value was not of type enum.MutableVal")
 		}
-		return m.SetEnumConstProp(name, val)
-	case boardgame.TypeEnumVar:
-		val, ok := value.(enum.Var)
+		return m.SetEnumMutableValProp(name, val)
+	case boardgame.TypeEnumVal:
+		val, ok := value.(enum.Val)
 		if !ok {
-			return errors.New("Provided value was not of type enum.Var")
+			return errors.New("Provided value was not of type enum.Val")
 		}
-		return m.SetEnumVarProp(name, val)
+		return m.SetEnumValProp(name, val)
 	case boardgame.TypeInt:
 		val, ok := value.(int)
 		if !ok {
@@ -1250,27 +1250,27 @@ func (m *__myOtherStructReader) SetBoolSliceProp(name string, value []bool) erro
 
 }
 
-func (m *__myOtherStructReader) EnumConstProp(name string) (enum.Const, error) {
+func (m *__myOtherStructReader) EnumMutableValProp(name string) (enum.MutableVal, error) {
 
-	return nil, errors.New("No such EnumConst prop: " + name)
-
-}
-
-func (m *__myOtherStructReader) SetEnumConstProp(name string, value enum.Const) error {
-
-	return errors.New("No such EnumConst prop: " + name)
+	return nil, errors.New("No such EnumMutableVal prop: " + name)
 
 }
 
-func (m *__myOtherStructReader) EnumVarProp(name string) (enum.Var, error) {
+func (m *__myOtherStructReader) SetEnumMutableValProp(name string, value enum.MutableVal) error {
 
-	return nil, errors.New("No such EnumVar prop: " + name)
+	return errors.New("No such EnumMutableVal prop: " + name)
 
 }
 
-func (m *__myOtherStructReader) SetEnumVarProp(name string, value enum.Var) error {
+func (m *__myOtherStructReader) EnumValProp(name string) (enum.Val, error) {
 
-	return errors.New("No such EnumVar prop: " + name)
+	return nil, errors.New("No such EnumVal prop: " + name)
+
+}
+
+func (m *__myOtherStructReader) SetEnumValProp(name string, value enum.Val) error {
+
+	return errors.New("No such EnumVal prop: " + name)
 
 }
 
@@ -1431,10 +1431,10 @@ func (o *__onlyReaderReader) Prop(name string) (interface{}, error) {
 		return o.BoolProp(name)
 	case boardgame.TypeBoolSlice:
 		return o.BoolSliceProp(name)
-	case boardgame.TypeEnumConst:
-		return o.EnumConstProp(name)
-	case boardgame.TypeEnumVar:
-		return o.EnumVarProp(name)
+	case boardgame.TypeEnumMutableVal:
+		return o.EnumMutableValProp(name)
+	case boardgame.TypeEnumVal:
+		return o.EnumValProp(name)
 	case boardgame.TypeInt:
 		return o.IntProp(name)
 	case boardgame.TypeIntSlice:
@@ -1469,15 +1469,15 @@ func (o *__onlyReaderReader) BoolSliceProp(name string) ([]bool, error) {
 
 }
 
-func (o *__onlyReaderReader) EnumConstProp(name string) (enum.Const, error) {
+func (o *__onlyReaderReader) EnumMutableValProp(name string) (enum.MutableVal, error) {
 
-	return nil, errors.New("No such EnumConst prop: " + name)
+	return nil, errors.New("No such EnumMutableVal prop: " + name)
 
 }
 
-func (o *__onlyReaderReader) EnumVarProp(name string) (enum.Var, error) {
+func (o *__onlyReaderReader) EnumValProp(name string) (enum.Val, error) {
 
-	return nil, errors.New("No such EnumVar prop: " + name)
+	return nil, errors.New("No such EnumVal prop: " + name)
 
 }
 
@@ -1566,10 +1566,10 @@ func (o *__onlyReadSetterReader) Prop(name string) (interface{}, error) {
 		return o.BoolProp(name)
 	case boardgame.TypeBoolSlice:
 		return o.BoolSliceProp(name)
-	case boardgame.TypeEnumConst:
-		return o.EnumConstProp(name)
-	case boardgame.TypeEnumVar:
-		return o.EnumVarProp(name)
+	case boardgame.TypeEnumMutableVal:
+		return o.EnumMutableValProp(name)
+	case boardgame.TypeEnumVal:
+		return o.EnumValProp(name)
 	case boardgame.TypeInt:
 		return o.IntProp(name)
 	case boardgame.TypeIntSlice:
@@ -1613,18 +1613,18 @@ func (o *__onlyReadSetterReader) SetProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type []bool")
 		}
 		return o.SetBoolSliceProp(name, val)
-	case boardgame.TypeEnumConst:
-		val, ok := value.(enum.Const)
+	case boardgame.TypeEnumMutableVal:
+		val, ok := value.(enum.MutableVal)
 		if !ok {
-			return errors.New("Provided value was not of type enum.Const")
+			return errors.New("Provided value was not of type enum.MutableVal")
 		}
-		return o.SetEnumConstProp(name, val)
-	case boardgame.TypeEnumVar:
-		val, ok := value.(enum.Var)
+		return o.SetEnumMutableValProp(name, val)
+	case boardgame.TypeEnumVal:
+		val, ok := value.(enum.Val)
 		if !ok {
-			return errors.New("Provided value was not of type enum.Var")
+			return errors.New("Provided value was not of type enum.Val")
 		}
-		return o.SetEnumVarProp(name, val)
+		return o.SetEnumValProp(name, val)
 	case boardgame.TypeInt:
 		val, ok := value.(int)
 		if !ok {
@@ -1703,27 +1703,27 @@ func (o *__onlyReadSetterReader) SetBoolSliceProp(name string, value []bool) err
 
 }
 
-func (o *__onlyReadSetterReader) EnumConstProp(name string) (enum.Const, error) {
+func (o *__onlyReadSetterReader) EnumMutableValProp(name string) (enum.MutableVal, error) {
 
-	return nil, errors.New("No such EnumConst prop: " + name)
-
-}
-
-func (o *__onlyReadSetterReader) SetEnumConstProp(name string, value enum.Const) error {
-
-	return errors.New("No such EnumConst prop: " + name)
+	return nil, errors.New("No such EnumMutableVal prop: " + name)
 
 }
 
-func (o *__onlyReadSetterReader) EnumVarProp(name string) (enum.Var, error) {
+func (o *__onlyReadSetterReader) SetEnumMutableValProp(name string, value enum.MutableVal) error {
 
-	return nil, errors.New("No such EnumVar prop: " + name)
+	return errors.New("No such EnumMutableVal prop: " + name)
 
 }
 
-func (o *__onlyReadSetterReader) SetEnumVarProp(name string, value enum.Var) error {
+func (o *__onlyReadSetterReader) EnumValProp(name string) (enum.Val, error) {
 
-	return errors.New("No such EnumVar prop: " + name)
+	return nil, errors.New("No such EnumVal prop: " + name)
+
+}
+
+func (o *__onlyReadSetterReader) SetEnumValProp(name string, value enum.Val) error {
+
+	return errors.New("No such EnumVal prop: " + name)
 
 }
 

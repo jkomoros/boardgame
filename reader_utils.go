@@ -20,11 +20,11 @@ type autoStackConfig struct {
 }
 
 type readerValidator struct {
-	autoEnumVarFields   map[string]*enum.Enum
-	autoEnumConstFields map[string]*enum.Enum
-	autoStackFields     map[string]*autoStackConfig
-	sanitizationPolicy  map[string]map[int]Policy
-	illegalTypes        map[PropertyType]bool
+	autoEnumMutableValFields map[string]*enum.Enum
+	autoEnumValFields        map[string]*enum.Enum
+	autoStackFields          map[string]*autoStackConfig
+	sanitizationPolicy       map[string]map[int]Policy
+	illegalTypes             map[PropertyType]bool
 }
 
 //newReaderValidator returns a new readerValidator configured to disallow the
@@ -38,8 +38,8 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 		illegalTypes = make(map[PropertyType]bool)
 	}
 
-	autoEnumVarFields := make(map[string]*enum.Enum)
-	autoEnumConstFields := make(map[string]*enum.Enum)
+	autoEnumMutableValFields := make(map[string]*enum.Enum)
+	autoEnumValFields := make(map[string]*enum.Enum)
 	autoStackFields := make(map[string]*autoStackConfig)
 	sanitizationPolicy := make(map[string]map[int]Policy)
 
@@ -89,10 +89,10 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 					isFixed,
 				}
 			}
-		case TypeEnumConst:
-			enumConst, err := exampleReader.EnumConstProp(propName)
+		case TypeEnumVal:
+			enumConst, err := exampleReader.EnumValProp(propName)
 			if err != nil {
-				return nil, errors.New("Couldn't fetch enum const prop: " + propName)
+				return nil, errors.New("Couldn't fetch enum val prop: " + propName)
 			}
 			if enumConst != nil {
 				//This enum prop is already non-nil, so we don't need to do
@@ -102,15 +102,15 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 			if enumName := structTagForField(exampleObj, propName, enumStructTag); enumName != "" {
 				theEnum := chest.Enums().Enum(enumName)
 				if theEnum == nil {
-					return nil, errors.New(propName + " was a nil enum.Const and the struct tag named " + enumName + " was not a valid enum.")
+					return nil, errors.New(propName + " was a nil enum.Val and the struct tag named " + enumName + " was not a valid enum.")
 				}
 				//Found one!
-				autoEnumConstFields[propName] = theEnum
+				autoEnumValFields[propName] = theEnum
 			}
-		case TypeEnumVar:
-			enumVar, err := exampleReader.EnumVarProp(propName)
+		case TypeEnumMutableVal:
+			enumVar, err := exampleReader.EnumMutableValProp(propName)
 			if err != nil {
-				return nil, errors.New("Couldn't fetch enum var prop: " + propName)
+				return nil, errors.New("Couldn't fetch enum mutable val prop: " + propName)
 			}
 			if enumVar != nil {
 				//This enum prop is already non-nil, so we don't need to do
@@ -123,15 +123,15 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 					return nil, errors.New(propName + " was a nil enum.Var and the struct tag named " + enumName + " was not a valid enum.")
 				}
 				//Found one!
-				autoEnumVarFields[propName] = theEnum
+				autoEnumMutableValFields[propName] = theEnum
 			}
 		}
 
 	}
 
 	result := &readerValidator{
-		autoEnumVarFields,
-		autoEnumConstFields,
+		autoEnumMutableValFields,
+		autoEnumValFields,
 		autoStackFields,
 		sanitizationPolicy,
 		illegalTypes,
@@ -215,8 +215,8 @@ func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) e
 		}
 	}
 
-	for propName, enum := range r.autoEnumVarFields {
-		enumVar, err := readSetter.EnumVarProp(propName)
+	for propName, enum := range r.autoEnumMutableValFields {
+		enumVar, err := readSetter.EnumMutableValProp(propName)
 		if enumVar != nil {
 			//Guess it was already set!
 			continue
@@ -227,13 +227,13 @@ func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) e
 		if enum == nil {
 			return errors.New("The enum for " + propName + " was unexpectedly nil")
 		}
-		if err := readSetter.SetEnumVarProp(propName, enum.NewVar()); err != nil {
+		if err := readSetter.SetEnumMutableValProp(propName, enum.NewMutableVal()); err != nil {
 			return errors.New("Couldn't set " + propName + " to NewVar: " + err.Error())
 		}
 	}
 
-	for propName, enum := range r.autoEnumConstFields {
-		enumConst, err := readSetter.EnumConstProp(propName)
+	for propName, enum := range r.autoEnumValFields {
+		enumConst, err := readSetter.EnumValProp(propName)
 		if enumConst != nil {
 			//Guess it was already set!
 			continue
@@ -244,8 +244,8 @@ func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) e
 		if enum == nil {
 			return errors.New("The enum for " + propName + " was unexpectedly nil")
 		}
-		if err := readSetter.SetEnumConstProp(propName, enum.NewDefaultConst()); err != nil {
-			return errors.New("Couldn't set " + propName + " to NewDefaultConst: " + err.Error())
+		if err := readSetter.SetEnumValProp(propName, enum.NewDefaultVal()); err != nil {
+			return errors.New("Couldn't set " + propName + " to NewDefaultVal: " + err.Error())
 		}
 	}
 
@@ -325,16 +325,16 @@ func (r *readerValidator) Valid(reader PropertyReader) error {
 			if val.state() == nil {
 				return errors.New("TimerProp " + propName + " didn't have its statePtr set")
 			}
-		case TypeEnumVar:
-			val, err := reader.EnumVarProp(propName)
+		case TypeEnumMutableVal:
+			val, err := reader.EnumMutableValProp(propName)
 			if val == nil {
-				return errors.New("EnumVarProp " + propName + " was nil")
+				return errors.New("EnumMutableValProp " + propName + " was nil")
 			}
 			if err != nil {
-				return errors.New("EnumVarProp " + propName + " had unexpected error: " + err.Error())
+				return errors.New("EnumMutableValProp " + propName + " had unexpected error: " + err.Error())
 			}
-		case TypeEnumConst:
-			val, err := reader.EnumConstProp(propName)
+		case TypeEnumVal:
+			val, err := reader.EnumValProp(propName)
 			if val == nil {
 				return errors.New("EnumConstProp " + propName + " was nil")
 			}
@@ -422,21 +422,21 @@ func copyReader(input PropertyReader, outputContainer PropertyReadSetter) error 
 			if err != nil {
 				return errors.New(propName + " could not be set on output: " + err.Error())
 			}
-		case TypeEnumVar:
-			enumValue, err := input.EnumVarProp(propName)
+		case TypeEnumMutableVal:
+			enumValue, err := input.EnumMutableValProp(propName)
 			if err != nil {
-				return errors.New(propName + " did not return an EnumVar as expected: " + err.Error())
+				return errors.New(propName + " did not return an EnumMutableVal as expected: " + err.Error())
 			}
-			err = outputContainer.SetEnumVarProp(propName, enumValue.CopyVar())
+			err = outputContainer.SetEnumMutableValProp(propName, enumValue.MutableCopy())
 			if err != nil {
 				return errors.New(propName + " could not be set on output: " + err.Error())
 			}
-		case TypeEnumConst:
-			enumConst, err := input.EnumConstProp(propName)
+		case TypeEnumVal:
+			enumConst, err := input.EnumValProp(propName)
 			if err != nil {
-				return errors.New(propName + " did not return an EnumConst as expected: " + err.Error())
+				return errors.New(propName + " did not return an EnumVal as expected: " + err.Error())
 			}
-			err = outputContainer.SetEnumConstProp(propName, enumConst.Copy())
+			err = outputContainer.SetEnumValProp(propName, enumConst.Copy())
 			if err != nil {
 				return errors.New(propName + " could not be set on output: " + err.Error())
 			}
