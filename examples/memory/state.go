@@ -19,7 +19,7 @@ type gameState struct {
 	CurrentPlayer  boardgame.PlayerIndex
 	HiddenCards    boardgame.Stack `sanitize:"order"`
 	RevealedCards  boardgame.Stack
-	HideCardsTimer *boardgame.Timer
+	HideCardsTimer boardgame.Timer
 }
 
 //+autoreader

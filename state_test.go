@@ -314,7 +314,7 @@ func TestStateSerialization(t *testing.T) {
 
 	gameState, _ := concreteStates(game.CurrentState())
 
-	if gameState.Timer.statePtr == nil {
+	if gameState.Timer.state() == nil {
 		t.Error("The set up timer did no thave a stateptr")
 	}
 
@@ -355,7 +355,7 @@ func TestStateSerialization(t *testing.T) {
 		t.Error("The stack on a component's dynamic value was not inflated coming back from storage.")
 	}
 
-	if gameState.Timer.statePtr == nil {
+	if gameState.Timer.state() == nil {
 		t.Error("The timer did not come back inflated from storage")
 	}
 

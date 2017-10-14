@@ -154,9 +154,9 @@ func (m *__myStructReader) SetProp(name string, value interface{}) error {
 		}
 		return m.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
-		val, ok := value.(*boardgame.Timer)
+		val, ok := value.(boardgame.Timer)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.Timer")
+			return errors.New("Provided value was not of type boardgame.Timer")
 		}
 		return m.SetTimerProp(name, val)
 
@@ -414,7 +414,7 @@ func (m *__myStructReader) SetStringSliceProp(name string, value []string) error
 
 }
 
-func (m *__myStructReader) TimerProp(name string) (*boardgame.Timer, error) {
+func (m *__myStructReader) TimerProp(name string) (boardgame.Timer, error) {
 
 	switch name {
 	case "TheTimer":
@@ -426,7 +426,7 @@ func (m *__myStructReader) TimerProp(name string) (*boardgame.Timer, error) {
 
 }
 
-func (m *__myStructReader) SetTimerProp(name string, value *boardgame.Timer) error {
+func (m *__myStructReader) SetTimerProp(name string, value boardgame.Timer) error {
 
 	switch name {
 	case "TheTimer":
@@ -577,9 +577,9 @@ func (e *__embeddedStructReader) SetProp(name string, value interface{}) error {
 		}
 		return e.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
-		val, ok := value.(*boardgame.Timer)
+		val, ok := value.(boardgame.Timer)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.Timer")
+			return errors.New("Provided value was not of type boardgame.Timer")
 		}
 		return e.SetTimerProp(name, val)
 
@@ -746,13 +746,13 @@ func (e *__embeddedStructReader) SetStringSliceProp(name string, value []string)
 
 }
 
-func (e *__embeddedStructReader) TimerProp(name string) (*boardgame.Timer, error) {
+func (e *__embeddedStructReader) TimerProp(name string) (boardgame.Timer, error) {
 
 	return nil, errors.New("No such Timer prop: " + name)
 
 }
 
-func (e *__embeddedStructReader) SetTimerProp(name string, value *boardgame.Timer) error {
+func (e *__embeddedStructReader) SetTimerProp(name string, value boardgame.Timer) error {
 
 	return errors.New("No such Timer prop: " + name)
 
@@ -896,9 +896,9 @@ func (d *__doubleEmbeddedStructReader) SetProp(name string, value interface{}) e
 		}
 		return d.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
-		val, ok := value.(*boardgame.Timer)
+		val, ok := value.(boardgame.Timer)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.Timer")
+			return errors.New("Provided value was not of type boardgame.Timer")
 		}
 		return d.SetTimerProp(name, val)
 
@@ -1065,13 +1065,13 @@ func (d *__doubleEmbeddedStructReader) SetStringSliceProp(name string, value []s
 
 }
 
-func (d *__doubleEmbeddedStructReader) TimerProp(name string) (*boardgame.Timer, error) {
+func (d *__doubleEmbeddedStructReader) TimerProp(name string) (boardgame.Timer, error) {
 
 	return nil, errors.New("No such Timer prop: " + name)
 
 }
 
-func (d *__doubleEmbeddedStructReader) SetTimerProp(name string, value *boardgame.Timer) error {
+func (d *__doubleEmbeddedStructReader) SetTimerProp(name string, value boardgame.Timer) error {
 
 	return errors.New("No such Timer prop: " + name)
 
@@ -1215,9 +1215,9 @@ func (m *__myOtherStructReader) SetProp(name string, value interface{}) error {
 		}
 		return m.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
-		val, ok := value.(*boardgame.Timer)
+		val, ok := value.(boardgame.Timer)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.Timer")
+			return errors.New("Provided value was not of type boardgame.Timer")
 		}
 		return m.SetTimerProp(name, val)
 
@@ -1384,13 +1384,13 @@ func (m *__myOtherStructReader) SetStringSliceProp(name string, value []string) 
 
 }
 
-func (m *__myOtherStructReader) TimerProp(name string) (*boardgame.Timer, error) {
+func (m *__myOtherStructReader) TimerProp(name string) (boardgame.Timer, error) {
 
 	return nil, errors.New("No such Timer prop: " + name)
 
 }
 
-func (m *__myOtherStructReader) SetTimerProp(name string, value *boardgame.Timer) error {
+func (m *__myOtherStructReader) SetTimerProp(name string, value boardgame.Timer) error {
 
 	return errors.New("No such Timer prop: " + name)
 
@@ -1529,7 +1529,7 @@ func (o *__onlyReaderReader) StringSliceProp(name string) ([]string, error) {
 
 }
 
-func (o *__onlyReaderReader) TimerProp(name string) (*boardgame.Timer, error) {
+func (o *__onlyReaderReader) TimerProp(name string) (boardgame.Timer, error) {
 
 	return nil, errors.New("No such Timer prop: " + name)
 
@@ -1668,9 +1668,9 @@ func (o *__onlyReadSetterReader) SetProp(name string, value interface{}) error {
 		}
 		return o.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
-		val, ok := value.(*boardgame.Timer)
+		val, ok := value.(boardgame.Timer)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.Timer")
+			return errors.New("Provided value was not of type boardgame.Timer")
 		}
 		return o.SetTimerProp(name, val)
 
@@ -1824,13 +1824,13 @@ func (o *__onlyReadSetterReader) SetStringSliceProp(name string, value []string)
 
 }
 
-func (o *__onlyReadSetterReader) TimerProp(name string) (*boardgame.Timer, error) {
+func (o *__onlyReadSetterReader) TimerProp(name string) (boardgame.Timer, error) {
 
 	return nil, errors.New("No such Timer prop: " + name)
 
 }
 
-func (o *__onlyReadSetterReader) SetTimerProp(name string, value *boardgame.Timer) error {
+func (o *__onlyReadSetterReader) SetTimerProp(name string, value boardgame.Timer) error {
 
 	return errors.New("No such Timer prop: " + name)
 

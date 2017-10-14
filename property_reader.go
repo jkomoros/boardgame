@@ -30,7 +30,7 @@ type PropertyReader interface {
 	PlayerIndexSliceProp(name string) ([]PlayerIndex, error)
 	PlayerIndexProp(name string) (PlayerIndex, error)
 	StackProp(name string) (Stack, error)
-	TimerProp(name string) (*Timer, error)
+	TimerProp(name string) (Timer, error)
 	//Prop fetches the given property generically. If you already know the
 	//type, it's better to use the typed methods.
 	Prop(name string) (interface{}, error)
@@ -75,7 +75,7 @@ type PropertyReadSetter interface {
 	SetStringSliceProp(name string, value []string) error
 	SetPlayerIndexSliceProp(name string, value []PlayerIndex) error
 	SetStackProp(name string, value Stack) error
-	SetTimerProp(name string, value *Timer) error
+	SetTimerProp(name string, value Timer) error
 	//SetProp sets the property with the given name. If the value does not
 	//match the underlying slot type, it should return an error. If you know
 	//the underlying type it's always better to use the typed accessors.
@@ -275,19 +275,8 @@ func (d *defaultReader) propsImpl() (map[string]PropertyType, error) {
 					pType = TypeEnumConst
 				} else if strings.Contains(interfaceType, "Stack") {
 					pType = TypeStack
-				}
-			case reflect.Ptr:
-				//Is it a growable stack or a sizedStack?
-				ptrType := field.Type().String()
-
-				if strings.Contains(ptrType, "GrowableStack") {
-					pType = TypeStack
-				} else if strings.Contains(ptrType, "SizedStack") {
-					pType = TypeStack
-				} else if strings.Contains(ptrType, "Timer") {
+				} else if strings.Contains(interfaceType, "Timer") {
 					pType = TypeTimer
-				} else {
-					return nil, errors.New("Unknown ptr type:" + ptrType)
 				}
 			default:
 				return nil, errors.New("Unsupported field in underlying type" + strconv.Itoa(int(field.Type().Kind())))
@@ -484,17 +473,21 @@ func (d *defaultReader) StackProp(name string) (Stack, error) {
 	return result, nil
 }
 
-func (d *defaultReader) TimerProp(name string) (*Timer, error) {
+func (d *defaultReader) TimerProp(name string) (Timer, error) {
 	//Verify that this seems legal.
 	props := d.Props()
 
 	if props[name] != TypeTimer {
-		return nil, errors.New("That property is not a timer " + name)
+		return nil, errors.New("That property is not a Timer: " + name)
 	}
 
 	s := reflect.ValueOf(d.i).Elem()
-	result := s.FieldByName(name).Interface().(*Timer)
-
+	field := s.FieldByName(name)
+	if field.IsNil() {
+		//This isn't an error; it's just that we shouldn't dereference it.
+		return nil, nil
+	}
+	result := field.Interface().(Timer)
 	return result, nil
 }
 
@@ -813,7 +806,7 @@ func (d *defaultReader) SetStackProp(name string, val Stack) (err error) {
 
 }
 
-func (d *defaultReader) SetTimerProp(name string, val *Timer) (err error) {
+func (d *defaultReader) SetTimerProp(name string, val Timer) (err error) {
 	props := d.Props()
 
 	if props[name] != TypeTimer {
@@ -1133,7 +1126,7 @@ func (g *genericReader) StackProp(name string) (Stack, error) {
 	return val.(Stack), nil
 }
 
-func (g *genericReader) TimerProp(name string) (*Timer, error) {
+func (g *genericReader) TimerProp(name string) (Timer, error) {
 	val, err := g.Prop(name)
 
 	if err != nil {
@@ -1150,7 +1143,7 @@ func (g *genericReader) TimerProp(name string) (*Timer, error) {
 		return nil, errors.New(name + "was expected to be TypeTimer but was not")
 	}
 
-	return val.(*Timer), nil
+	return val.(Timer), nil
 }
 
 func (g *genericReader) SetProp(name string, val interface{}) error {
@@ -1310,7 +1303,7 @@ func (g *genericReader) SetStackProp(name string, val Stack) error {
 	return nil
 }
 
-func (g *genericReader) SetTimerProp(name string, val *Timer) error {
+func (g *genericReader) SetTimerProp(name string, val Timer) error {
 	propType, ok := g.types[name]
 
 	if ok && propType != TypeTimer {

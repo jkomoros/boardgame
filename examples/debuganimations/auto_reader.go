@@ -141,7 +141,7 @@ func (c *__cardValueReader) StringSliceProp(name string) ([]string, error) {
 
 }
 
-func (c *__cardValueReader) TimerProp(name string) (*boardgame.Timer, error) {
+func (c *__cardValueReader) TimerProp(name string) (boardgame.Timer, error) {
 
 	return nil, errors.New("No such Timer prop: " + name)
 
@@ -280,9 +280,9 @@ func (m *__moveMoveCardBetweenShortStacksReader) SetProp(name string, value inte
 		}
 		return m.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
-		val, ok := value.(*boardgame.Timer)
+		val, ok := value.(boardgame.Timer)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.Timer")
+			return errors.New("Provided value was not of type boardgame.Timer")
 		}
 		return m.SetTimerProp(name, val)
 
@@ -436,13 +436,13 @@ func (m *__moveMoveCardBetweenShortStacksReader) SetStringSliceProp(name string,
 
 }
 
-func (m *__moveMoveCardBetweenShortStacksReader) TimerProp(name string) (*boardgame.Timer, error) {
+func (m *__moveMoveCardBetweenShortStacksReader) TimerProp(name string) (boardgame.Timer, error) {
 
 	return nil, errors.New("No such Timer prop: " + name)
 
 }
 
-func (m *__moveMoveCardBetweenShortStacksReader) SetTimerProp(name string, value *boardgame.Timer) error {
+func (m *__moveMoveCardBetweenShortStacksReader) SetTimerProp(name string, value boardgame.Timer) error {
 
 	return errors.New("No such Timer prop: " + name)
 
@@ -581,9 +581,9 @@ func (m *__moveMoveCardBetweenDrawAndDiscardStacksReader) SetProp(name string, v
 		}
 		return m.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
-		val, ok := value.(*boardgame.Timer)
+		val, ok := value.(boardgame.Timer)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.Timer")
+			return errors.New("Provided value was not of type boardgame.Timer")
 		}
 		return m.SetTimerProp(name, val)
 
@@ -737,13 +737,13 @@ func (m *__moveMoveCardBetweenDrawAndDiscardStacksReader) SetStringSliceProp(nam
 
 }
 
-func (m *__moveMoveCardBetweenDrawAndDiscardStacksReader) TimerProp(name string) (*boardgame.Timer, error) {
+func (m *__moveMoveCardBetweenDrawAndDiscardStacksReader) TimerProp(name string) (boardgame.Timer, error) {
 
 	return nil, errors.New("No such Timer prop: " + name)
 
 }
 
-func (m *__moveMoveCardBetweenDrawAndDiscardStacksReader) SetTimerProp(name string, value *boardgame.Timer) error {
+func (m *__moveMoveCardBetweenDrawAndDiscardStacksReader) SetTimerProp(name string, value boardgame.Timer) error {
 
 	return errors.New("No such Timer prop: " + name)
 
@@ -880,9 +880,9 @@ func (m *__moveFlipHiddenCardReader) SetProp(name string, value interface{}) err
 		}
 		return m.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
-		val, ok := value.(*boardgame.Timer)
+		val, ok := value.(boardgame.Timer)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.Timer")
+			return errors.New("Provided value was not of type boardgame.Timer")
 		}
 		return m.SetTimerProp(name, val)
 
@@ -1023,13 +1023,13 @@ func (m *__moveFlipHiddenCardReader) SetStringSliceProp(name string, value []str
 
 }
 
-func (m *__moveFlipHiddenCardReader) TimerProp(name string) (*boardgame.Timer, error) {
+func (m *__moveFlipHiddenCardReader) TimerProp(name string) (boardgame.Timer, error) {
 
 	return nil, errors.New("No such Timer prop: " + name)
 
 }
 
-func (m *__moveFlipHiddenCardReader) SetTimerProp(name string, value *boardgame.Timer) error {
+func (m *__moveFlipHiddenCardReader) SetTimerProp(name string, value boardgame.Timer) error {
 
 	return errors.New("No such Timer prop: " + name)
 
@@ -1166,9 +1166,9 @@ func (m *__moveMoveCardBetweenFanStacksReader) SetProp(name string, value interf
 		}
 		return m.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
-		val, ok := value.(*boardgame.Timer)
+		val, ok := value.(boardgame.Timer)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.Timer")
+			return errors.New("Provided value was not of type boardgame.Timer")
 		}
 		return m.SetTimerProp(name, val)
 
@@ -1309,13 +1309,13 @@ func (m *__moveMoveCardBetweenFanStacksReader) SetStringSliceProp(name string, v
 
 }
 
-func (m *__moveMoveCardBetweenFanStacksReader) TimerProp(name string) (*boardgame.Timer, error) {
+func (m *__moveMoveCardBetweenFanStacksReader) TimerProp(name string) (boardgame.Timer, error) {
 
 	return nil, errors.New("No such Timer prop: " + name)
 
 }
 
-func (m *__moveMoveCardBetweenFanStacksReader) SetTimerProp(name string, value *boardgame.Timer) error {
+func (m *__moveMoveCardBetweenFanStacksReader) SetTimerProp(name string, value boardgame.Timer) error {
 
 	return errors.New("No such Timer prop: " + name)
 
@@ -1452,9 +1452,9 @@ func (m *__moveVisibleShuffleCardsReader) SetProp(name string, value interface{}
 		}
 		return m.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
-		val, ok := value.(*boardgame.Timer)
+		val, ok := value.(boardgame.Timer)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.Timer")
+			return errors.New("Provided value was not of type boardgame.Timer")
 		}
 		return m.SetTimerProp(name, val)
 
@@ -1595,13 +1595,13 @@ func (m *__moveVisibleShuffleCardsReader) SetStringSliceProp(name string, value 
 
 }
 
-func (m *__moveVisibleShuffleCardsReader) TimerProp(name string) (*boardgame.Timer, error) {
+func (m *__moveVisibleShuffleCardsReader) TimerProp(name string) (boardgame.Timer, error) {
 
 	return nil, errors.New("No such Timer prop: " + name)
 
 }
 
-func (m *__moveVisibleShuffleCardsReader) SetTimerProp(name string, value *boardgame.Timer) error {
+func (m *__moveVisibleShuffleCardsReader) SetTimerProp(name string, value boardgame.Timer) error {
 
 	return errors.New("No such Timer prop: " + name)
 
@@ -1738,9 +1738,9 @@ func (m *__moveShuffleCardsReader) SetProp(name string, value interface{}) error
 		}
 		return m.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
-		val, ok := value.(*boardgame.Timer)
+		val, ok := value.(boardgame.Timer)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.Timer")
+			return errors.New("Provided value was not of type boardgame.Timer")
 		}
 		return m.SetTimerProp(name, val)
 
@@ -1881,13 +1881,13 @@ func (m *__moveShuffleCardsReader) SetStringSliceProp(name string, value []strin
 
 }
 
-func (m *__moveShuffleCardsReader) TimerProp(name string) (*boardgame.Timer, error) {
+func (m *__moveShuffleCardsReader) TimerProp(name string) (boardgame.Timer, error) {
 
 	return nil, errors.New("No such Timer prop: " + name)
 
 }
 
-func (m *__moveShuffleCardsReader) SetTimerProp(name string, value *boardgame.Timer) error {
+func (m *__moveShuffleCardsReader) SetTimerProp(name string, value boardgame.Timer) error {
 
 	return errors.New("No such Timer prop: " + name)
 
@@ -2024,9 +2024,9 @@ func (m *__moveMoveBetweenHiddenReader) SetProp(name string, value interface{}) 
 		}
 		return m.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
-		val, ok := value.(*boardgame.Timer)
+		val, ok := value.(boardgame.Timer)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.Timer")
+			return errors.New("Provided value was not of type boardgame.Timer")
 		}
 		return m.SetTimerProp(name, val)
 
@@ -2167,13 +2167,13 @@ func (m *__moveMoveBetweenHiddenReader) SetStringSliceProp(name string, value []
 
 }
 
-func (m *__moveMoveBetweenHiddenReader) TimerProp(name string) (*boardgame.Timer, error) {
+func (m *__moveMoveBetweenHiddenReader) TimerProp(name string) (boardgame.Timer, error) {
 
 	return nil, errors.New("No such Timer prop: " + name)
 
 }
 
-func (m *__moveMoveBetweenHiddenReader) SetTimerProp(name string, value *boardgame.Timer) error {
+func (m *__moveMoveBetweenHiddenReader) SetTimerProp(name string, value boardgame.Timer) error {
 
 	return errors.New("No such Timer prop: " + name)
 
@@ -2322,9 +2322,9 @@ func (g *__gameStateReader) SetProp(name string, value interface{}) error {
 		}
 		return g.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
-		val, ok := value.(*boardgame.Timer)
+		val, ok := value.(boardgame.Timer)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.Timer")
+			return errors.New("Provided value was not of type boardgame.Timer")
 		}
 		return g.SetTimerProp(name, val)
 
@@ -2445,26 +2445,26 @@ func (g *__gameStateReader) SetPlayerIndexSliceProp(name string, value []boardga
 func (g *__gameStateReader) StackProp(name string) (boardgame.Stack, error) {
 
 	switch name {
-	case "FirstShortStack":
-		return g.data.FirstShortStack, nil
-	case "FanStack":
-		return g.data.FanStack, nil
-	case "FanDiscard":
-		return g.data.FanDiscard, nil
-	case "VisibleStack":
-		return g.data.VisibleStack, nil
-	case "HiddenStack":
-		return g.data.HiddenStack, nil
 	case "DiscardStack":
 		return g.data.DiscardStack, nil
+	case "FanStack":
+		return g.data.FanStack, nil
 	case "DrawStack":
 		return g.data.DrawStack, nil
+	case "FirstShortStack":
+		return g.data.FirstShortStack, nil
 	case "SecondShortStack":
 		return g.data.SecondShortStack, nil
 	case "HiddenCard":
 		return g.data.HiddenCard, nil
 	case "RevealedCard":
 		return g.data.RevealedCard, nil
+	case "FanDiscard":
+		return g.data.FanDiscard, nil
+	case "VisibleStack":
+		return g.data.VisibleStack, nil
+	case "HiddenStack":
+		return g.data.HiddenStack, nil
 
 	}
 
@@ -2475,26 +2475,17 @@ func (g *__gameStateReader) StackProp(name string) (boardgame.Stack, error) {
 func (g *__gameStateReader) SetStackProp(name string, value boardgame.Stack) error {
 
 	switch name {
-	case "FirstShortStack":
-		g.data.FirstShortStack = value
+	case "DiscardStack":
+		g.data.DiscardStack = value
 		return nil
 	case "FanStack":
 		g.data.FanStack = value
 		return nil
-	case "FanDiscard":
-		g.data.FanDiscard = value
-		return nil
-	case "VisibleStack":
-		g.data.VisibleStack = value
-		return nil
-	case "HiddenStack":
-		g.data.HiddenStack = value
-		return nil
-	case "DiscardStack":
-		g.data.DiscardStack = value
-		return nil
 	case "DrawStack":
 		g.data.DrawStack = value
+		return nil
+	case "FirstShortStack":
+		g.data.FirstShortStack = value
 		return nil
 	case "SecondShortStack":
 		g.data.SecondShortStack = value
@@ -2504,6 +2495,15 @@ func (g *__gameStateReader) SetStackProp(name string, value boardgame.Stack) err
 		return nil
 	case "RevealedCard":
 		g.data.RevealedCard = value
+		return nil
+	case "FanDiscard":
+		g.data.FanDiscard = value
+		return nil
+	case "VisibleStack":
+		g.data.VisibleStack = value
+		return nil
+	case "HiddenStack":
+		g.data.HiddenStack = value
 		return nil
 
 	}
@@ -2536,13 +2536,13 @@ func (g *__gameStateReader) SetStringSliceProp(name string, value []string) erro
 
 }
 
-func (g *__gameStateReader) TimerProp(name string) (*boardgame.Timer, error) {
+func (g *__gameStateReader) TimerProp(name string) (boardgame.Timer, error) {
 
 	return nil, errors.New("No such Timer prop: " + name)
 
 }
 
-func (g *__gameStateReader) SetTimerProp(name string, value *boardgame.Timer) error {
+func (g *__gameStateReader) SetTimerProp(name string, value boardgame.Timer) error {
 
 	return errors.New("No such Timer prop: " + name)
 
@@ -2685,9 +2685,9 @@ func (p *__playerStateReader) SetProp(name string, value interface{}) error {
 		}
 		return p.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
-		val, ok := value.(*boardgame.Timer)
+		val, ok := value.(boardgame.Timer)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.Timer")
+			return errors.New("Provided value was not of type boardgame.Timer")
 		}
 		return p.SetTimerProp(name, val)
 
@@ -2841,13 +2841,13 @@ func (p *__playerStateReader) SetStringSliceProp(name string, value []string) er
 
 }
 
-func (p *__playerStateReader) TimerProp(name string) (*boardgame.Timer, error) {
+func (p *__playerStateReader) TimerProp(name string) (boardgame.Timer, error) {
 
 	return nil, errors.New("No such Timer prop: " + name)
 
 }
 
-func (p *__playerStateReader) SetTimerProp(name string, value *boardgame.Timer) error {
+func (p *__playerStateReader) SetTimerProp(name string, value boardgame.Timer) error {
 
 	return errors.New("No such Timer prop: " + name)
 

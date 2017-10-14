@@ -322,7 +322,7 @@ func (r *readerValidator) Valid(reader PropertyReader) error {
 			if err != nil {
 				return errors.New("TimerProp " + propName + " had unexpected error: " + err.Error())
 			}
-			if val.statePtr == nil {
+			if val.state() == nil {
 				return errors.New("TimerProp " + propName + " didn't have its statePtr set")
 			}
 		case TypeEnumVar:
@@ -373,7 +373,7 @@ func setReaderStatePtr(reader PropertyReader, st State) error {
 			if err != nil {
 				return errors.New("TimerProp " + propName + " had unexpected error: " + err.Error())
 			}
-			val.statePtr = statePtr
+			val.setState(statePtr)
 		}
 	}
 	return nil

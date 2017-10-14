@@ -7,7 +7,18 @@ import (
 
 //A Timer is a type of property that can be used in states that represents a
 //countdown. See the package documentation for more on timers.
-type Timer struct {
+type Timer interface {
+	Active() bool
+	Start(time.Duration, Move)
+	Cancel() bool
+	TimeLeft() time.Duration
+	Copy() Timer
+	id() int
+	state() *state
+	setState(*state)
+}
+
+type timer struct {
 	//Id will be an opaque identifier that is used to keep track of the
 	//corresponding underlying Timer object in the game engine. It is not
 	//meaningful to inspect yourself and should not be modified.
@@ -15,17 +26,29 @@ type Timer struct {
 	statePtr *state
 }
 
-func NewTimer() *Timer {
-	return &Timer{}
+func NewTimer() Timer {
+	return &timer{}
 }
 
-func (t *Timer) Copy() *Timer {
-	var result Timer
+func (t *timer) id() int {
+	return t.Id
+}
+
+func (t *timer) state() *state {
+	return t.statePtr
+}
+
+func (t *timer) setState(state *state) {
+	t.statePtr = state
+}
+
+func (t *timer) Copy() Timer {
+	var result timer
 	result = *t
 	return &result
 }
 
-func (t *Timer) MarshalJSON() ([]byte, error) {
+func (t *timer) MarshalJSON() ([]byte, error) {
 	obj := map[string]interface{}{
 		"Id": t.Id,
 		//TimeLeft is only ever for the client (it's not read back in when
@@ -38,20 +61,19 @@ func (t *Timer) MarshalJSON() ([]byte, error) {
 }
 
 //Active returns true if the timer is active and counting down.
-func (t *Timer) Active() bool {
+func (t *timer) Active() bool {
 	return t.statePtr.game.manager.timers.TimerActive(t.Id)
 }
 
 //TimeLeft returns the number of nanoseconds left until this timer fires.
-func (t *Timer) TimeLeft() time.Duration {
-
+func (t *timer) TimeLeft() time.Duration {
 	return t.statePtr.game.manager.timers.GetTimerRemaining(t.Id)
 }
 
 //Start starts the timer. After duration has passed, the Move will be proposed
 //via proposeMove. If the timer is already active, it will be canceled before
 //the new timer is configured.
-func (t *Timer) Start(duration time.Duration, move Move) {
+func (t *timer) Start(duration time.Duration, move Move) {
 
 	if t.Active() {
 		t.Cancel()
@@ -68,7 +90,7 @@ func (t *Timer) Start(duration time.Duration, move Move) {
 //Cancel cancels an active timer. If the timer is not active, it has no
 //effect. Returns true if the timer was active and canceled, false if the
 //timer was not active.
-func (t *Timer) Cancel() bool {
+func (t *timer) Cancel() bool {
 
 	wasActive := t.Active()
 

@@ -145,9 +145,9 @@ func (v *__ValueReader) SetProp(name string, value interface{}) error {
 		}
 		return v.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
-		val, ok := value.(*boardgame.Timer)
+		val, ok := value.(boardgame.Timer)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.Timer")
+			return errors.New("Provided value was not of type boardgame.Timer")
 		}
 		return v.SetTimerProp(name, val)
 
@@ -301,13 +301,13 @@ func (v *__ValueReader) SetStringSliceProp(name string, value []string) error {
 
 }
 
-func (v *__ValueReader) TimerProp(name string) (*boardgame.Timer, error) {
+func (v *__ValueReader) TimerProp(name string) (boardgame.Timer, error) {
 
 	return nil, errors.New("No such Timer prop: " + name)
 
 }
 
-func (v *__ValueReader) SetTimerProp(name string, value *boardgame.Timer) error {
+func (v *__ValueReader) SetTimerProp(name string, value boardgame.Timer) error {
 
 	return errors.New("No such Timer prop: " + name)
 
@@ -451,9 +451,9 @@ func (d *__DynamicValueReader) SetProp(name string, value interface{}) error {
 		}
 		return d.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
-		val, ok := value.(*boardgame.Timer)
+		val, ok := value.(boardgame.Timer)
 		if !ok {
-			return errors.New("Provided value was not of type *boardgame.Timer")
+			return errors.New("Provided value was not of type boardgame.Timer")
 		}
 		return d.SetTimerProp(name, val)
 
@@ -513,10 +513,10 @@ func (d *__DynamicValueReader) SetEnumVarProp(name string, value enum.Var) error
 func (d *__DynamicValueReader) IntProp(name string) (int, error) {
 
 	switch name {
-	case "SelectedFace":
-		return d.data.SelectedFace, nil
 	case "Value":
 		return d.data.Value, nil
+	case "SelectedFace":
+		return d.data.SelectedFace, nil
 
 	}
 
@@ -527,11 +527,11 @@ func (d *__DynamicValueReader) IntProp(name string) (int, error) {
 func (d *__DynamicValueReader) SetIntProp(name string, value int) error {
 
 	switch name {
-	case "SelectedFace":
-		d.data.SelectedFace = value
-		return nil
 	case "Value":
 		d.data.Value = value
+		return nil
+	case "SelectedFace":
+		d.data.SelectedFace = value
 		return nil
 
 	}
@@ -612,13 +612,13 @@ func (d *__DynamicValueReader) SetStringSliceProp(name string, value []string) e
 
 }
 
-func (d *__DynamicValueReader) TimerProp(name string) (*boardgame.Timer, error) {
+func (d *__DynamicValueReader) TimerProp(name string) (boardgame.Timer, error) {
 
 	return nil, errors.New("No such Timer prop: " + name)
 
 }
 
-func (d *__DynamicValueReader) SetTimerProp(name string, value *boardgame.Timer) error {
+func (d *__DynamicValueReader) SetTimerProp(name string, value boardgame.Timer) error {
 
 	return errors.New("No such Timer prop: " + name)
 

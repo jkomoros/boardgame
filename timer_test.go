@@ -151,6 +151,6 @@ func TestTimerProp(t *testing.T) {
 
 	gameState.Timer.Cancel()
 
-	assert.For(t).ThatActual(gameState.Timer.Id).Equals(0)
+	assert.For(t).ThatActual(gameState.Timer.id()).Equals(0)
 
 }

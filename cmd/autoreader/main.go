@@ -420,8 +420,10 @@ func headerForStruct(structName string, types map[string]boardgame.PropertyType,
 			goLangType = "[]string"
 		case "PlayerIndexSlice":
 			goLangType = "[]boardgame.PlayerIndex"
+		case "Timer":
+			goLangType = "boardgame.Timer"
 		default:
-			goLangType = "*boardgame." + goLangType
+			goLangType = "UNKNOWN"
 		}
 
 		propertyTypes[key] = goLangType

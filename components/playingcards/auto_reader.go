@@ -144,7 +144,7 @@ func (c *__CardReader) StringSliceProp(name string) ([]string, error) {
 
 }
 
-func (c *__CardReader) TimerProp(name string) (*boardgame.Timer, error) {
+func (c *__CardReader) TimerProp(name string) (boardgame.Timer, error) {
 
 	return nil, errors.New("No such Timer prop: " + name)
 

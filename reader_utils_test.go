@@ -155,7 +155,7 @@ type testGeneralReadSetter struct {
 	TheInt           int        `sanitize:"hidden"`
 	EnumConst        enum.Const `enum:"color"`
 	EnumVar          enum.Var   `enum:"color"`
-	TheTimer         *Timer
+	TheTimer         Timer
 	TheSizedStack    Stack `sizedstack:"test,0"`
 	TheGrowableStack Stack `stack:"test" sanitize:"order"`
 }
