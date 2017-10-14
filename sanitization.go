@@ -431,11 +431,7 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 		return 0
 	case TypeTimer:
 		return NewTimer()
-	case TypeEnumMutableVal:
-		e := input.(enum.MutableVal).MutableCopy()
-		e.SetValue(e.Enum().DefaultValue())
-		return e
-	case TypeEnumVal:
+	case TypeEnum:
 		e := input.(enum.Val).Copy()
 		res, _ := e.Enum().NewVal(e.Enum().DefaultValue())
 		return res

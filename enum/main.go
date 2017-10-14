@@ -333,6 +333,14 @@ func (e *Enum) NewMutableVal() MutableVal {
 	}
 }
 
+func (e *Enum) MustNewMutableVal(val int) MutableVal {
+	enu := e.NewMutableVal()
+	if err := enu.SetValue(val); err != nil {
+		panic("Couldn't create mutable val: " + err.Error())
+	}
+	return enu
+}
+
 //MustNewVal is like NewVal, but if it would have errored it panics
 //instead. It's convenient for initial set up where the whole app should fail
 //to startup if it can't be configured anyway, and dealing with errors would

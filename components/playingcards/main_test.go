@@ -11,7 +11,9 @@ func TestNewDeck(t *testing.T) {
 
 	deck := NewDeck(false)
 
-	chest.AddDeck("cards", deck)
+	if err := chest.AddDeck("cards", deck); err != nil {
+		t.Error("Couldn't add cards to chest: " + err.Error())
+	}
 
 	if len(deck.Components()) != 52 {
 		t.Error("We asked for no jokers but got wrong number of cards", len(deck.Components()))
@@ -23,7 +25,7 @@ func TestNewDeck(t *testing.T) {
 		t.Error("Generic components had no values")
 	}
 
-	r, err := g.Values.Reader().EnumValProp("Rank")
+	r, err := g.Values.Reader().EnumProp("Rank")
 
 	if err != nil {
 		t.Error("Values on Reader had no Rank property")
@@ -33,7 +35,7 @@ func TestNewDeck(t *testing.T) {
 		t.Error("generic rank was not RankUnknown")
 	}
 
-	s, err := g.Values.Reader().EnumValProp("Suit")
+	s, err := g.Values.Reader().EnumProp("Suit")
 
 	if err != nil {
 		t.Error("Values on reader had no Suit property")

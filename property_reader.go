@@ -22,8 +22,7 @@ type PropertyReader interface {
 	IntProp(name string) (int, error)
 	BoolProp(name string) (bool, error)
 	StringProp(name string) (string, error)
-	EnumMutableValProp(name string) (enum.MutableVal, error)
-	EnumValProp(name string) (enum.Val, error)
+	EnumProp(name string) (enum.Val, error)
 	IntSliceProp(name string) ([]int, error)
 	BoolSliceProp(name string) ([]bool, error)
 	StringSliceProp(name string) ([]string, error)
@@ -47,8 +46,7 @@ const (
 	TypeBool
 	TypeString
 	TypePlayerIndex
-	TypeEnumMutableVal
-	TypeEnumVal
+	TypeEnum
 	TypeIntSlice
 	TypeBoolSlice
 	TypeStringSlice
@@ -68,8 +66,7 @@ type PropertyReadSetter interface {
 	SetBoolProp(name string, value bool) error
 	SetStringProp(name string, value string) error
 	SetPlayerIndexProp(name string, value PlayerIndex) error
-	SetEnumMutableValProp(name string, value enum.MutableVal) error
-	SetEnumValProp(name string, value enum.Val) error
+	SetMutableEnumProp(name string, value enum.MutableVal) error
 	SetIntSliceProp(name string, value []int) error
 	SetBoolSliceProp(name string, value []bool) error
 	SetStringSliceProp(name string, value []string) error
@@ -94,10 +91,8 @@ func (t PropertyType) String() string {
 		return "TypeString"
 	case TypePlayerIndex:
 		return "TypePlayerIndex"
-	case TypeEnumMutableVal:
-		return "TypeEnumMutableVal"
-	case TypeEnumVal:
-		return "TypeEnumVal"
+	case TypeEnum:
+		return "TypeEnum"
 	case TypeIntSlice:
 		return "TypeIntSlice"
 	case TypeBoolSlice:
@@ -270,9 +265,9 @@ func (d *defaultReader) propsImpl() (map[string]PropertyType, error) {
 			case reflect.Interface:
 				interfaceType := field.Type().String()
 				if strings.Contains(interfaceType, "enum.MutableVal") {
-					pType = TypeEnumMutableVal
+					pType = TypeEnum
 				} else if strings.Contains(interfaceType, "enum.Val") {
-					pType = TypeEnumVal
+					pType = TypeEnum
 				} else if strings.Contains(interfaceType, "Stack") {
 					pType = TypeStack
 				} else if strings.Contains(interfaceType, "Timer") {
@@ -339,30 +334,12 @@ func (d *defaultReader) PlayerIndexProp(name string) (PlayerIndex, error) {
 	return PlayerIndex(s.FieldByName(name).Int()), nil
 }
 
-func (d *defaultReader) EnumMutableValProp(name string) (enum.MutableVal, error) {
+func (d *defaultReader) EnumProp(name string) (enum.Val, error) {
 	//Verify that this seems legal.
 	props := d.Props()
 
-	if props[name] != TypeEnumMutableVal {
-		return nil, errors.New("That property is not a EnumMutableVal: " + name)
-	}
-
-	s := reflect.ValueOf(d.i).Elem()
-	field := s.FieldByName(name)
-	if field.IsNil() {
-		//This isn't an error; it's just that we shouldn't dereference it.
-		return nil, nil
-	}
-	result := field.Interface().(enum.MutableVal)
-	return result, nil
-}
-
-func (d *defaultReader) EnumValProp(name string) (enum.Val, error) {
-	//Verify that this seems legal.
-	props := d.Props()
-
-	if props[name] != TypeEnumVal {
-		return nil, errors.New("That property is not a EnumVal: " + name)
+	if props[name] != TypeEnum {
+		return nil, errors.New("That property is not a Enum: " + name)
 	}
 
 	s := reflect.ValueOf(d.i).Elem()
@@ -617,38 +594,11 @@ func (d *defaultReader) SetPlayerIndexProp(name string, val PlayerIndex) (err er
 
 }
 
-func (d *defaultReader) SetEnumMutableValProp(name string, val enum.MutableVal) (err error) {
+func (d *defaultReader) SetMutableEnumProp(name string, val enum.MutableVal) (err error) {
 	props := d.Props()
 
-	if props[name] != TypeEnumMutableVal {
+	if props[name] != TypeEnum {
 		return errors.New("That property is not a settable enum var")
-	}
-
-	s := reflect.ValueOf(d.i).Elem()
-
-	f := s.FieldByName(name)
-
-	if !f.IsValid() {
-		return errors.New("that name was not available on the struct")
-	}
-
-	defer func() {
-		if e := recover(); e != nil {
-			err = errors.New(fmt.Sprint(e))
-		}
-	}()
-
-	f.Set(reflect.ValueOf(val))
-
-	return nil
-
-}
-
-func (d *defaultReader) SetEnumValProp(name string, val enum.Val) (err error) {
-	props := d.Props()
-
-	if props[name] != TypeEnumVal {
-		return errors.New("That property is not a settable enum const")
 	}
 
 	s := reflect.ValueOf(d.i).Elem()
@@ -986,7 +936,7 @@ func (g *genericReader) PlayerIndexProp(name string) (PlayerIndex, error) {
 	return val.(PlayerIndex), nil
 }
 
-func (g *genericReader) EnumMutableValProp(name string) (enum.MutableVal, error) {
+func (g *genericReader) EnumProp(name string) (enum.Val, error) {
 	val, err := g.Prop(name)
 
 	if err != nil {
@@ -999,28 +949,8 @@ func (g *genericReader) EnumMutableValProp(name string) (enum.MutableVal, error)
 		return nil, errors.New("Unexpected error: Missing Prop type for " + name)
 	}
 
-	if propType != TypeEnumMutableVal {
-		return nil, errors.New(name + "was expected to be TypeEnumMutableVal but was not")
-	}
-
-	return val.(enum.MutableVal), nil
-}
-
-func (g *genericReader) EnumValProp(name string) (enum.Val, error) {
-	val, err := g.Prop(name)
-
-	if err != nil {
-		return nil, err
-	}
-
-	propType, ok := g.types[name]
-
-	if !ok {
-		return nil, errors.New("Unexpected error: Missing Prop type for " + name)
-	}
-
-	if propType != TypeEnumVal {
-		return nil, errors.New(name + "was expected to be TypeEnumVal but was not")
+	if propType != TypeEnum {
+		return nil, errors.New(name + "was expected to be TypeEnum but was not")
 	}
 
 	return val.(enum.Val), nil
@@ -1212,27 +1142,14 @@ func (g *genericReader) SetPlayerIndexProp(name string, val PlayerIndex) error {
 	return nil
 }
 
-func (g *genericReader) SetEnumMutableValProp(name string, val enum.MutableVal) error {
+func (g *genericReader) SetMutableEnumProp(name string, val enum.MutableVal) error {
 	propType, ok := g.types[name]
 
-	if ok && propType != TypeEnumMutableVal {
+	if ok && propType != TypeEnum {
 		return errors.New("That property was already set but was not an enum mutable val")
 	}
 
-	g.types[name] = TypeEnumMutableVal
-	g.values[name] = val
-
-	return nil
-}
-
-func (g *genericReader) SetEnumValProp(name string, val enum.Val) error {
-	propType, ok := g.types[name]
-
-	if ok && propType != TypeEnumVal {
-		return errors.New("That property was already set but was not an enum val")
-	}
-
-	g.types[name] = TypeEnumVal
+	g.types[name] = TypeEnum
 	g.values[name] = val
 
 	return nil

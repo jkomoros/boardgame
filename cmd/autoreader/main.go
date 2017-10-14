@@ -78,11 +78,16 @@ type templateConfig struct {
 }
 
 func init() {
-	headerTemplate = template.Must(template.New("header").Parse(headerTemplateText))
-	structHeaderTemplate = template.Must(template.New("structHeader").Parse(structHeaderTemplateText))
-	typedPropertyTemplate = template.Must(template.New("typedProperty").Parse(typedPropertyTemplateText))
-	readerTemplate = template.Must(template.New("reader").Parse(readerTemplateText))
-	readSetterTemplate = template.Must(template.New("readsetter").Parse(readSetterTemplateText))
+
+	funcMap := template.FuncMap{
+		"withoutmutable": withoutMutable,
+	}
+
+	headerTemplate = template.Must(template.New("header").Funcs(funcMap).Parse(headerTemplateText))
+	structHeaderTemplate = template.Must(template.New("structHeader").Funcs(funcMap).Parse(structHeaderTemplateText))
+	typedPropertyTemplate = template.Must(template.New("typedProperty").Funcs(funcMap).Parse(typedPropertyTemplateText))
+	readerTemplate = template.Must(template.New("reader").Funcs(funcMap).Parse(readerTemplateText))
+	readSetterTemplate = template.Must(template.New("readsetter").Funcs(funcMap).Parse(readSetterTemplateText))
 
 	memoizedEmbeddedStructs = make(map[memoizedEmbeddedStructKey]map[string]boardgame.PropertyType)
 }
@@ -261,9 +266,7 @@ func structTypes(location string, theStruct model.Struct, allStructs []model.Str
 		case "boardgame.Stack":
 			result[field.Name] = boardgame.TypeStack
 		case "enum.MutableVal":
-			result[field.Name] = boardgame.TypeEnumMutableVal
-		case "enum.Val":
-			result[field.Name] = boardgame.TypeEnumVal
+			result[field.Name] = boardgame.TypeEnum
 		case "boardgame.PlayerIndex":
 			if field.IsSlice {
 				result[field.Name] = boardgame.TypePlayerIndexSlice
@@ -387,16 +390,24 @@ func headerForPackage(packageName string) string {
 	}) + importText
 }
 
+func withoutMutable(in string) string {
+	return strings.Replace(in, "Mutable", "", -1)
+}
+
 func headerForStruct(structName string, types map[string]boardgame.PropertyType, outputReadSetter bool) string {
 
 	//propertyTypes is short name, golangValue
 	propertyTypes := make(map[string]string)
+	setterPropertyTypes := make(map[string]string)
 
 	for i := boardgame.TypeInt; i <= boardgame.TypeTimer; i++ {
 
 		key := strings.TrimPrefix(i.String(), "Type")
 
+		setterKey := ""
+
 		goLangType := key
+		setterGoLangType := ""
 		switch key {
 		case "Bool":
 			goLangType = "bool"
@@ -406,10 +417,10 @@ func headerForStruct(structName string, types map[string]boardgame.PropertyType,
 			goLangType = "string"
 		case "PlayerIndex":
 			goLangType = "boardgame.PlayerIndex"
-		case "EnumMutableVal":
-			goLangType = "enum.MutableVal"
-		case "EnumVal":
+		case "Enum":
 			goLangType = "enum.Val"
+			setterKey = "MutableEnum"
+			setterGoLangType = "enum.MutableVal"
 		case "Stack":
 			goLangType = "boardgame.Stack"
 		case "IntSlice":
@@ -426,16 +437,26 @@ func headerForStruct(structName string, types map[string]boardgame.PropertyType,
 			goLangType = "UNKNOWN"
 		}
 
+		if setterKey == "" {
+			setterKey = key
+		}
+
+		if setterGoLangType == "" {
+			setterGoLangType = goLangType
+		}
+
 		propertyTypes[key] = goLangType
+		setterPropertyTypes[setterKey] = setterGoLangType
 	}
 
 	output := templateOutput(structHeaderTemplate, map[string]interface{}{
-		"structName":       structName,
-		"firstLetter":      strings.ToLower(structName[:1]),
-		"readerName":       "__" + structName + "Reader",
-		"propertyTypes":    propertyTypes,
-		"types":            types,
-		"outputReadSetter": outputReadSetter,
+		"structName":          structName,
+		"firstLetter":         strings.ToLower(structName[:1]),
+		"readerName":          "__" + structName + "Reader",
+		"propertyTypes":       propertyTypes,
+		"setterPropertyTypes": setterPropertyTypes,
+		"types":               types,
+		"outputReadSetter":    outputReadSetter,
 	})
 
 	sortedKeys := make([]string, len(propertyTypes))
@@ -485,13 +506,23 @@ func headerForStruct(structName string, types map[string]boardgame.PropertyType,
 			}
 		}
 
+		setterPropType := propType
+
+		if propType == "Enum" {
+			setterPropType = "MutableEnum"
+		}
+
+		setterGoLangType := setterPropertyTypes[setterPropType]
+
 		output += templateOutput(typedPropertyTemplate, map[string]interface{}{
 			"structName":       structName,
 			"firstLetter":      strings.ToLower(structName[:1]),
 			"readerName":       "__" + structName + "Reader",
 			"propType":         propType,
+			"setterPropType":   setterPropType,
 			"namesForType":     namesForType,
 			"goLangType":       goLangType,
+			"setterGoLangType": setterGoLangType,
 			"zeroValue":        zeroValue,
 			"outputReadSetter": outputReadSetter,
 		})
@@ -588,8 +619,8 @@ func ({{.firstLetter}} *{{.readerName}}) SetProp(name string, value interface{})
 	}
 
 	switch propType {
-	{{range $type, $goLangType := .propertyTypes -}}
-	case boardgame.Type{{$type}}:
+	{{range $type, $goLangType := .setterPropertyTypes -}}
+	case boardgame.Type{{withoutmutable $type}}:
 		val, ok := value.({{$goLangType}})
 		if !ok {
 			return errors.New("Provided value was not of type {{$goLangType}}")
@@ -620,7 +651,7 @@ const typedPropertyTemplateText = `func ({{.firstLetter}} *{{.readerName}}) {{.p
 }
 
 {{if .outputReadSetter -}}
-func ({{.firstLetter}} *{{.readerName}}) Set{{.propType}}Prop(name string, value {{.goLangType}}) error {
+func ({{.firstLetter}} *{{.readerName}}) Set{{.setterPropType}}Prop(name string, value {{.setterGoLangType}}) error {
 	{{if .namesForType}}
 	switch name {
 		{{range .namesForType -}}
@@ -631,7 +662,7 @@ func ({{.firstLetter}} *{{.readerName}}) Set{{.propType}}Prop(name string, value
 	}
 	{{end}}
 
-	return errors.New("No such {{.propType}} prop: " + name)
+	return errors.New("No such {{.setterPropType}} prop: " + name)
 
 }
 

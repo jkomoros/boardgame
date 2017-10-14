@@ -19,8 +19,8 @@ import (
 // Implementation for Card
 
 var __CardReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
-	"Rank": boardgame.TypeEnumVal,
-	"Suit": boardgame.TypeEnumVal,
+	"Rank": boardgame.TypeEnum,
+	"Suit": boardgame.TypeEnum,
 }
 
 type __CardReader struct {
@@ -44,10 +44,8 @@ func (c *__CardReader) Prop(name string) (interface{}, error) {
 		return c.BoolProp(name)
 	case boardgame.TypeBoolSlice:
 		return c.BoolSliceProp(name)
-	case boardgame.TypeEnumMutableVal:
-		return c.EnumMutableValProp(name)
-	case boardgame.TypeEnumVal:
-		return c.EnumValProp(name)
+	case boardgame.TypeEnum:
+		return c.EnumProp(name)
 	case boardgame.TypeInt:
 		return c.IntProp(name)
 	case boardgame.TypeIntSlice:
@@ -82,13 +80,7 @@ func (c *__CardReader) BoolSliceProp(name string) ([]bool, error) {
 
 }
 
-func (c *__CardReader) EnumMutableValProp(name string) (enum.MutableVal, error) {
-
-	return nil, errors.New("No such EnumMutableVal prop: " + name)
-
-}
-
-func (c *__CardReader) EnumValProp(name string) (enum.Val, error) {
+func (c *__CardReader) EnumProp(name string) (enum.Val, error) {
 
 	switch name {
 	case "Suit":
@@ -98,7 +90,7 @@ func (c *__CardReader) EnumValProp(name string) (enum.Val, error) {
 
 	}
 
-	return nil, errors.New("No such EnumVal prop: " + name)
+	return nil, errors.New("No such Enum prop: " + name)
 
 }
 
