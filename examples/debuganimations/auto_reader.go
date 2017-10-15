@@ -324,6 +324,12 @@ func (m *__moveMoveCardBetweenShortStacksReader) SetMutableEnumProp(name string,
 
 }
 
+func (m *__moveMoveCardBetweenShortStacksReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
 func (m *__moveMoveCardBetweenShortStacksReader) IntProp(name string) (int, error) {
 
 	return 0, errors.New("No such Int prop: " + name)
@@ -605,6 +611,12 @@ func (m *__moveMoveCardBetweenDrawAndDiscardStacksReader) SetMutableEnumProp(nam
 
 }
 
+func (m *__moveMoveCardBetweenDrawAndDiscardStacksReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
 func (m *__moveMoveCardBetweenDrawAndDiscardStacksReader) IntProp(name string) (int, error) {
 
 	return 0, errors.New("No such Int prop: " + name)
@@ -868,6 +880,12 @@ func (m *__moveFlipHiddenCardReader) EnumProp(name string) (enum.Val, error) {
 func (m *__moveFlipHiddenCardReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
+
+}
+
+func (m *__moveFlipHiddenCardReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
 
 }
 
@@ -1137,6 +1155,12 @@ func (m *__moveMoveCardBetweenFanStacksReader) SetMutableEnumProp(name string, v
 
 }
 
+func (m *__moveMoveCardBetweenFanStacksReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
 func (m *__moveMoveCardBetweenFanStacksReader) IntProp(name string) (int, error) {
 
 	return 0, errors.New("No such Int prop: " + name)
@@ -1400,6 +1424,12 @@ func (m *__moveVisibleShuffleCardsReader) EnumProp(name string) (enum.Val, error
 func (m *__moveVisibleShuffleCardsReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
+
+}
+
+func (m *__moveVisibleShuffleCardsReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
 
 }
 
@@ -1669,6 +1699,12 @@ func (m *__moveShuffleCardsReader) SetMutableEnumProp(name string, value enum.Mu
 
 }
 
+func (m *__moveShuffleCardsReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
 func (m *__moveShuffleCardsReader) IntProp(name string) (int, error) {
 
 	return 0, errors.New("No such Int prop: " + name)
@@ -1932,6 +1968,12 @@ func (m *__moveMoveBetweenHiddenReader) EnumProp(name string) (enum.Val, error) 
 func (m *__moveMoveBetweenHiddenReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
+
+}
+
+func (m *__moveMoveBetweenHiddenReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
 
 }
 
@@ -2213,6 +2255,12 @@ func (g *__gameStateReader) SetMutableEnumProp(name string, value enum.MutableVa
 
 }
 
+func (g *__gameStateReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
 func (g *__gameStateReader) IntProp(name string) (int, error) {
 
 	return 0, errors.New("No such Int prop: " + name)
@@ -2277,26 +2325,26 @@ func (g *__gameStateReader) SetPlayerIndexSliceProp(name string, value []boardga
 func (g *__gameStateReader) StackProp(name string) (boardgame.Stack, error) {
 
 	switch name {
-	case "HiddenStack":
-		return g.data.HiddenStack, nil
-	case "DiscardStack":
-		return g.data.DiscardStack, nil
 	case "RevealedCard":
 		return g.data.RevealedCard, nil
-	case "FanStack":
-		return g.data.FanStack, nil
-	case "VisibleStack":
-		return g.data.VisibleStack, nil
 	case "FanDiscard":
 		return g.data.FanDiscard, nil
+	case "DiscardStack":
+		return g.data.DiscardStack, nil
 	case "DrawStack":
 		return g.data.DrawStack, nil
-	case "FirstShortStack":
-		return g.data.FirstShortStack, nil
 	case "SecondShortStack":
 		return g.data.SecondShortStack, nil
 	case "HiddenCard":
 		return g.data.HiddenCard, nil
+	case "FirstShortStack":
+		return g.data.FirstShortStack, nil
+	case "FanStack":
+		return g.data.FanStack, nil
+	case "VisibleStack":
+		return g.data.VisibleStack, nil
+	case "HiddenStack":
+		return g.data.HiddenStack, nil
 
 	}
 
@@ -2307,14 +2355,26 @@ func (g *__gameStateReader) StackProp(name string) (boardgame.Stack, error) {
 func (g *__gameStateReader) SetStackProp(name string, value boardgame.Stack) error {
 
 	switch name {
-	case "HiddenStack":
-		g.data.HiddenStack = value
+	case "RevealedCard":
+		g.data.RevealedCard = value
+		return nil
+	case "FanDiscard":
+		g.data.FanDiscard = value
 		return nil
 	case "DiscardStack":
 		g.data.DiscardStack = value
 		return nil
-	case "RevealedCard":
-		g.data.RevealedCard = value
+	case "DrawStack":
+		g.data.DrawStack = value
+		return nil
+	case "SecondShortStack":
+		g.data.SecondShortStack = value
+		return nil
+	case "HiddenCard":
+		g.data.HiddenCard = value
+		return nil
+	case "FirstShortStack":
+		g.data.FirstShortStack = value
 		return nil
 	case "FanStack":
 		g.data.FanStack = value
@@ -2322,20 +2382,8 @@ func (g *__gameStateReader) SetStackProp(name string, value boardgame.Stack) err
 	case "VisibleStack":
 		g.data.VisibleStack = value
 		return nil
-	case "FanDiscard":
-		g.data.FanDiscard = value
-		return nil
-	case "DrawStack":
-		g.data.DrawStack = value
-		return nil
-	case "FirstShortStack":
-		g.data.FirstShortStack = value
-		return nil
-	case "SecondShortStack":
-		g.data.SecondShortStack = value
-		return nil
-	case "HiddenCard":
-		g.data.HiddenCard = value
+	case "HiddenStack":
+		g.data.HiddenStack = value
 		return nil
 
 	}
@@ -2553,6 +2601,12 @@ func (p *__playerStateReader) EnumProp(name string) (enum.Val, error) {
 func (p *__playerStateReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
+
+}
+
+func (p *__playerStateReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
 
 }
 

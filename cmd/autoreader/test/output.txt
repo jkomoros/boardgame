@@ -231,6 +231,18 @@ func (m *__myStructReader) SetMutableEnumProp(name string, value enum.MutableVal
 
 }
 
+func (m *__myStructReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	switch name {
+	case "EnumVar":
+		return m.data.EnumVar, nil
+
+	}
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
 func (m *__myStructReader) IntProp(name string) (int, error) {
 
 	switch name {
@@ -582,6 +594,12 @@ func (e *__embeddedStructReader) SetMutableEnumProp(name string, value enum.Muta
 
 }
 
+func (e *__embeddedStructReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
 func (e *__embeddedStructReader) IntProp(name string) (int, error) {
 
 	switch name {
@@ -881,6 +899,12 @@ func (d *__doubleEmbeddedStructReader) SetMutableEnumProp(name string, value enu
 
 }
 
+func (d *__doubleEmbeddedStructReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
 func (d *__doubleEmbeddedStructReader) IntProp(name string) (int, error) {
 
 	switch name {
@@ -1177,6 +1201,12 @@ func (m *__myOtherStructReader) EnumProp(name string) (enum.Val, error) {
 func (m *__myOtherStructReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
+
+}
+
+func (m *__myOtherStructReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
 
 }
 
@@ -1602,6 +1632,12 @@ func (o *__onlyReadSetterReader) EnumProp(name string) (enum.Val, error) {
 func (o *__onlyReadSetterReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
+
+}
+
+func (o *__onlyReadSetterReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
 
 }
 

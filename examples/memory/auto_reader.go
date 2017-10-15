@@ -309,6 +309,12 @@ func (m *__MoveFinishTurnReader) SetMutableEnumProp(name string, value enum.Muta
 
 }
 
+func (m *__MoveFinishTurnReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
 func (m *__MoveFinishTurnReader) IntProp(name string) (int, error) {
 
 	return 0, errors.New("No such Int prop: " + name)
@@ -575,6 +581,12 @@ func (m *__MoveRevealCardReader) EnumProp(name string) (enum.Val, error) {
 func (m *__MoveRevealCardReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
+
+}
+
+func (m *__MoveRevealCardReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
 
 }
 
@@ -870,6 +882,12 @@ func (m *__MoveStartHideCardsTimerReader) SetMutableEnumProp(name string, value 
 
 }
 
+func (m *__MoveStartHideCardsTimerReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
 func (m *__MoveStartHideCardsTimerReader) IntProp(name string) (int, error) {
 
 	return 0, errors.New("No such Int prop: " + name)
@@ -1133,6 +1151,12 @@ func (m *__MoveCaptureCardsReader) EnumProp(name string) (enum.Val, error) {
 func (m *__MoveCaptureCardsReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
+
+}
+
+func (m *__MoveCaptureCardsReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
 
 }
 
@@ -1401,6 +1425,12 @@ func (m *__MoveHideCardsReader) EnumProp(name string) (enum.Val, error) {
 func (m *__MoveHideCardsReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
+
+}
+
+func (m *__MoveHideCardsReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
 
 }
 
@@ -1685,6 +1715,12 @@ func (g *__gameStateReader) EnumProp(name string) (enum.Val, error) {
 func (g *__gameStateReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
+
+}
+
+func (g *__gameStateReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
 
 }
 
@@ -2002,6 +2038,12 @@ func (p *__playerStateReader) EnumProp(name string) (enum.Val, error) {
 func (p *__playerStateReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
+
+}
+
+func (p *__playerStateReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
 
 }
 

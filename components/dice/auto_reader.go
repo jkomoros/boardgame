@@ -184,6 +184,12 @@ func (v *__ValueReader) SetMutableEnumProp(name string, value enum.MutableVal) e
 
 }
 
+func (v *__ValueReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
 func (v *__ValueReader) IntProp(name string) (int, error) {
 
 	return 0, errors.New("No such Int prop: " + name)
@@ -467,6 +473,12 @@ func (d *__DynamicValueReader) EnumProp(name string) (enum.Val, error) {
 func (d *__DynamicValueReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
+
+}
+
+func (d *__DynamicValueReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
 
 }
 

@@ -73,6 +73,11 @@ type PropertyReadSetter interface {
 	SetPlayerIndexSliceProp(name string, value []PlayerIndex) error
 	SetStackProp(name string, value Stack) error
 	SetTimerProp(name string, value Timer) error
+
+	//For interface types the setter also wants to give access to the mutable
+	//underlying value so it can be mutated in place.
+	MutableEnumProp(name string) (enum.MutableVal, error)
+
 	//SetProp sets the property with the given name. If the value does not
 	//match the underlying slot type, it should return an error. If you know
 	//the underlying type it's always better to use the typed accessors.
@@ -592,6 +597,24 @@ func (d *defaultReader) SetPlayerIndexProp(name string, val PlayerIndex) (err er
 
 	return nil
 
+}
+
+func (d *defaultReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+	//Verify that this seems legal.
+	props := d.Props()
+
+	if props[name] != TypeEnum {
+		return nil, errors.New("That property is not a Enum: " + name)
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+	field := s.FieldByName(name)
+	if field.IsNil() {
+		//This isn't an error; it's just that we shouldn't dereference it.
+		return nil, nil
+	}
+	result := field.Interface().(enum.MutableVal)
+	return result, nil
 }
 
 func (d *defaultReader) SetMutableEnumProp(name string, val enum.MutableVal) (err error) {
@@ -1140,6 +1163,26 @@ func (g *genericReader) SetPlayerIndexProp(name string, val PlayerIndex) error {
 	g.values[name] = val
 
 	return nil
+}
+
+func (g *genericReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+	val, err := g.Prop(name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	propType, ok := g.types[name]
+
+	if !ok {
+		return nil, errors.New("Unexpected error: Missing Prop type for " + name)
+	}
+
+	if propType != TypeEnum {
+		return nil, errors.New(name + "was expected to be TypeEnum but was not")
+	}
+
+	return val.(enum.MutableVal), nil
 }
 
 func (g *genericReader) SetMutableEnumProp(name string, val enum.MutableVal) error {

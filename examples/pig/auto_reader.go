@@ -184,6 +184,12 @@ func (m *__moveRollDiceReader) SetMutableEnumProp(name string, value enum.Mutabl
 
 }
 
+func (m *__moveRollDiceReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
 func (m *__moveRollDiceReader) IntProp(name string) (int, error) {
 
 	return 0, errors.New("No such Int prop: " + name)
@@ -462,6 +468,12 @@ func (m *__moveDoneTurnReader) EnumProp(name string) (enum.Val, error) {
 func (m *__moveDoneTurnReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
+
+}
+
+func (m *__moveDoneTurnReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
 
 }
 
@@ -746,6 +758,12 @@ func (m *__moveCountDieReader) SetMutableEnumProp(name string, value enum.Mutabl
 
 }
 
+func (m *__moveCountDieReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
 func (m *__moveCountDieReader) IntProp(name string) (int, error) {
 
 	return 0, errors.New("No such Int prop: " + name)
@@ -1025,6 +1043,12 @@ func (m *__moveFinishTurnReader) SetMutableEnumProp(name string, value enum.Muta
 
 }
 
+func (m *__moveFinishTurnReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
 func (m *__moveFinishTurnReader) IntProp(name string) (int, error) {
 
 	return 0, errors.New("No such Int prop: " + name)
@@ -1292,6 +1316,12 @@ func (g *__gameStateReader) EnumProp(name string) (enum.Val, error) {
 func (g *__gameStateReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
+
+}
+
+func (g *__gameStateReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
 
 }
 
@@ -1577,12 +1607,12 @@ func (p *__playerStateReader) SetProp(name string, value interface{}) error {
 func (p *__playerStateReader) BoolProp(name string) (bool, error) {
 
 	switch name {
+	case "Busted":
+		return p.data.Busted, nil
 	case "Done":
 		return p.data.Done, nil
 	case "DieCounted":
 		return p.data.DieCounted, nil
-	case "Busted":
-		return p.data.Busted, nil
 
 	}
 
@@ -1593,14 +1623,14 @@ func (p *__playerStateReader) BoolProp(name string) (bool, error) {
 func (p *__playerStateReader) SetBoolProp(name string, value bool) error {
 
 	switch name {
+	case "Busted":
+		p.data.Busted = value
+		return nil
 	case "Done":
 		p.data.Done = value
 		return nil
 	case "DieCounted":
 		p.data.DieCounted = value
-		return nil
-	case "Busted":
-		p.data.Busted = value
 		return nil
 
 	}
@@ -1630,6 +1660,12 @@ func (p *__playerStateReader) EnumProp(name string) (enum.Val, error) {
 func (p *__playerStateReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
+
+}
+
+func (p *__playerStateReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
 
 }
 

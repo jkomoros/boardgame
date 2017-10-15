@@ -182,6 +182,12 @@ func (m *__MoveShuffleDiscardToDrawReader) SetMutableEnumProp(name string, value
 
 }
 
+func (m *__MoveShuffleDiscardToDrawReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
 func (m *__MoveShuffleDiscardToDrawReader) IntProp(name string) (int, error) {
 
 	return 0, errors.New("No such Int prop: " + name)
@@ -445,6 +451,12 @@ func (m *__MoveFinishTurnReader) EnumProp(name string) (enum.Val, error) {
 func (m *__MoveFinishTurnReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
+
+}
+
+func (m *__MoveFinishTurnReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
 
 }
 
@@ -730,6 +742,12 @@ func (m *__MoveDealInitialCardReader) SetMutableEnumProp(name string, value enum
 
 }
 
+func (m *__MoveDealInitialCardReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
 func (m *__MoveDealInitialCardReader) IntProp(name string) (int, error) {
 
 	return 0, errors.New("No such Int prop: " + name)
@@ -1008,6 +1026,12 @@ func (m *__MoveRevealHiddenCardReader) EnumProp(name string) (enum.Val, error) {
 func (m *__MoveRevealHiddenCardReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
+
+}
+
+func (m *__MoveRevealHiddenCardReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
 
 }
 
@@ -1292,6 +1316,12 @@ func (m *__MoveCurrentPlayerHitReader) SetMutableEnumProp(name string, value enu
 
 }
 
+func (m *__MoveCurrentPlayerHitReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
 func (m *__MoveCurrentPlayerHitReader) IntProp(name string) (int, error) {
 
 	return 0, errors.New("No such Int prop: " + name)
@@ -1570,6 +1600,12 @@ func (m *__MoveCurrentPlayerStandReader) EnumProp(name string) (enum.Val, error)
 func (m *__MoveCurrentPlayerStandReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
+
+}
+
+func (m *__MoveCurrentPlayerStandReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
 
 }
 
@@ -1857,6 +1893,12 @@ func (g *__gameStateReader) SetMutableEnumProp(name string, value enum.MutableVa
 
 }
 
+func (g *__gameStateReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
 func (g *__gameStateReader) IntProp(name string) (int, error) {
 
 	return 0, errors.New("No such Int prop: " + name)
@@ -2136,12 +2178,12 @@ func (p *__playerStateReader) SetProp(name string, value interface{}) error {
 func (p *__playerStateReader) BoolProp(name string) (bool, error) {
 
 	switch name {
+	case "Busted":
+		return p.data.Busted, nil
 	case "Stood":
 		return p.data.Stood, nil
 	case "GotInitialDeal":
 		return p.data.GotInitialDeal, nil
-	case "Busted":
-		return p.data.Busted, nil
 
 	}
 
@@ -2152,14 +2194,14 @@ func (p *__playerStateReader) BoolProp(name string) (bool, error) {
 func (p *__playerStateReader) SetBoolProp(name string, value bool) error {
 
 	switch name {
+	case "Busted":
+		p.data.Busted = value
+		return nil
 	case "Stood":
 		p.data.Stood = value
 		return nil
 	case "GotInitialDeal":
 		p.data.GotInitialDeal = value
-		return nil
-	case "Busted":
-		p.data.Busted = value
 		return nil
 
 	}
@@ -2189,6 +2231,12 @@ func (p *__playerStateReader) EnumProp(name string) (enum.Val, error) {
 func (p *__playerStateReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
+
+}
+
+func (p *__playerStateReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
 
 }
 
@@ -2243,10 +2291,10 @@ func (p *__playerStateReader) SetPlayerIndexSliceProp(name string, value []board
 func (p *__playerStateReader) StackProp(name string) (boardgame.Stack, error) {
 
 	switch name {
-	case "VisibleHand":
-		return p.data.VisibleHand, nil
 	case "HiddenHand":
 		return p.data.HiddenHand, nil
+	case "VisibleHand":
+		return p.data.VisibleHand, nil
 
 	}
 
@@ -2257,11 +2305,11 @@ func (p *__playerStateReader) StackProp(name string) (boardgame.Stack, error) {
 func (p *__playerStateReader) SetStackProp(name string, value boardgame.Stack) error {
 
 	switch name {
-	case "VisibleHand":
-		p.data.VisibleHand = value
-		return nil
 	case "HiddenHand":
 		p.data.HiddenHand = value
+		return nil
+	case "VisibleHand":
+		p.data.VisibleHand = value
 		return nil
 
 	}

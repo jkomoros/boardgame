@@ -508,23 +508,27 @@ func headerForStruct(structName string, types map[string]boardgame.PropertyType,
 
 		setterPropType := propType
 
+		outputMutableGetter := false
+
 		if propType == "Enum" {
 			setterPropType = "MutableEnum"
+			outputMutableGetter = true
 		}
 
 		setterGoLangType := setterPropertyTypes[setterPropType]
 
 		output += templateOutput(typedPropertyTemplate, map[string]interface{}{
-			"structName":       structName,
-			"firstLetter":      strings.ToLower(structName[:1]),
-			"readerName":       "__" + structName + "Reader",
-			"propType":         propType,
-			"setterPropType":   setterPropType,
-			"namesForType":     namesForType,
-			"goLangType":       goLangType,
-			"setterGoLangType": setterGoLangType,
-			"zeroValue":        zeroValue,
-			"outputReadSetter": outputReadSetter,
+			"structName":          structName,
+			"firstLetter":         strings.ToLower(structName[:1]),
+			"readerName":          "__" + structName + "Reader",
+			"propType":            propType,
+			"setterPropType":      setterPropType,
+			"namesForType":        namesForType,
+			"goLangType":          goLangType,
+			"setterGoLangType":    setterGoLangType,
+			"outputMutableGetter": outputMutableGetter,
+			"zeroValue":           zeroValue,
+			"outputReadSetter":    outputReadSetter,
 		})
 	}
 
@@ -666,6 +670,24 @@ func ({{.firstLetter}} *{{.readerName}}) Set{{.setterPropType}}Prop(name string,
 
 }
 
+
+{{if .outputMutableGetter -}}
+func ({{.firstLetter}} *{{.readerName}}) {{.setterPropType}}Prop(name string) ({{.setterGoLangType}}, error) {
+	{{$firstLetter := .firstLetter}}
+	{{if .namesForType}}
+	switch name {
+		{{range .namesForType -}}
+			case "{{.}}":
+				return {{$firstLetter}}.data.{{.}}, nil
+		{{end}}
+	}
+	{{end}}
+
+	return {{.zeroValue}}, errors.New("No such {{.propType}} prop: " + name)
+
+}
+
+{{end}}
 {{end}}
 `
 
