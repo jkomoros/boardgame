@@ -2465,4 +2465,3 @@ func (b *bothReaderAndReadSetConfigurer) Reader() boardgame.PropertyReader {
 func (b *bothReaderAndReadSetConfigurer) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__bothReaderAndReadSetConfigurerReader{b}
 }
-

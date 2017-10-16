@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os/exec"
+	"strings"
 	"testing"
 )
 
@@ -20,11 +21,11 @@ func TestOutput(t *testing.T) {
 
 	process(options, out, errOut)
 
-	expectedBytes, err := ioutil.ReadFile("test/output.txt")
+	expectedBytes, err := ioutil.ReadFile("test/expected_auto_reader.txt")
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	assert.For(t).ThatActual(out.String()).Equals(string(expectedBytes)).ThenDiffOnFail()
+	assert.For(t).ThatActual(strings.TrimSpace(out.String())).Equals(strings.TrimSpace(string(expectedBytes))).ThenDiffOnFail()
 
 }
 
