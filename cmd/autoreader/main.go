@@ -84,6 +84,7 @@ func init() {
 
 	funcMap := template.FuncMap{
 		"withoutmutable": withoutMutable,
+		"ismutable":      isMutable,
 		"verbfortype":    verbForType,
 	}
 
@@ -411,6 +412,10 @@ func withoutMutable(in string) string {
 	return strings.Replace(in, "Mutable", "", -1)
 }
 
+func isMutable(in string) bool {
+	return strings.Contains(in, "Mutable")
+}
+
 func verbForType(in string) string {
 	if strings.HasPrefix(in, "Mutable") {
 		return "Configure"
@@ -428,13 +433,6 @@ func headerForStruct(structName string, types map[string]boardgame.PropertyType,
 	//output readSetConfigurer we must also output readSetter.
 	if outputReadSetConfigurer {
 		outputReadSetter = true
-	}
-
-	//TODO: remove this. Currently SetProp needs to do a
-	//Configure{InterfaceType}, which is odd. Once we change that behavior
-	//this can go.
-	if outputReadSetter {
-		outputReadSetConfigurer = true
 	}
 
 	for i := boardgame.TypeInt; i <= boardgame.TypeTimer; i++ {
@@ -675,6 +673,36 @@ func ({{.firstLetter}} *{{.readerName}}) Prop(name string) (interface{}, error) 
 
 {{if .outputReadSetter -}}
 func ({{.firstLetter}} *{{.readerName}}) SetProp(name string, value interface{}) error {
+	props := {{.firstLetter}}.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	{{range $type, $goLangType := .setterPropertyTypes -}}
+	{{if ismutable $type -}}
+	case boardgame.Type{{withoutmutable $type}}:
+		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+	{{- else -}}
+	case boardgame.Type{{withoutmutable $type}}:
+		val, ok := value.({{$goLangType}})
+		if !ok {
+			return errors.New("Provided value was not of type {{$goLangType}}")
+		}
+		return {{$firstLetter}}.{{verbfortype $type}}{{$type}}Prop(name, val)
+	{{- end}}
+	{{end}}
+	}
+
+	return errors.New("Unexpected property type: " + propType.String())
+}
+
+{{end}}
+
+{{if .outputReadSetConfigurer -}}
+func ({{.firstLetter}} *{{.readerName}}) ConfigureProp(name string, value interface{}) error {
 	props := {{.firstLetter}}.Props()
 	propType, ok := props[name]
 

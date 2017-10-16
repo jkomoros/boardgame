@@ -80,8 +80,10 @@ type PropertyReadSetter interface {
 	MutableTimerProp(name string) (MutableTimer, error)
 
 	//SetProp sets the property with the given name. If the value does not
-	//match the underlying slot type, it should return an error. If you know
-	//the underlying type it's always better to use the typed accessors.
+	//match the underlying slot type, it should return an error. If the type
+	//is one of the interface types, it should fail because those need to be
+	//Configured, not Set. If you know the underlying type it's always better
+	//to use the typed accessors.
 	SetProp(name string, value interface{}) error
 }
 
@@ -93,6 +95,11 @@ type PropertyReadSetConfigurer interface {
 	ConfigureMutableEnumProp(name string, value enum.MutableVal) error
 	ConfigureMutableStackProp(name string, value MutableStack) error
 	ConfigureMutableTimerProp(name string, value MutableTimer) error
+
+	//ConfigureProp is like SetProp, except that it does not fail if the type
+	//is one of the Interface types. If you know the underlying type it's always better
+	//to use the typed accessors.
+	ConfigureProp(name string, value interface{}) error
 }
 
 func (t PropertyType) String() string {
@@ -856,7 +863,15 @@ func (d *defaultReader) ConfigureMutableTimerProp(name string, val MutableTimer)
 
 }
 
-func (d *defaultReader) SetProp(name string, val interface{}) (err error) {
+func (d *defaultReader) SetProp(name string, val interface{}) error {
+	return d.setProp(name, val, false)
+}
+
+func (d *defaultReader) ConfigureProp(name string, val interface{}) error {
+	return d.setProp(name, val, true)
+}
+
+func (d *defaultReader) setProp(name string, val interface{}, allowInterface bool) (err error) {
 
 	obj := d.i
 
@@ -870,6 +885,12 @@ func (d *defaultReader) SetProp(name string, val interface{}) (err error) {
 
 	if propType == TypeIllegal {
 		return errors.New("Unsupported type of prop")
+	}
+
+	if !allowInterface {
+		if propType == TypeStack || propType == TypeEnum || propType == TypeTimer {
+			return errors.New("SetProp on an interface type is not supported. Use ConfigureProp instead")
+		}
 	}
 
 	if !propertyReaderImplNameShouldBeIncluded(name) {
@@ -1150,11 +1171,25 @@ func (g *genericReader) TimerProp(name string) (Timer, error) {
 }
 
 func (g *genericReader) SetProp(name string, val interface{}) error {
+	return g.setProp(name, val, false)
+}
+
+func (g *genericReader) ConfigureProp(name string, val interface{}) error {
+	return g.setProp(name, val, true)
+}
+
+func (g *genericReader) setProp(name string, val interface{}, allowInterface bool) error {
 
 	propType, ok := g.types[name]
 
 	if ok && propType != TypeIllegal {
 		return errors.New("That property was already set but was a different type")
+	}
+
+	if !allowInterface {
+		if propType == TypeTimer || propType == TypeEnum || propType == TypeStack {
+			return errors.New("SetProp on interface types is not allowed. Use ConfigureProp instead")
+		}
 	}
 
 	g.types[name] = TypeIllegal

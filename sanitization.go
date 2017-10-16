@@ -227,7 +227,7 @@ func (s *state) applySanitizationTransformation(transformation *sanitizationTran
 		visibleDynamicComponents[deckName] = make(map[int]bool)
 	}
 
-	err := sanitizeStateObj(sanitized.gameState.ReadSetter(), transformation.Game, visibleDynamicComponents)
+	err := sanitizeStateObj(sanitized.gameState.ReadSetConfigurer(), transformation.Game, visibleDynamicComponents)
 
 	if err != nil {
 		return nil, errors.Extend(err, "Couldn't sanitize game state")
@@ -236,7 +236,7 @@ func (s *state) applySanitizationTransformation(transformation *sanitizationTran
 	playerStates := sanitized.playerStates
 
 	for i := 0; i < len(playerStates); i++ {
-		err = sanitizeStateObj(playerStates[i].ReadSetter(), transformation.Players[i], visibleDynamicComponents)
+		err = sanitizeStateObj(playerStates[i].ReadSetConfigurer(), transformation.Players[i], visibleDynamicComponents)
 		if err != nil {
 			return nil, errors.Extend(err, "Couldn't sanitize player state number "+strconv.Itoa(i))
 		}
@@ -263,10 +263,10 @@ func (s *state) applySanitizationTransformation(transformation *sanitizationTran
 //PolicyVisible, so later that information can be used to only reveal that
 //information in DynamicComponentValues if the components they're related to
 //were visible.
-func sanitizeStateObj(readSetter PropertyReadSetter, transformation subStateSanitizationTransformation, visibleDynamic map[string]map[int]bool) error {
+func sanitizeStateObj(readSetConfigurer PropertyReadSetConfigurer, transformation subStateSanitizationTransformation, visibleDynamic map[string]map[int]bool) error {
 
-	for propName, propType := range readSetter.Props() {
-		prop, err := readSetter.Prop(propName)
+	for propName, propType := range readSetConfigurer.Props() {
+		prop, err := readSetConfigurer.Prop(propName)
 
 		if err != nil {
 			return errors.Extend(err, propName+" had an error")
@@ -295,7 +295,7 @@ func sanitizeStateObj(readSetter PropertyReadSetter, transformation subStateSani
 			}
 		}
 
-		readSetter.SetProp(propName, applyPolicy(policy, prop, propType))
+		readSetConfigurer.ConfigureProp(propName, applyPolicy(policy, prop, propType))
 	}
 
 	return nil
@@ -384,25 +384,25 @@ func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]Configur
 
 		for i, value := range slice {
 
-			readSetter := value.ReadSetter()
+			readSetConfigurer := value.ReadSetConfigurer()
 
 			if _, visible := visibleDynamicDeck[i]; visible {
 
-				if err := sanitizeStateObj(readSetter, transformation[name], nil); err != nil {
+				if err := sanitizeStateObj(readSetConfigurer, transformation[name], nil); err != nil {
 					return errors.Extend(err, "Couldn't sanitize random dynamic component")
 				}
 
 			} else {
 				//Make it a hidden
 
-				for propName, propType := range readSetter.Props() {
-					prop, err := readSetter.Prop(propName)
+				for propName, propType := range readSetConfigurer.Props() {
+					prop, err := readSetConfigurer.Prop(propName)
 
 					if err != nil {
 						continue
 					}
 
-					readSetter.SetProp(propName, applyPolicy(PolicyHidden, prop, propType))
+					readSetConfigurer.ConfigureProp(propName, applyPolicy(PolicyHidden, prop, propType))
 
 				}
 			}
