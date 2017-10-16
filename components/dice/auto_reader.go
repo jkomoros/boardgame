@@ -112,6 +112,12 @@ func (v *__ValueReader) SetProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type boardgame.MutableStack")
 		}
 		return v.SetMutableStackProp(name, val)
+	case boardgame.TypeTimer:
+		val, ok := value.(boardgame.MutableTimer)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.MutableTimer")
+		}
+		return v.SetMutableTimerProp(name, val)
 	case boardgame.TypePlayerIndex:
 		val, ok := value.(boardgame.PlayerIndex)
 		if !ok {
@@ -136,12 +142,6 @@ func (v *__ValueReader) SetProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type []string")
 		}
 		return v.SetStringSliceProp(name, val)
-	case boardgame.TypeTimer:
-		val, ok := value.(boardgame.Timer)
-		if !ok {
-			return errors.New("Provided value was not of type boardgame.Timer")
-		}
-		return v.SetTimerProp(name, val)
 
 	}
 
@@ -299,9 +299,15 @@ func (v *__ValueReader) TimerProp(name string) (boardgame.Timer, error) {
 
 }
 
-func (v *__ValueReader) SetTimerProp(name string, value boardgame.Timer) error {
+func (v *__ValueReader) SetMutableTimerProp(name string, value boardgame.MutableTimer) error {
 
-	return errors.New("No such Timer prop: " + name)
+	return errors.New("No such MutableTimer prop: " + name)
+
+}
+
+func (v *__ValueReader) MutableTimerProp(name string) (boardgame.MutableTimer, error) {
+
+	return nil, errors.New("No such Timer prop: " + name)
 
 }
 
@@ -410,6 +416,12 @@ func (d *__DynamicValueReader) SetProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type boardgame.MutableStack")
 		}
 		return d.SetMutableStackProp(name, val)
+	case boardgame.TypeTimer:
+		val, ok := value.(boardgame.MutableTimer)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.MutableTimer")
+		}
+		return d.SetMutableTimerProp(name, val)
 	case boardgame.TypePlayerIndex:
 		val, ok := value.(boardgame.PlayerIndex)
 		if !ok {
@@ -434,12 +446,6 @@ func (d *__DynamicValueReader) SetProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type []string")
 		}
 		return d.SetStringSliceProp(name, val)
-	case boardgame.TypeTimer:
-		val, ok := value.(boardgame.Timer)
-		if !ok {
-			return errors.New("Provided value was not of type boardgame.Timer")
-		}
-		return d.SetTimerProp(name, val)
 
 	}
 
@@ -602,9 +608,15 @@ func (d *__DynamicValueReader) TimerProp(name string) (boardgame.Timer, error) {
 
 }
 
-func (d *__DynamicValueReader) SetTimerProp(name string, value boardgame.Timer) error {
+func (d *__DynamicValueReader) SetMutableTimerProp(name string, value boardgame.MutableTimer) error {
 
-	return errors.New("No such Timer prop: " + name)
+	return errors.New("No such MutableTimer prop: " + name)
+
+}
+
+func (d *__DynamicValueReader) MutableTimerProp(name string) (boardgame.MutableTimer, error) {
+
+	return nil, errors.New("No such Timer prop: " + name)
 
 }
 

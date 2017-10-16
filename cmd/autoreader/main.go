@@ -273,7 +273,7 @@ func structTypes(location string, theStruct model.Struct, allStructs []model.Str
 			} else {
 				result[field.Name] = boardgame.TypePlayerIndex
 			}
-		case "boardgame.Timer":
+		case "boardgame.MutableTimer":
 			result[field.Name] = boardgame.TypeTimer
 		default:
 			log.Println("Unknown type on " + theStruct.Name + ": " + field.Name + ": " + field.TypeName)
@@ -435,6 +435,8 @@ func headerForStruct(structName string, types map[string]boardgame.PropertyType,
 			goLangType = "[]boardgame.PlayerIndex"
 		case "Timer":
 			goLangType = "boardgame.Timer"
+			setterKey = "MutableTimer"
+			setterGoLangType = "boardgame.MutableTimer"
 		default:
 			goLangType = "UNKNOWN"
 		}
@@ -518,6 +520,9 @@ func headerForStruct(structName string, types map[string]boardgame.PropertyType,
 			outputMutableGetter = true
 		case "Stack":
 			setterPropType = "MutableStack"
+			outputMutableGetter = true
+		case "Timer":
+			setterPropType = "MutableTimer"
 			outputMutableGetter = true
 		}
 

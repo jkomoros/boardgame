@@ -72,12 +72,13 @@ type PropertyReadSetter interface {
 	SetStringSliceProp(name string, value []string) error
 	SetPlayerIndexSliceProp(name string, value []PlayerIndex) error
 	SetMutableStackProp(name string, value MutableStack) error
-	SetTimerProp(name string, value Timer) error
+	SetMutableTimerProp(name string, value MutableTimer) error
 
 	//For interface types the setter also wants to give access to the mutable
 	//underlying value so it can be mutated in place.
 	MutableEnumProp(name string) (enum.MutableVal, error)
 	MutableStackProp(name string) (MutableStack, error)
+	MutableTimerProp(name string) (MutableTimer, error)
 
 	//SetProp sets the property with the given name. If the value does not
 	//match the underlying slot type, it should return an error. If you know
@@ -798,7 +799,25 @@ func (d *defaultReader) SetMutableStackProp(name string, val MutableStack) (err 
 
 }
 
-func (d *defaultReader) SetTimerProp(name string, val Timer) (err error) {
+func (d *defaultReader) MutableTimerProp(name string) (MutableTimer, error) {
+	//Verify that this seems legal.
+	props := d.Props()
+
+	if props[name] != TypeTimer {
+		return nil, errors.New("That property is not a Timer: " + name)
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+	field := s.FieldByName(name)
+	if field.IsNil() {
+		//This isn't an error; it's just that we shouldn't dereference it.
+		return nil, nil
+	}
+	result := field.Interface().(MutableTimer)
+	return result, nil
+}
+
+func (d *defaultReader) SetMutableTimerProp(name string, val MutableTimer) (err error) {
 	props := d.Props()
 
 	if props[name] != TypeTimer {
@@ -1302,7 +1321,27 @@ func (g *genericReader) SetMutableStackProp(name string, val MutableStack) error
 	return nil
 }
 
-func (g *genericReader) SetTimerProp(name string, val Timer) error {
+func (g *genericReader) MutableTimerProp(name string) (MutableTimer, error) {
+	val, err := g.Prop(name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	propType, ok := g.types[name]
+
+	if !ok {
+		return nil, errors.New("Unexpected error: Missing Prop type for " + name)
+	}
+
+	if propType != TypeTimer {
+		return nil, errors.New(name + "was expected to be TypeTimer but was not")
+	}
+
+	return val.(MutableTimer), nil
+}
+
+func (g *genericReader) SetMutableTimerProp(name string, val MutableTimer) error {
 	propType, ok := g.types[name]
 
 	if ok && propType != TypeTimer {

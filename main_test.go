@@ -124,7 +124,7 @@ type testGameState struct {
 	state              State
 	CurrentPlayer      PlayerIndex
 	DrawDeck           MutableStack
-	Timer              Timer
+	Timer              MutableTimer
 	MyIntSlice         []int
 	MyStringSlice      []string
 	MyBoolSlice        []bool

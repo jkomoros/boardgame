@@ -83,10 +83,10 @@ func (c *__CardReader) BoolSliceProp(name string) ([]bool, error) {
 func (c *__CardReader) EnumProp(name string) (enum.Val, error) {
 
 	switch name {
-	case "Suit":
-		return c.data.Suit, nil
 	case "Rank":
 		return c.data.Rank, nil
+	case "Suit":
+		return c.data.Suit, nil
 
 	}
 

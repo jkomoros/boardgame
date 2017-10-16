@@ -9,13 +9,18 @@ import (
 //countdown. See the package documentation for more on timers.
 type Timer interface {
 	Active() bool
-	Start(time.Duration, Move)
-	Cancel() bool
 	TimeLeft() time.Duration
-	Copy() Timer
+	copy() Timer
 	id() int
 	state() *state
 	setState(*state)
+}
+
+type MutableTimer interface {
+	Timer
+	Start(time.Duration, Move)
+	Cancel() bool
+	mutableCopy() MutableTimer
 }
 
 type timer struct {
@@ -26,7 +31,7 @@ type timer struct {
 	statePtr *state
 }
 
-func NewTimer() Timer {
+func NewTimer() MutableTimer {
 	return &timer{}
 }
 
@@ -42,7 +47,11 @@ func (t *timer) setState(state *state) {
 	t.statePtr = state
 }
 
-func (t *timer) Copy() Timer {
+func (t *timer) copy() Timer {
+	return t.mutableCopy()
+}
+
+func (t *timer) mutableCopy() MutableTimer {
 	var result timer
 	result = *t
 	return &result

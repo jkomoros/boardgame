@@ -21,7 +21,7 @@ type myStruct struct {
 	MyInt              int
 	MyBool             bool
 	MySizedStack       boardgame.MutableStack
-	TheTimer           boardgame.Timer
+	TheTimer           boardgame.MutableTimer
 	EnumVar            enum.MutableVal
 	MyIntSlice         []int
 	MyBoolSlice        []bool

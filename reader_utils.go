@@ -215,7 +215,7 @@ func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) e
 		switch propType {
 		case TypeTimer:
 			timer := NewTimer()
-			if err := readSetter.SetTimerProp(propName, timer); err != nil {
+			if err := readSetter.SetMutableTimerProp(propName, timer); err != nil {
 				return errors.New("Couldn't set " + propName + " to a new timer: " + err.Error())
 			}
 		}
@@ -431,11 +431,11 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 				return errors.New(propName + " could not be set on output: " + err.Error())
 			}
 		case TypeTimer:
-			timerVal, err := input.TimerProp(propName)
+			timerVal, err := input.MutableTimerProp(propName)
 			if err != nil {
 				return errors.New(propName + " did not return a timer as expected: " + err.Error())
 			}
-			err = outputContainer.SetTimerProp(propName, timerVal.Copy())
+			err = outputContainer.SetMutableTimerProp(propName, timerVal.mutableCopy())
 			if err != nil {
 				return errors.New(propName + " could not be set on output: " + err.Error())
 			}
