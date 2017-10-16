@@ -20,7 +20,7 @@ type myStruct struct {
 	boardgame.BaseSubState
 	MyInt              int
 	MyBool             bool
-	MySizedStack       boardgame.Stack
+	MySizedStack       boardgame.MutableStack
 	TheTimer           boardgame.Timer
 	EnumVar            enum.MutableVal
 	MyIntSlice         []int
@@ -43,7 +43,7 @@ type doubleEmbeddedStruct struct {
 //	 +autoreader
 type myOtherStruct struct {
 	blarg           int
-	MyGrowableStack boardgame.Stack
+	MyGrowableStack boardgame.MutableStack
 	ThePlayerIndex  boardgame.PlayerIndex
 }
 

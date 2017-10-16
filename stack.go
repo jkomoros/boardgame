@@ -21,9 +21,10 @@ const emptyIndexSentinel = -1
 //SizedStacks). The default stacks have a FixedSize() of false and can grow to
 //accomodate as many components as desired (up to maxLen), with no gaps in
 //between components. An insertion at an index in the middle of a stack will
-//simply move later components down. SizedStacks, however, have a specific size, with
-//empty slots being allowed. Each insertion puts the component at precisely
-//that slot, and will fail if it is already taken.
+//simply move later components down. SizedStacks, however, have a specific
+//size, with empty slots being allowed. Each insertion puts the component at
+//precisely that slot, and will fail if it is already taken. Stack contains
+//only read-only methods, and MutableStack extends with mutator methods.
 type Stack interface {
 	//Len returns the number of slots in the Stack. For a normal Stack this is
 	//the number of items in the stack. For SizedStacks, this is the number of
@@ -84,10 +85,57 @@ type Stack interface {
 	//this will be the number of empty slots.
 	SlotsRemaining() int
 
+	//applySanitizationPolicy applies the given policy to ourselves. This
+	//should only be called by methods in sanitization.go.
+	applySanitizationPolicy(policy Policy)
+
+	//Whether or not the stack is set up to be modified right now.
+	modificationsAllowed() error
+
+	//Takes the given index, and expands it--either returns the given index,
+	//or, if it's one of {First,Last}{Component,Slot}Index, what that computes
+	//to in this case.
+	effectiveIndex(index int) int
+
+	//legalSlot will return true if the provided index points to a valid slot
+	//to insert a component at. For growableStacks, this is simply a check to
+	//ensure it's in the range [0, stack.Len()]. For SizedStacks, it is a
+	//check that the slot is valid and is currently empty. Does not expand the
+	//special index constants.
+	legalSlot(index int) bool
+
+	//idSeen is called when an Id is seen (that is, either when added to the
+	//item or right before being scrambled)
+	idSeen(id string)
+
+	//scrambleIds copies all component ids to persistentPossibleIds, then
+	//increments all components secretMoveCount.
+	scrambleIds()
+
+	//Returns the state that this Stack is currently part of. Mainly a
+	//convenience method when you have a Stack but don't know its underlying
+	//type.
+	state() *state
+
+	//setState sets the state ptr that will be returned by state().
+	setState(state *state)
+
+	//deck returns the Deck in this stack. Just a conveniene wrapper if you
+	//don't know what kind of stack you have.
+	deck() *Deck
+
+	//Copy returns a copy of this stack.
+	copy() Stack
+}
+
+//MutableStack is a Stack that also has mutator methods.
+type MutableStack interface {
+	Stack
+
 	//MoveAllTo moves all of the components in this stack to the other stack,
 	//by repeatedly calling RemoveFirst() and InsertBack(). Errors and does
 	//not complete the move if there's not enough space in the target stack.
-	MoveAllTo(other Stack) error
+	MoveAllTo(other MutableStack) error
 
 	//Shuffle shuffles the order of the stack, so that it has the same items,
 	//but in a different order. In a SizedStack, the empty slots will move
@@ -124,7 +172,7 @@ type Stack interface {
 	//{First,Last}{Component,Slot}Index constants to automatically set these
 	//indexes to common values. If you want the precise location of the
 	//inserted component to not be visible, see SecretMoveComponent.
-	MoveComponent(componentIndex int, destination Stack, slotIndex int) error
+	MoveComponent(componentIndex int, destination MutableStack, slotIndex int) error
 
 	//SecretMoveComponent is equivalent to MoveComponent, but after the move
 	//the Ids of all components in destination will be scrambled.
@@ -132,7 +180,7 @@ type Stack interface {
 	//sanitized with something like PolicyOrder, but the precise location of
 	//this insertion should not be observable. Read the package doc for more
 	//about when this is useful.
-	SecretMoveComponent(componentIndex int, destination Stack, slotIndex int) error
+	SecretMoveComponent(componentIndex int, destination MutableStack, slotIndex int) error
 
 	//SortComponents sorts the stack's components in the order implied by less
 	//by repeatedly calling SwapComponents. Errors if any SwapComponents
@@ -145,25 +193,6 @@ type Stack interface {
 	//must pass a non-nil testing.T in order to reinforce that this is only
 	//intended to be used in tests.
 	UnsafeInsertNextComponent(t *testing.T, c *Component) error
-
-	//applySanitizationPolicy applies the given policy to ourselves. This
-	//should only be called by methods in sanitization.go.
-	applySanitizationPolicy(policy Policy)
-
-	//Whether or not the stack is set up to be modified right now.
-	modificationsAllowed() error
-
-	//Takes the given index, and expands it--either returns the given index,
-	//or, if it's one of {First,Last}{Component,Slot}Index, what that computes
-	//to in this case.
-	effectiveIndex(index int) int
-
-	//legalSlot will return true if the provided index points to a valid slot
-	//to insert a component at. For growableStacks, this is simply a check to
-	//ensure it's in the range [0, stack.Len()]. For SizedStacks, it is a
-	//check that the slot is valid and is currently empty. Does not expand the
-	//special index constants.
-	legalSlot(index int) bool
 
 	//removeComponentAt returns the component at componentIndex, and removes
 	//it from the stack. For GrowableStacks, this will splice out the
@@ -183,28 +212,7 @@ type Stack interface {
 	//insertNext is a convenience wrapper around insertComponentAt.
 	insertNext(c *Component)
 
-	//idSeen is called when an Id is seen (that is, either when added to the
-	//item or right before being scrambled)
-	idSeen(id string)
-
-	//scrambleIds copies all component ids to persistentPossibleIds, then
-	//increments all components secretMoveCount.
-	scrambleIds()
-
-	//Returns the state that this Stack is currently part of. Mainly a
-	//convenience method when you have a Stack but don't know its underlying
-	//type.
-	state() *state
-
-	//setState sets the state ptr that will be returned by state().
-	setState(state *state)
-
-	//deck returns the Deck in this stack. Just a conveniene wrapper if you
-	//don't know what kind of stack you have.
-	deck() *Deck
-
-	//Copy returns a copy of this stack.
-	copy() Stack
+	mutableCopy() MutableStack
 }
 
 //These special Indexes are designed to be provided to stack.MoveComponent.
@@ -358,6 +366,14 @@ func (s *sizedStack) copy() Stack {
 		result.idsLastSeen[key] = val
 	}
 	return &result
+}
+
+func (s *sizedStack) mutableCopy() MutableStack {
+	return s.copy().(MutableStack)
+}
+
+func (g *growableStack) mutableCopy() MutableStack {
+	return g.copy().(MutableStack)
 }
 
 //Len returns the number of items in the stack.
@@ -659,15 +675,15 @@ func (s *sizedStack) SlotsRemaining() int {
 	return count
 }
 
-func (s *sizedStack) MoveAllTo(other Stack) error {
+func (s *sizedStack) MoveAllTo(other MutableStack) error {
 	return moveAllToImpl(s, other)
 }
 
-func (g *growableStack) MoveAllTo(other Stack) error {
+func (g *growableStack) MoveAllTo(other MutableStack) error {
 	return moveAllToImpl(g, other)
 }
 
-func moveAllToImpl(from Stack, to Stack) error {
+func moveAllToImpl(from MutableStack, to MutableStack) error {
 
 	if to.SlotsRemaining() < from.NumComponents() {
 		return errors.New("Not enough space in the target stack")
@@ -898,7 +914,7 @@ func (s *sizedStack) effectiveIndex(index int) int {
 }
 
 type stackSorter struct {
-	stack Stack
+	stack MutableStack
 	less  func(i, j *Component) bool
 	err   error
 }
@@ -927,7 +943,7 @@ func (s *sizedStack) SortComponents(less func(i, j *Component) bool) error {
 	return sortComponentsImpl(s, less)
 }
 
-func sortComponentsImpl(s Stack, less func(i, j *Component) bool) error {
+func sortComponentsImpl(s MutableStack, less func(i, j *Component) bool) error {
 	sorter := &stackSorter{
 		stack: s,
 		less:  less,
@@ -939,7 +955,7 @@ func sortComponentsImpl(s Stack, less func(i, j *Component) bool) error {
 	return errors.NewWrapped(sorter.err)
 }
 
-func (g *growableStack) SecretMoveComponent(componentIndex int, destination Stack, slotIndex int) error {
+func (g *growableStack) SecretMoveComponent(componentIndex int, destination MutableStack, slotIndex int) error {
 	err := moveComonentImpl(g, componentIndex, destination, slotIndex)
 	if err != nil {
 		return err
@@ -948,7 +964,7 @@ func (g *growableStack) SecretMoveComponent(componentIndex int, destination Stac
 	return nil
 }
 
-func (s *sizedStack) SecretMoveComponent(componentIndex int, destination Stack, slotIndex int) error {
+func (s *sizedStack) SecretMoveComponent(componentIndex int, destination MutableStack, slotIndex int) error {
 	err := moveComonentImpl(s, componentIndex, destination, slotIndex)
 	if err != nil {
 		return err
@@ -957,15 +973,15 @@ func (s *sizedStack) SecretMoveComponent(componentIndex int, destination Stack, 
 	return nil
 }
 
-func (g *growableStack) MoveComponent(componentIndex int, destination Stack, slotIndex int) error {
+func (g *growableStack) MoveComponent(componentIndex int, destination MutableStack, slotIndex int) error {
 	return moveComonentImpl(g, componentIndex, destination, slotIndex)
 }
 
-func (s *sizedStack) MoveComponent(componentIndex int, destination Stack, slotIndex int) error {
+func (s *sizedStack) MoveComponent(componentIndex int, destination MutableStack, slotIndex int) error {
 	return moveComonentImpl(s, componentIndex, destination, slotIndex)
 }
 
-func moveComonentImpl(source Stack, componentIndex int, destination Stack, slotIndex int) error {
+func moveComonentImpl(source MutableStack, componentIndex int, destination MutableStack, slotIndex int) error {
 
 	if source == nil {
 		return errors.New("Source is a nil stack")

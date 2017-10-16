@@ -320,7 +320,7 @@ func (s *state) setStateForSubStates() {
 	}
 }
 
-func (s *state) copyDynamicComponentValues(input SubState, deckName string) MutableSubState {
+func (s *state) copyDynamicComponentValues(input MutableSubState, deckName string) MutableSubState {
 	deck := s.game.manager.chest.Deck(deckName)
 	if deck == nil {
 		s.game.manager.Logger().WithField("deckname", deckName).Error("Invalid deck")
@@ -328,7 +328,7 @@ func (s *state) copyDynamicComponentValues(input SubState, deckName string) Muta
 	}
 	output := s.game.Manager().delegate.DynamicComponentValuesConstructor(deck)
 
-	inputReader := input.Reader()
+	inputReader := input.ReadSetter()
 
 	if inputReader == nil {
 		s.game.manager.Logger().Error("InputReader was unexpectedly nil")
@@ -348,10 +348,10 @@ func (s *state) copyDynamicComponentValues(input SubState, deckName string) Muta
 	return output
 }
 
-func (s *state) copyPlayerState(input PlayerState) MutablePlayerState {
+func (s *state) copyPlayerState(input MutablePlayerState) MutablePlayerState {
 	output := s.game.manager.delegate.PlayerStateConstructor(input.PlayerIndex())
 
-	inputReader := input.Reader()
+	inputReader := input.ReadSetter()
 
 	if inputReader == nil {
 		s.game.manager.Logger().Error("InputReader was unexpectedly nil")
@@ -372,10 +372,10 @@ func (s *state) copyPlayerState(input PlayerState) MutablePlayerState {
 	return output
 }
 
-func (s *state) copyGameState(input SubState) MutableSubState {
+func (s *state) copyGameState(input MutableSubState) MutableSubState {
 	output := s.game.manager.delegate.GameStateConstructor()
 
-	inputReader := input.Reader()
+	inputReader := input.ReadSetter()
 
 	if inputReader == nil {
 		s.game.manager.Logger().Error("InputReader was unexpectedly nil")

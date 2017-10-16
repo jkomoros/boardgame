@@ -292,7 +292,7 @@ func TestSecretMoveComponentSized(t *testing.T) {
 
 }
 
-func secretMoveTestHelper(t *testing.T, from Stack, to Stack, description string) {
+func secretMoveTestHelper(t *testing.T, from MutableStack, to MutableStack, description string) {
 	lastIds := from.Ids()
 	lastIdsSeen := from.IdsLastSeen()
 
@@ -391,12 +391,12 @@ func TestMoveComponent(t *testing.T) {
 		t.Error("sStackMaxLen was not initalized like expected. Got", sStackMaxLen.indexes)
 	}
 
-	sStackOtherState := sStack.copy()
+	sStackOtherState := sStack.mutableCopy()
 	sStackOtherState.setState(&state{})
 
 	tests := []struct {
-		source                 Stack
-		destination            Stack
+		source                 MutableStack
+		destination            MutableStack
 		componentIndex         int
 		resolvedComponentIndex int
 		slotIndex              int
@@ -527,14 +527,14 @@ func TestMoveComponent(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		var source Stack
-		var destination Stack
+		var source MutableStack
+		var destination MutableStack
 
 		switch s := test.source.(type) {
 		case *growableStack:
-			source = s.copy()
+			source = s.mutableCopy()
 		case *sizedStack:
-			source = s.copy()
+			source = s.mutableCopy()
 		}
 
 		//Some tests deliberately want to make sure that copies within same source and dest aren't allowed
@@ -544,9 +544,9 @@ func TestMoveComponent(t *testing.T) {
 
 			switch s := test.destination.(type) {
 			case *growableStack:
-				destination = s.copy()
+				destination = s.mutableCopy()
 			case *sizedStack:
-				destination = s.copy()
+				destination = s.mutableCopy()
 			}
 		}
 
@@ -612,7 +612,7 @@ func TestSwapComponents(t *testing.T) {
 
 }
 
-func swapComponentsTests(stack Stack, t *testing.T) {
+func swapComponentsTests(stack MutableStack, t *testing.T) {
 
 	zero := stack.ComponentAt(0)
 	one := stack.ComponentAt(1)

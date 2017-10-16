@@ -40,14 +40,14 @@ func NewDeck() *Deck {
 //if you aren't using the auto-inflating struct tags to configure your stacks.
 //The returned stack will allow up to maxLen items to be inserted. If you
 //don't want to set a maxLen on the stack (you often don't) pass 0 for maxLen.
-func (d *Deck) NewStack(maxLen int) Stack {
+func (d *Deck) NewStack(maxLen int) MutableStack {
 	return newGrowableStack(d, maxLen)
 }
 
 //NewSizedStack returns a new SizedStack (a stack whose FixedSize() will
 //return true). Refer to the Stack interface documentation for more about the
 //difference.
-func (d *Deck) NewSizedStack(size int) Stack {
+func (d *Deck) NewSizedStack(size int) MutableStack {
 	return newSizedStack(d, size)
 }
 

@@ -71,12 +71,13 @@ type PropertyReadSetter interface {
 	SetBoolSliceProp(name string, value []bool) error
 	SetStringSliceProp(name string, value []string) error
 	SetPlayerIndexSliceProp(name string, value []PlayerIndex) error
-	SetStackProp(name string, value Stack) error
+	SetMutableStackProp(name string, value MutableStack) error
 	SetTimerProp(name string, value Timer) error
 
 	//For interface types the setter also wants to give access to the mutable
 	//underlying value so it can be mutated in place.
 	MutableEnumProp(name string) (enum.MutableVal, error)
+	MutableStackProp(name string) (MutableStack, error)
 
 	//SetProp sets the property with the given name. If the value does not
 	//match the underlying slot type, it should return an error. If you know
@@ -273,7 +274,7 @@ func (d *defaultReader) propsImpl() (map[string]PropertyType, error) {
 					pType = TypeEnum
 				} else if strings.Contains(interfaceType, "enum.Val") {
 					pType = TypeEnum
-				} else if strings.Contains(interfaceType, "Stack") {
+				} else if strings.Contains(interfaceType, "MutableStack") {
 					pType = TypeStack
 				} else if strings.Contains(interfaceType, "Timer") {
 					pType = TypeTimer
@@ -752,7 +753,25 @@ func (d *defaultReader) SetPlayerIndexSliceProp(name string, val []PlayerIndex) 
 
 }
 
-func (d *defaultReader) SetStackProp(name string, val Stack) (err error) {
+func (d *defaultReader) MutableStackProp(name string) (MutableStack, error) {
+	//Verify that this seems legal.
+	props := d.Props()
+
+	if props[name] != TypeStack {
+		return nil, errors.New("That property is not a Stack: " + name)
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+	field := s.FieldByName(name)
+	if field.IsNil() {
+		//This isn't an error; it's just that we shouldn't dereference it.
+		return nil, nil
+	}
+	result := field.Interface().(MutableStack)
+	return result, nil
+}
+
+func (d *defaultReader) SetMutableStackProp(name string, val MutableStack) (err error) {
 	props := d.Props()
 
 	if props[name] != TypeStack {
@@ -1250,7 +1269,27 @@ func (g *genericReader) SetPlayerIndexSliceProp(name string, val []PlayerIndex) 
 	return nil
 }
 
-func (g *genericReader) SetStackProp(name string, val Stack) error {
+func (g *genericReader) MutableStackProp(name string) (MutableStack, error) {
+	val, err := g.Prop(name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	propType, ok := g.types[name]
+
+	if !ok {
+		return nil, errors.New("Unexpected error: Missing Prop type for " + name)
+	}
+
+	if propType != TypeStack {
+		return nil, errors.New(name + "was expected to be TypeStack but was not")
+	}
+
+	return val.(MutableStack), nil
+}
+
+func (g *genericReader) SetMutableStackProp(name string, val MutableStack) error {
 	propType, ok := g.types[name]
 
 	if ok && propType != TypeStack {

@@ -168,7 +168,7 @@ func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) e
 
 	for propName, config := range r.autoStackFields {
 
-		stack, err := readSetter.StackProp(propName)
+		stack, err := readSetter.MutableStackProp(propName)
 		if stack != nil {
 			//Guess it was already set!
 			continue
@@ -189,7 +189,7 @@ func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) e
 			stack = config.deck.NewStack(config.size)
 		}
 
-		if err := readSetter.SetStackProp(propName, stack); err != nil {
+		if err := readSetter.SetMutableStackProp(propName, stack); err != nil {
 			return errors.New("Couldn't set " + propName + " to stack: " + err.Error())
 		}
 	}
@@ -336,7 +336,7 @@ func setReaderStatePtr(reader PropertyReader, st State) error {
 //copyReader assumes input and output container are the same "shape" (that is,
 //outputContainer can have all of input's properties set). It goes through
 //each property, copies it if necessary, and outputs on PropertyReadSetter.
-func copyReader(input PropertyReader, outputContainer PropertyReadSetter) error {
+func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) error {
 
 	for propName, propType := range input.Props() {
 		switch propType {
@@ -422,11 +422,11 @@ func copyReader(input PropertyReader, outputContainer PropertyReadSetter) error 
 				return errors.New(propName + " could not be set on output: " + err.Error())
 			}
 		case TypeStack:
-			stackVal, err := input.StackProp(propName)
+			stackVal, err := input.MutableStackProp(propName)
 			if err != nil {
 				return errors.New(propName + " did not return a stack as expected: " + err.Error())
 			}
-			err = outputContainer.SetStackProp(propName, stackVal.copy())
+			err = outputContainer.SetMutableStackProp(propName, stackVal.mutableCopy())
 			if err != nil {
 				return errors.New(propName + " could not be set on output: " + err.Error())
 			}

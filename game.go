@@ -409,7 +409,14 @@ func (g *Game) SetUp(numPlayers int, agentNames []string) error {
 			if stack.SlotsRemaining() < 1 {
 				return baseErr.WithError("Distributing components failed for deck " + name + ":" + strconv.Itoa(i) + ": the stack the delegate returned had no more slots.")
 			}
-			stack.insertComponentAt(stack.effectiveIndex(NextSlotIndex), component)
+
+			mutableStack, ok := stack.(MutableStack)
+
+			if !ok {
+				return baseErr.WithError("Couldn't get a mutable version of stack")
+			}
+
+			mutableStack.insertComponentAt(stack.effectiveIndex(NextSlotIndex), component)
 		}
 	}
 

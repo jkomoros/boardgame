@@ -9,7 +9,7 @@ type propertyReaderTestStruct struct {
 	A int
 	B bool
 	C string
-	S Stack
+	S MutableStack
 	P PlayerIndex
 	//d should be excluded since it is lowercase
 	d string
