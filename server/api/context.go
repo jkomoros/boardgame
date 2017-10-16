@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"strconv"
 )
@@ -439,14 +438,13 @@ func (s *Server) getMoveFromForm(c *gin.Context, game *boardgame.Game) (boardgam
 				move.ReadSetter().SetProp(field.Name, false)
 			}
 		case boardgame.TypeEnum:
-			eVar, err := move.ReadSetter().EnumProp(field.Name)
+			eVar, err := move.ReadSetter().MutableEnumProp(field.Name)
 			if err != nil {
 				return nil, errors.New("Invalid field name: " + err.Error())
 			}
 			//SetStringValue will also try converting to an int.
 
-			//TODO: we're cheating here by hard-casting this up.
-			if err := eVar.(enum.MutableVal).SetStringValue(rawVal); err != nil {
+			if err := eVar.SetStringValue(rawVal); err != nil {
 				return nil, errors.New("Couldn't set field value: " + err.Error())
 			}
 		case boardgame.TypeIllegal:
