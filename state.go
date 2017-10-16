@@ -199,10 +199,15 @@ type state struct {
 	playerStates           []ConfigurablePlayerState
 	computedValues         *computedProperties
 	dynamicComponentValues map[string][]ConfigurableSubState
-	secretMoveCount        map[string][]int
-	sanitized              bool
-	version                int
-	game                   *Game
+	//We hang onto these because otherwise we'd have to create them on the fly
+	//whenever MutablePlayerStates() and MutableDynamicComponentValues are
+	//called. They're populated in state.finish().
+	mutablePlayerStates           []MutablePlayerState
+	mutableDynamicComponentValues map[string][]MutableSubState
+	secretMoveCount               map[string][]int
+	sanitized                     bool
+	version                       int
+	game                          *Game
 	//Set to true while computed is being calculating computed. Primarily so
 	//if you marshal JSON in that time we know to just elide computed.
 	calculatingComputed bool
@@ -222,26 +227,11 @@ func (s *state) MutableGameState() MutableSubState {
 }
 
 func (s *state) MutablePlayerStates() []MutablePlayerState {
-	result := make([]MutablePlayerState, len(s.playerStates))
-	for i := 0; i < len(s.playerStates); i++ {
-		result[i] = s.playerStates[i]
-	}
-	return result
+	return s.mutablePlayerStates
 }
 
 func (s *state) MutableDynamicComponentValues() map[string][]MutableSubState {
-
-	result := make(map[string][]MutableSubState)
-
-	for key, arr := range s.dynamicComponentValues {
-		resultArr := make([]MutableSubState, len(arr))
-		for i := 0; i < len(arr); i++ {
-			resultArr[i] = arr[i]
-		}
-		result[key] = resultArr
-	}
-
-	return result
+	return s.mutableDynamicComponentValues
 }
 
 func (s *state) Game() *Game {
@@ -321,8 +311,9 @@ func (s *state) copy(sanitized bool) *state {
 	return result
 }
 
-//setStateForSubStates goes through each subState on s and calls SetState on
-//it.
+//finish should be called when the state has all of its sub-states set. It
+//goes through each subState on s and calls SetState on it, and also sets the
+//mutable*States once.
 func (s *state) setStateForSubStates() {
 	s.gameState.SetState(s)
 	for i := 0; i < len(s.playerStates); i++ {
@@ -333,6 +324,25 @@ func (s *state) setStateForSubStates() {
 			component.SetState(s)
 		}
 	}
+
+	mutablePlayerStates := make([]MutablePlayerState, len(s.playerStates))
+	for i := 0; i < len(s.playerStates); i++ {
+		mutablePlayerStates[i] = s.playerStates[i]
+	}
+
+	s.mutablePlayerStates = mutablePlayerStates
+
+	dynamicComponentValues := make(map[string][]MutableSubState)
+
+	for key, arr := range s.dynamicComponentValues {
+		resultArr := make([]MutableSubState, len(arr))
+		for i := 0; i < len(arr); i++ {
+			resultArr[i] = arr[i]
+		}
+		dynamicComponentValues[key] = resultArr
+	}
+
+	s.mutableDynamicComponentValues = dynamicComponentValues
 }
 
 func (s *state) copyDynamicComponentValues(input MutableSubState, deckName string) ConfigurableSubState {
