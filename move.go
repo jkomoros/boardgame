@@ -117,7 +117,6 @@ type Move interface {
 	//token in position 3".
 	Description() string
 
-	ReadSetter
 	ReadSetConfigurer
 }
 

@@ -88,6 +88,10 @@ type testAutoEnumMove struct {
 	A    enum.MutableVal `enum:"color"`
 }
 
+func (t *testAutoEnumMove) Reader() PropertyReader {
+	return getDefaultReader(t)
+}
+
 func (t *testAutoEnumMove) ReadSetter() PropertyReadSetter {
 	return getDefaultReadSetter(t)
 }

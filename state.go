@@ -594,37 +594,42 @@ type Reader interface {
 //ReadSetter is the interface that any object that can return a
 //PropertyReadSetter implements.
 type ReadSetter interface {
+	Reader
 	ReadSetter() PropertyReadSetter
 }
 
 //ReadSetCongigurer is the interface that any object that can return a
 //PropertyReadSetConfigurer implements.z
 type ReadSetConfigurer interface {
+	ReadSetter
 	ReadSetConfigurer() PropertyReadSetConfigurer
 }
 
-//SubState is the interface that all sub-state objects (PlayerStates.
-//GameStates, and DynamicComponentValues) implement.
-type SubState interface {
-	Reader
+type SetStater interface {
 	//SetState is called to give the SubState object a pointer back to the
 	//State that contains it. You can implement it yourself, or anonymously
 	//embed BaseSubState to get it for free.
 	SetState(state State)
 }
 
+//SubState is the interface that all sub-state objects (PlayerStates.
+//GameStates, and DynamicComponentValues) implement.
+type SubState interface {
+	SetStater
+	Reader
+}
+
 //MutableSubState is the interface that Mutable{Game,Player}State's
 //implement.
 type MutableSubState interface {
-	SubState
+	SetStater
 	ReadSetter
 }
 
 //ConfigurableSubState is the interface that Configurable{Game,Player}State's
 //implement.
 type ConfigurableSubState interface {
-	SubState
-	ReadSetter
+	SetStater
 	ReadSetConfigurer
 }
 

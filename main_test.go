@@ -203,6 +203,10 @@ var testMoveInvalidPlayerIndexConfig = MoveTypeConfig{
 	IsFixUp: true,
 }
 
+func (t *testMoveInvalidPlayerIndex) Reader() PropertyReader {
+	return getDefaultReader(t)
+}
+
 func (t *testMoveInvalidPlayerIndex) ReadSetter() PropertyReadSetter {
 	return getDefaultReadSetter(t)
 }
@@ -243,6 +247,10 @@ var testMoveIncrementCardInHandConfig = MoveTypeConfig{
 
 func (t *testMoveIncrementCardInHand) DefaultsForState(state State) {
 	t.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
+}
+
+func (t *testMoveIncrementCardInHand) Reader() PropertyReader {
+	return getDefaultReader(t)
 }
 
 func (t *testMoveIncrementCardInHand) ReadSetter() PropertyReadSetter {
@@ -322,6 +330,10 @@ func (t *testMoveDrawCard) DefaultsForState(state State) {
 	t.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
 }
 
+func (t *testMoveDrawCard) Reader() PropertyReader {
+	return getDefaultReader(t)
+}
+
 func (t *testMoveDrawCard) ReadSetter() PropertyReadSetter {
 	return getDefaultReadSetter(t)
 }
@@ -377,6 +389,10 @@ var testMoveAdvanceCurrentPlayerConfig = MoveTypeConfig{
 		return new(testMoveAdvanceCurentPlayer)
 	},
 	IsFixUp: true,
+}
+
+func (t *testMoveAdvanceCurentPlayer) Reader() PropertyReader {
+	return getDefaultReader(t)
 }
 
 func (t *testMoveAdvanceCurentPlayer) ReadSetter() PropertyReadSetter {
@@ -448,6 +464,10 @@ func (t *testMove) DefaultsForState(state State) {
 	t.ScoreIncrement = 3
 }
 
+func (t *testMove) Reader() PropertyReader {
+	return getDefaultReader(t)
+}
+
 func (t *testMove) ReadSetter() PropertyReadSetter {
 	return getDefaultReadSetter(t)
 }
@@ -500,6 +520,10 @@ var testAlwaysLegalMoveConfig = MoveTypeConfig{
 	IsFixUp: true,
 }
 
+func (t *testAlwaysLegalMove) Reader() PropertyReader {
+	return getDefaultReader(t)
+}
+
 func (t *testAlwaysLegalMove) ReadSetter() PropertyReadSetter {
 	return getDefaultReadSetter(t)
 }
@@ -524,6 +548,10 @@ func (t *testAlwaysLegalMove) Apply(state MutableState) error {
 type illegalMove struct {
 	baseMove
 	Stack Stack
+}
+
+func (i *illegalMove) Reader() PropertyReader {
+	return getDefaultReader(i)
 }
 
 func (i *illegalMove) ReadSetter() PropertyReadSetter {

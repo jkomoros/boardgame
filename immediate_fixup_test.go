@@ -42,6 +42,10 @@ func (m *moveTestImmediatePlayerMove) Apply(state MutableState) error {
 	return nil
 }
 
+func (m *moveTestImmediatePlayerMove) Reader() PropertyReader {
+	return getDefaultReader(m)
+}
+
 func (m *moveTestImmediatePlayerMove) ReadSetter() PropertyReadSetter {
 	return getDefaultReadSetter(m)
 }
@@ -87,6 +91,10 @@ func (m *moveImmediateFixUpOne) Apply(state MutableState) error {
 	return nil
 }
 
+func (m *moveImmediateFixUpOne) Reader() PropertyReader {
+	return getDefaultReader(m)
+}
+
 func (m *moveImmediateFixUpOne) ReadSetter() PropertyReadSetter {
 	return getDefaultReadSetter(m)
 }
@@ -114,6 +122,10 @@ func (m *moveImmediateFixUpTWo) Apply(state MutableState) error {
 	p.Score++
 
 	return nil
+}
+
+func (m *moveImmediateFixUpTWo) Reader() PropertyReader {
+	return getDefaultReader(m)
 }
 
 func (m *moveImmediateFixUpTWo) ReadSetter() PropertyReadSetter {
