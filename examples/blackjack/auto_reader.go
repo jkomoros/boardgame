@@ -103,19 +103,19 @@ func (m *__MoveShuffleDiscardToDrawReader) SetProp(name string, value interface{
 		if !ok {
 			return errors.New("Provided value was not of type enum.MutableVal")
 		}
-		return m.SetMutableEnumProp(name, val)
+		return m.ConfigureMutableEnumProp(name, val)
 	case boardgame.TypeStack:
 		val, ok := value.(boardgame.MutableStack)
 		if !ok {
 			return errors.New("Provided value was not of type boardgame.MutableStack")
 		}
-		return m.SetMutableStackProp(name, val)
+		return m.ConfigureMutableStackProp(name, val)
 	case boardgame.TypeTimer:
 		val, ok := value.(boardgame.MutableTimer)
 		if !ok {
 			return errors.New("Provided value was not of type boardgame.MutableTimer")
 		}
-		return m.SetMutableTimerProp(name, val)
+		return m.ConfigureMutableTimerProp(name, val)
 	case boardgame.TypePlayerIndex:
 		val, ok := value.(boardgame.PlayerIndex)
 		if !ok {
@@ -176,7 +176,7 @@ func (m *__MoveShuffleDiscardToDrawReader) EnumProp(name string) (enum.Val, erro
 
 }
 
-func (m *__MoveShuffleDiscardToDrawReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
+func (m *__MoveShuffleDiscardToDrawReader) ConfigureMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
 
@@ -242,7 +242,7 @@ func (m *__MoveShuffleDiscardToDrawReader) StackProp(name string) (boardgame.Sta
 
 }
 
-func (m *__MoveShuffleDiscardToDrawReader) SetMutableStackProp(name string, value boardgame.MutableStack) error {
+func (m *__MoveShuffleDiscardToDrawReader) ConfigureMutableStackProp(name string, value boardgame.MutableStack) error {
 
 	return errors.New("No such MutableStack prop: " + name)
 
@@ -284,7 +284,7 @@ func (m *__MoveShuffleDiscardToDrawReader) TimerProp(name string) (boardgame.Tim
 
 }
 
-func (m *__MoveShuffleDiscardToDrawReader) SetMutableTimerProp(name string, value boardgame.MutableTimer) error {
+func (m *__MoveShuffleDiscardToDrawReader) ConfigureMutableTimerProp(name string, value boardgame.MutableTimer) error {
 
 	return errors.New("No such MutableTimer prop: " + name)
 
@@ -387,19 +387,19 @@ func (m *__MoveFinishTurnReader) SetProp(name string, value interface{}) error {
 		if !ok {
 			return errors.New("Provided value was not of type enum.MutableVal")
 		}
-		return m.SetMutableEnumProp(name, val)
+		return m.ConfigureMutableEnumProp(name, val)
 	case boardgame.TypeStack:
 		val, ok := value.(boardgame.MutableStack)
 		if !ok {
 			return errors.New("Provided value was not of type boardgame.MutableStack")
 		}
-		return m.SetMutableStackProp(name, val)
+		return m.ConfigureMutableStackProp(name, val)
 	case boardgame.TypeTimer:
 		val, ok := value.(boardgame.MutableTimer)
 		if !ok {
 			return errors.New("Provided value was not of type boardgame.MutableTimer")
 		}
-		return m.SetMutableTimerProp(name, val)
+		return m.ConfigureMutableTimerProp(name, val)
 	case boardgame.TypePlayerIndex:
 		val, ok := value.(boardgame.PlayerIndex)
 		if !ok {
@@ -460,7 +460,7 @@ func (m *__MoveFinishTurnReader) EnumProp(name string) (enum.Val, error) {
 
 }
 
-func (m *__MoveFinishTurnReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
+func (m *__MoveFinishTurnReader) ConfigureMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
 
@@ -526,7 +526,7 @@ func (m *__MoveFinishTurnReader) StackProp(name string) (boardgame.Stack, error)
 
 }
 
-func (m *__MoveFinishTurnReader) SetMutableStackProp(name string, value boardgame.MutableStack) error {
+func (m *__MoveFinishTurnReader) ConfigureMutableStackProp(name string, value boardgame.MutableStack) error {
 
 	return errors.New("No such MutableStack prop: " + name)
 
@@ -568,7 +568,7 @@ func (m *__MoveFinishTurnReader) TimerProp(name string) (boardgame.Timer, error)
 
 }
 
-func (m *__MoveFinishTurnReader) SetMutableTimerProp(name string, value boardgame.MutableTimer) error {
+func (m *__MoveFinishTurnReader) ConfigureMutableTimerProp(name string, value boardgame.MutableTimer) error {
 
 	return errors.New("No such MutableTimer prop: " + name)
 
@@ -674,19 +674,19 @@ func (m *__MoveDealInitialCardReader) SetProp(name string, value interface{}) er
 		if !ok {
 			return errors.New("Provided value was not of type enum.MutableVal")
 		}
-		return m.SetMutableEnumProp(name, val)
+		return m.ConfigureMutableEnumProp(name, val)
 	case boardgame.TypeStack:
 		val, ok := value.(boardgame.MutableStack)
 		if !ok {
 			return errors.New("Provided value was not of type boardgame.MutableStack")
 		}
-		return m.SetMutableStackProp(name, val)
+		return m.ConfigureMutableStackProp(name, val)
 	case boardgame.TypeTimer:
 		val, ok := value.(boardgame.MutableTimer)
 		if !ok {
 			return errors.New("Provided value was not of type boardgame.MutableTimer")
 		}
-		return m.SetMutableTimerProp(name, val)
+		return m.ConfigureMutableTimerProp(name, val)
 	case boardgame.TypePlayerIndex:
 		val, ok := value.(boardgame.PlayerIndex)
 		if !ok {
@@ -760,7 +760,7 @@ func (m *__MoveDealInitialCardReader) EnumProp(name string) (enum.Val, error) {
 
 }
 
-func (m *__MoveDealInitialCardReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
+func (m *__MoveDealInitialCardReader) ConfigureMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
 
@@ -839,7 +839,7 @@ func (m *__MoveDealInitialCardReader) StackProp(name string) (boardgame.Stack, e
 
 }
 
-func (m *__MoveDealInitialCardReader) SetMutableStackProp(name string, value boardgame.MutableStack) error {
+func (m *__MoveDealInitialCardReader) ConfigureMutableStackProp(name string, value boardgame.MutableStack) error {
 
 	return errors.New("No such MutableStack prop: " + name)
 
@@ -881,7 +881,7 @@ func (m *__MoveDealInitialCardReader) TimerProp(name string) (boardgame.Timer, e
 
 }
 
-func (m *__MoveDealInitialCardReader) SetMutableTimerProp(name string, value boardgame.MutableTimer) error {
+func (m *__MoveDealInitialCardReader) ConfigureMutableTimerProp(name string, value boardgame.MutableTimer) error {
 
 	return errors.New("No such MutableTimer prop: " + name)
 
@@ -986,19 +986,19 @@ func (m *__MoveRevealHiddenCardReader) SetProp(name string, value interface{}) e
 		if !ok {
 			return errors.New("Provided value was not of type enum.MutableVal")
 		}
-		return m.SetMutableEnumProp(name, val)
+		return m.ConfigureMutableEnumProp(name, val)
 	case boardgame.TypeStack:
 		val, ok := value.(boardgame.MutableStack)
 		if !ok {
 			return errors.New("Provided value was not of type boardgame.MutableStack")
 		}
-		return m.SetMutableStackProp(name, val)
+		return m.ConfigureMutableStackProp(name, val)
 	case boardgame.TypeTimer:
 		val, ok := value.(boardgame.MutableTimer)
 		if !ok {
 			return errors.New("Provided value was not of type boardgame.MutableTimer")
 		}
-		return m.SetMutableTimerProp(name, val)
+		return m.ConfigureMutableTimerProp(name, val)
 	case boardgame.TypePlayerIndex:
 		val, ok := value.(boardgame.PlayerIndex)
 		if !ok {
@@ -1059,7 +1059,7 @@ func (m *__MoveRevealHiddenCardReader) EnumProp(name string) (enum.Val, error) {
 
 }
 
-func (m *__MoveRevealHiddenCardReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
+func (m *__MoveRevealHiddenCardReader) ConfigureMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
 
@@ -1138,7 +1138,7 @@ func (m *__MoveRevealHiddenCardReader) StackProp(name string) (boardgame.Stack, 
 
 }
 
-func (m *__MoveRevealHiddenCardReader) SetMutableStackProp(name string, value boardgame.MutableStack) error {
+func (m *__MoveRevealHiddenCardReader) ConfigureMutableStackProp(name string, value boardgame.MutableStack) error {
 
 	return errors.New("No such MutableStack prop: " + name)
 
@@ -1180,7 +1180,7 @@ func (m *__MoveRevealHiddenCardReader) TimerProp(name string) (boardgame.Timer, 
 
 }
 
-func (m *__MoveRevealHiddenCardReader) SetMutableTimerProp(name string, value boardgame.MutableTimer) error {
+func (m *__MoveRevealHiddenCardReader) ConfigureMutableTimerProp(name string, value boardgame.MutableTimer) error {
 
 	return errors.New("No such MutableTimer prop: " + name)
 
@@ -1285,19 +1285,19 @@ func (m *__MoveCurrentPlayerHitReader) SetProp(name string, value interface{}) e
 		if !ok {
 			return errors.New("Provided value was not of type enum.MutableVal")
 		}
-		return m.SetMutableEnumProp(name, val)
+		return m.ConfigureMutableEnumProp(name, val)
 	case boardgame.TypeStack:
 		val, ok := value.(boardgame.MutableStack)
 		if !ok {
 			return errors.New("Provided value was not of type boardgame.MutableStack")
 		}
-		return m.SetMutableStackProp(name, val)
+		return m.ConfigureMutableStackProp(name, val)
 	case boardgame.TypeTimer:
 		val, ok := value.(boardgame.MutableTimer)
 		if !ok {
 			return errors.New("Provided value was not of type boardgame.MutableTimer")
 		}
-		return m.SetMutableTimerProp(name, val)
+		return m.ConfigureMutableTimerProp(name, val)
 	case boardgame.TypePlayerIndex:
 		val, ok := value.(boardgame.PlayerIndex)
 		if !ok {
@@ -1358,7 +1358,7 @@ func (m *__MoveCurrentPlayerHitReader) EnumProp(name string) (enum.Val, error) {
 
 }
 
-func (m *__MoveCurrentPlayerHitReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
+func (m *__MoveCurrentPlayerHitReader) ConfigureMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
 
@@ -1437,7 +1437,7 @@ func (m *__MoveCurrentPlayerHitReader) StackProp(name string) (boardgame.Stack, 
 
 }
 
-func (m *__MoveCurrentPlayerHitReader) SetMutableStackProp(name string, value boardgame.MutableStack) error {
+func (m *__MoveCurrentPlayerHitReader) ConfigureMutableStackProp(name string, value boardgame.MutableStack) error {
 
 	return errors.New("No such MutableStack prop: " + name)
 
@@ -1479,7 +1479,7 @@ func (m *__MoveCurrentPlayerHitReader) TimerProp(name string) (boardgame.Timer, 
 
 }
 
-func (m *__MoveCurrentPlayerHitReader) SetMutableTimerProp(name string, value boardgame.MutableTimer) error {
+func (m *__MoveCurrentPlayerHitReader) ConfigureMutableTimerProp(name string, value boardgame.MutableTimer) error {
 
 	return errors.New("No such MutableTimer prop: " + name)
 
@@ -1584,19 +1584,19 @@ func (m *__MoveCurrentPlayerStandReader) SetProp(name string, value interface{})
 		if !ok {
 			return errors.New("Provided value was not of type enum.MutableVal")
 		}
-		return m.SetMutableEnumProp(name, val)
+		return m.ConfigureMutableEnumProp(name, val)
 	case boardgame.TypeStack:
 		val, ok := value.(boardgame.MutableStack)
 		if !ok {
 			return errors.New("Provided value was not of type boardgame.MutableStack")
 		}
-		return m.SetMutableStackProp(name, val)
+		return m.ConfigureMutableStackProp(name, val)
 	case boardgame.TypeTimer:
 		val, ok := value.(boardgame.MutableTimer)
 		if !ok {
 			return errors.New("Provided value was not of type boardgame.MutableTimer")
 		}
-		return m.SetMutableTimerProp(name, val)
+		return m.ConfigureMutableTimerProp(name, val)
 	case boardgame.TypePlayerIndex:
 		val, ok := value.(boardgame.PlayerIndex)
 		if !ok {
@@ -1657,7 +1657,7 @@ func (m *__MoveCurrentPlayerStandReader) EnumProp(name string) (enum.Val, error)
 
 }
 
-func (m *__MoveCurrentPlayerStandReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
+func (m *__MoveCurrentPlayerStandReader) ConfigureMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
 
@@ -1736,7 +1736,7 @@ func (m *__MoveCurrentPlayerStandReader) StackProp(name string) (boardgame.Stack
 
 }
 
-func (m *__MoveCurrentPlayerStandReader) SetMutableStackProp(name string, value boardgame.MutableStack) error {
+func (m *__MoveCurrentPlayerStandReader) ConfigureMutableStackProp(name string, value boardgame.MutableStack) error {
 
 	return errors.New("No such MutableStack prop: " + name)
 
@@ -1778,7 +1778,7 @@ func (m *__MoveCurrentPlayerStandReader) TimerProp(name string) (boardgame.Timer
 
 }
 
-func (m *__MoveCurrentPlayerStandReader) SetMutableTimerProp(name string, value boardgame.MutableTimer) error {
+func (m *__MoveCurrentPlayerStandReader) ConfigureMutableTimerProp(name string, value boardgame.MutableTimer) error {
 
 	return errors.New("No such MutableTimer prop: " + name)
 
@@ -1886,19 +1886,19 @@ func (g *__gameStateReader) SetProp(name string, value interface{}) error {
 		if !ok {
 			return errors.New("Provided value was not of type enum.MutableVal")
 		}
-		return g.SetMutableEnumProp(name, val)
+		return g.ConfigureMutableEnumProp(name, val)
 	case boardgame.TypeStack:
 		val, ok := value.(boardgame.MutableStack)
 		if !ok {
 			return errors.New("Provided value was not of type boardgame.MutableStack")
 		}
-		return g.SetMutableStackProp(name, val)
+		return g.ConfigureMutableStackProp(name, val)
 	case boardgame.TypeTimer:
 		val, ok := value.(boardgame.MutableTimer)
 		if !ok {
 			return errors.New("Provided value was not of type boardgame.MutableTimer")
 		}
-		return g.SetMutableTimerProp(name, val)
+		return g.ConfigureMutableTimerProp(name, val)
 	case boardgame.TypePlayerIndex:
 		val, ok := value.(boardgame.PlayerIndex)
 		if !ok {
@@ -1959,7 +1959,7 @@ func (g *__gameStateReader) EnumProp(name string) (enum.Val, error) {
 
 }
 
-func (g *__gameStateReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
+func (g *__gameStateReader) ConfigureMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
 
@@ -2048,7 +2048,7 @@ func (g *__gameStateReader) StackProp(name string) (boardgame.Stack, error) {
 
 }
 
-func (g *__gameStateReader) SetMutableStackProp(name string, value boardgame.MutableStack) error {
+func (g *__gameStateReader) ConfigureMutableStackProp(name string, value boardgame.MutableStack) error {
 
 	switch name {
 	case "DiscardStack":
@@ -2113,7 +2113,7 @@ func (g *__gameStateReader) TimerProp(name string) (boardgame.Timer, error) {
 
 }
 
-func (g *__gameStateReader) SetMutableTimerProp(name string, value boardgame.MutableTimer) error {
+func (g *__gameStateReader) ConfigureMutableTimerProp(name string, value boardgame.MutableTimer) error {
 
 	return errors.New("No such MutableTimer prop: " + name)
 
@@ -2226,19 +2226,19 @@ func (p *__playerStateReader) SetProp(name string, value interface{}) error {
 		if !ok {
 			return errors.New("Provided value was not of type enum.MutableVal")
 		}
-		return p.SetMutableEnumProp(name, val)
+		return p.ConfigureMutableEnumProp(name, val)
 	case boardgame.TypeStack:
 		val, ok := value.(boardgame.MutableStack)
 		if !ok {
 			return errors.New("Provided value was not of type boardgame.MutableStack")
 		}
-		return p.SetMutableStackProp(name, val)
+		return p.ConfigureMutableStackProp(name, val)
 	case boardgame.TypeTimer:
 		val, ok := value.(boardgame.MutableTimer)
 		if !ok {
 			return errors.New("Provided value was not of type boardgame.MutableTimer")
 		}
-		return p.SetMutableTimerProp(name, val)
+		return p.ConfigureMutableTimerProp(name, val)
 	case boardgame.TypePlayerIndex:
 		val, ok := value.(boardgame.PlayerIndex)
 		if !ok {
@@ -2322,7 +2322,7 @@ func (p *__playerStateReader) EnumProp(name string) (enum.Val, error) {
 
 }
 
-func (p *__playerStateReader) SetMutableEnumProp(name string, value enum.MutableVal) error {
+func (p *__playerStateReader) ConfigureMutableEnumProp(name string, value enum.MutableVal) error {
 
 	return errors.New("No such MutableEnum prop: " + name)
 
@@ -2396,7 +2396,7 @@ func (p *__playerStateReader) StackProp(name string) (boardgame.Stack, error) {
 
 }
 
-func (p *__playerStateReader) SetMutableStackProp(name string, value boardgame.MutableStack) error {
+func (p *__playerStateReader) ConfigureMutableStackProp(name string, value boardgame.MutableStack) error {
 
 	switch name {
 	case "HiddenHand":
@@ -2456,7 +2456,7 @@ func (p *__playerStateReader) TimerProp(name string) (boardgame.Timer, error) {
 
 }
 
-func (p *__playerStateReader) SetMutableTimerProp(name string, value boardgame.MutableTimer) error {
+func (p *__playerStateReader) ConfigureMutableTimerProp(name string, value boardgame.MutableTimer) error {
 
 	return errors.New("No such MutableTimer prop: " + name)
 

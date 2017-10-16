@@ -189,7 +189,7 @@ func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) e
 			stack = config.deck.NewStack(config.size)
 		}
 
-		if err := readSetter.SetMutableStackProp(propName, stack); err != nil {
+		if err := readSetter.ConfigureMutableStackProp(propName, stack); err != nil {
 			return errors.New("Couldn't set " + propName + " to stack: " + err.Error())
 		}
 	}
@@ -206,7 +206,7 @@ func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) e
 		if enum == nil {
 			return errors.New("The enum for " + propName + " was unexpectedly nil")
 		}
-		if err := readSetter.SetMutableEnumProp(propName, enum.NewMutableVal()); err != nil {
+		if err := readSetter.ConfigureMutableEnumProp(propName, enum.NewMutableVal()); err != nil {
 			return errors.New("Couldn't set " + propName + " to NewDefaultVal: " + err.Error())
 		}
 	}
@@ -215,7 +215,7 @@ func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) e
 		switch propType {
 		case TypeTimer:
 			timer := NewTimer()
-			if err := readSetter.SetMutableTimerProp(propName, timer); err != nil {
+			if err := readSetter.ConfigureMutableTimerProp(propName, timer); err != nil {
 				return errors.New("Couldn't set " + propName + " to a new timer: " + err.Error())
 			}
 		}
@@ -381,7 +381,7 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 			if err != nil {
 				return errors.New(propName + " did not return an EnumVal as expected: " + err.Error())
 			}
-			err = outputContainer.SetMutableEnumProp(propName, enumConst.MutableCopy())
+			err = outputContainer.ConfigureMutableEnumProp(propName, enumConst.MutableCopy())
 			if err != nil {
 				return errors.New(propName + " could not be set on output: " + err.Error())
 			}
@@ -426,7 +426,7 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 			if err != nil {
 				return errors.New(propName + " did not return a stack as expected: " + err.Error())
 			}
-			err = outputContainer.SetMutableStackProp(propName, stackVal.mutableCopy())
+			err = outputContainer.ConfigureMutableStackProp(propName, stackVal.mutableCopy())
 			if err != nil {
 				return errors.New(propName + " could not be set on output: " + err.Error())
 			}
@@ -435,7 +435,7 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 			if err != nil {
 				return errors.New(propName + " did not return a timer as expected: " + err.Error())
 			}
-			err = outputContainer.SetMutableTimerProp(propName, timerVal.mutableCopy())
+			err = outputContainer.ConfigureMutableTimerProp(propName, timerVal.mutableCopy())
 			if err != nil {
 				return errors.New(propName + " could not be set on output: " + err.Error())
 			}

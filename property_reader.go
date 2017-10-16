@@ -66,13 +66,14 @@ type PropertyReadSetter interface {
 	SetBoolProp(name string, value bool) error
 	SetStringProp(name string, value string) error
 	SetPlayerIndexProp(name string, value PlayerIndex) error
-	SetMutableEnumProp(name string, value enum.MutableVal) error
 	SetIntSliceProp(name string, value []int) error
 	SetBoolSliceProp(name string, value []bool) error
 	SetStringSliceProp(name string, value []string) error
 	SetPlayerIndexSliceProp(name string, value []PlayerIndex) error
-	SetMutableStackProp(name string, value MutableStack) error
-	SetMutableTimerProp(name string, value MutableTimer) error
+
+	ConfigureMutableEnumProp(name string, value enum.MutableVal) error
+	ConfigureMutableStackProp(name string, value MutableStack) error
+	ConfigureMutableTimerProp(name string, value MutableTimer) error
 
 	//For interface types the setter also wants to give access to the mutable
 	//underlying value so it can be mutated in place.
@@ -619,33 +620,6 @@ func (d *defaultReader) MutableEnumProp(name string) (enum.MutableVal, error) {
 	return result, nil
 }
 
-func (d *defaultReader) SetMutableEnumProp(name string, val enum.MutableVal) (err error) {
-	props := d.Props()
-
-	if props[name] != TypeEnum {
-		return errors.New("That property is not a settable enum var")
-	}
-
-	s := reflect.ValueOf(d.i).Elem()
-
-	f := s.FieldByName(name)
-
-	if !f.IsValid() {
-		return errors.New("that name was not available on the struct")
-	}
-
-	defer func() {
-		if e := recover(); e != nil {
-			err = errors.New(fmt.Sprint(e))
-		}
-	}()
-
-	f.Set(reflect.ValueOf(val))
-
-	return nil
-
-}
-
 func (d *defaultReader) SetIntSliceProp(name string, val []int) (err error) {
 	props := d.Props()
 
@@ -772,7 +746,52 @@ func (d *defaultReader) MutableStackProp(name string) (MutableStack, error) {
 	return result, nil
 }
 
-func (d *defaultReader) SetMutableStackProp(name string, val MutableStack) (err error) {
+func (d *defaultReader) MutableTimerProp(name string) (MutableTimer, error) {
+	//Verify that this seems legal.
+	props := d.Props()
+
+	if props[name] != TypeTimer {
+		return nil, errors.New("That property is not a Timer: " + name)
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+	field := s.FieldByName(name)
+	if field.IsNil() {
+		//This isn't an error; it's just that we shouldn't dereference it.
+		return nil, nil
+	}
+	result := field.Interface().(MutableTimer)
+	return result, nil
+}
+
+func (d *defaultReader) ConfigureMutableEnumProp(name string, val enum.MutableVal) (err error) {
+	props := d.Props()
+
+	if props[name] != TypeEnum {
+		return errors.New("That property is not a settable enum var")
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+
+	f := s.FieldByName(name)
+
+	if !f.IsValid() {
+		return errors.New("that name was not available on the struct")
+	}
+
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprint(e))
+		}
+	}()
+
+	f.Set(reflect.ValueOf(val))
+
+	return nil
+
+}
+
+func (d *defaultReader) ConfigureMutableStackProp(name string, val MutableStack) (err error) {
 	props := d.Props()
 
 	if props[name] != TypeStack {
@@ -798,26 +817,7 @@ func (d *defaultReader) SetMutableStackProp(name string, val MutableStack) (err 
 	return nil
 
 }
-
-func (d *defaultReader) MutableTimerProp(name string) (MutableTimer, error) {
-	//Verify that this seems legal.
-	props := d.Props()
-
-	if props[name] != TypeTimer {
-		return nil, errors.New("That property is not a Timer: " + name)
-	}
-
-	s := reflect.ValueOf(d.i).Elem()
-	field := s.FieldByName(name)
-	if field.IsNil() {
-		//This isn't an error; it's just that we shouldn't dereference it.
-		return nil, nil
-	}
-	result := field.Interface().(MutableTimer)
-	return result, nil
-}
-
-func (d *defaultReader) SetMutableTimerProp(name string, val MutableTimer) (err error) {
+func (d *defaultReader) ConfigureMutableTimerProp(name string, val MutableTimer) (err error) {
 	props := d.Props()
 
 	if props[name] != TypeTimer {
@@ -1223,19 +1223,6 @@ func (g *genericReader) MutableEnumProp(name string) (enum.MutableVal, error) {
 	return val.(enum.MutableVal), nil
 }
 
-func (g *genericReader) SetMutableEnumProp(name string, val enum.MutableVal) error {
-	propType, ok := g.types[name]
-
-	if ok && propType != TypeEnum {
-		return errors.New("That property was already set but was not an enum mutable val")
-	}
-
-	g.types[name] = TypeEnum
-	g.values[name] = val
-
-	return nil
-}
-
 func (g *genericReader) SetIntSliceProp(name string, val []int) error {
 	propType, ok := g.types[name]
 
@@ -1308,19 +1295,6 @@ func (g *genericReader) MutableStackProp(name string) (MutableStack, error) {
 	return val.(MutableStack), nil
 }
 
-func (g *genericReader) SetMutableStackProp(name string, val MutableStack) error {
-	propType, ok := g.types[name]
-
-	if ok && propType != TypeStack {
-		return errors.New("That property was already set but was not a stack")
-	}
-
-	g.types[name] = TypeStack
-	g.values[name] = val
-
-	return nil
-}
-
 func (g *genericReader) MutableTimerProp(name string) (MutableTimer, error) {
 	val, err := g.Prop(name)
 
@@ -1341,7 +1315,33 @@ func (g *genericReader) MutableTimerProp(name string) (MutableTimer, error) {
 	return val.(MutableTimer), nil
 }
 
-func (g *genericReader) SetMutableTimerProp(name string, val MutableTimer) error {
+func (g *genericReader) ConfigureMutableEnumProp(name string, val enum.MutableVal) error {
+	propType, ok := g.types[name]
+
+	if ok && propType != TypeEnum {
+		return errors.New("That property was already set but was not an enum mutable val")
+	}
+
+	g.types[name] = TypeEnum
+	g.values[name] = val
+
+	return nil
+}
+
+func (g *genericReader) ConfigureMutableStackProp(name string, val MutableStack) error {
+	propType, ok := g.types[name]
+
+	if ok && propType != TypeStack {
+		return errors.New("That property was already set but was not a stack")
+	}
+
+	g.types[name] = TypeStack
+	g.values[name] = val
+
+	return nil
+}
+
+func (g *genericReader) ConfigureMutableTimerProp(name string, val MutableTimer) error {
 	propType, ok := g.types[name]
 
 	if ok && propType != TypeTimer {

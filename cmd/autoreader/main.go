@@ -81,6 +81,7 @@ func init() {
 
 	funcMap := template.FuncMap{
 		"withoutmutable": withoutMutable,
+		"verbfortype":    verbForType,
 	}
 
 	headerTemplate = template.Must(template.New("header").Funcs(funcMap).Parse(headerTemplateText))
@@ -394,6 +395,13 @@ func withoutMutable(in string) string {
 	return strings.Replace(in, "Mutable", "", -1)
 }
 
+func verbForType(in string) string {
+	if strings.HasPrefix(in, "Mutable") {
+		return "Configure"
+	}
+	return "Set"
+}
+
 func headerForStruct(structName string, types map[string]boardgame.PropertyType, outputReadSetter bool) string {
 
 	//propertyTypes is short name, golangValue
@@ -640,7 +648,7 @@ func ({{.firstLetter}} *{{.readerName}}) SetProp(name string, value interface{})
 		if !ok {
 			return errors.New("Provided value was not of type {{$goLangType}}")
 		}
-		return {{$firstLetter}}.Set{{$type}}Prop(name, val)
+		return {{$firstLetter}}.{{verbfortype $type}}{{$type}}Prop(name, val)
 	{{end}}
 	}
 
@@ -666,7 +674,8 @@ const typedPropertyTemplateText = `func ({{.firstLetter}} *{{.readerName}}) {{.p
 }
 
 {{if .outputReadSetter -}}
-func ({{.firstLetter}} *{{.readerName}}) Set{{.setterPropType}}Prop(name string, value {{.setterGoLangType}}) error {
+{{if .outputMutableGetter -}}
+func ({{.firstLetter}} *{{.readerName}}) Configure{{.setterPropType}}Prop(name string, value {{.setterGoLangType}}) error {
 	{{if .namesForType}}
 	switch name {
 		{{range .namesForType -}}
@@ -681,8 +690,6 @@ func ({{.firstLetter}} *{{.readerName}}) Set{{.setterPropType}}Prop(name string,
 
 }
 
-
-{{if .outputMutableGetter -}}
 func ({{.firstLetter}} *{{.readerName}}) {{.setterPropType}}Prop(name string) ({{.setterGoLangType}}, error) {
 	{{$firstLetter := .firstLetter}}
 	{{if .namesForType}}
@@ -695,6 +702,22 @@ func ({{.firstLetter}} *{{.readerName}}) {{.setterPropType}}Prop(name string) ({
 	{{end}}
 
 	return {{.zeroValue}}, errors.New("No such {{.propType}} prop: " + name)
+
+}
+
+{{else}}
+func ({{.firstLetter}} *{{.readerName}}) Set{{.setterPropType}}Prop(name string, value {{.setterGoLangType}}) error {
+	{{if .namesForType}}
+	switch name {
+		{{range .namesForType -}}
+			case "{{.}}":
+				{{$firstLetter}}.data.{{.}} = value
+				return nil
+		{{end}}
+	}
+	{{end}}
+
+	return errors.New("No such {{.setterPropType}} prop: " + name)
 
 }
 
