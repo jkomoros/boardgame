@@ -164,11 +164,11 @@ func policyFromStructTag(tag string, defaultGroup string) map[int]Policy {
 //AutoInflate will go through and inflate fields that are nil that it knows
 //how to inflate due to comments in structs detected in the constructor for
 //this validator.
-func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) error {
+func (r *readerValidator) AutoInflate(readSetConfigurer PropertyReadSetConfigurer, st State) error {
 
 	for propName, config := range r.autoStackFields {
 
-		stack, err := readSetter.MutableStackProp(propName)
+		stack, err := readSetConfigurer.MutableStackProp(propName)
 		if stack != nil {
 			//Guess it was already set!
 			continue
@@ -189,13 +189,13 @@ func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) e
 			stack = config.deck.NewStack(config.size)
 		}
 
-		if err := readSetter.ConfigureMutableStackProp(propName, stack); err != nil {
+		if err := readSetConfigurer.ConfigureMutableStackProp(propName, stack); err != nil {
 			return errors.New("Couldn't set " + propName + " to stack: " + err.Error())
 		}
 	}
 
 	for propName, enum := range r.autoEnumFields {
-		enumConst, err := readSetter.EnumProp(propName)
+		enumConst, err := readSetConfigurer.EnumProp(propName)
 		if enumConst != nil {
 			//Guess it was already set!
 			continue
@@ -206,23 +206,23 @@ func (r *readerValidator) AutoInflate(readSetter PropertyReadSetter, st State) e
 		if enum == nil {
 			return errors.New("The enum for " + propName + " was unexpectedly nil")
 		}
-		if err := readSetter.ConfigureMutableEnumProp(propName, enum.NewMutableVal()); err != nil {
+		if err := readSetConfigurer.ConfigureMutableEnumProp(propName, enum.NewMutableVal()); err != nil {
 			return errors.New("Couldn't set " + propName + " to NewDefaultVal: " + err.Error())
 		}
 	}
 
-	for propName, propType := range readSetter.Props() {
+	for propName, propType := range readSetConfigurer.Props() {
 		switch propType {
 		case TypeTimer:
 			timer := NewTimer()
-			if err := readSetter.ConfigureMutableTimerProp(propName, timer); err != nil {
+			if err := readSetConfigurer.ConfigureMutableTimerProp(propName, timer); err != nil {
 				return errors.New("Couldn't set " + propName + " to a new timer: " + err.Error())
 			}
 		}
 	}
 
 	if st != nil {
-		if err := setReaderStatePtr(readSetter, st); err != nil {
+		if err := setReaderStatePtr(readSetConfigurer, st); err != nil {
 			return errors.New("Couldn't set state ptrs: " + err.Error())
 		}
 	}
@@ -335,8 +335,8 @@ func setReaderStatePtr(reader PropertyReader, st State) error {
 
 //copyReader assumes input and output container are the same "shape" (that is,
 //outputContainer can have all of input's properties set). It goes through
-//each property, copies it if necessary, and outputs on PropertyReadSetter.
-func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) error {
+//each property, copies it if necessary, and outputs on ReadSetConfigurer.
+func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetConfigurer) error {
 
 	for propName, propType := range input.Props() {
 		switch propType {

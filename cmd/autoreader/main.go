@@ -6,22 +6,24 @@
 
 	Autoreader processes a package of go files, searching for structs that
 	have a comment immediately above their declaration that begins with
-	"+autoreader". For each such struct, it creates a Reader() and
-	PropertyReader() method that implement boardgame.Reader and
-	boardgame.ReadSetter.
+	"+autoreader". For each such struct, it creates a Reader(), ReadSetter(),
+	and ReadSetConfigurer() method that implement boardgame.Reader,
+	boardgame.ReadSetter, and boardgame.ReadSetConfigurer, respectively.
 
-	If you want only a reader or only a readsetter for a given struct, include
-	the keyword "reader" or "readsetter", like so: "+autoreader reader"
+	If you want only some of those methods for a given struct, include a
+	comma-delimited list of the keywords for the ones you want ( "reader",
+	"readsetter", and "readsetconfigurer") like so: "+autoreader
+	reader,readsetter"
 
 	You can configure which package to process and where to write output via
 	command-line flags. By default it processes the current package and writes
 	its output to auto_reader.go, overwriting whatever file was there before.
 	See command-line options by passing -h.
 
-	The outputted readers and readsetters use a hard-coded list of fields for
-	performance (reflection would be about 30% slower under normal usage). You
-	should re-run go generate every time you add a struct or modify the fields
-	on a struct.
+	The outputted readers, readsetters, and readsetconfigurers use a hard-
+	coded list of fields for performance (reflection would be about 30% slower
+	under normal usage). You should re-run go generate every time you add a
+	struct or modify the fields on a struct.
 
 	The defaults are set reasonably so that you can use go:generate very
 	easily. See examplepkg/ for a very simple example.
@@ -54,6 +56,7 @@ var structHeaderTemplate *template.Template
 var typedPropertyTemplate *template.Template
 var readerTemplate *template.Template
 var readSetterTemplate *template.Template
+var readSetConfigurerTemplate *template.Template
 
 type memoizedEmbeddedStructKey struct {
 	Import           string
@@ -89,6 +92,7 @@ func init() {
 	typedPropertyTemplate = template.Must(template.New("typedProperty").Funcs(funcMap).Parse(typedPropertyTemplateText))
 	readerTemplate = template.Must(template.New("reader").Funcs(funcMap).Parse(readerTemplateText))
 	readSetterTemplate = template.Must(template.New("readsetter").Funcs(funcMap).Parse(readSetterTemplateText))
+	readSetConfigurerTemplate = template.Must(template.New("readsetconfigurer").Funcs(funcMap).Parse(readSetConfigurerTemplateText))
 
 	memoizedEmbeddedStructs = make(map[memoizedEmbeddedStructKey]map[string]boardgame.PropertyType)
 }
@@ -152,21 +156,24 @@ func processPackage(location string) (output string, err error) {
 			haveOutputHeader = true
 		}
 
-		outputReader, outputReadSetter := structConfig(theStruct.DocLines)
+		outputReader, outputReadSetter, outputReadSetConfigurer := structConfig(theStruct.DocLines)
 
-		if !outputReader && !outputReadSetter {
+		if !outputReader && !outputReadSetter && !outputReadSetConfigurer {
 			continue
 		}
 
 		types := structTypes(location, theStruct, sources.Structs)
 
-		output += headerForStruct(theStruct.Name, types, outputReadSetter)
+		output += headerForStruct(theStruct.Name, types, outputReadSetter, outputReadSetConfigurer)
 
 		if outputReader {
 			output += readerForStruct(theStruct.Name)
 		}
 		if outputReadSetter {
 			output += readSetterForStruct(theStruct.Name)
+		}
+		if outputReadSetConfigurer {
+			output += readSetConfigurerForStruct(theStruct.Name)
 		}
 	}
 
@@ -345,7 +352,7 @@ func typesForPossibleEmbeddedStruct(location string, theField model.Field, allSt
 
 }
 
-func structConfig(docLines []string) (outputReader bool, outputReadSetter bool) {
+func structConfig(docLines []string) (outputReader bool, outputReadSetter bool, outputReadSetConfigurer bool) {
 
 	for _, docLine := range docLines {
 		docLine = strings.ToLower(docLine)
@@ -357,19 +364,28 @@ func structConfig(docLines []string) (outputReader bool, outputReadSetter bool) 
 		docLine = strings.TrimPrefix(docLine, magicDocLinePrefix)
 		docLine = strings.TrimSpace(docLine)
 
-		switch docLine {
-		case "":
-			return true, true
-		case "both":
-			return true, true
-		case "reader":
-			return true, false
-		case "readsetter":
-			return false, true
+		docLinePieces := strings.Split(docLine, ",")
+
+		for _, piece := range docLinePieces {
+			piece = strings.TrimSpace(piece)
+			switch piece {
+			case "", "all":
+				outputReader = true
+				outputReadSetter = true
+				outputReadSetConfigurer = true
+			case "reader":
+				outputReader = true
+			case "readsetter":
+				outputReadSetter = true
+			case "readsetconfigurer":
+				outputReadSetConfigurer = true
+			}
 		}
 
+		return
+
 	}
-	return false, false
+	return false, false, false
 }
 
 func templateOutput(template *template.Template, values interface{}) string {
@@ -402,11 +418,24 @@ func verbForType(in string) string {
 	return "Set"
 }
 
-func headerForStruct(structName string, types map[string]boardgame.PropertyType, outputReadSetter bool) string {
+func headerForStruct(structName string, types map[string]boardgame.PropertyType, outputReadSetter bool, outputReadSetConfigurer bool) string {
 
 	//propertyTypes is short name, golangValue
 	propertyTypes := make(map[string]string)
 	setterPropertyTypes := make(map[string]string)
+
+	//readSetConfigurer is a superset of readSetter, which means that if
+	//output readSetConfigurer we must also output readSetter.
+	if outputReadSetConfigurer {
+		outputReadSetter = true
+	}
+
+	//TODO: remove this. Currently SetProp needs to do a
+	//Configure{InterfaceType}, which is odd. Once we change that behavior
+	//this can go.
+	if outputReadSetter {
+		outputReadSetConfigurer = true
+	}
 
 	for i := boardgame.TypeInt; i <= boardgame.TypeTimer; i++ {
 
@@ -462,13 +491,14 @@ func headerForStruct(structName string, types map[string]boardgame.PropertyType,
 	}
 
 	output := templateOutput(structHeaderTemplate, map[string]interface{}{
-		"structName":          structName,
-		"firstLetter":         strings.ToLower(structName[:1]),
-		"readerName":          "__" + structName + "Reader",
-		"propertyTypes":       propertyTypes,
-		"setterPropertyTypes": setterPropertyTypes,
-		"types":               types,
-		"outputReadSetter":    outputReadSetter,
+		"structName":              structName,
+		"firstLetter":             strings.ToLower(structName[:1]),
+		"readerName":              "__" + structName + "Reader",
+		"propertyTypes":           propertyTypes,
+		"setterPropertyTypes":     setterPropertyTypes,
+		"types":                   types,
+		"outputReadSetter":        outputReadSetter,
+		"outputReadSetConfigurer": outputReadSetConfigurer,
 	})
 
 	sortedKeys := make([]string, len(propertyTypes))
@@ -537,17 +567,18 @@ func headerForStruct(structName string, types map[string]boardgame.PropertyType,
 		setterGoLangType := setterPropertyTypes[setterPropType]
 
 		output += templateOutput(typedPropertyTemplate, map[string]interface{}{
-			"structName":          structName,
-			"firstLetter":         strings.ToLower(structName[:1]),
-			"readerName":          "__" + structName + "Reader",
-			"propType":            propType,
-			"setterPropType":      setterPropType,
-			"namesForType":        namesForType,
-			"goLangType":          goLangType,
-			"setterGoLangType":    setterGoLangType,
-			"outputMutableGetter": outputMutableGetter,
-			"zeroValue":           zeroValue,
-			"outputReadSetter":    outputReadSetter,
+			"structName":              structName,
+			"firstLetter":             strings.ToLower(structName[:1]),
+			"readerName":              "__" + structName + "Reader",
+			"propType":                propType,
+			"setterPropType":          setterPropType,
+			"namesForType":            namesForType,
+			"goLangType":              goLangType,
+			"setterGoLangType":        setterGoLangType,
+			"outputMutableGetter":     outputMutableGetter,
+			"zeroValue":               zeroValue,
+			"outputReadSetter":        outputReadSetter,
+			"outputReadSetConfigurer": outputReadSetConfigurer,
 		})
 	}
 
@@ -568,6 +599,16 @@ func readerForStruct(structName string) string {
 func readSetterForStruct(structName string) string {
 
 	return templateOutput(readSetterTemplate, map[string]string{
+		"firstLetter": strings.ToLower(structName[:1]),
+		"structName":  structName,
+		"readerName":  "__" + structName + "Reader",
+	})
+
+}
+
+func readSetConfigurerForStruct(structName string) string {
+
+	return templateOutput(readSetConfigurerTemplate, map[string]string{
 		"firstLetter": strings.ToLower(structName[:1]),
 		"structName":  structName,
 		"readerName":  "__" + structName + "Reader",
@@ -673,7 +714,7 @@ const typedPropertyTemplateText = `func ({{.firstLetter}} *{{.readerName}}) {{.p
 
 }
 
-{{if .outputReadSetter -}}
+{{if .outputReadSetConfigurer -}}
 {{if .outputMutableGetter -}}
 func ({{.firstLetter}} *{{.readerName}}) Configure{{.setterPropType}}Prop(name string, value {{.setterGoLangType}}) error {
 	{{if .namesForType}}
@@ -690,6 +731,11 @@ func ({{.firstLetter}} *{{.readerName}}) Configure{{.setterPropType}}Prop(name s
 
 }
 
+{{end}}
+{{end}}
+
+{{if .outputReadSetter -}}
+{{if .outputMutableGetter -}}
 func ({{.firstLetter}} *{{.readerName}}) {{.setterPropType}}Prop(name string) ({{.setterGoLangType}}, error) {
 	{{$firstLetter := .firstLetter}}
 	{{if .namesForType}}
@@ -732,6 +778,12 @@ const readerTemplateText = `func ({{.firstLetter}} *{{.structName}}) Reader() bo
 `
 
 const readSetterTemplateText = `func ({{.firstLetter}} *{{.structName}}) ReadSetter() boardgame.PropertyReadSetter {
+	return &{{.readerName}}{ {{.firstLetter}} }
+}
+
+`
+
+const readSetConfigurerTemplateText = `func ({{.firstLetter}} *{{.structName}}) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &{{.readerName}}{ {{.firstLetter}} }
 }
 

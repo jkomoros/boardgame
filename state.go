@@ -195,10 +195,10 @@ func (p PlayerIndex) String() string {
 //either, and what it's interpreted as is primarily a function of what the
 //method signature is that it's passed to
 type state struct {
-	gameState              MutableSubState
-	playerStates           []MutablePlayerState
+	gameState              ConfigurableSubState
+	playerStates           []ConfigurablePlayerState
 	computedValues         *computedProperties
-	dynamicComponentValues map[string][]MutableSubState
+	dynamicComponentValues map[string][]ConfigurableSubState
 	secretMoveCount        map[string][]int
 	sanitized              bool
 	version                int
@@ -222,11 +222,26 @@ func (s *state) MutableGameState() MutableSubState {
 }
 
 func (s *state) MutablePlayerStates() []MutablePlayerState {
-	return s.playerStates
+	result := make([]MutablePlayerState, len(s.playerStates))
+	for i := 0; i < len(s.playerStates); i++ {
+		result[i] = s.playerStates[i]
+	}
+	return result
 }
 
 func (s *state) MutableDynamicComponentValues() map[string][]MutableSubState {
-	return s.dynamicComponentValues
+
+	result := make(map[string][]MutableSubState)
+
+	for key, arr := range s.dynamicComponentValues {
+		resultArr := make([]MutableSubState, len(arr))
+		for i := 0; i < len(arr); i++ {
+			resultArr[i] = arr[i]
+		}
+		result[key] = resultArr
+	}
+
+	return result
 }
 
 func (s *state) Game() *Game {
@@ -258,7 +273,7 @@ func (s *state) Copy(sanitized bool) State {
 }
 
 func (s *state) copy(sanitized bool) *state {
-	players := make([]MutablePlayerState, len(s.playerStates))
+	players := make([]ConfigurablePlayerState, len(s.playerStates))
 
 	for i, player := range s.playerStates {
 		players[i] = s.copyPlayerState(player)
@@ -267,7 +282,7 @@ func (s *state) copy(sanitized bool) *state {
 	result := &state{
 		gameState:              s.copyGameState(s.gameState),
 		playerStates:           players,
-		dynamicComponentValues: make(map[string][]MutableSubState),
+		dynamicComponentValues: make(map[string][]ConfigurableSubState),
 		secretMoveCount:        make(map[string][]int),
 		sanitized:              sanitized,
 		version:                s.version,
@@ -281,7 +296,7 @@ func (s *state) copy(sanitized bool) *state {
 	}
 
 	for deckName, values := range s.dynamicComponentValues {
-		arr := make([]MutableSubState, len(values))
+		arr := make([]ConfigurableSubState, len(values))
 		for i := 0; i < len(values); i++ {
 			arr[i] = s.copyDynamicComponentValues(values[i], deckName)
 			if err := setReaderStatePtr(arr[i].Reader(), result); err != nil {
@@ -320,7 +335,7 @@ func (s *state) setStateForSubStates() {
 	}
 }
 
-func (s *state) copyDynamicComponentValues(input MutableSubState, deckName string) MutableSubState {
+func (s *state) copyDynamicComponentValues(input MutableSubState, deckName string) ConfigurableSubState {
 	deck := s.game.manager.chest.Deck(deckName)
 	if deck == nil {
 		s.game.manager.Logger().WithField("deckname", deckName).Error("Invalid deck")
@@ -335,20 +350,20 @@ func (s *state) copyDynamicComponentValues(input MutableSubState, deckName strin
 		return nil
 	}
 
-	outputReadSetter := output.ReadSetter()
+	outputReadSetConfigurer := output.ReadSetConfigurer()
 
-	if outputReadSetter == nil {
-		s.game.manager.Logger().Error("Output read setter was unexpectedly nil")
+	if outputReadSetConfigurer == nil {
+		s.game.manager.Logger().Error("Output read set configurer was unexpectedly nil")
 		return nil
 	}
 
-	if err := copyReader(inputReader, outputReadSetter); err != nil {
+	if err := copyReader(inputReader, outputReadSetConfigurer); err != nil {
 		s.game.manager.Logger().Error("WARNING: couldn't copy dynamic value state: " + err.Error())
 	}
 	return output
 }
 
-func (s *state) copyPlayerState(input MutablePlayerState) MutablePlayerState {
+func (s *state) copyPlayerState(input MutablePlayerState) ConfigurablePlayerState {
 	output := s.game.manager.delegate.PlayerStateConstructor(input.PlayerIndex())
 
 	inputReader := input.ReadSetter()
@@ -358,21 +373,21 @@ func (s *state) copyPlayerState(input MutablePlayerState) MutablePlayerState {
 		return nil
 	}
 
-	outputReadSetter := output.ReadSetter()
+	outputReadSetConfigurer := output.ReadSetConfigurer()
 
-	if outputReadSetter == nil {
-		s.game.manager.Logger().Error("Output read setter was unexpectedly nil")
+	if outputReadSetConfigurer == nil {
+		s.game.manager.Logger().Error("Output read set configurer was unexpectedly nil")
 		return nil
 	}
 
-	if err := copyReader(inputReader, outputReadSetter); err != nil {
+	if err := copyReader(inputReader, outputReadSetConfigurer); err != nil {
 		s.game.manager.Logger().Error("WARNING: couldn't copy player state: " + err.Error())
 	}
 
 	return output
 }
 
-func (s *state) copyGameState(input MutableSubState) MutableSubState {
+func (s *state) copyGameState(input MutableSubState) ConfigurableSubState {
 	output := s.game.manager.delegate.GameStateConstructor()
 
 	inputReader := input.ReadSetter()
@@ -382,14 +397,14 @@ func (s *state) copyGameState(input MutableSubState) MutableSubState {
 		return nil
 	}
 
-	outputReadSetter := output.ReadSetter()
+	outputReadSetConfigurer := output.ReadSetConfigurer()
 
-	if outputReadSetter == nil {
-		s.game.manager.Logger().Error("Output read setter was unexpectedly nil")
+	if outputReadSetConfigurer == nil {
+		s.game.manager.Logger().Error("Output read set configurer was unexpectedly nil")
 		return nil
 	}
 
-	if err := copyReader(inputReader, outputReadSetter); err != nil {
+	if err := copyReader(inputReader, outputReadSetConfigurer); err != nil {
 		s.game.manager.Logger().Error("WARNING: couldn't copy game state: " + err.Error())
 	}
 	return output
@@ -572,6 +587,12 @@ type ReadSetter interface {
 	ReadSetter() PropertyReadSetter
 }
 
+//ReadSetCongigurer is the interface that any object that can return a
+//PropertyReadSetConfigurer implements.z
+type ReadSetConfigurer interface {
+	ReadSetConfigurer() PropertyReadSetConfigurer
+}
+
 //SubState is the interface that all sub-state objects (PlayerStates.
 //GameStates, and DynamicComponentValues) implement.
 type SubState interface {
@@ -589,6 +610,14 @@ type MutableSubState interface {
 	ReadSetter
 }
 
+//ConfigurableSubState is the interface that Configurable{Game,Player}State's
+//implement.
+type ConfigurableSubState interface {
+	SubState
+	ReadSetter
+	ReadSetConfigurer
+}
+
 //PlayerState represents the state of a game associated with a specific user.
 //It is just a SubState with the addition of a PlayerIndex().
 type PlayerState interface {
@@ -604,6 +633,15 @@ type MutablePlayerState interface {
 	//state object.
 	PlayerIndex() PlayerIndex
 	MutableSubState
+}
+
+//A ConfigurablePlayerState is a PlayerState that is allowed to be mutated and
+//configured.
+type ConfigurablePlayerState interface {
+	//PlayerIndex encodes the index this user's state is in the containing
+	//state object.
+	PlayerIndex() PlayerIndex
+	ConfigurableSubState
 }
 
 //DefaultMarshalJSON is a simple wrapper around json.MarshalIndent, with the

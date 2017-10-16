@@ -368,7 +368,7 @@ func (g *Game) SetUp(numPlayers int, agentNames []string) error {
 
 	stateCopy.gameState = gameState
 
-	playerStates := make([]MutablePlayerState, numPlayers)
+	playerStates := make([]ConfigurablePlayerState, numPlayers)
 
 	for i := 0; i < numPlayers; i++ {
 		playerState, err := g.manager.playerStateConstructor(stateCopy, PlayerIndex(i))

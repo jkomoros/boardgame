@@ -311,7 +311,15 @@ func (m *__moveRollDiceReader) MutableTimerProp(name string) (boardgame.MutableT
 
 }
 
+func (m *moveRollDice) Reader() boardgame.PropertyReader {
+	return &__moveRollDiceReader{m}
+}
+
 func (m *moveRollDice) ReadSetter() boardgame.PropertyReadSetter {
+	return &__moveRollDiceReader{m}
+}
+
+func (m *moveRollDice) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__moveRollDiceReader{m}
 }
 
@@ -610,7 +618,15 @@ func (m *__moveDoneTurnReader) MutableTimerProp(name string) (boardgame.MutableT
 
 }
 
+func (m *moveDoneTurn) Reader() boardgame.PropertyReader {
+	return &__moveDoneTurnReader{m}
+}
+
 func (m *moveDoneTurn) ReadSetter() boardgame.PropertyReadSetter {
+	return &__moveDoneTurnReader{m}
+}
+
+func (m *moveDoneTurn) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__moveDoneTurnReader{m}
 }
 
@@ -909,7 +925,15 @@ func (m *__moveCountDieReader) MutableTimerProp(name string) (boardgame.MutableT
 
 }
 
+func (m *moveCountDie) Reader() boardgame.PropertyReader {
+	return &__moveCountDieReader{m}
+}
+
 func (m *moveCountDie) ReadSetter() boardgame.PropertyReadSetter {
+	return &__moveCountDieReader{m}
+}
+
+func (m *moveCountDie) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__moveCountDieReader{m}
 }
 
@@ -1193,7 +1217,15 @@ func (m *__moveFinishTurnReader) MutableTimerProp(name string) (boardgame.Mutabl
 
 }
 
+func (m *moveFinishTurn) Reader() boardgame.PropertyReader {
+	return &__moveFinishTurnReader{m}
+}
+
 func (m *moveFinishTurn) ReadSetter() boardgame.PropertyReadSetter {
+	return &__moveFinishTurnReader{m}
+}
+
+func (m *moveFinishTurn) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__moveFinishTurnReader{m}
 }
 
@@ -1534,6 +1566,10 @@ func (g *gameState) ReadSetter() boardgame.PropertyReadSetter {
 	return &__gameStateReader{g}
 }
 
+func (g *gameState) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
+	return &__gameStateReader{g}
+}
+
 // Implementation for playerState
 
 var __playerStateReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
@@ -1673,12 +1709,12 @@ func (p *__playerStateReader) SetProp(name string, value interface{}) error {
 func (p *__playerStateReader) BoolProp(name string) (bool, error) {
 
 	switch name {
-	case "DieCounted":
-		return p.data.DieCounted, nil
 	case "Busted":
 		return p.data.Busted, nil
 	case "Done":
 		return p.data.Done, nil
+	case "DieCounted":
+		return p.data.DieCounted, nil
 
 	}
 
@@ -1689,14 +1725,14 @@ func (p *__playerStateReader) BoolProp(name string) (bool, error) {
 func (p *__playerStateReader) SetBoolProp(name string, value bool) error {
 
 	switch name {
-	case "DieCounted":
-		p.data.DieCounted = value
-		return nil
 	case "Busted":
 		p.data.Busted = value
 		return nil
 	case "Done":
 		p.data.Done = value
+		return nil
+	case "DieCounted":
+		p.data.DieCounted = value
 		return nil
 
 	}
@@ -1866,5 +1902,9 @@ func (p *playerState) Reader() boardgame.PropertyReader {
 }
 
 func (p *playerState) ReadSetter() boardgame.PropertyReadSetter {
+	return &__playerStateReader{p}
+}
+
+func (p *playerState) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__playerStateReader{p}
 }

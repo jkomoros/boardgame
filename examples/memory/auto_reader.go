@@ -423,7 +423,15 @@ func (m *__MoveFinishTurnReader) MutableTimerProp(name string) (boardgame.Mutabl
 
 }
 
+func (m *MoveFinishTurn) Reader() boardgame.PropertyReader {
+	return &__MoveFinishTurnReader{m}
+}
+
 func (m *MoveFinishTurn) ReadSetter() boardgame.PropertyReadSetter {
+	return &__MoveFinishTurnReader{m}
+}
+
+func (m *MoveFinishTurn) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__MoveFinishTurnReader{m}
 }
 
@@ -736,7 +744,15 @@ func (m *__MoveRevealCardReader) MutableTimerProp(name string) (boardgame.Mutabl
 
 }
 
+func (m *MoveRevealCard) Reader() boardgame.PropertyReader {
+	return &__MoveRevealCardReader{m}
+}
+
 func (m *MoveRevealCard) ReadSetter() boardgame.PropertyReadSetter {
+	return &__MoveRevealCardReader{m}
+}
+
+func (m *MoveRevealCard) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__MoveRevealCardReader{m}
 }
 
@@ -1020,7 +1036,15 @@ func (m *__MoveStartHideCardsTimerReader) MutableTimerProp(name string) (boardga
 
 }
 
+func (m *MoveStartHideCardsTimer) Reader() boardgame.PropertyReader {
+	return &__MoveStartHideCardsTimerReader{m}
+}
+
 func (m *MoveStartHideCardsTimer) ReadSetter() boardgame.PropertyReadSetter {
+	return &__MoveStartHideCardsTimerReader{m}
+}
+
+func (m *MoveStartHideCardsTimer) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__MoveStartHideCardsTimerReader{m}
 }
 
@@ -1304,7 +1328,15 @@ func (m *__MoveCaptureCardsReader) MutableTimerProp(name string) (boardgame.Muta
 
 }
 
+func (m *MoveCaptureCards) Reader() boardgame.PropertyReader {
+	return &__MoveCaptureCardsReader{m}
+}
+
 func (m *MoveCaptureCards) ReadSetter() boardgame.PropertyReadSetter {
+	return &__MoveCaptureCardsReader{m}
+}
+
+func (m *MoveCaptureCards) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__MoveCaptureCardsReader{m}
 }
 
@@ -1603,7 +1635,15 @@ func (m *__MoveHideCardsReader) MutableTimerProp(name string) (boardgame.Mutable
 
 }
 
+func (m *MoveHideCards) Reader() boardgame.PropertyReader {
+	return &__MoveHideCardsReader{m}
+}
+
 func (m *MoveHideCards) ReadSetter() boardgame.PropertyReadSetter {
+	return &__MoveHideCardsReader{m}
+}
+
+func (m *MoveHideCards) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__MoveHideCardsReader{m}
 }
 
@@ -1958,6 +1998,10 @@ func (g *gameState) ReadSetter() boardgame.PropertyReadSetter {
 	return &__gameStateReader{g}
 }
 
+func (g *gameState) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
+	return &__gameStateReader{g}
+}
+
 // Implementation for playerState
 
 var __playerStateReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
@@ -2278,5 +2322,9 @@ func (p *playerState) Reader() boardgame.PropertyReader {
 }
 
 func (p *playerState) ReadSetter() boardgame.PropertyReadSetter {
+	return &__playerStateReader{p}
+}
+
+func (p *playerState) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__playerStateReader{p}
 }

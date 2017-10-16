@@ -117,7 +117,8 @@ type Move interface {
 	//token in position 3".
 	Description() string
 
-	ReadSetter() PropertyReadSetter
+	ReadSetter
+	ReadSetConfigurer
 }
 
 //StorageRecordForMove returns a MoveStorageRecord. Can't hang off of Move
@@ -248,21 +249,21 @@ func (m *MoveType) NewMove(state State) Move {
 
 	move.SetInfo(info)
 
-	readSetter := move.ReadSetter()
+	readSetConfigurer := move.ReadSetConfigurer()
 
-	if readSetter == nil {
+	if readSetConfigurer == nil {
 		//This shouldn't happen because we verified that ReadSetter returned
 		//non-nil when the movetype was registered.
-		m.manager.Logger().Error("ReadSetter for move unexpectedly returned nil")
+		m.manager.Logger().Error("ReadSetConfigurer for move unexpectedly returned nil")
 		return nil
 	}
 
-	if err := m.validator.AutoInflate(readSetter, state); err != nil {
+	if err := m.validator.AutoInflate(readSetConfigurer, state); err != nil {
 		m.manager.Logger().Error("AutoInflate had an error: " + err.Error())
 		return nil
 	}
 
-	if err := m.validator.Valid(readSetter); err != nil {
+	if err := m.validator.Valid(readSetConfigurer); err != nil {
 		m.manager.Logger().Error("Move was not valid: " + err.Error())
 		return nil
 	}

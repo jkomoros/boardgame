@@ -319,6 +319,10 @@ func (v *Value) ReadSetter() boardgame.PropertyReadSetter {
 	return &__ValueReader{v}
 }
 
+func (v *Value) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
+	return &__ValueReader{v}
+}
+
 // Implementation for DynamicValue
 
 var __DynamicValueReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
@@ -625,5 +629,9 @@ func (d *DynamicValue) Reader() boardgame.PropertyReader {
 }
 
 func (d *DynamicValue) ReadSetter() boardgame.PropertyReadSetter {
+	return &__DynamicValueReader{d}
+}
+
+func (d *DynamicValue) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__DynamicValueReader{d}
 }

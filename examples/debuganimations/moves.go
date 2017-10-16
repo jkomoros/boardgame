@@ -6,39 +6,39 @@ import (
 	"github.com/jkomoros/boardgame/moves"
 )
 
-//+autoreader readsetter
+//+autoreader
 type moveMoveCardBetweenShortStacks struct {
 	moves.Base
 	FromFirst bool
 }
 
-//+autoreader readsetter
+//+autoreader
 type moveMoveCardBetweenDrawAndDiscardStacks struct {
 	moves.Base
 	FromDraw bool
 }
 
-//+autoreader readsetter
+//+autoreader
 type moveFlipHiddenCard struct {
 	moves.Base
 }
 
-//+autoreader readsetter
+//+autoreader
 type moveMoveCardBetweenFanStacks struct {
 	moves.Base
 }
 
-//+autoreader readsetter
+//+autoreader
 type moveVisibleShuffleCards struct {
 	moves.Base
 }
 
-//+autoreader readsetter
+//+autoreader
 type moveShuffleCards struct {
 	moves.Base
 }
 
-//+autoreader readsetter
+//+autoreader
 type moveMoveBetweenHidden struct {
 	moves.Base
 }

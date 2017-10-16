@@ -101,17 +101,17 @@ type GameDelegate interface {
 	//required and always specific to each game type, DefaultGameDelegate does
 	//not implement them, as an extra reminder that you must implement them
 	//yourself.
-	GameStateConstructor() MutableSubState
+	GameStateConstructor() ConfigurableSubState
 	//PlayerStateConstructor is similar to GameStateConstructor, but
 	//playerIndex is the value that this PlayerState must return when its
 	//PlayerIndex() is called.
-	PlayerStateConstructor(player PlayerIndex) MutablePlayerState
+	PlayerStateConstructor(player PlayerIndex) ConfigurablePlayerState
 
 	//DynamicComponentValuesConstructor returns an empty DynamicComponentValues for
 	//the given deck. If nil is returned, then the components in that deck
 	//don't have any dynamic component state. This method must always return
 	//the same underlying type of struct for the same deck.
-	DynamicComponentValuesConstructor(deck *Deck) MutableSubState
+	DynamicComponentValuesConstructor(deck *Deck) ConfigurableSubState
 
 	//SanitizationPolicy is consulted when sanitizing states. It is called for
 	//each prop in the state, including the set of groups that this player is
@@ -172,7 +172,7 @@ func (d *DefaultGameDelegate) SetManager(manager *GameManager) {
 	d.manager = manager
 }
 
-func (d *DefaultGameDelegate) DynamicComponentValuesConstructor(deck *Deck) MutableSubState {
+func (d *DefaultGameDelegate) DynamicComponentValuesConstructor(deck *Deck) ConfigurableSubState {
 	return nil
 }
 

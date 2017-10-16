@@ -171,11 +171,11 @@ func (g *gameDelegate) LegalNumPlayers(numPlayers int) bool {
 	return numPlayers > 0 && numPlayers < 7
 }
 
-func (g *gameDelegate) GameStateConstructor() boardgame.MutableSubState {
+func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 	return new(gameState)
 }
 
-func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex) boardgame.MutablePlayerState {
+func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex) boardgame.ConfigurablePlayerState {
 	return &playerState{
 		playerIndex: playerIndex,
 	}

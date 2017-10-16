@@ -95,20 +95,20 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 	return strings.Join(parts, "\n")
 }
 
-func (g *gameDelegate) GameStateConstructor() boardgame.MutableSubState {
+func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 	return &gameState{
 		CurrentPlayer: 0,
 		TargetScore:   DefaultTargetScore,
 	}
 }
 
-func (g *gameDelegate) PlayerStateConstructor(index boardgame.PlayerIndex) boardgame.MutablePlayerState {
+func (g *gameDelegate) PlayerStateConstructor(index boardgame.PlayerIndex) boardgame.ConfigurablePlayerState {
 	return &playerState{
 		playerIndex: index,
 	}
 }
 
-func (g *gameDelegate) DynamicComponentValuesConstructor(deck *boardgame.Deck) boardgame.MutableSubState {
+func (g *gameDelegate) DynamicComponentValuesConstructor(deck *boardgame.Deck) boardgame.ConfigurableSubState {
 	if deck.Name() == diceDeckName {
 		return &dice.DynamicValue{
 			Value: 1,

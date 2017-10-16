@@ -7,22 +7,22 @@ import (
 	"github.com/jkomoros/boardgame/moves"
 )
 
-//+autoreader readsetter
+//+autoreader
 type moveRollDice struct {
 	moves.CurrentPlayer
 }
 
-//+autoreader readsetter
+//+autoreader
 type moveDoneTurn struct {
 	moves.CurrentPlayer
 }
 
-//+autoreader readsetter
+//+autoreader
 type moveCountDie struct {
 	moves.CurrentPlayer
 }
 
-//+autoreader readsetter
+//+autoreader
 type moveFinishTurn struct {
 	moves.FinishTurn
 }

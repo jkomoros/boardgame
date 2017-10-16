@@ -12,7 +12,8 @@ import (
 )
 
 //Property reader is a way to read out properties on an object with unknown
-//shape.
+//shape. The properties are returned in a way that their values cannot be
+//manipulated (at least, not from only the PropertyReader methods).
 type PropertyReader interface {
 	//Props returns a list of all property names that are defined for this
 	//object.
@@ -55,8 +56,9 @@ const (
 	TypeTimer
 )
 
-//Property read setter is a way to enumerate and set properties on an object with an
-//unknown shape.
+//Property read setter is a way to enumerate and manipulate properties on an
+//object of an unknown shape. For simple properties they can be set directly;
+//for interface types a mutable version can be retrieved, but not set.
 type PropertyReadSetter interface {
 	//All PropertyReadSetters have read interfaces
 	PropertyReader
@@ -71,10 +73,6 @@ type PropertyReadSetter interface {
 	SetStringSliceProp(name string, value []string) error
 	SetPlayerIndexSliceProp(name string, value []PlayerIndex) error
 
-	ConfigureMutableEnumProp(name string, value enum.MutableVal) error
-	ConfigureMutableStackProp(name string, value MutableStack) error
-	ConfigureMutableTimerProp(name string, value MutableTimer) error
-
 	//For interface types the setter also wants to give access to the mutable
 	//underlying value so it can be mutated in place.
 	MutableEnumProp(name string) (enum.MutableVal, error)
@@ -85,6 +83,16 @@ type PropertyReadSetter interface {
 	//match the underlying slot type, it should return an error. If you know
 	//the underlying type it's always better to use the typed accessors.
 	SetProp(name string, value interface{}) error
+}
+
+//PropertyReadSetConfigurer allows setting of all properties but also
+//configuration of interface types--that is, settting the container for each
+//property in adddition to manipulating the value within the container.
+type PropertyReadSetConfigurer interface {
+	PropertyReadSetter
+	ConfigureMutableEnumProp(name string, value enum.MutableVal) error
+	ConfigureMutableStackProp(name string, value MutableStack) error
+	ConfigureMutableTimerProp(name string, value MutableTimer) error
 }
 
 func (t PropertyType) String() string {
@@ -150,13 +158,17 @@ func getDefaultReader(i interface{}) PropertyReader {
 	return getDefaultReadSetter(i)
 }
 
+func getDefaultReadSetter(i interface{}) PropertyReadSetter {
+	return getDefaultReadSetConfigurer(i)
+}
+
 //DefaultReadSetter returns an object that satisfies the PropertyReadSetter
 //interface for the given concrete object, using reflection. Make it easy to
 //implement the Reader method in a line. It will return an existing wrapper or
 //create a new one if necessary. This used to be public, but it never really
 //made sense to expose and doesn't understand embedded types, so it's now just
 //used for testing within the package.
-func getDefaultReadSetter(i interface{}) PropertyReadSetter {
+func getDefaultReadSetConfigurer(i interface{}) PropertyReadSetConfigurer {
 
 	defaultReaderCacheLock.RLock()
 	reader := defaultReaderCache[i]

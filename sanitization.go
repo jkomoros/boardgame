@@ -305,7 +305,7 @@ func sanitizeStateObj(readSetter PropertyReadSetter, transformation subStateSani
 //transitivelyMarkDynamicComponentsAsVisible expands which
 //dynamiccomponentvalues are visible by extending the visibility throughout
 //any items that are in stacks on dynamiccomponentvalues that are visible.
-func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[string][]MutableSubState, visibleComponents map[string]map[int]bool) {
+func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[string][]ConfigurableSubState, visibleComponents map[string]map[int]bool) {
 
 	//All dynamic component values are hidden, except for ones that currently
 	//reside in stacks that have resolved to being Visible based on this
@@ -376,7 +376,7 @@ func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[strin
 //straightforward sanitizationTransformation because the components should
 //only folow the configured property if the component they're affiliated with
 //was PolicyVisible.
-func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]MutableSubState, visibleComponents map[string]map[int]bool, transformation map[string]subStateSanitizationTransformation) error {
+func sanitizeDynamicComponentValues(dynamicComponentValues map[string][]ConfigurableSubState, visibleComponents map[string]map[int]bool, transformation map[string]subStateSanitizationTransformation) error {
 
 	for name, slice := range dynamicComponentValues {
 

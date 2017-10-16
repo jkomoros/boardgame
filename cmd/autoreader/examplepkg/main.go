@@ -15,7 +15,7 @@ import (
 
 //go:generate autoreader
 
-//+autoreader both
+//+autoreader all
 type myStruct struct {
 	boardgame.BaseSubState
 	MyInt              int
@@ -59,4 +59,9 @@ type onlyReader struct {
 // +autoreader    readSetter
 type onlyReadSetter struct {
 	MyInt int
+}
+
+//+autoreader reader,readsetconfigurer
+type bothReaderAndReadSetConfigurer struct {
+	MyBool bool
 }

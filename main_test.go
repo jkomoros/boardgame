@@ -71,6 +71,10 @@ func (t *testingComponentDynamic) ReadSetter() PropertyReadSetter {
 	return getDefaultReadSetter(t)
 }
 
+func (t *testingComponentDynamic) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(t)
+}
+
 func (t *testingComponentDynamic) SetState(state State) {
 	t.state = state
 }
@@ -142,6 +146,10 @@ func (t *testGameState) ReadSetter() PropertyReadSetter {
 	return getDefaultReadSetter(t)
 }
 
+func (t *testGameState) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(t)
+}
+
 func (t *testGameState) SetState(state State) {
 	t.state = state
 }
@@ -171,6 +179,10 @@ func (t *testPlayerState) Reader() PropertyReader {
 	return getDefaultReader(t)
 }
 
+func (t *testPlayerState) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(t)
+}
+
 func (t *testPlayerState) SetState(state State) {
 	t.state = state
 }
@@ -193,6 +205,10 @@ var testMoveInvalidPlayerIndexConfig = MoveTypeConfig{
 
 func (t *testMoveInvalidPlayerIndex) ReadSetter() PropertyReadSetter {
 	return getDefaultReadSetter(t)
+}
+
+func (t *testMoveInvalidPlayerIndex) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(t)
 }
 
 func (t *testMoveInvalidPlayerIndex) Legal(state State, propopser PlayerIndex) error {
@@ -231,6 +247,10 @@ func (t *testMoveIncrementCardInHand) DefaultsForState(state State) {
 
 func (t *testMoveIncrementCardInHand) ReadSetter() PropertyReadSetter {
 	return getDefaultReadSetter(t)
+}
+
+func (t *testMoveIncrementCardInHand) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(t)
 }
 
 func (t *testMoveIncrementCardInHand) Legal(state State, proposer PlayerIndex) error {
@@ -306,6 +326,10 @@ func (t *testMoveDrawCard) ReadSetter() PropertyReadSetter {
 	return getDefaultReadSetter(t)
 }
 
+func (t *testMoveDrawCard) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(t)
+}
+
 func (t *testMoveDrawCard) Legal(state State, proposer PlayerIndex) error {
 	game, players := concreteStates(state)
 
@@ -357,6 +381,10 @@ var testMoveAdvanceCurrentPlayerConfig = MoveTypeConfig{
 
 func (t *testMoveAdvanceCurentPlayer) ReadSetter() PropertyReadSetter {
 	return getDefaultReadSetter(t)
+}
+
+func (t *testMoveAdvanceCurentPlayer) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(t)
 }
 
 func (t *testMoveAdvanceCurentPlayer) Legal(state State, proposer PlayerIndex) error {
@@ -424,6 +452,10 @@ func (t *testMove) ReadSetter() PropertyReadSetter {
 	return getDefaultReadSetter(t)
 }
 
+func (t *testMove) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(t)
+}
+
 func (t *testMove) Legal(state State, proposer PlayerIndex) error {
 
 	game, _ := concreteStates(state)
@@ -472,6 +504,10 @@ func (t *testAlwaysLegalMove) ReadSetter() PropertyReadSetter {
 	return getDefaultReadSetter(t)
 }
 
+func (t *testAlwaysLegalMove) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(t)
+}
+
 func (t *testAlwaysLegalMove) Legal(state State, proposer PlayerIndex) error {
 
 	return nil
@@ -492,6 +528,10 @@ type illegalMove struct {
 
 func (i *illegalMove) ReadSetter() PropertyReadSetter {
 	return getDefaultReadSetter(i)
+}
+
+func (i *illegalMove) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(i)
 }
 
 func (i *illegalMove) Legal(state State, proposer PlayerIndex) error {

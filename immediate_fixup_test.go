@@ -46,6 +46,10 @@ func (m *moveTestImmediatePlayerMove) ReadSetter() PropertyReadSetter {
 	return getDefaultReadSetter(m)
 }
 
+func (m *moveTestImmediatePlayerMove) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(m)
+}
+
 var moveTestImmediateFixUpOneConfig = MoveTypeConfig{
 	Name: "Immediate FixUp 1",
 	MoveConstructor: func() Move {
@@ -87,6 +91,10 @@ func (m *moveImmediateFixUpOne) ReadSetter() PropertyReadSetter {
 	return getDefaultReadSetter(m)
 }
 
+func (m *moveImmediateFixUpOne) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(m)
+}
+
 var moveTestImmediateFixUpTwoConfig = MoveTypeConfig{
 	Name: "Immediate FixUp 2",
 	MoveConstructor: func() Move {
@@ -110,6 +118,10 @@ func (m *moveImmediateFixUpTWo) Apply(state MutableState) error {
 
 func (m *moveImmediateFixUpTWo) ReadSetter() PropertyReadSetter {
 	return getDefaultReadSetter(m)
+}
+
+func (m *moveImmediateFixUpTWo) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(m)
 }
 
 func TestImmediateFixUp(t *testing.T) {

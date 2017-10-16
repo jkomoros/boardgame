@@ -8,7 +8,7 @@ import (
 
 //TODO: test this!!
 
-//+autoreader readsetter
+//+autoreader
 type MovePlaceToken struct {
 	moves.CurrentPlayer
 	//Which token to place the token
@@ -76,7 +76,7 @@ func (m *MovePlaceToken) Apply(state boardgame.MutableState) error {
 	return nil
 }
 
-//+autoreader readsetter
+//+autoreader
 type MoveFinishTurn struct {
 	moves.FinishTurn
 }

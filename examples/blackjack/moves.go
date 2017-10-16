@@ -6,34 +6,34 @@ import (
 	"github.com/jkomoros/boardgame/moves"
 )
 
-//+autoreader readsetter
+//+autoreader
 type MoveShuffleDiscardToDraw struct {
 	moves.Base
 }
 
-//+autoreader readsetter
+//+autoreader
 type MoveFinishTurn struct {
 	moves.FinishTurn
 }
 
-//+autoreader readsetter
+//+autoreader
 type MoveDealInitialCard struct {
 	moves.Base
 	TargetPlayerIndex boardgame.PlayerIndex
 	IsHidden          bool
 }
 
-//+autoreader readsetter
+//+autoreader
 type MoveRevealHiddenCard struct {
 	moves.CurrentPlayer
 }
 
-//+autoreader readsetter
+//+autoreader
 type MoveCurrentPlayerHit struct {
 	moves.CurrentPlayer
 }
 
-//+autoreader readsetter
+//+autoreader
 type MoveCurrentPlayerStand struct {
 	moves.CurrentPlayer
 }

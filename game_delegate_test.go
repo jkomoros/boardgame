@@ -48,7 +48,7 @@ func (t *testGameDelegate) ComputedPlayerProperties(player PlayerState) Property
 	}
 }
 
-func (t *testGameDelegate) DynamicComponentValuesConstructor(deck *Deck) MutableSubState {
+func (t *testGameDelegate) DynamicComponentValuesConstructor(deck *Deck) ConfigurableSubState {
 	if deck.Name() == "test" {
 		return &testingComponentDynamic{
 			Stack: deck.NewSizedStack(1),
@@ -124,7 +124,7 @@ func (t *testGameDelegate) CurrentPlayerIndex(state State) PlayerIndex {
 	return game.CurrentPlayer
 }
 
-func (t *testGameDelegate) GameStateConstructor() MutableSubState {
+func (t *testGameDelegate) GameStateConstructor() ConfigurableSubState {
 	chest := t.Manager().Chest()
 
 	deck := chest.Deck("test")
@@ -141,7 +141,7 @@ func (t *testGameDelegate) GameStateConstructor() MutableSubState {
 	}
 }
 
-func (t *testGameDelegate) PlayerStateConstructor(player PlayerIndex) MutablePlayerState {
+func (t *testGameDelegate) PlayerStateConstructor(player PlayerIndex) ConfigurablePlayerState {
 	return &testPlayerState{
 		playerIndex: player,
 	}

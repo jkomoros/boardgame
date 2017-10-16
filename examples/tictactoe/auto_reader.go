@@ -452,7 +452,15 @@ func (m *__MovePlaceTokenReader) MutableTimerProp(name string) (boardgame.Mutabl
 
 }
 
+func (m *MovePlaceToken) Reader() boardgame.PropertyReader {
+	return &__MovePlaceTokenReader{m}
+}
+
 func (m *MovePlaceToken) ReadSetter() boardgame.PropertyReadSetter {
+	return &__MovePlaceTokenReader{m}
+}
+
+func (m *MovePlaceToken) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__MovePlaceTokenReader{m}
 }
 
@@ -736,7 +744,15 @@ func (m *__MoveFinishTurnReader) MutableTimerProp(name string) (boardgame.Mutabl
 
 }
 
+func (m *MoveFinishTurn) Reader() boardgame.PropertyReader {
+	return &__MoveFinishTurnReader{m}
+}
+
 func (m *MoveFinishTurn) ReadSetter() boardgame.PropertyReadSetter {
+	return &__MoveFinishTurnReader{m}
+}
+
+func (m *MoveFinishTurn) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__MoveFinishTurnReader{m}
 }
 
@@ -1060,6 +1076,10 @@ func (g *gameState) Reader() boardgame.PropertyReader {
 }
 
 func (g *gameState) ReadSetter() boardgame.PropertyReadSetter {
+	return &__gameStateReader{g}
+}
+
+func (g *gameState) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__gameStateReader{g}
 }
 
@@ -1397,5 +1417,9 @@ func (p *playerState) Reader() boardgame.PropertyReader {
 }
 
 func (p *playerState) ReadSetter() boardgame.PropertyReadSetter {
+	return &__playerStateReader{p}
+}
+
+func (p *playerState) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__playerStateReader{p}
 }

@@ -236,7 +236,7 @@ type refriedState struct {
 
 //playerStateConstructor is a simple wrapper around
 //delegate.PlayerStateConstructor that just verifies that stacks are inflated.
-func (g *GameManager) playerStateConstructor(state *state, player PlayerIndex) (MutablePlayerState, error) {
+func (g *GameManager) playerStateConstructor(state *state, player PlayerIndex) (ConfigurablePlayerState, error) {
 
 	playerState := g.delegate.PlayerStateConstructor(player)
 
@@ -244,13 +244,13 @@ func (g *GameManager) playerStateConstructor(state *state, player PlayerIndex) (
 		return nil, errors.New("PlayerStateConstructor returned nil for " + strconv.Itoa(int(player)))
 	}
 
-	readSetter := playerState.ReadSetter()
+	readSetConfigurer := playerState.ReadSetConfigurer()
 
-	if readSetter == nil {
-		return nil, errors.New("PlayerState ReadSetter returned nil")
+	if readSetConfigurer == nil {
+		return nil, errors.New("PlayerState ReadSetConfigurer returned nil")
 	}
 
-	if err := g.playerValidator.AutoInflate(readSetter, state); err != nil {
+	if err := g.playerValidator.AutoInflate(readSetConfigurer, state); err != nil {
 		return nil, errors.New("Couldn't auto-inflate empty player state: " + err.Error())
 	}
 
@@ -270,7 +270,7 @@ func (g *GameManager) playerStateConstructor(state *state, player PlayerIndex) (
 
 //GameStateConstructor is a simple wrapper around
 //delegate.GameStateConstructor that just verifies that stacks are inflated.
-func (g *GameManager) gameStateConstructor(state *state) (MutableSubState, error) {
+func (g *GameManager) gameStateConstructor(state *state) (ConfigurableSubState, error) {
 
 	gameState := g.delegate.GameStateConstructor()
 
@@ -278,13 +278,13 @@ func (g *GameManager) gameStateConstructor(state *state) (MutableSubState, error
 		return nil, errors.New("GameStateConstructor returned nil")
 	}
 
-	readSetter := gameState.ReadSetter()
+	readSetConfigurer := gameState.ReadSetConfigurer()
 
-	if readSetter == nil {
-		return nil, errors.New("GameState ReadSetter returned nil")
+	if readSetConfigurer == nil {
+		return nil, errors.New("GameState ReadSetConfigurer returned nil")
 	}
 
-	if err := g.gameValidator.AutoInflate(readSetter, state); err != nil {
+	if err := g.gameValidator.AutoInflate(readSetConfigurer, state); err != nil {
 		return nil, errors.New("Couldn't auto-inflate empty game state: " + err.Error())
 	}
 
@@ -302,8 +302,8 @@ func (g *GameManager) gameStateConstructor(state *state) (MutableSubState, error
 
 }
 
-func (g *GameManager) dynamicComponentValuesConstructor(state *state) (map[string][]MutableSubState, error) {
-	result := make(map[string][]MutableSubState)
+func (g *GameManager) dynamicComponentValuesConstructor(state *state) (map[string][]ConfigurableSubState, error) {
+	result := make(map[string][]ConfigurableSubState)
 
 	for _, deckName := range g.Chest().DeckNames() {
 
@@ -324,17 +324,17 @@ func (g *GameManager) dynamicComponentValuesConstructor(state *state) (map[strin
 			return nil, errors.New("Unexpectedly couldn't find validator for deck " + deckName)
 		}
 
-		arr := make([]MutableSubState, len(deck.Components()))
+		arr := make([]ConfigurableSubState, len(deck.Components()))
 		for i := 0; i < len(deck.Components()); i++ {
 			arr[i] = g.Delegate().DynamicComponentValuesConstructor(deck)
 
-			readSetter := arr[i].ReadSetter()
+			readSetConfigurer := arr[i].ReadSetConfigurer()
 
-			if readSetter == nil {
-				return nil, errors.New("ReadSetter for dynamic component values for " + deckName + " " + strconv.Itoa(i) + " was nil")
+			if readSetConfigurer == nil {
+				return nil, errors.New("ReadSetConfigurer for dynamic component values for " + deckName + " " + strconv.Itoa(i) + " was nil")
 			}
 
-			if err := validator.AutoInflate(readSetter, state); err != nil {
+			if err := validator.AutoInflate(readSetConfigurer, state); err != nil {
 				return nil, errors.New("Couldn't auto-inflate dynamic compoonent values for " + deckName + " " + strconv.Itoa(i) + ": " + err.Error())
 			}
 
@@ -543,13 +543,13 @@ func (g *GameManager) SetUp() error {
 	//Technically we don't need to do this test inflation now, but we might as
 	//well catch these problems at SetUp instead of later.
 
-	readSetter := exampleGameState.ReadSetter()
+	readSetConfigurer := exampleGameState.ReadSetConfigurer()
 
-	if readSetter == nil {
-		return errors.New("GameStateConstructor's returned value returned nil for ReadSetter")
+	if readSetConfigurer == nil {
+		return errors.New("GameStateConstructor's returned value returned nil for ReadSetConfigurer")
 	}
 
-	if err = validator.AutoInflate(readSetter, fakeState); err != nil {
+	if err = validator.AutoInflate(readSetConfigurer, fakeState); err != nil {
 		return errors.New("Couldn't auto inflate empty game state: " + err.Error())
 	}
 
@@ -577,13 +577,13 @@ func (g *GameManager) SetUp() error {
 		return errors.New("Could not validate empty player state: " + err.Error())
 	}
 
-	readSetter = examplePlayerState.ReadSetter()
+	readSetConfigurer = examplePlayerState.ReadSetConfigurer()
 
-	if readSetter == nil {
-		return errors.New("PlayerStateConstructor's returned value returned nil for ReadSetter")
+	if readSetConfigurer == nil {
+		return errors.New("PlayerStateConstructor's returned value returned nil for ReadSetConfigurer")
 	}
 
-	if err = validator.AutoInflate(readSetter, fakeState); err != nil {
+	if err = validator.AutoInflate(readSetConfigurer, fakeState); err != nil {
 		return errors.New("Couldn't auto inflate empty player state: " + err.Error())
 	}
 
@@ -616,13 +616,13 @@ func (g *GameManager) SetUp() error {
 			return errors.New("Could not validate empty dynamic component state for " + deckName + ": " + err.Error())
 		}
 
-		readSetter = exampleDynamicComponentValue.ReadSetter()
+		readSetConfigurer = exampleDynamicComponentValue.ReadSetConfigurer()
 
-		if readSetter == nil {
-			return errors.New("DynamicComponentValue for " + deckName + " " + strconv.Itoa(i) + " readsetter returned nil")
+		if readSetConfigurer == nil {
+			return errors.New("DynamicComponentValue for " + deckName + " " + strconv.Itoa(i) + " readSetConfigurer returned nil")
 		}
 
-		if err = validator.AutoInflate(readSetter, fakeState); err != nil {
+		if err = validator.AutoInflate(readSetConfigurer, fakeState); err != nil {
 			return errors.New("Couldn't auto inflate empty dynamic component state for " + deckName + ": " + err.Error())
 		}
 

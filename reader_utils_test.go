@@ -92,6 +92,10 @@ func (t *testAutoEnumMove) ReadSetter() PropertyReadSetter {
 	return getDefaultReadSetter(t)
 }
 
+func (t *testAutoEnumMove) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(t)
+}
+
 func (t *testAutoEnumMove) Legal(state State, proposer PlayerIndex) error {
 	return nil
 }
@@ -164,6 +168,10 @@ func (t *testGeneralReadSetter) ReadSetter() PropertyReadSetter {
 	return getDefaultReadSetter(t)
 }
 
+func (t *testGeneralReadSetter) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(t)
+}
+
 func TestReaderValidator(t *testing.T) {
 
 	example := &testGeneralReadSetter{}
@@ -182,7 +190,7 @@ func TestReaderValidator(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
-	err = validator.AutoInflate(autoFilledObj.ReadSetter(), game.CurrentState())
+	err = validator.AutoInflate(autoFilledObj.ReadSetConfigurer(), game.CurrentState())
 
 	assert.For(t).ThatActual(err).IsNil()
 

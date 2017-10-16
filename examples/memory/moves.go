@@ -15,7 +15,7 @@ const HideCardsDuration = 4 * time.Second
  *
  **************************************************/
 
-//+autoreader readsetter
+//+autoreader
 type MoveFinishTurn struct {
 	moves.FinishTurn
 }
@@ -35,7 +35,7 @@ var moveFinishTurnConfig = boardgame.MoveTypeConfig{
  *
  **************************************************/
 
-//+autoreader readsetter
+//+autoreader
 type MoveRevealCard struct {
 	moves.CurrentPlayer
 	CardIndex int
@@ -111,7 +111,7 @@ func (m *MoveRevealCard) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-//+autoreader readsetter
+//+autoreader
 type MoveStartHideCardsTimer struct {
 	moves.Base
 }
@@ -172,7 +172,7 @@ func (m *MoveStartHideCardsTimer) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-//+autoreader readsetter
+//+autoreader
 type MoveCaptureCards struct {
 	moves.Base
 }
@@ -231,7 +231,7 @@ func (m *MoveCaptureCards) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-//+autoreader readsetter
+//+autoreader
 type MoveHideCards struct {
 	moves.CurrentPlayer
 }

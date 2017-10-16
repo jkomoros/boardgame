@@ -438,7 +438,15 @@ func (m *__moveMoveCardBetweenShortStacksReader) MutableTimerProp(name string) (
 
 }
 
+func (m *moveMoveCardBetweenShortStacks) Reader() boardgame.PropertyReader {
+	return &__moveMoveCardBetweenShortStacksReader{m}
+}
+
 func (m *moveMoveCardBetweenShortStacks) ReadSetter() boardgame.PropertyReadSetter {
+	return &__moveMoveCardBetweenShortStacksReader{m}
+}
+
+func (m *moveMoveCardBetweenShortStacks) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__moveMoveCardBetweenShortStacksReader{m}
 }
 
@@ -737,7 +745,15 @@ func (m *__moveMoveCardBetweenDrawAndDiscardStacksReader) MutableTimerProp(name 
 
 }
 
+func (m *moveMoveCardBetweenDrawAndDiscardStacks) Reader() boardgame.PropertyReader {
+	return &__moveMoveCardBetweenDrawAndDiscardStacksReader{m}
+}
+
 func (m *moveMoveCardBetweenDrawAndDiscardStacks) ReadSetter() boardgame.PropertyReadSetter {
+	return &__moveMoveCardBetweenDrawAndDiscardStacksReader{m}
+}
+
+func (m *moveMoveCardBetweenDrawAndDiscardStacks) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__moveMoveCardBetweenDrawAndDiscardStacksReader{m}
 }
 
@@ -1021,7 +1037,15 @@ func (m *__moveFlipHiddenCardReader) MutableTimerProp(name string) (boardgame.Mu
 
 }
 
+func (m *moveFlipHiddenCard) Reader() boardgame.PropertyReader {
+	return &__moveFlipHiddenCardReader{m}
+}
+
 func (m *moveFlipHiddenCard) ReadSetter() boardgame.PropertyReadSetter {
+	return &__moveFlipHiddenCardReader{m}
+}
+
+func (m *moveFlipHiddenCard) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__moveFlipHiddenCardReader{m}
 }
 
@@ -1305,7 +1329,15 @@ func (m *__moveMoveCardBetweenFanStacksReader) MutableTimerProp(name string) (bo
 
 }
 
+func (m *moveMoveCardBetweenFanStacks) Reader() boardgame.PropertyReader {
+	return &__moveMoveCardBetweenFanStacksReader{m}
+}
+
 func (m *moveMoveCardBetweenFanStacks) ReadSetter() boardgame.PropertyReadSetter {
+	return &__moveMoveCardBetweenFanStacksReader{m}
+}
+
+func (m *moveMoveCardBetweenFanStacks) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__moveMoveCardBetweenFanStacksReader{m}
 }
 
@@ -1589,7 +1621,15 @@ func (m *__moveVisibleShuffleCardsReader) MutableTimerProp(name string) (boardga
 
 }
 
+func (m *moveVisibleShuffleCards) Reader() boardgame.PropertyReader {
+	return &__moveVisibleShuffleCardsReader{m}
+}
+
 func (m *moveVisibleShuffleCards) ReadSetter() boardgame.PropertyReadSetter {
+	return &__moveVisibleShuffleCardsReader{m}
+}
+
+func (m *moveVisibleShuffleCards) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__moveVisibleShuffleCardsReader{m}
 }
 
@@ -1873,7 +1913,15 @@ func (m *__moveShuffleCardsReader) MutableTimerProp(name string) (boardgame.Muta
 
 }
 
+func (m *moveShuffleCards) Reader() boardgame.PropertyReader {
+	return &__moveShuffleCardsReader{m}
+}
+
 func (m *moveShuffleCards) ReadSetter() boardgame.PropertyReadSetter {
+	return &__moveShuffleCardsReader{m}
+}
+
+func (m *moveShuffleCards) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__moveShuffleCardsReader{m}
 }
 
@@ -2157,7 +2205,15 @@ func (m *__moveMoveBetweenHiddenReader) MutableTimerProp(name string) (boardgame
 
 }
 
+func (m *moveMoveBetweenHidden) Reader() boardgame.PropertyReader {
+	return &__moveMoveBetweenHiddenReader{m}
+}
+
 func (m *moveMoveBetweenHidden) ReadSetter() boardgame.PropertyReadSetter {
+	return &__moveMoveBetweenHiddenReader{m}
+}
+
+func (m *moveMoveBetweenHidden) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__moveMoveBetweenHiddenReader{m}
 }
 
@@ -2409,26 +2465,26 @@ func (g *__gameStateReader) SetPlayerIndexSliceProp(name string, value []boardga
 func (g *__gameStateReader) StackProp(name string) (boardgame.Stack, error) {
 
 	switch name {
-	case "SecondShortStack":
-		return g.data.SecondShortStack, nil
-	case "RevealedCard":
-		return g.data.RevealedCard, nil
-	case "FanDiscard":
-		return g.data.FanDiscard, nil
-	case "VisibleStack":
-		return g.data.VisibleStack, nil
-	case "HiddenStack":
-		return g.data.HiddenStack, nil
 	case "DiscardStack":
 		return g.data.DiscardStack, nil
-	case "DrawStack":
-		return g.data.DrawStack, nil
-	case "FirstShortStack":
-		return g.data.FirstShortStack, nil
 	case "HiddenCard":
 		return g.data.HiddenCard, nil
 	case "FanStack":
 		return g.data.FanStack, nil
+	case "FanDiscard":
+		return g.data.FanDiscard, nil
+	case "DrawStack":
+		return g.data.DrawStack, nil
+	case "FirstShortStack":
+		return g.data.FirstShortStack, nil
+	case "SecondShortStack":
+		return g.data.SecondShortStack, nil
+	case "RevealedCard":
+		return g.data.RevealedCard, nil
+	case "VisibleStack":
+		return g.data.VisibleStack, nil
+	case "HiddenStack":
+		return g.data.HiddenStack, nil
 
 	}
 
@@ -2439,23 +2495,17 @@ func (g *__gameStateReader) StackProp(name string) (boardgame.Stack, error) {
 func (g *__gameStateReader) ConfigureMutableStackProp(name string, value boardgame.MutableStack) error {
 
 	switch name {
-	case "SecondShortStack":
-		g.data.SecondShortStack = value
+	case "DiscardStack":
+		g.data.DiscardStack = value
 		return nil
-	case "RevealedCard":
-		g.data.RevealedCard = value
+	case "HiddenCard":
+		g.data.HiddenCard = value
+		return nil
+	case "FanStack":
+		g.data.FanStack = value
 		return nil
 	case "FanDiscard":
 		g.data.FanDiscard = value
-		return nil
-	case "VisibleStack":
-		g.data.VisibleStack = value
-		return nil
-	case "HiddenStack":
-		g.data.HiddenStack = value
-		return nil
-	case "DiscardStack":
-		g.data.DiscardStack = value
 		return nil
 	case "DrawStack":
 		g.data.DrawStack = value
@@ -2463,11 +2513,17 @@ func (g *__gameStateReader) ConfigureMutableStackProp(name string, value boardga
 	case "FirstShortStack":
 		g.data.FirstShortStack = value
 		return nil
-	case "HiddenCard":
-		g.data.HiddenCard = value
+	case "SecondShortStack":
+		g.data.SecondShortStack = value
 		return nil
-	case "FanStack":
-		g.data.FanStack = value
+	case "RevealedCard":
+		g.data.RevealedCard = value
+		return nil
+	case "VisibleStack":
+		g.data.VisibleStack = value
+		return nil
+	case "HiddenStack":
+		g.data.HiddenStack = value
 		return nil
 
 	}
@@ -2479,26 +2535,26 @@ func (g *__gameStateReader) ConfigureMutableStackProp(name string, value boardga
 func (g *__gameStateReader) MutableStackProp(name string) (boardgame.MutableStack, error) {
 
 	switch name {
-	case "SecondShortStack":
-		return g.data.SecondShortStack, nil
-	case "RevealedCard":
-		return g.data.RevealedCard, nil
-	case "FanDiscard":
-		return g.data.FanDiscard, nil
-	case "VisibleStack":
-		return g.data.VisibleStack, nil
-	case "HiddenStack":
-		return g.data.HiddenStack, nil
 	case "DiscardStack":
 		return g.data.DiscardStack, nil
-	case "DrawStack":
-		return g.data.DrawStack, nil
-	case "FirstShortStack":
-		return g.data.FirstShortStack, nil
 	case "HiddenCard":
 		return g.data.HiddenCard, nil
 	case "FanStack":
 		return g.data.FanStack, nil
+	case "FanDiscard":
+		return g.data.FanDiscard, nil
+	case "DrawStack":
+		return g.data.DrawStack, nil
+	case "FirstShortStack":
+		return g.data.FirstShortStack, nil
+	case "SecondShortStack":
+		return g.data.SecondShortStack, nil
+	case "RevealedCard":
+		return g.data.RevealedCard, nil
+	case "VisibleStack":
+		return g.data.VisibleStack, nil
+	case "HiddenStack":
+		return g.data.HiddenStack, nil
 
 	}
 
@@ -2553,6 +2609,10 @@ func (g *gameState) Reader() boardgame.PropertyReader {
 }
 
 func (g *gameState) ReadSetter() boardgame.PropertyReadSetter {
+	return &__gameStateReader{g}
+}
+
+func (g *gameState) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__gameStateReader{g}
 }
 
@@ -2862,5 +2922,9 @@ func (p *playerState) Reader() boardgame.PropertyReader {
 }
 
 func (p *playerState) ReadSetter() boardgame.PropertyReadSetter {
+	return &__playerStateReader{p}
+}
+
+func (p *playerState) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__playerStateReader{p}
 }
