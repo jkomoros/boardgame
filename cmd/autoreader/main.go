@@ -10,10 +10,11 @@
 	and ReadSetConfigurer() method that implement boardgame.Reader,
 	boardgame.ReadSetter, and boardgame.ReadSetConfigurer, respectively.
 
-	If you want only some of those methods for a given struct, include a
-	comma-delimited list of the keywords for the ones you want ( "reader",
-	"readsetter", and "readsetconfigurer") like so: "+autoreader
-	reader,readsetter"
+	Producing a ReadSetConfigurator requires a ReadSetter, and producing a
+	ReadSetter requires a Reader. By default if you have the magic comment of
+	`+autoreader` it with produce all three. However, if you want only some of
+	the methods, include an argument for the highest one you want, e.g.
+	`+autoreader readsetter` to generate a Reader() and ReadSetter().
 
 	You can configure which package to process and where to write output via
 	command-line flags. By default it processes the current package and writes
@@ -365,25 +366,14 @@ func structConfig(docLines []string) (outputReader bool, outputReadSetter bool, 
 		docLine = strings.TrimPrefix(docLine, magicDocLinePrefix)
 		docLine = strings.TrimSpace(docLine)
 
-		docLinePieces := strings.Split(docLine, ",")
-
-		for _, piece := range docLinePieces {
-			piece = strings.TrimSpace(piece)
-			switch piece {
-			case "", "all":
-				outputReader = true
-				outputReadSetter = true
-				outputReadSetConfigurer = true
-			case "reader":
-				outputReader = true
-			case "readsetter":
-				outputReadSetter = true
-			case "readsetconfigurer":
-				outputReadSetConfigurer = true
-			}
+		switch docLine {
+		case "", "all", "readsetconfigurer":
+			return true, true, true
+		case "readsetter":
+			return true, true, false
+		case "reader":
+			return true, false, false
 		}
-
-		return
 
 	}
 	return false, false, false

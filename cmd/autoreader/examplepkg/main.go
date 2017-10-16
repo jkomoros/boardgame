@@ -57,11 +57,6 @@ type onlyReader struct {
 }
 
 // +autoreader    readSetter
-type onlyReadSetter struct {
+type upToReadSetter struct {
 	MyInt int
-}
-
-//+autoreader reader,readsetconfigurer
-type bothReaderAndReadSetConfigurer struct {
-	MyBool bool
 }
