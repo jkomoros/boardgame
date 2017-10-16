@@ -54,6 +54,8 @@ type noReaderStruct struct {
 // +autoreader reader
 type onlyReader struct {
 	MyString string
+	//enum.Val are allowed, but only if only a reader is requested.
+	ImmutableEnum enum.Val
 }
 
 // +autoreader    readSetter

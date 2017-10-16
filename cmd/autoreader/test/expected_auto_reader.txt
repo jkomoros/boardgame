@@ -1701,7 +1701,8 @@ func (m *myOtherStruct) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer 
 // Implementation for onlyReader
 
 var __onlyReaderReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
-	"MyString": boardgame.TypeString,
+	"ImmutableEnum": boardgame.TypeEnum,
+	"MyString":      boardgame.TypeString,
 }
 
 type __onlyReaderReader struct {
@@ -1762,6 +1763,12 @@ func (o *__onlyReaderReader) BoolSliceProp(name string) ([]bool, error) {
 }
 
 func (o *__onlyReaderReader) EnumProp(name string) (enum.Val, error) {
+
+	switch name {
+	case "ImmutableEnum":
+		return o.data.ImmutableEnum, nil
+
+	}
 
 	return nil, errors.New("No such Enum prop: " + name)
 

@@ -164,7 +164,11 @@ func processPackage(location string) (output string, err error) {
 			continue
 		}
 
-		types := structTypes(location, theStruct, sources.Structs)
+		types, onlyReaderAllowed := structTypes(location, theStruct, sources.Structs)
+
+		if onlyReaderAllowed && (outputReadSetter || outputReadSetConfigurer) {
+			return "", errors.New("Struct " + theStruct.Name + " has an exported enum.Val property, but wants a ReadSetter or higher generated. Replace that field with a enum.MutableVal")
+		}
 
 		output += headerForStruct(theStruct.Name, types, outputReadSetter, outputReadSetConfigurer)
 
@@ -222,11 +226,15 @@ func fieldNamePossibleEmbeddedStruct(theField model.Field) bool {
 	return false
 }
 
-func structTypes(location string, theStruct model.Struct, allStructs []model.Struct) map[string]boardgame.PropertyType {
+func structTypes(location string, theStruct model.Struct, allStructs []model.Struct) (foundTypes map[string]boardgame.PropertyType, onlyReaderAllowed bool) {
+
+	onlyReaderAllowed = false
+
 	result := make(map[string]boardgame.PropertyType)
 	for _, field := range theStruct.Fields {
 		if fieldNamePossibleEmbeddedStruct(field) {
-			embeddedInfo := typesForPossibleEmbeddedStruct(location, field, allStructs)
+			var embeddedInfo map[string]boardgame.PropertyType
+			embeddedInfo, onlyReaderAllowed = typesForPossibleEmbeddedStruct(location, field, allStructs)
 			if embeddedInfo != nil {
 				for key, val := range embeddedInfo {
 					result[key] = val
@@ -239,7 +247,8 @@ func structTypes(location string, theStruct model.Struct, allStructs []model.Str
 			foundStruct := false
 			for _, otherStruct := range allStructs {
 				if otherStruct.Name == field.TypeName {
-					embeddedInfo := structTypes(location, otherStruct, allStructs)
+					var embeddedInfo map[string]boardgame.PropertyType
+					embeddedInfo, onlyReaderAllowed = structTypes(location, otherStruct, allStructs)
 					for key, val := range embeddedInfo {
 						result[key] = val
 					}
@@ -275,6 +284,10 @@ func structTypes(location string, theStruct model.Struct, allStructs []model.Str
 			}
 		case "boardgame.MutableStack":
 			result[field.Name] = boardgame.TypeStack
+		case "enum.Val":
+			//A Val is allowed, but only if we're only generating up to a Reader.
+			result[field.Name] = boardgame.TypeEnum
+			onlyReaderAllowed = true
 		case "enum.MutableVal":
 			result[field.Name] = boardgame.TypeEnum
 		case "boardgame.PlayerIndex":
@@ -289,26 +302,26 @@ func structTypes(location string, theStruct model.Struct, allStructs []model.Str
 			log.Println("Unknown type on " + theStruct.Name + ": " + field.Name + ": " + field.TypeName)
 		}
 	}
-	return result
+	return result, onlyReaderAllowed
 }
 
 //typeforPossibleEmbeddedStruct should be called when we think that an unknown
 //field MIGHT be an embedded struct. If it is, we will identify the package it
 //appears to be built from, parse those structs, try to find the struct, and
 //return a map of property types in it.
-func typesForPossibleEmbeddedStruct(location string, theField model.Field, allStructs []model.Struct) map[string]boardgame.PropertyType {
+func typesForPossibleEmbeddedStruct(location string, theField model.Field, allStructs []model.Struct) (foundTypes map[string]boardgame.PropertyType, onlyReaderAllowed bool) {
 
 	targetTypeParts := strings.Split(theField.TypeName, ".")
 
 	if len(targetTypeParts) != 2 {
-		return nil
+		return
 	}
 
 	targetType := targetTypeParts[1]
 
 	//BaseSubState will be anonymously embedded but should be ignored.
 	if targetType == "BaseSubState" {
-		return nil
+		return
 	}
 
 	key := memoizedEmbeddedStructKey{
@@ -316,17 +329,17 @@ func typesForPossibleEmbeddedStruct(location string, theField model.Field, allSt
 		TargetStructName: targetType,
 	}
 
-	result := memoizedEmbeddedStructs[key]
+	foundTypes = memoizedEmbeddedStructs[key]
 
-	if result != nil {
-		return result
+	if foundTypes != nil {
+		return
 	}
 
 	pkg, err := build.Import(theField.PackageName, location, build.FindOnly)
 
 	if err != nil {
 		log.Println("Couldn't find canonical import: " + err.Error())
-		return nil
+		return
 	}
 
 	importPath := pkg.Dir
@@ -335,7 +348,7 @@ func typesForPossibleEmbeddedStruct(location string, theField model.Field, allSt
 
 	if err != nil {
 		log.Println("Error in sources for ", theField, err.Error())
-		return nil
+		return
 	}
 
 	for _, theStruct := range sources.Structs {
@@ -343,14 +356,13 @@ func typesForPossibleEmbeddedStruct(location string, theField model.Field, allSt
 			continue
 		}
 		//Found it!
-		result = structTypes(location, theStruct, allStructs)
+		foundTypes, onlyReaderAllowed = structTypes(location, theStruct, allStructs)
 
-		memoizedEmbeddedStructs[key] = result
+		memoizedEmbeddedStructs[key] = foundTypes
 
-		return result
 	}
 
-	return nil
+	return
 
 }
 
