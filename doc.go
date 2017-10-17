@@ -600,17 +600,20 @@ the game. The package tries to hit a sweet spot between concrete types whose
 behavior is modified by delegates, and interfaces that you must implement.
 
 States, Moves, and Components, in particular, will have a set of properties
-that is very specific to your particular game and taht particular object type.
+that is very specific to your particular game and that particular object type.
 The package itself tries to rely on reflection only rarely, and only when
 instructed to. In practice, inside of your Move.Apply, Move.Legal, and
 Delegate methods, you will often immediately cast the provided generic Move,
 State, or Component to the underlying type you know it is.
 
 Every so often the package has to interact with objects whose shape it does
-not know. It relies on the PropertyReader and PropertyReadSetter interfaces to
-do this manipulation. Implementing these methods can be a pain, which is why
-this package provides a set of implementation methods that rely on reflection
-to satisfy these interfaces.
+not know. It relies on the PropertyReader, PropertyReadSetter, and
+PropertyReadSetConfigure interfaces to do this manipulation. If
+PropertyReadSetConfigure is supported, then ReadSetter and Reader must also
+be; in general you must support all of the "lower" interfaces in that set up
+to the highest one you support.Implementing these methods can be a pain, which
+is why this package provides a set of implementation methods that rely on
+reflection to satisfy these interfaces.
 
 Note that when we make a copy of your PlayerState or GameStates, we only
 enumerate and copy allowed property types that are visible via the

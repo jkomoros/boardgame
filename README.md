@@ -63,9 +63,9 @@ The core of the states are represented here:
 type gameState struct {
 	boardgame.BaseSubState
 	CurrentPlayer  boardgame.PlayerIndex
-	HiddenCards    boardgame.Stack `sanitize:"order"`
-	RevealedCards  boardgame.Stack
-	HideCardsTimer *boardgame.Timer
+	HiddenCards    boardgame.MutableStack `sanitize:"order"`
+	RevealedCards  boardgame.MutableStack
+	HideCardsTimer boardgame.MutableTimer
 }
 
 //+autoreader
@@ -73,7 +73,7 @@ type playerState struct {
 	boardgame.BaseSubState
 	playerIndex       boardgame.PlayerIndex
 	CardsLeftToReveal int
-	WonCards          boardgame.Stack `stack:"cards"`
+	WonCards          boardgame.MutableStack `stack:"cards"`
 }
 ```
 
@@ -90,7 +90,7 @@ Most of the properties are straightforward. Each player has how many cards they 
 
 #### Stacks and Components
 
-As you can see, stacks of cards are represented by type `Stack`.
+As you can see, stacks of cards are represented by type `MutableStack`.
 
 Stacks contain 0 or more **Components**. Components are anything in a game that can move around: cards, meeples, resource tokens, dice, etc. Each game type defines a complete enumeration of all components included in their game in something called a **ComponentChest**. We'll get back to that later in the tutorial.
 
@@ -112,7 +112,7 @@ Both of the State objects also have a cryptic comment above them: `//+autoreader
 
 In a number of cases (including your GameState and PlayerState), your specific game package provides the structs to operate on. The core engine doesn't know their shape. In a number of cases, however, it is necessary to interact with specific fields of that struct, or enumerate how many of a certain type of property there are. It's possible to do that via reflection, but that would be slow. In addition, the engine requires that your structs be simple and only have known types of properties, but if general reflection were used it would be harder to detect that.
 
-The core package has a notion of a `PropertyReader`, which makes it possible to enumerate, read, and set properties on these types of objects. The signature looks something like this:
+The core package has a notion of a `PropertyReader` (as well as `PropertyReadSetter` and `PropertyReadSetConfigurer`), which makes it possible to enumerate, read, and set properties on these types of objects. The signature looks something like this:
 
 ```
 type PropertyReader interface {
@@ -128,20 +128,41 @@ type PropertyReader interface {
 }
 
 type PropertyReadSetter interface {
-    //PropertyReadSetters have all of the read-only properties of PropertyReader.
+	//All PropertyReadSetters have read interfaces
 	PropertyReader
 
-    //Set the IntProp with the given name to the given value.
 	SetIntProp(name string, value int) error
+	
+	//Setters for all other non-interface types, similar to IntProp
 
-	//... setters for all of the other PropertyTypes
+	//For interface types the setter also wants to give access to the mutable
+	//underlying value so it can be mutated in place.
+	MutableEnumProp(name string) (enum.MutableVal, error)
+	MutableStackProp(name string) (MutableStack, error)
+	MutableTimerProp(name string) (MutableTimer, error)
 
-    //An untyped setter for the property with that name.
 	SetProp(name string, value interface{}) error
+}
+
+type PropertyReadSetConfigurer interface {
+	PropertyReadSetter
+	ConfigureMutableEnumProp(name string, value enum.MutableVal) error
+	ConfigureMutableStackProp(name string, value MutableStack) error
+	ConfigureMutableTimerProp(name string, value MutableTimer) error
+
+	ConfigureProp(name string, value interface{}) error
 }
 ```
 
 This known signature is used a lot within the package for the engine to interact with objects specific to a given game type.
+
+For simple types (like bools, ints, and strings) the signature is
+straightforward: a getter and a setter. However, there are three types of
+supported properties that are special: `Stack`, `Enum`, and `Timer`. These three types are called "Interface types" because they are a container with some configuration, as well as the specific values within that container. The base interface has read-only methods, and the `MutableTYPE` interface also includes mutators.
+
+A generic Setter for those properties doesn't make sense in a
+`PropertyReadSetter` because the configuration of the property doesn't change,
+only its value within the container. For that reason the Setters are missing and instead have a MutableTYPE getter, which allows mutation, and also have a ConfigureMutableTYPEProp setters, which are used only after the object is freshly-minted in order to configure the container.
 
 Implementing all of those getters and setters for each custom object type you have is a complete pain. That's why there's a command, suitable for use with `go generate`, that automatically creates PropertyReaders for your structs.
 
@@ -165,6 +186,8 @@ type MyStruct struct {
 ```
 
 Then, every time you change the shape of one of your objects, run `go generate` on the command line. That will create `autoreader.go`, with generated getters and setters for all of your objects.
+
+One other thing to note: the actual concrete structs that you define, like `gameState` and `playerState`, should always include the Mutable variant of an interface type (`MutableStack`, `MutableEnum`, and `MutableTimer`); the PropertyReader methods will return just the read-only subset of those objects. The only exception is in structs that will be used in ComponentValues--those may use `enum.Val` since those objects will never implement `PropertyReadSetter` or `PropertyReadSetConfigurer`.
 
 The game engine generally reasons about States as one concrete object made up of one GameState, and **n** PlayerStates (one for each player). (There are other components of State that we'll get into later.) The `State` object is defined in the core package, and the getters for Game and Player states return things that generically implement the interface, although under the covers they are the concrete type specific to your game type. Many of the methods you implement will accept a State object. Of course, it would be a total pain if you had to interact with all of your objects within your own package that way--to say nothing of losing a lot of type safety.
 
