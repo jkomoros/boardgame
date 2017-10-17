@@ -638,29 +638,31 @@ type ConfigurableSubState interface {
 	ReadSetConfigurer
 }
 
-//PlayerState represents the state of a game associated with a specific user.
-//It is just a SubState with the addition of a PlayerIndex().
-type PlayerState interface {
+//PlayerIndexer is implemented by all PlayerStates, which differentiates them
+//from a generic SubState.
+type PlayerIndexer interface {
 	//PlayerIndex encodes the index this user's state is in the containing
 	//state object.
 	PlayerIndex() PlayerIndex
+}
+
+//PlayerState represents the state of a game associated with a specific user.
+//It is just a SubState with the addition of a PlayerIndex().
+type PlayerState interface {
+	PlayerIndexer
 	SubState
 }
 
 //A MutablePlayerState is a PlayerState that is allowed to be mutated.
 type MutablePlayerState interface {
-	//PlayerIndex encodes the index this user's state is in the containing
-	//state object.
-	PlayerIndex() PlayerIndex
+	PlayerIndexer
 	MutableSubState
 }
 
 //A ConfigurablePlayerState is a PlayerState that is allowed to be mutated and
 //configured.
 type ConfigurablePlayerState interface {
-	//PlayerIndex encodes the index this user's state is in the containing
-	//state object.
-	PlayerIndex() PlayerIndex
+	PlayerIndexer
 	ConfigurableSubState
 }
 
