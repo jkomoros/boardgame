@@ -6,7 +6,8 @@ import (
 )
 
 //A Timer is a type of property that can be used in states that represents a
-//countdown. See the package documentation for more on timers.
+//countdown. The MutableTimer interface includes mutator methods as well. See
+//the package documentation for more on timers.
 type Timer interface {
 	Active() bool
 	TimeLeft() time.Duration
@@ -16,6 +17,7 @@ type Timer interface {
 	setState(*state)
 }
 
+//MutableTimer is a Timer that also includes mutator methods.
 type MutableTimer interface {
 	Timer
 	Start(time.Duration, Move)

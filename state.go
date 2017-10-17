@@ -592,19 +592,24 @@ type Reader interface {
 }
 
 //ReadSetter is the interface that any object that can return a
-//PropertyReadSetter implements.
+//PropertyReadSetter implements. Objects that implement ReadSetter also
+//implement Reader.
 type ReadSetter interface {
 	Reader
 	ReadSetter() PropertyReadSetter
 }
 
 //ReadSetCongigurer is the interface that any object that can return a
-//PropertyReadSetConfigurer implements.z
+//PropertyReadSetConfigurer implements. Objects that implement
+//ReadSetConfigurer also implement ReadSetter.
 type ReadSetConfigurer interface {
 	ReadSetter
 	ReadSetConfigurer() PropertyReadSetConfigurer
 }
 
+//SetStater is included in SubState, MutableSubState, and
+//ConfigureableSubState as the way to keep track of which State a given
+//SubState is part of.
 type SetStater interface {
 	//SetState is called to give the SubState object a pointer back to the
 	//State that contains it. You can implement it yourself, or anonymously
