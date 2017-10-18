@@ -15,6 +15,19 @@ import (
 
 //go:generate autoreader
 
+//+autoreader
+const (
+	ColorUnknown = iota
+	ColorBlue
+	ColorGreen
+	ColorRed
+)
+
+const (
+	DontIncludeBlue = iota
+	DontIncludeGreen
+)
+
 //+autoreader all
 type myStruct struct {
 	boardgame.BaseSubState
