@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/MarcGrol/golangAnnotations/model"
 	"github.com/abcum/lcp"
-	"log"
 	"strings"
 	"text/template"
 )
