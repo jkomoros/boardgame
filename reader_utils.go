@@ -20,7 +20,7 @@ type autoStackConfig struct {
 }
 
 type readerValidator struct {
-	autoEnumFields     map[string]*enum.Enum
+	autoEnumFields     map[string]enum.Enum
 	autoStackFields    map[string]*autoStackConfig
 	sanitizationPolicy map[string]map[int]Policy
 	illegalTypes       map[PropertyType]bool
@@ -37,7 +37,7 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 		illegalTypes = make(map[PropertyType]bool)
 	}
 
-	autoEnumFields := make(map[string]*enum.Enum)
+	autoEnumFields := make(map[string]enum.Enum)
 	autoStackFields := make(map[string]*autoStackConfig)
 	sanitizationPolicy := make(map[string]map[int]Policy)
 

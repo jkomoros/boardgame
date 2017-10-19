@@ -79,12 +79,49 @@ const IllegalValue = math.MaxInt64
 //then use it for all managers you create.
 type Set struct {
 	finished bool
-	enums    map[string]*Enum
+	enums    map[string]Enum
 }
 
 //Enum is a named set of values within a set. Get a new one with
-//enumSet.Add().
-type Enum struct {
+//enumSet.Add(). It's an interface to better support anonymous-embedding
+//scenarios.
+type Enum interface {
+	//DefaultValue returns the default value for this enum (the lowest valid value
+	//in it).
+	DefaultValue() int
+	//RandomValue returns a random value that is Valid() for this enum.
+	RandomValue() int
+	//Valid returns whether the given value is a valid member of this enum.
+	Valid(val int) bool
+	//String returns the string value associated with the given value.
+	String(val int) string
+	//Name returns the name of this enum; if set is the set this enum is part of,
+	//set.Enum(enum.Name()) == enum will be true.
+	Name() string
+	//ValueFromString returns the enum value that corresponds to the given string,
+	//or IllegalValue if no value has that string.
+	ValueFromString(in string) int
+	//NewVal returns an enum.Val that is permanently set to the provided
+	//val. If that value is not valid for this enum, it will error.
+	NewVal(val int) (Val, error)
+	NewMutableVal() MutableVal
+	//NewMutableVal returns a new EnumValue associated with this enum, set to the
+	//Enum's DefaultValue to start.
+	//NewDefaultVal is a convenience shortcut for creating a new const that is
+	//set to the default value, which is moderately common enough that it makes
+	//sense to do it without the possibility of errors.
+	NewDefaultVal() Val
+
+	//MustNewVal is like NewVal, but if it would have errored it panics
+	//instead. It's convenient for initial set up where the whole app should fail
+	//to startup if it can't be configured anyway, and dealing with errors would
+	//be a lot of boilerplate.
+	MustNewVal(val int) Val
+	MustNewMutableVal(val int) MutableVal
+}
+
+//enum is the underlying type we use to implement Enum.
+type enum struct {
 	name         string
 	values       map[int]string
 	defaultValue int
@@ -92,14 +129,14 @@ type Enum struct {
 
 //variable is the underlying type we'll return for both Value and Constant.
 type variable struct {
-	enum *Enum
+	enum Enum
 	val  int
 }
 
 //Val is an instantiation of an Enum that cannot be changed. You retrieve it
 //from enum.NewVal(val).
 type Val interface {
-	Enum() *Enum
+	Enum() Enum
 	Value() int
 	String() string
 	Copy() Val
@@ -124,7 +161,7 @@ type MutableVal interface {
 func NewSet() *Set {
 	return &Set{
 		false,
-		make(map[string]*Enum),
+		make(map[string]Enum),
 	}
 }
 
@@ -173,14 +210,14 @@ func (e *Set) EnumNames() []string {
 
 //Returns the Enum with the given name. In general you keep a reference to the
 //enum yourself, but this is useful for programatically enumerating the enums.
-func (e *Set) Enum(name string) *Enum {
+func (e *Set) Enum(name string) Enum {
 	return e.enums[name]
 }
 
 //MustAdd is like Add, but instead of an error it will panic if the enum
 //cannot be added. This is useful for defining your enums at the package level
 //outside of an init().
-func (e *Set) MustAdd(enumName string, values map[int]string) *Enum {
+func (e *Set) MustAdd(enumName string, values map[int]string) Enum {
 	result, err := e.Add(enumName, values)
 
 	if err != nil {
@@ -195,13 +232,13 @@ Add ads an enum with the given name and values to the enum manager. Will error
 if that name has already been added or if the config you provide has more than
 one string with the same value.
 */
-func (e *Set) Add(enumName string, values map[int]string) (*Enum, error) {
+func (e *Set) Add(enumName string, values map[int]string) (Enum, error) {
 
 	if len(values) == 0 {
 		return nil, errors.New("No values provided")
 	}
 
-	enum := &Enum{
+	enum := &enum{
 		enumName,
 		make(map[int]string),
 		math.MaxInt64,
@@ -240,7 +277,7 @@ func (e *Set) Add(enumName string, values map[int]string) (*Enum, error) {
 	return enum, nil
 }
 
-func (e *Set) addEnum(enumName string, enum *Enum) error {
+func (e *Set) addEnum(enumName string, enum Enum) error {
 
 	if e.finished {
 		return errors.New("The set has been finished so no more enums can be added")
@@ -255,14 +292,11 @@ func (e *Set) addEnum(enumName string, enum *Enum) error {
 	return nil
 }
 
-//DefaultValue returns the default value for this enum (the lowest valid value
-//in it).
-func (e *Enum) DefaultValue() int {
+func (e *enum) DefaultValue() int {
 	return e.defaultValue
 }
 
-//RandomValue returns a random value that is Valid() for this enum.
-func (e *Enum) RandomValue() int {
+func (e *enum) RandomValue() int {
 	keys := make([]int, len(e.values))
 
 	i := 0
@@ -273,26 +307,20 @@ func (e *Enum) RandomValue() int {
 	return keys[rand.Intn(len(keys))]
 }
 
-//Valid returns whether the given value is a valid member of this enum.
-func (e *Enum) Valid(val int) bool {
+func (e *enum) Valid(val int) bool {
 	_, ok := e.values[val]
 	return ok
 }
 
-//String returns the string value associated with the given value.
-func (e *Enum) String(val int) string {
+func (e *enum) String(val int) string {
 	return e.values[val]
 }
 
-//Name returns the name of this enum; if set is the set this enum is part of,
-//set.Enum(enum.Name()) == enum will be true.
-func (e *Enum) Name() string {
+func (e *enum) Name() string {
 	return e.name
 }
 
-//ValueFromString returns the enum value that corresponds to the given string,
-//or IllegalValue if no value has that string.
-func (e *Enum) ValueFromString(in string) int {
+func (e *enum) ValueFromString(in string) int {
 	for v, str := range e.values {
 		if str == in {
 			return v
@@ -324,16 +352,14 @@ func (e *variable) MutableCopy() MutableVal {
 	}
 }
 
-//NewMutableVal returns a new EnumValue associated with this enum, set to the
-//Enum's DefaultValue to start.
-func (e *Enum) NewMutableVal() MutableVal {
+func (e *enum) NewMutableVal() MutableVal {
 	return &variable{
 		e,
 		e.DefaultValue(),
 	}
 }
 
-func (e *Enum) MustNewMutableVal(val int) MutableVal {
+func (e *enum) MustNewMutableVal(val int) MutableVal {
 	enu := e.NewMutableVal()
 	if err := enu.SetValue(val); err != nil {
 		panic("Couldn't create mutable val: " + err.Error())
@@ -341,11 +367,7 @@ func (e *Enum) MustNewMutableVal(val int) MutableVal {
 	return enu
 }
 
-//MustNewVal is like NewVal, but if it would have errored it panics
-//instead. It's convenient for initial set up where the whole app should fail
-//to startup if it can't be configured anyway, and dealing with errors would
-//be a lot of boilerplate.
-func (e *Enum) MustNewVal(val int) Val {
+func (e *enum) MustNewVal(val int) Val {
 	result, err := e.NewVal(val)
 	if err != nil {
 		panic("Couldn't create constant: " + err.Error())
@@ -353,10 +375,7 @@ func (e *Enum) MustNewVal(val int) Val {
 	return result
 }
 
-//NewDefaultVal is a convenience shortcut for creating a new const that is
-//set to the default value, which is moderately common enough that it makes
-//sense to do it without the possibility of errors.
-func (e *Enum) NewDefaultVal() Val {
+func (e *enum) NewDefaultVal() Val {
 	c, err := e.NewVal(e.DefaultValue())
 	if err != nil {
 		panic("Unexpected error in NewDefaultConst: " + err.Error())
@@ -364,9 +383,7 @@ func (e *Enum) NewDefaultVal() Val {
 	return c
 }
 
-//NewVal returns an enum.Val that is permanently set to the provided
-//val. If that value is not valid for this enum, it will error.
-func (e *Enum) NewVal(val int) (Val, error) {
+func (e *enum) NewVal(val int) (Val, error) {
 	variable := e.NewMutableVal()
 	if err := variable.SetValue(val); err != nil {
 		return nil, err
@@ -393,7 +410,7 @@ func (e *variable) UnmarshalJSON(blob []byte) error {
 	return e.SetValue(val)
 }
 
-func (e *variable) Enum() *Enum {
+func (e *variable) Enum() Enum {
 	return e.enum
 }
 
