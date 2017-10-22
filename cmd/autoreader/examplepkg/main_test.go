@@ -6,13 +6,16 @@ import (
 	"testing"
 )
 
-//TODO: once enum export works reenable these tests
-/*func TestEnum(t *testing.T) {
+func TestEnum(t *testing.T) {
 	assert.For(t).ThatActual(Enums).IsNotNil()
 	assert.For(t).ThatActual(ColorEnum).IsNotNil()
 
-	//TODO: more tests here.
-}*/
+	assert.For(t).ThatActual(ColorEnum.ValueFromString("Unknown")).Equals(ColorUnknown)
+	assert.For(t).ThatActual(ColorEnum.ValueFromString("Red")).Equals(ColorRed)
+	assert.For(t).ThatActual(ColorEnum.ValueFromString("Green")).Equals(ColorGreen)
+	assert.For(t).ThatActual(ColorEnum.ValueFromString("Blue")).Equals(ColorBlue)
+
+}
 
 func TestMain(t *testing.T) {
 	var readerObj boardgame.Reader

@@ -2,8 +2,10 @@ package main
 
 import (
 	"errors"
-	"github.com/MarcGrol/golangAnnotations/model"
 	"github.com/abcum/lcp"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"strings"
 	"text/template"
 )
@@ -18,13 +20,77 @@ func init() {
 
 }
 
-func processEnums(sources model.ParsedSources) (enumOutput string, err error) {
+type enum struct {
+	PackageName string
+	Values      []string
+}
 
-	for _, enum := range sources.Enums {
+//findEnums processes the package at packageName and returns a list of enums
+//that should be processed (that is, they have the magic comment)
+func findEnums(inputPackageName string) (enums []*enum, err error) {
 
-		if !enumConfig(enum.DocLines) {
-			continue
+	packageASTs, err := parser.ParseDir(token.NewFileSet(), inputPackageName, nil, parser.ParseComments)
+
+	if err != nil {
+		return nil, errors.New("Parse error: " + err.Error())
+	}
+
+	for packageName, theAST := range packageASTs {
+		for _, file := range theAST.Files {
+			for _, decl := range file.Decls {
+				genDecl, ok := decl.(*ast.GenDecl)
+
+				if !ok {
+					//Guess it wasn't a genDecl at all.
+					continue
+				}
+
+				if genDecl.Tok != token.CONST {
+					//We're only interested in Const decls.
+					continue
+				}
+
+				if !enumConfig(genDecl.Doc.Text()) {
+					//Must not have found the magic comment in the docs.
+					continue
+				}
+
+				theEnum := &enum{
+					PackageName: packageName,
+				}
+
+				for _, spec := range genDecl.Specs {
+
+					valueSpec, ok := spec.(*ast.ValueSpec)
+
+					if !ok {
+						//Guess it wasn't a valueSpec after all!
+						continue
+					}
+
+					if len(valueSpec.Names) != 1 {
+						return nil, errors.New("Found an enum that had more than one name on a line. That's not allowed for now.")
+					}
+
+					theEnum.Values = append(theEnum.Values, valueSpec.Names[0].Name)
+
+				}
+
+				if len(theEnum.Values) > 0 {
+					enums = append(enums, theEnum)
+				}
+
+			}
 		}
+	}
+
+	return enums, nil
+}
+
+//outputForEnums takes the found enums and produces the output string
+//representing the un-formatted go code to generate for those enums.
+func outputForEnums(enums []*enum) (enumOutput string, err error) {
+	for _, enum := range enums {
 
 		if enumOutput == "" {
 			enumOutput = enumHeaderForPackage(enum.PackageName)
@@ -32,11 +98,11 @@ func processEnums(sources model.ParsedSources) (enumOutput string, err error) {
 
 		var literals [][]byte
 
-		for _, literal := range enum.EnumLiterals {
-			if !fieldNamePublic(literal.Name) {
+		for _, literal := range enum.Values {
+			if !fieldNamePublic(literal) {
 				continue
 			}
-			literals = append(literals, []byte(literal.Name))
+			literals = append(literals, []byte(literal))
 		}
 
 		if len(literals) == 0 {
@@ -53,11 +119,11 @@ func processEnums(sources model.ParsedSources) (enumOutput string, err error) {
 
 		i := 0
 
-		for _, literal := range enum.EnumLiterals {
-			if !strings.HasPrefix(literal.Name, prefix) {
+		for _, literal := range enum.Values {
+			if !strings.HasPrefix(literal, prefix) {
 				return "", errors.New("enum literal didn't have prefix we thought it did")
 			}
-			keys[i] = strings.Replace(literal.Name, prefix, "", -1)
+			keys[i] = strings.Replace(literal, prefix, "", -1)
 			i++
 		}
 
@@ -66,12 +132,33 @@ func processEnums(sources model.ParsedSources) (enumOutput string, err error) {
 	}
 
 	return enumOutput, nil
+}
+
+func processEnums(packageName string) (enumOutput string, err error) {
+	enums, err := findEnums(packageName)
+
+	if err != nil {
+		return "", errors.New("Couldn't parse for enums: " + err.Error())
+	}
+
+	if len(enums) == 0 {
+		//No enums. That's totally legit.
+		return "", nil
+	}
+
+	output, err := outputForEnums(enums)
+
+	if err != nil {
+		return "", errors.New("Couldn't generate output for enums: " + err.Error())
+	}
+
+	return output, nil
 
 }
 
-func enumConfig(docLines []string) bool {
+func enumConfig(docLines string) bool {
 
-	for _, docLine := range docLines {
+	for _, docLine := range strings.Split(docLines, "\n") {
 		docLine = strings.ToLower(docLine)
 		docLine = strings.TrimPrefix(docLine, "//")
 		docLine = strings.TrimSpace(docLine)
@@ -115,11 +202,11 @@ var Enums = enum.NewSet()
 
 `
 
-const enumItemTemplateText = `var {{.prefix}}Enum = enums.MustAdd("{{.prefix}}", map[int]string{
-	{{$prefix := .prefix}}
+const enumItemTemplateText = `var {{.prefix}}Enum = Enums.MustAdd("{{.prefix}}", map[int]string{
+	{{ $prefix := .prefix -}}
 	{{range .keys -}}
-	"{{.}}": {{$prefix}}{{.}}
-	{{- end}}
+	{{$prefix}}{{.}}: "{{.}}",
+	{{end}}
 })
 
 `

@@ -14,6 +14,29 @@ func TestOutput(t *testing.T) {
 	options := &appOptions{
 		PrintToConsole:   true,
 		PackageDirectory: "examplepkg/",
+		OutputReader:     true,
+	}
+
+	out := &bytes.Buffer{}
+	errOut := &bytes.Buffer{}
+
+	assert.For(t).ThatActual(errOut.String()).Equals("").ThenDiffOnFail()
+
+	process(options, out, errOut)
+
+	expectedBytes, err := ioutil.ReadFile("test/expected_auto_reader.txt")
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(strings.TrimSpace(out.String())).Equals(strings.TrimSpace(string(expectedBytes))).ThenDiffOnFail()
+
+}
+
+func TestEnumOutput(t *testing.T) {
+	options := &appOptions{
+		PrintToConsole:   true,
+		PackageDirectory: "examplepkg/",
+		OutputEnum:       true,
 	}
 
 	out := &bytes.Buffer{}
@@ -21,7 +44,9 @@ func TestOutput(t *testing.T) {
 
 	process(options, out, errOut)
 
-	expectedBytes, err := ioutil.ReadFile("test/expected_auto_reader.txt")
+	assert.For(t).ThatActual(errOut.String()).Equals("").ThenDiffOnFail()
+
+	expectedBytes, err := ioutil.ReadFile("test/expected_auto_enum.txt")
 
 	assert.For(t).ThatActual(err).IsNil()
 

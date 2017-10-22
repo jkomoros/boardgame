@@ -11,7 +11,9 @@ Enums are useful for this case. An EnumSet contains multiple enums, and you
 can create an EnumValue which can be used as a property on a PropertyReader
 object.
 
-The idiomatic way to create an enum is the following:
+The idiomatic way to create an enum is the following.
+
+In components.go:
 	const (
 		ColorRed = iota
 		ColorBlue
@@ -40,7 +42,7 @@ The idiomatic way to create an enum is the following:
 		CardClub: "Club",
 	})
 
-	//...
+And then in your main.go:
 
 	func (g *GameDelegate) EmptyGameState() boardgame.SubState {
 		return &gameState{
@@ -59,6 +61,31 @@ The idiomatic way to create an enum is the following:
 
 		//...
 	}
+
+This is a fair bit of boilerplate to inlude in your components.go. You can use
+the autoreader package to generate the repetitive boilerplate for you.
+
+Instead of the above code for components.go, you'd instead only include the
+following:
+
+	//+autoreader
+	const (
+		ColorRed = iota
+		ColorBlue
+		ColorGreen
+	)
+
+	//+autoreader
+	const (
+		CardSpade = iota
+		CardHeart
+		CardDiamond
+		CardClub
+	)
+
+Then, the rest of the example code shown above in components.go would be
+automatically generated. The longest common prefix for each name in the
+constant block would be used as the name of the enum.
 
 */
 package enum

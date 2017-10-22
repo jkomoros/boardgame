@@ -2,13 +2,17 @@
 
 	Autoreader is a simple program, designed to be run from go:generate, that
 	helps generate the annoying boilerplate to implement
-	boardgame.PropertyReader and boardgame.PropertyReadSetter.
+	boardgame.PropertyReader and boardgame.PropertyReadSetter, as well as
+	generating the boilerplate for enums.
 
 	Autoreader processes a package of go files, searching for structs that
 	have a comment immediately above their declaration that begins with
 	"+autoreader". For each such struct, it creates a Reader(), ReadSetter(),
 	and ReadSetConfigurer() method that implement boardgame.Reader,
-	boardgame.ReadSetter, and boardgame.ReadSetConfigurer, respectively.
+	boardgame.ReadSetter, and boardgame.ReadSetConfigurer, respectively. If it
+	finds a const() block at the top-level decorated with the magic comment it
+	will also generate enum boilerplate. See the package doc of enum for more
+	on what you need to include.
 
 	Producing a ReadSetConfigurator requires a ReadSetter, and producing a
 	ReadSetter requires a Reader. By default if you have the magic comment of
@@ -61,6 +65,8 @@ type appOptions struct {
 	EnumOutputFile   string
 	PackageDirectory string
 	PrintToConsole   bool
+	OutputEnum       bool
+	OutputReader     bool
 	Help             bool
 	flagSet          *flag.FlagSet
 }
@@ -74,6 +80,8 @@ func defineFlags(options *appOptions) {
 	options.flagSet.StringVar(&options.OutputFile, "out", "auto_reader.go", "Defines which file to render output to. WARNING: it will be overwritten!")
 	options.flagSet.StringVar(&options.EnumOutputFile, "enumout", "auto_enum.go", "Where to output the auto-enum file. WARNING: it will be overwritten!")
 	options.flagSet.StringVar(&options.PackageDirectory, "pkg", ".", "Which package to process")
+	options.flagSet.BoolVar(&options.OutputEnum, "enum", true, "Whether or not to output auto_enum.go")
+	options.flagSet.BoolVar(&options.OutputReader, "reader", true, "Whether or not to output auto_reader.go")
 	options.flagSet.BoolVar(&options.Help, "h", false, "If set, print help message and quit.")
 	options.flagSet.BoolVar(&options.PrintToConsole, "print", false, "If true, will print result to console instead of writing to out.")
 }
@@ -106,16 +114,21 @@ func process(options *appOptions, out io.ReadWriter, errOut io.ReadWriter) {
 	}
 
 	if options.PrintToConsole {
-		fmt.Fprintln(out, output)
-		fmt.Fprintln(out, enumOutput)
+		if options.OutputReader {
+			fmt.Fprintln(out, output)
+		}
+		if options.OutputEnum {
+			fmt.Fprintln(out, enumOutput)
+		}
+
 		return
 	}
 
-	if output != "" {
+	if output != "" && options.OutputReader {
 		ioutil.WriteFile(options.OutputFile, []byte(output), 0644)
 	}
 
-	if enumOutput != "" {
+	if enumOutput != "" && options.OutputEnum {
 		ioutil.WriteFile(options.EnumOutputFile, []byte(enumOutput), 0644)
 	}
 
@@ -135,7 +148,7 @@ func processPackage(location string) (output string, enumOutput string, err erro
 		return "", "", errors.New("Couldn't process structs: " + err.Error())
 	}
 
-	enumOutput, err = processEnums(sources)
+	enumOutput, err = processEnums(location)
 
 	if err != nil {
 		return "", "", errors.New("Couldn't process enums: " + err.Error())
