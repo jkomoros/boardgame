@@ -3017,26 +3017,26 @@ func (g *__gameStateReader) SetPlayerIndexSliceProp(name string, value []boardga
 func (g *__gameStateReader) StackProp(name string) (boardgame.Stack, error) {
 
 	switch name {
-	case "FirstShortStack":
-		return g.data.FirstShortStack, nil
-	case "RevealedCard":
-		return g.data.RevealedCard, nil
-	case "FanStack":
-		return g.data.FanStack, nil
-	case "VisibleStack":
-		return g.data.VisibleStack, nil
-	case "HiddenStack":
-		return g.data.HiddenStack, nil
 	case "DiscardStack":
 		return g.data.DiscardStack, nil
 	case "DrawStack":
 		return g.data.DrawStack, nil
-	case "SecondShortStack":
-		return g.data.SecondShortStack, nil
-	case "HiddenCard":
-		return g.data.HiddenCard, nil
 	case "FanDiscard":
 		return g.data.FanDiscard, nil
+	case "FanStack":
+		return g.data.FanStack, nil
+	case "FirstShortStack":
+		return g.data.FirstShortStack, nil
+	case "HiddenCard":
+		return g.data.HiddenCard, nil
+	case "HiddenStack":
+		return g.data.HiddenStack, nil
+	case "RevealedCard":
+		return g.data.RevealedCard, nil
+	case "SecondShortStack":
+		return g.data.SecondShortStack, nil
+	case "VisibleStack":
+		return g.data.VisibleStack, nil
 
 	}
 
@@ -3047,35 +3047,35 @@ func (g *__gameStateReader) StackProp(name string) (boardgame.Stack, error) {
 func (g *__gameStateReader) ConfigureMutableStackProp(name string, value boardgame.MutableStack) error {
 
 	switch name {
-	case "FirstShortStack":
-		g.data.FirstShortStack = value
-		return nil
-	case "RevealedCard":
-		g.data.RevealedCard = value
-		return nil
-	case "FanStack":
-		g.data.FanStack = value
-		return nil
-	case "VisibleStack":
-		g.data.VisibleStack = value
-		return nil
-	case "HiddenStack":
-		g.data.HiddenStack = value
-		return nil
 	case "DiscardStack":
 		g.data.DiscardStack = value
 		return nil
 	case "DrawStack":
 		g.data.DrawStack = value
 		return nil
-	case "SecondShortStack":
-		g.data.SecondShortStack = value
+	case "FanDiscard":
+		g.data.FanDiscard = value
+		return nil
+	case "FanStack":
+		g.data.FanStack = value
+		return nil
+	case "FirstShortStack":
+		g.data.FirstShortStack = value
 		return nil
 	case "HiddenCard":
 		g.data.HiddenCard = value
 		return nil
-	case "FanDiscard":
-		g.data.FanDiscard = value
+	case "HiddenStack":
+		g.data.HiddenStack = value
+		return nil
+	case "RevealedCard":
+		g.data.RevealedCard = value
+		return nil
+	case "SecondShortStack":
+		g.data.SecondShortStack = value
+		return nil
+	case "VisibleStack":
+		g.data.VisibleStack = value
 		return nil
 
 	}
@@ -3087,26 +3087,26 @@ func (g *__gameStateReader) ConfigureMutableStackProp(name string, value boardga
 func (g *__gameStateReader) MutableStackProp(name string) (boardgame.MutableStack, error) {
 
 	switch name {
-	case "FirstShortStack":
-		return g.data.FirstShortStack, nil
-	case "RevealedCard":
-		return g.data.RevealedCard, nil
-	case "FanStack":
-		return g.data.FanStack, nil
-	case "VisibleStack":
-		return g.data.VisibleStack, nil
-	case "HiddenStack":
-		return g.data.HiddenStack, nil
 	case "DiscardStack":
 		return g.data.DiscardStack, nil
 	case "DrawStack":
 		return g.data.DrawStack, nil
-	case "SecondShortStack":
-		return g.data.SecondShortStack, nil
-	case "HiddenCard":
-		return g.data.HiddenCard, nil
 	case "FanDiscard":
 		return g.data.FanDiscard, nil
+	case "FanStack":
+		return g.data.FanStack, nil
+	case "FirstShortStack":
+		return g.data.FirstShortStack, nil
+	case "HiddenCard":
+		return g.data.HiddenCard, nil
+	case "HiddenStack":
+		return g.data.HiddenStack, nil
+	case "RevealedCard":
+		return g.data.RevealedCard, nil
+	case "SecondShortStack":
+		return g.data.SecondShortStack, nil
+	case "VisibleStack":
+		return g.data.VisibleStack, nil
 
 	}
 

@@ -43,6 +43,20 @@ type myStruct struct {
 }
 
 //+autoreader
+type structWithManyKeys struct {
+	boardgame.BaseSubState
+	A int
+	B int
+	D int
+	C int
+	E int
+	F int
+	G int
+	H int
+	I int
+}
+
+//+autoreader
 type embeddedStruct struct {
 	moves.CurrentPlayer
 	MyInt int

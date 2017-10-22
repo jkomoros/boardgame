@@ -639,10 +639,10 @@ func (d *__DynamicValueReader) MutableEnumProp(name string) (enum.MutableVal, er
 func (d *__DynamicValueReader) IntProp(name string) (int, error) {
 
 	switch name {
-	case "Value":
-		return d.data.Value, nil
 	case "SelectedFace":
 		return d.data.SelectedFace, nil
+	case "Value":
+		return d.data.Value, nil
 
 	}
 
@@ -653,11 +653,11 @@ func (d *__DynamicValueReader) IntProp(name string) (int, error) {
 func (d *__DynamicValueReader) SetIntProp(name string, value int) error {
 
 	switch name {
-	case "Value":
-		d.data.Value = value
-		return nil
 	case "SelectedFace":
 		d.data.SelectedFace = value
+		return nil
+	case "Value":
+		d.data.Value = value
 		return nil
 
 	}

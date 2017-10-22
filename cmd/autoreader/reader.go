@@ -420,6 +420,8 @@ func headerForStruct(structName string, types map[string]boardgame.PropertyType,
 			}
 		}
 
+		sort.Strings(namesForType)
+
 		setterPropType := propType
 
 		outputMutableGetter := false

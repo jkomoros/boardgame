@@ -2125,10 +2125,10 @@ func (p *__playerStateReader) BoolProp(name string) (bool, error) {
 	switch name {
 	case "Busted":
 		return p.data.Busted, nil
-	case "Done":
-		return p.data.Done, nil
 	case "DieCounted":
 		return p.data.DieCounted, nil
+	case "Done":
+		return p.data.Done, nil
 
 	}
 
@@ -2142,11 +2142,11 @@ func (p *__playerStateReader) SetBoolProp(name string, value bool) error {
 	case "Busted":
 		p.data.Busted = value
 		return nil
-	case "Done":
-		p.data.Done = value
-		return nil
 	case "DieCounted":
 		p.data.DieCounted = value
+		return nil
+	case "Done":
+		p.data.Done = value
 		return nil
 
 	}
