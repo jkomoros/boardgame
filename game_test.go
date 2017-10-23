@@ -166,7 +166,7 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("Calling set up with an illegal number of players didn't fail")
 	}
 
-	if err := game.SetUp(2, GameConfig{"illegal": "1"}, nil); err == nil {
+	if err := game.SetUp(2, GameConfig{"color": "illegal"}, nil); err == nil {
 		t.Error("Calling game set up with an illegal config did not fail")
 	}
 
@@ -180,7 +180,8 @@ func TestGameSetUp(t *testing.T) {
 
 	//TODO: we no longer test that SetUp calls the Component distribution logic.
 
-	if err := game.SetUp(0, nil, nil); err != nil {
+	//Blue is a legal color according to our delegate's Configs()
+	if err := game.SetUp(0, GameConfig{"color": "blue"}, nil); err != nil {
 		t.Error("Calling SetUp on a previously errored game did not succeed", err)
 	}
 

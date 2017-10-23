@@ -88,6 +88,24 @@ type GameDelegate interface {
 	//one player existing.
 	LegalNumPlayers(numPlayers int) bool
 
+	//Configs returns a list of all of the various config values that are
+	//valid for the given config keys. Ultimately your LegalConfig is the
+	//final arbiter of which configs are legal; this method is mainly used so
+	//that user interfaces know which configs to show to the user.
+	Configs() map[string][]string
+
+	//ConfigKeyDisplay will be called to figure out the user-visible name this
+	//config key should have, and a description of what it does to show to a
+	//user. It will be called repeatedly by each key in the map returned by
+	//your Configs().
+	ConfigKeyDisplay(key string) (displayName, description string)
+
+	//ConfigValueDisplay is called to figure out the displayname and
+	//description for each key/val in Config to show to users in the
+	//interface. It will be called repeatedly on every key/val pair in the map
+	//returned by Configs().
+	ConfigValueDisplay(key, val string) (displayName, description string)
+
 	//LegalConfig will be consulted when a new game is created. It should
 	//return nil if the provided config is a reasonable configuration for your
 	//gametype, and a descriptive error (that's reasonable to show to the end
@@ -332,7 +350,44 @@ func (d *DefaultGameDelegate) LegalNumPlayers(numPlayers int) bool {
 	return false
 }
 
-//LegalConfig on DefaultGameDelegate doesn't do anything by default.
+func (d *DefaultGameDelegate) Configs() map[string][]string {
+	return make(map[string][]string)
+}
+
+//ConfigKeyDisplay by default just returns the key and no description.
+func (d *DefaultGameDelegate) ConfigKeyDisplay(key string) (displayName, description string) {
+	return key, ""
+}
+
+//ConfigValueDisplay by default just returns the value and no description.
+func (d *DefaultGameDelegate) ConfigValueDisplay(key, val string) (displayName, description string) {
+	return val, ""
+}
+
+//LegalConfig on DefaultGameDelegate by default verifies that each of the keys
+//and values in the Config are legal keys and values in the map returned by
+//Configs().
 func (d *DefaultGameDelegate) LegalConfig(config GameConfig) error {
+	//We can't call Configs on self because that might not be the right one,
+	//it might be overridden.
+	del := d.Manager().Delegate()
+
+	validConfigs := del.Configs()
+	for key, val := range config {
+		if _, ok := validConfigs[key]; !ok {
+			return errors.New("configuration had a property called " + key + " that isn't expected")
+		}
+		foundAllowedVal := false
+		for _, allowedVal := range validConfigs[key] {
+			if val == allowedVal {
+				foundAllowedVal = true
+			}
+		}
+		if !foundAllowedVal {
+			keyDisplayName, _ := del.ConfigKeyDisplay(key)
+			return errors.New("configuration's " + keyDisplayName + " property had a value that wasn't allowed: " + val)
+		}
+	}
+
 	return nil
 }
