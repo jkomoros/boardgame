@@ -12,6 +12,8 @@ import (
 )
 
 var displayNameRegExp = regexp.MustCompile(`display:\"(.*)\"`)
+var transformUpperRegExp = regexp.MustCompile(`(?i)transform:\s*upper`)
+var transformLowerRegExp = regexp.MustCompile(`(?i)transform:\s*lower`)
 
 var enumHeaderTemplate *template.Template
 var enumItemTemplate *template.Template
@@ -23,6 +25,14 @@ func init() {
 
 }
 
+type transform int
+
+const (
+	transformNone transform = iota
+	transformUpper
+	transformLower
+)
+
 type enum struct {
 	PackageName string
 	Values      []string
@@ -31,6 +41,7 @@ type enum struct {
 	//overridden to have that value. If it is not in the map then it should be
 	//default.
 	OverrideDisplayName map[string]string
+	Transform           map[string]transform
 }
 
 //findEnums processes the package at packageName and returns a list of enums
@@ -66,6 +77,7 @@ func findEnums(inputPackageName string) (enums []*enum, err error) {
 				theEnum := &enum{
 					PackageName:         packageName,
 					OverrideDisplayName: make(map[string]string),
+					Transform:           make(map[string]transform),
 				}
 
 				for _, spec := range genDecl.Specs {
@@ -88,6 +100,8 @@ func findEnums(inputPackageName string) (enums []*enum, err error) {
 					if hasOverride, displayName := overrideDisplayname(valueSpec.Doc.Text()); hasOverride {
 						theEnum.OverrideDisplayName[valueName] = displayName
 					}
+
+					theEnum.Transform[valueName] = configTransform(valueSpec.Doc.Text())
 
 				}
 
@@ -146,6 +160,13 @@ func outputForEnums(enums []*enum) (enumOutput string, err error) {
 			//override "" that is in the map is legal.
 			if !ok {
 				displayName = titleCaseToWords(strings.Replace(literal, prefix, "", -1))
+
+				switch enum.Transform[literal] {
+				case transformLower:
+					displayName = strings.ToLower(displayName)
+				case transformUpper:
+					displayName = strings.ToUpper(displayName)
+				}
 			}
 
 			values[literal] = displayName
@@ -216,6 +237,19 @@ func enumConfig(docLines string) bool {
 	}
 
 	return false
+}
+
+func configTransform(docLines string) transform {
+	for _, line := range strings.Split(docLines, "\n") {
+		if transformLowerRegExp.MatchString(line) {
+			return transformLower
+		}
+		if transformUpperRegExp.MatchString(line) {
+			return transformUpper
+		}
+	}
+
+	return transformNone
 }
 
 func overrideDisplayname(docLines string) (hasOverride bool, displayName string) {

@@ -34,3 +34,10 @@ var FooEnum = Enums.MustAdd("Foo", map[int]string{
 	FooOverrideBlank:  "",
 	FooOverrideQuoted: "My name is \"Blue\"",
 })
+
+var TransformExampleEnum = Enums.MustAdd("TransformExample", map[int]string{
+	TransformExampleLowerCase:                 "lower case",
+	TransformExampleNormalConfiguredTransform: "Normal Configured Transform",
+	TransformExampleNormalTransform:           "Normal Transform",
+	TransformExampleUpperCase:                 "UPPER CASE",
+})

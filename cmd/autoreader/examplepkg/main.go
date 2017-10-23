@@ -43,6 +43,17 @@ const (
 	FooOverrideQuoted
 )
 
+//+autoreader
+const (
+	TransformExampleNormalTransform = iota
+	//transform: lower
+	TransformExampleLowerCase
+	//Transform:UPPER
+	TransformExampleUpperCase
+	//transform:none
+	TransformExampleNormalConfiguredTransform
+)
+
 const (
 	DontIncludeBlue = iota
 	DontIncludeGreen
