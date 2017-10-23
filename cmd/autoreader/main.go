@@ -16,7 +16,10 @@
 
 	auto-generated enums will automatically have values like
 	PrefixVeryLongName set to have a string value of "Very Long Name"; that is
-	title-case will be taken to mean word boundaries.
+	title-case will be taken to mean word boundaries. If you want to override
+	a specific item in the enum's name, include a comment immediately above
+	that matches that pattern `enum:"myVal"`, where myVal is the exact string
+	to use. myVal may be zero-length, and may include quoted quotes.
 
 	Producing a ReadSetConfigurator requires a ReadSetter, and producing a
 	ReadSetter requires a Reader. By default if you have the magic comment of

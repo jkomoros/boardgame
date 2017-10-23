@@ -16,14 +16,21 @@ import (
 var Enums = enum.NewSet()
 
 var ColorEnum = Enums.MustAdd("Color", map[int]string{
-	ColorUnknown: "Unknown",
 	ColorBlue:    "Blue",
 	ColorGreen:   "Green",
 	ColorRed:     "Red",
+	ColorUnknown: "Unknown",
 })
 
 var PhaseEnum = Enums.MustAdd("Phase", map[int]string{
-	PhaseUnknown:      "Unknown",
 	PhaseMultiWord:    "Multi Word",
+	PhaseUnknown:      "Unknown",
 	PhaseVeryLongName: "Very Long Name",
+})
+
+var FooEnum = Enums.MustAdd("Foo", map[int]string{
+	FooBlue:           "Blue",
+	FooOverride:       "Green",
+	FooOverrideBlank:  "",
+	FooOverrideQuoted: "My name is \"Blue\"",
 })

@@ -30,6 +30,19 @@ const (
 	PhaseVeryLongName
 )
 
+//+autoreader
+const (
+	//This shouldn't have any weird output
+	FooBlue = iota
+	//This should work even though enum instruction is in second line.
+	//display:"Green"
+	FooOverride
+	//display:""
+	FooOverrideBlank
+	//display:"My name is \"Blue\""
+	FooOverrideQuoted
+)
+
 const (
 	DontIncludeBlue = iota
 	DontIncludeGreen

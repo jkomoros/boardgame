@@ -86,3 +86,47 @@ func TestBuild(t *testing.T) {
 	}
 
 }
+
+func TestOverrideDisplayNames(t *testing.T) {
+
+	tests := []struct {
+		input       string
+		hasOverride bool
+		displayName string
+	}{
+		{
+			`display:"bam"`,
+			true,
+			"bam",
+		},
+		{
+			" display:\"foo\"\n",
+			true,
+			"foo",
+		},
+		{
+			`display:"hello \"john\""`,
+			true,
+			`hello \"john\"`,
+		},
+		{
+			"blarg\n",
+			false,
+			"",
+		},
+		{
+			`display:""`,
+			true,
+			"",
+		},
+	}
+
+	for i, test := range tests {
+		hasOverride, displayName := overrideDisplayname(test.input)
+
+		assert.For(t, i).ThatActual(hasOverride).Equals(test.hasOverride)
+		assert.For(t, i).ThatActual(displayName).Equals(test.displayName)
+
+	}
+
+}

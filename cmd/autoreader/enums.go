@@ -6,31 +6,31 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"regexp"
 	"strings"
 	"text/template"
 )
+
+var displayNameRegExp = regexp.MustCompile(`display:\"(.*)\"`)
 
 var enumHeaderTemplate *template.Template
 var enumItemTemplate *template.Template
 
 func init() {
 
-	funcMap := template.FuncMap{
-		"withoutspaces": withoutSpaces,
-	}
-
-	enumHeaderTemplate = template.Must(template.New("enumheader").Funcs(funcMap).Parse(enumHeaderTemplateText))
-	enumItemTemplate = template.Must(template.New("enumitem").Funcs(funcMap).Parse(enumItemTemplateText))
+	enumHeaderTemplate = template.Must(template.New("enumheader").Parse(enumHeaderTemplateText))
+	enumItemTemplate = template.Must(template.New("enumitem").Parse(enumItemTemplateText))
 
 }
 
 type enum struct {
 	PackageName string
 	Values      []string
-}
-
-func withoutSpaces(in string) string {
-	return strings.Replace(in, " ", "", -1)
+	//OverrideDisplayName contains a map of the Value string to override
+	//value, if it exists. If it is in the map with value "" then it has been
+	//overridden to have that value. If it is not in the map then it should be
+	//default.
+	OverrideDisplayName map[string]string
 }
 
 //findEnums processes the package at packageName and returns a list of enums
@@ -64,7 +64,8 @@ func findEnums(inputPackageName string) (enums []*enum, err error) {
 				}
 
 				theEnum := &enum{
-					PackageName: packageName,
+					PackageName:         packageName,
+					OverrideDisplayName: make(map[string]string),
 				}
 
 				for _, spec := range genDecl.Specs {
@@ -80,7 +81,13 @@ func findEnums(inputPackageName string) (enums []*enum, err error) {
 						return nil, errors.New("Found an enum that had more than one name on a line. That's not allowed for now.")
 					}
 
-					theEnum.Values = append(theEnum.Values, valueSpec.Names[0].Name)
+					valueName := valueSpec.Names[0].Name
+
+					theEnum.Values = append(theEnum.Values, valueName)
+
+					if hasOverride, displayName := overrideDisplayname(valueSpec.Doc.Text()); hasOverride {
+						theEnum.OverrideDisplayName[valueName] = displayName
+					}
 
 				}
 
@@ -123,7 +130,7 @@ func outputForEnums(enums []*enum) (enumOutput string, err error) {
 			return "", errors.New("Enum with autoreader configured didn't have a common prefix.")
 		}
 
-		keys := make([]string, len(literals))
+		values := make(map[string]string, len(literals))
 
 		i := 0
 
@@ -132,11 +139,20 @@ func outputForEnums(enums []*enum) (enumOutput string, err error) {
 				return "", errors.New("enum literal didn't have prefix we thought it did")
 			}
 
-			keys[i] = titleCaseToWords(strings.Replace(literal, prefix, "", -1))
+			//If there's an override deisplay name, use that
+			displayName, ok := enum.OverrideDisplayName[literal]
+
+			//If there wasn't an override, do the default. Note that an
+			//override "" that is in the map is legal.
+			if !ok {
+				displayName = titleCaseToWords(strings.Replace(literal, prefix, "", -1))
+			}
+
+			values[literal] = displayName
 			i++
 		}
 
-		enumOutput += enumItem(prefix, keys)
+		enumOutput += enumItem(prefix, values)
 
 	}
 
@@ -202,16 +218,41 @@ func enumConfig(docLines string) bool {
 	return false
 }
 
+func overrideDisplayname(docLines string) (hasOverride bool, displayName string) {
+	for _, line := range strings.Split(docLines, "\n") {
+		result := displayNameRegExp.FindStringSubmatch(line)
+
+		if len(result) == 0 {
+			continue
+		}
+
+		if len(result[0]) == 0 {
+			continue
+		}
+		if len(result) != 2 {
+			continue
+		}
+
+		//Found it! Even if the matched expression is "", that's fine. if
+		//there are quoted strings that's fine, because that's exactly how
+		//they should be output at the end.
+		return true, result[1]
+
+	}
+
+	return false, ""
+}
+
 func enumHeaderForPackage(packageName string) string {
 	return templateOutput(enumHeaderTemplate, map[string]string{
 		"packageName": packageName,
 	})
 }
 
-func enumItem(prefix string, keys []string) string {
+func enumItem(prefix string, values map[string]string) string {
 	return templateOutput(enumItemTemplate, map[string]interface{}{
 		"prefix": prefix,
-		"keys":   keys,
+		"values": values,
 	})
 }
 
@@ -236,8 +277,8 @@ var Enums = enum.NewSet()
 
 const enumItemTemplateText = `var {{.prefix}}Enum = Enums.MustAdd("{{.prefix}}", map[int]string{
 	{{ $prefix := .prefix -}}
-	{{range .keys -}}
-	{{$prefix}}{{withoutspaces .}}: "{{.}}",
+	{{range $name, $value := .values -}}
+	{{$name}}: "{{$value}}",
 	{{end}}
 })
 
