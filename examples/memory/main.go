@@ -44,6 +44,67 @@ func (g *gameDelegate) LegalNumPlayers(numPlayers int) bool {
 	return numPlayers < 4 && numPlayers > 1
 }
 
+const (
+	configKeyNumCards = "numcards"
+	configKeyCardSet  = "cardset"
+)
+
+const (
+	numCardsSmall  = "small"
+	numCardsMedium = "medium"
+	numCardsLarge  = "large"
+)
+
+const (
+	cardSetAll     = "all"
+	cardSetFoods   = "foods"
+	cardSetAnimals = "animals"
+	cardSetGeneral = "general"
+)
+
+func (g *gameDelegate) Configs() map[string][]string {
+	return map[string][]string{
+		configKeyCardSet:  {cardSetAll, cardSetFoods, cardSetAnimals, cardSetGeneral},
+		configKeyNumCards: {numCardsMedium, numCardsSmall, numCardsLarge},
+	}
+}
+
+func (g *gameDelegate) ConfigKeyDisplay(key string) (displayName, description string) {
+	switch key {
+	case configKeyCardSet:
+		return "Card Set", "Which theme of cards to use"
+	case configKeyNumCards:
+		return "Number of Cards", "How many cards to use? Larger numbers are more difficult."
+	}
+	return "", ""
+}
+
+func (g *gameDelegate) ConfigValueDisplay(key, val string) (displayName, description string) {
+	switch key {
+	case configKeyCardSet:
+		switch val {
+		case cardSetAll:
+			return "All Cards", "All cards mixed together"
+		case cardSetAnimals:
+			return "Animals", "Animal cards"
+		case cardSetFoods:
+			return "Foods", "Food cards"
+		case cardSetGeneral:
+			return "General", "Random cards with no particular theme"
+		}
+	case configKeyNumCards:
+		switch val {
+		case numCardsSmall:
+			return "Small", "An easy game"
+		case numCardsMedium:
+			return "Medium", "A default difficulty game"
+		case numCardsLarge:
+			return "Large", "A challenging game"
+		}
+	}
+	return "", ""
+}
+
 func (g *gameDelegate) CurrentPlayerIndex(state boardgame.State) boardgame.PlayerIndex {
 	game, _ := concreteStates(state)
 	return game.CurrentPlayer
@@ -72,8 +133,49 @@ func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex)
 	}
 }
 
+func (g *gameDelegate) BeginSetUp(state boardgame.MutableState, config boardgame.GameConfig) {
+	game, _ := concreteStates(state)
+
+	game.CardSet = config[configKeyCardSet]
+
+	//TODO :cardSetAll is basically cardSetGeneral because we have enough for
+	//Large for each set. In a perfect set if it were all we'd pick a random
+	//sub-set of the whole cards (with pairs!)
+	if game.CardSet == "" {
+		game.CardSet = cardSetAll
+	}
+
+	switch config[configKeyNumCards] {
+	case numCardsSmall:
+		game.NumCards = 10
+	case numCardsMedium:
+		game.NumCards = 20
+	case numCardsLarge:
+		game.NumCards = 40
+	}
+}
+
 func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c *boardgame.Component) (boardgame.Stack, error) {
 	game, _ := concreteStates(state)
+
+	//The default is always hidden cards, if there's room.
+	stackToReturn := game.HiddenCards
+
+	card := c.Values.(*cardValue)
+
+	if game.CardSet != cardSetAll {
+		//If the card setin in play is not all, and the card isn't of the
+		//given set, shunt to Unused cards.
+		if game.CardSet != card.CardSet {
+			stackToReturn = game.UnusedCards
+		}
+	}
+
+	//If we're already full in the main set we can't take more in the main
+	//set, shunt to unused.
+	if stackToReturn.SlotsRemaining() < 1 {
+		stackToReturn = game.UnusedCards
+	}
 
 	return game.HiddenCards, nil
 
@@ -159,19 +261,7 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, 
 func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) {
 	chest := boardgame.NewComponentChest(nil)
 
-	cards := boardgame.NewDeck()
-
-	for _, val := range cardNames {
-		cards.AddComponentMulti(&cardValue{
-			Type: val,
-		}, 2)
-	}
-
-	cards.SetShadowValues(&cardValue{
-		Type: "<hidden>",
-	})
-
-	if err := chest.AddDeck(cardsDeckName, cards); err != nil {
+	if err := chest.AddDeck(cardsDeckName, newDeck()); err != nil {
 		return nil, errors.New("Couldn't add deck: " + err.Error())
 	}
 

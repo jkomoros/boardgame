@@ -19,7 +19,8 @@ import (
 // Implementation for cardValue
 
 var __cardValueReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
-	"Type": boardgame.TypeString,
+	"CardSet": boardgame.TypeString,
+	"Type":    boardgame.TypeString,
 }
 
 type __cardValueReader struct {
@@ -118,6 +119,8 @@ func (c *__cardValueReader) StackProp(name string) (boardgame.Stack, error) {
 func (c *__cardValueReader) StringProp(name string) (string, error) {
 
 	switch name {
+	case "CardSet":
+		return c.data.CardSet, nil
 	case "Type":
 		return c.data.Type, nil
 
@@ -1995,10 +1998,13 @@ func (m *MoveHideCards) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer 
 // Implementation for gameState
 
 var __gameStateReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
+	"CardSet":        boardgame.TypeString,
 	"CurrentPlayer":  boardgame.TypePlayerIndex,
 	"HiddenCards":    boardgame.TypeStack,
 	"HideCardsTimer": boardgame.TypeTimer,
+	"NumCards":       boardgame.TypeInt,
 	"RevealedCards":  boardgame.TypeStack,
+	"UnusedCards":    boardgame.TypeStack,
 }
 
 type __gameStateReader struct {
@@ -2240,11 +2246,24 @@ func (g *__gameStateReader) MutableEnumProp(name string) (enum.MutableVal, error
 
 func (g *__gameStateReader) IntProp(name string) (int, error) {
 
+	switch name {
+	case "NumCards":
+		return g.data.NumCards, nil
+
+	}
+
 	return 0, errors.New("No such Int prop: " + name)
 
 }
 
 func (g *__gameStateReader) SetIntProp(name string, value int) error {
+
+	switch name {
+	case "NumCards":
+		g.data.NumCards = value
+		return nil
+
+	}
 
 	return errors.New("No such Int prop: " + name)
 
@@ -2306,6 +2325,8 @@ func (g *__gameStateReader) StackProp(name string) (boardgame.Stack, error) {
 		return g.data.HiddenCards, nil
 	case "RevealedCards":
 		return g.data.RevealedCards, nil
+	case "UnusedCards":
+		return g.data.UnusedCards, nil
 
 	}
 
@@ -2322,6 +2343,9 @@ func (g *__gameStateReader) ConfigureMutableStackProp(name string, value boardga
 	case "RevealedCards":
 		g.data.RevealedCards = value
 		return nil
+	case "UnusedCards":
+		g.data.UnusedCards = value
+		return nil
 
 	}
 
@@ -2336,6 +2360,8 @@ func (g *__gameStateReader) MutableStackProp(name string) (boardgame.MutableStac
 		return g.data.HiddenCards, nil
 	case "RevealedCards":
 		return g.data.RevealedCards, nil
+	case "UnusedCards":
+		return g.data.UnusedCards, nil
 
 	}
 
@@ -2345,11 +2371,24 @@ func (g *__gameStateReader) MutableStackProp(name string) (boardgame.MutableStac
 
 func (g *__gameStateReader) StringProp(name string) (string, error) {
 
+	switch name {
+	case "CardSet":
+		return g.data.CardSet, nil
+
+	}
+
 	return "", errors.New("No such String prop: " + name)
 
 }
 
 func (g *__gameStateReader) SetStringProp(name string, value string) error {
+
+	switch name {
+	case "CardSet":
+		g.data.CardSet = value
+		return nil
+
+	}
 
 	return errors.New("No such String prop: " + name)
 

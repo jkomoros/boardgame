@@ -16,10 +16,13 @@ func init() {
 //+autoreader
 type gameState struct {
 	boardgame.BaseSubState
+	CardSet        string
+	NumCards       int
 	CurrentPlayer  boardgame.PlayerIndex
 	HiddenCards    boardgame.MutableStack `sanitize:"order"`
 	RevealedCards  boardgame.MutableStack
 	HideCardsTimer boardgame.MutableTimer
+	UnusedCards    boardgame.MutableStack `stack:"cards"`
 }
 
 //+autoreader
