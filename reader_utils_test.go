@@ -143,7 +143,7 @@ func TestAutoEnum(t *testing.T) {
 
 	game := manager.NewGame()
 
-	game.SetUp(0, nil)
+	game.SetUp(0, nil, nil)
 
 	moveType := manager.PlayerMoveTypeByName("AutoEnumMove")
 
@@ -182,7 +182,7 @@ func TestReaderValidator(t *testing.T) {
 
 	game := testGame()
 
-	game.SetUp(0, nil)
+	game.SetUp(0, nil, nil)
 
 	validator, err := newReaderValidator(example.ReadSetter(), example, nil, game.manager.Chest(), false)
 

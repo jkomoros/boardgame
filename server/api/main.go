@@ -450,7 +450,7 @@ func (s *Server) doNewGame(r *Renderer, owner *users.StorageRecord, manager *boa
 		return
 	}
 
-	if err := game.SetUp(numPlayers, agents); err != nil {
+	if err := game.SetUp(numPlayers, nil, agents); err != nil {
 		//TODO: communicate the error state back to the client in a sane way
 		if f, ok := err.(*errors.Friendly); ok {
 			r.Error(f)

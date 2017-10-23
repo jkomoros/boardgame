@@ -10,7 +10,7 @@ func TestTimerManager(t *testing.T) {
 
 	game := testGame()
 
-	game.SetUp(2, nil)
+	game.SetUp(2, nil, nil)
 
 	currentVersion := game.Version()
 
@@ -72,7 +72,7 @@ func TestTimerManagerMultiple(t *testing.T) {
 
 	game := testGame()
 
-	game.SetUp(2, nil)
+	game.SetUp(2, nil, nil)
 
 	move := game.PlayerMoveByName("Draw Card")
 
@@ -116,7 +116,7 @@ func TestTimerManagerMultiple(t *testing.T) {
 func TestTimerProp(t *testing.T) {
 	game := testGame()
 
-	game.SetUp(2, nil)
+	game.SetUp(2, nil, nil)
 
 	move := game.PlayerMoveByName("Draw Card")
 

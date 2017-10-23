@@ -22,7 +22,7 @@ func TestMoveModifyDynamicValues(t *testing.T) {
 
 	makeTestGameIdsStable(game)
 
-	game.SetUp(0, nil)
+	game.SetUp(0, nil, nil)
 
 	drawCardMove := game.PlayerMoveByName("Draw Card")
 
@@ -91,7 +91,7 @@ func TestMoveModifyDynamicValues(t *testing.T) {
 func TestProposeMoveNonModifiableGame(t *testing.T) {
 	game := testGame()
 
-	game.SetUp(0, nil)
+	game.SetUp(0, nil, nil)
 
 	manager := game.Manager()
 
@@ -162,21 +162,25 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("We never got an error from proposing a move on a game that hadn't even started")
 	}
 
-	if err := game.SetUp(15, nil); err == nil {
+	if err := game.SetUp(15, nil, nil); err == nil {
 		t.Error("Calling set up with an illegal number of players didn't fail")
 	}
 
-	if err := game.SetUp(-5, nil); err == nil {
+	if err := game.SetUp(2, GameConfig{"illegal": "1"}, nil); err == nil {
+		t.Error("Calling game set up with an illegal config did not fail")
+	}
+
+	if err := game.SetUp(-5, nil, nil); err == nil {
 		t.Error("Calling set up with negative number of players didn't fail")
 	}
 
-	if err := game.SetUp(3, []string{"", "bam"}); err == nil {
+	if err := game.SetUp(3, nil, []string{"", "bam"}); err == nil {
 		t.Error("Calling set up with wrong-sized agent config didn't fail")
 	}
 
 	//TODO: we no longer test that SetUp calls the Component distribution logic.
 
-	if err := game.SetUp(0, nil); err != nil {
+	if err := game.SetUp(0, nil, nil); err != nil {
 		t.Error("Calling SetUp on a previously errored game did not succeed", err)
 	}
 
@@ -239,7 +243,7 @@ func TestApplyMove(t *testing.T) {
 
 	makeTestGameIdsStable(game)
 
-	game.SetUp(0, nil)
+	game.SetUp(0, nil, nil)
 
 	rawMove := game.PlayerMoveByName("test")
 
@@ -345,7 +349,7 @@ func TestApplyMove(t *testing.T) {
 func TestMoveRoundTrip(t *testing.T) {
 	game := testGame()
 
-	err := game.SetUp(0, nil)
+	err := game.SetUp(0, nil, nil)
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -405,7 +409,7 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 
 	game := manager.NewGame()
 
-	err := game.SetUp(0, nil)
+	err := game.SetUp(0, nil, nil)
 
 	assert.For(t).ThatActual(err).Equals(ErrTooManyFixUps)
 
@@ -414,7 +418,7 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 func TestIllegalPlayerIndex(t *testing.T) {
 	game := testGame()
 
-	game.SetUp(2, nil)
+	game.SetUp(2, nil, nil)
 
 	previousVersion := game.Version()
 
@@ -438,7 +442,7 @@ func TestAgent(t *testing.T) {
 
 	assert.For(t).ThatActual(game.NumAgentPlayers()).Equals(0)
 
-	err := game.SetUp(3, []string{"", "Test", "Test"})
+	err := game.SetUp(3, nil, []string{"", "Test", "Test"})
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -470,7 +474,7 @@ func TestAgent(t *testing.T) {
 func TestGameSalt(t *testing.T) {
 	game := testGame()
 
-	game.SetUp(0, nil)
+	game.SetUp(0, nil, nil)
 
 	assert.For(t).ThatActual(game.SecretSalt()).DoesNotEqual("")
 
@@ -492,7 +496,7 @@ func TestGameSalt(t *testing.T) {
 
 	otherGame := testGame()
 
-	otherGame.SetUp(0, nil)
+	otherGame.SetUp(0, nil, nil)
 
 	otherC := otherGame.Chest().Deck("test").ComponentAt(0)
 
@@ -504,7 +508,7 @@ func TestGameState(t *testing.T) {
 
 	makeTestGameIdsStable(game)
 
-	game.SetUp(0, nil)
+	game.SetUp(0, nil, nil)
 
 	if game.Name() != testGameName {
 		t.Error("Game name was not correct")

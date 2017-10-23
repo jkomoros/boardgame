@@ -6,6 +6,16 @@ import (
 	"sort"
 )
 
+//GameConfig is just a map of keys to values that are passed to your game so
+//it can configure different alternate rulesets, for example using a Short
+//variant that uses fewer cards and should play faster, or using a different
+//deck of cards than normal. The config will be considered legal if it passes
+//Delegate.LegalConfig(), and will be passed to Delegate.BeginSetup so that
+//you can set up your game in whatever way makes sense for a given Config.
+//Your Delegate defines what valid keys and values are with its return value
+//for Configs(), and how they should show to the user with ConfigDisplay.
+type GameConfig map[string]string
+
 //GameDelegate is the place that various parts of the game lifecycle can be
 //modified to support this particular game.
 type GameDelegate interface {
@@ -37,10 +47,11 @@ type GameDelegate interface {
 	DistributeComponentToStarterStack(state State, c *Component) (Stack, error)
 
 	//BeginSetup is a chance to modify the initial state object *before* the
-	//components are distributed to it. This is a good place to configure
-	//state that will be necessary for you to make the right decisions in
-	//DistributeComponentToStarterStack.
-	BeginSetUp(state MutableState)
+	//components are distributed to it. It is also where the config for your
+	//gametype will be passed (it will have already passed LegalConfig). This
+	//is a good place to configure state that will be necessary for you to
+	//make the right decisions in DistributeComponentToStarterStack.
+	BeginSetUp(state MutableState, config GameConfig)
 
 	//FinishSetUp is called during game.SetUp, *after* components have been
 	//distributed to their StarterStack. This is the last chance to modify the
@@ -76,6 +87,12 @@ type GameDelegate interface {
 	//will automatically reject a numPlayers that does not result in at least
 	//one player existing.
 	LegalNumPlayers(numPlayers int) bool
+
+	//LegalConfig will be consulted when a new game is created. It should
+	//return nil if the provided config is a reasonable configuration for your
+	//gametype, and a descriptive error (that's reasonable to show to the end
+	//user) otherwise. If this returns non-nil, the game's SetUp will fail.
+	LegalConfig(config GameConfig) error
 
 	//CurrentPlayerIndex returns the index of the "current" player--a notion
 	//that is game specific (and sometimes inapplicable). If CurrentPlayer
@@ -292,7 +309,7 @@ func (d *DefaultGameDelegate) ComputedPlayerProperties(player PlayerState) Prope
 	return nil
 }
 
-func (d *DefaultGameDelegate) BeginSetUp(state MutableState) {
+func (d *DefaultGameDelegate) BeginSetUp(state MutableState, config GameConfig) {
 	//Don't need to do anything by default
 }
 
@@ -309,8 +326,13 @@ func (d *DefaultGameDelegate) DefaultNumPlayers() int {
 }
 
 func (d *DefaultGameDelegate) LegalNumPlayers(numPlayers int) bool {
-	if numPlayers > 0 && numPlayers <= 10 {
+	if numPlayers > 0 && numPlayers <= 16 {
 		return true
 	}
 	return false
+}
+
+//LegalConfig on DefaultGameDelegate doesn't do anything by default.
+func (d *DefaultGameDelegate) LegalConfig(config GameConfig) error {
+	return nil
 }

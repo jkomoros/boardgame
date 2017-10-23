@@ -14,7 +14,7 @@ func BenchmarkMoves(b *testing.B) {
 
 		game := manager.NewGame()
 
-		game.SetUp(2, nil)
+		game.SetUp(2, nil, nil)
 
 		for i := 0; i < 10; i++ {
 
@@ -43,7 +43,7 @@ func TestMain(t *testing.T) {
 
 	assert.For(t).ThatActual(game).IsNotNil()
 
-	err = game.SetUp(2, nil)
+	err = game.SetUp(2, nil, nil)
 
 	if !assert.For(t).ThatActual(err).IsNil().Passed() {
 		t.FailNow()

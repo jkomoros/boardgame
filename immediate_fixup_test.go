@@ -151,7 +151,7 @@ func TestImmediateFixUp(t *testing.T) {
 
 	game := manager.NewGame()
 
-	game.SetUp(0, nil)
+	game.SetUp(0, nil, nil)
 
 	assert.For(t).ThatActual(game).IsNotNil()
 

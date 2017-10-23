@@ -97,7 +97,7 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	tictactoeGame := tictactoeManager.NewGame()
 
-	if err := tictactoeGame.SetUp(0, nil); err != nil {
+	if err := tictactoeGame.SetUp(0, nil, nil); err != nil {
 		t.Fatal("Got error on tictactoe set up: " + err.Error())
 	}
 
@@ -195,7 +195,7 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	blackjackGame := blackjackManager.NewGame()
 
-	blackjackGame.SetUp(0, nil)
+	blackjackGame.SetUp(0, nil, nil)
 
 	games := storage.ListGames(10, listing.All, "", "")
 
@@ -235,7 +235,7 @@ func UsersTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	game := manager.NewGame()
 
-	game.SetUp(2, nil)
+	game.SetUp(2, nil, nil)
 
 	var nilIds []string
 
@@ -307,7 +307,7 @@ func AgentsTest(factory StorageManagerFactory, testName string, connectConfig st
 
 	game := manager.NewGame()
 
-	err := game.SetUp(2, []string{"", "ai"})
+	err := game.SetUp(2, nil, []string{"", "ai"})
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -573,7 +573,7 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 			agents = append(agents, name)
 		}
 
-		if err := game.SetUp(2, agents); err != nil {
+		if err := game.SetUp(2, nil, agents); err != nil {
 			t.Fatal("Couldn't create game: " + err.Error())
 		}
 		if config.UserZero != "" {

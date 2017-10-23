@@ -100,7 +100,7 @@ func TestDefaultMove(t *testing.T) {
 
 	game := testGame()
 
-	if err := game.SetUp(0, nil); err != nil {
+	if err := game.SetUp(0, nil, nil); err != nil {
 		t.Fatal("Couldn't set up game: " + err.Error())
 	}
 
@@ -132,7 +132,7 @@ func TestNilStackErrors(t *testing.T) {
 func TestGameManagerModifiableGame(t *testing.T) {
 	game := testGame()
 
-	game.SetUp(0, nil)
+	game.SetUp(0, nil, nil)
 
 	manager := game.Manager()
 

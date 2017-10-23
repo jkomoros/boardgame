@@ -30,7 +30,7 @@ func TestSort(t *testing.T) {
 
 	game := testGame()
 
-	game.SetUp(0, nil)
+	game.SetUp(0, nil, nil)
 
 	chest := game.Chest()
 
@@ -127,7 +127,7 @@ func stackSorted(stack Stack) bool {
 func TestInflate(t *testing.T) {
 	game := testGame()
 
-	game.SetUp(0, nil)
+	game.SetUp(0, nil, nil)
 
 	chest := game.Chest()
 

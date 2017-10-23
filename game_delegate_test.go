@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -89,7 +90,17 @@ func (t *testGameDelegate) LegalNumPlayers(numPlayers int) bool {
 	return numPlayers <= 5
 }
 
-func (t *testGameDelegate) BeginSetUp(state MutableState) {
+func (t *testGameDelegate) LegalConfig(config GameConfig) error {
+	if err := t.DefaultGameDelegate.LegalConfig(config); err != nil {
+		return err
+	}
+	if config["illegal"] != "" {
+		return errors.New("the illegal configuration was set")
+	}
+	return nil
+}
+
+func (t *testGameDelegate) BeginSetUp(state MutableState, config GameConfig) {
 	game, players := concreteStates(state)
 
 	if len(players) != 3 {

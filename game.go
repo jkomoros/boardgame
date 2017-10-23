@@ -313,11 +313,12 @@ func (g *Game) NumAgentPlayers() int {
 //SetUp should be called a single time after all of the member variables are
 //set correctly, including Chest. SetUp must be called before ProposeMove can
 //be called. Even if an error is returned, the game should be in a consistent
-//state. If numPlayers is 0, we will use delegate.DefaultNumPlayers(). if
-//agentNames is not nil, it should have len(numPlayers). The strings in each
-//index represent the agent to install for that player (empty strings mean a
-//human player).
-func (g *Game) SetUp(numPlayers int, agentNames []string) error {
+//state. If numPlayers is 0, we will use delegate.DefaultNumPlayers(). Config
+//may be nil (an empty GameConfig will be passed to your delegate's
+//LegalConfig method). if agentNames is not nil, it should have
+//len(numPlayers). The strings in each index represent the agent to install
+//for that player (empty strings mean a human player).
+func (g *Game) SetUp(numPlayers int, config GameConfig, agentNames []string) error {
 
 	baseErr := errors.NewFriendly("Game couldn't be set up")
 
@@ -340,6 +341,14 @@ func (g *Game) SetUp(numPlayers int, agentNames []string) error {
 
 	if !g.manager.Delegate().LegalNumPlayers(numPlayers) {
 		return errors.NewFriendly("The number of players, " + strconv.Itoa(numPlayers) + " was not legal.")
+	}
+
+	if config == nil {
+		config = GameConfig{}
+	}
+
+	if err := g.manager.Delegate().LegalConfig(config); err != nil {
+		return errors.NewFriendly("That configuration is not legal for this game: " + err.Error())
 	}
 
 	if agentNames != nil && len(agentNames) != numPlayers {
@@ -392,7 +401,7 @@ func (g *Game) SetUp(numPlayers int, agentNames []string) error {
 
 	stateCopy.setStateForSubStates()
 
-	g.manager.delegate.BeginSetUp(stateCopy)
+	g.manager.delegate.BeginSetUp(stateCopy, config)
 
 	//Distribute all components to their starter locations
 
