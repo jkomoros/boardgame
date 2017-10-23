@@ -1061,6 +1061,8 @@ You can use `boardgame-status-text` to render text that will automatically show 
 
 ### Enums
 
+### Configs
+
 ### Agents
 
 ### Hooking into your own server
