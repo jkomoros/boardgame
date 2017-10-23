@@ -41,3 +41,9 @@ var TransformExampleEnum = Enums.MustAdd("TransformExample", map[int]string{
 	TransformExampleNormalTransform:           "Normal Transform",
 	TransformExampleUpperCase:                 "UPPER CASE",
 })
+
+var DefaultTransformEnum = Enums.MustAdd("DefaultTransform", map[int]string{
+	DefaultTransformBlue:  "BLUE",
+	DefaultTransformGreen: "GREEN",
+	DefaultTransformRed:   "Red",
+})

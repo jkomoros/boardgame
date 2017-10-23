@@ -14,6 +14,7 @@ import (
 var displayNameRegExp = regexp.MustCompile(`display:\"(.*)\"`)
 var transformUpperRegExp = regexp.MustCompile(`(?i)transform:\s*upper`)
 var transformLowerRegExp = regexp.MustCompile(`(?i)transform:\s*lower`)
+var transformNoneRegExp = regexp.MustCompile(`(?i)transform:\s*none`)
 
 var enumHeaderTemplate *template.Template
 var enumItemTemplate *template.Template
@@ -42,6 +43,7 @@ type enum struct {
 	//default.
 	OverrideDisplayName map[string]string
 	Transform           map[string]transform
+	DefaultTransform    transform
 }
 
 //findEnums processes the package at packageName and returns a list of enums
@@ -74,10 +76,13 @@ func findEnums(inputPackageName string) (enums []*enum, err error) {
 					continue
 				}
 
+				defaultTransform := configTransform(genDecl.Doc.Text(), transformNone)
+
 				theEnum := &enum{
 					PackageName:         packageName,
 					OverrideDisplayName: make(map[string]string),
 					Transform:           make(map[string]transform),
+					DefaultTransform:    defaultTransform,
 				}
 
 				for _, spec := range genDecl.Specs {
@@ -101,7 +106,7 @@ func findEnums(inputPackageName string) (enums []*enum, err error) {
 						theEnum.OverrideDisplayName[valueName] = displayName
 					}
 
-					theEnum.Transform[valueName] = configTransform(valueSpec.Doc.Text())
+					theEnum.Transform[valueName] = configTransform(valueSpec.Doc.Text(), defaultTransform)
 
 				}
 
@@ -239,7 +244,7 @@ func enumConfig(docLines string) bool {
 	return false
 }
 
-func configTransform(docLines string) transform {
+func configTransform(docLines string, defaultTransform transform) transform {
 	for _, line := range strings.Split(docLines, "\n") {
 		if transformLowerRegExp.MatchString(line) {
 			return transformLower
@@ -247,9 +252,12 @@ func configTransform(docLines string) transform {
 		if transformUpperRegExp.MatchString(line) {
 			return transformUpper
 		}
+		if transformNoneRegExp.MatchString(line) {
+			return transformNone
+		}
 	}
 
-	return transformNone
+	return defaultTransform
 }
 
 func overrideDisplayname(docLines string) (hasOverride bool, displayName string) {

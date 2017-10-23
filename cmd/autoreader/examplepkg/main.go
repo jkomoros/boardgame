@@ -54,6 +54,15 @@ const (
 	TransformExampleNormalConfiguredTransform
 )
 
+//+autoreader
+//transform: upper
+const (
+	DefaultTransformBlue = iota
+	DefaultTransformGreen
+	//transform:none
+	DefaultTransformRed
+)
+
 const (
 	DontIncludeBlue = iota
 	DontIncludeGreen

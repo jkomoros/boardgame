@@ -19,10 +19,13 @@
 	title-case will be taken to mean word boundaries. If you want to transform
 	the created values to lowercase or uppercase, include a line of
 	`transform:lower` or `transform:upper`, respectively, in the comment lines
-	immediately before the constant. If you want to override a specific item
-	in the enum's name, include a comment immediately above that matches that
-	pattern `display:"myVal"`, where myVal is the exact string to use. myVal
-	may be zero-length, and may include quoted quotes.
+	immediately before the constant. `transform:none` means default behavior,
+	leave as title case. If you want to change the default transform for an
+	entire const group, have the transform line in the comment block above the
+	constant block.  If you want to override a specific item in the enum's
+	name, include a comment immediately above that matches that pattern
+	`display:"myVal"`, where myVal is the exact string to use. myVal may be
+	zero-length, and may include quoted quotes.
 
 	Producing a ReadSetConfigurator requires a ReadSetter, and producing a
 	ReadSetter requires a Reader. By default if you have the magic comment of
