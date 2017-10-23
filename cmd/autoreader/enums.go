@@ -15,14 +15,22 @@ var enumItemTemplate *template.Template
 
 func init() {
 
-	enumHeaderTemplate = template.Must(template.New("enumheader").Parse(enumHeaderTemplateText))
-	enumItemTemplate = template.Must(template.New("enumitem").Parse(enumItemTemplateText))
+	funcMap := template.FuncMap{
+		"withoutspaces": withoutSpaces,
+	}
+
+	enumHeaderTemplate = template.Must(template.New("enumheader").Funcs(funcMap).Parse(enumHeaderTemplateText))
+	enumItemTemplate = template.Must(template.New("enumitem").Funcs(funcMap).Parse(enumItemTemplateText))
 
 }
 
 type enum struct {
 	PackageName string
 	Values      []string
+}
+
+func withoutSpaces(in string) string {
+	return strings.Replace(in, " ", "", -1)
 }
 
 //findEnums processes the package at packageName and returns a list of enums
@@ -123,7 +131,8 @@ func outputForEnums(enums []*enum) (enumOutput string, err error) {
 			if !strings.HasPrefix(literal, prefix) {
 				return "", errors.New("enum literal didn't have prefix we thought it did")
 			}
-			keys[i] = strings.Replace(literal, prefix, "", -1)
+
+			keys[i] = titleCaseToWords(strings.Replace(literal, prefix, "", -1))
 			i++
 		}
 
@@ -132,6 +141,29 @@ func outputForEnums(enums []*enum) (enumOutput string, err error) {
 	}
 
 	return enumOutput, nil
+}
+
+var titleCaseReplacer *strings.Replacer
+
+//titleCaseToWords writes "ATitleCaseString" to "A Title Case String"
+func titleCaseToWords(in string) string {
+
+	if titleCaseReplacer == nil {
+
+		var replacements []string
+
+		for r := 'A'; r <= 'Z'; r++ {
+			str := string(r)
+			replacements = append(replacements, str)
+			replacements = append(replacements, " "+str)
+		}
+
+		titleCaseReplacer = strings.NewReplacer(replacements...)
+
+	}
+
+	return strings.TrimSpace(titleCaseReplacer.Replace(in))
+
 }
 
 func processEnums(packageName string) (enumOutput string, err error) {
@@ -205,7 +237,7 @@ var Enums = enum.NewSet()
 const enumItemTemplateText = `var {{.prefix}}Enum = Enums.MustAdd("{{.prefix}}", map[int]string{
 	{{ $prefix := .prefix -}}
 	{{range .keys -}}
-	{{$prefix}}{{.}}: "{{.}}",
+	{{$prefix}}{{withoutspaces .}}: "{{.}}",
 	{{end}}
 })
 

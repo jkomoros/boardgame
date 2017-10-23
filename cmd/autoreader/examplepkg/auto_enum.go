@@ -21,3 +21,9 @@ var ColorEnum = Enums.MustAdd("Color", map[int]string{
 	ColorGreen:   "Green",
 	ColorRed:     "Red",
 })
+
+var PhaseEnum = Enums.MustAdd("Phase", map[int]string{
+	PhaseUnknown:      "Unknown",
+	PhaseMultiWord:    "Multi Word",
+	PhaseVeryLongName: "Very Long Name",
+})

@@ -23,6 +23,13 @@ const (
 	ColorRed
 )
 
+//+autoreader
+const (
+	PhaseUnknown = iota
+	PhaseMultiWord
+	PhaseVeryLongName
+)
+
 const (
 	DontIncludeBlue = iota
 	DontIncludeGreen

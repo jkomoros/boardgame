@@ -14,6 +14,10 @@
 	will also generate enum boilerplate. See the package doc of enum for more
 	on what you need to include.
 
+	auto-generated enums will automatically have values like
+	PrefixVeryLongName set to have a string value of "Very Long Name"; that is
+	title-case will be taken to mean word boundaries.
+
 	Producing a ReadSetConfigurator requires a ReadSetter, and producing a
 	ReadSetter requires a Reader. By default if you have the magic comment of
 	`+autoreader` it with produce all three. However, if you want only some of
