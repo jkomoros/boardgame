@@ -27,7 +27,24 @@
         "MyStringSlice": ["", "", ""],
         "MyPlayerIndexSlice": [0, 0, 0],
         "MyEnumValue" : "Red",
-        "MyEnumConst": "Blue"
+        "MyEnumConst": "Blue",
+        "DownSizeStack": {
+            "Deck": "test",
+            "Size": 4,
+            "Indexes": [
+                -1,
+                -1,
+                -1,
+                -1
+            ],
+            "Ids":[
+                "",
+                "",
+                "",
+                ""
+            ],
+            "IdsLastSeen": {}
+        }
     },
     "Players": [
         {

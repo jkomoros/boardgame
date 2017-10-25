@@ -135,6 +135,7 @@ type testGameState struct {
 	MyPlayerIndexSlice []PlayerIndex
 	MyEnumValue        enum.MutableVal
 	MyEnumConst        enum.Val
+	DownSizeStack      MutableStack `sizedstack:"test,4"`
 	//TODO: have a Stack here.
 }
 

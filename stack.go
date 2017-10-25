@@ -187,6 +187,18 @@ type MutableStack interface {
 	//errors. If error is non-nil, the stack may be left in an arbitrary order.
 	SortComponents(less func(i, j *Component) bool) error
 
+	//ContractSize changes the size of the stack by removing the given number
+	//of slots, starting from the right. This operation only makes sense for
+	//Sized Stacks (default stacks may not have slots in the first place), so
+	//this will fail on default stacks. This method will fail if there are
+	//more components in the stack currently than would fit in newSize.
+	ContractSize(newSize int) error
+
+	//ExpandSize changes the size of the stack by adding the given number of
+	//newSlots to the end. It only makes sense for Sized Stacks (default
+	//stacks can't have empty slots), so will fail for default stacks.
+	ExpandSize(newSlots int) error
+
 	//UnsafeInsertNextComponent is designed only to be used in tests, because
 	//it makes it trivial to violate the component-in-one-stack invariant. It
 	//inserts the given component to the NextSlotIndex in the given stack. You
@@ -779,6 +791,7 @@ func (g *growableStack) removeComponentAt(componentIndex int) *Component {
 
 	component := g.ComponentAt(componentIndex)
 
+	//This finicky code is replicated in s.ContractSize
 	if componentIndex == 0 {
 		g.indexes = g.indexes[1:]
 	} else if componentIndex == g.Len()-1 {
@@ -1148,6 +1161,72 @@ func (s *sizedStack) SwapComponents(i, j int) error {
 	return nil
 }
 
+func (g *growableStack) ExpandSize(newSlots int) error {
+	return errors.New("Default stacks cannot have their size changed.")
+}
+
+func (g *growableStack) ContractSize(newSize int) error {
+	return errors.New("Default stacks cannot have their size changed.")
+}
+
+func (s *sizedStack) ExpandSize(newSlots int) error {
+	if newSlots < 1 {
+		return errors.New("Can't add 0 or negative slots to a sized stack")
+	}
+
+	slots := make([]int, newSlots)
+
+	for i, _ := range slots {
+		slots[i] = -1
+	}
+
+	s.indexes = append(s.indexes, slots...)
+
+	s.size = s.size + newSlots
+
+	return nil
+}
+
+func (s *sizedStack) ContractSize(newSize int) error {
+	if newSize > s.Len() {
+		return errors.New("Contract size cannot be used to grow a sized stack")
+	}
+	if newSize < s.NumComponents() {
+		return errors.New("The proposed newSize for stack would not be sufficient to contain the components currently in the stack")
+	}
+
+	for s.Len() > newSize {
+		slotIndex := -1
+		//Find the next slot from the right.
+		for i := len(s.indexes) - 1; i >= 0; i-- {
+			//TODO: this is not as time efficient as it could be, could start
+			//the search from last known non-empty location.
+			if s.indexes[i] == emptyIndexSentinel {
+				slotIndex = i
+				break
+			}
+		}
+
+		if slotIndex == -1 {
+			return errors.New("There was an unexpected error contracting size of stack: no more slots to remove!")
+		}
+
+		//This finicky code is replicated in g.removeComponentAt
+		if slotIndex == 0 {
+			s.indexes = s.indexes[1:]
+		} else if slotIndex == s.Len()-1 {
+			s.indexes = s.indexes[:s.Len()-1]
+		} else {
+			s.indexes = append(s.indexes[:slotIndex], s.indexes[slotIndex+1:]...)
+		}
+	}
+
+	s.size = newSize
+
+	return nil
+
+}
+
 func (g *growableStack) MarshalJSON() ([]byte, error) {
 	obj := &stackJSONObj{
 		Deck:        g.deckName,
@@ -1192,6 +1271,9 @@ func (s *sizedStack) UnmarshalJSON(blob []byte) error {
 	}
 	//TODO: what if any of these required fields are zero? Should we return
 	//error?
+	if len(obj.Indexes) != obj.Size {
+		return errors.New("Couldn't unmarshal sized stack: lenght of indexes didn't agree with size")
+	}
 	s.deckName = obj.Deck
 	s.indexes = obj.Indexes
 	s.idsLastSeen = obj.IdsLastSeen

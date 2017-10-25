@@ -8,6 +8,119 @@ import (
 	"testing"
 )
 
+func TestExpandContractSizedStackSize(t *testing.T) {
+	game := testGame()
+
+	chest := game.Chest()
+
+	testDeck := chest.Deck("test")
+
+	sized := testDeck.NewSizedStack(5).(*sizedStack)
+
+	sized.insertComponentAt(0, testDeck.ComponentAt(0))
+	sized.insertComponentAt(1, testDeck.ComponentAt(1))
+	sized.insertComponentAt(3, testDeck.ComponentAt(2))
+
+	err := sized.ExpandSize(-2)
+
+	assert.For(t).ThatActual(err).IsNotNil()
+
+	err = sized.ExpandSize(1)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(sized.size).Equals(6)
+	assert.For(t).ThatActual(len(sized.indexes)).Equals(6)
+
+	var nilComponent *Component
+
+	assert.For(t).ThatActual(sized.ComponentAt(5)).Equals(nilComponent)
+
+	err = sized.ContractSize(-2)
+
+	assert.For(t).ThatActual(err).IsNotNil()
+
+	err = sized.ContractSize(2)
+
+	assert.For(t).ThatActual(err).IsNotNil()
+
+	err = sized.ContractSize(4)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(sized.size).Equals(4)
+	assert.For(t).ThatActual(len(sized.indexes)).Equals(4)
+
+	//Make sure the slot was taken from the right, not the middle.
+	assert.For(t).ThatActual(sized.ComponentAt(2)).Equals(nilComponent)
+
+	err = sized.ContractSize(3)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(sized.size).Equals(3)
+	assert.For(t).ThatActual(len(sized.indexes)).Equals(3)
+
+}
+
+func TestChangedSizeStackRoundTrip(t *testing.T) {
+	game := testGame()
+
+	testDeck := game.Chest().Deck("test")
+
+	err := game.SetUp(0, nil, nil)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	cState := game.CurrentState()
+
+	g, _ := concreteStates(cState)
+
+	g.DownSizeStack.insertComponentAt(0, testDeck.ComponentAt(0))
+	g.DownSizeStack.insertComponentAt(2, testDeck.ComponentAt(1))
+
+	assert.For(t).ThatActual(g.DownSizeStack.NumComponents()).Equals(2)
+	assert.For(t).ThatActual(g.DownSizeStack.Len()).Equals(4)
+
+	err = g.DownSizeStack.ContractSize(3)
+
+	assert.For(t).ThatActual(err).IsNil()
+	assert.For(t).ThatActual(g.DownSizeStack.Len()).Equals(3)
+
+	rec := cState.StorageRecord()
+
+	refriedState, err := game.Manager().stateFromRecord(rec)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	rG, _ := concreteStates(refriedState)
+
+	originalStack := g.DownSizeStack.(*sizedStack)
+	refriedStack := rG.DownSizeStack.(*sizedStack)
+
+	assert.For(t).ThatActual(refriedStack.indexes).Equals(originalStack.indexes)
+	assert.For(t).ThatActual(refriedStack.size).Equals(originalStack.size)
+
+}
+
+func TestExpandContractDefaultStackSize(t *testing.T) {
+	game := testGame()
+
+	chest := game.Chest()
+
+	testDeck := chest.Deck("test")
+
+	stack := testDeck.NewStack(5)
+
+	err := stack.ExpandSize(5)
+
+	assert.For(t).ThatActual(err).IsNotNil()
+
+	err = stack.ContractSize(3)
+
+	assert.For(t).ThatActual(err).IsNotNil()
+}
+
 func TestFixedSize(t *testing.T) {
 
 	game := testGame()
