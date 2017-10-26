@@ -111,19 +111,7 @@ func (g *gameDelegate) CurrentPlayerIndex(state boardgame.State) boardgame.Playe
 }
 
 func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
-
-	cards := g.Manager().Chest().Deck(cardsDeckName)
-
-	if cards == nil {
-		return nil
-	}
-
-	//We want to size the stack based on the size of the deck, so we'll do it
-	//ourselves and not use tag-based auto-inflation.
-	return &gameState{
-		HiddenCards:   cards.NewSizedStack(len(cards.Components())),
-		RevealedCards: cards.NewSizedStack(len(cards.Components())),
-	}
+	return new(gameState)
 }
 
 func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex) boardgame.ConfigurablePlayerState {
@@ -152,6 +140,16 @@ func (g *gameDelegate) BeginSetUp(state boardgame.MutableState, config boardgame
 		game.NumCards = 20
 	case numCardsLarge:
 		game.NumCards = 40
+	default:
+		game.NumCards = 20
+	}
+
+	//TODO: Once #509 is fixed these should return errors not panic
+	if err := game.HiddenCards.SetSize(game.NumCards); err != nil {
+		panic("Couldn't set up hidden cards: " + err.Error())
+	}
+	if err := game.RevealedCards.SetSize(game.NumCards); err != nil {
+		panic("Couldn't set up revealed cards: " + err.Error())
 	}
 }
 

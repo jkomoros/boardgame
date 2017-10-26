@@ -62,10 +62,13 @@ The core of the states are represented here:
 //+autoreader
 type gameState struct {
 	boardgame.BaseSubState
+	CardSet        string
+	NumCards       int
 	CurrentPlayer  boardgame.PlayerIndex
-	HiddenCards    boardgame.MutableStack `sanitize:"order"`
-	RevealedCards  boardgame.MutableStack
+	HiddenCards    boardgame.MutableStack `sizedstack:"cards,40" sanitize:"order"`
+	RevealedCards  boardgame.MutableStack `sizedstack:"cards,40"`
 	HideCardsTimer boardgame.MutableTimer
+	UnusedCards    boardgame.MutableStack `stack:"cards"`
 }
 
 //+autoreader
@@ -283,10 +286,23 @@ func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex)
 	}
 }
 ```
-However, if you look at the GameStateConstructor for memory, you'll see that it is a bit more complicated:
+If you look at the GameState constructor, it is even simpler:
 
 ```
-func (g *gameDelegate) GameStateConstructor() boardgame.MutableSubState {
+func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
+	return new(gameState)
+}
+```
+
+This is actually very interesting. As mentioned above, Interface properties (like Stacks, Timers, and Enums) need to have their container initalized to a reasonable starting state. For stacks this includes what deck they should be affiliated with, whether they should be a fixed size, and their starting size. For these interface types the zero-value is effectively missing type information.
+
+One way to do that is to initalize them to a reasonable value in the GameStateConstructor:
+
+```
+func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
+
+	//This sample shows a way to write this that is NOT what memory
+	//actually does.
 
 	cards := g.Manager().Chest().Deck(cardsDeckName)
 
@@ -294,8 +310,6 @@ func (g *gameDelegate) GameStateConstructor() boardgame.MutableSubState {
 		return nil
 	}
 
-	//We want to size the stack based on the size of the deck, so we'll do it
-	//ourselves and not use tag-based auto-inflation.
 	return &gameState{
 		HiddenCards:   cards.NewSizedStack(len(cards.Components())),
 		RevealedCards: cards.NewSizedStack(len(cards.Components())),
@@ -303,17 +317,30 @@ func (g *gameDelegate) GameStateConstructor() boardgame.MutableSubState {
 }
 ```
 
-The reason is because some of the pointer-based types (like Stacks) do not have a reasonable zero-value. Stacks are tied specifically to a particular deck; it is illegal to add a component to a stack that doesn't match its deck. But a nil stack doesn't encode which deck it is affiliated with. You need a zero-valued stack that is tied to the given deck.
+But that's not what memory does; it simply returns a pointer to a gameState object with all properties at their zero-value. (And that's lucky, it would be kind of a pain to have to do this for all of your interface types)
 
-The GameState constructor does this by getting a reference to the deck in question and then returning an object with those stacks initalized. You'll note that the other properties are omitted because their zero value is reasonable.
+The answer is in the struct tags in game and playerStates:
 
-However, it's kind of a pain to have to do this imperative instantitation for all of your pointer types.
+```
+//+autoreader
+type gameState struct {
+	//...
+	HiddenCards    boardgame.MutableStack `sizedstack:"cards,40" sanitize:"order"`
+	RevealedCards  boardgame.MutableStack `sizedstack:"cards,40"`
+	UnusedCards    boardgame.MutableStack `stack:"cards"`
+	//...
+}
 
-If you look closely at the playerState, you'll see that it has a stack, too, of WonCards. But that stack isn't initalized in the PlayerStateConstructor. What gives?
+//+autoreader
+type playerState struct {
+	//...
+	WonCards          boardgame.MutableStack `stack:"cards"`
+}
+```
 
-The answer is in the struct tag for playerState. For stacks, you can provide a struct tag that has the name of the deck it's affiliated with. Then you can return a nil value from your constructor for that property, and the system will automatically instantiate a zero-value stack of that shape. (Even cooler, this uses reflection only a single time, at engine start up, so it's fast.) Memory doesn't demonstrate it, but it's also possible to include the size of the stack in that struct tag.
+For stacks, you can provide a struct tag that has the name of the deck it's affiliated with. Then you can return a nil value from your constructor for that property, and the system will automatically instantiate a zero-value stack of that shape. (Even cooler, this uses reflection only a single time, at engine start up, so it's fast in normal usage) It's also possible to include the starting size (for default stacks, the max size, and for sized stacks the number of slots).
 
-The reason GameState can't use it is because the size of the SizedStack is not known statically, because it varies with the size of the deck. So it has to be done the old fashioned way. However, the vast majority of real-world usecases you'll encounter can just use struct tags.
+The vast majority of real-world usecases you'll encounter can just use struct tags.
 
 #### Other GameDelegate methods
 

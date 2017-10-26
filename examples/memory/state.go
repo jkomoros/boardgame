@@ -19,8 +19,8 @@ type gameState struct {
 	CardSet        string
 	NumCards       int
 	CurrentPlayer  boardgame.PlayerIndex
-	HiddenCards    boardgame.MutableStack `sanitize:"order"`
-	RevealedCards  boardgame.MutableStack
+	HiddenCards    boardgame.MutableStack `sizedstack:"cards,40" sanitize:"order"`
+	RevealedCards  boardgame.MutableStack `sizedstack:"cards,40"`
 	HideCardsTimer boardgame.MutableTimer
 	UnusedCards    boardgame.MutableStack `stack:"cards"`
 }
