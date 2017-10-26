@@ -1251,7 +1251,7 @@ func (s *sizedStack) SetSize(newSize int) error {
 		return nil
 	}
 
-	if s.Len() < newSize {
+	if s.Len() > newSize {
 		return s.ContractSize(newSize)
 	}
 
