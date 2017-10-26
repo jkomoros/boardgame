@@ -177,7 +177,7 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, 
 		stackToReturn = game.UnusedCards
 	}
 
-	return game.HiddenCards, nil
+	return stackToReturn, nil
 
 }
 
