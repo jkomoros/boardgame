@@ -81,6 +81,12 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 					return nil, errors.New(propName + " was a nil SizedStack and its struct tag was not valid: " + err.Error())
 				}
 
+				if isFixed && size == 0 {
+					//Size for sizedstacks defaults to 1 (which can be grown
+					//easily to any other size).
+					size = 1
+				}
+
 				autoStackFields[propName] = &autoStackConfig{
 					deck,
 					size,
