@@ -199,6 +199,11 @@ type MutableStack interface {
 	//stacks can't have empty slots), so will fail for default stacks.
 	ExpandSize(newSlots int) error
 
+	//SetSize is a convenience method that will call ContractSize or
+	//ExpandSize depending on the current Len() and the target len. Calling
+	//SetSize on a stack that is already that size is a no-op.
+	SetSize(newSize int) error
+
 	//UnsafeInsertNextComponent is designed only to be used in tests, because
 	//it makes it trivial to violate the component-in-one-stack invariant. It
 	//inserts the given component to the NextSlotIndex in the given stack. You
@@ -1169,6 +1174,10 @@ func (g *growableStack) ContractSize(newSize int) error {
 	return errors.New("Default stacks cannot have their size changed.")
 }
 
+func (g *growableStack) SetSize(newSize int) error {
+	return errors.New("Default stacks cannot have their size changed.")
+}
+
 func (s *sizedStack) ExpandSize(newSlots int) error {
 	if newSlots < 1 {
 		return errors.New("Can't add 0 or negative slots to a sized stack")
@@ -1225,6 +1234,20 @@ func (s *sizedStack) ContractSize(newSize int) error {
 
 	return nil
 
+}
+
+func (s *sizedStack) SetSize(newSize int) error {
+
+	if s.Len() == newSize {
+		//No op!
+		return nil
+	}
+
+	if s.Len() < newSize {
+		return s.ContractSize(newSize)
+	}
+
+	return s.ExpandSize(newSize - s.Len())
 }
 
 func (g *growableStack) MarshalJSON() ([]byte, error) {
