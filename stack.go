@@ -85,6 +85,11 @@ type Stack interface {
 	//this will be the number of empty slots.
 	SlotsRemaining() int
 
+	//MaxSize returns the Maxium Size, if set, for default stacks. For sized
+	//stacks it will return the number of total current slots (filled and
+	//unfilled), which is equivalent to Len().
+	MaxSize() int
+
 	//applySanitizationPolicy applies the given policy to ourselves. This
 	//should only be called by methods in sanitization.go.
 	applySanitizationPolicy(policy Policy)
@@ -1170,6 +1175,10 @@ func (s *sizedStack) SwapComponents(i, j int) error {
 	return nil
 }
 
+func (g *growableStack) MaxSize() int {
+	return g.maxLen
+}
+
 func (g *growableStack) ExpandSize(newSlots int) error {
 	return errors.New("Default stacks cannot have their size changed.")
 }
@@ -1184,6 +1193,10 @@ func (g *growableStack) SetSize(newSize int) error {
 
 func (g *growableStack) SizeToFit() error {
 	return errors.New("Default stacks cannot have their size changed.")
+}
+
+func (s *sizedStack) MaxSize() int {
+	return s.Len()
 }
 
 func (s *sizedStack) ExpandSize(newSlots int) error {
