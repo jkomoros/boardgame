@@ -16,8 +16,7 @@ import (
 var Enums = enum.NewSet()
 
 var RankEnum = Enums.MustAdd("Rank", map[int]string{
-	RankUnknown: "Unknown",
-	RankAce:     "Ace",
+	Rank10:      "10",
 	Rank2:       "2",
 	Rank3:       "3",
 	Rank4:       "4",
@@ -26,9 +25,10 @@ var RankEnum = Enums.MustAdd("Rank", map[int]string{
 	Rank7:       "7",
 	Rank8:       "8",
 	Rank9:       "9",
-	Rank10:      "10",
+	RankAce:     "Ace",
 	RankJack:    "Jack",
-	RankQueen:   "Queen",
-	RankKing:    "King",
 	RankJoker:   "Joker",
+	RankKing:    "King",
+	RankQueen:   "Queen",
+	RankUnknown: "Unknown",
 })

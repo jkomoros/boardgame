@@ -126,9 +126,6 @@ func (g *gameDelegate) BeginSetUp(state boardgame.MutableState, config boardgame
 
 	game.CardSet = config[configKeyCardSet]
 
-	//TODO :cardSetAll is basically cardSetGeneral because we have enough for
-	//Large for each set. In a perfect set if it were all we'd pick a random
-	//sub-set of the whole cards (with pairs!)
 	if game.CardSet == "" {
 		game.CardSet = cardSetAll
 	}
@@ -156,31 +153,76 @@ func (g *gameDelegate) BeginSetUp(state boardgame.MutableState, config boardgame
 func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c *boardgame.Component) (boardgame.Stack, error) {
 	game, _ := concreteStates(state)
 
-	//The default is always hidden cards, if there's room.
-	stackToReturn := game.HiddenCards
-
-	card := c.Values.(*cardValue)
-
-	if game.CardSet != cardSetAll {
-		//If the card setin in play is not all, and the card isn't of the
-		//given set, shunt to Unused cards.
-		if game.CardSet != card.CardSet {
-			stackToReturn = game.UnusedCards
-		}
-	}
-
-	//If we're already full in the main set we can't take more in the main
-	//set, shunt to unused.
-	if stackToReturn.SlotsRemaining() < 1 {
-		stackToReturn = game.UnusedCards
-	}
-
-	return stackToReturn, nil
+	//For now, shunt all cards to UnusedCards. In FinishSetup we'll construct
+	//the deck based on config.
+	return game.UnusedCards, nil
 
 }
 
 func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) {
 	game, players := concreteStates(state)
+
+	//First, shuffle unused cards to ensure a different set of cards that
+	//adhere to config each time.
+
+	game.UnusedCards.Shuffle()
+
+	//Now, go assemble the deck by going through each component from the
+	//front, seeing if it matches. If it does, put it in the HiddenCards array
+	//and find its match and also put it in the HiddenCards. If it doesn't,
+	//put it in the UnusedCardsScratch (along with its pair) to get it out of
+	//the way.
+
+	for game.HiddenCards.NumComponents() < game.NumCards {
+
+		//The card to match.
+		firstCard := game.UnusedCards.ComponentAt(0).Values.(*cardValue)
+
+		//Now find its pair. If we keep it, we'll also keep its pair. If we
+		//move it to scratch, we'll also move its pair to scratch.
+		var pairCardIndex int
+
+		for i := 1; i < game.UnusedCards.Len(); i++ {
+			candidateCard := game.UnusedCards.ComponentAt(i).Values.(*cardValue)
+
+			if candidateCard.Type == firstCard.Type {
+				pairCardIndex = i
+				break
+			}
+		}
+
+		if pairCardIndex == 0 {
+			//Uh oh, couldn't find the pair...
+
+			//TODO: do something here. Shouldn't FinishSetUp have an error?
+			//When #509 is fixed, do that.
+		}
+
+		useCard := false
+
+		if game.CardSet == cardSetAll {
+			useCard = true
+		} else if game.CardSet == firstCard.CardSet {
+			useCard = true
+		}
+
+		targetStack := game.UnusedCardsScratch
+
+		if useCard {
+			targetStack = game.HiddenCards
+		}
+
+		game.UnusedCards.MoveComponent(0, targetStack, boardgame.NextSlotIndex)
+		//Index of the pair card has moved down one since we just popped off
+		//the front item.
+		pairCardIndex -= 1
+		game.UnusedCards.MoveComponent(pairCardIndex, targetStack, boardgame.NextSlotIndex)
+
+	}
+
+	//Scratch shouldn't be full outside of this method; move everything back
+	//over there.
+	game.UnusedCardsScratch.MoveAllTo(game.UnusedCards)
 
 	game.HiddenCards.Shuffle()
 

@@ -1998,13 +1998,14 @@ func (m *MoveHideCards) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer 
 // Implementation for gameState
 
 var __gameStateReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
-	"CardSet":        boardgame.TypeString,
-	"CurrentPlayer":  boardgame.TypePlayerIndex,
-	"HiddenCards":    boardgame.TypeStack,
-	"HideCardsTimer": boardgame.TypeTimer,
-	"NumCards":       boardgame.TypeInt,
-	"RevealedCards":  boardgame.TypeStack,
-	"UnusedCards":    boardgame.TypeStack,
+	"CardSet":            boardgame.TypeString,
+	"CurrentPlayer":      boardgame.TypePlayerIndex,
+	"HiddenCards":        boardgame.TypeStack,
+	"HideCardsTimer":     boardgame.TypeTimer,
+	"NumCards":           boardgame.TypeInt,
+	"RevealedCards":      boardgame.TypeStack,
+	"UnusedCards":        boardgame.TypeStack,
+	"UnusedCardsScratch": boardgame.TypeStack,
 }
 
 type __gameStateReader struct {
@@ -2327,6 +2328,8 @@ func (g *__gameStateReader) StackProp(name string) (boardgame.Stack, error) {
 		return g.data.RevealedCards, nil
 	case "UnusedCards":
 		return g.data.UnusedCards, nil
+	case "UnusedCardsScratch":
+		return g.data.UnusedCardsScratch, nil
 
 	}
 
@@ -2346,6 +2349,9 @@ func (g *__gameStateReader) ConfigureMutableStackProp(name string, value boardga
 	case "UnusedCards":
 		g.data.UnusedCards = value
 		return nil
+	case "UnusedCardsScratch":
+		g.data.UnusedCardsScratch = value
+		return nil
 
 	}
 
@@ -2362,6 +2368,8 @@ func (g *__gameStateReader) MutableStackProp(name string) (boardgame.MutableStac
 		return g.data.RevealedCards, nil
 	case "UnusedCards":
 		return g.data.UnusedCards, nil
+	case "UnusedCardsScratch":
+		return g.data.UnusedCardsScratch, nil
 
 	}
 
