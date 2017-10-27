@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -95,11 +96,11 @@ func (t *testGameDelegate) Configs() map[string][]string {
 	}
 }
 
-func (t *testGameDelegate) BeginSetUp(state MutableState, config GameConfig) {
+func (t *testGameDelegate) BeginSetUp(state MutableState, config GameConfig) error {
 	game, players := concreteStates(state)
 
 	if len(players) != 3 {
-		return
+		return errors.New("Only three players are supported")
 	}
 
 	game.MyEnumValue.SetValue(colorGreen)
@@ -107,9 +108,10 @@ func (t *testGameDelegate) BeginSetUp(state MutableState, config GameConfig) {
 	players[0].MovesLeftThisTurn = 1
 	players[2].IsFoo = true
 	players[1].EnumVal.SetValue(colorGreen)
+	return nil
 }
 
-func (t *testGameDelegate) FinishSetUp(state MutableState) {
+func (t *testGameDelegate) FinishSetUp(state MutableState) error {
 
 	//Set all IntVar's to 1 for dynamic values for all hands. This will help
 	//us verify when they are being sanitized.
@@ -122,6 +124,8 @@ func (t *testGameDelegate) FinishSetUp(state MutableState) {
 		values.IntVar = 1
 		values.Enum.SetValue(colorBlue)
 	}
+
+	return nil
 }
 
 func (t *testGameDelegate) CurrentPlayerIndex(state State) PlayerIndex {

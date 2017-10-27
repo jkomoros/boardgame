@@ -181,10 +181,12 @@ func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex)
 	}
 }
 
-func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) {
+func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) error {
 	game, _ := concreteStates(state)
 
 	game.DrawStack.Shuffle()
+
+	return nil
 }
 
 func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) {

@@ -121,7 +121,7 @@ func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex)
 	}
 }
 
-func (g *gameDelegate) BeginSetUp(state boardgame.MutableState, config boardgame.GameConfig) {
+func (g *gameDelegate) BeginSetUp(state boardgame.MutableState, config boardgame.GameConfig) error {
 	game, _ := concreteStates(state)
 
 	game.CardSet = config[configKeyCardSet]
@@ -141,13 +141,14 @@ func (g *gameDelegate) BeginSetUp(state boardgame.MutableState, config boardgame
 		game.NumCards = 20
 	}
 
-	//TODO: Once #509 is fixed these should return errors not panic
 	if err := game.HiddenCards.SetSize(game.NumCards); err != nil {
-		panic("Couldn't set up hidden cards: " + err.Error())
+		return errors.New("Couldn't set up hidden cards: " + err.Error())
 	}
 	if err := game.RevealedCards.SetSize(game.NumCards); err != nil {
-		panic("Couldn't set up revealed cards: " + err.Error())
+		return errors.New("Couldn't set up revealed cards: " + err.Error())
 	}
+
+	return nil
 }
 
 func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c *boardgame.Component) (boardgame.Stack, error) {
@@ -159,7 +160,7 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, 
 
 }
 
-func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) {
+func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) error {
 	game, players := concreteStates(state)
 
 	//First, shuffle unused cards to ensure a different set of cards that
@@ -194,8 +195,7 @@ func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) {
 		if pairCardIndex == 0 {
 			//Uh oh, couldn't find the pair...
 
-			//TODO: do something here. Shouldn't FinishSetUp have an error?
-			//When #509 is fixed, do that.
+			return errors.New("Unexpectedly unable to find the pair when sorting cards to include.")
 		}
 
 		useCard := false
@@ -227,6 +227,8 @@ func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) {
 	game.HiddenCards.Shuffle()
 
 	players[0].CardsLeftToReveal = 2
+
+	return nil
 }
 
 func (g *gameDelegate) Diagram(state boardgame.State) string {

@@ -50,15 +50,18 @@ type GameDelegate interface {
 	//components are distributed to it. It is also where the config for your
 	//gametype will be passed (it will have already passed LegalConfig). This
 	//is a good place to configure state that will be necessary for you to
-	//make the right decisions in DistributeComponentToStarterStack.
-	BeginSetUp(state MutableState, config GameConfig)
+	//make the right decisions in DistributeComponentToStarterStack. If error
+	//is non-nil, Game setup will be aborted, with the reasoning including the
+	//error message provided.
+	BeginSetUp(state MutableState, config GameConfig) error
 
 	//FinishSetUp is called during game.SetUp, *after* components have been
 	//distributed to their StarterStack. This is the last chance to modify the
 	//state before the game's initial state is considered final. For example,
 	//if you have a card game this is where you'd make sure the starter draw
-	//stacks are shuffled.
-	FinishSetUp(state MutableState)
+	//stacks are shuffled. If error is non-nil, Game setup will be aborted,
+	//with the reasoning including the error message provided.
+	FinishSetUp(state MutableState) error
 
 	//CheckGameFinished should return true if the game is finished, and who
 	//the winners are. Called after every move is applied.
@@ -327,12 +330,14 @@ func (d *DefaultGameDelegate) ComputedPlayerProperties(player PlayerState) Prope
 	return nil
 }
 
-func (d *DefaultGameDelegate) BeginSetUp(state MutableState, config GameConfig) {
+func (d *DefaultGameDelegate) BeginSetUp(state MutableState, config GameConfig) error {
 	//Don't need to do anything by default
+	return nil
 }
 
-func (d *DefaultGameDelegate) FinishSetUp(state MutableState) {
+func (d *DefaultGameDelegate) FinishSetUp(state MutableState) error {
 	//Don't need to do anything by default
+	return nil
 }
 
 func (d *DefaultGameDelegate) CheckGameFinished(state State) (finished bool, winners []PlayerIndex) {

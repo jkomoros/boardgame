@@ -49,7 +49,7 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, 
 	return game.Die, nil
 }
 
-func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) {
+func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) error {
 
 	game, _ := concreteStates(state)
 
@@ -58,6 +58,8 @@ func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) {
 
 	game.CurrentPlayer = startingPlayer
 	game.TargetScore = DefaultTargetScore
+
+	return nil
 
 }
 

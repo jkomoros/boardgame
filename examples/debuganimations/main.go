@@ -88,10 +88,12 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, 
 
 }
 
-func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) {
+func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) error {
 	game, _ := concreteStates(state)
 
 	game.DrawStack.Shuffle()
+
+	return nil
 
 }
 
