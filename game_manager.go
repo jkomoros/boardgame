@@ -397,7 +397,7 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 			if err != nil {
 				return nil, errors.New("Unable to inflate stack " + propName + " in game.")
 			}
-			stack.Inflate(g.Chest())
+			stack.inflate(g.Chest())
 		}
 	}
 
@@ -421,7 +421,7 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 				if err != nil {
 					return nil, errors.New("Unable to inflate stack " + propName + " in player " + strconv.Itoa(i))
 				}
-				stack.Inflate(g.Chest())
+				stack.inflate(g.Chest())
 			}
 		}
 
@@ -463,7 +463,7 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 					if err != nil {
 						return nil, errors.New("Unable to inflate stack " + propName + " in deck " + deckName + " component " + strconv.Itoa(i))
 					}
-					stack.Inflate(g.Chest())
+					stack.inflate(g.Chest())
 				}
 			}
 

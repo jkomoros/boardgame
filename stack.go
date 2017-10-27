@@ -43,15 +43,6 @@ type Stack interface {
 	//the number of non-nil slots.
 	NumComponents() int
 
-	//Inflated returns true if we are inflated--that is, we have a connection
-	//to the underlying deck we reference. ComponentAt and ComponentValues()
-	//will fail if we are not inflated.
-	Inflated() bool
-
-	//Stacks that are not inflated will become inflated by grabbing a
-	//reference to the associated deck in the provided chest.
-	Inflate(chest *ComponentChest) error
-
 	//ComponentAt retrieves the component at the given index in the stack.
 	ComponentAt(index int) *Component
 
@@ -131,6 +122,12 @@ type Stack interface {
 
 	//Copy returns a copy of this stack.
 	copy() Stack
+
+	//Stacks that are not inflated will become inflated by grabbing a
+	//reference to the associated deck in the provided chest.
+	inflate(chest *ComponentChest) error
+
+	inflated() bool
 }
 
 //MutableStack is a Stack that also has mutator methods.
@@ -434,17 +431,17 @@ func (s *sizedStack) FixedSize() bool {
 	return true
 }
 
-func (s *growableStack) Inflated() bool {
+func (s *growableStack) inflated() bool {
 	return s.deck() != nil
 }
 
-func (s *sizedStack) Inflated() bool {
+func (s *sizedStack) inflated() bool {
 	return s.deck() != nil
 }
 
-func (g *growableStack) Inflate(chest *ComponentChest) error {
+func (g *growableStack) inflate(chest *ComponentChest) error {
 
-	if g.Inflated() {
+	if g.inflated() {
 		return errors.New("Stack already inflated")
 	}
 
@@ -460,9 +457,9 @@ func (g *growableStack) Inflate(chest *ComponentChest) error {
 
 }
 
-func (s *sizedStack) Inflate(chest *ComponentChest) error {
+func (s *sizedStack) inflate(chest *ComponentChest) error {
 
-	if s.Inflated() {
+	if s.inflated() {
 		return errors.New("Stack already inflated")
 	}
 
@@ -502,7 +499,7 @@ func (s *sizedStack) Components() []*Component {
 //this stack.
 func (s *growableStack) ComponentAt(index int) *Component {
 
-	if !s.Inflated() {
+	if !s.inflated() {
 		return nil
 	}
 
@@ -525,7 +522,7 @@ func (s *growableStack) ComponentAt(index int) *Component {
 //this stack.
 func (s *sizedStack) ComponentAt(index int) *Component {
 
-	if !s.Inflated() {
+	if !s.inflated() {
 		return nil
 	}
 
@@ -551,7 +548,7 @@ func (s *sizedStack) ComponentAt(index int) *Component {
 func (g *growableStack) ComponentValues() []Reader {
 	//TODO: memoize this, as long as indexes hasn't changed
 
-	if !g.Inflated() {
+	if !g.inflated() {
 		return nil
 	}
 
@@ -574,7 +571,7 @@ func (g *growableStack) ComponentValues() []Reader {
 func (s *sizedStack) ComponentValues() []Reader {
 	//TODO: memoize this, as long as indexes hasn't changed
 
-	if !s.Inflated() {
+	if !s.inflated() {
 		return nil
 	}
 
@@ -749,7 +746,7 @@ func (s *sizedStack) deck() *Deck {
 }
 
 func (g *growableStack) modificationsAllowed() error {
-	if !g.Inflated() {
+	if !g.inflated() {
 		return errors.New("Modifications not allowed: stack is not inflated")
 	}
 	if g.state() == nil {
@@ -762,7 +759,7 @@ func (g *growableStack) modificationsAllowed() error {
 }
 
 func (s *sizedStack) modificationsAllowed() error {
-	if !s.Inflated() {
+	if !s.inflated() {
 		return errors.New("Modifications not allowed: stack is not inflated")
 	}
 	if s.state() == nil {

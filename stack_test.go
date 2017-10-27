@@ -151,7 +151,7 @@ func TestSort(t *testing.T) {
 
 	gStack := testDeck.NewStack(0)
 
-	gStack.Inflate(chest)
+	gStack.inflate(chest)
 
 	gStack.setState(game.CurrentState().(*state))
 
@@ -186,7 +186,7 @@ func TestSort(t *testing.T) {
 
 	sStack := testDeck.NewSizedStack(5)
 
-	sStack.Inflate(chest)
+	sStack.inflate(chest)
 	sStack.setState(game.CurrentState().(*state))
 
 	sStack.insertComponentAt(0, testDeck.Components()[0])
@@ -266,11 +266,11 @@ func TestInflate(t *testing.T) {
 		t.Error("Couldn't get component from inflated sstack")
 	}
 
-	if err := gStack.Inflate(chest); err == nil {
+	if err := gStack.inflate(chest); err == nil {
 		t.Error("An inflated g stack was able to inflate again")
 	}
 
-	if err := sStack.Inflate(chest); err == nil {
+	if err := sStack.inflate(chest); err == nil {
 		t.Error("An inflated s stack was able to inflate again")
 	}
 
@@ -298,11 +298,11 @@ func TestInflate(t *testing.T) {
 		t.Error("Couldn't reconstitute sStack", err)
 	}
 
-	if reGStack.Inflated() {
+	if reGStack.inflated() {
 		t.Error("Reconstituted g stack thought it was inflated")
 	}
 
-	if reSStack.Inflated() {
+	if reSStack.inflated() {
 		t.Error("Reconstituted s stack thought it was inflated")
 	}
 
@@ -314,19 +314,19 @@ func TestInflate(t *testing.T) {
 		t.Error("Uninflated s stack still returned a component")
 	}
 
-	if err := reGStack.Inflate(chest); err != nil {
+	if err := reGStack.inflate(chest); err != nil {
 		t.Error("Uninflated g stack wasn't able to inflate", err)
 	}
 
-	if err := reSStack.Inflate(chest); err != nil {
+	if err := reSStack.inflate(chest); err != nil {
 		t.Error("Uninflated s stack wasn't able to inflate", err)
 	}
 
-	if !reGStack.Inflated() {
+	if !reGStack.inflated() {
 		t.Error("After inflating g stack it didn't think it was inflated")
 	}
 
-	if !reSStack.Inflated() {
+	if !reSStack.inflated() {
 		t.Error("After inflating s stack it didn't think it was inflated")
 	}
 
