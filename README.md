@@ -763,13 +763,13 @@ By following this convention, it will be very easy for instantiations of a serve
 
 ### Property sanitization
 
-So far all of the properties on State are visible to anyone who cares to look at them. But many (most?) games have some kind of hidden state that should only be revealed to particular players in particular circumstances. Often, the whole point of the game is to deduce what that hidden state is.
+So far all of the properties on State are visible to anyone who cares to look at them. But many (most?) games have some kind of hidden state that should only be revealed to particular players in particular circumstances. In many cases, the whole *point* of the game is to deduce what that hidden state is!
 
 One way would just be to never show that state to the user directly and take care to never render it in the UI. But that's effectively security by obscurity--anyone who was curious could poke in DevTools, discover the secret, and then gain an unfair advantage.
 
 For this reason, the core engine introduces the notion of **sanitization**. This also finally explains that last struct tag in the memory example (HiddenCards having `sanitize:"order"`).
 
-The core engine always keeps track of the full, unsanitized state, and all moves operate on that sanitized state. However, states can be sanitized to be appropriate to show to any given player, for example before the JSON serialization is transmitted to the client. Then, even if a savvy user pokes in DevTools, they'll never be able to discover the hidden information.
+The core engine always keeps track of the full, unsanitized state, and all moves operate on that unsanitized state. However, states can be sanitized to be appropriate to show to any given player, for example before the JSON serialization is transmitted to the client. Then, even if a savvy user pokes in DevTools, they'll never be able to discover the hidden information.
 
 Conceptually, every property in your substate objects has a **sanitization policy** (which may vary by player--more on that in a second) that defines how to sanitize that property. The least restrictive is `PolicyVisible`, which doesn't modify the value at all. The most restrictive is `PolicyHidden`, which hides all information. Stacks have many more subtle policies that obscure some or all information (more on those in a bit).
 
