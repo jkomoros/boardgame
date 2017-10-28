@@ -745,7 +745,7 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 }
 ```
 
-First, we create a new empty `ComponentChest`. Then we start defining the single deck of cards. We create an empty deck, then for each constant in our cardNames we insert two components into the deck with those values.
+First, we create a new empty `ComponentChest`. Then we start defining the single deck of cards. We create an empty deck, then for each constant in our cardNames we insert two components into the deck with those values. It is important that we always insert the exact same components in the exact same order. Stacks encode which components they contain with a deck/index pair--which means that if the order of the deck is different from when it was saved, the stack will have nonsensical values.
 
 We then define a `ShadowValue` for the deck. The ShadowValue is the values object that will be returned if the values in a deck are sanitized--more on that later. 
 
