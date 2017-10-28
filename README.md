@@ -266,20 +266,20 @@ GameDelegates are also where you have "Constructors" for your core concrete type
 ```
 type GameDelegate interface {
 	//...
-	GameStateConstructor() MutableSubState
-	PlayerStateConstructor(player PlayerIndex) MutablePlayerState
+	GameStateConstructor() ConfigurableSubState
+	PlayerStateConstructor(player PlayerIndex) ConfigurablePlayerState
 	//...
 }
 ```
 
-MutableSubState and MutablePlayerState are simple interfaces that primarily define how to get a `PropertyReader` and `PropertyReadSetter` from the object. Many other sub-state values that we'll encounter later have the same shape, which is why the name is generic.
+ConfigurableSubState and ConfigurablePlayerState are simple interfaces that primarily define how to get a `PropertyReader`, `PropertyReadSetter`, and `PropertyReadSetConfigurer` from the object. Many other sub-state values that we'll encounter later have the same shape, which is why the name is generic.
 
-GameStateConstructor and PlayerStateConstructor should return zero-value objects of your concrete types. The only thing that differentiates GameStates (of type MutableSubState) and PlayerStates (of type MutablePlayerState) is that PlayerStates should come back with a hidden property encoding which PlayerIndex they are.
+GameStateConstructor and PlayerStateConstructor should return zero-value objects of your concrete types. The only thing that differentiates GameStates (of type ConfigurableSubState) and PlayerStates (of type ConfigurablePlayerState) is that PlayerStates should come back with a hidden property encoding which PlayerIndex they are.
 
 In many cases they can just be a single line or two, as you can see for the PlayerStateConstructor in main.go:
 
 ```
-func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex) boardgame.MutablePlayerState {
+func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex) boardgame.ConfigurablePlayerState {
 
 	return &playerState{
 		playerIndex: playerIndex,
