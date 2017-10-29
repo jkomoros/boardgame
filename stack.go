@@ -1222,6 +1222,10 @@ func (s *sizedStack) ContractSize(newSize int) error {
 		return errors.New("The proposed newSize for stack would not be sufficient to contain the components currently in the stack")
 	}
 
+	if newSize < 0 {
+		newSize = 0
+	}
+
 	for s.Len() > newSize {
 		slotIndex := -1
 		//Find the next slot from the right.
