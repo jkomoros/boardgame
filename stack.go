@@ -189,21 +189,23 @@ type MutableStack interface {
 	//errors. If error is non-nil, the stack may be left in an arbitrary order.
 	SortComponents(less func(i, j *Component) bool) error
 
-	//ContractSize changes the size of the stack by removing the given number
-	//of slots, starting from the right. This operation only makes sense for
-	//Sized Stacks (default stacks may not have slots in the first place), so
-	//this will fail on default stacks. This method will fail if there are
-	//more components in the stack currently than would fit in newSize.
+	//ContractSize changes the size of the stack. For default stacks it
+	//contracts the MaxSize, if non-zero. For sized stacks it will reduce the
+	//size by removing the given number of slots, starting from the right.
+	//This method will fail if there are more components in the stack
+	//currently than would fit in newSize.
 	ContractSize(newSize int) error
 
-	//ExpandSize changes the size of the stack by adding the given number of
-	//newSlots to the end. It only makes sense for Sized Stacks (default
-	//stacks can't have empty slots), so will fail for default stacks.
+	//ExpandSize changes the size of the stack. For default stacks it
+	//increases MaxSize (unless it is zero). For sized stacks it does it by
+	//adding the given number of newSlots to the end.
 	ExpandSize(newSlots int) error
 
 	//SetSize is a convenience method that will call ContractSize or
 	//ExpandSize depending on the current Len() and the target len. Calling
-	//SetSize on a stack that is already that size is a no-op.
+	//SetSize on a stack that is already that size is a no-op. For default
+	//stacks, this is the only sway to switch from a zero MaxSize (no limit)
+	//to a non-zero MaxSize().
 	SetSize(newSize int) error
 
 	//SizeToFit is a simple convenience wrapper around ContractSize. It
@@ -1177,19 +1179,64 @@ func (g *growableStack) MaxSize() int {
 }
 
 func (g *growableStack) ExpandSize(newSlots int) error {
-	return errors.New("Default stacks cannot have their size changed.")
+	if g.MaxSize() == 0 {
+		return errors.New("Can't expand maxSize; maxSize is currently not set. Use SetSize first")
+	}
+
+	if newSlots <= 0 {
+		return errors.New("Expand size must have a positive non-zero number for newSlots")
+	}
+
+	g.maxSize = g.maxSize + newSlots
+
+	return nil
 }
 
 func (g *growableStack) ContractSize(newSize int) error {
-	return errors.New("Default stacks cannot have their size changed.")
+	if g.MaxSize() == 0 {
+		return errors.New("Can't expand maxSize; maxSize is currently not set. Use SetSize first")
+	}
+
+	if newSize <= 0 {
+		return errors.New("Contract size must be given a positive, non-zero number for newSize")
+	}
+
+	if newSize > g.MaxSize() {
+		return errors.New("Contract size must be passed a smaller size")
+	}
+
+	if newSize < g.NumComponents() {
+		return errors.New("Can't set the max size to a size smaller than the current number of components")
+	}
+
+	g.maxSize = newSize
+	return nil
 }
 
 func (g *growableStack) SetSize(newSize int) error {
-	return errors.New("Default stacks cannot have their size changed.")
+	if g.MaxSize() == newSize {
+		//No op!
+		return nil
+	}
+
+	if newSize < 0 {
+		newSize = 0
+	}
+
+	if g.MaxSize() == 0 {
+		g.maxSize = newSize
+		return nil
+	}
+
+	if g.MaxSize() > newSize {
+		return g.ContractSize(newSize)
+	}
+
+	return g.ExpandSize(newSize - g.MaxSize())
 }
 
 func (g *growableStack) SizeToFit() error {
-	return errors.New("Default stacks cannot have their size changed.")
+	return g.SetSize(g.Len())
 }
 
 func (s *sizedStack) MaxSize() int {

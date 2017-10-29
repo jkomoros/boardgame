@@ -110,15 +110,43 @@ func TestExpandContractDefaultStackSize(t *testing.T) {
 
 	testDeck := chest.Deck("test")
 
-	stack := testDeck.NewStack(5)
+	stack := testDeck.NewStack(0)
 
+	//Fails because maxSize is 0
 	err := stack.ExpandSize(5)
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
+	//Fails because maxSize is 0
 	err = stack.ContractSize(3)
 
 	assert.For(t).ThatActual(err).IsNotNil()
+
+	err = stack.SetSize(3)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(stack.MaxSize()).Equals(3)
+
+	err = stack.ExpandSize(2)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(stack.MaxSize()).Equals(5)
+
+	stack.insertComponentAt(0, testDeck.ComponentAt(0))
+	stack.insertComponentAt(1, testDeck.ComponentAt(1))
+
+	//Fails: too many components in stack
+	err = stack.ContractSize(1)
+
+	assert.For(t).ThatActual(err).IsNotNil()
+
+	err = stack.ContractSize(2)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(stack.MaxSize()).Equals(2)
 }
 
 func TestFixedSize(t *testing.T) {
