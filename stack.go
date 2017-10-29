@@ -19,7 +19,7 @@ const emptyIndexSentinel = -1
 //things like a stack of cards, a collection of resource tokens, etc. Stacks
 //can either be growable (the default), or of a fixed size (called
 //SizedStacks). The default stacks have a FixedSize() of false and can grow to
-//accomodate as many components as desired (up to maxLen), with no gaps in
+//accomodate as many components as desired (up to maxSize), with no gaps in
 //between components. An insertion at an index in the middle of a stack will
 //simply move later components down. SizedStacks, however, have a specific
 //size, with empty slots being allowed. Each insertion puts the component at
@@ -72,7 +72,7 @@ type Stack interface {
 
 	//SlotsRemaining returns how many slots there are left in this stack to
 	//add items. For default stacks this will be the number of slots until
-	//maxLen is reached (or MaxInt64 if there is no maxLen). For SizedStacks
+	//maxSize is reached (or MaxInt64 if there is no maxSize). For SizedStacks
 	//this will be the number of empty slots.
 	SlotsRemaining() int
 
@@ -285,7 +285,7 @@ type growableStack struct {
 
 	//size, if set, says the maxmimum number of items allowed in the Stack. 0
 	//means that the Stack may grow without bound.
-	maxLen int
+	maxSize int
 	//Each stack is associated with precisely one state. This is consulted to
 	//verify that components being transfered between stacks are part of a
 	//single state. Set in empty{Game,Player}State.
@@ -325,14 +325,14 @@ type stackJSONObj struct {
 	Ids         []string
 	IdsLastSeen map[string]int
 	Size        int `json:",omitempty"`
-	MaxLen      int `json:",omitempty"`
+	MaxSize     int `json:",omitempty"`
 }
 
 //NewGrowableStack creates a new growable stack with the given Deck and Cap.
-func newGrowableStack(deck *Deck, maxLen int) *growableStack {
+func newGrowableStack(deck *Deck, maxSize int) *growableStack {
 
-	if maxLen < 0 {
-		maxLen = 0
+	if maxSize < 0 {
+		maxSize = 0
 	}
 
 	return &growableStack{
@@ -340,7 +340,7 @@ func newGrowableStack(deck *Deck, maxLen int) *growableStack {
 		deckName:    deck.Name(),
 		indexes:     make([]int, 0),
 		idsLastSeen: make(map[string]int),
-		maxLen:      maxLen,
+		maxSize:     maxSize,
 	}
 }
 
@@ -681,10 +681,10 @@ func (s *sizedStack) scrambleIds() {
 //SlotsRemaining returns the count of slots left in this stack. If Cap is 0
 //(inifinite) this will be MaxInt64.
 func (s *growableStack) SlotsRemaining() int {
-	if s.maxLen <= 0 {
+	if s.maxSize <= 0 {
 		return math.MaxInt64
 	}
-	return s.maxLen - s.Len()
+	return s.maxSize - s.Len()
 }
 
 //SlotsRemaining returns the count of unfilled slots in this stack.
@@ -1173,7 +1173,7 @@ func (s *sizedStack) SwapComponents(i, j int) error {
 }
 
 func (g *growableStack) MaxSize() int {
-	return g.maxLen
+	return g.maxSize
 }
 
 func (g *growableStack) ExpandSize(newSlots int) error {
@@ -1282,7 +1282,7 @@ func (g *growableStack) MarshalJSON() ([]byte, error) {
 		Indexes:     g.indexes,
 		Ids:         g.Ids(),
 		IdsLastSeen: g.idsLastSeen,
-		MaxLen:      g.maxLen,
+		MaxSize:     g.maxSize,
 	}
 	return json.Marshal(obj)
 }
@@ -1309,7 +1309,7 @@ func (g *growableStack) UnmarshalJSON(blob []byte) error {
 	g.deckName = obj.Deck
 	g.indexes = obj.Indexes
 	g.idsLastSeen = obj.IdsLastSeen
-	g.maxLen = obj.MaxLen
+	g.maxSize = obj.MaxSize
 	return nil
 }
 
