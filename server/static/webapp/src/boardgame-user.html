@@ -17,6 +17,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../bower_components/paper-spinner/paper-spinner-lite.html">
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../bower_components/polymerfire/firebase-app.html">
+<link rel="import" href="../bower_components/polymerfire/firebase-auth.html">
 <link rel="import" href="boardgame-player-chip.html">
 <link rel="import" href="boardgame-util.html">
 <link rel="import" href="../config-src/boardgame-config.html">
@@ -95,7 +97,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </div>
       </iron-pages>
     </paper-dialog>
-    <iron-ajax id="auth" url="[[AuthCookieUrl(apiHost)]]" handle-as="json" last-response="{{authResponse}}" method="POST" with-credentials>
+    <iron-ajax id="auth" url="[[AuthCookieUrl(apiHost)]]" handle-as="json" last-response="{{authResponse}}" method="POST" with-credentials></iron-ajax>
+
+    <firebase-app auth-domain="example-boardgame.firebaseapp.com" api-key="AIzaSyDi0hhBgLPbpJgprVCDzDkk8zuFpb9XadM" database-url="https://example-boardgame.firebaseio.com" storage-bucket="example-boardgame.appspot.com" messaging-sender-id="138149526364"></firebase-app>
+    <firebase-auth id="fbauth" user="{{firebaseUser}}"></firebase-auth>
+
   </template>
 
   <script>
@@ -129,7 +135,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           //set to true after firebase has a user but before our server has ack'd.
           verifyingAuth : Boolean,
           //The firebaseUser object
-          firebaseUser: Object,
+          firebaseUser: {
+            type: Object,
+            observer: "_firebaseUserChanged",
+          },
           //The confirmed user object from our server
           user: {
             type: Object,
@@ -143,11 +152,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       buttonText(isSignIn) {
         return isSignIn ? "Sign In" : "Create Account";
-      }
-
-      ready() {
-        super.ready()
-        firebase.auth().onAuthStateChanged(this.authChanged.bind(this));
       }
 
       _computeLoggedIn(user) {
@@ -186,8 +190,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.signedInAction = null;
       }
 
-      authChanged(user) {
-        this.firebaseUser = user;
+      _firebaseUserChanged(user) {
         this.user = null;
         this.verifyingAuth = true;
         if (user) {
@@ -267,18 +270,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       signInWithGoogle() {
-        let provider = new firebase.auth.GoogleAuthProvider();
-        firebase.auth().signInWithPopup(provider).catch(this.handleSignInError.bind(this));
+        this.$.fbauth.signInWithPopup("google").catch(this.handleSignInError.bind(this));
         this.$.pages.selected = 2;
       }
 
       signInWithEmailAndPassword(email, password) {
-        firebase.auth().signInWithEmailAndPassword(email, password).catch(this.handleSignInError.bind(this));
+        this.$.fbauth.signInWithEmailAndPassword(email, password).catch(this.handleSignInError.bind(this));
         this.$.pages.selected = 2;
       }
 
       createUserWithEmailAndPassword(email, password) {
-        firebase.auth().createUserWithEmailAndPassword(email, password).catch(this.handleSignInError.bind(this));
+        this.$.fbauth.createUserWithEmailAndPassword(email, password).catch(this.handleSignInError.bind(this));
         this.$.pages.selected = 2;
       }
 
@@ -298,7 +300,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       signOut(e) {
-        firebase.auth().signOut();
+        this.$.fbauth.signOut();
       }
 
     }

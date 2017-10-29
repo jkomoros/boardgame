@@ -31,7 +31,8 @@
     "paper-radio-group": "PolymerElements/paper-radio-group#^2.0.0",
     "webcomponentsjs": "webcomponents/webcomponentsjs#^1.0.0",
     "paper-slider": "PolymerElements/paper-slider#^2.0.0",
-    "iron-icons": "PolymerElements/iron-icons#^2.0.1"
+    "iron-icons": "PolymerElements/iron-icons#^2.0.1",
+    "polymerfire": "firebase/polymerfire#^2.2.1"
   },
   "devDependencies": {
     "web-component-tester": "^6.0.0"
