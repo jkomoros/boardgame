@@ -8,6 +8,60 @@ import (
 	"testing"
 )
 
+func TestMoveExtreme(t *testing.T) {
+	game := testGame()
+
+	game.SetUp(0, nil, nil)
+
+	chest := game.Chest()
+
+	testDeck := chest.Deck("test")
+
+	sized := testDeck.NewSizedStack(5).(*sizedStack)
+
+	sized.setState(game.CurrentState().(*state))
+
+	sized.insertComponentAt(0, testDeck.ComponentAt(0))
+	sized.insertComponentAt(1, testDeck.ComponentAt(1))
+	sized.insertComponentAt(3, testDeck.ComponentAt(2))
+
+	assert.For(t).ThatActual(sized.indexes).Equals([]int{0, 1, -1, 2, -1})
+
+	err := sized.MoveComponentToEnd(0)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(sized.indexes).Equals([]int{-1, 1, -1, 2, 0})
+
+	err = sized.MoveComponentToStart(1)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(sized.indexes).Equals([]int{1, -1, -1, 2, 0})
+
+	growable := testDeck.NewStack(0).(*growableStack)
+
+	growable.setState(game.CurrentState().(*state))
+
+	growable.insertNext(testDeck.ComponentAt(0))
+	growable.insertNext(testDeck.ComponentAt(1))
+	growable.insertNext(testDeck.ComponentAt(2))
+
+	assert.For(t).ThatActual(growable.indexes).Equals([]int{0, 1, 2})
+
+	err = growable.MoveComponentToEnd(0)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(growable.indexes).Equals([]int{1, 2, 0})
+
+	err = growable.MoveComponentToStart(1)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(growable.indexes).Equals([]int{2, 1, 0})
+}
+
 func TestExpandContractSizedStackSize(t *testing.T) {
 	game := testGame()
 
