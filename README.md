@@ -68,7 +68,8 @@ type gameState struct {
 	HiddenCards    boardgame.MutableStack `sizedstack:"cards,40" sanitize:"order"`
 	RevealedCards  boardgame.MutableStack `sizedstack:"cards,40"`
 	HideCardsTimer boardgame.MutableTimer
-	UnusedCards    boardgame.MutableStack `stack:"cards"`
+	//Where cards not in use reside most of the time
+	UnusedCards boardgame.MutableStack `stack:"cards"`
 }
 
 //+autoreader
@@ -818,10 +819,14 @@ Memory's states are defined as follows:
 //+autoreader
 type gameState struct {
 	boardgame.BaseSubState
+	CardSet        string
+	NumCards       int
 	CurrentPlayer  boardgame.PlayerIndex
-	HiddenCards    boardgame.Stack `sanitize:"order"`
-	RevealedCards  boardgame.Stack
-	HideCardsTimer *boardgame.Timer
+	HiddenCards    boardgame.MutableStack `sizedstack:"cards,40" sanitize:"order"`
+	RevealedCards  boardgame.MutableStack `sizedstack:"cards,40"`
+	HideCardsTimer boardgame.MutableTimer
+	//Where cards not in use reside most of the time
+	UnusedCards boardgame.MutableStack `stack:"cards"`
 }
 
 //+autoreader
@@ -829,7 +834,7 @@ type playerState struct {
 	boardgame.BaseSubState
 	playerIndex       boardgame.PlayerIndex
 	CardsLeftToReveal int
-	WonCards          boardgame.Stack `stack:"cards"`
+	WonCards          boardgame.MutableStack `stack:"cards"`
 }
 ```
 

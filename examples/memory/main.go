@@ -206,23 +206,17 @@ func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) error {
 			useCard = true
 		}
 
-		targetStack := game.UnusedCardsScratch
-
+		//Doing the pair card first means that its index doesn't have to be
+		//modified down by 1
 		if useCard {
-			targetStack = game.HiddenCards
+			game.UnusedCards.MoveComponent(pairCardIndex, game.HiddenCards, boardgame.NextSlotIndex)
+			game.UnusedCards.MoveComponent(0, game.HiddenCards, boardgame.NextSlotIndex)
+		} else {
+			game.UnusedCards.MoveComponentToEnd(pairCardIndex)
+			game.UnusedCards.MoveComponentToEnd(0)
 		}
 
-		game.UnusedCards.MoveComponent(0, targetStack, boardgame.NextSlotIndex)
-		//Index of the pair card has moved down one since we just popped off
-		//the front item.
-		pairCardIndex -= 1
-		game.UnusedCards.MoveComponent(pairCardIndex, targetStack, boardgame.NextSlotIndex)
-
 	}
-
-	//Scratch shouldn't be full outside of this method; move everything back
-	//over there.
-	game.UnusedCardsScratch.MoveAllTo(game.UnusedCards)
 
 	game.HiddenCards.Shuffle()
 

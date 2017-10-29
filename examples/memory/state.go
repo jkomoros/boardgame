@@ -24,9 +24,6 @@ type gameState struct {
 	HideCardsTimer boardgame.MutableTimer
 	//Where cards not in use reside most of the time
 	UnusedCards boardgame.MutableStack `stack:"cards"`
-	//A temporary scratch space used to stash unused cards when we're buiding
-	//decks. Once #508 is fixed we can remove this.
-	UnusedCardsScratch boardgame.MutableStack `stack:"cards"`
 }
 
 //+autoreader
