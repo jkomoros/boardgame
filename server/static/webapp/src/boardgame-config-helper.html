@@ -1,0 +1,57 @@
+
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+
+<dom-module id="boardgame-config-helper">
+  <template>
+
+    <iron-ajax id="fetcher" auto handle-as="json" url="../../config.json" last-response="{{_data}}"></iron-ajax>
+  </template>
+
+  <script>
+
+    class BoardgameConfigHelper extends Polymer.Element {
+      static get is() {
+        return "boardgame-config-helper"
+      }
+
+      static get properties() {
+        return {
+          apiHost: {
+            type: String,
+            computed: "_computeHost(_data)",
+            value: "http://nohost.com",
+            notify: true,
+          },
+          firebase: {
+            type: Object,
+            computed: "_computeFirebase(_data)",
+            notify: true,
+          },
+          _data: Object,
+        }
+      }
+
+      _computeFirebase(_data) {
+        if (!_data) return null;
+        return _data.firebase;
+      }
+
+      _computeHost(_data) {
+
+        if (!_data || !_data.api) return "http://nohost.com";
+
+        if (location.hostname == "localhost") {
+          return _data.api.dev_host;
+        }
+
+        return _data.api.host;
+
+      }
+
+    }
+
+    customElements.define(BoardgameConfigHelper.is, BoardgameConfigHelper);
+
+  </script>
+</dom-module>
