@@ -5,51 +5,106 @@
 <dom-module id="boardgame-config-helper">
   <template>
 
-    <iron-ajax id="fetcher" auto handle-as="json" url="../../config.json" last-response="{{_data}}"></iron-ajax>
+    <iron-ajax id="fetcher" handle-as="json" url="../../config.json" last-response="{{_data}}"></iron-ajax>
   </template>
 
   <script>
 
-    class BoardgameConfigHelper extends Polymer.Element {
-      static get is() {
-        return "boardgame-config-helper"
-      }
 
-      static get properties() {
-        return {
-          apiHost: {
-            type: String,
-            computed: "_computeHost(_data)",
-            value: "http://nohost.com",
-            notify: true,
-          },
-          firebase: {
-            type: Object,
-            computed: "_computeFirebase(_data)",
-            notify: true,
-          },
-          _data: Object,
-        }
-      }
+    var BoardgameConfigHelper;
 
-      _computeFirebase(_data) {
-        if (!_data) return null;
-        return _data.firebase;
-      }
 
-      _computeHost(_data) {
+    (function() {
 
-        if (!_data || !_data.api) return "http://nohost.com";
+      //Where the _data will be stored so everyone can get it
+      var sharedConfigResult = null;
+      //Whether someone has already started fetching data
+      var dataBeingFetched = false;
+      //If dataBeingFetched is true, but sharedConfigResult is still null, add
+      //yourself here to be notified when the data comes in.
+      var instancesAwaitingNotification = [];
 
-        if (location.hostname == "localhost") {
-          return _data.api.dev_host;
+      BoardgameConfigHelper = class  extends Polymer.Element {
+        static get is() {
+          return "boardgame-config-helper"
         }
 
-        return _data.api.host;
+        static get properties() {
+          return {
+            apiHost: {
+              type: String,
+              computed: "_computeHost(_data)",
+              value: "http://nohost.com",
+              notify: true,
+            },
+            firebase: {
+              type: Object,
+              computed: "_computeFirebase(_data)",
+              notify: true,
+            },
+            _data: {
+              type: Object,
+              observer: "_dataChanged"
+            },
+            _firstFetcher: Boolean,
+          }
+        }
+
+        ready() {
+          super.ready();
+          //If the data is already in, use it.
+          if (sharedConfigResult) {
+            this._data = sharedConfigResult;
+            return;
+          }
+          //If the data is not yet in, add ourselves to the queue to be
+          //notified when it is in.
+          if (dataBeingFetched) {
+            instancesAwaitingNotification.push(this);
+            return;
+          }
+
+          //Huh, guess we're first!
+          dataBeingFetched = true;
+          this._firstFetcher = true;
+          this.$.fetcher.generateRequest();
+
+        }
+
+        _dataChanged(newValue) {
+          if (!this._firstFetcher) {
+            //Only first fetcher should set the data.
+            return;
+          }
+          sharedConfigResult = newValue;
+
+          //Tell everyone who was waiting that the data is in!
+          instancesAwaitingNotification.forEach(item => item._sharedDataLoaded());
+        }
+
+        _sharedDataLoaded() {
+          this._data = sharedConfigResult;
+        }
+
+        _computeFirebase(_data) {
+          if (!_data) return null;
+          return _data.firebase;
+        }
+
+        _computeHost(_data) {
+
+          if (!_data || !_data.api) return "http://nohost.com";
+
+          if (location.hostname == "localhost") {
+            return _data.api.dev_host;
+          }
+
+          return _data.api.host;
+
+        }
 
       }
-
-    }
+    })();
 
     customElements.define(BoardgameConfigHelper.is, BoardgameConfigHelper);
 
