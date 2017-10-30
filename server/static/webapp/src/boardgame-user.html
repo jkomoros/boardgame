@@ -19,6 +19,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="../bower_components/polymerfire/firebase-app.html">
 <link rel="import" href="../bower_components/polymerfire/firebase-auth.html">
+<link rel="import" href="boardgame-config-helper.html">
 <link rel="import" href="boardgame-player-chip.html">
 <link rel="import" href="boardgame-util.html">
 <link rel="import" href="../config-src/boardgame-config.html">
@@ -99,7 +100,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </paper-dialog>
     <iron-ajax id="auth" url="[[AuthCookieUrl(apiHost)]]" handle-as="json" last-response="{{authResponse}}" method="POST" with-credentials></iron-ajax>
 
-    <firebase-app auth-domain="example-boardgame.firebaseapp.com" api-key="AIzaSyDi0hhBgLPbpJgprVCDzDkk8zuFpb9XadM" database-url="https://example-boardgame.firebaseio.com" storage-bucket="example-boardgame.appspot.com" messaging-sender-id="138149526364"></firebase-app>
+    <boardgame-config-helper firebase="{{_firebaseConfig}}"></boardgame-config-helper>
+
+    <firebase-app auth-domain="{{_firebaseConfig.authDomain}}" api-key="{{_firebaseConfig.apiKey}}" database-url="{{_firebaseConfig.databaseURL}}" storage-bucket="{{_firebaseConfig.storageBucket}}" messaging-sender-id="{{_firebaseConfig.messagingSenderId}}"></firebase-app>
     <firebase-auth id="fbauth" user="{{firebaseUser}}"></firebase-auth>
 
   </template>
@@ -134,6 +137,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           },
           //set to true after firebase has a user but before our server has ack'd.
           verifyingAuth : Boolean,
+          _firebaseConfig: Object,
           //The firebaseUser object
           firebaseUser: {
             type: Object,
