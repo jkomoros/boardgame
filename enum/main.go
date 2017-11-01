@@ -44,7 +44,11 @@ In components.go:
 
 And then in your main.go:
 
-	func (g *GameDelegate) EmptyGameState() boardgame.SubState {
+	func (g *GameDelegate) EmptyGameState() boardgame.ConfigurableSubState {
+
+		//You could also just return a zero-valued struct if you used struct
+		//tags for the enum. See the Constructors section of boardgame package
+		//doc for more.
 		return &gameState{
 			MyIntProp: 0,
 			MyColorEnumProp: ColorEnum.NewMutableVal(),
