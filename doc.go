@@ -395,7 +395,18 @@ using the server package they're often valuable for databinding on the client.
 There are two methods on GameDelegate that are consulted when preparing JSON
 output for a state, ComputedGlobalProperties, and ComputedPlayerProperties. In
 that method you just emit the string value you want the value to be called and
-the value, and it will be represented in your JSON output.
+the value, and it will be represented in your JSON output. Typically they will
+be extremely simple, and basically just be an enumeration of the method names
+and their result. Here's a simple example from the blackjack game:
+
+	func (g *gameDelegate) ComputedPlayerProperties(player boardgame.PlayerState) boardgame.PropertyCollection {
+
+		p := player.(*playerState)
+
+		return boardgame.PropertyCollection{
+			"HandValue": p.HandValue(),
+		}
+	}
 
 Make sure your methods behave reasonably when the State has been sanitized,
 because the Computed Properties are not requested until after a State has been
