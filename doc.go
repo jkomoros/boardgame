@@ -515,10 +515,10 @@ your concrete type.
 
 In general these constructors should just return the zero-value for each
 property. However, there are a handful of properties that are pointers, and
-which contain important config information in their instantiation. For
-example, a Stack has a reference to its deck, and a size. If you just left it
-as its nil zero value, we wouldn't know which deck it referenced or how many
-items it could hold.
+which contain important config information in their instantiation (known as
+Interface Types). For example, a Stack has a reference to its deck, and a
+size. If you just left it as its nil zero value, we wouldn't know which deck
+it referenced or how many items it could hold.
 
 One easy option is to instantiate those values yourself:
 
