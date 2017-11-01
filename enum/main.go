@@ -85,7 +85,9 @@ following:
 
 Then, the rest of the example code shown above in components.go would be
 automatically generated. The longest common prefix for each name in the
-constant block would be used as the name of the enum.
+constant block would be used as the name of the enum. autoreader has more
+options for controlling the precise way the enums are created; see
+autoreader's package doc for more information.
 
 */
 package enum
