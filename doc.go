@@ -418,13 +418,14 @@ component in a given deck can have dynamic properties of the same shape. These
 properties are stored in the "Components" section of the JSON output of a
 given GameState. You can access them server-side by getting a reference to the
 associated component and calling DynamicValues. Client-side, the dynamic
-values are automatically exapanded in the expandedState.
+values are automatically exapanded in place within stacks in the state object
+passed to your renderer.
 
 By default a deck does not have any dynamic component state for its values. To
 override this, your GameDelegate should return a non-nil value when
-EmptyDynamicComponentValues is called for the specified deck. This method
-should return the same shape of underlying object every time it is called for
-the same deck.
+DynamicComponentValuesConstructor is called for the specified deck. This
+method should return the same shape of underlying object every time it is
+called for the same deck.
 
 The visibility of Dynamic Component Values in a Sanitized state is somewhat
 more complex than normal state. The dynamic component values associated with
@@ -432,8 +433,8 @@ any one component will only be visible if the component is in a Stack whose
 effective policy is PolicyVisible--if its containing stack is anything else,
 then every property on that dynamic component value will be set to
 PolicyHidden. Then, the policy for each property on the DynamicComponentValue,
-as configured on Policy.DynamicComponentValues, is applied to each property to
-achieve the final dynamic component values visbility.
+as configured via delegate.SanitizationPolicy for those properties, is applied
+to each property to achieve the final dynamic component values visbility.
 
 Note that this visibility of components is transitive: it is possible for the
 Dynamic Component Values of a given component to have its own Stack containing
