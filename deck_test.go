@@ -30,24 +30,8 @@ func TestDeckShadowComponent(t *testing.T) {
 
 	c = deck.ComponentAt(-2)
 
-	if c == nil {
-		t.Error("Negative value gave nil")
-	}
-
-	v := c.Values
-
-	if v == nil {
-		t.Error("Values was nil")
-	}
-
-	if _, err := v.Reader().StringProp("Message"); err != nil {
-		t.Error("Values didn't have Message")
-	}
-
-	altC := deck.ComponentAt(-2)
-
-	if c != altC {
-		t.Error("Two calls to same shadow gave different components")
+	if c != nil {
+		t.Error("Negative value did not give nil")
 	}
 
 	c = deck.ComponentAt(0)
@@ -58,13 +42,11 @@ func TestDeckShadowComponent(t *testing.T) {
 
 	c = deck.GenericComponent()
 
-	altC = deck.ComponentAt(genericComponentSentinel)
-
-	if c != altC {
-		t.Error("GEneric component wasn't the expected component index")
+	if c == nil {
+		t.Error("Generic Component returned nil")
 	}
 
-	altC = deck.GenericComponent()
+	altC := deck.GenericComponent()
 
 	if c != altC {
 		t.Error("Repated calls to generic component didn't return the same thign.")

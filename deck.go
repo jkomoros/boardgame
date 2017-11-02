@@ -21,18 +21,16 @@ type Deck struct {
 	name string
 	//Components should only ever be added at initalization time. After
 	//initalization, Components should be read-only.
-	components             []*Component
-	shadowValues           Reader
-	vendedShadowComponents map[int]*Component
+	components            []*Component
+	shadowValues          Reader
+	vendedShadowComponent *Component
 	//TODO: protect shadowComponents cache with mutex to make threadsafe.
 }
 
 const genericComponentSentinel = -2
 
 func NewDeck() *Deck {
-	return &Deck{
-		vendedShadowComponents: make(map[int]*Component),
-	}
+	return &Deck{}
 }
 
 //NewSizedStack returns a new default (growable Stack) with the given size
@@ -109,9 +107,7 @@ func (d *Deck) ComponentAt(index int) *Component {
 		return d.components[index]
 	}
 
-	//d.ShadowComponent handles all negative indexes correctly, which is what
-	//we have.
-	return d.ShadowComponent(index)
+	return nil
 
 }
 
@@ -126,42 +122,24 @@ func (d *Deck) SetShadowValues(v Reader) {
 	d.shadowValues = v
 }
 
-//ShadowComponent takes an index that is negative and returns a component that
-//is empty but when compared to the result of previous calls to
-//ShadowComponent with that index will have equality. This is important for
-//sanitized states, where depending on the policy for that property, the stack
-//might have its order revealed but not its contents, which requires throwaway
-//but stable indexes.
-func (d *Deck) ShadowComponent(index int) *Component {
-	if index >= 0 {
-		return nil
-	}
-	if index == emptyIndexSentinel {
-		return nil
-	}
-
-	shadow, ok := d.vendedShadowComponents[index]
-
-	if !ok {
-		shadow = &Component{
-			Deck:      d,
-			DeckIndex: index,
-			Values:    d.shadowValues,
-		}
-		d.vendedShadowComponents[index] = shadow
-	}
-
-	return shadow
-
-}
-
 //GenericComponent returns the component that is considereed fully generic for
 //this deck. This is the component that every component will be if a Stack is
 //sanitized with PolicyLen, for example. If you want to figure out if a Stack
 //was sanitized according to that policy, you can compare the component to
 //this.
 func (d *Deck) GenericComponent() *Component {
-	return d.ShadowComponent(genericComponentSentinel)
+
+	if d.vendedShadowComponent == nil {
+		shadow := &Component{
+			Deck:      d,
+			DeckIndex: genericComponentSentinel,
+			Values:    d.shadowValues,
+		}
+
+		d.vendedShadowComponent = shadow
+	}
+
+	return d.vendedShadowComponent
 }
 
 var illegalComponentValuesProps = map[PropertyType]bool{
