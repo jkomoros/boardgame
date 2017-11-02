@@ -198,8 +198,10 @@ func (d *DefaultGameDelegate) Name() string {
 	return "default"
 }
 
+//DisplayName by default just returns the Name() that is returned from the
+//delegate in use.
 func (d *DefaultGameDelegate) DisplayName() string {
-	return "Default Game"
+	return d.Manager().Delegate().Name()
 }
 
 func (d *DefaultGameDelegate) Manager() *GameManager {
