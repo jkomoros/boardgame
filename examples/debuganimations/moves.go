@@ -69,6 +69,10 @@ func (m *moveMoveCardBetweenShortStacks) DefaultsForState(state boardgame.State)
 
 func (m *moveMoveCardBetweenShortStacks) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
+	if err := m.Base.Legal(state); err != nil {
+		return err
+	}
+
 	game, _ := concreteStates(state)
 
 	if game.FirstShortStack.NumComponents() < 1 && m.FromFirst {
@@ -127,6 +131,10 @@ func (m *moveMoveCardBetweenDrawAndDiscardStacks) DefaultsForState(state boardga
 
 func (m *moveMoveCardBetweenDrawAndDiscardStacks) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
+	if err := m.Base.Legal(state); err != nil {
+		return err
+	}
+
 	game, _ := concreteStates(state)
 
 	if game.DrawStack.NumComponents() < 1 && m.FromDraw {
@@ -175,6 +183,10 @@ var moveFlipHiddenCardConfig = boardgame.MoveTypeConfig{
 
 func (m *moveFlipHiddenCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
+	if err := m.Base.Legal(state); err != nil {
+		return err
+	}
+
 	game, _ := concreteStates(state)
 
 	if game.HiddenCard.NumComponents() < 1 && game.RevealedCard.NumComponents() < 1 {
@@ -222,6 +234,10 @@ var moveMoveCardBetweenFanStacksConfig = boardgame.MoveTypeConfig{
 }
 
 func (m *moveMoveCardBetweenFanStacks) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+
+	if err := m.Base.Legal(state); err != nil {
+		return err
+	}
 
 	game, _ := concreteStates(state)
 
@@ -275,6 +291,10 @@ var moveVisibleShuffleCardsConfig = boardgame.MoveTypeConfig{
 
 func (m *moveVisibleShuffleCards) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
+	if err := m.Base.Legal(state); err != nil {
+		return err
+	}
+
 	game, _ := concreteStates(state)
 
 	if game.FanStack.NumComponents() > 1 {
@@ -308,6 +328,10 @@ var moveShuffleCardsConfig = boardgame.MoveTypeConfig{
 
 func (m *moveShuffleCards) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
+	if err := m.Base.Legal(state); err != nil {
+		return err
+	}
+
 	game, _ := concreteStates(state)
 
 	if game.FanStack.NumComponents() > 1 {
@@ -340,6 +364,10 @@ var moveMoveBetweenHiddenConfig = boardgame.MoveTypeConfig{
 }
 
 func (m *moveMoveBetweenHidden) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+
+	if err := m.Base.Legal(state); err != nil {
+		return err
+	}
 
 	game, _ := concreteStates(state)
 

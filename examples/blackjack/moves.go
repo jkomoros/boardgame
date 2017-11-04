@@ -54,6 +54,11 @@ var moveShuffleDiscardToDrawConfig = boardgame.MoveTypeConfig{
 }
 
 func (m *MoveShuffleDiscardToDraw) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+
+	if err := m.Base.Legal(state); err != nil {
+		return err
+	}
+
 	game, _ := concreteStates(state)
 
 	if game.DrawStack.Len() > 0 {
@@ -270,6 +275,11 @@ func (m *MoveDealInitialCard) DefaultsForState(state boardgame.State) {
 }
 
 func (m *MoveDealInitialCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+
+	if err := m.Base.Legal(state); err != nil {
+		return err
+	}
+
 	_, players := concreteStates(state)
 
 	if !m.TargetPlayerIndex.Valid(state) {
