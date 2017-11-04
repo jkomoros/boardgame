@@ -73,6 +73,8 @@ func (m *MovePlaceToken) Apply(state boardgame.MutableState) error {
 
 	u.TokensToPlaceThisTurn--
 
+	game.Phase.SetValue(PhaseAfterFirstMove)
+
 	return nil
 }
 

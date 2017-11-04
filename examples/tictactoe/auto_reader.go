@@ -898,6 +898,7 @@ func (m *MoveFinishTurn) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer
 
 var __gameStateReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
 	"CurrentPlayer": boardgame.TypePlayerIndex,
+	"Phase":         boardgame.TypeEnum,
 	"Slots":         boardgame.TypeStack,
 }
 
@@ -1122,17 +1123,36 @@ func (g *__gameStateReader) SetBoolSliceProp(name string, value []bool) error {
 
 func (g *__gameStateReader) EnumProp(name string) (enum.Val, error) {
 
+	switch name {
+	case "Phase":
+		return g.data.Phase, nil
+
+	}
+
 	return nil, errors.New("No such Enum prop: " + name)
 
 }
 
 func (g *__gameStateReader) ConfigureMutableEnumProp(name string, value enum.MutableVal) error {
 
+	switch name {
+	case "Phase":
+		g.data.Phase = value
+		return nil
+
+	}
+
 	return errors.New("No such MutableEnum prop: " + name)
 
 }
 
 func (g *__gameStateReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	switch name {
+	case "Phase":
+		return g.data.Phase, nil
+
+	}
 
 	return nil, errors.New("No such Enum prop: " + name)
 

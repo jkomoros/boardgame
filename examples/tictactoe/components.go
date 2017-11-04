@@ -4,6 +4,12 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
+//+autoreader
+const (
+	PhaseBeforeFirstMove = iota
+	PhaseAfterFirstMove
+)
+
 const (
 	X     = "X"
 	O     = "O"

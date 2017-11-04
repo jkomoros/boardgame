@@ -3,6 +3,7 @@ package tictactoe
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves"
 )
 
@@ -30,6 +31,9 @@ type gameState struct {
 	boardgame.BaseSubState
 	CurrentPlayer boardgame.PlayerIndex
 	Slots         boardgame.MutableStack
+	//We don't actually need this; we mainly do it because the storage manager
+	//tests use tictactoe as an example and need to test a phase transition.
+	Phase enum.MutableVal `enum:"Phase"`
 }
 
 func (g *gameState) tokenValue(row, col int) string {
