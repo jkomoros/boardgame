@@ -123,6 +123,14 @@ type GameDelegate interface {
 	//power state.CurrentPlayer.
 	CurrentPlayerIndex(state State) PlayerIndex
 
+	//CurrentPhase returns the phase that the game state is currently in.
+	//Phase is a formalized convention used in moves.Base to make it easier to
+	//write fix-up moves that only apply in certain phases, like SetUp. The
+	//return result is primarily used in moves.Base to check whether it is one
+	//of the phases in a give Move's LegalPhases. See moves.Base for more
+	//information.
+	CurrentPhase(state State) int
+
 	//GameStateConstructor and PlayerStateConstructor are called to get an
 	//instantiation of the concrete game/player structs that your package
 	//defines. This is used both to create the initial state, but also to
@@ -264,6 +272,11 @@ func (d *DefaultGameDelegate) ProposeFixUpMove(state State) Move {
 
 func (d *DefaultGameDelegate) CurrentPlayerIndex(state State) PlayerIndex {
 	return ObserverPlayerIndex
+}
+
+//CurrentPhase returns 0 by default.
+func (d *DefaultGameDelegate) CurrentPhase(state State) int {
+	return 0
 }
 
 func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state State, c *Component) (Stack, error) {

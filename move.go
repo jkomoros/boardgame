@@ -16,6 +16,7 @@ type MoveType struct {
 	helpText       string
 	constructor    func() Move
 	immediateFixUp func(state State) Move
+	legalPhases    []int
 	isFixUp        bool
 	validator      *readerValidator
 	manager        *GameManager
@@ -55,6 +56,13 @@ type MoveTypeConfig struct {
 	//State fields. When in doubt, just return nil for this method, or do not
 	//supply one.
 	ImmediateFixUp func(State) Move
+
+	//LegalPhases is the value that will be returned from
+	//MoveType.LegalPhases. It is primarily used by moves.Base to see if the
+	//move is legal in the current phase, as determined by
+	//delegate.CurrentPhase(). See moves.Base for how this information is
+	//used.
+	LegalPhases []int
 
 	//If IsFixUp is true, the moveType will be a FixUp move--that is, players
 	//may not propose it, only ProposeFixUp moves may.
@@ -206,6 +214,7 @@ func newMoveType(config *MoveTypeConfig, manager *GameManager) (*MoveType, error
 		constructor:    config.MoveConstructor,
 		immediateFixUp: config.ImmediateFixUp,
 		isFixUp:        config.IsFixUp,
+		legalPhases:    config.LegalPhases,
 		validator:      validator,
 		manager:        manager,
 	}, nil
@@ -231,6 +240,10 @@ func (m *MoveType) ImmediateFixUp(state State) Move {
 
 func (m *MoveType) IsFixUp() bool {
 	return m.isFixUp
+}
+
+func (m *MoveType) LegalPhases() []int {
+	return m.legalPhases
 }
 
 //NewMove returns a new move of this type, with defaults set for the given
