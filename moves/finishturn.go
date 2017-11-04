@@ -44,6 +44,11 @@ func VerifyFinishTurnStates(c CurrentPlayerSetter, p PlayerTurnFinisher) {
 
 //Legal checks if the game's CurrentPlayer's TurnDone() returns true.
 func (f *FinishTurn) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+
+	if err := f.Base.Legal(state); err != nil {
+		return err
+	}
+
 	currentPlayerIndex := state.Game().CurrentPlayerIndex()
 
 	if !currentPlayerIndex.Valid(state) {
