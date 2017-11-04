@@ -60,7 +60,9 @@ func (d *Base) Description() string {
 
 //Legal checks whether the game's CurrentPhase (as determined by the delegate)
 //is one of the LegalPhases for this moveType. A nil LegalPhases is
-//interpreted as the move being legal in all phases.
+//interpreted as the move being legal in all phases. The string for the
+//current phase will be based on the enum value of the PhaseEnum named by
+//delegate.PhaseEnumName(), if it exists.
 func (d *Base) Legal(state boardgame.State) error {
 
 	legalPhases := d.Info().Type().LegalPhases()
@@ -77,7 +79,12 @@ func (d *Base) Legal(state boardgame.State) error {
 		}
 	}
 
-	//TODO: use the string value of the phase based on the enum.
-	return errors.New("Move is not legal in phase " + strconv.Itoa(currentPhase))
+	phaseName := strconv.Itoa(currentPhase)
+
+	if phaseEnum := state.Game().Manager().Delegate().PhaseEnum(); phaseEnum != nil {
+		phaseName = phaseEnum.String(currentPhase)
+	}
+
+	return errors.New("Move is not legal in phase " + phaseName)
 
 }

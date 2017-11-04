@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"github.com/Sirupsen/logrus"
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/errors"
 	"sort"
 )
@@ -130,6 +131,11 @@ type GameDelegate interface {
 	//of the phases in a give Move's LegalPhases. See moves.Base for more
 	//information.
 	CurrentPhase(state State) int
+
+	//PhaseEnum returns the enum for game phases (the return values of
+	//CurrentPhase are expected to be valid enums within that enum). Primarily
+	//used by moves.Base to generate meaningful error messages in Legal().
+	PhaseEnum() enum.Enum
 
 	//GameStateConstructor and PlayerStateConstructor are called to get an
 	//instantiation of the concrete game/player structs that your package
@@ -277,6 +283,13 @@ func (d *DefaultGameDelegate) CurrentPlayerIndex(state State) PlayerIndex {
 //CurrentPhase returns 0 by default.
 func (d *DefaultGameDelegate) CurrentPhase(state State) int {
 	return 0
+}
+
+//PhaseEnum defaults to the enum named "Phase" which is the convention for the
+//name of the Phase enum. moves.Base will handle cases where that isn't a
+//valid enum gracefully.
+func (d *DefaultGameDelegate) PhaseEnum() enum.Enum {
+	return d.Manager().Chest().Enums().Enum("Phase")
 }
 
 func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state State, c *Component) (Stack, error) {
