@@ -161,6 +161,9 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 	for i, move := range refriedMoves {
 		assert.For(t, i).ThatActual(move.Version > lastVersion).IsTrue()
 		lastVersion = move.Version
+		if i > 0 {
+			assert.For(t).ThatActual(move.Phase).Equals(1)
+		}
 	}
 
 	//OK, now test that the manager and SetUp and everyone did the right thing.

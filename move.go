@@ -130,7 +130,7 @@ type Move interface {
 
 //StorageRecordForMove returns a MoveStorageRecord. Can't hang off of Move
 //itself since Moves are provided by users of the library.
-func StorageRecordForMove(move Move) *MoveStorageRecord {
+func StorageRecordForMove(move Move, currentPhase int) *MoveStorageRecord {
 
 	blob, err := json.MarshalIndent(move, "", "\t")
 
@@ -143,6 +143,7 @@ func StorageRecordForMove(move Move) *MoveStorageRecord {
 		Version:   move.Info().version,
 		Initiator: move.Info().initiator,
 		Timestamp: move.Info().timestamp,
+		Phase:     currentPhase,
 		Blob:      blob,
 	}
 }
