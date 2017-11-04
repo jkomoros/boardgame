@@ -137,6 +137,16 @@ type GameDelegate interface {
 	//used by moves.Base to generate meaningful error messages in Legal().
 	PhaseEnum() enum.Enum
 
+	//PhaseMoveProgression returns the names of the strings of moves in the
+	//given phase that must be applied in order. moves.Base's Legal() method
+	//uses this to determine if a given move is allowed to apply now. A nil
+	//return denotes that any move that is legal in this phase is legal at any
+	//time in the phase. This functionality is useful for SetUp phases where
+	//you have many steps to apply in a row and signaling of when to apply a
+	//move can be error prone. See moves.Base's Legal method documentation for
+	//more about how to use it.
+	PhaseMoveProgression(phase int) []string
+
 	//GameStateConstructor and PlayerStateConstructor are called to get an
 	//instantiation of the concrete game/player structs that your package
 	//defines. This is used both to create the initial state, but also to
@@ -290,6 +300,12 @@ func (d *DefaultGameDelegate) CurrentPhase(state State) int {
 //valid enum gracefully.
 func (d *DefaultGameDelegate) PhaseEnum() enum.Enum {
 	return d.Manager().Chest().Enums().Enum("Phase")
+}
+
+//PhaseMoveProgression returns nil, which denotes that any move that is legal
+//in this phase is legal at any point (unless illegal for other reasons).
+func (d *DefaultGameDelegate) PhaseMoveProgression(phase int) []string {
+	return nil
 }
 
 func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state State, c *Component) (Stack, error) {

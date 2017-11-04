@@ -62,8 +62,22 @@ func (d *Base) Description() string {
 //is one of the LegalPhases for this moveType. A nil LegalPhases is
 //interpreted as the move being legal in all phases. The string for the
 //current phase will be based on the enum value of the PhaseEnum named by
-//delegate.PhaseEnumName(), if it exists.
+//delegate.PhaseEnumName(), if it exists. Next, it checks to see if the give
+//move is at a legal point in the move progression for this phase, if it
+//exists.
 func (d *Base) Legal(state boardgame.State) error {
+
+	if err := d.legalInPhase(state); err != nil {
+		return err
+	}
+
+	return d.legalMoveInProgression(state)
+
+}
+
+//legalInPhase will return a descriptive error if this move is not legal in
+//the current phase of hte game.
+func (d *Base) legalInPhase(state boardgame.State) error {
 
 	legalPhases := d.Info().Type().LegalPhases()
 
@@ -86,5 +100,19 @@ func (d *Base) Legal(state boardgame.State) error {
 	}
 
 	return errors.New("Move is not legal in phase " + phaseName)
+}
+
+func (d *Base) legalMoveInProgression(state boardgame.State) error {
+	currentPhase := state.Game().Manager().Delegate().CurrentPhase(state)
+
+	legalMoveProgression := state.Game().Manager().Delegate().PhaseMoveProgression(currentPhase)
+
+	//If there is no legal move progression then moves are legal in the phase at any time
+	if legalMoveProgression == nil {
+		return nil
+	}
+
+	//TODO: do proper progression support.
+	return errors.New("Support for move progressions is not yet implemented")
 
 }
