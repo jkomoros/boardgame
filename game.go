@@ -38,7 +38,8 @@ type Game struct {
 
 	//Memozied answer to CurrentState. Invalidated whenever ApplyMove is
 	//called.
-	cachedCurrentState State
+	cachedCurrentState    State
+	cachedHistoricalMoves []*MoveStorageRecord
 
 	//Modifiable controls whether moves can be made on this game.
 	modifiable bool
@@ -276,6 +277,26 @@ func (g *Game) Move(version int) (Move, error) {
 	move.Info().timestamp = record.Timestamp
 
 	return move, nil
+
+}
+
+//HistoricalMoveStorageRecords returns a slice of all MoveStorageRecords, in
+//order, from the beginning of this game. Thin wrapper around storage.Moves().
+//Very uncommon to need this; it's exposed primarily just so moves.Base can
+//use it in its Legal() method.
+func (g *Game) HistoricalMoveStorageRecords() []*MoveStorageRecord {
+
+	if g.cachedHistoricalMoves == nil {
+		moves, err := g.manager.Storage().Moves(g.Id(), -1, g.Version())
+
+		if err != nil {
+			return nil
+		}
+
+		g.cachedHistoricalMoves = moves
+	}
+
+	return g.cachedHistoricalMoves
 
 }
 
@@ -803,6 +824,7 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 
 	//Expire the currentState cache; it's no longer valid.
 	g.cachedCurrentState = nil
+	g.cachedHistoricalMoves = nil
 
 	currentPhase := g.manager.delegate.CurrentPhase(newState)
 
