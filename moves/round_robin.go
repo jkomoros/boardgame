@@ -229,6 +229,29 @@ func (r *RoundRobin) RoundRobinFinishedPlayerConditionsMet(state boardgame.State
 
 }
 
+//RoundRobinPlayerConditionStackTargetSizeMet is designed to be used as a one-
+//liner within your RoundRobinPlayerConditionMet. It checks that the
+//PlayerStack from the given PlayerState has the target size and returns true
+//if so. Useful for cases where you want to have a DrawComponent that draws
+//until each player has targetSize components, but players might start with
+//different numbers of components already in hand. See DrawComponents
+//documentation for an example.
+func (r *RoundRobin) RoundRobinPlayerConditionStackTargetSizeMet(targetSize int, playerState boardgame.PlayerState) bool {
+	playerStacker, ok := playerState.(moveinterfaces.PlayerStacker)
+
+	if !ok {
+		//Hmmm, guess it doesn't match PlayerStacker
+		return false
+	}
+
+	//TODO: it's a total hack that we up-cast the playerState because we
+	//happen to know it's definitely a MutablePlayerState.
+	playerStack := playerStacker.PlayerStack(playerState.(boardgame.MutablePlayerState))
+
+	return playerStack.NumComponents() == targetSize
+
+}
+
 //RoundRobinPlayerConditionMet is called for each playerState by
 //RoundRobinFinishedPlayerConditionMet. If all of them return true, the round
 //robin is over. The default simply returns false in all cases; you should override it.

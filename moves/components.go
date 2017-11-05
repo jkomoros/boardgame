@@ -20,6 +20,26 @@ RoundRobinFinished like so:
 		return m.RoundRobinFinishedMultiCircuit(2, state)
 	}
 
+If you wanted to draw cards to players until each player had two cards, but
+players might start with different number of cards, you'd configure it like
+so:
+
+	func (m *MyMove) RoundRobinFinished(state boardgame.State) error {
+		//Configure that the finished function should be when all players have
+		//their conditions met.
+		return m.RoundRobinFinishedPlayerConditionsMet(state)
+	}
+
+	func (m *MyMove) RoundRobinPlayerConditionMet(playerState boardgame.PlayerState) bool {
+		//Configure that the player condition is met when the PlayerStack is size 2
+		return m.RoundRobinPlayerConditionStackTargetSizeMet(2, playerState)
+	}
+
+	func (m *MyMove) PlayerStack(playerState boardgame.MutablePlayerState) boardgame.MutableStack {
+		//Configure the stack whose size we want to be 2 is the player's hand
+		return playerState.(*playerState).Hand
+	}
+
 */
 type DealComponents struct {
 	RoundRobin
@@ -80,7 +100,6 @@ RoundRobinFinished like so:
 	func (m *MyMove) RoundRobinFinished(state boardgame.State) error {
 		return m.RoundRobinFinishedMultiCircuit(2, state)
 	}
-
 
 */
 type CollectComponents struct {
