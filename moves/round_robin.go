@@ -28,9 +28,8 @@ type RoundRobinProperties interface {
 //RoundRobin move. It's the action that will be called on the player who is
 //next in the round robin.
 type RoundRobinActioner interface {
-	//RoundRobinAction should do the action for the round robin to the player
-	//in TargetPlayerIndex.
-	RoundRobinAction(state boardgame.MutableState) error
+	//RoundRobinAction should do the action for the round robin to given player.
+	RoundRobinAction(playerState boardgame.MutablePlayerState) error
 }
 
 //We can keep these private because embedders already will have the interface
@@ -255,7 +254,9 @@ func (r *RoundRobin) Apply(state boardgame.MutableState) error {
 		return errors.New("Embedding move doesn't implement RoundRobinActioner")
 	}
 
-	if err := actioner.RoundRobinAction(state); err != nil {
+	currentPlayer := state.MutablePlayerStates()[r.TargetPlayerIndex]
+
+	if err := actioner.RoundRobinAction(currentPlayer); err != nil {
 		return errors.New("RoundRobinAction returned error: " + err.Error())
 	}
 
