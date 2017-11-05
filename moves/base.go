@@ -68,6 +68,12 @@ func (d *Base) Description() string {
 	return d.Info().Type().HelpText()
 }
 
+//ValidConfiguration always returns true because there is no required
+//configuration for moves.Base.
+func (d *Base) ValidConfiguration() error {
+	return nil
+}
+
 //Legal checks whether the game's CurrentPhase (as determined by the delegate)
 //is one of the LegalPhases for this moveType. A nil LegalPhases is
 //interpreted as the move being legal in all phases. The string for the

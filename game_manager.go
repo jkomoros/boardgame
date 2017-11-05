@@ -635,6 +635,28 @@ func (g *GameManager) SetUp() error {
 		g.dynamicComponentValidator[deckName] = validator
 	}
 
+	for _, moveType := range g.fixUpMoves {
+		//We don't create a real move because we just need to run the
+		//ValidConfiguration(), and creating a whole fake state is a pain.
+		testMove := moveType.constructor()
+
+		if err := testMove.ValidConfiguration(); err != nil {
+			return errors.New(moveType.Name() + " move failed the ValidConfiguration test: " + err.Error())
+		}
+
+	}
+
+	for _, moveType := range g.playerMoves {
+		//We don't create a real move because we just need to run the
+		//ValidConfiguration(), and creating a whole fake state is a pain.
+		testMove := moveType.constructor()
+
+		if err := testMove.ValidConfiguration(); err != nil {
+			return errors.New(moveType.Name() + " move failed the ValidConfiguration test: " + err.Error())
+		}
+
+	}
+
 	g.agentsByName = make(map[string]Agent)
 	for _, agent := range g.agents {
 		g.agentsByName[strings.ToLower(agent.Name())] = agent

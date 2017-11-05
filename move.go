@@ -125,6 +125,16 @@ type Move interface {
 	//token in position 3".
 	Description() string
 
+	//ValidConfiguration will be checked when the game manager is SetUp, and
+	//if it returns an error the manager will fail to SetUp. Some Moves,
+	//especially sub-classes of moves in the moves package, require set up
+	//that can only be verified at run time (for example, verifying that the
+	//embedder implements a certain inteface). This is a useful way to detect
+	//those misconfigurations at the earliest moment. In most cases you never
+	//need to implement this yourself; moves in the moves package that need it
+	//will implement it.
+	ValidConfiguration() error
+
 	ReadSetConfigurer
 }
 
@@ -307,4 +317,8 @@ func (d *baseMove) DefaultsForState(state State) {
 //Description defaults to returning the Type's HelpText()
 func (d *baseMove) Description() string {
 	return d.Info().Type().HelpText()
+}
+
+func (d *baseMove) ValidConfiguration() error {
+	return nil
 }

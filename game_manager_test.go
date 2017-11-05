@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"errors"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/workfit/tester/assert"
 	"strings"
@@ -93,6 +94,55 @@ func (n *nilStackGameDelegate) GameStateConstructor() ConfigurableSubState {
 	}
 
 	return &testGameState{}
+}
+
+type testMoveFailValidConfiguration struct {
+	baseMove
+}
+
+func (t *testMoveFailValidConfiguration) ValidConfiguration() error {
+	return errors.New("Invalid configuration")
+}
+
+func (t *testMoveFailValidConfiguration) Apply(state MutableState) error {
+	return nil
+}
+
+func (t *testMoveFailValidConfiguration) Legal(state State, proposer PlayerIndex) error {
+	return nil
+}
+
+func (t *testMoveFailValidConfiguration) Reader() PropertyReader {
+	return getDefaultReader(t)
+}
+
+func (t *testMoveFailValidConfiguration) ReadSetter() PropertyReadSetter {
+	return getDefaultReadSetter(t)
+}
+
+func (t *testMoveFailValidConfiguration) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(t)
+}
+
+var testMoveFailValidConfigurationConfig = MoveTypeConfig{
+	Name: "Fail Valid Configuration",
+	MoveConstructor: func() Move {
+		return new(testMoveFailValidConfiguration)
+	},
+	IsFixUp: true,
+}
+
+func TestMoveFailsValidConfiguration(t *testing.T) {
+	manager := NewGameManager(&testGameDelegate{}, newTestGameChest(), newTestStorageManager())
+
+	manager.BulkAddMoveTypes([]*MoveTypeConfig{
+		&testMoveFailValidConfigurationConfig,
+	})
+
+	err := manager.SetUp()
+
+	assert.For(t).ThatActual(err).IsNotNil()
+
 }
 
 func TestDefaultMove(t *testing.T) {

@@ -120,6 +120,10 @@ func (t *testAutoEnumMove) Info() *MoveInfo {
 	return t.info
 }
 
+func (t *testAutoEnumMove) ValidConfiguration() error {
+	return nil
+}
+
 func (t *testAutoEnumMove) Description() string {
 	return t.Info().Type().HelpText()
 }
