@@ -130,7 +130,7 @@ func (d *Base) legalMoveInProgression(state boardgame.State, proposer boardgame.
 	//Are we a new type of move in the progression? if so, is the move before
 	//us still legal?
 
-	if historicalMoves == nil {
+	if len(historicalMoves) == 0 {
 		//We're the first move, it's fine.
 		return nil
 	}
