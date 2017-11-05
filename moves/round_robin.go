@@ -14,12 +14,13 @@ type RoundRobinProperties interface {
 	NextRoundRobinPlayer() boardgame.PlayerIndex
 	//The index of the player we started the round robin on.
 	RoundRobinStarterPlayer() boardgame.PlayerIndex
-	//How many complete times around the round robin we've been
+	//How many complete times around the round robin we've been. Increments
+	//each time NextRoundRobinPlayer is StarterPlayer.
 	RoundRobinRoundCount() int
 
 	SetNextRoundRobinPlayer(nextPlayer boardgame.PlayerIndex)
 	SetRoundRobinStarterPlayer(index boardgame.PlayerIndex)
-	SetRoundRobinRoundCount(int)
+	SetRoundRobinRoundCount(count int)
 }
 
 //RoundRobinActioner should be implemented by any moves that embed a
@@ -29,6 +30,12 @@ type RoundRobinActioner interface {
 	//RoundRobinAction should do the action for the round robin to the player
 	//in TargetPlayerIndex.
 	RoundRobinAction(state boardgame.MutableState) error
+}
+
+//We can keep this private because embedders already will have the interface
+//satisfied so don't need to be confused by it.
+type roundRobinStarterPlayer interface {
+	RoundRobinStaterPlayer(state boardgame.State) boardgame.PlayerIndex
 }
 
 //StartRoundRobin is the move you should have in the progression immediately
@@ -45,8 +52,15 @@ func (s *StartRoundRobin) ValidConfiguration(exampleState boardgame.MutableState
 	return nil
 }
 
-//Apply gets the game ready for a round robin by calling
-//gameState.SetNextRoundRobinPlayer to CurrentPlayerIndex.
+//RoundRobinStarterPlayer by default will return delegate.CurrentPlayer.
+//Override this method if you want a differnt starter.
+func (s *StartRoundRobin) RoundRobinStarterPlayer(state boardgame.State) boardgame.PlayerIndex {
+	return state.Game().Manager().Delegate().CurrentPlayerIndex(state)
+}
+
+//Apply gets the game ready by setting the various starter properties on
+//GameState. It sets the starting player for the round robin to the result of
+//calling RoundRobinStarterPlayer on the move.
 func (s *StartRoundRobin) Apply(state boardgame.MutableState) error {
 	roundRobiner, ok := state.GameState().(RoundRobinProperties)
 
@@ -54,9 +68,20 @@ func (s *StartRoundRobin) Apply(state boardgame.MutableState) error {
 		return errors.New("GameState unexpectedly did not implement RoundRobiner interface")
 	}
 
-	currentPlayer := state.Game().Manager().Delegate().CurrentPlayerIndex(state)
+	starter, ok := s.TopLevelStruct().(roundRobinStarterPlayer)
 
-	roundRobiner.SetNextRoundRobinPlayer(currentPlayer)
+	if !ok {
+		//This should be extremely rare, because if we're embedded in it then
+		//the struct should have it.
+		return errors.New("The top level struct unexpectedly didn't have RoundRobinStarterPlayer")
+	}
+
+	starterPlayer := starter.RoundRobinStaterPlayer(state)
+
+	roundRobiner.SetNextRoundRobinPlayer(starterPlayer)
+	roundRobiner.SetRoundRobinStarterPlayer(starterPlayer)
+	//The very first round robin round will increment this to 0
+	roundRobiner.SetRoundRobinRoundCount(-1)
 
 	return nil
 }
