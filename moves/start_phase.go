@@ -7,16 +7,16 @@ import (
 	"strconv"
 )
 
-//phaseToEnterer should be implemented by moves that embed moves.StartPhase to
+//phaseToStarter should be implemented by moves that embed moves.StartPhase to
 //configure which phase to enter. It's a private interface because StartPhase
-//already has a base PhaseToEnter, and to keep the number of interfaces
+//already has a base PhaseToStart, and to keep the number of interfaces
 //smaller.
-type phaseToEnterer interface {
-	PhaseToEnter(currentPhase int) int
+type phaseToStarter interface {
+	PhaseToStart(currentPhase int) int
 }
 
 //StartPhase is a simple move, often used in game SetUp phases, to advance to
-//the next phase, as returned by the embedding move's PhaseToEnter(). If
+//the next phase, as returned by the embedding move's PhaseToStart(). If
 //BeforeLeavePhase or BeforeEnterPhase are defined they will be called at the
 //appropriate time. In many cases you don't even need to define your own
 //struct, but can just get a MoveTypeConfig by calling
@@ -31,7 +31,7 @@ type StartPhase struct {
 func (s *StartPhase) ValidConfiguration(exampleState boardgame.MutableState) error {
 	embeddingMove := s.TopLevelStruct()
 
-	if _, ok := embeddingMove.(phaseToEnterer); !ok {
+	if _, ok := embeddingMove.(phaseToStarter); !ok {
 		return errors.New("The embedding move does not implement PhaseToEnterer")
 	}
 
@@ -42,19 +42,19 @@ func (s *StartPhase) ValidConfiguration(exampleState boardgame.MutableState) err
 	return nil
 }
 
-//PhaseToEnter uses the Phase provided via StartPhaseMoveConfig constructor
+//PhaseToStart uses the Phase provided via StartPhaseMoveConfig constructor
 //(or 0 if NewStartPhaseMoveConfig wasn't used). If you want a different
-//behavior, override PhaseToEnter in your embedding move.
-func (s *StartPhase) PhaseToEnter(currentPhase int) int {
+//behavior, override PhaseToStart in your embedding move.
+func (s *StartPhase) PhaseToStart(currentPhase int) int {
 	return s.phaseToStart
 }
 
 //Apply call BeforeLeavePhase() (if it exists), then BeforeEnterPhase() (if it
-//exists),then SetCurrentPhase to the phase index returned by PhaseToEnter
+//exists),then SetCurrentPhase to the phase index returned by PhaseToStart
 //from this move type.
 func (s *StartPhase) Apply(state boardgame.MutableState) error {
 
-	phaseEnterer, ok := s.TopLevelStruct().(phaseToEnterer)
+	phaseEnterer, ok := s.TopLevelStruct().(phaseToStarter)
 
 	if !ok {
 		return errors.New("The embedding move does not implement PhaseToEnterer")
@@ -62,7 +62,7 @@ func (s *StartPhase) Apply(state boardgame.MutableState) error {
 
 	currentPhase := state.Game().Manager().Delegate().CurrentPhase(state)
 
-	phaseToEnter := phaseEnterer.PhaseToEnter(currentPhase)
+	phaseToEnter := phaseEnterer.PhaseToStart(currentPhase)
 
 	phaseSetter, ok := state.GameState().(moveinterfaces.CurrentPhaseSetter)
 
