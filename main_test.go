@@ -79,6 +79,10 @@ func (t *testingComponentDynamic) SetState(state State) {
 	t.state = state
 }
 
+func (t *testingComponentDynamic) State() State {
+	return t.state
+}
+
 func (t *testingComponentDynamic) Copy() MutableSubState {
 	var result testingComponentDynamic
 	result = *t
@@ -155,6 +159,10 @@ func (t *testGameState) SetState(state State) {
 	t.state = state
 }
 
+func (t *testGameState) State() State {
+	return t.state
+}
+
 type testPlayerState struct {
 	state State
 	//Note: PlayerIndex is stored ehre, but not a normal property or
@@ -186,6 +194,10 @@ func (t *testPlayerState) ReadSetConfigurer() PropertyReadSetConfigurer {
 
 func (t *testPlayerState) SetState(state State) {
 	t.state = state
+}
+
+func (t *testPlayerState) State() State {
+	return t.state
 }
 
 type testMoveInvalidPlayerIndex struct {

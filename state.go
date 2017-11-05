@@ -607,34 +607,36 @@ type ReadSetConfigurer interface {
 	ReadSetConfigurer() PropertyReadSetConfigurer
 }
 
-//SetStater is included in SubState, MutableSubState, and
+//StateSetter is included in SubState, MutableSubState, and
 //ConfigureableSubState as the way to keep track of which State a given
 //SubState is part of.
-type SetStater interface {
+type StateSetter interface {
 	//SetState is called to give the SubState object a pointer back to the
 	//State that contains it. You can implement it yourself, or anonymously
 	//embed BaseSubState to get it for free.
 	SetState(state State)
+	//State() returns the state that was set via SetState().
+	State() State
 }
 
 //SubState is the interface that all sub-state objects (PlayerStates.
 //GameStates, and DynamicComponentValues) implement.
 type SubState interface {
-	SetStater
+	StateSetter
 	Reader
 }
 
 //MutableSubState is the interface that Mutable{Game,Player}State's
 //implement.
 type MutableSubState interface {
-	SetStater
+	StateSetter
 	ReadSetter
 }
 
 //ConfigurableSubState is the interface that Configurable{Game,Player}State's
 //implement.
 type ConfigurableSubState interface {
-	SetStater
+	StateSetter
 	ReadSetConfigurer
 }
 
