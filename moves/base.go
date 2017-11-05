@@ -14,6 +14,16 @@ import (
 	"strconv"
 )
 
+//Moves should implement AllowMultipleInProgression if they want to
+//affirmatively communicate to moves.Base that in a move progression is it
+//legal to apply multiple. If the move does not implement this interface then
+//it is considered to only allow one.
+type AllowMultipleInProgression interface {
+	//AllowMultipleInProgression should return true if the given move is
+	//allowed to apply multiple times in order in a move progression.
+	AllowMultipleInProgression() bool
+}
+
 /*
 Base is an optional, convenience struct designed to be embedded
 anonymously in your own Moves. It implements no-op methods for many of the
@@ -138,7 +148,18 @@ func (d *Base) legalMoveInProgression(state boardgame.State, proposer boardgame.
 	lastMoveRecord := historicalMoves[len(historicalMoves)-1]
 
 	if lastMoveRecord.Name == d.Info().Type().Name() {
-		//The move before us was of our type, so it's fine to add another.
+
+		//We're applying multiple in a row. Is that legal?
+
+		//We can't check ourselves because we're embedded in the real move type.
+		testMove := d.Info().Type().NewMove(state)
+
+		allowMultiple, ok := testMove.(AllowMultipleInProgression)
+
+		if !ok || !allowMultiple.AllowMultipleInProgression() {
+			return errors.New("This move was just applied and is not configured to allow multiple in a row in this phase.")
+		}
+
 		return nil
 	}
 
