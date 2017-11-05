@@ -17,10 +17,13 @@ type MoveFinishTurn struct {
 }
 
 //+autoreader
-type MoveDealInitialCard struct {
-	moves.Base
-	TargetPlayerIndex boardgame.PlayerIndex
-	IsHidden          bool
+type MoveDealInitialHiddenCard struct {
+	moves.DealComponents
+}
+
+//+autoreader
+type MoveDealInitialVisibleCard struct {
+	moves.DealComponents
 }
 
 //+autoreader
@@ -40,7 +43,12 @@ type MoveCurrentPlayerStand struct {
 
 //+autoreader
 type MoveBeginNormalPlay struct {
-	moves.Base
+	moves.StartPhase
+}
+
+//+autoreader
+type MoveStartRoundRobin struct {
+	moves.StartRoundRobin
 }
 
 /**************************************************
@@ -259,11 +267,11 @@ func (m *MoveRevealHiddenCard) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-var moveDealInitialCardConfig = boardgame.MoveTypeConfig{
-	Name:     "Deal Initial Card",
-	HelpText: "Deals a card to the a player who has not gotten their initial deal",
+var moveDealInitialHiddenCardConfig = boardgame.MoveTypeConfig{
+	Name:     "Deal Initial Hidden Card",
+	HelpText: "Deals a hidden card to each player",
 	MoveConstructor: func() boardgame.Move {
-		return new(MoveDealInitialCard)
+		return new(MoveDealInitialHiddenCard)
 	},
 	LegalPhases: []int{
 		PhaseInitialDeal,
@@ -271,82 +279,38 @@ var moveDealInitialCardConfig = boardgame.MoveTypeConfig{
 	IsFixUp: true,
 }
 
-func (m *MoveDealInitialCard) DefaultsForState(state boardgame.State) {
-	_, players := concreteStates(state)
-
-	//First look for the first player with no hidden card dealt
-	for i := 0; i < len(players); i++ {
-		p := players[i]
-		if p.HiddenHand.NumComponents() == 0 {
-			m.TargetPlayerIndex = boardgame.PlayerIndex(i)
-			m.IsHidden = true
-			return
-		}
-	}
-	//OK, hidden hands were full. Anyone who hasn't had the other card now gets it.
-	for i := 0; i < len(players); i++ {
-		p := players[i]
-		if !p.GotInitialDeal {
-			m.TargetPlayerIndex = boardgame.PlayerIndex(i)
-			m.IsHidden = false
-			return
-		}
-	}
+func (m *MoveDealInitialHiddenCard) GameStack(gState boardgame.MutableSubState) boardgame.MutableStack {
+	return gState.(*gameState).DrawStack
 }
 
-func (m *MoveDealInitialCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
-
-	if err := m.Base.Legal(state, proposer); err != nil {
-		return err
-	}
-
-	_, players := concreteStates(state)
-
-	if !m.TargetPlayerIndex.Valid(state) {
-		return errors.New("Invalid target player index")
-	}
-
-	p := players[m.TargetPlayerIndex]
-
-	if p.GotInitialDeal {
-		return errors.New("The target player already got their initial deal")
-	}
-
-	if p.HiddenHand.NumComponents() == 1 && m.IsHidden {
-		return errors.New("We were supposed to deal the hidden card, but the hidden hand was already dealt")
-	}
-
-	if p.HiddenHand.NumComponents() == 0 && !m.IsHidden {
-		return errors.New("We were told to deal to the non-hidden card even though hidden hand was empty")
-	}
-
-	return nil
-
+func (m *MoveDealInitialHiddenCard) PlayerStack(pState boardgame.MutablePlayerState) boardgame.MutableStack {
+	return pState.(*playerState).HiddenHand
 }
 
-func (m *MoveDealInitialCard) Apply(state boardgame.MutableState) error {
-	game, players := concreteStates(state)
+/**************************************************
+ *
+ * MoveDealInitialVisbibleCard Implementation
+ *
+ **************************************************/
 
-	p := players[m.TargetPlayerIndex]
+var moveDealInitialVisibleCardConfig = boardgame.MoveTypeConfig{
+	Name:     "Deal Initial Visible Card",
+	HelpText: "Deals a visible card to each player",
+	MoveConstructor: func() boardgame.Move {
+		return new(MoveDealInitialVisibleCard)
+	},
+	LegalPhases: []int{
+		PhaseInitialDeal,
+	},
+	IsFixUp: true,
+}
 
-	if m.IsHidden {
+func (m *MoveDealInitialVisibleCard) GameStack(gState boardgame.MutableSubState) boardgame.MutableStack {
+	return gState.(*gameState).DrawStack
+}
 
-		if err := game.DrawStack.MoveComponent(boardgame.FirstComponentIndex, p.HiddenHand, boardgame.NextSlotIndex); err != nil {
-			return err
-		}
-
-	} else {
-
-		if err := game.DrawStack.MoveComponent(boardgame.FirstComponentIndex, p.VisibleHand, boardgame.NextSlotIndex); err != nil {
-			return err
-		}
-
-		//This completes their initial deal
-		p.GotInitialDeal = true
-	}
-
-	return nil
-
+func (m *MoveDealInitialVisibleCard) PlayerStack(pState boardgame.MutablePlayerState) boardgame.MutableStack {
+	return pState.(*playerState).VisibleHand
 }
 
 /**************************************************
@@ -367,11 +331,24 @@ var moveBeginNormalPlayConfig = boardgame.MoveTypeConfig{
 	IsFixUp: true,
 }
 
-func (m *MoveBeginNormalPlay) Apply(state boardgame.MutableState) error {
-	game, _ := concreteStates(state)
+func (m *MoveBeginNormalPlay) PhaseToEnter(currentPhase int) int {
+	return PhaseNormalPlay
+}
 
-	game.Phase.SetValue(PhaseNormalPlay)
+/**************************************************
+ *
+ * MoveStartRoundRobin Implementation
+ *
+ **************************************************/
 
-	return nil
-
+var moveStartRoundRobinConfig = boardgame.MoveTypeConfig{
+	Name:     "Start Round Robin",
+	HelpText: "Prepares for a round robin",
+	MoveConstructor: func() boardgame.Move {
+		return new(MoveStartRoundRobin)
+	},
+	LegalPhases: []int{
+		PhaseInitialDeal,
+	},
+	IsFixUp: true,
 }

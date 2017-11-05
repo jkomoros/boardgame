@@ -217,7 +217,14 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 		&moveFinishTurnConfig,
 	})
 
-	delegate.AddMovesForPhaseProgression(PhaseInitialDeal, &moveDealInitialCardConfig, &moveBeginNormalPlayConfig)
+	delegate.AddMovesForPhaseProgression(
+		PhaseInitialDeal,
+		&moveStartRoundRobinConfig,
+		&moveDealInitialHiddenCardConfig,
+		&moveStartRoundRobinConfig,
+		&moveDealInitialVisibleCardConfig,
+		&moveBeginNormalPlayConfig,
+	)
 
 	if err := manager.SetUp(); err != nil {
 		return nil, errors.New("Couldn't set up manager: " + err.Error())
