@@ -14,6 +14,8 @@ type ShuffleStack struct {
 
 //We don't need a Legal method because the pass-through to moves.Base is sufficient.
 
+//Apply shuffles the stack that the embedding move selects by the return value
+//from SourceStack().
 func (s *ShuffleStack) Apply(state boardgame.MutableState) error {
 	embeddingMove := s.TopLevelStruct()
 
