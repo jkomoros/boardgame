@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/components/playingcards"
+	"github.com/jkomoros/boardgame/moves"
 	"strings"
 )
 
@@ -223,7 +224,7 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 		&moveDealInitialHiddenCardConfig,
 		&moveStartRoundRobinConfig,
 		&moveDealInitialVisibleCardConfig,
-		&moveBeginNormalPlayConfig,
+		moves.NewStartPhaseMoveConfig(manager, []int{PhaseInitialDeal}, PhaseNormalPlay),
 	)
 
 	if err := manager.SetUp(); err != nil {

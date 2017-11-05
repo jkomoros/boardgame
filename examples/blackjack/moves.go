@@ -42,11 +42,6 @@ type MoveCurrentPlayerStand struct {
 }
 
 //+autoreader
-type MoveBeginNormalPlay struct {
-	moves.StartPhase
-}
-
-//+autoreader
 type MoveStartRoundRobin struct {
 	moves.StartRoundRobin
 }
@@ -311,28 +306,6 @@ func (m *MoveDealInitialVisibleCard) GameStack(gState boardgame.MutableSubState)
 
 func (m *MoveDealInitialVisibleCard) PlayerStack(pState boardgame.MutablePlayerState) boardgame.MutableStack {
 	return pState.(*playerState).VisibleHand
-}
-
-/**************************************************
- *
- * moveBeginNormalPlay Implementation
- *
- **************************************************/
-
-var moveBeginNormalPlayConfig = boardgame.MoveTypeConfig{
-	Name:     "Begin Normal Play",
-	HelpText: "After all initial cards have been dealt, begins normal play",
-	MoveConstructor: func() boardgame.Move {
-		return new(MoveBeginNormalPlay)
-	},
-	LegalPhases: []int{
-		PhaseInitialDeal,
-	},
-	IsFixUp: true,
-}
-
-func (m *MoveBeginNormalPlay) PhaseToEnter(currentPhase int) int {
-	return PhaseNormalPlay
 }
 
 /**************************************************
