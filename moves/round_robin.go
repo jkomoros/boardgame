@@ -32,10 +32,13 @@ type RoundRobinActioner interface {
 	RoundRobinAction(state boardgame.MutableState) error
 }
 
-//We can keep this private because embedders already will have the interface
-//satisfied so don't need to be confused by it.
+//We can keep these private because embedders already will have the interface
+//satisfied so don't need to be confused by them.
 type roundRobinStarterPlayer interface {
 	RoundRobinStaterPlayer(state boardgame.State) boardgame.PlayerIndex
+}
+type roundRobinFinished interface {
+	RoundRobinFinished(state boardgame.State) bool
 }
 
 //StartRoundRobin is the move you should have in the progression immediately
@@ -124,6 +127,56 @@ func (r *RoundRobin) DefaultsForState(state boardgame.State) {
 	}
 
 	r.TargetPlayerIndex = roundRobiner.NextRoundRobinPlayer()
+}
+
+//Legal returns whether the super's Legal returns an error, and will return an
+//error if the RoundRobinFinished() method on this move returns true.
+func (r *RoundRobin) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+
+	if err := r.Base.Legal(state, proposer); err != nil {
+		return err
+	}
+
+	finisher, ok := r.TopLevelStruct().(roundRobinFinished)
+
+	if !ok {
+		//This should be extremely rare since we ourselves have the right method.
+		return errors.New("RoundRobin top level struct unexpectedly did not have RoundRobinFinished method")
+	}
+
+	if finisher.RoundRobinFinished(state) {
+		return errors.New("The round robin has met its finish condition")
+	}
+
+	return nil
+
+}
+
+//RoundRobinFinished will be consulted by the Legal() method. By default it
+//returns the result of RoundRobinFinishedOneCircuit(). If you want other
+//behavior override this method.
+func (r *RoundRobin) RoundRobinFinished(state boardgame.State) bool {
+	return r.RoundRobinFinishedOneCircuit(state)
+}
+
+//RoundRobinFinshedOneCircuit returns true if the RoundRobinRountCount is 1 or
+//higher, meaning as soon as one full circuit is completed. It is designed to
+//be called directly in your RoundRobinFinished
+func (r *RoundRobin) RoundRobinFinishedOneCircuit(state boardgame.State) bool {
+	return r.RoundRobinFinishedMultiCircuit(1, state)
+}
+
+//RoundRobinFinshedOneCircuit returns true if the RoundRobinRountCount is
+//targetCount or higher, meaning as soon as that many full circuits are
+//completed. It is designed to be called directly in your RoundRobinFinished
+func (r *RoundRobin) RoundRobinFinishedMultiCircuit(targetCount int, state boardgame.State) bool {
+	props, ok := state.GameState().(RoundRobinProperties)
+
+	if !ok {
+		return true
+	}
+
+	return props.RoundRobinRoundCount() >= targetCount
 }
 
 func (r *RoundRobin) ValidConfiguration(exampleState boardgame.MutableState) error {
