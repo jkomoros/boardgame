@@ -5,6 +5,7 @@ import (
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/errors"
 	"sort"
+	"strconv"
 )
 
 //GameConfig is just a map of keys to values that are passed to your game so
@@ -211,7 +212,38 @@ type PropertyCollection map[string]interface{}
 //GameStateConstructor and PlayerStateConstructor are not implemented, since
 //those almost certainly must be overridden for your particular game.
 type DefaultGameDelegate struct {
-	manager *GameManager
+	manager          *GameManager
+	moveProgressions map[int][]string
+}
+
+//AddMovesForPhaseProgression is a convenience wrapper designed to configure
+//moves on the game manager during initialization for moves that are only
+//useful as part of a progression. Adds each MoveType to the game manager, and
+//also configures the value that will be returned from the default
+//PhaseMoveProgression() for the phase in question. If the move types aren't
+//part of a move progression, then adding them with manager.BulkAddMoveTypes
+//is sufficient.
+func (d *DefaultGameDelegate) AddMovesForPhaseProgression(phase int, config ...*MoveTypeConfig) error {
+
+	if d.moveProgressions == nil {
+		d.moveProgressions = make(map[int][]string)
+	}
+
+	var moveProgression []string
+
+	for i, moveConfig := range config {
+
+		moveProgression = append(moveProgression, moveConfig.Name)
+
+		if err := d.Manager().AddMoveType(moveConfig); err != nil {
+			return errors.New("Couldn't add " + strconv.Itoa(i) + " move config: " + err.Error())
+		}
+	}
+
+	d.moveProgressions[phase] = moveProgression
+
+	return nil
+
 }
 
 func (d *DefaultGameDelegate) Diagram(state State) string {
@@ -302,10 +334,14 @@ func (d *DefaultGameDelegate) PhaseEnum() enum.Enum {
 	return d.Manager().Chest().Enums().Enum("Phase")
 }
 
-//PhaseMoveProgression returns nil, which denotes that any move that is legal
-//in this phase is legal at any point (unless illegal for other reasons).
+//PhaseMoveProgression will return the move progression if it was added with
+//AddMovesForPhaseProgression. If not, will return nil, which means that any
+//moves that are legal in this phase are allowed in any order.
 func (d *DefaultGameDelegate) PhaseMoveProgression(phase int) []string {
-	return nil
+	if d.moveProgressions == nil {
+		return nil
+	}
+	return d.moveProgressions[phase]
 }
 
 func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state State, c *Component) (Stack, error) {
