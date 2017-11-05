@@ -46,7 +46,8 @@ generate that code for you.
 
 */
 type Base struct {
-	info *boardgame.MoveInfo
+	info           *boardgame.MoveInfo
+	topLevelStruct boardgame.Move
 }
 
 func (d *Base) SetInfo(m *boardgame.MoveInfo) {
@@ -56,6 +57,15 @@ func (d *Base) SetInfo(m *boardgame.MoveInfo) {
 //Type simply returns BaseMove.MoveInfo
 func (d *Base) Info() *boardgame.MoveInfo {
 	return d.info
+}
+
+func (d *Base) SetTopLevelStruct(m boardgame.Move) {
+	d.topLevelStruct = m
+}
+
+//TopLevelStruct returns the object that was set via SetTopLevelStruct.
+func (d *Base) TopLevelStruct() boardgame.Move {
+	return d.topLevelStruct
 }
 
 //DefaultsForState doesn't do anything

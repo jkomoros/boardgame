@@ -85,12 +85,6 @@ type MoveInfo struct {
 //allow you to skip most of the boilerplate overhead.
 type Move interface {
 
-	//SetInfo will be called after the constructor is called to set the
-	//information, including what type the move is. Splitting this out allows
-	//the basic constructors not in the base classes to be very small, because
-	//in most cases you'll compose a moves.Base.
-	SetInfo(m *MoveInfo)
-
 	//Info returns the MoveInfo objec that was affiliated with this object by
 	//SetInfo.
 	Info() *MoveInfo
@@ -124,6 +118,25 @@ type Move interface {
 	//example the Description for "Place Token" might be "Player 0 places a
 	//token in position 3".
 	Description() string
+
+	//SetInfo will be called after the constructor is called to set the
+	//information, including what type the move is. Splitting this out allows
+	//the basic constructors not in the base classes to be very small, because
+	//in most cases you'll compose a moves.Base.
+	SetInfo(m *MoveInfo)
+
+	//TopLevelStruct should return the value that was set via
+	//SetTopLevelStruct. It returns the Move that is at the top of the
+	//embedding chain (because structs that are embedded anonymously can only
+	//access themselves and not their embedders). This is useful because in a
+	//number of cases embeded moves (for example moves in the moves package)
+	//need to consult a method on their embedder.
+	TopLevelStruct() Move
+
+	//SetTopLevelStruct is called right after the move is constructed.
+	//Splitting this out allows the basic constructors not in the base classes
+	//to be very small, because in most cases you'll compose a moves.Base.
+	SetTopLevelStruct(m Move)
 
 	//ValidConfiguration will be checked when the game manager is SetUp, and
 	//if it returns an error the manager will fail to SetUp. Some Moves,
@@ -271,6 +284,7 @@ func (m *MoveType) NewMove(state State) Move {
 	}
 
 	move.SetInfo(info)
+	move.SetTopLevelStruct(move)
 
 	readSetConfigurer := move.ReadSetConfigurer()
 
@@ -300,7 +314,8 @@ func (m *MoveType) NewMove(state State) Move {
 //We implement a private stub of moves.Base in this package just for the
 //convience of our own test structs.
 type baseMove struct {
-	info MoveInfo
+	info           MoveInfo
+	topLevelStruct Move
 }
 
 func (d *baseMove) SetInfo(m *MoveInfo) {
@@ -309,6 +324,14 @@ func (d *baseMove) SetInfo(m *MoveInfo) {
 
 func (d *baseMove) Info() *MoveInfo {
 	return &d.info
+}
+
+func (d *baseMove) SetTopLevelStruct(m Move) {
+	d.topLevelStruct = m
+}
+
+func (d *baseMove) TopLevelStruct() Move {
+	return d.topLevelStruct
 }
 
 //DefaultsForState doesn't do anything

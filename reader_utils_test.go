@@ -84,8 +84,9 @@ func TestStructTag(t *testing.T) {
 }
 
 type testAutoEnumMove struct {
-	info *MoveInfo
-	A    enum.MutableVal `enum:"color"`
+	info           *MoveInfo
+	topLevelStruct Move
+	A              enum.MutableVal `enum:"color"`
 }
 
 func (t *testAutoEnumMove) Reader() PropertyReader {
@@ -118,6 +119,14 @@ func (t *testAutoEnumMove) SetInfo(m *MoveInfo) {
 
 func (t *testAutoEnumMove) Info() *MoveInfo {
 	return t.info
+}
+
+func (t *testAutoEnumMove) SetTopLevelStruct(m Move) {
+	t.topLevelStruct = m
+}
+
+func (t *testAutoEnumMove) TopLevelStruct() Move {
+	return t.topLevelStruct
 }
 
 func (t *testAutoEnumMove) ValidConfiguration(exampleState MutableState) error {
