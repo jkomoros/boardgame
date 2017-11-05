@@ -258,7 +258,7 @@ func (m *MoveType) LegalPhases() []int {
 }
 
 //NewMove returns a new move of this type, with defaults set for the given
-//state.
+//state. If state is nil, then DefaultsForState will not be called.
 func (m *MoveType) NewMove(state State) Move {
 	move := m.constructor()
 	if move == nil {
@@ -291,7 +291,9 @@ func (m *MoveType) NewMove(state State) Move {
 		return nil
 	}
 
-	move.DefaultsForState(state)
+	if state != nil {
+		move.DefaultsForState(state)
+	}
 	return move
 }
 
