@@ -23,7 +23,11 @@ type roundRobinPlayerConditionMet interface {
 
 //StartRoundRobin is the move you should have in the progression immediately
 //before a round robin starts. It sets the NextRoundRobinPlayer to the game's
-//CurrentPlayer, getting ready for moves that embed RoundRobin.
+//CurrentPlayer, getting ready for moves that embed RoundRobin. Because the
+//move doesn't change very much, NewStartRoundRobinMoveConfig can be used so
+//you don't even need to define an embedding move for it in your own package.
+//
+//+autoreader
 type StartRoundRobin struct {
 	Base
 }
@@ -70,6 +74,22 @@ func (s *StartRoundRobin) Apply(state boardgame.MutableState) error {
 	roundRobiner.SetRoundRobinRoundCount(-1)
 
 	return nil
+}
+
+//NewStartRoundRobinMoveConfig returns a move config that you can use to
+//install a StartRoundRobin into your GameManager without needing to define a
+//struct in your own package that embeds StartRoundRobin anonymously.
+func NewStartRoundRobinMoveConfig(legalPhases []int) *boardgame.MoveTypeConfig {
+
+	return &boardgame.MoveTypeConfig{
+		Name:     "Start Round Robin",
+		HelpText: "Gets ready for a round robin",
+		MoveConstructor: func() boardgame.Move {
+			return new(StartRoundRobin)
+		},
+		IsFixUp:     true,
+		LegalPhases: legalPhases,
+	}
 }
 
 /*
