@@ -41,11 +41,6 @@ type MoveCurrentPlayerStand struct {
 	moves.CurrentPlayer
 }
 
-//+autoreader
-type MoveStartRoundRobin struct {
-	moves.StartRoundRobin
-}
-
 /**************************************************
  *
  * MoveShuffleDiscardToDraw Implementation
@@ -306,22 +301,4 @@ func (m *MoveDealInitialVisibleCard) GameStack(gState boardgame.MutableSubState)
 
 func (m *MoveDealInitialVisibleCard) PlayerStack(pState boardgame.MutablePlayerState) boardgame.MutableStack {
 	return pState.(*playerState).VisibleHand
-}
-
-/**************************************************
- *
- * MoveStartRoundRobin Implementation
- *
- **************************************************/
-
-var moveStartRoundRobinConfig = boardgame.MoveTypeConfig{
-	Name:     "Start Round Robin",
-	HelpText: "Prepares for a round robin",
-	MoveConstructor: func() boardgame.Move {
-		return new(MoveStartRoundRobin)
-	},
-	LegalPhases: []int{
-		PhaseInitialDeal,
-	},
-	IsFixUp: true,
 }
