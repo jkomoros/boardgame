@@ -213,7 +213,9 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 	s.statesLock.Unlock()
 
 	s.movesLock.Lock()
-	moveMap[version] = move
+	if move != nil {
+		moveMap[version] = move
+	}
 	s.movesLock.Unlock()
 
 	s.gamesLock.Lock()
