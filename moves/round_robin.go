@@ -3,6 +3,7 @@ package moves
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"strconv"
 )
 
 //RoundRobinProperties should be implemented by your GameState if you use any
@@ -38,7 +39,12 @@ type roundRobinStarterPlayer interface {
 	RoundRobinStaterPlayer(state boardgame.State) boardgame.PlayerIndex
 }
 type roundRobinFinished interface {
-	RoundRobinFinished(state boardgame.State) bool
+	RoundRobinFinished(state boardgame.State) error
+}
+type roundRobinPlayerConditionMet interface {
+	//RoundRobinPlayerConditionMet should return whether the condition for the
+	//round robin to be over has been met for this player.
+	RoundRobinPlayerConditionMet(playerState boardgame.PlayerState) bool
 }
 
 //StartRoundRobin is the move you should have in the progression immediately
@@ -144,39 +150,76 @@ func (r *RoundRobin) Legal(state boardgame.State, proposer boardgame.PlayerIndex
 		return errors.New("RoundRobin top level struct unexpectedly did not have RoundRobinFinished method")
 	}
 
-	if finisher.RoundRobinFinished(state) {
-		return errors.New("The round robin has met its finish condition")
+	if err := finisher.RoundRobinFinished(state); err != nil {
+		return errors.New("The round robin has met its finish condition: " + err.Error())
 	}
 
 	return nil
 
 }
 
-//RoundRobinFinished will be consulted by the Legal() method. By default it
-//returns the result of RoundRobinFinishedOneCircuit(). If you want other
-//behavior override this method.
-func (r *RoundRobin) RoundRobinFinished(state boardgame.State) bool {
+//RoundRobinFinished will be consulted by the Legal() method. If it returns an
+//error then the round robin is considered finished. By default it returns the
+//result of RoundRobinFinishedOneCircuit(). If you want other behavior
+//override this method.
+func (r *RoundRobin) RoundRobinFinished(state boardgame.State) error {
 	return r.RoundRobinFinishedOneCircuit(state)
 }
 
-//RoundRobinFinshedOneCircuit returns true if the RoundRobinRountCount is 1 or
-//higher, meaning as soon as one full circuit is completed. It is designed to
-//be called directly in your RoundRobinFinished
-func (r *RoundRobin) RoundRobinFinishedOneCircuit(state boardgame.State) bool {
+//RoundRobinFinshedOneCircuit returns an error if the RoundRobinRountCount is
+//1 or higher, meaning as soon as one full circuit is completed. It is
+//designed to be called directly in your RoundRobinFinished
+func (r *RoundRobin) RoundRobinFinishedOneCircuit(state boardgame.State) error {
 	return r.RoundRobinFinishedMultiCircuit(1, state)
 }
 
-//RoundRobinFinshedOneCircuit returns true if the RoundRobinRountCount is
+//RoundRobinFinshedOneCircuit returns an error if the RoundRobinRountCount is
 //targetCount or higher, meaning as soon as that many full circuits are
 //completed. It is designed to be called directly in your RoundRobinFinished
-func (r *RoundRobin) RoundRobinFinishedMultiCircuit(targetCount int, state boardgame.State) bool {
+func (r *RoundRobin) RoundRobinFinishedMultiCircuit(targetCount int, state boardgame.State) error {
 	props, ok := state.GameState().(RoundRobinProperties)
 
 	if !ok {
-		return true
+		return errors.New("GameState unexpectedly did not implement RoundRobinProperties")
 	}
 
-	return props.RoundRobinRoundCount() >= targetCount
+	if props.RoundRobinRoundCount() >= targetCount {
+		return errors.New("The round count is " + strconv.Itoa(props.RoundRobinRoundCount()) + " which meets the target of " + strconv.Itoa(targetCount))
+	}
+
+	return nil
+}
+
+//RoundRobinFinishedPlayerConditionsMet returns an error if calling
+//RoundRobinPlayerConditionMet on this move, passing each playerState in turn,
+//all return true. It's useful, as an example, for going around and making
+//sure that every player has at least two cards in their hand, if players may
+//have started the round robin with a different number of cards in hand. It is
+//designed to be called directly in your RoundRobinFinished.
+func (r *RoundRobin) RoundRobinFinishedPlayerConditionsMet(state boardgame.State) error {
+
+	conditionsMet, ok := r.TopLevelStruct().(roundRobinPlayerConditionMet)
+
+	if !ok {
+		//This should be extremely rare since we ourselves have the right method.
+		return errors.New("RoundRobin top level struct unexpectedly did not have RoundRobinPlayerConditionMet method")
+	}
+
+	for i, player := range state.PlayerStates() {
+		if !conditionsMet.RoundRobinPlayerConditionMet(player) {
+			return errors.New("Player " + strconv.Itoa(i) + " does not have their player condition met.")
+		}
+	}
+
+	return nil
+
+}
+
+//RoundRobinPlayerConditionMet is called for each playerState by
+//RoundRobinFinishedPlayerConditionMet. If all of them return true, the round
+//robin is over. The default simply returns false in all cases; you should override it.
+func (r *RoundRobin) RoundRobinPlayerConditionMet(playerState boardgame.PlayerState) bool {
+	return false
 }
 
 func (r *RoundRobin) ValidConfiguration(exampleState boardgame.MutableState) error {
