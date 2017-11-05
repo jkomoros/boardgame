@@ -103,7 +103,9 @@ func (r *RoundRobin) AllowMultipleInProgression() bool {
 	return true
 }
 
-//DefaultsForState sets the TargetPlayerIndex to NextRoundRobinPlayer.
+//DefaultsForState sets the TargetPlayerIndex to NextRoundRobinPlayer, unless
+//that player already has their PlayerConditionMet, in which case it advances
+//until it finds a TargetPlayerIndex where the condition is not yet met.
 func (r *RoundRobin) DefaultsForState(state boardgame.State) {
 	roundRobiner, ok := state.GameState().(moveinterfaces.RoundRobinProperties)
 
@@ -111,7 +113,38 @@ func (r *RoundRobin) DefaultsForState(state boardgame.State) {
 		return
 	}
 
-	r.TargetPlayerIndex = roundRobiner.NextRoundRobinPlayer()
+	targetPlayer := roundRobiner.NextRoundRobinPlayer()
+
+	//If the PlayerConditionMet for that player is already true, we know that
+	//we shouldn't land on them. Cycle around until we find one for which
+	//PlayerConditionMet returns false, unless none of them are true, in which
+	//case just leave it with the original target.
+
+	//RoundRobin moves whose Finished() routine look for something other than
+	//PlayerConditionMet will still work fine, because their
+	//PlayerConditionMet will always return false.
+
+	conditionsMet, ok := r.TopLevelStruct().(roundRobinPlayerConditionMet)
+
+	if !ok {
+		//This should be extremely rare since we ourselves have the right method.
+		return
+	}
+
+	counter := 0
+
+	//Advance around, but if we loop back just leave it.
+	for counter <= len(state.PlayerStates()) {
+
+		if !conditionsMet.RoundRobinPlayerConditionMet(state.PlayerStates()[targetPlayer]) {
+			break
+		}
+
+		targetPlayer = targetPlayer.Next(state)
+		counter++
+	}
+
+	r.TargetPlayerIndex = targetPlayer
 }
 
 //Legal returns whether the super's Legal returns an error, and will return an
