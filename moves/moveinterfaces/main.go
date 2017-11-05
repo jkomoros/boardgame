@@ -129,12 +129,6 @@ type CurrentPhaseSetter interface {
 	SetCurrentPhase(int)
 }
 
-//PhaseToEnterer should be implemented by moves that embed moves.StartPhase to
-//configure which phase to enter.
-type PhaseToEnterer interface {
-	PhaseToEnter(currentPhase int) int
-}
-
 //BeforeLeavePhaser is an interface to implement on GameState if you want to
 //do some action on state before leaving the given phase.
 type BeforeLeavePhaser interface {

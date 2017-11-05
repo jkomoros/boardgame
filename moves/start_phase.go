@@ -7,6 +7,14 @@ import (
 	"strconv"
 )
 
+//phaseToEnterer should be implemented by moves that embed moves.StartPhase to
+//configure which phase to enter. It's a private interface because StartPhase
+//already has a base PhaseToEnter, and to keep the number of interfaces
+//smaller.
+type phaseToEnterer interface {
+	PhaseToEnter(currentPhase int) int
+}
+
 //StartPhase is a simple move, often used in game SetUp phases, to advance to
 //the next phase, as returned by the embedding move's PhaseToEnter(). If
 //BeforeLeavePhase or BeforeEnterPhase are defined they will be called at the
@@ -23,7 +31,7 @@ type StartPhase struct {
 func (s *StartPhase) ValidConfiguration(exampleState boardgame.MutableState) error {
 	embeddingMove := s.TopLevelStruct()
 
-	if _, ok := embeddingMove.(moveinterfaces.PhaseToEnterer); !ok {
+	if _, ok := embeddingMove.(phaseToEnterer); !ok {
 		return errors.New("The embedding move does not implement PhaseToEnterer")
 	}
 
@@ -34,17 +42,19 @@ func (s *StartPhase) ValidConfiguration(exampleState boardgame.MutableState) err
 	return nil
 }
 
-//PhaseToEnter uses the Phase provided via StartPhaseMoveConfig constructor.
-//If you want a different behavior, override PhaseToEnter in your embedding
-//move.
+//PhaseToEnter uses the Phase provided via StartPhaseMoveConfig constructor
+//(or 0 if NewStartPhaseMoveConfig wasn't used). If you want a different
+//behavior, override PhaseToEnter in your embedding move.
 func (s *StartPhase) PhaseToEnter(currentPhase int) int {
 	return s.phaseToStart
 }
 
+//Apply call BeforeLeavePhase() (if it exists), then BeforeEnterPhase() (if it
+//exists),then SetCurrentPhase to the phase index returned by PhaseToEnter
+//from this move type.
 func (s *StartPhase) Apply(state boardgame.MutableState) error {
-	embeddingMove := s.Info().Type().NewMove(state)
 
-	phaseEnterer, ok := embeddingMove.(moveinterfaces.PhaseToEnterer)
+	phaseEnterer, ok := s.TopLevelStruct().(phaseToEnterer)
 
 	if !ok {
 		return errors.New("The embedding move does not implement PhaseToEnterer")
