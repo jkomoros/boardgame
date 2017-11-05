@@ -58,6 +58,9 @@ func (s *StartRoundRobin) ValidConfiguration(exampleState boardgame.MutableState
 	if _, ok := exampleState.GameState().(RoundRobinProperties); !ok {
 		return errors.New("GameState does not implement RoundRobiner interface")
 	}
+	if _, ok := s.TopLevelStruct().(roundRobinStarterPlayer); !ok {
+		return errors.New("Embedding Move doesn't have RoundRobinStarterPlayer")
+	}
 	return nil
 }
 
@@ -234,6 +237,11 @@ func (r *RoundRobin) ValidConfiguration(exampleState boardgame.MutableState) err
 	if _, ok := embeddingMove.(RoundRobinActioner); !ok {
 		return errors.New("Embedding move doesn't implement RoundRobinActioner")
 	}
+
+	if _, ok := embeddingMove.(roundRobinFinished); !ok {
+		return errors.New("Embedding move doesn't implement RoundRobinFinished")
+	}
+
 	return nil
 }
 
