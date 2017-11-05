@@ -138,16 +138,8 @@ func (d *Base) legalMoveInProgression(state boardgame.State, proposer boardgame.
 	lastMoveRecord := historicalMoves[len(historicalMoves)-1]
 
 	if lastMoveRecord.Name == d.Info().Type().Name() {
-
-		//If we allow multiple in move progression it's fine. Otherwise it's not.
-
-		if d.Info().Type().AllowMultipleInMoveProgression() {
-			//Fine!
-			return nil
-		}
-
-		return errors.New("That move has already been applied in this move progression and it's configured to only apply once.")
-
+		//The move before us was of our type, so it's fine to add another.
+		return nil
 	}
 
 	lastMoveType := state.Game().Manager().FixUpMoveTypeByName(lastMoveRecord.Name)
