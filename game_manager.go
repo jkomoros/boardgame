@@ -649,9 +649,7 @@ func (g *GameManager) SetUp() error {
 	}
 
 	for _, moveType := range g.fixUpMoves {
-		//We don't create a real move because we just need to run the
-		//ValidConfiguration(), and creating a whole fake state is a pain.
-		testMove := moveType.constructor()
+		testMove := moveType.NewMove(exampleState)
 
 		if err := testMove.ValidConfiguration(exampleState); err != nil {
 			return errors.New(moveType.Name() + " move failed the ValidConfiguration test: " + err.Error())
@@ -660,9 +658,7 @@ func (g *GameManager) SetUp() error {
 	}
 
 	for _, moveType := range g.playerMoves {
-		//We don't create a real move because we just need to run the
-		//ValidConfiguration(), and creating a whole fake state is a pain.
-		testMove := moveType.constructor()
+		testMove := moveType.NewMove(exampleState)
 
 		if err := testMove.ValidConfiguration(exampleState); err != nil {
 			return errors.New(moveType.Name() + " move failed the ValidConfiguration test: " + err.Error())
