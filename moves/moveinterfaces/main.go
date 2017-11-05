@@ -15,7 +15,9 @@ import (
 
 //RoundRobinBaseGameState is designed to be embedded in your GameState
 //anonymously to automatically satisfy the RoundRobinProperties interface,
-//making it easy to use RoundRobin-basd moves.
+//making it easy to use RoundRobin-basd moves. Because this embeds
+//boardgame.BaseSubState itself, you should embed this INSTEAD of
+//boardgame.BaseSubState.
 type RoundRobinBaseGameState struct {
 	boardgame.BaseSubState
 	NextPlayerRoundRobin    boardgame.PlayerIndex
