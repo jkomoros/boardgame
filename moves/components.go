@@ -57,6 +57,8 @@ func (d *DealComponents) ValidConfiguration(exampleState boardgame.MutableState)
 	return d.RoundRobin.ValidConfiguration(exampleState)
 }
 
+//RoundRobinAction moves a component from the GameStack to the PlayerStack, as
+//configured by the PlayerStacker and GameStacke interfaces.
 func (d *DealComponents) RoundRobinAction(playerState boardgame.MutablePlayerState) error {
 
 	playerStacker, ok := d.TopLevelStruct().(moveinterfaces.PlayerStacker)
@@ -118,6 +120,8 @@ func (d *CollectComponents) ValidConfiguration(exampleState boardgame.MutableSta
 	return d.RoundRobin.ValidConfiguration(exampleState)
 }
 
+//RoundRobinAction moves a component from the PlayerStack to the GameStack, as
+//configured by the PlayerStacker and GameStacke interfaces.
 func (d *CollectComponents) RoundRobinAction(playerState boardgame.MutablePlayerState) error {
 
 	playerStacker, ok := d.TopLevelStruct().(moveinterfaces.PlayerStacker)
