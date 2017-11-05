@@ -3,25 +3,8 @@ package moves
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves/moveinterfaces"
 )
-
-//CurrentPlayerSetter should be implemented by gameStates that use FinishTurn.
-type CurrentPlayerSetter interface {
-	SetCurrentPlayer(currentPlayer boardgame.PlayerIndex)
-}
-
-//PlayerTurnFinisher is the interface your playerState is expected to adhere
-//to when you use FinishTurn.
-type PlayerTurnFinisher interface {
-	//TurnDone should return nil when the turn is done, or a descriptive error
-	//if the turn is not done.
-	TurnDone() error
-	//ResetForTurnStart will be called when this player begins their turn.
-	ResetForTurnStart() error
-	//ResetForTurnEnd will be called right before the CurrentPlayer is
-	//advanced to the next player.
-	ResetForTurnEnd() error
-}
 
 /*
 
@@ -37,11 +20,11 @@ type FinishTurn struct {
 
 func (f *FinishTurn) ValidConfiguration(exampleState boardgame.MutableState) error {
 
-	if _, ok := exampleState.GameState().(CurrentPlayerSetter); !ok {
+	if _, ok := exampleState.GameState().(moveinterfaces.CurrentPlayerSetter); !ok {
 		return errors.New("GameState does not implement CurrentPlayerSetter")
 	}
 
-	if _, ok := exampleState.PlayerStates()[0].(PlayerTurnFinisher); !ok {
+	if _, ok := exampleState.PlayerStates()[0].(moveinterfaces.PlayerTurnFinisher); !ok {
 		return errors.New("PlayerState does not implement PlayerTurnFinisher")
 	}
 
@@ -67,7 +50,7 @@ func (f *FinishTurn) Legal(state boardgame.State, proposer boardgame.PlayerIndex
 
 	currentPlayer := state.PlayerStates()[currentPlayerIndex]
 
-	currentPlayerTurnFinisher, ok := currentPlayer.(PlayerTurnFinisher)
+	currentPlayerTurnFinisher, ok := currentPlayer.(moveinterfaces.PlayerTurnFinisher)
 
 	if !ok {
 		return errors.New("The current player interface did not implement PlayerTurnFinisher")
@@ -87,7 +70,7 @@ func (f *FinishTurn) Legal(state boardgame.State, proposer boardgame.PlayerIndex
 func (f *FinishTurn) Apply(state boardgame.MutableState) error {
 	currentPlayer := state.PlayerStates()[state.Game().CurrentPlayerIndex()]
 
-	currentPlayerTurnFinisher, ok := currentPlayer.(PlayerTurnFinisher)
+	currentPlayerTurnFinisher, ok := currentPlayer.(moveinterfaces.PlayerTurnFinisher)
 
 	if !ok {
 		return errors.New("The current player interface did not implement PlayerTurnFinisher")
@@ -99,7 +82,7 @@ func (f *FinishTurn) Apply(state boardgame.MutableState) error {
 
 	newPlayerIndex := state.Game().CurrentPlayerIndex().Next(state)
 
-	playerSetter, ok := state.GameState().(CurrentPlayerSetter)
+	playerSetter, ok := state.GameState().(moveinterfaces.CurrentPlayerSetter)
 
 	if !ok {
 		return errors.New("Gamestate did not implement CurrentPlayerSetter")
@@ -109,7 +92,7 @@ func (f *FinishTurn) Apply(state boardgame.MutableState) error {
 
 	currentPlayer = state.PlayerStates()[newPlayerIndex]
 
-	currentPlayerTurnFinisher, ok = currentPlayer.(PlayerTurnFinisher)
+	currentPlayerTurnFinisher, ok = currentPlayer.(moveinterfaces.PlayerTurnFinisher)
 
 	if !ok {
 		return errors.New("The current player interface did not implement PlayerTurnFinisher")

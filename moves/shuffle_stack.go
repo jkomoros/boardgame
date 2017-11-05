@@ -3,13 +3,8 @@ package moves
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves/moveinterfaces"
 )
-
-//SourceStacker should be implemented by moves that need an input stack to
-//operate on as primary/source, for example ShuffleStack.
-type SourceStacker interface {
-	SourceStack(state boardgame.State) boardgame.MutableStack
-}
 
 //ShuffleStack is a move, typically used in SetUp phases, that simply shuffles
 //a given stack. The struct you embed this in should implement SourceStacker.
@@ -22,7 +17,7 @@ type ShuffleStack struct {
 func (s *ShuffleStack) Apply(state boardgame.MutableState) error {
 	embeddingMove := s.TopLevelStruct()
 
-	stacker, ok := embeddingMove.(SourceStacker)
+	stacker, ok := embeddingMove.(moveinterfaces.SourceStacker)
 
 	if !ok {
 		return errors.New("Embedding move unexpectedly did not implement SourceStacker")
@@ -40,7 +35,7 @@ func (s *ShuffleStack) Apply(state boardgame.MutableState) error {
 func (s *ShuffleStack) ValidConfiguration() error {
 	testMove := s.TopLevelStruct()
 
-	_, ok := testMove.(SourceStacker)
+	_, ok := testMove.(moveinterfaces.SourceStacker)
 
 	if !ok {
 		return errors.New("The embedding Move doesn't implement SourceStacker")

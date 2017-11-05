@@ -5,24 +5,19 @@ easy to implement common logic. The Base move type is a very simple move that
 implements the basic stubs necessary for your straightforward moves to have
 minimal boilerplate.
 
+You interact with and configure various move types by implementing interfaces.
+Those interfaes are defined in the moveinterfaces subpackage, to make this
+package's design more clear.
+
 */
 package moves
 
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves/moveinterfaces"
 	"strconv"
 )
-
-//Moves should implement AllowMultipleInProgression if they want to
-//affirmatively communicate to moves.Base that in a move progression is it
-//legal to apply multiple. If the move does not implement this interface then
-//it is considered to only allow one.
-type AllowMultipleInProgression interface {
-	//AllowMultipleInProgression should return true if the given move is
-	//allowed to apply multiple times in order in a move progression.
-	AllowMultipleInProgression() bool
-}
 
 /*
 Base is an optional, convenience struct designed to be embedded
@@ -40,6 +35,9 @@ name of your underlying move type:
 Base's Legal() method does basic checking for whehter the move is legal in
 this phase, so your own Legal() method should always call Base.Legal() at the
 top of its own method.
+
+It is extremely rare to not use moves.Base either directly, or implicitly
+within another sub-class in your move.
 
 Base cannot help your move implement PropertyReadSetter; use autoreader to
 generate that code for you.
@@ -92,7 +90,9 @@ func (d *Base) ValidConfiguration(exampleState boardgame.MutableState) error {
 //move is at a legal point in the move progression for this phase, if it
 //exists. Each move in the move progression must show up 1 or more times. The
 //method checks to see if we were to make this move, would the moves since the
-//last phase change match the pattern?
+//last phase change match the pattern? If your move can be made legally
+//multiple times in a row in a given move progression, implement
+//moveinterfaces.AllowMultipleInProgression() and return true.
 func (d *Base) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
 	if err := d.legalInPhase(state); err != nil {
@@ -170,7 +170,7 @@ func (d *Base) legalMoveInProgression(state boardgame.State, proposer boardgame.
 		//We can't check ourselves because we're embedded in the real move type.
 		testMove := d.TopLevelStruct()
 
-		allowMultiple, ok := testMove.(AllowMultipleInProgression)
+		allowMultiple, ok := testMove.(moveinterfaces.AllowMultipleInProgression)
 
 		if !ok || !allowMultiple.AllowMultipleInProgression() {
 			return errors.New("This move was just applied and is not configured to allow multiple in a row in this phase.")

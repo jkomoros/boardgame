@@ -3,21 +3,8 @@ package moves
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves/moveinterfaces"
 )
-
-//PlayerStacker should be implemented by your embedding Move if you embed
-//DealComponents. It will be consulted to figure out where the PlayerStack is
-//to deal a component to.
-type PlayerStacker interface {
-	PlayerStack(playerState boardgame.MutablePlayerState) boardgame.MutableStack
-}
-
-//GameStacker should be implemented by your emedding Move if you embed
-//DealComponents. It will be consulted to figure out where to draw the
-//components from to deal to players.
-type GameStacker interface {
-	GameStack(gameState boardgame.MutableSubState) boardgame.MutableStack
-}
 
 /*
 
@@ -39,11 +26,11 @@ type DealComponents struct {
 }
 
 func (d *DealComponents) ValidConfiguration(exampleState boardgame.MutableState) error {
-	if _, ok := d.TopLevelStruct().(PlayerStacker); !ok {
+	if _, ok := d.TopLevelStruct().(moveinterfaces.PlayerStacker); !ok {
 		return errors.New("Embedding move doesn't implement PlayerStacker")
 	}
 
-	if _, ok := d.TopLevelStruct().(GameStacker); !ok {
+	if _, ok := d.TopLevelStruct().(moveinterfaces.GameStacker); !ok {
 		return errors.New("Embedding move doesn't implement GameStacker")
 	}
 
@@ -52,7 +39,7 @@ func (d *DealComponents) ValidConfiguration(exampleState boardgame.MutableState)
 
 func (d *DealComponents) RoundRobinAction(playerState boardgame.MutablePlayerState) error {
 
-	playerStacker, ok := d.TopLevelStruct().(PlayerStacker)
+	playerStacker, ok := d.TopLevelStruct().(moveinterfaces.PlayerStacker)
 
 	if !ok {
 		return errors.New("Embedding move unexpectedly doesn't implement PlayerStacker")
@@ -64,7 +51,7 @@ func (d *DealComponents) RoundRobinAction(playerState boardgame.MutablePlayerSta
 		return errors.New("PlayerStacker didn't return a valid stack")
 	}
 
-	gameStacker, ok := d.TopLevelStruct().(GameStacker)
+	gameStacker, ok := d.TopLevelStruct().(moveinterfaces.GameStacker)
 
 	if !ok {
 		return errors.New("Embedding move unexpectedly doesn't implement GameStacker")
@@ -101,11 +88,11 @@ type CollectComponents struct {
 }
 
 func (d *CollectComponents) ValidConfiguration(exampleState boardgame.MutableState) error {
-	if _, ok := d.TopLevelStruct().(PlayerStacker); !ok {
+	if _, ok := d.TopLevelStruct().(moveinterfaces.PlayerStacker); !ok {
 		return errors.New("Embedding move doesn't implement PlayerStacker")
 	}
 
-	if _, ok := d.TopLevelStruct().(GameStacker); !ok {
+	if _, ok := d.TopLevelStruct().(moveinterfaces.GameStacker); !ok {
 		return errors.New("Embedding move doesn't implement GameStacker")
 	}
 
@@ -114,7 +101,7 @@ func (d *CollectComponents) ValidConfiguration(exampleState boardgame.MutableSta
 
 func (d *CollectComponents) RoundRobinAction(playerState boardgame.MutablePlayerState) error {
 
-	playerStacker, ok := d.TopLevelStruct().(PlayerStacker)
+	playerStacker, ok := d.TopLevelStruct().(moveinterfaces.PlayerStacker)
 
 	if !ok {
 		return errors.New("Embedding move unexpectedly doesn't implement PlayerStacker")
@@ -126,7 +113,7 @@ func (d *CollectComponents) RoundRobinAction(playerState boardgame.MutablePlayer
 		return errors.New("PlayerStacker didn't return a valid stack")
 	}
 
-	gameStacker, ok := d.TopLevelStruct().(GameStacker)
+	gameStacker, ok := d.TopLevelStruct().(moveinterfaces.GameStacker)
 
 	if !ok {
 		return errors.New("Embedding move unexpectedly doesn't implement GameStacker")
