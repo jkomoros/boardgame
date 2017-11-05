@@ -11,6 +11,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves"
+	"github.com/jkomoros/boardgame/moves/moveinterfaces"
 )
 
 //go:generate autoreader
@@ -80,6 +81,12 @@ type myStruct struct {
 	MyBoolSlice        []bool
 	MyStringSlice      []string
 	MyPlayerIndexSlice []boardgame.PlayerIndex
+}
+
+//+autoreader
+type roundRobinStruct struct {
+	moveinterfaces.RoundRobinBaseGameState
+	MyBool bool
 }
 
 //+autoreader
