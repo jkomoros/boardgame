@@ -12,14 +12,15 @@ import (
 //cannot be created directly; they are created via
 //GameManager.AddMoveType(moveTypeConfig).
 type MoveType struct {
-	name           string
-	helpText       string
-	constructor    func() Move
-	immediateFixUp func(state State) Move
-	legalPhases    []int
-	isFixUp        bool
-	validator      *readerValidator
-	manager        *GameManager
+	name                           string
+	helpText                       string
+	constructor                    func() Move
+	immediateFixUp                 func(state State) Move
+	legalPhases                    []int
+	allowMultipleInMoveProgression bool
+	isFixUp                        bool
+	validator                      *readerValidator
+	manager                        *GameManager
 }
 
 //MoveTypeConfig is a collection of information used to create a MoveType.
@@ -63,6 +64,12 @@ type MoveTypeConfig struct {
 	//delegate.CurrentPhase(). See moves.Base for how this information is
 	//used.
 	LegalPhases []int
+
+	//AllowMultipleInMoveProgression should be true if within a
+	//PhaseMoveProgression the move is allowed to apply multiple times in a
+	//row. If not, moves.Base's Legal method will not allow it to apply
+	//multiple times in a row.
+	AllowMultipleInMoveProgression bool
 
 	//If IsFixUp is true, the moveType will be a FixUp move--that is, players
 	//may not propose it, only ProposeFixUp moves may.
@@ -210,14 +217,15 @@ func newMoveType(config *MoveTypeConfig, manager *GameManager) (*MoveType, error
 	}
 
 	return &MoveType{
-		name:           config.Name,
-		helpText:       config.HelpText,
-		constructor:    config.MoveConstructor,
-		immediateFixUp: config.ImmediateFixUp,
-		isFixUp:        config.IsFixUp,
-		legalPhases:    config.LegalPhases,
-		validator:      validator,
-		manager:        manager,
+		name:                           config.Name,
+		helpText:                       config.HelpText,
+		constructor:                    config.MoveConstructor,
+		immediateFixUp:                 config.ImmediateFixUp,
+		isFixUp:                        config.IsFixUp,
+		legalPhases:                    config.LegalPhases,
+		validator:                      validator,
+		allowMultipleInMoveProgression: config.AllowMultipleInMoveProgression,
+		manager: manager,
 	}, nil
 
 }
@@ -245,6 +253,10 @@ func (m *MoveType) IsFixUp() bool {
 
 func (m *MoveType) LegalPhases() []int {
 	return m.legalPhases
+}
+
+func (m *MoveType) AllowMultipleInMoveProgression() bool {
+	return m.allowMultipleInMoveProgression
 }
 
 //NewMove returns a new move of this type, with defaults set for the given
