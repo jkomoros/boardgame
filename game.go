@@ -281,7 +281,7 @@ func (g *Game) Move(version int) (Move, error) {
 }
 
 //HistoricalMovesSincePhaseTransition returns a slice of all
-//MoveStorageRecords, in reverse order, from the time that the Phase most recently
+//MoveStorageRecords, in order, from the time that the Phase most recently
 //started being its current value. Very uncommon to need this; it's exposed
 //primarily just so moves.Base can use it in its Legal() method.
 func (g *Game) HistoricalMovesSincePhaseTransition(upToVersion int) []*MoveStorageRecord {
@@ -299,7 +299,7 @@ func (g *Game) HistoricalMovesSincePhaseTransition(upToVersion int) []*MoveStora
 
 			targetPhase := moves[len(moves)-1].Phase
 
-			for i := len(moves) - 1; i > 0; i-- {
+			for i := len(moves) - 1; i >= 0; i-- {
 				move := moves[i]
 
 				if move.Phase != targetPhase {
@@ -310,7 +310,13 @@ func (g *Game) HistoricalMovesSincePhaseTransition(upToVersion int) []*MoveStora
 				keptMoves = append(keptMoves, move)
 			}
 
-			moves = keptMoves
+			//keptMoves is backwards, reverse it.
+
+			moves = nil
+
+			for i := len(keptMoves) - 1; i >= 0; i-- {
+				moves = append(moves, keptMoves[i])
+			}
 
 		}
 
