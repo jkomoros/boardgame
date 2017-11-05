@@ -73,7 +73,7 @@ func (d *Base) Legal(state boardgame.State, proposer boardgame.PlayerIndex) erro
 		return err
 	}
 
-	return d.legalMoveInProgression(state)
+	return d.legalMoveInProgression(state, proposer)
 
 }
 
@@ -104,7 +104,7 @@ func (d *Base) legalInPhase(state boardgame.State) error {
 	return errors.New("Move is not legal in phase " + phaseName)
 }
 
-func (d *Base) legalMoveInProgression(state boardgame.State) error {
+func (d *Base) legalMoveInProgression(state boardgame.State, proposer boardgame.PlayerIndex) error {
 	currentPhase := state.Game().Manager().Delegate().CurrentPhase(state)
 
 	pattern := state.Game().Manager().Delegate().PhaseMoveProgression(currentPhase)
@@ -125,6 +125,38 @@ func (d *Base) legalMoveInProgression(state boardgame.State) error {
 	//If we were to add our target move to the historical progression, would it match the pattern?
 	if !progressionMatches(append(progression, d.Info().Type().Name()), pattern) {
 		return errors.New("This move is not legal at this point in the current phase.")
+	}
+
+	//Are we a new type of move in the progression? if so, is the move before
+	//us still legal?
+
+	if historicalMoves == nil {
+		//We're the first move, it's fine.
+		return nil
+	}
+
+	lastMoveRecord := historicalMoves[len(historicalMoves)-1]
+
+	if lastMoveRecord.Name == d.Info().Type().Name() {
+		//The move before us was of our type, so it's fine to add another.
+		return nil
+	}
+
+	lastMoveType := state.Game().Manager().FixUpMoveTypeByName(lastMoveRecord.Name)
+
+	if lastMoveType == nil {
+		lastMoveType = state.Game().Manager().PlayerMoveTypeByName(lastMoveRecord.Name)
+	}
+
+	if lastMoveType == nil {
+		return errors.New("Unexpected error: couldn't find a historical move type")
+	}
+
+	//LastMove will have all of the defaults set.
+	lastMove := lastMoveType.NewMove(state)
+
+	if lastMove.Legal(state, proposer) == nil {
+		return errors.New("A move that needs to happen earlier in the phase is still legal to apply.")
 	}
 
 	return nil
