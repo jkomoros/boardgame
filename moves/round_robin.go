@@ -5,11 +5,21 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
-//RoundRobiner should be implemented by your GameState if you use any of the
-//RoundRobin moves, including StartRoundRobin.
-type RoundRobiner interface {
+//RoundRobinProperties should be implemented by your GameState if you use any
+//of the RoundRobin moves, including StartRoundRobin. You don't have to do
+//anything we these other than store them to a property in your gameState and
+//then return them via the getters.
+type RoundRobinProperties interface {
+	//The next player whose round robin turn it will be
 	NextRoundRobinPlayer() boardgame.PlayerIndex
+	//The index of the player we started the round robin on.
+	RoundRobinStarterPlayer() boardgame.PlayerIndex
+	//How many complete times around the round robin we've been
+	RoundRobinRoundCount() int
+
 	SetNextRoundRobinPlayer(nextPlayer boardgame.PlayerIndex)
+	SetRoundRobinStarterPlayer(index boardgame.PlayerIndex)
+	SetRoundRobinRoundCount(int)
 }
 
 //RoundRobinActioner should be implemented by any moves that embed a
@@ -29,7 +39,7 @@ type StartRoundRobin struct {
 }
 
 func (s *StartRoundRobin) ValidConfiguration(exampleState boardgame.MutableState) error {
-	if _, ok := exampleState.GameState().(RoundRobiner); !ok {
+	if _, ok := exampleState.GameState().(RoundRobinProperties); !ok {
 		return errors.New("GameState does not implement RoundRobiner interface")
 	}
 	return nil
@@ -38,7 +48,7 @@ func (s *StartRoundRobin) ValidConfiguration(exampleState boardgame.MutableState
 //Apply gets the game ready for a round robin by calling
 //gameState.SetNextRoundRobinPlayer to CurrentPlayerIndex.
 func (s *StartRoundRobin) Apply(state boardgame.MutableState) error {
-	roundRobiner, ok := state.GameState().(RoundRobiner)
+	roundRobiner, ok := state.GameState().(RoundRobinProperties)
 
 	if !ok {
 		return errors.New("GameState unexpectedly did not implement RoundRobiner interface")
@@ -51,10 +61,24 @@ func (s *StartRoundRobin) Apply(state boardgame.MutableState) error {
 	return nil
 }
 
-//RoundRobin is a type of move that goes around every player one by one and
-//does some action. Instead of using and modifying CurrentPlayerIndex, it uses
-//NextRoundRobinPlayer(). Other moves in this package embed RoundRobin. The
-//embeding move should implement RoundRobinActioner.
+/*
+
+RoundRobin is a type of move that goes around every player one by one and
+does some action. Other moves in this package embed RoundRobin. The
+embeding move should implement RoundRobinActioner.
+
+Round Robin moves start at a given player and go around, applying the
+RoundRobinAction for each player until the RoundRobinFinished() method returns
+true. Various embedders of the base RoundRobin will override the default
+behavior for that method.
+
+Round Robin keeps track of various properties on the gameState by using the
+RoundRobinProperties interface.
+
+A round robin phase must be immediately preceded by StartRoundRobin, which
+sets various properties the round robin needs to operate before it starts.
+
+*/
 type RoundRobin struct {
 	Base
 	TargetPlayerIndex boardgame.PlayerIndex
@@ -68,7 +92,7 @@ func (r *RoundRobin) AllowMultipleInProgression() bool {
 
 //DefaultsForState sets the TargetPlayerIndex to NextRoundRobinPlayer.
 func (r *RoundRobin) DefaultsForState(state boardgame.State) {
-	roundRobiner, ok := state.GameState().(RoundRobiner)
+	roundRobiner, ok := state.GameState().(RoundRobinProperties)
 
 	if !ok {
 		return
@@ -78,7 +102,7 @@ func (r *RoundRobin) DefaultsForState(state boardgame.State) {
 }
 
 func (r *RoundRobin) ValidConfiguration(exampleState boardgame.MutableState) error {
-	if _, ok := exampleState.GameState().(RoundRobiner); !ok {
+	if _, ok := exampleState.GameState().(RoundRobinProperties); !ok {
 		return errors.New("GameState does not implement RoundRobiner interface")
 	}
 
@@ -104,7 +128,7 @@ func (r *RoundRobin) Apply(state boardgame.MutableState) error {
 		return errors.New("RoundRobinAction returned error: " + err.Error())
 	}
 
-	roundRobiner, ok := state.GameState().(RoundRobiner)
+	roundRobiner, ok := state.GameState().(RoundRobinProperties)
 
 	if !ok {
 		return errors.New("GameState does not implement RoundRobiner interface")
