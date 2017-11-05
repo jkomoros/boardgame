@@ -280,17 +280,38 @@ func (g *Game) Move(version int) (Move, error) {
 
 }
 
-//HistoricalMoveStorageRecords returns a slice of all MoveStorageRecords, in
-//order, from the beginning of this game. Thin wrapper around storage.Moves().
-//Very uncommon to need this; it's exposed primarily just so moves.Base can
-//use it in its Legal() method.
-func (g *Game) HistoricalMoveStorageRecords() []*MoveStorageRecord {
+//HistoricalMovesSincePhaseTransition returns a slice of all
+//MoveStorageRecords, in reverse order, from the time that the Phase most recently
+//started being its current value. Very uncommon to need this; it's exposed
+//primarily just so moves.Base can use it in its Legal() method.
+func (g *Game) HistoricalMovesSincePhaseTransition() []*MoveStorageRecord {
 
 	if g.cachedHistoricalMoves == nil {
 		moves, err := g.manager.Storage().Moves(g.Id(), -1, g.Version())
 
 		if err != nil {
 			return nil
+		}
+
+		if len(moves) > 0 {
+
+			var keptMoves []*MoveStorageRecord
+
+			targetPhase := moves[len(moves)-1].Phase
+
+			for i := len(moves) - 1; i > 0; i-- {
+				move := moves[i]
+
+				if move.Phase != targetPhase {
+					//Must have fallen off the end of the current phase's most recent run
+					break
+				}
+
+				keptMoves = append(keptMoves, move)
+			}
+
+			moves = keptMoves
+
 		}
 
 		g.cachedHistoricalMoves = moves
