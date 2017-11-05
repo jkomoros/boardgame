@@ -4,7 +4,14 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/components/playingcards"
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves"
+)
+
+//+autoreader
+const (
+	PhaseInitialDeal = iota
+	PhaseNormalPlay
 )
 
 func init() {
@@ -29,6 +36,7 @@ func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 //+autoreader
 type gameState struct {
 	boardgame.BaseSubState
+	Phase         enum.MutableVal        `enum:"Phase"`
 	DiscardStack  boardgame.MutableStack `stack:"cards" sanitize:"len"`
 	DrawStack     boardgame.MutableStack `stack:"cards" sanitize:"len"`
 	UnusedCards   boardgame.MutableStack `stack:"cards"`

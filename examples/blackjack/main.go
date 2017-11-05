@@ -46,6 +46,22 @@ func (g *gameDelegate) DefaultNumPlayers() int {
 	return 4
 }
 
+func (g *gameDelegate) CurrentPhase(state boardgame.State) int {
+	game, _ := concreteStates(state)
+	return game.Phase.Value()
+}
+
+func (g *gameDelegate) PhaseMoveProgression(phase int) []string {
+	switch phase {
+	case PhaseInitialDeal:
+		return []string{
+			moveDealInitialCardConfig.Name,
+			moveBeginNormalPlayConfig.Name,
+		}
+	}
+	return nil
+}
+
 func (g *gameDelegate) CurrentPlayerIndex(state boardgame.State) boardgame.PlayerIndex {
 	game, _ := concreteStates(state)
 	return game.CurrentPlayer
@@ -190,7 +206,7 @@ func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) error {
 }
 
 func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) {
-	chest := boardgame.NewComponentChest(nil)
+	chest := boardgame.NewComponentChest(Enums)
 
 	if err := chest.AddDeck("cards", playingcards.NewDeck(false)); err != nil {
 		return nil, errors.New("Couldn't add deck: " + err.Error())
@@ -209,6 +225,7 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 		&moveRevealHiddenCardConfig,
 		&moveShuffleDiscardToDrawConfig,
 		&moveFinishTurnConfig,
+		&moveBeginNormalPlayConfig,
 	})
 
 	if err := manager.SetUp(); err != nil {

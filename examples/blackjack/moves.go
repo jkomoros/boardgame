@@ -38,6 +38,11 @@ type MoveCurrentPlayerStand struct {
 	moves.CurrentPlayer
 }
 
+//+autoreader
+type MoveBeginNormalPlay struct {
+	moves.Base
+}
+
 /**************************************************
  *
  * MoveShuffleDiscardToDraw Implementation
@@ -88,6 +93,9 @@ var moveCurrentPlayerHitConfig = boardgame.MoveTypeConfig{
 	HelpText: "The current player hits, drawing a card.",
 	MoveConstructor: func() boardgame.Move {
 		return new(MoveCurrentPlayerHit)
+	},
+	LegalPhases: []int{
+		PhaseNormalPlay,
 	},
 }
 
@@ -144,6 +152,9 @@ var moveCurrentPlayerStandConfig = boardgame.MoveTypeConfig{
 	MoveConstructor: func() boardgame.Move {
 		return new(MoveCurrentPlayerStand)
 	},
+	LegalPhases: []int{
+		PhaseNormalPlay,
+	},
 }
 
 func (m *MoveCurrentPlayerStand) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -192,6 +203,9 @@ var moveFinishTurnConfig = boardgame.MoveTypeConfig{
 		return new(MoveFinishTurn)
 	},
 	IsFixUp: true,
+	LegalPhases: []int{
+		PhaseNormalPlay,
+	},
 }
 
 /**************************************************
@@ -207,6 +221,9 @@ var moveRevealHiddenCardConfig = boardgame.MoveTypeConfig{
 		return new(MoveRevealHiddenCard)
 	},
 	IsFixUp: true,
+	LegalPhases: []int{
+		PhaseNormalPlay,
+	},
 }
 
 func (m *MoveRevealHiddenCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -247,6 +264,9 @@ var moveDealInitialCardConfig = boardgame.MoveTypeConfig{
 	HelpText: "Deals a card to the a player who has not gotten their initial deal",
 	MoveConstructor: func() boardgame.Move {
 		return new(MoveDealInitialCard)
+	},
+	LegalPhases: []int{
+		PhaseInitialDeal,
 	},
 	IsFixUp: true,
 }
@@ -324,6 +344,33 @@ func (m *MoveDealInitialCard) Apply(state boardgame.MutableState) error {
 		//This completes their initial deal
 		p.GotInitialDeal = true
 	}
+
+	return nil
+
+}
+
+/**************************************************
+ *
+ * moveBeginNormalPlay Implementation
+ *
+ **************************************************/
+
+var moveBeginNormalPlayConfig = boardgame.MoveTypeConfig{
+	Name:     "Begin Normal Play",
+	HelpText: "After all initial cards have been dealt, begins normal play",
+	MoveConstructor: func() boardgame.Move {
+		return new(MoveBeginNormalPlay)
+	},
+	LegalPhases: []int{
+		PhaseInitialDeal,
+	},
+	IsFixUp: true,
+}
+
+func (m *MoveBeginNormalPlay) Apply(state boardgame.MutableState) error {
+	game, _ := concreteStates(state)
+
+	game.Phase.SetValue(PhaseNormalPlay)
 
 	return nil
 
