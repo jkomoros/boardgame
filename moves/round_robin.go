@@ -97,9 +97,9 @@ func (s *StartRoundRobin) Apply(state boardgame.MutableState) error {
 
 /*
 
-RoundRobin is a type of move that goes around every player one by one and
-does some action. Other moves in this package embed RoundRobin. The
-embeding move should implement RoundRobinActioner.
+RoundRobin is a type of move that goes around every player one by one and does
+some action. Other moves in this package embed RoundRobin, and it's more
+common to use those directly.
 
 Round Robin moves start at a given player and go around, applying the
 RoundRobinAction for each player until the RoundRobinFinished() method returns
@@ -108,6 +108,8 @@ behavior for that method.
 
 Round Robin keeps track of various properties on the gameState by using the
 RoundRobinProperties interface.
+
+The embeding move should implement RoundRobinActioner.
 
 A round robin phase must be immediately preceded by StartRoundRobin, which
 sets various properties the round robin needs to operate before it starts.
