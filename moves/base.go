@@ -68,7 +68,7 @@ func (d *Base) Description() string {
 	return d.Info().Type().HelpText()
 }
 
-//ValidConfiguration always returns true because there is no required
+//ValidConfiguration always returns nil because there is no required
 //configuration for moves.Base.
 func (d *Base) ValidConfiguration() error {
 	return nil
