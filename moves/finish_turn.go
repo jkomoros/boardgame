@@ -35,11 +35,17 @@ type FinishTurn struct {
 	Base
 }
 
-//VerifyFinishTurnStates is a convenience method that you can use to gutcheck
-//at compile time that your gameState and playerStates, respectively, satisfy
-//the FinishTurn interfaces. Designed to be used in an init() method.
-func VerifyFinishTurnStates(c CurrentPlayerSetter, p PlayerTurnFinisher) {
-	return
+func (f *FinishTurn) ValidConfiguration(exampleState boardgame.MutableState) error {
+
+	if _, ok := exampleState.GameState().(CurrentPlayerSetter); !ok {
+		return errors.New("GameState does not implement CurrentPlayerSetter")
+	}
+
+	if _, ok := exampleState.PlayerStates()[0].(PlayerTurnFinisher); !ok {
+		return errors.New("PlayerState does not implement PlayerTurnFinisher")
+	}
+
+	return nil
 }
 
 //Legal checks if the game's CurrentPlayer's TurnDone() returns true.

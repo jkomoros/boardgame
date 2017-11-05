@@ -5,7 +5,6 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/components/playingcards"
 	"github.com/jkomoros/boardgame/enum"
-	"github.com/jkomoros/boardgame/moves"
 )
 
 //+autoreader
@@ -13,13 +12,6 @@ const (
 	PhaseInitialDeal = iota
 	PhaseNormalPlay
 )
-
-func init() {
-
-	//Make sure that we get compile-time errors if our player and game state
-	//don't adhere to the interfaces that moves.FinishTurn expects
-	moves.VerifyFinishTurnStates(&gameState{}, &playerState{})
-}
 
 func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 	game := state.GameState().(*gameState)
