@@ -336,7 +336,10 @@ func (d *DefaultGameDelegate) PhaseEnum() enum.Enum {
 
 //PhaseMoveProgression will return the move progression if it was added with
 //AddMovesForPhaseProgression. If not, will return nil, which means that any
-//moves that are legal in this phase are allowed in any order.
+//moves that are legal in this phase are allowed in any order. If you used
+//AddMovesForPhaseProgression during setup (or have no phases with a specific
+//progression of moves) then you likely have no reason to override this
+//method.
 func (d *DefaultGameDelegate) PhaseMoveProgression(phase int) []string {
 	if d.moveProgressions == nil {
 		return nil
