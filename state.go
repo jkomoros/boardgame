@@ -316,12 +316,15 @@ func (s *state) copy(sanitized bool) *state {
 //mutable*States once.
 func (s *state) setStateForSubStates() {
 	s.gameState.SetState(s)
+	s.gameState.SetMutableState(s)
 	for i := 0; i < len(s.playerStates); i++ {
 		s.playerStates[i].SetState(s)
+		s.playerStates[i].SetMutableState(s)
 	}
 	for _, dynamicComponents := range s.dynamicComponentValues {
 		for _, component := range dynamicComponents {
 			component.SetState(s)
+			component.SetMutableState(s)
 		}
 	}
 
@@ -619,6 +622,13 @@ type StateSetter interface {
 	State() State
 }
 
+//MutableStateSetter is like StateSetter but it also includes Mutable methods.
+type MutableStateSetter interface {
+	StateSetter
+	SetMutableState(state MutableState)
+	MutableState() MutableState
+}
+
 //SubState is the interface that all sub-state objects (PlayerStates.
 //GameStates, and DynamicComponentValues) implement.
 type SubState interface {
@@ -629,14 +639,14 @@ type SubState interface {
 //MutableSubState is the interface that Mutable{Game,Player}State's
 //implement.
 type MutableSubState interface {
-	StateSetter
+	MutableStateSetter
 	ReadSetter
 }
 
 //ConfigurableSubState is the interface that Configurable{Game,Player}State's
 //implement.
 type ConfigurableSubState interface {
-	StateSetter
+	MutableStateSetter
 	ReadSetConfigurer
 }
 
@@ -678,7 +688,10 @@ func DefaultMarshalJSON(obj interface{}) ([]byte, error) {
 //BaseSubState is a simple struct designed to be anonymously embedded in the
 //SubStates you create, so you don't have to implement SetState yourself.
 type BaseSubState struct {
-	state State
+	//Ugh it's really annoying to have to hold onto the same state in two
+	//references...
+	state        State
+	mutableState MutableState
 }
 
 func (b *BaseSubState) SetState(state State) {
@@ -687,4 +700,12 @@ func (b *BaseSubState) SetState(state State) {
 
 func (b *BaseSubState) State() State {
 	return b.state
+}
+
+func (b *BaseSubState) SetMutableState(state MutableState) {
+	b.mutableState = state
+}
+
+func (b *BaseSubState) MutableState() MutableState {
+	return b.mutableState
 }

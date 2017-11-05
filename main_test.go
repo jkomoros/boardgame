@@ -51,10 +51,11 @@ type testingComponent struct {
 }
 
 type testingComponentDynamic struct {
-	state  State
-	IntVar int
-	Stack  MutableStack
-	Enum   enum.MutableVal
+	state        State
+	mutableState MutableState
+	IntVar       int
+	Stack        MutableStack
+	Enum         enum.MutableVal
 }
 
 const testGameName = "Test Game"
@@ -81,6 +82,14 @@ func (t *testingComponentDynamic) SetState(state State) {
 
 func (t *testingComponentDynamic) State() State {
 	return t.state
+}
+
+func (t *testingComponentDynamic) SetMutableState(state MutableState) {
+	t.mutableState = state
+}
+
+func (t *testingComponentDynamic) MutableState() MutableState {
+	return t.mutableState
 }
 
 func (t *testingComponentDynamic) Copy() MutableSubState {
@@ -130,6 +139,7 @@ func concreteStates(state State) (*testGameState, []*testPlayerState) {
 
 type testGameState struct {
 	state              State
+	mutableState       MutableState
 	CurrentPlayer      PlayerIndex
 	DrawDeck           MutableStack
 	Timer              MutableTimer
@@ -163,8 +173,17 @@ func (t *testGameState) State() State {
 	return t.state
 }
 
+func (t *testGameState) SetMutableState(state MutableState) {
+	t.mutableState = state
+}
+
+func (t *testGameState) MutableState() MutableState {
+	return t.mutableState
+}
+
 type testPlayerState struct {
-	state State
+	state        State
+	mutableState MutableState
 	//Note: PlayerIndex is stored ehre, but not a normal property or
 	//serialized, because it's really just a convenience method because it's
 	//implied by its position in the State.Users array.
@@ -198,6 +217,14 @@ func (t *testPlayerState) SetState(state State) {
 
 func (t *testPlayerState) State() State {
 	return t.state
+}
+
+func (t *testPlayerState) SetMutableState(state MutableState) {
+	t.mutableState = state
+}
+
+func (t *testPlayerState) MutableState() MutableState {
+	return t.mutableState
 }
 
 type testMoveInvalidPlayerIndex struct {
