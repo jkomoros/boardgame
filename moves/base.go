@@ -64,7 +64,9 @@ func (d *Base) Description() string {
 //current phase will be based on the enum value of the PhaseEnum named by
 //delegate.PhaseEnumName(), if it exists. Next, it checks to see if the give
 //move is at a legal point in the move progression for this phase, if it
-//exists.
+//exists. Each move in the move progression must show up 1 or more times. The
+//method checks to see if we were to make this move, would the moves since the
+//last phase change match the pattern?
 func (d *Base) Legal(state boardgame.State) error {
 
 	if err := d.legalInPhase(state); err != nil {
@@ -105,14 +107,70 @@ func (d *Base) legalInPhase(state boardgame.State) error {
 func (d *Base) legalMoveInProgression(state boardgame.State) error {
 	currentPhase := state.Game().Manager().Delegate().CurrentPhase(state)
 
-	legalMoveProgression := state.Game().Manager().Delegate().PhaseMoveProgression(currentPhase)
+	pattern := state.Game().Manager().Delegate().PhaseMoveProgression(currentPhase)
 
 	//If there is no legal move progression then moves are legal in the phase at any time
-	if legalMoveProgression == nil {
+	if pattern == nil {
 		return nil
 	}
 
-	//TODO: do proper progression support.
-	return errors.New("Support for move progressions is not yet implemented")
+	historicalMoves := state.Game().HistoricalMovesSincePhaseTransition(state.Version())
+
+	progression := make([]string, len(historicalMoves))
+
+	for i, move := range historicalMoves {
+		progression[i] = move.Name
+	}
+
+	//If we were to add our target move to the historical progression, would it match the pattern?
+	if !progressionMatches(append(progression, d.Info().Type().Name()), pattern) {
+		return errors.New("This move is not legal at this point in the current phase.")
+	}
+
+	return nil
+
+}
+
+//progressionMatches returns true if the given history matches the pattern.
+func progressionMatches(input []string, pattern []string) bool {
+
+	inputPosition := 0
+	patternPosition := 0
+
+	for inputPosition < len(input) {
+
+		inputItem := input[inputPosition]
+		patternItem := pattern[patternPosition]
+
+		if inputItem != patternItem {
+			//Perhaps we just passed to the next part of the pattern?
+
+			//that's not legal at the very front of input
+			if inputPosition == 0 {
+				return false
+			}
+
+			patternPosition++
+
+			if patternPosition >= len(pattern) {
+				//No more pattern, I guess we didn't match.
+				return false
+			}
+
+			patternItem = pattern[patternPosition]
+
+			if inputItem != patternItem {
+				//Nope, we didn't match the next part of the pattern, we just don't match
+				return false
+			}
+
+		}
+
+		inputPosition++
+
+	}
+
+	//If we got to the end of the input without invalidating then it passes.
+	return true
 
 }
