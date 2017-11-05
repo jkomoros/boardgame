@@ -59,10 +59,12 @@ func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage Storag
 	}
 
 	result := &GameManager{
-		delegate: delegate,
-		chest:    chest,
-		storage:  storage,
-		logger:   logrus.New(),
+		delegate:          delegate,
+		chest:             chest,
+		storage:           storage,
+		logger:            logrus.New(),
+		fixUpMovesByName:  make(map[string]*MoveType),
+		playerMovesByName: make(map[string]*MoveType),
 	}
 
 	chest.manager = result
@@ -638,16 +640,6 @@ func (g *GameManager) SetUp() error {
 		g.agentsByName[strings.ToLower(agent.Name())] = agent
 	}
 
-	g.playerMovesByName = make(map[string]*MoveType)
-	for _, moveType := range g.playerMoves {
-		g.playerMovesByName[strings.ToLower(moveType.Name())] = moveType
-	}
-
-	g.fixUpMovesByName = make(map[string]*MoveType)
-	for _, moveType := range g.fixUpMoves {
-		g.fixUpMovesByName[strings.ToLower(moveType.Name())] = moveType
-	}
-
 	g.modifiableGames = make(map[string]*Game)
 
 	g.timers = newTimerManager(g)
@@ -708,10 +700,27 @@ func (g *GameManager) AddMoveType(config *MoveTypeConfig) error {
 	if g.initialized {
 		return errors.New("GameManager has already been SetUp so no new moves may be added.")
 	}
+
+	moveName := strings.ToLower(moveType.Name())
+
 	if moveType.IsFixUp() {
+
+		if g.fixUpMovesByName[moveName] != nil {
+			//If it's already been added that's OK
+			return nil
+		}
+
 		g.fixUpMoves = append(g.fixUpMoves, moveType)
+		g.fixUpMovesByName[moveName] = moveType
 	} else {
+
+		if g.playerMovesByName[moveName] != nil {
+			//If it's already been added that's OK
+			return nil
+		}
+
 		g.playerMoves = append(g.playerMoves, moveType)
+		g.playerMovesByName[moveName] = moveType
 	}
 
 	return nil
