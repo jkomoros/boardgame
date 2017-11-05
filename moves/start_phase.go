@@ -38,7 +38,7 @@ type StartPhase struct {
 }
 
 func (s *StartPhase) ValidConfiguration(exampleState boardgame.MutableState) error {
-	embeddingMove := s.Info().Type().NewMove(exampleState)
+	embeddingMove := s.TopLevelStruct()
 
 	if _, ok := embeddingMove.(PhaseToEnterer); !ok {
 		return errors.New("The embedding move does not implement PhaseToEnterer")

@@ -20,7 +20,7 @@ type ShuffleStack struct {
 //We don't need a Legal method because the pass-through to moves.Base is sufficient.
 
 func (s *ShuffleStack) Apply(state boardgame.MutableState) error {
-	embeddingMove := s.Info().Type().NewMove(state)
+	embeddingMove := s.TopLevelStruct()
 
 	stacker, ok := embeddingMove.(SourceStacker)
 
@@ -38,7 +38,7 @@ func (s *ShuffleStack) Apply(state boardgame.MutableState) error {
 }
 
 func (s *ShuffleStack) ValidConfiguration() error {
-	testMove := s.Info().Type().NewMove(nil)
+	testMove := s.TopLevelStruct()
 
 	_, ok := testMove.(SourceStacker)
 

@@ -82,7 +82,7 @@ func (r *RoundRobin) ValidConfiguration(exampleState boardgame.MutableState) err
 		return errors.New("GameState does not implement RoundRobiner interface")
 	}
 
-	embeddingMove := r.Info().Type().NewMove(exampleState)
+	embeddingMove := r.TopLevelStruct()
 
 	if _, ok := embeddingMove.(RoundRobinActioner); !ok {
 		return errors.New("Embedding move doesn't implement RoundRobinActioner")
@@ -92,9 +92,7 @@ func (r *RoundRobin) ValidConfiguration(exampleState boardgame.MutableState) err
 
 func (r *RoundRobin) Apply(state boardgame.MutableState) error {
 
-	//TODO: this is incorrect, because it doesn't handle the case where the
-	//configuration isn't set to defaults.
-	embeddingMove := r.Info().Type().NewMove(state)
+	embeddingMove := r.TopLevelStruct()
 
 	actioner, ok := embeddingMove.(RoundRobinActioner)
 

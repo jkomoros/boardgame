@@ -168,7 +168,7 @@ func (d *Base) legalMoveInProgression(state boardgame.State, proposer boardgame.
 		//We're applying multiple in a row. Is that legal?
 
 		//We can't check ourselves because we're embedded in the real move type.
-		testMove := d.Info().Type().NewMove(state)
+		testMove := d.TopLevelStruct()
 
 		allowMultiple, ok := testMove.(AllowMultipleInProgression)
 
