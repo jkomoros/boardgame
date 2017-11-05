@@ -36,7 +36,7 @@ type RoundRobinActioner interface {
 //We can keep these private because embedders already will have the interface
 //satisfied so don't need to be confused by them.
 type roundRobinStarterPlayer interface {
-	RoundRobinStaterPlayer(state boardgame.State) boardgame.PlayerIndex
+	RoundRobinStarterPlayer(state boardgame.State) boardgame.PlayerIndex
 }
 type roundRobinFinished interface {
 	RoundRobinFinished(state boardgame.State) error
@@ -85,7 +85,7 @@ func (s *StartRoundRobin) Apply(state boardgame.MutableState) error {
 		return errors.New("The top level struct unexpectedly didn't have RoundRobinStarterPlayer")
 	}
 
-	starterPlayer := starter.RoundRobinStaterPlayer(state)
+	starterPlayer := starter.RoundRobinStarterPlayer(state)
 
 	roundRobiner.SetNextRoundRobinPlayer(starterPlayer)
 	roundRobiner.SetRoundRobinStarterPlayer(starterPlayer)
