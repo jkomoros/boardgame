@@ -32,7 +32,7 @@ type CurrentPlayer struct {
 //proposer, or if the TargetPlayerIndex is not one of the players.
 func (c *CurrentPlayer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
-	if err := c.Base.Legal(state); err != nil {
+	if err := c.Base.Legal(state, proposer); err != nil {
 		return err
 	}
 

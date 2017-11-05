@@ -69,7 +69,7 @@ func (m *moveMoveCardBetweenShortStacks) DefaultsForState(state boardgame.State)
 
 func (m *moveMoveCardBetweenShortStacks) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
-	if err := m.Base.Legal(state); err != nil {
+	if err := m.Base.Legal(state, proposer); err != nil {
 		return err
 	}
 
@@ -131,7 +131,7 @@ func (m *moveMoveCardBetweenDrawAndDiscardStacks) DefaultsForState(state boardga
 
 func (m *moveMoveCardBetweenDrawAndDiscardStacks) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
-	if err := m.Base.Legal(state); err != nil {
+	if err := m.Base.Legal(state, proposer); err != nil {
 		return err
 	}
 
@@ -183,7 +183,7 @@ var moveFlipHiddenCardConfig = boardgame.MoveTypeConfig{
 
 func (m *moveFlipHiddenCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
-	if err := m.Base.Legal(state); err != nil {
+	if err := m.Base.Legal(state, proposer); err != nil {
 		return err
 	}
 
@@ -235,7 +235,7 @@ var moveMoveCardBetweenFanStacksConfig = boardgame.MoveTypeConfig{
 
 func (m *moveMoveCardBetweenFanStacks) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
-	if err := m.Base.Legal(state); err != nil {
+	if err := m.Base.Legal(state, proposer); err != nil {
 		return err
 	}
 
@@ -291,7 +291,7 @@ var moveVisibleShuffleCardsConfig = boardgame.MoveTypeConfig{
 
 func (m *moveVisibleShuffleCards) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
-	if err := m.Base.Legal(state); err != nil {
+	if err := m.Base.Legal(state, proposer); err != nil {
 		return err
 	}
 
@@ -328,7 +328,7 @@ var moveShuffleCardsConfig = boardgame.MoveTypeConfig{
 
 func (m *moveShuffleCards) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
-	if err := m.Base.Legal(state); err != nil {
+	if err := m.Base.Legal(state, proposer); err != nil {
 		return err
 	}
 
@@ -365,7 +365,7 @@ var moveMoveBetweenHiddenConfig = boardgame.MoveTypeConfig{
 
 func (m *moveMoveBetweenHidden) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
-	if err := m.Base.Legal(state); err != nil {
+	if err := m.Base.Legal(state, proposer); err != nil {
 		return err
 	}
 

@@ -67,7 +67,7 @@ func (d *Base) Description() string {
 //exists. Each move in the move progression must show up 1 or more times. The
 //method checks to see if we were to make this move, would the moves since the
 //last phase change match the pattern?
-func (d *Base) Legal(state boardgame.State) error {
+func (d *Base) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
 	if err := d.legalInPhase(state); err != nil {
 		return err

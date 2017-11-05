@@ -127,7 +127,7 @@ var moveStartHideCardsTimerConfig = boardgame.MoveTypeConfig{
 
 func (m *MoveStartHideCardsTimer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
-	if err := m.Base.Legal(state); err != nil {
+	if err := m.Base.Legal(state, proposer); err != nil {
 		return err
 	}
 
@@ -192,7 +192,7 @@ var moveCaptureCardsConfig = boardgame.MoveTypeConfig{
 }
 
 func (m *MoveCaptureCards) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
-	if err := m.Base.Legal(state); err != nil {
+	if err := m.Base.Legal(state, proposer); err != nil {
 		return err
 	}
 
