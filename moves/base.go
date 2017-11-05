@@ -19,6 +19,8 @@ import (
 	"strconv"
 )
 
+//go:generate autoreader
+
 /*
 Base is an optional, convenience struct designed to be embedded
 anonymously in your own Moves. It implements no-op methods for many of the
