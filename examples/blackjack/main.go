@@ -51,17 +51,6 @@ func (g *gameDelegate) CurrentPhase(state boardgame.State) int {
 	return game.Phase.Value()
 }
 
-func (g *gameDelegate) PhaseMoveProgression(phase int) []string {
-	switch phase {
-	case PhaseInitialDeal:
-		return []string{
-			moveDealInitialCardConfig.Name,
-			moveBeginNormalPlayConfig.Name,
-		}
-	}
-	return nil
-}
-
 func (g *gameDelegate) CurrentPlayerIndex(state boardgame.State) boardgame.PlayerIndex {
 	game, _ := concreteStates(state)
 	return game.CurrentPlayer
@@ -212,7 +201,9 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 		return nil, errors.New("Couldn't add deck: " + err.Error())
 	}
 
-	manager := boardgame.NewGameManager(&gameDelegate{}, chest, storage)
+	delegate := &gameDelegate{}
+
+	manager := boardgame.NewGameManager(delegate, chest, storage)
 
 	if manager == nil {
 		return nil, errors.New("No manager returned")
@@ -221,12 +212,12 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 	manager.BulkAddMoveTypes([]*boardgame.MoveTypeConfig{
 		&moveCurrentPlayerHitConfig,
 		&moveCurrentPlayerStandConfig,
-		&moveDealInitialCardConfig,
 		&moveRevealHiddenCardConfig,
 		&moveShuffleDiscardToDrawConfig,
 		&moveFinishTurnConfig,
-		&moveBeginNormalPlayConfig,
 	})
+
+	delegate.AddMovesForPhaseProgression(PhaseInitialDeal, &moveDealInitialCardConfig, &moveBeginNormalPlayConfig)
 
 	if err := manager.SetUp(); err != nil {
 		return nil, errors.New("Couldn't set up manager: " + err.Error())
