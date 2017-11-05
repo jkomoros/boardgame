@@ -95,19 +95,7 @@ func (g *GameManager) SetLogger(logger *logrus.Logger) {
 //NewGame returns a new game. You must call SetUp before using it.
 func (g *GameManager) NewGame() *Game {
 
-	if g == nil {
-		return nil
-	}
-
-	result := &Game{
-		manager: g,
-		//TODO: set the size of chan based on something more reasonable.
-		//Note: this is also set similarly in manager.ModifiableGame
-		proposedMoves: make(chan *proposedMoveItem, 20),
-		id:            randomString(gameIDLength),
-		secretSalt:    randomString(gameIDLength),
-		modifiable:    true,
-	}
+	result := g.newGame()
 
 	if err := g.modifiableGameCreated(result); err != nil {
 		g.logger.Warn("Couldn't warn that a modifiable game was created: " + err.Error())
@@ -116,6 +104,25 @@ func (g *GameManager) NewGame() *Game {
 
 	return result
 
+}
+
+//newGame is the inner portion of creating a valid game object, but we don't
+//yet tell the system that it exists because we expect to throw it out before
+//saving it. You almost never want this, use NewGame instead.
+func (g *GameManager) newGame() *Game {
+	if g == nil {
+		return nil
+	}
+
+	return &Game{
+		manager: g,
+		//TODO: set the size of chan based on something more reasonable.
+		//Note: this is also set similarly in manager.ModifiableGame
+		proposedMoves: make(chan *proposedMoveItem, 20),
+		id:            randomString(gameIDLength),
+		secretSalt:    randomString(gameIDLength),
+		modifiable:    true,
+	}
 }
 
 func (g *GameManager) gameFromStorageRecord(record *GameStorageRecord) *Game {
@@ -635,12 +642,18 @@ func (g *GameManager) SetUp() error {
 		g.dynamicComponentValidator[deckName] = validator
 	}
 
+	exampleState, err := g.newGame().starterState(g.Delegate().DefaultNumPlayers())
+
+	if err != nil {
+		return errors.New("Couldn't get exampleState: " + err.Error())
+	}
+
 	for _, moveType := range g.fixUpMoves {
 		//We don't create a real move because we just need to run the
 		//ValidConfiguration(), and creating a whole fake state is a pain.
 		testMove := moveType.constructor()
 
-		if err := testMove.ValidConfiguration(); err != nil {
+		if err := testMove.ValidConfiguration(exampleState); err != nil {
 			return errors.New(moveType.Name() + " move failed the ValidConfiguration test: " + err.Error())
 		}
 
@@ -651,7 +664,7 @@ func (g *GameManager) SetUp() error {
 		//ValidConfiguration(), and creating a whole fake state is a pain.
 		testMove := moveType.constructor()
 
-		if err := testMove.ValidConfiguration(); err != nil {
+		if err := testMove.ValidConfiguration(exampleState); err != nil {
 			return errors.New(moveType.Name() + " move failed the ValidConfiguration test: " + err.Error())
 		}
 

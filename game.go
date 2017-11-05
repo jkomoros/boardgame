@@ -358,6 +358,49 @@ func (g *Game) NumAgentPlayers() int {
 
 }
 
+//starterState returns a starting, not-yet-saved State that is configured with all moving parts.
+func (g *Game) starterState(numPlayers int) (MutableState, error) {
+	stateCopy := &state{
+		game:            g,
+		version:         0,
+		secretMoveCount: make(map[string][]int),
+	}
+
+	gameState, err := g.manager.gameStateConstructor(stateCopy)
+
+	if err != nil {
+		return nil, err
+	}
+
+	stateCopy.gameState = gameState
+
+	playerStates := make([]ConfigurablePlayerState, numPlayers)
+
+	for i := 0; i < numPlayers; i++ {
+		playerState, err := g.manager.playerStateConstructor(stateCopy, PlayerIndex(i))
+
+		if err != nil {
+			return nil, err
+		}
+
+		playerStates[i] = playerState
+	}
+
+	stateCopy.playerStates = playerStates
+
+	dynamic, err := g.manager.dynamicComponentValuesConstructor(stateCopy)
+
+	if err != nil {
+		return nil, errors.New("Couldn't create empty dynamic component values: " + err.Error())
+	}
+
+	stateCopy.dynamicComponentValues = dynamic
+
+	stateCopy.setStateForSubStates()
+
+	return stateCopy, nil
+}
+
 //SetUp should be called a single time after all of the member variables are
 //set correctly, including Chest. SetUp must be called before ProposeMove can
 //be called. Even if an error is returned, the game should be in a consistent
@@ -411,43 +454,11 @@ func (g *Game) SetUp(numPlayers int, config GameConfig, agentNames []string) err
 
 	g.numPlayers = numPlayers
 
-	stateCopy := &state{
-		game:            g,
-		version:         0,
-		secretMoveCount: make(map[string][]int),
-	}
-
-	gameState, err := g.manager.gameStateConstructor(stateCopy)
+	stateCopy, err := g.starterState(numPlayers)
 
 	if err != nil {
-		return err
+		return errors.Extend(err, "Couldn't get starter state")
 	}
-
-	stateCopy.gameState = gameState
-
-	playerStates := make([]ConfigurablePlayerState, numPlayers)
-
-	for i := 0; i < numPlayers; i++ {
-		playerState, err := g.manager.playerStateConstructor(stateCopy, PlayerIndex(i))
-
-		if err != nil {
-			return err
-		}
-
-		playerStates[i] = playerState
-	}
-
-	stateCopy.playerStates = playerStates
-
-	dynamic, err := g.manager.dynamicComponentValuesConstructor(stateCopy)
-
-	if err != nil {
-		return baseErr.WithError("Couldn't create empty dynamic component values: " + err.Error())
-	}
-
-	stateCopy.dynamicComponentValues = dynamic
-
-	stateCopy.setStateForSubStates()
 
 	g.manager.delegate.BeginSetUp(stateCopy, config)
 

@@ -100,7 +100,7 @@ type testMoveFailValidConfiguration struct {
 	baseMove
 }
 
-func (t *testMoveFailValidConfiguration) ValidConfiguration() error {
+func (t *testMoveFailValidConfiguration) ValidConfiguration(exampleState MutableState) error {
 	return errors.New("Invalid configuration")
 }
 

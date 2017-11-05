@@ -133,7 +133,7 @@ type Move interface {
 	//those misconfigurations at the earliest moment. In most cases you never
 	//need to implement this yourself; moves in the moves package that need it
 	//will implement it.
-	ValidConfiguration() error
+	ValidConfiguration(exampleState MutableState) error
 
 	ReadSetConfigurer
 }
@@ -321,6 +321,6 @@ func (d *baseMove) Description() string {
 	return d.Info().Type().HelpText()
 }
 
-func (d *baseMove) ValidConfiguration() error {
+func (d *baseMove) ValidConfiguration(exampleState MutableState) error {
 	return nil
 }

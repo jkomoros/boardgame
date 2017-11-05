@@ -120,7 +120,7 @@ func (t *testAutoEnumMove) Info() *MoveInfo {
 	return t.info
 }
 
-func (t *testAutoEnumMove) ValidConfiguration() error {
+func (t *testAutoEnumMove) ValidConfiguration(exampleState MutableState) error {
 	return nil
 }
 

@@ -70,7 +70,7 @@ func (d *Base) Description() string {
 
 //ValidConfiguration always returns nil because there is no required
 //configuration for moves.Base.
-func (d *Base) ValidConfiguration() error {
+func (d *Base) ValidConfiguration(exampleState boardgame.MutableState) error {
 	return nil
 }
 
