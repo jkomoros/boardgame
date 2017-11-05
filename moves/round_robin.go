@@ -84,7 +84,9 @@ true. Various embedders of the base RoundRobin will override the default
 behavior for that method.
 
 Round Robin keeps track of various properties on the gameState by using the
-RoundRobinProperties interface.
+RoundRobinProperties interface. Generally it's easiest to simply embed
+moveinterfaces.RoundRobinBaseGameState in your GameState anonymously to
+implement the interface automatically.
 
 The embeding move should implement RoundRobinActioner.
 

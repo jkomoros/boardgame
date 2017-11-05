@@ -13,6 +13,39 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
+//RoundRobinBaseGameState is designed to be embedded in your GameState
+//anonymously to automatically satisfy the RoundRobinProperties interface,
+//making it easy to use RoundRobin-basd moves.
+type RoundRobinBaseGameState struct {
+	boardgame.BaseSubState
+	NextPlayerRoundRobin    boardgame.PlayerIndex
+	StarterPlayerRoundRobin boardgame.PlayerIndex
+	RoundCountRoundRobin    int
+}
+
+func (r *RoundRobinBaseGameState) NextRoundRobinPlayer() boardgame.PlayerIndex {
+	return r.NextPlayerRoundRobin
+}
+
+func (r *RoundRobinBaseGameState) RoundRobinStarterPlayer() boardgame.PlayerIndex {
+	return r.StarterPlayerRoundRobin
+}
+
+func (r *RoundRobinBaseGameState) RoundRobinRoundCount() int {
+	return r.RoundCountRoundRobin
+}
+
+func (r *RoundRobinBaseGameState) SetNextRoundRobinPlayer(nextPlayer boardgame.PlayerIndex) {
+	r.NextPlayerRoundRobin = nextPlayer
+}
+func (r *RoundRobinBaseGameState) SetRoundRobinStarterPlayer(index boardgame.PlayerIndex) {
+	r.StarterPlayerRoundRobin = index
+}
+
+func (r *RoundRobinBaseGameState) SetRoundRobinRoundCount(count int) {
+	r.RoundCountRoundRobin = count
+}
+
 //Moves should implement AllowMultipleInProgression if they want to
 //affirmatively communicate to moves.Base that in a move progression is it
 //legal to apply multiple. If the move does not implement this interface then
@@ -64,7 +97,8 @@ type PlayerTurnFinisher interface {
 //RoundRobinProperties should be implemented by your GameState if you use any
 //of the RoundRobin moves, including StartRoundRobin. You don't have to do
 //anything we these other than store them to a property in your gameState and
-//then return them via the getters.
+//then return them via the getters. Generally you simply embed
+//RoundRobinBaseGameState to satisfy this interface for free.
 type RoundRobinProperties interface {
 	//The next player whose round robin turn it will be
 	NextRoundRobinPlayer() boardgame.PlayerIndex
