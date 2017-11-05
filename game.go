@@ -284,10 +284,10 @@ func (g *Game) Move(version int) (Move, error) {
 //MoveStorageRecords, in reverse order, from the time that the Phase most recently
 //started being its current value. Very uncommon to need this; it's exposed
 //primarily just so moves.Base can use it in its Legal() method.
-func (g *Game) HistoricalMovesSincePhaseTransition() []*MoveStorageRecord {
+func (g *Game) HistoricalMovesSincePhaseTransition(upToVersion int) []*MoveStorageRecord {
 
 	if g.cachedHistoricalMoves == nil {
-		moves, err := g.manager.Storage().Moves(g.Id(), -1, g.Version())
+		moves, err := g.manager.Storage().Moves(g.Id(), -1, upToVersion)
 
 		if err != nil {
 			return nil
