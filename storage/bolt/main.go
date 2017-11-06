@@ -197,7 +197,7 @@ func (s *StorageManager) Move(gameId string, version int) (*boardgame.MoveStorag
 	}
 
 	if record == nil {
-		return nil, errors.New("No such version for game")
+		return nil, errors.New("No such version (" + strconv.Itoa(version) + ") for game " + gameId)
 	}
 
 	var result boardgame.MoveStorageRecord
