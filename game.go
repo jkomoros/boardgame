@@ -287,7 +287,7 @@ func (g *Game) Move(version int) (Move, error) {
 func (g *Game) HistoricalMovesSincePhaseTransition(upToVersion int) []*MoveStorageRecord {
 
 	if g.cachedHistoricalMoves == nil {
-		moves, err := g.manager.Storage().Moves(g.Id(), -1, upToVersion)
+		moves, err := g.manager.Storage().Moves(g.Id(), 0, upToVersion)
 
 		if err != nil {
 			g.Manager().Logger().Errorln("HistoricalMoveSincePhaseTransition failed: " + err.Error())
