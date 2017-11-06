@@ -76,8 +76,7 @@ func (s *StartRoundRobin) Apply(state boardgame.MutableState) error {
 
 	roundRobiner.SetNextRoundRobinPlayer(starterPlayer)
 	roundRobiner.SetRoundRobinStarterPlayer(starterPlayer)
-	//The very first round robin round will increment this to 0
-	roundRobiner.SetRoundRobinRoundCount(-1)
+	roundRobiner.SetRoundRobinRoundCount(0)
 
 	return nil
 }
@@ -325,7 +324,13 @@ func (r *RoundRobin) Apply(state boardgame.MutableState) error {
 		return errors.New("GameState does not implement RoundRobiner interface")
 	}
 
-	roundRobiner.SetNextRoundRobinPlayer(r.TargetPlayerIndex.Next(state))
+	nextPlayer := r.TargetPlayerIndex.Next(state)
+
+	roundRobiner.SetNextRoundRobinPlayer(nextPlayer)
+
+	if nextPlayer == roundRobiner.RoundRobinStarterPlayer() {
+		roundRobiner.SetRoundRobinRoundCount(roundRobiner.RoundRobinRoundCount() + 1)
+	}
 
 	return nil
 
