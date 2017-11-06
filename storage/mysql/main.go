@@ -64,7 +64,8 @@ type StorageManager struct {
 	dbMap    *gorp.DbMap
 	testMode bool
 	//The config string that we were provided in connect.
-	config string
+	config    string
+	connected bool
 }
 
 func NewStorageManager(testMode bool) *StorageManager {
@@ -111,6 +112,8 @@ func (s *StorageManager) Connect(config string) error {
 		return errors.New("Sanity check failed for db. Have you used the admin tool to migrate it up? " + err.Error())
 	}
 
+	s.connected = true
+
 	return nil
 
 }
@@ -121,6 +124,8 @@ func (s *StorageManager) Close() {
 	}
 	s.db.Close()
 	s.db = nil
+	s.dbMap = nil
+	s.connected = false
 }
 
 func (s *StorageManager) CleanUp() {
@@ -136,6 +141,11 @@ func (s *StorageManager) Name() string {
 }
 
 func (s *StorageManager) State(gameId string, version int) (boardgame.StateStorageRecord, error) {
+
+	if !s.connected {
+		return nil, errors.New("Database not connected yet")
+	}
+
 	var state StateStorageRecord
 
 	err := s.dbMap.SelectOne(&state, "select * from "+TableStates+" where GameId=? and Version=?", gameId, version)
@@ -152,6 +162,10 @@ func (s *StorageManager) State(gameId string, version int) (boardgame.StateStora
 }
 
 func (s *StorageManager) Moves(gameId string, fromVersion, toVersion int) ([]*boardgame.MoveStorageRecord, error) {
+
+	if !s.connected {
+		return nil, errors.New("Database not connected yet")
+	}
 
 	var moves []*MoveStorageRecord
 
@@ -180,6 +194,10 @@ func (s *StorageManager) Moves(gameId string, fromVersion, toVersion int) ([]*bo
 }
 
 func (s *StorageManager) Move(gameId string, version int) (*boardgame.MoveStorageRecord, error) {
+	if !s.connected {
+		return nil, errors.New("Database not connected yet")
+	}
+
 	var move MoveStorageRecord
 
 	err := s.dbMap.SelectOne(&move, "select * from "+TableMoves+" where GameId=? and Version=?", gameId, version)
@@ -196,6 +214,11 @@ func (s *StorageManager) Move(gameId string, version int) (*boardgame.MoveStorag
 }
 
 func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
+
+	if !s.connected {
+		return nil, errors.New("Database not connected yet")
+	}
+
 	var game GameStorageRecord
 
 	err := s.dbMap.SelectOne(&game, "select * from "+TableGames+" where Id=?", id)
@@ -212,6 +235,10 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 }
 
 func (s *StorageManager) ExtendedGame(id string) (*extendedgame.StorageRecord, error) {
+	if !s.connected {
+		return nil, errors.New("Database not connected yet")
+	}
+
 	var record ExtendedGameStorageRecord
 
 	err := s.dbMap.SelectOne(&record, "select * from "+TableExtendedGames+" where Id=?", id)
@@ -224,6 +251,11 @@ func (s *StorageManager) ExtendedGame(id string) (*extendedgame.StorageRecord, e
 }
 
 func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageRecord, error) {
+
+	if !s.connected {
+		return nil, errors.New("Database not connected yet")
+	}
+
 	var record CombinedGameStorageRecord
 
 	err := s.dbMap.SelectOne(&record, combinedGameStorageRecordQuery+" and g.Id = ?", id)
@@ -236,6 +268,10 @@ func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageR
 }
 
 func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord, move *boardgame.MoveStorageRecord) error {
+
+	if !s.connected {
+		return errors.New("Database not connected yet")
+	}
 
 	version := game.Version
 
@@ -319,6 +355,10 @@ func (s *StorageManager) touchExtendedGameLastActivity(id string) error {
 
 func (s *StorageManager) AgentState(gameId string, player boardgame.PlayerIndex) ([]byte, error) {
 
+	if !s.connected {
+		return nil, errors.New("Database not connected yet")
+	}
+
 	var agent AgentStateStorageRecord
 
 	err := s.dbMap.SelectOne(&agent, "select * from "+TableAgentStates+" where GameId=? and PlayerIndex=? order by Id desc limit 1", gameId, int64(player))
@@ -336,6 +376,10 @@ func (s *StorageManager) AgentState(gameId string, player boardgame.PlayerIndex)
 }
 
 func (s *StorageManager) SaveAgentState(gameId string, player boardgame.PlayerIndex, state []byte) error {
+	if !s.connected {
+		return errors.New("Database not connected yet")
+	}
+
 	record := NewAgentStateStorageRecord(gameId, player, state)
 
 	err := s.dbMap.Insert(record)
@@ -348,6 +392,11 @@ func (s *StorageManager) SaveAgentState(gameId string, player boardgame.PlayerIn
 }
 
 func (s *StorageManager) UpdateExtendedGame(id string, eGame *extendedgame.StorageRecord) error {
+
+	if !s.connected {
+		return errors.New("Database not connected yet")
+	}
+
 	record := NewExtendedGameStorageRecord(eGame)
 	record.Id = id
 
@@ -357,6 +406,11 @@ func (s *StorageManager) UpdateExtendedGame(id string, eGame *extendedgame.Stora
 }
 
 func (s *StorageManager) ListGames(max int, list listing.Type, userId string, gameType string) []*extendedgame.CombinedStorageRecord {
+
+	if !s.connected {
+		return nil
+	}
+
 	var games []CombinedGameStorageRecord
 
 	if max < 1 {
@@ -422,6 +476,10 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string, ga
 
 func (s *StorageManager) SetPlayerForGame(gameId string, playerIndex boardgame.PlayerIndex, userId string) error {
 
+	if !s.connected {
+		return errors.New("Database not connected yet")
+	}
+
 	game, err := s.Game(gameId)
 
 	if err != nil {
@@ -479,6 +537,10 @@ func (s *StorageManager) SetPlayerForGame(gameId string, playerIndex boardgame.P
 }
 
 func (s *StorageManager) UserIdsForGame(gameId string) []string {
+
+	if !s.connected {
+		return nil
+	}
 
 	game, err := s.Game(gameId)
 
@@ -551,6 +613,10 @@ func (s *StorageManager) UpdateUser(user *users.StorageRecord) error {
 }
 
 func (s *StorageManager) GetUserById(uid string) *users.StorageRecord {
+	if !s.connected {
+		return nil
+	}
+
 	var user UserStorageRecord
 
 	err := s.dbMap.SelectOne(&user, "select * from "+TableUsers+" where Id=?", uid)
@@ -569,6 +635,10 @@ func (s *StorageManager) GetUserById(uid string) *users.StorageRecord {
 }
 
 func (s *StorageManager) GetUserByCookie(cookie string) *users.StorageRecord {
+
+	if !s.connected {
+		return nil
+	}
 
 	var cookieRecord CookieStorageRecord
 
@@ -589,6 +659,11 @@ func (s *StorageManager) GetUserByCookie(cookie string) *users.StorageRecord {
 }
 
 func (s *StorageManager) ConnectCookieToUser(cookie string, user *users.StorageRecord) error {
+
+	if !s.connected {
+		return errors.New("Database not connected yet")
+	}
+
 	//If user is nil, then delete any records with that cookie.
 	if user == nil {
 
