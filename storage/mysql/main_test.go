@@ -2,8 +2,8 @@ package mysql
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/storage/internal/test"
 	"github.com/jkomoros/boardgame/storage/mysql/connect"
-	"github.com/jkomoros/boardgame/storage/test"
 	"github.com/mattes/migrate"
 	"github.com/workfit/tester/assert"
 	"log"

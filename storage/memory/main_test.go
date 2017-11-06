@@ -1,7 +1,7 @@
 package memory
 
 import (
-	"github.com/jkomoros/boardgame/storage/test"
+	"github.com/jkomoros/boardgame/storage/internal/test"
 	"testing"
 )
 
