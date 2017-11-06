@@ -12,14 +12,13 @@ import (
 //cannot be created directly; they are created via
 //GameManager.AddMoveType(moveTypeConfig).
 type MoveType struct {
-	name           string
-	helpText       string
-	constructor    func() Move
-	immediateFixUp func(state State) Move
-	legalPhases    []int
-	isFixUp        bool
-	validator      *readerValidator
-	manager        *GameManager
+	name        string
+	helpText    string
+	constructor func() Move
+	legalPhases []int
+	isFixUp     bool
+	validator   *readerValidator
+	manager     *GameManager
 }
 
 //MoveTypeConfig is a collection of information used to create a MoveType.
@@ -45,17 +44,6 @@ type MoveTypeConfig struct {
 	//the correct enum for that field, allowing you to maintain a single-line
 	//constructor.
 	MoveConstructor func() Move
-
-	//If ImmediateFixUp is defined and returns a Move, it will immediately be
-	//applied (if Legal) to the game before Delegate's ProposeFixUp is
-	//consulted. The move returned need not have been registered with the
-	//GameManager via AddFixUpMove, and if the returned move is not legal is
-	//fine, it just won't be applied. ImmediateFixUp is useful when you've
-	//broken a fixup task into multiple moves only so the observable semantics
-	//are granular enough, and saves awkward and error-prone signaling in
-	//State fields. When in doubt, just return nil for this method, or do not
-	//supply one.
-	ImmediateFixUp func(State) Move
 
 	//LegalPhases is the value that will be returned from
 	//MoveType.LegalPhases. It is primarily used by moves.Base to see if the
@@ -233,14 +221,13 @@ func newMoveType(config *MoveTypeConfig, manager *GameManager) (*MoveType, error
 	}
 
 	return &MoveType{
-		name:           config.Name,
-		helpText:       config.HelpText,
-		constructor:    config.MoveConstructor,
-		immediateFixUp: config.ImmediateFixUp,
-		isFixUp:        config.IsFixUp,
-		legalPhases:    config.LegalPhases,
-		validator:      validator,
-		manager:        manager,
+		name:        config.Name,
+		helpText:    config.HelpText,
+		constructor: config.MoveConstructor,
+		isFixUp:     config.IsFixUp,
+		legalPhases: config.LegalPhases,
+		validator:   validator,
+		manager:     manager,
 	}, nil
 
 }
@@ -253,13 +240,6 @@ func (m *MoveType) Name() string {
 //HelpText is a human-readable sentence describing what the move does.
 func (m *MoveType) HelpText() string {
 	return m.helpText
-}
-
-func (m *MoveType) ImmediateFixUp(state State) Move {
-	if m.immediateFixUp == nil {
-		return nil
-	}
-	return m.immediateFixUp(state)
 }
 
 func (m *MoveType) IsFixUp() bool {

@@ -111,16 +111,6 @@ in GameState about SubPhases, and writing finicky Legal() methods for the
 later FixUp moves in the chain that only trigger in the precise right
 condition.
 
-As an advanced optimization, your MoveType can provide an ImmediateFixUp
-function in its MoveTypeConfig that takes a state and returns a Move. After a
-move is a applied, if the Move's Type has an ImmediateFixUp, it will be
-immediately applied BEFORE delegate.ProposeFixUp is called. Importantly, the
-moves returned from this method do not need to be registered on GameManager,
-because somewhere in their ancestor chain must have been registered in order
-to have successfully been Proposed in the first place. This allows games with
-many long fix-up chains to be a bit cleaner and not have to have error-prone
-Legal logic signaling.
-
 Game Delegates
 
 Each GameManager has a reference to a GameDelegate that is specific to this

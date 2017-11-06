@@ -533,7 +533,7 @@ func (g *Game) SetUp(numPlayers int, config GameConfig, agentNames []string) err
 		//We apply the move immediately. This ensures that when
 		//DelayedError resolves, all of the fix up moves have been
 		//applied.
-		if err := g.applyMove(move, AdminPlayerIndex, true, 0, false, selfInitiatorSentinel); err != nil {
+		if err := g.applyMove(move, AdminPlayerIndex, true, 0, selfInitiatorSentinel); err != nil {
 
 			if err == ErrTooManyFixUps {
 				return err
@@ -565,7 +565,7 @@ func (g *Game) mainLoop() {
 		if item == nil {
 			return
 		}
-		item.ch <- g.applyMove(item.move, item.proposer, false, 0, false, selfInitiatorSentinel)
+		item.ch <- g.applyMove(item.move, item.proposer, false, 0, selfInitiatorSentinel)
 		close(item.ch)
 	}
 
@@ -776,7 +776,7 @@ func (g *Game) delayedProposeMove(move Move, proposer PlayerIndex, low time.Dura
 
 //Game applies the move to the state if it is currently legal. May only be
 //called by mainLoop. Propose moves with game.ProposeMove instead.
-func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseCount int, isImmediateFixUp bool, initiator int) error {
+func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseCount int, initiator int) error {
 
 	baseErr := errors.NewFriendly("The move could not be made")
 
@@ -791,18 +791,11 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	}
 
 	if isFixUp {
-		//We only check to validate that a non-immediate fixUp is actually
-		//configured on game. This is because immediateFixUp moves can only
-		//come from a move who either was configured on Game or whose ancestor
-		//was. Also, the use case for immediateFixUp is moves htat generally
-		//only should be applied immediately after another item, so it makes
-		//sense for them to not be listed in FixUpMoves (which, with the
-		//default delegate, is always checked for proposefixup).
-		if !isImmediateFixUp {
-			if g.FixUpMoveByName(move.Info().Type().Name()) == nil {
-				return baseErr.WithError("That move is not configured as a Fix Up move for this game.")
-			}
+
+		if g.FixUpMoveByName(move.Info().Type().Name()) == nil {
+			return baseErr.WithError("That move is not configured as a Fix Up move for this game.")
 		}
+
 	} else {
 
 		//Verify that the Move is actually configured to be part of this game.
@@ -889,42 +882,13 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 		return nil
 	}
 
-	immediateFixUp := move.Info().Type().ImmediateFixUp(newState)
-
-	if immediateFixUp != nil {
-
-		//We check illegal ourselves, because it's fine and dandy if the
-		//immediateFixUp isn't legal, but it IS an error if it fails for any
-		//other reason.
-
-		illegal := immediateFixUp.Legal(newState, proposer)
-
-		if illegal == nil {
-
-			fixUpErr := g.applyMove(immediateFixUp, proposer, true, recurseCount, true, initiator)
-
-			if fixUpErr != nil {
-				return baseErr.WithError("The move worked, but an ImmediateFixUp failed in the chain: " + fixUpErr.Error())
-			}
-
-			newState = g.CurrentState().(*state)
-		}
-	}
-
-	if isImmediateFixUp {
-		//If we're an immediate fix up, then we don't have to worry about
-		//running our own ProposeFixUp, because somewhere up our call chain
-		//will.
-		return nil
-	}
-
 	move = g.manager.Delegate().ProposeFixUpMove(newState)
 
 	if move != nil {
 		//We apply the move immediately. This ensures that when
 		//DelayedError resolves, all of the fix up moves have been
 		//applied.
-		if err := g.applyMove(move, AdminPlayerIndex, true, recurseCount+1, false, initiator); err != nil {
+		if err := g.applyMove(move, AdminPlayerIndex, true, recurseCount+1, initiator); err != nil {
 
 			if err == ErrTooManyFixUps {
 				return err
