@@ -290,6 +290,7 @@ func (g *Game) HistoricalMovesSincePhaseTransition(upToVersion int) []*MoveStora
 		moves, err := g.manager.Storage().Moves(g.Id(), -1, upToVersion)
 
 		if err != nil {
+			g.Manager().Logger().Errorln("HistoricalMoveSincePhaseTransition failed: " + err.Error())
 			return nil
 		}
 
