@@ -83,7 +83,12 @@ func (s *StartRoundRobin) Apply(state boardgame.MutableState) error {
 
 //NewStartRoundRobinMoveConfig returns a move config that you can use to
 //install a StartRoundRobin into your GameManager without needing to define a
-//struct in your own package that embeds StartRoundRobin anonymously.
+//struct in your own package that embeds StartRoundRobin anonymously. If
+//you're using the moveConfig in
+//DefaultGameDelegate.AddMovesForPhaseProgression, you can pass nil for
+//legalPhases and it will be automatically configured by
+//AddMovesForPhaseProgression to only be legal in the phase that you're
+//building out.
 func NewStartRoundRobinMoveConfig(legalPhases []int) *boardgame.MoveTypeConfig {
 
 	return &boardgame.MoveTypeConfig{

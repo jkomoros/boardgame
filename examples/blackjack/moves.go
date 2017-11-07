@@ -263,9 +263,6 @@ var moveDealInitialHiddenCardConfig = boardgame.MoveTypeConfig{
 	MoveConstructor: func() boardgame.Move {
 		return new(MoveDealInitialHiddenCard)
 	},
-	LegalPhases: []int{
-		PhaseInitialDeal,
-	},
 	IsFixUp: true,
 }
 
@@ -288,9 +285,6 @@ var moveDealInitialVisibleCardConfig = boardgame.MoveTypeConfig{
 	HelpText: "Deals a visible card to each player",
 	MoveConstructor: func() boardgame.Move {
 		return new(MoveDealInitialVisibleCard)
-	},
-	LegalPhases: []int{
-		PhaseInitialDeal,
 	},
 	IsFixUp: true,
 }

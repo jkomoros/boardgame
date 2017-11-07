@@ -94,7 +94,7 @@ func (s *StartPhase) Apply(state boardgame.MutableState) error {
 //NewStartPhaseMoveConfig returns a MoveConfig object configured so that you
 //don't need to even define your own StartPhase embedding move but can just
 //use this one directly.
-func NewStartPhaseMoveConfig(manager *boardgame.GameManager, legalPhases []int, phaseToStart int) *boardgame.MoveTypeConfig {
+func NewStartPhaseMoveConfig(manager *boardgame.GameManager, phaseToStart int, legalPhases []int) *boardgame.MoveTypeConfig {
 
 	phaseEnum := manager.Delegate().PhaseEnum()
 

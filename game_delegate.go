@@ -218,7 +218,10 @@ type DefaultGameDelegate struct {
 //also configures the value that will be returned from the default
 //PhaseMoveProgression() for the phase in question. If the move types aren't
 //part of a move progression, then adding them with manager.BulkAddMoveTypes
-//is sufficient.
+//is sufficient. As a convenience, it will check that the given phase is part
+//of LegalPhases for each move config, and if not will add it (to a copy) of
+//the move config before isntalling. This allows you to skip defining
+//LegalPhases for moves that will only be legal in this phase anyway.
 func (d *DefaultGameDelegate) AddMovesForPhaseProgression(phase int, config ...*MoveTypeConfig) error {
 
 	if d.Manager() == nil {
@@ -233,9 +236,30 @@ func (d *DefaultGameDelegate) AddMovesForPhaseProgression(phase int, config ...*
 
 	for i, moveConfig := range config {
 
-		moveProgression = append(moveProgression, moveConfig.Name)
+		modifiedMoveConfig := moveConfig.Copy()
 
-		if err := d.Manager().AddMoveType(moveConfig); err != nil {
+		moveProgression = append(moveProgression, modifiedMoveConfig.Name)
+
+		hasTargetPhase := false
+
+		for _, legalPhase := range modifiedMoveConfig.LegalPhases {
+			if legalPhase == phase {
+				hasTargetPhase = true
+				break
+			}
+		}
+
+		if !hasTargetPhase {
+			//If we didn't explicitly say that the given phase we're
+			//configuring is legal on this move type, add it.
+
+			//Note that in cases where the move type is legal in ALL phases,
+			//this will lock it to only being legal in this move progression.
+			//That's generally what you want--but not always.
+			modifiedMoveConfig.LegalPhases = append(modifiedMoveConfig.LegalPhases, phase)
+		}
+
+		if err := d.Manager().AddMoveType(modifiedMoveConfig); err != nil {
 			return errors.New("Couldn't add " + strconv.Itoa(i) + " move config: " + err.Error())
 		}
 	}
