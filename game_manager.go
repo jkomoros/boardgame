@@ -690,25 +690,6 @@ func (g *GameManager) SetUp() error {
 	return nil
 }
 
-//BulkAddMoveTypes is a convenience wrapper around AddPlayerMoveType and
-//AddFixUpMoveType. Will error if any of the configs do not produce a valid
-//MoveType.
-func (g *GameManager) BulkAddMoveTypes(moveTypeConfigs []*MoveTypeConfig) error {
-
-	if moveTypeConfigs == nil {
-		return errors.New("No moveTypeConfigs provided")
-	}
-
-	for i, config := range moveTypeConfigs {
-		if err := g.AddMoveType(config); err != nil {
-			return errors.New("Config " + strconv.Itoa(i) + " failed with error: " + err.Error())
-		}
-	}
-
-	return nil
-
-}
-
 //AddAgent is called before set up to configure an agent that is available to
 //play in games.
 func (g *GameManager) AddAgent(agent Agent) {
@@ -716,6 +697,28 @@ func (g *GameManager) AddAgent(agent Agent) {
 		return
 	}
 	g.agents = append(g.agents, agent)
+}
+
+//AddMoves is a simple wrapper around AddMoveType. It is useful for move
+//configs that are legal in any phase in any order. If you want to configure
+//moves that are only legal in certain phases, use AddMovesForPhase. If you
+//want to add moves that are only legal in certain phases in certain orders,
+//use AddOrderedMovesForPhase instead. Unlike the AddMovesForPhase variants,
+//AddMoves doesn't modify the LegalPhases of the movs you add.
+func (g *GameManager) AddMoves(config ...*MoveTypeConfig) error {
+
+	if len(config) == 0 {
+		return errors.New("No moveTypeConfigs provided")
+	}
+
+	for i, theConfig := range config {
+		if err := g.AddMoveType(theConfig); err != nil {
+			return errors.New("Config " + strconv.Itoa(i) + " failed with error: " + err.Error())
+		}
+	}
+
+	return nil
+
 }
 
 //AddOrderedMovesForPhase is a convenience wrapper around AddMoveType. It is

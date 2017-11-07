@@ -141,7 +141,7 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 		&moveMoveBetweenHiddenConfig,
 	}
 
-	if err := manager.BulkAddMoveTypes(moveTypeConfigs); err != nil {
+	if err := manager.AddMoves(moveTypeConfigs...); err != nil {
 		return nil, errors.New("Couldn't create moves: " + err.Error())
 	}
 

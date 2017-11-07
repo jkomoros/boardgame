@@ -401,10 +401,10 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 
 	manager := NewGameManager(&testInfiniteLoopGameDelegate{}, newTestGameChest(), newTestStorageManager())
 
-	manager.BulkAddMoveTypes([]*MoveTypeConfig{
+	manager.AddMoves(
 		&testMoveConfig,
 		&testAlwaysLegalMoveConfig,
-	})
+	)
 
 	manager.SetUp()
 

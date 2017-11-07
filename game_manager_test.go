@@ -66,13 +66,13 @@ func newTestGameManger() *GameManager {
 
 	manager.AddAgent(&testAgent{})
 
-	manager.BulkAddMoveTypes([]*MoveTypeConfig{
+	manager.AddMoves(
 		&testMoveConfig,
 		&testMoveIncrementCardInHandConfig,
 		&testMoveDrawCardConfig,
 		&testMoveAdvanceCurrentPlayerConfig,
 		&testMoveInvalidPlayerIndexConfig,
-	})
+	)
 
 	return manager
 }
@@ -135,9 +135,9 @@ var testMoveFailValidConfigurationConfig = MoveTypeConfig{
 func TestMoveFailsValidConfiguration(t *testing.T) {
 	manager := NewGameManager(&testGameDelegate{}, newTestGameChest(), newTestStorageManager())
 
-	manager.BulkAddMoveTypes([]*MoveTypeConfig{
+	manager.AddMoves(
 		&testMoveFailValidConfigurationConfig,
-	})
+	)
 
 	err := manager.SetUp()
 

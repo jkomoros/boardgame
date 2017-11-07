@@ -291,7 +291,7 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 		&moveFinishTurnConfig,
 	}
 
-	if err := manager.BulkAddMoveTypes(bulkMoveTypeConfigs); err != nil {
+	if err := manager.AddMoves(bulkMoveTypeConfigs...); err != nil {
 		return nil, errors.New("Couldn't add moves: " + err.Error())
 	}
 

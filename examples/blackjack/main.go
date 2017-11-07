@@ -210,13 +210,13 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 		return nil, errors.New("No manager returned")
 	}
 
-	manager.BulkAddMoveTypes([]*boardgame.MoveTypeConfig{
+	manager.AddMoves(
 		&moveCurrentPlayerHitConfig,
 		&moveCurrentPlayerStandConfig,
 		&moveRevealHiddenCardConfig,
 		&moveShuffleDiscardToDrawConfig,
 		&moveFinishTurnConfig,
-	})
+	)
 
 	manager.AddOrderedMovesForPhase(
 		PhaseInitialDeal,
