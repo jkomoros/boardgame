@@ -5,7 +5,6 @@ import (
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/errors"
 	"sort"
-	"strconv"
 )
 
 //GameConfig is just a map of keys to values that are passed to your game so
@@ -199,6 +198,15 @@ type GameDelegate interface {
 	Manager() *GameManager
 }
 
+//PhaseMoveProgressionSetter is an optional interface that delegates can
+//implement. If implemented, GameManager.AddOrderedMovesForPhase will call
+//this. DefaultGameDelegate satisfies this interface.
+type PhaseMoveProgressionSetter interface {
+	//SetPhaseMoveProgression should set the values that the delegate should
+	//return for PhaseMoveProgression(phase).
+	SetPhaseMoveProgression(phase int, progression []string)
+}
+
 //PropertyCollection is just an alias for map[string]interface{}
 type PropertyCollection map[string]interface{}
 
@@ -210,64 +218,6 @@ type PropertyCollection map[string]interface{}
 type DefaultGameDelegate struct {
 	manager          *GameManager
 	moveProgressions map[int][]string
-}
-
-//AddMovesForPhaseProgression is a convenience wrapper designed to configure
-//moves on the game manager during initialization for moves that are only
-//useful as part of a progression. Adds each MoveType to the game manager, and
-//also configures the value that will be returned from the default
-//PhaseMoveProgression() for the phase in question. If the move types aren't
-//part of a move progression, then adding them with manager.BulkAddMoveTypes
-//is sufficient. As a convenience, it will check that the given phase is part
-//of LegalPhases for each move config, and if not will add it (to a copy) of
-//the move config before isntalling. This allows you to skip defining
-//LegalPhases for moves that will only be legal in this phase anyway.
-func (d *DefaultGameDelegate) AddMovesForPhaseProgression(phase int, config ...*MoveTypeConfig) error {
-
-	if d.Manager() == nil {
-		return errors.New("Delegate has not had its manager set yet")
-	}
-
-	if d.moveProgressions == nil {
-		d.moveProgressions = make(map[int][]string)
-	}
-
-	var moveProgression []string
-
-	for i, moveConfig := range config {
-
-		modifiedMoveConfig := moveConfig.Copy()
-
-		moveProgression = append(moveProgression, modifiedMoveConfig.Name)
-
-		hasTargetPhase := false
-
-		for _, legalPhase := range modifiedMoveConfig.LegalPhases {
-			if legalPhase == phase {
-				hasTargetPhase = true
-				break
-			}
-		}
-
-		if !hasTargetPhase {
-			//If we didn't explicitly say that the given phase we're
-			//configuring is legal on this move type, add it.
-
-			//Note that in cases where the move type is legal in ALL phases,
-			//this will lock it to only being legal in this move progression.
-			//That's generally what you want--but not always.
-			modifiedMoveConfig.LegalPhases = append(modifiedMoveConfig.LegalPhases, phase)
-		}
-
-		if err := d.Manager().AddMoveType(modifiedMoveConfig); err != nil {
-			return errors.New("Couldn't add " + strconv.Itoa(i) + " move config: " + err.Error())
-		}
-	}
-
-	d.moveProgressions[phase] = moveProgression
-
-	return nil
-
 }
 
 func (d *DefaultGameDelegate) Diagram(state State) string {
@@ -371,6 +321,16 @@ func (d *DefaultGameDelegate) PhaseMoveProgression(phase int) []string {
 		return nil
 	}
 	return d.moveProgressions[phase]
+}
+
+//SetPhaseMoveProgression implements PhaseMoveProgressionSetter so that
+//GameManager.AddOrderedMovesForPhase will work with any delegate that embeds
+//DefaultGameDelegate.
+func (d *DefaultGameDelegate) SetPhaseMoveProgression(phase int, progression []string) {
+	if d.moveProgressions == nil {
+		d.moveProgressions = make(map[int][]string)
+	}
+	d.moveProgressions[phase] = progression
 }
 
 func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state State, c *Component) (Stack, error) {

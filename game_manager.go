@@ -718,6 +718,57 @@ func (g *GameManager) AddAgent(agent Agent) {
 	g.agents = append(g.agents, agent)
 }
 
+//AddOrderedMovesForPhase is a convenience wrapper around AddMoveType. It is
+//useful to install moves that are only legal in a specific phase, and only in
+//a certain order. As a convenience, if the move configs you pass do not
+//already affirmatively list the phase being configured, then they will have
+//it added (to a copy of the config) before adding. This means that in most
+//cases you can skip defining LegalPhases, as it will be configured
+//automatically. Will error if your delegate does not implement
+//PhaseMoveProgressionSetter (DefaultGameDelegate does by default).
+func (g *GameManager) AddOrderedMovesForPhase(phase int, config ...*MoveTypeConfig) error {
+	progressionSetter, ok := g.Delegate().(PhaseMoveProgressionSetter)
+	if !ok {
+		return errors.New("The delegate doest not implement PhaseMoveProgressionSetter, making this conveience method ineffective. Use AddGeneralMoves instead.")
+	}
+
+	var moveProgression []string
+
+	for i, moveConfig := range config {
+
+		modifiedMoveConfig := moveConfig.Copy()
+
+		moveProgression = append(moveProgression, modifiedMoveConfig.Name)
+
+		hasTargetPhase := false
+
+		for _, legalPhase := range modifiedMoveConfig.LegalPhases {
+			if legalPhase == phase {
+				hasTargetPhase = true
+				break
+			}
+		}
+
+		if !hasTargetPhase {
+			//If we didn't explicitly say that the given phase we're
+			//configuring is legal on this move type, add it.
+
+			//Note that in cases where the move type is legal in ALL phases,
+			//this will lock it to only being legal in this move progression.
+			//That's generally what you want--but not always.
+			modifiedMoveConfig.LegalPhases = append(modifiedMoveConfig.LegalPhases, phase)
+		}
+
+		if err := g.AddMoveType(modifiedMoveConfig); err != nil {
+			return errors.New("Couldn't add " + strconv.Itoa(i) + " move config: " + err.Error())
+		}
+	}
+
+	progressionSetter.SetPhaseMoveProgression(phase, moveProgression)
+
+	return nil
+}
+
 //AddMoveType adds the specified move type to the game as a move. It may only
 //be called during initalization.
 func (g *GameManager) AddMoveType(config *MoveTypeConfig) error {
