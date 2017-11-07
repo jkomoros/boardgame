@@ -211,10 +211,14 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 	}
 
 	manager.AddMoves(
+		&moveShuffleDiscardToDrawConfig,
+	)
+
+	manager.AddMovesForPhase(
+		PhaseNormalPlay,
 		&moveCurrentPlayerHitConfig,
 		&moveCurrentPlayerStandConfig,
 		&moveRevealHiddenCardConfig,
-		&moveShuffleDiscardToDrawConfig,
 		&moveFinishTurnConfig,
 	)
 

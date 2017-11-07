@@ -92,9 +92,6 @@ var moveCurrentPlayerHitConfig = boardgame.MoveTypeConfig{
 	MoveConstructor: func() boardgame.Move {
 		return new(MoveCurrentPlayerHit)
 	},
-	LegalPhases: []int{
-		PhaseNormalPlay,
-	},
 }
 
 func (m *MoveCurrentPlayerHit) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -150,9 +147,6 @@ var moveCurrentPlayerStandConfig = boardgame.MoveTypeConfig{
 	MoveConstructor: func() boardgame.Move {
 		return new(MoveCurrentPlayerStand)
 	},
-	LegalPhases: []int{
-		PhaseNormalPlay,
-	},
 }
 
 func (m *MoveCurrentPlayerStand) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -201,9 +195,6 @@ var moveFinishTurnConfig = boardgame.MoveTypeConfig{
 		return new(MoveFinishTurn)
 	},
 	IsFixUp: true,
-	LegalPhases: []int{
-		PhaseNormalPlay,
-	},
 }
 
 /**************************************************
@@ -219,9 +210,6 @@ var moveRevealHiddenCardConfig = boardgame.MoveTypeConfig{
 		return new(MoveRevealHiddenCard)
 	},
 	IsFixUp: true,
-	LegalPhases: []int{
-		PhaseNormalPlay,
-	},
 }
 
 func (m *MoveRevealHiddenCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {

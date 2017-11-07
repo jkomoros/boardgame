@@ -721,27 +721,18 @@ func (g *GameManager) AddMoves(config ...*MoveTypeConfig) error {
 
 }
 
-//AddOrderedMovesForPhase is a convenience wrapper around AddMoveType. It is
-//useful to install moves that are only legal in a specific phase, and only in
-//a certain order. As a convenience, if the move configs you pass do not
-//already affirmatively list the phase being configured, then they will have
-//it added (to a copy of the config) before adding. This means that in most
-//cases you can skip defining LegalPhases, as it will be configured
-//automatically. Will error if your delegate does not implement
-//PhaseMoveProgressionSetter (DefaultGameDelegate does by default).
-func (g *GameManager) AddOrderedMovesForPhase(phase int, config ...*MoveTypeConfig) error {
-	progressionSetter, ok := g.Delegate().(PhaseMoveProgressionSetter)
-	if !ok {
-		return errors.New("The delegate doest not implement PhaseMoveProgressionSetter, making this conveience method ineffective. Use AddGeneralMoves instead.")
-	}
-
-	var moveProgression []string
+//AddMovesForPhase is a convenience wrapper around AddMoveType. It is useful
+//to install moves that are only legal in a specific phase, but in any order.
+//As a convenience, if the move configs you pass do not already affirmatively
+//list the phase being configured, then they will have it added (to a copy of
+//the config) before adding. This means that in most cases you can skip
+//defining LegalPhases, as it will be configured automatically. See
+//AddOrderedMovesForPhase for an ordered variant.
+func (g *GameManager) AddMovesForPhase(phase int, config ...*MoveTypeConfig) error {
 
 	for i, moveConfig := range config {
 
 		modifiedMoveConfig := moveConfig.Copy()
-
-		moveProgression = append(moveProgression, modifiedMoveConfig.Name)
 
 		hasTargetPhase := false
 
@@ -765,6 +756,31 @@ func (g *GameManager) AddOrderedMovesForPhase(phase int, config ...*MoveTypeConf
 		if err := g.AddMove(modifiedMoveConfig); err != nil {
 			return errors.New("Couldn't add " + strconv.Itoa(i) + " move config: " + err.Error())
 		}
+	}
+
+	return nil
+}
+
+//AddOrderedMovesForPhase is a variant around AddMovesForPhase that in
+//addition to enforcing the moves are only legal in a given phase will also
+//set a specific order. Will error if your delegate does not implement
+//PhaseMoveProgressionSetter (DefaultGameDelegate does by default).
+func (g *GameManager) AddOrderedMovesForPhase(phase int, config ...*MoveTypeConfig) error {
+	progressionSetter, ok := g.Delegate().(PhaseMoveProgressionSetter)
+	if !ok {
+		return errors.New("The delegate doest not implement PhaseMoveProgressionSetter, making this conveience method ineffective. Use AddGeneralMoves instead.")
+	}
+
+	var moveProgression []string
+
+	for _, moveConfig := range config {
+
+		moveProgression = append(moveProgression, moveConfig.Name)
+
+	}
+
+	if err := g.AddMovesForPhase(phase, config...); err != nil {
+		return err
 	}
 
 	progressionSetter.SetPhaseMoveProgression(phase, moveProgression)
