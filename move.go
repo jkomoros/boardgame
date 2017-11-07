@@ -49,7 +49,9 @@ type MoveTypeConfig struct {
 	//MoveType.LegalPhases. It is primarily used by moves.Base to see if the
 	//move is legal in the current phase, as determined by
 	//delegate.CurrentPhase(). See moves.Base for how this information is
-	//used.
+	//used. If you use manager.AddMovesForPhase or
+	//manager.AddOrderedMovesForPhase to install your moves, you likely can
+	//leave this as nil and have it set correctly.
 	LegalPhases []int
 
 	//If IsFixUp is true, the moveType will be a FixUp move--that is, players
