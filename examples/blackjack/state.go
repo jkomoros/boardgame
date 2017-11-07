@@ -39,12 +39,11 @@ type gameState struct {
 //+autoreader
 type playerState struct {
 	boardgame.BaseSubState
-	playerIndex    boardgame.PlayerIndex
-	GotInitialDeal bool
-	HiddenHand     boardgame.MutableStack `stack:"cards,1" sanitize:"len"`
-	VisibleHand    boardgame.MutableStack `stack:"cards"`
-	Busted         bool
-	Stood          bool
+	playerIndex boardgame.PlayerIndex
+	HiddenHand  boardgame.MutableStack `stack:"cards,1" sanitize:"len"`
+	VisibleHand boardgame.MutableStack `stack:"cards"`
+	Busted      bool
+	Stood       bool
 }
 
 func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {

@@ -3049,11 +3049,10 @@ func (g *gameState) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 // Implementation for playerState
 
 var __playerStateReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
-	"Busted":         boardgame.TypeBool,
-	"GotInitialDeal": boardgame.TypeBool,
-	"HiddenHand":     boardgame.TypeStack,
-	"Stood":          boardgame.TypeBool,
-	"VisibleHand":    boardgame.TypeStack,
+	"Busted":      boardgame.TypeBool,
+	"HiddenHand":  boardgame.TypeStack,
+	"Stood":       boardgame.TypeBool,
+	"VisibleHand": boardgame.TypeStack,
 }
 
 type __playerStateReader struct {
@@ -3256,8 +3255,6 @@ func (p *__playerStateReader) BoolProp(name string) (bool, error) {
 	switch name {
 	case "Busted":
 		return p.data.Busted, nil
-	case "GotInitialDeal":
-		return p.data.GotInitialDeal, nil
 	case "Stood":
 		return p.data.Stood, nil
 
@@ -3272,9 +3269,6 @@ func (p *__playerStateReader) SetBoolProp(name string, value bool) error {
 	switch name {
 	case "Busted":
 		p.data.Busted = value
-		return nil
-	case "GotInitialDeal":
-		p.data.GotInitialDeal = value
 		return nil
 	case "Stood":
 		p.data.Stood = value

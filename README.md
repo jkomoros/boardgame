@@ -845,22 +845,22 @@ That's not a particularly interesting example. Here's the states for blackjack:
 ```
 //+autoreader
 type gameState struct {
-	boardgame.BaseSubState
-	DiscardStack  boardgame.Stack `stack:"cards" sanitize:"len"`
-	DrawStack     boardgame.Stack `stack:"cards" sanitize:"len"`
-	UnusedCards   boardgame.Stack `stack:"cards"`
+	moveinterfaces.RoundRobinBaseGameState
+	Phase         enum.MutableVal        `enum:"Phase"`
+	DiscardStack  boardgame.MutableStack `stack:"cards" sanitize:"len"`
+	DrawStack     boardgame.MutableStack `stack:"cards" sanitize:"len"`
+	UnusedCards   boardgame.MutableStack `stack:"cards"`
 	CurrentPlayer boardgame.PlayerIndex
 }
 
 //+autoreader
 type playerState struct {
 	boardgame.BaseSubState
-	playerIndex    boardgame.PlayerIndex
-	GotInitialDeal bool
-	HiddenHand     boardgame.Stack `stack:"cards,1" sanitize:"len"`
-	VisibleHand    boardgame.Stack `stack:"cards"`
-	Busted         bool
-	Stood          bool
+	playerIndex boardgame.PlayerIndex
+	HiddenHand  boardgame.MutableStack `stack:"cards,1" sanitize:"len"`
+	VisibleHand boardgame.MutableStack `stack:"cards"`
+	Busted      bool
+	Stood       bool
 }
 ```
 
