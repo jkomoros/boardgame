@@ -699,11 +699,11 @@ func (g *GameManager) AddAgent(agent Agent) {
 	g.agents = append(g.agents, agent)
 }
 
-//AddMoves is a simple wrapper around AddMoveType. It is useful for move
-//configs that are legal in any phase in any order. If you want to configure
-//moves that are only legal in certain phases, use AddMovesForPhase. If you
-//want to add moves that are only legal in certain phases in certain orders,
-//use AddOrderedMovesForPhase instead. Unlike the AddMovesForPhase variants,
+//AddMoves is a simple wrapper around AddMoves. It is useful for move configs
+//that are legal in any phase in any order. If you want to configure moves
+//that are only legal in certain phases, use AddMovesForPhase. If you want to
+//add moves that are only legal in certain phases in certain orders, use
+//AddOrderedMovesForPhase instead. Unlike the AddMovesForPhase variants,
 //AddMoves doesn't modify the LegalPhases of the movs you add.
 func (g *GameManager) AddMoves(config ...*MoveTypeConfig) error {
 
@@ -712,7 +712,7 @@ func (g *GameManager) AddMoves(config ...*MoveTypeConfig) error {
 	}
 
 	for i, theConfig := range config {
-		if err := g.AddMoveType(theConfig); err != nil {
+		if err := g.AddMove(theConfig); err != nil {
 			return errors.New("Config " + strconv.Itoa(i) + " failed with error: " + err.Error())
 		}
 	}
@@ -762,7 +762,7 @@ func (g *GameManager) AddOrderedMovesForPhase(phase int, config ...*MoveTypeConf
 			modifiedMoveConfig.LegalPhases = append(modifiedMoveConfig.LegalPhases, phase)
 		}
 
-		if err := g.AddMoveType(modifiedMoveConfig); err != nil {
+		if err := g.AddMove(modifiedMoveConfig); err != nil {
 			return errors.New("Couldn't add " + strconv.Itoa(i) + " move config: " + err.Error())
 		}
 	}
@@ -772,9 +772,9 @@ func (g *GameManager) AddOrderedMovesForPhase(phase int, config ...*MoveTypeConf
 	return nil
 }
 
-//AddMoveType adds the specified move type to the game as a move. It may only
+//AddMove adds the specified move type to the game as a move. It may only
 //be called during initalization.
-func (g *GameManager) AddMoveType(config *MoveTypeConfig) error {
+func (g *GameManager) AddMove(config *MoveTypeConfig) error {
 
 	moveType, err := newMoveType(config, g)
 
