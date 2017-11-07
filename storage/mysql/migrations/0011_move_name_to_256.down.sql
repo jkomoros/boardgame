@@ -1,0 +1,1 @@
+alter table moves modify Name varchar(16);
