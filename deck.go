@@ -107,7 +107,7 @@ func (d *Deck) ComponentAt(index int) *Component {
 		return d.components[index]
 	}
 
-	return nil
+	return d.GenericComponent()
 
 }
 
