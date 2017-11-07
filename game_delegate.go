@@ -318,9 +318,11 @@ func (d *DefaultGameDelegate) CurrentPlayerIndex(state State) PlayerIndex {
 	return ObserverPlayerIndex
 }
 
-//CurrentPhase returns 0 by default.
+//CurrentPhase returns -1 by default, which amkes it more obvious that you
+//haven't overridden this if you choose to use Phases. (As Phase 0 is normally
+//a valid  phase).
 func (d *DefaultGameDelegate) CurrentPhase(state State) int {
-	return 0
+	return -1
 }
 
 //PhaseEnum defaults to the enum named "Phase" which is the convention for the
