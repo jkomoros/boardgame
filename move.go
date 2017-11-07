@@ -139,6 +139,14 @@ type Move interface {
 	ReadSetConfigurer
 }
 
+//Copy returns a copy of the given MoveTypeConfig, allowing you to modify
+//properties without affecting the original.
+func (m *MoveTypeConfig) Copy() *MoveTypeConfig {
+	var result MoveTypeConfig
+	result = *m
+	return &result
+}
+
 //StorageRecordForMove returns a MoveStorageRecord. Can't hang off of Move
 //itself since Moves are provided by users of the library.
 func StorageRecordForMove(move Move, currentPhase int) *MoveStorageRecord {
