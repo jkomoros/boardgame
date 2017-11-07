@@ -147,6 +147,18 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	assert.For(t).ThatActual(err).IsNil()
 	assert.For(t).ThatActual(refriedMove.Info().Version()).Equals(1)
+
+	assert.For(t).ThatActual(refriedMove.TopLevelStruct()).Equals(refriedMove.TopLevelStruct())
+
+	//RefriedMove and Move will have a different TopLevelStruct which is fine,
+	//so set them both to nil before comparing.
+
+	refriedMove.SetTopLevelStruct(nil)
+	move.SetTopLevelStruct(nil)
+
+	move.SetInfo(nil)
+	refriedMove.SetInfo(nil)
+
 	assert.For(t).ThatActual(refriedMove).Equals(move)
 
 	refriedMoves, err := storage.Moves(tictactoeGame.Id(), 0, 2)
