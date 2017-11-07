@@ -221,6 +221,10 @@ type DefaultGameDelegate struct {
 //is sufficient.
 func (d *DefaultGameDelegate) AddMovesForPhaseProgression(phase int, config ...*MoveTypeConfig) error {
 
+	if d.Manager() == nil {
+		return errors.New("Delegate has not had its manager set yet")
+	}
+
 	if d.moveProgressions == nil {
 		d.moveProgressions = make(map[int][]string)
 	}
