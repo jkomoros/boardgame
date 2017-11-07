@@ -32,6 +32,9 @@ type State interface {
 	//CurrentPlayer returns the PlayerState corresponding to the result of
 	//delegate.CurrentPlayerIndex(), or nil if the index isn't valid.
 	CurrentPlayer() PlayerState
+	//CurrentPlayerIndex is a simple convenience wrapper around
+	//delegate.CurrentPlayerIndex for this state.
+	CurrentPlayerIndex() PlayerIndex
 
 	//Version returns the version number the state is (or will be once
 	//committed).
@@ -251,11 +254,15 @@ func (s *state) PlayerStates() []PlayerState {
 }
 
 func (s *state) CurrentPlayer() PlayerState {
-	index := s.game.manager.delegate.CurrentPlayerIndex(s)
+	index := s.CurrentPlayerIndex()
 	if index < 0 || int(index) >= len(s.playerStates) {
 		return nil
 	}
 	return s.playerStates[index]
+}
+
+func (s *state) CurrentPlayerIndex() PlayerIndex {
+	return s.game.manager.delegate.CurrentPlayerIndex(s)
 }
 
 func (s *state) Copy(sanitized bool) State {

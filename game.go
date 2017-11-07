@@ -328,17 +328,6 @@ func (g *Game) HistoricalMovesSincePhaseTransition(upToVersion int) []*MoveStora
 
 }
 
-//CurrentPlayerIndex is a simple convenience wrapper around game.Delegate().CurrentPlayerIndex(game.CurrentState())
-func (g *Game) CurrentPlayerIndex() PlayerIndex {
-	state := g.CurrentState()
-
-	if state == nil {
-		return ObserverPlayerIndex
-	}
-
-	return g.manager.delegate.CurrentPlayerIndex(state)
-}
-
 //NumAgentPlayers returns the number of players who have agents configured on
 //them. Returns 0 before game is SetUp.
 func (g *Game) NumAgentPlayers() int {

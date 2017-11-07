@@ -20,15 +20,15 @@ func BenchmarkMoves(b *testing.B) {
 
 			move := game.PlayerMoveByName("Reveal Card")
 
-			<-game.ProposeMove(move, game.CurrentPlayerIndex())
+			<-game.ProposeMove(move, game.CurrentState().CurrentPlayerIndex())
 
 			move = game.PlayerMoveByName("Reveal Card")
 
-			<-game.ProposeMove(move, game.CurrentPlayerIndex())
+			<-game.ProposeMove(move, game.CurrentState().CurrentPlayerIndex())
 
 			move = game.PlayerMoveByName("Hide Cards")
 
-			<-game.ProposeMove(move, game.CurrentPlayerIndex())
+			<-game.ProposeMove(move, game.CurrentState().CurrentPlayerIndex())
 		}
 	}
 

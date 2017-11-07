@@ -36,7 +36,7 @@ func (c *CurrentPlayer) Legal(state boardgame.State, proposer boardgame.PlayerIn
 		return err
 	}
 
-	currentPlayer := state.Game().CurrentPlayerIndex()
+	currentPlayer := state.CurrentPlayerIndex()
 
 	if !c.TargetPlayerIndex.Valid(state) {
 		return errors.New("The specified target player is not valid")
@@ -60,5 +60,5 @@ func (c *CurrentPlayer) Legal(state boardgame.State, proposer boardgame.PlayerIn
 
 //DefaultsForState will set the TargetPlayerIndex to be the CurrentPlayerIndex.
 func (c *CurrentPlayer) DefaultsForState(state boardgame.State) {
-	c.TargetPlayerIndex = state.Game().CurrentPlayerIndex()
+	c.TargetPlayerIndex = state.CurrentPlayerIndex()
 }

@@ -38,7 +38,7 @@ func (f *FinishTurn) Legal(state boardgame.State, proposer boardgame.PlayerIndex
 		return err
 	}
 
-	currentPlayerIndex := state.Game().CurrentPlayerIndex()
+	currentPlayerIndex := state.CurrentPlayerIndex()
 
 	if !currentPlayerIndex.Valid(state) {
 		return errors.New("Current player is not valid")
@@ -68,7 +68,7 @@ func (f *FinishTurn) Legal(state boardgame.State, proposer boardgame.PlayerIndex
 //next player (using game.SetCurrentPlayer), then calls ResetForTurnStart on
 //the new player.
 func (f *FinishTurn) Apply(state boardgame.MutableState) error {
-	currentPlayer := state.PlayerStates()[state.Game().CurrentPlayerIndex()]
+	currentPlayer := state.PlayerStates()[state.CurrentPlayerIndex()]
 
 	currentPlayerTurnFinisher, ok := currentPlayer.(moveinterfaces.PlayerTurnFinisher)
 
@@ -80,7 +80,7 @@ func (f *FinishTurn) Apply(state boardgame.MutableState) error {
 		return errors.New("Couldn't reset for turn end: " + err.Error())
 	}
 
-	newPlayerIndex := state.Game().CurrentPlayerIndex().Next(state)
+	newPlayerIndex := state.CurrentPlayerIndex().Next(state)
 
 	playerSetter, ok := state.GameState().(moveinterfaces.CurrentPlayerSetter)
 
