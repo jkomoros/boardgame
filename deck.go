@@ -107,6 +107,10 @@ func (d *Deck) ComponentAt(index int) *Component {
 		return d.components[index]
 	}
 
+	if index == emptyIndexSentinel {
+		return nil
+	}
+
 	return d.GenericComponent()
 
 }

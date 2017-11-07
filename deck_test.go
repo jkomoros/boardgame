@@ -30,8 +30,8 @@ func TestDeckShadowComponent(t *testing.T) {
 
 	c = deck.ComponentAt(-2)
 
-	if c != nil {
-		t.Error("Negative value did not give nil")
+	if c == nil {
+		t.Error("Negative value gave nil")
 	}
 
 	c = deck.ComponentAt(0)
