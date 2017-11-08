@@ -672,27 +672,56 @@ For example, a component that is a card from a traditional American deck of play
 The components for memory are quite simple:
 
 ```
-var cardNames []string = []string{
-    "🏇",
-    "🚴",
-    "✋",
-    "💘",
-    "🎓",
-    "🐕",
-    "🐄",
-    "🐘",
-    "🐍",
-    "🦀",
-    "🍒",
-    "🍔",
-    "🍭",
+var generalCards []string = []string{
+	"🚴",
+	"✋",
+	"💘",
+	"🎓",
+	"🌍",
+	"🏖",
+	"🏛",
+	"⛺",
+	"🚑",
+	"🚕",
+	"⚓",
+	"🕰",
+	"🌈",
+	"🔥",
+	"⛄",
+	"🎄",
+	"🎁",
+	"🏆",
+	"⚽",
+	"🎳",
 }
+
+// Two other sets of cards here
 
 const cardsDeckName = "cards"
 
 //+autoreader reader
 type cardValue struct {
-    Type string
+	Type    string
+	CardSet string
+}
+
+func newDeck() *boardgame.Deck {
+	cards := boardgame.NewDeck()
+
+	for _, val := range generalCards {
+		cards.AddComponentMulti(&cardValue{
+			Type:    val,
+			CardSet: cardSetGeneral,
+		}, 2)
+	}
+
+	//The two other sets of cards are added here
+
+	cards.SetShadowValues(&cardValue{
+		Type: "<hidden>",
+	})
+
+	return cards
 }
 ```
 
@@ -708,49 +737,37 @@ Let's look at memory's NewManager implementation:
 
 ```
 func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) {
-    chest := boardgame.NewComponentChest(nil)
+	chest := boardgame.NewComponentChest(nil)
 
-    cards := boardgame.NewDeck()
+	if err := chest.AddDeck(cardsDeckName, newDeck()); err != nil {
+		return nil, errors.New("Couldn't add deck: " + err.Error())
+	}
 
-    for _, val := range cardNames {
-        cards.AddComponentMulti(&cardValue{
-            Type: val,
-        }, 2)
-    }
+	manager := boardgame.NewGameManager(&gameDelegate{}, chest, storage)
 
-    cards.SetShadowValues(&cardValue{
-        Type: "<hidden>",
-    })
+	if manager == nil {
+		return nil, errors.New("No manager returned")
+	}
 
-    if err := chest.AddDeck(cardsDeckName, cards); err != nil {
-        return nil, errors.New("Couldn't add deck: " + err.Error())
-    }
+	moveTypeConfigs := []*boardgame.MoveTypeConfig{
+		&moveRevealCardConfig,
+		&moveHideCardsConfig,
+		&moveFinishTurnConfig,
+		&moveCaptureCardsConfig,
+		&moveStartHideCardsTimerConfig,
+	}
 
-    manager := boardgame.NewGameManager(&gameDelegate{}, chest, storage)
+	if err := manager.AddMoves(moveTypeConfigs...); err != nil {
+		return nil, errors.New("Couldn't add moves: " + err.Error())
+	}
 
-    if manager == nil {
-        return nil, errors.New("No manager returned")
-    }
+	manager.AddAgent(&Agent{})
 
-    moveTypeConfigs := []*boardgame.MoveTypeConfig{
-        &moveRevealCardConfig,
-        &moveHideCardsConfig,
-        &moveFinishTurnConfig,
-        &moveCaptureCardsConfig,
-        &moveStartHideCardsTimerConfig,
-    }
+	if err := manager.SetUp(); err != nil {
+		return nil, errors.New("Couldn't set up manager: " + err.Error())
+	}
 
-    if err := manager.BulkAddMoveTypes(moveTypeConfigs); err != nil {
-        return nil, errors.New("Couldn't add moves: " + err.Error())
-    }
-
-    manager.AddAgent(&Agent{})
-
-    if err := manager.SetUp(); err != nil {
-        return nil, errors.New("Couldn't set up manager: " + err.Error())
-    }
-
-    return manager, nil
+	return manager, nil
 }
 ```
 
