@@ -210,17 +210,25 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 		return nil, errors.New("No manager returned")
 	}
 
-	manager.AddMoves(
+	err := manager.AddMoves(
 		&moveShuffleDiscardToDrawConfig,
 	)
 
-	manager.AddMovesForPhase(
+	if err != nil {
+		return nil, errors.New("Couldn't install general moves: " + err.Error())
+	}
+
+	err = manager.AddMovesForPhase(
 		PhaseNormalPlay,
 		&moveCurrentPlayerHitConfig,
 		&moveCurrentPlayerStandConfig,
 		&moveRevealHiddenCardConfig,
 		&moveFinishTurnConfig,
 	)
+
+	if err != nil {
+		return nil, errors.New("Couldn't install normal phase moves: " + err.Error())
+	}
 
 	manager.AddOrderedMovesForPhase(
 		PhaseInitialDeal,
@@ -230,6 +238,10 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 		&moveDealInitialVisibleCardConfig,
 		moves.NewStartPhaseMoveConfig(manager, PhaseNormalPlay, nil),
 	)
+
+	if err != nil {
+		return nil, errors.New("Couldn't install initial deal moves: " + err.Error())
+	}
 
 	if err := manager.SetUp(); err != nil {
 		return nil, errors.New("Couldn't set up manager: " + err.Error())
