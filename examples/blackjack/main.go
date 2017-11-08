@@ -218,8 +218,7 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 		return nil, errors.New("Couldn't install general moves: " + err.Error())
 	}
 
-	err = manager.AddMovesForPhase(
-		PhaseNormalPlay,
+	err = manager.AddMovesForPhase(PhaseNormalPlay,
 		&moveCurrentPlayerHitConfig,
 		&moveCurrentPlayerStandConfig,
 		&moveRevealHiddenCardConfig,
@@ -230,8 +229,7 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 		return nil, errors.New("Couldn't install normal phase moves: " + err.Error())
 	}
 
-	manager.AddOrderedMovesForPhase(
-		PhaseInitialDeal,
+	manager.AddOrderedMovesForPhase(PhaseInitialDeal,
 		moves.NewStartRoundRobinMoveConfig(nil),
 		&moveDealInitialHiddenCardConfig,
 		moves.NewStartRoundRobinMoveConfig(nil),

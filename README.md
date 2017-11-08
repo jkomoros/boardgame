@@ -1120,6 +1120,100 @@ You can use `boardgame-status-text` to render text that will automatically show 
 
 ### Phases
 
+At the core of the engine, there's just a big collection of moves, any of which may be `Legal()` at any time. `ProposeFixUpMove` often just cycles through all FixUp moves in order and returns the first one that is legal.
+
+This is fine for simple games like memory, but quickly becomes cumbersome for more complicated games. For example, some games have multiple rounds, where each round is basically a mini-game, where scores accumulate across rounds. For each round you might have to do some set-up tasks (like moving all of the cards from discard to the draw stack, shuffling them, and then dealing out two cards per player), then have the normal play, and then finally some clean-up tasks (collecting the cards remaining in players' hands, tallying up scores).
+
+If you had to write all of your Legal() methods by hand, it would be error-prone and finicky. You'd have to think carefully about how each move could look at the state of the game and figure out that it was its time to be applied. In many cases, it wouldn't be possible to tell that cleanly, and you'd have to add lots of extra properties to your State object to keep track of exactly where you were and what needed to be done.
+
+It'd be a mess!
+
+For that reason, a convention of "Phases" is used. A game can have multiple phases. Moves are only legal to apply in certain phases. In some phases, moves are applied in a specific, prescribed order only.
+
+The concept of Phases is only lightly represented in the core game engine, and is mostly implemented "in user land" by careful convention and default methods.
+
+At the core, the notion of Phases is implmented by `moves.Base`'s Legal method--which is why it's so important to always call your super's `Legal` method! `moves.Base` will first check to make sure that the current phase of the game is one that is legal for this move, and then check to see if playing this move at this point in the phase is legal. All other methods are just about giving moves.Base the information it needs to make this determination.
+
+The actual machinery to implement Moves is not important, other than to know that it can be overriden by swapping out the implementations of a few delegate methods, as covered in the package documentation. This part of the tutorial will primarily just discuss how to use it in practice by examining the blackjack example.
+
+If you're going to support the notion of phases, you'll need to store the current phase somewhere in your state. In `examples/blackjack/state.go` we have:
+
+```
+//+autoreader
+type gameState struct {
+	moveinterfaces.RoundRobinBaseGameState
+	Phase         enum.MutableVal        `enum:"Phase"`
+	DiscardStack  boardgame.MutableStack `stack:"cards" sanitize:"len"`
+	DrawStack     boardgame.MutableStack `stack:"cards" sanitize:"len"`
+	UnusedCards   boardgame.MutableStack `stack:"cards"`
+	CurrentPlayer boardgame.PlayerIndex
+}
+```
+
+We also need to define the values of the enum. In `examples/blackjack/components.go` we have:
+
+```
+//+autoreader
+const (
+	PhaseSetUp = iota
+	PhaseNormalPlay
+	PhaseScoring
+)
+```
+
+In general it's easiest to use autoreader's enum-generation tool, which we do here.
+
+It's convention to name your phase enum as "Phase", and `moves.Base` will rely on that in some cases to create meaningful error messages. If you want to name it something different, override `GameDelegate.PhaseEnum`.
+
+Now we have to tell the engine what the current phase is. We do this by overriding a method on our gamedelegate, much like we do for CurrentPlayerIndex:
+```
+func (g *gameDelegate) CurrentPhase(state boardgame.State) int {
+	game, _ := concreteStates(state)
+	return game.Phase.Value()
+}
+```
+
+Now the core engine knows about what phase it is. `moves.Base` will consult that information it is Legal method. But how do we tell `moves.Base` which phases a move is legal in?
+
+`MoveType` and `MoveTypeConfig` have a `LegalPhases []int` field. If this field is zero-length (nil or a zero-length slice) that tells `moves.Base` that the move is legal in any phase. If it's non-zero-lenght, then `moves.Base` will ensure that the current phase is explicitly enumerated, otherwise it will return an error.
+
+You can set these `LegalPhases` on your own in `MoveTypeConfig`s, but that can be error prone, and it's confusing to have the information about phases coordinated across each move, instead of in one central place.
+
+`GameManager` has an `AddMoves` method that takes a list of move configs to add to the manager during setup. It also has an `AddMovesForPhase` method that takes a phase and a list of moves. For each move config provided, if the LegalPhases doesn't already list the phase in question, it will explicitly add it before installing it. This means that in most cases you can just leave your `LegalPhases` field on your config as nil, and configure the phase for all moves at once when you install them. 
+
+You can see this in action in `examples/blackjack/main.go` in `NewManager`
+
+```
+	err = manager.AddMovesForPhase(PhaseNormalPlay,
+		&moveCurrentPlayerHitConfig,
+		&moveCurrentPlayerStandConfig,
+		&moveRevealHiddenCardConfig,
+		&moveFinishTurnConfig,
+	)
+
+	if err != nil {
+		return nil, errors.New("Couldn't install normal phase moves: " + err.Error())
+	}
+```
+
+Of course, there are sometimes moves that are legal in any mode. For those, it still makes sense to use `AddMoves`:
+
+```
+	err := manager.AddMoves(
+		&moveShuffleDiscardToDrawConfig,
+	)
+
+	if err != nil {
+		return nil, errors.New("Couldn't install general moves: " + err.Error())
+	}
+```
+
+#### Ordered Moves
+
+#### StartPhase move
+
+#### Round Robin
+
 ### Configs
 
 ### Agents
