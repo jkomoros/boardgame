@@ -721,36 +721,42 @@ func (g *GameManager) AddMoves(config ...*MoveTypeConfig) error {
 
 }
 
-//AddMovesForPhase is a convenience wrapper around AddMoveType. It is useful
-//to install moves that are only legal in a specific phase, but in any order.
-//As a convenience, if the move configs you pass do not already affirmatively
+//AddMovesForPhase is a convenience wrapper around AddMoves. It is useful to
+//install moves that are only legal in a specific phase, but in any order. As
+//a convenience, if the move configs you pass do not already affirmatively
 //list the phase being configured, then they will have it added (to a copy of
-//the config) before adding. This means that in most cases you can skip
-//defining LegalPhases, as it will be configured automatically. See
-//AddOrderedMovesForPhase for an ordered variant.
+//the config) before adding (as long as the LegalPhases isn't a zero-length
+//slice). This means that in most cases you can skip defining LegalPhases, as
+//it will be configured automatically. See AddOrderedMovesForPhase for an
+//ordered variant.
 func (g *GameManager) AddMovesForPhase(phase int, config ...*MoveTypeConfig) error {
 
 	for i, moveConfig := range config {
 
 		modifiedMoveConfig := moveConfig.Copy()
 
-		hasTargetPhase := false
+		//If the moveConfig isn't a zero-len slice then if the phase isn't
+		//affirmatively listed in the config as being legal we should add it.
+		if modifiedMoveConfig.LegalPhases == nil || len(modifiedMoveConfig.LegalPhases) > 0 {
 
-		for _, legalPhase := range modifiedMoveConfig.LegalPhases {
-			if legalPhase == phase {
-				hasTargetPhase = true
-				break
+			hasTargetPhase := false
+
+			for _, legalPhase := range modifiedMoveConfig.LegalPhases {
+				if legalPhase == phase {
+					hasTargetPhase = true
+					break
+				}
 			}
-		}
 
-		if !hasTargetPhase {
-			//If we didn't explicitly say that the given phase we're
-			//configuring is legal on this move type, add it.
+			if !hasTargetPhase {
+				//If we didn't explicitly say that the given phase we're
+				//configuring is legal on this move type, add it.
 
-			//Note that in cases where the move type is legal in ALL phases,
-			//this will lock it to only being legal in this move progression.
-			//That's generally what you want--but not always.
-			modifiedMoveConfig.LegalPhases = append(modifiedMoveConfig.LegalPhases, phase)
+				//Note that in cases where the move type is legal in ALL phases,
+				//this will lock it to only being legal in this move progression.
+				//That's generally what you want--but not always.
+				modifiedMoveConfig.LegalPhases = append(modifiedMoveConfig.LegalPhases, phase)
+			}
 		}
 
 		if err := g.AddMove(modifiedMoveConfig); err != nil {

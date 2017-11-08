@@ -51,7 +51,10 @@ type MoveTypeConfig struct {
 	//delegate.CurrentPhase(). See moves.Base for how this information is
 	//used. If you use manager.AddMovesForPhase or
 	//manager.AddOrderedMovesForPhase to install your moves, you likely can
-	//leave this as nil and have it set correctly.
+	//leave this as nil and have it set correctly. If you want your move to be
+	//valid in any phase but don't want them to modify LegalPhases, configure
+	//this to be a zero-length slice instead of nil and they'll leave it
+	//untouched.
 	LegalPhases []int
 
 	//If IsFixUp is true, the moveType will be a FixUp move--that is, players
