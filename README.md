@@ -463,7 +463,9 @@ That's why there's a `moves` package that defines three common move types. You e
 
 ##### moves.Base
 
-Base is the simplest possible base move. It implements stubs for every required method, with the exception of `Legal` and `Apply` which you must implement yourself. This allows you to minimize the boilerplate you have to implement for simple moves. Almost every move you make will embed this move type either directly or indirectly.
+Base is the simplest possible base move. It implements stubs for every required method, with the exception of `Apply` which you must implement yourself. This allows you to minimize the boilerplate you have to implement for simple moves. Almost every move you make will embed this move type either directly or indirectly.
+
+Base doesn't do much except implement the required stubs. The one exception is its `Legal()` method, which is where much of the notion of Phases is implemented. More on that in a later section. For now it's important to know that if you embed a move anonymously in your own move struct, it's very important to always call your "super"'s Legal method as well, because non-trivial logic is encoded in it in Base.
 
 ##### moves.CurrentPlayer
 
@@ -558,6 +560,10 @@ As you can see from the way the errors are constructed in `TurnDone`, the error 
 
 Because most of the logic for moves that embed `moves.FinishTurn` lives in methods on gameState and playerState, it's common to not need to override the `Legal` or `Apply` methods on `moves.FinishTurn` at all. You can see this in practice on memory's `MoveFinishTurn` which simply embeds `moves.FinishTurn`.
 
+##### Other move types
+
+moves.Base, moves.CurrentPlayer, and moves.FinsihTurn are only three types of moves defined in the moves package. There are a number of others that are useful in other contexts. More detail about how to use some of them is covered below in the Phases section.
+
 #### Worked Move Example
 
 Let's look at a fully-worked example of defining a specific move from memory:
@@ -585,7 +591,7 @@ var moveHideCardsConfig = boardgame.MoveTypeConfig{
 
 This is the moveTypeConfig object. This is what we will actually use to install the move type in the GameManager (more on that later).
 
-A `MoveTypeConfig` is basically a bag of straight forward properties. The reason you don't define a MoveType yourself is because it's important that these properties not change once they are configured onto a GameManager. You can think of a MoveTypeConfig as basically just the starter values for properties that will be read-only on the actual MoveType.
+A `MoveTypeConfig` is basically a bag of straightforward properties. The reason you don't define a MoveType yourself is because it's important that these properties not change once they are configured onto a GameManager. You can think of a MoveTypeConfig as basically just the starter values for properties that will be read-only on the actual MoveType.
 
 The `Name` property is a unique-within-this-game-package, human-readable name for the move. It is the string that will be used to retrieve this move type from within the game manager. (You'll rarely do this yourself, but the server package will do this for example to deserialize `POST`s that propose a move).
 
@@ -618,7 +624,7 @@ func (m *MoveHideCards) Legal(state boardgame.State, proposer boardgame.PlayerIn
 }
 ```
 
-This is our Legal method. We embed `moves.CurrentPlayer`, but add on our own logic. That's why we call `m.CurrentPlayer.Legal` first, since we want to extend our "superclass".
+This is our Legal method. We embed `moves.CurrentPlayer`, but add on our own logic. That's why we call `m.CurrentPlayer.Legal` first, since we want to extend our "superclass". In general you should always call the Legal method of your super class, as even moves.Base includes important logic in its Legal implementation.
 
 ```
 func (m *MoveHideCards) Apply(state boardgame.MutableState) error {
