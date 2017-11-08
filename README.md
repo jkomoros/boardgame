@@ -388,6 +388,8 @@ After `CheckGameFinished` returns true, the game is over and no more moves may b
 
 Another method is `CurrentPlayerIndex`. This method should inspect the provided state and return the `PlayerIndex` corresponding to the current player. If any player may make a move, you should return `AdminPlayerIndex`, and if no player may make a move, you should return `ObserverPlayerIndex`. This method is consulted for various convenience methods elsewhere. The reason it can't be done fully automatically is because different games might store this value in a differently-named field, have non obvious rules for when it changes (for example, return the value in this field in the first phase of the game, but a value in another field in the second phase of the game), or not have a notion of current player at all.
 
+GameDelegate has a number of other methods that are consulted at various key points and drive certain behaviors. Each is documented to describe what they do. In a number of cases the default implementations in `DefaultGameDelegate` do complex behaviors that are almost always the correct thing, but can theoretically be overriden if necessary. `SanitizationPolicy` is a great example. We'll get to what it does in just a little bit, but although the method is quite generic, `DefaultGameDelegate`'s implementation encodes the formal convention of using struct-based tags to configure its behavior.
+
 #### SetUp
 
 Once you have a GameManager, you can create individual games from it by calling `NewGame`.
