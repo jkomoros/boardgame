@@ -1209,6 +1209,42 @@ Note that when this method is called, your state will likely aready have been sa
 
 ### Enums
 
+There are a number of cases where a given property can be one of a small set of options--what you'd call in other languages an Enum.
+
+Representing those values as an int is OK, but it doesn't allow you to enumerate which values are legal. In addition, you sometimes want to know the string value of the enum value in question.
+
+Boardgame formalizes this notion as an `enum`, which is a valid property type and is defined in `boardgame/enum`. 
+
+You define your named Enums at set up time as part of an `EnumSet`, and list the values that are legal (and their string equivalents). You can retrieve the EnumSet in use from `manager.Chest().Enums()`.
+
+Given an enum, you can create an `enum.Val`, which is a container for a value from that enum. These `enum.Val` and `enum.MutableVal` are legal properties to add to your states and moves, and like stacks can be configured via struct tags, as you can see in blackjack's `state.go`:
+
+```
+//+autoreader
+type gameState struct {
+	moveinterfaces.RoundRobinBaseGameState
+	Phase         enum.MutableVal        `enum:"Phase"`
+	DiscardStack  boardgame.MutableStack `stack:"cards" sanitize:"len"`
+	DrawStack     boardgame.MutableStack `stack:"cards" sanitize:"len"`
+	UnusedCards   boardgame.MutableStack `stack:"cards"`
+	CurrentPlayer boardgame.PlayerIndex
+}
+```
+
+Creating an enum is slightly cumbersome and repetitive. You typically create a const block, enumerate all of the values, and then later install each of those values, while passing their string equivalent.
+
+The autoreader command can also help automate this, as you can see in the blackjack example in `state.go`:
+
+```
+//+autoreader
+const (
+	PhaseInitialDeal = iota
+	PhaseNormalPlay
+)
+```
+
+This will automatically create a global `Enums` EnumSet, and a global `PhaseEnum` that contains the two values, configured with the string values of "Initial Deal" and "Normal Play". You can find much more details on the conventions and how to configure autoreader in the enums package doc.
+
 ### Phases
 
 At the core of the engine, there's just a big collection of moves, any of which may be `Legal()` at any time. `ProposeFixUpMove` often just cycles through all FixUp moves in order and returns the first one that is legal.
