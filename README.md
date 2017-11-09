@@ -1116,6 +1116,24 @@ You can use `boardgame-status-text` to render text that will automatically show 
 
 ### Computed properties
 
+It's common to define methods on your `gameState` and `playerState` objects to modify the states and also to provide getters for values that can be computed entirely based on the values of specific properties. This works great on the server, but sometimes you want to have those same computed values available on the client in order to do view data-binding more easily.
+
+When a JSON representation of your gameState is being prepared for a player, your delegate's `ComputedGlobalProperties(state State)` and `ComputedPlayerProperties(player PlayerState)` are called, allowing you to return a map of strings to `interface{}` to include in the JSON. 
+
+Typically this is a simple enumeration of the names of the values and the method calls, like you can see in memory:
+
+```
+func (g *gameDelegate) ComputedGlobalProperties(state boardgame.State) boardgame.PropertyCollection {
+	game, _ := concreteStates(state)
+	return boardgame.PropertyCollection{
+		"CurrentPlayerHasCardsToReveal": game.CurrentPlayerHasCardsToReveal(),
+		"CardsInGrid":                   game.CardsInGrid(),
+	}
+}
+```
+
+Note that when this method is called, your state will likely aready have been sanitized, which means that **your computed property methods should return reasonable values for sanitized states**. In most cases you don't have to think much about this, because all sanitization transformations keep the objects of the same "shape". But it is something to keep an eye out for.
+
 ### Enums
 
 ### Phases
