@@ -1110,9 +1110,60 @@ You can use `boardgame-status-text` to render text that will automatically show 
 
 In particular, if an interface element is tapped that has a `propose-move="MOVENAME"`, then it will automatically dispatch a move to the engine to propose that move. You can also define keys/values to be packaged up with the move as attributes in the format `data-arg-my-arg$="val"`, which will result in the ProposeMove event having an arguments bundle of `{MyArg:"val"}`.
 
-#### worked example
+#### Worked Example
 
-#### player-info
+In general your renderer is mostly concerned with telling the data-binding system where and how to stamp out stacks and buttons. This is one reasons Computed Properties (see the "Other Important Concepts" section below) are useful, because they allow you to define your semantic logic almost entirely on the server and allow the client to be almost entirely about data-binding.
+
+Here's the data-binding for Memory:
+```
+
+    <h2>Memory</h2>
+    <boardgame-card-stack layout="grid" messy primary-stack="{{state.Game.RevealedCards}}" secondary-stack="{{state.Game.HiddenCards}}">
+      <template is="dom-repeat">
+          <boardgame-card title="{{index}}" item="{{item}}" index="{{index}}" propose-move="Reveal Card" data-arg-card-index$="{{index}}">
+          </boardgame-card>
+      </template>
+      <boardgame-fading-text message="Match" trigger="{{state.Computed.Global.CardsInGrid}}"></boardgame-fading-text>
+    </boardgame-card-stack>
+    <div class="layout horizontal around-justified discards">
+      <boardgame-card-stack layout="stack" stack="{{state.Players.0.WonCards}}" messy>
+        <template is="dom-repeat">
+          <boardgame-card item="{{item}}" index="{{index}}" disabled>
+          </boardgame-card>
+        </template>
+      </boardgame-card-stack>
+      <!-- have a boardgame-card spacer just to keep that row height sane even with no cards -->
+      <boardgame-card spacer></boardgame-card>
+      <boardgame-card-stack layout="stack" messy stack="{{state.Players.1.WonCards}}">
+        <template is="dom-repeat">
+          <boardgame-card item="{{item}}" index="{{index}}" disabled>
+          </boardgame-card>
+        </template>
+      </boardgame-card-stack>
+    </div>
+    <paper-button id="hide" propose-move="Hide Cards" raised disabled="{{state.Computed.Global.CurrentPlayerHasCardsToReveal}}">Hide Cards</paper-button>
+    <paper-progress id="timeleft" value="{{state.Game.HideCardsTimer.TimeLeft}}" max="{{maxTimeLeft}}"></paper-progress>
+    <boardgame-fading-text trigger="{{isCurrentPlayer}}" message="Your Turn" suppress="falsey"></boardgame-fading-text>
+```
+
+It looks like a lot, but it's mostly just abouts stamping out stacks.
+
+#### Player-info
+
+The web app also has a bar along the top of the game that lists each player, their picture, their name, and their player index. It also by default shows whether it's their turn (according to your delegate's `CurrentPlayerIndex`).
+
+You can override this behavior, and also add more information to be rendered for each player (like their current score), by implementing a `boardgame-render-player-info-GAMETYPE` element. If that component exists, it will be passed the full state, as well as the playerState for the specific player. Any text you render out will be shown in the info section beneath each player.
+
+Your player-info renderer can also expose a chipColor and chipText property to override the text of the badge on each player (by default their player index) and what color it is.
+
+memory's player-info just prints out the current score:
+```
+  <template>
+    Won Cards <boardgame-status-text>{{playerState.WonCards.Indexes.length}}</boardgame-status-text>
+  </template>
+```
+
+The tictactoe example shows how to override the badge/chip color and text.
 
 ## Other important concepts
 
