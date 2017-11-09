@@ -1132,7 +1132,7 @@ For that reason, a convention of "Phases" is used. A game can have multiple phas
 
 The concept of Phases is only lightly represented in the core game engine, and is mostly implemented "in user land" by careful convention and default methods.
 
-At the core, the notion of Phases is implmented by `moves.Base`'s Legal method--which is why it's so important to always call your super's `Legal` method! `moves.Base` will first check to make sure that the current phase of the game is one that is legal for this move, and then check to see if playing this move at this point in the phase is legal. All other methods are just about giving moves.Base the information it needs to make this determination.
+At the core, the notion of Phases is implmented by `moves.Base`'s Legal method--which is why it's so important to always call your super's `Legal` method! `moves.Base` will first check to make sure that the current phase of the game is one that is legal for this move, and then check to see if playing this move at this point in the phase is legal. All other methods and machinery for representing Phases are just about giving moves.Base the information it needs to make this determination.
 
 The actual machinery to implement Moves is not important, other than to know that it can be overriden by swapping out the implementations of a few delegate methods, as covered in the package documentation. This part of the tutorial will primarily just discuss how to use it in practice by examining the blackjack example.
 
@@ -1175,7 +1175,7 @@ func (g *gameDelegate) CurrentPhase(state boardgame.State) int {
 
 Now the core engine knows about what phase it is. `moves.Base` will consult that information it is Legal method. But how do we tell `moves.Base` which phases a move is legal in?
 
-`MoveType` and `MoveTypeConfig` have a `LegalPhases []int` field. If this field is zero-length (nil or a zero-length slice) that tells `moves.Base` that the move is legal in any phase. If it's non-zero-lenght, then `moves.Base` will ensure that the current phase is explicitly enumerated, otherwise it will return an error.
+`MoveType` and `MoveTypeConfig` have a `LegalPhases []int` field. If this field is zero-length (nil or a zero-length slice) that tells `moves.Base` that the move is legal in any phase. If it's non-zero-length, then `moves.Base` will ensure that the current phase is explicitly enumerated in LegalPhases, otherwise it will return an error.
 
 You can set these `LegalPhases` on your own in `MoveTypeConfig`s, but that can be error prone, and it's confusing to have the information about phases coordinated across each move, instead of in one central place.
 
@@ -1196,7 +1196,19 @@ You can see this in action in `examples/blackjack/main.go` in `NewManager`
 	}
 ```
 
-Of course, there are sometimes moves that are legal in any mode. For those, it still makes sense to use `AddMoves`:
+If you inspect moveCurrentPlayerHitConfig in `moves.go`, you'll see it doesn't mention LegalPhases at all, allowing manager.AddMovesForPhase to configure them appropriately:
+
+```
+var moveCurrentPlayerHitConfig = boardgame.MoveTypeConfig{
+	Name:     "Current Player Hit",
+	HelpText: "The current player hits, drawing a card.",
+	MoveConstructor: func() boardgame.Move {
+		return new(MoveCurrentPlayerHit)
+	},
+}
+```
+
+Of course, there are sometimes moves that are legal in *any* mode. For those, it still makes sense to use `AddMoves`, as blackjack does:
 
 ```
 	err := manager.AddMoves(
