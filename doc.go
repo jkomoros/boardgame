@@ -5,6 +5,11 @@ boardgame is a package that makes it possible to build boardgames with minimial 
 boardgame/server implements a progressive web app based on your game with just
 a few lines of configuration.
 
+This package doc represents an exhaustive, precise treatment of concepts that
+might not be clear just from looking at the exported methods and objects and
+their documentation. For a tutorial that is designed for first-time users of
+the package written in a narrative flow, check out README.md.
+
 Games
 
 Games are the funamdental object. They represent a specific game with a
