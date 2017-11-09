@@ -1106,6 +1106,10 @@ You can use `boardgame-status-text` to render text that will automatically show 
 
 ##### boardgame-base-game-renderer
 
+`boardgame-base-game-renderer` is a superclass that it generally makes sense for your renderer to subclass. The primary thing it adds (currently) is machinery to propose moves based on mark-up.
+
+In particular, if an interface element is tapped that has a `propose-move="MOVENAME"`, then it will automatically dispatch a move to the engine to propose that move. You can also define keys/values to be packaged up with the move as attributes in the format `data-arg-my-arg$="val"`, which will result in the ProposeMove event having an arguments bundle of `{MyArg:"val"}`.
+
 #### worked example
 
 #### player-info
