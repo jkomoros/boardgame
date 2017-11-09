@@ -1381,6 +1381,8 @@ In most cases when you define a progression of moves that are legal in a given p
 
 Moves signal this by implementing the `moveinterfaces.AllowMultipleInProgression`, and returning true(). You almost never do this yourself, but instead embed moves that do this behavior for you. `moveDealInitialHiddenCardConfig` and `moveDealInitialVisibleCardConfig` both subclass a type of move called `moves.RoundRobin`, which we'll get to in a second.
 
+One more wrinkle: when the engine looks to see if a propose move is legal in this phase in this order, it will ignore any moves that are legal in all phases that may have come in between. This means that if you have a move like ShuffleDiscardToDraw that triggers in any phase if the discard pile runs out, it won't mess up your move progression matching.
+
 #### StartPhase move
 
 In the blackjack example, there are two moves that are normal move configs, and three lines that are function calls instead. These are MoveTypes that are so common that you don't even need to implement a concrete move type, but can just call the method to get a bespoke MoveTypeConfig to install. One is StartRoundRobin, which we'll cover in just a bit.

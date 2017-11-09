@@ -767,7 +767,8 @@ func (g *GameManager) AddMovesForPhase(phase int, config ...*MoveTypeConfig) err
 
 //AddOrderedMovesForPhase is a variant around AddMovesForPhase that in
 //addition to enforcing the moves are only legal in a given phase will also
-//set a specific order. Will error if your delegate does not implement
+//set a specific order. (Moves that are legal in every phase will not count in
+//the order matching). Will error if your delegate does not implement
 //PhaseMoveProgressionSetter (DefaultGameDelegate does by default).
 func (g *GameManager) AddOrderedMovesForPhase(phase int, config ...*MoveTypeConfig) error {
 	progressionSetter, ok := g.Delegate().(PhaseMoveProgressionSetter)

@@ -17,9 +17,20 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves/moveinterfaces"
 	"strconv"
+	"sync"
 )
 
 //go:generate autoreader
+
+//game.Name() to set of move types that are always legal
+var alwaysLegalMoveTypesByGame map[string]map[string]bool
+var alwaysLegalMoveTypesMutex sync.RWMutex
+
+func init() {
+	alwaysLegalMoveTypesMutex.Lock()
+	alwaysLegalMoveTypesByGame = make(map[string]map[string]bool)
+	alwaysLegalMoveTypesMutex.Unlock()
+}
 
 /*
 Base is an optional, convenience struct designed to be embedded
@@ -145,12 +156,38 @@ func (d *Base) historicalMovesSincePhaseTransition(game *boardgame.Game, upToVer
 		return nil
 	}
 
+	alwaysLegalMoveTypesMutex.RLock()
+	alwaysLegalMoveTypes, ok := alwaysLegalMoveTypesByGame[game.Name()]
+	alwaysLegalMoveTypesMutex.RUnlock()
+
+	if !ok {
+
+		alwaysLegalMoveTypes = make(map[string]bool)
+
+		//Create the list!
+		for _, fixUpMove := range game.Manager().FixUpMoveTypes() {
+			if len(fixUpMove.LegalPhases()) == 0 {
+				alwaysLegalMoveTypes[fixUpMove.Name()] = true
+			}
+		}
+
+		alwaysLegalMoveTypesMutex.Lock()
+		alwaysLegalMoveTypesByGame[game.Name()] = alwaysLegalMoveTypes
+		alwaysLegalMoveTypesMutex.Unlock()
+	}
+
 	var keptMoves []*boardgame.MoveStorageRecord
 
 	targetPhase := moves[len(moves)-1].Phase
 
 	for i := len(moves) - 1; i >= 0; i-- {
 		move := moves[i]
+
+		if alwaysLegalMoveTypes[move.Name] {
+			//We skip move types that are always legal for the purposes of
+			//matching.
+			continue
+		}
 
 		if move.Phase != targetPhase {
 			//Must have fallen off the end of the current phase's most recent run
