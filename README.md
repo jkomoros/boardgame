@@ -1473,11 +1473,86 @@ Agents state is just a `[]byte` that the engine will persist and then hand back 
 Agents' ProposeMove is called after every *causal chain* of moves is done. That is, after each playerMove has been applied *and all of the FixUp moves that result*. This is also the timing when normal players are allowed to make moves.
 
 ### Hooking into your own server
-*TODO: talk about MustNewManager*
 
+So far this tutorial has told you how to start up an existing server. But configuring your own server, with your own custom collection of games, is incredibly simple too.
 
+The server example in `examples/server/api` is very simple:
 
-*Tutorial to be continued...*
+```
+package main
+
+import (
+	"github.com/jkomoros/boardgame/examples/blackjack"
+	"github.com/jkomoros/boardgame/examples/debuganimations"
+	"github.com/jkomoros/boardgame/examples/memory"
+	"github.com/jkomoros/boardgame/examples/pig"
+	"github.com/jkomoros/boardgame/examples/tictactoe"
+	"github.com/jkomoros/boardgame/server/api"
+	"github.com/jkomoros/boardgame/storage/bolt"
+)
+
+func main() {
+	storage := api.NewServerStorageManager(bolt.NewStorageManager(".database"))
+	defer storage.Close()
+	api.NewServer(storage,
+		api.MustNewManager(blackjack.NewManager(storage)),
+		api.MustNewManager(tictactoe.NewManager(storage)),
+		api.MustNewManager(memory.NewManager(storage)),
+		api.MustNewManager(debuganimations.NewManager(storage)),
+		api.MustNewManager(pig.NewManager(storage)),
+	).Start()
+}
+```
+
+It uses the `bolt` storage backend for simplicity because it doesn't require configuration. But if you wanted to use the mysql backend instead, it would require just a couple of lines changed:
+
+```
+package main
+
+import (
+	"github.com/jkomoros/boardgame/examples/blackjack"
+	"github.com/jkomoros/boardgame/examples/debuganimations"
+	"github.com/jkomoros/boardgame/examples/memory"
+	"github.com/jkomoros/boardgame/examples/pig"
+	"github.com/jkomoros/boardgame/examples/tictactoe"
+	"github.com/jkomoros/boardgame/server/api"
+)
+
+func main() {
+	//The default storage engine is mysql
+	storage := api.NewDefaultStorageManager()
+	defer storage.Close()
+	api.NewServer(storage,
+		api.MustNewManager(blackjack.NewManager(storage)),
+		api.MustNewManager(tictactoe.NewManager(storage)),
+		api.MustNewManager(memory.NewManager(storage)),
+		api.MustNewManager(debuganimations.NewManager(storage)),
+		api.MustNewManager(pig.NewManager(storage)),
+	).Start()
+}
+```
+
+You'd also need to have a mysql connection string configured in your config.SECRET.json, something like:
+```
+{
+	//...
+	"dev" : {
+		//...
+		"storageconfig": {
+			"mysql" : "root:root@tcp(localhost:3306)/boardgame"
+		}
+	}
+}
+```
+
+Of course, you'd also need to stand up a mysql server to connect to and configure the tables correctly. The `boardgame-mysql-admin` tool, in `storage/mysql/cmd/boardgame-mysql-admin`, makes this incredibly easy to setup a server and roll its schema forward. 
+
+Check out `storage/mysql/README.md` for more information on configuring the server connection string and using `boardgame-mysql-admin`.
+
+### Conclusion
+
+This library is a passion project I'm pursuing in my free time. It's under active development. If you see something that seems to be missing or off, please reach out via a GitHub issue. And pull requests are very appreciated!
+
 
 
 
