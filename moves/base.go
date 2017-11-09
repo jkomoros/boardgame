@@ -85,7 +85,7 @@ func (d *Base) ValidConfiguration(exampleState boardgame.MutableState) error {
 }
 
 //Legal checks whether the game's CurrentPhase (as determined by the delegate)
-//is one of the LegalPhases for this moveType. A nil LegalPhases is
+//is one of the LegalPhases for this moveType. A zero-length LegalPhases is
 //interpreted as the move being legal in all phases. The string for the
 //current phase will be based on the enum value of the PhaseEnum named by
 //delegate.PhaseEnumName(), if it exists. Next, it checks to see if the give
@@ -132,6 +132,46 @@ func (d *Base) legalInPhase(state boardgame.State) error {
 	return errors.New("Move is not legal in phase " + phaseName)
 }
 
+func (d *Base) historicalMovesSincePhaseTransition(game *boardgame.Game, upToVersion int) []*boardgame.MoveStorageRecord {
+
+	moves := game.MoveRecords(upToVersion)
+
+	//TODO: ideally we'd memoize this so all base moves for this game for this
+	//version could use the result. If we do that, we'll want to make sure the
+	//lifetime of the cache does not extend beyond the lifetime of the game,
+	//or is purged every so often.
+
+	if len(moves) == 0 {
+		return nil
+	}
+
+	var keptMoves []*boardgame.MoveStorageRecord
+
+	targetPhase := moves[len(moves)-1].Phase
+
+	for i := len(moves) - 1; i >= 0; i-- {
+		move := moves[i]
+
+		if move.Phase != targetPhase {
+			//Must have fallen off the end of the current phase's most recent run
+			break
+		}
+
+		keptMoves = append(keptMoves, move)
+	}
+
+	//keptMoves is backwards, reverse it.
+
+	moves = nil
+
+	for i := len(keptMoves) - 1; i >= 0; i-- {
+		moves = append(moves, keptMoves[i])
+	}
+
+	return moves
+
+}
+
 func (d *Base) legalMoveInProgression(state boardgame.State, proposer boardgame.PlayerIndex) error {
 	currentPhase := state.Game().Manager().Delegate().CurrentPhase(state)
 
@@ -142,7 +182,7 @@ func (d *Base) legalMoveInProgression(state boardgame.State, proposer boardgame.
 		return nil
 	}
 
-	historicalMoves := state.Game().HistoricalMovesSincePhaseTransition(state.Version())
+	historicalMoves := d.historicalMovesSincePhaseTransition(state.Game(), state.Version())
 
 	progression := make([]string, len(historicalMoves))
 

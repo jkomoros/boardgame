@@ -280,51 +280,37 @@ func (g *Game) Move(version int) (Move, error) {
 
 }
 
-//HistoricalMovesSincePhaseTransition returns a slice of all
-//MoveStorageRecords, in order, from the time that the Phase most recently
-//started being its current value. Very uncommon to need this; it's exposed
-//primarily just so moves.Base can use it in its Legal() method.
-func (g *Game) HistoricalMovesSincePhaseTransition(upToVersion int) []*MoveStorageRecord {
+//MoveRecords returns all of the move storage records up to upToVersion, in
+//ascending order. If upToVersion is 0 or less, game.Version() will be used
+//for upToVersion. It is cached so repeated calls should be fast.
+func (g *Game) MoveRecords(upToVersion int) []*MoveStorageRecord {
 
+	if upToVersion < 1 {
+		upToVersion = g.Version()
+	}
+
+	if upToVersion == 0 {
+		return nil
+	}
+
+	//g.cachedHistoricalMoves is of ALL moves. If it doesn't exist, fetch it.
 	if g.cachedHistoricalMoves == nil {
-		moves, err := g.manager.Storage().Moves(g.Id(), 0, upToVersion)
+
+		//Our cache is of ALL moves.
+		moves, err := g.manager.Storage().Moves(g.Id(), 0, g.Version())
 
 		if err != nil {
-			g.Manager().Logger().Errorln("HistoricalMoveSincePhaseTransition failed: " + err.Error())
+			g.Manager().Logger().Errorln("Fetching moves failed: " + err.Error())
 			return nil
-		}
-
-		if len(moves) > 0 {
-
-			var keptMoves []*MoveStorageRecord
-
-			targetPhase := moves[len(moves)-1].Phase
-
-			for i := len(moves) - 1; i >= 0; i-- {
-				move := moves[i]
-
-				if move.Phase != targetPhase {
-					//Must have fallen off the end of the current phase's most recent run
-					break
-				}
-
-				keptMoves = append(keptMoves, move)
-			}
-
-			//keptMoves is backwards, reverse it.
-
-			moves = nil
-
-			for i := len(keptMoves) - 1; i >= 0; i-- {
-				moves = append(moves, keptMoves[i])
-			}
-
 		}
 
 		g.cachedHistoricalMoves = moves
 	}
 
-	return g.cachedHistoricalMoves
+	//g.cacheHistoricalMoves is 1-indexed, since there are no moves for
+	//version 1. Because go slice indexing is up to but not including upper
+	//bound, we can leave it as is to get the desired behavior.
+	return g.cachedHistoricalMoves[:upToVersion]
 
 }
 
