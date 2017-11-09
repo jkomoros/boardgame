@@ -655,6 +655,7 @@ func (g *Game) Refresh() {
 	freshGame := g.manager.Game(g.Id())
 
 	g.cachedCurrentState = nil
+	g.cachedHistoricalMoves = nil
 	g.version = freshGame.Version()
 	g.finished = freshGame.Finished()
 	g.winners = freshGame.Winners()
