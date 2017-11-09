@@ -1167,7 +1167,25 @@ The tictactoe example shows how to override the badge/chip color and text.
 
 ## Other important concepts
 
+The sections above cover the information you almost always need to know to build a game from start to finish. However, there are other, slightly more complex features and concepts that are optional but sometimes useful for specific types of games. They're described in separate sections below.
+
 ### Dynamic Component Values
+
+By default Components are entirely fixed--their values are exactly the same in every game. That works well for things like cards, but isn't sufficiently general. As a simple example, it's not possible to model a Die, because a die has a fixed set of sides that are the same for all games, but also a specific face that is currently face-up. As a much more complex example, the game Evolution allows players to have any number of Species cards in front of them, each with a population size, a body size, consumed food, and up to 4 trait cards.
+
+These use cases are represented by the concept of *Dynamic Component Values*. For decks that have dynamic component values, the values will be stored as an extra section in your State, just like `gameState` and your `playerState`s. On the server, given a state and a component c, you can access the dynamic component values like so:
+
+```
+values := c.DynamicValues(state)
+```
+
+On the client, these dynamic component values will be merged in directly on the component objects in the state passed to your renderer.
+
+If you look at the JSON output of a state, you'll see that dynamic component values are stored in a section called "Components", with a key for each deck name that has DynamicComponentValues, and then a slot for values associated with each component in that deck. component.DynamicValues is then just a convenience method that fetches the right component values associated with this component.
+
+The way you configure that a given deck has dynamic component values is by the output to `GameDelegate.DynamicComponentValuesConstructor(deck *Deck) ConfigurableSubState`. For decks that don't have dynamic values, just return nil. For decks that do have dynamic component values, just return a new concrete struct, just as you would for `GameStateConstructor` and `PlayerStateConstructor`.
+
+When sanitizing dynamic component values, each deck has its own policy. Importantly, though, that policy is only effective if the stack that the component is currently in has a policy of Visible. In most cases it should just behave as you'd naively expect. For more about specific behaviors, see the package doc on Sanitization.
 
 ### Computed properties
 
