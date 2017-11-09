@@ -1222,6 +1222,38 @@ Of course, there are sometimes moves that are legal in *any* mode. For those, it
 
 #### Ordered Moves
 
+This machinery works great for moves that legal at any point within a phase, like in blackjack's `PhaseNormalPlay`.
+
+However in many cases, like setting up a new round of a game, there are a series of moves that should be applied in a precise order, one after the other. Writing bespoke `Legal` methods that did complicated signaling to each other about when it was their turn would be very error prone.
+
+For that reason, the Phase machinery also has a notion of *ordered* moves in a Phase. When a phase is configured to require certain moves in a specific order, `moves.Base`'s `Legal()` will return an error if the move is applied in the wrong order. 
+
+This means that instead of writing an error-prone Legal method, in many cases you don't need to write a custom Legal method at all, and can just rely on the phase ordering machinery.
+
+The precise machinery that accomplishes this is covered in `moves.Base` and GameDelegate's `PhaseMoveProgression() []string`. But in practice you rarely need to modify those, and can just use `GameManager.AddOrderedMovesForPhase` to accomplish what you want, as you can see in blackjack's `NewManager`:
+
+```
+	manager.AddOrderedMovesForPhase(PhaseInitialDeal,
+		moves.NewStartRoundRobinMoveConfig(nil),
+		&moveDealInitialHiddenCardConfig,
+		moves.NewStartRoundRobinMoveConfig(nil),
+		&moveDealInitialVisibleCardConfig,
+		moves.NewStartPhaseMoveConfig(manager, PhaseNormalPlay, nil),
+	)
+
+	if err != nil {
+		return nil, errors.New("Couldn't install initial deal moves: " + err.Error())
+	}
+```
+
+This example has a couple of function calls instead of concrete MoveTypeConfigs,
+but we'll get to that in a second. For now all that's important to note is that
+we've defined an order of moves that may be applied. A DealInitialVisibleCard move can't happen until a StartRoundRobin, DealInitialHiddenCard, and another StartRoundRobin move have been applied.
+
+In most cases when you define a progression of moves that are legal in a given phase, you want each move to only be able to be applied a single time in a row. There are some moves that you want to be able to apply multiple times in a row, until their subclasses' Legal() no longer returns nil. For example, for blackjack we want to keep calling MoveDealInitialHiddenCard until each player has a hidden card dealt to them.
+
+Moves signal this by implementing the `moveinterfaces.AllowMultipleInProgression`, and returning true(). You almost never do this yourself, but instead embed moves that do this behavior for you. `moveDealInitialHiddenCardConfig` and `moveDealInitialVisibleCardConfig` both subclass a type of move called `moves.RoundRobin`, which we'll get to in a second.
+
 #### StartPhase move
 
 #### Round Robin
