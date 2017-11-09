@@ -832,12 +832,13 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 
 	//Expire the currentState cache; it's no longer valid.
 	g.cachedCurrentState = nil
-	g.cachedHistoricalMoves = nil
 
 	currentPhase := g.manager.delegate.CurrentPhase(newState)
 
+	moveStorageRecord := StorageRecordForMove(move, currentPhase)
+
 	//TODO: test that if we fail to save state to storage everything's fine.
-	if err := g.manager.Storage().SaveGameAndCurrentState(g.StorageRecord(), newState.StorageRecord(), StorageRecordForMove(move, currentPhase)); err != nil {
+	if err := g.manager.Storage().SaveGameAndCurrentState(g.StorageRecord(), newState.StorageRecord(), moveStorageRecord); err != nil {
 		//TODO: we need to undo the temporary changes we made directly to ourselves (vesrion, finished, winners)
 		return baseErr.WithError("Storage returned an error:" + err.Error())
 	}
@@ -857,6 +858,12 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 		}
 
 		return nil
+	}
+
+	//if the cache is not nil OR it's the first move, we can just append the
+	//move storage record to the cache.
+	if g.cachedHistoricalMoves != nil || versionToSet == 1 {
+		g.cachedHistoricalMoves = append(g.cachedHistoricalMoves, moveStorageRecord)
 	}
 
 	move = g.manager.Delegate().ProposeFixUpMove(newState)
