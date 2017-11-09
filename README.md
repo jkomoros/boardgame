@@ -1256,7 +1256,25 @@ Moves signal this by implementing the `moveinterfaces.AllowMultipleInProgression
 
 #### StartPhase move
 
+In the blackjack example, there are two moves that are normal move configs, and three lines that are function calls instead. These are MoveTypes that are so common that you don't even need to implement a concrete move type, but can just call the method to get a bespoke MoveTypeConfig to install. One is StartRoundRobin, which we'll cover in just a bit.
+
+The other is `NewStartPhaseMoveConfig`. This will return a move that when it's its turn in the progression will set the CurrentPhase of the game to the second argument. It does this by checking if your gameState has a SetCurrentPhase method and calling that if it does. (If your gameState doesn't, that's something that manager.SetUp() will recognize and report as an error).
+
+These moves don't need you to override their Legal or Apply method at all, because they rely purely on the phase and ordering semantics in `moves.Base`.
+
+It is common for the last move of an ordered round to have a move that advances to the next phase. 
+
 #### Round Robin
+
+Another more complex type of move is `moves.RoundRobin`. RoundRobin moves are moves where the move should be repeatedly proposed until some condition is met. For example, a typical RoundRobin move is to deal a card out to each player, until one has been dealt to each person.
+
+A RoundRobin move defines some end-condition (by default the move has gone around one complete cycle and applied for each player) and an action to apply when each Move is applied. It stores some bookkeeping information in your gameState, and has its DefaultsForState handle advancing to the next target player each time.
+
+RoundRobins are pretty complex under the hood because they can model a number of interesting exit criterion. To use a round robin your gameState must implement `moveinterfaces.RoundRobinProperties`. Alternatively you can anonymously embed `moveinterfaces.RoundRobinBaseGameState` instead of `boardgame.BaseSubState` to implement it for free. 
+
+In addition, immediately before a round robin can happen, the bookkeeping data must be set correctly. You do this by applying `moves.StartRoundRobin`. This move takes no configuration, but must be applied to start a round robin. That's why there's a `moves.NewStartRoundRobinMoveConfig()` constructor, designed to be used in an ordered phase of moves.
+
+RoundRobin moves are very powerful and general, and the `moves.RoundRobin` documentation goes into more depth on how to configure and use them. In practice you almost always use two types of moves that are simple sub-classes of RoundRobin: `moves.DealComponents` to deal components from a gameState to specific players, and `moves.CollectComponents` to collect components from each player into gameState.
 
 ### Configs
 
