@@ -1446,6 +1446,32 @@ There are two other methods on `GameDelegate`,  `ConfigKeyDisplay` and `ConfigVa
 
 ### Agents
 
+Not all players of a game are human. You also want bots or AIs to be able to play. In the engine these are called *agents*.
+
+Agents are configured on the manager before it is set up. There can be multiple agents, representing different AIs--although in practice you'll likely only have one. Agents are set up when the game is set up, and then have a callback called after every move is made to have a chance to propose a move.
+
+The interface that agents must implement is simple:
+
+```
+type Agent interface {
+    Name() string
+
+    DisplayName() string
+
+    SetUpForGame(game *Game, player PlayerIndex) (agentState []byte)
+
+    ProposeMove(game *Game, player PlayerIndex, agentState []byte) (move Move, newState []byte)
+}
+```
+
+Name() and DisplayName() are similar to the same fields for Games(). The first is a unique-within-this-game-package name, and the latter is what will actually be displayed to the user.
+
+Agents are given access to a Game to act on, which allows them to see the current state as well as the historical moves. But sometimes that state isn't enough. For example, in memory the agent has to remember what cards have been revealed in the past. That state doesn't make sense to store in the main `gameState` or `playerState`. For that reasons agents are also able to store their own state.
+
+Agents state is just a `[]byte` that the engine will persist and then hand back to the agent whenever it is called. Typically agents will encode their state as JSON and then read it back--but that's up to the agent to do as it wishes. Returning an agentState is optional--if it's nil, no new state will be saved. If no state has been saved at all, this means that future calls will have nil state. If state has previously been saved, it just means that no new state versions will be saved.
+
+Agents' ProposeMove is called after every *causal chain* of moves is done. That is, after each playerMove has been applied *and all of the FixUp moves that result*. This is also the timing when normal players are allowed to make moves.
+
 ### Hooking into your own server
 *TODO: talk about MustNewManager*
 
