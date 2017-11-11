@@ -32,7 +32,7 @@ func (s *StartPhase) ValidConfiguration(exampleState boardgame.MutableState) err
 	embeddingMove := s.TopLevelStruct()
 
 	if _, ok := embeddingMove.(phaseToStarter); !ok {
-		return errors.New("The embedding move does not implement PhaseToEnterer")
+		return errors.New("The embedding move does not have PhaseToStart()")
 	}
 
 	if _, ok := exampleState.GameState().(moveinterfaces.CurrentPhaseSetter); !ok {
@@ -57,7 +57,7 @@ func (s *StartPhase) Apply(state boardgame.MutableState) error {
 	phaseEnterer, ok := s.TopLevelStruct().(phaseToStarter)
 
 	if !ok {
-		return errors.New("The embedding move does not implement PhaseToEnterer")
+		return errors.New("The embedding move does not have PhaseToStart()")
 	}
 
 	currentPhase := state.Game().Manager().Delegate().CurrentPhase(state)

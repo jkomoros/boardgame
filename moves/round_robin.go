@@ -18,12 +18,6 @@ type roundRobinPlayerConditionMet interface {
 	RoundRobinPlayerConditionMet(playerState boardgame.PlayerState) bool
 }
 
-//PhaseToEnterer should be implemented by moves that embed moves.StartPhase to
-//configure which phase to enter.
-type PhaseToEnterer interface {
-	PhaseToEnter(currentPhase int) int
-}
-
 //StartRoundRobin is the move you should have in the progression immediately
 //before a round robin starts. It sets the NextRoundRobinPlayer to the game's
 //CurrentPlayer, getting ready for moves that embed RoundRobin. Because the
