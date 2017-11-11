@@ -11,12 +11,12 @@ import (
 DealComponents is a type of RoundRobin move that deals components from
 gameState's GameStack() to each PlayerState's PlayerStack(). By default it
 goes around once and deals a single component. If you want different end
-conditions, override RoundRobinFinished() on your move.
+conditions, override ConditionMet() on your move.
 
 For example, if you want to deal two cards to each player, set your
-RoundRobinFinished like so:
+ConditionMet like so:
 
-	func (m *MyMove) RoundRobinFinished(state boardgame.State) error {
+	func (m *MyMove) ConditionMet(state boardgame.State) error {
 		return m.RoundRobinFinishedMultiCircuit(2, state)
 	}
 
@@ -24,7 +24,7 @@ If you wanted to draw cards to players until each player had two cards, but
 players might start with different number of cards, you'd configure it like
 so:
 
-	func (m *MyMove) RoundRobinFinished(state boardgame.State) error {
+	func (m *MyMove) ConditionMet(state boardgame.State) error {
 		//Configure that the finished function should be when all players have
 		//their conditions met.
 		return m.RoundRobinFinishedPlayerConditionsMet(state)
@@ -94,12 +94,12 @@ func (d *DealComponents) RoundRobinAction(playerState boardgame.MutablePlayerSta
 CollectComponents is a type of RoundRobin move that collects components from
 each PlayerState's PlayerStack() to gameState's GameStack(). By default it
 goes around once and collects a component from each. If you want different end
-conditions, override RoundRobinFinished() on your move.
+conditions, override ConditionMet() on your move.
 
 For example, if you want to collect two cards from each player, set your
-RoundRobinFinished like so:
+ConditionMet like so:
 
-	func (m *MyMove) RoundRobinFinished(state boardgame.State) error {
+	func (m *MyMove) ConditionMet(state boardgame.State) error {
 		return m.RoundRobinFinishedMultiCircuit(2, state)
 	}
 

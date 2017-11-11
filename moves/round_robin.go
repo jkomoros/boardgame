@@ -12,9 +12,6 @@ import (
 type roundRobinStarterPlayer interface {
 	RoundRobinStarterPlayer(state boardgame.State) boardgame.PlayerIndex
 }
-type roundRobinFinished interface {
-	RoundRobinFinished(state boardgame.State) error
-}
 type roundRobinPlayerConditionMet interface {
 	//RoundRobinPlayerConditionMet should return whether the condition for the
 	//round robin to be over has been met for this player.
@@ -109,8 +106,8 @@ some action. Other moves in this package embed RoundRobin, and it's more
 common to use those directly.
 
 Round Robin moves start at a given player and go around, applying the
-RoundRobinAction for each player until the RoundRobinFinished() method returns
-true. Various embedders of the base RoundRobin will override the default
+RoundRobinAction for each player until the ConditionMet() method returns
+nil. Various embedders of the base RoundRobin will override the default
 behavior for that method.
 
 Round Robin keeps track of various properties on the gameState by using the
@@ -125,14 +122,8 @@ sets various properties the round robin needs to operate before it starts.
 
 */
 type RoundRobin struct {
-	Base
+	ApplyUntil
 	TargetPlayerIndex boardgame.PlayerIndex
-}
-
-//AllowMultipleInProgression returns true because RoundRobins go until the end
-//condition of the round robin is met.
-func (r *RoundRobin) AllowMultipleInProgression() bool {
-	return true
 }
 
 //DefaultsForState sets the TargetPlayerIndex to NextRoundRobinPlayer, unless
@@ -179,47 +170,22 @@ func (r *RoundRobin) DefaultsForState(state boardgame.State) {
 	r.TargetPlayerIndex = targetPlayer
 }
 
-//Legal returns whether the super's Legal returns an error, and will return an
-//error if the RoundRobinFinished() method on this move returns true.
-func (r *RoundRobin) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
-
-	if err := r.Base.Legal(state, proposer); err != nil {
-		return err
-	}
-
-	finisher, ok := r.TopLevelStruct().(roundRobinFinished)
-
-	if !ok {
-		//This should be extremely rare since we ourselves have the right method.
-		return errors.New("RoundRobin top level struct unexpectedly did not have RoundRobinFinished method")
-	}
-
-	if err := finisher.RoundRobinFinished(state); err != nil {
-		return errors.New("The round robin has met its finish condition: " + err.Error())
-	}
-
-	return nil
-
-}
-
-//RoundRobinFinished will be consulted by the Legal() method. If it returns an
-//error then the round robin is considered finished. By default it returns the
-//result of RoundRobinFinishedOneCircuit(). If you want other behavior
-//override this method.
-func (r *RoundRobin) RoundRobinFinished(state boardgame.State) error {
+//ConditionMet by default it returns the result of RoundRobinFinishedOneCircuit(). If you
+//want other behavior override this method.
+func (r *RoundRobin) ConditionMet(state boardgame.State) error {
 	return r.RoundRobinFinishedOneCircuit(state)
 }
 
 //RoundRobinFinshedOneCircuit returns an error if the RoundRobinRountCount is
 //1 or higher, meaning as soon as one full circuit is completed. It is
-//designed to be called directly in your RoundRobinFinished
+//designed to be called directly in your ConditionMet.
 func (r *RoundRobin) RoundRobinFinishedOneCircuit(state boardgame.State) error {
 	return r.RoundRobinFinishedMultiCircuit(1, state)
 }
 
 //RoundRobinFinshedOneCircuit returns an error if the RoundRobinRountCount is
 //targetCount or higher, meaning as soon as that many full circuits are
-//completed. It is designed to be called directly in your RoundRobinFinished
+//completed. It is designed to be called directly in your ConditionMet.
 func (r *RoundRobin) RoundRobinFinishedMultiCircuit(targetCount int, state boardgame.State) error {
 	props, ok := state.GameState().(moveinterfaces.RoundRobinProperties)
 
@@ -239,7 +205,7 @@ func (r *RoundRobin) RoundRobinFinishedMultiCircuit(targetCount int, state board
 //all return true. It's useful, as an example, for going around and making
 //sure that every player has at least two cards in their hand, if players may
 //have started the round robin with a different number of cards in hand. It is
-//designed to be called directly in your RoundRobinFinished.
+//designed to be called directly in your ConditionMet.
 func (r *RoundRobin) RoundRobinFinishedPlayerConditionsMet(state boardgame.State) error {
 
 	conditionsMet, ok := r.TopLevelStruct().(roundRobinPlayerConditionMet)
@@ -290,6 +256,11 @@ func (r *RoundRobin) RoundRobinPlayerConditionMet(playerState boardgame.PlayerSt
 }
 
 func (r *RoundRobin) ValidConfiguration(exampleState boardgame.MutableState) error {
+
+	if err := r.ApplyUntil.ValidConfiguration(exampleState); err != nil {
+		return err
+	}
+
 	if _, ok := exampleState.GameState().(moveinterfaces.RoundRobinProperties); !ok {
 		return errors.New("GameState does not implement RoundRobiner interface")
 	}
@@ -298,10 +269,6 @@ func (r *RoundRobin) ValidConfiguration(exampleState boardgame.MutableState) err
 
 	if _, ok := embeddingMove.(moveinterfaces.RoundRobinActioner); !ok {
 		return errors.New("Embedding move doesn't implement RoundRobinActioner")
-	}
-
-	if _, ok := embeddingMove.(roundRobinFinished); !ok {
-		return errors.New("Embedding move doesn't implement RoundRobinFinished")
 	}
 
 	return nil
