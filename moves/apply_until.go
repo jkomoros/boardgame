@@ -51,8 +51,9 @@ func (a *ApplyUntil) Legal(state boardgame.State, proposer boardgame.PlayerIndex
 	}
 
 	if err := conditionMet.ConditionMet(state); err != nil {
-		return errors.New("The condition was not yet met: " + err.Error())
+		//The condition is not yet met, which means it's legal.
+		return nil
 	}
 
-	return nil
+	return errors.New("The condition was met, so the move is no longer legal.")
 }
