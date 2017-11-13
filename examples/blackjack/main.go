@@ -230,9 +230,7 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 	}
 
 	manager.AddOrderedMovesForPhase(PhaseInitialDeal,
-		moves.NewStartRoundRobinMoveConfig(nil),
 		&moveDealInitialHiddenCardConfig,
-		moves.NewStartRoundRobinMoveConfig(nil),
 		&moveDealInitialVisibleCardConfig,
 		moves.NewStartPhaseMoveConfig(manager, PhaseNormalPlay, nil),
 	)

@@ -20,13 +20,14 @@ import (
 //boardgame.BaseSubState.
 type RoundRobinBaseGameState struct {
 	boardgame.BaseSubState
-	NextPlayerRoundRobin    boardgame.PlayerIndex
+	LastPlayerRoundRobin    boardgame.PlayerIndex
 	StarterPlayerRoundRobin boardgame.PlayerIndex
 	RoundCountRoundRobin    int
+	HasStartedRoundRobin    bool
 }
 
-func (r *RoundRobinBaseGameState) NextRoundRobinPlayer() boardgame.PlayerIndex {
-	return r.NextPlayerRoundRobin
+func (r *RoundRobinBaseGameState) LastRoundRobinPlayer() boardgame.PlayerIndex {
+	return r.LastPlayerRoundRobin
 }
 
 func (r *RoundRobinBaseGameState) RoundRobinStarterPlayer() boardgame.PlayerIndex {
@@ -37,8 +38,12 @@ func (r *RoundRobinBaseGameState) RoundRobinRoundCount() int {
 	return r.RoundCountRoundRobin
 }
 
-func (r *RoundRobinBaseGameState) SetNextRoundRobinPlayer(nextPlayer boardgame.PlayerIndex) {
-	r.NextPlayerRoundRobin = nextPlayer
+func (r *RoundRobinBaseGameState) RoundRobinHasStarted() bool {
+	return r.HasStartedRoundRobin
+}
+
+func (r *RoundRobinBaseGameState) SetLastRoundRobinPlayer(nextPlayer boardgame.PlayerIndex) {
+	r.LastPlayerRoundRobin = nextPlayer
 }
 func (r *RoundRobinBaseGameState) SetRoundRobinStarterPlayer(index boardgame.PlayerIndex) {
 	r.StarterPlayerRoundRobin = index
@@ -46,6 +51,10 @@ func (r *RoundRobinBaseGameState) SetRoundRobinStarterPlayer(index boardgame.Pla
 
 func (r *RoundRobinBaseGameState) SetRoundRobinRoundCount(count int) {
 	r.RoundCountRoundRobin = count
+}
+
+func (r *RoundRobinBaseGameState) SetRoundRobinHasStarted(val bool) {
+	r.HasStartedRoundRobin = val
 }
 
 //Moves should implement AllowMultipleInProgression if they want to
@@ -102,17 +111,21 @@ type PlayerTurnFinisher interface {
 //then return them via the getters. Generally you simply embed
 //RoundRobinBaseGameState to satisfy this interface for free.
 type RoundRobinProperties interface {
-	//The next player whose round robin turn it will be
-	NextRoundRobinPlayer() boardgame.PlayerIndex
+	//The last successfully applied round robin player
+	LastRoundRobinPlayer() boardgame.PlayerIndex
 	//The index of the player we started the round robin on.
 	RoundRobinStarterPlayer() boardgame.PlayerIndex
 	//How many complete times around the round robin we've been. Increments
 	//each time NextRoundRobinPlayer is StarterPlayer.
 	RoundRobinRoundCount() int
+	//RoundRobinHasStarted is true if the first move of a RoundRobin has been
+	//applied.
+	RoundRobinHasStarted() bool
 
-	SetNextRoundRobinPlayer(nextPlayer boardgame.PlayerIndex)
+	SetLastRoundRobinPlayer(nextPlayer boardgame.PlayerIndex)
 	SetRoundRobinStarterPlayer(index boardgame.PlayerIndex)
 	SetRoundRobinRoundCount(count int)
+	SetRoundRobinHasStarted(hasStarted bool)
 }
 
 //RoundRobinActioner should be implemented by any moves that embed a

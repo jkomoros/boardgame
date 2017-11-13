@@ -525,8 +525,9 @@ func (m *myStruct) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 // Implementation for roundRobinStruct
 
 var __roundRobinStructReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
+	"HasStartedRoundRobin":    boardgame.TypeBool,
+	"LastPlayerRoundRobin":    boardgame.TypePlayerIndex,
 	"MyBool":                  boardgame.TypeBool,
-	"NextPlayerRoundRobin":    boardgame.TypePlayerIndex,
 	"RoundCountRoundRobin":    boardgame.TypeInt,
 	"StarterPlayerRoundRobin": boardgame.TypePlayerIndex,
 }
@@ -729,6 +730,8 @@ func (r *__roundRobinStructReader) ConfigureProp(name string, value interface{})
 func (r *__roundRobinStructReader) BoolProp(name string) (bool, error) {
 
 	switch name {
+	case "HasStartedRoundRobin":
+		return r.data.HasStartedRoundRobin, nil
 	case "MyBool":
 		return r.data.MyBool, nil
 
@@ -741,6 +744,9 @@ func (r *__roundRobinStructReader) BoolProp(name string) (bool, error) {
 func (r *__roundRobinStructReader) SetBoolProp(name string, value bool) error {
 
 	switch name {
+	case "HasStartedRoundRobin":
+		r.data.HasStartedRoundRobin = value
+		return nil
 	case "MyBool":
 		r.data.MyBool = value
 		return nil
@@ -821,8 +827,8 @@ func (r *__roundRobinStructReader) SetIntSliceProp(name string, value []int) err
 func (r *__roundRobinStructReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
 
 	switch name {
-	case "NextPlayerRoundRobin":
-		return r.data.NextPlayerRoundRobin, nil
+	case "LastPlayerRoundRobin":
+		return r.data.LastPlayerRoundRobin, nil
 	case "StarterPlayerRoundRobin":
 		return r.data.StarterPlayerRoundRobin, nil
 
@@ -835,8 +841,8 @@ func (r *__roundRobinStructReader) PlayerIndexProp(name string) (boardgame.Playe
 func (r *__roundRobinStructReader) SetPlayerIndexProp(name string, value boardgame.PlayerIndex) error {
 
 	switch name {
-	case "NextPlayerRoundRobin":
-		r.data.NextPlayerRoundRobin = value
+	case "LastPlayerRoundRobin":
+		r.data.LastPlayerRoundRobin = value
 		return nil
 	case "StarterPlayerRoundRobin":
 		r.data.StarterPlayerRoundRobin = value

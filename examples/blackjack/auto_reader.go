@@ -2594,7 +2594,8 @@ var __gameStateReaderProps map[string]boardgame.PropertyType = map[string]boardg
 	"CurrentPlayer":           boardgame.TypePlayerIndex,
 	"DiscardStack":            boardgame.TypeStack,
 	"DrawStack":               boardgame.TypeStack,
-	"NextPlayerRoundRobin":    boardgame.TypePlayerIndex,
+	"HasStartedRoundRobin":    boardgame.TypeBool,
+	"LastPlayerRoundRobin":    boardgame.TypePlayerIndex,
 	"Phase":                   boardgame.TypeEnum,
 	"RoundCountRoundRobin":    boardgame.TypeInt,
 	"StarterPlayerRoundRobin": boardgame.TypePlayerIndex,
@@ -2798,11 +2799,24 @@ func (g *__gameStateReader) ConfigureProp(name string, value interface{}) error 
 
 func (g *__gameStateReader) BoolProp(name string) (bool, error) {
 
+	switch name {
+	case "HasStartedRoundRobin":
+		return g.data.HasStartedRoundRobin, nil
+
+	}
+
 	return false, errors.New("No such Bool prop: " + name)
 
 }
 
 func (g *__gameStateReader) SetBoolProp(name string, value bool) error {
+
+	switch name {
+	case "HasStartedRoundRobin":
+		g.data.HasStartedRoundRobin = value
+		return nil
+
+	}
 
 	return errors.New("No such Bool prop: " + name)
 
@@ -2899,8 +2913,8 @@ func (g *__gameStateReader) PlayerIndexProp(name string) (boardgame.PlayerIndex,
 	switch name {
 	case "CurrentPlayer":
 		return g.data.CurrentPlayer, nil
-	case "NextPlayerRoundRobin":
-		return g.data.NextPlayerRoundRobin, nil
+	case "LastPlayerRoundRobin":
+		return g.data.LastPlayerRoundRobin, nil
 	case "StarterPlayerRoundRobin":
 		return g.data.StarterPlayerRoundRobin, nil
 
@@ -2916,8 +2930,8 @@ func (g *__gameStateReader) SetPlayerIndexProp(name string, value boardgame.Play
 	case "CurrentPlayer":
 		g.data.CurrentPlayer = value
 		return nil
-	case "NextPlayerRoundRobin":
-		g.data.NextPlayerRoundRobin = value
+	case "LastPlayerRoundRobin":
+		g.data.LastPlayerRoundRobin = value
 		return nil
 	case "StarterPlayerRoundRobin":
 		g.data.StarterPlayerRoundRobin = value

@@ -56,4 +56,5 @@ func (a *ApplyUntil) Legal(state boardgame.State, proposer boardgame.PlayerIndex
 	}
 
 	return errors.New("The condition was met, so the move is no longer legal.")
+
 }
