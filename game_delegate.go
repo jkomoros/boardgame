@@ -409,8 +409,70 @@ func (d *DefaultGameDelegate) FinishSetUp(state MutableState) error {
 	return nil
 }
 
+//defaultCheckGameFinishedDelegate can be private because
+//DefaultGameFinished implements the methods by default.
+type defaultCheckGameFinishedDelegate interface {
+	GameEndConfigurationMet(state State) bool
+	PlayerScore(pState PlayerState) int
+}
+
+//CheckGameFinished by default checks GameEndConditionMet(). If true, then it
+//fetches delegate.PlayerScore() for each player and returns all players who
+//have the highest score as winners. This is sufficient for many games, but
+//not all, so sometimes needs to be overriden.
 func (d *DefaultGameDelegate) CheckGameFinished(state State) (finished bool, winners []PlayerIndex) {
-	return false, nil
+
+	if d.Manager() == nil {
+		return false, nil
+	}
+
+	//Have to reach up to the manager's delegate to get the thing that embeds us.
+	checkGameFinished, ok := d.Manager().Delegate().(defaultCheckGameFinishedDelegate)
+
+	if !ok {
+		return false, nil
+	}
+
+	if !checkGameFinished.GameEndConfigurationMet(state) {
+		return false, nil
+	}
+
+	//Game is over. What's the max score?
+	maxScore := 0
+	for _, player := range state.PlayerStates() {
+		score := checkGameFinished.PlayerScore(player)
+
+		if score > maxScore {
+			maxScore = score
+		}
+	}
+
+	//Who has the max score?
+	for i, player := range state.PlayerStates() {
+		score := checkGameFinished.PlayerScore(player)
+
+		if score == maxScore {
+			winners = append(winners, PlayerIndex(i))
+		}
+	}
+
+	return true, winners
+
+}
+
+//GameEndConditionMet should return true when the game is over and ready for
+//scoring. CheckGameFinished uses this by default; if you override
+//CheckGameFinished you don't need to override this. The default
+//implementation of this simply returns false.
+func (d *DefaultGameDelegate) GameEndConditionMet(state State) bool {
+	return false
+}
+
+//PlayerScore should return the score for the given player. CheckGameFinished
+//uses this by default; if you override CheckGameFinished you don't need to
+//override this. The deafult implementation of this simply returns 0.
+func (d *DefaultGameDelegate) PlayerScore(pState PlayerState) int {
+	return 0
 }
 
 func (d *DefaultGameDelegate) DefaultNumPlayers() int {
