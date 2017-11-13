@@ -202,7 +202,7 @@ func (r *RoundRobin) startRoundRobin(state boardgame.MutableState) error {
 
 	starterPlayer := starter.RoundRobinStarterPlayer(state)
 
-	roundRobiner.SetLastRoundRobinPlayer(starterPlayer.Previous(state))
+	roundRobiner.SetRoundRobinLastPlayer(starterPlayer.Previous(state))
 	roundRobiner.SetRoundRobinStarterPlayer(starterPlayer)
 	roundRobiner.SetRoundRobinRoundCount(0)
 	roundRobiner.SetRoundRobinHasStarted(true)
@@ -239,7 +239,7 @@ func (r *RoundRobin) nextPlayerIndex(state boardgame.State) (player boardgame.Pl
 
 	if r.roundRobinHasStarted(state) {
 
-		currentPlayer = roundRobiner.LastRoundRobinPlayer()
+		currentPlayer = roundRobiner.RoundRobinLastPlayer()
 	} else {
 
 		starterPlayer, ok := r.TopLevelStruct().(roundRobinStarterPlayer)
@@ -401,7 +401,7 @@ func (r *RoundRobin) Apply(state boardgame.MutableState) error {
 		return errors.New("GameState does not implement RoundRobiner interface")
 	}
 
-	roundRobiner.SetLastRoundRobinPlayer(nextPlayer)
+	roundRobiner.SetRoundRobinLastPlayer(nextPlayer)
 
 	nextPlayer, roundSkip := r.nextPlayerIndex(state)
 

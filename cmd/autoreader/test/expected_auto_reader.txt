@@ -525,11 +525,11 @@ func (m *myStruct) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 // Implementation for roundRobinStruct
 
 var __roundRobinStructReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
-	"HasStartedRoundRobin":    boardgame.TypeBool,
-	"LastPlayerRoundRobin":    boardgame.TypePlayerIndex,
-	"MyBool":                  boardgame.TypeBool,
-	"RoundCountRoundRobin":    boardgame.TypeInt,
-	"StarterPlayerRoundRobin": boardgame.TypePlayerIndex,
+	"MyBool":          boardgame.TypeBool,
+	"RRHasStarted":    boardgame.TypeBool,
+	"RRLastPlayer":    boardgame.TypePlayerIndex,
+	"RRRoundCount":    boardgame.TypeInt,
+	"RRStarterPlayer": boardgame.TypePlayerIndex,
 }
 
 type __roundRobinStructReader struct {
@@ -730,10 +730,10 @@ func (r *__roundRobinStructReader) ConfigureProp(name string, value interface{})
 func (r *__roundRobinStructReader) BoolProp(name string) (bool, error) {
 
 	switch name {
-	case "HasStartedRoundRobin":
-		return r.data.HasStartedRoundRobin, nil
 	case "MyBool":
 		return r.data.MyBool, nil
+	case "RRHasStarted":
+		return r.data.RRHasStarted, nil
 
 	}
 
@@ -744,11 +744,11 @@ func (r *__roundRobinStructReader) BoolProp(name string) (bool, error) {
 func (r *__roundRobinStructReader) SetBoolProp(name string, value bool) error {
 
 	switch name {
-	case "HasStartedRoundRobin":
-		r.data.HasStartedRoundRobin = value
-		return nil
 	case "MyBool":
 		r.data.MyBool = value
+		return nil
+	case "RRHasStarted":
+		r.data.RRHasStarted = value
 		return nil
 
 	}
@@ -790,8 +790,8 @@ func (r *__roundRobinStructReader) MutableEnumProp(name string) (enum.MutableVal
 func (r *__roundRobinStructReader) IntProp(name string) (int, error) {
 
 	switch name {
-	case "RoundCountRoundRobin":
-		return r.data.RoundCountRoundRobin, nil
+	case "RRRoundCount":
+		return r.data.RRRoundCount, nil
 
 	}
 
@@ -802,8 +802,8 @@ func (r *__roundRobinStructReader) IntProp(name string) (int, error) {
 func (r *__roundRobinStructReader) SetIntProp(name string, value int) error {
 
 	switch name {
-	case "RoundCountRoundRobin":
-		r.data.RoundCountRoundRobin = value
+	case "RRRoundCount":
+		r.data.RRRoundCount = value
 		return nil
 
 	}
@@ -827,10 +827,10 @@ func (r *__roundRobinStructReader) SetIntSliceProp(name string, value []int) err
 func (r *__roundRobinStructReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
 
 	switch name {
-	case "LastPlayerRoundRobin":
-		return r.data.LastPlayerRoundRobin, nil
-	case "StarterPlayerRoundRobin":
-		return r.data.StarterPlayerRoundRobin, nil
+	case "RRLastPlayer":
+		return r.data.RRLastPlayer, nil
+	case "RRStarterPlayer":
+		return r.data.RRStarterPlayer, nil
 
 	}
 
@@ -841,11 +841,11 @@ func (r *__roundRobinStructReader) PlayerIndexProp(name string) (boardgame.Playe
 func (r *__roundRobinStructReader) SetPlayerIndexProp(name string, value boardgame.PlayerIndex) error {
 
 	switch name {
-	case "LastPlayerRoundRobin":
-		r.data.LastPlayerRoundRobin = value
+	case "RRLastPlayer":
+		r.data.RRLastPlayer = value
 		return nil
-	case "StarterPlayerRoundRobin":
-		r.data.StarterPlayerRoundRobin = value
+	case "RRStarterPlayer":
+		r.data.RRStarterPlayer = value
 		return nil
 
 	}

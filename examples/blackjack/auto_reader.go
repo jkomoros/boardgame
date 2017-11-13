@@ -2591,15 +2591,15 @@ func (m *MoveCurrentPlayerStand) ReadSetConfigurer() boardgame.PropertyReadSetCo
 // Implementation for gameState
 
 var __gameStateReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
-	"CurrentPlayer":           boardgame.TypePlayerIndex,
-	"DiscardStack":            boardgame.TypeStack,
-	"DrawStack":               boardgame.TypeStack,
-	"HasStartedRoundRobin":    boardgame.TypeBool,
-	"LastPlayerRoundRobin":    boardgame.TypePlayerIndex,
-	"Phase":                   boardgame.TypeEnum,
-	"RoundCountRoundRobin":    boardgame.TypeInt,
-	"StarterPlayerRoundRobin": boardgame.TypePlayerIndex,
-	"UnusedCards":             boardgame.TypeStack,
+	"CurrentPlayer":   boardgame.TypePlayerIndex,
+	"DiscardStack":    boardgame.TypeStack,
+	"DrawStack":       boardgame.TypeStack,
+	"Phase":           boardgame.TypeEnum,
+	"RRHasStarted":    boardgame.TypeBool,
+	"RRLastPlayer":    boardgame.TypePlayerIndex,
+	"RRRoundCount":    boardgame.TypeInt,
+	"RRStarterPlayer": boardgame.TypePlayerIndex,
+	"UnusedCards":     boardgame.TypeStack,
 }
 
 type __gameStateReader struct {
@@ -2800,8 +2800,8 @@ func (g *__gameStateReader) ConfigureProp(name string, value interface{}) error 
 func (g *__gameStateReader) BoolProp(name string) (bool, error) {
 
 	switch name {
-	case "HasStartedRoundRobin":
-		return g.data.HasStartedRoundRobin, nil
+	case "RRHasStarted":
+		return g.data.RRHasStarted, nil
 
 	}
 
@@ -2812,8 +2812,8 @@ func (g *__gameStateReader) BoolProp(name string) (bool, error) {
 func (g *__gameStateReader) SetBoolProp(name string, value bool) error {
 
 	switch name {
-	case "HasStartedRoundRobin":
-		g.data.HasStartedRoundRobin = value
+	case "RRHasStarted":
+		g.data.RRHasStarted = value
 		return nil
 
 	}
@@ -2874,8 +2874,8 @@ func (g *__gameStateReader) MutableEnumProp(name string) (enum.MutableVal, error
 func (g *__gameStateReader) IntProp(name string) (int, error) {
 
 	switch name {
-	case "RoundCountRoundRobin":
-		return g.data.RoundCountRoundRobin, nil
+	case "RRRoundCount":
+		return g.data.RRRoundCount, nil
 
 	}
 
@@ -2886,8 +2886,8 @@ func (g *__gameStateReader) IntProp(name string) (int, error) {
 func (g *__gameStateReader) SetIntProp(name string, value int) error {
 
 	switch name {
-	case "RoundCountRoundRobin":
-		g.data.RoundCountRoundRobin = value
+	case "RRRoundCount":
+		g.data.RRRoundCount = value
 		return nil
 
 	}
@@ -2913,10 +2913,10 @@ func (g *__gameStateReader) PlayerIndexProp(name string) (boardgame.PlayerIndex,
 	switch name {
 	case "CurrentPlayer":
 		return g.data.CurrentPlayer, nil
-	case "LastPlayerRoundRobin":
-		return g.data.LastPlayerRoundRobin, nil
-	case "StarterPlayerRoundRobin":
-		return g.data.StarterPlayerRoundRobin, nil
+	case "RRLastPlayer":
+		return g.data.RRLastPlayer, nil
+	case "RRStarterPlayer":
+		return g.data.RRStarterPlayer, nil
 
 	}
 
@@ -2930,11 +2930,11 @@ func (g *__gameStateReader) SetPlayerIndexProp(name string, value boardgame.Play
 	case "CurrentPlayer":
 		g.data.CurrentPlayer = value
 		return nil
-	case "LastPlayerRoundRobin":
-		g.data.LastPlayerRoundRobin = value
+	case "RRLastPlayer":
+		g.data.RRLastPlayer = value
 		return nil
-	case "StarterPlayerRoundRobin":
-		g.data.StarterPlayerRoundRobin = value
+	case "RRStarterPlayer":
+		g.data.RRStarterPlayer = value
 		return nil
 
 	}
