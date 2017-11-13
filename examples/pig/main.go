@@ -63,20 +63,20 @@ func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) error {
 
 }
 
-func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, winners []boardgame.PlayerIndex) {
+func (g *gameDelegate) GameEndConditionMet(state boardgame.State) bool {
 	game, players := concreteStates(state)
 
-	for i, player := range players {
+	for _, player := range players {
 		if player.TotalScore >= game.TargetScore {
-			winners = append(winners, boardgame.PlayerIndex(i))
+			return true
 		}
 	}
 
-	if len(winners) > 0 {
-		return true, winners
-	}
+	return false
+}
 
-	return false, nil
+func (g *gameDelegate) PlayerScore(pState boardgame.PlayerState) int {
+	return pState.(*playerState).TotalScore
 }
 
 func (g *gameDelegate) Diagram(state boardgame.State) string {

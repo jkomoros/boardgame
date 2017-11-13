@@ -265,33 +265,20 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 	return strings.Join(result, "\n")
 }
 
-func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, winners []boardgame.PlayerIndex) {
-	game, players := concreteStates(state)
+func (g *gameDelegate) GameEndConditionMet(state boardgame.State) bool {
+	game, _ := concreteStates(state)
 
 	if game.HiddenCards.NumComponents() != 0 || game.RevealedCards.NumComponents() != 0 {
-		return false, nil
+		return false
 	}
 
-	//If we get to here, the game is over. Who won?
-	maxScore := 0
+	return true
+}
 
-	for _, player := range players {
-		score := player.WonCards.NumComponents()
-		if score > maxScore {
-			maxScore = score
-		}
-	}
+func (g *gameDelegate) PlayerScore(pState boardgame.PlayerState) int {
+	player := pState.(*playerState)
 
-	for i, player := range players {
-		score := player.WonCards.NumComponents()
-
-		if score >= maxScore {
-			winners = append(winners, boardgame.PlayerIndex(i))
-		}
-	}
-
-	return true, winners
-
+	return player.WonCards.NumComponents()
 }
 
 func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) {

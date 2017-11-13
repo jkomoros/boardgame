@@ -130,47 +130,26 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 	return strings.Join(result, "\n")
 }
 
-func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, winners []boardgame.PlayerIndex) {
+func (g *gameDelegate) PlayerScore(pState boardgame.PlayerState) int {
+	player := pState.(*playerState)
 
+	if player.Busted {
+		return 0
+	}
+
+	return player.HandValue()
+}
+
+func (g *gameDelegate) GameEndConditionMent(state boardgame.State) bool {
 	_, players := concreteStates(state)
 
 	for _, player := range players {
 		if !player.Busted && !player.Stood {
-			return false, nil
+			return false
 		}
 	}
 
-	//OK, everyone has either busted or Stood. So who won?
-
-	maxScore := 0
-
-	for _, player := range players {
-		if player.Busted {
-			continue
-		}
-
-		handValue := player.HandValue()
-		if handValue > maxScore {
-			maxScore = handValue
-		}
-	}
-
-	//OK, now who got the maxScore?
-
-	var result []boardgame.PlayerIndex
-
-	for i, player := range players {
-		if player.Busted {
-			continue
-		}
-		handValue := player.HandValue()
-		if handValue == maxScore {
-			result = append(result, boardgame.PlayerIndex(i))
-		}
-	}
-
-	return true, result
-
+	return true
 }
 
 func (g *gameDelegate) LegalNumPlayers(numPlayers int) bool {
