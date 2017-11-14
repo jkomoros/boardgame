@@ -349,10 +349,13 @@ The GameDelegate has a number of other important methods to override.
 
 One of them is `CheckGameFinished`, which is run after every Move is applied. In it you should check whether the state of the game denotes a game that is finished, and if it is finished, which players (if any) are winners. This allows you to express situations like draws and ties.
 
-Memory's `CheckGameFinished` looks like this:
+Memory's `CheckGameFinished` could look like this:
 
 ```
 func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, winners []boardgame.PlayerIndex) {
+
+	//This is NOT how memory's CheckGameFinished looks
+
     game, players := concreteStates(state)
 
     if game.HiddenCards.NumComponents() != 0 || game.RevealedCards.NumComponents() != 0 {
@@ -383,6 +386,29 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, 
 ```
 
 If there are no cards left in the grid, it figures out which player has the most cards, and denotes them the winner.
+
+However, this pattern--check if the game is finished, and if it is return as a winner any player who has the highest score--is so common that the engine makes it easy to implement with a default behavior built into `DefaultGameDelegate`. Memory uses it, as you can see in `examples/memory/main.go`:
+
+```
+func (g *gameDelegate) GameEndConditionMet(state boardgame.State) bool {
+	game, _ := concreteStates(state)
+
+	if game.HiddenCards.NumComponents() != 0 || game.RevealedCards.NumComponents() != 0 {
+		return false
+	}
+
+	return true
+}
+
+func (g *gameDelegate) PlayerScore(pState boardgame.PlayerState) int {
+	player := pState.(*playerState)
+
+	return player.WonCards.NumComponents()
+}
+
+```
+
+Implementing these two methods is sufficient for DefaultGameDelegate's default CheckGameFinished to do the right thing.
 
 After `CheckGameFinished` returns true, the game is over and no more moves may be applied.
 
