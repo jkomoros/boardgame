@@ -84,7 +84,13 @@ type GameStacker interface {
 //SourceStacker should be implemented by moves that need an input stack to
 //operate on as primary/source, for example ShuffleStack.
 type SourceStacker interface {
-	SourceStack(state boardgame.State) boardgame.MutableStack
+	SourceStack(state boardgame.MutableState) boardgame.MutableStack
+}
+
+//SourceStacker should be implemented by moves that need a destination stack
+//to operate on as primary/source, for example ApplyUntilCount.
+type DestinationStacker interface {
+	DestinationStack(state boardgame.MutableState) boardgame.MutableStack
 }
 
 //CurrentPlayerSetter should be implemented by gameStates that use FinishTurn.
