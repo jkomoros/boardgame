@@ -194,9 +194,15 @@ func (a *ApplyUntilCount) ConditionMet(state boardgame.State) error {
 
 //ApplyNTimes subclasses ApplyUntilCount. It applies the move until
 //TargetCount() number of this move have been applied in a row within the
-//current phase. Override TargetCount() to return (numMovesToApply, true).
+//current phase. Override TargetCount() to return (numMovesToApply, false).
 type ApplyNTimes struct {
 	ApplyUntilCount
+}
+
+//TargetCount by default returns (1, false). Override this to return
+//(numMovesToApply, false).
+func (a *ApplyNTimes) TargetCount(state boardgame.State) (count int, countDown bool) {
+	return 1, false
 }
 
 //Count returns the number of times this move has been applied in a row in the
