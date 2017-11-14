@@ -100,8 +100,8 @@ func (a *ApplyUntilCount) DestinationStack(state boardgame.MutableState) boardga
 
 //TargetSourceSize should return whether Count() and TargetCount() are based
 //on increasing destination's size to target (default), or declining source's
-//size to target. This is used primarily to help the default Count,
-//TargetSize() do the right thing without being overriden. Defaults to false,
+//size to target. This is used primarily to help the default Count(),
+//TargetCount() do the right thing without being overriden. Defaults to false,
 //which denotes that the target we're trying to hit is based on destination's
 //size.
 func (a *ApplyUntilCount) TargetSourceSize() bool {
@@ -154,7 +154,8 @@ func (a *ApplyUntilCount) stacks(state boardgame.State) (source, destination boa
 //Count is consulted in ConditionMet to see what the current count is. By
 //default it's the destination Stack's NumComponents, but if
 //TargetSourceSize() returns true, it will instead be the destination stack's
-//size.
+//size. Generally you don't override this directly and instead override
+//TargetSourceSize().
 func (a *ApplyUntilCount) Count(state boardgame.State) int {
 
 	var targetStack boardgame.MutableStack
@@ -179,7 +180,8 @@ func (a *ApplyUntilCount) Count(state boardgame.State) int {
 //greater than TargetCount() or 1 less than TargetCount(). If
 //TargetSourceSize() is false (default), we return (1, false); if it is true,
 //we return (1, true) (since moving items from Destination to Stack will
-//decline Source's size).
+//decline Source's size). Generally you don't override this directly and
+//instead override TargetSourceSize().
 func (a *ApplyUntilCount) TargetCount(state boardgame.State) (count int, countDown bool) {
 
 	if a.targetSourceSizeImpl() {
@@ -190,7 +192,8 @@ func (a *ApplyUntilCount) TargetCount(state boardgame.State) (count int, countDo
 }
 
 //Apply by default moves one component from SourceStack() to
-//DestinationStack(). Override if you want different behavior.
+//DestinationStack(). If you want different behavior, you should override this
+//--but then will also want to override Count() and TargetCount() as well.
 func (a *ApplyUntilCount) Apply(state boardgame.MutableState) error {
 
 	source, destination := a.stacks(state)
@@ -208,7 +211,8 @@ func (a *ApplyUntilCount) Apply(state boardgame.MutableState) error {
 }
 
 //ConditionMet returns nil once TargetCount() is one past Count(). In general
-//you override Count() and TargetCount() to customize behavior.
+//you override Count() and TargetCount() to customize behavior instead of
+//overriding this.
 func (a *ApplyUntilCount) ConditionMet(state boardgame.State) error {
 
 	embeddingMove := a.TopLevelStruct()
