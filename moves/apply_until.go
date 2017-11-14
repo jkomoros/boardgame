@@ -70,9 +70,16 @@ type counter interface {
 	TargetCount(state boardgame.State) (int, bool)
 }
 
+type targetSourceSize interface {
+	TargetSourceSize() bool
+}
+
 //ApplyUntilCount is a subclass of ApplyUntil that is legal until Count() is
 //one past TargetCount()'s value. By default it moves a component from
-//SourceStack() to DestinationStack().
+//SourceStack() to DestinationStack(). If you use this move type directly (as
+//opposed to in other moves in this package that embed it anonymously), you
+//generally want to override SourceStack(), DestinationStack(), and possibly
+//TargetSourceSize(), and leave all other methods untouched.
 type ApplyUntilCount struct {
 	ApplyUntil
 }
@@ -91,6 +98,27 @@ func (a *ApplyUntilCount) DestinationStack(state boardgame.MutableState) boardga
 	return nil
 }
 
+//TargetSourceSize should return whether Count() and TargetCount() are based
+//on increasing destination's size to target (default), or declining source's
+//size to target. This is used primarily to help the default Count,
+//TargetSize() do the right thing without being overriden. Defaults to false,
+//which denotes that the target we're trying to hit is based on destination's
+//size.
+func (a *ApplyUntilCount) TargetSourceSize() bool {
+	return false
+}
+
+//targetSourceSizeImpl is a convenience method that does the interface cast to
+//get TargetSourceSize.z
+func (a *ApplyUntilCount) targetSourceSizeImpl() bool {
+	targetSourcer, ok := a.TopLevelStruct().(targetSourceSize)
+
+	if !ok {
+		return false
+	}
+	return targetSourcer.TargetSourceSize()
+}
+
 func (a *ApplyUntilCount) ValidConfiguration(exampleState boardgame.MutableState) error {
 	if err := a.ApplyUntil.ValidConfiguration(exampleState); err != nil {
 		return err
@@ -100,6 +128,9 @@ func (a *ApplyUntilCount) ValidConfiguration(exampleState boardgame.MutableState
 	}
 	if _, ok := a.TopLevelStruct().(counter); !ok {
 		return errors.New("EmeddingMove doesn't have Count/TargetCount")
+	}
+	if _, ok := a.TopLevelStruct().(targetSourceSize); !ok {
+		return errors.New("EmbeddingMove doesn't have TargetSourceSize")
 	}
 	return nil
 }
@@ -121,24 +152,41 @@ func (a *ApplyUntilCount) stacks(state boardgame.State) (source, destination boa
 }
 
 //Count is consulted in ConditionMet to see what the current count is. By
-//default it's the destination Stack's NumComponents.
+//default it's the destination Stack's NumComponents, but if
+//TargetSourceSize() returns true, it will instead be the destination stack's
+//size.
 func (a *ApplyUntilCount) Count(state boardgame.State) int {
-	_, destination := a.stacks(state)
 
-	if destination == nil {
+	var targetStack boardgame.MutableStack
+
+	if a.targetSourceSizeImpl() {
+		targetStack, _ = a.stacks(state)
+	} else {
+		_, targetStack = a.stacks(state)
+	}
+
+	if targetStack == nil {
 		return 0
 	}
 
-	return destination.NumComponents()
+	return targetStack.NumComponents()
 }
 
 //TargetCount should return the count that we want to apply moves until Count
 //equals. After Count has been met, Legal() will start failing. countDown
-//should return if we're counting down or up from Count() to TargetCount(), as
-//the move itself can't detect that, and the end condition is either Count()
-//is 1 greater than TargetCount() or 1 less than TargetCount().
+//should be if we're counting down or up from Count() to TargetCount(), as the
+//move itself can't detect that, and the end condition is either Count() is 1
+//greater than TargetCount() or 1 less than TargetCount(). If
+//TargetSourceSize() is false (default), we return (1, false); if it is true,
+//we return (1, true) (since moving items from Destination to Stack will
+//decline Source's size).
 func (a *ApplyUntilCount) TargetCount(state boardgame.State) (count int, countDown bool) {
-	return 1, true
+
+	if a.targetSourceSizeImpl() {
+		return 1, true
+	}
+
+	return 1, false
 }
 
 //Apply by default moves one component from SourceStack() to
