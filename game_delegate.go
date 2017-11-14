@@ -416,10 +416,11 @@ type defaultCheckGameFinishedDelegate interface {
 	PlayerScore(pState PlayerState) int
 }
 
-//CheckGameFinished by default checks GameEndConditionMet(). If true, then it
-//fetches delegate.PlayerScore() for each player and returns all players who
-//have the highest score as winners. This is sufficient for many games, but
-//not all, so sometimes needs to be overriden.
+//CheckGameFinished by default checks delegate.GameEndConditionMet(). If true,
+//then it fetches delegate.PlayerScore() for each player and returns all
+//players who have the highest score as winners. To use this implementation
+//simply implement those methods. This is sufficient for many games, but not
+//all, so sometimes needs to be overriden.
 func (d *DefaultGameDelegate) CheckGameFinished(state State) (finished bool, winners []PlayerIndex) {
 
 	if d.Manager() == nil {
@@ -460,17 +461,19 @@ func (d *DefaultGameDelegate) CheckGameFinished(state State) (finished bool, win
 
 }
 
-//GameEndConditionMet should return true when the game is over and ready for
-//scoring. CheckGameFinished uses this by default; if you override
-//CheckGameFinished you don't need to override this. The default
-//implementation of this simply returns false.
+//GameEndConditionMet is used in the default CheckGameFinished implementation.
+//It should return true when the game is over and ready for scoring.
+//CheckGameFinished uses this by default; if you override CheckGameFinished
+//you don't need to override this. The default implementation of this simply
+//returns false.
 func (d *DefaultGameDelegate) GameEndConditionMet(state State) bool {
 	return false
 }
 
-//PlayerScore should return the score for the given player. CheckGameFinished
-//uses this by default; if you override CheckGameFinished you don't need to
-//override this. The deafult implementation of this simply returns 0.
+//PlayerScore is used in the default CheckGameFinished implementation. It
+//should return the score for the given player. CheckGameFinished uses this by
+//default; if you override CheckGameFinished you don't need to override this.
+//The deafult implementation of this simply returns 0.
 func (d *DefaultGameDelegate) PlayerScore(pState PlayerState) int {
 	return 0
 }
