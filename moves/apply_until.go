@@ -71,8 +71,8 @@ type counter interface {
 }
 
 //ApplyUntilCount is a subclass of ApplyUntil that is legal until Count() is
-//one past TargetCount()'s value. By default it moves a componennt from
-//SourceStack() to TargetStack().
+//one past TargetCount()'s value. By default it moves a component from
+//SourceStack() to DestinationStack().
 type ApplyUntilCount struct {
 	ApplyUntil
 }
@@ -159,6 +159,8 @@ func (a *ApplyUntilCount) Apply(state boardgame.MutableState) error {
 
 }
 
+//ConditionMet returns nil once TargetCount() is one past Count(). In general
+//you override Count() and TargetCount() to customize behavior.
 func (a *ApplyUntilCount) ConditionMet(state boardgame.State) error {
 
 	embeddingMove := a.TopLevelStruct()
