@@ -151,3 +151,42 @@ func (d *CollectComponents) RoundRobinAction(playerState boardgame.MutablePlayer
 	return playerStack.MoveComponent(boardgame.FirstComponentIndex, targetStack, boardgame.NextSlotIndex)
 
 }
+
+//MoveComponents is a move that will move components, one at a time, from
+//SourceStack() to DestinationStack() until TargetCount() components have been
+//moved. It is like DealComponents or CollectComponnets, except instead of
+//working on a certain stack for each player, it operates on two fixed stacks.
+//Based on the default behaviors built into ApplyUntilCount, this struct
+//actually doesn't override any logic, and instead exists primarily for
+//clarity in your code. You generally want to override SourceStack(),
+//DestinationStack(), and TargetCount() to use.
+type MoveComponents struct {
+	ApplyNTimes
+}
+
+//MoveComponentsUntilCountReached is a move that will move components, one at a
+//time, from SourceStack() to DestinationStack() until the target stack is up
+//to having TargetCount components in it. Based on the default behaviors built
+//into ApplyUntilCount, this struct actually doesn't override any logic, and
+//instead exists primarily for clarity in your code. You generally want to
+//override SourceStack(), DestinationStack(), and TargetCount() to use.
+type MoveComponentsUntilCountReached struct {
+	ApplyUntilCount
+}
+
+//MoveComponentsUntilCountLeft is a move that will move components, one at a
+//time, from SourceStack() to DestinationStack() until the source stack is
+//down to having  TargetCount components in it. Based on the default behaviors
+//built into ApplyUntilCount, this struct actually doesn't override much
+//logic, and instead exists primarily for clarity in your code. You generally
+//want to override SourceStack(), DestinationStack(), and TargetCount() to
+//use.
+type MoveComponentsUntilCountLeft struct {
+	ApplyUntilCount
+}
+
+//TargetSourceSize returns true, denoting to ApplyUntilCount that we are
+//counting down until our source meets TargetCount().
+func (m *MoveComponentsUntilCountLeft) TargetSourceSize() bool {
+	return true
+}

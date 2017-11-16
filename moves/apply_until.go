@@ -80,7 +80,10 @@ type targetSourceSize interface {
 //SourceStack() to DestinationStack(). If you use this move type directly (as
 //opposed to in other moves in this package that embed it anonymously), you
 //generally want to override SourceStack(), DestinationStack(), and possibly
-//TargetSourceSize(), and leave all other methods untouched.
+//TargetSourceSize() and TargetCount() and leave all other methods untouched.
+//The default methods in this move mean that it is effectively equivalent to
+//MoveComponentsUntilNumReached, but generally you should use that move in
+//your code for clarity when you just want the default behavior.
 type ApplyUntilCount struct {
 	ApplyUntil
 }
