@@ -67,7 +67,8 @@ type sourceDestinationStacker interface {
 
 type counter interface {
 	Count(state boardgame.State) int
-	TargetCount(state boardgame.State) (int, bool)
+	TargetCountAndDirection(state boardgame.State) (int, bool)
+	TargetCount(state boardgame.State) int
 }
 
 type targetSourceSize interface {
@@ -173,22 +174,40 @@ func (a *ApplyUntilCount) Count(state boardgame.State) int {
 	return targetStack.NumComponents()
 }
 
-//TargetCount should return the count that we want to apply moves until Count
-//equals. After Count has been met, Legal() will start failing. countDown
-//should be if we're counting down or up from Count() to TargetCount(), as the
-//move itself can't detect that, and the end condition is either Count() is 1
-//greater than TargetCount() or 1 less than TargetCount(). If
-//TargetSourceSize() is false (default), we return (1, false); if it is true,
-//we return (1, true) (since moving items from Destination to Stack will
-//decline Source's size). Generally you don't override this directly and
-//instead override TargetSourceSize().
-func (a *ApplyUntilCount) TargetCount(state boardgame.State) (count int, countDown bool) {
+//TargetCount should return the count that you want to target. It is used by
+//default in TargetCountAndDirection, which also returns whether the count is
+//down or up. That logic is finicky to get right, which is why in many cases
+//you just want to override this instead.
+func (a *ApplyUntilCount) TargetCount(state boardgame.State) int {
+	return 1
+}
 
-	if a.targetSourceSizeImpl() {
-		return 1, true
+//TargetCountAndDirection should return the count that we want to apply moves
+//until Count equals, plus if we're counting down or up. After Count has been
+//met, Legal() will start failing. countDown should be if we're counting down
+//or up from Count() to TargetCount(), as the move itself can't detect that,
+//and the end condition is either Count() is 1 greater than TargetCount() or 1
+//less than TargetCount(). The default implementation uses TargetCount() for
+//the number. For the countDown, if TargetSourceSize() is false (default), we
+//return (1, false); if it is true, we return (1, true) (since moving items
+//from Destination to Stack will decline Source's size). Generally you don't
+//override this directly and instead override TargetSourceSize() and/or
+//TargetCount().
+func (a *ApplyUntilCount) TargetCountAndDirection(state boardgame.State) (count int, countDown bool) {
+
+	targetCounter, ok := a.TopLevelStruct().(counter)
+
+	if !ok {
+		return 1, false
 	}
 
-	return 1, false
+	count = targetCounter.TargetCount(state)
+
+	if a.targetSourceSizeImpl() {
+		return count, true
+	}
+
+	return count, false
 }
 
 //Apply by default moves one component from SourceStack() to
@@ -224,7 +243,7 @@ func (a *ApplyUntilCount) ConditionMet(state boardgame.State) error {
 	}
 
 	count := moveCounter.Count(state)
-	targetCount, countDown := moveCounter.TargetCount(state)
+	targetCount, countDown := moveCounter.TargetCountAndDirection(state)
 
 	if targetCount == count {
 		return errors.New("Count is equal to TargetCount. This will be our last move")
@@ -246,15 +265,16 @@ func (a *ApplyUntilCount) ConditionMet(state boardgame.State) error {
 
 //ApplyNTimes subclasses ApplyUntilCount. It applies the move until
 //TargetCount() number of this move have been applied in a row within the
-//current phase. Override TargetCount() to return (numMovesToApply, false).
+//current phase. Override TargetCount() to return the number of moves you
+//actually want to apply.
 type ApplyNTimes struct {
 	ApplyUntilCount
 }
 
-//TargetCount by default returns (1, false). Override this to return
-//(numMovesToApply, false).
-func (a *ApplyNTimes) TargetCount(state boardgame.State) (count int, countDown bool) {
-	return 1, false
+//TargetCount by default returns 1. Override it if you want to apply more
+//moves.
+func (a *ApplyNTimes) TargetCount(state boardgame.State) (count int) {
+	return 1
 }
 
 //Count returns the number of times this move has been applied in a row in the
