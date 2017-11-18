@@ -152,41 +152,169 @@ func (d *CollectComponents) RoundRobinAction(playerState boardgame.MutablePlayer
 
 }
 
-//MoveComponents is a move that will move components, one at a time, from
-//SourceStack() to DestinationStack() until TargetCount() components have been
-//moved. It is like DealComponents or CollectComponnets, except instead of
-//working on a certain stack for each player, it operates on two fixed stacks.
-//Based on the default behaviors built into ApplyUntilCount, this struct
-//actually doesn't override any logic, and instead exists primarily for
-//clarity in your code. You generally want to override SourceStack(),
-//DestinationStack(), and TargetCount() to use.
-type MoveCountComponents struct {
-	ApplyCountTimes
+type sourceDestinationStacker interface {
+	moveinterfaces.SourceStacker
+	moveinterfaces.DestinationStacker
 }
 
-//MoveComponentsUntilCountReached is a move that will move components, one at a
-//time, from SourceStack() to DestinationStack() until the target stack is up
-//to having TargetCount components in it. Based on the default behaviors built
-//into ApplyUntilCount, this struct actually doesn't override any logic, and
-//instead exists primarily for clarity in your code. You generally want to
-//override SourceStack(), DestinationStack(), and TargetCount() to use.
+type targetSourceSize interface {
+	TargetSourceSize() bool
+}
+
+//MoveComponentsUntilCountReached is a move that will move components, one at
+//a time, from SourceStack() to DestinationStack() until the target stack is
+//up to having TargetCount components in it. Other MoveComponents-style moves
+//derive from this. When using it you most likely want to override
+//SourceStack(), DestinationStack(), and possibly TargetCount() if you want to
+//move more than one. MoveComponentsUntilCountLeft and MoveCountComponents
+//both subclass this move.
 type MoveComponentsUntilCountReached struct {
 	ApplyUntilCount
 }
 
+func (m *MoveComponentsUntilCountReached) ValidConfiguration(exampleState boardgame.MutableState) error {
+	if err := m.ApplyUntilCount.ValidConfiguration(exampleState); err != nil {
+		return err
+	}
+
+	if _, ok := m.TopLevelStruct().(sourceDestinationStacker); !ok {
+		return errors.New("EmbeddingMove doesn't have Source/Destination stacker.")
+	}
+	if _, ok := m.TopLevelStruct().(targetSourceSize); !ok {
+		return errors.New("EmbeddingMove doesn't have TargetSourceSize")
+	}
+
+	return nil
+}
+
+//SourceStack is by default called in Apply() to get the stack to move from.
+//The default simply returns nil; if you want to have ApplyUntilCount do its
+//default move-a-component action, override this.
+func (m *MoveComponentsUntilCountReached) SourceStack(state boardgame.MutableState) boardgame.MutableStack {
+	return nil
+}
+
+//DesitnationStack is by default called in Count(), TargetCount(), and
+//Apply(). The default simply returns nil; if you want to have ApplyUntilCount
+//do its default move-a-component action, override this.
+func (m *MoveComponentsUntilCountReached) DestinationStack(state boardgame.MutableState) boardgame.MutableStack {
+	return nil
+}
+
+//TargetSourceSize should return whether Count() and TargetCount() are based
+//on increasing destination's size to target (default), or declining source's
+//size to target. This is used primarily to help the default Count(),
+//TargetCount() do the right thing without being overriden. Defaults to false,
+//which denotes that the target we're trying to hit is based on destination's
+//size. If you want the opposite behavior, just use
+//MoveComponentsUntilCountLeft, which basically just overrides this method,
+//because your intent will be more clear in your move structures.
+func (m *MoveComponentsUntilCountReached) TargetSourceSize() bool {
+	return false
+}
+
+//targetSourceSizeImpl is a convenience method that does the interface cast to
+//get TargetSourceSize.z
+func (m *MoveComponentsUntilCountReached) targetSourceSizeImpl() bool {
+	targetSourcer, ok := m.TopLevelStruct().(targetSourceSize)
+
+	if !ok {
+		return false
+	}
+	return targetSourcer.TargetSourceSize()
+}
+
+//CountDown by default returns TargetSourceSize(). That is, if you're moving
+//from source to destination until a count is reached, it will return false,
+//otherwise will return true. You normally don't need to override this and can
+//instead override TargetSourceSize().
+func (m *MoveComponentsUntilCountReached) CountDown(state boardgame.State) bool {
+	return m.targetSourceSizeImpl()
+}
+
+//stacks returns the source and desitnation so you don't have to do the cast.
+func (m *MoveComponentsUntilCountReached) stacks(state boardgame.State) (source, destination boardgame.MutableStack) {
+
+	//TODO: this is a total hack
+	mState := state.(boardgame.MutableState)
+
+	stacker, ok := m.TopLevelStruct().(sourceDestinationStacker)
+
+	if !ok {
+		return nil, nil
+	}
+
+	return stacker.SourceStack(mState), stacker.DestinationStack(mState)
+
+}
+
+//Count is consulted in ConditionMet to see what the current count is. By
+//default it's the destination Stack's NumComponents, but if
+//TargetSourceSize() returns true, it will instead be the destination stack's
+//size. Generally you don't override this directly and instead override
+//TargetSourceSize().
+func (m *MoveComponentsUntilCountReached) Count(state boardgame.State) int {
+
+	var targetStack boardgame.MutableStack
+
+	if m.targetSourceSizeImpl() {
+		targetStack, _ = m.stacks(state)
+	} else {
+		_, targetStack = m.stacks(state)
+	}
+
+	if targetStack == nil {
+		return 0
+	}
+
+	return targetStack.NumComponents()
+}
+
+//Apply by default moves one component from SourceStack() to
+//DestinationStack(). You likely do not need to override this method.
+func (m *MoveComponentsUntilCountReached) Apply(state boardgame.MutableState) error {
+
+	source, destination := m.stacks(state)
+
+	if source == nil {
+		return errors.New("Source was nil")
+	}
+
+	if destination == nil {
+		return errors.New("Destination was nil")
+	}
+
+	return source.MoveComponent(boardgame.FirstComponentIndex, destination, boardgame.NextSlotIndex)
+
+}
+
 //MoveComponentsUntilCountLeft is a move that will move components, one at a
 //time, from SourceStack() to DestinationStack() until the source stack is
-//down to having  TargetCount components in it. Based on the default behaviors
-//built into ApplyUntilCount, this struct actually doesn't override much
-//logic, and instead exists primarily for clarity in your code. You generally
-//want to override SourceStack(), DestinationStack(), and TargetCount() to
-//use.
+//down to having  TargetCount components in it. It subclasses from
+//MoveComponentsUntilCountReached, and its primary difference is a different
+//return value for TargetSourceSize(). However, using this move class directly
+//instead of override MoveComponentsUntilCountReached.TargetSourceSize() is
+//recommended for clarity of intent in your codebase.
 type MoveComponentsUntilCountLeft struct {
-	ApplyUntilCount
+	MoveComponentsUntilCountReached
 }
 
 //TargetSourceSize returns true, denoting to ApplyUntilCount that we are
-//counting down until our source meets TargetCount().
+//counting down until our source meets TargetCount(). This is sufficient to
+//change the behavior of CountDown() and Count() to the right behavior.
 func (m *MoveComponentsUntilCountLeft) TargetSourceSize() bool {
 	return true
+}
+
+//MoveComponents is a move that will move components, one at a time, from
+//SourceStack() to DestinationStack() until TargetCount() components have been
+//moved. It is like DealComponents or CollectComponnets, except instead of
+//working on a certain stack for each player, it operates on two fixed stacks.
+type MoveCountComponents struct {
+	MoveComponentsUntilCountReached
+}
+
+//Count counts the number of times this move has been applied in a row.
+func (m *MoveCountComponents) Count(state boardgame.State) int {
+	return countMovesApplied(m.TopLevelStruct(), state)
 }
