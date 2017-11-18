@@ -36,7 +36,8 @@
 	You can configure which package to process and where to write output via
 	command-line flags. By default it processes the current package and writes
 	its output to auto_reader.go, overwriting whatever file was there before.
-	See command-line options by passing -h.
+	See command-line options by passing -h. Structs with an +autoreader
+	comment that are in a _test.go file will be outputin auto_reader_test.go.
 
 	The outputted readers, readsetters, and readsetconfigurers use a hard-
 	coded list of fields for performance (reflection would be about 30% slower
@@ -75,11 +76,13 @@ const magicDocLinePrefix = "+autoreader"
 
 type appOptions struct {
 	OutputFile       string
+	OutputFileTest   string
 	EnumOutputFile   string
 	PackageDirectory string
 	PrintToConsole   bool
 	OutputEnum       bool
 	OutputReader     bool
+	OutputReaderTest bool
 	Help             bool
 	flagSet          *flag.FlagSet
 }
@@ -91,10 +94,12 @@ type templateConfig struct {
 
 func defineFlags(options *appOptions) {
 	options.flagSet.StringVar(&options.OutputFile, "out", "auto_reader.go", "Defines which file to render output to. WARNING: it will be overwritten!")
+	options.flagSet.StringVar(&options.OutputFileTest, "outtest", "auto_reader_test.go", "For structs in files that end in _test.go, what is the filename they should be exported to?")
 	options.flagSet.StringVar(&options.EnumOutputFile, "enumout", "auto_enum.go", "Where to output the auto-enum file. WARNING: it will be overwritten!")
 	options.flagSet.StringVar(&options.PackageDirectory, "pkg", ".", "Which package to process")
 	options.flagSet.BoolVar(&options.OutputEnum, "enum", true, "Whether or not to output auto_enum.go")
 	options.flagSet.BoolVar(&options.OutputReader, "reader", true, "Whether or not to output auto_reader.go")
+	options.flagSet.BoolVar(&options.OutputReaderTest, "readertest", true, "Whether or not to output auto_reader_test.go")
 	options.flagSet.BoolVar(&options.Help, "h", false, "If set, print help message and quit.")
 	options.flagSet.BoolVar(&options.PrintToConsole, "print", false, "If true, will print result to console instead of writing to out.")
 }
@@ -119,7 +124,7 @@ func process(options *appOptions, out io.ReadWriter, errOut io.ReadWriter) {
 		return
 	}
 
-	output, enumOutput, err := processPackage(options.PackageDirectory)
+	output, testOutput, enumOutput, err := processPackage(options.PackageDirectory)
 
 	if err != nil {
 		fmt.Fprintln(errOut, "ERROR", err)
@@ -129,6 +134,10 @@ func process(options *appOptions, out io.ReadWriter, errOut io.ReadWriter) {
 	if options.PrintToConsole {
 		if options.OutputReader {
 			fmt.Fprintln(out, output)
+
+		}
+		if options.OutputReaderTest {
+			fmt.Fprintln(out, testOutput)
 		}
 		if options.OutputEnum {
 			fmt.Fprintln(out, enumOutput)
@@ -141,45 +150,55 @@ func process(options *appOptions, out io.ReadWriter, errOut io.ReadWriter) {
 		ioutil.WriteFile(options.OutputFile, []byte(output), 0644)
 	}
 
+	if testOutput != "" && options.OutputReaderTest {
+		ioutil.WriteFile(options.OutputFileTest, []byte(testOutput), 0644)
+	}
+
 	if enumOutput != "" && options.OutputEnum {
 		ioutil.WriteFile(options.EnumOutputFile, []byte(enumOutput), 0644)
 	}
 
 }
 
-func processPackage(location string) (output string, enumOutput string, err error) {
+func processPackage(location string) (output string, testOutput string, enumOutput string, err error) {
 
 	sources, err := parser.ParseSourceDir(location, ".*")
 
 	if err != nil {
-		return "", "", errors.New("Couldn't parse sources: " + err.Error())
+		return "", "", "", errors.New("Couldn't parse sources: " + err.Error())
 	}
 
-	output, err = processStructs(sources, location)
+	output, testOutput, err = processStructs(sources, location)
 
 	if err != nil {
-		return "", "", errors.New("Couldn't process structs: " + err.Error())
+		return "", "", "", errors.New("Couldn't process structs: " + err.Error())
 	}
 
 	enumOutput, err = processEnums(location)
 
 	if err != nil {
-		return "", "", errors.New("Couldn't process enums: " + err.Error())
+		return "", "", "", errors.New("Couldn't process enums: " + err.Error())
 	}
 
 	formattedBytes, err := format.Source([]byte(output))
 
 	if err != nil {
-		return "", "", errors.New("Couldn't go fmt code for reader: " + err.Error())
+		return "", "", "", errors.New("Couldn't go fmt code for reader: " + err.Error())
+	}
+
+	formattedTestBytes, err := format.Source([]byte(testOutput))
+
+	if err != nil {
+		return "", "", "", errors.New("Couldn't go fmt code for reader: " + err.Error())
 	}
 
 	formattedEnumBytes, err := format.Source([]byte(enumOutput))
 
 	if err != nil {
-		return "", "", errors.New("Couldn't go fmt code for enums: " + err.Error())
+		return "", "", "", errors.New("Couldn't go fmt code for enums: " + err.Error())
 	}
 
-	return string(formattedBytes), string(formattedEnumBytes), nil
+	return string(formattedBytes), string(formattedTestBytes), string(formattedEnumBytes), nil
 
 }
 

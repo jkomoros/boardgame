@@ -38,10 +38,30 @@ func init() {
 	memoizedEmbeddedStructs = make(map[memoizedEmbeddedStructKey]map[string]boardgame.PropertyType)
 }
 
-func processStructs(sources model.ParsedSources, location string) (output string, err error) {
+func processStructs(sources model.ParsedSources, location string) (output string, testOutput string, err error) {
+
+	output, err = doProcessStructs(sources, location, false)
+
+	if err != nil {
+		return
+	}
+
+	testOutput, err = doProcessStructs(sources, location, true)
+
+	return
+}
+
+func doProcessStructs(sources model.ParsedSources, location string, testFiles bool) (output string, err error) {
 	haveOutputHeader := false
 
 	for _, theStruct := range sources.Structs {
+
+		//Only process structs in test or not test files, depending on which mode we're in.
+		structInTestFile := strings.HasSuffix(theStruct.Filename, "_test.go")
+
+		if structInTestFile != testFiles {
+			continue
+		}
 
 		if !haveOutputHeader {
 			output += headerForPackage(theStruct.PackageName)
