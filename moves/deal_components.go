@@ -6,6 +6,34 @@ import (
 	"github.com/jkomoros/boardgame/moves/moveinterfaces"
 )
 
+func dealActionHelper(topLevelStruct boardgame.Move, playerState boardgame.MutablePlayerState) (playerStack boardgame.MutableStack, gameStack boardgame.MutableStack, err error) {
+	playerStacker, ok := topLevelStruct.(moveinterfaces.PlayerStacker)
+
+	if !ok {
+		return nil, nil, errors.New("Embedding move unexpectedly doesn't implement PlayerStacker")
+	}
+
+	targetStack := playerStacker.PlayerStack(playerState)
+
+	if targetStack == nil {
+		return nil, nil, errors.New("PlayerStacker didn't return a valid stack")
+	}
+
+	gameStacker, ok := topLevelStruct.(moveinterfaces.GameStacker)
+
+	if !ok {
+		return nil, nil, errors.New("Embedding move unexpectedly doesn't implement GameStacker")
+	}
+
+	sourceStack := gameStacker.GameStack(playerState.MutableState().MutableGameState())
+
+	if sourceStack == nil {
+		return nil, nil, errors.New("GameStacker didn't return a valid stack")
+	}
+
+	return targetStack, sourceStack, nil
+}
+
 /*
 
 DealCountComponents is a type of RoundRobin move that deals components from
@@ -55,31 +83,14 @@ func (d *DealCountComponents) ValidConfiguration(exampleState boardgame.MutableS
 //RoundRobinAction moves a component from the GameStack to the PlayerStack, as
 //configured by the PlayerStacker and GameStacker interfaces.
 func (d *DealCountComponents) RoundRobinAction(playerState boardgame.MutablePlayerState) error {
-	playerStacker, ok := d.TopLevelStruct().(moveinterfaces.PlayerStacker)
 
-	if !ok {
-		return errors.New("Embedding move unexpectedly doesn't implement PlayerStacker")
+	playerStack, gameStack, err := dealActionHelper(d.TopLevelStruct(), playerState)
+
+	if err != nil {
+		return err
 	}
 
-	targetStack := playerStacker.PlayerStack(playerState)
-
-	if targetStack == nil {
-		return errors.New("PlayerStacker didn't return a valid stack")
-	}
-
-	gameStacker, ok := d.TopLevelStruct().(moveinterfaces.GameStacker)
-
-	if !ok {
-		return errors.New("Embedding move unexpectedly doesn't implement GameStacker")
-	}
-
-	sourceStack := gameStacker.GameStack(playerState.MutableState().MutableGameState())
-
-	if sourceStack == nil {
-		return errors.New("GameStacker didn't return a valid stack")
-	}
-
-	return sourceStack.MoveComponent(boardgame.FirstComponentIndex, targetStack, boardgame.NextSlotIndex)
+	return gameStack.MoveComponent(boardgame.FirstComponentIndex, playerStack, boardgame.NextSlotIndex)
 }
 
 //DealComponentsUntilPlayerCountReached goes around and deals components to
