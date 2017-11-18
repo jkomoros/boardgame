@@ -62,7 +62,7 @@ some action. Other moves in this package embed RoundRobin, and it's more
 common to use those directly.
 
 Round Robin moves start at a given player and goes around. It will skip
-players for whom move.RoundRobinPlayerConditionMet() has already returned
+players for whom move.PlayerConditionMet() has already returned
 true. When it finds a player whose end condition is not met, it will apply
 RoundRobinAction() to them, and then advance to the next player. Every time it
 makes a circuit around the list of players, it will increment
