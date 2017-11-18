@@ -131,7 +131,7 @@ func (d *Base) legalInPhase(state boardgame.State) error {
 	return errors.New("Move is not legal in phase " + phaseName)
 }
 
-func (d *Base) historicalMovesSincePhaseTransition(game *boardgame.Game, upToVersion int) []*boardgame.MoveStorageRecord {
+func (d *Base) historicalMovesSincePhaseTransition(game *boardgame.Game, upToVersion int, targetPhase int) []*boardgame.MoveStorageRecord {
 
 	moves := game.MoveRecords(upToVersion)
 
@@ -165,8 +165,6 @@ func (d *Base) historicalMovesSincePhaseTransition(game *boardgame.Game, upToVer
 	}
 
 	var keptMoves []*boardgame.MoveStorageRecord
-
-	targetPhase := moves[len(moves)-1].Phase
 
 	for i := len(moves) - 1; i >= 0; i-- {
 		move := moves[i]
@@ -207,7 +205,7 @@ func (d *Base) legalMoveInProgression(state boardgame.State, proposer boardgame.
 		return nil
 	}
 
-	historicalMoves := d.historicalMovesSincePhaseTransition(state.Game(), state.Version())
+	historicalMoves := d.historicalMovesSincePhaseTransition(state.Game(), state.Version(), currentPhase)
 
 	progression := make([]string, len(historicalMoves))
 
