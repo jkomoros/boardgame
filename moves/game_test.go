@@ -12,6 +12,7 @@ import (
 const (
 	phaseSetUp = iota
 	phaseNormalPlay
+	phaseDrawAgain
 )
 
 var enums = enum.NewSet()
@@ -19,6 +20,7 @@ var enums = enum.NewSet()
 var phaseEnum = enums.MustAdd("Phase", map[int]string{
 	phaseSetUp:      "Set Up",
 	phaseNormalPlay: "Normal Play",
+	phaseDrawAgain:  "Draw Again",
 })
 
 //+autoreader

@@ -40,6 +40,28 @@ func (m *moveDealOtherCards) PlayerStack(pState boardgame.MutablePlayerState) bo
 	return pState.(*playerState).OtherHand
 }
 
+//+autoreader
+type moveCurrentPlayerDraw struct {
+	CurrentPlayer
+}
+
+func (m *moveCurrentPlayerDraw) Apply(state boardgame.MutableState) error {
+	game, players := concreteStates(state)
+
+	p := players[game.CurrentPlayer]
+
+	return game.DrawStack.MoveComponent(boardgame.FirstComponentIndex, p.Hand, boardgame.FirstSlotIndex)
+}
+
+//+autoreader
+type moveStartPhaseDrawAgain struct {
+	StartPhase
+}
+
+func (m *moveStartPhaseDrawAgain) PhaseToStart(currentPhase int) int {
+	return phaseDrawAgain
+}
+
 func defaultMoveInstaller(manager *boardgame.GameManager) error {
 	moves := []*boardgame.MoveTypeConfig{
 		&boardgame.MoveTypeConfig{
@@ -59,7 +81,26 @@ func defaultMoveInstaller(manager *boardgame.GameManager) error {
 		NewStartPhaseMoveConfig(manager, phaseNormalPlay, nil),
 	}
 
-	return manager.AddOrderedMovesForPhase(phaseSetUp, moves...)
+	if err := manager.AddOrderedMovesForPhase(phaseSetUp, moves...); err != nil {
+		return err
+	}
+
+	moves = []*boardgame.MoveTypeConfig{
+		&boardgame.MoveTypeConfig{
+			Name: "Draw Card",
+			MoveConstructor: func() boardgame.Move {
+				return new(moveCurrentPlayerDraw)
+			},
+		},
+		&boardgame.MoveTypeConfig{
+			Name: "Start Phase Draw Again",
+			MoveConstructor: func() boardgame.Move {
+				return new(moveStartPhaseDrawAgain)
+			},
+		},
+	}
+
+	return manager.AddMovesForPhase(phaseNormalPlay, moves...)
 }
 
 func TestGeneral(t *testing.T) {
@@ -98,6 +139,22 @@ func TestGeneral(t *testing.T) {
 			12,
 			1,
 		}, game.MoveRecords(-1))
+
+	move := game.PlayerMoveByName("Draw Card")
+
+	assert.For(t).ThatActual(move).IsNotNil()
+
+	err = <-game.ProposeMove(move, 0)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	move = game.PlayerMoveByName("Start Phase Draw Again")
+
+	assert.For(t).ThatActual(move).IsNotNil()
+
+	err = <-game.ProposeMove(move, 0)
+
+	assert.For(t).ThatActual(err).IsNil()
 
 }
 
