@@ -87,4 +87,42 @@ func TestGeneral(t *testing.T) {
 		assert.For(t, i).ThatActual(player.OtherHand.NumComponents()).Equals(3)
 	}
 
+	historicalMovesCount(t,
+		[]string{
+			"Deal Initial Cards",
+			"Deal Other Cards",
+			"Start Phase Normal Play",
+		},
+		[]int{
+			8,
+			12,
+			1,
+		}, game.MoveRecords(-1))
+
+}
+
+func historicalMovesCount(t *testing.T, moveNames []string, counts []int, records []*boardgame.MoveStorageRecord) {
+	if len(moveNames) != len(counts) {
+		t.Error("MoveNames and counts did not match length")
+	}
+
+	currentMoveIndex := 0
+	counterInMoveType := 0
+
+	for i, move := range records {
+
+		if counterInMoveType >= counts[currentMoveIndex] {
+			currentMoveIndex++
+			counterInMoveType = 0
+			if currentMoveIndex > len(moveNames) {
+				t.Error("Fell off end of configuration")
+			}
+		}
+
+		if move.Name != moveNames[currentMoveIndex] {
+			t.Error("Unexpected move at ", i, move.Name, moveNames[currentMoveIndex])
+		}
+
+		counterInMoveType++
+	}
 }
