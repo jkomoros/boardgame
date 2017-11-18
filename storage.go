@@ -15,8 +15,8 @@ type MoveStorageRecord struct {
 	Name      string
 	Version   int
 	Initiator int
-	//The Phase as returned by Delegate.CurrentPhase() for the new state
-	//created by this move.
+	//The Phase as returned by Delegate.CurrentPhase() for the state the move
+	//was in before it was applied.
 	Phase     int
 	Timestamp time.Time
 	Blob      []byte
