@@ -807,6 +807,8 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 		return errors.NewFriendly(err.Error())
 	}
 
+	currentPhase := g.manager.delegate.CurrentPhase(currentState)
+
 	newState := currentState.copy(false)
 	newState.version = versionToSet
 
@@ -833,8 +835,7 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	//Expire the currentState cache; it's no longer valid.
 	g.cachedCurrentState = nil
 
-	currentPhase := g.manager.delegate.CurrentPhase(newState)
-
+	//Note that we want the phase that we were in BEFORE this move was applied.
 	moveStorageRecord := StorageRecordForMove(move, currentPhase)
 
 	//TODO: test that if we fail to save state to storage everything's fine.
