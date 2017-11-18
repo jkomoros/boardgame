@@ -1,15 +1,3 @@
-/*
-
-moves is a convenience package that implements composable Moves to make it
-easy to implement common logic. The Base move type is a very simple move that
-implements the basic stubs necessary for your straightforward moves to have
-minimal boilerplate.
-
-You interact with and configure various move types by implementing interfaces.
-Those interfaes are defined in the moveinterfaces subpackage, to make this
-package's design more clear.
-
-*/
 package moves
 
 import (
