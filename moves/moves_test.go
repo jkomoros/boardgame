@@ -23,6 +23,23 @@ func (m *moveDealCards) PlayerStack(pState boardgame.MutablePlayerState) boardga
 	return pState.(*playerState).Hand
 }
 
+//+autoreader
+type moveDealOtherCards struct {
+	DealCountComponents
+}
+
+func (m *moveDealOtherCards) TargetCount() int {
+	return 3
+}
+
+func (m *moveDealOtherCards) GameStack(gState boardgame.MutableSubState) boardgame.MutableStack {
+	return gState.(*gameState).DrawStack
+}
+
+func (m *moveDealOtherCards) PlayerStack(pState boardgame.MutablePlayerState) boardgame.MutableStack {
+	return pState.(*playerState).OtherHand
+}
+
 func defaultMoveInstaller(manager *boardgame.GameManager) error {
 	moves := []*boardgame.MoveTypeConfig{
 		&boardgame.MoveTypeConfig{
@@ -32,6 +49,14 @@ func defaultMoveInstaller(manager *boardgame.GameManager) error {
 			},
 			IsFixUp: true,
 		},
+		&boardgame.MoveTypeConfig{
+			Name: "Deal Other Cards",
+			MoveConstructor: func() boardgame.Move {
+				return new(moveDealOtherCards)
+			},
+			IsFixUp: true,
+		},
+		NewStartPhaseMoveConfig(manager, phaseNormalPlay, nil),
 	}
 
 	return manager.AddOrderedMovesForPhase(phaseSetUp, moves...)
@@ -48,15 +73,18 @@ func TestGeneral(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	//4 players, 2 rounds
-	assert.For(t).ThatActual(game.Version()).Equals(8)
+	//4 players, 2 rounds for inital cards, then 4 * 3 for other cards, then
+	//NewStartPhase.
+	assert.For(t).ThatActual(game.Version()).Equals(21)
 
 	gameState, playerStates := concreteStates(game.CurrentState())
 
-	assert.For(t).ThatActual(gameState.DrawStack.NumComponents()).Equals(52 - 8)
+	assert.For(t).ThatActual(gameState.DrawStack.NumComponents()).Equals(52 - 20)
+	assert.For(t).ThatActual(gameState.Phase.Value()).Equals(phaseNormalPlay)
 
-	for _, player := range playerStates {
-		assert.For(t).ThatActual(player.Hand.NumComponents()).Equals(2)
+	for i, player := range playerStates {
+		assert.For(t, i).ThatActual(player.Hand.NumComponents()).Equals(2)
+		assert.For(t, i).ThatActual(player.OtherHand.NumComponents()).Equals(3)
 	}
 
 }

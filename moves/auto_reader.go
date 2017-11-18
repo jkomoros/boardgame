@@ -489,8 +489,9 @@ func (g *gameState) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 // Implementation for playerState
 
 var __playerStateReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
-	"Counter": boardgame.TypeInt,
-	"Hand":    boardgame.TypeStack,
+	"Counter":   boardgame.TypeInt,
+	"Hand":      boardgame.TypeStack,
+	"OtherHand": boardgame.TypeStack,
 }
 
 type __playerStateReader struct {
@@ -796,6 +797,8 @@ func (p *__playerStateReader) StackProp(name string) (boardgame.Stack, error) {
 	switch name {
 	case "Hand":
 		return p.data.Hand, nil
+	case "OtherHand":
+		return p.data.OtherHand, nil
 
 	}
 
@@ -809,6 +812,9 @@ func (p *__playerStateReader) ConfigureMutableStackProp(name string, value board
 	case "Hand":
 		p.data.Hand = value
 		return nil
+	case "OtherHand":
+		p.data.OtherHand = value
+		return nil
 
 	}
 
@@ -821,6 +827,8 @@ func (p *__playerStateReader) MutableStackProp(name string) (boardgame.MutableSt
 	switch name {
 	case "Hand":
 		return p.data.Hand, nil
+	case "OtherHand":
+		return p.data.OtherHand, nil
 
 	}
 
@@ -1241,6 +1249,367 @@ func (m *moveDealCards) ReadSetter() boardgame.PropertyReadSetter {
 
 func (m *moveDealCards) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 	return &__moveDealCardsReader{m}
+}
+
+// Implementation for moveDealOtherCards
+
+var __moveDealOtherCardsReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{}
+
+type __moveDealOtherCardsReader struct {
+	data *moveDealOtherCards
+}
+
+func (m *__moveDealOtherCardsReader) Props() map[string]boardgame.PropertyType {
+	return __moveDealOtherCardsReaderProps
+}
+
+func (m *__moveDealOtherCardsReader) Prop(name string) (interface{}, error) {
+	props := m.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return nil, errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeBool:
+		return m.BoolProp(name)
+	case boardgame.TypeBoolSlice:
+		return m.BoolSliceProp(name)
+	case boardgame.TypeEnum:
+		return m.EnumProp(name)
+	case boardgame.TypeInt:
+		return m.IntProp(name)
+	case boardgame.TypeIntSlice:
+		return m.IntSliceProp(name)
+	case boardgame.TypePlayerIndex:
+		return m.PlayerIndexProp(name)
+	case boardgame.TypePlayerIndexSlice:
+		return m.PlayerIndexSliceProp(name)
+	case boardgame.TypeStack:
+		return m.StackProp(name)
+	case boardgame.TypeString:
+		return m.StringProp(name)
+	case boardgame.TypeStringSlice:
+		return m.StringSliceProp(name)
+	case boardgame.TypeTimer:
+		return m.TimerProp(name)
+
+	}
+
+	return nil, errors.New("Unexpected property type: " + propType.String())
+}
+
+func (m *__moveDealOtherCardsReader) SetProp(name string, value interface{}) error {
+	props := m.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeBool:
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return m.SetBoolProp(name, val)
+	case boardgame.TypeBoolSlice:
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
+		}
+		return m.SetBoolSliceProp(name, val)
+	case boardgame.TypeInt:
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return m.SetIntProp(name, val)
+	case boardgame.TypeIntSlice:
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
+		}
+		return m.SetIntSliceProp(name, val)
+	case boardgame.TypeEnum:
+		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+	case boardgame.TypeStack:
+		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+	case boardgame.TypeTimer:
+		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+	case boardgame.TypePlayerIndex:
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return m.SetPlayerIndexProp(name, val)
+	case boardgame.TypePlayerIndexSlice:
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
+		}
+		return m.SetPlayerIndexSliceProp(name, val)
+	case boardgame.TypeString:
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return m.SetStringProp(name, val)
+	case boardgame.TypeStringSlice:
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
+		}
+		return m.SetStringSliceProp(name, val)
+
+	}
+
+	return errors.New("Unexpected property type: " + propType.String())
+}
+
+func (m *__moveDealOtherCardsReader) ConfigureProp(name string, value interface{}) error {
+	props := m.Props()
+	propType, ok := props[name]
+
+	if !ok {
+		return errors.New("No such property with that name: " + name)
+	}
+
+	switch propType {
+	case boardgame.TypeBool:
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return m.SetBoolProp(name, val)
+	case boardgame.TypeBoolSlice:
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
+		}
+		return m.SetBoolSliceProp(name, val)
+	case boardgame.TypeInt:
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return m.SetIntProp(name, val)
+	case boardgame.TypeIntSlice:
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
+		}
+		return m.SetIntSliceProp(name, val)
+	case boardgame.TypeEnum:
+		val, ok := value.(enum.MutableVal)
+		if !ok {
+			return errors.New("Provided value was not of type enum.MutableVal")
+		}
+		return m.ConfigureMutableEnumProp(name, val)
+	case boardgame.TypeStack:
+		val, ok := value.(boardgame.MutableStack)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.MutableStack")
+		}
+		return m.ConfigureMutableStackProp(name, val)
+	case boardgame.TypeTimer:
+		val, ok := value.(boardgame.MutableTimer)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.MutableTimer")
+		}
+		return m.ConfigureMutableTimerProp(name, val)
+	case boardgame.TypePlayerIndex:
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return m.SetPlayerIndexProp(name, val)
+	case boardgame.TypePlayerIndexSlice:
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
+		}
+		return m.SetPlayerIndexSliceProp(name, val)
+	case boardgame.TypeString:
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return m.SetStringProp(name, val)
+	case boardgame.TypeStringSlice:
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
+		}
+		return m.SetStringSliceProp(name, val)
+
+	}
+
+	return errors.New("Unexpected property type: " + propType.String())
+}
+
+func (m *__moveDealOtherCardsReader) BoolProp(name string) (bool, error) {
+
+	return false, errors.New("No such Bool prop: " + name)
+
+}
+
+func (m *__moveDealOtherCardsReader) SetBoolProp(name string, value bool) error {
+
+	return errors.New("No such Bool prop: " + name)
+
+}
+
+func (m *__moveDealOtherCardsReader) BoolSliceProp(name string) ([]bool, error) {
+
+	return []bool{}, errors.New("No such BoolSlice prop: " + name)
+
+}
+
+func (m *__moveDealOtherCardsReader) SetBoolSliceProp(name string, value []bool) error {
+
+	return errors.New("No such BoolSlice prop: " + name)
+
+}
+
+func (m *__moveDealOtherCardsReader) EnumProp(name string) (enum.Val, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
+func (m *__moveDealOtherCardsReader) ConfigureMutableEnumProp(name string, value enum.MutableVal) error {
+
+	return errors.New("No such MutableEnum prop: " + name)
+
+}
+
+func (m *__moveDealOtherCardsReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
+func (m *__moveDealOtherCardsReader) IntProp(name string) (int, error) {
+
+	return 0, errors.New("No such Int prop: " + name)
+
+}
+
+func (m *__moveDealOtherCardsReader) SetIntProp(name string, value int) error {
+
+	return errors.New("No such Int prop: " + name)
+
+}
+
+func (m *__moveDealOtherCardsReader) IntSliceProp(name string) ([]int, error) {
+
+	return []int{}, errors.New("No such IntSlice prop: " + name)
+
+}
+
+func (m *__moveDealOtherCardsReader) SetIntSliceProp(name string, value []int) error {
+
+	return errors.New("No such IntSlice prop: " + name)
+
+}
+
+func (m *__moveDealOtherCardsReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
+
+	return 0, errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (m *__moveDealOtherCardsReader) SetPlayerIndexProp(name string, value boardgame.PlayerIndex) error {
+
+	return errors.New("No such PlayerIndex prop: " + name)
+
+}
+
+func (m *__moveDealOtherCardsReader) PlayerIndexSliceProp(name string) ([]boardgame.PlayerIndex, error) {
+
+	return []boardgame.PlayerIndex{}, errors.New("No such PlayerIndexSlice prop: " + name)
+
+}
+
+func (m *__moveDealOtherCardsReader) SetPlayerIndexSliceProp(name string, value []boardgame.PlayerIndex) error {
+
+	return errors.New("No such PlayerIndexSlice prop: " + name)
+
+}
+
+func (m *__moveDealOtherCardsReader) StackProp(name string) (boardgame.Stack, error) {
+
+	return nil, errors.New("No such Stack prop: " + name)
+
+}
+
+func (m *__moveDealOtherCardsReader) ConfigureMutableStackProp(name string, value boardgame.MutableStack) error {
+
+	return errors.New("No such MutableStack prop: " + name)
+
+}
+
+func (m *__moveDealOtherCardsReader) MutableStackProp(name string) (boardgame.MutableStack, error) {
+
+	return nil, errors.New("No such Stack prop: " + name)
+
+}
+
+func (m *__moveDealOtherCardsReader) StringProp(name string) (string, error) {
+
+	return "", errors.New("No such String prop: " + name)
+
+}
+
+func (m *__moveDealOtherCardsReader) SetStringProp(name string, value string) error {
+
+	return errors.New("No such String prop: " + name)
+
+}
+
+func (m *__moveDealOtherCardsReader) StringSliceProp(name string) ([]string, error) {
+
+	return []string{}, errors.New("No such StringSlice prop: " + name)
+
+}
+
+func (m *__moveDealOtherCardsReader) SetStringSliceProp(name string, value []string) error {
+
+	return errors.New("No such StringSlice prop: " + name)
+
+}
+
+func (m *__moveDealOtherCardsReader) TimerProp(name string) (boardgame.Timer, error) {
+
+	return nil, errors.New("No such Timer prop: " + name)
+
+}
+
+func (m *__moveDealOtherCardsReader) ConfigureMutableTimerProp(name string, value boardgame.MutableTimer) error {
+
+	return errors.New("No such MutableTimer prop: " + name)
+
+}
+
+func (m *__moveDealOtherCardsReader) MutableTimerProp(name string) (boardgame.MutableTimer, error) {
+
+	return nil, errors.New("No such Timer prop: " + name)
+
+}
+
+func (m *moveDealOtherCards) Reader() boardgame.PropertyReader {
+	return &__moveDealOtherCardsReader{m}
+}
+
+func (m *moveDealOtherCards) ReadSetter() boardgame.PropertyReadSetter {
+	return &__moveDealOtherCardsReader{m}
+}
+
+func (m *moveDealOtherCards) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
+	return &__moveDealOtherCardsReader{m}
 }
 
 // Implementation for StartPhase

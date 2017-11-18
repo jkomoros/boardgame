@@ -36,11 +36,16 @@ type playerState struct {
 	boardgame.BaseSubState
 	playerIndex boardgame.PlayerIndex
 	Hand        boardgame.MutableStack `stack:"cards"`
+	OtherHand   boardgame.MutableStack `stack:"cards"`
 	Counter     int
 }
 
 func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
 	return p.playerIndex
+}
+
+func (g *gameState) SetCurrentPhase(phase int) {
+	g.Phase.SetValue(phase)
 }
 
 func concreteStates(state boardgame.State) (*gameState, []*playerState) {
