@@ -102,8 +102,7 @@ func (a *ApplyUntilCount) TargetCount(state boardgame.State) int {
 //CountDown should return true if we're counting downward, or false if we're
 //counting up. ConditionMet() needs to know if we're counting down or we're
 //counting up because it can't tell that by itself, and needs to stop one
-//after the target is reached. The default CountDown() returns the result of
-//TargetSourceSize().
+//after the target is reached. Defaults to false.
 func (a *ApplyUntilCount) CountDown(state boardgame.State) bool {
 	return false
 }

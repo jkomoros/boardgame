@@ -157,10 +157,6 @@ type sourceDestinationStacker interface {
 	moveinterfaces.DestinationStacker
 }
 
-type targetSourceSize interface {
-	TargetSourceSize() bool
-}
-
 //MoveComponentsUntilCountReached is a move that will move components, one at
 //a time, from SourceStack() to DestinationStack() until the target stack is
 //up to having TargetCount components in it. Other MoveComponents-style moves
@@ -180,9 +176,6 @@ func (m *MoveComponentsUntilCountReached) ValidConfiguration(exampleState boardg
 	if _, ok := m.TopLevelStruct().(sourceDestinationStacker); !ok {
 		return errors.New("EmbeddingMove doesn't have Source/Destination stacker.")
 	}
-	if _, ok := m.TopLevelStruct().(targetSourceSize); !ok {
-		return errors.New("EmbeddingMove doesn't have TargetSourceSize")
-	}
 
 	return nil
 }
@@ -201,35 +194,10 @@ func (m *MoveComponentsUntilCountReached) DestinationStack(state boardgame.Mutab
 	return nil
 }
 
-//TargetSourceSize should return whether Count() and TargetCount() are based
-//on increasing destination's size to target (default), or declining source's
-//size to target. This is used primarily to help the default Count(),
-//TargetCount() do the right thing without being overriden. Defaults to false,
-//which denotes that the target we're trying to hit is based on destination's
-//size. If you want the opposite behavior, just use
-//MoveComponentsUntilCountLeft, which basically just overrides this method,
-//because your intent will be more clear in your move structures.
-func (m *MoveComponentsUntilCountReached) TargetSourceSize() bool {
-	return false
-}
-
-//targetSourceSizeImpl is a convenience method that does the interface cast to
-//get TargetSourceSize.z
-func (m *MoveComponentsUntilCountReached) targetSourceSizeImpl() bool {
-	targetSourcer, ok := m.TopLevelStruct().(targetSourceSize)
-
-	if !ok {
-		return false
-	}
-	return targetSourcer.TargetSourceSize()
-}
-
-//CountDown by default returns TargetSourceSize(). That is, if you're moving
-//from source to destination until a count is reached, it will return false,
-//otherwise will return true. You normally don't need to override this and can
-//instead override TargetSourceSize().
+//CountDown returns false, because as we move components from source to
+//destination, destination will be getting larger.
 func (m *MoveComponentsUntilCountReached) CountDown(state boardgame.State) bool {
-	return m.targetSourceSizeImpl()
+	return false
 }
 
 //stacks returns the source and desitnation so you don't have to do the cast.
@@ -248,20 +216,10 @@ func (m *MoveComponentsUntilCountReached) stacks(state boardgame.State) (source,
 
 }
 
-//Count is consulted in ConditionMet to see what the current count is. By
-//default it's the destination Stack's NumComponents, but if
-//TargetSourceSize() returns true, it will instead be the destination stack's
-//size. Generally you don't override this directly and instead override
-//TargetSourceSize().
+//Count returns the number of components in DestinationStack().
 func (m *MoveComponentsUntilCountReached) Count(state boardgame.State) int {
 
-	var targetStack boardgame.MutableStack
-
-	if m.targetSourceSizeImpl() {
-		targetStack, _ = m.stacks(state)
-	} else {
-		_, targetStack = m.stacks(state)
-	}
+	_, targetStack := m.stacks(state)
 
 	if targetStack == nil {
 		return 0
@@ -290,19 +248,27 @@ func (m *MoveComponentsUntilCountReached) Apply(state boardgame.MutableState) er
 
 //MoveComponentsUntilCountLeft is a move that will move components, one at a
 //time, from SourceStack() to DestinationStack() until the source stack is
-//down to having  TargetCount components in it. It subclasses from
-//MoveComponentsUntilCountReached, and its primary difference is a different
-//return value for TargetSourceSize(). However, using this move class directly
-//instead of override MoveComponentsUntilCountReached.TargetSourceSize() is
-//recommended for clarity of intent in your codebase.
+//down to having  TargetCount components in it. It subclasses
+//MoveComponentsUntilCountReached, and its primary difference is that its
+//target is based on reducing the size of SourceStack to a target size.
 type MoveComponentsUntilCountLeft struct {
 	MoveComponentsUntilCountReached
 }
 
-//TargetSourceSize returns true, denoting to ApplyUntilCount that we are
-//counting down until our source meets TargetCount(). This is sufficient to
-//change the behavior of CountDown() and Count() to the right behavior.
-func (m *MoveComponentsUntilCountLeft) TargetSourceSize() bool {
+//Count returns the number of components in the SourceStack().
+func (m *MoveComponentsUntilCountLeft) Count(state boardgame.State) int {
+	targetStack, _ := m.stacks(state)
+
+	if targetStack == nil {
+		return 0
+	}
+
+	return targetStack.NumComponents()
+}
+
+//CountDown returns true, because as we move components from source to
+//destination, source will be getting smaller and smaller.
+func (m *MoveComponentsUntilCountLeft) CountDown(state boardgame.State) bool {
 	return true
 }
 
