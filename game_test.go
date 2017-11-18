@@ -212,11 +212,11 @@ func TestGameSetUp(t *testing.T) {
 	gameState, playerStates := concreteStates(currentState)
 
 	if gameState.DrawDeck.state() != currentState {
-		t.Error("GameState's drawdeck didn't have state set correctly. Got", gameState.DrawDeck.state, "wanted", currentState)
+		t.Error("GameState's drawdeck didn't have state set correctly. Got", gameState.DrawDeck.state(), "wanted", currentState)
 	}
 
 	if playerStates[0].Hand.state() != currentState {
-		t.Error("PlayerStates Hand didn't have state set correctly. Got", playerStates[0].Hand.state, "wanted", currentState)
+		t.Error("PlayerStates Hand didn't have state set correctly. Got", playerStates[0].Hand.state(), "wanted", currentState)
 	}
 
 	deck := game.Chest().Deck("test").Components()

@@ -524,7 +524,7 @@ func (s *growableStack) ComponentAt(index int) *Component {
 		return nil
 	}
 
-	if s.deck == nil {
+	if s.deckPtr == nil {
 		return nil
 	}
 
@@ -548,7 +548,7 @@ func (s *sizedStack) ComponentAt(index int) *Component {
 		return nil
 	}
 
-	if s.deck == nil {
+	if s.deckPtr == nil {
 		return nil
 	}
 

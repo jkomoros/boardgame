@@ -195,7 +195,6 @@ func getDefaultReadSetConfigurer(i interface{}) PropertyReadSetConfigurer {
 		//It's OK to panic here because defaultreader is only used in tests
 		//and its' not exported.
 		panic("Got error from default propsImpl: " + err.Error())
-		return nil
 	}
 
 	defaultReaderCacheLock.Lock()
