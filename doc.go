@@ -599,6 +599,18 @@ like generic errors (that is, only their Error() method will be inspected).
 The result of their Error() message will be used in different ways (e.g. in
 FriendlyError() or Error()) depending on the context.
 
+Phases
+
+In many cases there are distinct phases of your game, such as SetUp,
+NormalPlay, and Scoring. Often moves should only apply in certain phases, and
+sometimes only certain times in a phase.
+
+A concept of Phases is used in the broader package. It shows up in random
+small places in the core engine, but it is primarily a formalized convention
+implemented by moves.Base in the moves package, and other supporting
+machinery. See the README for a more in depth discussion of Phases and how
+they work.
+
 Reflection and Properties
 
 The aim of the boardgame package is to make it as easy as possible for you to
