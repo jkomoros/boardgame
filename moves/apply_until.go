@@ -7,14 +7,10 @@ import (
 )
 
 //ApplyUntil is a simple move that is legal to apply in succession until its
-//ConditionMet returns nil. You need to override ConditionMet as well as
-//provide an Apply method.
+//ConditionMet returns nil. You need to implement
+//moveinterfaces.ConditionMetter by implementing a ConditionMet method.
 type ApplyUntil struct {
 	Base
-}
-
-type conditionMetter interface {
-	ConditionMet(state boardgame.State) error
 }
 
 //AllowMultipleInProgression returns true because the move is applied until
@@ -23,16 +19,8 @@ func (a *ApplyUntil) AllowMultipleInProgression() bool {
 	return true
 }
 
-//ConditionMet is called in ApplyUntil's Legal method. If the condition has
-//been met, return nil. If it has not been met, return an error describing why
-//it is not yet met. The default ConditionMet returns nil always; you almost
-//certainly want to override it.
-func (a *ApplyUntil) ConditionMet(state boardgame.State) error {
-	return nil
-}
-
 func (a *ApplyUntil) ValidConfiguration(exampleState boardgame.MutableState) error {
-	if _, ok := a.TopLevelStruct().(conditionMetter); !ok {
+	if _, ok := a.TopLevelStruct().(moveinterfaces.ConditionMetter); !ok {
 		return errors.New("Embedding Move doesn't have ConditionMet")
 	}
 	return nil
@@ -44,7 +32,7 @@ func (a *ApplyUntil) Legal(state boardgame.State, proposer boardgame.PlayerIndex
 		return err
 	}
 
-	conditionMet, ok := a.TopLevelStruct().(conditionMetter)
+	conditionMet, ok := a.TopLevelStruct().(moveinterfaces.ConditionMetter)
 
 	if !ok {
 		//This should be extremely rare since we ourselves have the right method.

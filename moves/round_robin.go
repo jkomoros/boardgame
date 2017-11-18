@@ -326,7 +326,7 @@ func (r *RoundRobin) Apply(state boardgame.MutableState) error {
 		}
 	}
 
-	conditionMetter, ok := r.TopLevelStruct().(conditionMetter)
+	conditionMetter, ok := r.TopLevelStruct().(moveinterfaces.ConditionMetter)
 
 	if !ok {
 		return errors.New("Top level struct unexpectedly did not implement condition met")

@@ -140,6 +140,14 @@ type RoundRobinProperties interface {
 	SetRoundRobinHasStarted(hasStarted bool)
 }
 
+//ConditionMetter should be implemented by moves that subclass
+//moves.ApplyUntil.
+type ConditionMetter interface {
+	//ConditionMet should return nil if the condition has been met, or an
+	//error describing why the condition has not yet been met.
+	ConditionMet(state boardgame.State) error
+}
+
 //RoundRobinActioner should be implemented by any moves that embed a
 //RoundRobin move. It's the action that will be called on the player who is
 //next in the round robin.
