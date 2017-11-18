@@ -62,6 +62,23 @@ func (m *moveStartPhaseDrawAgain) PhaseToStart(currentPhase int) int {
 	return phaseDrawAgain
 }
 
+//+autoreader
+type moveDealCardsToThree struct {
+	DealComponentsUntilPlayerCountReached
+}
+
+func (m *moveDealCardsToThree) TargetCount() int {
+	return 3
+}
+
+func (m *moveDealCardsToThree) GameStack(gState boardgame.MutableSubState) boardgame.MutableStack {
+	return gState.(*gameState).DrawStack
+}
+
+func (m *moveDealCardsToThree) PlayerStack(pState boardgame.MutablePlayerState) boardgame.MutableStack {
+	return pState.(*playerState).Hand
+}
+
 func defaultMoveInstaller(manager *boardgame.GameManager) error {
 	moves := []*boardgame.MoveTypeConfig{
 		&boardgame.MoveTypeConfig{
@@ -100,7 +117,21 @@ func defaultMoveInstaller(manager *boardgame.GameManager) error {
 		},
 	}
 
-	return manager.AddMovesForPhase(phaseNormalPlay, moves...)
+	if err := manager.AddMovesForPhase(phaseNormalPlay, moves...); err != nil {
+		return err
+	}
+
+	moves = []*boardgame.MoveTypeConfig{
+		&boardgame.MoveTypeConfig{
+			Name: "Draw To Three",
+			MoveConstructor: func() boardgame.Move {
+				return new(moveDealCardsToThree)
+			},
+			IsFixUp: true,
+		},
+	}
+
+	return manager.AddOrderedMovesForPhase(phaseDrawAgain, moves...)
 }
 
 func TestGeneral(t *testing.T) {
@@ -155,6 +186,11 @@ func TestGeneral(t *testing.T) {
 	err = <-game.ProposeMove(move, 0)
 
 	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(manager.Delegate().CurrentPhase(game.CurrentState())).Equals(phaseDrawAgain)
+
+	//3 additional moves, but skipping the one player who already had 3 in their hand.
+	assert.For(t).ThatActual(game.Version()).Equals(26)
 
 }
 
