@@ -51,17 +51,22 @@ type GameDelegate interface {
 	//components are distributed to it. It is also where the config for your
 	//gametype will be passed (it will have already passed LegalConfig). This
 	//is a good place to configure state that will be necessary for you to
-	//make the right decisions in DistributeComponentToStarterStack. If error
-	//is non-nil, Game setup will be aborted, with the reasoning including the
-	//error message provided.
+	//make the right decisions in DistributeComponentToStarterStack, or to
+	//transcribe config information you were passed into properties on your
+	//gameState as appropriate. If error is non-nil, Game setup will be
+	//aborted, with the reasoning including the error message provided.
 	BeginSetUp(state MutableState, config GameConfig) error
 
 	//FinishSetUp is called during game.SetUp, *after* components have been
 	//distributed to their StarterStack. This is the last chance to modify the
 	//state before the game's initial state is considered final. For example,
 	//if you have a card game this is where you'd make sure the starter draw
-	//stacks are shuffled. If error is non-nil, Game setup will be aborted,
-	//with the reasoning including the error message provided.
+	//stacks are shuffled. If your game has multiple rounds, or if you don't
+	//want the game to start with it already set-up (e.g. you want to show
+	//animations of starter cards being dealt) then it's probably best to do
+	//most of the logic in a SetUp phase. See the README for more. If error is
+	//non-nil, Game setup will be aborted, with the reasoning including the
+	//error message provided.
 	FinishSetUp(state MutableState) error
 
 	//CheckGameFinished should return true if the game is finished, and who
