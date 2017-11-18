@@ -1403,7 +1403,7 @@ we've defined an order of moves that may be applied. A DealInitialVisibleCard mo
 
 In most cases when you define a progression of moves that are legal in a given phase, you want each move to only be able to be applied a single time in a row. There are some moves that you want to be able to apply multiple times in a row, until their subclasses' Legal() no longer returns nil. For example, for blackjack we want to keep calling MoveDealInitialHiddenCard until each player has a hidden card dealt to them.
 
-Moves signal this by implementing the `moveinterfaces.AllowMultipleInProgression`, and returning true(). You almost never do this yourself, but instead embed moves that do this behavior for you. `moveDealInitialHiddenCardConfig` and `moveDealInitialVisibleCardConfig` both subclass a type of move called `moves.RoundRobin`, which we'll get to in a second.
+Moves signal this by implementing the `moveinterfaces.AllowMultipleInProgression`, and returning true(). You almost never do this yourself, but instead embed moves that do this behavior for you. `moveDealInitialHiddenCardConfig` and `moveDealInitialVisibleCardConfig` both subclass a type of move called `moves.DealCountComponents` which is a type of RoundRobin move, which we'll get to in a second.
 
 One more wrinkle: when the engine looks to see if a propose move is legal in this phase in this order, it will ignore any moves that are legal in all phases that may have come in between. This means that if you have a move like ShuffleDiscardToDraw that triggers in any phase if the discard pile runs out, it won't mess up your move progression matching.
 
@@ -1425,7 +1425,11 @@ A RoundRobin move defines some end-condition (by default the move has gone aroun
 
 RoundRobins are pretty complex under the hood because they can model a number of interesting exit criterion. To use a round robin your gameState must implement `moveinterfaces.RoundRobinProperties`. Alternatively you can anonymously embed `moveinterfaces.RoundRobinBaseGameState` instead of `boardgame.BaseSubState` to implement it for free. 
 
-RoundRobin moves are very powerful and general, and the `moves.RoundRobin` documentation goes into more depth on how to configure and use them. In practice you almost always use two types of moves that are simple sub-classes of RoundRobin: `moves.DealComponents` to deal components from a gameState to specific players, and `moves.CollectComponents` to collect components from each player into gameState.
+RoundRobin moves are very powerful and general, and the `moves.RoundRobin` documentation goes into
+more depth on how to configure and use them. In practice you almost always use two types of moves
+that are simple sub-classes of RoundRobin: `moves.DealCountComponents` to deal components from a
+gameState to specific players, and `moves.CollectCountComponents` to collect components from each
+player into gameState. The moves package describes how these moves work and how they fit together.
 
 ### Configs
 
