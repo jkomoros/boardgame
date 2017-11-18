@@ -18,12 +18,12 @@ type MoveFinishTurn struct {
 
 //+autoreader
 type MoveDealInitialHiddenCard struct {
-	moves.DealComponents
+	moves.DealCountComponents
 }
 
 //+autoreader
 type MoveDealInitialVisibleCard struct {
-	moves.DealComponents
+	moves.DealCountComponents
 }
 
 //+autoreader
