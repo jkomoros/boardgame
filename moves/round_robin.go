@@ -12,10 +12,10 @@ import (
 type roundRobinStarterPlayer interface {
 	RoundRobinStarterPlayer(state boardgame.State) boardgame.PlayerIndex
 }
-type roundRobinPlayerConditionMet interface {
-	//RoundRobinPlayerConditionMet should return whether the condition for the
-	//round robin to be over has been met for this player.
-	RoundRobinPlayerConditionMet(playerState boardgame.PlayerState) bool
+type playerConditionMet interface {
+	//PlayerConditionMet should return whether the condition for the round
+	//robin to be over has been met for this player.
+	PlayerConditionMet(playerState boardgame.PlayerState) bool
 }
 
 /*
@@ -95,15 +95,15 @@ func (s *RoundRobin) RoundRobinStarterPlayer(state boardgame.State) boardgame.Pl
 //players who have already had their player condition met), if you override
 //CondtionMet you should also call this implementation.
 func (r *RoundRobin) ConditionMet(state boardgame.State) error {
-	conditionsMet, ok := r.TopLevelStruct().(roundRobinPlayerConditionMet)
+	conditionsMet, ok := r.TopLevelStruct().(playerConditionMet)
 
 	if !ok {
 		//This should be extremely rare since we ourselves have the right method.
-		return errors.New("RoundRobin top level struct unexpectedly did not have RoundRobinPlayerConditionMet method")
+		return errors.New("RoundRobin top level struct unexpectedly did not have PlayerConditionMet method")
 	}
 
 	for i, player := range state.PlayerStates() {
-		if !conditionsMet.RoundRobinPlayerConditionMet(player) {
+		if !conditionsMet.PlayerConditionMet(player) {
 			return errors.New("Player " + strconv.Itoa(i) + " does not have their player condition met.")
 		}
 	}
@@ -111,14 +111,14 @@ func (r *RoundRobin) ConditionMet(state boardgame.State) error {
 	return nil
 }
 
-//RoundRobinPlayerConditionMet is called for each playerState. When advancing
+//PlayerConditionMet is called for each playerState. When advancing
 //to the next player, round robin will only pick a player whose condition has
 //not yet been met. Once all players have their PlayerconditionMet, then the
 //RoundRobin's ConditionMet will return nil, signaling that the RoundRobin is
 //done. By default this will return false. If you will use RoundRobin directly
 //(as opposed to RoundRobinNumRounds) you will want to override this otherwise
 //it will get in an infinite loop.
-func (r *RoundRobin) RoundRobinPlayerConditionMet(playerState boardgame.PlayerState) bool {
+func (r *RoundRobin) PlayerConditionMet(playerState boardgame.PlayerState) bool {
 	return false
 }
 
@@ -210,7 +210,7 @@ func (r *RoundRobin) nextPlayerIndex(state boardgame.State) (player boardgame.Pl
 	//PlayerConditionMet will still work fine, because their
 	//PlayerConditionMet will always return false.
 
-	conditionsMet, ok := r.TopLevelStruct().(roundRobinPlayerConditionMet)
+	conditionsMet, ok := r.TopLevelStruct().(playerConditionMet)
 
 	if !ok {
 		//This should be extremely rare since we ourselves have the right method.
@@ -229,7 +229,7 @@ func (r *RoundRobin) nextPlayerIndex(state boardgame.State) (player boardgame.Pl
 			roundSkip = true
 		}
 
-		if !conditionsMet.RoundRobinPlayerConditionMet(state.PlayerStates()[currentPlayer]) {
+		if !conditionsMet.PlayerConditionMet(state.PlayerStates()[currentPlayer]) {
 			break
 		}
 
