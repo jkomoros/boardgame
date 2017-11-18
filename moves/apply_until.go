@@ -3,6 +3,7 @@ package moves
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves/moveinterfaces"
 )
 
 //ApplyUntil is a simple move that is legal to apply in succession until its
@@ -61,7 +62,7 @@ func (a *ApplyUntil) Legal(state boardgame.State, proposer boardgame.PlayerIndex
 
 type counter interface {
 	Count(state boardgame.State) int
-	TargetCount(state boardgame.State) int
+	moveinterfaces.TargetCounter
 	CountDown(state boardgame.State) bool
 }
 
@@ -95,7 +96,7 @@ func (a *ApplyUntilCount) Count(state boardgame.State) int {
 //TargetCount should return the count that you want to target. Note that it's
 //also important to override CountDown() if you're counting down, not up. By
 //default returns 1.
-func (a *ApplyUntilCount) TargetCount(state boardgame.State) int {
+func (a *ApplyUntilCount) TargetCount() int {
 	return 1
 }
 
@@ -121,7 +122,7 @@ func (a *ApplyUntilCount) ConditionMet(state boardgame.State) error {
 	}
 
 	count := moveCounter.Count(state)
-	targetCount := moveCounter.TargetCount(state)
+	targetCount := moveCounter.TargetCount()
 	countDown := moveCounter.CountDown(state)
 
 	if targetCount == count {
