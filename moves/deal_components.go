@@ -34,6 +34,53 @@ func dealActionHelper(topLevelStruct boardgame.Move, playerState boardgame.Mutab
 	return targetStack, sourceStack, nil
 }
 
+func dealComponentsPlayerConditionMetHelper(topLevelStruct boardgame.Move, playerState boardgame.PlayerState) (playerCount, targetCount int, err error) {
+	playerStacker, ok := topLevelStruct.(moveinterfaces.PlayerStacker)
+
+	if !ok {
+		return 0, 0, errors.New("Didn't implement playerStacker")
+	}
+
+	//Ugly hack. :-/
+	mutablePState := playerState.(boardgame.MutablePlayerState)
+
+	playerStack := playerStacker.PlayerStack(mutablePState)
+
+	targetCounter, ok := topLevelStruct.(moveinterfaces.TargetCounter)
+
+	if !ok {
+		return 0, 0, errors.New("Didn't implement target counter")
+	}
+
+	return playerStack.NumComponents(), targetCounter.TargetCount(), nil
+}
+
+func dealComponentsConditionMetHelper(topLevelStruct boardgame.Move, state boardgame.State) (gameCount, targetCount int, err error) {
+	gameStacker, ok := topLevelStruct.(moveinterfaces.GameStacker)
+
+	if !ok {
+		return 0, 0, errors.New("Unexpectedly didn't implement gameStacker")
+	}
+
+	//Total hack :-/
+	mutableState := state.(boardgame.MutableState)
+
+	gameStack := gameStacker.GameStack(mutableState.MutableGameState())
+
+	if gameStack == nil {
+		return 0, 0, errors.New("GameStack gave a nil stack")
+	}
+
+	targetCounter, ok := topLevelStruct.(moveinterfaces.TargetCounter)
+
+	if !ok {
+		return 0, 0, errors.New("Unexpectedly did not implement TargetCount")
+	}
+
+	return gameStack.NumComponents(), targetCounter.TargetCount(), nil
+
+}
+
 /*
 
 DealCountComponents is a type of RoundRobin move that deals components from
@@ -103,24 +150,13 @@ type DealComponentsUntilPlayerCountReached struct {
 //PlayerConditionMet is true if the NumComponents in the given player's
 //PlayerStack() is TargetCount or greater.
 func (d *DealComponentsUntilPlayerCountReached) PlayerConditionMet(pState boardgame.PlayerState) bool {
-	playerStacker, ok := d.TopLevelStruct().(moveinterfaces.PlayerStacker)
+	playerCount, targetCount, err := dealComponentsPlayerConditionMetHelper(d.TopLevelStruct(), pState)
 
-	if !ok {
+	if err != nil {
 		return false
 	}
 
-	//Ugly hack. :-/
-	mutablePState := pState.(boardgame.MutablePlayerState)
-
-	playerStack := playerStacker.PlayerStack(mutablePState)
-
-	targetCounter, ok := d.TopLevelStruct().(moveinterfaces.TargetCounter)
-
-	if !ok {
-		return false
-	}
-
-	return playerStack.NumComponents() >= targetCounter.TargetCount()
+	return playerCount >= targetCount
 }
 
 //ConditionMet simply returns the RoundRobin.ConditionMet (throwing out the
@@ -139,30 +175,17 @@ type DealComponentsUntilGameCountLeft struct {
 //ConditionMet returns nil if GameStack's NumComponents is TargetCount or
 //less, and otherwise defaults to RoundRobin's ConditionMet.
 func (d *DealComponentsUntilGameCountLeft) ConditionMet(state boardgame.State) error {
-	gameStacker, ok := d.TopLevelStruct().(moveinterfaces.GameStacker)
 
-	if !ok {
-		return errors.New("Unexpectedly didn't implement gameStacker")
+	gameCount, targetCount, err := dealComponentsConditionMetHelper(d.TopLevelStruct(), state)
+
+	if err != nil {
+		return nil
 	}
 
-	//Total hack :-/
-	mutableState := state.(boardgame.MutableState)
-
-	gameStack := gameStacker.GameStack(mutableState.MutableGameState())
-
-	if gameStack == nil {
-		return errors.New("GameStack gave a nil stack")
-	}
-
-	targetCounter, ok := d.TopLevelStruct().(moveinterfaces.TargetCounter)
-
-	if !ok {
-		return errors.New("Unexpectedly did not implement TargetCount")
-	}
-
-	if gameStack.NumComponents() <= targetCounter.TargetCount() {
+	if gameCount <= targetCount {
 		return nil
 	}
 
 	return d.RoundRobin.ConditionMet(state)
+
 }
