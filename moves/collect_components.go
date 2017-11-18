@@ -1,63 +1,106 @@
 package moves
 
 import (
-	"errors"
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/moves/moveinterfaces"
 )
 
 /*
 
-CollectComponents is a type of RoundRobin move that collects components from
+CollectCountComponents is a type of RoundRobin move that collects components from
 each PlayerState's PlayerStack() to gameState's GameStack(). By default it
 goes around once and collects a component from each. If you want a different
-number of rounds, override NumRounds().
+number of rounds, override TargetCount(). It subclasses DealCountComponents,
+but simply reverses the action to make.
 
 */
-type CollectComponents struct {
-	RoundRobinNumRounds
-}
-
-func (d *CollectComponents) ValidConfiguration(exampleState boardgame.MutableState) error {
-	if _, ok := d.TopLevelStruct().(moveinterfaces.PlayerStacker); !ok {
-		return errors.New("Embedding move doesn't implement PlayerStacker")
-	}
-
-	if _, ok := d.TopLevelStruct().(moveinterfaces.GameStacker); !ok {
-		return errors.New("Embedding move doesn't implement GameStacker")
-	}
-
-	return d.RoundRobinNumRounds.ValidConfiguration(exampleState)
+type CollectCountComponents struct {
+	DealCountComponents
 }
 
 //RoundRobinAction moves a component from the PlayerStack to the GameStack, as
-//configured by the PlayerStacker and GameStacke interfaces.
-func (d *CollectComponents) RoundRobinAction(playerState boardgame.MutablePlayerState) error {
+//configured by the PlayerStacker and GameStacker interfaces.
+func (d *CollectCountComponents) RoundRobinAction(playerState boardgame.MutablePlayerState) error {
 
-	playerStacker, ok := d.TopLevelStruct().(moveinterfaces.PlayerStacker)
+	playerStack, gameStack, err := dealActionHelper(d.TopLevelStruct(), playerState)
 
-	if !ok {
-		return errors.New("Embedding move unexpectedly doesn't implement PlayerStacker")
+	if err != nil {
+		return err
 	}
 
-	playerStack := playerStacker.PlayerStack(playerState)
+	return playerStack.MoveComponent(boardgame.FirstComponentIndex, gameStack, boardgame.NextSlotIndex)
 
-	if playerStack == nil {
-		return errors.New("PlayerStacker didn't return a valid stack")
+}
+
+//CollectComponentsUntilPlayerCountLeft goes around and collects components
+//from each player until each player has TargetCount() or fewer components in
+//their PlayerStack(). It's the same as DealComponentsUntilPlayerCountReached,
+//just with the action reversed and the size check flipped.
+type CollectComponentsUntilPlayerCountLeft struct {
+	DealComponentsUntilPlayerCountReached
+}
+
+//RoundRobinAction moves a component from the PlayerStack to the GameStack, as
+//configured by the PlayerStacker and GameStacker interfaces.
+func (d *CollectComponentsUntilPlayerCountLeft) RoundRobinAction(playerState boardgame.MutablePlayerState) error {
+
+	playerStack, gameStack, err := dealActionHelper(d.TopLevelStruct(), playerState)
+
+	if err != nil {
+		return err
 	}
 
-	gameStacker, ok := d.TopLevelStruct().(moveinterfaces.GameStacker)
+	return playerStack.MoveComponent(boardgame.FirstComponentIndex, gameStack, boardgame.NextSlotIndex)
 
-	if !ok {
-		return errors.New("Embedding move unexpectedly doesn't implement GameStacker")
+}
+
+//PlayerConditionMet is true if the NumComponents in the given player's
+//PlayerStack() is TargetCount or less.
+func (d *CollectComponentsUntilPlayerCountLeft) PlayerConditionMet(pState boardgame.PlayerState) bool {
+	playerCount, targetCount, err := dealComponentsPlayerConditionMetHelper(d.TopLevelStruct(), pState)
+
+	if err != nil {
+		return false
 	}
 
-	targetStack := gameStacker.GameStack(playerState.MutableState().MutableGameState())
+	return playerCount <= targetCount
+}
 
-	if targetStack == nil {
-		return errors.New("GameStacker didn't return a valid stack")
+//CollectComponentsUntilGameCountReached goes around and collects components from
+//each player until GameStack() NumComponents() is TargetCount or greater. It's
+//the same as DealComponentsUntilGameCountLeft, just with the action
+//reversed and the size check flipped.
+type CollectComponentsUntilGameCountReached struct {
+	DealComponentsUntilGameCountLeft
+}
+
+//RoundRobinAction moves a component from the PlayerStack to the GameStack, as
+//configured by the PlayerStacker and GameStacker interfaces.
+func (d *CollectComponentsUntilGameCountReached) RoundRobinAction(playerState boardgame.MutablePlayerState) error {
+
+	playerStack, gameStack, err := dealActionHelper(d.TopLevelStruct(), playerState)
+
+	if err != nil {
+		return err
 	}
 
-	return playerStack.MoveComponent(boardgame.FirstComponentIndex, targetStack, boardgame.NextSlotIndex)
+	return playerStack.MoveComponent(boardgame.FirstComponentIndex, gameStack, boardgame.NextSlotIndex)
+
+}
+
+//ConditionMet returns nil if GameStack's NumComponents is TargetCount or
+//greater, and otherwise defaults to RoundRobin's ConditionMet.
+func (d *CollectComponentsUntilGameCountReached) ConditionMet(state boardgame.State) error {
+
+	gameCount, targetCount, err := dealComponentsConditionMetHelper(d.TopLevelStruct(), state)
+
+	if err != nil {
+		return nil
+	}
+
+	if gameCount >= targetCount {
+		return nil
+	}
+
+	return d.RoundRobin.ConditionMet(state)
 
 }
