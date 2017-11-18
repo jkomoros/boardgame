@@ -69,6 +69,10 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, 
 	return game.DrawStack, nil
 }
 
+func (g *gameDelegate) DefaultNumPlayers() int {
+	return 4
+}
+
 func (g *gameDelegate) CurrentPlayerIndex(state boardgame.State) boardgame.PlayerIndex {
 	return state.GameState().(*gameState).CurrentPlayer
 }
