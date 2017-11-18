@@ -179,7 +179,8 @@ func (a *ApplyUntilCount) Count(state boardgame.State) int {
 }
 
 //TargetCount should return the count that you want to target. Note that it's
-//also important to override CountDown() if we
+//also important to override CountDown() if you're countind down, not up. By
+//default returns 1.
 func (a *ApplyUntilCount) TargetCount(state boardgame.State) int {
 	return 1
 }
@@ -265,12 +266,6 @@ func (a *ApplyUntilCount) ConditionMet(state boardgame.State) error {
 //actually want to apply.
 type ApplyCountTimes struct {
 	ApplyUntilCount
-}
-
-//TargetCount by default returns 1. Override it if you want to apply more
-//moves.
-func (a *ApplyCountTimes) TargetCount(state boardgame.State) (count int) {
-	return 1
 }
 
 //Count returns the number of times this move has been applied in a row in the
