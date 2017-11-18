@@ -268,7 +268,6 @@ func (a *agentState) PickRandomCard(gameState *gameState) int {
 		return index
 	}
 
-	return -1
 }
 
 func (a *agentState) SecondCardToFlip(gameState *gameState) int {

@@ -74,11 +74,9 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, 
 
 	if card.Rank.Value() == playingcards.RankJoker {
 		return game.UnusedCards, nil
-	} else {
-		return game.DrawStack, nil
 	}
 
-	return nil, errors.New("Unexpected control point reached")
+	return game.DrawStack, nil
 
 }
 

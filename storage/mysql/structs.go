@@ -214,7 +214,7 @@ func (c *CombinedGameStorageRecord) ToStorageRecord() *extendedgame.CombinedStor
 	}
 
 	return &extendedgame.CombinedStorageRecord{
-		boardgame.GameStorageRecord{
+		GameStorageRecord: boardgame.GameStorageRecord{
 			Name:       c.Name,
 			Id:         c.Id,
 			SecretSalt: c.SecretSalt,
@@ -225,7 +225,7 @@ func (c *CombinedGameStorageRecord) ToStorageRecord() *extendedgame.CombinedStor
 			Agents:     stringToAgents(c.Agents),
 			Created:    time.Unix(0, c.Created),
 		},
-		extendedgame.StorageRecord{
+		StorageRecord: extendedgame.StorageRecord{
 			LastActivity: c.LastActivity,
 			Open:         c.Open,
 			Visible:      c.Visible,
