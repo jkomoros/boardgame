@@ -22,6 +22,11 @@ in their hierarchy. It is very important to always call your superclasse's
 Legal(), because moves.Base.Legal contains important logic to implement phases
 and ordered moves within phases.
 
+Current Player Move
+
+These moves are for moves that are only legal to be made by the current
+player. Their Legal() will verify that it is the proposer's turn.
+
 Move Deal and Collect Component Moves
 
 Generally when moving components from one place to another it makes sense to
