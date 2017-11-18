@@ -160,10 +160,10 @@ type sourceDestinationStacker interface {
 //MoveComponentsUntilCountReached is a move that will move components, one at
 //a time, from SourceStack() to DestinationStack() until the target stack is
 //up to having TargetCount components in it. Other MoveComponents-style moves
-//derive from this. When using it you most likely want to override
-//SourceStack(), DestinationStack(), and possibly TargetCount() if you want to
-//move more than one. MoveComponentsUntilCountLeft and MoveCountComponents
-//both subclass this move.
+//derive from this. When using it you must implement
+//moveinterfaces.SourceStacker and moveinterfaces.DestinationStacker to encode
+//which stacks to use. You may also want to override TargetCount() if you want
+//to move more than one component.
 type MoveComponentsUntilCountReached struct {
 	ApplyUntilCount
 }
@@ -177,20 +177,6 @@ func (m *MoveComponentsUntilCountReached) ValidConfiguration(exampleState boardg
 		return errors.New("EmbeddingMove doesn't have Source/Destination stacker.")
 	}
 
-	return nil
-}
-
-//SourceStack is by default called in Apply() to get the stack to move from.
-//The default simply returns nil; if you want to have ApplyUntilCount do its
-//default move-a-component action, override this.
-func (m *MoveComponentsUntilCountReached) SourceStack(state boardgame.MutableState) boardgame.MutableStack {
-	return nil
-}
-
-//DesitnationStack is by default called in Count(), TargetCount(), and
-//Apply(). The default simply returns nil; if you want to have ApplyUntilCount
-//do its default move-a-component action, override this.
-func (m *MoveComponentsUntilCountReached) DestinationStack(state boardgame.MutableState) boardgame.MutableStack {
 	return nil
 }
 
