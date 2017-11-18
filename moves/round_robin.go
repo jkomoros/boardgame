@@ -61,17 +61,21 @@ RoundRobin is a type of move that goes around every player one by one and does
 some action. Other moves in this package embed RoundRobin, and it's more
 common to use those directly.
 
-Round Robin moves start at a given player and go around, applying the
-RoundRobinAction for each player until the ConditionMet() method returns
-nil. Various embedders of the base RoundRobin will override the default
-behavior for that method.
+Round Robin moves start at a given player and goes around. It will skip
+players for whom move.RoundRobinPlayerConditionMet() has already returned
+true. When it finds a player whose end condition is not met, it will apply
+RoundRobinAction() to them, and then advance to the next player. Every time it
+makes a circuit around the list of players, it will increment
+RoundRobinRoundCount. By default, once all players have had their player
+conditions met (that is, no player is legal to select) the round robin's will
+be done applying: its ConditionMet will return nil.
 
 Round Robin keeps track of various properties on the gameState by using the
 RoundRobinProperties interface. Generally it's easiest to simply embed
 moveinterfaces.RoundRobinBaseGameState in your GameState anonymously to
 implement the interface automatically.
 
-The embeding move should implement RoundRobinActioner.
+The embeding move should implement moveinterfaces.RoundRobinActioner.
 
 */
 type RoundRobin struct {
@@ -84,47 +88,13 @@ func (s *RoundRobin) RoundRobinStarterPlayer(state boardgame.State) boardgame.Pl
 	return state.Game().Manager().Delegate().CurrentPlayerIndex(state)
 }
 
-//ConditionMet should return nil when the move can stop being applied. Vy
-//default it returns the result of RoundRobinFinishedOneCircuit(). If you want
-//other behavior override this method.
+//ConditionMet  goes around and returns nil if all players have had their
+//player condition met, meaning that there are no more legal players to
+//select. Because this condition is almost always an important base no matter
+//the other conditions you are considering (it's not possible to select
+//players who have already had their player condition met), if you override
+//CondtionMet you should also call this implementation.
 func (r *RoundRobin) ConditionMet(state boardgame.State) error {
-	return r.RoundRobinFinishedOneCircuit(state)
-}
-
-//RoundRobinFinshedOneCircuit returns an error if the RoundRobinRountCount is
-//less than 1, meaning it begins returning nil as soon as one full circuit is
-//completed. The result of this is a single circuit. It is designed to be
-//called directly in your ConditionMet.
-func (r *RoundRobin) RoundRobinFinishedOneCircuit(state boardgame.State) error {
-	return r.RoundRobinFinishedMultiCircuit(1, state)
-}
-
-//RoundRobinFinshedOneCircuit returns an error if the RoundRobinRountCount is
-//less than targetCount, meaning it begins returning nil as soon as that many
-//full circuits are completed. It is designed to be called directly in your
-//ConditionMet.
-func (r *RoundRobin) RoundRobinFinishedMultiCircuit(targetCount int, state boardgame.State) error {
-	props, ok := state.GameState().(moveinterfaces.RoundRobinProperties)
-
-	if !ok {
-		return errors.New("GameState unexpectedly did not implement RoundRobinProperties")
-	}
-
-	if props.RoundRobinRoundCount() < targetCount {
-		return errors.New("The round count is " + strconv.Itoa(props.RoundRobinRoundCount()) + " which does not meet the target of " + strconv.Itoa(targetCount))
-	}
-
-	return nil
-}
-
-//RoundRobinFinishedPlayerConditionsMet returns nil if calling
-//RoundRobinPlayerConditionMet on this move, passing each playerState in turn,
-//all return true. It's useful, as an example, for going around and making
-//sure that every player has at least two cards in their hand, if players may
-//have started the round robin with a different number of cards in hand. It is
-//designed to be called directly in your ConditionMet.
-func (r *RoundRobin) RoundRobinFinishedPlayerConditionsMet(state boardgame.State) error {
-
 	conditionsMet, ok := r.TopLevelStruct().(roundRobinPlayerConditionMet)
 
 	if !ok {
@@ -139,35 +109,15 @@ func (r *RoundRobin) RoundRobinFinishedPlayerConditionsMet(state boardgame.State
 	}
 
 	return nil
-
 }
 
-//RoundRobinPlayerConditionStackTargetSizeMet is designed to be used as a one-
-//liner within your RoundRobinPlayerConditionMet. It checks that the
-//PlayerStack from the given PlayerState has the target size and returns true
-//if so. Useful for cases where you want to have a DrawComponent that draws
-//until each player has targetSize components, but players might start with
-//different numbers of components already in hand. See DrawComponents
-//documentation for an example.
-func (r *RoundRobin) RoundRobinPlayerConditionStackTargetSizeMet(targetSize int, playerState boardgame.PlayerState) bool {
-	playerStacker, ok := playerState.(moveinterfaces.PlayerStacker)
-
-	if !ok {
-		//Hmmm, guess it doesn't match PlayerStacker
-		return false
-	}
-
-	//TODO: it's a total hack that we up-cast the playerState because we
-	//happen to know it's definitely a MutablePlayerState.
-	playerStack := playerStacker.PlayerStack(playerState.(boardgame.MutablePlayerState))
-
-	return playerStack.NumComponents() == targetSize
-
-}
-
-//RoundRobinPlayerConditionMet is called for each playerState by
-//RoundRobinFinishedPlayerConditionMet. If all of them return true, the round
-//robin is over. The default simply returns false in all cases; you should override it.
+//RoundRobinPlayerConditionMet is called for each playerState. When advancing
+//to the next player, round robin will only pick a player whose condition has
+//not yet been met. Once all players have their PlayerconditionMet, then the
+//RoundRobin's ConditionMet will return nil, signaling that the RoundRobin is
+//done. By default this will return false. If you will use RoundRobin directly
+//(as opposed to RoundRobinNumRounds) you will want to override this otherwise
+//it will get in an infinite loop.
 func (r *RoundRobin) RoundRobinPlayerConditionMet(playerState boardgame.PlayerState) bool {
 	return false
 }
@@ -329,6 +279,8 @@ func (r *RoundRobin) lastMoveName(state boardgame.State) string {
 	return moves[len(moves)-1].Name
 }
 
+//Legal is a complex implementation because it needs to figure out when to
+//start the round robin. In general you do not want to override this.
 func (r *RoundRobin) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
 	//We run the base legal first to see if this phase is even legal for us.
@@ -363,6 +315,9 @@ func (r *RoundRobin) Legal(state boardgame.State, proposer boardgame.PlayerIndex
 	return nil
 }
 
+//Apply is a complex implementation because it needs to figure out when the
+//round is already over and handle complicated signalling about who the next
+//player is. In general you do not want to override this.
 func (r *RoundRobin) Apply(state boardgame.MutableState) error {
 
 	if !r.roundRobinHasStarted(state) {
@@ -416,5 +371,59 @@ func (r *RoundRobin) Apply(state boardgame.MutableState) error {
 	}
 
 	return nil
+
+}
+
+type numRoundser interface {
+	NumRounds() int
+}
+
+//RoundRobinNumRounds is a subclass of RoundRobin whose ConditionMet checks
+//whether RoundRobinRoundCount is greater than or equal to NumRounds(), and if
+//it is ends immediately. NumRounds() defaults to 1; if you want to have
+//multiple rounds, override NumRounds().
+type RoundRobinNumRounds struct {
+	RoundRobin
+}
+
+func (r *RoundRobinNumRounds) ValidConfiguration(exampleState boardgame.MutableState) error {
+	if err := r.RoundRobin.ValidConfiguration(exampleState); err != nil {
+		return err
+	}
+	if _, ok := r.TopLevelStruct().(numRoundser); !ok {
+		return errors.New("EmbeddingMove unexpectedly did not implement NumRounds!")
+	}
+	return nil
+}
+
+//NumRounds should return the RoundRobinRoundCount that we are targeting. As
+//soon as that RoundCount is reached, our ConditionMet will start returning
+//nil, signaling the Round Robin is over. Defaults to 1.
+func (r *RoundRobinNumRounds) NumRounds() int {
+	return 1
+}
+
+//ConditionMet will check if the round count has been reached; if it has it
+//will return nil immediately. Otherwise it will fall back on RoundRobin's
+//base ConditionMet, returning nil if no players are left to act upon.
+func (r *RoundRobinNumRounds) ConditionMet(state boardgame.State) error {
+	numRounds, ok := r.TopLevelStruct().(numRoundser)
+
+	if !ok {
+		//Unexpected!
+		return nil
+	}
+
+	roundRobiner, ok := state.GameState().(moveinterfaces.RoundRobinProperties)
+
+	if !ok {
+		return nil
+	}
+
+	if roundRobiner.RoundRobinRoundCount() >= numRounds.NumRounds() {
+		return nil
+	}
+
+	return r.RoundRobin.ConditionMet(state)
 
 }

@@ -10,19 +10,12 @@ import (
 
 CollectComponents is a type of RoundRobin move that collects components from
 each PlayerState's PlayerStack() to gameState's GameStack(). By default it
-goes around once and collects a component from each. If you want different end
-conditions, override ConditionMet() on your move.
-
-For example, if you want to collect two cards from each player, set your
-ConditionMet like so:
-
-	func (m *MyMove) ConditionMet(state boardgame.State) error {
-		return m.RoundRobinFinishedMultiCircuit(2, state)
-	}
+goes around once and collects a component from each. If you want a different
+number of rounds, override NumRounds().
 
 */
 type CollectComponents struct {
-	RoundRobin
+	RoundRobinNumRounds
 }
 
 func (d *CollectComponents) ValidConfiguration(exampleState boardgame.MutableState) error {
@@ -34,7 +27,7 @@ func (d *CollectComponents) ValidConfiguration(exampleState boardgame.MutableSta
 		return errors.New("Embedding move doesn't implement GameStacker")
 	}
 
-	return d.RoundRobin.ValidConfiguration(exampleState)
+	return d.RoundRobinNumRounds.ValidConfiguration(exampleState)
 }
 
 //RoundRobinAction moves a component from the PlayerStack to the GameStack, as

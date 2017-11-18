@@ -11,38 +11,10 @@ import (
 DealComponents is a type of RoundRobin move that deals components from
 gameState's GameStack() to each PlayerState's PlayerStack(). By default it
 goes around once and deals a single component. If you want different end
-conditions, override ConditionMet() on your move.
-
-For example, if you want to deal two cards to each player, set your
-ConditionMet like so:
-
-	func (m *MyMove) ConditionMet(state boardgame.State) error {
-		return m.RoundRobinFinishedMultiCircuit(2, state)
-	}
-
-If you wanted to draw cards to players until each player had two cards, but
-players might start with different number of cards, you'd configure it like
-so:
-
-	func (m *MyMove) ConditionMet(state boardgame.State) error {
-		//Configure that the finished function should be when all players have
-		//their conditions met.
-		return m.RoundRobinFinishedPlayerConditionsMet(state)
-	}
-
-	func (m *MyMove) RoundRobinPlayerConditionMet(playerState boardgame.PlayerState) bool {
-		//Configure that the player condition is met when the PlayerStack is size 2
-		return m.RoundRobinPlayerConditionStackTargetSizeMet(2, playerState)
-	}
-
-	func (m *MyMove) PlayerStack(playerState boardgame.MutablePlayerState) boardgame.MutableStack {
-		//Configure the stack whose size we want to be 2 is the player's hand
-		return playerState.(*playerState).Hand
-	}
-
+conditions, override NumRounds() to return a different value.
 */
 type DealComponents struct {
-	RoundRobin
+	RoundRobinNumRounds
 }
 
 func (d *DealComponents) ValidConfiguration(exampleState boardgame.MutableState) error {
@@ -54,7 +26,7 @@ func (d *DealComponents) ValidConfiguration(exampleState boardgame.MutableState)
 		return errors.New("Embedding move doesn't implement GameStacker")
 	}
 
-	return d.RoundRobin.ValidConfiguration(exampleState)
+	return d.RoundRobinNumRounds.ValidConfiguration(exampleState)
 }
 
 //RoundRobinAction moves a component from the GameStack to the PlayerStack, as
