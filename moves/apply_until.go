@@ -260,17 +260,11 @@ func (a *ApplyUntilCount) ConditionMet(state boardgame.State) error {
 
 }
 
-//ApplyCountTimes subclasses ApplyUntilCount. It applies the move until
-//TargetCount() number of this move have been applied in a row within the
-//current phase. Override TargetCount() to return the number of moves you
-//actually want to apply.
-type ApplyCountTimes struct {
-	ApplyUntilCount
-}
-
-//Count returns the number of times this move has been applied in a row in the
-//immediate past in the current phase.
-func (a *ApplyCountTimes) Count(state boardgame.State) int {
+//countMovesApplied is where the majority of logic for the count method of
+//ApplyUntilCount goes. It makes it easy to plug in the logic in multiple
+//types of moves that have the same type of behavior for Count() but can't
+//directly subclass one another.
+func countMovesApplied(topLevelStruct boardgame.Move, state boardgame.State) int {
 
 	records := state.Game().MoveRecords(state.Version())
 
@@ -278,7 +272,7 @@ func (a *ApplyCountTimes) Count(state boardgame.State) int {
 		return 0
 	}
 
-	targetName := a.TopLevelStruct().Info().Type().Name()
+	targetName := topLevelStruct.Info().Type().Name()
 	targetPhase := state.Game().Manager().Delegate().CurrentPhase(state)
 
 	count := 0
@@ -298,5 +292,18 @@ func (a *ApplyCountTimes) Count(state boardgame.State) int {
 	}
 
 	return count
+}
 
+//ApplyCountTimes subclasses ApplyUntilCount. It applies the move until
+//TargetCount() number of this move have been applied in a row within the
+//current phase. Override TargetCount() to return the number of moves you
+//actually want to apply.
+type ApplyCountTimes struct {
+	ApplyUntilCount
+}
+
+//Count returns the number of times this move has been applied in a row in the
+//immediate past in the current phase.
+func (a *ApplyCountTimes) Count(state boardgame.State) int {
+	return countMovesApplied(a.TopLevelStruct(), state)
 }
