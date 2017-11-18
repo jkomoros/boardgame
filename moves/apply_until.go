@@ -67,8 +67,8 @@ type sourceDestinationStacker interface {
 
 type counter interface {
 	Count(state boardgame.State) int
-	TargetCountAndDirection(state boardgame.State) (int, bool)
 	TargetCount(state boardgame.State) int
+	CountDown(state boardgame.State) bool
 }
 
 type targetSourceSize interface {
@@ -76,10 +76,11 @@ type targetSourceSize interface {
 }
 
 //ApplyUntilCount is a subclass of ApplyUntil that is legal until Count() is
-//one past TargetCount()'s value. By default it moves a component from
-//SourceStack() to DestinationStack(). If you use this move type directly (as
-//opposed to in other moves in this package that embed it anonymously), you
-//generally want to override SourceStack(), DestinationStack(), and possibly
+//one past TargetCount()'s value (which direction "past" is determined by the
+//result of CountDown()). By default it moves a component from SourceStack()
+//to DestinationStack(). If you use this move type directly (as opposed to in
+//other moves in this package that embed it anonymously), you generally want
+//to override SourceStack(), DestinationStack(), and possibly
 //TargetSourceSize() and TargetCount() and leave all other methods untouched.
 //The default methods in this move mean that it is effectively equivalent to
 //MoveComponentsUntilNumReached, but generally you should use that move in
@@ -177,12 +178,19 @@ func (a *ApplyUntilCount) Count(state boardgame.State) int {
 	return targetStack.NumComponents()
 }
 
-//TargetCount should return the count that you want to target. It is used by
-//default in TargetCountAndDirection, which also returns whether the count is
-//down or up. That logic is finicky to get right, which is why in many cases
-//you just want to override this instead.
+//TargetCount should return the count that you want to target. Note that it's
+//also important to override CountDown() if we
 func (a *ApplyUntilCount) TargetCount(state boardgame.State) int {
 	return 1
+}
+
+//CountDown should return true if we're counting downward, or false (or remain
+//unimplmented) if we're counting up. ConditionMet() needs to know if we're
+//counting down or we're counting up because it can't tell that by itself, and
+//needs to stop one after the target is reached. The default CountDown()
+//returns the result of TargetSourceSize().
+func (a *ApplyUntilCount) CountDown(state boardgame.State) bool {
+	return a.targetSourceSizeImpl()
 }
 
 //TargetCountAndDirection should return the count that we want to apply moves
@@ -196,22 +204,6 @@ func (a *ApplyUntilCount) TargetCount(state boardgame.State) int {
 //from Destination to Stack will decline Source's size). Generally you don't
 //override this directly and instead override TargetSourceSize() and/or
 //TargetCount().
-func (a *ApplyUntilCount) TargetCountAndDirection(state boardgame.State) (count int, countDown bool) {
-
-	targetCounter, ok := a.TopLevelStruct().(counter)
-
-	if !ok {
-		return 1, false
-	}
-
-	count = targetCounter.TargetCount(state)
-
-	if a.targetSourceSizeImpl() {
-		return count, true
-	}
-
-	return count, false
-}
 
 //Apply by default moves one component from SourceStack() to
 //DestinationStack(). If you want different behavior, you should override this
@@ -246,7 +238,8 @@ func (a *ApplyUntilCount) ConditionMet(state boardgame.State) error {
 	}
 
 	count := moveCounter.Count(state)
-	targetCount, countDown := moveCounter.TargetCountAndDirection(state)
+	targetCount := moveCounter.TargetCount(state)
+	countDown := moveCounter.CountDown(state)
 
 	if targetCount == count {
 		return errors.New("Count is equal to TargetCount. This will be our last move")
