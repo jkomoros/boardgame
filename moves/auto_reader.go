@@ -19,11 +19,15 @@ import (
 // Implementation for gameState
 
 var __gameStateReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
-	"Counter":       boardgame.TypeInt,
-	"CurrentPlayer": boardgame.TypePlayerIndex,
-	"DiscardStack":  boardgame.TypeStack,
-	"DrawStack":     boardgame.TypeStack,
-	"Phase":         boardgame.TypeEnum,
+	"Counter":         boardgame.TypeInt,
+	"CurrentPlayer":   boardgame.TypePlayerIndex,
+	"DiscardStack":    boardgame.TypeStack,
+	"DrawStack":       boardgame.TypeStack,
+	"Phase":           boardgame.TypeEnum,
+	"RRHasStarted":    boardgame.TypeBool,
+	"RRLastPlayer":    boardgame.TypePlayerIndex,
+	"RRRoundCount":    boardgame.TypeInt,
+	"RRStarterPlayer": boardgame.TypePlayerIndex,
 }
 
 type __gameStateReader struct {
@@ -223,11 +227,24 @@ func (g *__gameStateReader) ConfigureProp(name string, value interface{}) error 
 
 func (g *__gameStateReader) BoolProp(name string) (bool, error) {
 
+	switch name {
+	case "RRHasStarted":
+		return g.data.RRHasStarted, nil
+
+	}
+
 	return false, errors.New("No such Bool prop: " + name)
 
 }
 
 func (g *__gameStateReader) SetBoolProp(name string, value bool) error {
+
+	switch name {
+	case "RRHasStarted":
+		g.data.RRHasStarted = value
+		return nil
+
+	}
 
 	return errors.New("No such Bool prop: " + name)
 
@@ -287,6 +304,8 @@ func (g *__gameStateReader) IntProp(name string) (int, error) {
 	switch name {
 	case "Counter":
 		return g.data.Counter, nil
+	case "RRRoundCount":
+		return g.data.RRRoundCount, nil
 
 	}
 
@@ -299,6 +318,9 @@ func (g *__gameStateReader) SetIntProp(name string, value int) error {
 	switch name {
 	case "Counter":
 		g.data.Counter = value
+		return nil
+	case "RRRoundCount":
+		g.data.RRRoundCount = value
 		return nil
 
 	}
@@ -324,6 +346,10 @@ func (g *__gameStateReader) PlayerIndexProp(name string) (boardgame.PlayerIndex,
 	switch name {
 	case "CurrentPlayer":
 		return g.data.CurrentPlayer, nil
+	case "RRLastPlayer":
+		return g.data.RRLastPlayer, nil
+	case "RRStarterPlayer":
+		return g.data.RRStarterPlayer, nil
 
 	}
 
@@ -336,6 +362,12 @@ func (g *__gameStateReader) SetPlayerIndexProp(name string, value boardgame.Play
 	switch name {
 	case "CurrentPlayer":
 		g.data.CurrentPlayer = value
+		return nil
+	case "RRLastPlayer":
+		g.data.RRLastPlayer = value
+		return nil
+	case "RRStarterPlayer":
+		g.data.RRStarterPlayer = value
 		return nil
 
 	}

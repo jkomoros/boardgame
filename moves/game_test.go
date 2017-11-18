@@ -5,6 +5,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/components/playingcards"
 	"github.com/jkomoros/boardgame/enum"
+	"github.com/jkomoros/boardgame/moves/moveinterfaces"
 	"github.com/jkomoros/boardgame/storage/memory"
 )
 
@@ -22,7 +23,7 @@ var phaseEnum = enums.MustAdd("Phase", map[int]string{
 
 //+autoreader
 type gameState struct {
-	boardgame.BaseSubState
+	moveinterfaces.RoundRobinBaseGameState
 	Phase         enum.MutableVal `enum:"Phase"`
 	CurrentPlayer boardgame.PlayerIndex
 	DrawStack     boardgame.MutableStack `stack:"cards"`
