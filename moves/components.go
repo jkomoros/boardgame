@@ -160,8 +160,8 @@ func (d *CollectComponents) RoundRobinAction(playerState boardgame.MutablePlayer
 //actually doesn't override any logic, and instead exists primarily for
 //clarity in your code. You generally want to override SourceStack(),
 //DestinationStack(), and TargetCount() to use.
-type MoveComponents struct {
-	ApplyNTimes
+type MoveCountComponents struct {
+	ApplyCountTimes
 }
 
 //MoveComponentsUntilCountReached is a move that will move components, one at a
