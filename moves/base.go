@@ -27,6 +27,8 @@ type defaultConfigMoveType interface {
 	MoveTypeName(manager *boardgame.GameManager) string
 	//The name for the HelpText
 	MoveTypeHelpText(manager *boardgame.GameManager) string
+	//Whether the move should be a fix up.
+	MoveTypeIsFixUp(manager *boardgame.GameManager) bool
 }
 
 //MustDefaultConfig is a wrapper around DefaultConfig that if it errors will
@@ -63,6 +65,7 @@ func DefaultConfig(manager *boardgame.GameManager, exampleStruct boardgame.Move)
 
 	name := defaultConfig.MoveTypeName(manager)
 	helpText := defaultConfig.MoveTypeHelpText(manager)
+	isFixUp := defaultConfig.MoveTypeIsFixUp(manager)
 
 	typ := reflect.ValueOf(exampleStruct).Elem().Type()
 
@@ -72,7 +75,7 @@ func DefaultConfig(manager *boardgame.GameManager, exampleStruct boardgame.Move)
 		MoveConstructor: func() boardgame.Move {
 			return reflect.New(typ).Interface().(boardgame.Move)
 		},
-		IsFixUp: true,
+		IsFixUp: isFixUp,
 	}, nil
 }
 
@@ -149,6 +152,14 @@ func (b *Base) MoveTypeName(manager *boardgame.GameManager) string {
 //Subclasses normally overridd this, but you often don't have to.
 func (b *Base) MoveTypeHelpText(manager *boardgame.GameManager) string {
 	return "A base move that does nothing on its own"
+}
+
+//MoveTypeIsFixUp is used by Defaultconfig to generate the IsFixUp value. Base
+//is false, but other moves in this package will return true.
+func (b *Base) MoveTypeIsFixUp(manager *boardgame.GameManager) bool {
+	//TODO: once we have reasonable overridings in all other moves that
+	//derive, default this to false.
+	return true
 }
 
 //Legal checks whether the game's CurrentPhase (as determined by the delegate)
