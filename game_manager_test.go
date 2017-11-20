@@ -172,13 +172,12 @@ func TestDefaultMove(t *testing.T) {
 }
 
 func TestNilStackErrors(t *testing.T) {
-	manager, err := NewGameManager(&nilStackGameDelegate{}, newTestGameChest(), newTestStorageManager())
 
-	assert.For(t).ThatActual(err).IsNil()
+	_, err := NewGameManager(&nilStackGameDelegate{}, newTestGameChest(), newTestStorageManager())
 
-	if err := manager.SetUp(); err == nil {
-		t.Fatal("We were able to set up a manager that had nil stacks")
-	}
+	//We expect to find the error of the nil stack at NewGameManager time,
+	//because that's when we validate constructors.
+	assert.For(t).ThatActual(err).IsNotNil()
 
 	//playerState will already work for nil stacks, so no need to flip the
 	//delegate's behavior to test playerstate like we used to do here.
