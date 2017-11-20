@@ -31,20 +31,33 @@ func MustDefaultConfig(manager *boardgame.GameManager, exampleStruct boardgame.M
 //DefaultConfig is a powerful default MoveTypeConfig generator. In many cases
 //you'll implement moves that are very thin embeddings of moves in this
 //package. Generating a MoveTypeConfig for each is a pain. This method auto-
-//generates the MoveTypeConfig based on an example nil type of your move to
-//install. It consults move.MoveTypeName and move.MoveTypeHelpText to generate
-//the name and helptext. Moves in this package return reasonable values for
-//those methods, based on the configuration you set on the rest of your move.
-//See the package doc for an example of use.
+//generates the MoveTypeConfig based on an example zero type of your move to
+//install. It does some magic to create a more fleshed out move, then consults
+//move.MoveTypeName and move.MoveTypeHelpText to generate the name and
+//helptext. Moves in this package return reasonable values for those methods,
+//based on the configuration you set on the rest of your move. See the package
+//doc for an example of use.
 func DefaultConfig(manager *boardgame.GameManager, exampleStruct boardgame.Move) (*boardgame.MoveTypeConfig, error) {
 
 	if exampleStruct == nil {
 		return nil, errors.New("nil struct provided")
 	}
 
-	exampleStruct.SetTopLevelStruct(exampleStruct)
+	//We'll create a throw-away move type config first to get a fully-
+	//initialized and expanded move (e.g. with all tag-based autoinflation)
+	//that we can then pass to the MoveType* methods, so they'll have more to work with.
 
-	defaultConfig, ok := exampleStruct.(defaultConfigMoveType)
+	throwAwayConfig := newMoveTypeConfig("Temporary Move", "Temporary Move Help Text", false, exampleStruct)
+
+	throwAwayMoveType, err := throwAwayConfig.NewMoveType(manager)
+
+	if err != nil {
+		return nil, errors.New("Couldn't create temporary move type: " + err.Error())
+	}
+
+	actualExample := throwAwayMoveType.NewMove(manager.ExampleState())
+
+	defaultConfig, ok := actualExample.(defaultConfigMoveType)
 
 	if !ok {
 		return nil, errors.New("Example struct didn't have MoveTypeName and MoveTypeHelpText.")
