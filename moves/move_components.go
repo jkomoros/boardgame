@@ -51,6 +51,23 @@ func (m *MoveCountComponents) stacks(state boardgame.State) (source, destination
 
 }
 
+func (m *MoveCountComponents) stackNames(state boardgame.MutableState) (starter, destination string) {
+	starterStack, destinationStack := m.stacks(state)
+
+	starter = "unknown stack"
+	destination = "unknown stack"
+
+	if name := stackPropName(starterStack, state); name != "" {
+		starter = name
+	}
+
+	if name := stackPropName(destinationStack, state); name != "" {
+		destination = name
+	}
+
+	return starter, destination
+}
+
 //Apply by default moves one component from SourceStack() to
 //DestinationStack(). You likely do not need to override this method.
 func (m *MoveCountComponents) Apply(state boardgame.MutableState) error {
@@ -67,6 +84,19 @@ func (m *MoveCountComponents) Apply(state boardgame.MutableState) error {
 
 	return source.MoveComponent(boardgame.FirstComponentIndex, destination, boardgame.NextSlotIndex)
 
+}
+
+func (m *MoveCountComponents) MoveTypeName(manager *boardgame.GameManager) string {
+
+	source, destination := m.stackNames(manager.ExampleState())
+
+	return "Move " + m.targetCountString() + " Components From " + source + " To " + destination
+}
+
+func (m *MoveCountComponents) MoveTypeHelpText(manager *boardgame.GameManager) string {
+	source, destination := m.stackNames(manager.ExampleState())
+
+	return "Moves " + m.targetCountString() + " components from " + source + " to " + destination
 }
 
 //MoveComponentsUntilCountReached is a move that will move components, one at
@@ -95,6 +125,19 @@ func (m *MoveComponentsUntilCountReached) Count(state boardgame.State) int {
 	return targetStack.NumComponents()
 }
 
+func (m *MoveComponentsUntilCountReached) MoveTypeName(manager *boardgame.GameManager) string {
+
+	source, destination := m.stackNames(manager.ExampleState())
+
+	return "Move Components From " + source + " Until " + destination + " Has " + m.targetCountString()
+}
+
+func (m *MoveComponentsUntilCountReached) MoveTypeHelpText(manager *boardgame.GameManager) string {
+	source, destination := m.stackNames(manager.ExampleState())
+
+	return "Moves components from " + source + " to " + destination + " until " + destination + " has " + m.targetCountString()
+}
+
 //MoveComponentsUntilCountLeft is a move that will move components, one at a
 //time, from SourceStack() to DestinationStack() until the source stack is
 //down to having  TargetCount components in it. Its primary difference from
@@ -119,4 +162,17 @@ func (m *MoveComponentsUntilCountLeft) Count(state boardgame.State) int {
 //destination, source will be getting smaller and smaller.
 func (m *MoveComponentsUntilCountLeft) CountDown(state boardgame.State) bool {
 	return true
+}
+
+func (m *MoveComponentsUntilCountLeft) MoveTypeName(manager *boardgame.GameManager) string {
+
+	source, destination := m.stackNames(manager.ExampleState())
+
+	return "Move Components To " + destination + " Until " + source + " Has " + m.targetCountString()
+}
+
+func (m *MoveComponentsUntilCountLeft) MoveTypeHelpText(manager *boardgame.GameManager) string {
+	source, destination := m.stackNames(manager.ExampleState())
+
+	return "Moves components from " + source + " to " + destination + " until " + source + " has " + m.targetCountString() + " left"
 }
