@@ -374,6 +374,18 @@ func (r *RoundRobin) Apply(state boardgame.MutableState) error {
 
 }
 
+func (r *RoundRobin) MoveTypeName(manager *boardgame.GameManager) string {
+	return "Round Robin"
+}
+
+func (r *RoundRobin) MoveTypeHelpText(manager *boardgame.GameManager) string {
+	return "A round robin move that continues until every player's condition is met."
+}
+
+func (r *RoundRobin) MoveTypeIsFixUp(manager *boardgame.GameManager) bool {
+	return true
+}
+
 type numRoundser interface {
 	NumRounds() int
 }
@@ -426,4 +438,24 @@ func (r *RoundRobinNumRounds) ConditionMet(state boardgame.State) error {
 
 	return r.RoundRobin.ConditionMet(state)
 
+}
+
+func (r *RoundRobinNumRounds) MoveTypeName(manager *boardgame.GameManager) string {
+
+	numRounds, ok := r.TopLevelStruct().(numRoundser)
+
+	if !ok {
+		return "Round Robin Round Count"
+	}
+
+	return "Round Robin " + strconv.Itoa(numRounds.NumRounds()) + " Rounds"
+}
+
+func (r *RoundRobinNumRounds) MoveTypeHelpText(manager *boardgame.GameManager) string {
+	numRounds, ok := r.TopLevelStruct().(numRoundser)
+
+	if !ok {
+		return "A round robin move that makes some number of circuits."
+	}
+	return "A round robin move that makes " + strconv.Itoa(numRounds.NumRounds()) + " circuits."
 }

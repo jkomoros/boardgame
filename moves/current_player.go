@@ -62,3 +62,15 @@ func (c *CurrentPlayer) Legal(state boardgame.State, proposer boardgame.PlayerIn
 func (c *CurrentPlayer) DefaultsForState(state boardgame.State) {
 	c.TargetPlayerIndex = state.CurrentPlayerIndex()
 }
+
+func (c *CurrentPlayer) MoveTypeName(manager *boardgame.GameManager) string {
+	return "Current Player Move"
+}
+
+func (c *CurrentPlayer) MoveTypeHelpText(manager *boardgame.GameManager) string {
+	return "A move by the current player."
+}
+
+func (c *CurrentPlayer) MoveTypeIsFixUp(manager *boardgame.GameManager) bool {
+	return false
+}
