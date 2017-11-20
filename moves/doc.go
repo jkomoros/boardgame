@@ -49,7 +49,7 @@ in this package normally do reasonable things with. Example use:
 	}
 
 StartPhase is special because often you want to override just one small part,
-so we provide NewStartPhaseMoveConfig.
+so we provide NewStartPhaseConfig.
 
 Base Move
 
@@ -128,7 +128,7 @@ StartPhase
 The StartPhase move is designed to set your game's phase to the next phase.
 It's generally used as the last move in an ordered phase, for example, the
 last move in your game's SetUp phase. In general you don't need to subclass
-this move directly at all; just use NewStartPhaseMoveConfig to get a
+this move directly at all; just use NewStartPhaseConfig to get a
 MoveTyepConfig that does what you want.
 
 ShuffleStack

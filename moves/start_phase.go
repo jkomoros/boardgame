@@ -19,9 +19,7 @@ type phaseToStarter interface {
 //the next phase, as returned by the embedding move's PhaseToStart(). If
 //BeforeLeavePhase or BeforeEnterPhase are defined they will be called at the
 //appropriate time. In many cases you don't even need to define your own
-//struct, but can just get a MoveTypeConfig by calling
-//NewStartPhaseMoveConfig.
-//
+//struct, but can just get a MoveTypeConfig by calling NewStartPhaseConfig.
 //+autoreader
 type StartPhase struct {
 	Base
@@ -43,8 +41,8 @@ func (s *StartPhase) ValidConfiguration(exampleState boardgame.MutableState) err
 }
 
 //PhaseToStart uses the Phase provided via StartPhaseMoveConfig constructor
-//(or 0 if NewStartPhaseMoveConfig wasn't used). If you want a different
-//behavior, override PhaseToStart in your embedding move.
+//(or 0 if NewStartPhaseConfig wasn't used). If you want a different behavior,
+//override PhaseToStart in your embedding move.
 func (s *StartPhase) PhaseToStart(currentPhase int) int {
 	return s.phaseToStart
 }
@@ -92,13 +90,13 @@ func (s *StartPhase) Apply(state boardgame.MutableState) error {
 }
 
 //MoveTypeName returns a constant. For StartPhase it's better to use
-//NewStartPhaseMoveConfig instead.
+//NewStartPhaseConfig instead.
 func (s *StartPhase) MoveTypeName(manager *boardgame.GameManager) string {
 	return "Start Phase"
 }
 
 //MoveTypeName returns a constant. For StartPhase it's better to use
-//NewStartPhaseMoveConfig instead.
+//NewStartPhaseConfig instead.
 func (s *StartPhase) MoveTypeHelpText(manager *boardgame.GameManager) string {
 	return "Enters a phase"
 }
@@ -107,10 +105,10 @@ func (s *StartPhase) MoveTypeIsFixUp(manager *boardgame.GameManager) bool {
 	return true
 }
 
-//NewStartPhaseMoveConfig returns a MoveConfig object configured so that you
+//NewStartPhaseConfig returns a MoveConfig object configured so that you
 //don't need to even define your own StartPhase embedding move but can just
 //use this one directly.
-func NewStartPhaseMoveConfig(manager *boardgame.GameManager, phaseToStart int, legalPhases []int) *boardgame.MoveTypeConfig {
+func NewStartPhaseConfig(manager *boardgame.GameManager, phaseToStart int, legalPhases []int) *boardgame.MoveTypeConfig {
 
 	phaseEnum := manager.Delegate().PhaseEnum()
 

@@ -1395,7 +1395,7 @@ The precise machinery that accomplishes this is covered in `moves.Base` and Game
 	manager.AddOrderedMovesForPhase(PhaseInitialDeal,
 		&moveDealInitialHiddenCardConfig,
 		&moveDealInitialVisibleCardConfig,
-		moves.NewStartPhaseMoveConfig(manager, PhaseNormalPlay, nil),
+		moves.NewStartPhaseConfig(manager, PhaseNormalPlay, nil),
 	)
 
 	if err != nil {
@@ -1417,7 +1417,7 @@ One more wrinkle: when the engine looks to see if a propose move is legal in thi
 
 In the blackjack example, there are two moves that are normal move configs, and three lines that are function calls instead. These are MoveTypes that are so common that you don't even need to implement a concrete move type, but can just call the method to get a bespoke MoveTypeConfig to install. One is StartRoundRobin, which we'll cover in just a bit.
 
-The other is `NewStartPhaseMoveConfig`. This will return a move that when it's its turn in the progression will set the CurrentPhase of the game to the second argument. It does this by checking if your gameState has a SetCurrentPhase method and calling that if it does. (If your gameState doesn't, that's something that manager.SetUp() will recognize and report as an error).
+The other is `NewStartPhaseConfig`. This will return a move that when it's its turn in the progression will set the CurrentPhase of the game to the second argument. It does this by checking if your gameState has a SetCurrentPhase method and calling that if it does. (If your gameState doesn't, that's something that manager.SetUp() will recognize and report as an error).
 
 These moves don't need you to override their Legal or Apply method at all, because they rely purely on the phase and ordering semantics in `moves.Base`.
 

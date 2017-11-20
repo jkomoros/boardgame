@@ -83,7 +83,7 @@ func defaultMoveInstaller(manager *boardgame.GameManager) error {
 	moves := []*boardgame.MoveTypeConfig{
 		MustDefaultConfig(manager, new(moveDealCards)),
 		MustDefaultConfig(manager, new(moveDealOtherCards)),
-		NewStartPhaseMoveConfig(manager, phaseNormalPlay, nil),
+		NewStartPhaseConfig(manager, phaseNormalPlay, nil),
 	}
 
 	if err := manager.AddOrderedMovesForPhase(phaseSetUp, moves...); err != nil {

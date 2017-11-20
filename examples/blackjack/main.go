@@ -199,7 +199,7 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 	manager.AddOrderedMovesForPhase(PhaseInitialDeal,
 		&moveDealInitialHiddenCardConfig,
 		&moveDealInitialVisibleCardConfig,
-		moves.NewStartPhaseMoveConfig(manager, PhaseNormalPlay, nil),
+		moves.NewStartPhaseConfig(manager, PhaseNormalPlay, nil),
 	)
 
 	if err != nil {
