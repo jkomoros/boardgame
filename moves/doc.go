@@ -42,7 +42,7 @@ in this package normally do reasonable things with. Example use:
 		//...
 		manager.AddMoves(
 			//Name, HelpText, MoveConstructor, and IsFixUp will be set reasonably.
-			moves.DefaultConfig(manager, new(myMove)),
+			moves.MustDefaultConfig(manager, new(myMove)),
 		)
 		//...
 
