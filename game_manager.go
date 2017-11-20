@@ -517,6 +517,62 @@ func (g *GameManager) proposeMoveOnGame(id string, move Move, proposer PlayerInd
 
 }
 
+//ExampleState will return a fully-constructed state for this game, with a
+//single player and no specific game object associated. This is a convenient
+//way to inspect the final shape of your State objects using your various
+//Constructor() methods and after tag-based inflation. Primarily useful for
+//meta- programming approaches, used often in the moves package.
+func (g *GameManager) ExampleState() State {
+	state, err := g.exampleState(1)
+	if err != nil {
+		return nil
+	}
+	return state
+}
+
+func (g *GameManager) exampleState(numPlayers int) (*state, error) {
+	stateCopy := &state{
+		//Other users should set the game to a real thing
+		game:            nil,
+		version:         0,
+		secretMoveCount: make(map[string][]int),
+	}
+
+	gameState, err := g.gameStateConstructor(stateCopy)
+
+	if err != nil {
+		return nil, err
+	}
+
+	stateCopy.gameState = gameState
+
+	playerStates := make([]ConfigurablePlayerState, numPlayers)
+
+	for i := 0; i < numPlayers; i++ {
+		playerState, err := g.playerStateConstructor(stateCopy, PlayerIndex(i))
+
+		if err != nil {
+			return nil, err
+		}
+
+		playerStates[i] = playerState
+	}
+
+	stateCopy.playerStates = playerStates
+
+	dynamic, err := g.dynamicComponentValuesConstructor(stateCopy)
+
+	if err != nil {
+		return nil, errors.New("Couldn't create empty dynamic component values: " + err.Error())
+	}
+
+	stateCopy.dynamicComponentValues = dynamic
+
+	stateCopy.setStateForSubStates()
+
+	return stateCopy, nil
+}
+
 //SetUp should be called before this Manager is used. It locks in moves,
 //chest, storage, etc.
 func (g *GameManager) SetUp() error {

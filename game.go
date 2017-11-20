@@ -336,45 +336,15 @@ func (g *Game) NumAgentPlayers() int {
 
 //starterState returns a starting, not-yet-saved State that is configured with all moving parts.
 func (g *Game) starterState(numPlayers int) (MutableState, error) {
-	stateCopy := &state{
-		game:            g,
-		version:         0,
-		secretMoveCount: make(map[string][]int),
-	}
-
-	gameState, err := g.manager.gameStateConstructor(stateCopy)
+	state, err := g.Manager().exampleState(numPlayers)
 
 	if err != nil {
 		return nil, err
 	}
 
-	stateCopy.gameState = gameState
+	state.game = g
 
-	playerStates := make([]ConfigurablePlayerState, numPlayers)
-
-	for i := 0; i < numPlayers; i++ {
-		playerState, err := g.manager.playerStateConstructor(stateCopy, PlayerIndex(i))
-
-		if err != nil {
-			return nil, err
-		}
-
-		playerStates[i] = playerState
-	}
-
-	stateCopy.playerStates = playerStates
-
-	dynamic, err := g.manager.dynamicComponentValuesConstructor(stateCopy)
-
-	if err != nil {
-		return nil, errors.New("Couldn't create empty dynamic component values: " + err.Error())
-	}
-
-	stateCopy.dynamicComponentValues = dynamic
-
-	stateCopy.setStateForSubStates()
-
-	return stateCopy, nil
+	return state, nil
 }
 
 //SetUp should be called a single time after all of the member variables are
