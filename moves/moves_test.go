@@ -122,13 +122,7 @@ func defaultMoveInstaller(manager *boardgame.GameManager) error {
 	}
 
 	moves = []*boardgame.MoveTypeConfig{
-		&boardgame.MoveTypeConfig{
-			Name: "Draw To Three",
-			MoveConstructor: func() boardgame.Move {
-				return new(moveDealCardsToThree)
-			},
-			IsFixUp: true,
-		},
+		MustDefaultConfig(manager, new(moveDealCardsToThree)),
 	}
 
 	return manager.AddOrderedMovesForPhase(phaseDrawAgain, moves...)

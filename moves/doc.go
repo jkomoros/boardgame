@@ -13,6 +13,44 @@ There are many move types defined. Some are designed to be used directly with
 minimal modification; others are powerful move types that are designed to be
 sub-classed.
 
+DefaultConfig
+
+In a number of cases you'll just use moves in this package will minimal
+overriding. In those cases it's a pain to write up MoveTypeConfigs because
+it's mostly boilerplate.
+
+DefaultConfig is a package-level constructor that takes a manager, and an
+example move struct that embeds moves from this pacakge, and returns a default
+config object with reaonsable defaults so you don't have to. It uses
+move.MoveTypeName and move.MoveTypeHelpText to generate strings, which moves
+in this package normally do reasonable things with. Example use:
+
+	type myMove struct {
+		moves.DealCountComponents
+	}
+
+	func (m *myMove) GameStack(gState boardgame.MutableSubState) boardgame.MutableStack {
+		return gState.(*gameState).DrawStack
+	}
+
+	func (m *myMove) PlayerStack(pState boardgame.MutablePlayerState) boardgame.MutableStack {
+		return pState.(*playerState).Hand
+	}
+
+	func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
+
+		//...
+		manager.AddMoves(
+			//Name, HelpText, MoveConstructor, and IsFixUp will be set reasonably.
+			moves.DefaultConfig(manager, new(myMove)),
+		)
+		//...
+
+	}
+
+StartPhase is special because often you want to override just one small part,
+so we provide NewStartPhaseMoveConfig.
+
 Base Move
 
 Implementing a Move requires a lot of stub methods to implement the
