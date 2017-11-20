@@ -1437,6 +1437,14 @@ that are simple sub-classes of RoundRobin: `moves.DealCountComponents` to deal c
 gameState to specific players, and `moves.CollectCountComponents` to collect components from each
 player into gameState. The moves package describes how these moves work and how they fit together.
 
+#### DefaultConfig
+
+In a number of cases, you'll use moves out of the `moves` package with
+basically no customization--possibly just overriding which stack to use. In
+those cases, it can be a pain to create bespoke MoveTypeConfigs for each move.
+`moves.DefaultConfig` can return a reasonable starter config object based on
+the move's configuration, that in many cases is sufficient to just use in a pinch.
+
 ### Configs
 
 Games can often take different configurations. For example, a deck-based card game might be playable with an expansion pack of cards mixed in. 
