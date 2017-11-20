@@ -105,3 +105,15 @@ func (f *FinishTurn) Apply(state boardgame.MutableState) error {
 	return nil
 
 }
+
+func (f *FinishTurn) MoveTypeName(manager *boardgame.GameManager) string {
+	return "Finish Turn"
+}
+
+func (f *FinishTurn) MoveTypeHelpText(manager *boardgame.GameManager) string {
+	return "Finishes the player's turn."
+}
+
+func (f *FinishTurn) MoveTypeIsFixUp(manager *boardgame.GameManager) bool {
+	return false
+}

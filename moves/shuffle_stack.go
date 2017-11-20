@@ -45,3 +45,40 @@ func (s *ShuffleStack) ValidConfiguration(exampleState boardgame.MutableState) e
 
 	return nil
 }
+
+func (s *ShuffleStack) stackName(manager *boardgame.GameManager) string {
+
+	name := "UnknownStack"
+
+	stacker, ok := s.TopLevelStruct().(moveinterfaces.SourceStacker)
+
+	if !ok {
+		return name
+	}
+
+	state := manager.ExampleState()
+
+	stack := stacker.SourceStack(state)
+
+	if stack == nil {
+		return name
+	}
+
+	if actualName := stackPropName(stack, state); actualName != "" {
+		return actualName
+	}
+
+	return name
+}
+
+func (s *ShuffleStack) MoveTypeName(manager *boardgame.GameManager) string {
+	return "Shuffle " + s.stackName(manager)
+}
+
+func (s *ShuffleStack) MoveTypeHelpText(manager *boardgame.GameManager) string {
+	return "Shuffles the " + s.stackName(manager) + " stack"
+}
+
+func (s *ShuffleStack) MoveTypeIsFixUp(manager *boardgame.GameManager) bool {
+	return true
+}

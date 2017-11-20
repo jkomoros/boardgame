@@ -91,6 +91,22 @@ func (s *StartPhase) Apply(state boardgame.MutableState) error {
 	return nil
 }
 
+//MoveTypeName returns a constant. For StartPhase it's better to use
+//NewStartPhaseMoveConfig instead.
+func (s *StartPhase) MoveTypeName(manager *boardgame.GameManager) string {
+	return "Start Phase"
+}
+
+//MoveTypeName returns a constant. For StartPhase it's better to use
+//NewStartPhaseMoveConfig instead.
+func (s *StartPhase) MoveTypeHelpText(manager *boardgame.GameManager) string {
+	return "Enters a phase"
+}
+
+func (s *StartPhase) MoveTypeIsFixUp(manager *boardgame.GameManager) bool {
+	return true
+}
+
 //NewStartPhaseMoveConfig returns a MoveConfig object configured so that you
 //don't need to even define your own StartPhase embedding move but can just
 //use this one directly.
