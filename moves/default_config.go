@@ -90,3 +90,42 @@ func newMoveTypeConfig(name, helpText string, isFixUp bool, exampleStruct boardg
 		IsFixUp: isFixUp,
 	}
 }
+
+//stackPropName takes a stack that was returned from a given state, and the
+//state it was returned from. It searches through the sub- states in state
+//until it finds the name of the property where it resides.
+func stackPropName(stack boardgame.MutableStack, state boardgame.MutableState) string {
+
+	if name := stackPropNameInReadSetter(stack, state.MutableGameState().ReadSetter()); name != "" {
+		return name
+	}
+
+	if name := stackPropNameInReadSetter(stack, state.MutablePlayerStates()[0].ReadSetter()); name != "" {
+		return name
+	}
+
+	for _, dynamicComponentValues := range state.MutableDynamicComponentValues() {
+		if name := stackPropNameInReadSetter(stack, dynamicComponentValues[0].ReadSetter()); name != "" {
+			return name
+		}
+	}
+
+	return ""
+
+}
+
+func stackPropNameInReadSetter(stack boardgame.MutableStack, readSetter boardgame.PropertyReadSetter) string {
+	for propName, propType := range readSetter.Props() {
+		if propType != boardgame.TypeStack {
+			continue
+		}
+		testStack, err := readSetter.MutableStackProp(propName)
+		if err != nil {
+			continue
+		}
+		if testStack == stack {
+			return propName
+		}
+	}
+	return ""
+}
