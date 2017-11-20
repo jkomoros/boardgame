@@ -98,9 +98,7 @@ func (b *Base) MoveTypeHelpText(manager *boardgame.GameManager) string {
 //MoveTypeIsFixUp is used by Defaultconfig to generate the IsFixUp value. Base
 //is false, but other moves in this package will return true.
 func (b *Base) MoveTypeIsFixUp(manager *boardgame.GameManager) bool {
-	//TODO: once we have reasonable overridings in all other moves that
-	//derive, default this to false.
-	return true
+	return false
 }
 
 //Legal checks whether the game's CurrentPhase (as determined by the delegate)
