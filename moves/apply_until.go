@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves/moveinterfaces"
+	"strconv"
 )
 
 //ApplyUntil is a simple move that is legal to apply in succession until its
@@ -46,6 +47,18 @@ func (a *ApplyUntil) Legal(state boardgame.State, proposer boardgame.PlayerIndex
 
 	return errors.New("The condition was met, so the move is no longer legal.")
 
+}
+
+func (a *ApplyUntil) MoveTypeName(manager *boardgame.GameManager) string {
+	return "Apply Until"
+}
+
+func (a *ApplyUntil) MoveTypeHelpText(manager *boardgame.GameManager) string {
+	return "Applies the move until a condition is met."
+}
+
+func (a *ApplyUntil) MoveTypeIsFixUp(manager *boardgame.GameManager) bool {
+	return true
 }
 
 type counter interface {
@@ -131,6 +144,28 @@ func (a *ApplyUntilCount) ConditionMet(state boardgame.State) error {
 
 }
 
+func (a *ApplyUntilCount) targetCountString() string {
+	moveCounter, ok := a.TopLevelStruct().(counter)
+
+	if !ok {
+		return "unknown"
+	}
+
+	targetCount := moveCounter.TargetCount()
+
+	return strconv.Itoa(targetCount)
+
+}
+
+func (a *ApplyUntilCount) MoveTypeName(manager *boardgame.GameManager) string {
+
+	return "Apply Until Count of " + a.targetCountString()
+}
+
+func (a *ApplyUntilCount) MoveTypeHelpText(manager *boardgame.GameManager) string {
+	return "Applies the move until a target count of " + a.targetCountString() + " is met."
+}
+
 //countMovesApplied is where the majority of logic for the count method of
 //ApplyUntilCount goes. It makes it easy to plug in the logic in multiple
 //types of moves that have the same type of behavior for Count() but can't
@@ -177,4 +212,13 @@ type ApplyCountTimes struct {
 //immediate past in the current phase.
 func (a *ApplyCountTimes) Count(state boardgame.State) int {
 	return countMovesApplied(a.TopLevelStruct(), state)
+}
+
+func (a *ApplyCountTimes) MoveTypeName(manager *boardgame.GameManager) string {
+
+	return "Apply " + a.targetCountString() + " Times"
+}
+
+func (a *ApplyCountTimes) MoveTypeHelpText(manager *boardgame.GameManager) string {
+	return "Applies the move " + a.targetCountString() + " times in a row."
 }
