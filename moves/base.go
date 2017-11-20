@@ -67,7 +67,14 @@ func DefaultConfig(manager *boardgame.GameManager, exampleStruct boardgame.Move)
 	helpText := defaultConfig.MoveTypeHelpText(manager)
 	isFixUp := defaultConfig.MoveTypeIsFixUp(manager)
 
-	typ := reflect.ValueOf(exampleStruct).Elem().Type()
+	val := reflect.ValueOf(exampleStruct)
+
+	//We can accept either pointer or struct types.
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
+	typ := val.Type()
 
 	return &boardgame.MoveTypeConfig{
 		Name:     name,
