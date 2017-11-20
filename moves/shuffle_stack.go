@@ -34,7 +34,7 @@ func (s *ShuffleStack) Apply(state boardgame.MutableState) error {
 	return stack.Shuffle()
 }
 
-func (s *ShuffleStack) ValidConfiguration() error {
+func (s *ShuffleStack) ValidConfiguration(exampleState boardgame.MutableState) error {
 	testMove := s.TopLevelStruct()
 
 	_, ok := testMove.(moveinterfaces.SourceStacker)
