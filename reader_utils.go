@@ -33,6 +33,10 @@ type readerValidator struct {
 func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, illegalTypes map[PropertyType]bool, chest *ComponentChest, isPlayerState bool) (*readerValidator, error) {
 	//TODO: there's got to be a way to not need both exampleReader and exampleObj, but only one.
 
+	if chest == nil {
+		return nil, errors.New("Passed nil chest")
+	}
+
 	if illegalTypes == nil {
 		illegalTypes = make(map[PropertyType]bool)
 	}
