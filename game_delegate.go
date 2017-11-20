@@ -297,8 +297,17 @@ func (d *DefaultGameDelegate) ProposeFixUpMove(state State) Move {
 	return nil
 }
 
+//CurrentPlayerIndex returns gameState.CurrentPlayer, if that is a PlayerIndex
+//property. If not, returns ObserverPlayerIndex.≈
 func (d *DefaultGameDelegate) CurrentPlayerIndex(state State) PlayerIndex {
-	return ObserverPlayerIndex
+	index, err := state.GameState().Reader().PlayerIndexProp("CurrentPlayer")
+
+	if err != nil {
+		//Guess that's not where they store CurrentPlayer.
+		return ObserverPlayerIndex
+	}
+
+	return index
 }
 
 //CurrentPhase by default with return the value of gameState.Phase, if it is

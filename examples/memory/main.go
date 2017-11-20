@@ -105,11 +105,6 @@ func (g *gameDelegate) ConfigValueDisplay(key, val string) (displayName, descrip
 	return "", ""
 }
 
-func (g *gameDelegate) CurrentPlayerIndex(state boardgame.State) boardgame.PlayerIndex {
-	game, _ := concreteStates(state)
-	return game.CurrentPlayer
-}
-
 func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 	return new(gameState)
 }

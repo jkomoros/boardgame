@@ -38,11 +38,6 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, 
 	return nil, errors.New("Component with unexpected value")
 }
 
-func (g *gameDelegate) CurrentPlayerIndex(state boardgame.State) boardgame.PlayerIndex {
-	game, _ := concreteStates(state)
-	return game.CurrentPlayer
-}
-
 func (g *gameDelegate) Name() string {
 	return gameName
 }

@@ -34,11 +34,6 @@ func (g *gameDelegate) LegalNumPlayers(numPlayers int) bool {
 	return numPlayers == 2
 }
 
-func (g *gameDelegate) CurrentPlayerIndex(state boardgame.State) boardgame.PlayerIndex {
-	game, _ := concreteStates(state)
-	return game.CurrentPlayer
-}
-
 func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 	return new(gameState)
 }
