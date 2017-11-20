@@ -54,6 +54,11 @@ func DefaultConfig(manager *boardgame.GameManager, exampleStruct boardgame.Move)
 	helpText := defaultConfig.MoveTypeHelpText(manager)
 	isFixUp := defaultConfig.MoveTypeIsFixUp(manager)
 
+	return newMoveTypeConfig(name, helpText, isFixUp, exampleStruct), nil
+
+}
+
+func newMoveTypeConfig(name, helpText string, isFixUp bool, exampleStruct boardgame.Move) *boardgame.MoveTypeConfig {
 	val := reflect.ValueOf(exampleStruct)
 
 	//We can accept either pointer or struct types.
@@ -70,5 +75,5 @@ func DefaultConfig(manager *boardgame.GameManager, exampleStruct boardgame.Move)
 			return reflect.New(typ).Interface().(boardgame.Move)
 		},
 		IsFixUp: isFixUp,
-	}, nil
+	}
 }
