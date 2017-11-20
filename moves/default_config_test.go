@@ -32,3 +32,19 @@ func TestShuffleStackDefaultConfig(t *testing.T) {
 	assert.For(t).ThatActual(moveType).IsNotNil()
 
 }
+
+func TestDealCardsDefaultConfig(t *testing.T) {
+	moveInstaller := func(manager *boardgame.GameManager) error {
+
+		return manager.AddMove(MustDefaultConfig(manager, new(moveDealCards)))
+
+	}
+
+	manager, err := newGameManager(moveInstaller)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	moveType := manager.FixUpMoveTypeByName("Deals Components From Game Stack DrawStack To Player Stack Hand To Each Player 1 Times")
+
+	assert.For(t).ThatActual(moveType).IsNotNil()
+}

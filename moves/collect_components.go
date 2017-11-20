@@ -31,6 +31,19 @@ func (d *CollectCountComponents) RoundRobinAction(playerState boardgame.MutableP
 
 }
 
+func (d *CollectCountComponents) MoveTypeName(manager *boardgame.GameManager) string {
+
+	player, game, count := d.moveTypeInfo(manager)
+
+	return "Collect Components From Each Player's Stack " + player + " To Game Stack " + game + " " + count + " Times Per Player"
+}
+
+func (d *CollectCountComponents) MoveTypeHelpText(manager *boardgame.GameManager) string {
+	player, game, count := d.moveTypeInfo(manager)
+
+	return "Collects " + count + " components from each player's " + player + " to the game " + game
+}
+
 //CollectComponentsUntilPlayerCountLeft goes around and collects components
 //from each player until each player has TargetCount() or fewer components in
 //their PlayerStack(). It's the same as DealComponentsUntilPlayerCountReached,
@@ -63,6 +76,19 @@ func (d *CollectComponentsUntilPlayerCountLeft) PlayerConditionMet(pState boardg
 	}
 
 	return playerCount <= targetCount
+}
+
+func (d *CollectComponentsUntilPlayerCountLeft) MoveTypeName(manager *boardgame.GameManager) string {
+
+	player, game, count := d.moveTypeInfo(manager)
+
+	return "Collect Components From Each Player's Stack " + player + " To Game Stack " + game + " Until Each Player Is Down To " + count
+}
+
+func (d *CollectComponentsUntilPlayerCountLeft) MoveTypeHelpText(manager *boardgame.GameManager) string {
+	player, game, count := d.moveTypeInfo(manager)
+
+	return "Collects components from each player's " + player + " to the game " + game + " until each player has " + count + " left"
 }
 
 //CollectComponentsUntilGameCountReached goes around and collects components from
@@ -103,4 +129,17 @@ func (d *CollectComponentsUntilGameCountReached) ConditionMet(state boardgame.St
 
 	return d.RoundRobin.ConditionMet(state)
 
+}
+
+func (d *CollectComponentsUntilGameCountReached) MoveTypeName(manager *boardgame.GameManager) string {
+
+	player, game, count := d.moveTypeInfo(manager)
+
+	return "Collect Components From Each Player's Stack " + player + " To Game Stack " + game + " Until The Game Has " + count + " Total"
+}
+
+func (d *CollectComponentsUntilGameCountReached) MoveTypeHelpText(manager *boardgame.GameManager) string {
+	player, game, count := d.moveTypeInfo(manager)
+
+	return "Collects components from each player's " + player + " to the game " + game + " until the game has " + count + " total"
 }

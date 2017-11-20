@@ -81,20 +81,8 @@ func (m *moveDealCardsToThree) PlayerStack(pState boardgame.MutablePlayerState) 
 
 func defaultMoveInstaller(manager *boardgame.GameManager) error {
 	moves := []*boardgame.MoveTypeConfig{
-		&boardgame.MoveTypeConfig{
-			Name: "Deal Initial Cards",
-			MoveConstructor: func() boardgame.Move {
-				return new(moveDealCards)
-			},
-			IsFixUp: true,
-		},
-		&boardgame.MoveTypeConfig{
-			Name: "Deal Other Cards",
-			MoveConstructor: func() boardgame.Move {
-				return new(moveDealOtherCards)
-			},
-			IsFixUp: true,
-		},
+		MustDefaultConfig(manager, new(moveDealCards)),
+		MustDefaultConfig(manager, new(moveDealOtherCards)),
 		NewStartPhaseMoveConfig(manager, phaseNormalPlay, nil),
 	}
 
@@ -155,8 +143,8 @@ func TestGeneral(t *testing.T) {
 
 	historicalMovesCount(t,
 		[]string{
-			"Deal Initial Cards",
-			"Deal Other Cards",
+			"Deal Components From Game Stack DrawStack To Player Stack Hand To Each Player 2 Times",
+			"Deal Components From Game Stack DrawStack To Player Stack OtherHand To Each Player 3 Times",
 			"Start Phase Normal Play",
 		},
 		[]int{

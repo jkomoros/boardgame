@@ -140,6 +140,39 @@ func (d *DealCountComponents) RoundRobinAction(playerState boardgame.MutablePlay
 	return gameStack.MoveComponent(boardgame.FirstComponentIndex, playerStack, boardgame.NextSlotIndex)
 }
 
+//moveTypeInfo is used as a helper to generate sttrings for all of the MoveType getters.
+func (d *DealCountComponents) moveTypeInfo(manager *boardgame.GameManager) (player, game, count string) {
+	exampleState := manager.ExampleState()
+
+	playerName := "unknown stack"
+	gameName := "unknown stack"
+
+	if playerStack, gameStack, err := dealActionHelper(d.TopLevelStruct(), exampleState.MutablePlayerStates()[0]); err == nil {
+
+		if name := stackPropName(playerStack, exampleState); name != "" {
+			playerName = name
+		}
+		if name := stackPropName(gameStack, exampleState); name != "" {
+			gameName = name
+		}
+	}
+
+	return playerName, gameName, targetCountString(d.TopLevelStruct())
+}
+
+func (d *DealCountComponents) MoveTypeName(manager *boardgame.GameManager) string {
+
+	player, game, count := d.moveTypeInfo(manager)
+
+	return "Deal Components From Game Stack " + game + " To Player Stack " + player + " To Each Player " + count + " Times"
+}
+
+func (d *DealCountComponents) MoveTypeHelpText(manager *boardgame.GameManager) string {
+	player, game, count := d.moveTypeInfo(manager)
+
+	return "Deals " + count + " components from game stack " + game + " to each player stack " + player
+}
+
 //DealComponentsUntilPlayerCountReached goes around and deals components to
 //each player until each player has TargetCount() or greater components in
 //their PlayerStack().
@@ -166,6 +199,19 @@ func (d *DealComponentsUntilPlayerCountReached) ConditionMet(state boardgame.Sta
 	return d.RoundRobin.ConditionMet(state)
 }
 
+func (d *DealComponentsUntilPlayerCountReached) MoveTypeName(manager *boardgame.GameManager) string {
+
+	player, game, count := d.moveTypeInfo(manager)
+
+	return "Deal Components From Game Stack " + game + " To Player Stack " + player + " Until Each Player Has " + count
+}
+
+func (d *DealComponentsUntilPlayerCountReached) MoveTypeHelpText(manager *boardgame.GameManager) string {
+	player, game, count := d.moveTypeInfo(manager)
+
+	return "Deals components from game stack " + game + " to each player's " + player + " until each player has " + count
+}
+
 //DealComponentsUntilGameCountLeft goes around and deals components to each
 //player until the GameStack() has TargetCount() or fewer components left.
 type DealComponentsUntilGameCountLeft struct {
@@ -188,4 +234,17 @@ func (d *DealComponentsUntilGameCountLeft) ConditionMet(state boardgame.State) e
 
 	return d.RoundRobin.ConditionMet(state)
 
+}
+
+func (d *DealComponentsUntilGameCountLeft) MoveTypeName(manager *boardgame.GameManager) string {
+
+	player, game, count := d.moveTypeInfo(manager)
+
+	return "Deal Components From Game Stack " + game + " To Player Stack " + player + " Until Game Stack Has " + count + " Total"
+}
+
+func (d *DealComponentsUntilGameCountLeft) MoveTypeHelpText(manager *boardgame.GameManager) string {
+	player, game, count := d.moveTypeInfo(manager)
+
+	return "Deals components from game stack " + game + " to each player's " + player + " until the game stack has " + count + " left"
 }
