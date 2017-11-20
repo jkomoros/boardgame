@@ -55,11 +55,6 @@ func (g *gameDelegate) DefaultNumPlayers() int {
 	return 2
 }
 
-func (g *gameDelegate) CurrentPhase(state boardgame.State) int {
-	game, _ := concreteStates(state)
-	return game.Phase.Value()
-}
-
 func (g *gameDelegate) LegalNumPlayers(numPlayers int) bool {
 	return numPlayers == 2
 }

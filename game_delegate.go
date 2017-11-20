@@ -301,11 +301,20 @@ func (d *DefaultGameDelegate) CurrentPlayerIndex(state State) PlayerIndex {
 	return ObserverPlayerIndex
 }
 
-//CurrentPhase returns -1 by default, which amkes it more obvious that you
-//haven't overridden this if you choose to use Phases. (As Phase 0 is normally
-//a valid  phase).
+//CurrentPhase by default with return the value of gameState.Phase, if it is
+//an enum. If it is not, it will return -1 instead, to make it more clear that
+//it's an invalid CurrentPhase (phase 0 is often valid).
 func (d *DefaultGameDelegate) CurrentPhase(state State) int {
-	return -1
+
+	phaseEnum, err := state.GameState().Reader().EnumProp("Phase")
+
+	if err != nil {
+		//Guess it wasn't there
+		return -1
+	}
+
+	return phaseEnum.Value()
+
 }
 
 //PhaseEnum defaults to the enum named "Phase" which is the convention for the

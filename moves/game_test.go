@@ -84,10 +84,6 @@ func (g *gameDelegate) CurrentPlayerIndex(state boardgame.State) boardgame.Playe
 	return state.GameState().(*gameState).CurrentPlayer
 }
 
-func (g *gameDelegate) CurrentPhase(state boardgame.State) int {
-	return state.GameState().(*gameState).Phase.Value()
-}
-
 func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 	return new(gameState)
 }

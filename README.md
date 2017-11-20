@@ -1326,6 +1326,10 @@ func (g *gameDelegate) CurrentPhase(state boardgame.State) int {
 }
 ```
 
+However, since we're using DefaultGameDelegate and our Phase property is `Phase` on our `gameState`,
+we don't even have to do that. DefaultGameDelegate's CurrentPhase() already looks for that value
+there and returns it.
+
 Now the core engine knows about what phase it is. `moves.Base` will consult that information it is Legal method. But how do we tell `moves.Base` which phases a move is legal in?
 
 `MoveType` and `MoveTypeConfig` have a `LegalPhases []int` field. If this field is zero-length (nil or a zero-length slice) that tells `moves.Base` that the move is legal in any phase. If it's non-zero-length, then `moves.Base` will ensure that the current phase is explicitly enumerated in LegalPhases, otherwise it will return an error.
