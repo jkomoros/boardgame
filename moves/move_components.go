@@ -90,13 +90,13 @@ func (m *MoveCountComponents) MoveTypeName(manager *boardgame.GameManager) strin
 
 	source, destination := m.stackNames(manager.ExampleState())
 
-	return "Move " + m.targetCountString() + " Components From " + source + " To " + destination
+	return "Move " + targetCountString(m.TopLevelStruct()) + " Components From " + source + " To " + destination
 }
 
 func (m *MoveCountComponents) MoveTypeHelpText(manager *boardgame.GameManager) string {
 	source, destination := m.stackNames(manager.ExampleState())
 
-	return "Moves " + m.targetCountString() + " components from " + source + " to " + destination
+	return "Moves " + targetCountString(m.TopLevelStruct()) + " components from " + source + " to " + destination
 }
 
 //MoveComponentsUntilCountReached is a move that will move components, one at
@@ -129,13 +129,13 @@ func (m *MoveComponentsUntilCountReached) MoveTypeName(manager *boardgame.GameMa
 
 	source, destination := m.stackNames(manager.ExampleState())
 
-	return "Move Components From " + source + " Until " + destination + " Has " + m.targetCountString()
+	return "Move Components From " + source + " Until " + destination + " Has " + targetCountString(m.TopLevelStruct())
 }
 
 func (m *MoveComponentsUntilCountReached) MoveTypeHelpText(manager *boardgame.GameManager) string {
 	source, destination := m.stackNames(manager.ExampleState())
 
-	return "Moves components from " + source + " to " + destination + " until " + destination + " has " + m.targetCountString()
+	return "Moves components from " + source + " to " + destination + " until " + destination + " has " + targetCountString(m.TopLevelStruct())
 }
 
 //MoveComponentsUntilCountLeft is a move that will move components, one at a
@@ -168,11 +168,11 @@ func (m *MoveComponentsUntilCountLeft) MoveTypeName(manager *boardgame.GameManag
 
 	source, destination := m.stackNames(manager.ExampleState())
 
-	return "Move Components To " + destination + " Until " + source + " Has " + m.targetCountString()
+	return "Move Components To " + destination + " Until " + source + " Has " + targetCountString(m.TopLevelStruct())
 }
 
 func (m *MoveComponentsUntilCountLeft) MoveTypeHelpText(manager *boardgame.GameManager) string {
 	source, destination := m.stackNames(manager.ExampleState())
 
-	return "Moves components from " + source + " to " + destination + " until " + source + " has " + m.targetCountString() + " left"
+	return "Moves components from " + source + " to " + destination + " until " + source + " has " + targetCountString(m.TopLevelStruct()) + " left"
 }

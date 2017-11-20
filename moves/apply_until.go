@@ -7,6 +7,20 @@ import (
 	"strconv"
 )
 
+//targetCountString is a simple helper that returns the string of the target count.
+func targetCountString(topLevelStruct boardgame.Move) string {
+	moveCounter, ok := topLevelStruct.(moveinterfaces.TargetCounter)
+
+	if !ok {
+		return "unknown"
+	}
+
+	targetCount := moveCounter.TargetCount()
+
+	return strconv.Itoa(targetCount)
+
+}
+
 //ApplyUntil is a simple move that is legal to apply in succession until its
 //ConditionMet returns nil. You need to implement
 //moveinterfaces.ConditionMetter by implementing a ConditionMet method.
@@ -144,26 +158,13 @@ func (a *ApplyUntilCount) ConditionMet(state boardgame.State) error {
 
 }
 
-func (a *ApplyUntilCount) targetCountString() string {
-	moveCounter, ok := a.TopLevelStruct().(counter)
-
-	if !ok {
-		return "unknown"
-	}
-
-	targetCount := moveCounter.TargetCount()
-
-	return strconv.Itoa(targetCount)
-
-}
-
 func (a *ApplyUntilCount) MoveTypeName(manager *boardgame.GameManager) string {
 
-	return "Apply Until Count of " + a.targetCountString()
+	return "Apply Until Count of " + targetCountString(a.TopLevelStruct())
 }
 
 func (a *ApplyUntilCount) MoveTypeHelpText(manager *boardgame.GameManager) string {
-	return "Applies the move until a target count of " + a.targetCountString() + " is met."
+	return "Applies the move until a target count of " + targetCountString(a.TopLevelStruct()) + " is met."
 }
 
 //countMovesApplied is where the majority of logic for the count method of
@@ -216,9 +217,9 @@ func (a *ApplyCountTimes) Count(state boardgame.State) int {
 
 func (a *ApplyCountTimes) MoveTypeName(manager *boardgame.GameManager) string {
 
-	return "Apply " + a.targetCountString() + " Times"
+	return "Apply " + targetCountString(a.TopLevelStruct()) + " Times"
 }
 
 func (a *ApplyCountTimes) MoveTypeHelpText(manager *boardgame.GameManager) string {
-	return "Applies the move " + a.targetCountString() + " times in a row."
+	return "Applies the move " + targetCountString(a.TopLevelStruct()) + " times in a row."
 }
