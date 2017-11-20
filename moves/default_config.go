@@ -42,6 +42,8 @@ func DefaultConfig(manager *boardgame.GameManager, exampleStruct boardgame.Move)
 		return nil, errors.New("nil struct provided")
 	}
 
+	exampleStruct.SetTopLevelStruct(exampleStruct)
+
 	defaultConfig, ok := exampleStruct.(defaultConfigMoveType)
 
 	if !ok {
