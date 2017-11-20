@@ -853,7 +853,7 @@ func (g *GameManager) AddOrderedMovesForPhase(phase int, config ...*MoveTypeConf
 //be called during initalization.
 func (g *GameManager) AddMove(config *MoveTypeConfig) error {
 
-	moveType, err := newMoveType(config, g)
+	moveType, err := config.NewMoveType(g)
 
 	if err != nil {
 		return err

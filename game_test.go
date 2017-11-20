@@ -389,7 +389,7 @@ func TestIllegalMove(t *testing.T) {
 
 	manager := newTestGameManger()
 
-	_, err := newMoveType(&testIllegalMoveConfig, manager)
+	_, err := (&testIllegalMoveConfig).NewMoveType(manager)
 
 	assert.For(t).ThatActual(err).IsNotNil()
 

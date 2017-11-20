@@ -62,6 +62,53 @@ type MoveTypeConfig struct {
 	IsFixUp bool
 }
 
+//NewMoveType takes a MoveTypeConfig and returns a MoveType associated with
+//the given manager. The returned move type will not yet have been added to
+//the manager in question. In general you don't call this directly, and
+//instead use manager.AddMove, which accepts a MoveTypeConfig.
+func (m *MoveTypeConfig) NewMoveType(manager *GameManager) (*MoveType, error) {
+	if m == nil {
+		return nil, errors.New("No config provided")
+	}
+
+	if m.Name == "" {
+		return nil, errors.New("No name provided")
+	}
+
+	if m.MoveConstructor == nil {
+		return nil, errors.New("No MoveConstructor provided")
+	}
+
+	exampleMove := m.MoveConstructor()
+
+	if exampleMove == nil {
+		return nil, errors.New("MoveConstructor returned nil")
+	}
+
+	readSetter := exampleMove.ReadSetter()
+
+	if readSetter == nil {
+		return nil, errors.New("MoveConstructor's readsetter returned nil")
+	}
+
+	validator, err := newReaderValidator(readSetter, exampleMove, moveTypeIllegalPropTypes, manager.Chest(), false)
+
+	if err != nil {
+		return nil, errors.New("Couldn't create validator: " + err.Error())
+	}
+
+	return &MoveType{
+		name:        m.Name,
+		helpText:    m.HelpText,
+		constructor: m.MoveConstructor,
+		isFixUp:     m.IsFixUp,
+		legalPhases: m.LegalPhases,
+		validator:   validator,
+		manager:     manager,
+	}, nil
+
+}
+
 //MoveInfo is an object that contains meta-information about a move.
 type MoveInfo struct {
 	moveType  *MoveType
@@ -192,49 +239,6 @@ func (m *MoveInfo) Initiator() int {
 var moveTypeIllegalPropTypes = map[PropertyType]bool{
 	TypeStack: true,
 	TypeTimer: true,
-}
-
-func newMoveType(config *MoveTypeConfig, manager *GameManager) (*MoveType, error) {
-	if config == nil {
-		return nil, errors.New("No config provided")
-	}
-
-	if config.Name == "" {
-		return nil, errors.New("No name provided")
-	}
-
-	if config.MoveConstructor == nil {
-		return nil, errors.New("No MoveConstructor provided")
-	}
-
-	exampleMove := config.MoveConstructor()
-
-	if exampleMove == nil {
-		return nil, errors.New("MoveConstructor returned nil")
-	}
-
-	readSetter := exampleMove.ReadSetter()
-
-	if readSetter == nil {
-		return nil, errors.New("MoveConstructor's readsetter returned nil")
-	}
-
-	validator, err := newReaderValidator(readSetter, exampleMove, moveTypeIllegalPropTypes, manager.Chest(), false)
-
-	if err != nil {
-		return nil, errors.New("Couldn't create validator: " + err.Error())
-	}
-
-	return &MoveType{
-		name:        config.Name,
-		helpText:    config.HelpText,
-		constructor: config.MoveConstructor,
-		isFixUp:     config.IsFixUp,
-		legalPhases: config.LegalPhases,
-		validator:   validator,
-		manager:     manager,
-	}, nil
-
 }
 
 //Name returns the unique name for this type of move.
