@@ -10,7 +10,7 @@ import (
 
 func TestPlayerIndexNextPrevious(t *testing.T) {
 
-	game := testGame()
+	game := testGame(t)
 
 	game.SetUp(3, nil, nil)
 
@@ -55,7 +55,7 @@ func TestPlayerIndexNextPrevious(t *testing.T) {
 
 func TestPlayerIndexValid(t *testing.T) {
 
-	gameTwoPlayers := testGame()
+	gameTwoPlayers := testGame(t)
 
 	gameTwoPlayers.SetUp(2, nil, nil)
 
@@ -162,7 +162,7 @@ func TestPlayerIndexEquivalent(t *testing.T) {
 
 func TestSecretMoveCount(t *testing.T) {
 
-	game := testGame()
+	game := testGame(t)
 
 	makeTestGameIdsStable(game)
 
@@ -237,7 +237,7 @@ func testSubStatesHaveStateSet(t *testing.T, state *state) {
 
 func TestState(t *testing.T) {
 
-	game := testGame()
+	game := testGame(t)
 
 	makeTestGameIdsStable(game)
 
@@ -308,7 +308,7 @@ func TestState(t *testing.T) {
 
 func TestStateSerialization(t *testing.T) {
 
-	game := testGame()
+	game := testGame(t)
 
 	game.SetUp(0, nil, nil)
 

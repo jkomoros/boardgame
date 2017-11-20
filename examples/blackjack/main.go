@@ -171,13 +171,13 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 
 	delegate := &gameDelegate{}
 
-	manager := boardgame.NewGameManager(delegate, chest, storage)
+	manager, err := boardgame.NewGameManager(delegate, chest, storage)
 
-	if manager == nil {
-		return nil, errors.New("No manager returned")
+	if err != nil {
+		return nil, errors.New("No manager returned: " + err.Error())
 	}
 
-	err := manager.AddMoves(
+	err = manager.AddMoves(
 		&moveShuffleDiscardToDrawConfig,
 	)
 

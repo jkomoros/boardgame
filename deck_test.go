@@ -14,7 +14,7 @@ func (t *testShadowValues) Reader() PropertyReader {
 
 func TestDeckShadowComponent(t *testing.T) {
 
-	manager := newTestGameManger()
+	manager := newTestGameManger(t)
 
 	deck := manager.Chest().Deck("test")
 

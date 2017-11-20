@@ -146,9 +146,11 @@ var testAutoEnumMoveConfig = MoveTypeConfig{
 }
 
 func TestAutoEnum(t *testing.T) {
-	manager := NewGameManager(&testGameDelegate{}, newTestGameChest(), newTestStorageManager())
+	manager, err := NewGameManager(&testGameDelegate{}, newTestGameChest(), newTestStorageManager())
 
-	err := manager.AddMove(&testAutoEnumMoveConfig)
+	assert.For(t).ThatActual(err).IsNil()
+
+	err = manager.AddMove(&testAutoEnumMoveConfig)
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -193,7 +195,7 @@ func TestReaderValidator(t *testing.T) {
 
 	example := &testGeneralReadSetter{}
 
-	game := testGame()
+	game := testGame(t)
 
 	game.SetUp(0, nil, nil)
 

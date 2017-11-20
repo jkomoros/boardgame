@@ -771,10 +771,10 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 		return nil, errors.New("Couldn't add deck: " + err.Error())
 	}
 
-	manager := boardgame.NewGameManager(&gameDelegate{}, chest, storage)
+	manager, err := boardgame.NewGameManager(&gameDelegate{}, chest, storage)
 
-	if manager == nil {
-		return nil, errors.New("No manager returned")
+	if err != nil {
+		return nil, errors.New("No manager returned: " + err.Error())
 	}
 
 	moveTypeConfigs := []*boardgame.MoveTypeConfig{
@@ -805,7 +805,7 @@ We then define a `ShadowValue` for the deck. The ShadowValue is the values objec
 
 Then we add the deck to the chest.
 
-Now we have the three things we need to get a manager object: the delegate, the chest we just created, and the storage manager that we were passed in.
+Now we have the three things we need to get a manager object: the delegate, the chest we just created, and the storage manager that we were passed in. We have to check for errors when we construct the manager, because sometimes the configuration of everything is already obviously bad.
 
 Next we install each move type for our game, in order, by passing a reference to the moveTypeConfig for each.
 

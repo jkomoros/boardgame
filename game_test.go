@@ -18,7 +18,7 @@ func (t *testInfiniteLoopGameDelegate) ProposeFixUpMove(state State) Move {
 }
 
 func TestMoveModifyDynamicValues(t *testing.T) {
-	game := testGame()
+	game := testGame(t)
 
 	makeTestGameIdsStable(game)
 
@@ -89,7 +89,7 @@ func TestMoveModifyDynamicValues(t *testing.T) {
 }
 
 func TestProposeMoveNonModifiableGame(t *testing.T) {
-	game := testGame()
+	game := testGame(t)
 
 	game.SetUp(0, nil, nil)
 
@@ -128,7 +128,7 @@ func TestProposeMoveNonModifiableGame(t *testing.T) {
 }
 
 func TestGameSetUp(t *testing.T) {
-	game := testGame()
+	game := testGame(t)
 
 	id := game.Id()
 
@@ -240,7 +240,7 @@ func TestGameSetUp(t *testing.T) {
 }
 
 func TestApplyMove(t *testing.T) {
-	game := testGame()
+	game := testGame(t)
 
 	makeTestGameIdsStable(game)
 
@@ -348,7 +348,7 @@ func TestApplyMove(t *testing.T) {
 }
 
 func TestMoveRoundTrip(t *testing.T) {
-	game := testGame()
+	game := testGame(t)
 
 	err := game.SetUp(0, nil, nil)
 
@@ -387,7 +387,7 @@ func TestMoveRoundTrip(t *testing.T) {
 
 func TestIllegalMove(t *testing.T) {
 
-	manager := newTestGameManger()
+	manager := newTestGameManger(t)
 
 	_, err := (&testIllegalMoveConfig).NewMoveType(manager)
 
@@ -399,25 +399,29 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 	//This test makes sure that if our GameDelegate is going to always return
 	//moves that are legal, we'll bail at a certain point.
 
-	manager := NewGameManager(&testInfiniteLoopGameDelegate{}, newTestGameChest(), newTestStorageManager())
+	manager, err := NewGameManager(&testInfiniteLoopGameDelegate{}, newTestGameChest(), newTestStorageManager())
+
+	assert.For(t).ThatActual(err).IsNil()
 
 	manager.AddMoves(
 		&testMoveConfig,
 		&testAlwaysLegalMoveConfig,
 	)
 
-	manager.SetUp()
+	err = manager.SetUp()
+
+	assert.For(t).ThatActual(err).IsNil()
 
 	game := manager.NewGame()
 
-	err := game.SetUp(0, nil, nil)
+	err = game.SetUp(0, nil, nil)
 
 	assert.For(t).ThatActual(err).Equals(ErrTooManyFixUps)
 
 }
 
 func TestIllegalPlayerIndex(t *testing.T) {
-	game := testGame()
+	game := testGame(t)
 
 	game.SetUp(2, nil, nil)
 
@@ -437,7 +441,7 @@ func TestIllegalPlayerIndex(t *testing.T) {
 }
 
 func TestAgent(t *testing.T) {
-	game := testGame()
+	game := testGame(t)
 
 	game.instantAgentMoves = true
 
@@ -473,7 +477,7 @@ func TestAgent(t *testing.T) {
 }
 
 func TestGameSalt(t *testing.T) {
-	game := testGame()
+	game := testGame(t)
 
 	game.SetUp(0, nil, nil)
 
@@ -495,7 +499,7 @@ func TestGameSalt(t *testing.T) {
 	assert.For(t).ThatActual(mainCId).DoesNotEqual("")
 	assert.For(t).ThatActual(mainCId).Equals(refriedC.Id(refriedGame.CurrentState()))
 
-	otherGame := testGame()
+	otherGame := testGame(t)
 
 	otherGame.SetUp(0, nil, nil)
 
@@ -505,7 +509,7 @@ func TestGameSalt(t *testing.T) {
 }
 
 func TestGameState(t *testing.T) {
-	game := testGame()
+	game := testGame(t)
 
 	makeTestGameIdsStable(game)
 

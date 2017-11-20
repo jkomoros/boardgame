@@ -61,8 +61,10 @@ func newTestGameChest() *ComponentChest {
 	return chest
 }
 
-func newTestGameManger() *GameManager {
-	manager := NewGameManager(&testGameDelegate{}, newTestGameChest(), newTestStorageManager())
+func newTestGameManger(t *testing.T) *GameManager {
+	manager, err := NewGameManager(&testGameDelegate{}, newTestGameChest(), newTestStorageManager())
+
+	assert.For(t).ThatActual(err).IsNil()
 
 	manager.AddAgent(&testAgent{})
 
@@ -133,13 +135,15 @@ var testMoveFailValidConfigurationConfig = MoveTypeConfig{
 }
 
 func TestMoveFailsValidConfiguration(t *testing.T) {
-	manager := NewGameManager(&testGameDelegate{}, newTestGameChest(), newTestStorageManager())
+	manager, err := NewGameManager(&testGameDelegate{}, newTestGameChest(), newTestStorageManager())
+
+	assert.For(t).ThatActual(err).IsNil()
 
 	manager.AddMoves(
 		&testMoveFailValidConfigurationConfig,
 	)
 
-	err := manager.SetUp()
+	err = manager.SetUp()
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
@@ -148,7 +152,7 @@ func TestMoveFailsValidConfiguration(t *testing.T) {
 func TestDefaultMove(t *testing.T) {
 	//Tests that Moves based on DefaultMove copy correctly
 
-	game := testGame()
+	game := testGame(t)
 
 	if err := game.SetUp(0, nil, nil); err != nil {
 		t.Fatal("Couldn't set up game: " + err.Error())
@@ -168,7 +172,9 @@ func TestDefaultMove(t *testing.T) {
 }
 
 func TestNilStackErrors(t *testing.T) {
-	manager := NewGameManager(&nilStackGameDelegate{}, newTestGameChest(), newTestStorageManager())
+	manager, err := NewGameManager(&nilStackGameDelegate{}, newTestGameChest(), newTestStorageManager())
+
+	assert.For(t).ThatActual(err).IsNil()
 
 	if err := manager.SetUp(); err == nil {
 		t.Fatal("We were able to set up a manager that had nil stacks")
@@ -180,7 +186,7 @@ func TestNilStackErrors(t *testing.T) {
 }
 
 func TestGameManagerModifiableGame(t *testing.T) {
-	game := testGame()
+	game := testGame(t)
 
 	game.SetUp(0, nil, nil)
 
@@ -216,7 +222,7 @@ func TestGameManagerModifiableGame(t *testing.T) {
 
 func TestGameManagerSetUp(t *testing.T) {
 
-	manager := newTestGameManger()
+	manager := newTestGameManger(t)
 
 	if manager.PlayerMoveTypes() != nil {
 		t.Error("Got moves back before SetUp was called")

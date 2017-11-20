@@ -101,10 +101,10 @@ func newGameManager(moveInstaller func(manager *boardgame.GameManager) error) (*
 		return nil, errors.New("couldn't add deck: " + err.Error())
 	}
 
-	manager := boardgame.NewGameManager(&gameDelegate{}, chest, memory.NewStorageManager())
+	manager, err := boardgame.NewGameManager(&gameDelegate{}, chest, memory.NewStorageManager())
 
-	if manager == nil {
-		return nil, errors.New("No manager returned")
+	if err != nil {
+		return nil, errors.New("No manager returned: " + err.Error())
 	}
 
 	if err := moveInstaller(manager); err != nil {

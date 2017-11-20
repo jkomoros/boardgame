@@ -158,7 +158,7 @@ func (t *testGameDelegate) PlayerStateConstructor(player PlayerIndex) Configurab
 }
 
 func TestTestGameDelegate(t *testing.T) {
-	manager := newTestGameManger()
+	manager := newTestGameManger(t)
 
 	if manager.Delegate().Name() != testGameName {
 		t.Error("Manager.Name() was not overridden")

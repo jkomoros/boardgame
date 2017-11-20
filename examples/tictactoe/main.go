@@ -270,10 +270,10 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 		return nil, errors.New("couldn't add deck: " + err.Error())
 	}
 
-	manager := boardgame.NewGameManager(&gameDelegate{}, chest, storage)
+	manager, err := boardgame.NewGameManager(&gameDelegate{}, chest, storage)
 
-	if manager == nil {
-		return nil, errors.New("No manager returned")
+	if err != nil {
+		return nil, errors.New("No manager returned: " + err.Error())
 	}
 
 	bulkMoveTypeConfigs := []*boardgame.MoveTypeConfig{

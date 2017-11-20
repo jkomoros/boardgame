@@ -231,7 +231,7 @@ func TestSanitization(t *testing.T) {
 		},
 	}
 
-	game := testGame()
+	game := testGame(t)
 
 	makeTestGameIdsStable(game)
 

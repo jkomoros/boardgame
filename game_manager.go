@@ -41,13 +41,13 @@ type GameManager struct {
 }
 
 //NewGameManager creates a new game manager with the given delegate.
-func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage StorageManager) *GameManager {
+func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage StorageManager) (*GameManager, error) {
 	if delegate == nil {
-		return nil
+		return nil, errors.New("No delegate provided")
 	}
 
 	if chest == nil {
-		return nil
+		return nil, errors.New("No chest provided")
 	}
 
 	//Make sure the chest is no longer open for modification. If finish was
@@ -55,7 +55,7 @@ func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage Storag
 	chest.Finish()
 
 	if storage == nil {
-		return nil
+		return nil, errors.New("No Storage provided")
 	}
 
 	result := &GameManager{
@@ -71,7 +71,7 @@ func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage Storag
 
 	delegate.SetManager(result)
 
-	return result
+	return result, nil
 }
 
 //Logger returns the logrus.Logger that is in use for this game. This is a

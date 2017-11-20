@@ -8,7 +8,7 @@ import (
 
 func TestTimerManager(t *testing.T) {
 
-	game := testGame()
+	game := testGame(t)
 
 	game.SetUp(2, nil, nil)
 
@@ -70,7 +70,7 @@ func TestTimerManager(t *testing.T) {
 
 func TestTimerManagerMultiple(t *testing.T) {
 
-	game := testGame()
+	game := testGame(t)
 
 	game.SetUp(2, nil, nil)
 
@@ -114,7 +114,7 @@ func TestTimerManagerMultiple(t *testing.T) {
 }
 
 func TestTimerProp(t *testing.T) {
-	game := testGame()
+	game := testGame(t)
 
 	game.SetUp(2, nil, nil)
 

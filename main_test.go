@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame/enum"
 	"log"
+	"testing"
 )
 
 //Place to define testing structs and helpers that are useful throughout
@@ -641,12 +642,13 @@ func makeTestGameIdsStable(game *Game) {
 }
 
 //testGame returns a Game that has not yet had SetUp() called.
-func testGame() *Game {
+func testGame(t *testing.T) *Game {
 
-	manager := newTestGameManger()
+	manager := newTestGameManger(t)
 
 	if err := manager.SetUp(); err != nil {
-		panic("Failed to set up manager: " + err.Error())
+		t.Error("Failed to set up manager: " + err.Error())
+		return nil
 	}
 
 	game := manager.NewGame()
