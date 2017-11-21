@@ -117,6 +117,12 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, 
 
 }
 
+func (g *gameDelegate) ConfigureAgents() []boardgame.Agent {
+	return []boardgame.Agent{
+		&Agent{},
+	}
+}
+
 func (g *gameDelegate) Diagram(state boardgame.State) string {
 
 	game, players := concreteStates(state)
@@ -284,8 +290,6 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 	if err := manager.AddMoves(bulkMoveTypeConfigs...); err != nil {
 		return nil, errors.New("Couldn't add moves: " + err.Error())
 	}
-
-	manager.AddAgent(&Agent{})
 
 	if err := manager.SetUp(); err != nil {
 		return nil, errors.New("Couldn't set up manager: " + err.Error())

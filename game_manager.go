@@ -40,7 +40,9 @@ type GameManager struct {
 	logger                    *logrus.Logger
 }
 
-//NewGameManager creates a new game manager with the given delegate.
+//NewGameManager creates a new game manager with the given delegate. It
+//validates that the delegate returns well-formed states, as well as
+//configuring agents.
 func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage StorageManager) (*GameManager, error) {
 	if delegate == nil {
 		return nil, errors.New("No delegate provided")
@@ -74,6 +76,8 @@ func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage Storag
 	if err := result.setUpValidators(); err != nil {
 		return nil, errors.New("Couldn't configure validators: " + err.Error())
 	}
+
+	result.agents = delegate.ConfigureAgents()
 
 	return result, nil
 }
@@ -754,15 +758,6 @@ func (g *GameManager) SetUp() error {
 	return nil
 }
 
-//AddAgent is called before set up to configure an agent that is available to
-//play in games.
-func (g *GameManager) AddAgent(agent Agent) {
-	if g.initialized {
-		return
-	}
-	g.agents = append(g.agents, agent)
-}
-
 //AddMoves is a simple wrapper around AddMoves. It is useful for move configs
 //that are legal in any phase in any order. If you want to configure moves
 //that are only legal in certain phases, use AddMovesForPhase. If you want to
@@ -900,8 +895,8 @@ func (g *GameManager) AddMove(config *MoveTypeConfig) error {
 	return nil
 }
 
-//Agents returns a slice of all agents configured on this Manager. Will return
-//nil before SetUp is called.
+//Agents returns a slice of all agents configured on this Manager via
+//GameDelegate.ConfigureAgents. Will return nil before SetUp is called.
 func (g *GameManager) Agents() []Agent {
 	if !g.initialized {
 		return nil

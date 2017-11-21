@@ -201,6 +201,10 @@ type GameDelegate interface {
 
 	//Manager returns the Manager that was set on this delegate.
 	Manager() *GameManager
+
+	//ConfigureAgents will be called when creating a new GameManager. Emit the
+	//agents you want to install.
+	ConfigureAgents() []Agent
 }
 
 //PhaseMoveProgressionSetter is an optional interface that delegates can
@@ -551,5 +555,11 @@ func (d *DefaultGameDelegate) LegalConfig(config GameConfig) error {
 		}
 	}
 
+	return nil
+}
+
+//ConfigureAgents by default returns nil. If you want agents in your game,
+//override this.
+func (d *DefaultGameDelegate) ConfigureAgents() []Agent {
 	return nil
 }

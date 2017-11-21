@@ -276,6 +276,12 @@ func (g *gameDelegate) PlayerScore(pState boardgame.PlayerState) int {
 	return player.WonCards.NumComponents()
 }
 
+func (g *gameDelegate) ConfigureAgents() []boardgame.Agent {
+	return []boardgame.Agent{
+		&Agent{},
+	}
+}
+
 func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) {
 	chest := boardgame.NewComponentChest(nil)
 
@@ -300,8 +306,6 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 	if err := manager.AddMoves(moveTypeConfigs...); err != nil {
 		return nil, errors.New("Couldn't add moves: " + err.Error())
 	}
-
-	manager.AddAgent(&Agent{})
 
 	if err := manager.SetUp(); err != nil {
 		return nil, errors.New("Couldn't set up manager: " + err.Error())

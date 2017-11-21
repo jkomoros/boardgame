@@ -789,8 +789,6 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 		return nil, errors.New("Couldn't add moves: " + err.Error())
 	}
 
-	manager.AddAgent(&Agent{})
-
 	if err := manager.SetUp(); err != nil {
 		return nil, errors.New("Couldn't set up manager: " + err.Error())
 	}
@@ -1490,7 +1488,11 @@ There are two other methods on `GameDelegate`,  `ConfigKeyDisplay` and `ConfigVa
 
 Not all players of a game are human. You also want bots or AIs to be able to play. In the engine these are called *agents*.
 
-Agents are configured on the manager before it is set up. There can be multiple agents, representing different AIs--although in practice you'll likely only have one. Agents are set up when the game is set up, and then have a callback called after every move is made to have a chance to propose a move.
+Agents are configured on the manager when it is created by returning agents in
+your delegate's ConfigureAgents() method. There can be multiple agents,
+representing different AIs--although in practice you'll likely only have one.
+Agents are set up when the game is set up, and then have a callback called
+after every move is made to have a chance to propose a move.
 
 The interface that agents must implement is simple:
 

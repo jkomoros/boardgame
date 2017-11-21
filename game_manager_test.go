@@ -66,8 +66,6 @@ func newTestGameManger(t *testing.T) *GameManager {
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	manager.AddAgent(&testAgent{})
-
 	manager.AddMoves(
 		&testMoveConfig,
 		&testMoveIncrementCardInHandConfig,

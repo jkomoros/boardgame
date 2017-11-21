@@ -9,6 +9,12 @@ type testGameDelegate struct {
 	DefaultGameDelegate
 }
 
+func (t *testGameDelegate) ConfigureAgents() []Agent {
+	return []Agent{
+		&testAgent{},
+	}
+}
+
 func (t *testGameDelegate) DistributeComponentToStarterStack(state State, c *Component) (Stack, error) {
 	game, _ := concreteStates(state)
 	return game.DrawDeck, nil
