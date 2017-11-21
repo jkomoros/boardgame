@@ -24,6 +24,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="boardgame-ajax.html">
 <link rel="import" href="shared-styles.html">
+<link rel="import" href="boardgame-game-path.html">
 
 <dom-module id="boardgame-create-game">
   <template>
@@ -73,7 +74,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   <script>
 
-    class BoardgameCreateGame extends Polymer.Element {
+    class BoardgameCreateGame extends GamePathMixin(Polymer.Element) {
 
       static get is() {
         return "boardgame-create-game";
@@ -148,7 +149,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       _createGameResponseChanged(newValue) {
         if (newValue.Status == "Success") {
-          this.dispatchEvent(new CustomEvent("navigate-to", {composed: true, detail: this.$.create.GamePath(newValue.GameName, newValue.GameId)}));
+          this.dispatchEvent(new CustomEvent("navigate-to", {composed: true, detail: this.GamePath(newValue.GameName, newValue.GameId)}));
         } else {
           this.dispatchEvent(new CustomEvent("show-error", {composed: true, detail:{message:newValue.Error, friendlyMessage: newValue.FriendlyError}}));
         }

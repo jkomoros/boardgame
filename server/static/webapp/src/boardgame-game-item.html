@@ -5,6 +5,7 @@
 <link rel="import" href="boardgame-configure-game-properties.html">
 <link rel="import" href="../bower_components/paper-styles/typography.html">
 <link rel="import" href="boardgame-player-chip.html">
+<link rel="import" href="boardgame-game-path.html">
 
 <dom-module id="boardgame-game-item">
   <template>
@@ -23,7 +24,7 @@
       }
     </style>
     <div class="card layout horizontal center">
-      <a href="{{link}}">{{gameDisplayName}}</a>
+      <a href="{{GamePath(item.Name, item.Id)}}">{{gameDisplayName}}</a>
       <template is="dom-repeat" items="{{item.Players}}">
         <boardgame-player-chip photo-url="{{item.PhotoUrl}}" display-name="{{item.DisplayName}}" is-agent="{{item.IsAgent}}"></boardgame-player-chip>
       </template>
@@ -36,7 +37,7 @@
 
   <script>
 
-    class BoardgameGameItem extends Polymer.Element {
+    class BoardgameGameItem extends GamePathMixin(Polymer.Element) {
       static get is() {
         return "boardgame-game-item"
       }
@@ -45,7 +46,6 @@
         return {
           item: Object,
           managers: Array,
-          link: String,
           gameDisplayName: {
             type: String,
             computed: "_computeGameDisplayName(item, managers)"

@@ -1,12 +1,13 @@
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
 <link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="boardgame-game-path.html">
  
 
 <script>
 
   let IronAjax = customElements.get("iron-ajax");
 
-  class BoardgameAjax extends IronAjax {
+  class BoardgameAjax extends GamePathMixin(IronAjax) {
 
     static get is() {
       return "boardgame-ajax";
@@ -46,10 +47,6 @@
           value: true,
         }
       }
-    }
-
-    GamePath(name, id) {
-      return "game/" + name + "/" + id + "/";
     }
 
     _computeGameBasePath(basePath, gameRoute) {
