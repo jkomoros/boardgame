@@ -4,13 +4,13 @@
 <link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../config-src/boardgame-config.html">
 <link rel="import" href="boardgame-util.html">
-<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="boardgame-ajax.html">
 
 <dom-module id="boardgame-configure-game-properties">
   <template>
       <paper-icon-button icon="{{_openIcon(gameOpen)}}" alt="{{_openAlt(gameOpen)}}" disabled="{{disabled}}" on-tap="_handleOpenTapped"></paper-icon-button>
       <paper-icon-button icon="{{_visibleIcon(gameVisible)}}" alt="{{_visibleAlt(gameVisible)}}" disabled="{{disabled}}" on-tap="_handleVisibleTapped"></paper-icon-button>
-      <iron-ajax id="ajax" url="[[UrlForGameAPI(apiHost, gameRoute, 'configure')]]" with-credentials method="POST" content-type="application/x-www-form-urlencoded" last-response="{{_response}}"></iron-ajax>
+      <boardgame-ajax id="ajax" game-path="configure" game-route="[[gameRoute]]" method="POST" content-type="application/x-www-form-urlencoded" last-response="{{_response}}"></boardgame-ajax>
   </template>
 
   <script>
