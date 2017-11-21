@@ -97,7 +97,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </div>
       </iron-pages>
     </paper-dialog>
-    <boardgame-ajax id="auth" path="auth" handle-as="json" last-response="{{authResponse}}" method="POST" with-credentials></boardgame-ajax>
+    <boardgame-ajax id="auth" path="auth" handle-as="json" last-response="{{authResponse}}" method="POST"></boardgame-ajax>
 
     <firebase-app auth-domain="{{config.firebase.authDomain}}" api-key="{{config.firebase.apiKey}}" database-url="{{config.firebase.databaseURL}}" storage-bucket="{{config.firebase.storageBucket}}" messaging-sender-id="{{config.firebase.messagingSenderId}}"></firebase-app>
     <firebase-auth id="fbauth" user="{{firebaseUser}}"></firebase-auth>

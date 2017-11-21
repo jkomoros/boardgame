@@ -19,6 +19,11 @@
           computed: "_computeUrl(path)"
         },
         path: String,
+        //You almost always want withCredentials so set it to true.
+        withCredentials: {
+          type: Boolean,
+          value: true,
+        }
       }
     }
 
