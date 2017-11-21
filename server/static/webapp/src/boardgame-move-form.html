@@ -12,7 +12,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/polymer/lib/elements/dom-repeat.html">
 <link rel="import" href="shared-styles.html">
 <link rel="import" href="../config-src/boardgame-config.html">
-<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="boardgame-ajax.html">
 <link rel="import" href="boardgame-util.html">
 
 <dom-module id="boardgame-move-form">
@@ -48,7 +48,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             </form>
           </details>
         </template>
-        <iron-ajax id="ajax" url="[[UrlForGameAPI(apiHost, gameRoute, 'move')]]" method="POST" with-credentials last-response="{{formResponse}}" content-type="application/x-www-form-urlencoded"></iron-ajax>
+        <boardgame-ajax id="ajax" game-path="move" game-route="[[gameRoute]]" method="POST" last-response="{{formResponse}}" content-type="application/x-www-form-urlencoded"></boardgame-ajax>
       </div>
   </template>
 
