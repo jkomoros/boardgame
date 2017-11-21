@@ -175,7 +175,7 @@
       }
 
       static get properties() {
-        return BoardgameBaseGameRenderer.ExtendProperties({
+        return {
           fromStackLayout: {
             type: String,
             value: "fan"
@@ -204,7 +204,7 @@
             type: Number,
             value: 1.0
           }
-        })
+        }
       }
 
       _classes() {
