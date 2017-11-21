@@ -149,8 +149,6 @@ func (s *Server) Start() {
 
 	fs := newShadowedFS(http.Dir("webapp"), http.Dir(expandedPathToLib+"webapp"))
 
-	fs.AddRedirect("/config-src/boardgame-config.html", "/config-src/boardgame-config-dev.html")
-
 	s.fs = fs
 
 	//Tell the server the prefixes for URLs that we do expect to be there, so
