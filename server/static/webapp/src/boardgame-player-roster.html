@@ -14,12 +14,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../config-src/boardgame-config.html">
 <link rel="import" href="boardgame-util.html">
-<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../bower_components/paper-styles/typography.html">
 <link rel="import" href="../bower_components/paper-styles/color.html">
 <link rel="import" href="boardgame-configure-game-properties.html">
 <link rel="import" href="boardgame-player-roster-item.html">
+<link rel="import" href="boardgame-ajax.html">
 <link rel="import" href="shared-styles.html">
 
 <dom-module id="boardgame-player-roster">
@@ -60,7 +60,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <paper-button dialog-confirm default autofocus>I'm in!</paper-button>
       </div>
     </paper-dialog>
-    <iron-ajax id="request" with-credentials url="[[UrlForGameAPI(apiHost, gameRoute, 'join')]]" handle-as="json" method="POST" last-response="{{response}}">
+    <boardgame-ajax id="request" game-path="join" game-route="[[gameRoute]]" handle-as="json" method="POST" last-response="{{response}}">
   </template>
 
   <script>
