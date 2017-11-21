@@ -155,8 +155,6 @@ func TestAutoEnum(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	manager.SetUp()
-
 	game := manager.NewGame()
 
 	game.SetUp(0, nil, nil)

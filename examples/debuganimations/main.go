@@ -132,15 +132,6 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 		return nil, errors.New("Couldn't add deck: " + err.Error())
 	}
 
-	manager, err := boardgame.NewGameManager(&gameDelegate{}, chest, storage)
+	return boardgame.NewGameManager(&gameDelegate{}, chest, storage)
 
-	if err != nil {
-		return nil, errors.New("No manager returned: " + err.Error())
-	}
-
-	if err := manager.SetUp(); err != nil {
-		return nil, errors.New("Couldn't set up manager: " + err.Error())
-	}
-
-	return manager, nil
 }

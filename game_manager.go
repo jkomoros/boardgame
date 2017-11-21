@@ -122,7 +122,8 @@ func (m *MoveTypeConfigBundle) AddOrderedMovesForPhase(phase int, config ...*Mov
 
 //NewGameManager creates a new game manager with the given delegate. It will
 //validate that the various sub-staates are reasonable, and will call
-//ConfigureMoves and ConfigureAgents.
+//ConfigureMoves and ConfigureAgents and then check that all tiems are
+//configured reaasonably.
 func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage StorageManager) (*GameManager, error) {
 	if delegate == nil {
 		return nil, errors.New("No delegate provided")
@@ -162,6 +163,51 @@ func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage Storag
 	}
 
 	result.agents = delegate.ConfigureAgents()
+
+	exampleState, err := result.newGame().starterState(delegate.DefaultNumPlayers())
+
+	if err != nil {
+		return nil, errors.New("Couldn't get exampleState: " + err.Error())
+	}
+
+	for _, moveType := range result.fixUpMoves {
+		testMove := moveType.NewMove(exampleState)
+
+		if err := testMove.ValidConfiguration(exampleState); err != nil {
+			return nil, errors.New(moveType.Name() + " move failed the ValidConfiguration test: " + err.Error())
+		}
+
+	}
+
+	for _, moveType := range result.playerMoves {
+		testMove := moveType.NewMove(exampleState)
+
+		if err := testMove.ValidConfiguration(exampleState); err != nil {
+			return nil, errors.New(moveType.Name() + " move failed the ValidConfiguration test: " + err.Error())
+		}
+
+	}
+
+	result.agentsByName = make(map[string]Agent)
+	for _, agent := range result.agents {
+		result.agentsByName[strings.ToLower(agent.Name())] = agent
+	}
+
+	result.modifiableGames = make(map[string]*Game)
+
+	result.timers = newTimerManager(result)
+
+	//Start ticking timers.
+	go func() {
+		//TODO: is there a way to turn off timer ticking for a manager we want
+		//to throw out?
+		for {
+			<-time.After(250 * time.Millisecond)
+			result.timers.Tick()
+		}
+	}()
+
+	result.initialized = true
 
 	return result, nil
 }
@@ -818,58 +864,6 @@ func (g *GameManager) exampleState(numPlayers int) (*state, error) {
 	stateCopy.setStateForSubStates()
 
 	return stateCopy, nil
-}
-
-//SetUp should be called before this Manager is used. It locks in moves,
-//chest, storage, etc.
-func (g *GameManager) SetUp() error {
-
-	exampleState, err := g.newGame().starterState(g.Delegate().DefaultNumPlayers())
-
-	if err != nil {
-		return errors.New("Couldn't get exampleState: " + err.Error())
-	}
-
-	for _, moveType := range g.fixUpMoves {
-		testMove := moveType.NewMove(exampleState)
-
-		if err := testMove.ValidConfiguration(exampleState); err != nil {
-			return errors.New(moveType.Name() + " move failed the ValidConfiguration test: " + err.Error())
-		}
-
-	}
-
-	for _, moveType := range g.playerMoves {
-		testMove := moveType.NewMove(exampleState)
-
-		if err := testMove.ValidConfiguration(exampleState); err != nil {
-			return errors.New(moveType.Name() + " move failed the ValidConfiguration test: " + err.Error())
-		}
-
-	}
-
-	g.agentsByName = make(map[string]Agent)
-	for _, agent := range g.agents {
-		g.agentsByName[strings.ToLower(agent.Name())] = agent
-	}
-
-	g.modifiableGames = make(map[string]*Game)
-
-	g.timers = newTimerManager(g)
-
-	//Start ticking timers.
-	go func() {
-		//TODO: is there a way to turn off timer ticking for a manager we want
-		//to throw out?
-		for {
-			<-time.After(250 * time.Millisecond)
-			g.timers.Tick()
-		}
-	}()
-
-	g.initialized = true
-
-	return nil
 }
 
 func (g *GameManager) addMoves(config ...*MoveTypeConfig) error {

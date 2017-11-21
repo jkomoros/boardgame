@@ -152,11 +152,7 @@ func TestMoveFailsValidConfiguration(t *testing.T) {
 		return bundle
 	}
 
-	manager, err := NewGameManager(&testGameDelegate{moveInstaller: moveInstaller}, newTestGameChest(), newTestStorageManager())
-
-	assert.For(t).ThatActual(err).IsNil()
-
-	err = manager.SetUp()
+	_, err := NewGameManager(&testGameDelegate{moveInstaller: moveInstaller}, newTestGameChest(), newTestStorageManager())
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
@@ -235,24 +231,6 @@ func TestGameManagerModifiableGame(t *testing.T) {
 func TestGameManagerSetUp(t *testing.T) {
 
 	manager := newTestGameManger(t)
-
-	if manager.PlayerMoveTypes() != nil {
-		t.Error("Got moves back before SetUp was called")
-	}
-
-	if manager.PlayerMoveTypeByName("Test") != nil {
-		t.Error("Move by name returned a move before SetUp was called")
-	}
-
-	if manager.Agents() != nil {
-		t.Error("Agent before setup was not nil")
-	}
-
-	if manager.AgentByName("Test") != nil {
-		t.Error("Agent test before setup was not nil")
-	}
-
-	manager.SetUp()
 
 	moves := manager.PlayerMoveTypes()
 

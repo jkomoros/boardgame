@@ -646,11 +646,6 @@ func testGame(t *testing.T) *Game {
 
 	manager := newTestGameManger(t)
 
-	if err := manager.SetUp(); err != nil {
-		t.Error("Failed to set up manager: " + err.Error())
-		return nil
-	}
-
 	game := manager.NewGame()
 
 	return game

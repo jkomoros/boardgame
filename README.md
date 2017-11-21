@@ -799,29 +799,19 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 		return nil, errors.New("Couldn't add deck: " + err.Error())
 	}
 
-	manager, err := boardgame.NewGameManager(&gameDelegate{}, chest, storage)
-
-	if err != nil {
-		return nil, errors.New("No manager returned: " + err.Error())
-	}
-
-	if err := manager.SetUp(); err != nil {
-		return nil, errors.New("Couldn't set up manager: " + err.Error())
-	}
-
-	return manager, nil
+	return boardgame.NewGameManager(&gameDelegate{}, chest, storage)
 }
 ```
 
 First, we create a new empty `ComponentChest`. Then we start defining the single deck of cards. We create an empty deck, then for each constant in our cardNames we insert two components into the deck with those values. It is important that we always insert the exact same components in the exact same order. Stacks encode which components they contain with a deck/index pair--which means that if the order of the deck is different from when it was saved, the stack will have nonsensical values.
 
-We then define a `ShadowValue` for the deck. The ShadowValue is the values object that will be returned if the values in a deck are sanitized--more on that later. 
+Then we add the deck to the chest. The logic to actually create the deck is included in newDeck().
 
-Then we add the deck to the chest.
+Now we have the three things we need to get a manager object: the delegate, the chest we just created, and the storage manager that we were passed in. We simply return the result of calling `boardgame.NewGameManager` with those arguments.
 
-Now we have the three things we need to get a manager object: the delegate, the chest we just created, and the storage manager that we were passed in. We have to check for errors when we construct the manager, because sometimes the configuration of everything is already obviously bad.
-
-Finally, we call `SetUp` to finalize the GameManager and make it ready for use. This is when final checks are performed. Then we can return the manager.
+`NewGameManager` will fail with an error if anything is not set up correctly:
+if the moves are configured incorrectly for any reason, for example, or that
+the GameStateConstructor and PlayerStateConstructor return reasonable values.
 
 By following this convention, it will be very easy for instantiations of a server to easily include this game type with minimal overhead.
 
