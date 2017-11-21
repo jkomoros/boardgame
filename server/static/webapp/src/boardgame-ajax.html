@@ -12,6 +12,20 @@
       return "boardgame-ajax";
     }
 
+    static get properties() {
+      return {
+        url : {
+          type: String,
+          computed: "_computeUrl(path)"
+        },
+        path: String,
+      }
+    }
+
+    _computeUrl(path) {
+      return API_HOST + "/api/" + path;
+    }
+
   }
 
   customElements.define(BoardgameAjax.is, BoardgameAjax);
