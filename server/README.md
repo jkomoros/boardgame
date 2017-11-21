@@ -65,7 +65,7 @@ func main() {
 * firebase.json
 * .gitignore
 13. Copy polymer.json to your own webapp. Modify it to add the game-src/mygame/boardgame-render-game-GAMENAME.html fragment.
-14. Copy config.json and modify the values as necessary.
+14. Copy config.js and modify the values as necessary.
 15. Create symlinks from the following items:
 * src 
 * config-src
