@@ -1,12 +1,12 @@
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
-<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="boardgame-ajax.html">
 <link rel="import" href="../config-src/boardgame-config.html">
 <link rel="import" href="boardgame-util.html">
 
 <dom-module id="boardgame-game-state-manager">
   <template>
-    <iron-ajax id="version" with-credentials url="[[effectiveGameVersionUrl]]" handle-as="json" last-response="{{versionData}}"></iron-ajax>
-    <iron-ajax id="info" with-credentials url="[[gameViewUrl]]" handle-as="json" last-response="{{infoData}}">
+    <boardgame-ajax id="version" game-path="[[effectiveGameVersionPath]]" game-route="[[gameRoute]]" handle-as="json" last-response="{{versionData}}"></boardgame-ajax>
+    <boardgame-ajax id="info" game-path="[[gameViewPath]]" game-route="[[gameRoute]]" handle-as="json" last-response="{{infoData}}"></boardgame-ajax>
   </template>
 
 
@@ -54,21 +54,21 @@
             type: Number,
             value: -1
           },
-          gameVersionUrl: {
+          gameVersionPath: {
             type: String,
-            computed: "_computeGameVersionUrl(apiHost, gameRoute, active, requestedPlayer, admin, targetVersion, autoCurrentPlayer)",
-            observer: "_gameVersionUrlChanged"
+            computed: "_computeGameVersionPath(active, requestedPlayer, admin, targetVersion, autoCurrentPlayer)",
+            observer: "_gameVersionPathChanged"
           },
-          gameViewUrl : {
+          gameViewPath : {
             type: String,
-            computed: "_computeGameViewUrl(apiHost, gameRoute, requestedPlayer, admin)"
+            computed: "_computeGameViewPath(requestedPlayer, admin)"
           },
           //This is split out because lastFetchedVersion should be current
           //when it's sent, but when its value is changed it shouldn't be
           //considered a meaningful change that needs a refetch.
-          effectiveGameVersionUrl: {
+          effectiveGameVersionPath: {
             type: String,
-            computed: "_computeEffectiveGameVersionUrl(gameVersionUrl, lastFetchedVersion)",
+            computed: "_computeEffectiveGameVersionPath(gameVersionPath, lastFetchedVersion)",
           },
           viewingAsPlayer: Number,
           requestedPlayer: {
@@ -112,21 +112,20 @@
         this.updateData();
       }
 
-      _computeEffectiveGameVersionUrl(gameVersionUrl, lastFetchedVersion) {
-        if (!gameVersionUrl) return "";
-        return gameVersionUrl + "&from=" + lastFetchedVersion
+      _computeEffectiveGameVersionPath(gameVersionPath, lastFetchedVersion) {
+        if (!gameVersionPath) return "";
+        return gameVersionPath + "&from=" + lastFetchedVersion
       }
 
-      _computeGameVersionUrl(apiHost, gameRoute, active, requestedPlayer, admin, version, autoCurrentPlayer) {
+      _computeGameVersionPath(active, requestedPlayer, admin, version, autoCurrentPlayer) {
         if (!active) return "";
         if (version < 0) return "";
-        if (!gameRoute) return "";
         //TODO: factor this out with computeGameViewUrl a bit
-        return this.UrlForGameAPI(apiHost, gameRoute, "version/") + version + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0) + "&current=" + (autoCurrentPlayer ? 1 : 0);
+        return "version/" + version + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0) + "&current=" + (autoCurrentPlayer ? 1 : 0);
       }
 
-      _computeGameViewUrl(apiHost, gameRoute, requestedPlayer, admin){
-        return this.UrlForGameAPI(apiHost, gameRoute, "info") + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0);
+      _computeGameViewPath(requestedPlayer, admin){
+        return "info?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0);
       }
 
       _computeSocketUrl(apiHost, gameRoute, active, infoInstalled) {
@@ -150,7 +149,7 @@
         }
       }
 
-      _gameVersionUrlChanged(newValue, oldValue) {
+      _gameVersionPathChanged(newValue, oldValue) {
         if (!newValue) return;
 
         //The first time there is a non-empty URL is not worth fetching
