@@ -282,6 +282,16 @@ func (g *gameDelegate) ConfigureAgents() []boardgame.Agent {
 	}
 }
 
+func (g *gameDelegate) ConfigureMoves(installer boardgame.MoveInstaller) error {
+	return installer.AddMoves(
+		&moveRevealCardConfig,
+		&moveHideCardsConfig,
+		&moveFinishTurnConfig,
+		&moveCaptureCardsConfig,
+		&moveStartHideCardsTimerConfig,
+	)
+}
+
 func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) {
 	chest := boardgame.NewComponentChest(nil)
 
@@ -293,18 +303,6 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 
 	if err != nil {
 		return nil, errors.New("No manager returned: " + err.Error())
-	}
-
-	moveTypeConfigs := []*boardgame.MoveTypeConfig{
-		&moveRevealCardConfig,
-		&moveHideCardsConfig,
-		&moveFinishTurnConfig,
-		&moveCaptureCardsConfig,
-		&moveStartHideCardsTimerConfig,
-	}
-
-	if err := manager.AddMoves(moveTypeConfigs...); err != nil {
-		return nil, errors.New("Couldn't add moves: " + err.Error())
 	}
 
 	if err := manager.SetUp(); err != nil {

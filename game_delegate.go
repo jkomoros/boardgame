@@ -202,6 +202,12 @@ type GameDelegate interface {
 	//Manager returns the Manager that was set on this delegate.
 	Manager() *GameManager
 
+	//ConfigureMoves will be called during creation of a GameManager in
+	//NewGameManager. This is the time to install moves onto the manager by
+	//calling methods on the installer. If you return an error the GameManager
+	//will fail to be created.
+	ConfigureMoves(installer MoveInstaller) error
+
 	//ConfigureAgents will be called when creating a new GameManager. Emit the
 	//agents you want to install.
 	ConfigureAgents() []Agent
@@ -222,8 +228,9 @@ type PropertyCollection map[string]interface{}
 //DefaultGameDelegate is a struct that implements stubs for all of
 //GameDelegate's methods. This makes it easy to override just one or two
 //methods by creating your own struct that anonymously embeds this one.
-//GameStateConstructor and PlayerStateConstructor are not implemented, since
-//those almost certainly must be overridden for your particular game.
+//GameStateConstructor, PlayerStateConstructor, and ConfigureMoves are not
+//implemented, since those almost certainly must be overridden for your
+//particular game.
 type DefaultGameDelegate struct {
 	manager          *GameManager
 	moveProgressions map[int][]string

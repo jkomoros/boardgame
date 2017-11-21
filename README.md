@@ -759,6 +759,31 @@ And then the concrete struct we will use for `Values` is a trivial struct with a
 
 In more complicated games, your components and their related constants might be much, much more verbose and effectively be a transcription of the values of a large deck of cards.
 
+#### ConfigureMoves
+
+Your GameDelegate implements a method called `ConfigureMoves(installer
+boardgame.MoveInstaller) error`. This method will be called during the
+creation process for a GameManager, and calling methods on the installer
+object you are passed is the principle way you configure moves specific to
+your game.
+
+Memory's is here:
+
+```
+func (g *gameDelegate) ConfigureMoves(installer boardgame.MoveInstaller) error {
+	return installer.AddMoves(
+		&moveRevealCardConfig,
+		&moveHideCardsConfig,
+		&moveFinishTurnConfig,
+		&moveCaptureCardsConfig,
+		&moveStartHideCardsTimerConfig,
+	)
+}
+```
+
+More complicated games would use more advanced installer methods.
+
+
 #### Worked NewManager example
 
 Let's look at memory's NewManager implementation:
@@ -777,18 +802,6 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 		return nil, errors.New("No manager returned: " + err.Error())
 	}
 
-	moveTypeConfigs := []*boardgame.MoveTypeConfig{
-		&moveRevealCardConfig,
-		&moveHideCardsConfig,
-		&moveFinishTurnConfig,
-		&moveCaptureCardsConfig,
-		&moveStartHideCardsTimerConfig,
-	}
-
-	if err := manager.AddMoves(moveTypeConfigs...); err != nil {
-		return nil, errors.New("Couldn't add moves: " + err.Error())
-	}
-
 	if err := manager.SetUp(); err != nil {
 		return nil, errors.New("Couldn't set up manager: " + err.Error())
 	}
@@ -804,10 +817,6 @@ We then define a `ShadowValue` for the deck. The ShadowValue is the values objec
 Then we add the deck to the chest.
 
 Now we have the three things we need to get a manager object: the delegate, the chest we just created, and the storage manager that we were passed in. We have to check for errors when we construct the manager, because sometimes the configuration of everything is already obviously bad.
-
-Next we install each move type for our game, in order, by passing a reference to the moveTypeConfig for each.
-
-We then install an Agent (more on those later).
 
 Finally, we call `SetUp` to finalize the GameManager and make it ready for use. This is when final checks are performed. Then we can return the manager.
 
@@ -1338,10 +1347,10 @@ You can set these `LegalPhases` on your own in `MoveTypeConfig`s, but that can b
 
 `GameManager` has an `AddMoves` method that takes a list of move configs to add to the manager during setup. It also has an `AddMovesForPhase` method that takes a phase and a list of moves. For each move config provided, if the LegalPhases doesn't already list the phase in question, it will explicitly add it before installing it. This means that in most cases you can just leave your `LegalPhases` field on your config as nil, and configure the phase for all moves at once when you install them. 
 
-You can see this in action in `examples/blackjack/main.go` in `NewManager`
+You can see this in action in `examples/blackjack/main.go` in `ConfigureMoves`
 
 ```
-	err = manager.AddMovesForPhase(PhaseNormalPlay,
+	err = installer.AddMovesForPhase(PhaseNormalPlay,
 		&moveCurrentPlayerHitConfig,
 		&moveCurrentPlayerStandConfig,
 		&moveRevealHiddenCardConfig,
@@ -1349,7 +1358,7 @@ You can see this in action in `examples/blackjack/main.go` in `NewManager`
 	)
 
 	if err != nil {
-		return nil, errors.New("Couldn't install normal phase moves: " + err.Error())
+		return errors.New("Couldn't install normal phase moves: " + err.Error())
 	}
 ```
 
@@ -1368,12 +1377,12 @@ var moveCurrentPlayerHitConfig = boardgame.MoveTypeConfig{
 Of course, there are sometimes moves that are legal in *any* mode. For those, it still makes sense to use `AddMoves`, as blackjack does:
 
 ```
-	err := manager.AddMoves(
+	err := installer.AddMoves(
 		&moveShuffleDiscardToDrawConfig,
 	)
 
 	if err != nil {
-		return nil, errors.New("Couldn't install general moves: " + err.Error())
+		return errors.New("Couldn't install general moves: " + err.Error())
 	}
 ```
 
@@ -1390,14 +1399,14 @@ This means that instead of writing an error-prone Legal method, in many cases yo
 The precise machinery that accomplishes this is covered in `moves.Base` and GameDelegate's `PhaseMoveProgression() []string`. But in practice you rarely need to modify those, and can just use `GameManager.AddOrderedMovesForPhase` to accomplish what you want, as you can see in blackjack's `NewManager`:
 
 ```
-	manager.AddOrderedMovesForPhase(PhaseInitialDeal,
+	err = installer.AddOrderedMovesForPhase(PhaseInitialDeal,
 		&moveDealInitialHiddenCardConfig,
 		&moveDealInitialVisibleCardConfig,
-		moves.NewStartPhaseConfig(manager, PhaseNormalPlay, nil),
+		moves.NewStartPhaseConfig(installer.Manager(), PhaseNormalPlay, nil),
 	)
 
 	if err != nil {
-		return nil, errors.New("Couldn't install initial deal moves: " + err.Error())
+		return errors.New("Couldn't install initial deal moves: " + err.Error())
 	}
 ```
 

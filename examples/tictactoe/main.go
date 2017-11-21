@@ -123,6 +123,15 @@ func (g *gameDelegate) ConfigureAgents() []boardgame.Agent {
 	}
 }
 
+func (g *gameDelegate) ConfigureMoves(installer boardgame.MoveInstaller) error {
+	bulkMoveTypeConfigs := []*boardgame.MoveTypeConfig{
+		&movePlayTokenConfig,
+		&moveFinishTurnConfig,
+	}
+
+	return installer.AddMoves(bulkMoveTypeConfigs...)
+}
+
 func (g *gameDelegate) Diagram(state boardgame.State) string {
 
 	game, players := concreteStates(state)
@@ -280,15 +289,6 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 
 	if err != nil {
 		return nil, errors.New("No manager returned: " + err.Error())
-	}
-
-	bulkMoveTypeConfigs := []*boardgame.MoveTypeConfig{
-		&movePlayTokenConfig,
-		&moveFinishTurnConfig,
-	}
-
-	if err := manager.AddMoves(bulkMoveTypeConfigs...); err != nil {
-		return nil, errors.New("Couldn't add moves: " + err.Error())
 	}
 
 	if err := manager.SetUp(); err != nil {

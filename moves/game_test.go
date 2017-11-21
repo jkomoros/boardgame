@@ -64,6 +64,7 @@ func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 
 type gameDelegate struct {
 	boardgame.DefaultGameDelegate
+	moveInstaller func(installer boardgame.MoveInstaller) error
 }
 
 func (g *gameDelegate) Name() string {
@@ -94,21 +95,21 @@ func (g *gameDelegate) PlayerStateConstructor(index boardgame.PlayerIndex) board
 	}
 }
 
-func newGameManager(moveInstaller func(manager *boardgame.GameManager) error) (*boardgame.GameManager, error) {
+func (g *gameDelegate) ConfigureMoves(installer boardgame.MoveInstaller) error {
+	return g.moveInstaller(installer)
+}
+
+func newGameManager(moveInstaller func(installer boardgame.MoveInstaller) error) (*boardgame.GameManager, error) {
 	chest := boardgame.NewComponentChest(enums)
 
 	if err := chest.AddDeck("cards", playingcards.NewDeck(false)); err != nil {
 		return nil, errors.New("couldn't add deck: " + err.Error())
 	}
 
-	manager, err := boardgame.NewGameManager(&gameDelegate{}, chest, memory.NewStorageManager())
+	manager, err := boardgame.NewGameManager(&gameDelegate{moveInstaller: moveInstaller}, chest, memory.NewStorageManager())
 
 	if err != nil {
 		return nil, errors.New("No manager returned: " + err.Error())
-	}
-
-	if err := moveInstaller(manager); err != nil {
-		return nil, errors.New("Couldn't add moves: " + err.Error())
 	}
 
 	if err := manager.SetUp(); err != nil {

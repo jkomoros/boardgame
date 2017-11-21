@@ -162,6 +162,39 @@ func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) error {
 	return nil
 }
 
+func (g *gameDelegate) ConfigureMoves(installer boardgame.MoveInstaller) error {
+	err := installer.AddMoves(
+		&moveShuffleDiscardToDrawConfig,
+	)
+
+	if err != nil {
+		return errors.New("Couldn't install general moves: " + err.Error())
+	}
+
+	err = installer.AddMovesForPhase(PhaseNormalPlay,
+		&moveCurrentPlayerHitConfig,
+		&moveCurrentPlayerStandConfig,
+		&moveRevealHiddenCardConfig,
+		&moveFinishTurnConfig,
+	)
+
+	if err != nil {
+		return errors.New("Couldn't install normal phase moves: " + err.Error())
+	}
+
+	err = installer.AddOrderedMovesForPhase(PhaseInitialDeal,
+		&moveDealInitialHiddenCardConfig,
+		&moveDealInitialVisibleCardConfig,
+		moves.NewStartPhaseConfig(installer.Manager(), PhaseNormalPlay, nil),
+	)
+
+	if err != nil {
+		return errors.New("Couldn't install initial deal moves: " + err.Error())
+	}
+
+	return nil
+}
+
 func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) {
 	chest := boardgame.NewComponentChest(Enums)
 
@@ -175,35 +208,6 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 
 	if err != nil {
 		return nil, errors.New("No manager returned: " + err.Error())
-	}
-
-	err = manager.AddMoves(
-		&moveShuffleDiscardToDrawConfig,
-	)
-
-	if err != nil {
-		return nil, errors.New("Couldn't install general moves: " + err.Error())
-	}
-
-	err = manager.AddMovesForPhase(PhaseNormalPlay,
-		&moveCurrentPlayerHitConfig,
-		&moveCurrentPlayerStandConfig,
-		&moveRevealHiddenCardConfig,
-		&moveFinishTurnConfig,
-	)
-
-	if err != nil {
-		return nil, errors.New("Couldn't install normal phase moves: " + err.Error())
-	}
-
-	manager.AddOrderedMovesForPhase(PhaseInitialDeal,
-		&moveDealInitialHiddenCardConfig,
-		&moveDealInitialVisibleCardConfig,
-		moves.NewStartPhaseConfig(manager, PhaseNormalPlay, nil),
-	)
-
-	if err != nil {
-		return nil, errors.New("Couldn't install initial deal moves: " + err.Error())
 	}
 
 	if err := manager.SetUp(); err != nil {

@@ -114,6 +114,18 @@ func (g *gameDelegate) DynamicComponentValuesConstructor(deck *boardgame.Deck) b
 	return nil
 }
 
+func (g *gameDelegate) ConfigureMoves(installer boardgame.MoveInstaller) error {
+	moveTypeConfigs := []*boardgame.MoveTypeConfig{
+		&moveRollDiceConfig,
+		&moveDoneTurnConfig,
+		&moveCountDieConfig,
+		&moveFinishTurnConfig,
+	}
+
+	return installer.AddMoves(moveTypeConfigs...)
+
+}
+
 func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) {
 	chest := boardgame.NewComponentChest(nil)
 
@@ -129,17 +141,6 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 
 	if err != nil {
 		return nil, errors.New("No manager returned: " + err.Error())
-	}
-
-	moveTypeConfigs := []*boardgame.MoveTypeConfig{
-		&moveRollDiceConfig,
-		&moveDoneTurnConfig,
-		&moveCountDieConfig,
-		&moveFinishTurnConfig,
-	}
-
-	if err := manager.AddMoves(moveTypeConfigs...); err != nil {
-		return nil, errors.New("couldnt add move types: " + err.Error())
 	}
 
 	if err := manager.SetUp(); err != nil {

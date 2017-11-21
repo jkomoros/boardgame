@@ -101,6 +101,21 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, 
 	return false, nil
 }
 
+func (g *gameDelegate) ConfigureMoves(installer boardgame.MoveInstaller) error {
+	moveTypeConfigs := []*boardgame.MoveTypeConfig{
+		&moveMoveCardBetweenShortStacksConfig,
+		&moveMoveCardBetweenDrawAndDiscardStacksConfig,
+		&moveFlipHiddenCardConfig,
+		&moveMoveCardBetweenFanStacksConfig,
+		&moveVisibleShuffleCardsConfig,
+		&moveMoveBetweenHiddenConfig,
+		&moveMoveBetweenHiddenConfig,
+	}
+
+	return installer.AddMoves(moveTypeConfigs...)
+
+}
+
 func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) {
 	chest := boardgame.NewComponentChest(nil)
 
@@ -124,20 +139,6 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 
 	if err != nil {
 		return nil, errors.New("No manager returned: " + err.Error())
-	}
-
-	moveTypeConfigs := []*boardgame.MoveTypeConfig{
-		&moveMoveCardBetweenShortStacksConfig,
-		&moveMoveCardBetweenDrawAndDiscardStacksConfig,
-		&moveFlipHiddenCardConfig,
-		&moveMoveCardBetweenFanStacksConfig,
-		&moveVisibleShuffleCardsConfig,
-		&moveMoveBetweenHiddenConfig,
-		&moveMoveBetweenHiddenConfig,
-	}
-
-	if err := manager.AddMoves(moveTypeConfigs...); err != nil {
-		return nil, errors.New("Couldn't create moves: " + err.Error())
 	}
 
 	if err := manager.SetUp(); err != nil {

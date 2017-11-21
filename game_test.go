@@ -399,14 +399,22 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 	//This test makes sure that if our GameDelegate is going to always return
 	//moves that are legal, we'll bail at a certain point.
 
-	manager, err := NewGameManager(&testInfiniteLoopGameDelegate{}, newTestGameChest(), newTestStorageManager())
+	moveInstaller := func(installer MoveInstaller) error {
+		return installer.AddMoves(
+			&testMoveConfig,
+			&testAlwaysLegalMoveConfig,
+		)
+	}
+
+	delegate := &testInfiniteLoopGameDelegate{
+		testGameDelegate{
+			moveInstaller: moveInstaller,
+		},
+	}
+
+	manager, err := NewGameManager(delegate, newTestGameChest(), newTestStorageManager())
 
 	assert.For(t).ThatActual(err).IsNil()
-
-	manager.AddMoves(
-		&testMoveConfig,
-		&testAlwaysLegalMoveConfig,
-	)
 
 	err = manager.SetUp()
 

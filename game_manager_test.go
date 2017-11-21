@@ -62,17 +62,20 @@ func newTestGameChest() *ComponentChest {
 }
 
 func newTestGameManger(t *testing.T) *GameManager {
-	manager, err := NewGameManager(&testGameDelegate{}, newTestGameChest(), newTestStorageManager())
+
+	moveInstaller := func(installer MoveInstaller) error {
+		return installer.AddMoves(
+			&testMoveConfig,
+			&testMoveIncrementCardInHandConfig,
+			&testMoveDrawCardConfig,
+			&testMoveAdvanceCurrentPlayerConfig,
+			&testMoveInvalidPlayerIndexConfig,
+		)
+	}
+
+	manager, err := NewGameManager(&testGameDelegate{moveInstaller: moveInstaller}, newTestGameChest(), newTestStorageManager())
 
 	assert.For(t).ThatActual(err).IsNil()
-
-	manager.AddMoves(
-		&testMoveConfig,
-		&testMoveIncrementCardInHandConfig,
-		&testMoveDrawCardConfig,
-		&testMoveAdvanceCurrentPlayerConfig,
-		&testMoveInvalidPlayerIndexConfig,
-	)
 
 	return manager
 }
@@ -133,13 +136,16 @@ var testMoveFailValidConfigurationConfig = MoveTypeConfig{
 }
 
 func TestMoveFailsValidConfiguration(t *testing.T) {
-	manager, err := NewGameManager(&testGameDelegate{}, newTestGameChest(), newTestStorageManager())
+
+	moveInstaller := func(installer MoveInstaller) error {
+		return installer.AddMoves(
+			&testMoveFailValidConfigurationConfig,
+		)
+	}
+
+	manager, err := NewGameManager(&testGameDelegate{moveInstaller: moveInstaller}, newTestGameChest(), newTestStorageManager())
 
 	assert.For(t).ThatActual(err).IsNil()
-
-	manager.AddMoves(
-		&testMoveFailValidConfigurationConfig,
-	)
 
 	err = manager.SetUp()
 

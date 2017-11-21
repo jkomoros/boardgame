@@ -7,12 +7,17 @@ import (
 
 type testGameDelegate struct {
 	DefaultGameDelegate
+	moveInstaller func(installer MoveInstaller) error
 }
 
 func (t *testGameDelegate) ConfigureAgents() []Agent {
 	return []Agent{
 		&testAgent{},
 	}
+}
+
+func (t *testGameDelegate) ConfigureMoves(installer MoveInstaller) error {
+	return t.moveInstaller(installer)
 }
 
 func (t *testGameDelegate) DistributeComponentToStarterStack(state State, c *Component) (Stack, error) {

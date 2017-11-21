@@ -139,6 +139,9 @@ been serialized as JSON and must be reinflated into concrete types.
 4) CheckGameFinished(), called after every move, checks the game's
 CurrentState to see if the game is now finished, and if so, who won.
 
+5) ConfigureMoves(), to configure which moves are legal on your game when the
+GameManager is being set up.
+
 In some cases, your delegate doesn't need to do much special. For example,
 Delegate.ProposeFixUp() is often the same for many games: iterate through each
 FixUpMove that has been configured on the manager, and return the first one

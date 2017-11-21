@@ -17,9 +17,9 @@ func (m *moveShuffleStack) SourceStack(state boardgame.MutableState) boardgame.M
 
 func TestShuffleStackDefaultConfig(t *testing.T) {
 
-	moveInstaller := func(manager *boardgame.GameManager) error {
+	moveInstaller := func(installer boardgame.MoveInstaller) error {
 
-		return manager.AddMove(MustDefaultConfig(manager, new(moveShuffleStack)))
+		return installer.AddMove(MustDefaultConfig(installer.Manager(), new(moveShuffleStack)))
 
 	}
 
@@ -34,9 +34,9 @@ func TestShuffleStackDefaultConfig(t *testing.T) {
 }
 
 func TestDealCardsDefaultConfig(t *testing.T) {
-	moveInstaller := func(manager *boardgame.GameManager) error {
+	moveInstaller := func(installer boardgame.MoveInstaller) error {
 
-		return manager.AddMove(MustDefaultConfig(manager, new(moveDealCards)))
+		return installer.AddMove(MustDefaultConfig(installer.Manager(), new(moveDealCards)))
 
 	}
 

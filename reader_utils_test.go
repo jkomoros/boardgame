@@ -146,11 +146,12 @@ var testAutoEnumMoveConfig = MoveTypeConfig{
 }
 
 func TestAutoEnum(t *testing.T) {
-	manager, err := NewGameManager(&testGameDelegate{}, newTestGameChest(), newTestStorageManager())
 
-	assert.For(t).ThatActual(err).IsNil()
+	moveInstaller := func(installer MoveInstaller) error {
+		return installer.AddMove(&testAutoEnumMoveConfig)
+	}
 
-	err = manager.AddMove(&testAutoEnumMoveConfig)
+	manager, err := NewGameManager(&testGameDelegate{moveInstaller: moveInstaller}, newTestGameChest(), newTestStorageManager())
 
 	assert.For(t).ThatActual(err).IsNil()
 
