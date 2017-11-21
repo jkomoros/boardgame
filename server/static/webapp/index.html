@@ -54,6 +54,26 @@
       }
     </script>
 
+    <script src="config.js"></script>
+    <script>
+
+      var API_HOST = "/";
+
+      if (CONFIG) {
+
+        if (location.hostname == "localhost") {
+          API_HOST = CONFIG.api.dev_host;
+        } else {
+          API_HOST = CONFIG.api.host;
+        }
+
+        
+      } else {
+        console.warn("CONFIG not found.")
+      }
+
+    </script>
+
     <!-- Load webcomponents-loader.js to check and load any polyfills your browser needs -->
     <script src="bower_components/webcomponentsjs/webcomponents-loader.js"></script>
 
