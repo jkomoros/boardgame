@@ -10,7 +10,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
 <link rel="import" href="../bower_components/polymer/lib/elements/dom-repeat.html">
-<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="../config-src/boardgame-config.html">
 <link rel="import" href="../bower_components/paper-styles/typography.html">
 <link rel="import" href="../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
@@ -19,6 +18,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="boardgame-util.html">
 <link rel="import" href="boardgame-create-game.html">
 <link rel="import" href="boardgame-game-item.html">
+<link rel="import" href="boardgame-ajax.html">
 
 <dom-module id="boardgame-list-games-view">
   <template>
@@ -78,8 +78,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </template>
 
     
-    <iron-ajax auto debounce-duration="100" id="games" url="[[ListGamesUrl(apiHost)]]" handle-as="json" params="{{gamesArgs}}" with-credentials last-response="{{data}}">
-    <iron-ajax auto url="[[ListManagersUrl(apiHost)]]" handle-as="json" with-credentials last-response="{{managerData}}"></iron-ajax>
+    <boardgame-ajax auto debounce-duration="100" id="games" path="list/game" handle-as="json" params="{{gamesArgs}}" last-response="{{data}}"></boardgame-ajax>
+    <boardgame-ajax auto path="list/manager" handle-as="json" last-response="{{managerData}}"></boardgame-ajax>
   </template>
 
   <script>
