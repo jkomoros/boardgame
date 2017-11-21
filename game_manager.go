@@ -121,7 +121,7 @@ func (m *MoveTypeConfigBundle) AddOrderedMovesForPhase(phase int, config ...*Mov
 }
 
 //NewGameManager creates a new game manager with the given delegate. It will
-//validate that the various sub-staates are reasonable, and will call
+//validate that the various sub-states are reasonable, and will call
 //ConfigureMoves and ConfigureAgents and then check that all tiems are
 //configured reaasonably.
 func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage StorageManager) (*GameManager, error) {

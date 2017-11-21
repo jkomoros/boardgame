@@ -546,11 +546,11 @@ One easy option is to instantiate those values yourself:
 
 However, this is a fair bit of logic to include. It is also possible to use
 tag-based auto-inflation, where you annotate your structs with information
-about how to instantiate those properties. At SetUp time reflection is used to
-discover that configuration, and from then on each time an object is created
-via that constructor it will have those fields instantiated without needing
-reflection, so it is fast. This works for Stacks and Enums. This allows you to
-create single-line constructors in many cases:
+about how to instantiate those properties. At NewGameManager time reflection
+is used to discover that configuration, and from then on each time an object
+is created via that constructor it will have those fields instantiated without
+needing reflection, so it is fast. This works for Stacks and Enums. This
+allows you to create single-line constructors in many cases:
 
 	type gameState struct {
 		//The syntax is name of deck follow by a comma followed by the size
@@ -573,7 +573,7 @@ create single-line constructors in many cases:
 	func (g *gameDelegate) GameStateConstructor() boardgame.MutableSubState {
 
 		//Even though the Timers, Enums, and Stacks are nil, when the manager
-		//is SetUp() reflection will be used once to discover where these
+		//is created reflection will be used once to discover where these
 		//properties exist and what their tag-based configuration is. In the
 		//future when a new item is constructed those things can be inflated
 		//automatically without reflection.

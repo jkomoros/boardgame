@@ -34,6 +34,46 @@ type GameDelegate interface {
 	//Subclasses should override this.
 	DisplayName() string
 
+	//ConfigureMoves will be called during creation of a GameManager in
+	//NewGameManager. This is the time to install moves onto the manager by
+	//creating a bundle and adding moves to it. If the moves you add are
+	//illegal for any reason, NewGameManager will fail with an error. By the
+	//time this is called. delegate.SetManager will already have been called,
+	//so you'll have access to the manager via Manager().
+	ConfigureMoves() *MoveTypeConfigBundle
+
+	//ConfigureAgents will be called when creating a new GameManager. Emit the
+	//agents you want to install.
+	ConfigureAgents() []Agent
+
+	//GameStateConstructor and PlayerStateConstructor are called to get an
+	//instantiation of the concrete game/player structs that your package
+	//defines. This is used both to create the initial state, but also to
+	//inflate states from the database. These methods should always return the
+	//underlying same type of struct when called. This means that if different
+	//players have very different roles in a game, there might be many
+	//properties that are not in use for any given player. The simple
+	//properties (ints, bools, strings) should all be their zero-value.
+	//Importantly, all Stacks, Timers, and Enums should be non- nil, because
+	//an initialized struct contains information about things like MaxSize,
+	//Size, and a reference to the deck they are affiliated with. It is also
+	//possible to use tag-based auto-initalization for these fields; see the
+	//package doc on Constructors.  Since these two methods are always
+	//required and always specific to each game type, DefaultGameDelegate does
+	//not implement them, as an extra reminder that you must implement them
+	//yourself.
+	GameStateConstructor() ConfigurableSubState
+	//PlayerStateConstructor is similar to GameStateConstructor, but
+	//playerIndex is the value that this PlayerState must return when its
+	//PlayerIndex() is called.
+	PlayerStateConstructor(player PlayerIndex) ConfigurablePlayerState
+
+	//DynamicComponentValuesConstructor returns an empty DynamicComponentValues for
+	//the given deck. If nil is returned, then the components in that deck
+	//don't have any dynamic component state. This method must always return
+	//the same underlying type of struct for the same deck.
+	DynamicComponentValuesConstructor(deck *Deck) ConfigurableSubState
+
 	//DistributeComponentToStarterStack is called during set up to establish
 	//the Deck/Stack invariant that every component in the chest is placed in
 	//precisely one Stack. Game will call this on each component in the Chest
@@ -148,34 +188,6 @@ type GameDelegate interface {
 	//more about how to use it.
 	PhaseMoveProgression(phase int) []string
 
-	//GameStateConstructor and PlayerStateConstructor are called to get an
-	//instantiation of the concrete game/player structs that your package
-	//defines. This is used both to create the initial state, but also to
-	//inflate states from the database. These methods should always return the
-	//underlying same type of struct when called. This means that if different
-	//players have very different roles in a game, there might be many
-	//properties that are not in use for any given player. The simple
-	//properties (ints, bools, strings) should all be their zero-value.
-	//Importantly, all Stacks, Timers, and Enums should be non- nil, because
-	//an initialized struct contains information about things like MaxSize,
-	//Size, and a reference to the deck they are affiliated with. It is also
-	//possible to use tag-based auto-initalization for these fields; see the
-	//package doc on Constructors.  Since these two methods are always
-	//required and always specific to each game type, DefaultGameDelegate does
-	//not implement them, as an extra reminder that you must implement them
-	//yourself.
-	GameStateConstructor() ConfigurableSubState
-	//PlayerStateConstructor is similar to GameStateConstructor, but
-	//playerIndex is the value that this PlayerState must return when its
-	//PlayerIndex() is called.
-	PlayerStateConstructor(player PlayerIndex) ConfigurablePlayerState
-
-	//DynamicComponentValuesConstructor returns an empty DynamicComponentValues for
-	//the given deck. If nil is returned, then the components in that deck
-	//don't have any dynamic component state. This method must always return
-	//the same underlying type of struct for the same deck.
-	DynamicComponentValuesConstructor(deck *Deck) ConfigurableSubState
-
 	//SanitizationPolicy is consulted when sanitizing states. It is called for
 	//each prop in the state, including the set of groups that this player is
 	//a mamber of. In practice the default behavior of DefaultGameDelegate,
@@ -201,18 +213,6 @@ type GameDelegate interface {
 
 	//Manager returns the Manager that was set on this delegate.
 	Manager() *GameManager
-
-	//ConfigureMoves will be called during creation of a GameManager in
-	//NewGameManager. This is the time to install moves onto the manager by
-	//creating a bundle and adding moves to it. If the moves you add are
-	//illegal for any reason, NewGameManager will fail with an error. By the
-	//time this is called. delegate.SetManager will already have been called,
-	//so you'll have access to the manager via Manager().
-	ConfigureMoves() *MoveTypeConfigBundle
-
-	//ConfigureAgents will be called when creating a new GameManager. Emit the
-	//agents you want to install.
-	ConfigureAgents() []Agent
 }
 
 //PhaseMoveProgressionSetter is an optional interface that delegates can
