@@ -79,18 +79,13 @@ func (m *moveDealCardsToThree) PlayerStack(pState boardgame.MutablePlayerState) 
 	return pState.(*playerState).Hand
 }
 
-func defaultMoveInstaller(installer boardgame.MoveInstaller) error {
-	moves := []*boardgame.MoveTypeConfig{
-		MustDefaultConfig(installer.Manager(), new(moveDealCards)),
-		MustDefaultConfig(installer.Manager(), new(moveDealOtherCards)),
-		NewStartPhaseConfig(installer.Manager(), phaseNormalPlay, nil),
-	}
+func defaultMoveInstaller(manager *boardgame.GameManager) *boardgame.MoveTypeConfigBundle {
 
-	if err := installer.AddOrderedMovesForPhase(phaseSetUp, moves...); err != nil {
-		return err
-	}
-
-	moves = []*boardgame.MoveTypeConfig{
+	return boardgame.NewMoveTypeConfigBundle().AddOrderedMovesForPhase(phaseSetUp,
+		MustDefaultConfig(manager, new(moveDealCards)),
+		MustDefaultConfig(manager, new(moveDealOtherCards)),
+		NewStartPhaseConfig(manager, phaseNormalPlay, nil),
+	).AddMovesForPhase(phaseNormalPlay,
 		&boardgame.MoveTypeConfig{
 			Name: "Draw Card",
 			MoveConstructor: func() boardgame.Move {
@@ -103,17 +98,9 @@ func defaultMoveInstaller(installer boardgame.MoveInstaller) error {
 				return new(moveStartPhaseDrawAgain)
 			},
 		},
-	}
-
-	if err := installer.AddMovesForPhase(phaseNormalPlay, moves...); err != nil {
-		return err
-	}
-
-	moves = []*boardgame.MoveTypeConfig{
-		MustDefaultConfig(installer.Manager(), new(moveDealCardsToThree)),
-	}
-
-	return installer.AddOrderedMovesForPhase(phaseDrawAgain, moves...)
+	).AddOrderedMovesForPhase(phaseDrawAgain,
+		MustDefaultConfig(manager, new(moveDealCardsToThree)),
+	)
 }
 
 func TestGeneral(t *testing.T) {

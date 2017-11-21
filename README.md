@@ -761,17 +761,17 @@ In more complicated games, your components and their related constants might be 
 
 #### ConfigureMoves
 
-Your GameDelegate implements a method called `ConfigureMoves(installer
-boardgame.MoveInstaller) error`. This method will be called during the
-creation process for a GameManager, and calling methods on the installer
-object you are passed is the principle way you configure moves specific to
-your game.
+Your GameDelegate implements a method called `ConfigureMoves()
+*boardgame.MoveTypeConfigBundle`. This method will be called during the
+creation process for a GameManager. Your job is to create a new move bundle,
+add moves to it for your game, and return it. This is the main way you add
+moves to your game type.
 
 Memory's is here:
 
 ```
-func (g *gameDelegate) ConfigureMoves(installer boardgame.MoveInstaller) error {
-	return installer.AddMoves(
+func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
+	return boardgame.NewMoveTypeConfigBundle().AddMoves(
 		&moveRevealCardConfig,
 		&moveHideCardsConfig,
 		&moveFinishTurnConfig,
@@ -781,7 +781,10 @@ func (g *gameDelegate) ConfigureMoves(installer boardgame.MoveInstaller) error {
 }
 ```
 
-More complicated games would use more advanced installer methods.
+More complicated games would use more advanced methods on the bundle (see the
+section in the More Concepts section about Phases). Note that the various
+AddMove methods all return a reference to the bundle itself, which allows you
+to chain the calls and keep the method short.
 
 
 #### Worked NewManager example
@@ -1350,16 +1353,13 @@ You can set these `LegalPhases` on your own in `MoveTypeConfig`s, but that can b
 You can see this in action in `examples/blackjack/main.go` in `ConfigureMoves`
 
 ```
-	err = installer.AddMovesForPhase(PhaseNormalPlay,
+	//...
+	).AddMovesForPhase(PhaseNormalPlay,
 		&moveCurrentPlayerHitConfig,
 		&moveCurrentPlayerStandConfig,
 		&moveRevealHiddenCardConfig,
 		&moveFinishTurnConfig,
-	)
-
-	if err != nil {
-		return errors.New("Couldn't install normal phase moves: " + err.Error())
-	}
+	)//...
 ```
 
 If you inspect moveCurrentPlayerHitConfig in `moves.go`, you'll see it doesn't mention LegalPhases at all, allowing manager.AddMovesForPhase to configure them appropriately:
@@ -1377,13 +1377,9 @@ var moveCurrentPlayerHitConfig = boardgame.MoveTypeConfig{
 Of course, there are sometimes moves that are legal in *any* mode. For those, it still makes sense to use `AddMoves`, as blackjack does:
 
 ```
-	err := installer.AddMoves(
+	return boardgame.NewMoveTypeConfigBundle().AddMoves(
 		&moveShuffleDiscardToDrawConfig,
-	)
-
-	if err != nil {
-		return errors.New("Couldn't install general moves: " + err.Error())
-	}
+	)//...
 ```
 
 #### Ordered Moves
@@ -1399,15 +1395,12 @@ This means that instead of writing an error-prone Legal method, in many cases yo
 The precise machinery that accomplishes this is covered in `moves.Base` and GameDelegate's `PhaseMoveProgression() []string`. But in practice you rarely need to modify those, and can just use `GameManager.AddOrderedMovesForPhase` to accomplish what you want, as you can see in blackjack's `NewManager`:
 
 ```
-	err = installer.AddOrderedMovesForPhase(PhaseInitialDeal,
+	//...
+	).AddOrderedMovesForPhase(PhaseInitialDeal,
 		&moveDealInitialHiddenCardConfig,
 		&moveDealInitialVisibleCardConfig,
-		moves.NewStartPhaseConfig(installer.Manager(), PhaseNormalPlay, nil),
+		moves.NewStartPhaseConfig(g.Manager(), PhaseNormalPlay, nil),
 	)
-
-	if err != nil {
-		return errors.New("Couldn't install initial deal moves: " + err.Error())
-	}
 ```
 
 This example has a couple of function calls instead of concrete MoveTypeConfigs,

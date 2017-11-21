@@ -123,13 +123,11 @@ func (g *gameDelegate) ConfigureAgents() []boardgame.Agent {
 	}
 }
 
-func (g *gameDelegate) ConfigureMoves(installer boardgame.MoveInstaller) error {
-	bulkMoveTypeConfigs := []*boardgame.MoveTypeConfig{
+func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
+	return boardgame.NewMoveTypeConfigBundle().AddMoves(
 		&movePlayTokenConfig,
 		&moveFinishTurnConfig,
-	}
-
-	return installer.AddMoves(bulkMoveTypeConfigs...)
+	)
 }
 
 func (g *gameDelegate) Diagram(state boardgame.State) string {

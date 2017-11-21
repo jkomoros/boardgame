@@ -64,7 +64,7 @@ func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 
 type gameDelegate struct {
 	boardgame.DefaultGameDelegate
-	moveInstaller func(installer boardgame.MoveInstaller) error
+	moveInstaller func(manager *boardgame.GameManager) *boardgame.MoveTypeConfigBundle
 }
 
 func (g *gameDelegate) Name() string {
@@ -95,11 +95,11 @@ func (g *gameDelegate) PlayerStateConstructor(index boardgame.PlayerIndex) board
 	}
 }
 
-func (g *gameDelegate) ConfigureMoves(installer boardgame.MoveInstaller) error {
-	return g.moveInstaller(installer)
+func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
+	return g.moveInstaller(g.Manager())
 }
 
-func newGameManager(moveInstaller func(installer boardgame.MoveInstaller) error) (*boardgame.GameManager, error) {
+func newGameManager(moveInstaller func(manager *boardgame.GameManager) *boardgame.MoveTypeConfigBundle) (*boardgame.GameManager, error) {
 	chest := boardgame.NewComponentChest(enums)
 
 	if err := chest.AddDeck("cards", playingcards.NewDeck(false)); err != nil {

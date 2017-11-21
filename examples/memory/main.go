@@ -282,8 +282,8 @@ func (g *gameDelegate) ConfigureAgents() []boardgame.Agent {
 	}
 }
 
-func (g *gameDelegate) ConfigureMoves(installer boardgame.MoveInstaller) error {
-	return installer.AddMoves(
+func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
+	return boardgame.NewMoveTypeConfigBundle().AddMoves(
 		&moveRevealCardConfig,
 		&moveHideCardsConfig,
 		&moveFinishTurnConfig,

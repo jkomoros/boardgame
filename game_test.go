@@ -399,11 +399,13 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 	//This test makes sure that if our GameDelegate is going to always return
 	//moves that are legal, we'll bail at a certain point.
 
-	moveInstaller := func(installer MoveInstaller) error {
-		return installer.AddMoves(
+	moveInstaller := func(manager *GameManager) *MoveTypeConfigBundle {
+		bundle := NewMoveTypeConfigBundle()
+		bundle.AddMoves(
 			&testMoveConfig,
 			&testAlwaysLegalMoveConfig,
 		)
+		return bundle
 	}
 
 	delegate := &testInfiniteLoopGameDelegate{

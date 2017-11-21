@@ -63,14 +63,19 @@ func newTestGameChest() *ComponentChest {
 
 func newTestGameManger(t *testing.T) *GameManager {
 
-	moveInstaller := func(installer MoveInstaller) error {
-		return installer.AddMoves(
+	moveInstaller := func(manager *GameManager) *MoveTypeConfigBundle {
+
+		bundle := NewMoveTypeConfigBundle()
+
+		bundle.AddMoves(
 			&testMoveConfig,
 			&testMoveIncrementCardInHandConfig,
 			&testMoveDrawCardConfig,
 			&testMoveAdvanceCurrentPlayerConfig,
 			&testMoveInvalidPlayerIndexConfig,
 		)
+
+		return bundle
 	}
 
 	manager, err := NewGameManager(&testGameDelegate{moveInstaller: moveInstaller}, newTestGameChest(), newTestStorageManager())
@@ -137,10 +142,14 @@ var testMoveFailValidConfigurationConfig = MoveTypeConfig{
 
 func TestMoveFailsValidConfiguration(t *testing.T) {
 
-	moveInstaller := func(installer MoveInstaller) error {
-		return installer.AddMoves(
+	moveInstaller := func(manager *GameManager) *MoveTypeConfigBundle {
+		bundle := NewMoveTypeConfigBundle()
+
+		bundle.AddMoves(
 			&testMoveFailValidConfigurationConfig,
 		)
+
+		return bundle
 	}
 
 	manager, err := NewGameManager(&testGameDelegate{moveInstaller: moveInstaller}, newTestGameChest(), newTestStorageManager())

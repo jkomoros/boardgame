@@ -162,37 +162,21 @@ func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) error {
 	return nil
 }
 
-func (g *gameDelegate) ConfigureMoves(installer boardgame.MoveInstaller) error {
-	err := installer.AddMoves(
+func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
+
+	return boardgame.NewMoveTypeConfigBundle().AddMoves(
 		&moveShuffleDiscardToDrawConfig,
-	)
-
-	if err != nil {
-		return errors.New("Couldn't install general moves: " + err.Error())
-	}
-
-	err = installer.AddMovesForPhase(PhaseNormalPlay,
+	).AddMovesForPhase(PhaseNormalPlay,
 		&moveCurrentPlayerHitConfig,
 		&moveCurrentPlayerStandConfig,
 		&moveRevealHiddenCardConfig,
 		&moveFinishTurnConfig,
-	)
-
-	if err != nil {
-		return errors.New("Couldn't install normal phase moves: " + err.Error())
-	}
-
-	err = installer.AddOrderedMovesForPhase(PhaseInitialDeal,
+	).AddOrderedMovesForPhase(PhaseInitialDeal,
 		&moveDealInitialHiddenCardConfig,
 		&moveDealInitialVisibleCardConfig,
-		moves.NewStartPhaseConfig(installer.Manager(), PhaseNormalPlay, nil),
+		moves.NewStartPhaseConfig(g.Manager(), PhaseNormalPlay, nil),
 	)
 
-	if err != nil {
-		return errors.New("Couldn't install initial deal moves: " + err.Error())
-	}
-
-	return nil
 }
 
 func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) {

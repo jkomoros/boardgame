@@ -7,7 +7,7 @@ import (
 
 type testGameDelegate struct {
 	DefaultGameDelegate
-	moveInstaller func(installer MoveInstaller) error
+	moveInstaller func(manager *GameManager) *MoveTypeConfigBundle
 }
 
 func (t *testGameDelegate) ConfigureAgents() []Agent {
@@ -16,8 +16,8 @@ func (t *testGameDelegate) ConfigureAgents() []Agent {
 	}
 }
 
-func (t *testGameDelegate) ConfigureMoves(installer MoveInstaller) error {
-	return t.moveInstaller(installer)
+func (t *testGameDelegate) ConfigureMoves() *MoveTypeConfigBundle {
+	return t.moveInstaller(t.Manager())
 }
 
 func (t *testGameDelegate) DistributeComponentToStarterStack(state State, c *Component) (Stack, error) {

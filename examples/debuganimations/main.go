@@ -101,8 +101,8 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, 
 	return false, nil
 }
 
-func (g *gameDelegate) ConfigureMoves(installer boardgame.MoveInstaller) error {
-	moveTypeConfigs := []*boardgame.MoveTypeConfig{
+func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
+	return boardgame.NewMoveTypeConfigBundle().AddMoves(
 		&moveMoveCardBetweenShortStacksConfig,
 		&moveMoveCardBetweenDrawAndDiscardStacksConfig,
 		&moveFlipHiddenCardConfig,
@@ -110,10 +110,7 @@ func (g *gameDelegate) ConfigureMoves(installer boardgame.MoveInstaller) error {
 		&moveVisibleShuffleCardsConfig,
 		&moveMoveBetweenHiddenConfig,
 		&moveMoveBetweenHiddenConfig,
-	}
-
-	return installer.AddMoves(moveTypeConfigs...)
-
+	)
 }
 
 func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) {

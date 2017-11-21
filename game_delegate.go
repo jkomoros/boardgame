@@ -204,9 +204,11 @@ type GameDelegate interface {
 
 	//ConfigureMoves will be called during creation of a GameManager in
 	//NewGameManager. This is the time to install moves onto the manager by
-	//calling methods on the installer. If you return an error the GameManager
-	//will fail to be created.
-	ConfigureMoves(installer MoveInstaller) error
+	//creating a bundle and adding moves to it. If the moves you add are
+	//illegal for any reason, NewGameManager will fail with an error. By the
+	//time this is called. delegate.SetManager will already have been called,
+	//so you'll have access to the manager via Manager().
+	ConfigureMoves() *MoveTypeConfigBundle
 
 	//ConfigureAgents will be called when creating a new GameManager. Emit the
 	//agents you want to install.

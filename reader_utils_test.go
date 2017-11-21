@@ -147,8 +147,8 @@ var testAutoEnumMoveConfig = MoveTypeConfig{
 
 func TestAutoEnum(t *testing.T) {
 
-	moveInstaller := func(installer MoveInstaller) error {
-		return installer.AddMove(&testAutoEnumMoveConfig)
+	moveInstaller := func(manager *GameManager) *MoveTypeConfigBundle {
+		return NewMoveTypeConfigBundle().AddMove(&testAutoEnumMoveConfig)
 	}
 
 	manager, err := NewGameManager(&testGameDelegate{moveInstaller: moveInstaller}, newTestGameChest(), newTestStorageManager())

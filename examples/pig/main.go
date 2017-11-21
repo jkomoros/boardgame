@@ -114,16 +114,13 @@ func (g *gameDelegate) DynamicComponentValuesConstructor(deck *boardgame.Deck) b
 	return nil
 }
 
-func (g *gameDelegate) ConfigureMoves(installer boardgame.MoveInstaller) error {
-	moveTypeConfigs := []*boardgame.MoveTypeConfig{
+func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
+	return boardgame.NewMoveTypeConfigBundle().AddMoves(
 		&moveRollDiceConfig,
 		&moveDoneTurnConfig,
 		&moveCountDieConfig,
 		&moveFinishTurnConfig,
-	}
-
-	return installer.AddMoves(moveTypeConfigs...)
-
+	)
 }
 
 func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) {

@@ -40,63 +40,84 @@ type GameManager struct {
 	logger                    *logrus.Logger
 }
 
-//MoveInstaller is an interface that the object that is passed to your
-//delgates' ConfigureMoves() will implement. ConfigureMoves will then call the
-//various methods to install moves on the given manager.
-type MoveInstaller interface {
-	//AddMove adds the specified move type to the game as a move.
-	AddMove(config *MoveTypeConfig) error
-	//AddMoves is a simple wrapper around AddMoves. It is useful for move configs
-	//that are legal in any phase in any order. If you want to configure moves
-	//that are only legal in certain phases, use AddMovesForPhase. If you want to
-	//add moves that are only legal in certain phases in certain orders, use
-	//AddOrderedMovesForPhase instead. Unlike the AddMovesForPhase variants,
-	//AddMoves doesn't modify the LegalPhases of the movs you add.
-	AddMoves(config ...*MoveTypeConfig) error
-	//AddMovesForPhase is a convenience wrapper around AddMoves. It is useful to
-	//install moves that are only legal in a specific phase, but in any order. As
-	//a convenience, if the move configs you pass do not already affirmatively
-	//list the phase being configured, then they will have it added to the config
-	//before adding (as long as the LegalPhases isn't a zero-length slice). This
-	//means that in most cases you can skip defining LegalPhases, as it will be
-	//configured automatically. See AddOrderedMovesForPhase for an ordered
-	//variant.
-	AddMovesForPhase(phase int, config ...*MoveTypeConfig) error
-	//AddOrderedMovesForPhase is a variant around AddMovesForPhase that in
-	//addition to enforcing the moves are only legal in a given phase will also
-	//set a specific order. (Moves that are legal in every phase will not count in
-	//the order matching). Will error if your delegate does not implement
-	//PhaseMoveProgressionSetter (DefaultGameDelegate does by default).
-	AddOrderedMovesForPhase(phase int, config ...*MoveTypeConfig) error
-
-	//Manager returns the manager that the moves will be installed on.
-	Manager() *GameManager
+type moveTypeConfingBundleRun struct {
+	ordered bool
+	phase   int
+	configs []*MoveTypeConfig
 }
 
-//moveInstallerImpl is the actual object that implements MoveInstaller. It's
-//basically just forwarding methods to the private methods on GameManager itself.
-type moveInstallerImpl struct {
-	manager *GameManager
+//MoveTypeConfigBundle is a bundle of move type configs to add to a game. You
+//return one from your delegate's ConfigMoves method, which is the primary way
+//to install moves on a game type. None of the Add* methods return errors
+//immediately; NewGameManager will itself error if any of the moves to add are
+//illegal for any reason.
+type MoveTypeConfigBundle struct {
+	runs []*moveTypeConfingBundleRun
 }
 
-func (m *moveInstallerImpl) AddMove(config *MoveTypeConfig) error {
-	return m.manager.addMove(config)
+//NewMoveTypeConfigBundle returns a new empty bundle ready to have moves added
+//to it via the various Add* methods.
+func NewMoveTypeConfigBundle() *MoveTypeConfigBundle {
+	return &MoveTypeConfigBundle{}
 }
 
-func (m *moveInstallerImpl) AddMoves(config ...*MoveTypeConfig) error {
-	return m.manager.addMoves(config...)
+//AddMove adds the specified move type to the game as a move. Returns the
+//bundle itself for convenience so you can chain.
+func (m *MoveTypeConfigBundle) AddMove(config *MoveTypeConfig) *MoveTypeConfigBundle {
+	m.runs = append(m.runs, &moveTypeConfingBundleRun{
+		ordered: false,
+		phase:   -1,
+		configs: []*MoveTypeConfig{config},
+	})
+	return m
 }
 
-func (m *moveInstallerImpl) AddMovesForPhase(phase int, config ...*MoveTypeConfig) error {
-	return m.manager.addMovesForPhase(phase, config...)
+//AddMoves is a simple wrapper around AddMoves. It is useful for move configs
+//that are legal in any phase in any order. If you want to configure moves
+//that are only legal in certain phases, use AddMovesForPhase. If you want to
+//add moves that are only legal in certain phases in certain orders, use
+//AddOrderedMovesForPhase instead. Unlike the AddMovesForPhase variants,
+//AddMoves doesn't modify the LegalPhases of the movs you add. Returns the
+//bundle itself for convenience so you can chain.
+func (m *MoveTypeConfigBundle) AddMoves(config ...*MoveTypeConfig) *MoveTypeConfigBundle {
+	m.runs = append(m.runs, &moveTypeConfingBundleRun{
+		ordered: false,
+		phase:   -1,
+		configs: config,
+	})
+	return m
 }
 
-func (m *moveInstallerImpl) AddOrderedMovesForPhase(phase int, config ...*MoveTypeConfig) error {
-	return m.manager.addOrderedMovesForPhase(phase, config...)
+//AddMovesForPhase is a convenience wrapper around AddMoves. It is useful to
+//install moves that are only legal in a specific phase, but in any order. As
+//a convenience, if the move configs you pass do not already affirmatively
+//list the phase being configured, then they will have it added to the config
+//before adding (as long as the LegalPhases isn't a zero-length slice). This
+//means that in most cases you can skip defining LegalPhases, as it will be
+//configured automatically. See AddOrderedMovesForPhase for an ordered
+//variant. Returns the bundle itself for convenience so you can chain.
+func (m *MoveTypeConfigBundle) AddMovesForPhase(phase int, config ...*MoveTypeConfig) *MoveTypeConfigBundle {
+	m.runs = append(m.runs, &moveTypeConfingBundleRun{
+		ordered: false,
+		phase:   phase,
+		configs: config,
+	})
+	return m
 }
 
-func (m *moveInstallerImpl) Manager() *GameManager {
-	return m.manager
+//AddOrderedMovesForPhase is a variant around AddMovesForPhase that in
+//addition to enforcing the moves are only legal in a given phase will also
+//set a specific order. (Moves that are legal in every phase will not count in
+//the order matching). Will error if your delegate does not implement
+//PhaseMoveProgressionSetter (DefaultGameDelegate does by default). Returns
+//the bundle itself for convenience so you can chain.
+func (m *MoveTypeConfigBundle) AddOrderedMovesForPhase(phase int, config ...*MoveTypeConfig) *MoveTypeConfigBundle {
+	m.runs = append(m.runs, &moveTypeConfingBundleRun{
+		ordered: true,
+		phase:   phase,
+		configs: config,
+	})
+	return m
 }
 
 //NewGameManager creates a new game manager with the given delegate. It will
@@ -136,13 +157,43 @@ func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage Storag
 		return nil, errors.New("Couldn't configure validators: " + err.Error())
 	}
 
-	if err := delegate.ConfigureMoves(&moveInstallerImpl{result}); err != nil {
+	if err := result.installMoveTypeConfigBundle(delegate.ConfigureMoves()); err != nil {
 		return nil, errors.New("Failed to install moves: " + err.Error())
 	}
 
 	result.agents = delegate.ConfigureAgents()
 
 	return result, nil
+}
+
+func (g *GameManager) installMoveTypeConfigBundle(m *MoveTypeConfigBundle) error {
+	if m == nil {
+		return errors.New("No bundle provided")
+	}
+
+	for _, run := range m.runs {
+		if run.phase < 0 {
+
+			if err := g.addMoves(run.configs...); err != nil {
+				return err
+			}
+
+			continue
+		}
+
+		if !run.ordered {
+			if err := g.addMovesForPhase(run.phase, run.configs...); err != nil {
+				return err
+			}
+			continue
+		}
+
+		if err := g.addOrderedMovesForPhase(run.phase, run.configs...); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (g *GameManager) setUpValidators() error {
