@@ -17,8 +17,22 @@
         gameRoute: Object,
         url : {
           type: String,
-          computed: "_computeUrl(path, gamePath, gameRoute)"
+          computed: "_computeUrl(path, gamePath, basePath, gameBasePath)"
         },
+
+        //e.g. "http://api.boardgame.com/api/"
+        basePath : {
+          type: String,
+          value: API_HOST + "/api/",
+          readOnly: true
+        },
+
+        //e.g. "http://api.boardgame.com/api/game/memory/12345/"
+        gameBasePath: {
+          type: String,
+          computed: "_computeGameBasePath(basePath,gameRoute)"
+        },
+
         //Path for apis that aren't specific to a game, e.g. /api/auth, where
         //path would be 'auth'
         path: String,
@@ -34,12 +48,19 @@
       }
     }
 
-    _computeUrl(path, gamePath, gameRoute) {
-      if (path) {
-        return API_HOST + "/api/" + path;
+    _computeGameBasePath(basePath, gameRoute) {
+      if (!gameRoute) {
+        return "";
       }
-      if (gamePath && gameRoute) {
-        return API_HOST + "/api/game/" + gameRoute.name + "/" + gameRoute.id + "/" + gamePath;
+      return basePath + "game/" + gameRoute.name + "/" + gameRoute.id + "/";
+    }
+
+    _computeUrl(path, gamePath, basePath, gameBasePath) {
+      if (path) {
+        return basePath + path;
+      }
+      if (gamePath && gameBasePath) {
+        return gameBasePath + gamePath;
       }
       return "";
     }
