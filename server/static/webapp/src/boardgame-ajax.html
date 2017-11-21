@@ -1,0 +1,19 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+ 
+
+<script>
+
+  let IronAjax = customElements.get("iron-ajax");
+
+  class BoardgameAjax extends IronAjax {
+
+    static get is() {
+      return "boardgame-ajax";
+    }
+
+  }
+
+  customElements.define(BoardgameAjax.is, BoardgameAjax);
+
+</script>
