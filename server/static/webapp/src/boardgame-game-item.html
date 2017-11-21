@@ -1,7 +1,5 @@
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
 <link rel="import" href="../bower_components/polymer/lib/elements/dom-repeat.html">
-<link rel="import" href="../config-src/boardgame-config.html">
-<link rel="import" href="boardgame-util.html">
 <link rel="import" href="shared-styles.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="boardgame-configure-game-properties.html">
@@ -38,7 +36,7 @@
 
   <script>
 
-    class BoardgameGameItem extends ApiHostMixin(BoardgameUtilMixin(Polymer.Element)) {
+    class BoardgameGameItem extends Polymer.Element {
       static get is() {
         return "boardgame-game-item"
       }

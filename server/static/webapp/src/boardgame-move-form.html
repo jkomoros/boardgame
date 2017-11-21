@@ -11,9 +11,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
 <link rel="import" href="../bower_components/polymer/lib/elements/dom-repeat.html">
 <link rel="import" href="shared-styles.html">
-<link rel="import" href="../config-src/boardgame-config.html">
 <link rel="import" href="boardgame-ajax.html">
-<link rel="import" href="boardgame-util.html">
 
 <dom-module id="boardgame-move-form">
   <template>
@@ -54,7 +52,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   <script>
 
-    class BoardgameMoveForm extends ApiHostMixin(BoardgameUtilMixin(Polymer.Element)) {
+    class BoardgameMoveForm extends Polymer.Element {
       
       static get is() {
         return "boardgame-move-form"

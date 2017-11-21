@@ -1,7 +1,5 @@
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
 <link rel="import" href="boardgame-ajax.html">
-<link rel="import" href="../config-src/boardgame-config.html">
-<link rel="import" href="boardgame-util.html">
 
 <dom-module id="boardgame-game-state-manager">
   <template>
@@ -30,7 +28,7 @@
 
 
 
-    class BoardgameGameStateManager extends ApiHostMixin(BoardgameUtilMixin(Polymer.Element)) {
+    class BoardgameGameStateManager extends Polymer.Element {
       static get is() {
         return "boardgame-game-state-manager"
       }
@@ -63,6 +61,7 @@
             type: String,
             computed: "_computeGameViewPath(requestedPlayer, admin)"
           },
+          gameBasePath : String,
           //This is split out because lastFetchedVersion should be current
           //when it's sent, but when its value is changed it shouldn't be
           //considered a meaningful change that needs a refetch.
@@ -96,7 +95,7 @@
           },
           _socketUrl: {
             type: String,
-            computed: "_computeSocketUrl(apiHost, gameRoute, active, _infoInstalled)",
+            computed: "_computeSocketUrl(active, _infoInstalled)",
             observer: "_socketUrlChanged",
           },
           _infoInstalled: {

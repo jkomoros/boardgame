@@ -11,8 +11,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
 <link rel="import" href="../bower_components/polymer/lib/elements/dom-repeat.html">
 <link rel="import" href="../bower_components/paper-button/paper-button.html">
-<link rel="import" href="../config-src/boardgame-config.html">
-<link rel="import" href="boardgame-util.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
 <link rel="import" href="../bower_components/paper-listbox/paper-listbox.html">
@@ -75,7 +73,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   <script>
 
-    class BoardgameCreateGame extends ApiHostMixin(BoardgameUtilMixin(Polymer.Element)) {
+    class BoardgameCreateGame extends Polymer.Element {
 
       static get is() {
         return "boardgame-create-game";

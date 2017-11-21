@@ -2,8 +2,6 @@
 <link rel="import" href="../bower_components/iron-icons/iron-icons.html">
 <link rel="import" href="../bower_components/iron-icons/social-icons.html">
 <link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
-<link rel="import" href="../config-src/boardgame-config.html">
-<link rel="import" href="boardgame-util.html">
 <link rel="import" href="boardgame-ajax.html">
 
 <dom-module id="boardgame-configure-game-properties">
@@ -15,7 +13,7 @@
 
   <script>
 
-    class BoardgameConfigureGameProperties extends ApiHostMixin(BoardgameUtilMixin(Polymer.Element)) {
+    class BoardgameConfigureGameProperties extends Polymer.Element {
       static get is() {
         return "boardgame-configure-game-properties"
       }

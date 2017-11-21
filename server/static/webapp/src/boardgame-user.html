@@ -20,8 +20,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/polymerfire/firebase-app.html">
 <link rel="import" href="../bower_components/polymerfire/firebase-auth.html">
 <link rel="import" href="boardgame-player-chip.html">
-<link rel="import" href="boardgame-util.html">
-<link rel="import" href="../config-src/boardgame-config.html">
 <link rel="import" href="shared-styles.html">
 
 <dom-module id="boardgame-user">
@@ -106,7 +104,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   <script>
 
-    class BoardgameUser extends ApiHostMixin(BoardgameUtilMixin(Polymer.Element)) {
+    class BoardgameUser extends Polymer.Element {
 
       static get is() {
         return "boardgame-user"
