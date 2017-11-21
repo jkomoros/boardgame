@@ -49,31 +49,31 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <template is="dom-if" if="{{data.ParticipatingActiveGames.length}}">
       <h2>Active</h2>
       <template is="dom-repeat" items="{{data.ParticipatingActiveGames}}">
-        <boardgame-game-item item="{{item}}" managers="{{managers}}"></boardgame-game-item>
+        <boardgame-game-item item="{{item}}" managers="{{managers}}" link="{{gameItemLink(item)}}"></boardgame-game-item>
       </template>
     </template>
     <template is="dom-if" if="{{data.PaticipatingFinishedGames.length}}">
       <h2>Finished</h2>
       <template is="dom-repeat" items="{{data.PaticipatingFinishedGames}}">
-        <boardgame-game-item item="{{item}}"  managers="{{managers}}"></boardgame-game-item>
+        <boardgame-game-item item="{{item}}"  managers="{{managers}}" link="{{gameItemLink(item)}}"></boardgame-game-item>
       </template>
     </template>
     <template is="dom-if" if="{{data.VisibleJoinableActiveGames.length}}">
       <h2>Joinable</h2>
       <template is="dom-repeat" items="{{data.VisibleJoinableActiveGames}}">
-        <boardgame-game-item item="{{item}}" managers="{{managers}}"></boardgame-game-item>
+        <boardgame-game-item item="{{item}}" managers="{{managers}}" link="{{gameItemLink(item)}}"></boardgame-game-item>
       </template>
     </template>
     <template is="dom-if" if="{{data.VisibleActiveGames.length}}">
       <h2>Spectator</h2>
       <template is="dom-repeat" items="{{data.VisibleActiveGames}}">
-        <boardgame-game-item item="{{item}}" managers="{{managers}}"></boardgame-game-item>
+        <boardgame-game-item item="{{item}}" managers="{{managers}}" link="{{gameItemLink(item)}}"></boardgame-game-item>
       </template>
     </template>
     <template is="dom-if" if="{{data.AllGames.length}}">
       <h2>All Games</h2>
       <template is="dom-repeat" items="{{data.AllGames}}">
-        <boardgame-game-item item="{{item}}" managers="{{managers}}"></boardgame-game-item>
+        <boardgame-game-item item="{{item}}" managers="{{managers}}" link="{{gameItemLink(item)}}"></boardgame-game-item>
       </template>
     </template>
 
@@ -120,6 +120,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             observer: "_loggedInChanged",
           }
         }
+      }
+
+      gameItemLink(item) {
+        return this.$.games.GamePath(item.Name, item.Id);
       }
 
       _computeManagers(managerData) {

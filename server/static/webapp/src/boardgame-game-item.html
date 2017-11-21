@@ -25,7 +25,7 @@
       }
     </style>
     <div class="card layout horizontal center">
-      <a href="[[UrlForGame(item.Name,item.Id)]]">{{gameDisplayName}}</a>
+      <a href="{{link}}">{{gameDisplayName}}</a>
       <template is="dom-repeat" items="{{item.Players}}">
         <boardgame-player-chip photo-url="{{item.PhotoUrl}}" display-name="{{item.DisplayName}}" is-agent="{{item.IsAgent}}"></boardgame-player-chip>
       </template>
@@ -47,6 +47,7 @@
         return {
           item: Object,
           managers: Array,
+          link: String,
           gameDisplayName: {
             type: String,
             computed: "_computeGameDisplayName(item, managers)"

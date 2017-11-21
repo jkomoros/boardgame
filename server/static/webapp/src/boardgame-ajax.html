@@ -48,11 +48,15 @@
       }
     }
 
+    GamePath(name, id) {
+      return "game/" + name + "/" + id + "/";
+    }
+
     _computeGameBasePath(basePath, gameRoute) {
       if (!gameRoute) {
         return "";
       }
-      return basePath + "game/" + gameRoute.name + "/" + gameRoute.id + "/";
+      return basePath + this.GamePath(gameRoute.name, gameRoute.id);
     }
 
     _computeUrl(path, gamePath, basePath, gameBasePath) {
