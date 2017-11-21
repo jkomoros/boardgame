@@ -128,11 +128,10 @@
         return "info?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0);
       }
 
-      _computeSocketUrl(apiHost, gameRoute, active, infoInstalled) {
+      _computeSocketUrl(active, infoInstalled) {
         if (!active) return "";
-        if (!gameRoute) return "";
         if (!infoInstalled) return "";
-        let result = this.UrlForGameAPI(apiHost, gameRoute, 'socket');
+        let result = this.$.version.gameBasePath + "socket";
         result = result.split("http:").join("ws:");
         result = result.split("https:").join("wss:");
         return result;
