@@ -37,12 +37,12 @@ in this package normally do reasonable things with. Example use:
 		return pState.(*playerState).Hand
 	}
 
-	func NewManager(storage boardgame.StorageManager) *boardgame.GameManager {
+	func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 
 		//...
-		manager.AddMoves(
+		).AddMoves(
 			//Name, HelpText, MoveConstructor, and IsFixUp will be set reasonably.
-			moves.MustDefaultConfig(manager, new(myMove)),
+			moves.MustDefaultConfig(g.Manager(), new(myMove)),
 		)
 		//...
 
