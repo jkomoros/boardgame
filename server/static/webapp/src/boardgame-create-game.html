@@ -150,7 +150,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       _createGameResponseChanged(newValue) {
         if (newValue.Status == "Success") {
-          this.dispatchEvent(new CustomEvent("navigate-to", {composed: true, detail: this.UrlForGame(newValue.GameName, newValue.GameId)}));
+          this.dispatchEvent(new CustomEvent("navigate-to", {composed: true, detail: this.$.create.GamePath(newValue.GameName, newValue.GameId)}));
         } else {
           this.dispatchEvent(new CustomEvent("show-error", {composed: true, detail:{message:newValue.Error, friendlyMessage: newValue.FriendlyError}}));
         }
