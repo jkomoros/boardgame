@@ -133,6 +133,10 @@ func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage Storag
 		return nil, errors.New("No chest provided")
 	}
 
+	if !delegate.LegalNumPlayers(delegate.DefaultNumPlayers()) {
+		return nil, errors.New("The default number of players is not legal")
+	}
+
 	//Make sure the chest is no longer open for modification. If finish was
 	//already called, this will be a no-op.
 	chest.Finish()
