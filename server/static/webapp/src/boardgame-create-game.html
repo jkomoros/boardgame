@@ -74,10 +74,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <div class="horizontal layout justified">
         <template is="dom-repeat" items="{{selectedManager.data.Config}}">
           <div class="vertical layout flex">
-            <paper-dropdown-menu label="{{item.DisplayName}}">
+            <paper-dropdown-menu label="{{item.DisplayName}}" name="{{item.Name}}">
               <paper-listbox slot="dropdown-content" selected="0">
                 <template is="dom-repeat" items="{{item.Values}}">
-                  <paper-item>
+                  <paper-item value="{{item.Value}}">
                     <paper-item-body two-line>
                       <div>{{item.DisplayName}}</div>
                       <div secondary>{{item.Description}}</div>
@@ -153,21 +153,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         var eles = [...this.shadowRoot.querySelectorAll("paper-radio-group")];
 
-        eles.push(this.shadowRoot.querySelector("paper-dropdown-menu"));
         eles.push(this.shadowRoot.querySelector("paper-input"));
+        eles = eles.concat([...this.shadowRoot.querySelectorAll("paper-dropdown-menu")]);
         eles = eles.concat([...this.shadowRoot.querySelectorAll("paper-toggle-button")]);
 
         for (var i = 0; i < eles.length; i++) {
           var ele = eles[i];
+          let name = ele.name;
           if (ele.disabled) continue;
-          if (ele.localName == "paper-radio-group") {
+          if (ele.localName == "paper-radio-group" || ele.localName == "paper-dropdown-menu") {
             ele = ele.selectedItem;
           }
           if (ele.localName == "paper-toggle-button") {
             body[ele.name] = ele.checked ? "1" : "0";
             continue;
           }
-          body[ele.name] = ele.value;
+          body[name] = ele.value;
         }
 
         return body;

@@ -568,7 +568,7 @@ func (s *Server) doListManager(r *Renderer) {
 
 		for key, vals := range manager.Delegate().Configs() {
 			part := make(map[string]interface{})
-			part["Key"] = key
+			part["Name"] = key
 			displayName, description := manager.Delegate().ConfigKeyDisplay(key)
 			part["DisplayName"] = displayName
 			part["Description"] = description
