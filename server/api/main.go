@@ -573,7 +573,23 @@ func (s *Server) doListManager(r *Renderer) {
 		}
 		var config []interface{}
 
-		for key, vals := range manager.Delegate().Configs() {
+		configs := manager.Delegate().Configs()
+
+		sortedKeys := make([]string, len(configs))
+
+		i := 0
+
+		for key, _ := range configs {
+			sortedKeys[i] = key
+			i++
+		}
+
+		sort.Strings(sortedKeys)
+
+		for _, key := range sortedKeys {
+
+			vals := configs[key]
+
 			part := make(map[string]interface{})
 			part["Name"] = key
 			displayName, description := manager.Delegate().ConfigKeyDisplay(key)
