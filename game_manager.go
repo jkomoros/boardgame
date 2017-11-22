@@ -133,10 +133,6 @@ func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage Storag
 		return nil, errors.New("No chest provided")
 	}
 
-	if !delegate.LegalNumPlayers(delegate.DefaultNumPlayers()) {
-		return nil, errors.New("The default number of players is not legal")
-	}
-
 	//Make sure the chest is no longer open for modification. If finish was
 	//already called, this will be a no-op.
 	chest.Finish()
@@ -157,6 +153,18 @@ func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage Storag
 	chest.manager = result
 
 	delegate.SetManager(result)
+
+	if !delegate.LegalNumPlayers(delegate.DefaultNumPlayers()) {
+		return nil, errors.New("The default number of players is not legal")
+	}
+
+	if !delegate.LegalNumPlayers(delegate.MinNumPlayers()) {
+		return nil, errors.New("The MinNumPlayers is not legal")
+	}
+
+	if !delegate.LegalNumPlayers(delegate.MaxNumPlayers()) {
+		return nil, errors.New("The MaxNumPlayers is not legal")
+	}
 
 	if err := result.setUpValidators(); err != nil {
 		return nil, errors.New("Couldn't configure validators: " + err.Error())

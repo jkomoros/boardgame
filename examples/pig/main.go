@@ -35,8 +35,12 @@ func (g *gameDelegate) Description() string {
 	return "Players roll the dice, collecting points, but bust if they roll a one."
 }
 
-func (g *gameDelegate) LegalNumPlayers(numPlayers int) bool {
-	return numPlayers > 0 && numPlayers < 6
+func (g *gameDelegate) MinNumPlayers() int {
+	return 2
+}
+
+func (g *gameDelegate) MaxNumPlayers() int {
+	return 6
 }
 
 func (g *gameDelegate) DefaultNumPlayers() int {

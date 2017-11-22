@@ -47,6 +47,14 @@ func (g *gameDelegate) Description() string {
 	return "Players draw cards trying to get as close to 21 as possible without going over"
 }
 
+func (g *gameDelegate) MinNumPlayers() int {
+	return 2
+}
+
+func (g *gameDelegate) MaxNumPlayers() int {
+	return 7
+}
+
 func (g *gameDelegate) DefaultNumPlayers() int {
 	return 4
 }
@@ -142,10 +150,6 @@ func (g *gameDelegate) GameEndConditionMent(state boardgame.State) bool {
 	}
 
 	return true
-}
-
-func (g *gameDelegate) LegalNumPlayers(numPlayers int) bool {
-	return numPlayers > 0 && numPlayers < 7
 }
 
 func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {

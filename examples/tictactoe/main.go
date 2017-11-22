@@ -50,12 +50,16 @@ func (g *gameDelegate) Description() string {
 	return "A classic game where players place X's and O's and try to get three in a row"
 }
 
-func (g *gameDelegate) DefaultNumPlayers() int {
+func (g *gameDelegate) MinNumPlayers() int {
 	return 2
 }
 
-func (g *gameDelegate) LegalNumPlayers(numPlayers int) bool {
-	return numPlayers == 2
+func (g *gameDelegate) MaxNumPlayers() int {
+	return 2
+}
+
+func (g *gameDelegate) DefaultNumPlayers() int {
+	return 2
 }
 
 func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {

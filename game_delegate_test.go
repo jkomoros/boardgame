@@ -95,10 +95,12 @@ func (t *testGameDelegate) DefaultNumPlayers() int {
 	return 3
 }
 
-func (t *testGameDelegate) LegalNumPlayers(numPlayers int) bool {
-	//We don't do a lower bound check specifically to test that SetUp rejects
-	//numbers of players less than 1.
-	return numPlayers <= 5
+func (t *testGameDelegate) MinNumPlayers() int {
+	return 1
+}
+
+func (t *testGameDelegate) MaxNumPlayers() int {
+	return 5
 }
 
 func (t *testGameDelegate) Configs() map[string][]string {

@@ -131,11 +131,20 @@ type GameDelegate interface {
 	//game.SetUp(), we wil use this value insteadp.
 	DefaultNumPlayers() int
 
+	//Min/MaxNumPlayers should return the min and max number of players,
+	//respectively. The engine doesn't use this directly, instead looking at
+	//LegalNumPlayers. Typically your LegalNumPlayers will check the given
+	//number of players is between these two extremes.
+	MinNumPlayers() int
+	MaxNumPlayers() int
+
 	//LegalNumPlayers will be consulted when a new game is created. It should
 	//return true if the given number of players is legal, and false
 	//otherwise. If this returns false, the game's SetUp will fail. Game.SetUp
 	//will automatically reject a numPlayers that does not result in at least
-	//one player existing.
+	//one player existing. Generally this is simply checking to make sure the
+	//number of players is between Min and Max (inclusive), although some
+	//games could only allow, for example, even numbers of players.
 	LegalNumPlayers(numPlayers int) bool
 
 	//Configs returns a list of all of the various config values that are
@@ -528,11 +537,25 @@ func (d *DefaultGameDelegate) DefaultNumPlayers() int {
 	return 2
 }
 
+func (d *DefaultGameDelegate) MinNumPlayers() int {
+	return 1
+}
+
+func (d *DefaultGameDelegate) MaxNumPlayers() int {
+	return 16
+}
+
+//LegalNumPlayers checks that the number of players is between MinNumPlayers
+//and MaxNumPlayers, inclusive. You'd only want to override this if some
+//player numbers in that range are not legal, for example a game where only
+//even numbers of players may play.
 func (d *DefaultGameDelegate) LegalNumPlayers(numPlayers int) bool {
-	if numPlayers > 0 && numPlayers <= 16 {
-		return true
-	}
-	return false
+
+	min := d.Manager().Delegate().MinNumPlayers()
+	max := d.Manager().Delegate().MaxNumPlayers()
+
+	return numPlayers >= min && numPlayers <= max
+
 }
 
 func (d *DefaultGameDelegate) Configs() map[string][]string {

@@ -36,16 +36,20 @@ func (g *gameDelegate) DefaultNumPlayeres() int {
 	return 2
 }
 
+func (g *gameDelegate) MinNumPlayers() int {
+	return 2
+}
+
+func (g *gameDelegate) MaxNumPlayers() int {
+	return 6
+}
+
 func (g *gameDelegate) ComputedGlobalProperties(state boardgame.State) boardgame.PropertyCollection {
 	game, _ := concreteStates(state)
 	return boardgame.PropertyCollection{
 		"CurrentPlayerHasCardsToReveal": game.CurrentPlayerHasCardsToReveal(),
 		"CardsInGrid":                   game.CardsInGrid(),
 	}
-}
-
-func (g *gameDelegate) LegalNumPlayers(numPlayers int) bool {
-	return numPlayers < 4 && numPlayers > 1
 }
 
 const (

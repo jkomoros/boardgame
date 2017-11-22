@@ -34,8 +34,12 @@ func (g *gameDelegate) DefaultNumPlayeres() int {
 	return 2
 }
 
-func (g *gameDelegate) LegalNumPlayers(numPlayers int) bool {
-	return numPlayers == 2
+func (g *gameDelegate) MinNumPlayers() int {
+	return 2
+}
+
+func (g *gameDelegate) MaxNumPlayers() int {
+	return 2
 }
 
 func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
