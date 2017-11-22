@@ -555,35 +555,26 @@ func (s *Server) listManagerHandler(c *gin.Context) {
 }
 
 func (s *Server) doListManager(r *Renderer) {
-	type agentInfo struct {
-		Name        string
-		DisplayName string
-	}
-	type managerInfo struct {
-		Name              string
-		DisplayName       string
-		DefaultNumPlayers int
-		Agents            []agentInfo
-	}
-	var managers []managerInfo
+	var managers []map[string]interface{}
 	for name, manager := range s.managers {
-		agents := make([]agentInfo, len(manager.Agents()))
+		agents := make([]map[string]interface{}, len(manager.Agents()))
 		for i, agent := range manager.Agents() {
-			agents[i] = agentInfo{
-				agent.Name(),
-				agent.DisplayName(),
+			agents[i] = map[string]interface{}{
+				"Name":        agent.Name(),
+				"DisplayName": agent.DisplayName(),
 			}
 		}
-		managers = append(managers, managerInfo{
-			Name:              name,
-			DisplayName:       manager.Delegate().DisplayName(),
-			DefaultNumPlayers: manager.Delegate().DefaultNumPlayers(),
-			Agents:            agents,
+		managers = append(managers, map[string]interface{}{
+			"Name":              name,
+			"DisplayName":       manager.Delegate().DisplayName(),
+			"DefaultNumPlayers": manager.Delegate().DefaultNumPlayers(),
+			"Agents":            agents,
+			"Config":            manager.Delegate().Configs(),
 		})
 	}
 
 	sort.Slice(managers, func(i, j int) bool {
-		return managers[i].Name < managers[j].Name
+		return managers[i]["Name"].(string) < managers[j]["Name"].(string)
 	})
 
 	r.Success(gin.H{
