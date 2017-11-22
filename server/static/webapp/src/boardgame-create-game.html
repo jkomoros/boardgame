@@ -45,6 +45,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       .config>div {
         margin-right: 1em;
       }
+      [hidden] {
+        display:none !important;
+      }
     </style>
     <div class="vertical layout">
       <div class="horizontal layout center">
@@ -59,7 +62,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <div class="flex"></div>
         <paper-button on-tap="createGame" default raised>Create Game</paper-button>
       </div>
-      <div class="horizontal layout justified">
+      <div class="horizontal layout justified" hidden$="{{managerHasAgents}}">
         <template is="dom-repeat" items="{{players}}">
           <div class="flex">
             <div class="vertical layout">
