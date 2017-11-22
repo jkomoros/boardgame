@@ -79,7 +79,7 @@ func (s *Server) getRequestConfig(c *gin.Context, configs map[string][]string) m
 	result := make(map[string]string)
 
 	for key, vals := range configs {
-		if formVal := c.PostForm(key); formVal != "" {
+		if formVal := c.PostForm("config_" + key); formVal != "" {
 			//We were given a formval. Sanity check it was one of the ones
 			//htat's legal for this game.
 			legal := false
