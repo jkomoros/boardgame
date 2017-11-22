@@ -73,8 +73,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           </paper-listbox>
         </paper-dropdown-menu>
         <div class="vertical layout">
-          <div class="secondary">Number of Players</div>
-          <paper-slider name="numplayers" label="Number of Players" min="{{selectedManager.data.MinNumPlayers}}" max="{{selectedManager.data.MaxNumPlayers}}" value="{{numPlayers}}" snaps pin editable max-markers="100"></paper-slider>
+
+          <div hidden$="{{managerFixedPlayerCount}}">
+            <div class="secondary">Number of Players</div>
+            <paper-slider name="numplayers" label="Number of Players" min="{{selectedManager.data.MinNumPlayers}}" max="{{selectedManager.data.MaxNumPlayers}}" value="{{numPlayers}}" snaps pin editable max-markers="100"></paper-slider>
+          </div>
+          <div hidden$="{{!managerFixedPlayerCount}}">
+            <div class="secondary"><strong>{{selectedManager.data.MinNumPlayers}}</strong> players</div>
+          </div>
         </div>
         <div class="flex"></div>
         <paper-button on-tap="createGame" default raised>Create Game</paper-button>
@@ -142,6 +148,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             type: Boolean,
             computed: "_computeManagerHasAgents(selectedManager)"
           },
+          managerFixedPlayerCount: {
+            type: Boolean,
+            computed: "_computeManagerHasFixedPlayerCount(selectedManager)"
+          },
           numPlayers: {
             type: Number,
             value: 0,
@@ -170,6 +180,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return result;
       }
 
+
+
       _selectedManagerChanged(newValue) {
         if (!newValue) return;
         this.numPlayers = newValue.data.DefaultNumPlayers;
@@ -178,6 +190,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _computeManagerHasAgents(selectedManager) {
         if (!selectedManager) return false;
         return selectedManager.data.Agents.length == 0;
+      }
+
+      _computeManagerHasFixedPlayerCount(selectedManager) {
+        if (!selectedManager) return false;
+        let data = selectedManager.data;
+        return data.MinNumPlayers == data.MaxNumPlayers;
       }
 
       serialize() {
