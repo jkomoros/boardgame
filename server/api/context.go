@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/users"
+	"log"
 	"strconv"
 )
 
@@ -69,6 +70,33 @@ func (s *Server) getRequestGameVersion(c *gin.Context) int {
 	rawVal := c.Param(qryGameVersion)
 
 	result, _ := strconv.Atoi(rawVal)
+
+	return result
+}
+
+//getRequestConfig will get the various config
+func (s *Server) getRequestConfig(c *gin.Context, configs map[string][]string) map[string]string {
+	result := make(map[string]string)
+
+	for key, vals := range configs {
+		if formVal := c.PostForm(key); formVal != "" {
+			//We were given a formval. Sanity check it was one of the ones
+			//htat's legal for this game.
+			legal := false
+			for _, val := range vals {
+				if val == formVal {
+					legal = true
+				}
+			}
+
+			if legal {
+				result[key] = formVal
+			} else {
+				//TODO: what's the idiomatic way to log this?
+				log.Println("Illegal value provided for key " + key + ": " + formVal + " skipping...")
+			}
+		}
+	}
 
 	return result
 }

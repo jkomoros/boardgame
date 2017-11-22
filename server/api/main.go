@@ -416,6 +416,13 @@ func (s *Server) newGameHandler(c *gin.Context) {
 
 	manager := s.managers[managerId]
 
+	if manager == nil {
+		r.Error(errors.NewFriendly("That is not a legal type of game").WithError(managerId + " is not a legal manager for this server"))
+		return
+	}
+
+	config := s.getRequestConfig(c, manager.Delegate().Configs())
+
 	if numPlayers == 0 && manager != nil {
 		numPlayers = manager.Delegate().DefaultNumPlayers()
 	}
@@ -427,11 +434,11 @@ func (s *Server) newGameHandler(c *gin.Context) {
 	open := s.getRequestOpen(c)
 	visible := s.getRequestVisible(c)
 
-	s.doNewGame(r, owner, manager, numPlayers, agents, open, visible)
+	s.doNewGame(r, owner, manager, numPlayers, agents, open, visible, config)
 
 }
 
-func (s *Server) doNewGame(r *Renderer, owner *users.StorageRecord, manager *boardgame.GameManager, numPlayers int, agents []string, open bool, visible bool) {
+func (s *Server) doNewGame(r *Renderer, owner *users.StorageRecord, manager *boardgame.GameManager, numPlayers int, agents []string, open bool, visible bool, config map[string]string) {
 
 	if manager == nil {
 		r.Error(errors.New("No manager provided"))
@@ -450,7 +457,7 @@ func (s *Server) doNewGame(r *Renderer, owner *users.StorageRecord, manager *boa
 		return
 	}
 
-	if err := game.SetUp(numPlayers, nil, agents); err != nil {
+	if err := game.SetUp(numPlayers, config, agents); err != nil {
 		//TODO: communicate the error state back to the client in a sane way
 		if f, ok := err.(*errors.Friendly); ok {
 			r.Error(f)
