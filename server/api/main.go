@@ -619,6 +619,7 @@ func (s *Server) doListManager(r *Renderer) {
 		managers = append(managers, map[string]interface{}{
 			"Name":              name,
 			"DisplayName":       manager.Delegate().DisplayName(),
+			"Description":       manager.Delegate().Description(),
 			"DefaultNumPlayers": manager.Delegate().DefaultNumPlayers(),
 			"Agents":            agents,
 			"Config":            config,

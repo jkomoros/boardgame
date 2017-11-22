@@ -48,13 +48,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       [hidden] {
         display:none !important;
       }
+      .game paper-item-body [secondary] {
+        max-width: 40em;
+      }
     </style>
     <div class="vertical layout">
-      <div class="horizontal layout center">
-        <paper-dropdown-menu name="manager" label="Game Type">
+      <div class="horizontal layout center game">
+        <paper-dropdown-menu name="manager" label="Game Type" horizontal-align="left">
           <paper-listbox slot="dropdown-content" selected="0" selected-item="{{selectedManager}}">
             <template is="dom-repeat" items="{{managers}}">
-              <paper-item value="{{item.Name}}" data="{{item}}">{{item.DisplayName}}</paper-item> 
+              <paper-item value="{{item.Name}}" data="{{item}}" label="{{item.DisplayName}}">
+                <paper-item-body two-line>
+                  <div>{{item.DisplayName}}</div>
+                  <div secondary>{{item.Description}}</div>
+                </paper-item-body>
+              </paper-item> 
             </template>
           </paper-listbox>
         </paper-dropdown-menu>
