@@ -621,6 +621,8 @@ func (s *Server) doListManager(r *Renderer) {
 			"DisplayName":       manager.Delegate().DisplayName(),
 			"Description":       manager.Delegate().Description(),
 			"DefaultNumPlayers": manager.Delegate().DefaultNumPlayers(),
+			"MinNumPlayers":     manager.Delegate().MinNumPlayers(),
+			"MaxNumPlayers":     manager.Delegate().MaxNumPlayers(),
 			"Agents":            agents,
 			"Config":            config,
 		})

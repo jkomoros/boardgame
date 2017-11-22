@@ -17,7 +17,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/paper-toggle-button/paper-toggle-button.html">
 <link rel="import" href="../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../bower_components/paper-item/paper-item-body.html">
-<link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-slider/paper-slider.html">
 <link rel="import" href="../bower_components/paper-radio-button/paper-radio-button.html">
 <link rel="import" href="../bower_components/paper-radio-group/paper-radio-group.html">
 <link rel="import" href="../bower_components/iron-icons/iron-icons.html">
@@ -32,22 +32,27 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <dom-module id="boardgame-create-game">
   <template>
     <style is="custom-style" include="iron-flex iron-flex-alignment shared-styles">
-      paper-input {
-        margin-left: 1em;
-      }
       paper-toggle-button {
         margin-right: 1em;
       }
+
       .secondary {
         @apply(--paper-font-caption);
         color: var(--light-theme-secondary-color);
       }
+
+      .game .secondary {
+        margin-bottom: -1em;
+      }
+
       .config>div {
         margin-right: 1em;
       }
+
       [hidden] {
         display:none !important;
       }
+
       .game paper-item-body [secondary] {
         max-width: 40em;
         white-space: normal;
@@ -67,10 +72,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             </template>
           </paper-listbox>
         </paper-dropdown-menu>
-        <paper-input name="numplayers" label="Number of Players (0 for default)" value="{{numPlayers}}" min="0" type="number" prevent-invalid-input></paper-input>
+        <div class="vertical layout">
+          <div class="secondary">Number of Players</div>
+          <paper-slider name="numplayers" label="Number of Players" min="{{selectedManager.data.MinNumPlayers}}" max="{{selectedManager.data.MaxNumPlayers}}" value="{{numPlayers}}" snaps pin editable max-markers="100"></paper-slider>
+        </div>
         <div class="flex"></div>
         <paper-button on-tap="createGame" default raised>Create Game</paper-button>
       </div>
+
       <div class="horizontal layout justified" hidden$="{{managerHasAgents}}">
         <template is="dom-repeat" items="{{players}}">
           <div class="flex">
@@ -124,7 +133,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       static get properties() {
         return {
           loggedIn: Boolean,
-          selectedManager: Object,
+          selectedManager: {
+            type: Object,
+            observer: "_selectedManagerChanged",
+          },
           managers: Array,
           managerHasAgents: {
             type: Boolean,
@@ -158,6 +170,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return result;
       }
 
+      _selectedManagerChanged(newValue) {
+        if (!newValue) return;
+        this.numPlayers = newValue.data.DefaultNumPlayers;
+      }
+
       _computeManagerHasAgents(selectedManager) {
         if (!selectedManager) return false;
         return selectedManager.data.Agents.length == 0;
@@ -168,7 +185,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         var eles = [...this.shadowRoot.querySelectorAll("paper-radio-group")];
 
-        eles.push(this.shadowRoot.querySelector("paper-input"));
+        eles = eles.concat([...this.shadowRoot.querySelectorAll("paper-slider")]);
         eles = eles.concat([...this.shadowRoot.querySelectorAll("paper-dropdown-menu")]);
         eles = eles.concat([...this.shadowRoot.querySelectorAll("paper-toggle-button")]);
 
