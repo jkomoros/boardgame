@@ -47,11 +47,11 @@ func (c *CurrentPlayer) Legal(state boardgame.State, proposer boardgame.PlayerIn
 	}
 
 	if !c.TargetPlayerIndex.Equivalent(currentPlayer) {
-		return errors.New("It's not your turn")
+		return errors.New("It's not your turn!")
 	}
 
 	if !c.TargetPlayerIndex.Equivalent(proposer) {
-		return errors.New("It's not your turn")
+		return errors.New("It's not your turn!")
 	}
 
 	return nil
