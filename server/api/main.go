@@ -564,12 +564,39 @@ func (s *Server) doListManager(r *Renderer) {
 				"DisplayName": agent.DisplayName(),
 			}
 		}
+		config := make(map[string]interface{})
+
+		for key, vals := range manager.Delegate().Configs() {
+			part := make(map[string]interface{})
+			displayName, description := manager.Delegate().ConfigKeyDisplay(key)
+			part["DisplayName"] = displayName
+			part["Description"] = description
+
+			var valueInfo []interface{}
+
+			for _, val := range vals {
+				valuePart := make(map[string]interface{})
+
+				displayName, description := manager.Delegate().ConfigValueDisplay(key, val)
+
+				valuePart["DisplayName"] = displayName
+				valuePart["Description"] = description
+
+				valueInfo = append(valueInfo, valuePart)
+
+			}
+
+			part["Values"] = valueInfo
+
+			config[key] = part
+		}
+
 		managers = append(managers, map[string]interface{}{
 			"Name":              name,
 			"DisplayName":       manager.Delegate().DisplayName(),
 			"DefaultNumPlayers": manager.Delegate().DefaultNumPlayers(),
 			"Agents":            agents,
-			"Config":            manager.Delegate().Configs(),
+			"Config":            config,
 		})
 	}
 
