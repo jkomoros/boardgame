@@ -31,7 +31,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <dom-module id="boardgame-create-game">
   <template>
-    <style is="custom-style" include="iron-flex shared-styles">
+    <style is="custom-style" include="iron-flex iron-flex-alignment shared-styles">
       paper-input {
         margin-left: 1em;
       }
@@ -41,6 +41,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       .secondary {
         @apply(--paper-font-caption);
         color: var(--light-theme-secondary-color);
+      }
+      .config>div {
+        margin-right: 1em;
       }
     </style>
     <div class="vertical layout">
@@ -71,9 +74,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           </div>
         </template>
       </div>
-      <div class="horizontal layout justified">
+      <div class="horizontal layout config">
         <template is="dom-repeat" items="{{selectedManager.data.Config}}">
-          <div class="vertical layout flex">
+          <div class="vertical layout">
             <paper-dropdown-menu label="{{item.DisplayName}}" name="config_{{item.Name}}">
               <paper-listbox slot="dropdown-content" selected="0">
                 <template is="dom-repeat" items="{{item.Values}}">
