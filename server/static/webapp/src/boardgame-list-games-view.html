@@ -39,7 +39,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <paper-listbox slot="dropdown-content" selected="0" selected-item="{{selectedManager}}">
           <paper-item value="">All Games</paper-item>
           <template is="dom-repeat" items="{{managers}}">
-            <paper-item value="{{item.Name}}" data="{{item}}">{{item.Name}}</paper-item> 
+            <paper-item value="{{item.Name}}" data="{{item}}">{{item.DisplayName}}</paper-item> 
           </template>
         </paper-listbox>
       </paper-dropdown-menu>
