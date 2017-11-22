@@ -16,6 +16,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/paper-listbox/paper-listbox.html">
 <link rel="import" href="../bower_components/paper-toggle-button/paper-toggle-button.html">
 <link rel="import" href="../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../bower_components/paper-item/paper-item-body.html">
 <link rel="import" href="../bower_components/paper-input/paper-input.html">
 <link rel="import" href="../bower_components/paper-radio-button/paper-radio-button.html">
 <link rel="import" href="../bower_components/paper-radio-group/paper-radio-group.html">
@@ -62,6 +63,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               </paper-radio-group>
             </div>
           </div>
+        </template>
+      </div>
+      <div class="horizontal layout justified">
+        <template is="dom-repeat" items="{{selectedManager.data.Config}}">
+          <paper-dropdown-menu label="{{item.DisplayName}}" class="flex">
+            <paper-listbox slot="dropdown-content" selected="0">
+              <template is="dom-repeat" items="{{item.Values}}">
+                <paper-item>
+                  <paper-item-body two-line>
+                    <div>{{item.DisplayName}}</div>
+                    <div secondary>{{item.Description}}</div>
+                  </paper-item-body>
+                </paper-item>
+              </template>
+            </paper-listbox>
+          </paper-dropdown-menu>
         </template>
       </div>
       <div class="horizontal layout">
