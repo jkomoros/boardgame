@@ -77,7 +77,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             <paper-dropdown-menu label="{{item.DisplayName}}" name="config_{{item.Name}}">
               <paper-listbox slot="dropdown-content" selected="0">
                 <template is="dom-repeat" items="{{item.Values}}">
-                  <paper-item value="{{item.Value}}">
+                  <paper-item value="{{item.Value}}" label="{{item.DisplayName}}">
                     <paper-item-body two-line>
                       <div>{{item.DisplayName}}</div>
                       <div secondary>{{item.Description}}</div>
