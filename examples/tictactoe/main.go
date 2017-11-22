@@ -46,6 +46,10 @@ func (g *gameDelegate) DisplayName() string {
 	return gameDisplayname
 }
 
+func (g *gameDelegate) Description() string {
+	return "A classic game where players place X's and O's and try to get three in a row"
+}
+
 func (g *gameDelegate) DefaultNumPlayers() int {
 	return 2
 }

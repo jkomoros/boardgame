@@ -26,6 +26,10 @@ func (g *gameDelegate) DisplayName() string {
 	return "Animations Debugger"
 }
 
+func (g *gameDelegate) Description() string {
+	return "A game type designed to test all of the stack animations in one place"
+}
+
 func (g *gameDelegate) DefaultNumPlayeres() int {
 	return 2
 }

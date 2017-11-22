@@ -28,6 +28,10 @@ func (g *gameDelegate) DisplayName() string {
 	return "Memory"
 }
 
+func (g *gameDelegate) Description() string {
+	return "Players flip over two cards at a time and keep any matches they find"
+}
+
 func (g *gameDelegate) DefaultNumPlayeres() int {
 	return 2
 }

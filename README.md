@@ -252,11 +252,12 @@ The most basic methods are about the name of your gametype:
 type GameDelegate interface {
 	Name() string
 	DisplayName() string
+	Description() string
 	//... many more methods follow
 }
 ```
 
-Those methods are how you configure the name of the type of the game (e.g. 'memory' or 'blackjack', or 'pig') and also what the game type should be called when presented to users (e.g. "Memory", "Blackjack", or "Pig").
+Those methods are how you configure the name of the type of the game (e.g. 'memory' or 'blackjack', or 'pig'), what the game type should be called when presented to users (e.g. "Memory", "Blackjack", or "Pig"), and a short description of the game (e.g. "A card game where players draw cards trying to get as close to 21 as possible without going over")
 
 The GameDelegate interface is long and complex. In many cases you only need to override a handful out of the tens of methods. That's why the core engine provides a `DefaultGameDelegate` struct that has default stubs for each of the methods a `GameDelegate` must implement. That way you can embed a `DefaultGameDelegate` in your concrete GameDelegate and only implement the methods where you need special behavior.
 

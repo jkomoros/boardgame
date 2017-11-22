@@ -31,6 +31,10 @@ func (g *gameDelegate) DisplayName() string {
 	return "Pig"
 }
 
+func (g *gameDelegate) Description() string {
+	return "Players roll the dice, collecting points, but bust if they roll a one."
+}
+
 func (g *gameDelegate) LegalNumPlayers(numPlayers int) bool {
 	return numPlayers > 0 && numPlayers < 6
 }

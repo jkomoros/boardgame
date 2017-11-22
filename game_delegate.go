@@ -34,6 +34,11 @@ type GameDelegate interface {
 	//Subclasses should override this.
 	DisplayName() string
 
+	//Description is a string that describes the game type in a descriptive
+	//sentence. A reasonable value for "tictactoe" is "A classic game where
+	//players compete to get three in a row"
+	Description() string
+
 	//ConfigureMoves will be called during creation of a GameManager in
 	//NewGameManager. This is the time to install moves onto the manager by
 	//creating a bundle and adding moves to it. If the moves you add are
@@ -250,6 +255,11 @@ func (d *DefaultGameDelegate) Name() string {
 //delegate in use.
 func (d *DefaultGameDelegate) DisplayName() string {
 	return d.Manager().Delegate().Name()
+}
+
+//Description defaults to "" if not overriden.
+func (d *DefaultGameDelegate) Description() string {
+	return ""
 }
 
 func (d *DefaultGameDelegate) Manager() *GameManager {

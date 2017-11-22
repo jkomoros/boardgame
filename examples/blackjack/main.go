@@ -43,6 +43,10 @@ func (g *gameDelegate) DisplayName() string {
 	return gameDisplayname
 }
 
+func (g *gameDelegate) Description() string {
+	return "Players draw cards trying to get as close to 21 as possible without going over"
+}
+
 func (g *gameDelegate) DefaultNumPlayers() int {
 	return 4
 }
