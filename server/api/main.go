@@ -564,10 +564,11 @@ func (s *Server) doListManager(r *Renderer) {
 				"DisplayName": agent.DisplayName(),
 			}
 		}
-		config := make(map[string]interface{})
+		var config []interface{}
 
 		for key, vals := range manager.Delegate().Configs() {
 			part := make(map[string]interface{})
+			part["Key"] = key
 			displayName, description := manager.Delegate().ConfigKeyDisplay(key)
 			part["DisplayName"] = displayName
 			part["Description"] = description
@@ -579,6 +580,7 @@ func (s *Server) doListManager(r *Renderer) {
 
 				displayName, description := manager.Delegate().ConfigValueDisplay(key, val)
 
+				valuePart["Value"] = val
 				valuePart["DisplayName"] = displayName
 				valuePart["Description"] = description
 
@@ -588,7 +590,7 @@ func (s *Server) doListManager(r *Renderer) {
 
 			part["Values"] = valueInfo
 
-			config[key] = part
+			config = append(config, part)
 		}
 
 		managers = append(managers, map[string]interface{}{
