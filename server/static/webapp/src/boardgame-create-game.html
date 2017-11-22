@@ -88,7 +88,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <div class="horizontal layout config">
         <template is="dom-repeat" items="{{selectedManager.data.Config}}">
           <div class="vertical layout">
-            <paper-dropdown-menu label="{{item.DisplayName}}" name="config_{{item.Name}}">
+            <paper-dropdown-menu label="{{item.DisplayName}}" name="config_{{item.Name}}" horizontal-align="left">
               <paper-listbox slot="dropdown-content" selected="0">
                 <template is="dom-repeat" items="{{item.Values}}">
                   <paper-item value="{{item.Value}}" label="{{item.DisplayName}}">
