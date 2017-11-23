@@ -11,6 +11,18 @@
 				border-radius: 1em;
 			}
 
+			#outer.active #innter {
+        box-shadow:0 0 0.25em 0.25em rgba(204,204,160,1.0);
+      }
+
+      #outer.highlighted #inner{
+        box-shadow:0 0 0.25em 0.25em rgba(0,0,0,1.0);
+      }
+
+      #outer.active.highlighted #inner {
+        box-shadow:0 0 0.25em 0.25em rgba(255,255,0,1.0);
+      }
+
 			#outer.gray #inner {
         background-color: gray;
       }
@@ -63,7 +75,12 @@
 	    			color: {
 	    				type: String,
 	    				value: "red",
-	    			}
+	    			},
+	    			//Active changes the styling to make it clear the thing is selcted
+	    			active: Boolean,
+	    			//highlighted has a different visual style than active. different
+	    			//games will use it for different things.
+	    			highlighted: Boolean,
 	    		}
 	    	}
 
@@ -81,13 +98,19 @@
          static get observers() {
           return [
             //Update
-            "_updateClasses(spacer, noShadow, interactive, disabled, noAnimate, color)"
+            "_updateClasses(spacer, noShadow, interactive, disabled, noAnimate, color, highlighted, active)"
           ]
         }
 
         //Override _computeClasses and add some more.
         _computeClasses() {
         	let result = [this.color];
+        	if (this.active) {
+        		result.push("active");
+        	}
+        	if (this.highlighted) {
+        		result.push("highlighted");
+        	}
           result.push(super._computeClasses());
           return result.join(" ");
         }
