@@ -6,11 +6,46 @@
 	<template>
 		<style>
 			#inner {
-				height:2em;
-				width: 2em;
-				background-color: red;
+				height:20px;
+				width: 20px;
 				border-radius: 1em;
 			}
+
+			#outer.gray #inner {
+        background-color: gray;
+      }
+
+      #outer.green #inner {
+        background-color: green;
+      }
+
+      #outer.teal #inner {
+        background-color: teal;
+      }
+
+      #outer.purple #inner {
+        background-color: purple;
+      }
+
+      #outer.pink #inner {
+        background-color: pink;
+      }
+
+      #outer.red #inner {
+        background-color: red;
+      }
+
+      #outer.blue #inner {
+        background-color: blue;
+      }
+
+      #outer.orange #inner {
+        background-color: orange;
+      }
+
+      #outer.black #inner {
+        background-color: black;
+      }
 
 		</style>
 	</template>
@@ -23,6 +58,15 @@
 
 	    class BoardgameToken extends BoardgameComponent {
 
+	    	static get properties() {
+	    		return {
+	    			color: {
+	    				type: String,
+	    				value: "red",
+	    			}
+	    		}
+	    	}
+
 	      static get is() {
 	        return "boardgame-token"
 	      }
@@ -33,6 +77,21 @@
           }
           return memoizedTemplate;
         }
+
+         static get observers() {
+          return [
+            //Update
+            "_updateClasses(spacer, noShadow, interactive, disabled, noAnimate, color)"
+          ]
+        }
+
+        //Override _computeClasses and add some more.
+        _computeClasses() {
+        	let result = [this.color];
+          result.push(super._computeClasses());
+          return result.join(" ");
+        }
+
 
 	    }
 
