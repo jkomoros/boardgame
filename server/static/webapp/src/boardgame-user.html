@@ -195,6 +195,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       _firebaseUserChanged(user) {
+        if (!this.user && !user) return;
         this.user = null;
         this.verifyingAuth = true;
         if (user) {
