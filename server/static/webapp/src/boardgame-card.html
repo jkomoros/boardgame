@@ -404,28 +404,14 @@
 
       _classes(spacer, noShadow, rotated, interactive, disabled, noContent, noAnimate, tall) {
         let result = ["card"];
-        if (spacer) {
-          result.push("spacer");
-        }
-        if (!noShadow) {
-          result.push("shadow");
-        }
         if (rotated) {
           result.push("rotated");
-        }
-        if (interactive) {
-          result.push("interactive");
-        }
-        if (disabled) {
-          result.push("disabled");
         }
         if (noContent) {
           result.push("no-content")
         }
-        if (noAnimate) {
-          result.push("no-animate")
-        }
         result.push(tall ? "tall" : "wide");
+        result.push(super._classes(spacer, noShadow, interactive, disabled, noAnimate));
         return result.join(" ");
       }
 

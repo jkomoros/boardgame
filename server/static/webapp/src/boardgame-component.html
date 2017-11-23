@@ -80,6 +80,26 @@
         return !spacer && !disabled;
       }
 
+      _classes(spacer, noShadow, interactive, disabled, noAnimate) {
+        let result = [];
+        if (spacer) {
+          result.push("spacer");
+        }
+        if (!noShadow) {
+          result.push("shadow");
+        }
+        if (interactive) {
+          result.push("interactive");
+        }
+        if (disabled) {
+          result.push("disabled");
+        }
+        if (noAnimate) {
+          result.push("no-animate")
+        }
+        return result.join(" ");
+      }
+
     }
 
     customElements.define(BoardgameComponent.is, BoardgameComponent);
