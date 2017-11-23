@@ -281,25 +281,7 @@
 
         static get template() {
           if (!memoizedTemplate) {
-
-           let content = BoardgameComponent.template
-
-            memoizedTemplate = document.importNode(content, true);
-
-            let subTemplate = Polymer.DomModule.import(this.is, 'template');
-
-            let styleEle = subTemplate.content.querySelector("style");
-
-            let injectionSite = memoizedTemplate.content.children[1];
-
-            memoizedTemplate.content.insertBefore(styleEle,injectionSite);
-
-            let innerEle = memoizedTemplate.content.querySelector("#inner")
-
-            let eleToImport = subTemplate.content.querySelector("#import")
-
-            innerEle.appendChild(eleToImport);
-
+            memoizedTemplate = BoardgameComponent.combinedTemplate(Polymer.DomModule.import(this.is, 'template'));
           }
           return memoizedTemplate;
         }

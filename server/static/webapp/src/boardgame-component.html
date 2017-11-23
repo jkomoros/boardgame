@@ -139,6 +139,29 @@
         ]
       }
 
+      //Returns a template for the subclass. The subtemplate's style will be
+      //inserted right after the super template's style, and then the node
+      //iwth id of Import will be imported inside of inner.
+      static combinedTemplate(subTemplate) {
+        let content = BoardgameComponent.template
+
+        let result = document.importNode(content, true);
+
+        let styleEle = subTemplate.content.querySelector("style");
+
+        let injectionSite = result.content.children[1];
+
+        result.content.insertBefore(styleEle,injectionSite);
+
+        let innerEle = result.content.querySelector("#inner")
+
+        let eleToImport = subTemplate.content.querySelector("#import")
+
+        innerEle.appendChild(eleToImport);
+
+        return result;
+      }
+
       _updateClasses() {
         //We can ignore the arguments, all that's necessary is that we're
         //called whenever the value could have changed.
