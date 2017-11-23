@@ -48,15 +48,15 @@
         visibility: hidden;
       }
 
-      #card div.fallback {
+      #outer div.fallback {
         display:none;
       }
 
-      #card.no-content div.normal {
+      #outer.no-content div.normal {
         display:none;
       }
 
-      #card.no-content div.fallback {
+      #outer.no-content div.fallback {
         display:block;
       }
 
@@ -66,7 +66,7 @@
         @apply --layout-center-justified;
       }
 
-      #card {
+      #outer {
         height: var(--card-effective-height);
         width: var(--card-effective-width);
         @apply --layout-vertical;
@@ -76,22 +76,22 @@
         perspective: 1000px;
       }
 
-      #card.tall {
+      #outer.tall {
         height: var(--card-effective-width);
         width: var(--card-effective-height);
       }
 
-      #card.rotated {
+      #outer.rotated {
         height: var(--card-effective-width);
         width: var(--card-effective-height);
       }
 
-      #card.tall.rotated {
+      #outer.tall.rotated {
         height: var(--card-effective-height);
         width: var(--card-effective-width);
       }
 
-      #card.interactive {
+      #outer.interactive {
         cursor: pointer;
       }
 
@@ -122,19 +122,19 @@
         filter: saturate(60%);
       }
 
-      #card.shadow #inner {
+      #outer.shadow #inner {
         @apply --shadow-elevation-normal;
       }
 
-      #card.shadow.rotated #inner {
+      #outer.shadow.rotated #inner {
         @apply --shadow-elevation-normal-rotated;
       }
 
-      #card.shadow.interactive:hover #inner {
+      #outer.shadow.interactive:hover #inner {
         @apply --shadow-elevation-raised;
       }
 
-      #card.shadow.interactive.rotated:hover #inner {
+      #outer.shadow.interactive.rotated:hover #inner {
         @apply --shadow-elevation-raised-rotated;
       }
 
@@ -168,13 +168,13 @@
         transform: rotate(90deg);
       }
 
-      #card #front {
+      #outer #front {
         background-color: #CCFCFC;
         z-index: 2;
         transform: rotateY(180deg);
       }
 
-      #card #back {
+      #outer #back {
         background-color: #00CCCC;
         transform: rotateY(0deg);
       }
@@ -199,7 +199,7 @@
 
     </style>
 
-    <div id="card" class$="{{_classes(spacer, noShadow, rotated, interactive, disabled, noContent, noAnimate, tall)}}" on-tap="handleTap">
+    <div id="outer" class$="{{_classes(spacer, noShadow, rotated, interactive, disabled, noContent, noAnimate, tall)}}" on-tap="handleTap">
       <div id="inner">
         <div id="front">
           <div class="normal">
