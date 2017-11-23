@@ -5,7 +5,7 @@
 
 	<template>
 		<style>
-			#token {
+			#inner {
 				height:2em;
 				width: 2em;
 				background-color: red;
@@ -13,21 +13,33 @@
 			}
 
 		</style>
-		<div id="token" class$="{{_classes)}}" on-tap="handleTap">
-
+		<div id="import">
 		</div>
 	</template>
 
   <script>
 
-    class BoardgameToken extends BoardgameComponent {
+  	(function() {
 
-      static get is() {
-        return "boardgame-token"
-      }
+  		let memoizedTemplate;
 
-    }
+	    class BoardgameToken extends BoardgameComponent {
 
-    customElements.define(BoardgameToken.is, BoardgameToken);
+	      static get is() {
+	        return "boardgame-token"
+	      }
+
+	      static get template() {
+          if (!memoizedTemplate) {
+            memoizedTemplate = BoardgameComponent.combinedTemplate(Polymer.DomModule.import(this.is, 'template'));
+          }
+          return memoizedTemplate;
+        }
+
+	    }
+
+	    customElements.define(BoardgameToken.is, BoardgameToken);
+
+	  })();
   </script>
 </dom-module>
