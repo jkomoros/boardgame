@@ -141,7 +141,8 @@
 
       //Returns a template for the subclass. The subtemplate's style will be
       //inserted right after the super template's style, and then the node
-      //iwth id of Import will be imported inside of inner.
+      //iwth id of import will have all of its children imported in order and
+      //parented under #inner.
       static combinedTemplate(subTemplate) {
         let content = BoardgameComponent.template
 
@@ -157,7 +158,9 @@
 
         let eleToImport = subTemplate.content.querySelector("#import")
 
-        innerEle.appendChild(eleToImport);
+        while (eleToImport.children.length > 0) {
+          innerEle.appendChild(eleToImport.children[0]);
+        }
 
         return result;
       }
