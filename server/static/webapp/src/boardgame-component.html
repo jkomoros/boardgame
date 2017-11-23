@@ -1,0 +1,489 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/paper-styles/typography.html">
+<link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../bower_components/polymer/lib/elements/dom-bind.html">
+
+<dom-module id="boardgame-component">
+  <template>
+    <style include="iron-flex">
+
+      :root {
+        /* These are copied and lightly modified from paper-styles/shadow, because we need rotated versions, too. */
+        --shadow-elevation-normal: {
+          box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14),
+                      0 1px 5px 0 rgba(0, 0, 0, 0.12),
+                      0 3px 1px -2px rgba(0, 0, 0, 0.2);
+        };
+        --shadow-elevation-normal-rotated: {
+          box-shadow: 2px 0 2px 0 rgba(0, 0, 0, 0.14),
+                      1px 0 5px 0 rgba(0, 0, 0, 0.12),
+                      3px 0 1px -2px rgba(0, 0, 0, 0.2);
+        };
+        --shadow-elevation-raised: {
+          box-shadow: 0 8px 10px 1px rgba(0, 0, 0, 0.14),
+                      0 3px 14px 2px rgba(0, 0, 0, 0.12),
+                      0 5px 5px -3px rgba(0, 0, 0, 0.4);
+        };
+        --shadow-elevation-raised-rotated: {
+          box-shadow: 8px 0 10px 1px rgba(0, 0, 0, 0.14),
+                      3px 0 14px 2px rgba(0, 0, 0, 0.12),
+                      5px 0 5px -3px rgba(0, 0, 0, 0.4);
+        };
+      }
+
+      :host {
+        --default-card-scale: 1.0;
+        /* note that boardgame-card-stack has a couple of hard-coded margins based on this value in its stylesheet */
+        --default-card-width: 100px;
+        --card-effective-scale: var(--card-scale, var(--default-card-scale));
+        --card-effective-width: calc(var(--card-effective-scale) * var(--default-card-width));
+        --card-effective-aspect-ratio: var(--card-aspect-ratio, 0.6666666);
+        --card-effective-height: calc(var(--card-effective-width) * var(--card-effective-aspect-ratio));
+        --card-effective-border-radius: 5px;
+      }
+
+      .spacer {
+        visibility: hidden;
+      }
+
+      #card div.fallback {
+        display:none;
+      }
+
+      #card.no-content div.normal {
+        display:none;
+      }
+
+      #card.no-content div.fallback {
+        display:block;
+      }
+
+      #front {
+        @apply --layout-vertical;
+        @apply --layout-center;
+        @apply --layout-center-justified;
+      }
+
+      #card {
+        height: var(--card-effective-height);
+        width: var(--card-effective-width);
+        @apply --layout-vertical;
+        @apply --layout-center;
+        @apply --layout-center-justified;
+        cursor: default;
+        perspective: 1000px;
+      }
+
+      #card.tall {
+        height: var(--card-effective-width);
+        width: var(--card-effective-height);
+      }
+
+      #card.rotated {
+        height: var(--card-effective-width);
+        width: var(--card-effective-height);
+      }
+
+      #card.tall.rotated {
+        height: var(--card-effective-height);
+        width: var(--card-effective-width);
+      }
+
+      #card.interactive {
+        cursor: pointer;
+      }
+
+      #inner {
+
+        width: var(--default-card-width);
+        height: calc(var(--default-card-width) * var(--card-effective-aspect-ratio));
+        transform: scale(var(--card-effective-scale));
+
+        border-radius: var(--card-effective-border-radius);
+
+        transform-style: preserve-3d;
+        position: absolute;
+        /* The second part of this transition is from paper-styles/shadow, because we need to do our own to get rotated */
+        transition: transform var(--animation-length, 0.25s) ease-in-out, box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .tall #inner {
+        height: var(--default-card-width);
+        width: calc(var(--default-card-width) * var(--card-effective-aspect-ratio)); 
+      }
+
+      .no-animate #inner {
+        transition: unset;
+      }
+
+      .disabled {
+        filter: saturate(60%);
+      }
+
+      #card.shadow #inner {
+        @apply --shadow-elevation-normal;
+      }
+
+      #card.shadow.rotated #inner {
+        @apply --shadow-elevation-normal-rotated;
+      }
+
+      #card.shadow.interactive:hover #inner {
+        @apply --shadow-elevation-raised;
+      }
+
+      #card.shadow.interactive.rotated:hover #inner {
+        @apply --shadow-elevation-raised-rotated;
+      }
+
+      #front, #back {
+        height:100%;
+        width:100%;
+        position:absolute;
+        top:0;
+        left: 0;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+
+        overflow: hidden;
+        border-radius:var(--card-effective-border-radius);
+      }
+
+      #top-rank, #bottom-rank {
+        position:absolute;
+        @apply --paper-font-caption;
+      }
+
+      #top-rank {
+        bottom: 5px;
+        left: 5px;
+        transform: rotate(-90deg);
+      }
+
+      #bottom-rank {
+        right: 5px;
+        top: 5px;
+        transform: rotate(90deg);
+      }
+
+      #card #front {
+        background-color: #CCFCFC;
+        z-index: 2;
+        transform: rotateY(180deg);
+      }
+
+      #card #back {
+        background-color: #00CCCC;
+        transform: rotateY(0deg);
+      }
+
+      #default-back {
+        height:100%;
+        width:120%;
+        opacity: 0.2;
+        font-size: 13.5px;
+        line-height: 14px;
+        overflow: hidden;
+        text-overflow:clip;
+        user-select:none;
+        @apply --layout-vertical;
+        @apply --layout-center;
+        @apply --layout-center-justified;
+      }
+
+      .tall #default-back {
+        width:130%;
+      } 
+
+    </style>
+
+    <div id="card" class$="{{_classes(spacer, noShadow, rotated, interactive, disabled, noContent, noAnimate, tall)}}" on-tap="handleTap">
+      <div id="inner">
+        <div id="front">
+          <div class="normal">
+            <slot id="front-slot">
+              <div id="top-rank">
+                {{suit}}{{rank}}
+              </div>
+              <div id="bottom-rank">
+                {{suit}}{{rank}}
+              </div>
+            </slot>
+          </div>
+          <div class="fallback">
+            <slot name="fallback"></slot>
+          </div>
+        </div>
+        <div id="back">
+          <slot name="back">
+            <div id="default-back">
+                  &#x2605; &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606; &#x2605;  &#x2606;
+            </div>
+          </slot>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <script>
+
+    class BoardgameComponent extends Polymer.Element {
+
+      static get is() {
+        return "boardgame-component"
+      }
+
+      static get properties() {
+        return {
+          suit: String,
+          rank: String,
+          //Index is the index of this card in the stack. Included in
+          //card-tapped events.
+          index: Number,
+          //If item is set, it is assumed to be a Component from a stack in a
+          //state. faceUp, coContent, spacer, and id will all be set based on
+          //its value. A convenient way to stamp out cards with minimal fuss
+          //in the default case.
+          item: {
+            type: Object,
+            observer: "_itemChanged"
+          },
+          //If provided, will search for a dom module with the given name and
+          //use its first template content as the card's contents, bound with
+          //item equivalent to this card's item. . Make sure your dom-module
+          //is not contained within another dom-module, but is at the top-
+          //level.
+          cardType: {
+            type:String,
+            observer: "_cardTypeChanged"
+          },
+          //If true, the card will be rendered with its face showing, not its
+          //back. If noAnimate is false, will animate the card flip.
+          faceUp: {
+            type: Boolean,
+            observer: "_updateInnerTransform"
+          },
+          //If true, the card is rotated 90 degrees.
+          rotated: {
+            type: Boolean,
+            observer: "_rotatedChanged",
+            value: false,
+            reflectToAttribute: true
+          },
+          //basicRotated is similar to rotation, but it doesn't affect
+          //containing layout. The inner tranform will be applied though.
+          //Designed for being used in component-animator where we don't want
+          //to affect layout in thie main loop. Only active when
+          //overrideRotated is true. When in doubt, use rotated instead.
+          basicRotated: {
+            type: Boolean,
+            observer: "_updateInnerTransform",
+            value: false
+          },
+          //If true, rotated's value for transform will come from basicRotate,
+          //not normal rotate. Designed to switch between rotated and
+          //basicRotated, which is mainly necessary for during component-
+          //animator.
+          overrideRotated : {
+            type: Boolean,
+            obserer: "_updateInnerTransform",
+            value: false
+          },
+          //If true, content with a slot of "fallback" will be rendered
+          //instead of the normal front content. boardgame-component-animator
+          //uses this functionality to inject old content that technically has
+          //disappeared when a card flips, so that visually the content
+          //doesn't disappear before the flip.
+          noContent: {
+            type: Boolean,
+            value: false,
+          },
+          //If true, no animations will be played.
+          noAnimate: {
+            type: Boolean,
+            value: false
+          },
+          //tall will be true IFF the content for the front of the card has a
+          //`tall` attribute. This reflects the *natural* orientation of the
+          //card, and should be the same for all cards of a given type without
+          //changing. If a card is tall, its size for layout will have its
+          //major axis be the vertical axis.
+          tall: {
+            type: Boolean,
+            value: false,
+            readOnly: true,
+          },
+          //id  should be set to the component's Id from the framework.
+          //boardgame-component-animator will look for this id to figure out
+          //which cards are logically the same and thus should be animated
+          //from one place to another.
+          id: String,
+          //if true, the card will be rendered differently, no card-tapped
+          //events will be triggered.
+          disabled: {
+            type: Boolean,
+            value: false
+          },
+          //True if the card is neither disabled nor a spacer.
+          interactive: {
+            type: Boolean,
+            readOnly: true,
+            computed: "_computeInteractive(spacer, disabled)"
+          },
+          //If true, the card is "empty" and should take up space but not
+          //render a card. Useful for sizedStacks that have an empty slot.
+          spacer: {
+            type: Boolean,
+            reflectToAttribute: true,
+            value: false
+          },
+          //if true, no drop-shadow will be rendered. boardgame-card- stack
+          //will set this in some cases, like in a stack, so that all of the
+          //shadows for 10's of cards don't multiply together.
+          noShadow: Boolean,
+          _animating: {
+            type: Boolean,
+            value: false
+          },
+          _binder: Object
+        }
+      }
+
+      handleTap(e) {
+        if (!this.interactive) {
+          return;
+        }
+        this.dispatchEvent(new CustomEvent('card-tapped', {composed: true, detail: {index: this.index}}));
+      }
+
+      ready() {
+        super.ready();
+        this.$.inner.addEventListener("transitionend", e => this._animationEnded(e));
+        this.$['front-slot'].addEventListener("slotchange", e => this._frontChanged());
+        this._frontChanged();
+      }
+
+      _itemChanged(newValue) {
+        if (newValue === undefined) return;
+        if (newValue === null) {
+          this.spacer = true;
+          this.noContent = true;
+          this.faceUp = false;
+          this.cardType = "";
+          return;
+        }
+        if (newValue.Values) {
+          this.faceUp = true;
+          this.noContent = false;
+        } else {
+          this.faceUp = false;
+          this.noContent = true;
+        }
+        if (newValue.Deck) {
+          this.cardType = newValue.GameName + "-deck-" + newValue.Deck + "-card";
+        } else {
+          this.cardType = "";
+        }
+        this.id = newValue.Id || "";
+        if (this._binder) this._binder.item = newValue;
+      }
+
+      _frontChanged() {
+        var nodes = this.$["front-slot"].assignedNodes();
+        var newValue = false;
+        for (var i = 0; i < nodes.length; i++) {
+          var node = nodes[i];
+          if (node.nodeType != 1) continue;
+          if (node.hasAttribute("tall")) {
+            newValue = true;
+            break;
+          }
+        }
+        this._setTall(newValue);
+      }
+
+      _cardTypeChanged(newValue) {
+        if (this._binder) {
+          this._binder.parentElement.removeChild(this._binder);
+          this._binder = null;
+        }
+        if (!newValue) return;
+        var template = Polymer.DomModule.import(newValue, "template");
+        if (!template) {
+          console.warn("couldn't find template for id " + newValue);
+          return;
+        }
+        var clone = document.importNode(template, true);
+        var bind = document.createElement("dom-bind");
+        bind.appendChild(clone);
+        this.appendChild(bind);
+        bind.item = this.item;
+        this._binder = bind;
+      }
+
+      _rotatedChanged(newValue) {
+        //there's a class of bugs where basicRotation isn't set the same as
+        //rotation at beginning of rotation. The most recent one was when
+        //moving a card that DIDN'T flip faceUp but did change from not
+        //rotated to rotated, the first animation wouldn't work. To fix that,
+        //we have basicRotated mirror rotated whenever rotated is explicitly
+        //set, to verify basicRotated defaults to a reasonable value.
+        this.basicRotated = newValue;
+        this._updateInnerTransform();
+      }
+
+      _updateInnerTransform() {
+        var transformPieces = ["scale(var(--card-effective-scale))"];
+        //Chrome Canary used to interprolate fine if you left out the 0deg
+        //rotation term, but then broke. Setting it explicitly fixes the bug.
+        transformPieces.push(this.faceUp ? "rotateY(180deg)" : "rotateY(0deg)");
+        transformPieces.push(((this.overrideRotated) ? this.basicRotated : this.rotated) ? "rotate(90deg)" : "rotate(0deg)");
+        var transform = transformPieces.join(" ")
+        if (!transform) {
+          transform = "none";
+        }
+        this.$.inner.style.transform = transform;
+        if (!this.noAnimate) {
+          this._animating = true;
+        }
+      }
+
+      _animationEnded(e) {
+        this._animating = false;
+      }
+
+      _computeInteractive(spacer, disabled) {
+        return !spacer && !disabled;
+      }
+
+      _classes(spacer, noShadow, rotated, interactive, disabled, noContent, noAnimate, tall) {
+        let result = ["card"];
+        if (spacer) {
+          result.push("spacer");
+        }
+        if (!noShadow) {
+          result.push("shadow");
+        }
+        if (rotated) {
+          result.push("rotated");
+        }
+        if (interactive) {
+          result.push("interactive");
+        }
+        if (disabled) {
+          result.push("disabled");
+        }
+        if (noContent) {
+          result.push("no-content")
+        }
+        if (noAnimate) {
+          result.push("no-animate")
+        }
+        result.push(tall ? "tall" : "wide");
+        return result.join(" ");
+      }
+    }
+
+    customElements.define(BoardgameComponent.is, BoardgameComponent);
+  </script>
+</dom-module>
