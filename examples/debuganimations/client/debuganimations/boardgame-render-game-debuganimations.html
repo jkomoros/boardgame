@@ -67,6 +67,10 @@
         @apply --layout-horizontal;
       }
 
+      #tokens {
+        @apply --layout-horizontal;
+      }
+
     </style>
     <div id="container" class$="{{_classes(slowAnimations)}}">
       <div id="controls">
@@ -74,13 +78,14 @@
         <paper-toggle-button checked="{{toStackRotated}}">To Rotated</paper-toggle-button>
         <paper-toggle-button checked="{{messy}}">Messy</paper-toggle-button>
         <paper-toggle-button checked="{{slowAnimations}}">Slow Animation</paper-toggle-button>
-        <paper-toggle-button checked="{{tokenHighlighted}}">Token Highlighted</paper-toggle-button>
-        <paper-toggle-button checked="{{tokenActive}}">Token Active</paper-toggle-button>
         From scale:<paper-slider min="0.5" max="2.0" value="{{fromCardScale}}" pin step=".05"></paper-slider>
         To Scale: <paper-slider min="0.5" max="2.0" value="{{toCardScale}}" pin step=".05"></paper-slider>
       </div>
       <div id="tokens">
         <boardgame-token color="green" highlighted="{{tokenHighlighted}}" active="{{tokenActive}}"></boardgame-token>
+        <div class="flex"></div>
+        <paper-toggle-button checked="{{tokenHighlighted}}">Token Highlighted</paper-toggle-button>
+        <paper-toggle-button checked="{{tokenActive}}">Token Active</paper-toggle-button>
       </div>
       <div id='shortstacks'>
         <boardgame-card-stack layout='stack' stack="{{state.Game.FirstShortStack}}" messy="{{messy}}">
