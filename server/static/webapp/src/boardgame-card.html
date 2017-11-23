@@ -199,7 +199,7 @@
 
     </style>
 
-    <div id="outer" class$="{{_classes(spacer, noShadow, rotated, interactive, disabled, noContent, noAnimate, tall)}}" on-tap="handleTap">
+    <div id="outer" class$="{{_classes}}" on-tap="handleTap">
       <div id="inner">
         <div id="front">
           <div class="normal">
@@ -303,9 +303,16 @@
             type: Boolean,
             value: false
           },
-          _binder: Object
+          _binder: Object,
         }
       }
+
+      static get observers() {
+        return [
+          "_updateClasses(spacer, noShadow, interactive, disabled, noAnimate, noContent, rotated, tall)"
+        ]
+      }
+
 
       ready() {
         super.ready();
@@ -402,16 +409,17 @@
         super._itemChanged(newValue);
       }
 
-      _classes(spacer, noShadow, rotated, interactive, disabled, noContent, noAnimate, tall) {
+      //Override _computeClasses and add some more.
+      _computeClasses() {
         let result = ["card"];
-        if (rotated) {
+        if (this.rotated) {
           result.push("rotated");
         }
-        if (noContent) {
+        if (this.noContent) {
           result.push("no-content")
         }
-        result.push(tall ? "tall" : "wide");
-        result.push(super._classes(spacer, noShadow, interactive, disabled, noAnimate));
+        result.push(this.tall ? "tall" : "wide");
+        result.push(super._computeClasses());
         return result.join(" ");
       }
 

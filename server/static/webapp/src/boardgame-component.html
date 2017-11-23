@@ -2,6 +2,22 @@
 
 <dom-module id="boardgame-component">
 
+  <template>
+    <style>
+      /* TODO: more of the style info goes here for shadows, etc */
+
+    </style>
+
+    <!-- subclass style should be inserted here -->
+
+    <div id="outer" class$="{{_classes}}" on-tap="handleTap">
+      <div id="inner">
+        <!-- subclass content should be inserted here -->
+      </div>
+    </div>
+
+
+  </template>
 
   <script>
 
@@ -57,7 +73,30 @@
           //will set this in some cases, like in a stack, so that all of the
           //shadows for 10's of cards don't multiply together.
           noShadow: Boolean,
+
+          //set _classes to change the classes that are set. call
+          //_updateClasses() and it will call _computedClasses. When you
+          //override _computedClasses, just add a new item in the observers
+          //array that lists all the dependencies. Idelaly this would just be
+          //a computed property thta you'd override how it was computed in
+          //subclasses, but Polymer doesn't let you re-define a computed
+          //property in a subclass.
+          _classes: {
+            type: String,
+          }
         }
+      }
+
+      static get observers() {
+        return [
+          "_updateClasses(spacer, noShadow, interactive, disabled, noAnimate)",
+        ]
+      }
+
+      _updateClasses() {
+        //We can ignore the arguments, all that's necessary is that we're
+        //called whenever the value could have changed.
+        this._classes = this._computeClasses();
       }
 
       handleTap(e) {
@@ -80,21 +119,21 @@
         return !spacer && !disabled;
       }
 
-      _classes(spacer, noShadow, interactive, disabled, noAnimate) {
+      _computeClasses() {
         let result = [];
-        if (spacer) {
+        if (this.spacer) {
           result.push("spacer");
         }
-        if (!noShadow) {
+        if (!this.noShadow) {
           result.push("shadow");
         }
-        if (interactive) {
+        if (this.interactive) {
           result.push("interactive");
         }
-        if (disabled) {
+        if (this.disabled) {
           result.push("disabled");
         }
-        if (noAnimate) {
+        if (this.noAnimate) {
           result.push("no-animate")
         }
         return result.join(" ");
