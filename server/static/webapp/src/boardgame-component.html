@@ -4,7 +4,54 @@
 
   <template>
     <style>
-      /* TODO: more of the style info goes here for shadows, etc */
+      :root {
+        /* These are copied and lightly modified from paper-styles/shadow, because we need rotated versions, too. */
+        --shadow-elevation-normal: {
+          box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14),
+                      0 1px 5px 0 rgba(0, 0, 0, 0.12),
+                      0 3px 1px -2px rgba(0, 0, 0, 0.2);
+        };
+
+        --shadow-elevation-raised: {
+          box-shadow: 0 8px 10px 1px rgba(0, 0, 0, 0.14),
+                      0 3px 14px 2px rgba(0, 0, 0, 0.12),
+                      0 5px 5px -3px rgba(0, 0, 0, 0.4);
+        };
+
+      }
+
+      .spacer {
+        visibility: hidden;
+      }
+
+      #outer.interactive {
+        cursor: pointer;
+      }
+
+      .no-animate #inner {
+        transition: unset;
+      }
+
+      .disabled {
+        filter: saturate(60%);
+      }
+
+      #outer {
+        cursor: default;
+      }
+
+      #outer.shadow #inner {
+        @apply --shadow-elevation-normal;
+      }
+
+      #outer.shadow.interactive:hover #inner {
+        @apply --shadow-elevation-raised;
+      }
+
+      #inner {
+        /* The second part of this transition is from paper-styles/shadow, because we need to do our own to get rotated */
+        transition: transform var(--animation-length, 0.25s) ease-in-out, box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+      }
 
     </style>
 
@@ -20,7 +67,6 @@
   </template>
 
   <script>
-
     class BoardgameComponent extends Polymer.Element {
 
       static get is() {
