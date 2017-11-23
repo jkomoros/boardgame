@@ -11,6 +11,7 @@
 <link rel="import" href="../../src/boardgame-card.html">
 <link rel="import" href="../../src/boardgame-card-stack.html">
 <link rel="import" href="../../src/boardgame-fading-text.html">
+<link rel="import" href="../../src/boardgame-token.html">
 
 <dom-module id="debuganimations-deck-cards-card">
   <template>
@@ -75,6 +76,9 @@
         <paper-toggle-button checked="{{slowAnimations}}">Slow Animation</paper-toggle-button>
         From scale:<paper-slider min="0.5" max="2.0" value="{{fromCardScale}}" pin step=".05"></paper-slider>
         To Scale: <paper-slider min="0.5" max="2.0" value="{{toCardScale}}" pin step=".05"></paper-slider>
+      </div>
+      <div id="tokens">
+        <boardgame-token></boardgame-token>
       </div>
       <div id='shortstacks'>
         <boardgame-card-stack layout='stack' stack="{{state.Game.FirstShortStack}}" messy="{{messy}}">
@@ -163,6 +167,7 @@
         </boardgame-card-stack>
         <paper-button propose-move="Move Between Hidden">Draw</paper-button>
       </div>
+
     </div>
   </template>
 

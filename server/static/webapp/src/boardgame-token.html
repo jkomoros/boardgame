@@ -3,6 +3,20 @@
 
 <dom-module id="boardgame-token">
 
+	<template>
+		<style>
+			#token {
+				height:2em;
+				width: 2em;
+				background-color: red;
+				border-radius: 1em;
+			}
+
+		</style>
+		<div id="token" class$="{{ _classes(spacer, noShadow, interactive, disabled, noAnimate)}}" on-tap="handleTap">
+
+		</div>
+	</template>
 
   <script>
 
