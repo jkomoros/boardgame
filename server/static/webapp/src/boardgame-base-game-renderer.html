@@ -27,7 +27,7 @@
       ready() {
         super.ready();
         this.addEventListener("tap", e => this._handleButtonTapped(e));
-        this.addEventListener("card-tapped", e => this._handleButtonTapped(e));
+        this.addEventListener("component-tapped", e => this._handleButtonTapped(e));
       }
 
       _computeIsCurrentPlayer(currentPlayerIndex, viewingAsPlayer) {
@@ -51,8 +51,8 @@
         if (!ele) {
           return;
         }
-        if (ele.localName == "boardgame-card" && e.type == "tap") {
-          //Cards we'll fire on the card-tapped, not the tap.
+        if ((ele.localName == "boardgame-card" || ele.localName == "boardgame-component") && e.type == "tap") {
+          //Cards we'll fire on the component-tapped, not the tap.
           return;
         }
         var moveName = ele.getAttribute("propose-move");

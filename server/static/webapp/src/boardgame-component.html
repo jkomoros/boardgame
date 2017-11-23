@@ -14,7 +14,7 @@
       static get properties() {
         return {
           //Index is the index of this card in the stack. Included in
-          //card-tapped events.
+          //component-tapped events.
           index: Number,
           //If item is set, it is assumed to be a Component from a stack in a
           //state. faceUp, coContent, spacer, and id will all be set based on
@@ -34,8 +34,8 @@
           //which cards are logically the same and thus should be animated
           //from one place to another.
           id: String,
-          //if true, the card will be rendered differently, no card-tapped
-          //events will be triggered.
+          //if true, the card will be rendered differently, no component-
+          //tapped events will be triggered.
           disabled: {
             type: Boolean,
             value: false
@@ -64,7 +64,7 @@
         if (!this.interactive) {
           return;
         }
-        this.dispatchEvent(new CustomEvent('card-tapped', {composed: true, detail: {index: this.index}}));
+        this.dispatchEvent(new CustomEvent('component-tapped', {composed: true, detail: {index: this.index}}));
       }
 
       _itemChanged(newValue) {
