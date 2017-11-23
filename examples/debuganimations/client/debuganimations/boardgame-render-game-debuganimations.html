@@ -74,11 +74,13 @@
         <paper-toggle-button checked="{{toStackRotated}}">To Rotated</paper-toggle-button>
         <paper-toggle-button checked="{{messy}}">Messy</paper-toggle-button>
         <paper-toggle-button checked="{{slowAnimations}}">Slow Animation</paper-toggle-button>
+        <paper-toggle-button checked="{{tokenHighlighted}}">Token Highlighted</paper-toggle-button>
+        <paper-toggle-button checked="{{tokenActive}}">Token Active</paper-toggle-button>
         From scale:<paper-slider min="0.5" max="2.0" value="{{fromCardScale}}" pin step=".05"></paper-slider>
         To Scale: <paper-slider min="0.5" max="2.0" value="{{toCardScale}}" pin step=".05"></paper-slider>
       </div>
       <div id="tokens">
-        <boardgame-token color="green"></boardgame-token>
+        <boardgame-token color="green" highlighted="{{tokenHighlighted}}" active="{{tokenActive}}"></boardgame-token>
       </div>
       <div id='shortstacks'>
         <boardgame-card-stack layout='stack' stack="{{state.Game.FirstShortStack}}" messy="{{messy}}">
@@ -208,6 +210,14 @@
           toCardScale: {
             type: Number,
             value: 1.0
+          },
+          tokenActive: {
+            type: Boolean,
+            value: false,
+          },
+          tokenHighlighted: {
+            type: Boolean,
+            value: false,
           }
         }
       }
