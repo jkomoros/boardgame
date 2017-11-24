@@ -150,6 +150,9 @@
     (function(){ 
 
       var sharedStackList = [];
+      //Anytime that we see that a given stack has a given component type we
+      //remember it for future componentType gets.
+      var deckComponentType = {};
 
       BoardgameComponentStack = class extends Polymer.Element {
 
@@ -222,6 +225,10 @@
               type: Number,
               value: 0
             },
+            //Overrides componentType() if the auto-set characteristics aren't
+            //sufficient.
+            manualComponentType: String,
+
             _createSpacer: Boolean,
             _fauxComponentsToAdd: Array,
             _randomRotationOffset: {
@@ -245,6 +252,39 @@
           return sharedStackList;
         }
 
+        //type is the type of component that we contain. It is set based on
+        //manualComponenType, then the type of any components we've last seen,
+        //then defaults to "card".
+        get componentType() {
+
+          if (this.stack) {
+            if (deckComponentType[this.stack.Deck]) {
+              return deckComponentType[this.stack.Deck]
+            }
+          }
+
+          let result = this.manualComponentType;
+
+          if (!result) {
+            let components = this._realComponents;
+            if (components.length && components.length > 0) {
+              let component = components[0];
+              result = component.localName.replace("boardgame-", "");
+            }
+          }
+
+          if (result) {
+            if (this.stack) {
+              deckComponentType[this.stack.Deck] = result;
+            }
+
+            return result;
+          }
+
+          //Whatever, just return "card", I guess...
+          return "card";
+        }
+
         _computeEffectiveCardType(stack) {
           if (!stack) return "";
           var deck = stack.Deck;
@@ -263,7 +303,7 @@
             if (components[i].localName != "boardgame-card") {
               continue;
             }
-            
+
             totalCards++;
             if (components[i].rotated) {
               rotatedCards++
