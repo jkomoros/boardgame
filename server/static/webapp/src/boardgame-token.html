@@ -5,76 +5,77 @@
 
 	<template>
 		<style>
-			#inner {
-				height:30px;
-				width: 30px;	
-			}
 
-			#inner img {
-				height: 100%;
-				width: 100%;
-				display: none;
-			}
+		#inner {
+			height: var(--component-effective-height);
+			width: var(--component-effective-width);
+		}
 
-			#outer.cube img {
-				display: block;
-			}
+		#inner img {
+			height: 100%;
+			width: 100%;
+			display: none;
+		}
 
-			#outer.chip #inner {
-				border-radius: 1em;
-			}
+		#outer.cube img {
+			display: block;
+		}
 
-			#outer.active #inner {
-        filter: drop-shadow(0 0 0.25em rgba(204,204,160,1.0));
-      }
+		#outer.chip #inner {
+			border-radius: 1em;
+		}
 
-      #outer.highlighted #inner{
-        filter: drop-shadow(0 0 0.25em rgba(0,0,0,1.0));
-      }
+		#outer.active #inner {
+      filter: drop-shadow(0 0 0.25em rgba(204,204,160,1.0));
+    }
 
-      #outer.active.highlighted #inner {
-        filter: drop-shadow(0 0 0.25em rgba(255,255,0,1.0));
-      }
+    #outer.highlighted #inner{
+      filter: drop-shadow(0 0 0.25em rgba(0,0,0,1.0));
+    }
 
-			#outer.gray #inner {
-        background-color: gray;
-      }
+    #outer.active.highlighted #inner {
+      filter: drop-shadow(0 0 0.25em rgba(255,255,0,1.0));
+    }
 
-      #outer.green #inner {
-        background-color: green;
-      }
+		#outer.gray #inner {
+      background-color: gray;
+    }
 
-      #outer.teal #inner {
-        background-color: teal;
-      }
+    #outer.green #inner {
+      background-color: green;
+    }
 
-      #outer.purple #inner {
-        background-color: purple;
-      }
+    #outer.teal #inner {
+      background-color: teal;
+    }
 
-      #outer.pink #inner {
-        background-color: pink;
-      }
+    #outer.purple #inner {
+      background-color: purple;
+    }
 
-      #outer.red #inner {
-        background-color: red;
-      }
+    #outer.pink #inner {
+      background-color: pink;
+    }
 
-      #outer.blue #inner {
-        background-color: blue;
-      }
+    #outer.red #inner {
+      background-color: red;
+    }
 
-      #outer.orange #inner {
-        background-color: orange;
-      }
+    #outer.blue #inner {
+      background-color: blue;
+    }
 
-      #outer.black #inner {
-        background-color: black;
-      }
+    #outer.orange #inner {
+      background-color: orange;
+    }
 
-      #outer.cube #inner {
-      	background-color: inherit;
-      }
+    #outer.black #inner {
+      background-color: black;
+    }
+
+    #outer.cube #inner {
+    	background-color: inherit;
+    }
 
 		</style>
 		<div id="import">

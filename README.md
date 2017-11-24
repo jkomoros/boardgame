@@ -1077,7 +1077,7 @@ Their implementation is non-trivial and handles many edge cases and conditions t
 boardgame-cards are the basic cards. You can instantiate yourself and set their various properties,
 but in practice it is best to bind their `item` attribute to each component item in the state.
 
-boardgame-card's size can be affected by two css properties: --card-scale (a float, with 1.0 being default size) and --card-aspect-ratio (a float, defaulting to 0.6666). Cards are always 100px width by default, with scale affecting the amount of space they take up physically in the layout, as well as applying a transform to their contents to get them to be the right size. --card-aspect-ratio changes how long the minor-axis is compared to the first. If the scale and aspect-ratio are set based on the position in the layout, the size will animate smoothly.
+boardgame-card's size can be affected by two css properties: --component-scale (a float, with 1.0 being default size) and --card-aspect-ratio (a float, defaulting to 0.6666). Cards are always 100px width by default, with scale affecting the amount of space they take up physically in the layout, as well as applying a transform to their contents to get them to be the right size. --card-aspect-ratio changes how long the minor-axis is compared to the first. If the scale and aspect-ratio are set based on the position in the layout, the size will animate smoothly.
 
 It can be finicky to set all of the cards correctly for the animation to work as
 you want; the easiest way is to set boardgame-card-stack's stack property to the

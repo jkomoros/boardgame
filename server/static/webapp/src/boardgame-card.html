@@ -33,14 +33,10 @@
         };
       }
 
-      :host {
-        --default-card-scale: 1.0;
+      :root {
         /* note that boardgame-card-stack has a couple of hard-coded margins based on this value in its stylesheet */
-        --default-card-width: 100px;
-        --card-effective-scale: var(--card-scale, var(--default-card-scale));
-        --card-effective-width: calc(var(--card-effective-scale) * var(--default-card-width));
-        --card-effective-aspect-ratio: var(--card-aspect-ratio, 0.6666666);
-        --card-effective-height: calc(var(--card-effective-width) * var(--card-effective-aspect-ratio));
+        --default-component-width: 100px;
+        --default-component-aspect-ratio: 0.66666;
         --card-effective-border-radius: 5px;
       }
 
@@ -63,8 +59,8 @@
       }
 
       #outer {
-        height: var(--card-effective-height);
-        width: var(--card-effective-width);
+        height: var(--component-effective-height);
+        width: var(--component-effective-width);
         @apply --layout-vertical;
         @apply --layout-center;
         @apply --layout-center-justified;
@@ -72,25 +68,25 @@
       }
 
       #outer.tall {
-        height: var(--card-effective-width);
-        width: var(--card-effective-height);
+        height: var(--component-effective-width);
+        width: var(--component-effective-height);
       }
 
       #outer.rotated {
-        height: var(--card-effective-width);
-        width: var(--card-effective-height);
+        height: var(--component-effective-width);
+        width: var(--component-effective-height);
       }
 
       #outer.tall.rotated {
-        height: var(--card-effective-height);
-        width: var(--card-effective-width);
+        height: var(--component-effective-height);
+        width: var(--component-effective-width);
       }
 
       #inner {
 
-        width: var(--default-card-width);
-        height: calc(var(--default-card-width) * var(--card-effective-aspect-ratio));
-        transform: scale(var(--card-effective-scale));
+        width: var(--default-component-width);
+        height: calc(var(--default-component-width) * var(--component-effective-aspect-ratio));
+        transform: scale(var(--component-effective-scale));
 
         border-radius: var(--card-effective-border-radius);
 
@@ -100,8 +96,8 @@
       }
 
       .tall #inner {
-        height: var(--default-card-width);
-        width: calc(var(--default-card-width) * var(--card-effective-aspect-ratio)); 
+        height: var(--default-component-width);
+        width: calc(var(--default-component-width) * var(--component-effective-aspect-ratio)); 
       }
 
       #outer.shadow.rotated #inner {
@@ -357,7 +353,7 @@
         }
 
         _updateInnerTransform() {
-          var transformPieces = ["scale(var(--card-effective-scale))"];
+          var transformPieces = ["scale(var(--component-effective-scale))"];
           //Chrome Canary used to interprolate fine if you left out the 0deg
           //rotation term, but then broke. Setting it explicitly fixes the bug.
           transformPieces.push(this.faceUp ? "rotateY(180deg)" : "rotateY(0deg)");
