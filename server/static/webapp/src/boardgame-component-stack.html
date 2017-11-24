@@ -285,6 +285,12 @@
           return "card";
         }
 
+        //Returns a new component for this stack set reasonably, based on
+        //componentType and _effectiveCardType.z
+        newComponent() {
+          return document.createElement("boardgame-" + this.componentType);
+        }
+
         _computeEffectiveCardType(stack) {
           if (!stack) return "";
           var deck = stack.Deck;
@@ -373,7 +379,7 @@
 
         //Returns a new card to animate its position. When its transition ends it will be removed.
         newAnimatingComponent() {
-          var component = document.createElement("boardgame-card");
+          var component = this.newComponent();
           component.noAnimate = true;
           component.noContent = true;
           this.setUnknownAnimationState(component);
