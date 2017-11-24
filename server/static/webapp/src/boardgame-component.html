@@ -156,6 +156,14 @@
           //used, but with a lower fidelity rendering.
           altShadow: Boolean,
 
+          //boardgameComponent reflects the attribute boardgame-component to
+          //all subclasses, allowing htem to be selected via CSS.
+          boardgameComponent: {
+            type: Boolean,
+            reflectToAttribute: true,
+            value: true
+          },
+
           //set _classes to change the classes that are set. call
           //_updateClasses() and it will call _computedClasses. When you
           //override _computedClasses, just add a new item in the observers
