@@ -259,7 +259,11 @@
           var rotatedCards = 0;
           var totalCards = 0;
           for (var i = 0; i < components.length; i++) {
-            //TODO: skip things that aren't cards
+
+            if (components[i].localName != "boardgame-card") {
+              continue;
+            }
+            
             totalCards++;
             if (components[i].rotated) {
               rotatedCards++
