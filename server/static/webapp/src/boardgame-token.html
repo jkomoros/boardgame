@@ -6,8 +6,21 @@
 	<template>
 		<style>
 			#inner {
-				height:20px;
-				width: 20px;
+				height:30px;
+				width: 30px;	
+			}
+
+			#inner img {
+				height: 100%;
+				width: 100%;
+				display: none;
+			}
+
+			#outer.cube img {
+				display: block;
+			}
+
+			#outer.chip #inner {
 				border-radius: 1em;
 			}
 
@@ -59,7 +72,14 @@
         background-color: black;
       }
 
+      #outer.cube #inner {
+      	background-color: inherit;
+      }
+
 		</style>
+		<div id="import">
+			<img src="{{_asset}}">
+		</div>
 	</template>
 
   <script>
@@ -81,6 +101,15 @@
 	    			//highlighted has a different visual style than active. different
 	    			//games will use it for different things.
 	    			highlighted: Boolean,
+	    			//The type of token. Supported values: "chip", "cube"
+	    			type: {
+	    				type: String,
+	    				value: "chip"
+	    			},
+	    			_asset: {
+	    				type: String,
+	    				computed: "_computeAsset(type)"
+	    			}
 	    		}
 	    	}
 
@@ -102,6 +131,19 @@
           ]
         }
 
+        ready() {
+        	super.ready();
+        	this._cubeAsset = this.resolveUrl("token-cube.svg");
+        }
+
+        _computeAsset(type) {
+        	switch (type) {
+        		case "cube":
+        			return this.resolveUrl("token-cube.svg")
+        	}
+        	return "";
+        }
+
         //Override _computeClasses and add some more.
         _computeClasses() {
         	let result = [this.color];
@@ -111,6 +153,7 @@
         	if (this.highlighted) {
         		result.push("highlighted");
         	}
+        	result.push(this.type);
           result.push(super._computeClasses());
           return result.join(" ");
         }
