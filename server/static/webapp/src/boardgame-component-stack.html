@@ -23,16 +23,16 @@
         @apply --layout-center;
       }
 
-      #animating-components boardgame-card {
+      #animating-components [boardgame-component] {
         /* don't mess with the general layout because the card will be gone soon */
         position: absolute;
       }
 
-      #container ::slotted(boardgame-card), #container boardgame-card {
+      #container ::slotted([boardgame-component]), #container [boardgame-component] {
         transition: transform var(--animation-length, 0.25s) ease-in-out, opacity var(--animation-length, 0.25s) ease-in-out;
       }
 
-      #container.no-animate ::slotted(boardgame-card), #container.no-animate boardgame-card {
+      #container.no-animate ::slotted([boardgame-component]), #container.no-animate [boardgame-component] {
         transition: unset;
       }
 
@@ -40,14 +40,14 @@
          @apply --layout-wrap;
       }
 
-      #container ::slotted(boardgame-card), #container boardgame-card {
+      #container ::slotted([boardgame-component]), #container [boardgame-component] {
         margin: 1em;
       }
 
       /* most cards in stacks should be at the front, and a few pixels down so
       /* you can see them behind the first few cards */
 
-      .stack ::slotted(boardgame-card), .stack boardgame-card {
+      .stack ::slotted([boardgame-component]), .stack boardgame-card {
         position: absolute;
         top: 6px;
         left: 0px;
@@ -56,7 +56,7 @@
       /* the first child should actually take up layout space for the entire
       /* stack, and not be offset any. */
 
-      .stack ::slotted(boardgame-card:first-child), .stack boardgame-card:first-child, .stack boardgame-card#spacer {
+      .stack ::slotted([boardgame-component]:first-child), .stack [boardgame-component]:first-child, .stack [boardgame-component]#spacer {
         z-index: 10;
         position: relative;
         top:0px;
@@ -64,14 +64,14 @@
 
       /* The second card should stick out justa bit */
 
-      .stack ::slotted(boardgame-card:nth-child(2)), .stack boardgame-card:nth-child(2) {
+      .stack ::slotted([boardgame-component]:nth-child(2)), .stack [boardgame-component]:nth-child(2) {
         top:2px;
         z-index: 9;
       }
 
       /* The third card should stick out just a bit more */
 
-      .stack ::slotted(boardgame-card:nth-child(3)), .stack boardgame-card:nth-child(3) {
+      .stack ::slotted([boardgame-component]:nth-child(3)), .stack [boardgame-component]:nth-child(3) {
         z-index: 8;
         top:4px;
       }
@@ -90,30 +90,30 @@
         display: none;
       }
 
-      .spread ::slotted(boardgame-card:hover), .spread boardgame-card:hover, .fan ::slotted(boardgame-card:hover), .fan boardgame-card:hover {
+      .spread ::slotted([boardgame-component]:hover), .spread [boardgame-component]:hover, .fan ::slotted([boardgame-component]:hover), .fan [boardgame-component]:hover {
         z-index:1;
       }
 
-      #container.spread ::slotted(boardgame-card), #container.spread boardgame-card {
+      #container.spread ::slotted([boardgame-component]), #container.spread [boardgame-component] {
         /* default card width */
         margin-right: calc(100px * -0.75);
       }
 
-      #container.spread ::slotted(boardgame-card.bcc-last), #container.spread boardgame-card.bcc-last {
+      #container.spread ::slotted([boardgame-component].bcc-last), #container.spread [boardgame-component].bcc-last {
         margin-right: 0;
       }
 
-      #container.fan ::slotted(boardgame-card), #container.fan boardgame-card {
+      #container.fan ::slotted([boardgame-component]), #container.fan [boardgame-component] {
         /* default card width */
         margin-right: calc(100px * -0.5);
       }
 
-      #container.fan ::slotted(boardgame-card[rotated]), #container.fan boardgame-card[rotated] {
+      #container.fan ::slotted([boardgame-component][rotated]), #container.fan [boardgame-component][rotated] {
         /* default card width */
         margin-right: calc(100px * -0.25);
       }
 
-      #container.fan ::slotted(boardgame-card.bcc-last), #container.fan boardgame-card.bcc-last {
+      #container.fan ::slotted([boardgame-component].bcc-last), #container.fan [boardgame-component].bcc-last {
         margin-right: 0;
       }
 
@@ -294,7 +294,7 @@
         get offsetComponent() {
           var components = this._realComponents;
           if (components.length > 0) return components[0];
-          var component = this.shadowRoot.querySelector("boardgame-card");
+          var component = this.shadowRoot.querySelector("[boardgame-component]");
           if (component) return component;
           return this;
         }
@@ -451,7 +451,7 @@
           for (var i = 0; i < components.length; i++) {
             var component = components[i];
 
-            if (!component.localName || component.localName != "boardgame-card") {
+            if (!component.localName || component.getAttribute("boardgame-component") !== "") {
               //Skip text nodes and nodes that aren't cards
               continue;
             }
@@ -463,7 +463,7 @@
         }
 
         get _fauxComponents() {
-          var fauxComponents = this.$['faux-components'].querySelectorAll("boardgame-card");
+          var fauxComponents = this.$['faux-components'].querySelectorAll("[boardgame-component]");
 
           return [...fauxComponents];
         }
