@@ -4,7 +4,7 @@
 <link rel="import" href="../bower_components/polymer/lib/elements/dom-if.html">
 <link rel="import" href="boardgame-card.html">
 
-<dom-module id="boardgame-card-stack">
+<dom-module id="boardgame-component-stack">
   <template>
     <style>
 
@@ -23,7 +23,7 @@
         @apply --layout-center;
       }
 
-      #animating-cards boardgame-card {
+      #animating-components boardgame-card {
         /* don't mess with the general layout because the card will be gone soon */
         position: absolute;
       }
@@ -127,34 +127,34 @@
 
     <div id="container" class$="{{_classes(layout, noAnimate)}}">
       <div id="slot-holder">
-        <slot id="cards"></slot>
+        <slot id="components"></slot>
       </div>
       <template is="dom-if" if="{{_createSpacer}}" restamp>
           <boardgame-card spacer id="spacer" card-type="{{_effectiveCardType}}">
           </boardgame-card>
       </template>
-      <div id="faux-cards">
-        <template is="dom-repeat" id="faux-cards-repeater" items="{{_fauxCardsToAdd}}">
+      <div id="faux-components">
+        <template is="dom-repeat" id="faux-components-repeater" items="{{_fauxCardsToAdd}}">
           <boardgame-card index="{{index}}" card-type="{{_effectiveCardType}}">
           </boardgame-card>
         </template>
       </div>
-      <div id="animating-cards"></div>
+      <div id="animating-components"></div>
     </div>
   </template>
 
   <script>
 
-    var BoardgameCardStack;
+    var BoardgameComponentStack;
 
     (function(){ 
 
       var sharedStackList = [];
 
-      BoardgameCardStack = class extends Polymer.Element {
+      BoardgameComponentStack = class extends Polymer.Element {
 
         static get is() {
-          return "boardgame-card-stack"
+          return "boardgame-component-stack"
         }
 
         static get properties() {
@@ -163,7 +163,7 @@
             //`grid`, `spread` and `fan`
             layout: {
               type: String,
-              observer: "_updateCardClasses",
+              observer: "_updateComponentClasses",
               value: "stack"
             },
             //stack should be set to the state value corresponding to a stack.
@@ -194,14 +194,14 @@
             messy: {
               type: Boolean,
               value: false,
-              observer: "_updateCardClasses"
+              observer: "_updateComponentClasses"
             },
             //If the cards are messy, how messy are they? 1.0 is default
             //messiness, 2.0 is twice as messy.
             messiness: {
               type: Number,
               value: 1.0,
-              observer: "_updateCardClasses"
+              observer: "_updateComponentClasses"
             },
             //idsLastSeen should be the IdsLastSeen for the stack that this
             //stack represents. boardgame-component-animator will use this
@@ -218,12 +218,12 @@
             //we'll make fake cards until there are this many cards. This is
             //useful if you have, for example, a very big draw deck and only
             //want to actually render the first few cards.
-            fauxCards: {
+            fauxComponents: {
               type: Number,
               value: 0
             },
             _createSpacer: Boolean,
-            _fauxCardsToAdd: Array,
+            _fauxComponentsToAdd: Array,
             _randomRotationOffset: {
               type: Number,
               value: 0
@@ -255,12 +255,13 @@
         //returns true if it appears that at least some cards in this stack
         //are rotated.
         get cardsRotated() {
-          var cards = this.Cards;
+          var components = this.Components;
           var rotatedCards = 0;
           var totalCards = 0;
-          for (var i = 0; i < cards.length; i++) {
+          for (var i = 0; i < components.length; i++) {
+            //TODO: skip things that aren't cards
             totalCards++;
-            if (cards[i].rotated) {
+            if (components[i].rotated) {
               rotatedCards++
             }
           }
@@ -290,11 +291,11 @@
         }
 
         //offsetCard returns a card in the stack to use for positioning.
-        get offsetCard() {
-          var cards = this._realCards;
-          if (cards.length > 0) return cards[0];
-          var card = this.shadowRoot.querySelector("boardgame-card");
-          if (card) return card;
+        get offsetComponent() {
+          var components = this._realComponents;
+          if (components.length > 0) return components[0];
+          var component = this.shadowRoot.querySelector("boardgame-card");
+          if (component) return component;
           return this;
         }
 
@@ -307,7 +308,7 @@
 
         ready() {
           super.ready();
-          this.$.cards.addEventListener("slotchange", () => this._slotChanged());
+          this.$.components.addEventListener("slotchange", () => this._slotChanged());
           //If the children are already stamped, update now.
           this._slotChanged();
           //Generate a random rotation offset from 0 to 20 that will make this
@@ -327,18 +328,18 @@
         }
 
         //Returns a new card to animate its position. When its transition ends it will be removed.
-        newAnimatingCard() {
-          var card = document.createElement("boardgame-card");
-          card.noAnimate = true;
-          card.noContent = true;
-          this.setUnknownAnimationState(card);
-          this.$["animating-cards"].appendChild(card);
-          card.addEventListener("transitionend", e => this._clearAnimatingCards(e));
-          return card;
+        newAnimatingComponent() {
+          var component = document.createElement("boardgame-card");
+          component.noAnimate = true;
+          component.noContent = true;
+          this.setUnknownAnimationState(component);
+          this.$["animating-components"].appendChild(component);
+          component.addEventListener("transitionend", e => this._clearAnimatingCards(e));
+          return component;
         }
 
-        _clearAnimatingCards(e) {
-          var container = this.$['animating-cards'];
+        _clearAnimatingComponents(e) {
+          var container = this.$['animating-components'];
           while(container.children.length > 0) {
             var child = container.children[0];
             container.removeChild(child);
@@ -442,55 +443,55 @@
           return true;
         }
 
-        get _realCards() {
-          var cards = this.$.cards.assignedNodes();
+        get _realComponents() {
+          var components = this.$.components.assignedNodes();
 
           var result = [];
 
-          for (var i = 0; i < cards.length; i++) {
-            var card = cards[i];
+          for (var i = 0; i < components.length; i++) {
+            var component = components[i];
 
-            if (!card.localName || card.localName != "boardgame-card") {
+            if (!component.localName || component.localName != "boardgame-card") {
               //Skip text nodes and nodes that aren't cards
               continue;
             }
 
-            result.push(card);
+            result.push(component);
           }
 
           return result;
         }
 
-        get _fauxCards() {
-          var fauxCards = this.$['faux-cards'].querySelectorAll("boardgame-card");
+        get _fauxComponents() {
+          var fauxComponents = this.$['faux-components'].querySelectorAll("boardgame-card");
 
-          return [...fauxCards];
+          return [...fauxComponents];
         }
 
-        get Cards() {
-          return this._realCards.concat(this._fauxCards);
+        get Components() {
+          return this._realComponents.concat(this._fauxComponents);
         }
 
         _slotChanged() {
 
-          var realCards = this._realCards;
+          var realComponents = this._realComponents;
 
-          if (realCards.length < this.fauxCards) {
-            this._fauxCardsToAdd = new Array(this.fauxCards - realCards.length);
-            this.$['faux-cards-repeater'].render();
+          if (realComponents.length < this.fauxComponents) {
+            this._fauxComponentsToAdd = new Array(this.fauxComponents - realComponents.length);
+            this.$['faux-components-repeater'].render();
           }
 
-          if (realCards.length < 1 && !this.noDefaultSpacer) {
+          if (realComponents.length < 1 && !this.noDefaultSpacer) {
             this._createSpacer = true;
           } else {
             this._createSpacer = false;
           }
 
-          this._updateCardClasses();
+          this._updateComponentClasses();
 
         }
 
-        _updateCardClasses() {
+        _updateComponentClasses() {
 
           //Called when layout changes, or when items are added or removed from
           //the slot.
@@ -499,48 +500,48 @@
           //shadow setting was explicilty set by the element to start) seems
           //like a smell. However, doing this just with CSS was quite hard.
 
-          var cards = this.Cards;
+          var components = this.Components;
 
-          for (var i = 0; i < cards.length; i++) {
-            var card = cards[i];
+          for (var i = 0; i < components.length; i++) {
+            var component = components[i];
 
             var classes = ["bcc-last"];
 
             for (var j = 0; j < classes.length; j++) {
-              card.classList.remove(classes[j]);
+              component.classList.remove(classes[j]);
             }
 
             if (this.messy) {
-              card.style.transform = "rotate(" + this._messyRotationForIndex(i) + "deg)";
+              component.style.transform = "rotate(" + this._messyRotationForIndex(i) + "deg)";
             } else {
               //_fanCards assumes that the transform has been "reset" in this layout pass.
-              card.style.transform = "";
+              component.style.transform = "";
             }
 
-            if (i == cards.length - 1) {
-              card.classList.add("bcc-last");
+            if (i == components.length - 1) {
+              component.classList.add("bcc-last");
             }
 
             if (this.layout != "stack") {
-              card.noShadow = false;
+              component.noShadow = false;
               continue
             }
 
             if (i < 4) {
-              card.noShadow = false;
+              component.noShadow = false;
             } else {
-              card.noShadow = true;
+              component.noShadow = true;
             }
           }
 
           if (this.layout == "fan") {
-            this._fanCards();
+            this._fanComponents();
           }
 
         }
 
-        _fanCards() {
-          var cards = this.Cards;
+        _fanComponents() {
+          var components = this.Components;
 
           //TODO: set the amount of max rotation based on length of stack;
           var maxRotation = 20;
@@ -549,7 +550,7 @@
           var maxTranslate = -1.0;
           var minTranslate = 1.5;
           
-          if (cards.length < 8 && this.cardsRotated || !this.cardsRotated && cards.length < 3) {
+          if (components.length < 8 && this.cardsRotated || !this.cardsRotated && components.length < 3) {
             var percent = 0.5
             maxRotation *= percent;
             minRotation *= percent;
@@ -561,10 +562,10 @@
           var translateSpread = maxTranslate - minTranslate;
 
 
-          for (var i = 0; i < cards.length; i++) {
-              var card = cards[i];
+          for (var i = 0; i < components.length; i++) {
+              var component = components[i];
 
-              var percent = (i / (cards.length - 1));
+              var percent = (i / (components.length - 1));
 
               var rotation = percent * rotationSpread + minRotation;
 
@@ -581,7 +582,7 @@
 
               var translateTransformation = "translateY(" + translate + "em)";
 
-              card.style.transform += rotationTransformation + " " + translateTransformation;
+              component.style.transform += rotationTransformation + " " + translateTransformation;
 
           }
 
@@ -630,6 +631,6 @@
 
     })();
 
-    customElements.define(BoardgameCardStack.is, BoardgameCardStack);
+    customElements.define(BoardgameComponentStack.is, BoardgameComponentStack);
   </script>
 </dom-module>

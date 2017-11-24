@@ -9,7 +9,7 @@
 <link rel="import" href="../../bower_components/paper-slider/paper-slider.html">
 <link rel="import" href="../../src/boardgame-base-game-renderer.html">
 <link rel="import" href="../../src/boardgame-card.html">
-<link rel="import" href="../../src/boardgame-card-stack.html">
+<link rel="import" href="../../src/boardgame-component-stack.html">
 <link rel="import" href="../../src/boardgame-fading-text.html">
 <link rel="import" href="../../src/boardgame-token.html">
 
@@ -47,7 +47,7 @@
         @apply --layout-horizontal;
       }
 
-      #fan boardgame-card-stack:first-child {
+      #fan boardgame-component-stack:first-child {
         --component-scale:1.2;
       }
 
@@ -88,62 +88,62 @@
         <paper-toggle-button checked="{{tokenActive}}">Token Active</paper-toggle-button>
       </div>
       <div id='shortstacks'>
-        <boardgame-card-stack layout='stack' stack="{{state.Game.FirstShortStack}}" messy="{{messy}}">
+        <boardgame-component-stack layout='stack' stack="{{state.Game.FirstShortStack}}" messy="{{messy}}">
           <template is='dom-repeat'>
             <boardgame-card item="{{item}}" index="{{index}}" propose-move="Move Card Between Short Stacks">
             </boardgame-card>
           </template>
-        </boardgame-card-stack>
-        <boardgame-card-stack layout='stack' messy="{{messy}}" stack="{{state.Game.SecondShortStack}}">
+        </boardgame-component-stack>
+        <boardgame-component-stack layout='stack' messy="{{messy}}" stack="{{state.Game.SecondShortStack}}">
           <template is='dom-repeat'>
             <boardgame-card item="{{item}}" index="{{index}}">
             </boardgame-card>
           </template>
-        </boardgame-card-stack>
+        </boardgame-component-stack>
         <paper-button propose-move="Move Card Between Short Stacks">Swap</paper-button>
       </div>
 
       <div id='draw'>
-        <boardgame-card-stack layout='stack' messy="{{messy}}" stack="{{state.Game.DrawStack}}">
+        <boardgame-component-stack layout='stack' messy="{{messy}}" stack="{{state.Game.DrawStack}}">
           <template is='dom-repeat'>
             <boardgame-card item="{{item}}" index="{{index}}">
             </boardgame-card>
           </template>
-        </boardgame-card-stack>
-        <boardgame-card-stack layout='stack' messy="{{messy}}" stack="{{state.Game.DiscardStack}}">
+        </boardgame-component-stack>
+        <boardgame-component-stack layout='stack' messy="{{messy}}" stack="{{state.Game.DiscardStack}}">
           <template is='dom-repeat'>
             <boardgame-card item="{{item}}" index="{{index}}">
             </boardgame-card>
           </template>
-        </boardgame-card-stack>
+        </boardgame-component-stack>
         <paper-button propose-move="Move Card Between Draw and Discard Stacks">Draw</paper-button>
         <boardgame-fading-text trigger="{{state.Game.DrawStack.Components.length}}" auto-message="diff"></boardgame-fading-text>
       </div>
 
       <div id='draw'>
-        <boardgame-card-stack layout='stack' messy="{{messy}}" primary-stack="{{state.Game.HiddenCard}}" secondary-stack="{{state.Game.RevealedCard}}"> 
+        <boardgame-component-stack layout='stack' messy="{{messy}}" primary-stack="{{state.Game.HiddenCard}}" secondary-stack="{{state.Game.RevealedCard}}"> 
           <template is='dom-repeat'>
             <boardgame-card index="{{index}}" item="{{item}}">
             </boardgame-card>
           </template>
-        </boardgame-card-stack>
+        </boardgame-component-stack>
         <paper-button propose-move="Flip Card Between Hidden and Revealed">Flip</paper-button>
       </div>
 
       <div id="fan">
-        <boardgame-card-stack layout='{{fromStackLayout}}' messy="{{messy}}" stack="{{state.Game.FanStack}}" style$="--component-scale:{{fromCardScale}}">
+        <boardgame-component-stack layout='{{fromStackLayout}}' messy="{{messy}}" stack="{{state.Game.FanStack}}" style$="--component-scale:{{fromCardScale}}">
           <template is='dom-repeat'>
             <boardgame-card item="{{item}}" index="{{index}}" rotated="{{fromStackRotated}}">
             </boardgame-card>
           </template>
-        </boardgame-card-stack>
+        </boardgame-component-stack>
         <div class="flex"></div>
-        <boardgame-card-stack layout='stack' messy="{{messy}}" stack="{{state.Game.FanDiscard}}" style$="--component-scale:{{toCardScale}}">
+        <boardgame-component-stack layout='stack' messy="{{messy}}" stack="{{state.Game.FanDiscard}}" style$="--component-scale:{{toCardScale}}">
           <template is='dom-repeat'>
             <boardgame-card item="{{item}}" index="{{index}}" rotated="{{toStackRotated}}">
             </boardgame-card>
           </template>
-        </boardgame-card-stack>
+        </boardgame-component-stack>
         <div class="controls">
           <paper-button propose-move="Move Fan Card">Draw</paper-button>
           <paper-button propose-move="Visible Shuffle">Public Shuffle</paper-button>
@@ -160,18 +160,18 @@
       </div>
 
       <div id="hidden">
-        <boardgame-card-stack layout="fan" messy="{{messy}}" stack="{{state.Game.VisibleStack}}" style$="--component-scale:{{fromCardScale}}">
+        <boardgame-component-stack layout="fan" messy="{{messy}}" stack="{{state.Game.VisibleStack}}" style$="--component-scale:{{fromCardScale}}">
           <template is="dom-repeat">
             <boardgame-card item="{{item}}" index="{{index}}" rotated="{{fromStackRotated}}">
             </boardgame-card>
           </template>
-        </boardgame-card-stack>
-        <boardgame-card-stack layout="stack" messy="{{messy}}" stack="{{state.Game.HiddenStack}}" style$="--component-scale:{{toCardScale}}">
+        </boardgame-component-stack>
+        <boardgame-component-stack layout="stack" messy="{{messy}}" stack="{{state.Game.HiddenStack}}" style$="--component-scale:{{toCardScale}}">
           <template is="dom-repeat">
             <boardgame-card item="{{item}}" index="{{index}}" rotated="{{toStackRotated}}">
             </boardgame-card>
           </template>
-        </boardgame-card-stack>
+        </boardgame-component-stack>
         <paper-button propose-move="Move Between Hidden">Draw</paper-button>
       </div>
 

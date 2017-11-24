@@ -1,9 +1,9 @@
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
-<link rel="import" href="boardgame-card-stack.html">
+<link rel="import" href="boardgame-component-stack.html">
 
 <dom-module id="boardgame-component-animator">
   <template>
-    <boardgame-card-stack id='stack' no-default-spacer></boardgame-card-stack>
+    <boardgame-component-stack id='stack' no-default-spacer></boardgame-component-stack>
   </template>
 
   <script>
@@ -72,24 +72,24 @@
         for (var i = 0; i < collections.length; i++) {
           var collection = collections[i];
 
-          var offsetCard = collection.offsetCard;
-          this._beforeCollectionOffsets.set(collection.id, this._calculateOffsets(offsetCard));
+          var offsetComponent = collection.offsetComponent;
+          this._beforeCollectionOffsets.set(collection.id, this._calculateOffsets(offsetComponent));
 
-          var cards = collection.Cards;
-          for (var j = 0; j < cards.length; j++) {
-            var card = cards[j];
-            var record = result[card.id] || {};
+          var components = collection.Components;
+          for (var j = 0; j < components.length; j++) {
+            var component = components[j];
+            var record = result[component.id] || {};
 
-            this._beforeSeenIds.add(card.id);
+            this._beforeSeenIds.add(component.id);
 
-            record.offsets = this._calculateOffsets(card);
+            record.offsets = this._calculateOffsets(component);
 
             //We use getComputedStyle instead of just card.style.transform,
             //because if the card is in the middle of transforming, we want
             //the exact value at that second, not what the logical final value
             //is.
 
-            var computedStyle = getComputedStyle(card)
+            var computedStyle = getComputedStyle(component)
 
             record.previousTransform = computedStyle.transform;
 
@@ -97,14 +97,14 @@
               record.previousTransform = "";
             }
 
-            record.beforeFaceUp = card.faceUp;
-            record.beforeRotated = card.rotated;
+            record.beforeFaceUp = component.faceUp;
+            record.beforeRotated = component.rotated;
 
-            if (!card.noContent) {
+            if (!component.noContent) {
               var newNodes = [];
               //If the card has old-front, that's a signal that content is bad
               //and not worth copying.
-              var children = card.children;
+              var children = component.children;
               for (var k = 0; k < children.length; k++) {
                 var child = children[k];
                 if (child.slot) {
@@ -117,10 +117,10 @@
                 newNodes.push(child.cloneNode(true));
               }
               if (newNodes.length > 0) {
-                this._lastSeenNodesById.set(card.id, newNodes);
+                this._lastSeenNodesById.set(component.id, newNodes);
               }
             }
-            result[card.id] = record;
+            result[component.id] = record;
           }
         }
 
@@ -145,10 +145,10 @@
         for (var i = 0; i < collections.length; i++) {
           var collection = collections[i];
           collection.noAnimate = true;
-          var cards = collection.Cards;
-          for (var j = 0; j < cards.length; j++) {
-            var card = cards[j];
-            card.noAnimate = true; 
+          var components = collection.Components;
+          for (var j = 0; j < components.length; j++) {
+            var component = components[j];
+            component.noAnimate = true; 
           }
         }
 
@@ -158,21 +158,21 @@
         for (var i = 0; i < collections.length; i++) {
           var collection = collections[i];
 
-          var offsetCard = collection.offsetCard;
-          collectionOffsets.set(collection.id, this._calculateOffsets(offsetCard));
+          var offsetComponent = collection.offsetComponent;
+          collectionOffsets.set(collection.id, this._calculateOffsets(offsetComponent));
 
           //Note which Ids were last seen here
           this._ingestStack(idToPossibleCollection, collection);
 
-          var cards = collection.Cards;
-          for (var j = 0; j < cards.length; j++) {
-            var card = cards[j];
-            var record = this._infoById[card.id];
+          var components = collection.Components;
+          for (var j = 0; j < components.length; j++) {
+            var component = components[j];
+            var record = this._infoById[component.id];
             if (!record) {
               record = {};
-              this._infoById[card.id] = record;
+              this._infoById[component.id] = record;
             }
-            record.newOffsets = this._calculateOffsets(card);
+            record.newOffsets = this._calculateOffsets(component);
           }
         }
 
@@ -182,10 +182,10 @@
 
           var collection = collections[i];
 
-          var cards = collection.Cards;
-          for (var j = 0; j < cards.length; j++) {
-            var card = cards[j];
-            var record = this._infoById[card.id];
+          var components = collection.Components;
+          for (var j = 0; j < components.length; j++) {
+            var component = components[j];
+            var record = this._infoById[component.id];
 
             if (!record.offsets) {
 
@@ -193,7 +193,7 @@
               //presumably because it didn't exist. This MAY be an element who
               //came from a PolicyNonEmpty stack.
 
-              var collectionRecord = idToPossibleCollection.get(card.id);
+              var collectionRecord = idToPossibleCollection.get(component.id);
 
               if (!collectionRecord) {
                 //Nah, we don't know where it came from. Just skip animating it.
@@ -213,26 +213,26 @@
               record.beforeRotated = theStack.cardsRotated;
               
 
-              record.postPreviousOpacity = card.style.opacity;
-              record.postPreviousTransform = card.style.transform;
+              record.postPreviousOpacity = component.style.opacity;
+              record.postPreviousTransform = component.style.transform;
 
-              theStack.setUnknownAnimationState(card);
+              theStack.setUnknownAnimationState(component);
 
-              record.previousTransform = card.style.transform;
+              record.previousTransform = component.style.transform;
 
             } else {
-              record.postPreviousOpacity = card.style.opacity;
-              record.postPreviousTransform = card.style.transform;
+              record.postPreviousOpacity = component.style.opacity;
+              record.postPreviousTransform = component.style.transform;
             }
 
             //Mark that we've seen where this one is going.
-            this._beforeSeenIds.delete(card.id);
+            this._beforeSeenIds.delete(component.id);
 
-            record.afterFaceUp = card.faceUp;
-            record.afterRotated = card.rotated;
+            record.afterFaceUp = component.faceUp;
+            record.afterRotated = component.rotated;
 
             //All of these set inner rotation on card, so do them all at once
-            card.setProperties({
+            component.setProperties({
               faceUp: record.beforeFaceUp,
               overrideRotated: true,
               basicRotated: record.beforeRotated
@@ -246,7 +246,7 @@
             //If the before and after are rotated differently then the scale
             //factor will need to compare height vs width to get the right
             //scale factor.
-            if (record.beforeRotated != card.rotated) {
+            if (record.beforeRotated != component.rotated) {
               scaleFactor = record.offsets.height / record.newOffsets.width;
             }
 
@@ -265,23 +265,23 @@
             //this didn't appear to have any appreciable performance difference.
             var transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`
             var scaleTransform = `scale(${scaleFactor})`
-            card.style.transform = transform + " " + record.previousTransform + " " + scaleTransform;
+            component.style.transform = transform + " " + record.previousTransform + " " + scaleTransform;
 
-            var clonedNodes = this._lastSeenNodesById.get(card.id);
+            var clonedNodes = this._lastSeenNodesById.get(component.id);
 
             if (clonedNodes && clonedNodes.length > 0) {
 
               //Clear out old nodes.
-              for (var k = 0; k < card.children.length; k++) {
-                var child = card.children[k];
+              for (var k = 0; k < component.children.length; k++) {
+                var child = component.children[k];
                 if (child.slot == "fallback") {
-                  card.removeChild(child);
+                  component.removeChild(child);
                 }
               }
               for (var k = 0; k < clonedNodes.length; k++) {
                 var node = clonedNodes[k];
                 node.slot = "fallback";
-                card.appendChild(node);
+                component.appendChild(node);
               }
             }
             
@@ -289,7 +289,7 @@
         }
 
 
-        this._animatingCards = [];
+        this._animatingComponents = [];
 
         //Any items still in _beforeSeenIds did not have a specific card to
         //animate to. Let's see if we can figure out which collection they
@@ -304,28 +304,28 @@
             continue;
           }
 
-          var card = record.stack.newAnimatingCard();
+          var component = record.stack.newAnimatingComponent();
 
-          var infoForCard = this._infoById[id]
+          var infoForComponent = this._infoById[id]
 
-          card.setProperties({
-            faceUp: infoForCard.beforeFaceUp,
+          component.setProperties({
+            faceUp: infoForComponent.beforeFaceUp,
             //Want the to location to have layout correctly. Setting layout is
             //OK because there are no layout/style readbacks in this loop.
             rotated: record.stack.cardsRotated,
             overrideRotated: true,
-            basicRotated: infoForCard.beforeRotated
+            basicRotated: infoForComponent.beforeRotated
           })
 
-          this._animatingCards.push({
+          this._animatingComponents.push({
             stack: record.stack,
-            card: card,
-            postPreviousTransform: card.style.transform,
-            postPreviousOpacity: card.style.opacity
+            component: component,
+            postPreviousTransform: component.style.transform,
+            postPreviousOpacity: component.style.opacity
           })
 
           var stackLocation = collectionOffsets.get(record.stack.id);
-          var oldLocation = infoForCard.offsets;
+          var oldLocation = infoForComponent.offsets;
 
           var invertTop = oldLocation.top - stackLocation.top;
           var invertLeft = oldLocation.left - stackLocation.left;
@@ -335,7 +335,7 @@
 
           var scaleFactor= oldLocation.width / stackLocation.width;
 
-          if (card.rotated != infoForCard.beforeRotated) {
+          if (component.rotated != infoForComponent.beforeRotated) {
             //The before anda after are different rotations which means the
             //invert top and left have to be tweaked.
             scaleFactor = oldLocation.height / stackLocation.width;
@@ -351,16 +351,16 @@
           var transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`;
           var scaleTransform = `scale(${scaleFactor})`
           
-          card.style.transform = transform + " " + infoForCard.previousTransform + " " + scaleTransform;
+          component.style.transform = transform + " " + infoForComponent.previousTransform + " " + scaleTransform;
 
-          card.style.opacity = "1.0";
+          component.style.opacity = "1.0";
 
           var clonedNodes = this._lastSeenNodesById.get(id);
           if (clonedNodes) {
             for (var k = 0; k < clonedNodes.length; k++) {
               var node = clonedNodes[k];
               node.slot = "fallback";
-              card.appendChild(node);
+              component.appendChild(node);
             }
           }
         }
@@ -376,17 +376,17 @@
         for (var i = 0; i < collections.length; i++) {
           var collection = collections[i];
           collection.noAnimate = false;
-          var cards = collection.Cards;
-          for (var j = 0; j < cards.length; j++) {
-            var card = cards[j];
-            var record = this._infoById[card.id];
+          var components = collection.Components;
+          for (var j = 0; j < components.length; j++) {
+            var component = components[j];
+            var record = this._infoById[component.id];
             if (!record) continue;
-            card.noAnimate = false;
-            card.style.transform = record.postPreviousTransform;
-            card.style.opacity = record.postPreviousOpacity;
+            component.noAnimate = false;
+            component.style.transform = record.postPreviousTransform;
+            component.style.opacity = record.postPreviousOpacity;
             //All of these affect innerRotation on card, so do them all at
             //once. When they weren't batched we were getting odd transforms.
-            card.setProperties({
+            component.setProperties({
               faceUp: record.afterFaceUp,
               overrideRotated: false,
               basicRotated: record.afterRotated,
@@ -394,16 +394,16 @@
           }
         }
 
-        for (var i = 0; i < this._animatingCards.length; i++) {
-          var record = this._animatingCards[i];
-          record.card.noAnimate = false;
-          record.card.setProperties({
+        for (var i = 0; i < this._animatingComponents.length; i++) {
+          var record = this._animatingComponents[i];
+          record.component.noAnimate = false;
+          record.component.setProperties({
             faceUp: false,
             basicRotated: record.stack.cardsRotated
           })
 
-          record.card.style.opacity = record.postPreviousOpacity;
-          record.card.style.transform = record.postPreviousTransform;
+          record.component.style.opacity = record.postPreviousOpacity;
+          record.component.style.transform = record.postPreviousTransform;
         }
 
       }

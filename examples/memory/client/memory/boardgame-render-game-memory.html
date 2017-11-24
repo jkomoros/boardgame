@@ -6,7 +6,7 @@
 <link rel="import" href="../../bower_components/paper-styles/typography.html">
 <link rel="import" href="../../src/boardgame-base-game-renderer.html">
 <link rel="import" href="../../src/boardgame-card.html">
-<link rel="import" href="../../src/boardgame-card-stack.html">
+<link rel="import" href="../../src/boardgame-component-stack.html">
 <link rel="import" href="../../src/boardgame-fading-text.html">
 
 <dom-module id="memory-deck-cards-card">
@@ -34,28 +34,28 @@
       }
     </style>
     <h2>Memory</h2>
-    <boardgame-card-stack layout="grid" messy primary-stack="{{state.Game.RevealedCards}}" secondary-stack="{{state.Game.HiddenCards}}">
+    <boardgame-component-stack layout="grid" messy primary-stack="{{state.Game.RevealedCards}}" secondary-stack="{{state.Game.HiddenCards}}">
       <template is="dom-repeat">
           <boardgame-card title="{{index}}" item="{{item}}" index="{{index}}" propose-move="Reveal Card" data-arg-card-index$="{{index}}">
           </boardgame-card>
       </template>
       <boardgame-fading-text message="Match" trigger="{{state.Computed.Global.CardsInGrid}}"></boardgame-fading-text>
-    </boardgame-card-stack>
+    </boardgame-component-stack>
     <div class="layout horizontal around-justified discards">
-      <boardgame-card-stack layout="stack" stack="{{state.Players.0.WonCards}}" messy>
+      <boardgame-component-stack layout="stack" stack="{{state.Players.0.WonCards}}" messy>
         <template is="dom-repeat">
           <boardgame-card item="{{item}}" index="{{index}}" disabled>
           </boardgame-card>
         </template>
-      </boardgame-card-stack>
+      </boardgame-component-stack>
       <!-- have a boardgame-card spacer just to keep that row height sane even with no cards -->
       <boardgame-card spacer></boardgame-card>
-      <boardgame-card-stack layout="stack" messy stack="{{state.Players.1.WonCards}}">
+      <boardgame-component-stack layout="stack" messy stack="{{state.Players.1.WonCards}}">
         <template is="dom-repeat">
           <boardgame-card item="{{item}}" index="{{index}}" disabled>
           </boardgame-card>
         </template>
-      </boardgame-card-stack>
+      </boardgame-component-stack>
     </div>
     <paper-button id="hide" propose-move="Hide Cards" raised disabled="{{state.Computed.Global.CurrentPlayerHasCardsToReveal}}">Hide Cards</paper-button>
     <paper-progress id="timeleft" value="{{state.Game.HideCardsTimer.TimeLeft}}" max="{{maxTimeLeft}}"></paper-progress>
