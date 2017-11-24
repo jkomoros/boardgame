@@ -25,15 +25,15 @@
 			}
 
 			#outer.active #inner {
-        box-shadow:0 0 0.25em 0.25em rgba(204,204,160,1.0);
+        filter: drop-shadow(0 0 0.25em rgba(204,204,160,1.0));
       }
 
       #outer.highlighted #inner{
-        box-shadow:0 0 0.25em 0.25em rgba(0,0,0,1.0);
+        filter: drop-shadow(0 0 0.25em rgba(0,0,0,1.0));
       }
 
       #outer.active.highlighted #inner {
-        box-shadow:0 0 0.25em 0.25em rgba(255,255,0,1.0);
+        filter: drop-shadow(0 0 0.25em rgba(255,255,0,1.0));
       }
 
 			#outer.gray #inner {
@@ -104,7 +104,8 @@
 	    			//The type of token. Supported values: "chip", "cube"
 	    			type: {
 	    				type: String,
-	    				value: "chip"
+	    				value: "chip",
+	    				observer: "_typeChanged"
 	    			},
 	    			_asset: {
 	    				type: String,
@@ -127,13 +128,16 @@
          static get observers() {
           return [
             //Update
-            "_updateClasses(spacer, noShadow, interactive, disabled, noAnimate, color, highlighted, active)"
+            "_updateClasses(spacer, noShadow, interactive, disabled, noAnimate, altShadow, color, highlighted, active)"
           ]
         }
 
-        ready() {
-        	super.ready();
-        	this._cubeAsset = this.resolveUrl("token-cube.svg");
+        _typeChanged(newValue) {
+        	if (newValue == "cube") {
+        		this.altShadow = true;
+        	} else {
+        		this.altShadow = false;
+        	}
         }
 
         _computeAsset(type) {

@@ -21,6 +21,16 @@
                       3px 0 14px 2px rgba(0, 0, 0, 0.12),
                       5px 0 5px -3px rgba(0, 0, 0, 0.4);
         };
+        --alt-shadow-elevation-normal-rotated: {
+          filter: drop-shadow(2px 0 2px rgba(0, 0, 0, 0.14)),
+                  drop-shadow(1px 0 5px rgba(0, 0, 0, 0.12)),
+                  drop-shadow(3px 0 1px rgba(0, 0, 0, 0.2));
+        };
+        --shadow-elevation-raised-rotated: {
+          filter: drop-shadow(8px 0 10px rgba(0, 0, 0, 0.14)),
+                  drop-shadow(3px 0 14px rgba(0, 0, 0, 0.12)),
+                  drop-shadow(5px 0 5px rgba(0, 0, 0, 0.4));
+        };
       }
 
       :host {
@@ -100,6 +110,14 @@
 
       #outer.shadow.interactive.rotated:hover #inner {
         @apply --shadow-elevation-raised-rotated;
+      }
+
+      #outer.alt-shadow.rotated #inner {
+        @apply --alt-shadow-elevation-normal-rotated;
+      }
+
+      #outer.alt-shadow.interactive.rotated:hover #inner {
+        @apply --alt-shadow-elevation-raised-rotated;
       }
 
       #front, #back {
@@ -275,7 +293,7 @@
         static get observers() {
           return [
             //Update
-            "_updateClasses(spacer, noShadow, interactive, disabled, noAnimate, noContent, rotated, tall)"
+            "_updateClasses(spacer, noShadow, interactive, disabled, noAnimate, altShadow, noContent, rotated, tall)"
           ]
         }
 

@@ -18,6 +18,18 @@
                       0 5px 5px -3px rgba(0, 0, 0, 0.4);
         };
 
+        --alt-shadow-elevation-normal: {
+          filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.14))
+            drop-shadow(0 1px 5px rgba(0, 0, 0, 0.12))
+            drop-shadow(0 3px 1px rgba(0, 0, 0, 0.2));     
+        };
+
+        --alt-shadow-elevation-raised: {
+          filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.14))
+                  drop-shadow(0 3px 14px rgba(0, 0, 0, 0.12)),
+                  drop-shadow(0 5px 5px rgba(0, 0, 0, 0.4));
+        };  
+
       }
 
       .spacer {
@@ -44,13 +56,21 @@
         @apply --shadow-elevation-normal;
       }
 
+      #outer.alt-shadow #inner {
+        @apply --alt-shadow-elevation-normal;
+      }
+
       #outer.shadow.interactive:hover #inner {
         @apply --shadow-elevation-raised;
       }
 
+      #outer.alt-shadow.interactive:hover #inner {
+        @apply --alt-shadow-elevation-raised;
+      }
+
       #inner {
         /* The second part of this transition is from paper-styles/shadow, because we need to do our own to get rotated */
-        transition: transform var(--animation-length, 0.25s) ease-in-out, box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: transform var(--animation-length, 0.25s) ease-in-out, box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1), filter 0.28s cubic-bezier(0.4,0,0.2,1);
       }
 
     </style>
@@ -120,6 +140,11 @@
           //shadows for 10's of cards don't multiply together.
           noShadow: Boolean,
 
+          //If true, will use a different shadow rendering using drop-shadow
+          //instead of box-shadow. This allows the alpha of the image to be
+          //used, but with a lower fidelity rendering.
+          altShadow: Boolean,
+
           //set _classes to change the classes that are set. call
           //_updateClasses() and it will call _computedClasses. When you
           //override _computedClasses, just add a new item in the observers
@@ -135,7 +160,7 @@
 
       static get observers() {
         return [
-          "_updateClasses(spacer, noShadow, interactive, disabled, noAnimate)",
+          "_updateClasses(spacer, noShadow, interactive, disabled, noAnimate, altShadow)",
         ]
       }
 
@@ -199,7 +224,7 @@
           result.push("spacer");
         }
         if (!this.noShadow) {
-          result.push("shadow");
+          result.push(this.altShadow ? "alt-shadow" : "shadow");
         }
         if (this.interactive) {
           result.push("interactive");
