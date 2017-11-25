@@ -1084,9 +1084,9 @@ you want; the easiest way is to set boardgame-card-stack's stack property to the
 stack in the state, and then have a dom-repeat with boardgame-card that have
 item="{{item}}" index="{{index}}", and the card's children how to render if
 there is content. If you do that, everything will work as expected! This will
-also automatically set card-type (see below).
+also automatically set type (see below).
 
-In many cases you only have a small number of types of cards in a game, and you want to define their layout only once if possible for consitency. The way to do this is to define a dom-module containing a template. Your cards should then include card-type="<inner card id>" and the content will be stamped and passed the item databound to the card. **Be careful--this module is global and many game renderers have similarly-named decks, so make sure to use a unique name.**
+In many cases you only have a small number of types of cards in a game, and you want to define their layout only once if possible for consitency. The way to do this is to define a dom-module containing a template. Your cards should then include type="<inner card id>" and the content will be stamped and passed the item databound to the card. **Be careful--this module is global and many game renderers have similarly-named decks, so make sure to use a unique name.**
 
 ```
 <!-- define a simple front if no processing required -->
@@ -1097,7 +1097,7 @@ In many cases you only have a small number of types of cards in a game, and you 
 		</div>
 	</template>
 </dom-module>
-<boardgame-card card-type="my-card"></boardgame-card>
+<boardgame-card type="my-card"></boardgame-card>
 ```
 
 If you wanted to do more complex processing, you can create your own custom element and bind that in the same pattern:
@@ -1109,10 +1109,10 @@ If you wanted to do more complex processing, you can create your own custom elem
         <my-complex-card item="{{item}}"></my-complex-card>
     </template>
 </dom-module>
-<boardgame-card card-type="my-card"></boardgame-card>
+<boardgame-card type="my-card"></boardgame-card>
 ```
 
-When you provide a stack to boardgame-component-stack and then bind the resulting cards' item properties, we will also set the card-type property to be "GAMENAME-deck-DECKNAME-card" where GAMENAME is the name of your game type and DECKNAME is the name of the deck that stack is based on. This means that the best practice in most game renderers is to provide a "GAMENAME-deck-MYDECK-card" dom-module in the top-level and then everything will work as expected. See the debuganimations example for a sample.
+When you provide a stack to boardgame-component-stack and then bind the resulting cards' item properties, we will also set the type property to be "GAMENAME-deck-DECKNAME-card" where GAMENAME is the name of your game type and DECKNAME is the name of the deck that stack is based on. This means that the best practice in most game renderers is to provide a "GAMENAME-deck-MYDECK-card" dom-module in the top-level and then everything will work as expected. See the debuganimations example for a sample.
 
 ##### boardgame-fading-text
 

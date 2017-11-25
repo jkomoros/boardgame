@@ -223,9 +223,9 @@
             //item equivalent to this card's item. . Make sure your dom-module
             //is not contained within another dom-module, but is at the top-
             //level.
-            cardType: {
+            type: {
               type:String,
-              observer: "_cardTypeChanged"
+              observer: "_typeChanged"
             },
             //If true, the card will be rendered with its face showing, not its
             //back. If noAnimate is false, will animate the card flip.
@@ -308,6 +308,18 @@
           this._frontChanged();
         }
 
+        autoType(stackEle) {
+          //If we ahve a stack, let's use that.
+          if (stackEle.stack) {
+            let stack = stackEle.stack;
+            if (stack && stack.Deck && stack.GameName) {
+              return stack.GameName + "-deck-" + stack.Deck + "-card";
+            }
+          }
+          //Meh just default to returning the default.
+          return super.autoType(stackEle);
+        }
+
         _frontChanged() {
           var nodes = this.$["front-slot"].assignedNodes();
           var newValue = false;
@@ -322,7 +334,7 @@
           this._setTall(newValue);
         }
 
-        _cardTypeChanged(newValue) {
+        _typeChanged(newValue) {
           if (this._binder) {
             this._binder.parentElement.removeChild(this._binder);
             this._binder = null;
@@ -377,7 +389,7 @@
           if (newValue === null) {
             this.noContent = true;
             this.faceUp = false;
-            this.cardType = "";
+            this.type = "";
             return;
           }
           if (newValue.Values) {
@@ -388,9 +400,9 @@
             this.noContent = true;
           }
           if (newValue.Deck) {
-            this.cardType = newValue.GameName + "-deck-" + newValue.Deck + "-card";
+            this.type = newValue.GameName + "-deck-" + newValue.Deck + "-card";
           } else {
-            this.cardType = "";
+            this.type = "";
           }
           if (this._binder) this._binder.item = newValue;
           super._itemChanged(newValue);

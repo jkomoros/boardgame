@@ -227,10 +227,6 @@
               type: Number,
               value: 0
             },
-            _effectiveCardType: {
-              type: String,
-              computed: "_computeEffectiveCardType(stack)"
-            }
           }
         }
 
@@ -278,20 +274,11 @@
         }
 
         //Returns a new component for this stack set reasonably, based on
-        //componentType and _effectiveCardType.z
+        //componentType and autoSetType.
         newComponent() {
           let ele = document.createElement("boardgame-" + this.componentType);
-          if (this.componentType == "card") {
-            ele.cardType = this._effectiveCardType;
-          }
+          ele.type = ele.autoType(this);
           return ele;
-        }
-
-        _computeEffectiveCardType(stack) {
-          if (!stack) return "";
-          var deck = stack.Deck;
-          if (!deck) return "";
-          return stack.GameName + "-deck-" + deck + "-card";
         }
 
         //returns true if it appears that at least some cards in this stack

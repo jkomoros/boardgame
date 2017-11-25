@@ -104,11 +104,11 @@ One useful element in src/ is boardgame-card, which implements a card that can h
 
 When you use boardgame-component-stack and boardgame-card in conjunction you'll get powerful animations that just do what you want. They use card.Id and stack.LastIdsSeen to calculate which card is which and animate. It will also do advanced things like cloning old content into the card for when the new state has flipped the card hidden. 
 
-It can be finicky to set all of the cards correctly for the animation to work as you want; the easiest way is to set boardgame-component-stack's stack property to the stack in the state, and then have a dom-repeat with boardgame-card that have item="{{item}}" index="{{index}}", and the card's children how to render if there is content. If you do that, everything will work as expected! This will also automatically set card-type (see below).
+It can be finicky to set all of the cards correctly for the animation to work as you want; the easiest way is to set boardgame-component-stack's stack property to the stack in the state, and then have a dom-repeat with boardgame-card that have item="{{item}}" index="{{index}}", and the card's children how to render if there is content. If you do that, everything will work as expected! This will also automatically set type (see below).
 
 boardgame-card's size can be affected by two css properties: --component-scale (a float, with 1.0 being default size) and --card-aspect-ratio (a float, defaulting to 0.6666). Cards are always 100px width by default, with scale affecting the amount of space they take up physically in the layout, as well as applying a transform to their contents to get them to be the right size. --card-aspect-ratio changes how long the minor-axis is compared to the first. If the scale and aspect-ratio are set based on the position in the layout, the size will animate via boardgame-component-animator as expected.
 
-In many cases you only have a small number of types of cards in a game, and you want to define their layout only once if possible for consitency. The way to do this is to define a dom-module containing a template. Your cards should then include card-type="<inner card id>" and the content will be stamped and passed the item databound to the card. **Be careful--this module is global and many game renderers have similarly-named decks, so make sure to use a unique name.**
+In many cases you only have a small number of types of cards in a game, and you want to define their layout only once if possible for consitency. The way to do this is to define a dom-module containing a template. Your cards should then include type="<inner card id>" and the content will be stamped and passed the item databound to the card. **Be careful--this module is global and many game renderers have similarly-named decks, so make sure to use a unique name.**
 
 ```
 <!-- define a simple front if no processing required -->
@@ -119,7 +119,7 @@ In many cases you only have a small number of types of cards in a game, and you 
 		</div>
 	</template>
 </dom-module>
-<boardgame-card card-type="my-card"></boardgame-card>
+<boardgame-card type="my-card"></boardgame-card>
 ```
 
 If you wanted to do more complex processing, you can create your own custom element and bind that in the same pattern:
@@ -131,10 +131,10 @@ If you wanted to do more complex processing, you can create your own custom elem
         <my-complex-card item="{{item}}"></my-complex-card>
     </template>
 </dom-module>
-<boardgame-card card-type="my-card"></boardgame-card>
+<boardgame-card type="my-card"></boardgame-card>
 ```
 
-When you provide a stack to boardgame-component-stack and then bind the resulting cards' item properties, we will also set the card-type property to be "GAMENAME-deck-DECKNAME-card" where GAMENAME is the name of your game type and DECKNAME is the name of the deck that stack is based on. This means that the best practice in most game renderers is to provide a "GAMENAME-deck-MYDECK-card" dom-module in the top-level and then everything will work as expected. See the debuganimations example for a sample.
+When you provide a stack to boardgame-component-stack and then bind the resulting cards' item properties, we will also set the type property to be "GAMENAME-deck-DECKNAME-card" where GAMENAME is the name of your game type and DECKNAME is the name of the deck that stack is based on. This means that the best practice in most game renderers is to provide a "GAMENAME-deck-MYDECK-card" dom-module in the top-level and then everything will work as expected. See the debuganimations example for a sample.
 
 
 ### Optional: boardgame-fading-text
