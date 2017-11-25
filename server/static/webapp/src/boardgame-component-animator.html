@@ -297,32 +297,32 @@
         for (let id of this._beforeSeenIds) {
 
           //Which stack do we think this is in now?
-          var record = idToPossibleCollection.get(id);
+          var anonRecord = idToPossibleCollection.get(id);
 
-          if (!record) {
+          if (!anonRecord) {
             //Guess it's a mystery. :-(
             continue;
           }
 
-          var component = record.stack.newAnimatingComponent();
+          var component = anonRecord.stack.newAnimatingComponent();
 
-          var infoForComponent = this._infoById[id]
+          var record = this._infoById[id]
 
           component.setProperties({
-            faceUp: infoForComponent.beforeFaceUp,
+            faceUp: record.beforeFaceUp,
             overrideRotated: true,
-            basicRotated: infoForComponent.beforeRotated
+            basicRotated: record.beforeRotated
           })
 
           this._animatingComponents.push({
-            stack: record.stack,
+            stack: anonRecord.stack,
             component: component,
             postPreviousTransform: component.style.transform,
             postPreviousOpacity: component.style.opacity
           })
 
-          var stackLocation = collectionOffsets.get(record.stack.id);
-          var oldLocation = infoForComponent.offsets;
+          var stackLocation = collectionOffsets.get(anonRecord.stack.id);
+          var oldLocation = record.offsets;
 
           var invertTop = oldLocation.top - stackLocation.top;
           var invertLeft = oldLocation.left - stackLocation.left;
@@ -332,7 +332,7 @@
 
           var scaleFactor= oldLocation.width / stackLocation.width;
 
-          if (component.rotated != infoForComponent.beforeRotated) {
+          if (component.rotated != record.beforeRotated) {
             //The before anda after are different rotations which means the
             //invert top and left have to be tweaked.
             scaleFactor = oldLocation.height / stackLocation.width;
@@ -348,7 +348,7 @@
           var transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`;
           var scaleTransform = `scale(${scaleFactor})`
           
-          component.style.transform = transform + " " + infoForComponent.previousTransform + " " + scaleTransform;
+          component.style.transform = transform + " " + record.previousTransform + " " + scaleTransform;
 
           component.style.opacity = "1.0";
 
