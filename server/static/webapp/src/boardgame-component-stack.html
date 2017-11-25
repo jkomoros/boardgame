@@ -380,7 +380,7 @@
           component.noContent = true;
           this.setUnknownAnimationState(component);
           this.$["animating-components"].appendChild(component);
-          component.addEventListener("transitionend", e => this._clearAnimatingCards(e));
+          component.addEventListener("transitionend", e => this._clearAnimatingComponents(e));
           return component;
         }
 
