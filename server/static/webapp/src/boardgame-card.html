@@ -325,15 +325,21 @@
         }
 
         prepareAnimation(beforeProps) {
-          this.faceUp = beforeProps.faceUp;
-          this.overrideRotated = true;
-          this.basicRotated = beforeProps.rotated;
+          //All of these set inner rotation on card, so do them all at once
+          this.setProperties({
+            faceUp: beforeProps.faceUp,
+            overrideRotated: true,
+            basicRotated: beforeProps.rotated
+          })
         }
 
         startAnimation(afterProps) {
-          this.faceUp = afterProps.faceUp;
-          this.overrideRotated = false;
-          this.baseRotated = afterProps.rotated;
+          //All of these set inner rotation on card, so do them all at once
+          this.setProperties({
+            faceUp: afterProps.faceUp,
+            overrideRotated: false,
+            basicRotated: afterProps.rotated
+          })
         }
 
         get cloneContent() {
