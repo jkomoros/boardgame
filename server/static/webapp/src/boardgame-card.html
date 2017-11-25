@@ -328,6 +328,10 @@
           return !this.noContent;
         }
 
+        animationRotates(beforeProps, afterProps) {
+          return beforeProps.rotated != afterProps.rotated;
+        }
+
         _frontChanged() {
           var nodes = this.$["front-slot"].assignedNodes();
           var newValue = false;

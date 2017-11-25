@@ -251,6 +251,12 @@
         return false;
       }
 
+      //animationRotates should return true if the before and after have a
+      //different rotated property.
+      animationRotates(beforeProps, afterProps) {
+        return false;
+      }
+
       _updateClasses() {
         //We can ignore the arguments, all that's necessary is that we're
         //called whenever the value could have changed.
