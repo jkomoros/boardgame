@@ -129,15 +129,9 @@
       <div id="slot-holder">
         <slot id="components"></slot>
       </div>
-      <template is="dom-if" if="{{_createSpacer}}" restamp>
-          <boardgame-card spacer id="spacer" card-type="{{_effectiveCardType}}">
-          </boardgame-card>
-      </template>
+      <!-- spacer will be created here if necessary --> 
       <div id="faux-components">
-        <template is="dom-repeat" id="faux-components-repeater" items="{{_fauxCardsToAdd}}">
-          <boardgame-card index="{{index}}" card-type="{{_effectiveCardType}}">
-          </boardgame-card>
-        </template>
+        <!--Faux components will go here -->
       </div>
       <div id="animating-components"></div>
     </div>
@@ -229,8 +223,6 @@
             //sufficient.
             manualComponentType: String,
 
-            _createSpacer: Boolean,
-            _fauxComponentsToAdd: Array,
             _randomRotationOffset: {
               type: Number,
               value: 0
@@ -288,7 +280,11 @@
         //Returns a new component for this stack set reasonably, based on
         //componentType and _effectiveCardType.z
         newComponent() {
-          return document.createElement("boardgame-" + this.componentType);
+          let ele = document.createElement("boardgame-" + this.componentType);
+          if (this.componentType == "card") {
+            ele.cardType = this._effectiveCardType;
+          }
+          return ele;
         }
 
         _computeEffectiveCardType(stack) {
@@ -526,15 +522,53 @@
 
           var realComponents = this._realComponents;
 
+          let fauxComponentsContainer = this.$["faux-components"];
+
           if (realComponents.length < this.fauxComponents) {
-            this._fauxComponentsToAdd = new Array(this.fauxComponents - realComponents.length);
-            this.$['faux-components-repeater'].render();
+
+            let targetNumFauxComponents = this.fauxComponents - realComponents.length;
+
+            let starterComponentIndex = fauxComponentsContainer.children.length
+
+            let childrenToAdd =  targetNumFauxComponents - starterComponentIndex;
+          
+            if (childrenToAdd > 0) {
+              for (let i = 0; i < childrenToAdd; i++) {
+                let fauxComponent = this.newComponent();
+                fauxComponent.index = starterComponentIndex + i;
+                fauxComponentsContainer.appendChild(fauxComponent);
+              }
+            } else if (childrenToAdd < 0) {
+              //We have childrent to remove
+              for (let i = 0; i > childrenToAdd; i--) {
+                fauxComponentsContainer.removeChild(fauxComponentsContainer.children[0]);
+              }
+            }
+
           }
 
-          if (realComponents.length < 1 && !this.noDefaultSpacer) {
-            this._createSpacer = true;
-          } else {
-            this._createSpacer = false;
+          let wantSpacer = realComponents.length < 1 && !this.noDefaultSpacer;
+
+          let haveSpacer = !!this.shadowRoot.querySelector("#container>[boardgame-component][spacer]")
+
+          //Add a spacer if we need one.
+          if (wantSpacer && !haveSpacer) {
+            //Need to add one.
+            let spacer = this.newComponent();
+            spacer.spacer = true;
+            spacer.id = "spacer";
+            this.$.container.insertBefore(spacer, fauxComponentsContainer);
+          }
+
+          //Trim down any extra spacers. It's possible for too many to be
+          //added in weird race conditions.
+          let targetNumSpacers = wantSpacer ? 1 : 0;
+
+          let spacers = this.shadowRoot.querySelectorAll("#container>[boardgame-component][spacer]")
+
+          while (spacers.length > targetNumSpacers) {
+            this.$.container.removeChild(spacers[0]);
+            spacers = this.shadowRoot.querySelectorAll("#container>[boardgame-component][spacer]")
           }
 
           this._updateComponentClasses();
