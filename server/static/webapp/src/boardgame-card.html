@@ -320,6 +320,10 @@
           return super.autoType(stackEle);
         }
 
+        get animatingProperties() {
+          return super.animatingProperties.concat(["rotated", "faceUp"]);
+        }
+
         _frontChanged() {
           var nodes = this.$["front-slot"].assignedNodes();
           var newValue = false;

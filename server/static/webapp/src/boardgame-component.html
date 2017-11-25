@@ -215,6 +215,35 @@
         return stackEle.stackDefault("type");
       }
 
+      //animatingProperties should return an array of strings of property
+      //names that change during animations. animatingPropValues() and
+      //animatingPropDefaults() will use this.
+      get animatingProperties() {
+        return [];
+      }
+
+      //Returns the bundle of properties, as configured by
+      //animatingProperties(), at their current value.
+      animatingPropValues() {
+        let result = {};
+        for (let propName of this.animatingProperties) {
+          result[propName] = this[propName];
+        }
+        return result;
+      }
+
+      //Returns the bundle of animating properties, as defined by
+      //animatingProperties(), set to the defaults for the given stack. Used
+      //when there isn't an element analog before or after the animation to
+      //compare to.
+      animatingPropDefaults(stack) {
+        let result = {};
+        for (let propName of this.animatingProperties) {
+          result[propName] = stack.stackDefault(propName);
+        }
+        return result;
+      }
+
       _updateClasses() {
         //We can ignore the arguments, all that's necessary is that we're
         //called whenever the value could have changed.
