@@ -262,6 +262,13 @@
         this.setProperties(afterProps);
       }
 
+      //prepareForBeingAnimatingComponent is called if the component is going
+      //to be an animating component; that is it was created within
+      //stack.newAnimatingComponent().
+      prepareForBeingAnimatingComponent(stack) {
+        //Do nothing; subclasses might do something.
+      }
+
       //cloneContent returns whether we should clone the content of this
       //element during animating. Defaults to false; subclasses might
       //override.

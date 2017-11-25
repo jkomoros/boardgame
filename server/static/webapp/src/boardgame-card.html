@@ -320,6 +320,11 @@
           return super.autoType(stackEle);
         }
 
+        prepareForBeingAnimatingComponent(stack) {
+          this.noContent = true;
+          this.rotated = stack.stackDefault('rotated');
+        }
+
         get animatingProperties() {
           return super.animatingProperties.concat(["rotated", "faceUp"]);
         }

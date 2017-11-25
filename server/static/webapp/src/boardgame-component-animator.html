@@ -310,9 +310,6 @@
 
           component.setProperties({
             faceUp: infoForComponent.beforeFaceUp,
-            //Want the to location to have layout correctly. Setting layout is
-            //OK because there are no layout/style readbacks in this loop.
-            rotated: record.stack.stackDefault("rotated"),
             overrideRotated: true,
             basicRotated: infoForComponent.beforeRotated
           })

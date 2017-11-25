@@ -360,7 +360,7 @@
         newAnimatingComponent() {
           var component = this.newComponent();
           component.noAnimate = true;
-          component.noContent = true;
+          component.prepareForBeingAnimatingComponent(this);
           this.setUnknownAnimationState(component);
           this.$["animating-components"].appendChild(component);
           component.addEventListener("transitionend", e => this._clearAnimatingComponents(e));
