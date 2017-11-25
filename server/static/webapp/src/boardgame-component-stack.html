@@ -303,32 +303,6 @@
           return maxVal;
         }
 
-        //returns true if it appears that at least some cards in this stack
-        //are rotated.
-        get cardsRotated() {
-          var components = this.Components;
-          var rotatedCards = 0;
-          var totalCards = 0;
-          for (var i = 0; i < components.length; i++) {
-
-            if (components[i].localName != "boardgame-card") {
-              continue;
-            }
-
-            totalCards++;
-            if (components[i].rotated) {
-              rotatedCards++
-            }
-          }
-
-          if (!totalCards) {
-            return false;
-          }
-
-          return (rotatedCards / totalCards > 0.5);
-
-        }
-
         connectedCallback() {
           sharedStackList.push(this);
         }
@@ -642,8 +616,12 @@
           
           var maxTranslate = -1.0;
           var minTranslate = 1.5;
+
+          //stackDefault will just return false if the items in the stack
+          //don't have a rotated property.
+          let rotated = this.stackDefault("rotated");
           
-          if (components.length < 8 && this.cardsRotated || !this.cardsRotated && components.length < 3) {
+          if (components.length < 8 && rotated || !rotated && components.length < 3) {
             var percent = 0.5
             maxRotation *= percent;
             minRotation *= percent;

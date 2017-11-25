@@ -209,8 +209,8 @@
               }
 
               record.offsets = this._beforeCollectionOffsets.get(theStack.id);
-              record.beforeFaceUp = false;
-              record.beforeRotated = theStack.cardsRotated;
+              record.beforeFaceUp = theStack.stackDefault("faceUp");
+              record.beforeRotated = theStack.stackDefault("rotated");
               
 
               record.postPreviousOpacity = component.style.opacity;
@@ -312,7 +312,7 @@
             faceUp: infoForComponent.beforeFaceUp,
             //Want the to location to have layout correctly. Setting layout is
             //OK because there are no layout/style readbacks in this loop.
-            rotated: record.stack.cardsRotated,
+            rotated: record.stack.stackDefault("rotated"),
             overrideRotated: true,
             basicRotated: infoForComponent.beforeRotated
           })
@@ -398,8 +398,8 @@
           var record = this._animatingComponents[i];
           record.component.noAnimate = false;
           record.component.setProperties({
-            faceUp: false,
-            basicRotated: record.stack.cardsRotated
+            faceUp: record.stack.stackDefault("faceUp"),
+            basicRotated: record.stack.stackDefault("rotated")
           })
 
           record.component.style.opacity = record.postPreviousOpacity;
