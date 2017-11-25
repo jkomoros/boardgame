@@ -244,6 +244,13 @@
         return result;
       }
 
+      //cloneContent returns whether we should clone the content of this
+      //element during animating. Defaults to false; subclasses might
+      //override.
+      get cloneContent() {
+        return false;
+      }
+
       _updateClasses() {
         //We can ignore the arguments, all that's necessary is that we're
         //called whenever the value could have changed.

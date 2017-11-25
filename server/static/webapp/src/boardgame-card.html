@@ -324,6 +324,10 @@
           return super.animatingProperties.concat(["rotated", "faceUp"]);
         }
 
+        get cloneContent() {
+          return !this.noContent;
+        }
+
         _frontChanged() {
           var nodes = this.$["front-slot"].assignedNodes();
           var newValue = false;
