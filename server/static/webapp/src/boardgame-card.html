@@ -324,6 +324,18 @@
           return super.animatingProperties.concat(["rotated", "faceUp"]);
         }
 
+        prepareAnimation(beforeProps) {
+          this.faceUp = beforeProps.faceUp;
+          this.overrideRotated = true;
+          this.basicRotated = beforeProps.rotated;
+        }
+
+        startAnimation(afterProps) {
+          this.faceUp = afterProps.faceUp;
+          this.overrideRotated = false;
+          this.baseRotated = afterProps.rotated;
+        }
+
         get cloneContent() {
           return !this.noContent;
         }
