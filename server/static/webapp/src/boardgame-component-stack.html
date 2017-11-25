@@ -281,6 +281,28 @@
           return ele;
         }
 
+        //stackDefault goes through the entire stack, and returns the most
+        //popular value for propName, skipping elements that don't have it.
+        stackDefault(propName) {
+          //Just default to setting whatever the most common type is in the
+          //stack.
+          let propCount = {};
+          let maxCount = 0;
+          let maxVal = "";
+          for (let c of this.Components) {
+            let val = c[propName]
+            if (val === undefined) {
+              continue;
+            }
+            propCount[val] = (propCount[val] || 0) + 1
+            if (propCount[val] > maxCount) {
+              maxCount = propCount[val];
+              maxVal = c[val];
+            }
+          }
+          return maxVal;
+        }
+
         //returns true if it appears that at least some cards in this stack
         //are rotated.
         get cardsRotated() {

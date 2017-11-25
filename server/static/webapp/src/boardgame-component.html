@@ -212,19 +212,7 @@
       }
 
       autoType(stackEle) {
-        //Just default to setting whatever the most common type is in the
-        //stack.
-        let typeCount = {};
-        let maxCount = 0;
-        let maxKey = "";
-        for (let c of stackEle.Components) {
-          typeCount[c.type] = (typeCount[c.type] || 0) + 1
-          if (typeCount[c.type] > maxCount) {
-            maxCount = typeCount[c.type];
-            maxKey = c.type;
-          }
-        }
-        return maxKey;
+        return stackEle.stackDefault("type");
       }
 
       _updateClasses() {
