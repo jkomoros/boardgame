@@ -25,15 +25,17 @@
     }
 
 		#outer.active #inner {
-      filter: drop-shadow(0 0 0.25em rgba(204,204,160,1.0));
+
+      /* double the effect so it's darker */
+      filter: drop-shadow(0 0 0.25em rgba(136,136,38,1.0)) drop-shadow(0 0 0.25em rgba(136,136,38,1.0));
     }
 
     #outer.highlighted #inner{
-      filter: drop-shadow(0 0 0.25em rgba(0,0,0,1.0));
+      filter: drop-shadow(0 0 0.25em rgba(0,0,0,1.0)) drop-shadow(0 0 0.25em rgba(0,0,0,1.0));
     }
 
     #outer.active.highlighted #inner {
-      filter: drop-shadow(0 0 0.25em rgba(255,255,0,1.0));
+      filter: drop-shadow(0 0 0.25em rgba(255,255,0,1.0)) drop-shadow(0 0 0.25em rgba(255,255,0,1.0));
     }
 
     #outer.gray img {
