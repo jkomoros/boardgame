@@ -178,7 +178,7 @@
       </div>
 
       <div id="token">
-        <boardgame-token color="green" highlighted="{{tokenHighlighted}}" active="{{tokenActive}}" type="{{tokenType}}"></boardgame-token>
+        <boardgame-token color="{{tokenColor}}" highlighted="{{tokenHighlighted}}" active="{{tokenActive}}" type="{{tokenType}}"></boardgame-token>
         <div class="flex"></div>
         <paper-toggle-button checked="{{tokenHighlighted}}">Token Highlighted</paper-toggle-button>
         <paper-toggle-button checked="{{tokenActive}}">Token Active</paper-toggle-button>
@@ -189,17 +189,24 @@
             </template>
           </paper-listbox>
         </paper-dropdown-menu>
+        <paper-dropdown-menu label="Color">
+          <paper-listbox slot="dropdown-content" selected="{{tokenColor}}" attr-for-selected="value">
+            <template is="dom-repeat" items="{{legalTokenColors}}">
+              <paper-item value="{{item}}">{{item}}</paper-item>
+            </template>
+          </paper-listbox>
+        </paper-dropdown-menu>
       </div>
 
       <div id="tokens">
         <boardgame-component-stack layout="grid" messy="{{messy}}" stack="{{state.Game.TokensFrom}}">
           <template is="dom-repeat">
-            <boardgame-token color="red" type="{{tokenType}}" item="{{item}}" index="{{index}}"></boardgame-token>
+            <boardgame-token color="{{tokenColor}}" type="{{tokenType}}" item="{{item}}" index="{{index}}"></boardgame-token>
           </template>
         </boardgame-component-stack>
         <boardgame-component-stack layout="grid" messy="{{messy}}" stack="{{state.Game.TokensTo}}">
           <template is="dom-repeat">
-            <boardgame-token color="red" type="{{tokenType}}" item="{{item}}" index="{{index}}"></boardgame-token>
+            <boardgame-token color="{{tokenColor}}" type="{{tokenType}}" item="{{item}}" index="{{index}}"></boardgame-token>
           </template>
         </boardgame-component-stack>
         <paper-button propose-move="Move Token">Swap</paper-button>
@@ -209,12 +216,12 @@
       <div id="tokens-sanitized">
         <boardgame-component-stack layout="grid" messy="{{messy}}" stack="{{state.Game.SanitizedTokensFrom}}">
           <template is="dom-repeat">
-            <boardgame-token color="red" type="{{tokenType}}" item="{{item}}" index="{{index}}"></boardgame-token>
+            <boardgame-token color="{{tokenColor}}" type="{{tokenType}}" item="{{item}}" index="{{index}}"></boardgame-token>
           </template>
         </boardgame-component-stack>
         <boardgame-component-stack layout="grid" messy="{{messy}}" stack="{{state.Game.SanitizedTokensTo}}" faux-components="5">
           <template is="dom-repeat">
-            <boardgame-token color="red" type="{{tokenType}}" item="{{item}}" index="{{index}}"></boardgame-token>
+            <boardgame-token color="{{tokenColor}}" type="{{tokenType}}" item="{{item}}" index="{{index}}"></boardgame-token>
           </template>
         </boardgame-component-stack>
         <paper-button propose-move="Move Token Sanitized">Swap</paper-button>
@@ -273,7 +280,14 @@
             type: String,
             value: "cube",
           },
+          tokenColor: {
+            type: String,
+            value: "red",
+          },
           legalTokenTypes: {
+            type: Array,
+          },
+          legalTokenColors: {
             type: Array,
           }
         }
@@ -288,7 +302,9 @@
 
       ready() {
         super.ready();
-        this.legalTokenTypes = this.shadowRoot.querySelector("boardgame-token").legalTypes;
+        let token = this.shadowRoot.querySelector("boardgame-token");
+        this.legalTokenTypes = token.legalTypes;
+        this.legalTokenColors = token.legalColors;
       }
 
     }
