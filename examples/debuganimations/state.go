@@ -23,7 +23,7 @@ type gameState struct {
 	DrawStack        boardgame.MutableStack `stack:"cards" sanitize:"order"`
 	FirstShortStack  boardgame.MutableStack `stack:"cards" sanitize:"order"`
 	SecondShortStack boardgame.MutableStack `stack:"cards" sanitize:"order"`
-	HiddenCard       boardgame.MutableStack `sizedstack:"cards,1" sanitize:"hidden"`
+	HiddenCard       boardgame.MutableStack `sizedstack:"cards,1" sanitize:"order"`
 	RevealedCard     boardgame.MutableStack `sizedstack:"cards,1"`
 	FanStack         boardgame.MutableStack `stack:"cards"`
 	FanDiscard       boardgame.MutableStack `stack:"cards" sanitize:"order"`
