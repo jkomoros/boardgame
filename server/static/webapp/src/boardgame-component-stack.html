@@ -594,13 +594,13 @@
 
             let transformPieces = [];
 
-            if (this.messy) {
+            if (this.messy && this.layout != "pile") {
               transformPieces.push("rotate(" + this._messyRotationForIndex(i) + "deg)");
             }
 
             if (this.layout == "pile") {
-              let pieceToPush = "translate(" + this._randomOffsetForId(component.id || i.toString(), true) + "px, " + this._randomOffsetForId(component.id || i.toString(), false) + "px)"
-              transformPieces.push(pieceToPush);
+              transformPieces.push("translate(" + this._randomOffsetForId(component.id || i.toString(), true) + "px, " + this._randomOffsetForId(component.id || i.toString(), false) + "px)");
+              transformPieces.push("rotate(" + this._messyRotationForId(component.id || i.toString()) + "deg)");
             }
 
             //We always set transform even if it's "" because _fanCards
@@ -681,17 +681,21 @@
 
         }
 
+        _messyRotationForId(id) {
+          var values = [-0.6, 1.6, -2.8, 2.4, -1.6, 3.0, -0.6, -2.4, -3.6, 1.4, -1.8, 1.8, 0.2, 3.6, 1.4, -1.0];
+
+          let index = Math.abs(this._hashCode(id));
+          index %= values.length;
+          return values[index] * 4;
+        }
+
         _messyRotationForIndex(index) {
 
           var values = [-0.6, 1.6, -2.8, 2.4, -1.6, 3.0, -0.6, -2.4, -3.6, 1.4, -1.8, 1.8, 0.2, 3.6, 1.4, -1.0];
 
           index = (index  + this._randomRotationOffset) % values.length;
 
-          let messiness = this.messiness;
-
-          if (this.layout == "pile") messiness *= 4;
-
-          return values[index] * messiness;
+          return values[index] * this.messiness;
 
         }
 
