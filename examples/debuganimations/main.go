@@ -55,6 +55,23 @@ func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex)
 func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c *boardgame.Component) (boardgame.Stack, error) {
 	game, _ := concreteStates(state)
 
+	if c.Deck.Name() == tokensDeckName {
+
+		if game.TokensTo.NumComponents() < 10 {
+			return game.TokensTo, nil
+		}
+
+		if game.SanitizedTokensFrom.NumComponents() < 10 {
+			return game.SanitizedTokensFrom, nil
+		}
+
+		if game.SanitizedTokensTo.NumComponents() < 10 {
+			return game.SanitizedTokensTo, nil
+		}
+
+		return game.TokensFrom, nil
+	}
+
 	if game.FirstShortStack.NumComponents() < 1 {
 		return game.FirstShortStack, nil
 	}
@@ -138,6 +155,14 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 
 	if err := chest.AddDeck(cardsDeckName, cards); err != nil {
 		return nil, errors.New("Couldn't add deck: " + err.Error())
+	}
+
+	tokens := boardgame.NewDeck()
+
+	tokens.AddComponentMulti(nil, 40)
+
+	if err := chest.AddDeck(tokensDeckName, tokens); err != nil {
+		return nil, errors.New("Couldnt add deck: " + err.Error())
 	}
 
 	return boardgame.NewGameManager(&gameDelegate{}, chest, storage)

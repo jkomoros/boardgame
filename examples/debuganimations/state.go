@@ -19,17 +19,21 @@ func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 //+autoreader
 type gameState struct {
 	boardgame.BaseSubState
-	DiscardStack     boardgame.MutableStack `stack:"cards"`
-	DrawStack        boardgame.MutableStack `stack:"cards" sanitize:"order"`
-	FirstShortStack  boardgame.MutableStack `stack:"cards" sanitize:"order"`
-	SecondShortStack boardgame.MutableStack `stack:"cards" sanitize:"order"`
-	HiddenCard       boardgame.MutableStack `sizedstack:"cards,1" sanitize:"order"`
-	RevealedCard     boardgame.MutableStack `sizedstack:"cards,1"`
-	FanStack         boardgame.MutableStack `stack:"cards"`
-	FanDiscard       boardgame.MutableStack `stack:"cards" sanitize:"order"`
-	VisibleStack     boardgame.MutableStack `stack:"cards"`
-	HiddenStack      boardgame.MutableStack `stack:"cards" sanitize:"nonempty"`
-	CurrentPlayer    boardgame.PlayerIndex
+	DiscardStack        boardgame.MutableStack `stack:"cards"`
+	DrawStack           boardgame.MutableStack `stack:"cards" sanitize:"order"`
+	FirstShortStack     boardgame.MutableStack `stack:"cards" sanitize:"order"`
+	SecondShortStack    boardgame.MutableStack `stack:"cards" sanitize:"order"`
+	HiddenCard          boardgame.MutableStack `sizedstack:"cards,1" sanitize:"order"`
+	RevealedCard        boardgame.MutableStack `sizedstack:"cards,1"`
+	FanStack            boardgame.MutableStack `stack:"cards"`
+	FanDiscard          boardgame.MutableStack `stack:"cards" sanitize:"order"`
+	VisibleStack        boardgame.MutableStack `stack:"cards"`
+	HiddenStack         boardgame.MutableStack `stack:"cards" sanitize:"nonempty"`
+	TokensFrom          boardgame.MutableStack `stack:"tokens"`
+	TokensTo            boardgame.MutableStack `stack:"tokens"`
+	SanitizedTokensFrom boardgame.MutableStack `stack:"tokens"`
+	SanitizedTokensTo   boardgame.MutableStack `stack:"tokens" sanitize:"nonempty"`
+	CurrentPlayer       boardgame.PlayerIndex
 }
 
 //+autoreader
