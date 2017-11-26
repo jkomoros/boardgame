@@ -96,7 +96,7 @@
             //"cube", "pawn", "meeple"
 	    			type: {
 	    				type: String,
-	    				value: "chip",
+	    				value: "token",
 	    			},
 	    			_asset: {
 	    				type: String,
@@ -139,7 +139,7 @@
          static get observers() {
           return [
             //Update
-            "_updateClasses(spacer, noShadow, interactive, disabled, noAnimate, altShadow, color, highlighted, active)"
+            "_updateClasses(spacer, noShadow, interactive, disabled, noAnimate, altShadow, color, highlighted, active, type)"
           ]
         }
 
