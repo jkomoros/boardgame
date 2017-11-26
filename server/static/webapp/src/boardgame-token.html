@@ -41,23 +41,44 @@
       background-color: gray;
     }
 
+    #outer.gray img {
+      filter: saturate(0.0) brightness(3.0);
+    }
+
     #outer.green #inner {
       background-color: green;
+    }
+
+    #outer.green img {
+      filter: hue-rotate(130deg) brightness(2.0);
     }
 
     #outer.teal #inner {
       background-color: teal;
     }
 
+    #outer.teal img {
+      filter: hue-rotate(185deg) brightness(2.4);
+    }
+
     #outer.purple #inner {
       background-color: purple;
+    }
+
+    #outer.purple img {
+      filter: hue-rotate(300deg) brightness(1.0);
     }
 
     #outer.pink #inner {
       background-color: pink;
     }
 
+    #outer.pink img {
+      filter: hue-rotate(-93deg) brightness(4) saturate(0.8);
+    }
+
     #outer.red #inner {
+      /* this is the default color, no need for filter shifting */
       background-color: red;
     }
 
@@ -65,12 +86,32 @@
       background-color: blue;
     }
 
+    #outer.blue img {
+      filter: hue-rotate(220deg) brightness(2.0) saturate(1.5);
+    }
+
     #outer.orange #inner {
       background-color: orange;
     }
 
+    #outer.orange img {
+      filter: hue-rotate(50deg) brightness(2.5);
+    }
+
+    #outer.yellow #inner {
+      background-color: yellow;
+    }
+
+    #outer.yellow img {
+      filter: hue-rotate(70deg) brightness(4);
+    }
+
     #outer.black #inner {
       background-color: black;
+    }
+
+    #outer.black img {
+      filter: saturate(0.0) brightness(1.7);
     }
 
     #outer.cube #inner {
@@ -93,6 +134,7 @@
 
 	    	static get properties() {
 	    		return {
+            //Color to set. One of the colors returned by legalColors.
 	    			color: {
 	    				type: String,
 	    				value: "red",
@@ -118,6 +160,21 @@
 	      static get is() {
 	        return "boardgame-token"
 	      }
+
+        get legalColors() {
+          return [
+            "gray",
+            "green",
+            "teal",
+            "purple",
+            "pink",
+            "red",
+            "blue",
+            "yellow",
+            "orange",
+            "black",
+          ]
+        }
 
 	      static get template() {
           if (!memoizedTemplate) {
