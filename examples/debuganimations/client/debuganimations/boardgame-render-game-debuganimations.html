@@ -178,21 +178,30 @@
       </div>
 
       <div id="token">
-        <boardgame-token color="green" highlighted="{{tokenHighlighted}}" active="{{tokenActive}}" type="cube"></boardgame-token>
+        <boardgame-token color="green" highlighted="{{tokenHighlighted}}" active="{{tokenActive}}" type="{{tokenType}}"></boardgame-token>
         <div class="flex"></div>
         <paper-toggle-button checked="{{tokenHighlighted}}">Token Highlighted</paper-toggle-button>
         <paper-toggle-button checked="{{tokenActive}}">Token Active</paper-toggle-button>
+        <paper-dropdown-menu label="Type">
+          <paper-listbox slot="dropdown-content" selected="{{tokenType}}" attr-for-selected="value">
+            <paper-item value="token">token</paper-item>
+            <paper-item value="cube">cube</paper-item>
+            <paper-item value="chip">chip</paper-item>
+            <paper-item value="meeple">meeple</paper-item>
+            <paper-item value="pawn">pawn</paper-item>
+          </paper-listbox>
+        </paper-dropdown-menu>
       </div>
 
       <div id="tokens">
         <boardgame-component-stack layout="grid" messy="{{messy}}" stack="{{state.Game.TokensFrom}}">
           <template is="dom-repeat">
-            <boardgame-token color="red" type="cube" item="{{item}}" index="{{index}}"></boardgame-token>
+            <boardgame-token color="red" type="{{tokenType}}" item="{{item}}" index="{{index}}"></boardgame-token>
           </template>
         </boardgame-component-stack>
         <boardgame-component-stack layout="grid" messy="{{messy}}" stack="{{state.Game.TokensTo}}">
           <template is="dom-repeat">
-            <boardgame-token color="red" type="cube" item="{{item}}" index="{{index}}"></boardgame-token>
+            <boardgame-token color="red" type="{{tokenType}}" item="{{item}}" index="{{index}}"></boardgame-token>
           </template>
         </boardgame-component-stack>
         <paper-button propose-move="Move Token">Swap</paper-button>
@@ -202,12 +211,12 @@
       <div id="tokens-sanitized">
         <boardgame-component-stack layout="grid" messy="{{messy}}" stack="{{state.Game.SanitizedTokensFrom}}">
           <template is="dom-repeat">
-            <boardgame-token color="red" type="cube" item="{{item}}" index="{{index}}"></boardgame-token>
+            <boardgame-token color="red" type="{{tokenType}}" item="{{item}}" index="{{index}}"></boardgame-token>
           </template>
         </boardgame-component-stack>
         <boardgame-component-stack layout="grid" messy="{{messy}}" stack="{{state.Game.SanitizedTokensTo}}" faux-components="5">
           <template is="dom-repeat">
-            <boardgame-token color="red" type="cube" item="{{item}}" index="{{index}}"></boardgame-token>
+            <boardgame-token color="red" type="{{tokenType}}" item="{{item}}" index="{{index}}"></boardgame-token>
           </template>
         </boardgame-component-stack>
         <paper-button propose-move="Move Token Sanitized">Swap</paper-button>
@@ -261,6 +270,10 @@
           tokenHighlighted: {
             type: Boolean,
             value: false,
+          },
+          tokenType: {
+            type: String,
+            value: "cube",
           }
         }
       }
