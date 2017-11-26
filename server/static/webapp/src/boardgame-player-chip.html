@@ -54,8 +54,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       _effectivePhotoUrl(photoUrl, isAgent) {
-        if (isAgent) return this.resolveUrl("agent.svg");
-        return (photoUrl) ? photoUrl : this.resolveUrl("player.svg");
+        if (isAgent) return this.resolveUrl("assets/agent.svg");
+        return (photoUrl) ? photoUrl : this.resolveUrl("assets/player.svg");
       }
 
       _displayNameChanged(newValue) {
