@@ -57,7 +57,7 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, 
 
 	if c.Deck.Name() == tokensDeckName {
 
-		if game.TokensTo.NumComponents() < 10 {
+		if game.TokensTo.NumComponents() < 9 {
 			return game.TokensTo, nil
 		}
 
@@ -65,7 +65,7 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, 
 			return game.SanitizedTokensFrom, nil
 		}
 
-		if game.SanitizedTokensTo.NumComponents() < 10 {
+		if game.SanitizedTokensTo.NumComponents() < 9 {
 			return game.SanitizedTokensTo, nil
 		}
 
@@ -135,6 +135,8 @@ func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 		&moveVisibleShuffleCardsConfig,
 		&moveMoveBetweenHiddenConfig,
 		&moveMoveBetweenHiddenConfig,
+		&moveMoveTokenConfig,
+		&moveMoveTokenSanitizedConfig,
 	)
 }
 
@@ -159,7 +161,7 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 
 	tokens := boardgame.NewDeck()
 
-	tokens.AddComponentMulti(nil, 40)
+	tokens.AddComponentMulti(nil, 38)
 
 	if err := chest.AddDeck(tokensDeckName, tokens); err != nil {
 		return nil, errors.New("Couldnt add deck: " + err.Error())

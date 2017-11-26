@@ -168,7 +168,7 @@
             </boardgame-card>
           </template>
         </boardgame-component-stack>
-        <boardgame-component-stack layout="stack" messy="{{messy}}" stack="{{state.Game.HiddenStack}}" style$="--component-scale:{{toCardScale}}">
+        <boardgame-component-stack layout="stack" messy="{{messy}}" stack="{{state.Game.HiddenStack}}" style$="--component-scale:{{toCardScale}}" faux-components="5">
           <template is="dom-repeat">
             <boardgame-card item="{{item}}" index="{{index}}" rotated="{{toStackRotated}}">
             </boardgame-card>
@@ -185,30 +185,32 @@
       </div>
 
       <div id="tokens">
-        <boardgame-component-stack layout="stack" messy="{{messy}}" stack="{{state.Game.TokensFrom}}">
+        <boardgame-component-stack layout="grid" messy="{{messy}}" stack="{{state.Game.TokensFrom}}">
           <template is="dom-repeat">
             <boardgame-token color="red" type="cube"></boardgame-token>
           </template>
         </boardgame-component-stack>
-        <boardgame-component-stack layout="stack" messy="{{messy}}" stack="{{state.Game.TokensTo}}">
+        <boardgame-component-stack layout="grid" messy="{{messy}}" stack="{{state.Game.TokensTo}}">
           <template is="dom-repeat">
             <boardgame-token color="red" type="cube"></boardgame-token>
           </template>
         </boardgame-component-stack>
+        <paper-button propose-move="Move Token">Swap</paper-button>
       </div>
 
 
       <div id="tokens-sanitized">
-        <boardgame-component-stack layout="stack" messy="{{messy}}" stack="{{state.Game.SanitizedTokensFrom}}">
+        <boardgame-component-stack layout="grid" messy="{{messy}}" stack="{{state.Game.SanitizedTokensFrom}}">
           <template is="dom-repeat">
             <boardgame-token color="red" type="cube"></boardgame-token>
           </template>
         </boardgame-component-stack>
-        <boardgame-component-stack layout="stack" messy="{{messy}}" stack="{{state.Game.SanitizedTokensTo}}" faux-components="5">
+        <boardgame-component-stack layout="grid" messy="{{messy}}" stack="{{state.Game.SanitizedTokensTo}}" faux-components="5">
           <template is="dom-repeat">
             <boardgame-token color="red" type="cube"></boardgame-token>
           </template>
         </boardgame-component-stack>
+        <paper-button propose-move="Move Token Sanitized">Swap</paper-button>
       </div>
 
     </div>

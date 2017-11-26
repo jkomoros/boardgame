@@ -43,6 +43,16 @@ type moveMoveBetweenHidden struct {
 	moves.Base
 }
 
+//+autoreader
+type moveMoveToken struct {
+	moves.Base
+}
+
+//+autoreader
+type moveMoveTokenSanitized struct {
+	moves.Base
+}
+
 /**************************************************
  *
  * moveMoveCardBetweenShortStacks Implementation
@@ -394,6 +404,120 @@ func (m *moveMoveBetweenHidden) Apply(state boardgame.MutableState) error {
 	if game.VisibleStack.NumComponents() < 5 {
 		from = game.HiddenStack
 		to = game.VisibleStack
+		fromIndex = boardgame.FirstComponentIndex
+		toIndex = 2
+	}
+
+	if err := from.MoveComponent(fromIndex, to, toIndex); err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+/**************************************************
+ *
+ * moveMoveToken Implementation
+ *
+ **************************************************/
+
+var moveMoveTokenConfig = boardgame.MoveTypeConfig{
+	Name:     "Move Token",
+	HelpText: "Moves tokens",
+	MoveConstructor: func() boardgame.Move {
+		return new(moveMoveToken)
+	},
+}
+
+func (m *moveMoveToken) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+
+	if err := m.Base.Legal(state, proposer); err != nil {
+		return err
+	}
+
+	game, _ := concreteStates(state)
+
+	if game.TokensFrom.NumComponents() == 10 && game.TokensTo.NumComponents() == 9 {
+		return nil
+	}
+
+	if game.TokensFrom.NumComponents() == 9 && game.TokensTo.NumComponents() == 10 {
+		return nil
+	}
+
+	return errors.New("tokens aren't in known position")
+}
+
+func (m *moveMoveToken) Apply(state boardgame.MutableState) error {
+
+	game, _ := concreteStates(state)
+
+	from := game.TokensFrom
+	to := game.TokensTo
+	fromIndex := 2
+	toIndex := boardgame.FirstSlotIndex
+
+	if game.TokensFrom.NumComponents() < 10 {
+		from = game.TokensTo
+		to = game.TokensFrom
+		fromIndex = boardgame.FirstComponentIndex
+		toIndex = 2
+	}
+
+	if err := from.MoveComponent(fromIndex, to, toIndex); err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+/**************************************************
+ *
+ * moveMoveTokenSanitized Implementation
+ *
+ **************************************************/
+
+var moveMoveTokenSanitizedConfig = boardgame.MoveTypeConfig{
+	Name:     "Move Token Sanitized",
+	HelpText: "Moves tokens",
+	MoveConstructor: func() boardgame.Move {
+		return new(moveMoveTokenSanitized)
+	},
+}
+
+func (m *moveMoveTokenSanitized) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+
+	if err := m.Base.Legal(state, proposer); err != nil {
+		return err
+	}
+
+	game, _ := concreteStates(state)
+
+	if game.SanitizedTokensFrom.NumComponents() == 10 && game.SanitizedTokensTo.NumComponents() == 9 {
+		return nil
+	}
+
+	if game.SanitizedTokensFrom.NumComponents() == 9 && game.SanitizedTokensTo.NumComponents() == 10 {
+		return nil
+	}
+
+	return errors.New("tokens aren't in known position")
+}
+
+func (m *moveMoveTokenSanitized) Apply(state boardgame.MutableState) error {
+
+	game, _ := concreteStates(state)
+
+	from := game.SanitizedTokensFrom
+	to := game.SanitizedTokensTo
+	fromIndex := 2
+	toIndex := boardgame.FirstSlotIndex
+
+	if game.SanitizedTokensFrom.NumComponents() < 10 {
+		from = game.SanitizedTokensTo
+		to = game.SanitizedTokensFrom
 		fromIndex = boardgame.FirstComponentIndex
 		toIndex = 2
 	}
