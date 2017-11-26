@@ -337,9 +337,9 @@
 
         ready() {
           super.ready();
-          this.$.components.addEventListener("slotchange", () => this._slotChanged());
+          this.$.components.addEventListener("slotchange", () => this._slotChanged(false));
           //If the children are already stamped, update now.
-          this._slotChanged();
+          this._slotChanged(true);
           //Generate a random rotation offset from 0 to 20 that will make this
           //stack have rotatons that are stable as long as the stack exists
           //(which it will in general because Polymer databinding will reuse
@@ -501,9 +501,11 @@
           return this._realComponents.concat(this._fauxComponents);
         }
 
-        _slotChanged() {
+        _slotChanged(firstRender) {
 
           var realComponents = this._realComponents;
+
+          if (firstRender && realComponents.length < 1 ) return;
 
           let fauxComponentsContainer = this.$["faux-components"];
 
