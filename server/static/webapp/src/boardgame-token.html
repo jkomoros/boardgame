@@ -14,11 +14,6 @@
 		#inner img {
 			height: 100%;
 			width: 100%;
-			display: none;
-		}
-
-		#outer.cube img {
-			display: block;
 		}
 
 		#outer.chip #inner {
@@ -144,11 +139,11 @@
 	    			//highlighted has a different visual style than active. different
 	    			//games will use it for different things.
 	    			highlighted: Boolean,
-	    			//The type of token. Supported values: "chip", "cube"
+            //The type of token. Supported values: "token" (default), "chip",
+            //"cube", "pawn", "meeple"
 	    			type: {
 	    				type: String,
 	    				value: "chip",
-	    				observer: "_typeChanged"
 	    			},
 	    			_asset: {
 	    				type: String,
@@ -183,6 +178,11 @@
           return memoizedTemplate;
         }
 
+        ready() {
+          super.ready();
+          this.altShadow = true;
+        }
+
          static get observers() {
           return [
             //Update
@@ -190,20 +190,8 @@
           ]
         }
 
-        _typeChanged(newValue) {
-        	if (newValue == "cube") {
-        		this.altShadow = true;
-        	} else {
-        		this.altShadow = false;
-        	}
-        }
-
         _computeAsset(type) {
-        	switch (type) {
-        		case "cube":
-        			return this.resolveUrl("assets/token_cube.svg")
-        	}
-        	return "";
+    			return this.resolveUrl("assets/token_" + type + ".svg")    
         }
 
         //Override _computeClasses and add some more.
