@@ -700,7 +700,7 @@
 
           if (x) id = id + "right";
 
-          let index = this._hashCode(id);
+          let index = Math.abs(this._hashCode(id));
 
           index %= values.length;
 
@@ -717,7 +717,7 @@
               hash = ((hash<<5)-hash)+char;
               hash = hash & hash;
           }
-          return Math.abs(hash);
+          return hash;
         }
 
         _classes(layout, noAnimate) {
