@@ -277,7 +277,11 @@
         //componentType and autoSetType.
         newComponent() {
           let ele = document.createElement("boardgame-" + this.componentType);
-          ele.type = ele.autoType(this);
+
+          for (let propName of ele.configProperties) {
+            ele[propName] = this.stackDefault(propName);
+          }
+          
           return ele;
         }
 

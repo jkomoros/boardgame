@@ -154,6 +154,10 @@
           this.altShadow = true;
         }
 
+        get configProperties() {
+          return super.configProperties.concat(["color"])
+        }
+
          static get observers() {
           return [
             //Update

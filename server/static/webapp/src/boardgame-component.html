@@ -223,16 +223,20 @@
         }
         return result;
       }
-
-      autoType(stackEle) {
-        return stackEle.stackDefault("type");
-      }
-
+      
       //animatingProperties should return an array of strings of property
       //names that change during animations. animatingPropValues() and
       //animatingPropDefaults() will use this.
       get animatingProperties() {
         return [];
+      }
+
+      //configProperties should be the list of properties whose configuration
+      //does not change during animation but is important for visual styling.
+      //Defaults to returning ["type"] but subclasses should add more as
+      //appropriate.
+      get configProperties() {
+        return ["type"];
       }
 
       //Returns the bundle of properties, as configured by
