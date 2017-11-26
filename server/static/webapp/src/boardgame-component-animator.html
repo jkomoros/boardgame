@@ -97,10 +97,9 @@
               record.previousTransform = "";
             }
 
-            record.beforeFaceUp = component.faceUp;
-            record.beforeRotated = component.rotated;
+            record.before = component.animatingPropValues();
 
-            if (!component.noContent) {
+            if (component.cloneContent) {
               var newNodes = [];
               //If the card has old-front, that's a signal that content is bad
               //and not worth copying.
@@ -209,10 +208,9 @@
               }
 
               record.offsets = this._beforeCollectionOffsets.get(theStack.id);
-              record.beforeFaceUp = theStack.stackDefault("faceUp");
-              record.beforeRotated = theStack.stackDefault("rotated");
-              
 
+              record.before = component.animatingPropDefaults(theStack);
+              
               record.postPreviousOpacity = component.style.opacity;
               record.postPreviousTransform = component.style.transform;
 
@@ -228,15 +226,9 @@
             //Mark that we've seen where this one is going.
             this._beforeSeenIds.delete(component.id);
 
-            record.afterFaceUp = component.faceUp;
-            record.afterRotated = component.rotated;
+            record.after = component.animatingPropValues();
 
-            //All of these set inner rotation on card, so do them all at once
-            component.setProperties({
-              faceUp: record.beforeFaceUp,
-              overrideRotated: true,
-              basicRotated: record.beforeRotated
-            })
+            component.prepareAnimation(record.before);
 
             var invertTop = record.offsets.top - record.newOffsets.top;
             var invertLeft = record.offsets.left - record.newOffsets.left;
@@ -246,7 +238,7 @@
             //If the before and after are rotated differently then the scale
             //factor will need to compare height vs width to get the right
             //scale factor.
-            if (record.beforeRotated != component.rotated) {
+            if (component.animationRotates(record.before, record.after)) {
               scaleFactor = record.offsets.height / record.newOffsets.width;
             }
 
@@ -306,19 +298,18 @@
 
           var component = anonRecord.stack.newAnimatingComponent();
 
-          var record = this._infoById[id]
+          var record = this._infoById[id];
 
-          component.setProperties({
-            faceUp: record.beforeFaceUp,
-            overrideRotated: true,
-            basicRotated: record.beforeRotated
-          })
+          record.after = component.animatingPropDefaults(anonRecord.stack),
+
+          component.prepareAnimation(record.before);
 
           this._animatingComponents.push({
             stack: anonRecord.stack,
             component: component,
+            after: record.after,
             postPreviousTransform: component.style.transform,
-            postPreviousOpacity: component.style.opacity
+            postPreviousOpacity: component.style.opacity,
           })
 
           var stackLocation = collectionOffsets.get(anonRecord.stack.id);
@@ -332,7 +323,7 @@
 
           var scaleFactor= oldLocation.width / stackLocation.width;
 
-          if (component.rotated != record.beforeRotated) {
+          if (component.animationRotates(record.before, record.after)) {
             //The before anda after are different rotations which means the
             //invert top and left have to be tweaked.
             scaleFactor = oldLocation.height / stackLocation.width;
@@ -381,23 +372,15 @@
             component.noAnimate = false;
             component.style.transform = record.postPreviousTransform;
             component.style.opacity = record.postPreviousOpacity;
-            //All of these affect innerRotation on card, so do them all at
-            //once. When they weren't batched we were getting odd transforms.
-            component.setProperties({
-              faceUp: record.afterFaceUp,
-              overrideRotated: false,
-              basicRotated: record.afterRotated,
-            });
+            component.startAnimation(record.after);
           }
         }
 
         for (var i = 0; i < this._animatingComponents.length; i++) {
           var record = this._animatingComponents[i];
           record.component.noAnimate = false;
-          record.component.setProperties({
-            faceUp: record.stack.stackDefault("faceUp"),
-            basicRotated: record.stack.stackDefault("rotated")
-          })
+
+          record.component.startAnimation(record.after);
 
           record.component.style.opacity = record.postPreviousOpacity;
           record.component.style.transform = record.postPreviousTransform;
