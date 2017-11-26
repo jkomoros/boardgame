@@ -35,7 +35,9 @@
 
       :root {
         /* note that boardgame-card-stack has a couple of hard-coded margins based on this value in its stylesheet */
+
         --default-component-width: 100px;
+        --component-effective-aspect-ratio: var(--component-aspect-ratio, var(--default-component-aspect-ratio));
         --default-component-aspect-ratio: 0.66666;
         --card-effective-border-radius: 5px;
       }
