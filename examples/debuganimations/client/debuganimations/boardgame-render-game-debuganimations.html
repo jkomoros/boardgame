@@ -184,11 +184,9 @@
         <paper-toggle-button checked="{{tokenActive}}">Token Active</paper-toggle-button>
         <paper-dropdown-menu label="Type">
           <paper-listbox slot="dropdown-content" selected="{{tokenType}}" attr-for-selected="value">
-            <paper-item value="token">token</paper-item>
-            <paper-item value="cube">cube</paper-item>
-            <paper-item value="chip">chip</paper-item>
-            <paper-item value="meeple">meeple</paper-item>
-            <paper-item value="pawn">pawn</paper-item>
+            <template is="dom-repeat" items="{{legalTokenTypes}}">
+              <paper-item value="{{item}}">{{item}}</paper-item>
+            </template>
           </paper-listbox>
         </paper-dropdown-menu>
       </div>
@@ -274,6 +272,9 @@
           tokenType: {
             type: String,
             value: "cube",
+          },
+          legalTokenTypes: {
+            type: Array,
           }
         }
       }
@@ -283,6 +284,11 @@
           return "slow"
         }
         return "";
+      }
+
+      ready() {
+        super.ready();
+        this.legalTokenTypes = this.shadowRoot.querySelector("boardgame-token").legalTypes;
       }
 
     }

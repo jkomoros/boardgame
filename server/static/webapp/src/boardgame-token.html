@@ -117,6 +117,16 @@
 	        return "boardgame-token"
 	      }
 
+        get legalTypes() {
+          return [
+            "token",
+            "chip",
+            "cube",
+            "pawn",
+            "meeple",
+          ]
+        }
+
         get legalColors() {
           return [
             "gray",
