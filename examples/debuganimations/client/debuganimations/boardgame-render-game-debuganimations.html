@@ -214,12 +214,12 @@
 
 
       <div id="tokens-sanitized">
-        <boardgame-component-stack layout="grid" messy="{{messy}}" stack="{{state.Game.SanitizedTokensFrom}}">
+        <boardgame-component-stack layout="pile" messy="{{messy}}" stack="{{state.Game.SanitizedTokensFrom}}">
           <template is="dom-repeat">
             <boardgame-token color="{{tokenColor}}" type="{{tokenType}}" item="{{item}}" index="{{index}}"></boardgame-token>
           </template>
         </boardgame-component-stack>
-        <boardgame-component-stack layout="grid" messy="{{messy}}" stack="{{state.Game.SanitizedTokensTo}}" faux-components="5">
+        <boardgame-component-stack layout="pile" messy="{{messy}}" stack="{{state.Game.SanitizedTokensTo}}" faux-components="5">
           <template is="dom-repeat">
             <boardgame-token color="{{tokenColor}}" type="{{tokenType}}" item="{{item}}" index="{{index}}"></boardgame-token>
           </template>

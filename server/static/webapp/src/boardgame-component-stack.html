@@ -44,6 +44,14 @@
         margin: 1em;
       }
 
+      .pile ::slotted([boardgame-component]):first-child, .pile [boardgame-component]:first-child {
+        position:relative;
+      }
+
+      .pile ::slotted([boardgame-component]), .pile [boardgame-component] {
+        position:absolute;
+      }
+
       /* most cards in stacks should be at the front, and a few pixels down so
       /* you can see them behind the first few cards */
 
@@ -157,7 +165,7 @@
         static get properties() {
           return {
             //layout sets the layout style to use. One of `stack` (default),
-            //`grid`, `spread` and `fan`
+            //`grid`, `spread`, `fan` and `pile`
             layout: {
               type: String,
               observer: "_updateComponentClasses",
@@ -349,6 +357,8 @@
           //(which it will in general because Polymer databinding will reuse
           //elements) but different from most other stacks.
           this._randomRotationOffset = Math.floor(Math.random() * 21);
+          this._randomOffsetRotationOffset = Math.floor(Math.random() * 101);
+          this._randomOffsetRotationOffsetY = Math.floor(Math.random() * 101);
           this._id = this._randomId(8);
         }
 
@@ -584,12 +594,20 @@
               component.classList.remove(classes[j]);
             }
 
+            let transformPieces = [];
+
             if (this.messy) {
-              component.style.transform = "rotate(" + this._messyRotationForIndex(i) + "deg)";
-            } else {
-              //_fanCards assumes that the transform has been "reset" in this layout pass.
-              component.style.transform = "";
+              transformPieces.push("rotate(" + this._messyRotationForIndex(i) + "deg)");
             }
+
+            if (this.layout == "pile") {
+              let pieceToPush = "translate(" + this._randomOffsetForIndex(i, true) + "px, " + this._randomOffsetForIndex(i, false) + "px)"
+              transformPieces.push(pieceToPush);
+            }
+
+            //We always set transform even if it's "" because _fanCards
+            //assumes that transform has been reset in this layout pass.
+            component.style.transform = transformPieces.join(" ");
 
             if (i == components.length - 1) {
               component.classList.add("bcc-last");
@@ -671,8 +689,23 @@
 
           index = (index  + this._randomRotationOffset) % values.length;
 
-          return values[index] * this.messiness;
+          let messiness = this.messiness;
 
+          if (this.layout == "pile") messiness *= 4;
+
+          return values[index] * messiness;
+
+        }
+
+        _randomOffsetForIndex(index, x) {
+          let values = [0.57, 0.67, 0.93, -0.21, -0.76, 0.83, 0.97, 0.49, 0.75, 0.14, 0.21, -0.25, -0.84, 0.09, 0.78, 0.56, -0.77, 0.02, -0.07, 0.2, 0.78, 0.31, -0.49, -0.96, 0.46, -0.51, 0.26, -0.47, -0.14, 0.99, 0.36, -0.16, 0.77, 0.21, 0.19, -0.46, -0.69, 0.44, 0.31, -0.18, -0.57, 0.97, 0.44, -0.57, -0.66, -0.14, -0.15, -0.33, -0.05, -0.94, 0.84, -0.8, -0.73, -0.56, 0.33, 0.04, -0.01, 0.68, 0.9, 0.55, -0.43, -0.67, 0.41, 0.51, 0.16, -0.35, 0.98, -0.84, -0.28, 0.43, 0.11, -0.97, 0.92, 0.51, -0.3, -0.22, -0.13, 0.82, 0.33, 0.77, 0.1, -0.74, -0.26, -0.09, 0.69, -0.51, 0.79, -0.37, 0.88, -0.21, -0.07, 0.02, -0.93, -0.03, 0.76, 0.91, 0.58, 0.4, 0.96, 0.89];
+
+          let randomOffsetToUse = x ? this._randomOffsetRotationOffset : this._randomOffsetRotationOffsetY;
+
+          index = (index + randomOffsetToUse) % values.length;
+
+          //TODO: make this a constant
+          return values[index] * 30;
         }
 
         _classes(layout, noAnimate) {
