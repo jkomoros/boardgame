@@ -71,6 +71,14 @@
         @apply --alt-shadow-elevation-normal;
       }
 
+      #outer {
+        transition: transform 0.1s ease-in-out;
+      }
+
+      #outer.interactive:hover {
+        transform:translateY(-0.25em);
+      }
+
       #outer.shadow.interactive:hover #inner {
         @apply --shadow-elevation-raised;
       }
