@@ -35,13 +35,11 @@
 
       :root {
         --default-component-scale: 1.0;
-        --default-component-aspect-ratio: 1.0;
+        --component-aspect-ratio: 1.0;
         --default-component-width: 30px;
         --component-effective-scale: var(--component-scale, var(--default-component-scale));
         --component-effective-width: calc(var(--component-effective-scale) * var(--component-width, var(--default-component-width)));
-        /* by default we don't allow overriding aspect ratio, only boardgame-card does by overriding this */
-        --component-effective-aspect-ratio: var(--default-component-aspect-ratio);
-        --component-effective-height: calc(var(--component-effective-width) * var(--component-effective-aspect-ratio));
+        --component-effective-height: calc(var(--component-effective-width) * var(--component-aspect-ratio));
       }
 
       .spacer {
@@ -182,7 +180,7 @@
           //property in a subclass.
           _classes: {
             type: String,
-          },
+          },  
 
           //Bound into outer's style property. Extension point for subclasses.
           _outerStyle: {

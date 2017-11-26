@@ -37,7 +37,6 @@
         /* note that boardgame-card-stack has a couple of hard-coded margins based on this value in its stylesheet */
 
         --default-component-width: 100px;
-        --component-effective-aspect-ratio: var(--component-aspect-ratio, var(--default-component-aspect-ratio));
         --default-component-aspect-ratio: 0.66666;
         --card-effective-border-radius: 5px;
       }
@@ -87,7 +86,7 @@
       #inner {
 
         width: var(--default-component-width);
-        height: calc(var(--default-component-width) * var(--component-effective-aspect-ratio));
+        height: calc(var(--default-component-width) * var(--component-aspect-ratio));
         transform: scale(var(--component-effective-scale));
 
         border-radius: var(--card-effective-border-radius);
@@ -99,7 +98,7 @@
 
       .tall #inner {
         height: var(--default-component-width);
-        width: calc(var(--default-component-width) * var(--component-effective-aspect-ratio)); 
+        width: calc(var(--default-component-width) * var(--component-aspect-ratio)); 
       }
 
       #outer.shadow.rotated #inner {
