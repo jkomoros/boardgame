@@ -280,6 +280,18 @@
               value: false,
               readOnly: true,
             },
+            //aspectRati is the ratio of width to height. It will be set based
+            //on the asepct-ratio attribute on the card-inner.
+            aspectRatio: {
+              type: Number,
+              value: 0.6666666,
+              readOnly: true,
+            },
+
+            _outerStyle: {
+              type: String,
+              computed: "_computeOuterStyle(aspectRatio)"
+            },
             _animating: {
               type: Boolean,
               value: false
@@ -308,6 +320,10 @@
           this.$.inner.addEventListener("transitionend", e => this._animationEnded(e));
           this.$['front-slot'].addEventListener("slotchange", e => this._frontChanged());
           this._frontChanged();
+        }
+
+        _computeOuterStyle(aspectRatio) {
+          return "--component-aspect-ratio: " + aspectRatio + ";"
         }
 
         autoType(stackEle) {
@@ -365,7 +381,9 @@
             if (node.nodeType != 1) continue;
             if (node.hasAttribute("tall")) {
               newValue = true;
-              break;
+            }
+            if (node.hasAttribute("aspect-ratio")) {
+              this._setAspectRatio(parseFloat(node.getAttribute("aspect-ratio")));
             }
           }
           this._setTall(newValue);

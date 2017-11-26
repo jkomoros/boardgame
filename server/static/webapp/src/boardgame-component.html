@@ -97,7 +97,7 @@
 
     <!-- subclass style should be inserted here -->
 
-    <div id="outer" class$="{{_classes}}" on-tap="handleTap">
+    <div id="outer" class$="{{_classes}}" on-tap="handleTap" style$="{{_outerStyle}}">
       <div id="inner">
         <!-- subclass content should be inserted here -->
       </div>
@@ -182,6 +182,12 @@
           //property in a subclass.
           _classes: {
             type: String,
+          },
+
+          //Bound into outer's style property. Extension point for subclasses.
+          _outerStyle: {
+            type: String,
+            value: "",
           }
         }
       }
