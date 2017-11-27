@@ -191,9 +191,8 @@
       }
 
       static get observers() {
-        return [
-          "_updateClasses(spacer, noShadow, interactive, disabled, noAnimate, altShadow)",
-        ]
+        //Your subclass should add an entry like _updateClasses(...allPropNames that could change), where all props includes noAnimate, spacer, noshadow,interactive,and disabled. We don't return one here because if we did it would be called twice--one for yours and one for this one.
+        return []
       }
 
       //Returns a template for the subclass. The subtemplate's style will be
