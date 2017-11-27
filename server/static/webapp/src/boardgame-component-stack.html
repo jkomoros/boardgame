@@ -46,7 +46,7 @@
       }
 
       #container.pile {
-        padding: 3em;
+        padding: calc(calc(var(--pile-scale, 1.0) * 3em) + 3em);
         /* TODO: it might be that this should always be true for container */
         @apply --layout-center-justified;
       }
@@ -141,7 +141,7 @@
 
     </style>
 
-    <div id="container" class$="{{_classes(layout, noAnimate)}}">
+    <div id="container" class$="{{_classes(layout, noAnimate)}}" style$="{{_style}}">
       <div id="slot-holder">
         <slot id="components"></slot>
       </div>
@@ -242,6 +242,16 @@
             //sufficient.
             manualComponentType: String,
 
+            _pileScaleFactor: {
+              type: Number,
+              value: 1.0,
+            },
+
+            _style: {
+              type: String,
+              computed: "_computeStyle(_pileScaleFactor)",
+            },
+
             _randomRotationOffset: {
               type: Number,
               value: 0
@@ -257,6 +267,10 @@
 
         get _sharedStackList() {
           return sharedStackList;
+        }
+
+        _computeStyle(pileScaleFactor) {
+          return "--pile-scale:" + pileScaleFactor;
         }
 
         //type is the type of component that we contain. It is set based on
@@ -594,6 +608,8 @@
 
           var components = this.Components;
 
+          let lastPileScaleFactor = 1.0;
+
           for (var i = 0; i < components.length; i++) {
             var component = components[i];
 
@@ -617,6 +633,7 @@
               let id = component.id || i.toString();
               let offsets = this._pileOffsetsForId(id, components.length);
               transformPieces.push("translate(" + offsets.x + "px, " + offsets.y + "px)");
+              lastPileScaleFactor = offsets.scaleFactor;
               transformPieces.push("rotate(" + this._messyRotationForId(id) + "deg)");
             }
 
@@ -638,6 +655,10 @@
             } else {
               component.noShadow = true;
             }
+          }
+
+          if (this.layout == "pile") {
+            this._pileScaleFactor = lastPileScaleFactor;
           }
 
           if (this.layout == "fan") {
@@ -804,9 +825,7 @@
           x *= -1;
           y *= -1;
 
-          //TODO: also set the margins based on this scale.
-
-          return {x: x, y: y};
+          return {x: x, y: y, scaleFactor: multiplier};
         }
 
         //Returns between -1 and 1
