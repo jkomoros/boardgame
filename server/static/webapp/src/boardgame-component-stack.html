@@ -615,7 +615,7 @@
 
             if (this.layout == "pile") {
               let id = component.id || i.toString();
-              let offsets = this._pileOffsetsForId(id);
+              let offsets = this._pileOffsetsForId(id, components.length);
               transformPieces.push("translate(" + offsets.x + "px, " + offsets.y + "px)");
               transformPieces.push("rotate(" + this._messyRotationForId(id) + "deg)");
             }
@@ -712,7 +712,7 @@
 
         }
 
-        _pileOffsetsForId(id) {
+        _pileOffsetsForId(id, numComponents) {
           let x = this._randomOffsetForId(id, true);
           let y = this._randomOffsetForId(id, false);
 
@@ -780,8 +780,21 @@
             if (negative) x *= -1;
           }
 
-          //Final outbox will be finalSize * 2 on a side.
-          const finalSize = 30;
+          //Scale the size of the pile based on how many components there are.
+
+          let smallestSize = 20;
+          let largestSize = 50;
+
+          let lowestExpectedComponents = 5;
+          let highestExpectedComponents = 25;
+
+          let expectedComponentRange = highestExpectedComponents - lowestExpectedComponents;
+
+          let clampedComponents = Math.min(Math.max(numComponents, lowestExpectedComponents), highestExpectedComponents);
+
+          let multiplier = (clampedComponents - lowestExpectedComponents)  / expectedComponentRange;
+
+          let finalSize = smallestSize + (largestSize - smallestSize) * multiplier;
 
           x *= finalSize;
           y *= finalSize;
@@ -790,6 +803,8 @@
           //position, so flip the calculation.
           x *= -1;
           y *= -1;
+
+          //TODO: also set the margins based on this scale.
 
           return {x: x, y: y};
         }
