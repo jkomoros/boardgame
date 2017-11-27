@@ -615,7 +615,8 @@
 
             if (this.layout == "pile") {
               let id = component.id || i.toString();
-              transformPieces.push("translate(" + this._randomOffsetForId(id, true) + "px, " + this._randomOffsetForId(id, false) + "px)");
+              let offsets = this._pileOffsetsForId(id);
+              transformPieces.push("translate(" + offsets.x + "px, " + offsets.y + "px)");
               transformPieces.push("rotate(" + this._messyRotationForId(id) + "deg)");
             }
 
@@ -711,6 +712,17 @@
 
         }
 
+        _pileOffsetsForId(id) {
+          let x = this._randomOffsetForId(id, true);
+          let y = this._randomOffsetForId(id, false);
+
+          x *= 30;
+          y *= 30;
+
+          return {x: x, y: y};
+        }
+
+        //Returns between -1 and 1
         _randomOffsetForId(id, x) {
 
           if (x) id = id + "right";
@@ -720,7 +732,7 @@
           index %= pseudoRandomValues.length;
 
           //TODO: make this a constant
-          return (pseudoRandomValues[index] * 2 - 1) * 30;
+          return (pseudoRandomValues[index] * 2 - 1);
         }
 
         _hashCode(str) {
