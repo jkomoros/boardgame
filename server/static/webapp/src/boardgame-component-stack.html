@@ -609,8 +609,9 @@
             }
 
             if (this.layout == "pile") {
-              transformPieces.push("translate(" + this._randomOffsetForId(component.id || i.toString(), true) + "px, " + this._randomOffsetForId(component.id || i.toString(), false) + "px)");
-              transformPieces.push("rotate(" + this._messyRotationForId(component.id || i.toString()) + "deg)");
+              let id = component.id || i.toString();
+              transformPieces.push("translate(" + this._randomOffsetForId(id, true) + "px, " + this._randomOffsetForId(id, false) + "px)");
+              transformPieces.push("rotate(" + this._messyRotationForId(id) + "deg)");
             }
 
             //We always set transform even if it's "" because _fanCards
