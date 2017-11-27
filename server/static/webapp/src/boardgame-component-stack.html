@@ -46,13 +46,18 @@
       }
 
       #container.pile {
-        padding: 2em;
+        padding: 3em;
         /* TODO: it might be that this should always be true for container */
         @apply --layout-center-justified;
       }
 
-      .pile ::slotted([boardgame-component]), .pile [boardgame-component] {
+      #container.pile ::slotted([boardgame-component]), #container.pile [boardgame-component] {
         position:absolute;
+        margin:0;
+      }
+
+     .pile ::slotted([boardgame-component].bcc-first), .pile [boardgame-component].bcc-first {
+        position:relative;
       }
 
       /* most cards in stacks should be at the front, and a few pixels down so
