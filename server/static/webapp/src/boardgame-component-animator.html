@@ -78,6 +78,11 @@
           var components = collection.Components;
           for (var j = 0; j < components.length; j++) {
             var component = components[j];
+
+            //Skip comoonents without ids (e.g. faux-components, spacer
+            //components).
+            if (component.id == "") continue;
+
             var record = result[component.id] || {};
 
             this._beforeSeenIds.add(component.id);
@@ -147,6 +152,7 @@
           var components = collection.Components;
           for (var j = 0; j < components.length; j++) {
             var component = components[j];
+            if (component.id == "") continue;
             component.noAnimate = true; 
           }
         }
@@ -166,6 +172,7 @@
           var components = collection.Components;
           for (var j = 0; j < components.length; j++) {
             var component = components[j];
+            if (component.id == "") continue;
             var record = this._infoById[component.id];
             if (!record) {
               record = {};
@@ -184,6 +191,9 @@
           var components = collection.Components;
           for (var j = 0; j < components.length; j++) {
             var component = components[j];
+
+            if (component.id == "") continue;
+
             var record = this._infoById[component.id];
 
             if (!record.offsets) {
@@ -367,6 +377,7 @@
           var components = collection.Components;
           for (var j = 0; j < components.length; j++) {
             var component = components[j];
+            if (component.id == "") continue;
             var record = this._infoById[component.id];
             if (!record) continue;
             component.noAnimate = false;
