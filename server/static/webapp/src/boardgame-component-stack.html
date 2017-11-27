@@ -55,12 +55,6 @@
         position:absolute;
       }
 
-      .pile ::slotted([boardgame-component].bcc-first), .pile [boardgame-component].bcc-first {
-        position:relative;
-      }
-
-
-
       /* most cards in stacks should be at the front, and a few pixels down so
       /* you can see them behind the first few cards */
 
@@ -73,7 +67,7 @@
       /* the first child should actually take up layout space for the entire
       /* stack, and not be offset any. */
 
-      .stack ::slotted([boardgame-component]:first-child), .stack [boardgame-component]:first-child, .stack [boardgame-component]#spacer {
+      .stack ::slotted([boardgame-component].bcc-first), .stack [boardgame-component].bcc-first, .stack [boardgame-component]#spacer {
         z-index: 10;
         position: relative;
         top:0px;
