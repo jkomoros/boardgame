@@ -716,8 +716,80 @@
           let x = this._randomOffsetForId(id, true);
           let y = this._randomOffsetForId(id, false);
 
-          x *= 30;
-          y *= 30;
+
+          //x and y are spread evenly within a rectangle, but we want a stack
+          //that gets narrower at the top.
+
+          //The solution is to cut off two triangles from the top half, and
+          //slide them down and out to the edges below.
+
+          //As a diagram:
+
+          /*
+          -------------------------
+          |  /|               |\  |
+          | / |               | \ |
+          |/  |               |  \|
+          -------------------------
+          |                       |
+          |                       |
+          |                       |
+          -------------------------
+
+          to:
+
+                 -------------------
+                /|                 |\ 
+               / |                 | \
+              /  |                 |  \
+             ---------------------------
+            /|                         |\
+           / |                         | \
+          /  |                         |  \
+          ----------------------------------
+          */
+
+          //The range for x is -1.0 to 1.0. This is how much from the left and
+          //right to cut in. 1.0 would be a complete triangle, 0.0 would be an
+          //untouched rectangle.
+          const triangleWidth = 0.5;
+
+          //Only process the top half
+          if (y > 0) {
+            //Flip to all positive to make the logic easier for now
+            let negative = x < 0;
+            x = Math.abs(x);
+
+            if (x > (1 - triangleWidth)) {
+              //It's in the triangle. Is it in the outer half?
+              let rectX = x - (1.0 - triangleWidth);
+
+              if (rectX < y) {
+                //Yup!
+
+                //Flip upside down
+                y *= -1;
+
+                //Move outward 
+                x = 1 + rectX;
+
+              }
+
+            }
+
+            if (negative) x *= -1;
+          }
+
+          //Final outbox will be finalSize * 2 on a side.
+          const finalSize = 30;
+
+          x *= finalSize;
+          y *= finalSize;
+
+          //Higher x's are actually downward because we'll be adding to our
+          //position, so flip the calculation.
+          x *= -1;
+          y *= -1;
 
           return {x: x, y: y};
         }
