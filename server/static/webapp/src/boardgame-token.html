@@ -24,18 +24,38 @@
       --component-aspect-ratio:1.25;
     }
 
+    #outer.active #inner, #outer.highlighted #inner {
+      animation-name: throb;
+      animation-duration: 1s;
+      animation-timing-function: ease-in-out;
+      animation-direction: alternate;
+      animation-iteration-count: infinite;
+    }
+
 		#outer.active #inner {
 
-      /* double the effect so it's darker */
-      filter: drop-shadow(0 0 0.25em rgba(136,136,38,1.0)) drop-shadow(0 0 0.25em rgba(136,136,38,1.0));
+      --throb-color-from: rgba(136,136,38,1.0);
+      --throb-color-to: rgba(136,136,38,0.5);
     }
 
     #outer.highlighted #inner{
-      filter: drop-shadow(0 0 0.25em rgba(0,0,0,1.0)) drop-shadow(0 0 0.25em rgba(0,0,0,1.0));
+      --throb-color-from: rgba(0,0,0,1.0);
+      --throb-color-to: rgba(0,0,0,0.5);
     }
 
     #outer.active.highlighted #inner {
-      filter: drop-shadow(0 0 0.25em rgba(255,255,0,1.0)) drop-shadow(0 0 0.25em rgba(255,255,0,1.0));
+      --throb-color-from: rgba(255,255,0,1.0);
+      --throb-color-to: rgba(255,255,0,0.0);
+    }
+
+    @keyframes throb {
+      from {
+        filter: drop-shadow(0 0 0.25em var(--throb-color-to)) drop-shadow(0 0 0.25em var(--throb-color-to));
+      }
+      to {
+         /* double the effect so it's darker */
+        filter: drop-shadow(0 0 0.25em var(--throb-color-from)) drop-shadow(0 0 0.25em var(--throb-color-from));
+      }
     }
 
     #outer.gray img {
