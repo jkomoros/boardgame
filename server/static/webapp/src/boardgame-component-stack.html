@@ -476,8 +476,8 @@
             if (!name.startsWith("component")) {
               continue;
             }
-            let finalName = name.replace("component", "");
-            //TODO: finalName needs title case to attribute-case.
+            let finalName = Polymer.CaseMap.camelToDashCase(name);
+            finalName = finalName.replace("component-", "");
             result[finalName] = this[name];
           }
 
