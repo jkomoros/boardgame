@@ -525,6 +525,10 @@
 
           let attrs = this._attributesForComponents();
 
+          const indexAttrs = "index-attributes";
+
+          let attributesToIndex = attrs.get(indexAttrs) ? attrs.get(indexAttrs).split(",") : [];
+
           for (let i = 0; i < this.$.components.children.length; i++) {
             let ele = this.$.components.children[i];
             ele.item = this.stack.Components[i];
@@ -534,7 +538,11 @@
             //even after appendingChild we don't get a clean ref to it. So
             //shrug, just do extra work here.
             for (let key of attrs.keys()) {
+              if (key == indexAttrs) continue;
               ele.setAttribute(key, attrs.get(key));
+            }
+            for (let name of attributesToIndex) {
+              ele.setAttribute(name, i);
             }
           }
 
