@@ -469,6 +469,15 @@
             return;
           }
 
+          //There might be things like text nodes in our parent that shouldn't
+          //be there, and will prevent the children we stamp from showing up,
+          //since technically something IS being routed to the slot.
+
+          let nodesToRemove = this.childNodes.length;
+          for (let i = 0; i < nodesToRemove; i++) {
+            this.childNodes[0].parentElement.removeChild(this.childNodes[0]);
+          }
+
           let childrenToAdd =  this.stack.Components.length - this.$.components.children.length;
         
           if (childrenToAdd > 0) {
