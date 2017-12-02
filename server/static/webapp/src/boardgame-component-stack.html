@@ -501,7 +501,12 @@
           //TODO: forward our component-* properties to them. This is actually
           //hard, because if we reuse an element it's not clear which
           //attributes to rip out. ... Wait, they all have the same attributes
-          //set, so maybe it isn't hard.
+          //set, so maybe it isn't hard. Actually, becuase they're the same
+          //for all, only need to stamp when we create the nodes. (the index
+          //attirbutes do need to change). But things that are databound
+          //without $= will not be enumerable in attributes, because Polymer
+          //just sets tehm as properties. What does pOlymer do with properties
+          //it doesn't know?
 
         }
 
