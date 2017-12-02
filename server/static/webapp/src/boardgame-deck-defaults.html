@@ -48,7 +48,7 @@
 
         //Find the first defaults-instance that has it.
         for (let instance of defaultsInstances) {
-          template = this.querySelector("[deck=" + deckName + "]");
+          template = instance.querySelector("[deck=" + deckName + "]");
           if (template) break;
         }
 
