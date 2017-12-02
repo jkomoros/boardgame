@@ -7,6 +7,7 @@
 <link rel="import" href="../../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../../bower_components/paper-toggle-button/paper-toggle-button.html">
 <link rel="import" href="../../bower_components/paper-slider/paper-slider.html">
+<link rel="import" href="../../src/boardgame-deck-defaults.html">
 <link rel="import" href="../../src/boardgame-base-game-renderer.html">
 <link rel="import" href="../../src/boardgame-card.html">
 <link rel="import" href="../../src/boardgame-component-stack.html">
@@ -80,6 +81,15 @@
       }
 
     </style>
+    <boardgame-deck-defaults>
+      <template deck="cards">
+        <boardgame-card>
+          <div tall>
+            {{item.Values.Type}}
+          </div>
+        </boardgame-card>
+      </template>
+    </boardgame-deck-defaults>
     <div id="container" class$="{{_classes(slowAnimations)}}">
       <div id="controls">
         <paper-toggle-button checked="{{fromStackRotated}}">From Rotated</paper-toggle-button>

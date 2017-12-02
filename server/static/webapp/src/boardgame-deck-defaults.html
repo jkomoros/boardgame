@@ -1,0 +1,20 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+
+
+<script>
+
+  //BoardgameDeckDefaults is really just a container for templates with a deck
+  //property.
+  class BoardgameDeckDefaults extends Polymer.Element {
+    static get is() {
+      return "boardgame-deck-defaults"
+    }
+
+    templateForDeck(deckName) {
+      return this.querySelector("[deck=" + deckName + "]");
+    }
+  }
+
+  customElements.define(BoardgameDeckDefaults.is, BoardgameDeckDefaults);
+
+</script>
