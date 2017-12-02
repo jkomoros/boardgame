@@ -190,6 +190,12 @@
               value: null,
               observer: "_stackChanged"
             },
+            //deckName, if set, is the deck that this stack is associated
+            //with. Will be auto-set based on the value of stack.
+            deckName: {
+              type: String,
+              value: "",
+            },
             //If set, this stack will be combined with the secondary stack and 
             //the result will be set to stack.
             primaryStack: {
@@ -279,8 +285,8 @@
         get componentType() {
 
           if (this.stack) {
-            if (deckComponentType[this.stack.Deck]) {
-              return deckComponentType[this.stack.Deck]
+            if (deckComponentType[this.deckName]) {
+              return deckComponentType[this.deckName]
             }
           }
 
@@ -296,7 +302,7 @@
 
           if (result) {
             if (this.stack) {
-              deckComponentType[this.stack.Deck] = result;
+              deckComponentType[this.deckName] = result;
             }
 
             return result;
@@ -414,6 +420,9 @@
 
         _stackChanged(newValue) {
           if (!newValue) return;
+          if (newValue.Deck) {
+            this.deckName = newValue.Deck;
+          }
           this.idsLastSeen = newValue.IdsLastSeen || {};
           var repeater = this.querySelector("dom-repeat");
           if (!repeater) {
