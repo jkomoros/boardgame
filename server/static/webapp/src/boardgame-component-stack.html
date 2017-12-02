@@ -249,6 +249,10 @@
             //sufficient.
             manualComponentType: String,
 
+            _templateClass: {
+              type: Object,
+            },
+
             _pileScaleFactor: {
               type: Number,
               value: 1.0,
@@ -436,11 +440,57 @@
           }
           this.idsLastSeen = newValue.IdsLastSeen || {};
           var repeater = this.querySelector("dom-repeat");
-          if (!repeater) {
-            console.warn("Couldn't find a repeater to stamp stack items into")
+          if (repeater) {
+            repeater.items = newValue.Components;
             return;
           }
-          repeater.items = newValue.Components;
+
+          //We didn't have a repeater to stamp into. We'll have to generate
+          //the components ourselves!
+          this._generateChildren();
+        }
+
+        get templateClass() {
+          if (!this._templateClass) {
+            let template = this.deckDefaults.templateForDeck(this.deckName);
+            if (!template) {
+              console.warn("Couldn't find the template deck default for " + this.deckName);
+              return;
+            }
+            this._templateClass =  Polymer.Templatize.templatize(template);
+          }
+          return this._templateClass;
+        }
+
+        _generateChildren() {
+          let templateClass = this.templateClass;
+          if (!templateClass) {
+            console.warn("No template class to auto stamp")
+            return;
+          }
+
+          let childrenToAdd =  this.stack.Components.length - this.$.components.children.length;
+        
+          if (childrenToAdd > 0) {
+            for (let i = 0; i < childrenToAdd; i++) {
+              let ele = new templateClass({});
+              this.$.components.appendChild(ele);
+            }
+          } else if (childrenToAdd < 0) {
+            //We have childrent to remove
+            for (let i = 0; i > childrenToAdd; i--) {
+              this.$.components.removeChild(this.$.components.children[0]);
+            }
+          }
+
+          for (let i = 0; i < this.$.components.children.length; i++) {
+            let ele = this.$.components.children[i];
+            ele.item = this.stack.Components[i];
+            ele.index = i;
+          }
+
+          //TODO: forward our component-* properties to them
+
         }
 
         _updateDerivedStack(primaryStack, secondaryStack, stackCombine) {
