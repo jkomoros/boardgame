@@ -498,7 +498,10 @@
             ele.index = i;
           }
 
-          //TODO: forward our component-* properties to them
+          //TODO: forward our component-* properties to them. This is actually
+          //hard, because if we reuse an element it's not clear which
+          //attributes to rip out. ... Wait, they all have the same attributes
+          //set, so maybe it isn't hard.
 
         }
 
