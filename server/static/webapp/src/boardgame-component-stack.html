@@ -462,6 +462,36 @@
           return this._templateClass;
         }
 
+        _attributesForComponents() {
+          //TODO: memoize 
+
+          //Want to forward any attribute set on us that starts
+          //with "component-". One complication is that attributes that are
+          //databound to us without using "$=" will not show up as attributes,
+          //only properties.
+
+          let result = {};
+
+          for (let name of Object.getOwnPropertyNames(this)) {
+            if (!name.startsWith("component")) {
+              continue;
+            }
+            let finalName = name.replace("component", "");
+            //TODO: finalName needs title case to attribute-case.
+            result[finalName] = this[name];
+          }
+
+          for (let attr of this.attributes) {
+            if (!attr.name.startsWith("component-")) {
+              continue;
+            }
+            let finalName = attr.name.replace("component-", "");
+            result[finalName] = attr.value;
+          }
+
+          return result;
+        }
+
         _generateChildren() {
           let templateClass = this.templateClass;
           if (!templateClass) {
@@ -481,6 +511,7 @@
           let childrenToAdd =  this.stack.Components.length - this.$.components.children.length;
         
           if (childrenToAdd > 0) {
+            let attrs = this._attributesForComponents();
             for (let i = 0; i < childrenToAdd; i++) {
               let instance = new templateClass({});
               this.$.components.appendChild(instance.root);
