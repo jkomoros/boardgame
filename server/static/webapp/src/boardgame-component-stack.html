@@ -589,7 +589,9 @@
         }
 
         get _realComponents() {
-          var components = this.$.components.assignedNodes();
+          //flatten:true will return the fallback nodes, which is where inject
+          //the _generateChildren nodes.
+          var components = this.$.components.assignedNodes({flatten: true});
 
           var result = [];
 
