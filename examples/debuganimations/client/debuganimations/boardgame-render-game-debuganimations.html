@@ -117,10 +117,6 @@
 
       <div id='draw'>
         <boardgame-component-stack layout='stack' messy="{{messy}}" stack="{{state.Game.DrawStack}}">
-          <template is='dom-repeat'>
-            <boardgame-card item="{{item}}" index="{{index}}">
-            </boardgame-card>
-          </template>
         </boardgame-component-stack>
         <boardgame-component-stack layout='stack' messy="{{messy}}" stack="{{state.Game.DiscardStack}}">
           <template is='dom-repeat'>

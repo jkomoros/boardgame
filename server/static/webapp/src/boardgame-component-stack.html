@@ -457,7 +457,7 @@
               console.warn("Couldn't find the template deck default for " + this.deckName);
               return;
             }
-            this._templateClass =  Polymer.Templatize.templatize(template);
+            this._templateClass =  Polymer.Templatize.templatize(template, this);
           }
           return this._templateClass;
         }
@@ -473,8 +473,8 @@
         
           if (childrenToAdd > 0) {
             for (let i = 0; i < childrenToAdd; i++) {
-              let ele = new templateClass({});
-              this.$.components.appendChild(ele);
+              let instance = new templateClass({});
+              this.$.components.appendChild(instance.root);
             }
           } else if (childrenToAdd < 0) {
             //We have childrent to remove
