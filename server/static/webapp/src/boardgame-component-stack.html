@@ -2,6 +2,7 @@
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
 <link rel="import" href="../bower_components/polymer/lib/elements/dom-repeat.html">
 <link rel="import" href="../bower_components/polymer/lib/elements/dom-if.html">
+<link rel="import" href="boardgame-deck-defaults.html">
 <link rel="import" href="boardgame-card.html">
 
 <dom-module id="boardgame-component-stack">
@@ -277,6 +278,16 @@
 
         _computeStyle(pileScaleFactor) {
           return "--pile-scale:" + pileScaleFactor;
+        }
+
+        get deckDefaults() {
+          let ele = this.shadowRoot.querySelector("boardgame-deck-defaults");
+          if (ele) return ele;
+
+          ele = document.createElement("boardgame-deck-defaults");
+          this.shadowRoot.appendChild(ele);
+          return ele;
+
         }
 
         //type is the type of component that we contain. It is set based on
