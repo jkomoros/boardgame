@@ -470,7 +470,7 @@
           //databound to us without using "$=" will not show up as attributes,
           //only properties.
 
-          let result = {};
+          let result = new Map();
 
           for (let name of Object.getOwnPropertyNames(this)) {
             if (!name.startsWith("component")) {
@@ -478,7 +478,7 @@
             }
             let finalName = Polymer.CaseMap.camelToDashCase(name);
             finalName = finalName.replace("component-", "");
-            result[finalName] = this[name];
+            result.set(finalName, this[name]);
           }
 
           for (let attr of this.attributes) {
@@ -486,7 +486,7 @@
               continue;
             }
             let finalName = attr.name.replace("component-", "");
-            result[finalName] = attr.value;
+            result.set(finalName, attr.value);
           }
 
           return result;
@@ -511,10 +511,10 @@
           let childrenToAdd =  this.stack.Components.length - this.$.components.children.length;
         
           if (childrenToAdd > 0) {
-            let attrs = this._attributesForComponents();
             for (let i = 0; i < childrenToAdd; i++) {
               let instance = new templateClass({});
-              this.$.components.appendChild(instance.root);
+              let ele = instance.root;
+              this.$.components.appendChild(ele);
             }
           } else if (childrenToAdd < 0) {
             //We have childrent to remove
@@ -523,10 +523,19 @@
             }
           }
 
+          let attrs = this._attributesForComponents();
+
           for (let i = 0; i < this.$.components.children.length; i++) {
             let ele = this.$.components.children[i];
             ele.item = this.stack.Components[i];
             ele.index = i;
+            //TODO: we really only need to set these once, when the element is
+            //initially crated. However, the ele is a document-fragment, and
+            //even after appendingChild we don't get a clean ref to it. So
+            //shrug, just do extra work here.
+            for (let key of attrs.keys()) {
+              ele.setAttribute(key, attrs.get(key));
+            }
           }
 
           //TODO: forward our component-* properties to them. This is actually
