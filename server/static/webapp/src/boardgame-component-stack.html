@@ -452,12 +452,7 @@
 
         get templateClass() {
           if (!this._templateClass) {
-            let template = this.deckDefaults.templateForDeck(this.deckName);
-            if (!template) {
-              console.warn("Couldn't find the template deck default for " + this.deckName);
-              return;
-            }
-            this._templateClass =  Polymer.Templatize.templatize(template, this);
+            this._templateClass = this.deckDefaults.templateForDeck(this.deckName);
           }
           return this._templateClass;
         }

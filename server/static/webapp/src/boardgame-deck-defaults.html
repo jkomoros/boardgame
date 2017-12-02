@@ -54,9 +54,11 @@
 
         if (!template) return null;
 
-        templatesByName[deckName] = template;
+        let templateInstance = Polymer.Templatize.templatize(template, this);
 
-        return template;
+        templatesByName[deckName] = templateInstance;
+
+        return templateInstance;
       }
     }
 
