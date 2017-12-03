@@ -404,6 +404,17 @@
           //elements) but different from most other stacks.
           this._randomRotationOffset = Math.floor(Math.random() * 21);
           this._id = this._randomId(8);
+          let attrs = this._attributesForComponents();
+          for (let key of attrs.keys()) {
+            this._createPropertyObserver(Polymer.CaseMap.dashToCamelCase("component-" + key), "_componentPropChanged")
+          }
+        }
+
+        _componentPropChanged() {
+          //If a prop that we forward to our children changed, just regenerate
+          //children.
+          //TODO: only change the attribute that was changed.
+          this._generateChildren();
         }
 
         //setUnknownAnimationState sets the "final" state of the styling on a
