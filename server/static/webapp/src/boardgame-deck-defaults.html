@@ -45,16 +45,20 @@
         if (templatesByName[deckName]) return templatesByName[deckName];
 
         let template;
+        let templateParentInstance;
 
         //Find the first defaults-instance that has it.
         for (let instance of defaultsInstances) {
           template = instance.querySelector("[deck=" + deckName + "]");
-          if (template) break;
+          if (template) {
+            templateParentInstance = instance;
+            break;
+          }
         }
 
         if (!template) return null;
 
-        let templateInstance = Polymer.Templatize.templatize(template, this);
+        let templateInstance = Polymer.Templatize.templatize(template, templateParentInstance);
 
         templatesByName[deckName] = templateInstance;
 
