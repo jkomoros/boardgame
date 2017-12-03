@@ -524,6 +524,8 @@
               let instance = new templateClass({});
               let ele = instance.root;
               this.$.components.appendChild(ele);
+              let actualEle = this.$.components.children[this.$.components.children.length - 1];
+              actualEle.instance = instance;
             }
           } else if (childrenToAdd < 0) {
             //We have childrent to remove
@@ -542,6 +544,12 @@
             let ele = this.$.components.children[i];
             ele.item = this.stack.Components[i];
             ele.index = i;
+
+            //In case they used template databinding on the instance we need
+            //to update its binding too.
+            ele.instance.item = this.stack.Components[i];
+            ele.instance.index = i;
+
             //TODO: we really only need to set these once, when the element is
             //initially crated. However, the ele is a document-fragment, and
             //even after appendingChild we don't get a clean ref to it. So
