@@ -297,7 +297,7 @@
         //type is the type of component that we contain. It is set based on
         //manualComponenType, then the type of any components we've last seen,
         //then defaults to "card".
-        get componentType() {
+        get type() {
 
           if (this.stack) {
             if (deckComponentType[this.deckName]) {
@@ -330,7 +330,7 @@
         //Returns a new component for this stack set reasonably, based on
         //componentType and autoSetType.
         newComponent() {
-          let ele = document.createElement("boardgame-" + this.componentType);
+          let ele = document.createElement("boardgame-" + this.type);
 
           for (let propName of ele.configProperties) {
             ele[propName] = this.stackDefault(propName);
