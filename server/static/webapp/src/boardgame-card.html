@@ -395,7 +395,7 @@
           if (!newValue) return;
           var template = Polymer.DomModule.import(newValue, "template");
           if (!template) {
-            console.warn("couldn't find template for id " + newValue);
+            //Totally fine, they might be importing content another way.
             return;
           }
           var clone = document.importNode(template, true);
