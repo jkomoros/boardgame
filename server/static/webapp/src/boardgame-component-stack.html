@@ -477,27 +477,33 @@
           //databound to us without using "$=" will not show up as attributes,
           //only properties.
 
-          let result = new Map();
+          if (!this._memoizedAttributesForComponents) {
 
-          for (let name of Object.getOwnPropertyNames(this)) {
-            if (!name.startsWith("component")) {
-              continue;
+            let result = new Map();
+
+            for (let name of Object.getOwnPropertyNames(this)) {
+              if (!name.startsWith("component")) {
+                continue;
+              }
+              let finalName = name.replace("component", "");
+              finalName = finalName[0].toLowerCase() + finalName.slice(1, finalName.length);
+              result.set(finalName, this[name]);
             }
-            let finalName = name.replace("component", "");
-            finalName = finalName[0].toLowerCase() + finalName.slice(1, finalName.length);
-            result.set(finalName, this[name]);
+
+            for (let attr of this.attributes) {
+              if (!attr.name.startsWith("component-")) {
+                continue;
+              }
+              let name = attr.name.replace("component-", "");
+              let finalName = Polymer.CaseMap.dashToCamelCase(name);
+              result.set(finalName, attr.value);
+            }
+
+            this._memoizedAttributesForComponents = result;
+
           }
 
-          for (let attr of this.attributes) {
-            if (!attr.name.startsWith("component-")) {
-              continue;
-            }
-            let name = attr.name.replace("component-", "");
-            let finalName = Polymer.CaseMap.dashToCamelCase(name);
-            result.set(finalName, attr.value);
-          }
-
-          return result;
+          return this._memoizedAttributesForComponents;
         }
 
         _generateChildren() {
