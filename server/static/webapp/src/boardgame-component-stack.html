@@ -330,6 +330,24 @@
         //Returns a new component for this stack set reasonably, based on
         //componentType and autoSetType.
         newComponent() {
+
+          let templateClass = this.templateClass;
+
+          if (templateClass) {
+              let instance = new templateClass({});
+              for (let child of instance.children) {
+                if (child.nodeType != 1) continue;
+                child.instance = instance;
+                return child;
+              }
+              console.warn("None of the nodes printed by the template are an actual node.");
+              return null;
+          }
+
+          console.warn("No template class to auto stamp")
+
+          //Fall back on creating a node of type created by just constructing
+          //our dominant type directly.
           let ele = document.createElement("boardgame-" + this.type);
 
           for (let propName of ele.configProperties) {
@@ -618,12 +636,12 @@
           return this._realComponents.concat(this._fauxComponents);
         }
 
-        _insertNodes(componentsInfo, hostEle, eleConstructor) {
+        _insertNodes(componentsInfo, hostEle) {
           let childrenToAdd =  componentsInfo.length - hostEle.children.length;
         
           if (childrenToAdd > 0) {
             for (let i = 0; i < childrenToAdd; i++) {
-              hostEle.appendChild(eleConstructor());
+              hostEle.appendChild(this.newComponent());
             }
           } else if (childrenToAdd < 0) {
             //We have childrent to remove
@@ -666,11 +684,6 @@
         }
 
         _generateChildren() {
-          let templateClass = this.templateClass;
-          if (!templateClass) {
-            console.warn("No template class to auto stamp")
-            return;
-          }
 
           //There might be things like text nodes in our parent that shouldn't
           //be there, and will prevent the children we stamp from showing up,
@@ -681,19 +694,7 @@
             this.childNodes[0].parentElement.removeChild(this.childNodes[0]);
           }
 
-          let constructor = function() {
-              let instance = new templateClass({});
-              for (let child of instance.children) {
-                if (child.nodeType != 1) continue;
-                child.instance = instance;
-                return child;
-              }
-              console.warn("None of the nodes printed by the template are an actual node.");
-              return null;
-          }
-
-
-          this._insertNodes(this.stack.Components, this.$.components, constructor);
+          this._insertNodes(this.stack.Components, this.$.components);
 
         }
 
@@ -717,11 +718,7 @@
 
             var that = this;
 
-            let constructor = function() {
-              return that.newComponent();
-            }
-
-            this._insertNodes(info, fauxComponentsContainer, constructor);
+            this._insertNodes(info, fauxComponentsContainer);
 
           }
 
