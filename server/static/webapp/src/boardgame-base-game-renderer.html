@@ -42,7 +42,7 @@
           var tempEle = composedPath[i];
           //Skip things like shadow roots
           if (!tempEle.getAttribute) continue;
-          if (tempEle.getAttribute("propose-move")) {
+          if (tempEle.proposeMove || tempEle.getAttribute("propose-move")) {
             //found it!
             ele = tempEle;
             break;
@@ -55,7 +55,7 @@
           //Cards we'll fire on the component-tapped, not the tap.
           return;
         }
-        var moveName = ele.getAttribute("propose-move");
+        var moveName = ele.proposeMove || ele.getAttribute("propose-move");
         if (!moveName) return;
         var data = ele.dataset;
         var args = {};
