@@ -713,7 +713,9 @@
             let info = [];
 
             for (let i = 0; i < targetNumFauxComponents; i++) {
-              info.push(null);
+              //boardgame-component, if its item is set to null, will treat it
+              //as a spacer. But undefined it will just ignore.
+              info.push(undefined);
             }
 
             var that = this;
