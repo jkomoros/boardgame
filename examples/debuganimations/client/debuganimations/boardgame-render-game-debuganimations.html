@@ -14,14 +14,6 @@
 <link rel="import" href="../../src/boardgame-fading-text.html">
 <link rel="import" href="../../src/boardgame-token.html">
 
-<dom-module id="debuganimations-deck-cards-card">
-  <template>
-    <div tall>
-      {{item.Values.Type}}
-    </div>
-  </template>
-</dom-module>
-
 <dom-module id="boardgame-render-game-debuganimations">
   <template>
     <style>
@@ -89,6 +81,9 @@
           </div>
         </boardgame-card>
       </template>
+      <template deck="tokens">
+        <boardgame-token></boardgame-token>
+      </template>
     </boardgame-deck-defaults>
     <div id="container" class$="{{_classes(slowAnimations)}}">
       <div id="controls">
@@ -116,13 +111,9 @@
       </div>
 
       <div id='draw'>
-        <boardgame-component-stack layout='stack' messy="{{messy}}" stack="{{state.Game.DrawStack}}" component-rotated="{{messy}}" component-no-shadow="5" component-index-attributes="my-index,other-index">
+        <boardgame-component-stack layout='stack' messy="{{messy}}" stack="{{state.Game.DrawStack}}" component-rotated="{{messy}}" component-index-attributes="my-index,other-index">
         </boardgame-component-stack>
         <boardgame-component-stack layout='stack' messy="{{messy}}" stack="{{state.Game.DiscardStack}}">
-          <template is='dom-repeat'>
-            <boardgame-card item="{{item}}" index="{{index}}">
-            </boardgame-card>
-          </template>
         </boardgame-component-stack>
         <paper-button propose-move="Move Card Between Draw and Discard Stacks">Draw</paper-button>
         <boardgame-fading-text trigger="{{state.Game.DrawStack.Components.length}}" auto-message="diff"></boardgame-fading-text>
@@ -130,27 +121,15 @@
 
       <div id='draw'>
         <boardgame-component-stack layout='stack' messy="{{messy}}" primary-stack="{{state.Game.HiddenCard}}" secondary-stack="{{state.Game.RevealedCard}}"> 
-          <template is='dom-repeat'>
-            <boardgame-card index="{{index}}" item="{{item}}">
-            </boardgame-card>
-          </template>
         </boardgame-component-stack>
         <paper-button propose-move="Flip Card Between Hidden and Revealed">Flip</paper-button>
       </div>
 
       <div id="fan">
-        <boardgame-component-stack layout='{{fromStackLayout}}' messy="{{messy}}" stack="{{state.Game.FanStack}}" style$="--component-scale:{{fromCardScale}}">
-          <template is='dom-repeat'>
-            <boardgame-card item="{{item}}" index="{{index}}" rotated="{{fromStackRotated}}">
-            </boardgame-card>
-          </template>
+        <boardgame-component-stack layout='{{fromStackLayout}}' messy="{{messy}}" stack="{{state.Game.FanStack}}" style$="--component-scale:{{fromCardScale}}" component-rotated="{{fromStackRotated}}">
         </boardgame-component-stack>
         <div class="flex"></div>
-        <boardgame-component-stack layout='stack' messy="{{messy}}" stack="{{state.Game.FanDiscard}}" style$="--component-scale:{{toCardScale}}">
-          <template is='dom-repeat'>
-            <boardgame-card item="{{item}}" index="{{index}}" rotated="{{toStackRotated}}">
-            </boardgame-card>
-          </template>
+        <boardgame-component-stack layout='stack' messy="{{messy}}" stack="{{state.Game.FanDiscard}}" style$="--component-scale:{{toCardScale}}" component-rotated="{{toStackRotated}}">
         </boardgame-component-stack>
         <div class="controls">
           <paper-button propose-move="Move Fan Card">Draw</paper-button>
@@ -169,17 +148,9 @@
       </div>
 
       <div id="hidden">
-        <boardgame-component-stack layout="fan" messy="{{messy}}" stack="{{state.Game.VisibleStack}}" style$="--component-scale:{{fromCardScale}}">
-          <template is="dom-repeat">
-            <boardgame-card item="{{item}}" index="{{index}}" rotated="{{fromStackRotated}}">
-            </boardgame-card>
-          </template>
+        <boardgame-component-stack layout="fan" messy="{{messy}}" stack="{{state.Game.VisibleStack}}" style$="--component-scale:{{fromCardScale}}" component-rotated="{{fromStackRotated}}">
         </boardgame-component-stack>
-        <boardgame-component-stack layout="stack" messy="{{messy}}" stack="{{state.Game.HiddenStack}}" style$="--component-scale:{{toCardScale}}" faux-components="5">
-          <template is="dom-repeat">
-            <boardgame-card item="{{item}}" index="{{index}}" rotated="{{toStackRotated}}">
-            </boardgame-card>
-          </template>
+        <boardgame-component-stack layout="stack" messy="{{messy}}" stack="{{state.Game.HiddenStack}}" style$="--component-scale:{{toCardScale}}" faux-components="5" component-rotated="{{toStackRotated}}">
         </boardgame-component-stack>
         <paper-button propose-move="Move Between Hidden">Draw</paper-button>
       </div>
@@ -206,30 +177,18 @@
       </div>
 
       <div id="tokens">
-        <boardgame-component-stack layout="grid" messy="{{messy}}" stack="{{state.Game.TokensFrom}}">
-          <template is="dom-repeat">
-            <boardgame-token color="{{tokenColor}}" type="{{tokenType}}" item="{{item}}" index="{{index}}"></boardgame-token>
-          </template>
+        <boardgame-component-stack layout="grid" messy="{{messy}}" stack="{{state.Game.TokensFrom}}" component-color="{{tokenColor}}" component-type="{{tokenType}}">
         </boardgame-component-stack>
-        <boardgame-component-stack layout="grid" messy="{{messy}}" stack="{{state.Game.TokensTo}}">
-          <template is="dom-repeat">
-            <boardgame-token color="{{tokenColor}}" type="{{tokenType}}" item="{{item}}" index="{{index}}"></boardgame-token>
-          </template>
+        <boardgame-component-stack layout="grid" messy="{{messy}}" stack="{{state.Game.TokensTo}}" component-color="{{tokenColor}}" component-type="{{tokenType}}">
         </boardgame-component-stack>
         <paper-button propose-move="Move Token">Swap</paper-button>
       </div>
 
 
       <div id="tokens-sanitized">
-        <boardgame-component-stack layout="pile" messy="{{messy}}" stack="{{state.Game.SanitizedTokensFrom}}">
-          <template is="dom-repeat">
-            <boardgame-token color="{{tokenColor}}" type="{{tokenType}}" item="{{item}}" index="{{index}}"></boardgame-token>
-          </template>
+        <boardgame-component-stack layout="pile" messy="{{messy}}" stack="{{state.Game.SanitizedTokensFrom}}" component-color="{{tokenColor}}" component-type="{{tokenType}}">
         </boardgame-component-stack>
-        <boardgame-component-stack layout="pile" messy="{{messy}}" stack="{{state.Game.SanitizedTokensTo}}" faux-components="5">
-          <template is="dom-repeat">
-            <boardgame-token color="{{tokenColor}}" type="{{tokenType}}" item="{{item}}" index="{{index}}"></boardgame-token>
-          </template>
+        <boardgame-component-stack layout="pile" messy="{{messy}}" stack="{{state.Game.SanitizedTokensTo}}" faux-components="5" component-color="{{tokenColor}}" component-type="{{tokenType}}">
         </boardgame-component-stack>
         <paper-button propose-move="Move Token Sanitized">Swap</paper-button>
       </div>
