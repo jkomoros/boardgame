@@ -618,12 +618,12 @@
           return this._realComponents.concat(this._fauxComponents);
         }
 
-        _insertNodes(componentsInfo, hostEle, nodeAppender) {
+        _insertNodes(componentsInfo, hostEle, eleConstructor) {
           let childrenToAdd =  componentsInfo.length - hostEle.children.length;
         
           if (childrenToAdd > 0) {
             for (let i = 0; i < childrenToAdd; i++) {
-              nodeAppender(hostEle);
+              hostEle.appendChild(eleConstructor());
             }
           } else if (childrenToAdd < 0) {
             //We have childrent to remove
@@ -681,16 +681,19 @@
             this.childNodes[0].parentElement.removeChild(this.childNodes[0]);
           }
 
-          let appender = function(parentEle) {
+          let constructor = function() {
               let instance = new templateClass({});
-              let ele = instance.root;
-              parentEle.appendChild(ele);
-              let actualEle = parentEle.children[parentEle.children.length - 1];
-              actualEle.instance = instance;
+              for (let child of instance.children) {
+                if (child.nodeType != 1) continue;
+                child.instance = instance;
+                return child;
+              }
+              console.warn("None of the nodes printed by the template are an actual node.");
+              return null;
           }
 
 
-          this._insertNodes(this.stack.Components, this.$.components, appender);
+          this._insertNodes(this.stack.Components, this.$.components, constructor);
 
         }
 
@@ -714,12 +717,11 @@
 
             var that = this;
 
-            let appender = function(parentEle) {
-              let ele = that.newComponent();
-              parentEle.appendChild(ele);
+            let constructor = function() {
+              return that.newComponent();
             }
 
-            this._insertNodes(info, fauxComponentsContainer, appender);
+            this._insertNodes(info, fauxComponentsContainer, constructor);
 
           }
 
