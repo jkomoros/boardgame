@@ -95,17 +95,9 @@
         To Scale: <paper-slider min="0.5" max="2.0" value="{{toCardScale}}" pin step=".05"></paper-slider>
       </div>
       <div id='shortstacks'>
-        <boardgame-component-stack layout='stack' stack="{{state.Game.FirstShortStack}}" messy="{{messy}}">
-          <template is='dom-repeat'>
-            <boardgame-card item="{{item}}" index="{{index}}" propose-move="Move Card Between Short Stacks">
-            </boardgame-card>
-          </template>
+        <boardgame-component-stack layout='stack' stack="{{state.Game.FirstShortStack}}" messy="{{messy}}" component-propose-move="Move Card Between Short Stacks">
         </boardgame-component-stack>
         <boardgame-component-stack layout='stack' messy="{{messy}}" stack="{{state.Game.SecondShortStack}}">
-          <template is='dom-repeat'>
-            <boardgame-card item="{{item}}" index="{{index}}">
-            </boardgame-card>
-          </template>
         </boardgame-component-stack>
         <paper-button propose-move="Move Card Between Short Stacks">Swap</paper-button>
       </div>
