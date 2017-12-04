@@ -501,81 +501,6 @@
 
         }
 
-        _generateChildren() {
-          let templateClass = this.templateClass;
-          if (!templateClass) {
-            console.warn("No template class to auto stamp")
-            return;
-          }
-
-          //There might be things like text nodes in our parent that shouldn't
-          //be there, and will prevent the children we stamp from showing up,
-          //since technically something IS being routed to the slot.
-
-          let nodesToRemove = this.childNodes.length;
-          for (let i = 0; i < nodesToRemove; i++) {
-            this.childNodes[0].parentElement.removeChild(this.childNodes[0]);
-          }
-
-          let childrenToAdd =  this.stack.Components.length - this.$.components.children.length;
-        
-          if (childrenToAdd > 0) {
-            for (let i = 0; i < childrenToAdd; i++) {
-              let instance = new templateClass({});
-              let ele = instance.root;
-              this.$.components.appendChild(ele);
-              let actualEle = this.$.components.children[this.$.components.children.length - 1];
-              actualEle.instance = instance;
-            }
-          } else if (childrenToAdd < 0) {
-            //We have childrent to remove
-            for (let i = 0; i > childrenToAdd; i--) {
-              this.$.components.removeChild(this.$.components.children[0]);
-            }
-          }
-
-          let attrs = this._attributesForComponents();
-
-          const indexAttrs = "indexAttributes";
-
-          let attributesToIndex = attrs.get(indexAttrs) ? attrs.get(indexAttrs).split(",") : [];
-
-          for (let i = 0; i < this.$.components.children.length; i++) {
-            let ele = this.$.components.children[i];
-            ele.item = this.stack.Components[i];
-            ele.index = i;
-
-            //In case they used template databinding on the instance we need
-            //to update its binding too.
-            ele.instance.item = this.stack.Components[i];
-            ele.instance.index = i;
-
-            //TODO: we really only need to set these once, when the element is
-            //initially crated. However, the ele is a document-fragment, and
-            //even after appendingChild we don't get a clean ref to it. So
-            //shrug, just do extra work here.
-            for (let key of attrs.keys()) {
-              if (key == indexAttrs) continue;
-              ele[key] = attrs.get(key);
-            }
-            for (let name of attributesToIndex) {
-              let finalName = Polymer.CaseMap.dashToCamelCase(name);
-              ele[finalName] = i;
-            }
-          }
-
-          //TODO: forward our component-* properties to them. This is actually
-          //hard, because if we reuse an element it's not clear which
-          //attributes to rip out. ... Wait, they all have the same attributes
-          //set, so maybe it isn't hard. Actually, becuase they're the same
-          //for all, only need to stamp when we create the nodes. (the index
-          //attirbutes do need to change). But things that are databound
-          //without $= will not be enumerable in attributes, because Polymer
-          //just sets tehm as properties. What does pOlymer do with properties
-          //it doesn't know?
-
-        }
-
         _updateDerivedStack(primaryStack, secondaryStack, stackCombine) {
           if (!primaryStack && !secondaryStack) return;
           if (primaryStack && !secondaryStack) {
@@ -693,6 +618,82 @@
           return this._realComponents.concat(this._fauxComponents);
         }
 
+        _insertNodes(componentsInfo, hostEle, nodeAppender) {
+          let childrenToAdd =  componentsInfo.length - hostEle.children.length;
+        
+          if (childrenToAdd > 0) {
+            for (let i = 0; i < childrenToAdd; i++) {
+              nodeAppender(hostEle);
+            }
+          } else if (childrenToAdd < 0) {
+            //We have childrent to remove
+            for (let i = 0; i > childrenToAdd; i--) {
+              hostEle.removeChild(hostEle.children[0]);
+            }
+          }
+
+          let attrs = this._attributesForComponents();
+
+          const indexAttrs = "indexAttributes";
+
+          let attributesToIndex = attrs.get(indexAttrs) ? attrs.get(indexAttrs).split(",") : [];
+
+          for (let i = 0; i < hostEle.children.length; i++) {
+            let ele = hostEle.children[i];
+            ele.item = componentsInfo[i];
+            ele.index = i;
+
+            //In case they used template databinding on the instance we need
+            //to update its binding too.
+            if (ele.instance) {
+              ele.instance.item = componentsInfo[i];
+              ele.instance.index = i;
+            }
+
+            //TODO: we really only need to set these once, when the element is
+            //initially crated. However, the ele is a document-fragment, and
+            //even after appendingChild we don't get a clean ref to it. So
+            //shrug, just do extra work here.
+            for (let key of attrs.keys()) {
+              if (key == indexAttrs) continue;
+              ele[key] = attrs.get(key);
+            }
+            for (let name of attributesToIndex) {
+              let finalName = Polymer.CaseMap.dashToCamelCase(name);
+              ele[finalName] = i;
+            }
+          }
+        }
+
+        _generateChildren() {
+          let templateClass = this.templateClass;
+          if (!templateClass) {
+            console.warn("No template class to auto stamp")
+            return;
+          }
+
+          //There might be things like text nodes in our parent that shouldn't
+          //be there, and will prevent the children we stamp from showing up,
+          //since technically something IS being routed to the slot.
+
+          let nodesToRemove = this.childNodes.length;
+          for (let i = 0; i < nodesToRemove; i++) {
+            this.childNodes[0].parentElement.removeChild(this.childNodes[0]);
+          }
+
+          let appender = function(parentEle) {
+              let instance = new templateClass({});
+              let ele = instance.root;
+              parentEle.appendChild(ele);
+              let actualEle = parentEle.children[parentEle.children.length - 1];
+              actualEle.instance = instance;
+          }
+
+
+          this._insertNodes(this.stack.Components, this.$.components, appender);
+
+        }
+
         _slotChanged(firstRender) {
 
           var realComponents = this._realComponents;
@@ -705,22 +706,20 @@
 
             let targetNumFauxComponents = this.fauxComponents - realComponents.length;
 
-            let starterComponentIndex = fauxComponentsContainer.children.length
+            let info = [];
 
-            let childrenToAdd =  targetNumFauxComponents - starterComponentIndex;
-          
-            if (childrenToAdd > 0) {
-              for (let i = 0; i < childrenToAdd; i++) {
-                let fauxComponent = this.newComponent();
-                fauxComponent.index = starterComponentIndex + i;
-                fauxComponentsContainer.appendChild(fauxComponent);
-              }
-            } else if (childrenToAdd < 0) {
-              //We have childrent to remove
-              for (let i = 0; i > childrenToAdd; i--) {
-                fauxComponentsContainer.removeChild(fauxComponentsContainer.children[0]);
-              }
+            for (let i = 0; i < targetNumFauxComponents; i++) {
+              info.push(null);
             }
+
+            var that = this;
+
+            let appender = function(parentEle) {
+              let ele = that.newComponent();
+              parentEle.appendChild(ele);
+            }
+
+            this._insertNodes(info, fauxComponentsContainer, appender);
 
           }
 
