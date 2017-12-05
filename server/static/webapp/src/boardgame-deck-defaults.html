@@ -42,6 +42,12 @@
 
       templateForDeck(deckName) {
 
+        if (!deckName) {
+          //This happens often when a new renderer is loaded and we don't yet
+          //have the first state bundle.
+          return null;
+        }
+
         if (templatesByName[deckName]) return templatesByName[deckName];
 
         let template;
