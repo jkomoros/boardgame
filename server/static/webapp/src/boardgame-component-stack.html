@@ -471,17 +471,22 @@
         }
 
         _stackChanged(newValue) {
-          if (!newValue) return;
-          if (newValue.Deck) {
-            this.deckName = newValue.Deck;
+          if (newValue) {
+            if (newValue.Deck) {
+              this.deckName = newValue.Deck;
+            }
+            if (newValue.GameName) {
+              this.gameName = newValue.GameName;
+            }
+            this.idsLastSeen = newValue.IdsLastSeen || {};
+          } else {
+            this.deckName = "";
+            this.gameName = "";
+            this.idsLastSeen = null;
           }
-          if (newValue.GameName) {
-            this.gameName = newValue.GameName;
-          }
-          this.idsLastSeen = newValue.IdsLastSeen || {};
           var repeater = this.querySelector("dom-repeat");
           if (repeater) {
-            repeater.items = newValue.Components;
+            repeater.items = newValue ? newValue.Components : [];
             return;
           }
 
@@ -719,7 +724,7 @@
           //renderer at the template because the objects are in the shadow dom
           //and thus can't be reached by styles. So just stamp into the actual
           //children.
-          this._insertNodes(this.stack.Components, this);
+          this._insertNodes(this.stack ? this.stack.Components : [], this);
 
         }
 
