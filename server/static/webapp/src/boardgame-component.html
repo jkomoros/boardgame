@@ -222,6 +222,24 @@
         }
         return result;
       }
+
+      //obj.properties, smooshed down all the way to the upper.
+      get _composedPropertyDefinition() {
+        if (!this._memoizedComposedPropertyDefinition) {
+          let result = {};
+          let obj = this;
+          while (obj) {
+            let props = obj.constructor.properties;
+            if (!props) break;
+            for (let key of Object.keys(props)) {
+              result[key] = props[key];
+            }
+            obj = obj.__proto__;
+          }
+          this._memoizedComposedPropertyDefinition = result;
+        }
+        return this._memoizedComposedPropertyDefinition;
+      }
       
       //animatingProperties should return an array of strings of property
       //names that change during animations. animatingPropValues() and

@@ -679,7 +679,12 @@
             //shrug, just do extra work here.
             for (let key of attrs.keys()) {
               if (key == indexAttrs) continue;
-              ele[key] = attrs.get(key);
+              let valToSet = attrs.get(key);
+              let propConfigs = ele._composedPropertyDefinition;
+              if (propConfigs[key] && propConfigs[key].type == Boolean) {
+                valToSet = true;
+              }
+              ele[key] = valToSet;
             }
             for (let name of attributesToIndex) {
               let finalName = Polymer.CaseMap.dashToCamelCase(name);
