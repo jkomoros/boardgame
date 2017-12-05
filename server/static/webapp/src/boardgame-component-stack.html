@@ -705,7 +705,12 @@
             this.childNodes[0].parentElement.removeChild(this.childNodes[0]);
           }
 
-          this._insertNodes(this.stack.Components, this.$.components);
+          //We used to stamp 'defaults' into the this.$.components. However,
+          //if we do that then it's not possible to target styles in the game
+          //renderer at the template because the objects are in the shadow dom
+          //and thus can't be reached by styles. So just stamp into the actual
+          //children.
+          this._insertNodes(this.stack.Components, this);
 
         }
 
