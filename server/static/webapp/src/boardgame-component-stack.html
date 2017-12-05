@@ -684,6 +684,7 @@
             for (let name of attributesToIndex) {
               let finalName = Polymer.CaseMap.dashToCamelCase(name);
               ele[finalName] = i;
+              ele.setAttribute(name, i);
             }
           }
         }
