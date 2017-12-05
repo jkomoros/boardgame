@@ -6,6 +6,7 @@
 <link rel="import" href="../../src/boardgame-card.html">
 <link rel="import" href="../../src/boardgame-base-game-renderer.html">
 <link rel="import" href="../../src/boardgame-fading-text.html">
+<link rel="import" href="../../src/boardgame-deck-defaults.html">
 
 <dom-module id="boardgame-render-game-blackjack">
   <template>
@@ -25,33 +26,31 @@
         filter: saturate(0.5) blur(1px);
       }
     </style>
+    <boardgame-deck-defaults>
+      <template deck="cards">
+        <boardgame-card suit="{{item.Values.Suit}}" rank="{{item.Values.Rank}}"></boardgame-card>
+      </template>
+    </boardgame-deck-defaults>
     <div id="draw">
-      <boardgame-component-stack stack="{{state.Game.DrawStack}}" layout="stack" messy>
-        <template is="dom-repeat">
-          <boardgame-card item="{{item}}" index="{{index}}" propose-move="Current Player Hit"></boardgame-card>
-        </template>
+      <boardgame-component-stack stack="{{state.Game.DrawStack}}" layout="stack" messy component-propose-move="Current Player Hit">
       </boardgame-component-stack>
       <div class="flex">
         <paper-button raised propose-move="Current Player Hit" disabled="{{!isCurrentPlayer}}">Hit</paper-button>
         <paper-button raised propose-move="Current Player Stand" disabled="{{!isCurrentPlayer}}">Stand</paper-button>
       </div>
       <boardgame-component-stack stack="{{state.Game.DiscardStack}}" layout="stack" messy>
-        <template is="dom-repeat">
-          <boardgame-card item="{{item}}" index="{{index}}" suit="{{item.Values.Suit}}" rank="{{item.Values.Rank}}"></boardgame-card>
-        </template>
       </boardgame-component-stack>
     </div>
     <div id="players">
       <template is="dom-repeat" items="{{state.Players}}">
         <div class$="player flex {{_bustedClass(item.Busted)}}">
           <strong>Player {{index}}</strong>
-          <boardgame-component-stack secondary-stack="{{item.VisibleHand}}" primary-stack="{{item.HiddenHand}}" stack-combine="concatenate" layout="fan" messy>
-            <template is="dom-repeat">
-              <boardgame-card item="{{item}}" index="{{index}}" suit="{{item.Values.Suit}}" rank="{{item.Values.Rank}}" rotated></boardgame-card>
-            </template>
+          <div>
+            <boardgame-component-stack secondary-stack="{{item.VisibleHand}}" primary-stack="{{item.HiddenHand}}" stack-combine="concatenate" layout="fan" messy component-rotated>
+            </boardgame-component-stack>
             <boardgame-fading-text trigger="{{item.Busted}}" message="Busted!"></boardgame-fading-text>
             <boardgame-fading-text trigger="{{item.Stood}}" message="Stand!"></boardgame-fading-text>
-          </boardgame-component-stack>
+          </div>
         </div>
       </template>
     </div>
