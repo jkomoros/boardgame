@@ -19,6 +19,46 @@
         return "boardgame-deck-defaults"
       }
 
+      static get properties() {
+        return {
+          //gameName can be set explicitly or will be set implicitly when
+          //accessed via effectiveGameName.
+          gameName: {
+            type: String
+          }
+        }
+      }
+
+      get effectiveGameName() {
+        if (!this.gameName) {
+          //If not set, search upwards to find our renderer whose name
+          //implicitly contains it.
+          let ele = this.parentNode.host;
+          while (ele) {
+            if (ele.localName.startsWith("boardgame-render-game-")) {
+              break;
+            }
+            //Look up the chain.
+            if (ele.parentElement) {
+              //Just normal parent
+              ele = ele.parentElement;
+            } else if(ele.parentNode && ele.parentNode.host) {
+              //Cross shadow DOM boundary
+              ele = ele.parentNode.host;
+            } else {
+              //Unknown situation, just stop walking upward
+              ele = null;
+            }
+          }
+
+          if (ele && ele.localName.startsWith("boardgame-render-game-")) {
+            this.gameName = ele.localName.replace("boardgame-render-game-", "");
+          }
+
+        }
+        return this.gameName
+      }
+
       connectedCallback() {
         let template = this.querySelector("[deck]");
         if (!template) {
@@ -42,8 +82,7 @@
 
       templateForDeck(gameName, deckName) {
 
-        //TODO: key cache off of gameName + deckName, figure out what our
-        //gameName is.
+        let templateKey = gameName + "-" + deckName
 
         if (!deckName) {
           //This happens often when a new renderer is loaded and we don't yet
@@ -51,7 +90,7 @@
           return null;
         }
 
-        if (templatesByName[deckName]) return templatesByName[deckName];
+        if (templatesByName[templateKey]) return templatesByName[templateKey];
 
         let template;
         let templateParentInstance;
@@ -60,6 +99,15 @@
         for (let instance of defaultsInstances) {
           template = instance.querySelector("[deck=" + deckName + "]");
           if (template) {
+
+            //Verify that it's the right gameName.
+            if (instance.effectiveGameName != gameName) {
+              //Sometimes effectiveGameName will be undefined before the deck
+              //default is actually embedded in the parentElement (e.g. at
+              //renderer boot) and that's OK.
+              continue;
+            }
+
             templateParentInstance = instance;
             break;
           }
@@ -69,7 +117,7 @@
 
         let templateInstance = Polymer.Templatize.templatize(template, templateParentInstance);
 
-        templatesByName[deckName] = templateInstance;
+        templatesByName[templateKey] = templateInstance;
 
         return templateInstance;
       }
