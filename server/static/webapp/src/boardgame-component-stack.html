@@ -481,10 +481,9 @@
         }
 
         get templateClass() {
-          if (!this._templateClass) {
-            this._templateClass = this.deckDefaults.templateForDeck(this.deckName);
-          }
-          return this._templateClass;
+          //We don't memoize this because if the renderer changes then the
+          //templateClass we use should change.
+          return this.deckDefaults.templateForDeck(this.deckName);
         }
 
         _attributesForComponents() {
