@@ -646,7 +646,12 @@
           } else if (childrenToAdd < 0) {
             //We have childrent to remove
             for (let i = 0; i > childrenToAdd; i--) {
-              hostEle.removeChild(hostEle.children[0]);
+              //We used to remove this from hostEle.children[0], but that
+              //triggered a weird bug described in #476 comment where Chrome
+              //would get confused about the elements still being there and
+              //getting in weird assigneNode limbo. Removing it from the back
+              //doesn't appear to trigger the issue.
+              hostEle.removeChild(hostEle.children[hostEle.children.length - 1]);
             }
           }
 
