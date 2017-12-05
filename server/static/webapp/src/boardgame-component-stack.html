@@ -197,6 +197,13 @@
               type: String,
               value: "",
             },
+            //gameName is the name of the gametype we're associated with, for
+            //looking up which template to instantiate for our children. Will
+            //be auto-set based on stack.
+            gameName: {
+              type: String,
+              value: "",
+            },
             //If set, this stack will be combined with the secondary stack and 
             //the result will be set to stack.
             primaryStack: {
@@ -468,6 +475,9 @@
           if (newValue.Deck) {
             this.deckName = newValue.Deck;
           }
+          if (newValue.GameName) {
+            this.gameName = newValue.GameName;
+          }
           this.idsLastSeen = newValue.IdsLastSeen || {};
           var repeater = this.querySelector("dom-repeat");
           if (repeater) {
@@ -483,7 +493,7 @@
         get templateClass() {
           //We don't memoize this because if the renderer changes then the
           //templateClass we use should change.
-          return this.deckDefaults.templateForDeck(this.deckName);
+          return this.deckDefaults.templateForDeck(this.gameName, this.deckName);
         }
 
         _attributesForComponents() {

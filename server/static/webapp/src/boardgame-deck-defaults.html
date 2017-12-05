@@ -40,7 +40,10 @@
         }
       }
 
-      templateForDeck(deckName) {
+      templateForDeck(gameName, deckName) {
+
+        //TODO: key cache off of gameName + deckName, figure out what our
+        //gameName is.
 
         if (!deckName) {
           //This happens often when a new renderer is loaded and we don't yet
