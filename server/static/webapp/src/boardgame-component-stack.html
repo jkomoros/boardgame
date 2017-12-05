@@ -681,7 +681,7 @@
               if (key == indexAttrs) continue;
               let valToSet = attrs.get(key);
               let propConfigs = ele._composedPropertyDefinition;
-              if (propConfigs[key] && propConfigs[key].type == Boolean) {
+              if (propConfigs[key] && propConfigs[key].type == Boolean && valToSet === "") {
                 valToSet = true;
               }
               ele[key] = valToSet;
