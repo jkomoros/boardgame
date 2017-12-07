@@ -659,9 +659,23 @@
           let childrenToAdd =  componentsInfo.length - componentCount;
         
           if (childrenToAdd > 0) {
-            for (let i = 0; i < childrenToAdd; i++) {
-              hostEle.appendChild(this.newComponent());
+            //We want to put the cards right in front of the first non
+            //boardgame-component, if it exists.
+            let firstNonComponentEle = null;
+            for (let i = 0; i < hostEle.children.length; i++) {
+              let ele = hostEle.children[i];
+              if (!ele.hasAttribute("boardgame-component")) {
+                firstNonComponentEle = ele;
+                break;
+              }
             }
+
+            for (let i = 0; i < childrenToAdd; i++) {
+              //if firstNonComponentEle is null, insertBefore is just
+              //equivalent to appendChild.
+              hostEle.insertBefore(this.newComponent(), firstNonComponentEle);
+            }
+
           } else if (childrenToAdd < 0) {
             //We have childrent to remove Offset will be how many items from
             //the back that we go to remove. Every time that an element we're
