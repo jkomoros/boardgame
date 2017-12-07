@@ -334,9 +334,19 @@
           return "card";
         }
 
+        //Components that are returned can be passed out via newComponent
+        //later.
+        returnComponent(ele) {
+          this._componentPool.push(ele);
+        }
+
         //Returns a new component for this stack set reasonably, based on
         //componentType and autoSetType.
         newComponent() {
+
+          if (this._componentPool.length > 0) {
+            return this._componentPool.pop();
+          }
 
           let templateClass = this.templateClass;
 
@@ -419,6 +429,7 @@
         }
 
         ready() {
+          this._componentPool = [];
           super.ready();
           this.$.components.addEventListener("slotchange", () => this._slotChanged(false));
           //If the children are already stamped, update now.
@@ -466,6 +477,7 @@
           var container = this.$['animating-components'];
           while(container.children.length > 0) {
             var child = container.children[0];
+            //TODO: we should have an _animatingComponentPool too.
             container.removeChild(child);
           }
         }
@@ -702,7 +714,7 @@
               //would get confused about the elements still being there and
               //getting in weird assigneNode limbo. Removing it from the back
               //doesn't appear to trigger the issue.
-              hostEle.removeChild(eleToRemove);
+              this._componentPool.push(hostEle.removeChild(eleToRemove));
             }
           }
 
