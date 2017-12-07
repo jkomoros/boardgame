@@ -651,21 +651,44 @@
         }
 
         _insertNodes(componentsInfo, hostEle) {
-          let childrenToAdd =  componentsInfo.length - hostEle.children.length;
+
+          //We can't just do a hostEle.children.length, because some of them
+          //might be e.g. fading-text.
+          let componentCount = hostEle.querySelectorAll("[boardgame-component]").length;
+
+          let childrenToAdd =  componentsInfo.length - componentCount;
         
           if (childrenToAdd > 0) {
             for (let i = 0; i < childrenToAdd; i++) {
               hostEle.appendChild(this.newComponent());
             }
           } else if (childrenToAdd < 0) {
-            //We have childrent to remove
+            //We have childrent to remove Offset will be how many items from
+            //the back that we go to remove. Every time that an element we're
+            //looking at is NOT a boardgame-component, we increase by one. We
+            //shouldn't have to worry about falling off the front because the
+            //componentCount calculation above should be aligned.
+            let offset = 0;
             for (let i = 0; i > childrenToAdd; i--) {
+
+              let eleToRemove;
+              let firstLoop = true;
+
+              do {
+                if (firstLoop) {
+                  firstLoop = false;
+                } else {
+                  offset++;
+                }
+                eleToRemove = hostEle.children[hostEle.children.length - offset - 1];
+              } while(!eleToRemove.hasAttribute("boardgame-component"))
+
               //We used to remove this from hostEle.children[0], but that
               //triggered a weird bug described in #476 comment where Chrome
               //would get confused about the elements still being there and
               //getting in weird assigneNode limbo. Removing it from the back
               //doesn't appear to trigger the issue.
-              hostEle.removeChild(hostEle.children[hostEle.children.length - 1]);
+              hostEle.removeChild(eleToRemove);
             }
           }
 
@@ -675,16 +698,23 @@
 
           let attributesToIndex = attrs.get(indexAttrs) ? attrs.get(indexAttrs).split(",") : [];
 
+          //i will not be the component index, because some children might not
+          //correspond to components.
+          let componentIndex = 0;
+
           for (let i = 0; i < hostEle.children.length; i++) {
             let ele = hostEle.children[i];
-            ele.item = componentsInfo[i];
-            ele.index = i;
+
+            if (!ele.hasAttribute("boardgame-component")) continue;
+
+            ele.item = componentsInfo[componentIndex];
+            ele.index = componentIndex;
 
             //In case they used template databinding on the instance we need
             //to update its binding too.
             if (ele.instance) {
-              ele.instance.item = componentsInfo[i];
-              ele.instance.index = i;
+              ele.instance.item = componentsInfo[componentIndex];
+              ele.instance.index = componentIndex;
             }
 
             //TODO: we really only need to set these once, when the element is
@@ -702,22 +732,21 @@
             }
             for (let name of attributesToIndex) {
               let finalName = Polymer.CaseMap.dashToCamelCase(name);
-              ele[finalName] = i;
-              ele.setAttribute(name, i);
+              ele[finalName] = componentIndex;
+              ele.setAttribute(name, componentIndex);
             }
+
+            componentIndex++
           }
         }
 
         _generateChildren() {
 
-          //There might be things like text nodes in our parent that shouldn't
-          //be there, and will prevent the children we stamp from showing up,
-          //since technically something IS being routed to the slot.
-
-          let nodesToRemove = this.childNodes.length;
-          for (let i = 0; i < nodesToRemove; i++) {
-            this.childNodes[0].parentElement.removeChild(this.childNodes[0]);
-          }
+          //When we stamped the components into the shadow root's slot, we
+          //used to have to clear out anything that was here, because
+          //otherwise they'd prevent the "default" contents of the slot from
+          //showing. But now that we support other elements in the stack, we
+          //no longer have to remove them.
 
           //We used to stamp 'defaults' into the this.$.components. However,
           //if we do that then it's not possible to target styles in the game
