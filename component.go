@@ -45,7 +45,7 @@ func (c *Component) Id(s State) string {
 	//blackjack.handvalue.
 	if st != nil {
 		game := st.game
-		input = game.Id() + game.SecretSalt()
+		input = game.Id() + game.secretSalt
 	}
 
 	input += c.Deck.Name() + strconv.Itoa(c.DeckIndex)

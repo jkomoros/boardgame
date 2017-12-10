@@ -172,7 +172,7 @@ func (g *Game) StorageRecord() *GameStorageRecord {
 		Finished:   g.Finished(),
 		Created:    g.Created(),
 		Id:         g.Id(),
-		SecretSalt: g.SecretSalt(),
+		SecretSalt: g.secretSalt,
 		NumPlayers: g.NumPlayers(),
 		Agents:     g.Agents(),
 	}
@@ -184,10 +184,6 @@ func (g *Game) Name() string {
 
 func (g *Game) Id() string {
 	return g.id
-}
-
-func (g *Game) SecretSalt() string {
-	return g.secretSalt
 }
 
 func (g *Game) Agents() []string {

@@ -487,7 +487,7 @@ func TestGameSalt(t *testing.T) {
 
 	game.SetUp(0, nil, nil)
 
-	assert.For(t).ThatActual(game.SecretSalt()).DoesNotEqual("")
+	assert.For(t).ThatActual(game.secretSalt).DoesNotEqual("")
 
 	refriedGame := game.Manager().Game(game.Id())
 
@@ -495,7 +495,7 @@ func TestGameSalt(t *testing.T) {
 		t.FailNow()
 	}
 
-	assert.For(t).ThatActual(game.SecretSalt()).Equals(refriedGame.SecretSalt())
+	assert.For(t).ThatActual(game.secretSalt).Equals(refriedGame.secretSalt)
 
 	mainC := game.Chest().Deck("test").ComponentAt(0)
 	refriedC := refriedGame.Chest().Deck("test").ComponentAt(0)

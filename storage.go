@@ -32,7 +32,9 @@ type GameStorageRecord struct {
 	Name string
 	Id   string
 	//SecretSalt for this game for things like component Ids. Should never be
-	//transmitted to an insecure or untrusted environment.
+	//transmitted to an insecure or untrusted environment; the only way to
+	//access it outside this package is via this field, because it must be
+	//able to be persisted to and read from storage.
 	SecretSalt string `json:",omitempty"`
 	Version    int
 	Winners    []PlayerIndex

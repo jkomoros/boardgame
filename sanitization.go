@@ -619,7 +619,7 @@ func randPermForStack(stack Stack) []int {
 	//TODO: we really only do this in order to have straight-forward testing
 	//via golden json blobs. That feels like the wrong trade-off...
 
-	seedStr := stack.state().game.SecretSalt() + strconv.Itoa(stack.state().Version())
+	seedStr := stack.state().game.secretSalt + strconv.Itoa(stack.state().Version())
 
 	h := fnv.New64()
 	h.Write([]byte(seedStr))
