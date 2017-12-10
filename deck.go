@@ -29,16 +29,19 @@ type Deck struct {
 
 const genericComponentSentinel = -2
 
+//NewDeck returns a new deck, ready to have components added to it, and then
+//be added to a ComponentChest. Typically you only do this when creating a new
+//GameManager.
 func NewDeck() *Deck {
 	return &Deck{}
 }
 
-//NewSizedStack returns a new default (growable Stack) with the given size
-//based on this deck. You normally do this in *Constructor delegate methods,
-//if you aren't using the auto-inflating struct tags to configure your stacks.
-//The returned stack will allow up to maxSize items to be inserted. If you
-//don't want to set a maxSize on the stack (you often don't) pass 0 for
-//maxSize to allow it to grow without limit.
+//NewStack returns a new default (growable Stack) with the given size based on
+//this deck. You normally do this in *Constructor delegate methods, if you
+//aren't using the auto-inflating struct tags to configure your stacks. The
+//returned stack will allow up to maxSize items to be inserted. If you don't
+//want to set a maxSize on the stack (you often don't) pass 0 for maxSize to
+//allow it to grow without limit.
 func (d *Deck) NewStack(maxSize int) MutableStack {
 	return newGrowableStack(d, maxSize)
 }
@@ -90,6 +93,8 @@ func (d *Deck) Chest() *ComponentChest {
 	return d.chest
 }
 
+//Name returns the name of this deck; the string by which it could be retrived
+//from the ComponentChest it resides in.
 func (d *Deck) Name() string {
 	return d.name
 }
