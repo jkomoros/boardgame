@@ -17,13 +17,13 @@ type Component struct {
 	DeckIndex int
 }
 
-//Id returns a semi-stable ID for this component within this game and
+//ID returns a semi-stable ID for this component within this game and
 //currentState. Within this game, it will only change when the shuffleCount
 //for this component changes. Across games the Id for the "same" component
 //will be different, in a way that cannot be guessed without access to
 //game.SecretSalt. See the package doc for more on semi-stable Ids for
 //components, what they can be used for, and when they do (and don't) change.
-func (c *Component) Id(s State) string {
+func (c *Component) ID(s State) string {
 
 	//Shadow components shouldn't get an Id
 	if c == c.Deck.GenericComponent() {

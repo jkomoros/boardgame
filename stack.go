@@ -625,7 +625,7 @@ func stackIdsImpl(s Stack) []string {
 		if c == nil {
 			continue
 		}
-		result[i] = c.Id(s.state())
+		result[i] = c.ID(s.state())
 	}
 	return result
 }
@@ -677,9 +677,9 @@ func (g *growableStack) scrambleIds() {
 		if c == nil {
 			continue
 		}
-		g.idSeen(c.Id(g.state()))
+		g.idSeen(c.ID(g.state()))
 		c.movedSecretly(g.state())
-		g.idSeen(c.Id(g.state()))
+		g.idSeen(c.ID(g.state()))
 	}
 }
 
@@ -688,9 +688,9 @@ func (s *sizedStack) scrambleIds() {
 		if c == nil {
 			continue
 		}
-		s.idSeen(c.Id(s.state()))
+		s.idSeen(c.ID(s.state()))
 		c.movedSecretly(s.state())
-		s.idSeen(c.Id(s.state()))
+		s.idSeen(c.ID(s.state()))
 	}
 }
 
@@ -855,13 +855,13 @@ func (g *growableStack) insertComponentAt(slotIndex int, component *Component) {
 		g.indexes = append(firstPartCopy, g.indexes[slotIndex:]...)
 	}
 
-	g.idSeen(component.Id(g.state()))
+	g.idSeen(component.ID(g.state()))
 
 }
 
 func (s *sizedStack) insertComponentAt(slotIndex int, component *Component) {
 	s.indexes[slotIndex] = component.DeckIndex
-	s.idSeen(component.Id(s.state()))
+	s.idSeen(component.ID(s.state()))
 }
 
 func (g *growableStack) UnsafeInsertNextComponent(t *testing.T, c *Component) error {
