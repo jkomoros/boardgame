@@ -1,6 +1,7 @@
 /*
 
-boardgame is a package that makes it possible to build boardgames with minimial fuss.
+Package boardgame is a framework that makes it possible to build boardgames
+with minimial fuss.
 
 boardgame/server implements a progressive web app based on your game with just
 a few lines of configuration.
