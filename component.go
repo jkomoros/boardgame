@@ -124,6 +124,9 @@ func (c *Component) movedSecretly(s *state) {
 
 }
 
+//DynamicValues returns the Dynamic Values for this component in the given
+//state. A convenience so you don't have to go find them within the
+//DynamicComponentValues yourself.
 func (c *Component) DynamicValues(state State) SubState {
 
 	//TODO: test this
