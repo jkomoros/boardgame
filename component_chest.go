@@ -9,12 +9,12 @@ import (
 //might be nice to be able to cast the Deck directly to its underlying type to
 //minimize later casts)
 
-//Each game has one ComponentChest, which is an immutable set of all
-//components in this game, configured into 0 or more Decks. A chest has two
-//phases: construction and serving. During consruction, decks may be added but
-//non may be retrieved. After consruction decks may be retrieved but not
-//added. This helps ensure that Decks always give a consistent view of the
-//world.
+//ComponentChest is a list of all decks for this game type. Each game has one
+//ComponentChest, which is an immutable set of all components in this game,
+//configured into 0 or more Decks. A chest has two phases: construction and
+//serving. During consruction, decks may be added but non may be retrieved.
+//After consruction decks may be retrieved but not added. This helps ensure
+//that Decks always give a consistent view of the world.
 type ComponentChest struct {
 	initialized bool
 	deckNames   []string
@@ -37,10 +37,12 @@ func NewComponentChest(enums *enum.Set) *ComponentChest {
 	}
 }
 
+//Enums returns the enum.Set in use in this chest.
 func (c *ComponentChest) Enums() *enum.Set {
 	return c.enums
 }
 
+//Manager returns the GameManager that is associated with this ComponentChest.
 func (c *ComponentChest) Manager() *GameManager {
 	return c.manager
 }
@@ -111,7 +113,7 @@ func (c *ComponentChest) Finish() {
 
 	i := 0
 
-	for name, _ := range c.decks {
+	for name := range c.decks {
 		c.deckNames[i] = name
 		i++
 	}
