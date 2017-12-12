@@ -81,32 +81,9 @@ type Stack interface {
 	//unfilled), which is equivalent to Len().
 	MaxSize() int
 
-	//applySanitizationPolicy applies the given policy to ourselves. This
-	//should only be called by methods in sanitization.go.
-	applySanitizationPolicy(policy Policy)
-
-	//Whether or not the stack is set up to be modified right now.
-	modificationsAllowed() error
-
-	//Takes the given index, and expands it--either returns the given index,
-	//or, if it's one of {First,Last}{Component,Slot}Index, what that computes
-	//to in this case.
-	effectiveIndex(index int) int
-
-	//legalSlot will return true if the provided index points to a valid slot
-	//to insert a component at. For growableStacks, this is simply a check to
-	//ensure it's in the range [0, stack.Len()]. For SizedStacks, it is a
-	//check that the slot is valid and is currently empty. Does not expand the
-	//special index constants.
-	legalSlot(index int) bool
-
-	//idSeen is called when an Id is seen (that is, either when added to the
-	//item or right before being scrambled)
-	idSeen(id string)
-
-	//scrambleIds copies all component ids to persistentPossibleIds, then
-	//increments all components secretMoveCount.
-	scrambleIds()
+	//deck returns the Deck in this stack. Just a conveniene wrapper if you
+	//don't know what kind of stack you have.
+	deck() *Deck
 
 	//Returns the state that this Stack is currently part of. Mainly a
 	//convenience method when you have a Stack but don't know its underlying
@@ -115,19 +92,6 @@ type Stack interface {
 
 	//setState sets the state ptr that will be returned by state().
 	setState(state *state)
-
-	//deck returns the Deck in this stack. Just a conveniene wrapper if you
-	//don't know what kind of stack you have.
-	deck() *Deck
-
-	//Copy returns a copy of this stack.
-	copy() Stack
-
-	//Stacks that are not inflated will become inflated by grabbing a
-	//reference to the associated deck in the provided chest.
-	inflate(chest *ComponentChest) error
-
-	inflated() bool
 }
 
 //MutableStack is a Stack that also has mutator methods.
@@ -250,6 +214,42 @@ type MutableStack interface {
 
 	//insertNext is a convenience wrapper around insertComponentAt.
 	insertNext(c *Component)
+
+	//Whether or not the stack is set up to be modified right now.
+	modificationsAllowed() error
+
+	//applySanitizationPolicy applies the given policy to ourselves. This
+	//should only be called by methods in sanitization.go.
+	applySanitizationPolicy(policy Policy)
+
+	//idSeen is called when an Id is seen (that is, either when added to the
+	//item or right before being scrambled)
+	idSeen(id string)
+
+	//scrambleIds copies all component ids to persistentPossibleIds, then
+	//increments all components secretMoveCount.
+	scrambleIds()
+
+	//Takes the given index, and expands it--either returns the given index,
+	//or, if it's one of {First,Last}{Component,Slot}Index, what that computes
+	//to in this case.
+	effectiveIndex(index int) int
+
+	//legalSlot will return true if the provided index points to a valid slot
+	//to insert a component at. For growableStacks, this is simply a check to
+	//ensure it's in the range [0, stack.Len()]. For SizedStacks, it is a
+	//check that the slot is valid and is currently empty. Does not expand the
+	//special index constants.
+	legalSlot(index int) bool
+
+	//Copy returns a copy of this stack.
+	copy() Stack
+
+	//Stacks that are not inflated will become inflated by grabbing a
+	//reference to the associated deck in the provided chest.
+	inflate(chest *ComponentChest) error
+
+	inflated() bool
 
 	mutableCopy() MutableStack
 }

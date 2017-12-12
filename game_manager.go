@@ -707,7 +707,7 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 	for propName, propType := range game.Reader().Props() {
 		switch propType {
 		case TypeStack:
-			stack, err := game.Reader().StackProp(propName)
+			stack, err := game.ReadSetter().MutableStackProp(propName)
 			if err != nil {
 				return nil, errors.New("Unable to inflate stack " + propName + " in game.")
 			}
@@ -731,7 +731,7 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 		for propName, propType := range player.Reader().Props() {
 			switch propType {
 			case TypeStack:
-				stack, err := player.Reader().StackProp(propName)
+				stack, err := player.ReadSetter().MutableStackProp(propName)
 				if err != nil {
 					return nil, errors.New("Unable to inflate stack " + propName + " in player " + strconv.Itoa(i))
 				}
@@ -773,7 +773,7 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 			for propName, propType := range resultDeckValue.Reader().Props() {
 				switch propType {
 				case TypeStack:
-					stack, err := resultDeckValue.Reader().StackProp(propName)
+					stack, err := resultDeckValue.ReadSetter().MutableStackProp(propName)
 					if err != nil {
 						return nil, errors.New("Unable to inflate stack " + propName + " in deck " + deckName + " component " + strconv.Itoa(i))
 					}

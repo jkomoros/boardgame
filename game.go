@@ -426,7 +426,7 @@ func (g *Game) SetUp(numPlayers int, config GameConfig, agentNames []string) err
 				return baseErr.WithError("Couldn't get a mutable version of stack")
 			}
 
-			mutableStack.insertComponentAt(stack.effectiveIndex(NextSlotIndex), component)
+			mutableStack.insertComponentAt(mutableStack.effectiveIndex(NextSlotIndex), component)
 		}
 	}
 

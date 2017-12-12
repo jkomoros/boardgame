@@ -451,7 +451,7 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 
 	//Now we're left with len-properties.
 
-	stack := input.(Stack)
+	stack := input.(MutableStack)
 
 	stack.applySanitizationPolicy(policy)
 
