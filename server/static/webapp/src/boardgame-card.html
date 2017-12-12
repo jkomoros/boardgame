@@ -218,15 +218,6 @@
           return {
             suit: String,
             rank: String,
-            //If provided, will search for a dom module with the given name and
-            //use its first template content as the card's contents, bound with
-            //item equivalent to this card's item. . Make sure your dom-module
-            //is not contained within another dom-module, but is at the top-
-            //level.
-            type: {
-              type:String,
-              observer: "_typeChanged"
-            },
             //If true, the card will be rendered with its face showing, not its
             //back. If noAnimate is false, will animate the card flip.
             faceUp: {
@@ -294,7 +285,6 @@
               type: Boolean,
               value: false
             },
-            _binder: Object,
           }
         }
 
@@ -322,18 +312,6 @@
 
         _computeOuterStyle(aspectRatio) {
           return "--component-aspect-ratio: " + aspectRatio + ";"
-        }
-
-        autoType(stackEle) {
-          //If we ahve a stack, let's use that.
-          if (stackEle.stack) {
-            let stack = stackEle.stack;
-            if (stack && stack.Deck && stack.GameName) {
-              return stack.GameName + "-deck-" + stack.Deck + "-card";
-            }
-          }
-          //Meh just default to returning the default.
-          return super.autoType(stackEle);
         }
 
         prepareForBeingAnimatingComponent(stack) {
@@ -387,25 +365,6 @@
           this._setTall(newValue);
         }
 
-        _typeChanged(newValue) {
-          if (this._binder) {
-            this._binder.parentElement.removeChild(this._binder);
-            this._binder = null;
-          }
-          if (!newValue) return;
-          var template = Polymer.DomModule.import(newValue, "template");
-          if (!template) {
-            //Totally fine, they might be importing content another way.
-            return;
-          }
-          var clone = document.importNode(template, true);
-          var bind = document.createElement("dom-bind");
-          bind.appendChild(clone);
-          this.appendChild(bind);
-          bind.item = this.item;
-          this._binder = bind;
-        }
-
         _rotatedChanged(newValue) {
           //there's a class of bugs where basicRotation isn't set the same as
           //rotation at beginning of rotation. The most recent one was when
@@ -442,7 +401,6 @@
           if (newValue === null) {
             this.noContent = true;
             this.faceUp = false;
-            this.type = "";
             super._itemChanged(newValue);
             return;
           }
@@ -452,11 +410,6 @@
           } else {
             this.faceUp = false;
             this.noContent = true;
-          }
-          if (newValue.Deck) {
-            this.type = newValue.GameName + "-deck-" + newValue.Deck + "-card";
-          } else {
-            this.type = "";
           }
           if (this._binder) this._binder.item = newValue;
           super._itemChanged(newValue);
