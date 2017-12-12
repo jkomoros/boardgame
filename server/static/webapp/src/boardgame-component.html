@@ -248,14 +248,6 @@
         return [];
       }
 
-      //configProperties should be the list of properties whose configuration
-      //does not change during animation but is important for visual styling.
-      //Defaults to returning ["type"] but subclasses should add more as
-      //appropriate.
-      get configProperties() {
-        return ["type"];
-      }
-
       //Returns the bundle of properties, as configured by
       //animatingProperties(), at their current value.
       animatingPropValues() {

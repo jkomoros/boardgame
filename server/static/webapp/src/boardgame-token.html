@@ -176,11 +176,7 @@
           this.altShadow = true;
         }
 
-        get configProperties() {
-          return super.configProperties.concat(["color"])
-        }
-
-         static get observers() {
+        static get observers() {
           return [
             //Update
             "_updateClasses(spacer, noShadow, interactive, disabled, noAnimate, altShadow, color, highlighted, active, type)"
