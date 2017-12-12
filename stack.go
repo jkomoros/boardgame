@@ -333,6 +333,14 @@ type sizedStack struct {
 	statePtr *state
 }
 
+//mergedStack is a derived stack that is made of two stacks, either in
+//concatenate mode (default) or overlap mode.
+type mergedStack struct {
+	first   Stack
+	second  Stack
+	overlap bool
+}
+
 //stackJSONObj is an internal struct that we populate and use to implement
 //MarshalJSON so stacks can be saved in output JSON with minimum fuss.
 type stackJSONObj struct {
@@ -425,6 +433,13 @@ func (s *sizedStack) Len() int {
 	return len(s.indexes)
 }
 
+func (m *mergedStack) Len() int {
+	if m.overlap {
+		return m.first.Len()
+	}
+	return m.first.Len() + m.second.Len()
+}
+
 func (g *growableStack) NumComponents() int {
 	return len(g.indexes)
 }
@@ -439,12 +454,33 @@ func (s *sizedStack) NumComponents() int {
 	return count
 }
 
+func (m *mergedStack) NumComponents() int {
+	if m.overlap {
+		count := 0
+		for i, c := range m.first.Components() {
+			if c != nil {
+				count++
+				continue
+			}
+			if c := m.second.ComponentAt(i); c != nil {
+				count++
+			}
+		}
+		return count
+	}
+	return m.first.NumComponents() + m.second.NumComponents()
+}
+
 func (g *growableStack) FixedSize() bool {
 	return false
 }
 
 func (s *sizedStack) FixedSize() bool {
 	return true
+}
+
+func (m *mergedStack) FixedSize() bool {
+	return m.first.FixedSize() || m.second.FixedSize()
 }
 
 func (s *growableStack) inflated() bool {
@@ -511,6 +547,25 @@ func (s *sizedStack) Components() []*Component {
 	return result
 }
 
+func (m *mergedStack) Components() []*Component {
+	if m.overlap {
+
+		result := make([]*Component, len(m.first.Components()))
+
+		for i, c := range m.first.Components() {
+			if c != nil {
+				result[i] = c
+				continue
+			}
+			result[i] = m.second.ComponentAt(i)
+		}
+		return result
+
+	}
+
+	return append(m.first.Components(), m.second.Components()...)
+}
+
 //ComponentAt fetches the component object representing the n-th object in
 //this stack.
 func (s *growableStack) ComponentAt(index int) *Component {
@@ -556,6 +611,19 @@ func (s *sizedStack) ComponentAt(index int) *Component {
 
 	//ComponentAt will handle negative values and empty sentinel correctly.
 	return s.deck().ComponentAt(deckIndex)
+}
+
+func (m *mergedStack) ComponentAt(index int) *Component {
+	if m.overlap {
+		if c := m.first.ComponentAt(index); c != nil {
+			return c
+		}
+		return m.second.ComponentAt(index)
+	}
+	if index < m.first.Len() {
+		return m.first.ComponentAt(index)
+	}
+	return m.second.ComponentAt(index - m.first.Len())
 }
 
 //ComponentValues returns the Values of each Component in order. Useful for
@@ -604,6 +672,20 @@ func (s *sizedStack) ComponentValues() []Reader {
 	return result
 }
 
+func (m *mergedStack) ComponentValues() []Reader {
+	//Substantially recreated in GrowableStack.ComponentValues
+	result := make([]Reader, m.Len())
+	for i := 0; i < m.Len(); i++ {
+		c := m.ComponentAt(i)
+		if c == nil {
+			result[i] = nil
+			continue
+		}
+		result[i] = c.Values
+	}
+	return result
+}
+
 func (g *growableStack) Ids() []string {
 	if g.overrideIds != nil {
 		return g.overrideIds
@@ -616,6 +698,10 @@ func (s *sizedStack) Ids() []string {
 		return s.overrideIds
 	}
 	return stackIdsImpl(s)
+}
+
+func (m *mergedStack) Ids() []string {
+	return stackIdsImpl(m)
 }
 
 func stackIdsImpl(s Stack) []string {
@@ -645,6 +731,17 @@ func (s *sizedStack) IdsLastSeen() map[string]int {
 	//someone messes with it.
 	result := make(map[string]int, len(s.idsLastSeen))
 	for key, val := range s.idsLastSeen {
+		result[key] = val
+	}
+	return result
+}
+
+func (m *mergedStack) IdsLastSeen() map[string]int {
+	result := make(map[string]int)
+	for key, val := range m.first.IdsLastSeen() {
+		result[key] = val
+	}
+	for key, val := range m.second.IdsLastSeen() {
 		result[key] = val
 	}
 	return result
@@ -714,6 +811,24 @@ func (s *sizedStack) SlotsRemaining() int {
 	return count
 }
 
+func (m *mergedStack) SlotsRemaining() int {
+	if m.overlap {
+		count := 0
+		for _, c := range m.Components() {
+			if c == nil {
+				count++
+			}
+		}
+		return count
+	}
+	firstRemaining := m.first.SlotsRemaining()
+	secondRemaining := m.second.SlotsRemaining()
+	if firstRemaining == math.MaxInt64 || secondRemaining == math.MaxInt64 {
+		return math.MaxInt64
+	}
+	return firstRemaining + secondRemaining
+}
+
 func (s *sizedStack) MoveAllTo(other MutableStack) error {
 	return moveAllToImpl(s, other)
 }
@@ -745,6 +860,10 @@ func (s *sizedStack) state() *state {
 	return s.statePtr
 }
 
+func (m *mergedStack) state() *state {
+	return m.first.state()
+}
+
 func (g *growableStack) setState(state *state) {
 	g.statePtr = state
 }
@@ -753,12 +872,21 @@ func (s *sizedStack) setState(state *state) {
 	s.statePtr = state
 }
 
+func (m *mergedStack) setState(state *state) {
+	m.first.setState(state)
+	m.second.setState(state)
+}
+
 func (g *growableStack) deck() *Deck {
 	return g.deckPtr
 }
 
 func (s *sizedStack) deck() *Deck {
 	return s.deckPtr
+}
+
+func (m *mergedStack) deck() *Deck {
+	return m.first.deck()
 }
 
 func (g *growableStack) modificationsAllowed() error {
@@ -1228,6 +1356,13 @@ func (s *sizedStack) SwapComponents(i, j int) error {
 	return nil
 }
 
+func (m *mergedStack) MaxSize() int {
+	if m.overlap {
+		return m.first.MaxSize()
+	}
+	return m.first.MaxSize() + m.second.MaxSize()
+}
+
 func (g *growableStack) MaxSize() int {
 	return g.maxSize
 }
@@ -1396,6 +1531,30 @@ func (s *sizedStack) MarshalJSON() ([]byte, error) {
 		Ids:         s.Ids(),
 		IdsLastSeen: s.idsLastSeen,
 		Size:        s.size,
+	}
+	return json.Marshal(obj)
+}
+
+func (m *mergedStack) MarshalJSON() ([]byte, error) {
+
+	components := m.Components()
+
+	indexes := make([]int, len(components))
+
+	for i, c := range components {
+		indexes[i] = c.DeckIndex
+	}
+
+	obj := &stackJSONObj{
+		Deck:        m.deck().Name(),
+		Indexes:     indexes,
+		Ids:         m.Ids(),
+		IdsLastSeen: m.IdsLastSeen(),
+	}
+	if m.FixedSize() {
+		obj.Size = m.Len()
+	} else {
+		obj.MaxSize = m.MaxSize()
 	}
 	return json.Marshal(obj)
 }
