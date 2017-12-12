@@ -1597,6 +1597,10 @@ func (m *mergedStack) MarshalJSON() ([]byte, error) {
 	indexes := make([]int, len(components))
 
 	for i, c := range components {
+		if c == nil {
+			indexes[i] = emptyIndexSentinel
+			continue
+		}
 		indexes[i] = c.DeckIndex
 	}
 
