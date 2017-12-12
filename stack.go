@@ -352,6 +352,57 @@ type stackJSONObj struct {
 	MaxSize     int `json:",omitempty"`
 }
 
+//NewConcatenatedStack returns a new merged stack where all of the components
+//in the first stack will show up, then all of the components in the second
+//stack. In practice this is useful as a computed property when you have a
+//logical stack made up of components that are santiized followed by
+//components that are not sanitized, like in a blackjack hand. Both stacks
+//must be from the same deck.
+func NewConcatenatedStack(first, second Stack) (Stack, error) {
+	return newMergedStack(first, second, false)
+}
+
+//NewOverlappedStack returns a new merged stack where any gaps in the first
+//stack will be filled with whatever is in the same position in the second
+//stack. In practice this is useful as a computed property when you have a
+//logical stack made up of components where some are sanitized and some are
+//not, like the grid of cards in Memory. Both stacks must be from the same
+//deck, and both stacks must be FixedSize.
+func NewOverlappedStack(first, second Stack) (Stack, error) {
+
+	result, err := newMergedStack(first, second, true)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !first.FixedSize() || !second.FixedSize() {
+		return nil, errors.New("both stacks must be fixed size")
+	}
+
+	return result, nil
+
+}
+
+func newMergedStack(first, second Stack, overlapped bool) (Stack, error) {
+	if first == nil {
+		return nil, errors.New("first stack is nil")
+	}
+	if second == nil {
+		return nil, errors.New("second stack is nil")
+	}
+	if first.deck() != second.deck() {
+		return nil, errors.New("the two stacks are from different decks")
+	}
+	result := &mergedStack{
+		first:   first,
+		second:  second,
+		overlap: overlapped,
+	}
+
+	return result, nil
+}
+
 //NewGrowableStack creates a new growable stack with the given Deck and Cap.
 func newGrowableStack(deck *Deck, maxSize int) *growableStack {
 
