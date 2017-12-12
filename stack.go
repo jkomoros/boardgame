@@ -24,7 +24,11 @@ const emptyIndexSentinel = -1
 //simply move later components down. SizedStacks, however, have a specific
 //size, with empty slots being allowed. Each insertion puts the component at
 //precisely that slot, and will fail if it is already taken. Stack contains
-//only read-only methods, and MutableStack extends with mutator methods.
+//only read-only methods, and MutableStack extends with mutator methods. In
+//general you retrieve new Stack objects from the associated deck's NewStack
+//or NewSizedStack and install them in your Constructor methods (if you don't
+//use tag-based auto-inflation). NewOverlappedStack and NewConcatenatedStack
+//are advanced techniques.
 type Stack interface {
 	//Len returns the number of slots in the Stack. For a normal Stack this is
 	//the number of items in the stack. For SizedStacks, this is the number of
