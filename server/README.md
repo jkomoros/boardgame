@@ -108,33 +108,55 @@ It can be finicky to set all of the cards correctly for the animation to work as
 
 boardgame-card's size can be affected by two css properties: --component-scale (a float, with 1.0 being default size) and --card-aspect-ratio (a float, defaulting to 0.6666). Cards are always 100px width by default, with scale affecting the amount of space they take up physically in the layout, as well as applying a transform to their contents to get them to be the right size. --card-aspect-ratio changes how long the minor-axis is compared to the first. If the scale and aspect-ratio are set based on the position in the layout, the size will animate via boardgame-component-animator as expected.
 
-In many cases you only have a small number of types of cards in a game, and you want to define their layout only once if possible for consitency. The way to do this is to define a dom-module containing a template. Your cards should then include type="<inner card id>" and the content will be stamped and passed the item databound to the card. **Be careful--this module is global and many game renderers have similarly-named decks, so make sure to use a unique name.**
+It can be finicky to set all of the cards correctly for the animation to work as
+you want; the easiest way is to set boardgame-card-stack's stack property to the
+stack in the state, and then ensure you have a template for that deck defined in a `<boardgame-deck-defaults>` element.
+
+In many cases you only have a small number of types of cards in a game, and you want to define their layout only once if possible for consitency. The way to do this is to use the `boardgame-deck-defaults` element in your renderer's template and include a template for your deck.
 
 ```
 <!-- define a simple front if no processing required -->
-<dom-module id="my-card">
-	<template>
-		<div>
-			{{item}}
-		</div>
-	</template>
-</dom-module>
-<boardgame-card type="my-card"></boardgame-card>
+<boardgame-deck-defaults>
+  <template deck="cards">
+    <boardgame-card>
+      <div>
+        {{item.Values.Type}}
+      </div>
+    </boardgame-card>
+  </template>
+</boardgame-deck-defaults>
+<!-- boardgame-component-stacks that print from the deck `cards` will automatically stamp that item -->
+```
+
+Inside of the template for the deck, include the most general thing to stamp. In general, this is just a `boardgame-card` or `boardgame-token`, perhaps with some inner content. Within that inner content you can bind `item` or `index`. 
+
+Then stamping those components is as simple as using a `boardgame-component-stack` and databinding in the stack property:
+```
+<boardgame-component-stack layout="stack" stack="{{state.Players.0.WonCards}}" messy component-disabled>
+</boardgame-component-stack>
+```
+
+The `boardgame-component-stack` will automatically instantiate and bind components as defined in the defaults for that deck name.
+
+Any properties on the `boardgame-stack` of form `component-my-prop` will have `my-prop` stamped on each component that's created. That allows different stacks to, for example, have their components rotated or not. If you want a given attribute to be bound to each component's index in the array, add it in the special attribute `component-index-attributes`, like so:
+
+```
+<boardgame-component-stack layout="grid" messy primary-stack="{{state.Game.RevealedCards}}" secondary-stack="{{state.Game.HiddenCards}}" component-propose-move="Reveal Card" component-index-attributes="data-arg-card-index">
+</boardgame-component-stack>
 ```
 
 If you wanted to do more complex processing, you can create your own custom element and bind that in the same pattern:
 
 ```
 <link rel='import' href='my-complex-card.html'>
-<dom-module id="my-card">
-    <template>
-        <my-complex-card item="{{item}}"></my-complex-card>
-    </template>
-</dom-module>
-<boardgame-card type="my-card"></boardgame-card>
+<boardgame-deck-defaults>
+  <template deck="cards">
+    <boardgame-card>
+    	<my-complex-card item="{{item}}"></my-complex-card>
+    </boardgame-card>
+  </template>
+</boardgame-deck-defaults>
 ```
-
-When you provide a stack to boardgame-component-stack and then bind the resulting cards' item properties, we will also set the type property to be "GAMENAME-deck-DECKNAME-card" where GAMENAME is the name of your game type and DECKNAME is the name of the deck that stack is based on. This means that the best practice in most game renderers is to provide a "GAMENAME-deck-MYDECK-card" dom-module in the top-level and then everything will work as expected. See the debuganimations example for a sample.
 
 
 ### Optional: boardgame-fading-text
