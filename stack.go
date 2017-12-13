@@ -384,6 +384,10 @@ func NewOverlappedStack(first, second Stack) (Stack, error) {
 		return nil, errors.New("both stacks must be fixed size")
 	}
 
+	if first.Len() != second.Len() {
+		return nil, errors.New("both stacks must be same size to overlap")
+	}
+
 	return result, nil
 
 }
