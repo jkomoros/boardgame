@@ -539,7 +539,7 @@ func (s *sizedStack) FixedSize() bool {
 }
 
 func (m *mergedStack) FixedSize() bool {
-	return m.first.FixedSize() || m.second.FixedSize()
+	return m.first.FixedSize() && m.second.FixedSize()
 }
 
 func (s *growableStack) inflated() bool {
