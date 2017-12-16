@@ -96,6 +96,13 @@ type Stack interface {
 
 	//setState sets the state ptr that will be returned by state().
 	setState(state *state)
+
+	//Valid will return a non-nil error if the stack isn't valid currently.
+	//Normal stacks always reutrn nil, but MergedStacks might return non-nil,
+	//for example if the two stacks being merged are different sizes for an
+	//overlapped stack. Valid is checked just before state is saved. If any
+	//stack returns any non-nil for this then the state will not be saved.
+	Valid() error
 }
 
 //MutableStack is a Stack that also has mutator methods.
@@ -362,8 +369,12 @@ type stackJSONObj struct {
 //logical stack made up of components that are santiized followed by
 //components that are not sanitized, like in a blackjack hand. Both stacks
 //must be from the same deck.
-func NewConcatenatedStack(first, second Stack) (Stack, error) {
-	return newMergedStack(first, second, false)
+func NewConcatenatedStack(first, second Stack) Stack {
+	return &mergedStack{
+		first:   first,
+		second:  second,
+		overlap: false,
+	}
 }
 
 //NewOverlappedStack returns a new merged stack where any gaps in the first
@@ -372,43 +383,14 @@ func NewConcatenatedStack(first, second Stack) (Stack, error) {
 //logical stack made up of components where some are sanitized and some are
 //not, like the grid of cards in Memory. Both stacks must be from the same
 //deck, and both stacks must be FixedSize.
-func NewOverlappedStack(first, second Stack) (Stack, error) {
+func NewOverlappedStack(first, second Stack) Stack {
 
-	result, err := newMergedStack(first, second, true)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if !first.FixedSize() || !second.FixedSize() {
-		return nil, errors.New("both stacks must be fixed size")
-	}
-
-	if first.Len() != second.Len() {
-		return nil, errors.New("both stacks must be same size to overlap")
-	}
-
-	return result, nil
-
-}
-
-func newMergedStack(first, second Stack, overlapped bool) (Stack, error) {
-	if first == nil {
-		return nil, errors.New("first stack is nil")
-	}
-	if second == nil {
-		return nil, errors.New("second stack is nil")
-	}
-	if first.deck() != second.deck() {
-		return nil, errors.New("the two stacks are from different decks")
-	}
-	result := &mergedStack{
+	return &mergedStack{
 		first:   first,
 		second:  second,
-		overlap: overlapped,
+		overlap: true,
 	}
 
-	return result, nil
 }
 
 //NewGrowableStack creates a new growable stack with the given Deck and Cap.
@@ -540,6 +522,41 @@ func (s *sizedStack) FixedSize() bool {
 
 func (m *mergedStack) FixedSize() bool {
 	return m.first.FixedSize() && m.second.FixedSize()
+}
+
+func (g *growableStack) Valid() error {
+	return nil
+}
+
+func (s *sizedStack) Valid() error {
+	return nil
+}
+
+func (m *mergedStack) Valid() error {
+	if m.first == nil {
+		return errors.New("first stack is nil")
+	}
+	if m.second == nil {
+		return errors.New("second stack is nil")
+	}
+	if m.first.deck() != m.second.deck() {
+		return errors.New("the two stacks are from different decks")
+	}
+
+	if !m.overlap {
+		return nil
+	}
+
+	if !m.first.FixedSize() || !m.second.FixedSize() {
+		return errors.New("both stacks must be fixed size")
+	}
+
+	if m.first.Len() != m.second.Len() {
+		return errors.New("both stacks must be same size to overlap")
+	}
+
+	return nil
+
 }
 
 func (s *growableStack) inflated() bool {

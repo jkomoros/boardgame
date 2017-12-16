@@ -29,11 +29,12 @@ func TestConcatenatedStack(t *testing.T) {
 	growable.insertNext(testDeck.ComponentAt(2))
 	growable.insertNext(testDeck.ComponentAt(3))
 
-	merged, err := NewConcatenatedStack(sized, growable)
-
-	assert.For(t).ThatActual(err).IsNil()
+	merged := NewConcatenatedStack(sized, growable)
 
 	assert.For(t).ThatActual(merged).IsNotNil()
+
+	assert.For(t).ThatActual(merged.Valid()).IsNil()
+
 	assert.For(t).ThatActual(merged.Len()).Equals(5)
 	assert.For(t).ThatActual(merged.NumComponents()).Equals(4)
 	assert.For(t).ThatActual(merged.SlotsRemaining()).Equals(1)
@@ -74,11 +75,12 @@ func TestOverlappedStack(t *testing.T) {
 	second.insertComponentAt(0, testDeck.ComponentAt(2))
 	second.insertComponentAt(1, testDeck.ComponentAt(3))
 
-	merged, err := NewOverlappedStack(first, second)
-
-	assert.For(t).ThatActual(err).IsNil()
+	merged := NewOverlappedStack(first, second)
 
 	assert.For(t).ThatActual(merged).IsNotNil()
+
+	assert.For(t).ThatActual(merged.Valid()).IsNil()
+
 	assert.For(t).ThatActual(merged.Len()).Equals(4)
 	assert.For(t).ThatActual(merged.NumComponents()).Equals(3)
 	assert.For(t).ThatActual(merged.SlotsRemaining()).Equals(1)
