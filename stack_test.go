@@ -53,6 +53,50 @@ func TestConcatenatedStack(t *testing.T) {
 
 }
 
+func TestOverlappedStack(t *testing.T) {
+	game := testGame(t)
+
+	makeTestGameIdsStable(game)
+
+	game.SetUp(0, nil, nil)
+
+	testDeck := game.Chest().Deck("test")
+
+	first := testDeck.NewSizedStack(4).(*sizedStack)
+
+	first.setState(game.CurrentState().(*state))
+
+	first.insertComponentAt(0, testDeck.ComponentAt(0))
+	first.insertComponentAt(2, testDeck.ComponentAt(1))
+
+	second := testDeck.NewSizedStack(4).(*sizedStack)
+
+	second.insertComponentAt(0, testDeck.ComponentAt(2))
+	second.insertComponentAt(1, testDeck.ComponentAt(3))
+
+	merged, err := NewOverlappedStack(first, second)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(merged).IsNotNil()
+	assert.For(t).ThatActual(merged.Len()).Equals(4)
+	assert.For(t).ThatActual(merged.NumComponents()).Equals(3)
+	assert.For(t).ThatActual(merged.SlotsRemaining()).Equals(1)
+	assert.For(t).ThatActual(merged.FixedSize()).IsTrue()
+
+	expectedIds := []string{
+		"2a7effe5e4000914791f95f6c1a711e54d346020",
+		"9ac12b0fef7927c143a36e702c1601c6158d3a80",
+		"26367debb9c2ce3d0a24de425c5797f43ac43909",
+		"",
+	}
+
+	assert.For(t).ThatActual(merged.Ids()).Equals(expectedIds)
+
+	//TODO: test other aspects are what are expected
+
+}
+
 func TestMoveExtreme(t *testing.T) {
 	game := testGame(t)
 
