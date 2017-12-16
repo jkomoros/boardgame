@@ -760,7 +760,22 @@ func (s *sizedStack) Ids() []string {
 }
 
 func (m *mergedStack) Ids() []string {
-	return stackIdsImpl(m)
+
+	firstIDs := m.first.Ids()
+	secondIDs := m.second.Ids()
+
+	if m.overlap {
+		result := make([]string, len(firstIDs))
+		for i, ID := range firstIDs {
+			if ID == "" {
+				ID = secondIDs[i]
+			}
+			result[i] = ID
+		}
+		return result
+	}
+
+	return append(firstIDs, secondIDs...)
 }
 
 func stackIdsImpl(s Stack) []string {
