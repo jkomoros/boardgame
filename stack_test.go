@@ -8,6 +8,51 @@ import (
 	"testing"
 )
 
+func TestConcatenatedStack(t *testing.T) {
+	game := testGame(t)
+
+	makeTestGameIdsStable(game)
+
+	game.SetUp(0, nil, nil)
+
+	testDeck := game.Chest().Deck("test")
+
+	sized := testDeck.NewSizedStack(3).(*sizedStack)
+
+	sized.setState(game.CurrentState().(*state))
+
+	sized.insertComponentAt(0, testDeck.ComponentAt(0))
+	sized.insertComponentAt(2, testDeck.ComponentAt(1))
+
+	growable := testDeck.NewStack(2).(*growableStack)
+
+	growable.insertNext(testDeck.ComponentAt(2))
+	growable.insertNext(testDeck.ComponentAt(3))
+
+	merged, err := NewConcatenatedStack(sized, growable)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(merged).IsNotNil()
+	assert.For(t).ThatActual(merged.Len()).Equals(5)
+	assert.For(t).ThatActual(merged.NumComponents()).Equals(4)
+	assert.For(t).ThatActual(merged.SlotsRemaining()).Equals(1)
+	assert.For(t).ThatActual(merged.FixedSize()).IsFalse()
+
+	expectedIds := []string{
+		"2a7effe5e4000914791f95f6c1a711e54d346020",
+		"",
+		"26367debb9c2ce3d0a24de425c5797f43ac43909",
+		"eb8210726e015b0e472c225e512166e7f1ac34de",
+		"667bc729077137a8932a2cffc5ca4b0cec905956",
+	}
+
+	assert.For(t).ThatActual(merged.Ids()).Equals(expectedIds)
+
+	//TODO: test other aspects are what are expected
+
+}
+
 func TestMoveExtreme(t *testing.T) {
 	game := testGame(t)
 
