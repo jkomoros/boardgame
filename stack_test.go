@@ -26,6 +26,8 @@ func TestConcatenatedStack(t *testing.T) {
 
 	growable := testDeck.NewStack(2).(*growableStack)
 
+	growable.setState(game.CurrentState().(*state))
+
 	growable.insertNext(testDeck.ComponentAt(2))
 	growable.insertNext(testDeck.ComponentAt(3))
 
@@ -44,8 +46,8 @@ func TestConcatenatedStack(t *testing.T) {
 		"2a7effe5e4000914791f95f6c1a711e54d346020",
 		"",
 		"26367debb9c2ce3d0a24de425c5797f43ac43909",
-		"a5385028bbec8b23e08d4eb6df1924b769eb34c5",
-		"9ac12b0fef7927c143a36e702c1601c6158d3a80",
+		"eb8210726e015b0e472c225e512166e7f1ac34de",
+		"667bc729077137a8932a2cffc5ca4b0cec905956",
 	}
 
 	assert.For(t).ThatActual(merged.Ids()).Equals(expectedIds)
@@ -72,6 +74,8 @@ func TestOverlappedStack(t *testing.T) {
 
 	second := testDeck.NewSizedStack(4).(*sizedStack)
 
+	second.setState(game.CurrentState().(*state))
+
 	second.insertComponentAt(0, testDeck.ComponentAt(2))
 	second.insertComponentAt(1, testDeck.ComponentAt(3))
 
@@ -88,7 +92,7 @@ func TestOverlappedStack(t *testing.T) {
 
 	expectedIds := []string{
 		"2a7effe5e4000914791f95f6c1a711e54d346020",
-		"9ac12b0fef7927c143a36e702c1601c6158d3a80",
+		"667bc729077137a8932a2cffc5ca4b0cec905956",
 		"26367debb9c2ce3d0a24de425c5797f43ac43909",
 		"",
 	}
