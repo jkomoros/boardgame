@@ -8,6 +8,52 @@ import (
 	"testing"
 )
 
+func TestMergedValidStack(t *testing.T) {
+	game := testGame(t)
+
+	makeTestGameIdsStable(game)
+
+	game.SetUp(0, nil, nil)
+
+	testDeck := game.Chest().Deck("test")
+
+	sized := testDeck.NewSizedStack(3).(*sizedStack)
+
+	sized.setState(game.CurrentState().(*state))
+
+	sized.insertComponentAt(0, testDeck.ComponentAt(0))
+	sized.insertComponentAt(2, testDeck.ComponentAt(1))
+
+	growable := testDeck.NewStack(2).(*growableStack)
+
+	growable.setState(game.CurrentState().(*state))
+
+	growable.insertNext(testDeck.ComponentAt(2))
+	growable.insertNext(testDeck.ComponentAt(3))
+
+	otherSized := testDeck.NewSizedStack(4).(*sizedStack)
+
+	otherSized.setState(game.CurrentState().(*state))
+
+	merged := NewConcatenatedStack(sized, nil)
+
+	assert.For(t).ThatActual(merged).IsNotNil()
+
+	assert.For(t).ThatActual(merged.Valid()).IsNotNil()
+
+	merged = NewOverlappedStack(sized, growable)
+
+	assert.For(t).ThatActual(merged.Valid()).IsNotNil()
+
+	merged = NewOverlappedStack(sized, otherSized)
+
+	assert.For(t).ThatActual(merged.Valid()).IsNotNil()
+
+	otherSized.SetSize(sized.Len())
+
+	assert.For(t).ThatActual(merged.Valid()).IsNil()
+}
+
 func TestConcatenatedStack(t *testing.T) {
 	game := testGame(t)
 
