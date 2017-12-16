@@ -782,8 +782,8 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 		return baseErr.WithError("The move's apply function returned an error:" + err.Error())
 	}
 
-	if err := newState.validatePlayerIndexes(); err != nil {
-		return baseErr.WithError("The modified state had a PlayerIndex out of bounds, so the move was not applied. " + err.Error())
+	if err := newState.validateBeforeSave(); err != nil {
+		return baseErr.WithError("The modified state had an invalidity, so the move was not applied. " + err.Error())
 	}
 
 	//Check to see if that move made the game finished.

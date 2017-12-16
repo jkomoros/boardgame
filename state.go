@@ -430,47 +430,32 @@ func (s *state) copyGameState(input MutableSubState) ConfigurableSubState {
 	return output
 }
 
-//validatePlayerIndexes checks all of the PropertyReaders in State and
-//verifies that PlayerIndexes are within legal bounds.
-func (s *state) validatePlayerIndexes() error {
+//validateBeforeSave insures that for all readers, the playerIndexes are
+//valid, and the stacks are too.
+func (s *state) validateBeforeSave() error {
 
-	var errs []error
-
-	errs = append(errs, validatePlayerIndexesForReader(s.GameState().Reader(), "Game", s))
+	if err := validateReaderBeforeSave(s.GameState().Reader(), "Game", s); err != nil {
+		return err
+	}
 
 	for i, player := range s.PlayerStates() {
-		errs = append(errs, validatePlayerIndexesForReader(player.Reader(), "Player "+strconv.Itoa(i), s))
+		if err := validateReaderBeforeSave(player.Reader(), "Player "+strconv.Itoa(i), s); err != nil {
+			return err
+		}
 	}
 
 	for name, deck := range s.DynamicComponentValues() {
 		for i, values := range deck {
-			errs = append(errs, validatePlayerIndexesForReader(values.Reader(), "DynamicComponentValues "+name+" "+strconv.Itoa(i), s))
+			if err := validateReaderBeforeSave(values.Reader(), "DynamicComponentValues "+name+" "+strconv.Itoa(i), s); err != nil {
+				return err
+			}
 		}
-	}
-
-	//TODO: check computed, too?
-
-	var firstErr error
-	var numErrors int
-
-	for _, err := range errs {
-		if err == nil {
-			continue
-		}
-		if firstErr == nil {
-			firstErr = err
-		}
-		numErrors++
-	}
-
-	if firstErr != nil {
-		return errors.New("Found " + strconv.Itoa(numErrors) + " PlayerIndexes that were not valid. For example, " + firstErr.Error())
 	}
 
 	return nil
 }
 
-func validatePlayerIndexesForReader(reader PropertyReader, name string, state State) error {
+func validateReaderBeforeSave(reader PropertyReader, name string, state State) error {
 
 	for propName, propType := range reader.Props() {
 		if propType == TypePlayerIndex {
@@ -480,6 +465,15 @@ func validatePlayerIndexesForReader(reader PropertyReader, name string, state St
 			}
 			if !val.Valid(state) {
 				return errors.New(propName + " was an invalid PlayerIndex, with value " + strconv.Itoa(int(val)))
+			}
+		}
+		if propType == TypeStack {
+			stack, err := reader.StackProp(propName)
+			if err != nil {
+				return errors.New("Error reading property " + propName + ": " + err.Error())
+			}
+			if err := stack.Valid(); err != nil {
+				return errors.New(propName + " was a stack that did not validate: " + err.Error())
 			}
 		}
 	}
