@@ -568,13 +568,7 @@ func (g *GameManager) playerStateConstructor(state *state, player PlayerIndex) (
 		return nil, errors.New("Couldn't auto-inflate empty player state: " + err.Error())
 	}
 
-	reader := playerState.Reader()
-
-	if reader == nil {
-		return nil, errors.New("PlayerState Reader returned nil")
-	}
-
-	if err := g.playerValidator.Valid(reader); err != nil {
+	if err := g.playerValidator.Valid(readSetConfigurer); err != nil {
 		return nil, errors.New("Player State was not valid: " + err.Error())
 	}
 
@@ -602,13 +596,7 @@ func (g *GameManager) gameStateConstructor(state *state) (ConfigurableSubState, 
 		return nil, errors.New("Couldn't auto-inflate empty game state: " + err.Error())
 	}
 
-	reader := gameState.Reader()
-
-	if reader == nil {
-		return nil, errors.New("GameState reader returned nil")
-	}
-
-	if err := g.gameValidator.Valid(reader); err != nil {
+	if err := g.gameValidator.Valid(readSetConfigurer); err != nil {
 		return nil, errors.New("game State was not valid: " + err.Error())
 	}
 
@@ -652,13 +640,7 @@ func (g *GameManager) dynamicComponentValuesConstructor(state *state) (map[strin
 				return nil, errors.New("Couldn't auto-inflate dynamic compoonent values for " + deckName + " " + strconv.Itoa(i) + ": " + err.Error())
 			}
 
-			reader := arr[i].Reader()
-
-			if reader == nil {
-				return nil, errors.New("Reader for dynamic component values for " + deckName + " " + strconv.Itoa(i) + " was nil")
-			}
-
-			if err := validator.Valid(reader); err != nil {
+			if err := validator.Valid(readSetConfigurer); err != nil {
 				return nil, errors.New("Dynamic compoonent values for " + deckName + " " + strconv.Itoa(i) + " was not valid: " + err.Error())
 			}
 
