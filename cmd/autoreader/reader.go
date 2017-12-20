@@ -611,7 +611,7 @@ func ({{.firstLetter}} *{{.readerName}}) PropMutable(name string) bool {
 		return {{$val}}
 		{{end -}}
 	}
-	
+
 	return false
 }
 
@@ -656,11 +656,29 @@ func ({{.firstLetter}} *{{.readerName}}) ConfigureProp(name string, value interf
 	switch propType {
 	{{range $type, $goLangType := .setterPropertyTypes -}}
 	case boardgame.Type{{withoutmutable $type}}:
-		val, ok := value.({{$goLangType}})
-		if !ok {
-			return errors.New("Provided value was not of type {{$goLangType}}")
+		{{if ismutable $type -}}
+		if {{$firstLetter}}.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.({{$goLangType}})
+			if !ok {
+				return errors.New("Provided value was not of type {{$goLangType}}")
+			}
+			return {{$firstLetter}}.{{verbfortype $type}}{{$type}}Prop(name, val)
+		} else {
+			//Immutable variant
+			val, ok := value.({{withoutmutable $goLangType}})
+			if !ok {
+				return errors.New("Provided value was not of type {{withoutmutable $goLangType}}")
+			}
+			return {{$firstLetter}}.{{verbfortype $type}}{{withoutmutable $type}}Prop(name, val)
 		}
-		return {{$firstLetter}}.{{verbfortype $type}}{{$type}}Prop(name, val)
+		{{- else -}}
+			val, ok := value.({{$goLangType}})
+			if !ok {
+				return errors.New("Provided value was not of type {{$goLangType}}")
+			}
+			return {{$firstLetter}}.{{verbfortype $type}}{{$type}}Prop(name, val)
+		{{- end}}
 	{{end}}
 	}
 
@@ -703,6 +721,25 @@ func ({{.firstLetter}} *{{.readerName}}) Configure{{.setterPropType}}Prop(name s
 	{{end}}
 
 	return errors.New("No such {{.setterPropType}} prop: " + name)
+
+}
+
+func ({{.firstLetter}} *{{.readerName}}) Configure{{withoutmutable .setterPropType}}Prop(name string, value {{withoutmutable .setterGoLangType}}) error {
+	{{if .namesForType}}
+	switch name {
+		{{range .namesForType -}}
+			case "{{.Name}}":
+			{{if .Mutable -}}
+				return boardgame.ErrPropertyImmutable
+			{{- else -}}
+				{{$firstLetter}}.data.{{.Name}} = value
+				return nil
+			{{- end}}
+		{{end}}
+	}
+	{{end}}
+
+	return errors.New("No such {{withoutmutable .setterPropType}} prop: " + name)
 
 }
 

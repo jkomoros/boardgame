@@ -104,12 +104,23 @@ type PropertyReadSetter interface {
 
 //PropertyReadSetConfigurer allows setting of all properties but also
 //configuration of interface types--that is, settting the container for each
-//property in adddition to manipulating the value within the container.
+//property in adddition to manipulating the value within the container. There
+//are versions for the mutable and immutable versions of each interface type;
+//make sure to use the correct one for the underlying type.
 type PropertyReadSetConfigurer interface {
 	PropertyReadSetter
+
+	//ConfigureMutable*Prop allows you to set the named property to the given
+	//container value. Use this if PropMutable(name) returns true.
 	ConfigureMutableEnumProp(name string, value enum.MutableVal) error
 	ConfigureMutableStackProp(name string, value MutableStack) error
 	ConfigureMutableTimerProp(name string, value MutableTimer) error
+
+	//Configure*Prop allows you to set the container for container values for
+	//whom MutableProp(name) returns false.
+	ConfigureEnumProp(name string, value enum.Val) error
+	ConfigureStackProp(name string, value Stack) error
+	ConfigureTimerProp(name string, value Timer) error
 
 	//ConfigureProp is like SetProp, except that it does not fail if the type
 	//is one of the Interface types. If you know the underlying type it's always better
@@ -800,6 +811,18 @@ func (d *defaultReader) MutableTimerProp(name string) (MutableTimer, error) {
 	}
 	result := field.Interface().(MutableTimer)
 	return result, nil
+}
+
+func (d *defaultReader) ConfigureEnumProp(name string, val enum.Val) error {
+	return errors.New("That isn't implemented")
+}
+
+func (d *defaultReader) ConfigureStackProp(name string, val Stack) error {
+	return errors.New("That isn't implemented")
+}
+
+func (d *defaultReader) ConfigureTimerProp(name string, val Timer) error {
+	return errors.New("That isn't implemented")
 }
 
 func (d *defaultReader) ConfigureMutableEnumProp(name string, val enum.MutableVal) (err error) {
