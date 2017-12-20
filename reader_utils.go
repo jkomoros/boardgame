@@ -240,6 +240,45 @@ func (r *readerValidator) AutoInflate(readSetConfigurer PropertyReadSetConfigure
 		}
 	}
 
+	for propName, config := range r.autoMergedStackFields {
+		stack, err := readSetConfigurer.StackProp(propName)
+		if stack != nil {
+			//Guess it was already set!
+			continue
+		}
+		if err != nil {
+			return errors.New(propName + " had error fetching stack: " + err.Error())
+		}
+		if config == nil {
+			return errors.New("The config for " + propName + " was unexpectedly nil")
+		}
+		firstStack, err := readSetConfigurer.StackProp(config.firstProp)
+		if err != nil {
+			return errors.New(propName + " Couldn't fetch the first stack to merge: " + err.Error())
+		}
+		if firstStack == nil {
+			return errors.New(propName + " had a nil first stack")
+		}
+		secondStack, err := readSetConfigurer.StackProp(config.secondProp)
+		if err != nil {
+			return errors.New(propName + " Couldn't fetch the second stack to merge: " + err.Error())
+		}
+		if secondStack == nil {
+			return errors.New(propName + " had a nil second stack")
+		}
+
+		if config.overlap {
+			stack = NewOverlappedStack(firstStack, secondStack)
+		} else {
+			stack = NewConcatenatedStack(firstStack, secondStack)
+		}
+
+		if err := readSetConfigurer.ConfigureStackProp(propName, stack); err != nil {
+			return errors.New("Couldn't set " + propName + " to stack: " + err.Error())
+		}
+
+	}
+
 	for propName, enum := range r.autoEnumFields {
 		enumConst, err := readSetConfigurer.EnumProp(propName)
 		if enumConst != nil {
