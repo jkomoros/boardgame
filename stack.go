@@ -97,6 +97,12 @@ type Stack interface {
 	//setState sets the state ptr that will be returned by state().
 	setState(state *state)
 
+	//Stacks that are not inflated will become inflated by grabbing a
+	//reference to the associated deck in the provided chest.
+	inflate(chest *ComponentChest) error
+
+	inflated() bool
+
 	//Valid will return a non-nil error if the stack isn't valid currently.
 	//Normal stacks always reutrn nil, but MergedStacks might return non-nil,
 	//for example if the two stacks being merged are different sizes for an
@@ -255,12 +261,6 @@ type MutableStack interface {
 
 	//Copy returns a copy of this stack.
 	copy() Stack
-
-	//Stacks that are not inflated will become inflated by grabbing a
-	//reference to the associated deck in the provided chest.
-	inflate(chest *ComponentChest) error
-
-	inflated() bool
 
 	//used to import the state from another stack into this one. This allows
 	//stacks to be phsyically the same within a state as what was returned
@@ -607,6 +607,10 @@ func (s *sizedStack) inflated() bool {
 	return s.deck() != nil
 }
 
+func (m *mergedStack) inflated() bool {
+	return true
+}
+
 func (g *growableStack) inflate(chest *ComponentChest) error {
 
 	if g.inflated() {
@@ -641,6 +645,10 @@ func (s *sizedStack) inflate(chest *ComponentChest) error {
 
 	return nil
 
+}
+
+func (m *mergedStack) inflate(chest *ComponentChest) error {
+	return nil
 }
 
 func (g *growableStack) Components() []*Component {
