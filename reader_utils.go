@@ -329,6 +329,9 @@ func setReaderStatePtr(reader PropertyReader, st State) error {
 				return errors.New("Stack prop " + propName + " had unexpected error: " + err.Error())
 			}
 			val.setState(statePtr)
+			if statePtr.game != nil {
+				val.inflate(statePtr.game.Chest())
+			}
 		case TypeTimer:
 			val, err := reader.TimerProp(propName)
 			if val == nil {
