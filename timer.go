@@ -22,6 +22,7 @@ type MutableTimer interface {
 	Timer
 	Start(time.Duration, Move)
 	Cancel() bool
+	importFrom(other Timer) error
 	mutableCopy() MutableTimer
 }
 
@@ -35,6 +36,11 @@ type timer struct {
 
 func NewTimer() MutableTimer {
 	return &timer{}
+}
+
+func (t *timer) importFrom(other Timer) error {
+	t.Id = other.id()
+	return nil
 }
 
 func (t *timer) id() int {
