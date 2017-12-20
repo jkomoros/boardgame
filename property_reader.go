@@ -56,6 +56,11 @@ const (
 	TypeTimer
 )
 
+//ErrPropertyImmutable should be returned by PropertyReadSetters'
+//Mutable{Enum,Stack,Timer}Prop when the underlying property is actually an
+//immutable variant of that type of object.
+var ErrPropertyImmutable = errors.New("That property is an immutable type in the underlying object.")
+
 //Property read setter is a way to enumerate and manipulate properties on an
 //object of an unknown shape. For simple properties they can be set directly;
 //for interface types a mutable version can be retrieved, but not set.
@@ -74,7 +79,9 @@ type PropertyReadSetter interface {
 	SetPlayerIndexSliceProp(name string, value []PlayerIndex) error
 
 	//For interface types the setter also wants to give access to the mutable
-	//underlying value so it can be mutated in place.
+	//underlying value so it can be mutated in place. ReadSetters should
+	//return ErrPropertyImmutable if the underlying interface property is the
+	//immutable variant.
 	MutableEnumProp(name string) (enum.MutableVal, error)
 	MutableStackProp(name string) (MutableStack, error)
 	MutableTimerProp(name string) (MutableTimer, error)

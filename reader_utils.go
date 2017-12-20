@@ -429,6 +429,10 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 			}
 			outputEnum, err := outputContainer.MutableEnumProp(propName)
 			if err != nil {
+				//if the err is ErrPropertyImmutable, that's OK, just skip
+				if err == ErrPropertyImmutable {
+					continue
+				}
 				return errors.New(propName + " could not get mutable enum on output: " + err.Error())
 			}
 			outputEnum.SetValue(enumConst.Value())
@@ -439,6 +443,10 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 			}
 			outputStack, err := outputContainer.MutableStackProp(propName)
 			if err != nil {
+				//if the err is ErrPropertyImmutable, that's OK, just skip
+				if err == ErrPropertyImmutable {
+					continue
+				}
 				return errors.New(propName + " could not get mutable stack on output: " + err.Error())
 			}
 			if err := outputStack.importFrom(stackVal); err != nil {
@@ -451,6 +459,10 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 			}
 			outputTimer, err := outputContainer.MutableTimerProp(propName)
 			if err != nil {
+				//if the err is ErrPropertyImmutable, that's OK, just skip
+				if err == ErrPropertyImmutable {
+					continue
+				}
 				return errors.New(propName + " could not get mutable timer on output: " + err.Error())
 			}
 			if err := outputTimer.importFrom(timerVal); err != nil {
