@@ -97,12 +97,6 @@ type Stack interface {
 	//setState sets the state ptr that will be returned by state().
 	setState(state *state)
 
-	//Stacks that are not inflated will become inflated by grabbing a
-	//reference to the associated deck in the provided chest.
-	inflate(chest *ComponentChest) error
-
-	inflated() bool
-
 	//Valid will return a non-nil error if the stack isn't valid currently.
 	//Normal stacks always reutrn nil, but MergedStacks might return non-nil,
 	//for example if the two stacks being merged are different sizes for an
@@ -599,58 +593,6 @@ func (m *mergedStack) Valid() error {
 
 }
 
-func (s *growableStack) inflated() bool {
-	return s.deck() != nil
-}
-
-func (s *sizedStack) inflated() bool {
-	return s.deck() != nil
-}
-
-func (m *mergedStack) inflated() bool {
-	return true
-}
-
-func (g *growableStack) inflate(chest *ComponentChest) error {
-
-	if g.inflated() {
-		return errors.New("Stack already inflated")
-	}
-
-	deck := chest.Deck(g.deckName)
-
-	if deck == nil {
-		return errors.New("Chest did not contain deck with name " + g.deckName)
-	}
-
-	g.deckPtr = deck
-
-	return nil
-
-}
-
-func (s *sizedStack) inflate(chest *ComponentChest) error {
-
-	if s.inflated() {
-		return errors.New("Stack already inflated")
-	}
-
-	deck := chest.Deck(s.deckName)
-
-	if deck == nil {
-		return errors.New("Chest did not contain deck with name " + s.deckName)
-	}
-
-	s.deckPtr = deck
-
-	return nil
-
-}
-
-func (m *mergedStack) inflate(chest *ComponentChest) error {
-	return nil
-}
-
 func (g *growableStack) Components() []*Component {
 	result := make([]*Component, len(g.indexes))
 
@@ -694,10 +636,6 @@ func (m *mergedStack) Components() []*Component {
 //this stack.
 func (s *growableStack) ComponentAt(index int) *Component {
 
-	if !s.inflated() {
-		return nil
-	}
-
 	//Substantially recreated in SizedStack.ComponentAt()
 	if index >= s.Len() || index < 0 {
 		return nil
@@ -716,10 +654,6 @@ func (s *growableStack) ComponentAt(index int) *Component {
 //ComponentAt fetches the component object representing the n-th object in
 //this stack.
 func (s *sizedStack) ComponentAt(index int) *Component {
-
-	if !s.inflated() {
-		return nil
-	}
 
 	//Substantially recreated in GrowableStack.ComponentAt()
 
@@ -756,10 +690,6 @@ func (m *mergedStack) ComponentAt(index int) *Component {
 func (g *growableStack) ComponentValues() []Reader {
 	//TODO: memoize this, as long as indexes hasn't changed
 
-	if !g.inflated() {
-		return nil
-	}
-
 	//Substantially recreated in SizedStack.ComponentValues
 	result := make([]Reader, g.Len())
 	for i := 0; i < g.Len(); i++ {
@@ -778,10 +708,6 @@ func (g *growableStack) ComponentValues() []Reader {
 //is.
 func (s *sizedStack) ComponentValues() []Reader {
 	//TODO: memoize this, as long as indexes hasn't changed
-
-	if !s.inflated() {
-		return nil
-	}
 
 	//Substantially recreated in GrowableStack.ComponentValues
 	result := make([]Reader, s.Len())
@@ -1017,10 +943,20 @@ func (m *mergedStack) setState(state *state) {
 }
 
 func (g *growableStack) deck() *Deck {
+	if g.deckPtr == nil {
+		if g.statePtr.game != nil {
+			g.deckPtr = g.statePtr.game.Chest().Deck(g.deckName)
+		}
+	}
 	return g.deckPtr
 }
 
 func (s *sizedStack) deck() *Deck {
+	if s.deckPtr == nil {
+		if s.statePtr.game != nil {
+			s.deckPtr = s.statePtr.game.Chest().Deck(s.deckName)
+		}
+	}
 	return s.deckPtr
 }
 
@@ -1029,9 +965,6 @@ func (m *mergedStack) deck() *Deck {
 }
 
 func (g *growableStack) modificationsAllowed() error {
-	if !g.inflated() {
-		return errors.New("Modifications not allowed: stack is not inflated")
-	}
 	if g.state() == nil {
 		return errors.New("Modifications not allowed: stack's state not set")
 	}
@@ -1042,9 +975,6 @@ func (g *growableStack) modificationsAllowed() error {
 }
 
 func (s *sizedStack) modificationsAllowed() error {
-	if !s.inflated() {
-		return errors.New("Modifications not allowed: stack is not inflated")
-	}
 	if s.state() == nil {
 		return errors.New("Modifications not allowed: stack's state not set")
 	}

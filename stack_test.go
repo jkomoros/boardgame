@@ -374,8 +374,6 @@ func TestSort(t *testing.T) {
 
 	gStack := testDeck.NewStack(0)
 
-	gStack.inflate(chest)
-
 	gStack.setState(game.CurrentState().(*state))
 
 	gStack.insertNext(testDeck.Components()[0])
@@ -409,7 +407,6 @@ func TestSort(t *testing.T) {
 
 	sStack := testDeck.NewSizedStack(5)
 
-	sStack.inflate(chest)
 	sStack.setState(game.CurrentState().(*state))
 
 	sStack.insertComponentAt(0, testDeck.Components()[0])
@@ -489,14 +486,6 @@ func TestInflate(t *testing.T) {
 		t.Error("Couldn't get component from inflated sstack")
 	}
 
-	if err := gStack.inflate(chest); err == nil {
-		t.Error("An inflated g stack was able to inflate again")
-	}
-
-	if err := sStack.inflate(chest); err == nil {
-		t.Error("An inflated s stack was able to inflate again")
-	}
-
 	gStackBlob, err := json.Marshal(gStack)
 
 	if err != nil {
@@ -509,48 +498,20 @@ func TestInflate(t *testing.T) {
 		t.Error("SStack didn't serialize", err)
 	}
 
-	reGStack := &growableStack{}
+	reGStack := testDeck.NewStack(0)
+
+	reGStack.setState(game.CurrentState().(*state))
 
 	if err := json.Unmarshal(gStackBlob, reGStack); err != nil {
 		t.Error("Couldn't reconstitute gStack", err)
 	}
 
-	reSStack := &sizedStack{}
+	reSStack := testDeck.NewSizedStack(0)
+
+	reSStack.setState(game.CurrentState().(*state))
 
 	if err := json.Unmarshal(sStackBlob, reSStack); err != nil {
 		t.Error("Couldn't reconstitute sStack", err)
-	}
-
-	if reGStack.inflated() {
-		t.Error("Reconstituted g stack thought it was inflated")
-	}
-
-	if reSStack.inflated() {
-		t.Error("Reconstituted s stack thought it was inflated")
-	}
-
-	if reGStack.ComponentAt(0) != nil {
-		t.Error("Uninflated g stack still returned a component")
-	}
-
-	if reSStack.ComponentAt(0) != nil {
-		t.Error("Uninflated s stack still returned a component")
-	}
-
-	if err := reGStack.inflate(chest); err != nil {
-		t.Error("Uninflated g stack wasn't able to inflate", err)
-	}
-
-	if err := reSStack.inflate(chest); err != nil {
-		t.Error("Uninflated s stack wasn't able to inflate", err)
-	}
-
-	if !reGStack.inflated() {
-		t.Error("After inflating g stack it didn't think it was inflated")
-	}
-
-	if !reSStack.inflated() {
-		t.Error("After inflating s stack it didn't think it was inflated")
 	}
 
 	c := reGStack.ComponentAt(0)
