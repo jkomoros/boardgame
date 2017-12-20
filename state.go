@@ -204,7 +204,7 @@ type state struct {
 	dynamicComponentValues map[string][]ConfigurableSubState
 	//We hang onto these because otherwise we'd have to create them on the fly
 	//whenever MutablePlayerStates() and MutableDynamicComponentValues are
-	//called. They're populated in state.finish().
+	//called. They're populated in setStateForSubStates.
 	mutablePlayerStates           []MutablePlayerState
 	mutableDynamicComponentValues map[string][]MutableSubState
 	secretMoveCount               map[string][]int
@@ -270,50 +270,44 @@ func (s *state) Copy(sanitized bool) State {
 }
 
 func (s *state) copy(sanitized bool) *state {
-	players := make([]ConfigurablePlayerState, len(s.playerStates))
 
-	for i, player := range s.playerStates {
-		players[i] = s.copyPlayerState(player)
-	}
+	result, err := s.game.manager.exampleState(len(s.playerStates))
 
-	result := &state{
-		gameState:              s.copyGameState(s.gameState),
-		playerStates:           players,
-		dynamicComponentValues: make(map[string][]ConfigurableSubState),
-		secretMoveCount:        make(map[string][]int),
-		sanitized:              sanitized,
-		version:                s.version,
-		game:                   s.game,
-		//We copy this over, because this should only be set when computed is
-		//being calculated, and during that time we'll be creating sanitized
-		//copies of ourselves. However, if there are other copies created when
-		//this flag is set that outlive the original flag being unset, that
-		//state would be in a bad state long term...
-		calculatingComputed: s.calculatingComputed,
-	}
-
-	for deckName, values := range s.dynamicComponentValues {
-		arr := make([]ConfigurableSubState, len(values))
-		for i := 0; i < len(values); i++ {
-			arr[i] = s.copyDynamicComponentValues(values[i], deckName)
-			if err := setReaderStatePtr(arr[i].Reader(), result); err != nil {
-				return nil
-			}
-		}
-		result.dynamicComponentValues[deckName] = arr
-	}
-
-	result.setStateForSubStates()
-
-	//FixUp stacks to make sure they point to this new state.
-	if err := setReaderStatePtr(result.gameState.Reader(), result); err != nil {
+	if err != nil {
 		return nil
 	}
-	for _, player := range result.playerStates {
-		if err := setReaderStatePtr(player.Reader(), result); err != nil {
+
+	//TODO: shouldn't we copy over secretMoveCount here?
+
+	result.sanitized = sanitized
+	result.version = s.version
+	result.game = s.game
+	//We copy this over, because this should only be set when computed is
+	//being calculated, and during that time we'll be creating sanitized
+	//copies of ourselves. However, if there are other copies created when
+	//this flag is set that outlive the original flag being unset, that
+	//state would be in a bad state long term...
+	result.calculatingComputed = s.calculatingComputed
+
+	if err := copyReader(s.gameState.ReadSetter(), result.gameState.ReadSetter()); err != nil {
+		return nil
+	}
+
+	for i := 0; i < len(s.playerStates); i++ {
+		if err := copyReader(s.playerStates[i].ReadSetter(), result.playerStates[i].ReadSetter()); err != nil {
 			return nil
 		}
 	}
+
+	for deckName, values := range s.dynamicComponentValues {
+		for i := 0; i < len(values); i++ {
+			if err := copyReader(s.dynamicComponentValues[deckName][i].ReadSetter(), result.dynamicComponentValues[deckName][i].ReadSetter()); err != nil {
+				return nil
+			}
+		}
+	}
+
+	//state.finish()?
 
 	return result
 }
@@ -353,81 +347,6 @@ func (s *state) setStateForSubStates() {
 	}
 
 	s.mutableDynamicComponentValues = dynamicComponentValues
-}
-
-func (s *state) copyDynamicComponentValues(input MutableSubState, deckName string) ConfigurableSubState {
-	deck := s.game.manager.chest.Deck(deckName)
-	if deck == nil {
-		s.game.manager.Logger().WithField("deckname", deckName).Error("Invalid deck")
-		return nil
-	}
-	output := s.game.Manager().delegate.DynamicComponentValuesConstructor(deck)
-
-	inputReader := input.ReadSetter()
-
-	if inputReader == nil {
-		s.game.manager.Logger().Error("InputReader was unexpectedly nil")
-		return nil
-	}
-
-	outputReadSetConfigurer := output.ReadSetConfigurer()
-
-	if outputReadSetConfigurer == nil {
-		s.game.manager.Logger().Error("Output read set configurer was unexpectedly nil")
-		return nil
-	}
-
-	if err := copyReader(inputReader, outputReadSetConfigurer); err != nil {
-		s.game.manager.Logger().Error("WARNING: couldn't copy dynamic value state: " + err.Error())
-	}
-	return output
-}
-
-func (s *state) copyPlayerState(input MutablePlayerState) ConfigurablePlayerState {
-	output := s.game.manager.delegate.PlayerStateConstructor(input.PlayerIndex())
-
-	inputReader := input.ReadSetter()
-
-	if inputReader == nil {
-		s.game.manager.Logger().Error("InputReader was unexpectedly nil")
-		return nil
-	}
-
-	outputReadSetConfigurer := output.ReadSetConfigurer()
-
-	if outputReadSetConfigurer == nil {
-		s.game.manager.Logger().Error("Output read set configurer was unexpectedly nil")
-		return nil
-	}
-
-	if err := copyReader(inputReader, outputReadSetConfigurer); err != nil {
-		s.game.manager.Logger().Error("WARNING: couldn't copy player state: " + err.Error())
-	}
-
-	return output
-}
-
-func (s *state) copyGameState(input MutableSubState) ConfigurableSubState {
-	output := s.game.manager.delegate.GameStateConstructor()
-
-	inputReader := input.ReadSetter()
-
-	if inputReader == nil {
-		s.game.manager.Logger().Error("InputReader was unexpectedly nil")
-		return nil
-	}
-
-	outputReadSetConfigurer := output.ReadSetConfigurer()
-
-	if outputReadSetConfigurer == nil {
-		s.game.manager.Logger().Error("Output read set configurer was unexpectedly nil")
-		return nil
-	}
-
-	if err := copyReader(inputReader, outputReadSetConfigurer); err != nil {
-		s.game.manager.Logger().Error("WARNING: couldn't copy game state: " + err.Error())
-	}
-	return output
 }
 
 //validateBeforeSave insures that for all readers, the playerIndexes are

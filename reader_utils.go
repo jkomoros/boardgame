@@ -344,9 +344,9 @@ func setReaderStatePtr(reader PropertyReader, st State) error {
 }
 
 //copyReader assumes input and output container are the same "shape" (that is,
-//outputContainer can have all of input's properties set). It goes through
-//each property, copies it if necessary, and outputs on ReadSetConfigurer.
-func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetConfigurer) error {
+//outputContainer can have all of input's properties set). It also assumes
+//that the output has all interface types initalized to the right shape.
+func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) error {
 
 	for propName, propType := range input.Props() {
 		switch propType {
@@ -386,15 +386,6 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetConfigu
 			if err != nil {
 				return errors.New(propName + " could not be set on output: " + err.Error())
 			}
-		case TypeEnum:
-			enumConst, err := input.EnumProp(propName)
-			if err != nil {
-				return errors.New(propName + " did not return an EnumVal as expected: " + err.Error())
-			}
-			err = outputContainer.ConfigureMutableEnumProp(propName, enumConst.MutableCopy())
-			if err != nil {
-				return errors.New(propName + " could not be set on output: " + err.Error())
-			}
 		case TypeIntSlice:
 			intSliceVal, err := input.IntSliceProp(propName)
 			if err != nil {
@@ -431,23 +422,39 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetConfigu
 			if err != nil {
 				return errors.New(propName + " could not be set on output: " + err.Error())
 			}
+		case TypeEnum:
+			enumConst, err := input.EnumProp(propName)
+			if err != nil {
+				return errors.New(propName + " did not return an EnumVal as expected: " + err.Error())
+			}
+			outputEnum, err := outputContainer.MutableEnumProp(propName)
+			if err != nil {
+				return errors.New(propName + " could not get mutable enum on output: " + err.Error())
+			}
+			outputEnum.SetValue(enumConst.Value())
 		case TypeStack:
 			stackVal, err := input.MutableStackProp(propName)
 			if err != nil {
 				return errors.New(propName + " did not return a stack as expected: " + err.Error())
 			}
-			err = outputContainer.ConfigureMutableStackProp(propName, stackVal.mutableCopy())
+			outputStack, err := outputContainer.MutableStackProp(propName)
 			if err != nil {
-				return errors.New(propName + " could not be set on output: " + err.Error())
+				return errors.New(propName + " could not get mutable stack on output: " + err.Error())
+			}
+			if err := outputStack.importFrom(stackVal); err != nil {
+				return errors.New(propName + " could not import from input: " + err.Error())
 			}
 		case TypeTimer:
 			timerVal, err := input.MutableTimerProp(propName)
 			if err != nil {
 				return errors.New(propName + " did not return a timer as expected: " + err.Error())
 			}
-			err = outputContainer.ConfigureMutableTimerProp(propName, timerVal.mutableCopy())
+			outputTimer, err := outputContainer.MutableTimerProp(propName)
 			if err != nil {
-				return errors.New(propName + " could not be set on output: " + err.Error())
+				return errors.New(propName + " could not get mutable timer on output: " + err.Error())
+			}
+			if err := outputTimer.importFrom(timerVal); err != nil {
+				return errors.New(propName + " could not import from input: " + err.Error())
 			}
 		default:
 			return errors.New(propName + " was an unsupported property type: " + strconv.Itoa(int(propType)))
