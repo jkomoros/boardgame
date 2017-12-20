@@ -810,14 +810,17 @@ func (g *GameManager) proposeMoveOnGame(id string, move Move, proposer PlayerInd
 //Constructor() methods and after tag-based inflation. Primarily useful for
 //meta- programming approaches, used often in the moves package.
 func (g *GameManager) ExampleState() MutableState {
-	state, err := g.exampleState(1)
+	state, err := g.emptyState(1)
 	if err != nil {
 		return nil
 	}
 	return state
 }
 
-func (g *GameManager) exampleState(numPlayers int) (*state, error) {
+//emptyState returns an empty state for this game with this number of players.
+//This is the canonical way to create a new state object with all of the right
+//auto-inflation and everything.
+func (g *GameManager) emptyState(numPlayers int) (*state, error) {
 	stateCopy := &state{
 		//Other users should set the game to a real thing
 		game:            nil,

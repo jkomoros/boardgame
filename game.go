@@ -332,7 +332,7 @@ func (g *Game) NumAgentPlayers() int {
 
 //starterState returns a starting, not-yet-saved State that is configured with all moving parts.
 func (g *Game) starterState(numPlayers int) (MutableState, error) {
-	state, err := g.Manager().exampleState(numPlayers)
+	state, err := g.Manager().emptyState(numPlayers)
 
 	if err != nil {
 		return nil, err

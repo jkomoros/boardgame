@@ -271,7 +271,7 @@ func (s *state) Copy(sanitized bool) State {
 
 func (s *state) copy(sanitized bool) *state {
 
-	result, err := s.game.manager.exampleState(len(s.playerStates))
+	result, err := s.game.manager.emptyState(len(s.playerStates))
 
 	if err != nil {
 		return nil
