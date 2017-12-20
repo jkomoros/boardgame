@@ -58,7 +58,8 @@ const (
 
 //ErrPropertyImmutable should be returned by PropertyReadSetters'
 //Mutable{Enum,Stack,Timer}Prop when the underlying property is actually an
-//immutable variant of that type of object.
+//immutable variant of that type of object, or for when Configure*Prop (the
+//immutable variant) is used on mutable properties.
 var ErrPropertyImmutable = errors.New("That property is an immutable type in the underlying object.")
 
 //Property read setter is a way to enumerate and manipulate properties on an
