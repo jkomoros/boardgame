@@ -75,6 +75,31 @@ func (m *__myStructReader) Prop(name string) (interface{}, error) {
 	return nil, errors.New("Unexpected property type: " + propType.String())
 }
 
+func (m *__myStructReader) PropMutable(name string) bool {
+	switch name {
+	case "EnumVar":
+		return true
+	case "MyBool":
+		return true
+	case "MyBoolSlice":
+		return true
+	case "MyInt":
+		return true
+	case "MyIntSlice":
+		return true
+	case "MyPlayerIndexSlice":
+		return true
+	case "MySizedStack":
+		return true
+	case "MyStringSlice":
+		return true
+	case "TheTimer":
+		return true
+	}
+
+	return false
+}
+
 func (m *__myStructReader) SetProp(name string, value interface{}) error {
 	props := m.Props()
 	propType, ok := props[name]
@@ -577,6 +602,23 @@ func (r *__roundRobinStructReader) Prop(name string) (interface{}, error) {
 	return nil, errors.New("Unexpected property type: " + propType.String())
 }
 
+func (r *__roundRobinStructReader) PropMutable(name string) bool {
+	switch name {
+	case "MyBool":
+		return true
+	case "RRHasStarted":
+		return true
+	case "RRLastPlayer":
+		return true
+	case "RRRoundCount":
+		return true
+	case "RRStarterPlayer":
+		return true
+	}
+
+	return false
+}
+
 func (r *__roundRobinStructReader) SetProp(name string, value interface{}) error {
 	props := r.Props()
 	propType, ok := props[name]
@@ -997,6 +1039,31 @@ func (s *__structWithManyKeysReader) Prop(name string) (interface{}, error) {
 	return nil, errors.New("Unexpected property type: " + propType.String())
 }
 
+func (s *__structWithManyKeysReader) PropMutable(name string) bool {
+	switch name {
+	case "A":
+		return true
+	case "B":
+		return true
+	case "C":
+		return true
+	case "D":
+		return true
+	case "E":
+		return true
+	case "F":
+		return true
+	case "G":
+		return true
+	case "H":
+		return true
+	case "I":
+		return true
+	}
+
+	return false
+}
+
 func (s *__structWithManyKeysReader) SetProp(name string, value interface{}) error {
 	props := s.Props()
 	propType, ok := props[name]
@@ -1414,6 +1481,17 @@ func (e *__embeddedStructReader) Prop(name string) (interface{}, error) {
 	return nil, errors.New("Unexpected property type: " + propType.String())
 }
 
+func (e *__embeddedStructReader) PropMutable(name string) bool {
+	switch name {
+	case "MyInt":
+		return true
+	case "TargetPlayerIndex":
+		return true
+	}
+
+	return false
+}
+
 func (e *__embeddedStructReader) SetProp(name string, value interface{}) error {
 	props := e.Props()
 	propType, ok := props[name]
@@ -1804,6 +1882,17 @@ func (d *__doubleEmbeddedStructReader) Prop(name string) (interface{}, error) {
 	return nil, errors.New("Unexpected property type: " + propType.String())
 }
 
+func (d *__doubleEmbeddedStructReader) PropMutable(name string) bool {
+	switch name {
+	case "MyInt":
+		return true
+	case "TargetPlayerIndex":
+		return true
+	}
+
+	return false
+}
+
 func (d *__doubleEmbeddedStructReader) SetProp(name string, value interface{}) error {
 	props := d.Props()
 	propType, ok := props[name]
@@ -2192,6 +2281,17 @@ func (m *__myOtherStructReader) Prop(name string) (interface{}, error) {
 	}
 
 	return nil, errors.New("Unexpected property type: " + propType.String())
+}
+
+func (m *__myOtherStructReader) PropMutable(name string) bool {
+	switch name {
+	case "MyGrowableStack":
+		return true
+	case "ThePlayerIndex":
+		return true
+	}
+
+	return false
 }
 
 func (m *__myOtherStructReader) SetProp(name string, value interface{}) error {
@@ -2721,6 +2821,25 @@ func (i *__includesImmutableReader) Prop(name string) (interface{}, error) {
 	return nil, errors.New("Unexpected property type: " + propType.String())
 }
 
+func (i *__includesImmutableReader) PropMutable(name string) bool {
+	switch name {
+	case "MyEnum":
+		return false
+	case "MyMutableEnum":
+		return true
+	case "MyMutableStack":
+		return true
+	case "MyMutableTimer":
+		return true
+	case "MyStack":
+		return false
+	case "MyTimer":
+		return false
+	}
+
+	return false
+}
+
 func (i *__includesImmutableReader) SetProp(name string, value interface{}) error {
 	props := i.Props()
 	propType, ok := props[name]
@@ -3157,6 +3276,15 @@ func (u *__upToReadSetterReader) Prop(name string) (interface{}, error) {
 	}
 
 	return nil, errors.New("Unexpected property type: " + propType.String())
+}
+
+func (u *__upToReadSetterReader) PropMutable(name string) bool {
+	switch name {
+	case "MyInt":
+		return true
+	}
+
+	return false
 }
 
 func (u *__upToReadSetterReader) SetProp(name string, value interface{}) error {

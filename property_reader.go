@@ -78,10 +78,18 @@ type PropertyReadSetter interface {
 	SetStringSliceProp(name string, value []string) error
 	SetPlayerIndexSliceProp(name string, value []PlayerIndex) error
 
+	//PropMutable will return whether the given property is backed by an
+	//underlying mutable object or not. For non-interface types this should
+	//always be true, because Set*Prop always exists. For interface types,
+	//this will be true if the underlying property is stored as the Mutable
+	//variant, false otherwise.
+	PropMutable(name string) bool
+
 	//For interface types the setter also wants to give access to the mutable
 	//underlying value so it can be mutated in place. ReadSetters should
 	//return ErrPropertyImmutable if the underlying interface property is the
-	//immutable variant.
+	//immutable variant (that is, PropMutable returns false for that prop
+	//name).
 	MutableEnumProp(name string) (enum.MutableVal, error)
 	MutableStackProp(name string) (MutableStack, error)
 	MutableTimerProp(name string) (MutableTimer, error)
@@ -317,6 +325,11 @@ func (d *defaultReader) propsImpl() (map[string]PropertyType, error) {
 	}
 
 	return d.props, nil
+}
+
+func (d *defaultReader) PropMutable(name string) bool {
+	//We don't exercise immutable props in this package's tests.
+	return true
 }
 
 func (d *defaultReader) IntProp(name string) (int, error) {
@@ -944,6 +957,10 @@ func (g *genericReader) Reader() PropertyReader {
 
 func (g *genericReader) Props() map[string]PropertyType {
 	return g.types
+}
+
+func (g *genericReader) PropMutable(name string) bool {
+	return true
 }
 
 func (g *genericReader) Prop(name string) (interface{}, error) {

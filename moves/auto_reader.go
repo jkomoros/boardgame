@@ -65,6 +65,13 @@ func (s *__StartPhaseReader) Prop(name string) (interface{}, error) {
 	return nil, errors.New("Unexpected property type: " + propType.String())
 }
 
+func (s *__StartPhaseReader) PropMutable(name string) bool {
+	switch name {
+	}
+
+	return false
+}
+
 func (s *__StartPhaseReader) SetProp(name string, value interface{}) error {
 	props := s.Props()
 	propType, ok := props[name]

@@ -67,6 +67,15 @@ func (v *__ValueReader) Prop(name string) (interface{}, error) {
 	return nil, errors.New("Unexpected property type: " + propType.String())
 }
 
+func (v *__ValueReader) PropMutable(name string) bool {
+	switch name {
+	case "Faces":
+		return true
+	}
+
+	return false
+}
+
 func (v *__ValueReader) SetProp(name string, value interface{}) error {
 	props := v.Props()
 	propType, ok := props[name]
@@ -442,6 +451,17 @@ func (d *__DynamicValueReader) Prop(name string) (interface{}, error) {
 	}
 
 	return nil, errors.New("Unexpected property type: " + propType.String())
+}
+
+func (d *__DynamicValueReader) PropMutable(name string) bool {
+	switch name {
+	case "SelectedFace":
+		return true
+	case "Value":
+		return true
+	}
+
+	return false
 }
 
 func (d *__DynamicValueReader) SetProp(name string, value interface{}) error {

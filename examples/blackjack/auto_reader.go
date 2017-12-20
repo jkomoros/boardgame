@@ -65,6 +65,13 @@ func (m *__MoveShuffleDiscardToDrawReader) Prop(name string) (interface{}, error
 	return nil, errors.New("Unexpected property type: " + propType.String())
 }
 
+func (m *__MoveShuffleDiscardToDrawReader) PropMutable(name string) bool {
+	switch name {
+	}
+
+	return false
+}
+
 func (m *__MoveShuffleDiscardToDrawReader) SetProp(name string, value interface{}) error {
 	props := m.Props()
 	propType, ok := props[name]
@@ -424,6 +431,13 @@ func (m *__MoveFinishTurnReader) Prop(name string) (interface{}, error) {
 	}
 
 	return nil, errors.New("Unexpected property type: " + propType.String())
+}
+
+func (m *__MoveFinishTurnReader) PropMutable(name string) bool {
+	switch name {
+	}
+
+	return false
 }
 
 func (m *__MoveFinishTurnReader) SetProp(name string, value interface{}) error {
@@ -787,6 +801,13 @@ func (m *__MoveDealInitialHiddenCardReader) Prop(name string) (interface{}, erro
 	return nil, errors.New("Unexpected property type: " + propType.String())
 }
 
+func (m *__MoveDealInitialHiddenCardReader) PropMutable(name string) bool {
+	switch name {
+	}
+
+	return false
+}
+
 func (m *__MoveDealInitialHiddenCardReader) SetProp(name string, value interface{}) error {
 	props := m.Props()
 	propType, ok := props[name]
@@ -1146,6 +1167,13 @@ func (m *__MoveDealInitialVisibleCardReader) Prop(name string) (interface{}, err
 	}
 
 	return nil, errors.New("Unexpected property type: " + propType.String())
+}
+
+func (m *__MoveDealInitialVisibleCardReader) PropMutable(name string) bool {
+	switch name {
+	}
+
+	return false
 }
 
 func (m *__MoveDealInitialVisibleCardReader) SetProp(name string, value interface{}) error {
@@ -1509,6 +1537,15 @@ func (m *__MoveRevealHiddenCardReader) Prop(name string) (interface{}, error) {
 	}
 
 	return nil, errors.New("Unexpected property type: " + propType.String())
+}
+
+func (m *__MoveRevealHiddenCardReader) PropMutable(name string) bool {
+	switch name {
+	case "TargetPlayerIndex":
+		return true
+	}
+
+	return false
 }
 
 func (m *__MoveRevealHiddenCardReader) SetProp(name string, value interface{}) error {
@@ -1887,6 +1924,15 @@ func (m *__MoveCurrentPlayerHitReader) Prop(name string) (interface{}, error) {
 	return nil, errors.New("Unexpected property type: " + propType.String())
 }
 
+func (m *__MoveCurrentPlayerHitReader) PropMutable(name string) bool {
+	switch name {
+	case "TargetPlayerIndex":
+		return true
+	}
+
+	return false
+}
+
 func (m *__MoveCurrentPlayerHitReader) SetProp(name string, value interface{}) error {
 	props := m.Props()
 	propType, ok := props[name]
@@ -2261,6 +2307,15 @@ func (m *__MoveCurrentPlayerStandReader) Prop(name string) (interface{}, error) 
 	}
 
 	return nil, errors.New("Unexpected property type: " + propType.String())
+}
+
+func (m *__MoveCurrentPlayerStandReader) PropMutable(name string) bool {
+	switch name {
+	case "TargetPlayerIndex":
+		return true
+	}
+
+	return false
 }
 
 func (m *__MoveCurrentPlayerStandReader) SetProp(name string, value interface{}) error {
@@ -2645,6 +2700,31 @@ func (g *__gameStateReader) Prop(name string) (interface{}, error) {
 	}
 
 	return nil, errors.New("Unexpected property type: " + propType.String())
+}
+
+func (g *__gameStateReader) PropMutable(name string) bool {
+	switch name {
+	case "CurrentPlayer":
+		return true
+	case "DiscardStack":
+		return true
+	case "DrawStack":
+		return true
+	case "Phase":
+		return true
+	case "RRHasStarted":
+		return true
+	case "RRLastPlayer":
+		return true
+	case "RRRoundCount":
+		return true
+	case "RRStarterPlayer":
+		return true
+	case "UnusedCards":
+		return true
+	}
+
+	return false
 }
 
 func (g *__gameStateReader) SetProp(name string, value interface{}) error {
@@ -3112,6 +3192,21 @@ func (p *__playerStateReader) Prop(name string) (interface{}, error) {
 	}
 
 	return nil, errors.New("Unexpected property type: " + propType.String())
+}
+
+func (p *__playerStateReader) PropMutable(name string) bool {
+	switch name {
+	case "Busted":
+		return true
+	case "HiddenHand":
+		return true
+	case "Stood":
+		return true
+	case "VisibleHand":
+		return true
+	}
+
+	return false
 }
 
 func (p *__playerStateReader) SetProp(name string, value interface{}) error {

@@ -27,8 +27,8 @@ type memoizedEmbeddedStructKey struct {
 var memoizedEmbeddedStructs map[memoizedEmbeddedStructKey]*typeInfo
 
 type typeInfo struct {
-	types   map[string]boardgame.PropertyType
-	mutable map[string]bool
+	Types   map[string]boardgame.PropertyType
+	Mutable map[string]bool
 }
 
 func init() {
@@ -148,11 +148,11 @@ func structTypes(location string, theStruct model.Struct, allStructs []model.Str
 		if fieldNamePossibleEmbeddedStruct(field) {
 			embeddedInfo := typesForPossibleEmbeddedStruct(location, field, allStructs)
 			if embeddedInfo != nil {
-				for key, val := range embeddedInfo.types {
-					result.types[key] = val
+				for key, val := range embeddedInfo.Types {
+					result.Types[key] = val
 				}
-				for key, val := range embeddedInfo.mutable {
-					result.mutable[key] = val
+				for key, val := range embeddedInfo.Mutable {
+					result.Mutable[key] = val
 				}
 				continue
 			}
@@ -163,11 +163,11 @@ func structTypes(location string, theStruct model.Struct, allStructs []model.Str
 			for _, otherStruct := range allStructs {
 				if otherStruct.Name == field.TypeName {
 					embeddedInfo := structTypes(location, otherStruct, allStructs)
-					for key, val := range embeddedInfo.types {
-						result.types[key] = val
+					for key, val := range embeddedInfo.Types {
+						result.Types[key] = val
 					}
-					for key, val := range embeddedInfo.mutable {
-						result.mutable[key] = val
+					for key, val := range embeddedInfo.Mutable {
+						result.Mutable[key] = val
 					}
 					foundStruct = true
 					break
@@ -183,50 +183,50 @@ func structTypes(location string, theStruct model.Struct, allStructs []model.Str
 		switch field.TypeName {
 		case "int":
 			if field.IsSlice {
-				result.types[field.Name] = boardgame.TypeIntSlice
+				result.Types[field.Name] = boardgame.TypeIntSlice
 			} else {
-				result.types[field.Name] = boardgame.TypeInt
+				result.Types[field.Name] = boardgame.TypeInt
 			}
-			result.mutable[field.Name] = false
+			result.Mutable[field.Name] = true
 		case "bool":
 			if field.IsSlice {
-				result.types[field.Name] = boardgame.TypeBoolSlice
+				result.Types[field.Name] = boardgame.TypeBoolSlice
 			} else {
-				result.types[field.Name] = boardgame.TypeBool
+				result.Types[field.Name] = boardgame.TypeBool
 			}
-			result.mutable[field.Name] = false
+			result.Mutable[field.Name] = true
 		case "string":
 			if field.IsSlice {
-				result.types[field.Name] = boardgame.TypeStringSlice
+				result.Types[field.Name] = boardgame.TypeStringSlice
 			} else {
-				result.types[field.Name] = boardgame.TypeString
+				result.Types[field.Name] = boardgame.TypeString
 			}
-			result.mutable[field.Name] = false
+			result.Mutable[field.Name] = true
 		case "boardgame.PlayerIndex":
 			if field.IsSlice {
-				result.types[field.Name] = boardgame.TypePlayerIndexSlice
+				result.Types[field.Name] = boardgame.TypePlayerIndexSlice
 			} else {
-				result.types[field.Name] = boardgame.TypePlayerIndex
+				result.Types[field.Name] = boardgame.TypePlayerIndex
 			}
-			result.mutable[field.Name] = false
+			result.Mutable[field.Name] = true
 		case "boardgame.Stack":
-			result.types[field.Name] = boardgame.TypeStack
-			result.mutable[field.Name] = false
+			result.Types[field.Name] = boardgame.TypeStack
+			result.Mutable[field.Name] = false
 		case "boardgame.MutableStack":
-			result.types[field.Name] = boardgame.TypeStack
-			result.mutable[field.Name] = true
+			result.Types[field.Name] = boardgame.TypeStack
+			result.Mutable[field.Name] = true
 		case "enum.Val":
-			result.types[field.Name] = boardgame.TypeEnum
-			result.mutable[field.Name] = false
+			result.Types[field.Name] = boardgame.TypeEnum
+			result.Mutable[field.Name] = false
 		case "enum.MutableVal":
-			result.types[field.Name] = boardgame.TypeEnum
-			result.mutable[field.Name] = true
+			result.Types[field.Name] = boardgame.TypeEnum
+			result.Mutable[field.Name] = true
 		case "boardgame.Timer":
-			result.types[field.Name] = boardgame.TypeTimer
-			result.mutable[field.Name] = false
+			result.Types[field.Name] = boardgame.TypeTimer
+			result.Mutable[field.Name] = false
 		case "boardgame.MutableTimer":
-			result.types[field.Name] = boardgame.TypeTimer
-			result.mutable[field.Name] = true
+			result.Types[field.Name] = boardgame.TypeTimer
+			result.Mutable[field.Name] = true
 		default:
 			log.Println("Unknown type on " + theStruct.Name + ": " + field.Name + ": " + field.TypeName)
 		}
@@ -422,7 +422,7 @@ func headerForStruct(structName string, types *typeInfo, outputReadSetter bool, 
 		"readerName":              "__" + structName + "Reader",
 		"propertyTypes":           propertyTypes,
 		"setterPropertyTypes":     setterPropertyTypes,
-		"types":                   types.types,
+		"types":                   types,
 		"outputReadSetter":        outputReadSetter,
 		"outputReadSetConfigurer": outputReadSetConfigurer,
 	})
@@ -464,11 +464,11 @@ func headerForStruct(structName string, types *typeInfo, outputReadSetter bool, 
 
 		var namesForType []nameForTypeInfo
 
-		for key, val := range types.types {
+		for key, val := range types.Types {
 			if val.String() == "Type"+propType {
 				namesForType = append(namesForType, nameForTypeInfo{
 					Name:    key,
-					Mutable: types.mutable[key],
+					Mutable: types.Mutable[key],
 				})
 			}
 		}
@@ -569,7 +569,7 @@ const importText = `import (
 const structHeaderTemplateText = `// Implementation for {{.structName}}
 
 var __{{.structName}}ReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
-	{{range $key, $value := .types -}}
+	{{range $key, $value := .types.Types -}}
 		"{{$key}}": boardgame.{{$value.String}},
 	{{end}}
 }
@@ -603,6 +603,18 @@ func ({{.firstLetter}} *{{.readerName}}) Prop(name string) (interface{}, error) 
 }
 
 {{if .outputReadSetter -}}
+
+func ({{.firstLetter}} *{{.readerName}}) PropMutable(name string) bool {
+	switch name {
+		{{range $key, $val := .types.Mutable -}}
+	case "{{$key}}":
+		return {{$val}}
+		{{end -}}
+	}
+	
+	return false
+}
+
 func ({{.firstLetter}} *{{.readerName}}) SetProp(name string, value interface{}) error {
 	props := {{.firstLetter}}.Props()
 	propType, ok := props[name]

@@ -68,6 +68,17 @@ func (t *__testStructReader) Prop(name string) (interface{}, error) {
 	return nil, errors.New("Unexpected property type: " + propType.String())
 }
 
+func (t *__testStructReader) PropMutable(name string) bool {
+	switch name {
+	case "A":
+		return true
+	case "B":
+		return true
+	}
+
+	return false
+}
+
 func (t *__testStructReader) SetProp(name string, value interface{}) error {
 	props := t.Props()
 	propType, ok := props[name]
