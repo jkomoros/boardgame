@@ -443,7 +443,9 @@ func (g *growableStack) importFrom(other Stack) error {
 		return errors.New("The other stack provided was not a growable.")
 	}
 
+	myState := g.statePtr
 	g.copyFrom(otherGrowable)
+	g.statePtr = myState
 	return nil
 
 }
@@ -471,7 +473,9 @@ func (s *sizedStack) importFrom(other Stack) error {
 		return errors.New("The other stack provided was not a sized.")
 	}
 
+	myState := s.statePtr
 	s.copyFrom(otherSized)
+	s.statePtr = myState
 	return nil
 
 }
