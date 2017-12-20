@@ -262,6 +262,11 @@ type MutableStack interface {
 
 	inflated() bool
 
+	//used to import the state from another stack into this one. This allows
+	//stacks to be phsyically the same within a state as what was returned
+	//from the constructor.
+	importFrom(other Stack) error
+
 	mutableCopy() MutableStack
 }
 
@@ -431,29 +436,60 @@ func newSizedStack(deck *Deck, size int) *sizedStack {
 	}
 }
 
-func (g *growableStack) copy() Stack {
+func (g *growableStack) importFrom(other Stack) error {
+	otherGrowable, ok := other.(*growableStack)
 
-	var result growableStack
-	result = *g
-	result.indexes = make([]int, len(g.indexes))
-	copy(result.indexes, g.indexes)
-	result.idsLastSeen = make(map[string]int, len(g.idsLastSeen))
-	for key, val := range g.idsLastSeen {
-		result.idsLastSeen[key] = val
+	if !ok {
+		return errors.New("The other stack provided was not a growable.")
 	}
-	return &result
+
+	g.copyFrom(otherGrowable)
+	return nil
+
+}
+
+func (g *growableStack) copyFrom(other *growableStack) {
+	(*g) = *other
+	g.indexes = make([]int, len(other.indexes))
+	copy(g.indexes, other.indexes)
+	g.idsLastSeen = make(map[string]int, len(other.idsLastSeen))
+	for key, val := range other.idsLastSeen {
+		g.idsLastSeen[key] = val
+	}
+}
+
+func (g *growableStack) copy() Stack {
+	result := new(growableStack)
+	result.copyFrom(g)
+	return result
+}
+
+func (s *sizedStack) importFrom(other Stack) error {
+	otherSized, ok := other.(*sizedStack)
+
+	if !ok {
+		return errors.New("The other stack provided was not a sized.")
+	}
+
+	s.copyFrom(otherSized)
+	return nil
+
+}
+
+func (s *sizedStack) copyFrom(other *sizedStack) {
+	*s = *other
+	s.indexes = make([]int, len(other.indexes))
+	copy(s.indexes, other.indexes)
+	s.idsLastSeen = make(map[string]int, len(other.idsLastSeen))
+	for key, val := range other.idsLastSeen {
+		s.idsLastSeen[key] = val
+	}
 }
 
 func (s *sizedStack) copy() Stack {
-	var result sizedStack
-	result = *s
-	result.indexes = make([]int, len(s.indexes))
-	copy(result.indexes, s.indexes)
-	result.idsLastSeen = make(map[string]int, len(s.idsLastSeen))
-	for key, val := range s.idsLastSeen {
-		result.idsLastSeen[key] = val
-	}
-	return &result
+	result := new(sizedStack)
+	result.copyFrom(s)
+	return result
 }
 
 func (s *sizedStack) mutableCopy() MutableStack {
