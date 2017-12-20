@@ -684,7 +684,7 @@ func ({{.firstLetter}} *{{.readerName}}) Configure{{.setterPropType}}Prop(name s
 				{{$firstLetter}}.data.{{.Name}} = value
 				return nil
 			{{- else -}}
-				return errors.New(name + " is not a mutable type so cannot be configured.")
+				return boardgame.ErrPropertyImmutable
 			{{- end}}
 		{{end}}
 	}
@@ -709,7 +709,7 @@ func ({{.firstLetter}} *{{.readerName}}) {{.setterPropType}}Prop(name string) ({
 			{{if .Mutable -}}
 				return {{$firstLetter}}.data.{{.Name}}, nil
 			{{- else -}}
-				return {{$zeroValue}}, errors.New(name + " is not a mutable type so no mutable getter can be returned.")
+				return {{$zeroValue}}, boardgame.ErrPropertyImmutable
 			{{- end}}
 		{{end}}
 	}

@@ -2913,7 +2913,7 @@ func (i *__includesImmutableReader) ConfigureMutableEnumProp(name string, value 
 
 	switch name {
 	case "MyEnum":
-		return errors.New(name + " is not a mutable type so cannot be configured.")
+		return boardgame.ErrPropertyImmutable
 	case "MyMutableEnum":
 		i.data.MyMutableEnum = value
 		return nil
@@ -2928,7 +2928,7 @@ func (i *__includesImmutableReader) MutableEnumProp(name string) (enum.MutableVa
 
 	switch name {
 	case "MyEnum":
-		return nil, errors.New(name + " is not a mutable type so no mutable getter can be returned.")
+		return nil, boardgame.ErrPropertyImmutable
 	case "MyMutableEnum":
 		return i.data.MyMutableEnum, nil
 
@@ -3007,7 +3007,7 @@ func (i *__includesImmutableReader) ConfigureMutableStackProp(name string, value
 		i.data.MyMutableStack = value
 		return nil
 	case "MyStack":
-		return errors.New(name + " is not a mutable type so cannot be configured.")
+		return boardgame.ErrPropertyImmutable
 
 	}
 
@@ -3021,7 +3021,7 @@ func (i *__includesImmutableReader) MutableStackProp(name string) (boardgame.Mut
 	case "MyMutableStack":
 		return i.data.MyMutableStack, nil
 	case "MyStack":
-		return nil, errors.New(name + " is not a mutable type so no mutable getter can be returned.")
+		return nil, boardgame.ErrPropertyImmutable
 
 	}
 
@@ -3074,7 +3074,7 @@ func (i *__includesImmutableReader) ConfigureMutableTimerProp(name string, value
 		i.data.MyMutableTimer = value
 		return nil
 	case "MyTimer":
-		return errors.New(name + " is not a mutable type so cannot be configured.")
+		return boardgame.ErrPropertyImmutable
 
 	}
 
@@ -3088,7 +3088,7 @@ func (i *__includesImmutableReader) MutableTimerProp(name string) (boardgame.Mut
 	case "MyMutableTimer":
 		return i.data.MyMutableTimer, nil
 	case "MyTimer":
-		return nil, errors.New(name + " is not a mutable type so no mutable getter can be returned.")
+		return nil, boardgame.ErrPropertyImmutable
 
 	}
 
