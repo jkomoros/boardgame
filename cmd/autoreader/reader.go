@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"github.com/MarcGrol/golangAnnotations/model"
 	"github.com/MarcGrol/golangAnnotations/parser"
 	"github.com/jkomoros/boardgame"
@@ -20,6 +19,18 @@ var readerTemplate *template.Template
 var readSetterTemplate *template.Template
 var readSetConfigurerTemplate *template.Template
 
+type memoizedEmbeddedStructKey struct {
+	Import           string
+	TargetStructName string
+}
+
+var memoizedEmbeddedStructs map[memoizedEmbeddedStructKey]*typeInfo
+
+type typeInfo struct {
+	types   map[string]boardgame.PropertyType
+	mutable map[string]bool
+}
+
 func init() {
 
 	funcMap := template.FuncMap{
@@ -35,7 +46,7 @@ func init() {
 	readSetterTemplate = template.Must(template.New("readsetter").Funcs(funcMap).Parse(readSetterTemplateText))
 	readSetConfigurerTemplate = template.Must(template.New("readsetconfigurer").Funcs(funcMap).Parse(readSetConfigurerTemplateText))
 
-	memoizedEmbeddedStructs = make(map[memoizedEmbeddedStructKey]map[string]boardgame.PropertyType)
+	memoizedEmbeddedStructs = make(map[memoizedEmbeddedStructKey]*typeInfo)
 }
 
 func processStructs(sources model.ParsedSources, location string) (output string, testOutput string, err error) {
@@ -74,11 +85,7 @@ func doProcessStructs(sources model.ParsedSources, location string, testFiles bo
 			continue
 		}
 
-		types, onlyReaderAllowed := structTypes(location, theStruct, sources.Structs)
-
-		if onlyReaderAllowed && (outputReadSetter || outputReadSetConfigurer) {
-			return "", errors.New("Struct " + theStruct.Name + " has an exported enum.Val property, but wants a ReadSetter or higher generated. Replace that field with a enum.MutableVal")
-		}
+		types := structTypes(location, theStruct, sources.Structs)
 
 		output += headerForStruct(theStruct.Name, types, outputReadSetter, outputReadSetConfigurer)
 
@@ -130,18 +137,22 @@ func fieldNamePossibleEmbeddedStruct(theField model.Field) bool {
 	return false
 }
 
-func structTypes(location string, theStruct model.Struct, allStructs []model.Struct) (foundTypes map[string]boardgame.PropertyType, onlyReaderAllowed bool) {
+func structTypes(location string, theStruct model.Struct, allStructs []model.Struct) *typeInfo {
 
-	onlyReaderAllowed = false
+	result := &typeInfo{
+		make(map[string]boardgame.PropertyType),
+		make(map[string]bool),
+	}
 
-	result := make(map[string]boardgame.PropertyType)
 	for _, field := range theStruct.Fields {
 		if fieldNamePossibleEmbeddedStruct(field) {
-			var embeddedInfo map[string]boardgame.PropertyType
-			embeddedInfo, onlyReaderAllowed = typesForPossibleEmbeddedStruct(location, field, allStructs)
+			embeddedInfo := typesForPossibleEmbeddedStruct(location, field, allStructs)
 			if embeddedInfo != nil {
-				for key, val := range embeddedInfo {
-					result[key] = val
+				for key, val := range embeddedInfo.types {
+					result.types[key] = val
+				}
+				for key, val := range embeddedInfo.mutable {
+					result.mutable[key] = val
 				}
 				continue
 			}
@@ -151,10 +162,12 @@ func structTypes(location string, theStruct model.Struct, allStructs []model.Str
 			foundStruct := false
 			for _, otherStruct := range allStructs {
 				if otherStruct.Name == field.TypeName {
-					var embeddedInfo map[string]boardgame.PropertyType
-					embeddedInfo, onlyReaderAllowed = structTypes(location, otherStruct, allStructs)
-					for key, val := range embeddedInfo {
-						result[key] = val
+					embeddedInfo := structTypes(location, otherStruct, allStructs)
+					for key, val := range embeddedInfo.types {
+						result.types[key] = val
+					}
+					for key, val := range embeddedInfo.mutable {
+						result.mutable[key] = val
 					}
 					foundStruct = true
 					break
@@ -170,62 +183,75 @@ func structTypes(location string, theStruct model.Struct, allStructs []model.Str
 		switch field.TypeName {
 		case "int":
 			if field.IsSlice {
-				result[field.Name] = boardgame.TypeIntSlice
+				result.types[field.Name] = boardgame.TypeIntSlice
 			} else {
-				result[field.Name] = boardgame.TypeInt
+				result.types[field.Name] = boardgame.TypeInt
 			}
+			result.mutable[field.Name] = false
 		case "bool":
 			if field.IsSlice {
-				result[field.Name] = boardgame.TypeBoolSlice
+				result.types[field.Name] = boardgame.TypeBoolSlice
 			} else {
-				result[field.Name] = boardgame.TypeBool
+				result.types[field.Name] = boardgame.TypeBool
 			}
+			result.mutable[field.Name] = false
 		case "string":
 			if field.IsSlice {
-				result[field.Name] = boardgame.TypeStringSlice
+				result.types[field.Name] = boardgame.TypeStringSlice
 			} else {
-				result[field.Name] = boardgame.TypeString
+				result.types[field.Name] = boardgame.TypeString
 			}
-		case "boardgame.MutableStack":
-			result[field.Name] = boardgame.TypeStack
-		case "enum.Val":
-			//A Val is allowed, but only if we're only generating up to a Reader.
-			result[field.Name] = boardgame.TypeEnum
-			onlyReaderAllowed = true
-		case "enum.MutableVal":
-			result[field.Name] = boardgame.TypeEnum
+			result.mutable[field.Name] = false
 		case "boardgame.PlayerIndex":
 			if field.IsSlice {
-				result[field.Name] = boardgame.TypePlayerIndexSlice
+				result.types[field.Name] = boardgame.TypePlayerIndexSlice
 			} else {
-				result[field.Name] = boardgame.TypePlayerIndex
+				result.types[field.Name] = boardgame.TypePlayerIndex
 			}
+			result.mutable[field.Name] = false
+		case "boardgame.Stack":
+			result.types[field.Name] = boardgame.TypeStack
+			result.mutable[field.Name] = false
+		case "boardgame.MutableStack":
+			result.types[field.Name] = boardgame.TypeStack
+			result.mutable[field.Name] = true
+		case "enum.Val":
+			result.types[field.Name] = boardgame.TypeEnum
+			result.mutable[field.Name] = false
+		case "enum.MutableVal":
+			result.types[field.Name] = boardgame.TypeEnum
+			result.mutable[field.Name] = true
+		case "boardgame.Timer":
+			result.types[field.Name] = boardgame.TypeTimer
+			result.mutable[field.Name] = false
 		case "boardgame.MutableTimer":
-			result[field.Name] = boardgame.TypeTimer
+			result.types[field.Name] = boardgame.TypeTimer
+			result.mutable[field.Name] = true
 		default:
 			log.Println("Unknown type on " + theStruct.Name + ": " + field.Name + ": " + field.TypeName)
 		}
 	}
-	return result, onlyReaderAllowed
+
+	return result
 }
 
 //typeforPossibleEmbeddedStruct should be called when we think that an unknown
 //field MIGHT be an embedded struct. If it is, we will identify the package it
 //appears to be built from, parse those structs, try to find the struct, and
 //return a map of property types in it.
-func typesForPossibleEmbeddedStruct(location string, theField model.Field, allStructs []model.Struct) (foundTypes map[string]boardgame.PropertyType, onlyReaderAllowed bool) {
+func typesForPossibleEmbeddedStruct(location string, theField model.Field, allStructs []model.Struct) *typeInfo {
 
 	targetTypeParts := strings.Split(theField.TypeName, ".")
 
 	if len(targetTypeParts) != 2 {
-		return
+		return nil
 	}
 
 	targetType := targetTypeParts[1]
 
 	//BaseSubState will be anonymously embedded but should be ignored.
 	if targetType == "BaseSubState" {
-		return
+		return nil
 	}
 
 	key := memoizedEmbeddedStructKey{
@@ -233,17 +259,17 @@ func typesForPossibleEmbeddedStruct(location string, theField model.Field, allSt
 		TargetStructName: targetType,
 	}
 
-	foundTypes = memoizedEmbeddedStructs[key]
+	foundTypes := memoizedEmbeddedStructs[key]
 
 	if foundTypes != nil {
-		return
+		return foundTypes
 	}
 
 	pkg, err := build.Import(theField.PackageName, location, build.FindOnly)
 
 	if err != nil {
 		log.Println("Couldn't find canonical import: " + err.Error())
-		return
+		return nil
 	}
 
 	importPath := pkg.Dir
@@ -252,7 +278,7 @@ func typesForPossibleEmbeddedStruct(location string, theField model.Field, allSt
 
 	if err != nil {
 		log.Println("Error in sources for ", theField, err.Error())
-		return
+		return nil
 	}
 
 	for _, theStruct := range sources.Structs {
@@ -260,13 +286,13 @@ func typesForPossibleEmbeddedStruct(location string, theField model.Field, allSt
 			continue
 		}
 		//Found it!
-		foundTypes, onlyReaderAllowed = structTypes(location, theStruct, allStructs)
+		foundTypes = structTypes(location, theStruct, allStructs)
 
 		memoizedEmbeddedStructs[key] = foundTypes
 
 	}
 
-	return
+	return foundTypes
 
 }
 
@@ -317,7 +343,15 @@ func verbForType(in string) string {
 	return "Set"
 }
 
-func headerForStruct(structName string, types map[string]boardgame.PropertyType, outputReadSetter bool, outputReadSetConfigurer bool) string {
+type nameForTypeInfo struct {
+	Name    string
+	Mutable bool
+}
+
+func headerForStruct(structName string, types *typeInfo, outputReadSetter bool, outputReadSetConfigurer bool) string {
+
+	//TODO: memoize propertyTypes/setterPropertyTypes because they don't
+	//change within a run of this program.
 
 	//propertyTypes is short name, golangValue
 	propertyTypes := make(map[string]string)
@@ -346,14 +380,6 @@ func headerForStruct(structName string, types map[string]boardgame.PropertyType,
 			goLangType = "string"
 		case "PlayerIndex":
 			goLangType = "boardgame.PlayerIndex"
-		case "Enum":
-			goLangType = "enum.Val"
-			setterKey = "MutableEnum"
-			setterGoLangType = "enum.MutableVal"
-		case "Stack":
-			goLangType = "boardgame.Stack"
-			setterKey = "MutableStack"
-			setterGoLangType = "boardgame.MutableStack"
 		case "IntSlice":
 			goLangType = "[]int"
 		case "BoolSlice":
@@ -362,6 +388,14 @@ func headerForStruct(structName string, types map[string]boardgame.PropertyType,
 			goLangType = "[]string"
 		case "PlayerIndexSlice":
 			goLangType = "[]boardgame.PlayerIndex"
+		case "Enum":
+			goLangType = "enum.Val"
+			setterKey = "MutableEnum"
+			setterGoLangType = "enum.MutableVal"
+		case "Stack":
+			goLangType = "boardgame.Stack"
+			setterKey = "MutableStack"
+			setterGoLangType = "boardgame.MutableStack"
 		case "Timer":
 			goLangType = "boardgame.Timer"
 			setterKey = "MutableTimer"
@@ -388,7 +422,7 @@ func headerForStruct(structName string, types map[string]boardgame.PropertyType,
 		"readerName":              "__" + structName + "Reader",
 		"propertyTypes":           propertyTypes,
 		"setterPropertyTypes":     setterPropertyTypes,
-		"types":                   types,
+		"types":                   types.types,
 		"outputReadSetter":        outputReadSetter,
 		"outputReadSetConfigurer": outputReadSetConfigurer,
 	})
@@ -411,16 +445,12 @@ func headerForStruct(structName string, types map[string]boardgame.PropertyType,
 
 		switch propType {
 		case "Bool":
-
 			zeroValue = "false"
 		case "Int":
-
 			zeroValue = "0"
 		case "String":
-
 			zeroValue = "\"\""
 		case "PlayerIndex":
-
 			zeroValue = "0"
 		case "IntSlice":
 			zeroValue = "[]int{}"
@@ -432,15 +462,20 @@ func headerForStruct(structName string, types map[string]boardgame.PropertyType,
 			zeroValue = "[]boardgame.PlayerIndex{}"
 		}
 
-		var namesForType []string
+		var namesForType []nameForTypeInfo
 
-		for key, val := range types {
+		for key, val := range types.types {
 			if val.String() == "Type"+propType {
-				namesForType = append(namesForType, key)
+				namesForType = append(namesForType, nameForTypeInfo{
+					Name:    key,
+					Mutable: types.mutable[key],
+				})
 			}
 		}
 
-		sort.Strings(namesForType)
+		sort.Slice(namesForType, func(i, j int) bool {
+			return namesForType[i].Name < namesForType[j].Name
+		})
 
 		setterPropType := propType
 
@@ -628,8 +663,8 @@ const typedPropertyTemplateText = `func ({{.firstLetter}} *{{.readerName}}) {{.p
 	{{if .namesForType}}
 	switch name {
 		{{range .namesForType -}}
-			case "{{.}}":
-				return {{$firstLetter}}.data.{{.}}, nil
+			case "{{.Name}}":
+				return {{$firstLetter}}.data.{{.Name}}, nil
 		{{end}}
 	}
 	{{end}}
@@ -644,9 +679,13 @@ func ({{.firstLetter}} *{{.readerName}}) Configure{{.setterPropType}}Prop(name s
 	{{if .namesForType}}
 	switch name {
 		{{range .namesForType -}}
-			case "{{.}}":
-				{{$firstLetter}}.data.{{.}} = value
+			case "{{.Name}}":
+			{{if .Mutable -}}
+				{{$firstLetter}}.data.{{.Name}} = value
 				return nil
+			{{- else -}}
+				return errors.New(name + " is not a mutable type so cannot be configured.")
+			{{- end}}
 		{{end}}
 	}
 	{{end}}
@@ -662,11 +701,16 @@ func ({{.firstLetter}} *{{.readerName}}) Configure{{.setterPropType}}Prop(name s
 {{if .outputMutableGetter -}}
 func ({{.firstLetter}} *{{.readerName}}) {{.setterPropType}}Prop(name string) ({{.setterGoLangType}}, error) {
 	{{$firstLetter := .firstLetter}}
+	{{$zeroValue := .zeroValue}}
 	{{if .namesForType}}
 	switch name {
 		{{range .namesForType -}}
-			case "{{.}}":
-				return {{$firstLetter}}.data.{{.}}, nil
+			case "{{.Name}}":
+			{{if .Mutable -}}
+				return {{$firstLetter}}.data.{{.Name}}, nil
+			{{- else -}}
+				return {{$zeroValue}}, errors.New(name + " is not a mutable type so no mutable getter can be returned.")
+			{{- end}}
 		{{end}}
 	}
 	{{end}}
@@ -680,8 +724,8 @@ func ({{.firstLetter}} *{{.readerName}}) Set{{.setterPropType}}Prop(name string,
 	{{if .namesForType}}
 	switch name {
 		{{range .namesForType -}}
-			case "{{.}}":
-				{{$firstLetter}}.data.{{.}} = value
+			case "{{.Name}}":
+				{{$firstLetter}}.data.{{.Name}} = value
 				return nil
 		{{end}}
 	}

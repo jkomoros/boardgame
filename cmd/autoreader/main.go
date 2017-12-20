@@ -56,7 +56,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/MarcGrol/golangAnnotations/parser"
-	"github.com/jkomoros/boardgame"
 	"go/format"
 	"io"
 	"io/ioutil"
@@ -64,13 +63,6 @@ import (
 	"os"
 	"text/template"
 )
-
-type memoizedEmbeddedStructKey struct {
-	Import           string
-	TargetStructName string
-}
-
-var memoizedEmbeddedStructs map[memoizedEmbeddedStructKey]map[string]boardgame.PropertyType
 
 const magicDocLinePrefix = "+autoreader"
 

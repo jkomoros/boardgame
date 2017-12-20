@@ -128,8 +128,18 @@ type noReaderStruct struct {
 // +autoreader reader
 type onlyReader struct {
 	MyString string
-	//enum.Val are allowed, but only if only a reader is requested.
-	ImmutableEnum enum.Val
+}
+
+//+autoreader
+type includesImmutable struct {
+	//The immutable variants are allowed; their Mutable*Prop methods will
+	//simply return ErrPropertyImmutable.
+	MyStack        boardgame.Stack
+	MyMutableStack boardgame.MutableStack
+	MyTimer        boardgame.Timer
+	MyMutableTimer boardgame.MutableTimer
+	MyEnum         enum.Val
+	MyMutableEnum  enum.MutableVal
 }
 
 // +autoreader    readSetter
