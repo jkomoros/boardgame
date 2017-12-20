@@ -667,72 +667,28 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 		return nil, err
 	}
 
-	result := &state{
-		secretMoveCount: refried.SecretMoveCount,
-		version:         refried.Version,
-	}
-
-	if result.secretMoveCount == nil {
-		result.secretMoveCount = make(map[string][]int)
-	}
-
-	game, err := g.gameStateConstructor(result)
+	result, err := g.emptyState(len(refried.Players))
 
 	if err != nil {
-		return nil, err
+		return nil, errors.New("Couldn't create an empty state: " + err.Error())
 	}
 
-	if err := json.Unmarshal(refried.Game, game); err != nil {
+	if refried.SecretMoveCount != nil {
+		result.secretMoveCount = refried.SecretMoveCount
+	}
+	result.version = refried.Version
+
+	if err := json.Unmarshal(refried.Game, result.gameState); err != nil {
 		return nil, errors.New("Unmarshal of GameState failed: " + err.Error())
 	}
 
-	for propName, propType := range game.Reader().Props() {
-		switch propType {
-		case TypeStack:
-			stack, err := game.ReadSetter().MutableStackProp(propName)
-			if err != nil {
-				return nil, errors.New("Unable to inflate stack " + propName + " in game.")
-			}
-			stack.inflate(g.Chest())
-		}
-	}
-
-	result.gameState = game
-
 	for i, blob := range refried.Players {
-		player, err := g.playerStateConstructor(result, PlayerIndex(i))
 
-		if err != nil {
-			return nil, err
-		}
-
-		if err := json.Unmarshal(blob, player); err != nil {
+		if err := json.Unmarshal(blob, result.playerStates[i]); err != nil {
 			return nil, errors.New("Unmarshal into player state failed for " + strconv.Itoa(i) + " player: " + err.Error())
 		}
 
-		for propName, propType := range player.Reader().Props() {
-			switch propType {
-			case TypeStack:
-				stack, err := player.ReadSetter().MutableStackProp(propName)
-				if err != nil {
-					return nil, errors.New("Unable to inflate stack " + propName + " in player " + strconv.Itoa(i))
-				}
-				stack.inflate(g.Chest())
-			}
-		}
-
-		result.playerStates = append(result.playerStates, player)
 	}
-
-	dynamic, err := g.dynamicComponentValuesConstructor(result)
-
-	if err != nil {
-		return nil, errors.New("Couldn't create empty dynamic component values: " + err.Error())
-	}
-
-	result.dynamicComponentValues = dynamic
-
-	result.setStateForSubStates()
 
 	for deckName, values := range refried.Components {
 		resultDeckValues := result.dynamicComponentValues[deckName]
@@ -751,18 +707,6 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 			if err := json.Unmarshal(value, resultDeckValue); err != nil {
 				return nil, errors.New("Error unmarshaling component state for deck " + deckName + " index " + strconv.Itoa(i) + ": " + err.Error())
 			}
-
-			for propName, propType := range resultDeckValue.Reader().Props() {
-				switch propType {
-				case TypeStack:
-					stack, err := resultDeckValue.ReadSetter().MutableStackProp(propName)
-					if err != nil {
-						return nil, errors.New("Unable to inflate stack " + propName + " in deck " + deckName + " component " + strconv.Itoa(i))
-					}
-					stack.inflate(g.Chest())
-				}
-			}
-
 		}
 	}
 
