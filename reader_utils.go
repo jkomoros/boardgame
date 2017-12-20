@@ -10,6 +10,8 @@ import (
 
 const enumStructTag = "enum"
 const stackStructTag = "stack"
+const concatenateStructTag = "concatenate"
+const overlapStructTag = "overlap"
 const fixedStackStructTag = "sizedstack"
 const sanitizationStructTag = "sanitize"
 
@@ -19,11 +21,18 @@ type autoStackConfig struct {
 	fixedSize bool
 }
 
+type autoMergedStackConfig struct {
+	firstProp  string
+	secondProp string
+	overlap    bool
+}
+
 type readerValidator struct {
-	autoEnumFields     map[string]enum.Enum
-	autoStackFields    map[string]*autoStackConfig
-	sanitizationPolicy map[string]map[int]Policy
-	illegalTypes       map[PropertyType]bool
+	autoEnumFields        map[string]enum.Enum
+	autoStackFields       map[string]*autoStackConfig
+	autoMergedStackFields map[string]*autoMergedStackConfig
+	sanitizationPolicy    map[string]map[int]Policy
+	illegalTypes          map[PropertyType]bool
 }
 
 //newReaderValidator returns a new readerValidator configured to disallow the
@@ -43,6 +52,7 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 
 	autoEnumFields := make(map[string]enum.Enum)
 	autoStackFields := make(map[string]*autoStackConfig)
+	autoMergedStackFields := make(map[string]*autoMergedStackConfig)
 	sanitizationPolicy := make(map[string]map[int]Policy)
 
 	defaultGroup := "all"
@@ -97,6 +107,31 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 					isFixed,
 				}
 			}
+
+			overlap := false
+
+			tag = structTagForField(exampleObj, propName, concatenateStructTag)
+
+			if tag == "" {
+				tag = structTagForField(exampleObj, propName, overlapStructTag)
+				if tag != "" {
+					overlap = true
+				}
+			}
+
+			if tag != "" {
+				first, second, err := unpackMergedStackStructTag(tag, exampleReader)
+				if err != nil {
+					return nil, errors.New(propName + " was a nil stack and its struct tag was not valid: " + err.Error())
+				}
+
+				autoMergedStackFields[propName] = &autoMergedStackConfig{
+					first,
+					second,
+					overlap,
+				}
+			}
+
 		case TypeEnum:
 			enumConst, err := exampleReader.EnumProp(propName)
 			if err != nil {
@@ -122,6 +157,7 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 	result := &readerValidator{
 		autoEnumFields,
 		autoStackFields,
+		autoMergedStackFields,
 		sanitizationPolicy,
 		illegalTypes,
 	}
@@ -475,6 +511,27 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 
 	return nil
 
+}
+
+func unpackMergedStackStructTag(tag string, reader PropertyReader) (firstProp, secondProp string, err error) {
+	pieces := strings.Split(tag, ",")
+
+	if len(pieces) != 2 {
+		return "", "", errors.New("There were more fields in the struct tag than expected.")
+	}
+
+	firstProp = strings.TrimSpace(pieces[0])
+	secondProp = strings.TrimSpace(pieces[1])
+
+	if _, err := reader.StackProp(firstProp); err != nil {
+		return "", "", errors.New(firstProp + " does not denote a valid stack property on that object")
+	}
+
+	if _, err := reader.StackProp(secondProp); err != nil {
+		return "", "", errors.New(secondProp + " does not denote a valid stack property on that object")
+	}
+
+	return firstProp, secondProp, nil
 }
 
 func unpackStackStructTag(tag string, chest *ComponentChest) (*Deck, int, error) {
