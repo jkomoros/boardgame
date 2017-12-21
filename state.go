@@ -42,7 +42,7 @@ type State interface {
 
 	//Copy returns a deep copy of the State, including copied version of the Game
 	//and Player States.
-	Copy(sanitized bool) State
+	Copy(sanitized bool) (State, error)
 	//Diagram returns a basic, ascii rendering of the state for debug rendering.
 	//It thunks out to Delegate.Diagram.
 	Diagram() string
@@ -265,10 +265,9 @@ func (s *state) CurrentPlayerIndex() PlayerIndex {
 	return s.game.manager.delegate.CurrentPlayerIndex(s)
 }
 
-func (s *state) Copy(sanitized bool) State {
-	//TODO: should this return an error as well?
-	result, _ := s.copy(sanitized)
-	return result
+func (s *state) Copy(sanitized bool) (State, error) {
+	//TODO: just make copy() be public
+	return s.copy(sanitized)
 }
 
 func (s *state) copy(sanitized bool) (*state, error) {

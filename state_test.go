@@ -249,7 +249,11 @@ func TestState(t *testing.T) {
 
 	testSubStatesHaveStateSet(t, theState)
 
-	testSubStatesHaveStateSet(t, theState.Copy(false).(*state))
+	theStateCopy, err := theState.Copy(false)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	testSubStatesHaveStateSet(t, theStateCopy.(*state))
 
 	record, err := game.Manager().Storage().State(game.Id(), game.Version())
 
@@ -277,7 +281,9 @@ func TestState(t *testing.T) {
 
 	compareJSONObjects(currentJson, golden, "Basic state", t)
 
-	stateCopy := state.Copy(false)
+	stateCopy, err := state.Copy(false)
+
+	assert.For(t).ThatActual(err).IsNil()
 
 	copyJson, _ := DefaultMarshalJSON(stateCopy)
 
@@ -297,7 +303,9 @@ func TestState(t *testing.T) {
 		t.Error("State reported being sanitized even when it wasn't")
 	}
 
-	sanitizedStateCopy := stateCopy.Copy(true)
+	sanitizedStateCopy, err := stateCopy.Copy(true)
+
+	assert.For(t).ThatActual(err).IsNil()
 
 	if !sanitizedStateCopy.Sanitized() {
 		t.Error("A copy that was told it was sanitized did not report being sanitized.")
