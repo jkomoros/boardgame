@@ -266,15 +266,17 @@ func (s *state) CurrentPlayerIndex() PlayerIndex {
 }
 
 func (s *state) Copy(sanitized bool) State {
-	return s.copy(sanitized)
+	//TODO: should this return an error as well?
+	result, _ := s.copy(sanitized)
+	return result
 }
 
-func (s *state) copy(sanitized bool) *state {
+func (s *state) copy(sanitized bool) (*state, error) {
 
 	result, err := s.game.manager.emptyState(len(s.playerStates))
 
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	//TODO: shouldn't we copy over secretMoveCount here?
@@ -290,26 +292,24 @@ func (s *state) copy(sanitized bool) *state {
 	result.calculatingComputed = s.calculatingComputed
 
 	if err := copyReader(s.gameState.ReadSetter(), result.gameState.ReadSetter()); err != nil {
-		return nil
+		return nil, err
 	}
 
 	for i := 0; i < len(s.playerStates); i++ {
 		if err := copyReader(s.playerStates[i].ReadSetter(), result.playerStates[i].ReadSetter()); err != nil {
-			return nil
+			return nil, err
 		}
 	}
 
 	for deckName, values := range s.dynamicComponentValues {
 		for i := 0; i < len(values); i++ {
 			if err := copyReader(s.dynamicComponentValues[deckName][i].ReadSetter(), result.dynamicComponentValues[deckName][i].ReadSetter()); err != nil {
-				return nil
+				return nil, err
 			}
 		}
 	}
 
-	//state.finish()?
-
-	return result
+	return result, nil
 }
 
 //finish should be called when the state has all of its sub-states set. It

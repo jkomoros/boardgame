@@ -210,7 +210,11 @@ func generateSubStateSanitizationTransformation(subState SubState, propertyRef S
 //contain them in Game and Player states resolve to PolicyVisible.
 func (s *state) applySanitizationTransformation(transformation *sanitizationTransformation) (State, error) {
 
-	sanitized := s.copy(true)
+	sanitized, err := s.copy(true)
+
+	if err != nil {
+		return nil, errors.New("Couldn't copy state: " + err.Error())
+	}
 
 	if len(transformation.Players) != len(s.PlayerStates()) {
 		return nil, errors.New("The transformation did not have a record for each player state.")
@@ -227,7 +231,7 @@ func (s *state) applySanitizationTransformation(transformation *sanitizationTran
 		visibleDynamicComponents[deckName] = make(map[int]bool)
 	}
 
-	err := sanitizeStateObj(sanitized.gameState.ReadSetConfigurer(), transformation.Game, visibleDynamicComponents)
+	err = sanitizeStateObj(sanitized.gameState.ReadSetConfigurer(), transformation.Game, visibleDynamicComponents)
 
 	if err != nil {
 		return nil, errors.Extend(err, "Couldn't sanitize game state")

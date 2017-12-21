@@ -775,7 +775,12 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 
 	currentPhase := g.manager.delegate.CurrentPhase(currentState)
 
-	newState := currentState.copy(false)
+	newState, err := currentState.copy(false)
+
+	if err != nil {
+		return baseErr.WithError("There was an internal error copying the state: " + err.Error())
+	}
+
 	newState.version = versionToSet
 
 	if err := move.Apply(newState); err != nil {
