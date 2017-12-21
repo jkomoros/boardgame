@@ -178,8 +178,9 @@ type genericReader struct {
 }
 
 type defaultReader struct {
-	i     interface{}
-	props map[string]PropertyType
+	i       interface{}
+	props   map[string]PropertyType
+	mutable map[string]bool
 }
 
 //DefaultReader returns an object that satisfies the PropertyReader interface
@@ -218,7 +219,7 @@ func getDefaultReadSetConfigurer(i interface{}) PropertyReadSetConfigurer {
 
 	//Sanity check right now if the object we were just passed will have
 	//serious errors trying to parse it.
-	if _, err := result.propsImpl(); err != nil {
+	if _, _, err := result.propsImpl(); err != nil {
 		//It's OK to panic here because defaultreader is only used in tests
 		//and its' not exported.
 		panic("Got error from default propsImpl: " + err.Error())
@@ -249,7 +250,7 @@ func propertyReaderImplNameShouldBeIncluded(name string) bool {
 }
 
 func (d *defaultReader) Props() map[string]PropertyType {
-	result, err := d.propsImpl()
+	result, _, err := d.propsImpl()
 	if err != nil {
 		//OK to panic here because we only use defaultReader for tests in this
 		//package and it's not exported.
@@ -258,7 +259,7 @@ func (d *defaultReader) Props() map[string]PropertyType {
 	return result
 }
 
-func (d *defaultReader) propsImpl() (map[string]PropertyType, error) {
+func (d *defaultReader) propsImpl() (types map[string]PropertyType, mutable map[string]bool, err error) {
 
 	//TODO: skip fields that have a propertyreader:omit
 
@@ -267,6 +268,7 @@ func (d *defaultReader) propsImpl() (map[string]PropertyType, error) {
 		obj := d.i
 
 		result := make(map[string]PropertyType)
+		mutableResult := make(map[string]bool)
 
 		s := reflect.ValueOf(obj).Elem()
 		typeOfObj := s.Type()
@@ -286,6 +288,8 @@ func (d *defaultReader) propsImpl() (map[string]PropertyType, error) {
 			}
 
 			var pType PropertyType
+
+			isMutable := true
 
 			switch field.Type().Kind() {
 			case reflect.Bool:
@@ -321,27 +325,41 @@ func (d *defaultReader) propsImpl() (map[string]PropertyType, error) {
 					pType = TypeEnum
 				} else if strings.Contains(interfaceType, "enum.Val") {
 					pType = TypeEnum
+					isMutable = false
 				} else if strings.Contains(interfaceType, "MutableStack") {
 					pType = TypeStack
+				} else if strings.Contains(interfaceType, "Stack") {
+					pType = TypeStack
+					isMutable = false
+				} else if strings.Contains(interfaceType, "MutableTimer") {
+					pType = TypeTimer
 				} else if strings.Contains(interfaceType, "Timer") {
 					pType = TypeTimer
+					isMutable = false
 				}
 			default:
-				return nil, errors.New("Unsupported field in underlying type" + strconv.Itoa(int(field.Type().Kind())))
+				return nil, nil, errors.New("Unsupported field in underlying type" + strconv.Itoa(int(field.Type().Kind())))
 			}
 
 			result[name] = pType
+			mutableResult[name] = isMutable
 
 		}
 		d.props = result
+		d.mutable = mutableResult
 	}
 
-	return d.props, nil
+	return d.props, d.mutable, nil
 }
 
 func (d *defaultReader) PropMutable(name string) bool {
-	//We don't exercise immutable props in this package's tests.
-	return true
+	_, result, err := d.propsImpl()
+	if err != nil {
+		//OK to panic here because we only use defaultReader for tests in this
+		//package and it's not exported.
+		panic("Default Reader got error: " + err.Error())
+	}
+	return result[name]
 }
 
 func (d *defaultReader) IntProp(name string) (int, error) {
