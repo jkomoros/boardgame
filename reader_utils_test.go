@@ -178,6 +178,7 @@ type testGeneralReadSetter struct {
 	EnumConst        enum.Val        `enum:"color"`
 	EnumVar          enum.MutableVal `enum:"color"`
 	TheTimer         Timer
+	TheMutableTimer  MutableTimer
 	TheSizedStack    MutableStack `sizedstack:"test,0"`
 	TheGrowableStack MutableStack `stack:"test" sanitize:"order"`
 }
@@ -198,7 +199,7 @@ func TestReaderValidator(t *testing.T) {
 
 	game.SetUp(0, nil, nil)
 
-	validator, err := newReaderValidator(example.ReadSetter(), example, nil, game.manager.Chest(), false)
+	validator, err := newReaderValidator(example.ReadSetter(), example.ReadSetter(), example, nil, game.manager.Chest(), false)
 
 	assert.For(t).ThatActual(err).IsNil()
 

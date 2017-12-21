@@ -678,6 +678,10 @@ func (d *defaultReader) MutableEnumProp(name string) (enum.MutableVal, error) {
 		return nil, errors.New("That property is not a Enum: " + name)
 	}
 
+	if !d.PropMutable(name) {
+		return nil, ErrPropertyImmutable
+	}
+
 	s := reflect.ValueOf(d.i).Elem()
 	field := s.FieldByName(name)
 	if field.IsNil() {
@@ -804,6 +808,10 @@ func (d *defaultReader) MutableStackProp(name string) (MutableStack, error) {
 		return nil, errors.New("That property is not a Stack: " + name)
 	}
 
+	if !d.PropMutable(name) {
+		return nil, ErrPropertyImmutable
+	}
+
 	s := reflect.ValueOf(d.i).Elem()
 	field := s.FieldByName(name)
 	if field.IsNil() {
@@ -822,6 +830,10 @@ func (d *defaultReader) MutableTimerProp(name string) (MutableTimer, error) {
 		return nil, errors.New("That property is not a Timer: " + name)
 	}
 
+	if !d.PropMutable(name) {
+		return nil, ErrPropertyImmutable
+	}
+
 	s := reflect.ValueOf(d.i).Elem()
 	field := s.FieldByName(name)
 	if field.IsNil() {
@@ -832,16 +844,94 @@ func (d *defaultReader) MutableTimerProp(name string) (MutableTimer, error) {
 	return result, nil
 }
 
-func (d *defaultReader) ConfigureEnumProp(name string, val enum.Val) error {
-	return errors.New("That isn't implemented")
+func (d *defaultReader) ConfigureEnumProp(name string, val enum.Val) (err error) {
+	props := d.Props()
+
+	if props[name] != TypeEnum {
+		return errors.New("That property is not a settable enum var")
+	}
+
+	if d.PropMutable(name) {
+		return ErrPropertyImmutable
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+
+	f := s.FieldByName(name)
+
+	if !f.IsValid() {
+		return errors.New("that name was not available on the struct")
+	}
+
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprint(e))
+		}
+	}()
+
+	f.Set(reflect.ValueOf(val))
+
+	return nil
 }
 
-func (d *defaultReader) ConfigureStackProp(name string, val Stack) error {
-	return errors.New("That isn't implemented")
+func (d *defaultReader) ConfigureStackProp(name string, val Stack) (err error) {
+	props := d.Props()
+
+	if props[name] != TypeStack {
+		return errors.New("That property is not a settable stack")
+	}
+
+	if d.PropMutable(name) {
+		return ErrPropertyImmutable
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+
+	f := s.FieldByName(name)
+
+	if !f.IsValid() {
+		return errors.New("that name was not available on the struct")
+	}
+
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprint(e))
+		}
+	}()
+
+	f.Set(reflect.ValueOf(val))
+
+	return nil
 }
 
-func (d *defaultReader) ConfigureTimerProp(name string, val Timer) error {
-	return errors.New("That isn't implemented")
+func (d *defaultReader) ConfigureTimerProp(name string, val Timer) (err error) {
+	props := d.Props()
+
+	if props[name] != TypeTimer {
+		return errors.New("That property is not a settable Timer")
+	}
+
+	if d.PropMutable(name) {
+		return ErrPropertyImmutable
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+
+	f := s.FieldByName(name)
+
+	if !f.IsValid() {
+		return errors.New("that name was not available on the struct")
+	}
+
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprint(e))
+		}
+	}()
+
+	f.Set(reflect.ValueOf(val))
+
+	return nil
 }
 
 func (d *defaultReader) ConfigureMutableEnumProp(name string, val enum.MutableVal) (err error) {
@@ -849,6 +939,10 @@ func (d *defaultReader) ConfigureMutableEnumProp(name string, val enum.MutableVa
 
 	if props[name] != TypeEnum {
 		return errors.New("That property is not a settable enum var")
+	}
+
+	if !d.PropMutable(name) {
+		return ErrPropertyImmutable
 	}
 
 	s := reflect.ValueOf(d.i).Elem()
@@ -878,6 +972,10 @@ func (d *defaultReader) ConfigureMutableStackProp(name string, val MutableStack)
 		return errors.New("That property is not a settable stack")
 	}
 
+	if !d.PropMutable(name) {
+		return ErrPropertyImmutable
+	}
+
 	s := reflect.ValueOf(d.i).Elem()
 
 	f := s.FieldByName(name)
@@ -902,6 +1000,10 @@ func (d *defaultReader) ConfigureMutableTimerProp(name string, val MutableTimer)
 
 	if props[name] != TypeTimer {
 		return errors.New("That property is not a settable Timer")
+	}
+
+	if !d.PropMutable(name) {
+		return ErrPropertyImmutable
 	}
 
 	s := reflect.ValueOf(d.i).Elem()

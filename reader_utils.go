@@ -29,6 +29,7 @@ type autoMergedStackConfig struct {
 
 type readerValidator struct {
 	autoEnumFields        map[string]enum.Enum
+	autoMutableEnumFields map[string]enum.Enum
 	autoStackFields       map[string]*autoStackConfig
 	autoMergedStackFields map[string]*autoMergedStackConfig
 	sanitizationPolicy    map[string]map[int]Policy
@@ -39,7 +40,9 @@ type readerValidator struct {
 //given types. It will also do an expensive processing for any nil pointer-
 //properties to see if they have struct tags that tell us how to inflate them.
 //This processing uses reflection, but afterwards AutoInflate can run quickly.
-func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, illegalTypes map[PropertyType]bool, chest *ComponentChest, isPlayerState bool) (*readerValidator, error) {
+//exampleReadSetter is optional. If provided, it's used to do a PropMutable
+//check for those properties.
+func newReaderValidator(exampleReader PropertyReader, exampleReadSetter PropertyReadSetter, exampleObj interface{}, illegalTypes map[PropertyType]bool, chest *ComponentChest, isPlayerState bool) (*readerValidator, error) {
 	//TODO: there's got to be a way to not need both exampleReader and exampleObj, but only one.
 
 	if chest == nil {
@@ -51,6 +54,7 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 	}
 
 	autoEnumFields := make(map[string]enum.Enum)
+	autoMutableEnumFields := make(map[string]enum.Enum)
 	autoStackFields := make(map[string]*autoStackConfig)
 	autoMergedStackFields := make(map[string]*autoMergedStackConfig)
 	sanitizationPolicy := make(map[string]map[int]Policy)
@@ -76,60 +80,68 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 				continue
 			}
 
-			isFixed := false
+			var tag string
 
-			tag := structTagForField(exampleObj, propName, stackStructTag)
+			if exampleReadSetter == nil || (exampleReadSetter != nil && exampleReadSetter.PropMutable(propName)) {
+				isFixed := false
 
-			if tag == "" {
-				tag = structTagForField(exampleObj, propName, fixedStackStructTag)
+				tag = structTagForField(exampleObj, propName, stackStructTag)
+
+				if tag == "" {
+					tag = structTagForField(exampleObj, propName, fixedStackStructTag)
+					if tag != "" {
+						isFixed = true
+					}
+				}
+
 				if tag != "" {
-					isFixed = true
+
+					deck, size, err := unpackStackStructTag(tag, chest)
+
+					if err != nil {
+						return nil, errors.New(propName + " was a nil SizedStack and its struct tag was not valid: " + err.Error())
+					}
+
+					if isFixed && size == 0 {
+						//Size for sizedstacks defaults to 1 (which can be grown
+						//easily to any other size).
+						size = 1
+					}
+
+					autoStackFields[propName] = &autoStackConfig{
+						deck,
+						size,
+						isFixed,
+					}
 				}
+				//TODO: if we got immutable tags (overlap or concatenate) complain here
 			}
 
-			if tag != "" {
+			if exampleReadSetter == nil || (exampleReadSetter != nil && !exampleReadSetter.PropMutable(propName)) {
+				overlap := false
 
-				deck, size, err := unpackStackStructTag(tag, chest)
+				tag = structTagForField(exampleObj, propName, concatenateStructTag)
 
-				if err != nil {
-					return nil, errors.New(propName + " was a nil SizedStack and its struct tag was not valid: " + err.Error())
+				if tag == "" {
+					tag = structTagForField(exampleObj, propName, overlapStructTag)
+					if tag != "" {
+						overlap = true
+					}
 				}
 
-				if isFixed && size == 0 {
-					//Size for sizedstacks defaults to 1 (which can be grown
-					//easily to any other size).
-					size = 1
-				}
-
-				autoStackFields[propName] = &autoStackConfig{
-					deck,
-					size,
-					isFixed,
-				}
-			}
-
-			overlap := false
-
-			tag = structTagForField(exampleObj, propName, concatenateStructTag)
-
-			if tag == "" {
-				tag = structTagForField(exampleObj, propName, overlapStructTag)
 				if tag != "" {
-					overlap = true
-				}
-			}
+					first, second, err := unpackMergedStackStructTag(tag, exampleReader)
+					if err != nil {
+						return nil, errors.New(propName + " was a nil stack and its struct tag was not valid: " + err.Error())
+					}
 
-			if tag != "" {
-				first, second, err := unpackMergedStackStructTag(tag, exampleReader)
-				if err != nil {
-					return nil, errors.New(propName + " was a nil stack and its struct tag was not valid: " + err.Error())
+					autoMergedStackFields[propName] = &autoMergedStackConfig{
+						first,
+						second,
+						overlap,
+					}
 				}
-
-				autoMergedStackFields[propName] = &autoMergedStackConfig{
-					first,
-					second,
-					overlap,
-				}
+				//TODO: if we got mutable tags (stack or sizedstack) complain here
 			}
 
 		case TypeEnum:
@@ -148,7 +160,17 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 					return nil, errors.New(propName + " was a nil enum.Val and the struct tag named " + enumName + " was not a valid enum.")
 				}
 				//Found one!
-				autoEnumFields[propName] = theEnum
+				if exampleReadSetter != nil {
+					if exampleReadSetter.PropMutable(propName) {
+						autoMutableEnumFields[propName] = theEnum
+					} else {
+						autoEnumFields[propName] = theEnum
+					}
+
+				} else {
+					//Just assume they're immutable
+					autoEnumFields[propName] = theEnum
+				}
 			}
 		}
 
@@ -156,6 +178,7 @@ func newReaderValidator(exampleReader PropertyReader, exampleObj interface{}, il
 
 	result := &readerValidator{
 		autoEnumFields,
+		autoMutableEnumFields,
 		autoStackFields,
 		autoMergedStackFields,
 		sanitizationPolicy,
@@ -291,6 +314,23 @@ func (r *readerValidator) AutoInflate(readSetConfigurer PropertyReadSetConfigure
 		if enum == nil {
 			return errors.New("The enum for " + propName + " was unexpectedly nil")
 		}
+		if err := readSetConfigurer.ConfigureEnumProp(propName, enum.NewDefaultVal()); err != nil {
+			return errors.New("Couldn't set " + propName + " to NewDefaultVal: " + err.Error())
+		}
+	}
+
+	for propName, enum := range r.autoMutableEnumFields {
+		enumConst, err := readSetConfigurer.EnumProp(propName)
+		if enumConst != nil {
+			//Guess it was already set!
+			continue
+		}
+		if err != nil {
+			return errors.New(propName + " had error fetching Enum: " + err.Error())
+		}
+		if enum == nil {
+			return errors.New("The enum for " + propName + " was unexpectedly nil")
+		}
 		if err := readSetConfigurer.ConfigureMutableEnumProp(propName, enum.NewMutableVal()); err != nil {
 			return errors.New("Couldn't set " + propName + " to NewDefaultVal: " + err.Error())
 		}
@@ -300,8 +340,14 @@ func (r *readerValidator) AutoInflate(readSetConfigurer PropertyReadSetConfigure
 		switch propType {
 		case TypeTimer:
 			timer := NewTimer()
-			if err := readSetConfigurer.ConfigureMutableTimerProp(propName, timer); err != nil {
-				return errors.New("Couldn't set " + propName + " to a new timer: " + err.Error())
+			if readSetConfigurer.PropMutable(propName) {
+				if err := readSetConfigurer.ConfigureMutableTimerProp(propName, timer); err != nil {
+					return errors.New("Couldn't set " + propName + " to a new timer: " + err.Error())
+				}
+			} else {
+				if err := readSetConfigurer.ConfigureTimerProp(propName, timer); err != nil {
+					return errors.New("Couldn't set " + propName + " to a new timer: " + err.Error())
+				}
 			}
 		}
 	}

@@ -163,7 +163,7 @@ func (d *Deck) finish(chest *ComponentChest, name string) error {
 		if c.Values == nil {
 			continue
 		}
-		validator, err := newReaderValidator(c.Values.Reader(), c.Values, illegalComponentValuesProps, chest, false)
+		validator, err := newReaderValidator(c.Values.Reader(), nil, c.Values, illegalComponentValuesProps, chest, false)
 		if err != nil {
 			return errors.New("Component " + strconv.Itoa(i) + "failed to validate: " + err.Error())
 		}

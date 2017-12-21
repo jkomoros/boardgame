@@ -277,7 +277,7 @@ func (g *GameManager) setUpValidators() error {
 		return errors.New("GameStateConstructor's returned value returned nil for Reader")
 	}
 
-	validator, err := newReaderValidator(reader, exampleGameState, nil, g.chest, false)
+	validator, err := newReaderValidator(reader, exampleGameState.ReadSetter(), exampleGameState, nil, g.chest, false)
 
 	if err != nil {
 		return errors.New("Could not validate empty game state: " + err.Error())
@@ -314,7 +314,7 @@ func (g *GameManager) setUpValidators() error {
 		return errors.New("PlayerStateConstructor's returned value returned nil for Reader")
 	}
 
-	validator, err = newReaderValidator(reader, examplePlayerState, nil, g.chest, true)
+	validator, err = newReaderValidator(reader, examplePlayerState.ReadSetter(), examplePlayerState, nil, g.chest, true)
 
 	if err != nil {
 		return errors.New("Could not validate empty player state: " + err.Error())
@@ -353,7 +353,7 @@ func (g *GameManager) setUpValidators() error {
 			return errors.New("DynamicComponentValue for " + deckName + " " + strconv.Itoa(i) + " reader returned nil")
 		}
 
-		validator, err = newReaderValidator(reader, exampleDynamicComponentValue, nil, g.chest, false)
+		validator, err = newReaderValidator(reader, exampleDynamicComponentValue.ReadSetter(), exampleDynamicComponentValue, nil, g.chest, false)
 
 		if err != nil {
 			return errors.New("Could not validate empty dynamic component state for " + deckName + ": " + err.Error())
