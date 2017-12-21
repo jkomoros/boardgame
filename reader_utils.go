@@ -41,7 +41,8 @@ type readerValidator struct {
 //properties to see if they have struct tags that tell us how to inflate them.
 //This processing uses reflection, but afterwards AutoInflate can run quickly.
 //exampleReadSetter is optional. If provided, it's used to do a PropMutable
-//check for those properties.
+//check for those properties--and if not provided, we assume all of the
+//interface props are not mutable.
 func newReaderValidator(exampleReader PropertyReader, exampleReadSetter PropertyReadSetter, exampleObj interface{}, illegalTypes map[PropertyType]bool, chest *ComponentChest, isPlayerState bool) (*readerValidator, error) {
 	//TODO: there's got to be a way to not need both exampleReader and exampleObj, but only one.
 
@@ -82,7 +83,7 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 
 			var tag string
 
-			if exampleReadSetter == nil || (exampleReadSetter != nil && exampleReadSetter.PropMutable(propName)) {
+			if exampleReadSetter != nil && exampleReadSetter.PropMutable(propName) {
 				isFixed := false
 
 				tag = structTagForField(exampleObj, propName, stackStructTag)
@@ -117,6 +118,8 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 				//TODO: if we got immutable tags (overlap or concatenate) complain here
 			}
 
+			//If the read setter isn't provided we assume that the stack
+			//properties are all immutable.
 			if exampleReadSetter == nil || (exampleReadSetter != nil && !exampleReadSetter.PropMutable(propName)) {
 				overlap := false
 
