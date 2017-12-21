@@ -655,6 +655,13 @@ func unpackStackStructTag(tag string, chest *ComponentChest) (*Deck, int, error)
 //object and return the value of its `enum` field. Works even if fieldName is
 //in an embedded struct.
 func structTagForField(obj interface{}, fieldName string, structTag string) string {
+	result := structTagsForField(obj, fieldName, []string{structTag})
+	return result[structTag]
+}
+
+func structTagsForField(obj interface{}, fieldName string, structTags []string) map[string]string {
+
+	result := make(map[string]string, len(structTags))
 
 	v := reflect.Indirect(reflect.ValueOf(obj))
 
@@ -665,9 +672,14 @@ func structTagForField(obj interface{}, fieldName string, structTag string) stri
 	})
 
 	if !ok {
-		return ""
+		return result
 	}
 
-	return field.Tag.Get(structTag)
+	theTag := field.Tag
 
+	for _, structTag := range structTags {
+		result[structTag] = theTag.Get(structTag)
+	}
+
+	return result
 }
