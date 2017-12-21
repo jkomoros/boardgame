@@ -91,6 +91,15 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 			})
 
 			if exampleReadSetter != nil && exampleReadSetter.PropMutable(propName) {
+
+				if structTags[concatenateStructTag] != "" {
+					return nil, errors.New(propName + " included a concatenate struct tag on a mutable stack property")
+				}
+
+				if structTags[overlapStructTag] != "" {
+					return nil, errors.New(propName + " included a overlap struct tag on a mutable stack property")
+				}
+
 				isFixed := false
 
 				tag = structTags[stackStructTag]
@@ -128,6 +137,15 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 			//If the read setter isn't provided we assume that the stack
 			//properties are all immutable.
 			if exampleReadSetter == nil || (exampleReadSetter != nil && !exampleReadSetter.PropMutable(propName)) {
+
+				if structTags[stackStructTag] != "" {
+					return nil, errors.New(propName + " included a stack struct tag on an immutable stack property")
+				}
+
+				if structTags[fixedStackStructTag] != "" {
+					return nil, errors.New(propName + " included a sizedstack struct tag on an immutable stack property")
+				}
+
 				overlap := false
 
 				tag = structTags[concatenateStructTag]
