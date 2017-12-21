@@ -83,13 +83,20 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 
 			var tag string
 
+			structTags := structTagsForField(exampleObj, propName, []string{
+				stackStructTag,
+				fixedStackStructTag,
+				concatenateStructTag,
+				overlapStructTag,
+			})
+
 			if exampleReadSetter != nil && exampleReadSetter.PropMutable(propName) {
 				isFixed := false
 
-				tag = structTagForField(exampleObj, propName, stackStructTag)
+				tag = structTags[stackStructTag]
 
 				if tag == "" {
-					tag = structTagForField(exampleObj, propName, fixedStackStructTag)
+					tag = structTags[fixedStackStructTag]
 					if tag != "" {
 						isFixed = true
 					}
@@ -123,10 +130,10 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 			if exampleReadSetter == nil || (exampleReadSetter != nil && !exampleReadSetter.PropMutable(propName)) {
 				overlap := false
 
-				tag = structTagForField(exampleObj, propName, concatenateStructTag)
+				tag = structTags[concatenateStructTag]
 
 				if tag == "" {
-					tag = structTagForField(exampleObj, propName, overlapStructTag)
+					tag = structTags[overlapStructTag]
 					if tag != "" {
 						overlap = true
 					}
