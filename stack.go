@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"sort"
 	"strconv"
-	"testing"
 )
 
 const emptyIndexSentinel = -1
@@ -200,13 +199,6 @@ type MutableStack interface {
 	//SizeToFit is a simple convenience wrapper around ContractSize. It
 	//automatically sizes the stack down so that there are no empty slots.
 	SizeToFit() error
-
-	//UnsafeInsertNextComponent is designed only to be used in tests, because
-	//it makes it trivial to violate the component-in-one-stack invariant. It
-	//inserts the given component to the NextSlotIndex in the given stack. You
-	//must pass a non-nil testing.T in order to reinforce that this is only
-	//intended to be used in tests.
-	UnsafeInsertNextComponent(t *testing.T, c *Component) error
 
 	//removeComponentAt returns the component at componentIndex, and removes
 	//it from the stack. For GrowableStacks, this will splice `out the
@@ -1034,28 +1026,6 @@ func (g *growableStack) insertComponentAt(slotIndex int, component *Component) {
 func (s *sizedStack) insertComponentAt(slotIndex int, component *Component) {
 	s.indexes[slotIndex] = component.DeckIndex
 	s.idSeen(component.ID(s.state()))
-}
-
-func (g *growableStack) UnsafeInsertNextComponent(t *testing.T, c *Component) error {
-	if t == nil {
-		return errors.New("You must provide a non-nil testing.T")
-	}
-	if g.SlotsRemaining() < 1 {
-		return errors.New("There are not enough slots remaining")
-	}
-	g.insertNext(c)
-	return nil
-}
-
-func (s *sizedStack) UnsafeInsertNextComponent(t *testing.T, c *Component) error {
-	if t == nil {
-		return errors.New("You must provide a non-nil testing.T")
-	}
-	if s.SlotsRemaining() < 1 {
-		return errors.New("There are not enough slots remaining")
-	}
-	s.insertNext(c)
-	return nil
 }
 
 func (g *growableStack) insertNext(c *Component) {
