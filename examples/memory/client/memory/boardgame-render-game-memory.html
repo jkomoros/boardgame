@@ -37,7 +37,7 @@
     </boardgame-deck-defaults>
     <h2>Memory</h2>
     <div>
-      <boardgame-component-stack layout="grid" messy primary-stack="{{state.Game.RevealedCards}}" secondary-stack="{{state.Game.HiddenCards}}" component-propose-move="Reveal Card" component-index-attributes="data-arg-card-index">
+      <boardgame-component-stack layout="grid" messy stack="{{state.Game.Cards}}" component-propose-move="Reveal Card" component-index-attributes="data-arg-card-index">
       </boardgame-component-stack>
        <boardgame-fading-text message="Match" trigger="{{state.Computed.Global.CardsInGrid}}"></boardgame-fading-text>
     </div>
