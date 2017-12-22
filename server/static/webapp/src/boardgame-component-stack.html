@@ -202,21 +202,6 @@
               value: "",
               observer: "_gameNameChanged"
             },
-            //If set, this stack will be combined with the secondary stack and 
-            //the result will be set to stack.
-            primaryStack: {
-              type: Object,
-              value: null
-            },
-            secondaryStack: {
-              type: Object,
-              value: null
-            },
-            //may be `overlap` (default) or `concatenate`
-            stackCombine: {
-              type: String,
-              value: "overlap"
-            },
             //if true, all cards will have a slight rotation transformation
             //applied to make the layout not look artificially tidy
             messy: {
@@ -270,12 +255,6 @@
               value: 0
             },
           }
-        }
-
-        static get observers() {
-          return [
-            '_updateDerivedStack(primaryStack, secondaryStack, stackCombine)'
-          ]
         }
 
         get _sharedStackList() {
@@ -504,92 +483,6 @@
 
           return result;
 
-        }
-
-        _updateDerivedStack(primaryStack, secondaryStack, stackCombine) {
-          if (!primaryStack && !secondaryStack) return;
-          if (primaryStack && !secondaryStack) {
-            this.stack = primaryStack;
-            return;
-          }
-          if (secondaryStack && !primaryStack) {
-            this.stack = secondaryStack;
-            return;
-          }
-
-          //If we get to here we have values for both stacks.
-
-          if (primaryStack.Deck != secondaryStack.Deck) {
-            console.warn("Primary and Secondary stacks are of different decks, which is not allowed")
-            return;
-          }
-
-          if (!this._sanityCheckStack(primaryStack)) {
-            console.warn("Primary stack didn't sanity check")
-            return;
-          }
-
-          if (!this._sanityCheckStack(secondaryStack)) {
-            console.warn("Secondary stack didn't sanity check")
-            return;
-          }
-
-          var result = this._copyObj(primaryStack);
-
-          if (stackCombine == "concatenate") {
-            for (var i = 0; i < secondaryStack.Components.length; i++) {
-              result.Components.push(secondaryStack.Components[i]);
-              result.Ids.push(secondaryStack.Ids[i]);
-              result.Indexes.push(secondaryStack.Indexes[i]);
-            }
-          } else {
-            //Default to "overlap"
-            if (primaryStack.Components.length != secondaryStack.Components.length) {
-              console.warn("Overlap combination but stacks were not equal length")
-              return;
-            }
-            for (var i = 0; i < primaryStack.Components.length; i++) {
-              if (result.Components[i]) {
-                //If the primary already has an item, no need to fill in from secondary.
-                continue;
-              }
-              result.Components[i] = secondaryStack.Components[i];
-              result.Ids[i] = secondaryStack.Ids[i];
-              result.Indexes[i] = secondaryStack.Indexes[i];
-            }
-          }
-
-          //Go through each id in IdsLastSeen, if it's already in the result's
-          //map, then overwrite only if index is greater.
-
-          for (let attr in secondaryStack.IdsLastSeen) {
-            if (!secondaryStack.IdsLastSeen.hasOwnProperty(attr)) continue;
-            if (result.IdsLastSeen[attr]) {
-              //If that id was already in the result, only overwrite if our version is higher.
-              if (result.IdsLastSeen[attr] < secondaryStack.IdsLastSeen[attr]) {
-                result.IdsLastSeen[attr] = secondaryStack.IdsLastSeen[attr];
-              }
-            } else {
-              result.IdsLastSeen[attr] = secondaryStack.IdsLastSeen[attr];
-            }
-          }
-
-          this.stack = result;
-
-        }
-
-        _sanityCheckStack(stack) {
-
-          if (!stack) return false;
-
-          if (!stack.Components || !stack.Ids || !stack.Indexes || !stack.IdsLastSeen) {
-            return false;
-          }
-
-          if (stack.Components.length != stack.Ids.length) return false;
-          if (stack.Components.length != stack.Indexes.length) return false;
-
-          return true;
         }
 
         get _realComponents() {
