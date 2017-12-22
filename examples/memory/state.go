@@ -66,10 +66,6 @@ func (p *playerState) ResetForTurnEnd() error {
 	return nil
 }
 
-func (g *gameState) CardsInGrid() int {
-	return g.HiddenCards.NumComponents() + g.RevealedCards.NumComponents()
-}
-
 func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {
 	g.CurrentPlayer = currentPlayer
 }

@@ -39,7 +39,7 @@
     <div>
       <boardgame-component-stack layout="grid" messy stack="{{state.Game.Cards}}" component-propose-move="Reveal Card" component-index-attributes="data-arg-card-index">
       </boardgame-component-stack>
-       <boardgame-fading-text message="Match" trigger="{{state.Computed.Global.CardsInGrid}}"></boardgame-fading-text>
+       <boardgame-fading-text message="Match" trigger="{{state.Game.Cards.NumComponents}}"></boardgame-fading-text>
     </div>
     <div class="layout horizontal around-justified discards">
       <boardgame-component-stack layout="stack" stack="{{state.Players.0.WonCards}}" messy component-disabled>

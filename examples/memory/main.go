@@ -48,7 +48,6 @@ func (g *gameDelegate) ComputedGlobalProperties(state boardgame.State) boardgame
 	game, _ := concreteStates(state)
 	return boardgame.PropertyCollection{
 		"CurrentPlayerHasCardsToReveal": game.CurrentPlayerHasCardsToReveal(),
-		"CardsInGrid":                   game.CardsInGrid(),
 	}
 }
 
