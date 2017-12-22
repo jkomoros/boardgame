@@ -2285,8 +2285,8 @@ var __gameStateReaderProps map[string]boardgame.PropertyType = map[string]boardg
 	"HiddenCards":    boardgame.TypeStack,
 	"HideCardsTimer": boardgame.TypeTimer,
 	"NumCards":       boardgame.TypeInt,
-	"RevealedCards":  boardgame.TypeStack,
 	"UnusedCards":    boardgame.TypeStack,
+	"VisibleCards":   boardgame.TypeStack,
 }
 
 type __gameStateReader struct {
@@ -2348,9 +2348,9 @@ func (g *__gameStateReader) PropMutable(name string) bool {
 		return true
 	case "NumCards":
 		return true
-	case "RevealedCards":
-		return true
 	case "UnusedCards":
+		return true
+	case "VisibleCards":
 		return true
 	}
 
@@ -2666,10 +2666,10 @@ func (g *__gameStateReader) StackProp(name string) (boardgame.Stack, error) {
 		return g.data.Cards, nil
 	case "HiddenCards":
 		return g.data.HiddenCards, nil
-	case "RevealedCards":
-		return g.data.RevealedCards, nil
 	case "UnusedCards":
 		return g.data.UnusedCards, nil
+	case "VisibleCards":
+		return g.data.VisibleCards, nil
 
 	}
 
@@ -2685,11 +2685,11 @@ func (g *__gameStateReader) ConfigureMutableStackProp(name string, value boardga
 	case "HiddenCards":
 		g.data.HiddenCards = value
 		return nil
-	case "RevealedCards":
-		g.data.RevealedCards = value
-		return nil
 	case "UnusedCards":
 		g.data.UnusedCards = value
+		return nil
+	case "VisibleCards":
+		g.data.VisibleCards = value
 		return nil
 
 	}
@@ -2706,9 +2706,9 @@ func (g *__gameStateReader) ConfigureStackProp(name string, value boardgame.Stac
 		return nil
 	case "HiddenCards":
 		return boardgame.ErrPropertyImmutable
-	case "RevealedCards":
-		return boardgame.ErrPropertyImmutable
 	case "UnusedCards":
+		return boardgame.ErrPropertyImmutable
+	case "VisibleCards":
 		return boardgame.ErrPropertyImmutable
 
 	}
@@ -2724,10 +2724,10 @@ func (g *__gameStateReader) MutableStackProp(name string) (boardgame.MutableStac
 		return nil, boardgame.ErrPropertyImmutable
 	case "HiddenCards":
 		return g.data.HiddenCards, nil
-	case "RevealedCards":
-		return g.data.RevealedCards, nil
 	case "UnusedCards":
 		return g.data.UnusedCards, nil
+	case "VisibleCards":
+		return g.data.VisibleCards, nil
 
 	}
 

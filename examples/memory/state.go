@@ -12,8 +12,8 @@ type gameState struct {
 	NumCards       int
 	CurrentPlayer  boardgame.PlayerIndex
 	HiddenCards    boardgame.MutableStack `sizedstack:"cards,40" sanitize:"order"`
-	RevealedCards  boardgame.MutableStack `sizedstack:"cards,40"`
-	Cards          boardgame.Stack        `overlap:"RevealedCards,HiddenCards"`
+	VisibleCards   boardgame.MutableStack `sizedstack:"cards,40"`
+	Cards          boardgame.Stack        `overlap:"VisibleCards,HiddenCards"`
 	HideCardsTimer boardgame.MutableTimer
 	//Where cards not in use reside most of the time
 	UnusedCards boardgame.MutableStack `stack:"cards"`
@@ -50,7 +50,7 @@ func (p *playerState) TurnDone() error {
 
 	game, _ := concreteStates(p.State())
 
-	if game.RevealedCards.NumComponents() > 0 {
+	if game.VisibleCards.NumComponents() > 0 {
 		return errors.New("there are still some cards revealed, which they must hide")
 	}
 

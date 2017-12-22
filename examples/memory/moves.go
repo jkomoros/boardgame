@@ -82,7 +82,7 @@ func (m *MoveRevealCard) Legal(state boardgame.State, proposer boardgame.PlayerI
 	}
 
 	if game.HiddenCards.ComponentAt(m.CardIndex) == nil {
-		if game.RevealedCards.ComponentAt(m.CardIndex) == nil {
+		if game.VisibleCards.ComponentAt(m.CardIndex) == nil {
 			return errors.New("There is no card at that index.")
 		} else {
 			return errors.New("That card has already been revealed.")
@@ -98,7 +98,7 @@ func (m *MoveRevealCard) Apply(state boardgame.MutableState) error {
 	p := players[game.CurrentPlayer]
 
 	p.CardsLeftToReveal--
-	game.HiddenCards.MoveComponent(m.CardIndex, game.RevealedCards, m.CardIndex)
+	game.HiddenCards.MoveComponent(m.CardIndex, game.VisibleCards, m.CardIndex)
 
 	//If the cards are the same, the FixUpMove CaptureCards will fire after this.
 
@@ -133,7 +133,7 @@ func (m *MoveStartHideCardsTimer) Legal(state boardgame.State, proposer boardgam
 
 	game, _ := concreteStates(state)
 
-	if game.RevealedCards.NumComponents() != 2 {
+	if game.VisibleCards.NumComponents() != 2 {
 		return errors.New("There aren't two cards showing!")
 	}
 
@@ -143,7 +143,7 @@ func (m *MoveStartHideCardsTimer) Legal(state boardgame.State, proposer boardgam
 
 	var revealedCards []*boardgame.Component
 
-	for _, c := range game.RevealedCards.Components() {
+	for _, c := range game.VisibleCards.Components() {
 		if c != nil {
 			revealedCards = append(revealedCards, c)
 		}
@@ -198,13 +198,13 @@ func (m *MoveCaptureCards) Legal(state boardgame.State, proposer boardgame.Playe
 
 	game, _ := concreteStates(state)
 
-	if game.RevealedCards.NumComponents() != 2 {
+	if game.VisibleCards.NumComponents() != 2 {
 		return errors.New("There aren't two cards showing!")
 	}
 
 	var revealedCards []*boardgame.Component
 
-	for _, c := range game.RevealedCards.Components() {
+	for _, c := range game.VisibleCards.Components() {
 		if c != nil {
 			revealedCards = append(revealedCards, c)
 		}
@@ -225,9 +225,9 @@ func (m *MoveCaptureCards) Apply(state boardgame.MutableState) error {
 
 	p := players[game.CurrentPlayer]
 
-	for i, c := range game.RevealedCards.Components() {
+	for i, c := range game.VisibleCards.Components() {
 		if c != nil {
-			game.RevealedCards.MoveComponent(i, p.WonCards, boardgame.NextSlotIndex)
+			game.VisibleCards.MoveComponent(i, p.WonCards, boardgame.NextSlotIndex)
 		}
 	}
 
@@ -267,7 +267,7 @@ func (m *MoveHideCards) Legal(state boardgame.State, proposer boardgame.PlayerIn
 		return errors.New("You still have to reveal more cards before your turn is over")
 	}
 
-	if game.RevealedCards.NumComponents() < 1 {
+	if game.VisibleCards.NumComponents() < 1 {
 		return errors.New("No cards left to hide!")
 	}
 
@@ -280,9 +280,9 @@ func (m *MoveHideCards) Apply(state boardgame.MutableState) error {
 	//Cancel a timer in case it was still going.
 	game.HideCardsTimer.Cancel()
 
-	for i, c := range game.RevealedCards.Components() {
+	for i, c := range game.VisibleCards.Components() {
 		if c != nil {
-			if err := game.RevealedCards.MoveComponent(i, game.HiddenCards, i); err != nil {
+			if err := game.VisibleCards.MoveComponent(i, game.HiddenCards, i); err != nil {
 				return errors.New("Couldn't move component: " + err.Error())
 			}
 		}

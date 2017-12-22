@@ -146,7 +146,7 @@ func (g *gameDelegate) BeginSetUp(state boardgame.MutableState, config boardgame
 	if err := game.HiddenCards.SetSize(game.NumCards); err != nil {
 		return errors.New("Couldn't set up hidden cards: " + err.Error())
 	}
-	if err := game.RevealedCards.SetSize(game.NumCards); err != nil {
+	if err := game.VisibleCards.SetSize(game.NumCards); err != nil {
 		return errors.New("Couldn't set up revealed cards: " + err.Error())
 	}
 

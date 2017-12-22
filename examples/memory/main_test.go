@@ -62,7 +62,7 @@ func TestMain(t *testing.T) {
 	var revealedType string
 	var revealedIndex int
 
-	for i, c := range gameState.RevealedCards.Components() {
+	for i, c := range gameState.VisibleCards.Components() {
 		if c != nil {
 			revealedType = c.Values.(*cardValue).Type
 			revealedIndex = i
@@ -98,7 +98,7 @@ func TestMain(t *testing.T) {
 
 	gameState, _ = concreteStates(game.CurrentState())
 
-	assert.For(t).ThatActual(gameState.RevealedCards.NumComponents()).Equals(2)
+	assert.For(t).ThatActual(gameState.VisibleCards.NumComponents()).Equals(2)
 
 	move = game.PlayerMoveByName("Hide Cards")
 
@@ -110,7 +110,7 @@ func TestMain(t *testing.T) {
 
 	gameState, _ = concreteStates(game.CurrentState())
 
-	assert.For(t).ThatActual(gameState.RevealedCards.NumComponents()).Equals(0)
+	assert.For(t).ThatActual(gameState.VisibleCards.NumComponents()).Equals(0)
 
 	assert.For(t).ThatActual(gameState.CurrentPlayer).Equals(boardgame.PlayerIndex(1))
 
@@ -155,7 +155,7 @@ func TestMain(t *testing.T) {
 
 	gameState, playerStates := concreteStates(game.CurrentState())
 
-	assert.For(t).ThatActual(gameState.RevealedCards.NumComponents()).Equals(0)
+	assert.For(t).ThatActual(gameState.VisibleCards.NumComponents()).Equals(0)
 
 	assert.For(t).ThatActual(playerStates[1].WonCards.NumComponents()).Equals(2)
 
