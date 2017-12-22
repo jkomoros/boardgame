@@ -11,7 +11,8 @@ A comprehensive getting started guide, including a walkthrough of all of the imp
 ## Design Goals
 
 - **Don't Repeat Yourself** Write your normative logic that defines your game in Go a single time.
-- **Minimize Code** Common operations, like "deal cards from the draw stack to each player's hand until each player has 3 cards" should be easy to accomplish with minimal error-prone code. Writing your game should feel like just transcribing the rules into a formal model, not like a challenging coding exercise.
+- **Minimize Code** Writing your game should feel like just transcribing the rules into a formal model, not like a challenging coding exercise. 
+- **Batteries Included** Common operations, like "deal cards from the draw stack to each player's hand until each player has 3 cards" should require barely any logic to accomplish.
 - **Minimize Boilerplate** Structs with powerful defaults to anonymously embed in your structs, and easy-to-use code generation tools where required
 - **Clean Layering** If you don't like the default behavior, override just a small portion to make it do what you want
 - **Flexible** Powerful enough to model any real-world board or card game
