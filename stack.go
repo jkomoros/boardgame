@@ -1632,6 +1632,12 @@ func (m *mergedStack) MarshalJSON() ([]byte, error) {
 	return json.Marshal(obj)
 }
 
+func (m *mergedStack) UnmarshalJSON(blob []byte) error {
+	//Just drop it on the floor; we have all of the cofig we need from the
+	//constructor for our containing state.
+	return nil
+}
+
 func (g *growableStack) UnmarshalJSON(blob []byte) error {
 	obj := &stackJSONObj{}
 	if err := json.Unmarshal(blob, obj); err != nil {
