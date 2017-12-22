@@ -644,6 +644,131 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 
 }
 
+//jsonForReader is a faster json generation because it enumerates properties
+//via reader.Props(), not reflection.
+func jsonForReader(reader PropertyReader) ([]byte, error) {
+	props := reader.Props()
+	result := make(map[string]string, len(props))
+
+	for propName, propType := range props {
+		switch propType {
+		case TypeInt:
+			val, err := reader.IntProp(propName)
+			if err != nil {
+				return nil, errors.New(propName + " had an error retrieving: " + err.Error())
+			}
+			result[propName] = strconv.Itoa(val)
+		case TypeBool:
+			val, err := reader.BoolProp(propName)
+			if err != nil {
+				return nil, errors.New(propName + " had an error retrieving: " + err.Error())
+			}
+			stringVal := "false"
+			if val {
+				stringVal = "true"
+			}
+			result[propName] = stringVal
+		case TypeString:
+			val, err := reader.StringProp(propName)
+			if err != nil {
+				return nil, errors.New(propName + " had an error retrieving: " + err.Error())
+			}
+			result[propName] = `"` + strings.Replace(val, `"`, `\"`, -1) + `"`
+		case TypePlayerIndex:
+			val, err := reader.PlayerIndexProp(propName)
+			if err != nil {
+				return nil, errors.New(propName + " had an error retrieving: " + err.Error())
+			}
+			result[propName] = strconv.Itoa(int(val))
+		case TypeIntSlice:
+			val, err := reader.IntSliceProp(propName)
+			if err != nil {
+				return nil, errors.New(propName + " had an error retrieving: " + err.Error())
+			}
+			intSlice := make([]string, len(val))
+			for i, num := range val {
+				intSlice[i] = strconv.Itoa(num)
+			}
+			result[propName] = "[" + strings.Join(intSlice, ", ") + "]"
+		case TypeBoolSlice:
+			val, err := reader.BoolSliceProp(propName)
+			if err != nil {
+				return nil, errors.New(propName + " had an error retrieving: " + err.Error())
+			}
+			boolSlice := make([]string, len(val))
+			for i, boolean := range val {
+				stringVal := "false"
+				if boolean {
+					stringVal = "true"
+				}
+				boolSlice[i] = stringVal
+			}
+			result[propName] = "[" + strings.Join(boolSlice, ", ") + "]"
+		case TypeStringSlice:
+			val, err := reader.StringSliceProp(propName)
+			if err != nil {
+				return nil, errors.New(propName + " had an error retrieving: " + err.Error())
+			}
+			stringSlice := make([]string, len(val))
+			for i, str := range val {
+				stringSlice[i] = `"` + strings.Replace(str, `"`, `\"`, -1) + `"`
+			}
+			result[propName] = "[" + strings.Join(stringSlice, ", ") + "]"
+		case TypePlayerIndexSlice:
+			val, err := reader.PlayerIndexSliceProp(propName)
+			if err != nil {
+				return nil, errors.New(propName + " had an error retrieving: " + err.Error())
+			}
+			indexSlice := make([]string, len(val))
+			for i, index := range val {
+				indexSlice[i] = strconv.Itoa(int(index))
+			}
+			result[propName] = "[" + strings.Join(indexSlice, ", ") + "]"
+		case TypeEnum:
+			val, err := reader.EnumProp(propName)
+			if err != nil {
+				return nil, errors.New(propName + " had an error retrieving: " + err.Error())
+			}
+			blob, err := val.MarshalJSON()
+			if err != nil {
+				return nil, errors.New(propName + " couldn't marshal: " + err.Error())
+			}
+			result[propName] = string(blob)
+		case TypeTimer:
+			val, err := reader.TimerProp(propName)
+			if err != nil {
+				return nil, errors.New(propName + " had an error retrieving: " + err.Error())
+			}
+			blob, err := val.MarshalJSON()
+			if err != nil {
+				return nil, errors.New(propName + " couldn't marshal: " + err.Error())
+			}
+			result[propName] = string(blob)
+		case TypeStack:
+			val, err := reader.StackProp(propName)
+			if err != nil {
+				return nil, errors.New(propName + " had an error retrieving: " + err.Error())
+			}
+			blob, err := val.MarshalJSON()
+			if err != nil {
+				return nil, errors.New(propName + " couldn't marshal: " + err.Error())
+			}
+			result[propName] = string(blob)
+		default:
+			return nil, errors.New(propName + " was an unknown property type")
+		}
+	}
+
+	pieces := make([]string, len(result))
+	i := 0
+	for key, val := range result {
+		pieces[i] = `"` + key + `": ` + val
+		i++
+	}
+
+	return []byte("{" + strings.Join(pieces, ",") + "}"), nil
+}
+
 func unpackMergedStackStructTag(tag string, reader PropertyReader) (firstProp, secondProp string, err error) {
 	pieces := strings.Split(tag, ",")
 

@@ -175,6 +175,7 @@ type Val interface {
 	Copy() Val
 	MutableCopy() MutableVal
 	Equals(other Val) bool
+	MarshalJSON() ([]byte, error)
 }
 
 //MutableVal is an instantiation of a value that must be set to a value in the
@@ -187,6 +188,7 @@ type MutableVal interface {
 	SetValue(val int) error
 	//SetStringValue sets the value to the value associated with that string.
 	SetStringValue(str string) error
+	UnmarshalJSON([]byte) error
 }
 
 //NewSet returns a new Set. Generally you'll call this once in a

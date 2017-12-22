@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"container/heap"
+	"encoding/json"
 	"time"
 )
 
@@ -11,6 +12,7 @@ import (
 type Timer interface {
 	Active() bool
 	TimeLeft() time.Duration
+	MarshalJSON() ([]byte, error)
 	id() int
 	state() *state
 	setState(*state)
@@ -21,6 +23,7 @@ type MutableTimer interface {
 	Timer
 	Start(time.Duration, Move)
 	Cancel() bool
+	UnmarshalJSON([]byte) error
 	importFrom(other Timer) error
 }
 
@@ -63,6 +66,15 @@ func (t *timer) MarshalJSON() ([]byte, error) {
 	}
 
 	return DefaultMarshalJSON(obj)
+}
+
+func (t *timer) UnmarshalJSON(blob []byte) error {
+	obj := make(map[string]int)
+	if err := json.Unmarshal(blob, &obj); err != nil {
+		return err
+	}
+	t.Id = obj["Id"]
+	return nil
 }
 
 //Active returns true if the timer is active and counting down.

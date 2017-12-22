@@ -84,6 +84,8 @@ type Stack interface {
 	//unfilled), which is equivalent to Len().
 	MaxSize() int
 
+	MarshalJSON() ([]byte, error)
+
 	//deck returns the Deck in this stack. Just a conveniene wrapper if you
 	//don't know what kind of stack you have.
 	deck() *Deck
@@ -199,6 +201,8 @@ type MutableStack interface {
 	//SizeToFit is a simple convenience wrapper around ContractSize. It
 	//automatically sizes the stack down so that there are no empty slots.
 	SizeToFit() error
+
+	UnmarshalJSON([]byte) error
 
 	//removeComponentAt returns the component at componentIndex, and removes
 	//it from the stack. For GrowableStacks, this will splice `out the

@@ -414,9 +414,26 @@ func (s *state) StorageRecord() StateStorageRecord {
 }
 
 func (s *state) customMarshalJSON(includeComputed bool, indent bool) ([]byte, error) {
+
+	game, err := jsonForReader(s.gameState.Reader())
+
+	if err != nil {
+		return nil, errors.New("couldn't create blob for game: " + err.Error())
+	}
+
+	players := make([]json.RawMessage, len(s.playerStates))
+
+	for i, player := range s.playerStates {
+		blob, err := jsonForReader(player.Reader())
+		if err != nil {
+			return nil, errors.New("couldn't create blob for player " + strconv.Itoa(i) + ": " + err.Error())
+		}
+		players[i] = json.RawMessage(blob)
+	}
+
 	obj := map[string]interface{}{
-		"Game":    s.gameState,
-		"Players": s.playerStates,
+		"Game":    json.RawMessage(game),
+		"Players": players,
 		"Version": s.version,
 	}
 
@@ -434,13 +451,21 @@ func (s *state) customMarshalJSON(includeComputed bool, indent bool) ([]byte, er
 		}
 	}
 
-	dynamic := s.DynamicComponentValues()
+	dynamicResult := make(map[string][]json.RawMessage, len(s.dynamicComponentValues))
 
-	if dynamic != nil && len(dynamic) != 0 {
-		obj["Components"] = dynamic
-	} else {
-		obj["Components"] = map[string]interface{}{}
+	for deckName, componentValues := range s.dynamicComponentValues {
+		resultSlice := make([]json.RawMessage, len(componentValues))
+		for i, component := range componentValues {
+			blob, err := jsonForReader(component.Reader())
+			if err != nil {
+				return nil, errors.New("couldn't create blob for component " + deckName + ": " + strconv.Itoa(i) + ": " + err.Error())
+			}
+			resultSlice[i] = json.RawMessage(blob)
+		}
+		dynamicResult[deckName] = resultSlice
 	}
+
+	obj["Components"] = dynamicResult
 
 	if indent {
 		return DefaultMarshalJSON(obj)
