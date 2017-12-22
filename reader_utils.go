@@ -163,6 +163,14 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 						return nil, errors.New(propName + " was a nil stack and its struct tag was not valid: " + err.Error())
 					}
 
+					if _, err := exampleReader.StackProp(first); err != nil {
+						return nil, errors.New(propName + " had a merged stack, " + first + " but it didn't point to a valid property: " + err.Error())
+					}
+
+					if _, err := exampleReader.StackProp(second); err != nil {
+						return nil, errors.New(propName + " had a merged stack, " + second + " but it didn't point to a valid property: " + err.Error())
+					}
+
 					autoMergedStackFields[propName] = &autoMergedStackConfig{
 						first,
 						second,
