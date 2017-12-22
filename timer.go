@@ -11,7 +11,6 @@ import (
 type Timer interface {
 	Active() bool
 	TimeLeft() time.Duration
-	copy() Timer
 	id() int
 	state() *state
 	setState(*state)
@@ -23,7 +22,6 @@ type MutableTimer interface {
 	Start(time.Duration, Move)
 	Cancel() bool
 	importFrom(other Timer) error
-	mutableCopy() MutableTimer
 }
 
 type timer struct {
@@ -53,16 +51,6 @@ func (t *timer) state() *state {
 
 func (t *timer) setState(state *state) {
 	t.statePtr = state
-}
-
-func (t *timer) copy() Timer {
-	return t.mutableCopy()
-}
-
-func (t *timer) mutableCopy() MutableTimer {
-	var result timer
-	result = *t
-	return &result
 }
 
 func (t *timer) MarshalJSON() ([]byte, error) {
