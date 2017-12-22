@@ -235,12 +235,7 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 
 	result = append(result, "Board")
 
-	for i, c := range game.HiddenCards.Components() {
-
-		//If there's no hidden card in this slot, see if there is a revealed one.
-		if c == nil {
-			c = game.RevealedCards.ComponentAt(i)
-		}
+	for i, c := range game.Cards.Components() {
 
 		value := fmt.Sprintf("%2d", i) + ": "
 
@@ -271,7 +266,7 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 func (g *gameDelegate) GameEndConditionMet(state boardgame.State) bool {
 	game, _ := concreteStates(state)
 
-	if game.HiddenCards.NumComponents() != 0 || game.RevealedCards.NumComponents() != 0 {
+	if game.Cards.NumComponents() > 0 {
 		return false
 	}
 
