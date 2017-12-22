@@ -3933,12 +3933,12 @@ var __gameStateReaderProps map[string]boardgame.PropertyType = map[string]boardg
 	"FirstShortStack":     boardgame.TypeStack,
 	"HiddenCard":          boardgame.TypeStack,
 	"HiddenStack":         boardgame.TypeStack,
-	"RevealedCard":        boardgame.TypeStack,
 	"SanitizedTokensFrom": boardgame.TypeStack,
 	"SanitizedTokensTo":   boardgame.TypeStack,
 	"SecondShortStack":    boardgame.TypeStack,
 	"TokensFrom":          boardgame.TypeStack,
 	"TokensTo":            boardgame.TypeStack,
+	"VisibleCard":         boardgame.TypeStack,
 	"VisibleStack":        boardgame.TypeStack,
 }
 
@@ -4007,8 +4007,6 @@ func (g *__gameStateReader) PropMutable(name string) bool {
 		return true
 	case "HiddenStack":
 		return true
-	case "RevealedCard":
-		return true
 	case "SanitizedTokensFrom":
 		return true
 	case "SanitizedTokensTo":
@@ -4018,6 +4016,8 @@ func (g *__gameStateReader) PropMutable(name string) bool {
 	case "TokensFrom":
 		return true
 	case "TokensTo":
+		return true
+	case "VisibleCard":
 		return true
 	case "VisibleStack":
 		return true
@@ -4334,8 +4334,6 @@ func (g *__gameStateReader) StackProp(name string) (boardgame.Stack, error) {
 		return g.data.HiddenCard, nil
 	case "HiddenStack":
 		return g.data.HiddenStack, nil
-	case "RevealedCard":
-		return g.data.RevealedCard, nil
 	case "SanitizedTokensFrom":
 		return g.data.SanitizedTokensFrom, nil
 	case "SanitizedTokensTo":
@@ -4346,6 +4344,8 @@ func (g *__gameStateReader) StackProp(name string) (boardgame.Stack, error) {
 		return g.data.TokensFrom, nil
 	case "TokensTo":
 		return g.data.TokensTo, nil
+	case "VisibleCard":
+		return g.data.VisibleCard, nil
 	case "VisibleStack":
 		return g.data.VisibleStack, nil
 
@@ -4381,9 +4381,6 @@ func (g *__gameStateReader) ConfigureMutableStackProp(name string, value boardga
 	case "HiddenStack":
 		g.data.HiddenStack = value
 		return nil
-	case "RevealedCard":
-		g.data.RevealedCard = value
-		return nil
 	case "SanitizedTokensFrom":
 		g.data.SanitizedTokensFrom = value
 		return nil
@@ -4398,6 +4395,9 @@ func (g *__gameStateReader) ConfigureMutableStackProp(name string, value boardga
 		return nil
 	case "TokensTo":
 		g.data.TokensTo = value
+		return nil
+	case "VisibleCard":
+		g.data.VisibleCard = value
 		return nil
 	case "VisibleStack":
 		g.data.VisibleStack = value
@@ -4429,8 +4429,6 @@ func (g *__gameStateReader) ConfigureStackProp(name string, value boardgame.Stac
 		return boardgame.ErrPropertyImmutable
 	case "HiddenStack":
 		return boardgame.ErrPropertyImmutable
-	case "RevealedCard":
-		return boardgame.ErrPropertyImmutable
 	case "SanitizedTokensFrom":
 		return boardgame.ErrPropertyImmutable
 	case "SanitizedTokensTo":
@@ -4440,6 +4438,8 @@ func (g *__gameStateReader) ConfigureStackProp(name string, value boardgame.Stac
 	case "TokensFrom":
 		return boardgame.ErrPropertyImmutable
 	case "TokensTo":
+		return boardgame.ErrPropertyImmutable
+	case "VisibleCard":
 		return boardgame.ErrPropertyImmutable
 	case "VisibleStack":
 		return boardgame.ErrPropertyImmutable
@@ -4469,8 +4469,6 @@ func (g *__gameStateReader) MutableStackProp(name string) (boardgame.MutableStac
 		return g.data.HiddenCard, nil
 	case "HiddenStack":
 		return g.data.HiddenStack, nil
-	case "RevealedCard":
-		return g.data.RevealedCard, nil
 	case "SanitizedTokensFrom":
 		return g.data.SanitizedTokensFrom, nil
 	case "SanitizedTokensTo":
@@ -4481,6 +4479,8 @@ func (g *__gameStateReader) MutableStackProp(name string) (boardgame.MutableStac
 		return g.data.TokensFrom, nil
 	case "TokensTo":
 		return g.data.TokensTo, nil
+	case "VisibleCard":
+		return g.data.VisibleCard, nil
 	case "VisibleStack":
 		return g.data.VisibleStack, nil
 

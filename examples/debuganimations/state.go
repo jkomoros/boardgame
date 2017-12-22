@@ -24,8 +24,8 @@ type gameState struct {
 	FirstShortStack     boardgame.MutableStack `stack:"cards" sanitize:"order"`
 	SecondShortStack    boardgame.MutableStack `stack:"cards" sanitize:"order"`
 	HiddenCard          boardgame.MutableStack `sizedstack:"cards,1" sanitize:"order"`
-	RevealedCard        boardgame.MutableStack `sizedstack:"cards,1"`
-	Card                boardgame.Stack        `overlap:"RevealedCard,HiddenCard"`
+	VisibleCard         boardgame.MutableStack `sizedstack:"cards,1"`
+	Card                boardgame.Stack        `overlap:"VisibleCard,HiddenCard"`
 	FanStack            boardgame.MutableStack `stack:"cards"`
 	FanDiscard          boardgame.MutableStack `stack:"cards" sanitize:"order"`
 	VisibleStack        boardgame.MutableStack `stack:"cards"`

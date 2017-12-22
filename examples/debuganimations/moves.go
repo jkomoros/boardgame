@@ -199,11 +199,11 @@ func (m *moveFlipHiddenCard) Legal(state boardgame.State, proposer boardgame.Pla
 
 	game, _ := concreteStates(state)
 
-	if game.HiddenCard.NumComponents() < 1 && game.RevealedCard.NumComponents() < 1 {
+	if game.HiddenCard.NumComponents() < 1 && game.VisibleCard.NumComponents() < 1 {
 		return errors.New("Neither the HiddenCard nor RevealedCard is set")
 	}
 
-	if game.HiddenCard.NumComponents() > 0 && game.RevealedCard.NumComponents() > 0 {
+	if game.HiddenCard.NumComponents() > 0 && game.VisibleCard.NumComponents() > 0 {
 		return errors.New("Both hidden and revealed are full!")
 	}
 
@@ -214,12 +214,12 @@ func (m *moveFlipHiddenCard) Apply(state boardgame.MutableState) error {
 
 	game, _ := concreteStates(state)
 
-	from := game.RevealedCard
+	from := game.VisibleCard
 	to := game.HiddenCard
 
 	if game.HiddenCard.NumComponents() > 0 {
 		from = game.HiddenCard
-		to = game.RevealedCard
+		to = game.VisibleCard
 	}
 
 	if err := from.MoveComponent(boardgame.FirstComponentIndex, to, boardgame.FirstSlotIndex); err != nil {
