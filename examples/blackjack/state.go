@@ -75,17 +75,12 @@ func (p *playerState) ResetForTurnEnd() error {
 	return nil
 }
 
-func (p *playerState) EffectiveHand() []*playingcards.Card {
-	return append(playingcards.ValuesToCards(p.HiddenHand.ComponentValues()), playingcards.ValuesToCards(p.VisibleHand.ComponentValues())...)
-}
-
-//HandValue returns the value of the player's hand.
-func (p *playerState) HandValue() int {
-
+func handValue(components []*boardgame.Component) int {
 	var numUnconvertedAces int
 	var currentValue int
 
-	for _, card := range p.EffectiveHand() {
+	for _, c := range components {
+		card := c.Values.(*playingcards.Card)
 		switch card.Rank.Value() {
 		case playingcards.RankAce:
 			numUnconvertedAces++
@@ -110,5 +105,9 @@ func (p *playerState) HandValue() int {
 	}
 
 	return currentValue
+}
 
+//HandValue returns the value of the player's hand.
+func (p *playerState) HandValue() int {
+	return handValue(p.Hand.Components())
 }

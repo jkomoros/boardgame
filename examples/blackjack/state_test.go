@@ -19,41 +19,29 @@ func TestHandValue(t *testing.T) {
 	deck := chest.Deck("cards")
 
 	tests := []struct {
-		state    *playerState
-		expected int
+		components []*boardgame.Component
+		expected   int
 	}{
 		{
-			&playerState{
-				VisibleHand: createHand(t, deck, playingcards.Rank2, playingcards.Rank3, playingcards.Rank4),
-				HiddenHand:  deck.NewStack(0),
-			},
+			createHand(t, deck, playingcards.Rank2, playingcards.Rank3, playingcards.Rank4),
 			9,
 		},
 		{
-			&playerState{
-				VisibleHand: createHand(t, deck, playingcards.RankAce),
-				HiddenHand:  deck.NewStack(0),
-			},
+			createHand(t, deck, playingcards.RankAce),
 			11,
 		},
 		{
-			&playerState{
-				VisibleHand: createHand(t, deck, playingcards.RankAce, playingcards.RankAce),
-				HiddenHand:  deck.NewStack(0),
-			},
+			createHand(t, deck, playingcards.RankAce, playingcards.RankAce),
 			12,
 		},
 		{
-			&playerState{
-				VisibleHand: createHand(t, deck, playingcards.RankJack, playingcards.RankKing, playingcards.RankAce),
-				HiddenHand:  deck.NewStack(0),
-			},
+			createHand(t, deck, playingcards.RankJack, playingcards.RankKing, playingcards.RankAce),
 			21,
 		},
 	}
 
 	for i, test := range tests {
-		result := test.state.HandValue()
+		result := handValue(test.components)
 
 		if result != test.expected {
 			t.Error("Test", i, "Failed. Got", result, "wanted", test.expected)
@@ -61,8 +49,8 @@ func TestHandValue(t *testing.T) {
 	}
 }
 
-func createHand(t *testing.T, deck *boardgame.Deck, ranks ...int) boardgame.MutableStack {
-	result := deck.NewStack(0)
+func createHand(t *testing.T, deck *boardgame.Deck, ranks ...int) []*boardgame.Component {
+	var result []*boardgame.Component
 
 	givenCards := make(map[int]bool)
 
@@ -78,12 +66,12 @@ func createHand(t *testing.T, deck *boardgame.Deck, ranks ...int) boardgame.Muta
 
 			if card.Rank.Value() == rank {
 				//Found one!
-				result.UnsafeInsertNextComponent(t, c)
+				result = append(result, c)
 				givenCards[i] = true
 				break
 			}
 		}
-		if result.Len() <= i {
+		if len(result) <= i {
 			//Didn't find a card, must not be any left!
 			panic("Wasn't possible to fulfill the cards you asked for")
 		}
