@@ -580,6 +580,10 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 		case TypeEnum:
 			enumConst, err := input.EnumProp(propName)
 			if err != nil {
+				//if the err is ErrPropertyImmutable, that's OK, just skip
+				if err == ErrPropertyImmutable {
+					continue
+				}
 				return errors.New(propName + " did not return an EnumVal as expected: " + err.Error())
 			}
 			outputEnum, err := outputContainer.MutableEnumProp(propName)
@@ -594,6 +598,10 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 		case TypeStack:
 			stackVal, err := input.MutableStackProp(propName)
 			if err != nil {
+				//if the err is ErrPropertyImmutable, that's OK, just skip
+				if err == ErrPropertyImmutable {
+					continue
+				}
 				return errors.New(propName + " did not return a stack as expected: " + err.Error())
 			}
 			outputStack, err := outputContainer.MutableStackProp(propName)
@@ -610,6 +618,10 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 		case TypeTimer:
 			timerVal, err := input.MutableTimerProp(propName)
 			if err != nil {
+				//if the err is ErrPropertyImmutable, that's OK, just skip
+				if err == ErrPropertyImmutable {
+					continue
+				}
 				return errors.New(propName + " did not return a timer as expected: " + err.Error())
 			}
 			outputTimer, err := outputContainer.MutableTimerProp(propName)
