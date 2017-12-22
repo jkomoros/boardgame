@@ -28,6 +28,7 @@ The library is currently relativley full-featured. Here are a few of the known g
 - **Support of Multiple Browsers** (Issue #324) Currently the web-app only fully works in Chrome, with limited testing in other browsers
 - **More Contorl over Animations** (Issue #396) Currently moves that are applied one after another don't pause to allow animations to play
 - **Examples with a board** None of the example games in the main repo use a board, which means that tools aimed at board-based-games aren't fleshed out
+- **Smooth Upgrading** (Issue #184) If you change the shape of the state objects in your game, there's currently no way to handle older versions of the game stored in your database.
 
 Many more small things are still rough or not implemented. Please file issues or comment on existing issues in the tracker for things you're missing!
 
