@@ -688,7 +688,8 @@ func TestMoveComponent(t *testing.T) {
 		t.Error("sStackMaxLen was not initalized like expected. Got", sStackMaxLen.indexes)
 	}
 
-	sStackOtherState := sStack.mutableCopy()
+	sStackOtherState := deck.NewSizedStack(5)
+	sStackOtherState.importFrom(sStack)
 	sStackOtherState.setState(&state{})
 
 	tests := []struct {
@@ -829,10 +830,14 @@ func TestMoveComponent(t *testing.T) {
 
 		switch s := test.source.(type) {
 		case *growableStack:
-			source = s.mutableCopy()
+			source = deck.NewStack(0)
+			source.importFrom(s)
 		case *sizedStack:
-			source = s.mutableCopy()
+			source = deck.NewSizedStack(5)
+			source.importFrom(s)
 		}
+
+		source.setState(test.source.state())
 
 		//Some tests deliberately want to make sure that copies within same source and dest aren't allowed
 		if test.source == test.destination {
@@ -841,10 +846,13 @@ func TestMoveComponent(t *testing.T) {
 
 			switch s := test.destination.(type) {
 			case *growableStack:
-				destination = s.mutableCopy()
+				destination = deck.NewStack(0)
+				destination.importFrom(s)
 			case *sizedStack:
-				destination = s.mutableCopy()
+				destination = deck.NewSizedStack(5)
+				destination.importFrom(s)
 			}
+			destination.setState(test.destination.state())
 		}
 
 		preMoveSourceNumComponents := source.NumComponents()
@@ -998,7 +1006,9 @@ func TestGrowableStackInsertComponentAt(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		stackCopy := stack.copy().(*growableStack)
+		stackCopy := deck.NewStack(0).(*growableStack)
+
+		stackCopy.importFrom(stack)
 
 		component := deck.ComponentAt(test.componentDeckIndex)
 
@@ -1067,7 +1077,9 @@ func TestGrowableStackRemoveComponentAt(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		stackCopy := stack.copy().(*growableStack)
+		stackCopy := deck.NewStack(0).(*growableStack)
+
+		stackCopy.importFrom(stack)
 
 		if !reflect.DeepEqual(stackCopy.indexes, startingIndexes) {
 			t.Error("Sanity check failed for", i, "Starting indexes were", stackCopy.indexes, "wanted", startingIndexes)

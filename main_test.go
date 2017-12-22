@@ -93,13 +93,6 @@ func (t *testingComponentDynamic) MutableState() MutableState {
 	return t.mutableState
 }
 
-func (t *testingComponentDynamic) Copy() MutableSubState {
-	var result testingComponentDynamic
-	result = *t
-	result.Stack = t.Stack.mutableCopy()
-	return &result
-}
-
 func componentsEqual(one *Component, two *Component) bool {
 	if one == nil && two == nil {
 		return true

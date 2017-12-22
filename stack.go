@@ -253,15 +253,10 @@ type MutableStack interface {
 	//special index constants.
 	legalSlot(index int) bool
 
-	//Copy returns a copy of this stack.
-	copy() Stack
-
 	//used to import the state from another stack into this one. This allows
 	//stacks to be phsyically the same within a state as what was returned
 	//from the constructor.
 	importFrom(other Stack) error
-
-	mutableCopy() MutableStack
 }
 
 //These special Indexes are designed to be provided to stack.MoveComponent.
@@ -454,12 +449,6 @@ func (g *growableStack) copyFrom(other *growableStack) {
 	}
 }
 
-func (g *growableStack) copy() Stack {
-	result := new(growableStack)
-	result.copyFrom(g)
-	return result
-}
-
 func (s *sizedStack) importFrom(other Stack) error {
 	otherSized, ok := other.(*sizedStack)
 
@@ -482,20 +471,6 @@ func (s *sizedStack) copyFrom(other *sizedStack) {
 	for key, val := range other.idsLastSeen {
 		s.idsLastSeen[key] = val
 	}
-}
-
-func (s *sizedStack) copy() Stack {
-	result := new(sizedStack)
-	result.copyFrom(s)
-	return result
-}
-
-func (s *sizedStack) mutableCopy() MutableStack {
-	return s.copy().(MutableStack)
-}
-
-func (g *growableStack) mutableCopy() MutableStack {
-	return g.copy().(MutableStack)
 }
 
 //Len returns the number of items in the stack.
