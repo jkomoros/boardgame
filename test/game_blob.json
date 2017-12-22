@@ -50,7 +50,42 @@
           ""
         ],
         "IdsLastSeen": {}
-        }
+      },
+      "OtherStack": {
+          "Deck": "test",
+          "Size": 2,
+          "Indexes": [
+              -1,
+              -1
+          ],
+          "Ids":[
+              "",
+              ""
+          ],
+          "IdsLastSeen": {}
+      },
+      "MyMergedStack": {
+          "Deck": "test",
+          "Size": 6,
+          "Indexes": [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+          ],
+          "Ids":[
+              "",
+              "",
+              "",
+              "",
+              "",
+              ""
+          ],
+          "IdsLastSeen": {}
+      }
+
     },
     "Players": [
       {

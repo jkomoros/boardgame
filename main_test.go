@@ -151,6 +151,8 @@ type testGameState struct {
 	MyEnumValue        enum.MutableVal
 	MyEnumConst        enum.Val
 	DownSizeStack      MutableStack `sizedstack:"test,4"`
+	OtherStack         MutableStack `sizedstack:"test,2"`
+	MyMergedStack      Stack        `concatenate:"DownSizeStack,OtherStack"`
 	//TODO: have a Stack here.
 }
 
