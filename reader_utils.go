@@ -131,7 +131,6 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 						isFixed,
 					}
 				}
-				//TODO: if we got immutable tags (overlap or concatenate) complain here
 			}
 
 			//If the read setter isn't provided we assume that the stack
@@ -177,7 +176,6 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 						overlap,
 					}
 				}
-				//TODO: if we got mutable tags (stack or sizedstack) complain here
 			}
 
 		case TypeEnum:
