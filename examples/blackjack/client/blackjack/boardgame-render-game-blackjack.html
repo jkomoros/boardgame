@@ -45,7 +45,7 @@
       <template is="dom-repeat" items="{{state.Players}}">
         <div class$="player flex {{_bustedClass(item.Busted)}}">
           <strong>Player {{index}}</strong>
-          <boardgame-component-stack secondary-stack="{{item.VisibleHand}}" primary-stack="{{item.HiddenHand}}" stack-combine="concatenate" layout="fan" messy component-rotated>
+          <boardgame-component-stack stack="{{item.Hand}}" layout="fan" messy component-rotated>
             <boardgame-fading-text trigger="{{item.Busted}}" message="Busted!"></boardgame-fading-text>
             <boardgame-fading-text trigger="{{item.Stood}}" message="Stand!"></boardgame-fading-text>
           </boardgame-component-stack>

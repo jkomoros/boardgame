@@ -3544,6 +3544,7 @@ func (g *gameState) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 
 var __playerStateReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
 	"Busted":      boardgame.TypeBool,
+	"Hand":        boardgame.TypeStack,
 	"HiddenHand":  boardgame.TypeStack,
 	"Stood":       boardgame.TypeBool,
 	"VisibleHand": boardgame.TypeStack,
@@ -3598,6 +3599,8 @@ func (p *__playerStateReader) PropMutable(name string) bool {
 	switch name {
 	case "Busted":
 		return true
+	case "Hand":
+		return false
 	case "HiddenHand":
 		return true
 	case "Stood":
@@ -3906,6 +3909,8 @@ func (p *__playerStateReader) SetPlayerIndexSliceProp(name string, value []board
 func (p *__playerStateReader) StackProp(name string) (boardgame.Stack, error) {
 
 	switch name {
+	case "Hand":
+		return p.data.Hand, nil
 	case "HiddenHand":
 		return p.data.HiddenHand, nil
 	case "VisibleHand":
@@ -3920,6 +3925,8 @@ func (p *__playerStateReader) StackProp(name string) (boardgame.Stack, error) {
 func (p *__playerStateReader) ConfigureMutableStackProp(name string, value boardgame.MutableStack) error {
 
 	switch name {
+	case "Hand":
+		return boardgame.ErrPropertyImmutable
 	case "HiddenHand":
 		p.data.HiddenHand = value
 		return nil
@@ -3936,6 +3943,9 @@ func (p *__playerStateReader) ConfigureMutableStackProp(name string, value board
 func (p *__playerStateReader) ConfigureStackProp(name string, value boardgame.Stack) error {
 
 	switch name {
+	case "Hand":
+		p.data.Hand = value
+		return nil
 	case "HiddenHand":
 		return boardgame.ErrPropertyImmutable
 	case "VisibleHand":
@@ -3950,6 +3960,8 @@ func (p *__playerStateReader) ConfigureStackProp(name string, value boardgame.St
 func (p *__playerStateReader) MutableStackProp(name string) (boardgame.MutableStack, error) {
 
 	switch name {
+	case "Hand":
+		return nil, boardgame.ErrPropertyImmutable
 	case "HiddenHand":
 		return p.data.HiddenHand, nil
 	case "VisibleHand":
