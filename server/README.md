@@ -141,7 +141,7 @@ The `boardgame-component-stack` will automatically instantiate and bind componen
 Any properties on the `boardgame-stack` of form `component-my-prop` will have `my-prop` stamped on each component that's created. That allows different stacks to, for example, have their components rotated or not. If you want a given attribute to be bound to each component's index in the array, add it in the special attribute `component-index-attributes`, like so:
 
 ```
-<boardgame-component-stack layout="grid" messy primary-stack="{{state.Game.RevealedCards}}" secondary-stack="{{state.Game.HiddenCards}}" component-propose-move="Reveal Card" component-index-attributes="data-arg-card-index">
+<boardgame-component-stack layout="grid" messy stack="{{state.Game.Cards}}" component-propose-move="Reveal Card" component-index-attributes="data-arg-card-index">
 </boardgame-component-stack>
 ```
 

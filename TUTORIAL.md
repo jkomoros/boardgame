@@ -66,7 +66,8 @@ type gameState struct {
 	NumCards       int
 	CurrentPlayer  boardgame.PlayerIndex
 	HiddenCards    boardgame.MutableStack `sizedstack:"cards,40" sanitize:"order"`
-	RevealedCards  boardgame.MutableStack `sizedstack:"cards,40"`
+	VisibleCards   boardgame.MutableStack `sizedstack:"cards,40"`
+	Cards          boardgame.Stack        `overlap:"VisibleCards,HiddenCards"`
 	HideCardsTimer boardgame.MutableTimer
 	//Where cards not in use reside most of the time
 	UnusedCards boardgame.MutableStack `stack:"cards"`
@@ -88,7 +89,7 @@ At the core you can see that these objects are simple structs with (mostly) publ
 It's not explicitly listed, but the only (public) properties on these objects are ones that are
 legal according to `boardgame.PropertyType`. Your GameManager would fail to be created if your state structs included illegal property types.
 
-Note the first anonymous field of `boardgame.BaseSubState`. This is a simple struct designed to be anonymously embedded in the substates you define that implements the SetState method that SubStates must define. You'll normally just want to anonymously embed it in your gameState and playerStates.
+Note the first anonymous field of `boardgame.BaseSubState`. This is a simple struct designed to be anonymously embedded in the substates you define that implements the SetState method that SubStates must define. It's technically optional, but you'll normally just want to anonymously embed it in your gameState and playerStates.
 
 Most of the properties are straightforward. Each player has how many cards they are still allowed to draw this turn, for example.
 
@@ -108,7 +109,7 @@ Each Stack is associated with exactly one deck, and only components that are mem
 
 **Each component must be in precisely one stack in every state**. This reflects the notion that components are phsyical objects that are in only one location at any given time, and must exist *somewhere*. Later we will see how the methods available on stacks to move around components help enforce that invariant.
 
-When a memory game starts, most of the cards will be in GameState.HiddenCards. Players can also have cards in a stack in their hand when they win them, in WonCards. You'll note that there are actually two stacks for cards in GameState: HiddenCards and RevealedCards. We'll get into why that is later.
+When a memory game starts, most of the cards will be in GameState.HiddenCards. Players can also have cards in a stack in their hand when they win them, in WonCards. You'll note that there are actually three stacks for cards in GameState: HiddenCards, VisibleCards, and Cards. We'll get into why that is later.
 
 #### autoreader
 
@@ -145,14 +146,21 @@ type PropertyReadSetter interface {
 	MutableStackProp(name string) (MutableStack, error)
 	MutableTimerProp(name string) (MutableTimer, error)
 
+	PropMutable(name string) bool
+
 	SetProp(name string, value interface{}) error
 }
 
 type PropertyReadSetConfigurer interface {
 	PropertyReadSetter
+
 	ConfigureMutableEnumProp(name string, value enum.MutableVal) error
 	ConfigureMutableStackProp(name string, value MutableStack) error
 	ConfigureMutableTimerProp(name string, value MutableTimer) error
+
+    ConfigureEnumProp(name string, value enum.Val) error
+    ConfigureStackProp(name string, value Stack) error
+    ConfigureTimerProp(name string, value Timer) error
 
 	ConfigureProp(name string, value interface{}) error
 }
@@ -191,7 +199,7 @@ type MyStruct struct {
 
 Then, every time you change the shape of one of your objects, run `go generate` on the command line. That will create `autoreader.go`, with generated getters and setters for all of your objects.
 
-One other thing to note: the actual concrete structs that you define, like `gameState` and `playerState`, should always include the Mutable variant of an interface type (`MutableStack`, `MutableEnum`, and `MutableTimer`); the PropertyReader methods will return just the read-only subset of those objects. The only exception is in structs that will be used in ComponentValues--those may use `enum.Val` since those objects will never implement `PropertyReadSetter` or `PropertyReadSetConfigurer`.
+One other thing to note: the actual concrete structs that you define, like `gameState` and `playerState`, should almost always include the Mutable variant of an interface type (`MutableStack`, `MutableEnum`, and `MutableTimer`); the PropertyReader methods will return just the read-only subset of those objects. In general the whole point of having a state object is to represent the state that *changes* which is why you generally want the Mutable variant. However, there are couple of cases where you might want the immutable variant: when you have read-only properties on a component, or when you're using Merged Stacks, which are inherently read-only (more on that later). But for the most part just always use the Mutable variants in your state objects.
 
 The game engine generally reasons about States as one concrete object made up of one GameState, and **n** PlayerStates (one for each player). (There are other components of State that we'll get into later.) The `State` object is defined in the core package, and the getters for Game and Player states return things that generically implement the interface, although under the covers they are the concrete type specific to your game type. Many of the methods you implement will accept a State object. Of course, it would be a total pain if you had to interact with all of your objects within your own package that way--to say nothing of losing a lot of type safety.
 
@@ -314,7 +322,7 @@ func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 
 	return &gameState{
 		HiddenCards:   cards.NewSizedStack(len(cards.Components())),
-		RevealedCards: cards.NewSizedStack(len(cards.Components())),
+		VisibleCards: cards.NewSizedStack(len(cards.Components())),
 	}
 }
 ```
@@ -328,7 +336,7 @@ The answer is in the struct tags in game and playerStates:
 type gameState struct {
 	//...
 	HiddenCards    boardgame.MutableStack `sizedstack:"cards,40" sanitize:"order"`
-	RevealedCards  boardgame.MutableStack `sizedstack:"cards,40"`
+	VisibleCards  boardgame.MutableStack `sizedstack:"cards,40"`
 	UnusedCards    boardgame.MutableStack `stack:"cards"`
 	//...
 }
@@ -359,7 +367,7 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, 
 
     game, players := concreteStates(state)
 
-    if game.HiddenCards.NumComponents() != 0 || game.RevealedCards.NumComponents() != 0 {
+    if game.Cards.NumComponents > 0 {
         return false, nil
     }
 
@@ -394,7 +402,7 @@ However, this pattern--check if the game is finished, and if it is return as a w
 func (g *gameDelegate) GameEndConditionMet(state boardgame.State) bool {
 	game, _ := concreteStates(state)
 
-	if game.HiddenCards.NumComponents() != 0 || game.RevealedCards.NumComponents() != 0 {
+	if game.Cards.NumComponents() > 0 {
 		return false
 	}
 
@@ -568,7 +576,7 @@ func (p *playerState) TurnDone(state boardgame.State) error {
 
     game, _ := concreteStates(state)
 
-    if game.RevealedCards.NumComponents() > 0 {
+    if game.VisibleCards.NumComponents() > 0 {
         return errors.New("there are still some cards revealed, which they must hide")
     }
 
@@ -645,7 +653,7 @@ func (m *MoveHideCards) Legal(state boardgame.State, proposer boardgame.PlayerIn
         return errors.New("You still have to reveal more cards before your turn is over")
     }
 
-    if game.RevealedCards.NumComponents() < 1 {
+    if game.VisibleCards.NumComponents() < 1 {
         return errors.New("No cards left to hide!")
     }
 
@@ -662,9 +670,9 @@ func (m *MoveHideCards) Apply(state boardgame.MutableState) error {
     //Cancel a timer in case it was still going.
     game.HideCardsTimer.Cancel()
 
-    for i, c := range game.RevealedCards.Components() {
+    for i, c := range game.VisibleCards.Components() {
         if c != nil {
-            if err := game.RevealedCards.MoveComponent(i, game.HiddenCards, i); err != nil {
+            if err := game.VisibleCards.MoveComponent(i, game.HiddenCards, i); err != nil {
                 return errors.New("Couldn't move component: " + err.Error())
             }
         }
@@ -832,7 +840,7 @@ In almost all cases you will define your policy with struct tags. It is possible
 
 The sanitization configuration is a constant and may never change. Policies apply at the granularity of a property, which means that all components in a given stack will have the same policy applied.
 
-This immutability of the policy explains why memory's GameState has two stacks: HiddenCards and RevealedCards. HiddenCards has a policy to never show the value of the cards in that stack (only the presence or abscence of a card in each slot), whereas RevealCard always shows the values of the cards in it. To "flip" a card from hidden to visible, the `RevealCard` move moves the given card from the HiddenCards stack to the same slot in the RevealedCards stack. On the client the two stacks are merged into one logical stack and rendered appropriately (we'll dig into client rendering, and this particular pattern, more later in the tutorial).
+This immutability of the policy explains why memory's GameState has two stacks: HiddenCards and VisibleCards. HiddenCards has a policy to never show the value of the cards in that stack (only the presence or abscence of a card in each slot), whereas RevealCard always shows the values of the cards in it. To "flip" a card from hidden to visible, the `RevealCard` move moves the given card from the HiddenCards stack to the same slot in the VisibleCards stack. On the client the two stacks are merged into one logical stack and rendered appropriately (we'll dig into client rendering, and this particular pattern, more later in the tutorial).
 
 Policies are immutable, but different players might see different things for the same property. For example, in a game of poker no player (except an Admin) should ever be able to see the values (or order) of cards in the DrawStack. Similiarly, the only person who should be able to see the values of the cards in a player's poker hand is that particular player (or the admin).
 
@@ -877,7 +885,8 @@ type gameState struct {
 	NumCards       int
 	CurrentPlayer  boardgame.PlayerIndex
 	HiddenCards    boardgame.MutableStack `sizedstack:"cards,40" sanitize:"order"`
-	RevealedCards  boardgame.MutableStack `sizedstack:"cards,40"`
+	VisibleCards   boardgame.MutableStack `sizedstack:"cards,40"`
+	Cards          boardgame.Stack        `overlap:"VisibleCards,HiddenCards"`
 	HideCardsTimer boardgame.MutableTimer
 	//Where cards not in use reside most of the time
 	UnusedCards boardgame.MutableStack `stack:"cards"`
@@ -894,7 +903,19 @@ type playerState struct {
 
 HiddenCards is the only stack that is sanitized; everything else is fully visible.
 
-That's not a particularly interesting example. Here's the states for blackjack:
+Now that we know about sanitization, we can finally understand why there are three stacks in game: `HiddenCards`, `VisibleCards`, and `Cards`. 
+
+##### Aside: Merged Stacks
+
+Each stack must be sanitized the same way--if the components are hidden, then **all** of the components are hidden. But in memory, there are cards that are hidden and cards that are revealed in the same area. 
+
+The way we do it is by **merging** two stacks together, so they can be used logically as one read-only stack, both server and client-side. There are two types of merged stacks, and they're both created in a similar way. ``NewOveralappedStack`` returns an overlapped stack, and `NewConcatenatedStack` returns a concatenated stack. An overlapped stack takes the first stack provided and returns those components--unless that slot is empty, in which case whatever is in that location of the second slot is returned. For overlapped stacks, both stacks must be fixed size, and they both must be the same size. Concatenated stacks simply have all of the slots of the first stack followed by all of the slots of the second stack.
+
+We can use tag-based auto-inflation for merged stacks, too. We use either `concatenate` or `overlap` and then pass the property names of the input stacks. Note that because Merged Stacks are fundamentally read only, they must be stored in an immutable stack property in your state object. (One of the rare cases where you want a `Stack` property but not a `MutableStack`.) Note that to use tag-based auto inflation the properties must be in the same object. If you want to combine two stacks in different SubStates, you can return them as a Computed Property instead (see the section below on computed properties).
+
+When you use merged stacks, the convention is to name the hidden stack `HiddenFoo`, the visible stack `VisibleFoo`, and the merged stack that combines them just `Foo`.
+
+That's not a *particularly* interesting example. Here's the states for blackjack:
 
 ```
 //+autoreader
@@ -913,6 +934,7 @@ type playerState struct {
 	playerIndex boardgame.PlayerIndex
 	HiddenHand  boardgame.MutableStack `stack:"cards,1" sanitize:"len"`
 	VisibleHand boardgame.MutableStack `stack:"cards"`
+	Hand        boardgame.Stack        `concatenate:"HiddenHand,VisibleHand"`
 	Busted      bool
 	Stood       bool
 }
@@ -924,6 +946,9 @@ that blackjack also uses the same pattern that memory does with a separate
 Hidden and Revealed hand, since some of the cards in the hand are hidden.) In
 these cases PolicyLen and PolicyOrder are effectively equivalent, because the
 order of the cards in those stacks never change anyway.
+
+Note that Blackjack also makes use of Merged Stacks, but with concatenation
+instead of overlapping.
 
 That's a whirlwind tour of the core concepts that you'll need to know to
 implement just about any game. There are other concepts that are useful in some
@@ -1112,7 +1137,7 @@ The `boardgame-component-stack` will automatically instantiate and bind componen
 Any properties on the `boardgame-stack` of form `component-my-prop` will have `my-prop` stamped on each component that's created. That allows different stacks to, for example, have their components rotated or not. If you want a given attribute to be bound to each component's index in the array, add it in the special attribute `component-index-attributes`, like so:
 
 ```
-<boardgame-component-stack layout="grid" messy primary-stack="{{state.Game.RevealedCards}}" secondary-stack="{{state.Game.HiddenCards}}" component-propose-move="Reveal Card" component-index-attributes="data-arg-card-index">
+<boardgame-component-stack layout="grid" messy stack="{{state.Game.Cards}}" component-propose-move="Reveal Card" component-index-attributes="data-arg-card-index">
 </boardgame-component-stack>
 ```
 
@@ -1160,30 +1185,28 @@ In general your renderer is mostly concerned with telling the data-binding syste
 
 Here's the data-binding for Memory:
 ```
-
-    <h2>Memory</h2>
-    <boardgame-card-stack layout="grid" messy primary-stack="{{state.Game.RevealedCards}}" secondary-stack="{{state.Game.HiddenCards}}">
-      <template is="dom-repeat">
-          <boardgame-card title="{{index}}" item="{{item}}" index="{{index}}" propose-move="Reveal Card" data-arg-card-index$="{{index}}">
-          </boardgame-card>
+    <boardgame-deck-defaults>
+      <template deck="cards">
+        <boardgame-card>
+          <div>
+            {{item.Values.Type}}
+          </div>
+        </boardgame-card>
       </template>
-      <boardgame-fading-text message="Match" trigger="{{state.Computed.Global.CardsInGrid}}"></boardgame-fading-text>
-    </boardgame-card-stack>
+    </boardgame-deck-defaults>
+    <h2>Memory</h2>
+    <div>
+      <boardgame-component-stack layout="grid" messy stack="{{state.Game.Cards}}" component-propose-move="Reveal Card" component-index-attributes="data-arg-card-index">
+      </boardgame-component-stack>
+       <boardgame-fading-text message="Match" trigger="{{state.Game.Cards.NumComponents}}"></boardgame-fading-text>
+    </div>
     <div class="layout horizontal around-justified discards">
-      <boardgame-card-stack layout="stack" stack="{{state.Players.0.WonCards}}" messy>
-        <template is="dom-repeat">
-          <boardgame-card item="{{item}}" index="{{index}}" disabled>
-          </boardgame-card>
-        </template>
-      </boardgame-card-stack>
+      <boardgame-component-stack layout="stack" stack="{{state.Players.0.WonCards}}" messy component-disabled>
+      </boardgame-component-stack>
       <!-- have a boardgame-card spacer just to keep that row height sane even with no cards -->
       <boardgame-card spacer></boardgame-card>
-      <boardgame-card-stack layout="stack" messy stack="{{state.Players.1.WonCards}}">
-        <template is="dom-repeat">
-          <boardgame-card item="{{item}}" index="{{index}}" disabled>
-          </boardgame-card>
-        </template>
-      </boardgame-card-stack>
+      <boardgame-component-stack layout="stack" messy stack="{{state.Players.1.WonCards}}" component-disabled>
+      </boardgame-component-stack>
     </div>
     <paper-button id="hide" propose-move="Hide Cards" raised disabled="{{state.Computed.Global.CurrentPlayerHasCardsToReveal}}">Hide Cards</paper-button>
     <paper-progress id="timeleft" value="{{state.Game.HideCardsTimer.TimeLeft}}" max="{{maxTimeLeft}}"></paper-progress>
@@ -1244,12 +1267,13 @@ func (g *gameDelegate) ComputedGlobalProperties(state boardgame.State) boardgame
 	game, _ := concreteStates(state)
 	return boardgame.PropertyCollection{
 		"CurrentPlayerHasCardsToReveal": game.CurrentPlayerHasCardsToReveal(),
-		"CardsInGrid":                   game.CardsInGrid(),
 	}
 }
 ```
 
 Note that when this method is called, your state will likely aready have been sanitized, which means that **your computed property methods should return reasonable values for sanitized states**. In most cases you don't have to think much about this, because all sanitization transformations keep the objects of the same "shape". But it is something to keep an eye out for.
+
+Note that although Merged Stacks might *feel* like computed properties, in most cases (as long as the stacks are on the same SubState object), you can simply use tag-based auto-inflation and have the merged stacks live directly on your state objects.
 
 ### Enums
 
