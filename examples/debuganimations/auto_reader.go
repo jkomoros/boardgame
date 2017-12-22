@@ -3924,6 +3924,7 @@ func (m *moveMoveTokenSanitized) ReadSetConfigurer() boardgame.PropertyReadSetCo
 // Implementation for gameState
 
 var __gameStateReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
+	"Card":                boardgame.TypeStack,
 	"CurrentPlayer":       boardgame.TypePlayerIndex,
 	"DiscardStack":        boardgame.TypeStack,
 	"DrawStack":           boardgame.TypeStack,
@@ -3988,6 +3989,8 @@ func (g *__gameStateReader) Prop(name string) (interface{}, error) {
 
 func (g *__gameStateReader) PropMutable(name string) bool {
 	switch name {
+	case "Card":
+		return false
 	case "CurrentPlayer":
 		return true
 	case "DiscardStack":
@@ -4315,6 +4318,8 @@ func (g *__gameStateReader) SetPlayerIndexSliceProp(name string, value []boardga
 func (g *__gameStateReader) StackProp(name string) (boardgame.Stack, error) {
 
 	switch name {
+	case "Card":
+		return g.data.Card, nil
 	case "DiscardStack":
 		return g.data.DiscardStack, nil
 	case "DrawStack":
@@ -4353,6 +4358,8 @@ func (g *__gameStateReader) StackProp(name string) (boardgame.Stack, error) {
 func (g *__gameStateReader) ConfigureMutableStackProp(name string, value boardgame.MutableStack) error {
 
 	switch name {
+	case "Card":
+		return boardgame.ErrPropertyImmutable
 	case "DiscardStack":
 		g.data.DiscardStack = value
 		return nil
@@ -4405,6 +4412,9 @@ func (g *__gameStateReader) ConfigureMutableStackProp(name string, value boardga
 func (g *__gameStateReader) ConfigureStackProp(name string, value boardgame.Stack) error {
 
 	switch name {
+	case "Card":
+		g.data.Card = value
+		return nil
 	case "DiscardStack":
 		return boardgame.ErrPropertyImmutable
 	case "DrawStack":
@@ -4443,6 +4453,8 @@ func (g *__gameStateReader) ConfigureStackProp(name string, value boardgame.Stac
 func (g *__gameStateReader) MutableStackProp(name string) (boardgame.MutableStack, error) {
 
 	switch name {
+	case "Card":
+		return nil, boardgame.ErrPropertyImmutable
 	case "DiscardStack":
 		return g.data.DiscardStack, nil
 	case "DrawStack":

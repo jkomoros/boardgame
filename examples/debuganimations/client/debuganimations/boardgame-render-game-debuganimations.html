@@ -112,7 +112,7 @@
       </div>
 
       <div id='draw'>
-        <boardgame-component-stack layout='stack' messy="{{messy}}" primary-stack="{{state.Game.HiddenCard}}" secondary-stack="{{state.Game.RevealedCard}}"> 
+        <boardgame-component-stack layout='stack' messy="{{messy}}" stack="{{state.Game.Card}}"> 
         </boardgame-component-stack>
         <paper-button propose-move="Flip Card Between Hidden and Revealed">Flip</paper-button>
       </div>
