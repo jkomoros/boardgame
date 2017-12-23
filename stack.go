@@ -333,8 +333,7 @@ type sizedStack struct {
 //mergedStack is a derived stack that is made of two stacks, either in
 //concatenate mode (default) or overlap mode.
 type mergedStack struct {
-	first   Stack
-	second  Stack
+	stacks  []Stack
 	overlap bool
 }
 
@@ -351,29 +350,27 @@ type stackJSONObj struct {
 
 //NewConcatenatedStack returns a new merged stack where all of the components
 //in the first stack will show up, then all of the components in the second
-//stack. In practice this is useful as a computed property when you have a
-//logical stack made up of components that are santiized followed by
-//components that are not sanitized, like in a blackjack hand. Both stacks
-//must be from the same deck.
-func NewConcatenatedStack(first, second Stack) Stack {
+//stack, and on down the list of stacks. In practice this is useful as a
+//computed property when you have a logical stack made up of components that
+//are santiized followed by components that are not sanitized, like in a
+//blackjack hand. All stacks must be from the same deck.
+func NewConcatenatedStack(stack ...Stack) Stack {
 	return &mergedStack{
-		first:   first,
-		second:  second,
+		stacks:  stack,
 		overlap: false,
 	}
 }
 
 //NewOverlappedStack returns a new merged stack where any gaps in the first
 //stack will be filled with whatever is in the same position in the second
-//stack. In practice this is useful as a computed property when you have a
-//logical stack made up of components where some are sanitized and some are
-//not, like the grid of cards in Memory. Both stacks must be from the same
-//deck, and both stacks must be FixedSize.
-func NewOverlappedStack(first, second Stack) Stack {
+//stack, and so on down the line. In practice this is useful as a computed
+//property when you have a logical stack made up of components where some are
+//sanitized and some are not, like the grid of cards in Memory. All stacks
+//must be from the same deck, and all stacks must be FixedSize.
+func NewOverlappedStack(stack ...Stack) Stack {
 
 	return &mergedStack{
-		first:   first,
-		second:  second,
+		stacks:  stack,
 		overlap: true,
 	}
 
@@ -476,10 +473,17 @@ func (s *sizedStack) Len() int {
 }
 
 func (m *mergedStack) Len() int {
-	if m.overlap {
-		return m.first.Len()
+	if len(m.stacks) == 0 {
+		return 0
 	}
-	return m.first.Len() + m.second.Len()
+	if m.overlap {
+		return m.stacks[0].Len()
+	}
+	result := 0
+	for _, stack := range m.stacks {
+		result += stack.Len()
+	}
+	return result
 }
 
 func (g *growableStack) NumComponents() int {
@@ -497,20 +501,30 @@ func (s *sizedStack) NumComponents() int {
 }
 
 func (m *mergedStack) NumComponents() int {
+	if len(m.stacks) == 0 {
+		return 0
+	}
 	if m.overlap {
 		count := 0
-		for i, c := range m.first.Components() {
+		for i, c := range m.stacks[0].Components() {
 			if c != nil {
 				count++
 				continue
 			}
-			if c := m.second.ComponentAt(i); c != nil {
-				count++
+			for depth := 1; depth < len(m.stacks); depth++ {
+				if c := m.stacks[depth].ComponentAt(i); c != nil {
+					count++
+					break
+				}
 			}
 		}
 		return count
 	}
-	return m.first.NumComponents() + m.second.NumComponents()
+	result := 0
+	for _, stack := range m.stacks {
+		result += stack.NumComponents()
+	}
+	return result
 }
 
 func (g *growableStack) FixedSize() bool {
@@ -522,7 +536,12 @@ func (s *sizedStack) FixedSize() bool {
 }
 
 func (m *mergedStack) FixedSize() bool {
-	return m.first.FixedSize() && m.second.FixedSize()
+	for _, stack := range m.stacks {
+		if !stack.FixedSize() {
+			return false
+		}
+	}
+	return true
 }
 
 func (g *growableStack) Valid() error {
@@ -534,26 +553,37 @@ func (s *sizedStack) Valid() error {
 }
 
 func (m *mergedStack) Valid() error {
-	if m.first == nil {
-		return errors.New("first stack is nil")
+	if len(m.stacks) == 0 {
+		return errors.New("No sub-stacks provided.")
 	}
-	if m.second == nil {
-		return errors.New("second stack is nil")
+	for i, stack := range m.stacks {
+		if stack == nil {
+			return errors.New("stack " + strconv.Itoa(i) + " is nil")
+		}
 	}
-	if m.first.deck() != m.second.deck() {
-		return errors.New("the two stacks are from different decks")
+	deck := m.stacks[0].deck()
+	for i, stack := range m.stacks {
+		if stack.deck() != deck {
+			return errors.New("stack " + strconv.Itoa(i) + " had a different deck than other sub-stacks")
+		}
 	}
 
 	if !m.overlap {
 		return nil
 	}
 
-	if !m.first.FixedSize() || !m.second.FixedSize() {
-		return errors.New("both stacks must be fixed size")
+	for i, stack := range m.stacks {
+		if !stack.FixedSize() {
+			return errors.New("stack " + strconv.Itoa(i) + " was not fixed size, but overlap stacks require them all to be fixed size")
+		}
 	}
 
-	if m.first.Len() != m.second.Len() {
-		return errors.New("both stacks must be same size to overlap")
+	stackLen := m.stacks[0].Len()
+
+	for i, stack := range m.stacks {
+		if stack.Len() != stackLen {
+			return errors.New("stack " + strconv.Itoa(i) + " was not the same length as the others")
+		}
 	}
 
 	return nil
@@ -581,22 +611,27 @@ func (s *sizedStack) Components() []*Component {
 }
 
 func (m *mergedStack) Components() []*Component {
+	if len(m.stacks) == 0 {
+		return []*Component{}
+	}
 	if m.overlap {
 
-		result := make([]*Component, len(m.first.Components()))
+		result := make([]*Component, len(m.stacks[0].Components()))
 
-		for i, c := range m.first.Components() {
-			if c != nil {
-				result[i] = c
-				continue
-			}
-			result[i] = m.second.ComponentAt(i)
+		for i, _ := range m.stacks[0].Components() {
+			result[i] = m.ComponentAt(i)
 		}
 		return result
 
 	}
 
-	return append(m.first.Components(), m.second.Components()...)
+	var result []*Component
+
+	for _, stack := range m.stacks {
+		result = append(result, stack.Components()...)
+	}
+
+	return result
 }
 
 //ComponentAt fetches the component object representing the n-th object in
@@ -639,16 +674,26 @@ func (s *sizedStack) ComponentAt(index int) *Component {
 }
 
 func (m *mergedStack) ComponentAt(index int) *Component {
+	if len(m.stacks) == 0 {
+		return nil
+	}
 	if m.overlap {
-		if c := m.first.ComponentAt(index); c != nil {
-			return c
+		for _, stack := range m.stacks {
+			if c := stack.ComponentAt(index); c != nil {
+				return c
+			}
 		}
-		return m.second.ComponentAt(index)
+		return nil
 	}
-	if index < m.first.Len() {
-		return m.first.ComponentAt(index)
+
+	for _, stack := range m.stacks {
+		if index < stack.Len() {
+			return stack.ComponentAt(index)
+		}
+		index -= stack.Len()
 	}
-	return m.second.ComponentAt(index - m.first.Len())
+
+	return nil
 }
 
 //ComponentValues returns the Values of each Component in order. Useful for
@@ -719,21 +764,40 @@ func (s *sizedStack) Ids() []string {
 
 func (m *mergedStack) Ids() []string {
 
-	firstIDs := m.first.Ids()
-	secondIDs := m.second.Ids()
+	if len(m.stacks) == 0 {
+		return []string{}
+	}
+
+	cachedIds := make([][]string, len(m.stacks))
+	for i, stack := range m.stacks {
+		cachedIds[i] = stack.Ids()
+	}
 
 	if m.overlap {
-		result := make([]string, len(firstIDs))
-		for i, ID := range firstIDs {
-			if ID == "" {
-				ID = secondIDs[i]
+
+		result := make([]string, len(cachedIds[0]))
+		for i, ID := range cachedIds[0] {
+			if ID != "" {
+				result[i] = ID
+				continue
 			}
-			result[i] = ID
+			for depth := 1; depth < len(m.stacks); depth++ {
+				if cachedIds[depth][i] != "" {
+					result[i] = cachedIds[depth][i]
+					break
+				}
+			}
 		}
 		return result
 	}
 
-	return append(firstIDs, secondIDs...)
+	var result []string
+
+	for _, ids := range cachedIds {
+		result = append(result, ids...)
+	}
+
+	return result
 }
 
 func stackIdsImpl(s Stack) []string {
@@ -770,11 +834,16 @@ func (s *sizedStack) IdsLastSeen() map[string]int {
 
 func (m *mergedStack) IdsLastSeen() map[string]int {
 	result := make(map[string]int)
-	for key, val := range m.first.IdsLastSeen() {
-		result[key] = val
-	}
-	for key, val := range m.second.IdsLastSeen() {
-		result[key] = val
+
+	for _, stack := range m.stacks {
+		for key, val := range stack.IdsLastSeen() {
+			//If there is a conflict, always prefer the highest last version
+			//number seen, because that's the semantic expectation of
+			//IdsLastSeen.
+			if val > result[key] {
+				result[key] = val
+			}
+		}
 	}
 	return result
 }
@@ -844,6 +913,11 @@ func (s *sizedStack) SlotsRemaining() int {
 }
 
 func (m *mergedStack) SlotsRemaining() int {
+
+	if len(m.stacks) == 0 {
+		return 0
+	}
+
 	if m.overlap {
 		count := 0
 		for _, c := range m.Components() {
@@ -853,12 +927,18 @@ func (m *mergedStack) SlotsRemaining() int {
 		}
 		return count
 	}
-	firstRemaining := m.first.SlotsRemaining()
-	secondRemaining := m.second.SlotsRemaining()
-	if firstRemaining == math.MaxInt64 || secondRemaining == math.MaxInt64 {
-		return math.MaxInt64
+
+	count := 0
+
+	for _, stack := range m.stacks {
+		if stack.SlotsRemaining() == math.MaxInt64 {
+			return math.MaxInt64
+		}
+		count += stack.SlotsRemaining()
 	}
-	return firstRemaining + secondRemaining
+
+	return count
+
 }
 
 func (s *sizedStack) MoveAllTo(other MutableStack) error {
@@ -893,7 +973,10 @@ func (s *sizedStack) state() *state {
 }
 
 func (m *mergedStack) state() *state {
-	return m.first.state()
+	if len(m.stacks) == 0 {
+		return nil
+	}
+	return m.stacks[0].state()
 }
 
 func (g *growableStack) setState(state *state) {
@@ -905,8 +988,9 @@ func (s *sizedStack) setState(state *state) {
 }
 
 func (m *mergedStack) setState(state *state) {
-	m.first.setState(state)
-	m.second.setState(state)
+	for i, _ := range m.stacks {
+		m.stacks[i].setState(state)
+	}
 }
 
 func (g *growableStack) deck() *Deck {
@@ -928,7 +1012,10 @@ func (s *sizedStack) deck() *Deck {
 }
 
 func (m *mergedStack) deck() *Deck {
-	return m.first.deck()
+	if len(m.stacks) == 0 {
+		return nil
+	}
+	return m.stacks[0].deck()
 }
 
 func (g *growableStack) modificationsAllowed() error {
@@ -1371,10 +1458,17 @@ func (s *sizedStack) SwapComponents(i, j int) error {
 }
 
 func (m *mergedStack) MaxSize() int {
-	if m.overlap {
-		return m.first.MaxSize()
+	if len(m.stacks) == 0 {
+		return 0
 	}
-	return m.first.MaxSize() + m.second.MaxSize()
+	if m.overlap {
+		return m.stacks[0].MaxSize()
+	}
+	count := 0
+	for _, stack := range m.stacks {
+		count += stack.MaxSize()
+	}
+	return count
 }
 
 func (g *growableStack) MaxSize() int {

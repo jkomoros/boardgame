@@ -22,9 +22,8 @@ type autoStackConfig struct {
 }
 
 type autoMergedStackConfig struct {
-	firstProp  string
-	secondProp string
-	overlap    bool
+	props   []string
+	overlap bool
 }
 
 type readerValidator struct {
@@ -157,22 +156,16 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 				}
 
 				if tag != "" {
-					first, second, err := unpackMergedStackStructTag(tag, exampleReader)
+					props, err := unpackMergedStackStructTag(tag, exampleReader)
 					if err != nil {
 						return nil, errors.New(propName + " was a nil stack and its struct tag was not valid: " + err.Error())
 					}
 
-					if _, err := exampleReader.StackProp(first); err != nil {
-						return nil, errors.New(propName + " had a merged stack, " + first + " but it didn't point to a valid property: " + err.Error())
-					}
-
-					if _, err := exampleReader.StackProp(second); err != nil {
-						return nil, errors.New(propName + " had a merged stack, " + second + " but it didn't point to a valid property: " + err.Error())
-					}
+					//unpackMergedStackStructTag already checked that the
+					//props pointed to are valid on this reader.
 
 					autoMergedStackFields[propName] = &autoMergedStackConfig{
-						first,
-						second,
+						props,
 						overlap,
 					}
 				}
@@ -309,25 +302,22 @@ func (r *readerValidator) AutoInflate(readSetConfigurer PropertyReadSetConfigure
 		if config == nil {
 			return errors.New("The config for " + propName + " was unexpectedly nil")
 		}
-		firstStack, err := readSetConfigurer.StackProp(config.firstProp)
-		if err != nil {
-			return errors.New(propName + " Couldn't fetch the first stack to merge: " + err.Error())
-		}
-		if firstStack == nil {
-			return errors.New(propName + " had a nil first stack")
-		}
-		secondStack, err := readSetConfigurer.StackProp(config.secondProp)
-		if err != nil {
-			return errors.New(propName + " Couldn't fetch the second stack to merge: " + err.Error())
-		}
-		if secondStack == nil {
-			return errors.New(propName + " had a nil second stack")
+		stacks := make([]Stack, len(config.props))
+		for i, prop := range config.props {
+			stack, err := readSetConfigurer.StackProp(prop)
+			if err != nil {
+				return errors.New(propName + " Couldn't fetch the " + strconv.Itoa(i) + " stack to merge: " + prop + ": " + err.Error())
+			}
+			if stack == nil {
+				return errors.New(propName + " had a nil " + strconv.Itoa(i) + " stack")
+			}
+			stacks[i] = stack
 		}
 
 		if config.overlap {
-			stack = NewOverlappedStack(firstStack, secondStack)
+			stack = NewOverlappedStack(stacks...)
 		} else {
-			stack = NewConcatenatedStack(firstStack, secondStack)
+			stack = NewConcatenatedStack(stacks...)
 		}
 
 		if err := readSetConfigurer.ConfigureStackProp(propName, stack); err != nil {
@@ -644,25 +634,26 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 
 }
 
-func unpackMergedStackStructTag(tag string, reader PropertyReader) (firstProp, secondProp string, err error) {
+func unpackMergedStackStructTag(tag string, reader PropertyReader) (stackNames []string, err error) {
 	pieces := strings.Split(tag, ",")
 
-	if len(pieces) != 2 {
-		return "", "", errors.New("There were more fields in the struct tag than expected.")
+	if len(pieces) < 2 {
+		return nil, errors.New("There were fewer properties than we expected.")
 	}
 
-	firstProp = strings.TrimSpace(pieces[0])
-	secondProp = strings.TrimSpace(pieces[1])
+	result := make([]string, len(pieces))
 
-	if _, err := reader.StackProp(firstProp); err != nil {
-		return "", "", errors.New(firstProp + " does not denote a valid stack property on that object")
+	for i, piece := range pieces {
+		prop := strings.TrimSpace(piece)
+
+		if _, err := reader.StackProp(prop); err != nil {
+			return nil, errors.New(prop + " does not denote a valid stack property on that object")
+		}
+		result[i] = prop
 	}
 
-	if _, err := reader.StackProp(secondProp); err != nil {
-		return "", "", errors.New(secondProp + " does not denote a valid stack property on that object")
-	}
+	return result, nil
 
-	return firstProp, secondProp, nil
 }
 
 func unpackStackStructTag(tag string, chest *ComponentChest) (*Deck, int, error) {
