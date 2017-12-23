@@ -933,6 +933,10 @@
 
           if (x) id = id + "right";
 
+          //The same component in different stacks should get a different
+          //location.
+          id = id + this._id;
+
           let index = Math.abs(this._hashCode(id));
 
           index %= pseudoRandomValues.length;
