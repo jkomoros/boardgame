@@ -229,7 +229,7 @@
   },
   "Finished": false,
   "Id": "FAKEIDFORTESTING",
-  "Name": "Test Game",
+  "Name": "test_game",
   "Version": 0,
   "CurrentPlayerIndex": 0,
   "NumPlayers": 3,

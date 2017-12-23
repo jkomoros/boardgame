@@ -22,9 +22,11 @@ type GameConfig map[string]string
 type GameDelegate interface {
 
 	//Name is a string that defines the type of game this is. The name should
-	//be unique and compact. Good examples are "tictactoe", "blackjack". Once
-	//configured, names should never change over the lifetime of the gametype,
-	//since it will be persisted in storage. Subclasses should override this.
+	//be unique and compact, and avoid any special characters other than "-"
+	//or "_", since they will sometimes be used in a URL path. Good examples
+	//are "tictactoe", "blackjack". Once configured, names should never change
+	//over the lifetime of the gametype, since it will be persisted in
+	//storage. Subclasses should override this.
 	Name() string
 
 	//DisplayName is a string that defines the type of game this is in a way

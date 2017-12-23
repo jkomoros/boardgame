@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/Sirupsen/logrus"
 	"github.com/jkomoros/boardgame/errors"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -129,6 +130,16 @@ func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage Storag
 
 	if chest == nil {
 		return nil, errors.New("No chest provided")
+	}
+
+	matched, err := regexp.MatchString(`^[0-9a-zA-Z_-]+$`, delegate.Name())
+
+	if err != nil {
+		return nil, errors.New("The legal name regexp failed: " + err.Error())
+	}
+
+	if !matched {
+		return nil, errors.New("Your delegate's name contains illegal characters.")
 	}
 
 	//Make sure the chest is no longer open for modification. If finish was
