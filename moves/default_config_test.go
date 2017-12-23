@@ -29,7 +29,7 @@ func TestShuffleStackDefaultConfig(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	moveType := manager.FixUpMoveTypeByName("Shuffle DrawStack Stack")
+	moveType := manager.MoveTypeByName("Shuffle DrawStack Stack")
 
 	assert.For(t).ThatActual(moveType).IsNotNil()
 
@@ -48,7 +48,7 @@ func TestDealCardsDefaultConfig(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	moveType := manager.FixUpMoveTypeByName("Deals Components From Game Stack DrawStack To Player Stack Hand To Each Player 1 Times")
+	moveType := manager.MoveTypeByName("Deals Components From Game Stack DrawStack To Player Stack Hand To Each Player 1 Times")
 
 	assert.For(t).ThatActual(moveType).IsNotNil()
 }

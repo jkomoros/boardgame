@@ -127,7 +127,7 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	assert.For(t).ThatActual(newEGame).Equals(eGame)
 
-	move := tictactoeGame.PlayerMoveByName("Place Token")
+	move := tictactoeGame.MoveByName("Place Token")
 
 	if move == nil {
 		t.Fatal(testName, "Couldn't find a move")

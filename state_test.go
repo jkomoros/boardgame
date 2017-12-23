@@ -326,7 +326,7 @@ func TestStateSerialization(t *testing.T) {
 		t.Error("The set up timer did no thave a stateptr")
 	}
 
-	rawMove := game.PlayerMoveByName("test")
+	rawMove := game.MoveByName("test")
 
 	move := rawMove.(*testMove)
 

@@ -33,7 +33,7 @@ func (t *testAgent) ProposeMove(game *Game, player PlayerIndex, agentState []byt
 		return nil, nil
 	}
 
-	move = game.PlayerMoveByName("Test")
+	move = game.MoveByName("Test")
 
 	if move == nil {
 		log.Println("Couldn't find move Test")

@@ -18,15 +18,15 @@ func BenchmarkMoves(b *testing.B) {
 
 		for i := 0; i < 10; i++ {
 
-			move := game.PlayerMoveByName("Reveal Card")
+			move := game.MoveByName("Reveal Card")
 
 			<-game.ProposeMove(move, game.CurrentState().CurrentPlayerIndex())
 
-			move = game.PlayerMoveByName("Reveal Card")
+			move = game.MoveByName("Reveal Card")
 
 			<-game.ProposeMove(move, game.CurrentState().CurrentPlayerIndex())
 
-			move = game.PlayerMoveByName("Hide Cards")
+			move = game.MoveByName("Hide Cards")
 
 			<-game.ProposeMove(move, game.CurrentState().CurrentPlayerIndex())
 		}
@@ -49,7 +49,7 @@ func TestMain(t *testing.T) {
 		t.FailNow()
 	}
 
-	move := game.PlayerMoveByName("Reveal Card")
+	move := game.MoveByName("Reveal Card")
 
 	assert.For(t).ThatActual(move).IsNotNil()
 
@@ -86,7 +86,7 @@ func TestMain(t *testing.T) {
 		}
 	}
 
-	move = game.PlayerMoveByName("Reveal Card")
+	move = game.MoveByName("Reveal Card")
 
 	move.(*MoveRevealCard).CardIndex = cardToFlip
 
@@ -100,7 +100,7 @@ func TestMain(t *testing.T) {
 
 	assert.For(t).ThatActual(gameState.VisibleCards.NumComponents()).Equals(2)
 
-	move = game.PlayerMoveByName("Hide Cards")
+	move = game.MoveByName("Hide Cards")
 
 	assert.For(t).ThatActual(move).IsNotNil()
 
@@ -114,7 +114,7 @@ func TestMain(t *testing.T) {
 
 	assert.For(t).ThatActual(gameState.CurrentPlayer).Equals(boardgame.PlayerIndex(1))
 
-	move = game.PlayerMoveByName("Reveal Card")
+	move = game.MoveByName("Reveal Card")
 
 	assert.For(t).ThatActual(move).IsNotNil()
 
@@ -143,7 +143,7 @@ func TestMain(t *testing.T) {
 
 	assert.For(t).ThatActual(cardToFlip).DoesNotEqual(-1)
 
-	move = game.PlayerMoveByName("Reveal Card")
+	move = game.MoveByName("Reveal Card")
 
 	move.(*MoveRevealCard).CardIndex = cardToFlip
 

@@ -420,10 +420,14 @@ func (s *Server) getAdminAllowed(c *gin.Context) bool {
 
 func (s *Server) getMoveFromForm(c *gin.Context, game *boardgame.Game) (boardgame.Move, error) {
 
-	move := game.PlayerMoveByName(c.PostForm("MoveType"))
+	move := game.MoveByName(c.PostForm("MoveType"))
 
 	if move == nil {
 		return nil, errors.New("Invalid MoveType")
+	}
+
+	if move.Info().Type().IsFixUp() {
+		return nil, errors.New("Players cannot make fixup moves.")
 	}
 
 	//TODO: should we use gin's Binding to do this instead?

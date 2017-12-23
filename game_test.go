@@ -14,7 +14,7 @@ type testInfiniteLoopGameDelegate struct {
 }
 
 func (t *testInfiniteLoopGameDelegate) ProposeFixUpMove(state State) Move {
-	return t.Manager().FixUpMoveTypeByName("Test Always Legal Move").NewMove(state)
+	return t.Manager().MoveTypeByName("Test Always Legal Move").NewMove(state)
 }
 
 func TestMoveModifyDynamicValues(t *testing.T) {
@@ -24,7 +24,7 @@ func TestMoveModifyDynamicValues(t *testing.T) {
 
 	game.SetUp(0, nil, nil)
 
-	drawCardMove := game.PlayerMoveByName("Draw Card")
+	drawCardMove := game.MoveByName("Draw Card")
 
 	if drawCardMove == nil {
 		t.Fatal("Couldn't find move draw card")
@@ -42,7 +42,7 @@ func TestMoveModifyDynamicValues(t *testing.T) {
 		t.Error("Unexpected error trying to draw card: " + err.Error())
 	}
 
-	move := game.PlayerMoveByName("Increment IntValue of Card in Hand")
+	move := game.MoveByName("Increment IntValue of Card in Hand")
 
 	if move == nil {
 		t.Fatal("Couldn't find move Increment IntValue of Card in Hand")
@@ -105,7 +105,7 @@ func TestProposeMoveNonModifiableGame(t *testing.T) {
 		t.Fatal("Couldn't get a game out refried")
 	}
 
-	rawMove := game.PlayerMoveByName("test")
+	rawMove := game.MoveByName("test")
 
 	move := rawMove.(*testMove)
 
@@ -136,11 +136,11 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("Game didn't have an ID of correct length. Wanted", gameIDLength, "got", id)
 	}
 
-	if game.PlayerMoves() != nil {
+	if game.Moves() != nil {
 		t.Error("Got moves back before SetUp was called")
 	}
 
-	if game.PlayerMoveByName("Test") != nil {
+	if game.MoveByName("Test") != nil {
 		t.Error("Move by name returned a move before SetUp was called")
 	}
 
@@ -195,15 +195,15 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("Game had no current state after saving")
 	}
 
-	if game.PlayerMoveByName("Test") == nil {
+	if game.MoveByName("Test") == nil {
 		t.Error("MoveByName didn't return a valid move when provided the proper name after calling setup")
 	}
 
-	if game.PlayerMoveByName("test") == nil {
+	if game.MoveByName("test") == nil {
 		t.Error("MoveByName didn't return a valid move when provided with a lowercase name after calling SetUp.")
 	}
 
-	if originalTestMove == game.PlayerMoveByName("Test") {
+	if originalTestMove == game.MoveByName("Test") {
 		t.Error("MoveByName returned a non-copy")
 	}
 
@@ -248,7 +248,7 @@ func TestApplyMove(t *testing.T) {
 
 	game.SetUp(0, nil, nil)
 
-	rawMove := game.PlayerMoveByName("test")
+	rawMove := game.MoveByName("test")
 
 	move := rawMove.(*testMove)
 
@@ -259,18 +259,18 @@ func TestApplyMove(t *testing.T) {
 
 	manager := game.Manager()
 
-	oldMoves := manager.playerMoves
-	oldMovesByName := manager.playerMovesByName
+	oldMoves := manager.moves
+	oldMovesByName := manager.movesByName
 
-	manager.playerMoves = nil
-	manager.playerMovesByName = make(map[string]*MoveType)
+	manager.moves = nil
+	manager.movesByName = make(map[string]*MoveType)
 
 	if err := <-game.ProposeMove(move, AdminPlayerIndex); err == nil {
 		t.Error("Game allowed a move that wasn't configured as part of game to be applied")
 	}
 
-	manager.playerMoves = oldMoves
-	manager.playerMovesByName = oldMovesByName
+	manager.moves = oldMoves
+	manager.movesByName = oldMovesByName
 
 	//testMove checks to make sure game.state.currentPlayerIndex is targetplayerindex
 
@@ -310,7 +310,7 @@ func TestApplyMove(t *testing.T) {
 	compareJSONObjects(currentJson, golden, "Basic state after test move", t)
 
 	//Apply a move that should finish the game (any player has score > 5)
-	newRawMove := game.PlayerMoveByName("test")
+	newRawMove := game.MoveByName("test")
 
 	newMove := newRawMove.(*testMove)
 
@@ -356,7 +356,7 @@ func TestMoveRoundTrip(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	move := game.PlayerMoveByName("test")
+	move := game.MoveByName("test")
 
 	testMove := move.(*testMove)
 
@@ -435,7 +435,7 @@ func TestIllegalPlayerIndex(t *testing.T) {
 
 	previousVersion := game.Version()
 
-	move := game.FixUpMoveByName("Invalid PlayerIndex")
+	move := game.MoveByName("Invalid PlayerIndex")
 
 	assert.For(t).ThatActual(move).IsNotNil()
 
@@ -463,7 +463,7 @@ func TestAgent(t *testing.T) {
 
 	assert.For(t).ThatActual(game.NumAgentPlayers()).Equals(2)
 
-	move := game.PlayerMoveByName("Test")
+	move := game.MoveByName("Test")
 
 	assert.For(t).ThatActual(move).IsNotNil()
 
@@ -556,7 +556,7 @@ func TestGameState(t *testing.T) {
 
 	assert.For(t).ThatActual(state).Equals(state0).ThenDiffOnFail()
 
-	move := game.PlayerMoveByName("Test")
+	move := game.MoveByName("Test")
 
 	if move == nil {
 		t.Fatal("Couldn't find a move to make")

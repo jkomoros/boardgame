@@ -171,7 +171,10 @@ func (d *Base) historicalMovesSincePhaseTransition(game *boardgame.Game, upToVer
 		alwaysLegalMoveTypes = make(map[string]bool)
 
 		//Create the list!
-		for _, fixUpMove := range game.Manager().FixUpMoveTypes() {
+		for _, fixUpMove := range game.Manager().MoveTypes() {
+			if !fixUpMove.IsFixUp() {
+				continue
+			}
 			if len(fixUpMove.LegalPhases()) == 0 {
 				alwaysLegalMoveTypes[fixUpMove.Name()] = true
 			}
@@ -262,11 +265,7 @@ func (d *Base) legalMoveInProgression(state boardgame.State, proposer boardgame.
 		return nil
 	}
 
-	lastMoveType := state.Game().Manager().FixUpMoveTypeByName(lastMoveRecord.Name)
-
-	if lastMoveType == nil {
-		lastMoveType = state.Game().Manager().PlayerMoveTypeByName(lastMoveRecord.Name)
-	}
+	lastMoveType := state.Game().Manager().MoveTypeByName(lastMoveRecord.Name)
 
 	if lastMoveType == nil {
 		return errors.New("Unexpected error: couldn't find a historical move type")

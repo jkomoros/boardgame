@@ -168,7 +168,7 @@ func TestDefaultMove(t *testing.T) {
 	}
 
 	//FixUpMoveByName calls Copy under the covers.
-	move := game.FixUpMoveByName("Advance Current Player")
+	move := game.MoveByName("Advance Current Player")
 
 	assert.For(t).ThatActual(move).IsNotNil()
 
@@ -232,7 +232,7 @@ func TestGameManagerSetUp(t *testing.T) {
 
 	manager := newTestGameManger(t)
 
-	moves := manager.PlayerMoveTypes()
+	moves := manager.MoveTypes()
 
 	if moves == nil {
 		t.Error("Got nil player moves even after setting up")
@@ -246,11 +246,11 @@ func TestGameManagerSetUp(t *testing.T) {
 		t.Error("Agent test after setup was nil")
 	}
 
-	if manager.PlayerMoveTypeByName("Test") == nil {
+	if manager.MoveTypeByName("Test") == nil {
 		t.Error("MoveByName didn't return a valid move when provided the proper name after calling setup")
 	}
 
-	if manager.PlayerMoveTypeByName("test") == nil {
+	if manager.MoveTypeByName("test") == nil {
 		t.Error("MoveByName didn't return a valid move when provided with a lowercase name after calling SetUp.")
 	}
 

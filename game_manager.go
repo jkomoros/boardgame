@@ -28,10 +28,8 @@ type GameManager struct {
 	chest                     *ComponentChest
 	storage                   StorageManager
 	agents                    []Agent
-	fixUpMoves                []*MoveType
-	playerMoves               []*MoveType
-	fixUpMovesByName          map[string]*MoveType
-	playerMovesByName         map[string]*MoveType
+	moves                     []*MoveType
+	movesByName               map[string]*MoveType
 	agentsByName              map[string]Agent
 	modifiableGamesLock       sync.RWMutex
 	modifiableGames           map[string]*Game
@@ -142,12 +140,11 @@ func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage Storag
 	}
 
 	result := &GameManager{
-		delegate:          delegate,
-		chest:             chest,
-		storage:           storage,
-		logger:            logrus.New(),
-		fixUpMovesByName:  make(map[string]*MoveType),
-		playerMovesByName: make(map[string]*MoveType),
+		delegate:    delegate,
+		chest:       chest,
+		storage:     storage,
+		logger:      logrus.New(),
+		movesByName: make(map[string]*MoveType),
 	}
 
 	chest.manager = result
@@ -182,16 +179,7 @@ func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage Storag
 		return nil, errors.New("Couldn't get exampleState: " + err.Error())
 	}
 
-	for _, moveType := range result.fixUpMoves {
-		testMove := moveType.NewMove(exampleState)
-
-		if err := testMove.ValidConfiguration(exampleState); err != nil {
-			return nil, errors.New(moveType.Name() + " move failed the ValidConfiguration test: " + err.Error())
-		}
-
-	}
-
-	for _, moveType := range result.playerMoves {
+	for _, moveType := range result.moves {
 		testMove := moveType.NewMove(exampleState)
 
 		if err := testMove.ValidConfiguration(exampleState); err != nil {
@@ -900,25 +888,13 @@ func (g *GameManager) addMove(config *MoveTypeConfig) error {
 	//replace it with the new one. ... But that requires splicing out things
 	//and will be error prone, so need to do it carefully.
 
-	if moveType.IsFixUp() {
-
-		if g.fixUpMovesByName[moveName] != nil {
-			//If it's already been added that's OK
-			return nil
-		}
-
-		g.fixUpMoves = append(g.fixUpMoves, moveType)
-		g.fixUpMovesByName[moveName] = moveType
-	} else {
-
-		if g.playerMovesByName[moveName] != nil {
-			//If it's already been added that's OK
-			return nil
-		}
-
-		g.playerMoves = append(g.playerMoves, moveType)
-		g.playerMovesByName[moveName] = moveType
+	if g.movesByName[moveName] != nil {
+		//If it's already been added that's OK
+		return nil
 	}
+
+	g.moves = append(g.moves, moveType)
+	g.movesByName[moveName] = moveType
 
 	return nil
 }
@@ -933,28 +909,15 @@ func (g *GameManager) Agents() []Agent {
 	return g.agents
 }
 
-//PlayerMoves returns all moves that are valid in this game to be made my
-//players--all of the Moves that have been added via AddPlayerMove  during
-//initalization. Returns nil until game.SetUp() has been called.
-func (g *GameManager) PlayerMoveTypes() []*MoveType {
+//MoveTypes returns all moves that are valid in this game: all of the Moves
+//that have been added via AddMove during initalization. Returns nil until
+//game.SetUp() has been called.
+func (g *GameManager) MoveTypes() []*MoveType {
 	if !g.initialized {
 		return nil
 	}
 
-	return g.playerMoves
-}
-
-//FixUpMoveTypes returns all move types that are valid in this game
-//to be made as fixup moves--all of the Moves that have been added via
-//AddPlayerMove  during initalization. Returns nil until game.SetUp() has been
-//called.
-func (g *GameManager) FixUpMoveTypes() []*MoveType {
-
-	if !g.initialized {
-		return nil
-	}
-
-	return g.fixUpMoves
+	return g.moves
 }
 
 //AgentByName will return the agent with the given name, or nil if one doesn't
@@ -970,32 +933,14 @@ func (g *GameManager) AgentByName(name string) Agent {
 	return g.agentsByName[name]
 }
 
-//PlayerMoveByName returns the MoveType of that name from
-//game.PlayerMoves(), if it exists. Names are considered without regard to
-//case.  Will return a copy.
-func (g *GameManager) PlayerMoveTypeByName(name string) *MoveType {
+//MoveTypeByName returns the MoveType of that name from game.MoveTypes(), if
+//it exists. Names are considered without regard to case.  Will return a copy.
+func (g *GameManager) MoveTypeByName(name string) *MoveType {
 	if !g.initialized {
 		return nil
 	}
 	name = strings.ToLower(name)
-	move := g.playerMovesByName[name]
-
-	if move == nil {
-		return nil
-	}
-
-	return move
-}
-
-//FixUpMoveTypeByName returns the MoveType of that name from
-//game.FixUpMoves(), if it exists. Names are considered without regard to
-//case.  Will return a copy.
-func (g *GameManager) FixUpMoveTypeByName(name string) *MoveType {
-	if !g.initialized {
-		return nil
-	}
-	name = strings.ToLower(name)
-	move := g.fixUpMovesByName[name]
+	move := g.movesByName[name]
 
 	if move == nil {
 		return nil

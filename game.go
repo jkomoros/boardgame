@@ -254,11 +254,7 @@ func (g *Game) Move(version int) (Move, error) {
 		return nil, errors.New("The version of the returned move was not what was expected.")
 	}
 
-	move := g.PlayerMoveByName(record.Name)
-
-	if move == nil {
-		move = g.FixUpMoveByName(record.Name)
-	}
+	move := g.MoveByName(record.Name)
 
 	if move == nil {
 		return nil, errors.New("Couldn't find a move with name: " + record.Name)
@@ -520,15 +516,15 @@ func (g *Game) Modifiable() bool {
 	return g.modifiable
 }
 
-//PlayerMoves returns an array of all Moves with their defaults set for this
-//current state.
-func (g *Game) PlayerMoves() []Move {
+//Moves returns an array of all Moves with their defaults set for this current
+//state.
+func (g *Game) Moves() []Move {
 
 	if !g.initalized {
 		return nil
 	}
 
-	types := g.manager.PlayerMoveTypes()
+	types := g.manager.MoveTypes()
 
 	result := make([]Move, len(types))
 
@@ -538,57 +534,20 @@ func (g *Game) PlayerMoves() []Move {
 	return result
 }
 
-//FixUpMoves returns an array of all Moves with their defaults set for this
-//current state.
-func (g *Game) FixUpMoves() []Move {
-
+//MoveByName returns a move of the given name set to reasonable defaults for
+//the game at its current state.
+func (g *Game) MoveByName(name string) Move {
 	if !g.initalized {
 		return nil
 	}
 
-	types := g.manager.FixUpMoveTypes()
-
-	result := make([]Move, len(types))
-
-	for i, moveType := range types {
-		result[i] = moveType.NewMove(g.CurrentState())
-	}
-	return result
-
-}
-
-//PlayerMoveByName returns a move of the given name set to reasonable defaults
-//for the game at its current state.
-func (g *Game) PlayerMoveByName(name string) Move {
-	if !g.initalized {
-		return nil
-	}
-
-	moveType := g.manager.PlayerMoveTypeByName(name)
+	moveType := g.manager.MoveTypeByName(name)
 
 	if moveType == nil {
 		return nil
 	}
 
 	return moveType.NewMove(g.CurrentState())
-}
-
-//FixUpMoveByName returns a move of the given name set to reasonable defaults
-//for the game at its current state.
-func (g *Game) FixUpMoveByName(name string) Move {
-
-	if !g.initalized {
-		return nil
-	}
-
-	moveType := g.manager.FixUpMoveTypeByName(name)
-
-	if moveType == nil {
-		return nil
-	}
-
-	return moveType.NewMove(g.CurrentState())
-
 }
 
 //Chest is the ComponentChest in use for this game.
@@ -733,18 +692,8 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 		return errors.NewFriendly("Game was already finished")
 	}
 
-	if isFixUp {
-
-		if g.FixUpMoveByName(move.Info().Type().Name()) == nil {
-			return baseErr.WithError("That move is not configured as a Fix Up move for this game.")
-		}
-
-	} else {
-
-		//Verify that the Move is actually configured to be part of this game.
-		if g.PlayerMoveByName(move.Info().Type().Name()) == nil {
-			return baseErr.WithError("That move is not configured as a Player move for this game.")
-		}
+	if g.MoveByName(move.Info().Type().Name()) == nil {
+		return baseErr.WithError("That move is not configured for this game.")
 	}
 
 	if initiator == selfInitiatorSentinel {

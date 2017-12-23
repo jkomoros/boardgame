@@ -140,7 +140,7 @@ func TestGeneral(t *testing.T) {
 			1,
 		}, game.MoveRecords(-1))
 
-	move := game.PlayerMoveByName("Draw Card")
+	move := game.MoveByName("Draw Card")
 
 	assert.For(t).ThatActual(move).IsNotNil()
 
@@ -148,7 +148,7 @@ func TestGeneral(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	move = game.PlayerMoveByName("Start Phase Draw Again")
+	move = game.MoveByName("Start Phase Draw Again")
 
 	assert.For(t).ThatActual(move).IsNotNil()
 
