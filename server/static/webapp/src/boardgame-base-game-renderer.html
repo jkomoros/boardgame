@@ -51,7 +51,7 @@
         if (!ele) {
           return;
         }
-        if ((ele.localName == "boardgame-card" || ele.localName == "boardgame-component") && e.type == "tap") {
+        if (ele.hasAttribute("boardgame-component") && e.type == "tap") {
           //Cards we'll fire on the component-tapped, not the tap.
           return;
         }
