@@ -278,8 +278,17 @@ func (s *state) copy(sanitized bool) (*state, error) {
 		return nil, err
 	}
 
-	//TODO: shouldn't we copy over secretMoveCount here?
+	moveCounts := make(map[string][]int)
 
+	for deck, counts := range s.secretMoveCount {
+		newCounts := make([]int, len(counts))
+		for i, count := range counts {
+			newCounts[i] = count
+		}
+		moveCounts[deck] = newCounts
+	}
+
+	result.secretMoveCount = moveCounts
 	result.sanitized = sanitized
 	result.version = s.version
 	result.game = s.game
