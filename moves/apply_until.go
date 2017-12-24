@@ -95,8 +95,18 @@ func (a *ApplyUntilCount) ValidConfiguration(exampleState boardgame.MutableState
 		return err
 	}
 
-	if _, ok := a.TopLevelStruct().(counter); !ok {
+	theCounter, ok := a.TopLevelStruct().(counter)
+
+	if !ok {
 		return errors.New("EmeddingMove doesn't have Count/TargetCount")
+	}
+
+	if theCounter.Count(exampleState) < 0 {
+		return errors.New("Count returned a value below 0, which signals an error")
+	}
+
+	if theCounter.TargetCount() < 0 {
+		return errors.New("TargetCount returned a value below 0, which signals an error")
 	}
 
 	return nil

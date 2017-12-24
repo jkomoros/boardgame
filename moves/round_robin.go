@@ -402,9 +402,17 @@ func (r *RoundRobinNumRounds) ValidConfiguration(exampleState boardgame.MutableS
 	if err := r.RoundRobin.ValidConfiguration(exampleState); err != nil {
 		return err
 	}
-	if _, ok := r.TopLevelStruct().(numRoundser); !ok {
+
+	numRounds, ok := r.TopLevelStruct().(numRoundser)
+
+	if !ok {
 		return errors.New("EmbeddingMove unexpectedly did not implement NumRounds!")
 	}
+
+	if numRounds.NumRounds() < 0 {
+		return errors.New("NumRounds returned a negative number, signaling an error")
+	}
+
 	return nil
 }
 

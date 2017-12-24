@@ -28,8 +28,18 @@ func (m *MoveCountComponents) ValidConfiguration(exampleState boardgame.MutableS
 		return err
 	}
 
-	if _, ok := m.TopLevelStruct().(sourceDestinationStacker); !ok {
+	theSourceDestinationStacker, ok := m.TopLevelStruct().(sourceDestinationStacker)
+
+	if !ok {
 		return errors.New("EmbeddingMove doesn't have Source/Destination stacker.")
+	}
+
+	if theSourceDestinationStacker.DestinationStack(exampleState) == nil {
+		return errors.New("DestinationStack returned nil")
+	}
+
+	if theSourceDestinationStacker.SourceStack(exampleState) == nil {
+		return errors.New("SourceStack returned nil")
 	}
 
 	return nil

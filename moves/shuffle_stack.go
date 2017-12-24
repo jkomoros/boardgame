@@ -37,10 +37,14 @@ func (s *ShuffleStack) Apply(state boardgame.MutableState) error {
 func (s *ShuffleStack) ValidConfiguration(exampleState boardgame.MutableState) error {
 	testMove := s.TopLevelStruct()
 
-	_, ok := testMove.(moveinterfaces.SourceStacker)
+	sourceStacker, ok := testMove.(moveinterfaces.SourceStacker)
 
 	if !ok {
 		return errors.New("The embedding Move doesn't implement SourceStacker")
+	}
+
+	if sourceStacker.SourceStack(exampleState) == nil {
+		return errors.New("SourceStack returned nil")
 	}
 
 	return nil

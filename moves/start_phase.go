@@ -30,8 +30,14 @@ type StartPhase struct {
 func (s *StartPhase) ValidConfiguration(exampleState boardgame.MutableState) error {
 	embeddingMove := s.TopLevelStruct()
 
-	if _, ok := embeddingMove.(phaseToStarter); !ok {
+	phaseStarter, ok := embeddingMove.(phaseToStarter)
+
+	if !ok {
 		return errors.New("The embedding move does not have PhaseToStart()")
+	}
+
+	if phaseStarter.PhaseToStart(exampleState.Game().Manager().Delegate().CurrentPhase(exampleState)) < 0 {
+		return errors.New("Phase to start returned a negative value, which signals an error")
 	}
 
 	if _, ok := exampleState.GameState().(moveinterfaces.CurrentPhaseSetter); !ok {

@@ -113,15 +113,35 @@ func (d *DealCountComponents) NumRounds() int {
 }
 
 func (d *DealCountComponents) ValidConfiguration(exampleState boardgame.MutableState) error {
-	if _, ok := d.TopLevelStruct().(moveinterfaces.PlayerStacker); !ok {
+
+	playerStacker, ok := d.TopLevelStruct().(moveinterfaces.PlayerStacker)
+
+	if !ok {
 		return errors.New("Embedding move doesn't implement PlayerStacker")
 	}
 
-	if _, ok := d.TopLevelStruct().(moveinterfaces.GameStacker); !ok {
+	if playerStacker.PlayerStack(exampleState.MutablePlayerStates()[0]) == nil {
+		return errors.New("PlayerStack returned a nil stack")
+	}
+
+	gameStacker, ok := d.TopLevelStruct().(moveinterfaces.GameStacker)
+
+	if !ok {
 		return errors.New("Embedding move doesn't implement GameStacker")
 	}
-	if _, ok := d.TopLevelStruct().(moveinterfaces.TargetCounter); !ok {
+
+	if gameStacker.GameStack(exampleState.MutableGameState()) == nil {
+		return errors.New("GameStack returned a nil stack")
+	}
+
+	targetCounter, ok := d.TopLevelStruct().(moveinterfaces.TargetCounter)
+
+	if !ok {
 		return errors.New("Embedding move doesn't implement TargetCounter")
+	}
+
+	if targetCounter.TargetCount() < 0 {
+		return errors.New("TargetCount returned a number below 0, which signals an error")
 	}
 
 	return d.RoundRobinNumRounds.ValidConfiguration(exampleState)
