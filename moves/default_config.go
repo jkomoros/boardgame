@@ -18,8 +18,8 @@ type defaultConfigMoveType interface {
 
 //MustDefaultConfig is a wrapper around DefaultConfig that if it errors will
 //panic. Only suitable for being used during setup.
-func MustDefaultConfig(manager *boardgame.GameManager, exampleStruct boardgame.Move) *boardgame.MoveTypeConfig {
-	result, err := DefaultConfig(manager, exampleStruct)
+func MustDefaultConfig(manager *boardgame.GameManager, exampleStruct boardgame.Move, options ...CustomConfigurationOption) *boardgame.MoveTypeConfig {
+	result, err := DefaultConfig(manager, exampleStruct, options...)
 
 	if err != nil {
 		panic("Couldn't DefaultConfig: " + err.Error())
