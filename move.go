@@ -67,10 +67,15 @@ type MoveTypeConfig struct {
 	//will change how all moves of this type behave. Individual moves would
 	//reach through via Info().Type().CustomConfiguration() to retrieve the
 	//values stored there. Different move types will store different types of
-	//information there--to avoid a collision it's recommended to use a long
-	//string prefixed with something familiar to your package. Generally you
-	//don't use this directly, but moves.DefaultConfig() will help you set
-	//these for what specific moves in that package expect.
+	//information there--to avoid a collision the convention is to use a
+	//string name that starts with your fully qualified package name, then a
+	//dot, then the propertyname, like so:
+	//"github.com/jkomoros/boardgame/moves.MoveName". Those strings are often
+	//encoded as package-private constants, and a
+	//moves.CustomConfigurationOption functor factory is provided to set those
+	//from outside the package. Generally you don't use this directly, but
+	//moves.DefaultConfig() will help you set these for what specific moves in
+	//that package expect.
 	CustomConfiguration PropertyCollection
 }
 

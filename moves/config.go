@@ -11,14 +11,16 @@ import (
 //method overriding. All of those functions in this package start with "With".
 type CustomConfigurationOption func(boardgame.PropertyCollection)
 
-const configNameStartPhase = "__moves.StartPhaseConfigProp"
-const configNameSourceStack = "__moves.SourceStackConfigProp"
-const configNameDestinationStack = "__moves.DestinationStackConfigProp"
-const configNameTargetCount = "__moves.TargetCountConfigProp"
-const configNameNumRounds = "__moves.NumRoundsConfigProp"
-const configNameGameStack = "__moves.GameStackConfigProp"
-const configNamePlayerStack = "__moves.PlayerStackConfigProp"
-const configNameMoveName = "__moves.MoveNameConfigProp"
+const fullyQualifiedPackageName = "github.com/jkomoros/boardgame/moves."
+
+const configNameStartPhase = fullyQualifiedPackageName + "StartPhase"
+const configNameSourceStack = fullyQualifiedPackageName + "SourceStack"
+const configNameDestinationStack = fullyQualifiedPackageName + "DestinationStack"
+const configNameTargetCount = fullyQualifiedPackageName + "TargetCount"
+const configNameNumRounds = fullyQualifiedPackageName + "NumRounds"
+const configNameGameStack = fullyQualifiedPackageName + "GameStack"
+const configNamePlayerStack = fullyQualifiedPackageName + "PlayerStack"
+const configNameMoveName = fullyQualifiedPackageName + "MoveName"
 
 //WithPhaseToStart returns a function configuration option suitable for being
 //passed to DefaultConfig. moves.Base uses this, if provided, to power
