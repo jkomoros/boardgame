@@ -27,8 +27,9 @@ const configNameIsFixUp = fullyQualifiedPackageName + "IsFixUp"
 //WithMoveName returns a function configuration option suitable for being
 //passed to DefaultConfig. moves.Base uses this, if provided, to power
 //MoveTypeName, which means that DefaultConfig will use this name in some
-//cases. See the documentation for moves.Base.MoveTypeName for more
-//information.
+//cases. If you're passing a move struct that not's from this package, the
+//auto-generated move name is likely sufficient and you don't need this. See
+//the documentation for moves.Base.MoveTypeName for more information.
 func WithMoveName(moveName string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configNameMoveName] = moveName
