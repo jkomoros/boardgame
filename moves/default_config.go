@@ -37,7 +37,13 @@ func MustDefaultConfig(manager *boardgame.GameManager, exampleStruct boardgame.M
 //helptext. Moves in this package return reasonable values for those methods,
 //based on the configuration you set on the rest of your move. See the package
 //doc for an example of use.
-func DefaultConfig(manager *boardgame.GameManager, exampleStruct boardgame.Move) (*boardgame.MoveTypeConfig, error) {
+func DefaultConfig(manager *boardgame.GameManager, exampleStruct boardgame.Move, options ...CustomConfigurationOption) (*boardgame.MoveTypeConfig, error) {
+
+	config := make(boardgame.PropertyCollection, len(options))
+
+	for _, option := range options {
+		option(config)
+	}
 
 	if exampleStruct == nil {
 		return nil, errors.New("nil struct provided")
@@ -47,7 +53,7 @@ func DefaultConfig(manager *boardgame.GameManager, exampleStruct boardgame.Move)
 	//initialized and expanded move (e.g. with all tag-based autoinflation)
 	//that we can then pass to the MoveType* methods, so they'll have more to work with.
 
-	throwAwayConfig := newMoveTypeConfig("Temporary Move", "Temporary Move Help Text", false, exampleStruct)
+	throwAwayConfig := newMoveTypeConfig("Temporary Move", "Temporary Move Help Text", false, exampleStruct, config)
 
 	throwAwayMoveType, err := throwAwayConfig.NewMoveType(manager)
 
@@ -67,11 +73,11 @@ func DefaultConfig(manager *boardgame.GameManager, exampleStruct boardgame.Move)
 	helpText := defaultConfig.MoveTypeHelpText(manager)
 	isFixUp := defaultConfig.MoveTypeIsFixUp(manager)
 
-	return newMoveTypeConfig(name, helpText, isFixUp, exampleStruct), nil
+	return newMoveTypeConfig(name, helpText, isFixUp, exampleStruct, config), nil
 
 }
 
-func newMoveTypeConfig(name, helpText string, isFixUp bool, exampleStruct boardgame.Move) *boardgame.MoveTypeConfig {
+func newMoveTypeConfig(name, helpText string, isFixUp bool, exampleStruct boardgame.Move, config boardgame.PropertyCollection) *boardgame.MoveTypeConfig {
 	val := reflect.ValueOf(exampleStruct)
 
 	//We can accept either pointer or struct types.
@@ -87,7 +93,8 @@ func newMoveTypeConfig(name, helpText string, isFixUp bool, exampleStruct boardg
 		MoveConstructor: func() boardgame.Move {
 			return reflect.New(typ).Interface().(boardgame.Move)
 		},
-		IsFixUp: isFixUp,
+		CustomConfiguration: config,
+		IsFixUp:             isFixUp,
 	}
 }
 
