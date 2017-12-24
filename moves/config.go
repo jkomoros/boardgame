@@ -15,6 +15,7 @@ const configNameStartPhase = "__moves.StartPhaseConfigProp"
 const configNameSourceStack = "__moves.SourceStackConfigProp"
 const configNameDestinationStack = "__moves.DestinationStackConfigProp"
 const configNameTargetCount = "__moves.TargetCountConfigProp"
+const configNameNumRounds = "__moves.NumRoundsConfigProp"
 const configNameGameStack = "__moves.GameStackConfigProp"
 const configNamePlayerStack = "__moves.PlayerStackConfigProp"
 
@@ -62,9 +63,17 @@ func WithPlayerStack(stackPropName string) CustomConfigurationOption {
 	}
 }
 
+//WithNumRounds returns a function configuration option suitable for being
+//passed to DefaultConfig.
+func WithNumRounds(numRounds int) CustomConfigurationOption {
+	return func(config boardgame.PropertyCollection) {
+		config[configNameNumRounds] = numRounds
+	}
+}
+
 //WithTargetCount returns a function configuration option suitable for being
 //passed to DefaultConfig.
-func WithTargetCount(targetCount string) CustomConfigurationOption {
+func WithTargetCount(targetCount int) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configNameTargetCount] = targetCount
 	}
