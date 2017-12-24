@@ -38,7 +38,7 @@ func (d *CollectCountComponents) MoveTypeFallbackName(manager *boardgame.GameMan
 	return "Collect Components From Each Player's Stack " + player + " To Game Stack " + game + " " + count + " Times Per Player"
 }
 
-func (d *CollectCountComponents) MoveTypeHelpText(manager *boardgame.GameManager) string {
+func (d *CollectCountComponents) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
 	player, game, count := d.moveTypeInfo(manager)
 
 	return "Collects " + count + " components from each player's " + player + " to the game " + game
@@ -85,7 +85,7 @@ func (d *CollectComponentsUntilPlayerCountLeft) MoveTypeFallbackName(manager *bo
 	return "Collect Components From Each Player's Stack " + player + " To Game Stack " + game + " Until Each Player Is Down To " + count
 }
 
-func (d *CollectComponentsUntilPlayerCountLeft) MoveTypeHelpText(manager *boardgame.GameManager) string {
+func (d *CollectComponentsUntilPlayerCountLeft) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
 	player, game, count := d.moveTypeInfo(manager)
 
 	return "Collects components from each player's " + player + " to the game " + game + " until each player has " + count + " left"
@@ -138,7 +138,7 @@ func (d *CollectComponentsUntilGameCountReached) MoveTypeFallbackName(manager *b
 	return "Collect Components From Each Player's Stack " + player + " To Game Stack " + game + " Until The Game Has " + count + " Total"
 }
 
-func (d *CollectComponentsUntilGameCountReached) MoveTypeHelpText(manager *boardgame.GameManager) string {
+func (d *CollectComponentsUntilGameCountReached) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
 	player, game, count := d.moveTypeInfo(manager)
 
 	return "Collects components from each player's " + player + " to the game " + game + " until the game has " + count + " total"

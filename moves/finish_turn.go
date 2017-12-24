@@ -110,7 +110,7 @@ func (f *FinishTurn) MoveTypeFallbackName(manager *boardgame.GameManager) string
 	return "Finish Turn"
 }
 
-func (f *FinishTurn) MoveTypeHelpText(manager *boardgame.GameManager) string {
+func (f *FinishTurn) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
 	return "Finishes the player's turn."
 }
 

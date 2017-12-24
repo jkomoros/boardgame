@@ -67,7 +67,7 @@ func (a *ApplyUntil) MoveTypeFallbackName(manager *boardgame.GameManager) string
 	return "Apply Until"
 }
 
-func (a *ApplyUntil) MoveTypeHelpText(manager *boardgame.GameManager) string {
+func (a *ApplyUntil) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
 	return "Applies the move until a condition is met."
 }
 
@@ -192,7 +192,7 @@ func (a *ApplyUntilCount) MoveTypeFallbackName(manager *boardgame.GameManager) s
 	return "Apply Until Count of " + targetCountString(a.TopLevelStruct())
 }
 
-func (a *ApplyUntilCount) MoveTypeHelpText(manager *boardgame.GameManager) string {
+func (a *ApplyUntilCount) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
 	return "Applies the move until a target count of " + targetCountString(a.TopLevelStruct()) + " is met."
 }
 
@@ -249,6 +249,6 @@ func (a *ApplyCountTimes) MoveTypeFallbackName(manager *boardgame.GameManager) s
 	return "Apply " + targetCountString(a.TopLevelStruct()) + " Times"
 }
 
-func (a *ApplyCountTimes) MoveTypeHelpText(manager *boardgame.GameManager) string {
+func (a *ApplyCountTimes) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
 	return "Applies the move " + targetCountString(a.TopLevelStruct()) + " times in a row."
 }

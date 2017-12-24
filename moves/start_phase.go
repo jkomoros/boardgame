@@ -113,7 +113,7 @@ func (s *StartPhase) MoveTypeFallbackName(manager *boardgame.GameManager) string
 
 //MoveTypeName returns a constant. For StartPhase it's better to use
 //NewStartPhaseConfig instead.
-func (s *StartPhase) MoveTypeHelpText(manager *boardgame.GameManager) string {
+func (s *StartPhase) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
 	return "Enters a phase"
 }
 

@@ -21,8 +21,9 @@ const configNameNumRounds = fullyQualifiedPackageName + "NumRounds"
 const configNameGameStack = fullyQualifiedPackageName + "GameStack"
 const configNamePlayerStack = fullyQualifiedPackageName + "PlayerStack"
 const configNameMoveName = fullyQualifiedPackageName + "MoveName"
+const configNameHelpText = fullyQualifiedPackageName + "HelpText"
 
-//WithPhaseToStart returns a function configuration option suitable for being
+//WithMoveName returns a function configuration option suitable for being
 //passed to DefaultConfig. moves.Base uses this, if provided, to power
 //MoveTypeName, which means that DefaultConfig will use this name in some
 //cases. See the documentation for moves.Base.MoveTypeName for more
@@ -30,6 +31,17 @@ const configNameMoveName = fullyQualifiedPackageName + "MoveName"
 func WithMoveName(moveName string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configNameMoveName] = moveName
+	}
+}
+
+//WithHelpText returns a function configuration option suitable for being
+//passed to DefaultConfig. moves.Base uses this, if provided, to power
+//MoveTypeHelpText, which means that DefaultConfig will use this name in some
+//cases. See the documentation for moves.Base.MoveTypeHelpText for more
+//information.
+func WithHelpText(helpText string) CustomConfigurationOption {
+	return func(config boardgame.PropertyCollection) {
+		config[configNameHelpText] = helpText
 	}
 }
 

@@ -106,7 +106,7 @@ func (s *ShuffleStack) MoveTypeFallbackName(manager *boardgame.GameManager) stri
 	return "Shuffle " + s.stackName(manager)
 }
 
-func (s *ShuffleStack) MoveTypeHelpText(manager *boardgame.GameManager) string {
+func (s *ShuffleStack) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
 	return "Shuffles the " + s.stackName(manager) + " stack"
 }
 

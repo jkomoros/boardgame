@@ -378,7 +378,7 @@ func (r *RoundRobin) MoveTypeFallbackName(manager *boardgame.GameManager) string
 	return "Round Robin"
 }
 
-func (r *RoundRobin) MoveTypeHelpText(manager *boardgame.GameManager) string {
+func (r *RoundRobin) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
 	return "A round robin move that continues until every player's condition is met."
 }
 
@@ -459,7 +459,7 @@ func (r *RoundRobinNumRounds) MoveTypeFallbackName(manager *boardgame.GameManage
 	return "Round Robin " + strconv.Itoa(numRounds.NumRounds()) + " Rounds"
 }
 
-func (r *RoundRobinNumRounds) MoveTypeHelpText(manager *boardgame.GameManager) string {
+func (r *RoundRobinNumRounds) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
 	numRounds, ok := r.TopLevelStruct().(numRoundser)
 
 	if !ok {

@@ -67,7 +67,7 @@ func (c *CurrentPlayer) MoveTypeFallbackName(manager *boardgame.GameManager) str
 	return "Current Player Move"
 }
 
-func (c *CurrentPlayer) MoveTypeHelpText(manager *boardgame.GameManager) string {
+func (c *CurrentPlayer) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
 	return "A move by the current player."
 }
 

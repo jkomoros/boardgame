@@ -170,9 +170,39 @@ func (b *Base) MoveTypeFallbackName(manager *boardgame.GameManager) string {
 	return "Base Move"
 }
 
-//MoveTypeHelpText is used by DefaultConfig to generate the HelpText.
-//Subclasses normally overridd this, but you often don't have to.
+//MoveTypeHelpText is used by DefaultConfig to generate the HelpText. It will
+//return the value passed via the WithHelpText config option, if it was
+//passed. Otherwise it will fall back on the move's MoveTypeHelpTextFallback
+//method.
 func (b *Base) MoveTypeHelpText(manager *boardgame.GameManager) string {
+	config := b.Info().Type().CustomConfiguration()
+
+	overrideHelpText, hasOverrideHelpText := config[configNameHelpText]
+
+	if hasOverrideHelpText {
+		strOverrideHelpText, ok := overrideHelpText.(string)
+		if !ok {
+			return "Unexpected Error: overrideHelpText was not a string"
+		}
+		return strOverrideHelpText
+	}
+
+	move := b.TopLevelStruct()
+
+	defaultConfig, ok := move.(defaultConfigMoveType)
+
+	if ok {
+		return defaultConfig.MoveTypeFallbackHelpText(manager)
+	}
+
+	//Nothing worked. :-/
+	return ""
+
+}
+
+//MoveTypeFallbackHelpText is the help text that will be used by
+//MoveTypeHelpText if nothing was passed via WithHelpText to DefaultConfig.
+func (b *Base) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
 	return "A base move that does nothing on its own"
 }
 

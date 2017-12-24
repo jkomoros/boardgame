@@ -157,7 +157,7 @@ func (m *MoveCountComponents) MoveTypeFallbackName(manager *boardgame.GameManage
 	return "Move " + targetCountString(m.TopLevelStruct()) + " Components From " + source + " To " + destination
 }
 
-func (m *MoveCountComponents) MoveTypeHelpText(manager *boardgame.GameManager) string {
+func (m *MoveCountComponents) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
 	source, destination := m.stackNames(manager.ExampleState())
 
 	return "Moves " + targetCountString(m.TopLevelStruct()) + " components from " + source + " to " + destination
@@ -196,7 +196,7 @@ func (m *MoveComponentsUntilCountReached) MoveTypeFallbackName(manager *boardgam
 	return "Move Components From " + source + " Until " + destination + " Has " + targetCountString(m.TopLevelStruct())
 }
 
-func (m *MoveComponentsUntilCountReached) MoveTypeHelpText(manager *boardgame.GameManager) string {
+func (m *MoveComponentsUntilCountReached) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
 	source, destination := m.stackNames(manager.ExampleState())
 
 	return "Moves components from " + source + " to " + destination + " until " + destination + " has " + targetCountString(m.TopLevelStruct())
@@ -235,7 +235,7 @@ func (m *MoveComponentsUntilCountLeft) MoveTypeFallbackName(manager *boardgame.G
 	return "Move Components To " + destination + " Until " + source + " Has " + targetCountString(m.TopLevelStruct())
 }
 
-func (m *MoveComponentsUntilCountLeft) MoveTypeHelpText(manager *boardgame.GameManager) string {
+func (m *MoveComponentsUntilCountLeft) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
 	source, destination := m.stackNames(manager.ExampleState())
 
 	return "Moves components from " + source + " to " + destination + " until " + source + " has " + targetCountString(m.TopLevelStruct()) + " left"

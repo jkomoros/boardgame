@@ -13,8 +13,10 @@ type defaultConfigMoveType interface {
 	//The last resort move-name generator that MoveName will fall back on if
 	//none of the other options worked.
 	MoveTypeFallbackName(manager *boardgame.GameManager) string
-	//The name for the HelpText
+	//The HelpText to use.
 	MoveTypeHelpText(manager *boardgame.GameManager) string
+	//The help text to use if no text was passed via WithHelpText().
+	MoveTypeFallbackHelpText(manager *boardgame.GameManager) string
 	//Whether the move should be a fix up.
 	MoveTypeIsFixUp(manager *boardgame.GameManager) bool
 }
