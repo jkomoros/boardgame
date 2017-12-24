@@ -12,6 +12,33 @@ type ShuffleStack struct {
 	Base
 }
 
+//SourceStack by default just returns the property on GameState with the name
+//passed to DefaultConfig by WithSourceStack. If that is not sufficient,
+//override this in your embedding struct.
+func (s *ShuffleStack) SourceStack(state boardgame.MutableState) boardgame.MutableStack {
+	config := s.Info().Type().CustomConfiguration()
+
+	stackName, ok := config[configNameSourceStack]
+
+	if !ok {
+		return nil
+	}
+
+	strStackName, ok := stackName.(string)
+
+	if !ok {
+		return nil
+	}
+
+	stack, err := state.MutableGameState().ReadSetter().MutableStackProp(strStackName)
+
+	if err != nil {
+		return nil
+	}
+
+	return stack
+}
+
 //We don't need a Legal method because the pass-through to moves.Base is sufficient.
 
 //Apply shuffles the stack that the embedding move selects by the return value

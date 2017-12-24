@@ -119,10 +119,29 @@ func (a *ApplyUntilCount) Count(state boardgame.State) int {
 }
 
 //TargetCount should return the count that you want to target. Note that it's
-//also important to override CountDown() if you're counting down, not up. By
-//default returns 1.
+//also important to override CountDown() if you're counting down, not up. Will
+//return the configuration option passed via WithTargetCount in DefaultConfig,
+//or 1 if that wasn't provided.
 func (a *ApplyUntilCount) TargetCount() int {
-	return 1
+
+	config := a.Info().Type().CustomConfiguration()
+
+	val, ok := config[configNameTargetCount]
+
+	if !ok {
+		//No configuration provided, just return default
+		return 1
+	}
+
+	intVal, ok := val.(int)
+
+	if !ok {
+		//signal error
+		return -1
+	}
+
+	return intVal
+
 }
 
 //CountDown should return true if we're counting downward, or false if we're

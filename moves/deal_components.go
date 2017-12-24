@@ -93,10 +93,28 @@ type DealCountComponents struct {
 	RoundRobinNumRounds
 }
 
-//TargetCount by default returns 1. Override if you want to deal more
-//components.
+//TargetCount should return the count that you want to target. Will return the
+//configuration option passed via WithTargetCount in DefaultConfig, or 1 if
+//that wasn't provided.
 func (d *DealCountComponents) TargetCount() int {
-	return 1
+
+	config := d.Info().Type().CustomConfiguration()
+
+	val, ok := config[configNameTargetCount]
+
+	if !ok {
+		//No configuration provided, just return default
+		return 1
+	}
+
+	intVal, ok := val.(int)
+
+	if !ok {
+		//signal error
+		return -1
+	}
+
+	return intVal
 }
 
 //NumRounds simply returns TargetCount. NumRounds is what RoundRobinNumRounds
@@ -110,6 +128,60 @@ func (d *DealCountComponents) NumRounds() int {
 	}
 
 	return targetCounter.TargetCount()
+}
+
+//PlayerStack by default just returns the property on GameState with the name
+//passed to DefaultConfig by WithPlayerStack. If that is not sufficient,
+//override this in your embedding struct.
+func (d *DealCountComponents) PlayerStack(playerState boardgame.MutablePlayerState) boardgame.MutableStack {
+	config := d.Info().Type().CustomConfiguration()
+
+	stackName, ok := config[configNamePlayerStack]
+
+	if !ok {
+		return nil
+	}
+
+	strStackName, ok := stackName.(string)
+
+	if !ok {
+		return nil
+	}
+
+	stack, err := playerState.ReadSetter().MutableStackProp(strStackName)
+
+	if err != nil {
+		return nil
+	}
+
+	return stack
+}
+
+//GameStack by default just returns the property on GameState with the name
+//passed to DefaultConfig by WithGameStack. If that is not sufficient,
+//override this in your embedding struct.
+func (d *DealCountComponents) GameStack(gameState boardgame.MutableSubState) boardgame.MutableStack {
+	config := d.Info().Type().CustomConfiguration()
+
+	stackName, ok := config[configNameGameStack]
+
+	if !ok {
+		return nil
+	}
+
+	strStackName, ok := stackName.(string)
+
+	if !ok {
+		return nil
+	}
+
+	stack, err := gameState.ReadSetter().MutableStackProp(strStackName)
+
+	if err != nil {
+		return nil
+	}
+
+	return stack
 }
 
 func (d *DealCountComponents) ValidConfiguration(exampleState boardgame.MutableState) error {

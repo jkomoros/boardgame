@@ -45,6 +45,60 @@ func (m *MoveCountComponents) ValidConfiguration(exampleState boardgame.MutableS
 	return nil
 }
 
+//SourceStack by default just returns the property on GameState with the name
+//passed to DefaultConfig by WithSourceStack. If that is not sufficient,
+//override this in your embedding struct.
+func (m *MoveCountComponents) SourceStack(state boardgame.MutableState) boardgame.MutableStack {
+	config := m.Info().Type().CustomConfiguration()
+
+	stackName, ok := config[configNameSourceStack]
+
+	if !ok {
+		return nil
+	}
+
+	strStackName, ok := stackName.(string)
+
+	if !ok {
+		return nil
+	}
+
+	stack, err := state.MutableGameState().ReadSetter().MutableStackProp(strStackName)
+
+	if err != nil {
+		return nil
+	}
+
+	return stack
+}
+
+//DestinationStack by default just returns the property on GameState with the
+//name passed to DefaultConfig by WithDestinationStack. If that is not sufficient,
+//override this in your embedding struct.
+func (m *MoveCountComponents) DestinationStack(state boardgame.MutableState) boardgame.MutableStack {
+	config := m.Info().Type().CustomConfiguration()
+
+	stackName, ok := config[configNameDestinationStack]
+
+	if !ok {
+		return nil
+	}
+
+	strStackName, ok := stackName.(string)
+
+	if !ok {
+		return nil
+	}
+
+	stack, err := state.MutableGameState().ReadSetter().MutableStackProp(strStackName)
+
+	if err != nil {
+		return nil
+	}
+
+	return stack
+}
+
 //stacks returns the source and desitnation so you don't have to do the cast.
 func (m *MoveCountComponents) stacks(state boardgame.State) (source, destination boardgame.MutableStack) {
 
