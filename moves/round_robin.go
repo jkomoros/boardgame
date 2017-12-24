@@ -77,6 +77,7 @@ implement the interface automatically.
 
 The embeding move should implement moveinterfaces.RoundRobinActioner.
 
++autoreader
 */
 type RoundRobin struct {
 	ApplyUntil
@@ -394,6 +395,8 @@ type numRoundser interface {
 //whether RoundRobinRoundCount is greater than or equal to NumRounds(), and if
 //it is ends immediately. NumRounds() defaults to 1; if you want to have
 //multiple rounds, override NumRounds().
+//
+//+autoreader
 type RoundRobinNumRounds struct {
 	RoundRobin
 }

@@ -13,6 +13,7 @@ CurrentPlayer to the next player when the current player's turn is done. Your
 game's playerStates should implement the PlayerTurnFinisher interface, and
 your gameState should implement CurrentPlayerSetter.
 
++autoreader
 */
 type FinishTurn struct {
 	Base

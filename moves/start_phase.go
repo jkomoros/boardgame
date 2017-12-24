@@ -22,6 +22,7 @@ type phaseToStarter interface {
 //BeforeLeavePhase or BeforeEnterPhase are defined they will be called at the
 //appropriate time. In many cases you don't even need to define your own
 //struct, but can just get a MoveTypeConfig by calling NewStartPhaseConfig.
+//
 //+autoreader
 type StartPhase struct {
 	Base

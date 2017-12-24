@@ -12,6 +12,7 @@ goes around once and collects a component from each. If you want a different
 number of rounds, override TargetCount(). It subclasses DealCountComponents,
 but simply reverses the action to make.
 
++autoreader
 */
 type CollectCountComponents struct {
 	DealCountComponents
@@ -48,6 +49,8 @@ func (d *CollectCountComponents) MoveTypeFallbackHelpText(manager *boardgame.Gam
 //from each player until each player has TargetCount() or fewer components in
 //their PlayerStack(). It's the same as DealComponentsUntilPlayerCountReached,
 //just with the action reversed and the size check flipped.
+//
+//+autoreader
 type CollectComponentsUntilPlayerCountLeft struct {
 	DealComponentsUntilPlayerCountReached
 }
@@ -95,6 +98,8 @@ func (d *CollectComponentsUntilPlayerCountLeft) MoveTypeFallbackHelpText(manager
 //each player until GameStack() NumComponents() is TargetCount or greater. It's
 //the same as DealComponentsUntilGameCountLeft, just with the action
 //reversed and the size check flipped.
+//
+//+autoreader
 type CollectComponentsUntilGameCountReached struct {
 	DealComponentsUntilGameCountLeft
 }

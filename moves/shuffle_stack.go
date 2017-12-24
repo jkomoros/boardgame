@@ -8,6 +8,8 @@ import (
 
 //ShuffleStack is a move, typically used in SetUp phases, that simply shuffles
 //a given stack. The struct you embed this in should implement SourceStacker.
+//
+//+autoreader
 type ShuffleStack struct {
 	Base
 }

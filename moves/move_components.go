@@ -19,6 +19,8 @@ type sourceDestinationStacker interface {
 //implement moveinterfaces.SourceStacker and moveinterfaces.DestinationStacker
 //to encode which stacks to use. You may also want to override TargetCount()
 //if you want to move more than one component.
+//
+//+autoreader
 type MoveCountComponents struct {
 	ApplyCountTimes
 }
@@ -167,6 +169,8 @@ func (m *MoveCountComponents) MoveTypeFallbackHelpText(manager *boardgame.GameMa
 //a time, from SourceStack() to DestinationStack() until the target stack is
 //up to having TargetCount components in it. See also
 //MoveComponentsUntilCountLeft for a slightly different end condition.
+//
+//+autoreader
 type MoveComponentsUntilCountReached struct {
 	MoveCountComponents
 }
@@ -207,6 +211,8 @@ func (m *MoveComponentsUntilCountReached) MoveTypeFallbackHelpText(manager *boar
 //down to having  TargetCount components in it. Its primary difference from
 //MoveComponentsUntilCountReached is that its target is based on reducing the
 //size of SourceStack to a target size.
+//
+//+autoreader
 type MoveComponentsUntilCountLeft struct {
 	MoveCountComponents
 }

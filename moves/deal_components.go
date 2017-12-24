@@ -88,6 +88,7 @@ gameState's GameStack() to each PlayerState's PlayerStack(). It goes around
 TargetCount() times. TargetCount() defaults to 1; override if you want to deal
 out a different number of components.
 
++autoreader
 */
 type DealCountComponents struct {
 	RoundRobinNumRounds
@@ -268,6 +269,8 @@ func (d *DealCountComponents) MoveTypeFallbackHelpText(manager *boardgame.GameMa
 //DealComponentsUntilPlayerCountReached goes around and deals components to
 //each player until each player has TargetCount() or greater components in
 //their PlayerStack().
+//
+//+autoreader
 type DealComponentsUntilPlayerCountReached struct {
 	DealCountComponents
 }
@@ -306,6 +309,8 @@ func (d *DealComponentsUntilPlayerCountReached) MoveTypeFallbackHelpText(manager
 
 //DealComponentsUntilGameCountLeft goes around and deals components to each
 //player until the GameStack() has TargetCount() or fewer components left.
+//
+//+autoreader
 type DealComponentsUntilGameCountLeft struct {
 	DealCountComponents
 }

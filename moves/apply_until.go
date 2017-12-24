@@ -24,6 +24,8 @@ func targetCountString(topLevelStruct boardgame.Move) string {
 //ApplyUntil is a simple move that is legal to apply in succession until its
 //ConditionMet returns nil. You need to implement
 //moveinterfaces.ConditionMetter by implementing a ConditionMet method.
+//
+//+autoreader
 type ApplyUntil struct {
 	Base
 }
@@ -86,6 +88,8 @@ type counter interface {
 //result of CountDown()). At the minimum you'll want to provide your own
 //Count() and Apply() methods, or use the moves that subclass from this, like
 //MoveComponentsUntilCountReached.
+//
+//+autoreader
 type ApplyUntilCount struct {
 	ApplyUntil
 }
@@ -234,6 +238,8 @@ func countMovesApplied(topLevelStruct boardgame.Move, state boardgame.State) int
 //TargetCount() number of this move have been applied in a row within the
 //current phase. Override TargetCount() to return the number of moves you
 //actually want to apply. You'll need to provide your own Apply() method.
+//
+//+autoreader
 type ApplyCountTimes struct {
 	ApplyUntilCount
 }
