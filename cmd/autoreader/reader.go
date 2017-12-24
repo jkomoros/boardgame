@@ -31,6 +31,8 @@ type typeInfo struct {
 	Mutable map[string]bool
 }
 
+const magicDocLinePrefix = "+autoreader"
+
 func init() {
 
 	funcMap := template.FuncMap{
@@ -298,25 +300,27 @@ func typesForPossibleEmbeddedStruct(location string, theField model.Field, allSt
 
 func structConfig(docLines []string) (outputReader bool, outputReadSetter bool, outputReadSetConfigurer bool) {
 
-	for _, docLine := range docLines {
-		docLine = strings.ToLower(docLine)
-		docLine = strings.TrimPrefix(docLine, "//")
-		docLine = strings.TrimSpace(docLine)
-		if !strings.HasPrefix(docLine, magicDocLinePrefix) {
-			continue
-		}
-		docLine = strings.TrimPrefix(docLine, magicDocLinePrefix)
-		docLine = strings.TrimSpace(docLine)
+	for _, mainDocLine := range docLines {
+		//Multi-line comments will come in as one docline.
+		for _, docLine := range strings.Split(mainDocLine, "\n") {
+			docLine = strings.ToLower(docLine)
+			docLine = strings.TrimPrefix(docLine, "//")
+			docLine = strings.TrimSpace(docLine)
+			if !strings.HasPrefix(docLine, magicDocLinePrefix) {
+				continue
+			}
+			docLine = strings.TrimPrefix(docLine, magicDocLinePrefix)
+			docLine = strings.TrimSpace(docLine)
 
-		switch docLine {
-		case "", "all", "readsetconfigurer":
-			return true, true, true
-		case "readsetter":
-			return true, true, false
-		case "reader":
-			return true, false, false
+			switch docLine {
+			case "", "all", "readsetconfigurer":
+				return true, true, true
+			case "readsetter":
+				return true, true, false
+			case "reader":
+				return true, false, false
+			}
 		}
-
 	}
 	return false, false, false
 }

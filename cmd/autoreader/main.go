@@ -64,8 +64,6 @@ import (
 	"text/template"
 )
 
-const magicDocLinePrefix = "+autoreader"
-
 type appOptions struct {
 	OutputFile       string
 	OutputFileTest   string

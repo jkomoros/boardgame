@@ -89,7 +89,12 @@ type roundRobinStruct struct {
 	MyBool bool
 }
 
-//+autoreader
+/*
+
+Long comment
+
++autoreader
+*/
 type structWithManyKeys struct {
 	boardgame.BaseSubState
 	A int
