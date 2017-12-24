@@ -119,16 +119,6 @@ func titleCaseToWords(in string) string {
 //from this package, it will fall back on whatever the MoveTypeFallbackName
 //method returns. Subclasses generally should not override this.
 func (b *Base) MoveTypeName(manager *boardgame.GameManager) string {
-	move := b.TopLevelStruct()
-
-	val := reflect.ValueOf(move)
-
-	//We can accept either pointer or struct types.
-	if val.Kind() == reflect.Ptr {
-		val = val.Elem()
-	}
-
-	typ := val.Type()
 
 	config := b.Info().Type().CustomConfiguration()
 
@@ -141,6 +131,17 @@ func (b *Base) MoveTypeName(manager *boardgame.GameManager) string {
 		}
 		return strOverrideName
 	}
+
+	move := b.TopLevelStruct()
+
+	val := reflect.ValueOf(move)
+
+	//We can accept either pointer or struct types.
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
+	typ := val.Type()
 
 	if !strings.HasSuffix(typ.PkgPath(), "boardgame/moves") {
 		//For any move struct where the top level isn't in this package, just
