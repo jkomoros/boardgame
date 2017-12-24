@@ -18,6 +18,18 @@ const configNameTargetCount = "__moves.TargetCountConfigProp"
 const configNameNumRounds = "__moves.NumRoundsConfigProp"
 const configNameGameStack = "__moves.GameStackConfigProp"
 const configNamePlayerStack = "__moves.PlayerStackConfigProp"
+const configNameMoveName = "__moves.MoveNameConfigProp"
+
+//WithPhaseToStart returns a function configuration option suitable for being
+//passed to DefaultConfig. moves.Base uses this, if provided, to power
+//MoveTypeName, which means that DefaultConfig will use this name in some
+//cases. See the documentation for moves.Base.MoveTypeName for more
+//information.
+func WithMoveName(moveName string) CustomConfigurationOption {
+	return func(config boardgame.PropertyCollection) {
+		config[configNameMoveName] = moveName
+	}
+}
 
 //WithPhaseToStart returns a function configuration option suitable for being
 //passed to DefaultConfig.

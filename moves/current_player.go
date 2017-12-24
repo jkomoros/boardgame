@@ -63,7 +63,7 @@ func (c *CurrentPlayer) DefaultsForState(state boardgame.State) {
 	c.TargetPlayerIndex = state.CurrentPlayerIndex()
 }
 
-func (c *CurrentPlayer) MoveTypeName(manager *boardgame.GameManager) string {
+func (c *CurrentPlayer) MoveTypeFallbackName(manager *boardgame.GameManager) string {
 	return "Current Player Move"
 }
 

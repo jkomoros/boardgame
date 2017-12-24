@@ -31,7 +31,7 @@ func (d *CollectCountComponents) RoundRobinAction(playerState boardgame.MutableP
 
 }
 
-func (d *CollectCountComponents) MoveTypeName(manager *boardgame.GameManager) string {
+func (d *CollectCountComponents) MoveTypeFallbackName(manager *boardgame.GameManager) string {
 
 	player, game, count := d.moveTypeInfo(manager)
 
@@ -78,7 +78,7 @@ func (d *CollectComponentsUntilPlayerCountLeft) PlayerConditionMet(pState boardg
 	return playerCount <= targetCount
 }
 
-func (d *CollectComponentsUntilPlayerCountLeft) MoveTypeName(manager *boardgame.GameManager) string {
+func (d *CollectComponentsUntilPlayerCountLeft) MoveTypeFallbackName(manager *boardgame.GameManager) string {
 
 	player, game, count := d.moveTypeInfo(manager)
 
@@ -131,7 +131,7 @@ func (d *CollectComponentsUntilGameCountReached) ConditionMet(state boardgame.St
 
 }
 
-func (d *CollectComponentsUntilGameCountReached) MoveTypeName(manager *boardgame.GameManager) string {
+func (d *CollectComponentsUntilGameCountReached) MoveTypeFallbackName(manager *boardgame.GameManager) string {
 
 	player, game, count := d.moveTypeInfo(manager)
 

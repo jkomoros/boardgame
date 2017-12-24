@@ -4,7 +4,9 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves/moveinterfaces"
+	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -83,9 +85,87 @@ func (d *Base) ValidConfiguration(exampleState boardgame.MutableState) error {
 	return nil
 }
 
-//MoveTypeName is used by DefaultConfig to generate the name. Subclasses
-//normally override this, but you often don't have to.
+var titleCaseReplacer *strings.Replacer
+
+//titleCaseToWords writes "ATitleCaseString" to "A Title Case String"
+func titleCaseToWords(in string) string {
+
+	//substantially recreated in autoreader/enums.go
+
+	if titleCaseReplacer == nil {
+
+		var replacements []string
+
+		for r := 'A'; r <= 'Z'; r++ {
+			str := string(r)
+			replacements = append(replacements, str)
+			replacements = append(replacements, " "+str)
+		}
+
+		titleCaseReplacer = strings.NewReplacer(replacements...)
+
+	}
+
+	return strings.TrimSpace(titleCaseReplacer.Replace(in))
+
+}
+
+//MoveTypeName is used by DefaultConfig to generate the name. This
+//implementation is where the majority of MoveName magic logic comes from.
+//First, it will use thethe configuration passed to DefaultConfig via
+//WithMoveName, if provided. Next, it checks the name of the topLevelStruct
+//via reflection. If the struct does not come from the moves package, it will
+//create a name like `MoveMyMove` --> `My Move`. Finally, if it's a struct
+//from this package, it will fall back on whatever the MoveTypeFallbackName
+//method returns. Subclasses generally should not override this.
 func (b *Base) MoveTypeName(manager *boardgame.GameManager) string {
+	move := b.TopLevelStruct()
+
+	val := reflect.ValueOf(move)
+
+	//We can accept either pointer or struct types.
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
+	typ := val.Type()
+
+	config := b.Info().Type().CustomConfiguration()
+
+	overrideName, hasOverrideName := config[configNameMoveName]
+
+	if hasOverrideName {
+		strOverrideName, ok := overrideName.(string)
+		if !ok {
+			return "Unexpected Error: overrideName was not a string"
+		}
+		return strOverrideName
+	}
+
+	if !strings.HasSuffix(typ.PkgPath(), "boardgame/moves") {
+		//For any move struct where the top level isn't in this package, just
+		//title case its name and be done with it!
+		name := typ.Name()
+		name = strings.TrimPrefix(name, "Move")
+		name = strings.TrimPrefix(name, "move")
+		name = titleCaseToWords(name)
+		return name
+	}
+
+	defaultConfig, ok := move.(defaultConfigMoveType)
+
+	if ok {
+		return defaultConfig.MoveTypeFallbackName(manager)
+	}
+
+	//Nothing worked. :-/
+	return ""
+
+}
+
+//MoveTypeFallbackName is the name that is returned if other higher-priority
+//methods in MoveTypeName fail. For moves.Base returns "Base Move".
+func (b *Base) MoveTypeFallbackName(manager *boardgame.GameManager) string {
 	return "Base Move"
 }
 

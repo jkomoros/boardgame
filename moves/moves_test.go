@@ -83,7 +83,7 @@ func defaultMoveInstaller(manager *boardgame.GameManager) *boardgame.MoveTypeCon
 
 	return boardgame.NewMoveTypeConfigBundle().AddOrderedMovesForPhase(phaseSetUp,
 		MustDefaultConfig(manager, new(moveDealCards)),
-		MustDefaultConfig(manager, new(moveDealOtherCards)),
+		MustDefaultConfig(manager, new(moveDealOtherCards), WithMoveName("Deal Other Cards OVERRIDE")),
 		NewStartPhaseConfig(manager, phaseNormalPlay, nil),
 	).AddMovesForPhase(phaseNormalPlay,
 		&boardgame.MoveTypeConfig{
@@ -131,7 +131,7 @@ func TestGeneral(t *testing.T) {
 	historicalMovesCount(t,
 		[]string{
 			"Deal Components From Game Stack DrawStack To Player Stack Hand To Each Player 2 Times",
-			"Deal Components From Game Stack DrawStack To Player Stack OtherHand To Each Player 3 Times",
+			"Deal Other Cards OVERRIDE",
 			"Start Phase Normal Play",
 		},
 		[]int{

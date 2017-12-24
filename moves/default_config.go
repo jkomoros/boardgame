@@ -10,6 +10,9 @@ import (
 type defaultConfigMoveType interface {
 	//The name for the move type
 	MoveTypeName(manager *boardgame.GameManager) string
+	//The last resort move-name generator that MoveName will fall back on if
+	//none of the other options worked.
+	MoveTypeFallbackName(manager *boardgame.GameManager) string
 	//The name for the HelpText
 	MoveTypeHelpText(manager *boardgame.GameManager) string
 	//Whether the move should be a fix up.

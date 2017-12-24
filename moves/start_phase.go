@@ -107,7 +107,7 @@ func (s *StartPhase) Apply(state boardgame.MutableState) error {
 
 //MoveTypeName returns a constant. For StartPhase it's better to use
 //NewStartPhaseConfig instead.
-func (s *StartPhase) MoveTypeName(manager *boardgame.GameManager) string {
+func (s *StartPhase) MoveTypeFallbackName(manager *boardgame.GameManager) string {
 	return "Start Phase"
 }
 

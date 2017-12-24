@@ -190,6 +190,8 @@ var titleCaseReplacer *strings.Replacer
 //titleCaseToWords writes "ATitleCaseString" to "A Title Case String"
 func titleCaseToWords(in string) string {
 
+	//substantially recreated in moves/base.go
+
 	if titleCaseReplacer == nil {
 
 		var replacements []string

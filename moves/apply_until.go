@@ -63,7 +63,7 @@ func (a *ApplyUntil) Legal(state boardgame.State, proposer boardgame.PlayerIndex
 
 }
 
-func (a *ApplyUntil) MoveTypeName(manager *boardgame.GameManager) string {
+func (a *ApplyUntil) MoveTypeFallbackName(manager *boardgame.GameManager) string {
 	return "Apply Until"
 }
 
@@ -187,7 +187,7 @@ func (a *ApplyUntilCount) ConditionMet(state boardgame.State) error {
 
 }
 
-func (a *ApplyUntilCount) MoveTypeName(manager *boardgame.GameManager) string {
+func (a *ApplyUntilCount) MoveTypeFallbackName(manager *boardgame.GameManager) string {
 
 	return "Apply Until Count of " + targetCountString(a.TopLevelStruct())
 }
@@ -244,7 +244,7 @@ func (a *ApplyCountTimes) Count(state boardgame.State) int {
 	return countMovesApplied(a.TopLevelStruct(), state)
 }
 
-func (a *ApplyCountTimes) MoveTypeName(manager *boardgame.GameManager) string {
+func (a *ApplyCountTimes) MoveTypeFallbackName(manager *boardgame.GameManager) string {
 
 	return "Apply " + targetCountString(a.TopLevelStruct()) + " Times"
 }

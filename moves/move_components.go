@@ -150,7 +150,7 @@ func (m *MoveCountComponents) Apply(state boardgame.MutableState) error {
 
 }
 
-func (m *MoveCountComponents) MoveTypeName(manager *boardgame.GameManager) string {
+func (m *MoveCountComponents) MoveTypeFallbackName(manager *boardgame.GameManager) string {
 
 	source, destination := m.stackNames(manager.ExampleState())
 
@@ -189,7 +189,7 @@ func (m *MoveComponentsUntilCountReached) Count(state boardgame.State) int {
 	return targetStack.NumComponents()
 }
 
-func (m *MoveComponentsUntilCountReached) MoveTypeName(manager *boardgame.GameManager) string {
+func (m *MoveComponentsUntilCountReached) MoveTypeFallbackName(manager *boardgame.GameManager) string {
 
 	source, destination := m.stackNames(manager.ExampleState())
 
@@ -228,7 +228,7 @@ func (m *MoveComponentsUntilCountLeft) CountDown(state boardgame.State) bool {
 	return true
 }
 
-func (m *MoveComponentsUntilCountLeft) MoveTypeName(manager *boardgame.GameManager) string {
+func (m *MoveComponentsUntilCountLeft) MoveTypeFallbackName(manager *boardgame.GameManager) string {
 
 	source, destination := m.stackNames(manager.ExampleState())
 

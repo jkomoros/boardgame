@@ -252,7 +252,7 @@ func (d *DealCountComponents) moveTypeInfo(manager *boardgame.GameManager) (play
 	return playerName, gameName, targetCountString(d.TopLevelStruct())
 }
 
-func (d *DealCountComponents) MoveTypeName(manager *boardgame.GameManager) string {
+func (d *DealCountComponents) MoveTypeFallbackName(manager *boardgame.GameManager) string {
 
 	player, game, count := d.moveTypeInfo(manager)
 
@@ -291,7 +291,7 @@ func (d *DealComponentsUntilPlayerCountReached) ConditionMet(state boardgame.Sta
 	return d.RoundRobin.ConditionMet(state)
 }
 
-func (d *DealComponentsUntilPlayerCountReached) MoveTypeName(manager *boardgame.GameManager) string {
+func (d *DealComponentsUntilPlayerCountReached) MoveTypeFallbackName(manager *boardgame.GameManager) string {
 
 	player, game, count := d.moveTypeInfo(manager)
 
@@ -328,7 +328,7 @@ func (d *DealComponentsUntilGameCountLeft) ConditionMet(state boardgame.State) e
 
 }
 
-func (d *DealComponentsUntilGameCountLeft) MoveTypeName(manager *boardgame.GameManager) string {
+func (d *DealComponentsUntilGameCountLeft) MoveTypeFallbackName(manager *boardgame.GameManager) string {
 
 	player, game, count := d.moveTypeInfo(manager)
 
