@@ -12,13 +12,14 @@ import (
 //cannot be created directly; they are created via
 //GameManager.AddMoveType(moveTypeConfig).
 type MoveType struct {
-	name        string
-	helpText    string
-	constructor func() Move
-	legalPhases []int
-	isFixUp     bool
-	validator   *readerValidator
-	manager     *GameManager
+	name                string
+	helpText            string
+	constructor         func() Move
+	legalPhases         []int
+	isFixUp             bool
+	validator           *readerValidator
+	customConfiguration PropertyCollection
+	manager             *GameManager
 }
 
 //MoveTypeConfig is a collection of information used to create a MoveType.
@@ -60,6 +61,17 @@ type MoveTypeConfig struct {
 	//If IsFixUp is true, the moveType will be a FixUp move--that is, players
 	//may not propose it, only ProposeFixUp moves may.
 	IsFixUp bool
+
+	//CustomConfiguration is an optional PropertyCollection. Some move types--
+	//especially in the `moves` package, stash configuration options here that
+	//will change how all moves of this type behave. Individual moves would
+	//reach through via Info().Type().CustomConfiguration() to retrieve the
+	//values stored there. Different move types will store different types of
+	//information there--to avoid a collision it's recommended to use a long
+	//string prefixed with something familiar to your package. Generally you
+	//don't use this directly, but moves.DefaultConfig() will help you set
+	//these for what specific moves in that package expect.
+	CustomConfiguration PropertyCollection
 }
 
 //NewMoveType takes a MoveTypeConfig and returns a MoveType associated with
@@ -98,13 +110,14 @@ func (m *MoveTypeConfig) NewMoveType(manager *GameManager) (*MoveType, error) {
 	}
 
 	return &MoveType{
-		name:        m.Name,
-		helpText:    m.HelpText,
-		constructor: m.MoveConstructor,
-		isFixUp:     m.IsFixUp,
-		legalPhases: m.LegalPhases,
-		validator:   validator,
-		manager:     manager,
+		name:                m.Name,
+		helpText:            m.HelpText,
+		constructor:         m.MoveConstructor,
+		isFixUp:             m.IsFixUp,
+		legalPhases:         m.LegalPhases,
+		customConfiguration: m.CustomConfiguration,
+		validator:           validator,
+		manager:             manager,
 	}, nil
 
 }
@@ -257,6 +270,18 @@ func (m *MoveType) IsFixUp() bool {
 
 func (m *MoveType) LegalPhases() []int {
 	return m.legalPhases
+}
+
+//CustomConfiguration returns a copy of the CustomConfiguration passed in via
+//the MoveTyepConfig to create this MoveType. See the documentation on
+//MoveTypeConfig.CustomConfiguration for more about what it does and what it
+//can be used for.
+func (m *MoveType) CustomConfiguration() PropertyCollection {
+	result := make(PropertyCollection, len(m.customConfiguration))
+	for key, val := range m.customConfiguration {
+		result[key] = val
+	}
+	return result
 }
 
 //NewMove returns a new move of this type, with defaults set for the given
