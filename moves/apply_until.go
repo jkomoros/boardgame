@@ -71,7 +71,7 @@ func (a *ApplyUntil) MoveTypeFallbackHelpText(manager *boardgame.GameManager) st
 	return "Applies the move until a condition is met."
 }
 
-func (a *ApplyUntil) MoveTypeIsFixUp(manager *boardgame.GameManager) bool {
+func (a *ApplyUntil) MoveTypeFallbackIsFixUp(manager *boardgame.GameManager) bool {
 	return true
 }
 

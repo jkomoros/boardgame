@@ -114,6 +114,6 @@ func (f *FinishTurn) MoveTypeFallbackHelpText(manager *boardgame.GameManager) st
 	return "Finishes the player's turn."
 }
 
-func (f *FinishTurn) MoveTypeIsFixUp(manager *boardgame.GameManager) bool {
+func (f *FinishTurn) MoveTypeFallbackIsFixUp(manager *boardgame.GameManager) bool {
 	return false
 }

@@ -19,6 +19,8 @@ type defaultConfigMoveType interface {
 	MoveTypeFallbackHelpText(manager *boardgame.GameManager) string
 	//Whether the move should be a fix up.
 	MoveTypeIsFixUp(manager *boardgame.GameManager) bool
+	//Will be used if WithIsFixUp isn't passed.
+	MoveTypeFallbackIsFixUp(manager *boardgame.GameManager) bool
 }
 
 //MustDefaultConfig is a wrapper around DefaultConfig that if it errors will

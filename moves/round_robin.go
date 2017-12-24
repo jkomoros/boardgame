@@ -382,7 +382,7 @@ func (r *RoundRobin) MoveTypeFallbackHelpText(manager *boardgame.GameManager) st
 	return "A round robin move that continues until every player's condition is met."
 }
 
-func (r *RoundRobin) MoveTypeIsFixUp(manager *boardgame.GameManager) bool {
+func (r *RoundRobin) MoveTypeFallbackIsFixUp(manager *boardgame.GameManager) bool {
 	return true
 }
 

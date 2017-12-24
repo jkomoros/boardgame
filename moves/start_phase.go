@@ -117,7 +117,7 @@ func (s *StartPhase) MoveTypeFallbackHelpText(manager *boardgame.GameManager) st
 	return "Enters a phase"
 }
 
-func (s *StartPhase) MoveTypeIsFixUp(manager *boardgame.GameManager) bool {
+func (s *StartPhase) MoveTypeFallbackIsFixUp(manager *boardgame.GameManager) bool {
 	return true
 }
 

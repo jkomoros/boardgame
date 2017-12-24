@@ -22,6 +22,7 @@ const configNameGameStack = fullyQualifiedPackageName + "GameStack"
 const configNamePlayerStack = fullyQualifiedPackageName + "PlayerStack"
 const configNameMoveName = fullyQualifiedPackageName + "MoveName"
 const configNameHelpText = fullyQualifiedPackageName + "HelpText"
+const configNameIsFixUp = fullyQualifiedPackageName + "IsFixUp"
 
 //WithMoveName returns a function configuration option suitable for being
 //passed to DefaultConfig. moves.Base uses this, if provided, to power
@@ -42,6 +43,19 @@ func WithMoveName(moveName string) CustomConfigurationOption {
 func WithHelpText(helpText string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configNameHelpText] = helpText
+	}
+}
+
+//WithIsFixUp returns a function configuration option suitable for being
+//passed to DefaultConfig. moves.Base uses this, if provided, to power
+//MoveTypeIsFixUp, which means that DefaultConfig will use this name in some
+//cases. See the documentation for moves.Base.MoveTypeIsFixup for more
+//information. All moves in this package will return reasonable values for
+//MoveTypeIsFixUp on their own, so it is much more rare to use this than other
+//config options in this package.
+func WithIsFixUp(isFixUp bool) CustomConfigurationOption {
+	return func(config boardgame.PropertyCollection) {
+		config[configNameIsFixUp] = isFixUp
 	}
 }
 

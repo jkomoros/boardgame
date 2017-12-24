@@ -71,6 +71,6 @@ func (c *CurrentPlayer) MoveTypeFallbackHelpText(manager *boardgame.GameManager)
 	return "A move by the current player."
 }
 
-func (c *CurrentPlayer) MoveTypeIsFixUp(manager *boardgame.GameManager) bool {
+func (c *CurrentPlayer) MoveTypeFallbackIsFixUp(manager *boardgame.GameManager) bool {
 	return false
 }

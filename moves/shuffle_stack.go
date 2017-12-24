@@ -110,6 +110,6 @@ func (s *ShuffleStack) MoveTypeFallbackHelpText(manager *boardgame.GameManager) 
 	return "Shuffles the " + s.stackName(manager) + " stack"
 }
 
-func (s *ShuffleStack) MoveTypeIsFixUp(manager *boardgame.GameManager) bool {
+func (s *ShuffleStack) MoveTypeFallbackIsFixUp(manager *boardgame.GameManager) bool {
 	return true
 }

@@ -206,9 +206,39 @@ func (b *Base) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
 	return "A base move that does nothing on its own"
 }
 
-//MoveTypeIsFixUp is used by Defaultconfig to generate the IsFixUp value. Base
-//is false, but other moves in this package will return true.
+//MoveTypeIsFixUp is used by Defaultconfig to generate the IsFixUp value. Will
+//return the value passed to DefaultConfig via WithIsFixUp, if provided.
+//Otherwise, will default to MoveTypeFallbackIsFixUp, which will return
+//reasonable values for all moves in this package.
 func (b *Base) MoveTypeIsFixUp(manager *boardgame.GameManager) bool {
+	config := b.Info().Type().CustomConfiguration()
+
+	overrideIsFixUp, hasOverrideIsFixUp := config[configNameIsFixUp]
+
+	if hasOverrideIsFixUp {
+		boolOverrideIsFixUp, ok := overrideIsFixUp.(bool)
+		if !ok {
+			return false
+		}
+		return boolOverrideIsFixUp
+	}
+
+	move := b.TopLevelStruct()
+
+	defaultConfig, ok := move.(defaultConfigMoveType)
+
+	if ok {
+		return defaultConfig.MoveTypeFallbackIsFixUp(manager)
+	}
+
+	//Nothing worked. :-/
+	return false
+}
+
+//MoveTypeFallbackIsFixUp will be called if WithIsFixUp is not provided via
+//DefaultConfig. Other moves in the move package all subclass this to return a
+//reasonable value.
+func (b *Base) MoveTypeFallbackIsFixUp(manager *boardgame.GameManager) bool {
 	return false
 }
 
