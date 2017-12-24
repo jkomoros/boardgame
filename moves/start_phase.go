@@ -52,7 +52,7 @@ func (s *StartPhase) ValidConfiguration(exampleState boardgame.MutableState) err
 //override PhaseToStart in your embedding move.
 func (s *StartPhase) PhaseToStart(currentPhase int) int {
 	config := s.Info().Type().CustomConfiguration()
-	val, ok := config[startPhaseConfigName]
+	val, ok := config[configNameStartPhase]
 	if !ok {
 		return -1
 	}
@@ -141,7 +141,7 @@ func NewStartPhaseConfig(manager *boardgame.GameManager, phaseToStart int, legal
 			return new(StartPhase)
 		},
 		CustomConfiguration: boardgame.PropertyCollection{
-			startPhaseConfigName: phaseToStart,
+			configNameStartPhase: phaseToStart,
 		},
 		IsFixUp:     true,
 		LegalPhases: legalPhases,
