@@ -12,11 +12,60 @@ import (
 type CustomConfigurationOption func(boardgame.PropertyCollection)
 
 const configNameStartPhase = "__moves.StartPhaseConfigProp"
+const configNameSourceStack = "__moves.SourceStackConfigProp"
+const configNameDestinationStack = "__moves.DestinationStackConfigProp"
+const configNameTargetCount = "__moves.TargetCountConfigProp"
+const configNameGameStack = "__moves.GameStackConfigProp"
+const configNamePlayerStack = "__moves.PlayerStackConfigProp"
 
 //WithPhaseToStart returns a function configuration option suitable for being
 //passed to DefaultConfig.
 func WithPhaseToStart(phaseToStart int) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configNameStartPhase] = phaseToStart
+	}
+}
+
+//WithSourceStack returns a function configuration option suitable for being
+//passed to DefaultConfig. The stackPropName is assumed to be on the GameState
+//object. If it isn't, you'll need to embed the move and override Sourcetack
+//yourself.
+func WithSourceStack(stackPropName string) CustomConfigurationOption {
+	return func(config boardgame.PropertyCollection) {
+		config[configNameSourceStack] = stackPropName
+	}
+}
+
+//WithDestinationStack returns a function configuration option suitable for
+//being passed to DefaultConfig. The stackPropName is assumed to be on the
+//GameState object. If it isn't, you'll need to embed the move and override
+//DestinationStack yourself.
+func WithDestinationStack(stackPropName string) CustomConfigurationOption {
+	return func(config boardgame.PropertyCollection) {
+		config[configNameDestinationStack] = stackPropName
+	}
+}
+
+//WithGameStack returns a function configuration option suitable for being
+//passed to DefaultConfig.
+func WithGameStack(stackPropName string) CustomConfigurationOption {
+	return func(config boardgame.PropertyCollection) {
+		config[configNameGameStack] = stackPropName
+	}
+}
+
+//WithPlayerStack returns a function configuration option suitable for being
+//passed to DefaultConfig.
+func WithPlayerStack(stackPropName string) CustomConfigurationOption {
+	return func(config boardgame.PropertyCollection) {
+		config[configNamePlayerStack] = stackPropName
+	}
+}
+
+//WithTargetCount returns a function configuration option suitable for being
+//passed to DefaultConfig.
+func WithTargetCount(targetCount string) CustomConfigurationOption {
+	return func(config boardgame.PropertyCollection) {
+		config[configNameTargetCount] = targetCount
 	}
 }
