@@ -7,6 +7,8 @@ import (
 	"strconv"
 )
 
+const startPhaseConfigName = "__moves.StartPhaseConfigProp"
+
 //phaseToStarter should be implemented by moves that embed moves.StartPhase to
 //configure which phase to enter. It's a private interface because StartPhase
 //already has a base PhaseToStart, and to keep the number of interfaces
@@ -23,7 +25,6 @@ type phaseToStarter interface {
 //+autoreader
 type StartPhase struct {
 	Base
-	phaseToStart int
 }
 
 func (s *StartPhase) ValidConfiguration(exampleState boardgame.MutableState) error {
@@ -44,7 +45,16 @@ func (s *StartPhase) ValidConfiguration(exampleState boardgame.MutableState) err
 //(or 0 if NewStartPhaseConfig wasn't used). If you want a different behavior,
 //override PhaseToStart in your embedding move.
 func (s *StartPhase) PhaseToStart(currentPhase int) int {
-	return s.phaseToStart
+	config := s.Info().Type().CustomConfiguration()
+	val, ok := config[startPhaseConfigName]
+	if !ok {
+		return -1
+	}
+	intVal, ok := val.(int)
+	if !ok {
+		return -1
+	}
+	return intVal
 }
 
 //Apply call BeforeLeavePhase() (if it exists), then BeforeEnterPhase() (if it
@@ -122,9 +132,10 @@ func NewStartPhaseConfig(manager *boardgame.GameManager, phaseToStart int, legal
 		Name:     "Start Phase " + phaseToStartName,
 		HelpText: "Enters phase " + phaseToStartName,
 		MoveConstructor: func() boardgame.Move {
-			result := new(StartPhase)
-			result.phaseToStart = phaseToStart
-			return result
+			return new(StartPhase)
+		},
+		CustomConfiguration: boardgame.PropertyCollection{
+			startPhaseConfigName: phaseToStart,
 		},
 		IsFixUp:     true,
 		LegalPhases: legalPhases,
