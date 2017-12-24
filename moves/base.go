@@ -153,7 +153,7 @@ func (b *Base) MoveTypeName(manager *boardgame.GameManager) string {
 		return name
 	}
 
-	defaultConfig, ok := move.(defaultConfigMoveType)
+	defaultConfig, ok := move.(defaultConfigFallbackMoveType)
 
 	if ok {
 		return defaultConfig.MoveTypeFallbackName(manager)
@@ -189,7 +189,7 @@ func (b *Base) MoveTypeHelpText(manager *boardgame.GameManager) string {
 
 	move := b.TopLevelStruct()
 
-	defaultConfig, ok := move.(defaultConfigMoveType)
+	defaultConfig, ok := move.(defaultConfigFallbackMoveType)
 
 	if ok {
 		return defaultConfig.MoveTypeFallbackHelpText(manager)
@@ -225,7 +225,7 @@ func (b *Base) MoveTypeIsFixUp(manager *boardgame.GameManager) bool {
 
 	move := b.TopLevelStruct()
 
-	defaultConfig, ok := move.(defaultConfigMoveType)
+	defaultConfig, ok := move.(defaultConfigFallbackMoveType)
 
 	if ok {
 		return defaultConfig.MoveTypeFallbackIsFixUp(manager)

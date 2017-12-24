@@ -3,29 +3,22 @@ package moves
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves/moveinterfaces"
 	"reflect"
 )
 
 //The interface that moves that can be handled by DefaultConfig implement.
-type defaultConfigMoveType interface {
-	//The name for the move type
-	MoveTypeName(manager *boardgame.GameManager) string
+type defaultConfigFallbackMoveType interface {
 	//The last resort move-name generator that MoveName will fall back on if
 	//none of the other options worked.
 	MoveTypeFallbackName(manager *boardgame.GameManager) string
-	//The HelpText to use.
-	MoveTypeHelpText(manager *boardgame.GameManager) string
-	//The help text to use if no text was passed via WithHelpText().
 	MoveTypeFallbackHelpText(manager *boardgame.GameManager) string
-	//Whether the move should be a fix up.
-	MoveTypeIsFixUp(manager *boardgame.GameManager) bool
-	//Will be used if WithIsFixUp isn't passed.
 	MoveTypeFallbackIsFixUp(manager *boardgame.GameManager) bool
 }
 
 //MustDefaultConfig is a wrapper around DefaultConfig that if it errors will
 //panic. Only suitable for being used during setup.
-func MustDefaultConfig(manager *boardgame.GameManager, exampleStruct boardgame.Move, options ...CustomConfigurationOption) *boardgame.MoveTypeConfig {
+func MustDefaultConfig(manager *boardgame.GameManager, exampleStruct moveinterfaces.DefaultConfigMove, options ...CustomConfigurationOption) *boardgame.MoveTypeConfig {
 	result, err := DefaultConfig(manager, exampleStruct, options...)
 
 	if err != nil {
@@ -39,12 +32,11 @@ func MustDefaultConfig(manager *boardgame.GameManager, exampleStruct boardgame.M
 //you'll implement moves that are very thin embeddings of moves in this
 //package. Generating a MoveTypeConfig for each is a pain. This method auto-
 //generates the MoveTypeConfig based on an example zero type of your move to
-//install. It does some magic to create a more fleshed out move, then consults
-//move.MoveTypeName and move.MoveTypeHelpText to generate the name and
-//helptext. Moves in this package return reasonable values for those methods,
-//based on the configuration you set on the rest of your move. See the package
-//doc for an example of use.
-func DefaultConfig(manager *boardgame.GameManager, exampleStruct boardgame.Move, options ...CustomConfigurationOption) (*boardgame.MoveTypeConfig, error) {
+//install. Moves need a few extra methods that are consulted to generate the
+//move name, helptext, and isFixUp; anything based on moves.Base automatically
+//satisfies the necessary interface. See the package doc for an example of
+//use.
+func DefaultConfig(manager *boardgame.GameManager, exampleStruct moveinterfaces.DefaultConfigMove, options ...CustomConfigurationOption) (*boardgame.MoveTypeConfig, error) {
 
 	config := make(boardgame.PropertyCollection, len(options))
 
@@ -68,17 +60,13 @@ func DefaultConfig(manager *boardgame.GameManager, exampleStruct boardgame.Move,
 		return nil, errors.New("Couldn't create temporary move type: " + err.Error())
 	}
 
-	actualExample := throwAwayMoveType.NewMove(manager.ExampleState())
+	//the move returned from NewMove is guaranteed to implement
+	//DefaultConfigMove, because it's fundamentally an exampleStruct.
+	actualExample := throwAwayMoveType.NewMove(manager.ExampleState()).(moveinterfaces.DefaultConfigMove)
 
-	defaultConfig, ok := actualExample.(defaultConfigMoveType)
-
-	if !ok {
-		return nil, errors.New("Example struct didn't have MoveTypeName and MoveTypeHelpText.")
-	}
-
-	name := defaultConfig.MoveTypeName(manager)
-	helpText := defaultConfig.MoveTypeHelpText(manager)
-	isFixUp := defaultConfig.MoveTypeIsFixUp(manager)
+	name := actualExample.MoveTypeName(manager)
+	helpText := actualExample.MoveTypeHelpText(manager)
+	isFixUp := actualExample.MoveTypeIsFixUp(manager)
 
 	return newMoveTypeConfig(name, helpText, isFixUp, exampleStruct, config), nil
 

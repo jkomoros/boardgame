@@ -13,6 +13,22 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
+//DefaultConfigMove is the interface that moves passed to moves.DefaultConfig
+//must implement. These methods are interrogated to set the move name,
+//helptext, and isFixUp to good values. moves.Base defines powerful stubs for
+//these, so any moves that embed moves.Base (or embed a move that embeds
+//moves.Base, etc) satisfy this interface.
+type DefaultConfigMove interface {
+	//DefaultConfigMoves all must implement all Move methods.
+	boardgame.Move
+	//The name for the move type
+	MoveTypeName(manager *boardgame.GameManager) string
+	//The HelpText to use.
+	MoveTypeHelpText(manager *boardgame.GameManager) string
+	//Whether the move should be a fix up.
+	MoveTypeIsFixUp(manager *boardgame.GameManager) bool
+}
+
 //RoundRobinBaseGameState is designed to be embedded in your GameState
 //anonymously to automatically satisfy the RoundRobinProperties interface,
 //making it easy to use RoundRobin-basd moves. Because this embeds
