@@ -39,7 +39,7 @@ func (s *StartPhase) ValidConfiguration(exampleState boardgame.MutableState) err
 	}
 
 	if phaseStarter.PhaseToStart(exampleState.Game().Manager().Delegate().CurrentPhase(exampleState)) < 0 {
-		return errors.New("Phase to start returned a negative value, which signals an error")
+		return errors.New("Phase to start returned a negative value, which signals an error. Did you call WithPhaseToStart?")
 	}
 
 	if _, ok := exampleState.GameState().(moveinterfaces.CurrentPhaseSetter); !ok {
