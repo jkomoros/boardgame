@@ -2,6 +2,7 @@ package moves
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/enum"
 )
 
 //CustomConfigurationOption is a function that takes a PropertyCollection and
@@ -14,6 +15,7 @@ type CustomConfigurationOption func(boardgame.PropertyCollection)
 const fullyQualifiedPackageName = "github.com/jkomoros/boardgame/moves."
 
 const configNameStartPhase = fullyQualifiedPackageName + "StartPhase"
+const configNameStartPhaseEnum = fullyQualifiedPackageName + "StartPhaseEnum"
 const configNameSourceStack = fullyQualifiedPackageName + "SourceStack"
 const configNameDestinationStack = fullyQualifiedPackageName + "DestinationStack"
 const configNameTargetCount = fullyQualifiedPackageName + "TargetCount"
@@ -61,10 +63,14 @@ func WithIsFixUp(isFixUp bool) CustomConfigurationOption {
 }
 
 //WithPhaseToStart returns a function configuration option suitable for being
-//passed to DefaultConfig.
-func WithPhaseToStart(phaseToStart int) CustomConfigurationOption {
+//passed to DefaultConfig. PhaseEnum should be the enum that is used for
+//phases, and phaseToStart is the value within that phase to start. The
+//phaseEnum is optional; if not provided, the name of the move and help text
+//will just use the int value of the phase instead.
+func WithPhaseToStart(phaseToStart int, optionalPhaseEnum enum.Enum) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configNameStartPhase] = phaseToStart
+		config[configNameStartPhaseEnum] = optionalPhaseEnum
 	}
 }
 

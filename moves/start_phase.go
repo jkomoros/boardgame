@@ -3,6 +3,7 @@ package moves
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves/moveinterfaces"
 	"strconv"
 )
@@ -109,17 +110,49 @@ func (s *StartPhase) Apply(state boardgame.MutableState) error {
 //MoveTypeName returns a constant. For StartPhase it's better to use
 //NewStartPhaseConfig instead.
 func (s *StartPhase) MoveTypeFallbackName() string {
-	return "Start Phase"
+
+	return "Start Phase " + s.phaseStringValue()
 }
 
 //MoveTypeName returns a constant. For StartPhase it's better to use
 //NewStartPhaseConfig instead.
 func (s *StartPhase) MoveTypeFallbackHelpText() string {
-	return "Enters a phase"
+	return "Enters phase " + s.phaseStringValue()
 }
 
 func (s *StartPhase) MoveTypeFallbackIsFixUp() bool {
 	return true
+}
+
+func (s *StartPhase) phaseStringValue() string {
+	config := s.Info().Type().CustomConfiguration()
+
+	var phaseEnum enum.Enum
+
+	val, ok := config[configNameStartPhaseEnum]
+
+	if ok {
+		phaseEnum, _ = val.(enum.Enum)
+	}
+
+	val, ok = config[configNameStartPhase]
+
+	if !ok {
+		return "InvalidPhase"
+	}
+
+	intVal, ok := val.(int)
+
+	if !ok {
+		return "InvalidPhase"
+	}
+
+	if phaseEnum != nil {
+		return phaseEnum.String(intVal)
+	}
+
+	return strconv.Itoa(intVal)
+
 }
 
 //NewStartPhaseConfig returns a MoveConfig object configured so that you
@@ -128,24 +161,7 @@ func (s *StartPhase) MoveTypeFallbackIsFixUp() bool {
 func NewStartPhaseConfig(manager *boardgame.GameManager, phaseToStart int, legalPhases []int) *boardgame.MoveTypeConfig {
 
 	phaseEnum := manager.Delegate().PhaseEnum()
-
-	phaseToStartName := strconv.Itoa(phaseToStart)
-
-	if phaseEnum != nil {
-		phaseToStartName = phaseEnum.String(phaseToStart)
-	}
-
-	return &boardgame.MoveTypeConfig{
-		Name:     "Start Phase " + phaseToStartName,
-		HelpText: "Enters phase " + phaseToStartName,
-		MoveConstructor: func() boardgame.Move {
-			return new(StartPhase)
-		},
-		CustomConfiguration: boardgame.PropertyCollection{
-			configNameStartPhase: phaseToStart,
-		},
-		IsFixUp:     true,
-		LegalPhases: legalPhases,
-	}
+	config, _ := DefaultConfig(new(StartPhase), WithPhaseToStart(phaseToStart, phaseEnum))
+	return config
 
 }
