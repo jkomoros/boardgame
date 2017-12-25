@@ -2,6 +2,7 @@ package moves
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves/auto"
 	"github.com/workfit/tester/assert"
 	"testing"
 )
@@ -65,30 +66,30 @@ func (m *moveStartPhaseDrawAgain) PhaseToStart(currentPhase int) int {
 func defaultMoveInstaller(manager *boardgame.GameManager) *boardgame.MoveTypeConfigBundle {
 
 	return boardgame.NewMoveTypeConfigBundle().AddOrderedMovesForPhase(phaseSetUp,
-		MustAutoConfig(
+		auto.MustConfig(
 			new(moveDealCards),
 			WithMoveName("Deal Components From Game Stack DrawStack To Player Stack Hand To Each Player 2 Times"),
 		),
-		MustAutoConfig(
+		auto.MustConfig(
 			new(moveDealOtherCards),
 			WithMoveName("Deal Other Cards OVERRIDE"),
 		),
-		MustAutoConfig(
+		auto.MustConfig(
 			new(StartPhase),
 			WithPhaseToStart(phaseNormalPlay, phaseEnum),
 		),
 	).AddMovesForPhase(phaseNormalPlay,
-		MustAutoConfig(
+		auto.MustConfig(
 			new(moveCurrentPlayerDraw),
 			WithMoveName("Draw Card"),
 		),
-		MustAutoConfig(
+		auto.MustConfig(
 			new(moveStartPhaseDrawAgain),
 			WithMoveName("Start Phase Draw Again"),
 			WithIsFixUp(false),
 		),
 	).AddOrderedMovesForPhase(phaseDrawAgain,
-		MustAutoConfig(
+		auto.MustConfig(
 			new(DealComponentsUntilPlayerCountReached),
 			WithMoveName("Deal Cards To Three"),
 			WithGameStack("DrawStack"),

@@ -2,6 +2,7 @@ package moves
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves/auto"
 	"github.com/workfit/tester/assert"
 	"testing"
 )
@@ -20,7 +21,7 @@ func TestShuffleStackDefaultConfig(t *testing.T) {
 	moveInstaller := func(manager *boardgame.GameManager) *boardgame.MoveTypeConfigBundle {
 
 		return boardgame.NewMoveTypeConfigBundle().AddMove(
-			MustAutoConfig(new(moveShuffleStack)),
+			auto.MustConfig(new(moveShuffleStack)),
 		)
 
 	}
@@ -39,7 +40,7 @@ func TestDealCardsDefaultConfig(t *testing.T) {
 	moveInstaller := func(manager *boardgame.GameManager) *boardgame.MoveTypeConfigBundle {
 
 		return boardgame.NewMoveTypeConfigBundle().AddMove(
-			MustAutoConfig(new(moveDealCards), WithMoveName("Deal Cards")),
+			auto.MustConfig(new(moveDealCards), WithMoveName("Deal Cards")),
 		)
 
 	}

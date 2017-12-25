@@ -22,6 +22,42 @@ func init() {
 	alwaysLegalMoveTypesMutex.Unlock()
 }
 
+//The interface that moves that can be handled by DefaultConfig implement.
+type autoConfigFallbackMoveType interface {
+	//The last resort move-name generator that MoveName will fall back on if
+	//none of the other options worked.
+	MoveTypeFallbackName() string
+	MoveTypeFallbackHelpText() string
+	MoveTypeFallbackIsFixUp() bool
+}
+
+//A func that will fail to compile if all of the moves don't have a valid fallback.
+func ensureAllMovesSatisfyFallBack() {
+	var m autoConfigFallbackMoveType
+	m = new(ApplyUntil)
+	m = new(ApplyUntilCount)
+	m = new(ApplyCountTimes)
+	m = new(Base)
+	m = new(CollectCountComponents)
+	m = new(CollectComponentsUntilGameCountReached)
+	m = new(CollectComponentsUntilPlayerCountLeft)
+	m = new(CurrentPlayer)
+	m = new(DealCountComponents)
+	m = new(DealComponentsUntilGameCountLeft)
+	m = new(DealComponentsUntilPlayerCountReached)
+	m = new(FinishTurn)
+	m = new(MoveCountComponents)
+	m = new(MoveComponentsUntilCountLeft)
+	m = new(MoveComponentsUntilCountReached)
+	m = new(RoundRobin)
+	m = new(RoundRobinNumRounds)
+	m = new(ShuffleStack)
+	m = new(StartPhase)
+	if m != nil {
+		return
+	}
+}
+
 /*
 Base is an optional, convenience struct designed to be embedded
 anonymously in your own Moves. It implements no-op methods for many of the

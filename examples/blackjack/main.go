@@ -12,6 +12,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/components/playingcards"
 	"github.com/jkomoros/boardgame/moves"
+	"github.com/jkomoros/boardgame/moves/auto"
 	"strings"
 )
 
@@ -173,45 +174,45 @@ func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) error {
 func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 
 	return boardgame.NewMoveTypeConfigBundle().AddMoves(
-		moves.MustAutoConfig(
+		auto.MustConfig(
 			new(MoveShuffleDiscardToDraw),
 			moves.WithHelpText("When the draw deck is empty, shuffles the discard deck into draw deck."),
 			moves.WithIsFixUp(true),
 		),
 	).AddMovesForPhase(PhaseNormalPlay,
-		moves.MustAutoConfig(
+		auto.MustConfig(
 			new(MoveCurrentPlayerHit),
 			moves.WithHelpText("The current player hits, drawing a card."),
 		),
-		moves.MustAutoConfig(
+		auto.MustConfig(
 			new(MoveCurrentPlayerStand),
 			moves.WithHelpText("If the current player no longer wants to draw cards, they can stand."),
 		),
-		moves.MustAutoConfig(
+		auto.MustConfig(
 			new(MoveRevealHiddenCard),
 			moves.WithHelpText("Reveals the hidden card in the user's hand"),
 			moves.WithIsFixUp(true),
 		),
-		moves.MustAutoConfig(
+		auto.MustConfig(
 			new(moves.FinishTurn),
 			moves.WithHelpText("When the current player has either busted or decided to stand, we advance to next player."),
 		),
 	).AddOrderedMovesForPhase(PhaseInitialDeal,
-		moves.MustAutoConfig(
+		auto.MustConfig(
 			new(moves.DealCountComponents),
 			moves.WithMoveName("Deal Initial Hidden Card"),
 			moves.WithHelpText("Deals a hidden card to each player"),
 			moves.WithGameStack("DrawStack"),
 			moves.WithPlayerStack("HiddenHand"),
 		),
-		moves.MustAutoConfig(
+		auto.MustConfig(
 			new(moves.DealCountComponents),
 			moves.WithMoveName("Deal Initial Visible Card"),
 			moves.WithHelpText("Deals a visible card to each player"),
 			moves.WithGameStack("DrawStack"),
 			moves.WithPlayerStack("VisibleHand"),
 		),
-		moves.MustAutoConfig(
+		auto.MustConfig(
 			new(moves.StartPhase),
 			moves.WithPhaseToStart(PhaseNormalPlay, PhaseEnum),
 		),

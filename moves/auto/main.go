@@ -1,4 +1,4 @@
-package moves
+package auto
 
 import (
 	"errors"
@@ -7,28 +7,41 @@ import (
 	"reflect"
 )
 
-//The interface that moves that can be handled by DefaultConfig implement.
-type autoConfigFallbackMoveType interface {
-	//The last resort move-name generator that MoveName will fall back on if
-	//none of the other options worked.
-	MoveTypeFallbackName() string
-	MoveTypeFallbackHelpText() string
-	MoveTypeFallbackIsFixUp() bool
+//Note that tests for this package are actually in the underlying moves
+//package, effectively, because it's too much of a pain to recreate them here,
+//or to do the tests for eh basic moves wihtout having auto config.
+
+//AutoConfigurableMove is the interface that moves passed to moves.AutoConfig
+//must implement. These methods are interrogated to set the move name,
+//helptext,isFixUp, and legalPhases to good values. moves.Base defines
+//powerful stubs for these, so any moves that embed moves.Base (or embed a
+//move that embeds moves.Base, etc) satisfy this interface.
+type AutoConfigurableMove interface {
+	//DefaultConfigMoves all must implement all Move methods.
+	boardgame.Move
+	//The name for the move type
+	MoveTypeName() string
+	//The HelpText to use.
+	MoveTypeHelpText() string
+	//Whether the move should be a fix up.
+	MoveTypeIsFixUp() bool
+	//Result will be used for LegalPhases in the config.
+	MoveTypeLegalPhases() []int
 }
 
-//MustAutoConfig is a wrapper around AutoConfig that if it errors will
-//panic. Only suitable for being used during setup.
-func MustAutoConfig(exampleStruct moveinterfaces.AutoConfigurableMove, options ...CustomConfigurationOption) *boardgame.MoveTypeConfig {
-	result, err := AutoConfig(exampleStruct, options...)
+//MustConfig is a wrapper around Config that if it errors will panic. Only
+//suitable for being used during setup.
+func MustConfig(exampleStruct AutoConfigurableMove, options ...moveinterfaces.CustomConfigurationOption) *boardgame.MoveTypeConfig {
+	result, err := Config(exampleStruct, options...)
 
 	if err != nil {
-		panic("Couldn't DefaultConfig: " + err.Error())
+		panic("Couldn't Config: " + err.Error())
 	}
 
 	return result
 }
 
-//AutoConfig is a powerful default MoveTypeConfig generator. In many cases
+//Config is a powerful default MoveTypeConfig generator. In many cases
 //you'll implement moves that are very thin embeddings of moves in this
 //package. Generating a MoveTypeConfig for each is a pain. This method auto-
 //generates the MoveTypeConfig based on an example zero type of your move to
@@ -36,7 +49,7 @@ func MustAutoConfig(exampleStruct moveinterfaces.AutoConfigurableMove, options .
 //move name, helptext, and isFixUp; anything based on moves.Base automatically
 //satisfies the necessary interface. See the package doc for an example of
 //use.
-func AutoConfig(exampleStruct moveinterfaces.AutoConfigurableMove, options ...CustomConfigurationOption) (*boardgame.MoveTypeConfig, error) {
+func Config(exampleStruct AutoConfigurableMove, options ...moveinterfaces.CustomConfigurationOption) (*boardgame.MoveTypeConfig, error) {
 
 	config := make(boardgame.PropertyCollection, len(options))
 
@@ -65,7 +78,7 @@ func AutoConfig(exampleStruct moveinterfaces.AutoConfigurableMove, options ...Cu
 
 	//the move returned from NewMove is guaranteed to implement
 	//DefaultConfigMove, because it's fundamentally an exampleStruct.
-	actualExample := throwAwayMoveType.NewMove(nil).(moveinterfaces.AutoConfigurableMove)
+	actualExample := throwAwayMoveType.NewMove(nil).(AutoConfigurableMove)
 
 	name := actualExample.MoveTypeName()
 	helpText := actualExample.MoveTypeHelpText()
@@ -97,32 +110,5 @@ func newMoveTypeConfig(name, helpText string, isFixUp bool, legalPhases []int, e
 		CustomConfiguration: config,
 		IsFixUp:             isFixUp,
 		LegalPhases:         legalPhases,
-	}
-}
-
-//A func that will fail to compile if all of the moves don't have a valid fallback.
-func ensureAllMovesSatisfyFallBack() {
-	var m autoConfigFallbackMoveType
-	m = new(ApplyUntil)
-	m = new(ApplyUntilCount)
-	m = new(ApplyCountTimes)
-	m = new(Base)
-	m = new(CollectCountComponents)
-	m = new(CollectComponentsUntilGameCountReached)
-	m = new(CollectComponentsUntilPlayerCountLeft)
-	m = new(CurrentPlayer)
-	m = new(DealCountComponents)
-	m = new(DealComponentsUntilGameCountLeft)
-	m = new(DealComponentsUntilPlayerCountReached)
-	m = new(FinishTurn)
-	m = new(MoveCountComponents)
-	m = new(MoveComponentsUntilCountLeft)
-	m = new(MoveComponentsUntilCountReached)
-	m = new(RoundRobin)
-	m = new(RoundRobinNumRounds)
-	m = new(ShuffleStack)
-	m = new(StartPhase)
-	if m != nil {
-		return
 	}
 }

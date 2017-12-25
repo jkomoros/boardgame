@@ -13,23 +13,12 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
-//AutoConfigurableMove is the interface that moves passed to moves.AutoConfig
-//must implement. These methods are interrogated to set the move name,
-//helptext,isFixUp, and legalPhases to good values. moves.Base defines
-//powerful stubs for these, so any moves that embed moves.Base (or embed a
-//move that embeds moves.Base, etc) satisfy this interface.
-type AutoConfigurableMove interface {
-	//DefaultConfigMoves all must implement all Move methods.
-	boardgame.Move
-	//The name for the move type
-	MoveTypeName() string
-	//The HelpText to use.
-	MoveTypeHelpText() string
-	//Whether the move should be a fix up.
-	MoveTypeIsFixUp() bool
-	//Result will be used for LegalPhases in the config.
-	MoveTypeLegalPhases() []int
-}
+//CustomConfigurationOption is a function that takes a PropertyCollection and
+//modifies a key on it. This package defines a number of functions that return
+//funcs that satisfy this interface and can be used in DefaultConfig to pass
+//in configuration to the base moves without requiring verbose embedding and
+//method overriding. All of those functions in this package start with "With".
+type CustomConfigurationOption func(boardgame.PropertyCollection)
 
 //RoundRobinBaseGameState is designed to be embedded in your GameState
 //anonymously to automatically satisfy the RoundRobinProperties interface,
