@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"strconv"
 	"time"
 )
 
@@ -20,6 +21,10 @@ type MoveStorageRecord struct {
 	Phase     int
 	Timestamp time.Time
 	Blob      []byte
+}
+
+func (m *MoveStorageRecord) String() string {
+	return m.Name + ": " + strconv.Itoa(m.Version)
 }
 
 //GameStorageRecord is a simple struct with public fields representing the
