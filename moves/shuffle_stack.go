@@ -3,7 +3,7 @@ package moves
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/moves/moveinterfaces"
+	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
 //ShuffleStack is a move, typically used in SetUp phases, that simply shuffles
@@ -48,7 +48,7 @@ func (s *ShuffleStack) SourceStack(state boardgame.MutableState) boardgame.Mutab
 func (s *ShuffleStack) Apply(state boardgame.MutableState) error {
 	embeddingMove := s.TopLevelStruct()
 
-	stacker, ok := embeddingMove.(moveinterfaces.SourceStacker)
+	stacker, ok := embeddingMove.(interfaces.SourceStacker)
 
 	if !ok {
 		return errors.New("Embedding move unexpectedly did not implement SourceStacker")
@@ -66,7 +66,7 @@ func (s *ShuffleStack) Apply(state boardgame.MutableState) error {
 func (s *ShuffleStack) ValidConfiguration(exampleState boardgame.MutableState) error {
 	testMove := s.TopLevelStruct()
 
-	sourceStacker, ok := testMove.(moveinterfaces.SourceStacker)
+	sourceStacker, ok := testMove.(interfaces.SourceStacker)
 
 	if !ok {
 		return errors.New("The embedding Move doesn't implement SourceStacker")

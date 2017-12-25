@@ -3,7 +3,7 @@ package auto
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/moves/moveinterfaces"
+	"github.com/jkomoros/boardgame/moves/interfaces"
 	"reflect"
 )
 
@@ -31,7 +31,7 @@ type AutoConfigurableMove interface {
 
 //MustConfig is a wrapper around Config that if it errors will panic. Only
 //suitable for being used during setup.
-func MustConfig(exampleStruct AutoConfigurableMove, options ...moveinterfaces.CustomConfigurationOption) *boardgame.MoveTypeConfig {
+func MustConfig(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConfigurationOption) *boardgame.MoveTypeConfig {
 	result, err := Config(exampleStruct, options...)
 
 	if err != nil {
@@ -49,7 +49,7 @@ func MustConfig(exampleStruct AutoConfigurableMove, options ...moveinterfaces.Cu
 //move name, helptext, and isFixUp; anything based on moves.Base automatically
 //satisfies the necessary interface. See the package doc for an example of
 //use.
-func Config(exampleStruct AutoConfigurableMove, options ...moveinterfaces.CustomConfigurationOption) (*boardgame.MoveTypeConfig, error) {
+func Config(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConfigurationOption) (*boardgame.MoveTypeConfig, error) {
 
 	config := make(boardgame.PropertyCollection, len(options))
 

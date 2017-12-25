@@ -3,12 +3,12 @@ package moves
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/moves/moveinterfaces"
+	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
 type sourceDestinationStacker interface {
-	moveinterfaces.SourceStacker
-	moveinterfaces.DestinationStacker
+	interfaces.SourceStacker
+	interfaces.DestinationStacker
 }
 
 //MoveCountComponents is a move that will move components, one at a time, from
@@ -16,7 +16,7 @@ type sourceDestinationStacker interface {
 //moved. It is like DealComponents or CollectComponnets, except instead of
 //working on a certain stack for each player, it operates on two fixed stacks.
 //Other MoveComponents-style moves derive from this. When using it you must
-//implement moveinterfaces.SourceStacker and moveinterfaces.DestinationStacker
+//implement interfaces.SourceStacker and interfaces.DestinationStacker
 //to encode which stacks to use. You may also want to override TargetCount()
 //if you want to move more than one component.
 //

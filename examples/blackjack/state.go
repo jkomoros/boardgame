@@ -5,7 +5,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/components/playingcards"
 	"github.com/jkomoros/boardgame/enum"
-	"github.com/jkomoros/boardgame/moves/moveinterfaces"
+	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
 //+autoreader
@@ -28,7 +28,7 @@ func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 
 //+autoreader
 type gameState struct {
-	moveinterfaces.RoundRobinBaseGameState
+	interfaces.RoundRobinBaseGameState
 	Phase         enum.MutableVal        `enum:"Phase"`
 	DiscardStack  boardgame.MutableStack `stack:"cards" sanitize:"len"`
 	DrawStack     boardgame.MutableStack `stack:"cards" sanitize:"len"`

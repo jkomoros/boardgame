@@ -3,13 +3,13 @@ package moves
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/moves/moveinterfaces"
+	"github.com/jkomoros/boardgame/moves/interfaces"
 	"strconv"
 )
 
 //targetCountString is a simple helper that returns the string of the target count.
 func targetCountString(topLevelStruct boardgame.Move) string {
-	moveCounter, ok := topLevelStruct.(moveinterfaces.TargetCounter)
+	moveCounter, ok := topLevelStruct.(interfaces.TargetCounter)
 
 	if !ok {
 		return "unknown"
@@ -23,7 +23,7 @@ func targetCountString(topLevelStruct boardgame.Move) string {
 
 //ApplyUntil is a simple move that is legal to apply in succession until its
 //ConditionMet returns nil. You need to implement
-//moveinterfaces.ConditionMetter by implementing a ConditionMet method.
+//interfaces.ConditionMetter by implementing a ConditionMet method.
 //
 //+autoreader
 type ApplyUntil struct {
@@ -37,7 +37,7 @@ func (a *ApplyUntil) AllowMultipleInProgression() bool {
 }
 
 func (a *ApplyUntil) ValidConfiguration(exampleState boardgame.MutableState) error {
-	if _, ok := a.TopLevelStruct().(moveinterfaces.ConditionMetter); !ok {
+	if _, ok := a.TopLevelStruct().(interfaces.ConditionMetter); !ok {
 		return errors.New("Embedding Move doesn't have ConditionMet")
 	}
 	return nil
@@ -49,7 +49,7 @@ func (a *ApplyUntil) Legal(state boardgame.State, proposer boardgame.PlayerIndex
 		return err
 	}
 
-	conditionMet, ok := a.TopLevelStruct().(moveinterfaces.ConditionMetter)
+	conditionMet, ok := a.TopLevelStruct().(interfaces.ConditionMetter)
 
 	if !ok {
 		//This should be extremely rare since we ourselves have the right method.
@@ -82,7 +82,7 @@ func (a *ApplyUntil) MoveTypeFallbackIsFixUp() bool {
 
 type counter interface {
 	Count(state boardgame.State) int
-	moveinterfaces.TargetCounter
+	interfaces.TargetCounter
 	CountDown(state boardgame.State) bool
 }
 

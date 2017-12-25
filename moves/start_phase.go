@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
-	"github.com/jkomoros/boardgame/moves/moveinterfaces"
+	"github.com/jkomoros/boardgame/moves/interfaces"
 	"strconv"
 )
 
@@ -42,7 +42,7 @@ func (s *StartPhase) ValidConfiguration(exampleState boardgame.MutableState) err
 		return errors.New("Phase to start returned a negative value, which signals an error. Did you call WithPhaseToStart?")
 	}
 
-	if _, ok := exampleState.GameState().(moveinterfaces.CurrentPhaseSetter); !ok {
+	if _, ok := exampleState.GameState().(interfaces.CurrentPhaseSetter); !ok {
 		return errors.New("The gameState does not implement CurrentPhaseSetter")
 	}
 
@@ -80,13 +80,13 @@ func (s *StartPhase) Apply(state boardgame.MutableState) error {
 
 	phaseToEnter := phaseEnterer.PhaseToStart(currentPhase)
 
-	phaseSetter, ok := state.GameState().(moveinterfaces.CurrentPhaseSetter)
+	phaseSetter, ok := state.GameState().(interfaces.CurrentPhaseSetter)
 
 	if !ok {
 		return errors.New("The gameState does not implement CurrentPhaseSetter")
 	}
 
-	beforeLeaver, ok := state.GameState().(moveinterfaces.BeforeLeavePhaser)
+	beforeLeaver, ok := state.GameState().(interfaces.BeforeLeavePhaser)
 
 	if ok {
 		if err := beforeLeaver.BeforeLeavePhase(currentPhase, state); err != nil {
@@ -94,7 +94,7 @@ func (s *StartPhase) Apply(state boardgame.MutableState) error {
 		}
 	}
 
-	beforeEnterer, ok := state.GameState().(moveinterfaces.BeforeEnterPhaser)
+	beforeEnterer, ok := state.GameState().(interfaces.BeforeEnterPhaser)
 
 	if ok {
 		if err := beforeEnterer.BeforeEnterPhase(phaseToEnter, state); err != nil {

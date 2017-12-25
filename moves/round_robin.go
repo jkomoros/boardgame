@@ -3,7 +3,7 @@ package moves
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/moves/moveinterfaces"
+	"github.com/jkomoros/boardgame/moves/interfaces"
 	"strconv"
 )
 
@@ -72,10 +72,10 @@ be done applying: its ConditionMet will return nil.
 
 Round Robin keeps track of various properties on the gameState by using the
 RoundRobinProperties interface. Generally it's easiest to simply embed
-moveinterfaces.RoundRobinBaseGameState in your GameState anonymously to
+interfaces.RoundRobinBaseGameState in your GameState anonymously to
 implement the interface automatically.
 
-The embeding move should implement moveinterfaces.RoundRobinActioner.
+The embeding move should implement interfaces.RoundRobinActioner.
 
 +autoreader
 */
@@ -125,7 +125,7 @@ func (r *RoundRobin) PlayerConditionMet(playerState boardgame.PlayerState) bool 
 
 //roundRobinHasStarted returns true if the gameState RoundRobin properties are not their sentinel values.
 func (r *RoundRobin) roundRobinHasStarted(state boardgame.State) bool {
-	roundRobiner, ok := state.GameState().(moveinterfaces.RoundRobinProperties)
+	roundRobiner, ok := state.GameState().(interfaces.RoundRobinProperties)
 
 	if !ok {
 		return false
@@ -137,7 +137,7 @@ func (r *RoundRobin) roundRobinHasStarted(state boardgame.State) bool {
 //startRoundRobin should be called if roundRobinHasStarted is false.
 func (r *RoundRobin) startRoundRobin(state boardgame.MutableState) error {
 
-	roundRobiner, ok := state.GameState().(moveinterfaces.RoundRobinProperties)
+	roundRobiner, ok := state.GameState().(interfaces.RoundRobinProperties)
 
 	if !ok {
 		return errors.New("GameState unexpectedly did not implement RoundRobiner interface")
@@ -163,7 +163,7 @@ func (r *RoundRobin) startRoundRobin(state boardgame.MutableState) error {
 
 //finishRoundRobin should be called in the Apply method of the last round robin move.
 func (r *RoundRobin) finishRoundRobin(state boardgame.MutableState) error {
-	roundRobiner, ok := state.GameState().(moveinterfaces.RoundRobinProperties)
+	roundRobiner, ok := state.GameState().(interfaces.RoundRobinProperties)
 
 	if !ok {
 		return errors.New("GameState unexpectedly did not implement RoundRobiner interface")
@@ -182,7 +182,7 @@ func (r *RoundRobin) nextPlayerIndex(state boardgame.State) (player boardgame.Pl
 
 	var currentPlayer boardgame.PlayerIndex
 
-	roundRobiner, ok := state.GameState().(moveinterfaces.RoundRobinProperties)
+	roundRobiner, ok := state.GameState().(interfaces.RoundRobinProperties)
 
 	if !ok {
 		return boardgame.ObserverPlayerIndex, true
@@ -252,7 +252,7 @@ func (r *RoundRobin) ValidConfiguration(exampleState boardgame.MutableState) err
 		return err
 	}
 
-	if _, ok := exampleState.GameState().(moveinterfaces.RoundRobinProperties); !ok {
+	if _, ok := exampleState.GameState().(interfaces.RoundRobinProperties); !ok {
 		return errors.New("GameState does not implement RoundRobiner interface")
 	}
 
@@ -262,7 +262,7 @@ func (r *RoundRobin) ValidConfiguration(exampleState boardgame.MutableState) err
 
 	embeddingMove := r.TopLevelStruct()
 
-	if _, ok := embeddingMove.(moveinterfaces.RoundRobinActioner); !ok {
+	if _, ok := embeddingMove.(interfaces.RoundRobinActioner); !ok {
 		return errors.New("Embedding move doesn't implement RoundRobinActioner")
 	}
 
@@ -327,7 +327,7 @@ func (r *RoundRobin) Apply(state boardgame.MutableState) error {
 		}
 	}
 
-	conditionMetter, ok := r.TopLevelStruct().(moveinterfaces.ConditionMetter)
+	conditionMetter, ok := r.TopLevelStruct().(interfaces.ConditionMetter)
 
 	if !ok {
 		return errors.New("Top level struct unexpectedly did not implement condition met")
@@ -339,7 +339,7 @@ func (r *RoundRobin) Apply(state boardgame.MutableState) error {
 
 	nextPlayer, _ := r.nextPlayerIndex(state)
 
-	actioner, ok := r.TopLevelStruct().(moveinterfaces.RoundRobinActioner)
+	actioner, ok := r.TopLevelStruct().(interfaces.RoundRobinActioner)
 
 	if !ok {
 		return errors.New("Embedding move doesn't implement RoundRobinActioner")
@@ -351,7 +351,7 @@ func (r *RoundRobin) Apply(state boardgame.MutableState) error {
 		return errors.New("RoundRobinAction returned error: " + err.Error())
 	}
 
-	roundRobiner, ok := state.GameState().(moveinterfaces.RoundRobinProperties)
+	roundRobiner, ok := state.GameState().(interfaces.RoundRobinProperties)
 
 	if !ok {
 		return errors.New("GameState does not implement RoundRobiner interface")
@@ -441,7 +441,7 @@ func (r *RoundRobinNumRounds) ConditionMet(state boardgame.State) error {
 		return nil
 	}
 
-	roundRobiner, ok := state.GameState().(moveinterfaces.RoundRobinProperties)
+	roundRobiner, ok := state.GameState().(interfaces.RoundRobinProperties)
 
 	if !ok {
 		return nil

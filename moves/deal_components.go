@@ -3,11 +3,11 @@ package moves
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/moves/moveinterfaces"
+	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
 func dealActionHelper(topLevelStruct boardgame.Move, playerState boardgame.MutablePlayerState) (playerStack boardgame.MutableStack, gameStack boardgame.MutableStack, err error) {
-	playerStacker, ok := topLevelStruct.(moveinterfaces.PlayerStacker)
+	playerStacker, ok := topLevelStruct.(interfaces.PlayerStacker)
 
 	if !ok {
 		return nil, nil, errors.New("Embedding move unexpectedly doesn't implement PlayerStacker")
@@ -19,7 +19,7 @@ func dealActionHelper(topLevelStruct boardgame.Move, playerState boardgame.Mutab
 		return nil, nil, errors.New("PlayerStacker didn't return a valid stack")
 	}
 
-	gameStacker, ok := topLevelStruct.(moveinterfaces.GameStacker)
+	gameStacker, ok := topLevelStruct.(interfaces.GameStacker)
 
 	if !ok {
 		return nil, nil, errors.New("Embedding move unexpectedly doesn't implement GameStacker")
@@ -35,7 +35,7 @@ func dealActionHelper(topLevelStruct boardgame.Move, playerState boardgame.Mutab
 }
 
 func dealComponentsPlayerConditionMetHelper(topLevelStruct boardgame.Move, playerState boardgame.PlayerState) (playerCount, targetCount int, err error) {
-	playerStacker, ok := topLevelStruct.(moveinterfaces.PlayerStacker)
+	playerStacker, ok := topLevelStruct.(interfaces.PlayerStacker)
 
 	if !ok {
 		return 0, 0, errors.New("Didn't implement playerStacker")
@@ -46,7 +46,7 @@ func dealComponentsPlayerConditionMetHelper(topLevelStruct boardgame.Move, playe
 
 	playerStack := playerStacker.PlayerStack(mutablePState)
 
-	targetCounter, ok := topLevelStruct.(moveinterfaces.TargetCounter)
+	targetCounter, ok := topLevelStruct.(interfaces.TargetCounter)
 
 	if !ok {
 		return 0, 0, errors.New("Didn't implement target counter")
@@ -56,7 +56,7 @@ func dealComponentsPlayerConditionMetHelper(topLevelStruct boardgame.Move, playe
 }
 
 func dealComponentsConditionMetHelper(topLevelStruct boardgame.Move, state boardgame.State) (gameCount, targetCount int, err error) {
-	gameStacker, ok := topLevelStruct.(moveinterfaces.GameStacker)
+	gameStacker, ok := topLevelStruct.(interfaces.GameStacker)
 
 	if !ok {
 		return 0, 0, errors.New("Unexpectedly didn't implement gameStacker")
@@ -71,7 +71,7 @@ func dealComponentsConditionMetHelper(topLevelStruct boardgame.Move, state board
 		return 0, 0, errors.New("GameStack gave a nil stack")
 	}
 
-	targetCounter, ok := topLevelStruct.(moveinterfaces.TargetCounter)
+	targetCounter, ok := topLevelStruct.(interfaces.TargetCounter)
 
 	if !ok {
 		return 0, 0, errors.New("Unexpectedly did not implement TargetCount")
@@ -122,7 +122,7 @@ func (d *DealCountComponents) TargetCount() int {
 //expects, but TargetCount() is the terminology used for all of the similar
 //Deal/Collect/MoveComponents methods.
 func (d *DealCountComponents) NumRounds() int {
-	targetCounter, ok := d.TopLevelStruct().(moveinterfaces.TargetCounter)
+	targetCounter, ok := d.TopLevelStruct().(interfaces.TargetCounter)
 
 	if !ok {
 		return 1
@@ -187,7 +187,7 @@ func (d *DealCountComponents) GameStack(gameState boardgame.MutableSubState) boa
 
 func (d *DealCountComponents) ValidConfiguration(exampleState boardgame.MutableState) error {
 
-	playerStacker, ok := d.TopLevelStruct().(moveinterfaces.PlayerStacker)
+	playerStacker, ok := d.TopLevelStruct().(interfaces.PlayerStacker)
 
 	if !ok {
 		return errors.New("Embedding move doesn't implement PlayerStacker")
@@ -197,7 +197,7 @@ func (d *DealCountComponents) ValidConfiguration(exampleState boardgame.MutableS
 		return errors.New("PlayerStack returned a nil stack")
 	}
 
-	gameStacker, ok := d.TopLevelStruct().(moveinterfaces.GameStacker)
+	gameStacker, ok := d.TopLevelStruct().(interfaces.GameStacker)
 
 	if !ok {
 		return errors.New("Embedding move doesn't implement GameStacker")
@@ -207,7 +207,7 @@ func (d *DealCountComponents) ValidConfiguration(exampleState boardgame.MutableS
 		return errors.New("GameStack returned a nil stack")
 	}
 
-	targetCounter, ok := d.TopLevelStruct().(moveinterfaces.TargetCounter)
+	targetCounter, ok := d.TopLevelStruct().(interfaces.TargetCounter)
 
 	if !ok {
 		return errors.New("Embedding move doesn't implement TargetCounter")

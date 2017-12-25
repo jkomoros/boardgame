@@ -3,7 +3,7 @@ package moves
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/moves/moveinterfaces"
+	"github.com/jkomoros/boardgame/moves/interfaces"
 	"reflect"
 	"strconv"
 	"strings"
@@ -307,7 +307,7 @@ func (b *Base) MoveTypeLegalPhases() []int {
 //method checks to see if we were to make this move, would the moves since the
 //last phase change match the pattern? If your move can be made legally
 //multiple times in a row in a given move progression, implement
-//moveinterfaces.AllowMultipleInProgression() and return true.
+//interfaces.AllowMultipleInProgression() and return true.
 func (d *Base) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
 	if err := d.legalInPhase(state); err != nil {
@@ -452,7 +452,7 @@ func (d *Base) legalMoveInProgression(state boardgame.State, proposer boardgame.
 		//We can't check ourselves because we're embedded in the real move type.
 		testMove := d.TopLevelStruct()
 
-		allowMultiple, ok := testMove.(moveinterfaces.AllowMultipleInProgression)
+		allowMultiple, ok := testMove.(interfaces.AllowMultipleInProgression)
 
 		if !ok || !allowMultiple.AllowMultipleInProgression() {
 			return errors.New("This move was just applied and is not configured to allow multiple in a row in this phase.")

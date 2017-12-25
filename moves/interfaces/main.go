@@ -1,13 +1,13 @@
 /*
 
-moveinterfaces is a collection of interfaces that your objects can implement
+interfaces is a collection of interfaces that your objects can implement
 to configure how the moves package's base moves operate.
 
 Factored into a separate package primarily just to make the moves package more
 clear about which structs are the main embeddable moves.
 
 */
-package moveinterfaces
+package interfaces
 
 import (
 	"github.com/jkomoros/boardgame"

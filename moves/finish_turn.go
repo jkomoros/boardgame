@@ -3,7 +3,7 @@ package moves
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/moves/moveinterfaces"
+	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
 /*
@@ -21,11 +21,11 @@ type FinishTurn struct {
 
 func (f *FinishTurn) ValidConfiguration(exampleState boardgame.MutableState) error {
 
-	if _, ok := exampleState.GameState().(moveinterfaces.CurrentPlayerSetter); !ok {
+	if _, ok := exampleState.GameState().(interfaces.CurrentPlayerSetter); !ok {
 		return errors.New("GameState does not implement CurrentPlayerSetter")
 	}
 
-	if _, ok := exampleState.PlayerStates()[0].(moveinterfaces.PlayerTurnFinisher); !ok {
+	if _, ok := exampleState.PlayerStates()[0].(interfaces.PlayerTurnFinisher); !ok {
 		return errors.New("PlayerState does not implement PlayerTurnFinisher")
 	}
 
@@ -51,7 +51,7 @@ func (f *FinishTurn) Legal(state boardgame.State, proposer boardgame.PlayerIndex
 
 	currentPlayer := state.PlayerStates()[currentPlayerIndex]
 
-	currentPlayerTurnFinisher, ok := currentPlayer.(moveinterfaces.PlayerTurnFinisher)
+	currentPlayerTurnFinisher, ok := currentPlayer.(interfaces.PlayerTurnFinisher)
 
 	if !ok {
 		return errors.New("The current player interface did not implement PlayerTurnFinisher")
@@ -71,7 +71,7 @@ func (f *FinishTurn) Legal(state boardgame.State, proposer boardgame.PlayerIndex
 func (f *FinishTurn) Apply(state boardgame.MutableState) error {
 	currentPlayer := state.PlayerStates()[state.CurrentPlayerIndex()]
 
-	currentPlayerTurnFinisher, ok := currentPlayer.(moveinterfaces.PlayerTurnFinisher)
+	currentPlayerTurnFinisher, ok := currentPlayer.(interfaces.PlayerTurnFinisher)
 
 	if !ok {
 		return errors.New("The current player interface did not implement PlayerTurnFinisher")
@@ -83,7 +83,7 @@ func (f *FinishTurn) Apply(state boardgame.MutableState) error {
 
 	newPlayerIndex := state.CurrentPlayerIndex().Next(state)
 
-	playerSetter, ok := state.GameState().(moveinterfaces.CurrentPlayerSetter)
+	playerSetter, ok := state.GameState().(interfaces.CurrentPlayerSetter)
 
 	if !ok {
 		return errors.New("Gamestate did not implement CurrentPlayerSetter")
@@ -93,7 +93,7 @@ func (f *FinishTurn) Apply(state boardgame.MutableState) error {
 
 	currentPlayer = state.PlayerStates()[newPlayerIndex]
 
-	currentPlayerTurnFinisher, ok = currentPlayer.(moveinterfaces.PlayerTurnFinisher)
+	currentPlayerTurnFinisher, ok = currentPlayer.(interfaces.PlayerTurnFinisher)
 
 	if !ok {
 		return errors.New("The current player interface did not implement PlayerTurnFinisher")
