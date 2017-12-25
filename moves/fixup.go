@@ -10,6 +10,17 @@ type FixUp struct {
 	Base
 }
 
+//MoveTypeFallbackName returns FixUp Move"
+func (f *FixUp) MoveTypeFallbackName() string {
+	return "FixUp Move"
+}
+
+//MoveTypeFallbackHelpText returns "A move that is applied automatically to
+//fix up the state after a player makes a move."
+func (f *FixUp) MoveTypeFallbackHelpText() string {
+	return "A move that is applied automatically to fix up the state after a player makes a move."
+}
+
 //MoveTypeFallbackIsFixUp returns true. This is the primary effect of using
 //the FixUp move.
 func (f *FixUp) MoveTypeFallbackIsFixUp() bool {
