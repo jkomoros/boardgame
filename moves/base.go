@@ -154,7 +154,7 @@ func (b *Base) MoveTypeName() string {
 		return name
 	}
 
-	defaultConfig, ok := move.(defaultConfigFallbackMoveType)
+	defaultConfig, ok := move.(autoConfigFallbackMoveType)
 
 	if ok {
 		return defaultConfig.MoveTypeFallbackName()
@@ -190,7 +190,7 @@ func (b *Base) MoveTypeHelpText() string {
 
 	move := b.TopLevelStruct()
 
-	defaultConfig, ok := move.(defaultConfigFallbackMoveType)
+	defaultConfig, ok := move.(autoConfigFallbackMoveType)
 
 	if ok {
 		return defaultConfig.MoveTypeFallbackHelpText()
@@ -226,7 +226,7 @@ func (b *Base) MoveTypeIsFixUp() bool {
 
 	move := b.TopLevelStruct()
 
-	defaultConfig, ok := move.(defaultConfigFallbackMoveType)
+	defaultConfig, ok := move.(autoConfigFallbackMoveType)
 
 	if ok {
 		return defaultConfig.MoveTypeFallbackIsFixUp()

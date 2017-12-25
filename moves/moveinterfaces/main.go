@@ -13,12 +13,12 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
-//DefaultConfigMove is the interface that moves passed to moves.DefaultConfig
+//AutoConfigurableMove is the interface that moves passed to moves.AutoConfig
 //must implement. These methods are interrogated to set the move name,
 //helptext, and isFixUp to good values. moves.Base defines powerful stubs for
 //these, so any moves that embed moves.Base (or embed a move that embeds
 //moves.Base, etc) satisfy this interface.
-type DefaultConfigMove interface {
+type AutoConfigurableMove interface {
 	//DefaultConfigMoves all must implement all Move methods.
 	boardgame.Move
 	//The name for the move type

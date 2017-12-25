@@ -8,7 +8,7 @@ import (
 )
 
 //The interface that moves that can be handled by DefaultConfig implement.
-type defaultConfigFallbackMoveType interface {
+type autoConfigFallbackMoveType interface {
 	//The last resort move-name generator that MoveName will fall back on if
 	//none of the other options worked.
 	MoveTypeFallbackName() string
@@ -16,10 +16,10 @@ type defaultConfigFallbackMoveType interface {
 	MoveTypeFallbackIsFixUp() bool
 }
 
-//MustDefaultConfig is a wrapper around DefaultConfig that if it errors will
+//MustAutoConfig is a wrapper around AutoConfig that if it errors will
 //panic. Only suitable for being used during setup.
-func MustDefaultConfig(exampleStruct moveinterfaces.DefaultConfigMove, options ...CustomConfigurationOption) *boardgame.MoveTypeConfig {
-	result, err := DefaultConfig(exampleStruct, options...)
+func MustAutoConfig(exampleStruct moveinterfaces.AutoConfigurableMove, options ...CustomConfigurationOption) *boardgame.MoveTypeConfig {
+	result, err := AutoConfig(exampleStruct, options...)
 
 	if err != nil {
 		panic("Couldn't DefaultConfig: " + err.Error())
@@ -28,7 +28,7 @@ func MustDefaultConfig(exampleStruct moveinterfaces.DefaultConfigMove, options .
 	return result
 }
 
-//DefaultConfig is a powerful default MoveTypeConfig generator. In many cases
+//AutoConfig is a powerful default MoveTypeConfig generator. In many cases
 //you'll implement moves that are very thin embeddings of moves in this
 //package. Generating a MoveTypeConfig for each is a pain. This method auto-
 //generates the MoveTypeConfig based on an example zero type of your move to
@@ -36,7 +36,7 @@ func MustDefaultConfig(exampleStruct moveinterfaces.DefaultConfigMove, options .
 //move name, helptext, and isFixUp; anything based on moves.Base automatically
 //satisfies the necessary interface. See the package doc for an example of
 //use.
-func DefaultConfig(exampleStruct moveinterfaces.DefaultConfigMove, options ...CustomConfigurationOption) (*boardgame.MoveTypeConfig, error) {
+func AutoConfig(exampleStruct moveinterfaces.AutoConfigurableMove, options ...CustomConfigurationOption) (*boardgame.MoveTypeConfig, error) {
 
 	config := make(boardgame.PropertyCollection, len(options))
 
@@ -65,7 +65,7 @@ func DefaultConfig(exampleStruct moveinterfaces.DefaultConfigMove, options ...Cu
 
 	//the move returned from NewMove is guaranteed to implement
 	//DefaultConfigMove, because it's fundamentally an exampleStruct.
-	actualExample := throwAwayMoveType.NewMove(nil).(moveinterfaces.DefaultConfigMove)
+	actualExample := throwAwayMoveType.NewMove(nil).(moveinterfaces.AutoConfigurableMove)
 
 	name := actualExample.MoveTypeName()
 	helpText := actualExample.MoveTypeHelpText()
@@ -100,7 +100,7 @@ func newMoveTypeConfig(name, helpText string, isFixUp bool, exampleStruct boardg
 
 //A func that will fail to compile if all of the moves don't have a valid fallback.
 func ensureAllMovesSatisfyFallBack() {
-	var m defaultConfigFallbackMoveType
+	var m autoConfigFallbackMoveType
 	m = new(ApplyUntil)
 	m = new(ApplyUntilCount)
 	m = new(ApplyCountTimes)
