@@ -72,8 +72,8 @@ be done applying: its ConditionMet will return nil.
 
 Round Robin keeps track of various properties on the gameState by using the
 RoundRobinProperties interface. Generally it's easiest to simply embed
-interfaces.RoundRobinBaseGameState in your GameState anonymously to
-implement the interface automatically.
+roundrobinhelpers.BaseGameState in your GameState anonymously to implement the
+interface automatically.
 
 The embeding move should implement interfaces.RoundRobinActioner.
 

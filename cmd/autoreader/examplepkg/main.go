@@ -11,7 +11,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves"
-	"github.com/jkomoros/boardgame/moves/interfaces"
+	"github.com/jkomoros/boardgame/moves/roundrobinhelpers"
 )
 
 //go:generate autoreader
@@ -85,7 +85,7 @@ type myStruct struct {
 
 //+autoreader
 type roundRobinStruct struct {
-	interfaces.RoundRobinBaseGameState
+	roundrobinhelpers.BaseGameState
 	MyBool bool
 }
 

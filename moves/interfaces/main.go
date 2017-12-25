@@ -20,50 +20,6 @@ import (
 //method overriding. All of those functions in this package start with "With".
 type CustomConfigurationOption func(boardgame.PropertyCollection)
 
-//RoundRobinBaseGameState is designed to be embedded in your GameState
-//anonymously to automatically satisfy the RoundRobinProperties interface,
-//making it easy to use RoundRobin-basd moves. Because this embeds
-//boardgame.BaseSubState itself, you should embed this INSTEAD of
-//boardgame.BaseSubState.
-type RoundRobinBaseGameState struct {
-	boardgame.BaseSubState
-	RRLastPlayer    boardgame.PlayerIndex
-	RRStarterPlayer boardgame.PlayerIndex
-	RRRoundCount    int
-	RRHasStarted    bool
-}
-
-func (r *RoundRobinBaseGameState) RoundRobinLastPlayer() boardgame.PlayerIndex {
-	return r.RRLastPlayer
-}
-
-func (r *RoundRobinBaseGameState) RoundRobinStarterPlayer() boardgame.PlayerIndex {
-	return r.RRStarterPlayer
-}
-
-func (r *RoundRobinBaseGameState) RoundRobinRoundCount() int {
-	return r.RRRoundCount
-}
-
-func (r *RoundRobinBaseGameState) RoundRobinHasStarted() bool {
-	return r.RRHasStarted
-}
-
-func (r *RoundRobinBaseGameState) SetRoundRobinLastPlayer(nextPlayer boardgame.PlayerIndex) {
-	r.RRLastPlayer = nextPlayer
-}
-func (r *RoundRobinBaseGameState) SetRoundRobinStarterPlayer(index boardgame.PlayerIndex) {
-	r.RRStarterPlayer = index
-}
-
-func (r *RoundRobinBaseGameState) SetRoundRobinRoundCount(count int) {
-	r.RRRoundCount = count
-}
-
-func (r *RoundRobinBaseGameState) SetRoundRobinHasStarted(val bool) {
-	r.RRHasStarted = val
-}
-
 //Moves should implement AllowMultipleInProgression if they want to
 //affirmatively communicate to moves.Base that in a move progression is it
 //legal to apply multiple. If the move does not implement this interface then
