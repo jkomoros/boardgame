@@ -11,8 +11,8 @@ import (
 //package, effectively, because it's too much of a pain to recreate them here,
 //or to do the tests for eh basic moves wihtout having auto config.
 
-//AutoConfigurableMove is the interface that moves passed to moves.AutoConfig
-//must implement. These methods are interrogated to set the move name,
+//AutoConfigurableMove is the interface that moves passed to auto.Config must
+//implement. These methods are interrogated to set the move name,
 //helptext,isFixUp, and legalPhases to good values. moves.Base defines
 //powerful stubs for these, so any moves that embed moves.Base (or embed a
 //move that embeds moves.Base, etc) satisfy this interface.
