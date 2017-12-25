@@ -138,5 +138,12 @@
 	easy to forget given that it's often in a different file. In almost all
 	cases if you use WithIsFixUp you should simply embed moves.FixUp instead.
 
+	auto.MustConfig is like auto.Config, but instead of returning a
+	*MoveTypeConfig and an error, it simply returns a *MoveTypeConfig--and
+	panics if it would have returned an error. Since your GameDelegate's
+	ConfigureMoves() is typically called during the boot-up sequence of your
+	game, it is safe to use auto.MustConfig exclusively, which saves many
+	lines of boilerplate error checking.
+
 */
 package auto
