@@ -15,14 +15,6 @@ type MovePlaceToken struct {
 	Slot int
 }
 
-var movePlayTokenConfig = boardgame.MoveTypeConfig{
-	Name:     "Place Token",
-	HelpText: "Place a player's token in a specific space.",
-	MoveConstructor: func() boardgame.Move {
-		return new(MovePlaceToken)
-	},
-}
-
 func (m *MovePlaceToken) DefaultsForState(state boardgame.State) {
 	game, _ := concreteStates(state)
 
@@ -76,18 +68,4 @@ func (m *MovePlaceToken) Apply(state boardgame.MutableState) error {
 	game.Phase.SetValue(PhaseAfterFirstMove)
 
 	return nil
-}
-
-//+autoreader
-type MoveFinishTurn struct {
-	moves.FinishTurn
-}
-
-var moveFinishTurnConfig = boardgame.MoveTypeConfig{
-	Name:     "Finish Turn",
-	HelpText: "After the current player has made all of their moves, this fix-up move advances to the next player.",
-	MoveConstructor: func() boardgame.Move {
-		return new(MoveFinishTurn)
-	},
-	IsFixUp: true,
 }

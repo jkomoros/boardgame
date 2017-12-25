@@ -10,6 +10,8 @@ package tictactoe
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves"
+	"github.com/jkomoros/boardgame/moves/auto"
 	"strings"
 )
 
@@ -133,8 +135,13 @@ func (g *gameDelegate) ConfigureAgents() []boardgame.Agent {
 
 func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 	return boardgame.NewMoveTypeConfigBundle().AddMoves(
-		&movePlayTokenConfig,
-		&moveFinishTurnConfig,
+		auto.MustConfig(
+			new(MovePlaceToken),
+			moves.WithHelpText("Place a player's token in a specific space."),
+		),
+		auto.MustConfig(
+			new(moves.FinishTurn),
+		),
 	)
 }
 
