@@ -16,7 +16,7 @@ your gameState should implement CurrentPlayerSetter.
 +autoreader
 */
 type FinishTurn struct {
-	Base
+	FixUp
 }
 
 func (f *FinishTurn) ValidConfiguration(exampleState boardgame.MutableState) error {
@@ -117,9 +117,4 @@ func (f *FinishTurn) MoveTypeFallbackName() string {
 //current player's turn is done."
 func (f *FinishTurn) MoveTypeFallbackHelpText() string {
 	return "Advances to the next player when the current player's turn is done."
-}
-
-//MoveTypeFallbackIsFixUp returns true
-func (f *FinishTurn) MoveTypeFallbackIsFixUp() bool {
-	return true
 }

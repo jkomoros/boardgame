@@ -11,7 +11,7 @@ import (
 //
 //+autoreader
 type ShuffleStack struct {
-	Base
+	FixUp
 }
 
 //SourceStack by default just returns the property on GameState with the name
@@ -89,9 +89,4 @@ func (s *ShuffleStack) MoveTypeFallbackName() string {
 //name of the stack set by WithSourceStack.
 func (s *ShuffleStack) MoveTypeFallbackHelpText() string {
 	return "Shuffles the " + stackName(s, configNameSourceStack) + " stack"
-}
-
-//MoveTypeFallbackIsFixUp returns true.
-func (s *ShuffleStack) MoveTypeFallbackIsFixUp() bool {
-	return true
 }

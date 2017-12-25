@@ -27,7 +27,7 @@ func targetCountString(topLevelStruct boardgame.Move) string {
 //
 //+autoreader
 type ApplyUntil struct {
-	Base
+	FixUp
 }
 
 //AllowMultipleInProgression returns true because the move is applied until
@@ -73,11 +73,6 @@ func (a *ApplyUntil) MoveTypeFallbackName() string {
 //MoveTypeFallbackHelpText simply returns "Applies the move until a condition is met."
 func (a *ApplyUntil) MoveTypeFallbackHelpText() string {
 	return "Applies the move until a condition is met."
-}
-
-//MoveTypeFallbackIsFixUp returns true.
-func (a *ApplyUntil) MoveTypeFallbackIsFixUp() bool {
-	return true
 }
 
 type counter interface {

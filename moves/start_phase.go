@@ -24,9 +24,14 @@ type phaseToStarter interface {
 //to pass the moves.WithPhaseToStart config object, so that the move has
 //enough information to know which phase to enter.
 //
+//
+//IsFixUp will be set to true by default when used with auto.Config. If you
+//provide your own Legal method that does anything more than Base's Legal(),
+//then you likely want to override this with WithIsFixUp(false).
+//
 //+autoreader
 type StartPhase struct {
-	Base
+	FixUp
 }
 
 func (s *StartPhase) ValidConfiguration(exampleState boardgame.MutableState) error {
@@ -120,13 +125,6 @@ func (s *StartPhase) MoveTypeFallbackName() string {
 //the int value if no enum was passed.
 func (s *StartPhase) MoveTypeFallbackHelpText() string {
 	return "Enters phase " + s.phaseStringValue()
-}
-
-//MoveTypeFallbackIsFixUp returns true. If you provide your own Legal method
-//that does anything more than Base's Legal(), then you likely want to
-//override this with WithIsFixUp(false).
-func (s *StartPhase) MoveTypeFallbackIsFixUp() bool {
-	return true
 }
 
 func (s *StartPhase) phaseStringValue() string {
