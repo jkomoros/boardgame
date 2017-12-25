@@ -64,16 +64,15 @@ anonymously in your own Moves. It implements no-op methods for many of the
 required methods on Moves. Apply is not covered, because every Move
 should implement their own, and if this implemented them it would obscure
 errors where for example your Apply() was incorrectly named and thus not used.
-In general your MoveConstructor can always be exactly the same, modulo the
-name of your underlying move type:
-
-	MoveConstructor: func() boardgame.Move {
- 		return new(myMoveStruct)
-	}
 
 Base's Legal() method does basic checking for whehter the move is legal in
-this phase, so your own Legal() method should always call Base.Legal() at the
-top of its own method.
+this phase, so your own Legal() method should always call Base.Legal() (or the
+Legal method of whichever struct you embedded that in turn calls Base.Legal())
+at the top of its own method.
+
+Base contains a fair bit of logic for generating the values that auto.Config
+will use for the move configuration; see MoveType* methods on Base for more
+information.
 
 It is extremely rare to not use moves.Base either directly, or implicitly
 within another sub-class in your move.
@@ -147,9 +146,9 @@ func titleCaseToWords(in string) string {
 
 }
 
-//MoveTypeName is used by DefaultConfig to generate the name. This
+//MoveTypeName is used by auto.Config to generate the name for the move. This
 //implementation is where the majority of MoveName magic logic comes from.
-//First, it will use thethe configuration passed to DefaultConfig via
+//First, it will use the configuration passed to auto.Config via
 //WithMoveName, if provided. Next, it checks the name of the topLevelStruct
 //via reflection. If the struct does not come from the moves package, it will
 //create a name like `MoveMyMove` --> `My Move`. Finally, if it's a struct
@@ -207,7 +206,7 @@ func (b *Base) MoveTypeFallbackName() string {
 	return "Base Move"
 }
 
-//MoveTypeHelpText is used by DefaultConfig to generate the HelpText. It will
+//MoveTypeHelpText is used by auto.Config to generate the HelpText. It will
 //return the value passed via the WithHelpText config option, if it was
 //passed. Otherwise it will fall back on the move's MoveTypeHelpTextFallback
 //method.
@@ -238,14 +237,14 @@ func (b *Base) MoveTypeHelpText() string {
 }
 
 //MoveTypeFallbackHelpText is the help text that will be used by
-//MoveTypeHelpText if nothing was passed via WithHelpText to DefaultConfig. By
+//MoveTypeHelpText if nothing was passed via WithHelpText to auto.Config. By
 //default it returns "A base move that does nothing on its own"
 func (b *Base) MoveTypeFallbackHelpText() string {
 	return "A base move that does nothing on its own"
 }
 
-//MoveTypeIsFixUp is used by Defaultconfig to generate the IsFixUp value. Will
-//return the value passed to DefaultConfig via WithIsFixUp, if provided.
+//MoveTypeIsFixUp is used by auto.Config to generate the IsFixUp value. Will
+//return the value passed to auto.Config via WithIsFixUp, if provided.
 //Otherwise, will default to MoveTypeFallbackIsFixUp, which will return
 //reasonable values for all moves in this package.
 func (b *Base) MoveTypeIsFixUp() bool {
@@ -274,7 +273,7 @@ func (b *Base) MoveTypeIsFixUp() bool {
 }
 
 //MoveTypeFallbackIsFixUp will be called if WithIsFixUp is not provided via
-//DefaultConfig. Other moves in the move package all subclass this to return a
+//auto.Config. Other moves in the move package all subclass this to return a
 //reasonable value. By default returns false.
 func (b *Base) MoveTypeFallbackIsFixUp() bool {
 	return false

@@ -20,6 +20,11 @@ type sourceDestinationStacker interface {
 //to encode which stacks to use. You may also want to override TargetCount()
 //if you want to move more than one component.
 //
+//In practice it is most common to just use this move (and its subclasses)
+//directly, and pass configuration for SourceStack, DestinationStack, and
+//TargetCount with WithSourceStack, WithDestinationStack, and WithTargetCount
+//to auto.Config.
+//
 //+autoreader
 type MoveCountComponents struct {
 	ApplyCountTimes

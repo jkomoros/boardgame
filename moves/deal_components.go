@@ -86,7 +86,10 @@ func dealComponentsConditionMetHelper(topLevelStruct boardgame.Move, state board
 DealCountComponents is a type of RoundRobin move that deals components from
 gameState's GameStack() to each PlayerState's PlayerStack(). It goes around
 TargetCount() times. TargetCount() defaults to 1; override if you want to deal
-out a different number of components.
+out a different number of components. In practice it is more common to use
+this move (and its subclasses) directly, and pass configuration for GameStack,
+PlayerStack, and TargetCount via WithGameStack, WithPlayerStack, and
+WithTargetCount into auto.Config.
 
 +autoreader
 */
@@ -95,7 +98,7 @@ type DealCountComponents struct {
 }
 
 //TargetCount should return the count that you want to target. Will return the
-//configuration option passed via WithTargetCount in DefaultConfig, or 1 if
+//configuration option passed via WithTargetCount in auto.Config, or 1 if
 //that wasn't provided.
 func (d *DealCountComponents) TargetCount() int {
 
@@ -132,7 +135,7 @@ func (d *DealCountComponents) NumRounds() int {
 }
 
 //PlayerStack by default just returns the property on GameState with the name
-//passed to DefaultConfig by WithPlayerStack. If that is not sufficient,
+//passed to auto.Config by WithPlayerStack. If that is not sufficient,
 //override this in your embedding struct.
 func (d *DealCountComponents) PlayerStack(playerState boardgame.MutablePlayerState) boardgame.MutableStack {
 	config := d.Info().Type().CustomConfiguration()
@@ -159,7 +162,7 @@ func (d *DealCountComponents) PlayerStack(playerState boardgame.MutablePlayerSta
 }
 
 //GameStack by default just returns the property on GameState with the name
-//passed to DefaultConfig by WithGameStack. If that is not sufficient,
+//passed to auto.Config by WithGameStack. If that is not sufficient,
 //override this in your embedding struct.
 func (d *DealCountComponents) GameStack(gameState boardgame.MutableSubState) boardgame.MutableStack {
 	config := d.Info().Type().CustomConfiguration()

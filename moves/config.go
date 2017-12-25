@@ -22,9 +22,9 @@ const configNameIsFixUp = fullyQualifiedPackageName + "IsFixUp"
 const configNameLegalPhases = fullyQualifiedPackageName + "LegalPhases"
 
 //WithMoveName returns a function configuration option suitable for being
-//passed to DefaultConfig. moves.Base uses this, if provided, to power
-//MoveTypeName, which means that DefaultConfig will use this name in some
-//cases. If you're passing a move struct that not's from this package, the
+//passed to auto.Config. moves.Base uses this, if provided, to power
+//MoveTypeName, which means that auto.Config will use this name whenever it is
+//passed. If you're passing a move struct that not's from this package, the
 //auto-generated move name is likely sufficient and you don't need this. See
 //the documentation for moves.Base.MoveTypeName for more information.
 func WithMoveName(moveName string) interfaces.CustomConfigurationOption {
@@ -34,9 +34,9 @@ func WithMoveName(moveName string) interfaces.CustomConfigurationOption {
 }
 
 //WithHelpText returns a function configuration option suitable for being
-//passed to DefaultConfig. moves.Base uses this, if provided, to power
-//MoveTypeHelpText, which means that DefaultConfig will use this name in some
-//cases. See the documentation for moves.Base.MoveTypeHelpText for more
+//passed to auto.Config. moves.Base uses this, if provided, to power
+//MoveTypeHelpText, which means that auto.Config will use this text whenever
+//it is passed. See the documentation for moves.Base.MoveTypeHelpText for more
 //information.
 func WithHelpText(helpText string) interfaces.CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
@@ -45,7 +45,7 @@ func WithHelpText(helpText string) interfaces.CustomConfigurationOption {
 }
 
 //WithLegalPhases returns a function configuration option suitable for being
-//passed to DefaultConfig. moves.Base will return whatever is passed via this
+//passed to auto.Config. moves.Base will return whatever is passed via this
 //for MoveTypeLegalPhases().
 func WithLegalPhases(legalPhases []int) interfaces.CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
@@ -54,12 +54,14 @@ func WithLegalPhases(legalPhases []int) interfaces.CustomConfigurationOption {
 }
 
 //WithIsFixUp returns a function configuration option suitable for being
-//passed to DefaultConfig. moves.Base uses this, if provided, to power
-//MoveTypeIsFixUp, which means that DefaultConfig will use this name in some
-//cases. See the documentation for moves.Base.MoveTypeIsFixup for more
-//information. All moves in this package will return reasonable values for
-//MoveTypeIsFixUp on their own, so it is much more rare to use this than other
-//config options in this package.
+//passed to auto.Config. moves.Base uses this, if provided, to power
+//MoveTypeIsFixUp, which means that auto.Config will use this if it is passed.
+//See the documentation for moves.Base.MoveTypeIsFixup for more information.
+//All moves in this package will return reasonable values for MoveTypeIsFixUp
+//on their own, so it is much more rare to use this than other config options
+//in this package. In general, instead of using this option you should simply
+//embed FixUp (or a move that itself embedds IsFixUp), so you don't have to
+//remember to pass WithIsFixUp, which is easy to forget.
 func WithIsFixUp(isFixUp bool) interfaces.CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configNameIsFixUp] = isFixUp
@@ -67,10 +69,10 @@ func WithIsFixUp(isFixUp bool) interfaces.CustomConfigurationOption {
 }
 
 //WithPhaseToStart returns a function configuration option suitable for being
-//passed to DefaultConfig. PhaseEnum should be the enum that is used for
-//phases, and phaseToStart is the value within that phase to start. The
-//phaseEnum is optional; if not provided, the name of the move and help text
-//will just use the int value of the phase instead.
+//passed to auto.Config. PhaseEnum should be the enum that is used for phases,
+//and phaseToStart is the value within that phase to start. The phaseEnum is
+//optional; if not provided, the name of the move and help text will just use
+//the int value of the phase instead.
 func WithPhaseToStart(phaseToStart int, optionalPhaseEnum enum.Enum) interfaces.CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configNameStartPhase] = phaseToStart
@@ -79,8 +81,8 @@ func WithPhaseToStart(phaseToStart int, optionalPhaseEnum enum.Enum) interfaces.
 }
 
 //WithSourceStack returns a function configuration option suitable for being
-//passed to DefaultConfig. The stackPropName is assumed to be on the GameState
-//object. If it isn't, you'll need to embed the move and override Sourcetack
+//passed to auto.Config. The stackPropName is assumed to be on the GameState
+//object. If it isn't, you'll need to embed the move and override SourceStack
 //yourself.
 func WithSourceStack(stackPropName string) interfaces.CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
@@ -89,7 +91,7 @@ func WithSourceStack(stackPropName string) interfaces.CustomConfigurationOption 
 }
 
 //WithDestinationStack returns a function configuration option suitable for
-//being passed to DefaultConfig. The stackPropName is assumed to be on the
+//being passed to auto.Config. The stackPropName is assumed to be on the
 //GameState object. If it isn't, you'll need to embed the move and override
 //DestinationStack yourself.
 func WithDestinationStack(stackPropName string) interfaces.CustomConfigurationOption {
@@ -99,7 +101,7 @@ func WithDestinationStack(stackPropName string) interfaces.CustomConfigurationOp
 }
 
 //WithGameStack returns a function configuration option suitable for being
-//passed to DefaultConfig.
+//passed to auto.Config.
 func WithGameStack(stackPropName string) interfaces.CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configNameGameStack] = stackPropName
@@ -107,7 +109,7 @@ func WithGameStack(stackPropName string) interfaces.CustomConfigurationOption {
 }
 
 //WithPlayerStack returns a function configuration option suitable for being
-//passed to DefaultConfig.
+//passed to auto.Config.
 func WithPlayerStack(stackPropName string) interfaces.CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configNamePlayerStack] = stackPropName
@@ -115,7 +117,7 @@ func WithPlayerStack(stackPropName string) interfaces.CustomConfigurationOption 
 }
 
 //WithNumRounds returns a function configuration option suitable for being
-//passed to DefaultConfig.
+//passed to auto.Config.
 func WithNumRounds(numRounds int) interfaces.CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configNameNumRounds] = numRounds
@@ -123,7 +125,7 @@ func WithNumRounds(numRounds int) interfaces.CustomConfigurationOption {
 }
 
 //WithTargetCount returns a function configuration option suitable for being
-//passed to DefaultConfig.
+//passed to auto.Config.
 func WithTargetCount(targetCount int) interfaces.CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configNameTargetCount] = targetCount

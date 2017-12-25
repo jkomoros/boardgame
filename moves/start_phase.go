@@ -24,11 +24,6 @@ type phaseToStarter interface {
 //to pass the moves.WithPhaseToStart config object, so that the move has
 //enough information to know which phase to enter.
 //
-//
-//IsFixUp will be set to true by default when used with auto.Config. If you
-//provide your own Legal method that does anything more than Base's Legal(),
-//then you likely want to override this with WithIsFixUp(false).
-//
 //+autoreader
 type StartPhase struct {
 	FixUp

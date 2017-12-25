@@ -9,6 +9,9 @@ import (
 //ShuffleStack is a move, typically used in SetUp phases, that simply shuffles
 //a given stack. The struct you embed this in should implement SourceStacker.
 //
+//In practice it is common to just use this move directly in your game, and
+//pass the stack via WithSourceStack to auto.Config.
+//
 //+autoreader
 type ShuffleStack struct {
 	FixUp

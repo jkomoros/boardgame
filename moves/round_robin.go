@@ -425,7 +425,8 @@ func (r *RoundRobinNumRounds) ValidConfiguration(exampleState boardgame.MutableS
 
 //NumRounds should return the RoundRobinRoundCount that we are targeting. As
 //soon as that RoundCount is reached, our ConditionMet will start returning
-//nil, signaling the Round Robin is over. Defaults to 1.
+//nil, signaling the Round Robin is over. Will return the value passed via
+//WithNumRounds to auto.Config, or 1 by default.
 func (r *RoundRobinNumRounds) NumRounds() int {
 	config := r.Info().Type().CustomConfiguration()
 
