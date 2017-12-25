@@ -8,23 +8,18 @@ import (
 )
 
 //+autoreader
-type moveRollDice struct {
+type MoveRollDice struct {
 	moves.CurrentPlayer
 }
 
 //+autoreader
-type moveDoneTurn struct {
+type MoveDoneTurn struct {
 	moves.CurrentPlayer
 }
 
 //+autoreader
-type moveCountDie struct {
+type MoveCountDie struct {
 	moves.CurrentPlayer
-}
-
-//+autoreader
-type moveFinishTurn struct {
-	moves.FinishTurn
 }
 
 /**************************************************
@@ -33,15 +28,7 @@ type moveFinishTurn struct {
  *
  **************************************************/
 
-var moveRollDiceConfig = boardgame.MoveTypeConfig{
-	Name:     "Roll Dice",
-	HelpText: "Rolls the dice for the current player",
-	MoveConstructor: func() boardgame.Move {
-		return new(moveRollDice)
-	},
-}
-
-func (m *moveRollDice) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *MoveRollDice) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
 	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
 		return nil
@@ -58,7 +45,7 @@ func (m *moveRollDice) Legal(state boardgame.State, proposer boardgame.PlayerInd
 	return nil
 }
 
-func (m *moveRollDice) Apply(state boardgame.MutableState) error {
+func (m *MoveRollDice) Apply(state boardgame.MutableState) error {
 	game, players := concreteStates(state)
 
 	p := players[game.CurrentPlayer]
@@ -80,15 +67,7 @@ func (m *moveRollDice) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-var moveDoneTurnConfig = boardgame.MoveTypeConfig{
-	Name:     "Done Turn",
-	HelpText: "Played when a player is done with their turn and wants to keep their score.",
-	MoveConstructor: func() boardgame.Move {
-		return new(moveDoneTurn)
-	},
-}
-
-func (m *moveDoneTurn) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *MoveDoneTurn) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
 	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
 		return err
@@ -109,7 +88,7 @@ func (m *moveDoneTurn) Legal(state boardgame.State, proposer boardgame.PlayerInd
 	return nil
 }
 
-func (m *moveDoneTurn) Apply(state boardgame.MutableState) error {
+func (m *MoveDoneTurn) Apply(state boardgame.MutableState) error {
 	game, players := concreteStates(state)
 
 	p := players[game.CurrentPlayer]
@@ -125,16 +104,7 @@ func (m *moveDoneTurn) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-var moveCountDieConfig = boardgame.MoveTypeConfig{
-	Name:     "Count Die",
-	HelpText: "After a die has been rolled, tabulating its impact",
-	MoveConstructor: func() boardgame.Move {
-		return new(moveCountDie)
-	},
-	IsFixUp: true,
-}
-
-func (m *moveCountDie) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *MoveCountDie) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
 	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
 		return err
@@ -151,7 +121,7 @@ func (m *moveCountDie) Legal(state boardgame.State, proposer boardgame.PlayerInd
 	return nil
 }
 
-func (m *moveCountDie) Apply(state boardgame.MutableState) error {
+func (m *MoveCountDie) Apply(state boardgame.MutableState) error {
 	game, players := concreteStates(state)
 
 	p := players[game.CurrentPlayer]
@@ -168,19 +138,4 @@ func (m *moveCountDie) Apply(state boardgame.MutableState) error {
 	p.DieCounted = true
 
 	return nil
-}
-
-/**************************************************
- *
- * MoveAdvanceNextPlayer Implementation
- *
- **************************************************/
-
-var moveFinishTurnConfig = boardgame.MoveTypeConfig{
-	Name:     "Finish Turn",
-	HelpText: "Advance to the next player when the current player has busted or said they are done.",
-	MoveConstructor: func() boardgame.Move {
-		return new(moveFinishTurn)
-	},
-	IsFixUp: true,
 }

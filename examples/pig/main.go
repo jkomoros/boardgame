@@ -9,6 +9,8 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/components/dice"
+	"github.com/jkomoros/boardgame/moves"
+	"github.com/jkomoros/boardgame/moves/auto"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -124,10 +126,23 @@ func (g *gameDelegate) DynamicComponentValuesConstructor(deck *boardgame.Deck) b
 
 func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 	return boardgame.NewMoveTypeConfigBundle().AddMoves(
-		&moveRollDiceConfig,
-		&moveDoneTurnConfig,
-		&moveCountDieConfig,
-		&moveFinishTurnConfig,
+		auto.MustConfig(
+			new(MoveRollDice),
+			moves.WithHelpText("Rolls the dice for the current player"),
+		),
+		auto.MustConfig(
+			new(MoveDoneTurn),
+			moves.WithHelpText("Played when a player is done with their turn and wants to keep their score."),
+		),
+		auto.MustConfig(
+			new(MoveCountDie),
+			moves.WithHelpText("After a die has been rolled, tabulating its impact"),
+			moves.WithIsFixUp(true),
+		),
+		auto.MustConfig(
+			new(moves.FinishTurn),
+			moves.WithHelpText("Advance to the next player when the current player has busted or said they are done."),
+		),
 	)
 }
 
