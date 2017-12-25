@@ -311,12 +311,10 @@ func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 		auto.MustConfig(
 			new(MoveCaptureCards),
 			moves.WithHelpText("If two cards are showing and they are the same type, capture them to the current player's hand."),
-			moves.WithIsFixUp(true),
 		),
 		auto.MustConfig(
 			new(MoveStartHideCardsTimer),
 			moves.WithHelpText("If two cards are showing and they are not the same type and the timer is not active, start a timer to automatically hide them."),
-			moves.WithIsFixUp(true),
 		),
 	)
 }

@@ -177,7 +177,6 @@ func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 		auto.MustConfig(
 			new(MoveShuffleDiscardToDraw),
 			moves.WithHelpText("When the draw deck is empty, shuffles the discard deck into draw deck."),
-			moves.WithIsFixUp(true),
 		),
 	).AddMovesForPhase(PhaseNormalPlay,
 		auto.MustConfig(

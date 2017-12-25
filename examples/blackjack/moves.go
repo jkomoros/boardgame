@@ -8,7 +8,7 @@ import (
 
 //+autoreader
 type MoveShuffleDiscardToDraw struct {
-	moves.Base
+	moves.FixUp
 }
 
 //+autoreader

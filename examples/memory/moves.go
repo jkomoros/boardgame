@@ -85,7 +85,7 @@ func (m *MoveRevealCard) Apply(state boardgame.MutableState) error {
 
 //+autoreader
 type MoveStartHideCardsTimer struct {
-	moves.Base
+	moves.FixUp
 }
 
 func (m *MoveStartHideCardsTimer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -142,7 +142,7 @@ func (m *MoveStartHideCardsTimer) Apply(state boardgame.MutableState) error {
 
 //+autoreader
 type MoveCaptureCards struct {
-	moves.Base
+	moves.FixUp
 }
 
 func (m *MoveCaptureCards) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
