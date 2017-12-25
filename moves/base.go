@@ -202,7 +202,8 @@ func (b *Base) MoveTypeHelpText() string {
 }
 
 //MoveTypeFallbackHelpText is the help text that will be used by
-//MoveTypeHelpText if nothing was passed via WithHelpText to DefaultConfig.
+//MoveTypeHelpText if nothing was passed via WithHelpText to DefaultConfig. By
+//default it returns "A base move that does nothing on its own"
 func (b *Base) MoveTypeFallbackHelpText() string {
 	return "A base move that does nothing on its own"
 }
@@ -238,7 +239,7 @@ func (b *Base) MoveTypeIsFixUp() bool {
 
 //MoveTypeFallbackIsFixUp will be called if WithIsFixUp is not provided via
 //DefaultConfig. Other moves in the move package all subclass this to return a
-//reasonable value.
+//reasonable value. By default returns false.
 func (b *Base) MoveTypeFallbackIsFixUp() bool {
 	return false
 }

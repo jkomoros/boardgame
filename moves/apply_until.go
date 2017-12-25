@@ -65,14 +65,17 @@ func (a *ApplyUntil) Legal(state boardgame.State, proposer boardgame.PlayerIndex
 
 }
 
+//MoveTypeFallbackName simply returns "Apply Until"
 func (a *ApplyUntil) MoveTypeFallbackName() string {
 	return "Apply Until"
 }
 
+//MoveTypeFallbackHelpText simply returns "Applies the move until a condition is met."
 func (a *ApplyUntil) MoveTypeFallbackHelpText() string {
 	return "Applies the move until a condition is met."
 }
 
+//MoveTypeFallbackIsFixUp returns true.
 func (a *ApplyUntil) MoveTypeFallbackIsFixUp() bool {
 	return true
 }
@@ -191,11 +194,15 @@ func (a *ApplyUntilCount) ConditionMet(state boardgame.State) error {
 
 }
 
+//MoveTypeFallbackName returns "Apply Until Count of INT", where INT is the
+//target count.
 func (a *ApplyUntilCount) MoveTypeFallbackName() string {
 
 	return "Apply Until Count of " + targetCountString(a.TopLevelStruct())
 }
 
+//MoveTypeFallbackHelpText returns "Applies the move until a target count of
+//INT is met.", where INT is the target count.
 func (a *ApplyUntilCount) MoveTypeFallbackHelpText() string {
 	return "Applies the move until a target count of " + targetCountString(a.TopLevelStruct()) + " is met."
 }
@@ -250,11 +257,15 @@ func (a *ApplyCountTimes) Count(state boardgame.State) int {
 	return countMovesApplied(a.TopLevelStruct(), state)
 }
 
+//MoveTypeFallbackName returns "Apply INT Times", where INT is the target
+//count.
 func (a *ApplyCountTimes) MoveTypeFallbackName() string {
 
 	return "Apply " + targetCountString(a.TopLevelStruct()) + " Times"
 }
 
+//MoveTypeFallbackHelpText returns "Applies the move INT times in a row.",
+//where INT is the target count.
 func (a *ApplyCountTimes) MoveTypeFallbackHelpText() string {
 	return "Applies the move " + targetCountString(a.TopLevelStruct()) + " times in a row."
 }

@@ -140,6 +140,8 @@ func (m *MoveCountComponents) Apply(state boardgame.MutableState) error {
 
 }
 
+//MoveTypeFallbackName returns a string based on the names of the player
+//stack name, game stack name, and target count.
 func (m *MoveCountComponents) MoveTypeFallbackName() string {
 
 	source, destination := m.stackNames()
@@ -147,6 +149,8 @@ func (m *MoveCountComponents) MoveTypeFallbackName() string {
 	return "Move " + targetCountString(m.TopLevelStruct()) + " Components From " + source + " To " + destination
 }
 
+//MoveTypeFallbackHelpText returns a string based on the names of the player
+//stack name, game stack name, and target count.
 func (m *MoveCountComponents) MoveTypeFallbackHelpText() string {
 	source, destination := m.stackNames()
 
@@ -181,6 +185,8 @@ func (m *MoveComponentsUntilCountReached) Count(state boardgame.State) int {
 	return targetStack.NumComponents()
 }
 
+//MoveTypeFallbackName returns a string based on the names of the player
+//stack name, game stack name, and target count.
 func (m *MoveComponentsUntilCountReached) MoveTypeFallbackName() string {
 
 	source, destination := m.stackNames()
@@ -188,6 +194,8 @@ func (m *MoveComponentsUntilCountReached) MoveTypeFallbackName() string {
 	return "Move Components From " + source + " Until " + destination + " Has " + targetCountString(m.TopLevelStruct())
 }
 
+//MoveTypeFallbackHelpText returns a string based on the names of the player
+//stack name, game stack name, and target count.
 func (m *MoveComponentsUntilCountReached) MoveTypeFallbackHelpText() string {
 	source, destination := m.stackNames()
 
@@ -222,6 +230,8 @@ func (m *MoveComponentsUntilCountLeft) CountDown(state boardgame.State) bool {
 	return true
 }
 
+//MoveTypeFallbackName returns a string based on the names of the player
+//stack name, game stack name, and target count.
 func (m *MoveComponentsUntilCountLeft) MoveTypeFallbackName() string {
 
 	source, destination := m.stackNames()
@@ -229,6 +239,8 @@ func (m *MoveComponentsUntilCountLeft) MoveTypeFallbackName() string {
 	return "Move Components To " + destination + " Until " + source + " Has " + targetCountString(m.TopLevelStruct())
 }
 
+//MoveTypeFallbackHelpText returns a string based on the names of the player
+//stack name, game stack name, and target count.
 func (m *MoveComponentsUntilCountLeft) MoveTypeFallbackHelpText() string {
 	source, destination := m.stackNames()
 

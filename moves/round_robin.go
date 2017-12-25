@@ -375,14 +375,18 @@ func (r *RoundRobin) Apply(state boardgame.MutableState) error {
 
 }
 
+//MoveTypeFallbackName returns "Round Robin"
 func (r *RoundRobin) MoveTypeFallbackName() string {
 	return "Round Robin"
 }
 
+//MoveTypeFallbackHelpText returns "A round robin move that continues until
+//every player's condition is met."
 func (r *RoundRobin) MoveTypeFallbackHelpText() string {
 	return "A round robin move that continues until every player's condition is met."
 }
 
+//MoveTypeFallbackIsFixUp returns true.
 func (r *RoundRobin) MoveTypeFallbackIsFixUp() bool {
 	return true
 }
@@ -451,6 +455,8 @@ func (r *RoundRobinNumRounds) ConditionMet(state boardgame.State) error {
 
 }
 
+//MoveTypeFallbackName returns "Round Robin INT Rounds", where INT is
+//NumRounds().
 func (r *RoundRobinNumRounds) MoveTypeFallbackName() string {
 
 	numRounds, ok := r.TopLevelStruct().(numRoundser)
@@ -462,6 +468,8 @@ func (r *RoundRobinNumRounds) MoveTypeFallbackName() string {
 	return "Round Robin " + strconv.Itoa(numRounds.NumRounds()) + " Rounds"
 }
 
+//MoveTypeFallbackHelpText returns "A round robin move that makes INT
+//circuits.", where INT is NumRounds().
 func (r *RoundRobinNumRounds) MoveTypeFallbackHelpText() string {
 	numRounds, ok := r.TopLevelStruct().(numRoundser)
 

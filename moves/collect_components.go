@@ -32,6 +32,8 @@ func (d *CollectCountComponents) RoundRobinAction(playerState boardgame.MutableP
 
 }
 
+//MoveTypeFallbackName returns a string based on the names of the player
+//stack name, game stack name, and target count.
 func (d *CollectCountComponents) MoveTypeFallbackName() string {
 
 	player, game, count := d.moveTypeInfo()
@@ -39,6 +41,8 @@ func (d *CollectCountComponents) MoveTypeFallbackName() string {
 	return "Collect Components From Each Player's Stack " + player + " To Game Stack " + game + " " + count + " Times Per Player"
 }
 
+//MoveTypeFallbackHelpText returns a string based on the names of the player
+//stack name, game stack name, and target count.
 func (d *CollectCountComponents) MoveTypeFallbackHelpText() string {
 	player, game, count := d.moveTypeInfo()
 
@@ -81,6 +85,8 @@ func (d *CollectComponentsUntilPlayerCountLeft) PlayerConditionMet(pState boardg
 	return playerCount <= targetCount
 }
 
+//MoveTypeFallbackName returns a string based on the names of the player
+//stack name, game stack name, and target count.
 func (d *CollectComponentsUntilPlayerCountLeft) MoveTypeFallbackName() string {
 
 	player, game, count := d.moveTypeInfo()
@@ -88,6 +94,8 @@ func (d *CollectComponentsUntilPlayerCountLeft) MoveTypeFallbackName() string {
 	return "Collect Components From Each Player's Stack " + player + " To Game Stack " + game + " Until Each Player Is Down To " + count
 }
 
+//MoveTypeFallbackHelpText returns a string based on the names of the player
+//stack name, game stack name, and target count.
 func (d *CollectComponentsUntilPlayerCountLeft) MoveTypeFallbackHelpText() string {
 	player, game, count := d.moveTypeInfo()
 
@@ -136,6 +144,8 @@ func (d *CollectComponentsUntilGameCountReached) ConditionMet(state boardgame.St
 
 }
 
+//MoveTypeFallbackName returns a string based on the names of the player
+//stack name, game stack name, and target count.
 func (d *CollectComponentsUntilGameCountReached) MoveTypeFallbackName() string {
 
 	player, game, count := d.moveTypeInfo()
@@ -143,6 +153,8 @@ func (d *CollectComponentsUntilGameCountReached) MoveTypeFallbackName() string {
 	return "Collect Components From Each Player's Stack " + player + " To Game Stack " + game + " Until The Game Has " + count + " Total"
 }
 
+//MoveTypeFallbackHelpText returns a string based on the names of the player
+//stack name, game stack name, and target count.
 func (d *CollectComponentsUntilGameCountReached) MoveTypeFallbackHelpText() string {
 	player, game, count := d.moveTypeInfo()
 

@@ -107,19 +107,24 @@ func (s *StartPhase) Apply(state boardgame.MutableState) error {
 	return nil
 }
 
-//MoveTypeName returns a constant. For StartPhase it's better to use
-//NewStartPhaseConfig instead.
+//MoveTypeFallbackName returns "Start Phase PHASENAME" where PHASENAME is the
+//string value of the phase to start that was passed via WithPhaseToStart, or
+//the int value if no enum was passed.
 func (s *StartPhase) MoveTypeFallbackName() string {
 
 	return "Start Phase " + s.phaseStringValue()
 }
 
-//MoveTypeName returns a constant. For StartPhase it's better to use
-//NewStartPhaseConfig instead.
+//MoveTypeFallbackHelpText returns "Enters phase PHASENAME" where PHASENAME is the
+//string value of the phase to start that was passed via WithPhaseToStart, or
+//the int value if no enum was passed.
 func (s *StartPhase) MoveTypeFallbackHelpText() string {
 	return "Enters phase " + s.phaseStringValue()
 }
 
+//MoveTypeFallbackIsFixUp returns true. If you provide your own Legal method
+//that does anything more than Base's Legal(), then you likely want to
+//override this with WithIsFixUp(false).
 func (s *StartPhase) MoveTypeFallbackIsFixUp() bool {
 	return true
 }

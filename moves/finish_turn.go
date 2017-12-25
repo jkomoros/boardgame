@@ -107,14 +107,17 @@ func (f *FinishTurn) Apply(state boardgame.MutableState) error {
 
 }
 
+//MoveTypeFallbackName returns "Finish Turn"
 func (f *FinishTurn) MoveTypeFallbackName() string {
 	return "Finish Turn"
 }
 
+//MoveTypeFallbackHelpText returns "Finishes the player's turn".
 func (f *FinishTurn) MoveTypeFallbackHelpText() string {
 	return "Finishes the player's turn."
 }
 
+//MoveTypeFallbackIsFixUp returns false
 func (f *FinishTurn) MoveTypeFallbackIsFixUp() bool {
 	return false
 }

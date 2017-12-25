@@ -79,14 +79,19 @@ func (s *ShuffleStack) ValidConfiguration(exampleState boardgame.MutableState) e
 	return nil
 }
 
+//MoveTypeFallbackName returns "Shuffle STACK" where STACK is the name of the
+//stack set by WithSourceStack.
 func (s *ShuffleStack) MoveTypeFallbackName() string {
 	return "Shuffle " + stackName(s, configNameSourceStack)
 }
 
+//MoveTypeFallbackName returns "Shuffles the STACK stack" where STACK is the
+//name of the stack set by WithSourceStack.
 func (s *ShuffleStack) MoveTypeFallbackHelpText() string {
 	return "Shuffles the " + stackName(s, configNameSourceStack) + " stack"
 }
 
+//MoveTypeFallbackIsFixUp returns true.
 func (s *ShuffleStack) MoveTypeFallbackIsFixUp() bool {
 	return true
 }
