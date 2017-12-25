@@ -375,15 +375,15 @@ func (r *RoundRobin) Apply(state boardgame.MutableState) error {
 
 }
 
-func (r *RoundRobin) MoveTypeFallbackName(manager *boardgame.GameManager) string {
+func (r *RoundRobin) MoveTypeFallbackName() string {
 	return "Round Robin"
 }
 
-func (r *RoundRobin) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
+func (r *RoundRobin) MoveTypeFallbackHelpText() string {
 	return "A round robin move that continues until every player's condition is met."
 }
 
-func (r *RoundRobin) MoveTypeFallbackIsFixUp(manager *boardgame.GameManager) bool {
+func (r *RoundRobin) MoveTypeFallbackIsFixUp() bool {
 	return true
 }
 
@@ -451,7 +451,7 @@ func (r *RoundRobinNumRounds) ConditionMet(state boardgame.State) error {
 
 }
 
-func (r *RoundRobinNumRounds) MoveTypeFallbackName(manager *boardgame.GameManager) string {
+func (r *RoundRobinNumRounds) MoveTypeFallbackName() string {
 
 	numRounds, ok := r.TopLevelStruct().(numRoundser)
 
@@ -462,7 +462,7 @@ func (r *RoundRobinNumRounds) MoveTypeFallbackName(manager *boardgame.GameManage
 	return "Round Robin " + strconv.Itoa(numRounds.NumRounds()) + " Rounds"
 }
 
-func (r *RoundRobinNumRounds) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
+func (r *RoundRobinNumRounds) MoveTypeFallbackHelpText() string {
 	numRounds, ok := r.TopLevelStruct().(numRoundser)
 
 	if !ok {

@@ -22,11 +22,11 @@ type DefaultConfigMove interface {
 	//DefaultConfigMoves all must implement all Move methods.
 	boardgame.Move
 	//The name for the move type
-	MoveTypeName(manager *boardgame.GameManager) string
+	MoveTypeName() string
 	//The HelpText to use.
-	MoveTypeHelpText(manager *boardgame.GameManager) string
+	MoveTypeHelpText() string
 	//Whether the move should be a fix up.
-	MoveTypeIsFixUp(manager *boardgame.GameManager) bool
+	MoveTypeIsFixUp() bool
 }
 
 //RoundRobinBaseGameState is designed to be embedded in your GameState

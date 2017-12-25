@@ -39,7 +39,7 @@ func TestDealCardsDefaultConfig(t *testing.T) {
 	moveInstaller := func(manager *boardgame.GameManager) *boardgame.MoveTypeConfigBundle {
 
 		return boardgame.NewMoveTypeConfigBundle().AddMove(
-			MustDefaultConfig(manager, new(moveDealCards)),
+			MustDefaultConfig(manager, new(moveDealCards), WithMoveName("Deal Cards")),
 		)
 
 	}

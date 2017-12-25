@@ -119,7 +119,7 @@ func titleCaseToWords(in string) string {
 //create a name like `MoveMyMove` --> `My Move`. Finally, if it's a struct
 //from this package, it will fall back on whatever the MoveTypeFallbackName
 //method returns. Subclasses generally should not override this.
-func (b *Base) MoveTypeName(manager *boardgame.GameManager) string {
+func (b *Base) MoveTypeName() string {
 
 	config := b.Info().Type().CustomConfiguration()
 
@@ -157,7 +157,7 @@ func (b *Base) MoveTypeName(manager *boardgame.GameManager) string {
 	defaultConfig, ok := move.(defaultConfigFallbackMoveType)
 
 	if ok {
-		return defaultConfig.MoveTypeFallbackName(manager)
+		return defaultConfig.MoveTypeFallbackName()
 	}
 
 	//Nothing worked. :-/
@@ -167,7 +167,7 @@ func (b *Base) MoveTypeName(manager *boardgame.GameManager) string {
 
 //MoveTypeFallbackName is the name that is returned if other higher-priority
 //methods in MoveTypeName fail. For moves.Base returns "Base Move".
-func (b *Base) MoveTypeFallbackName(manager *boardgame.GameManager) string {
+func (b *Base) MoveTypeFallbackName() string {
 	return "Base Move"
 }
 
@@ -175,7 +175,7 @@ func (b *Base) MoveTypeFallbackName(manager *boardgame.GameManager) string {
 //return the value passed via the WithHelpText config option, if it was
 //passed. Otherwise it will fall back on the move's MoveTypeHelpTextFallback
 //method.
-func (b *Base) MoveTypeHelpText(manager *boardgame.GameManager) string {
+func (b *Base) MoveTypeHelpText() string {
 	config := b.Info().Type().CustomConfiguration()
 
 	overrideHelpText, hasOverrideHelpText := config[configNameHelpText]
@@ -193,7 +193,7 @@ func (b *Base) MoveTypeHelpText(manager *boardgame.GameManager) string {
 	defaultConfig, ok := move.(defaultConfigFallbackMoveType)
 
 	if ok {
-		return defaultConfig.MoveTypeFallbackHelpText(manager)
+		return defaultConfig.MoveTypeFallbackHelpText()
 	}
 
 	//Nothing worked. :-/
@@ -203,7 +203,7 @@ func (b *Base) MoveTypeHelpText(manager *boardgame.GameManager) string {
 
 //MoveTypeFallbackHelpText is the help text that will be used by
 //MoveTypeHelpText if nothing was passed via WithHelpText to DefaultConfig.
-func (b *Base) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
+func (b *Base) MoveTypeFallbackHelpText() string {
 	return "A base move that does nothing on its own"
 }
 
@@ -211,7 +211,7 @@ func (b *Base) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
 //return the value passed to DefaultConfig via WithIsFixUp, if provided.
 //Otherwise, will default to MoveTypeFallbackIsFixUp, which will return
 //reasonable values for all moves in this package.
-func (b *Base) MoveTypeIsFixUp(manager *boardgame.GameManager) bool {
+func (b *Base) MoveTypeIsFixUp() bool {
 	config := b.Info().Type().CustomConfiguration()
 
 	overrideIsFixUp, hasOverrideIsFixUp := config[configNameIsFixUp]
@@ -229,7 +229,7 @@ func (b *Base) MoveTypeIsFixUp(manager *boardgame.GameManager) bool {
 	defaultConfig, ok := move.(defaultConfigFallbackMoveType)
 
 	if ok {
-		return defaultConfig.MoveTypeFallbackIsFixUp(manager)
+		return defaultConfig.MoveTypeFallbackIsFixUp()
 	}
 
 	//Nothing worked. :-/
@@ -239,7 +239,7 @@ func (b *Base) MoveTypeIsFixUp(manager *boardgame.GameManager) bool {
 //MoveTypeFallbackIsFixUp will be called if WithIsFixUp is not provided via
 //DefaultConfig. Other moves in the move package all subclass this to return a
 //reasonable value.
-func (b *Base) MoveTypeFallbackIsFixUp(manager *boardgame.GameManager) bool {
+func (b *Base) MoveTypeFallbackIsFixUp() bool {
 	return false
 }
 
@@ -466,4 +466,21 @@ func progressionMatches(input []string, pattern []string) bool {
 	//If we got to the end of the input without invalidating then it passes.
 	return true
 
+}
+
+//stackName returns the name of the stack for helpTExt, name, etc based on the
+//configPropName.
+func stackName(move boardgame.Move, configPropName string) string {
+	config := move.Info().Type().CustomConfiguration()
+
+	val, ok := config[configPropName]
+
+	if ok {
+		strVal, ok := val.(string)
+		if ok {
+			return strVal
+		}
+	}
+
+	return "a stack"
 }

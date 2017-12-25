@@ -62,44 +62,36 @@ func (m *moveStartPhaseDrawAgain) PhaseToStart(currentPhase int) int {
 	return phaseDrawAgain
 }
 
-//+autoreader
-type moveDealCardsToThree struct {
-	DealComponentsUntilPlayerCountReached
-}
-
-func (m *moveDealCardsToThree) TargetCount() int {
-	return 3
-}
-
-func (m *moveDealCardsToThree) GameStack(gState boardgame.MutableSubState) boardgame.MutableStack {
-	return gState.(*gameState).DrawStack
-}
-
-func (m *moveDealCardsToThree) PlayerStack(pState boardgame.MutablePlayerState) boardgame.MutableStack {
-	return pState.(*playerState).Hand
-}
-
 func defaultMoveInstaller(manager *boardgame.GameManager) *boardgame.MoveTypeConfigBundle {
 
 	return boardgame.NewMoveTypeConfigBundle().AddOrderedMovesForPhase(phaseSetUp,
-		MustDefaultConfig(manager, new(moveDealCards)),
-		MustDefaultConfig(manager, new(moveDealOtherCards), WithMoveName("Deal Other Cards OVERRIDE")),
+		MustDefaultConfig(manager,
+			new(moveDealCards),
+			WithMoveName("Deal Components From Game Stack DrawStack To Player Stack Hand To Each Player 2 Times"),
+		),
+		MustDefaultConfig(manager,
+			new(moveDealOtherCards),
+			WithMoveName("Deal Other Cards OVERRIDE"),
+		),
 		NewStartPhaseConfig(manager, phaseNormalPlay, nil),
 	).AddMovesForPhase(phaseNormalPlay,
-		&boardgame.MoveTypeConfig{
-			Name: "Draw Card",
-			MoveConstructor: func() boardgame.Move {
-				return new(moveCurrentPlayerDraw)
-			},
-		},
-		&boardgame.MoveTypeConfig{
-			Name: "Start Phase Draw Again",
-			MoveConstructor: func() boardgame.Move {
-				return new(moveStartPhaseDrawAgain)
-			},
-		},
+		MustDefaultConfig(manager,
+			new(moveCurrentPlayerDraw),
+			WithMoveName("Draw Card"),
+		),
+		MustDefaultConfig(manager,
+			new(moveStartPhaseDrawAgain),
+			WithMoveName("Start Phase Draw Again"),
+			WithIsFixUp(false),
+		),
 	).AddOrderedMovesForPhase(phaseDrawAgain,
-		MustDefaultConfig(manager, new(moveDealCardsToThree)),
+		MustDefaultConfig(manager,
+			new(DealComponentsUntilPlayerCountReached),
+			WithMoveName("Deal Cards To Three"),
+			WithGameStack("DrawStack"),
+			WithPlayerStack("Hand"),
+			WithTargetCount(3),
+		),
 	)
 }
 

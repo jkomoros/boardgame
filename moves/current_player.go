@@ -64,14 +64,14 @@ func (c *CurrentPlayer) DefaultsForState(state boardgame.State) {
 	c.TargetPlayerIndex = state.CurrentPlayerIndex()
 }
 
-func (c *CurrentPlayer) MoveTypeFallbackName(manager *boardgame.GameManager) string {
+func (c *CurrentPlayer) MoveTypeFallbackName() string {
 	return "Current Player Move"
 }
 
-func (c *CurrentPlayer) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
+func (c *CurrentPlayer) MoveTypeFallbackHelpText() string {
 	return "A move by the current player."
 }
 
-func (c *CurrentPlayer) MoveTypeFallbackIsFixUp(manager *boardgame.GameManager) bool {
+func (c *CurrentPlayer) MoveTypeFallbackIsFixUp() bool {
 	return false
 }

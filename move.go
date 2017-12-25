@@ -108,10 +108,21 @@ func (m *MoveTypeConfig) NewMoveType(manager *GameManager) (*MoveType, error) {
 		return nil, errors.New("MoveConstructor's readsetter returned nil")
 	}
 
-	validator, err := newReaderValidator(readSetter, readSetter, exampleMove, moveTypeIllegalPropTypes, manager.Chest(), false)
+	var validator *readerValidator
+	var err error
 
-	if err != nil {
-		return nil, errors.New("Couldn't create validator: " + err.Error())
+	//moves.Defaultconfig will call this without a manager. So return a half-
+	//useful object in that case... but also an error so anyone else who
+	//checks the error will ignore the half-useful move type.
+	if manager != nil {
+		validator, err = newReaderValidator(readSetter, readSetter, exampleMove, moveTypeIllegalPropTypes, manager.Chest(), false)
+
+		if err != nil {
+			return nil, errors.New("Couldn't create validator: " + err.Error())
+		}
+	} else {
+		//moves.DefaultConfig hackily looks for exactly this error string.
+		err = errors.New("No manager passed, so we can'd do validation")
 	}
 
 	return &MoveType{
@@ -123,7 +134,7 @@ func (m *MoveTypeConfig) NewMoveType(manager *GameManager) (*MoveType, error) {
 		customConfiguration: m.CustomConfiguration,
 		validator:           validator,
 		manager:             manager,
-	}, nil
+	}, err
 
 }
 
@@ -299,7 +310,10 @@ func (m *MoveType) NewMove(state State) Move {
 
 	info := &MoveInfo{
 		moveType: m,
-		version:  state.Version() + 1,
+	}
+
+	if state != nil {
+		info.version = state.Version() + 1
 	}
 
 	move.SetInfo(info)
@@ -314,14 +328,19 @@ func (m *MoveType) NewMove(state State) Move {
 		return nil
 	}
 
-	if err := m.validator.AutoInflate(readSetConfigurer, state); err != nil {
-		m.manager.Logger().Error("AutoInflate had an error: " + err.Error())
-		return nil
-	}
+	//validator might be nil if we have a half-functioning MoveType. (Like
+	//what will be returned, along with an error, when NewMoveType is called
+	//during moves.DefaultConfig)
+	if m.validator != nil {
+		if err := m.validator.AutoInflate(readSetConfigurer, state); err != nil {
+			m.manager.Logger().Error("AutoInflate had an error: " + err.Error())
+			return nil
+		}
 
-	if err := m.validator.Valid(readSetConfigurer); err != nil {
-		m.manager.Logger().Error("Move was not valid: " + err.Error())
-		return nil
+		if err := m.validator.Valid(readSetConfigurer); err != nil {
+			m.manager.Logger().Error("Move was not valid: " + err.Error())
+			return nil
+		}
 	}
 
 	if state != nil {

@@ -11,9 +11,9 @@ import (
 type defaultConfigFallbackMoveType interface {
 	//The last resort move-name generator that MoveName will fall back on if
 	//none of the other options worked.
-	MoveTypeFallbackName(manager *boardgame.GameManager) string
-	MoveTypeFallbackHelpText(manager *boardgame.GameManager) string
-	MoveTypeFallbackIsFixUp(manager *boardgame.GameManager) bool
+	MoveTypeFallbackName() string
+	MoveTypeFallbackHelpText() string
+	MoveTypeFallbackIsFixUp() bool
 }
 
 //MustDefaultConfig is a wrapper around DefaultConfig that if it errors will
@@ -54,21 +54,26 @@ func DefaultConfig(manager *boardgame.GameManager, exampleStruct moveinterfaces.
 
 	throwAwayConfig := newMoveTypeConfig("Temporary Move", "Temporary Move Help Text", false, exampleStruct, config)
 
-	throwAwayMoveType, err := throwAwayConfig.NewMoveType(manager)
+	throwAwayMoveType, err := throwAwayConfig.NewMoveType(nil)
 
 	if err != nil {
-		return nil, errors.New("Couldn't create temporary move type: " + err.Error())
+		//Look for exatly the single kind of error we're OK with. Yes, this is a hack.
+		if err.Error() != "No manager passed, so we can'd do validation" {
+			return nil, errors.New("Couldn't create intermediate move type: " + err.Error())
+		}
 	}
 
 	//the move returned from NewMove is guaranteed to implement
 	//DefaultConfigMove, because it's fundamentally an exampleStruct.
-	actualExample := throwAwayMoveType.NewMove(manager.ExampleState()).(moveinterfaces.DefaultConfigMove)
+	actualExample := throwAwayMoveType.NewMove(nil).(moveinterfaces.DefaultConfigMove)
 
-	name := actualExample.MoveTypeName(manager)
-	helpText := actualExample.MoveTypeHelpText(manager)
-	isFixUp := actualExample.MoveTypeIsFixUp(manager)
+	name := actualExample.MoveTypeName()
+	helpText := actualExample.MoveTypeHelpText()
+	isFixUp := actualExample.MoveTypeIsFixUp()
 
-	return newMoveTypeConfig(name, helpText, isFixUp, exampleStruct, config), nil
+	moveTypeConfig, err := newMoveTypeConfig(name, helpText, isFixUp, exampleStruct, config), nil
+
+	return moveTypeConfig, err
 
 }
 
@@ -93,41 +98,29 @@ func newMoveTypeConfig(name, helpText string, isFixUp bool, exampleStruct boardg
 	}
 }
 
-//stackPropName takes a stack that was returned from a given state, and the
-//state it was returned from. It searches through the sub- states in state
-//until it finds the name of the property where it resides.
-func stackPropName(stack boardgame.MutableStack, state boardgame.MutableState) string {
-
-	if name := stackPropNameInReadSetter(stack, state.MutableGameState().ReadSetter()); name != "" {
-		return name
+//A func that will fail to compile if all of the moves don't have a valid fallback.
+func ensureAllMovesSatisfyFallBack() {
+	var m defaultConfigFallbackMoveType
+	m = new(ApplyUntil)
+	m = new(ApplyUntilCount)
+	m = new(ApplyCountTimes)
+	m = new(Base)
+	m = new(CollectCountComponents)
+	m = new(CollectComponentsUntilGameCountReached)
+	m = new(CollectComponentsUntilPlayerCountLeft)
+	m = new(CurrentPlayer)
+	m = new(DealCountComponents)
+	m = new(DealComponentsUntilGameCountLeft)
+	m = new(DealComponentsUntilPlayerCountReached)
+	m = new(FinishTurn)
+	m = new(MoveCountComponents)
+	m = new(MoveComponentsUntilCountLeft)
+	m = new(MoveComponentsUntilCountReached)
+	m = new(RoundRobin)
+	m = new(RoundRobinNumRounds)
+	m = new(ShuffleStack)
+	m = new(StartPhase)
+	if m != nil {
+		return
 	}
-
-	if name := stackPropNameInReadSetter(stack, state.MutablePlayerStates()[0].ReadSetter()); name != "" {
-		return name
-	}
-
-	for _, dynamicComponentValues := range state.MutableDynamicComponentValues() {
-		if name := stackPropNameInReadSetter(stack, dynamicComponentValues[0].ReadSetter()); name != "" {
-			return name
-		}
-	}
-
-	return ""
-
-}
-
-func stackPropNameInReadSetter(stack boardgame.MutableStack, readSetter boardgame.PropertyReadSetter) string {
-	for propName, propType := range readSetter.Props() {
-		if propType != boardgame.TypeStack {
-			continue
-		}
-		testStack, err := readSetter.MutableStackProp(propName)
-		if err != nil {
-			continue
-		}
-		if testStack == stack {
-			return propName
-		}
-	}
-	return ""
 }

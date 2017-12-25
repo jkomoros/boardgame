@@ -234,34 +234,19 @@ func (d *DealCountComponents) RoundRobinAction(playerState boardgame.MutablePlay
 }
 
 //moveTypeInfo is used as a helper to generate sttrings for all of the MoveType getters.
-func (d *DealCountComponents) moveTypeInfo(manager *boardgame.GameManager) (player, game, count string) {
-	exampleState := manager.ExampleState()
-
-	playerName := "unknown stack"
-	gameName := "unknown stack"
-
-	if playerStack, gameStack, err := dealActionHelper(d.TopLevelStruct(), exampleState.MutablePlayerStates()[0]); err == nil {
-
-		if name := stackPropName(playerStack, exampleState); name != "" {
-			playerName = name
-		}
-		if name := stackPropName(gameStack, exampleState); name != "" {
-			gameName = name
-		}
-	}
-
-	return playerName, gameName, targetCountString(d.TopLevelStruct())
+func (d *DealCountComponents) moveTypeInfo() (player, game, count string) {
+	return stackName(d, configNamePlayerStack), stackName(d, configNameGameStack), targetCountString(d.TopLevelStruct())
 }
 
-func (d *DealCountComponents) MoveTypeFallbackName(manager *boardgame.GameManager) string {
+func (d *DealCountComponents) MoveTypeFallbackName() string {
 
-	player, game, count := d.moveTypeInfo(manager)
+	player, game, count := d.moveTypeInfo()
 
 	return "Deal Components From Game Stack " + game + " To Player Stack " + player + " To Each Player " + count + " Times"
 }
 
-func (d *DealCountComponents) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
-	player, game, count := d.moveTypeInfo(manager)
+func (d *DealCountComponents) MoveTypeFallbackHelpText() string {
+	player, game, count := d.moveTypeInfo()
 
 	return "Deals " + count + " components from game stack " + game + " to each player stack " + player
 }
@@ -294,15 +279,15 @@ func (d *DealComponentsUntilPlayerCountReached) ConditionMet(state boardgame.Sta
 	return d.RoundRobin.ConditionMet(state)
 }
 
-func (d *DealComponentsUntilPlayerCountReached) MoveTypeFallbackName(manager *boardgame.GameManager) string {
+func (d *DealComponentsUntilPlayerCountReached) MoveTypeFallbackName() string {
 
-	player, game, count := d.moveTypeInfo(manager)
+	player, game, count := d.moveTypeInfo()
 
 	return "Deal Components From Game Stack " + game + " To Player Stack " + player + " Until Each Player Has " + count
 }
 
-func (d *DealComponentsUntilPlayerCountReached) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
-	player, game, count := d.moveTypeInfo(manager)
+func (d *DealComponentsUntilPlayerCountReached) MoveTypeFallbackHelpText() string {
+	player, game, count := d.moveTypeInfo()
 
 	return "Deals components from game stack " + game + " to each player's " + player + " until each player has " + count
 }
@@ -333,15 +318,15 @@ func (d *DealComponentsUntilGameCountLeft) ConditionMet(state boardgame.State) e
 
 }
 
-func (d *DealComponentsUntilGameCountLeft) MoveTypeFallbackName(manager *boardgame.GameManager) string {
+func (d *DealComponentsUntilGameCountLeft) MoveTypeFallbackName() string {
 
-	player, game, count := d.moveTypeInfo(manager)
+	player, game, count := d.moveTypeInfo()
 
 	return "Deal Components From Game Stack " + game + " To Player Stack " + player + " Until Game Stack Has " + count + " Total"
 }
 
-func (d *DealComponentsUntilGameCountLeft) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
-	player, game, count := d.moveTypeInfo(manager)
+func (d *DealComponentsUntilGameCountLeft) MoveTypeFallbackHelpText() string {
+	player, game, count := d.moveTypeInfo()
 
 	return "Deals components from game stack " + game + " to each player's " + player + " until the game stack has " + count + " left"
 }

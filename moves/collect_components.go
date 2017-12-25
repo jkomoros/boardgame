@@ -32,15 +32,15 @@ func (d *CollectCountComponents) RoundRobinAction(playerState boardgame.MutableP
 
 }
 
-func (d *CollectCountComponents) MoveTypeFallbackName(manager *boardgame.GameManager) string {
+func (d *CollectCountComponents) MoveTypeFallbackName() string {
 
-	player, game, count := d.moveTypeInfo(manager)
+	player, game, count := d.moveTypeInfo()
 
 	return "Collect Components From Each Player's Stack " + player + " To Game Stack " + game + " " + count + " Times Per Player"
 }
 
-func (d *CollectCountComponents) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
-	player, game, count := d.moveTypeInfo(manager)
+func (d *CollectCountComponents) MoveTypeFallbackHelpText() string {
+	player, game, count := d.moveTypeInfo()
 
 	return "Collects " + count + " components from each player's " + player + " to the game " + game
 }
@@ -81,15 +81,15 @@ func (d *CollectComponentsUntilPlayerCountLeft) PlayerConditionMet(pState boardg
 	return playerCount <= targetCount
 }
 
-func (d *CollectComponentsUntilPlayerCountLeft) MoveTypeFallbackName(manager *boardgame.GameManager) string {
+func (d *CollectComponentsUntilPlayerCountLeft) MoveTypeFallbackName() string {
 
-	player, game, count := d.moveTypeInfo(manager)
+	player, game, count := d.moveTypeInfo()
 
 	return "Collect Components From Each Player's Stack " + player + " To Game Stack " + game + " Until Each Player Is Down To " + count
 }
 
-func (d *CollectComponentsUntilPlayerCountLeft) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
-	player, game, count := d.moveTypeInfo(manager)
+func (d *CollectComponentsUntilPlayerCountLeft) MoveTypeFallbackHelpText() string {
+	player, game, count := d.moveTypeInfo()
 
 	return "Collects components from each player's " + player + " to the game " + game + " until each player has " + count + " left"
 }
@@ -136,15 +136,15 @@ func (d *CollectComponentsUntilGameCountReached) ConditionMet(state boardgame.St
 
 }
 
-func (d *CollectComponentsUntilGameCountReached) MoveTypeFallbackName(manager *boardgame.GameManager) string {
+func (d *CollectComponentsUntilGameCountReached) MoveTypeFallbackName() string {
 
-	player, game, count := d.moveTypeInfo(manager)
+	player, game, count := d.moveTypeInfo()
 
 	return "Collect Components From Each Player's Stack " + player + " To Game Stack " + game + " Until The Game Has " + count + " Total"
 }
 
-func (d *CollectComponentsUntilGameCountReached) MoveTypeFallbackHelpText(manager *boardgame.GameManager) string {
-	player, game, count := d.moveTypeInfo(manager)
+func (d *CollectComponentsUntilGameCountReached) MoveTypeFallbackHelpText() string {
+	player, game, count := d.moveTypeInfo()
 
 	return "Collects components from each player's " + player + " to the game " + game + " until the game has " + count + " total"
 }
