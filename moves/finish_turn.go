@@ -117,7 +117,7 @@ func (f *FinishTurn) MoveTypeFallbackHelpText() string {
 	return "Finishes the player's turn."
 }
 
-//MoveTypeFallbackIsFixUp returns false
+//MoveTypeFallbackIsFixUp returns true
 func (f *FinishTurn) MoveTypeFallbackIsFixUp() bool {
-	return false
+	return true
 }
