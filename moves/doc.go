@@ -16,7 +16,7 @@ There are many move types defined. Some are designed to be used directly with
 minimal modification; others are powerful move types that are designed to be
 sub-classed.
 
-auto.Config
+Automatic MoveTypeConfig Generation
 
 Technically every move needs to be installed on your GameManager by creating a
 boardgame.MoveTypeConfig. In practice writing those from scratch is verbose
