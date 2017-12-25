@@ -173,15 +173,44 @@ func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) error {
 func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 
 	return boardgame.NewMoveTypeConfigBundle().AddMoves(
-		&moveShuffleDiscardToDrawConfig,
+		moves.MustAutoConfig(
+			new(MoveShuffleDiscardToDraw),
+			moves.WithHelpText("When the draw deck is empty, shuffles the discard deck into draw deck."),
+			moves.WithIsFixUp(true),
+		),
 	).AddMovesForPhase(PhaseNormalPlay,
-		&moveCurrentPlayerHitConfig,
-		&moveCurrentPlayerStandConfig,
-		&moveRevealHiddenCardConfig,
-		&moveFinishTurnConfig,
+		moves.MustAutoConfig(
+			new(MoveCurrentPlayerHit),
+			moves.WithHelpText("The current player hits, drawing a card."),
+		),
+		moves.MustAutoConfig(
+			new(MoveCurrentPlayerStand),
+			moves.WithHelpText("If the current player no longer wants to draw cards, they can stand."),
+		),
+		moves.MustAutoConfig(
+			new(MoveRevealHiddenCard),
+			moves.WithHelpText("Reveals the hidden card in the user's hand"),
+			moves.WithIsFixUp(true),
+		),
+		moves.MustAutoConfig(
+			new(moves.FinishTurn),
+			moves.WithHelpText("When the current player has either busted or decided to stand, we advance to next player."),
+		),
 	).AddOrderedMovesForPhase(PhaseInitialDeal,
-		&moveDealInitialHiddenCardConfig,
-		&moveDealInitialVisibleCardConfig,
+		moves.MustAutoConfig(
+			new(moves.DealCountComponents),
+			moves.WithMoveName("Deal Initial Hidden Card"),
+			moves.WithHelpText("Deals a hidden card to each player"),
+			moves.WithGameStack("DrawStack"),
+			moves.WithPlayerStack("HiddenHand"),
+		),
+		moves.MustAutoConfig(
+			new(moves.DealCountComponents),
+			moves.WithMoveName("Deal Initial Visible Card"),
+			moves.WithHelpText("Deals a visible card to each player"),
+			moves.WithGameStack("DrawStack"),
+			moves.WithPlayerStack("VisibleHand"),
+		),
 		moves.MustAutoConfig(
 			new(moves.StartPhase),
 			moves.WithPhaseToStart(PhaseNormalPlay, PhaseEnum),

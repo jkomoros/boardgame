@@ -17,16 +17,6 @@ type MoveFinishTurn struct {
 }
 
 //+autoreader
-type MoveDealInitialHiddenCard struct {
-	moves.DealCountComponents
-}
-
-//+autoreader
-type MoveDealInitialVisibleCard struct {
-	moves.DealCountComponents
-}
-
-//+autoreader
 type MoveRevealHiddenCard struct {
 	moves.CurrentPlayer
 }
@@ -46,15 +36,6 @@ type MoveCurrentPlayerStand struct {
  * MoveShuffleDiscardToDraw Implementation
  *
  **************************************************/
-
-var moveShuffleDiscardToDrawConfig = boardgame.MoveTypeConfig{
-	Name:     "Shuffle Discard To Draw",
-	HelpText: "When the draw deck is empty, shuffles the discard deck into draw deck.",
-	MoveConstructor: func() boardgame.Move {
-		return new(MoveShuffleDiscardToDraw)
-	},
-	IsFixUp: true,
-}
 
 func (m *MoveShuffleDiscardToDraw) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
@@ -85,14 +66,6 @@ func (m *MoveShuffleDiscardToDraw) Apply(state boardgame.MutableState) error {
  * MoveCurrentPlayerHit Implementation
  *
  **************************************************/
-
-var moveCurrentPlayerHitConfig = boardgame.MoveTypeConfig{
-	Name:     "Current Player Hit",
-	HelpText: "The current player hits, drawing a card.",
-	MoveConstructor: func() boardgame.Move {
-		return new(MoveCurrentPlayerHit)
-	},
-}
 
 func (m *MoveCurrentPlayerHit) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
@@ -141,14 +114,6 @@ func (m *MoveCurrentPlayerHit) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-var moveCurrentPlayerStandConfig = boardgame.MoveTypeConfig{
-	Name:     "Current Player Stand",
-	HelpText: "If the current player no longer wants to draw cards, they can stand.",
-	MoveConstructor: func() boardgame.Move {
-		return new(MoveCurrentPlayerStand)
-	},
-}
-
 func (m *MoveCurrentPlayerStand) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
 	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
@@ -184,33 +149,9 @@ func (m *MoveCurrentPlayerStand) Apply(state boardgame.MutableState) error {
 
 /**************************************************
  *
- * MoveAdvanceNextPlayer Implementation
- *
- **************************************************/
-
-var moveFinishTurnConfig = boardgame.MoveTypeConfig{
-	Name:     "Finish Turn",
-	HelpText: "When the current player has either busted or decided to stand, we advance to next player.",
-	MoveConstructor: func() boardgame.Move {
-		return new(MoveFinishTurn)
-	},
-	IsFixUp: true,
-}
-
-/**************************************************
- *
  * MoveRevealHiddenCard Implementation
  *
  **************************************************/
-
-var moveRevealHiddenCardConfig = boardgame.MoveTypeConfig{
-	Name:     "Reveal Hidden Card",
-	HelpText: "Reveals the hidden card in the user's hand",
-	MoveConstructor: func() boardgame.Move {
-		return new(MoveRevealHiddenCard)
-	},
-	IsFixUp: true,
-}
 
 func (m *MoveRevealHiddenCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
@@ -237,50 +178,4 @@ func (m *MoveRevealHiddenCard) Apply(state boardgame.MutableState) error {
 	p.HiddenHand.MoveComponent(boardgame.FirstComponentIndex, p.VisibleHand, boardgame.FirstSlotIndex)
 
 	return nil
-}
-
-/**************************************************
- *
- * MoveDealInitialHiddenCard Implementation
- *
- **************************************************/
-
-var moveDealInitialHiddenCardConfig = boardgame.MoveTypeConfig{
-	Name:     "Deal Initial Hidden Card",
-	HelpText: "Deals a hidden card to each player",
-	MoveConstructor: func() boardgame.Move {
-		return new(MoveDealInitialHiddenCard)
-	},
-	IsFixUp: true,
-}
-
-func (m *MoveDealInitialHiddenCard) GameStack(gState boardgame.MutableSubState) boardgame.MutableStack {
-	return gState.(*gameState).DrawStack
-}
-
-func (m *MoveDealInitialHiddenCard) PlayerStack(pState boardgame.MutablePlayerState) boardgame.MutableStack {
-	return pState.(*playerState).HiddenHand
-}
-
-/**************************************************
- *
- * MoveDealInitialVisbibleCard Implementation
- *
- **************************************************/
-
-var moveDealInitialVisibleCardConfig = boardgame.MoveTypeConfig{
-	Name:     "Deal Initial Visible Card",
-	HelpText: "Deals a visible card to each player",
-	MoveConstructor: func() boardgame.Move {
-		return new(MoveDealInitialVisibleCard)
-	},
-	IsFixUp: true,
-}
-
-func (m *MoveDealInitialVisibleCard) GameStack(gState boardgame.MutableSubState) boardgame.MutableStack {
-	return gState.(*gameState).DrawStack
-}
-
-func (m *MoveDealInitialVisibleCard) PlayerStack(pState boardgame.MutablePlayerState) boardgame.MutableStack {
-	return pState.(*playerState).VisibleHand
 }
