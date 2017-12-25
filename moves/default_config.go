@@ -18,8 +18,8 @@ type defaultConfigFallbackMoveType interface {
 
 //MustDefaultConfig is a wrapper around DefaultConfig that if it errors will
 //panic. Only suitable for being used during setup.
-func MustDefaultConfig(manager *boardgame.GameManager, exampleStruct moveinterfaces.DefaultConfigMove, options ...CustomConfigurationOption) *boardgame.MoveTypeConfig {
-	result, err := DefaultConfig(manager, exampleStruct, options...)
+func MustDefaultConfig(exampleStruct moveinterfaces.DefaultConfigMove, options ...CustomConfigurationOption) *boardgame.MoveTypeConfig {
+	result, err := DefaultConfig(exampleStruct, options...)
 
 	if err != nil {
 		panic("Couldn't DefaultConfig: " + err.Error())
@@ -36,7 +36,7 @@ func MustDefaultConfig(manager *boardgame.GameManager, exampleStruct moveinterfa
 //move name, helptext, and isFixUp; anything based on moves.Base automatically
 //satisfies the necessary interface. See the package doc for an example of
 //use.
-func DefaultConfig(manager *boardgame.GameManager, exampleStruct moveinterfaces.DefaultConfigMove, options ...CustomConfigurationOption) (*boardgame.MoveTypeConfig, error) {
+func DefaultConfig(exampleStruct moveinterfaces.DefaultConfigMove, options ...CustomConfigurationOption) (*boardgame.MoveTypeConfig, error) {
 
 	config := make(boardgame.PropertyCollection, len(options))
 

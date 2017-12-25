@@ -20,7 +20,7 @@ func TestShuffleStackDefaultConfig(t *testing.T) {
 	moveInstaller := func(manager *boardgame.GameManager) *boardgame.MoveTypeConfigBundle {
 
 		return boardgame.NewMoveTypeConfigBundle().AddMove(
-			MustDefaultConfig(manager, new(moveShuffleStack)),
+			MustDefaultConfig(new(moveShuffleStack)),
 		)
 
 	}
@@ -39,7 +39,7 @@ func TestDealCardsDefaultConfig(t *testing.T) {
 	moveInstaller := func(manager *boardgame.GameManager) *boardgame.MoveTypeConfigBundle {
 
 		return boardgame.NewMoveTypeConfigBundle().AddMove(
-			MustDefaultConfig(manager, new(moveDealCards), WithMoveName("Deal Cards")),
+			MustDefaultConfig(new(moveDealCards), WithMoveName("Deal Cards")),
 		)
 
 	}

@@ -65,27 +65,27 @@ func (m *moveStartPhaseDrawAgain) PhaseToStart(currentPhase int) int {
 func defaultMoveInstaller(manager *boardgame.GameManager) *boardgame.MoveTypeConfigBundle {
 
 	return boardgame.NewMoveTypeConfigBundle().AddOrderedMovesForPhase(phaseSetUp,
-		MustDefaultConfig(manager,
+		MustDefaultConfig(
 			new(moveDealCards),
 			WithMoveName("Deal Components From Game Stack DrawStack To Player Stack Hand To Each Player 2 Times"),
 		),
-		MustDefaultConfig(manager,
+		MustDefaultConfig(
 			new(moveDealOtherCards),
 			WithMoveName("Deal Other Cards OVERRIDE"),
 		),
 		NewStartPhaseConfig(manager, phaseNormalPlay, nil),
 	).AddMovesForPhase(phaseNormalPlay,
-		MustDefaultConfig(manager,
+		MustDefaultConfig(
 			new(moveCurrentPlayerDraw),
 			WithMoveName("Draw Card"),
 		),
-		MustDefaultConfig(manager,
+		MustDefaultConfig(
 			new(moveStartPhaseDrawAgain),
 			WithMoveName("Start Phase Draw Again"),
 			WithIsFixUp(false),
 		),
 	).AddOrderedMovesForPhase(phaseDrawAgain,
-		MustDefaultConfig(manager,
+		MustDefaultConfig(
 			new(DealComponentsUntilPlayerCountReached),
 			WithMoveName("Deal Cards To Three"),
 			WithGameStack("DrawStack"),
