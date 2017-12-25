@@ -182,7 +182,10 @@ func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 	).AddOrderedMovesForPhase(PhaseInitialDeal,
 		&moveDealInitialHiddenCardConfig,
 		&moveDealInitialVisibleCardConfig,
-		moves.NewStartPhaseConfig(g.Manager(), PhaseNormalPlay, nil),
+		moves.MustDefaultConfig(
+			new(moves.StartPhase),
+			moves.WithPhaseToStart(PhaseNormalPlay, PhaseEnum),
+		),
 	)
 
 }

@@ -154,14 +154,3 @@ func (s *StartPhase) phaseStringValue() string {
 	return strconv.Itoa(intVal)
 
 }
-
-//NewStartPhaseConfig returns a MoveConfig object configured so that you
-//don't need to even define your own StartPhase embedding move but can just
-//use this one directly.
-func NewStartPhaseConfig(manager *boardgame.GameManager, phaseToStart int, legalPhases []int) *boardgame.MoveTypeConfig {
-
-	phaseEnum := manager.Delegate().PhaseEnum()
-	config, _ := DefaultConfig(new(StartPhase), WithPhaseToStart(phaseToStart, phaseEnum))
-	return config
-
-}

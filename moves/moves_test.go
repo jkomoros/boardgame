@@ -73,7 +73,10 @@ func defaultMoveInstaller(manager *boardgame.GameManager) *boardgame.MoveTypeCon
 			new(moveDealOtherCards),
 			WithMoveName("Deal Other Cards OVERRIDE"),
 		),
-		NewStartPhaseConfig(manager, phaseNormalPlay, nil),
+		MustDefaultConfig(
+			new(StartPhase),
+			WithPhaseToStart(phaseNormalPlay, phaseEnum),
+		),
 	).AddMovesForPhase(phaseNormalPlay,
 		MustDefaultConfig(
 			new(moveCurrentPlayerDraw),
