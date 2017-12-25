@@ -88,5 +88,5 @@ func (s *ShuffleStack) MoveTypeFallbackName() string {
 //MoveTypeFallbackName returns "Shuffles the STACK stack" where STACK is the
 //name of the stack set by WithSourceStack.
 func (s *ShuffleStack) MoveTypeFallbackHelpText() string {
-	return "Shuffles the " + stackName(s, configNameSourceStack) + " stack"
+	return "Shuffles " + stackName(s, configNameSourceStack)
 }

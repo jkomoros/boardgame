@@ -244,7 +244,7 @@ func (d *DealCountComponents) MoveTypeFallbackName() string {
 
 	player, game, count := d.moveTypeInfo()
 
-	return "Deal Components From Game Stack " + game + " To Player Stack " + player + " To Each Player " + count + " Times"
+	return "Deal Components From " + game + " In GameState To " + player + " In PlayerState To Each Player " + count + " Times"
 }
 
 //MoveTypeFallbackHelpText returns a string based on the names of the player
@@ -252,7 +252,7 @@ func (d *DealCountComponents) MoveTypeFallbackName() string {
 func (d *DealCountComponents) MoveTypeFallbackHelpText() string {
 	player, game, count := d.moveTypeInfo()
 
-	return "Deals " + count + " components from game stack " + game + " to each player stack " + player
+	return "Deals " + count + " components from " + game + " in GameState to " + player + " in each PlayerState"
 }
 
 //DealComponentsUntilPlayerCountReached goes around and deals components to
@@ -289,7 +289,7 @@ func (d *DealComponentsUntilPlayerCountReached) MoveTypeFallbackName() string {
 
 	player, game, count := d.moveTypeInfo()
 
-	return "Deal Components From Game Stack " + game + " To Player Stack " + player + " Until Each Player Has " + count
+	return "Deal Components From " + game + " In GameState To " + player + " In Each PlayerState Until Each Player Has " + count
 }
 
 //MoveTypeFallbackHelpText returns a string based on the names of the player
@@ -297,7 +297,7 @@ func (d *DealComponentsUntilPlayerCountReached) MoveTypeFallbackName() string {
 func (d *DealComponentsUntilPlayerCountReached) MoveTypeFallbackHelpText() string {
 	player, game, count := d.moveTypeInfo()
 
-	return "Deals components from game stack " + game + " to each player's " + player + " until each player has " + count
+	return "Deals components from " + game + " in GameState to " + player + " in each PlayerState until each player has " + count
 }
 
 //DealComponentsUntilGameCountLeft goes around and deals components to each
@@ -332,7 +332,7 @@ func (d *DealComponentsUntilGameCountLeft) MoveTypeFallbackName() string {
 
 	player, game, count := d.moveTypeInfo()
 
-	return "Deal Components From Game Stack " + game + " To Player Stack " + player + " Until Game Stack Has " + count + " Total"
+	return "Deal Components From " + game + " In GameState To " + player + " In Each PlayerState Until Game Stack Has " + count + " Total"
 }
 
 //MoveTypeFallbackHelpText returns a string based on the names of the player
@@ -340,5 +340,5 @@ func (d *DealComponentsUntilGameCountLeft) MoveTypeFallbackName() string {
 func (d *DealComponentsUntilGameCountLeft) MoveTypeFallbackHelpText() string {
 	player, game, count := d.moveTypeInfo()
 
-	return "Deals components from game stack " + game + " to each player's " + player + " until the game stack has " + count + " left"
+	return "Deals components from " + game + " in GameState to " + player + " in each PlayerState until the game stack has " + count + " left"
 }
