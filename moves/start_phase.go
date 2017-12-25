@@ -18,11 +18,11 @@ type phaseToStarter interface {
 	PhaseToStart(currentPhase int) int
 }
 
-//StartPhase is a simple move, often used in game SetUp phases, to advance to
-//the next phase, as returned by the embedding move's PhaseToStart(). If
-//BeforeLeavePhase or BeforeEnterPhase are defined they will be called at the
-//appropriate time. In many cases you don't even need to define your own
-//struct, but can just get a MoveTypeConfig by calling NewStartPhaseConfig.
+//StartPhase is a simple move that, when it's its turn in the phase move
+//progression, will set the current phase of the game to the given value. When
+//you use this, you almost always want ot use moves.AutoConfig, and make sure
+//to pass the moves.WithPhaseToStart config object, so that the move has
+//enough information to know which phase to enter.
 //
 //+autoreader
 type StartPhase struct {
