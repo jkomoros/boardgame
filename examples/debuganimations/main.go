@@ -135,7 +135,6 @@ func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 		&moveVisibleShuffleCardsConfig,
 		&moveShuffleCardsConfig,
 		&moveMoveBetweenHiddenConfig,
-		&moveMoveBetweenHiddenConfig,
 		&moveMoveTokenConfig,
 		&moveMoveTokenSanitizedConfig,
 	)

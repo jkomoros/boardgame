@@ -900,8 +900,7 @@ func (g *GameManager) addMove(config *MoveTypeConfig) error {
 	//and will be error prone, so need to do it carefully.
 
 	if g.movesByName[moveName] != nil {
-		//If it's already been added that's OK
-		return nil
+		return errors.New(moveType.Name() + " was already installed as a move and cannot be installed again.")
 	}
 
 	g.moves = append(g.moves, moveType)
