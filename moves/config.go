@@ -25,6 +25,7 @@ const configNamePlayerStack = fullyQualifiedPackageName + "PlayerStack"
 const configNameMoveName = fullyQualifiedPackageName + "MoveName"
 const configNameHelpText = fullyQualifiedPackageName + "HelpText"
 const configNameIsFixUp = fullyQualifiedPackageName + "IsFixUp"
+const configNameLegalPhases = fullyQualifiedPackageName + "LegalPhases"
 
 //WithMoveName returns a function configuration option suitable for being
 //passed to DefaultConfig. moves.Base uses this, if provided, to power
@@ -46,6 +47,15 @@ func WithMoveName(moveName string) CustomConfigurationOption {
 func WithHelpText(helpText string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configNameHelpText] = helpText
+	}
+}
+
+//WithLegalPhases returns a function configuration option suitable for being
+//passed to DefaultConfig. moves.Base will return whatever is passed via this
+//for MoveTypeLegalPhases().
+func WithLegalPhases(legalPhases []int) CustomConfigurationOption {
+	return func(config boardgame.PropertyCollection) {
+		config[configNameLegalPhases] = legalPhases
 	}
 }
 

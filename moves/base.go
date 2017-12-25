@@ -243,6 +243,23 @@ func (b *Base) MoveTypeFallbackIsFixUp() bool {
 	return false
 }
 
+//MoveTypeLegalPhases will return whatever was passed via WithLegalPhases, or
+//nil if nothing was provided.
+func (b *Base) MoveTypeLegalPhases() []int {
+	config := b.Info().Type().CustomConfiguration()
+
+	legalPhasesVal, ok := config[configNameLegalPhases]
+
+	if ok {
+		legalPhases, ok := legalPhasesVal.([]int)
+		if ok {
+			return legalPhases
+		}
+	}
+
+	return nil
+}
+
 //Legal checks whether the game's CurrentPhase (as determined by the delegate)
 //is one of the LegalPhases for this moveType. A zero-length LegalPhases is
 //interpreted as the move being legal in all phases. The string for the

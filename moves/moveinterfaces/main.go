@@ -15,9 +15,9 @@ import (
 
 //AutoConfigurableMove is the interface that moves passed to moves.AutoConfig
 //must implement. These methods are interrogated to set the move name,
-//helptext, and isFixUp to good values. moves.Base defines powerful stubs for
-//these, so any moves that embed moves.Base (or embed a move that embeds
-//moves.Base, etc) satisfy this interface.
+//helptext,isFixUp, and legalPhases to good values. moves.Base defines
+//powerful stubs for these, so any moves that embed moves.Base (or embed a
+//move that embeds moves.Base, etc) satisfy this interface.
 type AutoConfigurableMove interface {
 	//DefaultConfigMoves all must implement all Move methods.
 	boardgame.Move
@@ -27,6 +27,8 @@ type AutoConfigurableMove interface {
 	MoveTypeHelpText() string
 	//Whether the move should be a fix up.
 	MoveTypeIsFixUp() bool
+	//Result will be used for LegalPhases in the config.
+	MoveTypeLegalPhases() []int
 }
 
 //RoundRobinBaseGameState is designed to be embedded in your GameState

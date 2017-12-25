@@ -52,7 +52,7 @@ func AutoConfig(exampleStruct moveinterfaces.AutoConfigurableMove, options ...Cu
 	//initialized and expanded move (e.g. with all tag-based autoinflation)
 	//that we can then pass to the MoveType* methods, so they'll have more to work with.
 
-	throwAwayConfig := newMoveTypeConfig("Temporary Move", "Temporary Move Help Text", false, exampleStruct, config)
+	throwAwayConfig := newMoveTypeConfig("Temporary Move", "Temporary Move Help Text", false, nil, exampleStruct, config)
 
 	throwAwayMoveType, err := throwAwayConfig.NewMoveType(nil)
 
@@ -70,14 +70,15 @@ func AutoConfig(exampleStruct moveinterfaces.AutoConfigurableMove, options ...Cu
 	name := actualExample.MoveTypeName()
 	helpText := actualExample.MoveTypeHelpText()
 	isFixUp := actualExample.MoveTypeIsFixUp()
+	legalPhases := actualExample.MoveTypeLegalPhases()
 
-	moveTypeConfig, err := newMoveTypeConfig(name, helpText, isFixUp, exampleStruct, config), nil
+	moveTypeConfig, err := newMoveTypeConfig(name, helpText, isFixUp, legalPhases, exampleStruct, config), nil
 
 	return moveTypeConfig, err
 
 }
 
-func newMoveTypeConfig(name, helpText string, isFixUp bool, exampleStruct boardgame.Move, config boardgame.PropertyCollection) *boardgame.MoveTypeConfig {
+func newMoveTypeConfig(name, helpText string, isFixUp bool, legalPhases []int, exampleStruct boardgame.Move, config boardgame.PropertyCollection) *boardgame.MoveTypeConfig {
 	val := reflect.ValueOf(exampleStruct)
 
 	//We can accept either pointer or struct types.
@@ -95,6 +96,7 @@ func newMoveTypeConfig(name, helpText string, isFixUp bool, exampleStruct boardg
 		},
 		CustomConfiguration: config,
 		IsFixUp:             isFixUp,
+		LegalPhases:         legalPhases,
 	}
 }
 
