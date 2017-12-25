@@ -95,6 +95,13 @@
 	configuration, like WithGameStack(), to power their default GameStack()
 	method.
 
+	All moves in the moves package are designed to return an error from
+	ValidConfiguration(), which means that if you forgot to pass a required
+	configuration property (e.g. you don't override GameStack and also don't
+	provide WithGameStack), when you try to create NewGameManager() and all
+	moves' ValidConfiguration() is checked, you'll get an error. This helps
+	catch mis-configurations during boot time.
+
 	Refer to the documentation of the various methods in that package for
 	their precise behavior and how to configure them.
 
