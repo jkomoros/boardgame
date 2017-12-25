@@ -11,26 +11,6 @@ const HideCardsDuration = 4 * time.Second
 
 /**************************************************
  *
- * MoveFinishTurn Implementation
- *
- **************************************************/
-
-//+autoreader
-type MoveFinishTurn struct {
-	moves.FinishTurn
-}
-
-var moveFinishTurnConfig = boardgame.MoveTypeConfig{
-	Name:     "Finish Turn",
-	HelpText: "Advances to the next player when the current player has no more legal moves.",
-	MoveConstructor: func() boardgame.Move {
-		return new(MoveFinishTurn)
-	},
-	IsFixUp: true,
-}
-
-/**************************************************
- *
  * MoveRevealCard Implementation
  *
  **************************************************/
@@ -39,14 +19,6 @@ var moveFinishTurnConfig = boardgame.MoveTypeConfig{
 type MoveRevealCard struct {
 	moves.CurrentPlayer
 	CardIndex int
-}
-
-var moveRevealCardConfig = boardgame.MoveTypeConfig{
-	Name:     "Reveal Card",
-	HelpText: "Reveals the card at the specified location",
-	MoveConstructor: func() boardgame.Move {
-		return new(MoveRevealCard)
-	},
 }
 
 func (m *MoveRevealCard) DefaultsForState(state boardgame.State) {
@@ -116,15 +88,6 @@ type MoveStartHideCardsTimer struct {
 	moves.Base
 }
 
-var moveStartHideCardsTimerConfig = boardgame.MoveTypeConfig{
-	Name:     "Start Hide Cards Timer",
-	HelpText: "If two cards are showing and they are not the same type and the timer is not active, start a timer to automatically hide them.",
-	MoveConstructor: func() boardgame.Move {
-		return new(MoveStartHideCardsTimer)
-	},
-	IsFixUp: true,
-}
-
 func (m *MoveStartHideCardsTimer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
 
 	if err := m.Base.Legal(state, proposer); err != nil {
@@ -180,15 +143,6 @@ func (m *MoveStartHideCardsTimer) Apply(state boardgame.MutableState) error {
 //+autoreader
 type MoveCaptureCards struct {
 	moves.Base
-}
-
-var moveCaptureCardsConfig = boardgame.MoveTypeConfig{
-	Name:     "Capture Cards",
-	HelpText: "If two cards are showing and they are the same type, capture them to the current player's hand.",
-	MoveConstructor: func() boardgame.Move {
-		return new(MoveCaptureCards)
-	},
-	IsFixUp: true,
 }
 
 func (m *MoveCaptureCards) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {

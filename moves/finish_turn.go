@@ -107,14 +107,16 @@ func (f *FinishTurn) Apply(state boardgame.MutableState) error {
 
 }
 
-//MoveTypeFallbackName returns "Finish Turn"
+//MoveTypeFallbackName returns "Finish Turn". In many cases you only have one
+//FinishTurn move in a game, so this name does not need to be overriden.
 func (f *FinishTurn) MoveTypeFallbackName() string {
 	return "Finish Turn"
 }
 
-//MoveTypeFallbackHelpText returns "Finishes the player's turn".
+//MoveTypeFallbackHelpText returns "Advances to the next player when the
+//current player's turn is done."
 func (f *FinishTurn) MoveTypeFallbackHelpText() string {
-	return "Finishes the player's turn."
+	return "Advances to the next player when the current player's turn is done."
 }
 
 //MoveTypeFallbackIsFixUp returns true

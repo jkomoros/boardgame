@@ -10,6 +10,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves"
+	"github.com/jkomoros/boardgame/moves/auto"
 	"strconv"
 	"strings"
 )
@@ -284,13 +286,38 @@ func (g *gameDelegate) ConfigureAgents() []boardgame.Agent {
 	}
 }
 
+var revealCardMoveName string
+
 func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
+
+	revealCardConfig := auto.MustConfig(
+		new(MoveRevealCard),
+		moves.WithHelpText("Reveals the card at the specified location"),
+	)
+
+	//Save this name so agent can use it and we don't have to worry about
+	//string constants that change.
+	revealCardMoveName = revealCardConfig.Name
+
 	return boardgame.NewMoveTypeConfigBundle().AddMoves(
-		&moveRevealCardConfig,
-		&moveHideCardsConfig,
-		&moveFinishTurnConfig,
-		&moveCaptureCardsConfig,
-		&moveStartHideCardsTimerConfig,
+		revealCardConfig,
+		auto.MustConfig(
+			new(MoveHideCards),
+			moves.WithHelpText("After the current player has revealed both cards and tried to memorize them, this move hides the cards so that play can continue to next player."),
+		),
+		auto.MustConfig(
+			new(moves.FinishTurn),
+		),
+		auto.MustConfig(
+			new(MoveCaptureCards),
+			moves.WithHelpText("If two cards are showing and they are the same type, capture them to the current player's hand."),
+			moves.WithIsFixUp(true),
+		),
+		auto.MustConfig(
+			new(MoveStartHideCardsTimer),
+			moves.WithHelpText("If two cards are showing and they are not the same type and the timer is not active, start a timer to automatically hide them."),
+			moves.WithIsFixUp(true),
+		),
 	)
 }
 

@@ -104,7 +104,7 @@ func (a *Agent) ProposeMove(game *boardgame.Game, player boardgame.PlayerIndex, 
 		if gameState.VisibleCards.NumComponents() == 0 {
 			//First card to reveal
 
-			move = game.MoveByName(moveRevealCardConfig.Name)
+			move = game.MoveByName(revealCardMoveName)
 			revealMove := move.(*MoveRevealCard)
 			revealMove.CardIndex = agent.FirstCardToFlip(gameState)
 			doSave = true
@@ -114,7 +114,7 @@ func (a *Agent) ProposeMove(game *boardgame.Game, player boardgame.PlayerIndex, 
 
 			//One more card to reveal
 
-			move = game.MoveByName(moveRevealCardConfig.Name)
+			move = game.MoveByName(revealCardMoveName)
 			revealMove := move.(*MoveRevealCard)
 			revealMove.CardIndex = agent.SecondCardToFlip(gameState)
 			doSave = true
