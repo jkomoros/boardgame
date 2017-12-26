@@ -21,8 +21,8 @@ func (m *MovePlaceToken) DefaultsForState(state boardgame.State) {
 	m.CurrentPlayer.DefaultsForState(state)
 
 	//Default to setting a slot that's empty.
-	for i, token := range game.Slots.ComponentValues() {
-		if token == nil {
+	for i, c := range game.Slots.Components() {
+		if c == nil {
 			m.Slot = i
 			break
 		}

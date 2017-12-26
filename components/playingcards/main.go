@@ -64,20 +64,6 @@ func (c *Card) String() string {
 	return fmt.Sprintf("%s %s", c.Suit.String(), c.Rank.String())
 }
 
-//ValuesToCards is designed to be used with stack.ComponentValues().
-func ValuesToCards(in []boardgame.Reader) []*Card {
-	result := make([]*Card, len(in))
-	for i := 0; i < len(in); i++ {
-		c := in[i]
-		if c == nil {
-			result[i] = nil
-			continue
-		}
-		result[i] = c.(*Card)
-	}
-	return result
-}
-
 //NewDeckMulti is like NewDeck, but returns count normal decks together, in
 //canonical order. Useful for e.g. casino games where there might be four
 //decks shuffled together for the draw stack.

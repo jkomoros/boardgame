@@ -53,10 +53,6 @@ type Stack interface {
 	//ComponentAt from 0 to Len().
 	Components() []*Component
 
-	//Components returns all components. Equivalent to calling ComponentAt
-	//from 0 to Len(), and extracting the Values of each.
-	ComponentValues() []Reader
-
 	//Ids returns a slice of strings representing the Ids of each component at
 	//each index. Under normal circumstances this will be the results of
 	//calling c.Id() on each component in order. This information will be
@@ -694,58 +690,6 @@ func (m *mergedStack) ComponentAt(index int) *Component {
 	}
 
 	return nil
-}
-
-//ComponentValues returns the Values of each Component in order. Useful for
-//then running through a converter to the underlying struct type you know it
-//is.
-func (g *growableStack) ComponentValues() []Reader {
-	//TODO: memoize this, as long as indexes hasn't changed
-
-	//Substantially recreated in SizedStack.ComponentValues
-	result := make([]Reader, g.Len())
-	for i := 0; i < g.Len(); i++ {
-		c := g.ComponentAt(i)
-		if c == nil {
-			result[i] = nil
-			continue
-		}
-		result[i] = c.Values
-	}
-	return result
-}
-
-//ComponentValues returns the Values of each Component in order. Useful for
-//then running through a converter to the underlying struct type you know it
-//is.
-func (s *sizedStack) ComponentValues() []Reader {
-	//TODO: memoize this, as long as indexes hasn't changed
-
-	//Substantially recreated in GrowableStack.ComponentValues
-	result := make([]Reader, s.Len())
-	for i := 0; i < s.Len(); i++ {
-		c := s.ComponentAt(i)
-		if c == nil {
-			result[i] = nil
-			continue
-		}
-		result[i] = c.Values
-	}
-	return result
-}
-
-func (m *mergedStack) ComponentValues() []Reader {
-	//Substantially recreated in GrowableStack.ComponentValues
-	result := make([]Reader, m.Len())
-	for i := 0; i < m.Len(); i++ {
-		c := m.ComponentAt(i)
-		if c == nil {
-			result[i] = nil
-			continue
-		}
-		result[i] = c.Values
-	}
-	return result
 }
 
 func (g *growableStack) Ids() []string {

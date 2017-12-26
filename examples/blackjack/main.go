@@ -117,12 +117,12 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 
 		result = append(result, "\tCards:")
 
-		for _, card := range playingcards.ValuesToCards(player.HiddenHand.ComponentValues()) {
-			result = append(result, "\t\t"+card.String())
+		for _, c := range player.HiddenHand.Components() {
+			result = append(result, "\t\t"+c.Values.(*playingcards.Card).String())
 		}
 
-		for _, card := range playingcards.ValuesToCards(player.VisibleHand.ComponentValues()) {
-			result = append(result, "\t\t"+card.String())
+		for _, c := range player.VisibleHand.Components() {
+			result = append(result, "\t\t"+c.Values.(*playingcards.Card).String())
 		}
 
 		result = append(result, "")

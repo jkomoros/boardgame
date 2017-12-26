@@ -151,7 +151,7 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 
 	//Get an array of *playerTokenValues corresponding to tokens currently in
 	//the stack.
-	tokens := playerTokenValues(game.Slots.ComponentValues())
+	tokens := game.Slots.Components()
 
 	tokenValues := make([]string, len(tokens))
 
@@ -160,7 +160,7 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 			tokenValues[i] = " "
 			continue
 		}
-		tokenValues[i] = token.Value
+		tokenValues[i] = token.Values.(*playerToken).Value
 	}
 
 	result := make([]string, 7)
