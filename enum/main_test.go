@@ -6,6 +6,97 @@ import (
 	"testing"
 )
 
+func TestRangedEnum(t *testing.T) {
+
+	tests := []struct {
+		indexes        []int
+		errExpected    bool
+		expectedValues map[int]string
+	}{
+		{
+			[]int{},
+			true,
+			nil,
+		},
+		{
+			[]int{3, 0, 1},
+			true,
+			nil,
+		},
+		{
+			[]int{2},
+			false,
+			map[int]string{
+				0: "0",
+				1: "1",
+			},
+		},
+		{
+			[]int{2, 3},
+			false,
+			map[int]string{
+				0: "0,0",
+				1: "0,1",
+				2: "0,2",
+				3: "1,0",
+				4: "1,1",
+				5: "1,2",
+			},
+		},
+		{
+			[]int{1, 2, 2},
+			false,
+			map[int]string{
+				0: "0,0,0",
+				1: "0,0,1",
+				2: "0,1,0",
+				3: "0,1,1",
+			},
+		},
+	}
+
+	for i, test := range tests {
+		set := NewSet()
+		theEnumRaw, err := set.AddRange("theEnum", test.indexes...)
+		if test.errExpected {
+			assert.For(t, i).ThatActual(err).IsNotNil()
+			continue
+		} else {
+			assert.For(t, i).ThatActual(err).IsNil()
+		}
+
+		theEnum := theEnumRaw.(*enum)
+
+		assert.For(t, i).ThatActual(len(theEnum.values)).Equals(len(test.expectedValues))
+
+		for key, val := range test.expectedValues {
+			realVal := theEnum.String(key)
+			assert.For(t, i).ThatActual(realVal).Equals(val)
+		}
+	}
+
+	set := NewSet()
+	theEnum, _ := set.AddRange("theEnum", 1, 2, 2)
+
+	val := theEnum.NewMutableVal()
+	assert.For(t).ThatActual(val.RangeValue()).Equals([]int{0, 0, 0})
+
+	err := val.SetRangeValue(0, 1, 1)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(val.RangeValue()).Equals([]int{0, 1, 1})
+
+	//The first index of 1 is illegal, should fail
+	err = val.SetRangeValue(1, 1, 1)
+
+	assert.For(t).ThatActual(err).IsNotNil()
+
+	//Verify that after a failed set the value didn't change.
+	assert.For(t).ThatActual(val.RangeValue()).Equals([]int{0, 1, 1})
+
+}
+
 func TestEnum(t *testing.T) {
 	enums := NewSet()
 

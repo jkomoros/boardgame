@@ -93,6 +93,18 @@ constant block would be used as the name of the enum. autoreader has more
 options for controlling the precise way the enums are created; see
 autoreader's package doc for more information.
 
+Ranged Enums
+
+You can also create RangedEnums. These are just normal enums, but with a
+multi-index enumeration translated to and from string values in a known way.
+
+When you create RangedEnums, you don't use AutoReader, because the values are
+created for you with only minimal configuration.
+
+Every Enum has RangedEnum-style getters and setters; those only do useful
+things in cases in which the Enum was created with AddRange() (and the enum
+returns true from IsRange())
+
 */
 package enum
 
@@ -102,6 +114,7 @@ import (
 	"math"
 	"math/rand"
 	"strconv"
+	"strings"
 )
 
 //IllegalValue is the senitnel value that will be returned for illegal values.
@@ -151,13 +164,21 @@ type Enum interface {
 	//be a lot of boilerplate.
 	MustNewVal(val int) Val
 	MustNewMutableVal(val int) MutableVal
+
+	//RangeDimensions will return the number of dimensions used to create this
+	//enum with AddRange. Will return 0 if it's not a ranged enum.
+	RangeDimensions() int
+	//IsRange returns true if the enum was created with AddRange, false
+	//otherwise.
+	IsRange() bool
 }
 
 //enum is the underlying type we use to implement Enum.
 type enum struct {
-	name         string
-	values       map[int]string
-	defaultValue int
+	name           string
+	values         map[int]string
+	defaultValue   int
+	dimensionCount int
 }
 
 //variable is the underlying type we'll return for both Value and Constant.
@@ -171,6 +192,9 @@ type variable struct {
 type Val interface {
 	Enum() Enum
 	Value() int
+	//RangeValue will return an array of indexes if you created the Enum with
+	//AddRange. Will return nil if not.
+	RangeValue() []int
 	String() string
 	Copy() Val
 	MutableCopy() MutableVal
@@ -187,6 +211,9 @@ type MutableVal interface {
 	SetValue(val int) error
 	//SetStringValue sets the value to the value associated with that string.
 	SetStringValue(str string) error
+	//SetRangeValue can be used to set ranged values if the enum was made with
+	//AddRange.
+	SetRangeValue(indexes ...int) error
 }
 
 //NewSet returns a new Set. Generally you'll call this once in a
@@ -247,6 +274,105 @@ func (e *Set) Enum(name string) Enum {
 	return e.enums[name]
 }
 
+//MustAddRange is like AddRange, but instead of an error it will panic if the
+//enum cannot be added. This is useful for defining your enums at the package
+//level outside of an init().
+func (e *Set) MustAddRange(enumName string, dimensionSize ...int) Enum {
+	result, err := e.AddRange(enumName, dimensionSize...)
+
+	if err != nil {
+		panic("Couldn't add to enumset: " + err.Error())
+	}
+
+	return result
+}
+
+func keyForIndexes(values ...int) string {
+	result := make([]string, len(values))
+	for i, value := range values {
+		result[i] = strconv.Itoa(value)
+	}
+	return strings.Join(result, ",")
+}
+
+func indexesForKey(key string) []int {
+	strs := strings.Split(key, ",")
+	result := make([]int, len(strs))
+	for i, str := range strs {
+		theInt, err := strconv.Atoi(str)
+		if err != nil {
+			return nil
+		}
+		result[i] = theInt
+	}
+	return result
+}
+
+/*
+AddRange creates a new Enum that automatically enumerates all indexes in the
+multi-dimensional space provided. Each dimensionSize must be greater than 0
+or AddRange will error. Enums created with AddRange will return IsRange()
+true, and it is reasonable to use the various Ranged getters and setters on
+their values. At its core a RangedEnum is just an enum with a known mapping
+of multiple dimensions into string values in a known, stable way.
+
+	//Returns an enum like:
+	//0 -> '0'
+	//1 -> '1'
+	AddRange("single", 2)
+
+	// Returns an enum like:
+	// 0 -> '0,0'
+	// 1 -> '0,1'
+	// 2 -> '0,2'
+	// 3 -> '1,0'
+	// 4 -> '1,1'
+	// 5 -> '1,2'
+	AddRange("double", 2,3)
+*/
+func (e *Set) AddRange(enumName string, dimensionSize ...int) (Enum, error) {
+	if len(dimensionSize) == 0 {
+		return nil, errors.New("No dimensions passed")
+	}
+	numValues := 1
+	for i, dimension := range dimensionSize {
+		if dimension <= 0 {
+			return nil, errors.New("Dimension " + strconv.Itoa(i) + " is less than or equal to 0, which is illegal")
+		}
+		numValues *= dimension
+	}
+
+	values := make(map[int]string, numValues)
+	indexes := make([]int, len(dimensionSize))
+
+	for i := 0; i < numValues; i++ {
+		values[i] = keyForIndexes(indexes...)
+
+		//Now, increment indexes.
+
+		//Start at the back, and try to increment one
+		for j := len(indexes) - 1; j >= 0; j-- {
+			indexes[j]++
+			if indexes[j] < dimensionSize[j] {
+				break
+			}
+			//Uh oh, wrapped around.
+			indexes[j] = 0
+			//The for loop will go back and increment the next thing
+		}
+	}
+
+	enum, err := e.addEnumImpl(enumName, values)
+
+	if err != nil {
+		return nil, err
+	}
+
+	enum.dimensionCount = len(dimensionSize)
+	return enum, nil
+
+}
+
 //MustAdd is like Add, but instead of an error it will panic if the enum
 //cannot be added. This is useful for defining your enums at the package level
 //outside of an init().
@@ -266,7 +392,10 @@ if that name has already been added or if the config you provide has more than
 one string with the same value.
 */
 func (e *Set) Add(enumName string, values map[int]string) (Enum, error) {
+	return e.addEnumImpl(enumName, values)
+}
 
+func (e *Set) addEnumImpl(enumName string, values map[int]string) (*enum, error) {
 	if len(values) == 0 {
 		return nil, errors.New("No values provided")
 	}
@@ -275,6 +404,7 @@ func (e *Set) Add(enumName string, values map[int]string) (Enum, error) {
 		enumName,
 		make(map[int]string),
 		math.MaxInt64,
+		0,
 	}
 
 	seenValues := make(map[string]bool)
@@ -369,6 +499,14 @@ func (e *enum) ValueFromString(in string) int {
 	return IllegalValue
 }
 
+func (e *enum) RangeDimensions() int {
+	return e.dimensionCount
+}
+
+func (e *enum) IsRange() bool {
+	return e.RangeDimensions() > 0
+}
+
 //Copy returns a copy of the Value, that is equivalent, but will not be
 //locked.
 func (e *variable) Copy() Val {
@@ -455,12 +593,26 @@ func (e *variable) String() string {
 	return e.enum.String(e.val)
 }
 
+func (e *variable) RangeValue() []int {
+	if !e.enum.IsRange() {
+		return nil
+	}
+	return indexesForKey(e.String())
+}
+
 func (e *variable) SetValue(val int) error {
 	if !e.enum.Valid(val) {
 		return errors.New("That value is not valid for this enum")
 	}
 	e.val = val
 	return nil
+}
+
+func (e *variable) SetRangeValue(indexes ...int) error {
+	if !e.enum.IsRange() {
+		return errors.New("This enum was not created with AddRange so cannot be used with SetRangeValue")
+	}
+	return e.SetStringValue(keyForIndexes(indexes...))
 }
 
 func (e *variable) SetStringValue(str string) error {
