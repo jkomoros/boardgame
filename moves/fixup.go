@@ -26,3 +26,19 @@ func (f *FixUp) MoveTypeFallbackHelpText() string {
 func (f *FixUp) MoveTypeFallbackIsFixUp() bool {
 	return true
 }
+
+//FixUpMulti is a simple move type that just wraps move.FixUp. Its primary
+//effect is to have AllowMultipleInProgression() return true, which means that
+//the logic for ordered move progressions within a phase will allow multiple
+//in a row, until its Legal returns an error.
+//
+//+autoreader
+type FixUpMulti struct {
+	FixUp
+}
+
+//AllowMultipleInProgression returns true because the move is applied until
+//ConditionMet returns nil.
+func (f *FixUpMulti) AllowMultipleInProgression() bool {
+	return true
+}

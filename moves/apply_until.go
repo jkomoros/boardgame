@@ -27,13 +27,7 @@ func targetCountString(topLevelStruct boardgame.Move) string {
 //
 //+autoreader
 type ApplyUntil struct {
-	FixUp
-}
-
-//AllowMultipleInProgression returns true because the move is applied until
-//ConditionMet returns nil.
-func (a *ApplyUntil) AllowMultipleInProgression() bool {
-	return true
+	FixUpMulti
 }
 
 func (a *ApplyUntil) ValidConfiguration(exampleState boardgame.MutableState) error {
