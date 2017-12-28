@@ -18,6 +18,9 @@ type Graph interface {
 	//AddEdge adds the edge to the graph if it doesn't exist, and if the graph
 	//isn't finished yet. Will error if from or to aren't in the given enum.
 	AddEdge(from, to int) error
+	//AddEdges is a convenience wrapper around AddEdge, with multiple to
+	//nodes. Will error if adding any errors.
+	AddEdges(from int, to ...int) error
 	Connected(from, to int) bool
 	Neighbors(start int) []int
 
@@ -62,6 +65,15 @@ func (g *graph) AddEdge(from, to int) error {
 	}
 	if g.undirected {
 		return g.addEdgeImpl(to, from)
+	}
+	return nil
+}
+
+func (g *graph) AddEdges(from int, to ...int) error {
+	for i, item := range to {
+		if err := g.AddEdge(from, item); err != nil {
+			return errors.New("Couldn't add " + strconv.Itoa(i) + " edge: " + err.Error())
+		}
 	}
 	return nil
 }
