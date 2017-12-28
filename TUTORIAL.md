@@ -1355,6 +1355,58 @@ const (
 
 This will automatically create a global `Enums` EnumSet, and a global `PhaseEnum` that contains the two values, configured with the string values of "Initial Deal" and "Normal Play". You can find much more details on the conventions and how to configure autoreader in the enums package doc.
 
+### RangedEnum and Enum Graphs
+
+Sometimes when you're creating a boardgame--especially one with a board and multiple connected spaces--you need to keep track of which spaces are connected to one another.
+
+The enum package also allows you to create a ranged enum. It's just a normal enum, but created with all of the values in the given dimensions:
+
+```
+//returns an enum with 9 items
+e := set.MustAddRanged("Spaces", 3, 3)
+
+//returns true
+e.IsRange()
+```
+
+Under the covers it's just a simple enum with values from 0 to 8, where the string value for 0 is "0,0". But because it was created with AddRange is also has a few additional convience getters to and from the raw index to the multi-dimensional index it represents.
+
+```
+//Returns []int{0,1}
+e.ValueToRange(3)
+
+//returns 3
+e.RangeToValue(0, 1)
+```
+
+Typically to model a board with spaces, you create a RangedEnum of the correct dimensions. Then on your gameState you'd have a SizedStack that is the same size as the RangedEnum. You'd use the Ranged getters to convert a multi-dimensional index into a single-dimensional index into the stack. This set-up works if each space on the board can have only one token; if a given space can host more than one, create a Spaces SizedStack for each player.
+
+```
+chessBoard := set.MustAddRange("Spaces", 8, 8)
+
+type gameState struct {
+	boargame.BaseSubState
+	//Note: 64 is the size of the chessBoard.
+	Spaces boargame.MutableStack `sizedstack:"Tokens, 64"`
+}
+
+//retrive the token at space 3,3 in the chessboard
+gState.Spaces.ComponentAt(chessBoard.RangeToValue(3,3))
+```
+
+`enum/graph` is a package that allows you to create graphs where each value in an enum is a node, and you add edges between nodes. These graphs are useful to test whether indexes in a stack that represents spaces in a game board are adjacent or not.
+
+You can add your own edges between items, but for grid-based boards, NewGridConnectedness() often does what you want. Check out the package doc for more, but here's a quick example:
+
+```
+set := enum.NewSet()
+chessBoard := set.MustAddRange("Spaces", 8, 8)
+
+//blackLegalMoves will have moves that are only valid upwards and diagonal.
+blackLegalMoves := graph.NewGridConnectedness(chessBoard, DirectionDiagonal, DirectionUp)
+redLegalMoves := graph.NewGridConnectedness(chessBoard, DirectionDiagonal, DirectionDown)
+```
+
 ### Phases
 
 At the core of the engine, there's just a big collection of moves, any of which may be `Legal()` at any time. `ProposeFixUpMove` often just cycles through all FixUp moves in order and returns the first one that is legal.
