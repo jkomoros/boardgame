@@ -39,7 +39,7 @@ var SpacesEnum = Enums.MustAddRange("Spaces", boardWidth, boardWidth)
 const tokenDeckName = "tokens"
 
 //The first space in the upper left is black, and it alternates from there.
-//The black tokens start at the top, and the red tokens are arrayed from the
+//The red tokens start at the top, and the black tokens are arrayed from the
 //bottom.
 func spaceIsBlack(spaceIndex int) bool {
 	return spaceIndex%2 == 0
