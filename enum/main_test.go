@@ -95,6 +95,10 @@ func TestRangedEnum(t *testing.T) {
 	//Verify that after a failed set the value didn't change.
 	assert.For(t).ThatActual(val.RangeValue()).Equals([]int{0, 1, 1})
 
+	assert.For(t).ThatActual(theEnum.RangeToValue(0, 1, 1)).Equals(3)
+
+	assert.For(t).ThatActual(theEnum.ValueToRange(3)).Equals([]int{0, 1, 1})
+
 }
 
 func TestEnum(t *testing.T) {

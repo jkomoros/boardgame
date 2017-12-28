@@ -171,6 +171,17 @@ type Enum interface {
 	//IsRange returns true if the enum was created with AddRange, false
 	//otherwise.
 	IsRange() bool
+	//ValueToRange will return the multi-dimensional value associated with the
+	//given value, if this enum was created with AddRange. Will return nil if
+	//it can't be returned for some reason. A simple convenience wrapper
+	//around enum.MutableNewVal(val).RangeValues(), except it won't panic if
+	//that value isn't legal.
+	ValueToRange(val int) []int
+
+	//RangeToValue takes multi-dimensional indexes and returns the int value
+	//associated with those indexes, If this enum was created with AddRange.
+	//Will return a negative (invalid) value if anything errors.
+	RangeToValue(indexes ...int) int
 }
 
 //enum is the underlying type we use to implement Enum.
@@ -505,6 +516,20 @@ func (e *enum) RangeDimensions() int {
 
 func (e *enum) IsRange() bool {
 	return e.RangeDimensions() > 0
+}
+
+func (e *enum) ValueToRange(val int) []int {
+	if !e.IsRange() {
+		return nil
+	}
+	return indexesForKey(e.String(val))
+}
+
+func (e *enum) RangeToValue(indexes ...int) int {
+	if !e.IsRange() {
+		return -1
+	}
+	return e.ValueFromString(keyForIndexes(indexes...))
 }
 
 //Copy returns a copy of the Value, that is equivalent, but will not be
