@@ -2,7 +2,9 @@ package graph
 
 import (
 	"errors"
+	"fmt"
 	"github.com/jkomoros/boardgame/enum"
+	"strconv"
 )
 
 //EdgeFilter is a type of function that can be passed to filter in edges. Only
@@ -87,7 +89,7 @@ func NewGridConnectedness(ranged2DEnum enum.Enum, filter ...EdgeFilter) (Graph, 
 		}
 
 		if err := graph.AddEdges(val, theNeighbors...); err != nil {
-			return nil, err
+			return nil, errors.New("Couldn't add " + strconv.Itoa(val) + ": " + fmt.Sprintf("%v", theNeighbors) + ": " + err.Error())
 		}
 
 	}
@@ -116,7 +118,7 @@ func neighbors(theEnum enum.Enum, start int) []int {
 
 			val := theEnum.RangeToValue(r, c)
 
-			if val > 0 {
+			if val != enum.IllegalValue {
 				result = append(result, val)
 			}
 

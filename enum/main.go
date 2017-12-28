@@ -183,7 +183,7 @@ type Enum interface {
 
 	//RangeToValue takes multi-dimensional indexes and returns the int value
 	//associated with those indexes, If this enum was created with AddRange.
-	//Will return a negative (invalid) value if anything errors.
+	//Will return IllegalValue if it wasn't legal.
 	RangeToValue(indexes ...int) int
 }
 
