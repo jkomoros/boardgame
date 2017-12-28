@@ -39,8 +39,17 @@ type graph struct {
 	edgeWeights map[string]int
 }
 
+//New returns a new, unfinished graph based on the given enum, where each node
+//in the graph is one of the values in the Enum. If undirected is true, then
+//adding an edge from -> to also adds the edge to -> from automatically.
 func New(undirected bool, enum enum.Enum) Graph {
-	return nil
+	return &graph{
+		undirected,
+		false,
+		enum,
+		make(map[int]map[int]bool, len(enum.Values())),
+		make(map[string]int),
+	}
 }
 
 func (g *graph) Finish() {
