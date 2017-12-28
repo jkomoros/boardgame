@@ -8,7 +8,7 @@ import (
 
 //+autoreader
 type MovePlaceToken struct {
-	moves.FixUp
+	moves.FixUpMulti
 	TargetIndex int
 }
 
