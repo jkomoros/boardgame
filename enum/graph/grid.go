@@ -5,16 +5,63 @@ import (
 	"github.com/jkomoros/boardgame/enum"
 )
 
-//EdgeFilter is a type of function that can be passed to filter in edges.
+//EdgeFilter is a type of function that can be passed to filter in edges. Only
+//edges that return true will be kept.
 type EdgeFilter func(enum enum.Enum, from, to int) bool
 
-//TODO: create a bunch of EdgeFilters.
+//DirectionUp will return true if to is in a strictly lower-indexed row then
+//from.
+func DirectionUp(enum enum.Enum, from, to int) bool {
+	fromIndexes := enum.ValueToRange(from)
+	toIndexes := enum.ValueToRange(to)
+	return fromIndexes[0] > toIndexes[0]
+}
+
+//DirectionDown will return true if to is in a strictly higher-indexed row
+//then from.
+func DirectionDown(enum enum.Enum, from, to int) bool {
+	fromIndexes := enum.ValueToRange(from)
+	toIndexes := enum.ValueToRange(to)
+	return fromIndexes[0] > toIndexes[0]
+}
+
+//DirectionLeft will return true if to is in a strictly lower-indexed col then
+//from.
+func DirectionLeft(enum enum.Enum, from, to int) bool {
+	fromIndexes := enum.ValueToRange(from)
+	toIndexes := enum.ValueToRange(to)
+	return fromIndexes[1] > toIndexes[1]
+}
+
+//DirectionRight will return true if to is in a strictly higher-indexed col
+//then from.
+func DirectionRight(enum enum.Enum, from, to int) bool {
+	fromIndexes := enum.ValueToRange(from)
+	toIndexes := enum.ValueToRange(to)
+	return fromIndexes[1] > toIndexes[1]
+}
+
+//DirectionPerpendicular will return true if to is perpendicular to from (in the
+//same row or col).
+func DirectionPerpendicular(enum enum.Enum, from, to int) bool {
+	fromIndexes := enum.ValueToRange(from)
+	toIndexes := enum.ValueToRange(to)
+	if fromIndexes[0] == toIndexes[0] {
+		return true
+	}
+	return fromIndexes[1] == fromIndexes[1]
+}
+
+//DirectionDiagonal will return true if to is non-perpendicular to from.
+func DirectionDiagonal(enum enum.Enum, from, to int) bool {
+	return !DirectionPerpendicular(enum, from, to)
+}
 
 //NewGridConnectedness is a helper function to create a finished graph
 //representing the connections between a grid. By default it adds edges
 //between each of the 8 adjacent cells. However, all neighbors must pass the
 //provided filters to be added. This package also defines a number of
-//Neighbor* EdgeFilters. The enum passed must be a ranged, 2 dimensional enum.
+//Direction* EdgeFilters. The enum passed must be a ranged, 2 dimensional enum.
 func NewGridConnectedness(ranged2DEnum enum.Enum, filter ...EdgeFilter) (Graph, error) {
 	if !ranged2DEnum.IsRange() {
 		return nil, errors.New("The enum was not created with AddRange")
