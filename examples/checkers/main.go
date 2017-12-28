@@ -65,3 +65,19 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, 
 	}
 	return nil, errors.New("Unknown deck")
 }
+
+func (g *gameDelegate) GameEndConditionMet(state boardgame.State) bool {
+	_, players := concreteStates(state)
+	for _, p := range players {
+		if p.CapturedTokens.NumComponents() >= numTokens {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (g *gameDelegate) PlayerScore(pState boardgame.PlayerState) int {
+	p := pState.(*playerState)
+	return p.CapturedTokens.NumComponents()
+}

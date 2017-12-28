@@ -17,8 +17,9 @@ type gameState struct {
 //+autoreader
 type playerState struct {
 	boardgame.BaseSubState
-	playerIndex    boardgame.PlayerIndex
-	Color          enum.MutableVal        `enum:"Color"`
+	playerIndex boardgame.PlayerIndex
+	Color       enum.MutableVal `enum:"Color"`
+	//The tokens of the OTHER player that we've captured.
 	CapturedTokens boardgame.MutableStack `stack:"Tokens"`
 }
 
