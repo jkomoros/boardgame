@@ -117,7 +117,8 @@ func (m *MoveMoveToken) Legal(state boardgame.State, proposer boardgame.PlayerIn
 	}
 
 	//TODO: make sure the move is legal via graph connectedness and direction
-	//(depending on Crowned).
+	//(depending on Crowned), and how far it is (only allow a double jump if
+	//the one in the middle is taken by a competitor token)
 
 	return nil
 
@@ -127,13 +128,55 @@ func (m *MoveMoveToken) Apply(state boardgame.MutableState) error {
 
 	g := state.GameState().(*gameState)
 
+	p := state.CurrentPlayer().(*playerState)
+
 	if err := g.Spaces.SwapComponents(m.TokenIndexToMove, m.SpaceIndex); err != nil {
 		return errors.New("Couldn't move token: " + err.Error())
 	}
 
-	//TODO: capture any tokens moved over
+	startIndexes := SpacesEnum.ValueToRange(m.TokenIndexToMove)
 
-	//TODO: mark turn as done, if we didn't capture a token.
+	if startIndexes == nil || len(startIndexes) != 2 {
+		return errors.New("Couldn't get indexes for token space")
+	}
+
+	finishIndexes := SpacesEnum.ValueToRange(m.SpaceIndex)
+
+	if finishIndexes == nil || len(finishIndexes) != 2 {
+		return errors.New("Couldn't get indexes for finish space")
+	}
+
+	middleIndexes := []int{
+		finishIndexes[0] - startIndexes[0],
+		finishIndexes[1] - startIndexes[1],
+	}
+
+	middleSpace := SpacesEnum.RangeToValue(middleIndexes...)
+
+	if middleSpace < 0 {
+		return errors.New("Invalid resule from range to value")
+	}
+
+	c := g.Spaces.ComponentAt(middleSpace)
+
+	tokenCaptured := false
+
+	if c != nil {
+
+		tokenValues := c.Values.(*token)
+
+		if !tokenValues.Color.Equals(p.Color) {
+			tokenCaptured = true
+			if err := g.Spaces.MoveComponent(middleSpace, p.CapturedTokens, boardgame.LastSlotIndex); err != nil {
+				return errors.New("Couldn't capture token: " + err.Error())
+			}
+		}
+
+	}
+
+	if !tokenCaptured {
+		p.FinishedTurn = true
+	}
 
 	return nil
 
