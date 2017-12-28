@@ -9,6 +9,8 @@ package checkers
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves"
+	"github.com/jkomoros/boardgame/moves/auto"
 )
 
 //go:generate autoreader
@@ -39,6 +41,19 @@ func (g *gameDelegate) MaxNumPlayers() int {
 
 func (g *gameDelegate) DefaultNumPlayers() int {
 	return 2
+}
+
+func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
+	return boardgame.NewMoveTypeConfigBundle().AddOrderedMovesForPhase(PhaseSetup,
+		auto.MustConfig(
+			new(MovePlaceToken),
+			moves.WithHelpText("Places one token at a time on the board."),
+		),
+		auto.MustConfig(
+			new(moves.StartPhase),
+			moves.WithPhaseToStart(PhasePlaying, PhaseEnum),
+		),
+	)
 }
 
 func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
