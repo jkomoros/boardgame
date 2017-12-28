@@ -8,6 +8,7 @@ import (
 //+autoreader
 type gameState struct {
 	boardgame.BaseSubState
+	Phase enum.MutableVal `enum:"Phase"`
 	//Note: the struct tag here implicitly depends on the value of boardWidth.
 	Spaces       boardgame.MutableStack `sizedstack:"Tokens,64"`
 	UnusedTokens boardgame.MutableStack `stack:"Tokens"`

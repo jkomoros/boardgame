@@ -579,6 +579,7 @@ func (t *tokenDynamic) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 // Implementation for gameState
 
 var __gameStateReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
+	"Phase":        boardgame.TypeEnum,
 	"Spaces":       boardgame.TypeStack,
 	"UnusedTokens": boardgame.TypeStack,
 }
@@ -630,6 +631,8 @@ func (g *__gameStateReader) Prop(name string) (interface{}, error) {
 
 func (g *__gameStateReader) PropMutable(name string) bool {
 	switch name {
+	case "Phase":
+		return true
 	case "Spaces":
 		return true
 	case "UnusedTokens":
@@ -845,11 +848,24 @@ func (g *__gameStateReader) SetBoolSliceProp(name string, value []bool) error {
 
 func (g *__gameStateReader) EnumProp(name string) (enum.Val, error) {
 
+	switch name {
+	case "Phase":
+		return g.data.Phase, nil
+
+	}
+
 	return nil, errors.New("No such Enum prop: " + name)
 
 }
 
 func (g *__gameStateReader) ConfigureMutableEnumProp(name string, value enum.MutableVal) error {
+
+	switch name {
+	case "Phase":
+		g.data.Phase = value
+		return nil
+
+	}
 
 	return errors.New("No such MutableEnum prop: " + name)
 
@@ -857,11 +873,23 @@ func (g *__gameStateReader) ConfigureMutableEnumProp(name string, value enum.Mut
 
 func (g *__gameStateReader) ConfigureEnumProp(name string, value enum.Val) error {
 
+	switch name {
+	case "Phase":
+		return boardgame.ErrPropertyImmutable
+
+	}
+
 	return errors.New("No such Enum prop: " + name)
 
 }
 
 func (g *__gameStateReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	switch name {
+	case "Phase":
+		return g.data.Phase, nil
+
+	}
 
 	return nil, errors.New("No such Enum prop: " + name)
 
