@@ -36,7 +36,7 @@ const boardWidth = 8
 
 var SpacesEnum = Enums.MustAddRange("Spaces", boardWidth, boardWidth)
 
-const tokenDeckName = "tokens"
+const tokenDeckName = "Tokens"
 
 //The first space in the upper left is black, and it alternates from there.
 //The red tokens start at the top, and the black tokens are arrayed from the

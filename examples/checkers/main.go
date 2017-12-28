@@ -110,3 +110,16 @@ func (g *gameDelegate) PlayerScore(pState boardgame.PlayerState) int {
 	p := pState.(*playerState)
 	return p.CapturedTokens.NumComponents()
 }
+
+func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) {
+	chest := boardgame.NewComponentChest(Enums)
+
+	tokens := newTokenDeck()
+
+	if err := chest.AddDeck(tokenDeckName, tokens); err != nil {
+		return nil, errors.New("Couldnt add deck: " + err.Error())
+	}
+
+	return boardgame.NewGameManager(&gameDelegate{}, chest, storage)
+
+}

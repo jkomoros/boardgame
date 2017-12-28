@@ -38,6 +38,14 @@ func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 	return game, players
 }
 
+func (g *gameState) SetCurrentPhase(phase int) {
+	g.Phase.SetValue(phase)
+}
+
+func (g *gameState) SetCurrentPlayer(player boardgame.PlayerIndex) {
+	g.CurrentPlayer = player
+}
+
 func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
 	return p.playerIndex
 }
