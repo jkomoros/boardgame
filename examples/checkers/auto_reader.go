@@ -1515,6 +1515,7 @@ func (g *gameState) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 var __playerStateReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
 	"CapturedTokens": boardgame.TypeStack,
 	"Color":          boardgame.TypeEnum,
+	"FinishedTurn":   boardgame.TypeBool,
 }
 
 type __playerStateReader struct {
@@ -1567,6 +1568,8 @@ func (p *__playerStateReader) PropMutable(name string) bool {
 	case "CapturedTokens":
 		return true
 	case "Color":
+		return true
+	case "FinishedTurn":
 		return true
 	}
 
@@ -1755,11 +1758,24 @@ func (p *__playerStateReader) ConfigureProp(name string, value interface{}) erro
 
 func (p *__playerStateReader) BoolProp(name string) (bool, error) {
 
+	switch name {
+	case "FinishedTurn":
+		return p.data.FinishedTurn, nil
+
+	}
+
 	return false, errors.New("No such Bool prop: " + name)
 
 }
 
 func (p *__playerStateReader) SetBoolProp(name string, value bool) error {
+
+	switch name {
+	case "FinishedTurn":
+		p.data.FinishedTurn = value
+		return nil
+
+	}
 
 	return errors.New("No such Bool prop: " + name)
 

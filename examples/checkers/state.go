@@ -1,6 +1,7 @@
 package checkers
 
 import (
+	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
 )
@@ -22,6 +23,7 @@ type playerState struct {
 	Color       enum.MutableVal `enum:"Color"`
 	//The tokens of the OTHER player that we've captured.
 	CapturedTokens boardgame.MutableStack `stack:"Tokens"`
+	FinishedTurn   bool
 }
 
 func concreteStates(state boardgame.State) (*gameState, []*playerState) {
@@ -38,4 +40,21 @@ func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 
 func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
 	return p.playerIndex
+}
+
+func (p *playerState) TurnDone() error {
+	if !p.FinishedTurn {
+		return errors.New("The player has not yet finished their turn.")
+	}
+	return nil
+}
+
+func (p *playerState) ResetForTurnStart() error {
+	p.FinishedTurn = false
+	return nil
+}
+
+func (p *playerState) ResetForTurnEnd() error {
+	//Pass
+	return nil
 }
