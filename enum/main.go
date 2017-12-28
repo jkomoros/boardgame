@@ -170,7 +170,7 @@ type Enum interface {
 
 	//RangeDimensions will return the number of dimensions used to create this
 	//enum with AddRange. Will return 0 if it's not a ranged enum.
-	RangeDimensions() int
+	RangeDimensions() []int
 	//IsRange returns true if the enum was created with AddRange, false
 	//otherwise.
 	IsRange() bool
@@ -189,10 +189,10 @@ type Enum interface {
 
 //enum is the underlying type we use to implement Enum.
 type enum struct {
-	name           string
-	values         map[int]string
-	defaultValue   int
-	dimensionCount int
+	name         string
+	values       map[int]string
+	defaultValue int
+	dimensions   []int
 }
 
 //variable is the underlying type we'll return for both Value and Constant.
@@ -382,7 +382,7 @@ func (e *Set) AddRange(enumName string, dimensionSize ...int) (Enum, error) {
 		return nil, err
 	}
 
-	enum.dimensionCount = len(dimensionSize)
+	enum.dimensions = dimensionSize
 	return enum, nil
 
 }
@@ -418,7 +418,7 @@ func (e *Set) addEnumImpl(enumName string, values map[int]string) (*enum, error)
 		enumName,
 		make(map[int]string),
 		math.MaxInt64,
-		0,
+		nil,
 	}
 
 	seenValues := make(map[string]bool)
@@ -523,12 +523,12 @@ func (e *enum) ValueFromString(in string) int {
 	return IllegalValue
 }
 
-func (e *enum) RangeDimensions() int {
-	return e.dimensionCount
+func (e *enum) RangeDimensions() []int {
+	return e.dimensions
 }
 
 func (e *enum) IsRange() bool {
-	return e.RangeDimensions() > 0
+	return len(e.RangeDimensions()) > 0
 }
 
 func (e *enum) ValueToRange(val int) []int {
