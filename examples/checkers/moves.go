@@ -174,6 +174,8 @@ func (m *MoveMoveToken) Apply(state boardgame.MutableState) error {
 
 	}
 
+	//TODO: even after a token is captured, only skip setting turnfinished if
+	//there's another piece that can be captured.
 	if !tokenCaptured {
 		p.FinishedTurn = true
 	}

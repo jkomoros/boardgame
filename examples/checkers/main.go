@@ -64,9 +64,6 @@ func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 
 		//TODO: a CrownToken FixUp move, if a token reaches the far side and
 		//is not yet crowned.
-
-		//TODO: a DoneTurn move, that sets turnDone to true (if they don't
-		//want to move again after capturing).
 	)
 }
 
