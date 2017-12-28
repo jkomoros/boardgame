@@ -58,6 +58,10 @@ func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 			new(MoveMoveToken),
 			moves.WithHelpText("Moves a token from one place to another"),
 		),
+
+		//TODO: a CrownToken FixUp move, if a token reaches the far side and
+		//is not yet crowned.
+
 		//TODO: a DoneTurn move, that sets turnDone to true (if they don't
 		//want to move again after capturing).
 
