@@ -29,16 +29,23 @@ type tokenDynamic struct {
 }
 
 const numTokens = 12
+
+//note: the struct tag for Spaces in gameState implicitly depends on this
+//value.
 const boardWidth = 8
 
 var SpacesEnum = Enums.MustAddRange("Spaces", boardWidth, boardWidth)
 
-func newTokenDeck(color int) *boardgame.Deck {
+func newTokenDeck() *boardgame.Deck {
 
 	deck := boardgame.NewDeck()
 
 	deck.AddComponentMulti(&token{
-		Color: ColorEnum.MustNewVal(color),
+		Color: ColorEnum.MustNewVal(ColorBlack),
+	}, numTokens)
+
+	deck.AddComponentMulti(&token{
+		Color: ColorEnum.MustNewVal(ColorRed),
 	}, numTokens)
 
 	return deck
