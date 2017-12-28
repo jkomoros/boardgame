@@ -8,7 +8,8 @@ import (
 )
 
 //EdgeFilter is a type of function that can be passed to filter in edges. Only
-//edges that return true will be kept.
+//edges that return true will be kept. This package defines a large number of
+//them, all of which start with "Direction".
 type EdgeFilter func(enum enum.Enum, from, to int) bool
 
 //DirectionUp will return true if to is in a strictly lower-indexed row then
