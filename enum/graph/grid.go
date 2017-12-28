@@ -51,7 +51,7 @@ func DirectionPerpendicular(enum enum.Enum, from, to int) bool {
 	if fromIndexes[0] == toIndexes[0] {
 		return true
 	}
-	return fromIndexes[1] == fromIndexes[1]
+	return fromIndexes[1] == toIndexes[1]
 }
 
 //DirectionDiagonal will return true if to is non-perpendicular to from.

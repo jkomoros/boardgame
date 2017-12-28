@@ -35,4 +35,14 @@ func TestNewGridConnectedness(t *testing.T) {
 
 	assert.For(t).ThatActual(n).Equals([]int{1, 2, 3, 5, 7, 9, 10, 11})
 
+	g, err = NewGridConnectedness(e, DirectionUp, DirectionDiagonal)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	n = g.Neighbors(6)
+
+	sort.Ints(n)
+
+	assert.For(t).ThatActual(n).Equals([]int{1, 3})
+
 }
