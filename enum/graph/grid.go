@@ -64,6 +64,13 @@ func DirectionDiagonal(enum enum.Enum, from, to int) bool {
 //between each of the 8 adjacent cells. However, all neighbors must pass the
 //provided filters to be added. This package also defines a number of
 //Direction* EdgeFilters. The enum passed must be a ranged, 2 dimensional enum.
+//	//Returns a graph that has all cells connected to each of their neighbors.
+//	NewGridConnectedness(e)
+//
+//  //Returns a graph that creates connections upward and diagonally from each
+//  //cell.
+//	NewGridConnectedness(e, DirectionUp, DirectionDiagonal)
+//
 func NewGridConnectedness(ranged2DEnum enum.Enum, filter ...EdgeFilter) (Graph, error) {
 	if !ranged2DEnum.IsRange() {
 		return nil, errors.New("The enum was not created with AddRange")

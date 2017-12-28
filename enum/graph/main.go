@@ -5,6 +5,10 @@
 
 	graph is useful for modeling adjacency of spaces in a gameboard.
 
+	NewGridConnectedness is a graph creator that connects all spaces in a grid
+	that are neighbors, with the ability to filter to only include some types
+	of neighbors.
+
 */
 package graph
 
