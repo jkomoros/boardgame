@@ -36,6 +36,8 @@ const boardWidth = 8
 
 var SpacesEnum = Enums.MustAddRange("Spaces", boardWidth, boardWidth)
 
+const tokenDeckName = "tokens"
+
 func newTokenDeck() *boardgame.Deck {
 
 	deck := boardgame.NewDeck()

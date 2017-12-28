@@ -39,3 +39,20 @@ func (g *gameDelegate) MaxNumPlayers() int {
 func (g *gameDelegate) DefaultNumPlayers() int {
 	return 2
 }
+
+func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
+	return new(gameState)
+}
+
+func (g *gameDelegate) PlayerStateConstructor(index boardgame.PlayerIndex) boardgame.ConfigurablePlayerState {
+	return &playerState{
+		playerIndex: index,
+	}
+}
+
+func (g *gameDelegate) DynamicComponentValuesConstructor(deck *boardgame.Deck) boardgame.ConfigurableSubState {
+	if deck.Name() != tokenDeckName {
+		return nil
+	}
+	return new(tokenDynamic)
+}
