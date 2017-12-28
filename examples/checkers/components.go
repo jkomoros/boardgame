@@ -29,6 +29,9 @@ type tokenDynamic struct {
 }
 
 const numTokens = 12
+const boardWidth = 8
+
+var SpacesEnum = Enums.MustAddRange("Spaces", boardWidth, boardWidth)
 
 func newTokenDeck(color int) *boardgame.Deck {
 
