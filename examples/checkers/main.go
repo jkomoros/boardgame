@@ -7,6 +7,7 @@
 package checkers
 
 import (
+	"errors"
 	"github.com/jkomoros/boardgame"
 )
 
@@ -55,4 +56,12 @@ func (g *gameDelegate) DynamicComponentValuesConstructor(deck *boardgame.Deck) b
 		return nil
 	}
 	return new(tokenDynamic)
+}
+
+func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c *boardgame.Component) (boardgame.Stack, error) {
+	game := state.GameState().(*gameState)
+	if c.Deck.Name() == tokenDeckName {
+		return game.UnusedTokens, nil
+	}
+	return nil, errors.New("Unknown deck")
 }
