@@ -1012,9 +1012,10 @@ func (m *MovePlaceToken) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer
 // Implementation for gameState
 
 var __gameStateReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
-	"Phase":        boardgame.TypeEnum,
-	"Spaces":       boardgame.TypeStack,
-	"UnusedTokens": boardgame.TypeStack,
+	"CurrentPlayer": boardgame.TypePlayerIndex,
+	"Phase":         boardgame.TypeEnum,
+	"Spaces":        boardgame.TypeStack,
+	"UnusedTokens":  boardgame.TypeStack,
 }
 
 type __gameStateReader struct {
@@ -1064,6 +1065,8 @@ func (g *__gameStateReader) Prop(name string) (interface{}, error) {
 
 func (g *__gameStateReader) PropMutable(name string) bool {
 	switch name {
+	case "CurrentPlayer":
+		return true
 	case "Phase":
 		return true
 	case "Spaces":
@@ -1354,11 +1357,24 @@ func (g *__gameStateReader) SetIntSliceProp(name string, value []int) error {
 
 func (g *__gameStateReader) PlayerIndexProp(name string) (boardgame.PlayerIndex, error) {
 
+	switch name {
+	case "CurrentPlayer":
+		return g.data.CurrentPlayer, nil
+
+	}
+
 	return 0, errors.New("No such PlayerIndex prop: " + name)
 
 }
 
 func (g *__gameStateReader) SetPlayerIndexProp(name string, value boardgame.PlayerIndex) error {
+
+	switch name {
+	case "CurrentPlayer":
+		g.data.CurrentPlayer = value
+		return nil
+
+	}
 
 	return errors.New("No such PlayerIndex prop: " + name)
 

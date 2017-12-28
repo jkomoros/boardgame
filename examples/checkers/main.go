@@ -53,6 +53,15 @@ func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 			new(moves.StartPhase),
 			moves.WithPhaseToStart(PhasePlaying, PhaseEnum),
 		),
+	).AddMovesForPhase(PhasePlaying,
+		auto.MustConfig(
+			new(MoveMoveToken),
+			moves.WithHelpText("Moves a token from one place to another"),
+		),
+		//TODO: a DoneTurn move, that sets turnDone to true (if they don't
+		//want to move again after capturing).
+
+		//TODO: a FinishTurn move.
 	)
 }
 
