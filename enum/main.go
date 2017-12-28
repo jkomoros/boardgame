@@ -132,6 +132,9 @@ type Set struct {
 //enumSet.Add(). It's an interface to better support anonymous-embedding
 //scenarios.
 type Enum interface {
+	//Values returns all values that are in this enum--all values for which
+	//enum.Valid(val) would return true.
+	Values() []int
 	//DefaultValue returns the default value for this enum (the lowest valid value
 	//in it).
 	DefaultValue() int
@@ -464,6 +467,16 @@ func (e *Set) addEnum(enumName string, enum Enum) error {
 	e.enums[enumName] = enum
 
 	return nil
+}
+
+func (e *enum) Values() []int {
+	result := make([]int, len(e.values))
+	counter := 0
+	for key, _ := range e.values {
+		result[counter] = key
+		counter++
+	}
+	return result
 }
 
 func (e *enum) DefaultValue() int {
