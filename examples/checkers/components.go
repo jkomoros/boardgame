@@ -61,7 +61,7 @@ func newTokenDeck() *boardgame.Deck {
 	return deck
 }
 
-func (t *token) ShouldBeCrowned(state boardgame.State, spaceIndex int, c *boardgame.Component) bool {
+func (t *token) ShouldBeCrowned(state boardgame.State, spaceIndex int) bool {
 	//Red starts at top, moves towards bottom
 	targetRow := boardWidth - 1
 
@@ -77,7 +77,7 @@ func (t *token) ShouldBeCrowned(state boardgame.State, spaceIndex int, c *boardg
 		return false
 	}
 
-	d := c.DynamicValues(state).(*tokenDynamic)
+	d := t.ContainingComponent().DynamicValues(state).(*tokenDynamic)
 
 	if d.Crowned {
 		//Already crowned

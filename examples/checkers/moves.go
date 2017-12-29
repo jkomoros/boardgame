@@ -199,7 +199,7 @@ func (m *MoveCrownToken) DefaultsForState(state boardgame.State) {
 		}
 		v := c.Values.(*token)
 
-		if v.ShouldBeCrowned(state, i, c) {
+		if v.ShouldBeCrowned(state, i) {
 			m.TokenIndex = i
 			return
 		}
@@ -222,7 +222,7 @@ func (m *MoveCrownToken) Legal(state boardgame.State, proposer boardgame.PlayerI
 
 	v := c.Values.(*token)
 
-	if !v.ShouldBeCrowned(state, m.TokenIndex, c) {
+	if !v.ShouldBeCrowned(state, m.TokenIndex) {
 		return errors.New("that token shouldn't be crowned")
 	}
 
