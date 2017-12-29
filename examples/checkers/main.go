@@ -57,6 +57,7 @@ func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 		auto.MustConfig(
 			new(MoveCrownToken),
 			moves.WithHelpText("Crowns tokens that make it to the other end of the board."),
+			moves.WithSourceStack("Spaces"),
 		),
 		auto.MustConfig(
 			new(moves.FinishTurn),

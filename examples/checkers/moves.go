@@ -184,56 +184,15 @@ func (m *MoveMoveToken) Apply(state boardgame.MutableState) error {
 
 }
 
+//+autoreader
 type MoveCrownToken struct {
-	moves.FixUpMulti
-	TokenIndex int
-}
-
-func (m *MoveCrownToken) DefaultsForState(state boardgame.State) {
-
-	g := state.GameState().(*gameState)
-
-	for i, c := range g.Spaces.Components() {
-		if c == nil {
-			continue
-		}
-		v := c.Values.(*token)
-
-		if v.ShouldBeCrowned(state, i) {
-			m.TokenIndex = i
-			return
-		}
-	}
-
-}
-
-func (m *MoveCrownToken) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
-	if err := m.FixUpMulti.Legal(state, proposer); err != nil {
-		return err
-	}
-
-	g := state.GameState().(*gameState)
-
-	c := g.Spaces.ComponentAt(m.TokenIndex)
-
-	if c == nil {
-		return errors.New("No token at that location")
-	}
-
-	v := c.Values.(*token)
-
-	if !v.ShouldBeCrowned(state, m.TokenIndex) {
-		return errors.New("that token shouldn't be crowned")
-	}
-
-	return nil
-
+	moves.DefaultComponent
 }
 
 func (m *MoveCrownToken) Apply(state boardgame.MutableState) error {
 	g := state.GameState().(*gameState)
 
-	c := g.Spaces.ComponentAt(m.TokenIndex)
+	c := g.Spaces.ComponentAt(m.ComponentIndex)
 
 	if c == nil {
 		return errors.New("No token at that space")

@@ -1,6 +1,7 @@
 package checkers
 
 import (
+	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
 )
@@ -61,7 +62,7 @@ func newTokenDeck() *boardgame.Deck {
 	return deck
 }
 
-func (t *token) ShouldBeCrowned(state boardgame.State, spaceIndex int) bool {
+func (t *token) Legal(state boardgame.State, legalType int, componentIndex int) error {
 	//Red starts at top, moves towards bottom
 	targetRow := boardWidth - 1
 
@@ -70,19 +71,19 @@ func (t *token) ShouldBeCrowned(state boardgame.State, spaceIndex int) bool {
 		targetRow = 0
 	}
 
-	indexes := SpacesEnum.ValueToRange(spaceIndex)
+	indexes := SpacesEnum.ValueToRange(componentIndex)
 
 	if indexes[0] != targetRow {
 		//Not in the target row
-		return false
+		return errors.New("Not in the target row")
 	}
 
 	d := t.ContainingComponent().DynamicValues(state).(*tokenDynamic)
 
 	if d.Crowned {
 		//Already crowned
-		return false
+		return errors.New("Already crowned")
 	}
 
-	return true
+	return nil
 }
