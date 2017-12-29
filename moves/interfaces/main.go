@@ -38,9 +38,10 @@ type LegalComponent interface {
 	//the same component values to participate in multiple
 	//moves.DefaultComponent move types. Idiomatically legalType should be a
 	//value in an enum created for the purpose of disambiguating different
-	//move types to check for legality for. Legal should return nil if it is
+	//move types to check for legality for. componentIndex will be the index
+	//into the stack it's curerntly part of. Legal should return nil if it is
 	//legal, or an error if the component is not legal.
-	Legal(state boardgame.State, legalType int) error
+	Legal(state boardgame.State, legalType int, componentIndex int) error
 }
 
 //PlayerStacker should be implemented by your embedding Move if you embed
