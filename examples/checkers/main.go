@@ -55,15 +55,17 @@ func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 		),
 	).AddMovesForPhase(PhasePlaying,
 		auto.MustConfig(
+			new(MoveCrownToken),
+			moves.WithHelpText("Crowns tokens that make it to the other end of the board."),
+		),
+		auto.MustConfig(
 			new(moves.FinishTurn),
 		),
+
 		auto.MustConfig(
 			new(MoveMoveToken),
 			moves.WithHelpText("Moves a token from one place to another"),
 		),
-
-		//TODO: a CrownToken FixUp move, if a token reaches the far side and
-		//is not yet crowned.
 	)
 }
 

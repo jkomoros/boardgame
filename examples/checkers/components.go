@@ -59,3 +59,29 @@ func newTokenDeck() *boardgame.Deck {
 
 	return deck
 }
+
+func (t *token) ShouldBeCrowned(state boardgame.State, spaceIndex int, c *boardgame.Component) bool {
+	//Red starts at top, moves towards bottom
+	targetRow := boardWidth - 1
+
+	if t.Color.Value() == ColorBlack {
+		//Black starts at top, moves towards bottom
+		targetRow = 0
+	}
+
+	indexes := SpacesEnum.ValueToRange(spaceIndex)
+
+	if indexes[0] != targetRow {
+		//Not in the target row
+		return false
+	}
+
+	d := c.DynamicValues(state).(*tokenDynamic)
+
+	if d.Crowned {
+		//Already crowned
+		return false
+	}
+
+	return true
+}

@@ -183,3 +183,65 @@ func (m *MoveMoveToken) Apply(state boardgame.MutableState) error {
 	return nil
 
 }
+
+type MoveCrownToken struct {
+	moves.FixUpMulti
+	TokenIndex int
+}
+
+func (m *MoveCrownToken) DefaultsForState(state boardgame.State) {
+
+	g := state.GameState().(*gameState)
+
+	for i, c := range g.Spaces.Components() {
+		if c == nil {
+			continue
+		}
+		v := c.Values.(*token)
+
+		if v.ShouldBeCrowned(state, i, c) {
+			m.TokenIndex = i
+			return
+		}
+	}
+
+}
+
+func (m *MoveCrownToken) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+	if err := m.FixUpMulti.Legal(state, proposer); err != nil {
+		return err
+	}
+
+	g := state.GameState().(*gameState)
+
+	c := g.Spaces.ComponentAt(m.TokenIndex)
+
+	if c == nil {
+		return errors.New("No token at that location")
+	}
+
+	v := c.Values.(*token)
+
+	if !v.ShouldBeCrowned(state, m.TokenIndex, c) {
+		return errors.New("that token shouldn't be crowned")
+	}
+
+	return nil
+
+}
+
+func (m *MoveCrownToken) Apply(state boardgame.MutableState) error {
+	g := state.GameState().(*gameState)
+
+	c := g.Spaces.ComponentAt(m.TokenIndex)
+
+	if c == nil {
+		return errors.New("No token at that space")
+	}
+
+	d := c.DynamicValues(state).(*tokenDynamic)
+
+	d.Crowned = true
+
+	return nil
+}
