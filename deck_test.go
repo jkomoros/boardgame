@@ -5,6 +5,7 @@ import (
 )
 
 type testShadowValues struct {
+	BaseComponentValues
 	Message string
 }
 

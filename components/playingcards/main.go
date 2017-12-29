@@ -56,6 +56,7 @@ const (
 
 //+autoreader reader
 type Card struct {
+	boardgame.BaseComponentValues
 	Suit enum.MutableVal
 	Rank enum.MutableVal
 }

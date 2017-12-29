@@ -22,7 +22,7 @@ type Deck struct {
 	//Components should only ever be added at initalization time. After
 	//initalization, Components should be read-only.
 	components            []*Component
-	shadowValues          Reader
+	shadowValues          ComponentValues
 	vendedShadowComponent *Component
 	//TODO: protect shadowComponents cache with mutex to make threadsafe.
 }
@@ -54,9 +54,9 @@ func (d *Deck) NewSizedStack(size int) MutableStack {
 }
 
 //AddComponent adds a new component with the given values to the next spot in
-//the deck. If the deck has already been added to a componentchest, this will
-//do nothing.
-func (d *Deck) AddComponent(v Reader) {
+//the deck. v may be nil. If the deck has already been added to a
+//componentchest, this will do nothing.
+func (d *Deck) AddComponent(v ComponentValues) {
 	if d.chest != nil {
 		return
 	}
@@ -67,13 +67,17 @@ func (d *Deck) AddComponent(v Reader) {
 		Values:    v,
 	}
 
+	if v != nil {
+		v.SetContainingComponent(c)
+	}
+
 	d.components = append(d.components, c)
 }
 
 //AddComponentMulti is like AddComponent, but creates multiple versions of the
 //same component. The exact same ComponentValues will be re-used, which is
 //reasonable becasue components are read-only anyway.
-func (d *Deck) AddComponentMulti(v Reader, count int) {
+func (d *Deck) AddComponentMulti(v ComponentValues, count int) {
 	for i := 0; i < count; i++ {
 		d.AddComponent(v)
 	}
@@ -124,7 +128,7 @@ func (d *Deck) ComponentAt(index int) *Component {
 //component that is returned. May only be set before added to a chest. Should
 //generally be the same shape of componentValues as used for other components
 //in the deck.
-func (d *Deck) SetShadowValues(v Reader) {
+func (d *Deck) SetShadowValues(v ComponentValues) {
 	if d.chest != nil {
 		return
 	}
@@ -143,6 +147,10 @@ func (d *Deck) GenericComponent() *Component {
 			Deck:      d,
 			DeckIndex: genericComponentSentinel,
 			Values:    d.shadowValues,
+		}
+
+		if shadow.Values != nil {
+			shadow.Values.SetContainingComponent(shadow)
 		}
 
 		d.vendedShadowComponent = shadow

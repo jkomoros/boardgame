@@ -17,15 +17,15 @@ func TestComponentChest(t *testing.T) {
 	deckOne := NewDeck()
 
 	componentOne := &testingComponent{
-		"foo",
-		1,
+		String:  "foo",
+		Integer: 1,
 	}
 
 	deckOne.AddComponent(componentOne)
 
 	componentTwo := &testingComponent{
-		"bar",
-		2,
+		String:  "bar",
+		Integer: 2,
 	}
 
 	deckOne.AddComponent(componentTwo)
@@ -36,28 +36,28 @@ func TestComponentChest(t *testing.T) {
 
 	chest.AddDeck("test", deckOne)
 
-	componentValues := make([]Reader, 2)
+	componentValues := make([]ComponentValues, 2)
 
 	for i, component := range deckOne.Components() {
 		componentValues[i] = component.Values
 	}
 
-	if !reflect.DeepEqual(componentValues, []Reader{componentOne, componentTwo}) {
+	if !reflect.DeepEqual(componentValues, []ComponentValues{componentOne, componentTwo}) {
 		t.Error("Deck gave back wrong items after being added to chest")
 	}
 
 	deckOne.AddComponent(&testingComponent{
-		"illegal",
-		-1,
+		String:  "illegal",
+		Integer: -1,
 	})
 
-	componentValues = make([]Reader, 2)
+	componentValues = make([]ComponentValues, 2)
 
 	for i, component := range deckOne.Components() {
 		componentValues[i] = component.Values
 	}
 
-	if !reflect.DeepEqual(componentValues, []Reader{componentOne, componentTwo}) {
+	if !reflect.DeepEqual(componentValues, []ComponentValues{componentOne, componentTwo}) {
 		t.Error("Deck allowed itself to be mutated after it was added to chest")
 	}
 
@@ -72,13 +72,19 @@ func TestComponentChest(t *testing.T) {
 	deckTwo := NewDeck()
 
 	deckTwo.AddComponent(&testingComponent{
-		"another",
-		3,
+		String:  "another",
+		Integer: 3,
 	})
 
 	chest.AddDeck("other", deckTwo)
 
 	chest.Finish()
+
+	c := deckTwo.ComponentAt(0)
+
+	if c.Values.ContainingComponent() != c {
+		t.Error("c.Values didn't have its containing component set")
+	}
 
 	chest.AddDeck("shouldfail", deckOne)
 

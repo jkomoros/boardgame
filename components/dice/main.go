@@ -16,6 +16,7 @@ import (
 
 //+autoreader
 type Value struct {
+	boardgame.BaseComponentValues
 	Faces []int
 }
 

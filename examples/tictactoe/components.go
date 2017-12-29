@@ -1,5 +1,9 @@
 package tictactoe
 
+import (
+	"github.com/jkomoros/boardgame"
+)
+
 //+autoreader
 const (
 	PhaseBeforeFirstMove = iota
@@ -14,5 +18,6 @@ const (
 
 //+autoreader reader
 type playerToken struct {
+	boardgame.BaseComponentValues
 	Value string
 }

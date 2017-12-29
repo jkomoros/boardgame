@@ -29,23 +29,23 @@ func newTestGameChest() *ComponentChest {
 	deck := NewDeck()
 
 	deck.AddComponent(&testingComponent{
-		"foo",
-		1,
+		String:  "foo",
+		Integer: 1,
 	})
 
 	deck.AddComponent(&testingComponent{
-		"bar",
-		2,
+		String:  "bar",
+		Integer: 2,
 	})
 
 	deck.AddComponent(&testingComponent{
-		"baz",
-		5,
+		String:  "baz",
+		Integer: 5,
 	})
 
 	deck.AddComponent(&testingComponent{
-		"slam",
-		10,
+		String:  "slam",
+		Integer: 10,
 	})
 
 	deck.SetShadowValues(&testShadowValues{

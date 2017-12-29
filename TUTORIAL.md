@@ -712,11 +712,17 @@ Remember that each component is immutable, and lives in precisely one deck in th
 
 The `Component` struct is a concrete struct defined in the core package. It is immutable, and includes a reference to the deck this component is in, what its index is within that stack, and the `Values` of this Component--the specific properties of this particular component within this game's semantics.
 
-For example, a component that is a card from a traditional American deck of playing cards would have two properties in its Values object; `Rank` and `Suit`. (In fact, American playing cards are so common that for convenience a ready-to-use version of them are defined in `components/playingcards`). The `Values` object will be a concrete struct that you define in your package that adheres to the `SubState` interface. This mean--you guessed it--that the `autoreader` package will be useful.
+For example, a component that is a card from a traditional American deck of playing cards would have two properties in its Values object; `Rank` and `Suit`. (In fact, American playing cards are so common that for convenience a ready-to-use version of them are defined in `components/playingcards`). The `Values` object will be a concrete struct that you define in your package that adheres to the `CompontentValues` interface, which includes the `Reader` interface. This mean--you guessed it--that the `autoreader` package will be useful.
 
 The components for memory are quite simple:
 
 ```
+package memory
+
+import (
+	"github.com/jkomoros/boardgame"
+)
+
 var generalCards []string = []string{
 	"🚴",
 	"✋",
@@ -746,6 +752,7 @@ const cardsDeckName = "cards"
 
 //+autoreader reader
 type cardValue struct {
+	boardgame.BaseComponentValues
 	Type    string
 	CardSet string
 }
@@ -772,7 +779,7 @@ func newDeck() *boardgame.Deck {
 
 The file primarily consists of two constants--the icons that we will have on the cards, and tha name that we will refer to the deck of cards as. Decks are canonically refered to within a `ComponentChest` by a string name. It's convention to define a constant for that name to make sure that typos in that name will be caught by the compiler.
 
-And then the concrete struct we will use for `Values` is a trivial struct with a single string property, and the `autoreader` magic comment.
+And then the concrete struct we will use for `Values` is a trivial struct with a single string property, and the `autoreader` magic comment. It also embeds `boardgame.BaseComponentValues` to automatically implement `ContainingComponent()` and `SetContainingComponent()`
 
 In more complicated games, your components and their related constants might be much, much more verbose and effectively be a transcription of the values of a large deck of cards.
 

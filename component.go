@@ -10,11 +10,41 @@ import (
 //resource tokens, etc are all components. Values is a struct that stores the
 //specific values for the component.
 type Component struct {
-	Values Reader
+	Values ComponentValues
 	//The deck we're a part of.
 	Deck *Deck
 	//The index we are in the deck we're in.
 	DeckIndex int
+}
+
+//ComponentValues is the interface that the Values property of a Component
+//must implement. BaseComponentValues is designed to be anonymously embedded
+//in your component to implement the latter part of the interface. autoreader
+//can be used to implement Reader.
+type ComponentValues interface {
+	Reader
+	//ContainingComponent is the component that this ComponentValues is
+	//embedded in. It should return the component that was passed to
+	//SetContainingComponent.
+	ContainingComponent() *Component
+	//SetContainingComponent is called to let the component values know what
+	//its containing component is.
+	SetContainingComponent(c *Component)
+}
+
+//BaseComponentValues is an optional convenience struct designed to be
+//embedded anoymously in your component values to implement
+//ContainingComponent() and SetContainingComponent() automatically.
+type BaseComponentValues struct {
+	c *Component
+}
+
+func (b *BaseComponentValues) ContainingComponent() *Component {
+	return b.c
+}
+
+func (b *BaseComponentValues) SetContainingComponent(c *Component) {
+	b.c = c
 }
 
 //ID returns a semi-stable ID for this component within this game and

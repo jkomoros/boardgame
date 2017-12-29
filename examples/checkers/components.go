@@ -19,6 +19,7 @@ const (
 
 //+autoreader reader
 type token struct {
+	boardgame.BaseComponentValues
 	Color enum.Val
 }
 

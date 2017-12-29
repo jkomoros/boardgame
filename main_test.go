@@ -47,6 +47,7 @@ func (t *testAgent) ProposeMove(game *Game, player PlayerIndex, agentState []byt
 
 //testingComponent is a very basic thing that fufills the Component interface.
 type testingComponent struct {
+	BaseComponentValues
 	String  string
 	Integer int
 }

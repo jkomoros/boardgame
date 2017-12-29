@@ -77,6 +77,7 @@ const cardsDeckName = "cards"
 
 //+autoreader reader
 type cardValue struct {
+	boardgame.BaseComponentValues
 	Type    string
 	CardSet string
 }
