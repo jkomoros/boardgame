@@ -53,6 +53,7 @@ func ensureAllMovesSatisfyFallBack() {
 	m = new(RoundRobinNumRounds)
 	m = new(ShuffleStack)
 	m = new(StartPhase)
+	m = new(DefaultComponent)
 	if m != nil {
 		return
 	}
@@ -523,7 +524,7 @@ func progressionMatches(input []string, pattern []string) bool {
 
 //stackName returns the name of the stack for helpTExt, name, etc based on the
 //configPropName.
-func stackName(move boardgame.Move, configPropName string) string {
+func stackName(move moveInfoer, configPropName string) string {
 	config := move.Info().Type().CustomConfiguration()
 
 	val, ok := config[configPropName]

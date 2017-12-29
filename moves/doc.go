@@ -54,6 +54,24 @@ FixUpMulti is the same as FixUp, but also has a AllowMultipleInProgression
 that returns true, meaning that the ordered move logic within phases will
 allow multiple of this move type to apply in a row.
 
+Default Component Move
+
+DefaultComponent is a move type that, in DefaultsForState, searches through
+all of the components in the stack provided with WithSourceStack, and testing
+the Legal() method of each component. It sets the first one that returns nil
+to m.ComponentIndex. Its Legal() returns whether there is a valid component
+specified, and what its Legal returns. You provide your own Apply().
+
+It's useful for fixup moves that need to apply actions to components in a
+given stack when certain conditions are met--for example, crowning a token
+that makes it to the opposite end of a board in checkers.
+
+The componentValues.Legal() takes a legalType. This is the way you can use
+multiple DefaultComponent moves for the same type of component. If you only
+have one then you can skip passing WithLegalType, and just default to 0. If
+you do have multiple legalTypes, the idiomatic way is to have those be members
+of an Enum for that purpose.
+
 Current Player Move
 
 These moves are for moves that are only legal to be made by the current

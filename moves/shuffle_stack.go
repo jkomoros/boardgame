@@ -17,11 +17,12 @@ type ShuffleStack struct {
 	FixUp
 }
 
-//SourceStack by default just returns the property on GameState with the name
-//passed to DefaultConfig by WithSourceStack. If that is not sufficient,
-//override this in your embedding struct.
-func (s *ShuffleStack) SourceStack(state boardgame.MutableState) boardgame.MutableStack {
-	config := s.Info().Type().CustomConfiguration()
+type moveInfoer interface {
+	Info() *boardgame.MoveInfo
+}
+
+func sourceStackFromConfig(m moveInfoer, state boardgame.MutableState) boardgame.MutableStack {
+	config := m.Info().Type().CustomConfiguration()
 
 	stackName, ok := config[configNameSourceStack]
 
@@ -42,6 +43,13 @@ func (s *ShuffleStack) SourceStack(state boardgame.MutableState) boardgame.Mutab
 	}
 
 	return stack
+}
+
+//SourceStack by default just returns the property on GameState with the name
+//passed to DefaultConfig by WithSourceStack. If that is not sufficient,
+//override this in your embedding struct.
+func (s *ShuffleStack) SourceStack(state boardgame.MutableState) boardgame.MutableStack {
+	return sourceStackFromConfig(s, state)
 }
 
 //We don't need a Legal method because the pass-through to moves.Base is sufficient.

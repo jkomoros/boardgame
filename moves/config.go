@@ -20,6 +20,19 @@ const configNameMoveName = fullyQualifiedPackageName + "MoveName"
 const configNameHelpText = fullyQualifiedPackageName + "HelpText"
 const configNameIsFixUp = fullyQualifiedPackageName + "IsFixUp"
 const configNameLegalPhases = fullyQualifiedPackageName + "LegalPhases"
+const configNameLegalType = fullyQualifiedPackageName + "LegalType"
+
+//WithLegalType returns a function configuration option suitable for being
+//passed to auto.Config. The legalType will be bassed to the components'
+//Legal() method. Idiomatically this should be a value from an enum that is
+//related to the legalType for that type of component. However, if you only
+//have one DefaultComponent move for that type of component, it's fine to just
+//skip this to use 0 instead.
+func WithLegalType(legalType int) interfaces.CustomConfigurationOption {
+	return func(config boardgame.PropertyCollection) {
+		config[configNameLegalType] = legalType
+	}
+}
 
 //WithMoveName returns a function configuration option suitable for being
 //passed to auto.Config. moves.Base uses this, if provided, to power

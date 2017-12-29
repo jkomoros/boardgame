@@ -30,6 +30,19 @@ type AllowMultipleInProgression interface {
 	AllowMultipleInProgression() bool
 }
 
+//LegalComponent should be implemented by ComponentValues that will be used
+//with moves.DefaultComponent.
+type LegalComponent interface {
+	//Legal will be called on each component, with a legalType related to the
+	//move in question (or 0 if WithLegalType hasn't been called). This allows
+	//the same component values to participate in multiple
+	//moves.DefaultComponent move types. Idiomatically legalType should be a
+	//value in an enum created for the purpose of disambiguating different
+	//move types to check for legality for. Legal should return nil if it is
+	//legal, or an error if the component is not legal.
+	Legal(state boardgame.State, legalType int) error
+}
+
 //PlayerStacker should be implemented by your embedding Move if you embed
 //DealComponents. It will be consulted to figure out where the PlayerStack is
 //to deal a component to.

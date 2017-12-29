@@ -80,7 +80,7 @@ type Stack interface {
 	//unfilled), which is equivalent to Len().
 	MaxSize() int
 
-	//Deck returns the Deck in this stack.
+	//Deck returns the Deck associated with this stack.
 	Deck() *Deck
 
 	//Returns the state that this Stack is currently part of. Mainly a
