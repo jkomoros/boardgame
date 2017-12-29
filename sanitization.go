@@ -286,7 +286,7 @@ func sanitizeStateObj(readSetConfigurer PropertyReadSetConfigurer, transformatio
 			if propType == TypeStack {
 				if policy == PolicyVisible {
 					stackProp := prop.(Stack)
-					if _, ok := visibleDynamic[stackProp.deck().Name()]; ok {
+					if _, ok := visibleDynamic[stackProp.Deck().Name()]; ok {
 						for _, c := range stackProp.Components() {
 							if c == nil {
 								continue
@@ -356,7 +356,7 @@ func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[strin
 
 			stackProp := prop.(Stack)
 
-			if _, ok := dynamicComponentValues[stackProp.deck().Name()]; !ok {
+			if _, ok := dynamicComponentValues[stackProp.Deck().Name()]; !ok {
 				//This stack is for a deck that has no dynamic values, can skip.
 				continue
 			}

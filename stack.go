@@ -80,9 +80,8 @@ type Stack interface {
 	//unfilled), which is equivalent to Len().
 	MaxSize() int
 
-	//deck returns the Deck in this stack. Just a conveniene wrapper if you
-	//don't know what kind of stack you have.
-	deck() *Deck
+	//Deck returns the Deck in this stack.
+	Deck() *Deck
 
 	//Returns the state that this Stack is currently part of. Mainly a
 	//convenience method when you have a Stack but don't know its underlying
@@ -557,9 +556,9 @@ func (m *mergedStack) Valid() error {
 			return errors.New("stack " + strconv.Itoa(i) + " is nil")
 		}
 	}
-	deck := m.stacks[0].deck()
+	deck := m.stacks[0].Deck()
 	for i, stack := range m.stacks {
-		if stack.deck() != deck {
+		if stack.Deck() != deck {
 			return errors.New("stack " + strconv.Itoa(i) + " had a different deck than other sub-stacks")
 		}
 	}
@@ -646,7 +645,7 @@ func (s *growableStack) ComponentAt(index int) *Component {
 	deckIndex := s.indexes[index]
 
 	//ComponentAt will handle negative values and empty sentinel correctly.
-	return s.deck().ComponentAt(deckIndex)
+	return s.Deck().ComponentAt(deckIndex)
 }
 
 //ComponentAt fetches the component object representing the n-th object in
@@ -666,7 +665,7 @@ func (s *sizedStack) ComponentAt(index int) *Component {
 	deckIndex := s.indexes[index]
 
 	//ComponentAt will handle negative values and empty sentinel correctly.
-	return s.deck().ComponentAt(deckIndex)
+	return s.Deck().ComponentAt(deckIndex)
 }
 
 func (m *mergedStack) ComponentAt(index int) *Component {
@@ -937,7 +936,7 @@ func (m *mergedStack) setState(state *state) {
 	}
 }
 
-func (g *growableStack) deck() *Deck {
+func (g *growableStack) Deck() *Deck {
 	if g.deckPtr == nil {
 		if g.statePtr.game != nil {
 			g.deckPtr = g.statePtr.game.Chest().Deck(g.deckName)
@@ -946,7 +945,7 @@ func (g *growableStack) deck() *Deck {
 	return g.deckPtr
 }
 
-func (s *sizedStack) deck() *Deck {
+func (s *sizedStack) Deck() *Deck {
 	if s.deckPtr == nil {
 		if s.statePtr.game != nil {
 			s.deckPtr = s.statePtr.game.Chest().Deck(s.deckName)
@@ -955,11 +954,11 @@ func (s *sizedStack) deck() *Deck {
 	return s.deckPtr
 }
 
-func (m *mergedStack) deck() *Deck {
+func (m *mergedStack) Deck() *Deck {
 	if len(m.stacks) == 0 {
 		return nil
 	}
-	return m.stacks[0].deck()
+	return m.stacks[0].Deck()
 }
 
 func (g *growableStack) modificationsAllowed() error {
@@ -1220,7 +1219,7 @@ func moveComonentImpl(source MutableStack, componentIndex int, destination Mutab
 		return errors.New("Source and destination are not members of the same state object.")
 	}
 
-	if source.deck() != destination.deck() {
+	if source.Deck() != destination.Deck() {
 		return errors.New("Source and destination are affiliated with two different decks.")
 	}
 
@@ -1270,7 +1269,7 @@ func (s *sizedStack) MoveComponentToStart(componentIndex int) error {
 
 func moveComponentToExtremeImpl(stack MutableStack, componentIndex int, isStart bool) error {
 
-	scratchStack := stack.deck().NewStack(0).(*growableStack)
+	scratchStack := stack.Deck().NewStack(0).(*growableStack)
 
 	scratchStack.setState(stack.state())
 
@@ -1602,7 +1601,7 @@ func (m *mergedStack) MarshalJSON() ([]byte, error) {
 	}
 
 	obj := &stackJSONObj{
-		Deck:        m.deck().Name(),
+		Deck:        m.Deck().Name(),
 		Indexes:     indexes,
 		Ids:         m.Ids(),
 		IdsLastSeen: m.IdsLastSeen(),

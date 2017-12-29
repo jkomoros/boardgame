@@ -355,7 +355,7 @@ func TestStateSerialization(t *testing.T) {
 
 	gameState, _ = concreteStates(reconstitutedState)
 
-	if gameState.DrawDeck.ComponentAt(0).DynamicValues(reconstitutedState).(*testingComponentDynamic).Stack.deck() == nil {
+	if gameState.DrawDeck.ComponentAt(0).DynamicValues(reconstitutedState).(*testingComponentDynamic).Stack.Deck() == nil {
 		t.Error("The stack on a component's dynamic value was not inflated coming back from storage.")
 	}
 
