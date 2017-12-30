@@ -60,6 +60,19 @@ func DirectionDiagonal(enum enum.Enum, from, to int) bool {
 	return !DirectionPerpendicular(enum, from, to)
 }
 
+//MustNewGridConnectedness is like NewGridConnectedness, but if it would have
+//returned an error, it panics instead. Only appropriate to be called during
+//setup.
+func MustNewGridConnectedness(ranged2DEnum enum.Enum, filter ...EdgeFilter) Graph {
+	graph, err := NewGridConnectedness(ranged2DEnum, filter...)
+
+	if err != nil {
+		panic(err.Error())
+	}
+
+	return graph
+}
+
 //NewGridConnectedness is a helper function to create a finished graph
 //representing the connections between a grid. By default it adds edges
 //between each of the 8 adjacent cells. However, all neighbors must pass the
