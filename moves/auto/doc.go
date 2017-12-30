@@ -54,7 +54,7 @@
 		func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 			return boardgame.NewMoveTypeConfigBundle().AddMoves(
 				auto.MustConfig(
-					new(MoveDealInitialCards),
+					new(moves.DealComponentsUntilPlayerCountReached),
 					moves.WithGameStack("DrawStack"),
 					moves.WithPlayerStack("Hand"),
 					moves.WithTargetCount(2),
