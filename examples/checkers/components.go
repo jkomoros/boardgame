@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
+	"github.com/jkomoros/boardgame/enum/graph"
 )
 
 //+autoreader
@@ -37,6 +38,9 @@ const numTokens = 12
 const boardWidth = 8
 
 var SpacesEnum = Enums.MustAddRange("Spaces", boardWidth, boardWidth)
+
+var GraphDownward = graph.MustNewGridConnectedness(SpacesEnum, graph.DirectionDown, graph.DirectionDiagonal)
+var GraphUpward = graph.MustNewGridConnectedness(SpacesEnum, graph.DirectionUp, graph.DirectionDiagonal)
 
 const tokenDeckName = "Tokens"
 
@@ -86,4 +90,112 @@ func (t *token) Legal(state boardgame.State, legalType int, componentIndex int) 
 	}
 
 	return nil
+}
+
+//FreeNextSpaces is like AllNextSpaces, but spaces taht are occupied won't be returned.
+func (t *token) FreeNextSpaces(state boardgame.State, componentIndex int) []int {
+
+	spaces := state.GameState().(*gameState).Spaces
+
+	var result []int
+	for _, space := range t.FreeNextSpaces(state, componentIndex) {
+		if spaces.ComponentAt(space) == nil {
+			result = append(result, space)
+		}
+	}
+
+	return result
+}
+
+//AllNextSpaces returns all the spaces that t could move to, if the rest of
+//the board were empty.
+func (t *token) AllNextSpaces(state boardgame.State, componentIndex int) []int {
+
+	//Red starts from top
+	fromBottom := false
+
+	if t.Color.Value() == ColorBlack {
+		fromBottom = true
+	}
+
+	var nextSpaces []int
+
+	dyn := t.ContainingComponent().DynamicValues(state).(*tokenDynamic)
+
+	crowned := dyn.Crowned
+
+	g := GraphUpward
+	oppositeG := GraphDownward
+
+	if fromBottom {
+		g = GraphDownward
+		oppositeG = GraphUpward
+	}
+
+	for _, val := range g.Neighbors(componentIndex) {
+		nextSpaces = append(nextSpaces, val)
+	}
+
+	if crowned {
+		for _, val := range oppositeG.Neighbors(componentIndex) {
+			nextSpaces = append(nextSpaces, val)
+		}
+	}
+
+	return nextSpaces
+}
+
+//LegalCaptureSpaces returns cells that are legal for this cell to capture from there.
+func (t *token) LegalCaptureSpaces(state boardgame.State, componentIndex int) []int {
+
+	spaces := state.GameState().(*gameState).Spaces
+
+	nextSpaces := t.AllNextSpaces(state, componentIndex)
+
+	var result []int
+
+	for _, space := range nextSpaces {
+		c := spaces.ComponentAt(space)
+		if c == nil {
+			continue
+		}
+		if c.Values == nil {
+			continue
+		}
+		v := c.Values.(*token)
+		if v.Color.Equals(t.Color) {
+			//One of our own.
+			continue
+		}
+		//The item at space is a legal capture. What's the spot one beyond it,
+		//and is it taken?
+
+		startIndexes := SpacesEnum.ValueToRange(componentIndex)
+		endIndexes := SpacesEnum.ValueToRange(space)
+
+		diff := []int{
+			endIndexes[0] - startIndexes[0],
+			endIndexes[1] - startIndexes[1],
+		}
+
+		finalIndexes := []int{
+			endIndexes[0] + diff[0],
+			endIndexes[1] + diff[1],
+		}
+
+		finalSpace := SpacesEnum.RangeToValue(finalIndexes...)
+
+		if finalSpace == enum.IllegalValue {
+			//A space beyond the bounds
+			continue
+		}
+
+		if spaces.ComponentAt(finalSpace) == nil {
+			//An empty, real space!
+			result = append(result, finalSpace)
+		}
+
+	}
+
+	return result
 }

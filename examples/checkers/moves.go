@@ -116,11 +116,20 @@ func (m *MoveMoveToken) Legal(state boardgame.State, proposer boardgame.PlayerIn
 		return errors.New("The space you're trying to move to is occupied.")
 	}
 
-	//TODO: make sure the move is legal via graph connectedness and direction
-	//(depending on Crowned), and how far it is (only allow a double jump if
-	//the one in the middle is taken by a competitor token)
+	//If it's one of the legal spaces, great.
+	for _, space := range t.FreeNextSpaces(state, m.TokenIndexToMove) {
+		if m.SpaceIndex == space {
+			return nil
+		}
+	}
 
-	return nil
+	for _, space := range t.LegalCaptureSpaces(state, m.TokenIndexToMove) {
+		if m.SpaceIndex == space {
+			return nil
+		}
+	}
+
+	return errors.New("SpaceIndex does not represent a legal space for that token to move to.")
 
 }
 
@@ -174,10 +183,16 @@ func (m *MoveMoveToken) Apply(state boardgame.MutableState) error {
 
 	}
 
-	//TODO: even after a token is captured, only skip setting turnfinished if
-	//there's another piece that can be captured.
+	//The turn is over if a token wasn't captured
 	if !tokenCaptured {
 		p.FinishedTurn = true
+	} else {
+		//The turn is also over if there isn't another cpature space to move
+		//to.
+		t := g.Spaces.ComponentAt(m.SpaceIndex).Values.(*token)
+		if len(t.LegalCaptureSpaces(state, m.SpaceIndex)) == 0 {
+			p.FinishedTurn = true
+		}
 	}
 
 	return nil
