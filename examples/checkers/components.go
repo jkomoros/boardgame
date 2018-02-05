@@ -66,6 +66,10 @@ func newTokenDeck() *boardgame.Deck {
 	return deck
 }
 
+func (t *token) Dynamic(state boardgame.State) *tokenDynamic {
+	return t.ContainingComponent().DynamicValues(state).(*tokenDynamic)
+}
+
 func (t *token) Legal(state boardgame.State, legalType int, componentIndex int) error {
 	//Red starts at top, moves towards bottom
 	targetRow := boardWidth - 1
@@ -82,7 +86,7 @@ func (t *token) Legal(state boardgame.State, legalType int, componentIndex int) 
 		return errors.New("Not in the target row")
 	}
 
-	d := t.ContainingComponent().DynamicValues(state).(*tokenDynamic)
+	d := t.Dynamic(state)
 
 	if d.Crowned {
 		//Already crowned
@@ -120,7 +124,7 @@ func (t *token) AllNextSpaces(state boardgame.State, componentIndex int) []int {
 
 	var nextSpaces []int
 
-	dyn := t.ContainingComponent().DynamicValues(state).(*tokenDynamic)
+	dyn := t.Dynamic(state)
 
 	crowned := dyn.Crowned
 
