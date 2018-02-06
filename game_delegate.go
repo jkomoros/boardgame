@@ -272,14 +272,20 @@ func (d *DefaultGameDelegate) Description() string {
 	return ""
 }
 
+//Manager returns the manager object that was provided to SetManager.
 func (d *DefaultGameDelegate) Manager() *GameManager {
 	return d.manager
 }
 
+//SetManager keeps a reference to the passed manager, and returns it when
+//Manager() is called.
 func (d *DefaultGameDelegate) SetManager(manager *GameManager) {
 	d.manager = manager
 }
 
+//DynamicComponentValuesConstructor returns nil, as not all games have
+//DynamicComponentValues. Override this if your game does require
+//DynamicComponentValues.
 func (d *DefaultGameDelegate) DynamicComponentValuesConstructor(deck *Deck) ConfigurableSubState {
 	return nil
 }
@@ -451,19 +457,23 @@ func (d *DefaultGameDelegate) SanitizationPolicy(prop StatePropertyRef, groupMem
 
 }
 
+//ComputedGlobalProperties returns nil.
 func (d *DefaultGameDelegate) ComputedGlobalProperties(state State) PropertyCollection {
 	return nil
 }
 
+//ComputedPlayerProperties returns nil.
 func (d *DefaultGameDelegate) ComputedPlayerProperties(player PlayerState) PropertyCollection {
 	return nil
 }
 
+//BeginSetUp does not do anything and returns nil.
 func (d *DefaultGameDelegate) BeginSetUp(state MutableState, config GameConfig) error {
 	//Don't need to do anything by default
 	return nil
 }
 
+//FinishSetUp doesn't do anything and returns nil.
 func (d *DefaultGameDelegate) FinishSetUp(state MutableState) error {
 	//Don't need to do anything by default
 	return nil
@@ -538,14 +548,17 @@ func (d *DefaultGameDelegate) PlayerScore(pState PlayerState) int {
 	return 0
 }
 
+//DefaultNumPlayers returns 2.
 func (d *DefaultGameDelegate) DefaultNumPlayers() int {
 	return 2
 }
 
+//MinNumPlayers returns 1
 func (d *DefaultGameDelegate) MinNumPlayers() int {
 	return 1
 }
 
+//MaxNumPlayers returns 16
 func (d *DefaultGameDelegate) MaxNumPlayers() int {
 	return 16
 }
@@ -563,6 +576,7 @@ func (d *DefaultGameDelegate) LegalNumPlayers(numPlayers int) bool {
 
 }
 
+//Configs returns an empty map[string][]string
 func (d *DefaultGameDelegate) Configs() map[string][]string {
 	return make(map[string][]string)
 }
