@@ -18,7 +18,9 @@ import (
 type GameConfig map[string]string
 
 //GameDelegate is the place that various parts of the game lifecycle can be
-//modified to support this particular game.
+//modified to support this particular game. Typically you embed
+//DefaultGameDelegate in your won struct, and only override methods whose
+//default behavior is incorrect for your game.
 type GameDelegate interface {
 
 	//Name is a string that defines the type of game this is. The name should
