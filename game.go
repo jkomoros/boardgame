@@ -70,6 +70,10 @@ type Game struct {
 
 const gameIDLength = 16
 
+//DelayedError is a chan on which an error (or nil) will be sent at a later
+//time. Primarily returned from game.ProposeMove(), so the method can return
+//immediately even before the move is processed, which might take a long time
+//if there are many moves ahead in the queue.
 type DelayedError chan error
 
 type proposedMoveItem struct {
