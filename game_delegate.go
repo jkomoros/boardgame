@@ -247,7 +247,7 @@ type PropertyCollection map[string]interface{}
 
 //DefaultGameDelegate is a struct that implements stubs for all of
 //GameDelegate's methods. This makes it easy to override just one or two
-//methods by creating your own struct that anonymously embeds this one.
+//methods by creating your own struct that anonymously embeds this one. Name,
 //GameStateConstructor, PlayerStateConstructor, and ConfigureMoves are not
 //implemented, since those almost certainly must be overridden for your
 //particular game.
@@ -256,12 +256,9 @@ type DefaultGameDelegate struct {
 	moveProgressions map[int][]string
 }
 
+//Diagram returns the string "This should be overriden to render a reasonable state here"
 func (d *DefaultGameDelegate) Diagram(state State) string {
 	return "This should be overriden to render a reasonable state here"
-}
-
-func (d *DefaultGameDelegate) Name() string {
-	return "default"
 }
 
 //DisplayName by default just returns the Name() that is returned from the
