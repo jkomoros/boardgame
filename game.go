@@ -21,7 +21,7 @@ const selfInitiatorSentinel = -1
 var ErrTooManyFixUps = errors.New("We recursed deeply in fixup, which implies that ProposeFixUp has a move that is always legal.")
 
 //A Game represents a specific game between a collection of Players. Create a
-//new one with NewGame().
+//new one with manager.NewGame().
 type Game struct {
 	manager *GameManager
 
@@ -182,14 +182,18 @@ func (g *Game) StorageRecord() *GameStorageRecord {
 	}
 }
 
+//Name returns the name of this game type. Convenience method for
+//game.Manager().Delegate().Name().
 func (g *Game) Name() string {
 	return g.manager.Delegate().Name()
 }
 
+//Id returns the unique id string that corresponds to this particular game.
 func (g *Game) Id() string {
 	return g.id
 }
 
+//Agents returns the agent configuration for the game.
 func (g *Game) Agents() []string {
 	return g.agents
 }
