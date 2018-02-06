@@ -347,14 +347,14 @@ func (g *Game) starterState(numPlayers int) (MutableState, error) {
 	return state, nil
 }
 
-//SetUp should be called a single time after all of the member variables are
-//set correctly, including Chest. SetUp must be called before ProposeMove can
-//be called. Even if an error is returned, the game should be in a consistent
-//state. If numPlayers is 0, we will use delegate.DefaultNumPlayers(). Config
-//may be nil (an empty GameConfig will be passed to your delegate's
-//LegalConfig method). if agentNames is not nil, it should have
-//len(numPlayers). The strings in each index represent the agent to install
-//for that player (empty strings mean a human player).
+//SetUp initializes a specific game object and gets it ready for the first
+//move to apply. SetUp must be called before ProposeMove can be called. Even
+//if an error is returned, the game should be in a consistent state. If
+//numPlayers is 0, we will use delegate.DefaultNumPlayers(). Config may be nil
+//(an empty GameConfig will be passed to your delegate's LegalConfig method).
+//if agentNames is not nil, it should have len(numPlayers). The strings in
+//each index represent the agent to install for that player (empty strings
+//mean a human player).
 func (g *Game) SetUp(numPlayers int, config GameConfig, agentNames []string) error {
 
 	baseErr := errors.NewFriendly("Game couldn't be set up")
