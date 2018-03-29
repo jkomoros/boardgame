@@ -61,12 +61,7 @@ type enum struct {
 
 //findDelegateName looks through the given package to find the name of the
 //struct that appears to represent the gameDelegate type, and returns its name.
-func findDelegateName(inputPackageName string) ([]string, error) {
-	packageASTs, err := parser.ParseDir(token.NewFileSet(), inputPackageName, nil, parser.ParseComments)
-
-	if err != nil {
-		return nil, errors.New("couldn't parse package: " + err.Error())
-	}
+func findDelegateName(packageASTs map[string]*ast.Package) ([]string, error) {
 
 	var result []string
 
@@ -157,13 +152,7 @@ func findDelegateName(inputPackageName string) ([]string, error) {
 
 //findEnums processes the package at packageName and returns a list of enums
 //that should be processed (that is, they have the magic comment)
-func findEnums(inputPackageName string) (enums []*enum, err error) {
-
-	packageASTs, err := parser.ParseDir(token.NewFileSet(), inputPackageName, nil, parser.ParseComments)
-
-	if err != nil {
-		return nil, errors.New("Parse error: " + err.Error())
-	}
+func findEnums(packageASTs map[string]*ast.Package) (enums []*enum, err error) {
 
 	for packageName, theAST := range packageASTs {
 		for _, file := range theAST.Files {
@@ -320,7 +309,14 @@ func titleCaseToWords(in string) string {
 }
 
 func processEnums(packageName string) (enumOutput string, err error) {
-	enums, err := findEnums(packageName)
+
+	packageASTs, err := parser.ParseDir(token.NewFileSet(), packageName, nil, parser.ParseComments)
+
+	if err != nil {
+		return "", errors.New("Parse error: " + err.Error())
+	}
+
+	enums, err := findEnums(packageASTs)
 
 	if err != nil {
 		return "", errors.New("Couldn't parse for enums: " + err.Error())
@@ -331,7 +327,7 @@ func processEnums(packageName string) (enumOutput string, err error) {
 		return "", nil
 	}
 
-	delegateNames, err := findDelegateName(packageName)
+	delegateNames, err := findDelegateName(packageASTs)
 
 	if err != nil {
 		return "", errors.New("Failed to find delegate name: " + err.Error())
