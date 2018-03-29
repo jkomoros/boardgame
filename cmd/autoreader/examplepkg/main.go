@@ -16,24 +16,27 @@ import (
 
 //go:generate autoreader
 
+//This is a normal gameDelegate that should have its ConfigureEnums output,
+//because it has ConfigureMoves() but not its own ConfigureEnums.
 type gameDelegate struct {
 	boardgame.DefaultGameDelegate
 }
 
 func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
-	//Just have this so auto_enum will generate a ConfigureEnums for us.
 	return nil
 }
 
+//This is a normal gameDelegate that should also have its ConfigureEnums output.
 type secondGameDelegate struct {
 	boardgame.DefaultGameDelegate
 }
 
 func (s *secondGameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
-	//This secondGameDelegate should also have its ConfigureEnums output.
 	return nil
 }
 
+//This delegate already has a manual configureEnums, so shouldn't have one
+//automatically generated.
 type alreadyHasEnumsGameDelegate struct {
 	boardgame.DefaultGameDelegate
 }
@@ -47,6 +50,8 @@ func (a *alreadyHasEnumsGameDelegate) ConfigureEnums() *enum.Set {
 	return nil
 }
 
+//This delegate shouldn't have ConfigureEnums generated because it has
+//AnotherMethodName, not ConfigureMoves.
 type fakeGameDelegateWrongMethodName struct {
 	boardgame.DefaultGameDelegate
 }
@@ -55,6 +60,8 @@ func (f *fakeGameDelegateWrongMethodName) AnotherMethodName() *boardgame.MoveTyp
 	return nil
 }
 
+//This delegate shouldn't have ConfigureEnums generated because the return
+//type doesn't match the ConfigureMoves() signature.
 type fakeGameDelegateWrongReturnType struct {
 	boardgame.DefaultGameDelegate
 }
