@@ -40,7 +40,7 @@ Now that you have the server set up, let's dig into how a given game is construc
 
 We'll dig into `examples/memory` because it covers many of the core concepts. The memory game is the classic childhood game where there's a deck of cards of symbols, with exactly two cards for each symbol. The cards are arrayed face down on the table and players take turn flipping over two cards. If they get a match, they get to keep the cards.
 
-At the core of every game is the `GameManager`. This is an object that encapsulates all of the logic about a game and can be installed into a server. The `GameManager` is a struct provided by the core package, but each game type will configure its behavior to encapsulate its logic.
+At the core of every game is the `GameManager`. This is an object that encapsulates all of the logic about a game and can be installed into a server. The `GameManager` is a struct provided by the core package that handles much of the operation of the game engine, but it's a shell that doesn't do much on its own. A `GameDelegate`, which you write for your game and provide when you create a new GameManager, encapsulates the core of the logic central to your game, including its name, what moves can be made, how many players can play, when the game is finished, and much more.
 
 Each game type, fundamentally, is about representing all of the semantics of a given game state in a versioned **State** and then configuring when and how modifications may be made by defining **Moves**.
 
