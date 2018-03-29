@@ -16,6 +16,15 @@ import (
 
 //go:generate autoreader
 
+type gameDelegate struct {
+	boardgame.DefaultGameDelegate
+}
+
+func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
+	//Just have this so auto_enum will generate a ConfigureEnums for us.
+	return nil
+}
+
 //+autoreader
 const (
 	ColorUnknown = iota

@@ -46,6 +46,70 @@ type enum struct {
 	DefaultTransform    transform
 }
 
+//findDelegateName looks through the given package to find the name of the
+//struct that appears to represent the gameDelegate type, and returns its name.
+func findDelegateName(inputPackageName string) (string, error) {
+	packageASTs, err := parser.ParseDir(token.NewFileSet(), inputPackageName, nil, parser.ParseComments)
+
+	if err != nil {
+		return "", errors.New("couldn't parse package: " + err.Error())
+	}
+
+	for _, theAST := range packageASTs {
+		for _, file := range theAST.Files {
+			for _, decl := range file.Decls {
+
+				//We're looking for function declarations like func (g
+				//*gameDelegate) ConfigureMoves()
+				//*boardgame.MoveTypeConfigBundle.
+
+				funDecl, ok := decl.(*ast.FuncDecl)
+
+				//Guess this decl wasn't a fun.
+				if !ok {
+					continue
+				}
+
+				if funDecl.Name.Name != "ConfigureMoves" {
+					continue
+				}
+
+				if funDecl.Type.Params.NumFields() != 0 {
+					continue
+				}
+
+				if funDecl.Type.Results.NumFields() != 1 {
+					continue
+				}
+
+				//TODO: verify the one return type is boardgame.MoveTypeConfigBundle
+
+				if funDecl.Recv == nil || funDecl.Recv.NumFields() != 1 {
+					//Verify i
+					continue
+				}
+
+				starExp, ok := funDecl.Recv.List[0].Type.(*ast.StarExpr)
+
+				if !ok {
+					return "", errors.New("Couldn't cast candidate to star exp")
+				}
+
+				ident, ok := starExp.X.(*ast.Ident)
+
+				if !ok {
+					return "", errors.New("Rest of star expression wasn't an ident")
+				}
+
+				return ident.Name, nil
+
+			}
+		}
+	}
+
+	return "", nil
+}
+
 //findEnums processes the package at packageName and returns a list of enums
 //that should be processed (that is, they have the magic comment)
 func findEnums(inputPackageName string) (enums []*enum, err error) {
@@ -123,11 +187,11 @@ func findEnums(inputPackageName string) (enums []*enum, err error) {
 
 //outputForEnums takes the found enums and produces the output string
 //representing the un-formatted go code to generate for those enums.
-func outputForEnums(enums []*enum) (enumOutput string, err error) {
+func outputForEnums(enums []*enum, delegateName string) (enumOutput string, err error) {
 	for _, enum := range enums {
 
 		if enumOutput == "" {
-			enumOutput = enumHeaderForPackage(enum.PackageName)
+			enumOutput = enumHeaderForPackage(enum.PackageName, delegateName)
 		}
 
 		var literals [][]byte
@@ -222,7 +286,13 @@ func processEnums(packageName string) (enumOutput string, err error) {
 		return "", nil
 	}
 
-	output, err := outputForEnums(enums)
+	delegateName, err := findDelegateName(packageName)
+
+	if err != nil {
+		return "", errors.New("Failed to find delegate name: " + err.Error())
+	}
+
+	output, err := outputForEnums(enums, delegateName)
 
 	if err != nil {
 		return "", errors.New("Couldn't generate output for enums: " + err.Error())
@@ -287,9 +357,18 @@ func overrideDisplayname(docLines string) (hasOverride bool, displayName string)
 	return false, ""
 }
 
-func enumHeaderForPackage(packageName string) string {
+func enumHeaderForPackage(packageName string, delegateName string) string {
+
+	firstLetter := ""
+
+	if delegateName != "" {
+		firstLetter = strings.ToLower(delegateName[:1])
+	}
+
 	return templateOutput(enumHeaderTemplate, map[string]string{
-		"packageName": packageName,
+		"packageName":         packageName,
+		"delegateName":        delegateName,
+		"delegateFirstLetter": firstLetter,
 	})
 }
 
@@ -316,6 +395,15 @@ import (
 )
 
 var Enums = enum.NewSet()
+
+{{if .delegateName -}}
+//ConfigureEnums simply returns Enums, the auto-generated Enums variable. This
+//is output because gameDelegate appears to be the struct that implements
+//boardgame.GameDelegate.
+func ({{.delegateFirstLetter}} *{{.delegateName}}) ConfigureEnums() *enum.Set {
+	return Enums
+}
+{{- end}}
 
 `
 
