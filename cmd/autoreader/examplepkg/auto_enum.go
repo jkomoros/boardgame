@@ -22,6 +22,13 @@ func (g *gameDelegate) ConfigureEnums() *enum.Set {
 	return Enums
 }
 
+//ConfigureEnums simply returns Enums, the auto-generated Enums variable. This
+//is output because gameDelegate appears to be the struct that implements
+//boardgame.GameDelegate.
+func (g *secondGameDelegate) ConfigureEnums() *enum.Set {
+	return Enums
+}
+
 var ColorEnum = Enums.MustAdd("Color", map[int]string{
 	ColorBlue:    "Blue",
 	ColorGreen:   "Green",

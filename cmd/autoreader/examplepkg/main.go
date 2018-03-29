@@ -25,6 +25,30 @@ func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 	return nil
 }
 
+type secondGameDelegate struct {
+	boardgame.DefaultGameDelegate
+}
+
+func (s *secondGameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
+	return nil
+}
+
+type fakeGameDelegateWrongMethodName struct {
+	boardgame.DefaultGameDelegate
+}
+
+func (f *fakeGameDelegateWrongMethodName) AnotherMethodName() *boardgame.MoveTypeConfigBundle {
+	return nil
+}
+
+type fakeGameDelegateWrongReturnType struct {
+	boardgame.DefaultGameDelegate
+}
+
+func (f *fakeGameDelegateWrongReturnType) ConfigureMoves() *boardgame.DefaultGameDelegate {
+	return nil
+}
+
 //+autoreader
 const (
 	ColorUnknown = iota
