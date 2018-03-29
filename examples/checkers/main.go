@@ -9,7 +9,6 @@ package checkers
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves"
 	"github.com/jkomoros/boardgame/moves/auto"
 )
@@ -110,10 +109,6 @@ func (g *gameDelegate) GameEndConditionMet(state boardgame.State) bool {
 func (g *gameDelegate) PlayerScore(pState boardgame.PlayerState) int {
 	p := pState.(*playerState)
 	return p.CapturedTokens.NumComponents()
-}
-
-func (g *gameDelegate) ConfigureEnums() *enum.Set {
-	return Enums
 }
 
 func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {

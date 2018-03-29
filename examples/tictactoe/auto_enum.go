@@ -15,6 +15,14 @@ import (
 
 var Enums = enum.NewSet()
 
+//ConfigureEnums simply returns Enums, the auto-generated Enums variable. This
+//is output because gameDelegate appears to be a struct that implements
+//boardgame.GameDelegate, and does not already have a ConfigureEnums
+//explicitly defined.
+func (g *gameDelegate) ConfigureEnums() *enum.Set {
+	return Enums
+}
+
 var PhaseEnum = Enums.MustAdd("Phase", map[int]string{
 	PhaseAfterFirstMove:  "After First Move",
 	PhaseBeforeFirstMove: "Before First Move",

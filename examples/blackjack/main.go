@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/components/playingcards"
-	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves"
 	"github.com/jkomoros/boardgame/moves/auto"
 	"strings"
@@ -217,10 +216,6 @@ func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 		),
 	)
 
-}
-
-func (g *gameDelegate) ConfigureEnums() *enum.Set {
-	return Enums
 }
 
 func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
