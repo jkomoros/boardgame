@@ -7,13 +7,7 @@ import (
 
 func TestNewDeck(t *testing.T) {
 
-	chest := boardgame.NewComponentChest(nil)
-
 	deck := NewDeck(false)
-
-	if err := chest.AddDeck("cards", deck); err != nil {
-		t.Error("Couldn't add cards to chest: " + err.Error())
-	}
 
 	if len(deck.Components()) != 52 {
 		t.Error("We asked for no jokers but got wrong number of cards", len(deck.Components()))
@@ -49,15 +43,11 @@ func TestNewDeck(t *testing.T) {
 
 	withJokers := NewDeck(true)
 
-	chest.AddDeck("jokers", withJokers)
-
 	if len(withJokers.Components()) != 54 {
 		t.Error("Deck with jokers had wrong number of cards:", len(withJokers.Components()))
 	}
 
 	multiDeck := NewDeckMulti(2, false)
-
-	chest.AddDeck("multideck", multiDeck)
 
 	if len(multiDeck.Components()) != 52*2 {
 		t.Error("Got wrong number of components. Expected 52 *2, got", len(multiDeck.Components()))

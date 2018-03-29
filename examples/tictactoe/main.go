@@ -10,6 +10,7 @@ package tictactoe
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves"
 	"github.com/jkomoros/boardgame/moves/auto"
 	"strings"
@@ -277,9 +278,11 @@ func checkRunWon(runState []string) string {
 	return targetToken
 }
 
-func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) {
-	chest := boardgame.NewComponentChest(Enums)
+func (g *gameDelegate) ConfigureEnums() *enum.Set {
+	return Enums
+}
 
+func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 	tokens := boardgame.NewDeck()
 
 	//How many tokens of each of x's and o's do we need so that no matter who
@@ -293,13 +296,13 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 	tokens.AddComponentMulti(&playerToken{
 		Value: O,
 	}, numTokens)
-
-	if err := chest.AddDeck("tokens", tokens); err != nil {
-		return nil, errors.New("couldn't add deck: " + err.Error())
+	return map[string]*boardgame.Deck{
+		"tokens": tokens,
 	}
+}
 
-	return boardgame.NewGameManager(&gameDelegate{}, chest, storage)
-
+func NewDelegate() boardgame.GameDelegate {
+	return &gameDelegate{}
 }
 
 func NewGame(manager *boardgame.GameManager) *boardgame.Game {

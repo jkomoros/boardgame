@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"errors"
+	"github.com/jkomoros/boardgame/enum"
 	"testing"
 )
 
@@ -14,6 +15,43 @@ func (t *testGameDelegate) ConfigureAgents() []Agent {
 	return []Agent{
 		&testAgent{},
 	}
+}
+
+func (t *testGameDelegate) ConfigureEnums() *enum.Set {
+	return testEnums
+}
+
+func (t *testGameDelegate) ConfigureDecks() map[string]*Deck {
+	deck := NewDeck()
+
+	deck.AddComponent(&testingComponent{
+		String:  "foo",
+		Integer: 1,
+	})
+
+	deck.AddComponent(&testingComponent{
+		String:  "bar",
+		Integer: 2,
+	})
+
+	deck.AddComponent(&testingComponent{
+		String:  "baz",
+		Integer: 5,
+	})
+
+	deck.AddComponent(&testingComponent{
+		String:  "slam",
+		Integer: 10,
+	})
+
+	deck.SetShadowValues(&testShadowValues{
+		Message: "Foo",
+	})
+
+	return map[string]*Deck{
+		"test": deck,
+	}
+
 }
 
 func (t *testGameDelegate) ConfigureMoves() *MoveTypeConfigBundle {

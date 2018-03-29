@@ -68,7 +68,7 @@ func TestCardSeen(t *testing.T) {
 }
 
 func TestCullInvalidCards(t *testing.T) {
-	manager, err := NewManager(memory.NewStorageManager())
+	manager, err := boardgame.NewGameManager(NewDelegate(), memory.NewStorageManager())
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -164,7 +164,7 @@ func TestCardsToFlip(t *testing.T) {
 		MemoryLength: 4,
 	}
 
-	manager, err := NewManager(memory.NewStorageManager())
+	manager, err := boardgame.NewGameManager(NewDelegate(), memory.NewStorageManager())
 
 	assert.For(t).ThatActual(err).IsNil()
 

@@ -6,7 +6,6 @@ pig is a very simple game involving dice rolls.
 package pig
 
 import (
-	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/components/dice"
 	"github.com/jkomoros/boardgame/moves"
@@ -146,17 +145,16 @@ func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 	)
 }
 
-func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) {
-	chest := boardgame.NewComponentChest(nil)
+func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 
 	diceDeck := boardgame.NewDeck()
-
 	diceDeck.AddComponent(dice.DefaultDie())
 
-	if err := chest.AddDeck(diceDeckName, diceDeck); err != nil {
-		return nil, errors.New("Couldn't add deck: " + err.Error())
+	return map[string]*boardgame.Deck{
+		diceDeckName: diceDeck,
 	}
+}
 
-	return boardgame.NewGameManager(&gameDelegate{}, chest, storage)
-
+func NewDelegate() boardgame.GameDelegate {
+	return &gameDelegate{}
 }

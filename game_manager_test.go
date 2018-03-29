@@ -22,45 +22,6 @@ var testColorEnum = testEnums.MustAdd("color", map[int]string{
 	colorGreen: "Green",
 })
 
-func newTestGameChest() *ComponentChest {
-
-	chest := NewComponentChest(testEnums)
-
-	deck := NewDeck()
-
-	deck.AddComponent(&testingComponent{
-		String:  "foo",
-		Integer: 1,
-	})
-
-	deck.AddComponent(&testingComponent{
-		String:  "bar",
-		Integer: 2,
-	})
-
-	deck.AddComponent(&testingComponent{
-		String:  "baz",
-		Integer: 5,
-	})
-
-	deck.AddComponent(&testingComponent{
-		String:  "slam",
-		Integer: 10,
-	})
-
-	deck.SetShadowValues(&testShadowValues{
-		Message: "Foo",
-	})
-
-	if err := chest.AddDeck("test", deck); err != nil {
-		panic("Couldn't instantiate chest: " + err.Error())
-	}
-
-	chest.Finish()
-
-	return chest
-}
-
 func newTestGameManger(t *testing.T) *GameManager {
 
 	moveInstaller := func(manager *GameManager) *MoveTypeConfigBundle {
@@ -78,7 +39,7 @@ func newTestGameManger(t *testing.T) *GameManager {
 		return bundle
 	}
 
-	manager, err := NewGameManager(&testGameDelegate{moveInstaller: moveInstaller}, newTestGameChest(), newTestStorageManager())
+	manager, err := NewGameManager(&testGameDelegate{moveInstaller: moveInstaller}, newTestStorageManager())
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -152,7 +113,7 @@ func TestMoveFailsValidConfiguration(t *testing.T) {
 		return bundle
 	}
 
-	_, err := NewGameManager(&testGameDelegate{moveInstaller: moveInstaller}, newTestGameChest(), newTestStorageManager())
+	_, err := NewGameManager(&testGameDelegate{moveInstaller: moveInstaller}, newTestStorageManager())
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
@@ -182,7 +143,7 @@ func TestDefaultMove(t *testing.T) {
 
 func TestNilStackErrors(t *testing.T) {
 
-	_, err := NewGameManager(&nilStackGameDelegate{}, newTestGameChest(), newTestStorageManager())
+	_, err := NewGameManager(&nilStackGameDelegate{}, newTestStorageManager())
 
 	//We expect to find the error of the nil stack at NewGameManager time,
 	//because that's when we validate constructors.

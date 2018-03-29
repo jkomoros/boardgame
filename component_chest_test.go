@@ -8,7 +8,7 @@ import (
 
 func TestComponentChest(t *testing.T) {
 
-	chest := NewComponentChest(nil)
+	chest := newComponentChest(nil)
 
 	if chest.DeckNames() != nil {
 		t.Error("We got a deck names array before we'd added anything")
@@ -30,8 +30,8 @@ func TestComponentChest(t *testing.T) {
 
 	deckOne.AddComponent(componentTwo)
 
-	if deckOne.Components() != nil {
-		t.Error("We got non-nil components before it was added to the chest")
+	if deckOne.Components() == nil {
+		t.Error("We got nil components before it was added to the chest, but now we're supposed to get them even before they're finished")
 	}
 
 	chest.AddDeck("test", deckOne)

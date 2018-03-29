@@ -319,13 +319,12 @@ func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 	)
 }
 
-func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) {
-	chest := boardgame.NewComponentChest(nil)
-
-	if err := chest.AddDeck(cardsDeckName, newDeck()); err != nil {
-		return nil, errors.New("Couldn't add deck: " + err.Error())
+func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
+	return map[string]*boardgame.Deck{
+		cardsDeckName: newDeck(),
 	}
+}
 
-	return boardgame.NewGameManager(&gameDelegate{}, chest, storage)
-
+func NewDelegate() boardgame.GameDelegate {
+	return &gameDelegate{}
 }

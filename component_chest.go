@@ -14,7 +14,10 @@ import (
 //configured into 0 or more Decks. A chest has two phases: construction and
 //serving. During consruction, decks may be added but non may be retrieved.
 //After consruction decks may be retrieved but not added. This helps ensure
-//that Decks always give a consistent view of the world.
+//that Decks always give a consistent view of the world. You do not create
+//ComponentChests yourself; they are created when a new GameManager is created
+//and populated based on what the GameDelegate returns for ConfigureEnums and
+//ConfigureDecks().
 type ComponentChest struct {
 	initialized bool
 	deckNames   []string
@@ -27,7 +30,9 @@ type ComponentChest struct {
 //NewComponentChest returns a new ComponentChest with the given enumset. If no
 //enumset is provided, an empty one will be created. Calls Finish() on the
 //enumset to verify that it cannot be modified.
-func NewComponentChest(enums *enum.Set) *ComponentChest {
+func newComponentChest(enums *enum.Set) *ComponentChest {
+	//TODO: now that component chest constructor can't be called outside this
+	//package, a lot of the init nonsense can be gotten rid of.
 	if enums == nil {
 		enums = enum.NewSet()
 	}

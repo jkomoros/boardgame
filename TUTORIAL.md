@@ -425,6 +425,8 @@ Another method is `CurrentPlayerIndex`. This method should inspect the provided 
 
 The convention is simply to store this value in a property on your gameState called `CurrentPlayer`. If you do that, DefaultGameDelegate's `CurrentPlayerIndex` will just return that.
 
+There are also four methods that start with `Configure`, which are called to set up which decks to use, which enums, and other state. Those are covered later in the guide.
+
 GameDelegate has a number of other methods that are consulted at various key points and drive certain behaviors. Each is documented to describe what they do. In a number of cases the default implementations in `DefaultGameDelegate` do complex behaviors that are almost always the correct thing, but can theoretically be overriden if necessary. `SanitizationPolicy` is a great example. We'll get to what it does in just a little bit, but although the method is quite generic, `DefaultGameDelegate`'s implementation encodes the formal convention of using struct-based tags to configure its behavior.
 
 #### SetUp
@@ -692,19 +694,19 @@ func (m *MoveHideCards) Apply(state boardgame.MutableState) error {
 
 This is our Apply method. There's not much interesting going on--except to note that calling MoveComponent can fail (for example, if the stack we're moving to is already max size), so we check for that and return an error. If your Move's `Apply` method returns an error than the move will not be applied. In general it is best practice in `Legal` to check for any condition that could cause your `Apply` to fail, so that failures in `Apply` are truly unexpected. But as this example shows, sometimes that's more of a pain than it's worth, as long as you catch those errors in `Apply`. If you didn't catch them in either `Legal` or `Apply` then you could start persisting illegal states to the storage layer, which would get really confusing really fast.
 
-### NewManager
+### NewDelegate
 
-We've now explored enough concepts to build a game. The last remaining piece is to combine everything into a ready-to-use `GameManager` that we can then pass to a server or use in other contexts.
+We've now explored enough concepts to build a game. The last remaining piece is to combine everything into a ready-to-use `GameManager` that we can then pass to a server or use in other contexts. We do this by passing our delegate to `boardgame.NewGameManager()`, which calls various life-cycle methods on the delegate to get things set up.
 
-By convention, each game package has a `NewManager` method with the following signature:
+By convention, each game package has a `NewDelegate` method that returns a `boardgame.GameDelegate`. In general you don't need to do anything special in this method, and can just return an instaniation of your gameDelegate object:
 
 ```
-func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) 
+func NewDelegate() boardgame.GameDelegate {
+	return &gameDelegate{}
+}
 ```
 
-The storage argument is a reference to the specific storage backend the manager should use to persist objects. This will generally be provided by the server that your game manager factory is plugged into. A number of different storage implementations can be found in the `storage` directory. In most cases you'll use the MySQL storage layer, but that can be a pain to configure so in some cases, like the simple no-nonsense example server listed in the quickstart above a no-config storage layer like `bolt` is used instead. But in any case your `NewManager` method will generally just pass that directly to the core engine's `NewGameManager` method without inspecting it.
-
-In general your `NewManager` method will define all of the immutable configuration specific to your game. This includes defining all of the components for the game in a ComponentChest, plugging in your `GameDelegate`, and installing all of your MoveTypes.
+Of course, you could do more in this method, but in practice it's enough to just instantiate a zero-value of your gameDelegate, because its Configure methods will be called when the new GameManager based on it is instantiated.
 
 #### Component structs
 
@@ -779,7 +781,7 @@ func newDeck() *boardgame.Deck {
 
 The file primarily consists of two constants--the icons that we will have on the cards, and tha name that we will refer to the deck of cards as. Decks are canonically refered to within a `ComponentChest` by a string name. It's convention to define a constant for that name to make sure that typos in that name will be caught by the compiler.
 
-And then the concrete struct we will use for `Values` is a trivial struct with a single string property, and the `autoreader` magic comment. It also embeds `boardgame.BaseComponentValues` to automatically implement `ContainingComponent()` and `SetContainingComponent()`
+And then the concrete struct we will use for `Values` is a trivial struct with a single string property, and the `autoreader` magic comment. It also embeds `boardgame.BaseComponentValues` to automatically implement `ContainingComponent()` and `SetContainingComponent()`.
 
 In more complicated games, your components and their related constants might be much, much more verbose and effectively be a transcription of the values of a large deck of cards.
 
@@ -844,34 +846,29 @@ section in the More Concepts section about Phases). Note that the various
 AddMove methods all return a reference to the bundle itself, which allows you
 to chain the calls and keep the method short.
 
+#### ConfigureDecks and ConfigureEnums
 
-#### Worked NewManager example
+There are two other methods that are called on your delegate during the game manager set up.
 
-Let's look at memory's NewManager implementation:
+`ConfigureDecks() map[string]*boardgame.Deck` should simply return a map of names of decks to deck objects for your game.
+
+Memory's is very simple:
 
 ```
-func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) {
-	chest := boardgame.NewComponentChest(nil)
-
-	if err := chest.AddDeck(cardsDeckName, newDeck()); err != nil {
-		return nil, errors.New("Couldn't add deck: " + err.Error())
+func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
+	return map[string]*boardgame.Deck{
+		cardsDeckName: newDeck(),
 	}
-
-	return boardgame.NewGameManager(&gameDelegate{}, chest, storage)
 }
 ```
 
-First, we create a new empty `ComponentChest`. Then we start defining the single deck of cards. We create an empty deck, then for each constant in our cardNames we insert two components into the deck with those values. It is important that we always insert the exact same components in the exact same order. Stacks encode which components they contain with a deck/index pair--which means that if the order of the deck is different from when it was saved, the stack will have nonsensical values.
+`ConfigureEnums() *enum.Set` should return the enum set for your game. If you're using AutoReader, this is as simple as:
 
-Then we add the deck to the chest. The logic to actually create the deck is included in newDeck().
-
-Now we have the three things we need to get a manager object: the delegate, the chest we just created, and the storage manager that we were passed in. We simply return the result of calling `boardgame.NewGameManager` with those arguments.
-
-`NewGameManager` will fail with an error if anything is not set up correctly:
-if the moves are configured incorrectly for any reason, for example, or that
-the GameStateConstructor and PlayerStateConstructor return reasonable values.
-
-By following this convention, it will be very easy for instantiations of a server to easily include this game type with minimal overhead.
+```
+func (g *gameDelegate) ConfigureEnums() *enum.Set {
+	return Enums
+}
+```
 
 ### Property sanitization
 
@@ -1681,11 +1678,11 @@ func main() {
 	storage := api.NewServerStorageManager(bolt.NewStorageManager(".database"))
 	defer storage.Close()
 	api.NewServer(storage,
-		api.MustNewManager(blackjack.NewManager(storage)),
-		api.MustNewManager(tictactoe.NewManager(storage)),
-		api.MustNewManager(memory.NewManager(storage)),
-		api.MustNewManager(debuganimations.NewManager(storage)),
-		api.MustNewManager(pig.NewManager(storage)),
+		blackjack.NewDelegate(),
+		tictactoe.NewDelegate(),
+		memory.NewDelegate(),
+		debuganimations.NewDelegate(),
+		pig.NewDelegate(),
 	).Start()
 }
 ```
@@ -1709,11 +1706,11 @@ func main() {
 	storage := api.NewDefaultStorageManager()
 	defer storage.Close()
 	api.NewServer(storage,
-		api.MustNewManager(blackjack.NewManager(storage)),
-		api.MustNewManager(tictactoe.NewManager(storage)),
-		api.MustNewManager(memory.NewManager(storage)),
-		api.MustNewManager(debuganimations.NewManager(storage)),
-		api.MustNewManager(pig.NewManager(storage)),
+		blackjack.NewDelegate(),
+		tictactoe.NewDelegate(),
+		memory.NewDelegate(),
+		debuganimations.NewDelegate(),
+		pig.NewDelegate(),
 	).Start()
 }
 ```

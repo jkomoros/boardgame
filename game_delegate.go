@@ -55,6 +55,15 @@ type GameDelegate interface {
 	//agents you want to install.
 	ConfigureAgents() []Agent
 
+	//ConfigureDecks will be called when the GameManager is being booted up.
+	//Each entry in the return value will be configured on the ComponentChest
+	//that is being created.
+	ConfigureDecks() map[string]*Deck
+
+	//ConfigureEnums is called during set up of a new GameManager. Return the
+	//set of enums you want to be associated with this GameManagaer's Chest.
+	ConfigureEnums() *enum.Set
+
 	//GameStateConstructor and PlayerStateConstructor are called to get an
 	//instantiation of the concrete game/player structs that your package
 	//defines. This is used both to create the initial state, but also to
@@ -623,4 +632,17 @@ func (d *DefaultGameDelegate) LegalConfig(config GameConfig) error {
 //override this.
 func (d *DefaultGameDelegate) ConfigureAgents() []Agent {
 	return nil
+}
+
+//ConfigureEnums simply returns nil. In general you want to override this with
+//a body of `return Enums`, if you're using autoreader to generate your enum
+//set.
+func (d *DefaultGameDelegate) ConfigureEnums() *enum.Set {
+	return nil
+}
+
+//ConfigureDecks returns a zero-entry map. You want to override this if you
+//have any components in your game (which the vast majority of games do)
+func (d *DefaultGameDelegate) ConfigureDecks() map[string]*Deck {
+	return make(map[string]*Deck)
 }

@@ -8,7 +8,6 @@
 package debuganimations
 
 import (
-	"errors"
 	"github.com/jkomoros/boardgame"
 )
 
@@ -140,8 +139,7 @@ func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 	)
 }
 
-func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) {
-	chest := boardgame.NewComponentChest(nil)
+func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 
 	cards := boardgame.NewDeck()
 
@@ -155,18 +153,16 @@ func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error
 		Type: "<hidden>",
 	})
 
-	if err := chest.AddDeck(cardsDeckName, cards); err != nil {
-		return nil, errors.New("Couldn't add deck: " + err.Error())
-	}
-
 	tokens := boardgame.NewDeck()
 
 	tokens.AddComponentMulti(nil, 38)
 
-	if err := chest.AddDeck(tokensDeckName, tokens); err != nil {
-		return nil, errors.New("Couldnt add deck: " + err.Error())
+	return map[string]*boardgame.Deck{
+		cardsDeckName:  cards,
+		tokensDeckName: tokens,
 	}
+}
 
-	return boardgame.NewGameManager(&gameDelegate{}, chest, storage)
-
+func NewDelegate() boardgame.GameDelegate {
+	return &gameDelegate{}
 }

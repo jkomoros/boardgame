@@ -24,10 +24,10 @@ func main() {
 	storage := api.NewServerStorageManager(bolt.NewStorageManager(".database"))
 	defer storage.Close()
 	api.NewServer(storage,
-		api.MustNewManager(blackjack.NewManager(storage)),
-		api.MustNewManager(tictactoe.NewManager(storage)),
-		api.MustNewManager(memory.NewManager(storage)),
-		api.MustNewManager(debuganimations.NewManager(storage)),
-		api.MustNewManager(pig.NewManager(storage)),
+		blackjack.NewDelegate(),
+		tictactoe.NewDelegate(),
+		memory.NewDelegate(),
+		debuganimations.NewDelegate(),
+		pig.NewDelegate(),
 	).Start()
 }

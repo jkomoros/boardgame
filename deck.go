@@ -83,12 +83,8 @@ func (d *Deck) AddComponentMulti(v ComponentValues, count int) {
 	}
 }
 
-//Components returns a list of Components in order in this deck, but only if
-//this Deck has already been added to its ComponentChest.
+//Components returns a list of Components in order in this deck.
 func (d *Deck) Components() []*Component {
-	if d.chest == nil {
-		return nil
-	}
 	return d.components
 }
 
@@ -106,9 +102,6 @@ func (d *Deck) Name() string {
 //ComponentAt returns the component at a given index. It handles empty indexes
 //and shadow indexes correctly.
 func (d *Deck) ComponentAt(index int) *Component {
-	if d.chest == nil {
-		return nil
-	}
 	if index >= len(d.components) {
 		return nil
 	}

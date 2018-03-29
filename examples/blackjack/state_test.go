@@ -10,7 +10,7 @@ import (
 
 func TestHandValue(t *testing.T) {
 
-	manager, err := NewManager(memory.NewStorageManager())
+	manager, err := boardgame.NewGameManager(NewDelegate(), memory.NewStorageManager())
 
 	assert.For(t).ThatActual(err).IsNil()
 

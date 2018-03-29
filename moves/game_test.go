@@ -1,7 +1,6 @@
 package moves
 
 import (
-	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/components/playingcards"
 	"github.com/jkomoros/boardgame/enum"
@@ -99,13 +98,18 @@ func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 	return g.moveInstaller(g.Manager())
 }
 
-func newGameManager(moveInstaller func(manager *boardgame.GameManager) *boardgame.MoveTypeConfigBundle) (*boardgame.GameManager, error) {
-	chest := boardgame.NewComponentChest(enums)
+func (g *gameDelegate) ConfigureEnums() *enum.Set {
+	return enums
+}
 
-	if err := chest.AddDeck("cards", playingcards.NewDeck(false)); err != nil {
-		return nil, errors.New("couldn't add deck: " + err.Error())
+func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
+	return map[string]*boardgame.Deck{
+		"cards": playingcards.NewDeck(false),
 	}
+}
 
-	return boardgame.NewGameManager(&gameDelegate{moveInstaller: moveInstaller}, chest, memory.NewStorageManager())
+func newGameManager(moveInstaller func(manager *boardgame.GameManager) *boardgame.MoveTypeConfigBundle) (*boardgame.GameManager, error) {
+
+	return boardgame.NewGameManager(&gameDelegate{moveInstaller: moveInstaller}, memory.NewStorageManager())
 
 }

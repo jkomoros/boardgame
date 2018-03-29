@@ -7,10 +7,10 @@ because it has hidden state.
 package blackjack
 
 import (
-	"errors"
 	"fmt"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/components/playingcards"
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves"
 	"github.com/jkomoros/boardgame/moves/auto"
 	"strings"
@@ -219,17 +219,18 @@ func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 
 }
 
-func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) {
-	chest := boardgame.NewComponentChest(Enums)
+func (g *gameDelegate) ConfigureEnums() *enum.Set {
+	return Enums
+}
 
-	if err := chest.AddDeck("cards", playingcards.NewDeck(false)); err != nil {
-		return nil, errors.New("Couldn't add deck: " + err.Error())
+func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
+	return map[string]*boardgame.Deck{
+		"cards": playingcards.NewDeck(false),
 	}
+}
 
-	delegate := &gameDelegate{}
-
-	return boardgame.NewGameManager(delegate, chest, storage)
-
+func NewDelegate() boardgame.GameDelegate {
+	return &gameDelegate{}
 }
 
 func NewGame(manager *boardgame.GameManager) *boardgame.Game {

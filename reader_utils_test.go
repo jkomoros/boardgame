@@ -151,7 +151,7 @@ func TestAutoEnum(t *testing.T) {
 		return NewMoveTypeConfigBundle().AddMove(&testAutoEnumMoveConfig)
 	}
 
-	manager, err := NewGameManager(&testGameDelegate{moveInstaller: moveInstaller}, newTestGameChest(), newTestStorageManager())
+	manager, err := NewGameManager(&testGameDelegate{moveInstaller: moveInstaller}, newTestStorageManager())
 
 	assert.For(t).ThatActual(err).IsNil()
 

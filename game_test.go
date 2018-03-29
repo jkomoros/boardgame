@@ -416,7 +416,7 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 		},
 	}
 
-	manager, err := NewGameManager(delegate, newTestGameChest(), newTestStorageManager())
+	manager, err := NewGameManager(delegate, newTestStorageManager())
 
 	assert.For(t).ThatActual(err).IsNil()
 

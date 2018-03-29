@@ -9,6 +9,7 @@ package checkers
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves"
 	"github.com/jkomoros/boardgame/moves/auto"
 )
@@ -111,15 +112,16 @@ func (g *gameDelegate) PlayerScore(pState boardgame.PlayerState) int {
 	return p.CapturedTokens.NumComponents()
 }
 
-func NewManager(storage boardgame.StorageManager) (*boardgame.GameManager, error) {
-	chest := boardgame.NewComponentChest(Enums)
+func (g *gameDelegate) ConfigureEnums() *enum.Set {
+	return Enums
+}
 
-	tokens := newTokenDeck()
-
-	if err := chest.AddDeck(tokenDeckName, tokens); err != nil {
-		return nil, errors.New("Couldnt add deck: " + err.Error())
+func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
+	return map[string]*boardgame.Deck{
+		tokenDeckName: newTokenDeck(),
 	}
+}
 
-	return boardgame.NewGameManager(&gameDelegate{}, chest, storage)
-
+func NewDelegate() boardgame.GameDelegate {
+	return &gameDelegate{}
 }

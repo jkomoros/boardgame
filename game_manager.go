@@ -123,13 +123,9 @@ func (m *MoveTypeConfigBundle) AddOrderedMovesForPhase(phase int, config ...*Mov
 //validate that the various sub-states are reasonable, and will call
 //ConfigureMoves and ConfigureAgents and then check that all tiems are
 //configured reaasonably.
-func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage StorageManager) (*GameManager, error) {
+func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager, error) {
 	if delegate == nil {
 		return nil, errors.New("No delegate provided")
-	}
-
-	if chest == nil {
-		return nil, errors.New("No chest provided")
 	}
 
 	matched, err := regexp.MatchString(`^[0-9a-zA-Z_-]+$`, delegate.Name())
@@ -142,13 +138,19 @@ func NewGameManager(delegate GameDelegate, chest *ComponentChest, storage Storag
 		return nil, errors.New("Your delegate's name contains illegal characters.")
 	}
 
-	//Make sure the chest is no longer open for modification. If finish was
-	//already called, this will be a no-op.
-	chest.Finish()
-
 	if storage == nil {
 		return nil, errors.New("No Storage provided")
 	}
+
+	chest := newComponentChest(delegate.ConfigureEnums())
+
+	for name, deck := range delegate.ConfigureDecks() {
+		if err := chest.AddDeck(name, deck); err != nil {
+			return nil, errors.New("Couldn't add deck named " + name + ": " + err.Error())
+		}
+	}
+
+	chest.Finish()
 
 	result := &GameManager{
 		delegate:    delegate,
