@@ -552,8 +552,9 @@ var Enums = enum.NewSet()
 
 {{range $delegateName := .delegateNames -}}
 //ConfigureEnums simply returns Enums, the auto-generated Enums variable. This
-//is output because gameDelegate appears to be the struct that implements
-//boardgame.GameDelegate.
+//is output because {{$delegateName}} appears to be a struct that implements
+//boardgame.GameDelegate, and does not already have a ConfigureEnums
+//explicitly defined.
 func ({{firstLetter $delegateName}} *{{$delegateName}}) ConfigureEnums() *enum.Set {
 	return Enums
 }
