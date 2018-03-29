@@ -82,12 +82,42 @@ func findDelegateName(inputPackageName string) (string, error) {
 					continue
 				}
 
+				returnFieldStar, ok := funDecl.Type.Results.List[0].Type.(*ast.StarExpr)
+
+				if !ok {
+					//OK, doesn't return a pointer, can't be a match.
+					continue
+				}
+
+				returnFieldSelector, ok := returnFieldStar.X.(*ast.SelectorExpr)
+
+				if !ok {
+					//OK, there's no boardgame...
+					continue
+				}
+
+				if returnFieldSelector.Sel.Name != "MoveTypeConfigBundle" {
+					continue
+				}
+
+				returnFieldSelectorPackage, ok := returnFieldSelector.X.(*ast.Ident)
+
+				if !ok {
+					continue
+				}
+
+				if returnFieldSelectorPackage.Name != "boardgame" {
+					continue
+				}
+
 				//TODO: verify the one return type is boardgame.MoveTypeConfigBundle
 
 				if funDecl.Recv == nil || funDecl.Recv.NumFields() != 1 {
 					//Verify i
 					continue
 				}
+
+				//OK, it appears to be the right method. Extract out information about it.
 
 				starExp, ok := funDecl.Recv.List[0].Type.(*ast.StarExpr)
 
