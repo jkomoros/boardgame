@@ -25,7 +25,7 @@ func (g *gameDelegate) ConfigureEnums() *enum.Set {
 //ConfigureEnums simply returns Enums, the auto-generated Enums variable. This
 //is output because gameDelegate appears to be the struct that implements
 //boardgame.GameDelegate.
-func (g *secondGameDelegate) ConfigureEnums() *enum.Set {
+func (s *secondGameDelegate) ConfigureEnums() *enum.Set {
 	return Enums
 }
 

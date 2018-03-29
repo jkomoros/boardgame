@@ -19,9 +19,22 @@ var transformNoneRegExp = regexp.MustCompile(`(?i)transform:\s*none`)
 var enumHeaderTemplate *template.Template
 var enumItemTemplate *template.Template
 
+func firstLetter(in string) string {
+
+	if in == "" {
+		return ""
+	}
+
+	return strings.ToLower(in[:1])
+}
+
 func init() {
 
-	enumHeaderTemplate = template.Must(template.New("enumheader").Parse(enumHeaderTemplateText))
+	funcMap := template.FuncMap{
+		"firstLetter": firstLetter,
+	}
+
+	enumHeaderTemplate = template.Must(template.New("enumheader").Funcs(funcMap).Parse(enumHeaderTemplateText))
 	enumItemTemplate = template.Must(template.New("enumitem").Parse(enumItemTemplateText))
 
 }
@@ -425,7 +438,7 @@ var Enums = enum.NewSet()
 //ConfigureEnums simply returns Enums, the auto-generated Enums variable. This
 //is output because gameDelegate appears to be the struct that implements
 //boardgame.GameDelegate.
-func (g *{{$delegateName}}) ConfigureEnums() *enum.Set {
+func ({{firstLetter $delegateName}} *{{$delegateName}}) ConfigureEnums() *enum.Set {
 	return Enums
 }
 
