@@ -862,13 +862,7 @@ func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 }
 ```
 
-`ConfigureEnums() *enum.Set` should return the enum set for your game. If you're using AutoReader, this is as simple as:
-
-```
-func (g *gameDelegate) ConfigureEnums() *enum.Set {
-	return Enums
-}
-```
+`ConfigureEnums() *enum.Set` should return the enum set for your game. If you're using AutoReader, a simple method that returns the Enums for your package will have already been generated for your gameDelegate.
 
 ### Property sanitization
 

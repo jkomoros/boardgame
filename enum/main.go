@@ -55,15 +55,8 @@ And then in your main.go:
 		}
 	}
 
-	//...
-
-	func NewManager() *boardgame.GameManager {
-		//...
-
-		//NewComponentChest will call Finish() on our Enums
-		chest := boardgame.NewComponentChest(Enums)
-
-		//...
+	func (g *GameDelegate) ConfigureEnums() *enum.Set {
+		return Enums
 	}
 
 This is a fair bit of boilerplate to inlude in your components.go. You can use
@@ -88,9 +81,11 @@ following:
 	)
 
 Then, the rest of the example code shown above in components.go would be
-automatically generated. The longest common prefix for each name in the
-constant block would be used as the name of the enum. autoreader has more
-options for controlling the precise way the enums are created; see
+automatically generated, including the ConfigureEnums definition on the
+structs in your package that appear to be your game delegate, if you don't
+have your own definition of that method. The longest common prefix for each
+name in the constant block would be used as the name of the enum. autoreader
+has more options for controlling the precise way the enums are created; see
 autoreader's package doc for more information.
 
 Ranged Enums
