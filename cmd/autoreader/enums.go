@@ -150,6 +150,123 @@ func findDelegateName(packageASTs map[string]*ast.Package) ([]string, error) {
 	return result, nil
 }
 
+//filterDelegateNames takes delegate names we may want to export, and filters
+//out any that already have a ConfigureEnums outputted.
+func filterDelegateNames(candidates []string, packageASTs map[string]*ast.Package) []string {
+
+	candidateMap := make(map[string]bool, len(candidates))
+
+	for _, candidate := range candidates {
+		candidateMap[candidate] = true
+	}
+
+	//Look through packageASTs and set to false any that we find a ConfigureEnums for.
+
+	for _, theAST := range packageASTs {
+		for fileName, file := range theAST.Files {
+
+			//TODO: detect it was auto-generated more robustly.
+			if strings.Contains(fileName, "auto_enum.go") {
+				//If it's in the auto_enum that already exists, then don't count it.
+				continue
+			}
+
+			for _, decl := range file.Decls {
+
+				//We're looking for function declarations like func (g
+				//*gameDelegate) ConfigureMoves()
+				//*boardgame.MoveTypeConfigBundle.
+
+				funDecl, ok := decl.(*ast.FuncDecl)
+
+				//Guess this decl wasn't a fun.
+				if !ok {
+					continue
+				}
+
+				if funDecl.Name.Name != "ConfigureEnums" {
+					continue
+				}
+
+				if funDecl.Type.Params.NumFields() != 0 {
+					continue
+				}
+
+				if funDecl.Type.Results.NumFields() != 1 {
+					continue
+				}
+
+				returnFieldStar, ok := funDecl.Type.Results.List[0].Type.(*ast.StarExpr)
+
+				if !ok {
+					//OK, doesn't return a pointer, can't be a match.
+					continue
+				}
+
+				returnFieldSelector, ok := returnFieldStar.X.(*ast.SelectorExpr)
+
+				if !ok {
+					//OK, there's no boardgame...
+					continue
+				}
+
+				if returnFieldSelector.Sel.Name != "Set" {
+					continue
+				}
+
+				returnFieldSelectorPackage, ok := returnFieldSelector.X.(*ast.Ident)
+
+				if !ok {
+					continue
+				}
+
+				if returnFieldSelectorPackage.Name != "enum" {
+					continue
+				}
+
+				if funDecl.Recv == nil || funDecl.Recv.NumFields() != 1 {
+					//Verify i
+					continue
+				}
+
+				//OK, it appears to be the right method. Extract out information about it.
+
+				starExp, ok := funDecl.Recv.List[0].Type.(*ast.StarExpr)
+
+				if !ok {
+					//Not expected, but whatever, it's safe to just include it
+					continue
+				}
+
+				ident, ok := starExp.X.(*ast.Ident)
+
+				if !ok {
+					//Not expected, but whatever, it's safe to just include it
+					continue
+				}
+
+				//If that struct type were one of the things we would export,
+				//then note not to export it. If it wasn't already in, it
+				//doesn't hurt to affirmatively say not to export it.
+				candidateMap[ident.Name] = false
+
+			}
+		}
+	}
+
+	var result []string
+
+	for name, include := range candidateMap {
+		if !include {
+			continue
+		}
+		result = append(result, name)
+	}
+
+	return result
+
+}
+
 //findEnums processes the package at packageName and returns a list of enums
 //that should be processed (that is, they have the magic comment)
 func findEnums(packageASTs map[string]*ast.Package) (enums []*enum, err error) {
@@ -333,7 +450,9 @@ func processEnums(packageName string) (enumOutput string, err error) {
 		return "", errors.New("Failed to find delegate name: " + err.Error())
 	}
 
-	output, err := outputForEnums(enums, delegateNames)
+	filteredDelegateNames := filterDelegateNames(delegateNames, packageASTs)
+
+	output, err := outputForEnums(enums, filteredDelegateNames)
 
 	if err != nil {
 		return "", errors.New("Couldn't generate output for enums: " + err.Error())

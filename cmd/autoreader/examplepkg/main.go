@@ -30,6 +30,20 @@ type secondGameDelegate struct {
 }
 
 func (s *secondGameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
+	//This secondGameDelegate should also have its ConfigureEnums output.
+	return nil
+}
+
+type alreadyHasEnumsGameDelegate struct {
+	boardgame.DefaultGameDelegate
+}
+
+func (a *alreadyHasEnumsGameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
+	return nil
+}
+
+func (a *alreadyHasEnumsGameDelegate) ConfigureEnums() *enum.Set {
+	//Because we have htis, we shouldn't export an enums.
 	return nil
 }
 
