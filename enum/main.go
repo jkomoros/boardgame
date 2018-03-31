@@ -268,6 +268,10 @@ func (e *Set) Finish() {
 	e.finished = true
 }
 
+func (e *Set) MarshalJSON() ([]byte, error) {
+	return json.Marshal(e.enums)
+}
+
 //EnumNames returns a list of all names in the Enum.
 func (e *Set) EnumNames() []string {
 	var result []string
@@ -593,6 +597,19 @@ func (e *enum) NewVal(val int) (Val, error) {
 		return nil, err
 	}
 	return variable, nil
+}
+
+func (e *enum) MarshalJSON() ([]byte, error) {
+	obj := map[string]interface{}{
+		"Values":       e.values,
+		"DefaultValue": e.defaultValue,
+	}
+
+	if e.IsRange() {
+		obj["Dimensions"] = e.dimensions
+	}
+
+	return json.Marshal(obj)
 }
 
 //The enum marshals as the string value of the enum so it's more readable.

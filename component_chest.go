@@ -127,8 +127,10 @@ func (c *ComponentChest) Finish() {
 func (c *ComponentChest) MarshalJSON() ([]byte, error) {
 	obj := struct {
 		Decks map[string]*Deck
+		Enums *enum.Set
 	}{
 		c.decks,
+		c.enums,
 	}
 	return DefaultMarshalJSON(obj)
 }
