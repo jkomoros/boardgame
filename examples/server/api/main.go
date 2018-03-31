@@ -8,6 +8,7 @@ package main
 
 import (
 	"github.com/jkomoros/boardgame/examples/blackjack"
+	"github.com/jkomoros/boardgame/examples/checkers"
 	"github.com/jkomoros/boardgame/examples/debuganimations"
 	"github.com/jkomoros/boardgame/examples/memory"
 	"github.com/jkomoros/boardgame/examples/pig"
@@ -29,5 +30,6 @@ func main() {
 		memory.NewDelegate(),
 		debuganimations.NewDelegate(),
 		pig.NewDelegate(),
+		checkers.NewDelegate(),
 	).Start()
 }

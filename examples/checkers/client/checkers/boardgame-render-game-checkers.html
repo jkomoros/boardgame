@@ -1,0 +1,27 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../src/boardgame-base-game-renderer.html">
+
+<dom-module id="boardgame-render-game-checkers">
+  <template>
+
+    <div>Checkers will be renderered here</div>
+
+  </template>
+
+  <script>
+
+    class BoardgameRenderGameCheckers extends BoardgameBaseGameRenderer {
+
+      static get is() {
+        return "boardgame-render-game-checkers"
+      }
+
+      //We don't define our own properties, so the properties on
+      //BoardgameBaseGameRenderer are fine.
+
+    }
+
+    customElements.define(BoardgameRenderGameCheckers.is, BoardgameRenderGameCheckers);
+
+  </script>
+</dom-module>
