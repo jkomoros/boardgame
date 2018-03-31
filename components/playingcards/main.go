@@ -109,10 +109,12 @@ func deckCanonicalOrder(cards *boardgame.Deck, withJokers bool) {
 
 	if withJokers {
 		//Add two Jokers
-		cards.AddComponentMulti(&Card{
-			Suit: SuitEnum.MustNewMutableVal(SuitJokers),
-			Rank: RankEnum.MustNewMutableVal(RankJoker),
-		}, 2)
+		for i := 0; i < 2; i++ {
+			cards.AddComponent(&Card{
+				Suit: SuitEnum.MustNewMutableVal(SuitJokers),
+				Rank: RankEnum.MustNewMutableVal(RankJoker),
+			})
+		}
 	}
 
 	cards.SetShadowValues(&Card{

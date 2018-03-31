@@ -284,13 +284,17 @@ func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 	//goes first we always have enough?
 	numTokens := 5
 
-	tokens.AddComponentMulti(&playerToken{
-		Value: X,
-	}, numTokens)
+	for i := 0; i < numTokens; i++ {
+		tokens.AddComponent(&playerToken{
+			Value: X,
+		})
+	}
 
-	tokens.AddComponentMulti(&playerToken{
-		Value: O,
-	}, numTokens)
+	for i := 0; i < numTokens; i++ {
+		tokens.AddComponent(&playerToken{
+			Value: O,
+		})
+	}
 	return map[string]*boardgame.Deck{
 		"tokens": tokens,
 	}

@@ -144,9 +144,11 @@ func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 	cards := boardgame.NewDeck()
 
 	for _, val := range cardNames {
-		cards.AddComponentMulti(&cardValue{
-			Type: val,
-		}, 3)
+		for i := 0; i < 3; i++ {
+			cards.AddComponent(&cardValue{
+				Type: val,
+			})
+		}
 	}
 
 	cards.SetShadowValues(&cardValue{
@@ -155,7 +157,9 @@ func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 
 	tokens := boardgame.NewDeck()
 
-	tokens.AddComponentMulti(nil, 38)
+	for i := 0; i < 38; i++ {
+		tokens.AddComponent(nil)
+	}
 
 	return map[string]*boardgame.Deck{
 		cardsDeckName:  cards,

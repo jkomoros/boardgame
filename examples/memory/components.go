@@ -86,24 +86,30 @@ func newDeck() *boardgame.Deck {
 	cards := boardgame.NewDeck()
 
 	for _, val := range generalCards {
-		cards.AddComponentMulti(&cardValue{
-			Type:    val,
-			CardSet: cardSetGeneral,
-		}, 2)
+		for i := 0; i < 2; i++ {
+			cards.AddComponent(&cardValue{
+				Type:    val,
+				CardSet: cardSetGeneral,
+			})
+		}
 	}
 
 	for _, val := range foodCards {
-		cards.AddComponentMulti(&cardValue{
-			Type:    val,
-			CardSet: cardSetFoods,
-		}, 2)
+		for i := 0; i < 2; i++ {
+			cards.AddComponent(&cardValue{
+				Type:    val,
+				CardSet: cardSetFoods,
+			})
+		}
 	}
 
 	for _, val := range animalCards {
-		cards.AddComponentMulti(&cardValue{
-			Type:    val,
-			CardSet: cardSetAnimals,
-		}, 2)
+		for i := 0; i < 2; i++ {
+			cards.AddComponent(&cardValue{
+				Type:    val,
+				CardSet: cardSetAnimals,
+			})
+		}
 	}
 
 	cards.SetShadowValues(&cardValue{

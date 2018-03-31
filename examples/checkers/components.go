@@ -55,13 +55,17 @@ func newTokenDeck() *boardgame.Deck {
 
 	deck := boardgame.NewDeck()
 
-	deck.AddComponentMulti(&token{
-		Color: ColorEnum.MustNewVal(ColorBlack),
-	}, numTokens)
+	for i := 0; i < numTokens; i++ {
+		deck.AddComponent(&token{
+			Color: ColorEnum.MustNewVal(ColorBlack),
+		})
+	}
 
-	deck.AddComponentMulti(&token{
-		Color: ColorEnum.MustNewVal(ColorRed),
-	}, numTokens)
+	for i := 0; i < numTokens; i++ {
+		deck.AddComponent(&token{
+			Color: ColorEnum.MustNewVal(ColorRed),
+		})
+	}
 
 	return deck
 }
