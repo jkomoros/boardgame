@@ -899,7 +899,7 @@ func (s *Server) doGameInfo(r *Renderer, game *boardgame.Game, playerIndex board
 	}
 
 	args := gin.H{
-		"Chest":           s.renderChest(game),
+		"Chest":           game.Chest(),
 		"Forms":           s.generateForms(game),
 		"Game":            game.JSONForPlayer(playerIndex, nil),
 		"Error":           s.lastErrorMessage,
@@ -1010,33 +1010,6 @@ func formFields(move boardgame.Move) []*MoveFormField {
 	}
 
 	return result
-}
-
-func (s *Server) renderChest(game *boardgame.Game) map[string][]interface{} {
-	//Substantially copied from cli.renderChest().
-
-	deck := make(map[string][]interface{})
-
-	for _, name := range game.Chest().DeckNames() {
-
-		components := game.Chest().Deck(name).Components()
-
-		values := make([]interface{}, len(components))
-
-		for i, component := range components {
-			values[i] = struct {
-				Index  int
-				Values interface{}
-			}{
-				i,
-				component.Values,
-			}
-		}
-
-		deck[name] = values
-	}
-
-	return deck
 }
 
 //genericHandler doesn't do much. We just register it so we automatically get

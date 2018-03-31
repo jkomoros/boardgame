@@ -169,3 +169,21 @@ func (d *Deck) finish(chest *ComponentChest, name string) error {
 	d.name = name
 	return nil
 }
+
+func (d *Deck) MarshalJSON() ([]byte, error) {
+	components := d.Components()
+
+	values := make([]interface{}, len(components))
+
+	for i, component := range components {
+		values[i] = struct {
+			Index  int
+			Values interface{}
+		}{
+			i,
+			component.Values,
+		}
+	}
+
+	return DefaultMarshalJSON(values)
+}

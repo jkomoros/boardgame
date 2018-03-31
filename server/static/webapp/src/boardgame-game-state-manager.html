@@ -318,7 +318,7 @@
           return;
         }
 
-        var deck = this.chest[stack.Deck];
+        var deck = this.chest.Decks[stack.Deck];
 
         var gameName = (this.gameRoute) ? this.gameRoute.name : "";
 
@@ -362,7 +362,7 @@
 
 
       _componentForDeckAndIndex(deckName, index, wholeState) {
-        let deck = this.chest[deckName];
+        let deck = this.chest.Decks[deckName];
 
         if (!deck) return null;
 

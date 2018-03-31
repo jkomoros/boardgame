@@ -123,3 +123,12 @@ func (c *ComponentChest) Finish() {
 		i++
 	}
 }
+
+func (c *ComponentChest) MarshalJSON() ([]byte, error) {
+	obj := struct {
+		Decks map[string]*Deck
+	}{
+		c.decks,
+	}
+	return DefaultMarshalJSON(obj)
+}
