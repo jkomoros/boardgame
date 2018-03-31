@@ -115,7 +115,7 @@ import (
 //IllegalValue is the senitnel value that will be returned for illegal values.
 const IllegalValue = math.MaxInt64
 
-const rangedValueSeparator = ","
+const rangedValueSeparator = "_"
 
 //EnumSet is a set of enums where each Enum's values are unique. Normally you
 //will create one in your package, add enums to it during initalization, and
@@ -337,12 +337,12 @@ of multiple dimensions into string values in a known, stable way.
 	AddRange("single", 2)
 
 	// Returns an enum like:
-	// 0 -> '0,0'
-	// 1 -> '0,1'
-	// 2 -> '0,2'
-	// 3 -> '1,0'
-	// 4 -> '1,1'
-	// 5 -> '1,2'
+	// 0 -> '0_0'
+	// 1 -> '0_1'
+	// 2 -> '0_2'
+	// 3 -> '1_0'
+	// 4 -> '1_1'
+	// 5 -> '1_2'
 	AddRange("double", 2,3)
 */
 func (e *Set) AddRange(enumName string, dimensionSize ...int) (Enum, error) {
