@@ -7,6 +7,7 @@ import (
 	"go/parser"
 	"go/token"
 	"regexp"
+	"sort"
 	"strings"
 	"text/template"
 )
@@ -17,6 +18,7 @@ var transformLowerRegExp = regexp.MustCompile(`(?i)transform:\s*lower`)
 var transformNoneRegExp = regexp.MustCompile(`(?i)transform:\s*none`)
 
 var enumHeaderTemplate *template.Template
+var enumDelegateTemplate *template.Template
 var enumItemTemplate *template.Template
 
 func firstLetter(in string) string {
@@ -35,6 +37,7 @@ func init() {
 	}
 
 	enumHeaderTemplate = template.Must(template.New("enumheader").Funcs(funcMap).Parse(enumHeaderTemplateText))
+	enumDelegateTemplate = template.Must(template.New("enumdelegate").Funcs(funcMap).Parse(enumDelegateTemplateText))
 	enumItemTemplate = template.Must(template.New("enumitem").Parse(enumItemTemplateText))
 
 }
@@ -520,10 +523,20 @@ func overrideDisplayname(docLines string) (hasOverride bool, displayName string)
 
 func enumHeaderForPackage(packageName string, delegateNames []string) string {
 
-	return templateOutput(enumHeaderTemplate, map[string]interface{}{
-		"packageName":   packageName,
-		"delegateNames": delegateNames,
+	output := templateOutput(enumHeaderTemplate, map[string]interface{}{
+		"packageName": packageName,
 	})
+
+	//Ensure  a consistent ordering.
+	sort.Strings(delegateNames)
+
+	for _, delegateName := range delegateNames {
+		output += templateOutput(enumDelegateTemplate, map[string]interface{}{
+			"delegateName": delegateName,
+		})
+	}
+
+	return output
 }
 
 func enumItem(prefix string, values map[string]string) string {
@@ -550,16 +563,15 @@ import (
 
 var Enums = enum.NewSet()
 
-{{range $delegateName := .delegateNames -}}
-//ConfigureEnums simply returns Enums, the auto-generated Enums variable. This
-//is output because {{$delegateName}} appears to be a struct that implements
+`
+
+const enumDelegateTemplateText = `//ConfigureEnums simply returns Enums, the auto-generated Enums variable. This
+//is output because {{.delegateName}} appears to be a struct that implements
 //boardgame.GameDelegate, and does not already have a ConfigureEnums
 //explicitly defined.
-func ({{firstLetter $delegateName}} *{{$delegateName}}) ConfigureEnums() *enum.Set {
+func ({{firstLetter .delegateName}} *{{.delegateName}}) ConfigureEnums() *enum.Set {
 	return Enums
 }
-
-{{end}}
 
 `
 
