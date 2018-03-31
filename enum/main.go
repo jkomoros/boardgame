@@ -115,6 +115,8 @@ import (
 //IllegalValue is the senitnel value that will be returned for illegal values.
 const IllegalValue = math.MaxInt64
 
+const rangedValueSeparator = ","
+
 //EnumSet is a set of enums where each Enum's values are unique. Normally you
 //will create one in your package, add enums to it during initalization, and
 //then use it for all managers you create.
@@ -305,11 +307,11 @@ func keyForIndexes(values ...int) string {
 	for i, value := range values {
 		result[i] = strconv.Itoa(value)
 	}
-	return strings.Join(result, ",")
+	return strings.Join(result, rangedValueSeparator)
 }
 
 func indexesForKey(key string) []int {
-	strs := strings.Split(key, ",")
+	strs := strings.Split(key, rangedValueSeparator)
 	result := make([]int, len(strs))
 	for i, str := range strs {
 		theInt, err := strconv.Atoi(str)
