@@ -71,6 +71,10 @@
           state: {
             type: Object,
           },
+          chest: {
+            type: Object,
+            observer: "_chestChanged",
+          },
           active: {
             type: Boolean,
             observer: "_activeChanged",
@@ -159,6 +163,11 @@
         this.renderer.currentPlayerIndex = newValue;
       }
 
+      _chestChanged(newValue) {
+        if (!this.renderer) return;
+        this.renderer.chest = newValue;
+      }
+
       _gameNameChanged(newValue) {
 
         //If there was a state, it might for a different game type which would
@@ -188,6 +197,7 @@
         ele.state = this.state;
         ele.viewingAsPlayer = this.viewingAsPlayer;
         ele.currentPlayerIndex = this.currentPlayerIndex;
+        ele.chest = this.chest;
 
         this.renderer = ele;
 
