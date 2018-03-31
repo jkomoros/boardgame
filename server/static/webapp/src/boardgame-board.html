@@ -10,16 +10,17 @@
         height:50px;
         width:50px;
         position:relative;
+        cursor:pointer;
       }
 
       .cell.even {
         background-color: black;
       }
     </style>
-    <template is="dom-repeat" items="{{_cellItems}}">
+    <template is="dom-repeat" items="{{_cellItems}}" as="row" index-as="r">
       <div class="row layout horizontal">
-        <template is="dom-repeat" items="{{item}}">
-          <div class$="{{item}} cell layout vertical">
+        <template is="dom-repeat" items="{{row}}" as="col" index-as="c">
+          <div class$="{{col}} cell layout vertical" r="{{r}}" c="{{c}}" on-tap="_regionTapped">
           </div>
         </template>
       </div>
@@ -59,6 +60,12 @@
           result.push(row);
         }
         return result;
+      }
+
+      _regionTapped(e) {
+        let r = e.target.r;
+        let c = e.target.c;
+        this.dispatchEvent(new CustomEvent("region-tapped", {composed: true, detail: {index: [r, c]}}));
       }
 
     }
