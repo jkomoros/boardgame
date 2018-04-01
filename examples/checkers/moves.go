@@ -3,13 +3,14 @@ package checkers
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves"
 )
 
 //+autoreader
 type MovePlaceToken struct {
 	moves.FixUpMulti
-	TargetIndex int
+	TargetIndex enum.MutableVal `enum:"Spaces"`
 }
 
 func (m *MovePlaceToken) DefaultsForState(state boardgame.State) {
@@ -47,7 +48,7 @@ func (m *MovePlaceToken) DefaultsForState(state boardgame.State) {
 			continue
 		}
 		if game.Spaces.ComponentAt(i) == nil {
-			m.TargetIndex = i
+			m.TargetIndex.SetValue(i)
 			return
 		}
 	}
@@ -65,11 +66,11 @@ func (m *MovePlaceToken) Legal(state boardgame.State, proposer boardgame.PlayerI
 		return errors.New("No more components to place")
 	}
 
-	if game.Spaces.ComponentAt(m.TargetIndex) != nil {
+	if game.Spaces.ComponentAt(m.TargetIndex.Value()) != nil {
 		return errors.New("That space is already filled")
 	}
 
-	if !spaceIsBlack(m.TargetIndex) {
+	if !spaceIsBlack(m.TargetIndex.Value()) {
 		return errors.New("The proposed space is not black")
 	}
 
@@ -78,13 +79,13 @@ func (m *MovePlaceToken) Legal(state boardgame.State, proposer boardgame.PlayerI
 
 func (m *MovePlaceToken) Apply(state boardgame.MutableState) error {
 	game := state.GameState().(*gameState)
-	return game.UnusedTokens.MoveComponent(boardgame.FirstComponentIndex, game.Spaces, m.TargetIndex)
+	return game.UnusedTokens.MoveComponent(boardgame.FirstComponentIndex, game.Spaces, m.TargetIndex.Value())
 }
 
 type MoveMoveToken struct {
 	moves.CurrentPlayer
-	TokenIndexToMove int
-	SpaceIndex       int
+	TokenIndexToMove enum.MutableVal `enum:"Spaces"`
+	SpaceIndex       enum.MutableVal `enum:"Spaces"`
 }
 
 func (m *MoveMoveToken) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
@@ -96,7 +97,7 @@ func (m *MoveMoveToken) Legal(state boardgame.State, proposer boardgame.PlayerIn
 
 	g := state.GameState().(*gameState)
 
-	c := g.Spaces.ComponentAt(m.TokenIndexToMove)
+	c := g.Spaces.ComponentAt(m.TokenIndexToMove.Value())
 
 	if c == nil {
 		return errors.New("That space does not have a component in it")
@@ -108,23 +109,23 @@ func (m *MoveMoveToken) Legal(state boardgame.State, proposer boardgame.PlayerIn
 		return errors.New("That token isn't your token to move!")
 	}
 
-	if !spaceIsBlack(m.SpaceIndex) {
+	if !spaceIsBlack(m.SpaceIndex.Value()) {
 		return errors.New("You can only move to spaces that are black.")
 	}
 
-	if g.Spaces.ComponentAt(m.SpaceIndex) != nil {
+	if g.Spaces.ComponentAt(m.SpaceIndex.Value()) != nil {
 		return errors.New("The space you're trying to move to is occupied.")
 	}
 
 	//If it's one of the legal spaces, great.
-	for _, space := range t.FreeNextSpaces(state, m.TokenIndexToMove) {
-		if m.SpaceIndex == space {
+	for _, space := range t.FreeNextSpaces(state, m.TokenIndexToMove.Value()) {
+		if m.SpaceIndex.Value() == space {
 			return nil
 		}
 	}
 
-	for _, space := range t.LegalCaptureSpaces(state, m.TokenIndexToMove) {
-		if m.SpaceIndex == space {
+	for _, space := range t.LegalCaptureSpaces(state, m.TokenIndexToMove.Value()) {
+		if m.SpaceIndex.Value() == space {
 			return nil
 		}
 	}
@@ -139,17 +140,17 @@ func (m *MoveMoveToken) Apply(state boardgame.MutableState) error {
 
 	p := state.CurrentPlayer().(*playerState)
 
-	if err := g.Spaces.SwapComponents(m.TokenIndexToMove, m.SpaceIndex); err != nil {
+	if err := g.Spaces.SwapComponents(m.TokenIndexToMove.Value(), m.SpaceIndex.Value()); err != nil {
 		return errors.New("Couldn't move token: " + err.Error())
 	}
 
-	startIndexes := SpacesEnum.ValueToRange(m.TokenIndexToMove)
+	startIndexes := m.TokenIndexToMove.RangeValue()
 
 	if startIndexes == nil || len(startIndexes) != 2 {
 		return errors.New("Couldn't get indexes for token space")
 	}
 
-	finishIndexes := SpacesEnum.ValueToRange(m.SpaceIndex)
+	finishIndexes := m.SpaceIndex.RangeValue()
 
 	if finishIndexes == nil || len(finishIndexes) != 2 {
 		return errors.New("Couldn't get indexes for finish space")
@@ -189,8 +190,8 @@ func (m *MoveMoveToken) Apply(state boardgame.MutableState) error {
 	} else {
 		//The turn is also over if there isn't another cpature space to move
 		//to.
-		t := g.Spaces.ComponentAt(m.SpaceIndex).Values.(*token)
-		if len(t.LegalCaptureSpaces(state, m.SpaceIndex)) == 0 {
+		t := g.Spaces.ComponentAt(m.SpaceIndex.Value()).Values.(*token)
+		if len(t.LegalCaptureSpaces(state, m.SpaceIndex.Value())) == 0 {
 			p.FinishedTurn = true
 		}
 	}

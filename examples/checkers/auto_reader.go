@@ -579,7 +579,7 @@ func (t *tokenDynamic) ReadSetConfigurer() boardgame.PropertyReadSetConfigurer {
 // Implementation for MovePlaceToken
 
 var __MovePlaceTokenReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
-	"TargetIndex": boardgame.TypeInt,
+	"TargetIndex": boardgame.TypeEnum,
 }
 
 type __MovePlaceTokenReader struct {
@@ -842,41 +842,17 @@ func (m *__MovePlaceTokenReader) SetBoolSliceProp(name string, value []bool) err
 
 func (m *__MovePlaceTokenReader) EnumProp(name string) (enum.Val, error) {
 
-	return nil, errors.New("No such Enum prop: " + name)
-
-}
-
-func (m *__MovePlaceTokenReader) ConfigureMutableEnumProp(name string, value enum.MutableVal) error {
-
-	return errors.New("No such MutableEnum prop: " + name)
-
-}
-
-func (m *__MovePlaceTokenReader) ConfigureEnumProp(name string, value enum.Val) error {
-
-	return errors.New("No such Enum prop: " + name)
-
-}
-
-func (m *__MovePlaceTokenReader) MutableEnumProp(name string) (enum.MutableVal, error) {
-
-	return nil, errors.New("No such Enum prop: " + name)
-
-}
-
-func (m *__MovePlaceTokenReader) IntProp(name string) (int, error) {
-
 	switch name {
 	case "TargetIndex":
 		return m.data.TargetIndex, nil
 
 	}
 
-	return 0, errors.New("No such Int prop: " + name)
+	return nil, errors.New("No such Enum prop: " + name)
 
 }
 
-func (m *__MovePlaceTokenReader) SetIntProp(name string, value int) error {
+func (m *__MovePlaceTokenReader) ConfigureMutableEnumProp(name string, value enum.MutableVal) error {
 
 	switch name {
 	case "TargetIndex":
@@ -884,6 +860,42 @@ func (m *__MovePlaceTokenReader) SetIntProp(name string, value int) error {
 		return nil
 
 	}
+
+	return errors.New("No such MutableEnum prop: " + name)
+
+}
+
+func (m *__MovePlaceTokenReader) ConfigureEnumProp(name string, value enum.Val) error {
+
+	switch name {
+	case "TargetIndex":
+		return boardgame.ErrPropertyImmutable
+
+	}
+
+	return errors.New("No such Enum prop: " + name)
+
+}
+
+func (m *__MovePlaceTokenReader) MutableEnumProp(name string) (enum.MutableVal, error) {
+
+	switch name {
+	case "TargetIndex":
+		return m.data.TargetIndex, nil
+
+	}
+
+	return nil, errors.New("No such Enum prop: " + name)
+
+}
+
+func (m *__MovePlaceTokenReader) IntProp(name string) (int, error) {
+
+	return 0, errors.New("No such Int prop: " + name)
+
+}
+
+func (m *__MovePlaceTokenReader) SetIntProp(name string, value int) error {
 
 	return errors.New("No such Int prop: " + name)
 
