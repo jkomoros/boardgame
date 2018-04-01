@@ -265,10 +265,23 @@
         bundle.pathsToTick = this._expandState(game.CurrentState);
 
         bundle.game = game;
-        bundle.moveForms = moveForms;
+        bundle.moveForms = this._expandMoveForms(moveForms);
         bundle.viewingAsPlayer = viewingAsPlayer;
 
         return bundle;
+      }
+
+      _expandMoveForms(moveForms) {
+        for (let i = 0; i < moveForms.length; i++){
+          let form = moveForms[i];
+          for (let j = 0; j < form.Fields.length; j++) {
+            let field = form.Fields[j];
+            if (field.EnumName) {
+              field.Enum = this.chest.Enums[field.EnumName];
+            }
+          }
+        }
+        return moveForms;
       }
 
       _expandState(currentState) {
