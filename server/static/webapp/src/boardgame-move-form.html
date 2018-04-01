@@ -10,6 +10,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
 <link rel="import" href="../bower_components/polymer/lib/elements/dom-repeat.html">
+<link rel="import" href="../bower_components/polymer/lib/elements/dom-if.html">
 <link rel="import" href="shared-styles.html">
 <link rel="import" href="boardgame-ajax.html">
 
@@ -36,7 +37,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               <input type="hidden" name="player" value="{{moveAsPlayer}}">
               <template is="dom-repeat" items="{{item.Fields}}">
                 <strong>{{item.Name}}</strong>
-                <input name="{{item.Name}}" value="{{_prepareValue(item.DefaultValue)}}">
+                <template is="dom-if" if="[[_isEnumField(item.Type)]]">
+                  <select name="{{item.Name}}">
+                    <template is="dom-repeat" items="{{_stringValues(item.Enum.Values)}}">
+                      <option value="{{item}}">{{item}}</option>
+                    </template>
+                  </select>
+                </template>
+                <template is="dom-if" if="[[!_isEnumField(item.Type)]]">
+                  <input name="{{item.Name}}" value="{{_prepareValue(item.DefaultValue)}}">
+                </template>
                 <br/>
               </template>
               <div hidden$="{{item.Fields}}">
@@ -83,6 +93,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           return this.boolToInt(val);
         }
         return val;
+      }
+
+      _isEnumField(fieldType) {
+        return fieldType == 5;
+      }
+
+      _stringValues(obj) {
+        let result = [];
+        let entries = Object.entries(obj);
+        for (let i = 0; i < entries.length; i++) {
+          let [key, val] = entries[i];
+          result.push(val);
+        }
+        return result;
       }
 
       proposeMove(moveName, args) {
