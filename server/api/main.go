@@ -52,6 +52,7 @@ type MoveFormFieldType int
 type MoveFormField struct {
 	Name         string
 	Type         boardgame.PropertyType
+	EnumName     string `json:",omitempty"`
 	DefaultValue interface{}
 }
 
@@ -1001,11 +1002,20 @@ func formFields(move boardgame.Move) []*MoveFormField {
 
 		val, _ := move.ReadSetter().Prop(fieldName)
 
-		result = append(result, &MoveFormField{
+		info := &MoveFormField{
 			Name:         fieldName,
 			Type:         fieldType,
 			DefaultValue: val,
-		})
+		}
+
+		if fieldType == boardgame.TypeEnum {
+			enumVal, _ := move.ReadSetter().EnumProp(fieldName)
+			if enumVal != nil {
+				info.EnumName = enumVal.Enum().Name()
+			}
+		}
+
+		result = append(result, info)
 
 	}
 
