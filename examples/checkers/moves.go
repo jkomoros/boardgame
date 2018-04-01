@@ -82,6 +82,7 @@ func (m *MovePlaceToken) Apply(state boardgame.MutableState) error {
 	return game.UnusedTokens.MoveComponent(boardgame.FirstComponentIndex, game.Spaces, m.TargetIndex.Value())
 }
 
+//+autoreader
 type MoveMoveToken struct {
 	moves.CurrentPlayer
 	TokenIndexToMove enum.MutableVal `enum:"Spaces"`
