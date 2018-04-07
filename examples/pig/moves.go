@@ -52,9 +52,7 @@ func (m *MoveRollDice) Apply(state boardgame.MutableState) error {
 
 	die := game.Die.ComponentAt(0)
 
-	if err := die.DynamicValues(state).(*dice.DynamicValue).Roll(die); err != nil {
-		return errors.New("Couldn't roll die: " + err.Error())
-	}
+	die.DynamicValues(state).(*dice.DynamicValue).Roll()
 
 	p.DieCounted = false
 

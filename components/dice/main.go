@@ -6,7 +6,6 @@ dice is a simple package that defines die components with variable numbers of si
 package dice
 
 import (
-	"errors"
 	"github.com/jkomoros/boardgame"
 	"math"
 	"math/rand"
@@ -23,6 +22,7 @@ type Value struct {
 //+autoreader
 type DynamicValue struct {
 	boardgame.BaseSubState
+	boardgame.BaseComponentValues
 	Value        int
 	SelectedFace int
 }
@@ -66,25 +66,22 @@ func (v *Value) Max() int {
 	return max
 }
 
-//Roll sets the Value of the Die randomly to a new legal value. The component
-//you pass should be the same Die component that we're rolling.
-func (d *DynamicValue) Roll(c *boardgame.Component) error {
+//Roll sets the Value of the Die randomly to a new value that is legal for the
+//die Value it is associated with.
+func (d *DynamicValue) Roll() {
 
-	if c == nil {
-		return errors.New("No component provided")
-	}
-
-	values, ok := c.Values.(*Value)
+	values, ok := d.ContainingComponent().Values.(*Value)
 
 	if !ok {
-		return errors.New("Component passed was not a die")
+		//This shouldn't happen, unless someone has called
+		//SetContainingComponent themselves after the dynamic values was
+		//called, in which case they get what they deserve for not having the dice actually roll.
+		return
 	}
 
 	random := rand.Intn(len(values.Faces))
 
 	d.SelectedFace = random
 	d.Value = values.Faces[random]
-
-	return nil
 
 }

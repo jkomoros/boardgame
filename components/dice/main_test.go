@@ -65,15 +65,15 @@ func TestDieRoll(t *testing.T) {
 		Values: values,
 	}
 
+	dynamic.SetContainingComponent(die)
+
 	seenValues := make(map[int]bool)
 
 	min := values.Min()
 	max := values.Max()
 
 	for i := 0; i < 10; i++ {
-		if err := dynamic.Roll(die); err != nil {
-			t.Fatal("Got non-nill err for roll: ", err)
-		}
+		dynamic.Roll()
 
 		assert.For(t).ThatActual(dynamic.Value).Equals(values.Faces[dynamic.SelectedFace])
 
