@@ -53,11 +53,10 @@ type testingComponent struct {
 }
 
 type testingComponentDynamic struct {
-	state        State
-	mutableState MutableState
-	IntVar       int
-	Stack        MutableStack
-	Enum         enum.MutableVal
+	BaseSubState
+	IntVar int
+	Stack  MutableStack
+	Enum   enum.MutableVal
 }
 
 const testGameName = "test_game"
