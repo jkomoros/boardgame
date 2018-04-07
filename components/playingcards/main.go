@@ -14,26 +14,21 @@ import (
 
 //go:generate autoreader
 
-//We don't use autoreader for this because we want the strings to be unicode
-//points representing those items.
+//+autoreader
 const (
+	//display:"\uFFFD"
 	SuitUnknown = iota
+	//display:"\u2660"
 	SuitSpades
+	//display:"\u2665"
 	SuitHearts
+	//display:"\u2663"
 	SuitClubs
+	//display:"\u2666"
 	SuitDiamonds
+	//dislay:"Jokers"
 	SuitJokers
 )
-
-//Enums will be defined in auto_enum.go
-var SuitEnum = Enums.MustAdd("Suit", map[int]string{
-	SuitUnknown:  "\uFFFD",
-	SuitSpades:   "\u2660",
-	SuitHearts:   "\u2665",
-	SuitClubs:    "\u2663",
-	SuitDiamonds: "\u2666",
-	SuitJokers:   "Jokers",
-})
 
 //+autoreader
 const (

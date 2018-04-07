@@ -15,6 +15,15 @@ import (
 
 var Enums = enum.NewSet()
 
+var SuitEnum = Enums.MustAdd("Suit", map[int]string{
+	SuitClubs:    "\u2663",
+	SuitDiamonds: "\u2666",
+	SuitHearts:   "\u2665",
+	SuitJokers:   "Jokers",
+	SuitSpades:   "\u2660",
+	SuitUnknown:  "\uFFFD",
+})
+
 var RankEnum = Enums.MustAdd("Rank", map[int]string{
 	Rank10:      "10",
 	Rank2:       "2",
