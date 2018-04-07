@@ -621,6 +621,10 @@ func (g *GameManager) dynamicComponentValuesConstructor(state *state) (map[strin
 			continue
 		}
 
+		//Check outside the loop if it has containing component so we can skip
+		//it within the loop if doesn't, for minor savings.
+		_, hasContainingComponent := values.(ComponentValues)
+
 		validator := g.dynamicComponentValidator[deckName]
 
 		if validator == nil {
@@ -630,6 +634,19 @@ func (g *GameManager) dynamicComponentValuesConstructor(state *state) (map[strin
 		arr := make([]ConfigurableSubState, len(deck.Components()))
 		for i := 0; i < len(deck.Components()); i++ {
 			arr[i] = g.Delegate().DynamicComponentValuesConstructor(deck)
+
+			if hasContainingComponent {
+				componentValues, ok := arr[i].(ComponentValues)
+
+				containingComponent := deck.ComponentAt(i)
+
+				//It would be unexpected if we couldn't cast (that would imply
+				//we were gettind different shaped values for the same deck
+				//name over time), but check to be safe.
+				if ok {
+					componentValues.SetContainingComponent(containingComponent)
+				}
+			}
 
 			readSetConfigurer := arr[i].ReadSetConfigurer()
 

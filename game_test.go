@@ -76,6 +76,9 @@ func TestMoveModifyDynamicValues(t *testing.T) {
 		t.Error("Dynamic state of component unexpected value: ", easyDynamic.IntVar)
 	}
 
+	//Test that SetContainingComponent was set.
+	assert.For(t).ThatActual(easyDynamic.ContainingComponent()).Equals(component)
+
 	var stateNil *state
 
 	assert.For(t).ThatActual(easyDynamic.Stack.state()).DoesNotEqual(stateNil)

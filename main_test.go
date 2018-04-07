@@ -54,6 +54,7 @@ type testingComponent struct {
 
 type testingComponentDynamic struct {
 	BaseSubState
+	BaseComponentValues
 	IntVar int
 	Stack  MutableStack
 	Enum   enum.MutableVal

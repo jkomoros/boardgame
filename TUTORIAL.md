@@ -1292,6 +1292,8 @@ If you look at the JSON output of a state, you'll see that dynamic component val
 
 The way you configure that a given deck has dynamic component values is by the output to `GameDelegate.DynamicComponentValuesConstructor(deck *Deck) ConfigurableSubState`. For decks that don't have dynamic values, just return nil. For decks that do have dynamic component values, just return a new concrete struct, just as you would for `GameStateConstructor` and `PlayerStateConstructor`.
 
+If the struct you return from DynamicComponentValuesConstructor also implements the ComponentValues interface, then SetContainingComponent will be called on the struct every time a new one is created, and pass a reference the component it's associated with. This is useful if the dynamicComponentValues needs access to static property of the component it's associated with to do some methods. You can simply anonymously embed BaseComponentValues in your DynamicComponentValues struct to get that reference for free.
+
 When sanitizing dynamic component values, each deck has its own policy. Importantly, though, that policy is only effective if the stack that the component is currently in has a policy of Visible. In most cases it should just behave as you'd naively expect. For more about specific behaviors, see the package doc on Sanitization.
 
 ### Computed properties

@@ -86,10 +86,14 @@ type GameDelegate interface {
 	//PlayerIndex() is called.
 	PlayerStateConstructor(player PlayerIndex) ConfigurablePlayerState
 
-	//DynamicComponentValuesConstructor returns an empty DynamicComponentValues for
-	//the given deck. If nil is returned, then the components in that deck
-	//don't have any dynamic component state. This method must always return
-	//the same underlying type of struct for the same deck.
+	//DynamicComponentValuesConstructor returns an empty
+	//DynamicComponentValues for the given deck. If nil is returned, then the
+	//components in that deck don't have any dynamic component state. This
+	//method must always return the same underlying type of struct for the
+	//same deck. If the returned object also implements the ComponentValues
+	//interface, then SetContainingComponent will be called on the
+	//DynamicComponent whenever one is created, with a reference back to the
+	//component it's associated with.
 	DynamicComponentValuesConstructor(deck *Deck) ConfigurableSubState
 
 	//DistributeComponentToStarterStack is called during set up to establish
