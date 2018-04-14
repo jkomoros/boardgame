@@ -45,6 +45,8 @@ type GameStorageRecord struct {
 	Winners    []PlayerIndex
 	Finished   bool
 	Created    time.Time
+	//Modified is updated every time a new move is applied.
+	Modified time.Time
 	//NumPlayers is the reported number of players when it was created.
 	//Primarily for convenience to storage layer so they know how many players
 	//are in the game.

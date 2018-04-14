@@ -61,7 +61,8 @@ type Game struct {
 	//Initalized is set to True after SetUp is called.
 	initalized bool
 
-	created time.Time
+	created  time.Time
+	modified time.Time
 
 	//TODO: HistoricalState(index int) and HistoryLen() int
 
@@ -104,6 +105,11 @@ func randomString(length int) string {
 //Created returns the time stamp when this game was SetUp().
 func (g *Game) Created() time.Time {
 	return g.created
+}
+
+//Modified returns the timstamp when the last move was applied to this game.
+func (g *Game) Modified() time.Time {
+	return g.modified
 }
 
 //Winners is the player indexes who were winners. Typically, this will be
@@ -175,6 +181,7 @@ func (g *Game) StorageRecord() *GameStorageRecord {
 		Winners:    g.Winners(),
 		Finished:   g.Finished(),
 		Created:    g.Created(),
+		Modified:   g.Modified(),
 		Id:         g.Id(),
 		SecretSalt: g.secretSalt,
 		NumPlayers: g.NumPlayers(),
@@ -437,6 +444,7 @@ func (g *Game) SetUp(numPlayers int, config GameConfig, agentNames []string) err
 	g.manager.delegate.FinishSetUp(stateCopy)
 
 	g.created = time.Now()
+	g.modified = time.Now()
 
 	if g.Modifiable() {
 
@@ -765,6 +773,9 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 
 	//Note that we want the phase that we were in BEFORE this move was applied.
 	moveStorageRecord := StorageRecordForMove(move, currentPhase)
+
+	//use the precise time we'll set for the move.
+	g.modified = move.Info().Timestamp()
 
 	//TODO: test that if we fail to save state to storage everything's fine.
 	if err := g.manager.Storage().SaveGameAndCurrentState(g.StorageRecord(), newState.StorageRecord(), moveStorageRecord); err != nil {

@@ -36,6 +36,7 @@ type GameStorageRecord struct {
 	Winners    string `db:",size:128"`
 	Finished   bool
 	Created    int64
+	Modified   int64
 	//NumPlayers is the reported number of players when it was created.
 	//Primarily for convenience to storage layer so they know how many players
 	//are in the game.
@@ -46,28 +47,27 @@ type GameStorageRecord struct {
 }
 
 type ExtendedGameStorageRecord struct {
-	Id           string `db:",size:16"`
-	LastActivity int64
-	Open         bool
-	Visible      bool
-	Owner        string `db:",size:128"`
+	Id      string `db:",size:16"`
+	Open    bool
+	Visible bool
+	Owner   string `db:",size:128"`
 }
 
 //Used for pulling out of a db with a join
 type CombinedGameStorageRecord struct {
-	Name         string
-	Id           string
-	SecretSalt   string
-	Version      int64
-	Winners      string
-	Finished     bool
-	NumPlayers   int64
-	Agents       string
-	Created      int64
-	LastActivity int64
-	Open         bool
-	Visible      bool
-	Owner        string
+	Name       string
+	Id         string
+	SecretSalt string
+	Version    int64
+	Winners    string
+	Finished   bool
+	NumPlayers int64
+	Agents     string
+	Created    int64
+	Modified   int64
+	Open       bool
+	Visible    bool
+	Owner      string
 }
 
 type StateStorageRecord struct {
@@ -169,6 +169,7 @@ func (g *GameStorageRecord) ToStorageRecord() *boardgame.GameStorageRecord {
 		Version:    int(g.Version),
 		Winners:    winners,
 		Created:    time.Unix(0, g.Created),
+		Modified:   time.Unix(0, g.Modified),
 		Finished:   g.Finished,
 		NumPlayers: int(g.NumPlayers),
 		Agents:     stringToAgents(g.Agents),
@@ -197,6 +198,7 @@ func NewGameStorageRecord(game *boardgame.GameStorageRecord) *GameStorageRecord 
 		NumPlayers: int64(game.NumPlayers),
 		Finished:   game.Finished,
 		Created:    game.Created.UnixNano(),
+		Modified:   game.Modified.UnixNano(),
 		Agents:     agentsToString(game.Agents),
 		NumAgents:  int64(numAgents),
 	}
@@ -224,12 +226,12 @@ func (c *CombinedGameStorageRecord) ToStorageRecord() *extendedgame.CombinedStor
 			NumPlayers: int(c.NumPlayers),
 			Agents:     stringToAgents(c.Agents),
 			Created:    time.Unix(0, c.Created),
+			Modified:   time.Unix(0, c.Modified),
 		},
 		StorageRecord: extendedgame.StorageRecord{
-			LastActivity: c.LastActivity,
-			Open:         c.Open,
-			Visible:      c.Visible,
-			Owner:        c.Owner,
+			Open:    c.Open,
+			Visible: c.Visible,
+			Owner:   c.Owner,
 		},
 	}
 
@@ -242,19 +244,19 @@ func NewCombinedGameStorageRecord(combined *extendedgame.CombinedStorageRecord) 
 	}
 
 	return &CombinedGameStorageRecord{
-		Name:         combined.Name,
-		Id:           combined.Id,
-		SecretSalt:   combined.SecretSalt,
-		Version:      int64(combined.Version),
-		Winners:      winnersToString(combined.Winners),
-		NumPlayers:   int64(combined.NumPlayers),
-		Finished:     combined.Finished,
-		Agents:       agentsToString(combined.Agents),
-		Created:      combined.Created.UnixNano(),
-		LastActivity: combined.LastActivity,
-		Open:         combined.Open,
-		Visible:      combined.Visible,
-		Owner:        combined.Owner,
+		Name:       combined.Name,
+		Id:         combined.Id,
+		SecretSalt: combined.SecretSalt,
+		Version:    int64(combined.Version),
+		Winners:    winnersToString(combined.Winners),
+		NumPlayers: int64(combined.NumPlayers),
+		Finished:   combined.Finished,
+		Agents:     agentsToString(combined.Agents),
+		Created:    combined.Created.UnixNano(),
+		Modified:   combined.Modified.UnixNano(),
+		Open:       combined.Open,
+		Visible:    combined.Visible,
+		Owner:      combined.Owner,
 	}
 
 }
@@ -265,10 +267,9 @@ func (e *ExtendedGameStorageRecord) ToStorageRecord() *extendedgame.StorageRecor
 	}
 
 	return &extendedgame.StorageRecord{
-		LastActivity: e.LastActivity,
-		Open:         e.Open,
-		Visible:      e.Visible,
-		Owner:        e.Owner,
+		Open:    e.Open,
+		Visible: e.Visible,
+		Owner:   e.Owner,
 	}
 }
 
@@ -278,10 +279,9 @@ func NewExtendedGameStorageRecord(eGame *extendedgame.StorageRecord) *ExtendedGa
 	}
 
 	return &ExtendedGameStorageRecord{
-		LastActivity: eGame.LastActivity,
-		Open:         eGame.Open,
-		Visible:      eGame.Visible,
-		Owner:        eGame.Owner,
+		Open:    eGame.Open,
+		Visible: eGame.Visible,
+		Owner:   eGame.Owner,
 	}
 }
 

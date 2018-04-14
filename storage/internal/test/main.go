@@ -16,10 +16,10 @@ import (
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/workfit/tester/assert"
 	"log"
-	"math"
 	"reflect"
 	"sort"
 	"testing"
+	"time"
 )
 
 type StorageManager interface {
@@ -109,13 +109,13 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	assert.For(t).ThatActual(eGame).IsNotNil()
 
-	assert.For(t).ThatActual(tictactoeGame.Created().UnixNano()-eGame.LastActivity < 100).IsTrue()
+	assert.For(t).ThatActual(tictactoeGame.Created().UnixNano()-tictactoeGame.Modified().UnixNano() < 100).IsTrue()
 
 	assert.For(t).ThatActual(eGame.Owner).Equals("")
 
 	eGame.Owner = "Foo"
 
-	lastSeenTimestamp := eGame.LastActivity
+	lastSeenTimestamp := tictactoeGame.Modified()
 
 	err = storage.UpdateExtendedGame(tictactoeGame.Id(), eGame)
 
@@ -141,7 +141,7 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	assert.For(t).ThatActual(eGame.LastActivity > lastSeenTimestamp).IsTrue()
+	assert.For(t).ThatActual(tictactoeGame.Modified().After(lastSeenTimestamp)).IsTrue()
 
 	refriedMove, err := tictactoeGame.Move(1)
 
@@ -222,13 +222,13 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 		t.Error(testName, "We called listgames with a tictactoe game and a blackjack game, but got", len(games), "back.")
 	}
 
-	lastSeenTimestamp = math.MaxInt64
+	lastSeenTimestamp = time.Date(3000, 1, 1, 1, 1, 1, 1, time.UTC)
 
 	for _, game := range games {
-		if game.LastActivity >= lastSeenTimestamp {
+		if game.Modified.After(lastSeenTimestamp) {
 			t.Error("Games were not sorted descending by lastSeenTimeStamp")
 		}
-		lastSeenTimestamp = game.LastActivity
+		lastSeenTimestamp = game.Modified
 	}
 
 	//TODO: figure out how to test that name is matched when retrieving from store.
@@ -611,7 +611,7 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 		if config.Finished {
 			gameRec, err := storage.Game(game.Id())
 			if err != nil {
-				t.Fatal("Couldn't get game: " + err.Error())
+				t.Fatal("Couldn't get gameass: " + err.Error())
 			}
 			gameRec.Finished = true
 			gameRec.Version++

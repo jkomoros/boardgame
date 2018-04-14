@@ -17,7 +17,6 @@ import (
 	"github.com/jkomoros/boardgame/server/api/users"
 	"sort"
 	"sync"
-	"time"
 )
 
 type StorageManager struct {
@@ -198,14 +197,12 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 	}
 
 	s.extendedGamesLock.RLock()
-	eGame, ok := s.extendedGames[game.Id]
+	_, ok = s.extendedGames[game.Id]
 	s.extendedGamesLock.RUnlock()
 	if !ok {
 		s.extendedGamesLock.Lock()
 		s.extendedGames[game.Id] = extendedgame.DefaultStorageRecord()
 		s.extendedGamesLock.Unlock()
-	} else {
-		eGame.LastActivity = time.Now().UnixNano()
 	}
 
 	s.statesLock.Lock()
@@ -326,7 +323,7 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string, ga
 	}
 
 	sort.Slice(result, func(i, j int) bool {
-		return result[i].LastActivity > result[j].LastActivity
+		return result[i].Modified.After(result[j].Modified)
 	})
 
 	return result

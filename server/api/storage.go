@@ -18,9 +18,7 @@ type StorageManager interface {
 	//StorageManager extends the boardgame.StorageManager interface. Those
 	//methods have two additional semantic expectations, however:
 	//SaveGameAndCurrentState should create an ExtendedGameStorageRecord on
-	//the first save of a game. And each time SaveGameAndCurrentState is
-	//called, that game's Extended storage record's LastActivity should be set
-	//to the current time.
+	//the first save of a game.
 	boardgame.StorageManager
 
 	//Name returns the name of the storage manager type, for example "memory", "bolt", or "mysql"

@@ -9,14 +9,12 @@ package extendedgame
 import (
 	"encoding/json"
 	"github.com/jkomoros/boardgame"
-	"time"
 )
 
 type StorageRecord struct {
-	LastActivity int64
-	Open         bool
-	Visible      bool
-	Owner        string
+	Open    bool
+	Visible bool
+	Owner   string
 }
 
 type CombinedStorageRecord struct {
@@ -26,10 +24,9 @@ type CombinedStorageRecord struct {
 
 func DefaultStorageRecord() *StorageRecord {
 	return &StorageRecord{
-		LastActivity: time.Now().UnixNano(),
-		Open:         true,
-		Visible:      true,
-		Owner:        "",
+		Open:    true,
+		Visible: true,
+		Owner:   "",
 	}
 }
 

@@ -544,7 +544,7 @@ func (s *Server) listGamesWithUsers(max int, list listing.Type, userId string, g
 		result[i] = &gameStorageRecordWithUsers{
 			game,
 			s.gamePlayerInfo(&game.GameStorageRecord, manager),
-			humanize.Time(time.Unix(0, game.LastActivity)),
+			humanize.Time(game.Modified),
 		}
 	}
 
