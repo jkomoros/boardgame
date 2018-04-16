@@ -431,6 +431,17 @@ func (r *readerValidator) Valid(reader PropertyReader) error {
 			if val.state() == nil {
 				return errors.New("Stack prop " + propName + " didn't have its state set")
 			}
+		case TypeBoard:
+			val, err := reader.BoardProp(propName)
+			if val == nil {
+				return errors.New("Board Prop " + propName + " was nil")
+			}
+			if err != nil {
+				return errors.New("Board prop " + propName + " had unexpected error: " + err.Error())
+			}
+			if val.state() == nil {
+				return errors.New("Stack prop " + propName + " didn't have its state set")
+			}
 		case TypeTimer:
 			val, err := reader.TimerProp(propName)
 			if val == nil {
@@ -472,6 +483,15 @@ func setReaderStatePtr(reader PropertyReader, st State) error {
 			}
 			if err != nil {
 				return errors.New("Stack prop " + propName + " had unexpected error: " + err.Error())
+			}
+			val.setState(statePtr)
+		case TypeBoard:
+			val, err := reader.BoardProp(propName)
+			if val == nil {
+				return errors.New("Board Prop " + propName + " was nil")
+			}
+			if err != nil {
+				return errors.New("Board prop " + propName + " had unexpected error: " + err.Error())
 			}
 			val.setState(statePtr)
 		case TypeTimer:
@@ -603,6 +623,26 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 				return errors.New(propName + " could not get mutable stack on output: " + err.Error())
 			}
 			if err := outputStack.importFrom(stackVal); err != nil {
+				return errors.New(propName + " could not import from input: " + err.Error())
+			}
+		case TypeBoard:
+			boardVal, err := input.MutableBoardProp(propName)
+			if err != nil {
+				//if the err is ErrPropertyImmutable, that's OK, just skip
+				if err == ErrPropertyImmutable {
+					continue
+				}
+				return errors.New(propName + " did not return a board as expected: " + err.Error())
+			}
+			outputBoard, err := outputContainer.MutableBoardProp(propName)
+			if err != nil {
+				//if the err is ErrPropertyImmutable, that's OK, just skip
+				if err == ErrPropertyImmutable {
+					continue
+				}
+				return errors.New(propName + " could not get mutable board on output: " + err.Error())
+			}
+			if err := outputBoard.importFrom(boardVal); err != nil {
 				return errors.New(propName + " could not import from input: " + err.Error())
 			}
 		case TypeTimer:

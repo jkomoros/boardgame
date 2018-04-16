@@ -10,12 +10,18 @@ type Board interface {
 	Spaces() []Stack
 	SpaceAt(index int) Stack
 	Len() int
+	state() *state
+	setState(st *state)
 }
 
 type MutableBoard interface {
 	Board
 	MutableSpaces() []MutableStack
 	MutableSpaceAt(index int) MutableStack
+
+	applySanitizationPolicy(policy Policy)
+	//Used to copy from other boards. See mutableStack.importFrom for more about how these work.
+	importFrom(other Board) error
 }
 
 type board struct {
@@ -41,6 +47,27 @@ func (d *Deck) NewBoard(length int, maxSize int) MutableBoard {
 	return &board{
 		spaces: spaces,
 	}
+}
+
+func (b *board) setState(st *state) {
+	for _, stack := range b.spaces {
+		stack.setState(st)
+	}
+}
+
+func (b *board) state() *state {
+	if len(b.spaces) < 1 {
+		return nil
+	}
+	return b.spaces[0].state()
+}
+
+func (b *board) importFrom(other Board) error {
+
+	//TODO: implement similar to how importFrom on stacks work
+
+	panic("Not implemented")
+
 }
 
 func (b *board) Spaces() []Stack {

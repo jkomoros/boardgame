@@ -283,6 +283,7 @@ func sanitizeStateObj(readSetConfigurer PropertyReadSetConfigurer, transformatio
 		}
 
 		if visibleDynamic != nil {
+			//TODO: also do this for TypeBoards.
 			if propType == TypeStack {
 				if policy == PolicyVisible {
 					stackProp := prop.(Stack)
@@ -453,6 +454,12 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 		return applySanitizationPolicyPlayerIndexSlice(policy, input.([]PlayerIndex))
 	}
 
+	if propType == TypeBoard {
+		board := input.(MutableBoard)
+		board.applySanitizationPolicy(policy)
+		return input
+	}
+
 	//Now we're left with len-properties.
 
 	stack := input.(MutableStack)
@@ -546,6 +553,12 @@ func applySanitizationPolicyPlayerIndexSlice(policy Policy, input []PlayerIndex)
 	//if we get to here it's either PolicyHidden, or an unknown policy. If the
 	//latter, it's better to fail by being restrictive.
 	return make([]PlayerIndex, 0)
+}
+
+func (b *board) applySanitizationPolicy(policy Policy) {
+	for _, stack := range b.spaces {
+		stack.applySanitizationPolicy(policy)
+	}
 }
 
 func (g *growableStack) applySanitizationPolicy(policy Policy) {

@@ -403,6 +403,8 @@ func validateReaderBeforeSave(reader PropertyReader, name string, state State) e
 				return errors.New(propName + " was a stack that did not validate: " + err.Error())
 			}
 		}
+		//We don't need to check TypeBoard here, because TypeBoard never has
+		//merged stacks within it, and those are the only ones who could be invalid here.
 	}
 
 	return nil

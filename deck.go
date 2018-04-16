@@ -145,6 +145,7 @@ func (d *Deck) GenericComponent() *Component {
 
 var illegalComponentValuesProps = map[PropertyType]bool{
 	TypeStack: true,
+	TypeBoard: true,
 	TypeTimer: true,
 }
 
