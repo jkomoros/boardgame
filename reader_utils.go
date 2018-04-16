@@ -144,6 +144,10 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 						isFixed,
 						boardSize,
 					}
+				} else {
+					if boardSize > 0 {
+						return nil, errors.New("board stuct tag provided, without a corresponding stack struct tag.")
+					}
 				}
 			}
 
