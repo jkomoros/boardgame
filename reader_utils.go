@@ -283,29 +283,55 @@ func (r *readerValidator) AutoInflate(readSetConfigurer PropertyReadSetConfigure
 
 	for propName, config := range r.autoStackFields {
 
-		stack, err := readSetConfigurer.MutableStackProp(propName)
-		if stack != nil {
-			//Guess it was already set!
-			continue
-		}
-		if err != nil {
-			return errors.New(propName + " had error fetching stack: " + err.Error())
-		}
-		if config == nil {
-			return errors.New("The config for " + propName + " was unexpectedly nil")
-		}
-		if config.deck == nil {
-			return errors.New("The deck for " + propName + " was unexpectedly nil")
-		}
+		if config.boardSize > 0 {
 
-		if config.fixedSize {
-			stack = config.deck.NewSizedStack(config.size)
+			board, err := readSetConfigurer.MutableBoardProp(propName)
+			if board != nil {
+				//Guess it was already set!
+				continue
+			}
+			if err != nil {
+				return errors.New(propName + " had error fetching board: " + err.Error())
+			}
+			if config == nil {
+				return errors.New("The config for " + propName + " was unexpectedly nil")
+			}
+			if config.deck == nil {
+				return errors.New("The deck for " + propName + " was unexpectedly nil")
+			}
+
+			board = config.deck.NewBoard(config.boardSize, config.size)
+
+			if err := readSetConfigurer.ConfigureMutableBoardProp(propName, board); err != nil {
+				return errors.New("Couldn't set " + propName + " to board: " + err.Error())
+			}
+
 		} else {
-			stack = config.deck.NewStack(config.size)
-		}
 
-		if err := readSetConfigurer.ConfigureMutableStackProp(propName, stack); err != nil {
-			return errors.New("Couldn't set " + propName + " to stack: " + err.Error())
+			stack, err := readSetConfigurer.MutableStackProp(propName)
+			if stack != nil {
+				//Guess it was already set!
+				continue
+			}
+			if err != nil {
+				return errors.New(propName + " had error fetching stack: " + err.Error())
+			}
+			if config == nil {
+				return errors.New("The config for " + propName + " was unexpectedly nil")
+			}
+			if config.deck == nil {
+				return errors.New("The deck for " + propName + " was unexpectedly nil")
+			}
+
+			if config.fixedSize {
+				stack = config.deck.NewSizedStack(config.size)
+			} else {
+				stack = config.deck.NewStack(config.size)
+			}
+
+			if err := readSetConfigurer.ConfigureMutableStackProp(propName, stack); err != nil {
+				return errors.New("Couldn't set " + propName + " to stack: " + err.Error())
+			}
 		}
 	}
 
