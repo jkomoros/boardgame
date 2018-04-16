@@ -118,6 +118,7 @@ type PropertyReadSetConfigurer interface {
 	//container value. Use this if PropMutable(name) returns true.
 	ConfigureMutableEnumProp(name string, value enum.MutableVal) error
 	ConfigureMutableStackProp(name string, value MutableStack) error
+	ConfigureMutableBoardProp(name string, value MutableBoard) error
 	ConfigureMutableTimerProp(name string, value MutableTimer) error
 
 	//Configure*Prop allows you to set the container for container values for
