@@ -72,15 +72,28 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 		sanitizationPolicy[propName] = policyFromStructTag(structTagForField(exampleObj, propName, sanitizationStructTag), defaultGroup)
 
 		switch propType {
-		case TypeStack:
-			stack, err := exampleReader.StackProp(propName)
-			if err != nil {
-				return nil, errors.New("Couldn't fetch stack prop: " + propName)
-			}
-			if stack != nil {
-				//This stack prop is already non-nil, so we don't need to do
-				//any processing to tell how to inflate it.
-				continue
+		case TypeStack, TypeBoard:
+
+			if propType == TypeStack {
+				stack, err := exampleReader.StackProp(propName)
+				if err != nil {
+					return nil, errors.New("Couldn't fetch stack prop: " + propName)
+				}
+				if stack != nil {
+					//This stack prop is already non-nil, so we don't need to do
+					//any processing to tell how to inflate it.
+					continue
+				}
+			} else {
+				board, err := exampleReader.BoardProp(propName)
+				if err != nil {
+					return nil, errors.New("Couldn't fetch board prop: " + propName)
+				}
+				if board != nil {
+					//This board prop is already non-nil, so we don't need to do
+					//any processing to tell how to inflate it.
+					continue
+				}
 			}
 
 			var tag string
