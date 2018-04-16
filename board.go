@@ -1,6 +1,7 @@
 package boardgame
 
 import (
+	"encoding/json"
 	"errors"
 	"strconv"
 )
@@ -120,4 +121,42 @@ func (b *board) MutableSpaceAt(index int) MutableStack {
 
 func (b *board) Len() int {
 	return len(b.spaces)
+}
+
+type boardJSONObj struct {
+	Spaces []json.RawMessage
+}
+
+func (b *board) MarshalJSON() ([]byte, error) {
+	spaces := make([]json.RawMessage, len(b.spaces))
+	for i, space := range b.spaces {
+		blob, err := json.Marshal(space)
+		if err != nil {
+			return nil, err
+		}
+		spaces[i] = blob
+	}
+
+	obj := &boardJSONObj{
+		Spaces: spaces,
+	}
+
+	return json.Marshal(obj)
+
+}
+
+func (b *board) UnmarshalJSON(blob []byte) error {
+	obj := &boardJSONObj{}
+
+	if err := json.Unmarshal(blob, obj); err != nil {
+		return err
+	}
+
+	for i, blob := range obj.Spaces {
+		if err := b.spaces[i].UnmarshalJSON(blob); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
