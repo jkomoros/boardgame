@@ -40,6 +40,8 @@ func (c *__CardReader) Prop(name string) (interface{}, error) {
 	}
 
 	switch propType {
+	case boardgame.TypeBoard:
+		return c.BoardProp(name)
 	case boardgame.TypeBool:
 		return c.BoolProp(name)
 	case boardgame.TypeBoolSlice:
@@ -66,6 +68,12 @@ func (c *__CardReader) Prop(name string) (interface{}, error) {
 	}
 
 	return nil, errors.New("Unexpected property type: " + propType.String())
+}
+
+func (c *__CardReader) BoardProp(name string) (boardgame.Board, error) {
+
+	return nil, errors.New("No such Board prop: " + name)
+
 }
 
 func (c *__CardReader) BoolProp(name string) (bool, error) {

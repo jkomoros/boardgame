@@ -39,6 +39,8 @@ func (v *__ValueReader) Prop(name string) (interface{}, error) {
 	}
 
 	switch propType {
+	case boardgame.TypeBoard:
+		return v.BoardProp(name)
 	case boardgame.TypeBool:
 		return v.BoolProp(name)
 	case boardgame.TypeBoolSlice:
@@ -109,6 +111,8 @@ func (v *__ValueReader) SetProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type []int")
 		}
 		return v.SetIntSliceProp(name, val)
+	case boardgame.TypeBoard:
+		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeEnum:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeStack:
@@ -178,6 +182,22 @@ func (v *__ValueReader) ConfigureProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type []int")
 		}
 		return v.SetIntSliceProp(name, val)
+	case boardgame.TypeBoard:
+		if v.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.(boardgame.MutableBoard)
+			if !ok {
+				return errors.New("Provided value was not of type boardgame.MutableBoard")
+			}
+			return v.ConfigureMutableBoardProp(name, val)
+		} else {
+			//Immutable variant
+			val, ok := value.(boardgame.Board)
+			if !ok {
+				return errors.New("Provided value was not of type boardgame.Board")
+			}
+			return v.ConfigureBoardProp(name, val)
+		}
 	case boardgame.TypeEnum:
 		if v.PropMutable(name) {
 			//Mutable variant
@@ -254,6 +274,30 @@ func (v *__ValueReader) ConfigureProp(name string, value interface{}) error {
 	}
 
 	return errors.New("Unexpected property type: " + propType.String())
+}
+
+func (v *__ValueReader) BoardProp(name string) (boardgame.Board, error) {
+
+	return nil, errors.New("No such Board prop: " + name)
+
+}
+
+func (v *__ValueReader) ConfigureMutableBoardProp(name string, value boardgame.MutableBoard) error {
+
+	return errors.New("No such MutableBoard prop: " + name)
+
+}
+
+func (v *__ValueReader) ConfigureBoardProp(name string, value boardgame.Board) error {
+
+	return errors.New("No such Board prop: " + name)
+
+}
+
+func (v *__ValueReader) MutableBoardProp(name string) (boardgame.MutableBoard, error) {
+
+	return nil, errors.New("No such Board prop: " + name)
+
 }
 
 func (v *__ValueReader) BoolProp(name string) (bool, error) {
@@ -473,6 +517,8 @@ func (d *__DynamicValueReader) Prop(name string) (interface{}, error) {
 	}
 
 	switch propType {
+	case boardgame.TypeBoard:
+		return d.BoardProp(name)
 	case boardgame.TypeBool:
 		return d.BoolProp(name)
 	case boardgame.TypeBoolSlice:
@@ -545,6 +591,8 @@ func (d *__DynamicValueReader) SetProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type []int")
 		}
 		return d.SetIntSliceProp(name, val)
+	case boardgame.TypeBoard:
+		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeEnum:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeStack:
@@ -614,6 +662,22 @@ func (d *__DynamicValueReader) ConfigureProp(name string, value interface{}) err
 			return errors.New("Provided value was not of type []int")
 		}
 		return d.SetIntSliceProp(name, val)
+	case boardgame.TypeBoard:
+		if d.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.(boardgame.MutableBoard)
+			if !ok {
+				return errors.New("Provided value was not of type boardgame.MutableBoard")
+			}
+			return d.ConfigureMutableBoardProp(name, val)
+		} else {
+			//Immutable variant
+			val, ok := value.(boardgame.Board)
+			if !ok {
+				return errors.New("Provided value was not of type boardgame.Board")
+			}
+			return d.ConfigureBoardProp(name, val)
+		}
 	case boardgame.TypeEnum:
 		if d.PropMutable(name) {
 			//Mutable variant
@@ -690,6 +754,30 @@ func (d *__DynamicValueReader) ConfigureProp(name string, value interface{}) err
 	}
 
 	return errors.New("Unexpected property type: " + propType.String())
+}
+
+func (d *__DynamicValueReader) BoardProp(name string) (boardgame.Board, error) {
+
+	return nil, errors.New("No such Board prop: " + name)
+
+}
+
+func (d *__DynamicValueReader) ConfigureMutableBoardProp(name string, value boardgame.MutableBoard) error {
+
+	return errors.New("No such MutableBoard prop: " + name)
+
+}
+
+func (d *__DynamicValueReader) ConfigureBoardProp(name string, value boardgame.Board) error {
+
+	return errors.New("No such Board prop: " + name)
+
+}
+
+func (d *__DynamicValueReader) MutableBoardProp(name string) (boardgame.MutableBoard, error) {
+
+	return nil, errors.New("No such Board prop: " + name)
+
 }
 
 func (d *__DynamicValueReader) BoolProp(name string) (bool, error) {
