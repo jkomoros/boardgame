@@ -14,11 +14,14 @@ const concatenateStructTag = "concatenate"
 const overlapStructTag = "overlap"
 const fixedStackStructTag = "sizedstack"
 const sanitizationStructTag = "sanitize"
+const boardStructTag = "board"
 
 type autoStackConfig struct {
 	deck      *Deck
 	size      int
 	fixedSize bool
+	//If more than 0, then a board config.
+	boardSize int
 }
 
 type autoMergedStackConfig struct {
@@ -87,6 +90,7 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 				fixedStackStructTag,
 				concatenateStructTag,
 				overlapStructTag,
+				boardStructTag,
 			})
 
 			if exampleReadSetter != nil && exampleReadSetter.PropMutable(propName) {
@@ -99,6 +103,12 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 					return nil, errors.New(propName + " included a overlap struct tag on a mutable stack property")
 				}
 
+				boardSize, err := unpackBoardStructTag(structTags[boardStructTag])
+
+				if err != nil {
+					return nil, errors.New("Invalid board struct tag: " + err.Error())
+				}
+
 				isFixed := false
 
 				tag = structTags[stackStructTag]
@@ -108,6 +118,10 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 					if tag != "" {
 						isFixed = true
 					}
+				}
+
+				if isFixed && boardSize > 0 {
+					return nil, errors.New("Provided a board tag with a sizedstack, which is invalid.")
 				}
 
 				if tag != "" {
@@ -128,6 +142,7 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 						deck,
 						size,
 						isFixed,
+						boardSize,
 					}
 				}
 			}
@@ -672,6 +687,24 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 
 	return nil
 
+}
+
+func unpackBoardStructTag(tag string) (length int, err error) {
+	if tag == "" {
+		return 0, nil
+	}
+
+	val, err := strconv.Atoi(tag)
+
+	if err != nil {
+		return 0, err
+	}
+
+	if val < 0 {
+		return 0, nil
+	}
+
+	return val, nil
 }
 
 func unpackMergedStackStructTag(tag string, reader PropertyReader) (stackNames []string, err error) {
