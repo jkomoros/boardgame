@@ -1,5 +1,10 @@
 package boardgame
 
+import (
+	"errors"
+	"strconv"
+)
+
 //Board represents an array of growable Stacks. They're useful for
 //representing spaces on a board, which may allow unlimited components to
 //reside in them, or have a maxium number of occupants. If each board's space
@@ -64,10 +69,19 @@ func (b *board) state() *state {
 
 func (b *board) importFrom(other Board) error {
 
-	//TODO: implement similar to how importFrom on stacks work
+	otherB, ok := other.(*board)
 
-	panic("Not implemented")
+	if !ok {
+		return errors.New("other isn't a board")
+	}
 
+	for i, space := range b.spaces {
+		if err := space.importFrom(otherB.spaces[i]); err != nil {
+			return errors.New("Couldn't import, stack " + strconv.Itoa(i) + " errored: " + err.Error())
+		}
+	}
+
+	return nil
 }
 
 func (b *board) Spaces() []Stack {
