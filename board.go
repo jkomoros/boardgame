@@ -37,8 +37,9 @@ type board struct {
 //NewBoard returns a new board associated with the given deck. length is the
 //number of spaces to create. maxSize is the maximum size for each growable
 //Stack in the board. 0 means "no limitation". If you pass maxSize of 1,
-//consider simply using a sized Stack for that property instead. Boards can be
-//created with struct tags as well.
+//consider simply using a sized Stack for that property instead, as those are
+//semantically equivalent, and a sized Stack is simpler. Boards can be created
+//with struct tags as well.
 func (d *Deck) NewBoard(length int, maxSize int) MutableBoard {
 	if length <= 0 {
 		return nil
