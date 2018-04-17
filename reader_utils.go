@@ -251,6 +251,31 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 	return result, nil
 }
 
+//stacksForReader returns all stacks in reader, inclduing all StackProps, and all stacks within Boards.
+func stacksForReader(reader PropertyReader) []Stack {
+	var result []Stack
+
+	for propName, propType := range reader.Props() {
+		if propType == TypeStack {
+			stack, err := reader.StackProp(propName)
+			if err != nil {
+				continue
+			}
+			result = append(result, stack)
+		} else if propType == TypeBoard {
+			board, err := reader.BoardProp(propName)
+			if err != nil {
+				continue
+			}
+			for _, stack := range board.Spaces() {
+				result = append(result, stack)
+			}
+		}
+	}
+
+	return result
+}
+
 func policyFromStructTag(tag string, defaultGroup string) map[int]Policy {
 	if tag == "" {
 		tag = "visible"
