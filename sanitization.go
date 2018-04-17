@@ -282,25 +282,35 @@ func sanitizeStateObj(readSetConfigurer PropertyReadSetConfigurer, transformatio
 			return errors.New("Effective policy computed to PolicyInvalid")
 		}
 
-		if visibleDynamic != nil {
-			//TODO: also do this for TypeBoards.
-			if propType == TypeStack {
-				if policy == PolicyVisible {
-					stackProp := prop.(Stack)
-					if _, ok := visibleDynamic[stackProp.Deck().Name()]; ok {
-						for _, c := range stackProp.Components() {
-							if c == nil {
-								continue
-							}
-							visibleDynamic[c.Deck.Name()][c.DeckIndex] = true
-						}
-					}
+		readSetConfigurer.ConfigureProp(propName, applyPolicy(policy, prop, propType))
 
+		if visibleDynamic != nil {
+
+			if policy != PolicyVisible {
+				continue
+			}
+
+			var stacks []Stack
+
+			if propType == TypeStack {
+				stacks = []Stack{prop.(Stack)}
+			} else if propType == TypeBoard {
+				stacks = prop.(Board).Spaces()
+			}
+
+			for _, stack := range stacks {
+
+				if _, ok := visibleDynamic[stack.Deck().Name()]; ok {
+					for _, c := range stack.Components() {
+						if c == nil {
+							continue
+						}
+						visibleDynamic[c.Deck.Name()][c.DeckIndex] = true
+					}
 				}
 			}
 		}
 
-		readSetConfigurer.ConfigureProp(propName, applyPolicy(policy, prop, propType))
 	}
 
 	return nil
