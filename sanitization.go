@@ -355,25 +355,14 @@ func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[strin
 
 		reader := values.Reader()
 
-		for propName, propType := range reader.Props() {
-			if propType != TypeStack {
-				continue
-			}
-			prop, err := reader.Prop(propName)
-
-			if err != nil {
-				continue
-			}
-
-			stackProp := prop.(Stack)
-
-			if _, ok := dynamicComponentValues[stackProp.Deck().Name()]; !ok {
+		for _, stack := range stacksForReader(reader) {
+			if _, ok := dynamicComponentValues[stack.Deck().Name()]; !ok {
 				//This stack is for a deck that has no dynamic values, can skip.
 				continue
 			}
 
 			//Ok, if we get to here then we have a stack with items in a deck that does have dynamic values.
-			for _, c := range stackProp.Components() {
+			for _, c := range stack.Components() {
 				if c == nil {
 					continue
 				}
