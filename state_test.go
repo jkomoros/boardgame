@@ -407,12 +407,16 @@ func compareJSONObjects(in []byte, golden []byte, message string, t *testing.T) 
 
 }
 
-func diffGoldenJSON(diffFileName string, t *testing.T) []byte {
+func baseDiffGoldenJson(diffFileName string, t *testing.T) []byte {
+	return diffGoldenJSON(diffFileName, "basic_state.json", t)
+}
+
+func diffGoldenJSON(diffFileName string, baseFileName string, t *testing.T) []byte {
 	diff, err := jd.ReadDiffFile("./test/" + diffFileName)
 	if err != nil {
 		t.Fatal("Couldn't load " + diffFileName + ": " + err.Error())
 	}
-	base, err := jd.ReadJsonFile("./test/basic_state.json")
+	base, err := jd.ReadJsonFile("./test/" + baseFileName)
 	if err != nil {
 		t.Fatal("Couldn't load base file: " + err.Error())
 	}

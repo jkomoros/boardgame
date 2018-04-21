@@ -85,7 +85,7 @@ func TestMoveModifyDynamicValues(t *testing.T) {
 
 	currentJSON, _ := json.MarshalIndent(game.CurrentState(), "", "\t")
 
-	compareJSONObjects(currentJSON, diffGoldenJSON("diff_after_dynamic_component_move.patch", t), "Comparing json after two dynamic moves", t)
+	compareJSONObjects(currentJSON, baseDiffGoldenJson("diff_after_dynamic_component_move.patch", t), "Comparing json after two dynamic moves", t)
 
 }
 
@@ -307,7 +307,7 @@ func TestApplyMove(t *testing.T) {
 
 	currentJson, _ := json.Marshal(wrapper)
 
-	compareJSONObjects(currentJson, diffGoldenJSON("diff_after_move.patch", t), "Basic state after test move", t)
+	compareJSONObjects(currentJson, baseDiffGoldenJson("diff_after_move.patch", t), "Basic state after test move", t)
 
 	//Apply a move that should finish the game (any player has score > 5)
 	newRawMove := game.MoveByName("test")
