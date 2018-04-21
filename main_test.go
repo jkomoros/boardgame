@@ -147,7 +147,7 @@ type testGameState struct {
 	DownSizeStack      MutableStack `sizedstack:"test,4"`
 	OtherStack         MutableStack `sizedstack:"test,2"`
 	MyMergedStack      Stack        `concatenate:"DownSizeStack,OtherStack"`
-	//TODO: have a Stack here.
+	MyBoard            MutableBoard `stack:"test" board:"3"`
 }
 
 func (t *testGameState) Reader() PropertyReader {
