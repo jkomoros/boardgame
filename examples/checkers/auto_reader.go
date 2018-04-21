@@ -39,6 +39,8 @@ func (t *__tokenReader) Prop(name string) (interface{}, error) {
 	}
 
 	switch propType {
+	case boardgame.TypeBoard:
+		return t.BoardProp(name)
 	case boardgame.TypeBool:
 		return t.BoolProp(name)
 	case boardgame.TypeBoolSlice:
@@ -65,6 +67,12 @@ func (t *__tokenReader) Prop(name string) (interface{}, error) {
 	}
 
 	return nil, errors.New("Unexpected property type: " + propType.String())
+}
+
+func (t *__tokenReader) BoardProp(name string) (boardgame.Board, error) {
+
+	return nil, errors.New("No such Board prop: " + name)
+
 }
 
 func (t *__tokenReader) BoolProp(name string) (bool, error) {
@@ -166,6 +174,8 @@ func (t *__tokenDynamicReader) Prop(name string) (interface{}, error) {
 	}
 
 	switch propType {
+	case boardgame.TypeBoard:
+		return t.BoardProp(name)
 	case boardgame.TypeBool:
 		return t.BoolProp(name)
 	case boardgame.TypeBoolSlice:
@@ -236,6 +246,8 @@ func (t *__tokenDynamicReader) SetProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type []int")
 		}
 		return t.SetIntSliceProp(name, val)
+	case boardgame.TypeBoard:
+		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeEnum:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeStack:
@@ -305,6 +317,22 @@ func (t *__tokenDynamicReader) ConfigureProp(name string, value interface{}) err
 			return errors.New("Provided value was not of type []int")
 		}
 		return t.SetIntSliceProp(name, val)
+	case boardgame.TypeBoard:
+		if t.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.(boardgame.MutableBoard)
+			if !ok {
+				return errors.New("Provided value was not of type boardgame.MutableBoard")
+			}
+			return t.ConfigureMutableBoardProp(name, val)
+		} else {
+			//Immutable variant
+			val, ok := value.(boardgame.Board)
+			if !ok {
+				return errors.New("Provided value was not of type boardgame.Board")
+			}
+			return t.ConfigureBoardProp(name, val)
+		}
 	case boardgame.TypeEnum:
 		if t.PropMutable(name) {
 			//Mutable variant
@@ -381,6 +409,30 @@ func (t *__tokenDynamicReader) ConfigureProp(name string, value interface{}) err
 	}
 
 	return errors.New("Unexpected property type: " + propType.String())
+}
+
+func (t *__tokenDynamicReader) BoardProp(name string) (boardgame.Board, error) {
+
+	return nil, errors.New("No such Board prop: " + name)
+
+}
+
+func (t *__tokenDynamicReader) ConfigureMutableBoardProp(name string, value boardgame.MutableBoard) error {
+
+	return errors.New("No such MutableBoard prop: " + name)
+
+}
+
+func (t *__tokenDynamicReader) ConfigureBoardProp(name string, value boardgame.Board) error {
+
+	return errors.New("No such Board prop: " + name)
+
+}
+
+func (t *__tokenDynamicReader) MutableBoardProp(name string) (boardgame.MutableBoard, error) {
+
+	return nil, errors.New("No such Board prop: " + name)
+
 }
 
 func (t *__tokenDynamicReader) BoolProp(name string) (bool, error) {
@@ -599,6 +651,8 @@ func (m *__MovePlaceTokenReader) Prop(name string) (interface{}, error) {
 	}
 
 	switch propType {
+	case boardgame.TypeBoard:
+		return m.BoardProp(name)
 	case boardgame.TypeBool:
 		return m.BoolProp(name)
 	case boardgame.TypeBoolSlice:
@@ -669,6 +723,8 @@ func (m *__MovePlaceTokenReader) SetProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type []int")
 		}
 		return m.SetIntSliceProp(name, val)
+	case boardgame.TypeBoard:
+		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeEnum:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeStack:
@@ -738,6 +794,22 @@ func (m *__MovePlaceTokenReader) ConfigureProp(name string, value interface{}) e
 			return errors.New("Provided value was not of type []int")
 		}
 		return m.SetIntSliceProp(name, val)
+	case boardgame.TypeBoard:
+		if m.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.(boardgame.MutableBoard)
+			if !ok {
+				return errors.New("Provided value was not of type boardgame.MutableBoard")
+			}
+			return m.ConfigureMutableBoardProp(name, val)
+		} else {
+			//Immutable variant
+			val, ok := value.(boardgame.Board)
+			if !ok {
+				return errors.New("Provided value was not of type boardgame.Board")
+			}
+			return m.ConfigureBoardProp(name, val)
+		}
 	case boardgame.TypeEnum:
 		if m.PropMutable(name) {
 			//Mutable variant
@@ -814,6 +886,30 @@ func (m *__MovePlaceTokenReader) ConfigureProp(name string, value interface{}) e
 	}
 
 	return errors.New("Unexpected property type: " + propType.String())
+}
+
+func (m *__MovePlaceTokenReader) BoardProp(name string) (boardgame.Board, error) {
+
+	return nil, errors.New("No such Board prop: " + name)
+
+}
+
+func (m *__MovePlaceTokenReader) ConfigureMutableBoardProp(name string, value boardgame.MutableBoard) error {
+
+	return errors.New("No such MutableBoard prop: " + name)
+
+}
+
+func (m *__MovePlaceTokenReader) ConfigureBoardProp(name string, value boardgame.Board) error {
+
+	return errors.New("No such Board prop: " + name)
+
+}
+
+func (m *__MovePlaceTokenReader) MutableBoardProp(name string) (boardgame.MutableBoard, error) {
+
+	return nil, errors.New("No such Board prop: " + name)
+
 }
 
 func (m *__MovePlaceTokenReader) BoolProp(name string) (bool, error) {
@@ -1046,6 +1142,8 @@ func (m *__MoveMoveTokenReader) Prop(name string) (interface{}, error) {
 	}
 
 	switch propType {
+	case boardgame.TypeBoard:
+		return m.BoardProp(name)
 	case boardgame.TypeBool:
 		return m.BoolProp(name)
 	case boardgame.TypeBoolSlice:
@@ -1120,6 +1218,8 @@ func (m *__MoveMoveTokenReader) SetProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type []int")
 		}
 		return m.SetIntSliceProp(name, val)
+	case boardgame.TypeBoard:
+		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeEnum:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeStack:
@@ -1189,6 +1289,22 @@ func (m *__MoveMoveTokenReader) ConfigureProp(name string, value interface{}) er
 			return errors.New("Provided value was not of type []int")
 		}
 		return m.SetIntSliceProp(name, val)
+	case boardgame.TypeBoard:
+		if m.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.(boardgame.MutableBoard)
+			if !ok {
+				return errors.New("Provided value was not of type boardgame.MutableBoard")
+			}
+			return m.ConfigureMutableBoardProp(name, val)
+		} else {
+			//Immutable variant
+			val, ok := value.(boardgame.Board)
+			if !ok {
+				return errors.New("Provided value was not of type boardgame.Board")
+			}
+			return m.ConfigureBoardProp(name, val)
+		}
 	case boardgame.TypeEnum:
 		if m.PropMutable(name) {
 			//Mutable variant
@@ -1265,6 +1381,30 @@ func (m *__MoveMoveTokenReader) ConfigureProp(name string, value interface{}) er
 	}
 
 	return errors.New("Unexpected property type: " + propType.String())
+}
+
+func (m *__MoveMoveTokenReader) BoardProp(name string) (boardgame.Board, error) {
+
+	return nil, errors.New("No such Board prop: " + name)
+
+}
+
+func (m *__MoveMoveTokenReader) ConfigureMutableBoardProp(name string, value boardgame.MutableBoard) error {
+
+	return errors.New("No such MutableBoard prop: " + name)
+
+}
+
+func (m *__MoveMoveTokenReader) ConfigureBoardProp(name string, value boardgame.Board) error {
+
+	return errors.New("No such Board prop: " + name)
+
+}
+
+func (m *__MoveMoveTokenReader) MutableBoardProp(name string) (boardgame.MutableBoard, error) {
+
+	return nil, errors.New("No such Board prop: " + name)
+
 }
 
 func (m *__MoveMoveTokenReader) BoolProp(name string) (bool, error) {
@@ -1517,6 +1657,8 @@ func (m *__MoveCrownTokenReader) Prop(name string) (interface{}, error) {
 	}
 
 	switch propType {
+	case boardgame.TypeBoard:
+		return m.BoardProp(name)
 	case boardgame.TypeBool:
 		return m.BoolProp(name)
 	case boardgame.TypeBoolSlice:
@@ -1587,6 +1729,8 @@ func (m *__MoveCrownTokenReader) SetProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type []int")
 		}
 		return m.SetIntSliceProp(name, val)
+	case boardgame.TypeBoard:
+		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeEnum:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeStack:
@@ -1656,6 +1800,22 @@ func (m *__MoveCrownTokenReader) ConfigureProp(name string, value interface{}) e
 			return errors.New("Provided value was not of type []int")
 		}
 		return m.SetIntSliceProp(name, val)
+	case boardgame.TypeBoard:
+		if m.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.(boardgame.MutableBoard)
+			if !ok {
+				return errors.New("Provided value was not of type boardgame.MutableBoard")
+			}
+			return m.ConfigureMutableBoardProp(name, val)
+		} else {
+			//Immutable variant
+			val, ok := value.(boardgame.Board)
+			if !ok {
+				return errors.New("Provided value was not of type boardgame.Board")
+			}
+			return m.ConfigureBoardProp(name, val)
+		}
 	case boardgame.TypeEnum:
 		if m.PropMutable(name) {
 			//Mutable variant
@@ -1732,6 +1892,30 @@ func (m *__MoveCrownTokenReader) ConfigureProp(name string, value interface{}) e
 	}
 
 	return errors.New("Unexpected property type: " + propType.String())
+}
+
+func (m *__MoveCrownTokenReader) BoardProp(name string) (boardgame.Board, error) {
+
+	return nil, errors.New("No such Board prop: " + name)
+
+}
+
+func (m *__MoveCrownTokenReader) ConfigureMutableBoardProp(name string, value boardgame.MutableBoard) error {
+
+	return errors.New("No such MutableBoard prop: " + name)
+
+}
+
+func (m *__MoveCrownTokenReader) ConfigureBoardProp(name string, value boardgame.Board) error {
+
+	return errors.New("No such Board prop: " + name)
+
+}
+
+func (m *__MoveCrownTokenReader) MutableBoardProp(name string) (boardgame.MutableBoard, error) {
+
+	return nil, errors.New("No such Board prop: " + name)
+
 }
 
 func (m *__MoveCrownTokenReader) BoolProp(name string) (bool, error) {
@@ -1953,6 +2137,8 @@ func (g *__gameStateReader) Prop(name string) (interface{}, error) {
 	}
 
 	switch propType {
+	case boardgame.TypeBoard:
+		return g.BoardProp(name)
 	case boardgame.TypeBool:
 		return g.BoolProp(name)
 	case boardgame.TypeBoolSlice:
@@ -2029,6 +2215,8 @@ func (g *__gameStateReader) SetProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type []int")
 		}
 		return g.SetIntSliceProp(name, val)
+	case boardgame.TypeBoard:
+		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeEnum:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeStack:
@@ -2098,6 +2286,22 @@ func (g *__gameStateReader) ConfigureProp(name string, value interface{}) error 
 			return errors.New("Provided value was not of type []int")
 		}
 		return g.SetIntSliceProp(name, val)
+	case boardgame.TypeBoard:
+		if g.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.(boardgame.MutableBoard)
+			if !ok {
+				return errors.New("Provided value was not of type boardgame.MutableBoard")
+			}
+			return g.ConfigureMutableBoardProp(name, val)
+		} else {
+			//Immutable variant
+			val, ok := value.(boardgame.Board)
+			if !ok {
+				return errors.New("Provided value was not of type boardgame.Board")
+			}
+			return g.ConfigureBoardProp(name, val)
+		}
 	case boardgame.TypeEnum:
 		if g.PropMutable(name) {
 			//Mutable variant
@@ -2174,6 +2378,30 @@ func (g *__gameStateReader) ConfigureProp(name string, value interface{}) error 
 	}
 
 	return errors.New("Unexpected property type: " + propType.String())
+}
+
+func (g *__gameStateReader) BoardProp(name string) (boardgame.Board, error) {
+
+	return nil, errors.New("No such Board prop: " + name)
+
+}
+
+func (g *__gameStateReader) ConfigureMutableBoardProp(name string, value boardgame.MutableBoard) error {
+
+	return errors.New("No such MutableBoard prop: " + name)
+
+}
+
+func (g *__gameStateReader) ConfigureBoardProp(name string, value boardgame.Board) error {
+
+	return errors.New("No such Board prop: " + name)
+
+}
+
+func (g *__gameStateReader) MutableBoardProp(name string) (boardgame.MutableBoard, error) {
+
+	return nil, errors.New("No such Board prop: " + name)
+
 }
 
 func (g *__gameStateReader) BoolProp(name string) (bool, error) {
@@ -2453,6 +2681,8 @@ func (p *__playerStateReader) Prop(name string) (interface{}, error) {
 	}
 
 	switch propType {
+	case boardgame.TypeBoard:
+		return p.BoardProp(name)
 	case boardgame.TypeBool:
 		return p.BoolProp(name)
 	case boardgame.TypeBoolSlice:
@@ -2527,6 +2757,8 @@ func (p *__playerStateReader) SetProp(name string, value interface{}) error {
 			return errors.New("Provided value was not of type []int")
 		}
 		return p.SetIntSliceProp(name, val)
+	case boardgame.TypeBoard:
+		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeEnum:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeStack:
@@ -2596,6 +2828,22 @@ func (p *__playerStateReader) ConfigureProp(name string, value interface{}) erro
 			return errors.New("Provided value was not of type []int")
 		}
 		return p.SetIntSliceProp(name, val)
+	case boardgame.TypeBoard:
+		if p.PropMutable(name) {
+			//Mutable variant
+			val, ok := value.(boardgame.MutableBoard)
+			if !ok {
+				return errors.New("Provided value was not of type boardgame.MutableBoard")
+			}
+			return p.ConfigureMutableBoardProp(name, val)
+		} else {
+			//Immutable variant
+			val, ok := value.(boardgame.Board)
+			if !ok {
+				return errors.New("Provided value was not of type boardgame.Board")
+			}
+			return p.ConfigureBoardProp(name, val)
+		}
 	case boardgame.TypeEnum:
 		if p.PropMutable(name) {
 			//Mutable variant
@@ -2672,6 +2920,30 @@ func (p *__playerStateReader) ConfigureProp(name string, value interface{}) erro
 	}
 
 	return errors.New("Unexpected property type: " + propType.String())
+}
+
+func (p *__playerStateReader) BoardProp(name string) (boardgame.Board, error) {
+
+	return nil, errors.New("No such Board prop: " + name)
+
+}
+
+func (p *__playerStateReader) ConfigureMutableBoardProp(name string, value boardgame.MutableBoard) error {
+
+	return errors.New("No such MutableBoard prop: " + name)
+
+}
+
+func (p *__playerStateReader) ConfigureBoardProp(name string, value boardgame.Board) error {
+
+	return errors.New("No such Board prop: " + name)
+
+}
+
+func (p *__playerStateReader) MutableBoardProp(name string) (boardgame.MutableBoard, error) {
+
+	return nil, errors.New("No such Board prop: " + name)
+
 }
 
 func (p *__playerStateReader) BoolProp(name string) (bool, error) {

@@ -267,6 +267,7 @@ func (m *MoveInfo) Initiator() int {
 
 var moveTypeIllegalPropTypes = map[PropertyType]bool{
 	TypeStack: true,
+	TypeBoard: true,
 	TypeTimer: true,
 }
 

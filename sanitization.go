@@ -282,24 +282,35 @@ func sanitizeStateObj(readSetConfigurer PropertyReadSetConfigurer, transformatio
 			return errors.New("Effective policy computed to PolicyInvalid")
 		}
 
-		if visibleDynamic != nil {
-			if propType == TypeStack {
-				if policy == PolicyVisible {
-					stackProp := prop.(Stack)
-					if _, ok := visibleDynamic[stackProp.Deck().Name()]; ok {
-						for _, c := range stackProp.Components() {
-							if c == nil {
-								continue
-							}
-							visibleDynamic[c.Deck.Name()][c.DeckIndex] = true
-						}
-					}
+		readSetConfigurer.ConfigureProp(propName, applyPolicy(policy, prop, propType))
 
+		if visibleDynamic != nil {
+
+			if policy != PolicyVisible {
+				continue
+			}
+
+			var stacks []Stack
+
+			if propType == TypeStack {
+				stacks = []Stack{prop.(Stack)}
+			} else if propType == TypeBoard {
+				stacks = prop.(Board).Spaces()
+			}
+
+			for _, stack := range stacks {
+
+				if _, ok := visibleDynamic[stack.Deck().Name()]; ok {
+					for _, c := range stack.Components() {
+						if c == nil {
+							continue
+						}
+						visibleDynamic[c.Deck.Name()][c.DeckIndex] = true
+					}
 				}
 			}
 		}
 
-		readSetConfigurer.ConfigureProp(propName, applyPolicy(policy, prop, propType))
 	}
 
 	return nil
@@ -344,25 +355,14 @@ func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[strin
 
 		reader := values.Reader()
 
-		for propName, propType := range reader.Props() {
-			if propType != TypeStack {
-				continue
-			}
-			prop, err := reader.Prop(propName)
-
-			if err != nil {
-				continue
-			}
-
-			stackProp := prop.(Stack)
-
-			if _, ok := dynamicComponentValues[stackProp.Deck().Name()]; !ok {
+		for _, stack := range stacksForReader(reader) {
+			if _, ok := dynamicComponentValues[stack.Deck().Name()]; !ok {
 				//This stack is for a deck that has no dynamic values, can skip.
 				continue
 			}
 
 			//Ok, if we get to here then we have a stack with items in a deck that does have dynamic values.
-			for _, c := range stackProp.Components() {
+			for _, c := range stack.Components() {
 				if c == nil {
 					continue
 				}
@@ -451,6 +451,12 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 		return applySanitizationPolicyStringSlice(policy, input.([]string))
 	case TypePlayerIndexSlice:
 		return applySanitizationPolicyPlayerIndexSlice(policy, input.([]PlayerIndex))
+	}
+
+	if propType == TypeBoard {
+		board := input.(MutableBoard)
+		board.applySanitizationPolicy(policy)
+		return input
 	}
 
 	//Now we're left with len-properties.
@@ -546,6 +552,12 @@ func applySanitizationPolicyPlayerIndexSlice(policy Policy, input []PlayerIndex)
 	//if we get to here it's either PolicyHidden, or an unknown policy. If the
 	//latter, it's better to fail by being restrictive.
 	return make([]PlayerIndex, 0)
+}
+
+func (b *board) applySanitizationPolicy(policy Policy) {
+	for _, stack := range b.spaces {
+		stack.applySanitizationPolicy(policy)
+	}
 }
 
 func (g *growableStack) applySanitizationPolicy(policy Policy) {

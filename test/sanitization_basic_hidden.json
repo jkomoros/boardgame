@@ -68,6 +68,28 @@
                 ""
             ],
             "IdsLastSeen": {}
+        },
+        "MyBoard": {
+            "Spaces": [
+                {
+                    "Deck": "test",
+                    "Indexes": [],
+                    "Ids": [],
+                    "IdsLastSeen": {}
+                },
+                {
+                    "Deck": "test",
+                    "Indexes": [],
+                    "Ids": [],
+                    "IdsLastSeen": {}
+                },
+                {
+                    "Deck": "test",
+                    "Indexes": [],
+                    "Ids": [],
+                    "IdsLastSeen": {}
+                }
+            ]
         }
     },
     "Players": [

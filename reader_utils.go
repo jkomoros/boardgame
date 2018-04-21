@@ -14,11 +14,14 @@ const concatenateStructTag = "concatenate"
 const overlapStructTag = "overlap"
 const fixedStackStructTag = "sizedstack"
 const sanitizationStructTag = "sanitize"
+const boardStructTag = "board"
 
 type autoStackConfig struct {
 	deck      *Deck
 	size      int
 	fixedSize bool
+	//If more than 0, then a board config.
+	boardSize int
 }
 
 type autoMergedStackConfig struct {
@@ -69,15 +72,28 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 		sanitizationPolicy[propName] = policyFromStructTag(structTagForField(exampleObj, propName, sanitizationStructTag), defaultGroup)
 
 		switch propType {
-		case TypeStack:
-			stack, err := exampleReader.StackProp(propName)
-			if err != nil {
-				return nil, errors.New("Couldn't fetch stack prop: " + propName)
-			}
-			if stack != nil {
-				//This stack prop is already non-nil, so we don't need to do
-				//any processing to tell how to inflate it.
-				continue
+		case TypeStack, TypeBoard:
+
+			if propType == TypeStack {
+				stack, err := exampleReader.StackProp(propName)
+				if err != nil {
+					return nil, errors.New("Couldn't fetch stack prop: " + propName)
+				}
+				if stack != nil {
+					//This stack prop is already non-nil, so we don't need to do
+					//any processing to tell how to inflate it.
+					continue
+				}
+			} else {
+				board, err := exampleReader.BoardProp(propName)
+				if err != nil {
+					return nil, errors.New("Couldn't fetch board prop: " + propName)
+				}
+				if board != nil {
+					//This board prop is already non-nil, so we don't need to do
+					//any processing to tell how to inflate it.
+					continue
+				}
 			}
 
 			var tag string
@@ -87,6 +103,7 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 				fixedStackStructTag,
 				concatenateStructTag,
 				overlapStructTag,
+				boardStructTag,
 			})
 
 			if exampleReadSetter != nil && exampleReadSetter.PropMutable(propName) {
@@ -99,6 +116,12 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 					return nil, errors.New(propName + " included a overlap struct tag on a mutable stack property")
 				}
 
+				boardSize, err := unpackBoardStructTag(structTags[boardStructTag])
+
+				if err != nil {
+					return nil, errors.New("Invalid board struct tag: " + err.Error())
+				}
+
 				isFixed := false
 
 				tag = structTags[stackStructTag]
@@ -108,6 +131,10 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 					if tag != "" {
 						isFixed = true
 					}
+				}
+
+				if isFixed && boardSize > 0 {
+					return nil, errors.New("Provided a board tag with a sizedstack, which is invalid.")
 				}
 
 				if tag != "" {
@@ -128,6 +155,11 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 						deck,
 						size,
 						isFixed,
+						boardSize,
+					}
+				} else {
+					if boardSize > 0 {
+						return nil, errors.New("board stuct tag provided, without a corresponding stack struct tag.")
 					}
 				}
 			}
@@ -219,6 +251,31 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 	return result, nil
 }
 
+//stacksForReader returns all stacks in reader, inclduing all StackProps, and all stacks within Boards.
+func stacksForReader(reader PropertyReader) []Stack {
+	var result []Stack
+
+	for propName, propType := range reader.Props() {
+		if propType == TypeStack {
+			stack, err := reader.StackProp(propName)
+			if err != nil {
+				continue
+			}
+			result = append(result, stack)
+		} else if propType == TypeBoard {
+			board, err := reader.BoardProp(propName)
+			if err != nil {
+				continue
+			}
+			for _, stack := range board.Spaces() {
+				result = append(result, stack)
+			}
+		}
+	}
+
+	return result
+}
+
 func policyFromStructTag(tag string, defaultGroup string) map[int]Policy {
 	if tag == "" {
 		tag = "visible"
@@ -264,29 +321,55 @@ func (r *readerValidator) AutoInflate(readSetConfigurer PropertyReadSetConfigure
 
 	for propName, config := range r.autoStackFields {
 
-		stack, err := readSetConfigurer.MutableStackProp(propName)
-		if stack != nil {
-			//Guess it was already set!
-			continue
-		}
-		if err != nil {
-			return errors.New(propName + " had error fetching stack: " + err.Error())
-		}
-		if config == nil {
-			return errors.New("The config for " + propName + " was unexpectedly nil")
-		}
-		if config.deck == nil {
-			return errors.New("The deck for " + propName + " was unexpectedly nil")
-		}
+		if config.boardSize > 0 {
 
-		if config.fixedSize {
-			stack = config.deck.NewSizedStack(config.size)
+			board, err := readSetConfigurer.MutableBoardProp(propName)
+			if board != nil {
+				//Guess it was already set!
+				continue
+			}
+			if err != nil {
+				return errors.New(propName + " had error fetching board: " + err.Error())
+			}
+			if config == nil {
+				return errors.New("The config for " + propName + " was unexpectedly nil")
+			}
+			if config.deck == nil {
+				return errors.New("The deck for " + propName + " was unexpectedly nil")
+			}
+
+			board = config.deck.NewBoard(config.boardSize, config.size)
+
+			if err := readSetConfigurer.ConfigureMutableBoardProp(propName, board); err != nil {
+				return errors.New("Couldn't set " + propName + " to board: " + err.Error())
+			}
+
 		} else {
-			stack = config.deck.NewStack(config.size)
-		}
 
-		if err := readSetConfigurer.ConfigureMutableStackProp(propName, stack); err != nil {
-			return errors.New("Couldn't set " + propName + " to stack: " + err.Error())
+			stack, err := readSetConfigurer.MutableStackProp(propName)
+			if stack != nil {
+				//Guess it was already set!
+				continue
+			}
+			if err != nil {
+				return errors.New(propName + " had error fetching stack: " + err.Error())
+			}
+			if config == nil {
+				return errors.New("The config for " + propName + " was unexpectedly nil")
+			}
+			if config.deck == nil {
+				return errors.New("The deck for " + propName + " was unexpectedly nil")
+			}
+
+			if config.fixedSize {
+				stack = config.deck.NewSizedStack(config.size)
+			} else {
+				stack = config.deck.NewStack(config.size)
+			}
+
+			if err := readSetConfigurer.ConfigureMutableStackProp(propName, stack); err != nil {
+				return errors.New("Couldn't set " + propName + " to stack: " + err.Error())
+			}
 		}
 	}
 
@@ -431,6 +514,17 @@ func (r *readerValidator) Valid(reader PropertyReader) error {
 			if val.state() == nil {
 				return errors.New("Stack prop " + propName + " didn't have its state set")
 			}
+		case TypeBoard:
+			val, err := reader.BoardProp(propName)
+			if val == nil {
+				return errors.New("Board Prop " + propName + " was nil")
+			}
+			if err != nil {
+				return errors.New("Board prop " + propName + " had unexpected error: " + err.Error())
+			}
+			if val.state() == nil {
+				return errors.New("Stack prop " + propName + " didn't have its state set")
+			}
 		case TypeTimer:
 			val, err := reader.TimerProp(propName)
 			if val == nil {
@@ -472,6 +566,15 @@ func setReaderStatePtr(reader PropertyReader, st State) error {
 			}
 			if err != nil {
 				return errors.New("Stack prop " + propName + " had unexpected error: " + err.Error())
+			}
+			val.setState(statePtr)
+		case TypeBoard:
+			val, err := reader.BoardProp(propName)
+			if val == nil {
+				return errors.New("Board Prop " + propName + " was nil")
+			}
+			if err != nil {
+				return errors.New("Board prop " + propName + " had unexpected error: " + err.Error())
 			}
 			val.setState(statePtr)
 		case TypeTimer:
@@ -605,6 +708,26 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 			if err := outputStack.importFrom(stackVal); err != nil {
 				return errors.New(propName + " could not import from input: " + err.Error())
 			}
+		case TypeBoard:
+			boardVal, err := input.MutableBoardProp(propName)
+			if err != nil {
+				//if the err is ErrPropertyImmutable, that's OK, just skip
+				if err == ErrPropertyImmutable {
+					continue
+				}
+				return errors.New(propName + " did not return a board as expected: " + err.Error())
+			}
+			outputBoard, err := outputContainer.MutableBoardProp(propName)
+			if err != nil {
+				//if the err is ErrPropertyImmutable, that's OK, just skip
+				if err == ErrPropertyImmutable {
+					continue
+				}
+				return errors.New(propName + " could not get mutable board on output: " + err.Error())
+			}
+			if err := outputBoard.importFrom(boardVal); err != nil {
+				return errors.New(propName + " could not import from input: " + err.Error())
+			}
 		case TypeTimer:
 			timerVal, err := input.MutableTimerProp(propName)
 			if err != nil {
@@ -632,6 +755,24 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 
 	return nil
 
+}
+
+func unpackBoardStructTag(tag string) (length int, err error) {
+	if tag == "" {
+		return 0, nil
+	}
+
+	val, err := strconv.Atoi(tag)
+
+	if err != nil {
+		return 0, err
+	}
+
+	if val < 0 {
+		return 0, nil
+	}
+
+	return val, nil
 }
 
 func unpackMergedStackStructTag(tag string, reader PropertyReader) (stackNames []string, err error) {

@@ -217,6 +217,12 @@ func structTypes(location string, theStruct model.Struct, allStructs []model.Str
 		case "boardgame.MutableStack":
 			result.Types[field.Name] = boardgame.TypeStack
 			result.Mutable[field.Name] = true
+		case "boardgame.Board":
+			result.Types[field.Name] = boardgame.TypeBoard
+			result.Mutable[field.Name] = false
+		case "boardgame.MutableBoard":
+			result.Types[field.Name] = boardgame.TypeBoard
+			result.Mutable[field.Name] = true
 		case "enum.Val":
 			result.Types[field.Name] = boardgame.TypeEnum
 			result.Mutable[field.Name] = false
@@ -400,6 +406,10 @@ func headerForStruct(structName string, types *typeInfo, outputReadSetter bool, 
 			goLangType = "boardgame.Stack"
 			setterKey = "MutableStack"
 			setterGoLangType = "boardgame.MutableStack"
+		case "Board":
+			goLangType = "boardgame.Board"
+			setterKey = "MutableBoard"
+			setterGoLangType = "boardgame.MutableBoard"
 		case "Timer":
 			goLangType = "boardgame.Timer"
 			setterKey = "MutableTimer"
@@ -491,6 +501,9 @@ func headerForStruct(structName string, types *typeInfo, outputReadSetter bool, 
 			outputMutableGetter = true
 		case "Stack":
 			setterPropType = "MutableStack"
+			outputMutableGetter = true
+		case "Board":
+			setterPropType = "MutableBoard"
 			outputMutableGetter = true
 		case "Timer":
 			setterPropType = "MutableTimer"

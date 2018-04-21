@@ -30,6 +30,7 @@ type PropertyReader interface {
 	PlayerIndexSliceProp(name string) ([]PlayerIndex, error)
 	PlayerIndexProp(name string) (PlayerIndex, error)
 	StackProp(name string) (Stack, error)
+	BoardProp(naem string) (Board, error)
 	TimerProp(name string) (Timer, error)
 	//Prop fetches the given property generically. If you already know the
 	//type, it's better to use the typed methods.
@@ -53,6 +54,7 @@ const (
 	TypeStringSlice
 	TypePlayerIndexSlice
 	TypeStack
+	TypeBoard
 	TypeTimer
 )
 
@@ -93,6 +95,7 @@ type PropertyReadSetter interface {
 	//name).
 	MutableEnumProp(name string) (enum.MutableVal, error)
 	MutableStackProp(name string) (MutableStack, error)
+	MutableBoardProp(name string) (MutableBoard, error)
 	MutableTimerProp(name string) (MutableTimer, error)
 
 	//SetProp sets the property with the given name. If the value does not
@@ -115,12 +118,14 @@ type PropertyReadSetConfigurer interface {
 	//container value. Use this if PropMutable(name) returns true.
 	ConfigureMutableEnumProp(name string, value enum.MutableVal) error
 	ConfigureMutableStackProp(name string, value MutableStack) error
+	ConfigureMutableBoardProp(name string, value MutableBoard) error
 	ConfigureMutableTimerProp(name string, value MutableTimer) error
 
 	//Configure*Prop allows you to set the container for container values for
 	//whom MutableProp(name) returns false.
 	ConfigureEnumProp(name string, value enum.Val) error
 	ConfigureStackProp(name string, value Stack) error
+	ConfigureBoardProp(name string, value Board) error
 	ConfigureTimerProp(name string, value Timer) error
 
 	//ConfigureProp is like SetProp, except that it does not fail if the type
@@ -153,6 +158,8 @@ func (t PropertyType) String() string {
 		return "TypePlayerIndexSlice"
 	case TypeStack:
 		return "TypeStack"
+	case TypeBoard:
+		return "TypeBoard"
 	case TypeTimer:
 		return "TypeTimer"
 	default:
@@ -330,6 +337,11 @@ func (d *defaultReader) propsImpl() (types map[string]PropertyType, mutable map[
 					pType = TypeStack
 				} else if strings.Contains(interfaceType, "Stack") {
 					pType = TypeStack
+					isMutable = false
+				} else if strings.Contains(interfaceType, "MutableBoard") {
+					pType = TypeBoard
+				} else if strings.Contains(interfaceType, "Board") {
+					pType = TypeBoard
 					isMutable = false
 				} else if strings.Contains(interfaceType, "MutableTimer") {
 					pType = TypeTimer
@@ -523,6 +535,24 @@ func (d *defaultReader) StackProp(name string) (Stack, error) {
 		return nil, nil
 	}
 	result := field.Interface().(Stack)
+	return result, nil
+}
+
+func (d *defaultReader) BoardProp(name string) (Board, error) {
+	//Verify that this seems legal.
+	props := d.Props()
+
+	if props[name] != TypeBoard {
+		return nil, errors.New("That property is not a Board: " + name)
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+	field := s.FieldByName(name)
+	if field.IsNil() {
+		//This isn't an error; it's just that we shouldn't dereference it.
+		return nil, nil
+	}
+	result := field.Interface().(Board)
 	return result, nil
 }
 
@@ -822,6 +852,28 @@ func (d *defaultReader) MutableStackProp(name string) (MutableStack, error) {
 	return result, nil
 }
 
+func (d *defaultReader) MutableBoardProp(name string) (MutableBoard, error) {
+	//Verify that this seems legal.
+	props := d.Props()
+
+	if props[name] != TypeBoard {
+		return nil, errors.New("That property is not a board: " + name)
+	}
+
+	if !d.PropMutable(name) {
+		return nil, ErrPropertyImmutable
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+	field := s.FieldByName(name)
+	if field.IsNil() {
+		//This isn't an error; it's just that we shouldn't dereference it.
+		return nil, nil
+	}
+	result := field.Interface().(MutableBoard)
+	return result, nil
+}
+
 func (d *defaultReader) MutableTimerProp(name string) (MutableTimer, error) {
 	//Verify that this seems legal.
 	props := d.Props()
@@ -879,6 +931,36 @@ func (d *defaultReader) ConfigureStackProp(name string, val Stack) (err error) {
 
 	if props[name] != TypeStack {
 		return errors.New("That property is not a settable stack")
+	}
+
+	if d.PropMutable(name) {
+		return ErrPropertyImmutable
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+
+	f := s.FieldByName(name)
+
+	if !f.IsValid() {
+		return errors.New("that name was not available on the struct")
+	}
+
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprint(e))
+		}
+	}()
+
+	f.Set(reflect.ValueOf(val))
+
+	return nil
+}
+
+func (d *defaultReader) ConfigureBoardProp(name string, val Board) (err error) {
+	props := d.Props()
+
+	if props[name] != TypeBoard {
+		return errors.New("That property is not a settable board")
 	}
 
 	if d.PropMutable(name) {
@@ -995,6 +1077,37 @@ func (d *defaultReader) ConfigureMutableStackProp(name string, val MutableStack)
 	return nil
 
 }
+
+func (d *defaultReader) ConfigureMutableBoardProp(name string, val MutableBoard) (err error) {
+	props := d.Props()
+
+	if props[name] != TypeBoard {
+		return errors.New("That property is not a settable board")
+	}
+
+	if !d.PropMutable(name) {
+		return ErrPropertyImmutable
+	}
+
+	s := reflect.ValueOf(d.i).Elem()
+
+	f := s.FieldByName(name)
+
+	if !f.IsValid() {
+		return errors.New("that name was not available on the struct")
+	}
+
+	defer func() {
+		if e := recover(); e != nil {
+			err = errors.New(fmt.Sprint(e))
+		}
+	}()
+
+	f.Set(reflect.ValueOf(val))
+
+	return nil
+
+}
 func (d *defaultReader) ConfigureMutableTimerProp(name string, val MutableTimer) (err error) {
 	props := d.Props()
 
@@ -1051,7 +1164,7 @@ func (d *defaultReader) setProp(name string, val interface{}, allowInterface boo
 	}
 
 	if !allowInterface {
-		if propType == TypeStack || propType == TypeEnum || propType == TypeTimer {
+		if propType == TypeStack || propType == TypeBoard || propType == TypeEnum || propType == TypeTimer {
 			return errors.New("SetProp on an interface type is not supported. Use ConfigureProp instead")
 		}
 	}
@@ -1317,6 +1430,26 @@ func (g *genericReader) StackProp(name string) (Stack, error) {
 	return val.(Stack), nil
 }
 
+func (g *genericReader) BoardProp(name string) (Board, error) {
+	val, err := g.Prop(name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	propType, ok := g.types[name]
+
+	if !ok {
+		return nil, errors.New("Unexpected error: Missing Prop type for " + name)
+	}
+
+	if propType != TypeBoard {
+		return nil, errors.New(name + "was expected to be TypeBoard but was not")
+	}
+
+	return val.(Board), nil
+}
+
 func (g *genericReader) TimerProp(name string) (Timer, error) {
 	val, err := g.Prop(name)
 
@@ -1354,7 +1487,7 @@ func (g *genericReader) setProp(name string, val interface{}, allowInterface boo
 	}
 
 	if !allowInterface {
-		if propType == TypeTimer || propType == TypeEnum || propType == TypeStack {
+		if propType == TypeTimer || propType == TypeBoard || propType == TypeEnum || propType == TypeStack {
 			return errors.New("SetProp on interface types is not allowed. Use ConfigureProp instead")
 		}
 	}
@@ -1509,6 +1642,26 @@ func (g *genericReader) MutableStackProp(name string) (MutableStack, error) {
 	return val.(MutableStack), nil
 }
 
+func (g *genericReader) MutableBoardProp(name string) (MutableBoard, error) {
+	val, err := g.Prop(name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	propType, ok := g.types[name]
+
+	if !ok {
+		return nil, errors.New("Unexpected error: Missing Prop type for " + name)
+	}
+
+	if propType != TypeBoard {
+		return nil, errors.New(name + "was expected to be TypeBoard but was not")
+	}
+
+	return val.(MutableBoard), nil
+}
+
 func (g *genericReader) MutableTimerProp(name string) (MutableTimer, error) {
 	val, err := g.Prop(name)
 
@@ -1550,6 +1703,19 @@ func (g *genericReader) ConfigureMutableStackProp(name string, val MutableStack)
 	}
 
 	g.types[name] = TypeStack
+	g.values[name] = val
+
+	return nil
+}
+
+func (g *genericReader) ConfigureMutableBoardProp(name string, val MutableBoard) error {
+	propType, ok := g.types[name]
+
+	if ok && propType != TypeBoard {
+		return errors.New("That property was already set but was not a board")
+	}
+
+	g.types[name] = TypeBoard
 	g.values[name] = val
 
 	return nil
