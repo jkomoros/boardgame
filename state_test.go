@@ -412,7 +412,7 @@ func diffGoldenJSON(diffFileName string, t *testing.T) []byte {
 	if err != nil {
 		t.Fatal("Couldn't load " + diffFileName + ": " + err.Error())
 	}
-	base, err := jd.ReadJsonFile("./test/base_state.json")
+	base, err := jd.ReadJsonFile("./test/basic_state.json")
 	if err != nil {
 		t.Fatal("Couldn't load base file: " + err.Error())
 	}

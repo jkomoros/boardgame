@@ -308,9 +308,8 @@ func TestApplyMove(t *testing.T) {
 	wrapper.game = game
 
 	currentJson, _ := json.Marshal(wrapper)
-	golden := goldenJSON("basic_state_after_move.json", t)
 
-	compareJSONObjects(currentJson, golden, "Basic state after test move", t)
+	compareJSONObjects(currentJson, diffGoldenJSON("diff_after_move.patch", t), "Basic state after test move", t)
 
 	//Apply a move that should finish the game (any player has score > 5)
 	newRawMove := game.MoveByName("test")
