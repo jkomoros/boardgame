@@ -407,27 +407,33 @@ func compareJSONObjects(in []byte, golden []byte, message string, t *testing.T) 
 
 }
 
-func baseDiffGoldenJson(diffFileName string, t *testing.T) []byte {
-	return diffGoldenJSON(diffFileName, "basic_state.json", t)
+func baseDiffGoldenJson(t *testing.T, diffFileNames ...string) []byte {
+	return diffGoldenJSON(t, "basic_state.json", diffFileNames...)
 }
 
-func diffGoldenJSON(diffFileName string, baseFileName string, t *testing.T) []byte {
-	diff, err := jd.ReadDiffFile("./test/" + diffFileName)
-	if err != nil {
-		t.Fatal("Couldn't load " + diffFileName + ": " + err.Error())
-	}
+func diffGoldenJSON(t *testing.T, baseFileName string, diffFileNames ...string) []byte {
 	base, err := jd.ReadJsonFile("./test/" + baseFileName)
 	if err != nil {
 		t.Fatal("Couldn't load base file: " + err.Error())
 	}
 
-	patched, err := base.Patch(diff)
+	for _, diffFileName := range diffFileNames {
 
-	if err != nil {
-		t.Fatal("Couldn't patch file: " + err.Error())
+		diff, err := jd.ReadDiffFile("./test/" + diffFileName)
+		if err != nil {
+			t.Fatal("Couldn't load " + diffFileName + ": " + err.Error())
+		}
+
+		patched, err := base.Patch(diff)
+
+		if err != nil {
+			t.Fatal("Couldn't patch file: " + err.Error())
+		}
+
+		base = patched
 	}
 
-	return []byte(patched.Json())
+	return []byte(base.Json())
 
 }
 

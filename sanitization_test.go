@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"strconv"
+	"strings"
 	"testing"
 )
 
@@ -91,16 +92,18 @@ func (s *sanitizationTestConfig) policyForSubObject(reader PropertyReader, confi
 func TestSanitization(t *testing.T) {
 
 	tests := []struct {
-		policy           *sanitizationTestConfig
-		playerIndex      PlayerIndex
-		inputFileName    string
-		expectedFileName string
+		policy            *sanitizationTestConfig
+		playerIndex       PlayerIndex
+		inputFileName     string
+		expectedFileNames []string
 	}{
 		{
 			&sanitizationTestConfig{},
 			AdminPlayerIndex,
 			"sanitization_basic_in.json",
-			"no_op.patch",
+			[]string{
+				"no_op.patch",
+			},
 		},
 		{
 
@@ -115,7 +118,9 @@ func TestSanitization(t *testing.T) {
 			},
 			0,
 			"sanitization_basic_in.json",
-			"sanitization_len.patch",
+			[]string{
+				"sanitization_len.patch",
+			},
 		},
 		{
 			&sanitizationTestConfig{
@@ -125,7 +130,9 @@ func TestSanitization(t *testing.T) {
 			},
 			0,
 			"sanitization_basic_in.json",
-			"sanitization_len_player.patch",
+			[]string{
+				"sanitization_len_player.patch",
+			},
 		},
 		{
 			&sanitizationTestConfig{
@@ -139,7 +146,9 @@ func TestSanitization(t *testing.T) {
 			},
 			0,
 			"sanitization_basic_in.json",
-			"sanitization_order.patch",
+			[]string{
+				"sanitization_order.patch",
+			},
 		},
 		{
 			&sanitizationTestConfig{
@@ -149,7 +158,9 @@ func TestSanitization(t *testing.T) {
 			},
 			0,
 			"sanitization_basic_in.json",
-			"sanitization_order_player.patch",
+			[]string{
+				"sanitization_order_player.patch",
+			},
 		},
 		{
 			&sanitizationTestConfig{
@@ -170,7 +181,9 @@ func TestSanitization(t *testing.T) {
 			},
 			0,
 			"sanitization_basic_in.json",
-			"sanitization_hidden.patch",
+			[]string{
+				"sanitization_hidden.patch",
+			},
 		},
 		{
 			&sanitizationTestConfig{
@@ -187,7 +200,9 @@ func TestSanitization(t *testing.T) {
 			},
 			0,
 			"sanitization_basic_in.json",
-			"sanitization_nonempty.patch",
+			[]string{
+				"sanitization_nonempty.patch",
+			},
 		},
 		{
 			&sanitizationTestConfig{
@@ -199,7 +214,9 @@ func TestSanitization(t *testing.T) {
 			},
 			0,
 			"basic_state_after_dynamic_component_move.json",
-			"sanitization_with_dynamic_state.patch",
+			[]string{
+				"sanitization_with_dynamic_state.patch",
+			},
 		},
 		{
 			&sanitizationTestConfig{
@@ -214,7 +231,9 @@ func TestSanitization(t *testing.T) {
 			},
 			1,
 			"basic_state_after_dynamic_component_move.json",
-			"sanitization_with_dynamic_state_sanitized.patch",
+			[]string{
+				"sanitization_with_dynamic_state_sanitized.patch",
+			},
 		},
 		{
 			&sanitizationTestConfig{
@@ -227,7 +246,9 @@ func TestSanitization(t *testing.T) {
 			},
 			0,
 			"basic_state_after_dynamic_component_move.json",
-			"sanitization_with_dynamic_state_transitive.patch",
+			[]string{
+				"sanitization_with_dynamic_state_transitive.patch",
+			},
 		},
 	}
 
@@ -262,7 +283,7 @@ func TestSanitization(t *testing.T) {
 
 		assert.For(t).ThatActual(err).IsNil()
 
-		compareJSONObjects(sanitizedBlob, diffGoldenJSON(test.expectedFileName, test.inputFileName, t), "Test Sanitization "+strconv.Itoa(i)+" "+test.inputFileName+" "+test.expectedFileName, t)
+		compareJSONObjects(sanitizedBlob, diffGoldenJSON(t, test.inputFileName, test.expectedFileNames...), "Test Sanitization "+strconv.Itoa(i)+" "+test.inputFileName+" "+strings.Join(test.expectedFileNames, ", "), t)
 
 	}
 
