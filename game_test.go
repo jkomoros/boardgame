@@ -516,6 +516,39 @@ func TestGameSalt(t *testing.T) {
 	assert.For(t).ThatActual(mainCId).DoesNotEqual(otherC.ID(otherGame.CurrentState()))
 }
 
+func goldenGameBlob() []byte {
+	gameBlob, err := ioutil.ReadFile("test/game_blob.json")
+	if err != nil {
+		return nil
+	}
+	baseState, err := ioutil.ReadFile("test/basic_state.json")
+	if err != nil {
+		return nil
+	}
+
+	var gameBlobJson map[string]interface{}
+	var baseStateJson map[string]interface{}
+
+	if err := json.Unmarshal(gameBlob, &gameBlobJson); err != nil {
+		return nil
+	}
+
+	if err := json.Unmarshal(baseState, &baseStateJson); err != nil {
+		return nil
+	}
+
+	gameBlobJson["CurrentState"] = baseStateJson
+
+	blob, err := json.Marshal(gameBlobJson)
+
+	if err != nil {
+		return nil
+	}
+
+	return blob
+
+}
+
 func TestGameState(t *testing.T) {
 	game := testGame(t)
 
@@ -533,7 +566,7 @@ func TestGameState(t *testing.T) {
 		t.Error("Json marshal of game failed:", err)
 	}
 
-	goldenBlob, err := ioutil.ReadFile("test/game_blob.json")
+	goldenBlob := goldenGameBlob()
 
 	if err != nil {
 		t.Error("Couldn't load golden file", err)
