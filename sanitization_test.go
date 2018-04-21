@@ -3,7 +3,6 @@ package boardgame
 import (
 	"encoding/json"
 	"github.com/workfit/tester/assert"
-	"io/ioutil"
 	"log"
 	"strconv"
 	"strings"
@@ -94,13 +93,16 @@ func TestSanitization(t *testing.T) {
 	tests := []struct {
 		policy            *sanitizationTestConfig
 		playerIndex       PlayerIndex
-		inputFileName     string
+		inputFileNames    []string
 		expectedFileNames []string
 	}{
 		{
 			&sanitizationTestConfig{},
 			AdminPlayerIndex,
-			"sanitization_basic_in.json",
+			[]string{
+				//NOTE: this file has to be modified by hand, because of issue jd/ #6
+				"diff_to_sanitize.patch",
+			},
 			[]string{
 				"no_op.patch",
 			},
@@ -117,7 +119,9 @@ func TestSanitization(t *testing.T) {
 				},
 			},
 			0,
-			"sanitization_basic_in.json",
+			[]string{
+				"diff_to_sanitize.patch",
+			},
 			[]string{
 				"sanitization_len.patch",
 			},
@@ -129,7 +133,9 @@ func TestSanitization(t *testing.T) {
 				},
 			},
 			0,
-			"sanitization_basic_in.json",
+			[]string{
+				"diff_to_sanitize.patch",
+			},
 			[]string{
 				"sanitization_len_player.patch",
 			},
@@ -145,7 +151,9 @@ func TestSanitization(t *testing.T) {
 				},
 			},
 			0,
-			"sanitization_basic_in.json",
+			[]string{
+				"diff_to_sanitize.patch",
+			},
 			[]string{
 				"sanitization_order.patch",
 			},
@@ -157,7 +165,9 @@ func TestSanitization(t *testing.T) {
 				},
 			},
 			0,
-			"sanitization_basic_in.json",
+			[]string{
+				"diff_to_sanitize.patch",
+			},
 			[]string{
 				"sanitization_order_player.patch",
 			},
@@ -180,7 +190,9 @@ func TestSanitization(t *testing.T) {
 				},
 			},
 			0,
-			"sanitization_basic_in.json",
+			[]string{
+				"diff_to_sanitize.patch",
+			},
 			[]string{
 				"sanitization_hidden.patch",
 			},
@@ -199,7 +211,9 @@ func TestSanitization(t *testing.T) {
 				},
 			},
 			0,
-			"sanitization_basic_in.json",
+			[]string{
+				"diff_to_sanitize.patch",
+			},
 			[]string{
 				"sanitization_nonempty.patch",
 			},
@@ -213,7 +227,9 @@ func TestSanitization(t *testing.T) {
 				},
 			},
 			0,
-			"basic_state_after_dynamic_component_move.json",
+			[]string{
+				"diff_after_dynamic_component_move.patch",
+			},
 			[]string{
 				"sanitization_with_dynamic_state.patch",
 			},
@@ -230,7 +246,9 @@ func TestSanitization(t *testing.T) {
 				},
 			},
 			1,
-			"basic_state_after_dynamic_component_move.json",
+			[]string{
+				"diff_after_dynamic_component_move.patch",
+			},
 			[]string{
 				"sanitization_with_dynamic_state_sanitized.patch",
 			},
@@ -245,7 +263,9 @@ func TestSanitization(t *testing.T) {
 				},
 			},
 			0,
-			"basic_state_after_dynamic_component_move.json",
+			[]string{
+				"diff_after_dynamic_component_move.patch",
+			},
 			[]string{
 				"sanitization_with_dynamic_state_transitive.patch",
 			},
@@ -258,14 +278,12 @@ func TestSanitization(t *testing.T) {
 
 	for i, test := range tests {
 
-		inputBlob, err := ioutil.ReadFile("test/" + test.inputFileName)
-
-		assert.For(t).ThatActual(err).IsNil()
+		inputBlob := baseDiffGoldenJson(t, test.inputFileNames...)
 
 		state, err := game.manager.stateFromRecord(inputBlob)
 
 		if !assert.For(t).ThatActual(err).IsNil().Passed() {
-			log.Println(test.inputFileName)
+			log.Println(test.inputFileNames)
 		}
 
 		//This is hacky, but we don't really need the game for much more anyway
@@ -283,7 +301,7 @@ func TestSanitization(t *testing.T) {
 
 		assert.For(t).ThatActual(err).IsNil()
 
-		compareJSONObjects(sanitizedBlob, diffGoldenJSON(t, test.inputFileName, test.expectedFileNames...), "Test Sanitization "+strconv.Itoa(i)+" "+test.inputFileName+" "+strings.Join(test.expectedFileNames, ", "), t)
+		compareJSONObjects(sanitizedBlob, diffGoldenJsonFromBytes(t, inputBlob, test.expectedFileNames...), "Test Sanitization "+strconv.Itoa(i)+" "+strings.Join(test.inputFileNames, ", ")+" "+strings.Join(test.expectedFileNames, ", "), t)
 
 	}
 

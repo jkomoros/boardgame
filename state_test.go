@@ -417,6 +417,15 @@ func diffGoldenJSON(t *testing.T, baseFileName string, diffFileNames ...string) 
 		t.Fatal("Couldn't load base file: " + err.Error())
 	}
 
+	return diffGoldenJsonFromBytes(t, []byte(base.Json()), diffFileNames...)
+
+}
+
+func diffGoldenJsonFromBytes(t *testing.T, inBase []byte, diffFileNames ...string) []byte {
+	base, err := jd.ReadJsonString(string(inBase))
+	if err != nil {
+		t.Fatal("Couldn't load base string: " + err.Error())
+	}
 	for _, diffFileName := range diffFileNames {
 
 		diff, err := jd.ReadDiffFile("./test/" + diffFileName)
@@ -434,7 +443,6 @@ func diffGoldenJSON(t *testing.T, baseFileName string, diffFileNames ...string) 
 	}
 
 	return []byte(base.Json())
-
 }
 
 func goldenJSON(fileName string, t *testing.T) []byte {
