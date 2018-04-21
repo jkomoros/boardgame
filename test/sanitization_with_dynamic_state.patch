@@ -1,0 +1,12 @@
+@ ["Components","test",3,"IntVar"]
+- 1
++ 0
+@ ["Components","test",2,"IntVar"]
+- 1
++ 0
+@ ["Components","test",1,"IntVar"]
+- 1
++ 0
+@ ["Components","test",0,"IntVar"]
+- 7
++ 0
