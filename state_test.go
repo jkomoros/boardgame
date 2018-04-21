@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"encoding/json"
+	jd "github.com/josephburnett/jd/lib"
 	"github.com/workfit/tester/assert"
 	"io/ioutil"
 	"reflect"
@@ -384,21 +385,50 @@ func compareJSONObjects(in []byte, golden []byte, message string, t *testing.T) 
 
 	//recreated in server/internal/teststoragemanager
 
-	var deserializedIn interface{}
-	var deserializedGolden interface{}
+	inJson, err := jd.ReadJsonString(string(in))
 
-	json.Unmarshal(in, &deserializedIn)
-	json.Unmarshal(golden, &deserializedGolden)
+	if err != nil {
+		t.Fatal("Couldn't read json in: " + err.Error())
+	}
 
-	assert.For(t).ThatActual(deserializedIn).IsNotNil()
+	goldenJson, err := jd.ReadJsonString(string(golden))
 
-	assert.For(t).ThatActual(deserializedGolden).IsNotNil()
+	if err != nil {
+		t.Fatal("Couldn't read json golden: " + err.Error())
+	}
 
-	assert.For(t, message).ThatActual(deserializedGolden).Equals(deserializedIn).ThenDiffOnFail()
+	diff := goldenJson.Diff(inJson)
+
+	if len(diff) == 0 {
+		return
+	}
+
+	t.Error("JSON comparison failed: " + diff.Render())
+
+}
+
+func diffGoldenJSON(diffFileName string, t *testing.T) []byte {
+	diff, err := jd.ReadDiffFile("./test/" + diffFileName)
+	if err != nil {
+		t.Fatal("Couldn't load " + diffFileName + ": " + err.Error())
+	}
+	base, err := jd.ReadJsonFile("./test/base_state.json")
+	if err != nil {
+		t.Fatal("Couldn't load base file: " + err.Error())
+	}
+
+	patched, err := base.Patch(diff)
+
+	if err != nil {
+		t.Fatal("Couldn't patch file: " + err.Error())
+	}
+
+	return []byte(patched.Json())
 
 }
 
 func goldenJSON(fileName string, t *testing.T) []byte {
+
 	contents, err := ioutil.ReadFile("./test/" + fileName)
 
 	if !assert.For(t, fileName).ThatActual(err).IsNil().Passed() {

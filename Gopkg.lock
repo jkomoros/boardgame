@@ -86,6 +86,12 @@
   version = "1.0.0"
 
 [[projects]]
+  name = "github.com/josephburnett/jd"
+  packages = ["lib"]
+  revision = "6f998c6f3ebc6193806d82206c8c3ad5925b1281"
+  version = "v1.1"
+
+[[projects]]
   branch = "master"
   name = "github.com/kr/pretty"
   packages = ["."]
@@ -163,6 +169,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0276142de7ffc67f6ef8afe3910fea47b3f8d25c9f86eed958a20e25f7eb460c"
+  inputs-digest = "9b246105693f2e4133bf8bfff5c99129e3befe4dcfb4755f4fe6dc3910b0e8e7"
   solver-name = "gps-cdcl"
   solver-version = 1
