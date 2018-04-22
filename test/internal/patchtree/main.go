@@ -27,6 +27,7 @@ import (
 	jd "github.com/jkomoros/jd/lib"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const BASE_JSON = "base.json"
@@ -35,6 +36,10 @@ const PATCH = "modification.patch"
 //JSON returns the patched json blob impplied by that directory structure or
 //an error if something doesn't work. See the package doc for more.
 func JSON(path string) ([]byte, error) {
+
+	if !strings.HasSuffix(path, "/") {
+		path += "/"
+	}
 
 	result, err := processDirectory(path)
 
@@ -57,14 +62,14 @@ func processDirectory(path string) (jd.JsonNode, error) {
 
 	baseJsonPath := filepath.Clean(path + "/" + BASE_JSON)
 
-	if _, err := os.Stat(baseJsonPath); os.IsExist(err) {
+	if _, err := os.Stat(baseJsonPath); err == nil {
 		//Found the directory with base.json!
 		return jd.ReadJsonFile(baseJsonPath)
 	}
 
 	modificationPatchPath := filepath.Clean(path + "/" + PATCH)
 
-	if _, err := os.Stat(modificationPatchPath); os.IsExist(err) {
+	if _, err := os.Stat(modificationPatchPath); err == nil {
 
 		//Recurse, with the sub-directory.
 		baseJson, err := processDirectory(filepath.Dir(path))
@@ -83,6 +88,6 @@ func processDirectory(path string) (jd.JsonNode, error) {
 	}
 
 	//Path had neither base.json or modification.patch, which is an error
-	return nil, errors.New("In " + path + "didn't have either " + BASE_JSON + " or " + PATCH)
+	return nil, errors.New("In " + path + " didn't have either " + BASE_JSON + " or " + PATCH)
 
 }
