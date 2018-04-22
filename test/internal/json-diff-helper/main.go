@@ -35,13 +35,26 @@ func main() {
 
 	mode := strings.ToLower(os.Args[1])
 
+	baseFile := "basic_state.json"
+
+	if len(os.Args) >= 3 {
+		baseFile = os.Args[2]
+	} else {
+		log.Println("No base json file provided. Defaulting to " + baseFile)
+	}
+
+	if _, err := os.Stat(baseFile); os.IsNotExist(err) {
+		log.Println("Provided base json file (" + baseFile + ") does not exist.")
+		os.Exit(1)
+	}
+
 	var err error
 
 	switch mode {
 	case "up":
-		err = up()
+		err = up(baseFile)
 	case "down":
-		err = down()
+		err = down(baseFile)
 	case "clean":
 		err = clean()
 	default:
@@ -57,11 +70,11 @@ func main() {
 
 }
 
-func up() error {
+func up(baseFile string) error {
 	return errors.New("Not yet implemented")
 }
 
-func down() error {
+func down(baseFile string) error {
 	return errors.New("Not yet implemented")
 }
 
