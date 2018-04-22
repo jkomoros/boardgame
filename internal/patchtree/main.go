@@ -51,6 +51,15 @@ func JSON(path string) ([]byte, error) {
 
 }
 
+//MustJSON is the same as JSON, but if it would have returned an error, panics istead.
+func MustJSON(path string) []byte {
+	result, err := JSON(path)
+	if err != nil {
+		panic(err)
+	}
+	return result
+}
+
 func processDirectory(path string) (jd.JsonNode, error) {
 
 	//If no more path pieces error
