@@ -20,6 +20,8 @@ package main
 
 import (
 	"errors"
+	jd "github.com/jkomoros/jd/lib"
+	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -71,7 +73,51 @@ func main() {
 }
 
 func up(baseFile string) error {
-	return errors.New("Not yet implemented")
+
+	files, err := ioutil.ReadDir(".")
+
+	if err != nil {
+		return errors.New("Couldn't read dir: " + err.Error())
+	}
+
+	baseJson, err := jd.ReadJsonFile(baseFile)
+
+	if err != nil {
+		return errors.New("Couldn't parse base json file: " + err.Error())
+	}
+
+	//We'll keep track of results before saving, to make sure there are no
+	//errors before we save.
+	result := make(map[string]jd.JsonNode)
+
+	for _, file := range files {
+		if !strings.HasSuffix(file.Name(), ".patch") {
+			continue
+		}
+
+		diff, err := jd.ReadDiffFile(file.Name())
+
+		if err != nil {
+			return errors.New("Couldn't read diff file " + file.Name() + ": " + err.Error())
+		}
+
+		patchedJson, err := baseJson.Patch(diff)
+
+		if err != nil {
+			return errors.New("Couldn't patch diff file " + file.Name() + ": " + err.Error())
+		}
+
+		result[strings.Replace(file.Name(), ".patch", ".temp.json", -1)] = patchedJson
+	}
+
+	for fileName, node := range result {
+		if err := ioutil.WriteFile(fileName, []byte(node.Json()), 0644); err != nil {
+			return errors.New("Couldn't write file: " + fileName + ": " + err.Error())
+		}
+	}
+
+	return nil
+
 }
 
 func down(baseFile string) error {
