@@ -64,7 +64,11 @@ func processDirectory(path string) (jd.JsonNode, error) {
 
 	if _, err := os.Stat(baseJsonPath); err == nil {
 		//Found the directory with base.json!
-		return jd.ReadJsonFile(baseJsonPath)
+		node, err := jd.ReadJsonFile(baseJsonPath)
+		if err != nil {
+			return nil, errors.New(path + " had error reading base.json: " + err.Error())
+		}
+		return node, nil
 	}
 
 	modificationPatchPath := filepath.Clean(path + "/" + PATCH)
@@ -84,7 +88,13 @@ func processDirectory(path string) (jd.JsonNode, error) {
 			return nil, errors.New("Error reading diff file at " + modificationPatchPath + ": " + err.Error())
 		}
 
-		return baseJson.Patch(diff)
+		composed, err := baseJson.Patch(diff)
+
+		if err != nil {
+			return nil, errors.New(path + " had error diffing " + err.Error())
+		}
+
+		return composed, nil
 	}
 
 	//Path had neither base.json or modification.patch, which is an error
