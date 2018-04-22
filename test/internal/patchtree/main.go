@@ -37,8 +37,8 @@ const PATCH = "modification.patch"
 //an error if something doesn't work. See the package doc for more.
 func JSON(path string) ([]byte, error) {
 
-	if !strings.HasSuffix(path, "/") {
-		path += "/"
+	if strings.HasSuffix(path, "/") {
+		path = strings.TrimSuffix(path, "/")
 	}
 
 	result, err := processDirectory(path)
