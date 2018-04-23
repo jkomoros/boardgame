@@ -278,7 +278,7 @@ func TestState(t *testing.T) {
 	testSubStatesHaveStateSet(t, state)
 
 	currentJson, _ := json.Marshal(state)
-	golden := goldenJSON("basic_state.json", t)
+	golden := goldenJSON("base.json", t)
 
 	compareJSONObjects(currentJson, golden, "Basic state", t)
 

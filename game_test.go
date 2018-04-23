@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"encoding/json"
+	"github.com/jkomoros/boardgame/internal/patchtree"
 	"github.com/workfit/tester/assert"
 	"io/ioutil"
 	"reflect"
@@ -85,7 +86,7 @@ func TestMoveModifyDynamicValues(t *testing.T) {
 
 	currentJSON, _ := json.MarshalIndent(game.CurrentState(), "", "\t")
 
-	compareJSONObjects(currentJSON, baseDiffGoldenJson(t, "diff_after_dynamic_component_move.patch"), "Comparing json after two dynamic moves", t)
+	compareJSONObjects(currentJSON, patchtree.MustJSON("./test/after_dynamic_component_move"), "Comparing json after two dynamic moves", t)
 
 }
 
@@ -307,7 +308,7 @@ func TestApplyMove(t *testing.T) {
 
 	currentJson, _ := json.Marshal(wrapper)
 
-	compareJSONObjects(currentJson, baseDiffGoldenJson(t, "diff_after_move.patch"), "Basic state after test move", t)
+	compareJSONObjects(currentJson, patchtree.MustJSON("./test/after_move"), "Basic state after test move", t)
 
 	//Apply a move that should finish the game (any player has score > 5)
 	newRawMove := game.MoveByName("test")
@@ -521,7 +522,7 @@ func goldenGameBlob() []byte {
 	if err != nil {
 		return nil
 	}
-	baseState, err := ioutil.ReadFile("test/basic_state.json")
+	baseState, err := ioutil.ReadFile("test/base.json")
 	if err != nil {
 		return nil
 	}

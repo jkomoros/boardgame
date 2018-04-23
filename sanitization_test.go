@@ -2,10 +2,10 @@ package boardgame
 
 import (
 	"encoding/json"
+	"github.com/jkomoros/boardgame/internal/patchtree"
 	"github.com/workfit/tester/assert"
 	"log"
 	"strconv"
-	"strings"
 	"testing"
 )
 
@@ -93,19 +93,14 @@ func TestSanitization(t *testing.T) {
 	tests := []struct {
 		policy            *sanitizationTestConfig
 		playerIndex       PlayerIndex
-		inputFileNames    []string
-		expectedFileNames []string
+		inputPatchTree    string
+		expectedPatchTree string
 	}{
 		{
 			&sanitizationTestConfig{},
 			AdminPlayerIndex,
-			[]string{
-				//NOTE: this file has to be modified by hand, because of issue jd/ #6
-				"diff_to_sanitize.patch",
-			},
-			[]string{
-				"no_op.patch",
-			},
+			"sanitize",
+			"sanitize",
 		},
 		{
 
@@ -119,12 +114,8 @@ func TestSanitization(t *testing.T) {
 				},
 			},
 			0,
-			[]string{
-				"diff_to_sanitize.patch",
-			},
-			[]string{
-				"sanitization_len.patch",
-			},
+			"sanitize",
+			"sanitize/len",
 		},
 		{
 			&sanitizationTestConfig{
@@ -133,12 +124,8 @@ func TestSanitization(t *testing.T) {
 				},
 			},
 			0,
-			[]string{
-				"diff_to_sanitize.patch",
-			},
-			[]string{
-				"sanitization_len_player.patch",
-			},
+			"sanitize",
+			"sanitize/len_player",
 		},
 		{
 			&sanitizationTestConfig{
@@ -151,12 +138,8 @@ func TestSanitization(t *testing.T) {
 				},
 			},
 			0,
-			[]string{
-				"diff_to_sanitize.patch",
-			},
-			[]string{
-				"sanitization_order.patch",
-			},
+			"sanitize",
+			"sanitize/order",
 		},
 		{
 			&sanitizationTestConfig{
@@ -165,12 +148,8 @@ func TestSanitization(t *testing.T) {
 				},
 			},
 			0,
-			[]string{
-				"diff_to_sanitize.patch",
-			},
-			[]string{
-				"sanitization_order_player.patch",
-			},
+			"sanitize",
+			"sanitize/order_player",
 		},
 		{
 			&sanitizationTestConfig{
@@ -190,12 +169,8 @@ func TestSanitization(t *testing.T) {
 				},
 			},
 			0,
-			[]string{
-				"diff_to_sanitize.patch",
-			},
-			[]string{
-				"sanitization_hidden.patch",
-			},
+			"sanitize",
+			"sanitize/hidden",
 		},
 		{
 			&sanitizationTestConfig{
@@ -211,12 +186,8 @@ func TestSanitization(t *testing.T) {
 				},
 			},
 			0,
-			[]string{
-				"diff_to_sanitize.patch",
-			},
-			[]string{
-				"sanitization_nonempty.patch",
-			},
+			"sanitize",
+			"sanitize/nonempty",
 		},
 		{
 			&sanitizationTestConfig{
@@ -227,12 +198,8 @@ func TestSanitization(t *testing.T) {
 				},
 			},
 			0,
-			[]string{
-				"diff_after_dynamic_component_move.patch",
-			},
-			[]string{
-				"sanitization_with_dynamic_state.patch",
-			},
+			"after_dynamic_component_move",
+			"after_dynamic_component_move/sanitization_with_dynamic_state",
 		},
 		{
 			&sanitizationTestConfig{
@@ -246,12 +213,8 @@ func TestSanitization(t *testing.T) {
 				},
 			},
 			1,
-			[]string{
-				"diff_after_dynamic_component_move.patch",
-			},
-			[]string{
-				"sanitization_with_dynamic_state_sanitized.patch",
-			},
+			"after_dynamic_component_move",
+			"after_dynamic_component_move/sanitization_with_dynamic_state_sanitized",
 		},
 		{
 			&sanitizationTestConfig{
@@ -263,12 +226,8 @@ func TestSanitization(t *testing.T) {
 				},
 			},
 			0,
-			[]string{
-				"diff_after_dynamic_component_move.patch",
-			},
-			[]string{
-				"sanitization_with_dynamic_state_transitive.patch",
-			},
+			"after_dynamic_component_move",
+			"after_dynamic_component_move/sanitization_with_dynamic_state_transitive",
 		},
 	}
 
@@ -278,12 +237,16 @@ func TestSanitization(t *testing.T) {
 
 	for i, test := range tests {
 
-		inputBlob := baseDiffGoldenJson(t, test.inputFileNames...)
+		inputBlob, err := patchtree.JSON("test/" + test.inputPatchTree)
+
+		if err != nil {
+			t.Fatal("patchtree failure: " + err.Error())
+		}
 
 		state, err := game.manager.stateFromRecord(inputBlob)
 
 		if !assert.For(t).ThatActual(err).IsNil().Passed() {
-			log.Println(test.inputFileNames)
+			log.Println(test.inputPatchTree)
 		}
 
 		//This is hacky, but we don't really need the game for much more anyway
@@ -301,7 +264,13 @@ func TestSanitization(t *testing.T) {
 
 		assert.For(t).ThatActual(err).IsNil()
 
-		compareJSONObjects(sanitizedBlob, diffGoldenJsonFromBytes(t, inputBlob, test.expectedFileNames...), "Test Sanitization "+strconv.Itoa(i)+" "+strings.Join(test.inputFileNames, ", ")+" "+strings.Join(test.expectedFileNames, ", "), t)
+		expectedBlob, err := patchtree.JSON("test/" + test.expectedPatchTree)
+
+		if err != nil {
+			t.Fatal("patchetree failure for expected: " + err.Error())
+		}
+
+		compareJSONObjects(sanitizedBlob, expectedBlob, "Test Sanitization "+strconv.Itoa(i)+" "+test.inputPatchTree+" "+test.expectedPatchTree, t)
 
 	}
 
