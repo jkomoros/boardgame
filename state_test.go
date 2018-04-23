@@ -407,44 +407,6 @@ func compareJSONObjects(in []byte, golden []byte, message string, t *testing.T) 
 
 }
 
-func baseDiffGoldenJson(t *testing.T, diffFileNames ...string) []byte {
-	return diffGoldenJSON(t, "basic_state.json", diffFileNames...)
-}
-
-func diffGoldenJSON(t *testing.T, baseFileName string, diffFileNames ...string) []byte {
-	base, err := jd.ReadJsonFile("./test/" + baseFileName)
-	if err != nil {
-		t.Fatal("Couldn't load base file: " + err.Error())
-	}
-
-	return diffGoldenJsonFromBytes(t, []byte(base.Json()), diffFileNames...)
-
-}
-
-func diffGoldenJsonFromBytes(t *testing.T, inBase []byte, diffFileNames ...string) []byte {
-	base, err := jd.ReadJsonString(string(inBase))
-	if err != nil {
-		t.Fatal("Couldn't load base string: " + err.Error())
-	}
-	for _, diffFileName := range diffFileNames {
-
-		diff, err := jd.ReadDiffFile("./test/" + diffFileName)
-		if err != nil {
-			t.Fatal("Couldn't load " + diffFileName + ": " + err.Error())
-		}
-
-		patched, err := base.Patch(diff)
-
-		if err != nil {
-			t.Fatal("Couldn't patch file: " + err.Error())
-		}
-
-		base = patched
-	}
-
-	return []byte(base.Json())
-}
-
 func goldenJSON(fileName string, t *testing.T) []byte {
 
 	contents, err := ioutil.ReadFile("./test/" + fileName)
