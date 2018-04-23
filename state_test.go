@@ -388,13 +388,13 @@ func compareJSONObjects(in []byte, golden []byte, message string, t *testing.T) 
 	inJson, err := jd.ReadJsonString(string(in))
 
 	if err != nil {
-		t.Fatal("Couldn't read json in: " + err.Error())
+		t.Fatal(message + ": Couldn't read json in: " + err.Error())
 	}
 
 	goldenJson, err := jd.ReadJsonString(string(golden))
 
 	if err != nil {
-		t.Fatal("Couldn't read json golden: " + err.Error())
+		t.Fatal(message + ": Couldn't read json golden: " + err.Error())
 	}
 
 	diff := goldenJson.Diff(inJson)
@@ -403,7 +403,7 @@ func compareJSONObjects(in []byte, golden []byte, message string, t *testing.T) 
 		return
 	}
 
-	t.Error("JSON comparison failed: " + diff.Render())
+	t.Error(message + ": JSON comparison failed: " + diff.Render())
 
 }
 
