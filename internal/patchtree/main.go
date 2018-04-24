@@ -25,6 +25,7 @@ package patchtree
 import (
 	"errors"
 	jd "github.com/jkomoros/jd/lib"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -65,7 +66,40 @@ func MustJSON(path string) []byte {
 //workflow to modify base.json: run this commeand, then modify base.json, then
 //run ContractTree.
 func ExpandTree(rootPath string) error {
-	return errors.New("Not yet implemented")
+
+	baseJsonPath := filepath.Clean(rootPath + "/" + BASE_JSON)
+
+	if _, err := os.Stat(baseJsonPath); os.IsNotExist(err) {
+		return errors.New("Base json file did not exist: " + err.Error())
+	}
+
+	node, err := jd.ReadJsonFile(baseJsonPath)
+
+	if err != nil {
+		return errors.New("Couldn't parse base json file: " + err.Error())
+	}
+
+	files, err := ioutil.ReadDir(rootPath)
+
+	if err != nil {
+		return errors.New("Couldn't read base directory: " + err.Error())
+	}
+
+	for _, file := range files {
+		if !file.IsDir() {
+			continue
+		}
+		if err := expandTreeProcessDirectory(filepath.Clean(rootPath+"/"+file.Name()), node); err != nil {
+			return errors.New("Couldn't process file: " + err.Error())
+		}
+	}
+
+	return nil
+
+}
+
+func expandTreeProcessDirectory(directory string, node jd.JsonNode) error {
+	return errors.New("Subdirectories not yet implemented")
 }
 
 //ContractTree goes through each node in the parse tree and where it finds a
