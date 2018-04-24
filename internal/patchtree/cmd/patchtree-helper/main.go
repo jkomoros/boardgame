@@ -1,0 +1,55 @@
+/*
+
+	patchtree-helper is a simple command that wraps patchtree.ExpandTree and ContractTree.
+
+	It is useful to modify base.json in a patchtree. The workflow is: sitting
+	in the directory with base.json, run `patchtree-helper expand`. Then
+	modify base.json. Then run `patchtree-helper contract`
+
+*/
+package main
+
+import (
+	"errors"
+	"github.com/jkomoros/boardgame/internal/patchtree"
+	"log"
+	"os"
+	"strings"
+)
+
+const validModesMessage = "Valid modes are 'expand', 'contract'."
+
+func main() {
+	if len(os.Args) < 2 {
+		log.Println("Need to provide a mode. " + validModesMessage)
+		os.Exit(1)
+	}
+
+	mode := strings.ToLower(os.Args[1])
+
+	dir, err := os.Getwd()
+
+	if err != nil {
+		log.Println("couldn't get working directory: " + err.Error())
+		os.Exit(1)
+	}
+
+	log.Println(dir)
+
+	switch mode {
+	case "expand":
+		err = patchtree.ExpandTree(dir)
+	case "contract":
+		err = patchtree.ContractTree(dir)
+	default:
+		err = errors.New("Invalid mode provided. " + validModesMessage)
+	}
+
+	if err != nil {
+		log.Println("Error: " + err.Error())
+		os.Exit(1)
+	}
+
+	return
+
+}
