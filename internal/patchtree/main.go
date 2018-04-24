@@ -60,6 +60,22 @@ func MustJSON(path string) []byte {
 	return result
 }
 
+//ExpandTree expands all of the nodes in the patchtree, applying the chains of
+//modification and created an node.expanded.json in each node. Used in a
+//workflow to modify base.json: run this commeand, then modify base.json, then
+//run ContractTree.
+func ExpandTree(rootPath string) error {
+	return errors.New("Not yet implemented")
+}
+
+//ContractTree goes through each node in the parse tree and where it finds a
+//node.expanded,json, re-derives and overwrites the "modification.patch". Used
+//as part of a workflow to modify base.json: run ExpandTree, modify base.json,
+//then ContractTree.
+func ContractTree(rootPath string) error {
+	return errors.New("Not yet implemented")
+}
+
 func processDirectory(path string) (jd.JsonNode, error) {
 
 	//If no more path pieces error
