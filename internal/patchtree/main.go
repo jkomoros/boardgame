@@ -34,6 +34,7 @@ import (
 
 const BASE_JSON = "base.json"
 const PATCH = "modification.patch"
+const EXPANDED_JSON_NAME = "node.expanded.json"
 
 //JSON returns the patched json blob impplied by that directory structure or
 //an error if something doesn't work. See the package doc for more.
@@ -132,6 +133,14 @@ func expandTreeProcessDirectory(directory string, node jd.JsonNode) (int, error)
 
 	if err != nil {
 		return 0, errors.New(diffFileName + " could not be applied: " + err.Error())
+	}
+
+	expandedNodeFileName := filepath.Clean(directory + "/" + EXPANDED_JSON_NAME)
+
+	data := expandedNode.Json()
+
+	if err := ioutil.WriteFile(expandedNodeFileName, []byte(data), 0644); err != nil {
+		return 0, errors.New("Couldn't write " + expandedNodeFileName + ": " + err.Error())
 	}
 
 	//We just affected a file!
