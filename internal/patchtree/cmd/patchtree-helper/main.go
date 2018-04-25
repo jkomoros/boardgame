@@ -14,6 +14,7 @@ import (
 	"github.com/jkomoros/boardgame/internal/patchtree"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -36,11 +37,13 @@ func main() {
 
 	log.Println(dir)
 
+	var affectedFiles int
+
 	switch mode {
 	case "expand":
-		err = patchtree.ExpandTree(dir)
+		affectedFiles, err = patchtree.ExpandTree(dir)
 	case "contract":
-		err = patchtree.ContractTree(dir)
+		affectedFiles, err = patchtree.ContractTree(dir)
 	default:
 		err = errors.New("Invalid mode provided. " + validModesMessage)
 	}
@@ -49,6 +52,8 @@ func main() {
 		log.Println("Error: " + err.Error())
 		os.Exit(1)
 	}
+
+	log.Println("Affected " + strconv.Itoa(affectedFiles) + " files.")
 
 	return
 

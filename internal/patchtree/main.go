@@ -66,40 +66,44 @@ func MustJSON(path string) []byte {
 //modification and created an node.expanded.json in each node. Used in a
 //workflow to modify base.json: run this commeand, then modify base.json, then
 //run ContractTree.
-func ExpandTree(rootPath string) error {
+func ExpandTree(rootPath string) (affectedFiles int, err error) {
 
 	baseJsonPath := filepath.Clean(rootPath + "/" + BASE_JSON)
 
 	if _, err := os.Stat(baseJsonPath); os.IsNotExist(err) {
-		return errors.New("Base json file did not exist: " + err.Error())
+		return 0, errors.New("Base json file did not exist: " + err.Error())
 	}
 
 	node, err := jd.ReadJsonFile(baseJsonPath)
 
 	if err != nil {
-		return errors.New("Couldn't parse base json file: " + err.Error())
+		return 0, errors.New("Couldn't parse base json file: " + err.Error())
 	}
 
 	files, err := ioutil.ReadDir(rootPath)
 
 	if err != nil {
-		return errors.New("Couldn't read base directory: " + err.Error())
+		return 0, errors.New("Couldn't read base directory: " + err.Error())
 	}
+
+	numAffectedFiles := 0
 
 	for _, file := range files {
 		if !file.IsDir() {
 			continue
 		}
-		if err := expandTreeProcessDirectory(filepath.Clean(rootPath+"/"+file.Name()), node); err != nil {
-			return errors.New("Couldn't process file: " + err.Error())
+		affectedFiles, err := expandTreeProcessDirectory(filepath.Clean(rootPath+"/"+file.Name()), node)
+		if err != nil {
+			return 0, errors.New("Couldn't process file: " + err.Error())
 		}
+		numAffectedFiles += affectedFiles
 	}
 
-	return nil
+	return numAffectedFiles, nil
 
 }
 
-func expandTreeProcessDirectory(directory string, node jd.JsonNode) error {
+func expandTreeProcessDirectory(directory string, node jd.JsonNode) (int, error) {
 
 	//TODO: a lot of this code is duplicated in ExpandTree, which is basically
 	//the same, just gets started in a different way.
@@ -107,7 +111,7 @@ func expandTreeProcessDirectory(directory string, node jd.JsonNode) error {
 	files, err := ioutil.ReadDir(directory)
 
 	if err != nil {
-		return errors.New("Couldn't read directory: " + err.Error())
+		return 0, errors.New("Couldn't read directory: " + err.Error())
 	}
 
 	diffFileName := filepath.Clean(directory + "/" + PATCH)
@@ -115,40 +119,46 @@ func expandTreeProcessDirectory(directory string, node jd.JsonNode) error {
 	if _, err := os.Stat(diffFileName); os.IsNotExist(err) {
 		//TODO: it's weird to print to log when this condition is hit.
 		log.Println(diffFileName + " did not exist; skipping that directory and all beneath it.")
-		return nil
+		return 0, nil
 	}
 
 	diff, err := jd.ReadDiffFile(diffFileName)
 
 	if err != nil {
-		return errors.New(diffFileName + " could not be loaded as patch file: " + err.Error())
+		return 0, errors.New(diffFileName + " could not be loaded as patch file: " + err.Error())
 	}
 
 	expandedNode, err := node.Patch(diff)
 
 	if err != nil {
-		return errors.New(diffFileName + " could not be applied: " + err.Error())
+		return 0, errors.New(diffFileName + " could not be applied: " + err.Error())
 	}
+
+	//We just affected a file!
+	numAffectedFiles := 1
 
 	for _, file := range files {
 		if !file.IsDir() {
 			continue
 		}
 		subDirectory := filepath.Clean(directory + "/" + file.Name())
-		if err := expandTreeProcessDirectory(subDirectory, expandedNode); err != nil {
-			return err
+
+		subAffectedFiles, err := expandTreeProcessDirectory(subDirectory, expandedNode)
+		if err != nil {
+			return numAffectedFiles, err
 		}
+		numAffectedFiles += subAffectedFiles
 	}
 
-	return nil
+	return numAffectedFiles, nil
 }
 
 //ContractTree goes through each node in the parse tree and where it finds a
 //node.expanded,json, re-derives and overwrites the "modification.patch". Used
 //as part of a workflow to modify base.json: run ExpandTree, modify base.json,
 //then ContractTree.
-func ContractTree(rootPath string) error {
-	return errors.New("Not yet implemented")
+func ContractTree(rootPath string) (numAffectedFiles int, err error) {
+	return 0, errors.New("Not yet implemented")
 }
 
 func processDirectory(path string) (jd.JsonNode, error) {
