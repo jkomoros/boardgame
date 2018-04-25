@@ -26,6 +26,7 @@ import (
 	"errors"
 	jd "github.com/jkomoros/jd/lib"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -99,7 +100,47 @@ func ExpandTree(rootPath string) error {
 }
 
 func expandTreeProcessDirectory(directory string, node jd.JsonNode) error {
-	return errors.New("Subdirectories not yet implemented")
+
+	//TODO: a lot of this code is duplicated in ExpandTree, which is basically
+	//the same, just gets started in a different way.
+
+	files, err := ioutil.ReadDir(directory)
+
+	if err != nil {
+		return errors.New("Couldn't read directory: " + err.Error())
+	}
+
+	diffFileName := filepath.Clean(directory + "/" + PATCH)
+
+	if _, err := os.Stat(diffFileName); os.IsNotExist(err) {
+		//TODO: it's weird to print to log when this condition is hit.
+		log.Println(diffFileName + " did not exist; skipping that directory and all beneath it.")
+		return nil
+	}
+
+	diff, err := jd.ReadDiffFile(diffFileName)
+
+	if err != nil {
+		return errors.New(diffFileName + " could not be loaded as patch file: " + err.Error())
+	}
+
+	expandedNode, err := node.Patch(diff)
+
+	if err != nil {
+		return errors.New(diffFileName + " could not be applied: " + err.Error())
+	}
+
+	for _, file := range files {
+		if !file.IsDir() {
+			continue
+		}
+		subDirectory := filepath.Clean(directory + "/" + file.Name())
+		if err := expandTreeProcessDirectory(subDirectory, expandedNode); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 //ContractTree goes through each node in the parse tree and where it finds a
