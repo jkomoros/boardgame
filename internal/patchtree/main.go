@@ -63,26 +63,20 @@ func MustJSON(path string) []byte {
 	return result
 }
 
-//ExpandTree expands all of the nodes in the patchtree, applying the chains of
-//modification and created an node.expanded.json in each node. Used in a
-//workflow to modify base.json: run this commeand, then modify base.json, then
-//run ContractTree.
-func ExpandTree(rootPath string) (affectedFiles int, err error) {
-
+func startDirectory(rootPath string) (jd.JsonNode, error) {
 	baseJsonPath := filepath.Clean(rootPath + "/" + BASE_JSON)
 
 	if _, err := os.Stat(baseJsonPath); os.IsNotExist(err) {
-		return 0, errors.New("Base json file did not exist: " + err.Error())
+		return nil, errors.New("Base json file did not exist: " + err.Error())
 	}
 
 	node, err := jd.ReadJsonFile(baseJsonPath)
 
 	if err != nil {
-		return 0, errors.New("Couldn't parse base json file: " + err.Error())
+		return nil, errors.New("Couldn't parse base json file: " + err.Error())
 	}
 
-	return walkDirectory(rootPath, node, expandTreeProcessDirectory)
-
+	return node, nil
 }
 
 func walkDirectory(directory string, expandedNode jd.JsonNode, subFunc func(string, jd.JsonNode) (int, error)) (int, error) {
@@ -108,6 +102,22 @@ func walkDirectory(directory string, expandedNode jd.JsonNode, subFunc func(stri
 	}
 
 	return numAffectedFiles, nil
+}
+
+//ExpandTree expands all of the nodes in the patchtree, applying the chains of
+//modification and created an node.expanded.json in each node. Used in a
+//workflow to modify base.json: run this commeand, then modify base.json, then
+//run ContractTree.
+func ExpandTree(rootPath string) (affectedFiles int, err error) {
+
+	node, err := startDirectory(rootPath)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return walkDirectory(rootPath, node, expandTreeProcessDirectory)
+
 }
 
 func expandTreeProcessDirectory(directory string, node jd.JsonNode) (int, error) {
