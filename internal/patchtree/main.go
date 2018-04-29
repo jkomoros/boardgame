@@ -109,12 +109,6 @@ func expandTreeProcessDirectory(directory string, node jd.JsonNode) (int, error)
 	//TODO: a lot of this code is duplicated in ExpandTree, which is basically
 	//the same, just gets started in a different way.
 
-	files, err := ioutil.ReadDir(directory)
-
-	if err != nil {
-		return 0, errors.New("Couldn't read directory: " + err.Error())
-	}
-
 	diffFileName := filepath.Clean(directory + "/" + PATCH)
 
 	if _, err := os.Stat(diffFileName); os.IsNotExist(err) {
@@ -145,6 +139,12 @@ func expandTreeProcessDirectory(directory string, node jd.JsonNode) (int, error)
 
 	//We just affected a file!
 	numAffectedFiles := 1
+
+	files, err := ioutil.ReadDir(directory)
+
+	if err != nil {
+		return 0, errors.New("Couldn't read directory: " + err.Error())
+	}
 
 	for _, file := range files {
 		if !file.IsDir() {
