@@ -159,7 +159,37 @@ func expandTreeProcessDirectory(directory string, node jd.JsonNode) (int, error)
 //as part of a workflow to modify base.json: run ExpandTree, modify base.json,
 //then ContractTree.
 func ContractTree(rootPath string) (numAffectedFiles int, err error) {
-	return 0, errors.New("Not yet implemented")
+	return startDirectoryAndWalk(rootPath, contractTreeProcessDirectory)
+}
+
+func contractTreeProcessDirectory(directory string, node jd.JsonNode) (int, error) {
+
+	nodeFileName := filepath.Clean(directory + "/" + EXPANDED_JSON_NAME)
+
+	expandedNode, err := jd.ReadJsonFile(nodeFileName)
+
+	if err != nil {
+		return 0, errors.New(nodeFileName + " could not be loaded as json file: " + err.Error())
+	}
+
+	patch := node.Diff(expandedNode)
+
+	data := patch.Render()
+
+	diffFileName := filepath.Clean(directory + "/" + PATCH)
+
+	if err := ioutil.WriteFile(diffFileName, []byte(data), 0644); err != nil {
+		return 0, errors.New("Couldn't write " + diffFileName + ": " + err.Error())
+	}
+
+	numAffectedFiles, err := walkDirectory(directory, expandedNode, contractTreeProcessDirectory)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return numAffectedFiles + 1, nil
+
 }
 
 func processDirectory(path string) (jd.JsonNode, error) {
