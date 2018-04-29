@@ -63,23 +63,25 @@ func MustJSON(path string) []byte {
 	return result
 }
 
-func startDirectory(rootPath string) (jd.JsonNode, error) {
+type directoryFunc func(string, jd.JsonNode) (int, error)
+
+func startDirectoryAndWalk(rootPath string, subFunc directoryFunc) (int, error) {
 	baseJsonPath := filepath.Clean(rootPath + "/" + BASE_JSON)
 
 	if _, err := os.Stat(baseJsonPath); os.IsNotExist(err) {
-		return nil, errors.New("Base json file did not exist: " + err.Error())
+		return 0, errors.New("Base json file did not exist: " + err.Error())
 	}
 
 	node, err := jd.ReadJsonFile(baseJsonPath)
 
 	if err != nil {
-		return nil, errors.New("Couldn't parse base json file: " + err.Error())
+		return 0, errors.New("Couldn't parse base json file: " + err.Error())
 	}
 
-	return node, nil
+	return walkDirectory(rootPath, node, subFunc)
 }
 
-func walkDirectory(directory string, expandedNode jd.JsonNode, subFunc func(string, jd.JsonNode) (int, error)) (int, error) {
+func walkDirectory(directory string, expandedNode jd.JsonNode, subFunc directoryFunc) (int, error) {
 	files, err := ioutil.ReadDir(directory)
 
 	if err != nil {
@@ -109,15 +111,7 @@ func walkDirectory(directory string, expandedNode jd.JsonNode, subFunc func(stri
 //workflow to modify base.json: run this commeand, then modify base.json, then
 //run ContractTree.
 func ExpandTree(rootPath string) (affectedFiles int, err error) {
-
-	node, err := startDirectory(rootPath)
-
-	if err != nil {
-		return 0, err
-	}
-
-	return walkDirectory(rootPath, node, expandTreeProcessDirectory)
-
+	return startDirectoryAndWalk(rootPath, expandTreeProcessDirectory)
 }
 
 func expandTreeProcessDirectory(directory string, node jd.JsonNode) (int, error) {
