@@ -81,10 +81,15 @@ func ExpandTree(rootPath string) (affectedFiles int, err error) {
 		return 0, errors.New("Couldn't parse base json file: " + err.Error())
 	}
 
-	files, err := ioutil.ReadDir(rootPath)
+	return walkDirectory(rootPath, node, expandTreeProcessDirectory)
+
+}
+
+func walkDirectory(directory string, expandedNode jd.JsonNode, subFunc func(string, jd.JsonNode) (int, error)) (int, error) {
+	files, err := ioutil.ReadDir(directory)
 
 	if err != nil {
-		return 0, errors.New("Couldn't read base directory: " + err.Error())
+		return 0, errors.New("Couldn't read directory: " + err.Error())
 	}
 
 	numAffectedFiles := 0
@@ -93,21 +98,19 @@ func ExpandTree(rootPath string) (affectedFiles int, err error) {
 		if !file.IsDir() {
 			continue
 		}
-		affectedFiles, err := expandTreeProcessDirectory(filepath.Clean(rootPath+"/"+file.Name()), node)
+		subDirectory := filepath.Clean(directory + "/" + file.Name())
+
+		subAffectedFiles, err := subFunc(subDirectory, expandedNode)
 		if err != nil {
-			return 0, errors.New("Couldn't process file: " + err.Error())
+			return numAffectedFiles, err
 		}
-		numAffectedFiles += affectedFiles
+		numAffectedFiles += subAffectedFiles
 	}
 
 	return numAffectedFiles, nil
-
 }
 
 func expandTreeProcessDirectory(directory string, node jd.JsonNode) (int, error) {
-
-	//TODO: a lot of this code is duplicated in ExpandTree, which is basically
-	//the same, just gets started in a different way.
 
 	diffFileName := filepath.Clean(directory + "/" + PATCH)
 
@@ -137,29 +140,14 @@ func expandTreeProcessDirectory(directory string, node jd.JsonNode) (int, error)
 		return 0, errors.New("Couldn't write " + expandedNodeFileName + ": " + err.Error())
 	}
 
-	//We just affected a file!
-	numAffectedFiles := 1
-
-	files, err := ioutil.ReadDir(directory)
+	numAffectedFiles, err := walkDirectory(directory, expandedNode, expandTreeProcessDirectory)
 
 	if err != nil {
-		return 0, errors.New("Couldn't read directory: " + err.Error())
+		return 0, err
 	}
 
-	for _, file := range files {
-		if !file.IsDir() {
-			continue
-		}
-		subDirectory := filepath.Clean(directory + "/" + file.Name())
+	return numAffectedFiles + 1, nil
 
-		subAffectedFiles, err := expandTreeProcessDirectory(subDirectory, expandedNode)
-		if err != nil {
-			return numAffectedFiles, err
-		}
-		numAffectedFiles += subAffectedFiles
-	}
-
-	return numAffectedFiles, nil
 }
 
 //ContractTree goes through each node in the parse tree and where it finds a
