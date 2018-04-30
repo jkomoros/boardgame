@@ -36,8 +36,16 @@ import (
 	"strings"
 )
 
-const BASE_JSON = "base.json"
-const PATCH = "modification.patch"
+//BATCH_JSON_NAME is the name of the base json file at the root of the
+//directory tree.
+const BASE_JSON_NAME = "base.json"
+
+//PATCH_NAME is the name of the patch in each sub-folder that modifies the
+//json in the tree above it.
+const PATCH_NAME = "modification.patch"
+
+//EXPANDED_JSON_NAME is the name of the file that represents the entire
+//expanded json blob at a given part of the tree, created by `expand`.
 const EXPANDED_JSON_NAME = "node.expanded.json"
 
 //JSON returns the patched json blob impplied by that directory structure or
@@ -70,7 +78,7 @@ func MustJSON(path string) []byte {
 type directoryFunc func(string, jd.JsonNode) (int, error)
 
 func startDirectoryAndWalk(rootPath string, subFunc directoryFunc) (int, error) {
-	baseJsonPath := filepath.Clean(rootPath + "/" + BASE_JSON)
+	baseJsonPath := filepath.Clean(rootPath + "/" + BASE_JSON_NAME)
 
 	if _, err := os.Stat(baseJsonPath); os.IsNotExist(err) {
 		return 0, errors.New("Base json file did not exist: " + err.Error())
@@ -120,7 +128,7 @@ func ExpandTree(rootPath string) (affectedFiles int, err error) {
 
 func expandTreeProcessDirectory(directory string, node jd.JsonNode) (int, error) {
 
-	diffFileName := filepath.Clean(directory + "/" + PATCH)
+	diffFileName := filepath.Clean(directory + "/" + PATCH_NAME)
 
 	if _, err := os.Stat(diffFileName); os.IsNotExist(err) {
 		//TODO: it's weird to print to log when this condition is hit.
@@ -203,7 +211,7 @@ func contractTreeProcessDirectory(directory string, node jd.JsonNode) (int, erro
 
 	data := patch.Render()
 
-	diffFileName := filepath.Clean(directory + "/" + PATCH)
+	diffFileName := filepath.Clean(directory + "/" + PATCH_NAME)
 
 	if err := ioutil.WriteFile(diffFileName, []byte(data), 0644); err != nil {
 		return 0, errors.New("Couldn't write " + diffFileName + ": " + err.Error())
@@ -235,7 +243,7 @@ func cleanTreeProcessDirectory(directory string, node jd.JsonNode) (int, error) 
 		return 0, errors.New(nodeFileName + " could not be loaded as json file: " + err.Error())
 	}
 
-	patchFileName := filepath.Clean(directory + "/" + PATCH)
+	patchFileName := filepath.Clean(directory + "/" + PATCH_NAME)
 
 	patch, err := jd.ReadDiffFile(patchFileName)
 
@@ -276,7 +284,7 @@ func processDirectory(path string) (jd.JsonNode, error) {
 
 	//TODO: check if the directory exists...
 
-	baseJsonPath := filepath.Clean(path + "/" + BASE_JSON)
+	baseJsonPath := filepath.Clean(path + "/" + BASE_JSON_NAME)
 
 	if _, err := os.Stat(baseJsonPath); err == nil {
 		//Found the directory with base.json!
@@ -287,7 +295,7 @@ func processDirectory(path string) (jd.JsonNode, error) {
 		return node, nil
 	}
 
-	modificationPatchPath := filepath.Clean(path + "/" + PATCH)
+	modificationPatchPath := filepath.Clean(path + "/" + PATCH_NAME)
 
 	if _, err := os.Stat(modificationPatchPath); err == nil {
 
@@ -314,6 +322,6 @@ func processDirectory(path string) (jd.JsonNode, error) {
 	}
 
 	//Path had neither base.json or modification.patch, which is an error
-	return nil, errors.New("In " + path + " didn't have either " + BASE_JSON + " or " + PATCH)
+	return nil, errors.New("In " + path + " didn't have either " + BASE_JSON_NAME + " or " + PATCH_NAME)
 
 }
