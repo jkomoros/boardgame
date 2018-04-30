@@ -23,6 +23,7 @@
 package patchtree
 
 import (
+	"encoding/json"
 	"errors"
 	jd "github.com/jkomoros/jd/lib"
 	"io/ioutil"
@@ -140,7 +141,13 @@ func expandTreeProcessDirectory(directory string, node jd.JsonNode) (int, error)
 
 	data := expandedNode.Json()
 
-	if err := ioutil.WriteFile(expandedNodeFileName, []byte(data), 0644); err != nil {
+	indentedJson, err := indentJson(data)
+
+	if err != nil {
+		return 0, errors.New("Couldn't indent json: " + err.Error())
+	}
+
+	if err := ioutil.WriteFile(expandedNodeFileName, []byte(indentedJson), 0644); err != nil {
 		return 0, errors.New("Couldn't write " + expandedNodeFileName + ": " + err.Error())
 	}
 
@@ -151,6 +158,23 @@ func expandTreeProcessDirectory(directory string, node jd.JsonNode) (int, error)
 	}
 
 	return numAffectedFiles + 1, nil
+
+}
+
+func indentJson(data string) (indented string, err error) {
+	var obj map[string]interface{}
+
+	if err := json.Unmarshal([]byte(data), &obj); err != nil {
+		return "", errors.New("Couldn't unpack generated json: " + err.Error())
+	}
+
+	result, err := json.MarshalIndent(obj, "", "\t")
+
+	if err != nil {
+		return "", errors.New("Couldn't repack generated json: " + err.Error())
+	}
+
+	return string(result), nil
 
 }
 
