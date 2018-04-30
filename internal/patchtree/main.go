@@ -192,6 +192,54 @@ func contractTreeProcessDirectory(directory string, node jd.JsonNode) (int, erro
 
 }
 
+//CleanTree goes through each node, and if modification.json conceptually
+//matches node.expanded.json, then removes node.expanded.json.
+func CleanTree(rootPath string) (numAffectedFiles int, err error) {
+	return startDirectoryAndWalk(rootPath, cleanTreeProcessDirectory)
+}
+
+func cleanTreeProcessDirectory(directory string, node jd.JsonNode) (int, error) {
+
+	nodeFileName := filepath.Clean(directory + "/" + EXPANDED_JSON_NAME)
+
+	expandedNode, err := jd.ReadJsonFile(nodeFileName)
+
+	if err != nil {
+		return 0, errors.New(nodeFileName + " could not be loaded as json file: " + err.Error())
+	}
+
+	patchFileName := filepath.Clean(directory + "/" + PATCH)
+
+	patch, err := jd.ReadDiffFile(patchFileName)
+
+	if err != nil {
+		return 0, errors.New(patchFileName + " could not be loaded as diff file: " + err.Error())
+	}
+
+	expandedNodeWithPatch, err := node.Patch(patch)
+
+	if err != nil {
+		return 0, errors.New(directory + " patch could not be applied: " + err.Error())
+	}
+
+	if !expandedNodeWithPatch.Equals(expandedNode) {
+		return 0, errors.New(directory + " patch file did not match expanded json")
+	}
+
+	if err := os.Remove(nodeFileName); err != nil {
+		return 0, errors.New("Couldn't delete node file: " + err.Error())
+	}
+
+	numAffectedFiles, err := walkDirectory(directory, expandedNode, cleanTreeProcessDirectory)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return numAffectedFiles + 1, nil
+
+}
+
 func processDirectory(path string) (jd.JsonNode, error) {
 
 	//If no more path pieces error

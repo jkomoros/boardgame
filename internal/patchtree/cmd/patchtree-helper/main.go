@@ -18,7 +18,7 @@ import (
 	"strings"
 )
 
-const validModesMessage = "Valid modes are 'expand', 'contract'."
+const validModesMessage = "Valid modes are 'expand', 'contract', 'clean'."
 
 func main() {
 	if len(os.Args) < 2 {
@@ -44,6 +44,8 @@ func main() {
 		affectedFiles, err = patchtree.ExpandTree(dir)
 	case "contract":
 		affectedFiles, err = patchtree.ContractTree(dir)
+	case "clean":
+		affectedFiles, err = patchtree.CleanTree(dir)
 	default:
 		err = errors.New("Invalid mode provided. " + validModesMessage)
 	}
