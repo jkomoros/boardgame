@@ -4,7 +4,9 @@
 
 	It is useful to modify base.json in a patchtree. The workflow is: sitting
 	in the directory with base.json, run `patchtree-helper expand`. Then
-	modify base.json. Then run `patchtree-helper contract`
+	modify base.json. Then run `patchtree-helper contract` to generate new
+	`modification.patch`. Then run `patchtree-helper clean` to remove the
+	temporary `node.expanded.json`.
 
 */
 package main

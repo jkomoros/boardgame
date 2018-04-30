@@ -19,6 +19,9 @@
 	it finds a base.json. Then it applies forward all of the
 	modification.patches to give you the final composed json blob result.
 
+	patchtree-helper is a simple cli utility that wraps the functionality in
+	this package.
+
 */
 package patchtree
 
