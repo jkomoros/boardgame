@@ -108,7 +108,7 @@ func walkDirectory(directory string, expandedNode jd.JsonNode, subFunc directory
 		}
 		subDirectory := filepath.Clean(directory + "/" + file.Name())
 
-		subAffectedFiles, err := subFunc(subDirectory, expandedNode)
+		subAffectedFiles, err := subFunc(subDirectory, copyJson(expandedNode))
 		if err != nil {
 			return numAffectedFiles, err
 		}
@@ -116,6 +116,15 @@ func walkDirectory(directory string, expandedNode jd.JsonNode, subFunc directory
 	}
 
 	return numAffectedFiles, nil
+}
+
+//copyJson returns a copy of the given json node. This is necessary because
+//methods like Patch() actually modify the underlying json node (even though
+//that's unclear!)
+func copyJson(node jd.JsonNode) jd.JsonNode {
+	result, _ := jd.ReadJsonString(node.Json())
+
+	return result
 }
 
 //ExpandTree expands all of the nodes in the patchtree, applying the chains of
