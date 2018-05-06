@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"github.com/jkomoros/boardgame/internal/patchtree"
 	"github.com/workfit/tester/assert"
-	"log"
 	"strconv"
 	"testing"
 )
@@ -246,10 +245,6 @@ func TestSanitization(t *testing.T) {
 		}
 
 		state, err := game.manager.stateFromRecord(inputBlob)
-
-		if !assert.For(t).ThatActual(err).IsNil().Passed() {
-			log.Println(test.inputPatchTree)
-		}
 
 		//This is hacky, but we don't really need the game for much more anyway
 		state.game = game

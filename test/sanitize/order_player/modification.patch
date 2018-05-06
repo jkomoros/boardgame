@@ -1,5 +1,8 @@
 @ ["Players",1,"Hand","Indexes",0]
 - 1
 + -2
+@ ["Components","test",1,"IntVar"]
+- 1
++ 0
 @ ["SecretMoveCount"]
 - {"test":[1,0,0,0]}
