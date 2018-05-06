@@ -161,6 +161,7 @@ func TestSanitization(t *testing.T) {
 					"MyStringSlice":      "hidden",
 					"MyPlayerIndexSlice": "hidden",
 					"MyEnumValue":        "hidden",
+					"MyBoard":            "hidden",
 				},
 				Player: map[string]string{
 					"Hand":              "all:hidden,self:visible",
