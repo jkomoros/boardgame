@@ -1,3 +1,6 @@
+@ ["Components","test",4,"IntVar"]
+- 1
++ 0
 @ ["Components","test",3,"IntVar"]
 - 1
 + 0
@@ -10,6 +13,12 @@
 @ ["Components","test",0,"IntVar"]
 - 1
 + 0
+@ ["Game","MyBoard","Spaces",1,"Ids",0]
+- "8bf6916c4aba0745eeff7e0495cdb67abe66f031"
++ ""
+@ ["Game","MyBoard","Spaces",1,"Indexes",0]
+- 4
++ -2
 @ ["Game","DrawDeck","Ids",1]
 - "667bc729077137a8932a2cffc5ca4b0cec905956"
 @ ["Game","DrawDeck","Ids",0]

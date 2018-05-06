@@ -182,6 +182,7 @@ func TestSanitization(t *testing.T) {
 					"MyBoolSlice":        "nonempty",
 					"MyStringSlice":      "nonempty",
 					"MyPlayerIndexSlice": "nonempty",
+					"MyBoard":            "nonempty",
 				},
 				Player: map[string]string{
 					"Hand": "all:nonempty",
