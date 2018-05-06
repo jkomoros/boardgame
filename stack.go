@@ -172,6 +172,12 @@ type MutableStack interface {
 	//errors. If error is non-nil, the stack may be left in an arbitrary order.
 	SortComponents(less func(i, j *Component) bool) error
 
+	//Resizable returns true if calls to any of the methods that change the
+	//Size of the stack are legal to call in general. Currently only stacks
+	//within a Board return Resizable false. If this returns false, any of
+	//those size mutating methods will fail with an error.
+	Resizable() bool
+
 	//ContractSize changes the size of the stack. For default stacks it
 	//contracts the MaxSize, if non-zero. For sized stacks it will reduce the
 	//size by removing the given number of slots, starting from the right.
@@ -1419,6 +1425,11 @@ func (g *growableStack) MaxSize() int {
 }
 
 func (g *growableStack) ExpandSize(newSlots int) error {
+
+	if !g.Resizable() {
+		return errors.New("Stack is not resizable.")
+	}
+
 	if g.MaxSize() == 0 {
 		return errors.New("Can't expand maxSize; maxSize is currently not set. Use SetSize first")
 	}
@@ -1433,6 +1444,10 @@ func (g *growableStack) ExpandSize(newSlots int) error {
 }
 
 func (g *growableStack) ContractSize(newSize int) error {
+	if !g.Resizable() {
+		return errors.New("Stack is not resizable.")
+	}
+
 	if g.MaxSize() == 0 {
 		return errors.New("Can't expand maxSize; maxSize is currently not set. Use SetSize first")
 	}
@@ -1479,11 +1494,23 @@ func (g *growableStack) SizeToFit() error {
 	return g.SetSize(g.Len())
 }
 
+func (g *growableStack) Resizable() bool {
+	return true
+}
+
+func (s *sizedStack) Resizable() bool {
+	return true
+}
+
 func (s *sizedStack) MaxSize() int {
 	return s.Len()
 }
 
 func (s *sizedStack) ExpandSize(newSlots int) error {
+	if !s.Resizable() {
+		return errors.New("Stack is not resizable.")
+	}
+
 	if newSlots < 1 {
 		return errors.New("Can't add 0 or negative slots to a sized stack")
 	}
@@ -1502,6 +1529,9 @@ func (s *sizedStack) ExpandSize(newSlots int) error {
 }
 
 func (s *sizedStack) ContractSize(newSize int) error {
+	if !s.Resizable() {
+		return errors.New("Stack is not resizable.")
+	}
 	if newSize > s.Len() {
 		return errors.New("Contract size cannot be used to grow a sized stack")
 	}
