@@ -44,6 +44,11 @@ func (t *testGameDelegate) ConfigureDecks() map[string]*Deck {
 		Integer: 10,
 	})
 
+	deck.AddComponent(&testingComponent{
+		String:  "basic",
+		Integer: 8,
+	})
+
 	deck.SetShadowValues(&testShadowValues{
 		Message: "Foo",
 	})
@@ -176,7 +181,7 @@ func (t *testGameDelegate) FinishSetUp(state MutableState) error {
 		values.Enum.SetValue(colorBlue)
 	}
 
-	return nil
+	return game.DrawDeck.MoveComponent(LastComponentIndex, game.MyBoard.MutableSpaceAt(1), FirstSlotIndex)
 }
 
 func (t *testGameDelegate) CurrentPlayerIndex(state State) PlayerIndex {

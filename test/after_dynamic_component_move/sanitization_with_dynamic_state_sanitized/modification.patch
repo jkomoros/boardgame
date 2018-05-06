@@ -1,6 +1,9 @@
 @ ["Components","test",3,"Enum"]
 - "Blue"
 + "Red"
+@ ["Components","test",4,"IntVar"]
+- 1
++ 0
 @ ["Components","test",3,"IntVar"]
 - 1
 + 0

@@ -223,7 +223,8 @@ func TestGameSetUp(t *testing.T) {
 
 	deck := game.Chest().Deck("test").Components()
 
-	if gameState.DrawDeck.Len() != len(deck) {
+	//We put one of the components in MyBoard[1]
+	if gameState.DrawDeck.Len() != len(deck)-1 {
 		t.Error("All of the components were not distributed in SetUp")
 	}
 

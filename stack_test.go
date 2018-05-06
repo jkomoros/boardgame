@@ -544,6 +544,10 @@ func TestSecretMoveComponentGrowable(t *testing.T) {
 	sStack.setState(fakeState)
 
 	for i, c := range deck.Components() {
+		if i >= 4 {
+			//Only include up to first four components
+			break
+		}
 		if i%2 == 0 {
 			gStack.insertNext(c)
 		} else {
@@ -575,6 +579,10 @@ func TestSecretMoveComponentSized(t *testing.T) {
 	sStack.setState(fakeState)
 
 	for i, c := range deck.Components() {
+		if i >= 4 {
+			//Only include up to first four components
+			break
+		}
 		if i%2 == 0 {
 			gStack.insertNext(c)
 		} else {
@@ -665,7 +673,11 @@ func TestMoveComponent(t *testing.T) {
 	gStackMaxLen.setState(fakeState)
 	sStackMaxLen.setState(fakeState)
 
-	for _, c := range deck.Components() {
+	for i, c := range deck.Components() {
+		if i >= 4 {
+			//Only include up to first four components
+			break
+		}
 		gStack.insertNext(c)
 		gStackMaxLen.insertNext(c)
 		sStack.insertNext(c)
@@ -965,7 +977,11 @@ func TestGrowableStackInsertComponentAt(t *testing.T) {
 
 	stack.setState(fakeState)
 
-	for _, c := range deck.Components() {
+	for i, c := range deck.Components() {
+		if i >= 4 {
+			//Only include up to first four components
+			break
+		}
 		stack.insertNext(c)
 	}
 
@@ -1042,7 +1058,11 @@ func TestGrowableStackRemoveComponentAt(t *testing.T) {
 
 	stack.setState(fakeState)
 
-	for _, c := range deck.Components() {
+	for i, c := range deck.Components() {
+		if i >= 4 {
+			//Only include up to first four components
+			break
+		}
 		stack.insertNext(c)
 	}
 

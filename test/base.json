@@ -20,7 +20,8 @@
                 "2a7effe5e4000914791f95f6c1a711e54d346020": 0,
                 "26367debb9c2ce3d0a24de425c5797f43ac43909": 0,
                 "eb8210726e015b0e472c225e512166e7f1ac34de": 0,
-                "667bc729077137a8932a2cffc5ca4b0cec905956": 0
+                "667bc729077137a8932a2cffc5ca4b0cec905956": 0,
+                "8bf6916c4aba0745eeff7e0495cdb67abe66f031": 0
             }
         },
         "Timer" : {
@@ -94,9 +95,15 @@
                 },
                 {
                     "Deck": "test",
-                    "Indexes": [],
-                    "Ids": [],
-                    "IdsLastSeen": {}
+                    "Indexes": [
+                        4
+                    ],
+                    "Ids": [
+                        "8bf6916c4aba0745eeff7e0495cdb67abe66f031"
+                    ],
+                    "IdsLastSeen": {
+                        "8bf6916c4aba0745eeff7e0495cdb67abe66f031": 0
+                    }
                 },
                 {
                     "Deck": "test",
@@ -168,6 +175,21 @@
     ],
     "Components": {
         "test" : [
+            {
+                "IntVar" : 1,
+                "Stack" : {
+                    "Deck" : "test",
+                    "Indexes" : [
+                        -1
+                    ],
+                    "Ids": [
+                        ""
+                    ],
+                    "IdsLastSeen": {},
+                    "Size": 1
+                },
+                "Enum": "Blue"
+            },
             {
                 "IntVar" : 1,
                 "Stack" : {
