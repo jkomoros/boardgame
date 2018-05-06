@@ -344,9 +344,6 @@ type sizedStack struct {
 	//verify that components being transfered between stacks are part of a
 	//single state. Set in empty{Game,Player}State.
 	statePtr *state
-
-	board      MutableBoard
-	boardIndex int
 }
 
 //mergedStack is a derived stack that is made of two stacks, either in
@@ -1521,15 +1518,15 @@ func (g *growableStack) BoardIndex() int {
 }
 
 func (s *sizedStack) Board() Board {
-	return s.board
+	return nil
 }
 
 func (s *sizedStack) MutableBoard() MutableBoard {
-	return s.board
+	return nil
 }
 
 func (s *sizedStack) BoardIndex() int {
-	return s.boardIndex
+	return 0
 }
 
 func (m *mergedStack) Board() Board {
@@ -1549,7 +1546,7 @@ func (g *growableStack) Resizable() bool {
 }
 
 func (s *sizedStack) Resizable() bool {
-	return s.board == nil
+	return true
 }
 
 func (s *sizedStack) MaxSize() int {
