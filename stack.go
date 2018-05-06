@@ -97,6 +97,14 @@ type Stack interface {
 	//overlapped stack. Valid is checked just before state is saved. If any
 	//stack returns any non-nil for this then the state will not be saved.
 	Valid() error
+
+	//Board will return the Board that this Stack is part of, or nil if it is
+	//not part of a board.
+	Board() Board
+
+	//If Board returns a non-nil Board, this will return the index within the
+	//Board that this stack is.
+	BoardIndex() int
 }
 
 //MutableStack is a Stack that also has mutator methods.
@@ -201,6 +209,10 @@ type MutableStack interface {
 	//automatically sizes the stack down so that there are no empty slots.
 	SizeToFit() error
 
+	//MutableBoard will return a mutable reference to the Board we're part of,
+	//if we're part of a board.
+	MutableBoard() MutableBoard
+
 	//removeComponentAt returns the component at componentIndex, and removes
 	//it from the stack. For GrowableStacks, this will splice `out the
 	//component. For SizedStacks it will simply vacate that slot. This should
@@ -304,6 +316,9 @@ type growableStack struct {
 	//verify that components being transfered between stacks are part of a
 	//single state. Set in empty{Game,Player}State.
 	statePtr *state
+
+	board      MutableBoard
+	boardIndex int
 }
 
 //sizedStack is a Stack that has a fixed number of slots, any of which may be
@@ -329,6 +344,9 @@ type sizedStack struct {
 	//verify that components being transfered between stacks are part of a
 	//single state. Set in empty{Game,Player}State.
 	statePtr *state
+
+	board      MutableBoard
+	boardIndex int
 }
 
 //mergedStack is a derived stack that is made of two stacks, either in
@@ -1490,16 +1508,48 @@ func (g *growableStack) SetSize(newSize int) error {
 	return g.ExpandSize(newSize - g.MaxSize())
 }
 
+func (g *growableStack) Board() Board {
+	return g.board
+}
+
+func (g *growableStack) MutableBoard() MutableBoard {
+	return g.board
+}
+
+func (g *growableStack) BoardIndex() int {
+	return g.boardIndex
+}
+
+func (s *sizedStack) Board() Board {
+	return s.board
+}
+
+func (s *sizedStack) MutableBoard() MutableBoard {
+	return s.board
+}
+
+func (s *sizedStack) BoardIndex() int {
+	return s.boardIndex
+}
+
+func (m *mergedStack) Board() Board {
+	return nil
+}
+
+func (m *mergedStack) BoardIndex() int {
+	return 0
+}
+
 func (g *growableStack) SizeToFit() error {
 	return g.SetSize(g.Len())
 }
 
 func (g *growableStack) Resizable() bool {
-	return true
+	return g.board == nil
 }
 
 func (s *sizedStack) Resizable() bool {
-	return true
+	return s.board == nil
 }
 
 func (s *sizedStack) MaxSize() int {
