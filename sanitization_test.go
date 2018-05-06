@@ -136,6 +136,7 @@ func TestSanitization(t *testing.T) {
 					"MyBoolSlice":        "order",
 					"MyStringSlice":      "order",
 					"MyPlayerIndexSlice": "order",
+					"MyBoard":            "order",
 				},
 			},
 			0,

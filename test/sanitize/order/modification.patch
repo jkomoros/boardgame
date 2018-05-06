@@ -1,9 +1,15 @@
+@ ["Components","test",4,"IntVar"]
+- 1
++ 0
 @ ["Components","test",3,"IntVar"]
 - 1
 + 0
 @ ["Components","test",2,"IntVar"]
 - 1
 + 0
+@ ["Game","MyBoard","Spaces",1,"Indexes",0]
+- 4
++ -2
 @ ["Game","DrawDeck","Indexes",3]
 - 3
 + -2
