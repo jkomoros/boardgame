@@ -47,13 +47,18 @@ func (d *Deck) NewBoard(length int, maxSize int) MutableBoard {
 
 	spaces := make([]*growableStack, length)
 
+	board := &board{}
+
 	for i := 0; i < length; i++ {
-		spaces[i] = d.NewStack(maxSize).(*growableStack)
+		gStack := d.NewStack(maxSize).(*growableStack)
+		gStack.board = board
+		gStack.boardIndex = i
+		spaces[i] = gStack
 	}
 
-	return &board{
-		spaces: spaces,
-	}
+	board.spaces = spaces
+
+	return board
 }
 
 func (b *board) setState(st *state) {
