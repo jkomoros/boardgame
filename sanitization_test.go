@@ -111,6 +111,7 @@ func TestSanitization(t *testing.T) {
 					"MyBoolSlice":        "len",
 					"MyStringSlice":      "len",
 					"MyPlayerIndexSlice": "len",
+					"MyBoard":            "len",
 				},
 			},
 			0,
