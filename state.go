@@ -94,6 +94,8 @@ type StatePropertyRef struct {
 	//by the rest of the StatePropertyRef.
 	PropName string
 
+	//PlayerIndex is the index of the player, if Group is StateGroupPlayer.
+	PlayerIndex int
 	//StackIndex specifies the index of the component within the stack (if it
 	//is a stack) that is intended. Negative values signify "all components in
 	//stack"
@@ -114,6 +116,7 @@ func NewStatePropertyRef() StatePropertyRef {
 	return StatePropertyRef{
 		StateGroupGame,
 		"",
+		-1,
 		-1,
 		-1,
 		"",
