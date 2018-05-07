@@ -28,7 +28,7 @@ package patchtree
 import (
 	"encoding/json"
 	"errors"
-	jd "github.com/jkomoros/jd/lib"
+	jd "github.com/josephburnett/jd/lib"
 	"io/ioutil"
 	"log"
 	"os"

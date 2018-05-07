@@ -1,7 +1,7 @@
 package patchtree
 
 import (
-	jd "github.com/jkomoros/jd/lib"
+	jd "github.com/josephburnett/jd/lib"
 	"github.com/workfit/tester/assert"
 	"testing"
 )
