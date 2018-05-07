@@ -224,7 +224,9 @@ type GameDelegate interface {
 	//a mamber of. In practice the default behavior of DefaultGameDelegate,
 	//which uses struct tags to figure out the policy, is sufficient and you
 	//do not need to override this. For more on how sanitization works, see
-	//the package doc.
+	//the package doc. The statePropetyRef passed will always have the Index
+	//properties set to -1, signifying that the returned policy applies to all
+	//items in the Stack/Board.
 	SanitizationPolicy(prop StatePropertyRef, groupMembership map[int]bool) Policy
 
 	//If you have computed properties that you want to be included in your

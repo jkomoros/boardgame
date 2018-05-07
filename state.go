@@ -83,16 +83,41 @@ const (
 	StateGroupDynamicComponentValues
 )
 
-//A StatePropertyRef is a reference to a particular property in a State, in a
-//structured way. Currently used when defining your dependencies for computed
-//properties.
+//A StatePropertyRef is a reference to a particular property or item in a
+//Property in a State, in a structured way. Currently used primarily as an
+//input to your GameDelegate's SanitizationPolicy method. Get a new generic
+//one, with all properties set to reasonable defaults, from
+//NewStatePropertyRef.
 type StatePropertyRef struct {
 	Group StateGroupType
-	//DeckName is only used when Group is StateGroupDynamicComponentValues
-	DeckName string
 	//PropName is the specific property on the given SubStateObject specified
 	//by the rest of the StatePropertyRef.
 	PropName string
+
+	//StackIndex specifies the index of the component within the stack (if it
+	//is a stack) that is intended. Negative values signify "all components in
+	//stack"
+	StackIndex int
+	//BoardIndex specifies the index of the Stack within the Board (if it is a
+	//board) that is intended. Negative values signify "all stacks within the
+	//board".
+	BoardIndex int
+	//DeckName is only used when Group is StateGroupDynamicComponentValues
+	DeckName string
+}
+
+//NewStatePropertyRef returns an initalized StatePropertyRef with all fields
+//set to reasonable defaults. In particular, all of the Index properties are
+//set to -1. It is rare for users of the library to need to create their own
+//StatePropertyRefs.
+func NewStatePropertyRef() StatePropertyRef {
+	return StatePropertyRef{
+		StateGroupGame,
+		"",
+		-1,
+		-1,
+		"",
+	}
 }
 
 //PlayerIndex is an int that represents the index of a given player in a game.
