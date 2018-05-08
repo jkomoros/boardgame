@@ -106,6 +106,10 @@ type StatePropertyRef struct {
 	BoardIndex int
 	//DeckName is only used when Group is StateGroupDynamicComponentValues
 	DeckName string
+	//DeckIndex is used only when the Group is
+	//StateGroupDynamicComponentValues. Negative values mean "all values in
+	//deck".
+	DynamicComponentIndex int
 }
 
 //NewStatePropertyRef returns an initalized StatePropertyRef with all fields
@@ -120,6 +124,7 @@ func NewStatePropertyRef() StatePropertyRef {
 		-1,
 		-1,
 		"",
+		-1,
 	}
 }
 
@@ -456,7 +461,7 @@ func (s *state) setStateForSubStates() {
 			component.SetState(s)
 			component.SetMutableState(s)
 
-			propRef.StackIndex = i
+			propRef.DynamicComponentIndex = i
 
 			setPropRefForStacks(component.Reader(), propRef)
 
