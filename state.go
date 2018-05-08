@@ -240,6 +240,10 @@ type state struct {
 	version                       int
 	game                          *Game
 
+	//componentIndex keeps track of the current location of all components in
+	//stacks in this state. It is not persisted, but is rebuilt the first time
+	//it's asked for, and then all modifications are kept track of as things
+	//move around.
 	componentIndex map[*Component]StatePropertyRef
 
 	//Set to true while computed is being calculating computed. Primarily so
