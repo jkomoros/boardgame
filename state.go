@@ -3,6 +3,7 @@ package boardgame
 import (
 	"encoding/json"
 	"github.com/jkomoros/boardgame/errors"
+	"log"
 	"strconv"
 )
 
@@ -312,6 +313,98 @@ type state struct {
 	//we accumulate the timers that still need to be fully started at that
 	//point.
 	timersToStart []int
+}
+
+func (s *state) ContainingStack(c *Component) (stack Stack, slotIndex int, err error) {
+	return s.ContainingMutableStack(c)
+}
+
+func (s *state) ContainingMutableStack(c *Component) (stack MutableStack, slotIndex int, err error) {
+	if s.componentIndex == nil {
+		s.buildComponentIndex()
+	}
+
+	if c == nil {
+		return nil, 0, errors.New("Nil component doesn't exist in any stack")
+	}
+
+	if c.Deck.GenericComponent() == c {
+		return nil, 0, errors.New("The generic component for that deck isn't in any stack")
+	}
+
+	ref, ok := s.componentIndex[c]
+	if !ok {
+		//This can happen if the state is sanitized, after
+		//buildComponentIndex, which won't be able to see the component.
+		if s.Sanitized() {
+			return nil, 0, errors.New("That component's location is not public information")
+		}
+		//If this happened and the state isn't expected, then something bad happened.
+		//TODO: remove this once debugging that it doesn't happen
+		log.Println("WARNING: Component didn't exist")
+		return nil, 0, errors.New("Unexpectedly that component was not found in the index")
+	}
+	readSetter, err := ref.associatedReadSetter(s)
+	if err != nil {
+		return nil, 0, errors.New("Invalid values object: " + err.Error())
+	}
+
+	propType, ok := readSetter.Props()[ref.PropName]
+
+	if !ok {
+		//If this happened and the state isn't expected, then something bad happened.
+		//TODO: remove this once debugging that it doesn't happen
+		log.Println("WARNING: Component didn't exist at that propname")
+		return nil, 0, errors.New("Unexpectedly, the propName in the cache was not in the associated reader.")
+	}
+
+	if !readSetter.PropMutable(ref.PropName) {
+		//If this happened and the state isn't expected, then something bad happened.
+		//TODO: remove this once debugging that it doesn't happen
+		log.Println("WARNING: Cached prop name is not mutable")
+		return nil, 0, errors.New("Unexpectedly, the PropName was not a mutable stack or board")
+	}
+
+	switch propType {
+	case TypeStack:
+		stack, err = readSetter.MutableStackProp(ref.PropName)
+		if err != nil {
+			return nil, 0, errors.New("Couldn't get MutableStackProp: " + err.Error())
+		}
+	case TypeBoard:
+		board, err := readSetter.MutableBoardProp(ref.PropName)
+		if err != nil {
+			return nil, 0, errors.New("Couldn't get MutableBoardProp: " + err.Error())
+		}
+		if ref.BoardIndex < 0 || ref.BoardIndex >= len(board.Spaces()) {
+			return nil, 0, errors.New("BoardIndex invalid")
+		}
+		stack = board.MutableSpaceAt(ref.BoardIndex)
+	default:
+		return nil, 0, errors.New("The property at the cached location was not a stack: " + propType.String())
+	}
+
+	//Now stack is the effective stack to use.
+
+	if ref.StackIndex < 0 || ref.StackIndex >= stack.Len() {
+		//If this happened and the state isn't expected, then something bad happened.
+		//TODO: remove this once debugging that it doesn't happen
+		log.Println("WARNING: Ref stack index invalid")
+		return nil, 0, errors.New("The ref points to an invalid stack index")
+	}
+	//Sanity check that we're allowed to see that component in that location.
+	otherC := stack.ComponentAt(ref.StackIndex)
+
+	//TODO: this check fails non-deterministically if the stack is sanitized
+	//with OrderLen, because every so often the random order of the stack will
+	//line up with the real order.
+
+	if otherC != c {
+		return nil, 0, errors.New("That component's location is not public information.")
+	}
+
+	return stack, ref.StackIndex, nil
+
 }
 
 //buildComponentIndex creates the component index by force. Should be called
