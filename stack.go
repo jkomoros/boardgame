@@ -95,6 +95,9 @@ type Stack interface {
 	//It tells each stack where it can be found within the state.
 	setPropRef(propRef StatePropertyRef)
 
+	//propRef returns the StatePropertyRef that was set via setPropRef().
+	propRef() StatePropertyRef
+
 	//Valid will return a non-nil error if the stack isn't valid currently.
 	//Normal stacks always reutrn nil, but MergedStacks might return non-nil,
 	//for example if the two stacks being merged are different sizes for an
@@ -323,7 +326,7 @@ type growableStack struct {
 
 	//propRef encodes where in the state object we are. Set in
 	//state.setStatesForSubState.
-	propRef StatePropertyRef
+	pRef StatePropertyRef
 
 	board      MutableBoard
 	boardIndex int
@@ -355,7 +358,7 @@ type sizedStack struct {
 
 	//propRef encodes where in the state object we are. Set in
 	//state.setStatesForSubState.
-	propRef StatePropertyRef
+	pRef StatePropertyRef
 }
 
 //mergedStack is a derived stack that is made of two stacks, either in
@@ -365,7 +368,7 @@ type mergedStack struct {
 	overlap bool
 	//propRef encodes where in the state object we are. Set in
 	//state.setStatesForSubState.
-	propRef StatePropertyRef
+	pRef StatePropertyRef
 }
 
 //stackJSONObj is an internal struct that we populate and use to implement
@@ -446,15 +449,27 @@ func newSizedStack(deck *Deck, size int) *sizedStack {
 }
 
 func (g *growableStack) setPropRef(propRef StatePropertyRef) {
-	g.propRef = propRef
+	g.pRef = propRef
 }
 
 func (s *sizedStack) setPropRef(propRef StatePropertyRef) {
-	s.propRef = propRef
+	s.pRef = propRef
 }
 
 func (m *mergedStack) setPropRef(propRef StatePropertyRef) {
-	m.propRef = propRef
+	m.pRef = propRef
+}
+
+func (g *growableStack) propRef() StatePropertyRef {
+	return g.pRef
+}
+
+func (s *sizedStack) propRef() StatePropertyRef {
+	return s.pRef
+}
+
+func (m *mergedStack) propRef() StatePropertyRef {
+	return m.pRef
 }
 
 func (g *growableStack) importFrom(other Stack) error {
@@ -1098,12 +1113,27 @@ func (g *growableStack) insertComponentAt(slotIndex int, component *Component) {
 	}
 
 	g.idSeen(component.ID(g.state()))
+	//In some weird testing scenarios state can be nil
+	if g.state() != nil {
+		//TODO: only update the ids for ones after the insert point in the component stack.
+		for i, _ := range g.indexes {
+			propRef := g.propRef()
+			propRef.StackIndex = i
+			g.state().componentAdded(g.ComponentAt(i), propRef)
+		}
+	}
 
 }
 
 func (s *sizedStack) insertComponentAt(slotIndex int, component *Component) {
 	s.indexes[slotIndex] = component.DeckIndex
 	s.idSeen(component.ID(s.state()))
+	//In some weird testing scenarios state can be nil
+	if s.state() != nil {
+		propRef := s.propRef()
+		propRef.StackIndex = slotIndex
+		s.state().componentAdded(component, propRef)
+	}
 }
 
 func (g *growableStack) insertNext(c *Component) {

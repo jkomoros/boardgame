@@ -239,6 +239,9 @@ type state struct {
 	sanitized                     bool
 	version                       int
 	game                          *Game
+
+	componentIndex map[*Component]StatePropertyRef
+
 	//Set to true while computed is being calculating computed. Primarily so
 	//if you marshal JSON in that time we know to just elide computed.
 	calculatingComputed bool
@@ -247,6 +250,68 @@ type state struct {
 	//we accumulate the timers that still need to be fully started at that
 	//point.
 	timersToStart []int
+}
+
+//buildComponentIndex creates the component index by force. Should be called
+//if an operation is called on the componentIndex but it's nil.
+func (s *state) buildComponentIndex() {
+	s.componentIndex = make(map[*Component]StatePropertyRef)
+
+	if s.gameState != nil {
+		s.reportComponentLocationsForReader(s.gameState.Reader())
+	}
+	for _, player := range s.playerStates {
+		if player != nil {
+			s.reportComponentLocationsForReader(player.Reader())
+		}
+	}
+	for _, dynamicValues := range s.dynamicComponentValues {
+		for _, value := range dynamicValues {
+			if value != nil {
+				s.reportComponentLocationsForReader(value.Reader())
+			}
+		}
+	}
+}
+
+func (s *state) reportComponentLocationsForReader(reader PropertyReader) {
+	for propName, propType := range reader.Props() {
+
+		if propType == TypeStack {
+			stack, err := reader.StackProp(propName)
+			if err != nil {
+				continue
+			}
+			for i, c := range stack.Components() {
+				propRef := stack.propRef()
+				propRef.StackIndex = i
+				s.componentIndex[c] = propRef
+			}
+		} else if propType == TypeBoard {
+			board, err := reader.BoardProp(propName)
+			if err != nil {
+				continue
+			}
+			for _, stack := range board.Spaces() {
+				for i, c := range stack.Components() {
+					propRef := stack.propRef()
+					propRef.StackIndex = i
+					s.componentIndex[c] = propRef
+				}
+			}
+		}
+	}
+}
+
+//componetAdded should be called by stacks when a component is added to them,
+//by non-merged stacks.
+func (s *state) componentAdded(c *Component, propRef StatePropertyRef) {
+	if s.componentIndex == nil {
+		s.buildComponentIndex()
+	}
+
+	s.componentIndex[c] = propRef
+
 }
 
 func (s *state) Version() int {
