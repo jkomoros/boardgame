@@ -251,6 +251,31 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 	return result, nil
 }
 
+func setPropRefForStacks(reader PropertyReader, basePropRef StatePropertyRef) {
+	for propName, propType := range reader.Props() {
+		//Copy the refToUse so we don't end up changing BoardIndex different
+		//ways different times through the loop.
+		refToUse := basePropRef
+		refToUse.PropName = propName
+		if propType == TypeStack {
+			stack, err := reader.StackProp(propName)
+			if err != nil {
+				continue
+			}
+			stack.setPropRef(refToUse)
+		} else if propType == TypeBoard {
+			board, err := reader.BoardProp(propName)
+			if err != nil {
+				continue
+			}
+			for i, stack := range board.Spaces() {
+				refToUse.BoardIndex = i
+				stack.setPropRef(refToUse)
+			}
+		}
+	}
+}
+
 //stacksForReader returns all stacks in reader, inclduing all StackProps, and all stacks within Boards.
 func stacksForReader(reader PropertyReader) []Stack {
 	var result []Stack

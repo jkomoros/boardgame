@@ -589,7 +589,8 @@ func TestGameState(t *testing.T) {
 	//just touch state0, too. ¯\_(ツ)_/¯
 	_, _ = json.Marshal(state0)
 
-	assert.For(t).ThatActual(state).Equals(state0).ThenDiffOnFail()
+	//Can't do ThenDiffOnFail because components and sub-states now have references back to state (loops)
+	assert.For(t).ThatActual(state).Equals(state0)
 
 	move := game.MoveByName("Test")
 

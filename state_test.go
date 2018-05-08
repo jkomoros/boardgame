@@ -5,7 +5,6 @@ import (
 	jd "github.com/josephburnett/jd/lib"
 	"github.com/workfit/tester/assert"
 	"io/ioutil"
-	"reflect"
 	"testing"
 )
 
@@ -372,13 +371,9 @@ func TestStateSerialization(t *testing.T) {
 
 	_, _ = json.Marshal(reconstitutedState)
 
-	if !reflect.DeepEqual(reconstitutedState, game.CurrentState()) {
+	//Can't do ThenDiffOnFail because components and sub-states now have references back to state (loops)
+	assert.For(t).ThatActual(reconstitutedState).Equals(game.CurrentState())
 
-		rStateBlob, _ := json.Marshal(reconstitutedState)
-		oStateBlob, _ := json.Marshal(game.CurrentState())
-
-		t.Error("Reconstituted state and original state were not the same. Got", string(rStateBlob), "wanted", string(oStateBlob))
-	}
 }
 
 func compareJSONObjects(in []byte, golden []byte, message string, t *testing.T) {
