@@ -128,6 +128,59 @@ func NewStatePropertyRef() StatePropertyRef {
 	}
 }
 
+//getReader returns the reader associated with the StatePropertyRef in the
+//given state, or errors if the StatePropertyRef does not refer to a valid
+//reader.
+func (r StatePropertyRef) associatedReader(st State) (PropertyReader, error) {
+	switch r.Group {
+	case StateGroupGame:
+		gameState := st.GameState()
+		if gameState == nil {
+			return nil, errors.New("GameState selected, but was nil")
+		}
+		return gameState.Reader(), nil
+	case StateGroupPlayer:
+
+		players := st.PlayerStates()
+		if len(players) == 0 {
+			return nil, errors.New("PlayerState selected, but no players in state")
+		}
+
+		if r.PlayerIndex < 0 {
+			return nil, errors.New("PlayerState selected, but negative value for PlayerIndex")
+		}
+
+		if r.PlayerIndex >= len(players) {
+			return nil, errors.New("PlayerState selected, but with a non-existent PlayerIndex")
+		}
+
+		player := players[r.PlayerIndex]
+
+		return player.Reader(), nil
+	case StateGroupDynamicComponentValues:
+
+		allDecks := st.DynamicComponentValues()
+
+		if allDecks == nil {
+			return nil, errors.New("DynamicComponentValues selected, but was nil")
+		}
+
+		values, ok := allDecks[r.DeckName]
+
+		if !ok {
+			return nil, errors.New("DeckName did not refer to any component values: " + r.DeckName)
+		}
+
+		if r.DynamicComponentIndex < 0 || r.DynamicComponentIndex >= len(values) {
+			return nil, errors.New("DynamicComponentIndex referred to a component that didn't exist")
+		}
+
+		return values[r.DynamicComponentIndex].Reader(), nil
+
+	}
+	return nil, errors.New("Invalid Group type")
+}
+
 //PlayerIndex is an int that represents the index of a given player in a game.
 //Normal values are [0, game.NumPlayers). Special values are AdminPlayerIndex
 //and ObserverPlayerIndex.
