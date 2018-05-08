@@ -131,17 +131,17 @@ func NewStatePropertyRef() StatePropertyRef {
 //getReader returns the reader associated with the StatePropertyRef in the
 //given state, or errors if the StatePropertyRef does not refer to a valid
 //reader.
-func (r StatePropertyRef) associatedReader(st State) (PropertyReader, error) {
+func (r StatePropertyRef) associatedReadSetter(st MutableState) (PropertyReadSetter, error) {
 	switch r.Group {
 	case StateGroupGame:
-		gameState := st.GameState()
+		gameState := st.MutableGameState()
 		if gameState == nil {
 			return nil, errors.New("GameState selected, but was nil")
 		}
-		return gameState.Reader(), nil
+		return gameState.ReadSetter(), nil
 	case StateGroupPlayer:
 
-		players := st.PlayerStates()
+		players := st.MutablePlayerStates()
 		if len(players) == 0 {
 			return nil, errors.New("PlayerState selected, but no players in state")
 		}
@@ -156,10 +156,10 @@ func (r StatePropertyRef) associatedReader(st State) (PropertyReader, error) {
 
 		player := players[r.PlayerIndex]
 
-		return player.Reader(), nil
+		return player.ReadSetter(), nil
 	case StateGroupDynamicComponentValues:
 
-		allDecks := st.DynamicComponentValues()
+		allDecks := st.MutableDynamicComponentValues()
 
 		if allDecks == nil {
 			return nil, errors.New("DynamicComponentValues selected, but was nil")
@@ -175,7 +175,7 @@ func (r StatePropertyRef) associatedReader(st State) (PropertyReader, error) {
 			return nil, errors.New("DynamicComponentIndex referred to a component that didn't exist")
 		}
 
-		return values[r.DynamicComponentIndex].Reader(), nil
+		return values[r.DynamicComponentIndex].ReadSetter(), nil
 
 	}
 	return nil, errors.New("Invalid Group type")
