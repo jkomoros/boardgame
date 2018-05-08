@@ -274,6 +274,9 @@ func (s *state) buildComponentIndex() {
 	}
 }
 
+//reportComponnentLocationsForReader goes through the given reader, and for
+//each component it finds, reports its location into the index. Used to help
+//build up the index when it's first created.
 func (s *state) reportComponentLocationsForReader(reader PropertyReader) {
 	for propName, propType := range reader.Props() {
 
@@ -283,6 +286,9 @@ func (s *state) reportComponentLocationsForReader(reader PropertyReader) {
 				continue
 			}
 			for i, c := range stack.Components() {
+				if c == nil {
+					continue
+				}
 				propRef := stack.propRef()
 				propRef.StackIndex = i
 				s.componentIndex[c] = propRef
@@ -294,6 +300,9 @@ func (s *state) reportComponentLocationsForReader(reader PropertyReader) {
 			}
 			for _, stack := range board.Spaces() {
 				for i, c := range stack.Components() {
+					if c == nil {
+						continue
+					}
 					propRef := stack.propRef()
 					propRef.StackIndex = i
 					s.componentIndex[c] = propRef
