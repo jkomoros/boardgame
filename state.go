@@ -281,6 +281,12 @@ func (p PlayerIndex) String() string {
 	return strconv.Itoa(int(p))
 }
 
+//componentIndexItem represents one item in the componentIndex.s
+type componentIndexItem struct {
+	stack     MutableStack
+	slotIndex int
+}
+
 //state implements both State and MutableState, so it can always be passed for
 //either, and what it's interpreted as is primarily a function of what the
 //method signature is that it's passed to
@@ -303,7 +309,7 @@ type state struct {
 	//stacks in this state. It is not persisted, but is rebuilt the first time
 	//it's asked for, and then all modifications are kept track of as things
 	//move around.
-	componentIndex map[*Component]StatePropertyRef
+	componentIndex map[*Component]componentIndexItem
 
 	//Set to true while computed is being calculating computed. Primarily so
 	//if you marshal JSON in that time we know to just elide computed.
@@ -332,7 +338,7 @@ func (s *state) ContainingMutableStack(c *Component) (stack MutableStack, slotIn
 		return nil, 0, errors.New("The generic component for that deck isn't in any stack")
 	}
 
-	ref, ok := s.componentIndex[c]
+	item, ok := s.componentIndex[c]
 	if !ok {
 		//This can happen if the state is sanitized, after
 		//buildComponentIndex, which won't be able to see the component.
@@ -344,56 +350,9 @@ func (s *state) ContainingMutableStack(c *Component) (stack MutableStack, slotIn
 		log.Println("WARNING: Component didn't exist")
 		return nil, 0, errors.New("Unexpectedly that component was not found in the index")
 	}
-	readSetter, err := ref.associatedReadSetter(s)
-	if err != nil {
-		return nil, 0, errors.New("Invalid values object: " + err.Error())
-	}
 
-	propType, ok := readSetter.Props()[ref.PropName]
-
-	if !ok {
-		//If this happened and the state isn't expected, then something bad happened.
-		//TODO: remove this once debugging that it doesn't happen
-		log.Println("WARNING: Component didn't exist at that propname")
-		return nil, 0, errors.New("Unexpectedly, the propName in the cache was not in the associated reader.")
-	}
-
-	if !readSetter.PropMutable(ref.PropName) {
-		//If this happened and the state isn't expected, then something bad happened.
-		//TODO: remove this once debugging that it doesn't happen
-		log.Println("WARNING: Cached prop name is not mutable")
-		return nil, 0, errors.New("Unexpectedly, the PropName was not a mutable stack or board")
-	}
-
-	switch propType {
-	case TypeStack:
-		stack, err = readSetter.MutableStackProp(ref.PropName)
-		if err != nil {
-			return nil, 0, errors.New("Couldn't get MutableStackProp: " + err.Error())
-		}
-	case TypeBoard:
-		board, err := readSetter.MutableBoardProp(ref.PropName)
-		if err != nil {
-			return nil, 0, errors.New("Couldn't get MutableBoardProp: " + err.Error())
-		}
-		if ref.BoardIndex < 0 || ref.BoardIndex >= len(board.Spaces()) {
-			return nil, 0, errors.New("BoardIndex invalid")
-		}
-		stack = board.MutableSpaceAt(ref.BoardIndex)
-	default:
-		return nil, 0, errors.New("The property at the cached location was not a stack: " + propType.String())
-	}
-
-	//Now stack is the effective stack to use.
-
-	if ref.StackIndex < 0 || ref.StackIndex >= stack.Len() {
-		//If this happened and the state isn't expected, then something bad happened.
-		//TODO: remove this once debugging that it doesn't happen
-		log.Println("WARNING: Ref stack index invalid")
-		return nil, 0, errors.New("The ref points to an invalid stack index")
-	}
 	//Sanity check that we're allowed to see that component in that location.
-	otherC := stack.ComponentAt(ref.StackIndex)
+	otherC := item.stack.ComponentAt(item.slotIndex)
 
 	//TODO: this check fails non-deterministically if the stack is sanitized
 	//with OrderLen, because every so often the random order of the stack will
@@ -403,27 +362,27 @@ func (s *state) ContainingMutableStack(c *Component) (stack MutableStack, slotIn
 		return nil, 0, errors.New("That component's location is not public information.")
 	}
 
-	return stack, ref.StackIndex, nil
+	return item.stack, item.slotIndex, nil
 
 }
 
 //buildComponentIndex creates the component index by force. Should be called
 //if an operation is called on the componentIndex but it's nil.
 func (s *state) buildComponentIndex() {
-	s.componentIndex = make(map[*Component]StatePropertyRef)
+	s.componentIndex = make(map[*Component]componentIndexItem)
 
 	if s.gameState != nil {
-		s.reportComponentLocationsForReader(s.gameState.Reader())
+		s.reportComponentLocationsForReader(s.gameState.ReadSetter())
 	}
 	for _, player := range s.playerStates {
 		if player != nil {
-			s.reportComponentLocationsForReader(player.Reader())
+			s.reportComponentLocationsForReader(player.ReadSetter())
 		}
 	}
 	for _, dynamicValues := range s.dynamicComponentValues {
 		for _, value := range dynamicValues {
 			if value != nil {
-				s.reportComponentLocationsForReader(value.Reader())
+				s.reportComponentLocationsForReader(value.ReadSetter())
 			}
 		}
 	}
@@ -432,50 +391,56 @@ func (s *state) buildComponentIndex() {
 //reportComponnentLocationsForReader goes through the given reader, and for
 //each component it finds, reports its location into the index. Used to help
 //build up the index when it's first created.
-func (s *state) reportComponentLocationsForReader(reader PropertyReader) {
-	for propName, propType := range reader.Props() {
+func (s *state) reportComponentLocationsForReader(readSetter PropertyReadSetter) {
+	for propName, propType := range readSetter.Props() {
+
+		if !readSetter.PropMutable(propName) {
+			continue
+		}
 
 		if propType == TypeStack {
-			stack, err := reader.StackProp(propName)
+			stack, err := readSetter.MutableStackProp(propName)
 			if err != nil {
 				continue
 			}
 			for i, c := range stack.Components() {
-				if c == nil {
-					continue
-				}
-				propRef := stack.propRef()
-				propRef.StackIndex = i
-				s.componentIndex[c] = propRef
+				s.componentAddedImpl(c, stack, i)
 			}
 		} else if propType == TypeBoard {
-			board, err := reader.BoardProp(propName)
+			board, err := readSetter.MutableBoardProp(propName)
 			if err != nil {
 				continue
 			}
-			for _, stack := range board.Spaces() {
+			for _, stack := range board.MutableSpaces() {
 				for i, c := range stack.Components() {
-					if c == nil {
-						continue
-					}
-					propRef := stack.propRef()
-					propRef.StackIndex = i
-					s.componentIndex[c] = propRef
+					s.componentAddedImpl(c, stack, i)
 				}
 			}
 		}
 	}
 }
 
+func (s *state) componentAddedImpl(c *Component, stack MutableStack, slotIndex int) {
+	if c == nil {
+		return
+	}
+	if c.Deck != nil && c.Deck.GenericComponent() == c {
+		return
+	}
+	s.componentIndex[c] = componentIndexItem{
+		stack,
+		slotIndex,
+	}
+}
+
 //componetAdded should be called by stacks when a component is added to them,
 //by non-merged stacks.
-func (s *state) componentAdded(c *Component, propRef StatePropertyRef) {
+func (s *state) componentAdded(c *Component, stack MutableStack, slotIndex int) {
 	if s.componentIndex == nil {
 		s.buildComponentIndex()
 	}
 
-	s.componentIndex[c] = propRef
-
+	s.componentAddedImpl(c, stack, slotIndex)
 }
 
 func (s *state) Version() int {

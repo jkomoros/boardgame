@@ -1117,9 +1117,7 @@ func (g *growableStack) insertComponentAt(slotIndex int, component *Component) {
 	if g.state() != nil {
 		//TODO: only update the ids for ones after the insert point in the component stack.
 		for i, _ := range g.indexes {
-			propRef := g.propRef()
-			propRef.StackIndex = i
-			g.state().componentAdded(g.ComponentAt(i), propRef)
+			g.state().componentAdded(g.ComponentAt(i), g, i)
 		}
 	}
 
@@ -1130,9 +1128,7 @@ func (s *sizedStack) insertComponentAt(slotIndex int, component *Component) {
 	s.idSeen(component.ID(s.state()))
 	//In some weird testing scenarios state can be nil
 	if s.state() != nil {
-		propRef := s.propRef()
-		propRef.StackIndex = slotIndex
-		s.state().componentAdded(component, propRef)
+		s.state().componentAdded(component, s, slotIndex)
 	}
 }
 
