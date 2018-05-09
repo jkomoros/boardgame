@@ -530,6 +530,10 @@ func (s *state) copy(sanitized bool) (*state, error) {
 	//state would be in a bad state long term...
 	result.calculatingComputed = s.calculatingComputed
 
+	//Note: we can't copy componentIndex, because all of those items point to
+	//MutableStacks in the original state, and we don't have an easy way to
+	//figure out which ones they correspond to in the new one.
+
 	if err := copyReader(s.gameState.ReadSetter(), result.gameState.ReadSetter()); err != nil {
 		return nil, err
 	}
