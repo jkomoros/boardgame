@@ -136,7 +136,7 @@ type testGameState struct {
 	state              State
 	mutableState       MutableState
 	CurrentPlayer      PlayerIndex
-	DrawDeck           MutableStack
+	DrawDeck           MutableStack `sanitize:"len"`
 	Timer              MutableTimer
 	MyIntSlice         []int
 	MyStringSlice      []string

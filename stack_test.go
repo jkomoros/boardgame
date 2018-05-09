@@ -37,6 +37,33 @@ func TestContainingComponent(t *testing.T) {
 
 	verifyContainingComponent(t, refriedGame.CurrentState(), deck)
 
+	sanitizedState := game.CurrentState().SanitizedForPlayer(0)
+
+	//DrawDeck is the on that is sanitized by default
+	componentsInDrawDeck := make(map[*Component]bool)
+
+	for _, c := range game.CurrentState().GameState().(*testGameState).DrawDeck.Components() {
+		componentsInDrawDeck[c] = true
+	}
+
+	for i, c := range deck.Components() {
+
+		stack, slotIndex, err := sanitizedState.ContainingStack(c)
+
+		//DrawDeck is sanitized, so we should get errors for that.
+		if componentsInDrawDeck[c] {
+			assert.For(t, i).ThatActual(err).IsNotNil()
+			continue
+		}
+
+		assert.For(t, i).ThatActual(stack).IsNotNil()
+
+		otherC := stack.ComponentAt(slotIndex)
+
+		assert.For(t, i).ThatActual(otherC).Equals(c)
+
+	}
+
 }
 
 func verifyContainingComponent(t *testing.T, st State, deck *Deck) {
