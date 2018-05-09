@@ -413,6 +413,8 @@ func (s *state) reportComponentLocationsForReader(readSetter PropertyReadSetter)
 				continue
 			}
 			for i, c := range stack.Components() {
+				//can't use updateIndexForAllComponents because we don't want
+				//to clal buildComponents.
 				s.componentAddedImpl(c, stack, i)
 			}
 		} else if propType == TypeBoard {
@@ -421,6 +423,8 @@ func (s *state) reportComponentLocationsForReader(readSetter PropertyReadSetter)
 				continue
 			}
 			for _, stack := range board.MutableSpaces() {
+				//can't use updateIndexForAllComponents because we don't want
+				//to clal buildComponents.
 				for i, c := range stack.Components() {
 					s.componentAddedImpl(c, stack, i)
 				}
@@ -450,6 +454,12 @@ func (s *state) componentAdded(c *Component, stack MutableStack, slotIndex int) 
 	}
 
 	s.componentAddedImpl(c, stack, slotIndex)
+}
+
+func (s *state) updateIndexForAllComponents(stack MutableStack) {
+	for i, c := range stack.Components() {
+		s.componentAdded(c, stack, i)
+	}
 }
 
 func (s *state) Version() int {

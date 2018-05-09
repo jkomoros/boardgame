@@ -1074,9 +1074,7 @@ func (g *growableStack) insertComponentAt(slotIndex int, component *Component) {
 	//In some weird testing scenarios state can be nil
 	if g.state() != nil {
 		//TODO: only update the ids for ones after the insert point in the component stack.
-		for i, _ := range g.indexes {
-			g.state().componentAdded(g.ComponentAt(i), g, i)
-		}
+		g.state().updateIndexForAllComponents(g)
 	}
 
 }
@@ -1337,6 +1335,8 @@ func (g *growableStack) PublicShuffle() error {
 		g.indexes[i] = currentComponents[j]
 	}
 
+	g.state().updateIndexForAllComponents(g)
+
 	return nil
 }
 
@@ -1364,6 +1364,8 @@ func (s *sizedStack) PublicShuffle() error {
 	for i, j := range perm {
 		s.indexes[i] = currentComponents[j]
 	}
+
+	s.state().updateIndexForAllComponents(s)
 
 	return nil
 }
@@ -1402,6 +1404,9 @@ func (g *growableStack) SwapComponents(i, j int) error {
 
 	g.indexes[i], g.indexes[j] = g.indexes[j], g.indexes[i]
 
+	g.state().componentAdded(g.ComponentAt(i), g, i)
+	g.state().componentAdded(g.ComponentAt(j), g, j)
+
 	return nil
 
 }
@@ -1428,6 +1433,9 @@ func (s *sizedStack) SwapComponents(i, j int) error {
 	}
 
 	s.indexes[i], s.indexes[j] = s.indexes[j], s.indexes[i]
+
+	s.state().componentAdded(s.ComponentAt(i), s, i)
+	s.state().componentAdded(s.ComponentAt(j), s, j)
 
 	return nil
 }

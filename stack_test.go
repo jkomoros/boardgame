@@ -64,6 +64,9 @@ func TestContainingComponent(t *testing.T) {
 
 	}
 
+	//TODO: ideally we'd also test here that SwapComponents and
+	//ShuffleComponents pass the test.
+
 }
 
 func verifyContainingComponent(t *testing.T, st State, deck *Deck) {
