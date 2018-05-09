@@ -547,35 +547,19 @@ func (s *state) copy(sanitized bool) (*state, error) {
 //mutable*States once.
 func (s *state) setStateForSubStates() {
 
-	propRef := NewStatePropertyRef()
-
 	s.gameState.SetState(s)
 	s.gameState.SetMutableState(s)
-	propRef.Group = StateGroupGame
-	setPropRefForStacks(s.gameState.Reader(), propRef)
 
-	propRef.Group = StateGroupPlayer
 	for i := 0; i < len(s.playerStates); i++ {
-		propRef.PlayerIndex = i
 		s.playerStates[i].SetState(s)
 		s.playerStates[i].SetMutableState(s)
 
-		setPropRefForStacks(s.playerStates[i].Reader(), propRef)
 	}
 
-	//Set PlayerIndex back to default
-	propRef = NewStatePropertyRef()
-	propRef.Group = StateGroupDynamicComponentValues
-	for name, dynamicComponents := range s.dynamicComponentValues {
-		propRef.DeckName = name
-		for i, component := range dynamicComponents {
+	for _, dynamicComponents := range s.dynamicComponentValues {
+		for _, component := range dynamicComponents {
 			component.SetState(s)
 			component.SetMutableState(s)
-
-			propRef.DynamicComponentIndex = i
-
-			setPropRefForStacks(component.Reader(), propRef)
-
 		}
 	}
 

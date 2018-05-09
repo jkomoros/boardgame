@@ -91,13 +91,6 @@ type Stack interface {
 	//setState sets the state ptr that will be returned by state().
 	setState(state *state)
 
-	//setPropRef is called towards the end of the state object being set up.
-	//It tells each stack where it can be found within the state.
-	setPropRef(propRef StatePropertyRef)
-
-	//propRef returns the StatePropertyRef that was set via setPropRef().
-	propRef() StatePropertyRef
-
 	//Valid will return a non-nil error if the stack isn't valid currently.
 	//Normal stacks always reutrn nil, but MergedStacks might return non-nil,
 	//for example if the two stacks being merged are different sizes for an
@@ -324,10 +317,6 @@ type growableStack struct {
 	//single state. Set in empty{Game,Player}State.
 	statePtr *state
 
-	//propRef encodes where in the state object we are. Set in
-	//state.setStatesForSubState.
-	pRef StatePropertyRef
-
 	board      MutableBoard
 	boardIndex int
 }
@@ -355,10 +344,6 @@ type sizedStack struct {
 	//verify that components being transfered between stacks are part of a
 	//single state. Set in empty{Game,Player}State.
 	statePtr *state
-
-	//propRef encodes where in the state object we are. Set in
-	//state.setStatesForSubState.
-	pRef StatePropertyRef
 }
 
 //mergedStack is a derived stack that is made of two stacks, either in
@@ -366,9 +351,6 @@ type sizedStack struct {
 type mergedStack struct {
 	stacks  []Stack
 	overlap bool
-	//propRef encodes where in the state object we are. Set in
-	//state.setStatesForSubState.
-	pRef StatePropertyRef
 }
 
 //stackJSONObj is an internal struct that we populate and use to implement
@@ -446,30 +428,6 @@ func newSizedStack(deck *Deck, size int) *sizedStack {
 		idsLastSeen: make(map[string]int),
 		size:        size,
 	}
-}
-
-func (g *growableStack) setPropRef(propRef StatePropertyRef) {
-	g.pRef = propRef
-}
-
-func (s *sizedStack) setPropRef(propRef StatePropertyRef) {
-	s.pRef = propRef
-}
-
-func (m *mergedStack) setPropRef(propRef StatePropertyRef) {
-	m.pRef = propRef
-}
-
-func (g *growableStack) propRef() StatePropertyRef {
-	return g.pRef
-}
-
-func (s *sizedStack) propRef() StatePropertyRef {
-	return s.pRef
-}
-
-func (m *mergedStack) propRef() StatePropertyRef {
-	return m.pRef
 }
 
 func (g *growableStack) importFrom(other Stack) error {
