@@ -19,11 +19,17 @@ func TestContainingComponent(t *testing.T) {
 
 	assert.For(t).ThatActual(deck).IsNotNil()
 
-	state := game.CurrentState()
-
-	verifyContainingComponent(t, state, deck)
+	verifyContainingComponent(t, game.CurrentState(), deck)
 
 	//TODO: test a rehyrdated state, one after a move, a sanitized state.
+
+	move := game.MoveByName("Draw Card")
+
+	err = <-game.ProposeMove(move, AdminPlayerIndex)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	verifyContainingComponent(t, game.CurrentState(), deck)
 
 }
 
