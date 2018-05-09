@@ -76,7 +76,7 @@ func (d *DefaultComponent) DefaultsForState(state boardgame.State) {
 		if !ok {
 			continue
 		}
-		if legal.Legal(state, legalType, i) != nil {
+		if legal.Legal(state, legalType) != nil {
 			continue
 		}
 		d.ComponentIndex = i
@@ -126,7 +126,7 @@ func (d *DefaultComponent) Legal(state boardgame.State, proposer boardgame.Playe
 		return errors.New("Specified Component didn't satisfy LegalComponent")
 	}
 
-	return legal.Legal(state, legalType, d.ComponentIndex)
+	return legal.Legal(state, legalType)
 
 }
 

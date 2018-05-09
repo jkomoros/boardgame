@@ -74,7 +74,7 @@ func (t *token) Dynamic(state boardgame.State) *tokenDynamic {
 	return t.ContainingComponent().DynamicValues(state).(*tokenDynamic)
 }
 
-func (t *token) Legal(state boardgame.State, legalType int, componentIndex int) error {
+func (t *token) Legal(state boardgame.State, legalType int) error {
 	//Red starts at top, moves towards bottom
 	targetRow := boardWidth - 1
 
@@ -83,7 +83,13 @@ func (t *token) Legal(state boardgame.State, legalType int, componentIndex int) 
 		targetRow = 0
 	}
 
-	indexes := SpacesEnum.ValueToRange(componentIndex)
+	_, slotIndex, err := state.ContainingStack(t.ContainingComponent())
+
+	if err != nil {
+		return errors.New("Component's position could not be found: " + err.Error())
+	}
+
+	indexes := SpacesEnum.ValueToRange(slotIndex)
 
 	if indexes[0] != targetRow {
 		//Not in the target row
