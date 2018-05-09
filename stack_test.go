@@ -31,6 +31,12 @@ func TestContainingComponent(t *testing.T) {
 
 	verifyContainingComponent(t, game.CurrentState(), deck)
 
+	refriedGame := game.Manager().Game(game.Id())
+
+	assert.For(t).ThatActual(refriedGame).IsNotNil()
+
+	verifyContainingComponent(t, refriedGame.CurrentState(), deck)
+
 }
 
 func verifyContainingComponent(t *testing.T, st State, deck *Deck) {
