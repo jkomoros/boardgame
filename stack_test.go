@@ -21,16 +21,23 @@ func TestContainingComponent(t *testing.T) {
 
 	state := game.CurrentState()
 
-	_, _, err = state.ContainingStack(deck.GenericComponent())
+	verifyContainingComponent(t, state, deck)
+
+	//TODO: test a rehyrdated state, one after a move, a sanitized state.
+
+}
+
+func verifyContainingComponent(t *testing.T, st State, deck *Deck) {
+	_, _, err := st.ContainingStack(deck.GenericComponent())
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
-	_, _, err = state.ContainingStack(nil)
+	_, _, err = st.ContainingStack(nil)
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
 	for i, c := range deck.Components() {
-		stack, slotIndex, err := state.ContainingStack(c)
+		stack, slotIndex, err := st.ContainingStack(c)
 		assert.For(t, i).ThatActual(err).IsNil()
 		assert.For(t, i).ThatActual(stack).IsNotNil()
 
@@ -39,9 +46,6 @@ func TestContainingComponent(t *testing.T) {
 		assert.For(t, i).ThatActual(otherC).Equals(c)
 
 	}
-
-	//TODO: test a rehyrdated state, one after a move, a sanitized state.
-
 }
 
 func TestMergedValidStack(t *testing.T) {
