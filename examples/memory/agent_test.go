@@ -142,18 +142,18 @@ func TestCullInvalidCards(t *testing.T) {
 	})
 }
 
-func cardsLess(i, j *boardgame.Component) bool {
+func cardsLess(i, j boardgame.Component) bool {
 	if i == nil {
 		return true
 	}
 	if j == nil {
 		return false
 	}
-	iType := i.Values.(*cardValue).Type
-	jType := j.Values.(*cardValue).Type
+	iType := i.Values().(*cardValue).Type
+	jType := j.Values().(*cardValue).Type
 	//Break ties with the component that has a lower deckIndex.
 	if iType == jType {
-		return i.DeckIndex < j.DeckIndex
+		return i.DeckIndex() < j.DeckIndex()
 	}
 	return iType < jType
 }
@@ -193,9 +193,9 @@ func TestCardsToFlip(t *testing.T) {
 
 	gameState.VisibleCards.MoveComponent(one, gameState.HiddenCards, one)
 
-	agent.CardSeen(gameState.HiddenCards.ComponentAt(0).Values.(*cardValue).Type, 0)
-	agent.CardSeen(gameState.HiddenCards.ComponentAt(2).Values.(*cardValue).Type, 2)
-	agent.CardSeen(gameState.HiddenCards.ComponentAt(3).Values.(*cardValue).Type, 3)
+	agent.CardSeen(gameState.HiddenCards.ComponentAt(0).Values().(*cardValue).Type, 0)
+	agent.CardSeen(gameState.HiddenCards.ComponentAt(2).Values().(*cardValue).Type, 2)
+	agent.CardSeen(gameState.HiddenCards.ComponentAt(3).Values().(*cardValue).Type, 3)
 
 	one = agent.FirstCardToFlip(gameState)
 

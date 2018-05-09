@@ -173,10 +173,10 @@ func (t *token) LegalCaptureSpaces(state boardgame.State, componentIndex int) []
 		if c == nil {
 			continue
 		}
-		if c.Values == nil {
+		if c.Values() == nil {
 			continue
 		}
-		v := c.Values.(*token)
+		v := c.Values().(*token)
 		if v.Color.Equals(t.Color) {
 			//One of our own.
 			continue

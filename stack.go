@@ -47,11 +47,11 @@ type Stack interface {
 	NumComponents() int
 
 	//ComponentAt retrieves the component at the given index in the stack.
-	ComponentAt(index int) *Component
+	ComponentAt(index int) Component
 
 	//Components returns all of the components. Equivalent to calling
 	//ComponentAt from 0 to Len().
-	Components() []*Component
+	Components() []Component
 
 	//Ids returns a slice of strings representing the Ids of each component at
 	//each index. Under normal circumstances this will be the results of
@@ -178,7 +178,7 @@ type MutableStack interface {
 	//SortComponents sorts the stack's components in the order implied by less
 	//by repeatedly calling SwapComponents. Errors if any SwapComponents
 	//errors. If error is non-nil, the stack may be left in an arbitrary order.
-	SortComponents(less func(i, j *Component) bool) error
+	SortComponents(less func(i, j Component) bool) error
 
 	//Resizable returns true if calls to any of the methods that change the
 	//Size of the stack are legal to call in general. Currently only stacks
@@ -218,7 +218,7 @@ type MutableStack interface {
 	//component. For SizedStacks it will simply vacate that slot. This should
 	//only be called by MoveComponent. Performs minimal error checking because
 	//it is only used inside of MoveComponent.
-	removeComponentAt(componentIndex int) *Component
+	removeComponentAt(componentIndex int) Component
 
 	//insertComponentAt inserts the given component at the given slot index,
 	//such that calling ComponentAt with slotIndex would return that
@@ -226,10 +226,10 @@ type MutableStack interface {
 	//SizedStacks, this just inserts the component in the slot. This should
 	//only be called by MoveComponent. Performs minimal error checking because
 	//it is only used inside of Movecomponent and game.SetUp.
-	insertComponentAt(slotIndex int, component *Component)
+	insertComponentAt(slotIndex int, component Component)
 
 	//insertNext is a convenience wrapper around insertComponentAt.
-	insertNext(c *Component)
+	insertNext(c Component)
 
 	//Whether or not the stack is set up to be modified right now.
 	modificationsAllowed() error
@@ -606,8 +606,8 @@ func (m *mergedStack) Valid() error {
 
 }
 
-func (g *growableStack) Components() []*Component {
-	result := make([]*Component, len(g.indexes))
+func (g *growableStack) Components() []Component {
+	result := make([]Component, len(g.indexes))
 
 	for i := 0; i < len(result); i++ {
 		result[i] = g.ComponentAt(i)
@@ -616,8 +616,8 @@ func (g *growableStack) Components() []*Component {
 	return result
 }
 
-func (s *sizedStack) Components() []*Component {
-	result := make([]*Component, len(s.indexes))
+func (s *sizedStack) Components() []Component {
+	result := make([]Component, len(s.indexes))
 
 	for i := 0; i < len(result); i++ {
 		result[i] = s.ComponentAt(i)
@@ -626,13 +626,13 @@ func (s *sizedStack) Components() []*Component {
 	return result
 }
 
-func (m *mergedStack) Components() []*Component {
+func (m *mergedStack) Components() []Component {
 	if len(m.stacks) == 0 {
-		return []*Component{}
+		return []Component{}
 	}
 	if m.overlap {
 
-		result := make([]*Component, len(m.stacks[0].Components()))
+		result := make([]Component, len(m.stacks[0].Components()))
 
 		for i, _ := range m.stacks[0].Components() {
 			result[i] = m.ComponentAt(i)
@@ -641,7 +641,7 @@ func (m *mergedStack) Components() []*Component {
 
 	}
 
-	var result []*Component
+	var result []Component
 
 	for _, stack := range m.stacks {
 		result = append(result, stack.Components()...)
@@ -652,7 +652,7 @@ func (m *mergedStack) Components() []*Component {
 
 //ComponentAt fetches the component object representing the n-th object in
 //this stack.
-func (s *growableStack) ComponentAt(index int) *Component {
+func (s *growableStack) ComponentAt(index int) Component {
 
 	//Substantially recreated in SizedStack.ComponentAt()
 	if index >= s.Len() || index < 0 {
@@ -671,7 +671,7 @@ func (s *growableStack) ComponentAt(index int) *Component {
 
 //ComponentAt fetches the component object representing the n-th object in
 //this stack.
-func (s *sizedStack) ComponentAt(index int) *Component {
+func (s *sizedStack) ComponentAt(index int) Component {
 
 	//Substantially recreated in GrowableStack.ComponentAt()
 
@@ -689,7 +689,7 @@ func (s *sizedStack) ComponentAt(index int) *Component {
 	return s.Deck().ComponentAt(deckIndex)
 }
 
-func (m *mergedStack) ComponentAt(index int) *Component {
+func (m *mergedStack) ComponentAt(index int) Component {
 	if len(m.stacks) == 0 {
 		return nil
 	}
@@ -1029,7 +1029,7 @@ func (s *sizedStack) legalSlot(index int) bool {
 	return true
 }
 
-func (g *growableStack) removeComponentAt(componentIndex int) *Component {
+func (g *growableStack) removeComponentAt(componentIndex int) Component {
 
 	component := g.ComponentAt(componentIndex)
 
@@ -1046,7 +1046,7 @@ func (g *growableStack) removeComponentAt(componentIndex int) *Component {
 
 }
 
-func (s *sizedStack) removeComponentAt(componentIndex int) *Component {
+func (s *sizedStack) removeComponentAt(componentIndex int) Component {
 	component := s.ComponentAt(componentIndex)
 
 	s.indexes[componentIndex] = emptyIndexSentinel
@@ -1054,19 +1054,19 @@ func (s *sizedStack) removeComponentAt(componentIndex int) *Component {
 	return component
 }
 
-func (g *growableStack) insertComponentAt(slotIndex int, component *Component) {
+func (g *growableStack) insertComponentAt(slotIndex int, component Component) {
 
 	if slotIndex == 0 {
-		g.indexes = append([]int{component.DeckIndex}, g.indexes...)
+		g.indexes = append([]int{component.DeckIndex()}, g.indexes...)
 	} else if slotIndex == g.Len() {
-		g.indexes = append(g.indexes, component.DeckIndex)
+		g.indexes = append(g.indexes, component.DeckIndex())
 	} else {
 		firstPart := g.indexes[:slotIndex]
 		firstPartCopy := make([]int, len(firstPart))
 		copy(firstPartCopy, firstPart)
 		//If we just append, it will put the component.DeckIndex in the
 		//underlying slice, which will then be copied again in th`e last append.
-		firstPartCopy = append(firstPartCopy, component.DeckIndex)
+		firstPartCopy = append(firstPartCopy, component.DeckIndex())
 		g.indexes = append(firstPartCopy, g.indexes[slotIndex:]...)
 	}
 
@@ -1079,8 +1079,8 @@ func (g *growableStack) insertComponentAt(slotIndex int, component *Component) {
 
 }
 
-func (s *sizedStack) insertComponentAt(slotIndex int, component *Component) {
-	s.indexes[slotIndex] = component.DeckIndex
+func (s *sizedStack) insertComponentAt(slotIndex int, component Component) {
+	s.indexes[slotIndex] = component.DeckIndex()
 	s.idSeen(component.ID(s.state()))
 	//In some weird testing scenarios state can be nil
 	if s.state() != nil {
@@ -1088,11 +1088,11 @@ func (s *sizedStack) insertComponentAt(slotIndex int, component *Component) {
 	}
 }
 
-func (g *growableStack) insertNext(c *Component) {
+func (g *growableStack) insertNext(c Component) {
 	g.insertComponentAt(g.effectiveIndex(NextSlotIndex), c)
 }
 
-func (s *sizedStack) insertNext(c *Component) {
+func (s *sizedStack) insertNext(c Component) {
 	s.insertComponentAt(s.effectiveIndex(NextSlotIndex), c)
 }
 
@@ -1157,7 +1157,7 @@ func (s *sizedStack) effectiveIndex(index int) int {
 
 type stackSorter struct {
 	stack MutableStack
-	less  func(i, j *Component) bool
+	less  func(i, j Component) bool
 	err   error
 }
 
@@ -1177,15 +1177,15 @@ func (s *stackSorter) Less(i, j int) bool {
 	return s.less(s.stack.ComponentAt(i), s.stack.ComponentAt(j))
 }
 
-func (g *growableStack) SortComponents(less func(i, j *Component) bool) error {
+func (g *growableStack) SortComponents(less func(i, j Component) bool) error {
 	return sortComponentsImpl(g, less)
 }
 
-func (s *sizedStack) SortComponents(less func(i, j *Component) bool) error {
+func (s *sizedStack) SortComponents(less func(i, j Component) bool) error {
 	return sortComponentsImpl(s, less)
 }
 
-func sortComponentsImpl(s MutableStack, less func(i, j *Component) bool) error {
+func sortComponentsImpl(s MutableStack, less func(i, j Component) bool) error {
 	sorter := &stackSorter{
 		stack: s,
 		less:  less,
@@ -1693,7 +1693,7 @@ func (m *mergedStack) MarshalJSON() ([]byte, error) {
 			indexes[i] = emptyIndexSentinel
 			continue
 		}
-		indexes[i] = c.DeckIndex
+		indexes[i] = c.DeckIndex()
 	}
 
 	obj := &stackJSONObj{

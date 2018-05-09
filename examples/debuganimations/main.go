@@ -51,10 +51,10 @@ func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex)
 	}
 }
 
-func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c *boardgame.Component) (boardgame.Stack, error) {
+func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c boardgame.Component) (boardgame.Stack, error) {
 	game, _ := concreteStates(state)
 
-	if c.Deck.Name() == tokensDeckName {
+	if c.Deck().Name() == tokensDeckName {
 
 		if game.TokensTo.NumComponents() < 9 {
 			return game.TokensTo, nil

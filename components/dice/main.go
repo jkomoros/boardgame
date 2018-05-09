@@ -70,7 +70,7 @@ func (v *Value) Max() int {
 //die Value it is associated with.
 func (d *DynamicValue) Roll() {
 
-	values, ok := d.ContainingComponent().Values.(*Value)
+	values, ok := d.ContainingComponent().Values().(*Value)
 
 	if !ok {
 		//This shouldn't happen, unless someone has called

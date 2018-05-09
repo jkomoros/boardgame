@@ -107,7 +107,7 @@ type GameDelegate interface {
 	//returned, any nil Stacks are returned, or any returned stacks don't have
 	//space for another component, game.SetUp will fail. State and Component
 	//are only provided for reference; do not modify them.
-	DistributeComponentToStarterStack(state State, c *Component) (Stack, error)
+	DistributeComponentToStarterStack(state State, c Component) (Stack, error)
 
 	//BeginSetup is a chance to modify the initial state object *before* the
 	//components are distributed to it. It is also where the config for your
@@ -414,7 +414,7 @@ func (d *DefaultGameDelegate) SetPhaseMoveProgression(phase int, progression []s
 	d.moveProgressions[phase] = progression
 }
 
-func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state State, c *Component) (Stack, error) {
+func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state State, c Component) (Stack, error) {
 	//The stub returns an error, because if this is called that means there
 	//was a component in the deck. And if we didn't store it in a stack, then
 	//we are in violation of the invariant.

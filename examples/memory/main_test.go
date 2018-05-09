@@ -64,7 +64,7 @@ func TestMain(t *testing.T) {
 
 	for i, c := range gameState.VisibleCards.Components() {
 		if c != nil {
-			revealedType = c.Values.(*cardValue).Type
+			revealedType = c.Values().(*cardValue).Type
 			revealedIndex = i
 			break
 		}
@@ -80,7 +80,7 @@ func TestMain(t *testing.T) {
 		if c == nil {
 			continue
 		}
-		if c.Values.(*cardValue).Type != revealedType {
+		if c.Values().(*cardValue).Type != revealedType {
 			cardToFlip = i
 			break
 		}
@@ -135,7 +135,7 @@ func TestMain(t *testing.T) {
 		if i == revealedIndex {
 			continue
 		}
-		if c.Values.(*cardValue).Type == revealedType {
+		if c.Values().(*cardValue).Type == revealedType {
 			cardToFlip = i
 			break
 		}

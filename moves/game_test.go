@@ -70,7 +70,7 @@ func (g *gameDelegate) Name() string {
 	return "tester"
 }
 
-func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c *boardgame.Component) (boardgame.Stack, error) {
+func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c boardgame.Component) (boardgame.Stack, error) {
 	game, _ := concreteStates(state)
 
 	return game.DrawStack, nil

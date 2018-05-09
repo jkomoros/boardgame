@@ -21,9 +21,9 @@ type Deck struct {
 	name string
 	//Components should only ever be added at initalization time. After
 	//initalization, Components should be read-only.
-	components            []*Component
+	components            []Component
 	shadowValues          ComponentValues
-	vendedShadowComponent *Component
+	vendedShadowComponent Component
 	//TODO: protect shadowComponents cache with mutex to make threadsafe.
 }
 
@@ -61,10 +61,10 @@ func (d *Deck) AddComponent(v ComponentValues) {
 		return
 	}
 
-	c := &Component{
-		Deck:      d,
-		DeckIndex: len(d.components),
-		Values:    v,
+	c := &component{
+		deck:      d,
+		deckIndex: len(d.components),
+		values:    v,
 	}
 
 	if v != nil {
@@ -75,7 +75,7 @@ func (d *Deck) AddComponent(v ComponentValues) {
 }
 
 //Components returns a list of Components in order in this deck.
-func (d *Deck) Components() []*Component {
+func (d *Deck) Components() []Component {
 	return d.components
 }
 
@@ -92,7 +92,7 @@ func (d *Deck) Name() string {
 
 //ComponentAt returns the component at a given index. It handles empty indexes
 //and shadow indexes correctly.
-func (d *Deck) ComponentAt(index int) *Component {
+func (d *Deck) ComponentAt(index int) Component {
 	if index >= len(d.components) {
 		return nil
 	}
@@ -124,17 +124,17 @@ func (d *Deck) SetShadowValues(v ComponentValues) {
 //sanitized with PolicyLen, for example. If you want to figure out if a Stack
 //was sanitized according to that policy, you can compare the component to
 //this.
-func (d *Deck) GenericComponent() *Component {
+func (d *Deck) GenericComponent() Component {
 
 	if d.vendedShadowComponent == nil {
-		shadow := &Component{
-			Deck:      d,
-			DeckIndex: genericComponentSentinel,
-			Values:    d.shadowValues,
+		shadow := &component{
+			deck:      d,
+			deckIndex: genericComponentSentinel,
+			values:    d.shadowValues,
 		}
 
-		if shadow.Values != nil {
-			shadow.Values.SetContainingComponent(shadow)
+		if shadow.Values() != nil {
+			shadow.Values().SetContainingComponent(shadow)
 		}
 
 		d.vendedShadowComponent = shadow
@@ -153,14 +153,14 @@ var illegalComponentValuesProps = map[PropertyType]bool{
 func (d *Deck) finish(chest *ComponentChest, name string) error {
 
 	for i, c := range d.components {
-		if c.Values == nil {
+		if c.Values() == nil {
 			continue
 		}
-		validator, err := newReaderValidator(c.Values.Reader(), nil, c.Values, illegalComponentValuesProps, chest, false)
+		validator, err := newReaderValidator(c.Values().Reader(), nil, c.Values(), illegalComponentValuesProps, chest, false)
 		if err != nil {
 			return errors.New("Component " + strconv.Itoa(i) + "failed to validate: " + err.Error())
 		}
-		if err := validator.Valid(c.Values.Reader()); err != nil {
+		if err := validator.Valid(c.Values().Reader()); err != nil {
 			return errors.New("Component " + strconv.Itoa(i) + " failed to validate: " + err.Error())
 		}
 	}

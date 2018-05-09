@@ -26,8 +26,8 @@ type gameDelegate struct {
 	boardgame.DefaultGameDelegate
 }
 
-func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c *boardgame.Component) (boardgame.Stack, error) {
-	component := c.Values.(*playerToken)
+func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c boardgame.Component) (boardgame.Stack, error) {
+	component := c.Values().(*playerToken)
 
 	_, players := concreteStates(state)
 
@@ -160,7 +160,7 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 			tokenValues[i] = " "
 			continue
 		}
-		tokenValues[i] = token.Values.(*playerToken).Value
+		tokenValues[i] = token.Values().(*playerToken).Value
 	}
 
 	result := make([]string, 7)

@@ -69,10 +69,10 @@ func (d *DefaultComponent) DefaultsForState(state boardgame.State) {
 		if c == nil {
 			continue
 		}
-		if c.Values == nil {
+		if c.Values() == nil {
 			continue
 		}
-		legal, ok := c.Values.(interfaces.LegalComponent)
+		legal, ok := c.Values().(interfaces.LegalComponent)
 		if !ok {
 			continue
 		}
@@ -116,11 +116,11 @@ func (d *DefaultComponent) Legal(state boardgame.State, proposer boardgame.Playe
 		return errors.New("ComponentIndex didn't specify a valid component")
 	}
 
-	if c.Values == nil {
+	if c.Values() == nil {
 		return errors.New("Specified component's values were nil")
 	}
 
-	legal, ok := c.Values.(interfaces.LegalComponent)
+	legal, ok := c.Values().(interfaces.LegalComponent)
 
 	if !ok {
 		return errors.New("Specified Component didn't satisfy LegalComponent")
@@ -187,11 +187,11 @@ func (d *DefaultComponent) ValidConfiguration(exampleState boardgame.MutableStat
 			//This shouldn't happen.
 			continue
 		}
-		if c.Values == nil {
+		if c.Values() == nil {
 			continue
 		}
 
-		if _, ok := c.Values.(interfaces.LegalComponent); ok {
+		if _, ok := c.Values().(interfaces.LegalComponent); ok {
 			return nil
 		}
 	}

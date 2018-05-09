@@ -306,7 +306,7 @@ func sanitizeStateObj(readSetConfigurer PropertyReadSetConfigurer, transformatio
 						if c == nil {
 							continue
 						}
-						visibleDynamic[c.Deck.Name()][c.DeckIndex] = true
+						visibleDynamic[c.Deck().Name()][c.DeckIndex()] = true
 					}
 				}
 			}
@@ -368,9 +368,9 @@ func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[strin
 					continue
 				}
 				//There can't possibly be a collision because each component may only be in a single stack at a time.
-				visibleComponents[c.Deck.Name()][c.DeckIndex] = true
+				visibleComponents[c.Deck().Name()][c.DeckIndex()] = true
 				//Take note that there's another item to add to the queue to explore.
-				workItems = append(workItems, workItem{c.Deck.Name(), c.DeckIndex})
+				workItems = append(workItems, workItem{c.Deck().Name(), c.DeckIndex()})
 			}
 		}
 

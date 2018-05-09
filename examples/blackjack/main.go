@@ -68,11 +68,11 @@ func (g *gameDelegate) ComputedPlayerProperties(player boardgame.PlayerState) bo
 	}
 }
 
-func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c *boardgame.Component) (boardgame.Stack, error) {
+func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c boardgame.Component) (boardgame.Stack, error) {
 
 	game, _ := concreteStates(state)
 
-	card := c.Values.(*playingcards.Card)
+	card := c.Values().(*playingcards.Card)
 
 	if card.Rank.Value() == playingcards.RankJoker {
 		return game.UnusedCards, nil
@@ -117,11 +117,11 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 		result = append(result, "\tCards:")
 
 		for _, c := range player.HiddenHand.Components() {
-			result = append(result, "\t\t"+c.Values.(*playingcards.Card).String())
+			result = append(result, "\t\t"+c.Values().(*playingcards.Card).String())
 		}
 
 		for _, c := range player.VisibleHand.Components() {
-			result = append(result, "\t\t"+c.Values.(*playingcards.Card).String())
+			result = append(result, "\t\t"+c.Values().(*playingcards.Card).String())
 		}
 
 		result = append(result, "")

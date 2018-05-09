@@ -155,7 +155,7 @@ func (g *gameDelegate) BeginSetUp(state boardgame.MutableState, config boardgame
 	return nil
 }
 
-func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c *boardgame.Component) (boardgame.Stack, error) {
+func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c boardgame.Component) (boardgame.Stack, error) {
 	game, _ := concreteStates(state)
 
 	//For now, shunt all cards to UnusedCards. In FinishSetup we'll construct
@@ -181,14 +181,14 @@ func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) error {
 	for game.HiddenCards.NumComponents() < game.NumCards {
 
 		//The card to match.
-		firstCard := game.UnusedCards.ComponentAt(0).Values.(*cardValue)
+		firstCard := game.UnusedCards.ComponentAt(0).Values().(*cardValue)
 
 		//Now find its pair. If we keep it, we'll also keep its pair. If we
 		//move it to scratch, we'll also move its pair to scratch.
 		var pairCardIndex int
 
 		for i := 1; i < game.UnusedCards.Len(); i++ {
-			candidateCard := game.UnusedCards.ComponentAt(i).Values.(*cardValue)
+			candidateCard := game.UnusedCards.ComponentAt(i).Values().(*cardValue)
 
 			if candidateCard.Type == firstCard.Type {
 				pairCardIndex = i
@@ -243,7 +243,7 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 		if c == nil {
 			value += "<empty>"
 		} else {
-			value += c.Values.(*cardValue).Type
+			value += c.Values().(*cardValue).Type
 		}
 
 		result = append(result, "\t"+value)

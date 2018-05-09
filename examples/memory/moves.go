@@ -104,7 +104,7 @@ func (m *MoveStartHideCardsTimer) Legal(state boardgame.State, proposer boardgam
 		return errors.New("The timer is already active.")
 	}
 
-	var revealedCards []*boardgame.Component
+	var revealedCards []boardgame.Component
 
 	for _, c := range game.VisibleCards.Components() {
 		if c != nil {
@@ -112,8 +112,8 @@ func (m *MoveStartHideCardsTimer) Legal(state boardgame.State, proposer boardgam
 		}
 	}
 
-	cardOneType := revealedCards[0].Values.(*cardValue).Type
-	cardTwoType := revealedCards[1].Values.(*cardValue).Type
+	cardOneType := revealedCards[0].Values().(*cardValue).Type
+	cardTwoType := revealedCards[1].Values().(*cardValue).Type
 
 	if cardOneType == cardTwoType {
 		return errors.New("The two revealed cards are of the same type")
@@ -156,7 +156,7 @@ func (m *MoveCaptureCards) Legal(state boardgame.State, proposer boardgame.Playe
 		return errors.New("There aren't two cards showing!")
 	}
 
-	var revealedCards []*boardgame.Component
+	var revealedCards []boardgame.Component
 
 	for _, c := range game.VisibleCards.Components() {
 		if c != nil {
@@ -164,8 +164,8 @@ func (m *MoveCaptureCards) Legal(state boardgame.State, proposer boardgame.Playe
 		}
 	}
 
-	cardOneType := revealedCards[0].Values.(*cardValue).Type
-	cardTwoType := revealedCards[1].Values.(*cardValue).Type
+	cardOneType := revealedCards[0].Values().(*cardValue).Type
+	cardTwoType := revealedCards[1].Values().(*cardValue).Type
 
 	if cardOneType != cardTwoType {
 		return errors.New("The two revealed cards are not of the same type")

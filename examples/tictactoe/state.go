@@ -37,7 +37,7 @@ func (g *gameState) tokenValueAtIndex(index int) string {
 	if c == nil {
 		return ""
 	}
-	return c.Values.(*playerToken).Value
+	return c.Values().(*playerToken).Value
 }
 
 func rowColToIndex(row, col int) int {

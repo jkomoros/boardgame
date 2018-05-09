@@ -15,11 +15,11 @@ func TestNewDeck(t *testing.T) {
 
 	g := deck.GenericComponent()
 
-	if g.Values == nil {
+	if g.Values() == nil {
 		t.Error("Generic components had no values")
 	}
 
-	r, err := g.Values.Reader().EnumProp("Rank")
+	r, err := g.Values().Reader().EnumProp("Rank")
 
 	if err != nil {
 		t.Error("Values on Reader had no Rank property")
@@ -29,7 +29,7 @@ func TestNewDeck(t *testing.T) {
 		t.Error("generic rank was not RankUnknown")
 	}
 
-	s, err := g.Values.Reader().EnumProp("Suit")
+	s, err := g.Values().Reader().EnumProp("Suit")
 
 	if err != nil {
 		t.Error("Values on reader had no Suit property")
@@ -74,7 +74,7 @@ func checkExpectedRun(deck *boardgame.Deck, startingIndex int, t *testing.T) {
 	components := deck.Components()
 
 	for i := startingIndex; i < (startingIndex + 52); i++ {
-		card := components[i].Values.(*Card)
+		card := components[i].Values().(*Card)
 
 		if card.Rank.Value() != expectedRank {
 			t.Error("Card", i, "had wrong rank. Wanted", expectedRank, "Got", card.Rank.Value())

@@ -23,7 +23,7 @@ func (m *MovePlaceToken) DefaultsForState(state boardgame.State) {
 
 	nextToken := game.UnusedTokens.ComponentAt(0)
 
-	nextTokenVals := nextToken.Values.(*token)
+	nextTokenVals := nextToken.Values().(*token)
 
 	//Red starts at top
 	fromBottom := false
@@ -104,7 +104,7 @@ func (m *MoveMoveToken) Legal(state boardgame.State, proposer boardgame.PlayerIn
 		return errors.New("That space does not have a component in it")
 	}
 
-	t := c.Values.(*token)
+	t := c.Values().(*token)
 
 	if !p.Color.Equals(t.Color) {
 		return errors.New("That token isn't your token to move!")
@@ -174,7 +174,7 @@ func (m *MoveMoveToken) Apply(state boardgame.MutableState) error {
 
 	if c != nil {
 
-		tokenValues := c.Values.(*token)
+		tokenValues := c.Values().(*token)
 
 		if !tokenValues.Color.Equals(p.Color) {
 			tokenCaptured = true
@@ -191,7 +191,7 @@ func (m *MoveMoveToken) Apply(state boardgame.MutableState) error {
 	} else {
 		//The turn is also over if there isn't another cpature space to move
 		//to.
-		t := g.Spaces.ComponentAt(m.SpaceIndex.Value()).Values.(*token)
+		t := g.Spaces.ComponentAt(m.SpaceIndex.Value()).Values().(*token)
 		if len(t.LegalCaptureSpaces(state, m.SpaceIndex.Value())) == 0 {
 			p.FinishedTurn = true
 		}

@@ -94,22 +94,6 @@ func (t *testingComponentDynamic) MutableState() MutableState {
 	return t.mutableState
 }
 
-func componentsEqual(one *Component, two *Component) bool {
-	if one == nil && two == nil {
-		return true
-	}
-	if one == nil || two == nil {
-		return false
-	}
-	if one.Deck.Name() != two.Deck.Name() {
-		return false
-	}
-	if one.DeckIndex != two.DeckIndex {
-		return false
-	}
-	return true
-}
-
 //Every game should do such a convenience method. state might be nil.
 func concreteStates(state State) (*testGameState, []*testPlayerState) {
 

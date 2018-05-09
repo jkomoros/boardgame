@@ -39,7 +39,7 @@ func TestComponentChest(t *testing.T) {
 	componentValues := make([]ComponentValues, 2)
 
 	for i, component := range deckOne.Components() {
-		componentValues[i] = component.Values
+		componentValues[i] = component.Values()
 	}
 
 	if !reflect.DeepEqual(componentValues, []ComponentValues{componentOne, componentTwo}) {
@@ -54,7 +54,7 @@ func TestComponentChest(t *testing.T) {
 	componentValues = make([]ComponentValues, 2)
 
 	for i, component := range deckOne.Components() {
-		componentValues[i] = component.Values
+		componentValues[i] = component.Values()
 	}
 
 	if !reflect.DeepEqual(componentValues, []ComponentValues{componentOne, componentTwo}) {
@@ -82,7 +82,7 @@ func TestComponentChest(t *testing.T) {
 
 	c := deckTwo.ComponentAt(0)
 
-	if c.Values.ContainingComponent() != c {
+	if c.Values().ContainingComponent() != c {
 		t.Error("c.Values didn't have its containing component set")
 	}
 
@@ -119,11 +119,11 @@ func TestComponentChest(t *testing.T) {
 	}
 
 	for i, c := range deckOne.Components() {
-		if c.Deck != deckOne {
-			t.Error("At position", i, "deck name was not set correctly in component. Got", c.Deck, "wanted", deckOne)
+		if c.Deck() != deckOne {
+			t.Error("At position", i, "deck name was not set correctly in component. Got", c.Deck(), "wanted", deckOne)
 		}
-		if c.DeckIndex != i {
-			t.Error("At position", i, "index was not set correctly in component. Got", c.DeckIndex, "wanted", i)
+		if c.DeckIndex() != i {
+			t.Error("At position", i, "index was not set correctly in component. Got", c.DeckIndex(), "wanted", i)
 		}
 	}
 

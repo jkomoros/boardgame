@@ -40,7 +40,7 @@ func TestContainingComponent(t *testing.T) {
 	sanitizedState := game.CurrentState().SanitizedForPlayer(0)
 
 	//DrawDeck is the on that is sanitized by default
-	componentsInDrawDeck := make(map[*Component]bool)
+	componentsInDrawDeck := make(map[Component]bool)
 
 	for _, c := range game.CurrentState().GameState().(*testGameState).DrawDeck.Components() {
 		componentsInDrawDeck[c] = true
@@ -309,7 +309,7 @@ func TestExpandContractSizedStackSize(t *testing.T) {
 	assert.For(t).ThatActual(sized.size).Equals(6)
 	assert.For(t).ThatActual(len(sized.indexes)).Equals(6)
 
-	var nilComponent *Component
+	var nilComponent Component
 
 	assert.For(t).ThatActual(sized.ComponentAt(5)).Equals(nilComponent)
 
@@ -469,14 +469,14 @@ func TestSort(t *testing.T) {
 		}
 	}
 
-	lessFunc := func(i, j *Component) bool {
+	lessFunc := func(i, j Component) bool {
 		if i == nil {
 			return true
 		}
 		if j == nil {
 			return false
 		}
-		return i.Values.(*testingComponent).Integer < j.Values.(*testingComponent).Integer
+		return i.Values().(*testingComponent).Integer < j.Values().(*testingComponent).Integer
 	}
 
 	err := gStack.SortComponents(lessFunc)
@@ -528,7 +528,7 @@ func stackSorted(stack Stack) bool {
 			}
 			return false
 		}
-		current := c.Values.(*testingComponent).Integer
+		current := c.Values().(*testingComponent).Integer
 		if last < current {
 			last = current
 		} else {

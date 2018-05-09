@@ -61,9 +61,9 @@ func TestDieRoll(t *testing.T) {
 
 	values := DefaultDie()
 
-	die := &boardgame.Component{
-		Values: values,
-	}
+	deck := boardgame.NewDeck()
+	deck.AddComponent(values)
+	die := deck.ComponentAt(0)
 
 	dynamic.SetContainingComponent(die)
 

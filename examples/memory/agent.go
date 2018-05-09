@@ -81,7 +81,7 @@ func (a *Agent) ProposeMove(game *boardgame.Game, player boardgame.PlayerIndex, 
 		if c == nil {
 			continue
 		}
-		card := c.Values.(*cardValue)
+		card := c.Values().(*cardValue)
 		if agent.CardSeen(card.Type, i) {
 			if debugMode {
 				log.Println("Card", card.Type, i, "is seen")
@@ -279,7 +279,7 @@ func (a *agentState) SecondCardToFlip(gameState *gameState) int {
 		if c == nil {
 			continue
 		}
-		flippedCard = c.Values.(*cardValue).Type
+		flippedCard = c.Values().(*cardValue).Type
 	}
 
 	if flippedCard == "" {

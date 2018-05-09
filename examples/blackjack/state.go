@@ -75,12 +75,12 @@ func (p *playerState) ResetForTurnEnd() error {
 	return nil
 }
 
-func handValue(components []*boardgame.Component) int {
+func handValue(components []boardgame.Component) int {
 	var numUnconvertedAces int
 	var currentValue int
 
 	for _, c := range components {
-		card := c.Values.(*playingcards.Card)
+		card := c.Values().(*playingcards.Card)
 		switch card.Rank.Value() {
 		case playingcards.RankAce:
 			numUnconvertedAces++

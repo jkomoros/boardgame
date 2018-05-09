@@ -63,7 +63,7 @@ func (t *testGameDelegate) ConfigureMoves() *MoveTypeConfigBundle {
 	return t.moveInstaller(t.Manager())
 }
 
-func (t *testGameDelegate) DistributeComponentToStarterStack(state State, c *Component) (Stack, error) {
+func (t *testGameDelegate) DistributeComponentToStarterStack(state State, c Component) (Stack, error) {
 	game, _ := concreteStates(state)
 	return game.DrawDeck, nil
 }

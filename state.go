@@ -72,7 +72,7 @@ type State interface {
 	//ContainingStack will return the stack and slot index for the associated
 	//component, if that location is not sanitized. If no error is returned,
 	//stack.ComponentAt(slotIndex) == c will evaluate to true.
-	ContainingStack(c *Component) (stack Stack, slotIndex int, err error)
+	ContainingStack(c Component) (stack Stack, slotIndex int, err error)
 }
 
 type computedProperties struct {
@@ -219,7 +219,7 @@ type MutableState interface {
 	//ContainingMutableStack will return the stack and slot index for the
 	//associated component, if that location is not sanitized. If no error is
 	//returned, stack.ComponentAt(slotIndex) == c will evaluate to true.
-	ContainingMutableStack(c *Component) (stack MutableStack, slotIndex int, err error)
+	ContainingMutableStack(c Component) (stack MutableStack, slotIndex int, err error)
 }
 
 //Valid returns true if the PlayerIndex's value is legal in the context of the
@@ -319,7 +319,7 @@ type state struct {
 	//stacks in this state. It is not persisted, but is rebuilt the first time
 	//it's asked for, and then all modifications are kept track of as things
 	//move around.
-	componentIndex map[*Component]componentIndexItem
+	componentIndex map[Component]componentIndexItem
 
 	//Set to true while computed is being calculating computed. Primarily so
 	//if you marshal JSON in that time we know to just elide computed.
@@ -331,11 +331,11 @@ type state struct {
 	timersToStart []int
 }
 
-func (s *state) ContainingStack(c *Component) (stack Stack, slotIndex int, err error) {
+func (s *state) ContainingStack(c Component) (stack Stack, slotIndex int, err error) {
 	return s.ContainingMutableStack(c)
 }
 
-func (s *state) ContainingMutableStack(c *Component) (stack MutableStack, slotIndex int, err error) {
+func (s *state) ContainingMutableStack(c Component) (stack MutableStack, slotIndex int, err error) {
 	if s.componentIndex == nil {
 		s.buildComponentIndex()
 	}
@@ -344,7 +344,7 @@ func (s *state) ContainingMutableStack(c *Component) (stack MutableStack, slotIn
 		return nil, 0, errors.New("Nil component doesn't exist in any stack")
 	}
 
-	if c.Deck.GenericComponent() == c {
+	if c.Deck().GenericComponent() == c {
 		return nil, 0, errors.New("The generic component for that deck isn't in any stack")
 	}
 
@@ -367,7 +367,7 @@ func (s *state) ContainingMutableStack(c *Component) (stack MutableStack, slotIn
 	//This check should always work if the stack has been sanitized, because
 	//every Policy other than PolicyVisible replaces ComponentAt with generic
 	//component.
-	if otherC != c {
+	if !otherC.Equivalent(c) {
 		return nil, 0, errors.New("That component's location is not public information.")
 	}
 
@@ -378,7 +378,7 @@ func (s *state) ContainingMutableStack(c *Component) (stack MutableStack, slotIn
 //buildComponentIndex creates the component index by force. Should be called
 //if an operation is called on the componentIndex but it's nil.
 func (s *state) buildComponentIndex() {
-	s.componentIndex = make(map[*Component]componentIndexItem)
+	s.componentIndex = make(map[Component]componentIndexItem)
 
 	if s.gameState != nil {
 		s.reportComponentLocationsForReader(s.gameState.ReadSetter())
@@ -433,11 +433,11 @@ func (s *state) reportComponentLocationsForReader(readSetter PropertyReadSetter)
 	}
 }
 
-func (s *state) componentAddedImpl(c *Component, stack MutableStack, slotIndex int) {
+func (s *state) componentAddedImpl(c Component, stack MutableStack, slotIndex int) {
 	if c == nil {
 		return
 	}
-	if c.Deck != nil && c.Deck.GenericComponent() == c {
+	if c.Deck() != nil && c.Deck().GenericComponent().Equivalent(c) {
 		return
 	}
 	s.componentIndex[c] = componentIndexItem{
@@ -448,7 +448,7 @@ func (s *state) componentAddedImpl(c *Component, stack MutableStack, slotIndex i
 
 //componetAdded should be called by stacks when a component is added to them,
 //by non-merged stacks.
-func (s *state) componentAdded(c *Component, stack MutableStack, slotIndex int) {
+func (s *state) componentAdded(c Component, stack MutableStack, slotIndex int) {
 	if s.componentIndex == nil {
 		s.buildComponentIndex()
 	}
