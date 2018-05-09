@@ -364,10 +364,9 @@ func (s *state) ContainingMutableStack(c *Component) (stack MutableStack, slotIn
 	//Sanity check that we're allowed to see that component in that location.
 	otherC := item.stack.ComponentAt(item.slotIndex)
 
-	//TODO: this check fails non-deterministically if the stack is sanitized
-	//with OrderLen, because every so often the random order of the stack will
-	//line up with the real order.
-
+	//This check should always work if the stack has been sanitized, because
+	//every Policy other than PolicyVisible replaces ComponentAt with generic
+	//component.
 	if otherC != c {
 		return nil, 0, errors.New("That component's location is not public information.")
 	}
