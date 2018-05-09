@@ -68,6 +68,11 @@ type State interface {
 
 	//StorageRecord returns a StateStorageRecord representing the state.
 	StorageRecord() StateStorageRecord
+
+	//ContainingStack will return the stack and slot index for the associated
+	//component, if that location is not sanitized. If no error is returned,
+	//stack.ComponentAt(slotIndex) == c will evaluate to true.
+	ContainingStack(c *Component) (stack Stack, slotIndex int, err error)
 }
 
 type computedProperties struct {
@@ -210,6 +215,11 @@ type MutableState interface {
 	MutablePlayerStates() []MutablePlayerState
 
 	MutableDynamicComponentValues() map[string][]MutableSubState
+
+	//ContainingMutableStack will return the stack and slot index for the
+	//associated component, if that location is not sanitized. If no error is
+	//returned, stack.ComponentAt(slotIndex) == c will evaluate to true.
+	ContainingMutableStack(c *Component) (stack MutableStack, slotIndex int, err error)
 }
 
 //Valid returns true if the PlayerIndex's value is legal in the context of the
