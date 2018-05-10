@@ -485,7 +485,7 @@ func TestSort(t *testing.T) {
 		}
 	}
 
-	lessFunc := func(i, j Component) bool {
+	lessFunc := func(i, j ComponentInstance) bool {
 		if i == nil {
 			return true
 		}

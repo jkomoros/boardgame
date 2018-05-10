@@ -178,7 +178,7 @@ type MutableStack interface {
 	//SortComponents sorts the stack's components in the order implied by less
 	//by repeatedly calling SwapComponents. Errors if any SwapComponents
 	//errors. If error is non-nil, the stack may be left in an arbitrary order.
-	SortComponents(less func(i, j Component) bool) error
+	SortComponents(less func(i, j ComponentInstance) bool) error
 
 	//Resizable returns true if calls to any of the methods that change the
 	//Size of the stack are legal to call in general. Currently only stacks
@@ -1167,7 +1167,7 @@ func (s *sizedStack) effectiveIndex(index int) int {
 
 type stackSorter struct {
 	stack MutableStack
-	less  func(i, j Component) bool
+	less  func(i, j ComponentInstance) bool
 	err   error
 }
 
@@ -1187,15 +1187,15 @@ func (s *stackSorter) Less(i, j int) bool {
 	return s.less(s.stack.ComponentAt(i), s.stack.ComponentAt(j))
 }
 
-func (g *growableStack) SortComponents(less func(i, j Component) bool) error {
+func (g *growableStack) SortComponents(less func(i, j ComponentInstance) bool) error {
 	return sortComponentsImpl(g, less)
 }
 
-func (s *sizedStack) SortComponents(less func(i, j Component) bool) error {
+func (s *sizedStack) SortComponents(less func(i, j ComponentInstance) bool) error {
 	return sortComponentsImpl(s, less)
 }
 
-func sortComponentsImpl(s MutableStack, less func(i, j Component) bool) error {
+func sortComponentsImpl(s MutableStack, less func(i, j ComponentInstance) bool) error {
 	sorter := &stackSorter{
 		stack: s,
 		less:  less,

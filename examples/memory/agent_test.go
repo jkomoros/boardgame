@@ -142,7 +142,7 @@ func TestCullInvalidCards(t *testing.T) {
 	})
 }
 
-func cardsLess(i, j boardgame.Component) bool {
+func cardsLess(i, j boardgame.ComponentInstance) bool {
 	if i == nil {
 		return true
 	}
