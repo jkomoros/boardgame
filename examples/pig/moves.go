@@ -52,7 +52,7 @@ func (m *MoveRollDice) Apply(state boardgame.MutableState) error {
 
 	die := game.Die.ComponentAt(0)
 
-	die.DynamicValues(state).(*dice.DynamicValue).Roll()
+	die.DynamicValues().(*dice.DynamicValue).Roll()
 
 	p.DieCounted = false
 
@@ -124,7 +124,7 @@ func (m *MoveCountDie) Apply(state boardgame.MutableState) error {
 
 	p := players[game.CurrentPlayer]
 
-	value := game.Die.ComponentAt(0).DynamicValues(state).(*dice.DynamicValue).Value
+	value := game.Die.ComponentAt(0).DynamicValues().(*dice.DynamicValue).Value
 
 	if value == 1 {
 		//Bust!

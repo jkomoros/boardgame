@@ -180,11 +180,11 @@ func TestSecretMoveCount(t *testing.T) {
 		assert.For(t, i).ThatActual(c.secretMoveCount(s)).Equals(0)
 	}
 
-	idBefore := gameState.DrawDeck.ComponentAt(0).ID(s)
+	idBefore := gameState.DrawDeck.ComponentAt(0).ID()
 
 	gameState.DrawDeck.ComponentAt(0).movedSecretly(s)
 
-	assert.For(t).ThatActual(gameState.DrawDeck.ComponentAt(0).ID(s)).DoesNotEqual(idBefore)
+	assert.For(t).ThatActual(gameState.DrawDeck.ComponentAt(0).ID()).DoesNotEqual(idBefore)
 
 	for i, c := range gameState.DrawDeck.Components() {
 		if i == 0 {
@@ -355,7 +355,7 @@ func TestStateSerialization(t *testing.T) {
 
 	gameState, _ = concreteStates(reconstitutedState)
 
-	if gameState.DrawDeck.ComponentAt(0).DynamicValues(reconstitutedState).(*testingComponentDynamic).Stack.Deck() == nil {
+	if gameState.DrawDeck.ComponentAt(0).DynamicValues().(*testingComponentDynamic).Stack.Deck() == nil {
 		t.Error("The stack on a component's dynamic value was not inflated coming back from storage.")
 	}
 

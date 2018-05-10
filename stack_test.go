@@ -40,10 +40,10 @@ func TestContainingComponent(t *testing.T) {
 	sanitizedState := game.CurrentState().SanitizedForPlayer(0)
 
 	//DrawDeck is the on that is sanitized by default
-	componentsInDrawDeck := make(map[Component]bool)
+	componentsInDrawDeck := make(map[*component]bool)
 
 	for _, c := range game.CurrentState().GameState().(*testGameState).DrawDeck.Components() {
-		componentsInDrawDeck[c] = true
+		componentsInDrawDeck[c.ptr()] = true
 	}
 
 	for i, c := range deck.Components() {
@@ -51,7 +51,7 @@ func TestContainingComponent(t *testing.T) {
 		stack, slotIndex, err := sanitizedState.ContainingStack(c)
 
 		//DrawDeck is sanitized, so we should get errors for that.
-		if componentsInDrawDeck[c] {
+		if componentsInDrawDeck[c.ptr()] {
 			assert.For(t, i).ThatActual(err).IsNotNil()
 			continue
 		}
@@ -60,7 +60,7 @@ func TestContainingComponent(t *testing.T) {
 
 		otherC := stack.ComponentAt(slotIndex)
 
-		assert.For(t, i).ThatActual(otherC).Equals(c)
+		assert.For(t, i).ThatActual(otherC.ptr()).Equals(c)
 
 	}
 
@@ -85,7 +85,7 @@ func verifyContainingComponent(t *testing.T, st State, deck *Deck) {
 
 		otherC := stack.ComponentAt(slotIndex)
 
-		assert.For(t, i).ThatActual(otherC).Equals(c)
+		assert.For(t, i).ThatActual(otherC.ptr()).Equals(c)
 
 	}
 }
@@ -101,21 +101,23 @@ func TestMergedValidStack(t *testing.T) {
 
 	sized := testDeck.NewSizedStack(3).(*sizedStack)
 
-	sized.setState(game.CurrentState().(*state))
+	st := game.CurrentState().(*state)
 
-	sized.insertComponentAt(0, testDeck.ComponentAt(0))
-	sized.insertComponentAt(2, testDeck.ComponentAt(1))
+	sized.setState(st)
+
+	sized.insertComponentAt(0, testDeck.ComponentAt(0).Instance(st))
+	sized.insertComponentAt(2, testDeck.ComponentAt(1).Instance(st))
 
 	growable := testDeck.NewStack(2).(*growableStack)
 
 	growable.setState(game.CurrentState().(*state))
 
-	growable.insertNext(testDeck.ComponentAt(2))
-	growable.insertNext(testDeck.ComponentAt(3))
+	growable.insertNext(testDeck.ComponentAt(2).Instance(st))
+	growable.insertNext(testDeck.ComponentAt(3).Instance(st))
 
 	otherSized := testDeck.NewSizedStack(4).(*sizedStack)
 
-	otherSized.setState(game.CurrentState().(*state))
+	otherSized.setState(st)
 
 	merged := NewConcatenatedStack(sized, nil)
 
@@ -147,17 +149,18 @@ func TestConcatenatedStack(t *testing.T) {
 
 	sized := testDeck.NewSizedStack(3).(*sizedStack)
 
-	sized.setState(game.CurrentState().(*state))
+	st := game.CurrentState().(*state)
+	sized.setState(st)
 
-	sized.insertComponentAt(0, testDeck.ComponentAt(0))
-	sized.insertComponentAt(2, testDeck.ComponentAt(1))
+	sized.insertComponentAt(0, testDeck.ComponentAt(0).Instance(st))
+	sized.insertComponentAt(2, testDeck.ComponentAt(1).Instance(st))
 
 	growable := testDeck.NewStack(2).(*growableStack)
 
-	growable.setState(game.CurrentState().(*state))
+	growable.setState(st)
 
-	growable.insertNext(testDeck.ComponentAt(2))
-	growable.insertNext(testDeck.ComponentAt(3))
+	growable.insertNext(testDeck.ComponentAt(2).Instance(st))
+	growable.insertNext(testDeck.ComponentAt(3).Instance(st))
 
 	merged := NewConcatenatedStack(sized, growable)
 
@@ -195,17 +198,18 @@ func TestOverlappedStack(t *testing.T) {
 
 	first := testDeck.NewSizedStack(4).(*sizedStack)
 
-	first.setState(game.CurrentState().(*state))
+	st := game.CurrentState().(*state)
+	first.setState(st)
 
-	first.insertComponentAt(0, testDeck.ComponentAt(0))
-	first.insertComponentAt(2, testDeck.ComponentAt(1))
+	first.insertComponentAt(0, testDeck.ComponentAt(0).Instance(st))
+	first.insertComponentAt(2, testDeck.ComponentAt(1).Instance(st))
 
 	second := testDeck.NewSizedStack(4).(*sizedStack)
 
-	second.setState(game.CurrentState().(*state))
+	second.setState(st)
 
-	second.insertComponentAt(0, testDeck.ComponentAt(2))
-	second.insertComponentAt(1, testDeck.ComponentAt(3))
+	second.insertComponentAt(0, testDeck.ComponentAt(2).Instance(st))
+	second.insertComponentAt(1, testDeck.ComponentAt(3).Instance(st))
 
 	merged := NewOverlappedStack(first, second)
 
@@ -242,11 +246,13 @@ func TestMoveExtreme(t *testing.T) {
 
 	sized := testDeck.NewSizedStack(5).(*sizedStack)
 
-	sized.setState(game.CurrentState().(*state))
+	st := game.CurrentState().(*state)
 
-	sized.insertComponentAt(0, testDeck.ComponentAt(0))
-	sized.insertComponentAt(1, testDeck.ComponentAt(1))
-	sized.insertComponentAt(3, testDeck.ComponentAt(2))
+	sized.setState(st)
+
+	sized.insertComponentAt(0, testDeck.ComponentAt(0).Instance(st))
+	sized.insertComponentAt(1, testDeck.ComponentAt(1).Instance(st))
+	sized.insertComponentAt(3, testDeck.ComponentAt(2).Instance(st))
 
 	assert.For(t).ThatActual(sized.indexes).Equals([]int{0, 1, -1, 2, -1})
 
@@ -264,11 +270,11 @@ func TestMoveExtreme(t *testing.T) {
 
 	growable := testDeck.NewStack(0).(*growableStack)
 
-	growable.setState(game.CurrentState().(*state))
+	growable.setState(st)
 
-	growable.insertNext(testDeck.ComponentAt(0))
-	growable.insertNext(testDeck.ComponentAt(1))
-	growable.insertNext(testDeck.ComponentAt(2))
+	growable.insertNext(testDeck.ComponentAt(0).Instance(st))
+	growable.insertNext(testDeck.ComponentAt(1).Instance(st))
+	growable.insertNext(testDeck.ComponentAt(2).Instance(st))
 
 	assert.For(t).ThatActual(growable.indexes).Equals([]int{0, 1, 2})
 
@@ -288,15 +294,19 @@ func TestMoveExtreme(t *testing.T) {
 func TestExpandContractSizedStackSize(t *testing.T) {
 	game := testGame(t)
 
+	game.SetUp(0, nil, nil)
+
 	chest := game.Chest()
 
 	testDeck := chest.Deck("test")
 
+	st := game.CurrentState().(*state)
+
 	sized := testDeck.NewSizedStack(5).(*sizedStack)
 
-	sized.insertComponentAt(0, testDeck.ComponentAt(0))
-	sized.insertComponentAt(1, testDeck.ComponentAt(1))
-	sized.insertComponentAt(3, testDeck.ComponentAt(2))
+	sized.insertComponentAt(0, testDeck.ComponentAt(0).Instance(st))
+	sized.insertComponentAt(1, testDeck.ComponentAt(1).Instance(st))
+	sized.insertComponentAt(3, testDeck.ComponentAt(2).Instance(st))
 
 	err := sized.ExpandSize(-2)
 
@@ -353,8 +363,8 @@ func TestChangedSizeStackRoundTrip(t *testing.T) {
 
 	g, _ := concreteStates(cState)
 
-	g.DownSizeStack.insertComponentAt(0, testDeck.ComponentAt(0))
-	g.DownSizeStack.insertComponentAt(2, testDeck.ComponentAt(1))
+	g.DownSizeStack.insertComponentAt(0, testDeck.ComponentAt(0).Instance(cState))
+	g.DownSizeStack.insertComponentAt(2, testDeck.ComponentAt(1).Instance(cState))
 
 	assert.For(t).ThatActual(g.DownSizeStack.NumComponents()).Equals(2)
 	assert.For(t).ThatActual(g.DownSizeStack.Len()).Equals(4)
@@ -382,6 +392,8 @@ func TestChangedSizeStackRoundTrip(t *testing.T) {
 
 func TestExpandContractDefaultStackSize(t *testing.T) {
 	game := testGame(t)
+
+	game.SetUp(0, nil, nil)
 
 	chest := game.Chest()
 
@@ -411,8 +423,10 @@ func TestExpandContractDefaultStackSize(t *testing.T) {
 
 	assert.For(t).ThatActual(stack.MaxSize()).Equals(5)
 
-	stack.insertComponentAt(0, testDeck.ComponentAt(0))
-	stack.insertComponentAt(1, testDeck.ComponentAt(1))
+	st := game.CurrentState().(*state)
+
+	stack.insertComponentAt(0, testDeck.ComponentAt(0).Instance(st))
+	stack.insertComponentAt(1, testDeck.ComponentAt(1).Instance(st))
 
 	//Fails: too many components in stack
 	err = stack.ContractSize(1)
@@ -456,12 +470,14 @@ func TestSort(t *testing.T) {
 
 	gStack := testDeck.NewStack(0)
 
-	gStack.setState(game.CurrentState().(*state))
+	st := game.CurrentState().(*state)
 
-	gStack.insertNext(testDeck.Components()[0])
-	gStack.insertNext(testDeck.Components()[1])
-	gStack.insertNext(testDeck.Components()[2])
-	gStack.insertNext(testDeck.Components()[3])
+	gStack.setState(st)
+
+	gStack.insertNext(testDeck.Components()[0].Instance(st))
+	gStack.insertNext(testDeck.Components()[1].Instance(st))
+	gStack.insertNext(testDeck.Components()[2].Instance(st))
+	gStack.insertNext(testDeck.Components()[3].Instance(st))
 
 	for stackSorted(gStack) {
 		if err := gStack.Shuffle(); err != nil {
@@ -489,13 +505,13 @@ func TestSort(t *testing.T) {
 
 	sStack := testDeck.NewSizedStack(5)
 
-	sStack.setState(game.CurrentState().(*state))
+	sStack.setState(st)
 
-	sStack.insertComponentAt(0, testDeck.Components()[0])
-	sStack.insertComponentAt(1, testDeck.Components()[1])
-	sStack.insertComponentAt(2, testDeck.Components()[2])
+	sStack.insertComponentAt(0, testDeck.Components()[0].Instance(st))
+	sStack.insertComponentAt(1, testDeck.Components()[1].Instance(st))
+	sStack.insertComponentAt(2, testDeck.Components()[2].Instance(st))
 	//Deliberately leave a nil
-	sStack.insertComponentAt(4, testDeck.Components()[3])
+	sStack.insertComponentAt(4, testDeck.Components()[3].Instance(st))
 
 	//Shuffle at least once. But if we happen to accidentally shuffle ito
 	//sorted order, shuffle again.
@@ -550,15 +566,17 @@ func TestInflate(t *testing.T) {
 
 	gStack := testDeck.NewStack(0)
 
-	gStack.setState(game.CurrentState().(*state))
+	st := game.CurrentState().(*state)
 
-	gStack.insertNext(testDeck.Components()[0])
+	gStack.setState(st)
+
+	gStack.insertNext(testDeck.Components()[0].Instance(st))
 
 	sStack := testDeck.NewSizedStack(2)
 
-	sStack.setState(game.CurrentState().(*state))
+	sStack.setState(st)
 
-	sStack.insertNext(testDeck.Components()[1])
+	sStack.insertNext(testDeck.Components()[1].Instance(st))
 
 	if gStack.ComponentAt(0) == nil {
 		t.Error("Couldnt' get component from inflated gstack")
@@ -598,13 +616,13 @@ func TestInflate(t *testing.T) {
 
 	c := reGStack.ComponentAt(0)
 
-	if c != testDeck.Components()[0] {
+	if !c.Equivalent(testDeck.Components()[0]) {
 		t.Error("After inflating g stack, got wrong component. Wanted", testDeck.Components()[0], "got", c)
 	}
 
 	c = reSStack.ComponentAt(0)
 
-	if c != testDeck.Components()[1] {
+	if !c.Equivalent(testDeck.Components()[1]) {
 		t.Error("After inflating s stack, got wrong component. Wanted", testDeck.Components()[1], "got", c)
 	}
 }
@@ -631,9 +649,9 @@ func TestSecretMoveComponentGrowable(t *testing.T) {
 			break
 		}
 		if i%2 == 0 {
-			gStack.insertNext(c)
+			gStack.insertNext(c.Instance(fakeState))
 		} else {
-			sStack.insertNext(c)
+			sStack.insertNext(c.Instance(fakeState))
 		}
 	}
 
@@ -666,9 +684,9 @@ func TestSecretMoveComponentSized(t *testing.T) {
 			break
 		}
 		if i%2 == 0 {
-			gStack.insertNext(c)
+			gStack.insertNext(c.Instance(fakeState))
 		} else {
-			sStack.insertNext(c)
+			sStack.insertNext(c.Instance(fakeState))
 		}
 	}
 
@@ -760,10 +778,11 @@ func TestMoveComponent(t *testing.T) {
 			//Only include up to first four components
 			break
 		}
-		gStack.insertNext(c)
-		gStackMaxLen.insertNext(c)
-		sStack.insertNext(c)
-		sStackMaxLen.insertNext(c)
+		instance := c.Instance(fakeState)
+		gStack.insertNext(instance)
+		gStackMaxLen.insertNext(instance)
+		sStack.insertNext(instance)
+		sStackMaxLen.insertNext(instance)
 	}
 
 	if !reflect.DeepEqual(gStack.indexes, []int{0, 1, 2, 3}) {
@@ -973,7 +992,7 @@ func TestMoveComponent(t *testing.T) {
 			t.Error("After the successful move, destination was not one component bigger", i, test.description)
 		}
 
-		if finalComponent := destination.ComponentAt(test.resolvedSlotIndex); finalComponent != component {
+		if finalComponent := destination.ComponentAt(test.resolvedSlotIndex); !finalComponent.Equivalent(component) {
 			t.Error("After the move, the component that was supposed to be moved was not moved to the target slot.", i, test.description)
 		}
 	}
@@ -994,7 +1013,7 @@ func TestSwapComponents(t *testing.T) {
 	stack.setState(fakeState)
 
 	for _, c := range deck.Components() {
-		stack.insertNext(c)
+		stack.insertNext(c.Instance(fakeState))
 	}
 
 	swapComponentsTests(stack, t)
@@ -1004,7 +1023,7 @@ func TestSwapComponents(t *testing.T) {
 	sStack.setState(fakeState)
 
 	for _, c := range deck.Components() {
-		sStack.insertNext(c)
+		sStack.insertNext(c.Instance(fakeState))
 	}
 
 	swapComponentsTests(sStack, t)
@@ -1020,11 +1039,11 @@ func swapComponentsTests(stack MutableStack, t *testing.T) {
 		t.Error("Legal swap not allowed")
 	}
 
-	if stack.ComponentAt(0) != one {
+	if !stack.ComponentAt(0).Equivalent(one) {
 		t.Error("Swap did not actually position of #1")
 	}
 
-	if stack.ComponentAt(1) != zero {
+	if !stack.ComponentAt(1).Equivalent(zero) {
 		t.Error("Swap did not actualy change position of #0")
 	}
 
@@ -1064,7 +1083,7 @@ func TestGrowableStackInsertComponentAt(t *testing.T) {
 			//Only include up to first four components
 			break
 		}
-		stack.insertNext(c)
+		stack.insertNext(c.Instance(fakeState))
 	}
 
 	//stack.indexes = [0, 1, 2, 3]
@@ -1114,7 +1133,7 @@ func TestGrowableStackInsertComponentAt(t *testing.T) {
 			t.Error("Sanity check failed", i, "Starting indexes were", stackCopy.indexes, "wanted", startingIndexes)
 		}
 
-		stackCopy.insertComponentAt(test.slotIndex, component)
+		stackCopy.insertComponentAt(test.slotIndex, component.Instance(fakeState))
 
 		if !reflect.DeepEqual(stackCopy.indexes, test.expectedIndexes) {
 			t.Error("Test", i, test.description, "failed for insertComponentAt. Got", stackCopy.indexes, "wanted", test.expectedIndexes)
@@ -1145,7 +1164,7 @@ func TestGrowableStackRemoveComponentAt(t *testing.T) {
 			//Only include up to first four components
 			break
 		}
-		stack.insertNext(c)
+		stack.insertNext(c.Instance(fakeState))
 	}
 
 	//stack.indexes = [0, 1, 2, 3]
@@ -1211,7 +1230,7 @@ func TestShuffle(t *testing.T) {
 	stack.setState(fakeState)
 
 	for _, c := range deck.Components() {
-		stack.insertNext(c)
+		stack.insertNext(c.Instance(fakeState))
 	}
 
 	//The number of shuffles to do
@@ -1264,7 +1283,7 @@ func TestShuffle(t *testing.T) {
 	sStack.setState(fakeState)
 
 	for _, c := range deck.Components() {
-		sStack.insertNext(c)
+		sStack.insertNext(c.Instance(fakeState))
 	}
 
 	//Number of shuffles that were the same (which is bad)
@@ -1343,7 +1362,7 @@ func TestMoveAllTo(t *testing.T) {
 	zero := deck.Components()[0]
 	one := deck.Components()[1]
 
-	from.insertNext(zero)
+	from.insertNext(zero.Instance(fakeState))
 
 	//This should succeed because although to only has one slot, there's only
 	//actually one item in from.
@@ -1365,8 +1384,8 @@ func TestMoveAllTo(t *testing.T) {
 	from = deck.NewSizedStack(2)
 	from.setState(fakeState)
 
-	from.insertNext(zero)
-	from.insertNext(one)
+	from.insertNext(zero.Instance(fakeState))
+	from.insertNext(one.Instance(fakeState))
 
 	if err := from.MoveAllTo(to); err == nil {
 		t.Error("Got no error moving from a stack that was too big.")

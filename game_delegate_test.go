@@ -175,7 +175,7 @@ func (t *testGameDelegate) FinishSetUp(state MutableState) error {
 	game, _ := concreteStates(state)
 
 	for _, c := range game.DrawDeck.Components() {
-		values := c.DynamicValues(state).(*testingComponentDynamic)
+		values := c.DynamicValues().(*testingComponentDynamic)
 
 		values.IntVar = 1
 		values.Enum.SetValue(colorBlue)

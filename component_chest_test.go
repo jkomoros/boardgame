@@ -6,6 +6,22 @@ import (
 	"testing"
 )
 
+func TestComponentInstanceIdentity(t *testing.T) {
+	game := testGame(t)
+
+	game.SetUp(0, nil, nil)
+
+	c := game.Chest().Deck("test").ComponentAt(0)
+
+	one := c.Instance(game.CurrentState())
+
+	two := c.Instance(game.CurrentState())
+
+	if one != two {
+		t.Error("Two equivalent components didn't match.")
+	}
+}
+
 func TestComponentChest(t *testing.T) {
 
 	chest := newComponentChest(nil)

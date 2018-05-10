@@ -348,7 +348,7 @@ func (s *state) ContainingMutableStack(c Component) (stack MutableStack, slotInd
 		return nil, 0, errors.New("The generic component for that deck isn't in any stack")
 	}
 
-	item, ok := s.componentIndex[c]
+	item, ok := s.componentIndex[c.ptr()]
 	if !ok {
 		//This can happen if the state is sanitized, after
 		//buildComponentIndex, which won't be able to see the component.
@@ -440,7 +440,7 @@ func (s *state) componentAddedImpl(c Component, stack MutableStack, slotIndex in
 	if c.Deck() != nil && c.Deck().GenericComponent().Equivalent(c) {
 		return
 	}
-	s.componentIndex[c] = componentIndexItem{
+	s.componentIndex[c.ptr()] = componentIndexItem{
 		stack,
 		slotIndex,
 	}

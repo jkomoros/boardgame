@@ -316,7 +316,7 @@ func (t *testMoveIncrementCardInHand) Apply(state MutableState) error {
 			continue
 		}
 
-		values := component.DynamicValues(state)
+		values := component.DynamicValues()
 
 		if values == nil {
 			return errors.New("DynamicValues was nil")

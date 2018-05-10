@@ -215,7 +215,7 @@ func (m *MoveCrownToken) Apply(state boardgame.MutableState) error {
 		return errors.New("No token at that space")
 	}
 
-	d := c.DynamicValues(state).(*tokenDynamic)
+	d := c.DynamicValues().(*tokenDynamic)
 
 	d.Crowned = true
 

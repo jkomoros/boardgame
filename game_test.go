@@ -65,7 +65,7 @@ func TestMoveModifyDynamicValues(t *testing.T) {
 
 	component := player.Hand.ComponentAt(0)
 
-	dynamic := component.DynamicValues(game.CurrentState())
+	dynamic := component.DynamicValues()
 
 	if dynamic == nil {
 		t.Error("Component unexpectedly had nil dynamic values")
@@ -78,7 +78,7 @@ func TestMoveModifyDynamicValues(t *testing.T) {
 	}
 
 	//Test that SetContainingComponent was set.
-	assert.For(t).ThatActual(easyDynamic.ContainingComponent()).Equals(component)
+	assert.For(t).ThatActual(easyDynamic.ContainingComponent()).Equals(component.ptr())
 
 	var stateNil *state
 
@@ -501,21 +501,21 @@ func TestGameSalt(t *testing.T) {
 
 	assert.For(t).ThatActual(game.secretSalt).Equals(refriedGame.secretSalt)
 
-	mainC := game.Chest().Deck("test").ComponentAt(0)
-	refriedC := refriedGame.Chest().Deck("test").ComponentAt(0)
+	mainC := game.Chest().Deck("test").ComponentAt(0).Instance(game.CurrentState())
+	refriedC := refriedGame.Chest().Deck("test").ComponentAt(0).Instance(refriedGame.CurrentState())
 
-	mainCId := mainC.ID(game.CurrentState())
+	mainCId := mainC.ID()
 
 	assert.For(t).ThatActual(mainCId).DoesNotEqual("")
-	assert.For(t).ThatActual(mainCId).Equals(refriedC.ID(refriedGame.CurrentState()))
+	assert.For(t).ThatActual(mainCId).Equals(refriedC.ID())
 
 	otherGame := testGame(t)
 
 	otherGame.SetUp(0, nil, nil)
 
-	otherC := otherGame.Chest().Deck("test").ComponentAt(0)
+	otherC := otherGame.Chest().Deck("test").ComponentAt(0).Instance(otherGame.CurrentState())
 
-	assert.For(t).ThatActual(mainCId).DoesNotEqual(otherC.ID(otherGame.CurrentState()))
+	assert.For(t).ThatActual(mainCId).DoesNotEqual(otherC.ID())
 }
 
 func goldenGameBlob() []byte {

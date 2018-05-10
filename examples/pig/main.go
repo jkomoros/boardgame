@@ -88,7 +88,7 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 
 	game, players := concreteStates(state)
 
-	dieValue := game.Die.ComponentAt(0).DynamicValues(state).(*dice.DynamicValue).Value
+	dieValue := game.Die.ComponentAt(0).DynamicValues().(*dice.DynamicValue).Value
 
 	parts = append(parts, "Die: "+strconv.Itoa(dieValue))
 

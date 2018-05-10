@@ -413,6 +413,9 @@ func (g *Game) SetUp(numPlayers int, config GameConfig, agentNames []string) err
 		return errors.Extend(err, "Couldn't get starter state")
 	}
 
+	//Make a starter one so that buildComponentIndex doesn't get called.
+	stateCopy.(*state).componentIndex = make(map[Component]componentIndexItem)
+
 	g.manager.delegate.BeginSetUp(stateCopy, config)
 
 	//Distribute all components to their starter locations
@@ -437,7 +440,7 @@ func (g *Game) SetUp(numPlayers int, config GameConfig, agentNames []string) err
 				return baseErr.WithError("Couldn't get a mutable version of stack")
 			}
 
-			mutableStack.insertComponentAt(mutableStack.effectiveIndex(NextSlotIndex), component)
+			mutableStack.insertComponentAt(mutableStack.effectiveIndex(NextSlotIndex), component.Instance(stateCopy))
 		}
 	}
 

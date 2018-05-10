@@ -75,7 +75,7 @@ func (p *playerState) ResetForTurnEnd() error {
 	return nil
 }
 
-func handValue(components []boardgame.Component) int {
+func handValue(components []boardgame.ComponentInstance) int {
 	var numUnconvertedAces int
 	var currentValue int
 

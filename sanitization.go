@@ -577,7 +577,7 @@ func (g *growableStack) applySanitizationPolicy(policy Policy) {
 			if c == nil {
 				continue
 			}
-			g.overrideIds[i] = c.ID(g.state())
+			g.overrideIds[i] = c.ID()
 		}
 
 		if policy == PolicyLen {
@@ -605,7 +605,7 @@ func (g *growableStack) applySanitizationPolicy(policy Policy) {
 		if c == nil {
 			continue
 		}
-		id := c.ID(g.statePtr)
+		id := c.ID()
 		g.idSeen(id)
 	}
 
@@ -664,7 +664,7 @@ func (s *sizedStack) applySanitizationPolicy(policy Policy) {
 			if c == nil {
 				continue
 			}
-			s.overrideIds[i] = c.ID(s.state())
+			s.overrideIds[i] = c.ID()
 		}
 
 		if policy == PolicyLen {
@@ -697,7 +697,7 @@ func (s *sizedStack) applySanitizationPolicy(policy Policy) {
 		if c == nil {
 			continue
 		}
-		id := c.ID(s.statePtr)
+		id := c.ID()
 		s.idSeen(id)
 	}
 

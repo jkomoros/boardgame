@@ -71,7 +71,7 @@ func newTokenDeck() *boardgame.Deck {
 }
 
 func (t *token) Dynamic(state boardgame.State) *tokenDynamic {
-	return t.ContainingComponent().DynamicValues(state).(*tokenDynamic)
+	return t.ContainingComponent().Instance(state).DynamicValues().(*tokenDynamic)
 }
 
 func (t *token) Legal(state boardgame.State, legalType int) error {
