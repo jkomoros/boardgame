@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"crypto/sha1"
+	"errors"
 	"fmt"
 	"strconv"
 )
@@ -77,6 +78,21 @@ type ComponentInstance interface {
 //methods.
 type MutableComponentInstance interface {
 	ComponentInstance
+
+	//MoveTo moves the specified component in its current stack to the
+	//specified slot in the destination stack. The destination stack must be
+	//different than the one the component's currently in--if you're moving
+	//components within a stack, use SwapComponent. In destination,
+	//slotIndex must point to a valid "slot" to put a component, such that
+	//after insertion, using that index on the destination will return that
+	//component. In defaults Stacks, slots are any index from 0 up to and
+	//including stack.Len(), because the stack will grow to insert the
+	//component between existing components if necessary. For SizedStacks,
+	//slotIndex must point to a currently empty slot. Use
+	//{First,Last}SlotIndex constants to automatically set these
+	//indexes to common values. If you want the precise location of the
+	//inserted component to not be visible, see SecretMoveComponent.
+	MoveTo(other MutableStack, slotIndex int) error
 }
 
 type component struct {
@@ -272,6 +288,14 @@ func (c componentInstance) movedSecretly() {
 
 	deckMoveCount[c.DeckIndex()]++
 
+}
+
+func (c componentInstance) MoveTo(other MutableStack, slotIndex int) error {
+	source, sourceIndex, err := c.statePtr.ContainingMutableStack(c)
+	if err != nil {
+		return errors.New("The source component was not in a mutable stack: " + err.Error())
+	}
+	return source.MoveComponent(sourceIndex, other, slotIndex)
 }
 
 func (c componentInstance) mutable() MutableComponentInstance {

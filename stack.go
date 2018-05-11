@@ -702,7 +702,7 @@ func (s *growableStack) MutableComponentAt(index int) MutableComponentInstance {
 	if component == nil {
 		return nil
 	}
-	return component.Instance(s.state())
+	return component.Instance(s.state()).mutable()
 
 }
 
@@ -731,7 +731,7 @@ func (s *sizedStack) MutableComponentAt(index int) MutableComponentInstance {
 	if component == nil {
 		return nil
 	}
-	return component.Instance(s.state())
+	return component.Instance(s.state()).mutable()
 }
 
 func (m *mergedStack) ComponentAt(index int) ComponentInstance {
