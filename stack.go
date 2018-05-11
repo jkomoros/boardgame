@@ -115,6 +115,10 @@ type MutableStack interface {
 	//MutableComponentInstance.
 	MutableComponentAt(componentIndex int) MutableComponentInstance
 
+	//MutableComponents is similar to Components, but returns
+	//MutableComponentInstances instead.
+	MutableComponents() []MutableComponentInstance
+
 	//MoveAllTo moves all of the components in this stack to the other stack,
 	//by repeatedly calling RemoveFirst() and InsertBack(). Errors and does
 	//not complete the move if there's not enough space in the target stack.
@@ -620,11 +624,31 @@ func (g *growableStack) Components() []ComponentInstance {
 	return result
 }
 
+func (g *growableStack) MutableComponents() []MutableComponentInstance {
+	result := make([]MutableComponentInstance, len(g.indexes))
+
+	for i := 0; i < len(result); i++ {
+		result[i] = g.MutableComponentAt(i)
+	}
+
+	return result
+}
+
 func (s *sizedStack) Components() []ComponentInstance {
 	result := make([]ComponentInstance, len(s.indexes))
 
 	for i := 0; i < len(result); i++ {
 		result[i] = s.ComponentAt(i)
+	}
+
+	return result
+}
+
+func (s *sizedStack) MutableComponents() []MutableComponentInstance {
+	result := make([]MutableComponentInstance, len(s.indexes))
+
+	for i := 0; i < len(result); i++ {
+		result[i] = s.MutableComponentAt(i)
 	}
 
 	return result
