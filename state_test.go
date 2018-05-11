@@ -177,20 +177,20 @@ func TestSecretMoveCount(t *testing.T) {
 	s := currentState.(*state)
 
 	for i, c := range gameState.DrawDeck.Components() {
-		assert.For(t, i).ThatActual(c.secretMoveCount(s)).Equals(0)
+		assert.For(t, i).ThatActual(c.secretMoveCount()).Equals(0)
 	}
 
 	idBefore := gameState.DrawDeck.ComponentAt(0).ID()
 
-	gameState.DrawDeck.ComponentAt(0).movedSecretly(s)
+	gameState.DrawDeck.ComponentAt(0).movedSecretly()
 
 	assert.For(t).ThatActual(gameState.DrawDeck.ComponentAt(0).ID()).DoesNotEqual(idBefore)
 
 	for i, c := range gameState.DrawDeck.Components() {
 		if i == 0 {
-			assert.For(t, i).ThatActual(c.secretMoveCount(s)).Equals(1)
+			assert.For(t, i).ThatActual(c.secretMoveCount()).Equals(1)
 		} else {
-			assert.For(t, i).ThatActual(c.secretMoveCount(s)).Equals(0)
+			assert.For(t, i).ThatActual(c.secretMoveCount()).Equals(0)
 		}
 	}
 
@@ -207,15 +207,13 @@ func TestSecretMoveCount(t *testing.T) {
 
 	refriedGame := game.manager.Game(game.Id())
 
-	refriedS := refriedGame.CurrentState().(*state)
-
 	refriedGameState, _ := concreteStates(refriedGame.CurrentState())
 
 	for i, c := range refriedGameState.DrawDeck.Components() {
 		if i == 0 {
-			assert.For(t, i).ThatActual(c.secretMoveCount(refriedS)).Equals(1)
+			assert.For(t, i).ThatActual(c.secretMoveCount()).Equals(1)
 		} else {
-			assert.For(t, i).ThatActual(c.secretMoveCount(refriedS)).Equals(0)
+			assert.For(t, i).ThatActual(c.secretMoveCount()).Equals(0)
 		}
 	}
 

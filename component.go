@@ -26,8 +26,6 @@ type Component interface {
 	//given state.
 	Instance(st State) ComponentInstance
 
-	secretMoveCount(s *state) int
-	movedSecretly(s *state)
 	//ptr() is used for when the component itself is used as a key into
 	//an index and equality is important.
 	ptr() *component
@@ -64,6 +62,9 @@ type ComponentInstance interface {
 	//State returns the State object that this ComponentInstance is affiliated
 	//with.
 	State() State
+
+	secretMoveCount() int
+	movedSecretly()
 }
 
 type component struct {
@@ -184,7 +185,7 @@ func (c componentInstance) ID() string {
 	input += c.Deck().Name() + strconv.Itoa(c.DeckIndex())
 
 	//The id only ever changes when the item has moved secretly.
-	input += strconv.Itoa(c.secretMoveCount(c.statePtr))
+	input += strconv.Itoa(c.secretMoveCount())
 
 	hash := sha1.Sum([]byte(input))
 
@@ -193,15 +194,17 @@ func (c componentInstance) ID() string {
 
 //secretMoveCount returns the secret move count for this component in the
 //given state.
-func (c *component) secretMoveCount(s *state) int {
+func (c componentInstance) secretMoveCount() int {
 
 	if c == c.Deck().GenericComponent() {
 		return 0
 	}
 
-	if s == nil {
+	if c.statePtr == nil {
 		return 0
 	}
+
+	s := c.statePtr
 
 	deckMoveCount, ok := s.secretMoveCount[c.Deck().Name()]
 
@@ -224,10 +227,12 @@ func (c *component) secretMoveCount(s *state) int {
 }
 
 //movedSecretly increments the secretMoveCount for this component.
-func (c *component) movedSecretly(s *state) {
+func (c componentInstance) movedSecretly() {
 	if c.Equivalent(c.Deck().GenericComponent()) {
 		return
 	}
+
+	s := c.statePtr
 
 	if s == nil {
 		return

@@ -849,7 +849,7 @@ func (g *growableStack) scrambleIds() {
 			continue
 		}
 		g.idSeen(c.ID())
-		c.movedSecretly(g.state())
+		c.movedSecretly()
 		g.idSeen(c.ID())
 	}
 }
@@ -860,7 +860,7 @@ func (s *sizedStack) scrambleIds() {
 			continue
 		}
 		s.idSeen(c.ID())
-		c.movedSecretly(s.state())
+		c.movedSecretly()
 		s.idSeen(c.ID())
 	}
 }
