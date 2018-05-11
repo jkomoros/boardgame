@@ -111,6 +111,10 @@ type Stack interface {
 type MutableStack interface {
 	Stack
 
+	//MutableComponentAt is the same as ComponentAt, but returns a
+	//MutableComponentInstance.
+	MutableComponentAt(componentIndex int) MutableComponentInstance
+
 	//MoveAllTo moves all of the components in this stack to the other stack,
 	//by repeatedly calling RemoveFirst() and InsertBack(). Errors and does
 	//not complete the move if there's not enough space in the target stack.
@@ -650,9 +654,13 @@ func (m *mergedStack) Components() []ComponentInstance {
 	return result
 }
 
+func (g *growableStack) ComponentAt(index int) ComponentInstance {
+	return g.MutableComponentAt(index)
+}
+
 //ComponentAt fetches the component object representing the n-th object in
 //this stack.
-func (s *growableStack) ComponentAt(index int) ComponentInstance {
+func (s *growableStack) MutableComponentAt(index int) MutableComponentInstance {
 
 	//Substantially recreated in SizedStack.ComponentAt()
 	if index >= s.Len() || index < 0 {
@@ -674,9 +682,13 @@ func (s *growableStack) ComponentAt(index int) ComponentInstance {
 
 }
 
+func (s *sizedStack) ComponentAt(index int) ComponentInstance {
+	return s.MutableComponentAt(index)
+}
+
 //ComponentAt fetches the component object representing the n-th object in
 //this stack.
-func (s *sizedStack) ComponentAt(index int) ComponentInstance {
+func (s *sizedStack) MutableComponentAt(index int) MutableComponentInstance {
 
 	//Substantially recreated in GrowableStack.ComponentAt()
 

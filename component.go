@@ -63,8 +63,20 @@ type ComponentInstance interface {
 	//with.
 	State() State
 
+	//mutable is only to be used to up-cast to mutablecomponentindex when you
+	//know that's what it is.
+	mutable() MutableComponentInstance
+
 	secretMoveCount() int
 	movedSecretly()
+}
+
+//MutableComponentInstance is a component instance that's in a context that is
+//mutable. You generally get these from a MutableStack that contains them.
+//Currently the interface doesn't add anything, but soon it will have mutator
+//methods.
+type MutableComponentInstance interface {
+	ComponentInstance
 }
 
 type component struct {
@@ -260,6 +272,10 @@ func (c componentInstance) movedSecretly() {
 
 	deckMoveCount[c.DeckIndex()]++
 
+}
+
+func (c componentInstance) mutable() MutableComponentInstance {
+	return c
 }
 
 func (c componentInstance) State() State {
