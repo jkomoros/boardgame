@@ -53,6 +53,14 @@ type Stack interface {
 	//ComponentAt from 0 to Len().
 	Components() []ComponentInstance
 
+	//First returns a reference to the first non-nil component from
+	//the left, or nil if empty.
+	First() ComponentInstance
+
+	//Last returns a reference to the first non-nil component from the right,
+	//or nil if empty.
+	Last() ComponentInstance
+
 	//Ids returns a slice of strings representing the Ids of each component at
 	//each index. Under normal circumstances this will be the results of
 	//calling c.Id() on each component in order. This information will be
@@ -118,6 +126,14 @@ type MutableStack interface {
 	//MutableComponents is similar to Components, but returns
 	//MutableComponentInstances instead.
 	MutableComponents() []MutableComponentInstance
+
+	//MutableFirst returns a reference to the first non-nil component from the
+	//left, or nil if empty.
+	MutableFirst() MutableComponentInstance
+
+	//MutableLast() returns a reference to the first non-nil component from
+	//the right, or nil if empty.
+	MutableLast() MutableComponentInstance
 
 	//MoveAllTo moves all of the components in this stack to the other stack,
 	//by repeatedly calling RemoveFirst() and InsertBack(). Errors and does
@@ -676,6 +692,63 @@ func (m *mergedStack) Components() []ComponentInstance {
 	}
 
 	return result
+}
+
+func specialComponentAt(stack MutableStack, index int) MutableComponentInstance {
+	inst := stack.ComponentAt(stack.effectiveIndex(index))
+	return inst.mutable()
+}
+
+func (g *growableStack) First() ComponentInstance {
+	return g.MutableFirst()
+}
+
+func (g *growableStack) MutableFirst() MutableComponentInstance {
+	return specialComponentAt(g, FirstComponentIndex)
+}
+
+func (g *growableStack) Last() ComponentInstance {
+	return g.MutableLast()
+}
+
+func (g *growableStack) MutableLast() MutableComponentInstance {
+	return specialComponentAt(g, LastComponentIndex)
+}
+
+func (s *sizedStack) First() ComponentInstance {
+	return s.MutableFirst()
+}
+
+func (s *sizedStack) MutableFirst() MutableComponentInstance {
+	return specialComponentAt(s, FirstComponentIndex)
+}
+
+func (s *sizedStack) Last() ComponentInstance {
+	return s.MutableLast()
+}
+
+func (s *sizedStack) MutableLast() MutableComponentInstance {
+	return specialComponentAt(s, LastComponentIndex)
+}
+
+func (m *mergedStack) First() ComponentInstance {
+	for i := 0; i < m.Len(); i++ {
+		c := m.ComponentAt(i)
+		if c != nil {
+			return c
+		}
+	}
+	return nil
+}
+
+func (m *mergedStack) Last() ComponentInstance {
+	for i := m.Len() - 1; i >= 0; i-- {
+		c := m.ComponentAt(i)
+		if c != nil {
+			return c
+		}
+	}
+	return nil
 }
 
 func (g *growableStack) ComponentAt(index int) ComponentInstance {
