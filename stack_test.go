@@ -8,6 +8,26 @@ import (
 	"testing"
 )
 
+func TestEmptyStacks(t *testing.T) {
+	game := testGame(t)
+
+	err := game.SetUp(0, nil, nil)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	gState := game.CurrentState().GameState().(*testGameState)
+
+	space := gState.MyBoard.MutableSpaceAt(2)
+
+	c := space.MutableFirst()
+
+	assert.For(t).ThatActual(c).IsNil()
+
+	c = space.MutableLast()
+
+	assert.For(t).ThatActual(c).IsNil()
+}
+
 func TestMultipleStackMoves(t *testing.T) {
 	manager, err := NewGameManager(defaultTestGameDelegate(10), newTestStorageManager())
 
