@@ -1150,6 +1150,12 @@ func (g *growableStack) removeComponentAt(componentIndex int) ComponentInstance 
 		g.indexes = append(g.indexes[:componentIndex], g.indexes[componentIndex+1:]...)
 	}
 
+	//All of the indexes in the stack after our location are now incorrect and
+	//need to be updated.
+	if g.state() != nil {
+		g.state().updateIndexForAllComponents(g)
+	}
+
 	return component
 
 }
@@ -1158,6 +1164,10 @@ func (s *sizedStack) removeComponentAt(componentIndex int) ComponentInstance {
 	component := s.ComponentAt(componentIndex)
 
 	s.indexes[componentIndex] = emptyIndexSentinel
+
+	//We don't need to update the indexes in this stack because only the
+	//single slot was vacated, and that component will now be added to a new
+	//slot imminently, overwriting that cache entry.
 
 	return component
 }

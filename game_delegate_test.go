@@ -8,7 +8,9 @@ import (
 
 type testGameDelegate struct {
 	DefaultGameDelegate
-	moveInstaller func(manager *GameManager) *MoveTypeConfigBundle
+	//if this is higher than 0, then will craete this many extra comoponents
+	extraComponentsToCreate int
+	moveInstaller           func(manager *GameManager) *MoveTypeConfigBundle
 }
 
 func (t *testGameDelegate) ConfigureAgents() []Agent {
@@ -48,6 +50,13 @@ func (t *testGameDelegate) ConfigureDecks() map[string]*Deck {
 		String:  "basic",
 		Integer: 8,
 	})
+
+	for i := 0; i < t.extraComponentsToCreate; i++ {
+		deck.AddComponent(&testingComponent{
+			String:  "Extra",
+			Integer: 8 + i,
+		})
+	}
 
 	deck.SetShadowValues(&testShadowValues{
 		Message: "Foo",

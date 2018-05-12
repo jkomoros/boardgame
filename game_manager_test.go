@@ -22,7 +22,7 @@ var testColorEnum = testEnums.MustAdd("color", map[int]string{
 	colorGreen: "Green",
 })
 
-func newTestGameManger(t *testing.T) *GameManager {
+func defaultTestGameDelegate(extraComponentsToCreate int) *testGameDelegate {
 
 	moveInstaller := func(manager *GameManager) *MoveTypeConfigBundle {
 
@@ -39,7 +39,15 @@ func newTestGameManger(t *testing.T) *GameManager {
 		return bundle
 	}
 
-	manager, err := NewGameManager(&testGameDelegate{moveInstaller: moveInstaller}, newTestStorageManager())
+	return &testGameDelegate{
+		moveInstaller:           moveInstaller,
+		extraComponentsToCreate: extraComponentsToCreate,
+	}
+}
+
+func newTestGameManger(t *testing.T) *GameManager {
+
+	manager, err := NewGameManager(defaultTestGameDelegate(0), newTestStorageManager())
 
 	assert.For(t).ThatActual(err).IsNil()
 

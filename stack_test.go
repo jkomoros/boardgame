@@ -8,6 +8,37 @@ import (
 	"testing"
 )
 
+func TestMultipleStackMoves(t *testing.T) {
+	manager, err := NewGameManager(defaultTestGameDelegate(10), newTestStorageManager())
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	game := manager.NewGame()
+
+	err = game.SetUp(0, nil, nil)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	deck := manager.Chest().Deck("test")
+
+	st := game.CurrentState().(*state)
+
+	verifyContainingComponent(t, st, deck)
+
+	gameState := st.GameState().(*testGameState)
+
+	drawDeck := gameState.DrawDeck
+
+	destination := gameState.MyBoard.MutableSpaceAt(0)
+
+	for i := 0; i < 5; i++ {
+		err := drawDeck.MutableFirst().MoveTo(destination, NextSlotIndex)
+		assert.For(t, i).ThatActual(err).IsNil()
+		verifyContainingComponent(t, st, deck)
+	}
+
+}
+
 func TestContainingComponent(t *testing.T) {
 	game := testGame(t)
 
