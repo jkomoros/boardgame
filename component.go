@@ -78,10 +78,17 @@ type ComponentInstance interface {
 	movedSecretly()
 }
 
+//Note that a MutableComponentInstance doesn't actually guarantee that the
+//component is in a mutable context at this moment, just that it was at some
+//point on thie state (otherwise you couldn't have gotten a reference to it).
+//In practice though, if a Component was ever in a mutable context in a given
+//state, it must remain that way, because it can't be moved from a
+//MutableStack to a non-Mutable stack.
+
 //MutableComponentInstance is a component instance that's in a context that is
-//mutable. You generally get these from a MutableStack that contains them.
-//Currently the interface doesn't add anything, but soon it will have mutator
-//methods.
+//mutable. You generally get these from a MutableStack that contains them. The
+//instance contains many methods to move the component to other stacks or
+//locations.
 type MutableComponentInstance interface {
 	ComponentInstance
 
