@@ -287,13 +287,13 @@ func TestMoveExtreme(t *testing.T) {
 
 	assert.For(t).ThatActual(sized.indexes).Equals([]int{0, 1, -1, 2, -1})
 
-	err := sized.MutableFirst().MoveToEnd()
+	err := sized.MutableFirst().SlideToEnd()
 
 	assert.For(t).ThatActual(err).IsNil()
 
 	assert.For(t).ThatActual(sized.indexes).Equals([]int{-1, 1, -1, 2, 0})
 
-	err = sized.MutableComponentAt(1).MoveToStart()
+	err = sized.MutableComponentAt(1).SlideToStart()
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -309,13 +309,13 @@ func TestMoveExtreme(t *testing.T) {
 
 	assert.For(t).ThatActual(growable.indexes).Equals([]int{0, 1, 2})
 
-	err = growable.MutableFirst().MoveToEnd()
+	err = growable.MutableFirst().SlideToEnd()
 
 	assert.For(t).ThatActual(err).IsNil()
 
 	assert.For(t).ThatActual(growable.indexes).Equals([]int{1, 2, 0})
 
-	err = growable.MutableComponentAt(1).MoveToStart()
+	err = growable.MutableComponentAt(1).SlideToStart()
 
 	assert.For(t).ThatActual(err).IsNil()
 

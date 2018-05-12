@@ -216,8 +216,8 @@ func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) error {
 			game.UnusedCards.MoveComponent(pairCardIndex, game.HiddenCards, boardgame.NextSlotIndex)
 			game.UnusedCards.MoveComponent(0, game.HiddenCards, boardgame.NextSlotIndex)
 		} else {
-			game.UnusedCards.MutableComponentAt(pairCardIndex).MoveToEnd()
-			game.UnusedCards.MutableFirst().MoveToEnd()
+			game.UnusedCards.MutableComponentAt(pairCardIndex).SlideToEnd()
+			game.UnusedCards.MutableFirst().SlideToEnd()
 		}
 
 	}
