@@ -21,9 +21,9 @@ type Deck struct {
 	name string
 	//Components should only ever be added at initalization time. After
 	//initalization, Components should be read-only.
-	components            []Component
-	shadowValues          ComponentValues
-	vendedShadowComponent Component
+	components             []Component
+	genericValues          ComponentValues
+	vendedGenericComponent Component
 	//TODO: protect shadowComponents cache with mutex to make threadsafe.
 }
 
@@ -108,15 +108,14 @@ func (d *Deck) ComponentAt(index int) Component {
 
 }
 
-//SetShadowValues sets the SubState to return for every shadow
-//component that is returned. May only be set before added to a chest. Should
-//generally be the same shape of componentValues as used for other components
-//in the deck.
-func (d *Deck) SetShadowValues(v ComponentValues) {
+//SetGenericValues sets the SubState to return for every generic component
+//that is returned. May only be set before added to a chest. Should  be the
+//same shape of componentValues as used for other components in the deck.
+func (d *Deck) SetGenericValues(v ComponentValues) {
 	if d.chest != nil {
 		return
 	}
-	d.shadowValues = v
+	d.genericValues = v
 }
 
 //GenericComponent returns the component that is considereed fully generic for
@@ -126,21 +125,21 @@ func (d *Deck) SetShadowValues(v ComponentValues) {
 //this.
 func (d *Deck) GenericComponent() Component {
 
-	if d.vendedShadowComponent == nil {
+	if d.vendedGenericComponent == nil {
 		shadow := &component{
 			deck:      d,
 			deckIndex: genericComponentSentinel,
-			values:    d.shadowValues,
+			values:    d.genericValues,
 		}
 
 		if shadow.Values() != nil {
 			shadow.Values().SetContainingComponent(shadow)
 		}
 
-		d.vendedShadowComponent = shadow
+		d.vendedGenericComponent = shadow
 	}
 
-	return d.vendedShadowComponent
+	return d.vendedGenericComponent
 }
 
 var illegalComponentValuesProps = map[PropertyType]bool{

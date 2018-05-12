@@ -112,7 +112,7 @@ func newDeck() *boardgame.Deck {
 		}
 	}
 
-	cards.SetShadowValues(&cardValue{
+	cards.SetGenericValues(&cardValue{
 		Type: "<hidden>",
 	})
 

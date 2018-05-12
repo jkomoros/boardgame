@@ -151,7 +151,7 @@ func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 		}
 	}
 
-	cards.SetShadowValues(&cardValue{
+	cards.SetGenericValues(&cardValue{
 		Type: "<hidden>",
 	})
 

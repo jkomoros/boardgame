@@ -112,7 +112,7 @@ func deckCanonicalOrder(cards *boardgame.Deck, withJokers bool) {
 		}
 	}
 
-	cards.SetShadowValues(&Card{
+	cards.SetGenericValues(&Card{
 		Suit: SuitEnum.MustNewMutableVal(SuitUnknown),
 		Rank: RankEnum.MustNewMutableVal(RankUnknown),
 	})

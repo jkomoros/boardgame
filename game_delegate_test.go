@@ -58,7 +58,7 @@ func (t *testGameDelegate) ConfigureDecks() map[string]*Deck {
 		})
 	}
 
-	deck.SetShadowValues(&testShadowValues{
+	deck.SetGenericValues(&testShadowValues{
 		Message: "Foo",
 	})
 
