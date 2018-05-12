@@ -178,7 +178,7 @@ func (m *MoveMoveToken) Apply(state boardgame.MutableState) error {
 
 		if !tokenValues.Color.Equals(p.Color) {
 			tokenCaptured = true
-			if err := g.Spaces.MutableComponentAt(middleSpace).MoveTo(p.CapturedTokens, boardgame.LastSlotIndex); err != nil {
+			if err := g.Spaces.MutableComponentAt(middleSpace).MoveToLastSlot(p.CapturedTokens); err != nil {
 				return errors.New("Couldn't capture token: " + err.Error())
 			}
 		}

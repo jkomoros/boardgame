@@ -93,7 +93,7 @@ func (m *MoveCurrentPlayerHit) Apply(state boardgame.MutableState) error {
 
 	currentPlayer := players[game.CurrentPlayer]
 
-	game.DrawStack.MutableFirst().MoveTo(currentPlayer.VisibleHand, boardgame.FirstSlotIndex)
+	game.DrawStack.MutableFirst().MoveToFirstSlot(currentPlayer.VisibleHand)
 
 	handValue := currentPlayer.HandValue()
 
@@ -175,7 +175,7 @@ func (m *MoveRevealHiddenCard) Apply(state boardgame.MutableState) error {
 
 	p := players[m.TargetPlayerIndex]
 
-	p.HiddenHand.MutableFirst().MoveTo(p.VisibleHand, boardgame.FirstSlotIndex)
+	p.HiddenHand.MutableFirst().MoveToFirstSlot(p.VisibleHand)
 
 	return nil
 }

@@ -108,7 +108,7 @@ func (m *moveMoveCardBetweenShortStacks) Apply(state boardgame.MutableState) err
 		to = game.SecondShortStack
 	}
 
-	if err := from.MutableFirst().MoveTo(to, boardgame.FirstSlotIndex); err != nil {
+	if err := from.MutableFirst().MoveToFirstSlot(to); err != nil {
 		return err
 	}
 
@@ -170,7 +170,7 @@ func (m *moveMoveCardBetweenDrawAndDiscardStacks) Apply(state boardgame.MutableS
 		to = game.DiscardStack
 	}
 
-	if err := from.MutableFirst().MoveTo(to, boardgame.FirstSlotIndex); err != nil {
+	if err := from.MutableFirst().MoveToFirstSlot(to); err != nil {
 		return err
 	}
 
@@ -222,7 +222,7 @@ func (m *moveFlipHiddenCard) Apply(state boardgame.MutableState) error {
 		to = game.VisibleCard
 	}
 
-	if err := from.MutableFirst().MoveTo(to, boardgame.FirstSlotIndex); err != nil {
+	if err := from.MutableFirst().MoveToFirstSlot(to); err != nil {
 		return err
 	}
 
@@ -266,23 +266,11 @@ func (m *moveMoveCardBetweenFanStacks) Apply(state boardgame.MutableState) error
 
 	game, _ := concreteStates(state)
 
-	from := game.FanStack
-	to := game.FanDiscard
-	fromIndex := 2
-	toIndex := boardgame.FirstSlotIndex
-
 	if game.FanStack.NumComponents() < 6 {
-		from = game.FanDiscard
-		to = game.FanStack
-		fromIndex = boardgame.FirstComponentIndex
-		toIndex = 2
+		return game.FanDiscard.MutableFirst().MoveTo(game.FanStack, 2)
 	}
 
-	if err := from.MutableComponentAt(fromIndex).MoveTo(to, toIndex); err != nil {
-		return err
-	}
-
-	return nil
+	return game.FanStack.MutableComponentAt(2).MoveToFirstSlot(game.FanDiscard)
 }
 
 /**************************************************
@@ -396,23 +384,11 @@ func (m *moveMoveBetweenHidden) Apply(state boardgame.MutableState) error {
 
 	game, _ := concreteStates(state)
 
-	from := game.VisibleStack
-	to := game.HiddenStack
-	fromIndex := 2
-	toIndex := boardgame.FirstSlotIndex
-
 	if game.VisibleStack.NumComponents() < 5 {
-		from = game.HiddenStack
-		to = game.VisibleStack
-		fromIndex = boardgame.FirstComponentIndex
-		toIndex = 2
+		return game.HiddenStack.MutableFirst().MoveTo(game.VisibleStack, 2)
 	}
 
-	if err := from.MutableComponentAt(fromIndex).MoveTo(to, toIndex); err != nil {
-		return err
-	}
-
-	return nil
+	return game.VisibleStack.MutableComponentAt(2).MoveToFirstSlot(game.HiddenStack)
 
 }
 
@@ -453,23 +429,11 @@ func (m *moveMoveToken) Apply(state boardgame.MutableState) error {
 
 	game, _ := concreteStates(state)
 
-	from := game.TokensFrom
-	to := game.TokensTo
-	fromIndex := 2
-	toIndex := boardgame.FirstSlotIndex
-
 	if game.TokensFrom.NumComponents() < 10 {
-		from = game.TokensTo
-		to = game.TokensFrom
-		fromIndex = boardgame.FirstComponentIndex
-		toIndex = 2
+		return game.TokensTo.MutableFirst().MoveTo(game.TokensFrom, 2)
 	}
 
-	if err := from.MutableComponentAt(fromIndex).MoveTo(to, toIndex); err != nil {
-		return err
-	}
-
-	return nil
+	return game.TokensFrom.MutableComponentAt(2).MoveToFirstSlot(game.TokensTo)
 
 }
 
@@ -510,22 +474,10 @@ func (m *moveMoveTokenSanitized) Apply(state boardgame.MutableState) error {
 
 	game, _ := concreteStates(state)
 
-	from := game.SanitizedTokensFrom
-	to := game.SanitizedTokensTo
-	fromIndex := 2
-	toIndex := boardgame.FirstSlotIndex
-
 	if game.SanitizedTokensFrom.NumComponents() < 10 {
-		from = game.SanitizedTokensTo
-		to = game.SanitizedTokensFrom
-		fromIndex = boardgame.FirstComponentIndex
-		toIndex = 2
+		return game.SanitizedTokensTo.MutableFirst().MoveTo(game.SanitizedTokensFrom, 2)
 	}
 
-	if err := from.MutableComponentAt(fromIndex).MoveTo(to, toIndex); err != nil {
-		return err
-	}
-
-	return nil
+	return game.SanitizedTokensFrom.MutableComponentAt(2).MoveToFirstSlot(game.SanitizedTokensTo)
 
 }

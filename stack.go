@@ -262,25 +262,25 @@ const (
 	//where ComponentAt() will return a component. For default Stacks this is
 	//always 0 (for non-empty stacks); for SizedStacks, it's the first non-
 	//empty slot from the left.
-	FirstComponentIndex = -1
+	firstComponentIndex = -1
 	//LastComponentIndex is computed to be the largest index where
 	//ComponentAt() will return a component. For default Stacks, this is
 	//always Len() - 1 (for non-empty stacks); for SizedStacks, it's the first
 	//non-empty slot from the right.
-	LastComponentIndex = -2
+	lastComponentIndex = -2
 	//FirstSlotIndex is computed to be the first index that it is valid to
 	//insert a component at (a "slot"). For default Stacks, this is always 0.
 	//For SizedStacks, this is the first empty slot from the left.
-	FirstSlotIndex = -3
+	firstSlotIndex = -3
 	//LastSlotIndex is computed to be the last index that it is valid to
 	//insert a component at (a "slot"). For default Stacks, this is always
 	//Len(). For SizedStacks, this is the first empty slot from the right.
-	LastSlotIndex = -4
+	lastSlotIndex = -4
 	//NextSlotIndex returns the next slot index, from the left, where a
 	//component could be inserted without splicing--that is, without shifting
 	//other components to the right. For SizedStacks, this is equivalent to
 	//FirstSlotIndex. For default Stacks, this is equivalent to LastSlotIndex.
-	NextSlotIndex = -5
+	nextSlotIndex = -5
 )
 
 //growableStack is a Stack that has a variable number of slots, none of which
@@ -673,7 +673,7 @@ func (g *growableStack) First() ComponentInstance {
 }
 
 func (g *growableStack) MutableFirst() MutableComponentInstance {
-	return specialComponentAt(g, FirstComponentIndex)
+	return specialComponentAt(g, firstComponentIndex)
 }
 
 func (g *growableStack) Last() ComponentInstance {
@@ -681,7 +681,7 @@ func (g *growableStack) Last() ComponentInstance {
 }
 
 func (g *growableStack) MutableLast() MutableComponentInstance {
-	return specialComponentAt(g, LastComponentIndex)
+	return specialComponentAt(g, lastComponentIndex)
 }
 
 func (s *sizedStack) First() ComponentInstance {
@@ -689,7 +689,7 @@ func (s *sizedStack) First() ComponentInstance {
 }
 
 func (s *sizedStack) MutableFirst() MutableComponentInstance {
-	return specialComponentAt(s, FirstComponentIndex)
+	return specialComponentAt(s, firstComponentIndex)
 }
 
 func (s *sizedStack) Last() ComponentInstance {
@@ -697,7 +697,7 @@ func (s *sizedStack) Last() ComponentInstance {
 }
 
 func (s *sizedStack) MutableLast() MutableComponentInstance {
-	return specialComponentAt(s, LastComponentIndex)
+	return specialComponentAt(s, lastComponentIndex)
 }
 
 func (m *mergedStack) First() ComponentInstance {
@@ -1007,7 +1007,7 @@ func moveAllToImpl(from MutableStack, to MutableStack) error {
 	}
 
 	for from.NumComponents() > 0 {
-		if err := from.moveComponent(FirstComponentIndex, to, NextSlotIndex); err != nil {
+		if err := from.moveComponent(firstComponentIndex, to, nextSlotIndex); err != nil {
 			return err
 		}
 	}
@@ -1187,25 +1187,25 @@ func (s *sizedStack) insertComponentAt(slotIndex int, component ComponentInstanc
 }
 
 func (g *growableStack) insertNext(c ComponentInstance) {
-	g.insertComponentAt(g.effectiveIndex(NextSlotIndex), c)
+	g.insertComponentAt(g.effectiveIndex(nextSlotIndex), c)
 }
 
 func (s *sizedStack) insertNext(c ComponentInstance) {
-	s.insertComponentAt(s.effectiveIndex(NextSlotIndex), c)
+	s.insertComponentAt(s.effectiveIndex(nextSlotIndex), c)
 }
 
 func (g *growableStack) effectiveIndex(index int) int {
 
 	switch index {
-	case FirstComponentIndex:
+	case firstComponentIndex:
 		return 0
-	case LastComponentIndex:
+	case lastComponentIndex:
 		return g.Len() - 1
-	case FirstSlotIndex:
+	case firstSlotIndex:
 		return 0
-	case LastSlotIndex:
+	case lastSlotIndex:
 		return g.Len()
-	case NextSlotIndex:
+	case nextSlotIndex:
 		return g.Len()
 	}
 
@@ -1215,7 +1215,7 @@ func (g *growableStack) effectiveIndex(index int) int {
 
 func (s *sizedStack) effectiveIndex(index int) int {
 
-	if index == FirstComponentIndex {
+	if index == firstComponentIndex {
 		for i, componentIndex := range s.indexes {
 			if componentIndex != emptyIndexSentinel {
 				return i
@@ -1223,7 +1223,7 @@ func (s *sizedStack) effectiveIndex(index int) int {
 		}
 	}
 
-	if index == LastComponentIndex {
+	if index == lastComponentIndex {
 		for i := len(s.indexes) - 1; i >= 0; i-- {
 			if s.indexes[i] != emptyIndexSentinel {
 				return i
@@ -1231,7 +1231,7 @@ func (s *sizedStack) effectiveIndex(index int) int {
 		}
 	}
 
-	if index == FirstSlotIndex || index == NextSlotIndex {
+	if index == firstSlotIndex || index == nextSlotIndex {
 		for i, componentIndex := range s.indexes {
 			if componentIndex == emptyIndexSentinel {
 				return i
@@ -1239,7 +1239,7 @@ func (s *sizedStack) effectiveIndex(index int) int {
 		}
 	}
 
-	if index == LastSlotIndex {
+	if index == lastSlotIndex {
 		for i := len(s.indexes) - 1; i >= 0; i-- {
 			if s.indexes[i] == emptyIndexSentinel {
 				return i
@@ -1401,14 +1401,14 @@ func moveComponentToExtremeImpl(stack MutableStack, componentIndex int, isStart 
 
 	scratchStack.setState(stack.state())
 
-	if err := stack.moveComponent(componentIndex, scratchStack, FirstSlotIndex); err != nil {
+	if err := stack.moveComponent(componentIndex, scratchStack, firstSlotIndex); err != nil {
 		return errors.New("Couldn't move to scratch stack: " + err.Error())
 	}
 
-	targetSlot := LastSlotIndex
+	targetSlot := lastSlotIndex
 
 	if isStart {
-		targetSlot = FirstSlotIndex
+		targetSlot = firstSlotIndex
 	}
 
 	if err := scratchStack.moveComponent(0, stack, targetSlot); err != nil {

@@ -325,7 +325,7 @@ func (t *testMoveIncrementCardInHand) Apply(state MutableState) error {
 		easyValues := values.(*testingComponentDynamic)
 
 		easyValues.IntVar += 3
-		game.DrawDeck.MutableLast().MoveTo(easyValues.Stack, FirstSlotIndex)
+		game.DrawDeck.MutableLast().MoveToFirstSlot(easyValues.Stack)
 
 		return nil
 
@@ -392,7 +392,7 @@ func (t *testMoveDrawCard) Apply(state MutableState) error {
 
 	player := players[game.CurrentPlayer]
 
-	if err := game.DrawDeck.MutableFirst().MoveTo(player.Hand, FirstSlotIndex); err != nil {
+	if err := game.DrawDeck.MutableFirst().MoveToFirstSlot(player.Hand); err != nil {
 		return errors.New("couldn't move component from draw deck to hand: " + err.Error())
 	}
 

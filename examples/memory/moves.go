@@ -181,7 +181,7 @@ func (m *MoveCaptureCards) Apply(state boardgame.MutableState) error {
 
 	for i, c := range game.VisibleCards.Components() {
 		if c != nil {
-			game.VisibleCards.MutableComponentAt(i).MoveTo(p.WonCards, boardgame.NextSlotIndex)
+			game.VisibleCards.MutableComponentAt(i).MoveToNextSlot(p.WonCards)
 		}
 	}
 
