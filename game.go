@@ -416,7 +416,9 @@ func (g *Game) SetUp(numPlayers int, config GameConfig, agentNames []string) err
 	//Make a starter one so that buildComponentIndex doesn't get called.
 	stateCopy.(*state).componentIndex = make(map[Component]componentIndexItem)
 
-	g.manager.delegate.BeginSetUp(stateCopy, config)
+	if err := g.manager.delegate.BeginSetUp(stateCopy, config); err != nil {
+		return errors.New("BeginSetUp errored: " + err.Error())
+	}
 
 	//Distribute all components to their starter locations
 
@@ -444,7 +446,9 @@ func (g *Game) SetUp(numPlayers int, config GameConfig, agentNames []string) err
 		}
 	}
 
-	g.manager.delegate.FinishSetUp(stateCopy)
+	if err := g.manager.delegate.FinishSetUp(stateCopy); err != nil {
+		return errors.New("FinishSetUp errored: " + err.Error())
+	}
 
 	g.created = time.Now()
 	g.modified = time.Now()

@@ -433,7 +433,9 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 func TestIllegalPlayerIndex(t *testing.T) {
 	game := testGame(t)
 
-	game.SetUp(2, nil, nil)
+	err := game.SetUp(0, nil, nil)
+
+	assert.For(t).ThatActual(err).IsNil()
 
 	previousVersion := game.Version()
 
@@ -443,7 +445,7 @@ func TestIllegalPlayerIndex(t *testing.T) {
 
 	move.(*testMoveInvalidPlayerIndex).CurrentlyLegal = true
 
-	err := <-game.ProposeMove(move, AdminPlayerIndex)
+	err = <-game.ProposeMove(move, AdminPlayerIndex)
 
 	assert.For(t).ThatActual(err).IsNotNil()
 	assert.For(t).ThatActual(game.Version()).Equals(previousVersion)

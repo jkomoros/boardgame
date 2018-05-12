@@ -10,7 +10,9 @@ func TestTimerManager(t *testing.T) {
 
 	game := testGame(t)
 
-	game.SetUp(2, nil, nil)
+	err := game.SetUp(0, nil, nil)
+
+	assert.For(t).ThatActual(err).IsNil()
 
 	currentVersion := game.Version()
 
@@ -18,7 +20,7 @@ func TestTimerManager(t *testing.T) {
 
 	assert.For(t).ThatActual(move).IsNotNil()
 
-	assert.For(t).ThatActual(move.(*testMoveDrawCard).TargetPlayerIndex).Equals(PlayerIndex(1))
+	assert.For(t).ThatActual(move.(*testMoveDrawCard).TargetPlayerIndex).Equals(PlayerIndex(0))
 
 	timer := newTimerManager(game.manager)
 
@@ -72,7 +74,9 @@ func TestTimerManagerMultiple(t *testing.T) {
 
 	game := testGame(t)
 
-	game.SetUp(2, nil, nil)
+	err := game.SetUp(0, nil, nil)
+
+	assert.For(t).ThatActual(err).IsNil()
 
 	move := game.MoveByName("Draw Card")
 
@@ -116,7 +120,9 @@ func TestTimerManagerMultiple(t *testing.T) {
 func TestTimerProp(t *testing.T) {
 	game := testGame(t)
 
-	game.SetUp(2, nil, nil)
+	err := game.SetUp(0, nil, nil)
+
+	assert.For(t).ThatActual(err).IsNil()
 
 	move := game.MoveByName("Draw Card")
 

@@ -55,11 +55,13 @@ func TestPlayerIndexNextPrevious(t *testing.T) {
 
 func TestPlayerIndexValid(t *testing.T) {
 
-	gameTwoPlayers := testGame(t)
+	gameThreePlayers := testGame(t)
 
-	gameTwoPlayers.SetUp(2, nil, nil)
+	err := gameThreePlayers.SetUp(3, nil, nil)
 
-	stateTwoPlayers := gameTwoPlayers.CurrentState()
+	assert.For(t).ThatActual(err).IsNil()
+
+	stateThreePlayers := gameThreePlayers.CurrentState()
 
 	tests := []struct {
 		p        PlayerIndex
@@ -68,32 +70,32 @@ func TestPlayerIndexValid(t *testing.T) {
 	}{
 		{
 			0,
-			stateTwoPlayers,
+			stateThreePlayers,
 			true,
 		},
 		{
 			ObserverPlayerIndex,
-			stateTwoPlayers,
+			stateThreePlayers,
 			true,
 		},
 		{
 			AdminPlayerIndex,
-			stateTwoPlayers,
+			stateThreePlayers,
 			true,
 		},
 		{
 			AdminPlayerIndex - 1,
-			stateTwoPlayers,
+			stateThreePlayers,
+			false,
+		},
+		{
+			4,
+			stateThreePlayers,
 			false,
 		},
 		{
 			3,
-			stateTwoPlayers,
-			false,
-		},
-		{
-			2,
-			stateTwoPlayers,
+			stateThreePlayers,
 			false,
 		},
 	}
