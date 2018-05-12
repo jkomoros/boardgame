@@ -95,16 +95,16 @@ type MutableComponentInstance interface {
 	//MoveTo moves the specified component in its current stack to the
 	//specified slot in the destination stack. The destination stack must be
 	//different than the one the component's currently in--if you're moving
-	//components within a stack, use SwapComponent. In destination,
-	//slotIndex must point to a valid "slot" to put a component, such that
-	//after insertion, using that index on the destination will return that
+	//components within a stack, use SwapComponent. In destination, slotIndex
+	//must point to a valid "slot" to put a component, such that after
+	//insertion, using that index on the destination will return that
 	//component. In defaults Stacks, slots are any index from 0 up to and
 	//including stack.Len(), because the stack will grow to insert the
 	//component between existing components if necessary. For SizedStacks,
-	//slotIndex must point to a currently empty slot. Use
-	//{First,Last}SlotIndex constants to automatically set these
-	//indexes to common values. If you want the precise location of the
-	//inserted component to not be visible, see SecretMoveTo.
+	//slotIndex must point to a currently empty slot.
+	//MoveTo{First,Last,Next}Slot methods are useful if you want to move to
+	//those locations. If you want the precise location of the inserted
+	//component to not be visible, see SecretMoveTo.
 	MoveTo(other MutableStack, slotIndex int) error
 
 	//SecretMoveTo is equivalent to MoveTo, but after the move the Ids of all
