@@ -91,8 +91,15 @@ type MutableComponentInstance interface {
 	//slotIndex must point to a currently empty slot. Use
 	//{First,Last}SlotIndex constants to automatically set these
 	//indexes to common values. If you want the precise location of the
-	//inserted component to not be visible, see SecretMoveComponent.
+	//inserted component to not be visible, see SecretMoveTo.
 	MoveTo(other MutableStack, slotIndex int) error
+
+	//SecretMoveTo is equivalent to MoveTo, but after the move the Ids of all
+	//components in destination will be scrambled. SecretMoveTo is useful when
+	//the destination stack will be sanitized with something like PolicyOrder,
+	//but the precise location of this insertion should not be observable.
+	//Read the package doc for more about when this is useful.
+	SecretMoveTo(other MutableStack, slotIndex int) error
 }
 
 type component struct {
@@ -296,6 +303,14 @@ func (c componentInstance) MoveTo(other MutableStack, slotIndex int) error {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
 	return source.MoveComponent(sourceIndex, other, slotIndex)
+}
+
+func (c componentInstance) SecretMoveTo(other MutableStack, slotIndex int) error {
+	source, sourceIndex, err := c.statePtr.ContainingMutableStack(c)
+	if err != nil {
+		return errors.New("The source component was not in a mutable stack: " + err.Error())
+	}
+	return source.SecretMoveComponent(sourceIndex, other, slotIndex)
 }
 
 func (c componentInstance) mutable() MutableComponentInstance {
