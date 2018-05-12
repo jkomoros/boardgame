@@ -735,7 +735,7 @@ func secretMoveTestHelper(t *testing.T, from MutableStack, to MutableStack, desc
 	toLastIds := to.Ids()
 	toLastIdsSeen := to.IdsLastSeen()
 
-	err := from.MutableFirst().SecretMoveTo(to, firstSlotIndex)
+	err := from.MutableFirst().SecretMoveTo(to, to.FirstSlot())
 
 	assert.For(t, description).ThatActual(err).IsNil()
 
@@ -859,9 +859,9 @@ func TestMoveComponent(t *testing.T) {
 		{
 			gStack,
 			sStack,
-			firstComponentIndex,
+			gStack.FirstComponentIndex(),
 			0,
-			firstSlotIndex,
+			sStack.FirstSlot(),
 			4,
 			false,
 			"Move from growable first component to sized stack first slot",
@@ -869,9 +869,9 @@ func TestMoveComponent(t *testing.T) {
 		{
 			sStack,
 			gStack,
-			firstSlotIndex,
+			sStack.FirstSlot(),
 			4,
-			firstSlotIndex,
+			gStack.FirstSlot(),
 			0,
 			true,
 			"Move an empty slot in sized stack to growable stack",
@@ -879,9 +879,9 @@ func TestMoveComponent(t *testing.T) {
 		{
 			sStack,
 			gStack,
-			firstComponentIndex,
+			sStack.FirstComponentIndex(),
 			0,
-			lastSlotIndex,
+			gStack.LastSlot(),
 			4,
 			false,
 			"Move first component in sized stack to growable stack",
@@ -889,9 +889,9 @@ func TestMoveComponent(t *testing.T) {
 		{
 			sStackOtherState,
 			gStack,
-			firstComponentIndex,
+			sStackOtherState.FirstComponentIndex(),
 			0,
-			lastSlotIndex,
+			gStack.LastSlot(),
 			4,
 			true,
 			"Move from a stack in one state to another",
@@ -899,9 +899,9 @@ func TestMoveComponent(t *testing.T) {
 		{
 			sStack,
 			sStack,
-			firstComponentIndex,
+			sStack.FirstComponentIndex(),
 			0,
-			lastSlotIndex,
+			sStack.LastSlot(),
 			4,
 			true,
 			"Moving from same stack",
@@ -909,9 +909,9 @@ func TestMoveComponent(t *testing.T) {
 		{
 			sStack,
 			gStackMaxLen,
-			firstComponentIndex,
+			sStack.FirstComponentIndex(),
 			0,
-			lastSlotIndex,
+			gStackMaxLen.LastSlot(),
 			4,
 			true,
 			"Moving to a gstack with no more space",
@@ -919,9 +919,9 @@ func TestMoveComponent(t *testing.T) {
 		{
 			gStack,
 			sStackMaxLen,
-			firstComponentIndex,
+			gStack.FirstComponentIndex(),
 			0,
-			lastSlotIndex,
+			sStackMaxLen.LastSlot(),
 			-1,
 			true,
 			"Moving from a growable stack to a slot that has no more space.",
@@ -931,7 +931,7 @@ func TestMoveComponent(t *testing.T) {
 			sStack,
 			10,
 			10,
-			lastSlotIndex,
+			sStack.LastSlot(),
 			4,
 			true,
 			"Invalid component index",
@@ -941,7 +941,7 @@ func TestMoveComponent(t *testing.T) {
 			sStack,
 			2,
 			2,
-			lastSlotIndex,
+			sStack.LastSlot(),
 			4,
 			false,
 			"Moving from middle of growable stack to sized stack",
@@ -949,9 +949,9 @@ func TestMoveComponent(t *testing.T) {
 		{
 			gStack,
 			sStack,
-			firstComponentIndex,
+			gStack.FirstComponentIndex(),
 			0,
-			nextSlotIndex,
+			sStack.NextSlot(),
 			4,
 			false,
 			"NextSlotIndex from growable to sized",
@@ -959,9 +959,9 @@ func TestMoveComponent(t *testing.T) {
 		{
 			sStack,
 			gStack,
-			firstComponentIndex,
+			sStack.FirstComponentIndex(),
 			0,
-			nextSlotIndex,
+			gStack.NextSlot(),
 			4,
 			false,
 			"NextSlotIndex from sized to growable",

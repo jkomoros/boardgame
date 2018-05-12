@@ -122,18 +122,21 @@ type MutableComponentInstance interface {
 
 	//MoveToFirstSlot moves the component to the first valid slot in the other
 	//stack. For default Stacks, this is always 0. For SizedStacks, this is
-	//the first empty slot from the left.
+	//the first empty slot from the left. A convenience wrapper around
+	//stack.FirstSlot.
 	MoveToFirstSlot(other MutableStack) error
 
 	//MoveToLastSlot moves the component to the last valid slot in the other
-	//stack. For default Stacks, this is always Len(). For SizedStacks, this is
-	//the first empty slot from the right.
+	//stack. For default Stacks, this is always Len(). For SizedStacks, this
+	//is the first empty slot from the right. A convenience wrappar around
+	//stack.LastSlot().
 	MoveToLastSlot(other MutableStack) error
 
 	//MoveToNextSlot moves the component to the next valid slot in the other
 	//stack where the component could be added without splicing. For default
 	//stacks this is equivalent to MoveToLastSlot. For fixed size stacks this
-	//is equivalent to MoveToFirstSlot.
+	//is equivalent to MoveToFirstSlot. A convenience wrapper arond
+	//stack.NextSlot().
 	MoveToNextSlot(other MutableStack) error
 
 	//SlideToFirstSlot takes the given component and moves it to the start of
@@ -354,6 +357,9 @@ func (c componentInstance) movedSecretly() {
 }
 
 func (c componentInstance) MoveTo(other MutableStack, slotIndex int) error {
+	if slotIndex < 0 {
+		return errors.New("Invalid slotIndex")
+	}
 	source, sourceIndex, err := c.statePtr.ContainingMutableStack(c)
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
@@ -362,6 +368,9 @@ func (c componentInstance) MoveTo(other MutableStack, slotIndex int) error {
 }
 
 func (c componentInstance) SecretMoveTo(other MutableStack, slotIndex int) error {
+	if slotIndex < 0 {
+		return errors.New("Invalid slotIndex")
+	}
 	source, sourceIndex, err := c.statePtr.ContainingMutableStack(c)
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
@@ -374,7 +383,7 @@ func (c componentInstance) MoveToFirstSlot(other MutableStack) error {
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
-	return source.moveComponent(sourceIndex, other, firstSlotIndex)
+	return source.moveComponent(sourceIndex, other, other.FirstSlot())
 }
 
 func (c componentInstance) MoveToLastSlot(other MutableStack) error {
@@ -382,7 +391,7 @@ func (c componentInstance) MoveToLastSlot(other MutableStack) error {
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
-	return source.moveComponent(sourceIndex, other, lastSlotIndex)
+	return source.moveComponent(sourceIndex, other, other.LastSlot())
 }
 
 func (c componentInstance) MoveToNextSlot(other MutableStack) error {
@@ -390,7 +399,7 @@ func (c componentInstance) MoveToNextSlot(other MutableStack) error {
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
-	return source.moveComponent(sourceIndex, other, nextSlotIndex)
+	return source.moveComponent(sourceIndex, other, other.NextSlot())
 }
 
 func (c componentInstance) SlideToFirstSlot() error {
