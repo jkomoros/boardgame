@@ -345,7 +345,7 @@ func (c componentInstance) MoveToStart() error {
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
-	return source.MoveComponentToStart(sourceIndex)
+	return source.moveComponentToStart(sourceIndex)
 }
 
 func (c componentInstance) MoveToEnd() error {
@@ -353,7 +353,7 @@ func (c componentInstance) MoveToEnd() error {
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
-	return source.MoveComponentToEnd(sourceIndex)
+	return source.moveComponentToEnd(sourceIndex)
 }
 
 func (c componentInstance) Mutable(mState MutableState) (MutableComponentInstance, error) {

@@ -185,20 +185,6 @@ type MutableStack interface {
 	//about when this is useful.
 	SecretMoveComponent(componentIndex int, destination MutableStack, slotIndex int) error
 
-	//MoveComponentToEnd takes the given component and moves it to the end of
-	//the same stack, moving everything else down. It is equivalent to
-	//removing the component, moving it to a temporary stack, and then moving
-	//it back to the original stack with a slotIndex of LastSlotIndex--but of
-	//course without needing the extra scratch stack.
-	MoveComponentToEnd(componentIndex int) error
-
-	//MoveComponentToStart takes the given component and moves it to the start
-	//of the same stack, moving everything else up. It is equivalent to
-	//removing the component, moving it to a temporary stack, and then moving
-	//it back to the original stack with a slotIndex of FirstSlotIndex--but of
-	//course without needing the extra scratch stack.
-	MoveComponentToStart(componentIndex int) error
-
 	//SortComponents sorts the stack's components in the order implied by less
 	//by repeatedly calling SwapComponents. Errors if any SwapComponents
 	//errors. If error is non-nil, the stack may be left in an arbitrary order.
@@ -236,6 +222,10 @@ type MutableStack interface {
 	//MutableBoard will return a mutable reference to the Board we're part of,
 	//if we're part of a board.
 	MutableBoard() MutableBoard
+
+	moveComponentToEnd(componentIndex int) error
+
+	moveComponentToStart(componentIndex int) error
 
 	//removeComponentAt returns the component at componentIndex, and removes
 	//it from the stack. For GrowableStacks, this will splice `out the
@@ -1400,19 +1390,19 @@ func moveComonentImpl(source MutableStack, componentIndex int, destination Mutab
 
 }
 
-func (g *growableStack) MoveComponentToEnd(componentIndex int) error {
+func (g *growableStack) moveComponentToEnd(componentIndex int) error {
 	return moveComponentToExtremeImpl(g, componentIndex, false)
 }
 
-func (g *growableStack) MoveComponentToStart(componentIndex int) error {
+func (g *growableStack) moveComponentToStart(componentIndex int) error {
 	return moveComponentToExtremeImpl(g, componentIndex, true)
 }
 
-func (s *sizedStack) MoveComponentToEnd(componentIndex int) error {
+func (s *sizedStack) moveComponentToEnd(componentIndex int) error {
 	return moveComponentToExtremeImpl(s, componentIndex, false)
 }
 
-func (s *sizedStack) MoveComponentToStart(componentIndex int) error {
+func (s *sizedStack) moveComponentToStart(componentIndex int) error {
 	return moveComponentToExtremeImpl(s, componentIndex, true)
 }
 
