@@ -100,6 +100,20 @@ type MutableComponentInstance interface {
 	//but the precise location of this insertion should not be observable.
 	//Read the package doc for more about when this is useful.
 	SecretMoveTo(other MutableStack, slotIndex int) error
+
+	//MoveToStart takes the given component and moves it to the start
+	//of the same stack, moving everything else up. It is equivalent to
+	//removing the component, moving it to a temporary stack, and then moving
+	//it back to the original stack with a slotIndex of FirstSlotIndex--but of
+	//course without needing the extra scratch stack.
+	MoveToStart() error
+
+	//MoveToEnd takes the given component and moves it to the end of
+	//the same stack, moving everything else down. It is equivalent to
+	//removing the component, moving it to a temporary stack, and then moving
+	//it back to the original stack with a slotIndex of LastSlotIndex--but of
+	//course without needing the extra scratch stack.
+	MoveToEnd() error
 }
 
 type component struct {
@@ -311,6 +325,22 @@ func (c componentInstance) SecretMoveTo(other MutableStack, slotIndex int) error
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
 	return source.SecretMoveComponent(sourceIndex, other, slotIndex)
+}
+
+func (c componentInstance) MoveToStart() error {
+	source, sourceIndex, err := c.statePtr.ContainingMutableStack(c)
+	if err != nil {
+		return errors.New("The source component was not in a mutable stack: " + err.Error())
+	}
+	return source.MoveComponentToStart(sourceIndex)
+}
+
+func (c componentInstance) MoveToEnd() error {
+	source, sourceIndex, err := c.statePtr.ContainingMutableStack(c)
+	if err != nil {
+		return errors.New("The source component was not in a mutable stack: " + err.Error())
+	}
+	return source.MoveComponentToEnd(sourceIndex)
 }
 
 func (c componentInstance) mutable() MutableComponentInstance {
