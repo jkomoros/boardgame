@@ -64,8 +64,14 @@ type ComponentInstance interface {
 	//with.
 	State() State
 
+	//Mutable returns a mutable version of this component instance. It's sugar
+	//for state.ContainingMutableComponent. You must pass in a Mutable version
+	//of the state associated with this ComponentInstance to prove that you
+	//have a mutable state.
+	Mutable(state MutableState) (MutableComponentInstance, error)
+
 	//mutable is only to be used to up-cast to mutablecomponentindex when you
-	//know that's what it is.
+	//know that's what it is as a quick convenience for use only within this package.
 	mutable() MutableComponentInstance
 
 	secretMoveCount() int
@@ -341,6 +347,26 @@ func (c componentInstance) MoveToEnd() error {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
 	return source.MoveComponentToEnd(sourceIndex)
+}
+
+func (c componentInstance) Mutable(mState MutableState) (MutableComponentInstance, error) {
+	if mState == nil {
+		return nil, errors.New("Passed nil MutableState")
+	}
+
+	st := mState.(*state)
+
+	if st != c.statePtr {
+		return nil, errors.New("The MutableState passed did not match the state this componentinstance was originally from.")
+	}
+
+	stack, index, err := mState.ContainingMutableStack(c)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return stack.MutableComponentAt(index), nil
 }
 
 func (c componentInstance) mutable() MutableComponentInstance {
