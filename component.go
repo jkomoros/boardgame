@@ -27,6 +27,12 @@ type Component interface {
 	//given state.
 	Instance(st State) ComponentInstance
 
+	//Generic returns true if this Component is the generic component for this
+	//deck. You might get this component if you ask for a component from a
+	//sanitized stack. This method is a convenience method equivalent to
+	//checking for equivalency to Deck().GenericComponent().
+	Generic() bool
+
 	//ptr() is used for when the component itself is used as a key into
 	//an index and equality is important.
 	ptr() *component
@@ -181,6 +187,13 @@ func (c *component) DeckIndex() int {
 		return -1
 	}
 	return c.deckIndex
+}
+
+func (c *component) Generic() bool {
+	if c == nil {
+		return false
+	}
+	return c.Equivalent(c.Deck().GenericComponent())
 }
 
 func (c *component) Equivalent(other Component) bool {
