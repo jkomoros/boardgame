@@ -234,9 +234,9 @@ func (m *MoveHideCards) Apply(state boardgame.MutableState) error {
 	//Cancel a timer in case it was still going.
 	game.HideCardsTimer.Cancel()
 
-	for i, c := range game.VisibleCards.Components() {
+	for i, c := range game.VisibleCards.MutableComponents() {
 		if c != nil {
-			if err := game.VisibleCards.MutableComponentAt(i).MoveTo(game.HiddenCards, i); err != nil {
+			if err := c.MoveTo(game.HiddenCards, i); err != nil {
 				return errors.New("Couldn't move component: " + err.Error())
 			}
 		}
