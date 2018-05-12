@@ -735,7 +735,7 @@ func secretMoveTestHelper(t *testing.T, from MutableStack, to MutableStack, desc
 	toLastIds := to.Ids()
 	toLastIdsSeen := to.IdsLastSeen()
 
-	err := from.SecretMoveComponent(FirstComponentIndex, to, FirstSlotIndex)
+	err := from.MutableFirst().SecretMoveTo(to, FirstSlotIndex)
 
 	assert.For(t, description).ThatActual(err).IsNil()
 

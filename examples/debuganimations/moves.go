@@ -108,7 +108,7 @@ func (m *moveMoveCardBetweenShortStacks) Apply(state boardgame.MutableState) err
 		to = game.SecondShortStack
 	}
 
-	if err := from.MoveComponent(boardgame.FirstComponentIndex, to, boardgame.FirstSlotIndex); err != nil {
+	if err := from.MutableFirst().MoveTo(to, boardgame.FirstSlotIndex); err != nil {
 		return err
 	}
 
@@ -170,7 +170,7 @@ func (m *moveMoveCardBetweenDrawAndDiscardStacks) Apply(state boardgame.MutableS
 		to = game.DiscardStack
 	}
 
-	if err := from.MoveComponent(boardgame.FirstComponentIndex, to, boardgame.FirstSlotIndex); err != nil {
+	if err := from.MutableFirst().MoveTo(to, boardgame.FirstSlotIndex); err != nil {
 		return err
 	}
 
@@ -222,7 +222,7 @@ func (m *moveFlipHiddenCard) Apply(state boardgame.MutableState) error {
 		to = game.VisibleCard
 	}
 
-	if err := from.MoveComponent(boardgame.FirstComponentIndex, to, boardgame.FirstSlotIndex); err != nil {
+	if err := from.MutableFirst().MoveTo(to, boardgame.FirstSlotIndex); err != nil {
 		return err
 	}
 
@@ -278,7 +278,7 @@ func (m *moveMoveCardBetweenFanStacks) Apply(state boardgame.MutableState) error
 		toIndex = 2
 	}
 
-	if err := from.MoveComponent(fromIndex, to, toIndex); err != nil {
+	if err := from.MutableComponentAt(fromIndex).MoveTo(to, toIndex); err != nil {
 		return err
 	}
 
@@ -408,7 +408,7 @@ func (m *moveMoveBetweenHidden) Apply(state boardgame.MutableState) error {
 		toIndex = 2
 	}
 
-	if err := from.MoveComponent(fromIndex, to, toIndex); err != nil {
+	if err := from.MutableComponentAt(fromIndex).MoveTo(to, toIndex); err != nil {
 		return err
 	}
 
@@ -465,7 +465,7 @@ func (m *moveMoveToken) Apply(state boardgame.MutableState) error {
 		toIndex = 2
 	}
 
-	if err := from.MoveComponent(fromIndex, to, toIndex); err != nil {
+	if err := from.MutableComponentAt(fromIndex).MoveTo(to, toIndex); err != nil {
 		return err
 	}
 
@@ -522,7 +522,7 @@ func (m *moveMoveTokenSanitized) Apply(state boardgame.MutableState) error {
 		toIndex = 2
 	}
 
-	if err := from.MoveComponent(fromIndex, to, toIndex); err != nil {
+	if err := from.MutableComponentAt(fromIndex).MoveTo(to, toIndex); err != nil {
 		return err
 	}
 

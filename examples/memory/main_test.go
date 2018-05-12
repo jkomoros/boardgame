@@ -34,6 +34,22 @@ func BenchmarkMoves(b *testing.B) {
 
 }
 
+func TestSetup(t *testing.T) {
+	manager, err := boardgame.NewGameManager(NewDelegate(), memory.NewStorageManager())
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	game := manager.NewGame()
+
+	assert.For(t).ThatActual(game).IsNotNil()
+
+	err = game.SetUp(2, nil, nil)
+
+	if !assert.For(t).ThatActual(err).IsNil().Passed() {
+		t.FailNow()
+	}
+}
+
 func TestMain(t *testing.T) {
 	manager, err := boardgame.NewGameManager(NewDelegate(), memory.NewStorageManager())
 

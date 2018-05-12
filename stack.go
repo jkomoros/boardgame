@@ -159,32 +159,6 @@ type MutableStack interface {
 	//swap empty slots). i,j must be between [0, stack.Len()).
 	SwapComponents(i, j int) error
 
-	//MoveComponent moves the specified component in the source stack to the
-	//specified slot in the destination stack. The source and destination
-	//stacks must be different--if you're moving components within a stack,
-	//use SwapComponent. Components and Slots are overlapping concepts but are
-	//distinct. For the source you must provide a componentIndex--that is, an
-	//index that computes to an index that, when passed to
-	//source.ComponentAt() will return a component. In destination, slotIndex
-	//must point to a valid "slot" to put a component, such that after
-	//insertion, using that index on the destination will return that
-	//component. In defaults Stacks, slots are any index from 0 up to and
-	//including stack.Len(), because the stack will grow toinsert the
-	//component between existing components if necessary. For SizedStacks,
-	//slotIndex must point to a currently empty slot. Use
-	//{First,Last}{Component,Slot}Index constants to automatically set these
-	//indexes to common values. If you want the precise location of the
-	//inserted component to not be visible, see SecretMoveComponent.
-	MoveComponent(componentIndex int, destination MutableStack, slotIndex int) error
-
-	//SecretMoveComponent is equivalent to MoveComponent, but after the move
-	//the Ids of all components in destination will be scrambled.
-	//SecretMoveComponent is useful when the destination stack will be
-	//sanitized with something like PolicyOrder, but the precise location of
-	//this insertion should not be observable. Read the package doc for more
-	//about when this is useful.
-	SecretMoveComponent(componentIndex int, destination MutableStack, slotIndex int) error
-
 	//SortComponents sorts the stack's components in the order implied by less
 	//by repeatedly calling SwapComponents. Errors if any SwapComponents
 	//errors. If error is non-nil, the stack may be left in an arbitrary order.
@@ -222,6 +196,10 @@ type MutableStack interface {
 	//MutableBoard will return a mutable reference to the Board we're part of,
 	//if we're part of a board.
 	MutableBoard() MutableBoard
+
+	moveComponent(componentIndex int, destination MutableStack, slotIndex int) error
+
+	secretMoveComponent(componentIndex int, destination MutableStack, slotIndex int) error
 
 	moveComponentToEnd(componentIndex int) error
 
@@ -685,7 +663,8 @@ func (m *mergedStack) Components() []ComponentInstance {
 }
 
 func specialComponentAt(stack MutableStack, index int) MutableComponentInstance {
-	inst := stack.ComponentAt(stack.effectiveIndex(index))
+	effectiveIndex := stack.effectiveIndex(index)
+	inst := stack.ComponentAt(effectiveIndex)
 	return inst.mutable()
 }
 
@@ -1028,7 +1007,7 @@ func moveAllToImpl(from MutableStack, to MutableStack) error {
 	}
 
 	for from.NumComponents() > 0 {
-		if err := from.MoveComponent(FirstComponentIndex, to, NextSlotIndex); err != nil {
+		if err := from.moveComponent(FirstComponentIndex, to, NextSlotIndex); err != nil {
 			return err
 		}
 	}
@@ -1316,7 +1295,7 @@ func sortComponentsImpl(s MutableStack, less func(i, j ComponentInstance) bool) 
 	return errors.NewWrapped(sorter.err)
 }
 
-func (g *growableStack) SecretMoveComponent(componentIndex int, destination MutableStack, slotIndex int) error {
+func (g *growableStack) secretMoveComponent(componentIndex int, destination MutableStack, slotIndex int) error {
 	err := moveComonentImpl(g, componentIndex, destination, slotIndex)
 	if err != nil {
 		return err
@@ -1325,7 +1304,7 @@ func (g *growableStack) SecretMoveComponent(componentIndex int, destination Muta
 	return nil
 }
 
-func (s *sizedStack) SecretMoveComponent(componentIndex int, destination MutableStack, slotIndex int) error {
+func (s *sizedStack) secretMoveComponent(componentIndex int, destination MutableStack, slotIndex int) error {
 	err := moveComonentImpl(s, componentIndex, destination, slotIndex)
 	if err != nil {
 		return err
@@ -1334,11 +1313,11 @@ func (s *sizedStack) SecretMoveComponent(componentIndex int, destination Mutable
 	return nil
 }
 
-func (g *growableStack) MoveComponent(componentIndex int, destination MutableStack, slotIndex int) error {
+func (g *growableStack) moveComponent(componentIndex int, destination MutableStack, slotIndex int) error {
 	return moveComonentImpl(g, componentIndex, destination, slotIndex)
 }
 
-func (s *sizedStack) MoveComponent(componentIndex int, destination MutableStack, slotIndex int) error {
+func (s *sizedStack) moveComponent(componentIndex int, destination MutableStack, slotIndex int) error {
 	return moveComonentImpl(s, componentIndex, destination, slotIndex)
 }
 
@@ -1422,7 +1401,7 @@ func moveComponentToExtremeImpl(stack MutableStack, componentIndex int, isStart 
 
 	scratchStack.setState(stack.state())
 
-	if err := stack.MoveComponent(componentIndex, scratchStack, FirstSlotIndex); err != nil {
+	if err := stack.moveComponent(componentIndex, scratchStack, FirstSlotIndex); err != nil {
 		return errors.New("Couldn't move to scratch stack: " + err.Error())
 	}
 
@@ -1432,7 +1411,7 @@ func moveComponentToExtremeImpl(stack MutableStack, componentIndex int, isStart 
 		targetSlot = FirstSlotIndex
 	}
 
-	if err := scratchStack.MoveComponent(0, stack, targetSlot); err != nil {
+	if err := scratchStack.moveComponent(0, stack, targetSlot); err != nil {
 		return errors.New("Couldn't move back from scratch stack: " + err.Error())
 	}
 

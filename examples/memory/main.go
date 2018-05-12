@@ -213,11 +213,19 @@ func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) error {
 		//Doing the pair card first means that its index doesn't have to be
 		//modified down by 1
 		if useCard {
-			game.UnusedCards.MoveComponent(pairCardIndex, game.HiddenCards, boardgame.NextSlotIndex)
-			game.UnusedCards.MoveComponent(0, game.HiddenCards, boardgame.NextSlotIndex)
+			if err := game.UnusedCards.MutableComponentAt(pairCardIndex).MoveTo(game.HiddenCards, boardgame.NextSlotIndex); err != nil {
+				return errors.New("Couldn't move pair card to other slot: " + err.Error())
+			}
+			if err := game.UnusedCards.MutableFirst().MoveTo(game.HiddenCards, boardgame.NextSlotIndex); err != nil {
+				return errors.New("Couldn't move first card to other slot: " + err.Error())
+			}
 		} else {
-			game.UnusedCards.MutableComponentAt(pairCardIndex).MoveToEnd()
-			game.UnusedCards.MutableFirst().MoveToEnd()
+			if err := game.UnusedCards.MutableComponentAt(pairCardIndex).MoveToEnd(); err != nil {
+				return errors.New("Couldn't move pair card to end: " + err.Error())
+			}
+			if err := game.UnusedCards.MutableFirst().MoveToEnd(); err != nil {
+				return errors.New("Couldn't move first card to end: " + err.Error())
+			}
 		}
 
 	}
