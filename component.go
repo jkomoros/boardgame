@@ -114,19 +114,19 @@ type MutableComponentInstance interface {
 	//Read the package doc for more about when this is useful.
 	SecretMoveTo(other MutableStack, slotIndex int) error
 
-	//SlideToStart takes the given component and moves it to the start of the
-	//same stack, moving everything else up. It is equivalent to removing the
-	//component, moving it to a temporary stack, and then moving it back to
-	//the original stack with a slotIndex of FirstSlotIndex--but of course
-	//without needing the extra scratch stack.
-	SlideToStart() error
+	//SlideToFirstSlot takes the given component and moves it to the start of
+	//the same stack, moving everything else up. It is equivalent to removing
+	//the component, moving it to a temporary stack, and then moving it back
+	//to the original stack with MoveToFirstSlot--but of course without
+	//needing the extra scratch stack.
+	SlideToFirstSlot() error
 
-	//SlideToEnd takes the given component and moves it to the end of the same
-	//stack, moving everything else down. It is equivalent to removing the
-	//component, moving it to a temporary stack, and then moving it back to
-	//the original stack with a slotIndex of LastSlotIndex--but of course
-	//without needing the extra scratch stack.
-	SlideToEnd() error
+	//SlideToLastSlot takes the given component and moves it to the end of the
+	//same stack, moving everything else down. It is equivalent to removing
+	//the component, moving it to a temporary stack, and then moving it back
+	//to the original stack with MoveToLastSlot--but of course without needing
+	//the extra scratch stack.
+	SlideToLastSlot() error
 }
 
 type component struct {
@@ -340,7 +340,7 @@ func (c componentInstance) SecretMoveTo(other MutableStack, slotIndex int) error
 	return source.SecretMoveComponent(sourceIndex, other, slotIndex)
 }
 
-func (c componentInstance) SlideToStart() error {
+func (c componentInstance) SlideToFirstSlot() error {
 	source, sourceIndex, err := c.statePtr.ContainingMutableStack(c)
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
@@ -348,7 +348,7 @@ func (c componentInstance) SlideToStart() error {
 	return source.moveComponentToStart(sourceIndex)
 }
 
-func (c componentInstance) SlideToEnd() error {
+func (c componentInstance) SlideToLastSlot() error {
 	source, sourceIndex, err := c.statePtr.ContainingMutableStack(c)
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
