@@ -79,7 +79,7 @@ func (m *MovePlaceToken) Legal(state boardgame.State, proposer boardgame.PlayerI
 
 func (m *MovePlaceToken) Apply(state boardgame.MutableState) error {
 	game := state.GameState().(*gameState)
-	return game.UnusedTokens.MoveComponent(boardgame.FirstComponentIndex, game.Spaces, m.TargetIndex.Value())
+	return game.UnusedTokens.MutableFirst().MoveTo(game.Spaces, m.TargetIndex.Value())
 }
 
 //+autoreader
@@ -178,7 +178,7 @@ func (m *MoveMoveToken) Apply(state boardgame.MutableState) error {
 
 		if !tokenValues.Color.Equals(p.Color) {
 			tokenCaptured = true
-			if err := g.Spaces.MoveComponent(middleSpace, p.CapturedTokens, boardgame.LastSlotIndex); err != nil {
+			if err := g.Spaces.MutableComponentAt(middleSpace).MoveTo(p.CapturedTokens, boardgame.LastSlotIndex); err != nil {
 				return errors.New("Couldn't capture token: " + err.Error())
 			}
 		}

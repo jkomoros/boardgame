@@ -28,7 +28,7 @@ func (d *CollectCountComponents) RoundRobinAction(playerState boardgame.MutableP
 		return err
 	}
 
-	return playerStack.MoveComponent(boardgame.FirstComponentIndex, gameStack, boardgame.NextSlotIndex)
+	return playerStack.MutableFirst().MoveTo(gameStack, boardgame.NextSlotIndex)
 
 }
 
@@ -69,7 +69,7 @@ func (d *CollectComponentsUntilPlayerCountLeft) RoundRobinAction(playerState boa
 		return err
 	}
 
-	return playerStack.MoveComponent(boardgame.FirstComponentIndex, gameStack, boardgame.NextSlotIndex)
+	return playerStack.MutableFirst().MoveTo(gameStack, boardgame.NextSlotIndex)
 
 }
 
@@ -122,7 +122,7 @@ func (d *CollectComponentsUntilGameCountReached) RoundRobinAction(playerState bo
 		return err
 	}
 
-	return playerStack.MoveComponent(boardgame.FirstComponentIndex, gameStack, boardgame.NextSlotIndex)
+	return playerStack.MutableFirst().MoveTo(gameStack, boardgame.NextSlotIndex)
 
 }
 

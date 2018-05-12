@@ -190,7 +190,7 @@ func (t *testGameDelegate) FinishSetUp(state MutableState) error {
 		values.Enum.SetValue(colorBlue)
 	}
 
-	return game.DrawDeck.MoveComponent(LastComponentIndex, game.MyBoard.MutableSpaceAt(1), FirstSlotIndex)
+	return game.DrawDeck.MutableLast().MoveTo(game.MyBoard.MutableSpaceAt(1), FirstSlotIndex)
 }
 
 func (t *testGameDelegate) CurrentPlayerIndex(state State) PlayerIndex {

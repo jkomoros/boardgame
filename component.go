@@ -329,7 +329,7 @@ func (c componentInstance) MoveTo(other MutableStack, slotIndex int) error {
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
-	return source.MoveComponent(sourceIndex, other, slotIndex)
+	return source.moveComponent(sourceIndex, other, slotIndex)
 }
 
 func (c componentInstance) SecretMoveTo(other MutableStack, slotIndex int) error {
@@ -337,7 +337,7 @@ func (c componentInstance) SecretMoveTo(other MutableStack, slotIndex int) error
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
-	return source.SecretMoveComponent(sourceIndex, other, slotIndex)
+	return source.secretMoveComponent(sourceIndex, other, slotIndex)
 }
 
 func (c componentInstance) SlideToFirstSlot() error {

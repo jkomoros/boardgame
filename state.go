@@ -336,6 +336,7 @@ func (s *state) ContainingStack(c Component) (stack Stack, slotIndex int, err er
 }
 
 func (s *state) ContainingMutableStack(c Component) (stack MutableStack, slotIndex int, err error) {
+
 	if s.componentIndex == nil {
 		s.buildComponentIndex()
 	}
@@ -353,7 +354,7 @@ func (s *state) ContainingMutableStack(c Component) (stack MutableStack, slotInd
 		//This can happen if the state is sanitized, after
 		//buildComponentIndex, which won't be able to see the component.
 		if s.Sanitized() {
-			return nil, 0, errors.New("That component's location is not public information")
+			return nil, 0, errors.New("That component's location is not public information.")
 		}
 		//If this happened and the state isn't expected, then something bad happened.
 		//TODO: remove this once debugging that it doesn't happen
