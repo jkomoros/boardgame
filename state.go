@@ -655,8 +655,10 @@ func validateReaderBeforeSave(reader PropertyReader, name string, state State) e
 			if err != nil {
 				return errors.New("Error reading property " + propName + ": " + err.Error())
 			}
-			if err := stack.Valid(); err != nil {
-				return errors.New(propName + " was a stack that did not validate: " + err.Error())
+			if merged := stack.MergedStack(); merged != nil {
+				if err := merged.Valid(); err != nil {
+					return errors.New(propName + " was a merged stack that did not validate: " + err.Error())
+				}
 			}
 		}
 		//We don't need to check TypeBoard here, because TypeBoard never has

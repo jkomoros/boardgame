@@ -92,6 +92,10 @@ type Stack interface {
 	//SizedStack interface, if that's possible, or nil otherwise.
 	SizedStack() SizedStack
 
+	//MergedStack will return a version of this stack that implements the
+	//MergedStack interface, if that's possible, or nil otherwise.
+	MergedStack() MergedStack
+
 	//Returns the state that this Stack is currently part of. Mainly a
 	//convenience method when you have a Stack but don't know its underlying
 	//type.
@@ -99,13 +103,6 @@ type Stack interface {
 
 	//setState sets the state ptr that will be returned by state().
 	setState(state *state)
-
-	//Valid will return a non-nil error if the stack isn't valid currently.
-	//Normal stacks always reutrn nil, but MergedStacks might return non-nil,
-	//for example if the two stacks being merged are different sizes for an
-	//overlapped stack. Valid is checked just before state is saved. If any
-	//stack returns any non-nil for this then the state will not be saved.
-	Valid() error
 
 	//Board will return the Board that this Stack is part of, or nil if it is
 	//not part of a board.
@@ -137,32 +134,23 @@ type SizedStack interface {
 	LastComponentIndex() int
 }
 
-//MutableSizedStack is a MutableStack equivalent of a SizedStack.
-type MutableSizedStack interface {
-	MutableStack
+//MergedStack is a special variant of stacks that is actually formed from
+//multiple underlying stacks combined.
+type MergedStack interface {
+	Stack
 
-	//FirstComponentIndex returns the index of the first non-nil component
-	//from the left.
-	FirstComponentIndex() int
-	//LastComponentIndex returns the index of the first non-nil component from
-	//the right.
-	LastComponentIndex() int
+	//Valid will return a non-nil error if the stack isn't valid currently
+	//for example if the two stacks being merged are different sizes for an
+	//overlapped stack. Valid is checked just before state is saved. If any
+	//stack returns any non-nil for this then the state will not be saved.
+	Valid() error
 
-	//FirstSlot returns the index of the first valid slot. For default Stacks,
-	//this is always 0. For SizedStacks, this is the first empty slot from the
-	//left.
-	FirstSlot() int
+	//Stacks returns the stacks that this MergedStack is based on.
+	Stacks() []Stack
 
-	//NextSlot returns the index of the next valid slot in the other
-	//stack where the component could be added without splicing. For default
-	//stacks this is equivalent to MoveToLastSlot. For fixed size stacks this
-	//is equivalent to MoveToFirstSlot.
-	NextSlot() int
-
-	//LastSlot returns the index of the last valid slot. For default Stacks,
-	//this is always Len(). For SizedStacks, this is the first empty slot from
-	//the right.
-	LastSlot() int
+	//Overlapped will return true if the MergedStack is an overlapped stack
+	//(in contract to a concatenated stack).
+	Overlapped() bool
 }
 
 //MutableStack is a Stack that also has mutator methods.
@@ -316,6 +304,34 @@ type MutableStack interface {
 	lastSlot() int
 }
 
+//MutableSizedStack is a MutableStack equivalent of a SizedStack.
+type MutableSizedStack interface {
+	MutableStack
+
+	//FirstComponentIndex returns the index of the first non-nil component
+	//from the left.
+	FirstComponentIndex() int
+	//LastComponentIndex returns the index of the first non-nil component from
+	//the right.
+	LastComponentIndex() int
+
+	//FirstSlot returns the index of the first valid slot. For default Stacks,
+	//this is always 0. For SizedStacks, this is the first empty slot from the
+	//left.
+	FirstSlot() int
+
+	//NextSlot returns the index of the next valid slot in the other
+	//stack where the component could be added without splicing. For default
+	//stacks this is equivalent to MoveToLastSlot. For fixed size stacks this
+	//is equivalent to MoveToFirstSlot.
+	NextSlot() int
+
+	//LastSlot returns the index of the last valid slot. For default Stacks,
+	//this is always Len(). For SizedStacks, this is the first empty slot from
+	//the right.
+	LastSlot() int
+}
+
 //growableStack is a Stack that has a variable number of slots, none of which
 //may be empty. It can optionally have a max size. Create a new one with
 //deck.NewGrowableStack.
@@ -395,7 +411,7 @@ type stackJSONObj struct {
 //computed property when you have a logical stack made up of components that
 //are santiized followed by components that are not sanitized, like in a
 //blackjack hand. All stacks must be from the same deck.
-func NewConcatenatedStack(stack ...Stack) Stack {
+func NewConcatenatedStack(stack ...Stack) MergedStack {
 	return &mergedStack{
 		stacks:  stack,
 		overlap: false,
@@ -408,7 +424,7 @@ func NewConcatenatedStack(stack ...Stack) Stack {
 //property when you have a logical stack made up of components where some are
 //sanitized and some are not, like the grid of cards in Memory. All stacks
 //must be from the same deck, and all stacks must be FixedSize.
-func NewOverlappedStack(stack ...Stack) Stack {
+func NewOverlappedStack(stack ...Stack) MergedStack {
 
 	return &mergedStack{
 		stacks:  stack,
@@ -522,6 +538,18 @@ func (m *mergedStack) SizedStack() SizedStack {
 	return m
 }
 
+func (g *growableStack) MergedStack() MergedStack {
+	return nil
+}
+
+func (s *sizedStack) MergedStack() MergedStack {
+	return nil
+}
+
+func (m *mergedStack) MergedStack() MergedStack {
+	return m
+}
+
 func (g *growableStack) MutableSizedStack() MutableSizedStack {
 	return nil
 }
@@ -532,6 +560,14 @@ func (s *sizedStack) MutableSizedStack() MutableSizedStack {
 
 func (m *mergedStack) MutableSizedStack() MutableSizedStack {
 	return nil
+}
+
+func (m *mergedStack) Stacks() []Stack {
+	return m.stacks
+}
+
+func (m *mergedStack) Overlapped() bool {
+	return m.overlap
 }
 
 func (g *growableStack) firstComponentIndex() int {
@@ -705,14 +741,6 @@ func (m *mergedStack) NumComponents() int {
 		result += stack.NumComponents()
 	}
 	return result
-}
-
-func (g *growableStack) Valid() error {
-	return nil
-}
-
-func (s *sizedStack) Valid() error {
-	return nil
 }
 
 func (m *mergedStack) Valid() error {
