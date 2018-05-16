@@ -205,3 +205,9 @@ type includesImmutable struct {
 type upToReadSetter struct {
 	MyInt int
 }
+
+//+autoreader
+type sizedStackExample struct {
+	MySizedStack        boardgame.SizedStack
+	MyMutableSizedStack boardgame.MutableSizedStack
+}

@@ -35,6 +35,10 @@
 	the methods, include an argument for the highest one you want, e.g.
 	`+autoreader readsetter` to generate a Reader() and ReadSetter().
 
+	This package will automatically create additional type transform methods
+	to handle fields whose literal type is boardgame.SizedStack and
+	boardgame.MutableSizedStack.
+
 	You can configure which package to process and where to write output via
 	command-line flags. By default it processes the current package and writes
 	its output to auto_reader.go, overwriting whatever file was there before.

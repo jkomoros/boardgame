@@ -27,8 +27,9 @@ type memoizedEmbeddedStructKey struct {
 var memoizedEmbeddedStructs map[memoizedEmbeddedStructKey]*typeInfo
 
 type typeInfo struct {
-	Types   map[string]boardgame.PropertyType
-	Mutable map[string]bool
+	Types       map[string]boardgame.PropertyType
+	Mutable     map[string]bool
+	UpConverter map[string]string
 }
 
 const magicDocLinePrefix = "+autoreader"
@@ -144,6 +145,7 @@ func structTypes(location string, theStruct model.Struct, allStructs []model.Str
 	result := &typeInfo{
 		make(map[string]boardgame.PropertyType),
 		make(map[string]bool),
+		make(map[string]string),
 	}
 
 	for _, field := range theStruct.Fields {
@@ -217,6 +219,14 @@ func structTypes(location string, theStruct model.Struct, allStructs []model.Str
 		case "boardgame.MutableStack":
 			result.Types[field.Name] = boardgame.TypeStack
 			result.Mutable[field.Name] = true
+		case "boardgame.SizedStack":
+			result.Types[field.Name] = boardgame.TypeStack
+			result.Mutable[field.Name] = false
+			result.UpConverter[field.Name] = "SizedStack"
+		case "boardgame.MutableSizedStack":
+			result.Types[field.Name] = boardgame.TypeStack
+			result.Mutable[field.Name] = true
+			result.UpConverter[field.Name] = "MutableSizedStack"
 		case "boardgame.Board":
 			result.Types[field.Name] = boardgame.TypeBoard
 			result.Mutable[field.Name] = false
@@ -354,8 +364,9 @@ func verbForType(in string) string {
 }
 
 type nameForTypeInfo struct {
-	Name    string
-	Mutable bool
+	Name        string
+	Mutable     bool
+	UpConverter string
 }
 
 func headerForStruct(structName string, types *typeInfo, outputReadSetter bool, outputReadSetConfigurer bool) string {
@@ -481,8 +492,9 @@ func headerForStruct(structName string, types *typeInfo, outputReadSetter bool, 
 		for key, val := range types.Types {
 			if val.String() == "Type"+propType {
 				namesForType = append(namesForType, nameForTypeInfo{
-					Name:    key,
-					Mutable: types.Mutable[key],
+					Name:        key,
+					Mutable:     types.Mutable[key],
+					UpConverter: types.UpConverter[key],
 				})
 			}
 		}
@@ -728,7 +740,15 @@ func ({{.firstLetter}} *{{.readerName}}) Configure{{.setterPropType}}Prop(name s
 		{{range .namesForType -}}
 			case "{{.Name}}":
 			{{if .Mutable -}}
+				{{if .UpConverter -}}
+				slotValue := value.{{.UpConverter}}()
+				if slotValue == nil {
+					return errors.New("{{.Name}} couldn't be upconverted, returned nil.")
+				}
+				{{$firstLetter}}.data.{{.Name}} = slotValue
+				{{- else -}}
 				{{$firstLetter}}.data.{{.Name}} = value
+				{{- end}}
 				return nil
 			{{- else -}}
 				return boardgame.ErrPropertyImmutable
@@ -749,7 +769,15 @@ func ({{.firstLetter}} *{{.readerName}}) Configure{{withoutmutable .setterPropTy
 			{{if .Mutable -}}
 				return boardgame.ErrPropertyImmutable
 			{{- else -}}
+				{{if .UpConverter -}}
+				slotValue := value.{{.UpConverter}}()
+				if slotValue == nil {
+					return errors.New("{{.Name}} couldn't be upconverted, returned nil.")
+				}
+				{{$firstLetter}}.data.{{.Name}} = slotValue
+				{{- else -}}
 				{{$firstLetter}}.data.{{.Name}} = value
+				{{- end}}
 				return nil
 			{{- end}}
 		{{end}}
