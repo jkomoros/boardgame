@@ -216,6 +216,10 @@ func structTypes(location string, theStruct model.Struct, allStructs []model.Str
 		case "boardgame.Stack":
 			result.Types[field.Name] = boardgame.TypeStack
 			result.Mutable[field.Name] = false
+		case "boardgame.MergedStack":
+			result.Types[field.Name] = boardgame.TypeStack
+			result.Mutable[field.Name] = false
+			result.UpConverter[field.Name] = "MergedStack"
 		case "boardgame.MutableStack":
 			result.Types[field.Name] = boardgame.TypeStack
 			result.Mutable[field.Name] = true

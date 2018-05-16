@@ -211,3 +211,8 @@ type sizedStackExample struct {
 	MySizedStack        boardgame.SizedStack
 	MyMutableSizedStack boardgame.MutableSizedStack
 }
+
+//+autoreader
+type mergedStackExample struct {
+	MyMergedStack boardgame.MergedStack
+}
