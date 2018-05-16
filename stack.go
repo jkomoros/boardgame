@@ -17,7 +17,7 @@ const emptyIndexSentinel = -1
 //that deck, with no component residing in more than one stack. Stacks model
 //things like a stack of cards, a collection of resource tokens, etc. Stacks
 //can either be growable (the default), or of a fixed size (called
-//SizedStacks). The default stacks have a FixedSize() of false and can grow to
+//SizedStacks). The default stacks have a SizedStack() of nil and can grow to
 //accomodate as many components as desired (up to maxSize), with no gaps in
 //between components. An insertion at an index in the middle of a stack will
 //simply move later components down. SizedStacks, however, have a specific
@@ -33,13 +33,6 @@ type Stack interface {
 	//the number of items in the stack. For SizedStacks, this is the number of
 	//slots--even if some are unfilled.
 	Len() int
-
-	//FixedSize returns if the stack has a fixed number of slots (any number
-	//of which may be empty), or a non-fixed size that can grow up to MaxSize
-	//and not have any nil slots. Stacks that return FixedSize() false are
-	//considered default stacks, and stacks that return FixedSize() true are
-	//referred to as SizedStacks.
-	FixedSize() bool
 
 	//NumComponents returns the number of components that are in this stack.
 	//For default Stacks this is the same as Len(); for SizedStacks, this is
@@ -518,8 +511,15 @@ func (s *sizedStack) SizedStack() SizedStack {
 	return s
 }
 
+//SizedStack returns a SizedStack if all of the sub-stacks are themselves
+//sized.
 func (m *mergedStack) SizedStack() SizedStack {
-	return nil
+	for _, stack := range m.stacks {
+		if stack.SizedStack() == nil {
+			return nil
+		}
+	}
+	return m
 }
 
 func (g *growableStack) MutableSizedStack() MutableSizedStack {
@@ -614,6 +614,10 @@ func (s *sizedStack) NextSlot() int {
 	return s.FirstSlot()
 }
 
+func (m *mergedStack) FirstComponentIndex() int {
+	return m.firstComponentIndex()
+}
+
 func (m *mergedStack) firstComponentIndex() int {
 	for i, c := range m.Components() {
 		if c != nil {
@@ -621,6 +625,10 @@ func (m *mergedStack) firstComponentIndex() int {
 		}
 	}
 	return -1
+}
+
+func (m *mergedStack) LastComponentIndex() int {
+	return m.lastComponentIndex()
 }
 
 func (m *mergedStack) lastComponentIndex() int {
@@ -699,23 +707,6 @@ func (m *mergedStack) NumComponents() int {
 	return result
 }
 
-func (g *growableStack) FixedSize() bool {
-	return false
-}
-
-func (s *sizedStack) FixedSize() bool {
-	return true
-}
-
-func (m *mergedStack) FixedSize() bool {
-	for _, stack := range m.stacks {
-		if !stack.FixedSize() {
-			return false
-		}
-	}
-	return true
-}
-
 func (g *growableStack) Valid() error {
 	return nil
 }
@@ -745,7 +736,7 @@ func (m *mergedStack) Valid() error {
 	}
 
 	for i, stack := range m.stacks {
-		if !stack.FixedSize() {
+		if stack.SizedStack() == nil {
 			return errors.New("stack " + strconv.Itoa(i) + " was not fixed size, but overlap stacks require them all to be fixed size")
 		}
 	}
@@ -1895,7 +1886,7 @@ func (m *mergedStack) MarshalJSON() ([]byte, error) {
 		Ids:         m.Ids(),
 		IdsLastSeen: m.IdsLastSeen(),
 	}
-	if m.FixedSize() {
+	if m.SizedStack() != nil {
 		obj.Size = m.Len()
 	} else {
 		obj.MaxSize = m.MaxSize()

@@ -222,7 +222,7 @@ func TestConcatenatedStack(t *testing.T) {
 	assert.For(t).ThatActual(merged.Len()).Equals(5)
 	assert.For(t).ThatActual(merged.NumComponents()).Equals(4)
 	assert.For(t).ThatActual(merged.SlotsRemaining()).Equals(1)
-	assert.For(t).ThatActual(merged.FixedSize()).IsFalse()
+	assert.For(t).ThatActual(merged.SizedStack()).IsNil()
 
 	expectedIds := []string{
 		"2a7effe5e4000914791f95f6c1a711e54d346020",
@@ -271,7 +271,7 @@ func TestOverlappedStack(t *testing.T) {
 	assert.For(t).ThatActual(merged.Len()).Equals(4)
 	assert.For(t).ThatActual(merged.NumComponents()).Equals(3)
 	assert.For(t).ThatActual(merged.SlotsRemaining()).Equals(1)
-	assert.For(t).ThatActual(merged.FixedSize()).IsTrue()
+	assert.For(t).ThatActual(merged.SizedStack()).IsNotNil()
 
 	expectedIds := []string{
 		"2a7effe5e4000914791f95f6c1a711e54d346020",
@@ -501,11 +501,11 @@ func TestFixedSize(t *testing.T) {
 
 	sized := testDeck.NewSizedStack(5)
 
-	assert.For(t).ThatActual(sized.FixedSize()).IsTrue()
+	assert.For(t).ThatActual(sized.SizedStack()).IsNotNil()
 
 	growable := testDeck.NewStack(0)
 
-	assert.For(t).ThatActual(growable.FixedSize()).IsFalse()
+	assert.For(t).ThatActual(growable.SizedStack()).IsNil()
 
 }
 
