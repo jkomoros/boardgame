@@ -13,7 +13,7 @@ type gameState struct {
 	CurrentPlayer  boardgame.PlayerIndex
 	HiddenCards    boardgame.MutableSizedStack `sizedstack:"cards,40" sanitize:"order"`
 	VisibleCards   boardgame.MutableSizedStack `sizedstack:"cards,40"`
-	Cards          boardgame.Stack             `overlap:"VisibleCards,HiddenCards"`
+	Cards          boardgame.MergedStack       `overlap:"VisibleCards,HiddenCards"`
 	HideCardsTimer boardgame.MutableTimer
 	//Where cards not in use reside most of the time
 	UnusedCards boardgame.MutableStack `stack:"cards"`

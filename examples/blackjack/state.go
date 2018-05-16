@@ -42,7 +42,7 @@ type playerState struct {
 	playerIndex boardgame.PlayerIndex
 	HiddenHand  boardgame.MutableStack `stack:"cards,1" sanitize:"len"`
 	VisibleHand boardgame.MutableStack `stack:"cards"`
-	Hand        boardgame.Stack        `concatenate:"HiddenHand,VisibleHand"`
+	Hand        boardgame.MergedStack  `concatenate:"HiddenHand,VisibleHand"`
 	Busted      bool
 	Stood       bool
 }

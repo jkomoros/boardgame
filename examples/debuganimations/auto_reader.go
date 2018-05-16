@@ -4869,7 +4869,11 @@ func (g *__gameStateReader) ConfigureStackProp(name string, value boardgame.Stac
 
 	switch name {
 	case "Card":
-		g.data.Card = value
+		slotValue := value.MergedStack()
+		if slotValue == nil {
+			return errors.New("Card couldn't be upconverted, returned nil.")
+		}
+		g.data.Card = slotValue
 		return nil
 	case "DiscardStack":
 		return boardgame.ErrPropertyImmutable
