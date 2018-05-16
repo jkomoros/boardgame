@@ -9,7 +9,7 @@ import (
 type gameState struct {
 	boardgame.BaseSubState
 	CurrentPlayer boardgame.PlayerIndex
-	Die           boardgame.MutableStack `sizedstack:"dice"`
+	Die           boardgame.MutableSizedStack `sizedstack:"dice"`
 	TargetScore   int
 }
 

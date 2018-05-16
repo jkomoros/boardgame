@@ -4824,7 +4824,11 @@ func (g *__gameStateReader) ConfigureMutableStackProp(name string, value boardga
 		g.data.FirstShortStack = value
 		return nil
 	case "HiddenCard":
-		g.data.HiddenCard = value
+		slotValue := value.MutableSizedStack()
+		if slotValue == nil {
+			return errors.New("HiddenCard couldn't be upconverted, returned nil.")
+		}
+		g.data.HiddenCard = slotValue
 		return nil
 	case "HiddenStack":
 		g.data.HiddenStack = value
@@ -4845,7 +4849,11 @@ func (g *__gameStateReader) ConfigureMutableStackProp(name string, value boardga
 		g.data.TokensTo = value
 		return nil
 	case "VisibleCard":
-		g.data.VisibleCard = value
+		slotValue := value.MutableSizedStack()
+		if slotValue == nil {
+			return errors.New("VisibleCard couldn't be upconverted, returned nil.")
+		}
+		g.data.VisibleCard = slotValue
 		return nil
 	case "VisibleStack":
 		g.data.VisibleStack = value

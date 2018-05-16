@@ -2495,13 +2495,21 @@ func (g *__gameStateReader) ConfigureMutableStackProp(name string, value boardga
 	case "Cards":
 		return boardgame.ErrPropertyImmutable
 	case "HiddenCards":
-		g.data.HiddenCards = value
+		slotValue := value.MutableSizedStack()
+		if slotValue == nil {
+			return errors.New("HiddenCards couldn't be upconverted, returned nil.")
+		}
+		g.data.HiddenCards = slotValue
 		return nil
 	case "UnusedCards":
 		g.data.UnusedCards = value
 		return nil
 	case "VisibleCards":
-		g.data.VisibleCards = value
+		slotValue := value.MutableSizedStack()
+		if slotValue == nil {
+			return errors.New("VisibleCards couldn't be upconverted, returned nil.")
+		}
+		g.data.VisibleCards = slotValue
 		return nil
 
 	}

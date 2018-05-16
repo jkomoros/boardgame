@@ -1875,7 +1875,11 @@ func (g *__gameStateReader) ConfigureMutableStackProp(name string, value boardga
 
 	switch name {
 	case "Die":
-		g.data.Die = value
+		slotValue := value.MutableSizedStack()
+		if slotValue == nil {
+			return errors.New("Die couldn't be upconverted, returned nil.")
+		}
+		g.data.Die = slotValue
 		return nil
 
 	}
