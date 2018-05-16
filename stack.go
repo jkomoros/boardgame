@@ -98,6 +98,10 @@ type Stack interface {
 	//Deck returns the Deck associated with this stack.
 	Deck() *Deck
 
+	//SizedStack will return a version of this stack that implements the
+	//SizedStack interface, if that's possible, or nil otherwise.
+	SizedStack() SizedStack
+
 	//Returns the state that this Stack is currently part of. Mainly a
 	//convenience method when you have a Stack but don't know its underlying
 	//type.
@@ -244,6 +248,10 @@ type MutableStack interface {
 	//MutableBoard will return a mutable reference to the Board we're part of,
 	//if we're part of a board.
 	MutableBoard() MutableBoard
+
+	//MutableSizedStack will return a version of this stack that implements
+	//the MutableSizedStack interface, if that's possible, or nil otherwise.
+	MutableSizedStack() MutableSizedStack
 
 	moveComponent(componentIndex int, destination MutableStack, slotIndex int) error
 
@@ -488,6 +496,30 @@ func (s *sizedStack) copyFrom(other *sizedStack) {
 	for key, val := range other.idsLastSeen {
 		s.idsLastSeen[key] = val
 	}
+}
+
+func (g *growableStack) SizedStack() SizedStack {
+	return nil
+}
+
+func (s *sizedStack) SizedStack() SizedStack {
+	return s
+}
+
+func (m *mergedStack) SizedStack() SizedStack {
+	return nil
+}
+
+func (g *growableStack) MutableSizedStack() MutableSizedStack {
+	return nil
+}
+
+func (s *sizedStack) MutableSizedStack() MutableSizedStack {
+	return s
+}
+
+func (m *mergedStack) MutableSizedStack() MutableSizedStack {
+	return nil
 }
 
 func (g *growableStack) FirstComponentIndex() int {
