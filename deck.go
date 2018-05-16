@@ -49,7 +49,7 @@ func (d *Deck) NewStack(maxSize int) MutableStack {
 //NewSizedStack returns a new SizedStack (a stack whose FixedSize() will
 //return true). Refer to the Stack interface documentation for more about the
 //difference.
-func (d *Deck) NewSizedStack(size int) MutableStack {
+func (d *Deck) NewSizedStack(size int) MutableSizedStack {
 	return newSizedStack(d, size)
 }
 

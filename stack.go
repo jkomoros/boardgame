@@ -122,6 +122,31 @@ type Stack interface {
 	BoardIndex() int
 }
 
+//SizedStack is a specific type of Stack that has a specific number of slots,
+//any of which may be nil. Currently it doesn't add much different, but that
+//will change in the near-future.
+type SizedStack interface {
+	//A SizedStack can be used everywhere a normal Stack can.
+	Stack
+
+	//isSizedStack is mainly here to temporarily just make it so SizedStack
+	//actually has a method that has to be implemented, so we can test that
+	//the type hierarchy design works.
+	isSizedStack() bool
+}
+
+//MutableSizedStack is a MutableStack equivalent of a SizedStack.
+type MutableSizedStack interface {
+	MutableStack
+
+	//Note: SizedStack recreates the extra additions on SizedStack interface.
+
+	//isSizedStack is mainly here to temporarily just make it so SizedStack
+	//actually has a method that has to be implemented, so we can test that
+	//the type hierarchy design works.
+	isSizedStack() bool
+}
+
 //MutableStack is a Stack that also has mutator methods.
 type MutableStack interface {
 	Stack
@@ -411,6 +436,10 @@ func newSizedStack(deck *Deck, size int) *sizedStack {
 		idsLastSeen: make(map[string]int),
 		size:        size,
 	}
+}
+
+func (s *sizedStack) isSizedStack() bool {
+	return true
 }
 
 func (g *growableStack) importFrom(other Stack) error {
