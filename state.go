@@ -380,7 +380,6 @@ func (s *state) ContainingMutableStack(c Component) (stack MutableStack, slotInd
 	}
 
 	return item.stack, item.slotIndex, nil
-
 }
 
 //buildComponentIndex creates the component index by force. Should be called

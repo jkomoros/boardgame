@@ -383,7 +383,7 @@ func (c componentInstance) MoveToFirstSlot(other MutableStack) error {
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
-	return source.moveComponent(sourceIndex, other, other.FirstSlot())
+	return source.moveComponent(sourceIndex, other, other.firstSlot())
 }
 
 func (c componentInstance) MoveToLastSlot(other MutableStack) error {
@@ -391,7 +391,7 @@ func (c componentInstance) MoveToLastSlot(other MutableStack) error {
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
-	return source.moveComponent(sourceIndex, other, other.LastSlot())
+	return source.moveComponent(sourceIndex, other, other.lastSlot())
 }
 
 func (c componentInstance) MoveToNextSlot(other MutableStack) error {
@@ -399,7 +399,7 @@ func (c componentInstance) MoveToNextSlot(other MutableStack) error {
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
-	return source.moveComponent(sourceIndex, other, other.NextSlot())
+	return source.moveComponent(sourceIndex, other, other.nextSlot())
 }
 
 func (c componentInstance) SlideToFirstSlot() error {

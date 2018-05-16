@@ -53,19 +53,16 @@ type Stack interface {
 	//ComponentAt from 0 to Len().
 	Components() []ComponentInstance
 
-	//FirstComponentIndex returns the index of the first non-nil component
-	//from the left.
-	FirstComponentIndex() int
-	//LastComponentIndex returns the index of the first non-nil component from
-	//the right.
-	LastComponentIndex() int
-
 	//First returns a reference to the first non-nil component from the left,
-	//or nil if empty. A convenience wrapper around FirstComponentIndex.
+	//or nil if empty. For default stacks, this is simply a convenience
+	//wrapper around stack.ComponentAt(0). Other types of stacks might do more
+	//complicated calculations.
 	First() ComponentInstance
 
 	//Last returns a reference to the first non-nil component from the right,
-	//or nil if empty. A convenience wrapper around LastComponentIndex().
+	//or nil if empty. For default stacks, this is simply a convenience
+	//wrapper around stack.ComponentAt(stack.Len() - 1). Other types of stacks
+	//might do more complicated calculations.
 	Last() ComponentInstance
 
 	//Ids returns a slice of strings representing the Ids of each component at
@@ -124,6 +121,12 @@ type Stack interface {
 	//If Board returns a non-nil Board, this will return the index within the
 	//Board that this stack is.
 	BoardIndex() int
+
+	//All stacks have these, even though they aren't exported, because within
+	//this library we iterate trhough a lot of Stacks via readers and it's
+	//convenient to be able to treat them all the same.
+	firstComponentIndex() int
+	lastComponentIndex() int
 }
 
 //SizedStack is a specific type of Stack that has a specific number of slots,
@@ -133,43 +136,24 @@ type SizedStack interface {
 	//A SizedStack can be used everywhere a normal Stack can.
 	Stack
 
-	//isSizedStack is mainly here to temporarily just make it so SizedStack
-	//actually has a method that has to be implemented, so we can test that
-	//the type hierarchy design works.
-	isSizedStack() bool
+	//FirstComponentIndex returns the index of the first non-nil component
+	//from the left.
+	FirstComponentIndex() int
+	//LastComponentIndex returns the index of the first non-nil component from
+	//the right.
+	LastComponentIndex() int
 }
 
 //MutableSizedStack is a MutableStack equivalent of a SizedStack.
 type MutableSizedStack interface {
 	MutableStack
 
-	//Note: SizedStack recreates the extra additions on SizedStack interface.
-
-	//isSizedStack is mainly here to temporarily just make it so SizedStack
-	//actually has a method that has to be implemented, so we can test that
-	//the type hierarchy design works.
-	isSizedStack() bool
-}
-
-//MutableStack is a Stack that also has mutator methods.
-type MutableStack interface {
-	Stack
-
-	//MutableComponentAt is the same as ComponentAt, but returns a
-	//MutableComponentInstance.
-	MutableComponentAt(componentIndex int) MutableComponentInstance
-
-	//MutableComponents is similar to Components, but returns
-	//MutableComponentInstances instead.
-	MutableComponents() []MutableComponentInstance
-
-	//MutableFirst returns a reference to the first non-nil component from the
-	//left, or nil if empty.
-	MutableFirst() MutableComponentInstance
-
-	//MutableLast() returns a reference to the first non-nil component from
-	//the right, or nil if empty.
-	MutableLast() MutableComponentInstance
+	//FirstComponentIndex returns the index of the first non-nil component
+	//from the left.
+	FirstComponentIndex() int
+	//LastComponentIndex returns the index of the first non-nil component from
+	//the right.
+	LastComponentIndex() int
 
 	//FirstSlot returns the index of the first valid slot. For default Stacks,
 	//this is always 0. For SizedStacks, this is the first empty slot from the
@@ -186,6 +170,31 @@ type MutableStack interface {
 	//this is always Len(). For SizedStacks, this is the first empty slot from
 	//the right.
 	LastSlot() int
+}
+
+//MutableStack is a Stack that also has mutator methods.
+type MutableStack interface {
+	Stack
+
+	//MutableComponentAt is the same as ComponentAt, but returns a
+	//MutableComponentInstance.
+	MutableComponentAt(componentIndex int) MutableComponentInstance
+
+	//MutableComponents is similar to Components, but returns
+	//MutableComponentInstances instead.
+	MutableComponents() []MutableComponentInstance
+
+	//MutableFirst returns a reference to the first non-nil component from the
+	//left, or nil if empty. For default stacks, ths is simply a convenience
+	//for MutableComponentAt(0). Other types of stacks might do more
+	//complicated calculations.
+	MutableFirst() MutableComponentInstance
+
+	//MutableLast() returns a reference to the first non-nil component from
+	//the right, or nil if empty. For defaults stacks, this is simply a
+	//convenience for MutableComponentAt(stack.Len() - 1). Other types of
+	//stacks might do more complicated calculations.
+	MutableLast() MutableComponentInstance
 
 	//MoveAllTo moves all of the components in this stack to the other stack,
 	//by repeatedly calling RemoveFirst() and InsertBack(). Errors and does
@@ -305,6 +314,13 @@ type MutableStack interface {
 	//stacks to be phsyically the same within a state as what was returned
 	//from the constructor.
 	importFrom(other Stack) error
+
+	//All stacks have these, even though they aren't exported, because within
+	//this library we iterate trhough a lot of Stacks via readers and it's
+	//convenient to be able to treat them all the same.
+	firstSlot() int
+	nextSlot() int
+	lastSlot() int
 }
 
 //growableStack is a Stack that has a variable number of slots, none of which
@@ -446,10 +462,6 @@ func newSizedStack(deck *Deck, size int) *sizedStack {
 	}
 }
 
-func (s *sizedStack) isSizedStack() bool {
-	return true
-}
-
 func (g *growableStack) importFrom(other Stack) error {
 	otherGrowable, ok := other.(*growableStack)
 
@@ -522,24 +534,28 @@ func (m *mergedStack) MutableSizedStack() MutableSizedStack {
 	return nil
 }
 
-func (g *growableStack) FirstComponentIndex() int {
+func (g *growableStack) firstComponentIndex() int {
 	return 0
 }
 
-func (g *growableStack) LastComponentIndex() int {
+func (g *growableStack) lastComponentIndex() int {
 	return g.Len() - 1
 }
 
-func (g *growableStack) FirstSlot() int {
+func (g *growableStack) firstSlot() int {
 	return 0
 }
 
-func (g *growableStack) LastSlot() int {
+func (g *growableStack) lastSlot() int {
 	return g.Len()
 }
 
-func (g *growableStack) NextSlot() int {
-	return g.LastSlot()
+func (g *growableStack) nextSlot() int {
+	return g.lastSlot()
+}
+
+func (s *sizedStack) firstComponentIndex() int {
+	return s.FirstComponentIndex()
 }
 
 func (s *sizedStack) FirstComponentIndex() int {
@@ -551,6 +567,10 @@ func (s *sizedStack) FirstComponentIndex() int {
 	return -1
 }
 
+func (s *sizedStack) lastComponentIndex() int {
+	return s.LastComponentIndex()
+}
+
 func (s *sizedStack) LastComponentIndex() int {
 	for i := len(s.indexes) - 1; i >= 0; i-- {
 		if s.indexes[i] != emptyIndexSentinel {
@@ -558,6 +578,10 @@ func (s *sizedStack) LastComponentIndex() int {
 		}
 	}
 	return -1
+}
+
+func (s *sizedStack) firstSlot() int {
+	return s.FirstSlot()
 }
 
 func (s *sizedStack) FirstSlot() int {
@@ -569,6 +593,10 @@ func (s *sizedStack) FirstSlot() int {
 	return -1
 }
 
+func (s *sizedStack) lastSlot() int {
+	return s.LastSlot()
+}
+
 func (s *sizedStack) LastSlot() int {
 	for i := len(s.indexes) - 1; i >= 0; i-- {
 		if s.indexes[i] == emptyIndexSentinel {
@@ -578,11 +606,15 @@ func (s *sizedStack) LastSlot() int {
 	return -1
 }
 
+func (s *sizedStack) nextSlot() int {
+	return s.NextSlot()
+}
+
 func (s *sizedStack) NextSlot() int {
 	return s.FirstSlot()
 }
 
-func (m *mergedStack) FirstComponentIndex() int {
+func (m *mergedStack) firstComponentIndex() int {
 	for i, c := range m.Components() {
 		if c != nil {
 			return i
@@ -591,7 +623,7 @@ func (m *mergedStack) FirstComponentIndex() int {
 	return -1
 }
 
-func (m *mergedStack) LastComponentIndex() int {
+func (m *mergedStack) lastComponentIndex() int {
 	components := m.Components()
 
 	for i := len(components) - 1; i >= 0; i-- {
@@ -799,7 +831,7 @@ func (g *growableStack) First() ComponentInstance {
 }
 
 func (g *growableStack) MutableFirst() MutableComponentInstance {
-	return g.MutableComponentAt(g.FirstComponentIndex())
+	return g.MutableComponentAt(g.firstComponentIndex())
 }
 
 func (g *growableStack) Last() ComponentInstance {
@@ -807,7 +839,7 @@ func (g *growableStack) Last() ComponentInstance {
 }
 
 func (g *growableStack) MutableLast() MutableComponentInstance {
-	return g.MutableComponentAt(g.LastComponentIndex())
+	return g.MutableComponentAt(g.lastComponentIndex())
 }
 
 func (s *sizedStack) First() ComponentInstance {
@@ -815,7 +847,7 @@ func (s *sizedStack) First() ComponentInstance {
 }
 
 func (s *sizedStack) MutableFirst() MutableComponentInstance {
-	return s.MutableComponentAt(s.FirstComponentIndex())
+	return s.MutableComponentAt(s.firstComponentIndex())
 }
 
 func (s *sizedStack) Last() ComponentInstance {
@@ -1133,7 +1165,7 @@ func moveAllToImpl(from MutableStack, to MutableStack) error {
 	}
 
 	for from.NumComponents() > 0 {
-		if err := from.moveComponent(from.FirstComponentIndex(), to, to.NextSlot()); err != nil {
+		if err := from.moveComponent(from.firstComponentIndex(), to, to.nextSlot()); err != nil {
 			return err
 		}
 	}
@@ -1313,11 +1345,11 @@ func (s *sizedStack) insertComponentAt(slotIndex int, component ComponentInstanc
 }
 
 func (g *growableStack) insertNext(c ComponentInstance) {
-	g.insertComponentAt(g.NextSlot(), c)
+	g.insertComponentAt(g.nextSlot(), c)
 }
 
 func (s *sizedStack) insertNext(c ComponentInstance) {
-	s.insertComponentAt(s.NextSlot(), c)
+	s.insertComponentAt(s.nextSlot(), c)
 }
 
 type stackSorter struct {
@@ -1464,14 +1496,14 @@ func moveComponentToExtremeImpl(stack MutableStack, componentIndex int, isStart 
 
 	scratchStack.setState(stack.state())
 
-	if err := stack.moveComponent(componentIndex, scratchStack, scratchStack.FirstSlot()); err != nil {
+	if err := stack.moveComponent(componentIndex, scratchStack, scratchStack.firstSlot()); err != nil {
 		return errors.New("Couldn't move to scratch stack: " + err.Error())
 	}
 
-	targetSlot := stack.LastSlot()
+	targetSlot := stack.lastSlot()
 
 	if isStart {
-		targetSlot = stack.FirstSlot()
+		targetSlot = stack.firstSlot()
 	}
 
 	if err := scratchStack.moveComponent(0, stack, targetSlot); err != nil {
