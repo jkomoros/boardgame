@@ -120,8 +120,8 @@ type Stack interface {
 }
 
 //SizedStack is a specific type of Stack that has a specific number of slots,
-//any of which may be nil. Currently it doesn't add much different, but that
-//will change in the near-future.
+//any of which may be nil. Although very few methods are added, the basic
+//behavior of the Stack methods is quite different for these kinds of stacks.
 type SizedStack interface {
 	//A SizedStack can be used everywhere a normal Stack can.
 	Stack
@@ -149,7 +149,7 @@ type MergedStack interface {
 	Stacks() []Stack
 
 	//Overlapped will return true if the MergedStack is an overlapped stack
-	//(in contract to a concatenated stack).
+	//(in contrast to a concatenated stack).
 	Overlapped() bool
 }
 
@@ -315,20 +315,15 @@ type MutableSizedStack interface {
 	//the right.
 	LastComponentIndex() int
 
-	//FirstSlot returns the index of the first valid slot. For default Stacks,
-	//this is always 0. For SizedStacks, this is the first empty slot from the
-	//left.
+	//FirstSlot returns the index of the first empty slot from the left.
 	FirstSlot() int
 
-	//NextSlot returns the index of the next valid slot in the other
-	//stack where the component could be added without splicing. For default
-	//stacks this is equivalent to MoveToLastSlot. For fixed size stacks this
-	//is equivalent to MoveToFirstSlot.
+	//NextSlot returns the index of the next valid slot in the slot, which is
+	//equivalent to FirstSlot() for sized stacks.
 	NextSlot() int
 
-	//LastSlot returns the index of the last valid slot. For default Stacks,
-	//this is always Len(). For SizedStacks, this is the first empty slot from
-	//the right.
+	//LastSlot returns the index of the first empty component slot from the
+	//right.
 	LastSlot() int
 }
 

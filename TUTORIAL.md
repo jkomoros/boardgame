@@ -65,9 +65,9 @@ type gameState struct {
 	CardSet        string
 	NumCards       int
 	CurrentPlayer  boardgame.PlayerIndex
-	HiddenCards    boardgame.MutableStack `sizedstack:"cards,40" sanitize:"order"`
-	VisibleCards   boardgame.MutableStack `sizedstack:"cards,40"`
-	Cards          boardgame.Stack        `overlap:"VisibleCards,HiddenCards"`
+	HiddenCards    boardgame.MutableSizedStack `sizedstack:"cards,40" sanitize:"order"`
+	VisibleCards   boardgame.MutableSizedStack `sizedstack:"cards,40"`
+	Cards          boardgame.MergedStack       `overlap:"VisibleCards,HiddenCards"`
 	HideCardsTimer boardgame.MutableTimer
 	//Where cards not in use reside most of the time
 	UnusedCards boardgame.MutableStack `stack:"cards"`
@@ -95,13 +95,13 @@ Most of the properties are straightforward. Each player has how many cards they 
 
 #### Stacks and Components
 
-As you can see, stacks of cards are represented by type `MutableStack`.
+As you can see, stacks of cards are represented by type `MutableStack`, `MutableSizedStack`, or `MergedStack`. These are all different related types of a notion called a Stack.
 
 Stacks contain 0 or more **Components**. Components are anything in a game that can move around: cards, meeples, resource tokens, dice, etc. Each game type defines a complete enumeration of all components included in their game in something called a **ComponentChest**. We'll get back to that later in the tutorial.
 
 By default Stacks can grow to accomodate new components and have no empty spaces in the middle. Adding a new component to a slot in the middle of a stack would simply push components from there onward down a slot, and grow the stack by one.
 
-A SizedStack is a special kind of Stack that has a fixed number of slots, each of which may be empty or contain a single component. The default growable Stacks are useful in most instances, including representing a player's Hand or a Draw or Discard deck. SizedStacks are useful when there's a specific fixed size or where there might be gaps between components.
+A SizedStack is a special kind of Stack that has a fixed number of slots, each of which may be empty or contain a single component. The default growable Stacks are useful in most instances, including representing a player's Hand or a Draw or Discard deck. SizedStacks are useful when there's a specific fixed size or where there might be gaps between components. A SizedStack can be used anywhere a normal Stack can.
 
 Each component is organized into exactly one **Deck**. A deck is a collection of components all of the same type. For example, you might have a deck of playing cards, a deck of meeples, and a deck of dice in a game. (The terminology makes most sense for cards, but applies to any group of components in a game.) The ComponentChest is simply an enumeration of all of the Decks for this game type. Memory has only has a single deck of cards, but other games will have significantly more decks.
 
@@ -170,7 +170,7 @@ This known signature is used a lot within the package for the engine to interact
 
 For simple types (like bools, ints, and strings) the signature is
 straightforward: a getter and a setter. However, there are three types of
-supported properties that are special: `Stack`, `Enum`, and `Timer`. These three types are called "Interface types" because they are a container with some configuration, as well as the specific values within that container. The base interface has read-only methods, and the `MutableTYPE` interface also includes mutators.
+supported properties that are special: `Stack`, `Enum`, and `Timer`. These three types are called "Interface types" because they are a container with some configuration, as well as the specific values within that container. The base interface has read-only methods, and the `MutableTYPE` interface also includes mutators. (Note that `Stack` also has variants `SizedStack` and `MergedStack`, and `Enum` also has a `RangedEnum` variant, but as far as the Reader interface is concerned they're all just the base type).
 
 A generic Setter for those properties doesn't make sense in a
 `PropertyReadSetter` because the configuration of the property doesn't change,
@@ -199,7 +199,7 @@ type MyStruct struct {
 
 Then, every time you change the shape of one of your objects, run `go generate` on the command line. That will create `autoreader.go`, with generated getters and setters for all of your objects.
 
-One other thing to note: the actual concrete structs that you define, like `gameState` and `playerState`, should almost always include the Mutable variant of an interface type (`MutableStack`, `MutableEnum`, and `MutableTimer`); the PropertyReader methods will return just the read-only subset of those objects. In general the whole point of having a state object is to represent the state that *changes* which is why you generally want the Mutable variant. However, there are couple of cases where you might want the immutable variant: when you have read-only properties on a component, or when you're using Merged Stacks, which are inherently read-only (more on that later). But for the most part just always use the Mutable variants in your state objects.
+One other thing to note: the actual concrete structs that you define, like `gameState` and `playerState`, should almost always include the Mutable variant of an interface type (`MutableStack`, `MutableSizedStack`, `MutableEnum`, `MutableRangeEnum` and `MutableTimer`); the PropertyReader methods will return just the read-only subset of those objects. In general the whole point of having a state object is to represent the state that *changes* which is why you generally want the Mutable variant. However, there are couple of cases where you might want the immutable variant: when you have read-only properties on a component, or when you're using Merged Stacks, which are inherently read-only (more on that later). But for the most part just always use the Mutable variants in your state objects.
 
 The game engine generally reasons about States as one concrete object made up of one GameState, and **n** PlayerStates (one for each player). (There are other components of State that we'll get into later.) The `State` object is defined in the core package, and the getters for Game and Player states return things that generically implement the interface, although under the covers they are the concrete type specific to your game type. Many of the methods you implement will accept a State object. Of course, it would be a total pain if you had to interact with all of your objects within your own package that way--to say nothing of losing a lot of type safety.
 
@@ -335,8 +335,8 @@ The answer is in the struct tags in game and playerStates:
 //+autoreader
 type gameState struct {
 	//...
-	HiddenCards    boardgame.MutableStack `sizedstack:"cards,40" sanitize:"order"`
-	VisibleCards  boardgame.MutableStack `sizedstack:"cards,40"`
+	HiddenCards    boardgame.MutableSizedStack `sizedstack:"cards,40" sanitize:"order"`
+	VisibleCards  boardgame.MutableSizedStack `sizedstack:"cards,40"`
 	UnusedCards    boardgame.MutableStack `stack:"cards"`
 	//...
 }
@@ -924,9 +924,9 @@ type gameState struct {
 	CardSet        string
 	NumCards       int
 	CurrentPlayer  boardgame.PlayerIndex
-	HiddenCards    boardgame.MutableStack `sizedstack:"cards,40" sanitize:"order"`
-	VisibleCards   boardgame.MutableStack `sizedstack:"cards,40"`
-	Cards          boardgame.Stack        `overlap:"VisibleCards,HiddenCards"`
+	HiddenCards    boardgame.MutableSizedStack `sizedstack:"cards,40" sanitize:"order"`
+	VisibleCards   boardgame.MutableSizedStack `sizedstack:"cards,40"`
+	Cards          boardgame.MergedStack       `overlap:"VisibleCards,HiddenCards"`
 	HideCardsTimer boardgame.MutableTimer
 	//Where cards not in use reside most of the time
 	UnusedCards boardgame.MutableStack `stack:"cards"`
@@ -951,7 +951,7 @@ Each stack must be sanitized the same way--if the components are hidden, then **
 
 The way we do it is by **merging** two stacks together, so they can be used logically as one read-only stack, both server and client-side. There are two types of merged stacks, and they're both created in a similar way. ``NewOveralappedStack`` returns an overlapped stack, and `NewConcatenatedStack` returns a concatenated stack. An overlapped stack takes the first stack provided and returns those components--unless that slot is empty, in which case whatever is in that location of the second slot is returned. For overlapped stacks, both stacks must be fixed size, and they both must be the same size. Concatenated stacks simply have all of the slots of the first stack followed by all of the slots of the second stack.
 
-We can use tag-based auto-inflation for merged stacks, too. We use either `concatenate` or `overlap` and then pass the property names of the input stacks. Note that because Merged Stacks are fundamentally read only, they must be stored in an immutable stack property in your state object. (One of the rare cases where you want a `Stack` property but not a `MutableStack`.) Note that to use tag-based auto inflation the properties must be in the same object. If you want to combine two stacks in different SubStates, you can return them as a Computed Property instead (see the section below on computed properties).
+We can use tag-based auto-inflation for merged stacks, too. We use either `concatenate` or `overlap` and then pass the property names of the input stacks. Note that because Merged Stacks are fundamentally read only, they must be stored in an immutable stack property in your state object. (One of the rare cases where you want a `MergedStack` or `Stack` property but not a `MutableStack`.) Note that to use tag-based auto inflation the properties must be in the same object. If you want to combine two stacks in different SubStates, you can return them as a Computed Property instead (see the section below on computed properties).
 
 When you use merged stacks, the convention is to name the hidden stack `HiddenFoo`, the visible stack `VisibleFoo`, and the merged stack that combines them just `Foo`.
 
@@ -960,7 +960,7 @@ That's not a *particularly* interesting example. Here's the states for blackjack
 ```
 //+autoreader
 type gameState struct {
-	moveinterfaces.RoundRobinBaseGameState
+	roundrobinhelpers.BaseGameState
 	Phase         enum.MutableVal        `enum:"Phase"`
 	DiscardStack  boardgame.MutableStack `stack:"cards" sanitize:"len"`
 	DrawStack     boardgame.MutableStack `stack:"cards" sanitize:"len"`
@@ -974,7 +974,7 @@ type playerState struct {
 	playerIndex boardgame.PlayerIndex
 	HiddenHand  boardgame.MutableStack `stack:"cards,1" sanitize:"len"`
 	VisibleHand boardgame.MutableStack `stack:"cards"`
-	Hand        boardgame.Stack        `concatenate:"HiddenHand,VisibleHand"`
+	Hand        boardgame.MergedStack  `concatenate:"HiddenHand,VisibleHand"`
 	Busted      bool
 	Stood       bool
 }
@@ -1430,7 +1430,7 @@ If you're going to support the notion of phases, you'll need to store the curren
 ```
 //+autoreader
 type gameState struct {
-	moveinterfaces.RoundRobinBaseGameState
+	roundrobinhelpers.BaseGameState
 	Phase         enum.MutableVal        `enum:"Phase"`
 	DiscardStack  boardgame.MutableStack `stack:"cards" sanitize:"len"`
 	DrawStack     boardgame.MutableStack `stack:"cards" sanitize:"len"`
