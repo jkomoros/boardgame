@@ -49,7 +49,7 @@ type graph struct {
 //New returns a new, unfinished graph based on the given enum, where each node
 //in the graph is one of the values in the Enum. If undirected is true, then
 //adding an edge from -> to also adds the edge to -> from automatically.
-func New(undirected bool, enum enum.Enum) Graph {
+func New(undirected bool, enum enum.RangeEnum) Graph {
 	return &graph{
 		undirected,
 		false,

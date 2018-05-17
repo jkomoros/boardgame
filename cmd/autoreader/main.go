@@ -37,7 +37,8 @@
 
 	This package will automatically create additional type transform methods
 	to handle fields whose literal type is boardgame.SizedStack,
-	boardgame.MutableSizedStack, and boardgame.MergedStack.
+	boardgame.MutableSizedStack, boardgame.MergedStack, enum.RangeValue, and
+	enum.MutableRangeValue.
 
 	You can configure which package to process and where to write output via
 	command-line flags. By default it processes the current package and writes

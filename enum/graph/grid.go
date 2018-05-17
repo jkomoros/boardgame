@@ -10,11 +10,11 @@ import (
 //EdgeFilter is a type of function that can be passed to filter in edges. Only
 //edges that return true will be kept. This package defines a large number of
 //them, all of which start with "Direction".
-type EdgeFilter func(enum enum.Enum, from, to int) bool
+type EdgeFilter func(enum enum.RangeEnum, from, to int) bool
 
 //DirectionUp will return true if to is in a strictly lower-indexed row then
 //from.
-func DirectionUp(enum enum.Enum, from, to int) bool {
+func DirectionUp(enum enum.RangeEnum, from, to int) bool {
 	fromIndexes := enum.ValueToRange(from)
 	toIndexes := enum.ValueToRange(to)
 	return fromIndexes[0] > toIndexes[0]
@@ -22,7 +22,7 @@ func DirectionUp(enum enum.Enum, from, to int) bool {
 
 //DirectionDown will return true if to is in a strictly higher-indexed row
 //then from.
-func DirectionDown(enum enum.Enum, from, to int) bool {
+func DirectionDown(enum enum.RangeEnum, from, to int) bool {
 	fromIndexes := enum.ValueToRange(from)
 	toIndexes := enum.ValueToRange(to)
 	return fromIndexes[0] > toIndexes[0]
@@ -30,7 +30,7 @@ func DirectionDown(enum enum.Enum, from, to int) bool {
 
 //DirectionLeft will return true if to is in a strictly lower-indexed col then
 //from.
-func DirectionLeft(enum enum.Enum, from, to int) bool {
+func DirectionLeft(enum enum.RangeEnum, from, to int) bool {
 	fromIndexes := enum.ValueToRange(from)
 	toIndexes := enum.ValueToRange(to)
 	return fromIndexes[1] > toIndexes[1]
@@ -38,7 +38,7 @@ func DirectionLeft(enum enum.Enum, from, to int) bool {
 
 //DirectionRight will return true if to is in a strictly higher-indexed col
 //then from.
-func DirectionRight(enum enum.Enum, from, to int) bool {
+func DirectionRight(enum enum.RangeEnum, from, to int) bool {
 	fromIndexes := enum.ValueToRange(from)
 	toIndexes := enum.ValueToRange(to)
 	return fromIndexes[1] > toIndexes[1]
@@ -46,7 +46,7 @@ func DirectionRight(enum enum.Enum, from, to int) bool {
 
 //DirectionPerpendicular will return true if to is perpendicular to from (in the
 //same row or col).
-func DirectionPerpendicular(enum enum.Enum, from, to int) bool {
+func DirectionPerpendicular(enum enum.RangeEnum, from, to int) bool {
 	fromIndexes := enum.ValueToRange(from)
 	toIndexes := enum.ValueToRange(to)
 	if fromIndexes[0] == toIndexes[0] {
@@ -56,14 +56,14 @@ func DirectionPerpendicular(enum enum.Enum, from, to int) bool {
 }
 
 //DirectionDiagonal will return true if to is non-perpendicular to from.
-func DirectionDiagonal(enum enum.Enum, from, to int) bool {
+func DirectionDiagonal(enum enum.RangeEnum, from, to int) bool {
 	return !DirectionPerpendicular(enum, from, to)
 }
 
 //MustNewGridConnectedness is like NewGridConnectedness, but if it would have
 //returned an error, it panics instead. Only appropriate to be called during
 //setup.
-func MustNewGridConnectedness(ranged2DEnum enum.Enum, filter ...EdgeFilter) Graph {
+func MustNewGridConnectedness(ranged2DEnum enum.RangeEnum, filter ...EdgeFilter) Graph {
 	graph, err := NewGridConnectedness(ranged2DEnum, filter...)
 
 	if err != nil {
@@ -85,10 +85,7 @@ func MustNewGridConnectedness(ranged2DEnum enum.Enum, filter ...EdgeFilter) Grap
 //  //cell.
 //	NewGridConnectedness(e, DirectionUp, DirectionDiagonal)
 //
-func NewGridConnectedness(ranged2DEnum enum.Enum, filter ...EdgeFilter) (Graph, error) {
-	if !ranged2DEnum.IsRange() {
-		return nil, errors.New("The enum was not created with AddRange")
-	}
+func NewGridConnectedness(ranged2DEnum enum.RangeEnum, filter ...EdgeFilter) (Graph, error) {
 	if len(ranged2DEnum.RangeDimensions()) != 2 {
 		return nil, errors.New("The enum did not have two dimensions")
 	}
@@ -123,7 +120,7 @@ func NewGridConnectedness(ranged2DEnum enum.Enum, filter ...EdgeFilter) (Graph, 
 
 //assumes that theEnum is a 2d ranged enum, and that start is a valid value in
 //it.
-func neighbors(theEnum enum.Enum, start int) []int {
+func neighbors(theEnum enum.RangeEnum, start int) []int {
 	var result []int
 	indexes := theEnum.ValueToRange(start)
 	for rOffset := -1; rOffset < 2; rOffset++ {

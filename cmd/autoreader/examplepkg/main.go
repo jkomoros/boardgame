@@ -216,3 +216,9 @@ type sizedStackExample struct {
 type mergedStackExample struct {
 	MyMergedStack boardgame.MergedStack
 }
+
+//+autoreader
+type rangeValExample struct {
+	MyMutableRangeVal enum.MutableRangeVal
+	MyRangeVal        enum.RangeVal
+}

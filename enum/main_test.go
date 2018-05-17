@@ -78,7 +78,7 @@ func TestRangedEnum(t *testing.T) {
 	set := NewSet()
 	theEnum, _ := set.AddRange("theEnum", 1, 2, 2)
 
-	val := theEnum.NewMutableVal()
+	val := theEnum.NewMutableRangeVal()
 	assert.For(t).ThatActual(val.RangeValue()).Equals([]int{0, 0, 0})
 
 	err := val.SetRangeValue(0, 1, 1)

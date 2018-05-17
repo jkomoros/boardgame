@@ -952,7 +952,11 @@ func (m *__MovePlaceTokenReader) ConfigureMutableEnumProp(name string, value enu
 
 	switch name {
 	case "TargetIndex":
-		m.data.TargetIndex = value
+		slotValue := value.MutableRangeVal()
+		if slotValue == nil {
+			return errors.New("TargetIndex couldn't be upconverted, returned nil.")
+		}
+		m.data.TargetIndex = slotValue
 		return nil
 
 	}
@@ -1449,10 +1453,18 @@ func (m *__MoveMoveTokenReader) ConfigureMutableEnumProp(name string, value enum
 
 	switch name {
 	case "SpaceIndex":
-		m.data.SpaceIndex = value
+		slotValue := value.MutableRangeVal()
+		if slotValue == nil {
+			return errors.New("SpaceIndex couldn't be upconverted, returned nil.")
+		}
+		m.data.SpaceIndex = slotValue
 		return nil
 	case "TokenIndexToMove":
-		m.data.TokenIndexToMove = value
+		slotValue := value.MutableRangeVal()
+		if slotValue == nil {
+			return errors.New("TokenIndexToMove couldn't be upconverted, returned nil.")
+		}
+		m.data.TokenIndexToMove = slotValue
 		return nil
 
 	}

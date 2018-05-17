@@ -90,15 +90,16 @@ autoreader's package doc for more information.
 
 Ranged Enums
 
-You can also create RangedEnums. These are just normal enums, but with a
+You can also create RangeEnums. These are just normal enums, but with a
 multi-index enumeration translated to and from string values in a known way.
 
-When you create RangedEnums, you don't use AutoReader, because the values are
+When you create RangeEnums, you don't use AutoReader, because the values are
 created for you with only minimal configuration.
 
-Every Enum has RangedEnum-style getters and setters; those only do useful
-things in cases in which the Enum was created with AddRange() (and the enum
-returns true from IsRange())
+set.AddRange returns a RangeEnum directly. If you have a normal Enum, you can
+use RangeEnum to get access to the RangeEnum, if valid, or nil otherwise.
+Generally you should store MutableRangeEnumVal directly in your structs if
+it's a range value, so you don't have to up-convert.
 
 */
 package enum
@@ -165,22 +166,34 @@ type Enum interface {
 	MustNewVal(val int) Val
 	MustNewMutableVal(val int) MutableVal
 
+	//RangeEnum will return a version of this Enum that satisifies the
+	//RangeEnum interface, if possible, nil otherwise.
+	RangeEnum() RangeEnum
+}
+
+//RangeEnum is a special type of Enum that also allows indexing via numbers.
+type RangeEnum interface {
+	Enum
+
+	NewRangeVal(indexes ...int) (RangeVal, error)
+	NewMutableRangeVal() MutableRangeVal
+
+	MustNewRangeVal(indexes ...int) RangeVal
+	MustNewMutableRangeVal(indexes ...int) MutableRangeVal
+
 	//RangeDimensions will return the number of dimensions used to create this
-	//enum with AddRange. Will return 0 if it's not a ranged enum.
+	//enum with AddRange.
 	RangeDimensions() []int
-	//IsRange returns true if the enum was created with AddRange, false
-	//otherwise.
-	IsRange() bool
+
 	//ValueToRange will return the multi-dimensional value associated with the
-	//given value, if this enum was created with AddRange. Will return nil if
-	//it can't be returned for some reason. A simple convenience wrapper
-	//around enum.MutableNewVal(val).RangeValues(), except it won't panic if
-	//that value isn't legal.
+	//given value. A simple convenience wrapper around
+	//enum.MutableNewVal(val).RangeValues(), except it won't panic if that
+	//value isn't legal.
 	ValueToRange(val int) []int
 
 	//RangeToValue takes multi-dimensional indexes and returns the int value
-	//associated with those indexes, If this enum was created with AddRange.
-	//Will return IllegalValue if it wasn't legal.
+	//associated with those indexes. Will return IllegalValue if it wasn't
+	//legal.
 	RangeToValue(indexes ...int) int
 }
 
@@ -203,13 +216,22 @@ type variable struct {
 type Val interface {
 	Enum() Enum
 	Value() int
-	//RangeValue will return an array of indexes if you created the Enum with
-	//AddRange. Will return nil if not.
-	RangeValue() []int
 	String() string
 	Copy() Val
 	MutableCopy() MutableVal
 	Equals(other Val) bool
+
+	//RangeVal will return a version of this Val that implements RangeVal(),
+	//if that's possible, nil otherwise.≈
+	RangeVal() RangeVal
+}
+
+//RangeVal is a Val that comes from a RangeEnum.
+type RangeVal interface {
+	Val
+
+	//RangeValue will return an array of indexes that this value represents.
+	RangeValue() []int
 }
 
 //MutableVal is an instantiation of a value that must be set to a value in the
@@ -222,8 +244,20 @@ type MutableVal interface {
 	SetValue(val int) error
 	//SetStringValue sets the value to the value associated with that string.
 	SetStringValue(str string) error
-	//SetRangeValue can be used to set ranged values if the enum was made with
-	//AddRange.
+
+	//MutableRangeVal returns a version of this MutableVal that implements
+	//MutableRangeVal, if that's posisble, nil otherwise.
+	MutableRangeVal() MutableRangeVal
+}
+
+//MutableRangeVal is a MutableVal that comes from a RangeEnum.
+type MutableRangeVal interface {
+	MutableVal
+
+	//RangeValue will return an array of indexes that this value represents.
+	RangeValue() []int
+
+	//SetRangeValue can be used to set Range values via the indexes directly.
 	SetRangeValue(indexes ...int) error
 }
 
@@ -292,7 +326,7 @@ func (e *Set) Enum(name string) Enum {
 //MustAddRange is like AddRange, but instead of an error it will panic if the
 //enum cannot be added. This is useful for defining your enums at the package
 //level outside of an init().
-func (e *Set) MustAddRange(enumName string, dimensionSize ...int) Enum {
+func (e *Set) MustAddRange(enumName string, dimensionSize ...int) RangeEnum {
 	result, err := e.AddRange(enumName, dimensionSize...)
 
 	if err != nil {
@@ -324,12 +358,12 @@ func indexesForKey(key string) []int {
 }
 
 /*
-AddRange creates a new Enum that automatically enumerates all indexes in the
-multi-dimensional space provided. Each dimensionSize must be greater than 0
-or AddRange will error. Enums created with AddRange will return IsRange()
-true, and it is reasonable to use the various Ranged getters and setters on
-their values. At its core a RangedEnum is just an enum with a known mapping
-of multiple dimensions into string values in a known, stable way.
+AddRange creates a new Enum that automatically enumerates all indexes in
+the multi-dimensional space provided. Each dimensionSize must be greater than
+0 or AddRange will error. At its core a RangeEnum is just an enum with a known
+mapping of multiple dimensions into string values in a known, stable way, and
+with additional convenience methods to automatically convert between that
+mapping.
 
 	//Returns an enum like:
 	//0 -> '0'
@@ -345,7 +379,7 @@ of multiple dimensions into string values in a known, stable way.
 	// 5 -> '1_2'
 	AddRange("double", 2,3)
 */
-func (e *Set) AddRange(enumName string, dimensionSize ...int) (Enum, error) {
+func (e *Set) AddRange(enumName string, dimensionSize ...int) (RangeEnum, error) {
 	if len(dimensionSize) == 0 {
 		return nil, errors.New("No dimensions passed")
 	}
@@ -470,6 +504,13 @@ func (e *Set) addEnum(enumName string, enum Enum) error {
 	return nil
 }
 
+func (e *enum) RangeEnum() RangeEnum {
+	if len(e.dimensions) > 0 {
+		return e
+	}
+	return nil
+}
+
 func (e *enum) Values() []int {
 	result := make([]int, len(e.values))
 	counter := 0
@@ -528,21 +569,11 @@ func (e *enum) RangeDimensions() []int {
 	return e.dimensions
 }
 
-func (e *enum) IsRange() bool {
-	return len(e.RangeDimensions()) > 0
-}
-
 func (e *enum) ValueToRange(val int) []int {
-	if !e.IsRange() {
-		return nil
-	}
 	return indexesForKey(e.String(val))
 }
 
 func (e *enum) RangeToValue(indexes ...int) int {
-	if !e.IsRange() {
-		return -1
-	}
 	return e.ValueFromString(keyForIndexes(indexes...))
 }
 
@@ -562,11 +593,53 @@ func (e *variable) MutableCopy() MutableVal {
 	}
 }
 
+func (e *variable) RangeVal() RangeVal {
+	if e.enum.RangeEnum() == nil {
+		return nil
+	}
+	return e
+}
+
+func (e *variable) MutableRangeVal() MutableRangeVal {
+	if e.enum.RangeEnum() == nil {
+		return nil
+	}
+	return e
+}
+
 func (e *enum) NewMutableVal() MutableVal {
+	return e.NewMutableRangeVal()
+}
+
+func (e *enum) NewRangeVal(indexes ...int) (RangeVal, error) {
+	val := e.NewMutableRangeVal()
+	if err := val.SetRangeValue(indexes...); err != nil {
+		return nil, err
+	}
+	return val, nil
+}
+
+func (e *enum) NewMutableRangeVal() MutableRangeVal {
 	return &variable{
 		e,
 		e.DefaultValue(),
 	}
+}
+
+func (e *enum) MustNewRangeVal(indexes ...int) RangeVal {
+	val, err := e.NewRangeVal(indexes...)
+	if err != nil {
+		panic("Couldn't create Range val: " + err.Error())
+	}
+	return val
+}
+
+func (e *enum) MustNewMutableRangeVal(indexes ...int) MutableRangeVal {
+	val := e.NewMutableRangeVal()
+	if err := val.SetRangeValue(indexes...); err != nil {
+		panic("Couldn't create Range val: " + err.Error())
+	}
+	return val
 }
 
 func (e *enum) MustNewMutableVal(val int) MutableVal {
@@ -607,7 +680,7 @@ func (e *enum) MarshalJSON() ([]byte, error) {
 		"DefaultValue": e.defaultValue,
 	}
 
-	if e.IsRange() {
+	if e.RangeEnum() != nil {
 		obj["Dimensions"] = e.dimensions
 	}
 
@@ -646,9 +719,6 @@ func (e *variable) String() string {
 }
 
 func (e *variable) RangeValue() []int {
-	if !e.enum.IsRange() {
-		return nil
-	}
 	return indexesForKey(e.String())
 }
 
@@ -661,9 +731,6 @@ func (e *variable) SetValue(val int) error {
 }
 
 func (e *variable) SetRangeValue(indexes ...int) error {
-	if !e.enum.IsRange() {
-		return errors.New("This enum was not created with AddRange so cannot be used with SetRangeValue")
-	}
 	return e.SetStringValue(keyForIndexes(indexes...))
 }
 
