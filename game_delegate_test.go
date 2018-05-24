@@ -23,6 +23,13 @@ func (t *testGameDelegate) ConfigureEnums() *enum.Set {
 	return testEnums
 }
 
+func (t *testGameDelegate) ConfigureConstants() map[string]interface{} {
+	return map[string]interface{}{
+		"MyInt":  3,
+		"MyBool": false,
+	}
+}
+
 func (t *testGameDelegate) ConfigureDecks() map[string]*Deck {
 	deck := NewDeck()
 

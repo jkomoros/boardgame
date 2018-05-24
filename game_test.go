@@ -18,6 +18,19 @@ func (t *testInfiniteLoopGameDelegate) ProposeFixUpMove(state State) Move {
 	return t.Manager().MoveTypeByName("Test Always Legal Move").NewMove(state)
 }
 
+func TestGameDelegateConstants(t *testing.T) {
+	game := testGame(t)
+
+	err := game.SetUp(0, nil, nil)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(game.Manager().Chest().ConstantNames()).Equals([]string{
+		"MyBool",
+		"MyInt",
+	})
+}
+
 func TestMoveModifyDynamicValues(t *testing.T) {
 	game := testGame(t)
 

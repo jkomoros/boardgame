@@ -150,6 +150,12 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 		}
 	}
 
+	for name, val := range delegate.ConfigureConstants() {
+		if err := chest.AddConstant(name, val); err != nil {
+			return nil, errors.New("Couldn't add constant named " + name + ": " + err.Error())
+		}
+	}
+
 	chest.Finish()
 
 	result := &GameManager{

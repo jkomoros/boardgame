@@ -64,6 +64,15 @@ type GameDelegate interface {
 	//set of enums you want to be associated with this GameManagaer's Chest.
 	ConfigureEnums() *enum.Set
 
+	//ConfigureConstants is called during set-up of a new GameManager. Return
+	//the map of constants you want to create, which will be configured onto
+	//the newly created chest via AddConstant. If any of the AddConstant calls
+	//errors, the GameManager will fail to be set up. Constants are primarily
+	//useful in two cases: first, when you want to have access to a constant
+	//value client-side, and second, when you want to be able to use a
+	//constant value in a tag-based struct inflater.
+	ConfigureConstants() map[string]interface{}
+
 	//GameStateConstructor and PlayerStateConstructor are called to get an
 	//instantiation of the concrete game/player structs that your package
 	//defines. This is used both to create the initial state, but also to
@@ -651,4 +660,11 @@ func (d *DefaultGameDelegate) ConfigureEnums() *enum.Set {
 //have any components in your game (which the vast majority of games do)
 func (d *DefaultGameDelegate) ConfigureDecks() map[string]*Deck {
 	return make(map[string]*Deck)
+}
+
+//ConfigureConstants returns a zero-entry map. If you have any constants you
+//want to use client-side or in tag-based struct auto-inflaters, you will want
+//to override this.
+func (d *DefaultGameDelegate) ConfigureConstants() map[string]interface{} {
+	return make(map[string]interface{})
 }
