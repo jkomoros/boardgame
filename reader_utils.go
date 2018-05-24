@@ -116,7 +116,7 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 					return nil, errors.New(propName + " included a overlap struct tag on a mutable stack property")
 				}
 
-				boardSize, err := unpackBoardStructTag(structTags[boardStructTag])
+				boardSize, err := unpackBoardStructTag(structTags[boardStructTag], chest)
 
 				if err != nil {
 					return nil, errors.New("Invalid board struct tag: " + err.Error())
@@ -757,12 +757,12 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 
 }
 
-func unpackBoardStructTag(tag string) (length int, err error) {
+func unpackBoardStructTag(tag string, chest *ComponentChest) (length int, err error) {
 	if tag == "" {
 		return 0, nil
 	}
 
-	val, err := strconv.Atoi(tag)
+	val, err := intEffectiveValue(tag, chest)
 
 	if err != nil {
 		return 0, err
@@ -816,7 +816,7 @@ func unpackStackStructTag(tag string, chest *ComponentChest) (*Deck, int, error)
 
 	if len(pieces) > 1 {
 		var err error
-		size, err = strconv.Atoi(strings.TrimSpace(pieces[1]))
+		size, err = intEffectiveValue(pieces[1], chest)
 		if err != nil {
 			return nil, 0, errors.New("The size in the struct tag was not a valid int: " + err.Error())
 		}
@@ -824,6 +824,32 @@ func unpackStackStructTag(tag string, chest *ComponentChest) (*Deck, int, error)
 
 	return deck, size, nil
 
+}
+
+//intEffectiveValue either returns the integer encoded by the string, or if
+//the string encodes the name of a constant in chest that is an int, that.
+func intEffectiveValue(str string, chest *ComponentChest) (int, error) {
+	str = strings.TrimSpace(str)
+
+	val := chest.Constant(str)
+
+	if val != nil {
+
+		i, ok := val.(int)
+
+		if !ok {
+			return 0, errors.New(str + "was a cosntant, but not of type int as required")
+		}
+		return i, nil
+	}
+
+	intVal, err := strconv.Atoi(str)
+
+	if err != nil {
+		return 0, errors.New(str + " is not convertable to int: " + err.Error())
+	}
+
+	return intVal, nil
 }
 
 //structTagForField will use reflection to fetch the named field from the

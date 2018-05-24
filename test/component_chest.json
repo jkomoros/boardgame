@@ -50,6 +50,6 @@
   },
   "Constants": {
     "MyBool": false,
-    "MyInt": 3
+    "ConstantStackSize": 4
   }
 }

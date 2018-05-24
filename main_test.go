@@ -128,7 +128,7 @@ type testGameState struct {
 	MyPlayerIndexSlice []PlayerIndex
 	MyEnumValue        enum.MutableVal
 	MyEnumConst        enum.Val
-	DownSizeStack      MutableStack `sizedstack:"test,4"`
+	DownSizeStack      MutableStack `sizedstack:"test, ConstantStackSize"`
 	OtherStack         MutableStack `sizedstack:"test,2"`
 	MyMergedStack      Stack        `concatenate:"DownSizeStack,OtherStack"`
 	MyBoard            MutableBoard `stack:"test" board:"3"`

@@ -25,8 +25,8 @@ func (t *testGameDelegate) ConfigureEnums() *enum.Set {
 
 func (t *testGameDelegate) ConfigureConstants() map[string]interface{} {
 	return map[string]interface{}{
-		"MyInt":  3,
-		"MyBool": false,
+		"ConstantStackSize": 4,
+		"MyBool":            false,
 	}
 }
 

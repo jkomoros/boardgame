@@ -26,8 +26,8 @@ func TestGameDelegateConstants(t *testing.T) {
 	assert.For(t).ThatActual(err).IsNil()
 
 	assert.For(t).ThatActual(game.Manager().Chest().ConstantNames()).Equals([]string{
+		"ConstantStackSize",
 		"MyBool",
-		"MyInt",
 	})
 }
 
