@@ -187,11 +187,13 @@ func (c *ComponentChest) Finish() {
 
 func (c *ComponentChest) MarshalJSON() ([]byte, error) {
 	obj := struct {
-		Decks map[string]*Deck
-		Enums *enum.Set
+		Decks     map[string]*Deck
+		Enums     *enum.Set
+		Constants map[string]interface{}
 	}{
 		c.decks,
 		c.enums,
+		c.constants,
 	}
 	return DefaultMarshalJSON(obj)
 }
