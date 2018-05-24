@@ -181,7 +181,7 @@ func (d *Deck) MarshalJSON() ([]byte, error) {
 			Values interface{}
 		}{
 			i,
-			component.Values,
+			component.Values(),
 		}
 	}
 

@@ -1,0 +1,55 @@
+{
+  "Decks": {
+    "test": [
+      {
+        "Index": 0,
+        "Values": {
+          "String": "foo",
+          "Integer": 1
+        }
+      },
+      {
+        "Index": 1,
+        "Values": {
+          "String": "bar",
+          "Integer": 2
+        }
+      },
+      {
+        "Index": 2,
+        "Values": {
+          "String": "baz",
+          "Integer": 5
+        }
+      },
+      {
+        "Index": 3,
+        "Values": {
+          "String": "slam",
+          "Integer": 10
+        }
+      },
+      {
+        "Index": 4,
+        "Values": {
+          "String": "basic",
+          "Integer": 8
+        }
+      }
+    ]
+  },
+  "Enums": {
+    "color": {
+      "DefaultValue": 0,
+      "Values": {
+        "0": "Red",
+        "1": "Blue",
+        "2": "Green"
+      }
+    }
+  },
+  "Constants": {
+    "MyBool": false,
+    "MyInt": 3
+  }
+}

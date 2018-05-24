@@ -2,10 +2,30 @@ package boardgame
 
 import (
 	"github.com/workfit/tester/assert"
+	"io/ioutil"
 	"reflect"
 	"sort"
 	"testing"
 )
+
+func TestComponentChestMarshal(t *testing.T) {
+	game := testGame(t)
+
+	game.SetUp(0, nil, nil)
+
+	chest := game.Chest()
+
+	in, err := DefaultMarshalJSON(chest)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	golden, err := ioutil.ReadFile("test/component_chest.json")
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	compareJSONObjects(in, golden, "Component chest did not match golden", t)
+
+}
 
 func TestComponentChestConstant(t *testing.T) {
 	chest := newComponentChest(nil)
