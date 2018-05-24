@@ -3,6 +3,7 @@ package boardgame
 import (
 	"errors"
 	"github.com/jkomoros/boardgame/enum"
+	"sort"
 )
 
 //TODO: consider making ComponentChest be an interface again (in some cases it
@@ -22,6 +23,7 @@ type ComponentChest struct {
 	initialized bool
 	deckNames   []string
 	decks       map[string]*Deck
+	constants   map[string]interface{}
 	enums       *enum.Set
 
 	manager *GameManager
@@ -67,6 +69,65 @@ func (c *ComponentChest) Deck(name string) *Deck {
 		return nil
 	}
 	return c.decks[name]
+}
+
+//ConstantNames returns all of the names of constants in this chest.
+func (c *ComponentChest) ConstantNames() []string {
+	if !c.initialized {
+		return nil
+	}
+	var result []string
+
+	for name, _ := range c.constants {
+		result = append(result, name)
+	}
+
+	sort.Strings(result)
+
+	return result
+}
+
+//Constant returns the constant that was set via AddConstant, or nil if none
+//was set.
+func (c *ComponentChest) Constant(name string) interface{} {
+	if !c.initialized {
+		return nil
+	}
+	if c.constants == nil {
+		return nil
+	}
+	return c.constants[name]
+}
+
+//AddConstant adds a constant to the chest. Will error if the chest is already
+//finished, or if the val is not a bool, int, or string.
+func (c *ComponentChest) AddConstant(name string, val interface{}) error {
+	if c.initialized {
+		return errors.New("Couldn't add constant because the chest was already finished")
+	}
+
+	if c.constants == nil {
+		c.constants = make(map[string]interface{})
+	}
+
+	if _, exists := c.constants[name]; exists {
+		return errors.New(name + " is already set as a constant")
+	}
+
+	switch val.(type) {
+	case int:
+		//OK
+	case bool:
+		//OK
+	case string:
+		//OK
+	default:
+		return errors.New("Unsupported type. Val must be int, bool, or string")
+	}
+
+	c.constants[name] = val
+
+	return nil
 }
 
 //AddDeck adds a deck with a given name, but only if Freeze() has not yet been called.

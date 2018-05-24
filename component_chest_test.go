@@ -1,10 +1,59 @@
 package boardgame
 
 import (
+	"github.com/workfit/tester/assert"
 	"reflect"
 	"sort"
 	"testing"
 )
+
+func TestComponentChestConstant(t *testing.T) {
+	chest := newComponentChest(nil)
+
+	err := chest.AddConstant("int", 1)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	//Fails because already set
+	err = chest.AddConstant("int", 2)
+
+	assert.For(t).ThatActual(err).IsNotNil()
+
+	err = chest.AddConstant("string", "foo")
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	err = chest.AddConstant("bool", true)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	//Illegal type
+	err = chest.AddConstant("float", 3.4)
+
+	assert.For(t).ThatActual(err).IsNotNil()
+
+	//chest not finishee so should be nil
+	val := chest.Constant("int")
+
+	assert.For(t).ThatActual(val).IsNil()
+
+	chest.Finish()
+
+	assert.For(t).ThatActual(chest.ConstantNames()).Equals([]string{
+		"bool",
+		"int",
+		"string",
+	})
+
+	assert.For(t).ThatActual(chest.Constant("int")).Equals(1)
+
+	assert.For(t).ThatActual(chest.Constant("bool")).Equals(true)
+
+	assert.For(t).ThatActual(chest.Constant("string")).Equals("foo")
+
+	assert.For(t).ThatActual(chest.Constant("float")).IsNil()
+
+}
 
 func TestComponentInstanceIdentity(t *testing.T) {
 	game := testGame(t)
