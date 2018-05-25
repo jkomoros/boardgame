@@ -10,7 +10,7 @@ import (
 //+autoreader
 type MovePlaceToken struct {
 	moves.FixUpMulti
-	TargetIndex enum.MutableRangeVal `enum:"Spaces"`
+	TargetIndex enum.RangeVal `enum:"Spaces"`
 }
 
 func (m *MovePlaceToken) DefaultsForState(state boardgame.State) {
@@ -85,8 +85,8 @@ func (m *MovePlaceToken) Apply(state boardgame.MutableState) error {
 //+autoreader
 type MoveMoveToken struct {
 	moves.CurrentPlayer
-	TokenIndexToMove enum.MutableRangeVal `enum:"Spaces"`
-	SpaceIndex       enum.MutableRangeVal `enum:"Spaces"`
+	TokenIndexToMove enum.RangeVal `enum:"Spaces"`
+	SpaceIndex       enum.RangeVal `enum:"Spaces"`
 }
 
 func (m *MoveMoveToken) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {

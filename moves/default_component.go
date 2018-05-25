@@ -28,7 +28,7 @@ type DefaultComponent struct {
 	ComponentIndex int
 }
 
-func (d *DefaultComponent) sourceStackImpl(state boardgame.MutableState) (boardgame.MutableStack, error) {
+func (d *DefaultComponent) sourceStackImpl(state boardgame.MutableState) (boardgame.Stack, error) {
 	sourceStacker, ok := d.TopLevelStruct().(interfaces.SourceStacker)
 	if !ok {
 		return nil, errors.New("The top level struct doesn't implement SourceStacker")
@@ -155,7 +155,7 @@ func (d *DefaultComponent) LegalType() int {
 //SourceStack returns the stack set in configuration by WithSourceStack on the
 //GameState, or nil. If that is not sufficient for your needs you should
 //override SourceStack yourself.
-func (d *DefaultComponent) SourceStack(state boardgame.MutableState) boardgame.MutableStack {
+func (d *DefaultComponent) SourceStack(state boardgame.MutableState) boardgame.Stack {
 	return sourceStackFromConfig(d, state)
 }
 

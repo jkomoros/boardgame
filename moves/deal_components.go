@@ -6,7 +6,7 @@ import (
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
-func dealActionHelper(topLevelStruct boardgame.Move, playerState boardgame.MutablePlayerState) (playerStack boardgame.MutableStack, gameStack boardgame.MutableStack, err error) {
+func dealActionHelper(topLevelStruct boardgame.Move, playerState boardgame.MutablePlayerState) (playerStack boardgame.Stack, gameStack boardgame.Stack, err error) {
 	playerStacker, ok := topLevelStruct.(interfaces.PlayerStacker)
 
 	if !ok {
@@ -137,7 +137,7 @@ func (d *DealCountComponents) NumRounds() int {
 //PlayerStack by default just returns the property on GameState with the name
 //passed to auto.Config by WithPlayerStack. If that is not sufficient,
 //override this in your embedding struct.
-func (d *DealCountComponents) PlayerStack(playerState boardgame.MutablePlayerState) boardgame.MutableStack {
+func (d *DealCountComponents) PlayerStack(playerState boardgame.MutablePlayerState) boardgame.Stack {
 	config := d.Info().Type().CustomConfiguration()
 
 	stackName, ok := config[configNamePlayerStack]
@@ -152,7 +152,7 @@ func (d *DealCountComponents) PlayerStack(playerState boardgame.MutablePlayerSta
 		return nil
 	}
 
-	stack, err := playerState.ReadSetter().MutableStackProp(strStackName)
+	stack, err := playerState.ReadSetter().StackProp(strStackName)
 
 	if err != nil {
 		return nil
@@ -164,7 +164,7 @@ func (d *DealCountComponents) PlayerStack(playerState boardgame.MutablePlayerSta
 //GameStack by default just returns the property on GameState with the name
 //passed to auto.Config by WithGameStack. If that is not sufficient,
 //override this in your embedding struct.
-func (d *DealCountComponents) GameStack(gameState boardgame.MutableSubState) boardgame.MutableStack {
+func (d *DealCountComponents) GameStack(gameState boardgame.MutableSubState) boardgame.Stack {
 	config := d.Info().Type().CustomConfiguration()
 
 	stackName, ok := config[configNameGameStack]
@@ -179,7 +179,7 @@ func (d *DealCountComponents) GameStack(gameState boardgame.MutableSubState) boa
 		return nil
 	}
 
-	stack, err := gameState.ReadSetter().MutableStackProp(strStackName)
+	stack, err := gameState.ReadSetter().StackProp(strStackName)
 
 	if err != nil {
 		return nil

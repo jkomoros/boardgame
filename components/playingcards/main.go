@@ -52,8 +52,8 @@ const (
 //+autoreader reader
 type Card struct {
 	boardgame.BaseComponentValues
-	Suit enum.MutableVal
-	Rank enum.MutableVal
+	Suit enum.Val
+	Rank enum.Val
 }
 
 func (c *Card) String() string {
@@ -96,8 +96,8 @@ func deckCanonicalOrder(cards *boardgame.Deck, withJokers bool) {
 	for _, suit := range suits {
 		for _, rank := range ranks {
 			cards.AddComponent(&Card{
-				Suit: SuitEnum.MustNewMutableVal(suit),
-				Rank: RankEnum.MustNewMutableVal(rank),
+				Suit: SuitEnum.MustNewVal(suit),
+				Rank: RankEnum.MustNewVal(rank),
 			})
 		}
 	}
@@ -106,14 +106,14 @@ func deckCanonicalOrder(cards *boardgame.Deck, withJokers bool) {
 		//Add two Jokers
 		for i := 0; i < 2; i++ {
 			cards.AddComponent(&Card{
-				Suit: SuitEnum.MustNewMutableVal(SuitJokers),
-				Rank: RankEnum.MustNewMutableVal(RankJoker),
+				Suit: SuitEnum.MustNewVal(SuitJokers),
+				Rank: RankEnum.MustNewVal(RankJoker),
 			})
 		}
 	}
 
 	cards.SetGenericValues(&Card{
-		Suit: SuitEnum.MustNewMutableVal(SuitUnknown),
-		Rank: RankEnum.MustNewMutableVal(RankUnknown),
+		Suit: SuitEnum.MustNewVal(SuitUnknown),
+		Rank: RankEnum.MustNewVal(RankUnknown),
 	})
 }

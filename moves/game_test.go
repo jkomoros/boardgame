@@ -25,10 +25,10 @@ var phaseEnum = enums.MustAdd("Phase", map[int]string{
 //+autoreader
 type gameState struct {
 	roundrobinhelpers.BaseGameState
-	Phase         enum.MutableVal `enum:"Phase"`
+	Phase         enum.Val `enum:"Phase"`
 	CurrentPlayer boardgame.PlayerIndex
-	DrawStack     boardgame.MutableStack `stack:"cards"`
-	DiscardStack  boardgame.MutableStack `stack:"cards"`
+	DrawStack     boardgame.Stack `stack:"cards"`
+	DiscardStack  boardgame.Stack `stack:"cards"`
 	Counter       int
 }
 
@@ -36,8 +36,8 @@ type gameState struct {
 type playerState struct {
 	boardgame.BaseSubState
 	playerIndex boardgame.PlayerIndex
-	Hand        boardgame.MutableStack `stack:"cards"`
-	OtherHand   boardgame.MutableStack `stack:"cards"`
+	Hand        boardgame.Stack `stack:"cards"`
+	OtherHand   boardgame.Stack `stack:"cards"`
 	Counter     int
 }
 

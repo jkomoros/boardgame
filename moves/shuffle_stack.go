@@ -21,7 +21,7 @@ type moveInfoer interface {
 	Info() *boardgame.MoveInfo
 }
 
-func sourceStackFromConfig(m moveInfoer, state boardgame.MutableState) boardgame.MutableStack {
+func sourceStackFromConfig(m moveInfoer, state boardgame.MutableState) boardgame.Stack {
 	config := m.Info().Type().CustomConfiguration()
 
 	stackName, ok := config[configNameSourceStack]
@@ -36,7 +36,7 @@ func sourceStackFromConfig(m moveInfoer, state boardgame.MutableState) boardgame
 		return nil
 	}
 
-	stack, err := state.MutableGameState().ReadSetter().MutableStackProp(strStackName)
+	stack, err := state.MutableGameState().ReadSetter().StackProp(strStackName)
 
 	if err != nil {
 		return nil
@@ -48,7 +48,7 @@ func sourceStackFromConfig(m moveInfoer, state boardgame.MutableState) boardgame
 //SourceStack by default just returns the property on GameState with the name
 //passed to DefaultConfig by WithSourceStack. If that is not sufficient,
 //override this in your embedding struct.
-func (s *ShuffleStack) SourceStack(state boardgame.MutableState) boardgame.MutableStack {
+func (s *ShuffleStack) SourceStack(state boardgame.MutableState) boardgame.Stack {
 	return sourceStackFromConfig(s, state)
 }
 

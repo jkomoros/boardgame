@@ -470,7 +470,7 @@ func (s *Server) getMoveFromForm(c *gin.Context, game *boardgame.Game) (boardgam
 				move.ReadSetter().SetProp(field.Name, false)
 			}
 		case boardgame.TypeEnum:
-			eVar, err := move.ReadSetter().MutableEnumProp(field.Name)
+			eVar, err := move.ReadSetter().EnumProp(field.Name)
 			if err != nil {
 				return nil, errors.New("Invalid field name: " + err.Error())
 			}

@@ -22,10 +22,10 @@ func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 type gameState struct {
 	boardgame.BaseSubState
 	CurrentPlayer boardgame.PlayerIndex
-	Slots         boardgame.MutableSizedStack `sizedstack:"tokens,TOTAL_DIM"`
+	Slots         boardgame.SizedStack `sizedstack:"tokens,TOTAL_DIM"`
 	//We don't actually need this; we mainly do it because the storage manager
 	//tests use tictactoe as an example and need to test a phase transition.
-	Phase enum.MutableVal `enum:"Phase"`
+	Phase enum.Val `enum:"Phase"`
 }
 
 func (g *gameState) tokenValue(row, col int) string {
@@ -53,7 +53,7 @@ type playerState struct {
 	boardgame.BaseSubState
 	playerIndex  boardgame.PlayerIndex
 	TokenValue   string
-	UnusedTokens boardgame.MutableStack `stack:"tokens"`
+	UnusedTokens boardgame.Stack `stack:"tokens"`
 	//How many tokens they have left to place this turn.
 	TokensToPlaceThisTurn int
 }

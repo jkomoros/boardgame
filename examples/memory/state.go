@@ -11,12 +11,12 @@ type gameState struct {
 	CardSet        string
 	NumCards       int
 	CurrentPlayer  boardgame.PlayerIndex
-	HiddenCards    boardgame.MutableSizedStack `sizedstack:"cards,40" sanitize:"order"`
-	VisibleCards   boardgame.MutableSizedStack `sizedstack:"cards,40"`
-	Cards          boardgame.MergedStack       `overlap:"VisibleCards,HiddenCards"`
-	HideCardsTimer boardgame.MutableTimer
+	HiddenCards    boardgame.SizedStack  `sizedstack:"cards,40" sanitize:"order"`
+	VisibleCards   boardgame.SizedStack  `sizedstack:"cards,40"`
+	Cards          boardgame.MergedStack `overlap:"VisibleCards,HiddenCards"`
+	HideCardsTimer boardgame.Timer
 	//Where cards not in use reside most of the time
-	UnusedCards boardgame.MutableStack `stack:"cards"`
+	UnusedCards boardgame.Stack `stack:"cards"`
 }
 
 //+autoreader
@@ -24,7 +24,7 @@ type playerState struct {
 	boardgame.BaseSubState
 	playerIndex       boardgame.PlayerIndex
 	CardsLeftToReveal int
-	WonCards          boardgame.MutableStack `stack:"cards"`
+	WonCards          boardgame.Stack `stack:"cards"`
 }
 
 func concreteStates(state boardgame.State) (*gameState, []*playerState) {

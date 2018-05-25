@@ -9,19 +9,19 @@ import (
 //+autoreader
 type gameState struct {
 	boardgame.BaseSubState
-	Phase         enum.MutableVal `enum:"Phase"`
+	Phase         enum.Val `enum:"Phase"`
 	CurrentPlayer boardgame.PlayerIndex
-	Spaces        boardgame.MutableSizedStack `sizedstack:"Tokens,BOARD_SIZE"`
-	UnusedTokens  boardgame.MutableStack      `stack:"Tokens"`
+	Spaces        boardgame.SizedStack `sizedstack:"Tokens,BOARD_SIZE"`
+	UnusedTokens  boardgame.Stack      `stack:"Tokens"`
 }
 
 //+autoreader
 type playerState struct {
 	boardgame.BaseSubState
 	playerIndex boardgame.PlayerIndex
-	Color       enum.MutableVal `enum:"Color"`
+	Color       enum.Val `enum:"Color"`
 	//The tokens of the OTHER player that we've captured.
-	CapturedTokens boardgame.MutableStack `stack:"Tokens"`
+	CapturedTokens boardgame.Stack `stack:"Tokens"`
 	FinishedTurn   bool
 }
 

@@ -47,26 +47,26 @@ type LegalComponent interface {
 //DealComponents. It will be consulted to figure out where the PlayerStack is
 //to deal a component to.
 type PlayerStacker interface {
-	PlayerStack(playerState boardgame.MutablePlayerState) boardgame.MutableStack
+	PlayerStack(playerState boardgame.MutablePlayerState) boardgame.Stack
 }
 
 //GameStacker should be implemented by your emedding Move if you embed
 //DealComponents. It will be consulted to figure out where to draw the
 //components from to deal to players.
 type GameStacker interface {
-	GameStack(gameState boardgame.MutableSubState) boardgame.MutableStack
+	GameStack(gameState boardgame.MutableSubState) boardgame.Stack
 }
 
 //SourceStacker should be implemented by moves that need an input stack to
 //operate on as primary/source, for example ShuffleStack.
 type SourceStacker interface {
-	SourceStack(state boardgame.MutableState) boardgame.MutableStack
+	SourceStack(state boardgame.MutableState) boardgame.Stack
 }
 
 //SourceStacker should be implemented by moves that need a destination stack
 //to operate on as primary/source, for example ApplyUntilCount.
 type DestinationStacker interface {
-	DestinationStack(state boardgame.MutableState) boardgame.MutableStack
+	DestinationStack(state boardgame.MutableState) boardgame.Stack
 }
 
 //CurrentPlayerSetter should be implemented by gameStates that use FinishTurn.

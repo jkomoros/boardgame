@@ -16,11 +16,11 @@ func (m *moveDealCards) TargetCount() int {
 	return 2
 }
 
-func (m *moveDealCards) GameStack(gState boardgame.MutableSubState) boardgame.MutableStack {
+func (m *moveDealCards) GameStack(gState boardgame.MutableSubState) boardgame.Stack {
 	return gState.(*gameState).DrawStack
 }
 
-func (m *moveDealCards) PlayerStack(pState boardgame.MutablePlayerState) boardgame.MutableStack {
+func (m *moveDealCards) PlayerStack(pState boardgame.MutablePlayerState) boardgame.Stack {
 	return pState.(*playerState).Hand
 }
 
@@ -33,11 +33,11 @@ func (m *moveDealOtherCards) TargetCount() int {
 	return 3
 }
 
-func (m *moveDealOtherCards) GameStack(gState boardgame.MutableSubState) boardgame.MutableStack {
+func (m *moveDealOtherCards) GameStack(gState boardgame.MutableSubState) boardgame.Stack {
 	return gState.(*gameState).DrawStack
 }
 
-func (m *moveDealOtherCards) PlayerStack(pState boardgame.MutablePlayerState) boardgame.MutableStack {
+func (m *moveDealOtherCards) PlayerStack(pState boardgame.MutablePlayerState) boardgame.Stack {
 	return pState.(*playerState).OtherHand
 }
 

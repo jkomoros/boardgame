@@ -82,7 +82,7 @@ func (t *token) Legal(state boardgame.State, legalType int) error {
 		targetRow = 0
 	}
 
-	_, slotIndex, err := state.ContainingStack(t.ContainingComponent())
+	_, slotIndex, err := state.ContainingImmutableStack(t.ContainingComponent())
 
 	if err != nil {
 		return errors.New("Component's position could not be found: " + err.Error())
