@@ -86,28 +86,28 @@ func (t *testingComponentDynamic) State() State {
 	return t.state
 }
 
-func (t *testingComponentDynamic) SetMutableState(state MutableState) {
-	t.mutableState = state
+func (t *testingComponentDynamic) SetImmutableState(state ImmutableState) {
+	t.immutableState = state
 }
 
-func (t *testingComponentDynamic) MutableState() MutableState {
-	return t.mutableState
+func (t *testingComponentDynamic) ImmutableState() ImmutableState {
+	return t.immutableState
 }
 
 //Every game should do such a convenience method. state might be nil.
-func concreteStates(state State) (*testGameState, []*testPlayerState) {
+func concreteStates(state ImmutableState) (*testGameState, []*testPlayerState) {
 
 	if state == nil {
 		return nil, nil
 	}
 
-	players := make([]*testPlayerState, len(state.PlayerStates()))
+	players := make([]*testPlayerState, len(state.ImmutablePlayerStates()))
 
-	for i, player := range state.PlayerStates() {
+	for i, player := range state.ImmutablePlayerStates() {
 		players[i] = player.(*testPlayerState)
 	}
 
-	game, ok := state.GameState().(*testGameState)
+	game, ok := state.ImmutableGameState().(*testGameState)
 
 	if !ok {
 		return nil, nil
@@ -118,7 +118,7 @@ func concreteStates(state State) (*testGameState, []*testPlayerState) {
 
 type testGameState struct {
 	state              State
-	mutableState       MutableState
+	immutableState     ImmutableState
 	CurrentPlayer      PlayerIndex
 	DrawDeck           Stack `sanitize:"len"`
 	Timer              Timer
@@ -154,17 +154,17 @@ func (t *testGameState) State() State {
 	return t.state
 }
 
-func (t *testGameState) SetMutableState(state MutableState) {
-	t.mutableState = state
+func (t *testGameState) SetImmutableState(state ImmutableState) {
+	t.immutableState = state
 }
 
-func (t *testGameState) MutableState() MutableState {
-	return t.mutableState
+func (t *testGameState) ImmutableState() ImmutableState {
+	return t.immutableState
 }
 
 type testPlayerState struct {
-	state        State
-	mutableState MutableState
+	state          State
+	immutableState ImmutableState
 	//Note: PlayerIndex is stored ehre, but not a normal property or
 	//serialized, because it's really just a convenience method because it's
 	//implied by its position in the State.Users array.
@@ -200,12 +200,12 @@ func (t *testPlayerState) State() State {
 	return t.state
 }
 
-func (t *testPlayerState) SetMutableState(state MutableState) {
-	t.mutableState = state
+func (t *testPlayerState) SetImmutableState(state ImmutableState) {
+	t.immutableState = state
 }
 
-func (t *testPlayerState) MutableState() MutableState {
-	return t.mutableState
+func (t *testPlayerState) ImmutableState() ImmutableState {
+	return t.immutableState
 }
 
 type testMoveInvalidPlayerIndex struct {
@@ -236,7 +236,7 @@ func (t *testMoveInvalidPlayerIndex) ReadSetConfigurer() PropertyReadSetConfigur
 	return getDefaultReadSetConfigurer(t)
 }
 
-func (t *testMoveInvalidPlayerIndex) Legal(state State, propopser PlayerIndex) error {
+func (t *testMoveInvalidPlayerIndex) Legal(state ImmutableState, propopser PlayerIndex) error {
 
 	if !t.CurrentlyLegal {
 		return errors.New("Move not currently legal")
@@ -245,7 +245,7 @@ func (t *testMoveInvalidPlayerIndex) Legal(state State, propopser PlayerIndex) e
 	return nil
 }
 
-func (t *testMoveInvalidPlayerIndex) Apply(state MutableState) error {
+func (t *testMoveInvalidPlayerIndex) Apply(state State) error {
 	game, players := concreteStates(state)
 
 	game.CurrentPlayer = PlayerIndex(len(players))
@@ -266,7 +266,7 @@ var testMoveIncrementCardInHandConfig = MoveTypeConfig{
 	},
 }
 
-func (t *testMoveIncrementCardInHand) DefaultsForState(state State) {
+func (t *testMoveIncrementCardInHand) DefaultsForState(state ImmutableState) {
 	t.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
 }
 
@@ -282,7 +282,7 @@ func (t *testMoveIncrementCardInHand) ReadSetConfigurer() PropertyReadSetConfigu
 	return getDefaultReadSetConfigurer(t)
 }
 
-func (t *testMoveIncrementCardInHand) Legal(state State, proposer PlayerIndex) error {
+func (t *testMoveIncrementCardInHand) Legal(state ImmutableState, proposer PlayerIndex) error {
 	game, players := concreteStates(state)
 
 	player := players[game.CurrentPlayer]
@@ -306,7 +306,7 @@ func (t *testMoveIncrementCardInHand) Legal(state State, proposer PlayerIndex) e
 	return nil
 }
 
-func (t *testMoveIncrementCardInHand) Apply(state MutableState) error {
+func (t *testMoveIncrementCardInHand) Apply(state State) error {
 	game, players := concreteStates(state)
 
 	player := players[game.CurrentPlayer]
@@ -347,7 +347,7 @@ var testMoveDrawCardConfig = MoveTypeConfig{
 	},
 }
 
-func (t *testMoveDrawCard) DefaultsForState(state State) {
+func (t *testMoveDrawCard) DefaultsForState(state ImmutableState) {
 	t.TargetPlayerIndex = state.CurrentPlayer().PlayerIndex()
 }
 
@@ -363,7 +363,7 @@ func (t *testMoveDrawCard) ReadSetConfigurer() PropertyReadSetConfigurer {
 	return getDefaultReadSetConfigurer(t)
 }
 
-func (t *testMoveDrawCard) Legal(state State, proposer PlayerIndex) error {
+func (t *testMoveDrawCard) Legal(state ImmutableState, proposer PlayerIndex) error {
 	game, players := concreteStates(state)
 
 	player := players[game.CurrentPlayer]
@@ -387,7 +387,7 @@ func (t *testMoveDrawCard) Legal(state State, proposer PlayerIndex) error {
 	return nil
 }
 
-func (t *testMoveDrawCard) Apply(state MutableState) error {
+func (t *testMoveDrawCard) Apply(state State) error {
 	game, players := concreteStates(state)
 
 	player := players[game.CurrentPlayer]
@@ -424,7 +424,7 @@ func (t *testMoveAdvanceCurentPlayer) ReadSetConfigurer() PropertyReadSetConfigu
 	return getDefaultReadSetConfigurer(t)
 }
 
-func (t *testMoveAdvanceCurentPlayer) Legal(state State, proposer PlayerIndex) error {
+func (t *testMoveAdvanceCurentPlayer) Legal(state ImmutableState, proposer PlayerIndex) error {
 
 	game, players := concreteStates(state)
 
@@ -437,7 +437,7 @@ func (t *testMoveAdvanceCurentPlayer) Legal(state State, proposer PlayerIndex) e
 	return nil
 }
 
-func (t *testMoveAdvanceCurentPlayer) Apply(state MutableState) error {
+func (t *testMoveAdvanceCurentPlayer) Apply(state State) error {
 
 	game, players := concreteStates(state)
 
@@ -472,7 +472,7 @@ var testMoveConfig = MoveTypeConfig{
 	},
 }
 
-func (t *testMove) DefaultsForState(state State) {
+func (t *testMove) DefaultsForState(state ImmutableState) {
 	game, _ := concreteStates(state)
 
 	if game == nil {
@@ -497,7 +497,7 @@ func (t *testMove) ReadSetConfigurer() PropertyReadSetConfigurer {
 	return getDefaultReadSetConfigurer(t)
 }
 
-func (t *testMove) Legal(state State, proposer PlayerIndex) error {
+func (t *testMove) Legal(state ImmutableState, proposer PlayerIndex) error {
 
 	game, _ := concreteStates(state)
 
@@ -517,7 +517,7 @@ func (t *testMove) Legal(state State, proposer PlayerIndex) error {
 
 }
 
-func (t *testMove) Apply(state MutableState) error {
+func (t *testMove) Apply(state State) error {
 
 	game, players := concreteStates(state)
 
@@ -553,13 +553,13 @@ func (t *testAlwaysLegalMove) ReadSetConfigurer() PropertyReadSetConfigurer {
 	return getDefaultReadSetConfigurer(t)
 }
 
-func (t *testAlwaysLegalMove) Legal(state State, proposer PlayerIndex) error {
+func (t *testAlwaysLegalMove) Legal(state ImmutableState, proposer PlayerIndex) error {
 
 	return nil
 
 }
 
-func (t *testAlwaysLegalMove) Apply(state MutableState) error {
+func (t *testAlwaysLegalMove) Apply(state State) error {
 
 	//This move doesn't do anything
 
@@ -583,11 +583,11 @@ func (i *illegalMove) ReadSetConfigurer() PropertyReadSetConfigurer {
 	return getDefaultReadSetConfigurer(i)
 }
 
-func (i *illegalMove) Legal(state State, proposer PlayerIndex) error {
+func (i *illegalMove) Legal(state ImmutableState, proposer PlayerIndex) error {
 	return nil
 }
 
-func (i *illegalMove) Apply(state MutableState) error {
+func (i *illegalMove) Apply(state State) error {
 	return nil
 }
 

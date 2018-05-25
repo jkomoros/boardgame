@@ -26,7 +26,7 @@ type FinishTurn struct {
 	FixUp
 }
 
-func (f *FinishTurn) ValidConfiguration(exampleState boardgame.MutableState) error {
+func (f *FinishTurn) ValidConfiguration(exampleState boardgame.State) error {
 
 	if _, ok := exampleState.GameState().(interfaces.CurrentPlayerSetter); !ok {
 		return errors.New("GameState does not implement CurrentPlayerSetter")
@@ -40,7 +40,7 @@ func (f *FinishTurn) ValidConfiguration(exampleState boardgame.MutableState) err
 }
 
 //Legal checks if the game's CurrentPlayer's TurnDone() returns true.
-func (f *FinishTurn) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (f *FinishTurn) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := f.Base.Legal(state, proposer); err != nil {
 		return err
@@ -56,7 +56,7 @@ func (f *FinishTurn) Legal(state boardgame.State, proposer boardgame.PlayerIndex
 		return errors.New("Current player is not valid")
 	}
 
-	currentPlayer := state.PlayerStates()[currentPlayerIndex]
+	currentPlayer := state.ImmutablePlayerStates()[currentPlayerIndex]
 
 	currentPlayerTurnFinisher, ok := currentPlayer.(interfaces.PlayerTurnFinisher)
 
@@ -75,7 +75,7 @@ func (f *FinishTurn) Legal(state boardgame.State, proposer boardgame.PlayerIndex
 //Aoply resets the current player via ResetForTurnEnd, then advances to the
 //next player (using game.SetCurrentPlayer), then calls ResetForTurnStart on
 //the new player.
-func (f *FinishTurn) Apply(state boardgame.MutableState) error {
+func (f *FinishTurn) Apply(state boardgame.State) error {
 	currentPlayer := state.PlayerStates()[state.CurrentPlayerIndex()]
 
 	currentPlayerTurnFinisher, ok := currentPlayer.(interfaces.PlayerTurnFinisher)

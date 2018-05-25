@@ -7,9 +7,9 @@ import (
 	"strconv"
 )
 
-//State represents the entire semantic state of a game at a given version. For
-//your specific game, GameState and PlayerStates will actually be concrete
-//structs to your particular game. Games often define a top-level
+//ImmutableState represents the entire semantic state of a game at a given
+//version. For your specific game, GameState and PlayerStates will actually be
+//concrete structs to your particular game. Games often define a top-level
 //concreteStates() *myGameState, []*myPlayerState so at the top of methods
 //that accept a State they can quickly get concrete, type-checked types with
 //only a single conversion leap of faith at the top. States are intended to be
@@ -21,18 +21,18 @@ import (
 //MarshalJSON output of a State is appropriate for sending to a client or
 //serializing a state to be put in storage. Given a blob serialized in that
 //fashion, GameManager.StateFromBlob will return a state.
-type State interface {
+type ImmutableState interface {
 	//GameState returns the GameState for this State
-	GameState() SubState
+	ImmutableGameState() ImmutableSubState
 	//PlayerStates returns a slice of all PlayerStates for this State
-	PlayerStates() []PlayerState
+	ImmutablePlayerStates() []ImmutablePlayerState
 	//DynamicComponentValues returns a map of deck name to array of component
 	//values, one per component in that deck.
-	DynamicComponentValues() map[string][]SubState
+	ImmutableDynamicComponentValues() map[string][]ImmutableSubState
 
 	//CurrentPlayer returns the PlayerState corresponding to the result of
 	//delegate.CurrentPlayerIndex(), or nil if the index isn't valid.
-	CurrentPlayer() PlayerState
+	CurrentPlayer() ImmutablePlayerState
 	//CurrentPlayerIndex is a simple convenience wrapper around
 	//delegate.CurrentPlayerIndex for this state.
 	CurrentPlayerIndex() PlayerIndex
@@ -43,7 +43,7 @@ type State interface {
 
 	//Copy returns a deep copy of the State, including copied version of the Game
 	//and Player States.
-	Copy(sanitized bool) (State, error)
+	Copy(sanitized bool) (ImmutableState, error)
 	//Diagram returns a basic, ascii rendering of the state for debug rendering.
 	//It thunks out to Delegate.Diagram.
 	Diagram() string
@@ -59,7 +59,7 @@ type State interface {
 	//Sanitized() return true. Will call GameDelegate.SanitizationPolicy to
 	//construct the effective policy to apply. See the package level comment
 	//for an overview of how state sanitization works.
-	SanitizedForPlayer(player PlayerIndex) State
+	SanitizedForPlayer(player PlayerIndex) ImmutableState
 
 	//Game is the Game that this state is part of. Calling
 	//Game.State(s.Version()) should return a state equivalent to this State
@@ -137,17 +137,17 @@ func NewStatePropertyRef() StatePropertyRef {
 //getReader returns the reader associated with the StatePropertyRef in the
 //given state, or errors if the StatePropertyRef does not refer to a valid
 //reader.
-func (r StatePropertyRef) associatedReadSetter(st MutableState) (PropertyReadSetter, error) {
+func (r StatePropertyRef) associatedReadSetter(st State) (PropertyReadSetter, error) {
 	switch r.Group {
 	case StateGroupGame:
-		gameState := st.MutableGameState()
+		gameState := st.GameState()
 		if gameState == nil {
 			return nil, errors.New("GameState selected, but was nil")
 		}
 		return gameState.ReadSetter(), nil
 	case StateGroupPlayer:
 
-		players := st.MutablePlayerStates()
+		players := st.PlayerStates()
 		if len(players) == 0 {
 			return nil, errors.New("PlayerState selected, but no players in state")
 		}
@@ -165,7 +165,7 @@ func (r StatePropertyRef) associatedReadSetter(st MutableState) (PropertyReadSet
 		return player.ReadSetter(), nil
 	case StateGroupDynamicComponentValues:
 
-		allDecks := st.MutableDynamicComponentValues()
+		allDecks := st.DynamicComponentValues()
 
 		if allDecks == nil {
 			return nil, errors.New("DynamicComponentValues selected, but was nil")
@@ -203,18 +203,18 @@ const ObserverPlayerIndex PlayerIndex = -1
 //should only be used in rare or debug circumstances.
 const AdminPlayerIndex PlayerIndex = -2
 
-//A MutableState is a state that is designed to be modified in place. These
+//A State is an ImmutableState that is designed to be modified in place. These
 //are passed to methods (instead of normal States) as a signal that
 //modifications are intended to be done on the state.
-type MutableState interface {
-	//MutableState contains all of the methods of a read-only state.
-	State
-	//MutableGameState is a reference to the MutableGameState for this MutableState.
-	MutableGameState() MutableSubState
-	//MutablePlayerstates returns a slice of MutablePlayerStates for this MutableState.
-	MutablePlayerStates() []MutablePlayerState
+type State interface {
+	//State contains all of the methods of a read-only state.
+	ImmutableState
+	//GameState is a reference to the MutableGameState for this MutableState.
+	GameState() SubState
+	//Playerstates returns a slice of PlayerStates for this State.
+	PlayerStates() []PlayerState
 
-	MutableDynamicComponentValues() map[string][]MutableSubState
+	DynamicComponentValues() map[string][]SubState
 
 	//ContainingStack will return the stack and slot index for the
 	//associated component, if that location is not sanitized. If no error is
@@ -224,14 +224,14 @@ type MutableState interface {
 
 //Valid returns true if the PlayerIndex's value is legal in the context of the
 //current State.
-func (p PlayerIndex) Valid(state State) bool {
+func (p PlayerIndex) Valid(state ImmutableState) bool {
 	if p == AdminPlayerIndex || p == ObserverPlayerIndex {
 		return true
 	}
 	if state == nil {
 		return false
 	}
-	if p < 0 || int(p) >= len(state.PlayerStates()) {
+	if p < 0 || int(p) >= len(state.ImmutablePlayerStates()) {
 		return false
 	}
 	return true
@@ -240,12 +240,12 @@ func (p PlayerIndex) Valid(state State) bool {
 //Next returns the next PlayerIndex, wrapping around back to 0 if it
 //overflows. PlayerIndexes of AdminPlayerIndex and Observer PlayerIndex will
 //not be affected.
-func (p PlayerIndex) Next(state State) PlayerIndex {
+func (p PlayerIndex) Next(state ImmutableState) PlayerIndex {
 	if p == AdminPlayerIndex || p == ObserverPlayerIndex {
 		return p
 	}
 	p++
-	if int(p) >= len(state.PlayerStates()) {
+	if int(p) >= len(state.ImmutablePlayerStates()) {
 		p = 0
 	}
 	return p
@@ -254,13 +254,13 @@ func (p PlayerIndex) Next(state State) PlayerIndex {
 //Previous returns the previous PlayerIndex, wrapping around back to len(players -1) if it
 //goes below 0. PlayerIndexes of AdminPlayerIndex and Observer PlayerIndex will
 //not be affected.
-func (p PlayerIndex) Previous(state State) PlayerIndex {
+func (p PlayerIndex) Previous(state ImmutableState) PlayerIndex {
 	if p == AdminPlayerIndex || p == ObserverPlayerIndex {
 		return p
 	}
 	p--
 	if int(p) < 0 {
-		p = PlayerIndex(len(state.PlayerStates()) - 1)
+		p = PlayerIndex(len(state.ImmutablePlayerStates()) - 1)
 	}
 	return p
 }
@@ -308,8 +308,8 @@ type state struct {
 	//We hang onto these because otherwise we'd have to create them on the fly
 	//whenever MutablePlayerStates() and MutableDynamicComponentValues are
 	//called. They're populated in setStateForSubStates.
-	mutablePlayerStates           []MutablePlayerState
-	mutableDynamicComponentValues map[string][]MutableSubState
+	mutablePlayerStates           []PlayerState
+	mutableDynamicComponentValues map[string][]SubState
 	secretMoveCount               map[string][]int
 	sanitized                     bool
 	version                       int
@@ -473,15 +473,15 @@ func (s *state) Version() int {
 	return s.version
 }
 
-func (s *state) MutableGameState() MutableSubState {
+func (s *state) GameState() SubState {
 	return s.gameState
 }
 
-func (s *state) MutablePlayerStates() []MutablePlayerState {
+func (s *state) PlayerStates() []PlayerState {
 	return s.mutablePlayerStates
 }
 
-func (s *state) MutableDynamicComponentValues() map[string][]MutableSubState {
+func (s *state) DynamicComponentValues() map[string][]SubState {
 	return s.mutableDynamicComponentValues
 }
 
@@ -489,19 +489,19 @@ func (s *state) Game() *Game {
 	return s.game
 }
 
-func (s *state) GameState() SubState {
+func (s *state) ImmutableGameState() ImmutableSubState {
 	return s.gameState
 }
 
-func (s *state) PlayerStates() []PlayerState {
-	result := make([]PlayerState, len(s.playerStates))
+func (s *state) ImmutablePlayerStates() []ImmutablePlayerState {
+	result := make([]ImmutablePlayerState, len(s.playerStates))
 	for i := 0; i < len(s.playerStates); i++ {
 		result[i] = s.playerStates[i]
 	}
 	return result
 }
 
-func (s *state) CurrentPlayer() PlayerState {
+func (s *state) CurrentPlayer() ImmutablePlayerState {
 	index := s.CurrentPlayerIndex()
 	if index < 0 || int(index) >= len(s.playerStates) {
 		return nil
@@ -513,7 +513,7 @@ func (s *state) CurrentPlayerIndex() PlayerIndex {
 	return s.game.manager.delegate.CurrentPlayerIndex(s)
 }
 
-func (s *state) Copy(sanitized bool) (State, error) {
+func (s *state) Copy(sanitized bool) (ImmutableState, error) {
 	//TODO: just make copy() be public
 	return s.copy(sanitized)
 }
@@ -578,32 +578,32 @@ func (s *state) copy(sanitized bool) (*state, error) {
 func (s *state) setStateForSubStates() {
 
 	s.gameState.SetState(s)
-	s.gameState.SetMutableState(s)
+	s.gameState.SetImmutableState(s)
 
 	for i := 0; i < len(s.playerStates); i++ {
 		s.playerStates[i].SetState(s)
-		s.playerStates[i].SetMutableState(s)
+		s.playerStates[i].SetImmutableState(s)
 
 	}
 
 	for _, dynamicComponents := range s.dynamicComponentValues {
 		for _, component := range dynamicComponents {
 			component.SetState(s)
-			component.SetMutableState(s)
+			component.SetImmutableState(s)
 		}
 	}
 
-	mutablePlayerStates := make([]MutablePlayerState, len(s.playerStates))
+	mutablePlayerStates := make([]PlayerState, len(s.playerStates))
 	for i := 0; i < len(s.playerStates); i++ {
 		mutablePlayerStates[i] = s.playerStates[i]
 	}
 
 	s.mutablePlayerStates = mutablePlayerStates
 
-	dynamicComponentValues := make(map[string][]MutableSubState)
+	dynamicComponentValues := make(map[string][]SubState)
 
 	for key, arr := range s.dynamicComponentValues {
-		resultArr := make([]MutableSubState, len(arr))
+		resultArr := make([]SubState, len(arr))
 		for i := 0; i < len(arr); i++ {
 			resultArr[i] = arr[i]
 		}
@@ -731,12 +731,12 @@ func (s *state) Sanitized() bool {
 	return s.sanitized
 }
 
-func (s *state) DynamicComponentValues() map[string][]SubState {
+func (s *state) ImmutableDynamicComponentValues() map[string][]ImmutableSubState {
 
-	result := make(map[string][]SubState)
+	result := make(map[string][]ImmutableSubState)
 
 	for key, val := range s.dynamicComponentValues {
-		slice := make([]SubState, len(val))
+		slice := make([]ImmutableSubState, len(val))
 		for i := 0; i < len(slice); i++ {
 			slice[i] = val[i]
 		}
@@ -798,43 +798,44 @@ type ReadSetConfigurer interface {
 	ReadSetConfigurer() PropertyReadSetConfigurer
 }
 
-//StateSetter is included in SubState, MutableSubState, and
+//ImmutableStateSetter is included in ImmutableSubState, SubState, and
 //ConfigureableSubState as the way to keep track of which State a given
 //SubState is part of.
+type ImmutableStateSetter interface {
+	//SetImmutableState is called to give the SubState object a pointer back
+	//to the State that contains it. You can implement it yourself, or
+	//anonymously embed BaseSubState to get it for free.
+	SetImmutableState(state ImmutableState)
+	//ImmutableState() returns the state that was set via SetState().
+	ImmutableState() ImmutableState
+}
+
+//StateSetter is like ImmutableStateSetter but it also includes Mutable
+//methods.
 type StateSetter interface {
-	//SetState is called to give the SubState object a pointer back to the
-	//State that contains it. You can implement it yourself, or anonymously
-	//embed BaseSubState to get it for free.
+	ImmutableStateSetter
 	SetState(state State)
-	//State() returns the state that was set via SetState().
 	State() State
 }
 
-//MutableStateSetter is like StateSetter but it also includes Mutable methods.
-type MutableStateSetter interface {
-	StateSetter
-	SetMutableState(state MutableState)
-	MutableState() MutableState
-}
-
-//SubState is the interface that all sub-state objects (PlayerStates.
+//ImmutableSubState is the interface that all sub-state objects (PlayerStates.
 //GameStates, and DynamicComponentValues) implement.
-type SubState interface {
-	StateSetter
+type ImmutableSubState interface {
+	ImmutableStateSetter
 	Reader
 }
 
-//MutableSubState is the interface that Mutable{Game,Player}State's
+//ImmutableSubState is the interface that mutable {Game,Player}State's
 //implement.
-type MutableSubState interface {
-	MutableStateSetter
+type SubState interface {
+	StateSetter
 	ReadSetter
 }
 
 //ConfigurableSubState is the interface that Configurable{Game,Player}State's
 //implement.
 type ConfigurableSubState interface {
-	MutableStateSetter
+	StateSetter
 	ReadSetConfigurer
 }
 
@@ -854,9 +855,9 @@ type PlayerState interface {
 }
 
 //A MutablePlayerState is a PlayerState that is allowed to be mutated.
-type MutablePlayerState interface {
+type ImmutablePlayerState interface {
 	PlayerIndexer
-	MutableSubState
+	ImmutableSubState
 }
 
 //A ConfigurablePlayerState is a PlayerState that is allowed to be mutated and
@@ -878,8 +879,8 @@ func DefaultMarshalJSON(obj interface{}) ([]byte, error) {
 type BaseSubState struct {
 	//Ugh it's really annoying to have to hold onto the same state in two
 	//references...
-	state        State
-	mutableState MutableState
+	immutableState ImmutableState
+	state          State
 }
 
 func (b *BaseSubState) SetState(state State) {
@@ -890,10 +891,10 @@ func (b *BaseSubState) State() State {
 	return b.state
 }
 
-func (b *BaseSubState) SetMutableState(state MutableState) {
-	b.mutableState = state
+func (b *BaseSubState) SetImmutableState(state ImmutableState) {
+	b.immutableState = state
 }
 
-func (b *BaseSubState) MutableState() MutableState {
-	return b.mutableState
+func (b *BaseSubState) ImmutableState() ImmutableState {
+	return b.immutableState
 }

@@ -30,7 +30,7 @@ type ApplyUntil struct {
 	FixUpMulti
 }
 
-func (a *ApplyUntil) ValidConfiguration(exampleState boardgame.MutableState) error {
+func (a *ApplyUntil) ValidConfiguration(exampleState boardgame.State) error {
 	if _, ok := a.TopLevelStruct().(interfaces.ConditionMetter); !ok {
 		return errors.New("Embedding Move doesn't have ConditionMet")
 	}
@@ -38,7 +38,7 @@ func (a *ApplyUntil) ValidConfiguration(exampleState boardgame.MutableState) err
 }
 
 //Legal returns an error until ConditionMet returns nil.
-func (a *ApplyUntil) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (a *ApplyUntil) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	if err := a.Base.Legal(state, proposer); err != nil {
 		return err
 	}
@@ -86,7 +86,7 @@ type ApplyUntilCount struct {
 	ApplyUntil
 }
 
-func (a *ApplyUntilCount) ValidConfiguration(exampleState boardgame.MutableState) error {
+func (a *ApplyUntilCount) ValidConfiguration(exampleState boardgame.State) error {
 	if err := a.ApplyUntil.ValidConfiguration(exampleState); err != nil {
 		return err
 	}

@@ -40,33 +40,33 @@ type LegalComponent interface {
 	//value in an enum created for the purpose of disambiguating different
 	//move types to check for legality for. Legal should return nil if it is
 	//legal, or an error if the component is not legal.
-	Legal(state boardgame.State, legalType int) error
+	Legal(state boardgame.ImmutableState, legalType int) error
 }
 
 //PlayerStacker should be implemented by your embedding Move if you embed
 //DealComponents. It will be consulted to figure out where the PlayerStack is
 //to deal a component to.
 type PlayerStacker interface {
-	PlayerStack(playerState boardgame.MutablePlayerState) boardgame.Stack
+	PlayerStack(playerState boardgame.PlayerState) boardgame.Stack
 }
 
 //GameStacker should be implemented by your emedding Move if you embed
 //DealComponents. It will be consulted to figure out where to draw the
 //components from to deal to players.
 type GameStacker interface {
-	GameStack(gameState boardgame.MutableSubState) boardgame.Stack
+	GameStack(gameState boardgame.SubState) boardgame.Stack
 }
 
 //SourceStacker should be implemented by moves that need an input stack to
 //operate on as primary/source, for example ShuffleStack.
 type SourceStacker interface {
-	SourceStack(state boardgame.MutableState) boardgame.Stack
+	SourceStack(state boardgame.State) boardgame.Stack
 }
 
 //SourceStacker should be implemented by moves that need a destination stack
 //to operate on as primary/source, for example ApplyUntilCount.
 type DestinationStacker interface {
-	DestinationStack(state boardgame.MutableState) boardgame.Stack
+	DestinationStack(state boardgame.State) boardgame.Stack
 }
 
 //CurrentPlayerSetter should be implemented by gameStates that use FinishTurn.
@@ -121,7 +121,7 @@ type RoundRobinProperties interface {
 type ConditionMetter interface {
 	//ConditionMet should return nil if the condition has been met, or an
 	//error describing why the condition has not yet been met.
-	ConditionMet(state boardgame.State) error
+	ConditionMet(state boardgame.ImmutableState) error
 }
 
 //RoundRobinActioner should be implemented by any moves that embed a
@@ -129,7 +129,7 @@ type ConditionMetter interface {
 //next in the round robin.
 type RoundRobinActioner interface {
 	//RoundRobinAction should do the action for the round robin to given player.
-	RoundRobinAction(playerState boardgame.MutablePlayerState) error
+	RoundRobinAction(playerState boardgame.PlayerState) error
 }
 
 //CurrentPhaseSetter should be implemented by you gameState to set the
@@ -141,11 +141,11 @@ type CurrentPhaseSetter interface {
 //BeforeLeavePhaser is an interface to implement on GameState if you want to
 //do some action on state before leaving the given phase.
 type BeforeLeavePhaser interface {
-	BeforeLeavePhase(phase int, state boardgame.MutableState) error
+	BeforeLeavePhase(phase int, state boardgame.State) error
 }
 
 //BeforeEnterPhaser is an interface to implement on GameState if you want to
 //do some action on state just before entering the givenn state.
 type BeforeEnterPhaser interface {
-	BeforeEnterPhase(phase int, state boardgame.MutableState) error
+	BeforeEnterPhase(phase int, state boardgame.State) error
 }

@@ -16,11 +16,11 @@ func (m *moveDealCards) TargetCount() int {
 	return 2
 }
 
-func (m *moveDealCards) GameStack(gState boardgame.MutableSubState) boardgame.Stack {
+func (m *moveDealCards) GameStack(gState boardgame.SubState) boardgame.Stack {
 	return gState.(*gameState).DrawStack
 }
 
-func (m *moveDealCards) PlayerStack(pState boardgame.MutablePlayerState) boardgame.Stack {
+func (m *moveDealCards) PlayerStack(pState boardgame.PlayerState) boardgame.Stack {
 	return pState.(*playerState).Hand
 }
 
@@ -33,11 +33,11 @@ func (m *moveDealOtherCards) TargetCount() int {
 	return 3
 }
 
-func (m *moveDealOtherCards) GameStack(gState boardgame.MutableSubState) boardgame.Stack {
+func (m *moveDealOtherCards) GameStack(gState boardgame.SubState) boardgame.Stack {
 	return gState.(*gameState).DrawStack
 }
 
-func (m *moveDealOtherCards) PlayerStack(pState boardgame.MutablePlayerState) boardgame.Stack {
+func (m *moveDealOtherCards) PlayerStack(pState boardgame.PlayerState) boardgame.Stack {
 	return pState.(*playerState).OtherHand
 }
 
@@ -46,7 +46,7 @@ type moveCurrentPlayerDraw struct {
 	CurrentPlayer
 }
 
-func (m *moveCurrentPlayerDraw) Apply(state boardgame.MutableState) error {
+func (m *moveCurrentPlayerDraw) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
 
 	p := players[game.CurrentPlayer]

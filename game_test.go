@@ -14,7 +14,7 @@ type testInfiniteLoopGameDelegate struct {
 	testGameDelegate
 }
 
-func (t *testInfiniteLoopGameDelegate) ProposeFixUpMove(state State) Move {
+func (t *testInfiniteLoopGameDelegate) ProposeFixUpMove(state ImmutableState) Move {
 	return t.Manager().MoveTypeByName("Test Always Legal Move").NewMove(state)
 }
 

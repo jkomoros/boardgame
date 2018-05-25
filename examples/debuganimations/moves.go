@@ -67,7 +67,7 @@ var moveMoveCardBetweenShortStacksConfig = boardgame.MoveTypeConfig{
 	},
 }
 
-func (m *moveMoveCardBetweenShortStacks) DefaultsForState(state boardgame.State) {
+func (m *moveMoveCardBetweenShortStacks) DefaultsForState(state boardgame.ImmutableState) {
 	gameState, _ := concreteStates(state)
 
 	if gameState.FirstShortStack.NumComponents() < 1 {
@@ -77,7 +77,7 @@ func (m *moveMoveCardBetweenShortStacks) DefaultsForState(state boardgame.State)
 	}
 }
 
-func (m *moveMoveCardBetweenShortStacks) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *moveMoveCardBetweenShortStacks) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.Base.Legal(state, proposer); err != nil {
 		return err
@@ -96,7 +96,7 @@ func (m *moveMoveCardBetweenShortStacks) Legal(state boardgame.State, proposer b
 	return nil
 }
 
-func (m *moveMoveCardBetweenShortStacks) Apply(state boardgame.MutableState) error {
+func (m *moveMoveCardBetweenShortStacks) Apply(state boardgame.State) error {
 
 	game, _ := concreteStates(state)
 
@@ -129,7 +129,7 @@ var moveMoveCardBetweenDrawAndDiscardStacksConfig = boardgame.MoveTypeConfig{
 	},
 }
 
-func (m *moveMoveCardBetweenDrawAndDiscardStacks) DefaultsForState(state boardgame.State) {
+func (m *moveMoveCardBetweenDrawAndDiscardStacks) DefaultsForState(state boardgame.ImmutableState) {
 	gameState, _ := concreteStates(state)
 
 	if gameState.DiscardStack.NumComponents() < 3 {
@@ -139,7 +139,7 @@ func (m *moveMoveCardBetweenDrawAndDiscardStacks) DefaultsForState(state boardga
 	}
 }
 
-func (m *moveMoveCardBetweenDrawAndDiscardStacks) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *moveMoveCardBetweenDrawAndDiscardStacks) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.Base.Legal(state, proposer); err != nil {
 		return err
@@ -158,7 +158,7 @@ func (m *moveMoveCardBetweenDrawAndDiscardStacks) Legal(state boardgame.State, p
 	return nil
 }
 
-func (m *moveMoveCardBetweenDrawAndDiscardStacks) Apply(state boardgame.MutableState) error {
+func (m *moveMoveCardBetweenDrawAndDiscardStacks) Apply(state boardgame.State) error {
 
 	game, _ := concreteStates(state)
 
@@ -191,7 +191,7 @@ var moveFlipHiddenCardConfig = boardgame.MoveTypeConfig{
 	},
 }
 
-func (m *moveFlipHiddenCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *moveFlipHiddenCard) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.Base.Legal(state, proposer); err != nil {
 		return err
@@ -210,7 +210,7 @@ func (m *moveFlipHiddenCard) Legal(state boardgame.State, proposer boardgame.Pla
 	return nil
 }
 
-func (m *moveFlipHiddenCard) Apply(state boardgame.MutableState) error {
+func (m *moveFlipHiddenCard) Apply(state boardgame.State) error {
 
 	game, _ := concreteStates(state)
 
@@ -243,7 +243,7 @@ var moveMoveCardBetweenFanStacksConfig = boardgame.MoveTypeConfig{
 	},
 }
 
-func (m *moveMoveCardBetweenFanStacks) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *moveMoveCardBetweenFanStacks) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.Base.Legal(state, proposer); err != nil {
 		return err
@@ -262,7 +262,7 @@ func (m *moveMoveCardBetweenFanStacks) Legal(state boardgame.State, proposer boa
 	return errors.New("Fan stacks aren't in known toggle state")
 }
 
-func (m *moveMoveCardBetweenFanStacks) Apply(state boardgame.MutableState) error {
+func (m *moveMoveCardBetweenFanStacks) Apply(state boardgame.State) error {
 
 	game, _ := concreteStates(state)
 
@@ -287,7 +287,7 @@ var moveVisibleShuffleCardsConfig = boardgame.MoveTypeConfig{
 	},
 }
 
-func (m *moveVisibleShuffleCards) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *moveVisibleShuffleCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.Base.Legal(state, proposer); err != nil {
 		return err
@@ -302,7 +302,7 @@ func (m *moveVisibleShuffleCards) Legal(state boardgame.State, proposer boardgam
 	return errors.New("Aren't enough cards to shuffle")
 }
 
-func (m *moveVisibleShuffleCards) Apply(state boardgame.MutableState) error {
+func (m *moveVisibleShuffleCards) Apply(state boardgame.State) error {
 
 	game, _ := concreteStates(state)
 
@@ -324,7 +324,7 @@ var moveShuffleCardsConfig = boardgame.MoveTypeConfig{
 	},
 }
 
-func (m *moveShuffleCards) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *moveShuffleCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.Base.Legal(state, proposer); err != nil {
 		return err
@@ -339,7 +339,7 @@ func (m *moveShuffleCards) Legal(state boardgame.State, proposer boardgame.Playe
 	return errors.New("Aren't enough cards to shuffle")
 }
 
-func (m *moveShuffleCards) Apply(state boardgame.MutableState) error {
+func (m *moveShuffleCards) Apply(state boardgame.State) error {
 
 	game, _ := concreteStates(state)
 
@@ -361,7 +361,7 @@ var moveMoveBetweenHiddenConfig = boardgame.MoveTypeConfig{
 	},
 }
 
-func (m *moveMoveBetweenHidden) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *moveMoveBetweenHidden) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.Base.Legal(state, proposer); err != nil {
 		return err
@@ -380,7 +380,7 @@ func (m *moveMoveBetweenHidden) Legal(state boardgame.State, proposer boardgame.
 	return errors.New("Cards aren't in known position")
 }
 
-func (m *moveMoveBetweenHidden) Apply(state boardgame.MutableState) error {
+func (m *moveMoveBetweenHidden) Apply(state boardgame.State) error {
 
 	game, _ := concreteStates(state)
 
@@ -406,7 +406,7 @@ var moveMoveTokenConfig = boardgame.MoveTypeConfig{
 	},
 }
 
-func (m *moveMoveToken) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *moveMoveToken) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.Base.Legal(state, proposer); err != nil {
 		return err
@@ -425,7 +425,7 @@ func (m *moveMoveToken) Legal(state boardgame.State, proposer boardgame.PlayerIn
 	return errors.New("tokens aren't in known position")
 }
 
-func (m *moveMoveToken) Apply(state boardgame.MutableState) error {
+func (m *moveMoveToken) Apply(state boardgame.State) error {
 
 	game, _ := concreteStates(state)
 
@@ -451,7 +451,7 @@ var moveMoveTokenSanitizedConfig = boardgame.MoveTypeConfig{
 	},
 }
 
-func (m *moveMoveTokenSanitized) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *moveMoveTokenSanitized) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.Base.Legal(state, proposer); err != nil {
 		return err
@@ -470,7 +470,7 @@ func (m *moveMoveTokenSanitized) Legal(state boardgame.State, proposer boardgame
 	return errors.New("tokens aren't in known position")
 }
 
-func (m *moveMoveTokenSanitized) Apply(state boardgame.MutableState) error {
+func (m *moveMoveTokenSanitized) Apply(state boardgame.State) error {
 
 	game, _ := concreteStates(state)
 

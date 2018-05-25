@@ -20,7 +20,7 @@ type CollectCountComponents struct {
 
 //RoundRobinAction moves a component from the PlayerStack to the GameStack, as
 //configured by the PlayerStacker and GameStacker interfaces.
-func (d *CollectCountComponents) RoundRobinAction(playerState boardgame.MutablePlayerState) error {
+func (d *CollectCountComponents) RoundRobinAction(playerState boardgame.PlayerState) error {
 
 	playerStack, gameStack, err := dealActionHelper(d.TopLevelStruct(), playerState)
 
@@ -61,7 +61,7 @@ type CollectComponentsUntilPlayerCountLeft struct {
 
 //RoundRobinAction moves a component from the PlayerStack to the GameStack, as
 //configured by the PlayerStacker and GameStacker interfaces.
-func (d *CollectComponentsUntilPlayerCountLeft) RoundRobinAction(playerState boardgame.MutablePlayerState) error {
+func (d *CollectComponentsUntilPlayerCountLeft) RoundRobinAction(playerState boardgame.PlayerState) error {
 
 	playerStack, gameStack, err := dealActionHelper(d.TopLevelStruct(), playerState)
 
@@ -114,7 +114,7 @@ type CollectComponentsUntilGameCountReached struct {
 
 //RoundRobinAction moves a component from the PlayerStack to the GameStack, as
 //configured by the PlayerStacker and GameStacker interfaces.
-func (d *CollectComponentsUntilGameCountReached) RoundRobinAction(playerState boardgame.MutablePlayerState) error {
+func (d *CollectComponentsUntilGameCountReached) RoundRobinAction(playerState boardgame.PlayerState) error {
 
 	playerStack, gameStack, err := dealActionHelper(d.TopLevelStruct(), playerState)
 

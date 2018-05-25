@@ -143,7 +143,7 @@ func (g *Game) NumPlayers() int {
 //only as an object, and with state sanitized for the current player. State
 //should be a state for this game (e.g. an old version). If state is nil, the
 //game's CurrentState will be used.
-func (g *Game) JSONForPlayer(player PlayerIndex, state State) interface{} {
+func (g *Game) JSONForPlayer(player PlayerIndex, state ImmutableState) interface{} {
 
 	if state == nil {
 		state = g.CurrentState()
@@ -342,7 +342,7 @@ func (g *Game) NumAgentPlayers() int {
 }
 
 //starterState returns a starting, not-yet-saved State that is configured with all moving parts.
-func (g *Game) starterState(numPlayers int) (MutableState, error) {
+func (g *Game) starterState(numPlayers int) (State, error) {
 	state, err := g.Manager().emptyState(numPlayers)
 
 	if err != nil {

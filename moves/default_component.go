@@ -28,7 +28,7 @@ type DefaultComponent struct {
 	ComponentIndex int
 }
 
-func (d *DefaultComponent) sourceStackImpl(state boardgame.MutableState) (boardgame.Stack, error) {
+func (d *DefaultComponent) sourceStackImpl(state boardgame.State) (boardgame.Stack, error) {
 	sourceStacker, ok := d.TopLevelStruct().(interfaces.SourceStacker)
 	if !ok {
 		return nil, errors.New("The top level struct doesn't implement SourceStacker")
@@ -49,10 +49,10 @@ func (d *DefaultComponent) legalTypeImpl() (int, error) {
 //start to finish. If the component is non-nil and implments
 //interfaces.LegalComponent, calls Legal. If that returns nil,
 //it sets the ComponentIndex property to that index and returns.
-func (d *DefaultComponent) DefaultsForState(state boardgame.State) {
+func (d *DefaultComponent) DefaultsForState(state boardgame.ImmutableState) {
 
 	//So sorry for this hack. :-(
-	mState, ok := state.(boardgame.MutableState)
+	mState, ok := state.(boardgame.State)
 	if !ok {
 		return
 	}
@@ -87,13 +87,13 @@ func (d *DefaultComponent) DefaultsForState(state boardgame.State) {
 //Legal checks that the component specified by the ComponentIndex index within
 //SourceStack implements interfaces.LegalComponent and then returns its return
 //value. Otherwise, it errors.
-func (d *DefaultComponent) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (d *DefaultComponent) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	if err := d.FixUpMulti.Legal(state, proposer); err != nil {
 		return err
 	}
 
 	//So sorry for this hack. :-(
-	mState, ok := state.(boardgame.MutableState)
+	mState, ok := state.(boardgame.State)
 	if !ok {
 		return errors.New("State wasn't convertible to MutableState")
 	}
@@ -155,11 +155,11 @@ func (d *DefaultComponent) LegalType() int {
 //SourceStack returns the stack set in configuration by WithSourceStack on the
 //GameState, or nil. If that is not sufficient for your needs you should
 //override SourceStack yourself.
-func (d *DefaultComponent) SourceStack(state boardgame.MutableState) boardgame.Stack {
+func (d *DefaultComponent) SourceStack(state boardgame.State) boardgame.Stack {
 	return sourceStackFromConfig(d, state)
 }
 
-func (d *DefaultComponent) ValidConfiguration(exampleState boardgame.MutableState) error {
+func (d *DefaultComponent) ValidConfiguration(exampleState boardgame.State) error {
 	if err := d.FixUpMulti.ValidConfiguration(exampleState); err != nil {
 		return err
 	}

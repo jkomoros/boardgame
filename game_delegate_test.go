@@ -79,7 +79,7 @@ func (t *testGameDelegate) ConfigureMoves() *MoveTypeConfigBundle {
 	return t.moveInstaller(t.Manager())
 }
 
-func (t *testGameDelegate) DistributeComponentToStarterStack(state State, c Component) (Stack, error) {
+func (t *testGameDelegate) DistributeComponentToStarterStack(state ImmutableState, c Component) (Stack, error) {
 	game, _ := concreteStates(state)
 	return game.DrawDeck, nil
 }
@@ -88,7 +88,7 @@ func (t *testGameDelegate) Name() string {
 	return testGameName
 }
 
-func (t *testGameDelegate) ComputedGlobalProperties(state State) PropertyCollection {
+func (t *testGameDelegate) ComputedGlobalProperties(state ImmutableState) PropertyCollection {
 	_, playerStates := concreteStates(state)
 
 	allScores := 0
@@ -103,7 +103,7 @@ func (t *testGameDelegate) ComputedGlobalProperties(state State) PropertyCollect
 	}
 }
 
-func (t *testGameDelegate) ComputedPlayerProperties(player PlayerState) PropertyCollection {
+func (t *testGameDelegate) ComputedPlayerProperties(player ImmutablePlayerState) PropertyCollection {
 
 	playerState := player.(*testPlayerState)
 
@@ -129,7 +129,7 @@ func (t *testGameDelegate) DynamicComponentValuesConstructor(deck *Deck) Configu
 	return nil
 }
 
-func (t *testGameDelegate) CheckGameFinished(state State) (bool, []PlayerIndex) {
+func (t *testGameDelegate) CheckGameFinished(state ImmutableState) (bool, []PlayerIndex) {
 	_, players := concreteStates(state)
 
 	var winners []PlayerIndex
@@ -168,7 +168,7 @@ func (t *testGameDelegate) Configs() map[string][]string {
 	}
 }
 
-func (t *testGameDelegate) BeginSetUp(state MutableState, config GameConfig) error {
+func (t *testGameDelegate) BeginSetUp(state State, config GameConfig) error {
 	game, players := concreteStates(state)
 
 	if len(players) != 3 {
@@ -183,7 +183,7 @@ func (t *testGameDelegate) BeginSetUp(state MutableState, config GameConfig) err
 	return nil
 }
 
-func (t *testGameDelegate) FinishSetUp(state MutableState) error {
+func (t *testGameDelegate) FinishSetUp(state State) error {
 
 	//Set all IntVar's to 1 for dynamic values for all hands. This will help
 	//us verify when they are being sanitized.
@@ -200,7 +200,7 @@ func (t *testGameDelegate) FinishSetUp(state MutableState) error {
 	return game.DrawDeck.ComponentAt(game.DrawDeck.Len() - 1).MoveToFirstSlot(game.MyBoard.SpaceAt(1))
 }
 
-func (t *testGameDelegate) CurrentPlayerIndex(state State) PlayerIndex {
+func (t *testGameDelegate) CurrentPlayerIndex(state ImmutableState) PlayerIndex {
 	game, _ := concreteStates(state)
 
 	return game.CurrentPlayer

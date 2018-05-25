@@ -69,11 +69,11 @@ func newTokenDeck() *boardgame.Deck {
 	return deck
 }
 
-func (t *token) Dynamic(state boardgame.State) *tokenDynamic {
+func (t *token) Dynamic(state boardgame.ImmutableState) *tokenDynamic {
 	return t.ContainingComponent().Instance(state).DynamicValues().(*tokenDynamic)
 }
 
-func (t *token) Legal(state boardgame.State, legalType int) error {
+func (t *token) Legal(state boardgame.ImmutableState, legalType int) error {
 	//Red starts at top, moves towards bottom
 	targetRow := boardWidth - 1
 
@@ -106,9 +106,9 @@ func (t *token) Legal(state boardgame.State, legalType int) error {
 }
 
 //FreeNextSpaces is like AllNextSpaces, but spaces taht are occupied won't be returned.
-func (t *token) FreeNextSpaces(state boardgame.State, componentIndex int) []int {
+func (t *token) FreeNextSpaces(state boardgame.ImmutableState, componentIndex int) []int {
 
-	spaces := state.GameState().(*gameState).Spaces
+	spaces := state.ImmutableGameState().(*gameState).Spaces
 
 	var result []int
 	for _, space := range t.FreeNextSpaces(state, componentIndex) {
@@ -122,7 +122,7 @@ func (t *token) FreeNextSpaces(state boardgame.State, componentIndex int) []int 
 
 //AllNextSpaces returns all the spaces that t could move to, if the rest of
 //the board were empty.
-func (t *token) AllNextSpaces(state boardgame.State, componentIndex int) []int {
+func (t *token) AllNextSpaces(state boardgame.ImmutableState, componentIndex int) []int {
 
 	//Red starts from top
 	fromBottom := false
@@ -159,9 +159,9 @@ func (t *token) AllNextSpaces(state boardgame.State, componentIndex int) []int {
 }
 
 //LegalCaptureSpaces returns cells that are legal for this cell to capture from there.
-func (t *token) LegalCaptureSpaces(state boardgame.State, componentIndex int) []int {
+func (t *token) LegalCaptureSpaces(state boardgame.ImmutableState, componentIndex int) []int {
 
-	spaces := state.GameState().(*gameState).Spaces
+	spaces := state.ImmutableGameState().(*gameState).Spaces
 
 	nextSpaces := t.AllNextSpaces(state, componentIndex)
 

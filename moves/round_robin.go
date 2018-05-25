@@ -10,12 +10,12 @@ import (
 //We can keep these private because embedders already will have the interface
 //satisfied so don't need to be confused by them.
 type roundRobinStarterPlayer interface {
-	RoundRobinStarterPlayer(state boardgame.State) boardgame.PlayerIndex
+	RoundRobinStarterPlayer(state boardgame.ImmutableState) boardgame.PlayerIndex
 }
 type playerConditionMet interface {
 	//PlayerConditionMet should return whether the condition for the round
 	//robin to be over has been met for this player.
-	PlayerConditionMet(playerState boardgame.PlayerState) bool
+	PlayerConditionMet(playerState boardgame.ImmutablePlayerState) bool
 }
 
 /*
@@ -85,7 +85,7 @@ type RoundRobin struct {
 
 //RoundRobinStarterPlayer by default will return delegate.CurrentPlayer.
 //Override this method if you want a different starter.
-func (s *RoundRobin) RoundRobinStarterPlayer(state boardgame.State) boardgame.PlayerIndex {
+func (s *RoundRobin) RoundRobinStarterPlayer(state boardgame.ImmutableState) boardgame.PlayerIndex {
 	return state.Game().Manager().Delegate().CurrentPlayerIndex(state)
 }
 
@@ -95,7 +95,7 @@ func (s *RoundRobin) RoundRobinStarterPlayer(state boardgame.State) boardgame.Pl
 //the other conditions you are considering (it's not possible to select
 //players who have already had their player condition met), if you override
 //CondtionMet you should also call this implementation.
-func (r *RoundRobin) ConditionMet(state boardgame.State) error {
+func (r *RoundRobin) ConditionMet(state boardgame.ImmutableState) error {
 	conditionsMet, ok := r.TopLevelStruct().(playerConditionMet)
 
 	if !ok {
@@ -103,7 +103,7 @@ func (r *RoundRobin) ConditionMet(state boardgame.State) error {
 		return errors.New("RoundRobin top level struct unexpectedly did not have PlayerConditionMet method")
 	}
 
-	for i, player := range state.PlayerStates() {
+	for i, player := range state.ImmutablePlayerStates() {
 		if !conditionsMet.PlayerConditionMet(player) {
 			return errors.New("Player " + strconv.Itoa(i) + " does not have their player condition met.")
 		}
@@ -119,13 +119,13 @@ func (r *RoundRobin) ConditionMet(state boardgame.State) error {
 //done. By default this will return false. If you will use RoundRobin directly
 //(as opposed to RoundRobinNumRounds) you will want to override this otherwise
 //it will get in an infinite loop.
-func (r *RoundRobin) PlayerConditionMet(playerState boardgame.PlayerState) bool {
+func (r *RoundRobin) PlayerConditionMet(playerState boardgame.ImmutablePlayerState) bool {
 	return false
 }
 
 //roundRobinHasStarted returns true if the gameState RoundRobin properties are not their sentinel values.
-func (r *RoundRobin) roundRobinHasStarted(state boardgame.State) bool {
-	roundRobiner, ok := state.GameState().(interfaces.RoundRobinProperties)
+func (r *RoundRobin) roundRobinHasStarted(state boardgame.ImmutableState) bool {
+	roundRobiner, ok := state.ImmutableGameState().(interfaces.RoundRobinProperties)
 
 	if !ok {
 		return false
@@ -135,7 +135,7 @@ func (r *RoundRobin) roundRobinHasStarted(state boardgame.State) bool {
 }
 
 //startRoundRobin should be called if roundRobinHasStarted is false.
-func (r *RoundRobin) startRoundRobin(state boardgame.MutableState) error {
+func (r *RoundRobin) startRoundRobin(state boardgame.State) error {
 
 	roundRobiner, ok := state.GameState().(interfaces.RoundRobinProperties)
 
@@ -162,7 +162,7 @@ func (r *RoundRobin) startRoundRobin(state boardgame.MutableState) error {
 }
 
 //finishRoundRobin should be called in the Apply method of the last round robin move.
-func (r *RoundRobin) finishRoundRobin(state boardgame.MutableState) error {
+func (r *RoundRobin) finishRoundRobin(state boardgame.State) error {
 	roundRobiner, ok := state.GameState().(interfaces.RoundRobinProperties)
 
 	if !ok {
@@ -246,7 +246,7 @@ func (r *RoundRobin) nextPlayerIndex(state boardgame.State) (player boardgame.Pl
 
 }
 
-func (r *RoundRobin) ValidConfiguration(exampleState boardgame.MutableState) error {
+func (r *RoundRobin) ValidConfiguration(exampleState boardgame.State) error {
 
 	if err := r.ApplyUntil.ValidConfiguration(exampleState); err != nil {
 		return err
@@ -260,6 +260,10 @@ func (r *RoundRobin) ValidConfiguration(exampleState boardgame.MutableState) err
 		return errors.New("Embedding move doesn't implement RoundRobinStarterPlayer")
 	}
 
+	if _, ok := r.TopLevelStruct().(playerConditionMet); !ok {
+		return errors.New("Embedding move doesn't implement PlayerConditionMet")
+	}
+
 	embeddingMove := r.TopLevelStruct()
 
 	if _, ok := embeddingMove.(interfaces.RoundRobinActioner); !ok {
@@ -270,7 +274,7 @@ func (r *RoundRobin) ValidConfiguration(exampleState boardgame.MutableState) err
 }
 
 //lastMoveName returns the name of the last move that was applied to this game.
-func (r *RoundRobin) lastMoveName(state boardgame.State) string {
+func (r *RoundRobin) lastMoveName(state boardgame.ImmutableState) string {
 	moves := state.Game().MoveRecords(state.Version())
 
 	if len(moves) == 0 {
@@ -282,7 +286,7 @@ func (r *RoundRobin) lastMoveName(state boardgame.State) string {
 
 //Legal is a complex implementation because it needs to figure out when to
 //start the round robin. In general you do not want to override this.
-func (r *RoundRobin) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (r *RoundRobin) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	//We run the base legal first to see if this phase is even legal for us.
 	//We can't run ApplyUntil until later, because it will say it's not legal
@@ -319,7 +323,7 @@ func (r *RoundRobin) Legal(state boardgame.State, proposer boardgame.PlayerIndex
 //Apply is a complex implementation because it needs to figure out when the
 //round is already over and handle complicated signalling about who the next
 //player is. In general you do not want to override this.
-func (r *RoundRobin) Apply(state boardgame.MutableState) error {
+func (r *RoundRobin) Apply(state boardgame.State) error {
 
 	if !r.roundRobinHasStarted(state) {
 		if err := r.startRoundRobin(state); err != nil {
@@ -345,7 +349,7 @@ func (r *RoundRobin) Apply(state boardgame.MutableState) error {
 		return errors.New("Embedding move doesn't implement RoundRobinActioner")
 	}
 
-	playerToAction := state.MutablePlayerStates()[nextPlayer]
+	playerToAction := state.PlayerStates()[nextPlayer]
 
 	if err := actioner.RoundRobinAction(playerToAction); err != nil {
 		return errors.New("RoundRobinAction returned error: " + err.Error())
@@ -405,7 +409,7 @@ type RoundRobinNumRounds struct {
 	RoundRobin
 }
 
-func (r *RoundRobinNumRounds) ValidConfiguration(exampleState boardgame.MutableState) error {
+func (r *RoundRobinNumRounds) ValidConfiguration(exampleState boardgame.State) error {
 	if err := r.RoundRobin.ValidConfiguration(exampleState); err != nil {
 		return err
 	}
@@ -450,7 +454,7 @@ func (r *RoundRobinNumRounds) NumRounds() int {
 //ConditionMet will check if the round count has been reached; if it has it
 //will return nil immediately. Otherwise it will fall back on RoundRobin's
 //base ConditionMet, returning nil if no players are left to act upon.
-func (r *RoundRobinNumRounds) ConditionMet(state boardgame.State) error {
+func (r *RoundRobinNumRounds) ConditionMet(state boardgame.ImmutableState) error {
 	numRounds, ok := r.TopLevelStruct().(numRoundser)
 
 	if !ok {
@@ -458,7 +462,7 @@ func (r *RoundRobinNumRounds) ConditionMet(state boardgame.State) error {
 		return nil
 	}
 
-	roundRobiner, ok := state.GameState().(interfaces.RoundRobinProperties)
+	roundRobiner, ok := state.ImmutableGameState().(interfaces.RoundRobinProperties)
 
 	if !ok {
 		return nil

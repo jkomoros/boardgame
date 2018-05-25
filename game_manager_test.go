@@ -77,15 +77,15 @@ type testMoveFailValidConfiguration struct {
 	baseMove
 }
 
-func (t *testMoveFailValidConfiguration) ValidConfiguration(exampleState MutableState) error {
+func (t *testMoveFailValidConfiguration) ValidConfiguration(exampleState State) error {
 	return errors.New("Invalid configuration")
 }
 
-func (t *testMoveFailValidConfiguration) Apply(state MutableState) error {
+func (t *testMoveFailValidConfiguration) Apply(state State) error {
 	return nil
 }
 
-func (t *testMoveFailValidConfiguration) Legal(state State, proposer PlayerIndex) error {
+func (t *testMoveFailValidConfiguration) Legal(state ImmutableState, proposer PlayerIndex) error {
 	return nil
 }
 

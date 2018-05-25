@@ -48,12 +48,12 @@ func (g *gameDelegate) DefaultNumPlayers() int {
 	return 2
 }
 
-func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c boardgame.Component) (boardgame.Stack, error) {
+func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.Stack, error) {
 	game, _ := concreteStates(state)
 	return game.Die, nil
 }
 
-func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) error {
+func (g *gameDelegate) FinishSetUp(state boardgame.State) error {
 
 	game, _ := concreteStates(state)
 
@@ -67,7 +67,7 @@ func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) error {
 
 }
 
-func (g *gameDelegate) GameEndConditionMet(state boardgame.State) bool {
+func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool {
 	game, players := concreteStates(state)
 
 	for _, player := range players {
@@ -79,11 +79,11 @@ func (g *gameDelegate) GameEndConditionMet(state boardgame.State) bool {
 	return false
 }
 
-func (g *gameDelegate) PlayerScore(pState boardgame.PlayerState) int {
+func (g *gameDelegate) PlayerScore(pState boardgame.ImmutablePlayerState) int {
 	return pState.(*playerState).TotalScore
 }
 
-func (g *gameDelegate) Diagram(state boardgame.State) string {
+func (g *gameDelegate) Diagram(state boardgame.ImmutableState) string {
 	var parts []string
 
 	game, players := concreteStates(state)

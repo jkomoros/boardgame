@@ -15,7 +15,7 @@ type MovePlaceToken struct {
 	Slot int
 }
 
-func (m *MovePlaceToken) DefaultsForState(state boardgame.State) {
+func (m *MovePlaceToken) DefaultsForState(state boardgame.ImmutableState) {
 	game, _ := concreteStates(state)
 
 	m.CurrentPlayer.DefaultsForState(state)
@@ -29,7 +29,7 @@ func (m *MovePlaceToken) DefaultsForState(state boardgame.State) {
 	}
 }
 
-func (m *MovePlaceToken) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *MovePlaceToken) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
 		return err
@@ -53,7 +53,7 @@ func (m *MovePlaceToken) Legal(state boardgame.State, proposer boardgame.PlayerI
 
 }
 
-func (m *MovePlaceToken) Apply(state boardgame.MutableState) error {
+func (m *MovePlaceToken) Apply(state boardgame.State) error {
 
 	game, players := concreteStates(state)
 

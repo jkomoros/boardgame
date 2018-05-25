@@ -317,7 +317,7 @@ func policyFromStructTag(tag string, defaultGroup string) map[int]Policy {
 //AutoInflate will go through and inflate fields that are nil that it knows
 //how to inflate due to comments in structs detected in the constructor for
 //this validator.
-func (r *readerValidator) AutoInflate(readSetConfigurer PropertyReadSetConfigurer, st State) error {
+func (r *readerValidator) AutoInflate(readSetConfigurer PropertyReadSetConfigurer, st ImmutableState) error {
 
 	for propName, config := range r.autoStackFields {
 
@@ -550,7 +550,7 @@ func (r *readerValidator) Valid(reader PropertyReader) error {
 	return nil
 }
 
-func setReaderStatePtr(reader PropertyReader, st State) error {
+func setReaderStatePtr(reader PropertyReader, st ImmutableState) error {
 
 	statePtr, ok := st.(*state)
 	if !ok {

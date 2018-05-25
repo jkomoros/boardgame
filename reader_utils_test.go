@@ -101,15 +101,15 @@ func (t *testAutoEnumMove) ReadSetConfigurer() PropertyReadSetConfigurer {
 	return getDefaultReadSetConfigurer(t)
 }
 
-func (t *testAutoEnumMove) Legal(state State, proposer PlayerIndex) error {
+func (t *testAutoEnumMove) Legal(state ImmutableState, proposer PlayerIndex) error {
 	return nil
 }
 
-func (t *testAutoEnumMove) Apply(state MutableState) error {
+func (t *testAutoEnumMove) Apply(state State) error {
 	return nil
 }
 
-func (t *testAutoEnumMove) DefaultsForState(state State) {
+func (t *testAutoEnumMove) DefaultsForState(state ImmutableState) {
 	//Pass
 }
 
@@ -129,7 +129,7 @@ func (t *testAutoEnumMove) TopLevelStruct() Move {
 	return t.topLevelStruct
 }
 
-func (t *testAutoEnumMove) ValidConfiguration(exampleState MutableState) error {
+func (t *testAutoEnumMove) ValidConfiguration(exampleState State) error {
 	return nil
 }
 

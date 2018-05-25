@@ -117,7 +117,7 @@ func policyFromString(policyName string) Policy {
 	return PolicyInvalid
 }
 
-func (s *state) SanitizedForPlayer(player PlayerIndex) State {
+func (s *state) SanitizedForPlayer(player PlayerIndex) ImmutableState {
 
 	//If the playerIndex isn't an actuall player's index, just return self.
 	if player < -1 || int(player) >= len(s.playerStates) {
@@ -174,7 +174,7 @@ func (s *state) generateSanitizationTransformation(player PlayerIndex) *sanitiza
 
 }
 
-func generateSubStateSanitizationTransformation(subState SubState, propertyRef StatePropertyRef, delegate GameDelegate, generatingForPlayer PlayerIndex, index PlayerIndex) subStateSanitizationTransformation {
+func generateSubStateSanitizationTransformation(subState ImmutableSubState, propertyRef StatePropertyRef, delegate GameDelegate, generatingForPlayer PlayerIndex, index PlayerIndex) subStateSanitizationTransformation {
 
 	//Since propertyRef is passed in by value we can modify it locally without a problem
 

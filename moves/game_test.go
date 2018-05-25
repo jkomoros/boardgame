@@ -49,12 +49,12 @@ func (g *gameState) SetCurrentPhase(phase int) {
 	g.Phase.SetValue(phase)
 }
 
-func concreteStates(state boardgame.State) (*gameState, []*playerState) {
-	game := state.GameState().(*gameState)
+func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState) {
+	game := state.ImmutableGameState().(*gameState)
 
-	players := make([]*playerState, len(state.PlayerStates()))
+	players := make([]*playerState, len(state.ImmutablePlayerStates()))
 
-	for i, player := range state.PlayerStates() {
+	for i, player := range state.ImmutablePlayerStates() {
 		players[i] = player.(*playerState)
 	}
 
@@ -70,7 +70,7 @@ func (g *gameDelegate) Name() string {
 	return "tester"
 }
 
-func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c boardgame.Component) (boardgame.Stack, error) {
+func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.Stack, error) {
 	game, _ := concreteStates(state)
 
 	return game.DrawStack, nil
@@ -80,8 +80,8 @@ func (g *gameDelegate) DefaultNumPlayers() int {
 	return 4
 }
 
-func (g *gameDelegate) CurrentPlayerIndex(state boardgame.State) boardgame.PlayerIndex {
-	return state.GameState().(*gameState).CurrentPlayer
+func (g *gameDelegate) CurrentPlayerIndex(state boardgame.ImmutableState) boardgame.PlayerIndex {
+	return state.ImmutableGameState().(*gameState).CurrentPlayer
 }
 
 func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {

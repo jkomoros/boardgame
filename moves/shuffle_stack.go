@@ -21,7 +21,7 @@ type moveInfoer interface {
 	Info() *boardgame.MoveInfo
 }
 
-func sourceStackFromConfig(m moveInfoer, state boardgame.MutableState) boardgame.Stack {
+func sourceStackFromConfig(m moveInfoer, state boardgame.State) boardgame.Stack {
 	config := m.Info().Type().CustomConfiguration()
 
 	stackName, ok := config[configNameSourceStack]
@@ -36,7 +36,7 @@ func sourceStackFromConfig(m moveInfoer, state boardgame.MutableState) boardgame
 		return nil
 	}
 
-	stack, err := state.MutableGameState().ReadSetter().StackProp(strStackName)
+	stack, err := state.GameState().ReadSetter().StackProp(strStackName)
 
 	if err != nil {
 		return nil
@@ -48,7 +48,7 @@ func sourceStackFromConfig(m moveInfoer, state boardgame.MutableState) boardgame
 //SourceStack by default just returns the property on GameState with the name
 //passed to DefaultConfig by WithSourceStack. If that is not sufficient,
 //override this in your embedding struct.
-func (s *ShuffleStack) SourceStack(state boardgame.MutableState) boardgame.Stack {
+func (s *ShuffleStack) SourceStack(state boardgame.State) boardgame.Stack {
 	return sourceStackFromConfig(s, state)
 }
 
@@ -56,7 +56,7 @@ func (s *ShuffleStack) SourceStack(state boardgame.MutableState) boardgame.Stack
 
 //Apply shuffles the stack that the embedding move selects by the return value
 //from SourceStack().
-func (s *ShuffleStack) Apply(state boardgame.MutableState) error {
+func (s *ShuffleStack) Apply(state boardgame.State) error {
 	embeddingMove := s.TopLevelStruct()
 
 	stacker, ok := embeddingMove.(interfaces.SourceStacker)
@@ -74,7 +74,7 @@ func (s *ShuffleStack) Apply(state boardgame.MutableState) error {
 	return stack.Shuffle()
 }
 
-func (s *ShuffleStack) ValidConfiguration(exampleState boardgame.MutableState) error {
+func (s *ShuffleStack) ValidConfiguration(exampleState boardgame.State) error {
 	testMove := s.TopLevelStruct()
 
 	sourceStacker, ok := testMove.(interfaces.SourceStacker)

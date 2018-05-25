@@ -107,7 +107,7 @@ func (d *Base) TopLevelStruct() boardgame.Move {
 }
 
 //DefaultsForState doesn't do anything
-func (d *Base) DefaultsForState(state boardgame.State) {
+func (d *Base) DefaultsForState(state boardgame.ImmutableState) {
 	return
 }
 
@@ -118,7 +118,7 @@ func (d *Base) Description() string {
 
 //ValidConfiguration always returns nil because there is no required
 //configuration for moves.Base.
-func (d *Base) ValidConfiguration(exampleState boardgame.MutableState) error {
+func (d *Base) ValidConfiguration(exampleState boardgame.State) error {
 	return nil
 }
 
@@ -308,7 +308,7 @@ func (b *Base) MoveTypeLegalPhases() []int {
 //last phase change match the pattern? If your move can be made legally
 //multiple times in a row in a given move progression, implement
 //interfaces.AllowMultipleInProgression() and return true.
-func (d *Base) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (d *Base) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := d.legalInPhase(state); err != nil {
 		return err
@@ -320,7 +320,7 @@ func (d *Base) Legal(state boardgame.State, proposer boardgame.PlayerIndex) erro
 
 //legalInPhase will return a descriptive error if this move is not legal in
 //the current phase of hte game.
-func (d *Base) legalInPhase(state boardgame.State) error {
+func (d *Base) legalInPhase(state boardgame.ImmutableState) error {
 
 	legalPhases := d.Info().Type().LegalPhases()
 
@@ -412,7 +412,7 @@ func (d *Base) historicalMovesSincePhaseTransition(game *boardgame.Game, upToVer
 
 }
 
-func (d *Base) legalMoveInProgression(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (d *Base) legalMoveInProgression(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	currentPhase := state.Game().Manager().Delegate().CurrentPhase(state)
 
 	pattern := state.Game().Manager().Delegate().PhaseMoveProgression(currentPhase)

@@ -25,7 +25,7 @@ type Component interface {
 
 	//Instance returns a ComponentInstance representing this component in the
 	//given state.
-	Instance(st State) ComponentInstance
+	Instance(st ImmutableState) ComponentInstance
 
 	//Generic returns true if this Component is the generic component for this
 	//deck. You might get this component if you ask for a component from a
@@ -61,20 +61,20 @@ type ImmutableComponentInstance interface {
 	//the package doc for more on semi-stable Ids for components, what they
 	//can be used for, and when they do (and don't) change.
 	ID() string
-	//DynamicValues returns the Dynamic Values for this component in the state
+	//ImmutableDynamicValues returns the Dynamic Values for this component in the state
 	//this instance is associated with. A convenience so you don't have to go
 	//find them within the DynamicComponentValues yourself.
-	DynamicValues() SubState
+	ImmutableDynamicValues() ImmutableSubState
 
-	//State returns the State object that this ComponentInstance is affiliated
+	//ImmutableState returns the State object that this ComponentInstance is affiliated
 	//with.
-	State() State
+	ImmutableState() ImmutableState
 
 	//Mutable returns a mutable version of this component instance. It's sugar
 	//for state.ContainingMutableComponent. You must pass in a Mutable version
 	//of the state associated with this ComponentInstance to prove that you
 	//have a mutable state.
-	Mutable(state MutableState) (ComponentInstance, error)
+	Mutable(state State) (ComponentInstance, error)
 
 	//mutable is only to be used to up-cast to mutablecomponentindex when you
 	//know that's what it is as a quick convenience for use only within this package.
@@ -97,6 +97,11 @@ type ImmutableComponentInstance interface {
 //locations.
 type ComponentInstance interface {
 	ImmutableComponentInstance
+
+	//DynamicValues returns the Dynamic Values for this component in the state
+	//this instance is associated with. A convenience so you don't have to go
+	//find them within the DynamicComponentValues yourself.
+	DynamicValues() SubState
 
 	//MoveTo moves the specified component in its current stack to the
 	//specified slot in the destination stack. The destination stack must be
@@ -213,7 +218,7 @@ func (c *component) ptr() *component {
 	return c
 }
 
-func (c *component) Instance(st State) ComponentInstance {
+func (c *component) Instance(st ImmutableState) ComponentInstance {
 
 	var ptr *state
 
@@ -418,7 +423,7 @@ func (c componentInstance) SlideToLastSlot() error {
 	return source.moveComponentToEnd(sourceIndex)
 }
 
-func (c componentInstance) Mutable(mState MutableState) (ComponentInstance, error) {
+func (c componentInstance) Mutable(mState State) (ComponentInstance, error) {
 	if mState == nil {
 		return nil, errors.New("Passed nil MutableState")
 	}
@@ -442,8 +447,16 @@ func (c componentInstance) mutable() ComponentInstance {
 	return c
 }
 
+func (c componentInstance) ImmutableState() ImmutableState {
+	return c.statePtr
+}
+
 func (c componentInstance) State() State {
 	return c.statePtr
+}
+
+func (c componentInstance) ImmutableDynamicValues() ImmutableSubState {
+	return c.DynamicValues()
 }
 
 func (c componentInstance) DynamicValues() SubState {

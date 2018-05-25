@@ -28,7 +28,7 @@ type MoveCountDie struct {
  *
  **************************************************/
 
-func (m *MoveRollDice) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *MoveRollDice) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
 		return nil
@@ -45,7 +45,7 @@ func (m *MoveRollDice) Legal(state boardgame.State, proposer boardgame.PlayerInd
 	return nil
 }
 
-func (m *MoveRollDice) Apply(state boardgame.MutableState) error {
+func (m *MoveRollDice) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
 
 	p := players[game.CurrentPlayer]
@@ -65,7 +65,7 @@ func (m *MoveRollDice) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-func (m *MoveDoneTurn) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *MoveDoneTurn) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
 		return err
@@ -86,7 +86,7 @@ func (m *MoveDoneTurn) Legal(state boardgame.State, proposer boardgame.PlayerInd
 	return nil
 }
 
-func (m *MoveDoneTurn) Apply(state boardgame.MutableState) error {
+func (m *MoveDoneTurn) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
 
 	p := players[game.CurrentPlayer]
@@ -102,7 +102,7 @@ func (m *MoveDoneTurn) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-func (m *MoveCountDie) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *MoveCountDie) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
 		return err
@@ -119,7 +119,7 @@ func (m *MoveCountDie) Legal(state boardgame.State, proposer boardgame.PlayerInd
 	return nil
 }
 
-func (m *MoveCountDie) Apply(state boardgame.MutableState) error {
+func (m *MoveCountDie) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
 
 	p := players[game.CurrentPlayer]

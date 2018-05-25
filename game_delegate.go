@@ -116,7 +116,7 @@ type GameDelegate interface {
 	//returned, any nil Stacks are returned, or any returned stacks don't have
 	//space for another component, game.SetUp will fail. State and Component
 	//are only provided for reference; do not modify them.
-	DistributeComponentToStarterStack(state State, c Component) (Stack, error)
+	DistributeComponentToStarterStack(state ImmutableState, c Component) (Stack, error)
 
 	//BeginSetup is a chance to modify the initial state object *before* the
 	//components are distributed to it. It is also where the config for your
@@ -126,7 +126,7 @@ type GameDelegate interface {
 	//transcribe config information you were passed into properties on your
 	//gameState as appropriate. If error is non-nil, Game setup will be
 	//aborted, with the reasoning including the error message provided.
-	BeginSetUp(state MutableState, config GameConfig) error
+	BeginSetUp(state State, config GameConfig) error
 
 	//FinishSetUp is called during game.SetUp, *after* components have been
 	//distributed to their StarterStack. This is the last chance to modify the
@@ -138,11 +138,11 @@ type GameDelegate interface {
 	//most of the logic in a SetUp phase. See the README for more. If error is
 	//non-nil, Game setup will be aborted, with the reasoning including the
 	//error message provided.
-	FinishSetUp(state MutableState) error
+	FinishSetUp(state State) error
 
 	//CheckGameFinished should return true if the game is finished, and who
 	//the winners are. Called after every move is applied.
-	CheckGameFinished(state State) (finished bool, winners []PlayerIndex)
+	CheckGameFinished(state ImmutableState) (finished bool, winners []PlayerIndex)
 
 	//ProposeFixUpMove is called after a move has been applied. It may return
 	//a FixUp move, which will be applied before any other moves are applied.
@@ -150,7 +150,7 @@ type GameDelegate interface {
 	//moves are useful for things like shuffling a discard deck back into a
 	//draw deck, or other moves that are necessary to get the GameState back
 	//into reasonable shape.
-	ProposeFixUpMove(state State) Move
+	ProposeFixUpMove(state ImmutableState) Move
 
 	//DefaultNumPlayers returns the number of users that this game defaults to.
 	//For example, for tictactoe, it will be 2. If 0 is provided to
@@ -203,7 +203,7 @@ type GameDelegate interface {
 	//player, or the type of round that we're in has no current player), this
 	//should return ObserverPlayerIndex. The result of this method is used to
 	//power state.CurrentPlayer.
-	CurrentPlayerIndex(state State) PlayerIndex
+	CurrentPlayerIndex(state ImmutableState) PlayerIndex
 
 	//CurrentPhase returns the phase that the game state is currently in.
 	//Phase is a formalized convention used in moves.Base to make it easier to
@@ -211,7 +211,7 @@ type GameDelegate interface {
 	//return result is primarily used in moves.Base to check whether it is one
 	//of the phases in a give Move's LegalPhases. See moves.Base for more
 	//information.
-	CurrentPhase(state State) int
+	CurrentPhase(state ImmutableState) int
 
 	//PhaseEnum returns the enum for game phases (the return values of
 	//CurrentPhase are expected to be valid enums within that enum). Primarily
@@ -241,13 +241,13 @@ type GameDelegate interface {
 	//If you have computed properties that you want to be included in your
 	//JSON (for example, for use clientside), export them here by creating a
 	//dictionary with their values.
-	ComputedGlobalProperties(state State) PropertyCollection
-	ComputedPlayerProperties(player PlayerState) PropertyCollection
+	ComputedGlobalProperties(state ImmutableState) PropertyCollection
+	ComputedPlayerProperties(player ImmutablePlayerState) PropertyCollection
 
 	//Diagram should return a basic debug rendering of state in multi-line
 	//ascii art. Useful for debugging. State.Diagram() will reach out to this
 	//method.
-	Diagram(s State) string
+	Diagram(s ImmutableState) string
 
 	//SetManager configures which manager this delegate is in use with. A
 	//given delegate can only be used by a single manager at a time.
@@ -281,7 +281,7 @@ type DefaultGameDelegate struct {
 }
 
 //Diagram returns the string "This should be overriden to render a reasonable state here"
-func (d *DefaultGameDelegate) Diagram(state State) string {
+func (d *DefaultGameDelegate) Diagram(state ImmutableState) string {
 	return "This should be overriden to render a reasonable state here"
 }
 
@@ -321,7 +321,7 @@ func (d *DefaultGameDelegate) DynamicComponentValuesConstructor(deck *Deck) Conf
 //function, otherwise you could get a panic from applying too many FixUp
 //moves. Wil emit debug information about why certain fixup moves didn't apply
 //if the Manager's log level is Debug or higher.
-func (d *DefaultGameDelegate) ProposeFixUpMove(state State) Move {
+func (d *DefaultGameDelegate) ProposeFixUpMove(state ImmutableState) Move {
 
 	isDebug := d.Manager().Logger().Level >= logrus.DebugLevel
 
@@ -366,8 +366,8 @@ func (d *DefaultGameDelegate) ProposeFixUpMove(state State) Move {
 
 //CurrentPlayerIndex returns gameState.CurrentPlayer, if that is a PlayerIndex
 //property. If not, returns ObserverPlayerIndex.≈
-func (d *DefaultGameDelegate) CurrentPlayerIndex(state State) PlayerIndex {
-	index, err := state.GameState().Reader().PlayerIndexProp("CurrentPlayer")
+func (d *DefaultGameDelegate) CurrentPlayerIndex(state ImmutableState) PlayerIndex {
+	index, err := state.ImmutableGameState().Reader().PlayerIndexProp("CurrentPlayer")
 
 	if err != nil {
 		//Guess that's not where they store CurrentPlayer.
@@ -380,9 +380,9 @@ func (d *DefaultGameDelegate) CurrentPlayerIndex(state State) PlayerIndex {
 //CurrentPhase by default with return the value of gameState.Phase, if it is
 //an enum. If it is not, it will return -1 instead, to make it more clear that
 //it's an invalid CurrentPhase (phase 0 is often valid).
-func (d *DefaultGameDelegate) CurrentPhase(state State) int {
+func (d *DefaultGameDelegate) CurrentPhase(state ImmutableState) int {
 
-	phaseEnum, err := state.GameState().Reader().ImmutableEnumProp("Phase")
+	phaseEnum, err := state.ImmutableGameState().Reader().ImmutableEnumProp("Phase")
 
 	if err != nil {
 		//Guess it wasn't there
@@ -423,7 +423,7 @@ func (d *DefaultGameDelegate) SetPhaseMoveProgression(phase int, progression []s
 	d.moveProgressions[phase] = progression
 }
 
-func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state State, c Component) (Stack, error) {
+func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state ImmutableState, c Component) (Stack, error) {
 	//The stub returns an error, because if this is called that means there
 	//was a component in the deck. And if we didn't store it in a stack, then
 	//we are in violation of the invariant.
@@ -482,23 +482,23 @@ func (d *DefaultGameDelegate) SanitizationPolicy(prop StatePropertyRef, groupMem
 }
 
 //ComputedGlobalProperties returns nil.
-func (d *DefaultGameDelegate) ComputedGlobalProperties(state State) PropertyCollection {
+func (d *DefaultGameDelegate) ComputedGlobalProperties(state ImmutableState) PropertyCollection {
 	return nil
 }
 
 //ComputedPlayerProperties returns nil.
-func (d *DefaultGameDelegate) ComputedPlayerProperties(player PlayerState) PropertyCollection {
+func (d *DefaultGameDelegate) ComputedPlayerProperties(player ImmutablePlayerState) PropertyCollection {
 	return nil
 }
 
 //BeginSetUp does not do anything and returns nil.
-func (d *DefaultGameDelegate) BeginSetUp(state MutableState, config GameConfig) error {
+func (d *DefaultGameDelegate) BeginSetUp(state State, config GameConfig) error {
 	//Don't need to do anything by default
 	return nil
 }
 
 //FinishSetUp doesn't do anything and returns nil.
-func (d *DefaultGameDelegate) FinishSetUp(state MutableState) error {
+func (d *DefaultGameDelegate) FinishSetUp(state State) error {
 	//Don't need to do anything by default
 	return nil
 }
@@ -506,8 +506,8 @@ func (d *DefaultGameDelegate) FinishSetUp(state MutableState) error {
 //defaultCheckGameFinishedDelegate can be private because
 //DefaultGameFinished implements the methods by default.
 type defaultCheckGameFinishedDelegate interface {
-	GameEndConfigurationMet(state State) bool
-	PlayerScore(pState PlayerState) int
+	GameEndConfigurationMet(state ImmutableState) bool
+	PlayerScore(pState ImmutablePlayerState) int
 }
 
 //CheckGameFinished by default checks delegate.GameEndConditionMet(). If true,
@@ -515,7 +515,7 @@ type defaultCheckGameFinishedDelegate interface {
 //players who have the highest score as winners. To use this implementation
 //simply implement those methods. This is sufficient for many games, but not
 //all, so sometimes needs to be overriden.
-func (d *DefaultGameDelegate) CheckGameFinished(state State) (finished bool, winners []PlayerIndex) {
+func (d *DefaultGameDelegate) CheckGameFinished(state ImmutableState) (finished bool, winners []PlayerIndex) {
 
 	if d.Manager() == nil {
 		return false, nil
@@ -534,7 +534,7 @@ func (d *DefaultGameDelegate) CheckGameFinished(state State) (finished bool, win
 
 	//Game is over. What's the max score?
 	maxScore := 0
-	for _, player := range state.PlayerStates() {
+	for _, player := range state.ImmutablePlayerStates() {
 		score := checkGameFinished.PlayerScore(player)
 
 		if score > maxScore {
@@ -543,7 +543,7 @@ func (d *DefaultGameDelegate) CheckGameFinished(state State) (finished bool, win
 	}
 
 	//Who has the max score?
-	for i, player := range state.PlayerStates() {
+	for i, player := range state.ImmutablePlayerStates() {
 		score := checkGameFinished.PlayerScore(player)
 
 		if score == maxScore {
@@ -560,7 +560,7 @@ func (d *DefaultGameDelegate) CheckGameFinished(state State) (finished bool, win
 //CheckGameFinished uses this by default; if you override CheckGameFinished
 //you don't need to override this. The default implementation of this simply
 //returns false.
-func (d *DefaultGameDelegate) GameEndConditionMet(state State) bool {
+func (d *DefaultGameDelegate) GameEndConditionMet(state ImmutableState) bool {
 	return false
 }
 
@@ -568,7 +568,7 @@ func (d *DefaultGameDelegate) GameEndConditionMet(state State) bool {
 //should return the score for the given player. CheckGameFinished uses this by
 //default; if you override CheckGameFinished you don't need to override this.
 //The deafult implementation of this simply returns 0.
-func (d *DefaultGameDelegate) PlayerScore(pState PlayerState) int {
+func (d *DefaultGameDelegate) PlayerScore(pState ImmutablePlayerState) int {
 	return 0
 }
 

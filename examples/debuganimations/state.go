@@ -4,12 +4,12 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
-func concreteStates(state boardgame.State) (*gameState, []*playerState) {
-	game := state.GameState().(*gameState)
+func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState) {
+	game := state.ImmutableGameState().(*gameState)
 
-	players := make([]*playerState, len(state.PlayerStates()))
+	players := make([]*playerState, len(state.ImmutablePlayerStates()))
 
-	for i, player := range state.PlayerStates() {
+	for i, player := range state.ImmutablePlayerStates() {
 		players[i] = player.(*playerState)
 	}
 
