@@ -233,7 +233,7 @@ func (d *DealCountComponents) RoundRobinAction(playerState boardgame.MutablePlay
 		return err
 	}
 
-	return gameStack.MutableFirst().MoveToNextSlot(playerStack)
+	return gameStack.First().MoveToNextSlot(playerStack)
 }
 
 //moveTypeInfo is used as a helper to generate sttrings for all of the MoveType getters.

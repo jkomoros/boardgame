@@ -51,7 +51,7 @@ func (m *moveCurrentPlayerDraw) Apply(state boardgame.MutableState) error {
 
 	p := players[game.CurrentPlayer]
 
-	return game.DrawStack.MutableFirst().MoveToFirstSlot(p.Hand)
+	return game.DrawStack.First().MoveToFirstSlot(p.Hand)
 }
 
 //+autoreader

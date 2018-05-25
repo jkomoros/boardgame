@@ -19,11 +19,11 @@ func TestEmptyStacks(t *testing.T) {
 
 	space := gState.MyBoard.SpaceAt(2)
 
-	c := space.MutableComponentAt(0)
+	c := space.ComponentAt(0)
 
 	assert.For(t).ThatActual(c).IsNil()
 
-	c = space.MutableComponentAt(space.Len() - 1)
+	c = space.ComponentAt(space.Len() - 1)
 
 	assert.For(t).ThatActual(c).IsNil()
 }
@@ -52,7 +52,7 @@ func TestMultipleStackMoves(t *testing.T) {
 	destination := gameState.MyBoard.SpaceAt(0)
 
 	for i := 0; i < 5; i++ {
-		err := drawDeck.MutableComponentAt(0).MoveToNextSlot(destination)
+		err := drawDeck.ComponentAt(0).MoveToNextSlot(destination)
 		assert.For(t, i).ThatActual(err).IsNil()
 		verifyContainingComponent(t, st, deck)
 	}
@@ -109,7 +109,7 @@ func TestContainingComponent(t *testing.T) {
 
 		assert.For(t, i).ThatActual(stack).IsNotNil()
 
-		otherC := stack.ComponentAt(slotIndex)
+		otherC := stack.ImmutableComponentAt(slotIndex)
 
 		assert.For(t, i).ThatActual(otherC.ptr()).Equals(c)
 
@@ -134,7 +134,7 @@ func verifyContainingComponent(t *testing.T, st State, deck *Deck) {
 		assert.For(t, i).ThatActual(err).IsNil()
 		assert.For(t, i).ThatActual(stack).IsNotNil()
 
-		otherC := stack.ComponentAt(slotIndex)
+		otherC := stack.ImmutableComponentAt(slotIndex)
 
 		assert.For(t, i).ThatActual(otherC.ptr()).Equals(c)
 
@@ -307,13 +307,13 @@ func TestMoveExtreme(t *testing.T) {
 
 	assert.For(t).ThatActual(sized.indexes).Equals([]int{0, 1, -1, 2, -1})
 
-	err := sized.MutableFirst().SlideToLastSlot()
+	err := sized.First().SlideToLastSlot()
 
 	assert.For(t).ThatActual(err).IsNil()
 
 	assert.For(t).ThatActual(sized.indexes).Equals([]int{-1, 1, -1, 2, 0})
 
-	err = sized.MutableComponentAt(1).SlideToFirstSlot()
+	err = sized.ComponentAt(1).SlideToFirstSlot()
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -329,13 +329,13 @@ func TestMoveExtreme(t *testing.T) {
 
 	assert.For(t).ThatActual(growable.indexes).Equals([]int{0, 1, 2})
 
-	err = growable.MutableFirst().SlideToLastSlot()
+	err = growable.First().SlideToLastSlot()
 
 	assert.For(t).ThatActual(err).IsNil()
 
 	assert.For(t).ThatActual(growable.indexes).Equals([]int{1, 2, 0})
 
-	err = growable.MutableComponentAt(1).SlideToFirstSlot()
+	err = growable.ComponentAt(1).SlideToFirstSlot()
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -536,7 +536,7 @@ func TestSort(t *testing.T) {
 		}
 	}
 
-	lessFunc := func(i, j ComponentInstance) bool {
+	lessFunc := func(i, j ImmutableComponentInstance) bool {
 		if i == nil {
 			return true
 		}
@@ -755,7 +755,7 @@ func secretMoveTestHelper(t *testing.T, from Stack, to Stack, description string
 	toLastIds := to.Ids()
 	toLastIdsSeen := to.IdsLastSeen()
 
-	err := from.MutableComponentAt(from.firstComponentIndex()).SecretMoveTo(to, to.firstSlot())
+	err := from.ComponentAt(from.firstComponentIndex()).SecretMoveTo(to, to.firstSlot())
 
 	assert.For(t, description).ThatActual(err).IsNil()
 

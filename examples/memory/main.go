@@ -213,17 +213,17 @@ func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) error {
 		//Doing the pair card first means that its index doesn't have to be
 		//modified down by 1
 		if useCard {
-			if err := game.UnusedCards.MutableComponentAt(pairCardIndex).MoveToNextSlot(game.HiddenCards); err != nil {
+			if err := game.UnusedCards.ComponentAt(pairCardIndex).MoveToNextSlot(game.HiddenCards); err != nil {
 				return errors.New("Couldn't move pair card to other slot: " + err.Error())
 			}
-			if err := game.UnusedCards.MutableFirst().MoveToNextSlot(game.HiddenCards); err != nil {
+			if err := game.UnusedCards.First().MoveToNextSlot(game.HiddenCards); err != nil {
 				return errors.New("Couldn't move first card to other slot: " + err.Error())
 			}
 		} else {
-			if err := game.UnusedCards.MutableComponentAt(pairCardIndex).SlideToLastSlot(); err != nil {
+			if err := game.UnusedCards.ComponentAt(pairCardIndex).SlideToLastSlot(); err != nil {
 				return errors.New("Couldn't move pair card to end: " + err.Error())
 			}
-			if err := game.UnusedCards.MutableFirst().SlideToLastSlot(); err != nil {
+			if err := game.UnusedCards.First().SlideToLastSlot(); err != nil {
 				return errors.New("Couldn't move first card to end: " + err.Error())
 			}
 		}
@@ -244,7 +244,7 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 
 	result = append(result, "Board")
 
-	for i, c := range game.Cards.Components() {
+	for i, c := range game.Cards.ImmutableComponents() {
 
 		value := fmt.Sprintf("%2d", i) + ": "
 

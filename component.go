@@ -38,18 +38,18 @@ type Component interface {
 	ptr() *component
 }
 
-//ComponentInstance is a specific instantiation of a component as it exists in
-//the particular State it is associated with. ComponentInstances also
-//implement all of the Component information, as a convenience you often need
-//both bits of inforamation.  The downside of this is that two Component
+//ImmutableComponentInstance is a specific instantiation of a component as it
+//exists in the particular State it is associated with. ComponentInstances
+//also implement all of the Component information, as a convenience you often
+//need both bits of inforamation.  The downside of this is that two Component
 //values can't be compared directly for equality because they may be different
 //underlying objects and wrappers. If you want to see if two Components that
 //might be from different states refer to the same underlying conceptual
 //Component, use Equivalent(). However, ComponentInstances compared with
 //another ComponentInstance for the same component in the same state will be
 //equal.
-type ComponentInstance interface {
-	//ComponentInstances have all of the information of a base Component, as
+type ImmutableComponentInstance interface {
+	//ImmutableComponentInstances have all of the information of a base Component, as
 	//often that's the information you most need.
 	Component
 
@@ -74,29 +74,29 @@ type ComponentInstance interface {
 	//for state.ContainingMutableComponent. You must pass in a Mutable version
 	//of the state associated with this ComponentInstance to prove that you
 	//have a mutable state.
-	Mutable(state MutableState) (MutableComponentInstance, error)
+	Mutable(state MutableState) (ComponentInstance, error)
 
 	//mutable is only to be used to up-cast to mutablecomponentindex when you
 	//know that's what it is as a quick convenience for use only within this package.
-	mutable() MutableComponentInstance
+	mutable() ComponentInstance
 
 	secretMoveCount() int
 	movedSecretly()
 }
 
-//Note that a MutableComponentInstance doesn't actually guarantee that the
-//component is in a mutable context at this moment, just that it was at some
-//point on thie state (otherwise you couldn't have gotten a reference to it).
-//In practice though, if a Component was ever in a mutable context in a given
-//state, it must remain that way, because it can't be moved from a
-//MutableStack to a non-Mutable stack.
+//Note that a ComponentInstance doesn't actually guarantee that the component
+//is in a mutable context at this moment, just that it was at some point on
+//thie state (otherwise you couldn't have gotten a reference to it). In
+//practice though, if a Component was ever in a mutable context in a given
+//state, it must remain that way, because it can't be moved from a Stack to a
+//ImmutableStack.
 
-//MutableComponentInstance is a component instance that's in a context that is
-//mutable. You generally get these from a MutableStack that contains them. The
+//ComponentInstance is a component instance that's in a context that is
+//mutable. You generally get these from a Stack that contains them. The
 //instance contains many methods to move the component to other stacks or
 //locations.
-type MutableComponentInstance interface {
-	ComponentInstance
+type ComponentInstance interface {
+	ImmutableComponentInstance
 
 	//MoveTo moves the specified component in its current stack to the
 	//specified slot in the destination stack. The destination stack must be
@@ -418,7 +418,7 @@ func (c componentInstance) SlideToLastSlot() error {
 	return source.moveComponentToEnd(sourceIndex)
 }
 
-func (c componentInstance) Mutable(mState MutableState) (MutableComponentInstance, error) {
+func (c componentInstance) Mutable(mState MutableState) (ComponentInstance, error) {
 	if mState == nil {
 		return nil, errors.New("Passed nil MutableState")
 	}
@@ -435,10 +435,10 @@ func (c componentInstance) Mutable(mState MutableState) (MutableComponentInstanc
 		return nil, err
 	}
 
-	return stack.MutableComponentAt(index), nil
+	return stack.ComponentAt(index), nil
 }
 
-func (c componentInstance) mutable() MutableComponentInstance {
+func (c componentInstance) mutable() ComponentInstance {
 	return c
 }
 

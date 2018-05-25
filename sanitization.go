@@ -302,7 +302,7 @@ func sanitizeStateObj(readSetConfigurer PropertyReadSetConfigurer, transformatio
 			for _, stack := range stacks {
 
 				if _, ok := visibleDynamic[stack.Deck().Name()]; ok {
-					for _, c := range stack.Components() {
+					for _, c := range stack.ImmutableComponents() {
 						if c == nil {
 							continue
 						}
@@ -363,7 +363,7 @@ func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[strin
 			}
 
 			//Ok, if we get to here then we have a stack with items in a deck that does have dynamic values.
-			for _, c := range stack.Components() {
+			for _, c := range stack.ImmutableComponents() {
 				if c == nil {
 					continue
 				}

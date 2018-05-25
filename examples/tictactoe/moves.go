@@ -59,7 +59,7 @@ func (m *MovePlaceToken) Apply(state boardgame.MutableState) error {
 
 	u := players[m.TargetPlayerIndex]
 
-	if err := u.UnusedTokens.MutableFirst().MoveTo(game.Slots, m.Slot); err != nil {
+	if err := u.UnusedTokens.First().MoveTo(game.Slots, m.Slot); err != nil {
 		return err
 	}
 

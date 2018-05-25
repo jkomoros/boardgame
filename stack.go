@@ -39,24 +39,25 @@ type ImmutableStack interface {
 	//the number of non-nil slots.
 	NumComponents() int
 
-	//ComponentAt retrieves the component at the given index in the stack.
-	ComponentAt(index int) ComponentInstance
+	//ImmutableComponentAt retrieves the component at the given index in the
+	//stack.
+	ImmutableComponentAt(index int) ImmutableComponentInstance
 
-	//Components returns all of the components. Equivalent to calling
-	//ComponentAt from 0 to Len().
-	Components() []ComponentInstance
+	//ImmutableComponents returns all of the components. Equivalent to calling
+	//ImmutableComponentAt from 0 to Len().
+	ImmutableComponents() []ImmutableComponentInstance
 
-	//First returns a reference to the first non-nil component from the left,
-	//or nil if empty. For default stacks, this is simply a convenience
-	//wrapper around stack.ComponentAt(0). Other types of stacks might do more
-	//complicated calculations.
-	First() ComponentInstance
-
-	//Last returns a reference to the first non-nil component from the right,
-	//or nil if empty. For default stacks, this is simply a convenience
-	//wrapper around stack.ComponentAt(stack.Len() - 1). Other types of stacks
+	//ImmutableFirst returns a reference to the first non-nil component from
+	//the left, or nil if empty. For default stacks, this is simply a
+	//convenience wrapper around stack.ComponentAt(0). Other types of stacks
 	//might do more complicated calculations.
-	Last() ComponentInstance
+	ImmutableFirst() ImmutableComponentInstance
+
+	//ImmutableLast returns a reference to the first non-nil component from
+	//the right, or nil if empty. For default stacks, this is simply a
+	//convenience wrapper around stack.ComponentAt(stack.Len() - 1). Other
+	//types of stacks might do more complicated calculations.
+	ImmutableLast() ImmutableComponentInstance
 
 	//Ids returns a slice of strings representing the Ids of each component at
 	//each index. Under normal circumstances this will be the results of
@@ -157,25 +158,25 @@ type MergedStack interface {
 type Stack interface {
 	ImmutableStack
 
-	//MutableComponentAt is the same as ComponentAt, but returns a
-	//MutableComponentInstance.
-	MutableComponentAt(componentIndex int) MutableComponentInstance
+	//ComponentAt is the same as ImmutableComponentAt, but returns a
+	//ComponentInstance.
+	ComponentAt(componentIndex int) ComponentInstance
 
-	//MutableComponents is similar to Components, but returns
-	//MutableComponentInstances instead.
-	MutableComponents() []MutableComponentInstance
+	//Components is similar to ImmutableComponents, but returns
+	//ComponentInstances instead.
+	Components() []ComponentInstance
 
-	//MutableFirst returns a reference to the first non-nil component from the
-	//left, or nil if empty. For default stacks, ths is simply a convenience
-	//for MutableComponentAt(0). Other types of stacks might do more
-	//complicated calculations.
-	MutableFirst() MutableComponentInstance
+	//First returns a reference to the first non-nil component from the left,
+	//or nil if empty. For default stacks, ths is simply a convenience for
+	//ComponentAt(0). Other types of stacks might do more complicated
+	//calculations.
+	First() ComponentInstance
 
-	//MutableLast() returns a reference to the first non-nil component from
-	//the right, or nil if empty. For defaults stacks, this is simply a
-	//convenience for MutableComponentAt(stack.Len() - 1). Other types of
-	//stacks might do more complicated calculations.
-	MutableLast() MutableComponentInstance
+	//Last() returns a reference to the first non-nil component from the
+	//right, or nil if empty. For defaults stacks, this is simply a
+	//convenience for ComponentAt(stack.Len() - 1). Other types of stacks
+	//might do more complicated calculations.
+	Last() ComponentInstance
 
 	//MoveAllTo moves all of the components in this stack to the other stack,
 	//by repeatedly calling RemoveFirst() and InsertBack(). Errors and does
@@ -204,7 +205,7 @@ type Stack interface {
 	//SortComponents sorts the stack's components in the order implied by less
 	//by repeatedly calling SwapComponents. Errors if any SwapComponents
 	//errors. If error is non-nil, the stack may be left in an arbitrary order.
-	SortComponents(less func(i, j ComponentInstance) bool) error
+	SortComponents(less func(i, j ImmutableComponentInstance) bool) error
 
 	//Resizable returns true if calls to any of the methods that change the
 	//Size of the stack are legal to call in general. Currently only stacks
@@ -650,7 +651,7 @@ func (m *mergedStack) FirstComponentIndex() int {
 }
 
 func (m *mergedStack) firstComponentIndex() int {
-	for i, c := range m.Components() {
+	for i, c := range m.ImmutableComponents() {
 		if c != nil {
 			return i
 		}
@@ -663,7 +664,7 @@ func (m *mergedStack) LastComponentIndex() int {
 }
 
 func (m *mergedStack) lastComponentIndex() int {
-	components := m.Components()
+	components := m.ImmutableComponents()
 
 	for i := len(components) - 1; i >= 0; i-- {
 		if components[i] != nil {
@@ -717,13 +718,13 @@ func (m *mergedStack) NumComponents() int {
 	}
 	if m.overlap {
 		count := 0
-		for i, c := range m.stacks[0].Components() {
+		for i, c := range m.stacks[0].ImmutableComponents() {
 			if c != nil {
 				count++
 				continue
 			}
 			for depth := 1; depth < len(m.stacks); depth++ {
-				if c := m.stacks[depth].ComponentAt(i); c != nil {
+				if c := m.stacks[depth].ImmutableComponentAt(i); c != nil {
 					count++
 					break
 				}
@@ -776,6 +777,16 @@ func (m *mergedStack) Valid() error {
 
 }
 
+func (g *growableStack) ImmutableComponents() []ImmutableComponentInstance {
+	result := make([]ImmutableComponentInstance, len(g.indexes))
+
+	for i := 0; i < len(result); i++ {
+		result[i] = g.ImmutableComponentAt(i)
+	}
+
+	return result
+}
+
 func (g *growableStack) Components() []ComponentInstance {
 	result := make([]ComponentInstance, len(g.indexes))
 
@@ -786,11 +797,11 @@ func (g *growableStack) Components() []ComponentInstance {
 	return result
 }
 
-func (g *growableStack) MutableComponents() []MutableComponentInstance {
-	result := make([]MutableComponentInstance, len(g.indexes))
+func (s *sizedStack) ImmutableComponents() []ImmutableComponentInstance {
+	result := make([]ImmutableComponentInstance, len(s.indexes))
 
 	for i := 0; i < len(result); i++ {
-		result[i] = g.MutableComponentAt(i)
+		result[i] = s.ImmutableComponentAt(i)
 	}
 
 	return result
@@ -806,75 +817,65 @@ func (s *sizedStack) Components() []ComponentInstance {
 	return result
 }
 
-func (s *sizedStack) MutableComponents() []MutableComponentInstance {
-	result := make([]MutableComponentInstance, len(s.indexes))
-
-	for i := 0; i < len(result); i++ {
-		result[i] = s.MutableComponentAt(i)
-	}
-
-	return result
-}
-
-func (m *mergedStack) Components() []ComponentInstance {
+func (m *mergedStack) ImmutableComponents() []ImmutableComponentInstance {
 	if len(m.stacks) == 0 {
-		return []ComponentInstance{}
+		return []ImmutableComponentInstance{}
 	}
 	if m.overlap {
 
-		result := make([]ComponentInstance, len(m.stacks[0].Components()))
+		result := make([]ImmutableComponentInstance, len(m.stacks[0].ImmutableComponents()))
 
-		for i, _ := range m.stacks[0].Components() {
-			result[i] = m.ComponentAt(i)
+		for i, _ := range m.stacks[0].ImmutableComponents() {
+			result[i] = m.ImmutableComponentAt(i)
 		}
 		return result
 
 	}
 
-	var result []ComponentInstance
+	var result []ImmutableComponentInstance
 
 	for _, stack := range m.stacks {
-		result = append(result, stack.Components()...)
+		result = append(result, stack.ImmutableComponents()...)
 	}
 
 	return result
 }
 
-func (g *growableStack) First() ComponentInstance {
-	return g.MutableFirst()
+func (g *growableStack) ImmutableFirst() ImmutableComponentInstance {
+	return g.First()
 }
 
-func (g *growableStack) MutableFirst() MutableComponentInstance {
-	return g.MutableComponentAt(g.firstComponentIndex())
+func (g *growableStack) First() ComponentInstance {
+	return g.ComponentAt(g.firstComponentIndex())
+}
+
+func (g *growableStack) ImmutableLast() ImmutableComponentInstance {
+	return g.Last()
 }
 
 func (g *growableStack) Last() ComponentInstance {
-	return g.MutableLast()
+	return g.ComponentAt(g.lastComponentIndex())
 }
 
-func (g *growableStack) MutableLast() MutableComponentInstance {
-	return g.MutableComponentAt(g.lastComponentIndex())
+func (s *sizedStack) ImmutableFirst() ImmutableComponentInstance {
+	return s.First()
 }
 
 func (s *sizedStack) First() ComponentInstance {
-	return s.MutableFirst()
+	return s.ComponentAt(s.firstComponentIndex())
 }
 
-func (s *sizedStack) MutableFirst() MutableComponentInstance {
-	return s.MutableComponentAt(s.firstComponentIndex())
+func (s *sizedStack) ImmutableLast() ImmutableComponentInstance {
+	return s.Last()
 }
 
 func (s *sizedStack) Last() ComponentInstance {
-	return s.MutableLast()
+	return s.ComponentAt(s.LastComponentIndex())
 }
 
-func (s *sizedStack) MutableLast() MutableComponentInstance {
-	return s.MutableComponentAt(s.LastComponentIndex())
-}
-
-func (m *mergedStack) First() ComponentInstance {
+func (m *mergedStack) ImmutableFirst() ImmutableComponentInstance {
 	for i := 0; i < m.Len(); i++ {
-		c := m.ComponentAt(i)
+		c := m.ImmutableComponentAt(i)
 		if c != nil {
 			return c
 		}
@@ -882,9 +883,9 @@ func (m *mergedStack) First() ComponentInstance {
 	return nil
 }
 
-func (m *mergedStack) Last() ComponentInstance {
+func (m *mergedStack) ImmutableLast() ImmutableComponentInstance {
 	for i := m.Len() - 1; i >= 0; i-- {
-		c := m.ComponentAt(i)
+		c := m.ImmutableComponentAt(i)
 		if c != nil {
 			return c
 		}
@@ -892,13 +893,13 @@ func (m *mergedStack) Last() ComponentInstance {
 	return nil
 }
 
-func (g *growableStack) ComponentAt(index int) ComponentInstance {
-	return g.MutableComponentAt(index)
+func (g *growableStack) ImmutableComponentAt(index int) ImmutableComponentInstance {
+	return g.ComponentAt(index)
 }
 
 //ComponentAt fetches the component object representing the n-th object in
 //this stack.
-func (s *growableStack) MutableComponentAt(index int) MutableComponentInstance {
+func (s *growableStack) ComponentAt(index int) ComponentInstance {
 
 	//Substantially recreated in SizedStack.ComponentAt()
 	if index >= s.Len() || index < 0 {
@@ -920,13 +921,13 @@ func (s *growableStack) MutableComponentAt(index int) MutableComponentInstance {
 
 }
 
-func (s *sizedStack) ComponentAt(index int) ComponentInstance {
-	return s.MutableComponentAt(index)
+func (s *sizedStack) ImmutableComponentAt(index int) ImmutableComponentInstance {
+	return s.ComponentAt(index)
 }
 
 //ComponentAt fetches the component object representing the n-th object in
 //this stack.
-func (s *sizedStack) MutableComponentAt(index int) MutableComponentInstance {
+func (s *sizedStack) ComponentAt(index int) ComponentInstance {
 
 	//Substantially recreated in GrowableStack.ComponentAt()
 
@@ -948,13 +949,13 @@ func (s *sizedStack) MutableComponentAt(index int) MutableComponentInstance {
 	return component.Instance(s.state()).mutable()
 }
 
-func (m *mergedStack) ComponentAt(index int) ComponentInstance {
+func (m *mergedStack) ImmutableComponentAt(index int) ImmutableComponentInstance {
 	if len(m.stacks) == 0 {
 		return nil
 	}
 	if m.overlap {
 		for _, stack := range m.stacks {
-			if c := stack.ComponentAt(index); c != nil {
+			if c := stack.ImmutableComponentAt(index); c != nil {
 				return c
 			}
 		}
@@ -963,7 +964,7 @@ func (m *mergedStack) ComponentAt(index int) ComponentInstance {
 
 	for _, stack := range m.stacks {
 		if index < stack.Len() {
-			return stack.ComponentAt(index)
+			return stack.ImmutableComponentAt(index)
 		}
 		index -= stack.Len()
 	}
@@ -1143,7 +1144,7 @@ func (m *mergedStack) SlotsRemaining() int {
 
 	if m.overlap {
 		count := 0
-		for _, c := range m.Components() {
+		for _, c := range m.ImmutableComponents() {
 			if c == nil {
 				count++
 			}
@@ -1368,7 +1369,7 @@ func (s *sizedStack) insertNext(c ComponentInstance) {
 
 type stackSorter struct {
 	stack Stack
-	less  func(i, j ComponentInstance) bool
+	less  func(i, j ImmutableComponentInstance) bool
 	err   error
 }
 
@@ -1385,18 +1386,18 @@ func (s *stackSorter) Swap(i, j int) {
 }
 
 func (s *stackSorter) Less(i, j int) bool {
-	return s.less(s.stack.ComponentAt(i), s.stack.ComponentAt(j))
+	return s.less(s.stack.ImmutableComponentAt(i), s.stack.ImmutableComponentAt(j))
 }
 
-func (g *growableStack) SortComponents(less func(i, j ComponentInstance) bool) error {
+func (g *growableStack) SortComponents(less func(i, j ImmutableComponentInstance) bool) error {
 	return sortComponentsImpl(g, less)
 }
 
-func (s *sizedStack) SortComponents(less func(i, j ComponentInstance) bool) error {
+func (s *sizedStack) SortComponents(less func(i, j ImmutableComponentInstance) bool) error {
 	return sortComponentsImpl(s, less)
 }
 
-func sortComponentsImpl(s Stack, less func(i, j ComponentInstance) bool) error {
+func sortComponentsImpl(s Stack, less func(i, j ImmutableComponentInstance) bool) error {
 	sorter := &stackSorter{
 		stack: s,
 		less:  less,
@@ -1891,7 +1892,7 @@ func (s *sizedStack) MarshalJSON() ([]byte, error) {
 
 func (m *mergedStack) MarshalJSON() ([]byte, error) {
 
-	components := m.Components()
+	components := m.ImmutableComponents()
 
 	indexes := make([]int, len(components))
 

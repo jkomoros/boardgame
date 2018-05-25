@@ -70,7 +70,7 @@ func (m *MoveRevealCard) Apply(state boardgame.MutableState) error {
 	p := players[game.CurrentPlayer]
 
 	p.CardsLeftToReveal--
-	game.HiddenCards.MutableComponentAt(m.CardIndex).MoveTo(game.VisibleCards, m.CardIndex)
+	game.HiddenCards.ComponentAt(m.CardIndex).MoveTo(game.VisibleCards, m.CardIndex)
 
 	//If the cards are the same, the FixUpMove CaptureCards will fire after this.
 
@@ -181,7 +181,7 @@ func (m *MoveCaptureCards) Apply(state boardgame.MutableState) error {
 
 	for i, c := range game.VisibleCards.Components() {
 		if c != nil {
-			game.VisibleCards.MutableComponentAt(i).MoveToNextSlot(p.WonCards)
+			game.VisibleCards.ComponentAt(i).MoveToNextSlot(p.WonCards)
 		}
 	}
 
@@ -234,7 +234,7 @@ func (m *MoveHideCards) Apply(state boardgame.MutableState) error {
 	//Cancel a timer in case it was still going.
 	game.HideCardsTimer.Cancel()
 
-	for i, c := range game.VisibleCards.MutableComponents() {
+	for i, c := range game.VisibleCards.Components() {
 		if c != nil {
 			if err := c.MoveTo(game.HiddenCards, i); err != nil {
 				return errors.New("Couldn't move component: " + err.Error())

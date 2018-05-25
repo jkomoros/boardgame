@@ -141,7 +141,7 @@ func (m *MoveCountComponents) Apply(state boardgame.MutableState) error {
 		return errors.New("Destination was nil")
 	}
 
-	return source.MutableFirst().MoveToNextSlot(destination)
+	return source.First().MoveToNextSlot(destination)
 
 }
 
