@@ -348,7 +348,7 @@ type playerState struct {
 }
 ```
 
-For stacks, you can provide a struct tag that has the name of the deck it's affiliated with. Then you can return a nil value from your constructor for that property, and the system will automatically instantiate a zero-value stack of that shape. (Even cooler, this uses reflection only a single time, at engine start up, so it's fast in normal usage) It's also possible to include the starting size (for default stacks, the max size, and for sized stacks the number of slots).
+For stacks, you can provide a struct tag that has the name of the deck it's affiliated with. Then you can return a nil value from your constructor for that property, and the system will automatically instantiate a zero-value stack of that shape. (Even cooler, this uses reflection only a single time, at engine start up, so it's fast in normal usage) It's also possible to include the starting size (for default stacks, the max size, and for sized stacks the number of slots). You can also use constants instead of ints for the size. See the section on Constants at the end of this tutorial.
 
 The vast majority of real-world usecases you'll encounter can just use struct tags.
 
@@ -1650,6 +1650,41 @@ Agents are given access to a Game to act on, which allows them to see the curren
 Agents state is just a `[]byte` that the engine will persist and then hand back to the agent whenever it is called. Typically agents will encode their state as JSON and then read it back--but that's up to the agent to do as it wishes. Returning an agentState is optional--if it's nil, no new state will be saved. If no state has been saved at all, this means that future calls will have nil state. If state has previously been saved, it just means that no new state versions will be saved.
 
 Agents' ProposeMove is called after every *causal chain* of moves is done. That is, after each playerMove has been applied *and all of the FixUp moves that result*. This is also the timing when normal players are allowed to make moves.
+
+### Constants
+
+Your `GameDelegate` can define constants by returning a map of constants to values from `ConfigureConstants()`. Constants may be an int, bool, or string.
+
+Of course, you don't need to actually return anything from that method to define normal constants in your package. There are two primary reasons to define them: 1) if you need them client-side, and 2) if you want to use them in a tag-based struct auto-inflater.
+
+Constants that are exported via `ConfigureConstants()` will automatically be transmitted client-side.
+
+Constants can also be used as the int argument in a tag-based struct auto-inflation. For example, see the tictactoe example:
+
+```
+//In examples/tictactoe/main.go
+
+func (g *gameDelegate) ConfigureConstants() map[string]interface{} {
+	return map[string]interface{}{
+		"TOTAL_DIM": TOTAL_DIM,
+	}
+}
+```
+
+```
+//In examples/tictactoe/state.go
+
+//+autoreader
+type gameState struct {
+	boardgame.BaseSubState
+	CurrentPlayer boardgame.PlayerIndex
+	Slots         boardgame.MutableSizedStack `sizedstack:"tokens,TOTAL_DIM"`
+	//... Other fields elided
+}
+
+```
+
+That allows you to tie the size of the stack automatically to the constant in use elsewhere in the package. The reason you have to export the constant is because constants are not available in go programs at run-time.
 
 ### Hooking into your own server
 
