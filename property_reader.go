@@ -343,9 +343,9 @@ func (d *defaultReader) propsImpl() (types map[string]PropertyType, mutable map[
 				} else if strings.Contains(interfaceType, "Board") {
 					pType = TypeBoard
 					isMutable = false
-				} else if strings.Contains(interfaceType, "MutableTimer") {
-					pType = TypeTimer
 				} else if strings.Contains(interfaceType, "Timer") {
+					pType = TypeTimer
+				} else if strings.Contains(interfaceType, "ImmutableTimer") {
 					pType = TypeTimer
 					isMutable = false
 				}
