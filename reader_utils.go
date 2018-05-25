@@ -85,7 +85,7 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 					continue
 				}
 			} else {
-				board, err := exampleReader.BoardProp(propName)
+				board, err := exampleReader.ImmutableBoardProp(propName)
 				if err != nil {
 					return nil, errors.New("Couldn't fetch board prop: " + propName)
 				}
@@ -263,7 +263,7 @@ func stacksForReader(reader PropertyReader) []Stack {
 			}
 			result = append(result, stack)
 		} else if propType == TypeBoard {
-			board, err := reader.BoardProp(propName)
+			board, err := reader.ImmutableBoardProp(propName)
 			if err != nil {
 				continue
 			}
@@ -323,7 +323,7 @@ func (r *readerValidator) AutoInflate(readSetConfigurer PropertyReadSetConfigure
 
 		if config.boardSize > 0 {
 
-			board, err := readSetConfigurer.MutableBoardProp(propName)
+			board, err := readSetConfigurer.BoardProp(propName)
 			if board != nil {
 				//Guess it was already set!
 				continue
@@ -340,7 +340,7 @@ func (r *readerValidator) AutoInflate(readSetConfigurer PropertyReadSetConfigure
 
 			board = config.deck.NewBoard(config.boardSize, config.size)
 
-			if err := readSetConfigurer.ConfigureMutableBoardProp(propName, board); err != nil {
+			if err := readSetConfigurer.ConfigureBoardProp(propName, board); err != nil {
 				return errors.New("Couldn't set " + propName + " to board: " + err.Error())
 			}
 
@@ -515,7 +515,7 @@ func (r *readerValidator) Valid(reader PropertyReader) error {
 				return errors.New("Stack prop " + propName + " didn't have its state set")
 			}
 		case TypeBoard:
-			val, err := reader.BoardProp(propName)
+			val, err := reader.ImmutableBoardProp(propName)
 			if val == nil {
 				return errors.New("Board Prop " + propName + " was nil")
 			}
@@ -569,7 +569,7 @@ func setReaderStatePtr(reader PropertyReader, st State) error {
 			}
 			val.setState(statePtr)
 		case TypeBoard:
-			val, err := reader.BoardProp(propName)
+			val, err := reader.ImmutableBoardProp(propName)
 			if val == nil {
 				return errors.New("Board Prop " + propName + " was nil")
 			}
@@ -709,7 +709,7 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 				return errors.New(propName + " could not import from input: " + err.Error())
 			}
 		case TypeBoard:
-			boardVal, err := input.MutableBoardProp(propName)
+			boardVal, err := input.BoardProp(propName)
 			if err != nil {
 				//if the err is ErrPropertyImmutable, that's OK, just skip
 				if err == ErrPropertyImmutable {
@@ -717,7 +717,7 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 				}
 				return errors.New(propName + " did not return a board as expected: " + err.Error())
 			}
-			outputBoard, err := outputContainer.MutableBoardProp(propName)
+			outputBoard, err := outputContainer.BoardProp(propName)
 			if err != nil {
 				//if the err is ErrPropertyImmutable, that's OK, just skip
 				if err == ErrPropertyImmutable {

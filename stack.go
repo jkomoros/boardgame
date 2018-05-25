@@ -104,9 +104,9 @@ type Stack interface {
 	//setState sets the state ptr that will be returned by state().
 	setState(state *state)
 
-	//Board will return the Board that this Stack is part of, or nil if it is
-	//not part of a board.
-	Board() Board
+	//ImmutableBoard will return the Board that this Stack is part of, or nil
+	//if it is not part of a board.
+	ImmutableBoard() ImmutableBoard
 
 	//If Board returns a non-nil Board, this will return the index within the
 	//Board that this stack is.
@@ -235,9 +235,9 @@ type MutableStack interface {
 	//automatically sizes the stack down so that there are no empty slots.
 	SizeToFit() error
 
-	//MutableBoard will return a mutable reference to the Board we're part of,
+	//Board will return a mutable reference to the Board we're part of,
 	//if we're part of a board.
-	MutableBoard() MutableBoard
+	Board() Board
 
 	//MutableSizedStack will return a version of this stack that implements
 	//the MutableSizedStack interface, if that's possible, or nil otherwise.
@@ -353,7 +353,7 @@ type growableStack struct {
 	//single state. Set in empty{Game,Player}State.
 	statePtr *state
 
-	board      MutableBoard
+	board      Board
 	boardIndex int
 }
 
@@ -1731,11 +1731,11 @@ func (g *growableStack) SetSize(newSize int) error {
 	return g.ExpandSize(newSize - g.MaxSize())
 }
 
-func (g *growableStack) Board() Board {
+func (g *growableStack) ImmutableBoard() ImmutableBoard {
 	return g.board
 }
 
-func (g *growableStack) MutableBoard() MutableBoard {
+func (g *growableStack) Board() Board {
 	return g.board
 }
 
@@ -1743,11 +1743,11 @@ func (g *growableStack) BoardIndex() int {
 	return g.boardIndex
 }
 
-func (s *sizedStack) Board() Board {
+func (s *sizedStack) ImmutableBoard() ImmutableBoard {
 	return nil
 }
 
-func (s *sizedStack) MutableBoard() MutableBoard {
+func (s *sizedStack) Board() Board {
 	return nil
 }
 
@@ -1755,7 +1755,7 @@ func (s *sizedStack) BoardIndex() int {
 	return 0
 }
 
-func (m *mergedStack) Board() Board {
+func (m *mergedStack) ImmutableBoard() ImmutableBoard {
 	return nil
 }
 

@@ -455,7 +455,7 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 	}
 
 	if propType == TypeBoard {
-		board := input.(MutableBoard)
+		board := input.(Board)
 		board.applySanitizationPolicy(policy)
 		return input
 	}

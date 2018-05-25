@@ -425,7 +425,7 @@ func (s *state) reportComponentLocationsForReader(readSetter PropertyReadSetter)
 				s.componentAddedImpl(c, stack, i)
 			}
 		} else if propType == TypeBoard {
-			board, err := readSetter.MutableBoardProp(propName)
+			board, err := readSetter.BoardProp(propName)
 			if err != nil {
 				continue
 			}
