@@ -11,12 +11,12 @@ import (
 
 const emptyIndexSentinel = -1
 
-//Stack is one of the fundamental types in BoardGame. It represents an ordered
-//stack of 0 or more Components, all from the same Deck. Each deck has 0 or
-//more Stacks based off of it, and together they include all components in
-//that deck, with no component residing in more than one stack. Stacks model
-//things like a stack of cards, a collection of resource tokens, etc. Stacks
-//can either be growable (the default), or of a fixed size (called
+//ImmutableStack is one of the fundamental types in BoardGame. It represents
+//an ordered stack of 0 or more Components, all from the same Deck. Each deck
+//has 0 or more Stacks based off of it, and together they include all
+//components in that deck, with no component residing in more than one stack.
+//Stacks model things like a stack of cards, a collection of resource tokens,
+//etc. Stacks can either be growable (the default), or of a fixed size (called
 //SizedStacks). The default stacks have a SizedStack() of nil and can grow to
 //accomodate as many components as desired (up to maxSize), with no gaps in
 //between components. An insertion at an index in the middle of a stack will
@@ -28,7 +28,7 @@ const emptyIndexSentinel = -1
 //or NewSizedStack and install them in your Constructor methods (if you don't
 //use tag-based auto-inflation). NewOverlappedStack and NewConcatenatedStack
 //are advanced techniques.
-type Stack interface {
+type ImmutableStack interface {
 	//Len returns the number of slots in the Stack. For a normal Stack this is
 	//the number of items in the stack. For SizedStacks, this is the number of
 	//slots--even if some are unfilled.
@@ -90,7 +90,7 @@ type Stack interface {
 
 	//SizedStack will return a version of this stack that implements the
 	//SizedStack interface, if that's possible, or nil otherwise.
-	SizedStack() SizedStack
+	ImmutableSizedStack() ImmutableSizedStack
 
 	//MergedStack will return a version of this stack that implements the
 	//MergedStack interface, if that's possible, or nil otherwise.
@@ -122,9 +122,9 @@ type Stack interface {
 //SizedStack is a specific type of Stack that has a specific number of slots,
 //any of which may be nil. Although very few methods are added, the basic
 //behavior of the Stack methods is quite different for these kinds of stacks.
-type SizedStack interface {
-	//A SizedStack can be used everywhere a normal Stack can.
-	Stack
+type ImmutableSizedStack interface {
+	//A SizedStack can be used everywhere a normal ImmutableStack can.
+	ImmutableStack
 
 	//FirstComponentIndex returns the index of the first non-nil component
 	//from the left.
@@ -137,7 +137,7 @@ type SizedStack interface {
 //MergedStack is a special variant of stacks that is actually formed from
 //multiple underlying stacks combined.
 type MergedStack interface {
-	Stack
+	ImmutableStack
 
 	//Valid will return a non-nil error if the stack isn't valid currently
 	//for example if the two stacks being merged are different sizes for an
@@ -145,17 +145,17 @@ type MergedStack interface {
 	//stack returns any non-nil for this then the state will not be saved.
 	Valid() error
 
-	//Stacks returns the stacks that this MergedStack is based on.
-	Stacks() []Stack
+	//ImmutableStacks returns the stacks that this MergedStack is based on.1
+	ImmutableStacks() []ImmutableStack
 
 	//Overlapped will return true if the MergedStack is an overlapped stack
 	//(in contrast to a concatenated stack).
 	Overlapped() bool
 }
 
-//MutableStack is a Stack that also has mutator methods.
-type MutableStack interface {
-	Stack
+//Stack is an ImmutableStack that also has mutator methods.
+type Stack interface {
+	ImmutableStack
 
 	//MutableComponentAt is the same as ComponentAt, but returns a
 	//MutableComponentInstance.
@@ -180,7 +180,7 @@ type MutableStack interface {
 	//MoveAllTo moves all of the components in this stack to the other stack,
 	//by repeatedly calling RemoveFirst() and InsertBack(). Errors and does
 	//not complete the move if there's not enough space in the target stack.
-	MoveAllTo(other MutableStack) error
+	MoveAllTo(other Stack) error
 
 	//Shuffle shuffles the order of the stack, so that it has the same items,
 	//but in a different order. In a SizedStack, the empty slots will move
@@ -239,13 +239,13 @@ type MutableStack interface {
 	//if we're part of a board.
 	Board() Board
 
-	//MutableSizedStack will return a version of this stack that implements
+	//SizedStack will return a version of this stack that implements
 	//the MutableSizedStack interface, if that's possible, or nil otherwise.
-	MutableSizedStack() MutableSizedStack
+	SizedStack() SizedStack
 
-	moveComponent(componentIndex int, destination MutableStack, slotIndex int) error
+	moveComponent(componentIndex int, destination Stack, slotIndex int) error
 
-	secretMoveComponent(componentIndex int, destination MutableStack, slotIndex int) error
+	secretMoveComponent(componentIndex int, destination Stack, slotIndex int) error
 
 	moveComponentToEnd(componentIndex int) error
 
@@ -304,9 +304,9 @@ type MutableStack interface {
 	lastSlot() int
 }
 
-//MutableSizedStack is a MutableStack equivalent of a SizedStack.
-type MutableSizedStack interface {
-	MutableStack
+//SizedStack is a Stack equivalent of an ImmutableSizedStack.
+type SizedStack interface {
+	Stack
 
 	//FirstComponentIndex returns the index of the first non-nil component
 	//from the left.
@@ -385,7 +385,7 @@ type sizedStack struct {
 //mergedStack is a derived stack that is made of two stacks, either in
 //concatenate mode (default) or overlap mode.
 type mergedStack struct {
-	stacks  []Stack
+	stacks  []ImmutableStack
 	overlap bool
 }
 
@@ -406,7 +406,7 @@ type stackJSONObj struct {
 //computed property when you have a logical stack made up of components that
 //are santiized followed by components that are not sanitized, like in a
 //blackjack hand. All stacks must be from the same deck.
-func NewConcatenatedStack(stack ...Stack) MergedStack {
+func NewConcatenatedStack(stack ...ImmutableStack) MergedStack {
 	return &mergedStack{
 		stacks:  stack,
 		overlap: false,
@@ -419,7 +419,7 @@ func NewConcatenatedStack(stack ...Stack) MergedStack {
 //property when you have a logical stack made up of components where some are
 //sanitized and some are not, like the grid of cards in Memory. All stacks
 //must be from the same deck, and all stacks must be FixedSize.
-func NewOverlappedStack(stack ...Stack) MergedStack {
+func NewOverlappedStack(stack ...ImmutableStack) MergedStack {
 
 	return &mergedStack{
 		stacks:  stack,
@@ -514,19 +514,19 @@ func (s *sizedStack) copyFrom(other *sizedStack) {
 	}
 }
 
-func (g *growableStack) SizedStack() SizedStack {
+func (g *growableStack) ImmutableSizedStack() ImmutableSizedStack {
 	return nil
 }
 
-func (s *sizedStack) SizedStack() SizedStack {
+func (s *sizedStack) ImmutableSizedStack() ImmutableSizedStack {
 	return s
 }
 
 //SizedStack returns a SizedStack if all of the sub-stacks are themselves
 //sized.
-func (m *mergedStack) SizedStack() SizedStack {
+func (m *mergedStack) ImmutableSizedStack() ImmutableSizedStack {
 	for _, stack := range m.stacks {
-		if stack.SizedStack() == nil {
+		if stack.ImmutableSizedStack() == nil {
 			return nil
 		}
 	}
@@ -545,19 +545,19 @@ func (m *mergedStack) MergedStack() MergedStack {
 	return m
 }
 
-func (g *growableStack) MutableSizedStack() MutableSizedStack {
+func (g *growableStack) SizedStack() SizedStack {
 	return nil
 }
 
-func (s *sizedStack) MutableSizedStack() MutableSizedStack {
+func (s *sizedStack) SizedStack() SizedStack {
 	return s
 }
 
-func (m *mergedStack) MutableSizedStack() MutableSizedStack {
+func (m *mergedStack) SizedStack() SizedStack {
 	return nil
 }
 
-func (m *mergedStack) Stacks() []Stack {
+func (m *mergedStack) ImmutableStacks() []ImmutableStack {
 	return m.stacks
 }
 
@@ -759,7 +759,7 @@ func (m *mergedStack) Valid() error {
 	}
 
 	for i, stack := range m.stacks {
-		if stack.SizedStack() == nil {
+		if stack.ImmutableSizedStack() == nil {
 			return errors.New("stack " + strconv.Itoa(i) + " was not fixed size, but overlap stacks require them all to be fixed size")
 		}
 	}
@@ -1164,15 +1164,15 @@ func (m *mergedStack) SlotsRemaining() int {
 
 }
 
-func (s *sizedStack) MoveAllTo(other MutableStack) error {
+func (s *sizedStack) MoveAllTo(other Stack) error {
 	return moveAllToImpl(s, other)
 }
 
-func (g *growableStack) MoveAllTo(other MutableStack) error {
+func (g *growableStack) MoveAllTo(other Stack) error {
 	return moveAllToImpl(g, other)
 }
 
-func moveAllToImpl(from MutableStack, to MutableStack) error {
+func moveAllToImpl(from Stack, to Stack) error {
 
 	if to.SlotsRemaining() < from.NumComponents() {
 		return errors.New("Not enough space in the target stack")
@@ -1367,7 +1367,7 @@ func (s *sizedStack) insertNext(c ComponentInstance) {
 }
 
 type stackSorter struct {
-	stack MutableStack
+	stack Stack
 	less  func(i, j ComponentInstance) bool
 	err   error
 }
@@ -1396,7 +1396,7 @@ func (s *sizedStack) SortComponents(less func(i, j ComponentInstance) bool) erro
 	return sortComponentsImpl(s, less)
 }
 
-func sortComponentsImpl(s MutableStack, less func(i, j ComponentInstance) bool) error {
+func sortComponentsImpl(s Stack, less func(i, j ComponentInstance) bool) error {
 	sorter := &stackSorter{
 		stack: s,
 		less:  less,
@@ -1408,7 +1408,7 @@ func sortComponentsImpl(s MutableStack, less func(i, j ComponentInstance) bool) 
 	return errors.NewWrapped(sorter.err)
 }
 
-func (g *growableStack) secretMoveComponent(componentIndex int, destination MutableStack, slotIndex int) error {
+func (g *growableStack) secretMoveComponent(componentIndex int, destination Stack, slotIndex int) error {
 	err := moveComonentImpl(g, componentIndex, destination, slotIndex)
 	if err != nil {
 		return err
@@ -1417,7 +1417,7 @@ func (g *growableStack) secretMoveComponent(componentIndex int, destination Muta
 	return nil
 }
 
-func (s *sizedStack) secretMoveComponent(componentIndex int, destination MutableStack, slotIndex int) error {
+func (s *sizedStack) secretMoveComponent(componentIndex int, destination Stack, slotIndex int) error {
 	err := moveComonentImpl(s, componentIndex, destination, slotIndex)
 	if err != nil {
 		return err
@@ -1426,15 +1426,15 @@ func (s *sizedStack) secretMoveComponent(componentIndex int, destination Mutable
 	return nil
 }
 
-func (g *growableStack) moveComponent(componentIndex int, destination MutableStack, slotIndex int) error {
+func (g *growableStack) moveComponent(componentIndex int, destination Stack, slotIndex int) error {
 	return moveComonentImpl(g, componentIndex, destination, slotIndex)
 }
 
-func (s *sizedStack) moveComponent(componentIndex int, destination MutableStack, slotIndex int) error {
+func (s *sizedStack) moveComponent(componentIndex int, destination Stack, slotIndex int) error {
 	return moveComonentImpl(s, componentIndex, destination, slotIndex)
 }
 
-func moveComonentImpl(source MutableStack, componentIndex int, destination MutableStack, slotIndex int) error {
+func moveComonentImpl(source Stack, componentIndex int, destination Stack, slotIndex int) error {
 
 	if source == nil {
 		return errors.New("Source is a nil stack")
@@ -1504,7 +1504,7 @@ func (s *sizedStack) moveComponentToStart(componentIndex int) error {
 	return moveComponentToExtremeImpl(s, componentIndex, true)
 }
 
-func moveComponentToExtremeImpl(stack MutableStack, componentIndex int, isStart bool) error {
+func moveComponentToExtremeImpl(stack Stack, componentIndex int, isStart bool) error {
 
 	scratchStack := stack.Deck().NewStack(0).(*growableStack)
 
@@ -1909,7 +1909,7 @@ func (m *mergedStack) MarshalJSON() ([]byte, error) {
 		Ids:         m.Ids(),
 		IdsLastSeen: m.IdsLastSeen(),
 	}
-	if m.SizedStack() != nil {
+	if m.ImmutableSizedStack() != nil {
 		obj.Size = m.Len()
 	} else {
 		obj.MaxSize = m.MaxSize()

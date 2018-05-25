@@ -436,7 +436,7 @@ func (g *Game) SetUp(numPlayers int, config GameConfig, agentNames []string) err
 				return baseErr.WithError("Distributing components failed for deck " + name + ":" + strconv.Itoa(i) + ": the stack the delegate returned had no more slots.")
 			}
 
-			mutableStack, ok := stack.(MutableStack)
+			mutableStack, ok := stack.(Stack)
 
 			if !ok {
 				return baseErr.WithError("Couldn't get a mutable version of stack")

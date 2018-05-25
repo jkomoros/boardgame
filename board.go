@@ -13,8 +13,8 @@ import (
 //single Stack of a FixedSize. Get one from deck.NewBoard(). See also
 //MutableBoard, which is the same, but adds Mutators.
 type ImmutableBoard interface {
-	Spaces() []Stack
-	SpaceAt(index int) Stack
+	ImmutableSpaces() []ImmutableStack
+	ImmutableSpaceAt(index int) ImmutableStack
 	Len() int
 	state() *state
 	setState(st *state)
@@ -22,8 +22,8 @@ type ImmutableBoard interface {
 
 type Board interface {
 	ImmutableBoard
-	MutableSpaces() []MutableStack
-	MutableSpaceAt(index int) MutableStack
+	Spaces() []Stack
+	SpaceAt(index int) Stack
 
 	applySanitizationPolicy(policy Policy)
 	//Used to copy from other boards. See mutableStack.importFrom for more about how these work.
@@ -91,6 +91,23 @@ func (b *board) importFrom(other ImmutableBoard) error {
 	return nil
 }
 
+func (b *board) ImmutableSpaces() []ImmutableStack {
+	result := make([]ImmutableStack, len(b.spaces))
+
+	for i, item := range b.spaces {
+		result[i] = item
+	}
+
+	return result
+}
+
+func (b *board) ImmutableSpaceAt(index int) ImmutableStack {
+	if index < 0 || index > b.Len() {
+		return nil
+	}
+	return b.spaces[index]
+}
+
 func (b *board) Spaces() []Stack {
 	result := make([]Stack, len(b.spaces))
 
@@ -102,23 +119,6 @@ func (b *board) Spaces() []Stack {
 }
 
 func (b *board) SpaceAt(index int) Stack {
-	if index < 0 || index > b.Len() {
-		return nil
-	}
-	return b.spaces[index]
-}
-
-func (b *board) MutableSpaces() []MutableStack {
-	result := make([]MutableStack, len(b.spaces))
-
-	for i, item := range b.spaces {
-		result[i] = item
-	}
-
-	return result
-}
-
-func (b *board) MutableSpaceAt(index int) MutableStack {
 	if index < 0 || index > b.Len() {
 		return nil
 	}

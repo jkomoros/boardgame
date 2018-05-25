@@ -75,7 +75,7 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 		case TypeStack, TypeBoard:
 
 			if propType == TypeStack {
-				stack, err := exampleReader.StackProp(propName)
+				stack, err := exampleReader.ImmutableStackProp(propName)
 				if err != nil {
 					return nil, errors.New("Couldn't fetch stack prop: " + propName)
 				}
@@ -252,12 +252,12 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 }
 
 //stacksForReader returns all stacks in reader, inclduing all StackProps, and all stacks within Boards.
-func stacksForReader(reader PropertyReader) []Stack {
-	var result []Stack
+func stacksForReader(reader PropertyReader) []ImmutableStack {
+	var result []ImmutableStack
 
 	for propName, propType := range reader.Props() {
 		if propType == TypeStack {
-			stack, err := reader.StackProp(propName)
+			stack, err := reader.ImmutableStackProp(propName)
 			if err != nil {
 				continue
 			}
@@ -267,7 +267,7 @@ func stacksForReader(reader PropertyReader) []Stack {
 			if err != nil {
 				continue
 			}
-			for _, stack := range board.Spaces() {
+			for _, stack := range board.ImmutableSpaces() {
 				result = append(result, stack)
 			}
 		}
@@ -346,7 +346,7 @@ func (r *readerValidator) AutoInflate(readSetConfigurer PropertyReadSetConfigure
 
 		} else {
 
-			stack, err := readSetConfigurer.MutableStackProp(propName)
+			stack, err := readSetConfigurer.StackProp(propName)
 			if stack != nil {
 				//Guess it was already set!
 				continue
@@ -367,14 +367,14 @@ func (r *readerValidator) AutoInflate(readSetConfigurer PropertyReadSetConfigure
 				stack = config.deck.NewStack(config.size)
 			}
 
-			if err := readSetConfigurer.ConfigureMutableStackProp(propName, stack); err != nil {
+			if err := readSetConfigurer.ConfigureStackProp(propName, stack); err != nil {
 				return errors.New("Couldn't set " + propName + " to stack: " + err.Error())
 			}
 		}
 	}
 
 	for propName, config := range r.autoMergedStackFields {
-		stack, err := readSetConfigurer.StackProp(propName)
+		stack, err := readSetConfigurer.ImmutableStackProp(propName)
 		if stack != nil {
 			//Guess it was already set!
 			continue
@@ -385,9 +385,9 @@ func (r *readerValidator) AutoInflate(readSetConfigurer PropertyReadSetConfigure
 		if config == nil {
 			return errors.New("The config for " + propName + " was unexpectedly nil")
 		}
-		stacks := make([]Stack, len(config.props))
+		stacks := make([]ImmutableStack, len(config.props))
 		for i, prop := range config.props {
-			stack, err := readSetConfigurer.StackProp(prop)
+			stack, err := readSetConfigurer.ImmutableStackProp(prop)
 			if err != nil {
 				return errors.New(propName + " Couldn't fetch the " + strconv.Itoa(i) + " stack to merge: " + prop + ": " + err.Error())
 			}
@@ -403,7 +403,7 @@ func (r *readerValidator) AutoInflate(readSetConfigurer PropertyReadSetConfigure
 			stack = NewConcatenatedStack(stacks...)
 		}
 
-		if err := readSetConfigurer.ConfigureStackProp(propName, stack); err != nil {
+		if err := readSetConfigurer.ConfigureImmutableStackProp(propName, stack); err != nil {
 			return errors.New("Couldn't set " + propName + " to stack: " + err.Error())
 		}
 
@@ -504,7 +504,7 @@ func (r *readerValidator) Valid(reader PropertyReader) error {
 		//TODO: verifyReader should be gotten rid of in favor of this
 		switch propType {
 		case TypeStack:
-			val, err := reader.StackProp(propName)
+			val, err := reader.ImmutableStackProp(propName)
 			if val == nil {
 				return errors.New("Stack Prop " + propName + " was nil")
 			}
@@ -560,7 +560,7 @@ func setReaderStatePtr(reader PropertyReader, st State) error {
 	for propName, propType := range reader.Props() {
 		switch propType {
 		case TypeStack:
-			val, err := reader.StackProp(propName)
+			val, err := reader.ImmutableStackProp(propName)
 			if val == nil {
 				return errors.New("Stack Prop " + propName + " was nil")
 			}
@@ -689,7 +689,7 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 			}
 			outputEnum.SetValue(enumConst.Value())
 		case TypeStack:
-			stackVal, err := input.MutableStackProp(propName)
+			stackVal, err := input.StackProp(propName)
 			if err != nil {
 				//if the err is ErrPropertyImmutable, that's OK, just skip
 				if err == ErrPropertyImmutable {
@@ -697,7 +697,7 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 				}
 				return errors.New(propName + " did not return a stack as expected: " + err.Error())
 			}
-			outputStack, err := outputContainer.MutableStackProp(propName)
+			outputStack, err := outputContainer.StackProp(propName)
 			if err != nil {
 				//if the err is ErrPropertyImmutable, that's OK, just skip
 				if err == ErrPropertyImmutable {
@@ -787,7 +787,7 @@ func unpackMergedStackStructTag(tag string, reader PropertyReader) (stackNames [
 	for i, piece := range pieces {
 		prop := strings.TrimSpace(piece)
 
-		if _, err := reader.StackProp(prop); err != nil {
+		if _, err := reader.ImmutableStackProp(prop); err != nil {
 			return nil, errors.New(prop + " does not denote a valid stack property on that object")
 		}
 		result[i] = prop

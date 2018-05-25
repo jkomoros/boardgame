@@ -69,10 +69,10 @@ type State interface {
 	//StorageRecord returns a StateStorageRecord representing the state.
 	StorageRecord() StateStorageRecord
 
-	//ContainingStack will return the stack and slot index for the associated
+	//ContainingImmutableStack will return the stack and slot index for the associated
 	//component, if that location is not sanitized. If no error is returned,
 	//stack.ComponentAt(slotIndex) == c will evaluate to true.
-	ContainingStack(c Component) (stack Stack, slotIndex int, err error)
+	ContainingImmutableStack(c Component) (stack ImmutableStack, slotIndex int, err error)
 }
 
 type computedProperties struct {
@@ -216,10 +216,10 @@ type MutableState interface {
 
 	MutableDynamicComponentValues() map[string][]MutableSubState
 
-	//ContainingMutableStack will return the stack and slot index for the
+	//ContainingStack will return the stack and slot index for the
 	//associated component, if that location is not sanitized. If no error is
 	//returned, stack.ComponentAt(slotIndex) == c will evaluate to true.
-	ContainingMutableStack(c Component) (stack MutableStack, slotIndex int, err error)
+	ContainingStack(c Component) (stack Stack, slotIndex int, err error)
 }
 
 //Valid returns true if the PlayerIndex's value is legal in the context of the
@@ -293,7 +293,7 @@ func (p PlayerIndex) String() string {
 
 //componentIndexItem represents one item in the componentIndex.s
 type componentIndexItem struct {
-	stack     MutableStack
+	stack     Stack
 	slotIndex int
 }
 
@@ -331,11 +331,11 @@ type state struct {
 	timersToStart []int
 }
 
-func (s *state) ContainingStack(c Component) (stack Stack, slotIndex int, err error) {
-	return s.ContainingMutableStack(c)
+func (s *state) ContainingImmutableStack(c Component) (stack ImmutableStack, slotIndex int, err error) {
+	return s.ContainingStack(c)
 }
 
-func (s *state) ContainingMutableStack(c Component) (stack MutableStack, slotIndex int, err error) {
+func (s *state) ContainingStack(c Component) (stack Stack, slotIndex int, err error) {
 
 	if s.componentIndex == nil {
 		s.buildComponentIndex()
@@ -415,7 +415,7 @@ func (s *state) reportComponentLocationsForReader(readSetter PropertyReadSetter)
 		}
 
 		if propType == TypeStack {
-			stack, err := readSetter.MutableStackProp(propName)
+			stack, err := readSetter.StackProp(propName)
 			if err != nil {
 				continue
 			}
@@ -429,7 +429,7 @@ func (s *state) reportComponentLocationsForReader(readSetter PropertyReadSetter)
 			if err != nil {
 				continue
 			}
-			for _, stack := range board.MutableSpaces() {
+			for _, stack := range board.Spaces() {
 				//can't use updateIndexForAllComponents because we don't want
 				//to clal buildComponents.
 				for i, c := range stack.Components() {
@@ -440,7 +440,7 @@ func (s *state) reportComponentLocationsForReader(readSetter PropertyReadSetter)
 	}
 }
 
-func (s *state) componentAddedImpl(c Component, stack MutableStack, slotIndex int) {
+func (s *state) componentAddedImpl(c Component, stack Stack, slotIndex int) {
 	if c == nil {
 		return
 	}
@@ -455,7 +455,7 @@ func (s *state) componentAddedImpl(c Component, stack MutableStack, slotIndex in
 
 //componetAdded should be called by stacks when a component is added to them,
 //by non-merged stacks.
-func (s *state) componentAdded(c Component, stack MutableStack, slotIndex int) {
+func (s *state) componentAdded(c Component, stack Stack, slotIndex int) {
 	if s.componentIndex == nil {
 		s.buildComponentIndex()
 	}
@@ -463,7 +463,7 @@ func (s *state) componentAdded(c Component, stack MutableStack, slotIndex int) {
 	s.componentAddedImpl(c, stack, slotIndex)
 }
 
-func (s *state) updateIndexForAllComponents(stack MutableStack) {
+func (s *state) updateIndexForAllComponents(stack Stack) {
 	for i, c := range stack.Components() {
 		s.componentAdded(c, stack, i)
 	}
@@ -651,7 +651,7 @@ func validateReaderBeforeSave(reader PropertyReader, name string, state State) e
 			}
 		}
 		if propType == TypeStack {
-			stack, err := reader.StackProp(propName)
+			stack, err := reader.ImmutableStackProp(propName)
 			if err != nil {
 				return errors.New("Error reading property " + propName + ": " + err.Error())
 			}

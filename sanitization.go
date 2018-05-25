@@ -291,12 +291,12 @@ func sanitizeStateObj(readSetConfigurer PropertyReadSetConfigurer, transformatio
 				continue
 			}
 
-			var stacks []Stack
+			var stacks []ImmutableStack
 
 			if propType == TypeStack {
-				stacks = []Stack{prop.(Stack)}
+				stacks = []ImmutableStack{prop.(ImmutableStack)}
 			} else if propType == TypeBoard {
-				stacks = prop.(Board).Spaces()
+				stacks = prop.(Board).ImmutableSpaces()
 			}
 
 			for _, stack := range stacks {
@@ -462,7 +462,7 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 
 	//Now we're left with len-properties.
 
-	stack := input.(MutableStack)
+	stack := input.(Stack)
 
 	stack.applySanitizationPolicy(policy)
 

@@ -42,14 +42,14 @@ func NewDeck() *Deck {
 //returned stack will allow up to maxSize items to be inserted. If you don't
 //want to set a maxSize on the stack (you often don't) pass 0 for maxSize to
 //allow it to grow without limit.
-func (d *Deck) NewStack(maxSize int) MutableStack {
+func (d *Deck) NewStack(maxSize int) Stack {
 	return newGrowableStack(d, maxSize)
 }
 
 //NewSizedStack returns a new SizedStack (a stack whose FixedSize() will
 //return true). Refer to the Stack interface documentation for more about the
 //difference.
-func (d *Deck) NewSizedStack(size int) MutableSizedStack {
+func (d *Deck) NewSizedStack(size int) SizedStack {
 	return newSizedStack(d, size)
 }
 

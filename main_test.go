@@ -56,7 +56,7 @@ type testingComponentDynamic struct {
 	BaseSubState
 	BaseComponentValues
 	IntVar int
-	Stack  MutableStack
+	Stack  Stack
 	Enum   enum.Val
 }
 
@@ -120,7 +120,7 @@ type testGameState struct {
 	state              State
 	mutableState       MutableState
 	CurrentPlayer      PlayerIndex
-	DrawDeck           MutableStack `sanitize:"len"`
+	DrawDeck           Stack `sanitize:"len"`
 	Timer              Timer
 	MyIntSlice         []int
 	MyStringSlice      []string
@@ -128,10 +128,10 @@ type testGameState struct {
 	MyPlayerIndexSlice []PlayerIndex
 	MyEnumValue        enum.Val
 	MyEnumConst        enum.ImmutableVal
-	DownSizeStack      MutableStack `sizedstack:"test, ConstantStackSize"`
-	OtherStack         MutableStack `sizedstack:"test,2"`
-	MyMergedStack      Stack        `concatenate:"DownSizeStack,OtherStack"`
-	MyBoard            Board        `stack:"test" board:"3"`
+	DownSizeStack      SizedStack  `sizedstack:"test, ConstantStackSize"`
+	OtherStack         SizedStack  `sizedstack:"test,2"`
+	MyMergedStack      MergedStack `concatenate:"DownSizeStack,OtherStack"`
+	MyBoard            Board       `stack:"test" board:"3"`
 }
 
 func (t *testGameState) Reader() PropertyReader {
@@ -171,7 +171,7 @@ type testPlayerState struct {
 	playerIndex       PlayerIndex
 	Score             int
 	MovesLeftThisTurn int
-	Hand              MutableStack `sizedstack:"test,2"`
+	Hand              SizedStack `sizedstack:"test,2"`
 	IsFoo             bool
 	EnumVal           enum.Val `enum:"color"`
 }

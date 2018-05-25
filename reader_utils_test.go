@@ -179,8 +179,8 @@ type testGeneralReadSetter struct {
 	EnumVar           enum.Val          `enum:"color"`
 	TheImmutableTimer ImmutableTimer
 	TheTimer          Timer
-	TheSizedStack     MutableStack `sizedstack:"test,0"`
-	TheGrowableStack  MutableStack `stack:"test" sanitize:"order"`
+	TheSizedStack     Stack `sizedstack:"test,0"`
+	TheGrowableStack  Stack `stack:"test" sanitize:"order"`
 }
 
 func (t *testGeneralReadSetter) ReadSetter() PropertyReadSetter {

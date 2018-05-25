@@ -17,7 +17,7 @@ func TestEmptyStacks(t *testing.T) {
 
 	gState := game.CurrentState().GameState().(*testGameState)
 
-	space := gState.MyBoard.MutableSpaceAt(2)
+	space := gState.MyBoard.SpaceAt(2)
 
 	c := space.MutableComponentAt(0)
 
@@ -49,7 +49,7 @@ func TestMultipleStackMoves(t *testing.T) {
 
 	drawDeck := gameState.DrawDeck
 
-	destination := gameState.MyBoard.MutableSpaceAt(0)
+	destination := gameState.MyBoard.SpaceAt(0)
 
 	for i := 0; i < 5; i++ {
 		err := drawDeck.MutableComponentAt(0).MoveToNextSlot(destination)
@@ -99,7 +99,7 @@ func TestContainingComponent(t *testing.T) {
 
 	for i, c := range deck.Components() {
 
-		stack, slotIndex, err := sanitizedState.ContainingStack(c)
+		stack, slotIndex, err := sanitizedState.ContainingImmutableStack(c)
 
 		//DrawDeck is sanitized, so we should get errors for that.
 		if componentsInDrawDeck[c.ptr()] {
@@ -121,16 +121,16 @@ func TestContainingComponent(t *testing.T) {
 }
 
 func verifyContainingComponent(t *testing.T, st State, deck *Deck) {
-	_, _, err := st.ContainingStack(deck.GenericComponent())
+	_, _, err := st.ContainingImmutableStack(deck.GenericComponent())
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
-	_, _, err = st.ContainingStack(nil)
+	_, _, err = st.ContainingImmutableStack(nil)
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
 	for i, c := range deck.Components() {
-		stack, slotIndex, err := st.ContainingStack(c)
+		stack, slotIndex, err := st.ContainingImmutableStack(c)
 		assert.For(t, i).ThatActual(err).IsNil()
 		assert.For(t, i).ThatActual(stack).IsNotNil()
 
@@ -222,7 +222,7 @@ func TestConcatenatedStack(t *testing.T) {
 	assert.For(t).ThatActual(merged.Len()).Equals(5)
 	assert.For(t).ThatActual(merged.NumComponents()).Equals(4)
 	assert.For(t).ThatActual(merged.SlotsRemaining()).Equals(1)
-	assert.For(t).ThatActual(merged.SizedStack()).IsNil()
+	assert.For(t).ThatActual(merged.ImmutableSizedStack()).IsNil()
 
 	expectedIds := []string{
 		"2a7effe5e4000914791f95f6c1a711e54d346020",
@@ -271,7 +271,7 @@ func TestOverlappedStack(t *testing.T) {
 	assert.For(t).ThatActual(merged.Len()).Equals(4)
 	assert.For(t).ThatActual(merged.NumComponents()).Equals(3)
 	assert.For(t).ThatActual(merged.SlotsRemaining()).Equals(1)
-	assert.For(t).ThatActual(merged.SizedStack()).IsNotNil()
+	assert.For(t).ThatActual(merged.ImmutableSizedStack()).IsNotNil()
 
 	expectedIds := []string{
 		"2a7effe5e4000914791f95f6c1a711e54d346020",
@@ -748,7 +748,7 @@ func TestSecretMoveComponentSized(t *testing.T) {
 
 }
 
-func secretMoveTestHelper(t *testing.T, from MutableStack, to MutableStack, description string) {
+func secretMoveTestHelper(t *testing.T, from Stack, to Stack, description string) {
 	lastIds := from.Ids()
 	lastIdsSeen := from.IdsLastSeen()
 
@@ -857,8 +857,8 @@ func TestMoveComponent(t *testing.T) {
 	sStackOtherState.setState(&state{})
 
 	tests := []struct {
-		source                 MutableStack
-		destination            MutableStack
+		source                 Stack
+		destination            Stack
 		componentIndex         int
 		resolvedComponentIndex int
 		slotIndex              int
@@ -989,8 +989,8 @@ func TestMoveComponent(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		var source MutableStack
-		var destination MutableStack
+		var source Stack
+		var destination Stack
 
 		switch s := test.source.(type) {
 		case *growableStack:
@@ -1081,7 +1081,7 @@ func TestSwapComponents(t *testing.T) {
 
 }
 
-func swapComponentsTests(stack MutableStack, t *testing.T) {
+func swapComponentsTests(stack Stack, t *testing.T) {
 
 	zero := stack.ComponentAt(0)
 	one := stack.ComponentAt(1)
