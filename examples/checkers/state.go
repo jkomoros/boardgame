@@ -11,9 +11,8 @@ type gameState struct {
 	boardgame.BaseSubState
 	Phase         enum.MutableVal `enum:"Phase"`
 	CurrentPlayer boardgame.PlayerIndex
-	//Note: the struct tag here implicitly depends on the value of boardWidth.
-	Spaces       boardgame.MutableSizedStack `sizedstack:"Tokens,64"`
-	UnusedTokens boardgame.MutableStack      `stack:"Tokens"`
+	Spaces        boardgame.MutableSizedStack `sizedstack:"Tokens,BOARD_SIZE"`
+	UnusedTokens  boardgame.MutableStack      `stack:"Tokens"`
 }
 
 //+autoreader

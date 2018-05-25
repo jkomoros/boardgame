@@ -21,6 +21,7 @@ const gameDisplayname = "Tic Tac Toe"
 const gameName = "tictactoe"
 
 const DIM = 3
+const TOTAL_DIM = DIM * DIM
 
 type gameDelegate struct {
 	boardgame.DefaultGameDelegate
@@ -65,17 +66,7 @@ func (g *gameDelegate) DefaultNumPlayers() int {
 }
 
 func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
-	tokens := g.Manager().Chest().Deck("tokens")
-
-	if tokens == nil {
-		return nil
-	}
-
-	//We want to set the sized stack to a certain value imperatively, so we'll
-	//do it ourselves and not rely on tag-based auto-inflation.
-	return &gameState{
-		Slots: tokens.NewSizedStack(DIM * DIM),
-	}
+	return new(gameState)
 }
 
 func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex) boardgame.ConfigurablePlayerState {
@@ -143,6 +134,12 @@ func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 			new(moves.FinishTurn),
 		),
 	)
+}
+
+func (g *gameDelegate) ConfigureConstants() map[string]interface{} {
+	return map[string]interface{}{
+		"TOTAL_DIM": TOTAL_DIM,
+	}
 }
 
 func (g *gameDelegate) Diagram(state boardgame.State) string {

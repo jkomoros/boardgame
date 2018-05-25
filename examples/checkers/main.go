@@ -70,6 +70,12 @@ func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 	)
 }
 
+func (g *gameDelegate) ConfigureConstants() map[string]interface{} {
+	return map[string]interface{}{
+		"BOARD_SIZE": boardSize,
+	}
+}
+
 func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 	return new(gameState)
 }

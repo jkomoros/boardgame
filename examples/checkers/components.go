@@ -33,9 +33,8 @@ type tokenDynamic struct {
 
 const numTokens = 12
 
-//note: the struct tag for Spaces in gameState implicitly depends on this
-//value.
 const boardWidth = 8
+const boardSize = boardWidth * boardWidth
 
 var SpacesEnum = Enums.MustAddRange("Spaces", boardWidth, boardWidth)
 
