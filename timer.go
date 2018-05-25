@@ -5,10 +5,10 @@ import (
 	"time"
 )
 
-//A Timer is a type of property that can be used in states that represents a
-//countdown. The MutableTimer interface includes mutator methods as well. See
-//the package documentation for more on timers.
-type Timer interface {
+//An ImmutableTimer is a type of property that can be used in states that
+//represents a countdown. The Timer interface includes mutator methods as
+//well. See the package documentation for more on timers.
+type ImmutableTimer interface {
 	Active() bool
 	TimeLeft() time.Duration
 	id() int
@@ -16,12 +16,12 @@ type Timer interface {
 	setState(*state)
 }
 
-//MutableTimer is a Timer that also includes mutator methods.
-type MutableTimer interface {
-	Timer
+//Timer is an ImmutableTimer that also includes mutator methods.
+type Timer interface {
+	ImmutableTimer
 	Start(time.Duration, Move)
 	Cancel() bool
-	importFrom(other Timer) error
+	importFrom(other ImmutableTimer) error
 }
 
 type timer struct {
@@ -32,11 +32,11 @@ type timer struct {
 	statePtr *state
 }
 
-func NewTimer() MutableTimer {
+func NewTimer() Timer {
 	return &timer{}
 }
 
-func (t *timer) importFrom(other Timer) error {
+func (t *timer) importFrom(other ImmutableTimer) error {
 	t.Id = other.id()
 	return nil
 }

@@ -174,13 +174,13 @@ func TestAutoEnum(t *testing.T) {
 }
 
 type testGeneralReadSetter struct {
-	TheInt           int             `sanitize:"hidden"`
-	EnumConst        enum.Val        `enum:"color"`
-	EnumVar          enum.MutableVal `enum:"color"`
-	TheTimer         Timer
-	TheMutableTimer  MutableTimer
-	TheSizedStack    MutableStack `sizedstack:"test,0"`
-	TheGrowableStack MutableStack `stack:"test" sanitize:"order"`
+	TheInt            int             `sanitize:"hidden"`
+	EnumConst         enum.Val        `enum:"color"`
+	EnumVar           enum.MutableVal `enum:"color"`
+	TheImmutableTimer ImmutableTimer
+	TheTimer          Timer
+	TheSizedStack     MutableStack `sizedstack:"test,0"`
+	TheGrowableStack  MutableStack `stack:"test" sanitize:"order"`
 }
 
 func (t *testGeneralReadSetter) ReadSetter() PropertyReadSetter {

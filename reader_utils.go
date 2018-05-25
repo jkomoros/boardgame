@@ -448,11 +448,11 @@ func (r *readerValidator) AutoInflate(readSetConfigurer PropertyReadSetConfigure
 		case TypeTimer:
 			timer := NewTimer()
 			if readSetConfigurer.PropMutable(propName) {
-				if err := readSetConfigurer.ConfigureMutableTimerProp(propName, timer); err != nil {
+				if err := readSetConfigurer.ConfigureTimerProp(propName, timer); err != nil {
 					return errors.New("Couldn't set " + propName + " to a new timer: " + err.Error())
 				}
 			} else {
-				if err := readSetConfigurer.ConfigureTimerProp(propName, timer); err != nil {
+				if err := readSetConfigurer.ConfigureImmutableTimerProp(propName, timer); err != nil {
 					return errors.New("Couldn't set " + propName + " to a new timer: " + err.Error())
 				}
 			}
@@ -526,7 +526,7 @@ func (r *readerValidator) Valid(reader PropertyReader) error {
 				return errors.New("Stack prop " + propName + " didn't have its state set")
 			}
 		case TypeTimer:
-			val, err := reader.TimerProp(propName)
+			val, err := reader.ImmutableTimerProp(propName)
 			if val == nil {
 				return errors.New("TimerProp " + propName + " was nil")
 			}
@@ -578,7 +578,7 @@ func setReaderStatePtr(reader PropertyReader, st State) error {
 			}
 			val.setState(statePtr)
 		case TypeTimer:
-			val, err := reader.TimerProp(propName)
+			val, err := reader.ImmutableTimerProp(propName)
 			if val == nil {
 				return errors.New("TimerProp " + propName + " was nil")
 			}
@@ -729,7 +729,7 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 				return errors.New(propName + " could not import from input: " + err.Error())
 			}
 		case TypeTimer:
-			timerVal, err := input.MutableTimerProp(propName)
+			timerVal, err := input.TimerProp(propName)
 			if err != nil {
 				//if the err is ErrPropertyImmutable, that's OK, just skip
 				if err == ErrPropertyImmutable {
@@ -737,7 +737,7 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 				}
 				return errors.New(propName + " did not return a timer as expected: " + err.Error())
 			}
-			outputTimer, err := outputContainer.MutableTimerProp(propName)
+			outputTimer, err := outputContainer.TimerProp(propName)
 			if err != nil {
 				//if the err is ErrPropertyImmutable, that's OK, just skip
 				if err == ErrPropertyImmutable {

@@ -31,7 +31,7 @@ type PropertyReader interface {
 	PlayerIndexProp(name string) (PlayerIndex, error)
 	StackProp(name string) (Stack, error)
 	BoardProp(naem string) (Board, error)
-	TimerProp(name string) (Timer, error)
+	ImmutableTimerProp(name string) (ImmutableTimer, error)
 	//Prop fetches the given property generically. If you already know the
 	//type, it's better to use the typed methods.
 	Prop(name string) (interface{}, error)
@@ -96,7 +96,7 @@ type PropertyReadSetter interface {
 	MutableEnumProp(name string) (enum.MutableVal, error)
 	MutableStackProp(name string) (MutableStack, error)
 	MutableBoardProp(name string) (MutableBoard, error)
-	MutableTimerProp(name string) (MutableTimer, error)
+	TimerProp(name string) (Timer, error)
 
 	//SetProp sets the property with the given name. If the value does not
 	//match the underlying slot type, it should return an error. If the type
@@ -119,14 +119,14 @@ type PropertyReadSetConfigurer interface {
 	ConfigureMutableEnumProp(name string, value enum.MutableVal) error
 	ConfigureMutableStackProp(name string, value MutableStack) error
 	ConfigureMutableBoardProp(name string, value MutableBoard) error
-	ConfigureMutableTimerProp(name string, value MutableTimer) error
+	ConfigureTimerProp(name string, value Timer) error
 
 	//Configure*Prop allows you to set the container for container values for
 	//whom MutableProp(name) returns false.
 	ConfigureEnumProp(name string, value enum.Val) error
 	ConfigureStackProp(name string, value Stack) error
 	ConfigureBoardProp(name string, value Board) error
-	ConfigureTimerProp(name string, value Timer) error
+	ConfigureImmutableTimerProp(name string, value ImmutableTimer) error
 
 	//ConfigureProp is like SetProp, except that it does not fail if the type
 	//is one of the Interface types. If you know the underlying type it's always better
@@ -556,7 +556,7 @@ func (d *defaultReader) BoardProp(name string) (Board, error) {
 	return result, nil
 }
 
-func (d *defaultReader) TimerProp(name string) (Timer, error) {
+func (d *defaultReader) ImmutableTimerProp(name string) (ImmutableTimer, error) {
 	//Verify that this seems legal.
 	props := d.Props()
 
@@ -874,7 +874,7 @@ func (d *defaultReader) MutableBoardProp(name string) (MutableBoard, error) {
 	return result, nil
 }
 
-func (d *defaultReader) MutableTimerProp(name string) (MutableTimer, error) {
+func (d *defaultReader) TimerProp(name string) (Timer, error) {
 	//Verify that this seems legal.
 	props := d.Props()
 
@@ -892,7 +892,7 @@ func (d *defaultReader) MutableTimerProp(name string) (MutableTimer, error) {
 		//This isn't an error; it's just that we shouldn't dereference it.
 		return nil, nil
 	}
-	result := field.Interface().(MutableTimer)
+	result := field.Interface().(Timer)
 	return result, nil
 }
 
@@ -986,7 +986,7 @@ func (d *defaultReader) ConfigureBoardProp(name string, val Board) (err error) {
 	return nil
 }
 
-func (d *defaultReader) ConfigureTimerProp(name string, val Timer) (err error) {
+func (d *defaultReader) ConfigureImmutableTimerProp(name string, val ImmutableTimer) (err error) {
 	props := d.Props()
 
 	if props[name] != TypeTimer {
@@ -1108,7 +1108,7 @@ func (d *defaultReader) ConfigureMutableBoardProp(name string, val MutableBoard)
 	return nil
 
 }
-func (d *defaultReader) ConfigureMutableTimerProp(name string, val MutableTimer) (err error) {
+func (d *defaultReader) ConfigureTimerProp(name string, val Timer) (err error) {
 	props := d.Props()
 
 	if props[name] != TypeTimer {
@@ -1662,7 +1662,7 @@ func (g *genericReader) MutableBoardProp(name string) (MutableBoard, error) {
 	return val.(MutableBoard), nil
 }
 
-func (g *genericReader) MutableTimerProp(name string) (MutableTimer, error) {
+func (g *genericReader) ImmutableTimerProp(name string) (ImmutableTimer, error) {
 	val, err := g.Prop(name)
 
 	if err != nil {
@@ -1679,7 +1679,7 @@ func (g *genericReader) MutableTimerProp(name string) (MutableTimer, error) {
 		return nil, errors.New(name + "was expected to be TypeTimer but was not")
 	}
 
-	return val.(MutableTimer), nil
+	return val.(ImmutableTimer), nil
 }
 
 func (g *genericReader) ConfigureMutableEnumProp(name string, val enum.MutableVal) error {
@@ -1721,7 +1721,7 @@ func (g *genericReader) ConfigureMutableBoardProp(name string, val MutableBoard)
 	return nil
 }
 
-func (g *genericReader) ConfigureMutableTimerProp(name string, val MutableTimer) error {
+func (g *genericReader) ConfigureTimerProp(name string, val Timer) error {
 	propType, ok := g.types[name]
 
 	if ok && propType != TypeTimer {
