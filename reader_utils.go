@@ -204,7 +204,7 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 			}
 
 		case TypeEnum:
-			enumConst, err := exampleReader.EnumProp(propName)
+			enumConst, err := exampleReader.ImmutableEnumProp(propName)
 			if err != nil {
 				return nil, errors.New("Couldn't fetch enum  prop: " + propName)
 			}
@@ -410,7 +410,7 @@ func (r *readerValidator) AutoInflate(readSetConfigurer PropertyReadSetConfigure
 	}
 
 	for propName, enum := range r.autoEnumFields {
-		enumConst, err := readSetConfigurer.EnumProp(propName)
+		enumConst, err := readSetConfigurer.ImmutableEnumProp(propName)
 		if enumConst != nil {
 			//Guess it was already set!
 			continue
@@ -421,7 +421,7 @@ func (r *readerValidator) AutoInflate(readSetConfigurer PropertyReadSetConfigure
 		if enum == nil {
 			return errors.New("The enum for " + propName + " was unexpectedly nil")
 		}
-		if err := readSetConfigurer.ConfigureEnumProp(propName, enum.NewDefaultVal()); err != nil {
+		if err := readSetConfigurer.ConfigureImmutableEnumProp(propName, enum.NewDefaultVal()); err != nil {
 			return errors.New("Couldn't set " + propName + " to NewDefaultVal: " + err.Error())
 		}
 	}
@@ -438,7 +438,7 @@ func (r *readerValidator) AutoInflate(readSetConfigurer PropertyReadSetConfigure
 		if enum == nil {
 			return errors.New("The enum for " + propName + " was unexpectedly nil")
 		}
-		if err := readSetConfigurer.ConfigureMutableEnumProp(propName, enum.NewMutableVal()); err != nil {
+		if err := readSetConfigurer.ConfigureEnumProp(propName, enum.NewVal()); err != nil {
 			return errors.New("Couldn't set " + propName + " to NewDefaultVal: " + err.Error())
 		}
 	}
@@ -537,7 +537,7 @@ func (r *readerValidator) Valid(reader PropertyReader) error {
 				return errors.New("TimerProp " + propName + " didn't have its statePtr set")
 			}
 		case TypeEnum:
-			val, err := reader.EnumProp(propName)
+			val, err := reader.ImmutableEnumProp(propName)
 			if val == nil {
 				return errors.New("EnumProp " + propName + " was nil")
 			}
@@ -679,7 +679,7 @@ func copyReader(input PropertyReadSetter, outputContainer PropertyReadSetter) er
 				}
 				return errors.New(propName + " did not return an EnumVal as expected: " + err.Error())
 			}
-			outputEnum, err := outputContainer.MutableEnumProp(propName)
+			outputEnum, err := outputContainer.EnumProp(propName)
 			if err != nil {
 				//if the err is ErrPropertyImmutable, that's OK, just skip
 				if err == ErrPropertyImmutable {

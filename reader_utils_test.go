@@ -68,7 +68,7 @@ func TestStructTag(t *testing.T) {
 		anonTestStruct
 		*anonPointerTestStruct
 		A int
-		B enum.MutableVal `enum:"B"`
+		B enum.Val `enum:"B"`
 	}
 
 	theStruct := &testStruct{
@@ -86,7 +86,7 @@ func TestStructTag(t *testing.T) {
 type testAutoEnumMove struct {
 	info           *MoveInfo
 	topLevelStruct Move
-	A              enum.MutableVal `enum:"color"`
+	A              enum.Val `enum:"color"`
 }
 
 func (t *testAutoEnumMove) Reader() PropertyReader {
@@ -174,9 +174,9 @@ func TestAutoEnum(t *testing.T) {
 }
 
 type testGeneralReadSetter struct {
-	TheInt            int             `sanitize:"hidden"`
-	EnumConst         enum.Val        `enum:"color"`
-	EnumVar           enum.MutableVal `enum:"color"`
+	TheInt            int               `sanitize:"hidden"`
+	EnumConst         enum.ImmutableVal `enum:"color"`
+	EnumVar           enum.Val          `enum:"color"`
 	TheImmutableTimer ImmutableTimer
 	TheTimer          Timer
 	TheSizedStack     MutableStack `sizedstack:"test,0"`

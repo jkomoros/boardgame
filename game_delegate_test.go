@@ -123,7 +123,7 @@ func (t *testGameDelegate) DynamicComponentValuesConstructor(deck *Deck) Configu
 	if deck.Name() == "test" {
 		return &testingComponentDynamic{
 			Stack: deck.NewSizedStack(1),
-			Enum:  testColorEnum.NewMutableVal(),
+			Enum:  testColorEnum.NewVal(),
 		}
 	}
 	return nil
@@ -218,8 +218,8 @@ func (t *testGameDelegate) GameStateConstructor() ConfigurableSubState {
 		MyBoolSlice:        make([]bool, 0),
 		MyStringSlice:      make([]string, 0),
 		MyPlayerIndexSlice: make([]PlayerIndex, 0),
-		MyEnumValue:        testColorEnum.NewMutableVal(),
-		MyEnumConst:        testColorEnum.MustNewVal(colorBlue),
+		MyEnumValue:        testColorEnum.NewVal(),
+		MyEnumConst:        testColorEnum.MustNewImmutableVal(colorBlue),
 	}
 }
 

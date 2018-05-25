@@ -78,7 +78,7 @@ func TestRangedEnum(t *testing.T) {
 	set := NewSet()
 	theEnum, _ := set.AddRange("theEnum", 1, 2, 2)
 
-	val := theEnum.NewMutableRangeVal()
+	val := theEnum.NewRangeVal()
 	assert.For(t).ThatActual(val.RangeValue()).Equals([]int{0, 0, 0})
 
 	err := val.SetRangeValue(0, 1, 1)
@@ -168,7 +168,7 @@ func TestEnum(t *testing.T) {
 
 	assert.For(t).ThatActual(val).Equals(IllegalValue)
 
-	eVal := colorEnum.NewMutableVal()
+	eVal := colorEnum.NewVal()
 
 	assert.For(t).ThatActual(eVal.Value()).Equals(ColorBlue)
 
@@ -178,7 +178,7 @@ func TestEnum(t *testing.T) {
 
 	assert.For(t).ThatActual(eVal.Value()).Equals(ColorGreen)
 
-	otherVal := colorEnum.NewMutableVal()
+	otherVal := colorEnum.NewVal()
 
 	otherVal.SetValue(ColorGreen)
 
@@ -199,13 +199,13 @@ func TestEnum(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
-	constant, err := colorEnum.NewVal(ColorGreen)
+	constant, err := colorEnum.NewImmutableVal(ColorGreen)
 
 	assert.For(t).ThatActual(err).IsNil()
 
 	assert.For(t).ThatActual(constant.Value()).Equals(ColorGreen)
 
-	constant, err = colorEnum.NewVal(150)
+	constant, err = colorEnum.NewImmutableVal(150)
 
 	assert.For(t).ThatActual(err).IsNotNil()
 

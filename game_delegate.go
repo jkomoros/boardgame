@@ -382,7 +382,7 @@ func (d *DefaultGameDelegate) CurrentPlayerIndex(state State) PlayerIndex {
 //it's an invalid CurrentPhase (phase 0 is often valid).
 func (d *DefaultGameDelegate) CurrentPhase(state State) int {
 
-	phaseEnum, err := state.GameState().Reader().EnumProp("Phase")
+	phaseEnum, err := state.GameState().Reader().ImmutableEnumProp("Phase")
 
 	if err != nil {
 		//Guess it wasn't there

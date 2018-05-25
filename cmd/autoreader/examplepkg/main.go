@@ -129,7 +129,7 @@ type myStruct struct {
 	MyInt              int
 	MyBool             bool
 	MySizedStack       boardgame.MutableStack
-	TheTimer           boardgame.MutableTimer
+	TheTimer           boardgame.Timer
 	EnumVar            enum.MutableVal
 	MyIntSlice         []int
 	MyBoolSlice        []bool
@@ -193,12 +193,12 @@ type onlyReader struct {
 type includesImmutable struct {
 	//The immutable variants are allowed; their Mutable*Prop methods will
 	//simply return ErrPropertyImmutable.
-	MyStack        boardgame.Stack
-	MyMutableStack boardgame.MutableStack
-	MyTimer        boardgame.Timer
-	MyMutableTimer boardgame.MutableTimer
-	MyEnum         enum.Val
-	MyMutableEnum  enum.MutableVal
+	MyStack          boardgame.Stack
+	MyMutableStack   boardgame.MutableStack
+	MyImmutableTimer boardgame.ImmutableTimer
+	MyTimer          boardgame.Timer
+	MyEnum           enum.Val
+	MyMutableEnum    enum.MutableVal
 }
 
 // +autoreader    readSetter
