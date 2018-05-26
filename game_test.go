@@ -516,8 +516,8 @@ func TestGameSalt(t *testing.T) {
 
 	assert.For(t).ThatActual(game.secretSalt).Equals(refriedGame.secretSalt)
 
-	mainC := game.Chest().Deck("test").ComponentAt(0).Instance(game.CurrentState())
-	refriedC := refriedGame.Chest().Deck("test").ComponentAt(0).Instance(refriedGame.CurrentState())
+	mainC := game.Chest().Deck("test").ComponentAt(0).ImmutableInstance(game.CurrentState())
+	refriedC := refriedGame.Chest().Deck("test").ComponentAt(0).ImmutableInstance(refriedGame.CurrentState())
 
 	mainCId := mainC.ID()
 
@@ -528,7 +528,7 @@ func TestGameSalt(t *testing.T) {
 
 	otherGame.SetUp(0, nil, nil)
 
-	otherC := otherGame.Chest().Deck("test").ComponentAt(0).Instance(otherGame.CurrentState())
+	otherC := otherGame.Chest().Deck("test").ComponentAt(0).ImmutableInstance(otherGame.CurrentState())
 
 	assert.For(t).ThatActual(mainCId).DoesNotEqual(otherC.ID())
 }

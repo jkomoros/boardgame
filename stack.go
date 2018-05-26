@@ -257,7 +257,7 @@ type Stack interface {
 	//component. For SizedStacks it will simply vacate that slot. This should
 	//only be called by MoveComponent. Performs minimal error checking because
 	//it is only used inside of MoveComponent.
-	removeComponentAt(componentIndex int) ComponentInstance
+	removeComponentAt(componentIndex int) ImmutableComponentInstance
 
 	//insertComponentAt inserts the given component at the given slot index,
 	//such that calling ComponentAt with slotIndex would return that
@@ -265,10 +265,10 @@ type Stack interface {
 	//SizedStacks, this just inserts the component in the slot. This should
 	//only be called by MoveComponent. Performs minimal error checking because
 	//it is only used inside of Movecomponent and game.SetUp.
-	insertComponentAt(slotIndex int, component ComponentInstance)
+	insertComponentAt(slotIndex int, component ImmutableComponentInstance)
 
 	//insertNext is a convenience wrapper around insertComponentAt.
-	insertNext(c ComponentInstance)
+	insertNext(c ImmutableComponentInstance)
 
 	//Whether or not the stack is set up to be modified right now.
 	modificationsAllowed() error
@@ -917,7 +917,7 @@ func (s *growableStack) ComponentAt(index int) ComponentInstance {
 	if component == nil {
 		return nil
 	}
-	return component.Instance(s.state()).mutable()
+	return component.ImmutableInstance(s.state()).instance()
 
 }
 
@@ -946,7 +946,7 @@ func (s *sizedStack) ComponentAt(index int) ComponentInstance {
 	if component == nil {
 		return nil
 	}
-	return component.Instance(s.state()).mutable()
+	return component.ImmutableInstance(s.state()).instance()
 }
 
 func (m *mergedStack) ImmutableComponentAt(index int) ImmutableComponentInstance {
@@ -1289,7 +1289,7 @@ func (s *sizedStack) legalSlot(index int) bool {
 	return true
 }
 
-func (g *growableStack) removeComponentAt(componentIndex int) ComponentInstance {
+func (g *growableStack) removeComponentAt(componentIndex int) ImmutableComponentInstance {
 
 	component := g.ComponentAt(componentIndex)
 
@@ -1312,7 +1312,7 @@ func (g *growableStack) removeComponentAt(componentIndex int) ComponentInstance 
 
 }
 
-func (s *sizedStack) removeComponentAt(componentIndex int) ComponentInstance {
+func (s *sizedStack) removeComponentAt(componentIndex int) ImmutableComponentInstance {
 	component := s.ComponentAt(componentIndex)
 
 	s.indexes[componentIndex] = emptyIndexSentinel
@@ -1324,7 +1324,7 @@ func (s *sizedStack) removeComponentAt(componentIndex int) ComponentInstance {
 	return component
 }
 
-func (g *growableStack) insertComponentAt(slotIndex int, component ComponentInstance) {
+func (g *growableStack) insertComponentAt(slotIndex int, component ImmutableComponentInstance) {
 
 	if slotIndex == 0 {
 		g.indexes = append([]int{component.DeckIndex()}, g.indexes...)
@@ -1350,7 +1350,7 @@ func (g *growableStack) insertComponentAt(slotIndex int, component ComponentInst
 
 }
 
-func (s *sizedStack) insertComponentAt(slotIndex int, component ComponentInstance) {
+func (s *sizedStack) insertComponentAt(slotIndex int, component ImmutableComponentInstance) {
 	s.indexes[slotIndex] = component.DeckIndex()
 	s.idSeen(component.ID())
 	//In some weird testing scenarios state can be nil
@@ -1359,11 +1359,11 @@ func (s *sizedStack) insertComponentAt(slotIndex int, component ComponentInstanc
 	}
 }
 
-func (g *growableStack) insertNext(c ComponentInstance) {
+func (g *growableStack) insertNext(c ImmutableComponentInstance) {
 	g.insertComponentAt(g.nextSlot(), c)
 }
 
-func (s *sizedStack) insertNext(c ComponentInstance) {
+func (s *sizedStack) insertNext(c ImmutableComponentInstance) {
 	s.insertComponentAt(s.nextSlot(), c)
 }
 

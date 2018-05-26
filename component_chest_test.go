@@ -82,9 +82,9 @@ func TestComponentInstanceIdentity(t *testing.T) {
 
 	c := game.Chest().Deck("test").ComponentAt(0)
 
-	one := c.Instance(game.CurrentState())
+	one := c.ImmutableInstance(game.CurrentState())
 
-	two := c.Instance(game.CurrentState())
+	two := c.ImmutableInstance(game.CurrentState())
 
 	if one != two {
 		t.Error("Two equivalent components didn't match.")

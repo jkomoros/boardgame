@@ -23,9 +23,9 @@ type Component interface {
 	//whether they represent the same index in the same deck.
 	Equivalent(other Component) bool
 
-	//Instance returns a ComponentInstance representing this component in the
-	//given state.
-	Instance(st ImmutableState) ComponentInstance
+	//ImmutableInstance returns an ImmutableComponentInstance representing
+	//this component in the given state.
+	ImmutableInstance(st ImmutableState) ImmutableComponentInstance
 
 	//Generic returns true if this Component is the generic component for this
 	//deck. You might get this component if you ask for a component from a
@@ -70,15 +70,15 @@ type ImmutableComponentInstance interface {
 	//with.
 	ImmutableState() ImmutableState
 
-	//Mutable returns a mutable version of this component instance. It's sugar
+	//Instance returns a mutable version of this component instance. It's sugar
 	//for state.ContainingMutableComponent. You must pass in a Mutable version
 	//of the state associated with this ComponentInstance to prove that you
 	//have a mutable state.
-	Mutable(state State) (ComponentInstance, error)
+	Instance(state State) (ComponentInstance, error)
 
 	//mutable is only to be used to up-cast to mutablecomponentindex when you
 	//know that's what it is as a quick convenience for use only within this package.
-	mutable() ComponentInstance
+	instance() ComponentInstance
 
 	secretMoveCount() int
 	movedSecretly()
@@ -218,7 +218,7 @@ func (c *component) ptr() *component {
 	return c
 }
 
-func (c *component) Instance(st ImmutableState) ComponentInstance {
+func (c *component) ImmutableInstance(st ImmutableState) ImmutableComponentInstance {
 
 	var ptr *state
 
@@ -423,7 +423,7 @@ func (c componentInstance) SlideToLastSlot() error {
 	return source.moveComponentToEnd(sourceIndex)
 }
 
-func (c componentInstance) Mutable(mState State) (ComponentInstance, error) {
+func (c componentInstance) Instance(mState State) (ComponentInstance, error) {
 	if mState == nil {
 		return nil, errors.New("Passed nil MutableState")
 	}
@@ -443,7 +443,7 @@ func (c componentInstance) Mutable(mState State) (ComponentInstance, error) {
 	return stack.ComponentAt(index), nil
 }
 
-func (c componentInstance) mutable() ComponentInstance {
+func (c componentInstance) instance() ComponentInstance {
 	return c
 }
 

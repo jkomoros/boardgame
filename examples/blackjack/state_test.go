@@ -66,7 +66,7 @@ func createHand(t *testing.T, deck *boardgame.Deck, ranks ...int) []boardgame.Im
 
 			if card.Rank.Value() == rank {
 				//Found one!
-				result = append(result, c.Instance(nil))
+				result = append(result, c.ImmutableInstance(nil))
 				givenCards[i] = true
 				break
 			}

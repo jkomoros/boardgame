@@ -70,7 +70,7 @@ func newTokenDeck() *boardgame.Deck {
 }
 
 func (t *token) Dynamic(state boardgame.ImmutableState) *tokenDynamic {
-	return t.ContainingComponent().Instance(state).DynamicValues().(*tokenDynamic)
+	return t.ContainingComponent().ImmutableInstance(state).ImmutableDynamicValues().(*tokenDynamic)
 }
 
 func (t *token) Legal(state boardgame.ImmutableState, legalType int) error {
