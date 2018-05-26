@@ -51,7 +51,7 @@ And then in your main.go:
 		//doc for more.
 		return &gameState{
 			MyIntProp: 0,
-			MyColorEnumProp: ColorEnum.NewMutableVal(),
+			MyColorEnumProp: ColorEnum.NewVal(),
 		}
 	}
 
@@ -98,7 +98,7 @@ created for you with only minimal configuration.
 
 set.AddRange returns a RangeEnum directly. If you have a normal Enum, you can
 use RangeEnum to get access to the RangeEnum, if valid, or nil otherwise.
-Generally you should store MutableRangeEnumVal directly in your structs if
+Generally you should store RangeEnumVal directly in your structs if
 it's a range value, so you don't have to up-convert.
 
 */
