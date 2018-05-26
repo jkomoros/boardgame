@@ -27,7 +27,7 @@ type gameDelegate struct {
 	boardgame.DefaultGameDelegate
 }
 
-func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.Stack, error) {
+func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.ImmutableStack, error) {
 	component := c.Values().(*playerToken)
 
 	_, players := concreteStates(state)

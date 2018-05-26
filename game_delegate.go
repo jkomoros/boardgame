@@ -116,7 +116,7 @@ type GameDelegate interface {
 	//returned, any nil Stacks are returned, or any returned stacks don't have
 	//space for another component, game.SetUp will fail. State and Component
 	//are only provided for reference; do not modify them.
-	DistributeComponentToStarterStack(state ImmutableState, c Component) (Stack, error)
+	DistributeComponentToStarterStack(state ImmutableState, c Component) (ImmutableStack, error)
 
 	//BeginSetup is a chance to modify the initial state object *before* the
 	//components are distributed to it. It is also where the config for your

@@ -68,7 +68,7 @@ func (g *gameDelegate) ComputedPlayerProperties(player boardgame.ImmutablePlayer
 	}
 }
 
-func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.Stack, error) {
+func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.ImmutableStack, error) {
 
 	game, _ := concreteStates(state)
 

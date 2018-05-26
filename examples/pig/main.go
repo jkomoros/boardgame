@@ -48,7 +48,7 @@ func (g *gameDelegate) DefaultNumPlayers() int {
 	return 2
 }
 
-func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.Stack, error) {
+func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.ImmutableStack, error) {
 	game, _ := concreteStates(state)
 	return game.Die, nil
 }

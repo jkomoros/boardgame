@@ -93,7 +93,7 @@ func (g *gameDelegate) DynamicComponentValuesConstructor(deck *boardgame.Deck) b
 	return new(tokenDynamic)
 }
 
-func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.Stack, error) {
+func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.ImmutableStack, error) {
 	game := state.ImmutableGameState().(*gameState)
 	if c.Deck().Name() == tokenDeckName {
 		return game.UnusedTokens, nil

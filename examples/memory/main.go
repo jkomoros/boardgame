@@ -155,7 +155,7 @@ func (g *gameDelegate) BeginSetUp(state boardgame.State, config boardgame.GameCo
 	return nil
 }
 
-func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.Stack, error) {
+func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.ImmutableStack, error) {
 	game, _ := concreteStates(state)
 
 	//For now, shunt all cards to UnusedCards. In FinishSetup we'll construct
