@@ -10,7 +10,7 @@ func TestBoard(t *testing.T) {
 
 	game.SetUp(0, nil, nil)
 
-	gameState := game.CurrentState().GameState().(*testGameState)
+	gameState := game.CurrentState().ImmutableGameState().(*testGameState)
 
 	board := gameState.MyBoard
 

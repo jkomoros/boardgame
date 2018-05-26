@@ -65,7 +65,7 @@ func TestPlayerIndexValid(t *testing.T) {
 
 	tests := []struct {
 		p        PlayerIndex
-		state    State
+		state    ImmutableState
 		expected bool
 	}{
 		{

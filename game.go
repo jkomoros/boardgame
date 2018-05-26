@@ -38,7 +38,7 @@ type Game struct {
 
 	//Memozied answer to CurrentState. Invalidated whenever ApplyMove is
 	//called.
-	cachedCurrentState    State
+	cachedCurrentState    ImmutableState
 	cachedHistoricalMoves []*MoveStorageRecord
 
 	//Modifiable controls whether moves can be made on this game.
@@ -214,7 +214,7 @@ func (g *Game) Version() int {
 
 //CurrentVersion returns the state object for the current state. Equivalent,
 //semantically, to game.State(game.Version())
-func (g *Game) CurrentState() State {
+func (g *Game) CurrentState() ImmutableState {
 	if g.cachedCurrentState == nil {
 		g.cachedCurrentState = g.State(g.Version())
 	}
@@ -222,7 +222,7 @@ func (g *Game) CurrentState() State {
 }
 
 //Returns the game's atate at the current version.
-func (g *Game) State(version int) State {
+func (g *Game) State(version int) ImmutableState {
 
 	if version < 0 || version > g.Version() {
 		return nil

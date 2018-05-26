@@ -15,7 +15,7 @@ func TestEmptyStacks(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	gState := game.CurrentState().GameState().(*testGameState)
+	gState := game.CurrentState().ImmutableGameState().(*testGameState)
 
 	space := gState.MyBoard.SpaceAt(2)
 
@@ -93,7 +93,7 @@ func TestContainingComponent(t *testing.T) {
 	//DrawDeck is the on that is sanitized by default
 	componentsInDrawDeck := make(map[*component]bool)
 
-	for _, c := range game.CurrentState().GameState().(*testGameState).DrawDeck.Components() {
+	for _, c := range game.CurrentState().ImmutableGameState().(*testGameState).DrawDeck.Components() {
 		componentsInDrawDeck[c.ptr()] = true
 	}
 
@@ -120,7 +120,7 @@ func TestContainingComponent(t *testing.T) {
 
 }
 
-func verifyContainingComponent(t *testing.T, st State, deck *Deck) {
+func verifyContainingComponent(t *testing.T, st ImmutableState, deck *Deck) {
 	_, _, err := st.ContainingImmutableStack(deck.GenericComponent())
 
 	assert.For(t).ThatActual(err).IsNotNil()
