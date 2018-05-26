@@ -65,12 +65,12 @@ type gameState struct {
 	CardSet        string
 	NumCards       int
 	CurrentPlayer  boardgame.PlayerIndex
-	HiddenCards    boardgame.MutableSizedStack `sizedstack:"cards,40" sanitize:"order"`
-	VisibleCards   boardgame.MutableSizedStack `sizedstack:"cards,40"`
-	Cards          boardgame.MergedStack       `overlap:"VisibleCards,HiddenCards"`
-	HideCardsTimer boardgame.MutableTimer
+	HiddenCards    boardgame.SizedStack  `sizedstack:"cards,40" sanitize:"order"`
+	VisibleCards   boardgame.SizedStack  `sizedstack:"cards,40"`
+	Cards          boardgame.MergedStack `overlap:"VisibleCards,HiddenCards"`
+	HideCardsTimer boardgame.Timer
 	//Where cards not in use reside most of the time
-	UnusedCards boardgame.MutableStack `stack:"cards"`
+	UnusedCards boardgame.Stack `stack:"cards"`
 }
 
 //+autoreader
@@ -78,7 +78,7 @@ type playerState struct {
 	boardgame.BaseSubState
 	playerIndex       boardgame.PlayerIndex
 	CardsLeftToReveal int
-	WonCards          boardgame.MutableStack `stack:"cards"`
+	WonCards          boardgame.Stack `stack:"cards"`
 }
 ```
 
@@ -95,7 +95,7 @@ Most of the properties are straightforward. Each player has how many cards they 
 
 #### Stacks and Components
 
-As you can see, stacks of cards are represented by type `MutableStack`, `MutableSizedStack`, or `MergedStack`. These are all different related types of a notion called a Stack.
+As you can see, stacks of cards are represented by type `Stack`, `SizedStack`, or `MergedStack`. These are all different related types of a notion called a Stack.
 
 Stacks contain 0 or more **Components**. Components are anything in a game that can move around: cards, meeples, resource tokens, dice, etc. Each game type defines a complete enumeration of all components included in their game in something called a **ComponentChest**. We'll get back to that later in the tutorial.
 
@@ -142,9 +142,9 @@ type PropertyReadSetter interface {
 
 	//For interface types the setter also wants to give access to the mutable
 	//underlying value so it can be mutated in place.
-	MutableEnumProp(name string) (enum.MutableVal, error)
-	MutableStackProp(name string) (MutableStack, error)
-	MutableTimerProp(name string) (MutableTimer, error)
+	EnumProp(name string) (enum.Val, error)
+	StackProp(name string) (Stack, error)
+	TimerProp(name string) (Timer, error)
 
 	PropMutable(name string) bool
 
@@ -154,9 +154,9 @@ type PropertyReadSetter interface {
 type PropertyReadSetConfigurer interface {
 	PropertyReadSetter
 
-	ConfigureMutableEnumProp(name string, value enum.MutableVal) error
-	ConfigureMutableStackProp(name string, value MutableStack) error
-	ConfigureMutableTimerProp(name string, value MutableTimer) error
+	ConfigureImmutableEnumProp(name string, value enum.ImmutableVal) error
+	ConfigureImmutableStackProp(name string, value ImmutableStack) error
+	ConfigureImmutableTimerProp(name string, value ImmutableTimer) error
 
     ConfigureEnumProp(name string, value enum.Val) error
     ConfigureStackProp(name string, value Stack) error
@@ -170,11 +170,11 @@ This known signature is used a lot within the package for the engine to interact
 
 For simple types (like bools, ints, and strings) the signature is
 straightforward: a getter and a setter. However, there are three types of
-supported properties that are special: `Stack`, `Enum`, and `Timer`. These three types are called "Interface types" because they are a container with some configuration, as well as the specific values within that container. The base interface has read-only methods, and the `MutableTYPE` interface also includes mutators. (Note that `Stack` also has variants `SizedStack` and `MergedStack`, and `Enum` also has a `RangedEnum` variant, but as far as the Reader interface is concerned they're all just the base type).
+supported properties that are special: `Stack`, `Enum`, and `Timer`. These three types are called "Interface types" because they are a container with some configuration, as well as the specific values within that container. The base interface has "Immutable" prepended and they have read-only methods, and variants without "Immutable" add mutator methods to that base interface. (Note that `Stack` also has variants `SizedStack` and `MergedStack`, and `Enum` also has a `RangedEnum` variant, but as far as the Reader interface is concerned they're all just the base type).
 
 A generic Setter for those properties doesn't make sense in a
 `PropertyReadSetter` because the configuration of the property doesn't change,
-only its value within the container. For that reason the Setters are missing and instead have a MutableTYPE getter, which allows mutation, and also have a ConfigureMutableTYPEProp setters, which are used only after the object is freshly-minted in order to configure the container.
+only its value within the container. For those, the PropertyReader getters are for the "Immutable" variants, and the PropertyReadSetters allow access to the mutable versions, which allows mutation, and also have a ConfigureTYPEProp setters, which are used only after the object is freshly-minted in order to configure the container.
 
 Implementing all of those getters and setters for each custom object type you have is a complete pain. That's why there's a command, suitable for use with `go generate`, that automatically creates PropertyReaders for your structs.
 
@@ -199,19 +199,23 @@ type MyStruct struct {
 
 Then, every time you change the shape of one of your objects, run `go generate` on the command line. That will create `autoreader.go`, with generated getters and setters for all of your objects.
 
-One other thing to note: the actual concrete structs that you define, like `gameState` and `playerState`, should almost always include the Mutable variant of an interface type (`MutableStack`, `MutableSizedStack`, `MutableEnum`, `MutableRangeEnum` and `MutableTimer`); the PropertyReader methods will return just the read-only subset of those objects. In general the whole point of having a state object is to represent the state that *changes* which is why you generally want the Mutable variant. However, there are couple of cases where you might want the immutable variant: when you have read-only properties on a component, or when you're using Merged Stacks, which are inherently read-only (more on that later). But for the most part just always use the Mutable variants in your state objects.
+One other thing to note: the actual concrete structs that you define, like `gameState` and `playerState`, should almost always include the mutable variant of an interface type (`Stack`, `SizedStack`, `Enum`, `RangeEnum` and `Timer`; not the versions with "Immutable" prepended); the PropertyReader methods will return just the read-only subset of those objects. In general the whole point of having a state object is to represent the state that *changes* which is why you generally want the mutable variant. However, there are couple of cases where you might want the immutable variant: when you have read-only properties on a component, or when you're using Merged Stacks, which are inherently read-only (more on that later). But for the most part just always use the mutable variants in your state objects.
 
-The game engine generally reasons about States as one concrete object made up of one GameState, and **n** PlayerStates (one for each player). (There are other components of State that we'll get into later.) The `State` object is defined in the core package, and the getters for Game and Player states return things that generically implement the interface, although under the covers they are the concrete type specific to your game type. Many of the methods you implement will accept a State object. Of course, it would be a total pain if you had to interact with all of your objects within your own package that way--to say nothing of losing a lot of type safety.
+The game engine generally reasons about States as one concrete object made up of one GameState, and **n** PlayerStates (one for each player). (There are other components of State that we'll get into later.) The `State` object is defined in the core package, and the getters for Game and Player states return things that generically implement the interface, although under the covers they are the concrete type specific to your game type. 
+
+Many of the methods you'll implement will be passed `ImmutableState` objects, because you are only allowed to read the properties, not change them. In the vast majority of cases you are not allowed to modify the State object. To help make the intention clear, you will be passed either an `ImmutableState` or `State` object (the latter embedding the `ImmutableState` interface and adding mutation methods) to make the expectation clear.
+
+Many of the methods you implement will accept an ImmutableState object. Of course, it would be a total pain if you had to interact with all of your objects within your own package that way--to say nothing of losing a lot of type safety.
 
 That's why it's convention for each game package to define the following private method in their package:
 
 ```
-func concreteStates(state boardgame.State) (*gameState, []*playerState) {
-	game := state.GameState().(*gameState)
+func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState) {
+	game := state.ImmutableGameState().(*gameState)
 
-	players := make([]*playerState, len(state.PlayerStates()))
+	players := make([]*playerState, len(state.ImmutablePlayerStates()))
 
-	for i, player := range state.PlayerStates() {
+	for i, player := range state.ImmutablePlayerStates() {
 		players[i] = player.(*playerState)
 	}
 
@@ -222,15 +226,15 @@ func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 Whenever the game engine hands you a state object, this one-liner will hand you back the concrete states specific to your game type:
 
 ```
-func (g *gameDelegate) Diagram(state boardgame.State) string {
+func (g *gameDelegate) Diagram(state boardgame.ImmutableState) string {
 	game, players := concreteStates(state)
 	//do something with game and players, since they are now the concrete types defined in this package
 }
 ```
 
-Many of the methods you'll implement will be passed `State` objects. In the vast majority of cases you are not allowed to modify the State object. To help make the intention clear, you will be passed either a `State` or `MutableState` object (the latter embedding the `State` interface and adding mutation methods) to make the expectation clear.
 
-... Of course, when you pass the State or MutableState object through your concreteStates method you'll just get the naked, modifiable, concrete structs back, and there's nothing to prevent you from changing the properties. Don't do that--at best it won't actually make a change that will be persisted, but at worse it could lead to odd inconsitencies later, if the engine for example re-used the same state object.
+
+... Of course, when you pass the ImmutableState or State object through your concreteStates method you'll just get the naked, modifiable, concrete structs back, and there's nothing to prevent you from changing the properties. Don't do that--at best it won't actually make a change that will be persisted, but at worse it could lead to odd inconsitencies later, if the engine for example re-used the same state object.
 
 #### PlayerIndex
 
@@ -244,7 +248,7 @@ It would be reasonable to encode that bit of state as a simple `int` (and indeed
 
 #### Timer
 
-The last type of property in the states for Memory is the HideCardsTimer, which is of type `*boardgame.Timer`. Timers aren't used in most types of games. After a certain amount of time has passed they automatically propose a move. For Memory the timer is used to ensure that the cards that are revealed are re-hidden within 3 seconds by the player who flipped them--and if not, flip them back over automatically.
+The last type of property in the states for Memory is the HideCardsTimer, which is of type `boardgame.Timer`. Timers aren't used in most types of games. After a certain amount of time has passed they automatically propose a move. For Memory the timer is used to ensure that the cards that are revealed are re-hidden within 3 seconds by the player who flipped them--and if not, flip them back over automatically.
 
 Timers are rare because they represent parts of the game logic where the time is semantic to the rules of the game. In memory, for example, if players could leave revealed cards showing indefinitely the game would drag on as players competed to exhaustively commit the location of each card to their memory. Contrast that with animations, where the time that passes is merely presentational, to allow the state changes to be visibly demonstrated to players.
 
@@ -335,16 +339,16 @@ The answer is in the struct tags in game and playerStates:
 //+autoreader
 type gameState struct {
 	//...
-	HiddenCards    boardgame.MutableSizedStack `sizedstack:"cards,40" sanitize:"order"`
-	VisibleCards  boardgame.MutableSizedStack `sizedstack:"cards,40"`
-	UnusedCards    boardgame.MutableStack `stack:"cards"`
+	HiddenCards    boardgame.SizedStack `sizedstack:"cards,40" sanitize:"order"`
+	VisibleCards  boardgame.SizedStack `sizedstack:"cards,40"`
+	UnusedCards    boardgame.Stack `stack:"cards"`
 	//...
 }
 
 //+autoreader
 type playerState struct {
 	//...
-	WonCards          boardgame.MutableStack `stack:"cards"`
+	WonCards          boardgame.Stack `stack:"cards"`
 }
 ```
 
@@ -361,7 +365,7 @@ One of them is `CheckGameFinished`, which is run after every Move is applied. In
 Memory's `CheckGameFinished` could look like this:
 
 ```
-func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, winners []boardgame.PlayerIndex) {
+func (g *gameDelegate) CheckGameFinished(state boardgame.ImmutableState) (finished bool, winners []boardgame.PlayerIndex) {
 
 	//This is NOT how memory's CheckGameFinished looks
 
@@ -399,7 +403,7 @@ If there are no cards left in the grid, it figures out which player has the most
 However, this pattern--check if the game is finished, and if it is return as a winner any player who has the highest score--is so common that the engine makes it easy to implement with a default behavior built into `DefaultGameDelegate`. Memory uses it, as you can see in `examples/memory/main.go`:
 
 ```
-func (g *gameDelegate) GameEndConditionMet(state boardgame.State) bool {
+func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool {
 	game, _ := concreteStates(state)
 
 	if game.Cards.NumComponents() > 0 {
@@ -409,7 +413,7 @@ func (g *gameDelegate) GameEndConditionMet(state boardgame.State) bool {
 	return true
 }
 
-func (g *gameDelegate) PlayerScore(pState boardgame.PlayerState) int {
+func (g *gameDelegate) PlayerScore(pState boardgame.ImmutablePlayerState) int {
 	player := pState.(*playerState)
 
 	return player.WonCards.NumComponents()
@@ -463,8 +467,8 @@ A `Move` is a specific instantiation of a particular type of Move. It is a concr
 
 ```
 type Move interface {
-    Legal(state State, proposer PlayerIndex) error
-    Apply(state MutableState) error
+    Legal(state ImmutableState, proposer PlayerIndex) error
+    Apply(state State) error
     //... Other minor methods follow
 }
 ```
@@ -521,7 +525,7 @@ type MoveRevealCard struct {
     CardIndex int
 }
 
-func (m *MoveRevealCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *MoveRevealCard) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
     if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
         return err
@@ -575,7 +579,7 @@ In most cases, your playerState has enough information to return an answer for e
 Memory's implementation of these methods looks like follows:
 
 ```
-func (p *playerState) TurnDone(state boardgame.State) error {
+func (p *playerState) TurnDone() error {
     if p.CardsLeftToReveal > 0 {
         return errors.New("they still have cards left to reveal")
     }
@@ -589,12 +593,12 @@ func (p *playerState) TurnDone(state boardgame.State) error {
     return nil
 }
 
-func (p *playerState) ResetForTurnStart(state boardgame.State) error {
+func (p *playerState) ResetForTurnStart() error {
     p.CardsLeftToReveal = 2
     return nil
 }
 
-func (p *playerState) ResetForTurnEnd(state boardgame.State) error {
+func (p *playerState) ResetForTurnEnd() error {
     return nil
 }
 ```
@@ -649,7 +653,7 @@ If this move type were a fixUp move, your MoveTypeConfig would also set `IsFixUp
 The most important aspect of `MoveType` is the `MoveConstructor`. Similar to other Constructor methods, this is where your concrete type that implements the interface from the core library will be returned. In almost every case this is a single line method that just `new`'s your concrete Move struct. If you use properties whose zero-value isn't legal (like Enums, which we haven't encountered yet in the tutorial), then as long as you use struct tags, the engine will automatically instantiate them for you, similar to how `GameStateConstructor` works.
 
 ```
-func (m *MoveHideCards) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *MoveHideCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
     if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
         return err
@@ -674,7 +678,7 @@ func (m *MoveHideCards) Legal(state boardgame.State, proposer boardgame.PlayerIn
 This is our Legal method. We embed `moves.CurrentPlayer`, but add on our own logic. That's why we call `m.CurrentPlayer.Legal` first, since we want to extend our "superclass". In general you should always call the Legal method of your super class, as even moves.Base includes important logic in its Legal implementation.
 
 ```
-func (m *MoveHideCards) Apply(state boardgame.MutableState) error {
+func (m *MoveHideCards) Apply(state boardgame.State) error {
 	game, _ := concreteStates(state)
 
 	//Cancel a timer in case it was still going.
@@ -924,12 +928,12 @@ type gameState struct {
 	CardSet        string
 	NumCards       int
 	CurrentPlayer  boardgame.PlayerIndex
-	HiddenCards    boardgame.MutableSizedStack `sizedstack:"cards,40" sanitize:"order"`
-	VisibleCards   boardgame.MutableSizedStack `sizedstack:"cards,40"`
-	Cards          boardgame.MergedStack       `overlap:"VisibleCards,HiddenCards"`
-	HideCardsTimer boardgame.MutableTimer
+	HiddenCards    boardgame.SizedStack  `sizedstack:"cards,40" sanitize:"order"`
+	VisibleCards   boardgame.SizedStack  `sizedstack:"cards,40"`
+	Cards          boardgame.MergedStack `overlap:"VisibleCards,HiddenCards"`
+	HideCardsTimer boardgame.Timer
 	//Where cards not in use reside most of the time
-	UnusedCards boardgame.MutableStack `stack:"cards"`
+	UnusedCards boardgame.Stack `stack:"cards"`
 }
 
 //+autoreader
@@ -937,7 +941,7 @@ type playerState struct {
 	boardgame.BaseSubState
 	playerIndex       boardgame.PlayerIndex
 	CardsLeftToReveal int
-	WonCards          boardgame.MutableStack `stack:"cards"`
+	WonCards          boardgame.Stack `stack:"cards"`
 }
 ```
 
@@ -961,10 +965,10 @@ That's not a *particularly* interesting example. Here's the states for blackjack
 //+autoreader
 type gameState struct {
 	roundrobinhelpers.BaseGameState
-	Phase         enum.MutableVal        `enum:"Phase"`
-	DiscardStack  boardgame.MutableStack `stack:"cards" sanitize:"len"`
-	DrawStack     boardgame.MutableStack `stack:"cards" sanitize:"len"`
-	UnusedCards   boardgame.MutableStack `stack:"cards"`
+	Phase         enum.Val        `enum:"Phase"`
+	DiscardStack  boardgame.Stack `stack:"cards" sanitize:"len"`
+	DrawStack     boardgame.Stack `stack:"cards" sanitize:"len"`
+	UnusedCards   boardgame.Stack `stack:"cards"`
 	CurrentPlayer boardgame.PlayerIndex
 }
 
@@ -972,9 +976,9 @@ type gameState struct {
 type playerState struct {
 	boardgame.BaseSubState
 	playerIndex boardgame.PlayerIndex
-	HiddenHand  boardgame.MutableStack `stack:"cards,1" sanitize:"len"`
-	VisibleHand boardgame.MutableStack `stack:"cards"`
-	Hand        boardgame.MergedStack  `concatenate:"HiddenHand,VisibleHand"`
+	HiddenHand  boardgame.Stack       `stack:"cards,1" sanitize:"len"`
+	VisibleHand boardgame.Stack       `stack:"cards"`
+	Hand        boardgame.MergedStack `concatenate:"HiddenHand,VisibleHand"`
 	Busted      bool
 	Stood       bool
 }
@@ -1305,7 +1309,7 @@ When a JSON representation of your gameState is being prepared for a player, you
 Typically this is a simple enumeration of the names of the values and the method calls, like you can see in memory:
 
 ```
-func (g *gameDelegate) ComputedGlobalProperties(state boardgame.State) boardgame.PropertyCollection {
+func (g *gameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) boardgame.PropertyCollection {
 	game, _ := concreteStates(state)
 	return boardgame.PropertyCollection{
 		"CurrentPlayerHasCardsToReveal": game.CurrentPlayerHasCardsToReveal(),
@@ -1333,10 +1337,10 @@ Given an enum, you can create an `enum.Val`, which is a container for a value fr
 //+autoreader
 type gameState struct {
 	moveinterfaces.RoundRobinBaseGameState
-	Phase         enum.MutableVal        `enum:"Phase"`
-	DiscardStack  boardgame.MutableStack `stack:"cards" sanitize:"len"`
-	DrawStack     boardgame.MutableStack `stack:"cards" sanitize:"len"`
-	UnusedCards   boardgame.MutableStack `stack:"cards"`
+	Phase         enum.Val        `enum:"Phase"`
+	DiscardStack  boardgame.Stack `stack:"cards" sanitize:"len"`
+	DrawStack     boardgame.Stack `stack:"cards" sanitize:"len"`
+	UnusedCards   boardgame.Stack `stack:"cards"`
 	CurrentPlayer boardgame.PlayerIndex
 }
 ```
@@ -1382,12 +1386,16 @@ e.RangeToValue(0, 1)
 Typically to model a board with spaces, you create a RangedEnum of the correct dimensions. Then on your gameState you'd have a SizedStack that is the same size as the RangedEnum. You'd use the Ranged getters to convert a multi-dimensional index into a single-dimensional index into the stack. This set-up works if each space on the board can have only one token; if a given space can host more than one, create a Spaces SizedStack for each player.
 
 ```
-chessBoard := set.MustAddRange("Spaces", 8, 8)
+
+const DIM = 8
+//TOTAL_DIM is exported as a constant, so it can be used in the tag-based struct inflation.
+const TOTAL_DIM = DIM * DIM
+
+chessBoard := set.MustAddRange("Spaces", DIM, DIM)
 
 type gameState struct {
 	boargame.BaseSubState
-	//Note: 64 is the size of the chessBoard.
-	Spaces boargame.MutableStack `sizedstack:"Tokens, 64"`
+	Spaces boargame.Stack `sizedstack:"Tokens, TOTAL_DIM"`
 }
 
 //retrive the token at space 3,3 in the chessboard
@@ -1431,10 +1439,10 @@ If you're going to support the notion of phases, you'll need to store the curren
 //+autoreader
 type gameState struct {
 	roundrobinhelpers.BaseGameState
-	Phase         enum.MutableVal        `enum:"Phase"`
-	DiscardStack  boardgame.MutableStack `stack:"cards" sanitize:"len"`
-	DrawStack     boardgame.MutableStack `stack:"cards" sanitize:"len"`
-	UnusedCards   boardgame.MutableStack `stack:"cards"`
+	Phase         enum.Val        `enum:"Phase"`
+	DiscardStack  boardgame.Stack `stack:"cards" sanitize:"len"`
+	DrawStack     boardgame.Stack `stack:"cards" sanitize:"len"`
+	UnusedCards   boardgame.Stack `stack:"cards"`
 	CurrentPlayer boardgame.PlayerIndex
 }
 ```
@@ -1456,7 +1464,7 @@ It's convention to name your phase enum as "Phase", and `moves.Base` will rely o
 
 Now we have to tell the engine what the current phase is. We do this by overriding a method on our gamedelegate, much like we do for CurrentPlayerIndex:
 ```
-func (g *gameDelegate) CurrentPhase(state boardgame.State) int {
+func (g *gameDelegate) CurrentPhase(state boardgame.ImmutableState) int {
 	game, _ := concreteStates(state)
 	return game.Phase.Value()
 }
@@ -1678,7 +1686,7 @@ func (g *gameDelegate) ConfigureConstants() map[string]interface{} {
 type gameState struct {
 	boardgame.BaseSubState
 	CurrentPlayer boardgame.PlayerIndex
-	Slots         boardgame.MutableSizedStack `sizedstack:"tokens,TOTAL_DIM"`
+	Slots         boardgame.SizedStack `sizedstack:"tokens,TOTAL_DIM"`
 	//... Other fields elided
 }
 
