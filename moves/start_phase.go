@@ -29,7 +29,7 @@ type StartPhase struct {
 	FixUp
 }
 
-func (s *StartPhase) ValidConfiguration(exampleState boardgame.MutableState) error {
+func (s *StartPhase) ValidConfiguration(exampleState boardgame.State) error {
 	embeddingMove := s.TopLevelStruct()
 
 	phaseStarter, ok := embeddingMove.(phaseToStarter)
@@ -68,7 +68,7 @@ func (s *StartPhase) PhaseToStart(currentPhase int) int {
 //Apply call BeforeLeavePhase() (if it exists), then BeforeEnterPhase() (if it
 //exists),then SetCurrentPhase to the phase index returned by PhaseToStart
 //from this move type.
-func (s *StartPhase) Apply(state boardgame.MutableState) error {
+func (s *StartPhase) Apply(state boardgame.State) error {
 
 	phaseEnterer, ok := s.TopLevelStruct().(phaseToStarter)
 

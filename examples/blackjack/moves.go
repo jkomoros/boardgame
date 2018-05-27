@@ -37,7 +37,7 @@ type MoveCurrentPlayerStand struct {
  *
  **************************************************/
 
-func (m *MoveShuffleDiscardToDraw) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *MoveShuffleDiscardToDraw) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.Base.Legal(state, proposer); err != nil {
 		return err
@@ -52,7 +52,7 @@ func (m *MoveShuffleDiscardToDraw) Legal(state boardgame.State, proposer boardga
 	return nil
 }
 
-func (m *MoveShuffleDiscardToDraw) Apply(state boardgame.MutableState) error {
+func (m *MoveShuffleDiscardToDraw) Apply(state boardgame.State) error {
 	game, _ := concreteStates(state)
 
 	game.DiscardStack.MoveAllTo(game.DrawStack)
@@ -67,7 +67,7 @@ func (m *MoveShuffleDiscardToDraw) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-func (m *MoveCurrentPlayerHit) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *MoveCurrentPlayerHit) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
 		return err
@@ -88,12 +88,12 @@ func (m *MoveCurrentPlayerHit) Legal(state boardgame.State, proposer boardgame.P
 	return nil
 }
 
-func (m *MoveCurrentPlayerHit) Apply(state boardgame.MutableState) error {
+func (m *MoveCurrentPlayerHit) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
 
 	currentPlayer := players[game.CurrentPlayer]
 
-	game.DrawStack.MutableFirst().MoveToFirstSlot(currentPlayer.VisibleHand)
+	game.DrawStack.First().MoveToFirstSlot(currentPlayer.VisibleHand)
 
 	handValue := currentPlayer.HandValue()
 
@@ -114,7 +114,7 @@ func (m *MoveCurrentPlayerHit) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-func (m *MoveCurrentPlayerStand) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *MoveCurrentPlayerStand) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
 		return err
@@ -136,7 +136,7 @@ func (m *MoveCurrentPlayerStand) Legal(state boardgame.State, proposer boardgame
 
 }
 
-func (m *MoveCurrentPlayerStand) Apply(state boardgame.MutableState) error {
+func (m *MoveCurrentPlayerStand) Apply(state boardgame.State) error {
 
 	game, players := concreteStates(state)
 
@@ -153,7 +153,7 @@ func (m *MoveCurrentPlayerStand) Apply(state boardgame.MutableState) error {
  *
  **************************************************/
 
-func (m *MoveRevealHiddenCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *MoveRevealHiddenCard) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
 		return err
@@ -170,12 +170,12 @@ func (m *MoveRevealHiddenCard) Legal(state boardgame.State, proposer boardgame.P
 	return nil
 }
 
-func (m *MoveRevealHiddenCard) Apply(state boardgame.MutableState) error {
+func (m *MoveRevealHiddenCard) Apply(state boardgame.State) error {
 	_, players := concreteStates(state)
 
 	p := players[m.TargetPlayerIndex]
 
-	p.HiddenHand.MutableFirst().MoveToFirstSlot(p.VisibleHand)
+	p.HiddenHand.First().MoveToFirstSlot(p.VisibleHand)
 
 	return nil
 }

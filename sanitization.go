@@ -117,7 +117,7 @@ func policyFromString(policyName string) Policy {
 	return PolicyInvalid
 }
 
-func (s *state) SanitizedForPlayer(player PlayerIndex) State {
+func (s *state) SanitizedForPlayer(player PlayerIndex) ImmutableState {
 
 	//If the playerIndex isn't an actuall player's index, just return self.
 	if player < -1 || int(player) >= len(s.playerStates) {
@@ -174,7 +174,7 @@ func (s *state) generateSanitizationTransformation(player PlayerIndex) *sanitiza
 
 }
 
-func generateSubStateSanitizationTransformation(subState SubState, propertyRef StatePropertyRef, delegate GameDelegate, generatingForPlayer PlayerIndex, index PlayerIndex) subStateSanitizationTransformation {
+func generateSubStateSanitizationTransformation(subState ImmutableSubState, propertyRef StatePropertyRef, delegate GameDelegate, generatingForPlayer PlayerIndex, index PlayerIndex) subStateSanitizationTransformation {
 
 	//Since propertyRef is passed in by value we can modify it locally without a problem
 
@@ -291,18 +291,18 @@ func sanitizeStateObj(readSetConfigurer PropertyReadSetConfigurer, transformatio
 				continue
 			}
 
-			var stacks []Stack
+			var stacks []ImmutableStack
 
 			if propType == TypeStack {
-				stacks = []Stack{prop.(Stack)}
+				stacks = []ImmutableStack{prop.(ImmutableStack)}
 			} else if propType == TypeBoard {
-				stacks = prop.(Board).Spaces()
+				stacks = prop.(Board).ImmutableSpaces()
 			}
 
 			for _, stack := range stacks {
 
 				if _, ok := visibleDynamic[stack.Deck().Name()]; ok {
-					for _, c := range stack.Components() {
+					for _, c := range stack.ImmutableComponents() {
 						if c == nil {
 							continue
 						}
@@ -363,7 +363,7 @@ func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[strin
 			}
 
 			//Ok, if we get to here then we have a stack with items in a deck that does have dynamic values.
-			for _, c := range stack.Components() {
+			for _, c := range stack.ImmutableComponents() {
 				if c == nil {
 					continue
 				}
@@ -437,8 +437,8 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 	case TypeTimer:
 		return NewTimer()
 	case TypeEnum:
-		e := input.(enum.Val).Copy()
-		res, _ := e.Enum().NewVal(e.Enum().DefaultValue())
+		e := input.(enum.Val).ImmutableCopy()
+		res, _ := e.Enum().NewImmutableVal(e.Enum().DefaultValue())
 		return res
 	}
 
@@ -455,14 +455,14 @@ func applyPolicy(policy Policy, input interface{}, propType PropertyType) interf
 	}
 
 	if propType == TypeBoard {
-		board := input.(MutableBoard)
+		board := input.(Board)
 		board.applySanitizationPolicy(policy)
 		return input
 	}
 
 	//Now we're left with len-properties.
 
-	stack := input.(MutableStack)
+	stack := input.(Stack)
 
 	stack.applySanitizationPolicy(policy)
 

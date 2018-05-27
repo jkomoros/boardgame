@@ -51,7 +51,7 @@ func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex)
 	}
 }
 
-func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c boardgame.Component) (boardgame.Stack, error) {
+func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.ImmutableStack, error) {
 	game, _ := concreteStates(state)
 
 	if c.Deck().Name() == tokensDeckName {
@@ -107,7 +107,7 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, 
 
 }
 
-func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) error {
+func (g *gameDelegate) FinishSetUp(state boardgame.State) error {
 	game, _ := concreteStates(state)
 
 	game.DrawStack.Shuffle()
@@ -116,11 +116,11 @@ func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) error {
 
 }
 
-func (g *gameDelegate) Diagram(state boardgame.State) string {
+func (g *gameDelegate) Diagram(state boardgame.ImmutableState) string {
 	return "Not implemented"
 }
 
-func (g *gameDelegate) CheckGameFinished(state boardgame.State) (finished bool, winners []boardgame.PlayerIndex) {
+func (g *gameDelegate) CheckGameFinished(state boardgame.ImmutableState) (finished bool, winners []boardgame.PlayerIndex) {
 	//This debug game is never finished
 	return false, nil
 }

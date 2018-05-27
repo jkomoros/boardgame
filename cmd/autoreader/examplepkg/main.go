@@ -128,9 +128,9 @@ type myStruct struct {
 	boardgame.BaseSubState
 	MyInt              int
 	MyBool             bool
-	MySizedStack       boardgame.MutableStack
-	TheTimer           boardgame.MutableTimer
-	EnumVar            enum.MutableVal
+	MySizedStack       boardgame.Stack
+	TheTimer           boardgame.Timer
+	EnumVar            enum.Val
 	MyIntSlice         []int
 	MyBoolSlice        []bool
 	MyStringSlice      []string
@@ -176,7 +176,7 @@ type doubleEmbeddedStruct struct {
 //	 +autoreader
 type myOtherStruct struct {
 	blarg           int
-	MyGrowableStack boardgame.MutableStack
+	MyGrowableStack boardgame.Stack
 	ThePlayerIndex  boardgame.PlayerIndex
 }
 
@@ -193,12 +193,12 @@ type onlyReader struct {
 type includesImmutable struct {
 	//The immutable variants are allowed; their Mutable*Prop methods will
 	//simply return ErrPropertyImmutable.
-	MyStack        boardgame.Stack
-	MyMutableStack boardgame.MutableStack
-	MyTimer        boardgame.Timer
-	MyMutableTimer boardgame.MutableTimer
-	MyEnum         enum.Val
-	MyMutableEnum  enum.MutableVal
+	MyStack          boardgame.ImmutableStack
+	MyMutableStack   boardgame.Stack
+	MyImmutableTimer boardgame.ImmutableTimer
+	MyTimer          boardgame.Timer
+	MyEnum           enum.ImmutableVal
+	MyMutableEnum    enum.Val
 }
 
 // +autoreader    readSetter
@@ -208,8 +208,8 @@ type upToReadSetter struct {
 
 //+autoreader
 type sizedStackExample struct {
-	MySizedStack        boardgame.SizedStack
-	MyMutableSizedStack boardgame.MutableSizedStack
+	MySizedStack        boardgame.ImmutableSizedStack
+	MyMutableSizedStack boardgame.SizedStack
 }
 
 //+autoreader
@@ -219,6 +219,6 @@ type mergedStackExample struct {
 
 //+autoreader
 type rangeValExample struct {
-	MyMutableRangeVal enum.MutableRangeVal
-	MyRangeVal        enum.RangeVal
+	MyMutableRangeVal enum.RangeVal
+	MyRangeVal        enum.ImmutableRangeVal
 }

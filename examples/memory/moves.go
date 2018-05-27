@@ -21,7 +21,7 @@ type MoveRevealCard struct {
 	CardIndex int
 }
 
-func (m *MoveRevealCard) DefaultsForState(state boardgame.State) {
+func (m *MoveRevealCard) DefaultsForState(state boardgame.ImmutableState) {
 
 	m.CurrentPlayer.DefaultsForState(state)
 
@@ -35,7 +35,7 @@ func (m *MoveRevealCard) DefaultsForState(state boardgame.State) {
 	}
 }
 
-func (m *MoveRevealCard) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *MoveRevealCard) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
 		return err
@@ -64,13 +64,13 @@ func (m *MoveRevealCard) Legal(state boardgame.State, proposer boardgame.PlayerI
 	return nil
 }
 
-func (m *MoveRevealCard) Apply(state boardgame.MutableState) error {
+func (m *MoveRevealCard) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
 
 	p := players[game.CurrentPlayer]
 
 	p.CardsLeftToReveal--
-	game.HiddenCards.MutableComponentAt(m.CardIndex).MoveTo(game.VisibleCards, m.CardIndex)
+	game.HiddenCards.ComponentAt(m.CardIndex).MoveTo(game.VisibleCards, m.CardIndex)
 
 	//If the cards are the same, the FixUpMove CaptureCards will fire after this.
 
@@ -88,7 +88,7 @@ type MoveStartHideCardsTimer struct {
 	moves.FixUp
 }
 
-func (m *MoveStartHideCardsTimer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *MoveStartHideCardsTimer) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.Base.Legal(state, proposer); err != nil {
 		return err
@@ -122,7 +122,7 @@ func (m *MoveStartHideCardsTimer) Legal(state boardgame.State, proposer boardgam
 	return nil
 }
 
-func (m *MoveStartHideCardsTimer) Apply(state boardgame.MutableState) error {
+func (m *MoveStartHideCardsTimer) Apply(state boardgame.State) error {
 	game, _ := concreteStates(state)
 
 	moveType := state.Game().Manager().MoveTypeByName(moveHideCardsConfig.Name)
@@ -145,7 +145,7 @@ type MoveCaptureCards struct {
 	moves.FixUp
 }
 
-func (m *MoveCaptureCards) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *MoveCaptureCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	if err := m.Base.Legal(state, proposer); err != nil {
 		return err
 	}
@@ -174,14 +174,14 @@ func (m *MoveCaptureCards) Legal(state boardgame.State, proposer boardgame.Playe
 	return nil
 }
 
-func (m *MoveCaptureCards) Apply(state boardgame.MutableState) error {
+func (m *MoveCaptureCards) Apply(state boardgame.State) error {
 	game, players := concreteStates(state)
 
 	p := players[game.CurrentPlayer]
 
 	for i, c := range game.VisibleCards.Components() {
 		if c != nil {
-			game.VisibleCards.MutableComponentAt(i).MoveToNextSlot(p.WonCards)
+			game.VisibleCards.ComponentAt(i).MoveToNextSlot(p.WonCards)
 		}
 	}
 
@@ -207,7 +207,7 @@ var moveHideCardsConfig = boardgame.MoveTypeConfig{
 	},
 }
 
-func (m *MoveHideCards) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *MoveHideCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
 		return err
@@ -228,13 +228,13 @@ func (m *MoveHideCards) Legal(state boardgame.State, proposer boardgame.PlayerIn
 	return nil
 }
 
-func (m *MoveHideCards) Apply(state boardgame.MutableState) error {
+func (m *MoveHideCards) Apply(state boardgame.State) error {
 	game, _ := concreteStates(state)
 
 	//Cancel a timer in case it was still going.
 	game.HideCardsTimer.Cancel()
 
-	for i, c := range game.VisibleCards.MutableComponents() {
+	for i, c := range game.VisibleCards.Components() {
 		if c != nil {
 			if err := c.MoveTo(game.HiddenCards, i); err != nil {
 				return errors.New("Couldn't move component: " + err.Error())

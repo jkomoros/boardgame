@@ -31,7 +31,7 @@ type CurrentPlayer struct {
 //Legal will return an error if the TargetPlayerIndex is not the
 //CurrentPlayerIndex, if the TargetPlayerIndex is not equivalent to the
 //proposer, or if the TargetPlayerIndex is not one of the players.
-func (c *CurrentPlayer) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (c *CurrentPlayer) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := c.Base.Legal(state, proposer); err != nil {
 		return err
@@ -60,7 +60,7 @@ func (c *CurrentPlayer) Legal(state boardgame.State, proposer boardgame.PlayerIn
 }
 
 //DefaultsForState will set the TargetPlayerIndex to be the CurrentPlayerIndex.
-func (c *CurrentPlayer) DefaultsForState(state boardgame.State) {
+func (c *CurrentPlayer) DefaultsForState(state boardgame.ImmutableState) {
 	c.TargetPlayerIndex = state.CurrentPlayerIndex()
 }
 

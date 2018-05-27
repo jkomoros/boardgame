@@ -41,13 +41,13 @@ func (c *__CardReader) Prop(name string) (interface{}, error) {
 
 	switch propType {
 	case boardgame.TypeBoard:
-		return c.BoardProp(name)
+		return c.ImmutableBoardProp(name)
 	case boardgame.TypeBool:
 		return c.BoolProp(name)
 	case boardgame.TypeBoolSlice:
 		return c.BoolSliceProp(name)
 	case boardgame.TypeEnum:
-		return c.EnumProp(name)
+		return c.ImmutableEnumProp(name)
 	case boardgame.TypeInt:
 		return c.IntProp(name)
 	case boardgame.TypeIntSlice:
@@ -57,20 +57,20 @@ func (c *__CardReader) Prop(name string) (interface{}, error) {
 	case boardgame.TypePlayerIndexSlice:
 		return c.PlayerIndexSliceProp(name)
 	case boardgame.TypeStack:
-		return c.StackProp(name)
+		return c.ImmutableStackProp(name)
 	case boardgame.TypeString:
 		return c.StringProp(name)
 	case boardgame.TypeStringSlice:
 		return c.StringSliceProp(name)
 	case boardgame.TypeTimer:
-		return c.TimerProp(name)
+		return c.ImmutableTimerProp(name)
 
 	}
 
 	return nil, errors.New("Unexpected property type: " + propType.String())
 }
 
-func (c *__CardReader) BoardProp(name string) (boardgame.Board, error) {
+func (c *__CardReader) ImmutableBoardProp(name string) (boardgame.ImmutableBoard, error) {
 
 	return nil, errors.New("No such Board prop: " + name)
 
@@ -88,7 +88,7 @@ func (c *__CardReader) BoolSliceProp(name string) ([]bool, error) {
 
 }
 
-func (c *__CardReader) EnumProp(name string) (enum.Val, error) {
+func (c *__CardReader) ImmutableEnumProp(name string) (enum.ImmutableVal, error) {
 
 	switch name {
 	case "Rank":
@@ -126,7 +126,7 @@ func (c *__CardReader) PlayerIndexSliceProp(name string) ([]boardgame.PlayerInde
 
 }
 
-func (c *__CardReader) StackProp(name string) (boardgame.Stack, error) {
+func (c *__CardReader) ImmutableStackProp(name string) (boardgame.ImmutableStack, error) {
 
 	return nil, errors.New("No such Stack prop: " + name)
 
@@ -144,7 +144,7 @@ func (c *__CardReader) StringSliceProp(name string) ([]string, error) {
 
 }
 
-func (c *__CardReader) TimerProp(name string) (boardgame.Timer, error) {
+func (c *__CardReader) ImmutableTimerProp(name string) (boardgame.ImmutableTimer, error) {
 
 	return nil, errors.New("No such Timer prop: " + name)
 

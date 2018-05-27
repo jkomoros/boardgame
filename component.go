@@ -23,9 +23,9 @@ type Component interface {
 	//whether they represent the same index in the same deck.
 	Equivalent(other Component) bool
 
-	//Instance returns a ComponentInstance representing this component in the
-	//given state.
-	Instance(st State) ComponentInstance
+	//ImmutableInstance returns an ImmutableComponentInstance representing
+	//this component in the given state.
+	ImmutableInstance(st ImmutableState) ImmutableComponentInstance
 
 	//Generic returns true if this Component is the generic component for this
 	//deck. You might get this component if you ask for a component from a
@@ -38,18 +38,19 @@ type Component interface {
 	ptr() *component
 }
 
-//ComponentInstance is a specific instantiation of a component as it exists in
-//the particular State it is associated with. ComponentInstances also
-//implement all of the Component information, as a convenience you often need
-//both bits of inforamation.  The downside of this is that two Component
-//values can't be compared directly for equality because they may be different
-//underlying objects and wrappers. If you want to see if two Components that
-//might be from different states refer to the same underlying conceptual
-//Component, use Equivalent(). However, ComponentInstances compared with
-//another ComponentInstance for the same component in the same state will be
-//equal.
-type ComponentInstance interface {
-	//ComponentInstances have all of the information of a base Component, as
+//ImmutableComponentInstance is a specific instantiation of a component as it
+//exists in the particular State it is associated with.
+//ImmutableComponentInstances also implement all of the Component information,
+//as a convenience you often need both bits of inforamation.  The downside of
+//this is that two Component values can't be compared directly for equality
+//because they may be different underlying objects and wrappers. If you want
+//to see if two Components that might be from different states refer to the
+//same underlying conceptual Component, use Equivalent(). However,
+//ImmutableComponentInstances compared with another ImmutableComponentInstance
+//for the same component in the same state will be equal. See also
+//ComponentInstance, which extends this interface with mutators as well.
+type ImmutableComponentInstance interface {
+	//ImmutableComponentInstances have all of the information of a base Component, as
 	//often that's the information you most need.
 	Component
 
@@ -61,42 +62,51 @@ type ComponentInstance interface {
 	//the package doc for more on semi-stable Ids for components, what they
 	//can be used for, and when they do (and don't) change.
 	ID() string
-	//DynamicValues returns the Dynamic Values for this component in the state
+
+	//ImmutableDynamicValues returns the Dynamic Values for this component in the state
 	//this instance is associated with. A convenience so you don't have to go
 	//find them within the DynamicComponentValues yourself.
-	DynamicValues() SubState
+	ImmutableDynamicValues() ImmutableSubState
 
-	//State returns the State object that this ComponentInstance is affiliated
+	//ImmutableState returns the State object that this ComponentInstance is affiliated
 	//with.
-	State() State
+	ImmutableState() ImmutableState
 
-	//Mutable returns a mutable version of this component instance. It's sugar
-	//for state.ContainingMutableComponent. You must pass in a Mutable version
-	//of the state associated with this ComponentInstance to prove that you
-	//have a mutable state.
-	Mutable(state MutableState) (MutableComponentInstance, error)
+	//Instance returns a mutable version of this component instance. You must
+	//pass in a Mutable version of the state associated with this
+	//ComponentInstance to prove that you have a mutable state.
+	Instance(state State) (ComponentInstance, error)
 
 	//mutable is only to be used to up-cast to mutablecomponentindex when you
 	//know that's what it is as a quick convenience for use only within this package.
-	mutable() MutableComponentInstance
+	instance() ComponentInstance
 
 	secretMoveCount() int
 	movedSecretly()
 }
 
-//Note that a MutableComponentInstance doesn't actually guarantee that the
-//component is in a mutable context at this moment, just that it was at some
-//point on thie state (otherwise you couldn't have gotten a reference to it).
-//In practice though, if a Component was ever in a mutable context in a given
-//state, it must remain that way, because it can't be moved from a
-//MutableStack to a non-Mutable stack.
+//Note that a ComponentInstance doesn't actually guarantee that the component
+//is in a mutable context at this moment, just that it was at some point on
+//thie state (otherwise you couldn't have gotten a reference to it). In
+//practice though, if a Component was ever in a mutable context in a given
+//state, it must remain that way, because it can't be moved from a Stack to a
+//ImmutableStack.
 
-//MutableComponentInstance is a component instance that's in a context that is
-//mutable. You generally get these from a MutableStack that contains them. The
+//ComponentInstance is a component instance that's in a context that is
+//mutable. You generally get these from a Stack that contains them. The
 //instance contains many methods to move the component to other stacks or
-//locations.
-type MutableComponentInstance interface {
-	ComponentInstance
+//locations. See also ImmutableComponentInstance, which is the same, but
+//without mutator methods.
+type ComponentInstance interface {
+
+	//ComponentInstance can be used anywhere that ImmutableComponentInstance
+	//can be.
+	ImmutableComponentInstance
+
+	//DynamicValues returns the Dynamic Values for this component in the state
+	//this instance is associated with. A convenience so you don't have to go
+	//find them within the DynamicComponentValues yourself.
+	DynamicValues() SubState
 
 	//MoveTo moves the specified component in its current stack to the
 	//specified slot in the destination stack. The destination stack must be
@@ -111,33 +121,33 @@ type MutableComponentInstance interface {
 	//MoveTo{First,Last,Next}Slot methods are useful if you want to move to
 	//those locations. If you want the precise location of the inserted
 	//component to not be visible, see SecretMoveTo.
-	MoveTo(other MutableStack, slotIndex int) error
+	MoveTo(other Stack, slotIndex int) error
 
 	//SecretMoveTo is equivalent to MoveTo, but after the move the Ids of all
 	//components in destination will be scrambled. SecretMoveTo is useful when
 	//the destination stack will be sanitized with something like PolicyOrder,
 	//but the precise location of this insertion should not be observable.
 	//Read the package doc for more about when this is useful.
-	SecretMoveTo(other MutableStack, slotIndex int) error
+	SecretMoveTo(other Stack, slotIndex int) error
 
 	//MoveToFirstSlot moves the component to the first valid slot in the other
 	//stack. For default Stacks, this is always 0. For SizedStacks, this is
 	//the first empty slot from the left. A convenience wrapper around
 	//stack.FirstSlot.
-	MoveToFirstSlot(other MutableStack) error
+	MoveToFirstSlot(other Stack) error
 
 	//MoveToLastSlot moves the component to the last valid slot in the other
 	//stack. For default Stacks, this is always Len(). For SizedStacks, this
 	//is the first empty slot from the right. A convenience wrappar around
 	//stack.LastSlot().
-	MoveToLastSlot(other MutableStack) error
+	MoveToLastSlot(other Stack) error
 
 	//MoveToNextSlot moves the component to the next valid slot in the other
 	//stack where the component could be added without splicing. For default
 	//stacks this is equivalent to MoveToLastSlot. For fixed size stacks this
 	//is equivalent to MoveToFirstSlot. A convenience wrapper arond
 	//stack.NextSlot().
-	MoveToNextSlot(other MutableStack) error
+	MoveToNextSlot(other Stack) error
 
 	//SlideToFirstSlot takes the given component and moves it to the start of
 	//the same stack, moving everything else up. It is equivalent to removing
@@ -213,7 +223,7 @@ func (c *component) ptr() *component {
 	return c
 }
 
-func (c *component) Instance(st State) ComponentInstance {
+func (c *component) ImmutableInstance(st ImmutableState) ImmutableComponentInstance {
 
 	var ptr *state
 
@@ -356,46 +366,46 @@ func (c componentInstance) movedSecretly() {
 
 }
 
-func (c componentInstance) MoveTo(other MutableStack, slotIndex int) error {
+func (c componentInstance) MoveTo(other Stack, slotIndex int) error {
 	if slotIndex < 0 {
 		return errors.New("Invalid slotIndex")
 	}
-	source, sourceIndex, err := c.statePtr.ContainingMutableStack(c)
+	source, sourceIndex, err := c.statePtr.ContainingStack(c)
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
 	return source.moveComponent(sourceIndex, other, slotIndex)
 }
 
-func (c componentInstance) SecretMoveTo(other MutableStack, slotIndex int) error {
+func (c componentInstance) SecretMoveTo(other Stack, slotIndex int) error {
 	if slotIndex < 0 {
 		return errors.New("Invalid slotIndex")
 	}
-	source, sourceIndex, err := c.statePtr.ContainingMutableStack(c)
+	source, sourceIndex, err := c.statePtr.ContainingStack(c)
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
 	return source.secretMoveComponent(sourceIndex, other, slotIndex)
 }
 
-func (c componentInstance) MoveToFirstSlot(other MutableStack) error {
-	source, sourceIndex, err := c.statePtr.ContainingMutableStack(c)
+func (c componentInstance) MoveToFirstSlot(other Stack) error {
+	source, sourceIndex, err := c.statePtr.ContainingStack(c)
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
 	return source.moveComponent(sourceIndex, other, other.firstSlot())
 }
 
-func (c componentInstance) MoveToLastSlot(other MutableStack) error {
-	source, sourceIndex, err := c.statePtr.ContainingMutableStack(c)
+func (c componentInstance) MoveToLastSlot(other Stack) error {
+	source, sourceIndex, err := c.statePtr.ContainingStack(c)
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
 	return source.moveComponent(sourceIndex, other, other.lastSlot())
 }
 
-func (c componentInstance) MoveToNextSlot(other MutableStack) error {
-	source, sourceIndex, err := c.statePtr.ContainingMutableStack(c)
+func (c componentInstance) MoveToNextSlot(other Stack) error {
+	source, sourceIndex, err := c.statePtr.ContainingStack(c)
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
@@ -403,7 +413,7 @@ func (c componentInstance) MoveToNextSlot(other MutableStack) error {
 }
 
 func (c componentInstance) SlideToFirstSlot() error {
-	source, sourceIndex, err := c.statePtr.ContainingMutableStack(c)
+	source, sourceIndex, err := c.statePtr.ContainingStack(c)
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
@@ -411,14 +421,14 @@ func (c componentInstance) SlideToFirstSlot() error {
 }
 
 func (c componentInstance) SlideToLastSlot() error {
-	source, sourceIndex, err := c.statePtr.ContainingMutableStack(c)
+	source, sourceIndex, err := c.statePtr.ContainingStack(c)
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
 	return source.moveComponentToEnd(sourceIndex)
 }
 
-func (c componentInstance) Mutable(mState MutableState) (MutableComponentInstance, error) {
+func (c componentInstance) Instance(mState State) (ComponentInstance, error) {
 	if mState == nil {
 		return nil, errors.New("Passed nil MutableState")
 	}
@@ -429,21 +439,29 @@ func (c componentInstance) Mutable(mState MutableState) (MutableComponentInstanc
 		return nil, errors.New("The MutableState passed did not match the state this componentinstance was originally from.")
 	}
 
-	stack, index, err := mState.ContainingMutableStack(c)
+	stack, index, err := mState.ContainingStack(c)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return stack.MutableComponentAt(index), nil
+	return stack.ComponentAt(index), nil
 }
 
-func (c componentInstance) mutable() MutableComponentInstance {
+func (c componentInstance) instance() ComponentInstance {
 	return c
+}
+
+func (c componentInstance) ImmutableState() ImmutableState {
+	return c.statePtr
 }
 
 func (c componentInstance) State() State {
 	return c.statePtr
+}
+
+func (c componentInstance) ImmutableDynamicValues() ImmutableSubState {
+	return c.DynamicValues()
 }
 
 func (c componentInstance) DynamicValues() SubState {

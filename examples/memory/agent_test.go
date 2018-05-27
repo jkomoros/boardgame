@@ -102,7 +102,7 @@ func TestCullInvalidCards(t *testing.T) {
 
 	assert.For(t).ThatActual(len(agent.LastCards)).Equals(4)
 
-	gameState.HiddenCards.MutableFirst().MoveTo(gameState.VisibleCards, 0)
+	gameState.HiddenCards.First().MoveTo(gameState.VisibleCards, 0)
 
 	agent.CullInvalidCards(gameState)
 
@@ -118,7 +118,7 @@ func TestCullInvalidCards(t *testing.T) {
 		},
 	})
 
-	err = gameState.HiddenCards.MutableComponentAt(2).MoveTo(gameState.VisibleCards, 2)
+	err = gameState.HiddenCards.ComponentAt(2).MoveTo(gameState.VisibleCards, 2)
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -133,7 +133,7 @@ func TestCullInvalidCards(t *testing.T) {
 		},
 	})
 
-	err = gameState.HiddenCards.MutableComponentAt(3).MoveTo(gameState.VisibleCards, 3)
+	err = gameState.HiddenCards.ComponentAt(3).MoveTo(gameState.VisibleCards, 3)
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -146,7 +146,7 @@ func TestCullInvalidCards(t *testing.T) {
 	})
 }
 
-func cardsLess(i, j boardgame.ComponentInstance) bool {
+func cardsLess(i, j boardgame.ImmutableComponentInstance) bool {
 	if i == nil {
 		return true
 	}
@@ -188,14 +188,14 @@ func TestCardsToFlip(t *testing.T) {
 
 	assert.For(t).ThatActual(one).DoesNotEqual(-1)
 
-	gameState.HiddenCards.MutableComponentAt(one).MoveTo(gameState.VisibleCards, one)
+	gameState.HiddenCards.ComponentAt(one).MoveTo(gameState.VisibleCards, one)
 
 	two := agent.SecondCardToFlip(gameState)
 
 	assert.For(t).ThatActual(two).DoesNotEqual(-1)
 	assert.For(t).ThatActual(two).DoesNotEqual(one)
 
-	gameState.VisibleCards.MutableComponentAt(one).MoveTo(gameState.HiddenCards, one)
+	gameState.VisibleCards.ComponentAt(one).MoveTo(gameState.HiddenCards, one)
 
 	agent.CardSeen(gameState.HiddenCards.ComponentAt(0).Values().(*cardValue).Type, 0)
 	agent.CardSeen(gameState.HiddenCards.ComponentAt(2).Values().(*cardValue).Type, 2)
@@ -205,7 +205,7 @@ func TestCardsToFlip(t *testing.T) {
 
 	assert.For(t).ThatActual(one).Equals(3)
 
-	gameState.HiddenCards.MutableComponentAt(one).MoveTo(gameState.VisibleCards, one)
+	gameState.HiddenCards.ComponentAt(one).MoveTo(gameState.VisibleCards, one)
 
 	//This test has been flaky in the past
 	for i := 0; i < 20; i++ {
@@ -216,8 +216,8 @@ func TestCardsToFlip(t *testing.T) {
 	}
 
 	//Verify that cards that are not in hidden are never suggested by CardsToFlip.
-	gameState.HiddenCards.MutableFirst().MoveTo(gameState.VisibleCards, 0)
-	gameState.HiddenCards.MutableComponentAt(1).MoveTo(gameState.VisibleCards, 1)
+	gameState.HiddenCards.First().MoveTo(gameState.VisibleCards, 0)
+	gameState.HiddenCards.ComponentAt(1).MoveTo(gameState.VisibleCards, 1)
 
 	for i := 0; i < 50; i++ {
 		one = agent.FirstCardToFlip(gameState)

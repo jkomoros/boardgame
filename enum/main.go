@@ -51,7 +51,7 @@ And then in your main.go:
 		//doc for more.
 		return &gameState{
 			MyIntProp: 0,
-			MyColorEnumProp: ColorEnum.NewMutableVal(),
+			MyColorEnumProp: ColorEnum.NewVal(),
 		}
 	}
 
@@ -98,7 +98,7 @@ created for you with only minimal configuration.
 
 set.AddRange returns a RangeEnum directly. If you have a normal Enum, you can
 use RangeEnum to get access to the RangeEnum, if valid, or nil otherwise.
-Generally you should store MutableRangeEnumVal directly in your structs if
+Generally you should store RangeEnumVal directly in your structs if
 it's a range value, so you don't have to up-convert.
 
 */
@@ -150,21 +150,21 @@ type Enum interface {
 	ValueFromString(in string) int
 	//NewVal returns an enum.Val that is permanently set to the provided
 	//val. If that value is not valid for this enum, it will error.
-	NewVal(val int) (Val, error)
-	NewMutableVal() MutableVal
+	NewImmutableVal(val int) (ImmutableVal, error)
+	NewVal() Val
 	//NewMutableVal returns a new EnumValue associated with this enum, set to the
 	//Enum's DefaultValue to start.
 	//NewDefaultVal is a convenience shortcut for creating a new const that is
 	//set to the default value, which is moderately common enough that it makes
 	//sense to do it without the possibility of errors.
-	NewDefaultVal() Val
+	NewDefaultVal() ImmutableVal
 
 	//MustNewVal is like NewVal, but if it would have errored it panics
 	//instead. It's convenient for initial set up where the whole app should fail
 	//to startup if it can't be configured anyway, and dealing with errors would
 	//be a lot of boilerplate.
+	MustNewImmutableVal(val int) ImmutableVal
 	MustNewVal(val int) Val
-	MustNewMutableVal(val int) MutableVal
 
 	//RangeEnum will return a version of this Enum that satisifies the
 	//RangeEnum interface, if possible, nil otherwise.
@@ -175,11 +175,11 @@ type Enum interface {
 type RangeEnum interface {
 	Enum
 
-	NewRangeVal(indexes ...int) (RangeVal, error)
-	NewMutableRangeVal() MutableRangeVal
+	NewImmutableRangeVal(indexes ...int) (ImmutableRangeVal, error)
+	NewRangeVal() RangeVal
 
+	MustNewImmutableRangeVal(indexes ...int) ImmutableRangeVal
 	MustNewRangeVal(indexes ...int) RangeVal
-	MustNewMutableRangeVal(indexes ...int) MutableRangeVal
 
 	//RangeDimensions will return the number of dimensions used to create this
 	//enum with AddRange.
@@ -211,24 +211,24 @@ type variable struct {
 	val  int
 }
 
-//Val is an instantiation of an Enum that cannot be changed. You retrieve it
-//from enum.NewVal(val).
-type Val interface {
+//ImmutableVal is an instantiation of an Enum that cannot be changed. You retrieve it
+//from enum.NewImmutableVal(val).
+type ImmutableVal interface {
 	Enum() Enum
 	Value() int
 	String() string
+	ImmutableCopy() ImmutableVal
 	Copy() Val
-	MutableCopy() MutableVal
-	Equals(other Val) bool
+	Equals(other ImmutableVal) bool
 
-	//RangeVal will return a version of this Val that implements RangeVal(),
+	//ImmutableRangeVal will return a version of this Val that implements RangeVal(),
 	//if that's possible, nil otherwise.≈
-	RangeVal() RangeVal
+	ImmutableRangeVal() ImmutableRangeVal
 }
 
-//RangeVal is a Val that comes from a RangeEnum.
-type RangeVal interface {
-	Val
+//ImmutableRangeVal is a Val that comes from a RangeEnum.
+type ImmutableRangeVal interface {
+	ImmutableVal
 
 	//RangeValue will return an array of indexes that this value represents.
 	RangeValue() []int
@@ -236,8 +236,8 @@ type RangeVal interface {
 
 //MutableVal is an instantiation of a value that must be set to a value in the
 //given enum. You retrieve one from enum.NewMutableVal().
-type MutableVal interface {
-	Val
+type Val interface {
+	ImmutableVal
 	//SetValue changes the value. Returns true if successful. Will fail if the
 	//value is locked or the val you want to set is not a valid number for the
 	//enum this value is associated with.
@@ -245,14 +245,14 @@ type MutableVal interface {
 	//SetStringValue sets the value to the value associated with that string.
 	SetStringValue(str string) error
 
-	//MutableRangeVal returns a version of this MutableVal that implements
-	//MutableRangeVal, if that's posisble, nil otherwise.
-	MutableRangeVal() MutableRangeVal
+	//RangeVal returns a version of this Val that implements RangeVal, if
+	//that's posisble, nil otherwise.
+	RangeVal() RangeVal
 }
 
-//MutableRangeVal is a MutableVal that comes from a RangeEnum.
-type MutableRangeVal interface {
-	MutableVal
+//RangeVal is a MutableVal that comes from a RangeEnum.
+type RangeVal interface {
+	Val
 
 	//RangeValue will return an array of indexes that this value represents.
 	RangeValue() []int
@@ -579,6 +579,13 @@ func (e *enum) RangeToValue(indexes ...int) int {
 
 //Copy returns a copy of the Value, that is equivalent, but will not be
 //locked.
+func (e *variable) ImmutableCopy() ImmutableVal {
+	return &variable{
+		e.enum,
+		e.val,
+	}
+}
+
 func (e *variable) Copy() Val {
 	return &variable{
 		e.enum,
@@ -586,11 +593,11 @@ func (e *variable) Copy() Val {
 	}
 }
 
-func (e *variable) MutableCopy() MutableVal {
-	return &variable{
-		e.enum,
-		e.val,
+func (e *variable) ImmutableRangeVal() ImmutableRangeVal {
+	if e.enum.RangeEnum() == nil {
+		return nil
 	}
+	return e
 }
 
 func (e *variable) RangeVal() RangeVal {
@@ -600,74 +607,67 @@ func (e *variable) RangeVal() RangeVal {
 	return e
 }
 
-func (e *variable) MutableRangeVal() MutableRangeVal {
-	if e.enum.RangeEnum() == nil {
-		return nil
-	}
-	return e
+func (e *enum) NewVal() Val {
+	return e.NewRangeVal()
 }
 
-func (e *enum) NewMutableVal() MutableVal {
-	return e.NewMutableRangeVal()
-}
-
-func (e *enum) NewRangeVal(indexes ...int) (RangeVal, error) {
-	val := e.NewMutableRangeVal()
+func (e *enum) NewImmutableRangeVal(indexes ...int) (ImmutableRangeVal, error) {
+	val := e.NewRangeVal()
 	if err := val.SetRangeValue(indexes...); err != nil {
 		return nil, err
 	}
 	return val, nil
 }
 
-func (e *enum) NewMutableRangeVal() MutableRangeVal {
+func (e *enum) NewRangeVal() RangeVal {
 	return &variable{
 		e,
 		e.DefaultValue(),
 	}
 }
 
-func (e *enum) MustNewRangeVal(indexes ...int) RangeVal {
-	val, err := e.NewRangeVal(indexes...)
+func (e *enum) MustNewImmutableRangeVal(indexes ...int) ImmutableRangeVal {
+	val, err := e.NewImmutableRangeVal(indexes...)
 	if err != nil {
 		panic("Couldn't create Range val: " + err.Error())
 	}
 	return val
 }
 
-func (e *enum) MustNewMutableRangeVal(indexes ...int) MutableRangeVal {
-	val := e.NewMutableRangeVal()
+func (e *enum) MustNewRangeVal(indexes ...int) RangeVal {
+	val := e.NewRangeVal()
 	if err := val.SetRangeValue(indexes...); err != nil {
 		panic("Couldn't create Range val: " + err.Error())
 	}
 	return val
 }
 
-func (e *enum) MustNewMutableVal(val int) MutableVal {
-	enu := e.NewMutableVal()
+func (e *enum) MustNewVal(val int) Val {
+	enu := e.NewVal()
 	if err := enu.SetValue(val); err != nil {
 		panic("Couldn't create mutable val: " + err.Error())
 	}
 	return enu
 }
 
-func (e *enum) MustNewVal(val int) Val {
-	result, err := e.NewVal(val)
+func (e *enum) MustNewImmutableVal(val int) ImmutableVal {
+	result, err := e.NewImmutableVal(val)
 	if err != nil {
 		panic("Couldn't create constant: " + err.Error())
 	}
 	return result
 }
 
-func (e *enum) NewDefaultVal() Val {
-	c, err := e.NewVal(e.DefaultValue())
+func (e *enum) NewDefaultVal() ImmutableVal {
+	c, err := e.NewImmutableVal(e.DefaultValue())
 	if err != nil {
 		panic("Unexpected error in NewDefaultConst: " + err.Error())
 	}
 	return c
 }
 
-func (e *enum) NewVal(val int) (Val, error) {
-	variable := e.NewMutableVal()
+func (e *enum) NewImmutableVal(val int) (ImmutableVal, error) {
+	variable := e.NewVal()
 	if err := variable.SetValue(val); err != nil {
 		return nil, err
 	}
@@ -740,7 +740,7 @@ func (e *variable) SetStringValue(str string) error {
 }
 
 //Equals returns true if the two Consts are equivalent.
-func (e *variable) Equals(other Val) bool {
+func (e *variable) Equals(other ImmutableVal) bool {
 	if other == nil {
 		return false
 	}

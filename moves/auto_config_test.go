@@ -12,7 +12,7 @@ type moveShuffleStack struct {
 	ShuffleStack
 }
 
-func (m *moveShuffleStack) SourceStack(state boardgame.MutableState) boardgame.MutableStack {
+func (m *moveShuffleStack) SourceStack(state boardgame.State) boardgame.Stack {
 	return state.GameState().(*gameState).DrawStack
 }
 

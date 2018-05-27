@@ -37,9 +37,9 @@ const magicDocLinePrefix = "+autoreader"
 func init() {
 
 	funcMap := template.FuncMap{
-		"withoutmutable": withoutMutable,
-		"ismutable":      isMutable,
-		"verbfortype":    verbForType,
+		"withimmutable": withImmutable,
+		"ismutable":     isMutable,
+		"verbfortype":   verbForType,
 	}
 
 	headerTemplate = template.Must(template.New("header").Funcs(funcMap).Parse(headerTemplateText))
@@ -213,48 +213,48 @@ func structTypes(location string, theStruct model.Struct, allStructs []model.Str
 				result.Types[field.Name] = boardgame.TypePlayerIndex
 			}
 			result.Mutable[field.Name] = true
-		case "boardgame.Stack":
+		case "boardgame.ImmutableStack":
 			result.Types[field.Name] = boardgame.TypeStack
 			result.Mutable[field.Name] = false
 		case "boardgame.MergedStack":
 			result.Types[field.Name] = boardgame.TypeStack
 			result.Mutable[field.Name] = false
 			result.UpConverter[field.Name] = "MergedStack"
-		case "boardgame.MutableStack":
+		case "boardgame.Stack":
 			result.Types[field.Name] = boardgame.TypeStack
 			result.Mutable[field.Name] = true
+		case "boardgame.ImmutableSizedStack":
+			result.Types[field.Name] = boardgame.TypeStack
+			result.Mutable[field.Name] = false
+			result.UpConverter[field.Name] = "ImmutableSizedStack"
 		case "boardgame.SizedStack":
 			result.Types[field.Name] = boardgame.TypeStack
-			result.Mutable[field.Name] = false
-			result.UpConverter[field.Name] = "SizedStack"
-		case "boardgame.MutableSizedStack":
-			result.Types[field.Name] = boardgame.TypeStack
 			result.Mutable[field.Name] = true
-			result.UpConverter[field.Name] = "MutableSizedStack"
+			result.UpConverter[field.Name] = "SizedStack"
+		case "boardgame.ImmutableBoard":
+			result.Types[field.Name] = boardgame.TypeBoard
+			result.Mutable[field.Name] = false
 		case "boardgame.Board":
 			result.Types[field.Name] = boardgame.TypeBoard
-			result.Mutable[field.Name] = false
-		case "boardgame.MutableBoard":
-			result.Types[field.Name] = boardgame.TypeBoard
 			result.Mutable[field.Name] = true
+		case "enum.ImmutableVal":
+			result.Types[field.Name] = boardgame.TypeEnum
+			result.Mutable[field.Name] = false
 		case "enum.Val":
 			result.Types[field.Name] = boardgame.TypeEnum
-			result.Mutable[field.Name] = false
-		case "enum.MutableVal":
-			result.Types[field.Name] = boardgame.TypeEnum
 			result.Mutable[field.Name] = true
+		case "enum.ImmutableRangeVal":
+			result.Types[field.Name] = boardgame.TypeEnum
+			result.Mutable[field.Name] = false
+			result.UpConverter[field.Name] = "ImmutableRangeVal"
 		case "enum.RangeVal":
 			result.Types[field.Name] = boardgame.TypeEnum
-			result.Mutable[field.Name] = false
-			result.UpConverter[field.Name] = "RangeVal"
-		case "enum.MutableRangeVal":
-			result.Types[field.Name] = boardgame.TypeEnum
 			result.Mutable[field.Name] = true
-			result.UpConverter[field.Name] = "MutableRangeVal"
-		case "boardgame.Timer":
+			result.UpConverter[field.Name] = "RangeVal"
+		case "boardgame.ImmutableTimer":
 			result.Types[field.Name] = boardgame.TypeTimer
 			result.Mutable[field.Name] = false
-		case "boardgame.MutableTimer":
+		case "boardgame.Timer":
 			result.Types[field.Name] = boardgame.TypeTimer
 			result.Mutable[field.Name] = true
 		default:
@@ -360,16 +360,44 @@ func headerForPackage(packageName string) string {
 	}) + importText
 }
 
-func withoutMutable(in string) string {
-	return strings.Replace(in, "Mutable", "", -1)
+func withImmutable(in string) string {
+	prefix := ""
+	rest := in
+	parts := strings.Split(in, ".")
+	if len(parts) > 1 {
+		prefix = strings.Join(parts[:len(parts)-1], ".")
+		rest = parts[len(parts)-1]
+	}
+
+	if _, needsImmutable := configureTypes[rest]; !needsImmutable {
+		return in
+	}
+
+	rest = "Immutable" + rest
+
+	if prefix == "" {
+		return rest
+	}
+
+	return prefix + "." + rest
+
 }
 
 func isMutable(in string) bool {
-	return strings.Contains(in, "Mutable")
+	return !strings.Contains(in, "Immutable")
+}
+
+var configureTypes = map[string]bool{
+	"Stack": true,
+	"Timer": true,
+	"Board": true,
+	"Val":   true,
+	"Enum":  true,
 }
 
 func verbForType(in string) string {
-	if strings.HasPrefix(in, "Mutable") {
+	_, configure := configureTypes[in]
+	if configure {
 		return "Configure"
 	}
 	return "Set"
@@ -422,21 +450,21 @@ func headerForStruct(structName string, types *typeInfo, outputReadSetter bool, 
 		case "PlayerIndexSlice":
 			goLangType = "[]boardgame.PlayerIndex"
 		case "Enum":
-			goLangType = "enum.Val"
-			setterKey = "MutableEnum"
-			setterGoLangType = "enum.MutableVal"
+			goLangType = "enum.ImmutableVal"
+			setterKey = "Enum"
+			setterGoLangType = "enum.Val"
 		case "Stack":
-			goLangType = "boardgame.Stack"
-			setterKey = "MutableStack"
-			setterGoLangType = "boardgame.MutableStack"
+			goLangType = "boardgame.ImmutableStack"
+			setterKey = "Stack"
+			setterGoLangType = "boardgame.Stack"
 		case "Board":
-			goLangType = "boardgame.Board"
-			setterKey = "MutableBoard"
-			setterGoLangType = "boardgame.MutableBoard"
+			goLangType = "boardgame.ImmutableBoard"
+			setterKey = "Board"
+			setterGoLangType = "boardgame.Board"
 		case "Timer":
-			goLangType = "boardgame.Timer"
-			setterKey = "MutableTimer"
-			setterGoLangType = "boardgame.MutableTimer"
+			goLangType = "boardgame.ImmutableTimer"
+			setterKey = "Timer"
+			setterGoLangType = "boardgame.Timer"
 		default:
 			goLangType = "UNKNOWN"
 		}
@@ -521,16 +549,16 @@ func headerForStruct(structName string, types *typeInfo, outputReadSetter bool, 
 
 		switch propType {
 		case "Enum":
-			setterPropType = "MutableEnum"
+			setterPropType = "Enum"
 			outputMutableGetter = true
 		case "Stack":
-			setterPropType = "MutableStack"
+			setterPropType = "Stack"
 			outputMutableGetter = true
 		case "Board":
-			setterPropType = "MutableBoard"
+			setterPropType = "Board"
 			outputMutableGetter = true
 		case "Timer":
-			setterPropType = "MutableTimer"
+			setterPropType = "Timer"
 			outputMutableGetter = true
 		}
 
@@ -636,7 +664,7 @@ func ({{.firstLetter}} *{{.readerName}}) Prop(name string) (interface{}, error) 
 	switch propType {
 	{{range $type, $goLangtype := .propertyTypes -}}
 	case boardgame.Type{{$type}}:
-		return {{$firstLetter}}.{{$type}}Prop(name)
+		return {{$firstLetter}}.{{withimmutable $type}}Prop(name)
 	{{end}}
 	}
 
@@ -667,10 +695,10 @@ func ({{.firstLetter}} *{{.readerName}}) SetProp(name string, value interface{})
 	switch propType {
 	{{range $type, $goLangType := .setterPropertyTypes -}}
 	{{if ismutable $type -}}
-	case boardgame.Type{{withoutmutable $type}}:
+	case boardgame.Type{{$type}}:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	{{- else -}}
-	case boardgame.Type{{withoutmutable $type}}:
+	case boardgame.Type{{$type}}:
 		val, ok := value.({{$goLangType}})
 		if !ok {
 			return errors.New("Provided value was not of type {{$goLangType}}")
@@ -696,7 +724,7 @@ func ({{.firstLetter}} *{{.readerName}}) ConfigureProp(name string, value interf
 
 	switch propType {
 	{{range $type, $goLangType := .setterPropertyTypes -}}
-	case boardgame.Type{{withoutmutable $type}}:
+	case boardgame.Type{{$type}}:
 		{{if ismutable $type -}}
 		if {{$firstLetter}}.PropMutable(name) {
 			//Mutable variant
@@ -707,11 +735,11 @@ func ({{.firstLetter}} *{{.readerName}}) ConfigureProp(name string, value interf
 			return {{$firstLetter}}.{{verbfortype $type}}{{$type}}Prop(name, val)
 		} else {
 			//Immutable variant
-			val, ok := value.({{withoutmutable $goLangType}})
+			val, ok := value.({{withimmutable $goLangType}})
 			if !ok {
-				return errors.New("Provided value was not of type {{withoutmutable $goLangType}}")
+				return errors.New("Provided value was not of type {{withimmutable $goLangType}}")
 			}
-			return {{$firstLetter}}.{{verbfortype $type}}{{withoutmutable $type}}Prop(name, val)
+			return {{$firstLetter}}.{{verbfortype $type}}{{withimmutable $type}}Prop(name, val)
 		}
 		{{- else -}}
 			val, ok := value.({{$goLangType}})
@@ -729,7 +757,7 @@ func ({{.firstLetter}} *{{.readerName}}) ConfigureProp(name string, value interf
 {{end}}
 `
 
-const typedPropertyTemplateText = `func ({{.firstLetter}} *{{.readerName}}) {{.propType}}Prop(name string) ({{.goLangType}}, error) {
+const typedPropertyTemplateText = `func ({{.firstLetter}} *{{.readerName}}) {{withimmutable .propType}}Prop(name string) ({{.goLangType}}, error) {
 	{{$firstLetter := .firstLetter}}
 	{{if .namesForType}}
 	switch name {
@@ -773,7 +801,7 @@ func ({{.firstLetter}} *{{.readerName}}) Configure{{.setterPropType}}Prop(name s
 
 }
 
-func ({{.firstLetter}} *{{.readerName}}) Configure{{withoutmutable .setterPropType}}Prop(name string, value {{withoutmutable .setterGoLangType}}) error {
+func ({{.firstLetter}} *{{.readerName}}) Configure{{withimmutable .setterPropType}}Prop(name string, value {{withimmutable .setterGoLangType}}) error {
 	{{if .namesForType}}
 	switch name {
 		{{range .namesForType -}}
@@ -796,7 +824,7 @@ func ({{.firstLetter}} *{{.readerName}}) Configure{{withoutmutable .setterPropTy
 	}
 	{{end}}
 
-	return errors.New("No such {{withoutmutable .setterPropType}} prop: " + name)
+	return errors.New("No such {{withimmutable .setterPropType}} prop: " + name)
 
 }
 

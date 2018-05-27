@@ -10,12 +10,12 @@ import (
 //+autoreader
 type MovePlaceToken struct {
 	moves.FixUpMulti
-	TargetIndex enum.MutableRangeVal `enum:"Spaces"`
+	TargetIndex enum.RangeVal `enum:"Spaces"`
 }
 
-func (m *MovePlaceToken) DefaultsForState(state boardgame.State) {
+func (m *MovePlaceToken) DefaultsForState(state boardgame.ImmutableState) {
 
-	game := state.GameState().(*gameState)
+	game := state.ImmutableGameState().(*gameState)
 
 	if game.UnusedTokens.NumComponents() <= 0 {
 		return
@@ -55,12 +55,12 @@ func (m *MovePlaceToken) DefaultsForState(state boardgame.State) {
 
 }
 
-func (m *MovePlaceToken) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *MovePlaceToken) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	if err := m.FixUpMulti.Legal(state, proposer); err != nil {
 		return err
 	}
 
-	game := state.GameState().(*gameState)
+	game := state.ImmutableGameState().(*gameState)
 
 	if game.UnusedTokens.NumComponents() == 0 {
 		return errors.New("No more components to place")
@@ -77,26 +77,26 @@ func (m *MovePlaceToken) Legal(state boardgame.State, proposer boardgame.PlayerI
 	return nil
 }
 
-func (m *MovePlaceToken) Apply(state boardgame.MutableState) error {
+func (m *MovePlaceToken) Apply(state boardgame.State) error {
 	game := state.GameState().(*gameState)
-	return game.UnusedTokens.MutableFirst().MoveTo(game.Spaces, m.TargetIndex.Value())
+	return game.UnusedTokens.First().MoveTo(game.Spaces, m.TargetIndex.Value())
 }
 
 //+autoreader
 type MoveMoveToken struct {
 	moves.CurrentPlayer
-	TokenIndexToMove enum.MutableRangeVal `enum:"Spaces"`
-	SpaceIndex       enum.MutableRangeVal `enum:"Spaces"`
+	TokenIndexToMove enum.RangeVal `enum:"Spaces"`
+	SpaceIndex       enum.RangeVal `enum:"Spaces"`
 }
 
-func (m *MoveMoveToken) Legal(state boardgame.State, proposer boardgame.PlayerIndex) error {
+func (m *MoveMoveToken) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
 		return err
 	}
 
 	p := state.CurrentPlayer().(*playerState)
 
-	g := state.GameState().(*gameState)
+	g := state.ImmutableGameState().(*gameState)
 
 	c := g.Spaces.ComponentAt(m.TokenIndexToMove.Value())
 
@@ -135,7 +135,7 @@ func (m *MoveMoveToken) Legal(state boardgame.State, proposer boardgame.PlayerIn
 
 }
 
-func (m *MoveMoveToken) Apply(state boardgame.MutableState) error {
+func (m *MoveMoveToken) Apply(state boardgame.State) error {
 
 	g := state.GameState().(*gameState)
 
@@ -178,7 +178,7 @@ func (m *MoveMoveToken) Apply(state boardgame.MutableState) error {
 
 		if !tokenValues.Color.Equals(p.Color) {
 			tokenCaptured = true
-			if err := g.Spaces.MutableComponentAt(middleSpace).MoveToLastSlot(p.CapturedTokens); err != nil {
+			if err := g.Spaces.ComponentAt(middleSpace).MoveToLastSlot(p.CapturedTokens); err != nil {
 				return errors.New("Couldn't capture token: " + err.Error())
 			}
 		}
@@ -206,7 +206,7 @@ type MoveCrownToken struct {
 	moves.DefaultComponent
 }
 
-func (m *MoveCrownToken) Apply(state boardgame.MutableState) error {
+func (m *MoveCrownToken) Apply(state boardgame.State) error {
 	g := state.GameState().(*gameState)
 
 	c := g.Spaces.ComponentAt(m.ComponentIndex)

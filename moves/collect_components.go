@@ -20,7 +20,7 @@ type CollectCountComponents struct {
 
 //RoundRobinAction moves a component from the PlayerStack to the GameStack, as
 //configured by the PlayerStacker and GameStacker interfaces.
-func (d *CollectCountComponents) RoundRobinAction(playerState boardgame.MutablePlayerState) error {
+func (d *CollectCountComponents) RoundRobinAction(playerState boardgame.PlayerState) error {
 
 	playerStack, gameStack, err := dealActionHelper(d.TopLevelStruct(), playerState)
 
@@ -28,7 +28,7 @@ func (d *CollectCountComponents) RoundRobinAction(playerState boardgame.MutableP
 		return err
 	}
 
-	return playerStack.MutableFirst().MoveToNextSlot(gameStack)
+	return playerStack.First().MoveToNextSlot(gameStack)
 
 }
 
@@ -61,7 +61,7 @@ type CollectComponentsUntilPlayerCountLeft struct {
 
 //RoundRobinAction moves a component from the PlayerStack to the GameStack, as
 //configured by the PlayerStacker and GameStacker interfaces.
-func (d *CollectComponentsUntilPlayerCountLeft) RoundRobinAction(playerState boardgame.MutablePlayerState) error {
+func (d *CollectComponentsUntilPlayerCountLeft) RoundRobinAction(playerState boardgame.PlayerState) error {
 
 	playerStack, gameStack, err := dealActionHelper(d.TopLevelStruct(), playerState)
 
@@ -69,7 +69,7 @@ func (d *CollectComponentsUntilPlayerCountLeft) RoundRobinAction(playerState boa
 		return err
 	}
 
-	return playerStack.MutableFirst().MoveToNextSlot(gameStack)
+	return playerStack.First().MoveToNextSlot(gameStack)
 
 }
 
@@ -114,7 +114,7 @@ type CollectComponentsUntilGameCountReached struct {
 
 //RoundRobinAction moves a component from the PlayerStack to the GameStack, as
 //configured by the PlayerStacker and GameStacker interfaces.
-func (d *CollectComponentsUntilGameCountReached) RoundRobinAction(playerState boardgame.MutablePlayerState) error {
+func (d *CollectComponentsUntilGameCountReached) RoundRobinAction(playerState boardgame.PlayerState) error {
 
 	playerStack, gameStack, err := dealActionHelper(d.TopLevelStruct(), playerState)
 
@@ -122,7 +122,7 @@ func (d *CollectComponentsUntilGameCountReached) RoundRobinAction(playerState bo
 		return err
 	}
 
-	return playerStack.MutableFirst().MoveToNextSlot(gameStack)
+	return playerStack.First().MoveToNextSlot(gameStack)
 
 }
 

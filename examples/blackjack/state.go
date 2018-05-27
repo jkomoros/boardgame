@@ -14,12 +14,12 @@ const (
 	PhaseNormalPlay
 )
 
-func concreteStates(state boardgame.State) (*gameState, []*playerState) {
-	game := state.GameState().(*gameState)
+func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState) {
+	game := state.ImmutableGameState().(*gameState)
 
-	players := make([]*playerState, len(state.PlayerStates()))
+	players := make([]*playerState, len(state.ImmutablePlayerStates()))
 
-	for i, player := range state.PlayerStates() {
+	for i, player := range state.ImmutablePlayerStates() {
 		players[i] = player.(*playerState)
 	}
 
@@ -29,10 +29,10 @@ func concreteStates(state boardgame.State) (*gameState, []*playerState) {
 //+autoreader
 type gameState struct {
 	roundrobinhelpers.BaseGameState
-	Phase         enum.MutableVal        `enum:"Phase"`
-	DiscardStack  boardgame.MutableStack `stack:"cards" sanitize:"len"`
-	DrawStack     boardgame.MutableStack `stack:"cards" sanitize:"len"`
-	UnusedCards   boardgame.MutableStack `stack:"cards"`
+	Phase         enum.Val        `enum:"Phase"`
+	DiscardStack  boardgame.Stack `stack:"cards" sanitize:"len"`
+	DrawStack     boardgame.Stack `stack:"cards" sanitize:"len"`
+	UnusedCards   boardgame.Stack `stack:"cards"`
 	CurrentPlayer boardgame.PlayerIndex
 }
 
@@ -40,9 +40,9 @@ type gameState struct {
 type playerState struct {
 	boardgame.BaseSubState
 	playerIndex boardgame.PlayerIndex
-	HiddenHand  boardgame.MutableStack `stack:"cards,1" sanitize:"len"`
-	VisibleHand boardgame.MutableStack `stack:"cards"`
-	Hand        boardgame.MergedStack  `concatenate:"HiddenHand,VisibleHand"`
+	HiddenHand  boardgame.Stack       `stack:"cards,1" sanitize:"len"`
+	VisibleHand boardgame.Stack       `stack:"cards"`
+	Hand        boardgame.MergedStack `concatenate:"HiddenHand,VisibleHand"`
 	Busted      bool
 	Stood       bool
 }
@@ -75,7 +75,7 @@ func (p *playerState) ResetForTurnEnd() error {
 	return nil
 }
 
-func handValue(components []boardgame.ComponentInstance) int {
+func handValue(components []boardgame.ImmutableComponentInstance) int {
 	var numUnconvertedAces int
 	var currentValue int
 
@@ -109,5 +109,5 @@ func handValue(components []boardgame.ComponentInstance) int {
 
 //HandValue returns the value of the player's hand.
 func (p *playerState) HandValue() int {
-	return handValue(p.Hand.Components())
+	return handValue(p.Hand.ImmutableComponents())
 }

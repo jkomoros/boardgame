@@ -25,10 +25,10 @@ var phaseEnum = enums.MustAdd("Phase", map[int]string{
 //+autoreader
 type gameState struct {
 	roundrobinhelpers.BaseGameState
-	Phase         enum.MutableVal `enum:"Phase"`
+	Phase         enum.Val `enum:"Phase"`
 	CurrentPlayer boardgame.PlayerIndex
-	DrawStack     boardgame.MutableStack `stack:"cards"`
-	DiscardStack  boardgame.MutableStack `stack:"cards"`
+	DrawStack     boardgame.Stack `stack:"cards"`
+	DiscardStack  boardgame.Stack `stack:"cards"`
 	Counter       int
 }
 
@@ -36,8 +36,8 @@ type gameState struct {
 type playerState struct {
 	boardgame.BaseSubState
 	playerIndex boardgame.PlayerIndex
-	Hand        boardgame.MutableStack `stack:"cards"`
-	OtherHand   boardgame.MutableStack `stack:"cards"`
+	Hand        boardgame.Stack `stack:"cards"`
+	OtherHand   boardgame.Stack `stack:"cards"`
 	Counter     int
 }
 
@@ -49,12 +49,12 @@ func (g *gameState) SetCurrentPhase(phase int) {
 	g.Phase.SetValue(phase)
 }
 
-func concreteStates(state boardgame.State) (*gameState, []*playerState) {
-	game := state.GameState().(*gameState)
+func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState) {
+	game := state.ImmutableGameState().(*gameState)
 
-	players := make([]*playerState, len(state.PlayerStates()))
+	players := make([]*playerState, len(state.ImmutablePlayerStates()))
 
-	for i, player := range state.PlayerStates() {
+	for i, player := range state.ImmutablePlayerStates() {
 		players[i] = player.(*playerState)
 	}
 
@@ -70,7 +70,7 @@ func (g *gameDelegate) Name() string {
 	return "tester"
 }
 
-func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c boardgame.Component) (boardgame.Stack, error) {
+func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.ImmutableStack, error) {
 	game, _ := concreteStates(state)
 
 	return game.DrawStack, nil
@@ -80,8 +80,8 @@ func (g *gameDelegate) DefaultNumPlayers() int {
 	return 4
 }
 
-func (g *gameDelegate) CurrentPlayerIndex(state boardgame.State) boardgame.PlayerIndex {
-	return state.GameState().(*gameState).CurrentPlayer
+func (g *gameDelegate) CurrentPlayerIndex(state boardgame.ImmutableState) boardgame.PlayerIndex {
+	return state.ImmutableGameState().(*gameState).CurrentPlayer
 }
 
 func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {

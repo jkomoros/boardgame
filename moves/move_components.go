@@ -30,7 +30,7 @@ type MoveCountComponents struct {
 	ApplyCountTimes
 }
 
-func (m *MoveCountComponents) ValidConfiguration(exampleState boardgame.MutableState) error {
+func (m *MoveCountComponents) ValidConfiguration(exampleState boardgame.State) error {
 	if err := m.ApplyUntilCount.ValidConfiguration(exampleState); err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func (m *MoveCountComponents) ValidConfiguration(exampleState boardgame.MutableS
 //SourceStack by default just returns the property on GameState with the name
 //passed to DefaultConfig by WithSourceStack. If that is not sufficient,
 //override this in your embedding struct.
-func (m *MoveCountComponents) SourceStack(state boardgame.MutableState) boardgame.MutableStack {
+func (m *MoveCountComponents) SourceStack(state boardgame.State) boardgame.Stack {
 	config := m.Info().Type().CustomConfiguration()
 
 	stackName, ok := config[configNameSourceStack]
@@ -70,7 +70,7 @@ func (m *MoveCountComponents) SourceStack(state boardgame.MutableState) boardgam
 		return nil
 	}
 
-	stack, err := state.MutableGameState().ReadSetter().MutableStackProp(strStackName)
+	stack, err := state.GameState().ReadSetter().StackProp(strStackName)
 
 	if err != nil {
 		return nil
@@ -82,7 +82,7 @@ func (m *MoveCountComponents) SourceStack(state boardgame.MutableState) boardgam
 //DestinationStack by default just returns the property on GameState with the
 //name passed to DefaultConfig by WithDestinationStack. If that is not sufficient,
 //override this in your embedding struct.
-func (m *MoveCountComponents) DestinationStack(state boardgame.MutableState) boardgame.MutableStack {
+func (m *MoveCountComponents) DestinationStack(state boardgame.State) boardgame.Stack {
 	config := m.Info().Type().CustomConfiguration()
 
 	stackName, ok := config[configNameDestinationStack]
@@ -97,7 +97,7 @@ func (m *MoveCountComponents) DestinationStack(state boardgame.MutableState) boa
 		return nil
 	}
 
-	stack, err := state.MutableGameState().ReadSetter().MutableStackProp(strStackName)
+	stack, err := state.GameState().ReadSetter().StackProp(strStackName)
 
 	if err != nil {
 		return nil
@@ -107,10 +107,10 @@ func (m *MoveCountComponents) DestinationStack(state boardgame.MutableState) boa
 }
 
 //stacks returns the source and desitnation so you don't have to do the cast.
-func (m *MoveCountComponents) stacks(state boardgame.State) (source, destination boardgame.MutableStack) {
+func (m *MoveCountComponents) stacks(state boardgame.State) (source, destination boardgame.Stack) {
 
 	//TODO: this is a total hack
-	mState := state.(boardgame.MutableState)
+	mState := state.(boardgame.State)
 
 	stacker, ok := m.TopLevelStruct().(sourceDestinationStacker)
 
@@ -129,7 +129,7 @@ func (m *MoveCountComponents) stackNames() (starter, destination string) {
 
 //Apply by default moves one component from SourceStack() to
 //DestinationStack(). You likely do not need to override this method.
-func (m *MoveCountComponents) Apply(state boardgame.MutableState) error {
+func (m *MoveCountComponents) Apply(state boardgame.State) error {
 
 	source, destination := m.stacks(state)
 
@@ -141,7 +141,7 @@ func (m *MoveCountComponents) Apply(state boardgame.MutableState) error {
 		return errors.New("Destination was nil")
 	}
 
-	return source.MutableFirst().MoveToNextSlot(destination)
+	return source.First().MoveToNextSlot(destination)
 
 }
 

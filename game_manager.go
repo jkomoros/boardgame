@@ -777,7 +777,7 @@ func (g *GameManager) proposeMoveOnGame(id string, move Move, proposer PlayerInd
 //way to inspect the final shape of your State objects using your various
 //Constructor() methods and after tag-based inflation. Primarily useful for
 //meta- programming approaches, used often in the moves package.
-func (g *GameManager) ExampleState() MutableState {
+func (g *GameManager) ExampleState() ImmutableState {
 	state, err := g.emptyState(1)
 	if err != nil {
 		return nil

@@ -170,17 +170,17 @@ type Move interface {
 	//that it is their turn, you would do something like test
 	//m.TargetPlayerIndex.Equivalent(proposer),
 	//m.TargetPlayerIndex.Equivalent(game.CurrentPlayer).
-	Legal(state State, proposer PlayerIndex) error
+	Legal(state ImmutableState, proposer PlayerIndex) error
 
 	//Apply applies the move to the state. It is handed a copy of the state to
 	//modify. If error is non-nil it will not be applied to the game. It
 	//should not be called directly; use Game.ProposeMove.
-	Apply(state MutableState) error
+	Apply(state State) error
 
 	//Sets the move to have reasonable defaults for the given state.For
 	//example, if the Move has a TargetPlayerIndex property, a reasonable
 	//default is state.CurrentPlayer().
-	DefaultsForState(state State)
+	DefaultsForState(state ImmutableState)
 
 	//Description is a human-readable prose description of the effects that
 	//this particular move will have, including any move configuration. For
@@ -215,7 +215,7 @@ type Move interface {
 	//those misconfigurations at the earliest moment. In most cases you never
 	//need to implement this yourself; moves in the moves package that need it
 	//will implement it.
-	ValidConfiguration(exampleState MutableState) error
+	ValidConfiguration(exampleState State) error
 
 	ReadSetConfigurer
 }
@@ -303,7 +303,7 @@ func (m *MoveType) CustomConfiguration() PropertyCollection {
 
 //NewMove returns a new move of this type, with defaults set for the given
 //state. If state is nil, then DefaultsForState will not be called.
-func (m *MoveType) NewMove(state State) Move {
+func (m *MoveType) NewMove(state ImmutableState) Move {
 	move := m.constructor()
 	if move == nil {
 		return nil
@@ -374,7 +374,7 @@ func (d *baseMove) TopLevelStruct() Move {
 }
 
 //DefaultsForState doesn't do anything
-func (d *baseMove) DefaultsForState(state State) {
+func (d *baseMove) DefaultsForState(state ImmutableState) {
 	return
 }
 
@@ -383,6 +383,6 @@ func (d *baseMove) Description() string {
 	return d.Info().Type().HelpText()
 }
 
-func (d *baseMove) ValidConfiguration(exampleState MutableState) error {
+func (d *baseMove) ValidConfiguration(exampleState State) error {
 	return nil
 }

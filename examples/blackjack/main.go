@@ -59,7 +59,7 @@ func (g *gameDelegate) DefaultNumPlayers() int {
 	return 4
 }
 
-func (g *gameDelegate) ComputedPlayerProperties(player boardgame.PlayerState) boardgame.PropertyCollection {
+func (g *gameDelegate) ComputedPlayerProperties(player boardgame.ImmutablePlayerState) boardgame.PropertyCollection {
 
 	p := player.(*playerState)
 
@@ -68,7 +68,7 @@ func (g *gameDelegate) ComputedPlayerProperties(player boardgame.PlayerState) bo
 	}
 }
 
-func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c boardgame.Component) (boardgame.Stack, error) {
+func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.ImmutableStack, error) {
 
 	game, _ := concreteStates(state)
 
@@ -82,7 +82,7 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, 
 
 }
 
-func (g *gameDelegate) Diagram(state boardgame.State) string {
+func (g *gameDelegate) Diagram(state boardgame.ImmutableState) string {
 
 	game, players := concreteStates(state)
 
@@ -162,7 +162,7 @@ func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex)
 	}
 }
 
-func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) error {
+func (g *gameDelegate) FinishSetUp(state boardgame.State) error {
 	game, _ := concreteStates(state)
 
 	game.DrawStack.Shuffle()

@@ -19,7 +19,7 @@ func TestHandValue(t *testing.T) {
 	deck := chest.Deck("cards")
 
 	tests := []struct {
-		components []boardgame.ComponentInstance
+		components []boardgame.ImmutableComponentInstance
 		expected   int
 	}{
 		{
@@ -49,8 +49,8 @@ func TestHandValue(t *testing.T) {
 	}
 }
 
-func createHand(t *testing.T, deck *boardgame.Deck, ranks ...int) []boardgame.ComponentInstance {
-	var result []boardgame.ComponentInstance
+func createHand(t *testing.T, deck *boardgame.Deck, ranks ...int) []boardgame.ImmutableComponentInstance {
+	var result []boardgame.ImmutableComponentInstance
 
 	givenCards := make(map[int]bool)
 
@@ -66,7 +66,7 @@ func createHand(t *testing.T, deck *boardgame.Deck, ranks ...int) []boardgame.Co
 
 			if card.Rank.Value() == rank {
 				//Found one!
-				result = append(result, c.Instance(nil))
+				result = append(result, c.ImmutableInstance(nil))
 				givenCards[i] = true
 				break
 			}

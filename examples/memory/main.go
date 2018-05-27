@@ -46,7 +46,7 @@ func (g *gameDelegate) MaxNumPlayers() int {
 	return 6
 }
 
-func (g *gameDelegate) ComputedGlobalProperties(state boardgame.State) boardgame.PropertyCollection {
+func (g *gameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) boardgame.PropertyCollection {
 	game, _ := concreteStates(state)
 	return boardgame.PropertyCollection{
 		"CurrentPlayerHasCardsToReveal": game.CurrentPlayerHasCardsToReveal(),
@@ -125,7 +125,7 @@ func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex)
 	}
 }
 
-func (g *gameDelegate) BeginSetUp(state boardgame.MutableState, config boardgame.GameConfig) error {
+func (g *gameDelegate) BeginSetUp(state boardgame.State, config boardgame.GameConfig) error {
 	game, _ := concreteStates(state)
 
 	game.CardSet = config[configKeyCardSet]
@@ -155,7 +155,7 @@ func (g *gameDelegate) BeginSetUp(state boardgame.MutableState, config boardgame
 	return nil
 }
 
-func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, c boardgame.Component) (boardgame.Stack, error) {
+func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.ImmutableStack, error) {
 	game, _ := concreteStates(state)
 
 	//For now, shunt all cards to UnusedCards. In FinishSetup we'll construct
@@ -164,7 +164,7 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.State, 
 
 }
 
-func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) error {
+func (g *gameDelegate) FinishSetUp(state boardgame.State) error {
 	game, players := concreteStates(state)
 
 	//First, shuffle unused cards to ensure a different set of cards that
@@ -213,17 +213,17 @@ func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) error {
 		//Doing the pair card first means that its index doesn't have to be
 		//modified down by 1
 		if useCard {
-			if err := game.UnusedCards.MutableComponentAt(pairCardIndex).MoveToNextSlot(game.HiddenCards); err != nil {
+			if err := game.UnusedCards.ComponentAt(pairCardIndex).MoveToNextSlot(game.HiddenCards); err != nil {
 				return errors.New("Couldn't move pair card to other slot: " + err.Error())
 			}
-			if err := game.UnusedCards.MutableFirst().MoveToNextSlot(game.HiddenCards); err != nil {
+			if err := game.UnusedCards.First().MoveToNextSlot(game.HiddenCards); err != nil {
 				return errors.New("Couldn't move first card to other slot: " + err.Error())
 			}
 		} else {
-			if err := game.UnusedCards.MutableComponentAt(pairCardIndex).SlideToLastSlot(); err != nil {
+			if err := game.UnusedCards.ComponentAt(pairCardIndex).SlideToLastSlot(); err != nil {
 				return errors.New("Couldn't move pair card to end: " + err.Error())
 			}
-			if err := game.UnusedCards.MutableFirst().SlideToLastSlot(); err != nil {
+			if err := game.UnusedCards.First().SlideToLastSlot(); err != nil {
 				return errors.New("Couldn't move first card to end: " + err.Error())
 			}
 		}
@@ -237,14 +237,14 @@ func (g *gameDelegate) FinishSetUp(state boardgame.MutableState) error {
 	return nil
 }
 
-func (g *gameDelegate) Diagram(state boardgame.State) string {
+func (g *gameDelegate) Diagram(state boardgame.ImmutableState) string {
 	game, players := concreteStates(state)
 
 	var result []string
 
 	result = append(result, "Board")
 
-	for i, c := range game.Cards.Components() {
+	for i, c := range game.Cards.ImmutableComponents() {
 
 		value := fmt.Sprintf("%2d", i) + ": "
 
@@ -272,7 +272,7 @@ func (g *gameDelegate) Diagram(state boardgame.State) string {
 	return strings.Join(result, "\n")
 }
 
-func (g *gameDelegate) GameEndConditionMet(state boardgame.State) bool {
+func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool {
 	game, _ := concreteStates(state)
 
 	if game.Cards.NumComponents() > 0 {
