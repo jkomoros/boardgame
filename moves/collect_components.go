@@ -75,7 +75,7 @@ func (d *CollectComponentsUntilPlayerCountLeft) RoundRobinAction(playerState boa
 
 //PlayerConditionMet is true if the NumComponents in the given player's
 //PlayerStack() is TargetCount or less.
-func (d *CollectComponentsUntilPlayerCountLeft) PlayerConditionMet(pState boardgame.PlayerState) bool {
+func (d *CollectComponentsUntilPlayerCountLeft) PlayerConditionMet(pState boardgame.ImmutablePlayerState) bool {
 	playerCount, targetCount, err := dealComponentsPlayerConditionMetHelper(d.TopLevelStruct(), pState)
 
 	if err != nil {
@@ -128,7 +128,7 @@ func (d *CollectComponentsUntilGameCountReached) RoundRobinAction(playerState bo
 
 //ConditionMet returns nil if GameStack's NumComponents is TargetCount or
 //greater, and otherwise defaults to RoundRobin's ConditionMet.
-func (d *CollectComponentsUntilGameCountReached) ConditionMet(state boardgame.State) error {
+func (d *CollectComponentsUntilGameCountReached) ConditionMet(state boardgame.ImmutableState) error {
 
 	gameCount, targetCount, err := dealComponentsConditionMetHelper(d.TopLevelStruct(), state)
 

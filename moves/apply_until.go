@@ -70,9 +70,9 @@ func (a *ApplyUntil) MoveTypeFallbackHelpText() string {
 }
 
 type counter interface {
-	Count(state boardgame.State) int
+	Count(state boardgame.ImmutableState) int
 	interfaces.TargetCounter
-	CountDown(state boardgame.State) bool
+	CountDown(state boardgame.ImmutableState) bool
 }
 
 //ApplyUntilCount is a subclass of ApplyUntil that is legal until Count() is
@@ -110,7 +110,7 @@ func (a *ApplyUntilCount) ValidConfiguration(exampleState boardgame.State) error
 
 //Count is consulted in ConditionMet to see what the current count is. Simply
 //returns 1 by default. You almost certainly want to override this.
-func (a *ApplyUntilCount) Count(state boardgame.State) int {
+func (a *ApplyUntilCount) Count(state boardgame.ImmutableState) int {
 	return 1
 }
 
@@ -144,14 +144,14 @@ func (a *ApplyUntilCount) TargetCount() int {
 //counting up. ConditionMet() needs to know if we're counting down or we're
 //counting up because it can't tell that by itself, and needs to stop one
 //after the target is reached. Defaults to false.
-func (a *ApplyUntilCount) CountDown(state boardgame.State) bool {
+func (a *ApplyUntilCount) CountDown(state boardgame.ImmutableState) bool {
 	return false
 }
 
 //ConditionMet returns nil once TargetCount() is one past Count() (which
 //direction is picked based on CountDown()). In general you override Count()
 //and TargetCount() to customize behavior instead of overriding this.
-func (a *ApplyUntilCount) ConditionMet(state boardgame.State) error {
+func (a *ApplyUntilCount) ConditionMet(state boardgame.ImmutableState) error {
 
 	embeddingMove := a.TopLevelStruct()
 
@@ -200,7 +200,7 @@ func (a *ApplyUntilCount) MoveTypeFallbackHelpText() string {
 //ApplyUntilCount goes. It makes it easy to plug in the logic in multiple
 //types of moves that have the same type of behavior for Count() but can't
 //directly subclass one another.
-func countMovesApplied(topLevelStruct boardgame.Move, state boardgame.State) int {
+func countMovesApplied(topLevelStruct boardgame.Move, state boardgame.ImmutableState) int {
 
 	records := state.Game().MoveRecords(state.Version())
 
@@ -242,7 +242,7 @@ type ApplyCountTimes struct {
 
 //Count returns the number of times this move has been applied in a row in the
 //immediate past in the current phase.
-func (a *ApplyCountTimes) Count(state boardgame.State) int {
+func (a *ApplyCountTimes) Count(state boardgame.ImmutableState) int {
 	return countMovesApplied(a.TopLevelStruct(), state)
 }
 

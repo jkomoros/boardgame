@@ -55,7 +55,7 @@ func dealComponentsPlayerConditionMetHelper(topLevelStruct boardgame.Move, playe
 	return playerStack.NumComponents(), targetCounter.TargetCount(), nil
 }
 
-func dealComponentsConditionMetHelper(topLevelStruct boardgame.Move, state boardgame.State) (gameCount, targetCount int, err error) {
+func dealComponentsConditionMetHelper(topLevelStruct boardgame.Move, state boardgame.ImmutableState) (gameCount, targetCount int, err error) {
 	gameStacker, ok := topLevelStruct.(interfaces.GameStacker)
 
 	if !ok {
@@ -313,7 +313,7 @@ type DealComponentsUntilGameCountLeft struct {
 
 //ConditionMet returns nil if GameStack's NumComponents is TargetCount or
 //less, and otherwise defaults to RoundRobin's ConditionMet.
-func (d *DealComponentsUntilGameCountLeft) ConditionMet(state boardgame.State) error {
+func (d *DealComponentsUntilGameCountLeft) ConditionMet(state boardgame.ImmutableState) error {
 
 	gameCount, targetCount, err := dealComponentsConditionMetHelper(d.TopLevelStruct(), state)
 

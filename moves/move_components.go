@@ -107,7 +107,7 @@ func (m *MoveCountComponents) DestinationStack(state boardgame.State) boardgame.
 }
 
 //stacks returns the source and desitnation so you don't have to do the cast.
-func (m *MoveCountComponents) stacks(state boardgame.State) (source, destination boardgame.Stack) {
+func (m *MoveCountComponents) stacks(state boardgame.ImmutableState) (source, destination boardgame.Stack) {
 
 	//TODO: this is a total hack
 	mState := state.(boardgame.State)
@@ -174,12 +174,12 @@ type MoveComponentsUntilCountReached struct {
 
 //CountDown returns false, because as we move components from source to
 //destination, destination will be getting larger.
-func (m *MoveComponentsUntilCountReached) CountDown(state boardgame.State) bool {
+func (m *MoveComponentsUntilCountReached) CountDown(state boardgame.ImmutableState) bool {
 	return false
 }
 
 //Count returns the number of components in DestinationStack().
-func (m *MoveComponentsUntilCountReached) Count(state boardgame.State) int {
+func (m *MoveComponentsUntilCountReached) Count(state boardgame.ImmutableState) int {
 
 	_, targetStack := m.stacks(state)
 
@@ -219,7 +219,7 @@ type MoveComponentsUntilCountLeft struct {
 }
 
 //Count returns the number of components in the SourceStack().
-func (m *MoveComponentsUntilCountLeft) Count(state boardgame.State) int {
+func (m *MoveComponentsUntilCountLeft) Count(state boardgame.ImmutableState) int {
 	targetStack, _ := m.stacks(state)
 
 	if targetStack == nil {
@@ -231,7 +231,7 @@ func (m *MoveComponentsUntilCountLeft) Count(state boardgame.State) int {
 
 //CountDown returns true, because as we move components from source to
 //destination, source will be getting smaller and smaller.
-func (m *MoveComponentsUntilCountLeft) CountDown(state boardgame.State) bool {
+func (m *MoveComponentsUntilCountLeft) CountDown(state boardgame.ImmutableState) bool {
 	return true
 }
 
