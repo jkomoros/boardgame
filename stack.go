@@ -11,19 +11,19 @@ import (
 
 const emptyIndexSentinel = -1
 
-//ImmutableStack is one of the fundamental types in BoardGame. It represents
-//an ordered stack of 0 or more Components, all from the same Deck. Each deck
-//has 0 or more Stacks based off of it, and together they include all
-//components in that deck, with no component residing in more than one stack.
-//Stacks model things like a stack of cards, a collection of resource tokens,
-//etc. Stacks can either be growable (the default), or of a fixed size (called
+//Stack is one of the fundamental types in BoardGame. It represents an ordered
+//stack of 0 or more Components, all from the same Deck. Each deck has 0 or
+//more Stacks based off of it, and together they include all components in
+//that deck, with no component residing in more than one stack. Stacks model
+//things like a stack of cards, a collection of resource tokens, etc. Stacks
+//can either be growable (the default), or of a fixed size (called
 //SizedStacks). The default stacks have a SizedStack() of nil and can grow to
 //accomodate as many components as desired (up to maxSize), with no gaps in
 //between components. An insertion at an index in the middle of a stack will
 //simply move later components down. SizedStacks, however, have a specific
 //size, with empty slots being allowed. Each insertion puts the component at
-//precisely that slot, and will fail if it is already taken. Stack contains
-//only read-only methods, and MutableStack extends with mutator methods. In
+//precisely that slot, and will fail if it is already taken. ImmutableStack
+//contains only read-only methods, and Stack extends with mutator methods. In
 //general you retrieve new Stack objects from the associated deck's NewStack
 //or NewSizedStack and install them in your Constructor methods (if you don't
 //use tag-based auto-inflation). NewOverlappedStack and NewConcatenatedStack
@@ -49,8 +49,8 @@ type ImmutableStack interface {
 
 	//ImmutableFirst returns a reference to the first non-nil component from
 	//the left, or nil if empty. For default stacks, this is simply a
-	//convenience wrapper around stack.ComponentAt(0). Other types of stacks
-	//might do more complicated calculations.
+	//convenience wrapper around stack.ImmutableComponentAt(0). Other types of
+	//stacks might do more complicated calculations.
 	ImmutableFirst() ImmutableComponentInstance
 
 	//ImmutableLast returns a reference to the first non-nil component from
@@ -89,8 +89,8 @@ type ImmutableStack interface {
 	//Deck returns the Deck associated with this stack.
 	Deck() *Deck
 
-	//SizedStack will return a version of this stack that implements the
-	//SizedStack interface, if that's possible, or nil otherwise.
+	//ImmutableSizedStack will return a version of this stack that implements
+	//the ImmutableSizedStack interface, if that's possible, or nil otherwise.
 	ImmutableSizedStack() ImmutableSizedStack
 
 	//MergedStack will return a version of this stack that implements the
@@ -120,11 +120,13 @@ type ImmutableStack interface {
 	lastComponentIndex() int
 }
 
-//SizedStack is a specific type of Stack that has a specific number of slots,
-//any of which may be nil. Although very few methods are added, the basic
-//behavior of the Stack methods is quite different for these kinds of stacks.
+//ImmutableSizedStack is a specific type of Stack that has a specific number
+//of slots, any of which may be nil. Although very few methods are added, the
+//basic behavior of the Stack methods is quite different for these kinds of
+//stacks. See also SizedStack, which adds mutator methods to this definition.
 type ImmutableSizedStack interface {
-	//A SizedStack can be used everywhere a normal ImmutableStack can.
+	//An ImmutableSizedStack can be used everywhere a normal ImmutableStack
+	//can.
 	ImmutableStack
 
 	//FirstComponentIndex returns the index of the first non-nil component
@@ -135,9 +137,10 @@ type ImmutableSizedStack interface {
 	LastComponentIndex() int
 }
 
-//MergedStack is a special variant of stacks that is actually formed from
+//MergedStack is a special variant of ImmutableStack that is actually formed from
 //multiple underlying stacks combined.
 type MergedStack interface {
+	//A MergedStack can be used anywhere an ImmutableStack can be.
 	ImmutableStack
 
 	//Valid will return a non-nil error if the stack isn't valid currently
@@ -154,8 +157,10 @@ type MergedStack interface {
 	Overlapped() bool
 }
 
-//Stack is an ImmutableStack that also has mutator methods.
+//Stack is an ImmutableStack that also has mutator methods. See ImmutableStack
+//for more documentation about Stacks in general.
 type Stack interface {
+	//A Stack can be used anywhere an ImmutableStack can be.
 	ImmutableStack
 
 	//ComponentAt is the same as ImmutableComponentAt, but returns a
@@ -305,8 +310,9 @@ type Stack interface {
 	lastSlot() int
 }
 
-//SizedStack is a Stack equivalent of an ImmutableSizedStack.
+//SizedStack is Stack, but with SizedStack related methods.
 type SizedStack interface {
+	//SizedStack can be used anywhere a Stack can be.
 	Stack
 
 	//FirstComponentIndex returns the index of the first non-nil component

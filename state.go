@@ -7,31 +7,32 @@ import (
 	"strconv"
 )
 
-//ImmutableState represents the entire semantic state of a game at a given
-//version. For your specific game, GameState and PlayerStates will actually be
-//concrete structs to your particular game. Games often define a top-level
+//State represents the entire semantic state of a game at a given version. For
+//your specific game, GameState and PlayerStates will actually be concrete
+//structs to your particular game. Games often define a top-level
 //concreteStates() *myGameState, []*myPlayerState so at the top of methods
 //that accept a State they can quickly get concrete, type-checked types with
 //only a single conversion leap of faith at the top. States are intended to be
-//read-only; methods where you are allowed to mutate the state (e.g.
-//Move.Apply()) will take a MutableState instead as a signal that it is
-//permissable to modify the state. That is why the states only return non-
-//mutable states (PropertyReaders, not PropertyReadSetters, although
-//realistically it is possible to cast them and modify directly. The
-//MarshalJSON output of a State is appropriate for sending to a client or
-//serializing a state to be put in storage. Given a blob serialized in that
-//fashion, GameManager.StateFromBlob will return a state.
+//read-only, which is why the base interface is ImmutableState; methods where
+//you are allowed to mutate the state (e.g. Move.Apply()) will take a State
+//instead as a signal that it is permissable to modify the state. That is why
+//the states only return non- mutable states (PropertyReaders, not
+//PropertyReadSetters, although realistically it is possible to cast them and
+//modify directly. The MarshalJSON output of a State is appropriate for
+//sending to a client or serializing a state to be put in storage.
 type ImmutableState interface {
-	//GameState returns the GameState for this State
+	//ImmutableGameState returns the ImmutableGameState for this State
 	ImmutableGameState() ImmutableSubState
-	//PlayerStates returns a slice of all PlayerStates for this State
+	//ImmutablePlayerStates returns a slice of all ImmutablePlayerStates for
+	//this State
 	ImmutablePlayerStates() []ImmutablePlayerState
 	//DynamicComponentValues returns a map of deck name to array of component
 	//values, one per component in that deck.
 	ImmutableDynamicComponentValues() map[string][]ImmutableSubState
 
-	//CurrentPlayer returns the PlayerState corresponding to the result of
-	//delegate.CurrentPlayerIndex(), or nil if the index isn't valid.
+	//CurrentPlayer returns the ImmutablePlayerState corresponding to the
+	//result of delegate.CurrentPlayerIndex(), or nil if the index isn't
+	//valid.
 	CurrentPlayer() ImmutablePlayerState
 	//CurrentPlayerIndex is a simple convenience wrapper around
 	//delegate.CurrentPlayerIndex for this state.
@@ -799,8 +800,9 @@ type ReadSetConfigurer interface {
 }
 
 //ImmutableStateSetter is included in ImmutableSubState, SubState, and
-//ConfigureableSubState as the way to keep track of which State a given
-//SubState is part of.
+//ConfigureableSubState as the way to keep track of which ImmutableState a
+//given SubState is part of. See also StateSetter, which adds getters/setters
+//for mutable States.
 type ImmutableStateSetter interface {
 	//SetImmutableState is called to give the SubState object a pointer back
 	//to the State that contains it. You can implement it yourself, or
@@ -818,8 +820,8 @@ type StateSetter interface {
 	State() State
 }
 
-//ImmutableSubState is the interface that all sub-state objects (PlayerStates.
-//GameStates, and DynamicComponentValues) implement.
+//ImmutableSubState is the interface that all non-modifiable sub-state objects
+//(PlayerStates. GameStates, and DynamicComponentValues) implement.
 type ImmutableSubState interface {
 	ImmutableStateSetter
 	Reader
@@ -854,7 +856,8 @@ type PlayerState interface {
 	SubState
 }
 
-//A MutablePlayerState is a PlayerState that is allowed to be mutated.
+//ImmutablePlayerState represents a PlayerState SubState that is not in a
+//context where mutating is legal.
 type ImmutablePlayerState interface {
 	PlayerIndexer
 	ImmutableSubState

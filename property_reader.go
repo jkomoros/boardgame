@@ -23,12 +23,16 @@ type PropertyReader interface {
 	IntProp(name string) (int, error)
 	BoolProp(name string) (bool, error)
 	StringProp(name string) (string, error)
-	ImmutableEnumProp(name string) (enum.ImmutableVal, error)
 	IntSliceProp(name string) ([]int, error)
 	BoolSliceProp(name string) ([]bool, error)
 	StringSliceProp(name string) ([]string, error)
 	PlayerIndexSliceProp(name string) ([]PlayerIndex, error)
 	PlayerIndexProp(name string) (PlayerIndex, error)
+
+	//The interface types will only return read-only versions of their objects
+	//in a Reader context, even if the underlying objects are mutable
+	//versions.
+	ImmutableEnumProp(name string) (enum.ImmutableVal, error)
 	ImmutableStackProp(name string) (ImmutableStack, error)
 	ImmutableBoardProp(naem string) (ImmutableBoard, error)
 	ImmutableTimerProp(name string) (ImmutableTimer, error)

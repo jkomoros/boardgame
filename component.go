@@ -39,15 +39,16 @@ type Component interface {
 }
 
 //ImmutableComponentInstance is a specific instantiation of a component as it
-//exists in the particular State it is associated with. ComponentInstances
-//also implement all of the Component information, as a convenience you often
-//need both bits of inforamation.  The downside of this is that two Component
-//values can't be compared directly for equality because they may be different
-//underlying objects and wrappers. If you want to see if two Components that
-//might be from different states refer to the same underlying conceptual
-//Component, use Equivalent(). However, ComponentInstances compared with
-//another ComponentInstance for the same component in the same state will be
-//equal.
+//exists in the particular State it is associated with.
+//ImmutableComponentInstances also implement all of the Component information,
+//as a convenience you often need both bits of inforamation.  The downside of
+//this is that two Component values can't be compared directly for equality
+//because they may be different underlying objects and wrappers. If you want
+//to see if two Components that might be from different states refer to the
+//same underlying conceptual Component, use Equivalent(). However,
+//ImmutableComponentInstances compared with another ImmutableComponentInstance
+//for the same component in the same state will be equal. See also
+//ComponentInstance, which extends this interface with mutators as well.
 type ImmutableComponentInstance interface {
 	//ImmutableComponentInstances have all of the information of a base Component, as
 	//often that's the information you most need.
@@ -61,6 +62,7 @@ type ImmutableComponentInstance interface {
 	//the package doc for more on semi-stable Ids for components, what they
 	//can be used for, and when they do (and don't) change.
 	ID() string
+
 	//ImmutableDynamicValues returns the Dynamic Values for this component in the state
 	//this instance is associated with. A convenience so you don't have to go
 	//find them within the DynamicComponentValues yourself.
@@ -70,10 +72,9 @@ type ImmutableComponentInstance interface {
 	//with.
 	ImmutableState() ImmutableState
 
-	//Instance returns a mutable version of this component instance. It's sugar
-	//for state.ContainingMutableComponent. You must pass in a Mutable version
-	//of the state associated with this ComponentInstance to prove that you
-	//have a mutable state.
+	//Instance returns a mutable version of this component instance. You must
+	//pass in a Mutable version of the state associated with this
+	//ComponentInstance to prove that you have a mutable state.
 	Instance(state State) (ComponentInstance, error)
 
 	//mutable is only to be used to up-cast to mutablecomponentindex when you
@@ -94,8 +95,12 @@ type ImmutableComponentInstance interface {
 //ComponentInstance is a component instance that's in a context that is
 //mutable. You generally get these from a Stack that contains them. The
 //instance contains many methods to move the component to other stacks or
-//locations.
+//locations. See also ImmutableComponentInstance, which is the same, but
+//without mutator methods.
 type ComponentInstance interface {
+
+	//ComponentInstance can be used anywhere that ImmutableComponentInstance
+	//can be.
 	ImmutableComponentInstance
 
 	//DynamicValues returns the Dynamic Values for this component in the state

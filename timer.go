@@ -5,9 +5,10 @@ import (
 	"time"
 )
 
-//An ImmutableTimer is a type of property that can be used in states that
-//represents a countdown. The Timer interface includes mutator methods as
-//well. See the package documentation for more on timers.
+//Timer is a type of property that can be used in states that represents a
+//countdown. ImmutableTimer only contains read-only properties; the Timer
+//interface includes mutator methods as well. See the package documentation
+//for more on timers.
 type ImmutableTimer interface {
 	Active() bool
 	TimeLeft() time.Duration

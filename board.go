@@ -10,8 +10,8 @@ import (
 //representing spaces on a board, which may allow unlimited components to
 //reside in them, or have a maxium number of occupants. If each board's space
 //only allows a single item, it's often equivalent--and simpler--to just use a
-//single Stack of a FixedSize. Get one from deck.NewBoard(). See also
-//MutableBoard, which is the same, but adds Mutators.
+//single Stack of a FixedSize. Get one from deck.NewBoard(). See also Board,
+//which is the same, but adds mutator methods.
 type ImmutableBoard interface {
 	ImmutableSpaces() []ImmutableStack
 	ImmutableSpaceAt(index int) ImmutableStack
@@ -20,6 +20,8 @@ type ImmutableBoard interface {
 	setState(st *state)
 }
 
+//Board represents a mutable array of growable stacks. See the documentation
+//for ImmutableBoard for more.
 type Board interface {
 	ImmutableBoard
 	Spaces() []Stack
