@@ -23,8 +23,16 @@ type Component interface {
 	//whether they represent the same index in the same deck.
 	Equivalent(other Component) bool
 
+	//Instance returns a mutable ComponentInstance representing this component
+	//in the given state. Will never return nil, even if the component isn't
+	//valid in this state----although later things like ContainingStack may
+	//error later in that case.
+	Instance(st State) ComponentInstance
+
 	//ImmutableInstance returns an ImmutableComponentInstance representing
-	//this component in the given state.
+	//this component in the given state. Will never return nil, even if the
+	//component isn't valid in this state--although later things like
+	//ContainingStack may error later in that case.
 	ImmutableInstance(st ImmutableState) ImmutableComponentInstance
 
 	//Generic returns true if this Component is the generic component for this
@@ -68,18 +76,15 @@ type ImmutableComponentInstance interface {
 	//find them within the DynamicComponentValues yourself.
 	ImmutableDynamicValues() ImmutableSubState
 
+	//ContainingImmutableStack will return the stack and slot index for the
+	//associated component, if that location is not sanitized, and the
+	//componentinstance is legal for the state it's in. If no error is
+	//returned, stack.ComponentAt(slotIndex) == c will evaluate to true.
+	ContainingImmutableStack() (stack ImmutableStack, slotIndex int, err error)
+
 	//ImmutableState returns the State object that this ComponentInstance is affiliated
 	//with.
 	ImmutableState() ImmutableState
-
-	//Instance returns a mutable version of this component instance. You must
-	//pass in a Mutable version of the state associated with this
-	//ComponentInstance to prove that you have a mutable state.
-	Instance(state State) (ComponentInstance, error)
-
-	//mutable is only to be used to up-cast to mutablecomponentindex when you
-	//know that's what it is as a quick convenience for use only within this package.
-	instance() ComponentInstance
 
 	secretMoveCount() int
 	movedSecretly()
@@ -107,6 +112,12 @@ type ComponentInstance interface {
 	//this instance is associated with. A convenience so you don't have to go
 	//find them within the DynamicComponentValues yourself.
 	DynamicValues() SubState
+
+	//ContainingStack will return the stack and slot index for the associated
+	//component, if that location is not sanitized, and the componentinstance
+	//is legal for the state it's in. If no error is returned,
+	//stack.ComponentAt(slotIndex) == c will evaluate to true.
+	ContainingStack() (stack Stack, slotIndex int, err error)
 
 	//MoveTo moves the specified component in its current stack to the
 	//specified slot in the destination stack. The destination stack must be
@@ -224,7 +235,19 @@ func (c *component) ptr() *component {
 }
 
 func (c *component) ImmutableInstance(st ImmutableState) ImmutableComponentInstance {
+	var ptr *state
 
+	if st != nil {
+		ptr = st.(*state)
+	}
+
+	return componentInstance{
+		c,
+		ptr,
+	}
+}
+
+func (c *component) Instance(st State) ComponentInstance {
 	var ptr *state
 
 	if st != nil {
@@ -265,6 +288,17 @@ func (b *BaseComponentValues) ContainingComponent() Component {
 
 func (b *BaseComponentValues) SetContainingComponent(c Component) {
 	b.c = c
+}
+
+func (c componentInstance) ContainingStack() (Stack, int, error) {
+	if c.statePtr == nil {
+		return nil, 0, errors.New("State is non-existent")
+	}
+	return c.statePtr.containingStack(c)
+}
+
+func (c componentInstance) ContainingImmutableStack() (ImmutableStack, int, error) {
+	return c.ContainingStack()
 }
 
 func (c componentInstance) ID() string {
@@ -370,7 +404,7 @@ func (c componentInstance) MoveTo(other Stack, slotIndex int) error {
 	if slotIndex < 0 {
 		return errors.New("Invalid slotIndex")
 	}
-	source, sourceIndex, err := c.statePtr.ContainingStack(c)
+	source, sourceIndex, err := c.ContainingStack()
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
@@ -381,7 +415,7 @@ func (c componentInstance) SecretMoveTo(other Stack, slotIndex int) error {
 	if slotIndex < 0 {
 		return errors.New("Invalid slotIndex")
 	}
-	source, sourceIndex, err := c.statePtr.ContainingStack(c)
+	source, sourceIndex, err := c.ContainingStack()
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
@@ -389,7 +423,7 @@ func (c componentInstance) SecretMoveTo(other Stack, slotIndex int) error {
 }
 
 func (c componentInstance) MoveToFirstSlot(other Stack) error {
-	source, sourceIndex, err := c.statePtr.ContainingStack(c)
+	source, sourceIndex, err := c.ContainingStack()
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
@@ -397,7 +431,7 @@ func (c componentInstance) MoveToFirstSlot(other Stack) error {
 }
 
 func (c componentInstance) MoveToLastSlot(other Stack) error {
-	source, sourceIndex, err := c.statePtr.ContainingStack(c)
+	source, sourceIndex, err := c.ContainingStack()
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
@@ -405,7 +439,7 @@ func (c componentInstance) MoveToLastSlot(other Stack) error {
 }
 
 func (c componentInstance) MoveToNextSlot(other Stack) error {
-	source, sourceIndex, err := c.statePtr.ContainingStack(c)
+	source, sourceIndex, err := c.ContainingStack()
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
@@ -413,7 +447,7 @@ func (c componentInstance) MoveToNextSlot(other Stack) error {
 }
 
 func (c componentInstance) SlideToFirstSlot() error {
-	source, sourceIndex, err := c.statePtr.ContainingStack(c)
+	source, sourceIndex, err := c.ContainingStack()
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
@@ -421,35 +455,11 @@ func (c componentInstance) SlideToFirstSlot() error {
 }
 
 func (c componentInstance) SlideToLastSlot() error {
-	source, sourceIndex, err := c.statePtr.ContainingStack(c)
+	source, sourceIndex, err := c.ContainingStack()
 	if err != nil {
 		return errors.New("The source component was not in a mutable stack: " + err.Error())
 	}
 	return source.moveComponentToEnd(sourceIndex)
-}
-
-func (c componentInstance) Instance(mState State) (ComponentInstance, error) {
-	if mState == nil {
-		return nil, errors.New("Passed nil MutableState")
-	}
-
-	st := mState.(*state)
-
-	if st != c.statePtr {
-		return nil, errors.New("The MutableState passed did not match the state this componentinstance was originally from.")
-	}
-
-	stack, index, err := mState.ContainingStack(c)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return stack.ComponentAt(index), nil
-}
-
-func (c componentInstance) instance() ComponentInstance {
-	return c
 }
 
 func (c componentInstance) ImmutableState() ImmutableState {

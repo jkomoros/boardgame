@@ -70,10 +70,10 @@ type ImmutableState interface {
 	//StorageRecord returns a StateStorageRecord representing the state.
 	StorageRecord() StateStorageRecord
 
-	//ContainingImmutableStack will return the stack and slot index for the associated
+	//containingImmutableStack will return the stack and slot index for the associated
 	//component, if that location is not sanitized. If no error is returned,
 	//stack.ComponentAt(slotIndex) == c will evaluate to true.
-	ContainingImmutableStack(c Component) (stack ImmutableStack, slotIndex int, err error)
+	containingImmutableStack(c Component) (stack ImmutableStack, slotIndex int, err error)
 }
 
 type computedProperties struct {
@@ -217,10 +217,10 @@ type State interface {
 
 	DynamicComponentValues() map[string][]SubState
 
-	//ContainingStack will return the stack and slot index for the
+	//containingStack will return the stack and slot index for the
 	//associated component, if that location is not sanitized. If no error is
 	//returned, stack.ComponentAt(slotIndex) == c will evaluate to true.
-	ContainingStack(c Component) (stack Stack, slotIndex int, err error)
+	containingStack(c Component) (stack Stack, slotIndex int, err error)
 }
 
 //Valid returns true if the PlayerIndex's value is legal in the context of the
@@ -332,11 +332,11 @@ type state struct {
 	timersToStart []int
 }
 
-func (s *state) ContainingImmutableStack(c Component) (stack ImmutableStack, slotIndex int, err error) {
-	return s.ContainingStack(c)
+func (s *state) containingImmutableStack(c Component) (stack ImmutableStack, slotIndex int, err error) {
+	return s.containingStack(c)
 }
 
-func (s *state) ContainingStack(c Component) (stack Stack, slotIndex int, err error) {
+func (s *state) containingStack(c Component) (stack Stack, slotIndex int, err error) {
 
 	if s.componentIndex == nil {
 		s.buildComponentIndex()
@@ -346,7 +346,7 @@ func (s *state) ContainingStack(c Component) (stack Stack, slotIndex int, err er
 		return nil, 0, errors.New("Nil component doesn't exist in any stack")
 	}
 
-	if c.Deck().GenericComponent() == c {
+	if c.Deck().GenericComponent().Equivalent(c) {
 		return nil, 0, errors.New("The generic component for that deck isn't in any stack")
 	}
 
@@ -359,7 +359,7 @@ func (s *state) ContainingStack(c Component) (stack Stack, slotIndex int, err er
 		}
 		//If this happened and the state isn't expected, then something bad happened.
 		//TODO: remove this once debugging that it doesn't happen
-		log.Println("WARNING: Component didn't exist")
+		log.Println("WARNING: Component didn't exist in index")
 		return nil, 0, errors.New("Unexpectedly that component was not found in the index")
 	}
 
@@ -376,7 +376,7 @@ func (s *state) ContainingStack(c Component) (stack Stack, slotIndex int, err er
 	if !otherC.Equivalent(c) {
 		//If this happened and the state isn't expected, then something bad happened.
 		//TODO: remove this once debugging that it doesn't happen
-		log.Println("WARNING: Component didn't exist")
+		log.Println("WARNING: Component didn't exist; wrong component in index")
 		return nil, 0, errors.New("Unexpectedly that component was not found in the index")
 	}
 

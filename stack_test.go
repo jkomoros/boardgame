@@ -99,7 +99,7 @@ func TestContainingComponent(t *testing.T) {
 
 	for i, c := range deck.Components() {
 
-		stack, slotIndex, err := sanitizedState.ContainingImmutableStack(c)
+		stack, slotIndex, err := c.ImmutableInstance(sanitizedState).ContainingImmutableStack()
 
 		//DrawDeck is sanitized, so we should get errors for that.
 		if componentsInDrawDeck[c.ptr()] {
@@ -121,16 +121,13 @@ func TestContainingComponent(t *testing.T) {
 }
 
 func verifyContainingComponent(t *testing.T, st ImmutableState, deck *Deck) {
-	_, _, err := st.ContainingImmutableStack(deck.GenericComponent())
 
-	assert.For(t).ThatActual(err).IsNotNil()
-
-	_, _, err = st.ContainingImmutableStack(nil)
+	_, _, err := deck.GenericComponent().ImmutableInstance(st).ContainingImmutableStack()
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
 	for i, c := range deck.Components() {
-		stack, slotIndex, err := st.ContainingImmutableStack(c)
+		stack, slotIndex, err := c.ImmutableInstance(st).ContainingImmutableStack()
 		assert.For(t, i).ThatActual(err).IsNil()
 		assert.For(t, i).ThatActual(stack).IsNotNil()
 
