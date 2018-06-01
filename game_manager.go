@@ -128,6 +128,10 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 		return nil, errors.New("No delegate provided")
 	}
 
+	if delegate.Manager() != nil {
+		return nil, errors.New("That delegate has already been associated with another game manager.")
+	}
+
 	matched, err := regexp.MatchString(`^[0-9a-zA-Z_-]+$`, delegate.Name())
 
 	if err != nil {
