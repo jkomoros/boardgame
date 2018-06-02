@@ -176,6 +176,10 @@ type testPlayerState struct {
 	EnumVal           enum.Val `enum:"color"`
 }
 
+func (t *testPlayerState) GameScore() int {
+	return t.Score
+}
+
 func (t *testPlayerState) PlayerIndex() PlayerIndex {
 	return t.playerIndex
 }

@@ -31,6 +31,15 @@ func TestGameDelegateConstants(t *testing.T) {
 	})
 }
 
+func TestGameScorer(t *testing.T) {
+	d := &DefaultGameDelegate{}
+	p := &testPlayerState{
+		Score: 10,
+	}
+	result := d.PlayerScore(p)
+	assert.For(t).ThatActual(result).Equals(10)
+}
+
 func TestMoveModifyDynamicValues(t *testing.T) {
 	game := testGame(t)
 

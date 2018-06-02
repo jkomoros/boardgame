@@ -510,6 +510,15 @@ type defaultCheckGameFinishedDelegate interface {
 	PlayerScore(pState ImmutablePlayerState) int
 }
 
+//PlayerGameScorer is an optional interface that can be implemented by
+//PlayerSubStates. If it is implemented, DefaultGameDelegate's default
+//PlayerScore() method will return it.
+type PlayerGameScorer interface {
+	//Score returns the overall score for the game for the player at this
+	//point in time.
+	GameScore() int
+}
+
 //CheckGameFinished by default checks delegate.GameEndConditionMet(). If true,
 //then it fetches delegate.PlayerScore() for each player and returns all
 //players who have the highest score as winners. To use this implementation
@@ -567,8 +576,12 @@ func (d *DefaultGameDelegate) GameEndConditionMet(state ImmutableState) bool {
 //PlayerScore is used in the default CheckGameFinished implementation. It
 //should return the score for the given player. CheckGameFinished uses this by
 //default; if you override CheckGameFinished you don't need to override this.
-//The deafult implementation of this simply returns 0.
+//The default implementation returns pState.GameScore() (if pState implements
+//the PlayerGameScorer interface), or 0 otherwise.
 func (d *DefaultGameDelegate) PlayerScore(pState ImmutablePlayerState) int {
+	if scorer, ok := pState.(PlayerGameScorer); ok {
+		return scorer.GameScore()
+	}
 	return 0
 }
 
@@ -663,7 +676,7 @@ func (d *DefaultGameDelegate) ConfigureDecks() map[string]*Deck {
 }
 
 //ConfigureConstants returns a zero-entry map. If you have any constants you
-//want to use client-side or in tag-based struct auto-inflaters, you will want
+//wa8nt to use client-side or in tag-based struct auto-inflaters, you will want
 //to override this.
 func (d *DefaultGameDelegate) ConfigureConstants() map[string]interface{} {
 	return make(map[string]interface{})
