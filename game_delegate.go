@@ -423,7 +423,7 @@ func (d *DefaultGameDelegate) SetPhaseMoveProgression(phase int, progression []s
 	d.moveProgressions[phase] = progression
 }
 
-func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state ImmutableState, c Component) (Stack, error) {
+func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state ImmutableState, c Component) (ImmutableStack, error) {
 	//The stub returns an error, because if this is called that means there
 	//was a component in the deck. And if we didn't store it in a stack, then
 	//we are in violation of the invariant.
