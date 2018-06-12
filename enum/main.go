@@ -168,6 +168,10 @@ type Enum interface {
 	//RangeEnum will return a version of this Enum that satisifies the
 	//RangeEnum interface, if possible, nil otherwise.
 	RangeEnum() RangeEnum
+
+	//TreeEnum will return a version of this Enum that satisfies the TreeEnum
+	//interface, if possible, nil otherwise.
+	TreeEnum() TreeEnum
 }
 
 //enum is the underlying type we use to implement Enum.
@@ -176,6 +180,7 @@ type enum struct {
 	values       map[int]string
 	defaultValue int
 	dimensions   []int
+	tree         map[int][]int
 }
 
 //variable is the underlying type we'll return for both Value and Constant.
@@ -309,6 +314,7 @@ func (e *Set) addEnumImpl(enumName string, values map[int]string) (*enum, error)
 		make(map[int]string),
 		math.MaxInt64,
 		nil,
+		nil,
 	}
 
 	seenValues := make(map[string]bool)
@@ -355,6 +361,14 @@ func (e *Set) addEnum(enumName string, enum Enum) error {
 	}
 
 	e.enums[enumName] = enum
+
+	return nil
+}
+
+func (e *enum) TreeEnum() TreeEnum {
+	if e.tree != nil {
+		return e
+	}
 
 	return nil
 }

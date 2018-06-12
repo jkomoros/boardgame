@@ -36,10 +36,6 @@ type ImmutableTreeVal interface {
 	//returns the fully qualified name. So whereas String() might return
 	//"Normal - Default - Save Item", NodeString() will return "Default".
 	NodeString() string
-
-	//TreeEnum returns the tree enum we're part of. A convenience for
-	//val.Enum().TreeEnum().
-	TreeEnum() TreeEnum
 }
 
 //TreeVal is a value from a tree enum.
@@ -54,8 +50,88 @@ type TreeVal interface {
 	//returns the fully qualified name. So whereas String() might return
 	//"Normal - Default - Save Item", NodeString() will return "Default".
 	NodeString() string
+}
 
-	//TreeEnum returns the tree enum we're part of. A convenience for
-	//val.Enum().TreeEnum().
-	TreeEnum() TreeEnum
+func (e *enum) IsLeaf(val int) bool {
+	if e.tree == nil {
+		return false
+	}
+
+	return len(e.tree[val]) == 0
+}
+
+func (e *enum) Children(node int, includeBranches bool) []int {
+	if e.tree == nil {
+		return nil
+	}
+
+	var result []int
+
+	for _, val := range e.tree[node] {
+		if !includeBranches && !e.IsLeaf(val) {
+			continue
+		}
+		result = append(result, val)
+	}
+
+	return result
+}
+
+func (e *enum) Descendants(node int, includeBranches bool) []int {
+	if e.tree == nil {
+		return nil
+	}
+
+	if e.IsLeaf(node) {
+		return []int{node}
+	}
+
+	var result []int
+
+	if includeBranches {
+		result = []int{node}
+	}
+
+	for _, val := range e.Children(node, true) {
+		result = append(result, e.Descendants(val, includeBranches)...)
+	}
+
+	return result
+
+}
+
+func (e *enum) NewImmutableTreeVal(val int) (ImmutableTreeVal, error) {
+	v := e.NewTreeVal()
+	if err := v.SetValue(val); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+func (e *enum) NewTreeVal() TreeVal {
+	return &variable{
+		e,
+		e.DefaultValue(),
+	}
+}
+
+func (e *enum) MustNewImmutableTreeVal(val int) ImmutableTreeVal {
+	return e.MustNewTreeVal(val)
+}
+
+func (e *enum) MustNewTreeVal(val int) TreeVal {
+	v := e.NewTreeVal()
+	if err := v.SetValue(val); err != nil {
+		panic("Couldn't set string value: " + err.Error())
+	}
+	return v
+}
+
+func (v *variable) IsLeaf() bool {
+	return v.Enum().TreeEnum().IsLeaf(v.Value())
+}
+
+func (v *variable) NodeString() string {
+	//TODO: actually implement this properly
+	return v.String()
 }
