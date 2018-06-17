@@ -94,6 +94,98 @@ func TestBadTreeConfig(t *testing.T) {
 			},
 			"The root node's value must be ''",
 		},
+		{
+			map[int]string{
+				0: "",
+				1: "foo",
+			},
+			map[int]int{
+				0: 0,
+				1: 0,
+			},
+			"",
+		},
+		{
+			map[int]string{
+				0: "",
+				1: "foo",
+			},
+			map[int]int{
+				0: 1,
+				1: 0,
+			},
+			"The root node's parent must be itself",
+		},
+		{
+			map[int]string{
+				1: "foo",
+			},
+			map[int]int{
+				0: 0,
+				1: 0,
+			},
+			"",
+		},
+		{
+			map[int]string{
+				1: "foo",
+			},
+			map[int]int{
+				1: 0,
+			},
+			"",
+		},
+		{
+			map[int]string{
+				1: "foo",
+				2: "bar",
+			},
+			map[int]int{
+				1: 0,
+			},
+			"Missing parent information for key: 2",
+		},
+		{
+			map[int]string{
+				1: "foo",
+				2: "bar",
+			},
+			map[int]int{
+				1: 2,
+				2: 0,
+			},
+			"",
+		},
+		{
+			map[int]string{
+				1: "foo",
+			},
+			map[int]int{
+				1: 0,
+				2: 1,
+			},
+			"Parent information provided for 2 but no corresponding value provided.",
+		},
+		{
+			map[int]string{
+				1: "foo",
+				2: "bar",
+			},
+			map[int]int{
+				1: 0,
+				2: 3,
+			},
+			"Entry in parent map names a parent that is not in the enum: 3,2",
+		},
+		{
+			map[int]string{
+				1: "foo - bar",
+			},
+			map[int]int{
+				1: 0,
+			},
+			"The node string value for 1 contains the delimiter expression, which is illegal",
+		},
 	}
 
 	for i, test := range tests {
