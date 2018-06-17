@@ -10,6 +10,10 @@ type TreeEnum interface {
 	//opposed to branch)
 	IsLeaf(val int) bool
 
+	//Parent returns the value of the node who is the direct parent. The root
+	//will return itself.
+	Parent(val int) int
+
 	//Children returns all of the val beneath this branch that are direct
 	//descendents, either including or excluding non-leaf nodes.
 	Children(node int, includeBranches bool) []int
@@ -30,6 +34,9 @@ type TreeEnum interface {
 type TreeValGetters interface {
 	//IsLeaf is a convenience for val.Enum().TreeEnum().IsLeaf(val.Value())
 	IsLeaf() bool
+
+	//Parent is a convenience for val.Enum().TreeEnum().Parent(val).
+	Parent() int
 
 	//Children is a convenience for val.Enum().TreeEnum().Children(val).
 	Children(includeBranches bool) []int
@@ -61,6 +68,24 @@ func (e *enum) IsLeaf(val int) bool {
 	}
 
 	return len(e.tree[val]) == 0
+}
+
+func (e *enum) Parent(val int) int {
+	if val == 0 {
+		return 0
+	}
+
+	//TODO: more efficient implementation using the node -> parent map.
+
+	for parent, children := range e.tree {
+		for _, child := range children {
+			if child == val {
+				return parent
+			}
+		}
+	}
+	//This shouldn't happen if the value is actually in the tree.
+	return -1
 }
 
 func (e *enum) Children(node int, includeBranches bool) []int {
@@ -132,6 +157,10 @@ func (e *enum) MustNewTreeVal(val int) TreeVal {
 
 func (v *variable) IsLeaf() bool {
 	return v.Enum().TreeEnum().IsLeaf(v.Value())
+}
+
+func (v *variable) Parent() int {
+	return v.Enum().TreeEnum().Parent(v.Value())
 }
 
 func (v *variable) Children(includeBranches bool) []int {
