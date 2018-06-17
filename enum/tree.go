@@ -185,6 +185,9 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 	//Preprocess to create the tree map
 	childrenMap := make(map[int][]int, len(parents))
 	for child, parent := range parents {
+		if child == 0 {
+			continue
+		}
 		childrenMap[parent] = append(childrenMap[parent], child)
 	}
 	for node, _ := range childrenMap {

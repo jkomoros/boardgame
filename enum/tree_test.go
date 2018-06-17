@@ -67,6 +67,7 @@ func TestBasicTree(t *testing.T) {
 
 	assert.For(t).ThatActual(tree.Children(2, false)).Equals([]int{5, 7})
 	assert.For(t).ThatActual(tree.Children(2, true)).Equals([]int{5, 6, 7})
+	assert.For(t).ThatActual(tree.Children(0, true)).Equals([]int{1, 2, 3})
 
 	assert.For(t).ThatActual(tree.IsLeaf(10)).IsTrue()
 	assert.For(t).ThatActual(tree.IsLeaf(0)).IsFalse()
