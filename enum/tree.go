@@ -24,10 +24,10 @@ type TreeEnum interface {
 	MustNewTreeVal(val int) TreeVal
 }
 
-//ImmutableTreeVal is a value from a TreeEnum.
-type ImmutableTreeVal interface {
-	ImmutableVal
-
+//TreeValGetters is the collection of methods that TreeVals have beyodn normal
+//Vals. It is factored out into a separate interface to clarify how
+//ImmutableTreeVal and TreeVal differ from their non-treeval types.
+type TreeValGetters interface {
 	//IsLeaf is a convenience for
 	//!val.TreeEnum().IsLeaf(val.Value())
 	IsLeaf() bool
@@ -38,18 +38,16 @@ type ImmutableTreeVal interface {
 	NodeString() string
 }
 
+//ImmutableTreeVal is a value from a TreeEnum.
+type ImmutableTreeVal interface {
+	ImmutableVal
+	TreeValGetters
+}
+
 //TreeVal is a value from a tree enum.
 type TreeVal interface {
 	Val
-
-	//IsLeaf is a convenience for
-	//!val.TreeEnum().IsLeaf(val.Value())
-	IsLeaf() bool
-
-	//NodeString returns the name of this specific node, whereas String
-	//returns the fully qualified name. So whereas String() might return
-	//"Normal - Default - Save Item", NodeString() will return "Default".
-	NodeString() string
+	TreeValGetters
 }
 
 func (e *enum) IsLeaf(val int) bool {
