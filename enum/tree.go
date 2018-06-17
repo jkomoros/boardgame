@@ -14,6 +14,10 @@ type TreeEnum interface {
 	//will return itself.
 	Parent(val int) int
 
+	//Ancestors returns the path from the root down to the given value,
+	//INCLUDING the value itself.
+	Ancestors(val int) []int
+
 	//Children returns all of the val beneath this branch that are direct
 	//descendents, either including or excluding non-leaf nodes.
 	Children(node int, includeBranches bool) []int
@@ -37,6 +41,9 @@ type TreeValGetters interface {
 
 	//Parent is a convenience for val.Enum().TreeEnum().Parent(val).
 	Parent() int
+
+	//Ancestors is a convenience for val.Enum().TreeEnum().Ancestors(val).
+	Ancestors() []int
 
 	//Children is a convenience for val.Enum().TreeEnum().Children(val).
 	Children(includeBranches bool) []int
@@ -86,6 +93,16 @@ func (e *enum) Parent(val int) int {
 	}
 	//This shouldn't happen if the value is actually in the tree.
 	return -1
+}
+
+func (e *enum) Ancestors(val int) []int {
+	//Base case
+	if val == 0 {
+		return []int{0}
+	}
+
+	return append(e.Ancestors(e.Parent(val)), val)
+
 }
 
 func (e *enum) Children(node int, includeBranches bool) []int {
@@ -161,6 +178,10 @@ func (v *variable) IsLeaf() bool {
 
 func (v *variable) Parent() int {
 	return v.Enum().TreeEnum().Parent(v.Value())
+}
+
+func (v *variable) Ancestors() []int {
+	return v.Enum().TreeEnum().Ancestors(v.Value())
 }
 
 func (v *variable) Children(includeBranches bool) []int {
