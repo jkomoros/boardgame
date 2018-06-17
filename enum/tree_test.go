@@ -76,3 +76,41 @@ func TestBasicTree(t *testing.T) {
 	assert.For(t).ThatActual(tree.Descendants(2, true)).Equals([]int{5, 6, 10, 11, 7})
 
 }
+
+func TestBadTreeConfig(t *testing.T) {
+	tests := []struct {
+		values              map[int]string
+		parents             map[int]int
+		expectedErrorString string
+	}{
+		{
+			map[int]string{
+				0: "not ''",
+				1: "foo",
+			},
+			map[int]int{
+				0: 0,
+				1: 0,
+			},
+			"The root node's value must be ''",
+		},
+	}
+
+	for i, test := range tests {
+
+		set := NewSet()
+
+		tree, err := set.AddTree("test", test.values, test.parents)
+
+		if test.expectedErrorString != "" {
+			assert.For(t, i).ThatActual(err).IsNotNil()
+			assert.For(t, i).ThatActual(tree).IsNil()
+			assert.For(t, i).ThatActual(err.Error()).Equals(test.expectedErrorString)
+		} else {
+			assert.For(t, i).ThatActual(err).IsNil()
+			assert.For(t, i).ThatActual(tree).IsNotNil()
+		}
+
+	}
+
+}
