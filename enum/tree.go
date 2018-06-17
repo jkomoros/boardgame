@@ -28,9 +28,14 @@ type TreeEnum interface {
 //Vals. It is factored out into a separate interface to clarify how
 //ImmutableTreeVal and TreeVal differ from their non-treeval types.
 type TreeValGetters interface {
-	//IsLeaf is a convenience for
-	//!val.TreeEnum().IsLeaf(val.Value())
+	//IsLeaf is a convenience for val.Enum().TreeEnum().IsLeaf(val.Value())
 	IsLeaf() bool
+
+	//Children is a convenience for val.Enum().TreeEnum().Children(val).
+	Children(includeBranches bool) []int
+
+	//Descendants is a convenience for val.Enum().TreeEnum().Descendents(val).
+	Descendants(includeBranches bool) []int
 
 	//NodeString returns the name of this specific node, whereas String
 	//returns the fully qualified name. So whereas String() might return
@@ -127,6 +132,14 @@ func (e *enum) MustNewTreeVal(val int) TreeVal {
 
 func (v *variable) IsLeaf() bool {
 	return v.Enum().TreeEnum().IsLeaf(v.Value())
+}
+
+func (v *variable) Children(includeBranches bool) []int {
+	return v.Enum().TreeEnum().Children(v.Value(), includeBranches)
+}
+
+func (v *variable) Descendants(includeBranches bool) []int {
+	return v.Enum().TreeEnum().Descendants(v.Value(), includeBranches)
 }
 
 func (v *variable) NodeString() string {
