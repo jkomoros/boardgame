@@ -148,6 +148,40 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 		}
 	}
 
+	//Check for cycles in graph
+
+	//We know the root connects to itself since we already verfied that. So
+	//keep track of each number and whether it connects to root.
+	connectedToRoot := make(map[int]bool, len(parents))
+
+	for child, parent := range parents {
+		if connectedToRoot[child] {
+			//If we already saw that we were connected to root while proving
+			//others were OK, we're done.
+			continue
+		}
+		if connectedToRoot[parent] {
+			//If we already know our parent is connected to root, then we're
+			//done--but take note first that we are also connected to root.
+			connectedToRoot[child] = true
+			continue
+		}
+		//OK, haven't seen either, we need to walk up until we get to root.
+		visitedNodes := make(map[int]bool, len(parents))
+		currentNode := child
+		for currentNode != 0 {
+			visitedNodes[currentNode] = true
+			currentNode = parents[currentNode]
+			if visitedNodes[currentNode] {
+				return nil, errors.New("Detected a cycle in the parent definitions")
+			}
+		}
+		//CurrentNode is 0, which means all visited nodes are connectedToRoot.
+		for visitedNode, _ := range visitedNodes {
+			connectedToRoot[visitedNode] = true
+		}
+	}
+
 	//Preprocess to create the tree map
 	childrenMap := make(map[int][]int, len(parents))
 	for child, parent := range parents {

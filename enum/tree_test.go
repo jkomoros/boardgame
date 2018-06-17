@@ -186,6 +186,48 @@ func TestBadTreeConfig(t *testing.T) {
 			},
 			"The node string value for 1 contains the delimiter expression, which is illegal",
 		},
+		{
+			//Check maximally stretched case for cycle test
+			map[int]string{
+				1: "foo",
+				2: "bar",
+				3: "baz",
+			},
+			map[int]int{
+				1: 0,
+				2: 1,
+				3: 2,
+			},
+			"",
+		},
+		{
+			map[int]string{
+				1: "foo",
+				2: "bar",
+				3: "baz",
+			},
+			map[int]int{
+				1: 3,
+				2: 1,
+				3: 2,
+			},
+			"Detected a cycle in the parent definitions",
+		},
+		{
+			map[int]string{
+				1: "foo",
+				2: "bar",
+				3: "baz",
+				4: "slam",
+			},
+			map[int]int{
+				1: 3,
+				2: 1,
+				3: 2,
+				4: 0,
+			},
+			"Detected a cycle in the parent definitions",
+		},
 	}
 
 	for i, test := range tests {
