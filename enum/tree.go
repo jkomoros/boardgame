@@ -214,6 +214,23 @@ func (e *enum) Descendants(node int, includeBranches bool) []int {
 	if e.children == nil {
 		return nil
 	}
+	if e.IsLeaf(node) {
+		return []int{}
+	}
+
+	var result []int
+
+	for _, child := range e.Children(node, true) {
+		result = append(result, e.descendantsRecursive(child, includeBranches)...)
+	}
+
+	return result
+}
+
+func (e *enum) descendantsRecursive(node int, includeBranches bool) []int {
+	if e.children == nil {
+		return nil
+	}
 
 	if e.IsLeaf(node) {
 		return []int{node}
@@ -226,7 +243,7 @@ func (e *enum) Descendants(node int, includeBranches bool) []int {
 	}
 
 	for _, val := range e.Children(node, true) {
-		result = append(result, e.Descendants(val, includeBranches)...)
+		result = append(result, e.descendantsRecursive(val, includeBranches)...)
 	}
 
 	return result
