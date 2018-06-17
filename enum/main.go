@@ -132,8 +132,9 @@ type Enum interface {
 	//Values returns all values that are in this enum--all values for which
 	//enum.Valid(val) would return true.
 	Values() []int
-	//DefaultValue returns the default value for this enum (the lowest valid value
-	//in it).
+	//DefaultValue returns the default value for this enum (the lowest valid
+	//value in it). TreeEnums will instead return BranchDefaultValue for 0, to
+	//ensure that the DefaultValue is a leaf.z
 	DefaultValue() int
 	//RandomValue returns a random value that is Valid() for this enum.
 	RandomValue() int

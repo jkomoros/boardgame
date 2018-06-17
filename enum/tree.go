@@ -213,6 +213,7 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 
 	e.children = childrenMap
 	e.parents = parents
+	e.defaultValue = e.BranchDefaultVal(0)
 
 	return e, nil
 

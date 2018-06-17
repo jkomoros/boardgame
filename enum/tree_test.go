@@ -81,6 +81,8 @@ func TestBasicTree(t *testing.T) {
 	assert.For(t).ThatActual(tree.BranchDefaultVal(6)).Equals(10)
 	assert.For(t).ThatActual(tree.BranchDefaultVal(10)).Equals(10)
 
+	assert.For(t).ThatActual(tree.DefaultValue()).Equals(4)
+
 }
 
 func TestBadTreeConfig(t *testing.T) {
