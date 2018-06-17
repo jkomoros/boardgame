@@ -205,7 +205,28 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 		sort.Ints(childrenMap[node])
 	}
 
-	e, err := s.addEnumImpl(enumName, values)
+	//values is things like "Normal" and "Deal Cards", but we need to provide
+	//things like "Nomral - Deal Cards" to the underlying enum.
+	fullyQualifiedValues := make(map[int]string, len(values))
+	for node, _ := range values {
+
+		var nonRootAncestors []int
+
+		currentNode := node
+		for currentNode != 0 {
+			nonRootAncestors = append([]int{currentNode}, nonRootAncestors...)
+			currentNode = parents[currentNode]
+		}
+
+		names := make([]string, len(nonRootAncestors))
+		for i, val := range nonRootAncestors {
+			names[i] = values[val]
+		}
+
+		fullyQualifiedValues[node] = strings.Join(names, treeValStringJoiner)
+	}
+
+	e, err := s.addEnumImpl(enumName, fullyQualifiedValues)
 
 	if err != nil {
 		return nil, err
@@ -362,6 +383,9 @@ func (v *variable) BranchDefaultValue() int {
 }
 
 func (v *variable) NodeString() string {
-	//TODO: actually implement this properly
-	return v.String()
+	if v.String() == "" {
+		return ""
+	}
+	parts := strings.Split(v.String(), treeValStringJoiner)
+	return parts[len(parts)-1]
 }

@@ -83,6 +83,14 @@ func TestBasicTree(t *testing.T) {
 
 	assert.For(t).ThatActual(tree.DefaultValue()).Equals(4)
 
+	assert.For(t).ThatActual(tree.String(2)).Equals("B")
+	assert.For(t).ThatActual(tree.String(10)).Equals("B - BB - BBA")
+	assert.For(t).ThatActual(tree.ValueFromString("B - BB - BBA")).Equals(10)
+
+	assert.For(t).ThatActual(tree.MustNewTreeVal(10).NodeString()).Equals("BBA")
+	assert.For(t).ThatActual(tree.MustNewTreeVal(0).NodeString()).Equals("")
+	assert.For(t).ThatActual(tree.MustNewTreeVal(2).NodeString()).Equals("B")
+
 }
 
 func TestBadTreeConfig(t *testing.T) {
