@@ -180,7 +180,10 @@ type enum struct {
 	values       map[int]string
 	defaultValue int
 	dimensions   []int
-	tree         map[int][]int
+	//parents is the direct map passed to us to start.
+	parents map[int]int
+	//tree is created based on the parents map we got.
+	tree map[int][]int
 }
 
 //variable is the underlying type we'll return for both Value and Constant.
@@ -313,6 +316,7 @@ func (e *Set) addEnumImpl(enumName string, values map[int]string) (*enum, error)
 		enumName,
 		make(map[int]string),
 		math.MaxInt64,
+		nil,
 		nil,
 		nil,
 	}

@@ -1,5 +1,15 @@
 package enum
 
+import (
+	"errors"
+	"sort"
+	"strconv"
+	"strings"
+)
+
+//The string used to join the individual node names into one (e.g. "Normal - Deal Cards - Deal To First Player")
+const treeValStringJoiner = " - "
+
 //TreeEnum is a special type of Enum where the list of values also have a tree
 //structure that can be interrogated. TreeEnums always have 0 map to "" as the
 //root value.
@@ -67,6 +77,98 @@ type ImmutableTreeVal interface {
 type TreeVal interface {
 	Val
 	TreeValGetters
+}
+
+//MustAddTree is like AddTree, but instead of an error it will panic if the
+//enum cannot be added. This is useful for defining your enums at the package
+//level outside of an init().
+func (e *Set) MustAddTree(enumName string, values map[int]string, parents map[int]int) TreeEnum {
+	result, err := e.AddTree(enumName, values, parents)
+
+	if err != nil {
+		panic("Couldn't add to enumset: " + err.Error())
+	}
+
+	return result
+}
+
+//AddTree adds a new tree enum. Unlike a normal enum, you also must pass amap
+//of value to its parent. Every value in values must also be present in
+//parents. In a TreeEnum, the root is always value 0 and always has string
+//value "". You may omit the root value if you choose because it is implied.
+//The string value map should be just the name of the node itself. The
+//effective name of the node will be joined all of its ancestors. Typically
+//you rely on autoreader to create these on your behalf, because the initial
+//set-up is finicky with the two maps.
+func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]int) (TreeEnum, error) {
+
+	str, ok := values[0]
+
+	if ok {
+		if str != "" {
+			return nil, errors.New("The root node's value must be ''")
+		}
+	} else {
+		values[0] = ""
+	}
+
+	parent, ok := parents[0]
+
+	if ok {
+		if parent != 0 {
+			return nil, errors.New("The root node's parent must be itself")
+		}
+	} else {
+		parents[0] = 0
+	}
+
+	//Verify that values and parents inclue the same keys--that is, each item denotes its parent.
+	for val, _ := range values {
+		if _, ok := parents[val]; !ok {
+			return nil, errors.New("Missing parent information for key: " + strconv.Itoa(val))
+		}
+	}
+	for parent, _ := range parents {
+		if _, ok := values[parent]; !ok {
+			return nil, errors.New("Parent information provided for " + strconv.Itoa(parent) + " but no corresponding value provided.")
+		}
+	}
+
+	//Verify that each parent corresponds to a value in the values map.
+	for child, parent := range parents {
+		if _, ok := values[parent]; !ok {
+			return nil, errors.New("Entry in parent map names a parent that is not in the enum: " + strconv.Itoa(parent) + "," + strconv.Itoa(child))
+		}
+	}
+
+	//Verify that the string values don't contain the delimiter sequence
+	for val, str := range values {
+		if strings.Contains(str, treeValStringJoiner) {
+			return nil, errors.New("The node string value for " + strconv.Itoa(val) + " contains the delimiter expression, which is illegal")
+		}
+	}
+
+	//Preprocess to create the tree map
+	treeMap := make(map[int][]int, len(parents))
+	for child, parent := range parents {
+		treeMap[parent] = append(treeMap[parent], child)
+	}
+	for node, _ := range treeMap {
+		//TODO: verify that this actually sorts in place
+		sort.Ints(treeMap[node])
+	}
+
+	e, err := s.addEnumImpl(enumName, values)
+
+	if err != nil {
+		return nil, err
+	}
+
+	e.tree = treeMap
+	e.parents = parents
+
+	return e, nil
+
 }
 
 func (e *enum) IsLeaf(val int) bool {
