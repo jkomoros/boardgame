@@ -35,11 +35,11 @@ type TreeEnum interface {
 	//Descendants returns all enumvals beneath this point, recursively.
 	Descendants(node int, includeBranches bool) []int
 
-	//BranchDefaultVal is like DefaultVal, but only for nodes underneath this
-	//node. It returns the left-most leaf node under this node. If node is a
-	//leaf, it returns itself. Otherwise, it returns the BranchDefaultVal of
-	//its first child.
-	BranchDefaultVal(node int) int
+	//BranchDefaultValue is like DefaultVal, but only for nodes underneath
+	//this node. It returns the left-most leaf node under this node. If node
+	//is a leaf, it returns itself. Otherwise, it returns the
+	//BranchDefaultValue of its first child.
+	BranchDefaultValue(node int) int
 
 	NewImmutableTreeVal(val int) (ImmutableTreeVal, error)
 	NewTreeVal() TreeVal
@@ -67,9 +67,9 @@ type TreeValGetters interface {
 	//Descendants is a convenience for val.Enum().TreeEnum().Descendents(val).
 	Descendants(includeBranches bool) []int
 
-	//BranchDefaultVal is a convenience for
-	//val.Enum().TreeEnum().BranchDefaulVal(val).
-	BranchDefaultVal() int
+	//BranchDefaultValue is a convenience for
+	//val.Enum().TreeEnum().BranchDefaulValue(val).
+	BranchDefaultValue() int
 
 	//NodeString returns the name of this specific node, whereas String
 	//returns the fully qualified name. So whereas String() might return
@@ -213,7 +213,7 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 
 	e.children = childrenMap
 	e.parents = parents
-	e.defaultValue = e.BranchDefaultVal(0)
+	e.defaultValue = e.BranchDefaultValue(0)
 
 	return e, nil
 
@@ -298,7 +298,7 @@ func (e *enum) descendantsRecursive(node int, includeBranches bool) []int {
 
 }
 
-func (e *enum) BranchDefaultVal(node int) int {
+func (e *enum) BranchDefaultValue(node int) int {
 	if e.children == nil {
 		return e.DefaultValue()
 	}
@@ -307,7 +307,7 @@ func (e *enum) BranchDefaultVal(node int) int {
 		return node
 	}
 
-	return e.BranchDefaultVal(e.Children(node, true)[0])
+	return e.BranchDefaultValue(e.Children(node, true)[0])
 }
 
 func (e *enum) NewImmutableTreeVal(val int) (ImmutableTreeVal, error) {
@@ -357,8 +357,8 @@ func (v *variable) Descendants(includeBranches bool) []int {
 	return v.Enum().TreeEnum().Descendants(v.Value(), includeBranches)
 }
 
-func (v *variable) BranchDefaultVal() int {
-	return v.Enum().TreeEnum().BranchDefaultVal(v.Value())
+func (v *variable) BranchDefaultValue() int {
+	return v.Enum().TreeEnum().BranchDefaultValue(v.Value())
 }
 
 func (v *variable) NodeString() string {
