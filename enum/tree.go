@@ -35,6 +35,12 @@ type TreeEnum interface {
 	//Descendants returns all enumvals beneath this point, recursively.
 	Descendants(node int, includeBranches bool) []int
 
+	//BranchDefaultVal is like DefaultVal, but only for nodes underneath this
+	//node. It returns the left-most leaf node under this node. If node is a
+	//leaf, it returns itself. Otherwise, it returns the BranchDefaultVal of
+	//its first child.
+	BranchDefaultVal(node int) int
+
 	NewImmutableTreeVal(val int) (ImmutableTreeVal, error)
 	NewTreeVal() TreeVal
 
@@ -60,6 +66,10 @@ type TreeValGetters interface {
 
 	//Descendants is a convenience for val.Enum().TreeEnum().Descendents(val).
 	Descendants(includeBranches bool) []int
+
+	//BranchDefaultVal is a convenience for
+	//val.Enum().TreeEnum().BranchDefaulVal(val).
+	BranchDefaultVal() int
 
 	//NodeString returns the name of this specific node, whereas String
 	//returns the fully qualified name. So whereas String() might return
@@ -287,6 +297,18 @@ func (e *enum) descendantsRecursive(node int, includeBranches bool) []int {
 
 }
 
+func (e *enum) BranchDefaultVal(node int) int {
+	if e.children == nil {
+		return e.DefaultValue()
+	}
+
+	if e.IsLeaf(node) {
+		return node
+	}
+
+	return e.BranchDefaultVal(e.Children(node, true)[0])
+}
+
 func (e *enum) NewImmutableTreeVal(val int) (ImmutableTreeVal, error) {
 	v := e.NewTreeVal()
 	if err := v.SetValue(val); err != nil {
@@ -332,6 +354,10 @@ func (v *variable) Children(includeBranches bool) []int {
 
 func (v *variable) Descendants(includeBranches bool) []int {
 	return v.Enum().TreeEnum().Descendants(v.Value(), includeBranches)
+}
+
+func (v *variable) BranchDefaultVal() int {
+	return v.Enum().TreeEnum().BranchDefaultVal(v.Value())
 }
 
 func (v *variable) NodeString() string {
