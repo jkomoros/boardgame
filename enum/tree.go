@@ -180,21 +180,7 @@ func (e *enum) IsLeaf(val int) bool {
 }
 
 func (e *enum) Parent(val int) int {
-	if val == 0 {
-		return 0
-	}
-
-	//TODO: more efficient implementation using the node -> parent map.
-
-	for parent, children := range e.tree {
-		for _, child := range children {
-			if child == val {
-				return parent
-			}
-		}
-	}
-	//This shouldn't happen if the value is actually in the tree.
-	return -1
+	return e.parents[val]
 }
 
 func (e *enum) Ancestors(val int) []int {
