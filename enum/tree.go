@@ -149,13 +149,13 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 	}
 
 	//Preprocess to create the tree map
-	treeMap := make(map[int][]int, len(parents))
+	childrenMap := make(map[int][]int, len(parents))
 	for child, parent := range parents {
-		treeMap[parent] = append(treeMap[parent], child)
+		childrenMap[parent] = append(childrenMap[parent], child)
 	}
-	for node, _ := range treeMap {
+	for node, _ := range childrenMap {
 		//TODO: verify that this actually sorts in place
-		sort.Ints(treeMap[node])
+		sort.Ints(childrenMap[node])
 	}
 
 	e, err := s.addEnumImpl(enumName, values)
@@ -164,7 +164,7 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 		return nil, err
 	}
 
-	e.tree = treeMap
+	e.children = childrenMap
 	e.parents = parents
 
 	return e, nil
@@ -172,11 +172,11 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 }
 
 func (e *enum) IsLeaf(val int) bool {
-	if e.tree == nil {
+	if e.children == nil {
 		return false
 	}
 
-	return len(e.tree[val]) == 0
+	return len(e.children[val]) == 0
 }
 
 func (e *enum) Parent(val int) int {
@@ -194,13 +194,13 @@ func (e *enum) Ancestors(val int) []int {
 }
 
 func (e *enum) Children(node int, includeBranches bool) []int {
-	if e.tree == nil {
+	if e.children == nil {
 		return nil
 	}
 
 	var result []int
 
-	for _, val := range e.tree[node] {
+	for _, val := range e.children[node] {
 		if !includeBranches && !e.IsLeaf(val) {
 			continue
 		}
@@ -211,7 +211,7 @@ func (e *enum) Children(node int, includeBranches bool) []int {
 }
 
 func (e *enum) Descendants(node int, includeBranches bool) []int {
-	if e.tree == nil {
+	if e.children == nil {
 		return nil
 	}
 

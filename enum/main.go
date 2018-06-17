@@ -182,8 +182,8 @@ type enum struct {
 	dimensions   []int
 	//parents is the direct map passed to us to start.
 	parents map[int]int
-	//tree is created based on the parents map we got.
-	tree map[int][]int
+	//children is created based on the parents map we got.
+	children map[int][]int
 }
 
 //variable is the underlying type we'll return for both Value and Constant.
@@ -370,7 +370,7 @@ func (e *Set) addEnum(enumName string, enum Enum) error {
 }
 
 func (e *enum) TreeEnum() TreeEnum {
-	if e.tree != nil {
+	if e.parents != nil {
 		return e
 	}
 
