@@ -8,7 +8,7 @@ import (
 )
 
 //The string used to join the individual node names into one (e.g. "Normal - Deal Cards - Deal To First Player")
-const treeValStringJoiner = " - "
+const treeValStringJoiner = " > "
 
 //TreeEnum is a special type of Enum where the list of values also have a tree
 //structure that can be interrogated. TreeEnums always have 0 map to "" as the
