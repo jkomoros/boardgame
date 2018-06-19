@@ -246,6 +246,19 @@ func TestBadTreeConfig(t *testing.T) {
 			},
 			"Detected a cycle in the parent definitions",
 		},
+		{
+			map[int]string{
+				1: "foo",
+				2: "bar",
+				3: "baz",
+			},
+			map[int]int{
+				1: 1,
+				2: 1,
+				3: 2,
+			},
+			"A non-root node had itself as its own parent: 1",
+		},
 	}
 
 	for i, test := range tests {

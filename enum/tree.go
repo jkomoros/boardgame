@@ -160,6 +160,16 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 		}
 	}
 
+	//Verify that only the root node has itself as parent.
+	for child, parent := range parents {
+		if child == 0 {
+			continue
+		}
+		if child == parent {
+			return nil, errors.New("A non-root node had itself as its own parent: " + strconv.Itoa(child))
+		}
+	}
+
 	//Check for cycles in graph
 
 	//We know the root connects to itself since we already verfied that. So
