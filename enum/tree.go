@@ -107,9 +107,11 @@ func (e *Set) MustAddTree(enumName string, values map[int]string, parents map[in
 //parents. In a TreeEnum, the root is always value 0 and always has string
 //value "". You may omit the root value if you choose because it is implied.
 //The string value map should be just the name of the node itself. The
-//effective name of the node will be joined all of its ancestors. Typically
-//you rely on autoreader to create these on your behalf, because the initial
-//set-up is finicky with the two maps.
+//effective name of the node will be joined all of its ancestors. Unlike
+//normal enums, multiple values can have the same name, as long as the fully
+//qualified name (including all of the ancestors' node names) are unique.
+//Typically you rely on autoreader to create these on your behalf, because the
+//initial set-up is finicky with the two maps.
 func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]int) (TreeEnum, error) {
 
 	str, ok := values[0]
