@@ -12,7 +12,7 @@ func TestBasicTree(t *testing.T) {
 	/*
 
 		A (1)
-			AA (4)
+			A (4)
 		B (2)
 			BA (5)
 			BB (6)
@@ -26,10 +26,12 @@ func TestBasicTree(t *testing.T) {
 	*/
 
 	values := map[int]string{
-		1:  "A",
-		2:  "B",
-		3:  "C",
-		4:  "AA",
+		1: "A",
+		2: "B",
+		3: "C",
+		//This is the same value as node 1, to make sure the node values don't
+		//have to be unique as long as their fully qualified names are.
+		4:  "A",
 		5:  "BA",
 		6:  "BB",
 		7:  "BC",
