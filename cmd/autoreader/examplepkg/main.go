@@ -222,3 +222,9 @@ type rangeValExample struct {
 	MyMutableRangeVal enum.RangeVal
 	MyRangeVal        enum.ImmutableRangeVal
 }
+
+//+autoreader
+type treeValExample struct {
+	MyTreeVal          enum.TreeVal
+	MyImmutableTreeVal enum.ImmutableTreeVal
+}

@@ -251,6 +251,14 @@ func structTypes(location string, theStruct model.Struct, allStructs []model.Str
 			result.Types[field.Name] = boardgame.TypeEnum
 			result.Mutable[field.Name] = true
 			result.UpConverter[field.Name] = "RangeVal"
+		case "enum.ImmutableTreeVal":
+			result.Types[field.Name] = boardgame.TypeEnum
+			result.Mutable[field.Name] = false
+			result.UpConverter[field.Name] = "ImmutableTreeVal"
+		case "enum.TreeVal":
+			result.Types[field.Name] = boardgame.TypeEnum
+			result.Mutable[field.Name] = true
+			result.UpConverter[field.Name] = "TreeVal"
 		case "boardgame.ImmutableTimer":
 			result.Types[field.Name] = boardgame.TypeTimer
 			result.Mutable[field.Name] = false
