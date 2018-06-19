@@ -101,6 +101,24 @@ use RangeEnum to get access to the RangeEnum, if valid, or nil otherwise.
 Generally you should store RangeEnumVal directly in your structs if it's a
 range value, so you don't have to up-convert.
 
+Tree Enums
+
+You can also create TreeEnums. These are just normal enums, but that
+additionally encode a tree structure on top of the values. A tree enum always
+has value 0 as the root node, with string value "", and that all other nodes
+have at the top of their ancestor chain.
+
+A common use for Tree Enums is for the Phase enum in your game state, allowing
+there to be sets of sub-phases that the game is in.
+
+Tree Enum values can be either branches (has 1 or more children) or leaves
+(have no children). Typically a branch node means "all of the values below
+me," while a leaf node means "precisely this value". In some contexts it only
+makes sense for the value to be set to a leaf node. For example, if the
+PhaseEnum in your game is a TreeEnum, then the state will refuse to be saved
+if the value is not a leaf value. BranchDefaulValue is the best way to get the
+default leaf value within a sub-tree.
+
 */
 package enum
 
