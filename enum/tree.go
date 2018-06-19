@@ -391,3 +391,17 @@ func (v *variable) NodeString() string {
 	parts := strings.Split(v.String(), treeValStringJoiner)
 	return parts[len(parts)-1]
 }
+
+func (e *variable) ImmutableTreeVal() ImmutableTreeVal {
+	if e.enum.TreeEnum() == nil {
+		return nil
+	}
+	return e
+}
+
+func (e *variable) TreeVal() TreeVal {
+	if e.enum.TreeEnum() == nil {
+		return nil
+	}
+	return e
+}

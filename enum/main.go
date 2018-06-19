@@ -224,6 +224,10 @@ type ImmutableVal interface {
 	//ImmutableRangeVal will return a version of this Val that implements RangeVal(),
 	//if that's possible, nil otherwise.≈
 	ImmutableRangeVal() ImmutableRangeVal
+
+	//ImmutableTreeVAl will return a version of this Val that implements
+	//TreeVal, if that's possible, nil otherwise.
+	ImmutableTreeVal() ImmutableTreeVal
 }
 
 //MutableVal is an instantiation of a value that must be set to a value in the
@@ -240,6 +244,10 @@ type Val interface {
 	//RangeVal returns a version of this Val that implements RangeVal, if
 	//that's posisble, nil otherwise.
 	RangeVal() RangeVal
+
+	//TreeVal returns a version of this Val that implements TreeVal, if that's
+	//possible, nil otherwise.
+	TreeVal() TreeVal
 }
 
 //NewSet returns a new Set. Generally you'll call this once in a
