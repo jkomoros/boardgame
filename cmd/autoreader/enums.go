@@ -575,11 +575,16 @@ func ({{firstLetter .delegateName}} *{{.delegateName}}) ConfigureEnums() *enum.S
 
 `
 
-const enumItemTemplateText = `var {{.prefix}}Enum = Enums.MustAdd("{{.prefix}}", map[int]string{
+const enumItemTemplateText = `var {{.prefix}}Enum = Enums.MustAdd{{if .parents}}Tree{{end}}("{{.prefix}}", map[int]string{
 	{{ $prefix := .prefix -}}
 	{{range $name, $value := .values -}}
 	{{$name}}: "{{$value}}",
 	{{end}}
-})
+}{{if .parents}}, 
+	{{ $prefix := .prefix -}}
+	{{range $name, $value := .parents -}}
+	{{$name}}: {{$value}},
+	{{end}}
+{{end}})
 
 `

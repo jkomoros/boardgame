@@ -123,6 +123,14 @@ const (
 	DontIncludeGreen
 )
 
+//+autoreader
+const (
+	Tree = iota
+	TreeBlue
+	TreeGreen
+	TreeRed
+)
+
 //+autoreader all
 type myStruct struct {
 	boardgame.BaseSubState

@@ -63,3 +63,10 @@ var DefaultTransformEnum = Enums.MustAdd("DefaultTransform", map[int]string{
 	DefaultTransformGreen: "GREEN",
 	DefaultTransformRed:   "Red",
 })
+
+var TreeEnum = Enums.MustAdd("Tree", map[int]string{
+	Tree:      "",
+	TreeBlue:  "Blue",
+	TreeGreen: "Green",
+	TreeRed:   "Red",
+})
