@@ -87,13 +87,14 @@ const (
 
 //+autoreader
 const (
+	//Because we're overriding to "", this will cause the enum to be a TreeEnum.
+	//display:""
+	FooOverrideBlank = iota
 	//This shouldn't have any weird output
-	FooBlue = iota
+	FooBlue
 	//This should work even though enum instruction is in second line.
 	//display:"Green"
 	FooOverride
-	//display:""
-	FooOverrideBlank
 	//display:"My name is \"Blue\""
 	FooOverrideQuoted
 )

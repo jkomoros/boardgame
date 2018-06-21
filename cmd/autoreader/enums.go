@@ -539,10 +539,39 @@ func enumHeaderForPackage(packageName string, delegateNames []string) string {
 	return output
 }
 
+func createParents(values map[string]string) map[string]string {
+
+	//search for a value that maps to "", which is signal
+
+	rootKeyName := ""
+
+	for key, val := range values {
+		if val == "" {
+			rootKeyName = key
+			break
+		}
+	}
+
+	if rootKeyName == "" {
+		return nil
+	}
+
+	result := make(map[string]string, len(values))
+
+	for key, _ := range values {
+		result[key] = rootKeyName
+	}
+
+	return result
+
+}
+
 func enumItem(prefix string, values map[string]string) string {
+	parents := createParents(values)
 	return templateOutput(enumItemTemplate, map[string]interface{}{
-		"prefix": prefix,
-		"values": values,
+		"prefix":  prefix,
+		"values":  values,
+		"parents": parents,
 	})
 }
 
@@ -580,11 +609,12 @@ const enumItemTemplateText = `var {{.prefix}}Enum = Enums.MustAdd{{if .parents}}
 	{{range $name, $value := .values -}}
 	{{$name}}: "{{$value}}",
 	{{end}}
-}{{if .parents}}, 
+{{if .parents -}} }, map[int]int{ 
 	{{ $prefix := .prefix -}}
 	{{range $name, $value := .parents -}}
 	{{$name}}: {{$value}},
 	{{end}}
-{{end}})
+{{end -}}
+})
 
 `

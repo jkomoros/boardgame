@@ -119,6 +119,26 @@ PhaseEnum in your game is a TreeEnum, then the state will refuse to be saved
 if the value is not a leaf value. BranchDefaulValue is the best way to get the
 default leaf value within a sub-tree.
 
+Creating Tree Enums with autoreader
+
+autoreader is able to make TreeEnums for you automatically.
+
+The signal to create a TreeEnum is that you have an item in your enum whose string value evaluates to "". (Theoretically the int value of that "" node should also be 0, but the actual constant value for constants in Enums is currently ignored due to #631).
+
+	//+autoreader
+	const (
+	  //Because the next item's string value is "" (there is no text beyond the shared prefix), this will be a tree enum
+	  Phase = iota
+	  PhaseRed
+	  PhaseBlue
+	)
+
+Creates a TreeEnum shaped like:
+
+	""
+	  Red
+	  Blue
+
 */
 package enum
 

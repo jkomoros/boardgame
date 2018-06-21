@@ -187,8 +187,7 @@ func processPackage(location string) (output string, testOutput string, enumOutp
 	formattedTestBytes, err := format.Source([]byte(testOutput))
 
 	if err != nil {
-		formattedTestBytes = []byte(testOutput)
-		//return "", "", "", errors.New("Couldn't go fmt code for reader: " + err.Error())
+		return "", "", "", errors.New("Couldn't go fmt code for reader: " + err.Error())
 	}
 
 	formattedEnumBytes, err := format.Source([]byte(enumOutput))

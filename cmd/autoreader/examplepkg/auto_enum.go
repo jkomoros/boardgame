@@ -44,11 +44,16 @@ var PhaseEnum = Enums.MustAdd("Phase", map[int]string{
 	PhaseVeryLongName: "Very Long Name",
 })
 
-var FooEnum = Enums.MustAdd("Foo", map[int]string{
+var FooEnum = Enums.MustAddTree("Foo", map[int]string{
 	FooBlue:           "Blue",
 	FooOverride:       "Green",
 	FooOverrideBlank:  "",
 	FooOverrideQuoted: "My name is \"Blue\"",
+}, map[int]int{
+	FooBlue:           FooOverrideBlank,
+	FooOverride:       FooOverrideBlank,
+	FooOverrideBlank:  FooOverrideBlank,
+	FooOverrideQuoted: FooOverrideBlank,
 })
 
 var TransformExampleEnum = Enums.MustAdd("TransformExample", map[int]string{
@@ -64,9 +69,14 @@ var DefaultTransformEnum = Enums.MustAdd("DefaultTransform", map[int]string{
 	DefaultTransformRed:   "Red",
 })
 
-var TreeEnum = Enums.MustAdd("Tree", map[int]string{
+var TreeEnum = Enums.MustAddTree("Tree", map[int]string{
 	Tree:      "",
 	TreeBlue:  "Blue",
 	TreeGreen: "Green",
 	TreeRed:   "Red",
+}, map[int]int{
+	Tree:      Tree,
+	TreeBlue:  Tree,
+	TreeGreen: Tree,
+	TreeRed:   Tree,
 })
