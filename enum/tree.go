@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-//The string used to join the individual node names into one (e.g. "Normal - Deal Cards - Deal To First Player")
-const treeValStringJoiner = " > "
+//The string used to join the individual node names into one (e.g. "Normal > Deal Cards > Deal To First Player")
+const TREE_NODE_DELIMITER = " > "
 
 //TreeEnum is a special type of Enum where the list of values also have a tree
 //structure that can be interrogated. TreeEnums always have 0 map to "" as the
@@ -155,7 +155,7 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 
 	//Verify that the string values don't contain the delimiter sequence
 	for val, str := range values {
-		if strings.Contains(str, treeValStringJoiner) {
+		if strings.Contains(str, TREE_NODE_DELIMITER) {
 			return nil, errors.New("The node string value for " + strconv.Itoa(val) + " contains the delimiter expression, which is illegal")
 		}
 	}
@@ -235,7 +235,7 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 			names[i] = values[val]
 		}
 
-		fullyQualifiedValues[node] = strings.Join(names, treeValStringJoiner)
+		fullyQualifiedValues[node] = strings.Join(names, TREE_NODE_DELIMITER)
 	}
 
 	e, err := s.addEnumImpl(enumName, fullyQualifiedValues)
@@ -398,7 +398,7 @@ func (v *variable) NodeString() string {
 	if v.String() == "" {
 		return ""
 	}
-	parts := strings.Split(v.String(), treeValStringJoiner)
+	parts := strings.Split(v.String(), TREE_NODE_DELIMITER)
 	return parts[len(parts)-1]
 }
 
