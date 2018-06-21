@@ -71,6 +71,11 @@ import (
 	"text/template"
 )
 
+//debugSaveBadCode, if true, will save even code that is not legal go if it
+//can't be formatted. Useful for debugging bad template output temporarily.
+//Should never be set to true for real uses.
+const debugSaveBadCode = false
+
 type appOptions struct {
 	OutputFile       string
 	OutputFileTest   string
@@ -180,20 +185,31 @@ func processPackage(location string) (output string, testOutput string, enumOutp
 	formattedBytes, err := format.Source([]byte(output))
 
 	if err != nil {
-		formattedBytes = []byte(output)
-		//return "", "", "", errors.New("Couldn't go fmt code for reader: " + err.Error())
+		if debugSaveBadCode {
+			formattedBytes = []byte(output)
+		} else {
+			return "", "", "", errors.New("Couldn't go fmt code for reader: " + err.Error())
+		}
 	}
 
 	formattedTestBytes, err := format.Source([]byte(testOutput))
 
 	if err != nil {
-		return "", "", "", errors.New("Couldn't go fmt code for reader: " + err.Error())
+		if debugSaveBadCode {
+			formattedTestBytes = []byte(testOutput)
+		} else {
+			return "", "", "", errors.New("Couldn't go fmt code for reader: " + err.Error())
+		}
 	}
 
 	formattedEnumBytes, err := format.Source([]byte(enumOutput))
 
 	if err != nil {
-		return "", "", "", errors.New("Couldn't go fmt code for enums: " + err.Error())
+		if debugSaveBadCode {
+			formattedEnumBytes = []byte(enumOutput)
+		} else {
+			return "", "", "", errors.New("Couldn't go fmt code for enums: " + err.Error())
+		}
 	}
 
 	return string(formattedBytes), string(formattedTestBytes), string(formattedEnumBytes), nil
