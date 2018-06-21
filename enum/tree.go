@@ -118,7 +118,7 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 
 	if ok {
 		if str != "" {
-			return nil, errors.New("The root node's value must be ''")
+			return nil, errors.New("In " + enumName + " the root node's value must be ''")
 		}
 	} else {
 		values[0] = ""
@@ -128,7 +128,7 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 
 	if ok {
 		if parent != 0 {
-			return nil, errors.New("The root node's parent must be itself")
+			return nil, errors.New("In " + enumName + " the root node's parent must be itself")
 		}
 	} else {
 		parents[0] = 0
@@ -137,26 +137,26 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 	//Verify that values and parents inclue the same keys--that is, each item denotes its parent.
 	for val, _ := range values {
 		if _, ok := parents[val]; !ok {
-			return nil, errors.New("Missing parent information for key: " + strconv.Itoa(val))
+			return nil, errors.New("In " + enumName + " missing parent information for key: " + strconv.Itoa(val))
 		}
 	}
 	for parent, _ := range parents {
 		if _, ok := values[parent]; !ok {
-			return nil, errors.New("Parent information provided for " + strconv.Itoa(parent) + " but no corresponding value provided.")
+			return nil, errors.New("In " + enumName + " parent information provided for " + strconv.Itoa(parent) + " but no corresponding value provided.")
 		}
 	}
 
 	//Verify that each parent corresponds to a value in the values map.
 	for child, parent := range parents {
 		if _, ok := values[parent]; !ok {
-			return nil, errors.New("Entry in parent map names a parent that is not in the enum: " + strconv.Itoa(parent) + "," + strconv.Itoa(child))
+			return nil, errors.New("In " + enumName + " entry in parent map names a parent that is not in the enum: " + strconv.Itoa(parent) + "," + strconv.Itoa(child))
 		}
 	}
 
 	//Verify that the string values don't contain the delimiter sequence
 	for val, str := range values {
 		if strings.Contains(str, TREE_NODE_DELIMITER) {
-			return nil, errors.New("The node string value for " + strconv.Itoa(val) + " contains the delimiter expression, which is illegal")
+			return nil, errors.New("In " + enumName + " the node string value for " + strconv.Itoa(val) + " contains the delimiter expression, which is illegal")
 		}
 	}
 
@@ -166,7 +166,7 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 			continue
 		}
 		if child == parent {
-			return nil, errors.New("A non-root node had itself as its own parent: " + strconv.Itoa(child))
+			return nil, errors.New("In " + enumName + " a non-root node had itself as its own parent: " + strconv.Itoa(child))
 		}
 	}
 
@@ -195,7 +195,7 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 			visitedNodes[currentNode] = true
 			currentNode = parents[currentNode]
 			if visitedNodes[currentNode] {
-				return nil, errors.New("Detected a cycle in the parent definitions")
+				return nil, errors.New("In " + enumName + " detected a cycle in the parent definitions")
 			}
 		}
 		//CurrentNode is 0, which means all visited nodes are connectedToRoot.

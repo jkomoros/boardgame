@@ -110,7 +110,7 @@ func TestBadTreeConfig(t *testing.T) {
 				0: 0,
 				1: 0,
 			},
-			"The root node's value must be ''",
+			"In test the root node's value must be ''",
 		},
 		{
 			map[int]string{
@@ -132,7 +132,7 @@ func TestBadTreeConfig(t *testing.T) {
 				0: 1,
 				1: 0,
 			},
-			"The root node's parent must be itself",
+			"In test the root node's parent must be itself",
 		},
 		{
 			map[int]string{
@@ -161,7 +161,7 @@ func TestBadTreeConfig(t *testing.T) {
 			map[int]int{
 				1: 0,
 			},
-			"Missing parent information for key: 2",
+			"In test missing parent information for key: 2",
 		},
 		{
 			map[int]string{
@@ -182,7 +182,7 @@ func TestBadTreeConfig(t *testing.T) {
 				1: 0,
 				2: 1,
 			},
-			"Parent information provided for 2 but no corresponding value provided.",
+			"In test parent information provided for 2 but no corresponding value provided.",
 		},
 		{
 			map[int]string{
@@ -193,7 +193,7 @@ func TestBadTreeConfig(t *testing.T) {
 				1: 0,
 				2: 3,
 			},
-			"Entry in parent map names a parent that is not in the enum: 3,2",
+			"In test entry in parent map names a parent that is not in the enum: 3,2",
 		},
 		{
 			map[int]string{
@@ -202,7 +202,7 @@ func TestBadTreeConfig(t *testing.T) {
 			map[int]int{
 				1: 0,
 			},
-			"The node string value for 1 contains the delimiter expression, which is illegal",
+			"In test the node string value for 1 contains the delimiter expression, which is illegal",
 		},
 		{
 			//Check maximally stretched case for cycle test
@@ -229,7 +229,7 @@ func TestBadTreeConfig(t *testing.T) {
 				2: 1,
 				3: 2,
 			},
-			"Detected a cycle in the parent definitions",
+			"In test detected a cycle in the parent definitions",
 		},
 		{
 			map[int]string{
@@ -244,7 +244,7 @@ func TestBadTreeConfig(t *testing.T) {
 				3: 2,
 				4: 0,
 			},
-			"Detected a cycle in the parent definitions",
+			"In test detected a cycle in the parent definitions",
 		},
 		{
 			map[int]string{
@@ -257,7 +257,7 @@ func TestBadTreeConfig(t *testing.T) {
 				2: 1,
 				3: 2,
 			},
-			"A non-root node had itself as its own parent: 1",
+			"In test a non-root node had itself as its own parent: 1",
 		},
 	}
 
