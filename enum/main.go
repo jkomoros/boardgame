@@ -139,6 +139,49 @@ Creates a TreeEnum shaped like:
 	  Red
 	  Blue
 
+Branch nodes are created based on the implicit ordering and structure of the final string values, splitting at "> " as the delimeter:
+
+	//+autoreader
+	const (
+	  Phase = iota
+	  PhaseRed
+	  //display:"Red > Circle"
+	  PhaseRedCircle
+	  PhaseBlue
+	  //display:"Blue > Circle"
+	  PhaseBlueCircle
+	)
+
+Creates:
+
+	""
+	  Red
+	    Circle
+	  Blue
+	    Circle
+
+Of course, writing the display name is annoying, so if the name of the const has has an underscore `_` then it will be interpreted as " > " when creating the string value:
+
+	//+autoreader
+	const (
+	  Phase = iota
+	  PhaseRed
+	  //Next line's string value is "Red > Circle"
+	  PhaseRed_Circle
+	  PhaseBlue
+	  PhaseBlue_Circle
+	)
+
+Creates:
+
+	""
+	  Red
+	    Circle
+	  Blue
+	    Circle
+
+
+
 */
 package enum
 

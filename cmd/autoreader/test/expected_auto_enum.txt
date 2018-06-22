@@ -80,3 +80,35 @@ var TreeEnum = Enums.MustAddTree("Tree", map[int]string{
 	TreeGreen: Tree,
 	TreeRed:   Tree,
 })
+
+var BlamEnum = Enums.MustAddTree("Blam", map[int]string{
+	Blam:        "",
+	BlamOne:     "One",
+	BlamOne_One: "One",
+	BlamOne_Two: "Two",
+	BlamThree:   "Three",
+	BlamTwo:     "Two",
+	BlamTwo_One: "One",
+}, map[int]int{
+	Blam:        Blam,
+	BlamOne:     Blam,
+	BlamOne_One: BlamOne,
+	BlamOne_Two: BlamOne,
+	BlamThree:   Blam,
+	BlamTwo:     Blam,
+	BlamTwo_One: BlamTwo,
+})
+
+var ExampleEnum = Enums.MustAddTree("Example", map[int]string{
+	Example:        "",
+	ExampleOne:     "One",
+	ExampleOneOne:  "One",
+	ExampleOne_Two: "Two",
+	ExampleTwo:     "Two",
+}, map[int]int{
+	Example:        Example,
+	ExampleOne:     Example,
+	ExampleOneOne:  ExampleOne,
+	ExampleOne_Two: ExampleOne,
+	ExampleTwo:     Example,
+})

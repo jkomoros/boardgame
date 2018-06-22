@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"github.com/abcum/lcp"
+	enumpkg "github.com/jkomoros/boardgame/enum"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -383,7 +384,11 @@ func outputForEnums(enums []*enum, delegateNames []string) (enumOutput string, e
 			//If there wasn't an override, do the default. Note that an
 			//override "" that is in the map is legal.
 			if !ok {
-				displayName = titleCaseToWords(strings.Replace(literal, prefix, "", -1))
+
+				withNoPrefix := strings.Replace(literal, prefix, "", -1)
+				expandedDelimiter := strings.Replace(withNoPrefix, "_", enumpkg.TREE_NODE_DELIMITER, -1)
+
+				displayName = titleCaseToWords(expandedDelimiter)
 
 				switch enum.Transform[literal] {
 				case transformLower:
@@ -404,6 +409,7 @@ func outputForEnums(enums []*enum, delegateNames []string) (enumOutput string, e
 	return enumOutput, nil
 }
 
+var spaceReducer *regexp.Regexp
 var titleCaseReplacer *strings.Replacer
 
 //titleCaseToWords writes "ATitleCaseString" to "A Title Case String"
@@ -423,9 +429,14 @@ func titleCaseToWords(in string) string {
 
 		titleCaseReplacer = strings.NewReplacer(replacements...)
 
+		spaceReducer = regexp.MustCompile(`\s+`)
+
 	}
 
-	return strings.TrimSpace(titleCaseReplacer.Replace(in))
+	titleCaseSplit := titleCaseReplacer.Replace(in)
+	reducedSpaces := spaceReducer.ReplaceAllString(titleCaseSplit, " ")
+
+	return strings.TrimSpace(reducedSpaces)
 
 }
 
@@ -539,38 +550,63 @@ func enumHeaderForPackage(packageName string, delegateNames []string) string {
 	return output
 }
 
-func createParents(values map[string]string) map[string]string {
+func createParents(values map[string]string) (modifiedValues map[string]string, parents map[string]string) {
 
 	//search for a value that maps to "", which is signal
 
-	rootKeyName := ""
+	//We'll oftne need to reverse from original string value back up to the
+	//constant key, so process that now.
+	valueReverseMap := make(map[string]string, len(values))
 
 	for key, val := range values {
-		if val == "" {
-			rootKeyName = key
-			break
+		valueReverseMap[val] = key
+	}
+
+	if _, ok := valueReverseMap[""]; !ok {
+		//No modifications necessary; no value had string value of ""
+		return values, nil
+	}
+
+	newValues := make(map[string]string, len(values))
+	parentsResult := make(map[string]string, len(values))
+
+	//Reduce the names of the resulting values to the last name in the hierachy
+
+	for key, value := range values {
+
+		splitValue := strings.Split(value, enumpkg.TREE_NODE_DELIMITER)
+
+		lastValueComponent := splitValue[len(splitValue)-1]
+
+		newValues[key] = lastValueComponent
+
+	}
+
+	//Set parents
+	for key, value := range values {
+
+		splitValue := strings.Split(value, enumpkg.TREE_NODE_DELIMITER)
+
+		parentNode := valueReverseMap[""]
+
+		if len(splitValue) >= 2 {
+			//Not a node who points to root
+			parentValue := strings.Join(splitValue[0:len(splitValue)-1], enumpkg.TREE_NODE_DELIMITER)
+			parentNode = valueReverseMap[parentValue]
 		}
+
+		parentsResult[key] = parentNode
 	}
 
-	if rootKeyName == "" {
-		return nil
-	}
-
-	result := make(map[string]string, len(values))
-
-	for key, _ := range values {
-		result[key] = rootKeyName
-	}
-
-	return result
+	return newValues, parentsResult
 
 }
 
 func enumItem(prefix string, values map[string]string) string {
-	parents := createParents(values)
+	modifiedValues, parents := createParents(values)
 	return templateOutput(enumItemTemplate, map[string]interface{}{
 		"prefix":  prefix,
-		"values":  values,
+		"values":  modifiedValues,
 		"parents": parents,
 	})
 }

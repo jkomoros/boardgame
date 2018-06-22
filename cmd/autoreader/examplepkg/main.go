@@ -132,6 +132,27 @@ const (
 	TreeRed
 )
 
+//+autoreader
+const (
+	Blam = iota
+	BlamOne
+	BlamTwo
+	BlamThree
+	BlamOne_One
+	BlamOne_Two
+	BlamTwo_One
+)
+
+//+autoreader
+const (
+	Example = iota
+	ExampleOne
+	ExampleTwo
+	//display:"One > One"
+	ExampleOneOne
+	ExampleOne_Two
+)
+
 //+autoreader all
 type myStruct struct {
 	boardgame.BaseSubState
