@@ -481,6 +481,32 @@ func (e *enum) AddKey(key string, overrideDisplay bool, overrideDisplayName stri
 	e.Transform[key] = transform
 }
 
+func (e *enum) RenameKey(oldKey, newKey string) {
+
+	keyIndex := -1
+
+	for i, key := range e.Keys {
+		if key == oldKey {
+			keyIndex = i
+		}
+	}
+
+	if keyIndex < 0 {
+		return
+	}
+
+	e.Keys[keyIndex] = newKey
+
+	if _, ok := e.OverrideDisplayName[oldKey]; ok {
+		e.OverrideDisplayName[newKey] = e.OverrideDisplayName[oldKey]
+		delete(e.OverrideDisplayName, oldKey)
+	}
+
+	e.Transform[newKey] = e.Transform[oldKey]
+	delete(e.Transform, oldKey)
+
+}
+
 //Output is the text to put into the final output in auto_enum.go
 func (e *enum) Output() string {
 
