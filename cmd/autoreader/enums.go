@@ -510,45 +510,44 @@ func (e *enum) RenameKey(oldKey, newKey string) {
 //Output is the text to put into the final output in auto_enum.go
 func (e *enum) Output() string {
 
-	prefix := e.Prefix()
+	modifiedValues, parents := createParents(e.ValueMap())
 
-	values := make(map[string]string, len(e.Keys))
+	return e.baseOutput(e.Prefix(), modifiedValues, parents)
 
-	i := 0
+}
 
-	for _, literal := range e.Keys {
-		if !strings.HasPrefix(literal, prefix) {
-			//Unexpected
-			return ""
-		}
+func (e *enum) ValueMap() map[string]string {
+	result := make(map[string]string, len(e.Keys))
+	for _, key := range e.Keys {
+		result[key] = e.StringValue(key)
+	}
+	return result
+}
 
-		//If there's an override deisplay name, use that
-		displayName, ok := e.OverrideDisplayName[literal]
+//StringValue does all of the calulations and returns final value
+func (e *enum) StringValue(key string) string {
 
-		//If there wasn't an override, do the default. Note that an
-		//override "" that is in the map is legal.
-		if !ok {
+	displayName, ok := e.OverrideDisplayName[key]
 
-			withNoPrefix := strings.Replace(literal, prefix, "", -1)
-			expandedDelimiter := strings.Replace(withNoPrefix, "_", enumpkg.TREE_NODE_DELIMITER, -1)
-
-			displayName = titleCaseToWords(expandedDelimiter)
-
-			switch e.Transform[literal] {
-			case transformLower:
-				displayName = strings.ToLower(displayName)
-			case transformUpper:
-				displayName = strings.ToUpper(displayName)
-			}
-		}
-
-		values[literal] = displayName
-		i++
+	if ok {
+		return displayName
 	}
 
-	modifiedValues, parents := createParents(values)
+	prefix := e.Prefix()
 
-	return e.baseOutput(prefix, modifiedValues, parents)
+	withNoPrefix := strings.Replace(key, prefix, "", -1)
+	expandedDelimiter := strings.Replace(withNoPrefix, "_", enumpkg.TREE_NODE_DELIMITER, -1)
+
+	displayName = titleCaseToWords(expandedDelimiter)
+
+	switch e.Transform[key] {
+	case transformLower:
+		displayName = strings.ToLower(displayName)
+	case transformUpper:
+		displayName = strings.ToUpper(displayName)
+	}
+
+	return displayName
 
 }
 
