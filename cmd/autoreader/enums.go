@@ -55,7 +55,7 @@ const (
 
 type enum struct {
 	PackageName string
-	Values      []string
+	Keys        []string
 	//OverrideDisplayName contains a map of the Value string to override
 	//value, if it exists. If it is in the map with value "" then it has been
 	//overridden to have that value. If it is not in the map then it should be
@@ -322,19 +322,19 @@ func findEnums(packageASTs map[string]*ast.Package) (enums []*enum, err error) {
 						return nil, errors.New("Found an enum that had more than one name on a line. That's not allowed for now.")
 					}
 
-					valueName := valueSpec.Names[0].Name
+					keyName := valueSpec.Names[0].Name
 
-					theEnum.Values = append(theEnum.Values, valueName)
+					theEnum.Keys = append(theEnum.Keys, keyName)
 
 					if hasOverride, displayName := overrideDisplayname(valueSpec.Doc.Text()); hasOverride {
-						theEnum.OverrideDisplayName[valueName] = displayName
+						theEnum.OverrideDisplayName[keyName] = displayName
 					}
 
-					theEnum.Transform[valueName] = configTransform(valueSpec.Doc.Text(), defaultTransform)
+					theEnum.Transform[keyName] = configTransform(valueSpec.Doc.Text(), defaultTransform)
 
 				}
 
-				if len(theEnum.Values) > 0 {
+				if len(theEnum.Keys) > 0 {
 					enums = append(enums, theEnum)
 				}
 
@@ -477,11 +477,11 @@ func (e *enum) Output() string {
 
 	prefix := e.Prefix()
 
-	values := make(map[string]string, len(e.Values))
+	values := make(map[string]string, len(e.Keys))
 
 	i := 0
 
-	for _, literal := range e.Values {
+	for _, literal := range e.Keys {
 		if !strings.HasPrefix(literal, prefix) {
 			//Unexpected
 			return ""
@@ -517,9 +517,9 @@ func (e *enum) Output() string {
 
 }
 
-func (e *enum) PublicLiterals() []string {
+func (e *enum) PublicKeys() []string {
 	var literals []string
-	for _, literal := range e.Values {
+	for _, literal := range e.Keys {
 		if !fieldNamePublic(literal) {
 			continue
 		}
@@ -533,7 +533,7 @@ func (e *enum) Prefix() string {
 		return e.cachedPrefix
 	}
 
-	literals := e.PublicLiterals()
+	literals := e.PublicKeys()
 
 	byteLiterals := make([][]byte, len(literals))
 
@@ -554,8 +554,8 @@ func (e *enum) Prefix() string {
 //Legal will return an error if the enum isn't legal and shouldn't be output.
 func (e *enum) Legal() error {
 
-	if len(e.PublicLiterals()) == 0 {
-		return errors.New("No public literals")
+	if len(e.PublicKeys()) == 0 {
+		return errors.New("No public keys")
 	}
 
 	if e.Prefix() == "" {
