@@ -276,6 +276,15 @@ func filterDelegateNames(candidates []string, packageASTs map[string]*ast.Packag
 
 }
 
+func newEnum(packageName string, defaultTransform transform) *enum {
+	return &enum{
+		PackageName:         packageName,
+		OverrideDisplayName: make(map[string]string),
+		Transform:           make(map[string]transform),
+		DefaultTransform:    defaultTransform,
+	}
+}
+
 //findEnums processes the package at packageName and returns a list of enums
 //that should be processed (that is, they have the magic comment)
 func findEnums(packageASTs map[string]*ast.Package) (enums []*enum, err error) {
@@ -302,12 +311,7 @@ func findEnums(packageASTs map[string]*ast.Package) (enums []*enum, err error) {
 
 				defaultTransform := configTransform(genDecl.Doc.Text(), transformNone)
 
-				theEnum := &enum{
-					PackageName:         packageName,
-					OverrideDisplayName: make(map[string]string),
-					Transform:           make(map[string]transform),
-					DefaultTransform:    defaultTransform,
-				}
+				theEnum := newEnum(packageName, defaultTransform)
 
 				for _, spec := range genDecl.Specs {
 
@@ -507,10 +511,19 @@ func (e *enum) RenameKey(oldKey, newKey string) {
 
 }
 
+func (e *enum) HasKey(key string) bool {
+	for _, theKey := range e.Keys {
+		if key == theKey {
+			return true
+		}
+	}
+	return false
+}
+
 //Output is the text to put into the final output in auto_enum.go
 func (e *enum) Output() string {
 
-	modifiedValues, parents := createParents(e.ValueMap())
+	modifiedValues, parents := e.createParents()
 
 	return e.baseOutput(e.Prefix(), modifiedValues, parents)
 
@@ -549,6 +562,15 @@ func (e *enum) StringValue(key string) string {
 
 	return displayName
 
+}
+
+//TreeEnum is whether or not we should output a TreeEnum.
+func (e *enum) TreeEnum() bool {
+	key := e.Prefix()
+	if !e.HasKey(key) {
+		return false
+	}
+	return e.StringValue(key) == ""
 }
 
 func (e *enum) PublicKeys() []string {
@@ -618,18 +640,6 @@ func enumHeaderForPackage(packageName string, delegateNames []string) string {
 	return output
 }
 
-//Given a set of values in an enum, return whether we should emit a tree enum
-//or not.
-func shouldCreateTreeEnum(values map[string]string) bool {
-	//search for a value that maps to "", which is signal
-	for _, val := range values {
-		if val == "" {
-			return true
-		}
-	}
-	return false
-}
-
 //createMissingNodes returns a map like values, but with the addition of nodes
 //who are implied in that they have children but are missing.
 func createMissingNodes(values map[string]string) map[string]string {
@@ -686,9 +696,11 @@ func valueMapIndex(values map[string]string) map[string]string {
 	return valueReverseMap
 }
 
-func createParents(values map[string]string) (modifiedValues map[string]string, parents map[string]string) {
+func (e *enum) createParents() (modifiedValues map[string]string, parents map[string]string) {
 
-	if !shouldCreateTreeEnum(values) {
+	values := e.ValueMap()
+
+	if !e.TreeEnum() {
 		return values, nil
 	}
 

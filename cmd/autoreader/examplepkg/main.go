@@ -87,7 +87,6 @@ const (
 
 //+autoreader
 const (
-	//Because we're overriding to "", this will cause the enum to be a TreeEnum.
 	//display:""
 	FooOverrideBlank = iota
 	//This shouldn't have any weird output

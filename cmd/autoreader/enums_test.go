@@ -123,7 +123,14 @@ func TestEnumParent(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		actualValues, actualParents := createParents(test.strValues)
+
+		e := newEnum("test", transformNone)
+
+		for key, val := range test.strValues {
+			e.AddKey(key, true, val, transformNone)
+		}
+
+		actualValues, actualParents := e.createParents()
 		if test.expectedValues == nil {
 			//Expect no change from test.strValues
 			assert.For(t, i).ThatActual(actualValues).Equals(test.strValues).ThenDiffOnFail()
