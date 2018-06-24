@@ -701,6 +701,12 @@ func valueMapIndex(values map[string]string) map[string]string {
 
 func (e *enum) createParents() (modifiedValues map[string]string, parents map[string]string) {
 
+	//TODO: rename to reduceParents(), which creates the parent map TODO: add
+	//a reduceNodeNames which takes the fully qualified name like " > " and
+	//reduces to only be the last bit of name.
+
+	//TODO: only allow this destructive processing to happen once on a given enum. (set a bit?)
+
 	values := e.ValueMap()
 
 	if !e.TreeEnum() {
