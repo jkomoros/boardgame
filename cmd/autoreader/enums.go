@@ -530,6 +530,7 @@ func (e *enum) Output() string {
 }
 
 func (e *enum) ValueMap() map[string]string {
+	//TODO: only regenerate this if a key or displayname has changed.
 	result := make(map[string]string, len(e.Keys))
 	for _, key := range e.Keys {
 		result[key] = e.StringValue(key)
@@ -585,6 +586,8 @@ func (e *enum) PublicKeys() []string {
 }
 
 func (e *enum) Prefix() string {
+
+	//TODO: allow a cachedPrefix of ""
 	if e.cachedPrefix != "" {
 		return e.cachedPrefix
 	}
