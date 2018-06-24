@@ -324,13 +324,11 @@ func findEnums(packageASTs map[string]*ast.Package) (enums []*enum, err error) {
 
 					keyName := valueSpec.Names[0].Name
 
-					theEnum.Keys = append(theEnum.Keys, keyName)
+					hasOverride, displayName := overrideDisplayname(valueSpec.Doc.Text())
 
-					if hasOverride, displayName := overrideDisplayname(valueSpec.Doc.Text()); hasOverride {
-						theEnum.OverrideDisplayName[keyName] = displayName
-					}
+					transform := configTransform(valueSpec.Doc.Text(), defaultTransform)
 
-					theEnum.Transform[keyName] = configTransform(valueSpec.Doc.Text(), defaultTransform)
+					theEnum.AddKey(keyName, hasOverride, displayName, transform)
 
 				}
 
@@ -470,6 +468,17 @@ func overrideDisplayname(docLines string) (hasOverride bool, displayName string)
 	}
 
 	return false, ""
+}
+
+func (e *enum) AddKey(key string, overrideDisplay bool, overrideDisplayName string, transform transform) {
+
+	e.Keys = append(e.Keys, key)
+
+	if overrideDisplay {
+		e.OverrideDisplayName[key] = overrideDisplayName
+	}
+
+	e.Transform[key] = transform
 }
 
 //Output is the text to put into the final output in auto_enum.go
