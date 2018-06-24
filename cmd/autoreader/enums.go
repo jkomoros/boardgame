@@ -61,8 +61,10 @@ type enum struct {
 	//overridden to have that value. If it is not in the map then it should be
 	//default.
 	OverrideDisplayName map[string]string
+	Parents             map[string]string
 	Transform           map[string]transform
 	DefaultTransform    transform
+	cachedPrefix        string
 }
 
 //findDelegateName looks through the given package to find the name of the
@@ -345,39 +347,23 @@ func findEnums(packageASTs map[string]*ast.Package) (enums []*enum, err error) {
 
 //outputForEnums takes the found enums and produces the output string
 //representing the un-formatted go code to generate for those enums.
-func outputForEnums(enums []*enum, delegateNames []string) (enumOutput string, err error) {
+func outputForEnums(enums []*enum, delegateNames []string) (enumOutput string) {
 	for _, enum := range enums {
 
 		if enumOutput == "" {
 			enumOutput = enumHeaderForPackage(enum.PackageName, delegateNames)
 		}
 
-		var literals [][]byte
+		prefix := enum.Prefix()
 
-		for _, literal := range enum.Values {
-			if !fieldNamePublic(literal) {
-				continue
-			}
-			literals = append(literals, []byte(literal))
-		}
-
-		if len(literals) == 0 {
-			return "", errors.New("No public literals in enum")
-		}
-
-		prefix := string(lcp.LCP(literals...))
-
-		if len(prefix) == 0 {
-			return "", errors.New("Enum with autoreader configured didn't have a common prefix.")
-		}
-
-		values := make(map[string]string, len(literals))
+		values := make(map[string]string, len(enum.Values))
 
 		i := 0
 
 		for _, literal := range enum.Values {
 			if !strings.HasPrefix(literal, prefix) {
-				return "", errors.New("enum literal didn't have prefix we thought it did")
+				//Unexpected
+				return ""
 			}
 
 			//If there's an override deisplay name, use that
@@ -408,7 +394,7 @@ func outputForEnums(enums []*enum, delegateNames []string) (enumOutput string, e
 
 	}
 
-	return enumOutput, nil
+	return enumOutput
 }
 
 var spaceReducer *regexp.Regexp
@@ -461,6 +447,12 @@ func processEnums(packageName string) (enumOutput string, err error) {
 		return "", nil
 	}
 
+	for i, e := range enums {
+		if err := e.Legal(); err != nil {
+			return "", errors.New(strconv.Itoa(i) + " enum had error: " + err.Error())
+		}
+	}
+
 	delegateNames, err := findDelegateName(packageASTs)
 
 	if err != nil {
@@ -469,11 +461,7 @@ func processEnums(packageName string) (enumOutput string, err error) {
 
 	filteredDelegateNames := filterDelegateNames(delegateNames, packageASTs)
 
-	output, err := outputForEnums(enums, filteredDelegateNames)
-
-	if err != nil {
-		return "", errors.New("Couldn't generate output for enums: " + err.Error())
-	}
+	output := outputForEnums(enums, filteredDelegateNames)
 
 	return output, nil
 
@@ -532,6 +520,55 @@ func overrideDisplayname(docLines string) (hasOverride bool, displayName string)
 	}
 
 	return false, ""
+}
+
+func (e *enum) PublicLiterals() []string {
+	var literals []string
+	for _, literal := range e.Values {
+		if !fieldNamePublic(literal) {
+			continue
+		}
+		literals = append(literals, literal)
+	}
+	return literals
+}
+
+func (e *enum) Prefix() string {
+	if e.cachedPrefix != "" {
+		return e.cachedPrefix
+	}
+
+	literals := e.PublicLiterals()
+
+	byteLiterals := make([][]byte, len(literals))
+
+	for i, literal := range literals {
+		byteLiterals[i] = []byte(literal)
+	}
+
+	if len(literals) == 0 {
+		return ""
+	}
+
+	e.cachedPrefix = string(lcp.LCP(byteLiterals...))
+
+	return e.cachedPrefix
+
+}
+
+//Legal will return an error if the enum isn't legal and shouldn't be output.
+func (e *enum) Legal() error {
+
+	if len(e.PublicLiterals()) == 0 {
+		return errors.New("No public literals")
+	}
+
+	if e.Prefix() == "" {
+		return errors.New("Enum didn't have a shared prefix")
+	}
+
+	return nil
+
 }
 
 func enumHeaderForPackage(packageName string, delegateNames []string) string {
