@@ -550,9 +550,23 @@ func enumHeaderForPackage(packageName string, delegateNames []string) string {
 	return output
 }
 
+//Given a set of values in an enum, return whether we should emit a tree enum
+//or not.
+func shouldCreateTreeEnum(values map[string]string) bool {
+	//search for a value that maps to "", which is signal
+	for _, val := range values {
+		if val == "" {
+			return true
+		}
+	}
+	return false
+}
+
 func createParents(values map[string]string) (modifiedValues map[string]string, parents map[string]string) {
 
-	//search for a value that maps to "", which is signal
+	if !shouldCreateTreeEnum(values) {
+		return values, nil
+	}
 
 	//We'll oftne need to reverse from original string value back up to the
 	//constant key, so process that now.
@@ -560,11 +574,6 @@ func createParents(values map[string]string) (modifiedValues map[string]string, 
 
 	for key, val := range values {
 		valueReverseMap[val] = key
-	}
-
-	if _, ok := valueReverseMap[""]; !ok {
-		//No modifications necessary; no value had string value of ""
-		return values, nil
 	}
 
 	newValues := make(map[string]string, len(values))
