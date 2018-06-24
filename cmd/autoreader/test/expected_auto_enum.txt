@@ -112,3 +112,13 @@ var ExampleEnum = Enums.MustAddTree("Example", map[int]string{
 	ExampleOne_Two: ExampleOne,
 	ExampleTwo:     Example,
 })
+
+var SkipNodeEnum = Enums.MustAddTree("SkipNode", map[int]string{
+	-9223372036854775808: "Red",
+	SkipNode:             "",
+	SkipNodeRed_Circle:   "Circle",
+}, map[int]int{
+	-9223372036854775808: SkipNode,
+	SkipNode:             SkipNode,
+	SkipNodeRed_Circle:   -9223372036854775808,
+})

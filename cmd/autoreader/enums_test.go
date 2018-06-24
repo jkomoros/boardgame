@@ -86,6 +86,40 @@ func TestEnumParent(t *testing.T) {
 				"ColorBlue_One_Two": "ColorBlue_One",
 			},
 		},
+		{
+			map[string]string{
+				"Color":         "",
+				"ColorBlue_One": "Blue > One",
+			},
+			map[string]string{
+				"Color":                "",
+				"-9223372036854775808": "Blue",
+				"ColorBlue_One":        "One",
+			},
+			map[string]string{
+				"Color":                "Color",
+				"-9223372036854775808": "Color",
+				"ColorBlue_One":        "-9223372036854775808",
+			},
+		},
+		{
+			map[string]string{
+				"Color":            "",
+				"ColorGreen_One_A": "Green > One > A",
+			},
+			map[string]string{
+				"Color":                "",
+				"-9223372036854775808": "Green",
+				"-9223372036854775807": "One",
+				"ColorGreen_One_A":     "A",
+			},
+			map[string]string{
+				"Color":                "Color",
+				"-9223372036854775808": "Color",
+				"-9223372036854775807": "-9223372036854775808",
+				"ColorGreen_One_A":     "-9223372036854775807",
+			},
+		},
 	}
 
 	for i, test := range tests {

@@ -7,8 +7,10 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"math"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"text/template"
 )
@@ -562,12 +564,51 @@ func shouldCreateTreeEnum(values map[string]string) bool {
 	return false
 }
 
-func createParents(values map[string]string) (modifiedValues map[string]string, parents map[string]string) {
+//createMissingNodes returns a map like values, but with the addition of nodes
+//who are implied in that they have children but are missing.
+func createMissingNodes(values map[string]string) map[string]string {
 
-	if !shouldCreateTreeEnum(values) {
-		return values, nil
+	result := make(map[string]string, len(values))
+
+	index := valueMapIndex(values)
+
+	//We'll work up from the extremes.
+	nextConstant := math.MinInt64
+
+	for key, value := range values {
+
+		//Copy over into result
+		result[key] = value
+
+		splitValue := strings.Split(value, enumpkg.TREE_NODE_DELIMITER)
+
+		for i := 1; i < len(splitValue); i++ {
+			joinedSubSet := strings.Join(splitValue[0:i], enumpkg.TREE_NODE_DELIMITER)
+
+			//Check to make sure that has an entry in the map.
+			if _, ok := index[joinedSubSet]; ok {
+				//There was one, we're good.
+				continue
+			}
+
+			//There wasn't one, need to create it.
+			newKey := strconv.Itoa(nextConstant)
+			nextConstant++
+			newValue := joinedSubSet
+
+			result[newKey] = newValue
+			index[newValue] = newKey
+
+		}
+
 	}
 
+	return result
+
+}
+
+//valueMapIndex takes a value map and returns an index that flips the mapping.
+func valueMapIndex(values map[string]string) map[string]string {
 	//We'll oftne need to reverse from original string value back up to the
 	//constant key, so process that now.
 	valueReverseMap := make(map[string]string, len(values))
@@ -575,6 +616,19 @@ func createParents(values map[string]string) (modifiedValues map[string]string, 
 	for key, val := range values {
 		valueReverseMap[val] = key
 	}
+
+	return valueReverseMap
+}
+
+func createParents(values map[string]string) (modifiedValues map[string]string, parents map[string]string) {
+
+	if !shouldCreateTreeEnum(values) {
+		return values, nil
+	}
+
+	values = createMissingNodes(values)
+
+	valueReverseMap := valueMapIndex(values)
 
 	newValues := make(map[string]string, len(values))
 	parentsResult := make(map[string]string, len(values))

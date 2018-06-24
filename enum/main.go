@@ -180,7 +180,20 @@ Creates:
 	  Blue
 	    Circle
 
+If there are node names that are implied but not explicitly created in your
+code, autoreader will use a consitent int to refer to that in the values and
+parents map--but not create a global named constant.
 
+	//+autoreader
+	const (
+		Phase = iota
+		//PhaseRed is not explicitly created, but it is implied by PhaseRed_Circle
+		PhaseRed_Circle
+	)
+Creates:
+	""
+		<unique integer number>
+			Circle
 
 */
 package enum

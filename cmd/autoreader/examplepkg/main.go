@@ -153,6 +153,13 @@ const (
 	ExampleOne_Two
 )
 
+//+autoreader
+const (
+	SkipNode = iota
+	//SkipNodeRed is implied but not listed
+	SkipNodeRed_Circle
+)
+
 //+autoreader all
 type myStruct struct {
 	boardgame.BaseSubState
