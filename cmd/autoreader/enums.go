@@ -345,56 +345,47 @@ func findEnums(packageASTs map[string]*ast.Package) (enums []*enum, err error) {
 	return enums, nil
 }
 
-//outputForEnums takes the found enums and produces the output string
-//representing the un-formatted go code to generate for those enums.
-func outputForEnums(enums []*enum, delegateNames []string) (enumOutput string) {
-	for _, enum := range enums {
+//Output is the text to put into the final output in auto_enum.go
+func (e *enum) Output() string {
 
-		if enumOutput == "" {
-			enumOutput = enumHeaderForPackage(enum.PackageName, delegateNames)
+	prefix := e.Prefix()
+
+	values := make(map[string]string, len(e.Values))
+
+	i := 0
+
+	for _, literal := range e.Values {
+		if !strings.HasPrefix(literal, prefix) {
+			//Unexpected
+			return ""
 		}
 
-		prefix := enum.Prefix()
+		//If there's an override deisplay name, use that
+		displayName, ok := e.OverrideDisplayName[literal]
 
-		values := make(map[string]string, len(enum.Values))
+		//If there wasn't an override, do the default. Note that an
+		//override "" that is in the map is legal.
+		if !ok {
 
-		i := 0
+			withNoPrefix := strings.Replace(literal, prefix, "", -1)
+			expandedDelimiter := strings.Replace(withNoPrefix, "_", enumpkg.TREE_NODE_DELIMITER, -1)
 
-		for _, literal := range enum.Values {
-			if !strings.HasPrefix(literal, prefix) {
-				//Unexpected
-				return ""
+			displayName = titleCaseToWords(expandedDelimiter)
+
+			switch e.Transform[literal] {
+			case transformLower:
+				displayName = strings.ToLower(displayName)
+			case transformUpper:
+				displayName = strings.ToUpper(displayName)
 			}
-
-			//If there's an override deisplay name, use that
-			displayName, ok := enum.OverrideDisplayName[literal]
-
-			//If there wasn't an override, do the default. Note that an
-			//override "" that is in the map is legal.
-			if !ok {
-
-				withNoPrefix := strings.Replace(literal, prefix, "", -1)
-				expandedDelimiter := strings.Replace(withNoPrefix, "_", enumpkg.TREE_NODE_DELIMITER, -1)
-
-				displayName = titleCaseToWords(expandedDelimiter)
-
-				switch enum.Transform[literal] {
-				case transformLower:
-					displayName = strings.ToLower(displayName)
-				case transformUpper:
-					displayName = strings.ToUpper(displayName)
-				}
-			}
-
-			values[literal] = displayName
-			i++
 		}
 
-		enumOutput += enumItem(prefix, values)
-
+		values[literal] = displayName
+		i++
 	}
 
-	return enumOutput
+	return enumItem(prefix, values)
+
 }
 
 var spaceReducer *regexp.Regexp
@@ -447,12 +438,6 @@ func processEnums(packageName string) (enumOutput string, err error) {
 		return "", nil
 	}
 
-	for i, e := range enums {
-		if err := e.Legal(); err != nil {
-			return "", errors.New(strconv.Itoa(i) + " enum had error: " + err.Error())
-		}
-	}
-
 	delegateNames, err := findDelegateName(packageASTs)
 
 	if err != nil {
@@ -461,7 +446,15 @@ func processEnums(packageName string) (enumOutput string, err error) {
 
 	filteredDelegateNames := filterDelegateNames(delegateNames, packageASTs)
 
-	output := outputForEnums(enums, filteredDelegateNames)
+	output := enumHeaderForPackage(enums[0].PackageName, filteredDelegateNames)
+
+	for i, e := range enums {
+		if err := e.Legal(); err != nil {
+			return "", errors.New(strconv.Itoa(i) + " enum had error: " + err.Error())
+		}
+
+		output += e.Output()
+	}
 
 	return output, nil
 
