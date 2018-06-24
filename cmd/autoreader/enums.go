@@ -345,49 +345,6 @@ func findEnums(packageASTs map[string]*ast.Package) (enums []*enum, err error) {
 	return enums, nil
 }
 
-//Output is the text to put into the final output in auto_enum.go
-func (e *enum) Output() string {
-
-	prefix := e.Prefix()
-
-	values := make(map[string]string, len(e.Values))
-
-	i := 0
-
-	for _, literal := range e.Values {
-		if !strings.HasPrefix(literal, prefix) {
-			//Unexpected
-			return ""
-		}
-
-		//If there's an override deisplay name, use that
-		displayName, ok := e.OverrideDisplayName[literal]
-
-		//If there wasn't an override, do the default. Note that an
-		//override "" that is in the map is legal.
-		if !ok {
-
-			withNoPrefix := strings.Replace(literal, prefix, "", -1)
-			expandedDelimiter := strings.Replace(withNoPrefix, "_", enumpkg.TREE_NODE_DELIMITER, -1)
-
-			displayName = titleCaseToWords(expandedDelimiter)
-
-			switch e.Transform[literal] {
-			case transformLower:
-				displayName = strings.ToLower(displayName)
-			case transformUpper:
-				displayName = strings.ToUpper(displayName)
-			}
-		}
-
-		values[literal] = displayName
-		i++
-	}
-
-	return enumItem(prefix, values)
-
-}
-
 var spaceReducer *regexp.Regexp
 var titleCaseReplacer *strings.Replacer
 
@@ -513,6 +470,51 @@ func overrideDisplayname(docLines string) (hasOverride bool, displayName string)
 	}
 
 	return false, ""
+}
+
+//Output is the text to put into the final output in auto_enum.go
+func (e *enum) Output() string {
+
+	prefix := e.Prefix()
+
+	values := make(map[string]string, len(e.Values))
+
+	i := 0
+
+	for _, literal := range e.Values {
+		if !strings.HasPrefix(literal, prefix) {
+			//Unexpected
+			return ""
+		}
+
+		//If there's an override deisplay name, use that
+		displayName, ok := e.OverrideDisplayName[literal]
+
+		//If there wasn't an override, do the default. Note that an
+		//override "" that is in the map is legal.
+		if !ok {
+
+			withNoPrefix := strings.Replace(literal, prefix, "", -1)
+			expandedDelimiter := strings.Replace(withNoPrefix, "_", enumpkg.TREE_NODE_DELIMITER, -1)
+
+			displayName = titleCaseToWords(expandedDelimiter)
+
+			switch e.Transform[literal] {
+			case transformLower:
+				displayName = strings.ToLower(displayName)
+			case transformUpper:
+				displayName = strings.ToUpper(displayName)
+			}
+		}
+
+		values[literal] = displayName
+		i++
+	}
+
+	modifiedValues, parents := createParents(values)
+
+	return enumItem(prefix, modifiedValues, parents)
+
 }
 
 func (e *enum) PublicLiterals() []string {
@@ -695,11 +697,10 @@ func createParents(values map[string]string) (modifiedValues map[string]string, 
 
 }
 
-func enumItem(prefix string, values map[string]string) string {
-	modifiedValues, parents := createParents(values)
+func enumItem(prefix string, values map[string]string, parents map[string]string) string {
 	return templateOutput(enumItemTemplate, map[string]interface{}{
 		"prefix":  prefix,
-		"values":  modifiedValues,
+		"values":  values,
 		"parents": parents,
 	})
 }
