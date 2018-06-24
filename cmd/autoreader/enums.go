@@ -513,7 +513,7 @@ func (e *enum) Output() string {
 
 	modifiedValues, parents := createParents(values)
 
-	return enumItem(prefix, modifiedValues, parents)
+	return e.baseOutput(prefix, modifiedValues, parents)
 
 }
 
@@ -697,7 +697,7 @@ func createParents(values map[string]string) (modifiedValues map[string]string, 
 
 }
 
-func enumItem(prefix string, values map[string]string, parents map[string]string) string {
+func (e *enum) baseOutput(prefix string, values map[string]string, parents map[string]string) string {
 	return templateOutput(enumItemTemplate, map[string]interface{}{
 		"prefix":  prefix,
 		"values":  values,
