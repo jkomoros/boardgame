@@ -412,9 +412,6 @@ func processEnums(packageName string) (enumOutput string, err error) {
 	output := enumHeaderForPackage(enums[0].PackageName, filteredDelegateNames)
 
 	for i, e := range enums {
-		if err := e.Legal(); err != nil {
-			return "", errors.New(strconv.Itoa(i) + " enum had error: " + err.Error())
-		}
 
 		if err := e.BakeStringValues(); err != nil {
 			return "", errors.New(strconv.Itoa(i) + " enum could not be baked: " + err.Error())
@@ -485,10 +482,14 @@ func overrideDisplayname(docLines string) (hasOverride bool, displayName string)
 
 //BakeStringValues takes Key, Transform, DefaultTransform,
 //OverrideDisplayValue and converts to a baked string value. Baked() must be
-//false.
+//false. Will fail if e.Legal() returns an error.
 func (e *enum) BakeStringValues() error {
 	if e.bakedStringValues != nil {
 		return errors.New("String values already baked")
+	}
+
+	if err := e.Legal(); err != nil {
+		return errors.New("Couldn't bake string values because enum not legal: " + err.Error())
 	}
 
 	//Don't set field on struct yet, because e.Baked() shoudln't return true
