@@ -524,7 +524,10 @@ func (e *enum) AddTransformKey(key string, overrideDisplay bool, overrideDisplay
 		return errors.New("Can't add transform key to a baked enum")
 	}
 
-	//TODO: check for existing key name
+	if e.HasKey(key) {
+		return errors.New(key + " already exists")
+	}
+
 	e.Keys = append(e.Keys, key)
 
 	if overrideDisplay {
@@ -543,7 +546,10 @@ func (e *enum) AddBakedKey(key string, val string) error {
 
 	//TODO: either the prefix must match or it must be an int
 
-	//TODO: check for existing key name
+	if e.HasKey(key) {
+		return errors.New(key + " already exists")
+	}
+
 	e.Keys = append(e.Keys, key)
 
 	e.bakedStringValues[key] = val
