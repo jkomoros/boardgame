@@ -593,7 +593,11 @@ func (e *enum) addBakedKey(key string, val string) error {
 	return nil
 }
 
-func (e *enum) RenameKey(oldKey, newKey string) {
+func (e *enum) RenameKey(oldKey, newKey string) error {
+
+	if e.HasKey(newKey) {
+		return errors.New("Couldn't rename key because new key " + newKey + " was already present.")
+	}
 
 	keyIndex := -1
 
@@ -604,7 +608,7 @@ func (e *enum) RenameKey(oldKey, newKey string) {
 	}
 
 	if keyIndex < 0 {
-		return
+		return errors.New("Couldn't rename key because old key " + oldKey + " did not exist")
 	}
 
 	e.keys[keyIndex] = newKey
@@ -612,7 +616,7 @@ func (e *enum) RenameKey(oldKey, newKey string) {
 	if e.baked() {
 		e.bakedStringValues[newKey] = e.bakedStringValues[oldKey]
 		delete(e.bakedStringValues, oldKey)
-		return
+		return nil
 	}
 
 	if _, ok := e.overrideDisplayName[oldKey]; ok {
@@ -622,6 +626,8 @@ func (e *enum) RenameKey(oldKey, newKey string) {
 
 	e.transform[newKey] = e.transform[oldKey]
 	delete(e.transform, oldKey)
+
+	return nil
 
 }
 
