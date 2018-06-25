@@ -484,6 +484,11 @@ func overrideDisplayname(docLines string) (hasOverride bool, displayName string)
 //OverrideDisplayValue and converts to a baked string value. Baked() must be
 //false. Will fail if e.Legal() returns an error.
 func (e *enum) BakeStringValues() error {
+
+	//TODO: convert to be private, bakeStringValues. Add Process(). baked()
+	//also becomes private, as does addBakedKey. Add notes to those modifiers
+	//saying they should only be done as part of Process().
+
 	if e.bakedStringValues != nil {
 		return errors.New("String values already baked")
 	}
