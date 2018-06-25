@@ -127,8 +127,12 @@ func TestEnumParent(t *testing.T) {
 		e := newEnum("test", transformNone)
 
 		for key, val := range test.strValues {
-			e.AddKey(key, true, val, transformNone)
+			e.AddTransformKey(key, true, val, transformNone)
 		}
+
+		err := e.BakeStringValues()
+
+		assert.For(t, i).ThatActual(err).IsNil()
 
 		actualValues, actualParents := e.createParents()
 		if test.expectedValues == nil {

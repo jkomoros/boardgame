@@ -54,8 +54,12 @@ const (
 )
 
 type enum struct {
+	//TODO: make most of thse fields private
 	PackageName string
 	Keys        []string
+	//When BakeStringValues() is called, we take Transform, DefaultTransform,
+	//and OverrideDisplayName and make the string values.
+	bakedStringValues map[string]string
 	//OverrideDisplayName contains a map of the Value string to override
 	//value, if it exists. If it is in the map with value "" then it has been
 	//overridden to have that value. If it is not in the map then it should be
@@ -332,7 +336,7 @@ func findEnums(packageASTs map[string]*ast.Package) (enums []*enum, err error) {
 
 					transform := configTransform(valueSpec.Doc.Text(), defaultTransform)
 
-					theEnum.AddKey(keyName, hasOverride, displayName, transform)
+					theEnum.AddTransformKey(keyName, hasOverride, displayName, transform)
 
 				}
 
@@ -412,7 +416,12 @@ func processEnums(packageName string) (enumOutput string, err error) {
 			return "", errors.New(strconv.Itoa(i) + " enum had error: " + err.Error())
 		}
 
+		if err := e.BakeStringValues(); err != nil {
+			return "", errors.New(strconv.Itoa(i) + " enum could not be baked: " + err.Error())
+		}
+
 		output += e.Output()
+
 	}
 
 	return output, nil
@@ -474,8 +483,47 @@ func overrideDisplayname(docLines string) (hasOverride bool, displayName string)
 	return false, ""
 }
 
-func (e *enum) AddKey(key string, overrideDisplay bool, overrideDisplayName string, transform transform) {
+//BakeStringValues takes Key, Transform, DefaultTransform,
+//OverrideDisplayValue and converts to a baked string value. Baked() must be
+//false.
+func (e *enum) BakeStringValues() error {
+	if e.bakedStringValues != nil {
+		return errors.New("String values already baked")
+	}
 
+	//Don't set field on struct yet, because e.Baked() shoudln't return true
+	//unti lwe 're done, so StringValue will calculate what it should be live.
+	bakedStringValues := make(map[string]string, len(e.Keys))
+
+	for _, key := range e.Keys {
+		bakedStringValues[key] = e.StringValue(key)
+	}
+
+	e.OverrideDisplayName = nil
+	e.DefaultTransform = transformNone
+	e.Transform = nil
+
+	//Make sur eprefix is cached
+	e.Prefix()
+
+	e.bakedStringValues = bakedStringValues
+
+	return nil
+}
+
+//Baked returnst true if BakeStringValues has been called.
+func (e *enum) Baked() bool {
+	return e.bakedStringValues != nil
+}
+
+//AddTransformKey adds a key to an enum that hasn't been baked yet.
+func (e *enum) AddTransformKey(key string, overrideDisplay bool, overrideDisplayName string, transform transform) error {
+
+	if e.Baked() {
+		return errors.New("Can't add transform key to a baked enum")
+	}
+
+	//TODO: check for existing key name
 	e.Keys = append(e.Keys, key)
 
 	if overrideDisplay {
@@ -483,6 +531,23 @@ func (e *enum) AddKey(key string, overrideDisplay bool, overrideDisplayName stri
 	}
 
 	e.Transform[key] = transform
+
+	return nil
+}
+
+func (e *enum) AddBakedKey(key string, val string) error {
+	if !e.Baked() {
+		return errors.New("Can't add baked key to a non-baked enum")
+	}
+
+	//TODO: fail if prefix doesn't match
+
+	//TODO: check for existing key name
+	e.Keys = append(e.Keys, key)
+
+	e.bakedStringValues[key] = val
+
+	return nil
 }
 
 func (e *enum) RenameKey(oldKey, newKey string) {
@@ -500,6 +565,12 @@ func (e *enum) RenameKey(oldKey, newKey string) {
 	}
 
 	e.Keys[keyIndex] = newKey
+
+	if e.Baked() {
+		e.bakedStringValues[newKey] = e.bakedStringValues[oldKey]
+		delete(e.bakedStringValues, oldKey)
+		return
+	}
 
 	if _, ok := e.OverrideDisplayName[oldKey]; ok {
 		e.OverrideDisplayName[newKey] = e.OverrideDisplayName[oldKey]
@@ -541,6 +612,10 @@ func (e *enum) ValueMap() map[string]string {
 //StringValue does all of the calulations and returns final value
 func (e *enum) StringValue(key string) string {
 
+	if e.bakedStringValues != nil {
+		return e.bakedStringValues[key]
+	}
+
 	displayName, ok := e.OverrideDisplayName[key]
 
 	if ok {
@@ -575,6 +650,7 @@ func (e *enum) TreeEnum() bool {
 }
 
 func (e *enum) PublicKeys() []string {
+	//TODO: why do we have this and use it instead of Keys?
 	var literals []string
 	for _, literal := range e.Keys {
 		if !fieldNamePublic(literal) {
@@ -586,6 +662,11 @@ func (e *enum) PublicKeys() []string {
 }
 
 func (e *enum) Prefix() string {
+
+	if e.Baked() {
+		//If baked, prefix has been explicitly set
+		return e.cachedPrefix
+	}
 
 	//TODO: allow a cachedPrefix of ""
 	if e.cachedPrefix != "" {
