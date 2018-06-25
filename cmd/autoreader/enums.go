@@ -644,6 +644,15 @@ func (e *enum) ValueMap() map[string]string {
 	return result
 }
 
+func (e *enum) ReverseValueMap() map[string]string {
+	//TODO: only regenerate this if a key or displayname has changed.
+	result := make(map[string]string, len(e.Keys()))
+	for _, key := range e.Keys() {
+		result[e.StringValue(key)] = key
+	}
+	return result
+}
+
 //StringValue does all of the calulations and returns final value
 func (e *enum) StringValue(key string) string {
 
@@ -808,6 +817,8 @@ func createMissingNodes(values map[string]string) map[string]string {
 
 //valueMapIndex takes a value map and returns an index that flips the mapping.
 func valueMapIndex(values map[string]string) map[string]string {
+	//TODO: remove this once no longer used
+
 	//We'll oftne need to reverse from original string value back up to the
 	//constant key, so process that now.
 	valueReverseMap := make(map[string]string, len(values))
