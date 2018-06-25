@@ -495,6 +495,14 @@ func (e *enum) Process() error {
 		return errors.New("Couldn't bake string values: " + err.Error())
 	}
 
+	if e.TreeEnum() {
+
+		if err := e.createMissingParents(); err != nil {
+			return errors.New("Couldn't make missing parents: " + err.Error())
+		}
+
+	}
+
 	e.processed = true
 
 	return nil
@@ -772,21 +780,16 @@ func enumHeaderForPackage(packageName string, delegateNames []string) string {
 	return output
 }
 
-//createMissingNodes returns a map like values, but with the addition of nodes
-//who are implied in that they have children but are missing.
-func createMissingNodes(values map[string]string) map[string]string {
+//createMissingParents should only be called within Process. Creates any
+//parent nodes that are implied but not explicitly provided.
+func (e *enum) createMissingParents() error {
 
-	result := make(map[string]string, len(values))
-
-	index := valueMapIndex(values)
+	index := e.ReverseValueMap()
 
 	//We'll work up from the extremes.
 	nextConstant := math.MinInt64
 
-	for key, value := range values {
-
-		//Copy over into result
-		result[key] = value
+	for _, value := range e.ValueMap() {
 
 		splitValue := strings.Split(value, enumpkg.TREE_NODE_DELIMITER)
 
@@ -804,14 +807,16 @@ func createMissingNodes(values map[string]string) map[string]string {
 			nextConstant++
 			newValue := joinedSubSet
 
-			result[newKey] = newValue
+			if err := e.addBakedKey(newKey, newValue); err != nil {
+				return errors.New("Couldn't add implied new key: " + err.Error())
+			}
 			index[newValue] = newKey
 
 		}
 
 	}
 
-	return result
+	return nil
 
 }
 
@@ -844,7 +849,7 @@ func (e *enum) createParents() (modifiedValues map[string]string, parents map[st
 		return values, nil
 	}
 
-	values = createMissingNodes(values)
+	//createMissingParents already happened in Process().
 
 	valueReverseMap := valueMapIndex(values)
 
