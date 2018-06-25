@@ -544,10 +544,14 @@ func (e *enum) AddBakedKey(key string, val string) error {
 		return errors.New("Can't add baked key to a non-baked enum")
 	}
 
-	//TODO: either the prefix must match or it must be an int
-
 	if e.HasKey(key) {
 		return errors.New(key + " already exists")
+	}
+
+	if !strings.HasPrefix(key, e.Prefix()) {
+		if _, err := strconv.Atoi(key); err != nil {
+			return errors.New("key must either have prefix " + e.Prefix() + " or be an int")
+		}
 	}
 
 	e.Keys = append(e.Keys, key)
