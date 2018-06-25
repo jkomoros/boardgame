@@ -541,7 +541,7 @@ func (e *enum) AddBakedKey(key string, val string) error {
 		return errors.New("Can't add baked key to a non-baked enum")
 	}
 
-	//TODO: fail if prefix doesn't match
+	//TODO: either the prefix must match or it must be an int
 
 	//TODO: check for existing key name
 	e.Keys = append(e.Keys, key)
