@@ -130,8 +130,7 @@ func TestEnumParent(t *testing.T) {
 			e.AddTransformKey(key, true, val, transformNone)
 		}
 
-		err := e.BakeStringValues()
-
+		err := e.Process()
 		assert.For(t, i).ThatActual(err).IsNil()
 
 		actualValues, actualParents := e.createParents()

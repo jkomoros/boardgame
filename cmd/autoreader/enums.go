@@ -69,6 +69,7 @@ type enum struct {
 	Transform           map[string]transform
 	DefaultTransform    transform
 	cachedPrefix        string
+	processed           bool
 }
 
 //findDelegateName looks through the given package to find the name of the
@@ -413,8 +414,8 @@ func processEnums(packageName string) (enumOutput string, err error) {
 
 	for i, e := range enums {
 
-		if err := e.BakeStringValues(); err != nil {
-			return "", errors.New(strconv.Itoa(i) + " enum could not be baked: " + err.Error())
+		if err := e.Process(); err != nil {
+			return "", errors.New(strconv.Itoa(i) + " enum could not be processed: " + err.Error())
 		}
 
 		output += e.Output()
@@ -480,21 +481,34 @@ func overrideDisplayname(docLines string) (hasOverride bool, displayName string)
 	return false, ""
 }
 
-//BakeStringValues takes Key, Transform, DefaultTransform,
-//OverrideDisplayValue and converts to a baked string value. Baked() must be
-//false. Will fail if e.Legal() returns an error.
-func (e *enum) BakeStringValues() error {
+//Process should be called after all items ahve been added. Does lots of
+//processing.
+func (e *enum) Process() error {
 
-	//TODO: convert to be private, bakeStringValues. Add Process(). baked()
-	//also becomes private, as does addBakedKey. Add notes to those modifiers
-	//saying they should only be done as part of Process().
-
-	if e.bakedStringValues != nil {
-		return errors.New("String values already baked")
+	if e.processed {
+		return errors.New("Already processed!")
 	}
 
 	if err := e.Legal(); err != nil {
-		return errors.New("Couldn't bake string values because enum not legal: " + err.Error())
+		return errors.New("Enum not legal: " + err.Error())
+	}
+
+	if err := e.bakeStringValues(); err != nil {
+		return errors.New("Couldn't bake string values: " + err.Error())
+	}
+
+	e.processed = true
+
+	return nil
+}
+
+//bakeStringValues takes Key, Transform, DefaultTransform,
+//OverrideDisplayValue and converts to a baked string value. Baked() must be
+//false. Will fail if e.Legal() returns an error. Should only be called from within Process().
+func (e *enum) bakeStringValues() error {
+
+	if e.bakedStringValues != nil {
+		return errors.New("String values already baked")
 	}
 
 	//Don't set field on struct yet, because e.Baked() shoudln't return true
@@ -518,14 +532,14 @@ func (e *enum) BakeStringValues() error {
 }
 
 //Baked returnst true if BakeStringValues has been called.
-func (e *enum) Baked() bool {
+func (e *enum) baked() bool {
 	return e.bakedStringValues != nil
 }
 
 //AddTransformKey adds a key to an enum that hasn't been baked yet.
 func (e *enum) AddTransformKey(key string, overrideDisplay bool, overrideDisplayName string, transform transform) error {
 
-	if e.Baked() {
+	if e.baked() {
 		return errors.New("Can't add transform key to a baked enum")
 	}
 
@@ -544,8 +558,15 @@ func (e *enum) AddTransformKey(key string, overrideDisplay bool, overrideDisplay
 	return nil
 }
 
-func (e *enum) AddBakedKey(key string, val string) error {
-	if !e.Baked() {
+//addBakedKey adds keys after bakeStringValues has been called. Should only be
+//called between baking and being fully processed.
+func (e *enum) addBakedKey(key string, val string) error {
+
+	if e.processed {
+		return errors.New("Can't add baked key to already rpocessed enum")
+	}
+
+	if !e.baked() {
 		return errors.New("Can't add baked key to a non-baked enum")
 	}
 
@@ -582,7 +603,7 @@ func (e *enum) RenameKey(oldKey, newKey string) {
 
 	e.Keys[keyIndex] = newKey
 
-	if e.Baked() {
+	if e.baked() {
 		e.bakedStringValues[newKey] = e.bakedStringValues[oldKey]
 		delete(e.bakedStringValues, oldKey)
 		return
@@ -679,7 +700,7 @@ func (e *enum) PublicKeys() []string {
 
 func (e *enum) Prefix() string {
 
-	if e.Baked() {
+	if e.baked() {
 		//If baked, prefix has been explicitly set
 		return e.cachedPrefix
 	}
