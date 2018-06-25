@@ -506,6 +506,8 @@ func (e *enum) Process() error {
 			return errors.New("Couldn't make parents: " + err.Error())
 		}
 
+		e.reduceNodeStringValues()
+
 	}
 
 	e.processed = true
@@ -652,9 +654,9 @@ func (e *enum) Parents() map[string]string {
 //Output is the text to put into the final output in auto_enum.go
 func (e *enum) Output() string {
 
-	modifiedValues, parents := e.createParents()
+	//TODO: error if not processed
 
-	return e.baseOutput(e.Prefix(), modifiedValues, parents)
+	return e.baseOutput(e.Prefix(), e.ValueMap(), e.Parents())
 
 }
 
@@ -867,37 +869,19 @@ func (e *enum) makeParents() error {
 
 }
 
-func (e *enum) createParents() (modifiedValues map[string]string, parents map[string]string) {
+//reduceNodeStringValues should only be called by e.Process(). Reduces the
+//display name to be just the last bit of the name.
+func (e *enum) reduceNodeStringValues() {
 
-	//TODO: rename to reduceParents(), which creates the parent map TODO: add
-	//a reduceNodeNames which takes the fully qualified name like " > " and
-	//reduces to only be the last bit of name.
-
-	//TODO: only allow this destructive processing to happen once on a given enum. (set a bit?)
-
-	values := e.ValueMap()
-
-	if !e.TreeEnum() {
-		return values, nil
-	}
-
-	//createMissingParents already happened in Process().
-
-	newValues := make(map[string]string, len(values))
-
-	//Reduce the names of the resulting values to the last name in the hierachy
-
-	for key, value := range values {
+	for key, value := range e.ValueMap() {
 
 		splitValue := strings.Split(value, enumpkg.TREE_NODE_DELIMITER)
 
 		lastValueComponent := splitValue[len(splitValue)-1]
 
-		newValues[key] = lastValueComponent
+		e.bakedStringValues[key] = lastValueComponent
 
 	}
-
-	return newValues, e.Parents()
 
 }
 

@@ -133,7 +133,8 @@ func TestEnumParent(t *testing.T) {
 		err := e.Process()
 		assert.For(t, i).ThatActual(err).IsNil()
 
-		actualValues, actualParents := e.createParents()
+		actualValues := e.ValueMap()
+		actualParents := e.Parents()
 		if test.expectedValues == nil {
 			//Expect no change from test.strValues
 			assert.For(t, i).ThatActual(actualValues).Equals(test.strValues).ThenDiffOnFail()
