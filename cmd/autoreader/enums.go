@@ -54,9 +54,8 @@ const (
 )
 
 type enum struct {
-	//TODO: make most of thse fields private
 	PackageName string
-	Keys        []string
+	keys        []string
 	//When BakeStringValues() is called, we take Transform, DefaultTransform,
 	//and OverrideDisplayName and make the string values.
 	bakedStringValues map[string]string
@@ -64,10 +63,9 @@ type enum struct {
 	//value, if it exists. If it is in the map with value "" then it has been
 	//overridden to have that value. If it is not in the map then it should be
 	//default.
-	OverrideDisplayName map[string]string
-	Parents             map[string]string
-	Transform           map[string]transform
-	DefaultTransform    transform
+	overrideDisplayName map[string]string
+	transform           map[string]transform
+	defaultTransform    transform
 	cachedPrefix        string
 	processed           bool
 }
@@ -284,9 +282,9 @@ func filterDelegateNames(candidates []string, packageASTs map[string]*ast.Packag
 func newEnum(packageName string, defaultTransform transform) *enum {
 	return &enum{
 		PackageName:         packageName,
-		OverrideDisplayName: make(map[string]string),
-		Transform:           make(map[string]transform),
-		DefaultTransform:    defaultTransform,
+		overrideDisplayName: make(map[string]string),
+		transform:           make(map[string]transform),
+		defaultTransform:    defaultTransform,
 	}
 }
 
@@ -341,7 +339,7 @@ func findEnums(packageASTs map[string]*ast.Package) (enums []*enum, err error) {
 
 				}
 
-				if len(theEnum.Keys) > 0 {
+				if len(theEnum.Keys()) > 0 {
 					enums = append(enums, theEnum)
 				}
 
@@ -513,15 +511,15 @@ func (e *enum) bakeStringValues() error {
 
 	//Don't set field on struct yet, because e.Baked() shoudln't return true
 	//unti lwe 're done, so StringValue will calculate what it should be live.
-	bakedStringValues := make(map[string]string, len(e.Keys))
+	bakedStringValues := make(map[string]string, len(e.Keys()))
 
-	for _, key := range e.Keys {
+	for _, key := range e.Keys() {
 		bakedStringValues[key] = e.StringValue(key)
 	}
 
-	e.OverrideDisplayName = nil
-	e.DefaultTransform = transformNone
-	e.Transform = nil
+	e.overrideDisplayName = nil
+	e.defaultTransform = transformNone
+	e.transform = nil
 
 	//Make sur eprefix is cached
 	e.Prefix()
@@ -547,13 +545,13 @@ func (e *enum) AddTransformKey(key string, overrideDisplay bool, overrideDisplay
 		return errors.New(key + " already exists")
 	}
 
-	e.Keys = append(e.Keys, key)
+	e.keys = append(e.keys, key)
 
 	if overrideDisplay {
-		e.OverrideDisplayName[key] = overrideDisplayName
+		e.overrideDisplayName[key] = overrideDisplayName
 	}
 
-	e.Transform[key] = transform
+	e.transform[key] = transform
 
 	return nil
 }
@@ -580,7 +578,7 @@ func (e *enum) addBakedKey(key string, val string) error {
 		}
 	}
 
-	e.Keys = append(e.Keys, key)
+	e.keys = append(e.keys, key)
 
 	e.bakedStringValues[key] = val
 
@@ -591,7 +589,7 @@ func (e *enum) RenameKey(oldKey, newKey string) {
 
 	keyIndex := -1
 
-	for i, key := range e.Keys {
+	for i, key := range e.Keys() {
 		if key == oldKey {
 			keyIndex = i
 		}
@@ -601,7 +599,7 @@ func (e *enum) RenameKey(oldKey, newKey string) {
 		return
 	}
 
-	e.Keys[keyIndex] = newKey
+	e.keys[keyIndex] = newKey
 
 	if e.baked() {
 		e.bakedStringValues[newKey] = e.bakedStringValues[oldKey]
@@ -609,18 +607,18 @@ func (e *enum) RenameKey(oldKey, newKey string) {
 		return
 	}
 
-	if _, ok := e.OverrideDisplayName[oldKey]; ok {
-		e.OverrideDisplayName[newKey] = e.OverrideDisplayName[oldKey]
-		delete(e.OverrideDisplayName, oldKey)
+	if _, ok := e.overrideDisplayName[oldKey]; ok {
+		e.overrideDisplayName[newKey] = e.overrideDisplayName[oldKey]
+		delete(e.overrideDisplayName, oldKey)
 	}
 
-	e.Transform[newKey] = e.Transform[oldKey]
-	delete(e.Transform, oldKey)
+	e.transform[newKey] = e.transform[oldKey]
+	delete(e.transform, oldKey)
 
 }
 
 func (e *enum) HasKey(key string) bool {
-	for _, theKey := range e.Keys {
+	for _, theKey := range e.Keys() {
 		if key == theKey {
 			return true
 		}
@@ -639,8 +637,8 @@ func (e *enum) Output() string {
 
 func (e *enum) ValueMap() map[string]string {
 	//TODO: only regenerate this if a key or displayname has changed.
-	result := make(map[string]string, len(e.Keys))
-	for _, key := range e.Keys {
+	result := make(map[string]string, len(e.Keys()))
+	for _, key := range e.Keys() {
 		result[key] = e.StringValue(key)
 	}
 	return result
@@ -653,7 +651,7 @@ func (e *enum) StringValue(key string) string {
 		return e.bakedStringValues[key]
 	}
 
-	displayName, ok := e.OverrideDisplayName[key]
+	displayName, ok := e.overrideDisplayName[key]
 
 	if ok {
 		return displayName
@@ -666,7 +664,7 @@ func (e *enum) StringValue(key string) string {
 
 	displayName = titleCaseToWords(expandedDelimiter)
 
-	switch e.Transform[key] {
+	switch e.transform[key] {
 	case transformLower:
 		displayName = strings.ToLower(displayName)
 	case transformUpper:
@@ -686,10 +684,14 @@ func (e *enum) TreeEnum() bool {
 	return e.StringValue(key) == ""
 }
 
+func (e *enum) Keys() []string {
+	return e.keys
+}
+
 func (e *enum) PublicKeys() []string {
 	//TODO: why do we have this and use it instead of Keys?
 	var literals []string
-	for _, literal := range e.Keys {
+	for _, literal := range e.Keys() {
 		if !fieldNamePublic(literal) {
 			continue
 		}
