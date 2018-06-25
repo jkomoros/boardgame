@@ -65,6 +65,7 @@ type enum struct {
 	//default.
 	overrideDisplayName map[string]string
 	transform           map[string]transform
+	parents             map[string]string
 	defaultTransform    transform
 	cachedPrefix        string
 	processed           bool
@@ -501,6 +502,10 @@ func (e *enum) Process() error {
 			return errors.New("Couldn't make missing parents: " + err.Error())
 		}
 
+		if err := e.makeParents(); err != nil {
+			return errors.New("Couldn't make parents: " + err.Error())
+		}
+
 	}
 
 	e.processed = true
@@ -638,6 +643,10 @@ func (e *enum) HasKey(key string) bool {
 		}
 	}
 	return false
+}
+
+func (e *enum) Parents() map[string]string {
+	return e.parents
 }
 
 //Output is the text to put into the final output in auto_enum.go
@@ -826,19 +835,36 @@ func (e *enum) createMissingParents() error {
 
 }
 
-//valueMapIndex takes a value map and returns an index that flips the mapping.
-func valueMapIndex(values map[string]string) map[string]string {
-	//TODO: remove this once no longer used
+//makeParents should only be called by e.Process(). It creates the parents relationship.
+func (e *enum) makeParents() error {
 
-	//We'll oftne need to reverse from original string value back up to the
-	//constant key, so process that now.
-	valueReverseMap := make(map[string]string, len(values))
-
-	for key, val := range values {
-		valueReverseMap[val] = key
+	if e.parents != nil {
+		return errors.New("Parents already created")
 	}
 
-	return valueReverseMap
+	index := e.ReverseValueMap()
+
+	e.parents = make(map[string]string, len(e.Keys()))
+
+	//Set parents
+	for key, value := range e.ValueMap() {
+
+		splitValue := strings.Split(value, enumpkg.TREE_NODE_DELIMITER)
+
+		//default to parent being the root node
+		parentNode := index[""]
+
+		if len(splitValue) >= 2 {
+			//Not a node who points to root
+			parentValue := strings.Join(splitValue[0:len(splitValue)-1], enumpkg.TREE_NODE_DELIMITER)
+			parentNode = index[parentValue]
+		}
+
+		e.parents[key] = parentNode
+	}
+
+	return nil
+
 }
 
 func (e *enum) createParents() (modifiedValues map[string]string, parents map[string]string) {
@@ -857,10 +883,7 @@ func (e *enum) createParents() (modifiedValues map[string]string, parents map[st
 
 	//createMissingParents already happened in Process().
 
-	valueReverseMap := valueMapIndex(values)
-
 	newValues := make(map[string]string, len(values))
-	parentsResult := make(map[string]string, len(values))
 
 	//Reduce the names of the resulting values to the last name in the hierachy
 
@@ -874,23 +897,7 @@ func (e *enum) createParents() (modifiedValues map[string]string, parents map[st
 
 	}
 
-	//Set parents
-	for key, value := range values {
-
-		splitValue := strings.Split(value, enumpkg.TREE_NODE_DELIMITER)
-
-		parentNode := valueReverseMap[""]
-
-		if len(splitValue) >= 2 {
-			//Not a node who points to root
-			parentValue := strings.Join(splitValue[0:len(splitValue)-1], enumpkg.TREE_NODE_DELIMITER)
-			parentNode = valueReverseMap[parentValue]
-		}
-
-		parentsResult[key] = parentNode
-	}
-
-	return newValues, parentsResult
+	return newValues, e.Parents()
 
 }
 
