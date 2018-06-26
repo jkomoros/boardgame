@@ -728,18 +728,6 @@ func (e *enum) Keys() []string {
 	return e.keys
 }
 
-func (e *enum) PublicKeys() []string {
-	//TODO: why do we have this and use it instead of Keys?
-	var literals []string
-	for _, literal := range e.Keys() {
-		if !fieldNamePublic(literal) {
-			continue
-		}
-		literals = append(literals, literal)
-	}
-	return literals
-}
-
 func (e *enum) Prefix() string {
 
 	if e.baked() {
@@ -752,7 +740,7 @@ func (e *enum) Prefix() string {
 		return e.cachedPrefix
 	}
 
-	literals := e.PublicKeys()
+	literals := e.Keys()
 
 	byteLiterals := make([][]byte, len(literals))
 
@@ -773,7 +761,7 @@ func (e *enum) Prefix() string {
 //Legal will return an error if the enum isn't legal and shouldn't be output.
 func (e *enum) Legal() error {
 
-	if len(e.PublicKeys()) == 0 {
+	if len(e.Keys()) == 0 {
 		return errors.New("No public keys")
 	}
 
