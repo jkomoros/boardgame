@@ -775,13 +775,17 @@ type delimiterTree struct {
 }
 
 //addString goes through and adds addChild down the whole way. If it consumes
-//a ">" off the front, then it does manuallyCreated = true.
+//a ">" off the front, then it does manuallyCreated = true. The last item has
+//addChild with a terminalKey of the passed terminalKey.
 func (t *delimiterTree) addString(names []string, terminalKey string) {
 
 	//TODO: implement
 
 }
 
+//addChild adds a child node, if one doesn't already exist. manuallyCreated is
+//always the OR of existing value on the ndoe. terminalKey should only be
+//non-"" if this is literally the end of the string.
 func (t *delimiterTree) addChild(name string, manuallyCreated bool, terminalKey string) {
 	//TODO: implement
 }
