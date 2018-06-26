@@ -777,17 +777,36 @@ type delimiterTree struct {
 //addString goes through and adds addChild down the whole way. If it consumes
 //a ">" off the front, then it does manuallyCreated = true. The last item has
 //addChild with a terminalKey of the passed terminalKey.
-func (t *delimiterTree) addString(names []string, terminalKey string) {
+func (t *delimiterTree) addString(names []string, terminalKey string) error {
 
 	//TODO: implement
+	return nil
 
 }
 
 //addChild adds a child node, if one doesn't already exist. manuallyCreated is
 //always the OR of existing value on the ndoe. terminalKey should only be
 //non-"" if this is literally the end of the string.
-func (t *delimiterTree) addChild(name string, manuallyCreated bool, terminalKey string) {
-	//TODO: implement
+func (t *delimiterTree) addChild(name string, manuallyCreated bool, terminalKey string) error {
+	child := t.children[name]
+
+	if child == nil {
+		child = &delimiterTree{
+			parent: t,
+		}
+		t.children[name] = child
+	}
+
+	child.manuallyCreated = child.manuallyCreated || manuallyCreated
+
+	if terminalKey != "" {
+		if child.terminalKey != "" {
+			return errors.New("Child already had terminalKey set, wanted to set again")
+		}
+		child.terminalKey = terminalKey
+	}
+
+	return nil
 }
 
 //elideSingleParents, if this node has only one child, and was not
@@ -824,6 +843,7 @@ func (e *enum) autoAddDelimiters() error {
 
 	tree.elideSingleParents()
 
+	//This step wouldn't work if we ahd down-cased all of the items.
 	e.bakedStringValues = tree.keyValues()
 
 	return nil
