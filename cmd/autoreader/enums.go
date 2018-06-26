@@ -793,11 +793,11 @@ func (t *delimiterTree) addString(names []string, terminalKey string, lastItemWa
 		return t.addString(names[1:len(names)], terminalKey, true)
 	}
 
-	if err := t.addChild(names[0], lastItemWasDelimiter, terminalKey); err != nil {
+	if err := t.addChild(names[0], lastItemWasDelimiter, ""); err != nil {
 		return err
 	}
 
-	return t.addString(names[1:len(names)], terminalKey, false)
+	return t.children[names[0]].addString(names[1:len(names)], terminalKey, false)
 
 }
 
@@ -819,7 +819,7 @@ func (t *delimiterTree) addChild(name string, manuallyCreated bool, terminalKey 
 
 	if terminalKey != "" {
 		if child.terminalKey != "" {
-			return errors.New("Child already had terminalKey set, wanted to set again")
+			return errors.New("Child already had terminalKey set, wanted to set again (" + name + " : " + terminalKey + " : " + child.terminalKey + " : " + t.value() + ")")
 		}
 		child.terminalKey = terminalKey
 	}
