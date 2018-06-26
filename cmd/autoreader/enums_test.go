@@ -7,12 +7,14 @@ import (
 
 func TestEnumParent(t *testing.T) {
 	tests := []struct {
-		strValues map[string]string
+		description string
+		strValues   map[string]string
 		//If nil, expect no change from strValues
 		expectedValues  map[string]string
 		expectedParents map[string]string
 	}{
 		{
+			"Single layer",
 			map[string]string{
 				"Phase":         "",
 				"PhaseAnother":  "Another",
@@ -26,6 +28,7 @@ func TestEnumParent(t *testing.T) {
 			},
 		},
 		{
+			"No Tree",
 			map[string]string{
 				"ColorBlue":  "Blue",
 				"ColorGreen": "Green",
@@ -35,6 +38,7 @@ func TestEnumParent(t *testing.T) {
 			nil,
 		},
 		{
+			"Two layers",
 			map[string]string{
 				"Color":          "",
 				"ColorBlue":      "Blue",
@@ -61,6 +65,7 @@ func TestEnumParent(t *testing.T) {
 			},
 		},
 		{
+			"Three layers",
 			map[string]string{
 				"Color":             "",
 				"ColorBlue":         "Blue",
@@ -87,6 +92,7 @@ func TestEnumParent(t *testing.T) {
 			},
 		},
 		{
+			"Single implied layer",
 			map[string]string{
 				"Color":         "",
 				"ColorBlue_One": "Blue > One",
@@ -103,6 +109,7 @@ func TestEnumParent(t *testing.T) {
 			},
 		},
 		{
+			"Two implied layers",
 			map[string]string{
 				"Color":            "",
 				"ColorGreen_One_A": "Green > One > A",
