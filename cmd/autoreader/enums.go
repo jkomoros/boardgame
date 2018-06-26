@@ -909,7 +909,9 @@ func (e *enum) autoAddDelimiters() error {
 		//rewritten back to proper case at end.
 
 		splitValue := strings.Split(value, " ")
-		tree.addString(splitValue, key, false)
+		if err := tree.addString(splitValue, key, false); err != nil {
+			return errors.New("Couldn't add " + key + ", " + value + " to tree delimiter: " + err.Error())
+		}
 	}
 
 	tree.elideSingleParents()
