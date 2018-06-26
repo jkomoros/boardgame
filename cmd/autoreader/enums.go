@@ -852,9 +852,43 @@ func (t *delimiterTree) addValuePrefix(prefix string) {
 	t.children = newChildren
 }
 
+//value returns the string value by walking parents
+func (t *delimiterTree) value() string {
+	if t.parent == nil {
+		return ""
+	}
+
+	nameInParent := ""
+
+	for name, child := range t.parent.children {
+		if child == t {
+			nameInParent = name
+			break
+		}
+	}
+
+	return t.parent.value() + enumpkg.TREE_NODE_DELIMITER + nameInParent
+}
+
 //keyValues returns the key -> value mapping encoded in this tree, recursively
 func (t *delimiterTree) keyValues() map[string]string {
-	return nil
+
+	//Base case if we're a terminal
+	if len(t.children) == 0 {
+		return map[string]string{
+			t.terminalKey: t.value(),
+		}
+	}
+
+	result := make(map[string]string)
+	for _, child := range t.children {
+		for key, val := range child.keyValues() {
+			result[key] = val
+		}
+	}
+
+	return result
+
 }
 
 //autoAddDelimiters should only be called by Process. It adds delimiters to
