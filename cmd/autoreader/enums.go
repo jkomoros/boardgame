@@ -809,7 +809,8 @@ func (t *delimiterTree) addChild(name string, manuallyCreated bool, terminalKey 
 
 	if child == nil {
 		child = &delimiterTree{
-			parent: t,
+			parent:   t,
+			children: make(map[string]*delimiterTree),
 		}
 		t.children[name] = child
 	}
@@ -867,6 +868,10 @@ func (t *delimiterTree) value() string {
 		}
 	}
 
+	if nameInParent == "" {
+		return nameInParent
+	}
+
 	return t.parent.value() + enumpkg.TREE_NODE_DELIMITER + nameInParent
 }
 
@@ -895,10 +900,12 @@ func (t *delimiterTree) keyValues() map[string]string {
 //string values at implied breaks.
 func (e *enum) autoAddDelimiters() error {
 
-	//TODO: when this is working remove this
+	//TODO: remove this
 	return nil
 
-	tree := &delimiterTree{}
+	tree := &delimiterTree{
+		children: make(map[string]*delimiterTree),
+	}
 
 	for key, value := range e.ValueMap() {
 
