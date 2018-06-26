@@ -127,6 +127,150 @@ func TestEnumParent(t *testing.T) {
 				"ColorGreen_One_A":     "-9223372036854775807",
 			},
 		},
+		/*
+			{
+				"Single word implied nesting",
+				map[string]string{
+					"Color":        "",
+					"ColorBlue":    "Blue",
+					"ColorBlueOne": "Blue One",
+					"ColorBlueTwo": "Blue Two",
+				},
+				map[string]string{
+					"Color":        "",
+					"ColorBlue":    "Blue",
+					"ColorBlueOne": "Blue > One",
+					"ColorBlueTwo": "Blue > Two",
+				},
+				map[string]string{
+					"Color":        "Color",
+					"ColorBlue":    "Color",
+					"ColorBlueOne": "ColorBlue",
+					"ColorBlueTwo": "ColorBlue",
+				},
+			},
+			{
+				"Multi-Word implied nesting",
+				map[string]string{
+					"Color":             "",
+					"ColorBlueGreen":    "Blue Green",
+					"ColorBlueGreenOne": "Blue Green One",
+					"ColorBlueGreenTwo": "Blue Green Two",
+				},
+				map[string]string{
+					"Color":             "",
+					"ColorBlueGreen":    "Blue Green",
+					"ColorBlueGreenOne": "Blue Green > One",
+					"ColorBlueGreenTwo": "Blue Green > Two",
+				},
+				map[string]string{
+					"Color":             "Color",
+					"ColorBlueGreen":    "Color",
+					"ColorBlueGreenOne": "ColorBlueGreen",
+					"ColorBlueGreenTwo": "ColorBlueGreen",
+				},
+			},
+			{
+				"Implied node with implied nesting",
+				map[string]string{
+					"Color":             "",
+					"ColorBlueGreenOne": "Blue Green One",
+					"ColorBlueGreenTwo": "Blue Green Two",
+				},
+				map[string]string{
+					"Color":                "",
+					"-9223372036854775808": "Blue Green",
+					"ColorBlueGreenOne":    "Blue Green > One",
+					"ColorBlueGreenTwo":    "Blue Green > Two",
+				},
+				map[string]string{
+					"Color":                "Color",
+					"-9223372036854775808": "Color",
+					"ColorBlueGreenOne":    "-9223372036854775808",
+					"ColorBlueGreenTwo":    "-9223372036854775808",
+				},
+			},
+			{
+				"Multiple implied layers",
+				map[string]string{
+					"Color":              "",
+					"ColorBlueGreen":     "Blue Green",
+					"ColorBlueGreenOne":  "Blue Green One",
+					"ColorBlueGreenOneA": "Blue Green One A",
+					"ColorBlueGreenOneB": "Blue Green One B",
+					"ColorBlueGreenTwo":  "Blue Green Two",
+				},
+				map[string]string{
+					"Color":              "",
+					"ColorBlueGreen":     "Blue Green",
+					"ColorBlueGreenOne":  "Blue Green > One",
+					"ColorBlueGreenOneA": "Blue Green > One > A",
+					"ColorBlueGreenOneB": "Blue Green > One > B",
+					"ColorBlueGreenTwo":  "Blue Green > Two",
+				},
+				map[string]string{
+					"Color":              "Color",
+					"ColorBlueGreen":     "Color",
+					"ColorBlueGreenOne":  "ColorBlueGreen",
+					"ColorBlueGreenOneA": "ColorBlueGreenOne",
+					"ColorBlueGreenOneB": "ColorBlueGreenOne",
+					"ColorBlueGreenTwo":  "ColorBlueGreen",
+				},
+			},
+			{
+				"Multiple implied layers with implied node",
+				map[string]string{
+					"Color":              "",
+					"ColorBlueGreen":     "Blue Green",
+					"ColorBlueGreenOneA": "Blue Green One A",
+					"ColorBlueGreenOneB": "Blue Green One B",
+					"ColorBlueGreenTwo":  "Blue Green Two",
+				},
+				map[string]string{
+					"Color":                "",
+					"ColorBlueGreen":       "Blue Green",
+					"-9223372036854775808": "Blue Green > One",
+					"ColorBlueGreenOneA":   "Blue Green > One > A",
+					"ColorBlueGreenOneB":   "Blue Green > One > B",
+					"ColorBlueGreenTwo":    "Blue Green > Two",
+				},
+				map[string]string{
+					"Color":                "Color",
+					"ColorBlueGreen":       "Color",
+					"-9223372036854775808": "ColorBlueGreen",
+					"ColorBlueGreenOneA":   "-9223372036854775808",
+					"ColorBlueGreenOneB":   "-9223372036854775808",
+					"ColorBlueGreenTwo":    "ColorBlueGreen",
+				},
+			},
+			{
+				"Mix implicit and explicit layers",
+				map[string]string{
+					"Color":               "",
+					"ColorBlueGreen":      "Blue Green",
+					"ColorBlueGreenOne":   "Blue Green One",
+					"ColorBlueGreenOne_A": "Blue Green One > A",
+					"ColorBlueGreenOne_B": "Blue Green One > B",
+					"ColorBlueGreenTwo":   "Blue Green Two",
+				},
+				map[string]string{
+					"Color":              "",
+					"ColorBlueGreen":     "Blue Green",
+					"ColorBlueGreenOne":  "Blue Green > One",
+					"ColorBlueGreenOneA": "Blue Green > One > A",
+					"ColorBlueGreenOneB": "Blue Green > One > B",
+					"ColorBlueGreenTwo":  "Blue Green > Two",
+				},
+				map[string]string{
+					"Color":              "Color",
+					"ColorBlueGreen":     "Color",
+					"ColorBlueGreenOne":  "ColorBlueGreen",
+					"ColorBlueGreenOneA": "ColorBlueGreenOne",
+					"ColorBlueGreenOneB": "ColorBlueGreenOne",
+					"ColorBlueGreenTwo":  "ColorBlueGreen",
+				},
+			},
+		*/
 	}
 
 	for i, test := range tests {
