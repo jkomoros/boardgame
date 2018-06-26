@@ -417,7 +417,11 @@ func processEnums(packageName string) (enumOutput string, err error) {
 			return "", errors.New(strconv.Itoa(i) + " enum could not be processed: " + err.Error())
 		}
 
-		output += e.Output()
+		if enumOutput, err := e.Output(); err != nil {
+			return "", errors.New(strconv.Itoa(i) + " enum output failed: " + err.Error())
+		} else {
+			output += enumOutput
+		}
 
 	}
 
@@ -652,11 +656,13 @@ func (e *enum) Parents() map[string]string {
 }
 
 //Output is the text to put into the final output in auto_enum.go
-func (e *enum) Output() string {
+func (e *enum) Output() (string, error) {
 
-	//TODO: error if not processed
+	if !e.processed {
+		return "", errors.New("Not processed. Call Process first.")
+	}
 
-	return e.baseOutput(e.Prefix(), e.ValueMap(), e.Parents())
+	return e.baseOutput(e.Prefix(), e.ValueMap(), e.Parents()), nil
 
 }
 
