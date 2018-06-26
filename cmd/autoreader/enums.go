@@ -731,11 +731,10 @@ func (e *enum) Keys() []string {
 func (e *enum) Prefix() string {
 
 	if e.baked() {
-		//If baked, prefix has been explicitly set
+		//If baked, prefix has been explicitly set, even if it's "".
 		return e.cachedPrefix
 	}
 
-	//TODO: allow a cachedPrefix of ""
 	if e.cachedPrefix != "" {
 		return e.cachedPrefix
 	}
