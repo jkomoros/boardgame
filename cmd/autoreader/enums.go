@@ -777,10 +777,27 @@ type delimiterTree struct {
 //addString goes through and adds addChild down the whole way. If it consumes
 //a ">" off the front, then it does manuallyCreated = true. The last item has
 //addChild with a terminalKey of the passed terminalKey.
-func (t *delimiterTree) addString(names []string, terminalKey string) error {
+func (t *delimiterTree) addString(names []string, terminalKey string, lastItemWasDelimiter bool) error {
 
-	//TODO: implement
-	return nil
+	delimiter := strings.TrimSpace(enumpkg.TREE_NODE_DELIMITER)
+
+	if len(names) == 0 {
+		return errors.New("addString called with no names")
+	}
+
+	if len(names) == 1 {
+		return t.addChild(names[0], lastItemWasDelimiter, terminalKey)
+	}
+
+	if names[0] == delimiter {
+		return t.addString(names[1:len(names)], terminalKey, true)
+	}
+
+	if err := t.addChild(names[0], lastItemWasDelimiter, terminalKey); err != nil {
+		return err
+	}
+
+	return t.addString(names[1:len(names)], terminalKey, false)
 
 }
 
@@ -838,7 +855,7 @@ func (e *enum) autoAddDelimiters() error {
 		//rewritten back to proper case at end.
 
 		splitValue := strings.Split(value, " ")
-		tree.addString(splitValue, key)
+		tree.addString(splitValue, key, false)
 	}
 
 	tree.elideSingleParents()
