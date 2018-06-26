@@ -829,7 +829,27 @@ func (t *delimiterTree) addChild(name string, manuallyCreated bool, terminalKey 
 //elideSingleParents, if this node has only one child, and was not
 //manuallyCreated, elides itself.
 func (t *delimiterTree) elideSingleParents() {
-	//TODO: implement
+	if t.parent != nil {
+		if len(t.children) == 1 && !t.manuallyCreated {
+			for name, child := range t.children {
+				//This should only have one item
+				//Elide us out of the chain
+				child.parent = t.parent
+				child.addValuePrefix(name)
+			}
+		}
+	}
+	for _, child := range t.children {
+		child.elideSingleParents()
+	}
+}
+
+func (t *delimiterTree) addValuePrefix(prefix string) {
+	newChildren := make(map[string]*delimiterTree, len(t.children))
+	for name, child := range t.children {
+		newChildren[prefix+" "+name] = child
+	}
+	t.children = newChildren
 }
 
 //keyValues returns the key -> value mapping encoded in this tree, recursively
