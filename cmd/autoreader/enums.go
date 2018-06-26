@@ -502,6 +502,10 @@ func (e *enum) Process() error {
 
 	if e.TreeEnum() {
 
+		if err := e.autoAddDelimiters(); err != nil {
+			return errors.New("Couldn't auto add delimiters: " + err.Error())
+		}
+
 		if err := e.createMissingParents(); err != nil {
 			return errors.New("Couldn't make missing parents: " + err.Error())
 		}
@@ -750,6 +754,76 @@ func enumHeaderForPackage(packageName string, delegateNames []string) string {
 	}
 
 	return output
+}
+
+/*
+
+PhaseOne -> "One" -> "One"
+PhaseOneOne -> "One One" -> "One > One"
+PhaseOneTwo -> "One Two" -> "One > Two"
+PhaseNextOneOne -> "Next One One" -> "Next One > One"
+PhaseNextOneTwo -> "Next One Two" -> "Next One > Two"
+PhaseTwo_One -> "Two > One" -> "Two > One"
+*/
+
+type delimiterTree struct {
+	parent          *delimiterTree
+	children        map[string]*delimiterTree
+	manuallyCreated bool
+	//For value string that ends here, its value.
+	terminalKey string
+}
+
+//addString goes through and adds addChild down the whole way. If it consumes
+//a ">" off the front, then it does manuallyCreated = true.
+func (t *delimiterTree) addString(names []string, terminalKey string) {
+
+	//TODO: implement
+
+}
+
+func (t *delimiterTree) addChild(name string, manuallyCreated bool, terminalKey string) {
+	//TODO: implement
+}
+
+//elideSingleParents, if this node has only one child, and was not
+//manuallyCreated, elides itself.
+func (t *delimiterTree) elideSingleParents() {
+	//TODO: implement
+}
+
+//keyValues returns the key -> value mapping encoded in this tree, recursively
+func (t *delimiterTree) keyValues() map[string]string {
+	return nil
+}
+
+//autoAddDelimiters should only be called by Process. It adds delimiters to
+//string values at implied breaks.
+func (e *enum) autoAddDelimiters() error {
+
+	//TODO: when this is working remove this
+	return nil
+
+	tree := &delimiterTree{}
+
+	for key, value := range e.ValueMap() {
+
+		//TODO: skip values that were explicitly overriden?
+
+		//TODO: handle values that have been transformed differently: should
+		//compare the same when creating tree, but key/values needs to be
+		//rewritten back to proper case at end.
+
+		splitValue := strings.Split(value, " ")
+		tree.addString(splitValue, key)
+	}
+
+	tree.elideSingleParents()
+
+	e.bakedStringValues = tree.keyValues()
+
+	return nil
+
 }
 
 //createMissingParents should only be called within Process. Creates any
