@@ -844,31 +844,75 @@ func (t *delimiterTree) addChild(name string, manuallyCreated bool, terminalKey 
 
 //elideSingleParents, if this node has only one child, and was not
 //manuallyCreated, elides itself.
-func (t *delimiterTree) elideSingleParents() {
+func (t *delimiterTree) elideSingleParents() error {
+
 	if t.parent != nil {
-
-		parentKeyName := ""
-		for key, val := range t.parent.children {
-			if val == t {
-				parentKeyName = key
-			}
-		}
-
 		if len(t.children) == 1 && !t.manuallyCreated {
-			for name, child := range t.children {
-				//This should only have one item
-				//Elide us out of the chain
-				child.parent = t.parent
-				//TODO: wait: this is wrong, it shouldn't be changing the
-				//child's prefix, it should change the parent, right?
-				child.addValuePrefix(name)
-				t.parent.children[parentKeyName] = child
+			if err := t.mergeDown(); err != nil {
+				return errors.New("Couldn't merge down: " + err.Error())
 			}
 		}
 	}
 	for _, child := range t.children {
-		child.elideSingleParents()
+		if err := child.elideSingleParents(); err != nil {
+			return err
+		}
 	}
+
+	return nil
+}
+
+//mergeDown is called when this node should merge downward to its child.
+func (t *delimiterTree) mergeDown() error {
+
+	if t.parent == nil {
+		return errors.New("Can't merge down a root node")
+	}
+
+	parentKeyName := ""
+	for key, val := range t.parent.children {
+		if val == t {
+			parentKeyName = key
+		}
+	}
+
+	if parentKeyName == "" {
+		return errors.New("Unexpectedly couldn't find self in parent")
+	}
+
+	if len(t.children) != 1 {
+		return errors.New("Merging down only legal if have one child")
+	}
+
+	if t.manuallyCreated {
+		return errors.New("Merging down not legal on a manually created node")
+	}
+
+	var name string
+	var child *delimiterTree
+
+	for n, c := range t.children {
+		//There should be only one item; this is basically just fetching the
+		//one item.
+		name = n
+		child = c
+	}
+
+	//Elide us out of the chain
+	child.parent = t.parent
+
+	//Point from the parent down to the child
+	t.parent.children[parentKeyName] = child
+
+	//Update the value string for the node with the new full name
+	child.addValuePrefix(name)
+
+	//TODO: take the terminalKey of the child (doesn't that
+	//happend automaticatlly?) because the child is actually the
+	//only "legit" node anyway.
+
+	return nil
+
 }
 
 func (t *delimiterTree) addValuePrefix(prefix string) {
@@ -948,13 +992,14 @@ func (e *enum) autoAddDelimiters() error {
 
 		splitValue := strings.Split(value, " ")
 
-		//pass lastItemWasDelimter = true because the top-level value is explicitly created even if no delimeter present.
-		if err := tree.addString(splitValue, key, true); err != nil {
+		if err := tree.addString(splitValue, key, false); err != nil {
 			return errors.New("Couldn't add " + key + ", " + value + " to tree delimiter: " + err.Error())
 		}
 	}
 
-	tree.elideSingleParents()
+	if err := tree.elideSingleParents(); err != nil {
+		return errors.New("Couldn't elide single parents: " + err.Error())
+	}
 
 	//This step wouldn't work if we ahd down-cased all of the items.
 	e.bakedStringValues = tree.keyValues()
