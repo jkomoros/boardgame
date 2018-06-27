@@ -847,7 +847,13 @@ func (t *delimiterTree) addChild(name string, manuallyCreated bool, terminalKey 
 func (t *delimiterTree) elideSingleParents() error {
 
 	if t.parent != nil {
-		if len(t.children) == 1 && !t.manuallyCreated {
+
+		var child *delimiterTree
+		for _, c := range t.children {
+			child = c
+		}
+
+		if len(t.children) == 1 && !child.manuallyCreated {
 			if err := t.mergeDown(); err != nil {
 				return errors.New("Couldn't merge down: " + err.Error())
 			}
@@ -884,10 +890,6 @@ func (t *delimiterTree) mergeDown() error {
 		return errors.New("Merging down only legal if have one child")
 	}
 
-	if t.manuallyCreated {
-		return errors.New("Merging down not legal on a manually created node")
-	}
-
 	var name string
 	var child *delimiterTree
 
@@ -898,29 +900,23 @@ func (t *delimiterTree) mergeDown() error {
 		child = c
 	}
 
+	if child.manuallyCreated {
+		return errors.New("Merging down not legal onto a manually created node")
+	}
+
+	newName := parentKeyName + " " + name
+
 	//Elide us out of the chain
+
+	//Point up to the grandparent
 	child.parent = t.parent
 
 	//Point from the parent down to the child
-	t.parent.children[parentKeyName] = child
-
-	//Update the value string for the node with the new full name
-	child.addValuePrefix(name)
-
-	//TODO: take the terminalKey of the child (doesn't that
-	//happend automaticatlly?) because the child is actually the
-	//only "legit" node anyway.
+	delete(t.parent.children, parentKeyName)
+	t.parent.children[newName] = child
 
 	return nil
 
-}
-
-func (t *delimiterTree) addValuePrefix(prefix string) {
-	newChildren := make(map[string]*delimiterTree, len(t.children))
-	for name, child := range t.children {
-		newChildren[prefix+" "+name] = child
-	}
-	t.children = newChildren
 }
 
 //value returns the string value by walking parents
@@ -989,8 +985,7 @@ func (e *enum) autoAddDelimiters() error {
 
 		splitValue := strings.Split(value, " ")
 
-		//Treat top-level items as being explicitly called for. This is wrong (I think) but works for now.
-		if err := tree.addString(splitValue, key, true); err != nil {
+		if err := tree.addString(splitValue, key, false); err != nil {
 			return errors.New("Couldn't add " + key + ", " + value + " to tree delimiter: " + err.Error())
 		}
 	}
