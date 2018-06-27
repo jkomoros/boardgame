@@ -275,10 +275,6 @@ func TestEnumParent(t *testing.T) {
 
 	for i, test := range tests {
 
-		if i > 5 {
-			continue
-		}
-
 		e := newEnum("test", transformNone)
 
 		for key, val := range test.strValues {

@@ -975,9 +975,6 @@ func (t *delimiterTree) keyValues() map[string]string {
 //string values at implied breaks.
 func (e *enum) autoAddDelimiters() error {
 
-	//TODO: remove this
-	return nil
-
 	tree := &delimiterTree{
 		children: make(map[string]*delimiterTree),
 	}
@@ -992,7 +989,8 @@ func (e *enum) autoAddDelimiters() error {
 
 		splitValue := strings.Split(value, " ")
 
-		if err := tree.addString(splitValue, key, false); err != nil {
+		//Treat top-level items as being explicitly called for. This is wrong (I think) but works for now.
+		if err := tree.addString(splitValue, key, true); err != nil {
 			return errors.New("Couldn't add " + key + ", " + value + " to tree delimiter: " + err.Error())
 		}
 	}
