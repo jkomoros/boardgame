@@ -805,17 +805,32 @@ func (t *delimiterTree) addString(names []string, terminalKey string, lastItemWa
 //always the OR of existing value on the ndoe. terminalKey should only be
 //non-"" if this is literally the end of the string.
 func (t *delimiterTree) addChild(name string, manuallyCreated bool, terminalKey string) error {
-	child := t.children[name]
 
-	if child == nil {
-		child = &delimiterTree{
-			parent:   t,
-			children: make(map[string]*delimiterTree),
+	var child *delimiterTree
+
+	if name == "" {
+
+		if t.parent != nil {
+			return errors.New("Trying to set '' on non root node")
 		}
-		t.children[name] = child
-	}
 
-	child.manuallyCreated = child.manuallyCreated || manuallyCreated
+		//Special case: setting the terminalKey for the root node
+		child = t
+	} else {
+
+		child = t.children[name]
+
+		if child == nil {
+			child = &delimiterTree{
+				parent:   t,
+				children: make(map[string]*delimiterTree),
+			}
+			t.children[name] = child
+		}
+
+		child.manuallyCreated = child.manuallyCreated || manuallyCreated
+
+	}
 
 	if terminalKey != "" {
 		if child.terminalKey != "" {
@@ -831,12 +846,23 @@ func (t *delimiterTree) addChild(name string, manuallyCreated bool, terminalKey 
 //manuallyCreated, elides itself.
 func (t *delimiterTree) elideSingleParents() {
 	if t.parent != nil {
+
+		parentKeyName := ""
+		for key, val := range t.parent.children {
+			if val == t {
+				parentKeyName = key
+			}
+		}
+
 		if len(t.children) == 1 && !t.manuallyCreated {
 			for name, child := range t.children {
 				//This should only have one item
 				//Elide us out of the chain
 				child.parent = t.parent
+				//TODO: wait: this is wrong, it shouldn't be changing the
+				//child's prefix, it should change the parent, right?
 				child.addValuePrefix(name)
+				t.parent.children[parentKeyName] = child
 			}
 		}
 	}
@@ -872,20 +898,25 @@ func (t *delimiterTree) value() string {
 		return nameInParent
 	}
 
-	return t.parent.value() + enumpkg.TREE_NODE_DELIMITER + nameInParent
+	parentValue := t.parent.value()
+
+	if parentValue == "" {
+		return nameInParent
+	}
+
+	return parentValue + enumpkg.TREE_NODE_DELIMITER + nameInParent
 }
 
 //keyValues returns the key -> value mapping encoded in this tree, recursively
 func (t *delimiterTree) keyValues() map[string]string {
 
+	result := make(map[string]string)
+
 	//Base case if we're a terminal
-	if len(t.children) == 0 {
-		return map[string]string{
-			t.terminalKey: t.value(),
-		}
+	if t.terminalKey != "" {
+		result[t.terminalKey] = t.value()
 	}
 
-	result := make(map[string]string)
 	for _, child := range t.children {
 		for key, val := range child.keyValues() {
 			result[key] = val
@@ -916,7 +947,9 @@ func (e *enum) autoAddDelimiters() error {
 		//rewritten back to proper case at end.
 
 		splitValue := strings.Split(value, " ")
-		if err := tree.addString(splitValue, key, false); err != nil {
+
+		//pass lastItemWasDelimter = true because the top-level value is explicitly created even if no delimeter present.
+		if err := tree.addString(splitValue, key, true); err != nil {
 			return errors.New("Couldn't add " + key + ", " + value + " to tree delimiter: " + err.Error())
 		}
 	}
