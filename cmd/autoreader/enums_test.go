@@ -127,28 +127,28 @@ func TestEnumParent(t *testing.T) {
 				"ColorGreen_One_A":     "-9223372036854775807",
 			},
 		},
-		/*
-			{
-				"Single word implied nesting",
-				map[string]string{
-					"Color":        "",
-					"ColorBlue":    "Blue",
-					"ColorBlueOne": "Blue One",
-					"ColorBlueTwo": "Blue Two",
-				},
-				map[string]string{
-					"Color":        "",
-					"ColorBlue":    "Blue",
-					"ColorBlueOne": "Blue > One",
-					"ColorBlueTwo": "Blue > Two",
-				},
-				map[string]string{
-					"Color":        "Color",
-					"ColorBlue":    "Color",
-					"ColorBlueOne": "ColorBlue",
-					"ColorBlueTwo": "ColorBlue",
-				},
+		{
+			"Single word implied nesting",
+			map[string]string{
+				"Color":        "",
+				"ColorBlue":    "Blue",
+				"ColorBlueOne": "Blue One",
+				"ColorBlueTwo": "Blue Two",
 			},
+			map[string]string{
+				"Color":        "",
+				"ColorBlue":    "Blue",
+				"ColorBlueOne": "One",
+				"ColorBlueTwo": "Two",
+			},
+			map[string]string{
+				"Color":        "Color",
+				"ColorBlue":    "Color",
+				"ColorBlueOne": "ColorBlue",
+				"ColorBlueTwo": "ColorBlue",
+			},
+		},
+		/*
 			{
 				"Multi-Word implied nesting",
 				map[string]string{
