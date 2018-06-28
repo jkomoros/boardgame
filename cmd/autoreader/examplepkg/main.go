@@ -154,6 +154,21 @@ const (
 
 //+autoreader
 const (
+	MultiWordTree = iota
+	MultiWordTreeBlueGreen
+	//MultiWordTreeBlueGreenOne is implied; a consistent int stand-in will be
+	//created.
+	MultiWordTreeBlueGreenOneA
+	MultiWordTreeBlueGreenOneB
+	//The next item will result in a single child named "Two A"
+	MultiWordTreeBlueGreenTwoA
+	//The next item will result in a child of Three followed by a child of
+	//A since there's an explicit tree break.
+	MultiWordTreeBlueGreenThree_A
+)
+
+//+autoreader
+const (
 	SkipNode = iota
 	//SkipNodeRed is implied but not listed
 	SkipNodeRed_Circle

@@ -108,6 +108,26 @@ var ExampleEnum = Enums.MustAddTree("Example", map[int]string{
 	ExampleTwo:     Example,
 })
 
+var MultiWordTreeEnum = Enums.MustAddTree("MultiWordTree", map[int]string{
+	-9223372036854775807:          "Three",
+	-9223372036854775808:          "One",
+	MultiWordTree:                 "",
+	MultiWordTreeBlueGreen:        "Blue Green",
+	MultiWordTreeBlueGreenOneA:    "A",
+	MultiWordTreeBlueGreenOneB:    "B",
+	MultiWordTreeBlueGreenThree_A: "A",
+	MultiWordTreeBlueGreenTwoA:    "Two A",
+}, map[int]int{
+	-9223372036854775807:          MultiWordTreeBlueGreen,
+	-9223372036854775808:          MultiWordTreeBlueGreen,
+	MultiWordTree:                 MultiWordTree,
+	MultiWordTreeBlueGreen:        MultiWordTree,
+	MultiWordTreeBlueGreenOneA:    -9223372036854775808,
+	MultiWordTreeBlueGreenOneB:    -9223372036854775808,
+	MultiWordTreeBlueGreenThree_A: -9223372036854775807,
+	MultiWordTreeBlueGreenTwoA:    MultiWordTreeBlueGreen,
+})
+
 var SkipNodeEnum = Enums.MustAddTree("SkipNode", map[int]string{
 	-9223372036854775808: "Red",
 	SkipNode:             "",
