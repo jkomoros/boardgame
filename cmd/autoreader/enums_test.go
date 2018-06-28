@@ -169,27 +169,27 @@ func TestEnumParent(t *testing.T) {
 				"ColorBlueGreenTwo": "ColorBlueGreen",
 			},
 		},
-		/*
-			{
-				"Implied node with implied nesting",
-				map[string]string{
-					"Color":             "",
-					"ColorBlueGreenOne": "Blue Green One",
-					"ColorBlueGreenTwo": "Blue Green Two",
-				},
-				map[string]string{
-					"Color":                "",
-					"-9223372036854775808": "Blue Green",
-					"ColorBlueGreenOne":    "Blue Green > One",
-					"ColorBlueGreenTwo":    "Blue Green > Two",
-				},
-				map[string]string{
-					"Color":                "Color",
-					"-9223372036854775808": "Color",
-					"ColorBlueGreenOne":    "-9223372036854775808",
-					"ColorBlueGreenTwo":    "-9223372036854775808",
-				},
+		{
+			"Implied node with implied nesting",
+			map[string]string{
+				"Color":             "",
+				"ColorBlueGreenOne": "Blue Green One",
+				"ColorBlueGreenTwo": "Blue Green Two",
 			},
+			map[string]string{
+				"Color":                "",
+				"-9223372036854775808": "Blue Green",
+				"ColorBlueGreenOne":    "One",
+				"ColorBlueGreenTwo":    "Two",
+			},
+			map[string]string{
+				"Color":                "Color",
+				"-9223372036854775808": "Color",
+				"ColorBlueGreenOne":    "-9223372036854775808",
+				"ColorBlueGreenTwo":    "-9223372036854775808",
+			},
+		},
+		/*
 			{
 				"Multiple implied layers",
 				map[string]string{
