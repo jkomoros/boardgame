@@ -270,6 +270,31 @@ func TestEnumParent(t *testing.T) {
 				"ColorBlueGreenTwo":   "ColorBlueGreen",
 			},
 		},
+		{
+			"Multiple implied layers in a row",
+			map[string]string{
+				"Color":              "",
+				"ColorBlueGreenOneA": "Blue Green One A",
+				"ColorBlueGreenOneB": "Blue Green One B",
+				"ColorBlueGreenTwo":  "Blue Green Two",
+			},
+			map[string]string{
+				"Color":                "",
+				"-9223372036854775808": "Blue Green",
+				"-9223372036854775807": "One",
+				"ColorBlueGreenOneA":   "A",
+				"ColorBlueGreenOneB":   "B",
+				"ColorBlueGreenTwo":    "Two",
+			},
+			map[string]string{
+				"Color":                "Color",
+				"-9223372036854775808": "Color",
+				"-9223372036854775807": "-9223372036854775808",
+				"ColorBlueGreenOneA":   "-9223372036854775807",
+				"ColorBlueGreenOneB":   "-9223372036854775807",
+				"ColorBlueGreenTwo":    "-9223372036854775808",
+			},
+		},
 	}
 
 	for i, test := range tests {
