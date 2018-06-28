@@ -59,6 +59,8 @@ type enum struct {
 	//When BakeStringValues() is called, we take Transform, DefaultTransform,
 	//and OverrideDisplayName and make the string values.
 	bakedStringValues map[string]string
+	//newKeys is keys that need to be created (only implied)
+	newKeys []string
 	//OverrideDisplayName contains a map of the Value string to override
 	//value, if it exists. If it is in the map with value "" then it has been
 	//overridden to have that value. If it is not in the map then it should be
@@ -608,6 +610,12 @@ func (e *enum) addBakedKey(key string, val string) error {
 	return nil
 }
 
+//NewKeys returns a list of new keys that were implied in this tree enum but
+//need to be explciitly created in auto_enum.
+func (e *enum) NewKeys() []string {
+	return e.newKeys
+}
+
 func (e *enum) HasKey(key string) bool {
 	for _, theKey := range e.Keys() {
 		if key == theKey {
@@ -628,7 +636,7 @@ func (e *enum) Output() (string, error) {
 		return "", errors.New("Not processed. Call Process first.")
 	}
 
-	return e.baseOutput(e.Prefix(), e.ValueMap(), e.Parents()), nil
+	return e.baseOutput(e.Prefix(), e.ValueMap(), e.Parents(), e.NewKeys()), nil
 
 }
 
@@ -1115,11 +1123,21 @@ func (e *enum) reduceNodeStringValues() {
 
 }
 
-func (e *enum) baseOutput(prefix string, values map[string]string, parents map[string]string) string {
+func (e *enum) baseOutput(prefix string, values map[string]string, parents map[string]string, newKeys []string) string {
+
+	firstKey := ""
+
+	if len(newKeys) > 0 {
+		firstKey = newKeys[0]
+		newKeys = newKeys[1:len(newKeys)]
+	}
+
 	return templateOutput(enumItemTemplate, map[string]interface{}{
-		"prefix":  prefix,
-		"values":  values,
-		"parents": parents,
+		"prefix":      prefix,
+		"values":      values,
+		"parents":     parents,
+		"firstNewKey": firstKey,
+		"restNewKeys": newKeys,
 	})
 }
 
@@ -1152,7 +1170,17 @@ func ({{firstLetter .delegateName}} *{{.delegateName}}) ConfigureEnums() *enum.S
 
 `
 
-const enumItemTemplateText = `var {{.prefix}}Enum = Enums.MustAdd{{if .parents}}Tree{{end}}("{{.prefix}}", map[int]string{
+const enumItemTemplateText = `{{if .firstNewKey}} 
+//Implicitly created constants for {{.prefix}}
+const (
+	{{.firstNewKey}} = iota - 9223372036854775808
+{{range .restNewKeys -}}
+	{{.}}
+{{- end -}}
+)
+
+{{ end -}}
+var {{.prefix}}Enum = Enums.MustAdd{{if .parents}}Tree{{end}}("{{.prefix}}", map[int]string{
 	{{ $prefix := .prefix -}}
 	{{range $name, $value := .values -}}
 	{{$name}}: "{{$value}}",
