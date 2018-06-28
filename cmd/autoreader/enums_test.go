@@ -295,6 +295,32 @@ func TestEnumParent(t *testing.T) {
 				"ColorBlueGreenTwo":    "-9223372036854775808",
 			},
 		},
+		{
+			"Elided parent beneath non-elided multi-word node",
+			map[string]string{
+				"Color":              "",
+				"ColorBlueGreenOne":  "Blue Green One",
+				"ColorBlueGreenOneA": "Blue Green One A",
+				"ColorBlueGreenOneB": "Blue Green One B",
+				"ColorBlueGreenTwoA": "Blue Green Two A",
+			},
+			map[string]string{
+				"Color":                "",
+				"-9223372036854775808": "Blue Green",
+				"ColorBlueGreenOne":    "One",
+				"ColorBlueGreenOneA":   "A",
+				"ColorBlueGreenOneB":   "B",
+				"ColorBlueGreenTwoA":   "Two A",
+			},
+			map[string]string{
+				"Color":                "Color",
+				"-9223372036854775808": "Color",
+				"ColorBlueGreenOne":    "-9223372036854775808",
+				"ColorBlueGreenOneA":   "ColorBlueGreenOne",
+				"ColorBlueGreenOneB":   "ColorBlueGreenOne",
+				"ColorBlueGreenTwoA":   "-9223372036854775808",
+			},
+		},
 	}
 
 	for i, test := range tests {
