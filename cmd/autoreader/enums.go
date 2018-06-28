@@ -7,7 +7,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"math"
 	"regexp"
 	"sort"
 	"strconv"
@@ -604,6 +603,7 @@ func (e *enum) addBakedKey(key string, val string) error {
 	}
 
 	e.keys = append(e.keys, key)
+	e.newKeys = append(e.newKeys, key)
 
 	e.bakedStringValues[key] = val
 
@@ -613,6 +613,7 @@ func (e *enum) addBakedKey(key string, val string) error {
 //NewKeys returns a list of new keys that were implied in this tree enum but
 //need to be explciitly created in auto_enum.
 func (e *enum) NewKeys() []string {
+	sort.Strings(e.newKeys)
 	return e.newKeys
 }
 
@@ -1023,28 +1024,7 @@ func (e *enum) createMissingParents() error {
 
 	index := e.ReverseValueMap()
 
-	//We'll work up from the extremes.
-	nextConstant := math.MinInt64
-
-	valueMap := e.ValueMap()
-
-	//We have to go through the keys in deterministic order, because the
-	//constant we vend is tied to the order we visit keys, and we want to have
-	//deterministic assignemnt so output is stable.
-
-	keys := make([]string, len(valueMap))
-
-	i := 0
-	for key, _ := range valueMap {
-		keys[i] = key
-		i++
-	}
-
-	sort.Strings(keys)
-
-	for _, key := range keys {
-
-		value := valueMap[key]
+	for _, value := range e.ValueMap() {
 
 		splitValue := strings.Split(value, enumpkg.TREE_NODE_DELIMITER)
 
@@ -1058,8 +1038,11 @@ func (e *enum) createMissingParents() error {
 			}
 
 			//There wasn't one, need to create it.
-			newKey := strconv.Itoa(nextConstant)
-			nextConstant++
+
+			newKey := e.Prefix() + joinedSubSet
+			//TODO: reduce "_" to "" if that's unambiguous
+			newKey = strings.Replace(newKey, enumpkg.TREE_NODE_DELIMITER, "_", -1)
+			newKey = strings.Replace(newKey, " ", "", -1)
 			newValue := joinedSubSet
 
 			if err := e.addBakedKey(newKey, newValue); err != nil {

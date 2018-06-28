@@ -12,6 +12,7 @@ func TestEnumParent(t *testing.T) {
 		//If nil, expect no change from strValues
 		expectedValues  map[string]string
 		expectedParents map[string]string
+		expectedNewKeys []string
 	}{
 		{
 			"Single layer",
@@ -26,6 +27,7 @@ func TestEnumParent(t *testing.T) {
 				"PhaseAnother":  "Phase",
 				"PhaseOverride": "Phase",
 			},
+			nil,
 		},
 		{
 			"No Tree",
@@ -34,6 +36,7 @@ func TestEnumParent(t *testing.T) {
 				"ColorGreen": "Green",
 				"ColorRed":   "Red",
 			},
+			nil,
 			nil,
 			nil,
 		},
@@ -63,6 +66,7 @@ func TestEnumParent(t *testing.T) {
 				"ColorGreen":     "Color",
 				"ColorGreen_One": "ColorGreen",
 			},
+			nil,
 		},
 		{
 			"Three layers",
@@ -90,6 +94,7 @@ func TestEnumParent(t *testing.T) {
 				"ColorBlue_One_One": "ColorBlue_One",
 				"ColorBlue_One_Two": "ColorBlue_One",
 			},
+			nil,
 		},
 		{
 			"Single implied layer",
@@ -98,14 +103,17 @@ func TestEnumParent(t *testing.T) {
 				"ColorBlue_One": "Blue > One",
 			},
 			map[string]string{
-				"Color":                "",
-				"-9223372036854775808": "Blue",
-				"ColorBlue_One":        "One",
+				"Color":         "",
+				"ColorBlue":     "Blue",
+				"ColorBlue_One": "One",
 			},
 			map[string]string{
-				"Color":                "Color",
-				"-9223372036854775808": "Color",
-				"ColorBlue_One":        "-9223372036854775808",
+				"Color":         "Color",
+				"ColorBlue":     "Color",
+				"ColorBlue_One": "ColorBlue",
+			},
+			[]string{
+				"ColorBlue",
 			},
 		},
 		{
@@ -115,16 +123,20 @@ func TestEnumParent(t *testing.T) {
 				"ColorGreen_One_A": "Green > One > A",
 			},
 			map[string]string{
-				"Color":                "",
-				"-9223372036854775808": "Green",
-				"-9223372036854775807": "One",
-				"ColorGreen_One_A":     "A",
+				"Color":            "",
+				"ColorGreen":       "Green",
+				"ColorGreen_One":   "One",
+				"ColorGreen_One_A": "A",
 			},
 			map[string]string{
-				"Color":                "Color",
-				"-9223372036854775808": "Color",
-				"-9223372036854775807": "-9223372036854775808",
-				"ColorGreen_One_A":     "-9223372036854775807",
+				"Color":            "Color",
+				"ColorGreen":       "Color",
+				"ColorGreen_One":   "ColorGreen",
+				"ColorGreen_One_A": "ColorGreen_One",
+			},
+			[]string{
+				"ColorGreen",
+				"ColorGreen_One",
 			},
 		},
 		{
@@ -147,6 +159,7 @@ func TestEnumParent(t *testing.T) {
 				"ColorBlueOne": "ColorBlue",
 				"ColorBlueTwo": "ColorBlue",
 			},
+			nil,
 		},
 		{
 			"Multi-Word implied nesting",
@@ -168,6 +181,7 @@ func TestEnumParent(t *testing.T) {
 				"ColorBlueGreenOne": "ColorBlueGreen",
 				"ColorBlueGreenTwo": "ColorBlueGreen",
 			},
+			nil,
 		},
 		{
 			"Implied node with implied nesting",
@@ -177,16 +191,19 @@ func TestEnumParent(t *testing.T) {
 				"ColorBlueGreenTwo": "Blue Green Two",
 			},
 			map[string]string{
-				"Color":                "",
-				"-9223372036854775808": "Blue Green",
-				"ColorBlueGreenOne":    "One",
-				"ColorBlueGreenTwo":    "Two",
+				"Color":             "",
+				"ColorBlueGreen":    "Blue Green",
+				"ColorBlueGreenOne": "One",
+				"ColorBlueGreenTwo": "Two",
 			},
 			map[string]string{
-				"Color":                "Color",
-				"-9223372036854775808": "Color",
-				"ColorBlueGreenOne":    "-9223372036854775808",
-				"ColorBlueGreenTwo":    "-9223372036854775808",
+				"Color":             "Color",
+				"ColorBlueGreen":    "Color",
+				"ColorBlueGreenOne": "ColorBlueGreen",
+				"ColorBlueGreenTwo": "ColorBlueGreen",
+			},
+			[]string{
+				"ColorBlueGreen",
 			},
 		},
 		{
@@ -215,8 +232,8 @@ func TestEnumParent(t *testing.T) {
 				"ColorBlueGreenOneB": "ColorBlueGreenOne",
 				"ColorBlueGreenTwo":  "ColorBlueGreen",
 			},
+			nil,
 		},
-
 		{
 			"Multiple implied layers with implied node",
 			map[string]string{
@@ -227,20 +244,23 @@ func TestEnumParent(t *testing.T) {
 				"ColorBlueGreenTwo":  "Blue Green Two",
 			},
 			map[string]string{
-				"Color":                "",
-				"ColorBlueGreen":       "Blue Green",
-				"-9223372036854775808": "One",
-				"ColorBlueGreenOneA":   "A",
-				"ColorBlueGreenOneB":   "B",
-				"ColorBlueGreenTwo":    "Two",
+				"Color":              "",
+				"ColorBlueGreen":     "Blue Green",
+				"ColorBlueGreen_One": "One",
+				"ColorBlueGreenOneA": "A",
+				"ColorBlueGreenOneB": "B",
+				"ColorBlueGreenTwo":  "Two",
 			},
 			map[string]string{
-				"Color":                "Color",
-				"ColorBlueGreen":       "Color",
-				"-9223372036854775808": "ColorBlueGreen",
-				"ColorBlueGreenOneA":   "-9223372036854775808",
-				"ColorBlueGreenOneB":   "-9223372036854775808",
-				"ColorBlueGreenTwo":    "ColorBlueGreen",
+				"Color":              "Color",
+				"ColorBlueGreen":     "Color",
+				"ColorBlueGreen_One": "ColorBlueGreen",
+				"ColorBlueGreenOneA": "ColorBlueGreen_One",
+				"ColorBlueGreenOneB": "ColorBlueGreen_One",
+				"ColorBlueGreenTwo":  "ColorBlueGreen",
+			},
+			[]string{
+				"ColorBlueGreen_One",
 			},
 		},
 		{
@@ -269,6 +289,7 @@ func TestEnumParent(t *testing.T) {
 				"ColorBlueGreenOne_B": "ColorBlueGreenOne",
 				"ColorBlueGreenTwo":   "ColorBlueGreen",
 			},
+			nil,
 		},
 		{
 			"Multiple implied layers in a row",
@@ -279,20 +300,24 @@ func TestEnumParent(t *testing.T) {
 				"ColorBlueGreenTwo":  "Blue Green Two",
 			},
 			map[string]string{
-				"Color":                "",
-				"-9223372036854775808": "Blue Green",
-				"-9223372036854775807": "One",
-				"ColorBlueGreenOneA":   "A",
-				"ColorBlueGreenOneB":   "B",
-				"ColorBlueGreenTwo":    "Two",
+				"Color":              "",
+				"ColorBlueGreen":     "Blue Green",
+				"ColorBlueGreen_One": "One",
+				"ColorBlueGreenOneA": "A",
+				"ColorBlueGreenOneB": "B",
+				"ColorBlueGreenTwo":  "Two",
 			},
 			map[string]string{
-				"Color":                "Color",
-				"-9223372036854775808": "Color",
-				"-9223372036854775807": "-9223372036854775808",
-				"ColorBlueGreenOneA":   "-9223372036854775807",
-				"ColorBlueGreenOneB":   "-9223372036854775807",
-				"ColorBlueGreenTwo":    "-9223372036854775808",
+				"Color":              "Color",
+				"ColorBlueGreen":     "Color",
+				"ColorBlueGreen_One": "ColorBlueGreen",
+				"ColorBlueGreenOneA": "ColorBlueGreen_One",
+				"ColorBlueGreenOneB": "ColorBlueGreen_One",
+				"ColorBlueGreenTwo":  "ColorBlueGreen",
+			},
+			[]string{
+				"ColorBlueGreen",
+				"ColorBlueGreen_One",
 			},
 		},
 		{
@@ -305,20 +330,23 @@ func TestEnumParent(t *testing.T) {
 				"ColorBlueGreenTwoA": "Blue Green Two A",
 			},
 			map[string]string{
-				"Color":                "",
-				"-9223372036854775808": "Blue Green",
-				"ColorBlueGreenOne":    "One",
-				"ColorBlueGreenOneA":   "A",
-				"ColorBlueGreenOneB":   "B",
-				"ColorBlueGreenTwoA":   "Two A",
+				"Color":              "",
+				"ColorBlueGreen":     "Blue Green",
+				"ColorBlueGreenOne":  "One",
+				"ColorBlueGreenOneA": "A",
+				"ColorBlueGreenOneB": "B",
+				"ColorBlueGreenTwoA": "Two A",
 			},
 			map[string]string{
-				"Color":                "Color",
-				"-9223372036854775808": "Color",
-				"ColorBlueGreenOne":    "-9223372036854775808",
-				"ColorBlueGreenOneA":   "ColorBlueGreenOne",
-				"ColorBlueGreenOneB":   "ColorBlueGreenOne",
-				"ColorBlueGreenTwoA":   "-9223372036854775808",
+				"Color":              "Color",
+				"ColorBlueGreen":     "Color",
+				"ColorBlueGreenOne":  "ColorBlueGreen",
+				"ColorBlueGreenOneA": "ColorBlueGreenOne",
+				"ColorBlueGreenOneB": "ColorBlueGreenOne",
+				"ColorBlueGreenTwoA": "ColorBlueGreen",
+			},
+			[]string{
+				"ColorBlueGreen",
 			},
 		},
 	}
@@ -343,5 +371,6 @@ func TestEnumParent(t *testing.T) {
 			assert.For(t, i).ThatActual(actualValues).Equals(test.expectedValues).ThenDiffOnFail()
 		}
 		assert.For(t, i).ThatActual(actualParents).Equals(test.expectedParents).ThenDiffOnFail()
+		assert.For(t, i).ThatActual(e.NewKeys()).Equals(test.expectedNewKeys).ThenDiffOnFail()
 	}
 }

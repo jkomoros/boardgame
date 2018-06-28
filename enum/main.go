@@ -181,18 +181,18 @@ Creates:
 	    Circle
 
 If there are node names that are implied but not explicitly created in your
-code, autoreader will use a consistent int to refer to that in the values and
-parents map--but not create a global named constant.
+code, autoreader will define a reasonably-named global constant automatically.
 
 	//+autoreader
 	const (
 		Phase = iota
-		//PhaseRed is not explicitly created, but it is implied by PhaseRed_Circle
+		//PhaseRed is not explicitly created, but it is implied by
+		//PhaseRed_Circle; PhaseRed will be created
 		PhaseRed_Circle
 	)
 Creates:
 	""
-		<unique integer number>
+		Red
 			Circle
 
 Supplying underscores in constant names is ugly and error-prone. autoreader
@@ -210,8 +210,8 @@ by using the underscore.
 	const (
 		Phase = iota
 		PhaseBlueGreen
-		//PhaseBlueGreenOne is implied; a consistent int stand-in will be
-		//created.
+		//PhaseBlueGreenOne is implied; a constant named PhaseBlueGreen_One
+		//will be created
 		PhaseBlueGreenOneA
 		PhaseBlueGreenOneB
 		//The next item will result in a single child named "Two A"
@@ -223,7 +223,7 @@ by using the underscore.
 Creates:
 	""
 		Blue Green
-			<unique integer representing "One">
+			One
 				A
 				B
 			Two A
