@@ -971,13 +971,21 @@ func (t *delimiterTree) keyValues() map[string]string {
 //string values at implied breaks.
 func (e *enum) autoAddDelimiters() error {
 
+	//The general approach to this is that we'll create a tree of nodes and
+	//their terminal keys, splitting at every place there COULD be a delimiter
+	//(that is, every place there is a an explicit " > " break or an implicit
+	//one of a " "). We build up this tree keeping track of which breaks were
+	//explicit (and thus should not be removed) and which ones are just
+	//speculative (i.e. at a word break). Then, go through and reduce out ones
+	//that shouldn't be there: that is, that have a single child and their
+	//child wasn't explicitly created. Then re-derive the string values from
+	//the tweaked tree.
+
 	tree := &delimiterTree{
 		children: make(map[string]*delimiterTree),
 	}
 
 	for key, value := range e.ValueMap() {
-
-		//TODO: skip values that were explicitly overriden?
 
 		//TODO: handle values that have been transformed differently: should
 		//compare the same when creating tree, but key/values needs to be
