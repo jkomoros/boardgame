@@ -1018,7 +1018,25 @@ func (e *enum) createMissingParents() error {
 	//We'll work up from the extremes.
 	nextConstant := math.MinInt64
 
-	for _, value := range e.ValueMap() {
+	valueMap := e.ValueMap()
+
+	//We have to go through the keys in deterministic order, because the
+	//constant we vend is tied to the order we visit keys, and we want to have
+	//deterministic assignemnt so output is stable.
+
+	keys := make([]string, len(valueMap))
+
+	i := 0
+	for key, _ := range valueMap {
+		keys[i] = key
+		i++
+	}
+
+	sort.Strings(keys)
+
+	for _, key := range keys {
+
+		value := valueMap[key]
 
 		splitValue := strings.Split(value, enumpkg.TREE_NODE_DELIMITER)
 
