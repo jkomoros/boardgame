@@ -181,7 +181,7 @@ Creates:
 	    Circle
 
 If there are node names that are implied but not explicitly created in your
-code, autoreader will use a consitent int to refer to that in the values and
+code, autoreader will use a consistent int to refer to that in the values and
 parents map--but not create a global named constant.
 
 	//+autoreader
@@ -194,6 +194,41 @@ Creates:
 	""
 		<unique integer number>
 			Circle
+
+Supplying underscores in constant names is ugly and error-prone. autoreader
+will automatically create tree breaks at word boundaries, combining multiple
+words in a row into one node if it makes sense. It will continue to create
+implied nodes if necessary. This almost always does what you want and means
+that you can skip including "_" in your constant names. There's one exception:
+if you have a node with a single child (e.g. "Blue" with a single child of
+"Green"), autoreader by default will combine those into one multi-word node:
+"Blue Green". If you don't want that to happen, just be explicit about the
+node break, either with a display value that includes the delimiter there, or
+by using the underscore.
+
+	//+autoreader
+	const (
+		Phase = iota
+		PhaseBlueGreen
+		//PhaseBlueGreenOne is implied; a consistent int stand-in will be
+		//created.
+		PhaseBlueGreenOneA
+		PhaseBlueGreenOneB
+		//The next item will result in a single child named "Two A"
+		PhaseBlueGreenTwoA
+		//The next item will result in a child of Three followed by a child of
+		//A since there's an explicit tree break.
+		PhaseBlueGreenThree_A
+	)
+Creates:
+	""
+		Blue Green
+			<unique integer representing "One">
+				A
+				B
+			Two A
+			Three
+				A
 
 */
 package enum
