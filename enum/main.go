@@ -210,7 +210,7 @@ by using the underscore.
 	const (
 		Phase = iota
 		PhaseBlueGreen
-		//PhaseBlueGreenOne is implied; a constant named PhaseBlueGreen_One
+		//PhaseBlueGreenOne is implied; a constant named PhaseBlueGreenOne
 		//will be created
 		PhaseBlueGreenOneA
 		PhaseBlueGreenOneB

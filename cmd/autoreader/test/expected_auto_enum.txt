@@ -110,28 +110,28 @@ var ExampleEnum = Enums.MustAddTree("Example", map[int]string{
 
 //Implicitly created constants for MultiWordTree
 const (
-	MultiWordTreeBlueGreen_One = iota - 9223372036854775808
-	MultiWordTreeBlueGreen_Three
+	MultiWordTreeBlueGreenOne = iota - 9223372036854775808
+	MultiWordTreeBlueGreenThree
 )
 
 var MultiWordTreeEnum = Enums.MustAddTree("MultiWordTree", map[int]string{
 	MultiWordTree:                 "",
 	MultiWordTreeBlueGreen:        "Blue Green",
+	MultiWordTreeBlueGreenOne:     "One",
 	MultiWordTreeBlueGreenOneA:    "A",
 	MultiWordTreeBlueGreenOneB:    "B",
+	MultiWordTreeBlueGreenThree:   "Three",
 	MultiWordTreeBlueGreenThree_A: "A",
 	MultiWordTreeBlueGreenTwoA:    "Two A",
-	MultiWordTreeBlueGreen_One:    "One",
-	MultiWordTreeBlueGreen_Three:  "Three",
 }, map[int]int{
 	MultiWordTree:                 MultiWordTree,
 	MultiWordTreeBlueGreen:        MultiWordTree,
-	MultiWordTreeBlueGreenOneA:    MultiWordTreeBlueGreen_One,
-	MultiWordTreeBlueGreenOneB:    MultiWordTreeBlueGreen_One,
-	MultiWordTreeBlueGreenThree_A: MultiWordTreeBlueGreen_Three,
+	MultiWordTreeBlueGreenOne:     MultiWordTreeBlueGreen,
+	MultiWordTreeBlueGreenOneA:    MultiWordTreeBlueGreenOne,
+	MultiWordTreeBlueGreenOneB:    MultiWordTreeBlueGreenOne,
+	MultiWordTreeBlueGreenThree:   MultiWordTreeBlueGreen,
+	MultiWordTreeBlueGreenThree_A: MultiWordTreeBlueGreenThree,
 	MultiWordTreeBlueGreenTwoA:    MultiWordTreeBlueGreen,
-	MultiWordTreeBlueGreen_One:    MultiWordTreeBlueGreen,
-	MultiWordTreeBlueGreen_Three:  MultiWordTreeBlueGreen,
 })
 
 //Implicitly created constants for SkipNode

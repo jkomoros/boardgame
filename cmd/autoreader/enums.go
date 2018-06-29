@@ -1039,12 +1039,11 @@ func (e *enum) createMissingParents() error {
 			}
 
 			//There wasn't one, need to create it.
-
 			newKey := e.Prefix() + joinedSubSet
-			//TODO: reduce "_" to "" if that's unambiguous
 			newKey = strings.Replace(newKey, enumpkg.TREE_NODE_DELIMITER, "_", -1)
 			newKey = strings.Replace(newKey, " ", "", -1)
-			//newKey = e.reduceProposedKey(newKey)
+			//reduce "_" to "" if that's unambiguous
+			newKey = e.reduceProposedKey(newKey)
 			newValue := joinedSubSet
 
 			if err := e.addBakedKey(newKey, newValue); err != nil {

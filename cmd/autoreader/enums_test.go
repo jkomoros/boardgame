@@ -246,7 +246,7 @@ func TestEnumParent(t *testing.T) {
 			map[string]string{
 				"Color":              "",
 				"ColorBlueGreen":     "Blue Green",
-				"ColorBlueGreen_One": "One",
+				"ColorBlueGreenOne":  "One",
 				"ColorBlueGreenOneA": "A",
 				"ColorBlueGreenOneB": "B",
 				"ColorBlueGreenTwo":  "Two",
@@ -254,13 +254,13 @@ func TestEnumParent(t *testing.T) {
 			map[string]string{
 				"Color":              "Color",
 				"ColorBlueGreen":     "Color",
-				"ColorBlueGreen_One": "ColorBlueGreen",
-				"ColorBlueGreenOneA": "ColorBlueGreen_One",
-				"ColorBlueGreenOneB": "ColorBlueGreen_One",
+				"ColorBlueGreenOne":  "ColorBlueGreen",
+				"ColorBlueGreenOneA": "ColorBlueGreenOne",
+				"ColorBlueGreenOneB": "ColorBlueGreenOne",
 				"ColorBlueGreenTwo":  "ColorBlueGreen",
 			},
 			[]string{
-				"ColorBlueGreen_One",
+				"ColorBlueGreenOne",
 			},
 		},
 		{
@@ -302,7 +302,7 @@ func TestEnumParent(t *testing.T) {
 			map[string]string{
 				"Color":              "",
 				"ColorBlueGreen":     "Blue Green",
-				"ColorBlueGreen_One": "One",
+				"ColorBlueGreenOne":  "One",
 				"ColorBlueGreenOneA": "A",
 				"ColorBlueGreenOneB": "B",
 				"ColorBlueGreenTwo":  "Two",
@@ -310,14 +310,14 @@ func TestEnumParent(t *testing.T) {
 			map[string]string{
 				"Color":              "Color",
 				"ColorBlueGreen":     "Color",
-				"ColorBlueGreen_One": "ColorBlueGreen",
-				"ColorBlueGreenOneA": "ColorBlueGreen_One",
-				"ColorBlueGreenOneB": "ColorBlueGreen_One",
+				"ColorBlueGreenOne":  "ColorBlueGreen",
+				"ColorBlueGreenOneA": "ColorBlueGreenOne",
+				"ColorBlueGreenOneB": "ColorBlueGreenOne",
 				"ColorBlueGreenTwo":  "ColorBlueGreen",
 			},
 			[]string{
 				"ColorBlueGreen",
-				"ColorBlueGreen_One",
+				"ColorBlueGreenOne",
 			},
 		},
 		{
