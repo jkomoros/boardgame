@@ -7,6 +7,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"math"
 	"regexp"
 	"sort"
 	"strconv"
@@ -1043,6 +1044,7 @@ func (e *enum) createMissingParents() error {
 			//TODO: reduce "_" to "" if that's unambiguous
 			newKey = strings.Replace(newKey, enumpkg.TREE_NODE_DELIMITER, "_", -1)
 			newKey = strings.Replace(newKey, " ", "", -1)
+			//newKey = e.reduceProposedKey(newKey)
 			newValue := joinedSubSet
 
 			if err := e.addBakedKey(newKey, newValue); err != nil {
@@ -1056,6 +1058,76 @@ func (e *enum) createMissingParents() error {
 
 	return nil
 
+}
+
+//reduceNewKey is given a proposed key, like "PhaseBlueGreen_One". It returns
+//a string that has as many of the "_" elided as makes sense. Currently this
+//is done by just mimicking whatever the explicit constants do.
+func (e *enum) reduceProposedKey(proposedKey string) string {
+
+	for _, option := range reducedKeyPermutations(proposedKey) {
+		for _, key := range e.Keys() {
+			if strings.HasPrefix(key, option) {
+				return option
+			}
+		}
+	}
+
+	//None of the other reductions worked, so just return the current one.
+	return proposedKey
+}
+
+//reducedKeypermutations returns all possible versions of this key with 0 to n
+//of the "_" replaced with "" (but does not return the proposedKey itself).
+func reducedKeyPermutations(proposedKey string) []string {
+	pieces := strings.Split(proposedKey, "_")
+	if len(pieces) == 1 {
+		//No "_", so no options to return
+		return nil
+	}
+	var result []string
+
+	for _, mask := range maskPermuations(len(pieces) - 1) {
+		str := pieces[0]
+		for i, b := range mask {
+			if b {
+				str += "_"
+			}
+			str += pieces[i+1]
+		}
+		result = append(result, str)
+	}
+
+	return result
+
+}
+
+//maskPermutations returns all possible bitmasks of length k
+func maskPermuations(k int) [][]bool {
+	total := int(math.Pow(2, float64(k)))
+	result := make([][]bool, total)
+
+	lastItem := make([]bool, k)
+	result[0] = lastItem
+
+	for i := 1; i < total; i++ {
+		item := make([]bool, k)
+		copy(item, lastItem)
+		//Flip the last item.
+		item[k-1] = !item[k-1]
+		for j := k - 1; j >= 0; j-- {
+			//Is the item we just flipped now true? if so, no need to carry
+			//over to the left, can stop now.
+			if item[j] {
+				break
+			}
+			//Carry over by flipping the next bit to the left.
+			item[j-1] = !item[j-1]
+		}
+
+		result[i] = item
+	}
+	return result
 }
 
 //makeParents should only be called by e.Process(). It creates the parents relationship.

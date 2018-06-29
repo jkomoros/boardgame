@@ -374,3 +374,62 @@ func TestEnumParent(t *testing.T) {
 		assert.For(t, i).ThatActual(e.NewKeys()).Equals(test.expectedNewKeys).ThenDiffOnFail()
 	}
 }
+
+func TestReduceProposedKey(t *testing.T) {
+	tests := []struct {
+		in        string
+		otherKeys []string
+		expected  string
+	}{
+		{
+			"PhaseBlueGreen",
+			nil,
+			"PhaseBlueGreen",
+		},
+		{
+			"PhaseBlueGreen_One",
+			[]string{
+				"Phase",
+				"PhaseBlueGreen",
+				"PhaseBlueGreenOneA",
+			},
+			"PhaseBlueGreenOne",
+		},
+		{
+			"PhaseBlueGreen_One",
+			[]string{
+				"Phase",
+				"PhaseBlueGreen",
+				"PhaseBlueGreen_OneA",
+			},
+			"PhaseBlueGreen_One",
+		},
+		{
+			"PhaseBlueGreen_One_A",
+			[]string{
+				"Phase",
+				"PhaseBlueGreen",
+				"PhaseBlueGreenOneAOne",
+			},
+			"PhaseBlueGreenOneA",
+		},
+		{
+			"PhaseBlueGreen_One_A",
+			[]string{
+				"Phase",
+				"PhaseBlueGreen",
+				"PhaseBlueGreenOne_AOne",
+			},
+			"PhaseBlueGreenOne_A",
+		},
+	}
+
+	for i, test := range tests {
+		e := newEnum("test", transformNone)
+		for _, key := range test.otherKeys {
+			e.AddTransformKey(key, false, "", transformNone)
+		}
+		actual := e.reduceProposedKey(test.in)
+		assert.For(t, i).ThatActual(actual).Equals(test.expected)
+	}
+}
