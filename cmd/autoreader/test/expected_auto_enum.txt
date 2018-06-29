@@ -108,32 +108,43 @@ var ExampleEnum = Enums.MustAddTree("Example", map[int]string{
 	ExampleTwo:     Example,
 })
 
+//Implicitly created constants for MultiWordTree
+const (
+	MultiWordTreeBlueGreen_One = iota - 9223372036854775808
+	MultiWordTreeBlueGreen_Three
+)
+
 var MultiWordTreeEnum = Enums.MustAddTree("MultiWordTree", map[int]string{
-	-9223372036854775807:          "Three",
-	-9223372036854775808:          "One",
 	MultiWordTree:                 "",
 	MultiWordTreeBlueGreen:        "Blue Green",
 	MultiWordTreeBlueGreenOneA:    "A",
 	MultiWordTreeBlueGreenOneB:    "B",
 	MultiWordTreeBlueGreenThree_A: "A",
 	MultiWordTreeBlueGreenTwoA:    "Two A",
+	MultiWordTreeBlueGreen_One:    "One",
+	MultiWordTreeBlueGreen_Three:  "Three",
 }, map[int]int{
-	-9223372036854775807:          MultiWordTreeBlueGreen,
-	-9223372036854775808:          MultiWordTreeBlueGreen,
 	MultiWordTree:                 MultiWordTree,
 	MultiWordTreeBlueGreen:        MultiWordTree,
-	MultiWordTreeBlueGreenOneA:    -9223372036854775808,
-	MultiWordTreeBlueGreenOneB:    -9223372036854775808,
-	MultiWordTreeBlueGreenThree_A: -9223372036854775807,
+	MultiWordTreeBlueGreenOneA:    MultiWordTreeBlueGreen_One,
+	MultiWordTreeBlueGreenOneB:    MultiWordTreeBlueGreen_One,
+	MultiWordTreeBlueGreenThree_A: MultiWordTreeBlueGreen_Three,
 	MultiWordTreeBlueGreenTwoA:    MultiWordTreeBlueGreen,
+	MultiWordTreeBlueGreen_One:    MultiWordTreeBlueGreen,
+	MultiWordTreeBlueGreen_Three:  MultiWordTreeBlueGreen,
 })
 
+//Implicitly created constants for SkipNode
+const (
+	SkipNodeRed = iota - 9223372036854775808
+)
+
 var SkipNodeEnum = Enums.MustAddTree("SkipNode", map[int]string{
-	-9223372036854775808: "Red",
-	SkipNode:             "",
-	SkipNodeRed_Circle:   "Circle",
+	SkipNode:           "",
+	SkipNodeRed:        "Red",
+	SkipNodeRed_Circle: "Circle",
 }, map[int]int{
-	-9223372036854775808: SkipNode,
-	SkipNode:             SkipNode,
-	SkipNodeRed_Circle:   -9223372036854775808,
+	SkipNode:           SkipNode,
+	SkipNodeRed:        SkipNode,
+	SkipNodeRed_Circle: SkipNodeRed,
 })
