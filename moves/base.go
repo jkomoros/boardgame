@@ -298,7 +298,9 @@ func (b *Base) MoveTypeLegalPhases() []int {
 }
 
 //Legal checks whether the game's CurrentPhase (as determined by the delegate)
-//is one of the LegalPhases for this moveType. A zero-length LegalPhases is
+//is one of the LegalPhases for this moveType. If the delegate's PhaseEnum is
+//a TreeEnum, it will also pass this test if delegate.CurrentPhase() value's
+//ancestors match the legal move type. A zero-length LegalPhases is
 //interpreted as the move being legal in all phases. The string for the
 //current phase will be based on the enum value of the PhaseEnum named by
 //delegate.PhaseEnumName(), if it exists. Next, it checks to see if the give
