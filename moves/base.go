@@ -29,7 +29,6 @@ type autoConfigFallbackMoveType interface {
 	//none of the other options worked.
 	MoveTypeFallbackName() string
 	MoveTypeFallbackHelpText() string
-	MoveTypeFallbackIsFixUp() bool
 }
 
 //A func that will fail to compile if all of the moves don't have a valid fallback.
@@ -245,13 +244,15 @@ func (b *Base) MoveTypeFallbackHelpText() string {
 	return "A base move that does nothing on its own"
 }
 
-//MoveTypeIsFixUp is used by auto.Config to generate the IsFixUp value. Will
-//return the value passed to auto.Config via WithIsFixUp, if provided.
-//Otherwise, will default to MoveTypeFallbackIsFixUp, which will return
-//reasonable values for all moves in this package.
-func (b *Base) MoveTypeIsFixUp() bool {
+//IsFixUp will return the value passed with WithFixUp, falling back on
+//returning false.
+func (b *Base) IsFixUp() bool {
 	config := b.Info().Type().CustomConfiguration()
+	return overrideIsFixUp(config, false)
+}
 
+//overrideIsFixUp takes the config and the base fix up value and returns the override if it exists, otherwise defaultIsFixUp
+func overrideIsFixUp(config boardgame.PropertyCollection, defaultIsFixUp bool) bool {
 	overrideIsFixUp, hasOverrideIsFixUp := config[configNameIsFixUp]
 
 	if hasOverrideIsFixUp {
@@ -262,23 +263,7 @@ func (b *Base) MoveTypeIsFixUp() bool {
 		return boolOverrideIsFixUp
 	}
 
-	move := b.TopLevelStruct()
-
-	defaultConfig, ok := move.(autoConfigFallbackMoveType)
-
-	if ok {
-		return defaultConfig.MoveTypeFallbackIsFixUp()
-	}
-
-	//Nothing worked. :-/
-	return false
-}
-
-//MoveTypeFallbackIsFixUp will be called if WithIsFixUp is not provided via
-//auto.Config. Other moves in the move package all subclass this to return a
-//reasonable value. By default returns false.
-func (b *Base) MoveTypeFallbackIsFixUp() bool {
-	return false
+	return defaultIsFixUp
 }
 
 //MoveTypeLegalPhases will return whatever was passed via WithLegalPhases, or
@@ -391,12 +376,16 @@ func (d *Base) historicalMovesSincePhaseTransition(game *boardgame.Game, upToVer
 		alwaysLegalMoveTypes = make(map[string]bool)
 
 		//Create the list!
-		for _, fixUpMove := range game.Manager().MoveTypes() {
-			if !fixUpMove.IsFixUp() {
+		for _, move := range game.Moves() {
+
+			if !move.IsFixUp() {
 				continue
 			}
-			if len(fixUpMove.LegalPhases()) == 0 {
-				alwaysLegalMoveTypes[fixUpMove.Name()] = true
+
+			moveType := move.Info().Type()
+
+			if len(moveType.LegalPhases()) == 0 {
+				alwaysLegalMoveTypes[moveType.Name()] = true
 			}
 		}
 

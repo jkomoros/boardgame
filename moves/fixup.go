@@ -21,10 +21,12 @@ func (f *FixUp) MoveTypeFallbackHelpText() string {
 	return "A move that is applied automatically to fix up the state after a player makes a move."
 }
 
-//MoveTypeFallbackIsFixUp returns true. This is the primary effect of using
-//the FixUp move.
-func (f *FixUp) MoveTypeFallbackIsFixUp() bool {
-	return true
+//IsFixUp will return the value passed with WithFixUp, falling back on
+//returning true. The returning of true is the primary result of embedding
+//this move type.
+func (f *FixUp) IsFixUp() bool {
+	config := f.Info().Type().CustomConfiguration()
+	return overrideIsFixUp(config, true)
 }
 
 //FixUpMulti is a simple move type that just wraps move.FixUp. Its primary

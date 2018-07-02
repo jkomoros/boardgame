@@ -426,7 +426,7 @@ func (s *Server) getMoveFromForm(c *gin.Context, game *boardgame.Game) (boardgam
 		return nil, errors.New("Invalid MoveType")
 	}
 
-	if move.Info().Type().IsFixUp() {
+	if move.IsFixUp() {
 		return nil, errors.New("Players cannot make fixup moves.")
 	}
 

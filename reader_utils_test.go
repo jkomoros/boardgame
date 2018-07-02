@@ -105,6 +105,10 @@ func (t *testAutoEnumMove) Legal(state ImmutableState, proposer PlayerIndex) err
 	return nil
 }
 
+func (t *testAutoEnumMove) IsFixUp() bool {
+	return false
+}
+
 func (t *testAutoEnumMove) Apply(state State) error {
 	return nil
 }

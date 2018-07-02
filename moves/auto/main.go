@@ -23,8 +23,6 @@ type AutoConfigurableMove interface {
 	MoveTypeName() string
 	//The HelpText to use.
 	MoveTypeHelpText() string
-	//Whether the move should be a fix up.
-	MoveTypeIsFixUp() bool
 	//Result will be used for LegalPhases in the config.
 	MoveTypeLegalPhases() []int
 }
@@ -65,7 +63,7 @@ func Config(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConf
 	//initialized and expanded move (e.g. with all tag-based autoinflation)
 	//that we can then pass to the MoveType* methods, so they'll have more to work with.
 
-	throwAwayConfig := newMoveTypeConfig("Temporary Move", "Temporary Move Help Text", false, nil, exampleStruct, config)
+	throwAwayConfig := newMoveTypeConfig("Temporary Move", "Temporary Move Help Text", nil, exampleStruct, config)
 
 	throwAwayMoveType, err := throwAwayConfig.NewMoveType(nil)
 
@@ -82,16 +80,15 @@ func Config(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConf
 
 	name := actualExample.MoveTypeName()
 	helpText := actualExample.MoveTypeHelpText()
-	isFixUp := actualExample.MoveTypeIsFixUp()
 	legalPhases := actualExample.MoveTypeLegalPhases()
 
-	moveTypeConfig, err := newMoveTypeConfig(name, helpText, isFixUp, legalPhases, exampleStruct, config), nil
+	moveTypeConfig, err := newMoveTypeConfig(name, helpText, legalPhases, exampleStruct, config), nil
 
 	return moveTypeConfig, err
 
 }
 
-func newMoveTypeConfig(name, helpText string, isFixUp bool, legalPhases []int, exampleStruct boardgame.Move, config boardgame.PropertyCollection) *boardgame.MoveTypeConfig {
+func newMoveTypeConfig(name, helpText string, legalPhases []int, exampleStruct boardgame.Move, config boardgame.PropertyCollection) *boardgame.MoveTypeConfig {
 	val := reflect.ValueOf(exampleStruct)
 
 	//We can accept either pointer or struct types.
@@ -108,7 +105,6 @@ func newMoveTypeConfig(name, helpText string, isFixUp bool, legalPhases []int, e
 			return reflect.New(typ).Interface().(boardgame.Move)
 		},
 		CustomConfiguration: config,
-		IsFixUp:             isFixUp,
 		LegalPhases:         legalPhases,
 	}
 }

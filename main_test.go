@@ -214,7 +214,7 @@ func (t *testPlayerState) ImmutableState() ImmutableState {
 }
 
 type testMoveInvalidPlayerIndex struct {
-	baseMove
+	baseFixUpMove
 	//This move is a dangerous one and also a fix-up. So make it so by default
 	//it doesn't apply.
 	CurrentlyLegal bool
@@ -226,7 +226,6 @@ var testMoveInvalidPlayerIndexConfig = MoveTypeConfig{
 	MoveConstructor: func() Move {
 		return new(testMoveInvalidPlayerIndex)
 	},
-	IsFixUp: true,
 }
 
 func (t *testMoveInvalidPlayerIndex) Reader() PropertyReader {
@@ -444,7 +443,7 @@ func (t *testMoveDrawCard) Apply(state State) error {
 }
 
 type testMoveAdvanceCurentPlayer struct {
-	baseMove
+	baseFixUpMove
 }
 
 var testMoveAdvanceCurrentPlayerConfig = MoveTypeConfig{
@@ -453,7 +452,6 @@ var testMoveAdvanceCurrentPlayerConfig = MoveTypeConfig{
 	MoveConstructor: func() Move {
 		return new(testMoveAdvanceCurentPlayer)
 	},
-	IsFixUp: true,
 }
 
 func (t *testMoveAdvanceCurentPlayer) Reader() PropertyReader {
@@ -573,7 +571,7 @@ func (t *testMove) Apply(state State) error {
 }
 
 type testAlwaysLegalMove struct {
-	baseMove
+	baseFixUpMove
 }
 
 var testAlwaysLegalMoveConfig = MoveTypeConfig{
@@ -582,7 +580,6 @@ var testAlwaysLegalMoveConfig = MoveTypeConfig{
 	MoveConstructor: func() Move {
 		return new(testAlwaysLegalMove)
 	},
-	IsFixUp: true,
 }
 
 func (t *testAlwaysLegalMove) Reader() PropertyReader {

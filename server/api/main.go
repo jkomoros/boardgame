@@ -977,9 +977,11 @@ func (s *Server) generateForms(game *boardgame.Game) []*MoveForm {
 
 	var result []*MoveForm
 
-	for _, moveType := range game.Manager().MoveTypes() {
+	for _, move := range game.Moves() {
 
-		if moveType.IsFixUp() {
+		moveType := move.Info().Type()
+
+		if move.IsFixUp() {
 			continue
 		}
 

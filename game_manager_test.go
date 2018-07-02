@@ -102,7 +102,7 @@ func (n *nilStackGameDelegate) GameStateConstructor() ConfigurableSubState {
 }
 
 type testMoveFailValidConfiguration struct {
-	baseMove
+	baseFixUpMove
 }
 
 func (t *testMoveFailValidConfiguration) ValidConfiguration(exampleState State) error {
@@ -134,7 +134,6 @@ var testMoveFailValidConfigurationConfig = MoveTypeConfig{
 	MoveConstructor: func() Move {
 		return new(testMoveFailValidConfiguration)
 	},
-	IsFixUp: true,
 }
 
 func TestMoveFailsValidConfiguration(t *testing.T) {

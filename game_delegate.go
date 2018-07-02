@@ -316,7 +316,7 @@ func (d *DefaultGameDelegate) DynamicComponentValuesConstructor(deck *Deck) Conf
 }
 
 //The Default ProposeFixUpMove runs through all moves in Moves, in order, and
-//returns the first one that returns true for IsFixUp and is legal at the
+//returns the first one that returns true from IsFixUp and is legal at the
 //current state. In many cases, this behavior should be suficient and need not
 //be overwritten. Be extra sure that your FixUpMoves have a conservative Legal
 //function, otherwise you could get a panic from applying too many FixUp
@@ -338,14 +338,17 @@ func (d *DefaultGameDelegate) ProposeFixUpMove(state ImmutableState) Move {
 
 	for _, moveType := range d.Manager().MoveTypes() {
 
-		if !moveType.IsFixUp() {
-			continue
-		}
 		var entry *logrus.Entry
 		if isDebug {
 			entry = logEntry.WithField("movetype", moveType.Name())
 		}
 		move := moveType.NewMove(state)
+
+		if !move.IsFixUp() {
+			//Not a fix up move
+			continue
+		}
+
 		if err := move.Legal(state, AdminPlayerIndex); err == nil {
 			if isDebug {
 				entry.Debug(moveType.Name() + " : MATCH")

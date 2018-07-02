@@ -58,10 +58,6 @@ type MoveTypeConfig struct {
 	//untouched.
 	LegalPhases []int
 
-	//If IsFixUp is true, the moveType will be a FixUp move--that is, players
-	//may not propose it, only ProposeFixUp moves may.
-	IsFixUp bool
-
 	//CustomConfiguration is an optional PropertyCollection. Some move types--
 	//especially in the `moves` package--stash configuration options here that
 	//will change how all moves of this type behave. Individual moves would
@@ -129,7 +125,6 @@ func (m *MoveTypeConfig) NewMoveType(manager *GameManager) (*MoveType, error) {
 		name:                m.Name,
 		helpText:            m.HelpText,
 		constructor:         m.MoveConstructor,
-		isFixUp:             m.IsFixUp,
 		legalPhases:         m.LegalPhases,
 		customConfiguration: m.CustomConfiguration,
 		validator:           validator,
@@ -187,6 +182,12 @@ type Move interface {
 	//example the Description for "Place Token" might be "Player 0 places a
 	//token in position 3".
 	Description() string
+
+	//IsFixUp should return true if this type of move is a candidate to be
+	//returned from ProposeFixUpMove. Doesn't do anything in the core engine,
+	//but many other things (like DefaultGameDelegate's ProposeFixUpMove) want
+	//to know this, so it's part of the default signature.
+	IsFixUp() bool
 
 	//SetInfo will be called after the constructor is called to set the
 	//information, including what type the move is. Splitting this out allows
@@ -281,10 +282,6 @@ func (m *MoveType) HelpText() string {
 	return m.helpText
 }
 
-func (m *MoveType) IsFixUp() bool {
-	return m.isFixUp
-}
-
 func (m *MoveType) LegalPhases() []int {
 	return m.legalPhases
 }
@@ -357,6 +354,11 @@ type baseMove struct {
 	topLevelStruct Move
 }
 
+//baseFixUpMove is same as baseMove but returns true for IsFixUp.
+type baseFixUpMove struct {
+	baseMove
+}
+
 func (d *baseMove) SetInfo(m *MoveInfo) {
 	d.info = *m
 }
@@ -371,6 +373,14 @@ func (d *baseMove) SetTopLevelStruct(m Move) {
 
 func (d *baseMove) TopLevelStruct() Move {
 	return d.topLevelStruct
+}
+
+func (d *baseMove) IsFixUp() bool {
+	return false
+}
+
+func (d *baseFixUpMove) IsFixUp() bool {
+	return true
 }
 
 //DefaultsForState doesn't do anything
