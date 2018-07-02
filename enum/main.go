@@ -638,6 +638,10 @@ func (e *enum) MarshalJSON() ([]byte, error) {
 		obj["Dimensions"] = e.dimensions
 	}
 
+	if e.TreeEnum() != nil {
+		obj["Parents"] = e.parents
+	}
+
 	return json.Marshal(obj)
 }
 
