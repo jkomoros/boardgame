@@ -38,12 +38,32 @@ func (s *StartPhase) ValidConfiguration(exampleState boardgame.State) error {
 		return errors.New("The embedding move does not have PhaseToStart()")
 	}
 
-	if phaseStarter.PhaseToStart(exampleState.Game().Manager().Delegate().CurrentPhase(exampleState)) < 0 {
+	delegate := exampleState.Game().Manager().Delegate()
+
+	phaseToStart := phaseStarter.PhaseToStart(delegate.CurrentPhase(exampleState))
+
+	if phaseStarter.PhaseToStart(phaseToStart) < 0 {
 		return errors.New("Phase to start returned a negative value, which signals an error. Did you call WithPhaseToStart?")
 	}
 
 	if _, ok := exampleState.GameState().(interfaces.CurrentPhaseSetter); !ok {
 		return errors.New("The gameState does not implement CurrentPhaseSetter")
+	}
+
+	phaseEnum := delegate.PhaseEnum()
+
+	if phaseEnum == nil {
+		return nil
+	}
+
+	treeEnum := phaseEnum.TreeEnum()
+
+	if treeEnum == nil {
+		return nil
+	}
+
+	if !treeEnum.IsLeaf(phaseToStart) {
+		return errors.New("PhaseEnum() returns a TreeEnum, and the phase to start is not a Leaf node.")
 	}
 
 	return nil

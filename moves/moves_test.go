@@ -4,6 +4,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves/auto"
 	"github.com/workfit/tester/assert"
+	"strings"
 	"testing"
 )
 
@@ -63,6 +64,16 @@ func (m *moveStartPhaseDrawAgain) PhaseToStart(currentPhase int) int {
 	return phaseDrawAgain
 }
 
+//+autoreader
+type moveStartPhaseIllegal struct {
+	StartPhase
+}
+
+func (m *moveStartPhaseIllegal) PhaseToStart(currentPhase int) int {
+	//normal play is not a leaf node; should error
+	return phaseNormalPlay
+}
+
 func defaultMoveInstaller(manager *boardgame.GameManager) *boardgame.MoveTypeConfigBundle {
 
 	return boardgame.NewMoveTypeConfigBundle().AddOrderedMovesForPhase(phaseSetUp,
@@ -97,6 +108,22 @@ func defaultMoveInstaller(manager *boardgame.GameManager) *boardgame.MoveTypeCon
 			WithTargetCount(3),
 		),
 	)
+}
+
+func illegalPhaseMoveInstaller(manager *boardgame.GameManager) *boardgame.MoveTypeConfigBundle {
+	return boardgame.NewMoveTypeConfigBundle().AddMove(
+		auto.MustConfig(new(moveStartPhaseIllegal)),
+	)
+}
+
+func TestPhaseIllegalConfig(t *testing.T) {
+	_, err := newGameManager(illegalPhaseMoveInstaller)
+
+	assert.For(t).ThatActual(err).IsNotNil()
+
+	failedBecauseTreeEnum := strings.Contains(err.Error(), "TreeEnum")
+
+	assert.For(t).ThatActual(failedBecauseTreeEnum).IsTrue()
 }
 
 func TestGeneral(t *testing.T) {
