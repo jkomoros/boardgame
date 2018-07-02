@@ -3,6 +3,7 @@ package moves
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 	"reflect"
 	"strconv"
@@ -333,7 +334,11 @@ func (d *Base) legalInPhase(state boardgame.ImmutableState) error {
 	delegate := state.Game().Manager().Delegate()
 
 	phaseEnum := delegate.PhaseEnum()
-	treeEnum := phaseEnum.TreeEnum()
+
+	var treeEnum enum.TreeEnum
+	if phaseEnum != nil {
+		treeEnum = phaseEnum.TreeEnum()
+	}
 
 	currentPhase := delegate.CurrentPhase(state)
 
