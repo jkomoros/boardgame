@@ -337,6 +337,11 @@ func (d *defaultReader) propsImpl() (types map[string]PropertyType, mutable map[
 				} else if strings.Contains(interfaceType, "enum.ImmutableVal") {
 					pType = TypeEnum
 					isMutable = false
+				} else if strings.Contains(interfaceType, "enum.TreeVal") {
+					pType = TypeEnum
+				} else if strings.Contains(interfaceType, "enum.ImmutableTreeVal") {
+					pType = TypeEnum
+					isMutable = false
 				} else if strings.Contains(interfaceType, "ImmutableStack") {
 					pType = TypeStack
 					isMutable = false

@@ -636,7 +636,27 @@ func (s *state) validateBeforeSave() error {
 		}
 	}
 
-	return nil
+	//If delegate.PhaseEnum returns a tree, ensure it's in a leaf state.
+
+	delegate := s.Game().Manager().Delegate()
+
+	e := delegate.PhaseEnum()
+
+	if e == nil {
+		return nil
+	}
+
+	t := e.TreeEnum()
+
+	if t == nil {
+		return nil
+	}
+
+	if t.IsLeaf(delegate.CurrentPhase(s)) {
+		return nil
+	}
+
+	return errors.New("PhaseEnum is a TreeEnum, but CurrentPhase is not a leaf value.")
 }
 
 func validateReaderBeforeSave(reader PropertyReader, name string, state State) error {

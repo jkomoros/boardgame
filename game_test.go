@@ -6,6 +6,7 @@ import (
 	"github.com/workfit/tester/assert"
 	"io/ioutil"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -29,6 +30,26 @@ func TestGameDelegateConstants(t *testing.T) {
 		"ConstantStackSize",
 		"MyBool",
 	})
+}
+
+func TestIllegalPhase(t *testing.T) {
+	game := testGame(t)
+
+	err := game.SetUp(0, nil, nil)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	m := game.MoveByName("Make Illegal Phase")
+
+	assert.For(t).ThatActual(m).IsNotNil()
+
+	err = <-game.ProposeMove(m, AdminPlayerIndex)
+
+	//Ensure that the move was rejected because of tree enum, not for example
+	//not being a Legal move.
+	rejectedBecausePhase := strings.Contains(err.Error(), "TreeEnum")
+
+	assert.For(t).ThatActual(rejectedBecausePhase).IsTrue()
 }
 
 func TestGameScorer(t *testing.T) {

@@ -214,8 +214,9 @@ type GameDelegate interface {
 	CurrentPhase(state ImmutableState) int
 
 	//PhaseEnum returns the enum for game phases (the return values of
-	//CurrentPhase are expected to be valid enums within that enum). Primarily
-	//used by moves.Base to generate meaningful error messages in Legal().
+	//CurrentPhase are expected to be valid enums within that enum). If this
+	//returns a non-nil enums.TreeEnum, then the state will not be able to be
+	//saved if CurrentPhase() returns a value that is not a leaf-node.
 	PhaseEnum() enum.Enum
 
 	//PhaseMoveProgression returns the names of the strings of moves in the

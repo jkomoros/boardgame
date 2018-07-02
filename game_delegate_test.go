@@ -30,6 +30,10 @@ func (t *testGameDelegate) ConfigureConstants() map[string]interface{} {
 	}
 }
 
+func (t *testGameDelegate) PhaseEnum() enum.Enum {
+	return testPhaseEnum
+}
+
 func (t *testGameDelegate) ConfigureDecks() map[string]*Deck {
 	deck := NewDeck()
 

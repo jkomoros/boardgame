@@ -46,6 +46,17 @@
         "1": "Blue",
         "2": "Green"
       }
+    },
+    "phase": {
+      "DefaultValue": 1,
+      "Values": {
+        "0": "",
+        "1": "Set Up",
+        "2": "Normal",
+        "3": "Normal > Player Start",
+        "4": "Normal > Activate Card",
+        "5": "Scoring"
+      }
     }
   },
   "Constants": {

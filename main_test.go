@@ -119,6 +119,7 @@ func concreteStates(state ImmutableState) (*testGameState, []*testPlayerState) {
 type testGameState struct {
 	state              State
 	immutableState     ImmutableState
+	Phase              enum.TreeVal `enum:"phase"`
 	CurrentPlayer      PlayerIndex
 	DrawDeck           Stack `sanitize:"len"`
 	Timer              Timer
@@ -255,6 +256,45 @@ func (t *testMoveInvalidPlayerIndex) Apply(state State) error {
 	game.CurrentPlayer = PlayerIndex(len(players))
 
 	return nil
+}
+
+type testMoveMakeIllegalPhase struct {
+	baseMove
+}
+
+var testMoveMakeIllegalPhaseConfig = MoveTypeConfig{
+	Name:     "Make Illegal Phase",
+	HelpText: "Sets to illegal phase which should fail to apply",
+	MoveConstructor: func() Move {
+		return new(testMoveMakeIllegalPhase)
+	},
+}
+
+func (t *testMoveMakeIllegalPhase) Reader() PropertyReader {
+	return getDefaultReader(t)
+}
+
+func (t *testMoveMakeIllegalPhase) ReadSetter() PropertyReadSetter {
+	return getDefaultReadSetter(t)
+}
+
+func (t *testMoveMakeIllegalPhase) ReadSetConfigurer() PropertyReadSetConfigurer {
+	return getDefaultReadSetConfigurer(t)
+}
+
+func (t *testMoveMakeIllegalPhase) Legal(state ImmutableState, player PlayerIndex) error {
+	return nil
+}
+
+func (t *testMoveMakeIllegalPhase) Apply(state State) error {
+
+	g := state.GameState().(*testGameState)
+
+	//phaseNormal is illegal because it is a non-leaf enum val move
+	g.Phase.SetValue(phaseNormal)
+
+	return nil
+
 }
 
 type testMoveIncrementCardInHand struct {

@@ -22,6 +22,33 @@ var testColorEnum = testEnums.MustAdd("color", map[int]string{
 	colorGreen: "Green",
 })
 
+const (
+	phase = iota
+	phaseSetUp
+	phaseNormal
+	phaseNormalPlayerStart
+	phaseNormalActivateCard
+	phaseScoring
+)
+
+var testPhaseEnum = testEnums.MustAddTree("phase",
+	map[int]string{
+		phase:                   "",
+		phaseSetUp:              "Set Up",
+		phaseNormal:             "Normal",
+		phaseNormalActivateCard: "Activate Card",
+		phaseNormalPlayerStart:  "Player Start",
+		phaseScoring:            "Scoring",
+	},
+	map[int]int{
+		phase:                   phase,
+		phaseSetUp:              phase,
+		phaseNormal:             phase,
+		phaseNormalPlayerStart:  phaseNormal,
+		phaseNormalActivateCard: phaseNormal,
+		phaseScoring:            phase,
+	})
+
 func defaultTestGameDelegate(extraComponentsToCreate int) *testGameDelegate {
 
 	moveInstaller := func(manager *GameManager) *MoveTypeConfigBundle {
@@ -34,6 +61,7 @@ func defaultTestGameDelegate(extraComponentsToCreate int) *testGameDelegate {
 			&testMoveDrawCardConfig,
 			&testMoveAdvanceCurrentPlayerConfig,
 			&testMoveInvalidPlayerIndexConfig,
+			&testMoveMakeIllegalPhaseConfig,
 		)
 
 		return bundle
