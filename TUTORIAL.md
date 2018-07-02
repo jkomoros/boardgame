@@ -1586,6 +1586,29 @@ player into gameState. The moves package describes how these moves work and how 
 
 Again, you almost never generate MoveTypeConfigs yourself, but rather use `auto.Config()` from the `moves/auto` package. See the package doc of `moves/auto` to learn more about how to use it.
 
+### Phases and TreeEnums
+
+In many cases your game has a straightforward progression of phases, and a
+normal Enum (described above) will do. But in other cases, there's a complex
+progression of phases, some of which might be nested within one another. For
+example, maybe during Normal play the game can enter a special sub-phase where
+every other player needs to play cards to try to counter a move the primary
+player made.
+
+These sub-phases can be finicky to do, and in many cases it's easiest to model them as a phase in themselves, and rely on normal ordered move phase machinery.
+
+To accomplish this use case (and others), the enum package introduces the
+notion of a TreeEnum. A TreeEnum is like a normal Enum, except that it also
+encodes information about how the various values parent into one another to
+form a tree. You can learn more about how a TreeEnum works in the package doc for the enum package.
+
+The whole library (including the moves sub-package) will interpret PhaseEnums
+that also happen to be TreeEnums specially. They'll make sure, for example,
+that the delegate.CurrentPhase() is never in a non-leaf node phase. Also,
+moves.Base().Legal() will interpret a move that applies in a certain phase to
+also be legal any time delegate.CurrentPhase returns a value that is a child
+of that phase.
+
 ### Configs
 
 Games can often take different configurations. For example, a deck-based card game might be playable with an expansion pack of cards mixed in. 
