@@ -328,11 +328,28 @@ func (d *Base) legalInPhase(state boardgame.ImmutableState) error {
 		return nil
 	}
 
-	currentPhase := state.Game().Manager().Delegate().CurrentPhase(state)
+	delegate := state.Game().Manager().Delegate()
+
+	phaseEnum := delegate.PhaseEnum()
+	treeEnum := phaseEnum.TreeEnum()
+
+	currentPhase := delegate.CurrentPhase(state)
+
+	//totalCurrentPhases is all of the current phases we could be considered
+	//to be in. Deafaults to an []int with just the current phase.
+	totalCurrentPhases := []int{currentPhase}
+
+	if treeEnum != nil {
+		//If PhaseEnum is a tree, then the phase we're in for this purpose is
+		//all ancestor phases.
+		totalCurrentPhases = treeEnum.Ancestors(currentPhase)
+	}
 
 	for _, phase := range legalPhases {
-		if phase == currentPhase {
-			return nil
+		for _, candidateCurrentPhase := range totalCurrentPhases {
+			if phase == candidateCurrentPhase {
+				return nil
+			}
 		}
 	}
 

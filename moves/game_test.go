@@ -9,17 +9,30 @@ import (
 )
 
 const (
-	phaseSetUp = iota
+	phase = iota
+	phaseSetUp
 	phaseNormalPlay
+	phaseNormalPlayDrawCard
+	phaseNormalPlayActivateCard
 	phaseDrawAgain
 )
 
 var enums = enum.NewSet()
 
-var phaseEnum = enums.MustAdd("Phase", map[int]string{
-	phaseSetUp:      "Set Up",
-	phaseNormalPlay: "Normal Play",
-	phaseDrawAgain:  "Draw Again",
+var phaseEnum = enums.MustAddTree("Phase", map[int]string{
+	phase:                       "",
+	phaseSetUp:                  "Set Up",
+	phaseNormalPlay:             "Normal Play",
+	phaseNormalPlayDrawCard:     "Draw Card",
+	phaseNormalPlayActivateCard: "Activate Card",
+	phaseDrawAgain:              "Draw Again",
+}, map[int]int{
+	phase:                       phase,
+	phaseSetUp:                  phase,
+	phaseNormalPlay:             phase,
+	phaseNormalPlayDrawCard:     phaseNormalPlay,
+	phaseNormalPlayActivateCard: phaseNormalPlay,
+	phaseDrawAgain:              phase,
 })
 
 //+autoreader

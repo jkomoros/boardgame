@@ -76,7 +76,7 @@ func defaultMoveInstaller(manager *boardgame.GameManager) *boardgame.MoveTypeCon
 		),
 		auto.MustConfig(
 			new(StartPhase),
-			WithPhaseToStart(phaseNormalPlay, phaseEnum),
+			WithPhaseToStart(phaseNormalPlayDrawCard, phaseEnum),
 		),
 	).AddMovesForPhase(phaseNormalPlay,
 		auto.MustConfig(
@@ -117,7 +117,7 @@ func TestGeneral(t *testing.T) {
 	gameState, playerStates := concreteStates(game.CurrentState())
 
 	assert.For(t).ThatActual(gameState.DrawStack.NumComponents()).Equals(52 - 20)
-	assert.For(t).ThatActual(gameState.Phase.Value()).Equals(phaseNormalPlay)
+	assert.For(t).ThatActual(gameState.Phase.Value()).Equals(phaseNormalPlayDrawCard)
 
 	for i, player := range playerStates {
 		assert.For(t, i).ThatActual(player.Hand.NumComponents()).Equals(2)
@@ -128,7 +128,7 @@ func TestGeneral(t *testing.T) {
 		[]string{
 			"Deal Components From Game Stack DrawStack To Player Stack Hand To Each Player 2 Times",
 			"Deal Other Cards OVERRIDE",
-			"Start Phase Normal Play",
+			"Start Phase Normal Play > Draw Card",
 		},
 		[]int{
 			8,
