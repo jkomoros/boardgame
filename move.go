@@ -16,7 +16,6 @@ type MoveType struct {
 	helpText            string
 	constructor         func() Move
 	legalPhases         []int
-	isFixUp             bool
 	validator           *readerValidator
 	customConfiguration PropertyCollection
 	manager             *GameManager
