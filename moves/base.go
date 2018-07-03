@@ -157,16 +157,25 @@ func titleCaseToWords(in string) string {
 //method returns. Subclasses generally should not override this.
 func (b *Base) MoveTypeName() string {
 
-	config := b.Info().Type().CustomConfiguration()
+	moveInfo := b.Info()
 
-	overrideName, hasOverrideName := config[configNameMoveName]
+	if moveInfo != nil {
 
-	if hasOverrideName {
-		strOverrideName, ok := overrideName.(string)
-		if !ok {
-			return "Unexpected Error: overrideName was not a string"
+		moveType := b.Info().Type()
+
+		if moveType != nil {
+			config := moveType.CustomConfiguration()
+
+			overrideName, hasOverrideName := config[configNameMoveName]
+
+			if hasOverrideName {
+				strOverrideName, ok := overrideName.(string)
+				if !ok {
+					return "Unexpected Error: overrideName was not a string"
+				}
+				return strOverrideName
+			}
 		}
-		return strOverrideName
 	}
 
 	move := b.TopLevelStruct()

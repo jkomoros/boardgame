@@ -56,6 +56,8 @@ func AddOrderedForPhase(phase int, moves ...*boardgame.MoveTypeConfig) []*boardg
 
 		autoConfigMove, ok := move.MoveConstructor().(auto.AutoConfigurableMove)
 
+		autoConfigMove.SetTopLevelStruct(autoConfigMove)
+
 		if !ok {
 			//Fail catastrophically so otheres are more likely to notice.
 			return nil
