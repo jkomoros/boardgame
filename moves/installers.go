@@ -2,7 +2,6 @@ package moves
 
 import (
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/moves/auto"
 )
 
 //Combine takes a series of lists of moveTypeConfigs and flattens them into a
@@ -54,16 +53,7 @@ func AddOrderedForPhase(phase int, moves ...*boardgame.MoveTypeConfig) []*boardg
 
 	for i, move := range moves {
 
-		autoConfigMove, ok := move.MoveConstructor().(auto.AutoConfigurableMove)
-
-		autoConfigMove.SetTopLevelStruct(autoConfigMove)
-
-		if !ok {
-			//Fail catastrophically so otheres are more likely to notice.
-			return nil
-		}
-
-		progression[i] = autoConfigMove.MoveTypeName()
+		progression[i] = move.Name
 
 	}
 
