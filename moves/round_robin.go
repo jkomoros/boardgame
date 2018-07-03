@@ -390,11 +390,6 @@ func (r *RoundRobin) MoveTypeFallbackHelpText() string {
 	return "A round robin move that continues until every player's condition is met."
 }
 
-//MoveTypeFallbackIsFixUp returns true.
-func (r *RoundRobin) MoveTypeFallbackIsFixUp() bool {
-	return true
-}
-
 type numRoundser interface {
 	NumRounds() int
 }

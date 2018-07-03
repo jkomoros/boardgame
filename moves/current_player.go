@@ -73,8 +73,3 @@ func (c *CurrentPlayer) MoveTypeFallbackName() string {
 func (c *CurrentPlayer) MoveTypeFallbackHelpText() string {
 	return "A move by the current player."
 }
-
-//MoveTypeFallbackIsFixUp returns false.
-func (c *CurrentPlayer) MoveTypeFallbackIsFixUp() bool {
-	return false
-}
