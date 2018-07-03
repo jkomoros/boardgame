@@ -270,6 +270,15 @@ type PhaseMoveProgressionSetter interface {
 //PropertyCollection is just an alias for map[string]interface{}
 type PropertyCollection map[string]interface{}
 
+//Copy returns a shallow copy of PropertyCollection
+func (p PropertyCollection) Copy() PropertyCollection {
+	result := make(PropertyCollection, len(p))
+	for key, val := range result {
+		result[key] = val
+	}
+	return result
+}
+
 //DefaultGameDelegate is a struct that implements stubs for all of
 //GameDelegate's methods. This makes it easy to override just one or two
 //methods by creating your own struct that anonymously embeds this one. Name,
