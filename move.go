@@ -130,6 +130,7 @@ type MoveInfo struct {
 	moveType  *MoveType
 	version   int
 	initiator int
+	name      string
 	timestamp time.Time
 }
 
@@ -240,6 +241,13 @@ func StorageRecordForMove(move Move, currentPhase int) *MoveStorageRecord {
 	}
 }
 
+//Name returns the name of the moveType that this move is based on. Generally
+//a convenience for Type().Name(), but in some cases the Type doesn't yet
+//exist but the name does.
+func (m *MoveInfo) Name() string {
+	return m.name
+}
+
 //Type returns the MoveType of this Move.
 func (m *MoveInfo) Type() *MoveType {
 	return m.moveType
@@ -302,6 +310,7 @@ func (m *MoveType) NewMove(state ImmutableState) Move {
 
 	info := &MoveInfo{
 		moveType: m,
+		name:     m.Name(),
 	}
 
 	if state != nil {
