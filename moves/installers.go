@@ -2,6 +2,7 @@ package moves
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves/auto"
 )
 
 //Combine takes a series of lists of moveTypeConfigs and flattens them into a
@@ -45,10 +46,30 @@ func AddForPhase(phase int, moves ...*boardgame.MoveTypeConfig) []*boardgame.Mov
 //AddOrderedForPhase is designed to be used within Combine. It calls
 //WithLegalPhases() and also WithLegalMoveProgression() on the config for each
 //config passed in. It's a convenience to make it less error-prone and more
-//clear what the intent is for phase-locked, ordered moves.
+//clear what the intent is for phase-locked, ordered moves. All moveTypes
+//passed must be legal auto-configurable moves.
 func AddOrderedForPhase(phase int, moves ...*boardgame.MoveTypeConfig) []*boardgame.MoveTypeConfig {
 
-	//TODO: install MoveProgression once that's a thing.
+	progression := make([]string, len(moves))
+
+	for i, move := range moves {
+
+		autoConfigMove, ok := move.MoveConstructor().(auto.AutoConfigurableMove)
+
+		if !ok {
+			//Fail catastrophically so otheres are more likely to notice.
+			return nil
+		}
+
+		progression[i] = autoConfigMove.MoveTypeName()
+
+	}
+
+	installer := WithLegalMoveProgression(progression)
+
+	for _, move := range moves {
+		installer(move.CustomConfiguration)
+	}
 
 	return AddForPhase(phase, moves...)
 

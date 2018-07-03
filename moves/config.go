@@ -20,6 +20,7 @@ const configNameMoveName = fullyQualifiedPackageName + "MoveName"
 const configNameHelpText = fullyQualifiedPackageName + "HelpText"
 const configNameIsFixUp = fullyQualifiedPackageName + "IsFixUp"
 const configNameLegalPhases = fullyQualifiedPackageName + "LegalPhases"
+const configNameLegalMoveProgression = fullyQualifiedPackageName + "LegalMoveProgression"
 const configNameLegalType = fullyQualifiedPackageName + "LegalType"
 
 //WithLegalType returns a function configuration option suitable for being
@@ -71,6 +72,17 @@ func WithLegalPhases(legalPhases ...int) interfaces.CustomConfigurationOption {
 		}
 
 		config[configNameLegalPhases] = legalPhases
+	}
+}
+
+//WithLegalMoveProgression returns a function configuration option suitable
+//for being passed to auto.Config. moves.Base's Legal() will use this for this
+//move type to determine if the move is legal in the order it's being applied.
+//Typically you don't use this directly, and instead use moves.AddOrderedForPhase to
+//use this implicitly.
+func WithLegalMoveProgression(moveProgression []string) interfaces.CustomConfigurationOption {
+	return func(config boardgame.PropertyCollection) {
+		config[configNameLegalMoveProgression] = moveProgression
 	}
 }
 
