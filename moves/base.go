@@ -28,7 +28,7 @@ type autoConfigFallbackMoveType interface {
 	//The last resort move-name generator that MoveName will fall back on if
 	//none of the other options worked.
 	MoveTypeFallbackName() string
-	MoveTypeFallbackHelpText() string
+	FallbackHelpText() string
 }
 
 //A func that will fail to compile if all of the moves don't have a valid fallback.
@@ -113,7 +113,7 @@ func (d *Base) DefaultsForState(state boardgame.ImmutableState) {
 
 //Description defaults to returning the Type's HelpText()
 func (d *Base) Description() string {
-	return d.Info().Type().HelpText()
+	return d.TopLevelStruct().HelpText()
 }
 
 //ValidConfiguration always returns nil because there is no required
@@ -207,11 +207,10 @@ func (b *Base) MoveTypeFallbackName() string {
 	return "Base Move"
 }
 
-//MoveTypeHelpText is used by auto.Config to generate the HelpText. It will
-//return the value passed via the WithHelpText config option, if it was
-//passed. Otherwise it will fall back on the move's MoveTypeHelpTextFallback
+//HelpText will return the value passed via the WithHelpText config option, if
+//it was passed. Otherwise it will fall back on the move's HelpTextFallback
 //method.
-func (b *Base) MoveTypeHelpText() string {
+func (b *Base) HelpText() string {
 	config := b.Info().Type().CustomConfiguration()
 
 	overrideHelpText, hasOverrideHelpText := config[configNameHelpText]
@@ -229,7 +228,7 @@ func (b *Base) MoveTypeHelpText() string {
 	defaultConfig, ok := move.(autoConfigFallbackMoveType)
 
 	if ok {
-		return defaultConfig.MoveTypeFallbackHelpText()
+		return defaultConfig.FallbackHelpText()
 	}
 
 	//Nothing worked. :-/
@@ -237,10 +236,10 @@ func (b *Base) MoveTypeHelpText() string {
 
 }
 
-//MoveTypeFallbackHelpText is the help text that will be used by
-//MoveTypeHelpText if nothing was passed via WithHelpText to auto.Config. By
-//default it returns "A base move that does nothing on its own"
-func (b *Base) MoveTypeFallbackHelpText() string {
+//FallbackHelpText is the help text that will be used by HelpText if nothing
+//was passed via WithHelpText to auto.Config. By default it returns "A base
+//move that does nothing on its own"
+func (b *Base) FallbackHelpText() string {
 	return "A base move that does nothing on its own"
 }
 

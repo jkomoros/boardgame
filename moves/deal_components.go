@@ -250,9 +250,9 @@ func (d *DealCountComponents) MoveTypeFallbackName() string {
 	return "Deal Components From " + game + " In GameState To " + player + " In PlayerState To Each Player " + count + " Times"
 }
 
-//MoveTypeFallbackHelpText returns a string based on the names of the player
+//FallbackHelpText returns a string based on the names of the player
 //stack name, game stack name, and target count.
-func (d *DealCountComponents) MoveTypeFallbackHelpText() string {
+func (d *DealCountComponents) FallbackHelpText() string {
 	player, game, count := d.moveTypeInfo()
 
 	return "Deals " + count + " components from " + game + " in GameState to " + player + " in each PlayerState"
@@ -295,9 +295,9 @@ func (d *DealComponentsUntilPlayerCountReached) MoveTypeFallbackName() string {
 	return "Deal Components From " + game + " In GameState To " + player + " In Each PlayerState Until Each Player Has " + count
 }
 
-//MoveTypeFallbackHelpText returns a string based on the names of the player
+//allbackHelpText returns a string based on the names of the player
 //stack name, game stack name, and target count.
-func (d *DealComponentsUntilPlayerCountReached) MoveTypeFallbackHelpText() string {
+func (d *DealComponentsUntilPlayerCountReached) FallbackHelpText() string {
 	player, game, count := d.moveTypeInfo()
 
 	return "Deals components from " + game + " in GameState to " + player + " in each PlayerState until each player has " + count
@@ -338,9 +338,9 @@ func (d *DealComponentsUntilGameCountLeft) MoveTypeFallbackName() string {
 	return "Deal Components From " + game + " In GameState To " + player + " In Each PlayerState Until Game Stack Has " + count + " Total"
 }
 
-//MoveTypeFallbackHelpText returns a string based on the names of the player
+//FallbackHelpText returns a string based on the names of the player
 //stack name, game stack name, and target count.
-func (d *DealComponentsUntilGameCountLeft) MoveTypeFallbackHelpText() string {
+func (d *DealComponentsUntilGameCountLeft) FallbackHelpText() string {
 	player, game, count := d.moveTypeInfo()
 
 	return "Deals components from " + game + " in GameState to " + player + " in each PlayerState until the game stack has " + count + " left"

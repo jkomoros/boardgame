@@ -60,11 +60,14 @@ type moveMoveTokenSanitized struct {
  **************************************************/
 
 var moveMoveCardBetweenShortStacksConfig = boardgame.MoveTypeConfig{
-	Name:     "Move Card Between Short Stacks",
-	HelpText: "Moves a card between two short stacks",
+	Name: "Move Card Between Short Stacks",
 	MoveConstructor: func() boardgame.Move {
 		return new(moveMoveCardBetweenShortStacks)
 	},
+}
+
+func (m *moveMoveCardBetweenShortStacks) HelpText() string {
+	return "Moves a card between two short stacks"
 }
 
 func (m *moveMoveCardBetweenShortStacks) DefaultsForState(state boardgame.ImmutableState) {
@@ -122,11 +125,14 @@ func (m *moveMoveCardBetweenShortStacks) Apply(state boardgame.State) error {
  **************************************************/
 
 var moveMoveCardBetweenDrawAndDiscardStacksConfig = boardgame.MoveTypeConfig{
-	Name:     "Move Card Between Draw and Discard Stacks",
-	HelpText: "Moves a card between draw and discard stacks",
+	Name: "Move Card Between Draw and Discard Stacks",
 	MoveConstructor: func() boardgame.Move {
 		return new(moveMoveCardBetweenDrawAndDiscardStacks)
 	},
+}
+
+func (m *moveMoveCardBetweenDrawAndDiscardStacks) HelpText() string {
+	return "Moves a card between draw and discard stacks"
 }
 
 func (m *moveMoveCardBetweenDrawAndDiscardStacks) DefaultsForState(state boardgame.ImmutableState) {
@@ -184,11 +190,14 @@ func (m *moveMoveCardBetweenDrawAndDiscardStacks) Apply(state boardgame.State) e
  **************************************************/
 
 var moveFlipHiddenCardConfig = boardgame.MoveTypeConfig{
-	Name:     "Flip Card Between Hidden and Revealed",
-	HelpText: "Flips the card between hidden and revealed",
+	Name: "Flip Card Between Hidden and Revealed",
 	MoveConstructor: func() boardgame.Move {
 		return new(moveFlipHiddenCard)
 	},
+}
+
+func (m *moveFlipHiddenCard) HelpText() string {
+	return "Flips the card between hidden and revealed"
 }
 
 func (m *moveFlipHiddenCard) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
@@ -236,11 +245,14 @@ func (m *moveFlipHiddenCard) Apply(state boardgame.State) error {
  **************************************************/
 
 var moveMoveCardBetweenFanStacksConfig = boardgame.MoveTypeConfig{
-	Name:     "Move Fan Card",
-	HelpText: "Moves a card from or to Fan and Fan Discard",
+	Name: "Move Fan Card",
 	MoveConstructor: func() boardgame.Move {
 		return new(moveMoveCardBetweenFanStacks)
 	},
+}
+
+func (m *moveMoveCardBetweenFanStacks) HelpText() string {
+	return "Moves a card from or to Fan and Fan Discard"
 }
 
 func (m *moveMoveCardBetweenFanStacks) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
@@ -280,11 +292,14 @@ func (m *moveMoveCardBetweenFanStacks) Apply(state boardgame.State) error {
  **************************************************/
 
 var moveVisibleShuffleCardsConfig = boardgame.MoveTypeConfig{
-	Name:     "Visible Shuffle",
-	HelpText: "Performs a visible shuffle",
+	Name: "Visible Shuffle",
 	MoveConstructor: func() boardgame.Move {
 		return new(moveVisibleShuffleCards)
 	},
+}
+
+func (m *moveVisibleShuffleCards) HelpText() string {
+	return "Performs a visible shuffle"
 }
 
 func (m *moveVisibleShuffleCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
@@ -317,11 +332,14 @@ func (m *moveVisibleShuffleCards) Apply(state boardgame.State) error {
  **************************************************/
 
 var moveShuffleCardsConfig = boardgame.MoveTypeConfig{
-	Name:     "Shuffle",
-	HelpText: "Performs a secret shuffle",
+	Name: "Shuffle",
 	MoveConstructor: func() boardgame.Move {
 		return new(moveShuffleCards)
 	},
+}
+
+func (m *moveShuffleCards) HelpText() string {
+	return "Performs a secret shuffle"
 }
 
 func (m *moveShuffleCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
@@ -354,11 +372,14 @@ func (m *moveShuffleCards) Apply(state boardgame.State) error {
  **************************************************/
 
 var moveMoveBetweenHiddenConfig = boardgame.MoveTypeConfig{
-	Name:     "Move Between Hidden",
-	HelpText: "Moves between hidden and visible stacks",
+	Name: "Move Between Hidden",
 	MoveConstructor: func() boardgame.Move {
 		return new(moveMoveBetweenHidden)
 	},
+}
+
+func (m *moveMoveBetweenHidden) HelpText() string {
+	return "Moves between hidden and visible stacks"
 }
 
 func (m *moveMoveBetweenHidden) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
@@ -399,11 +420,14 @@ func (m *moveMoveBetweenHidden) Apply(state boardgame.State) error {
  **************************************************/
 
 var moveMoveTokenConfig = boardgame.MoveTypeConfig{
-	Name:     "Move Token",
-	HelpText: "Moves tokens",
+	Name: "Move Token",
 	MoveConstructor: func() boardgame.Move {
 		return new(moveMoveToken)
 	},
+}
+
+func (m *moveMoveToken) HelpText() string {
+	return "Moves tokens"
 }
 
 func (m *moveMoveToken) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
@@ -444,11 +468,14 @@ func (m *moveMoveToken) Apply(state boardgame.State) error {
  **************************************************/
 
 var moveMoveTokenSanitizedConfig = boardgame.MoveTypeConfig{
-	Name:     "Move Token Sanitized",
-	HelpText: "Moves tokens",
+	Name: "Move Token Sanitized",
 	MoveConstructor: func() boardgame.Move {
 		return new(moveMoveTokenSanitized)
 	},
+}
+
+func (m *moveMoveTokenSanitized) HelpText() string {
+	return "Moves tokens"
 }
 
 func (m *moveMoveTokenSanitized) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {

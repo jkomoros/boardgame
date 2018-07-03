@@ -15,9 +15,9 @@ func (f *FixUp) MoveTypeFallbackName() string {
 	return "FixUp Move"
 }
 
-//MoveTypeFallbackHelpText returns "A move that is applied automatically to
+//FallbackHelpText returns "A move that is applied automatically to
 //fix up the state after a player makes a move."
-func (f *FixUp) MoveTypeFallbackHelpText() string {
+func (f *FixUp) FallbackHelpText() string {
 	return "A move that is applied automatically to fix up the state after a player makes a move."
 }
 

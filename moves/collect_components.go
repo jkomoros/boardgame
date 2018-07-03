@@ -41,9 +41,9 @@ func (d *CollectCountComponents) MoveTypeFallbackName() string {
 	return "Collect Components From " + player + " in each PlayerState To " + game + " in GameState " + count + " Times Per Player"
 }
 
-//MoveTypeFallbackHelpText returns a string based on the names of the player
+//FallbackHelpText returns a string based on the names of the player
 //stack name, game stack name, and target count.
-func (d *CollectCountComponents) MoveTypeFallbackHelpText() string {
+func (d *CollectCountComponents) FallbackHelpText() string {
 	player, game, count := d.moveTypeInfo()
 
 	return "Collects " + count + " components from " + player + " in each PlayerState to " + game + " in GameState"
@@ -94,9 +94,9 @@ func (d *CollectComponentsUntilPlayerCountLeft) MoveTypeFallbackName() string {
 	return "Collect Components From " + player + " in each PlayerState To " + game + " In GameState Until Each Player Is Down To " + count
 }
 
-//MoveTypeFallbackHelpText returns a string based on the names of the player
+//FallbackHelpText returns a string based on the names of the player
 //stack name, game stack name, and target count.
-func (d *CollectComponentsUntilPlayerCountLeft) MoveTypeFallbackHelpText() string {
+func (d *CollectComponentsUntilPlayerCountLeft) FallbackHelpText() string {
 	player, game, count := d.moveTypeInfo()
 
 	return "Collects components from " + player + " in each PlayerState to " + game + " in GameState until each player has " + count + " left"
@@ -153,9 +153,9 @@ func (d *CollectComponentsUntilGameCountReached) MoveTypeFallbackName() string {
 	return "Collect Components From " + player + " in each PlayerState To " + game + " In GameState Until The Game Has " + count + " Total"
 }
 
-//MoveTypeFallbackHelpText returns a string based on the names of the player
+//FallbackHelpText returns a string based on the names of the player
 //stack name, game stack name, and target count.
-func (d *CollectComponentsUntilGameCountReached) MoveTypeFallbackHelpText() string {
+func (d *CollectComponentsUntilGameCountReached) FallbackHelpText() string {
 	player, game, count := d.moveTypeInfo()
 
 	return "Collects components from " + player + " in each PlayerState to " + game + " in GameState until the game has " + count + " total"

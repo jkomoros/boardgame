@@ -384,9 +384,9 @@ func (r *RoundRobin) MoveTypeFallbackName() string {
 	return "Round Robin"
 }
 
-//MoveTypeFallbackHelpText returns "A round robin move that continues until
+//FallbackHelpText returns "A round robin move that continues until
 //every player's condition is met."
-func (r *RoundRobin) MoveTypeFallbackHelpText() string {
+func (r *RoundRobin) FallbackHelpText() string {
 	return "A round robin move that continues until every player's condition is met."
 }
 
@@ -484,9 +484,9 @@ func (r *RoundRobinNumRounds) MoveTypeFallbackName() string {
 	return "Round Robin " + strconv.Itoa(numRounds.NumRounds()) + " Rounds"
 }
 
-//MoveTypeFallbackHelpText returns "A round robin move that makes INT
+//FallbackHelpText returns "A round robin move that makes INT
 //circuits.", where INT is NumRounds().
-func (r *RoundRobinNumRounds) MoveTypeFallbackHelpText() string {
+func (r *RoundRobinNumRounds) FallbackHelpText() string {
 	numRounds, ok := r.TopLevelStruct().(numRoundser)
 
 	if !ok {

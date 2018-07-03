@@ -135,10 +135,10 @@ func (s *StartPhase) MoveTypeFallbackName() string {
 	return "Start Phase " + s.phaseStringValue()
 }
 
-//MoveTypeFallbackHelpText returns "Enters phase PHASENAME" where PHASENAME is the
+//FallbackHelpText returns "Enters phase PHASENAME" where PHASENAME is the
 //string value of the phase to start that was passed via WithPhaseToStart, or
 //the int value if no enum was passed.
-func (s *StartPhase) MoveTypeFallbackHelpText() string {
+func (s *StartPhase) FallbackHelpText() string {
 	return "Enters phase " + s.phaseStringValue()
 }
 

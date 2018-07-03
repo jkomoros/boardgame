@@ -13,7 +13,6 @@ import (
 //GameManager.AddMoveType(moveTypeConfig).
 type MoveType struct {
 	name                string
-	helpText            string
 	constructor         func() Move
 	legalPhases         []int
 	validator           *readerValidator
@@ -28,12 +27,7 @@ type MoveTypeConfig struct {
 	//friendly. For example, "Place Token" is a reasonable name, as long as no
 	//other types of Move-structs will return that name in this game. Required.
 	Name string
-	//HelpText is a human-readable sentence describing what the move does.
-	//HelpText should be the same for all moves of the same type, and
-	//should not vary with the Move's specific properties. For example, the
-	//HelpText for "Place Token" might be "Places the current user's token
-	//in the specified slot on the board."
-	HelpText string
+
 	//Constructor should return a zero-valued Move of the given type. Normally
 	//very simple: just a new(MyMoveType). Required. If you have a field that
 	//is an enum.Var you'll need to initalize it with a variable for the
@@ -122,7 +116,6 @@ func (m *MoveTypeConfig) NewMoveType(manager *GameManager) (*MoveType, error) {
 
 	return &MoveType{
 		name:                m.Name,
-		helpText:            m.HelpText,
 		constructor:         m.MoveConstructor,
 		legalPhases:         m.LegalPhases,
 		customConfiguration: m.CustomConfiguration,
@@ -175,6 +168,13 @@ type Move interface {
 	//example, if the Move has a TargetPlayerIndex property, a reasonable
 	//default is state.CurrentPlayer().
 	DefaultsForState(state ImmutableState)
+
+	//HelpText is a human-readable sentence describing what the move does in
+	//general. HelpText should be the same for all moves of the same type, and
+	//should not vary with the Move's specific properties. For example, the
+	//HelpText for "Place Token" might be "Places the current user's token in
+	//the specified slot on the board."
+	HelpText() string
 
 	//Description is a human-readable prose description of the effects that
 	//this particular move will have, including any move configuration. For
@@ -276,11 +276,6 @@ func (m *MoveType) Name() string {
 	return m.name
 }
 
-//HelpText is a human-readable sentence describing what the move does.
-func (m *MoveType) HelpText() string {
-	return m.helpText
-}
-
 func (m *MoveType) LegalPhases() []int {
 	return m.legalPhases
 }
@@ -358,6 +353,10 @@ type baseFixUpMove struct {
 	baseMove
 }
 
+func (d *baseMove) HelpText() string {
+	return "Unimplemented"
+}
+
 func (d *baseMove) SetInfo(m *MoveInfo) {
 	d.info = *m
 }
@@ -389,7 +388,7 @@ func (d *baseMove) DefaultsForState(state ImmutableState) {
 
 //Description defaults to returning the Type's HelpText()
 func (d *baseMove) Description() string {
-	return d.Info().Type().HelpText()
+	return d.TopLevelStruct().HelpText()
 }
 
 func (d *baseMove) ValidConfiguration(exampleState State) error {

@@ -69,7 +69,7 @@ func (c *CurrentPlayer) MoveTypeFallbackName() string {
 	return "Current Player Move"
 }
 
-//MoveTypeFallbackName returns "A move by the current player."
-func (c *CurrentPlayer) MoveTypeFallbackHelpText() string {
+//FallbackHelpText returns "A move by the current player."
+func (c *CurrentPlayer) FallbackHelpText() string {
 	return "A move by the current player."
 }

@@ -199,12 +199,10 @@ type MoveHideCards struct {
 	moves.CurrentPlayer
 }
 
+//This is left over so that the timer knows what to attach to. But it feels
+//like a smell to hvae it here.
 var moveHideCardsConfig = boardgame.MoveTypeConfig{
-	Name:     "Hide Cards",
-	HelpText: "After the current player has revealed both cards and tried to memorize them, this move hides the cards so that play can continue to next player.",
-	MoveConstructor: func() boardgame.Move {
-		return new(MoveHideCards)
-	},
+	Name: "Hide Cards",
 }
 
 func (m *MoveHideCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {

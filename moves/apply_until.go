@@ -64,8 +64,8 @@ func (a *ApplyUntil) MoveTypeFallbackName() string {
 	return "Apply Until"
 }
 
-//MoveTypeFallbackHelpText simply returns "Applies the move until a condition is met."
-func (a *ApplyUntil) MoveTypeFallbackHelpText() string {
+//FallbackHelpText simply returns "Applies the move until a condition is met."
+func (a *ApplyUntil) FallbackHelpText() string {
 	return "Applies the move until a condition is met."
 }
 
@@ -190,9 +190,9 @@ func (a *ApplyUntilCount) MoveTypeFallbackName() string {
 	return "Apply Until Count of " + targetCountString(a.TopLevelStruct())
 }
 
-//MoveTypeFallbackHelpText returns "Applies the move until a target count of
+//FallbackHelpText returns "Applies the move until a target count of
 //INT is met.", where INT is the target count.
-func (a *ApplyUntilCount) MoveTypeFallbackHelpText() string {
+func (a *ApplyUntilCount) FallbackHelpText() string {
 	return "Applies the move until a target count of " + targetCountString(a.TopLevelStruct()) + " is met."
 }
 
@@ -253,8 +253,8 @@ func (a *ApplyCountTimes) MoveTypeFallbackName() string {
 	return "Apply " + targetCountString(a.TopLevelStruct()) + " Times"
 }
 
-//MoveTypeFallbackHelpText returns "Applies the move INT times in a row.",
+//FallbackHelpText returns "Applies the move INT times in a row.",
 //where INT is the target count.
-func (a *ApplyCountTimes) MoveTypeFallbackHelpText() string {
+func (a *ApplyCountTimes) FallbackHelpText() string {
 	return "Applies the move " + targetCountString(a.TopLevelStruct()) + " times in a row."
 }

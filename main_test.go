@@ -221,11 +221,14 @@ type testMoveInvalidPlayerIndex struct {
 }
 
 var testMoveInvalidPlayerIndexConfig = MoveTypeConfig{
-	Name:     "Invalid PlayerIndex",
-	HelpText: "Set one of the PlayerIndex properties to an invalid number, so we can verify that ApplyMove catches it.",
+	Name: "Invalid PlayerIndex",
 	MoveConstructor: func() Move {
 		return new(testMoveInvalidPlayerIndex)
 	},
+}
+
+func (t *testMoveInvalidPlayerIndex) HelpText() string {
+	return "Set one of the PlayerIndex properties to an invalid number, so we can verify that ApplyMove catches it."
 }
 
 func (t *testMoveInvalidPlayerIndex) Reader() PropertyReader {
@@ -262,11 +265,14 @@ type testMoveMakeIllegalPhase struct {
 }
 
 var testMoveMakeIllegalPhaseConfig = MoveTypeConfig{
-	Name:     "Make Illegal Phase",
-	HelpText: "Sets to illegal phase which should fail to apply",
+	Name: "Make Illegal Phase",
 	MoveConstructor: func() Move {
 		return new(testMoveMakeIllegalPhase)
 	},
+}
+
+func (t *testMoveMakeIllegalPhase) HelpText() string {
+	return "Sets to illegal phase which should fail to apply"
 }
 
 func (t *testMoveMakeIllegalPhase) Reader() PropertyReader {
@@ -302,11 +308,14 @@ type testMoveIncrementCardInHand struct {
 }
 
 var testMoveIncrementCardInHandConfig = MoveTypeConfig{
-	Name:     "Increment IntValue of Card in Hand",
-	HelpText: "Increments the IntValue of the card in the hand",
+	Name: "Increment IntValue of Card in Hand",
 	MoveConstructor: func() Move {
 		return new(testMoveIncrementCardInHand)
 	},
+}
+
+func (t *testMoveIncrementCardInHand) HelpText() string {
+	return "Increments the IntValue of the card in the hand"
 }
 
 func (t *testMoveIncrementCardInHand) DefaultsForState(state ImmutableState) {
@@ -383,11 +392,14 @@ type testMoveDrawCard struct {
 }
 
 var testMoveDrawCardConfig = MoveTypeConfig{
-	Name:     "Draw Card",
-	HelpText: "Draws one card from draw deck into player's hand",
+	Name: "Draw Card",
 	MoveConstructor: func() Move {
 		return new(testMoveDrawCard)
 	},
+}
+
+func (t *testMoveDrawCard) HelpText() string {
+	return "Draws one card from draw deck into player's hand"
 }
 
 func (t *testMoveDrawCard) DefaultsForState(state ImmutableState) {
@@ -447,11 +459,14 @@ type testMoveAdvanceCurentPlayer struct {
 }
 
 var testMoveAdvanceCurrentPlayerConfig = MoveTypeConfig{
-	Name:     "Advance Current Player",
-	HelpText: "Advances to the next player when the current player has no more legal moves they can make this turn.",
+	Name: "Advance Current Player",
 	MoveConstructor: func() Move {
 		return new(testMoveAdvanceCurentPlayer)
 	},
+}
+
+func (t *testMoveAdvanceCurentPlayer) HelpText() string {
+	return "Advances to the next player when the current player has no more legal moves they can make this turn."
 }
 
 func (t *testMoveAdvanceCurentPlayer) Reader() PropertyReader {
@@ -507,11 +522,14 @@ type testMove struct {
 }
 
 var testMoveConfig = MoveTypeConfig{
-	Name:     "Test",
-	HelpText: "Advances the score of the current player by the specified amount.",
+	Name: "Test",
 	MoveConstructor: func() Move {
 		return new(testMove)
 	},
+}
+
+func (t *testMove) HelpText() string {
+	return "Advances the score of the current player by the specified amount."
 }
 
 func (t *testMove) DefaultsForState(state ImmutableState) {
@@ -575,11 +593,14 @@ type testAlwaysLegalMove struct {
 }
 
 var testAlwaysLegalMoveConfig = MoveTypeConfig{
-	Name:     "Test Always Legal Move",
-	HelpText: "A move that is always legal",
+	Name: "Test Always Legal Move",
 	MoveConstructor: func() Move {
 		return new(testAlwaysLegalMove)
 	},
+}
+
+func (t *testAlwaysLegalMove) HelpText() string {
+	return "A move that is always legal"
 }
 
 func (t *testAlwaysLegalMove) Reader() PropertyReader {
@@ -633,11 +654,14 @@ func (i *illegalMove) Apply(state State) error {
 }
 
 var testIllegalMoveConfig = MoveTypeConfig{
-	Name:     "Illegal Move",
-	HelpText: "Move that is illegal because it has an illegal property type on it",
+	Name: "Illegal Move",
 	MoveConstructor: func() Move {
 		return new(illegalMove)
 	},
+}
+
+func (i *illegalMove) HelpText() string {
+	return "Move that is illegal because it has an illegal property type on it"
 }
 
 //testingComponentValues is designed to be run on a stack.ComponentValues() of

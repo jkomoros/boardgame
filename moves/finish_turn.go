@@ -120,8 +120,8 @@ func (f *FinishTurn) MoveTypeFallbackName() string {
 	return "Finish Turn"
 }
 
-//MoveTypeFallbackHelpText returns "Advances to the next player when the
+//FallbackHelpText returns "Advances to the next player when the
 //current player's turn is done."
-func (f *FinishTurn) MoveTypeFallbackHelpText() string {
+func (f *FinishTurn) FallbackHelpText() string {
 	return "Advances to the next player when the current player's turn is done."
 }

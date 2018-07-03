@@ -206,9 +206,9 @@ func (d *DefaultComponent) MoveTypeFallbackName() string {
 	return "Default Component For " + stackName(d, configNameSourceStack) + " LegalType " + strconv.Itoa(legalType)
 }
 
-//MoveTypeFallbackName returns a string based on the stackName passed to
+//FallbackName returns a string based on the stackName passed to
 //WithSourceStack, and the LegalType.
-func (d *DefaultComponent) MoveTypeFallbackHelpText() string {
+func (d *DefaultComponent) FallbackHelpText() string {
 	legalType, _ := d.legalTypeImpl()
 	return "Searches " + stackName(d, configNameSourceStack) + " for a component that returns nil for Legal() with LegalType " + strconv.Itoa(legalType)
 }

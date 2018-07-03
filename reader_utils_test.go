@@ -138,12 +138,15 @@ func (t *testAutoEnumMove) ValidConfiguration(exampleState State) error {
 }
 
 func (t *testAutoEnumMove) Description() string {
-	return t.Info().Type().HelpText()
+	return t.TopLevelStruct().HelpText()
+}
+
+func (t *testAutoEnumMove) HelpText() string {
+	return "Test move that has a enum.Var that has to be created"
 }
 
 var testAutoEnumMoveConfig = MoveTypeConfig{
-	Name:     "AutoEnumMove",
-	HelpText: "Test move that has a enum.Var that has to be created",
+	Name: "AutoEnumMove",
 	MoveConstructor: func() Move {
 		return new(testAutoEnumMove)
 	},

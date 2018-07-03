@@ -154,9 +154,9 @@ func (m *MoveCountComponents) MoveTypeFallbackName() string {
 	return "Move " + targetCountString(m.TopLevelStruct()) + " Components From " + source + " To " + destination
 }
 
-//MoveTypeFallbackHelpText returns a string based on the names of the player
+//FallbackHelpText returns a string based on the names of the player
 //stack name, game stack name, and target count.
-func (m *MoveCountComponents) MoveTypeFallbackHelpText() string {
+func (m *MoveCountComponents) FallbackHelpText() string {
 	source, destination := m.stackNames()
 
 	return "Moves " + targetCountString(m.TopLevelStruct()) + " components from " + source + " to " + destination
@@ -199,9 +199,9 @@ func (m *MoveComponentsUntilCountReached) MoveTypeFallbackName() string {
 	return "Move Components From " + source + " Until " + destination + " Has " + targetCountString(m.TopLevelStruct())
 }
 
-//MoveTypeFallbackHelpText returns a string based on the names of the player
+//FallbackHelpText returns a string based on the names of the player
 //stack name, game stack name, and target count.
-func (m *MoveComponentsUntilCountReached) MoveTypeFallbackHelpText() string {
+func (m *MoveComponentsUntilCountReached) FallbackHelpText() string {
 	source, destination := m.stackNames()
 
 	return "Moves components from " + source + " to " + destination + " until " + destination + " has " + targetCountString(m.TopLevelStruct())
@@ -244,9 +244,9 @@ func (m *MoveComponentsUntilCountLeft) MoveTypeFallbackName() string {
 	return "Move Components To " + destination + " Until " + source + " Has " + targetCountString(m.TopLevelStruct())
 }
 
-//MoveTypeFallbackHelpText returns a string based on the names of the player
+//FallbackHelpText returns a string based on the names of the player
 //stack name, game stack name, and target count.
-func (m *MoveComponentsUntilCountLeft) MoveTypeFallbackHelpText() string {
+func (m *MoveComponentsUntilCountLeft) FallbackHelpText() string {
 	source, destination := m.stackNames()
 
 	return "Moves components from " + source + " to " + destination + " until " + source + " has " + targetCountString(m.TopLevelStruct()) + " left"

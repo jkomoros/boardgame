@@ -987,7 +987,7 @@ func (s *Server) generateForms(game *boardgame.Game) []*MoveForm {
 
 		moveItem := &MoveForm{
 			Name:     moveType.Name(),
-			HelpText: moveType.HelpText(),
+			HelpText: move.HelpText(),
 			Fields:   formFields(moveType.NewMove(game.CurrentState())),
 		}
 		result = append(result, moveItem)
