@@ -379,8 +379,8 @@ func (r *RoundRobin) Apply(state boardgame.State) error {
 
 }
 
-//MoveTypeFallbackName returns "Round Robin"
-func (r *RoundRobin) MoveTypeFallbackName() string {
+//FallbackName returns "Round Robin"
+func (r *RoundRobin) FallbackName() string {
 	return "Round Robin"
 }
 
@@ -471,9 +471,9 @@ func (r *RoundRobinNumRounds) ConditionMet(state boardgame.ImmutableState) error
 
 }
 
-//MoveTypeFallbackName returns "Round Robin INT Rounds", where INT is
+//FallbackName returns "Round Robin INT Rounds", where INT is
 //NumRounds().
-func (r *RoundRobinNumRounds) MoveTypeFallbackName() string {
+func (r *RoundRobinNumRounds) FallbackName() string {
 
 	numRounds, ok := r.TopLevelStruct().(numRoundser)
 

@@ -64,8 +64,8 @@ func (c *CurrentPlayer) DefaultsForState(state boardgame.ImmutableState) {
 	c.TargetPlayerIndex = state.CurrentPlayerIndex()
 }
 
-//MoveTypeFallbackName returns "Current Player Move"
-func (c *CurrentPlayer) MoveTypeFallbackName() string {
+//FallbackName returns "Current Player Move"
+func (c *CurrentPlayer) FallbackName() string {
 	return "Current Player Move"
 }
 

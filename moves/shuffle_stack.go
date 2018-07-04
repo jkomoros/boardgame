@@ -90,9 +90,9 @@ func (s *ShuffleStack) ValidConfiguration(exampleState boardgame.State) error {
 	return nil
 }
 
-//MoveTypeFallbackName returns "Shuffle STACK" where STACK is the name of the
+//FallbackName returns "Shuffle STACK" where STACK is the name of the
 //stack set by WithSourceStack.
-func (s *ShuffleStack) MoveTypeFallbackName() string {
+func (s *ShuffleStack) FallbackName() string {
 	return "Shuffle " + stackName(s, configNameSourceStack)
 }
 

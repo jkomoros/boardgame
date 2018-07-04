@@ -114,9 +114,9 @@ func (f *FinishTurn) Apply(state boardgame.State) error {
 
 }
 
-//MoveTypeFallbackName returns "Finish Turn". In many cases you only have one
+//FallbackName returns "Finish Turn". In many cases you only have one
 //FinishTurn move in a game, so this name does not need to be overriden.
-func (f *FinishTurn) MoveTypeFallbackName() string {
+func (f *FinishTurn) FallbackName() string {
 	return "Finish Turn"
 }
 

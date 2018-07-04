@@ -199,9 +199,9 @@ func (d *DefaultComponent) ValidConfiguration(exampleState boardgame.State) erro
 	return errors.New("No components in the SourceStack's deck implemented LegalComponent.")
 }
 
-//MoveTypeFallbackName returns a string based on the stackName passed to
+//FallbackName returns a string based on the stackName passed to
 //WithSourceStack, and the LegalType.
-func (d *DefaultComponent) MoveTypeFallbackName() string {
+func (d *DefaultComponent) FallbackName() string {
 	legalType, _ := d.legalTypeImpl()
 	return "Default Component For " + stackName(d, configNameSourceStack) + " LegalType " + strconv.Itoa(legalType)
 }

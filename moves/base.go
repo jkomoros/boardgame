@@ -27,7 +27,7 @@ func init() {
 type autoConfigFallbackMoveType interface {
 	//The last resort move-name generator that MoveName will fall back on if
 	//none of the other options worked.
-	MoveTypeFallbackName() string
+	FallbackName() string
 	FallbackHelpText() string
 }
 
@@ -147,15 +147,15 @@ func titleCaseToWords(in string) string {
 
 }
 
-//MoveTypeName is used by auto.Config to generate the name for the move. This
+//DeriveName is used by auto.Config to generate the name for the move. This
 //implementation is where the majority of MoveName magic logic comes from.
-//First, it will use the configuration passed to auto.Config via
-//WithMoveName, if provided. Next, it checks the name of the topLevelStruct
-//via reflection. If the struct does not come from the moves package, it will
-//create a name like `MoveMyMove` --> `My Move`. Finally, if it's a struct
-//from this package, it will fall back on whatever the MoveTypeFallbackName
-//method returns. Subclasses generally should not override this.
-func (b *Base) MoveTypeName() string {
+//First, it will use the configuration passed to auto.Config via WithMoveName,
+//if provided. Next, it checks the name of the topLevelStruct via reflection.
+//If the struct does not come from the moves package, it will create a name
+//like `MoveMyMove` --> `My Move`. Finally, if it's a struct from this
+//package, it will fall back on whatever the FallbackName() method returns.
+//Subclasses generally should not override this.
+func (b *Base) DeriveName() string {
 
 	moveInfo := b.Info()
 
@@ -202,7 +202,7 @@ func (b *Base) MoveTypeName() string {
 	defaultConfig, ok := move.(autoConfigFallbackMoveType)
 
 	if ok {
-		return defaultConfig.MoveTypeFallbackName()
+		return defaultConfig.FallbackName()
 	}
 
 	//Nothing worked. :-/
@@ -210,9 +210,9 @@ func (b *Base) MoveTypeName() string {
 
 }
 
-//MoveTypeFallbackName is the name that is returned if other higher-priority
+//FallbackName is the name that is returned if other higher-priority
 //methods in MoveTypeName fail. For moves.Base returns "Base Move".
-func (b *Base) MoveTypeFallbackName() string {
+func (b *Base) FallbackName() string {
 	return "Base Move"
 }
 

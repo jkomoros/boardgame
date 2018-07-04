@@ -145,9 +145,9 @@ func (m *MoveCountComponents) Apply(state boardgame.State) error {
 
 }
 
-//MoveTypeFallbackName returns a string based on the names of the player
+//FallbackName returns a string based on the names of the player
 //stack name, game stack name, and target count.
-func (m *MoveCountComponents) MoveTypeFallbackName() string {
+func (m *MoveCountComponents) FallbackName() string {
 
 	source, destination := m.stackNames()
 
@@ -190,9 +190,9 @@ func (m *MoveComponentsUntilCountReached) Count(state boardgame.ImmutableState) 
 	return targetStack.NumComponents()
 }
 
-//MoveTypeFallbackName returns a string based on the names of the player
+//FallbackName returns a string based on the names of the player
 //stack name, game stack name, and target count.
-func (m *MoveComponentsUntilCountReached) MoveTypeFallbackName() string {
+func (m *MoveComponentsUntilCountReached) FallbackName() string {
 
 	source, destination := m.stackNames()
 
@@ -235,9 +235,9 @@ func (m *MoveComponentsUntilCountLeft) CountDown(state boardgame.ImmutableState)
 	return true
 }
 
-//MoveTypeFallbackName returns a string based on the names of the player
+//FallbackName returns a string based on the names of the player
 //stack name, game stack name, and target count.
-func (m *MoveComponentsUntilCountLeft) MoveTypeFallbackName() string {
+func (m *MoveComponentsUntilCountLeft) FallbackName() string {
 
 	source, destination := m.stackNames()
 

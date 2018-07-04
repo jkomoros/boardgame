@@ -10,8 +10,8 @@ type FixUp struct {
 	Base
 }
 
-//MoveTypeFallbackName returns FixUp Move"
-func (f *FixUp) MoveTypeFallbackName() string {
+//FallbackName returns FixUp Move"
+func (f *FixUp) FallbackName() string {
 	return "FixUp Move"
 }
 

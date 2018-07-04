@@ -19,8 +19,9 @@ import (
 type AutoConfigurableMove interface {
 	//DefaultConfigMoves all must implement all Move methods.
 	boardgame.Move
-	//The name for the move type
-	MoveTypeName() string
+	//DeriveName() will be called to generate the name. This might be an
+	//expensive method, so it will only be called during installation.
+	DeriveName() string
 }
 
 //MustConfig is a wrapper around Config that if it errors will panic. Only
@@ -74,7 +75,7 @@ func Config(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConf
 	//DefaultConfigMove, because it's fundamentally an exampleStruct.
 	actualExample := throwAwayMoveType.NewMove(nil).(AutoConfigurableMove)
 
-	name := actualExample.MoveTypeName()
+	name := actualExample.DeriveName()
 
 	moveTypeConfig, err := newMoveTypeConfig(name, exampleStruct, config), nil
 
