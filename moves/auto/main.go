@@ -62,18 +62,13 @@ func Config(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConf
 
 	throwAwayConfig := newMoveTypeConfig("Temporary Move", exampleStruct, config)
 
-	throwAwayMoveType, err := throwAwayConfig.NewMoveType(nil)
+	generatedExample, err := throwAwayConfig.OrphanExampleMove()
 
 	if err != nil {
-		//Look for exatly the single kind of error we're OK with. Yes, this is a hack.
-		if err.Error() != "No manager passed, so we can'd do validation" {
-			return boardgame.MoveTypeConfig{}, errors.New("Couldn't create intermediate move type: " + err.Error())
-		}
+		return boardgame.MoveTypeConfig{}, err
 	}
 
-	//the move returned from NewMove is guaranteed to implement
-	//DefaultConfigMove, because it's fundamentally an exampleStruct.
-	actualExample := throwAwayMoveType.NewMove(nil).(AutoConfigurableMove)
+	actualExample := generatedExample.(AutoConfigurableMove)
 
 	name := actualExample.DeriveName()
 

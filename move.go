@@ -55,6 +55,8 @@ type MoveTypeConfig struct {
 	CustomConfiguration PropertyCollection
 }
 
+const newMoveTypeErrNoManagerPassed = "No manager passed, so we can'd do validation"
+
 //NewMoveType takes a MoveTypeConfig and returns a MoveType associated with
 //the given manager. The returned move type will not yet have been added to
 //the manager in question. In general you don't call this directly, and
@@ -98,7 +100,7 @@ func (m *MoveTypeConfig) NewMoveType(manager *GameManager) (*MoveType, error) {
 		}
 	} else {
 		//moves.DefaultConfig hackily looks for exactly this error string.
-		err = errors.New("No manager passed, so we can'd do validation")
+		err = errors.New(newMoveTypeErrNoManagerPassed)
 	}
 
 	return &MoveType{
@@ -109,6 +111,21 @@ func (m *MoveTypeConfig) NewMoveType(manager *GameManager) (*MoveType, error) {
 		manager:             manager,
 	}, err
 
+}
+
+//OrphanExampleMove returns a move from the config that will be similar to a
+//real move, in terms of struct-based auto-inflation, etc. This is exposed
+//primarily for auto.Config, and generally shouldn't be used by others.
+func (m *MoveTypeConfig) OrphanExampleMove() (Move, error) {
+	throwAwayMoveType, err := m.NewMoveType(nil)
+
+	if err != nil {
+		//Look for exatly the single kind of error we're OK with. Yes, this is a hack.
+		if err.Error() != newMoveTypeErrNoManagerPassed {
+			return nil, errors.New("Couldn't create intermediate move type: " + err.Error())
+		}
+	}
+	return throwAwayMoveType.NewMove(nil), nil
 }
 
 //MoveInfo is an object that contains meta-information about a move.
