@@ -102,7 +102,7 @@ type DealCountComponents struct {
 //that wasn't provided.
 func (d *DealCountComponents) TargetCount() int {
 
-	config := d.Info().Type().CustomConfiguration()
+	config := d.CustomConfiguration()
 
 	val, ok := config[configNameTargetCount]
 
@@ -138,7 +138,7 @@ func (d *DealCountComponents) NumRounds() int {
 //passed to auto.Config by WithPlayerStack. If that is not sufficient,
 //override this in your embedding struct.
 func (d *DealCountComponents) PlayerStack(playerState boardgame.PlayerState) boardgame.Stack {
-	config := d.Info().Type().CustomConfiguration()
+	config := d.CustomConfiguration()
 
 	stackName, ok := config[configNamePlayerStack]
 
@@ -165,7 +165,7 @@ func (d *DealCountComponents) PlayerStack(playerState boardgame.PlayerState) boa
 //passed to auto.Config by WithGameStack. If that is not sufficient,
 //override this in your embedding struct.
 func (d *DealCountComponents) GameStack(gameState boardgame.SubState) boardgame.Stack {
-	config := d.Info().Type().CustomConfiguration()
+	config := d.CustomConfiguration()
 
 	stackName, ok := config[configNameGameStack]
 

@@ -135,7 +135,7 @@ func (d *DefaultComponent) Legal(state boardgame.ImmutableState, proposer boardg
 //WithLegalType(), or 0 if none was provided. If that behavior isn't
 //sufficient, you may override this method.
 func (d *DefaultComponent) LegalType() int {
-	config := d.Info().Type().CustomConfiguration()
+	config := d.CustomConfiguration()
 
 	legalType, ok := config[configNameSourceStack]
 

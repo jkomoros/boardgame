@@ -56,7 +56,7 @@ func (m *MoveCountComponents) ValidConfiguration(exampleState boardgame.State) e
 //passed to DefaultConfig by WithSourceStack. If that is not sufficient,
 //override this in your embedding struct.
 func (m *MoveCountComponents) SourceStack(state boardgame.State) boardgame.Stack {
-	config := m.Info().Type().CustomConfiguration()
+	config := m.CustomConfiguration()
 
 	stackName, ok := config[configNameSourceStack]
 
@@ -83,7 +83,7 @@ func (m *MoveCountComponents) SourceStack(state boardgame.State) boardgame.Stack
 //name passed to DefaultConfig by WithDestinationStack. If that is not sufficient,
 //override this in your embedding struct.
 func (m *MoveCountComponents) DestinationStack(state boardgame.State) boardgame.Stack {
-	config := m.Info().Type().CustomConfiguration()
+	config := m.CustomConfiguration()
 
 	stackName, ok := config[configNameDestinationStack]
 

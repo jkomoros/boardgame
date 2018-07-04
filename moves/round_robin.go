@@ -427,7 +427,7 @@ func (r *RoundRobinNumRounds) ValidConfiguration(exampleState boardgame.State) e
 //nil, signaling the Round Robin is over. Will return the value passed via
 //WithNumRounds to auto.Config, or 1 by default.
 func (r *RoundRobinNumRounds) NumRounds() int {
-	config := r.Info().Type().CustomConfiguration()
+	config := r.CustomConfiguration()
 
 	val, ok := config[configNameNumRounds]
 

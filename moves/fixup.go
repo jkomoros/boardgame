@@ -25,7 +25,7 @@ func (f *FixUp) FallbackHelpText() string {
 //returning true. The returning of true is the primary result of embedding
 //this move type.
 func (f *FixUp) IsFixUp() bool {
-	config := f.Info().Type().CustomConfiguration()
+	config := f.CustomConfiguration()
 	return overrideIsFixUp(config, true)
 }
 

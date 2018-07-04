@@ -73,7 +73,7 @@ func (s *StartPhase) ValidConfiguration(exampleState boardgame.State) error {
 //(or 0 if NewStartPhaseConfig wasn't used). If you want a different behavior,
 //override PhaseToStart in your embedding move.
 func (s *StartPhase) PhaseToStart(currentPhase int) int {
-	config := s.Info().Type().CustomConfiguration()
+	config := s.CustomConfiguration()
 	val, ok := config[configNameStartPhase]
 	if !ok {
 		return -1
@@ -143,7 +143,7 @@ func (s *StartPhase) FallbackHelpText() string {
 }
 
 func (s *StartPhase) phaseStringValue() string {
-	config := s.Info().Type().CustomConfiguration()
+	config := s.CustomConfiguration()
 
 	var phaseEnum enum.Enum
 

@@ -120,7 +120,7 @@ func (a *ApplyUntilCount) Count(state boardgame.ImmutableState) int {
 //or 1 if that wasn't provided.
 func (a *ApplyUntilCount) TargetCount() int {
 
-	config := a.Info().Type().CustomConfiguration()
+	config := a.CustomConfiguration()
 
 	val, ok := config[configNameTargetCount]
 

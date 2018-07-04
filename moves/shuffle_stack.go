@@ -18,11 +18,11 @@ type ShuffleStack struct {
 }
 
 type moveInfoer interface {
-	Info() *boardgame.MoveInfo
+	CustomConfiguration() boardgame.PropertyCollection
 }
 
 func sourceStackFromConfig(m moveInfoer, state boardgame.State) boardgame.Stack {
-	config := m.Info().Type().CustomConfiguration()
+	config := m.CustomConfiguration()
 
 	stackName, ok := config[configNameSourceStack]
 

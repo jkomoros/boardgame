@@ -157,24 +157,18 @@ func titleCaseToWords(in string) string {
 //Subclasses generally should not override this.
 func (b *Base) DeriveName() string {
 
-	moveInfo := b.Info()
+	config := b.CustomConfiguration()
 
-	if moveInfo != nil {
+	if config != nil {
 
-		moveType := b.Info().Type()
+		overrideName, hasOverrideName := config[configNameMoveName]
 
-		if moveType != nil {
-			config := moveType.CustomConfiguration()
-
-			overrideName, hasOverrideName := config[configNameMoveName]
-
-			if hasOverrideName {
-				strOverrideName, ok := overrideName.(string)
-				if !ok {
-					return "Unexpected Error: overrideName was not a string"
-				}
-				return strOverrideName
+		if hasOverrideName {
+			strOverrideName, ok := overrideName.(string)
+			if !ok {
+				return "Unexpected Error: overrideName was not a string"
 			}
+			return strOverrideName
 		}
 	}
 
@@ -220,7 +214,7 @@ func (b *Base) FallbackName() string {
 //it was passed. Otherwise it will fall back on the move's HelpTextFallback
 //method.
 func (b *Base) HelpText() string {
-	config := b.Info().Type().CustomConfiguration()
+	config := b.CustomConfiguration()
 
 	overrideHelpText, hasOverrideHelpText := config[configNameHelpText]
 
@@ -255,7 +249,7 @@ func (b *Base) FallbackHelpText() string {
 //IsFixUp will return the value passed with WithFixUp, falling back on
 //returning false.
 func (b *Base) IsFixUp() bool {
-	config := b.Info().Type().CustomConfiguration()
+	config := b.CustomConfiguration()
 	return overrideIsFixUp(config, false)
 }
 
@@ -320,7 +314,7 @@ func (d *Base) CustomConfiguration() boardgame.PropertyCollection {
 }
 
 func (d *Base) legalPhases() []int {
-	val := d.Info().Type().CustomConfiguration()[configNameLegalPhases]
+	val := d.CustomConfiguration()[configNameLegalPhases]
 	ints, ok := val.([]int)
 	if !ok {
 		return nil
@@ -329,7 +323,7 @@ func (d *Base) legalPhases() []int {
 }
 
 func (d *Base) legalMoveProgression() []string {
-	val := d.Info().Type().CustomConfiguration()[configNameLegalMoveProgression]
+	val := d.CustomConfiguration()[configNameLegalMoveProgression]
 	strs, ok := val.([]string)
 	if !ok {
 		return nil
@@ -567,7 +561,7 @@ func progressionMatches(input []string, pattern []string) bool {
 //stackName returns the name of the stack for helpTExt, name, etc based on the
 //configPropName.
 func stackName(move moveInfoer, configPropName string) string {
-	config := move.Info().Type().CustomConfiguration()
+	config := move.CustomConfiguration()
 
 	val, ok := config[configPropName]
 
