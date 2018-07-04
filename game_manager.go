@@ -155,16 +155,6 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 	return result, nil
 }
 
-//CustomConfigurationForMove returns the custom configuration object that was
-//associated with that move when it was created.
-func (g *GameManager) CustomConfigurationForMove(moveName string) PropertyCollection {
-	moveType := g.MoveTypeByName(moveName)
-	if moveType == nil {
-		return nil
-	}
-	return moveType.CustomConfiguration()
-}
-
 func (g *GameManager) installMoves(configs []MoveTypeConfig) error {
 
 	if configs == nil {
