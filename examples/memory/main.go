@@ -296,7 +296,7 @@ func (g *gameDelegate) ConfigureAgents() []boardgame.Agent {
 
 var revealCardMoveName string
 
-func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
+func (g *gameDelegate) ConfigureMoves() []boardgame.MoveTypeConfig {
 
 	revealCardConfig := auto.MustConfig(
 		new(MoveRevealCard),
@@ -307,7 +307,7 @@ func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 	//string constants that change.
 	revealCardMoveName = revealCardConfig.Name
 
-	return boardgame.NewMoveTypeConfigBundle().AddMoves(
+	return moves.Add(
 		revealCardConfig,
 		auto.MustConfig(
 			new(MoveHideCards),

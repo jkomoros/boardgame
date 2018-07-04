@@ -314,11 +314,29 @@ func (d *Base) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIn
 
 }
 
+func (d *Base) legalPhases() []int {
+	val := d.Info().Type().CustomConfiguration()[configNameLegalPhases]
+	ints, ok := val.([]int)
+	if !ok {
+		return nil
+	}
+	return ints
+}
+
+func (d *Base) legalMoveProgression() []string {
+	val := d.Info().Type().CustomConfiguration()[configNameLegalMoveProgression]
+	strs, ok := val.([]string)
+	if !ok {
+		return nil
+	}
+	return strs
+}
+
 //legalInPhase will return a descriptive error if this move is not legal in
 //the current phase of hte game.
 func (d *Base) legalInPhase(state boardgame.ImmutableState) error {
 
-	legalPhases := d.Info().Type().LegalPhases()
+	legalPhases := d.legalPhases()
 
 	if len(legalPhases) == 0 {
 		return nil
@@ -390,10 +408,8 @@ func (d *Base) historicalMovesSincePhaseTransition(game *boardgame.Game, upToVer
 				continue
 			}
 
-			moveType := move.Info().Type()
-
-			if len(moveType.LegalPhases()) == 0 {
-				alwaysLegalMoveTypes[moveType.Name()] = true
+			if len(d.legalPhases()) == 0 {
+				alwaysLegalMoveTypes[move.Info().Name()] = true
 			}
 		}
 
@@ -436,7 +452,7 @@ func (d *Base) historicalMovesSincePhaseTransition(game *boardgame.Game, upToVer
 func (d *Base) legalMoveInProgression(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	currentPhase := state.Game().Manager().Delegate().CurrentPhase(state)
 
-	pattern := state.Game().Manager().Delegate().PhaseMoveProgression(currentPhase)
+	pattern := d.legalMoveProgression()
 
 	//If there is no legal move progression then moves are legal in the phase at any time
 	if pattern == nil {

@@ -10,7 +10,7 @@ type testGameDelegate struct {
 	DefaultGameDelegate
 	//if this is higher than 0, then will craete this many extra comoponents
 	extraComponentsToCreate int
-	moveInstaller           func(manager *GameManager) *MoveTypeConfigBundle
+	moveInstaller           func(manager *GameManager) []MoveTypeConfig
 }
 
 func (t *testGameDelegate) ConfigureAgents() []Agent {
@@ -79,7 +79,7 @@ func (t *testGameDelegate) ConfigureDecks() map[string]*Deck {
 
 }
 
-func (t *testGameDelegate) ConfigureMoves() *MoveTypeConfigBundle {
+func (t *testGameDelegate) ConfigureMoves() []MoveTypeConfig {
 	return t.moveInstaller(t.Manager())
 }
 

@@ -27,7 +27,7 @@ type AutoConfigurableMove interface {
 
 //MustConfig is a wrapper around Config that if it errors will panic. Only
 //suitable for being used during setup.
-func MustConfig(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConfigurationOption) *boardgame.MoveTypeConfig {
+func MustConfig(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConfigurationOption) boardgame.MoveTypeConfig {
 	result, err := Config(exampleStruct, options...)
 
 	if err != nil {
@@ -45,7 +45,7 @@ func MustConfig(exampleStruct AutoConfigurableMove, options ...interfaces.Custom
 //move name, helptext, and isFixUp; anything based on moves.Base automatically
 //satisfies the necessary interface. See the package doc for an example of
 //use.
-func Config(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConfigurationOption) (*boardgame.MoveTypeConfig, error) {
+func Config(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConfigurationOption) (boardgame.MoveTypeConfig, error) {
 
 	config := make(boardgame.PropertyCollection, len(options))
 
@@ -54,7 +54,7 @@ func Config(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConf
 	}
 
 	if exampleStruct == nil {
-		return nil, errors.New("nil struct provided")
+		return boardgame.MoveTypeConfig{}, errors.New("nil struct provided")
 	}
 
 	//We'll create a throw-away move type config first to get a fully-
@@ -68,7 +68,7 @@ func Config(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConf
 	if err != nil {
 		//Look for exatly the single kind of error we're OK with. Yes, this is a hack.
 		if err.Error() != "No manager passed, so we can'd do validation" {
-			return nil, errors.New("Couldn't create intermediate move type: " + err.Error())
+			return boardgame.MoveTypeConfig{}, errors.New("Couldn't create intermediate move type: " + err.Error())
 		}
 	}
 
@@ -85,7 +85,7 @@ func Config(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConf
 
 }
 
-func newMoveTypeConfig(name string, legalPhases []int, exampleStruct boardgame.Move, config boardgame.PropertyCollection) *boardgame.MoveTypeConfig {
+func newMoveTypeConfig(name string, legalPhases []int, exampleStruct boardgame.Move, config boardgame.PropertyCollection) boardgame.MoveTypeConfig {
 	val := reflect.ValueOf(exampleStruct)
 
 	//We can accept either pointer or struct types.
@@ -95,7 +95,7 @@ func newMoveTypeConfig(name string, legalPhases []int, exampleStruct boardgame.M
 
 	typ := val.Type()
 
-	return &boardgame.MoveTypeConfig{
+	return boardgame.MoveTypeConfig{
 		Name: name,
 		MoveConstructor: func() boardgame.Move {
 			return reflect.New(typ).Interface().(boardgame.Move)

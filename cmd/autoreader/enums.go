@@ -106,25 +106,25 @@ func findDelegateName(packageASTs map[string]*ast.Package) ([]string, error) {
 					continue
 				}
 
-				returnFieldStar, ok := funDecl.Type.Results.List[0].Type.(*ast.StarExpr)
+				arrayType, ok := funDecl.Type.Results.List[0].Type.(*ast.ArrayType)
 
 				if !ok {
-					//OK, doesn't return a pointer, can't be a match.
+					//OK, there's no [] so can't be right type
 					continue
 				}
 
-				returnFieldSelector, ok := returnFieldStar.X.(*ast.SelectorExpr)
+				sel, ok := arrayType.Elt.(*ast.SelectorExpr)
 
 				if !ok {
-					//OK, there's no boardgame...
+					//There's no 'boardgame'
 					continue
 				}
 
-				if returnFieldSelector.Sel.Name != "MoveTypeConfigBundle" {
+				if sel.Sel.Name != "MoveTypeConfig" {
 					continue
 				}
 
-				returnFieldSelectorPackage, ok := returnFieldSelector.X.(*ast.Ident)
+				returnFieldSelectorPackage, ok := sel.X.(*ast.Ident)
 
 				if !ok {
 					continue

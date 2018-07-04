@@ -154,8 +154,10 @@ var testAutoEnumMoveConfig = MoveTypeConfig{
 
 func TestAutoEnum(t *testing.T) {
 
-	moveInstaller := func(manager *GameManager) *MoveTypeConfigBundle {
-		return NewMoveTypeConfigBundle().AddMove(&testAutoEnumMoveConfig)
+	moveInstaller := func(manager *GameManager) []MoveTypeConfig {
+		return []MoveTypeConfig{
+			testAutoEnumMoveConfig,
+		}
 	}
 
 	manager, err := NewGameManager(&testGameDelegate{moveInstaller: moveInstaller}, newTestStorageManager())

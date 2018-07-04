@@ -123,8 +123,8 @@ func (g *gameDelegate) DynamicComponentValuesConstructor(deck *boardgame.Deck) b
 	return nil
 }
 
-func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
-	return boardgame.NewMoveTypeConfigBundle().AddMoves(
+func (g *gameDelegate) ConfigureMoves() []boardgame.MoveTypeConfig {
+	return moves.Add(
 		auto.MustConfig(
 			new(MoveRollDice),
 			moves.WithHelpText("Rolls the dice for the current player"),

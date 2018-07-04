@@ -45,11 +45,12 @@ type GameDelegate interface {
 
 	//ConfigureMoves will be called during creation of a GameManager in
 	//NewGameManager. This is the time to install moves onto the manager by
-	//creating a bundle and adding moves to it. If the moves you add are
-	//illegal for any reason, NewGameManager will fail with an error. By the
-	//time this is called. delegate.SetManager will already have been called,
-	//so you'll have access to the manager via Manager().
-	ConfigureMoves() *MoveTypeConfigBundle
+	//returning a list of moves to install. Typicall you use moves.Combine and
+	//friends to organize your list of moves to install. If the moves you add
+	//are illegal for any reason, NewGameManager will fail with an error. By
+	//the time this is called. delegate.SetManager will already have been
+	//called, so you'll have access to the manager via Manager().
+	ConfigureMoves() []MoveTypeConfig
 
 	//ConfigureAgents will be called when creating a new GameManager. Emit the
 	//agents you want to install.
@@ -256,15 +257,6 @@ type GameDelegate interface {
 
 	//Manager returns the Manager that was set on this delegate.
 	Manager() *GameManager
-}
-
-//PhaseMoveProgressionSetter is an optional interface that delegates can
-//implement. If implemented, GameManager.AddOrderedMovesForPhase will call
-//this. DefaultGameDelegate satisfies this interface.
-type PhaseMoveProgressionSetter interface {
-	//SetPhaseMoveProgression should set the values that the delegate should
-	//return for PhaseMoveProgression(phase).
-	SetPhaseMoveProgression(phase int, progression []string)
 }
 
 //PropertyCollection is just an alias for map[string]interface{}

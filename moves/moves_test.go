@@ -74,46 +74,50 @@ func (m *moveStartPhaseIllegal) PhaseToStart(currentPhase int) int {
 	return phaseNormalPlay
 }
 
-func defaultMoveInstaller(manager *boardgame.GameManager) *boardgame.MoveTypeConfigBundle {
+func defaultMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveTypeConfig {
 
-	return boardgame.NewMoveTypeConfigBundle().AddOrderedMovesForPhase(phaseSetUp,
-		auto.MustConfig(
-			new(moveDealCards),
-			WithMoveName("Deal Components From Game Stack DrawStack To Player Stack Hand To Each Player 2 Times"),
+	return Combine(
+		AddOrderedForPhase(phaseSetUp,
+			auto.MustConfig(
+				new(moveDealCards),
+				WithMoveName("Deal Components From Game Stack DrawStack To Player Stack Hand To Each Player 2 Times"),
+			),
+			auto.MustConfig(
+				new(moveDealOtherCards),
+				WithMoveName("Deal Other Cards OVERRIDE"),
+			),
+			auto.MustConfig(
+				new(StartPhase),
+				WithPhaseToStart(phaseNormalPlayDrawCard, phaseEnum),
+			),
 		),
-		auto.MustConfig(
-			new(moveDealOtherCards),
-			WithMoveName("Deal Other Cards OVERRIDE"),
+		AddForPhase(phaseNormalPlay,
+			auto.MustConfig(
+				new(moveCurrentPlayerDraw),
+				WithMoveName("Draw Card"),
+			),
+			auto.MustConfig(
+				new(moveStartPhaseDrawAgain),
+				WithMoveName("Start Phase Draw Again"),
+				WithIsFixUp(false),
+			),
 		),
-		auto.MustConfig(
-			new(StartPhase),
-			WithPhaseToStart(phaseNormalPlayDrawCard, phaseEnum),
-		),
-	).AddMovesForPhase(phaseNormalPlay,
-		auto.MustConfig(
-			new(moveCurrentPlayerDraw),
-			WithMoveName("Draw Card"),
-		),
-		auto.MustConfig(
-			new(moveStartPhaseDrawAgain),
-			WithMoveName("Start Phase Draw Again"),
-			WithIsFixUp(false),
-		),
-	).AddOrderedMovesForPhase(phaseDrawAgain,
-		auto.MustConfig(
-			new(DealComponentsUntilPlayerCountReached),
-			WithMoveName("Deal Cards To Three"),
-			WithGameStack("DrawStack"),
-			WithPlayerStack("Hand"),
-			WithTargetCount(3),
+		AddOrderedForPhase(phaseDrawAgain,
+			auto.MustConfig(
+				new(DealComponentsUntilPlayerCountReached),
+				WithMoveName("Deal Cards To Three"),
+				WithGameStack("DrawStack"),
+				WithPlayerStack("Hand"),
+				WithTargetCount(3),
+			),
 		),
 	)
 }
 
-func illegalPhaseMoveInstaller(manager *boardgame.GameManager) *boardgame.MoveTypeConfigBundle {
-	return boardgame.NewMoveTypeConfigBundle().AddMove(
+func illegalPhaseMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveTypeConfig {
+	return []boardgame.MoveTypeConfig{
 		auto.MustConfig(new(moveStartPhaseIllegal)),
-	)
+	}
 }
 
 func TestPhaseIllegalConfig(t *testing.T) {

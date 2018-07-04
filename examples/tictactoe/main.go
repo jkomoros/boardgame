@@ -124,8 +124,8 @@ func (g *gameDelegate) ConfigureAgents() []boardgame.Agent {
 	}
 }
 
-func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
-	return boardgame.NewMoveTypeConfigBundle().AddMoves(
+func (g *gameDelegate) ConfigureMoves() []boardgame.MoveTypeConfig {
+	return moves.Add(
 		auto.MustConfig(
 			new(MovePlaceToken),
 			moves.WithHelpText("Place a player's token in a specific space."),

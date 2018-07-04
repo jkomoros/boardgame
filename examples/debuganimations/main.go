@@ -125,18 +125,18 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.ImmutableState) (finish
 	return false, nil
 }
 
-func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
-	return boardgame.NewMoveTypeConfigBundle().AddMoves(
-		&moveMoveCardBetweenShortStacksConfig,
-		&moveMoveCardBetweenDrawAndDiscardStacksConfig,
-		&moveFlipHiddenCardConfig,
-		&moveMoveCardBetweenFanStacksConfig,
-		&moveVisibleShuffleCardsConfig,
-		&moveShuffleCardsConfig,
-		&moveMoveBetweenHiddenConfig,
-		&moveMoveTokenConfig,
-		&moveMoveTokenSanitizedConfig,
-	)
+func (g *gameDelegate) ConfigureMoves() []boardgame.MoveTypeConfig {
+	return []boardgame.MoveTypeConfig{
+		moveMoveCardBetweenShortStacksConfig,
+		moveMoveCardBetweenDrawAndDiscardStacksConfig,
+		moveFlipHiddenCardConfig,
+		moveMoveCardBetweenFanStacksConfig,
+		moveVisibleShuffleCardsConfig,
+		moveShuffleCardsConfig,
+		moveMoveBetweenHiddenConfig,
+		moveMoveTokenConfig,
+		moveMoveTokenSanitizedConfig,
+	}
 }
 
 func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {

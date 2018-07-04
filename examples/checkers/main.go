@@ -43,29 +43,31 @@ func (g *gameDelegate) DefaultNumPlayers() int {
 	return 2
 }
 
-func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
-	return boardgame.NewMoveTypeConfigBundle().AddOrderedMovesForPhase(PhaseSetup,
-		auto.MustConfig(
-			new(MovePlaceToken),
-			moves.WithHelpText("Places one token at a time on the board."),
+func (g *gameDelegate) ConfigureMoves() []boardgame.MoveTypeConfig {
+	return moves.Combine(
+		moves.AddOrderedForPhase(PhaseSetup,
+			auto.MustConfig(
+				new(MovePlaceToken),
+				moves.WithHelpText("Places one token at a time on the board."),
+			),
+			auto.MustConfig(
+				new(moves.StartPhase),
+				moves.WithPhaseToStart(PhasePlaying, PhaseEnum),
+			),
 		),
-		auto.MustConfig(
-			new(moves.StartPhase),
-			moves.WithPhaseToStart(PhasePlaying, PhaseEnum),
-		),
-	).AddMovesForPhase(PhasePlaying,
-		auto.MustConfig(
-			new(MoveCrownToken),
-			moves.WithHelpText("Crowns tokens that make it to the other end of the board."),
-			moves.WithSourceStack("Spaces"),
-		),
-		auto.MustConfig(
-			new(moves.FinishTurn),
-		),
-
-		auto.MustConfig(
-			new(MoveMoveToken),
-			moves.WithHelpText("Moves a token from one place to another"),
+		moves.AddForPhase(PhasePlaying,
+			auto.MustConfig(
+				new(MoveCrownToken),
+				moves.WithHelpText("Crowns tokens that make it to the other end of the board."),
+				moves.WithSourceStack("Spaces"),
+			),
+			auto.MustConfig(
+				new(moves.FinishTurn),
+			),
+			auto.MustConfig(
+				new(MoveMoveToken),
+				moves.WithHelpText("Moves a token from one place to another"),
+			),
 		),
 	)
 }

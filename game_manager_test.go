@@ -51,20 +51,17 @@ var testPhaseEnum = testEnums.MustAddTree("phase",
 
 func defaultTestGameDelegate(extraComponentsToCreate int) *testGameDelegate {
 
-	moveInstaller := func(manager *GameManager) *MoveTypeConfigBundle {
+	moveInstaller := func(manager *GameManager) []MoveTypeConfig {
 
-		bundle := NewMoveTypeConfigBundle()
+		return []MoveTypeConfig{
+			testMoveConfig,
+			testMoveIncrementCardInHandConfig,
+			testMoveDrawCardConfig,
+			testMoveAdvanceCurrentPlayerConfig,
+			testMoveInvalidPlayerIndexConfig,
+			testMoveMakeIllegalPhaseConfig,
+		}
 
-		bundle.AddMoves(
-			&testMoveConfig,
-			&testMoveIncrementCardInHandConfig,
-			&testMoveDrawCardConfig,
-			&testMoveAdvanceCurrentPlayerConfig,
-			&testMoveInvalidPlayerIndexConfig,
-			&testMoveMakeIllegalPhaseConfig,
-		)
-
-		return bundle
 	}
 
 	return &testGameDelegate{
@@ -138,14 +135,11 @@ var testMoveFailValidConfigurationConfig = MoveTypeConfig{
 
 func TestMoveFailsValidConfiguration(t *testing.T) {
 
-	moveInstaller := func(manager *GameManager) *MoveTypeConfigBundle {
-		bundle := NewMoveTypeConfigBundle()
+	moveInstaller := func(manager *GameManager) []MoveTypeConfig {
+		return []MoveTypeConfig{
+			testMoveFailValidConfigurationConfig,
+		}
 
-		bundle.AddMoves(
-			&testMoveFailValidConfigurationConfig,
-		)
-
-		return bundle
 	}
 
 	_, err := NewGameManager(&testGameDelegate{moveInstaller: moveInstaller}, newTestStorageManager())
