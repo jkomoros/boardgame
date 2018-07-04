@@ -297,6 +297,28 @@ func (d *Base) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIn
 
 }
 
+//Name returns the name of this move according to MoveInfo.Name(). A simple
+//convenience wrapper that allows you to avoid a nil check.
+func (d *Base) Name() string {
+	if d.info == nil {
+		return ""
+	}
+	return d.info.Name()
+}
+
+//CustomConfiguration returns the custom configuration associated with this
+//move, according to MoveInfo.CustomConfiguration(). A simple convenience
+//wrapper that allows you to avoid a nil check.
+func (d *Base) CustomConfiguration() boardgame.PropertyCollection {
+
+	if d.info == nil {
+		return nil
+	}
+
+	return d.info.CustomConfiguration()
+
+}
+
 func (d *Base) legalPhases() []int {
 	val := d.Info().Type().CustomConfiguration()[configNameLegalPhases]
 	ints, ok := val.([]int)
