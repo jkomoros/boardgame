@@ -60,9 +60,9 @@ func WithHelpText(helpText string) interfaces.CustomConfigurationOption {
 
 //WithLegalPhases returns a function configuration option suitable for being
 //passed to auto.Config. legalPhases will extend whatever has already been
-//passed beore. moves.Base will return whatever is passed via this for
-//MoveTypeLegalPhases(). Typically you don't use this directly, and instead
-//use moves.AddForPhase to use this implicitly.
+//passed before. move.Base will use the result of this to determine if a given
+//move is legal in the current phase. Typically you don't use this directly,
+//and instead use moves.AddForPhase to use this implicitly.
 func WithLegalPhases(legalPhases ...int) interfaces.CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		previousLegalPhases := config[configNameLegalPhases]

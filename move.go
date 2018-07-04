@@ -14,7 +14,6 @@ import (
 type MoveType struct {
 	name                string
 	constructor         func() Move
-	legalPhases         []int
 	validator           *readerValidator
 	customConfiguration PropertyCollection
 	manager             *GameManager
@@ -38,18 +37,6 @@ type MoveTypeConfig struct {
 	//the correct enum for that field, allowing you to maintain a single-line
 	//constructor.
 	MoveConstructor func() Move
-
-	//LegalPhases is the value that will be returned from
-	//MoveType.LegalPhases. It is primarily used by moves.Base to see if the
-	//move is legal in the current phase, as determined by
-	//delegate.CurrentPhase(). See moves.Base for how this information is
-	//used. If you use manager.AddMovesForPhase or
-	//manager.AddOrderedMovesForPhase to install your moves, you likely can
-	//leave this as nil and have it set correctly. If you want your move to be
-	//valid in any phase but don't want them to modify LegalPhases, configure
-	//this to be a zero-length slice instead of nil and they'll leave it
-	//untouched.
-	LegalPhases []int
 
 	//CustomConfiguration is an optional PropertyCollection. Some move types--
 	//especially in the `moves` package--stash configuration options here that
@@ -117,7 +104,6 @@ func (m *MoveTypeConfig) NewMoveType(manager *GameManager) (*MoveType, error) {
 	return &MoveType{
 		name:                m.Name,
 		constructor:         m.MoveConstructor,
-		legalPhases:         m.LegalPhases,
 		customConfiguration: m.CustomConfiguration,
 		validator:           validator,
 		manager:             manager,
@@ -282,10 +268,6 @@ var moveTypeIllegalPropTypes = map[PropertyType]bool{
 //Name returns the unique name for this type of move.
 func (m *MoveType) Name() string {
 	return m.name
-}
-
-func (m *MoveType) LegalPhases() []int {
-	return m.legalPhases
 }
 
 //CustomConfiguration returns a copy of the CustomConfiguration passed in via

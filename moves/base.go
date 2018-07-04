@@ -274,23 +274,6 @@ func overrideIsFixUp(config boardgame.PropertyCollection, defaultIsFixUp bool) b
 	return defaultIsFixUp
 }
 
-//MoveTypeLegalPhases will return whatever was passed via WithLegalPhases, or
-//nil if nothing was provided.
-func (b *Base) MoveTypeLegalPhases() []int {
-	config := b.Info().Type().CustomConfiguration()
-
-	legalPhasesVal, ok := config[configNameLegalPhases]
-
-	if ok {
-		legalPhases, ok := legalPhasesVal.([]int)
-		if ok {
-			return legalPhases
-		}
-	}
-
-	return nil
-}
-
 //Legal checks whether the game's CurrentPhase (as determined by the delegate)
 //is one of the LegalPhases for this moveType. If the delegate's PhaseEnum is
 //a TreeEnum, it will also pass this test if delegate.CurrentPhase() value's

@@ -21,8 +21,6 @@ type AutoConfigurableMove interface {
 	boardgame.Move
 	//The name for the move type
 	MoveTypeName() string
-	//Result will be used for LegalPhases in the config.
-	MoveTypeLegalPhases() []int
 }
 
 //MustConfig is a wrapper around Config that if it errors will panic. Only
@@ -61,7 +59,7 @@ func Config(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConf
 	//initialized and expanded move (e.g. with all tag-based autoinflation)
 	//that we can then pass to the MoveType* methods, so they'll have more to work with.
 
-	throwAwayConfig := newMoveTypeConfig("Temporary Move", nil, exampleStruct, config)
+	throwAwayConfig := newMoveTypeConfig("Temporary Move", exampleStruct, config)
 
 	throwAwayMoveType, err := throwAwayConfig.NewMoveType(nil)
 
@@ -77,15 +75,14 @@ func Config(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConf
 	actualExample := throwAwayMoveType.NewMove(nil).(AutoConfigurableMove)
 
 	name := actualExample.MoveTypeName()
-	legalPhases := actualExample.MoveTypeLegalPhases()
 
-	moveTypeConfig, err := newMoveTypeConfig(name, legalPhases, exampleStruct, config), nil
+	moveTypeConfig, err := newMoveTypeConfig(name, exampleStruct, config), nil
 
 	return moveTypeConfig, err
 
 }
 
-func newMoveTypeConfig(name string, legalPhases []int, exampleStruct boardgame.Move, config boardgame.PropertyCollection) boardgame.MoveTypeConfig {
+func newMoveTypeConfig(name string, exampleStruct boardgame.Move, config boardgame.PropertyCollection) boardgame.MoveTypeConfig {
 	val := reflect.ValueOf(exampleStruct)
 
 	//We can accept either pointer or struct types.
@@ -101,6 +98,5 @@ func newMoveTypeConfig(name string, legalPhases []int, exampleStruct boardgame.M
 			return reflect.New(typ).Interface().(boardgame.Move)
 		},
 		CustomConfiguration: config,
-		LegalPhases:         legalPhases,
 	}
 }
