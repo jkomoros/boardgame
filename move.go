@@ -113,6 +113,7 @@ func (m *MoveTypeConfig) NewMoveType(manager *GameManager) (*MoveType, error) {
 
 //MoveInfo is an object that contains meta-information about a move.
 type MoveInfo struct {
+	manager   *GameManager
 	moveType  *MoveType
 	version   int
 	initiator int
@@ -250,6 +251,15 @@ func (m *MoveInfo) Timestamp() time.Time {
 	return m.timestamp
 }
 
+//CustomConfiguration returns the configuration object associatd with this
+//move. A convenience wrapper around manager.CustomConfigurationForMove().
+func (m *MoveInfo) CustomConfiguration() PropertyCollection {
+	if m.manager == nil {
+		return nil
+	}
+	return m.manager.CustomConfigurationForMove(m.name)
+}
+
 //Initiator returns the move version that initiated this causal chain: the
 //PlayerMove that was applied that led to this chain of FixUp moves. The
 //Initiator of a PlayerMove is its own version, so this value will be less
@@ -291,6 +301,7 @@ func (m *MoveType) NewMove(state ImmutableState) Move {
 	}
 
 	info := &MoveInfo{
+		manager:  m.manager,
 		moveType: m,
 		name:     m.Name(),
 	}
