@@ -45,10 +45,10 @@ type GameDelegate interface {
 
 	//ConfigureMoves will be called during creation of a GameManager in
 	//NewGameManager. This is the time to install moves onto the manager by
-	//returning a list of moves to install. Typicall you use moves.Combine and
-	//friends to organize your list of moves to install. If the moves you add
-	//are illegal for any reason, NewGameManager will fail with an error. By
-	//the time this is called. delegate.SetManager will already have been
+	//returning a list of moves to install. Typically you use moves.Combine
+	//and friends to organize your list of moves to install. If the moves you
+	//add are illegal for any reason, NewGameManager will fail with an error.
+	//By the time this is called. delegate.SetManager will already have been
 	//called, so you'll have access to the manager via Manager().
 	ConfigureMoves() []MoveTypeConfig
 
@@ -219,16 +219,6 @@ type GameDelegate interface {
 	//returns a non-nil enums.TreeEnum, then the state will not be able to be
 	//saved if CurrentPhase() returns a value that is not a leaf-node.
 	PhaseEnum() enum.Enum
-
-	//PhaseMoveProgression returns the names of the strings of moves in the
-	//given phase that must be applied in order. moves.Base's Legal() method
-	//uses this to determine if a given move is allowed to apply now. A nil
-	//return denotes that any move that is legal in this phase is legal at any
-	//time in the phase. This functionality is useful for SetUp phases where
-	//you have many steps to apply in a row and signaling of when to apply a
-	//move can be error prone. See moves.Base's Legal method documentation for
-	//more about how to use it.
-	PhaseMoveProgression(phase int) []string
 
 	//SanitizationPolicy is consulted when sanitizing states. It is called for
 	//each prop in the state, including the set of groups that this player is
@@ -403,29 +393,6 @@ func (d *DefaultGameDelegate) CurrentPhase(state ImmutableState) int {
 //valid enum gracefully.
 func (d *DefaultGameDelegate) PhaseEnum() enum.Enum {
 	return d.Manager().Chest().Enums().Enum("Phase")
-}
-
-//PhaseMoveProgression will return the move progression if it was added with
-//AddMovesForPhaseProgression. If not, will return nil, which means that any
-//moves that are legal in this phase are allowed in any order. If you used
-//AddMovesForPhaseProgression during setup (or have no phases with a specific
-//progression of moves) then you likely have no reason to override this
-//method.
-func (d *DefaultGameDelegate) PhaseMoveProgression(phase int) []string {
-	if d.moveProgressions == nil {
-		return nil
-	}
-	return d.moveProgressions[phase]
-}
-
-//SetPhaseMoveProgression implements PhaseMoveProgressionSetter so that
-//GameManager.AddOrderedMovesForPhase will work with any delegate that embeds
-//DefaultGameDelegate.
-func (d *DefaultGameDelegate) SetPhaseMoveProgression(phase int, progression []string) {
-	if d.moveProgressions == nil {
-		d.moveProgressions = make(map[int][]string)
-	}
-	d.moveProgressions[phase] = progression
 }
 
 func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state ImmutableState, c Component) (ImmutableStack, error) {
