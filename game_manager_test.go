@@ -222,7 +222,7 @@ func TestGameManagerSetUp(t *testing.T) {
 
 	manager := newTestGameManger(t)
 
-	moves := manager.MoveTypes()
+	moves := manager.ExampleMoves()
 
 	if moves == nil {
 		t.Error("Got nil player moves even after setting up")
@@ -236,11 +236,11 @@ func TestGameManagerSetUp(t *testing.T) {
 		t.Error("Agent test after setup was nil")
 	}
 
-	if manager.MoveTypeByName("Test") == nil {
+	if manager.ExampleMoveByName("Test") == nil {
 		t.Error("MoveByName didn't return a valid move when provided the proper name after calling setup")
 	}
 
-	if manager.MoveTypeByName("test") == nil {
+	if manager.ExampleMoveByName("test") == nil {
 		t.Error("MoveByName didn't return a valid move when provided with a lowercase name after calling SetUp.")
 	}
 

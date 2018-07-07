@@ -29,6 +29,7 @@ type GameManager struct {
 	chest                     *ComponentChest
 	storage                   StorageManager
 	agents                    []Agent
+	exampleMovesGame          *Game
 	moves                     []*MoveType
 	movesByName               map[string]*MoveType
 	agentsByName              map[string]Agent
@@ -766,6 +767,44 @@ func (g *GameManager) addMove(config MoveTypeConfig) error {
 	g.movesByName[moveName] = moveType
 
 	return nil
+}
+
+//ExampleMoves returns a list of example moves. It's equivalent to creating a
+//new Game and calling Moves(), but without the intermediate Game.
+func (g *GameManager) ExampleMoves() []Move {
+	if !g.initialized {
+		return nil
+	}
+
+	if g.exampleMovesGame == nil {
+		game := g.NewGame()
+		if err := game.SetUp(0, nil, nil); err != nil {
+			return nil
+		}
+		g.exampleMovesGame = game
+	}
+
+	return g.exampleMovesGame.Moves()
+
+}
+
+//ExampleMoveByName returns an example move with that name. It's equivalent to
+//creating a new Game and calling MoveByName, but without the intermediate
+//Game.
+func (g *GameManager) ExampleMoveByName(name string) Move {
+	if !g.initialized {
+		return nil
+	}
+
+	if g.exampleMovesGame == nil {
+		game := g.NewGame()
+		if err := game.SetUp(0, nil, nil); err != nil {
+			return nil
+		}
+		g.exampleMovesGame = game
+	}
+
+	return g.exampleMovesGame.MoveByName(name)
 }
 
 //Agents returns a slice of all agents configured on this Manager via
