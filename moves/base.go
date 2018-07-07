@@ -467,7 +467,7 @@ func (d *Base) legalMoveInProgression(state boardgame.ImmutableState, proposer b
 	}
 
 	//If we were to add our target move to the historical progression, would it match the pattern?
-	if !progressionMatches(append(progression, d.Info().Type().Name()), pattern) {
+	if !progressionMatches(append(progression, d.Info().Name()), pattern) {
 		return errors.New("This move is not legal at this point in the current phase.")
 	}
 
@@ -481,7 +481,7 @@ func (d *Base) legalMoveInProgression(state boardgame.ImmutableState, proposer b
 
 	lastMoveRecord := historicalMoves[len(historicalMoves)-1]
 
-	if lastMoveRecord.Name == d.Info().Type().Name() {
+	if lastMoveRecord.Name == d.Info().Name() {
 
 		//We're applying multiple in a row. Is that legal?
 

@@ -301,7 +301,7 @@ func (r *RoundRobin) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 		//the last move applied was not us (otherwise we'd just infinite loop
 		//in them).
 
-		if r.TopLevelStruct().Info().Type().Name() == r.lastMoveName(state) {
+		if r.TopLevelStruct().Info().Name() == r.lastMoveName(state) {
 			return errors.New("Can't start this round robin move because the last move was also part of this round robin.")
 		}
 

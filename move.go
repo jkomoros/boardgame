@@ -235,7 +235,7 @@ func StorageRecordForMove(move Move, currentPhase int) *MoveStorageRecord {
 	}
 
 	return &MoveStorageRecord{
-		Name:      move.Info().Type().Name(),
+		Name:      move.Info().Name(),
 		Version:   move.Info().version,
 		Initiator: move.Info().initiator,
 		Timestamp: move.Info().timestamp,
@@ -249,11 +249,6 @@ func StorageRecordForMove(move Move, currentPhase int) *MoveStorageRecord {
 //exist but the name does.
 func (m *MoveInfo) Name() string {
 	return m.name
-}
-
-//Type returns the MoveType of this Move.
-func (m *MoveInfo) Type() *MoveType {
-	return m.moveType
 }
 
 //Version returns the version of this move--or the version that it will be

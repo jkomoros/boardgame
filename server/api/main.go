@@ -979,16 +979,14 @@ func (s *Server) generateForms(game *boardgame.Game) []*MoveForm {
 
 	for _, move := range game.Moves() {
 
-		moveType := move.Info().Type()
-
 		if move.IsFixUp() {
 			continue
 		}
 
 		moveItem := &MoveForm{
-			Name:     moveType.Name(),
+			Name:     move.Info().Name(),
 			HelpText: move.HelpText(),
-			Fields:   formFields(moveType.NewMove(game.CurrentState())),
+			Fields:   formFields(move),
 		}
 		result = append(result, moveItem)
 	}

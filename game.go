@@ -715,7 +715,7 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 		return errors.NewFriendly("Game was already finished")
 	}
 
-	if g.MoveByName(move.Info().Type().Name()) == nil {
+	if g.MoveByName(move.Info().Name()) == nil {
 		return baseErr.WithError("That move is not configured for this game.")
 	}
 

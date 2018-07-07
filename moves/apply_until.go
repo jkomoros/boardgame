@@ -208,7 +208,7 @@ func countMovesApplied(topLevelStruct boardgame.Move, state boardgame.ImmutableS
 		return 0
 	}
 
-	targetName := topLevelStruct.Info().Type().Name()
+	targetName := topLevelStruct.Info().Name()
 	targetPhase := state.Game().Manager().Delegate().CurrentPhase(state)
 
 	count := 0
