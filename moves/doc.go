@@ -32,6 +32,23 @@ auto.Config will use.
 Read more--including in-depth worked examples and discussions of how to use
 auto.Config idiomatically--in the package doc for auto.
 
+Configure Move Helpers
+
+Your Game Delegate's ConfigureMoves() []boardgame.MoveConfig is where the
+action happens for installing moves. In practice you can do whatever you want
+in there as long as you return a list of MoveConfigs. In practice you often
+use auto.Config (see section above). If you have a very simple game type you
+might not need to do anythign special.
+
+If, however, your game type is complicated enough to need the notion of
+phases, then you'll probably want to use some of the convenience methods for
+installing moves: Combine, Add, AddForPhase, and AddOrderedForPhase. These
+methods make sure that enough information is stored for the Legal() methods of
+those moves to know when the move is legal. Technically they're just
+convenience wrappers (each describes the straightforward things it's doing),
+but in practice they're the best way to do it. See the tutorial in the main
+package for more.
+
 Base Move
 
 Implementing a Move requires a lot of stub methods to implement the

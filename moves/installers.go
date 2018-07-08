@@ -5,7 +5,9 @@ import (
 )
 
 //Combine takes a series of lists of moveTypeConfigs and flattens them into a
-//single list, appropraite for being retunrned from delegate.ConfigureMoves().
+//single list, appropriate for being retunrned from delegate.ConfigureMoves().
+//It doesn't do anything special, but instead exists entirely as a convenience
+//to make writing your ConfigureMoves easier.
 func Combine(moves ...[]boardgame.MoveConfig) []boardgame.MoveConfig {
 
 	var result []boardgame.MoveConfig
@@ -18,10 +20,11 @@ func Combine(moves ...[]boardgame.MoveConfig) []boardgame.MoveConfig {
 
 }
 
-//Add is designed to be used inside of Combine. It is a parallel of
-//AddForPhase and AddOrderedForPhase. It doesn't actually do any processing,
-//and is effectively equivalent to wrapping your config bundles in
-//[]*boardgame.MoveConfig{}.
+//Add is designed to be used inside of Combine for moves that can apply in any
+//phase in any order. It is a parallel of AddForPhase and AddOrderedForPhase.
+//It doesn't actually do any processing, and is effectively equivalent to
+//wrapping your config bundles in []boardgame.MoveConfig{}. However, it makes
+//the intent of your move installers clearer.
 func Add(moves ...boardgame.MoveConfig) []boardgame.MoveConfig {
 	return moves
 }
