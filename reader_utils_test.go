@@ -147,7 +147,7 @@ func (t *testAutoEnumMove) HelpText() string {
 
 var testAutoEnumMoveConfig = MoveConfig{
 	Name: "AutoEnumMove",
-	MoveConstructor: func() Move {
+	Constructor: func() Move {
 		return new(testAutoEnumMove)
 	},
 }

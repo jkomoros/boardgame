@@ -90,7 +90,7 @@ func newMoveConfig(name string, exampleStruct boardgame.Move, config boardgame.P
 
 	return boardgame.MoveConfig{
 		Name: name,
-		MoveConstructor: func() boardgame.Move {
+		Constructor: func() boardgame.Move {
 			return reflect.New(typ).Interface().(boardgame.Move)
 		},
 		CustomConfiguration: config,

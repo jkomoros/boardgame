@@ -19,7 +19,8 @@ type moveType struct {
 	manager             *GameManager
 }
 
-//MoveConfig is a collection of information used to create a MoveType.
+//MoveConfig is a collection of information used to create a Move. Your
+//delegate's ConfigureMoves() will emit a slice of them.
 type MoveConfig struct {
 	//Name is the name for this type of move. No other Move structs
 	//in use in this game should have the same name, but it should be human-
@@ -36,7 +37,7 @@ type MoveConfig struct {
 	//enum in the game's Chest.Enums, it will auto-instantiate a enum.Var for
 	//the correct enum for that field, allowing you to maintain a single-line
 	//constructor.
-	MoveConstructor func() Move
+	Constructor func() Move
 
 	//CustomConfiguration is an optional PropertyCollection. Some move types--
 	//especially in the `moves` package--stash configuration options here that
@@ -70,20 +71,20 @@ func (m *MoveConfig) newMoveType(manager *GameManager) (*moveType, error) {
 		return nil, errors.New("No name provided")
 	}
 
-	if m.MoveConstructor == nil {
+	if m.Constructor == nil {
 		return nil, errors.New("No MoveConstructor provided")
 	}
 
-	exampleMove := m.MoveConstructor()
+	exampleMove := m.Constructor()
 
 	if exampleMove == nil {
-		return nil, errors.New("MoveConstructor returned nil")
+		return nil, errors.New("Constructor returned nil")
 	}
 
 	readSetter := exampleMove.ReadSetter()
 
 	if readSetter == nil {
-		return nil, errors.New("MoveConstructor's readsetter returned nil")
+		return nil, errors.New("Constructor's readsetter returned nil")
 	}
 
 	var validator *readerValidator
@@ -105,7 +106,7 @@ func (m *MoveConfig) newMoveType(manager *GameManager) (*moveType, error) {
 
 	return &moveType{
 		name:                m.Name,
-		constructor:         m.MoveConstructor,
+		constructor:         m.Constructor,
 		customConfiguration: m.CustomConfiguration,
 		validator:           validator,
 		manager:             manager,

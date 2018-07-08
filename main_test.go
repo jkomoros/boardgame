@@ -222,7 +222,7 @@ type testMoveInvalidPlayerIndex struct {
 
 var testMoveInvalidPlayerIndexConfig = MoveConfig{
 	Name: "Invalid PlayerIndex",
-	MoveConstructor: func() Move {
+	Constructor: func() Move {
 		return new(testMoveInvalidPlayerIndex)
 	},
 }
@@ -266,7 +266,7 @@ type testMoveMakeIllegalPhase struct {
 
 var testMoveMakeIllegalPhaseConfig = MoveConfig{
 	Name: "Make Illegal Phase",
-	MoveConstructor: func() Move {
+	Constructor: func() Move {
 		return new(testMoveMakeIllegalPhase)
 	},
 }
@@ -309,7 +309,7 @@ type testMoveIncrementCardInHand struct {
 
 var testMoveIncrementCardInHandConfig = MoveConfig{
 	Name: "Increment IntValue of Card in Hand",
-	MoveConstructor: func() Move {
+	Constructor: func() Move {
 		return new(testMoveIncrementCardInHand)
 	},
 }
@@ -393,7 +393,7 @@ type testMoveDrawCard struct {
 
 var testMoveDrawCardConfig = MoveConfig{
 	Name: "Draw Card",
-	MoveConstructor: func() Move {
+	Constructor: func() Move {
 		return new(testMoveDrawCard)
 	},
 }
@@ -460,7 +460,7 @@ type testMoveAdvanceCurentPlayer struct {
 
 var testMoveAdvanceCurrentPlayerConfig = MoveConfig{
 	Name: "Advance Current Player",
-	MoveConstructor: func() Move {
+	Constructor: func() Move {
 		return new(testMoveAdvanceCurentPlayer)
 	},
 }
@@ -523,7 +523,7 @@ type testMove struct {
 
 var testMoveConfig = MoveConfig{
 	Name: "Test",
-	MoveConstructor: func() Move {
+	Constructor: func() Move {
 		return new(testMove)
 	},
 }
@@ -594,7 +594,7 @@ type testAlwaysLegalMove struct {
 
 var testAlwaysLegalMoveConfig = MoveConfig{
 	Name: "Test Always Legal Move",
-	MoveConstructor: func() Move {
+	Constructor: func() Move {
 		return new(testAlwaysLegalMove)
 	},
 }
@@ -655,7 +655,7 @@ func (i *illegalMove) Apply(state State) error {
 
 var testIllegalMoveConfig = MoveConfig{
 	Name: "Illegal Move",
-	MoveConstructor: func() Move {
+	Constructor: func() Move {
 		return new(illegalMove)
 	},
 }
