@@ -459,9 +459,9 @@ The two most important parts of Moves are the methods `Legal` and `Apply`. When 
 
 Moves are proposed on a game by calling `ProposeMove` and providing the Move, along with which player it is being proposed on behalf of. (The server package keeps track of which user corresponds to which player; more on that later.) The moves are appended to a queue. One at a time the engine will remove the first move in the queue, see if it is Legal for the current state, and if it is will Apply it, as described above.
 
-#### Moves, MoveTypes, and MoveTypeConfigs
+#### Moves and MoveConfigs
 
-There are three types of objects related to Moves: `MoveType`, `MoveTypeConfig`, and `Move`s.
+There are two types of objects related to Moves: `MoveConfig` and `Move`s.
 
 A `Move` is a specific instantiation of a particular type of Move. It is a concrete struct that you define and that adheres to the `Move` interface:
 
@@ -475,17 +475,24 @@ type Move interface {
 
 Your moves also must implement the `PropertyReader` interface. Some moves contain no extra fields, but many will encode things like which player the move operates on, and also things like which slot from a stack the player drew the card from. Moves also implement a method called `DefaultsForState` which is provided a state and sets the properties on the Move to reasonable values. For example, a common pattern is for a move to have a property that encodes which player the move should operate on; this is generally set to the `CurrentPlayerIndex` for the given state via `DefaultsForState`.
 
-A `MoveType` is a conceptual type of Move that can be made in a game and is a generic struct in the main package. It vends new concrete Moves of this type via `MoveConstructor` and also has metadata specific to all moves of this type, like what the name of the move is. All of a MoveType's fields and methods return constants except for `MoveConstructor`. Given a Move `m`, the Type it is from can be recovered by inspecting `m.Info().Type()`
-
-A `MoveTypeConfig` is a configuration object used to create a `MoveType` when you are setting up your `GameManager` to receive a fully formed and ready-to-use `MoveType`. It is mostly a collection of static properties, plus a `MoveConstructor` that returns the specific concrete struct that implements `Move` for that `MoveType`. More on that later. In practice, you almost never create your own `MoveTypeConfig`, but rather use `auto.Config()` to generate them automatically for you. More on that later, too.
+A `MoveConfig` is a configuration object used to install moves when you are
+setting up your `GameManager`. It is what you return from your delegate's
+ConfigureMoves() method. It is a simple struct with a name, a constructor for
+the move struct, and a bundle of (optional) custom configuration that will be
+available on each move of that type's Info.CustomConfiguration(). In practice,
+you almost never create your own `MoveTypeConfig`, but rather use
+`auto.Config()` to generate them automatically for you. More on that later,
+too.
 
 #### Player and FixUp Moves
 
-Conceptually there are two types of Moves: Player Moves, and FixUp moves. Player moves are any moves that are legal for normal players to propose at some point in the game. FixUp moves are special moves that are never legal for players to propose, and are instead useful for fixing up a state to ensure it is valid. For example, a common type of FixUp move examines if the DrawStack is empty, and if so moves all cards from the DiscardStack to the DrawStack and then shuffles it. In practice the only thing that distinguishes FixUp moves is that their `MoveType.IsFixUp()` returns true.
+Conceptually there are two types of Moves: Player Moves, and FixUp moves. Player moves are any moves that are legal for normal players to propose at some point in the game. FixUp moves are special moves that are never legal for players to propose, and are instead useful for fixing up a state to ensure it is valid. For example, a common type of FixUp move examines if the DrawStack is empty, and if so moves all cards from the DiscardStack to the DrawStack and then shuffles it. In practice the only thing that distinguishes FixUp moves is that their `Move.IsFixUp()` returns true.
 
 After each move is succesfully applied via ProposeMove, and before the next move in the queue of moves is considered, the engine checks if any FixUp moves should be applied. It does this by consulting the `ProposeFixUpMove` method on the GameDelegate. If that method returns a move, it will be immediately applied, so long as it is legal. This will continue until `ProposeFixUpMove` returns nil, at which point the next player move in the proposed move queue will be considered.
 
-Technically it is possible to override the behavior of exactly when to apply certain FixUp moves. Realistically, however, the behavior of `ProposeFixUpMove` on `DefaultGameDelegate` is almost always sufficient. It simply runs through each move configured on the gametype in order, skipping any for whom `Info().Type().IsFixUp()` returns false, setting its values by calling DefaultsForState, and then checking if it is `Legal`. It returns the first fix up move it finds that is legal. This means that it is **important to make sure that your FixUp moves always have well-constructed `Legal` methods**. If a given FixUp move always returns Legal for some state, then the engine will get in an infinite loop. (Technically the engine will detect that it is in an unreasonable state and will panic.)
+FixUp moves, as a concept, do not exist as a base concept in the base library, except that moves returned from ProposeFixUpMove implicitly are a FixUp move. In practie, the notion of FixUp move is implemented in DefaultGameDelegate's ProposeFixUpMove, and moves.Base.
+
+Technically it is possible to override the behavior of exactly when to apply certain FixUp moves. Realistically, however, the behavior of `ProposeFixUpMove` on `DefaultGameDelegate` is almost always sufficient. It simply runs through each move configured on the gametype in order, skipping any for whom `.sFixUp()` returns false, setting its values by calling DefaultsForState, and then checking if it is `Legal`. It returns the first fix up move it finds that is legal. This means that it is **important to make sure that your FixUp moves always have well-constructed `Legal` methods**. If a given FixUp move always returns Legal for some state, then the engine will get in an infinite loop. (Technically the engine will detect that it is in an unreasonable state and will panic.)
 
 #### What should be a move?
 
@@ -508,7 +515,7 @@ That's why there's a `moves` package that defines three common move types. You e
 
 Base is the simplest possible base move. It implements stubs for every required method, with the exception of `Apply` which you must implement yourself. This allows you to minimize the boilerplate you have to implement for simple moves. Almost every move you make will embed this move type either directly or indirectly.
 
-Base doesn't do much except implement the required stubs. The one exception is its `Legal()` method, which is where much of the notion of Phases is implemented. More on that in a later section. For now it's important to know that if you embed a move anonymously in your own move struct, it's very important to always call your "super"'s Legal method as well, because non-trivial logic is encoded in it in Base.
+Base includes a lot of base functionality and defaults. The most important is its `Legal()` method, which is where much of the notion of Phases is implemented. More on that in a later section. For now it's important to know that if you embed a move anonymously in your own move struct, it's very important to always call your "super"'s Legal method as well, because non-trivial logic is encoded in it in Base.
 
 Another simple type of move is `FixUp`. It's a simple embedding of `Base`, but
 if your move is a FixUp move it's best to embed it so that `auto.Config` will
@@ -631,26 +638,20 @@ MoveHideCards is a simple concrete struct that embeds a `moves.CurrentPlayer`. T
 MoveHideCards is decorated by the magic autoreader comment, which means its ReadSetter will be automatically generated. The `readsetter` at the end of the comment tells `autoreader` to only bother creating the `PropertyReadSetter` method and not worry about the `PropertyReader` method. It would work fine (just with a tiny bit more code generated) with that argument omitted.
 
 ```
-var moveHideCardsConfig = boardgame.MoveTypeConfig{
+var moveHideCardsConfig = boardgame.MoveConfig{
     Name:     "Hide Cards",
-    HelpText: "After the current player has revealed both cards and tried to memorize them, this move hides the cards so that play can continue to next player.",
-    MoveConstructor: func() boardgame.Move {
+    Constructor: func() boardgame.Move {
         return new(MoveHideCards)
     },
+    //We don't include CustomConfiguration, which is optional.
 }
 ```
 
-This is the moveTypeConfig object. This is what we will actually use to install the move type in the GameManager (more on that later).
-
-A `MoveTypeConfig` is basically a bag of straightforward properties. The reason you don't define a MoveType yourself is because it's important that these properties not change once they are configured onto a GameManager. You can think of a MoveTypeConfig as basically just the starter values for properties that will be read-only on the actual MoveType. Again, in practice you almost never generate them yourself, but instead use `auto.Config()`
+This is the MoveConfig object. This is what we will actually use to install the move type in the GameManager (more on that later).
 
 The `Name` property is a unique-within-this-game-package, human-readable name for the move. It is the string that will be used to retrieve this move type from within the game manager. (You'll rarely do this yourself, but the server package will do this for example to deserialize `POST`s that propose a move).
 
-`HelpText` is a short descriptive stirng that describes generically what this move type accomplishes. It is similar to the `Description` method on `Move`, except that `Description` should include information about the specific properties of this particular instantiation of the move, while `HelpText` is generic. In fact, `moves.Base`'s `Description` method defaults to just returning the `HelpText` for the movetype.
-
-If this move type were a fixUp move, your MoveTypeConfig would also set `IsFixUp` to true.
-
-The most important aspect of `MoveType` is the `MoveConstructor`. Similar to other Constructor methods, this is where your concrete type that implements the interface from the core library will be returned. In almost every case this is a single line method that just `new`'s your concrete Move struct. If you use properties whose zero-value isn't legal (like Enums, which we haven't encountered yet in the tutorial), then as long as you use struct tags, the engine will automatically instantiate them for you, similar to how `GameStateConstructor` works.
+The most important aspect is the `Constructor`. Similar to other Constructor methods, this is where your concrete type that implements the interface from the core library will be returned. In almost every case this is a single line method that just `new`'s your concrete Move struct. If you use properties whose zero-value isn't legal (like Enums, which we haven't encountered yet in the tutorial), then as long as you use struct tags, the engine will automatically instantiate them for you, similar to how `GameStateConstructor` works.
 
 ```
 func (m *MoveHideCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
@@ -792,36 +793,34 @@ In more complicated games, your components and their related constants might be 
 #### ConfigureMoves
 
 Your GameDelegate implements a method called `ConfigureMoves()
-*boardgame.MoveTypeConfigBundle`. This method will be called during the
-creation process for a GameManager. Your job is to create a new move bundle,
-add moves to it for your game, and return it. This is the main way you add
-moves to your game type.
+[]boardgame.MoveConfig`. This method will be called during the
+creation process for a GameManager and all of the returned MoveConfigs will be installed on the manager (NewGameManager will error if any of the Moves are invalid for any reason).
 
 An example that could be for memory is here:
 
 ```
 //Not what memory actually does
-func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
-	return boardgame.NewMoveTypeConfigBundle().AddMoves(
+func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig{
+	return []boardgame.MoveType{
 		//moveRevealCardConfig and others would be defined in the same file as the move structs they are associated with.
 		&moveRevealCardConfig,
 		&moveHideCardsConfig,
 		&moveFinishTurnConfig,
 		&moveCaptureCardsConfig,
 		&moveStartHideCardsTimerConfig,
-	)
+	}
 }
 ```
 
-In practice, however, memory uses `auto.Config()`--just as almost every game will--to automatically generate MoveTypeConfigs:
+In practice, however, memory uses `auto.Config()`--just as almost every game will--to automatically generate MoveConfigs.
 
 ```
 func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 
 	//...some lines elided...
 
-	return boardgame.NewMoveTypeConfigBundle().AddMoves(
-		//...one moveType elided...
+	return moves.Add(
+		//... one move type configuration elided ...
 		auto.MustConfig(
 			new(MoveHideCards),
 			moves.WithHelpText("After the current player has revealed both cards and tried to memorize them, this move hides the cards so that play can continue to next player."),
@@ -841,14 +840,13 @@ func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 }
 ```
 
-`auto.Config()` is a very powerful tool. It automatically generates move constructors, helptext, and even move names (based on the name of the struct). In this case, you can see that we didn't even need to create a `MoveFinishTurn` in our package--we could simply use `moves.FinishTurn` directly.
+Technically the moves.Add() is fully optional and it would be equivalent to replace it with `[]boardgame.MoveConfig{...}`. However, the moves.Add convenience method is idiomatic for games with phases, as descirbed in the section on Phases, below, so we include it.
+
+`auto.Config()` is a very powerful tool. It automatically generates move constructors, and even move names (based on the name of the struct). In this case, you can see that we didn't even need to create a `MoveFinishTurn` in our package--we could simply use `moves.FinishTurn` directly.
 
 You can learn much more about how to use `auto.Config()` in the package doc for `moves/auto`.
 
-More complicated games would use more advanced methods on the bundle (see the
-section in the More Concepts section about Phases). Note that the various
-AddMove methods all return a reference to the bundle itself, which allows you
-to chain the calls and keep the method short.
+More complicated games would use more advanced methods, like `moves.AddForPhase` and others. See the section on Phases, below, for more.
 
 #### ConfigureDecks and ConfigureEnums
 
@@ -1417,7 +1415,7 @@ redLegalMoves := graph.NewGridConnectedness(chessBoard, DirectionDiagonal, Direc
 
 ### Phases
 
-At the core of the engine, there's just a big collection of moves, any of which may be `Legal()` at any time. `ProposeFixUpMove` often just cycles through all FixUp moves in order and returns the first one that is legal.
+At the core of the engine, there's just a big collection of moves, any of which may be `Legal()` at any time. `ProposeFixUpMove` is called after every move is applied, and any move that is returned is applied. `DefaultGameDelegate`'s default implementation simply cycles through every move in order, and returns the first one whose `IsFixUp()` returns true, and who is Legal with defaults set for the current state. 
 
 This is fine for simple games like memory, but quickly becomes cumbersome for more complicated games. For example, some games have multiple rounds, where each round is basically a mini-game, where scores accumulate across rounds. For each round you might have to do some set-up tasks (like moving all of the cards from discard to the draw stack, shuffling them, and then dealing out two cards per player), then have the normal play, and then finally some clean-up tasks (collecting the cards remaining in players' hands, tallying up scores).
 
@@ -1427,7 +1425,7 @@ It'd be a mess!
 
 For that reason, a convention of "Phases" is used. A game can have multiple phases. Moves are only legal to apply in certain phases. In some phases, moves are applied in a specific, prescribed order only.
 
-The concept of Phases is only lightly represented in the core game engine, and is mostly implemented "in user land" by careful convention and default methods.
+The concept of Phases is barely represented in the core library at all. Delegates have `CurrentPhase() int` and `PhaseEnum() *enum.Enum`, but other than that the notion of Phases is implemented entirely in the (technically optional) `moves` package.
 
 At the core, the notion of Phases is implmented by `moves.Base`'s Legal method--which is why it's so important to always call your super's `Legal` method! `moves.Base` will first check to make sure that the current phase of the game is one that is legal for this move, and then check to see if playing this move at this point in the phase is legal. All other methods and machinery for representing Phases are just about giving moves.Base the information it needs to make this determination.
 
@@ -1476,49 +1474,53 @@ there and returns it.
 
 Now the core engine knows about what phase it is. `moves.Base` will consult that information it is Legal method. But how do we tell `moves.Base` which phases a move is legal in?
 
-`MoveType` and `MoveTypeConfig` have a `LegalPhases []int` field. If this field is zero-length (nil or a zero-length slice) that tells `moves.Base` that the move is legal in any phase. If it's non-zero-length, then `moves.Base` will ensure that the current phase is explicitly enumerated in LegalPhases, otherwise it will return an error.
+Moves that are based on `moves.Base` have a `LegalPhases() []int` method that `moves.Base` consults to see if the game's CurrentPhase is one of those. `LegalPhases()` just returns whatever was passed in `auto.Config` with `WithLegalPhases`. However, setting that manually is error-prone; you have to remember to include it for each move in that phase, and it can be hard to keep track of the order of the moves.
 
-You can set these `LegalPhases` on your own in `MoveTypeConfig`s, but that can be error prone, and it's confusing to have the information about phases coordinated across each move, instead of in one central place.
-
-`GameManager` has an `AddMoves` method that takes a list of move configs to add to the manager during setup. It also has an `AddMovesForPhase` method that takes a phase and a list of moves. For each move config provided, if the LegalPhases doesn't already list the phase in question, it will explicitly add it before installing it. This means that in most cases you can just leave your `LegalPhases` field on your config as nil, and configure the phase for all moves at once when you install them. 
+That's why the `moves` package defines `Add`, `AddForPhase`, and `AddOrderedForPhase`, which automatically call the right `WithLegalPhases` and `WithLegalMoveProgression` methods for you. In addition, the `moves` package defines `moves.Combine`, a convenience wrapper to use in your `ConfigureMoves` when you have phases.
 
 You can see this in action in `examples/blackjack/main.go` in `ConfigureMoves`
 
 ```
-	//...
-	.AddMovesForPhase(PhaseNormalPlay,
-		auto.MustConfig(
-			new(MoveCurrentPlayerHit),
-			moves.WithHelpText("The current player hits, drawing a card."),
-		),
-		auto.MustConfig(
-			new(MoveCurrentPlayerStand),
-			moves.WithHelpText("If the current player no longer wants to draw cards, they can stand."),
-		),
-		auto.MustConfig(
-			new(MoveRevealHiddenCard),
-			moves.WithHelpText("Reveals the hidden card in the user's hand"),
-			moves.WithIsFixUp(true),
-		),
-		auto.MustConfig(
-			new(moves.FinishTurn),
-			moves.WithHelpText("When the current player has either busted or decided to stand, we advance to next player."),
-		),
-	)//...
+	return moves.Combine(
+		//...
+		moves.AddForPhase(PhaseNormalPlay,
+			auto.MustConfig(
+				new(MoveCurrentPlayerHit),
+				moves.WithHelpText("The current player hits, drawing a card."),
+			),
+			auto.MustConfig(
+				new(MoveCurrentPlayerStand),
+				moves.WithHelpText("If the current player no longer wants to draw cards, they can stand."),
+			),
+			auto.MustConfig(
+				new(MoveRevealHiddenCard),
+				moves.WithHelpText("Reveals the hidden card in the user's hand"),
+				moves.WithIsFixUp(true),
+			),
+			auto.MustConfig(
+				new(moves.FinishTurn),
+				moves.WithHelpText("When the current player has either busted or decided to stand, we advance to next player."),
+			),
+		),//...
+	)
 ```
 
-If you were to inspect the MoveTypeConfig that `auto.Config()` returned for MoveCurrentPlayerHit, you'll see it doesn't mention LegalPhases at all, allowing manager.AddMovesForPhase to configure them appropriately. If you did want to specifically define which phases it was legal in, you'd pass `moves.WithLegalPhases(phases)` into `auto.Config()`.
-
-Of course, there are sometimes moves that are legal in *any* mode. For those, it still makes sense to use `AddMoves`, as blackjack does:
+Of course, there are sometimes moves that are legal in *any* mode. For those, it still makes sense to use `moves.Add`, as blackjack does:
 
 ```
-	return boardgame.NewMoveTypeConfigBundle().AddMoves(
-		auto.MustConfig(
-			new(MoveShuffleDiscardToDraw),
-			moves.WithHelpText("When the draw deck is empty, shuffles the discard deck into draw deck."),
+	return moves.Combine(
+		moves.Add(
+			auto.MustConfig(
+				new(MoveShuffleDiscardToDraw),
+				moves.WithHelpText("When the draw deck is empty, shuffles the discard deck into draw deck."),
+			),
 		),
-	)...
+		//...
+	)
 ```
+
+Note that moves.Add() doesn't really do anything; it purely exists so that
+it's more legible when you have AddForPhase in the same block.
 
 #### Ordered Moves
 
@@ -1530,28 +1532,33 @@ For that reason, the Phase machinery also has a notion of *ordered* moves in a P
 
 This means that instead of writing an error-prone Legal method, in many cases you don't need to write a custom Legal method at all, and can just rely on the phase ordering machinery.
 
-The precise machinery that accomplishes this is covered in `moves.Base` and GameDelegate's `PhaseMoveProgression() []string`. But in practice you rarely need to modify those, and can just use `GameManager.AddOrderedMovesForPhase` to accomplish what you want, as you can see in blackjack's `NewManager`:
+The actual machinery to do this uses what are called MoveProgressions, a notion encoded in the `moves` package. You pass `WithLegalMoveProgression` when configuring the move, and `moves.Base.Legal()` consults that information.
+
+Like setting the legal phases, though, it's extremely error prone to call these yourself. That's why `moves.AddOrderedForPhase` exists, which automatically calls `WithLegalPhases` and `WithLegalMoveProgression` on the moves with the right information.
+
+You can see it in action in Blackjack:
 
 ```
 	//...
-	).AddOrderedMovesForPhase(PhaseInitialDeal,
-		auto.MustConfig(
-			new(moves.DealCountComponents),
-			moves.WithMoveName("Deal Initial Hidden Card"),
-			moves.WithHelpText("Deals a hidden card to each player"),
-			moves.WithGameStack("DrawStack"),
-			moves.WithPlayerStack("HiddenHand"),
-		),
-		auto.MustConfig(
-			new(moves.DealCountComponents),
-			moves.WithMoveName("Deal Initial Visible Card"),
-			moves.WithHelpText("Deals a visible card to each player"),
-			moves.WithGameStack("DrawStack"),
-			moves.WithPlayerStack("VisibleHand"),
-		),
-		auto.MustConfig(
-			new(moves.StartPhase),
-			moves.WithPhaseToStart(PhaseNormalPlay, PhaseEnum),
+		moves.AddOrderedForPhase(PhaseInitialDeal,
+			auto.MustConfig(
+				new(moves.DealCountComponents),
+				moves.WithMoveName("Deal Initial Hidden Card"),
+				moves.WithHelpText("Deals a hidden card to each player"),
+				moves.WithGameStack("DrawStack"),
+				moves.WithPlayerStack("HiddenHand"),
+			),
+			auto.MustConfig(
+				new(moves.DealCountComponents),
+				moves.WithMoveName("Deal Initial Visible Card"),
+				moves.WithHelpText("Deals a visible card to each player"),
+				moves.WithGameStack("DrawStack"),
+				moves.WithPlayerStack("VisibleHand"),
+			),
+			auto.MustConfig(
+				new(moves.StartPhase),
+				moves.WithPhaseToStart(PhaseNormalPlay, PhaseEnum),
+			),
 		),
 	)
 ```
