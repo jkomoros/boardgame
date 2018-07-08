@@ -29,8 +29,8 @@ type GameManager struct {
 	chest                     *ComponentChest
 	storage                   StorageManager
 	agents                    []Agent
-	moves                     []*MoveType
-	movesByName               map[string]*MoveType
+	moves                     []*moveType
+	movesByName               map[string]*moveType
 	agentsByName              map[string]Agent
 	modifiableGamesLock       sync.RWMutex
 	modifiableGames           map[string]*Game
@@ -87,7 +87,7 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 		chest:       chest,
 		storage:     storage,
 		logger:      logrus.New(),
-		movesByName: make(map[string]*MoveType),
+		movesByName: make(map[string]*moveType),
 	}
 
 	chest.manager = result
@@ -742,7 +742,7 @@ func (g *GameManager) emptyState(numPlayers int) (*state, error) {
 
 func (g *GameManager) addMove(config MoveTypeConfig) error {
 
-	moveType, err := config.NewMoveType(g)
+	moveType, err := config.newMoveType(g)
 
 	if err != nil {
 		return err
@@ -814,7 +814,7 @@ func (g *GameManager) Agents() []Agent {
 //MoveTypes returns all moves that are valid in this game: all of the Moves
 //that have been added via AddMove during initalization. Returns nil until
 //game.SetUp() has been called.
-func (g *GameManager) moveTypes() []*MoveType {
+func (g *GameManager) moveTypes() []*moveType {
 	if !g.initialized {
 		return nil
 	}
@@ -837,7 +837,7 @@ func (g *GameManager) AgentByName(name string) Agent {
 
 //MoveTypeByName returns the MoveType of that name from game.MoveTypes(), if
 //it exists. Names are considered without regard to case.  Will return a copy.
-func (g *GameManager) moveTypeByName(name string) *MoveType {
+func (g *GameManager) moveTypeByName(name string) *moveType {
 	if !g.initialized {
 		return nil
 	}

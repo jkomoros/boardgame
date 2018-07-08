@@ -11,7 +11,7 @@ import (
 //are hidden to prevent modifying them once a game has been SetUp. New ones
 //cannot be created directly; they are created via
 //GameManager.AddMoveType(moveTypeConfig).
-type MoveType struct {
+type moveType struct {
 	name                string
 	constructor         func() Move
 	validator           *readerValidator
@@ -61,7 +61,7 @@ const newMoveTypeErrNoManagerPassed = "No manager passed, so we can'd do validat
 //the given manager. The returned move type will not yet have been added to
 //the manager in question. In general you don't call this directly, and
 //instead use manager.AddMove, which accepts a MoveTypeConfig.
-func (m *MoveTypeConfig) NewMoveType(manager *GameManager) (*MoveType, error) {
+func (m *MoveTypeConfig) newMoveType(manager *GameManager) (*moveType, error) {
 	if m == nil {
 		return nil, errors.New("No config provided")
 	}
@@ -103,7 +103,7 @@ func (m *MoveTypeConfig) NewMoveType(manager *GameManager) (*MoveType, error) {
 		err = errors.New(newMoveTypeErrNoManagerPassed)
 	}
 
-	return &MoveType{
+	return &moveType{
 		name:                m.Name,
 		constructor:         m.MoveConstructor,
 		customConfiguration: m.CustomConfiguration,
@@ -117,7 +117,7 @@ func (m *MoveTypeConfig) NewMoveType(manager *GameManager) (*MoveType, error) {
 //real move, in terms of struct-based auto-inflation, etc. This is exposed
 //primarily for auto.Config, and generally shouldn't be used by others.
 func (m *MoveTypeConfig) OrphanExampleMove() (Move, error) {
-	throwAwayMoveType, err := m.NewMoveType(nil)
+	throwAwayMoveType, err := m.newMoveType(nil)
 
 	if err != nil {
 		//Look for exatly the single kind of error we're OK with. Yes, this is a hack.
@@ -130,7 +130,7 @@ func (m *MoveTypeConfig) OrphanExampleMove() (Move, error) {
 
 //MoveInfo is an object that contains meta-information about a move.
 type MoveInfo struct {
-	moveType  *MoveType
+	moveType  *moveType
 	version   int
 	initiator int
 	name      string
@@ -287,25 +287,13 @@ var moveTypeIllegalPropTypes = map[PropertyType]bool{
 }
 
 //Name returns the unique name for this type of move.
-func (m *MoveType) Name() string {
+func (m *moveType) Name() string {
 	return m.name
-}
-
-//CustomConfiguration returns a copy of the CustomConfiguration passed in via
-//the MoveTyepConfig to create this MoveType. See the documentation on
-//MoveTypeConfig.CustomConfiguration for more about what it does and what it
-//can be used for.
-func (m *MoveType) CustomConfiguration() PropertyCollection {
-	result := make(PropertyCollection, len(m.customConfiguration))
-	for key, val := range m.customConfiguration {
-		result[key] = val
-	}
-	return result
 }
 
 //NewMove returns a new move of this type, with defaults set for the given
 //state. If state is nil, then DefaultsForState will not be called.
-func (m *MoveType) NewMove(state ImmutableState) Move {
+func (m *moveType) NewMove(state ImmutableState) Move {
 	move := m.constructor()
 	if move == nil {
 		return nil

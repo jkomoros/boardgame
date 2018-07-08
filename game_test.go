@@ -309,7 +309,7 @@ func TestApplyMove(t *testing.T) {
 	oldMovesByName := manager.movesByName
 
 	manager.moves = nil
-	manager.movesByName = make(map[string]*MoveType)
+	manager.movesByName = make(map[string]*moveType)
 
 	if err := <-game.ProposeMove(move, AdminPlayerIndex); err == nil {
 		t.Error("Game allowed a move that wasn't configured as part of game to be applied")
@@ -436,7 +436,7 @@ func TestIllegalMove(t *testing.T) {
 
 	manager := newTestGameManger(t)
 
-	_, err := (&testIllegalMoveConfig).NewMoveType(manager)
+	_, err := (&testIllegalMoveConfig).newMoveType(manager)
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
