@@ -29,7 +29,6 @@ type GameManager struct {
 	chest                     *ComponentChest
 	storage                   StorageManager
 	agents                    []Agent
-	exampleMovesGame          *Game
 	moves                     []*MoveType
 	movesByName               map[string]*MoveType
 	agentsByName              map[string]Agent
@@ -769,42 +768,37 @@ func (g *GameManager) addMove(config MoveTypeConfig) error {
 	return nil
 }
 
-//ExampleMoves returns a list of example moves. It's equivalent to creating a
-//new Game and calling Moves(), but without the intermediate Game.
+//ExampleMoves returns a list of example moves, which are moves not initalized
+//based on a state.
 func (g *GameManager) ExampleMoves() []Move {
-	if !g.initialized {
+
+	mTypes := g.MoveTypes()
+
+	if mTypes == nil {
 		return nil
 	}
 
-	if g.exampleMovesGame == nil {
-		game := g.NewGame()
-		if err := game.SetUp(0, nil, nil); err != nil {
-			return nil
-		}
-		g.exampleMovesGame = game
+	result := make([]Move, len(mTypes))
+
+	for i, mType := range mTypes {
+		result[i] = mType.NewMove(nil)
 	}
 
-	return g.exampleMovesGame.Moves()
+	return result
 
 }
 
-//ExampleMoveByName returns an example move with that name. It's equivalent to
-//creating a new Game and calling MoveByName, but without the intermediate
-//Game.
+//ExampleMoveByName returns an example move with that name, but without
+//initializing it with a state.
 func (g *GameManager) ExampleMoveByName(name string) Move {
-	if !g.initialized {
+
+	mType := g.MoveTypeByName(name)
+
+	if mType == nil {
 		return nil
 	}
 
-	if g.exampleMovesGame == nil {
-		game := g.NewGame()
-		if err := game.SetUp(0, nil, nil); err != nil {
-			return nil
-		}
-		g.exampleMovesGame = game
-	}
-
-	return g.exampleMovesGame.MoveByName(name)
+	return mType.NewMove(nil)
 }
 
 //Agents returns a slice of all agents configured on this Manager via
