@@ -20,7 +20,8 @@ type moveType struct {
 }
 
 //MoveConfig is a collection of information used to create a Move. Your
-//delegate's ConfigureMoves() will emit a slice of them.
+//delegate's ConfigureMoves() will emit a slice of them. Typically you'll use
+//moves.Combine, moves.Add, moves.AddWithPhase, and others to generate these.
 type MoveConfig struct {
 	//Name is the name for this type of move. No other Move structs
 	//in use in this game should have the same name, but it should be human-
@@ -245,9 +246,8 @@ func StorageRecordForMove(move Move, currentPhase int) *MoveStorageRecord {
 	}
 }
 
-//Name returns the name of the moveType that this move is based on. Generally
-//a convenience for Type().Name(), but in some cases the Type doesn't yet
-//exist but the name does.
+//Name returns the name of the move type that this move is. Calling
+//manager.ExampleMove() with that string value will return a similar struct.
 func (m *MoveInfo) Name() string {
 	return m.name
 }
