@@ -327,13 +327,12 @@ func (d *DefaultGameDelegate) ProposeFixUpMove(state ImmutableState) Move {
 		logEntry.Debug("***** ProposeFixUpMove called *****")
 	}
 
-	for _, moveType := range d.Manager().MoveTypes() {
+	for _, move := range d.Manager().ExampleMoves() {
 
 		var entry *logrus.Entry
 		if isDebug {
-			entry = logEntry.WithField("movetype", moveType.Name())
+			entry = logEntry.WithField("movetype", move.Info().Name())
 		}
-		move := moveType.NewMove(state)
 
 		if !move.IsFixUp() {
 			//Not a fix up move
@@ -342,13 +341,13 @@ func (d *DefaultGameDelegate) ProposeFixUpMove(state ImmutableState) Move {
 
 		if err := move.Legal(state, AdminPlayerIndex); err == nil {
 			if isDebug {
-				entry.Debug(moveType.Name() + " : MATCH")
+				entry.Debug(move.Info().Name() + " : MATCH")
 			}
 			//Found it!
 			return move
 		} else {
 			if isDebug {
-				entry.Debug(moveType.Name() + " : " + err.Error())
+				entry.Debug(move.Info().Name() + " : " + err.Error())
 			}
 		}
 	}

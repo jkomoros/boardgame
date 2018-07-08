@@ -547,7 +547,7 @@ func (g *Game) Moves() []Move {
 		return nil
 	}
 
-	types := g.manager.MoveTypes()
+	types := g.manager.moveTypes()
 
 	result := make([]Move, len(types))
 
@@ -564,7 +564,7 @@ func (g *Game) MoveByName(name string) Move {
 		return nil
 	}
 
-	moveType := g.manager.MoveTypeByName(name)
+	moveType := g.manager.moveTypeByName(name)
 
 	if moveType == nil {
 		return nil

@@ -168,11 +168,7 @@ func TestAutoEnum(t *testing.T) {
 
 	game.SetUp(0, nil, nil)
 
-	moveType := manager.MoveTypeByName("AutoEnumMove")
-
-	assert.For(t).ThatActual(moveType).IsNotNil()
-
-	move := moveType.NewMove(game.CurrentState())
+	move := game.MoveByName("AutoEnumMove")
 
 	assert.For(t).ThatActual(move).IsNotNil()
 

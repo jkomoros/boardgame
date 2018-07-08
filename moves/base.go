@@ -497,14 +497,9 @@ func (d *Base) legalMoveInProgression(state boardgame.ImmutableState, proposer b
 		return nil
 	}
 
-	lastMoveType := state.Game().Manager().MoveTypeByName(lastMoveRecord.Name)
+	lastMove := state.Game().MoveByName(lastMoveRecord.Name)
 
-	if lastMoveType == nil {
-		return errors.New("Unexpected error: couldn't find a historical move type")
-	}
-
-	//LastMove will have all of the defaults set.
-	lastMove := lastMoveType.NewMove(state)
+	//TODO: should we call lastMove.DefaultsForState(state) to verify it's set to the right state?
 
 	if lastMove.Legal(state, proposer) == nil {
 		return errors.New("A move that needs to happen earlier in the phase is still legal to apply.")

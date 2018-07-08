@@ -125,9 +125,7 @@ func (m *MoveStartHideCardsTimer) Legal(state boardgame.ImmutableState, proposer
 func (m *MoveStartHideCardsTimer) Apply(state boardgame.State) error {
 	game, _ := concreteStates(state)
 
-	moveType := state.Game().Manager().MoveTypeByName(moveHideCardsConfig.Name)
-
-	move := moveType.NewMove(state)
+	move := state.Game().MoveByName(moveHideCardsConfig.Name)
 
 	game.HideCardsTimer.Start(HideCardsDuration, move)
 

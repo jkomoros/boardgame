@@ -772,7 +772,7 @@ func (g *GameManager) addMove(config MoveTypeConfig) error {
 //based on a state.
 func (g *GameManager) ExampleMoves() []Move {
 
-	mTypes := g.MoveTypes()
+	mTypes := g.moveTypes()
 
 	if mTypes == nil {
 		return nil
@@ -792,7 +792,7 @@ func (g *GameManager) ExampleMoves() []Move {
 //initializing it with a state.
 func (g *GameManager) ExampleMoveByName(name string) Move {
 
-	mType := g.MoveTypeByName(name)
+	mType := g.moveTypeByName(name)
 
 	if mType == nil {
 		return nil
@@ -814,7 +814,7 @@ func (g *GameManager) Agents() []Agent {
 //MoveTypes returns all moves that are valid in this game: all of the Moves
 //that have been added via AddMove during initalization. Returns nil until
 //game.SetUp() has been called.
-func (g *GameManager) MoveTypes() []*MoveType {
+func (g *GameManager) moveTypes() []*MoveType {
 	if !g.initialized {
 		return nil
 	}
@@ -837,7 +837,7 @@ func (g *GameManager) AgentByName(name string) Agent {
 
 //MoveTypeByName returns the MoveType of that name from game.MoveTypes(), if
 //it exists. Names are considered without regard to case.  Will return a copy.
-func (g *GameManager) MoveTypeByName(name string) *MoveType {
+func (g *GameManager) moveTypeByName(name string) *MoveType {
 	if !g.initialized {
 		return nil
 	}
