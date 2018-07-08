@@ -16,10 +16,10 @@ There are many move types defined. Some are designed to be used directly with
 minimal modification; others are powerful move types that are designed to be
 sub-classed.
 
-Automatic MoveTypeConfig Generation
+Automatic MoveConfig Generation
 
 Technically every move needs to be installed on your GameManager by creating a
-boardgame.MoveTypeConfig. In practice writing those from scratch is verbose
+boardgame.MoveConfig. In practice writing those from scratch is verbose
 and error-prone. auto is a sub-package that generates those configurations for
 you automatically, and is strongly recommended to use for all of your moves.
 All moves in this package are designed to work well with auto.Config.
