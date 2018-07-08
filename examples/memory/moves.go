@@ -199,7 +199,7 @@ type MoveHideCards struct {
 
 //This is left over so that the timer knows what to attach to. But it feels
 //like a smell to hvae it here.
-var moveHideCardsConfig = boardgame.MoveTypeConfig{
+var moveHideCardsConfig = boardgame.MoveConfig{
 	Name: "Hide Cards",
 }
 

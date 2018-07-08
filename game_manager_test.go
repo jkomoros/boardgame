@@ -51,9 +51,9 @@ var testPhaseEnum = testEnums.MustAddTree("phase",
 
 func defaultTestGameDelegate(extraComponentsToCreate int) *testGameDelegate {
 
-	moveInstaller := func(manager *GameManager) []MoveTypeConfig {
+	moveInstaller := func(manager *GameManager) []MoveConfig {
 
-		return []MoveTypeConfig{
+		return []MoveConfig{
 			testMoveConfig,
 			testMoveIncrementCardInHandConfig,
 			testMoveDrawCardConfig,
@@ -126,7 +126,7 @@ func (t *testMoveFailValidConfiguration) ReadSetConfigurer() PropertyReadSetConf
 	return getDefaultReadSetConfigurer(t)
 }
 
-var testMoveFailValidConfigurationConfig = MoveTypeConfig{
+var testMoveFailValidConfigurationConfig = MoveConfig{
 	Name: "Fail Valid Configuration",
 	MoveConstructor: func() Move {
 		return new(testMoveFailValidConfiguration)
@@ -135,8 +135,8 @@ var testMoveFailValidConfigurationConfig = MoveTypeConfig{
 
 func TestMoveFailsValidConfiguration(t *testing.T) {
 
-	moveInstaller := func(manager *GameManager) []MoveTypeConfig {
-		return []MoveTypeConfig{
+	moveInstaller := func(manager *GameManager) []MoveConfig {
+		return []MoveConfig{
 			testMoveFailValidConfigurationConfig,
 		}
 

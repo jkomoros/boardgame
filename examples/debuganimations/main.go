@@ -125,8 +125,8 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.ImmutableState) (finish
 	return false, nil
 }
 
-func (g *gameDelegate) ConfigureMoves() []boardgame.MoveTypeConfig {
-	return []boardgame.MoveTypeConfig{
+func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
+	return []boardgame.MoveConfig{
 		moveMoveCardBetweenShortStacksConfig,
 		moveMoveCardBetweenDrawAndDiscardStacksConfig,
 		moveFlipHiddenCardConfig,

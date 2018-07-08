@@ -155,7 +155,7 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 	return result, nil
 }
 
-func (g *GameManager) installMoves(configs []MoveTypeConfig) error {
+func (g *GameManager) installMoves(configs []MoveConfig) error {
 
 	if configs == nil {
 		return errors.New("No move configs provided")
@@ -740,7 +740,7 @@ func (g *GameManager) emptyState(numPlayers int) (*state, error) {
 	return stateCopy, nil
 }
 
-func (g *GameManager) addMove(config MoveTypeConfig) error {
+func (g *GameManager) addMove(config MoveConfig) error {
 
 	moveType, err := config.newMoveType(g)
 

@@ -145,7 +145,7 @@ func (t *testAutoEnumMove) HelpText() string {
 	return "Test move that has a enum.Var that has to be created"
 }
 
-var testAutoEnumMoveConfig = MoveTypeConfig{
+var testAutoEnumMoveConfig = MoveConfig{
 	Name: "AutoEnumMove",
 	MoveConstructor: func() Move {
 		return new(testAutoEnumMove)
@@ -154,8 +154,8 @@ var testAutoEnumMoveConfig = MoveTypeConfig{
 
 func TestAutoEnum(t *testing.T) {
 
-	moveInstaller := func(manager *GameManager) []MoveTypeConfig {
-		return []MoveTypeConfig{
+	moveInstaller := func(manager *GameManager) []MoveConfig {
+		return []MoveConfig{
 			testAutoEnumMoveConfig,
 		}
 	}

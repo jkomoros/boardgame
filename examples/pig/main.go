@@ -123,7 +123,7 @@ func (g *gameDelegate) DynamicComponentValuesConstructor(deck *boardgame.Deck) b
 	return nil
 }
 
-func (g *gameDelegate) ConfigureMoves() []boardgame.MoveTypeConfig {
+func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	return moves.Add(
 		auto.MustConfig(
 			new(MoveRollDice),

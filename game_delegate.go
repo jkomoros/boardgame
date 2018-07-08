@@ -50,7 +50,7 @@ type GameDelegate interface {
 	//add are illegal for any reason, NewGameManager will fail with an error.
 	//By the time this is called. delegate.SetManager will already have been
 	//called, so you'll have access to the manager via Manager().
-	ConfigureMoves() []MoveTypeConfig
+	ConfigureMoves() []MoveConfig
 
 	//ConfigureAgents will be called when creating a new GameManager. Emit the
 	//agents you want to install.

@@ -74,7 +74,7 @@ func (m *moveStartPhaseIllegal) PhaseToStart(currentPhase int) int {
 	return phaseNormalPlay
 }
 
-func defaultMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveTypeConfig {
+func defaultMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveConfig {
 
 	return Combine(
 		AddOrderedForPhase(phaseSetUp,
@@ -114,8 +114,8 @@ func defaultMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveTypeCo
 	)
 }
 
-func illegalPhaseMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveTypeConfig {
-	return []boardgame.MoveTypeConfig{
+func illegalPhaseMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveConfig {
+	return []boardgame.MoveConfig{
 		auto.MustConfig(new(moveStartPhaseIllegal)),
 	}
 }

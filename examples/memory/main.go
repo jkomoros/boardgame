@@ -296,7 +296,7 @@ func (g *gameDelegate) ConfigureAgents() []boardgame.Agent {
 
 var revealCardMoveName string
 
-func (g *gameDelegate) ConfigureMoves() []boardgame.MoveTypeConfig {
+func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
 	revealCardConfig := auto.MustConfig(
 		new(MoveRevealCard),

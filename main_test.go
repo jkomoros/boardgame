@@ -220,7 +220,7 @@ type testMoveInvalidPlayerIndex struct {
 	CurrentlyLegal bool
 }
 
-var testMoveInvalidPlayerIndexConfig = MoveTypeConfig{
+var testMoveInvalidPlayerIndexConfig = MoveConfig{
 	Name: "Invalid PlayerIndex",
 	MoveConstructor: func() Move {
 		return new(testMoveInvalidPlayerIndex)
@@ -264,7 +264,7 @@ type testMoveMakeIllegalPhase struct {
 	baseMove
 }
 
-var testMoveMakeIllegalPhaseConfig = MoveTypeConfig{
+var testMoveMakeIllegalPhaseConfig = MoveConfig{
 	Name: "Make Illegal Phase",
 	MoveConstructor: func() Move {
 		return new(testMoveMakeIllegalPhase)
@@ -307,7 +307,7 @@ type testMoveIncrementCardInHand struct {
 	TargetPlayerIndex PlayerIndex
 }
 
-var testMoveIncrementCardInHandConfig = MoveTypeConfig{
+var testMoveIncrementCardInHandConfig = MoveConfig{
 	Name: "Increment IntValue of Card in Hand",
 	MoveConstructor: func() Move {
 		return new(testMoveIncrementCardInHand)
@@ -391,7 +391,7 @@ type testMoveDrawCard struct {
 	TargetPlayerIndex PlayerIndex
 }
 
-var testMoveDrawCardConfig = MoveTypeConfig{
+var testMoveDrawCardConfig = MoveConfig{
 	Name: "Draw Card",
 	MoveConstructor: func() Move {
 		return new(testMoveDrawCard)
@@ -458,7 +458,7 @@ type testMoveAdvanceCurentPlayer struct {
 	baseFixUpMove
 }
 
-var testMoveAdvanceCurrentPlayerConfig = MoveTypeConfig{
+var testMoveAdvanceCurrentPlayerConfig = MoveConfig{
 	Name: "Advance Current Player",
 	MoveConstructor: func() Move {
 		return new(testMoveAdvanceCurentPlayer)
@@ -521,7 +521,7 @@ type testMove struct {
 	ABool             bool
 }
 
-var testMoveConfig = MoveTypeConfig{
+var testMoveConfig = MoveConfig{
 	Name: "Test",
 	MoveConstructor: func() Move {
 		return new(testMove)
@@ -592,7 +592,7 @@ type testAlwaysLegalMove struct {
 	baseFixUpMove
 }
 
-var testAlwaysLegalMoveConfig = MoveTypeConfig{
+var testAlwaysLegalMoveConfig = MoveConfig{
 	Name: "Test Always Legal Move",
 	MoveConstructor: func() Move {
 		return new(testAlwaysLegalMove)
@@ -653,7 +653,7 @@ func (i *illegalMove) Apply(state State) error {
 	return nil
 }
 
-var testIllegalMoveConfig = MoveTypeConfig{
+var testIllegalMoveConfig = MoveConfig{
 	Name: "Illegal Move",
 	MoveConstructor: func() Move {
 		return new(illegalMove)

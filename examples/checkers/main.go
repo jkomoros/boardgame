@@ -43,7 +43,7 @@ func (g *gameDelegate) DefaultNumPlayers() int {
 	return 2
 }
 
-func (g *gameDelegate) ConfigureMoves() []boardgame.MoveTypeConfig {
+func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	return moves.Combine(
 		moves.AddOrderedForPhase(PhaseSetup,
 			auto.MustConfig(

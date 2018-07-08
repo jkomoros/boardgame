@@ -76,7 +76,7 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 
 type gameDelegate struct {
 	boardgame.DefaultGameDelegate
-	moveInstaller func(manager *boardgame.GameManager) []boardgame.MoveTypeConfig
+	moveInstaller func(manager *boardgame.GameManager) []boardgame.MoveConfig
 }
 
 func (g *gameDelegate) Name() string {
@@ -107,7 +107,7 @@ func (g *gameDelegate) PlayerStateConstructor(index boardgame.PlayerIndex) board
 	}
 }
 
-func (g *gameDelegate) ConfigureMoves() []boardgame.MoveTypeConfig {
+func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	return g.moveInstaller(g.Manager())
 }
 
@@ -121,7 +121,7 @@ func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 	}
 }
 
-func newGameManager(moveInstaller func(manager *boardgame.GameManager) []boardgame.MoveTypeConfig) (*boardgame.GameManager, error) {
+func newGameManager(moveInstaller func(manager *boardgame.GameManager) []boardgame.MoveConfig) (*boardgame.GameManager, error) {
 
 	return boardgame.NewGameManager(&gameDelegate{moveInstaller: moveInstaller}, memory.NewStorageManager())
 

@@ -19,8 +19,8 @@ type moveType struct {
 	manager             *GameManager
 }
 
-//MoveTypeConfig is a collection of information used to create a MoveType.
-type MoveTypeConfig struct {
+//MoveConfig is a collection of information used to create a MoveType.
+type MoveConfig struct {
 	//Name is the name for this type of move. No other Move structs
 	//in use in this game should have the same name, but it should be human-
 	//friendly. For example, "Place Token" is a reasonable name, as long as no
@@ -57,11 +57,11 @@ type MoveTypeConfig struct {
 
 const newMoveTypeErrNoManagerPassed = "No manager passed, so we can'd do validation"
 
-//NewMoveType takes a MoveTypeConfig and returns a MoveType associated with
+//NewMoveType takes a MoveConfig and returns a MoveType associated with
 //the given manager. The returned move type will not yet have been added to
 //the manager in question. In general you don't call this directly, and
-//instead use manager.AddMove, which accepts a MoveTypeConfig.
-func (m *MoveTypeConfig) newMoveType(manager *GameManager) (*moveType, error) {
+//instead use manager.AddMove, which accepts a MoveConfig.
+func (m *MoveConfig) newMoveType(manager *GameManager) (*moveType, error) {
 	if m == nil {
 		return nil, errors.New("No config provided")
 	}
@@ -116,7 +116,7 @@ func (m *MoveTypeConfig) newMoveType(manager *GameManager) (*moveType, error) {
 //OrphanExampleMove returns a move from the config that will be similar to a
 //real move, in terms of struct-based auto-inflation, etc. This is exposed
 //primarily for auto.Config, and generally shouldn't be used by others.
-func (m *MoveTypeConfig) OrphanExampleMove() (Move, error) {
+func (m *MoveConfig) OrphanExampleMove() (Move, error) {
 	throwAwayMoveType, err := m.newMoveType(nil)
 
 	if err != nil {

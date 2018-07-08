@@ -22,7 +22,7 @@ type gameDelegate struct {
 	boardgame.DefaultGameDelegate
 }
 
-func (g *gameDelegate) ConfigureMoves() []boardgame.MoveTypeConfig {
+func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	return nil
 }
 
@@ -31,7 +31,7 @@ type secondGameDelegate struct {
 	boardgame.DefaultGameDelegate
 }
 
-func (s *secondGameDelegate) ConfigureMoves() []boardgame.MoveTypeConfig {
+func (s *secondGameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	return nil
 }
 
@@ -41,7 +41,7 @@ type alreadyHasEnumsGameDelegate struct {
 	boardgame.DefaultGameDelegate
 }
 
-func (a *alreadyHasEnumsGameDelegate) ConfigureMoves() []boardgame.MoveTypeConfig {
+func (a *alreadyHasEnumsGameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	return nil
 }
 
@@ -56,7 +56,7 @@ type fakeGameDelegateWrongMethodName struct {
 	boardgame.DefaultGameDelegate
 }
 
-func (f *fakeGameDelegateWrongMethodName) AnotherMethodName() []boardgame.MoveTypeConfig {
+func (f *fakeGameDelegateWrongMethodName) AnotherMethodName() []boardgame.MoveConfig {
 	return nil
 }
 

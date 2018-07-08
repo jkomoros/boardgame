@@ -59,7 +59,7 @@ type moveMoveTokenSanitized struct {
  *
  **************************************************/
 
-var moveMoveCardBetweenShortStacksConfig = boardgame.MoveTypeConfig{
+var moveMoveCardBetweenShortStacksConfig = boardgame.MoveConfig{
 	Name: "Move Card Between Short Stacks",
 	MoveConstructor: func() boardgame.Move {
 		return new(moveMoveCardBetweenShortStacks)
@@ -124,7 +124,7 @@ func (m *moveMoveCardBetweenShortStacks) Apply(state boardgame.State) error {
  *
  **************************************************/
 
-var moveMoveCardBetweenDrawAndDiscardStacksConfig = boardgame.MoveTypeConfig{
+var moveMoveCardBetweenDrawAndDiscardStacksConfig = boardgame.MoveConfig{
 	Name: "Move Card Between Draw and Discard Stacks",
 	MoveConstructor: func() boardgame.Move {
 		return new(moveMoveCardBetweenDrawAndDiscardStacks)
@@ -189,7 +189,7 @@ func (m *moveMoveCardBetweenDrawAndDiscardStacks) Apply(state boardgame.State) e
  *
  **************************************************/
 
-var moveFlipHiddenCardConfig = boardgame.MoveTypeConfig{
+var moveFlipHiddenCardConfig = boardgame.MoveConfig{
 	Name: "Flip Card Between Hidden and Revealed",
 	MoveConstructor: func() boardgame.Move {
 		return new(moveFlipHiddenCard)
@@ -244,7 +244,7 @@ func (m *moveFlipHiddenCard) Apply(state boardgame.State) error {
  *
  **************************************************/
 
-var moveMoveCardBetweenFanStacksConfig = boardgame.MoveTypeConfig{
+var moveMoveCardBetweenFanStacksConfig = boardgame.MoveConfig{
 	Name: "Move Fan Card",
 	MoveConstructor: func() boardgame.Move {
 		return new(moveMoveCardBetweenFanStacks)
@@ -291,7 +291,7 @@ func (m *moveMoveCardBetweenFanStacks) Apply(state boardgame.State) error {
  *
  **************************************************/
 
-var moveVisibleShuffleCardsConfig = boardgame.MoveTypeConfig{
+var moveVisibleShuffleCardsConfig = boardgame.MoveConfig{
 	Name: "Visible Shuffle",
 	MoveConstructor: func() boardgame.Move {
 		return new(moveVisibleShuffleCards)
@@ -331,7 +331,7 @@ func (m *moveVisibleShuffleCards) Apply(state boardgame.State) error {
  *
  **************************************************/
 
-var moveShuffleCardsConfig = boardgame.MoveTypeConfig{
+var moveShuffleCardsConfig = boardgame.MoveConfig{
 	Name: "Shuffle",
 	MoveConstructor: func() boardgame.Move {
 		return new(moveShuffleCards)
@@ -371,7 +371,7 @@ func (m *moveShuffleCards) Apply(state boardgame.State) error {
  *
  **************************************************/
 
-var moveMoveBetweenHiddenConfig = boardgame.MoveTypeConfig{
+var moveMoveBetweenHiddenConfig = boardgame.MoveConfig{
 	Name: "Move Between Hidden",
 	MoveConstructor: func() boardgame.Move {
 		return new(moveMoveBetweenHidden)
@@ -419,7 +419,7 @@ func (m *moveMoveBetweenHidden) Apply(state boardgame.State) error {
  *
  **************************************************/
 
-var moveMoveTokenConfig = boardgame.MoveTypeConfig{
+var moveMoveTokenConfig = boardgame.MoveConfig{
 	Name: "Move Token",
 	MoveConstructor: func() boardgame.Move {
 		return new(moveMoveToken)
@@ -467,7 +467,7 @@ func (m *moveMoveToken) Apply(state boardgame.State) error {
  *
  **************************************************/
 
-var moveMoveTokenSanitizedConfig = boardgame.MoveTypeConfig{
+var moveMoveTokenSanitizedConfig = boardgame.MoveConfig{
 	Name: "Move Token Sanitized",
 	MoveConstructor: func() boardgame.Move {
 		return new(moveMoveTokenSanitized)

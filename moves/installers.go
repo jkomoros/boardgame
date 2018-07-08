@@ -6,9 +6,9 @@ import (
 
 //Combine takes a series of lists of moveTypeConfigs and flattens them into a
 //single list, appropraite for being retunrned from delegate.ConfigureMoves().
-func Combine(moves ...[]boardgame.MoveTypeConfig) []boardgame.MoveTypeConfig {
+func Combine(moves ...[]boardgame.MoveConfig) []boardgame.MoveConfig {
 
-	var result []boardgame.MoveTypeConfig
+	var result []boardgame.MoveConfig
 
 	for _, list := range moves {
 		result = append(result, list...)
@@ -21,8 +21,8 @@ func Combine(moves ...[]boardgame.MoveTypeConfig) []boardgame.MoveTypeConfig {
 //Add is designed to be used inside of Combine. It is a parallel of
 //AddForPhase and AddOrderedForPhase. It doesn't actually do any processing,
 //and is effectively equivalent to wrapping your config bundles in
-//[]*boardgame.MoveTypeConfig{}.
-func Add(moves ...boardgame.MoveTypeConfig) []boardgame.MoveTypeConfig {
+//[]*boardgame.MoveConfig{}.
+func Add(moves ...boardgame.MoveConfig) []boardgame.MoveConfig {
 	return moves
 }
 
@@ -30,7 +30,7 @@ func Add(moves ...boardgame.MoveTypeConfig) []boardgame.MoveTypeConfig {
 //WithLegalPhases() on the config for each config passed in. It's a
 //convenience to make it less error-prone and more clear what the intent is
 //for phase-locked moves.
-func AddForPhase(phase int, moves ...boardgame.MoveTypeConfig) []boardgame.MoveTypeConfig {
+func AddForPhase(phase int, moves ...boardgame.MoveConfig) []boardgame.MoveConfig {
 
 	phaseInstaller := WithLegalPhases(phase)
 
@@ -47,7 +47,7 @@ func AddForPhase(phase int, moves ...boardgame.MoveTypeConfig) []boardgame.MoveT
 //config passed in. It's a convenience to make it less error-prone and more
 //clear what the intent is for phase-locked, ordered moves. All moveTypes
 //passed must be legal auto-configurable moves.
-func AddOrderedForPhase(phase int, moves ...boardgame.MoveTypeConfig) []boardgame.MoveTypeConfig {
+func AddOrderedForPhase(phase int, moves ...boardgame.MoveConfig) []boardgame.MoveConfig {
 
 	progression := make([]string, len(moves))
 

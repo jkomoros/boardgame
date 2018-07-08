@@ -124,7 +124,7 @@ func (g *gameDelegate) ConfigureAgents() []boardgame.Agent {
 	}
 }
 
-func (g *gameDelegate) ConfigureMoves() []boardgame.MoveTypeConfig {
+func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	return moves.Add(
 		auto.MustConfig(
 			new(MovePlaceToken),

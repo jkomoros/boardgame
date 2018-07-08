@@ -85,7 +85,7 @@ func findDelegateName(packageASTs map[string]*ast.Package) ([]string, error) {
 
 				//We're looking for function declarations like func (g
 				//*gameDelegate) ConfigureMoves()
-				//*boardgame.MoveTypeConfigBundle.
+				//*boardgame.MoveConfigBundle.
 
 				funDecl, ok := decl.(*ast.FuncDecl)
 
@@ -120,7 +120,7 @@ func findDelegateName(packageASTs map[string]*ast.Package) ([]string, error) {
 					continue
 				}
 
-				if sel.Sel.Name != "MoveTypeConfig" {
+				if sel.Sel.Name != "MoveConfig" {
 					continue
 				}
 
@@ -134,7 +134,7 @@ func findDelegateName(packageASTs map[string]*ast.Package) ([]string, error) {
 					continue
 				}
 
-				//TODO: verify the one return type is boardgame.MoveTypeConfigBundle
+				//TODO: verify the one return type is boardgame.MoveConfigBundle
 
 				if funDecl.Recv == nil || funDecl.Recv.NumFields() != 1 {
 					//Verify i
@@ -190,7 +190,7 @@ func filterDelegateNames(candidates []string, packageASTs map[string]*ast.Packag
 
 				//We're looking for function declarations like func (g
 				//*gameDelegate) ConfigureMoves()
-				//*boardgame.MoveTypeConfigBundle.
+				//*boardgame.MoveConfigBundle.
 
 				funDecl, ok := decl.(*ast.FuncDecl)
 

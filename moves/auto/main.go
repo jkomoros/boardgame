@@ -26,7 +26,7 @@ type AutoConfigurableMove interface {
 
 //MustConfig is a wrapper around Config that if it errors will panic. Only
 //suitable for being used during setup.
-func MustConfig(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConfigurationOption) boardgame.MoveTypeConfig {
+func MustConfig(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConfigurationOption) boardgame.MoveConfig {
 	result, err := Config(exampleStruct, options...)
 
 	if err != nil {
@@ -36,15 +36,15 @@ func MustConfig(exampleStruct AutoConfigurableMove, options ...interfaces.Custom
 	return result
 }
 
-//Config is a powerful default MoveTypeConfig generator. In many cases
+//Config is a powerful default MoveConfig generator. In many cases
 //you'll implement moves that are very thin embeddings of moves in this
-//package. Generating a MoveTypeConfig for each is a pain. This method auto-
-//generates the MoveTypeConfig based on an example zero type of your move to
+//package. Generating a MoveConfig for each is a pain. This method auto-
+//generates the MoveConfig based on an example zero type of your move to
 //install. Moves need a few extra methods that are consulted to generate the
 //move name, helptext, and isFixUp; anything based on moves.Base automatically
 //satisfies the necessary interface. See the package doc for an example of
 //use.
-func Config(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConfigurationOption) (boardgame.MoveTypeConfig, error) {
+func Config(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConfigurationOption) (boardgame.MoveConfig, error) {
 
 	config := make(boardgame.PropertyCollection, len(options))
 
@@ -53,32 +53,32 @@ func Config(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConf
 	}
 
 	if exampleStruct == nil {
-		return boardgame.MoveTypeConfig{}, errors.New("nil struct provided")
+		return boardgame.MoveConfig{}, errors.New("nil struct provided")
 	}
 
 	//We'll create a throw-away move type config first to get a fully-
 	//initialized and expanded move (e.g. with all tag-based autoinflation)
 	//that we can then pass to the MoveType* methods, so they'll have more to work with.
 
-	throwAwayConfig := newMoveTypeConfig("Temporary Move", exampleStruct, config)
+	throwAwayConfig := newMoveConfig("Temporary Move", exampleStruct, config)
 
 	generatedExample, err := throwAwayConfig.OrphanExampleMove()
 
 	if err != nil {
-		return boardgame.MoveTypeConfig{}, err
+		return boardgame.MoveConfig{}, err
 	}
 
 	actualExample := generatedExample.(AutoConfigurableMove)
 
 	name := actualExample.DeriveName()
 
-	moveTypeConfig, err := newMoveTypeConfig(name, exampleStruct, config), nil
+	moveTypeConfig, err := newMoveConfig(name, exampleStruct, config), nil
 
 	return moveTypeConfig, err
 
 }
 
-func newMoveTypeConfig(name string, exampleStruct boardgame.Move, config boardgame.PropertyCollection) boardgame.MoveTypeConfig {
+func newMoveConfig(name string, exampleStruct boardgame.Move, config boardgame.PropertyCollection) boardgame.MoveConfig {
 	val := reflect.ValueOf(exampleStruct)
 
 	//We can accept either pointer or struct types.
@@ -88,7 +88,7 @@ func newMoveTypeConfig(name string, exampleStruct boardgame.Move, config boardga
 
 	typ := val.Type()
 
-	return boardgame.MoveTypeConfig{
+	return boardgame.MoveConfig{
 		Name: name,
 		MoveConstructor: func() boardgame.Move {
 			return reflect.New(typ).Interface().(boardgame.Move)

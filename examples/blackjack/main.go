@@ -170,7 +170,7 @@ func (g *gameDelegate) FinishSetUp(state boardgame.State) error {
 	return nil
 }
 
-func (g *gameDelegate) ConfigureMoves() []boardgame.MoveTypeConfig {
+func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
 	return moves.Combine(
 		moves.Add(
