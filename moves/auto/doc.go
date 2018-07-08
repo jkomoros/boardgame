@@ -5,14 +5,13 @@
 
 	Use Case
 
-	Creating MoveTypeConfig is a necessary part of installing moves on your
+	Creating MoveConfig's is a necessary part of installing moves on your
 	GameManager, but it's verbose and error-prone. You need to create a lot of
 	extra structs, and then remember to provide the right properties in your
-	config. For example, if you forget IsFixUp: true for a fixup move, your
-	game logic might grind to a halt. And to use many of the powerful moves in
-	the moves package, you need to write a lot of boilerplate methods to
-	integrate correctly. Finally, you end up repeating yourself often--which
-	makes it a pain if you change the name of a move.
+	config. And to use many of the powerful moves in the moves package, you
+	need to write a lot of boilerplate methods to integrate correctly.
+	Finally, you end up repeating yourself often--which makes it a pain if you
+	change the name of a move.
 
 	Take this example:
 
@@ -21,13 +20,12 @@
 			moves.DealComponentsUntilPlayerCountReached
 		}
 
-		var moveDealInitialCardsConfig = boardgame.MoveTypeConfig {
+		var moveDealInitialCardsConfig = boardgame.MoveConfig {
 			Name: "Deal Initial Cards",
 			HelpText: "Deal initial cards to players",
-			MoveConstructor: func() boardgame.Move {
+			Constructor: func() boardgame.Move {
 				return new(MoveDealInitialCards)
 			},
-			IsFixUp: true,
 		}
 
 		func (m *MoveDealInitialCards) GameStack(gState boardgame.MutableSubState) boardgame.MutableStack {
@@ -42,8 +40,8 @@
 			return 2
 		}
 
-		func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
-			return boardgame.NewMoveTypeConfigBundle().AddMoves(
+		func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
+			return moves.Add(
 				&moveDealInitialCardsConfig,
 			)
 		}
@@ -51,8 +49,8 @@
 	auto.Config (and its panic-y sibling auto.MustConfig) help reduce this
 	signficantly:
 
-		func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
-			return boardgame.NewMoveTypeConfigBundle().AddMoves(
+		func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
+			return moves.Add(
 				auto.MustConfig(
 					new(moves.DealComponentsUntilPlayerCountReached),
 					moves.WithGameStack("DrawStack"),
@@ -74,13 +72,11 @@
 	starting with "With".
 
 	Moves that are used with auto.Config must satisfy the AutoConfigurableMove
-	interface, which adds four methods to the normal signature:
-	MoveTypeName(), MoveTypeHelpText(), MoveTypeIsFixUp(), and
-	MoveTypeLegalPhases(). auto.Config primarily consistsn of some set up and
-	then using those return values as fields on the returned MoveTypeConfig.
-	These methods are implemented in moves.Base, which means that any move
-	structs that embed moves.Base (directly or indirectly) can be used with
-	auto.Config.
+	interface, which adds one method: DeriveName() string. auto.Config
+	primarily consistsn of some set up and then using those return values as
+	fields on the returned MoveTypeConfig. These methods are implemented in
+	moves.Base, which means that any move structs that embed moves.Base
+	(directly or indirectly) can be used with auto.Config.
 
 	moves.Base does a fair bit of magic in these methods to implement much of
 	the logic of auto.Config. In general, if you pass a configuration option
@@ -111,14 +107,14 @@
 	moves, and typically is used for every move you install in your game. The
 	following paragraphs describe the high-level idioms to follow.
 
-	Never create your own MoveTypeConfig objects--it's just another global
+	Never create your own MoveConfig objects--it's just another global
 	variable that clutters up your code and makes it harder to change.
 	Instead, use auto.Config. There are some rare cases where you do want to
 	refer to the move by name (and not rely on finicky string-based lookup),
 	such as when you want an Agent to propose a speciifc type of move. In
 	those cases use auto.Config to create the move type config, then save the
 	resulting config's Name to a global variable that you use elsewhere, and
-	then pass the created config to bundle.AddMoves (or its cousins).
+	then pass the created config to moves.Add() (and its cousins)
 
 	In general, you should only create a bespoke Move struct in your game if
 	it is not possible to use one of the off-the-shelf moves from the moves
@@ -130,27 +126,27 @@
 	has hundreds of lines of auto-generated PropertyReader code).
 
 	If you do create a bespoke struct, name it like this: "MoveNameOfMyMove",
-	so that moves.Base's default MoveTypeName() will give it a reasonable name
+	so that moves.Base's default DeriveName() will give it a reasonable name
 	automatically (in this example, "Name Of My Move").
 
 	In many cases if you subclass powerful moves like DealCountComponents the
-	default MoveTypeHelpText() value is sufficient (especially if it's a FixUp
+	default HelpText() value is sufficient (especially if it's a FixUp
 	move that won't ever be seen by players). In other cases, WithHelpText()
 	is often the only config option you will pass to auto.Config.
 
 	If your move will be a FixUp move that doesn't sublcass one of the more
 	advanced fix up moves (like RoundRobin or DealCountComponents), embed
-	moves.FixUp into your struct. That will cause MoveTypeIsFixUp to return
-	the right value even without using WithIsFixUp--because WithIsFixUp is
-	easy to forget given that it's often in a different file. In almost all
-	cases if you use WithIsFixUp you should simply embed moves.FixUp instead.
+	moves.FixUp into your struct. That will cause IsFixUp to return the right
+	value even without using WithIsFixUp--because WithIsFixUp is easy to
+	forget given that it's often in a different file. In almost all cases if
+	you use WithIsFixUp you should simply embed moves.FixUp instead.
 
-	auto.MustConfig is like auto.Config, but instead of returning a
-	*MoveTypeConfig and an error, it simply returns a *MoveTypeConfig--and
-	panics if it would have returned an error. Since your GameDelegate's
-	ConfigureMoves() is typically called during the boot-up sequence of your
-	game, it is safe to use auto.MustConfig exclusively, which saves many
-	lines of boilerplate error checking.
+	auto.MustConfig is like auto.Config, but instead of returning a MoveConfig
+	and an error, it simply returns a MoveConfig--and panics if it would have
+	returned an error. Since your GameDelegate's ConfigureMoves() is typically
+	called during the boot-up sequence of your game, it is safe to use
+	auto.MustConfig exclusively, which saves many lines of boilerplate error
+	checking.
 
 */
 package auto
