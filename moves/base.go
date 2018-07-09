@@ -120,8 +120,40 @@ func (d *Base) Description() string {
 func (d *Base) ValidConfiguration(exampleState boardgame.State) error {
 	config := d.CustomConfiguration()
 
-	if config[configNameLegalPhases] == nil && config[configNameLegalMoveProgression] != nil {
-		return errors.New("WithLegalMoveProgression configuration provided, but without WithLegalPhases")
+	if config[configNameLegalMoveProgression] != nil {
+
+		legalPhasesRaw := config[configNameLegalPhases]
+
+		if legalPhasesRaw == nil {
+			return errors.New("WithLegalMoveProgression configuration provided, but without WithLegalPhases")
+		}
+
+		legalPhases, ok := legalPhasesRaw.([]int)
+
+		if !ok {
+			return errors.New("Legal Phases unexpectedly were not ints")
+		}
+
+		delegate := exampleState.Game().Manager().Delegate()
+
+		phaseEnum := delegate.PhaseEnum()
+
+		if phaseEnum == nil {
+			return nil
+		}
+
+		treeEnum := phaseEnum.TreeEnum()
+
+		if treeEnum == nil {
+			return nil
+		}
+
+		for _, phase := range legalPhases {
+			if !treeEnum.IsLeaf(phase) {
+				return errors.New("PhaseEnum() returns a TreeEnum, and MoveProgression is Nil, but the LegalPhase provided")
+			}
+		}
+
 	}
 
 	return nil

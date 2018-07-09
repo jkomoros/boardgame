@@ -30,9 +30,9 @@ func Add(moves ...boardgame.MoveConfig) []boardgame.MoveConfig {
 }
 
 //AddForPhase is designed to be used within Combine. It calls
-//WithLegalPhases() on the config for each config passed in. It's a
-//convenience to make it less error-prone and more clear what the intent is
-//for phase-locked moves.
+//WithLegalPhases() on the config for each config passed in, so that those
+//moves will only be Legal() in that phase. It's a convenience to make it less
+//error-prone and more clear what the intent is for phase-locked moves.
 func AddForPhase(phase int, moves ...boardgame.MoveConfig) []boardgame.MoveConfig {
 
 	phaseInstaller := WithLegalPhases(phase)
@@ -47,10 +47,15 @@ func AddForPhase(phase int, moves ...boardgame.MoveConfig) []boardgame.MoveConfi
 
 //AddOrderedForPhase is designed to be used within Combine. It calls
 //WithLegalPhases() and also WithLegalMoveProgression() on the config for each
-//config passed in. It's a convenience to make it less error-prone and more
-//clear what the intent is for phase-locked, ordered moves. All moveTypes
-//passed must be legal auto-configurable moves.
+//config passed in, which means that the moves' Legal() will only be Legal in
+//that phase, in that point in the move progression. It's a convenience to
+//make it less error-prone and more clear what the intent is for phase-locked,
+//ordered moves. All moveTypes passed must be legal auto-configurable moves.
 func AddOrderedForPhase(phase int, moves ...boardgame.MoveConfig) []boardgame.MoveConfig {
+
+	//Technically it's illegal to attach a move progression to a non-leaf
+	//phase enum val, but at this point we don't have a reference to delegate
+	//so we can't check. moves.Base.ValidConfiguration will check.
 
 	progression := make([]string, len(moves))
 
