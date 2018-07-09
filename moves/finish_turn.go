@@ -36,7 +36,7 @@ func (f *FinishTurn) ValidConfiguration(exampleState boardgame.State) error {
 		return errors.New("PlayerState does not implement PlayerTurnFinisher")
 	}
 
-	return nil
+	return f.FixUp.ValidConfiguration(exampleState)
 }
 
 //Legal checks if the game's CurrentPlayer's TurnDone() returns true.

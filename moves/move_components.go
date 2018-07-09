@@ -31,7 +31,7 @@ type MoveCountComponents struct {
 }
 
 func (m *MoveCountComponents) ValidConfiguration(exampleState boardgame.State) error {
-	if err := m.ApplyUntilCount.ValidConfiguration(exampleState); err != nil {
+	if err := m.ApplyCountTimes.ValidConfiguration(exampleState); err != nil {
 		return err
 	}
 

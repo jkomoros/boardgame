@@ -116,9 +116,14 @@ func (d *Base) Description() string {
 	return d.TopLevelStruct().HelpText()
 }
 
-//ValidConfiguration always returns nil because there is no required
-//configuration for moves.Base.
+//ValidConfiguration ensures that phase progression is configured in sane way.
 func (d *Base) ValidConfiguration(exampleState boardgame.State) error {
+	config := d.CustomConfiguration()
+
+	if config[configNameLegalPhases] == nil && config[configNameLegalMoveProgression] != nil {
+		return errors.New("WithLegalMoveProgression configuration provided, but without WithLegalPhases")
+	}
+
 	return nil
 }
 

@@ -30,6 +30,11 @@ type StartPhase struct {
 }
 
 func (s *StartPhase) ValidConfiguration(exampleState boardgame.State) error {
+
+	if err := s.FixUp.ValidConfiguration(exampleState); err != nil {
+		return err
+	}
+
 	embeddingMove := s.TopLevelStruct()
 
 	phaseStarter, ok := embeddingMove.(phaseToStarter)

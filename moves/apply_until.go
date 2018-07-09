@@ -31,10 +31,12 @@ type ApplyUntil struct {
 }
 
 func (a *ApplyUntil) ValidConfiguration(exampleState boardgame.State) error {
+
 	if _, ok := a.TopLevelStruct().(interfaces.ConditionMetter); !ok {
 		return errors.New("Embedding Move doesn't have ConditionMet")
 	}
-	return nil
+
+	return a.FixUpMulti.ValidConfiguration(exampleState)
 }
 
 //Legal returns an error until ConditionMet returns nil.

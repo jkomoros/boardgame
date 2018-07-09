@@ -87,7 +87,7 @@ func (s *ShuffleStack) ValidConfiguration(exampleState boardgame.State) error {
 		return errors.New("SourceStack returned nil")
 	}
 
-	return nil
+	return s.FixUp.ValidConfiguration(exampleState)
 }
 
 //FallbackName returns "Shuffle STACK" where STACK is the name of the
