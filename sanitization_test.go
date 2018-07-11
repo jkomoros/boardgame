@@ -234,9 +234,7 @@ func TestSanitization(t *testing.T) {
 		},
 	}
 
-	game := testGame(t)
-
-	makeTestGameIdsStable(game)
+	game := testDefaultGame(t, true)
 
 	for i, test := range tests {
 

@@ -6,9 +6,7 @@ import (
 )
 
 func TestBoard(t *testing.T) {
-	game := testGame(t)
-
-	game.SetUp(0, nil, nil)
+	game := testDefaultGame(t, false)
 
 	gameState := game.CurrentState().ImmutableGameState().(*testGameState)
 

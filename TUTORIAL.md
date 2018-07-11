@@ -435,19 +435,17 @@ GameDelegate has a number of other methods that are consulted at various key poi
 
 #### SetUp
 
-Once you have a GameManager, you can create individual games from it by calling `NewGame`.
-
-Before a Game may be used it must be `SetUp` by passing the number of players in the game. This is where the game's state is initalized and made ready for the first moves to be applied. `SetUp` may fail for any number of reasons. For example, if the provided number of players is not legal according to the `GameDelegate`'s `LegalNumPlayers` method, `SetUp` will fail.
+Once you have a GameManager, you can create individual games from it by calling `NewGame`, passing the number of players and any other optional configuration. This is where the game's state is initalized and made ready for the first moves to be applied. `NewGame` may fail for any number of reasons. For example, if the provided number of players is not legal according to the `GameDelegate`'s `LegalNumPlayers` method, `NewGame` will fail.
 
 The initalization of the state object is handled in three phases that can be customized by the `GameDelegate`: `BeginSetup`, `DistributeComponentToStarterStack` and `FinishSetup`.
 
 `BeginSetup` is called first. It provides the State, which will be everything's zero-value (as returned from the Constructors, with minimal fixup and sanitization applied by the engine). This is the chance to do any modifications to the state before components are distributed.
 
-`DistributeComponentToStarterStack` is called repeatedly, once per Compoonent in the game. This is the opportunity to distribute each component to the stack that it will reside in. After this phase is completed, components can only be moved around by calling `SwapComponents`, `MoveComponent`, or `Shuffle` (or their variants). This is how the invariant that each component must reside in precisely one stack at every state version is maintained. Each time that `DistributeComponentToStarterStack` is called, your method should return a reference to the `Stack` that they should be inserted into. If no stack is returned, or if there isn't room in that stack, then the Game's `SetUp` will return an error. Components in this phase are always put into the next space in the stack from front to back. If you desire a different ordering you will fix it up in `FinishSetup`.
+`DistributeComponentToStarterStack` is called repeatedly, once per Compoonent in the game. This is the opportunity to distribute each component to the stack that it will reside in. After this phase is completed, components can only be moved around by calling `SwapComponents`, `MoveComponent`, or `Shuffle` (or their variants). This is how the invariant that each component must reside in precisely one stack at every state version is maintained. Each time that `DistributeComponentToStarterStack` is called, your method should return a reference to the `Stack` that they should be inserted into. If no stack is returned, or if there isn't room in that stack, then the `NewGame` will return an error. Components in this phase are always put into the next space in the stack from front to back. If you desire a different ordering you will fix it up in `FinishSetup`.
 
 `FinishSetup` is the last configurable phase of setting up a game. This is the phase after all components are distributed to their starter stacks. This is where stacks will traditionally be `Shuffle`d or otherwise have their components put into the correct order.
 
-After a game is succesfully `SetUp` it is ready to have Moves applied.
+The game returned from `NewGame` is ready for moves to be applied immediately.
 
 ### Moves
 
@@ -1620,7 +1618,7 @@ of that phase.
 
 Games can often take different configurations. For example, a deck-based card game might be playable with an expansion pack of cards mixed in. 
 
-These are represented in the engine by the notion of a `GameConfig` which is just a `map[string]string`. When your game is created, a bundle of Config will be passed to `SetUp`, along with how many players are in the game. That config is simply passed to your `GameDelegate`'s `BeginSetUp` method, and that's it. It's your game's responsibility to take that information to set properties differently so the game can be configured that way.
+These are represented in the engine by the notion of a `GameConfig` which is just a `map[string]string`. When your game is created, a bundle of Config will be passed to `NewGame`, along with how many players are in the game. That config is simply passed to your `GameDelegate`'s `BeginSetUp` method, and that's it. It's your game's responsibility to take that information to set properties differently so the game can be configured that way.
 
 There are a few other extension points for `Config`. One is `GameDelegate.Configs() map[string][]string`. This is a purely optional method that just enumerates different keys your game understands and valid values for them, like in `memory`:
 
@@ -1653,7 +1651,7 @@ func (g *gameDelegate) Configs() map[string][]string {
 
 These values are used primarily just so the webapp can create reasonable fields in the UI. 
 
-Another extension point is `GameDelegate.LegalConfig()`. When a Game is being `SetUp`, just after the number of players is checked for legality, the config object is passed to that method. If it returns an error then SetUp will fail. `DefaultGameDelegate` just verifies that all of the keys and values are legal according to the return value of `Configs()`, which is almost always what you want.
+Another extension point is `GameDelegate.LegalConfig()`. When a Game is being set up, just after the number of players is checked for legality, the config object is passed to that method. If it returns an error then `NewGame` will fail. `DefaultGameDelegate` just verifies that all of the keys and values are legal according to the return value of `Configs()`, which is almost always what you want.
 
 There are two other methods on `GameDelegate`,  `ConfigKeyDisplay` and `ConfigValueDisplay`, which are used to get strings to show to the user in the web app UI.
 

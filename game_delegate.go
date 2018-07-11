@@ -115,8 +115,8 @@ type GameDelegate interface {
 	//NextSlotIndex of that stack. If that is not the ordering you desire, you
 	//can fix it up in FinishSetUp by using SwapComponents. If any errors are
 	//returned, any nil Stacks are returned, or any returned stacks don't have
-	//space for another component, game.SetUp will fail. State and Component
-	//are only provided for reference; do not modify them.
+	//space for another component, NewGame will fail and return an error.
+	//State and Component are only provided for reference; do not modify them.
 	DistributeComponentToStarterStack(state ImmutableState, c Component) (ImmutableStack, error)
 
 	//BeginSetup is a chance to modify the initial state object *before* the
@@ -129,7 +129,7 @@ type GameDelegate interface {
 	//aborted, with the reasoning including the error message provided.
 	BeginSetUp(state State, config GameConfig) error
 
-	//FinishSetUp is called during game.SetUp, *after* components have been
+	//FinishSetUp is called during NewGame, *after* components have been
 	//distributed to their StarterStack. This is the last chance to modify the
 	//state before the game's initial state is considered final. For example,
 	//if you have a card game this is where you'd make sure the starter draw
@@ -155,7 +155,7 @@ type GameDelegate interface {
 
 	//DefaultNumPlayers returns the number of users that this game defaults to.
 	//For example, for tictactoe, it will be 2. If 0 is provided to
-	//game.SetUp(), we wil use this value insteadp.
+	//manager.NewGame(), we wil use this value instead.
 	DefaultNumPlayers() int
 
 	//Min/MaxNumPlayers should return the min and max number of players,
@@ -167,11 +167,12 @@ type GameDelegate interface {
 
 	//LegalNumPlayers will be consulted when a new game is created. It should
 	//return true if the given number of players is legal, and false
-	//otherwise. If this returns false, the game's SetUp will fail. Game.SetUp
-	//will automatically reject a numPlayers that does not result in at least
-	//one player existing. Generally this is simply checking to make sure the
-	//number of players is between Min and Max (inclusive), although some
-	//games could only allow, for example, even numbers of players.
+	//otherwise. If this returns false, the NewGame will fail with an error.
+	//Game creation will automatically reject a numPlayers that does not
+	//result in at least one player existing. Generally this is simply
+	//checking to make sure the number of players is between Min and Max
+	//(inclusive), although some games could only allow, for example, even
+	//numbers of players.
 	LegalNumPlayers(numPlayers int) bool
 
 	//Configs returns a list of all of the various config values that are
@@ -195,7 +196,8 @@ type GameDelegate interface {
 	//LegalConfig will be consulted when a new game is created. It should
 	//return nil if the provided config is a reasonable configuration for your
 	//gametype, and a descriptive error (that's reasonable to show to the end
-	//user) otherwise. If this returns non-nil, the game's SetUp will fail.
+	//user) otherwise. If this returns non-nil, NewGame will fail with an
+	//error.
 	LegalConfig(config GameConfig) error
 
 	//CurrentPlayerIndex returns the index of the "current" player--a notion

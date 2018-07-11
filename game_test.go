@@ -20,11 +20,7 @@ func (t *testInfiniteLoopGameDelegate) ProposeFixUpMove(state ImmutableState) Mo
 }
 
 func TestGameDelegateConstants(t *testing.T) {
-	game := testGame(t)
-
-	err := game.SetUp(0, nil, nil)
-
-	assert.For(t).ThatActual(err).IsNil()
+	game := testDefaultGame(t, false)
 
 	assert.For(t).ThatActual(game.Manager().Chest().ConstantNames()).Equals([]string{
 		"ConstantStackSize",
@@ -33,17 +29,13 @@ func TestGameDelegateConstants(t *testing.T) {
 }
 
 func TestIllegalPhase(t *testing.T) {
-	game := testGame(t)
-
-	err := game.SetUp(0, nil, nil)
-
-	assert.For(t).ThatActual(err).IsNil()
+	game := testDefaultGame(t, false)
 
 	m := game.MoveByName("Make Illegal Phase")
 
 	assert.For(t).ThatActual(m).IsNotNil()
 
-	err = <-game.ProposeMove(m, AdminPlayerIndex)
+	err := <-game.ProposeMove(m, AdminPlayerIndex)
 
 	//Ensure that the move was rejected because of tree enum, not for example
 	//not being a Legal move.
@@ -62,11 +54,7 @@ func TestGameScorer(t *testing.T) {
 }
 
 func TestMoveModifyDynamicValues(t *testing.T) {
-	game := testGame(t)
-
-	makeTestGameIdsStable(game)
-
-	game.SetUp(0, nil, nil)
+	game := testDefaultGame(t, true)
 
 	drawCardMove := game.MoveByName("Draw Card")
 
@@ -134,9 +122,7 @@ func TestMoveModifyDynamicValues(t *testing.T) {
 }
 
 func TestProposeMoveNonModifiableGame(t *testing.T) {
-	game := testGame(t)
-
-	game.SetUp(0, nil, nil)
+	game := testDefaultGame(t, false)
 
 	manager := game.Manager()
 
@@ -173,7 +159,14 @@ func TestProposeMoveNonModifiableGame(t *testing.T) {
 }
 
 func TestGameSetUp(t *testing.T) {
-	game := testGame(t)
+
+	//TODO: really now this test should be repeated calls to NewGame() on manager
+
+	manager := newTestGameManger(t)
+
+	game, err := manager.newGameImpl()
+
+	assert.For(t).ThatActual(err).IsNil()
 
 	id := game.Id()
 
@@ -207,26 +200,26 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("We never got an error from proposing a move on a game that hadn't even started")
 	}
 
-	if err := game.SetUp(15, nil, nil); err == nil {
+	if err := game.setUp(15, nil, nil); err == nil {
 		t.Error("Calling set up with an illegal number of players didn't fail")
 	}
 
-	if err := game.SetUp(2, GameConfig{"color": "illegal"}, nil); err == nil {
+	if err := game.setUp(2, GameConfig{"color": "illegal"}, nil); err == nil {
 		t.Error("Calling game set up with an illegal config did not fail")
 	}
 
-	if err := game.SetUp(-5, nil, nil); err == nil {
+	if err := game.setUp(-5, nil, nil); err == nil {
 		t.Error("Calling set up with negative number of players didn't fail")
 	}
 
-	if err := game.SetUp(3, nil, []string{"", "bam"}); err == nil {
+	if err := game.setUp(3, nil, []string{"", "bam"}); err == nil {
 		t.Error("Calling set up with wrong-sized agent config didn't fail")
 	}
 
 	//TODO: we no longer test that SetUp calls the Component distribution logic.
 
 	//Blue is a legal color according to our delegate's Configs()
-	if err := game.SetUp(0, GameConfig{"color": "blue"}, nil); err != nil {
+	if err := game.setUp(0, GameConfig{"color": "blue"}, nil); err != nil {
 		t.Error("Calling SetUp on a previously errored game did not succeed", err)
 	}
 
@@ -288,11 +281,7 @@ func TestGameSetUp(t *testing.T) {
 }
 
 func TestApplyMove(t *testing.T) {
-	game := testGame(t)
-
-	makeTestGameIdsStable(game)
-
-	game.SetUp(0, nil, nil)
+	game := testDefaultGame(t, true)
 
 	rawMove := game.MoveByName("test")
 
@@ -395,11 +384,7 @@ func TestApplyMove(t *testing.T) {
 }
 
 func TestMoveRoundTrip(t *testing.T) {
-	game := testGame(t)
-
-	err := game.SetUp(0, nil, nil)
-
-	assert.For(t).ThatActual(err).IsNil()
+	game := testDefaultGame(t, false)
 
 	move := game.MoveByName("test")
 
@@ -410,7 +395,7 @@ func TestMoveRoundTrip(t *testing.T) {
 	testMove.TargetPlayerIndex = 0
 	testMove.ABool = true
 
-	err = <-game.ProposeMove(move, AdminPlayerIndex)
+	err := <-game.ProposeMove(move, AdminPlayerIndex)
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -463,20 +448,14 @@ func TestInfiniteProposeFixUp(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	game := manager.NewGame()
-
-	err = game.SetUp(0, nil, nil)
+	_, err = manager.NewDefaultGame()
 
 	assert.For(t).ThatActual(err).Equals(ErrTooManyFixUps)
 
 }
 
 func TestIllegalPlayerIndex(t *testing.T) {
-	game := testGame(t)
-
-	err := game.SetUp(0, nil, nil)
-
-	assert.For(t).ThatActual(err).IsNil()
+	game := testDefaultGame(t, false)
 
 	previousVersion := game.Version()
 
@@ -486,7 +465,7 @@ func TestIllegalPlayerIndex(t *testing.T) {
 
 	move.(*testMoveInvalidPlayerIndex).CurrentlyLegal = true
 
-	err = <-game.ProposeMove(move, AdminPlayerIndex)
+	err := <-game.ProposeMove(move, AdminPlayerIndex)
 
 	assert.For(t).ThatActual(err).IsNotNil()
 	assert.For(t).ThatActual(game.Version()).Equals(previousVersion)
@@ -494,13 +473,18 @@ func TestIllegalPlayerIndex(t *testing.T) {
 }
 
 func TestAgent(t *testing.T) {
-	game := testGame(t)
+
+	manager := newTestGameManger(t)
+
+	game, err := manager.newGameImpl()
+
+	assert.For(t).ThatActual(err).IsNil()
 
 	game.instantAgentMoves = true
 
 	assert.For(t).ThatActual(game.NumAgentPlayers()).Equals(0)
 
-	err := game.SetUp(3, nil, []string{"", "Test", "Test"})
+	err = game.setUp(3, nil, []string{"", "Test", "Test"})
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -530,9 +514,7 @@ func TestAgent(t *testing.T) {
 }
 
 func TestGameSalt(t *testing.T) {
-	game := testGame(t)
-
-	game.SetUp(0, nil, nil)
+	game := testDefaultGame(t, false)
 
 	assert.For(t).ThatActual(game.secretSalt).DoesNotEqual("")
 
@@ -552,9 +534,7 @@ func TestGameSalt(t *testing.T) {
 	assert.For(t).ThatActual(mainCId).DoesNotEqual("")
 	assert.For(t).ThatActual(mainCId).Equals(refriedC.ID())
 
-	otherGame := testGame(t)
-
-	otherGame.SetUp(0, nil, nil)
+	otherGame := testDefaultGame(t, false)
 
 	otherC := otherGame.Chest().Deck("test").ComponentAt(0).ImmutableInstance(otherGame.CurrentState())
 
@@ -595,11 +575,7 @@ func goldenGameBlob() []byte {
 }
 
 func TestGameState(t *testing.T) {
-	game := testGame(t)
-
-	makeTestGameIdsStable(game)
-
-	game.SetUp(0, nil, nil)
+	game := testDefaultGame(t, true)
 
 	if game.Name() != testGameName {
 		t.Error("Game name was not correct")

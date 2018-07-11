@@ -446,14 +446,9 @@ func (s *Server) doNewGame(r *Renderer, owner *users.StorageRecord, manager *boa
 		return
 	}
 
-	game := manager.NewGame()
+	game, err := manager.NewGame(numPlayers, config, agents)
 
-	if game == nil {
-		r.Error(errors.New("No game could be created"))
-		return
-	}
-
-	if err := game.SetUp(numPlayers, config, agents); err != nil {
+	if err != nil {
 		//TODO: communicate the error state back to the client in a sane way
 		if f, ok := err.(*errors.Friendly); ok {
 			r.Error(f)

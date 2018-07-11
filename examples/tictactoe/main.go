@@ -300,13 +300,3 @@ func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 func NewDelegate() boardgame.GameDelegate {
 	return &gameDelegate{}
 }
-
-func NewGame(manager *boardgame.GameManager) *boardgame.Game {
-	game := manager.NewGame()
-
-	if err := game.SetUp(0, nil, nil); err != nil {
-		panic(err)
-	}
-
-	return game
-}

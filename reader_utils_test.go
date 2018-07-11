@@ -164,9 +164,9 @@ func TestAutoEnum(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	game := manager.NewGame()
+	game, err := manager.NewDefaultGame()
 
-	game.SetUp(0, nil, nil)
+	assert.For(t).ThatActual(err).IsNil()
 
 	move := game.MoveByName("AutoEnumMove")
 
@@ -200,9 +200,7 @@ func TestReaderValidator(t *testing.T) {
 
 	example := &testGeneralReadSetter{}
 
-	game := testGame(t)
-
-	game.SetUp(0, nil, nil)
+	game := testDefaultGame(t, false)
 
 	validator, err := newReaderValidator(example.ReadSetter(), example.ReadSetter(), example, nil, game.manager.Chest(), false)
 

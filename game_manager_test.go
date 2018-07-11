@@ -151,11 +151,7 @@ func TestMoveFailsValidConfiguration(t *testing.T) {
 func TestDefaultMove(t *testing.T) {
 	//Tests that Moves based on DefaultMove copy correctly
 
-	game := testGame(t)
-
-	if err := game.SetUp(0, nil, nil); err != nil {
-		t.Fatal("Couldn't set up game: " + err.Error())
-	}
+	game := testDefaultGame(t, false)
 
 	//FixUpMoveByName calls Copy under the covers.
 	move := game.MoveByName("Advance Current Player")
@@ -184,9 +180,7 @@ func TestNilStackErrors(t *testing.T) {
 }
 
 func TestGameManagerModifiableGame(t *testing.T) {
-	game := testGame(t)
-
-	game.SetUp(0, nil, nil)
+	game := testDefaultGame(t, false)
 
 	manager := game.Manager()
 

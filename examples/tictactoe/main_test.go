@@ -13,7 +13,7 @@ func TestGame(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	game := NewGame(manager)
+	game, err := manager.NewDefaultGame()
 
 	if game == nil {
 		t.Error("Didn't get tictactoe game back")

@@ -313,18 +313,41 @@ func (g *GameManager) SetLogger(logger *logrus.Logger) {
 	g.logger = logger
 }
 
-//NewGame returns a new game. You must call SetUp before using it.
-func (g *GameManager) NewGame() *Game {
+//NewDefaultGame returns a NewGame with everything set to default. Simple
+//sugar for NewGame(0, nil, nil).
+func (g *GameManager) NewDefaultGame() (*Game, error) {
+	return g.NewGame(0, nil, nil)
+}
 
+//NewGame returns a new game that is set up with these options, persisted to
+//the datastore, starter state created, first round of fix up moves applied,
+//and in general ready for the first move to be proposed.
+func (g *GameManager) NewGame(numPlayers int, config GameConfig, agentNames []string) (*Game, error) {
+
+	result, err := g.newGameImpl()
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := result.setUp(numPlayers, config, agentNames); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+
+}
+
+//newGameImpl is NewGame, but without calling SetUp. Broken out only for tests
+//internal to this package.
+func (g *GameManager) newGameImpl() (*Game, error) {
 	result := g.newGame()
 
 	if err := g.modifiableGameCreated(result); err != nil {
-		g.logger.Warn("Couldn't warn that a modifiable game was created: " + err.Error())
-		return nil
+		return nil, errors.New("Couldn't warn that a modifiable game was created: " + err.Error())
 	}
 
-	return result
-
+	return result, nil
 }
 
 //newGame is the inner portion of creating a valid game object, but we don't
@@ -823,7 +846,7 @@ func (g *GameManager) moveTypes() []*moveType {
 }
 
 //AgentByName will return the agent with the given name, or nil if one doesn't
-//exist. Will return nil before SetUp is called.
+//exist.
 func (g *GameManager) AgentByName(name string) Agent {
 
 	if !g.initialized {
@@ -851,8 +874,7 @@ func (g *GameManager) moveTypeByName(name string) *moveType {
 	return move
 }
 
-//Chest is the ComponentChest in use for this game. Will return nil until
-//SetUp() called.
+//Chest is the ComponentChest in use for this game.
 func (g *GameManager) Chest() *ComponentChest {
 	return g.chest
 }

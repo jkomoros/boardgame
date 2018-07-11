@@ -686,12 +686,28 @@ func makeTestGameIdsStable(game *Game) {
 	game.id = "FAKEIDFORTESTING"
 }
 
+func testDefaultGame(t *testing.T, stableIds bool) *Game {
+	return testGame(t, stableIds, 0, nil, nil)
+}
+
 //testGame returns a Game that has not yet had SetUp() called.
-func testGame(t *testing.T) *Game {
+func testGame(t *testing.T, stableIds bool, numPlayers int, config GameConfig, agentNames []string) *Game {
 
 	manager := newTestGameManger(t)
 
-	game := manager.NewGame()
+	game, err := manager.newGameImpl()
+
+	if err != nil {
+		t.Error("Couldn't create game: " + err.Error())
+	}
+
+	if stableIds {
+		makeTestGameIdsStable(game)
+	}
+
+	if err := game.setUp(numPlayers, config, agentNames); err != nil {
+		t.Error("Couldn't set up game: " + err.Error())
+	}
 
 	return game
 }

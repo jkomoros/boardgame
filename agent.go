@@ -19,7 +19,7 @@ type Agent interface {
 	//all reasonable examples.
 	DisplayName() string
 
-	//SetUpForGame is called when SetUp is called on a Game and Agents are
+	//SetUpForGame is called when a Game is being set up and Agents are
 	//configured for some of the players. This is the chance of the Agent to
 	//initialize its state. Whatever state is returned will be stored in the
 	//storage layer and passed back to the Agent later.

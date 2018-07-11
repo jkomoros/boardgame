@@ -135,9 +135,7 @@ func TestGeneral(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	game := manager.NewGame()
-
-	err = game.SetUp(0, nil, nil)
+	game, err := manager.NewDefaultGame()
 
 	assert.For(t).ThatActual(err).IsNil()
 

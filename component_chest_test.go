@@ -9,9 +9,7 @@ import (
 )
 
 func TestComponentChestMarshal(t *testing.T) {
-	game := testGame(t)
-
-	game.SetUp(0, nil, nil)
+	game := testDefaultGame(t, false)
 
 	chest := game.Chest()
 
@@ -76,9 +74,7 @@ func TestComponentChestConstant(t *testing.T) {
 }
 
 func TestComponentInstanceIdentity(t *testing.T) {
-	game := testGame(t)
-
-	game.SetUp(0, nil, nil)
+	game := testDefaultGame(t, false)
 
 	c := game.Chest().Deck("test").ComponentAt(0)
 

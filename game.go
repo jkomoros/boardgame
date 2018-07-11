@@ -102,7 +102,7 @@ func randomString(length int) string {
 	return result
 }
 
-//Created returns the time stamp when this game was SetUp().
+//Created returns the time stamp when this game was first created.
 func (g *Game) Created() time.Time {
 	return g.created
 }
@@ -322,7 +322,7 @@ func (g *Game) MoveRecords(upToVersion int) []*MoveStorageRecord {
 }
 
 //NumAgentPlayers returns the number of players who have agents configured on
-//them. Returns 0 before game is SetUp.
+//them.
 func (g *Game) NumAgentPlayers() int {
 
 	if !g.initalized {
@@ -362,7 +362,7 @@ func (g *Game) starterState(numPlayers int) (State, error) {
 //if agentNames is not nil, it should have len(numPlayers). The strings in
 //each index represent the agent to install for that player (empty strings
 //mean a human player).
-func (g *Game) SetUp(numPlayers int, config GameConfig, agentNames []string) error {
+func (g *Game) setUp(numPlayers int, config GameConfig, agentNames []string) error {
 
 	baseErr := errors.NewFriendly("Game couldn't be set up")
 
@@ -599,9 +599,8 @@ func (g *Game) Refresh() {
 //ProposedMove is the way to propose a move to the game. DelayedError will
 //return an error in the future if the move was unable to be applied, or nil
 //if the move was applied successfully. DelayedError will only resolve once
-//any applicable FixUp moves have been applied already. Note: DelayedError
-//won't return anything until after SetUp has been called. This is legal to
-//call on a non-modifiable game--the change will be dispatched to a modifiable
+//any applicable FixUp moves have been applied already. This is legal to call
+//on a non-modifiable game--the change will be dispatched to a modifiable
 //version of the game with this ID. However, note that if you call it on a
 //non-modifiable game, even once DelayedError has resolved, the original game
 //will still represent its old state. If you wantt to see its current state,

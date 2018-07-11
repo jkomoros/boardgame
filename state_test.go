@@ -10,9 +10,7 @@ import (
 
 func TestPlayerIndexNextPrevious(t *testing.T) {
 
-	game := testGame(t)
-
-	game.SetUp(3, nil, nil)
+	game := testGame(t, false, 3, nil, nil)
 
 	state := game.CurrentState()
 
@@ -55,11 +53,7 @@ func TestPlayerIndexNextPrevious(t *testing.T) {
 
 func TestPlayerIndexValid(t *testing.T) {
 
-	gameThreePlayers := testGame(t)
-
-	err := gameThreePlayers.SetUp(3, nil, nil)
-
-	assert.For(t).ThatActual(err).IsNil()
+	gameThreePlayers := testGame(t, false, 3, nil, nil)
 
 	stateThreePlayers := gameThreePlayers.CurrentState()
 
@@ -164,11 +158,7 @@ func TestPlayerIndexEquivalent(t *testing.T) {
 
 func TestSecretMoveCount(t *testing.T) {
 
-	game := testGame(t)
-
-	makeTestGameIdsStable(game)
-
-	game.SetUp(0, nil, nil)
+	game := testDefaultGame(t, true)
 
 	currentState := game.CurrentState()
 
@@ -237,11 +227,7 @@ func testSubStatesHaveStateSet(t *testing.T, state *state) {
 
 func TestState(t *testing.T) {
 
-	game := testGame(t)
-
-	makeTestGameIdsStable(game)
-
-	game.SetUp(0, nil, nil)
+	game := testDefaultGame(t, true)
 
 	assert.For(t).ThatActual(game.CurrentState().Version()).Equals(game.Version())
 
@@ -316,9 +302,7 @@ func TestState(t *testing.T) {
 
 func TestStateSerialization(t *testing.T) {
 
-	game := testGame(t)
-
-	game.SetUp(0, nil, nil)
+	game := testDefaultGame(t, false)
 
 	gameState, _ := concreteStates(game.CurrentState())
 

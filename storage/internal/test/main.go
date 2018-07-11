@@ -95,11 +95,7 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	managers[blackjackManager.Delegate().Name()] = blackjackManager
 
-	tictactoeGame := tictactoeManager.NewGame()
-
-	if err := tictactoeGame.SetUp(0, nil, nil); err != nil {
-		t.Fatal("Got error on tictactoe set up: " + err.Error())
-	}
+	tictactoeGame, err := tictactoeManager.NewDefaultGame()
 
 	eGame, err := storage.ExtendedGame(tictactoeGame.Id())
 
@@ -208,9 +204,7 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	//Verify that if the game is stored with wrong name that doesn't match manager it won't load up.
 
-	blackjackGame := blackjackManager.NewGame()
-
-	blackjackGame.SetUp(0, nil, nil)
+	_, err = blackjackManager.NewDefaultGame()
 
 	games := storage.ListGames(10, listing.All, "", "")
 
@@ -248,9 +242,7 @@ func UsersTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	manager, _ := boardgame.NewGameManager(tictactoe.NewDelegate(), storage)
 
-	game := manager.NewGame()
-
-	game.SetUp(2, nil, nil)
+	game, _ := manager.NewGame(2, nil, nil)
 
 	var nilIds []string
 
@@ -320,9 +312,7 @@ func AgentsTest(factory StorageManagerFactory, testName string, connectConfig st
 
 	manager, _ := boardgame.NewGameManager(tictactoe.NewDelegate(), storage)
 
-	game := manager.NewGame()
-
-	err := game.SetUp(2, nil, []string{"", "ai"})
+	game, err := manager.NewGame(2, nil, []string{"", "ai"})
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -572,12 +562,7 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 	for i, config := range configs {
 
 		var game *boardgame.Game
-
-		if config.IsBlackjack {
-			game = blackjackManager.NewGame()
-		} else {
-			game = manager.NewGame()
-		}
+		var err error
 
 		var agents []string
 		for _, isAgent := range config.IsAgent {
@@ -588,7 +573,13 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 			agents = append(agents, name)
 		}
 
-		if err := game.SetUp(2, nil, agents); err != nil {
+		if config.IsBlackjack {
+			game, err = blackjackManager.NewGame(2, nil, agents)
+		} else {
+			game, err = manager.NewGame(2, nil, agents)
+		}
+
+		if err != nil {
 			t.Fatal("Couldn't create game: " + err.Error())
 		}
 		if config.UserZero != "" {

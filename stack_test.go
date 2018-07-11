@@ -9,11 +9,7 @@ import (
 )
 
 func TestEmptyStacks(t *testing.T) {
-	game := testGame(t)
-
-	err := game.SetUp(0, nil, nil)
-
-	assert.For(t).ThatActual(err).IsNil()
+	game := testDefaultGame(t, false)
 
 	gState := game.CurrentState().ImmutableGameState().(*testGameState)
 
@@ -33,9 +29,7 @@ func TestMultipleStackMoves(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	game := manager.NewGame()
-
-	err = game.SetUp(0, nil, nil)
+	game, err := manager.NewDefaultGame()
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -60,11 +54,7 @@ func TestMultipleStackMoves(t *testing.T) {
 }
 
 func TestContainingComponent(t *testing.T) {
-	game := testGame(t)
-
-	err := game.SetUp(0, nil, nil)
-
-	assert.For(t).ThatActual(err).IsNil()
+	game := testDefaultGame(t, false)
 
 	deck := game.Manager().Chest().Deck("test")
 
@@ -76,7 +66,7 @@ func TestContainingComponent(t *testing.T) {
 
 	move := game.MoveByName("Draw Card")
 
-	err = <-game.ProposeMove(move, AdminPlayerIndex)
+	err := <-game.ProposeMove(move, AdminPlayerIndex)
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -139,11 +129,7 @@ func verifyContainingComponent(t *testing.T, st ImmutableState, deck *Deck) {
 }
 
 func TestMergedValidStack(t *testing.T) {
-	game := testGame(t)
-
-	makeTestGameIdsStable(game)
-
-	game.SetUp(0, nil, nil)
+	game := testDefaultGame(t, true)
 
 	testDeck := game.Chest().Deck("test")
 
@@ -187,11 +173,7 @@ func TestMergedValidStack(t *testing.T) {
 }
 
 func TestConcatenatedStack(t *testing.T) {
-	game := testGame(t)
-
-	makeTestGameIdsStable(game)
-
-	game.SetUp(0, nil, nil)
+	game := testDefaultGame(t, true)
 
 	testDeck := game.Chest().Deck("test")
 
@@ -236,11 +218,7 @@ func TestConcatenatedStack(t *testing.T) {
 }
 
 func TestOverlappedStack(t *testing.T) {
-	game := testGame(t)
-
-	makeTestGameIdsStable(game)
-
-	game.SetUp(0, nil, nil)
+	game := testDefaultGame(t, true)
 
 	testDeck := game.Chest().Deck("test")
 
@@ -284,9 +262,7 @@ func TestOverlappedStack(t *testing.T) {
 }
 
 func TestMoveExtreme(t *testing.T) {
-	game := testGame(t)
-
-	game.SetUp(0, nil, nil)
+	game := testDefaultGame(t, false)
 
 	chest := game.Chest()
 
@@ -340,9 +316,7 @@ func TestMoveExtreme(t *testing.T) {
 }
 
 func TestExpandContractSizedStackSize(t *testing.T) {
-	game := testGame(t)
-
-	game.SetUp(0, nil, nil)
+	game := testDefaultGame(t, false)
 
 	chest := game.Chest()
 
@@ -399,13 +373,9 @@ func TestExpandContractSizedStackSize(t *testing.T) {
 }
 
 func TestChangedSizeStackRoundTrip(t *testing.T) {
-	game := testGame(t)
+	game := testDefaultGame(t, false)
 
 	testDeck := game.Chest().Deck("test")
-
-	err := game.SetUp(0, nil, nil)
-
-	assert.For(t).ThatActual(err).IsNil()
 
 	cState := game.CurrentState()
 
@@ -417,7 +387,7 @@ func TestChangedSizeStackRoundTrip(t *testing.T) {
 	assert.For(t).ThatActual(g.DownSizeStack.NumComponents()).Equals(2)
 	assert.For(t).ThatActual(g.DownSizeStack.Len()).Equals(4)
 
-	err = g.DownSizeStack.ContractSize(3)
+	err := g.DownSizeStack.ContractSize(3)
 
 	assert.For(t).ThatActual(err).IsNil()
 	assert.For(t).ThatActual(g.DownSizeStack.Len()).Equals(3)
@@ -439,9 +409,7 @@ func TestChangedSizeStackRoundTrip(t *testing.T) {
 }
 
 func TestExpandContractDefaultStackSize(t *testing.T) {
-	game := testGame(t)
-
-	game.SetUp(0, nil, nil)
+	game := testDefaultGame(t, false)
 
 	chest := game.Chest()
 
@@ -490,7 +458,7 @@ func TestExpandContractDefaultStackSize(t *testing.T) {
 
 func TestFixedSize(t *testing.T) {
 
-	game := testGame(t)
+	game := testDefaultGame(t, false)
 
 	chest := game.Chest()
 
@@ -508,9 +476,7 @@ func TestFixedSize(t *testing.T) {
 
 func TestSort(t *testing.T) {
 
-	game := testGame(t)
-
-	game.SetUp(0, nil, nil)
+	game := testDefaultGame(t, false)
 
 	chest := game.Chest()
 
@@ -604,9 +570,7 @@ func stackSorted(stack Stack) bool {
 }
 
 func TestInflate(t *testing.T) {
-	game := testGame(t)
-
-	game.SetUp(0, nil, nil)
+	game := testDefaultGame(t, false)
 
 	chest := game.Chest()
 
@@ -676,7 +640,7 @@ func TestInflate(t *testing.T) {
 }
 
 func TestSecretMoveComponentGrowable(t *testing.T) {
-	game := testGame(t)
+	game := testDefaultGame(t, false)
 
 	deck := game.Chest().Deck("test")
 
@@ -711,7 +675,7 @@ func TestSecretMoveComponentGrowable(t *testing.T) {
 }
 
 func TestSecretMoveComponentSized(t *testing.T) {
-	game := testGame(t)
+	game := testDefaultGame(t, false)
 
 	deck := game.Chest().Deck("test")
 
@@ -800,7 +764,7 @@ func secretMoveTestHelper(t *testing.T, from Stack, to Stack, description string
 
 func TestMoveComponent(t *testing.T) {
 
-	game := testGame(t)
+	game := testDefaultGame(t, false)
 
 	deck := game.Chest().Deck("test")
 
@@ -1048,7 +1012,7 @@ func TestMoveComponent(t *testing.T) {
 }
 
 func TestSwapComponents(t *testing.T) {
-	game := testGame(t)
+	game := testDefaultGame(t, false)
 
 	deck := game.Chest().Deck("test")
 
@@ -1112,9 +1076,7 @@ func TestGrowableStackInsertComponentAt(t *testing.T) {
 	//Splicing out parts of an array is so finicky that we need to make sure
 	//to test it extra good...
 
-	game := testGame(t)
-
-	makeTestGameIdsStable(game)
+	game := testDefaultGame(t, true)
 
 	deck := game.Chest().Deck("test")
 
@@ -1193,9 +1155,7 @@ func TestGrowableStackRemoveComponentAt(t *testing.T) {
 	//Splicing out parts of an array is so finicky that we need to make sure
 	//to test it extra good...
 
-	game := testGame(t)
-
-	makeTestGameIdsStable(game)
+	game := testDefaultGame(t, true)
 
 	deck := game.Chest().Deck("test")
 
@@ -1263,7 +1223,7 @@ func TestGrowableStackRemoveComponentAt(t *testing.T) {
 }
 
 func TestShuffle(t *testing.T) {
-	game := testGame(t)
+	game := testDefaultGame(t, false)
 
 	deck := game.Chest().Deck("test")
 
@@ -1393,7 +1353,7 @@ func TestShuffle(t *testing.T) {
 }
 
 func TestMoveAllTo(t *testing.T) {
-	game := testGame(t)
+	game := testDefaultGame(t, false)
 
 	deck := game.Chest().Deck("test")
 
