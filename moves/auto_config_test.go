@@ -3,6 +3,7 @@ package moves
 import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves/auto"
+	"github.com/jkomoros/boardgame/moves/with"
 	"github.com/workfit/tester/assert"
 	"testing"
 )
@@ -42,7 +43,7 @@ func TestDealCardsDefaultConfig(t *testing.T) {
 	moveInstaller := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
 
 		return []boardgame.MoveConfig{
-			auto.MustConfig(new(moveDealCards), WithMoveName("Deal Cards")),
+			auto.MustConfig(new(moveDealCards), with.MoveName("Deal Cards")),
 		}
 
 	}

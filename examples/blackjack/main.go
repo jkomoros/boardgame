@@ -12,6 +12,7 @@ import (
 	"github.com/jkomoros/boardgame/components/playingcards"
 	"github.com/jkomoros/boardgame/moves"
 	"github.com/jkomoros/boardgame/moves/auto"
+	"github.com/jkomoros/boardgame/moves/with"
 	"strings"
 )
 
@@ -176,46 +177,46 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		moves.Add(
 			auto.MustConfig(
 				new(MoveShuffleDiscardToDraw),
-				moves.WithHelpText("When the draw deck is empty, shuffles the discard deck into draw deck."),
+				with.HelpText("When the draw deck is empty, shuffles the discard deck into draw deck."),
 			),
 		),
 		moves.AddForPhase(PhaseNormalPlay,
 			auto.MustConfig(
 				new(MoveCurrentPlayerHit),
-				moves.WithHelpText("The current player hits, drawing a card."),
+				with.HelpText("The current player hits, drawing a card."),
 			),
 			auto.MustConfig(
 				new(MoveCurrentPlayerStand),
-				moves.WithHelpText("If the current player no longer wants to draw cards, they can stand."),
+				with.HelpText("If the current player no longer wants to draw cards, they can stand."),
 			),
 			auto.MustConfig(
 				new(MoveRevealHiddenCard),
-				moves.WithHelpText("Reveals the hidden card in the user's hand"),
-				moves.WithIsFixUp(true),
+				with.HelpText("Reveals the hidden card in the user's hand"),
+				with.IsFixUp(true),
 			),
 			auto.MustConfig(
 				new(moves.FinishTurn),
-				moves.WithHelpText("When the current player has either busted or decided to stand, we advance to next player."),
+				with.HelpText("When the current player has either busted or decided to stand, we advance to next player."),
 			),
 		),
 		moves.AddOrderedForPhase(PhaseInitialDeal,
 			auto.MustConfig(
 				new(moves.DealCountComponents),
-				moves.WithMoveName("Deal Initial Hidden Card"),
-				moves.WithHelpText("Deals a hidden card to each player"),
-				moves.WithGameStack("DrawStack"),
-				moves.WithPlayerStack("HiddenHand"),
+				with.MoveName("Deal Initial Hidden Card"),
+				with.HelpText("Deals a hidden card to each player"),
+				with.GameStack("DrawStack"),
+				with.PlayerStack("HiddenHand"),
 			),
 			auto.MustConfig(
 				new(moves.DealCountComponents),
-				moves.WithMoveName("Deal Initial Visible Card"),
-				moves.WithHelpText("Deals a visible card to each player"),
-				moves.WithGameStack("DrawStack"),
-				moves.WithPlayerStack("VisibleHand"),
+				with.MoveName("Deal Initial Visible Card"),
+				with.HelpText("Deals a visible card to each player"),
+				with.GameStack("DrawStack"),
+				with.PlayerStack("VisibleHand"),
 			),
 			auto.MustConfig(
 				new(moves.StartPhase),
-				moves.WithPhaseToStart(PhaseNormalPlay, PhaseEnum),
+				with.PhaseToStart(PhaseNormalPlay, PhaseEnum),
 			),
 		),
 	)

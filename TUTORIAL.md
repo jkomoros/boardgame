@@ -821,18 +821,18 @@ func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 		//... one move type configuration elided ...
 		auto.MustConfig(
 			new(MoveHideCards),
-			moves.WithHelpText("After the current player has revealed both cards and tried to memorize them, this move hides the cards so that play can continue to next player."),
+			with.HelpText("After the current player has revealed both cards and tried to memorize them, this move hides the cards so that play can continue to next player."),
 		),
 		auto.MustConfig(
 			new(moves.FinishTurn),
 		),
 		auto.MustConfig(
 			new(MoveCaptureCards),
-			moves.WithHelpText("If two cards are showing and they are the same type, capture them to the current player's hand."),
+			with.HelpText("If two cards are showing and they are the same type, capture them to the current player's hand."),
 		),
 		auto.MustConfig(
 			new(MoveStartHideCardsTimer),
-			moves.WithHelpText("If two cards are showing and they are not the same type and the timer is not active, start a timer to automatically hide them."),
+			with.HelpText("If two cards are showing and they are not the same type and the timer is not active, start a timer to automatically hide them."),
 		),
 	)
 }
@@ -1484,20 +1484,20 @@ You can see this in action in `examples/blackjack/main.go` in `ConfigureMoves`
 		moves.AddForPhase(PhaseNormalPlay,
 			auto.MustConfig(
 				new(MoveCurrentPlayerHit),
-				moves.WithHelpText("The current player hits, drawing a card."),
+				with.HelpText("The current player hits, drawing a card."),
 			),
 			auto.MustConfig(
 				new(MoveCurrentPlayerStand),
-				moves.WithHelpText("If the current player no longer wants to draw cards, they can stand."),
+				with.HelpText("If the current player no longer wants to draw cards, they can stand."),
 			),
 			auto.MustConfig(
 				new(MoveRevealHiddenCard),
-				moves.WithHelpText("Reveals the hidden card in the user's hand"),
-				moves.WithIsFixUp(true),
+				with.HelpText("Reveals the hidden card in the user's hand"),
+				with.IsFixUp(true),
 			),
 			auto.MustConfig(
 				new(moves.FinishTurn),
-				moves.WithHelpText("When the current player has either busted or decided to stand, we advance to next player."),
+				with.HelpText("When the current player has either busted or decided to stand, we advance to next player."),
 			),
 		),//...
 	)
@@ -1510,7 +1510,7 @@ Of course, there are sometimes moves that are legal in *any* mode. For those, it
 		moves.Add(
 			auto.MustConfig(
 				new(MoveShuffleDiscardToDraw),
-				moves.WithHelpText("When the draw deck is empty, shuffles the discard deck into draw deck."),
+				with.HelpText("When the draw deck is empty, shuffles the discard deck into draw deck."),
 			),
 		),
 		//...
@@ -1541,21 +1541,21 @@ You can see it in action in Blackjack:
 		moves.AddOrderedForPhase(PhaseInitialDeal,
 			auto.MustConfig(
 				new(moves.DealCountComponents),
-				moves.WithMoveName("Deal Initial Hidden Card"),
-				moves.WithHelpText("Deals a hidden card to each player"),
-				moves.WithGameStack("DrawStack"),
-				moves.WithPlayerStack("HiddenHand"),
+				with.MoveName("Deal Initial Hidden Card"),
+				with.HelpText("Deals a hidden card to each player"),
+				with.GameStack("DrawStack"),
+				with.PlayerStack("HiddenHand"),
 			),
 			auto.MustConfig(
 				new(moves.DealCountComponents),
-				moves.WithMoveName("Deal Initial Visible Card"),
-				moves.WithHelpText("Deals a visible card to each player"),
-				moves.WithGameStack("DrawStack"),
-				moves.WithPlayerStack("VisibleHand"),
+				with.MoveName("Deal Initial Visible Card"),
+				with.HelpText("Deals a visible card to each player"),
+				with.GameStack("DrawStack"),
+				with.PlayerStack("VisibleHand"),
 			),
 			auto.MustConfig(
 				new(moves.StartPhase),
-				moves.WithPhaseToStart(PhaseNormalPlay, PhaseEnum),
+				with.PhaseToStart(PhaseNormalPlay, PhaseEnum),
 			),
 		),
 	)
@@ -1569,7 +1569,7 @@ One more wrinkle: when the engine looks to see if a propose move is legal in thi
 
 #### StartPhase move
 
-The last move in that section is of type `moves.StartPhase`. It needs to be configured with a `moves.WithPhaseToStart`. Often you don't need to override its Legal or Apply at all (the Legal it inherits from Base is sufficient), and can just use the naked `moves.StartPhase` struct itself without embedding it in your own struct.
+The last move in that section is of type `moves.StartPhase`. It needs to be configured with a `with.PhaseToStart`. Often you don't need to override its Legal or Apply at all (the Legal it inherits from Base is sufficient), and can just use the naked `moves.StartPhase` struct itself without embedding it in your own struct.
 
 It is common for the last move of an ordered round to have a move that advances to the next phase. 
 

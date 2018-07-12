@@ -3,6 +3,7 @@ package moves
 import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves/auto"
+	"github.com/jkomoros/boardgame/moves/with"
 	"github.com/workfit/tester/assert"
 	"strings"
 	"testing"
@@ -80,35 +81,35 @@ func defaultMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveConfig
 		AddOrderedForPhase(phaseSetUp,
 			auto.MustConfig(
 				new(moveDealCards),
-				WithMoveName("Deal Components From Game Stack DrawStack To Player Stack Hand To Each Player 2 Times"),
+				with.MoveName("Deal Components From Game Stack DrawStack To Player Stack Hand To Each Player 2 Times"),
 			),
 			auto.MustConfig(
 				new(moveDealOtherCards),
-				WithMoveName("Deal Other Cards OVERRIDE"),
+				with.MoveName("Deal Other Cards OVERRIDE"),
 			),
 			auto.MustConfig(
 				new(StartPhase),
-				WithPhaseToStart(phaseNormalPlayDrawCard, phaseEnum),
+				with.PhaseToStart(phaseNormalPlayDrawCard, phaseEnum),
 			),
 		),
 		AddForPhase(phaseNormalPlay,
 			auto.MustConfig(
 				new(moveCurrentPlayerDraw),
-				WithMoveName("Draw Card"),
+				with.MoveName("Draw Card"),
 			),
 			auto.MustConfig(
 				new(moveStartPhaseDrawAgain),
-				WithMoveName("Start Phase Draw Again"),
-				WithIsFixUp(false),
+				with.MoveName("Start Phase Draw Again"),
+				with.IsFixUp(false),
 			),
 		),
 		AddOrderedForPhase(phaseDrawAgain,
 			auto.MustConfig(
 				new(DealComponentsUntilPlayerCountReached),
-				WithMoveName("Deal Cards To Three"),
-				WithGameStack("DrawStack"),
-				WithPlayerStack("Hand"),
-				WithTargetCount(3),
+				with.MoveName("Deal Cards To Three"),
+				with.GameStack("DrawStack"),
+				with.PlayerStack("Hand"),
+				with.TargetCount(3),
 			),
 		),
 	)

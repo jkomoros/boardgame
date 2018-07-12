@@ -2,6 +2,7 @@ package moves
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves/with"
 )
 
 //Combine takes a series of lists of moveTypeConfigs and flattens them into a
@@ -35,7 +36,7 @@ func Add(moves ...boardgame.MoveConfig) []boardgame.MoveConfig {
 //error-prone and more clear what the intent is for phase-locked moves.
 func AddForPhase(phase int, moves ...boardgame.MoveConfig) []boardgame.MoveConfig {
 
-	phaseInstaller := WithLegalPhases(phase)
+	phaseInstaller := with.LegalPhases(phase)
 
 	for _, move := range moves {
 		phaseInstaller(move.CustomConfiguration)
@@ -63,7 +64,7 @@ func AddOrderedForPhase(phase int, moves ...boardgame.MoveConfig) []boardgame.Mo
 		progression[i] = move.Name
 	}
 
-	installer := WithLegalMoveProgression(progression)
+	installer := with.LegalMoveProgression(progression)
 
 	for _, move := range moves {
 		installer(move.CustomConfiguration)
