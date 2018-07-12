@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves/interfaces"
+	"github.com/jkomoros/boardgame/moves/internal/privateconstants"
 )
 
 type sourceDestinationStacker interface {
@@ -58,7 +59,7 @@ func (m *MoveCountComponents) ValidConfiguration(exampleState boardgame.State) e
 func (m *MoveCountComponents) SourceStack(state boardgame.State) boardgame.Stack {
 	config := m.CustomConfiguration()
 
-	stackName, ok := config[configNameSourceStack]
+	stackName, ok := config[privateconstants.SourceStack]
 
 	if !ok {
 		return nil
@@ -85,7 +86,7 @@ func (m *MoveCountComponents) SourceStack(state boardgame.State) boardgame.Stack
 func (m *MoveCountComponents) DestinationStack(state boardgame.State) boardgame.Stack {
 	config := m.CustomConfiguration()
 
-	stackName, ok := config[configNameDestinationStack]
+	stackName, ok := config[privateconstants.DestinationStack]
 
 	if !ok {
 		return nil
@@ -124,7 +125,7 @@ func (m *MoveCountComponents) stacks(state boardgame.ImmutableState) (source, de
 
 func (m *MoveCountComponents) stackNames() (starter, destination string) {
 
-	return stackName(m, configNameSourceStack), stackName(m, configNameDestinationStack)
+	return stackName(m, privateconstants.SourceStack), stackName(m, privateconstants.DestinationStack)
 }
 
 //Apply by default moves one component from SourceStack() to

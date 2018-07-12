@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves/interfaces"
+	"github.com/jkomoros/boardgame/moves/internal/privateconstants"
 	"strconv"
 )
 
@@ -429,7 +430,7 @@ func (r *RoundRobinNumRounds) ValidConfiguration(exampleState boardgame.State) e
 func (r *RoundRobinNumRounds) NumRounds() int {
 	config := r.CustomConfiguration()
 
-	val, ok := config[configNameNumRounds]
+	val, ok := config[privateconstants.NumRounds]
 
 	if !ok {
 		//No configuration provided, just return default

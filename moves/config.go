@@ -4,24 +4,8 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves/interfaces"
+	"github.com/jkomoros/boardgame/moves/internal/privateconstants"
 )
-
-const fullyQualifiedPackageName = "github.com/jkomoros/boardgame/moves."
-
-const configNameStartPhase = fullyQualifiedPackageName + "StartPhase"
-const configNameStartPhaseEnum = fullyQualifiedPackageName + "StartPhaseEnum"
-const configNameSourceStack = fullyQualifiedPackageName + "SourceStack"
-const configNameDestinationStack = fullyQualifiedPackageName + "DestinationStack"
-const configNameTargetCount = fullyQualifiedPackageName + "TargetCount"
-const configNameNumRounds = fullyQualifiedPackageName + "NumRounds"
-const configNameGameStack = fullyQualifiedPackageName + "GameStack"
-const configNamePlayerStack = fullyQualifiedPackageName + "PlayerStack"
-const configNameMoveName = fullyQualifiedPackageName + "MoveName"
-const configNameHelpText = fullyQualifiedPackageName + "HelpText"
-const configNameIsFixUp = fullyQualifiedPackageName + "IsFixUp"
-const configNameLegalPhases = fullyQualifiedPackageName + "LegalPhases"
-const configNameLegalMoveProgression = fullyQualifiedPackageName + "LegalMoveProgression"
-const configNameLegalType = fullyQualifiedPackageName + "LegalType"
 
 //WithLegalType returns a function configuration option suitable for being
 //passed to auto.Config. The legalType will be bassed to the components'
@@ -31,7 +15,7 @@ const configNameLegalType = fullyQualifiedPackageName + "LegalType"
 //skip this to use 0 instead.
 func WithLegalType(legalType int) interfaces.CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[configNameLegalType] = legalType
+		config[privateconstants.LegalType] = legalType
 	}
 }
 
@@ -43,7 +27,7 @@ func WithLegalType(legalType int) interfaces.CustomConfigurationOption {
 //the documentation for moves.Base.MoveTypeName for more information.
 func WithMoveName(moveName string) interfaces.CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[configNameMoveName] = moveName
+		config[privateconstants.MoveName] = moveName
 	}
 }
 
@@ -54,7 +38,7 @@ func WithMoveName(moveName string) interfaces.CustomConfigurationOption {
 //information.
 func WithHelpText(helpText string) interfaces.CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[configNameHelpText] = helpText
+		config[privateconstants.HelpText] = helpText
 	}
 }
 
@@ -65,13 +49,13 @@ func WithHelpText(helpText string) interfaces.CustomConfigurationOption {
 //and instead use moves.AddForPhase to use this implicitly.
 func WithLegalPhases(legalPhases ...int) interfaces.CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		previousLegalPhases := config[configNameLegalPhases]
+		previousLegalPhases := config[privateconstants.LegalPhases]
 
 		if ints, ok := previousLegalPhases.([]int); ok {
 			legalPhases = append(ints, legalPhases...)
 		}
 
-		config[configNameLegalPhases] = legalPhases
+		config[privateconstants.LegalPhases] = legalPhases
 	}
 }
 
@@ -82,7 +66,7 @@ func WithLegalPhases(legalPhases ...int) interfaces.CustomConfigurationOption {
 //use this implicitly.
 func WithLegalMoveProgression(moveProgression []string) interfaces.CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[configNameLegalMoveProgression] = moveProgression
+		config[privateconstants.LegalMoveProgression] = moveProgression
 	}
 }
 
@@ -97,7 +81,7 @@ func WithLegalMoveProgression(moveProgression []string) interfaces.CustomConfigu
 //remember to pass WithIsFixUp, which is easy to forget.
 func WithIsFixUp(isFixUp bool) interfaces.CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[configNameIsFixUp] = isFixUp
+		config[privateconstants.IsFixUp] = isFixUp
 	}
 }
 
@@ -108,8 +92,8 @@ func WithIsFixUp(isFixUp bool) interfaces.CustomConfigurationOption {
 //the int value of the phase instead.
 func WithPhaseToStart(phaseToStart int, optionalPhaseEnum enum.Enum) interfaces.CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[configNameStartPhase] = phaseToStart
-		config[configNameStartPhaseEnum] = optionalPhaseEnum
+		config[privateconstants.StartPhase] = phaseToStart
+		config[privateconstants.StartPhaseEnum] = optionalPhaseEnum
 	}
 }
 
@@ -119,7 +103,7 @@ func WithPhaseToStart(phaseToStart int, optionalPhaseEnum enum.Enum) interfaces.
 //yourself.
 func WithSourceStack(stackPropName string) interfaces.CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[configNameSourceStack] = stackPropName
+		config[privateconstants.SourceStack] = stackPropName
 	}
 }
 
@@ -129,7 +113,7 @@ func WithSourceStack(stackPropName string) interfaces.CustomConfigurationOption 
 //DestinationStack yourself.
 func WithDestinationStack(stackPropName string) interfaces.CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[configNameDestinationStack] = stackPropName
+		config[privateconstants.DestinationStack] = stackPropName
 	}
 }
 
@@ -137,7 +121,7 @@ func WithDestinationStack(stackPropName string) interfaces.CustomConfigurationOp
 //passed to auto.Config.
 func WithGameStack(stackPropName string) interfaces.CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[configNameGameStack] = stackPropName
+		config[privateconstants.GameStack] = stackPropName
 	}
 }
 
@@ -145,7 +129,7 @@ func WithGameStack(stackPropName string) interfaces.CustomConfigurationOption {
 //passed to auto.Config.
 func WithPlayerStack(stackPropName string) interfaces.CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[configNamePlayerStack] = stackPropName
+		config[privateconstants.PlayerStack] = stackPropName
 	}
 }
 
@@ -153,7 +137,7 @@ func WithPlayerStack(stackPropName string) interfaces.CustomConfigurationOption 
 //passed to auto.Config.
 func WithNumRounds(numRounds int) interfaces.CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[configNameNumRounds] = numRounds
+		config[privateconstants.NumRounds] = numRounds
 	}
 }
 
@@ -161,6 +145,6 @@ func WithNumRounds(numRounds int) interfaces.CustomConfigurationOption {
 //passed to auto.Config.
 func WithTargetCount(targetCount int) interfaces.CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[configNameTargetCount] = targetCount
+		config[privateconstants.TargetCount] = targetCount
 	}
 }

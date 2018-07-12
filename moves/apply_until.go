@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves/interfaces"
+	"github.com/jkomoros/boardgame/moves/internal/privateconstants"
 	"strconv"
 )
 
@@ -124,7 +125,7 @@ func (a *ApplyUntilCount) TargetCount() int {
 
 	config := a.CustomConfiguration()
 
-	val, ok := config[configNameTargetCount]
+	val, ok := config[privateconstants.TargetCount]
 
 	if !ok {
 		//No configuration provided, just return default

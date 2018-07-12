@@ -5,6 +5,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves/interfaces"
+	"github.com/jkomoros/boardgame/moves/internal/privateconstants"
 	"reflect"
 	"strconv"
 	"strings"
@@ -120,9 +121,9 @@ func (d *Base) Description() string {
 func (d *Base) ValidConfiguration(exampleState boardgame.State) error {
 	config := d.CustomConfiguration()
 
-	if config[configNameLegalMoveProgression] != nil {
+	if config[privateconstants.LegalMoveProgression] != nil {
 
-		legalPhasesRaw := config[configNameLegalPhases]
+		legalPhasesRaw := config[privateconstants.LegalPhases]
 
 		if legalPhasesRaw == nil {
 			return errors.New("WithLegalMoveProgression configuration provided, but without WithLegalPhases")
@@ -198,7 +199,7 @@ func (b *Base) DeriveName() string {
 
 	if config != nil {
 
-		overrideName, hasOverrideName := config[configNameMoveName]
+		overrideName, hasOverrideName := config[privateconstants.MoveName]
 
 		if hasOverrideName {
 			strOverrideName, ok := overrideName.(string)
@@ -253,7 +254,7 @@ func (b *Base) FallbackName() string {
 func (b *Base) HelpText() string {
 	config := b.CustomConfiguration()
 
-	overrideHelpText, hasOverrideHelpText := config[configNameHelpText]
+	overrideHelpText, hasOverrideHelpText := config[privateconstants.HelpText]
 
 	if hasOverrideHelpText {
 		strOverrideHelpText, ok := overrideHelpText.(string)
@@ -292,7 +293,7 @@ func (b *Base) IsFixUp() bool {
 
 //overrideIsFixUp takes the config and the base fix up value and returns the override if it exists, otherwise defaultIsFixUp
 func overrideIsFixUp(config boardgame.PropertyCollection, defaultIsFixUp bool) bool {
-	overrideIsFixUp, hasOverrideIsFixUp := config[configNameIsFixUp]
+	overrideIsFixUp, hasOverrideIsFixUp := config[privateconstants.IsFixUp]
 
 	if hasOverrideIsFixUp {
 		boolOverrideIsFixUp, ok := overrideIsFixUp.(bool)
@@ -351,7 +352,7 @@ func (d *Base) CustomConfiguration() boardgame.PropertyCollection {
 }
 
 func (d *Base) legalPhases() []int {
-	val := d.CustomConfiguration()[configNameLegalPhases]
+	val := d.CustomConfiguration()[privateconstants.LegalPhases]
 	ints, ok := val.([]int)
 	if !ok {
 		return nil
@@ -360,7 +361,7 @@ func (d *Base) legalPhases() []int {
 }
 
 func (d *Base) legalMoveProgression() []string {
-	val := d.CustomConfiguration()[configNameLegalMoveProgression]
+	val := d.CustomConfiguration()[privateconstants.LegalMoveProgression]
 	strs, ok := val.([]string)
 	if !ok {
 		return nil

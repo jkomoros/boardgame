@@ -5,6 +5,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves/interfaces"
+	"github.com/jkomoros/boardgame/moves/internal/privateconstants"
 	"strconv"
 )
 
@@ -79,7 +80,7 @@ func (s *StartPhase) ValidConfiguration(exampleState boardgame.State) error {
 //override PhaseToStart in your embedding move.
 func (s *StartPhase) PhaseToStart(currentPhase int) int {
 	config := s.CustomConfiguration()
-	val, ok := config[configNameStartPhase]
+	val, ok := config[privateconstants.StartPhase]
 	if !ok {
 		return -1
 	}
@@ -152,13 +153,13 @@ func (s *StartPhase) phaseStringValue() string {
 
 	var phaseEnum enum.Enum
 
-	val, ok := config[configNameStartPhaseEnum]
+	val, ok := config[privateconstants.StartPhaseEnum]
 
 	if ok {
 		phaseEnum, _ = val.(enum.Enum)
 	}
 
-	val, ok = config[configNameStartPhase]
+	val, ok = config[privateconstants.StartPhase]
 
 	if !ok {
 		return "InvalidPhase"

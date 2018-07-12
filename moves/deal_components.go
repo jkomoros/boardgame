@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves/interfaces"
+	"github.com/jkomoros/boardgame/moves/internal/privateconstants"
 )
 
 func dealActionHelper(topLevelStruct boardgame.Move, playerState boardgame.PlayerState) (playerStack boardgame.Stack, gameStack boardgame.Stack, err error) {
@@ -104,7 +105,7 @@ func (d *DealCountComponents) TargetCount() int {
 
 	config := d.CustomConfiguration()
 
-	val, ok := config[configNameTargetCount]
+	val, ok := config[privateconstants.TargetCount]
 
 	if !ok {
 		//No configuration provided, just return default
@@ -140,7 +141,7 @@ func (d *DealCountComponents) NumRounds() int {
 func (d *DealCountComponents) PlayerStack(playerState boardgame.PlayerState) boardgame.Stack {
 	config := d.CustomConfiguration()
 
-	stackName, ok := config[configNamePlayerStack]
+	stackName, ok := config[privateconstants.PlayerStack]
 
 	if !ok {
 		return nil
@@ -167,7 +168,7 @@ func (d *DealCountComponents) PlayerStack(playerState boardgame.PlayerState) boa
 func (d *DealCountComponents) GameStack(gameState boardgame.SubState) boardgame.Stack {
 	config := d.CustomConfiguration()
 
-	stackName, ok := config[configNameGameStack]
+	stackName, ok := config[privateconstants.GameStack]
 
 	if !ok {
 		return nil
@@ -238,7 +239,7 @@ func (d *DealCountComponents) RoundRobinAction(playerState boardgame.PlayerState
 
 //moveTypeInfo is used as a helper to generate sttrings for all of the MoveType getters.
 func (d *DealCountComponents) moveTypeInfo() (player, game, count string) {
-	return stackName(d, configNamePlayerStack), stackName(d, configNameGameStack), targetCountString(d.TopLevelStruct())
+	return stackName(d, privateconstants.PlayerStack), stackName(d, privateconstants.GameStack), targetCountString(d.TopLevelStruct())
 }
 
 //FallbackName returns a string based on the names of the player
