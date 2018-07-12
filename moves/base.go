@@ -414,7 +414,7 @@ func (d *Base) legalInPhase(state boardgame.ImmutableState) error {
 
 	phaseName := strconv.Itoa(currentPhase)
 
-	if phaseEnum := state.Game().Manager().Delegate().PhaseEnum(); phaseEnum != nil {
+	if phaseEnum != nil {
 		phaseName = phaseEnum.String(currentPhase)
 	}
 
