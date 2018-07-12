@@ -57,7 +57,7 @@ func (a *AutoConfigurer) MustConfig(exampleStruct AutoConfigurableMove, options 
 func (a *AutoConfigurer) Config(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConfigurationOption) (boardgame.MoveConfig, error) {
 
 	if a.delegate == nil {
-		return boardgame.MoveConfig{}, errors.New("No delegate provided")
+		return nil, errors.New("No delegate provided")
 	}
 
 	config := make(boardgame.PropertyCollection, len(options))
@@ -67,7 +67,7 @@ func (a *AutoConfigurer) Config(exampleStruct AutoConfigurableMove, options ...i
 	}
 
 	if exampleStruct == nil {
-		return boardgame.MoveConfig{}, errors.New("nil struct provided")
+		return nil, errors.New("nil struct provided")
 	}
 
 	//We'll create a throw-away move type config first to get a fully-
@@ -76,10 +76,10 @@ func (a *AutoConfigurer) Config(exampleStruct AutoConfigurableMove, options ...i
 
 	throwAwayConfig := newMoveConfig("Temporary Move", exampleStruct, config)
 
-	generatedExample, err := throwAwayConfig.OrphanExampleMove()
+	generatedExample, err := boardgame.OrphanExampleMove(throwAwayConfig)
 
 	if err != nil {
-		return boardgame.MoveConfig{}, err
+		return nil, err
 	}
 
 	actualExample := generatedExample.(AutoConfigurableMove)
@@ -102,11 +102,9 @@ func newMoveConfig(name string, exampleStruct boardgame.Move, config boardgame.P
 
 	typ := val.Type()
 
-	return boardgame.MoveConfig{
-		Name: name,
-		Constructor: func() boardgame.Move {
-			return reflect.New(typ).Interface().(boardgame.Move)
-		},
-		CustomConfiguration: config,
+	constructor := func() boardgame.Move {
+		return reflect.New(typ).Interface().(boardgame.Move)
 	}
+
+	return boardgame.NewMoveConfig(name, constructor, config)
 }

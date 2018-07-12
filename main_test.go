@@ -220,12 +220,12 @@ type testMoveInvalidPlayerIndex struct {
 	CurrentlyLegal bool
 }
 
-var testMoveInvalidPlayerIndexConfig = MoveConfig{
-	Name: "Invalid PlayerIndex",
-	Constructor: func() Move {
+var testMoveInvalidPlayerIndexConfig = NewMoveConfig(
+	"Invalid PlayerIndex",
+	func() Move {
 		return new(testMoveInvalidPlayerIndex)
 	},
-}
+	nil)
 
 func (t *testMoveInvalidPlayerIndex) HelpText() string {
 	return "Set one of the PlayerIndex properties to an invalid number, so we can verify that ApplyMove catches it."
@@ -264,12 +264,12 @@ type testMoveMakeIllegalPhase struct {
 	baseMove
 }
 
-var testMoveMakeIllegalPhaseConfig = MoveConfig{
-	Name: "Make Illegal Phase",
-	Constructor: func() Move {
+var testMoveMakeIllegalPhaseConfig = NewMoveConfig(
+	"Make Illegal Phase",
+	func() Move {
 		return new(testMoveMakeIllegalPhase)
 	},
-}
+	nil)
 
 func (t *testMoveMakeIllegalPhase) HelpText() string {
 	return "Sets to illegal phase which should fail to apply"
@@ -307,12 +307,12 @@ type testMoveIncrementCardInHand struct {
 	TargetPlayerIndex PlayerIndex
 }
 
-var testMoveIncrementCardInHandConfig = MoveConfig{
-	Name: "Increment IntValue of Card in Hand",
-	Constructor: func() Move {
+var testMoveIncrementCardInHandConfig = NewMoveConfig(
+	"Increment IntValue of Card in Hand",
+	func() Move {
 		return new(testMoveIncrementCardInHand)
 	},
-}
+	nil)
 
 func (t *testMoveIncrementCardInHand) HelpText() string {
 	return "Increments the IntValue of the card in the hand"
@@ -391,12 +391,12 @@ type testMoveDrawCard struct {
 	TargetPlayerIndex PlayerIndex
 }
 
-var testMoveDrawCardConfig = MoveConfig{
-	Name: "Draw Card",
-	Constructor: func() Move {
+var testMoveDrawCardConfig = NewMoveConfig(
+	"Draw Card",
+	func() Move {
 		return new(testMoveDrawCard)
 	},
-}
+	nil)
 
 func (t *testMoveDrawCard) HelpText() string {
 	return "Draws one card from draw deck into player's hand"
@@ -458,12 +458,12 @@ type testMoveAdvanceCurentPlayer struct {
 	baseFixUpMove
 }
 
-var testMoveAdvanceCurrentPlayerConfig = MoveConfig{
-	Name: "Advance Current Player",
-	Constructor: func() Move {
+var testMoveAdvanceCurrentPlayerConfig = NewMoveConfig(
+	"Advance Current Player",
+	func() Move {
 		return new(testMoveAdvanceCurentPlayer)
 	},
-}
+	nil)
 
 func (t *testMoveAdvanceCurentPlayer) HelpText() string {
 	return "Advances to the next player when the current player has no more legal moves they can make this turn."
@@ -521,12 +521,12 @@ type testMove struct {
 	ABool             bool
 }
 
-var testMoveConfig = MoveConfig{
-	Name: "Test",
-	Constructor: func() Move {
+var testMoveConfig = NewMoveConfig(
+	"Test",
+	func() Move {
 		return new(testMove)
 	},
-}
+	nil)
 
 func (t *testMove) HelpText() string {
 	return "Advances the score of the current player by the specified amount."
@@ -592,12 +592,12 @@ type testAlwaysLegalMove struct {
 	baseFixUpMove
 }
 
-var testAlwaysLegalMoveConfig = MoveConfig{
-	Name: "Test Always Legal Move",
-	Constructor: func() Move {
+var testAlwaysLegalMoveConfig = NewMoveConfig(
+	"Test Always Legal Move",
+	func() Move {
 		return new(testAlwaysLegalMove)
 	},
-}
+	nil)
 
 func (t *testAlwaysLegalMove) HelpText() string {
 	return "A move that is always legal"
@@ -653,12 +653,12 @@ func (i *illegalMove) Apply(state State) error {
 	return nil
 }
 
-var testIllegalMoveConfig = MoveConfig{
-	Name: "Illegal Move",
-	Constructor: func() Move {
+var testIllegalMoveConfig = NewMoveConfig(
+	"Illegal Move",
+	func() Move {
 		return new(illegalMove)
 	},
-}
+	nil)
 
 func (i *illegalMove) HelpText() string {
 	return "Move that is illegal because it has an illegal property type on it"

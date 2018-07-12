@@ -39,7 +39,7 @@ func AddForPhase(phase int, moves ...boardgame.MoveConfig) []boardgame.MoveConfi
 	phaseInstaller := with.LegalPhases(phase)
 
 	for _, move := range moves {
-		phaseInstaller(move.CustomConfiguration)
+		phaseInstaller(move.CustomConfiguration())
 	}
 
 	return moves
@@ -61,13 +61,13 @@ func AddOrderedForPhase(phase int, moves ...boardgame.MoveConfig) []boardgame.Mo
 	progression := make([]string, len(moves))
 
 	for i, move := range moves {
-		progression[i] = move.Name
+		progression[i] = move.Name()
 	}
 
 	installer := with.LegalMoveProgression(progression)
 
 	for _, move := range moves {
-		installer(move.CustomConfiguration)
+		installer(move.CustomConfiguration())
 	}
 
 	return AddForPhase(phase, moves...)

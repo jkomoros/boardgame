@@ -126,12 +126,12 @@ func (t *testMoveFailValidConfiguration) ReadSetConfigurer() PropertyReadSetConf
 	return getDefaultReadSetConfigurer(t)
 }
 
-var testMoveFailValidConfigurationConfig = MoveConfig{
-	Name: "Fail Valid Configuration",
-	Constructor: func() Move {
+var testMoveFailValidConfigurationConfig = NewMoveConfig(
+	"Fail Valid Configuration",
+	func() Move {
 		return new(testMoveFailValidConfiguration)
 	},
-}
+	nil)
 
 func TestMoveFailsValidConfiguration(t *testing.T) {
 

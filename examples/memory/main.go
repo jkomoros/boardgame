@@ -295,6 +295,7 @@ func (g *gameDelegate) ConfigureAgents() []boardgame.Agent {
 }
 
 var revealCardMoveName string
+var hideCardMoveName string
 
 func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
@@ -305,16 +306,19 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		with.HelpText("Reveals the card at the specified location"),
 	)
 
+	hideCardConfig := auto.MustConfig(
+		new(MoveHideCards),
+		with.HelpText("After the current player has revealed both cards and tried to memorize them, this move hides the cards so that play can continue to next player."),
+	)
+
 	//Save this name so agent can use it and we don't have to worry about
 	//string constants that change.
-	revealCardMoveName = revealCardConfig.Name
+	revealCardMoveName = revealCardConfig.Name()
+	hideCardMoveName = hideCardConfig.Name()
 
 	return moves.Add(
 		revealCardConfig,
-		auto.MustConfig(
-			new(MoveHideCards),
-			with.HelpText("After the current player has revealed both cards and tried to memorize them, this move hides the cards so that play can continue to next player."),
-		),
+		hideCardConfig,
 		auto.MustConfig(
 			new(moves.FinishTurn),
 		),

@@ -765,7 +765,7 @@ func (g *GameManager) emptyState(numPlayers int) (*state, error) {
 
 func (g *GameManager) addMove(config MoveConfig) error {
 
-	moveType, err := config.newMoveType(g)
+	moveType, err := newMoveType(config, g)
 
 	if err != nil {
 		return err
@@ -825,7 +825,7 @@ func (g *GameManager) ExampleMoveByName(name string) Move {
 }
 
 //Agents returns a slice of all agents configured on this Manager via
-//GameDelegate.ConfigureAgents. Will return nil before SetUp is called.
+//GameDelegate.ConfigureAgents.
 func (g *GameManager) Agents() []Agent {
 	if !g.initialized {
 		return nil

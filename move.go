@@ -21,13 +21,17 @@ type moveType struct {
 
 //MoveConfig is a collection of information used to create a Move. Your
 //delegate's ConfigureMoves() will emit a slice of them. Typically you'll use
-//moves.Combine, moves.Add, moves.AddWithPhase, and others to generate these.
-type MoveConfig struct {
+//moves.Combine, moves.Add, moves.AddWithPhase, combined with
+//moves.AutoConfigurer.Configure() to generate these. This is an interface and
+//not a concrete struct because other packages, like moves, add more behavior
+//to the ones they return. If you want just a vanilla one without using the
+//moves package, use NewMoveConfig.
+type MoveConfig interface {
 	//Name is the name for this type of move. No other Move structs
 	//in use in this game should have the same name, but it should be human-
 	//friendly. For example, "Place Token" is a reasonable name, as long as no
 	//other types of Move-structs will return that name in this game. Required.
-	Name string
+	Name() string
 
 	//Constructor should return a zero-valued Move of the given type. Normally
 	//very simple: just a new(MyMoveType). Required. If you have a field that
@@ -38,7 +42,7 @@ type MoveConfig struct {
 	//enum in the game's Chest.Enums, it will auto-instantiate a enum.Var for
 	//the correct enum for that field, allowing you to maintain a single-line
 	//constructor.
-	Constructor func() Move
+	Constructor() func() Move
 
 	//CustomConfiguration is an optional PropertyCollection. Some move types--
 	//especially in the `moves` package--stash configuration options here that
@@ -54,7 +58,36 @@ type MoveConfig struct {
 	//those from outside the package. Generally you don't use this directly,
 	//but auto.Config() will help you set these for what specific
 	//moves in that package expect.
-	CustomConfiguration PropertyCollection
+	CustomConfiguration() PropertyCollection
+}
+
+type defaultMoveConfig struct {
+	name                string
+	constructor         func() Move
+	customConfiguration PropertyCollection
+}
+
+func (d defaultMoveConfig) Name() string {
+	return d.name
+}
+
+func (d defaultMoveConfig) Constructor() func() Move {
+	return d.constructor
+}
+
+func (d defaultMoveConfig) CustomConfiguration() PropertyCollection {
+	return d.customConfiguration
+}
+
+//NewMoveConfig returns a simple MoveConfig that will return the provided
+//parameters from its getters. Typically you don't use this, but rather use
+//the output of moves.AutoConfigurer.Config().
+func NewMoveConfig(name string, constructor func() Move, customConfiguration PropertyCollection) MoveConfig {
+	return defaultMoveConfig{
+		name,
+		constructor,
+		customConfiguration,
+	}
 }
 
 const newMoveTypeErrNoManagerPassed = "No manager passed, so we can'd do validation"
@@ -63,20 +96,20 @@ const newMoveTypeErrNoManagerPassed = "No manager passed, so we can'd do validat
 //the given manager. The returned move type will not yet have been added to
 //the manager in question. In general you don't call this directly, and
 //instead use manager.AddMove, which accepts a MoveConfig.
-func (m *MoveConfig) newMoveType(manager *GameManager) (*moveType, error) {
-	if m == nil {
+func newMoveType(config MoveConfig, manager *GameManager) (*moveType, error) {
+	if config == nil {
 		return nil, errors.New("No config provided")
 	}
 
-	if m.Name == "" {
+	if config.Name() == "" {
 		return nil, errors.New("No name provided")
 	}
 
-	if m.Constructor == nil {
+	if config.Constructor() == nil {
 		return nil, errors.New("No MoveConstructor provided")
 	}
 
-	exampleMove := m.Constructor()
+	exampleMove := config.Constructor()()
 
 	if exampleMove == nil {
 		return nil, errors.New("Constructor returned nil")
@@ -106,9 +139,9 @@ func (m *MoveConfig) newMoveType(manager *GameManager) (*moveType, error) {
 	}
 
 	return &moveType{
-		name:                m.Name,
-		constructor:         m.Constructor,
-		customConfiguration: m.CustomConfiguration,
+		name:                config.Name(),
+		constructor:         config.Constructor(),
+		customConfiguration: config.CustomConfiguration(),
 		validator:           validator,
 		manager:             manager,
 	}, err
@@ -117,9 +150,10 @@ func (m *MoveConfig) newMoveType(manager *GameManager) (*moveType, error) {
 
 //OrphanExampleMove returns a move from the config that will be similar to a
 //real move, in terms of struct-based auto-inflation, etc. This is exposed
-//primarily for auto.Config, and generally shouldn't be used by others.
-func (m *MoveConfig) OrphanExampleMove() (Move, error) {
-	throwAwayMoveType, err := m.newMoveType(nil)
+//primarily for moves.AutoConfigrer, and generally shouldn't be used by
+//others.
+func OrphanExampleMove(config MoveConfig) (Move, error) {
+	throwAwayMoveType, err := newMoveType(config, nil)
 
 	if err != nil {
 		//Look for exatly the single kind of error we're OK with. Yes, this is a hack.

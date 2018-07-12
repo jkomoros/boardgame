@@ -125,7 +125,7 @@ func (m *MoveStartHideCardsTimer) Legal(state boardgame.ImmutableState, proposer
 func (m *MoveStartHideCardsTimer) Apply(state boardgame.State) error {
 	game, _ := concreteStates(state)
 
-	move := state.Game().MoveByName(moveHideCardsConfig.Name)
+	move := state.Game().MoveByName(hideCardMoveName)
 
 	game.HideCardsTimer.Start(HideCardsDuration, move)
 
@@ -195,12 +195,6 @@ func (m *MoveCaptureCards) Apply(state boardgame.State) error {
 //+autoreader
 type MoveHideCards struct {
 	moves.CurrentPlayer
-}
-
-//This is left over so that the timer knows what to attach to. But it feels
-//like a smell to hvae it here.
-var moveHideCardsConfig = boardgame.MoveConfig{
-	Name: "Hide Cards",
 }
 
 func (m *MoveHideCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {

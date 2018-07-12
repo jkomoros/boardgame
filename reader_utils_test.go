@@ -145,12 +145,12 @@ func (t *testAutoEnumMove) HelpText() string {
 	return "Test move that has a enum.Var that has to be created"
 }
 
-var testAutoEnumMoveConfig = MoveConfig{
-	Name: "AutoEnumMove",
-	Constructor: func() Move {
+var testAutoEnumMoveConfig = NewMoveConfig(
+	"AutoEnumMove",
+	func() Move {
 		return new(testAutoEnumMove)
 	},
-}
+	nil)
 
 func TestAutoEnum(t *testing.T) {
 

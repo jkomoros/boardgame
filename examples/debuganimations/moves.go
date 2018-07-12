@@ -411,13 +411,6 @@ func (m *moveMoveToken) Apply(state boardgame.State) error {
  *
  **************************************************/
 
-var moveMoveTokenSanitizedConfig = boardgame.MoveConfig{
-	Name: "Move Token Sanitized",
-	Constructor: func() boardgame.Move {
-		return new(moveMoveTokenSanitized)
-	},
-}
-
 func (m *moveMoveTokenSanitized) HelpText() string {
 	return "Moves tokens"
 }
