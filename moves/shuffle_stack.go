@@ -94,11 +94,17 @@ func (s *ShuffleStack) ValidConfiguration(exampleState boardgame.State) error {
 //FallbackName returns "Shuffle STACK" where STACK is the name of the
 //stack set by WithSourceStack.
 func (s *ShuffleStack) FallbackName(m *boardgame.GameManager) string {
-	return "Shuffle " + stackName(s, privateconstants.SourceStack)
+
+	//This is an ugly hack to make it mutable
+	exampleState := m.ExampleState().(boardgame.State)
+
+	stack := s.SourceStack(exampleState)
+
+	return "Shuffle " + stackName(s, privateconstants.SourceStack, stack, exampleState)
 }
 
 //FallbackHelpText returns "Shuffles the STACK stack" where STACK is the name
 //of the stack set by WithSourceStack.
 func (s *ShuffleStack) FallbackHelpText() string {
-	return "Shuffles " + stackName(s, privateconstants.SourceStack)
+	return "Shuffles " + stackName(s, privateconstants.SourceStack, nil, nil)
 }

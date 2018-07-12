@@ -123,9 +123,16 @@ func (m *MoveCountComponents) stacks(state boardgame.ImmutableState) (source, de
 
 }
 
-func (m *MoveCountComponents) stackNames() (starter, destination string) {
+func (m *MoveCountComponents) stackNames(state boardgame.ImmutableState) (starter, destination string) {
 
-	return stackName(m, privateconstants.SourceStack), stackName(m, privateconstants.DestinationStack)
+	var sourceStack boardgame.ImmutableStack
+	var destinationStack boardgame.ImmutableStack
+
+	if state != nil {
+		sourceStack, destinationStack = m.stacks(state)
+	}
+
+	return stackName(m, privateconstants.SourceStack, sourceStack, state), stackName(m, privateconstants.DestinationStack, destinationStack, state)
 }
 
 //Apply by default moves one component from SourceStack() to
@@ -150,7 +157,7 @@ func (m *MoveCountComponents) Apply(state boardgame.State) error {
 //stack name, game stack name, and target count.
 func (m *MoveCountComponents) FallbackName(g *boardgame.GameManager) string {
 
-	source, destination := m.stackNames()
+	source, destination := m.stackNames(g.ExampleState())
 
 	return "Move " + targetCountString(m.TopLevelStruct()) + " Components From " + source + " To " + destination
 }
@@ -158,7 +165,7 @@ func (m *MoveCountComponents) FallbackName(g *boardgame.GameManager) string {
 //FallbackHelpText returns a string based on the names of the player
 //stack name, game stack name, and target count.
 func (m *MoveCountComponents) FallbackHelpText() string {
-	source, destination := m.stackNames()
+	source, destination := m.stackNames(nil)
 
 	return "Moves " + targetCountString(m.TopLevelStruct()) + " components from " + source + " to " + destination
 }
@@ -195,7 +202,7 @@ func (m *MoveComponentsUntilCountReached) Count(state boardgame.ImmutableState) 
 //stack name, game stack name, and target count.
 func (m *MoveComponentsUntilCountReached) FallbackName(g *boardgame.GameManager) string {
 
-	source, destination := m.stackNames()
+	source, destination := m.stackNames(g.ExampleState())
 
 	return "Move Components From " + source + " Until " + destination + " Has " + targetCountString(m.TopLevelStruct())
 }
@@ -203,7 +210,7 @@ func (m *MoveComponentsUntilCountReached) FallbackName(g *boardgame.GameManager)
 //FallbackHelpText returns a string based on the names of the player
 //stack name, game stack name, and target count.
 func (m *MoveComponentsUntilCountReached) FallbackHelpText() string {
-	source, destination := m.stackNames()
+	source, destination := m.stackNames(nil)
 
 	return "Moves components from " + source + " to " + destination + " until " + destination + " has " + targetCountString(m.TopLevelStruct())
 }
@@ -240,7 +247,7 @@ func (m *MoveComponentsUntilCountLeft) CountDown(state boardgame.ImmutableState)
 //stack name, game stack name, and target count.
 func (m *MoveComponentsUntilCountLeft) FallbackName(g *boardgame.GameManager) string {
 
-	source, destination := m.stackNames()
+	source, destination := m.stackNames(g.ExampleState())
 
 	return "Move Components To " + destination + " Until " + source + " Has " + targetCountString(m.TopLevelStruct())
 }
@@ -248,7 +255,7 @@ func (m *MoveComponentsUntilCountLeft) FallbackName(g *boardgame.GameManager) st
 //FallbackHelpText returns a string based on the names of the player
 //stack name, game stack name, and target count.
 func (m *MoveComponentsUntilCountLeft) FallbackHelpText() string {
-	source, destination := m.stackNames()
+	source, destination := m.stackNames(nil)
 
 	return "Moves components from " + source + " to " + destination + " until " + source + " has " + targetCountString(m.TopLevelStruct()) + " left"
 }

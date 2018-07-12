@@ -204,12 +204,18 @@ func (d *DefaultComponent) ValidConfiguration(exampleState boardgame.State) erro
 //WithSourceStack, and the LegalType.
 func (d *DefaultComponent) FallbackName(m *boardgame.GameManager) string {
 	legalType, _ := d.legalTypeImpl()
-	return "Default Component For " + stackName(d, privateconstants.SourceStack) + " LegalType " + strconv.Itoa(legalType)
+
+	//Ugly hack to convert to mutalbe state
+	exampleState := m.ExampleState().(boardgame.State)
+
+	sourceStack, _ := d.sourceStackImpl(exampleState)
+
+	return "Default Component For " + stackName(d, privateconstants.SourceStack, sourceStack, exampleState) + " LegalType " + strconv.Itoa(legalType)
 }
 
 //FallbackName returns a string based on the stackName passed to
 //WithSourceStack, and the LegalType.
 func (d *DefaultComponent) FallbackHelpText() string {
 	legalType, _ := d.legalTypeImpl()
-	return "Searches " + stackName(d, privateconstants.SourceStack) + " for a component that returns nil for Legal() with LegalType " + strconv.Itoa(legalType)
+	return "Searches " + stackName(d, privateconstants.SourceStack, nil, nil) + " for a component that returns nil for Legal() with LegalType " + strconv.Itoa(legalType)
 }

@@ -36,7 +36,7 @@ func (d *CollectCountComponents) RoundRobinAction(playerState boardgame.PlayerSt
 //stack name, game stack name, and target count.
 func (d *CollectCountComponents) FallbackName(m *boardgame.GameManager) string {
 
-	player, game, count := d.moveTypeInfo()
+	player, game, count := d.moveTypeInfo(m.ExampleState())
 
 	return "Collect Components From " + player + " in each PlayerState To " + game + " in GameState " + count + " Times Per Player"
 }
@@ -44,7 +44,7 @@ func (d *CollectCountComponents) FallbackName(m *boardgame.GameManager) string {
 //FallbackHelpText returns a string based on the names of the player
 //stack name, game stack name, and target count.
 func (d *CollectCountComponents) FallbackHelpText() string {
-	player, game, count := d.moveTypeInfo()
+	player, game, count := d.moveTypeInfo(nil)
 
 	return "Collects " + count + " components from " + player + " in each PlayerState to " + game + " in GameState"
 }
@@ -89,7 +89,7 @@ func (d *CollectComponentsUntilPlayerCountLeft) PlayerConditionMet(pState boardg
 //stack name, game stack name, and target count.
 func (d *CollectComponentsUntilPlayerCountLeft) FallbackName(m *boardgame.GameManager) string {
 
-	player, game, count := d.moveTypeInfo()
+	player, game, count := d.moveTypeInfo(m.ExampleState())
 
 	return "Collect Components From " + player + " in each PlayerState To " + game + " In GameState Until Each Player Is Down To " + count
 }
@@ -97,7 +97,7 @@ func (d *CollectComponentsUntilPlayerCountLeft) FallbackName(m *boardgame.GameMa
 //FallbackHelpText returns a string based on the names of the player
 //stack name, game stack name, and target count.
 func (d *CollectComponentsUntilPlayerCountLeft) FallbackHelpText() string {
-	player, game, count := d.moveTypeInfo()
+	player, game, count := d.moveTypeInfo(nil)
 
 	return "Collects components from " + player + " in each PlayerState to " + game + " in GameState until each player has " + count + " left"
 }
@@ -148,7 +148,7 @@ func (d *CollectComponentsUntilGameCountReached) ConditionMet(state boardgame.Im
 //stack name, game stack name, and target count.
 func (d *CollectComponentsUntilGameCountReached) FallbackName(m *boardgame.GameManager) string {
 
-	player, game, count := d.moveTypeInfo()
+	player, game, count := d.moveTypeInfo(m.ExampleState())
 
 	return "Collect Components From " + player + " in each PlayerState To " + game + " In GameState Until The Game Has " + count + " Total"
 }
@@ -156,7 +156,7 @@ func (d *CollectComponentsUntilGameCountReached) FallbackName(m *boardgame.GameM
 //FallbackHelpText returns a string based on the names of the player
 //stack name, game stack name, and target count.
 func (d *CollectComponentsUntilGameCountReached) FallbackHelpText() string {
-	player, game, count := d.moveTypeInfo()
+	player, game, count := d.moveTypeInfo(nil)
 
 	return "Collects components from " + player + " in each PlayerState to " + game + " in GameState until the game has " + count + " total"
 }

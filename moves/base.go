@@ -596,7 +596,7 @@ func progressionMatches(input []string, pattern []string) bool {
 
 //stackName returns the name of the stack for helpTExt, name, etc based on the
 //configPropName.
-func stackName(move moveInfoer, configPropName string) string {
+func stackName(move moveInfoer, configPropName string, exampleStack boardgame.ImmutableStack, exampleState boardgame.ImmutableState) string {
 	config := move.CustomConfiguration()
 
 	val, ok := config[configPropName]
@@ -608,5 +608,19 @@ func stackName(move moveInfoer, configPropName string) string {
 		}
 	}
 
+	if derivedName := findStackName(exampleStack, exampleState); derivedName != "" {
+		return derivedName
+	}
+
 	return "a stack"
+}
+
+func findStackName(exampleStack boardgame.ImmutableStack, exampleState boardgame.ImmutableState) string {
+	//TODO: find the stack, enumerating through all readers
+
+	if exampleStack == nil || exampleState == nil {
+		return ""
+	}
+
+	return ""
 }
