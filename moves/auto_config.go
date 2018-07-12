@@ -17,7 +17,7 @@ type AutoConfigurableMove interface {
 	boardgame.Move
 	//DeriveName() will be called to generate the name. This might be an
 	//expensive method, so it will only be called during installation.
-	DeriveName() string
+	DeriveName(manager *boardgame.GameManager) string
 }
 
 //AutoConfigurer is an object that makes it easy to configure moves. Get a new
@@ -84,7 +84,7 @@ func (a *AutoConfigurer) Config(exampleStruct AutoConfigurableMove, options ...i
 
 	actualExample := generatedExample.(AutoConfigurableMove)
 
-	name := actualExample.DeriveName()
+	name := actualExample.DeriveName(a.delegate.Manager())
 
 	moveTypeConfig, err := newMoveConfig(name, exampleStruct, config), nil
 

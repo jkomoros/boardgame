@@ -202,7 +202,7 @@ func (d *DefaultComponent) ValidConfiguration(exampleState boardgame.State) erro
 
 //FallbackName returns a string based on the stackName passed to
 //WithSourceStack, and the LegalType.
-func (d *DefaultComponent) FallbackName() string {
+func (d *DefaultComponent) FallbackName(m *boardgame.GameManager) string {
 	legalType, _ := d.legalTypeImpl()
 	return "Default Component For " + stackName(d, privateconstants.SourceStack) + " LegalType " + strconv.Itoa(legalType)
 }

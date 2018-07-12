@@ -1,5 +1,9 @@
 package moves
 
+import (
+	"github.com/jkomoros/boardgame"
+)
+
 //FixUp is a simple move type that just wraps moves.Base. Its primary effect
 //is to have the default IsFixUp for auto.Config to default to true. When you
 //have a custom fix up move, it's best to embed this, because otherwise it's
@@ -11,7 +15,7 @@ type FixUp struct {
 }
 
 //FallbackName returns FixUp Move"
-func (f *FixUp) FallbackName() string {
+func (f *FixUp) FallbackName(m *boardgame.GameManager) string {
 	return "FixUp Move"
 }
 

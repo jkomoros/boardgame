@@ -63,7 +63,7 @@ func (a *ApplyUntil) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 }
 
 //FallbackName simply returns "Apply Until"
-func (a *ApplyUntil) FallbackName() string {
+func (a *ApplyUntil) FallbackName(m *boardgame.GameManager) string {
 	return "Apply Until"
 }
 
@@ -188,7 +188,7 @@ func (a *ApplyUntilCount) ConditionMet(state boardgame.ImmutableState) error {
 
 //FallbackName returns "Apply Until Count of INT", where INT is the
 //target count.
-func (a *ApplyUntilCount) FallbackName() string {
+func (a *ApplyUntilCount) FallbackName(m *boardgame.GameManager) string {
 
 	return "Apply Until Count of " + targetCountString(a.TopLevelStruct())
 }
@@ -251,7 +251,7 @@ func (a *ApplyCountTimes) Count(state boardgame.ImmutableState) int {
 
 //FallbackName returns "Apply INT Times", where INT is the target
 //count.
-func (a *ApplyCountTimes) FallbackName() string {
+func (a *ApplyCountTimes) FallbackName(m *boardgame.GameManager) string {
 
 	return "Apply " + targetCountString(a.TopLevelStruct()) + " Times"
 }

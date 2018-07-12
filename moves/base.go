@@ -28,7 +28,10 @@ func init() {
 type autoConfigFallbackMoveType interface {
 	//The last resort move-name generator that MoveName will fall back on if
 	//none of the other options worked.
-	FallbackName() string
+	FallbackName(m *boardgame.GameManager) string
+	//TODO: shouldn't HelpText also take a manager? But move.HelpText() is
+	//called live, unlike Name, which is fully implied at MoveConfig install
+	//time.
 	FallbackHelpText() string
 }
 
@@ -193,7 +196,7 @@ func titleCaseToWords(in string) string {
 //like `MoveMyMove` --> `My Move`. Finally, if it's a struct from this
 //package, it will fall back on whatever the FallbackName() method returns.
 //Subclasses generally should not override this.
-func (b *Base) DeriveName() string {
+func (b *Base) DeriveName(m *boardgame.GameManager) string {
 
 	config := b.CustomConfiguration()
 
@@ -234,7 +237,7 @@ func (b *Base) DeriveName() string {
 	defaultConfig, ok := move.(autoConfigFallbackMoveType)
 
 	if ok {
-		return defaultConfig.FallbackName()
+		return defaultConfig.FallbackName(m)
 	}
 
 	//Nothing worked. :-/
@@ -244,7 +247,7 @@ func (b *Base) DeriveName() string {
 
 //FallbackName is the name that is returned if other higher-priority
 //methods in MoveTypeName fail. For moves.Base returns "Base Move".
-func (b *Base) FallbackName() string {
+func (b *Base) FallbackName(m *boardgame.GameManager) string {
 	return "Base Move"
 }
 

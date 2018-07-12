@@ -244,7 +244,7 @@ func (d *DealCountComponents) moveTypeInfo() (player, game, count string) {
 
 //FallbackName returns a string based on the names of the player
 //stack name, game stack name, and target count.
-func (d *DealCountComponents) FallbackName() string {
+func (d *DealCountComponents) FallbackName(m *boardgame.GameManager) string {
 
 	player, game, count := d.moveTypeInfo()
 
@@ -289,7 +289,7 @@ func (d *DealComponentsUntilPlayerCountReached) ConditionMet(state boardgame.Imm
 
 //FallbackName returns a string based on the names of the player
 //stack name, game stack name, and target count.
-func (d *DealComponentsUntilPlayerCountReached) FallbackName() string {
+func (d *DealComponentsUntilPlayerCountReached) FallbackName(m *boardgame.GameManager) string {
 
 	player, game, count := d.moveTypeInfo()
 
@@ -332,7 +332,7 @@ func (d *DealComponentsUntilGameCountLeft) ConditionMet(state boardgame.Immutabl
 
 //FallbackName returns a string based on the names of the player
 //stack name, game stack name, and target count.
-func (d *DealComponentsUntilGameCountLeft) FallbackName() string {
+func (d *DealComponentsUntilGameCountLeft) FallbackName(m *boardgame.GameManager) string {
 
 	player, game, count := d.moveTypeInfo()
 

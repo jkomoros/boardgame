@@ -93,7 +93,7 @@ func (s *ShuffleStack) ValidConfiguration(exampleState boardgame.State) error {
 
 //FallbackName returns "Shuffle STACK" where STACK is the name of the
 //stack set by WithSourceStack.
-func (s *ShuffleStack) FallbackName() string {
+func (s *ShuffleStack) FallbackName(m *boardgame.GameManager) string {
 	return "Shuffle " + stackName(s, privateconstants.SourceStack)
 }
 

@@ -148,7 +148,7 @@ func (m *MoveCountComponents) Apply(state boardgame.State) error {
 
 //FallbackName returns a string based on the names of the player
 //stack name, game stack name, and target count.
-func (m *MoveCountComponents) FallbackName() string {
+func (m *MoveCountComponents) FallbackName(g *boardgame.GameManager) string {
 
 	source, destination := m.stackNames()
 
@@ -193,7 +193,7 @@ func (m *MoveComponentsUntilCountReached) Count(state boardgame.ImmutableState) 
 
 //FallbackName returns a string based on the names of the player
 //stack name, game stack name, and target count.
-func (m *MoveComponentsUntilCountReached) FallbackName() string {
+func (m *MoveComponentsUntilCountReached) FallbackName(g *boardgame.GameManager) string {
 
 	source, destination := m.stackNames()
 
@@ -238,7 +238,7 @@ func (m *MoveComponentsUntilCountLeft) CountDown(state boardgame.ImmutableState)
 
 //FallbackName returns a string based on the names of the player
 //stack name, game stack name, and target count.
-func (m *MoveComponentsUntilCountLeft) FallbackName() string {
+func (m *MoveComponentsUntilCountLeft) FallbackName(g *boardgame.GameManager) string {
 
 	source, destination := m.stackNames()
 

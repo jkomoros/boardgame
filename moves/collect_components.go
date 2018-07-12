@@ -34,7 +34,7 @@ func (d *CollectCountComponents) RoundRobinAction(playerState boardgame.PlayerSt
 
 //FallbackName returns a string based on the names of the player
 //stack name, game stack name, and target count.
-func (d *CollectCountComponents) FallbackName() string {
+func (d *CollectCountComponents) FallbackName(m *boardgame.GameManager) string {
 
 	player, game, count := d.moveTypeInfo()
 
@@ -87,7 +87,7 @@ func (d *CollectComponentsUntilPlayerCountLeft) PlayerConditionMet(pState boardg
 
 //FallbackName returns a string based on the names of the player
 //stack name, game stack name, and target count.
-func (d *CollectComponentsUntilPlayerCountLeft) FallbackName() string {
+func (d *CollectComponentsUntilPlayerCountLeft) FallbackName(m *boardgame.GameManager) string {
 
 	player, game, count := d.moveTypeInfo()
 
@@ -146,7 +146,7 @@ func (d *CollectComponentsUntilGameCountReached) ConditionMet(state boardgame.Im
 
 //FallbackName returns a string based on the names of the player
 //stack name, game stack name, and target count.
-func (d *CollectComponentsUntilGameCountReached) FallbackName() string {
+func (d *CollectComponentsUntilGameCountReached) FallbackName(m *boardgame.GameManager) string {
 
 	player, game, count := d.moveTypeInfo()
 

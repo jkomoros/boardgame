@@ -136,7 +136,7 @@ func (s *StartPhase) Apply(state boardgame.State) error {
 //FallbackName returns "Start Phase PHASENAME" where PHASENAME is the
 //string value of the phase to start that was passed via WithPhaseToStart, or
 //the int value if no enum was passed.
-func (s *StartPhase) FallbackName() string {
+func (s *StartPhase) FallbackName(m *boardgame.GameManager) string {
 
 	return "Start Phase " + s.phaseStringValue()
 }
