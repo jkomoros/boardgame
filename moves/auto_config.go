@@ -8,10 +8,11 @@ import (
 )
 
 //GroupableMoveConfig is a type of MoveConfig that also has enough methods for
-//it to be used as a Group phase progression in AddOrderedForPhase.
+//it to be used as a MoveProgressionGroup in AddOrderedForPhase.
+//AutoConfigurer.Config() returns these.
 type GroupableMoveConfig interface {
 	boardgame.MoveConfig
-	MoveConfigs() []boardgame.MoveConfig
+	interfaces.MoveProgressionGroup
 }
 
 type defaultMoveConfig struct {

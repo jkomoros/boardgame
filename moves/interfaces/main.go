@@ -13,6 +13,15 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
+//MoveProgressionGroup is an object that can be used to define a valid move
+//progression. moves.AutoConfigurer().Config() returns objects that fit this
+//interface.
+type MoveProgressionGroup interface {
+	//MoveConfigs should return the full enumeration of contained MoveConfigs
+	//within this Group, from left to right and top to bottom.
+	MoveConfigs() []boardgame.MoveConfig
+}
+
 //CustomConfigurationOption is a function that takes a PropertyCollection and
 //modifies a key on it. This package defines a number of functions that return
 //funcs that satisfy this interface and can be used in DefaultConfig to pass

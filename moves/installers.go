@@ -2,6 +2,7 @@ package moves
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves/interfaces"
 	"github.com/jkomoros/boardgame/moves/with"
 )
 
@@ -56,7 +57,7 @@ func AddForPhase(phase int, moves ...boardgame.MoveConfig) []boardgame.MoveConfi
 //group types defined in moves/groups. All of the top level groups passed will
 //be treated implicitly like a single group.Serial. All moves contained within
 //the provided groups will be registered.
-func AddOrderedForPhase(phase int, groups ...GroupableMoveConfig) []boardgame.MoveConfig {
+func AddOrderedForPhase(phase int, groups ...interfaces.MoveProgressionGroup) []boardgame.MoveConfig {
 
 	//Technically it's illegal to attach a move progression to a non-leaf
 	//phase enum val, but at this point we don't have a reference to delegate
