@@ -9,6 +9,8 @@ package debuganimations
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves"
+	"github.com/jkomoros/boardgame/moves/with"
 )
 
 //go:generate autoreader
@@ -126,16 +128,26 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.ImmutableState) (finish
 }
 
 func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
+
+	auto := moves.NewAutoConfigurer(g)
+
 	return []boardgame.MoveConfig{
-		moveMoveCardBetweenShortStacksConfig,
-		moveMoveCardBetweenDrawAndDiscardStacksConfig,
-		moveFlipHiddenCardConfig,
-		moveMoveCardBetweenFanStacksConfig,
-		moveVisibleShuffleCardsConfig,
-		moveShuffleCardsConfig,
-		moveMoveBetweenHiddenConfig,
-		moveMoveTokenConfig,
-		moveMoveTokenSanitizedConfig,
+		auto.MustConfig(new(moveMoveCardBetweenShortStacks)),
+		auto.MustConfig(new(moveMoveCardBetweenDrawAndDiscardStacks)),
+		auto.MustConfig(new(moveFlipHiddenCard),
+			with.MoveName("Flip Card Between Hidden and Revealed")),
+		auto.MustConfig(new(moveMoveCardBetweenFanStacks),
+			with.MoveName("Move Fan Card"),
+		),
+		auto.MustConfig(new(moveVisibleShuffleCards),
+			with.MoveName("Visible Shuffle"),
+		),
+		auto.MustConfig(new(moveShuffleCards),
+			with.MoveName("Shuffle"),
+		),
+		auto.MustConfig(new(moveMoveBetweenHidden)),
+		auto.MustConfig(new(moveMoveToken)),
+		auto.MustConfig(new(moveMoveTokenSanitized)),
 	}
 }
 
