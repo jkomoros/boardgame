@@ -91,6 +91,11 @@ func (s *ShuffleStack) ValidConfiguration(exampleState boardgame.State) error {
 	return s.FixUp.ValidConfiguration(exampleState)
 }
 
+//TODO: does one like this already exist?
+type sourceStacker interface {
+	SourceStack(boardgame.State) boardgame.Stack
+}
+
 //FallbackName returns "Shuffle STACK" where STACK is the name of the
 //stack set by WithSourceStack.
 func (s *ShuffleStack) FallbackName(m *boardgame.GameManager) string {
@@ -98,7 +103,13 @@ func (s *ShuffleStack) FallbackName(m *boardgame.GameManager) string {
 	//This is an ugly hack to make it mutable
 	exampleState := m.ExampleState().(boardgame.State)
 
-	stack := s.SourceStack(exampleState)
+	var stack boardgame.ImmutableStack
+
+	stacker, ok := s.TopLevelStruct().(sourceStacker)
+
+	if ok {
+		stack = stacker.SourceStack(exampleState)
+	}
 
 	return "Shuffle " + stackName(s, privateconstants.SourceStack, stack, exampleState)
 }

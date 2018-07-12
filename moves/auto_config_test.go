@@ -31,8 +31,7 @@ func TestShuffleStackDefaultConfig(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	//TODO: change this when fixing #637
-	move := manager.ExampleMoveByName("Shuffle a Stack")
+	move := manager.ExampleMoveByName("Shuffle Draw Stack")
 
 	var typedNil boardgame.Move
 

@@ -6,6 +6,7 @@ import (
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 	"github.com/jkomoros/boardgame/moves/internal/privateconstants"
+	"log"
 	"reflect"
 	"strconv"
 	"strings"
@@ -616,11 +617,37 @@ func stackName(move moveInfoer, configPropName string, exampleStack boardgame.Im
 }
 
 func findStackName(exampleStack boardgame.ImmutableStack, exampleState boardgame.ImmutableState) string {
-	//TODO: find the stack, enumerating through all readers
 
 	if exampleStack == nil || exampleState == nil {
 		return ""
 	}
 
+	if result := findStackNameInReader(exampleState.ImmutableGameState().Reader(), exampleStack); result != "" {
+		return result
+	}
+
+	if result := findStackNameInReader(exampleState.ImmutablePlayerStates()[0].Reader(), exampleStack); result != "" {
+		return result
+	}
+
+	return ""
+}
+
+func findStackNameInReader(reader boardgame.PropertyReader, exampleStack boardgame.ImmutableStack) string {
+	for propName, propType := range reader.Props() {
+		if propType != boardgame.TypeStack {
+			continue
+		}
+		stack, err := reader.ImmutableStackProp(propName)
+
+		if err != nil {
+			log.Println("Unexpected error: " + err.Error())
+			return ""
+		}
+
+		if stack == exampleStack {
+			return titleCaseToWords(propName)
+		}
+	}
 	return ""
 }
