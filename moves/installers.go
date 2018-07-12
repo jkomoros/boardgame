@@ -2,6 +2,7 @@ package moves
 
 import (
 	"github.com/jkomoros/boardgame"
+	gr "github.com/jkomoros/boardgame/moves/groups"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 	"github.com/jkomoros/boardgame/moves/with"
 )
@@ -63,11 +64,9 @@ func AddOrderedForPhase(phase int, groups ...interfaces.MoveProgressionGroup) []
 	//phase enum val, but at this point we don't have a reference to delegate
 	//so we can't check. moves.Base.ValidConfiguration will check.
 
-	var moves []boardgame.MoveConfig
+	impliedSerialGroup := gr.Serial(groups)
 
-	for _, group := range groups {
-		moves = append(moves, group.MoveConfigs()...)
-	}
+	moves := impliedSerialGroup.MoveConfigs()
 
 	progression := make([]string, len(moves))
 
