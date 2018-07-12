@@ -7,6 +7,21 @@ import (
 	"reflect"
 )
 
+//GroupableMoveConfig is a type of MoveConfig that also has enough methods for
+//it to be used as a Group phase progression in AddOrderedForPhase.
+type GroupableMoveConfig interface {
+	boardgame.MoveConfig
+	MoveConfigs() []boardgame.MoveConfig
+}
+
+type defaultMoveConfig struct {
+	boardgame.MoveConfig
+}
+
+func (d *defaultMoveConfig) MoveConfigs() []boardgame.MoveConfig {
+	return []boardgame.MoveConfig{d.MoveConfig}
+}
+
 //AutoConfigurableMove is the interface that moves passed to AutoConfigurer.Config must
 //implement. These methods are interrogated to set the move name,
 //helptext,isFixUp, and legalPhases to good values. moves.Base defines
@@ -36,7 +51,7 @@ func NewAutoConfigurer(g boardgame.GameDelegate) *AutoConfigurer {
 
 //MustConfig is a wrapper around Config that if it errors will panic. Only
 //suitable for being used during setup.
-func (a *AutoConfigurer) MustConfig(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConfigurationOption) boardgame.MoveConfig {
+func (a *AutoConfigurer) MustConfig(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConfigurationOption) GroupableMoveConfig {
 	result, err := a.Config(exampleStruct, options...)
 
 	if err != nil {
@@ -46,15 +61,18 @@ func (a *AutoConfigurer) MustConfig(exampleStruct AutoConfigurableMove, options 
 	return result
 }
 
-//Config is a powerful default MoveConfig generator. In many cases
-//you'll implement moves that are very thin embeddings of moves in this
-//package. Generating a MoveConfig for each is a pain. This method auto-
-//generates the MoveConfig based on an example zero type of your move to
-//install. Moves need a few extra methods that are consulted to generate the
-//move name, helptext, and isFixUp; anything based on moves.Base automatically
-//satisfies the necessary interface. See the package doc for an example of
-//use.
-func (a *AutoConfigurer) Config(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConfigurationOption) (boardgame.MoveConfig, error) {
+//Config is a powerful default MoveConfig generator. In many cases you'll
+//implement moves that are very thin embeddings of moves in this package.
+//Generating a MoveConfig for each is a pain. This method auto- generates the
+//MoveConfig based on an example zero type of your move to install. Moves need
+//a few extra methods that are consulted to generate the move name, helptext,
+//and isFixUp; anything based on moves.Base automatically satisfies the
+//necessary interface. See the package doc for an example of use. Instead of
+//returning a boardgame.MoveConfig, it returns a GroupableMoveConfig, which
+//satisfies boardgame.MoveConfig but also adds enough methods to be useable as
+//input to AddOrderedForPhase. The config returned will simply return a list
+//with a single item for MoveConfigs: its underlining config.
+func (a *AutoConfigurer) Config(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConfigurationOption) (GroupableMoveConfig, error) {
 
 	if a.delegate == nil {
 		return nil, errors.New("No delegate provided")
@@ -92,7 +110,7 @@ func (a *AutoConfigurer) Config(exampleStruct AutoConfigurableMove, options ...i
 
 }
 
-func newMoveConfig(name string, exampleStruct boardgame.Move, config boardgame.PropertyCollection) boardgame.MoveConfig {
+func newMoveConfig(name string, exampleStruct boardgame.Move, config boardgame.PropertyCollection) GroupableMoveConfig {
 	val := reflect.ValueOf(exampleStruct)
 
 	//We can accept either pointer or struct types.
@@ -106,5 +124,7 @@ func newMoveConfig(name string, exampleStruct boardgame.Move, config boardgame.P
 		return reflect.New(typ).Interface().(boardgame.Move)
 	}
 
-	return boardgame.NewMoveConfig(name, constructor, config)
+	return &defaultMoveConfig{
+		boardgame.NewMoveConfig(name, constructor, config),
+	}
 }
