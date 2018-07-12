@@ -433,7 +433,7 @@ There are also four methods that start with `Configure`, which are called to set
 
 GameDelegate has a number of other methods that are consulted at various key points and drive certain behaviors. Each is documented to describe what they do. In a number of cases the default implementations in `DefaultGameDelegate` do complex behaviors that are almost always the correct thing, but can theoretically be overriden if necessary. `SanitizationPolicy` is a great example. We'll get to what it does in just a little bit, but although the method is quite generic, `DefaultGameDelegate`'s implementation encodes the formal convention of using struct-based tags to configure its behavior.
 
-#### SetUp
+#### Set Up
 
 Once you have a GameManager, you can create individual games from it by calling `NewGame`, passing the number of players and any other optional configuration. This is where the game's state is initalized and made ready for the first moves to be applied. `NewGame` may fail for any number of reasons. For example, if the provided number of players is not legal according to the `GameDelegate`'s `LegalNumPlayers` method, `NewGame` will fail.
 
@@ -479,8 +479,8 @@ ConfigureMoves() method. It is a simple struct with a name, a constructor for
 the move struct, and a bundle of (optional) custom configuration that will be
 available on each move of that type's Info.CustomConfiguration(). In practice,
 you almost never create your own `MoveTypeConfig`, but rather use
-`auto.Config()` to generate them automatically for you. More on that later,
-too.
+`moves.AutoConfigurer` to generate them automatically for you. More on that
+later, too.
 
 #### Player and FixUp Moves
 
@@ -516,8 +516,8 @@ Base is the simplest possible base move. It implements stubs for every required 
 Base includes a lot of base functionality and defaults. The most important is its `Legal()` method, which is where much of the notion of Phases is implemented. More on that in a later section. For now it's important to know that if you embed a move anonymously in your own move struct, it's very important to always call your "super"'s Legal method as well, because non-trivial logic is encoded in it in Base.
 
 Another simple type of move is `FixUp`. It's a simple embedding of `Base`, but
-if your move is a FixUp move it's best to embed it so that `auto.Config` will
-treat it as a FixUp move automatically.
+if your move is a FixUp move it's best to embed it so that
+`moves.AutoConfigurer` will treat it as a FixUp move automatically.
 
 ##### moves.CurrentPlayer
 
@@ -616,9 +616,15 @@ Because most of the logic for moves that embed `moves.FinishTurn` lives in metho
 
 moves.Base, moves.CurrentPlayer, and moves.FinsihTurn are only three types of moves defined in the moves package. There are a number of others that are useful in other contexts. More detail about how to use some of them is covered below in the Phases section.
 
-#### auto.Config()
+#### moves.AutoConfigurer
 
-The next section will walk through a fully manually example where you define your own MoveTypeConfig and configure that on your game, before showing how to instead do it with `auto.Config()`. In practice `auto.Config()` (in the `moves/auto` package) is almost always used to automatically generate a MoveTypeConfig based on a move, minimizing boilerplate you have to write. You can learn more about how to use it, and good idioms to follow for defining and installing moves, in the `moves/auto` package doc.
+The next section will walk through a fully manually example where you define
+your own MoveTypeConfig and configure that on your game, before showing how to
+instead do it with `moves.AutoConfigurer`. In practice
+`moves.AutoConfigurer()`is almost always used to automatically generate a
+MoveTypeConfig based on a move, minimizing boilerplate you have to write. You
+can learn more about how to use it, and good idioms to follow for defining and
+installing moves, in the `moves` package doc.
 
 #### Worked Move Example
 
@@ -810,12 +816,14 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig{
 }
 ```
 
-In practice, however, memory uses `auto.Config()`--just as almost every game will--to automatically generate MoveConfigs.
+In practice, however, memory uses `moves.AutoConfigurer`--just as almost every game will--to automatically generate MoveConfigs.
 
 ```
 func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 
 	//...some lines elided...
+
+	auto := moves.NewAutoConfigurer(g)
 
 	return moves.Add(
 		//... one move type configuration elided ...
@@ -840,9 +848,9 @@ func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 
 Technically the moves.Add() is fully optional and it would be equivalent to replace it with `[]boardgame.MoveConfig{...}`. However, the moves.Add convenience method is idiomatic for games with phases, as descirbed in the section on Phases, below, so we include it.
 
-`auto.Config()` is a very powerful tool. It automatically generates move constructors, and even move names (based on the name of the struct). In this case, you can see that we didn't even need to create a `MoveFinishTurn` in our package--we could simply use `moves.FinishTurn` directly.
+`moves.AutoConfigurer` is a very powerful tool. It automatically generates move constructors, and even move names (based on the name of the struct). In this case, you can see that we didn't even need to create a `MoveFinishTurn` in our package--we could simply use `moves.FinishTurn` directly.
 
-You can learn much more about how to use `auto.Config()` in the package doc for `moves/auto`.
+You can learn much more about how to use `moves.AutoConfigurer` in the package doc for `moves`.
 
 More complicated games would use more advanced methods, like `moves.AddForPhase` and others. See the section on Phases, below, for more.
 
@@ -1472,13 +1480,15 @@ there and returns it.
 
 Now the core engine knows about what phase it is. `moves.Base` will consult that information it is Legal method. But how do we tell `moves.Base` which phases a move is legal in?
 
-Moves that are based on `moves.Base` have a `LegalPhases() []int` method that `moves.Base` consults to see if the game's CurrentPhase is one of those. `LegalPhases()` just returns whatever was passed in `auto.Config` with `WithLegalPhases`. However, setting that manually is error-prone; you have to remember to include it for each move in that phase, and it can be hard to keep track of the order of the moves.
+Moves that are based on `moves.Base` have a `LegalPhases() []int` method that `moves.Base` consults to see if the game's CurrentPhase is one of those. `LegalPhases()` just returns whatever was passed in `moves.AutoConfigurer` with `with.LegalPhases`. However, setting that manually is error-prone; you have to remember to include it for each move in that phase, and it can be hard to keep track of the order of the moves.
 
 That's why the `moves` package defines `Add`, `AddForPhase`, and `AddOrderedForPhase`, which automatically call the right `WithLegalPhases` and `WithLegalMoveProgression` methods for you. In addition, the `moves` package defines `moves.Combine`, a convenience wrapper to use in your `ConfigureMoves` when you have phases.
 
 You can see this in action in `examples/blackjack/main.go` in `ConfigureMoves`
 
 ```
+	auto := moves.NewAutoConfigurer(g)
+
 	return moves.Combine(
 		//...
 		moves.AddForPhase(PhaseNormalPlay,
@@ -1587,9 +1597,9 @@ that are simple sub-classes of RoundRobin: `moves.DealCountComponents` to deal c
 gameState to specific players, and `moves.CollectCountComponents` to collect components from each
 player into gameState. The moves package describes how these moves work and how they fit together.
 
-#### auto.Config
+#### moves.AutoConfigurer
 
-Again, you almost never generate MoveTypeConfigs yourself, but rather use `auto.Config()` from the `moves/auto` package. See the package doc of `moves/auto` to learn more about how to use it.
+Again, you almost never generate MoveConfigs yourself, but rather use `moves.AutoConfigurer`. See the package doc of `moves` to learn more about how to use it.
 
 ### Phases and TreeEnums
 

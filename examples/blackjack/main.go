@@ -11,7 +11,6 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/components/playingcards"
 	"github.com/jkomoros/boardgame/moves"
-	"github.com/jkomoros/boardgame/moves/auto"
 	"github.com/jkomoros/boardgame/moves/with"
 	"strings"
 )
@@ -172,6 +171,8 @@ func (g *gameDelegate) FinishSetUp(state boardgame.State) error {
 }
 
 func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
+
+	auto := moves.NewAutoConfigurer(g)
 
 	return moves.Combine(
 		moves.Add(

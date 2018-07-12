@@ -2,7 +2,6 @@ package moves
 
 import (
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/moves/auto"
 	"github.com/jkomoros/boardgame/moves/with"
 	"github.com/workfit/tester/assert"
 	"strings"
@@ -77,6 +76,8 @@ func (m *moveStartPhaseIllegal) PhaseToStart(currentPhase int) int {
 
 func defaultMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveConfig {
 
+	auto := NewAutoConfigurer(manager.Delegate())
+
 	return Combine(
 		AddOrderedForPhase(phaseSetUp,
 			auto.MustConfig(
@@ -116,6 +117,9 @@ func defaultMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveConfig
 }
 
 func illegalPhaseMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveConfig {
+
+	auto := NewAutoConfigurer(manager.Delegate())
+
 	return []boardgame.MoveConfig{
 		auto.MustConfig(new(moveStartPhaseIllegal)),
 	}

@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves"
-	"github.com/jkomoros/boardgame/moves/auto"
 	"github.com/jkomoros/boardgame/moves/with"
 	"strconv"
 	"strings"
@@ -298,6 +297,8 @@ func (g *gameDelegate) ConfigureAgents() []boardgame.Agent {
 var revealCardMoveName string
 
 func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
+
+	auto := moves.NewAutoConfigurer(g)
 
 	revealCardConfig := auto.MustConfig(
 		new(MoveRevealCard),

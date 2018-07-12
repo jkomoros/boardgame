@@ -2,7 +2,6 @@ package moves
 
 import (
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/moves/auto"
 	"github.com/jkomoros/boardgame/moves/with"
 	"github.com/workfit/tester/assert"
 	"testing"
@@ -20,6 +19,8 @@ func (m *moveShuffleStack) SourceStack(state boardgame.State) boardgame.Stack {
 func TestShuffleStackDefaultConfig(t *testing.T) {
 
 	moveInstaller := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+
+		auto := NewAutoConfigurer(manager.Delegate())
 
 		return []boardgame.MoveConfig{
 			auto.MustConfig(new(moveShuffleStack)),
@@ -41,6 +42,8 @@ func TestShuffleStackDefaultConfig(t *testing.T) {
 
 func TestDealCardsDefaultConfig(t *testing.T) {
 	moveInstaller := func(manager *boardgame.GameManager) []boardgame.MoveConfig {
+
+		auto := NewAutoConfigurer(manager.Delegate())
 
 		return []boardgame.MoveConfig{
 			auto.MustConfig(new(moveDealCards), with.MoveName("Deal Cards")),

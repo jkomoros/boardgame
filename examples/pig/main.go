@@ -9,7 +9,6 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/components/dice"
 	"github.com/jkomoros/boardgame/moves"
-	"github.com/jkomoros/boardgame/moves/auto"
 	"github.com/jkomoros/boardgame/moves/with"
 	"math/rand"
 	"strconv"
@@ -125,6 +124,9 @@ func (g *gameDelegate) DynamicComponentValuesConstructor(deck *boardgame.Deck) b
 }
 
 func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
+
+	auto := moves.NewAutoConfigurer(g)
+
 	return moves.Add(
 		auto.MustConfig(
 			new(MoveRollDice),

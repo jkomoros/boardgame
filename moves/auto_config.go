@@ -1,4 +1,4 @@
-package auto
+package moves
 
 import (
 	"errors"
@@ -7,11 +7,7 @@ import (
 	"reflect"
 )
 
-//Note that tests for this package are actually in the underlying moves
-//package, effectively, because it's too much of a pain to recreate them here,
-//or to do the tests for eh basic moves wihtout having auto config.
-
-//AutoConfigurableMove is the interface that moves passed to auto.Config must
+//AutoConfigurableMove is the interface that moves passed to AutoConfigurer.Config must
 //implement. These methods are interrogated to set the move name,
 //helptext,isFixUp, and legalPhases to good values. moves.Base defines
 //powerful stubs for these, so any moves that embed moves.Base (or embed a
@@ -24,10 +20,24 @@ type AutoConfigurableMove interface {
 	DeriveName() string
 }
 
+//AutoConfigurer is an object that makes it easy to configure moves. Get a new
+//one with NewAutoConfigurer. See the package doc for much more on how to use
+//it.
+type AutoConfigurer struct {
+	delegate boardgame.GameDelegate
+}
+
+//NewAutoConfigurer returns a new AutoConfigurer ready for use.
+func NewAutoConfigurer(g boardgame.GameDelegate) *AutoConfigurer {
+	return &AutoConfigurer{
+		delegate: g,
+	}
+}
+
 //MustConfig is a wrapper around Config that if it errors will panic. Only
 //suitable for being used during setup.
-func MustConfig(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConfigurationOption) boardgame.MoveConfig {
-	result, err := Config(exampleStruct, options...)
+func (a *AutoConfigurer) MustConfig(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConfigurationOption) boardgame.MoveConfig {
+	result, err := a.Config(exampleStruct, options...)
 
 	if err != nil {
 		panic("Couldn't Config: " + err.Error())
@@ -44,7 +54,11 @@ func MustConfig(exampleStruct AutoConfigurableMove, options ...interfaces.Custom
 //move name, helptext, and isFixUp; anything based on moves.Base automatically
 //satisfies the necessary interface. See the package doc for an example of
 //use.
-func Config(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConfigurationOption) (boardgame.MoveConfig, error) {
+func (a *AutoConfigurer) Config(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConfigurationOption) (boardgame.MoveConfig, error) {
+
+	if a.delegate == nil {
+		return boardgame.MoveConfig{}, errors.New("No delegate provided")
+	}
 
 	config := make(boardgame.PropertyCollection, len(options))
 

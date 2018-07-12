@@ -11,7 +11,6 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves"
-	"github.com/jkomoros/boardgame/moves/auto"
 	"github.com/jkomoros/boardgame/moves/with"
 	"strings"
 )
@@ -126,6 +125,9 @@ func (g *gameDelegate) ConfigureAgents() []boardgame.Agent {
 }
 
 func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
+
+	auto := moves.NewAutoConfigurer(g)
+
 	return moves.Add(
 		auto.MustConfig(
 			new(MovePlaceToken),

@@ -10,7 +10,6 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves"
-	"github.com/jkomoros/boardgame/moves/auto"
 	"github.com/jkomoros/boardgame/moves/with"
 )
 
@@ -45,6 +44,9 @@ func (g *gameDelegate) DefaultNumPlayers() int {
 }
 
 func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
+
+	auto := moves.NewAutoConfigurer(g)
+
 	return moves.Combine(
 		moves.AddOrderedForPhase(PhaseSetup,
 			auto.MustConfig(
