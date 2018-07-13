@@ -32,13 +32,13 @@ type MoveProgressionGroup interface {
 	//to install.
 	MoveConfigs() []boardgame.MoveConfig
 
-	//Satisfied reads the tape and returns a nil error if it read successfully
-	//at least one item or if the tape is nil, as well as the rest of the tape
-	//it did not consume, which will be passed to subsequent items. If the
-	//entire tape is consumed without error, then the sequence is valid. The
-	//error can also signal information about general misconfiguration of the
-	//group as a whole. This is the primary mechanism of validating a
-	//MoveProgression.
+	//Satisfied reads the tape and returns an error if the sequence was not
+	//valid (did not match, for example, or the group was configured in an
+	//invalid way in general). If it returns a nil error, it should also
+	//return the rest of the tape representing the items it did not yet
+	//consume. If passed a nil tape, it should immediately return nil, nil. If
+	//the top-level MoveProgressionGroup consumes the entire tape and doesn't
+	//return an error then the progression is considered valid.
 	Satisfied(tape *MoveGroupHistoryItem) (error, *MoveGroupHistoryItem)
 }
 
