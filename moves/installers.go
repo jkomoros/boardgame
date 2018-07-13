@@ -64,17 +64,16 @@ func AddOrderedForPhase(phase int, groups ...interfaces.MoveProgressionGroup) []
 	//phase enum val, but at this point we don't have a reference to delegate
 	//so we can't check. moves.Base.ValidConfiguration will check.
 
+	//Every move in the phase shares the same group to match against. That's
+	//because the group matches as long as the whole tape is consumed, and a
+	//move tests if it is legal by speculatively adding itself to the
+	//historical tape and seing if the progression still matches. This means
+	//that the same progression can be shared.
 	impliedSerialGroup := gr.Serial(groups)
 
 	moves := impliedSerialGroup.MoveConfigs()
 
-	progression := make([]string, len(moves))
-
-	for i, move := range moves {
-		progression[i] = move.Name()
-	}
-
-	installer := with.LegalMoveProgression(progression)
+	installer := with.LegalMoveProgression(impliedSerialGroup)
 
 	for _, move := range moves {
 		installer(move.CustomConfiguration())

@@ -23,6 +23,73 @@ func (d *defaultMoveConfig) MoveConfigs() []boardgame.MoveConfig {
 	return []boardgame.MoveConfig{d.MoveConfig}
 }
 
+func (d *defaultMoveConfig) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interfaces.MoveGroupHistoryItem) {
+
+	if tape == nil {
+		return nil, nil
+	}
+
+	allowMultiple := false
+
+	if allowMultipler, ok := d.Constructor()().(interfaces.AllowMultipleInProgression); ok {
+		if allowMultipler.AllowMultipleInProgression() {
+			allowMultiple = true
+		}
+	}
+
+	if allowMultiple {
+		return d.multipleItemSatisfied(tape)
+	}
+
+	return d.singleItemSatisified(tape)
+}
+
+func (d *defaultMoveConfig) singleItemSatisified(tape *interfaces.MoveGroupHistoryItem) (error, *interfaces.MoveGroupHistoryItem) {
+	//If there's one, and the next item either doesn't exist or has a different name, OK.
+
+	if tape.MoveName != d.Name() {
+		return errors.New("Move name does not match: " + tape.MoveName + " is not " + d.Name()), tape
+	}
+
+	//The first one matches. Ensure either the next one doesn't exist, or has a different name.
+	if tape.Rest == nil {
+		return nil, nil
+	}
+
+	if tape.Rest.MoveName == d.Name() {
+		return errors.New(d.Name() + " showed up multiple times in a row, but that's not legal."), tape
+	}
+
+	return nil, tape.Rest
+
+}
+
+func (d *defaultMoveConfig) multipleItemSatisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interfaces.MoveGroupHistoryItem) {
+	//Must have at least one; consume as many as you can
+
+	if tape.MoveName != d.Name() {
+		return errors.New("Move name does not match: " + tape.MoveName + " is not " + d.Name()), tape
+	}
+
+	tape = tape.Rest
+
+	//Consume as many as we can
+	for tape != nil {
+
+		if tape.MoveName != d.Name() {
+			//Found the first one that wasn't us; return
+			return nil, tape
+		}
+
+		//Keep consuming
+
+		tape = tape.Rest
+	}
+
+	//If we get to here we fell off the end of the tape, which is legal.
+	return nil, nil
+}
+
 //AutoConfigurableMove is the interface that moves passed to AutoConfigurer.Config must
 //implement. These methods are interrogated to set the move name,
 //helptext,isFixUp, and legalPhases to good values. moves.Base defines
@@ -72,7 +139,10 @@ func (a *AutoConfigurer) MustConfig(exampleStruct AutoConfigurableMove, options 
 //returning a boardgame.MoveConfig, it returns a GroupableMoveConfig, which
 //satisfies boardgame.MoveConfig but also adds enough methods to be useable as
 //input to AddOrderedForPhase. The config returned will simply return a list
-//with a single item for MoveConfigs: its underlining config.
+//with a single item for MoveConfigs: its underlining config. For Satisfied,
+//it will consume a move that shares its own name, and, if it implements
+//AllowMultipleInProgression() and returns true from that, it will consume as
+//many of those moves in a row as exist from the front of the tape.
 func (a *AutoConfigurer) Config(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConfigurationOption) (GroupableMoveConfig, error) {
 
 	if a.delegate == nil {

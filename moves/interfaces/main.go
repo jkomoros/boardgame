@@ -13,13 +13,33 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
+//MoveGroupHistoryItem is a singly-linked list (referred to in various
+//comments as a "tape") that is passed to MoveProgressionGroup.Satisfied(). It
+//represents a list of all of the moves that have applied so far since
+//game.CurrentPhase() last changed.
+type MoveGroupHistoryItem struct {
+	MoveName string
+	Rest     *MoveGroupHistoryItem
+}
+
 //MoveProgressionGroup is an object that can be used to define a valid move
 //progression. moves.AutoConfigurer().Config() returns objects that fit this
 //interface.
 type MoveProgressionGroup interface {
 	//MoveConfigs should return the full enumeration of contained MoveConfigs
-	//within this Group, from left to right and top to bottom.
+	//within this Group, from left to right and top to bottom. This is used by
+	//moves.AddOrderedForPhase to know which MoveConfigs contained within it
+	//to install.
 	MoveConfigs() []boardgame.MoveConfig
+
+	//Satisfied reads the tape and returns a nil error if it read successfully
+	//at least one item or if the tape is nil, as well as the rest of the tape
+	//it did not consume, which will be passed to subsequent items. If the
+	//entire tape is consumed without error, then the sequence is valid. The
+	//error can also signal information about general misconfiguration of the
+	//group as a whole. This is the primary mechanism of validating a
+	//MoveProgression.
+	Satisfied(tape *MoveGroupHistoryItem) (error, *MoveGroupHistoryItem)
 }
 
 //CustomConfigurationOption is a function that takes a PropertyCollection and

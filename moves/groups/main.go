@@ -8,6 +8,7 @@
 package groups
 
 import (
+	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
@@ -22,4 +23,33 @@ func (s Serial) MoveConfigs() []boardgame.MoveConfig {
 		result = append(result, group.MoveConfigs()...)
 	}
 	return result
+}
+
+//Satisfied walks through each sub-group in turn. It errors if no tape is read.
+func (s Serial) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interfaces.MoveGroupHistoryItem) {
+
+	tapeHead := tape
+
+	for _, group := range s {
+
+		if tapeHead == nil {
+			return nil, nil
+		}
+
+		err, rest := group.Satisfied(tapeHead)
+		if err != nil {
+			return err, tape
+		}
+
+		if rest == tapeHead {
+			//The sub-group didn't consume anything!
+			return errors.New("The sub-group didn't return anything!"), tape
+		}
+
+		tapeHead = rest
+
+	}
+
+	return nil, nil
+
 }

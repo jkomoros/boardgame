@@ -70,9 +70,9 @@ func LegalPhases(legalPhases ...int) interfaces.CustomConfigurationOption {
 //move type to determine if the move is legal in the order it's being applied.
 //Typically you don't use this directly, and instead use moves.AddOrderedForPhase to
 //use this implicitly.
-func LegalMoveProgression(moveProgression []string) interfaces.CustomConfigurationOption {
+func LegalMoveProgression(group interfaces.MoveProgressionGroup) interfaces.CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[privateconstants.LegalMoveProgression] = moveProgression
+		config[privateconstants.LegalMoveProgression] = group
 	}
 }
 

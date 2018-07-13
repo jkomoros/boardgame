@@ -1,9 +1,9 @@
 package moves
 
 import (
-	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
+	"github.com/jkomoros/boardgame/errors"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 	"github.com/jkomoros/boardgame/moves/internal/privateconstants"
 	"log"
@@ -364,13 +364,13 @@ func (d *Base) legalPhases() []int {
 	return ints
 }
 
-func (d *Base) legalMoveProgression() []string {
+func (d *Base) legalMoveProgression() interfaces.MoveProgressionGroup {
 	val := d.CustomConfiguration()[privateconstants.LegalMoveProgression]
-	strs, ok := val.([]string)
+	group, ok := val.(interfaces.MoveProgressionGroup)
 	if !ok {
 		return nil
 	}
-	return strs
+	return group
 }
 
 //legalInPhase will return a descriptive error if this move is not legal in
@@ -490,109 +490,86 @@ func (d *Base) historicalMovesSincePhaseTransition(game *boardgame.Game, upToVer
 
 }
 
+//legalMoveInProgression is NOT an exhaustive check. It simply confirms that
+//this specific point would be legitimate to apply. Note that sometimes this
+//will return nil even when there really should be another move in front of
+//this that could still apply; that other move should actually be applied due
+//to ordering of moves in ProposeFixUpMove. Finally, note that technically for
+//AllowMultipleInProgression moves, this relies on the sub-classes Legal()
+//method terminating, becuase this method won't; because as far as the
+//progression is concerned, it's legal, and it's the sub-class's Legal()
+//method's job to decide it's no longer legal.
 func (d *Base) legalMoveInProgression(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-	currentPhase := state.Game().Manager().Delegate().CurrentPhase(state)
 
-	pattern := d.legalMoveProgression()
+	group := d.legalMoveProgression()
 
 	//If there is no legal move progression then moves are legal in the phase at any time
-	if pattern == nil {
+	if group == nil {
 		return nil
 	}
+
+	currentPhase := state.Game().Manager().Delegate().CurrentPhase(state)
 
 	historicalMoves := d.historicalMovesSincePhaseTransition(state.Game(), state.Version(), currentPhase)
 
-	progression := make([]string, len(historicalMoves))
+	//Add ourselves ot the end of the tape, since we're proposing adding ourselves.
+	historicalMoves = append(historicalMoves, &boardgame.MoveStorageRecord{
+		Name: d.Name(),
+	})
 
-	for i, move := range historicalMoves {
-		progression[i] = move.Name
-	}
-
-	//If we were to add our target move to the historical progression, would it match the pattern?
-	if !progressionMatches(append(progression, d.Info().Name()), pattern) {
-		return errors.New("This move is not legal at this point in the current phase.")
-	}
-
-	//Are we a new type of move in the progression? if so, is the move before
-	//us still legal?
-
-	if len(historicalMoves) == 0 {
-		//We're the first move, it's fine.
-		return nil
-	}
-
-	lastMoveRecord := historicalMoves[len(historicalMoves)-1]
-
-	if lastMoveRecord.Name == d.Info().Name() {
-
-		//We're applying multiple in a row. Is that legal?
-
-		//We can't check ourselves because we're embedded in the real move type.
-		testMove := d.TopLevelStruct()
-
-		allowMultiple, ok := testMove.(interfaces.AllowMultipleInProgression)
-
-		if !ok || !allowMultiple.AllowMultipleInProgression() {
-			return errors.New("This move was just applied and is not configured to allow multiple in a row in this phase.")
-		}
-
-		return nil
-	}
-
-	lastMove := state.Game().MoveByName(lastMoveRecord.Name)
-
-	//TODO: should we call lastMove.DefaultsForState(state) to verify it's set to the right state?
-
-	if lastMove.Legal(state, proposer) == nil {
-		return errors.New("A move that needs to happen earlier in the phase is still legal to apply.")
-	}
-
-	return nil
+	return matchTape(group, movesToNames(historicalMoves))
 
 }
 
-//progressionMatches returns true if the given history matches the pattern.
-func progressionMatches(input []string, pattern []string) bool {
+func makeTape(moveNames []string) *interfaces.MoveGroupHistoryItem {
+	var tapeStart *interfaces.MoveGroupHistoryItem
+	var tapeEnd *interfaces.MoveGroupHistoryItem
 
-	inputPosition := 0
-	patternPosition := 0
-
-	for inputPosition < len(input) {
-
-		inputItem := input[inputPosition]
-		patternItem := pattern[patternPosition]
-
-		if inputItem != patternItem {
-			//Perhaps we just passed to the next part of the pattern?
-
-			//that's not legal at the very front of input
-			if inputPosition == 0 {
-				return false
-			}
-
-			patternPosition++
-
-			if patternPosition >= len(pattern) {
-				//No more pattern, I guess we didn't match.
-				return false
-			}
-
-			patternItem = pattern[patternPosition]
-
-			if inputItem != patternItem {
-				//Nope, we didn't match the next part of the pattern, we just don't match
-				return false
-			}
-
+	for _, moveName := range moveNames {
+		newItem := &interfaces.MoveGroupHistoryItem{
+			MoveName: moveName,
+		}
+		if tapeStart == nil {
+			tapeStart = newItem
 		}
 
-		inputPosition++
+		if tapeEnd != nil {
+			tapeEnd.Rest = newItem
+		}
 
+		tapeEnd = newItem
 	}
 
-	//If we got to the end of the input without invalidating then it passes.
-	return true
+	return tapeStart
+}
 
+func movesToNames(moves []*boardgame.MoveStorageRecord) []string {
+	result := make([]string, len(moves))
+
+	for i, move := range moves {
+		result[i] = move.Name
+	}
+
+	return result
+}
+
+func matchTape(group interfaces.MoveProgressionGroup, historicalMoves []string) error {
+
+	tapeStart := makeTape(historicalMoves)
+
+	err, rest := group.Satisfied(tapeStart)
+
+	defaultErr := errors.NewFriendly("The move was not legal at this phase in the progression")
+
+	if err != nil {
+		return defaultErr.WithError(err.Error())
+	}
+
+	if rest != nil {
+		return defaultErr.WithError("The progression only matched some of the proposed move history")
+	}
+
+	return nil
 }
 
 //stackName returns the name of the stack for helpTExt, name, etc based on the
