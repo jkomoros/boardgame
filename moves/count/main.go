@@ -47,3 +47,46 @@ func Any() interfaces.ValidCounter {
 func All() interfaces.ValidCounter {
 	return allFunc
 }
+
+//Min will return nil if currentCount is min or greater.
+func Min(min int) interfaces.ValidCounter {
+	return func(currentCount, length int) error {
+		if currentCount >= min {
+			return nil
+		}
+		return errors.New("currentCount not yet greater than min configuration")
+	}
+}
+
+//Max will return nil as long as currentCount is less than or equal to max. A
+//max argument of less than 0 will be interpreted to mean precisely the length
+//parameter passed into ValidCounter.
+func Max(max int) interfaces.ValidCounter {
+	return func(currentCount, length int) error {
+		if max < 0 {
+			max = length
+		}
+		if currentCount <= max {
+			return nil
+		}
+		return errors.New("currentCount is greater than max configuration")
+	}
+}
+
+//MinMax returns nil as long as the value is greater than or equal to min and
+//less than or equal to max. A max argument of less than 0 will be interpreted
+//to mean precise the length parameter passed into ValidCounter.
+func MinMax(min, max int) interfaces.ValidCounter {
+	return func(currentCount, length int) error {
+		if max < 0 {
+			max = length
+		}
+		if currentCount < min {
+			return errors.New("Count below min")
+		}
+		if currentCount > max {
+			return errors.New("Count above max")
+		}
+		return nil
+	}
+}
