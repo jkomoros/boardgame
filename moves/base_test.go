@@ -307,9 +307,48 @@ func TestMoveProgression(t *testing.T) {
 			},
 			false,
 		},
-		//TODO: test two parallels in a row
-
-		//TODO: test a parallel that contains a Serial.
+		{
+			//Check two parallels in a row
+			[]string{
+				multiMoveNames[1],
+				multiMoveNames[2],
+				multiMoveNames[0],
+				multiMoveNames[2],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Parallel{
+					multiMoveConfigs[0],
+					multiMoveConfigs[1],
+					multiMoveConfigs[2],
+				},
+				groups.Parallel{
+					multiMoveConfigs[0],
+					multiMoveConfigs[1],
+					multiMoveConfigs[2],
+				},
+			},
+			true,
+		},
+		{
+			//Parallel that contains a serial
+			[]string{
+				multiMoveNames[2],
+				multiMoveNames[1],
+				multiMoveNames[2],
+				multiMoveNames[0],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Parallel{
+					multiMoveConfigs[0],
+					groups.Serial{
+						multiMoveConfigs[1],
+						multiMoveConfigs[2],
+					},
+					multiMoveConfigs[2],
+				},
+			},
+			true,
+		},
 
 		//TODO: test a parallel that contains a serial that conflicts with
 		//another item in the parallel (greedy matching fails)
