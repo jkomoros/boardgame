@@ -66,8 +66,38 @@ func (n *NoOp) FallbackName(m *boardgame.GameManager) string {
 	return "No Op"
 }
 
-//FallbackHelpText returns A move that does nothing and is primarily used in
+//FallbackHelpText returns "A move that does nothing and is primarily used in
 //specific move progression situations."
 func (n *NoOp) FallbackHelpText() string {
 	return "A move that does nothing and is primarily used in specific move progression situations."
+}
+
+/*
+Done is a simple move that does nothing and whose Legal is equivalent to
+moves.Base.Legal(), meaning it is legal purely if the phase matches and it's
+the right time in the progression.
+
+It's a non-fix-up equivalent to NoOp. It's used primarily when a player could
+decide to make multiple moves, or end early, and has opted to end early.
+
++autoreader
+*/
+type Done struct {
+	Base
+}
+
+//Apply is a no-op; it makes no change to state and alwasy returns nil.
+func (d *Done) Apply(state boardgame.State) error {
+	return nil
+}
+
+//FallbackName returns "Done"
+func (d *Done) FallbackName(m *boardgame.GameManager) string {
+	return "Done"
+}
+
+//FallbackHelpText returns "The player has signaled that they are done
+//applying moves in this group and are ready to move on."
+func (d *Done) FallbackHelpText() string {
+	return "The player has signaled that they are done applying moves in this group and are ready to move on."
 }
