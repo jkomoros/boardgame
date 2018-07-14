@@ -331,6 +331,29 @@ func TestMoveProgression(t *testing.T) {
 			true,
 		},
 		{
+			//Check two parallels in a row, where there's a double in between
+			[]string{
+				singleMoveNames[1],
+				singleMoveNames[2],
+				singleMoveNames[0],
+				singleMoveNames[0],
+				singleMoveNames[2],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Parallel(
+					singleMoveConfigs[0],
+					singleMoveConfigs[1],
+					singleMoveConfigs[2],
+				),
+				groups.Parallel(
+					singleMoveConfigs[0],
+					singleMoveConfigs[1],
+					singleMoveConfigs[2],
+				),
+			},
+			true,
+		},
+		{
 			//Check parallel followed by a serial
 			[]string{
 				singleMoveNames[1],

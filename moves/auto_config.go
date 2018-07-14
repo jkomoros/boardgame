@@ -51,15 +51,6 @@ func (d *defaultMoveConfig) singleItemSatisified(tape *interfaces.MoveGroupHisto
 		return errors.New("Move name does not match: " + tape.MoveName + " is not " + d.Name()), tape
 	}
 
-	//The first one matches. Ensure either the next one doesn't exist, or has a different name.
-	if tape.Rest == nil {
-		return nil, nil
-	}
-
-	if tape.Rest.MoveName == d.Name() {
-		return errors.New(d.Name() + " showed up multiple times in a row, but that's not legal."), tape
-	}
-
 	return nil, tape.Rest
 
 }
