@@ -331,6 +331,27 @@ func TestMoveProgression(t *testing.T) {
 			true,
 		},
 		{
+			//Check parallel followed by a serial
+			[]string{
+				singleMoveNames[1],
+				singleMoveNames[2],
+				singleMoveNames[0],
+				singleMoveNames[2],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Parallel(
+					singleMoveConfigs[0],
+					singleMoveConfigs[1],
+					singleMoveConfigs[2],
+				),
+				groups.Serial(
+					singleMoveConfigs[2],
+					singleMoveConfigs[1],
+				),
+			},
+			true,
+		},
+		{
 			//Parallel that contains a serial
 			[]string{
 				multiMoveNames[2],
