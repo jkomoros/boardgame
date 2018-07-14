@@ -14,9 +14,13 @@ import (
 //parallel semantics but don't want to require matching all groups, see
 //ParallelCount. The base Parallel is equivalent to ParallelCount with a Count
 //of count.All().
-type Parallel []interfaces.MoveProgressionGroup
+func Parallel(children ...interfaces.MoveProgressionGroup) interfaces.MoveProgressionGroup {
+	return parallel(children)
+}
 
-func (p Parallel) MoveConfigs() []boardgame.MoveConfig {
+type parallel []interfaces.MoveProgressionGroup
+
+func (p parallel) MoveConfigs() []boardgame.MoveConfig {
 	var result []boardgame.MoveConfig
 	for _, group := range p {
 		result = append(result, group.MoveConfigs()...)
@@ -61,19 +65,26 @@ func tapeLength(from, to *interfaces.MoveGroupHistoryItem) int {
 //through until all are met, or no more un-triggered items can consume
 //another. If at any point more than one item could match at the given point
 //in the tape, it chooses the match that consumes the most tape.
-func (p Parallel) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interfaces.MoveGroupHistoryItem) {
+func (p parallel) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interfaces.MoveGroupHistoryItem) {
 	return parallelSatisfiedHelper(p, count.All(), tape)
 }
 
 //ParallelCount is a version of Parallel, but where the target count is given
 //by Count. The length argument to Count will be the number of Groups who are
 //children. See moves/count package for many options for this.
-type ParallelCount struct {
+func ParallelCount(count interfaces.ValidCounter, children ...interfaces.MoveProgressionGroup) interfaces.MoveProgressionGroup {
+	return &parallelCount{
+		children,
+		count,
+	}
+}
+
+type parallelCount struct {
 	Children []interfaces.MoveProgressionGroup
 	Count    interfaces.ValidCounter
 }
 
-func (p ParallelCount) MoveConfigs() []boardgame.MoveConfig {
+func (p parallelCount) MoveConfigs() []boardgame.MoveConfig {
 	var result []boardgame.MoveConfig
 	for _, group := range p.Children {
 		result = append(result, group.MoveConfigs()...)
@@ -81,7 +92,7 @@ func (p ParallelCount) MoveConfigs() []boardgame.MoveConfig {
 	return result
 }
 
-func (p ParallelCount) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interfaces.MoveGroupHistoryItem) {
+func (p parallelCount) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interfaces.MoveGroupHistoryItem) {
 	return parallelSatisfiedHelper(p.Children, p.Count, tape)
 }
 

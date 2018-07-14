@@ -69,7 +69,7 @@ func AddOrderedForPhase(phase int, groups ...interfaces.MoveProgressionGroup) []
 	//move tests if it is legal by speculatively adding itself to the
 	//historical tape and seing if the progression still matches. This means
 	//that the same progression can be shared.
-	impliedSerialGroup := gr.Serial(groups)
+	impliedSerialGroup := gr.Serial(groups...)
 
 	moves := impliedSerialGroup.MoveConfigs()
 
