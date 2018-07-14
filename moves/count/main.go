@@ -37,19 +37,19 @@ func allFunc(currentCount, length int) error {
 }
 
 //Any will return nil if currentCount is 1, denoting that any item has matched.
-//Equivalent to MinMax(0,1).
+//Equivalent to Between(0,1).
 func Any() interfaces.ValidCounter {
 	return anyFunc
 }
 
 //All will return nil if currentCount is precisely the same length as length.
-//Equivalent to MinMax(0,-1).
+//Equivalent to Between(0,-1).
 func All() interfaces.ValidCounter {
 	return allFunc
 }
 
-//Min will return nil if currentCount is min or greater.
-func Min(min int) interfaces.ValidCounter {
+//AtLeast will return nil if currentCount is min or greater.
+func AtLeast(min int) interfaces.ValidCounter {
 	return func(currentCount, length int) error {
 		if currentCount >= min {
 			return nil
@@ -58,10 +58,10 @@ func Min(min int) interfaces.ValidCounter {
 	}
 }
 
-//Max will return nil as long as currentCount is less than or equal to max. A
+//AtMost will return nil as long as currentCount is less than or equal to max. A
 //max argument of less than 0 will be interpreted to mean precisely the length
 //parameter passed into ValidCounter.
-func Max(max int) interfaces.ValidCounter {
+func AtMost(max int) interfaces.ValidCounter {
 	return func(currentCount, length int) error {
 		if max < 0 {
 			max = length
@@ -73,10 +73,10 @@ func Max(max int) interfaces.ValidCounter {
 	}
 }
 
-//MinMax returns nil as long as the value is greater than or equal to min and
+//Between returns nil as long as the value is greater than or equal to min and
 //less than or equal to max. A max argument of less than 0 will be interpreted
 //to mean precise the length parameter passed into ValidCounter.
-func MinMax(min, max int) interfaces.ValidCounter {
+func Between(min, max int) interfaces.ValidCounter {
 	return func(currentCount, length int) error {
 		if max < 0 {
 			max = length
