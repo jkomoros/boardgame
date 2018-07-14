@@ -505,7 +505,7 @@ func TestMoveProgression(t *testing.T) {
 			true,
 		},
 		{
-			//Partial on the second
+			//Partial on the second, using AtMost. in a way that is idiomatic
 			[]string{
 				singleMoveNames[0],
 				singleMoveNames[1],
@@ -519,6 +519,92 @@ func TestMoveProgression(t *testing.T) {
 						singleMoveConfigs[1],
 					),
 				),
+			},
+			true,
+		},
+		{
+			//Partial on the second, using AtLeast. in a way that is idiomatic
+			[]string{
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[2],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Repeat(
+					count.AtLeast(2),
+					groups.Serial(
+						singleMoveConfigs[0],
+						singleMoveConfigs[1],
+					),
+				),
+				singleMoveConfigs[2],
+			},
+			true,
+		},
+		{
+			//Partial on the second, using AtLeast. in a way that is
+			//idiomatic, where the second loop doesn't fully complete.
+			[]string{
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[0],
+				singleMoveNames[2],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Repeat(
+					count.AtLeast(2),
+					groups.Serial(
+						singleMoveConfigs[0],
+						singleMoveConfigs[1],
+					),
+				),
+				singleMoveConfigs[2],
+			},
+			false,
+		},
+		{
+			//Partial on the second, using AtLeast. in a way that is
+			//idiomatic, where the repeat only happens once, not twice.
+			[]string{
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[2],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Repeat(
+					count.AtLeast(2),
+					groups.Serial(
+						singleMoveConfigs[0],
+						singleMoveConfigs[1],
+					),
+				),
+				singleMoveConfigs[2],
+			},
+			false,
+		},
+		{
+			//Partial on the second, using AtLeast. in a way that is
+			//idiomatic, where the repeat happens three times, which is legal.
+			[]string{
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[2],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Repeat(
+					count.AtLeast(2),
+					groups.Serial(
+						singleMoveConfigs[0],
+						singleMoveConfigs[1],
+					),
+				),
+				singleMoveConfigs[2],
 			},
 			true,
 		},
@@ -603,7 +689,9 @@ func TestMoveProgression(t *testing.T) {
 		err := matchTape(group, test.tape)
 
 		if !assert.For(t, i).ThatActual(err == nil).Equals(test.expectedResult).Passed() {
-			t.Log(err.Error())
+			if err != nil {
+				t.Log(err.Error())
+			}
 		}
 
 	}
