@@ -349,12 +349,25 @@ func TestMoveProgression(t *testing.T) {
 			},
 			true,
 		},
-
-		//TODO: test a parallel that contains a serial that conflicts with
-		//another item in the parallel (greedy matching fails)
+		{
+			//Test a parallel with a serial where the beginning of the serial also matches another item.
+			[]string{
+				multiMoveNames[2],
+				multiMoveNames[2],
+				multiMoveNames[1],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Parallel{
+					multiMoveConfigs[2],
+					groups.Serial{
+						multiMoveConfigs[2],
+						multiMoveConfigs[1],
+					},
+				},
+			},
+			true,
+		},
 	}
-
-	//TODO: as new group types are added in groups, bring them in for testing here.
 
 	//Note that the old test, progressionMatches() didn't check which types
 	//were allowed to have multiple in a row; it assumed that was always OK,
