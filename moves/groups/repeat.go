@@ -13,9 +13,11 @@ func Optional(group interfaces.MoveProgressionGroup) interfaces.MoveProgressionG
 }
 
 //Repeat returns a MoveProgressionGroup that repeats the provided group the
-//number of times count is looking for, in serial. It is conceptually
-//equivalent to duplicating a given group within a parent groups.Serial count
-//times.
+//number of times count is looking for, in serial. Note that it will continue
+//repeating until it finds the run-through that affirmatively errors. That
+//means using count.AtMost() works as expected, but count.AtLeast() does not.
+//It is conceptually equivalent to duplicating a given group within a parent
+//groups.Serial count times.
 func Repeat(count interfaces.ValidCounter, group interfaces.MoveProgressionGroup) interfaces.MoveProgressionGroup {
 	return repeat{
 		count,
@@ -45,7 +47,11 @@ func (r repeat) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interf
 		}
 
 		if err := r.Count(count, 1); err == nil {
-			break
+			//Break if this count is legal, until the next one isn't (which
+			//means we're the last loop through that's legal).
+			if err := r.Count(count+1, 1); err != nil {
+				break
+			}
 		}
 
 		err, rest := r.Child.Satisfied(tapeHead)

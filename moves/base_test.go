@@ -504,7 +504,24 @@ func TestMoveProgression(t *testing.T) {
 			},
 			true,
 		},
-		//TODO: a test involving max.2() similar to the above.
+		{
+			//Partial on the second
+			[]string{
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[0],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Repeat(
+					count.AtMost(2),
+					groups.Serial(
+						singleMoveConfigs[0],
+						singleMoveConfigs[1],
+					),
+				),
+			},
+			true,
+		},
 		{
 			//Two serial groups in a row, in different orders
 			[]string{
@@ -580,6 +597,10 @@ func TestMoveProgression(t *testing.T) {
 	//multiple times.
 
 	for i, test := range tests {
+
+		if i != 26 {
+			continue
+		}
 
 		group := groups.Serial(test.pattern...)
 
