@@ -39,48 +39,44 @@ func (r repeat) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interf
 
 	count := 0
 
-	//Keep track of if we start off with the count being an err. That means
-	//that we're likely dealing with an AtLeast.
-	startedOnErr := false
-	if err := r.Count(0, 1); err != nil {
-		startedOnErr = true
-	}
-
-	//overtime is a signal that we are working with an AtLeast counter, and
-	//found at least one non-nil err, so when we find an err that's ok, just
-	//return the last position of the tape-head; otherwise keep consuming as
-	//much as we can.
-	overtime := false
+	//we assume that there is precisely one continguous bound that is legal.
+	//We want to go up until we enter the lower bound, then any error we run
+	//into within that bound is OK (just return last known good tape position
+	//and ignore the group that errored), and then when we reach the upper
+	//limit we end.
+	lowerBoundReached := false
 
 	for {
 
+		//If we ever reach the tape end without having found an erro then it's
+		//legal.
 		if tapeHead == nil {
 			return nil, nil
 		}
 
-		if err := r.Count(count, 1); err == nil {
-
-			if startedOnErr {
-				//We're in AtLeast mode, and
-				overtime = true
-			}
-
-			//Break if this count is legal, until the next one isn't (which
-			//means we're the last loop through that's legal).
-
-			if err := r.Count(count+1, 1); err != nil {
+		if lowerBoundReached {
+			//As soon as we find the first non-nil count afer we've passed the
+			//lower limit we're done.
+			if err := r.Count(count, 1); err != nil {
 				break
+			}
+		} else {
+			//Is this the transition into the lower legal bound?
+			if err := r.Count(count, 1); err == nil {
+				lowerBoundReached = true
 			}
 		}
 
 		err, rest := r.Child.Satisfied(tapeHead)
 
 		if err != nil {
-			if overtime {
+			if lowerBoundReached {
 				//We're in over-time, so errors are not a big deal, just
 				//return the last known good state.
 				return nil, tapeHead
 			}
+			//Otherwise, we haven't yet gotten the smallest legal amount so we
+			//should stop.
 			return err, nil
 		}
 

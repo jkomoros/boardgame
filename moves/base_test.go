@@ -489,7 +489,7 @@ func TestMoveProgression(t *testing.T) {
 			},
 			[]interfaces.MoveProgressionGroup{
 				groups.Repeat(
-					count.Exactly(1),
+					count.Exactly(0),
 					groups.Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],

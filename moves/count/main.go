@@ -91,8 +91,9 @@ func Between(min, max int) interfaces.ValidCounter {
 	}
 }
 
-//Exactly returns nil if currentCount is precisely equaly to targetCount.
-//Equivalent to MinMax(targetCount,targetCount).
+//Exactly returns nil if currentCount is precisely equaly to targetCount - 1
+//(since count starts out 0-indexed). Equivalent to
+//Between(targetCount-1,targetCount-1).
 func Exactly(targetCount int) interfaces.ValidCounter {
 	return func(currentCount, length int) error {
 		if targetCount == currentCount {
