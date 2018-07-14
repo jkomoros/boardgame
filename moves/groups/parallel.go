@@ -23,17 +23,7 @@ another. If at any point more than one item could match at the given point
 in the tape, it chooses the match that consumes the most tape.
 */
 func Parallel(children ...interfaces.MoveProgressionGroup) interfaces.MoveProgressionGroup {
-	return parallel(children)
-}
-
-type parallel []interfaces.MoveProgressionGroup
-
-func (p parallel) MoveConfigs() []boardgame.MoveConfig {
-	var result []boardgame.MoveConfig
-	for _, group := range p {
-		result = append(result, group.MoveConfigs()...)
-	}
-	return result
+	return ParallelCount(count.All(), children...)
 }
 
 //matchInfo reflects a match that was found while doing a run through of
@@ -68,10 +58,6 @@ func tapeLength(from, to *interfaces.MoveGroupHistoryItem) int {
 
 }
 
-func (p parallel) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interfaces.MoveGroupHistoryItem) {
-	return parallelSatisfiedHelper(p, count.All(), tape)
-}
-
 //ParallelCount is a version of Parallel, but where the target count is given
 //by Count. The length argument to Count will be the number of Groups who are
 //children. See moves/count package for many options for this.
@@ -96,19 +82,15 @@ func (p parallelCount) MoveConfigs() []boardgame.MoveConfig {
 }
 
 func (p parallelCount) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interfaces.MoveGroupHistoryItem) {
-	return parallelSatisfiedHelper(p.Children, p.Count, tape)
-}
-
-func parallelSatisfiedHelper(children []interfaces.MoveProgressionGroup, counter interfaces.ValidCounter, tape *interfaces.MoveGroupHistoryItem) (error, *interfaces.MoveGroupHistoryItem) {
 	tapeHead := tape
 
 	//Keep track of items that have matched, by index into self.
-	matchedItems := make(map[int]bool, len(children))
+	matchedItems := make(map[int]bool, len(p.Children))
 
 	//Continue until all items have been matched.
 	for {
 
-		if err := counter(len(matchedItems), len(children)); err == nil {
+		if err := p.Count(len(matchedItems), len(p.Children)); err == nil {
 			break
 		}
 
@@ -120,7 +102,7 @@ func parallelSatisfiedHelper(children []interfaces.MoveProgressionGroup, counter
 		//longest one.
 		var matches []*matchInfo
 
-		for i, group := range children {
+		for i, group := range p.Children {
 			//Skip items that have already been matched
 			if matchedItems[i] {
 				continue
