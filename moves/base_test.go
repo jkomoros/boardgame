@@ -2,6 +2,7 @@ package moves
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves/count"
 	"github.com/jkomoros/boardgame/moves/groups"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 	"github.com/workfit/tester/assert"
@@ -366,6 +367,43 @@ func TestMoveProgression(t *testing.T) {
 				},
 			},
 			true,
+		},
+		{
+			//Check parallel with any
+			[]string{
+				singleMoveNames[1],
+				singleMoveNames[2],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.ParallelCount{
+					[]interfaces.MoveProgressionGroup{
+						singleMoveConfigs[0],
+						singleMoveConfigs[1],
+					},
+					count.Any(),
+				},
+				singleMoveConfigs[2],
+			},
+			true,
+		},
+		{
+			//Ensure that only one can return
+			[]string{
+				singleMoveNames[1],
+				singleMoveNames[0],
+				singleMoveNames[2],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.ParallelCount{
+					[]interfaces.MoveProgressionGroup{
+						singleMoveConfigs[0],
+						singleMoveConfigs[1],
+					},
+					count.Any(),
+				},
+				singleMoveConfigs[2],
+			},
+			false,
 		},
 	}
 

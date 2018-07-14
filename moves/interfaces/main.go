@@ -42,6 +42,16 @@ type MoveProgressionGroup interface {
 	Satisfied(tape *MoveGroupHistoryItem) (error, *MoveGroupHistoryItem)
 }
 
+//ValidCounter is the signature of objects in the moves/count package. It is
+//expected within groups in the move/groups package for items like
+//ParallelCount. currentCount is the value of the counter in question, and
+//length is the context-specific length of the important item, often the
+//number of children in the parrent group. If ValidCounter returns nil, the
+//count is considered valid and complete; if it is not valid it should return
+//a descriptive error. Typically these functions are closures that close over
+//configuration options.
+type ValidCounter func(currentCount, length int) error
+
 //CustomConfigurationOption is a function that takes a PropertyCollection and
 //modifies a key on it. This package defines a number of functions that return
 //funcs that satisfy this interface and can be used in DefaultConfig to pass

@@ -10,6 +10,7 @@ package groups
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves/count"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 	"math"
 	"sort"
@@ -54,7 +55,8 @@ func (s Serial) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interf
 //Parallel is a type of move group that requires all sub-groups to be present,
 //but in any order. It is one of the most basic types of groups. If you want
 //parallel semantics but don't want to require matching all groups, see
-//ParallelCount.
+//ParallelCount. The base Parallel is equivalent to ParallelCount with a Count
+//of count.All().
 type Parallel []interfaces.MoveProgressionGroup
 
 func (p Parallel) MoveConfigs() []boardgame.MoveConfig {
@@ -103,15 +105,41 @@ func tapeLength(from, to *interfaces.MoveGroupHistoryItem) int {
 //another. If at any point more than one item could match at the given point
 //in the tape, it chooses the match that consumes the most tape.
 func (p Parallel) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interfaces.MoveGroupHistoryItem) {
+	return parallelSatisfiedHelper(p, count.All(), tape)
+}
 
+//ParallelCount is a version of Parallel, but where the target count is given
+//by Count. The length argument to Count will be the number of Groups who are
+//children. See moves/count package for many options for this.
+type ParallelCount struct {
+	Children []interfaces.MoveProgressionGroup
+	Count    interfaces.ValidCounter
+}
+
+func (p ParallelCount) MoveConfigs() []boardgame.MoveConfig {
+	var result []boardgame.MoveConfig
+	for _, group := range p.Children {
+		result = append(result, group.MoveConfigs()...)
+	}
+	return result
+}
+
+func (p ParallelCount) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interfaces.MoveGroupHistoryItem) {
+	return parallelSatisfiedHelper(p.Children, p.Count, tape)
+}
+
+func parallelSatisfiedHelper(children []interfaces.MoveProgressionGroup, counter interfaces.ValidCounter, tape *interfaces.MoveGroupHistoryItem) (error, *interfaces.MoveGroupHistoryItem) {
 	tapeHead := tape
 
-	numItems := len(p)
 	//Keep track of items that have matched, by index into self.
-	matchedItems := make(map[int]bool, numItems)
+	matchedItems := make(map[int]bool, len(children))
 
 	//Continue until all items have been matched.
-	for len(matchedItems) < numItems {
+	for {
+
+		if err := counter(len(matchedItems), len(children)); err == nil {
+			break
+		}
 
 		if tapeHead == nil {
 			return nil, nil
@@ -121,7 +149,7 @@ func (p Parallel) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *inte
 		//longest one.
 		var matches []*matchInfo
 
-		for i, group := range p {
+		for i, group := range children {
 			//Skip items that have already been matched
 			if matchedItems[i] {
 				continue
@@ -165,5 +193,4 @@ func (p Parallel) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *inte
 	}
 
 	return nil, tapeHead
-
 }
