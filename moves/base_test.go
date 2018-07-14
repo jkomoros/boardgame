@@ -68,11 +68,13 @@ func TestMoveProgression(t *testing.T) {
 	configs = append(configs, noNopConfig)
 
 	tests := []struct {
+		description    string
 		tape           []string
 		pattern        []interfaces.MoveProgressionGroup
 		expectedResult bool
 	}{
 		{
+			"Simple serial partial",
 			[]string{
 				singleMoveNames[0],
 			},
@@ -84,6 +86,7 @@ func TestMoveProgression(t *testing.T) {
 			true,
 		},
 		{
+			"Simple serial incorrect first",
 			[]string{
 				singleMoveNames[1],
 			},
@@ -95,6 +98,7 @@ func TestMoveProgression(t *testing.T) {
 			false,
 		},
 		{
+			"Simple serial single move repeated",
 			[]string{
 				singleMoveNames[0],
 				singleMoveNames[0],
@@ -108,6 +112,7 @@ func TestMoveProgression(t *testing.T) {
 			false,
 		},
 		{
+			"Simple serial multi move repeated",
 			[]string{
 				multiMoveNames[0],
 				multiMoveNames[0],
@@ -121,6 +126,7 @@ func TestMoveProgression(t *testing.T) {
 			true,
 		},
 		{
+			"Simple serial multi move repeated next item triggers",
 			[]string{
 				multiMoveNames[0],
 				multiMoveNames[0],
@@ -134,6 +140,7 @@ func TestMoveProgression(t *testing.T) {
 			true,
 		},
 		{
+			"Simple serial multi move but skipping non-optional move in the middle",
 			[]string{
 				multiMoveNames[0],
 				multiMoveNames[0],
@@ -147,6 +154,7 @@ func TestMoveProgression(t *testing.T) {
 			false,
 		},
 		{
+			"simple serial with multi-match followed by two single matches",
 			[]string{
 				multiMoveNames[0],
 				multiMoveNames[0],
@@ -162,6 +170,7 @@ func TestMoveProgression(t *testing.T) {
 			true,
 		},
 		{
+			"Simple serial with double multi-match partial",
 			[]string{
 				multiMoveNames[0],
 				multiMoveNames[0],
@@ -177,6 +186,7 @@ func TestMoveProgression(t *testing.T) {
 			true,
 		},
 		{
+			"Simple serial with double multi match, single match, then skipped single",
 			[]string{
 				multiMoveNames[0],
 				multiMoveNames[0],
@@ -192,6 +202,7 @@ func TestMoveProgression(t *testing.T) {
 			false,
 		},
 		{
+			"Serial, single, serial that crosses across all three groups",
 			[]string{
 				multiMoveNames[0],
 				multiMoveNames[0],
@@ -213,6 +224,7 @@ func TestMoveProgression(t *testing.T) {
 			true,
 		},
 		{
+			"Serial, single, serial that crosses into third group but first item in third group deosn't match",
 			[]string{
 				multiMoveNames[0],
 				multiMoveNames[0],
@@ -234,7 +246,7 @@ func TestMoveProgression(t *testing.T) {
 			false,
 		},
 		{
-			//Check in-order OK
+			"Simple parallel in order",
 			[]string{
 				singleMoveNames[0],
 				singleMoveNames[1],
@@ -250,7 +262,7 @@ func TestMoveProgression(t *testing.T) {
 			true,
 		},
 		{
-			//Check partial match is OK
+			"Simple parallel partial match",
 			[]string{
 				singleMoveNames[0],
 			},
@@ -264,7 +276,7 @@ func TestMoveProgression(t *testing.T) {
 			true,
 		},
 		{
-			//Check out-of-order OK
+			"Simple parallel out of order",
 			[]string{
 				singleMoveNames[1],
 				singleMoveNames[2],
@@ -280,7 +292,7 @@ func TestMoveProgression(t *testing.T) {
 			true,
 		},
 		{
-			//Check some multi OK
+			"Simple parallel with multi",
 			[]string{
 				multiMoveNames[1],
 				multiMoveNames[2],
@@ -297,7 +309,7 @@ func TestMoveProgression(t *testing.T) {
 			true,
 		},
 		{
-			//Check some multi OK but not out of order
+			"Simple parallel with multi out of order but can't mix and match within multi match",
 			[]string{
 				multiMoveNames[1],
 				multiMoveNames[2],
@@ -315,7 +327,7 @@ func TestMoveProgression(t *testing.T) {
 			false,
 		},
 		{
-			//Check two parallels in a row
+			"Two parallels in a row",
 			[]string{
 				multiMoveNames[1],
 				multiMoveNames[2],
@@ -337,7 +349,7 @@ func TestMoveProgression(t *testing.T) {
 			true,
 		},
 		{
-			//Check two parallels in a row, where there's a double in between
+			"Check two parallels in a row, where there's a double in between",
 			[]string{
 				singleMoveNames[1],
 				singleMoveNames[2],
@@ -360,7 +372,7 @@ func TestMoveProgression(t *testing.T) {
 			true,
 		},
 		{
-			//Check parallel followed by a serial
+			"Check parallel followed by a serial",
 			[]string{
 				singleMoveNames[1],
 				singleMoveNames[2],
@@ -381,7 +393,7 @@ func TestMoveProgression(t *testing.T) {
 			true,
 		},
 		{
-			//Parallel that contains a serial
+			"Parallel that contains a serial",
 			[]string{
 				multiMoveNames[2],
 				multiMoveNames[1],
@@ -401,7 +413,7 @@ func TestMoveProgression(t *testing.T) {
 			true,
 		},
 		{
-			//Test a parallel with a serial where the beginning of the serial also matches another item.
+			"Test a parallel with a serial where the beginning of the serial also matches another item.",
 			[]string{
 				multiMoveNames[2],
 				multiMoveNames[2],
@@ -419,7 +431,7 @@ func TestMoveProgression(t *testing.T) {
 			true,
 		},
 		{
-			//Check parallel with any
+			"Check parallel count with any",
 			[]string{
 				singleMoveNames[1],
 				singleMoveNames[2],
@@ -435,7 +447,7 @@ func TestMoveProgression(t *testing.T) {
 			true,
 		},
 		{
-			//Ensure that only one can return
+			"Check parallel with any and two matching",
 			[]string{
 				singleMoveNames[1],
 				singleMoveNames[0],
@@ -452,7 +464,7 @@ func TestMoveProgression(t *testing.T) {
 			false,
 		},
 		{
-			//Basic repeat test
+			"Basic repeat test",
 			[]string{
 				singleMoveNames[0],
 				singleMoveNames[1],
@@ -469,7 +481,7 @@ func TestMoveProgression(t *testing.T) {
 			true,
 		},
 		{
-			//Too long of a tape to repeat
+			"Too long of a tape to repeat",
 			[]string{
 				singleMoveNames[0],
 				singleMoveNames[1],
@@ -487,7 +499,7 @@ func TestMoveProgression(t *testing.T) {
 			false,
 		},
 		{
-			//Partial on the second
+			"Repeat with Partial on the second go round",
 			[]string{
 				singleMoveNames[0],
 				singleMoveNames[1],
@@ -505,7 +517,7 @@ func TestMoveProgression(t *testing.T) {
 			true,
 		},
 		{
-			//Partial on the second, using AtMost. in a way that is idiomatic
+			"Repeat withPartial on the second, using AtMost. in a way that is idiomatic",
 			[]string{
 				singleMoveNames[0],
 				singleMoveNames[1],
@@ -526,7 +538,7 @@ func TestMoveProgression(t *testing.T) {
 		//ringer with Repeat. Need to make sure that they return anything that
 		//matches in the Between zone.
 		{
-			//Partial on the second, using AtLeast. in a way that is idiomatic
+			"Repeat with AtLeast idiomaticlaly and 2 match",
 			[]string{
 				singleMoveNames[0],
 				singleMoveNames[1],
@@ -547,8 +559,7 @@ func TestMoveProgression(t *testing.T) {
 			true,
 		},
 		{
-			//Partial on the second, using AtLeast. in a way that is
-			//idiomatic, where the second loop doesn't fully complete.
+			"Partial on the second, using AtLeast. in a way that is idiomatic, where the second loop doesn't fully complete.",
 			[]string{
 				singleMoveNames[0],
 				singleMoveNames[1],
@@ -568,8 +579,7 @@ func TestMoveProgression(t *testing.T) {
 			false,
 		},
 		{
-			//Partial on the second, using AtLeast. in a way that is
-			//idiomatic, where the repeat only happens once, not twice.
+			"Partial on the second, using AtLeast. in a way that is idiomatic, where the repeat only happens once, not twice.",
 			[]string{
 				singleMoveNames[0],
 				singleMoveNames[1],
@@ -588,8 +598,7 @@ func TestMoveProgression(t *testing.T) {
 			false,
 		},
 		{
-			//Partial on the second, using AtLeast. in a way that is
-			//idiomatic, where the repeat happens three times, which is legal.
+			"Partial on the second, using AtLeast. in a way that is idiomatic, where the repeat happens three times, which is legal.",
 			[]string{
 				singleMoveNames[0],
 				singleMoveNames[1],
@@ -612,7 +621,7 @@ func TestMoveProgression(t *testing.T) {
 			true,
 		},
 		{
-			//Two serial groups in a row, in different orders
+			"Two serial groups in a row, in different orders",
 			[]string{
 				singleMoveNames[0],
 				singleMoveNames[1],
@@ -631,9 +640,7 @@ func TestMoveProgression(t *testing.T) {
 			true,
 		},
 		{
-			//Two serial groups in a row with two AllowMulti abutting. Doesn't
-			//match because the first group consumes both 1's, leaving none
-			//for the next to consume.
+			"Two serial groups in a row with two AllowMulti abutting. Doesn't match because the first group consumes both 1's, leaving none for the next to consume.",
 			[]string{
 				multiMoveNames[0],
 				multiMoveNames[1],
@@ -653,8 +660,7 @@ func TestMoveProgression(t *testing.T) {
 			false,
 		},
 		{
-			//Two serial groups in a row with two AllowMulti abutting, but a
-			//NoOp as a guard against the first group matching too greedily.
+			"Two serial groups in a row with two AllowMulti abutting, but a NoOp as a guard against the first group matching too greedily.",
 			[]string{
 				multiMoveNames[0],
 				multiMoveNames[1],
@@ -691,7 +697,7 @@ func TestMoveProgression(t *testing.T) {
 
 		err := matchTape(group, test.tape)
 
-		if !assert.For(t, i).ThatActual(err == nil).Equals(test.expectedResult).Passed() {
+		if !assert.For(t, i, test.description).ThatActual(err == nil).Equals(test.expectedResult).Passed() {
 			if err != nil {
 				t.Log(err.Error())
 			}
