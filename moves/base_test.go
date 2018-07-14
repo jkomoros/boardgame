@@ -598,10 +598,6 @@ func TestMoveProgression(t *testing.T) {
 
 	for i, test := range tests {
 
-		if i != 26 {
-			continue
-		}
-
 		group := groups.Serial(test.pattern...)
 
 		err := matchTape(group, test.tape)
