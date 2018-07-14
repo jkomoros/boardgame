@@ -90,3 +90,17 @@ func MinMax(min, max int) interfaces.ValidCounter {
 		return nil
 	}
 }
+
+//Exactly returns nil if currentCount is precisely equaly to targetCount.
+//Equivalent to MinMax(targetCount,targetCount).
+func Exactly(targetCount int) interfaces.ValidCounter {
+	return func(currentCount, length int) error {
+		if targetCount == currentCount {
+			return nil
+		}
+		if targetCount > currentCount {
+			return errors.New("currentCount is not yet targetCount")
+		}
+		return errors.New("currentCount has already passed targetCount")
+	}
+}

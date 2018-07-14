@@ -128,7 +128,7 @@ func (p parallelCount) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, 
 
 		if len(matches) == 0 {
 			//Didn't find any matches
-			return errors.New("No more items match, but tape still left."), nil
+			return errors.New("No more items match, but tape still left and count not yet reached."), nil
 		}
 
 		//Select the match to use, based on the length

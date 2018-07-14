@@ -445,6 +445,79 @@ func TestMoveProgression(t *testing.T) {
 			},
 			false,
 		},
+		{
+			//Basic repeat test
+			[]string{
+				singleMoveNames[0],
+				singleMoveNames[1],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Repeat(
+					count.Exactly(1),
+					groups.Serial(
+						singleMoveConfigs[0],
+						singleMoveConfigs[1],
+					),
+				),
+			},
+			true,
+		},
+		{
+			//Too long of a tape to repeat
+			[]string{
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[0],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Repeat(
+					count.Exactly(1),
+					groups.Serial(
+						singleMoveConfigs[0],
+						singleMoveConfigs[1],
+					),
+				),
+			},
+			false,
+		},
+		{
+			//Partial on the second
+			[]string{
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[0],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Repeat(
+					count.Exactly(3),
+					groups.Serial(
+						singleMoveConfigs[0],
+						singleMoveConfigs[1],
+					),
+				),
+			},
+			true,
+		},
+		//TODO: a test involving max.2() similar to the above.
+		{
+			//Two serial groups in a row, in different orders
+			[]string{
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[1],
+				singleMoveNames[0],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Repeat(
+					count.Exactly(2),
+					groups.Parallel(
+						singleMoveConfigs[0],
+						singleMoveConfigs[1],
+					),
+				),
+			},
+			true,
+		},
 	}
 
 	//Note that the old test, progressionMatches() didn't check which types
@@ -461,7 +534,10 @@ func TestMoveProgression(t *testing.T) {
 
 		err := matchTape(group, test.tape)
 
-		assert.For(t, i).ThatActual(err == nil).Equals(test.expectedResult)
+		if !assert.For(t, i).ThatActual(err == nil).Equals(test.expectedResult).Passed() {
+			t.Log(err.Error())
+		}
+
 	}
 
 }
