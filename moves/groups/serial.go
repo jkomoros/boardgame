@@ -15,8 +15,13 @@ import (
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
-//Serial returns a type of move group that represents the sub-groups provided
-//from top to bottom, in order. It is one of the most basic types of groups.
+/*
+Serial returns a type of move group that represents the sub-groups provided
+from top to bottom, in order. It is one of the most basic types of groups.
+
+Its Satisfied walks through each sub-group in turn. It errors if no tape is
+read.
+*/
 func Serial(children ...interfaces.MoveProgressionGroup) interfaces.MoveProgressionGroup {
 	return serial(children)
 }
@@ -31,7 +36,6 @@ func (s serial) MoveConfigs() []boardgame.MoveConfig {
 	return result
 }
 
-//Satisfied walks through each sub-group in turn. It errors if no tape is read.
 func (s serial) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interfaces.MoveGroupHistoryItem) {
 
 	tapeHead := tape
