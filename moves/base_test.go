@@ -184,6 +184,48 @@ func TestMoveProgression(t *testing.T) {
 			},
 			false,
 		},
+		{
+			[]string{
+				multiMoveNames[0],
+				multiMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[2],
+				singleMoveNames[1],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Serial{
+					multiMoveConfigs[0],
+					singleMoveConfigs[1],
+				},
+				singleMoveConfigs[2],
+				groups.Serial{
+					singleMoveConfigs[1],
+					singleMoveConfigs[2],
+				},
+			},
+			true,
+		},
+		{
+			[]string{
+				multiMoveNames[0],
+				multiMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[2],
+				singleMoveNames[2],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Serial{
+					multiMoveConfigs[0],
+					singleMoveConfigs[1],
+				},
+				singleMoveConfigs[2],
+				groups.Serial{
+					singleMoveConfigs[1],
+					singleMoveConfigs[2],
+				},
+			},
+			false,
+		},
 	}
 
 	//TODO: as new group types are added in groups, bring them in for testing here.

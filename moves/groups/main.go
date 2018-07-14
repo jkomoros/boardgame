@@ -8,7 +8,6 @@
 package groups
 
 import (
-	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
@@ -41,15 +40,10 @@ func (s Serial) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interf
 			return err, tape
 		}
 
-		if rest == tapeHead {
-			//The sub-group didn't consume anything!
-			return errors.New("The sub-group didn't return anything!"), tape
-		}
-
 		tapeHead = rest
 
 	}
 
-	return nil, nil
+	return nil, tapeHead
 
 }
