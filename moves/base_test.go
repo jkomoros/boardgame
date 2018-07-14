@@ -44,6 +44,8 @@ func TestMoveProgression(t *testing.T) {
 		multiMoveNames[i] = name + " Multi"
 	}
 
+	noOpMoveName := "No Op"
+
 	var configs []GroupableMoveConfig
 
 	for _, name := range singleMoveNames {
@@ -60,6 +62,10 @@ func TestMoveProgression(t *testing.T) {
 		singleMoveConfigs[i] = configs[i]
 		multiMoveConfigs[i] = configs[numMoveNames+i]
 	}
+
+	noNopConfig := newMoveConfig(noOpMoveName, new(NoOp), nil)
+
+	configs = append(configs, noNopConfig)
 
 	tests := []struct {
 		tape           []string
@@ -514,6 +520,51 @@ func TestMoveProgression(t *testing.T) {
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
 					),
+				),
+			},
+			true,
+		},
+		{
+			//Two serial groups in a row with two AllowMulti abutting. Doesn't
+			//match because the first group consumes both 1's, leaving none
+			//for the next to consume.
+			[]string{
+				multiMoveNames[0],
+				multiMoveNames[1],
+				multiMoveNames[1],
+				multiMoveNames[0],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Serial(
+					multiMoveConfigs[0],
+					multiMoveConfigs[1],
+				),
+				groups.Serial(
+					multiMoveConfigs[1],
+					multiMoveConfigs[0],
+				),
+			},
+			false,
+		},
+		{
+			//Two serial groups in a row with two AllowMulti abutting, but a
+			//NoOp as a guard against the first group matching too greedily.
+			[]string{
+				multiMoveNames[0],
+				multiMoveNames[1],
+				noOpMoveName,
+				multiMoveNames[1],
+				multiMoveNames[0],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Serial(
+					multiMoveConfigs[0],
+					multiMoveConfigs[1],
+				),
+				groups.Serial(
+					noNopConfig,
+					multiMoveConfigs[1],
+					multiMoveConfigs[0],
 				),
 			},
 			true,
