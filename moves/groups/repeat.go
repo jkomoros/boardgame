@@ -2,8 +2,15 @@ package groups
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves/count"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
+
+//Optional returns a MoveProgressionGroup that matches the provided group
+//either 0 or 1 times. Equivalent to Repeat() with a count of Between(0, 1).
+func Optional(group interfaces.MoveProgressionGroup) interfaces.MoveProgressionGroup {
+	return Repeat(count.Between(0, 1), group)
+}
 
 //Repeat returns a MoveProgressionGroup that repeats the provided group the
 //number of times count is looking for, in serial. It is conceptually
