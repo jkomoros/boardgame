@@ -522,6 +522,9 @@ func TestMoveProgression(t *testing.T) {
 			},
 			true,
 		},
+		//TODO: tests to really run AtMost, AtLeast, Between through the
+		//ringer with Repeat. Need to make sure that they return anything that
+		//matches in the Between zone.
 		{
 			//Partial on the second, using AtLeast. in a way that is idiomatic
 			[]string{
