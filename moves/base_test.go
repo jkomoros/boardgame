@@ -226,6 +226,93 @@ func TestMoveProgression(t *testing.T) {
 			},
 			false,
 		},
+		{
+			//Check in-order OK
+			[]string{
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[2],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Parallel{
+					singleMoveConfigs[0],
+					singleMoveConfigs[1],
+					singleMoveConfigs[2],
+				},
+			},
+			true,
+		},
+		{
+			//Check partial match is OK
+			[]string{
+				singleMoveNames[0],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Parallel{
+					singleMoveConfigs[0],
+					singleMoveConfigs[1],
+					singleMoveConfigs[2],
+				},
+			},
+			true,
+		},
+		{
+			//Check out-of-order OK
+			[]string{
+				singleMoveNames[1],
+				singleMoveNames[2],
+				singleMoveNames[0],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Parallel{
+					singleMoveConfigs[0],
+					singleMoveConfigs[1],
+					singleMoveConfigs[2],
+				},
+			},
+			true,
+		},
+		{
+			//Check some multi OK
+			[]string{
+				multiMoveNames[1],
+				multiMoveNames[2],
+				multiMoveNames[2],
+				multiMoveNames[0],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Parallel{
+					multiMoveConfigs[0],
+					multiMoveConfigs[1],
+					multiMoveConfigs[2],
+				},
+			},
+			true,
+		},
+		{
+			//Check some multi OK but not out of order
+			[]string{
+				multiMoveNames[1],
+				multiMoveNames[2],
+				multiMoveNames[2],
+				multiMoveNames[0],
+				multiMoveNames[2],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Parallel{
+					multiMoveConfigs[0],
+					multiMoveConfigs[1],
+					multiMoveConfigs[2],
+				},
+			},
+			false,
+		},
+		//TODO: test two parallels in a row
+
+		//TODO: test a parallel that contains a Serial.
+
+		//TODO: test a parallel that contains a serial that conflicts with
+		//another item in the parallel (greedy matching fails)
 	}
 
 	//TODO: as new group types are added in groups, bring them in for testing here.
