@@ -58,9 +58,10 @@ func tapeLength(from, to *interfaces.MoveGroupHistoryItem) int {
 
 }
 
-//ParallelCount is a version of Parallel, but where the target count is given
-//by Count. The length argument to Count will be the number of Groups who are
-//children. See moves/count package for many options for this.
+//ParallelCount is a version of Parallel, but where the target count of number
+//of children to match before being satisfied is given by Count. The length
+//argument to Count will be the number of Groups who are children. See
+//moves/count package for many options for this.
 func ParallelCount(count interfaces.ValidCounter, children ...interfaces.MoveProgressionGroup) interfaces.MoveProgressionGroup {
 	return &parallelCount{
 		children,

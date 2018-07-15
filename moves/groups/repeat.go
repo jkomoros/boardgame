@@ -15,10 +15,11 @@ func Optional(group interfaces.MoveProgressionGroup) interfaces.MoveProgressionG
 //Repeat returns a MoveProgressionGroup that repeats the provided group the
 //number of times count is looking for, in serial. Assumes that the
 //ValidCounter has a single range of legal count values, where before it they
-//are illegal and after it they are legal, and will read as many times from
-//the tape as it can within that legal range. The first count value passed is
-//1. It is conceptually equivalent to duplicating a given group within a
-//parent groups.Serial count times.
+//are illegal, during the range they are legal, and after it they are illegal
+//agin, and will read as many times from the tape as it can within that legal
+//range. All ValidCounters in the count package satisfy this. It is
+//conceptually equivalent to duplicating a given group within a parent
+//groups.Serial count times.
 func Repeat(count interfaces.ValidCounter, group interfaces.MoveProgressionGroup) interfaces.MoveProgressionGroup {
 	return repeat{
 		count,
