@@ -225,6 +225,48 @@ func testSubStatesHaveStateSet(t *testing.T, state *state) {
 	}
 }
 
+func TestRand(t *testing.T) {
+	game := testDefaultGame(t, false)
+
+	//Make there be more than one state
+	err := <-game.ProposeMove(game.Moves()[0], AdminPlayerIndex)
+	assert.For(t).ThatActual(err).IsNil()
+
+	zeroState := game.State(0).(State)
+
+	r := zeroState.Rand()
+
+	assert.For(t).ThatActual(r).IsNotNil()
+
+	//Test Rand() returns same object
+	assert.For(t).ThatActual(zeroState.Rand()).Equals(r)
+
+	first := r.Int()
+	second := r.Int()
+
+	zeroStateCopy := game.State(0).(State)
+
+	copyR := zeroStateCopy.Rand()
+
+	//Make sure different state gives different object
+	assert.For(t).ThatActual(copyR).DoesNotEqual(r)
+
+	//Make sure new object gives save values
+	assert.For(t).ThatActual(copyR.Int()).Equals(first)
+	assert.For(t).ThatActual(copyR.Int()).Equals(second)
+
+	oneState := game.State(1).(State)
+
+	//Make sure a different version gives a different value.
+	assert.For(t).ThatActual(oneState.Rand().Int()).DoesNotEqual(first)
+
+	//Make sure different game same version has different value.
+	otherGame := testDefaultGame(t, false)
+	otherGameState := otherGame.State(0).(State)
+	assert.For(t).ThatActual(otherGameState.Rand().Int()).DoesNotEqual(first)
+
+}
+
 func TestState(t *testing.T) {
 
 	game := testDefaultGame(t, true)

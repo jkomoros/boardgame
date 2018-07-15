@@ -3,7 +3,9 @@ package boardgame
 import (
 	"encoding/json"
 	"github.com/jkomoros/boardgame/errors"
+	"hash/fnv"
 	"log"
+	"math/rand"
 	"strconv"
 )
 
@@ -217,6 +219,17 @@ type State interface {
 
 	DynamicComponentValues() map[string][]SubState
 
+	//Rand returns a source of randomness. All game logic should use this rand
+	//source. It is deterministically seeded when it is created for this state
+	//based on the game's ID, the game's secret salt, and the version number
+	//of the state. Repeated calls to Rand() on the same state will return the
+	//same random generator. If games use this source for all of their
+	//randomness it allows the game to be played back detrministically, which
+	//is useful in some testing scenarios. Rand is only available on State,
+	//not ImmutableState, because all methods that aren't mutators in your
+	//game logic should be deterministic.
+	Rand() *rand.Rand
+
 	//containingStack will return the stack and slot index for the
 	//associated component, if that location is not sanitized. If no error is
 	//returned, stack.ComponentAt(slotIndex) == c will evaluate to true.
@@ -316,6 +329,8 @@ type state struct {
 	version                       int
 	game                          *Game
 
+	memoizedRand *rand.Rand
+
 	//componentIndex keeps track of the current location of all components in
 	//stacks in this state. It is not persisted, but is rebuilt the first time
 	//it's asked for, and then all modifications are kept track of as things
@@ -330,6 +345,30 @@ type state struct {
 	//we accumulate the timers that still need to be fully started at that
 	//point.
 	timersToStart []int
+}
+
+func (s *state) Rand() *rand.Rand {
+	if s.memoizedRand == nil {
+
+		input := "insecurestarterdefault"
+
+		if game := s.game; game != nil {
+			//Sometimes, like exampleState, we don't have the game reference.
+			//But those are rare and it's OK to have deterministic behavior.
+			input = game.Id() + game.secretSalt
+		}
+
+		input += strconv.Itoa(s.version)
+
+		hasher := fnv.New64()
+
+		hasher.Write([]byte(input))
+
+		val := hasher.Sum64()
+
+		s.memoizedRand = rand.New(rand.NewSource(int64(val)))
+	}
+	return s.memoizedRand
 }
 
 func (s *state) containingImmutableStack(c Component) (stack ImmutableStack, slotIndex int, err error) {
