@@ -9,10 +9,27 @@ import (
 
 //GroupableMoveConfig is a type of MoveConfig that also has enough methods for
 //it to be used as a MoveProgressionGroup in AddOrderedForPhase.
-//AutoConfigurer.Config() returns these.
+//AutoConfigurer.Configure() returns these so that they can be nested directly
+//in any of the objects in the moves/groups package.
 type GroupableMoveConfig interface {
 	boardgame.MoveConfig
 	interfaces.MoveProgressionGroup
+}
+
+//NewGroupableMoveConfig takes a generic boardgame.MoveConfig and makes it
+//satisfy the GroupableMoveConfig interface, so it can be used as a child in
+//the objects in moves/groups. The config returned will simply return a list
+//with a single item of itself for MoveConfigs. For Satisfied, it will consume
+//a move that shares its own name, and, if it implements
+//AllowMultipleInProgression() and returns true from that, it will consume as
+//many of those moves in a row as exist from the front of the tape.
+//AutoConfigurer.Config() returns objects that have been run through this
+//automatically, but it's a public function in case you want to decorate a
+//move config you generated manually and not from AutoConfigurer.Config().
+func NewGroupableMoveConfig(config boardgame.MoveConfig) GroupableMoveConfig {
+	return &defaultMoveConfig{
+		config,
+	}
 }
 
 type defaultMoveConfig struct {
@@ -127,13 +144,10 @@ func (a *AutoConfigurer) MustConfig(exampleStruct AutoConfigurableMove, options 
 //a few extra methods that are consulted to generate the move name, helptext,
 //and isFixUp; anything based on moves.Base automatically satisfies the
 //necessary interface. See the package doc for an example of use. Instead of
-//returning a boardgame.MoveConfig, it returns a GroupableMoveConfig, which
-//satisfies boardgame.MoveConfig but also adds enough methods to be useable as
-//input to AddOrderedForPhase. The config returned will simply return a list
-//with a single item for MoveConfigs: its underlining config. For Satisfied,
-//it will consume a move that shares its own name, and, if it implements
-//AllowMultipleInProgression() and returns true from that, it will consume as
-//many of those moves in a row as exist from the front of the tape.
+//returning a boardgame.MoveConfig, it returns a GroupableMoveConfig
+//equivalent to what you'd get from NewGroupableMoveConfig, which satisfies
+//boardgame.MoveConfig but also adds enough methods to be useable as input to
+//AddOrderedForPhase.
 func (a *AutoConfigurer) Config(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConfigurationOption) (GroupableMoveConfig, error) {
 
 	if a.delegate == nil {
