@@ -39,8 +39,6 @@ func (r repeat) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interf
 
 	tapeHead := tape
 
-	count := 1
-
 	//we assume that there is precisely one continguous bound that is legal.
 	//We want to go up until we enter the lower bound, then any error we run
 	//into within that bound is OK (just return last known good tape position
@@ -48,13 +46,19 @@ func (r repeat) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interf
 	//limit we end.
 	lowerBoundReached := false
 
+	//Check if we start within the lower bound (for example, a count.AtMost()
+	//will start within the legal lower bound.z)
 	if err := r.Count(0, 1); err == nil {
 		lowerBoundReached = true
 	}
 
+	//The count happens after the group has been consumed each time, so by the
+	//time we look at this the first time it will have already been one group.
+	count := 1
+
 	for {
 
-		//If we ever reach the tape end without having found an erro then it's
+		//If we ever reach the tape end without having found an error then it's
 		//legal.
 		if tapeHead == nil {
 			return nil, nil
@@ -64,8 +68,9 @@ func (r repeat) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interf
 
 		if err != nil {
 			if lowerBoundReached {
-				//We're in over-time, so errors are not a big deal, just
-				//return the last known good state.
+				//We're between the lower and upper bound of legal counts, so
+				//errors are not a big deal, just return the last known good
+				//state.
 				return nil, tapeHead
 			}
 			//Otherwise, we haven't yet gotten the smallest legal amount so we
@@ -73,15 +78,18 @@ func (r repeat) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interf
 			return err, nil
 		}
 
+		boundErr := r.Count(count, 1)
+
 		if lowerBoundReached {
 			//As soon as we find the first non-nil count afer we've passed the
-			//lower limit we're done.
-			if err := r.Count(count, 1); err != nil {
+			//lower bound we're done, because we've passed outside of the
+			//legal bound.
+			if boundErr != nil {
 				break
 			}
 		} else {
 			//Is this the transition into the lower legal bound?
-			if err := r.Count(count, 1); err == nil {
+			if boundErr == nil {
 				lowerBoundReached = true
 			}
 		}
