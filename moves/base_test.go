@@ -534,9 +534,137 @@ func TestMoveProgression(t *testing.T) {
 			},
 			true,
 		},
-		//TODO: tests to really run AtMost, AtLeast, Between through the
-		//ringer with Repeat. Need to make sure that they return anything that
-		//matches in the Between zone.
+		{
+			"Repeat with partial with a between(1, 2)",
+			[]string{
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[0],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Repeat(
+					count.Between(1, 2),
+					groups.Serial(
+						singleMoveConfigs[0],
+						singleMoveConfigs[1],
+					),
+				),
+			},
+			true,
+		},
+		{
+			"Repeat with partial with a between(1, 2) perfectly consumed at the top",
+			[]string{
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[0],
+				singleMoveNames[1],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Repeat(
+					count.Between(1, 2),
+					groups.Serial(
+						singleMoveConfigs[0],
+						singleMoveConfigs[1],
+					),
+				),
+			},
+			true,
+		},
+		{
+			"Repeat with a between(1, 2) with a single extra",
+			[]string{
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[0],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Repeat(
+					count.Between(1, 2),
+					groups.Serial(
+						singleMoveConfigs[0],
+						singleMoveConfigs[1],
+					),
+				),
+			},
+			false,
+		},
+		{
+			"Repeat with a between(1, 1) with a whole extra round",
+			[]string{
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[0],
+				singleMoveNames[1],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Repeat(
+					count.Between(1, 1),
+					groups.Serial(
+						singleMoveConfigs[0],
+						singleMoveConfigs[1],
+					),
+				),
+			},
+			false,
+		},
+		{
+			"Repeat with an  AtMost(1) with a whole extra round",
+			[]string{
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[0],
+				singleMoveNames[1],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Repeat(
+					count.AtMost(1),
+					groups.Serial(
+						singleMoveConfigs[0],
+						singleMoveConfigs[1],
+					),
+				),
+			},
+			false,
+		},
+		{
+			"Repeat with an  AtMost(1) with precisely the right amount",
+			[]string{
+				singleMoveNames[0],
+				singleMoveNames[1],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Repeat(
+					count.AtMost(1),
+					groups.Serial(
+						singleMoveConfigs[0],
+						singleMoveConfigs[1],
+					),
+				),
+			},
+			true,
+		},
+		{
+			"Repeat with an  AtMost(2) with one full loop",
+			[]string{
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[2],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Repeat(
+					count.AtMost(2),
+					groups.Serial(
+						singleMoveConfigs[0],
+						singleMoveConfigs[1],
+					),
+				),
+				singleMoveConfigs[2],
+			},
+			true,
+		},
 		{
 			"Repeat with AtLeast idiomaticlaly and 2 match",
 			[]string{
