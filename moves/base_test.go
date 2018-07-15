@@ -666,6 +666,50 @@ func TestMoveProgression(t *testing.T) {
 			true,
 		},
 		{
+			"Repeat with an AtMost(2) with two full loop",
+			[]string{
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[2],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Repeat(
+					count.AtMost(2),
+					groups.Serial(
+						singleMoveConfigs[0],
+						singleMoveConfigs[1],
+					),
+				),
+				singleMoveConfigs[2],
+			},
+			true,
+		},
+		{
+			"Repeat with an AtMost(2) with three full loop",
+			[]string{
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[2],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Repeat(
+					count.AtMost(2),
+					groups.Serial(
+						singleMoveConfigs[0],
+						singleMoveConfigs[1],
+					),
+				),
+				singleMoveConfigs[2],
+			},
+			false,
+		},
+		{
 			"Repeat with AtLeast idiomaticlaly and 2 match",
 			[]string{
 				singleMoveNames[0],
