@@ -196,8 +196,32 @@ func titleCaseToWords(in string) string {
 //If the struct does not come from the moves package, it will create a name
 //like `MoveMyMove` --> `My Move`. Finally, if it's a struct from this
 //package, it will fall back on whatever the FallbackName() method returns.
-//Subclasses generally should not override this.
+//Subclasses generally should not override this. If with.MoveNameSuffix() was
+//used, it will then add " - " + suffix to the end of the move name.
 func (b *Base) DeriveName(m *boardgame.GameManager) string {
+
+	config := b.CustomConfiguration()
+
+	suffix := ""
+
+	if config != nil {
+		rawSuffix, hasSuffix := config[privateconstants.MoveNameSuffix]
+		if hasSuffix {
+			strSuffix, ok := rawSuffix.(string)
+			if !ok {
+				return "Unexpected Error: suffix was not a string"
+			}
+			if strSuffix != "" {
+				suffix = " - " + strSuffix
+			}
+		}
+	}
+
+	return b.baseDeriveName(m) + suffix
+}
+
+//baseDeriveName does most of the name logic, but not the suffix behavior.
+func (b *Base) baseDeriveName(m *boardgame.GameManager) string {
 
 	config := b.CustomConfiguration()
 
@@ -243,7 +267,6 @@ func (b *Base) DeriveName(m *boardgame.GameManager) string {
 
 	//Nothing worked. :-/
 	return ""
-
 }
 
 //FallbackName is the name that is returned if other higher-priority

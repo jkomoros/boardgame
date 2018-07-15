@@ -37,6 +37,19 @@ func MoveName(moveName string) interfaces.CustomConfigurationOption {
 	}
 }
 
+//MoveNameSuffix returns a function configuration option suitable for being
+//passed to auto.Config. The suffix, if provided, will be appended to whatever
+//the Move's name would have been (see the behavior for DeriveName on
+//move.Base). This is useful because every move must have a unique name, but
+//sometimes you have the same underlying move struct who is legal in different
+//points in different progressions. This makes it easy to provide a suffix for
+//subsequent uses of the same move to ensure the names are all unique.
+func MoveNameSuffix(suffix string) interfaces.CustomConfigurationOption {
+	return func(config boardgame.PropertyCollection) {
+		config[privateconstants.MoveNameSuffix] = suffix
+	}
+}
+
 //HelpText returns a function configuration option suitable for being
 //passed to auto.Config. moves.Base uses this, if provided, to power
 //MoveTypeHelpText, which means that auto.Config will use this text whenever

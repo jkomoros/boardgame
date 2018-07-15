@@ -23,7 +23,9 @@ func TestShuffleStackDefaultConfig(t *testing.T) {
 		auto := NewAutoConfigurer(manager.Delegate())
 
 		return []boardgame.MoveConfig{
-			auto.MustConfig(new(moveShuffleStack)),
+			auto.MustConfig(new(moveShuffleStack),
+				with.MoveNameSuffix("Test"),
+			),
 		}
 	}
 
@@ -31,7 +33,7 @@ func TestShuffleStackDefaultConfig(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	move := manager.ExampleMoveByName("Shuffle Draw Stack")
+	move := manager.ExampleMoveByName("Shuffle Draw Stack - Test")
 
 	var typedNil boardgame.Move
 

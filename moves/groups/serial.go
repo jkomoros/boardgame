@@ -39,6 +39,10 @@
 			),
 		)
 
+	Move names must be unique, but sometimes you want to use the same
+	underlying move at multiple points in a progression. `moves/with` provides
+	MoveNameSuffix, which is useful for that case.
+
 */
 package groups
 
