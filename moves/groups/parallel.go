@@ -16,11 +16,13 @@ parallel semantics but don't want to require matching all groups, see
 ParallelCount. The base Parallel is equivalent to ParallelCount with a Count
 of count.All().
 
-Its Satisfied goes through each item in turn, seeing if any of them can consume
-items off of the front of the tape without erroring. It continues going
-through until all are met, or no more un-triggered items can consume
-another. If at any point more than one item could match at the given point
-in the tape, it chooses the match that consumes the most tape.
+Its Satisfied goes through each item in turn, seeing if any of them that have
+not yet been applied can consume items off of the front of the tape without
+erroring. It continues going through until all are met, or no more un-
+triggered items can consume more items. If at any point more than one item
+could match at the given point in the tape, it chooses the match that consumes
+the most tape.
+
 */
 func Parallel(children ...interfaces.MoveProgressionGroup) interfaces.MoveProgressionGroup {
 	return ParallelCount(count.All(), children...)
