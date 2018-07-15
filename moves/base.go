@@ -380,6 +380,8 @@ func (d *Base) legalInPhase(state boardgame.ImmutableState) error {
 	legalPhases := d.legalPhases()
 
 	if len(legalPhases) == 0 {
+		//If PhaseEnum is a TreeEnum, this is basically equivalent to the
+		//legalPhases being []int{0}.
 		return nil
 	}
 
