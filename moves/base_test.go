@@ -904,6 +904,26 @@ func TestMoveProgression(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"Optional with two items (where only 0 or 1 should be legal)",
+			[]string{
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[2],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Optional(
+					groups.Serial(
+						singleMoveConfigs[0],
+						singleMoveConfigs[1],
+					),
+				),
+				singleMoveConfigs[2],
+			},
+			false,
+		},
 	}
 
 	//Note that the old test, progressionMatches() didn't check which types
