@@ -84,6 +84,7 @@ type MoveStorageRecord struct {
 	Initiator int64
 	Timestamp int64
 	Phase     int64
+	Proposer  int64
 	Name      string `db:",size:128"`
 	Blob      string `db:",size:100000"`
 }
@@ -291,6 +292,7 @@ func (m *MoveStorageRecord) ToStorageRecord() *boardgame.MoveStorageRecord {
 		Version:   int(m.Version),
 		Initiator: int(m.Initiator),
 		Phase:     int(m.Phase),
+		Proposer:  boardgame.PlayerIndex(m.Proposer),
 		Timestamp: time.Unix(0, m.Timestamp),
 		Blob:      []byte(m.Blob),
 	}
@@ -304,6 +306,7 @@ func NewMoveStorageRecord(gameId string, version int, record *boardgame.MoveStor
 		Timestamp: record.Timestamp.UnixNano(),
 		Name:      record.Name,
 		Phase:     int64(record.Phase),
+		Proposer:  int64(record.Proposer),
 		Blob:      string(record.Blob),
 	}
 }

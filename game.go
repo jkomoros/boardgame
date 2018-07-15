@@ -778,7 +778,7 @@ func (g *Game) applyMove(move Move, proposer PlayerIndex, isFixUp bool, recurseC
 	g.cachedCurrentState = nil
 
 	//Note that we want the phase that we were in BEFORE this move was applied.
-	moveStorageRecord := StorageRecordForMove(move, currentPhase)
+	moveStorageRecord := StorageRecordForMove(move, currentPhase, proposer)
 
 	//use the precise time we'll set for the move.
 	g.modified = move.Info().Timestamp()

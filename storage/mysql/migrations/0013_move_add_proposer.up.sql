@@ -1,0 +1,1 @@
+alter table `moves` add column `Proposer` bigint;

@@ -18,7 +18,9 @@ type MoveStorageRecord struct {
 	Initiator int
 	//The Phase as returned by Delegate.CurrentPhase() for the state the move
 	//was in before it was applied.
-	Phase     int
+	Phase int
+	//The player index of the proposer of the move.
+	Proposer  PlayerIndex
 	Timestamp time.Time
 	Blob      []byte
 }
