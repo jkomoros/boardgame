@@ -1577,6 +1577,8 @@ Moves signal this by implementing the `interfaces.AllowMultipleInProgression`, a
 
 One more wrinkle: when the engine looks to see if a propose move is legal in this phase in this order, it will ignore any moves that are legal in all phases that may have come in between. This means that if you have a move like ShuffleDiscardToDraw that triggers in any phase if the discard pile runs out, it won't mess up your move progression matching.
 
+By default move progressions are simple serial lists of moves that must occur in order. But if you have more complex logic you can also define groups with more rich semantics. See the section on MoveProgressionGroup below.
+
 #### StartPhase move
 
 The last move in that section is of type `moves.StartPhase`. It needs to be configured with a `with.PhaseToStart`. Often you don't need to override its Legal or Apply at all (the Legal it inherits from Base is sufficient), and can just use the naked `moves.StartPhase` struct itself without embedding it in your own struct.
@@ -1623,6 +1625,18 @@ that the delegate.CurrentPhase() is never in a non-leaf node phase. Also,
 moves.Base().Legal() will interpret a move that applies in a certain phase to
 also be legal any time delegate.CurrentPhase returns a value that is a child
 of that phase.
+
+### MoveProgressionGroup
+
+When you install ordered moves for a game, the default is that each MoveConfig must be matched in order for the progression to be valid (with moves that return true from AllowMultipleInProgression to match multiple times in a row).
+
+But sometimes you want more complex groupings. For example, maybe a move can apply two to three times in a row, or move A is allowed, then either move B or move C, then move D.
+
+For this you may use MoveProgressionGroup's, many of which are defined in `moves/groups`. `moves.AddOrderedForPhase` accepts either basic single move configs, or groups, and groups can be nested within one another to create complex progression matching logic. See the `moves/groups` documentation for more on how to use them.
+
+AllowMultipleInProgression means that the move inherently knows how to terminate its own progression; a move that is in a Repeat group without AllowMultipleInProgression doesn't know how to terminate itself when it's no longer valid and needs the help of the group it's a part of to do that calculation.
+
+Note that move progression groups match greedily as much as they can. In some cases when you have two groups that abut, where the same type of AllowMultipleInProgression moves are next to each other within different groups, the first one consumes all of them in a row, meaning the second group will never match. In this case you can use moves.NoOp to form a barrier.
 
 ### Configs
 
