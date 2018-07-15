@@ -13,10 +13,12 @@ func Optional(group interfaces.MoveProgressionGroup) interfaces.MoveProgressionG
 }
 
 //Repeat returns a MoveProgressionGroup that repeats the provided group the
-//number of times count is looking for, in serial. Note that count.AtMost and
-//count.AtLeast will work as expected, with Repeat matching as many moves as
-//it can while staying within those bounds. It is conceptually equivalent to
-//duplicating a given group within a parent groups.Serial count times.
+//number of times count is looking for, in serial. Assumes that the
+//ValidCounter has a single range of legal count values, where before it they
+//are illegal and after it they are legal, and will read as many times from
+//the tape as it can within that legal range. The first count value passed is
+//1. It is conceptually equivalent to duplicating a given group within a
+//parent groups.Serial count times.
 func Repeat(count interfaces.ValidCounter, group interfaces.MoveProgressionGroup) interfaces.MoveProgressionGroup {
 	return repeat{
 		count,
@@ -37,7 +39,7 @@ func (r repeat) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interf
 
 	tapeHead := tape
 
-	count := 0
+	count := 1
 
 	//we assume that there is precisely one continguous bound that is legal.
 	//We want to go up until we enter the lower bound, then any error we run
@@ -46,25 +48,16 @@ func (r repeat) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interf
 	//limit we end.
 	lowerBoundReached := false
 
+	if err := r.Count(0, 1); err == nil {
+		lowerBoundReached = true
+	}
+
 	for {
 
 		//If we ever reach the tape end without having found an erro then it's
 		//legal.
 		if tapeHead == nil {
 			return nil, nil
-		}
-
-		if lowerBoundReached {
-			//As soon as we find the first non-nil count afer we've passed the
-			//lower limit we're done.
-			if err := r.Count(count, 1); err != nil {
-				break
-			}
-		} else {
-			//Is this the transition into the lower legal bound?
-			if err := r.Count(count, 1); err == nil {
-				lowerBoundReached = true
-			}
 		}
 
 		err, rest := r.Child.Satisfied(tapeHead)
@@ -78,6 +71,19 @@ func (r repeat) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interf
 			//Otherwise, we haven't yet gotten the smallest legal amount so we
 			//should stop.
 			return err, nil
+		}
+
+		if lowerBoundReached {
+			//As soon as we find the first non-nil count afer we've passed the
+			//lower limit we're done.
+			if err := r.Count(count, 1); err != nil {
+				break
+			}
+		} else {
+			//Is this the transition into the lower legal bound?
+			if err := r.Count(count, 1); err == nil {
+				lowerBoundReached = true
+			}
 		}
 
 		count++
