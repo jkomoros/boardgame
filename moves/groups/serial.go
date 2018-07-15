@@ -9,6 +9,30 @@
 	that when used in configuration you can avoid needing to wrap your
 	children list with []interfaces.MoveProgressionGroup, saving you typing.
 
+
+		//Example
+		groups.Serial(
+			auto.MustConfig(new(MoveOne)),
+			groups.Optional(
+				groups.Serial(
+					auto.MustConfig(new(MoveTwo)),
+					auto.MustConfig(new(MoveThree)),
+				),
+			),
+			groups.ParallelCount(
+				count.Any(),
+				auto.MustConfig(new(MoveFour)),
+				auto.MustConfig(new(MoveFive)),
+				groups.Repeat(
+					count.AtMost(2),
+					groups.Serial(
+						auto.MustConfig(new(MoveSix)),
+						auto.MustConfig(new(MoveSeven)),
+					),
+				),
+			),
+		)
+
 */
 package groups
 
