@@ -853,6 +853,40 @@ func TestMoveProgression(t *testing.T) {
 			},
 			true,
 		},
+		{
+			"Optional with no item",
+			[]string{
+				singleMoveNames[2],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Optional(
+					groups.Serial(
+						singleMoveConfigs[0],
+						singleMoveConfigs[1],
+					),
+				),
+				singleMoveConfigs[2],
+			},
+			true,
+		},
+		{
+			"Optional with one item",
+			[]string{
+				singleMoveNames[0],
+				singleMoveNames[1],
+				singleMoveNames[2],
+			},
+			[]interfaces.MoveProgressionGroup{
+				groups.Optional(
+					groups.Serial(
+						singleMoveConfigs[0],
+						singleMoveConfigs[1],
+					),
+				),
+				singleMoveConfigs[2],
+			},
+			true,
+		},
 	}
 
 	//Note that the old test, progressionMatches() didn't check which types
