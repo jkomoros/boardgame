@@ -10,7 +10,6 @@ import (
 	"github.com/jkomoros/boardgame/components/dice"
 	"github.com/jkomoros/boardgame/moves"
 	"github.com/jkomoros/boardgame/moves/with"
-	"math/rand"
 	"strconv"
 	"strings"
 )
@@ -58,7 +57,7 @@ func (g *gameDelegate) FinishSetUp(state boardgame.State) error {
 	game, _ := concreteStates(state)
 
 	//Pick a player to start randomly.
-	startingPlayer := boardgame.PlayerIndex(rand.Intn(len(state.PlayerStates())))
+	startingPlayer := boardgame.PlayerIndex(state.Rand().Intn(len(state.PlayerStates())))
 
 	game.CurrentPlayer = startingPlayer
 	game.TargetScore = DefaultTargetScore
