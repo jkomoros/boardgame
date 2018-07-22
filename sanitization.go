@@ -630,7 +630,11 @@ func (g *growableStack) applySanitizationPolicy(policy Policy) {
 //returns a random permutation of size stack.Len(). The permutation will be
 //predictable given this exact stack and its state, but unpredictable in
 //general. This makes it give predictable results for testing but still be
-//unguessable if you don't have the stack's game's SecretSalt.
+//unguessable if you don't have the stack's game's SecretSalt. This method
+//exists even though state has a soruce of randomness because this library
+//should only use state.Rand() as a source if it's deterministically called,
+//whereas any given state might have multiple sanitizated states created
+//implicitly.
 func randPermForStack(stack Stack) []int {
 
 	//TODO: we really only do this in order to have straight-forward testing
