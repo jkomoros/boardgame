@@ -27,13 +27,11 @@ type StorageManager struct {
 	basePath string
 }
 
-func NewStorageManager() *StorageManager {
-
-	panic("This is not yet implemented")
+func NewStorageManager(basePath string) *StorageManager {
 
 	return &StorageManager{
 		memory.NewStorageManager(),
-		"",
+		basePath,
 	}
 }
 
@@ -43,13 +41,17 @@ func (s *StorageManager) Name() string {
 
 func (s *StorageManager) Connect(config string) error {
 
-	if _, err := os.Stat(config); os.IsNotExist(err) {
-		return errors.New("BasePath of " + config + " does not exist.")
+	if _, err := os.Stat(s.basePath); os.IsNotExist(err) {
+		if err := os.Mkdir(s.basePath, 0644); err != nil {
+			return errors.New("Base path didn't exist and couldn't create it: " + err.Error())
+		}
 	}
 
-	s.basePath = config
-
 	return nil
+}
+
+func (s *StorageManager) CleanUp() {
+	os.RemoveAll(s.basePath)
 }
 
 func (s *StorageManager) recordForId(gameId string) (*record, error) {
@@ -59,7 +61,7 @@ func (s *StorageManager) recordForId(gameId string) (*record, error) {
 
 	gameId = strings.ToLower(gameId)
 
-	path := filepath.Join(s.basePath, gameId)
+	path := filepath.Join(s.basePath, gameId+".json")
 
 	var result record
 
@@ -83,7 +85,7 @@ func (s *StorageManager) saveRecordForId(gameId string, rec *record) error {
 
 	gameId = strings.ToLower(gameId)
 
-	path := filepath.Join(s.basePath, gameId)
+	path := filepath.Join(s.basePath, gameId+".json")
 
 	blob, err := json.Marshal(rec)
 
