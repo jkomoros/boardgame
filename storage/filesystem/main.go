@@ -10,8 +10,10 @@
 package filesystem
 
 import (
+	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/storage/memory"
+	"os"
 )
 
 type StorageManager struct {
@@ -20,14 +22,29 @@ type StorageManager struct {
 	basePath string
 }
 
-func NewStorageManager(basePath string) *StorageManager {
+func NewStorageManager() *StorageManager {
 
 	panic("This is not yet implemented")
 
 	return &StorageManager{
 		memory.NewStorageManager(),
-		basePath,
+		"",
 	}
+}
+
+func (s *StorageManager) Name() string {
+	return "filesystem"
+}
+
+func (s *StorageManager) Connect(config string) error {
+
+	if _, err := os.Stat(config); os.IsNotExist(err) {
+		return errors.New("BasePath of " + config + " does not exist.")
+	}
+
+	s.basePath = config
+
+	return nil
 }
 
 func (s *StorageManager) State(gameId string, version int) (boardgame.StateStorageRecord, error) {
