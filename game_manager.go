@@ -395,6 +395,7 @@ func (g *GameManager) gameFromStorageRecord(record *GameStorageRecord) *Game {
 		numPlayers: record.NumPlayers,
 		created:    record.Created,
 		agents:     record.Agents,
+		config:     record.Config,
 		modifiable: false,
 		initalized: true,
 	}

@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/examples/blackjack"
+	"github.com/jkomoros/boardgame/examples/memory"
 	"github.com/jkomoros/boardgame/examples/tictactoe"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
@@ -91,11 +92,13 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	managers[tictactoeManager.Delegate().Name()] = tictactoeManager
 
-	blackjackManager, _ := boardgame.NewGameManager(blackjack.NewDelegate(), storage)
+	memoryManager, _ := boardgame.NewGameManager(memory.NewDelegate(), storage)
 
-	managers[blackjackManager.Delegate().Name()] = blackjackManager
+	managers[memoryManager.Delegate().Name()] = memoryManager
 
 	tictactoeGame, err := tictactoeManager.NewDefaultGame()
+
+	assert.For(t).ThatActual(err).IsNil()
 
 	eGame, err := storage.ExtendedGame(tictactoeGame.Id())
 
@@ -204,7 +207,19 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	//Verify that if the game is stored with wrong name that doesn't match manager it won't load up.
 
-	_, err = blackjackManager.NewDefaultGame()
+	config := boardgame.GameConfig{
+		"numcards": "small",
+	}
+
+	memoryGame, err := memoryManager.NewGame(0, config, nil)
+
+	assert.For(t).ThatActual(config).Equals(memoryGame.Config())
+
+	refriedMemoryGame := memoryManager.Game(memoryGame.Id())
+
+	assert.For(t).ThatActual(refriedMemoryGame).IsNotNil()
+
+	assert.For(t).ThatActual(refriedMemoryGame.Config()).Equals(memoryGame.Config())
 
 	games := storage.ListGames(10, listing.All, "", "")
 

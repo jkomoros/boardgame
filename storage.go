@@ -54,6 +54,7 @@ type GameStorageRecord struct {
 	//are in the game.
 	NumPlayers int
 	Agents     []string
+	Config     GameConfig
 }
 
 //StorageManager is an interface that anything can implement to handle the

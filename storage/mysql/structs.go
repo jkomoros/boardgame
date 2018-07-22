@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
@@ -44,6 +45,7 @@ type GameStorageRecord struct {
 	Agents     string `db:",size:1024"`
 	//Derived field to enable HasEmptySlots SQL query
 	NumAgents int64
+	Config    string `db:",size:65536"`
 }
 
 type ExtendedGameStorageRecord struct {
@@ -151,6 +153,30 @@ func stringToWinners(winners string) ([]boardgame.PlayerIndex, error) {
 
 }
 
+func stringToConfig(config string) (boardgame.GameConfig, error) {
+	if config == "" {
+		return nil, nil
+	}
+
+	var result boardgame.GameConfig
+
+	if err := json.Unmarshal([]byte(config), &result); err != nil {
+		return nil, errors.New("Couldn't unmarshal value: " + err.Error())
+	}
+
+	return result, nil
+}
+
+func configToString(config boardgame.GameConfig) string {
+	if config == nil {
+		return ""
+	}
+
+	blob, _ := json.Marshal(config)
+
+	return string(blob)
+}
+
 func (g *GameStorageRecord) ToStorageRecord() *boardgame.GameStorageRecord {
 
 	if g == nil {
@@ -158,6 +184,12 @@ func (g *GameStorageRecord) ToStorageRecord() *boardgame.GameStorageRecord {
 	}
 
 	winners, err := stringToWinners(g.Winners)
+
+	if err != nil {
+		return nil
+	}
+
+	config, err := stringToConfig(g.Config)
 
 	if err != nil {
 		return nil
@@ -174,6 +206,7 @@ func (g *GameStorageRecord) ToStorageRecord() *boardgame.GameStorageRecord {
 		Finished:   g.Finished,
 		NumPlayers: int(g.NumPlayers),
 		Agents:     stringToAgents(g.Agents),
+		Config:     config,
 	}
 }
 
@@ -202,6 +235,7 @@ func NewGameStorageRecord(game *boardgame.GameStorageRecord) *GameStorageRecord 
 		Modified:   game.Modified.UnixNano(),
 		Agents:     agentsToString(game.Agents),
 		NumAgents:  int64(numAgents),
+		Config:     configToString(game.Config),
 	}
 }
 

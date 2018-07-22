@@ -36,6 +36,8 @@ type Game struct {
 
 	numPlayers int
 
+	config GameConfig
+
 	//Memozied answer to CurrentState. Invalidated whenever ApplyMove is
 	//called.
 	cachedCurrentState    ImmutableState
@@ -112,6 +114,23 @@ func (g *Game) Modified() time.Time {
 	return g.modified
 }
 
+//Config returns a copy of the GameConfig passed to NewGame to create this
+//game originally.
+func (g *Game) Config() GameConfig {
+
+	if g.config == nil {
+		return nil
+	}
+
+	result := make(GameConfig, len(g.config))
+
+	for key, val := range g.config {
+		result[key] = val
+	}
+
+	return result
+}
+
 //Winners is the player indexes who were winners. Typically, this will be
 //one player, but it could be multiple in the case of tie, or 0 in the
 //case of a draw.
@@ -163,6 +182,7 @@ func (g *Game) JSONForPlayer(player PlayerIndex, state ImmutableState) interface
 		"Id":                 g.Id(),
 		"NumPlayers":         g.NumPlayers(),
 		"Agents":             g.Agents(),
+		"Config":             g.Config(),
 		"Version":            g.Version(),
 	}
 }
@@ -175,6 +195,7 @@ func (g *Game) MarshalJSON() ([]byte, error) {
 //StorageRecord returns a GameStorageRecord representing the aspects of this
 //game that should be serialized to storage.
 func (g *Game) StorageRecord() *GameStorageRecord {
+
 	return &GameStorageRecord{
 		Name:       g.Manager().Delegate().Name(),
 		Version:    g.Version(),
@@ -186,6 +207,7 @@ func (g *Game) StorageRecord() *GameStorageRecord {
 		SecretSalt: g.secretSalt,
 		NumPlayers: g.NumPlayers(),
 		Agents:     g.Agents(),
+		Config:     g.Config(),
 	}
 }
 
@@ -387,13 +409,17 @@ func (g *Game) setUp(numPlayers int, config GameConfig, agentNames []string) err
 		return errors.NewFriendly("The number of players, " + strconv.Itoa(numPlayers) + " was not legal.")
 	}
 
+	nonNilConfig := config
+
 	if config == nil {
-		config = GameConfig{}
+		nonNilConfig = GameConfig{}
 	}
 
-	if err := g.manager.Delegate().LegalConfig(config); err != nil {
+	if err := g.manager.Delegate().LegalConfig(nonNilConfig); err != nil {
 		return errors.NewFriendly("That configuration is not legal for this game: " + err.Error())
 	}
+
+	g.config = config
 
 	if agentNames != nil && len(agentNames) != numPlayers {
 		return baseErr.WithError("If agentNames is not nil, it must have length equivalent to numPlayers.")

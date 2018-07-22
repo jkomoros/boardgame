@@ -121,7 +121,8 @@ type GameDelegate interface {
 
 	//BeginSetup is a chance to modify the initial state object *before* the
 	//components are distributed to it. It is also where the config for your
-	//gametype will be passed (it will have already passed LegalConfig). This
+	//gametype will be passed (it will have already passed LegalConfig),
+	//although you can also retrieve that at any time via game.Config(). This
 	//is a good place to configure state that will be necessary for you to
 	//make the right decisions in DistributeComponentToStarterStack, or to
 	//transcribe config information you were passed into properties on your
