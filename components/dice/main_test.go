@@ -73,7 +73,7 @@ func TestDieRoll(t *testing.T) {
 	max := values.Max()
 
 	for i := 0; i < 10; i++ {
-		dynamic.Roll()
+		dynamic.Roll(nil)
 
 		assert.For(t).ThatActual(dynamic.Value).Equals(values.Faces[dynamic.SelectedFace])
 

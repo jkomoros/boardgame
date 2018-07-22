@@ -67,8 +67,11 @@ func (v *Value) Max() int {
 }
 
 //Roll sets the Value of the Die randomly to a new value that is legal for the
-//die Value it is associated with.
-func (d *DynamicValue) Roll() {
+//die Value it is associated with. Accepts a source of randomness it will use.
+//You almost always should pass state.Rand() for this to have outcomes that
+//are deterministic for this state (which can be useful for testing
+//scenarios). If r is nil, a generic source of randomness will be used.
+func (d *DynamicValue) Roll(r *rand.Rand) {
 
 	values, ok := d.ContainingComponent().Values().(*Value)
 
@@ -79,9 +82,15 @@ func (d *DynamicValue) Roll() {
 		return
 	}
 
-	random := rand.Intn(len(values.Faces))
+	var val int
 
-	d.SelectedFace = random
-	d.Value = values.Faces[random]
+	if r == nil {
+		val = rand.Intn(len(values.Faces))
+	} else {
+		val = r.Intn(len(values.Faces))
+	}
+
+	d.SelectedFace = val
+	d.Value = values.Faces[val]
 
 }
