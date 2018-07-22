@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"github.com/jkomoros/boardgame/errors"
 	"math"
-	"math/rand"
 	"sort"
 	"strconv"
 )
@@ -192,14 +191,18 @@ type Stack interface {
 	//but in a different order. In a SizedStack, the empty slots will move
 	//around as part of a shuffle. Shuffling will scramble all of the ids in
 	//the stack, such that the Ids of all items in the stack change. See the
-	//package doc section on sanitization for more on Id scrambling.
+	//package doc section on sanitization for more on Id scrambling. Shuffle
+	//uses state.Rand() as a source of randomness, allowing it to be
+	//deterministic if other things also use state.Rand().
 	Shuffle() error
 
 	//PublicShuffle is the same as Shuffle, but the Ids are not scrambled
 	//after the shuffle. PublicShuffle makes sense in cases where only a small
 	//number of cards are shuffled and a preternaturally savvy observer should
 	//be able to keep track of them. The normal Shuffle() is almost always
-	//what you want.
+	//what you want. PublicShuffle uses state.Rand() as a source of
+	//randomness, allowing it to be deterministic if other things also use
+	//state.Rand().
 	PublicShuffle() error
 
 	//SwapComponents swaps the position of two components within this stack
@@ -1540,7 +1543,7 @@ func (g *growableStack) PublicShuffle() error {
 		return err
 	}
 
-	perm := rand.Perm(len(g.indexes))
+	perm := g.state().Rand().Perm(len(g.indexes))
 
 	currentComponents := g.indexes
 	g.indexes = make([]int, len(g.indexes))
@@ -1570,7 +1573,7 @@ func (s *sizedStack) PublicShuffle() error {
 		return err
 	}
 
-	perm := rand.Perm(len(s.indexes))
+	perm := s.state().Rand().Perm(len(s.indexes))
 
 	currentComponents := s.indexes
 	s.indexes = make([]int, len(s.indexes))
