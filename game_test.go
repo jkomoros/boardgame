@@ -164,7 +164,7 @@ func TestGameSetUp(t *testing.T) {
 
 	manager := newTestGameManger(t)
 
-	game, err := manager.newGameImpl()
+	game, err := manager.newGameImpl("", "")
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -476,7 +476,7 @@ func TestAgent(t *testing.T) {
 
 	manager := newTestGameManger(t)
 
-	game, err := manager.newGameImpl()
+	game, err := manager.newGameImpl("", "")
 
 	assert.For(t).ThatActual(err).IsNil()
 

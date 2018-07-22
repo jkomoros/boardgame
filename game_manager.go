@@ -116,7 +116,7 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 
 	result.agents = delegate.ConfigureAgents()
 
-	exampleState, err := result.newGame().starterState(delegate.DefaultNumPlayers())
+	exampleState, err := result.newGame("", "").starterState(delegate.DefaultNumPlayers())
 
 	if err != nil {
 		return nil, errors.New("Couldn't get exampleState: " + err.Error())
@@ -324,7 +324,7 @@ func (g *GameManager) NewDefaultGame() (*Game, error) {
 //and in general ready for the first move to be proposed.
 func (g *GameManager) NewGame(numPlayers int, config GameConfig, agentNames []string) (*Game, error) {
 
-	result, err := g.newGameImpl()
+	result, err := g.newGameImpl("", "")
 
 	if err != nil {
 		return nil, err
@@ -340,8 +340,8 @@ func (g *GameManager) NewGame(numPlayers int, config GameConfig, agentNames []st
 
 //newGameImpl is NewGame, but without calling SetUp. Broken out only for tests
 //internal to this package.
-func (g *GameManager) newGameImpl() (*Game, error) {
-	result := g.newGame()
+func (g *GameManager) newGameImpl(id, secretSalt string) (*Game, error) {
+	result := g.newGame(id, secretSalt)
 
 	if err := g.modifiableGameCreated(result); err != nil {
 		return nil, errors.New("Couldn't warn that a modifiable game was created: " + err.Error())
@@ -352,10 +352,19 @@ func (g *GameManager) newGameImpl() (*Game, error) {
 
 //newGame is the inner portion of creating a valid game object, but we don't
 //yet tell the system that it exists because we expect to throw it out before
-//saving it. You almost never want this, use NewGame instead.
-func (g *GameManager) newGame() *Game {
+//saving it. You almost never want this, use NewGame instead. If id or
+//secretSalt are "", then reasonable ones will be created automatically.
+func (g *GameManager) newGame(id, secretSalt string) *Game {
 	if g == nil {
 		return nil
+	}
+
+	if id == "" {
+		id = randomString(gameIDLength)
+	}
+
+	if secretSalt == "" {
+		secretSalt = randomString(gameIDLength)
 	}
 
 	return &Game{
@@ -363,8 +372,8 @@ func (g *GameManager) newGame() *Game {
 		//TODO: set the size of chan based on something more reasonable.
 		//Note: this is also set similarly in manager.ModifiableGame
 		proposedMoves: make(chan *proposedMoveItem, 20),
-		id:            randomString(gameIDLength),
-		secretSalt:    randomString(gameIDLength),
+		id:            id,
+		secretSalt:    secretSalt,
 		modifiable:    true,
 	}
 }

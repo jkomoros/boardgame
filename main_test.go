@@ -679,13 +679,6 @@ func testingComponentValues(in []Reader) []*testingComponent {
 	return result
 }
 
-func makeTestGameIdsStable(game *Game) {
-	//having the same fixed salt helps make the test predictable regarding
-	//component ids.
-	game.secretSalt = "FAKESALTFORTESTING"
-	game.id = "FAKEIDFORTESTING"
-}
-
 func testDefaultGame(t *testing.T, stableIds bool) *Game {
 	return testGame(t, stableIds, 0, nil, nil)
 }
@@ -695,14 +688,20 @@ func testGame(t *testing.T, stableIds bool, numPlayers int, config GameConfig, a
 
 	manager := newTestGameManger(t)
 
-	game, err := manager.newGameImpl()
+	id := ""
+	secretSalt := ""
+
+	if stableIds {
+		//having the same fixed salt helps make the test predictable regarding
+		//component ids.
+		id = "FAKEIDFORTESTING"
+		secretSalt = "FAKESALTFORTESTING"
+	}
+
+	game, err := manager.newGameImpl(id, secretSalt)
 
 	if err != nil {
 		t.Error("Couldn't create game: " + err.Error())
-	}
-
-	if stableIds {
-		makeTestGameIdsStable(game)
 	}
 
 	if err := game.setUp(numPlayers, config, agentNames); err != nil {
