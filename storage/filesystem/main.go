@@ -76,6 +76,24 @@ func (s *StorageManager) recordForId(gameId string) (*record, error) {
 	return &result, nil
 }
 
+func (s *StorageManager) saveRecordForId(gameId string, rec *record) error {
+	if s.basePath == "" {
+		return errors.New("Invalid base path")
+	}
+
+	gameId = strings.ToLower(gameId)
+
+	path := filepath.Join(s.basePath, gameId)
+
+	blob, err := json.Marshal(rec)
+
+	if err != nil {
+		return errors.New("Couldn't marshal blob: " + err.Error())
+	}
+
+	return ioutil.WriteFile(path, blob, 0644)
+}
+
 func (s *StorageManager) State(gameId string, version int) (boardgame.StateStorageRecord, error) {
 	rec, err := s.recordForId(gameId)
 
@@ -140,5 +158,21 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 }
 
 func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord, move *boardgame.MoveStorageRecord) error {
-	return nil
+	rec, err := s.recordForId(game.Id)
+
+	if err != nil {
+		//Must be the first save.
+		rec = &record{}
+	}
+
+	rec.Game = game
+
+	rec.States = append(rec.States, state)
+
+	if move != nil {
+		rec.Moves = append(rec.Moves, move)
+	}
+
+	return s.saveRecordForId(game.Id, rec)
+
 }
