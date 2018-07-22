@@ -13,6 +13,8 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/server/api/extendedgame"
+	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/storage/memory"
 	"io/ioutil"
 	"os"
@@ -177,4 +179,27 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 
 	return s.saveRecordForId(game.Id, rec)
 
+}
+
+func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageRecord, error) {
+	rec, err := s.recordForId(id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	eGame, err := s.ExtendedGame(id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &extendedgame.CombinedStorageRecord{
+		*rec.Game,
+		*eGame,
+	}, nil
+}
+
+func (s *StorageManager) ListGames(max int, list listing.Type, userId string, gameType string) []*extendedgame.CombinedStorageRecord {
+	return nil
 }
