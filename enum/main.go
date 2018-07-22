@@ -265,8 +265,11 @@ type Enum interface {
 	//value in it). TreeEnums will instead return BranchDefaultValue for 0, to
 	//ensure that the DefaultValue is a leaf.z
 	DefaultValue() int
-	//RandomValue returns a random value that is Valid() for this enum.
-	RandomValue() int
+	//RandomValue returns a random value that is Valid() for this enum. r is
+	//the source of randomness to use; almost always a good idea to pass
+	//state.Rand() so the calculations can be deterministic. If r is nil a
+	//fallback will be used.
+	RandomValue(r *rand.Rand) int
 	//Valid returns whether the given value is a valid member of this enum.
 	Valid(val int) bool
 	//String returns the string value associated with the given value.
@@ -536,7 +539,7 @@ func (e *enum) DefaultValue() int {
 	return e.defaultValue
 }
 
-func (e *enum) RandomValue() int {
+func (e *enum) RandomValue(r *rand.Rand) int {
 	keys := make([]int, len(e.values))
 
 	i := 0
@@ -544,7 +547,16 @@ func (e *enum) RandomValue() int {
 		keys[i] = key
 		i++
 	}
-	return keys[rand.Intn(len(keys))]
+
+	var index int
+
+	if r == nil {
+		index = rand.Intn(len(keys))
+	} else {
+		index = r.Intn(len(keys))
+	}
+
+	return keys[index]
 }
 
 func (e *enum) Valid(val int) bool {
