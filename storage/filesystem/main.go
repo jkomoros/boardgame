@@ -10,10 +10,15 @@
 package filesystem
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/storage/memory"
+	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
 )
 
 type StorageManager struct {
@@ -47,20 +52,91 @@ func (s *StorageManager) Connect(config string) error {
 	return nil
 }
 
+func (s *StorageManager) recordForId(gameId string) (*record, error) {
+	if s.basePath == "" {
+		return nil, errors.New("No base path provided")
+	}
+
+	gameId = strings.ToLower(gameId)
+
+	path := filepath.Join(s.basePath, gameId)
+
+	var result record
+
+	data, err := ioutil.ReadFile(path)
+
+	if err != nil {
+		return nil, errors.New("Couldn't read file: " + err.Error())
+	}
+
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, errors.New("Couldn't decode json: " + err.Error())
+	}
+
+	return &result, nil
+}
+
 func (s *StorageManager) State(gameId string, version int) (boardgame.StateStorageRecord, error) {
-	return nil, nil
+	rec, err := s.recordForId(gameId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(rec.States) < version {
+		return nil, errors.New("Not enough states to return: " + strconv.Itoa(len(rec.States)))
+	}
+
+	return rec.States[version], nil
 }
 
 func (s *StorageManager) Move(gameId string, version int) (*boardgame.MoveStorageRecord, error) {
-	return nil, nil
+	rec, err := s.recordForId(gameId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(rec.Moves) < version {
+		return nil, errors.New("Not enough moves to return: " + strconv.Itoa(len(rec.Moves)))
+	}
+
+	return rec.Moves[version], nil
 }
 
 func (s *StorageManager) Moves(gameId string, fromVersion, toVersion int) ([]*boardgame.MoveStorageRecord, error) {
-	return nil, nil
+	var result []*boardgame.MoveStorageRecord
+
+	if fromVersion == toVersion {
+		move, err := s.Move(gameId, toVersion)
+		if err != nil {
+			return nil, err
+		}
+		return []*boardgame.MoveStorageRecord{
+			move,
+		}, nil
+	}
+
+	for i := fromVersion; i < toVersion; i++ {
+		move, err := s.Move(gameId, i)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, move)
+	}
+
+	return result, nil
 }
 
 func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
-	return nil, nil
+
+	rec, err := s.recordForId(id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return rec.Game, nil
 }
 
 func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord, move *boardgame.MoveStorageRecord) error {
