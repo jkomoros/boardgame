@@ -34,6 +34,12 @@
   version = "v1.3.1"
 
 [[projects]]
+  name = "github.com/codegangsta/cli"
+  packages = ["."]
+  revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
+  version = "v1.20.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/dustin/go-humanize"
   packages = ["."]
@@ -122,6 +128,12 @@
   version = "v0.0.3"
 
 [[projects]]
+  name = "github.com/sergi/go-diff"
+  packages = ["diffmatchpatch"]
+  revision = "1744e2970ca51c86172c8190fadad617561ed6e7"
+  version = "v1.0.0"
+
+[[projects]]
   name = "github.com/ugorji/go"
   packages = ["codec"]
   revision = "b4c50a2b199d93b13dc15e78929cfb23bfdf21ab"
@@ -132,6 +144,22 @@
   name = "github.com/workfit/tester"
   packages = ["assert"]
   revision = "9a064fa40ac3adabaf298e31575066599905f0b5"
+
+[[projects]]
+  name = "github.com/yudai/gojsondiff"
+  packages = [
+    ".",
+    "formatter",
+    "jd"
+  ]
+  revision = "7b1b7adf999dab73a6eb02669c3d82dbb27a3dd6"
+  version = "1.0.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/yudai/golcs"
+  packages = ["."]
+  revision = "ecda9a501e8220fae3b4b600c3db4b0ba22cfc68"
 
 [[projects]]
   branch = "master"
@@ -169,6 +197,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7daa27ee1d6e5ad1249a4ebcf8ab016deac04062d025d1c776db2d18d94e93ec"
+  inputs-digest = "fb231aaef79c23b84cbe4ccef79eba81801f87ea3f967578d29d483b0bbb2764"
   solver-name = "gps-cdcl"
   solver-version = 1

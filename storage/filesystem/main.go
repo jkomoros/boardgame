@@ -51,12 +51,6 @@ func randomString(length int) string {
 	return result
 }
 
-type record struct {
-	Game   *boardgame.GameStorageRecord
-	States []json.RawMessage
-	Moves  []*boardgame.MoveStorageRecord
-}
-
 type StorageManager struct {
 	//Fall back on those methods
 	*memory.StorageManager
@@ -226,11 +220,14 @@ func (s *StorageManager) State(gameId string, version int) (boardgame.StateStora
 		return nil, err
 	}
 
-	if len(rec.States) < version {
-		return nil, errors.New("Not enough states to return: " + strconv.Itoa(len(rec.States)))
+	result, err := rec.State(version)
+
+	if err != nil {
+		return nil, err
 	}
 
-	return boardgame.StateStorageRecord(rec.States[version]), nil
+	return boardgame.StateStorageRecord(result), nil
+
 }
 
 func (s *StorageManager) Move(gameId string, version int) (*boardgame.MoveStorageRecord, error) {
@@ -278,7 +275,9 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 
 	rec.Game = game
 
-	rec.States = append(rec.States, json.RawMessage(state))
+	if err := rec.AddState(json.RawMessage(state)); err != nil {
+		return errors.New("Couldn't add state: " + err.Error())
+	}
 
 	if move != nil {
 		rec.Moves = append(rec.Moves, move)
