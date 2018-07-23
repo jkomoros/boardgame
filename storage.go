@@ -1,14 +1,15 @@
 package boardgame
 
 import (
+	"encoding/json"
 	"strconv"
 	"time"
 )
 
 //StateStorageRecord is a record representing a state that can be written to
-//storage and later returned. It is an opaque blob, so in most cases storage
-//managers can just write straight to disk with no transformations.
-type StateStorageRecord []byte
+//storage and later returned. It is an encoded json blob, and can be written
+//directly to storage with no modification.
+type StateStorageRecord json.RawMessage
 
 //MoveStorageRecord is a record representing the Move that was made to get the
 //game to its most recent version.
@@ -22,7 +23,7 @@ type MoveStorageRecord struct {
 	//The player index of the proposer of the move.
 	Proposer  PlayerIndex
 	Timestamp time.Time
-	Blob      []byte
+	Blob      json.RawMessage
 }
 
 func (m *MoveStorageRecord) String() string {

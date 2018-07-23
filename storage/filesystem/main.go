@@ -110,7 +110,7 @@ func (s *StorageManager) State(gameId string, version int) (boardgame.StateStora
 		return nil, errors.New("Not enough states to return: " + strconv.Itoa(len(rec.States)))
 	}
 
-	return rec.States[version], nil
+	return boardgame.StateStorageRecord(rec.States[version]), nil
 }
 
 func (s *StorageManager) Move(gameId string, version int) (*boardgame.MoveStorageRecord, error) {
@@ -158,7 +158,7 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 
 	rec.Game = game
 
-	rec.States = append(rec.States, state)
+	rec.States = append(rec.States, json.RawMessage(state))
 
 	if move != nil {
 		rec.Moves = append(rec.Moves, move)
