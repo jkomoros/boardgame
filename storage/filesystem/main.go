@@ -18,11 +18,30 @@ import (
 	"github.com/jkomoros/boardgame/storage/internal/helpers"
 	"github.com/jkomoros/boardgame/storage/memory"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
+
+func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
+}
+
+const randomStringChars = "ABCDEF0123456789"
+
+//randomString returns a random string of the given length.
+func randomString(length int) string {
+	var result = ""
+
+	for len(result) < length {
+		result += string(randomStringChars[rand.Intn(len(randomStringChars))])
+	}
+
+	return result
+}
 
 type record struct {
 	Game   *boardgame.GameStorageRecord
@@ -152,9 +171,44 @@ func (s *StorageManager) saveRecordForId(gameId string, rec *record) error {
 		return errors.New("Couldn't marshal blob: " + err.Error())
 	}
 
+	if err := safeOvewritefile(path, blob); err != nil {
+		return err
+	}
+
 	idToPath[gameId] = path
 
-	return ioutil.WriteFile(path, blob, 0644)
+	return nil
+}
+
+func safeOvewritefile(path string, blob []byte) error {
+
+	//Check for the easy case where the file doesn't exist yet
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return ioutil.WriteFile(path, blob, 0644)
+	}
+
+	dir, name := filepath.Split(path)
+
+	ext := filepath.Ext(name)
+
+	nameWithoutExt := strings.TrimSuffix(name, ext)
+
+	tempFileName := filepath.Join(dir, nameWithoutExt+".TEMP."+randomString(6)+ext)
+
+	if err := ioutil.WriteFile(tempFileName, blob, 0644); err != nil {
+		return errors.New("Couldn't write temp file: " + err.Error())
+	}
+
+	if err := os.Remove(path); err != nil {
+		return errors.New("Couldn't delete the original file: " + err.Error())
+	}
+
+	if err := os.Rename(tempFileName, path); err != nil {
+		return errors.New("Couldn't rename the new file: " + err.Error())
+	}
+
+	return nil
+
 }
 
 func (s *StorageManager) State(gameId string, version int) (boardgame.StateStorageRecord, error) {
