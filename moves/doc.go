@@ -35,7 +35,6 @@ Take this example:
 
 	var moveDealInitialCardsConfig = boardgame.MoveConfig {
 		Name: "Deal Initial Cards",
-		HelpText: "Deal initial cards to players",
 		Constructor: func() boardgame.Move {
 			return new(MoveDealInitialCards)
 		},
