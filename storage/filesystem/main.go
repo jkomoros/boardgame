@@ -44,7 +44,7 @@ func (s *StorageManager) Name() string {
 func (s *StorageManager) Connect(config string) error {
 
 	if _, err := os.Stat(s.basePath); os.IsNotExist(err) {
-		if err := os.Mkdir(s.basePath, 0644); err != nil {
+		if err := os.Mkdir(s.basePath, 0700); err != nil {
 			return errors.New("Base path didn't exist and couldn't create it: " + err.Error())
 		}
 	}
