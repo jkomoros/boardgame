@@ -1,7 +1,8 @@
 /*
 
-mysql provides a bolt-backed database that implements both
-boardgame.StorageManager and boardgame/server.StorageManager.
+mysql provides a mysql-backed database that implements both
+boardgame.StorageManager and boardgame/server.StorageManager. See the
+README.md for more information on how to configure and use it.
 
 */
 package mysql
@@ -67,6 +68,11 @@ type StorageManager struct {
 	connected bool
 }
 
+//NewStorageManager returns a new storage manager. Does most of its set-up
+//work in Connect(), which is when the database configuration information is
+//passed. testMode is whether or not the storage manager is being run in the
+//context of a test; if false, then calls to CleanUp (which drops the entire
+//database) won't do anything.
 func NewStorageManager(testMode bool) *StorageManager {
 	//We actually don't do much; we do more of our work in Connect()
 	return &StorageManager{
