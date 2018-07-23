@@ -15,6 +15,7 @@ import (
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/server/api/users"
+	"github.com/jkomoros/boardgame/storage/internal/helpers"
 	"sort"
 	"sync"
 )
@@ -87,25 +88,7 @@ func (s *StorageManager) State(gameId string, version int) (boardgame.StateStora
 }
 
 func (s *StorageManager) Moves(gameId string, fromVersion, toVersion int) ([]*boardgame.MoveStorageRecord, error) {
-
-	//There's no efficiency boost for fetching multiple moves at once so just wrap around Move()
-
-	if fromVersion == toVersion {
-		fromVersion = fromVersion - 1
-	}
-
-	result := make([]*boardgame.MoveStorageRecord, toVersion-fromVersion)
-
-	index := 0
-	for i := fromVersion + 1; i <= toVersion; i++ {
-		move, err := s.Move(gameId, i)
-		if err != nil {
-			return nil, err
-		}
-		result[index] = move
-		index++
-	}
-	return result, nil
+	return helpers.MovesHelper(s, gameId, fromVersion, toVersion)
 }
 
 func (s *StorageManager) Move(gameId string, version int) (*boardgame.MoveStorageRecord, error) {
