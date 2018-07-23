@@ -36,6 +36,13 @@ type StorageManager struct {
 	basePath string
 }
 
+//Store seen ids and remember where the path was
+var idToPath map[string]string
+
+func init() {
+	idToPath = make(map[string]string)
+}
+
 func NewStorageManager(basePath string) *StorageManager {
 
 	return &StorageManager{
@@ -66,6 +73,11 @@ func (s *StorageManager) CleanUp() {
 //pathForId will look through each sub-folder and look for a file named
 //gameId.json, returning its relative path if it is found, "" otherwise.
 func pathForId(basePath, gameId string) string {
+
+	if path, ok := idToPath[gameId]; ok {
+		return path
+	}
+
 	items, err := ioutil.ReadDir(basePath)
 	if err != nil {
 		return ""
@@ -79,7 +91,9 @@ func pathForId(basePath, gameId string) string {
 		}
 
 		if item.Name() == gameId+".json" {
-			return filepath.Join(basePath, item.Name())
+			result := filepath.Join(basePath, item.Name())
+			idToPath[gameId] = result
+			return result
 		}
 	}
 	return ""
@@ -137,6 +151,8 @@ func (s *StorageManager) saveRecordForId(gameId string, rec *record) error {
 	if err != nil {
 		return errors.New("Couldn't marshal blob: " + err.Error())
 	}
+
+	idToPath[gameId] = path
 
 	return ioutil.WriteFile(path, blob, 0644)
 }
