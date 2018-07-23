@@ -119,6 +119,12 @@ func (s *StorageManager) Move(gameId string, version int) (*boardgame.MoveStorag
 		return nil, err
 	}
 
+	//version is effectively 1-indexed, since we don't store a move for the
+	//first version, but we store them in 0-indexed since we use the array
+	//index. So convert to that.
+
+	version -= 1
+
 	if len(rec.Moves) < version {
 		return nil, errors.New("Not enough moves to return: " + strconv.Itoa(len(rec.Moves)))
 	}
@@ -127,26 +133,26 @@ func (s *StorageManager) Move(gameId string, version int) (*boardgame.MoveStorag
 }
 
 func (s *StorageManager) Moves(gameId string, fromVersion, toVersion int) ([]*boardgame.MoveStorageRecord, error) {
-	var result []*boardgame.MoveStorageRecord
+
+	//Copied from memory.StorageManager.Moves
+
+	//There's no efficiency boost for fetching multiple moves at once so just wrap around Move()
 
 	if fromVersion == toVersion {
-		move, err := s.Move(gameId, toVersion)
-		if err != nil {
-			return nil, err
-		}
-		return []*boardgame.MoveStorageRecord{
-			move,
-		}, nil
+		fromVersion = fromVersion - 1
 	}
 
-	for i := fromVersion; i < toVersion; i++ {
+	result := make([]*boardgame.MoveStorageRecord, toVersion-fromVersion)
+
+	index := 0
+	for i := fromVersion + 1; i <= toVersion; i++ {
 		move, err := s.Move(gameId, i)
 		if err != nil {
 			return nil, err
 		}
-		result = append(result, move)
+		result[index] = move
+		index++
 	}
-
 	return result, nil
 }
 
