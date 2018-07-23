@@ -16,7 +16,6 @@ import (
 	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/jkomoros/boardgame/storage/internal/helpers"
-	"sort"
 	"sync"
 )
 
@@ -230,87 +229,21 @@ func (s *StorageManager) SaveAgentState(gameId string, player boardgame.PlayerIn
 	return nil
 }
 
-//ListGames will return game objects for up to max number of games
-func (s *StorageManager) ListGames(max int, list listing.Type, userId string, gameType string) []*extendedgame.CombinedStorageRecord {
+func (s *StorageManager) AllGames() []*boardgame.GameStorageRecord {
+	var result []*boardgame.GameStorageRecord
 
-	if (list == listing.ParticipatingActive || list == listing.ParticipatingFinished) && userId == "" {
-		//If we're filtering to only participating games and there's no userId, then there can't be any games,
-		//because the non-user can't be participating in any games.
-		return nil
-	}
-
-	var result []*extendedgame.CombinedStorageRecord
-
+	s.gamesLock.RLock()
 	for _, game := range s.games {
-
-		if gameType != "" {
-			if game.Name != gameType {
-				continue
-			}
-		}
-
-		eGame := s.extendedGames[game.Id]
-
-		usersForGame := s.UserIdsForGame(game.Id)
-
-		hasUser := false
-		numUsers := 0
-
-		for _, user := range usersForGame {
-			if user != "" {
-				numUsers++
-			}
-			if userId != "" && user == userId {
-				hasUser = true
-				break
-			}
-		}
-
-		numAgents := 0
-
-		for _, agent := range game.Agents {
-			if agent != "" {
-				numAgents++
-			}
-		}
-
-		hasSlots := game.NumPlayers > (numUsers + numAgents)
-
-		switch list {
-		case listing.ParticipatingActive:
-			if game.Finished || !hasUser {
-				continue
-			}
-		case listing.ParticipatingFinished:
-			if !game.Finished || !hasUser {
-				continue
-			}
-		case listing.VisibleJoinableActive:
-			if game.Finished || hasUser || !eGame.Visible || !eGame.Open || !hasSlots {
-				continue
-			}
-		case listing.VisibleActive:
-			if game.Finished || hasUser || !eGame.Visible || (eGame.Open && hasSlots) {
-				continue
-			}
-		}
-
-		result = append(result, &extendedgame.CombinedStorageRecord{
-			GameStorageRecord: *game,
-			StorageRecord:     *eGame,
-		})
-
-		if len(result) >= max {
-			break
-		}
+		result = append(result, game)
 	}
-
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].Modified.After(result[j].Modified)
-	})
+	s.gamesLock.RUnlock()
 
 	return result
+}
 
+//ListGames will return game objects for up to max number of games
+func (s *StorageManager) ListGames(max int, list listing.Type, userId string, gameType string) []*extendedgame.CombinedStorageRecord {
+	return helpers.ListGamesHelper(s, max, list, userId, gameType)
 }
 
 func (s *StorageManager) ExtendedGame(id string) (*extendedgame.StorageRecord, error) {

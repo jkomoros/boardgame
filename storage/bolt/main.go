@@ -17,7 +17,6 @@ import (
 	"github.com/jkomoros/boardgame/storage/internal/helpers"
 	"log"
 	"os"
-	"sort"
 	"strconv"
 	"strings"
 )
@@ -352,15 +351,8 @@ func (s *StorageManager) SaveAgentState(gameId string, player boardgame.PlayerIn
 
 }
 
-func (s *StorageManager) ListGames(max int, list listing.Type, userId string, gameType string) []*extendedgame.CombinedStorageRecord {
-
-	if (list == listing.ParticipatingActive || list == listing.ParticipatingFinished) && userId == "" {
-		//If we're filtering to only participating games and there's no userId, then there can't be any games,
-		//because the non-user can't be participating in any games.
-		return nil
-	}
-
-	var resultIds []string
+func (s *StorageManager) AllGames() []*boardgame.GameStorageRecord {
+	var results []*boardgame.GameStorageRecord
 
 	err := s.db.View(func(tx *bolt.Tx) error {
 
@@ -378,7 +370,7 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string, ga
 				return errors.New("Couldn't deserialize a game: " + err.Error())
 			}
 
-			resultIds = append(resultIds, record.Id)
+			results = append(results, &record)
 		}
 
 		return nil
@@ -389,80 +381,11 @@ func (s *StorageManager) ListGames(max int, list listing.Type, userId string, ga
 		return nil
 	}
 
-	var result []*extendedgame.CombinedStorageRecord
+	return results
+}
 
-	for _, id := range resultIds {
-
-		if len(result) >= max {
-			break
-		}
-
-		game, err := s.CombinedGame(id)
-
-		if err != nil {
-			continue
-		}
-
-		if gameType != "" {
-			if game.Name != gameType {
-				continue
-			}
-		}
-
-		usersForGame := s.UserIdsForGame(game.Id)
-
-		hasUser := false
-
-		numUsers := 0
-
-		for _, user := range usersForGame {
-			if user != "" {
-				numUsers++
-			}
-			if userId != "" && user == userId {
-				hasUser = true
-				break
-			}
-		}
-
-		numAgents := 0
-
-		for _, agent := range game.Agents {
-			if agent != "" {
-				numAgents++
-			}
-		}
-
-		hasSlots := game.NumPlayers > (numUsers + numAgents)
-
-		switch list {
-		case listing.ParticipatingActive:
-			if game.Finished || !hasUser {
-				continue
-			}
-		case listing.ParticipatingFinished:
-			if !game.Finished || !hasUser {
-				continue
-			}
-		case listing.VisibleJoinableActive:
-			if game.Finished || hasUser || !game.Visible || !game.Open || !hasSlots {
-				continue
-			}
-		case listing.VisibleActive:
-			if game.Finished || hasUser || !game.Visible || (hasSlots && game.Open) {
-				continue
-			}
-		}
-
-		result = append(result, game)
-	}
-
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].Modified.After(result[j].Modified)
-	})
-
-	return result
-
+func (s *StorageManager) ListGames(max int, list listing.Type, userId string, gameType string) []*extendedgame.CombinedStorageRecord {
+	return helpers.ListGamesHelper(s, max, list, userId, gameType)
 }
 
 func (s *StorageManager) ExtendedGame(id string) (*extendedgame.StorageRecord, error) {
