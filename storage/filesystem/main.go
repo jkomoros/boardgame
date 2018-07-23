@@ -177,7 +177,15 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		rec.Moves = append(rec.Moves, move)
 	}
 
-	return s.saveRecordForId(game.Id, rec)
+	if err := s.saveRecordForId(game.Id, rec); err != nil {
+		return errors.New("Couldn't save primary game: " + err.Error())
+	}
+
+	//Also pass down into the memory so that other things like ExtendedGame
+	//work as expected. Note that this won't work for games that exist in
+	//filesystem when the storage maanager is booted; but this is primarily
+	//just to pass the server.StorageManager test suite.
+	return s.StorageManager.SaveGameAndCurrentState(game, state, move)
 
 }
 
