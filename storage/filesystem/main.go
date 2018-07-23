@@ -63,6 +63,28 @@ func (s *StorageManager) CleanUp() {
 	os.RemoveAll(s.basePath)
 }
 
+//pathForId will look through each sub-folder and look for a file named
+//gameId.json, returning its relative path if it is found, "" otherwise.
+func pathForId(basePath, gameId string) string {
+	items, err := ioutil.ReadDir(basePath)
+	if err != nil {
+		return ""
+	}
+	for _, item := range items {
+		if item.IsDir() {
+			if recursiveResult := pathForId(filepath.Join(basePath, item.Name()), gameId); recursiveResult != "" {
+				return recursiveResult
+			}
+			continue
+		}
+
+		if item.Name() == gameId+".json" {
+			return filepath.Join(basePath, item.Name())
+		}
+	}
+	return ""
+}
+
 func (s *StorageManager) recordForId(gameId string) (*record, error) {
 	if s.basePath == "" {
 		return nil, errors.New("No base path provided")
@@ -70,15 +92,19 @@ func (s *StorageManager) recordForId(gameId string) (*record, error) {
 
 	gameId = strings.ToLower(gameId)
 
-	path := filepath.Join(s.basePath, gameId+".json")
+	path := pathForId(s.basePath, gameId)
 
-	var result record
+	if path == "" {
+		return nil, errors.New("Couldn't find file matching: " + gameId)
+	}
 
 	data, err := ioutil.ReadFile(path)
 
 	if err != nil {
 		return nil, errors.New("Couldn't read file: " + err.Error())
 	}
+
+	var result record
 
 	if err := json.Unmarshal(data, &result); err != nil {
 		return nil, errors.New("Couldn't decode json: " + err.Error())
@@ -92,9 +118,19 @@ func (s *StorageManager) saveRecordForId(gameId string, rec *record) error {
 		return errors.New("Invalid base path")
 	}
 
+	if rec.Game == nil {
+		return errors.New("Game record in rec was nil")
+	}
+
 	gameId = strings.ToLower(gameId)
 
-	path := filepath.Join(s.basePath, gameId+".json")
+	path := filepath.Join(s.basePath, rec.Game.Name, gameId+".json")
+
+	dir, _ := filepath.Split(path)
+
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return errors.New("Couldn't create all necessary sub-paths: " + err.Error())
+	}
 
 	blob, err := json.MarshalIndent(rec, "", "\t")
 
@@ -206,9 +242,9 @@ func idFromPath(path string) string {
 	return strings.TrimSuffix(filename, ".json")
 }
 
-func (s *StorageManager) AllGames() []*boardgame.GameStorageRecord {
+func (s *StorageManager) recursiveAllGames(basePath string) []*boardgame.GameStorageRecord {
 
-	files, err := ioutil.ReadDir(s.basePath)
+	files, err := ioutil.ReadDir(basePath)
 
 	if err != nil {
 		return nil
@@ -217,6 +253,11 @@ func (s *StorageManager) AllGames() []*boardgame.GameStorageRecord {
 	var result []*boardgame.GameStorageRecord
 
 	for _, file := range files {
+
+		if file.IsDir() {
+			result = append(result, s.recursiveAllGames(filepath.Join(basePath, file.Name()))...)
+			continue
+		}
 		ext := filepath.Ext(file.Name())
 		if ext != ".json" {
 			continue
@@ -227,8 +268,11 @@ func (s *StorageManager) AllGames() []*boardgame.GameStorageRecord {
 		}
 		result = append(result, rec.Game)
 	}
-
 	return result
+}
+
+func (s *StorageManager) AllGames() []*boardgame.GameStorageRecord {
+	return s.recursiveAllGames(s.basePath)
 }
 
 func (s *StorageManager) ListGames(max int, list listing.Type, userId string, gameType string) []*extendedgame.CombinedStorageRecord {
