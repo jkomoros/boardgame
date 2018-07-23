@@ -6,6 +6,14 @@
 	for cases where having an easy-to-read, diffable representation for games
 	makes sense, for example to create golden tester games for use in testing.
 
+	filesystem stores files according to their gametype in the given base
+	folder, for example 'checkers/a22ffcdef.json'. If the sub-folders don't
+	exist, they will be created. Folders may be soft-linked from within the
+	base folder; often when using the filesystem storage layer to help
+	generate test cases you set up soft-links from a central location to a
+	folder for test files in each game's sub-directory, so the test files can
+	be in the same place.
+
 */
 package filesystem
 
