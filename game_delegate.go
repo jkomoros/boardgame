@@ -330,7 +330,7 @@ func (d *DefaultGameDelegate) ProposeFixUpMove(state ImmutableState) Move {
 		logEntry.Debug("***** ProposeFixUpMove called *****")
 	}
 
-	for _, move := range d.Manager().ExampleMoves() {
+	for _, move := range state.Game().Moves() {
 
 		var entry *logrus.Entry
 		if isDebug {
