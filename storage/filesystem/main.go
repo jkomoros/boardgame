@@ -195,6 +195,36 @@ func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageR
 	}, nil
 }
 
+func idFromPath(path string) string {
+	_, filename := filepath.Split(path)
+	return strings.TrimSuffix(filename, ".json")
+}
+
+func (s *StorageManager) AllGames() []*boardgame.GameStorageRecord {
+
+	files, err := ioutil.ReadDir(s.basePath)
+
+	if err != nil {
+		return nil
+	}
+
+	var result []*boardgame.GameStorageRecord
+
+	for _, file := range files {
+		ext := filepath.Ext(file.Name())
+		if ext != "json" {
+			continue
+		}
+		rec, err := s.recordForId(idFromPath(file.Name()))
+		if err != nil {
+			return nil
+		}
+		result = append(result, rec.Game)
+	}
+
+	return result
+}
+
 func (s *StorageManager) ListGames(max int, list listing.Type, userId string, gameType string) []*extendedgame.CombinedStorageRecord {
-	return nil
+	return helpers.ListGamesHelper(s, max, list, userId, gameType)
 }
