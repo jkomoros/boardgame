@@ -24,6 +24,12 @@ import (
 	"strings"
 )
 
+type record struct {
+	Game   *boardgame.GameStorageRecord
+	States []json.RawMessage
+	Moves  []*boardgame.MoveStorageRecord
+}
+
 type StorageManager struct {
 	//Fall back on those methods
 	*memory.StorageManager
