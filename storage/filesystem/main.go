@@ -212,7 +212,7 @@ func (s *StorageManager) AllGames() []*boardgame.GameStorageRecord {
 
 	for _, file := range files {
 		ext := filepath.Ext(file.Name())
-		if ext != "json" {
+		if ext != ".json" {
 			continue
 		}
 		rec, err := s.recordForId(idFromPath(file.Name()))
