@@ -89,7 +89,7 @@ func (s *StorageManager) saveRecordForId(gameId string, rec *record) error {
 
 	path := filepath.Join(s.basePath, gameId+".json")
 
-	blob, err := json.Marshal(rec)
+	blob, err := json.MarshalIndent(rec, "", "\t")
 
 	if err != nil {
 		return errors.New("Couldn't marshal blob: " + err.Error())
