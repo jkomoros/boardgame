@@ -702,3 +702,7 @@ func (s *StorageManager) PlayerMoveApplied(game *boardgame.GameStorageRecord) er
 	//Don't need to do anything
 	return nil
 }
+
+func (s *StorageManager) WithManagers(managers []*boardgame.GameManager) {
+	//Do nothing
+}

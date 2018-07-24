@@ -12,9 +12,10 @@ type GameChecker interface {
 	Game(gameId string) (*boardgame.GameStorageRecord, error)
 }
 
-//ExtendedMemoryStorageManager implements the ExtendedGame methods in memory.
-//Designed to be embedded anonymously in the containing item. Get a new one
-//from NewExtendedMemoryStorageManager.
+//ExtendedMemoryStorageManager implements the ExtendedGame methods (i.e the
+//methods in server.StorageManager) in memory. Designed to be embedded
+//anonymously in the containing item. Get a new one from
+//NewExtendedMemoryStorageManager.
 type ExtendedMemoryStorageManager struct {
 	agentStates   map[string][]byte
 	extendedGames map[string]*extendedgame.StorageRecord
@@ -95,6 +96,8 @@ func (s *ExtendedMemoryStorageManager) CombinedGame(id string) (*extendedgame.Co
 	return result, nil
 }
 
+//ExtendedGame will return extendedgame.DefaultStorageRecord() if the
+//associated game exists.
 func (s *ExtendedMemoryStorageManager) ExtendedGame(id string) (*extendedgame.StorageRecord, error) {
 	s.extendedGamesLock.RLock()
 	eGame := s.extendedGames[id]
@@ -232,4 +235,8 @@ func (s *ExtendedMemoryStorageManager) CleanUp() {
 func (s *ExtendedMemoryStorageManager) PlayerMoveApplied(game *boardgame.GameStorageRecord) error {
 	//Don't need to do anything
 	return nil
+}
+
+func (s *ExtendedMemoryStorageManager) WithManagers(managers []*boardgame.GameManager) {
+	//Do nothing
 }

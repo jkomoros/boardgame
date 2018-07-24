@@ -97,6 +97,8 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 
 	storage.server = result
 
+	var managers []*boardgame.GameManager
+
 	for _, delegate := range delegates {
 
 		manager, err := boardgame.NewGameManager(delegate, storage)
@@ -109,6 +111,7 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 		name := manager.Delegate().Name()
 		manager.SetLogger(logger)
 		result.managers[name] = manager
+		managers = append(managers, manager)
 		if manager.Storage() != storage {
 			logger.Fatalln("The storage for one of the managers was not the same item passed in as major storage.")
 			return nil
@@ -120,6 +123,8 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 		WriteBufferSize: 1024,
 		CheckOrigin:     result.checkOriginForSocket,
 	}
+
+	storage.WithManagers(managers)
 
 	return result
 

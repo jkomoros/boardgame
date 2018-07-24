@@ -24,6 +24,9 @@ type StorageManager interface {
 	//Name returns the name of the storage manager type, for example "memory", "bolt", or "mysql"
 	Name() string
 
+	//WithManagers is called during set up with references to all of the managers.
+	WithManagers(managers []*boardgame.GameManager)
+
 	//Connect will be called before issuing any other substantive calls. The
 	//config string is specific to the type of storage layer, which can be
 	//interrogated with Nmae().
