@@ -24,7 +24,6 @@ import (
 	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/storage/filesystem/record"
 	"github.com/jkomoros/boardgame/storage/internal/helpers"
-	"github.com/jkomoros/boardgame/storage/memory"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -33,7 +32,7 @@ import (
 
 type StorageManager struct {
 	//Fall back on those methods
-	*memory.StorageManager
+	*helpers.ExtendedMemoryStorageManager
 	basePath string
 }
 
@@ -46,10 +45,13 @@ func init() {
 
 func NewStorageManager(basePath string) *StorageManager {
 
-	return &StorageManager{
-		memory.NewStorageManager(),
-		basePath,
+	result := &StorageManager{
+		basePath: basePath,
 	}
+
+	result.ExtendedMemoryStorageManager = helpers.NewExtendedMemoryStorageManager(result)
+
+	return result
 }
 
 func (s *StorageManager) Name() string {
@@ -198,15 +200,7 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		return errors.New("Couldn't add state: " + err.Error())
 	}
 
-	if err := s.saveRecordForId(game.Id, rec); err != nil {
-		return errors.New("Couldn't save primary game: " + err.Error())
-	}
-
-	//Also pass down into the memory so that other things like ExtendedGame
-	//work as expected. Note that this won't work for games that exist in
-	//filesystem when the storage maanager is booted; but this is primarily
-	//just to pass the server.StorageManager test suite.
-	return s.StorageManager.SaveGameAndCurrentState(game, state, move)
+	return s.saveRecordForId(game.Id, rec)
 
 }
 

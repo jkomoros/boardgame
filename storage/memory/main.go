@@ -14,42 +14,32 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
-	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/jkomoros/boardgame/storage/internal/helpers"
 	"sync"
 )
 
 type StorageManager struct {
-	states            map[string]map[int]boardgame.StateStorageRecord
-	moves             map[string]map[int]*boardgame.MoveStorageRecord
-	games             map[string]*boardgame.GameStorageRecord
-	extendedGames     map[string]*extendedgame.StorageRecord
-	usersById         map[string]*users.StorageRecord
-	usersByCookie     map[string]*users.StorageRecord
-	usersForGames     map[string][]string
-	agentStates       map[string][]byte
-	statesLock        sync.RWMutex
-	movesLock         sync.RWMutex
-	gamesLock         sync.RWMutex
-	extendedGamesLock sync.RWMutex
-	usersLock         sync.RWMutex
-	usersForGamesLock sync.RWMutex
-	agentStatesLock   sync.RWMutex
+	states map[string]map[int]boardgame.StateStorageRecord
+	moves  map[string]map[int]*boardgame.MoveStorageRecord
+	games  map[string]*boardgame.GameStorageRecord
+
+	statesLock sync.RWMutex
+	movesLock  sync.RWMutex
+	gamesLock  sync.RWMutex
+
+	*helpers.ExtendedMemoryStorageManager
 }
 
 func NewStorageManager() *StorageManager {
 	//InMemoryStorageManager is an extremely simple StorageManager that just keeps
 	//track of the objects in memory.
-	return &StorageManager{
-		states:        make(map[string]map[int]boardgame.StateStorageRecord),
-		moves:         make(map[string]map[int]*boardgame.MoveStorageRecord),
-		games:         make(map[string]*boardgame.GameStorageRecord),
-		extendedGames: make(map[string]*extendedgame.StorageRecord),
-		usersById:     make(map[string]*users.StorageRecord),
-		usersByCookie: make(map[string]*users.StorageRecord),
-		usersForGames: make(map[string][]string),
-		agentStates:   make(map[string][]byte),
+	result := &StorageManager{
+		states: make(map[string]map[int]boardgame.StateStorageRecord),
+		moves:  make(map[string]map[int]*boardgame.MoveStorageRecord),
+		games:  make(map[string]*boardgame.GameStorageRecord),
 	}
+	result.ExtendedMemoryStorageManager = helpers.NewExtendedMemoryStorageManager(result)
+	return result
 }
 
 func (s *StorageManager) Name() string {
@@ -178,15 +168,6 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		return errors.New("There was already a version for that game stored")
 	}
 
-	s.extendedGamesLock.RLock()
-	_, ok = s.extendedGames[game.Id]
-	s.extendedGamesLock.RUnlock()
-	if !ok {
-		s.extendedGamesLock.Lock()
-		s.extendedGames[game.Id] = extendedgame.DefaultStorageRecord()
-		s.extendedGamesLock.Unlock()
-	}
-
 	s.statesLock.Lock()
 	versionMap[version] = state
 	s.statesLock.Unlock()
@@ -200,31 +181,6 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 	s.gamesLock.Lock()
 	s.games[game.Id] = game
 	s.gamesLock.Unlock()
-
-	return nil
-}
-
-func keyForAgent(gameId string, player boardgame.PlayerIndex) string {
-	return gameId + "-" + player.String()
-}
-
-func (s *StorageManager) AgentState(gameId string, player boardgame.PlayerIndex) ([]byte, error) {
-
-	key := keyForAgent(gameId, player)
-
-	s.agentStatesLock.RLock()
-	result := s.agentStates[key]
-	s.agentStatesLock.RUnlock()
-
-	return result, nil
-}
-
-func (s *StorageManager) SaveAgentState(gameId string, player boardgame.PlayerIndex, state []byte) error {
-	key := keyForAgent(gameId, player)
-
-	s.agentStatesLock.Lock()
-	s.agentStates[key] = state
-	s.agentStatesLock.Unlock()
 
 	return nil
 }
@@ -244,153 +200,4 @@ func (s *StorageManager) AllGames() []*boardgame.GameStorageRecord {
 //ListGames will return game objects for up to max number of games
 func (s *StorageManager) ListGames(max int, list listing.Type, userId string, gameType string) []*extendedgame.CombinedStorageRecord {
 	return helpers.ListGamesHelper(s, max, list, userId, gameType)
-}
-
-func (s *StorageManager) ExtendedGame(id string) (*extendedgame.StorageRecord, error) {
-	s.extendedGamesLock.RLock()
-	eGame := s.extendedGames[id]
-	s.extendedGamesLock.RUnlock()
-	if eGame == nil {
-		return nil, errors.New("No such extended game")
-	}
-
-	return eGame, nil
-}
-
-func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageRecord, error) {
-	s.extendedGamesLock.RLock()
-	eGame := s.extendedGames[id]
-	s.extendedGamesLock.RUnlock()
-	if eGame == nil {
-		return nil, errors.New("No such extended game")
-	}
-
-	game, err := s.Game(id)
-
-	if err != nil {
-		return nil, err
-	}
-
-	result := &extendedgame.CombinedStorageRecord{
-		GameStorageRecord: *game,
-		StorageRecord:     *eGame,
-	}
-
-	return result, nil
-}
-
-func (s *StorageManager) UpdateExtendedGame(id string, eGame *extendedgame.StorageRecord) error {
-	s.extendedGamesLock.Lock()
-	s.extendedGames[id] = eGame
-	s.extendedGamesLock.Unlock()
-	return nil
-}
-
-func (s *StorageManager) UserIdsForGame(gameId string) []string {
-	s.usersForGamesLock.RLock()
-	ids := s.usersForGames[gameId]
-	s.usersForGamesLock.RUnlock()
-
-	if ids == nil {
-		game, _ := s.Game(gameId)
-		if game == nil {
-			return nil
-		}
-		return make([]string, game.NumPlayers)
-	}
-
-	return ids
-}
-
-func (s *StorageManager) SetPlayerForGame(gameId string, playerIndex boardgame.PlayerIndex, userId string) error {
-	ids := s.UserIdsForGame(gameId)
-
-	if int(playerIndex) < 0 || int(playerIndex) >= len(ids) {
-		return errors.New("PlayerIndex " + playerIndex.String() + " is not valid for this game.")
-	}
-
-	if ids[playerIndex] != "" {
-		return errors.New("PlayerIndex " + playerIndex.String() + " is already taken.")
-	}
-
-	user := s.GetUserById(userId)
-
-	if user == nil {
-		return errors.New("That uid does not describe an existing user")
-	}
-
-	ids[playerIndex] = userId
-
-	s.usersForGamesLock.Lock()
-	s.usersForGames[gameId] = ids
-	s.usersForGamesLock.Unlock()
-
-	return nil
-}
-
-//Store or update all fields
-func (s *StorageManager) UpdateUser(user *users.StorageRecord) error {
-
-	s.usersLock.Lock()
-	s.usersById[user.Id] = user
-	s.usersLock.Unlock()
-
-	return nil
-
-}
-
-func (s *StorageManager) GetUserById(uid string) *users.StorageRecord {
-	s.usersLock.RLock()
-	user := s.usersById[uid]
-	s.usersLock.RUnlock()
-
-	return user
-}
-
-func (s *StorageManager) GetUserByCookie(cookie string) *users.StorageRecord {
-	s.usersLock.RLock()
-	user := s.usersByCookie[cookie]
-	s.usersLock.RUnlock()
-
-	return user
-}
-
-//If user is nil, the cookie should be deleted if it exists. If the user
-//does not yet exist, it should be added to the database.
-func (s *StorageManager) ConnectCookieToUser(cookie string, user *users.StorageRecord) error {
-	if user == nil {
-		s.usersLock.Lock()
-		delete(s.usersByCookie, cookie)
-		s.usersLock.Unlock()
-		return nil
-	}
-
-	otherUser := s.GetUserById(user.Id)
-
-	if otherUser == nil {
-		s.UpdateUser(user)
-	}
-
-	s.usersLock.Lock()
-	s.usersByCookie[cookie] = user
-	s.usersLock.Unlock()
-
-	return nil
-}
-
-func (s *StorageManager) Connect(config string) error {
-	return nil
-}
-
-func (s *StorageManager) Close() {
-	//Don't need to do anything
-}
-
-func (s *StorageManager) CleanUp() {
-	//Don't need to do
-}
-
-func (s *StorageManager) PlayerMoveApplied(game *boardgame.GameStorageRecord) error {
-	//Don't need to do anything
-	return nil
 }
