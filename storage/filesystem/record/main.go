@@ -48,6 +48,7 @@ type storageRecord struct {
 	//StatePatches are diffs from the state before. Get the actual state for a
 	//version with State().
 	StatePatches []json.RawMessage
+	Description  string `json:"omitempty"`
 }
 
 //New returns a new record with the data encoded in the file. If you want an
@@ -81,6 +82,16 @@ func (r *Record) Game() *boardgame.GameStorageRecord {
 		return nil
 	}
 	return r.data.Game
+}
+
+//Description returns the top-level description string set in the json file.
+//There's no way to set this except by modifying the JSON serialization
+//directly, but it can be read from record.
+func (r *Record) Description() string {
+	if r.data == nil {
+		return ""
+	}
+	return r.data.Description
 }
 
 func (r *Record) Move(version int) (*boardgame.MoveStorageRecord, error) {
