@@ -445,7 +445,9 @@ func (s *Server) getMoveFromForm(c *gin.Context, game *boardgame.Game) (boardgam
 			if err != nil {
 				return nil, errors.New(fmt.Sprint("Couldn't set field", field.Name, err))
 			}
-			move.ReadSetter().SetProp(field.Name, num)
+			if err := move.ReadSetter().SetIntProp(field.Name, num); err != nil {
+				return nil, errors.New("Couldn't set int prop " + field.Name + " " + err.Error())
+			}
 		case boardgame.TypePlayerIndex:
 			if rawVal == "" {
 				return nil, errors.New("An int field had no value " + field.Name)
@@ -454,20 +456,26 @@ func (s *Server) getMoveFromForm(c *gin.Context, game *boardgame.Game) (boardgam
 			if err != nil {
 				return nil, errors.New("Couldn't set field " + field.Name + " " + err.Error())
 			}
-			move.ReadSetter().SetProp(field.Name, boardgame.PlayerIndex(num))
+			if err := move.ReadSetter().SetPlayerIndexProp(field.Name, boardgame.PlayerIndex(num)); err != nil {
+				return nil, errors.New("Couldn't set int prop " + field.Name + " " + err.Error())
+			}
 		case boardgame.TypeBool:
 			if rawVal == "" {
-				move.ReadSetter().SetProp(field.Name, false)
+				if err := move.ReadSetter().SetBoolProp(field.Name, false); err != nil {
+					return nil, errors.New("Couldn't set bool prop with default: " + field.Name + " " + err.Error())
+				}
 				continue
 			}
 			num, err := strconv.Atoi(rawVal)
 			if err != nil {
 				return nil, errors.New(fmt.Sprint("Couldn't set field", field.Name, err))
 			}
+			val := false
 			if num == 1 {
-				move.ReadSetter().SetProp(field.Name, true)
-			} else {
-				move.ReadSetter().SetProp(field.Name, false)
+				val = true
+			}
+			if err := move.ReadSetter().SetBoolProp(field.Name, val); err != nil {
+				return nil, errors.New("Couldnt set bool prop " + field.Name + ": " + err.Error())
 			}
 		case boardgame.TypeEnum:
 			eVar, err := move.ReadSetter().EnumProp(field.Name)
