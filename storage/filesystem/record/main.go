@@ -34,9 +34,8 @@ type Record struct {
 	Moves []*boardgame.MoveStorageRecord
 	//StatePatches are diffs from the state before. Get the actual state for a
 	//version with State().
-	StatePatches   []json.RawMessage
-	states         []json.RawMessage
-	expandedStates []map[string]interface{}
+	StatePatches []json.RawMessage
+	states       []json.RawMessage
 }
 
 func New(filename string) (*Record, error) {
