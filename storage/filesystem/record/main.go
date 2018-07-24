@@ -3,6 +3,12 @@
 	record is a package to open, read, and save game records stored in
 	filesystem's format.
 
+	Note that because reading the files from disk is expensive, this library
+	maintains a cache of records by filename that it returns, for a
+	considerable performance boost. This means that changes in the filesystem
+	while the storage layer is running that aren't mediated by this controller
+	will cause undefined behavior.
+
 */
 package record
 
@@ -22,8 +28,11 @@ import (
 
 const randomStringChars = "ABCDEF0123456789"
 
+var recCache map[string]*Record
+
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
+	recCache = make(map[string]*Record, 16)
 }
 
 //Record is a record of moves, states, and game. Get a new one based on the
@@ -42,8 +51,14 @@ type storageRecord struct {
 }
 
 //New returns a new record with the data encoded in the file. If you want an
-//empty record, just instantiate a blank struct.
+//empty record, just instantiate a blank struct. If a record with that
+//filename has already been saved, it will return that record.
 func New(filename string) (*Record, error) {
+
+	if cachedRec := recCache[filename]; cachedRec != nil {
+		return cachedRec, nil
+	}
+
 	data, err := ioutil.ReadFile(filename)
 
 	if err != nil {
@@ -138,7 +153,13 @@ func (r *Record) Save(filename string) error {
 		return errors.New("Couldn't marshal blob: " + err.Error())
 	}
 
-	return safeOvewritefile(filename, blob)
+	if err := safeOvewritefile(filename, blob); err != nil {
+		return err
+	}
+
+	recCache[filename] = r
+
+	return nil
 }
 
 //AddGameAndCurrentState adds the game, state, and move (if non-nil), ready
