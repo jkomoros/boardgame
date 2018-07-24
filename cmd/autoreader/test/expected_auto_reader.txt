@@ -114,25 +114,57 @@ func (m *__myStructReader) SetProp(name string, value interface{}) error {
 	case boardgame.TypeBoard:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeBool:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return m.SetBoolProp(name, val)
 	case boardgame.TypeBoolSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
+		}
+		return m.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnum:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeInt:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return m.SetIntProp(name, val)
 	case boardgame.TypeIntSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
+		}
+		return m.SetIntSliceProp(name, val)
 	case boardgame.TypePlayerIndex:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return m.SetPlayerIndexProp(name, val)
 	case boardgame.TypePlayerIndexSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
+		}
+		return m.SetPlayerIndexSliceProp(name, val)
 	case boardgame.TypeStack:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeString:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return m.SetStringProp(name, val)
 	case boardgame.TypeStringSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
+		}
+		return m.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 
@@ -167,37 +199,17 @@ func (m *__myStructReader) ConfigureProp(name string, value interface{}) error {
 			return m.ConfigureImmutableBoardProp(name, val)
 		}
 	case boardgame.TypeBool:
-		if m.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(bool)
-			if !ok {
-				return errors.New("Provided value was not of type bool")
-			}
-			return m.SetBoolProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(bool)
-			if !ok {
-				return errors.New("Provided value was not of type bool")
-			}
-			return m.SetBoolProp(name, val)
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
 		}
+		return m.SetBoolProp(name, val)
 	case boardgame.TypeBoolSlice:
-		if m.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]bool)
-			if !ok {
-				return errors.New("Provided value was not of type []bool")
-			}
-			return m.SetBoolSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]bool)
-			if !ok {
-				return errors.New("Provided value was not of type []bool")
-			}
-			return m.SetBoolSliceProp(name, val)
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
 		}
+		return m.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnum:
 		if m.PropMutable(name) {
 			//Mutable variant
@@ -215,69 +227,29 @@ func (m *__myStructReader) ConfigureProp(name string, value interface{}) error {
 			return m.ConfigureImmutableEnumProp(name, val)
 		}
 	case boardgame.TypeInt:
-		if m.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(int)
-			if !ok {
-				return errors.New("Provided value was not of type int")
-			}
-			return m.SetIntProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(int)
-			if !ok {
-				return errors.New("Provided value was not of type int")
-			}
-			return m.SetIntProp(name, val)
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
 		}
+		return m.SetIntProp(name, val)
 	case boardgame.TypeIntSlice:
-		if m.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]int)
-			if !ok {
-				return errors.New("Provided value was not of type []int")
-			}
-			return m.SetIntSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]int)
-			if !ok {
-				return errors.New("Provided value was not of type []int")
-			}
-			return m.SetIntSliceProp(name, val)
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
 		}
+		return m.SetIntSliceProp(name, val)
 	case boardgame.TypePlayerIndex:
-		if m.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type boardgame.PlayerIndex")
-			}
-			return m.SetPlayerIndexProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type boardgame.PlayerIndex")
-			}
-			return m.SetPlayerIndexProp(name, val)
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
 		}
+		return m.SetPlayerIndexProp(name, val)
 	case boardgame.TypePlayerIndexSlice:
-		if m.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type []boardgame.PlayerIndex")
-			}
-			return m.SetPlayerIndexSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type []boardgame.PlayerIndex")
-			}
-			return m.SetPlayerIndexSliceProp(name, val)
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
 		}
+		return m.SetPlayerIndexSliceProp(name, val)
 	case boardgame.TypeStack:
 		if m.PropMutable(name) {
 			//Mutable variant
@@ -295,37 +267,17 @@ func (m *__myStructReader) ConfigureProp(name string, value interface{}) error {
 			return m.ConfigureImmutableStackProp(name, val)
 		}
 	case boardgame.TypeString:
-		if m.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(string)
-			if !ok {
-				return errors.New("Provided value was not of type string")
-			}
-			return m.SetStringProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(string)
-			if !ok {
-				return errors.New("Provided value was not of type string")
-			}
-			return m.SetStringProp(name, val)
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
 		}
+		return m.SetStringProp(name, val)
 	case boardgame.TypeStringSlice:
-		if m.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]string)
-			if !ok {
-				return errors.New("Provided value was not of type []string")
-			}
-			return m.SetStringSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]string)
-			if !ok {
-				return errors.New("Provided value was not of type []string")
-			}
-			return m.SetStringSliceProp(name, val)
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
 		}
+		return m.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
 		if m.PropMutable(name) {
 			//Mutable variant
@@ -791,25 +743,57 @@ func (r *__roundRobinStructReader) SetProp(name string, value interface{}) error
 	case boardgame.TypeBoard:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeBool:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return r.SetBoolProp(name, val)
 	case boardgame.TypeBoolSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
+		}
+		return r.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnum:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeInt:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return r.SetIntProp(name, val)
 	case boardgame.TypeIntSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
+		}
+		return r.SetIntSliceProp(name, val)
 	case boardgame.TypePlayerIndex:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return r.SetPlayerIndexProp(name, val)
 	case boardgame.TypePlayerIndexSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
+		}
+		return r.SetPlayerIndexSliceProp(name, val)
 	case boardgame.TypeStack:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeString:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return r.SetStringProp(name, val)
 	case boardgame.TypeStringSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
+		}
+		return r.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 
@@ -844,37 +828,17 @@ func (r *__roundRobinStructReader) ConfigureProp(name string, value interface{})
 			return r.ConfigureImmutableBoardProp(name, val)
 		}
 	case boardgame.TypeBool:
-		if r.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(bool)
-			if !ok {
-				return errors.New("Provided value was not of type bool")
-			}
-			return r.SetBoolProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(bool)
-			if !ok {
-				return errors.New("Provided value was not of type bool")
-			}
-			return r.SetBoolProp(name, val)
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
 		}
+		return r.SetBoolProp(name, val)
 	case boardgame.TypeBoolSlice:
-		if r.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]bool)
-			if !ok {
-				return errors.New("Provided value was not of type []bool")
-			}
-			return r.SetBoolSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]bool)
-			if !ok {
-				return errors.New("Provided value was not of type []bool")
-			}
-			return r.SetBoolSliceProp(name, val)
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
 		}
+		return r.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnum:
 		if r.PropMutable(name) {
 			//Mutable variant
@@ -892,69 +856,29 @@ func (r *__roundRobinStructReader) ConfigureProp(name string, value interface{})
 			return r.ConfigureImmutableEnumProp(name, val)
 		}
 	case boardgame.TypeInt:
-		if r.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(int)
-			if !ok {
-				return errors.New("Provided value was not of type int")
-			}
-			return r.SetIntProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(int)
-			if !ok {
-				return errors.New("Provided value was not of type int")
-			}
-			return r.SetIntProp(name, val)
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
 		}
+		return r.SetIntProp(name, val)
 	case boardgame.TypeIntSlice:
-		if r.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]int)
-			if !ok {
-				return errors.New("Provided value was not of type []int")
-			}
-			return r.SetIntSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]int)
-			if !ok {
-				return errors.New("Provided value was not of type []int")
-			}
-			return r.SetIntSliceProp(name, val)
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
 		}
+		return r.SetIntSliceProp(name, val)
 	case boardgame.TypePlayerIndex:
-		if r.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type boardgame.PlayerIndex")
-			}
-			return r.SetPlayerIndexProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type boardgame.PlayerIndex")
-			}
-			return r.SetPlayerIndexProp(name, val)
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
 		}
+		return r.SetPlayerIndexProp(name, val)
 	case boardgame.TypePlayerIndexSlice:
-		if r.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type []boardgame.PlayerIndex")
-			}
-			return r.SetPlayerIndexSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type []boardgame.PlayerIndex")
-			}
-			return r.SetPlayerIndexSliceProp(name, val)
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
 		}
+		return r.SetPlayerIndexSliceProp(name, val)
 	case boardgame.TypeStack:
 		if r.PropMutable(name) {
 			//Mutable variant
@@ -972,37 +896,17 @@ func (r *__roundRobinStructReader) ConfigureProp(name string, value interface{})
 			return r.ConfigureImmutableStackProp(name, val)
 		}
 	case boardgame.TypeString:
-		if r.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(string)
-			if !ok {
-				return errors.New("Provided value was not of type string")
-			}
-			return r.SetStringProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(string)
-			if !ok {
-				return errors.New("Provided value was not of type string")
-			}
-			return r.SetStringProp(name, val)
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
 		}
+		return r.SetStringProp(name, val)
 	case boardgame.TypeStringSlice:
-		if r.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]string)
-			if !ok {
-				return errors.New("Provided value was not of type []string")
-			}
-			return r.SetStringSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]string)
-			if !ok {
-				return errors.New("Provided value was not of type []string")
-			}
-			return r.SetStringSliceProp(name, val)
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
 		}
+		return r.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
 		if r.PropMutable(name) {
 			//Mutable variant
@@ -1376,25 +1280,57 @@ func (s *__structWithManyKeysReader) SetProp(name string, value interface{}) err
 	case boardgame.TypeBoard:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeBool:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return s.SetBoolProp(name, val)
 	case boardgame.TypeBoolSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
+		}
+		return s.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnum:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeInt:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return s.SetIntProp(name, val)
 	case boardgame.TypeIntSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
+		}
+		return s.SetIntSliceProp(name, val)
 	case boardgame.TypePlayerIndex:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return s.SetPlayerIndexProp(name, val)
 	case boardgame.TypePlayerIndexSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
+		}
+		return s.SetPlayerIndexSliceProp(name, val)
 	case boardgame.TypeStack:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeString:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return s.SetStringProp(name, val)
 	case boardgame.TypeStringSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
+		}
+		return s.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 
@@ -1429,37 +1365,17 @@ func (s *__structWithManyKeysReader) ConfigureProp(name string, value interface{
 			return s.ConfigureImmutableBoardProp(name, val)
 		}
 	case boardgame.TypeBool:
-		if s.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(bool)
-			if !ok {
-				return errors.New("Provided value was not of type bool")
-			}
-			return s.SetBoolProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(bool)
-			if !ok {
-				return errors.New("Provided value was not of type bool")
-			}
-			return s.SetBoolProp(name, val)
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
 		}
+		return s.SetBoolProp(name, val)
 	case boardgame.TypeBoolSlice:
-		if s.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]bool)
-			if !ok {
-				return errors.New("Provided value was not of type []bool")
-			}
-			return s.SetBoolSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]bool)
-			if !ok {
-				return errors.New("Provided value was not of type []bool")
-			}
-			return s.SetBoolSliceProp(name, val)
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
 		}
+		return s.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnum:
 		if s.PropMutable(name) {
 			//Mutable variant
@@ -1477,69 +1393,29 @@ func (s *__structWithManyKeysReader) ConfigureProp(name string, value interface{
 			return s.ConfigureImmutableEnumProp(name, val)
 		}
 	case boardgame.TypeInt:
-		if s.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(int)
-			if !ok {
-				return errors.New("Provided value was not of type int")
-			}
-			return s.SetIntProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(int)
-			if !ok {
-				return errors.New("Provided value was not of type int")
-			}
-			return s.SetIntProp(name, val)
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
 		}
+		return s.SetIntProp(name, val)
 	case boardgame.TypeIntSlice:
-		if s.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]int)
-			if !ok {
-				return errors.New("Provided value was not of type []int")
-			}
-			return s.SetIntSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]int)
-			if !ok {
-				return errors.New("Provided value was not of type []int")
-			}
-			return s.SetIntSliceProp(name, val)
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
 		}
+		return s.SetIntSliceProp(name, val)
 	case boardgame.TypePlayerIndex:
-		if s.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type boardgame.PlayerIndex")
-			}
-			return s.SetPlayerIndexProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type boardgame.PlayerIndex")
-			}
-			return s.SetPlayerIndexProp(name, val)
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
 		}
+		return s.SetPlayerIndexProp(name, val)
 	case boardgame.TypePlayerIndexSlice:
-		if s.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type []boardgame.PlayerIndex")
-			}
-			return s.SetPlayerIndexSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type []boardgame.PlayerIndex")
-			}
-			return s.SetPlayerIndexSliceProp(name, val)
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
 		}
+		return s.SetPlayerIndexSliceProp(name, val)
 	case boardgame.TypeStack:
 		if s.PropMutable(name) {
 			//Mutable variant
@@ -1557,37 +1433,17 @@ func (s *__structWithManyKeysReader) ConfigureProp(name string, value interface{
 			return s.ConfigureImmutableStackProp(name, val)
 		}
 	case boardgame.TypeString:
-		if s.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(string)
-			if !ok {
-				return errors.New("Provided value was not of type string")
-			}
-			return s.SetStringProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(string)
-			if !ok {
-				return errors.New("Provided value was not of type string")
-			}
-			return s.SetStringProp(name, val)
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
 		}
+		return s.SetStringProp(name, val)
 	case boardgame.TypeStringSlice:
-		if s.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]string)
-			if !ok {
-				return errors.New("Provided value was not of type []string")
-			}
-			return s.SetStringSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]string)
-			if !ok {
-				return errors.New("Provided value was not of type []string")
-			}
-			return s.SetStringSliceProp(name, val)
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
 		}
+		return s.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
 		if s.PropMutable(name) {
 			//Mutable variant
@@ -1944,25 +1800,57 @@ func (e *__embeddedStructReader) SetProp(name string, value interface{}) error {
 	case boardgame.TypeBoard:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeBool:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return e.SetBoolProp(name, val)
 	case boardgame.TypeBoolSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
+		}
+		return e.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnum:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeInt:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return e.SetIntProp(name, val)
 	case boardgame.TypeIntSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
+		}
+		return e.SetIntSliceProp(name, val)
 	case boardgame.TypePlayerIndex:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return e.SetPlayerIndexProp(name, val)
 	case boardgame.TypePlayerIndexSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
+		}
+		return e.SetPlayerIndexSliceProp(name, val)
 	case boardgame.TypeStack:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeString:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return e.SetStringProp(name, val)
 	case boardgame.TypeStringSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
+		}
+		return e.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 
@@ -1997,37 +1885,17 @@ func (e *__embeddedStructReader) ConfigureProp(name string, value interface{}) e
 			return e.ConfigureImmutableBoardProp(name, val)
 		}
 	case boardgame.TypeBool:
-		if e.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(bool)
-			if !ok {
-				return errors.New("Provided value was not of type bool")
-			}
-			return e.SetBoolProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(bool)
-			if !ok {
-				return errors.New("Provided value was not of type bool")
-			}
-			return e.SetBoolProp(name, val)
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
 		}
+		return e.SetBoolProp(name, val)
 	case boardgame.TypeBoolSlice:
-		if e.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]bool)
-			if !ok {
-				return errors.New("Provided value was not of type []bool")
-			}
-			return e.SetBoolSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]bool)
-			if !ok {
-				return errors.New("Provided value was not of type []bool")
-			}
-			return e.SetBoolSliceProp(name, val)
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
 		}
+		return e.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnum:
 		if e.PropMutable(name) {
 			//Mutable variant
@@ -2045,69 +1913,29 @@ func (e *__embeddedStructReader) ConfigureProp(name string, value interface{}) e
 			return e.ConfigureImmutableEnumProp(name, val)
 		}
 	case boardgame.TypeInt:
-		if e.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(int)
-			if !ok {
-				return errors.New("Provided value was not of type int")
-			}
-			return e.SetIntProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(int)
-			if !ok {
-				return errors.New("Provided value was not of type int")
-			}
-			return e.SetIntProp(name, val)
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
 		}
+		return e.SetIntProp(name, val)
 	case boardgame.TypeIntSlice:
-		if e.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]int)
-			if !ok {
-				return errors.New("Provided value was not of type []int")
-			}
-			return e.SetIntSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]int)
-			if !ok {
-				return errors.New("Provided value was not of type []int")
-			}
-			return e.SetIntSliceProp(name, val)
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
 		}
+		return e.SetIntSliceProp(name, val)
 	case boardgame.TypePlayerIndex:
-		if e.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type boardgame.PlayerIndex")
-			}
-			return e.SetPlayerIndexProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type boardgame.PlayerIndex")
-			}
-			return e.SetPlayerIndexProp(name, val)
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
 		}
+		return e.SetPlayerIndexProp(name, val)
 	case boardgame.TypePlayerIndexSlice:
-		if e.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type []boardgame.PlayerIndex")
-			}
-			return e.SetPlayerIndexSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type []boardgame.PlayerIndex")
-			}
-			return e.SetPlayerIndexSliceProp(name, val)
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
 		}
+		return e.SetPlayerIndexSliceProp(name, val)
 	case boardgame.TypeStack:
 		if e.PropMutable(name) {
 			//Mutable variant
@@ -2125,37 +1953,17 @@ func (e *__embeddedStructReader) ConfigureProp(name string, value interface{}) e
 			return e.ConfigureImmutableStackProp(name, val)
 		}
 	case boardgame.TypeString:
-		if e.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(string)
-			if !ok {
-				return errors.New("Provided value was not of type string")
-			}
-			return e.SetStringProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(string)
-			if !ok {
-				return errors.New("Provided value was not of type string")
-			}
-			return e.SetStringProp(name, val)
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
 		}
+		return e.SetStringProp(name, val)
 	case boardgame.TypeStringSlice:
-		if e.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]string)
-			if !ok {
-				return errors.New("Provided value was not of type []string")
-			}
-			return e.SetStringSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]string)
-			if !ok {
-				return errors.New("Provided value was not of type []string")
-			}
-			return e.SetStringSliceProp(name, val)
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
 		}
+		return e.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
 		if e.PropMutable(name) {
 			//Mutable variant
@@ -2485,25 +2293,57 @@ func (d *__doubleEmbeddedStructReader) SetProp(name string, value interface{}) e
 	case boardgame.TypeBoard:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeBool:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return d.SetBoolProp(name, val)
 	case boardgame.TypeBoolSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
+		}
+		return d.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnum:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeInt:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return d.SetIntProp(name, val)
 	case boardgame.TypeIntSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
+		}
+		return d.SetIntSliceProp(name, val)
 	case boardgame.TypePlayerIndex:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return d.SetPlayerIndexProp(name, val)
 	case boardgame.TypePlayerIndexSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
+		}
+		return d.SetPlayerIndexSliceProp(name, val)
 	case boardgame.TypeStack:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeString:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return d.SetStringProp(name, val)
 	case boardgame.TypeStringSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
+		}
+		return d.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 
@@ -2538,37 +2378,17 @@ func (d *__doubleEmbeddedStructReader) ConfigureProp(name string, value interfac
 			return d.ConfigureImmutableBoardProp(name, val)
 		}
 	case boardgame.TypeBool:
-		if d.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(bool)
-			if !ok {
-				return errors.New("Provided value was not of type bool")
-			}
-			return d.SetBoolProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(bool)
-			if !ok {
-				return errors.New("Provided value was not of type bool")
-			}
-			return d.SetBoolProp(name, val)
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
 		}
+		return d.SetBoolProp(name, val)
 	case boardgame.TypeBoolSlice:
-		if d.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]bool)
-			if !ok {
-				return errors.New("Provided value was not of type []bool")
-			}
-			return d.SetBoolSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]bool)
-			if !ok {
-				return errors.New("Provided value was not of type []bool")
-			}
-			return d.SetBoolSliceProp(name, val)
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
 		}
+		return d.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnum:
 		if d.PropMutable(name) {
 			//Mutable variant
@@ -2586,69 +2406,29 @@ func (d *__doubleEmbeddedStructReader) ConfigureProp(name string, value interfac
 			return d.ConfigureImmutableEnumProp(name, val)
 		}
 	case boardgame.TypeInt:
-		if d.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(int)
-			if !ok {
-				return errors.New("Provided value was not of type int")
-			}
-			return d.SetIntProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(int)
-			if !ok {
-				return errors.New("Provided value was not of type int")
-			}
-			return d.SetIntProp(name, val)
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
 		}
+		return d.SetIntProp(name, val)
 	case boardgame.TypeIntSlice:
-		if d.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]int)
-			if !ok {
-				return errors.New("Provided value was not of type []int")
-			}
-			return d.SetIntSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]int)
-			if !ok {
-				return errors.New("Provided value was not of type []int")
-			}
-			return d.SetIntSliceProp(name, val)
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
 		}
+		return d.SetIntSliceProp(name, val)
 	case boardgame.TypePlayerIndex:
-		if d.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type boardgame.PlayerIndex")
-			}
-			return d.SetPlayerIndexProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type boardgame.PlayerIndex")
-			}
-			return d.SetPlayerIndexProp(name, val)
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
 		}
+		return d.SetPlayerIndexProp(name, val)
 	case boardgame.TypePlayerIndexSlice:
-		if d.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type []boardgame.PlayerIndex")
-			}
-			return d.SetPlayerIndexSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type []boardgame.PlayerIndex")
-			}
-			return d.SetPlayerIndexSliceProp(name, val)
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
 		}
+		return d.SetPlayerIndexSliceProp(name, val)
 	case boardgame.TypeStack:
 		if d.PropMutable(name) {
 			//Mutable variant
@@ -2666,37 +2446,17 @@ func (d *__doubleEmbeddedStructReader) ConfigureProp(name string, value interfac
 			return d.ConfigureImmutableStackProp(name, val)
 		}
 	case boardgame.TypeString:
-		if d.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(string)
-			if !ok {
-				return errors.New("Provided value was not of type string")
-			}
-			return d.SetStringProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(string)
-			if !ok {
-				return errors.New("Provided value was not of type string")
-			}
-			return d.SetStringProp(name, val)
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
 		}
+		return d.SetStringProp(name, val)
 	case boardgame.TypeStringSlice:
-		if d.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]string)
-			if !ok {
-				return errors.New("Provided value was not of type []string")
-			}
-			return d.SetStringSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]string)
-			if !ok {
-				return errors.New("Provided value was not of type []string")
-			}
-			return d.SetStringSliceProp(name, val)
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
 		}
+		return d.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
 		if d.PropMutable(name) {
 			//Mutable variant
@@ -3026,25 +2786,57 @@ func (m *__myOtherStructReader) SetProp(name string, value interface{}) error {
 	case boardgame.TypeBoard:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeBool:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return m.SetBoolProp(name, val)
 	case boardgame.TypeBoolSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
+		}
+		return m.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnum:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeInt:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return m.SetIntProp(name, val)
 	case boardgame.TypeIntSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
+		}
+		return m.SetIntSliceProp(name, val)
 	case boardgame.TypePlayerIndex:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return m.SetPlayerIndexProp(name, val)
 	case boardgame.TypePlayerIndexSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
+		}
+		return m.SetPlayerIndexSliceProp(name, val)
 	case boardgame.TypeStack:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeString:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return m.SetStringProp(name, val)
 	case boardgame.TypeStringSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
+		}
+		return m.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 
@@ -3079,37 +2871,17 @@ func (m *__myOtherStructReader) ConfigureProp(name string, value interface{}) er
 			return m.ConfigureImmutableBoardProp(name, val)
 		}
 	case boardgame.TypeBool:
-		if m.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(bool)
-			if !ok {
-				return errors.New("Provided value was not of type bool")
-			}
-			return m.SetBoolProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(bool)
-			if !ok {
-				return errors.New("Provided value was not of type bool")
-			}
-			return m.SetBoolProp(name, val)
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
 		}
+		return m.SetBoolProp(name, val)
 	case boardgame.TypeBoolSlice:
-		if m.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]bool)
-			if !ok {
-				return errors.New("Provided value was not of type []bool")
-			}
-			return m.SetBoolSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]bool)
-			if !ok {
-				return errors.New("Provided value was not of type []bool")
-			}
-			return m.SetBoolSliceProp(name, val)
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
 		}
+		return m.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnum:
 		if m.PropMutable(name) {
 			//Mutable variant
@@ -3127,69 +2899,29 @@ func (m *__myOtherStructReader) ConfigureProp(name string, value interface{}) er
 			return m.ConfigureImmutableEnumProp(name, val)
 		}
 	case boardgame.TypeInt:
-		if m.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(int)
-			if !ok {
-				return errors.New("Provided value was not of type int")
-			}
-			return m.SetIntProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(int)
-			if !ok {
-				return errors.New("Provided value was not of type int")
-			}
-			return m.SetIntProp(name, val)
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
 		}
+		return m.SetIntProp(name, val)
 	case boardgame.TypeIntSlice:
-		if m.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]int)
-			if !ok {
-				return errors.New("Provided value was not of type []int")
-			}
-			return m.SetIntSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]int)
-			if !ok {
-				return errors.New("Provided value was not of type []int")
-			}
-			return m.SetIntSliceProp(name, val)
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
 		}
+		return m.SetIntSliceProp(name, val)
 	case boardgame.TypePlayerIndex:
-		if m.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type boardgame.PlayerIndex")
-			}
-			return m.SetPlayerIndexProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type boardgame.PlayerIndex")
-			}
-			return m.SetPlayerIndexProp(name, val)
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
 		}
+		return m.SetPlayerIndexProp(name, val)
 	case boardgame.TypePlayerIndexSlice:
-		if m.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type []boardgame.PlayerIndex")
-			}
-			return m.SetPlayerIndexSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type []boardgame.PlayerIndex")
-			}
-			return m.SetPlayerIndexSliceProp(name, val)
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
 		}
+		return m.SetPlayerIndexSliceProp(name, val)
 	case boardgame.TypeStack:
 		if m.PropMutable(name) {
 			//Mutable variant
@@ -3207,37 +2939,17 @@ func (m *__myOtherStructReader) ConfigureProp(name string, value interface{}) er
 			return m.ConfigureImmutableStackProp(name, val)
 		}
 	case boardgame.TypeString:
-		if m.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(string)
-			if !ok {
-				return errors.New("Provided value was not of type string")
-			}
-			return m.SetStringProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(string)
-			if !ok {
-				return errors.New("Provided value was not of type string")
-			}
-			return m.SetStringProp(name, val)
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
 		}
+		return m.SetStringProp(name, val)
 	case boardgame.TypeStringSlice:
-		if m.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]string)
-			if !ok {
-				return errors.New("Provided value was not of type []string")
-			}
-			return m.SetStringSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]string)
-			if !ok {
-				return errors.New("Provided value was not of type []string")
-			}
-			return m.SetStringSliceProp(name, val)
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
 		}
+		return m.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
 		if m.PropMutable(name) {
 			//Mutable variant
@@ -3726,25 +3438,57 @@ func (i *__includesImmutableReader) SetProp(name string, value interface{}) erro
 	case boardgame.TypeBoard:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeBool:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return i.SetBoolProp(name, val)
 	case boardgame.TypeBoolSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
+		}
+		return i.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnum:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeInt:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return i.SetIntProp(name, val)
 	case boardgame.TypeIntSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
+		}
+		return i.SetIntSliceProp(name, val)
 	case boardgame.TypePlayerIndex:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return i.SetPlayerIndexProp(name, val)
 	case boardgame.TypePlayerIndexSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
+		}
+		return i.SetPlayerIndexSliceProp(name, val)
 	case boardgame.TypeStack:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeString:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return i.SetStringProp(name, val)
 	case boardgame.TypeStringSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
+		}
+		return i.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 
@@ -3779,37 +3523,17 @@ func (i *__includesImmutableReader) ConfigureProp(name string, value interface{}
 			return i.ConfigureImmutableBoardProp(name, val)
 		}
 	case boardgame.TypeBool:
-		if i.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(bool)
-			if !ok {
-				return errors.New("Provided value was not of type bool")
-			}
-			return i.SetBoolProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(bool)
-			if !ok {
-				return errors.New("Provided value was not of type bool")
-			}
-			return i.SetBoolProp(name, val)
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
 		}
+		return i.SetBoolProp(name, val)
 	case boardgame.TypeBoolSlice:
-		if i.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]bool)
-			if !ok {
-				return errors.New("Provided value was not of type []bool")
-			}
-			return i.SetBoolSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]bool)
-			if !ok {
-				return errors.New("Provided value was not of type []bool")
-			}
-			return i.SetBoolSliceProp(name, val)
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
 		}
+		return i.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnum:
 		if i.PropMutable(name) {
 			//Mutable variant
@@ -3827,69 +3551,29 @@ func (i *__includesImmutableReader) ConfigureProp(name string, value interface{}
 			return i.ConfigureImmutableEnumProp(name, val)
 		}
 	case boardgame.TypeInt:
-		if i.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(int)
-			if !ok {
-				return errors.New("Provided value was not of type int")
-			}
-			return i.SetIntProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(int)
-			if !ok {
-				return errors.New("Provided value was not of type int")
-			}
-			return i.SetIntProp(name, val)
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
 		}
+		return i.SetIntProp(name, val)
 	case boardgame.TypeIntSlice:
-		if i.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]int)
-			if !ok {
-				return errors.New("Provided value was not of type []int")
-			}
-			return i.SetIntSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]int)
-			if !ok {
-				return errors.New("Provided value was not of type []int")
-			}
-			return i.SetIntSliceProp(name, val)
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
 		}
+		return i.SetIntSliceProp(name, val)
 	case boardgame.TypePlayerIndex:
-		if i.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type boardgame.PlayerIndex")
-			}
-			return i.SetPlayerIndexProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type boardgame.PlayerIndex")
-			}
-			return i.SetPlayerIndexProp(name, val)
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
 		}
+		return i.SetPlayerIndexProp(name, val)
 	case boardgame.TypePlayerIndexSlice:
-		if i.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type []boardgame.PlayerIndex")
-			}
-			return i.SetPlayerIndexSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type []boardgame.PlayerIndex")
-			}
-			return i.SetPlayerIndexSliceProp(name, val)
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
 		}
+		return i.SetPlayerIndexSliceProp(name, val)
 	case boardgame.TypeStack:
 		if i.PropMutable(name) {
 			//Mutable variant
@@ -3907,37 +3591,17 @@ func (i *__includesImmutableReader) ConfigureProp(name string, value interface{}
 			return i.ConfigureImmutableStackProp(name, val)
 		}
 	case boardgame.TypeString:
-		if i.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(string)
-			if !ok {
-				return errors.New("Provided value was not of type string")
-			}
-			return i.SetStringProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(string)
-			if !ok {
-				return errors.New("Provided value was not of type string")
-			}
-			return i.SetStringProp(name, val)
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
 		}
+		return i.SetStringProp(name, val)
 	case boardgame.TypeStringSlice:
-		if i.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]string)
-			if !ok {
-				return errors.New("Provided value was not of type []string")
-			}
-			return i.SetStringSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]string)
-			if !ok {
-				return errors.New("Provided value was not of type []string")
-			}
-			return i.SetStringSliceProp(name, val)
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
 		}
+		return i.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
 		if i.PropMutable(name) {
 			//Mutable variant
@@ -4340,25 +4004,57 @@ func (u *__upToReadSetterReader) SetProp(name string, value interface{}) error {
 	case boardgame.TypeBoard:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeBool:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return u.SetBoolProp(name, val)
 	case boardgame.TypeBoolSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
+		}
+		return u.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnum:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeInt:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return u.SetIntProp(name, val)
 	case boardgame.TypeIntSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
+		}
+		return u.SetIntSliceProp(name, val)
 	case boardgame.TypePlayerIndex:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return u.SetPlayerIndexProp(name, val)
 	case boardgame.TypePlayerIndexSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
+		}
+		return u.SetPlayerIndexSliceProp(name, val)
 	case boardgame.TypeStack:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeString:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return u.SetStringProp(name, val)
 	case boardgame.TypeStringSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
+		}
+		return u.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 
@@ -4609,25 +4305,57 @@ func (s *__sizedStackExampleReader) SetProp(name string, value interface{}) erro
 	case boardgame.TypeBoard:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeBool:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return s.SetBoolProp(name, val)
 	case boardgame.TypeBoolSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
+		}
+		return s.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnum:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeInt:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return s.SetIntProp(name, val)
 	case boardgame.TypeIntSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
+		}
+		return s.SetIntSliceProp(name, val)
 	case boardgame.TypePlayerIndex:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return s.SetPlayerIndexProp(name, val)
 	case boardgame.TypePlayerIndexSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
+		}
+		return s.SetPlayerIndexSliceProp(name, val)
 	case boardgame.TypeStack:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeString:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return s.SetStringProp(name, val)
 	case boardgame.TypeStringSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
+		}
+		return s.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 
@@ -4662,37 +4390,17 @@ func (s *__sizedStackExampleReader) ConfigureProp(name string, value interface{}
 			return s.ConfigureImmutableBoardProp(name, val)
 		}
 	case boardgame.TypeBool:
-		if s.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(bool)
-			if !ok {
-				return errors.New("Provided value was not of type bool")
-			}
-			return s.SetBoolProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(bool)
-			if !ok {
-				return errors.New("Provided value was not of type bool")
-			}
-			return s.SetBoolProp(name, val)
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
 		}
+		return s.SetBoolProp(name, val)
 	case boardgame.TypeBoolSlice:
-		if s.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]bool)
-			if !ok {
-				return errors.New("Provided value was not of type []bool")
-			}
-			return s.SetBoolSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]bool)
-			if !ok {
-				return errors.New("Provided value was not of type []bool")
-			}
-			return s.SetBoolSliceProp(name, val)
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
 		}
+		return s.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnum:
 		if s.PropMutable(name) {
 			//Mutable variant
@@ -4710,69 +4418,29 @@ func (s *__sizedStackExampleReader) ConfigureProp(name string, value interface{}
 			return s.ConfigureImmutableEnumProp(name, val)
 		}
 	case boardgame.TypeInt:
-		if s.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(int)
-			if !ok {
-				return errors.New("Provided value was not of type int")
-			}
-			return s.SetIntProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(int)
-			if !ok {
-				return errors.New("Provided value was not of type int")
-			}
-			return s.SetIntProp(name, val)
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
 		}
+		return s.SetIntProp(name, val)
 	case boardgame.TypeIntSlice:
-		if s.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]int)
-			if !ok {
-				return errors.New("Provided value was not of type []int")
-			}
-			return s.SetIntSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]int)
-			if !ok {
-				return errors.New("Provided value was not of type []int")
-			}
-			return s.SetIntSliceProp(name, val)
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
 		}
+		return s.SetIntSliceProp(name, val)
 	case boardgame.TypePlayerIndex:
-		if s.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type boardgame.PlayerIndex")
-			}
-			return s.SetPlayerIndexProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type boardgame.PlayerIndex")
-			}
-			return s.SetPlayerIndexProp(name, val)
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
 		}
+		return s.SetPlayerIndexProp(name, val)
 	case boardgame.TypePlayerIndexSlice:
-		if s.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type []boardgame.PlayerIndex")
-			}
-			return s.SetPlayerIndexSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type []boardgame.PlayerIndex")
-			}
-			return s.SetPlayerIndexSliceProp(name, val)
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
 		}
+		return s.SetPlayerIndexSliceProp(name, val)
 	case boardgame.TypeStack:
 		if s.PropMutable(name) {
 			//Mutable variant
@@ -4790,37 +4458,17 @@ func (s *__sizedStackExampleReader) ConfigureProp(name string, value interface{}
 			return s.ConfigureImmutableStackProp(name, val)
 		}
 	case boardgame.TypeString:
-		if s.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(string)
-			if !ok {
-				return errors.New("Provided value was not of type string")
-			}
-			return s.SetStringProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(string)
-			if !ok {
-				return errors.New("Provided value was not of type string")
-			}
-			return s.SetStringProp(name, val)
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
 		}
+		return s.SetStringProp(name, val)
 	case boardgame.TypeStringSlice:
-		if s.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]string)
-			if !ok {
-				return errors.New("Provided value was not of type []string")
-			}
-			return s.SetStringSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]string)
-			if !ok {
-				return errors.New("Provided value was not of type []string")
-			}
-			return s.SetStringSliceProp(name, val)
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
 		}
+		return s.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
 		if s.PropMutable(name) {
 			//Mutable variant
@@ -5163,25 +4811,57 @@ func (m *__mergedStackExampleReader) SetProp(name string, value interface{}) err
 	case boardgame.TypeBoard:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeBool:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return m.SetBoolProp(name, val)
 	case boardgame.TypeBoolSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
+		}
+		return m.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnum:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeInt:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return m.SetIntProp(name, val)
 	case boardgame.TypeIntSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
+		}
+		return m.SetIntSliceProp(name, val)
 	case boardgame.TypePlayerIndex:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return m.SetPlayerIndexProp(name, val)
 	case boardgame.TypePlayerIndexSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
+		}
+		return m.SetPlayerIndexSliceProp(name, val)
 	case boardgame.TypeStack:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeString:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return m.SetStringProp(name, val)
 	case boardgame.TypeStringSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
+		}
+		return m.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 
@@ -5216,37 +4896,17 @@ func (m *__mergedStackExampleReader) ConfigureProp(name string, value interface{
 			return m.ConfigureImmutableBoardProp(name, val)
 		}
 	case boardgame.TypeBool:
-		if m.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(bool)
-			if !ok {
-				return errors.New("Provided value was not of type bool")
-			}
-			return m.SetBoolProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(bool)
-			if !ok {
-				return errors.New("Provided value was not of type bool")
-			}
-			return m.SetBoolProp(name, val)
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
 		}
+		return m.SetBoolProp(name, val)
 	case boardgame.TypeBoolSlice:
-		if m.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]bool)
-			if !ok {
-				return errors.New("Provided value was not of type []bool")
-			}
-			return m.SetBoolSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]bool)
-			if !ok {
-				return errors.New("Provided value was not of type []bool")
-			}
-			return m.SetBoolSliceProp(name, val)
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
 		}
+		return m.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnum:
 		if m.PropMutable(name) {
 			//Mutable variant
@@ -5264,69 +4924,29 @@ func (m *__mergedStackExampleReader) ConfigureProp(name string, value interface{
 			return m.ConfigureImmutableEnumProp(name, val)
 		}
 	case boardgame.TypeInt:
-		if m.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(int)
-			if !ok {
-				return errors.New("Provided value was not of type int")
-			}
-			return m.SetIntProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(int)
-			if !ok {
-				return errors.New("Provided value was not of type int")
-			}
-			return m.SetIntProp(name, val)
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
 		}
+		return m.SetIntProp(name, val)
 	case boardgame.TypeIntSlice:
-		if m.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]int)
-			if !ok {
-				return errors.New("Provided value was not of type []int")
-			}
-			return m.SetIntSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]int)
-			if !ok {
-				return errors.New("Provided value was not of type []int")
-			}
-			return m.SetIntSliceProp(name, val)
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
 		}
+		return m.SetIntSliceProp(name, val)
 	case boardgame.TypePlayerIndex:
-		if m.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type boardgame.PlayerIndex")
-			}
-			return m.SetPlayerIndexProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type boardgame.PlayerIndex")
-			}
-			return m.SetPlayerIndexProp(name, val)
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
 		}
+		return m.SetPlayerIndexProp(name, val)
 	case boardgame.TypePlayerIndexSlice:
-		if m.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type []boardgame.PlayerIndex")
-			}
-			return m.SetPlayerIndexSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type []boardgame.PlayerIndex")
-			}
-			return m.SetPlayerIndexSliceProp(name, val)
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
 		}
+		return m.SetPlayerIndexSliceProp(name, val)
 	case boardgame.TypeStack:
 		if m.PropMutable(name) {
 			//Mutable variant
@@ -5344,37 +4964,17 @@ func (m *__mergedStackExampleReader) ConfigureProp(name string, value interface{
 			return m.ConfigureImmutableStackProp(name, val)
 		}
 	case boardgame.TypeString:
-		if m.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(string)
-			if !ok {
-				return errors.New("Provided value was not of type string")
-			}
-			return m.SetStringProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(string)
-			if !ok {
-				return errors.New("Provided value was not of type string")
-			}
-			return m.SetStringProp(name, val)
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
 		}
+		return m.SetStringProp(name, val)
 	case boardgame.TypeStringSlice:
-		if m.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]string)
-			if !ok {
-				return errors.New("Provided value was not of type []string")
-			}
-			return m.SetStringSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]string)
-			if !ok {
-				return errors.New("Provided value was not of type []string")
-			}
-			return m.SetStringSliceProp(name, val)
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
 		}
+		return m.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
 		if m.PropMutable(name) {
 			//Mutable variant
@@ -5707,25 +5307,57 @@ func (r *__rangeValExampleReader) SetProp(name string, value interface{}) error 
 	case boardgame.TypeBoard:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeBool:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return r.SetBoolProp(name, val)
 	case boardgame.TypeBoolSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
+		}
+		return r.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnum:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeInt:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return r.SetIntProp(name, val)
 	case boardgame.TypeIntSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
+		}
+		return r.SetIntSliceProp(name, val)
 	case boardgame.TypePlayerIndex:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return r.SetPlayerIndexProp(name, val)
 	case boardgame.TypePlayerIndexSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
+		}
+		return r.SetPlayerIndexSliceProp(name, val)
 	case boardgame.TypeStack:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeString:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return r.SetStringProp(name, val)
 	case boardgame.TypeStringSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
+		}
+		return r.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 
@@ -5760,37 +5392,17 @@ func (r *__rangeValExampleReader) ConfigureProp(name string, value interface{}) 
 			return r.ConfigureImmutableBoardProp(name, val)
 		}
 	case boardgame.TypeBool:
-		if r.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(bool)
-			if !ok {
-				return errors.New("Provided value was not of type bool")
-			}
-			return r.SetBoolProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(bool)
-			if !ok {
-				return errors.New("Provided value was not of type bool")
-			}
-			return r.SetBoolProp(name, val)
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
 		}
+		return r.SetBoolProp(name, val)
 	case boardgame.TypeBoolSlice:
-		if r.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]bool)
-			if !ok {
-				return errors.New("Provided value was not of type []bool")
-			}
-			return r.SetBoolSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]bool)
-			if !ok {
-				return errors.New("Provided value was not of type []bool")
-			}
-			return r.SetBoolSliceProp(name, val)
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
 		}
+		return r.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnum:
 		if r.PropMutable(name) {
 			//Mutable variant
@@ -5808,69 +5420,29 @@ func (r *__rangeValExampleReader) ConfigureProp(name string, value interface{}) 
 			return r.ConfigureImmutableEnumProp(name, val)
 		}
 	case boardgame.TypeInt:
-		if r.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(int)
-			if !ok {
-				return errors.New("Provided value was not of type int")
-			}
-			return r.SetIntProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(int)
-			if !ok {
-				return errors.New("Provided value was not of type int")
-			}
-			return r.SetIntProp(name, val)
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
 		}
+		return r.SetIntProp(name, val)
 	case boardgame.TypeIntSlice:
-		if r.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]int)
-			if !ok {
-				return errors.New("Provided value was not of type []int")
-			}
-			return r.SetIntSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]int)
-			if !ok {
-				return errors.New("Provided value was not of type []int")
-			}
-			return r.SetIntSliceProp(name, val)
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
 		}
+		return r.SetIntSliceProp(name, val)
 	case boardgame.TypePlayerIndex:
-		if r.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type boardgame.PlayerIndex")
-			}
-			return r.SetPlayerIndexProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type boardgame.PlayerIndex")
-			}
-			return r.SetPlayerIndexProp(name, val)
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
 		}
+		return r.SetPlayerIndexProp(name, val)
 	case boardgame.TypePlayerIndexSlice:
-		if r.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type []boardgame.PlayerIndex")
-			}
-			return r.SetPlayerIndexSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type []boardgame.PlayerIndex")
-			}
-			return r.SetPlayerIndexSliceProp(name, val)
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
 		}
+		return r.SetPlayerIndexSliceProp(name, val)
 	case boardgame.TypeStack:
 		if r.PropMutable(name) {
 			//Mutable variant
@@ -5888,37 +5460,17 @@ func (r *__rangeValExampleReader) ConfigureProp(name string, value interface{}) 
 			return r.ConfigureImmutableStackProp(name, val)
 		}
 	case boardgame.TypeString:
-		if r.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(string)
-			if !ok {
-				return errors.New("Provided value was not of type string")
-			}
-			return r.SetStringProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(string)
-			if !ok {
-				return errors.New("Provided value was not of type string")
-			}
-			return r.SetStringProp(name, val)
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
 		}
+		return r.SetStringProp(name, val)
 	case boardgame.TypeStringSlice:
-		if r.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]string)
-			if !ok {
-				return errors.New("Provided value was not of type []string")
-			}
-			return r.SetStringSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]string)
-			if !ok {
-				return errors.New("Provided value was not of type []string")
-			}
-			return r.SetStringSliceProp(name, val)
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
 		}
+		return r.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
 		if r.PropMutable(name) {
 			//Mutable variant
@@ -6264,25 +5816,57 @@ func (t *__treeValExampleReader) SetProp(name string, value interface{}) error {
 	case boardgame.TypeBoard:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeBool:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
+		}
+		return t.SetBoolProp(name, val)
 	case boardgame.TypeBoolSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
+		}
+		return t.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnum:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeInt:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
+		}
+		return t.SetIntProp(name, val)
 	case boardgame.TypeIntSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
+		}
+		return t.SetIntSliceProp(name, val)
 	case boardgame.TypePlayerIndex:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
+		}
+		return t.SetPlayerIndexProp(name, val)
 	case boardgame.TypePlayerIndexSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
+		}
+		return t.SetPlayerIndexSliceProp(name, val)
 	case boardgame.TypeStack:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 	case boardgame.TypeString:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
+		}
+		return t.SetStringProp(name, val)
 	case boardgame.TypeStringSlice:
-		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
+		}
+		return t.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
 		return errors.New("SetProp does not allow setting mutable types. Use ConfigureProp instead.")
 
@@ -6317,37 +5901,17 @@ func (t *__treeValExampleReader) ConfigureProp(name string, value interface{}) e
 			return t.ConfigureImmutableBoardProp(name, val)
 		}
 	case boardgame.TypeBool:
-		if t.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(bool)
-			if !ok {
-				return errors.New("Provided value was not of type bool")
-			}
-			return t.SetBoolProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(bool)
-			if !ok {
-				return errors.New("Provided value was not of type bool")
-			}
-			return t.SetBoolProp(name, val)
+		val, ok := value.(bool)
+		if !ok {
+			return errors.New("Provided value was not of type bool")
 		}
+		return t.SetBoolProp(name, val)
 	case boardgame.TypeBoolSlice:
-		if t.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]bool)
-			if !ok {
-				return errors.New("Provided value was not of type []bool")
-			}
-			return t.SetBoolSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]bool)
-			if !ok {
-				return errors.New("Provided value was not of type []bool")
-			}
-			return t.SetBoolSliceProp(name, val)
+		val, ok := value.([]bool)
+		if !ok {
+			return errors.New("Provided value was not of type []bool")
 		}
+		return t.SetBoolSliceProp(name, val)
 	case boardgame.TypeEnum:
 		if t.PropMutable(name) {
 			//Mutable variant
@@ -6365,69 +5929,29 @@ func (t *__treeValExampleReader) ConfigureProp(name string, value interface{}) e
 			return t.ConfigureImmutableEnumProp(name, val)
 		}
 	case boardgame.TypeInt:
-		if t.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(int)
-			if !ok {
-				return errors.New("Provided value was not of type int")
-			}
-			return t.SetIntProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(int)
-			if !ok {
-				return errors.New("Provided value was not of type int")
-			}
-			return t.SetIntProp(name, val)
+		val, ok := value.(int)
+		if !ok {
+			return errors.New("Provided value was not of type int")
 		}
+		return t.SetIntProp(name, val)
 	case boardgame.TypeIntSlice:
-		if t.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]int)
-			if !ok {
-				return errors.New("Provided value was not of type []int")
-			}
-			return t.SetIntSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]int)
-			if !ok {
-				return errors.New("Provided value was not of type []int")
-			}
-			return t.SetIntSliceProp(name, val)
+		val, ok := value.([]int)
+		if !ok {
+			return errors.New("Provided value was not of type []int")
 		}
+		return t.SetIntSliceProp(name, val)
 	case boardgame.TypePlayerIndex:
-		if t.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type boardgame.PlayerIndex")
-			}
-			return t.SetPlayerIndexProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type boardgame.PlayerIndex")
-			}
-			return t.SetPlayerIndexProp(name, val)
+		val, ok := value.(boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type boardgame.PlayerIndex")
 		}
+		return t.SetPlayerIndexProp(name, val)
 	case boardgame.TypePlayerIndexSlice:
-		if t.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type []boardgame.PlayerIndex")
-			}
-			return t.SetPlayerIndexSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]boardgame.PlayerIndex)
-			if !ok {
-				return errors.New("Provided value was not of type []boardgame.PlayerIndex")
-			}
-			return t.SetPlayerIndexSliceProp(name, val)
+		val, ok := value.([]boardgame.PlayerIndex)
+		if !ok {
+			return errors.New("Provided value was not of type []boardgame.PlayerIndex")
 		}
+		return t.SetPlayerIndexSliceProp(name, val)
 	case boardgame.TypeStack:
 		if t.PropMutable(name) {
 			//Mutable variant
@@ -6445,37 +5969,17 @@ func (t *__treeValExampleReader) ConfigureProp(name string, value interface{}) e
 			return t.ConfigureImmutableStackProp(name, val)
 		}
 	case boardgame.TypeString:
-		if t.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.(string)
-			if !ok {
-				return errors.New("Provided value was not of type string")
-			}
-			return t.SetStringProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.(string)
-			if !ok {
-				return errors.New("Provided value was not of type string")
-			}
-			return t.SetStringProp(name, val)
+		val, ok := value.(string)
+		if !ok {
+			return errors.New("Provided value was not of type string")
 		}
+		return t.SetStringProp(name, val)
 	case boardgame.TypeStringSlice:
-		if t.PropMutable(name) {
-			//Mutable variant
-			val, ok := value.([]string)
-			if !ok {
-				return errors.New("Provided value was not of type []string")
-			}
-			return t.SetStringSliceProp(name, val)
-		} else {
-			//Immutable variant
-			val, ok := value.([]string)
-			if !ok {
-				return errors.New("Provided value was not of type []string")
-			}
-			return t.SetStringSliceProp(name, val)
+		val, ok := value.([]string)
+		if !ok {
+			return errors.New("Provided value was not of type []string")
 		}
+		return t.SetStringSliceProp(name, val)
 	case boardgame.TypeTimer:
 		if t.PropMutable(name) {
 			//Mutable variant

@@ -392,6 +392,24 @@ func withImmutable(in string) string {
 }
 
 func isMutable(in string) bool {
+	switch in {
+	case "Int":
+		return false
+	case "Bool":
+		return false
+	case "String":
+		return false
+	case "PlayerIndex":
+		return false
+	case "IntSlice":
+		return false
+	case "BoolSlice":
+		return false
+	case "StringSlice":
+		return false
+	case "PlayerIndexSlice":
+		return false
+	}
 	return !strings.Contains(in, "Immutable")
 }
 

@@ -50,4 +50,10 @@ func TestMain(t *testing.T) {
 
 	assert.For(t).ThatActual(obj.MyBool).IsFalse()
 
+	err = readSetter.SetProp("MyInt", 3)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(obj.MyInt).Equals(3)
+
 }
