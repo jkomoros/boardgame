@@ -129,6 +129,10 @@ func (s *StorageManager) LinkGoldenFolder(gameType, pkgPath string) error {
 		}
 	}
 
+	//TODO: ok, this is getting weird that the filesystem storage layer is now
+	//a full-fledged util.
+
+	//TODO: allow this to be skipped as an otpion.
 	if err := s.SaveGoldenTest(gameType, fullPkgPath); err != nil {
 		return errors.New("Couldn't store golden test: " + err.Error())
 	}
