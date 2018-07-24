@@ -106,7 +106,7 @@ func (r *Record) Move(version int) (*boardgame.MoveStorageRecord, error) {
 	//version is effectively 1-indexed, since we don't store a move for the
 	//first version, but we store them in 0-indexed since we use the array
 	//index. So convert to that.
-	if len(r.data.Moves) < version {
+	if len(r.data.Moves) <= version {
 		return nil, errors.New("Not enough moves")
 	}
 

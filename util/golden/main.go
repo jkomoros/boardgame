@@ -121,7 +121,7 @@ func compare(manager *boardgame.GameManager, rec *record.Record) error {
 
 		if err != nil {
 			//We'll assume that menas that's all of the moves there are to make.
-			continue
+			break
 		}
 
 		if nextMoveRec.Proposer < 0 {
