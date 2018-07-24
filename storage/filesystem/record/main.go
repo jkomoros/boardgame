@@ -41,6 +41,8 @@ type storageRecord struct {
 	StatePatches []json.RawMessage
 }
 
+//New returns a new record with the data encoded in the file. If you want an
+//empty record, just instantiate a blank struct.
 func New(filename string) (*Record, error) {
 	data, err := ioutil.ReadFile(filename)
 
