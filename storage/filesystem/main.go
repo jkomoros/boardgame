@@ -18,6 +18,7 @@
 package filesystem
 
 import (
+	"bytes"
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
@@ -51,10 +52,11 @@ func init() {
 //folder, relative to this executable, to have as the root of the storage
 //pool. If goldenFolderName is not "", then we will use reflection to find the
 //package path for each delegate, ensure a folder exists within it with that
-//name, and then create a soft-link from basePath to that folder. The result
-//is that the underlying files will be stored in folders adjacent to the games
-//they are relative to, which is convenient if you're adding new golden games
-//to the test set.
+//name, create a soft-link from basePath to that folder, and create a
+//`golden_test.go` file that automatically tests all of those golden files.
+//The result is that the underlying files will be stored in folders adjacent
+//to the games they are relative to, which is convenient if you're adding new
+//golden games to the test set.
 func NewStorageManager(basePath string, goldenFolderName string) *StorageManager {
 
 	result := &StorageManager{
@@ -106,7 +108,9 @@ func (s *StorageManager) LinkGoldenFolder(gameType, pkgPath string) error {
 		return errors.New("Gopath wasn't set")
 	}
 
-	fullPath := filepath.Join(goPath, "src", pkgPath, s.goldenFolderName)
+	fullPkgPath := filepath.Join(goPath, "src", pkgPath)
+
+	fullPath := filepath.Join(fullPkgPath, s.goldenFolderName)
 
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 		log.Println("Creating " + fullPath)
@@ -125,7 +129,30 @@ func (s *StorageManager) LinkGoldenFolder(gameType, pkgPath string) error {
 		}
 	}
 
+	if err := s.SaveGoldenTest(gameType, fullPkgPath); err != nil {
+		return errors.New("Couldn't store golden test: " + err.Error())
+	}
+
 	return nil
+
+}
+
+func (s *StorageManager) SaveGoldenTest(gameType, fullPkgPath string) error {
+
+	buf := new(bytes.Buffer)
+
+	//TODO: this presumes that the gametype is also the name of the package.
+	//Either document that, or derive it automatically from source.
+	err := goldenTestTemplate.Execute(buf, map[string]string{
+		"gametype": gameType,
+		"folder":   s.goldenFolderName,
+	})
+
+	if err != nil {
+		return errors.New("Couldn't generate blob from template: " + err.Error())
+	}
+
+	return ioutil.WriteFile(filepath.Join(fullPkgPath, "golden_test.go"), buf.Bytes(), 0644)
 
 }
 
