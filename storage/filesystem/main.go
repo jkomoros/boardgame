@@ -53,10 +53,11 @@ func init() {
 //pool. If goldenFolderName is not "", then we will use reflection to find the
 //package path for each delegate, ensure a folder exists within it with that
 //name, create a soft-link from basePath to that folder, and create a
-//`golden_test.go` file that automatically tests all of those golden files.
-//The result is that the underlying files will be stored in folders adjacent
-//to the games they are relative to, which is convenient if you're adding new
-//golden games to the test set.
+//`golden_test.go` file that automatically tests all of those golden files
+//(and assumes that your package defines a `NewDelegate()
+//boardgame.GameDelegate` method). The result is that the underlying files
+//will be stored in folders adjacent to the games they are relative to, which
+//is convenient if you're adding new golden games to the test set.
 func NewStorageManager(basePath string, goldenFolderName string) *StorageManager {
 
 	result := &StorageManager{
@@ -147,6 +148,8 @@ func (s *StorageManager) SaveGoldenTest(gameType, fullPkgPath string) error {
 
 	//TODO: this presumes that the gametype is also the name of the package.
 	//Either document that, or derive it automatically from source.
+
+	//TODO: verify that the package has a NewDelegate method.
 	err := goldenTestTemplate.Execute(buf, map[string]string{
 		"gametype": gameType,
 		"folder":   s.goldenFolderName,
