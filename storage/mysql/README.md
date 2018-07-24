@@ -27,7 +27,7 @@ instances describe prod`, and noting the connectionName in the result.  Full ins
 
 # Creating the database
 
-The `boardgame-mysql-admin` tool is designed to help administer your database. 
+The `boardgame-mysql-admin` tool (in `util/cmd`) is designed to help administer your database. 
 
 To set up a database, configure the DSN as described above. Then, sitting in the same folder as config.SECRET.json, run `boardgame-mysql-admin setup` (include `-prod` if you want to run on the prod database.
 
