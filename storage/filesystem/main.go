@@ -18,7 +18,6 @@
 package filesystem
 
 import (
-	"encoding/json"
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
@@ -206,14 +205,8 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		rec = &record.Record{}
 	}
 
-	rec.Game = game
-
-	if err := rec.AddState(json.RawMessage(state)); err != nil {
+	if err := rec.AddGameAndCurrentState(game, state, move); err != nil {
 		return errors.New("Couldn't add state: " + err.Error())
-	}
-
-	if move != nil {
-		rec.Moves = append(rec.Moves, move)
 	}
 
 	if err := s.saveRecordForId(game.Id, rec); err != nil {

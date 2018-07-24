@@ -109,8 +109,15 @@ func (r *Record) Save(filename string) error {
 	return safeOvewritefile(filename, blob)
 }
 
-//AddState adds the given state to the end of the record.
-func (r *Record) AddState(state json.RawMessage) error {
+//AddGameAndCurrentState adds the game, state, and move (if non-nil), ready
+//for saving. Designed to be used in a SaveGameAndCurrentState method.
+func (r *Record) AddGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord, move *boardgame.MoveStorageRecord) error {
+
+	r.Game = game
+
+	if move != nil {
+		r.Moves = append(r.Moves, move)
+	}
 
 	lastState, err := r.State(len(r.StatePatches) - 1)
 
@@ -140,7 +147,7 @@ func (r *Record) AddState(state json.RawMessage) error {
 		return errors.New("Couldn't format patch json to byte: " + err.Error())
 	}
 
-	r.states = append(r.states, state)
+	r.states = append(r.states, json.RawMessage(state))
 	r.StatePatches = append(r.StatePatches, formattedPatch)
 
 	return nil
