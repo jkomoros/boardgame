@@ -130,7 +130,7 @@ func (g *gameDelegate) Diagram(state boardgame.ImmutableState) string {
 	return strings.Join(result, "\n")
 }
 
-func (g *gameDelegate) PlayerScore(pState boardgame.PlayerState) int {
+func (g *gameDelegate) PlayerScore(pState boardgame.ImmutablePlayerState) int {
 	player := pState.(*playerState)
 
 	if player.Busted {
@@ -140,7 +140,7 @@ func (g *gameDelegate) PlayerScore(pState boardgame.PlayerState) int {
 	return player.HandValue()
 }
 
-func (g *gameDelegate) GameEndConditionMent(state boardgame.State) bool {
+func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool {
 	_, players := concreteStates(state)
 
 	for _, player := range players {

@@ -480,7 +480,7 @@ func (d *DefaultGameDelegate) FinishSetUp(state State) error {
 //defaultCheckGameFinishedDelegate can be private because
 //DefaultGameFinished implements the methods by default.
 type defaultCheckGameFinishedDelegate interface {
-	GameEndConfigurationMet(state ImmutableState) bool
+	GameEndConditionMet(state ImmutableState) bool
 	PlayerScore(pState ImmutablePlayerState) int
 }
 
@@ -504,14 +504,12 @@ func (d *DefaultGameDelegate) CheckGameFinished(state ImmutableState) (finished 
 		return false, nil
 	}
 
-	//Have to reach up to the manager's delegate to get the thing that embeds us.
-	checkGameFinished, ok := d.Manager().Delegate().(defaultCheckGameFinishedDelegate)
+	//Have to reach up to the manager's delegate to get the thing that embeds
+	//us. Don't use the comma-ok pattern because we want to panic with
+	//descriptive error if not met.
+	checkGameFinished := d.Manager().Delegate().(defaultCheckGameFinishedDelegate)
 
-	if !ok {
-		return false, nil
-	}
-
-	if !checkGameFinished.GameEndConfigurationMet(state) {
+	if !checkGameFinished.GameEndConditionMet(state) {
 		return false, nil
 	}
 

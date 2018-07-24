@@ -282,7 +282,7 @@ func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool 
 	return true
 }
 
-func (g *gameDelegate) PlayerScore(pState boardgame.PlayerState) int {
+func (g *gameDelegate) PlayerScore(pState boardgame.ImmutablePlayerState) int {
 	player := pState.(*playerState)
 
 	return player.WonCards.NumComponents()
