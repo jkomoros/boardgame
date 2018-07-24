@@ -107,7 +107,6 @@ func compare(manager *boardgame.GameManager, rec *record.Record) error {
 				return errors.New("Couldn't get " + strconv.Itoa(lastVerifiedVersion) + " state: " + err.Error())
 			}
 
-			//TODO: use go-test/deep (if vendored) for a more descriptive error.
 			if err := compareStorageRecords(game.State(lastVerifiedVersion).StorageRecord(), stateToCompare); err != nil {
 				return errors.New("State " + strconv.Itoa(lastVerifiedVersion) + " compared differently: " + err.Error())
 			}
