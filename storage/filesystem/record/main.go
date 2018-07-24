@@ -30,7 +30,7 @@ func init() {
 //contents of a file with New(). Instantiate directly for a blank one.
 type Record struct {
 	data   *storageRecord
-	states []json.RawMessage
+	states []boardgame.StateStorageRecord
 }
 
 type storageRecord struct {
@@ -181,7 +181,7 @@ func (r *Record) AddGameAndCurrentState(game *boardgame.GameStorageRecord, state
 		return errors.New("Couldn't format patch json to byte: " + err.Error())
 	}
 
-	r.states = append(r.states, json.RawMessage(state))
+	r.states = append(r.states, state)
 	r.data.StatePatches = append(r.data.StatePatches, formattedPatch)
 
 	return nil
@@ -190,7 +190,7 @@ func (r *Record) AddGameAndCurrentState(game *boardgame.GameStorageRecord, state
 
 //State fetches the State object at that version. It can return an error
 //because under the covers it has to apply serialized patches.
-func (r *Record) State(version int) (json.RawMessage, error) {
+func (r *Record) State(version int) (boardgame.StateStorageRecord, error) {
 
 	if r.data == nil {
 		return nil, errors.New("No data")
@@ -198,7 +198,7 @@ func (r *Record) State(version int) (json.RawMessage, error) {
 
 	if version < 0 {
 		//The base object that version 0 is diffed against is the empty object
-		return json.RawMessage(`{}`), nil
+		return boardgame.StateStorageRecord(`{}`), nil
 	}
 
 	if len(r.states) > version {
