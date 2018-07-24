@@ -1,0 +1,1843 @@
+{
+	"Game": {
+		"Name": "blackjack",
+		"Id": "DDD6477820CB836E",
+		"SecretSalt": "081DC3FBD90D5F74",
+		"Version": 22,
+		"Winners": [
+			1
+		],
+		"Finished": true,
+		"Created": "2018-07-24T11:50:08.820736398+01:00",
+		"Modified": "2018-07-24T11:50:19.581023467+01:00",
+		"NumPlayers": 4,
+		"Agents": [
+			"",
+			"",
+			"",
+			""
+		],
+		"Config": {}
+	},
+	"Moves": [
+		{
+			"Name": "Deal Initial Hidden Card",
+			"Version": 1,
+			"Initiator": 1,
+			"Phase": 0,
+			"Proposer": -2,
+			"Timestamp": "2018-07-24T11:50:08.825362907+01:00",
+			"Blob": {}
+		},
+		{
+			"Name": "Deal Initial Hidden Card",
+			"Version": 2,
+			"Initiator": 1,
+			"Phase": 0,
+			"Proposer": -2,
+			"Timestamp": "2018-07-24T11:50:08.83134365+01:00",
+			"Blob": {}
+		},
+		{
+			"Name": "Deal Initial Hidden Card",
+			"Version": 3,
+			"Initiator": 1,
+			"Phase": 0,
+			"Proposer": -2,
+			"Timestamp": "2018-07-24T11:50:08.838696096+01:00",
+			"Blob": {}
+		},
+		{
+			"Name": "Deal Initial Hidden Card",
+			"Version": 4,
+			"Initiator": 1,
+			"Phase": 0,
+			"Proposer": -2,
+			"Timestamp": "2018-07-24T11:50:08.846908586+01:00",
+			"Blob": {}
+		},
+		{
+			"Name": "Deal Initial Visible Card",
+			"Version": 5,
+			"Initiator": 1,
+			"Phase": 0,
+			"Proposer": -2,
+			"Timestamp": "2018-07-24T11:50:08.856253775+01:00",
+			"Blob": {}
+		},
+		{
+			"Name": "Deal Initial Visible Card",
+			"Version": 6,
+			"Initiator": 1,
+			"Phase": 0,
+			"Proposer": -2,
+			"Timestamp": "2018-07-24T11:50:08.869933675+01:00",
+			"Blob": {}
+		},
+		{
+			"Name": "Deal Initial Visible Card",
+			"Version": 7,
+			"Initiator": 1,
+			"Phase": 0,
+			"Proposer": -2,
+			"Timestamp": "2018-07-24T11:50:08.883597148+01:00",
+			"Blob": {}
+		},
+		{
+			"Name": "Deal Initial Visible Card",
+			"Version": 8,
+			"Initiator": 1,
+			"Phase": 0,
+			"Proposer": -2,
+			"Timestamp": "2018-07-24T11:50:08.898683958+01:00",
+			"Blob": {}
+		},
+		{
+			"Name": "Start Phase Normal Play",
+			"Version": 9,
+			"Initiator": 1,
+			"Phase": 0,
+			"Proposer": -2,
+			"Timestamp": "2018-07-24T11:50:08.914918429+01:00",
+			"Blob": {}
+		},
+		{
+			"Name": "Reveal Hidden Card",
+			"Version": 10,
+			"Initiator": 1,
+			"Phase": 1,
+			"Proposer": -2,
+			"Timestamp": "2018-07-24T11:50:08.929691744+01:00",
+			"Blob": {
+				"TargetPlayerIndex": 0
+			}
+		},
+		{
+			"Name": "Current Player Stand",
+			"Version": 11,
+			"Initiator": 11,
+			"Phase": 1,
+			"Proposer": 0,
+			"Timestamp": "2018-07-24T11:50:13.254270065+01:00",
+			"Blob": {
+				"TargetPlayerIndex": 0
+			}
+		},
+		{
+			"Name": "Finish Turn",
+			"Version": 12,
+			"Initiator": 11,
+			"Phase": 1,
+			"Proposer": -2,
+			"Timestamp": "2018-07-24T11:50:13.272976861+01:00",
+			"Blob": {}
+		},
+		{
+			"Name": "Reveal Hidden Card",
+			"Version": 13,
+			"Initiator": 11,
+			"Phase": 1,
+			"Proposer": -2,
+			"Timestamp": "2018-07-24T11:50:13.292435831+01:00",
+			"Blob": {
+				"TargetPlayerIndex": 1
+			}
+		},
+		{
+			"Name": "Current Player Hit",
+			"Version": 14,
+			"Initiator": 14,
+			"Phase": 1,
+			"Proposer": 1,
+			"Timestamp": "2018-07-24T11:50:14.3370843+01:00",
+			"Blob": {
+				"TargetPlayerIndex": 1
+			}
+		},
+		{
+			"Name": "Current Player Stand",
+			"Version": 15,
+			"Initiator": 15,
+			"Phase": 1,
+			"Proposer": 1,
+			"Timestamp": "2018-07-24T11:50:15.768832011+01:00",
+			"Blob": {
+				"TargetPlayerIndex": 1
+			}
+		},
+		{
+			"Name": "Finish Turn",
+			"Version": 16,
+			"Initiator": 15,
+			"Phase": 1,
+			"Proposer": -2,
+			"Timestamp": "2018-07-24T11:50:15.79205369+01:00",
+			"Blob": {}
+		},
+		{
+			"Name": "Reveal Hidden Card",
+			"Version": 17,
+			"Initiator": 15,
+			"Phase": 1,
+			"Proposer": -2,
+			"Timestamp": "2018-07-24T11:50:15.815611132+01:00",
+			"Blob": {
+				"TargetPlayerIndex": 2
+			}
+		},
+		{
+			"Name": "Current Player Hit",
+			"Version": 18,
+			"Initiator": 18,
+			"Phase": 1,
+			"Proposer": 2,
+			"Timestamp": "2018-07-24T11:50:16.707264449+01:00",
+			"Blob": {
+				"TargetPlayerIndex": 2
+			}
+		},
+		{
+			"Name": "Current Player Hit",
+			"Version": 19,
+			"Initiator": 19,
+			"Phase": 1,
+			"Proposer": 2,
+			"Timestamp": "2018-07-24T11:50:17.391405078+01:00",
+			"Blob": {
+				"TargetPlayerIndex": 2
+			}
+		},
+		{
+			"Name": "Finish Turn",
+			"Version": 20,
+			"Initiator": 19,
+			"Phase": 1,
+			"Proposer": -2,
+			"Timestamp": "2018-07-24T11:50:17.417521997+01:00",
+			"Blob": {}
+		},
+		{
+			"Name": "Reveal Hidden Card",
+			"Version": 21,
+			"Initiator": 19,
+			"Phase": 1,
+			"Proposer": -2,
+			"Timestamp": "2018-07-24T11:50:17.445195722+01:00",
+			"Blob": {
+				"TargetPlayerIndex": 3
+			}
+		},
+		{
+			"Name": "Current Player Hit",
+			"Version": 22,
+			"Initiator": 22,
+			"Phase": 1,
+			"Proposer": 3,
+			"Timestamp": "2018-07-24T11:50:19.581023467+01:00",
+			"Blob": {
+				"TargetPlayerIndex": 3
+			}
+		}
+	],
+	"StatePatches": [
+		{
+			"Components": [
+				{}
+			],
+			"Game": [
+				{
+					"CurrentPlayer": 0,
+					"DiscardStack": {
+						"Deck": "cards",
+						"Ids": [],
+						"IdsLastSeen": {},
+						"Indexes": []
+					},
+					"DrawStack": {
+						"Deck": "cards",
+						"Ids": [
+							"950ffde4a242a05384b4fe67a8d1c81f41f6de47",
+							"5d78745cb905a94d19ffef74e67be8a962605dc3",
+							"fb8e701b6363cbef5f32052afc6bc4d431ea82ab",
+							"8684aa5452a9554a1685eea143dd98dd4980d8ba",
+							"f561b716c9a9fa73dafa08520a3038d975140278",
+							"90057fbe7b118640feeaab9c9018232fb507e192",
+							"46ffb08bceff30e80d113ece399971b6e6f40690",
+							"ec06e2c98831d71e7b73db4ad9ab107f3b230d14",
+							"b70ef32dbe3fab9ae0cb9098a7940b814cf8c89a",
+							"8d33e388bf73f4e6048434c65ae235c444a9c479",
+							"31e3e22766cad085bcc830fe16b0a528625027b8",
+							"6fa1bb914bfb3261291e008243c7f3cf08353348",
+							"3a32711eb8a0475ccae60921deed864a00fd74fa",
+							"5cfe38f7612321a99942ef2b813c6313538072b8",
+							"4026f66d81fc9417a004ec342fed39f197cf0eab",
+							"f1bcea03bd092c2a3ffa000e7333365aacb5d327",
+							"9739a7cf31bf70f3f9d1297d1a9123f953f6a7ee",
+							"e9b41091e55db0596c9bddd5501417bc7d407c92",
+							"1451d6dfaa04ce52ae91d9a2b91c067d5091931d",
+							"3e48eff1cbd0314ceeee250a6cedf5ace37430d3",
+							"9e2e8f9294d85f33833e90a4cf9193fe2231da76",
+							"4224cdffd145ad08540607aef28a6b1c782e2e36",
+							"6dc6053e0f38369d19c10b2d748e1fd811a6e89d",
+							"c5e61e812e912ee6681846252952e154da09605e",
+							"a41c4c238dbb934a17b7e9c5bf620a5f23c161d6",
+							"7a22536922d6537b9f8caadd72a54a48ff7ddadd",
+							"b35a8810ef33cd02d99701393620026366776abc",
+							"fe50dd2fdcae428b8a64c99b446f1e890618a9ec",
+							"8397bb252275ca6b65b64c281c843ceda1fa59bf",
+							"d0efa6a4b663454ea436b5a630344cf6256830ab",
+							"2f2db324c9703b0b80cc660ce64c7e7c81f72b93",
+							"387cafe8f4dff8715b3173d072fcd33094f58dd9",
+							"a121fd3426427b6a067971d50fe6e0621f008175",
+							"bfd4d9d2e793b7e1495294fb8c2d1d5a9f4d8719",
+							"151317f39c45b4bdbe815a81a14ef920ca71dcc9",
+							"137467d5f0465230e9fc9160c20e889362ab97a8",
+							"76e49149e25365c438bb7948d7cbc89b1a5cec89",
+							"266f50eb54b50f5e39341d5b87cecf55a72bb331",
+							"5580729f15221211ff3a485b657ad213dddbee22",
+							"5119e38e499ab5f961409e22a18564c3ab7c747f",
+							"9fa542459f2bbc8de49ccfdab02e1e25ec406ab6",
+							"7da0204b57d9d3eb1d454e7e4677116c92700106",
+							"7d807275e2fee1b9fd52c076ad881b84acb68c32",
+							"74c2d3e4d236e8473a62214219b3574517d2268d",
+							"83a1fa0d776359c48c8483999a6c616e39a27b4e",
+							"3e5ec964bd2a2c1909285776071bce80733f47c9",
+							"0548419e2ed8be02cbb66eea88612ae97ccdd9b4",
+							"a801519742ebe8c679d40ff372a3fd5bd802e0f3",
+							"840c70a65266c848cf673a15d389316ea783c622",
+							"499827310015eea089b09e3c92efcfb6fbe20a7d",
+							"3cc679d64a569684bd0cb3c70d72ab181f1c1576",
+							"d748b497238fc788e6d4ab134932c0e2c887179e"
+						],
+						"IdsLastSeen": {
+							"0548419e2ed8be02cbb66eea88612ae97ccdd9b4": 0,
+							"05d8efbf248e73ced544d41cb061e453458e0514": 0,
+							"0daf82965d0707d24e7a67ae707465437c47025c": 0,
+							"130d3dd981720a196311751ee8da8fef46aff918": 0,
+							"135890ca494162e089f1aabf6d0e8d6c099a538f": 0,
+							"137467d5f0465230e9fc9160c20e889362ab97a8": 0,
+							"1451d6dfaa04ce52ae91d9a2b91c067d5091931d": 0,
+							"151317f39c45b4bdbe815a81a14ef920ca71dcc9": 0,
+							"182677a9cc5965aa44712786a1723ecac1ec9ced": 0,
+							"1ac5fdeb42ed1f97ade6d66936b182098c3e331d": 0,
+							"1c6ec476a0d64a8e673bb31433badc6d5edbd0ac": 0,
+							"266f50eb54b50f5e39341d5b87cecf55a72bb331": 0,
+							"26a490fb8d572c9aa60454f4e4c44ddcae881150": 0,
+							"2d6a42bf3589e593b2ddf875266f1a82cba30b4f": 0,
+							"2f2db324c9703b0b80cc660ce64c7e7c81f72b93": 0,
+							"31830fd73c642dc64d46acad3e9f08587d76e2f8": 0,
+							"31e3e22766cad085bcc830fe16b0a528625027b8": 0,
+							"3218a01394b80052823f14bf6669fbb046fbfbaf": 0,
+							"3572853ab3edc70af08451931b6d7ff634b1a6cc": 0,
+							"3806801cf5a187441ab7fe05c8528c1c17c99290": 0,
+							"387cafe8f4dff8715b3173d072fcd33094f58dd9": 0,
+							"395b5d6444e8efaa4e96f6bed353c5d26341afab": 0,
+							"3a32711eb8a0475ccae60921deed864a00fd74fa": 0,
+							"3cc679d64a569684bd0cb3c70d72ab181f1c1576": 0,
+							"3e48eff1cbd0314ceeee250a6cedf5ace37430d3": 0,
+							"3e5ec964bd2a2c1909285776071bce80733f47c9": 0,
+							"4026f66d81fc9417a004ec342fed39f197cf0eab": 0,
+							"4224cdffd145ad08540607aef28a6b1c782e2e36": 0,
+							"469990e658885c673bf702bc4d8bd6b00b5ac4a4": 0,
+							"46ffb08bceff30e80d113ece399971b6e6f40690": 0,
+							"499827310015eea089b09e3c92efcfb6fbe20a7d": 0,
+							"4f5a240047801eecc81c4ecfa80a4065370b9559": 0,
+							"5119e38e499ab5f961409e22a18564c3ab7c747f": 0,
+							"5580729f15221211ff3a485b657ad213dddbee22": 0,
+							"58905cb80c5a75f79f87851828d5a18df81333af": 0,
+							"5a303c9ef1c4aa37a299a009e373c35c76f2ecf0": 0,
+							"5cfe38f7612321a99942ef2b813c6313538072b8": 0,
+							"5d78745cb905a94d19ffef74e67be8a962605dc3": 0,
+							"608a21bc6fb2570d642aae3c6399ee0179a595d0": 0,
+							"65bf8117439da7508c86645064805b1ec4079750": 0,
+							"662c57b36c85b8d1eabc2b48a9c43d3fe86a7e20": 0,
+							"69da51afa4e558d515c44ed7cb06087e73cca81f": 0,
+							"6dc6053e0f38369d19c10b2d748e1fd811a6e89d": 0,
+							"6fa1bb914bfb3261291e008243c7f3cf08353348": 0,
+							"703e2572666fd10b39dccfb37326644f5f5cc9d9": 0,
+							"74c2d3e4d236e8473a62214219b3574517d2268d": 0,
+							"75ebaa3f5ad0c13a1803bf28ab13305c5e7d8ccf": 0,
+							"76e49149e25365c438bb7948d7cbc89b1a5cec89": 0,
+							"7a22536922d6537b9f8caadd72a54a48ff7ddadd": 0,
+							"7d807275e2fee1b9fd52c076ad881b84acb68c32": 0,
+							"7da0204b57d9d3eb1d454e7e4677116c92700106": 0,
+							"8397bb252275ca6b65b64c281c843ceda1fa59bf": 0,
+							"83a1fa0d776359c48c8483999a6c616e39a27b4e": 0,
+							"840c70a65266c848cf673a15d389316ea783c622": 0,
+							"8684aa5452a9554a1685eea143dd98dd4980d8ba": 0,
+							"8abd20b1b3e81fc7dadd795d0b3565f75967e835": 0,
+							"8ae2776e1fa720c9aed8b76fe61230e70f6f8f06": 0,
+							"8c0281683e1e5804635bd50d0e7f0cdb8db82aaf": 0,
+							"8d32643784ab00751f4e1fdf5ac4805bef6817bd": 0,
+							"8d33e388bf73f4e6048434c65ae235c444a9c479": 0,
+							"90057fbe7b118640feeaab9c9018232fb507e192": 0,
+							"91b98dc2c63871d7592f16f0f11857ad6e23dbb0": 0,
+							"939528e64f7b86ece7913cd5d65c72ddfdc342e9": 0,
+							"950ffde4a242a05384b4fe67a8d1c81f41f6de47": 0,
+							"9739a7cf31bf70f3f9d1297d1a9123f953f6a7ee": 0,
+							"9984cab82043c4821664218cf3b4f7aa8e65b7a3": 0,
+							"9e2e8f9294d85f33833e90a4cf9193fe2231da76": 0,
+							"9f9692c2064f4c66ac9088731cac32e037be12d3": 0,
+							"9fa542459f2bbc8de49ccfdab02e1e25ec406ab6": 0,
+							"9fcd29435db68b1b2bfe6ba6013f404b0cbb1b74": 0,
+							"a121fd3426427b6a067971d50fe6e0621f008175": 0,
+							"a38b13d412dacdf0c511f88bf65b8124aa9ffe43": 0,
+							"a41c4c238dbb934a17b7e9c5bf620a5f23c161d6": 0,
+							"a57ec24daac2fba334711dde757a622a308973a7": 0,
+							"a676aa7101cbc9611e083820afb9b5d39e61878d": 0,
+							"a7b0f44eb4d96ecc0abe8b4c2c39dfdafa00a73b": 0,
+							"a801519742ebe8c679d40ff372a3fd5bd802e0f3": 0,
+							"aad7961bf7bfd24282113b09127e7bb01136fd1b": 0,
+							"b2c376a5f6be42ae7c6932949979c2a2a2476eac": 0,
+							"b35a8810ef33cd02d99701393620026366776abc": 0,
+							"b70ef32dbe3fab9ae0cb9098a7940b814cf8c89a": 0,
+							"bd6e8310886fec404c9082b2757c46e7e4b074b7": 0,
+							"bfd4d9d2e793b7e1495294fb8c2d1d5a9f4d8719": 0,
+							"c497c1fc22d6bf0d0aaccde181235396f1f4a469": 0,
+							"c5e61e812e912ee6681846252952e154da09605e": 0,
+							"c6299c11b83021c7538119998bdd680c89cc5fa3": 0,
+							"c642d13ab65841efebc88c5bd293ba1b73e09268": 0,
+							"c97ea546664a28297250e3cfd387a8f398ac346d": 0,
+							"d0efa6a4b663454ea436b5a630344cf6256830ab": 0,
+							"d3e3715550d0a54d501153f2a08ad949f33ed314": 0,
+							"d6cc26e421633db6fba583b25f492fd0ec65f05f": 0,
+							"d748b497238fc788e6d4ab134932c0e2c887179e": 0,
+							"dcadf1791bf0eea80c3ba957da729269a1378ddf": 0,
+							"e406c0848407d9431d4b4ec7989da393f6c48484": 0,
+							"e98a1220d8911f64f238376a0b68e37c5645d0e5": 0,
+							"e9b41091e55db0596c9bddd5501417bc7d407c92": 0,
+							"eb0cd5721faa03e305b3f0e0eefe9d59448a1aa9": 0,
+							"ec06e2c98831d71e7b73db4ad9ab107f3b230d14": 0,
+							"f002998e6f5d45ee3c9b5135ea4ea4aaa82d58dc": 0,
+							"f1bcea03bd092c2a3ffa000e7333365aacb5d327": 0,
+							"f561b716c9a9fa73dafa08520a3038d975140278": 0,
+							"fb8e701b6363cbef5f32052afc6bc4d431ea82ab": 0,
+							"fd0ee32e0d20c130b69bdb9f61a422533299b853": 0,
+							"fe50dd2fdcae428b8a64c99b446f1e890618a9ec": 0
+						},
+						"Indexes": [
+							22,
+							47,
+							48,
+							12,
+							6,
+							25,
+							30,
+							43,
+							26,
+							4,
+							7,
+							38,
+							41,
+							3,
+							31,
+							10,
+							42,
+							50,
+							32,
+							36,
+							37,
+							28,
+							2,
+							40,
+							34,
+							20,
+							9,
+							16,
+							5,
+							27,
+							46,
+							21,
+							44,
+							45,
+							33,
+							13,
+							1,
+							29,
+							19,
+							39,
+							51,
+							17,
+							35,
+							14,
+							0,
+							11,
+							49,
+							24,
+							18,
+							23,
+							15,
+							8
+						]
+					},
+					"Phase": "Initial Deal",
+					"RRHasStarted": false,
+					"RRLastPlayer": 0,
+					"RRRoundCount": 0,
+					"RRStarterPlayer": 0,
+					"UnusedCards": {
+						"Deck": "cards",
+						"Ids": [],
+						"IdsLastSeen": {},
+						"Indexes": []
+					}
+				}
+			],
+			"Players": [
+				[
+					{
+						"Busted": false,
+						"Hand": {
+							"Deck": "cards",
+							"Ids": null,
+							"IdsLastSeen": {},
+							"Indexes": [],
+							"MaxSize": 1
+						},
+						"HiddenHand": {
+							"Deck": "cards",
+							"Ids": [],
+							"IdsLastSeen": {},
+							"Indexes": [],
+							"MaxSize": 1
+						},
+						"Stood": false,
+						"VisibleHand": {
+							"Deck": "cards",
+							"Ids": [],
+							"IdsLastSeen": {},
+							"Indexes": []
+						}
+					},
+					{
+						"Busted": false,
+						"Hand": {
+							"Deck": "cards",
+							"Ids": null,
+							"IdsLastSeen": {},
+							"Indexes": [],
+							"MaxSize": 1
+						},
+						"HiddenHand": {
+							"Deck": "cards",
+							"Ids": [],
+							"IdsLastSeen": {},
+							"Indexes": [],
+							"MaxSize": 1
+						},
+						"Stood": false,
+						"VisibleHand": {
+							"Deck": "cards",
+							"Ids": [],
+							"IdsLastSeen": {},
+							"Indexes": []
+						}
+					},
+					{
+						"Busted": false,
+						"Hand": {
+							"Deck": "cards",
+							"Ids": null,
+							"IdsLastSeen": {},
+							"Indexes": [],
+							"MaxSize": 1
+						},
+						"HiddenHand": {
+							"Deck": "cards",
+							"Ids": [],
+							"IdsLastSeen": {},
+							"Indexes": [],
+							"MaxSize": 1
+						},
+						"Stood": false,
+						"VisibleHand": {
+							"Deck": "cards",
+							"Ids": [],
+							"IdsLastSeen": {},
+							"Indexes": []
+						}
+					},
+					{
+						"Busted": false,
+						"Hand": {
+							"Deck": "cards",
+							"Ids": null,
+							"IdsLastSeen": {},
+							"Indexes": [],
+							"MaxSize": 1
+						},
+						"HiddenHand": {
+							"Deck": "cards",
+							"Ids": [],
+							"IdsLastSeen": {},
+							"Indexes": [],
+							"MaxSize": 1
+						},
+						"Stood": false,
+						"VisibleHand": {
+							"Deck": "cards",
+							"Ids": [],
+							"IdsLastSeen": {},
+							"Indexes": []
+						}
+					}
+				]
+			],
+			"SecretMoveCount": [
+				{
+					"cards": [
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1,
+						1
+					]
+				}
+			],
+			"Version": [
+				0
+			]
+		},
+		{
+			"Game": {
+				"DrawStack": {
+					"Ids": {
+						"_0": [
+							"950ffde4a242a05384b4fe67a8d1c81f41f6de47",
+							0,
+							0
+						],
+						"_t": "a"
+					},
+					"Indexes": {
+						"_0": [
+							22,
+							0,
+							0
+						],
+						"_t": "a"
+					}
+				},
+				"RRHasStarted": [
+					false,
+					true
+				]
+			},
+			"Players": {
+				"0": {
+					"Hand": {
+						"Ids": [
+							null,
+							[
+								"950ffde4a242a05384b4fe67a8d1c81f41f6de47"
+							]
+						],
+						"IdsLastSeen": {
+							"950ffde4a242a05384b4fe67a8d1c81f41f6de47": [
+								1
+							]
+						},
+						"Indexes": {
+							"0": [
+								22
+							],
+							"_t": "a"
+						}
+					},
+					"HiddenHand": {
+						"Ids": {
+							"0": [
+								"950ffde4a242a05384b4fe67a8d1c81f41f6de47"
+							],
+							"_t": "a"
+						},
+						"IdsLastSeen": {
+							"950ffde4a242a05384b4fe67a8d1c81f41f6de47": [
+								1
+							]
+						},
+						"Indexes": {
+							"0": [
+								22
+							],
+							"_t": "a"
+						}
+					}
+				},
+				"_t": "a"
+			},
+			"Version": [
+				0,
+				1
+			]
+		},
+		{
+			"Game": {
+				"DrawStack": {
+					"Ids": {
+						"_0": [
+							"5d78745cb905a94d19ffef74e67be8a962605dc3",
+							0,
+							0
+						],
+						"_t": "a"
+					},
+					"Indexes": {
+						"_0": [
+							47,
+							0,
+							0
+						],
+						"_t": "a"
+					}
+				},
+				"RRLastPlayer": [
+					0,
+					1
+				]
+			},
+			"Players": {
+				"1": {
+					"Hand": {
+						"Ids": [
+							null,
+							[
+								"5d78745cb905a94d19ffef74e67be8a962605dc3"
+							]
+						],
+						"IdsLastSeen": {
+							"5d78745cb905a94d19ffef74e67be8a962605dc3": [
+								2
+							]
+						},
+						"Indexes": {
+							"0": [
+								47
+							],
+							"_t": "a"
+						}
+					},
+					"HiddenHand": {
+						"Ids": {
+							"0": [
+								"5d78745cb905a94d19ffef74e67be8a962605dc3"
+							],
+							"_t": "a"
+						},
+						"IdsLastSeen": {
+							"5d78745cb905a94d19ffef74e67be8a962605dc3": [
+								2
+							]
+						},
+						"Indexes": {
+							"0": [
+								47
+							],
+							"_t": "a"
+						}
+					}
+				},
+				"_t": "a"
+			},
+			"Version": [
+				1,
+				2
+			]
+		},
+		{
+			"Game": {
+				"DrawStack": {
+					"Ids": {
+						"_0": [
+							"fb8e701b6363cbef5f32052afc6bc4d431ea82ab",
+							0,
+							0
+						],
+						"_t": "a"
+					},
+					"Indexes": {
+						"_0": [
+							48,
+							0,
+							0
+						],
+						"_t": "a"
+					}
+				},
+				"RRLastPlayer": [
+					1,
+					2
+				]
+			},
+			"Players": {
+				"2": {
+					"Hand": {
+						"Ids": [
+							null,
+							[
+								"fb8e701b6363cbef5f32052afc6bc4d431ea82ab"
+							]
+						],
+						"IdsLastSeen": {
+							"fb8e701b6363cbef5f32052afc6bc4d431ea82ab": [
+								3
+							]
+						},
+						"Indexes": {
+							"0": [
+								48
+							],
+							"_t": "a"
+						}
+					},
+					"HiddenHand": {
+						"Ids": {
+							"0": [
+								"fb8e701b6363cbef5f32052afc6bc4d431ea82ab"
+							],
+							"_t": "a"
+						},
+						"IdsLastSeen": {
+							"fb8e701b6363cbef5f32052afc6bc4d431ea82ab": [
+								3
+							]
+						},
+						"Indexes": {
+							"0": [
+								48
+							],
+							"_t": "a"
+						}
+					}
+				},
+				"_t": "a"
+			},
+			"Version": [
+				2,
+				3
+			]
+		},
+		{
+			"Game": {
+				"DrawStack": {
+					"Ids": {
+						"_0": [
+							"8684aa5452a9554a1685eea143dd98dd4980d8ba",
+							0,
+							0
+						],
+						"_t": "a"
+					},
+					"Indexes": {
+						"_0": [
+							12,
+							0,
+							0
+						],
+						"_t": "a"
+					}
+				},
+				"RRHasStarted": [
+					true,
+					false
+				],
+				"RRLastPlayer": [
+					2,
+					3
+				],
+				"RRRoundCount": [
+					0,
+					1
+				]
+			},
+			"Players": {
+				"3": {
+					"Hand": {
+						"Ids": [
+							null,
+							[
+								"8684aa5452a9554a1685eea143dd98dd4980d8ba"
+							]
+						],
+						"IdsLastSeen": {
+							"8684aa5452a9554a1685eea143dd98dd4980d8ba": [
+								4
+							]
+						},
+						"Indexes": {
+							"0": [
+								12
+							],
+							"_t": "a"
+						}
+					},
+					"HiddenHand": {
+						"Ids": {
+							"0": [
+								"8684aa5452a9554a1685eea143dd98dd4980d8ba"
+							],
+							"_t": "a"
+						},
+						"IdsLastSeen": {
+							"8684aa5452a9554a1685eea143dd98dd4980d8ba": [
+								4
+							]
+						},
+						"Indexes": {
+							"0": [
+								12
+							],
+							"_t": "a"
+						}
+					}
+				},
+				"_t": "a"
+			},
+			"Version": [
+				3,
+				4
+			]
+		},
+		{
+			"Game": {
+				"DrawStack": {
+					"Ids": {
+						"_0": [
+							"f561b716c9a9fa73dafa08520a3038d975140278",
+							0,
+							0
+						],
+						"_t": "a"
+					},
+					"Indexes": {
+						"_0": [
+							6,
+							0,
+							0
+						],
+						"_t": "a"
+					}
+				},
+				"RRHasStarted": [
+					false,
+					true
+				],
+				"RRLastPlayer": [
+					3,
+					0
+				],
+				"RRRoundCount": [
+					1,
+					0
+				]
+			},
+			"Players": {
+				"0": {
+					"Hand": {
+						"Ids": {
+							"1": [
+								"f561b716c9a9fa73dafa08520a3038d975140278"
+							],
+							"_t": "a"
+						},
+						"IdsLastSeen": {
+							"f561b716c9a9fa73dafa08520a3038d975140278": [
+								5
+							]
+						},
+						"Indexes": {
+							"1": [
+								6
+							],
+							"_t": "a"
+						}
+					},
+					"VisibleHand": {
+						"Ids": {
+							"0": [
+								"f561b716c9a9fa73dafa08520a3038d975140278"
+							],
+							"_t": "a"
+						},
+						"IdsLastSeen": {
+							"f561b716c9a9fa73dafa08520a3038d975140278": [
+								5
+							]
+						},
+						"Indexes": {
+							"0": [
+								6
+							],
+							"_t": "a"
+						}
+					}
+				},
+				"_t": "a"
+			},
+			"Version": [
+				4,
+				5
+			]
+		},
+		{
+			"Game": {
+				"DrawStack": {
+					"Ids": {
+						"_0": [
+							"90057fbe7b118640feeaab9c9018232fb507e192",
+							0,
+							0
+						],
+						"_t": "a"
+					},
+					"Indexes": {
+						"_0": [
+							25,
+							0,
+							0
+						],
+						"_t": "a"
+					}
+				},
+				"RRLastPlayer": [
+					0,
+					1
+				]
+			},
+			"Players": {
+				"1": {
+					"Hand": {
+						"Ids": {
+							"1": [
+								"90057fbe7b118640feeaab9c9018232fb507e192"
+							],
+							"_t": "a"
+						},
+						"IdsLastSeen": {
+							"90057fbe7b118640feeaab9c9018232fb507e192": [
+								6
+							]
+						},
+						"Indexes": {
+							"1": [
+								25
+							],
+							"_t": "a"
+						}
+					},
+					"VisibleHand": {
+						"Ids": {
+							"0": [
+								"90057fbe7b118640feeaab9c9018232fb507e192"
+							],
+							"_t": "a"
+						},
+						"IdsLastSeen": {
+							"90057fbe7b118640feeaab9c9018232fb507e192": [
+								6
+							]
+						},
+						"Indexes": {
+							"0": [
+								25
+							],
+							"_t": "a"
+						}
+					}
+				},
+				"_t": "a"
+			},
+			"Version": [
+				5,
+				6
+			]
+		},
+		{
+			"Game": {
+				"DrawStack": {
+					"Ids": {
+						"_0": [
+							"46ffb08bceff30e80d113ece399971b6e6f40690",
+							0,
+							0
+						],
+						"_t": "a"
+					},
+					"Indexes": {
+						"_0": [
+							30,
+							0,
+							0
+						],
+						"_t": "a"
+					}
+				},
+				"RRLastPlayer": [
+					1,
+					2
+				]
+			},
+			"Players": {
+				"2": {
+					"Hand": {
+						"Ids": {
+							"1": [
+								"46ffb08bceff30e80d113ece399971b6e6f40690"
+							],
+							"_t": "a"
+						},
+						"IdsLastSeen": {
+							"46ffb08bceff30e80d113ece399971b6e6f40690": [
+								7
+							]
+						},
+						"Indexes": {
+							"1": [
+								30
+							],
+							"_t": "a"
+						}
+					},
+					"VisibleHand": {
+						"Ids": {
+							"0": [
+								"46ffb08bceff30e80d113ece399971b6e6f40690"
+							],
+							"_t": "a"
+						},
+						"IdsLastSeen": {
+							"46ffb08bceff30e80d113ece399971b6e6f40690": [
+								7
+							]
+						},
+						"Indexes": {
+							"0": [
+								30
+							],
+							"_t": "a"
+						}
+					}
+				},
+				"_t": "a"
+			},
+			"Version": [
+				6,
+				7
+			]
+		},
+		{
+			"Game": {
+				"DrawStack": {
+					"Ids": {
+						"_0": [
+							"ec06e2c98831d71e7b73db4ad9ab107f3b230d14",
+							0,
+							0
+						],
+						"_t": "a"
+					},
+					"Indexes": {
+						"_0": [
+							43,
+							0,
+							0
+						],
+						"_t": "a"
+					}
+				},
+				"RRHasStarted": [
+					true,
+					false
+				],
+				"RRLastPlayer": [
+					2,
+					3
+				],
+				"RRRoundCount": [
+					0,
+					1
+				]
+			},
+			"Players": {
+				"3": {
+					"Hand": {
+						"Ids": {
+							"1": [
+								"ec06e2c98831d71e7b73db4ad9ab107f3b230d14"
+							],
+							"_t": "a"
+						},
+						"IdsLastSeen": {
+							"ec06e2c98831d71e7b73db4ad9ab107f3b230d14": [
+								8
+							]
+						},
+						"Indexes": {
+							"1": [
+								43
+							],
+							"_t": "a"
+						}
+					},
+					"VisibleHand": {
+						"Ids": {
+							"0": [
+								"ec06e2c98831d71e7b73db4ad9ab107f3b230d14"
+							],
+							"_t": "a"
+						},
+						"IdsLastSeen": {
+							"ec06e2c98831d71e7b73db4ad9ab107f3b230d14": [
+								8
+							]
+						},
+						"Indexes": {
+							"0": [
+								43
+							],
+							"_t": "a"
+						}
+					}
+				},
+				"_t": "a"
+			},
+			"Version": [
+				7,
+				8
+			]
+		},
+		{
+			"Game": {
+				"Phase": [
+					"Initial Deal",
+					"Normal Play"
+				]
+			},
+			"Version": [
+				8,
+				9
+			]
+		},
+		{
+			"Players": {
+				"0": {
+					"Hand": {
+						"IdsLastSeen": {
+							"950ffde4a242a05384b4fe67a8d1c81f41f6de47": [
+								1,
+								10
+							]
+						}
+					},
+					"HiddenHand": {
+						"Ids": {
+							"_0": [
+								"950ffde4a242a05384b4fe67a8d1c81f41f6de47",
+								0,
+								0
+							],
+							"_t": "a"
+						},
+						"Indexes": {
+							"_0": [
+								22,
+								0,
+								0
+							],
+							"_t": "a"
+						}
+					},
+					"VisibleHand": {
+						"Ids": {
+							"0": [
+								"950ffde4a242a05384b4fe67a8d1c81f41f6de47"
+							],
+							"_t": "a"
+						},
+						"IdsLastSeen": {
+							"950ffde4a242a05384b4fe67a8d1c81f41f6de47": [
+								10
+							]
+						},
+						"Indexes": {
+							"0": [
+								22
+							],
+							"_t": "a"
+						}
+					}
+				},
+				"_t": "a"
+			},
+			"Version": [
+				9,
+				10
+			]
+		},
+		{
+			"Players": {
+				"0": {
+					"Stood": [
+						false,
+						true
+					]
+				},
+				"_t": "a"
+			},
+			"Version": [
+				10,
+				11
+			]
+		},
+		{
+			"Game": {
+				"CurrentPlayer": [
+					0,
+					1
+				]
+			},
+			"Version": [
+				11,
+				12
+			]
+		},
+		{
+			"Players": {
+				"1": {
+					"Hand": {
+						"IdsLastSeen": {
+							"5d78745cb905a94d19ffef74e67be8a962605dc3": [
+								2,
+								13
+							]
+						}
+					},
+					"HiddenHand": {
+						"Ids": {
+							"_0": [
+								"5d78745cb905a94d19ffef74e67be8a962605dc3",
+								0,
+								0
+							],
+							"_t": "a"
+						},
+						"Indexes": {
+							"_0": [
+								47,
+								0,
+								0
+							],
+							"_t": "a"
+						}
+					},
+					"VisibleHand": {
+						"Ids": {
+							"0": [
+								"5d78745cb905a94d19ffef74e67be8a962605dc3"
+							],
+							"_t": "a"
+						},
+						"IdsLastSeen": {
+							"5d78745cb905a94d19ffef74e67be8a962605dc3": [
+								13
+							]
+						},
+						"Indexes": {
+							"0": [
+								47
+							],
+							"_t": "a"
+						}
+					}
+				},
+				"_t": "a"
+			},
+			"Version": [
+				12,
+				13
+			]
+		},
+		{
+			"Game": {
+				"DrawStack": {
+					"Ids": {
+						"_0": [
+							"b70ef32dbe3fab9ae0cb9098a7940b814cf8c89a",
+							0,
+							0
+						],
+						"_t": "a"
+					},
+					"Indexes": {
+						"_0": [
+							26,
+							0,
+							0
+						],
+						"_t": "a"
+					}
+				}
+			},
+			"Players": {
+				"1": {
+					"Hand": {
+						"Ids": {
+							"0": [
+								"b70ef32dbe3fab9ae0cb9098a7940b814cf8c89a"
+							],
+							"_t": "a"
+						},
+						"IdsLastSeen": {
+							"b70ef32dbe3fab9ae0cb9098a7940b814cf8c89a": [
+								14
+							]
+						},
+						"Indexes": {
+							"0": [
+								26
+							],
+							"_t": "a"
+						}
+					},
+					"VisibleHand": {
+						"Ids": {
+							"0": [
+								"b70ef32dbe3fab9ae0cb9098a7940b814cf8c89a"
+							],
+							"_t": "a"
+						},
+						"IdsLastSeen": {
+							"b70ef32dbe3fab9ae0cb9098a7940b814cf8c89a": [
+								14
+							]
+						},
+						"Indexes": {
+							"0": [
+								26
+							],
+							"_t": "a"
+						}
+					}
+				},
+				"_t": "a"
+			},
+			"Version": [
+				13,
+				14
+			]
+		},
+		{
+			"Players": {
+				"1": {
+					"Stood": [
+						false,
+						true
+					]
+				},
+				"_t": "a"
+			},
+			"Version": [
+				14,
+				15
+			]
+		},
+		{
+			"Game": {
+				"CurrentPlayer": [
+					1,
+					2
+				]
+			},
+			"Version": [
+				15,
+				16
+			]
+		},
+		{
+			"Players": {
+				"2": {
+					"Hand": {
+						"IdsLastSeen": {
+							"fb8e701b6363cbef5f32052afc6bc4d431ea82ab": [
+								3,
+								17
+							]
+						}
+					},
+					"HiddenHand": {
+						"Ids": {
+							"_0": [
+								"fb8e701b6363cbef5f32052afc6bc4d431ea82ab",
+								0,
+								0
+							],
+							"_t": "a"
+						},
+						"Indexes": {
+							"_0": [
+								48,
+								0,
+								0
+							],
+							"_t": "a"
+						}
+					},
+					"VisibleHand": {
+						"Ids": {
+							"0": [
+								"fb8e701b6363cbef5f32052afc6bc4d431ea82ab"
+							],
+							"_t": "a"
+						},
+						"IdsLastSeen": {
+							"fb8e701b6363cbef5f32052afc6bc4d431ea82ab": [
+								17
+							]
+						},
+						"Indexes": {
+							"0": [
+								48
+							],
+							"_t": "a"
+						}
+					}
+				},
+				"_t": "a"
+			},
+			"Version": [
+				16,
+				17
+			]
+		},
+		{
+			"Game": {
+				"DrawStack": {
+					"Ids": {
+						"_0": [
+							"8d33e388bf73f4e6048434c65ae235c444a9c479",
+							0,
+							0
+						],
+						"_t": "a"
+					},
+					"Indexes": {
+						"_0": [
+							4,
+							0,
+							0
+						],
+						"_t": "a"
+					}
+				}
+			},
+			"Players": {
+				"2": {
+					"Hand": {
+						"Ids": {
+							"0": [
+								"8d33e388bf73f4e6048434c65ae235c444a9c479"
+							],
+							"_t": "a"
+						},
+						"IdsLastSeen": {
+							"8d33e388bf73f4e6048434c65ae235c444a9c479": [
+								18
+							]
+						},
+						"Indexes": {
+							"0": [
+								4
+							],
+							"_t": "a"
+						}
+					},
+					"VisibleHand": {
+						"Ids": {
+							"0": [
+								"8d33e388bf73f4e6048434c65ae235c444a9c479"
+							],
+							"_t": "a"
+						},
+						"IdsLastSeen": {
+							"8d33e388bf73f4e6048434c65ae235c444a9c479": [
+								18
+							]
+						},
+						"Indexes": {
+							"0": [
+								4
+							],
+							"_t": "a"
+						}
+					}
+				},
+				"_t": "a"
+			},
+			"Version": [
+				17,
+				18
+			]
+		},
+		{
+			"Game": {
+				"DrawStack": {
+					"Ids": {
+						"_0": [
+							"31e3e22766cad085bcc830fe16b0a528625027b8",
+							0,
+							0
+						],
+						"_t": "a"
+					},
+					"Indexes": {
+						"_0": [
+							7,
+							0,
+							0
+						],
+						"_t": "a"
+					}
+				}
+			},
+			"Players": {
+				"2": {
+					"Busted": [
+						false,
+						true
+					],
+					"Hand": {
+						"Ids": {
+							"0": [
+								"31e3e22766cad085bcc830fe16b0a528625027b8"
+							],
+							"_t": "a"
+						},
+						"IdsLastSeen": {
+							"31e3e22766cad085bcc830fe16b0a528625027b8": [
+								19
+							]
+						},
+						"Indexes": {
+							"0": [
+								7
+							],
+							"_t": "a"
+						}
+					},
+					"VisibleHand": {
+						"Ids": {
+							"0": [
+								"31e3e22766cad085bcc830fe16b0a528625027b8"
+							],
+							"_t": "a"
+						},
+						"IdsLastSeen": {
+							"31e3e22766cad085bcc830fe16b0a528625027b8": [
+								19
+							]
+						},
+						"Indexes": {
+							"0": [
+								7
+							],
+							"_t": "a"
+						}
+					}
+				},
+				"_t": "a"
+			},
+			"Version": [
+				18,
+				19
+			]
+		},
+		{
+			"Game": {
+				"CurrentPlayer": [
+					2,
+					3
+				]
+			},
+			"Version": [
+				19,
+				20
+			]
+		},
+		{
+			"Players": {
+				"3": {
+					"Hand": {
+						"IdsLastSeen": {
+							"8684aa5452a9554a1685eea143dd98dd4980d8ba": [
+								4,
+								21
+							]
+						}
+					},
+					"HiddenHand": {
+						"Ids": {
+							"_0": [
+								"8684aa5452a9554a1685eea143dd98dd4980d8ba",
+								0,
+								0
+							],
+							"_t": "a"
+						},
+						"Indexes": {
+							"_0": [
+								12,
+								0,
+								0
+							],
+							"_t": "a"
+						}
+					},
+					"VisibleHand": {
+						"Ids": {
+							"0": [
+								"8684aa5452a9554a1685eea143dd98dd4980d8ba"
+							],
+							"_t": "a"
+						},
+						"IdsLastSeen": {
+							"8684aa5452a9554a1685eea143dd98dd4980d8ba": [
+								21
+							]
+						},
+						"Indexes": {
+							"0": [
+								12
+							],
+							"_t": "a"
+						}
+					}
+				},
+				"_t": "a"
+			},
+			"Version": [
+				20,
+				21
+			]
+		},
+		{
+			"Game": {
+				"DrawStack": {
+					"Ids": {
+						"_0": [
+							"6fa1bb914bfb3261291e008243c7f3cf08353348",
+							0,
+							0
+						],
+						"_t": "a"
+					},
+					"Indexes": {
+						"_0": [
+							38,
+							0,
+							0
+						],
+						"_t": "a"
+					}
+				}
+			},
+			"Players": {
+				"3": {
+					"Busted": [
+						false,
+						true
+					],
+					"Hand": {
+						"Ids": {
+							"0": [
+								"6fa1bb914bfb3261291e008243c7f3cf08353348"
+							],
+							"_t": "a"
+						},
+						"IdsLastSeen": {
+							"6fa1bb914bfb3261291e008243c7f3cf08353348": [
+								22
+							]
+						},
+						"Indexes": {
+							"0": [
+								38
+							],
+							"_t": "a"
+						}
+					},
+					"VisibleHand": {
+						"Ids": {
+							"0": [
+								"6fa1bb914bfb3261291e008243c7f3cf08353348"
+							],
+							"_t": "a"
+						},
+						"IdsLastSeen": {
+							"6fa1bb914bfb3261291e008243c7f3cf08353348": [
+								22
+							]
+						},
+						"Indexes": {
+							"0": [
+								38
+							],
+							"_t": "a"
+						}
+					}
+				},
+				"_t": "a"
+			},
+			"Version": [
+				21,
+				22
+			]
+		}
+	]
+}

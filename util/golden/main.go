@@ -12,6 +12,8 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/storage/filesystem/record"
 	"github.com/jkomoros/boardgame/storage/memory"
+	"github.com/yudai/gojsondiff"
+	"github.com/yudai/gojsondiff/formatter"
 	"reflect"
 	"strconv"
 )
@@ -46,7 +48,7 @@ func Compare(delegate boardgame.GameDelegate, rec *record.Record) error {
 			}
 
 			//TODO: use go-test/deep (if vendored) for a more descriptive error.
-			if !reflect.DeepEqual(game.State(lastVerifiedVersion), stateToCompare) {
+			if err := compareStorageRecords(game.State(lastVerifiedVersion).StorageRecord(), stateToCompare); err != nil {
 				return errors.New("State " + strconv.Itoa(lastVerifiedVersion) + " compared differently: " + err.Error())
 			}
 
@@ -84,6 +86,33 @@ func Compare(delegate boardgame.GameDelegate, rec *record.Record) error {
 
 	if !reflect.DeepEqual(game.Winners(), rec.Game().Winners) {
 		return errors.New("Game winners did not match")
+	}
+
+	return nil
+
+}
+
+var differ = gojsondiff.New()
+
+var diffformatter = formatter.NewDeltaFormatter()
+
+func compareStorageRecords(one, two boardgame.StateStorageRecord) error {
+
+	diff, err := differ.Compare(one, two)
+
+	if err != nil {
+		return errors.New("Couldn't diff: " + err.Error())
+	}
+
+	if diff.Modified() {
+
+		str, err := diffformatter.Format(diff)
+
+		if err != nil {
+			return errors.New("Couldn't format diff: " + err.Error())
+		}
+
+		return errors.New("Diff: " + str)
 	}
 
 	return nil
