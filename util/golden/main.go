@@ -18,10 +18,10 @@ import (
 	"strconv"
 )
 
-//Compare is the primary method in the package. It takes a fresh game delegate
-//and a record to compare against. delegate shiould be a fresh delegate not
-//yet affiliated with a manager.s
-func Compare(delegate boardgame.GameDelegate, rec *record.Record) error {
+//Compare is the primary method in the package. It takes a game delegate and a
+//filename denoting a record to compare against. delegate shiould be a fresh
+//delegate not yet affiliated with a manager.
+func Compare(delegate boardgame.GameDelegate, recFilename string) error {
 
 	manager, err := boardgame.NewGameManager(delegate, memory.NewStorageManager())
 
@@ -29,6 +29,17 @@ func Compare(delegate boardgame.GameDelegate, rec *record.Record) error {
 		return errors.New("Couldn't create new manager: " + err.Error())
 	}
 
+	rec, err := record.New(recFilename)
+
+	if err != nil {
+		return errors.New("Couldn't create record: " + err.Error())
+	}
+
+	return compare(manager, rec)
+
+}
+
+func compare(manager *boardgame.GameManager, rec *record.Record) error {
 	game, err := manager.RecreateGame(rec.Game())
 
 	if err != nil {
@@ -89,7 +100,6 @@ func Compare(delegate boardgame.GameDelegate, rec *record.Record) error {
 	}
 
 	return nil
-
 }
 
 var differ = gojsondiff.New()
