@@ -25,15 +25,19 @@ import (
 	"github.com/jkomoros/boardgame/storage/filesystem/record"
 	"github.com/jkomoros/boardgame/storage/internal/helpers"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 )
 
 type StorageManager struct {
 	//Fall back on those methods
 	*helpers.ExtendedMemoryStorageManager
-	basePath string
+	basePath         string
+	goldenFolderName string
+	managers         []*boardgame.GameManager
 }
 
 //Store seen ids and remember where the path was
@@ -43,10 +47,19 @@ func init() {
 	idToPath = make(map[string]string)
 }
 
-func NewStorageManager(basePath string) *StorageManager {
+//NewStorageManager returns a new filesystem storage manager. basePath is the
+//folder, relative to this executable, to have as the root of the storage
+//pool. If goldenFolderName is not "", then we will use reflection to find the
+//package path for each delegate, ensure a folder exists within it with that
+//name, and then create a soft-link from basePath to that folder. The result
+//is that the underlying files will be stored in folders adjacent to the games
+//they are relative to, which is convenient if you're adding new golden games
+//to the test set.
+func NewStorageManager(basePath string, goldenFolderName string) *StorageManager {
 
 	result := &StorageManager{
-		basePath: basePath,
+		basePath:         basePath,
+		goldenFolderName: goldenFolderName,
 	}
 
 	result.ExtendedMemoryStorageManager = helpers.NewExtendedMemoryStorageManager(result)
@@ -66,7 +79,58 @@ func (s *StorageManager) Connect(config string) error {
 		}
 	}
 
+	if s.goldenFolderName != "" {
+
+		log.Println("Creating and linking golden folders")
+		for _, manager := range s.managers {
+			pkgPath := reflect.ValueOf(manager.Delegate()).Elem().Type().PkgPath()
+			if err := s.LinkGoldenFolder(manager.Delegate().Name(), pkgPath); err != nil {
+				return errors.New("Couldn't link golden folder for " + manager.Delegate().Name() + ": " + err.Error())
+			}
+		}
+	}
+
 	return nil
+}
+
+func (s *StorageManager) LinkGoldenFolder(gameType, pkgPath string) error {
+	//TODO: does this handle vendoring correctly?
+
+	if s.goldenFolderName == "" {
+		return nil
+	}
+
+	goPath := os.Getenv("GOPATH")
+
+	if goPath == "" {
+		return errors.New("Gopath wasn't set")
+	}
+
+	fullPath := filepath.Join(goPath, "src", pkgPath, s.goldenFolderName)
+
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		log.Println("Creating " + fullPath)
+		if err := os.Mkdir(fullPath, 0700); err != nil {
+			return errors.New("Could not make golden path: " + err.Error())
+		}
+	}
+
+	gamePath := filepath.Join(s.basePath, gameType)
+
+	if _, err := os.Stat(gamePath); os.IsNotExist(err) {
+		log.Println("Linking " + gamePath + " to " + fullPath)
+		//Soft link from basePath.
+		if err := os.Symlink(fullPath, gamePath); err != nil {
+			return errors.New("Couldn't create symlink: " + err.Error())
+		}
+	}
+
+	return nil
+
+}
+
+func (s *StorageManager) WithManagers(managers []*boardgame.GameManager) {
+	s.managers = managers
 }
 
 func (s *StorageManager) CleanUp() {
