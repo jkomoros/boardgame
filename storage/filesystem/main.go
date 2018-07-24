@@ -25,6 +25,9 @@ import (
 	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/storage/filesystem/record"
 	"github.com/jkomoros/boardgame/storage/internal/helpers"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"io/ioutil"
 	"log"
 	"os"
@@ -134,7 +137,7 @@ func (s *StorageManager) LinkGoldenFolder(gameType, pkgPath string) error {
 	//a full-fledged util.
 
 	//TODO: allow this to be skipped as an otpion.
-	if err := s.SaveGoldenTest(gameType, fullPkgPath); err != nil {
+	if err := s.SaveGoldenTest(fullPkgPath); err != nil {
 		return errors.New("Couldn't store golden test: " + err.Error())
 	}
 
@@ -142,16 +145,18 @@ func (s *StorageManager) LinkGoldenFolder(gameType, pkgPath string) error {
 
 }
 
-func (s *StorageManager) SaveGoldenTest(gameType, fullPkgPath string) error {
+func (s *StorageManager) SaveGoldenTest(fullPkgPath string) error {
+
+	pkgName, err := verifyPkgForGolden(fullPkgPath)
+
+	if err != nil {
+		return errors.New("Package didn't validate: " + err.Error())
+	}
 
 	buf := new(bytes.Buffer)
 
-	//TODO: this presumes that the gametype is also the name of the package.
-	//Either document that, or derive it automatically from source.
-
-	//TODO: verify that the package has a NewDelegate method.
-	err := goldenTestTemplate.Execute(buf, map[string]string{
-		"gametype": gameType,
+	err = goldenTestTemplate.Execute(buf, map[string]string{
+		"gametype": pkgName,
 		"folder":   s.goldenFolderName,
 	})
 
@@ -160,6 +165,79 @@ func (s *StorageManager) SaveGoldenTest(gameType, fullPkgPath string) error {
 	}
 
 	return ioutil.WriteFile(filepath.Join(fullPkgPath, "golden_test.go"), buf.Bytes(), 0644)
+
+}
+
+//verifyPkgForGolden looks at the given package, returns the package name, and
+//verifies that it has a NewDelegate method.
+func verifyPkgForGolden(fullPkgName string) (string, error) {
+	pkgs, err := parser.ParseDir(token.NewFileSet(), fullPkgName, nil, 0)
+
+	if err != nil {
+		return "", errors.New("Couldn't parse folder: " + err.Error())
+	}
+
+	if len(pkgs) < 1 {
+		return "", errors.New("No packages in that directory")
+	}
+
+	if len(pkgs) > 1 {
+		return "", errors.New("More than one package in that directory")
+	}
+
+	var pkg *ast.Package
+	pkgName := ""
+
+	for key, p := range pkgs {
+		pkgName = key
+		pkg = p
+	}
+
+	foundNewDelegate := false
+
+	for _, file := range pkg.Files {
+		for _, decl := range file.Decls {
+			fun, ok := decl.(*ast.FuncDecl)
+			if !ok {
+				continue
+			}
+
+			if fun.Name.String() != "NewDelegate" {
+				continue
+			}
+
+			//OK, it might be the function. Does it have the right signature?
+
+			if fun.Recv != nil {
+				return "", errors.New("NewDelegate had a receiver")
+			}
+
+			if fun.Type.Params.NumFields() > 0 {
+				return "", errors.New("NewDelegate took more than 0 items")
+			}
+
+			if fun.Type.Results.NumFields() != 1 {
+				return "", errors.New("NewDelegate didn't return exactly one item")
+			}
+
+			//TODO: check that the returned item implements
+			//boardgame.GameDelegate.
+
+			foundNewDelegate = true
+			break
+
+		}
+
+		if foundNewDelegate {
+			break
+		}
+	}
+
+	if !foundNewDelegate {
+		return "", errors.New("Couldn't find NewDelegate")
+	}
+
+	return pkgName, nil
 
 }
 
