@@ -28,7 +28,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 )
 
@@ -122,13 +121,13 @@ func (s *StorageManager) saveRecordForId(gameId string, rec *record.Record) erro
 		return errors.New("Invalid base path")
 	}
 
-	if rec.Game == nil {
+	if rec.Game() == nil {
 		return errors.New("Game record in rec was nil")
 	}
 
 	gameId = strings.ToLower(gameId)
 
-	path := filepath.Join(s.basePath, rec.Game.Name, gameId+".json")
+	path := filepath.Join(s.basePath, rec.Game().Name, gameId+".json")
 
 	dir, _ := filepath.Split(path)
 
@@ -169,17 +168,7 @@ func (s *StorageManager) Move(gameId string, version int) (*boardgame.MoveStorag
 		return nil, err
 	}
 
-	//version is effectively 1-indexed, since we don't store a move for the
-	//first version, but we store them in 0-indexed since we use the array
-	//index. So convert to that.
-
-	version -= 1
-
-	if len(rec.Moves) < version {
-		return nil, errors.New("Not enough moves to return: " + strconv.Itoa(len(rec.Moves)))
-	}
-
-	return rec.Moves[version], nil
+	return rec.Move(version)
 }
 
 func (s *StorageManager) Moves(gameId string, fromVersion, toVersion int) ([]*boardgame.MoveStorageRecord, error) {
@@ -194,7 +183,7 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 		return nil, err
 	}
 
-	return rec.Game, nil
+	return rec.Game(), nil
 }
 
 func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord, move *boardgame.MoveStorageRecord) error {
@@ -235,7 +224,7 @@ func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageR
 	}
 
 	return &extendedgame.CombinedStorageRecord{
-		*rec.Game,
+		*rec.Game(),
 		*eGame,
 	}, nil
 }
@@ -269,7 +258,7 @@ func (s *StorageManager) recursiveAllGames(basePath string) []*boardgame.GameSto
 		if err != nil {
 			return nil
 		}
-		result = append(result, rec.Game)
+		result = append(result, rec.Game())
 	}
 	return result
 }

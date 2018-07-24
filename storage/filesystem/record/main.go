@@ -27,15 +27,18 @@ func init() {
 }
 
 //Record is a record of moves, states, and game. Get a new one based on the
-//contents of a file with New(). Instantiate directly if you'll set the
-//starter state yourself.
+//contents of a file with New(). Instantiate directly for a blank one.
 type Record struct {
+	data   *storageRecord
+	states []json.RawMessage
+}
+
+type storageRecord struct {
 	Game  *boardgame.GameStorageRecord
 	Moves []*boardgame.MoveStorageRecord
 	//StatePatches are diffs from the state before. Get the actual state for a
 	//version with State().
 	StatePatches []json.RawMessage
-	states       []json.RawMessage
 }
 
 func New(filename string) (*Record, error) {
@@ -45,13 +48,41 @@ func New(filename string) (*Record, error) {
 		return nil, errors.New("Couldn't read file: " + err.Error())
 	}
 
-	var result Record
+	var storageRec storageRecord
 
-	if err := json.Unmarshal(data, &result); err != nil {
+	if err := json.Unmarshal(data, &storageRec); err != nil {
 		return nil, errors.New("Couldn't decode json: " + err.Error())
 	}
 
-	return &result, nil
+	return &Record{
+		data: &storageRec,
+	}, nil
+}
+
+func (r *Record) Game() *boardgame.GameStorageRecord {
+	if r.data == nil {
+		return nil
+	}
+	return r.data.Game
+}
+
+func (r *Record) Move(version int) (*boardgame.MoveStorageRecord, error) {
+	if r.data == nil {
+		return nil, errors.New("No data")
+	}
+	if version < 0 {
+		return nil, errors.New("Version too low")
+	}
+
+	version -= 1
+	//version is effectively 1-indexed, since we don't store a move for the
+	//first version, but we store them in 0-indexed since we use the array
+	//index. So convert to that.
+	if len(r.data.Moves) < version {
+		return nil, errors.New("Not enough moves")
+	}
+
+	return r.data.Moves[version], nil
 }
 
 //randomString returns a random string of the given length.
@@ -99,7 +130,7 @@ func safeOvewritefile(path string, blob []byte) error {
 //Save saves to the given path.
 func (r *Record) Save(filename string) error {
 
-	blob, err := json.MarshalIndent(r, "", "\t")
+	blob, err := json.MarshalIndent(r.data, "", "\t")
 
 	if err != nil {
 		return errors.New("Couldn't marshal blob: " + err.Error())
@@ -112,13 +143,17 @@ func (r *Record) Save(filename string) error {
 //for saving. Designed to be used in a SaveGameAndCurrentState method.
 func (r *Record) AddGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord, move *boardgame.MoveStorageRecord) error {
 
-	r.Game = game
-
-	if move != nil {
-		r.Moves = append(r.Moves, move)
+	if r.data == nil {
+		r.data = &storageRecord{}
 	}
 
-	lastState, err := r.State(len(r.StatePatches) - 1)
+	r.data.Game = game
+
+	if move != nil {
+		r.data.Moves = append(r.data.Moves, move)
+	}
+
+	lastState, err := r.State(len(r.data.StatePatches) - 1)
 
 	if err != nil {
 		return errors.New("Couldn't fetch last state: " + err.Error())
@@ -147,17 +182,19 @@ func (r *Record) AddGameAndCurrentState(game *boardgame.GameStorageRecord, state
 	}
 
 	r.states = append(r.states, json.RawMessage(state))
-	r.StatePatches = append(r.StatePatches, formattedPatch)
+	r.data.StatePatches = append(r.data.StatePatches, formattedPatch)
 
 	return nil
 
 }
 
-//State is a method, not just a normal array, because we actually serialize to
-//disk state patches, given that states are big objects and they rarely
-//change. So when you request a State we have to derive what it is by applying
-//all of the patches up in order.
+//State fetches the State object at that version. It can return an error
+//because under the covers it has to apply serialized patches.
 func (r *Record) State(version int) (json.RawMessage, error) {
+
+	if r.data == nil {
+		return nil, errors.New("No data")
+	}
 
 	if version < 0 {
 		//The base object that version 0 is diffed against is the empty object
@@ -179,7 +216,7 @@ func (r *Record) State(version int) (json.RawMessage, error) {
 
 	unmarshaller := gojsondiff.NewUnmarshaller()
 
-	patch, err := unmarshaller.UnmarshalBytes(r.StatePatches[version])
+	patch, err := unmarshaller.UnmarshalBytes(r.data.StatePatches[version])
 
 	if err != nil {
 		return nil, err
