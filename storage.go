@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"encoding/json"
+	"errors"
 	"strconv"
 	"time"
 )
@@ -28,6 +29,31 @@ type MoveStorageRecord struct {
 
 func (m *MoveStorageRecord) String() string {
 	return m.Name + ": " + strconv.Itoa(m.Version)
+}
+
+//Inflate takes a move storage record and turns it into a move associated with
+//that game, if possible. Returns nil if not possible.
+func (m *MoveStorageRecord) Inflate(game *Game) (Move, error) {
+
+	if game == nil {
+		return nil, errors.New("Game was nil")
+	}
+
+	move := game.MoveByName(m.Name)
+
+	if move == nil {
+		return nil, errors.New("Couldn't find a move with name: " + m.Name)
+	}
+
+	if err := json.Unmarshal(m.Blob, move); err != nil {
+		return nil, errors.New("Couldn't unmarshal move: " + err.Error())
+	}
+
+	move.Info().version = m.Version
+	move.Info().initiator = m.Initiator
+	move.Info().timestamp = m.Timestamp
+
+	return move, nil
 }
 
 //GameStorageRecord is a simple struct with public fields representing the

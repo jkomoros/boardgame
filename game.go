@@ -291,21 +291,7 @@ func (g *Game) Move(version int) (Move, error) {
 		return nil, errors.New("The version of the returned move was not what was expected.")
 	}
 
-	move := g.MoveByName(record.Name)
-
-	if move == nil {
-		return nil, errors.New("Couldn't find a move with name: " + record.Name)
-	}
-
-	if err := json.Unmarshal(record.Blob, move); err != nil {
-		return nil, errors.New("Couldn't unmarshal move: " + err.Error())
-	}
-
-	move.Info().version = record.Version
-	move.Info().initiator = record.Initiator
-	move.Info().timestamp = record.Timestamp
-
-	return move, nil
+	return record.Inflate(g)
 
 }
 
