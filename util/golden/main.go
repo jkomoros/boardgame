@@ -14,6 +14,8 @@ import (
 	"github.com/jkomoros/boardgame/storage/memory"
 	"github.com/yudai/gojsondiff"
 	"github.com/yudai/gojsondiff/formatter"
+	"io/ioutil"
+	"path/filepath"
 	"reflect"
 	"strconv"
 )
@@ -37,6 +39,53 @@ func Compare(delegate boardgame.GameDelegate, recFilename string) error {
 
 	return compare(manager, rec)
 
+}
+
+//CompareFolder is like Compare, except it will iterate through any file in
+//recFolder that ends in .json. Errors if any of those files cannot be parsed
+//into recs, or if no files match.
+func CompareFolder(delegate boardgame.GameDelegate, recFolder string) error {
+	manager, err := boardgame.NewGameManager(delegate, memory.NewStorageManager())
+
+	if err != nil {
+		return errors.New("Couldn't create new manager: " + err.Error())
+	}
+
+	infos, err := ioutil.ReadDir(recFolder)
+
+	if err != nil {
+		return errors.New("Couldn't read folder: " + err.Error())
+	}
+
+	processedRecs := 0
+
+	for _, info := range infos {
+		if info.IsDir() {
+			continue
+		}
+
+		if filepath.Ext(info.Name()) != ".json" {
+			continue
+		}
+
+		rec, err := record.New(filepath.Join(recFolder, info.Name()))
+
+		if err != nil {
+			return errors.New("File with name " + info.Name() + " couldn't be loaded into rec: " + err.Error())
+		}
+
+		if err := compare(manager, rec); err != nil {
+			return errors.New("File named " + info.Name() + " had compare error: " + err.Error())
+		}
+
+		processedRecs++
+	}
+
+	if processedRecs < 1 {
+		return errors.New("Processed 0 recs in folder")
+	}
+
+	return nil
 }
 
 func compare(manager *boardgame.GameManager, rec *record.Record) error {

@@ -13,3 +13,9 @@ func TestBasic(t *testing.T) {
 	assert.For(t).ThatActual(err).IsNil()
 
 }
+
+func TestFolder(t *testing.T) {
+	err := CompareFolder(blackjack.NewDelegate(), "test")
+
+	assert.For(t).ThatActual(err).IsNil()
+}
