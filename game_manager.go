@@ -323,8 +323,11 @@ func (g *GameManager) NewDefaultGame() (*Game, error) {
 //the datastore, starter state created, first round of fix up moves applied,
 //and in general ready for the first move to be proposed.
 func (g *GameManager) NewGame(numPlayers int, config GameConfig, agentNames []string) (*Game, error) {
+	return g.createGame("", "", numPlayers, config, agentNames)
+}
 
-	result, err := g.newGameImpl("", "")
+func (g *GameManager) createGame(id, secretSalt string, numPlayers int, config GameConfig, agentNames []string) (*Game, error) {
+	result, err := g.newGameImpl(id, secretSalt)
 
 	if err != nil {
 		return nil, err
@@ -335,6 +338,35 @@ func (g *GameManager) NewGame(numPlayers int, config GameConfig, agentNames []st
 	}
 
 	return result, nil
+}
+
+//RecreateGame creates a new game that has the same properties as the provided
+//GameStorageRecord. It is very rarely what you want; see NewGame(), Game(),
+//and ModifiableGame(). RecreateGame is most useful in debugging or testing
+//scenarios where you want a game to have the same ID and SecretSalt as a
+//previously created game, so the moves can be applied deterministically with
+//the same input. rec generally should be a GameStorageRecord representing a
+//game that was created in a different storage pool; if a game with that ID
+//already exists in this storage pool RecreateGame will error.
+func (g *GameManager) RecreateGame(rec *GameStorageRecord) (*Game, error) {
+
+	if rec == nil {
+		return nil, errors.New("No GameStorageRecord provided")
+	}
+
+	if rec.Id == "" {
+		return nil, errors.New("That Id is not valid")
+	}
+
+	if rec.SecretSalt == "" {
+		return nil, errors.New("That secret salt is not valid.")
+	}
+
+	if other, _ := g.Storage().Game(rec.Id); other != nil {
+		return nil, errors.New("A game with that Id already exists in this storage pool. Did you mean to use manager.NewGame, manager.Game(), or manager.ModifiableGame instead?")
+	}
+
+	return g.createGame(rec.Id, rec.SecretSalt, rec.NumPlayers, rec.Config, rec.Agents)
 
 }
 
