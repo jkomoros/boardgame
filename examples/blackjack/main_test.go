@@ -1,4 +1,4 @@
-package checkers
+package blackjack
 
 import (
 	"github.com/jkomoros/boardgame"

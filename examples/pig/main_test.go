@@ -14,4 +14,10 @@ func TestManager(t *testing.T) {
 
 	assert.For(t).ThatActual(manager).IsNotNil()
 
+	game, err := manager.NewDefaultGame()
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(game).IsNotNil()
+
 }
