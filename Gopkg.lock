@@ -34,12 +34,6 @@
   version = "v1.3.1"
 
 [[projects]]
-  name = "github.com/codegangsta/cli"
-  packages = ["."]
-  revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
-  version = "v1.20.0"
-
-[[projects]]
   branch = "master"
   name = "github.com/dustin/go-humanize"
   packages = ["."]
@@ -149,8 +143,7 @@
   name = "github.com/yudai/gojsondiff"
   packages = [
     ".",
-    "formatter",
-    "jd"
+    "formatter"
   ]
   revision = "7b1b7adf999dab73a6eb02669c3d82dbb27a3dd6"
   version = "1.0.0"
@@ -197,6 +190,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "fb231aaef79c23b84cbe4ccef79eba81801f87ea3f967578d29d483b0bbb2764"
+  inputs-digest = "b94eeb5a779e9c6204a3c24c67fdc08e97c255a973b1dad7b1d2cfea7a7d412f"
   solver-name = "gps-cdcl"
   solver-version = 1
