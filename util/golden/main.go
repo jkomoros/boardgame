@@ -22,7 +22,12 @@ import (
 
 //Compare is the primary method in the package. It takes a game delegate and a
 //filename denoting a record to compare against. delegate shiould be a fresh
-//delegate not yet affiliated with a manager.
+//delegate not yet affiliated with a manager. It compares every version and
+//move in the history (ignoring things that shouldn't be the same, like
+//timestamps) and reports the first place they divrge. Any time it finds a
+//move not proposed by AdminPlayerIndex it will propose that move. As long as
+//your game uses state.Rand() for all randomness and is otherwise
+//deterministic then everything should work.
 func Compare(delegate boardgame.GameDelegate, recFilename string) error {
 
 	manager, err := boardgame.NewGameManager(delegate, memory.NewStorageManager())
