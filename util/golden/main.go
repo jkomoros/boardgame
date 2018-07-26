@@ -48,7 +48,7 @@ func Compare(delegate boardgame.GameDelegate, recFilename string) error {
 
 //CompareFolder is like Compare, except it will iterate through any file in
 //recFolder that ends in .json. Errors if any of those files cannot be parsed
-//into recs, or if no files match.
+//into recs.
 func CompareFolder(delegate boardgame.GameDelegate, recFolder string) error {
 	manager, err := boardgame.NewGameManager(delegate, memory.NewStorageManager())
 
@@ -61,8 +61,6 @@ func CompareFolder(delegate boardgame.GameDelegate, recFolder string) error {
 	if err != nil {
 		return errors.New("Couldn't read folder: " + err.Error())
 	}
-
-	processedRecs := 0
 
 	for _, info := range infos {
 		if info.IsDir() {
@@ -83,11 +81,6 @@ func CompareFolder(delegate boardgame.GameDelegate, recFolder string) error {
 			return errors.New("File named " + info.Name() + " had compare error: " + err.Error())
 		}
 
-		processedRecs++
-	}
-
-	if processedRecs < 1 {
-		return errors.New("Processed 0 recs in folder")
 	}
 
 	return nil
