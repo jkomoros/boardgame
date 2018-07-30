@@ -60,7 +60,8 @@ func linkGoldenFolder(gameType, pkgPath, basePath, goldenFolderName string) erro
 
 	//TODO: should this be public?
 
-	//TODO: does this handle vendoring correctly?
+	//This SHOULD handle vendored games correctly, given that
+	//reflect.PkgPath() returns using the full path, including /vendor/
 
 	goPath := os.Getenv("GOPATH")
 
