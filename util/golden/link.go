@@ -3,6 +3,7 @@ package golden
 import (
 	"bytes"
 	"errors"
+	"github.com/abcum/lcp"
 	"github.com/jkomoros/boardgame"
 	"go/ast"
 	"go/parser"
@@ -12,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"text/template"
 )
 
@@ -80,9 +82,24 @@ func linkGoldenFolder(gameType, pkgPath, basePath, goldenFolderName string) erro
 	gamePath := filepath.Join(basePath, gameType)
 
 	if _, err := os.Stat(gamePath); os.IsNotExist(err) {
-		log.Println("Linking " + gamePath + " to " + fullPath)
+
+		execPath, err := os.Executable()
+
+		if err != nil {
+			return errors.New("Couldn't get executable path: " + err.Error())
+		}
+
+		relPath, err := relativizePaths(execPath, fullPath)
+
+		if err != nil {
+			return errors.New("Couldn't relativize paths: " + err.Error())
+		}
+
+		log.Println("Linking " + gamePath + " to " + relPath)
+
 		//Soft link from basePath.
-		if err := os.Symlink(fullPath, gamePath); err != nil {
+
+		if err := os.Symlink(relPath, gamePath); err != nil {
 			return errors.New("Couldn't create symlink: " + err.Error())
 		}
 	}
@@ -93,6 +110,42 @@ func linkGoldenFolder(gameType, pkgPath, basePath, goldenFolderName string) erro
 	}
 
 	return nil
+
+}
+
+//relativizePaths takes two absolute paths and returns a string that is the
+//relative path from from to to.
+func relativizePaths(from, to string) (string, error) {
+
+	if !filepath.IsAbs(from) {
+		return "", errors.New("From is not absolute")
+	}
+
+	if !filepath.IsAbs(to) {
+		return "", errors.New("To is not absolute")
+	}
+
+	from = filepath.Clean(from)
+	to = filepath.Clean(to)
+
+	prefix := string(lcp.LCP([]byte(from), []byte(to)))
+
+	if prefix == "" {
+		return "", errors.New("No prefix in common")
+	}
+
+	fromRest := strings.TrimPrefix(from, prefix)
+	toRest := strings.TrimPrefix(to, prefix)
+
+	fromPieces := strings.Split(fromRest, string(filepath.Separator))
+
+	dots := make([]string, len(fromPieces))
+
+	for i, _ := range fromPieces {
+		dots[i] = ".."
+	}
+
+	return filepath.Join(filepath.Join(dots...), toRest), nil
 
 }
 
