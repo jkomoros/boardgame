@@ -203,14 +203,26 @@ In particular:
 
 This is technically about the api server, but here just to have it in one place.
 
-You configure the api server with a file called config.SECRET.json, which
-should be in the directory you start the server from. If you follow the
-instructions above, it will be impossible to accidentally commmit that secret
-config file to source control.
+You configure the server via one or more config.json files. The name of the
+file must be config.json, or config.*.json, where * is anything other than
+"SECRET". These files must be in the directory you will start the server from.
 
-There are two configs: "dev" and "prod". Both have the same possible fields to
-set. The server picks which one to use at start up based on the GIN_MODE
-environment variable.
+Some of the information in these files is secret and should not be committed
+to source control, while some is not. You may have two files: one named
+generically, for any information it's OK to check into source control. If you
+have a file named "config.SECRET.json", then that will also be loaded up, and
+override anything in the base file (or used directly if nothing is in the base
+file). This allows you to add a line to your .gitignore that makes it
+impossible for you to accidentally commit the information in
+config.SECRET.json. Generally you want to keep all of the non-secret aspects
+in config.
+
+Within a config file there are three sub configs: "base", dev" and "prod".
+"base" is never used directly, but it sets defaults that "dev" and "prod" will
+override and extend.
+
+Both "dev" and "prod" have the same possible fields to set. The server picks
+which one to use at start up based on the GIN_MODE environment variable.
 
 ### AllowedOrigins
 

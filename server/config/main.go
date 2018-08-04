@@ -204,25 +204,60 @@ func (c *ConfigMode) OriginAllowed(origin string) bool {
 }
 
 const (
-	configFileName       = "config.SECRET.json"
-	sampleConfigFileName = "config.SAMPLE.json"
+	privateConfigFileName = "config.SECRET.json"
+	publicConfigFileName  = "config.PUBLIC.json"
 )
 
-func Get() (*Config, error) {
+func fileNamesToUse() (publicConfig, privateConfig string) {
 
-	fileNameToUse := configFileName
-
-	if _, err := os.Stat(configFileName); os.IsNotExist(err) {
-
-		if _, err := os.Stat(sampleConfigFileName); os.IsNotExist(err) {
-			return nil, errors.New("Couldn't find a " + configFileName + " in current directory (or a SAMPLE). This file is required. Copy a starter one from boardgame/server/api/config.SAMPLE.json")
-		}
-
-		fileNameToUse = sampleConfigFileName
-
+	if _, err := os.Stat(privateConfigFileName); err == nil {
+		privateConfig = privateConfigFileName
 	}
 
-	contents, err := ioutil.ReadFile(fileNameToUse)
+	infos, err := ioutil.ReadDir(".")
+
+	if err != nil {
+		return "", ""
+	}
+
+	foundNames := make(map[string]bool)
+
+	for _, info := range infos {
+		if info.Name() == privateConfigFileName {
+			continue
+		}
+		if strings.HasPrefix(info.Name(), "config.") && strings.HasSuffix(info.Name(), ".json") {
+			foundNames[info.Name()] = true
+		}
+	}
+
+	prioritizedNames := []string{
+		publicConfigFileName,
+		"config.json",
+	}
+
+	for _, name := range prioritizedNames {
+		if foundNames[name] {
+			return name, privateConfig
+		}
+		//Keep track of one of the names to return by default if we don't find
+		//a direct match
+		publicConfig = name
+	}
+
+	//None of the preferred names were found, just return whatever is in
+	//publicConfig, privateConfig.
+	return
+
+}
+
+func getConfig(filename string) (*Config, error) {
+
+	if filename == "" {
+		return nil, nil
+	}
+
+	contents, err := ioutil.ReadFile(filename)
 
 	if err != nil {
 		return nil, errors.New("Couldn't read config file: " + err.Error())
@@ -234,12 +269,42 @@ func Get() (*Config, error) {
 		return nil, errors.New("couldn't unmarshal config file: " + err.Error())
 	}
 
+	return &config, nil
+}
+
+func combinedConfig() (*Config, error) {
+	publicConfigName, privateConfigName := fileNamesToUse()
+
+	publicConfig, err := getConfig(publicConfigName)
+
+	if err != nil {
+		return nil, errors.New("Couldn't get public config: " + err.Error())
+	}
+
+	privateConfig, err := getConfig(privateConfigName)
+
+	if err != nil {
+		return nil, errors.New("Couldn't get private config: " + err.Error())
+	}
+
+	return publicConfig.extend(privateConfig), nil
+
+}
+
+func Get() (*Config, error) {
+
+	config, err := combinedConfig()
+
+	if err != nil {
+		return nil, err
+	}
+
 	config.derive()
 
 	if err := config.validate(); err != nil {
 		return nil, errors.New("Couldn't validate config: " + err.Error())
 	}
 
-	return &config, nil
+	return config, nil
 
 }
