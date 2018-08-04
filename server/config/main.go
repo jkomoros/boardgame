@@ -43,6 +43,32 @@ func (c *Config) derive() {
 
 }
 
+func (c *Config) copy() *Config {
+	return &Config{
+		c.Base.copy(),
+		c.Dev.copy(),
+		c.Prod.copy(),
+	}
+}
+
+//extend takes an other config and returns a *new* config where any non-zero
+//value for other extends base.
+func (c *Config) extend(other *Config) *Config {
+
+	result := c.copy()
+
+	if other == nil {
+		return result
+	}
+
+	result.Base = c.Base.extend(other.Base)
+	result.Dev = c.Dev.extend(other.Dev)
+	result.Prod = c.Prod.extend(other.Prod)
+
+	return result
+
+}
+
 func (c *Config) validate() error {
 
 	if c.Dev == nil && c.Prod == nil {
@@ -80,6 +106,10 @@ func (c *ConfigMode) validate(isDev bool) error {
 
 //copy returns a deep copy of the config mode.
 func (c *ConfigMode) copy() *ConfigMode {
+
+	if c == nil {
+		return nil
+	}
 
 	result := &ConfigMode{}
 
