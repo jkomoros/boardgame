@@ -86,6 +86,14 @@ func (c *Config) validate() error {
 	return nil
 }
 
+func (c *ConfigMode) String() string {
+	blob, err := json.MarshalIndent(c, "", "\t")
+	if err != nil {
+		return "ERROR, couldn't unmarshal: " + err.Error()
+	}
+	return string(blob)
+}
+
 func (c *ConfigMode) validate(isDev bool) error {
 	if c.DefaultPort == "" {
 		return errors.New("No default port provided")

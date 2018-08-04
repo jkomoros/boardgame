@@ -1056,6 +1056,8 @@ func (s *Server) Start() {
 		s.logger.SetLevel(logrus.DebugLevel)
 	}
 
+	s.logger.Infoln("Derived config: " + s.config.String())
+
 	name := s.storage.Name()
 
 	storageConfig := s.config.StorageConfig[name]
