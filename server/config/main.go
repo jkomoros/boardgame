@@ -16,6 +16,7 @@ import (
 )
 
 type Config struct {
+	Base *ConfigMode
 	Dev  *ConfigMode
 	Prod *ConfigMode
 }
@@ -28,6 +29,18 @@ type ConfigMode struct {
 	//This is a dangerous config. Only enable in Dev!
 	DisableAdminChecking bool
 	StorageConfig        map[string]string
+}
+
+//derive takes a raw input and creates a struct with fully derived values in
+//Dev/Prod ready for use.
+func (c *Config) derive() {
+	if c.Base == nil {
+		return
+	}
+
+	c.Prod = c.Base.extend(c.Prod)
+	c.Dev = c.Base.extend(c.Dev)
+
 }
 
 func (c *Config) validate() error {
@@ -63,6 +76,72 @@ func (c *ConfigMode) validate(isDev bool) error {
 		return errors.New("DisableAdminChecking enabled in prod, which is illegal")
 	}
 	return nil
+}
+
+//copy returns a deep copy of the config mode.
+func (c *ConfigMode) copy() *ConfigMode {
+
+	result := &ConfigMode{}
+
+	(*result) = *c
+	result.AdminUserIds = make([]string, len(c.AdminUserIds))
+	copy(result.AdminUserIds, c.AdminUserIds)
+	result.StorageConfig = make(map[string]string, len(c.StorageConfig))
+	for key, val := range c.StorageConfig {
+		result.StorageConfig[key] = val
+	}
+
+	return result
+
+}
+
+//extend takes a given base config mode, extends it with properties set in
+//other (with any non-zero value overwriting the base values) and returns a
+//*new* config representing the merged one.
+func (c *ConfigMode) extend(other *ConfigMode) *ConfigMode {
+
+	result := c.copy()
+
+	if other == nil {
+		return result
+	}
+
+	if other.AllowedOrigins != "" {
+		result.AllowedOrigins = other.AllowedOrigins
+	}
+
+	if other.DefaultPort != "" {
+		result.DefaultPort = other.DefaultPort
+	}
+
+	if other.FirebaseProjectId != "" {
+		result.FirebaseProjectId = other.FirebaseProjectId
+	}
+
+	if other.DisableAdminChecking {
+		result.DisableAdminChecking = true
+	}
+
+	//Extend adminID, but no duplicates
+	adminIdsSet := make(map[string]bool, len(result.AdminUserIds))
+	for _, key := range result.AdminUserIds {
+		adminIdsSet[key] = true
+	}
+
+	for _, key := range other.AdminUserIds {
+		if adminIdsSet[key] {
+			//Already in the set, don't add a duplicate
+			continue
+		}
+		result.AdminUserIds = append(result.AdminUserIds, key)
+	}
+
+	for key, val := range other.StorageConfig {
+		result.StorageConfig[key] = val
+	}
+
+	return result
+
 }
 
 func (c *ConfigMode) OriginAllowed(origin string) bool {
@@ -124,6 +203,8 @@ func Get() (*Config, error) {
 	if err := json.Unmarshal(contents, &config); err != nil {
 		return nil, errors.New("couldn't unmarshal config file: " + err.Error())
 	}
+
+	config.derive()
 
 	if err := config.validate(); err != nil {
 		return nil, errors.New("Couldn't validate config: " + err.Error())
