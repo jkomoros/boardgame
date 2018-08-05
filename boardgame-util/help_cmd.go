@@ -25,7 +25,7 @@ func (h *Help) Run(p writ.Path, positional []string) {
 		p.Last().ExitHelp(errors.New(positional[0] + " is not a valid subcommand"))
 	}
 
-	subCmd.Config().ExitHelp(nil)
+	subCmd.WritCommand().ExitHelp(nil)
 
 }
 

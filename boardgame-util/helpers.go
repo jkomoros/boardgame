@@ -26,7 +26,7 @@ type SubcommandObject interface {
 
 	//Config returns a writ.Command object. Should return the same object on
 	//repeated calls.
-	Config() *writ.Command
+	WritCommand() *writ.Command
 	//WritHelp should return a Help config object for this command
 	WritHelp() writ.Help
 
@@ -44,7 +44,7 @@ type SubcommandObject interface {
 type baseSubCommand struct {
 	parent         SubcommandObject
 	topLevelStruct SubcommandObject
-	config         *writ.Command
+	writCommand    *writ.Command
 	base           SubcommandObject
 }
 
@@ -58,7 +58,7 @@ func (b *baseSubCommand) SetBase(base SubcommandObject) {
 
 func (b *baseSubCommand) WritHelp() writ.Help {
 
-	if b.config == nil {
+	if b.WritCommand() == nil {
 		return writ.Help{}
 	}
 
@@ -78,7 +78,7 @@ func (b *baseSubCommand) WritHelp() writ.Help {
 			subCmdNames[i] = obj.Name()
 		}
 
-		group := b.Config().GroupCommands(subCmdNames...)
+		group := b.WritCommand().GroupCommands(subCmdNames...)
 		group.Header = "Subcommands:"
 		result.CommandGroups = append(result.CommandGroups, group)
 
@@ -89,9 +89,9 @@ func (b *baseSubCommand) WritHelp() writ.Help {
 	return result
 }
 
-func (b *baseSubCommand) Config() *writ.Command {
-	if b.config != nil {
-		return b.config
+func (b *baseSubCommand) WritCommand() *writ.Command {
+	if b.writCommand != nil {
+		return b.writCommand
 	}
 
 	obj := b.TopLevelStruct()
@@ -99,7 +99,7 @@ func (b *baseSubCommand) Config() *writ.Command {
 	subCommands := obj.SubcommandObjects()
 	subConfigs := make([]*writ.Command, len(subCommands))
 	for i, command := range subCommands {
-		subConfigs[i] = command.Config()
+		subConfigs[i] = command.WritCommand()
 	}
 
 	config := &writ.Command{
@@ -109,7 +109,7 @@ func (b *baseSubCommand) Config() *writ.Command {
 		Subcommands: subConfigs,
 	}
 
-	b.config = config
+	b.writCommand = config
 
 	config.Help = obj.WritHelp()
 
