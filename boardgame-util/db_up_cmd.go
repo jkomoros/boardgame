@@ -18,5 +18,8 @@ func (d *DbUp) Description() string {
 }
 
 func (d *DbUp) Run(p writ.Path, positonal []string) {
+
+	_ = d.Base().(*BoardgameUtil).GetConfig()
+
 	p.Last().ExitHelp(errors.New("Not yet implemented"))
 }

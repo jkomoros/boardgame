@@ -2,13 +2,17 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"github.com/bobziuchkovski/writ"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
+	"os"
 )
 
 type BoardgameUtil struct {
 	baseSubCommand
-	Help Help
-	Db   Db
+	Help   Help
+	Db     Db
+	config *config.Config
 }
 
 func (b *BoardgameUtil) Run(p writ.Path, positional []string) {
@@ -47,4 +51,25 @@ func (b *BoardgameUtil) SubcommandObjects() []SubcommandObject {
 		&b.Help,
 		&b.Db,
 	}
+}
+
+//GetConfig fetches the config, finding it from disk if it hasn't yet. If
+//finding the config errors for any reason, program will quit. That is, when
+//you call this method we assume that it's required for operation of that
+//command.
+func (b *BoardgameUtil) GetConfig() *config.Config {
+	if b.config != nil {
+		return b.config
+	}
+
+	c, err := config.Get()
+
+	if err != nil {
+		fmt.Println("config is required for this command, but it couldn't be loaded. See README.md for more about structuring config.json.\nError: " + err.Error())
+		os.Exit(1)
+	}
+
+	b.config = c
+
+	return c
 }
