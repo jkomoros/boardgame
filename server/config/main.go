@@ -29,6 +29,7 @@ type ConfigMode struct {
 	//This is a dangerous config. Only enable in Dev!
 	DisableAdminChecking bool
 	StorageConfig        map[string]string
+	Games                *GameNode
 }
 
 //derive takes a raw input and creates a struct with fully derived values in
@@ -129,6 +130,8 @@ func (c *ConfigMode) copy() *ConfigMode {
 		result.StorageConfig[key] = val
 	}
 
+	result.Games = result.Games.copy()
+
 	return result
 
 }
@@ -199,6 +202,8 @@ func (c *ConfigMode) extend(other *ConfigMode) *ConfigMode {
 	for key, val := range other.StorageConfig {
 		result.StorageConfig[key] = val
 	}
+
+	result.Games = result.Games.extend(other.Games)
 
 	return result
 
