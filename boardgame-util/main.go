@@ -20,6 +20,7 @@ func makeConfigs(commands []SubcommandObject) []*writ.Command {
 			Name:        cmd.Name(),
 			Description: cmd.Description(),
 			Aliases:     cmd.Aliases(),
+			Subcommands: makeConfigs(cmd.SubcommandObjects()),
 		}
 	}
 
