@@ -27,6 +27,8 @@ type SubcommandObject interface {
 	//Config returns a writ.Command object. Should return the same object on
 	//repeated calls.
 	Config() *writ.Command
+	//WritHelp should return a Help config object for this command
+	WritHelp() writ.Help
 
 	TopLevelStruct() SubcommandObject
 	SetTopLevelStruct(top SubcommandObject)
@@ -54,7 +56,13 @@ func (b *baseSubCommand) SetBase(base SubcommandObject) {
 	b.base = base
 }
 
-func makeHelp(cmd *writ.Command, obj SubcommandObject) writ.Help {
+func (b *baseSubCommand) WritHelp() writ.Help {
+
+	if b.config == nil {
+		return writ.Help{}
+	}
+
+	obj := b.TopLevelStruct()
 
 	//TODO: pop this in as well
 	var result writ.Help
@@ -70,7 +78,7 @@ func makeHelp(cmd *writ.Command, obj SubcommandObject) writ.Help {
 			subCmdNames[i] = obj.Name()
 		}
 
-		group := cmd.GroupCommands(subCmdNames...)
+		group := b.Config().GroupCommands(subCmdNames...)
 		group.Header = "Subcommands:"
 		result.CommandGroups = append(result.CommandGroups, group)
 
@@ -101,9 +109,10 @@ func (b *baseSubCommand) Config() *writ.Command {
 		Subcommands: subConfigs,
 	}
 
-	config.Help = makeHelp(config, obj)
-
 	b.config = config
+
+	config.Help = obj.WritHelp()
+
 	return config
 }
 
