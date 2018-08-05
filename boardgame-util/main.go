@@ -23,6 +23,8 @@ func mainImpl(args []string) {
 
 	cmd := writ.New(cmdBase, boardgameUtil)
 
+	boardgameUtil.Help.base = cmd
+
 	baseUsage := "Usage: " + cmdBase + " "
 
 	cmd.Help.Usage = baseUsage + "COMMAND [OPTION]... [ARG]..."
