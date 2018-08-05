@@ -15,6 +15,9 @@ type SubcommandObject interface {
 	Aliases() []string
 	//The rest of the usage string, which will be appened to "NAME "
 	Usage() string
+	//SubcommandObjects should return the list of sub comamnds, or nil if a
+	//terminal command.
+	SubcommandObjects() []SubcommandObject
 	//The command to actually run
 	Run(p writ.Path, positional []string)
 }
@@ -31,6 +34,10 @@ func (b *baseSubCommand) Description() string {
 
 func (b *baseSubCommand) Usage() string {
 	return ""
+}
+
+func (b *baseSubCommand) SubcommandObjects() []SubcommandObject {
+	return nil
 }
 
 type BoardgameUtil struct {
@@ -56,4 +63,30 @@ func (b *BoardgameUtil) SubcommandObjects() []SubcommandObject {
 		&b.Help,
 		&b.Db,
 	}
+}
+
+//selectSubcommandObject takes a subcommand object and a path. It verifes the
+//first item is us, then identifies the next object to recurse into based on
+//Names of SubcommandObjects.
+func selectSubcommandObject(s SubcommandObject, p writ.Path) SubcommandObject {
+
+	if s.Name() != p.First().String() {
+		return nil
+	}
+
+	if len(p) < 2 {
+		return s
+	}
+
+	nextCommand := p[1]
+
+	for _, obj := range s.SubcommandObjects() {
+		//We don't need to check alises, because the main library already did
+		//the command/object matching
+		if nextCommand.Name == obj.Name() {
+			return selectSubcommandObject(obj, p[1:])
+		}
+	}
+
+	return nil
 }

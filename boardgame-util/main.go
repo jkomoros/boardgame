@@ -12,6 +12,10 @@ import (
 )
 
 func makeConfigs(commands []SubcommandObject) []*writ.Command {
+
+	//TODO: actually expand the list inline if any of the commands return a
+	//non-zero-length slice from SubcommandObjects.
+
 	result := make([]*writ.Command, len(commands))
 
 	for i, cmd := range commands {
@@ -53,17 +57,12 @@ func mainImpl(args []string) {
 		path.Last().ExitHelp(err)
 	}
 
-	//TODO: this dispatch table should go straight to b.Dispatch, which
-	//returns a subcommand, which is thne called Run().
-	switch path.String() {
-	case b.Name():
-		b.Run(path, positional)
-	case b.Name() + " " + b.Help.Name():
-		b.Help.Run(path, positional)
-	case b.Name() + " " + b.Db.Name():
-		b.Db.Run(path, positional)
-	default:
-		panic("BUG: new subcomand that wasn't added to dispatch table yet")
+	subcommandObj := selectSubcommandObject(b, path)
+
+	if subcommandObj == nil {
+		panic("BUG: one of the subcommands didn't enumerate all subcommands")
 	}
+
+	subcommandObj.Run(path, positional)
 
 }
