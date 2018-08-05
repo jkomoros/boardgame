@@ -14,7 +14,7 @@ func (d *DbUp) Name() string {
 }
 
 func (d *DbUp) Description() string {
-	return "Apply all migrations forward (run on an existing db to make sure it's up to date"
+	return "Apply all migrations forward (run on an existing db to make sure it's up to date)"
 }
 
 func (d *DbUp) Run(p writ.Path, positonal []string) {

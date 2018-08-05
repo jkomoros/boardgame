@@ -31,6 +31,20 @@ func (d *Db) Description() string {
 	return "Configures a mysql database"
 }
 
+func (d *Db) HelpText() string {
+	return d.Name() +
+
+		` helps set up and administer mysql databases for use with boardgame, both
+locally and in in prod. 
+
+Reads configuration to connect to the mysql databse from config.json. See
+README.md for more about configuring that file.
+
+` + d.Base().Name() +
+		` deploy often runs "db up", and "db setup" automatically.`
+
+}
+
 func (d *Db) Usage() string {
 	return "SUBCOMMAND"
 }

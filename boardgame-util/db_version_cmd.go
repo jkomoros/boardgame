@@ -14,7 +14,7 @@ func (d *DbVersion) Name() string {
 }
 
 func (d *DbVersion) Description() string {
-	return "Print version of migration and quit"
+	return "Print what version of the migrations have been applied to db so far and quit"
 }
 
 func (d *DbVersion) Run(p writ.Path, positonal []string) {
