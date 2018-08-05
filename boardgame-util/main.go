@@ -25,7 +25,8 @@ func mainImpl(args []string) {
 	baseUsage := "Usage: " + cmdBase + " "
 
 	cmd.Help.Usage = baseUsage + "COMMAND [OPTION]... [ARG]..."
-	cmd.Subcommand("help").Help.Usage = "help SUBCOMMAND"
+	cmd.Subcommand(cmdHelp).Help.Usage = cmdHelp + " SUBCOMMAND"
+	cmd.Subcommand(cmdDb).Help.Usage = cmdDb + " SUBCOMMAND"
 
 	path, positional, err := cmd.Decode(args[1:])
 
@@ -38,6 +39,8 @@ func mainImpl(args []string) {
 		boardgameUtil.Run(path, positional)
 	case cmdBase + " " + cmdHelp:
 		boardgameUtil.Help.Run(path, positional)
+	case cmdBase + " " + cmdDb:
+		boardgameUtil.Db.Run(path, positional)
 	default:
 		panic("BUG: new subcomand that wasn't added to dispatch table yet")
 	}
