@@ -25,7 +25,7 @@ func mainImpl(args []string) {
 
 	cmd := b.Config()
 
-	b.Help.base = cmd
+	b.Help.base = b
 
 	path, positional, err := cmd.Decode(args[1:])
 
