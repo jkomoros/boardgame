@@ -20,11 +20,11 @@ package filesystem
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/boardgame-util/golden"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/storage/filesystem/record"
 	"github.com/jkomoros/boardgame/storage/internal/helpers"
-	"github.com/jkomoros/boardgame/util/golden"
 	"io/ioutil"
 	"log"
 	"os"
