@@ -1,19 +1,12 @@
 package config
 
 import (
+	"encoding/json"
 	"github.com/workfit/tester/assert"
 	"testing"
 )
 
 func TestBaseExtend(t *testing.T) {
-
-	// AllowedOrigins    string
-	// DefaultPort       string
-	// FirebaseProjectId string
-	// AdminUserIds      []string
-	// //This is a dangerous config. Only enable in Dev!
-	// DisableAdminChecking bool
-	// StorageConfig        map[string]string
 
 	tests := []struct {
 		description string
@@ -145,6 +138,99 @@ func TestBaseExtend(t *testing.T) {
 	for i, test := range tests {
 		test.in.derive()
 		assert.For(t, i, test.description).ThatActual(test.in).Equals(test.out).ThenDiffOnFail()
+	}
+
+}
+
+func TestUnmarshalGameNode(t *testing.T) {
+
+	tests := []struct {
+		description string
+		in          string
+		expected    *GameNode
+	}{
+		{
+			"No nesting",
+			`
+				[
+					"checkers",
+					"blackjack"
+				]
+			`,
+			&GameNode{
+				Leafs: []string{
+					"checkers",
+					"blackjack",
+				},
+			},
+		},
+		{
+			"One level nesting",
+			`
+				{
+					"github.com/jkomoros":[
+						"checkers",
+						"blackjack"
+					]
+				}
+			`,
+			&GameNode{
+				Mids: map[string]*GameNode{
+					"github.com/jkomoros": &GameNode{
+						Leafs: []string{
+							"checkers",
+							"blackjack",
+						},
+					},
+				},
+			},
+		},
+		{
+			"two layer nesting",
+			`
+				{
+					"github.com/jkomoros":{
+						"boardgame": [
+							"checkers",
+							"blackjack"
+						],
+						"other-repo": [
+							"pass"
+						]
+					}
+				}
+			`,
+			&GameNode{
+				Mids: map[string]*GameNode{
+					"github.com/jkomoros": &GameNode{
+						Mids: map[string]*GameNode{
+							"boardgame": &GameNode{
+								Leafs: []string{
+									"checkers",
+									"blackjack",
+								},
+							},
+							"other-repo": &GameNode{
+								Leafs: []string{
+									"pass",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for i, test := range tests {
+		var gameNode *GameNode
+		err := json.Unmarshal([]byte(test.in), &gameNode)
+		if test.expected == nil {
+			assert.For(t, i, test.description).ThatActual(err).IsNotNil()
+		} else {
+			assert.For(t, i, test.description).ThatActual(err).IsNil()
+		}
+		assert.For(t, i, test.description).ThatActual(gameNode).Equals(test.expected).ThenDiffOnFail()
 	}
 
 }
