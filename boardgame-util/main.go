@@ -11,9 +11,6 @@ import (
 	"os"
 )
 
-const cmdBase = "boardgame-util"
-const cmdHelp = "help"
-
 func main() {
 	mainImpl(os.Args)
 }
