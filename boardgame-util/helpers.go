@@ -31,6 +31,9 @@ type SubcommandObject interface {
 	TopLevelStruct() SubcommandObject
 	SetTopLevelStruct(top SubcommandObject)
 
+	Base() SubcommandObject
+	SetBase(base SubcommandObject)
+
 	Parent() SubcommandObject
 	//SetParent will be called with the command's parent object.
 	SetParent(parent SubcommandObject)
@@ -40,6 +43,15 @@ type baseSubCommand struct {
 	parent         SubcommandObject
 	topLevelStruct SubcommandObject
 	config         *writ.Command
+	base           SubcommandObject
+}
+
+func (b *baseSubCommand) Base() SubcommandObject {
+	return b.base
+}
+
+func (b *baseSubCommand) SetBase(base SubcommandObject) {
+	b.base = base
 }
 
 func makeHelp(cmd *writ.Command, obj SubcommandObject) writ.Help {
@@ -132,13 +144,18 @@ func (b *baseSubCommand) SubcommandObjects() []SubcommandObject {
 	return nil
 }
 
-func setupParents(cmd SubcommandObject, parent SubcommandObject) {
+func setupParents(cmd SubcommandObject, parent SubcommandObject, base SubcommandObject) {
 
 	cmd.SetParent(parent)
 	cmd.SetTopLevelStruct(cmd)
+	cmd.SetBase(base)
+
+	if parent == nil {
+		base = cmd
+	}
 
 	for _, subCmd := range cmd.SubcommandObjects() {
-		setupParents(subCmd, cmd)
+		setupParents(subCmd, cmd, base)
 	}
 
 }

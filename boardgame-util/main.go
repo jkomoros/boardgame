@@ -21,11 +21,9 @@ func main() {
 func mainImpl(args []string) {
 	b := &BoardgameUtil{}
 
-	setupParents(b, nil)
+	setupParents(b, nil, nil)
 
 	cmd := b.Config()
-
-	b.Help.base = b
 
 	path, positional, err := cmd.Decode(args[1:])
 

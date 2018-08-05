@@ -7,7 +7,6 @@ import (
 
 type Help struct {
 	baseSubCommand
-	base SubcommandObject
 }
 
 func (h *Help) Run(p writ.Path, positional []string) {
