@@ -9,6 +9,7 @@ package main
 import (
 	"github.com/bobziuchkovski/writ"
 	"os"
+	"strings"
 )
 
 func makeConfigs(commands []SubcommandObject) []*writ.Command {
@@ -27,24 +28,30 @@ func makeConfigs(commands []SubcommandObject) []*writ.Command {
 	return result
 }
 
-//expandSubcommandObjects will return an expanded list of input, where each
-//command that returns non-nil SubcommandObjects will be followed by those in
-//the list.
-func expandSubcommandObjects(commands []SubcommandObject) []SubcommandObject {
+func setupHelp(cmdNames []string, cmd *writ.Command, obj SubcommandObject) {
 
-	if len(commands) == 0 {
-		return nil
+	cmdNames = append(cmdNames, obj.Name())
+
+	baseSubCommands := obj.SubcommandObjects()
+
+	if len(baseSubCommands) > 0 {
+
+		subCmdNames := make([]string, len(baseSubCommands))
+
+		for i, obj := range baseSubCommands {
+			subCmdNames[i] = obj.Name()
+
+			subCmd := cmd.Subcommand(obj.Name())
+			setupHelp(cmdNames, subCmd, obj)
+		}
+
+		group := cmd.GroupCommands(subCmdNames...)
+		group.Header = "Subcommands:"
+		cmd.Help.CommandGroups = append(cmd.Help.CommandGroups, group)
+
 	}
 
-	var result []SubcommandObject
-
-	for _, cmd := range commands {
-		result = append(result, cmd)
-		//if expandSubcommandObjects is nil, then append will leave result the same
-		result = append(result, expandSubcommandObjects(cmd.SubcommandObjects())...)
-	}
-
-	return result
+	cmd.Help.Usage = "Usage: " + strings.Join(cmdNames, " ")
 
 }
 
@@ -59,29 +66,13 @@ func mainImpl(args []string) {
 		Name: b.Name(),
 	}
 
-	baseSubcommands := b.SubcommandObjects()
-	expandedSubcommands := expandSubcommandObjects(baseSubcommands)
+	baseSubCommands := b.SubcommandObjects()
 
-	cmd.Subcommands = makeConfigs(expandedSubcommands)
+	cmd.Subcommands = makeConfigs(baseSubCommands)
 
-	cmdNames := make([]string, len(baseSubcommands))
-
-	for i, obj := range baseSubcommands {
-		cmdNames[i] = obj.Name()
-	}
-
-	group := cmd.GroupCommands(cmdNames...)
-	group.Header = "General commands:"
-	cmd.Help.CommandGroups = append(cmd.Help.CommandGroups, group)
+	setupHelp(nil, cmd, b)
 
 	b.Help.base = cmd
-
-	baseUsage := "Usage: " + b.Name() + " "
-	cmd.Help.Usage = baseUsage + b.Usage()
-
-	for _, obj := range expandedSubcommands {
-		cmd.Subcommand(obj.Name()).Help.Usage = obj.Name() + " " + obj.Usage()
-	}
 
 	path, positional, err := cmd.Decode(args[1:])
 
