@@ -366,3 +366,86 @@ func TestGameNodeExtend(t *testing.T) {
 
 	}
 }
+
+func TestGameNodeList(t *testing.T) {
+	tests := []struct {
+		description string
+		in          *GameNode
+		expected    []string
+	}{
+		{
+			"No nest",
+			&GameNode{
+				Leafs: []string{
+					"b",
+					"a",
+					"c",
+				},
+			},
+			[]string{
+				"a",
+				"b",
+				"c",
+			},
+		},
+		{
+			"Single nest",
+			&GameNode{
+				Mids: map[string]*GameNode{
+					"one": &GameNode{
+						Leafs: []string{
+							"a",
+							"b",
+						},
+					},
+					"two": &GameNode{
+						Leafs: []string{
+							"c",
+							"d",
+						},
+					},
+				},
+			},
+			[]string{
+				"one/a",
+				"one/b",
+				"two/c",
+				"two/d",
+			},
+		},
+		{
+			"Double nest with path separator in key",
+			&GameNode{
+				Mids: map[string]*GameNode{
+					"github.com/jkomoros": &GameNode{
+						Mids: map[string]*GameNode{
+							"one": &GameNode{
+								Leafs: []string{
+									"a",
+									"b",
+								},
+							},
+							"two": &GameNode{
+								Leafs: []string{
+									"c",
+									"d",
+								},
+							},
+						},
+					},
+				},
+			},
+			[]string{
+				"github.com/jkomoros/one/a",
+				"github.com/jkomoros/one/b",
+				"github.com/jkomoros/two/c",
+				"github.com/jkomoros/two/d",
+			},
+		},
+	}
+
+	for i, test := range tests {
+		result := test.in.List()
+		assert.For(t, i, test.description).ThatActual(result).Equals(test.expected).ThenDiffOnFail()
+	}
+}

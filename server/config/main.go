@@ -30,6 +30,9 @@ type ConfigMode struct {
 	DisableAdminChecking bool
 	StorageConfig        map[string]string
 	Games                *GameNode
+	//GamesList is not intended to be inflated from JSON, but rather is
+	//derived based on the contents of Games.
+	GamesList []string
 }
 
 //derive takes a raw input and creates a struct with fully derived values in
@@ -41,6 +44,9 @@ func (c *Config) derive() {
 
 	c.Prod = c.Base.extend(c.Prod)
 	c.Dev = c.Base.extend(c.Dev)
+
+	c.Prod.derive()
+	c.Dev.derive()
 
 }
 
@@ -85,6 +91,18 @@ func (c *Config) validate() error {
 		return c.Prod.validate(false)
 	}
 	return nil
+}
+
+//derive tells the ConfigMode to do its final processing to create any derived
+//fields, like GamesList.
+func (c *ConfigMode) derive() {
+
+	if c == nil {
+		return
+	}
+
+	c.GamesList = c.Games.List()
+
 }
 
 func (c *ConfigMode) String() string {

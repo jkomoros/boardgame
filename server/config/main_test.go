@@ -30,6 +30,7 @@ func TestBaseExtend(t *testing.T) {
 						"Config2": "Dev",
 					},
 					nil,
+					nil,
 				},
 				nil,
 			},
@@ -48,6 +49,7 @@ func TestBaseExtend(t *testing.T) {
 						"Config1": "Dev",
 						"Config2": "Dev",
 					},
+					nil,
 					nil,
 				},
 				nil,
@@ -71,6 +73,7 @@ func TestBaseExtend(t *testing.T) {
 						"Config3": "Base",
 					},
 					nil,
+					nil,
 				},
 				&ConfigMode{
 					"AllowedOriginsDev",
@@ -83,6 +86,7 @@ func TestBaseExtend(t *testing.T) {
 					map[string]string{
 						"Config2": "Dev",
 					},
+					nil,
 					nil,
 				},
 				nil,
@@ -103,6 +107,7 @@ func TestBaseExtend(t *testing.T) {
 						"Config3": "Base",
 					},
 					nil,
+					nil,
 				},
 				&ConfigMode{
 					"AllowedOriginsDev",
@@ -120,6 +125,7 @@ func TestBaseExtend(t *testing.T) {
 						"Config3": "Base",
 					},
 					nil,
+					nil,
 				},
 				&ConfigMode{
 					"AllowedOriginsBase",
@@ -135,6 +141,7 @@ func TestBaseExtend(t *testing.T) {
 						"Config2": "Base",
 						"Config3": "Base",
 					},
+					nil,
 					nil,
 				},
 			},

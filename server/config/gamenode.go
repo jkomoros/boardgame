@@ -3,6 +3,8 @@ package config
 import (
 	"encoding/json"
 	"errors"
+	"path/filepath"
+	"sort"
 )
 
 /*
@@ -48,6 +50,86 @@ func (g *GameNode) UnmarshalJSON(raw []byte) error {
 	}
 
 	return errors.New("Node didn't appear to be either Mids or Leafs")
+
+}
+
+/*
+List returns a flattened, alphabetized, unique list of paths implied by the
+contents of this node. Mids are joined by filepath.Separator.
+
+Input:
+	{
+		"github.com/jkomoros": {
+			"boardgame/examples": [
+				"checkers",
+				"blackjack"
+			],
+			"other-games-repo": [
+				"pass"
+			]
+		}
+	}
+
+Output:
+	[
+		"github.com/jkomoros/boardgame/examples/blackjack",
+		"github.com/jkomoros/boardgame/examples/checkers",
+		"github.com/jkomoros/other-games-repo/pass",
+	]
+
+*/
+func (g *GameNode) List() []string {
+
+	return alphabetizeUnique(g.listRecursive(""))
+
+}
+
+func alphabetizeUnique(in []string) []string {
+
+	if in == nil {
+		return nil
+	}
+
+	set := make(map[string]bool, len(in))
+	for _, str := range in {
+		set[str] = true
+	}
+
+	result := make([]string, len(set))
+
+	i := 0
+	for str, _ := range set {
+		result[i] = str
+		i++
+	}
+
+	sort.Strings(result)
+
+	return result
+}
+
+//listRecursive is the main implementaiton of List. prior is the prior part of
+//the path implied so far.
+func (g *GameNode) listRecursive(prior string) []string {
+
+	if g == nil {
+		return nil
+	}
+
+	var result []string
+
+	if len(g.Leafs) > 0 {
+		//Base case
+		for _, leaf := range g.Leafs {
+			result = append(result, filepath.Join(prior, leaf))
+		}
+	}
+
+	for name, node := range g.Mids {
+		result = append(result, node.listRecursive(filepath.Join(prior, name))...)
+	}
+
+	return result
 
 }
 
