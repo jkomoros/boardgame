@@ -24,6 +24,10 @@ type SubcommandObject interface {
 	//The command to actually run
 	Run(p writ.Path, positional []string)
 
+	//Config returns a writ.Command object. Should return the same object on
+	//repeated calls.
+	Config() *writ.Command
+
 	TopLevelStruct() SubcommandObject
 	SetTopLevelStruct(top SubcommandObject)
 
@@ -35,6 +39,60 @@ type SubcommandObject interface {
 type baseSubCommand struct {
 	parent         SubcommandObject
 	topLevelStruct SubcommandObject
+	config         *writ.Command
+}
+
+func makeHelp(cmd *writ.Command, obj SubcommandObject) writ.Help {
+
+	//TODO: pop this in as well
+	var result writ.Help
+
+	result.Header = obj.HelpText()
+
+	baseSubCommands := obj.SubcommandObjects()
+
+	if len(baseSubCommands) > 0 {
+
+		subCmdNames := make([]string, len(baseSubCommands))
+		for i, obj := range baseSubCommands {
+			subCmdNames[i] = obj.Name()
+		}
+
+		group := cmd.GroupCommands(subCmdNames...)
+		group.Header = "Subcommands:"
+		result.CommandGroups = append(result.CommandGroups, group)
+
+	}
+
+	result.Usage = "Usage: " + FullName(obj) + " " + obj.Usage()
+
+	return result
+}
+
+func (b *baseSubCommand) Config() *writ.Command {
+	if b.config != nil {
+		return b.config
+	}
+
+	obj := b.TopLevelStruct()
+
+	subCommands := obj.SubcommandObjects()
+	subConfigs := make([]*writ.Command, len(subCommands))
+	for i, command := range subCommands {
+		subConfigs[i] = command.Config()
+	}
+
+	config := &writ.Command{
+		Name:        obj.Name(),
+		Description: obj.Description(),
+		Aliases:     obj.Aliases(),
+		Subcommands: subConfigs,
+	}
+
+	config.Help = makeHelp(config, obj)
+
+	b.config = config
+	return config
 }
 
 func (b *baseSubCommand) TopLevelStruct() SubcommandObject {
