@@ -261,7 +261,7 @@ game package.
 */
 
 import (
-	"github.com/jkomoros/boardgame/boardgame-util/golden"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/golden"
 	"testing"
 )
 
