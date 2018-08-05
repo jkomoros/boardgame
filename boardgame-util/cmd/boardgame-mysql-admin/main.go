@@ -8,7 +8,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/jkomoros/boardgame/server/config"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
 	"github.com/jkomoros/boardgame/storage/mysql/connect"
 	"github.com/mattes/migrate"
 	"log"

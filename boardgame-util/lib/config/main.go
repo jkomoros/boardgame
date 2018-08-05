@@ -1,6 +1,8 @@
 /*
 
-Config is a simple library that manages config set-up for servers based on a config file.
+config is a simple library that manages config set-up for boardgame-util and
+friends, reading from config.json and config.SECRET.json files. See boardgame-
+util/README.md for more on the structure of config.json files.
 
 */
 package config
