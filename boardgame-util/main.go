@@ -13,9 +13,6 @@ import (
 
 func makeConfigs(commands []SubcommandObject) []*writ.Command {
 
-	//TODO: actually expand the list inline if any of the commands return a
-	//non-zero-length slice from SubcommandObjects.
-
 	result := make([]*writ.Command, len(commands))
 
 	for i, cmd := range commands {
@@ -29,6 +26,27 @@ func makeConfigs(commands []SubcommandObject) []*writ.Command {
 	return result
 }
 
+//expandSubcommandObjects will return an expanded list of input, where each
+//command that returns non-nil SubcommandObjects will be followed by those in
+//the list.
+func expandSubcommandObjects(commands []SubcommandObject) []SubcommandObject {
+
+	if len(commands) == 0 {
+		return nil
+	}
+
+	var result []SubcommandObject
+
+	for _, cmd := range commands {
+		result = append(result, cmd)
+		//if expandSubcommandObjects is nil, then append will leave result the same
+		result = append(result, expandSubcommandObjects(cmd.SubcommandObjects())...)
+	}
+
+	return result
+
+}
+
 func main() {
 	mainImpl(os.Args)
 }
@@ -40,11 +58,13 @@ func mainImpl(args []string) {
 		Name: b.Name(),
 	}
 
-	cmd.Subcommands = makeConfigs(b.SubcommandObjects())
+	expandedSubcommands := expandSubcommandObjects(b.SubcommandObjects())
 
-	cmdNames := make([]string, len(cmd.Subcommands))
+	cmd.Subcommands = makeConfigs(expandedSubcommands)
 
-	for i, obj := range b.SubcommandObjects() {
+	cmdNames := make([]string, len(expandedSubcommands))
+
+	for i, obj := range expandedSubcommands {
 		cmdNames[i] = obj.Name()
 	}
 
@@ -57,7 +77,7 @@ func mainImpl(args []string) {
 	baseUsage := "Usage: " + b.Name() + " "
 	cmd.Help.Usage = baseUsage + b.Usage()
 
-	for _, obj := range b.SubcommandObjects() {
+	for _, obj := range expandedSubcommands {
 		cmd.Subcommand(obj.Name()).Help.Usage = obj.Name() + " " + obj.Usage()
 	}
 
