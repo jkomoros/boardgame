@@ -92,12 +92,26 @@ func FullName(cmd SubcommandObject) string {
 	return FullName(cmd.Parent()) + " " + cmd.Name()
 }
 
+func strMatchesObject(str string, s SubcommandObject) bool {
+	if s.Name() == str {
+		return true
+	}
+
+	for _, alias := range s.Aliases() {
+		if alias == str {
+			return true
+		}
+	}
+
+	return false
+}
+
 //selectSubcommandObject takes a subcommand object and a path. It verifes the
 //first item is us, then identifies the next object to recurse into based on
 //Names of SubcommandObjects.
 func selectSubcommandObject(s SubcommandObject, p []string) SubcommandObject {
 
-	if s.Name() != p[0] {
+	if !strMatchesObject(p[0], s) {
 		return nil
 	}
 
@@ -110,7 +124,7 @@ func selectSubcommandObject(s SubcommandObject, p []string) SubcommandObject {
 	for _, obj := range s.SubcommandObjects() {
 		//We don't need to check alises, because the main library already did
 		//the command/object matching
-		if nextCommand == obj.Name() {
+		if strMatchesObject(nextCommand, obj) {
 			return selectSubcommandObject(obj, p[1:])
 		}
 	}
