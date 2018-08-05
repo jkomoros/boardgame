@@ -27,6 +27,7 @@ type SubcommandObject interface {
 	//Config returns a writ.Command object. Should return the same object on
 	//repeated calls.
 	WritCommand() *writ.Command
+	WritOptions() []*writ.Option
 	//WritHelp should return a Help config object for this command
 	WritHelp() writ.Help
 
@@ -84,6 +85,18 @@ func (b *baseSubCommand) WritHelp() writ.Help {
 
 	}
 
+	baseOptions := obj.WritOptions()
+
+	if len(baseOptions) > 0 {
+		optionNames := make([]string, len(baseOptions))
+		for i, opt := range baseOptions {
+			optionNames[i] = opt.Names[0]
+		}
+		group := b.WritCommand().GroupOptions(optionNames...)
+		group.Header = "Options:"
+		result.OptionGroups = append(result.OptionGroups, group)
+	}
+
 	result.Usage = "Usage: " + FullName(obj) + " " + obj.Usage()
 
 	return result
@@ -107,6 +120,7 @@ func (b *baseSubCommand) WritCommand() *writ.Command {
 		Description: obj.Description(),
 		Aliases:     obj.Aliases(),
 		Subcommands: subConfigs,
+		Options:     obj.WritOptions(),
 	}
 
 	b.writCommand = config
@@ -150,6 +164,10 @@ func (b *baseSubCommand) HelpText() string {
 }
 
 func (b *baseSubCommand) SubcommandObjects() []SubcommandObject {
+	return nil
+}
+
+func (b *baseSubCommand) WritOptions() []*writ.Option {
 	return nil
 }
 
