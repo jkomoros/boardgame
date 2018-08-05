@@ -11,6 +11,7 @@ type Db struct {
 	Down    DbDown
 	Setup   DbSetup
 	Version DbVersion
+	Prod    bool
 }
 
 func (d *Db) Run(p writ.Path, positional []string) {
@@ -47,6 +48,17 @@ README.md for more about configuring that file.
 
 func (d *Db) Usage() string {
 	return "SUBCOMMAND"
+}
+
+func (d *Db) WritOptions() []*writ.Option {
+	return []*writ.Option{
+		&writ.Option{
+			Names:       []string{"prod", "p"},
+			Flag:        true,
+			Description: "If true, uses prod settings instead of dev settings",
+			Decoder:     writ.NewFlagDecoder(&d.Prod),
+		},
+	}
 }
 
 func (d *Db) SubcommandObjects() []SubcommandObject {
