@@ -28,6 +28,12 @@
   revision = "cc4cf5c8bf0bf8f189172c3431366a71ae80caf9"
 
 [[projects]]
+  name = "github.com/bobziuchkovski/writ"
+  packages = ["."]
+  revision = "08e3f25d8bc677e6dcf7b157614c712622556019"
+  version = "v0.8.9"
+
+[[projects]]
   name = "github.com/boltdb/bolt"
   packages = ["."]
   revision = "2f1ce7a837dcb8da3ec595b1dac9d0632f0f99e8"
@@ -190,6 +196,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b94eeb5a779e9c6204a3c24c67fdc08e97c255a973b1dad7b1d2cfea7a7d412f"
+  inputs-digest = "389e5a31784b9f2322a84af3f963ee253baffd6f076a47c8ccff9fc20b458da4"
   solver-name = "gps-cdcl"
   solver-version = 1

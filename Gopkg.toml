@@ -89,3 +89,7 @@
 [[constraint]]
   name = "github.com/yudai/gojsondiff"
   version = "1.0.0"
+
+[[constraint]]
+  name = "github.com/bobziuchkovski/writ"
+  version = "0.8.9"
