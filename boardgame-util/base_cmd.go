@@ -7,13 +7,28 @@ import (
 
 //SubcommandObject is a literal struct that implements a subcommand
 type SubcommandObject interface {
+	//The name the command is registered as
 	Name() string
+	//The description of the command to register
 	Description() string
+	//The aliases to register for
 	Aliases() []string
+	//The command to actually run
 	Run(p writ.Path, positional []string)
 }
 
+type baseSubCommand struct{}
+
+func (b *baseSubCommand) Aliases() []string {
+	return nil
+}
+
+func (b *baseSubCommand) Description() string {
+	return ""
+}
+
 type BoardgameUtil struct {
+	baseSubCommand
 	Help Help
 	Db   Db
 }
@@ -24,14 +39,6 @@ func (b *BoardgameUtil) Run(p writ.Path, positional []string) {
 
 func (b *BoardgameUtil) Name() string {
 	return "boardgame-util"
-}
-
-func (b *BoardgameUtil) Aliases() []string {
-	return nil
-}
-
-func (b *BoardgameUtil) Description() string {
-	return "The main command"
 }
 
 func (b *BoardgameUtil) SubcommandObjects() []SubcommandObject {

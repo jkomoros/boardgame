@@ -6,6 +6,7 @@ import (
 )
 
 type Db struct {
+	baseSubCommand
 }
 
 func (d *Db) Run(p writ.Path, positional []string) {
