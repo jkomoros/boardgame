@@ -58,13 +58,14 @@ func mainImpl(args []string) {
 		Name: b.Name(),
 	}
 
-	expandedSubcommands := expandSubcommandObjects(b.SubcommandObjects())
+	baseSubcommands := b.SubcommandObjects()
+	expandedSubcommands := expandSubcommandObjects(baseSubcommands)
 
 	cmd.Subcommands = makeConfigs(expandedSubcommands)
 
-	cmdNames := make([]string, len(expandedSubcommands))
+	cmdNames := make([]string, len(baseSubcommands))
 
-	for i, obj := range expandedSubcommands {
+	for i, obj := range baseSubcommands {
 		cmdNames[i] = obj.Name()
 	}
 
