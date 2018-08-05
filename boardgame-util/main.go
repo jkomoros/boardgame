@@ -35,7 +35,7 @@ func makeHelp(cmd *writ.Command, obj SubcommandObject) writ.Help {
 
 	}
 
-	result.Usage = "Usage: " + FullName(obj) + obj.Usage()
+	result.Usage = "Usage: " + FullName(obj) + " " + obj.Usage()
 
 	return result
 }
