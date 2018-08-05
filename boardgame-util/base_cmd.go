@@ -33,9 +33,9 @@ func (b *BoardgameUtil) SubcommandObjects() []SubcommandObject {
 //selectSubcommandObject takes a subcommand object and a path. It verifes the
 //first item is us, then identifies the next object to recurse into based on
 //Names of SubcommandObjects.
-func selectSubcommandObject(s SubcommandObject, p writ.Path) SubcommandObject {
+func selectSubcommandObject(s SubcommandObject, p []string) SubcommandObject {
 
-	if s.Name() != p.First().String() {
+	if s.Name() != p[0] {
 		return nil
 	}
 
@@ -48,7 +48,7 @@ func selectSubcommandObject(s SubcommandObject, p writ.Path) SubcommandObject {
 	for _, obj := range s.SubcommandObjects() {
 		//We don't need to check alises, because the main library already did
 		//the command/object matching
-		if nextCommand.Name == obj.Name() {
+		if nextCommand == obj.Name() {
 			return selectSubcommandObject(obj, p[1:])
 		}
 	}

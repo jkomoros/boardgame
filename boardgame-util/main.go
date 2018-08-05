@@ -12,6 +12,7 @@ package main
 import (
 	"github.com/bobziuchkovski/writ"
 	"os"
+	"strings"
 )
 
 func makeHelp(cmd *writ.Command, obj SubcommandObject) writ.Help {
@@ -81,7 +82,7 @@ func mainImpl(args []string) {
 		path.Last().ExitHelp(err)
 	}
 
-	subcommandObj := selectSubcommandObject(b, path)
+	subcommandObj := selectSubcommandObject(b, strings.Split(path.String(), " "))
 
 	if subcommandObj == nil {
 		panic("BUG: one of the subcommands didn't enumerate all subcommands")
