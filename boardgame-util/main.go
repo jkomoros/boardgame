@@ -42,6 +42,16 @@ func mainImpl(args []string) {
 
 	cmd.Subcommands = makeConfigs(b.SubcommandObjects())
 
+	cmdNames := make([]string, len(cmd.Subcommands))
+
+	for i, obj := range b.SubcommandObjects() {
+		cmdNames[i] = obj.Name()
+	}
+
+	group := cmd.GroupCommands(cmdNames...)
+	group.Header = "General commands:"
+	cmd.Help.CommandGroups = append(cmd.Help.CommandGroups, group)
+
 	b.Help.base = cmd
 
 	baseUsage := "Usage: " + b.Name() + " "
