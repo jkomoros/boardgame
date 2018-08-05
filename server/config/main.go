@@ -133,6 +133,32 @@ func (c *ConfigMode) copy() *ConfigMode {
 
 }
 
+//mergedStrList returns a list where base is concatenated with the non-
+//duplicates in other.
+func mergedStrList(base, other []string) []string {
+
+	result := make([]string, len(base))
+
+	for i, str := range base {
+		result[i] = str
+	}
+
+	strSet := make(map[string]bool, len(base))
+	for _, key := range base {
+		strSet[key] = true
+	}
+
+	for _, key := range other {
+		if strSet[key] {
+			//Already in the set, don't add a duplicate
+			continue
+		}
+		result = append(result, key)
+	}
+
+	return result
+}
+
 //extend takes a given base config mode, extends it with properties set in
 //other (with any non-zero value overwriting the base values) and returns a
 //*new* config representing the merged one.
@@ -160,19 +186,7 @@ func (c *ConfigMode) extend(other *ConfigMode) *ConfigMode {
 		result.DisableAdminChecking = true
 	}
 
-	//Extend adminID, but no duplicates
-	adminIdsSet := make(map[string]bool, len(result.AdminUserIds))
-	for _, key := range result.AdminUserIds {
-		adminIdsSet[key] = true
-	}
-
-	for _, key := range other.AdminUserIds {
-		if adminIdsSet[key] {
-			//Already in the set, don't add a duplicate
-			continue
-		}
-		result.AdminUserIds = append(result.AdminUserIds, key)
-	}
+	result.AdminUserIds = mergedStrList(c.AdminUserIds, other.AdminUserIds)
 
 	for key, val := range other.StorageConfig {
 		result.StorageConfig[key] = val
