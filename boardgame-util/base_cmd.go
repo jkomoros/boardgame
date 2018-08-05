@@ -5,13 +5,9 @@ import (
 	"github.com/bobziuchkovski/writ"
 )
 
-//TODO: don't use struct comments to do the top-level, so we can have the
-//constant names once.
-
 type BoardgameUtil struct {
-	Help Help `command:"help" description:"Prints help for a specific subcommand"`
-	Db   Db   `command:"db" alias:"mysql" description:"Configures a mysql database"`
-	//When chaning these values, also change the associated command's Name() method.
+	Help Help
+	Db   Db
 }
 
 func (b *BoardgameUtil) Run(p writ.Path, positional []string) {
@@ -20,4 +16,20 @@ func (b *BoardgameUtil) Run(p writ.Path, positional []string) {
 
 func (b *BoardgameUtil) Name() string {
 	return "boardgame-util"
+}
+
+func (b *BoardgameUtil) SubcommandConfig() []*writ.Command {
+	//TODO :iterate through this automatically based on SubcommandObjects[]
+	return []*writ.Command{
+		&writ.Command{
+			Name: b.Help.Name(),
+			//TODO: pop this out to b.Help.Description().
+			Description: b.Help.Description(),
+		},
+		&writ.Command{
+			Name:        b.Db.Name(),
+			Aliases:     b.Db.Aliases(),
+			Description: b.Db.Description(),
+		},
+	}
 }

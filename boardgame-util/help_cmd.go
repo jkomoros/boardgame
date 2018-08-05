@@ -31,3 +31,7 @@ func (h *Help) Run(p writ.Path, positional []string) {
 func (h *Help) Name() string {
 	return "help"
 }
+
+func (h *Help) Description() string {
+	return "Prints help for a specific subcommand"
+}

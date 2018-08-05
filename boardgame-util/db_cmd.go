@@ -21,3 +21,13 @@ func (d *Db) Run(p writ.Path, positional []string) {
 func (d *Db) Name() string {
 	return "db"
 }
+
+func (d *Db) Aliases() []string {
+	return []string{
+		"mysql",
+	}
+}
+
+func (d *Db) Description() string {
+	return "Configures a mysql database"
+}

@@ -18,7 +18,14 @@ func main() {
 func mainImpl(args []string) {
 	b := &BoardgameUtil{}
 
-	cmd := writ.New(b.Name(), b)
+	cmd := &writ.Command{
+		Name: b.Name(),
+	}
+
+	cmd.Subcommands = b.SubcommandConfig()
+
+	// general := cmd.GroupCommands(optionNames)
+	// general.Header = "General options: "
 
 	b.Help.base = cmd
 
@@ -34,6 +41,8 @@ func mainImpl(args []string) {
 		path.Last().ExitHelp(err)
 	}
 
+	//TODO: this dispatch table should go straight to b.Dispatch, which
+	//returns a subcommand, which is thne called Run().
 	switch path.String() {
 	case b.Name():
 		b.Run(path, positional)
