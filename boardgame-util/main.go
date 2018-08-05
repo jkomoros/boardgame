@@ -62,6 +62,8 @@ func main() {
 func mainImpl(args []string) {
 	b := &BoardgameUtil{}
 
+	setupParents(b, nil)
+
 	cmd := &writ.Command{
 		Name: b.Name(),
 	}

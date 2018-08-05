@@ -19,9 +19,18 @@ type SubcommandObject interface {
 	SubcommandObjects() []SubcommandObject
 	//The command to actually run
 	Run(p writ.Path, positional []string)
+
+	//SetParent will be called with the command's parent object.
+	SetParent(parent SubcommandObject)
 }
 
-type baseSubCommand struct{}
+type baseSubCommand struct {
+	parent SubcommandObject
+}
+
+func (b *baseSubCommand) SetParent(parent SubcommandObject) {
+	b.parent = parent
+}
 
 func (b *baseSubCommand) Aliases() []string {
 	return nil
@@ -37,4 +46,14 @@ func (b *baseSubCommand) Usage() string {
 
 func (b *baseSubCommand) SubcommandObjects() []SubcommandObject {
 	return nil
+}
+
+func setupParents(cmd SubcommandObject, parent SubcommandObject) {
+
+	cmd.SetParent(parent)
+
+	for _, subCmd := range cmd.SubcommandObjects() {
+		setupParents(subCmd, cmd)
+	}
+
 }
