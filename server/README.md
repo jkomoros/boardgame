@@ -260,6 +260,12 @@ many are fine with just "". When the server is started up, it will fetch the
 connection string from this map that matches the Name of the storage engine in
 use.
 
+## Games
+
+Games is a tree defining the game packages you want included. This isn't used
+for antyhing yet, but will allow commands in `boardgame-util` to know which
+games you want to by default operate on.
+
 ## Installing dependencies
 
 1. Install Node.js
