@@ -137,6 +137,14 @@ func (c *ConfigMode) copy() *ConfigMode {
 //duplicates in other.
 func mergedStrList(base, other []string) []string {
 
+	if base == nil {
+		return other
+	}
+
+	if other == nil {
+		return base
+	}
+
 	result := make([]string, len(base))
 
 	for i, str := range base {
