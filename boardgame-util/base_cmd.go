@@ -5,6 +5,14 @@ import (
 	"github.com/bobziuchkovski/writ"
 )
 
+//SubcommandObject is a literal struct that implements a subcommand
+type SubcommandObject interface {
+	Name() string
+	Description() string
+	Aliases() []string
+	Run(p writ.Path, positional []string)
+}
+
 type BoardgameUtil struct {
 	Help Help
 	Db   Db
@@ -16,6 +24,21 @@ func (b *BoardgameUtil) Run(p writ.Path, positional []string) {
 
 func (b *BoardgameUtil) Name() string {
 	return "boardgame-util"
+}
+
+func (b *BoardgameUtil) Aliases() []string {
+	return nil
+}
+
+func (b *BoardgameUtil) Description() string {
+	return "The main command"
+}
+
+func (b *BoardgameUtil) SubcommandObjects() []SubcommandObject {
+	return []SubcommandObject{
+		&b.Help,
+		&b.Db,
+	}
 }
 
 func (b *BoardgameUtil) SubcommandConfig() []*writ.Command {

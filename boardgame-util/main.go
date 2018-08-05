@@ -11,6 +11,20 @@ import (
 	"os"
 )
 
+func makeConfigs(commands []SubcommandObject) []*writ.Command {
+	result := make([]*writ.Command, len(commands))
+
+	for i, cmd := range commands {
+		result[i] = &writ.Command{
+			Name:        cmd.Name(),
+			Description: cmd.Description(),
+			Aliases:     cmd.Aliases(),
+		}
+	}
+
+	return result
+}
+
 func main() {
 	mainImpl(os.Args)
 }
@@ -22,10 +36,7 @@ func mainImpl(args []string) {
 		Name: b.Name(),
 	}
 
-	cmd.Subcommands = b.SubcommandConfig()
-
-	// general := cmd.GroupCommands(optionNames)
-	// general.Header = "General options: "
+	cmd.Subcommands = makeConfigs(b.SubcommandObjects())
 
 	b.Help.base = cmd
 

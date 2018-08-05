@@ -35,3 +35,7 @@ func (h *Help) Name() string {
 func (h *Help) Description() string {
 	return "Prints help for a specific subcommand"
 }
+
+func (h *Help) Aliases() []string {
+	return nil
+}
