@@ -10,6 +10,10 @@ type SubcommandObject interface {
 	Name() string
 	//The description of the command to register
 	Description() string
+
+	//HelpText is the prose decription of what this command does.
+	HelpText() string
+
 	//The aliases to register for
 	Aliases() []string
 	//The rest of the usage string, which will be appened to "NAME "
@@ -20,13 +24,25 @@ type SubcommandObject interface {
 	//The command to actually run
 	Run(p writ.Path, positional []string)
 
+	TopLevelStruct() SubcommandObject
+	SetTopLevelStruct(top SubcommandObject)
+
 	Parent() SubcommandObject
 	//SetParent will be called with the command's parent object.
 	SetParent(parent SubcommandObject)
 }
 
 type baseSubCommand struct {
-	parent SubcommandObject
+	parent         SubcommandObject
+	topLevelStruct SubcommandObject
+}
+
+func (b *baseSubCommand) TopLevelStruct() SubcommandObject {
+	return b.topLevelStruct
+}
+
+func (b *baseSubCommand) SetTopLevelStruct(top SubcommandObject) {
+	b.topLevelStruct = top
 }
 
 func (b *baseSubCommand) SetParent(parent SubcommandObject) {
@@ -49,6 +65,11 @@ func (b *baseSubCommand) Usage() string {
 	return ""
 }
 
+//HelpText defaults to description
+func (b *baseSubCommand) HelpText() string {
+	return b.TopLevelStruct().Description()
+}
+
 func (b *baseSubCommand) SubcommandObjects() []SubcommandObject {
 	return nil
 }
@@ -56,6 +77,7 @@ func (b *baseSubCommand) SubcommandObjects() []SubcommandObject {
 func setupParents(cmd SubcommandObject, parent SubcommandObject) {
 
 	cmd.SetParent(parent)
+	cmd.SetTopLevelStruct(cmd)
 
 	for _, subCmd := range cmd.SubcommandObjects() {
 		setupParents(subCmd, cmd)

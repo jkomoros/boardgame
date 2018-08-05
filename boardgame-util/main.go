@@ -18,6 +18,8 @@ func makeHelp(cmd *writ.Command, obj SubcommandObject) writ.Help {
 
 	var result writ.Help
 
+	result.Header = obj.HelpText()
+
 	baseSubCommands := obj.SubcommandObjects()
 
 	if len(baseSubCommands) > 0 {
