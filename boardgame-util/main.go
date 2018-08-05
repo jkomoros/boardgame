@@ -1,7 +1,10 @@
 /*
 
 	boardgame-util is a comprehensive CLI tool to help administer projects
-	built with boardgame.
+	built with boardgame. All of its substantive functionality is implemented
+	in sub-libraries in lib/, which can be used directly if necessary.
+
+	The canonical help documentation is provided by `boardgame-util help`.
 
 */
 package main
