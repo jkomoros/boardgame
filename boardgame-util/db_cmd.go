@@ -13,7 +13,11 @@ func (d *Db) Run(p writ.Path, positional []string) {
 	//TODO this should be implemented literally as a sub-command, not a positional arg.
 
 	if len(positional) != 1 {
-		p.Last().ExitHelp(errors.New(cmdDb + " requires one argument SUBCOMMAND"))
+		p.Last().ExitHelp(errors.New(d.Name() + " requires one argument SUBCOMMAND"))
 	}
 
+}
+
+func (d *Db) Name() string {
+	return "db"
 }

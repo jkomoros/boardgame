@@ -16,17 +16,17 @@ func main() {
 }
 
 func mainImpl(args []string) {
-	boardgameUtil := &BoardgameUtil{}
+	b := &BoardgameUtil{}
 
-	cmd := writ.New(cmdBase, boardgameUtil)
+	cmd := writ.New(b.Name(), b)
 
-	boardgameUtil.Help.base = cmd
+	b.Help.base = cmd
 
-	baseUsage := "Usage: " + cmdBase + " "
+	baseUsage := "Usage: " + b.Name() + " "
 
 	cmd.Help.Usage = baseUsage + "COMMAND [OPTION]... [ARG]..."
-	cmd.Subcommand(cmdHelp).Help.Usage = cmdHelp + " SUBCOMMAND"
-	cmd.Subcommand(cmdDb).Help.Usage = cmdDb + " SUBCOMMAND"
+	cmd.Subcommand(b.Help.Name()).Help.Usage = b.Help.Name() + " SUBCOMMAND"
+	cmd.Subcommand(b.Db.Name()).Help.Usage = b.Db.Name() + " SUBCOMMAND"
 
 	path, positional, err := cmd.Decode(args[1:])
 
@@ -35,12 +35,12 @@ func mainImpl(args []string) {
 	}
 
 	switch path.String() {
-	case cmdBase:
-		boardgameUtil.Run(path, positional)
-	case cmdBase + " " + cmdHelp:
-		boardgameUtil.Help.Run(path, positional)
-	case cmdBase + " " + cmdDb:
-		boardgameUtil.Db.Run(path, positional)
+	case b.Name():
+		b.Run(path, positional)
+	case b.Name() + " " + b.Help.Name():
+		b.Help.Run(path, positional)
+	case b.Name() + " " + b.Db.Name():
+		b.Db.Run(path, positional)
 	default:
 		panic("BUG: new subcomand that wasn't added to dispatch table yet")
 	}
