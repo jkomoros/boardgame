@@ -32,3 +32,7 @@ func (d *Db) Aliases() []string {
 func (d *Db) Description() string {
 	return "Configures a mysql database"
 }
+
+func (d *Db) Usage() string {
+	return "SUBCOMMAND"
+}

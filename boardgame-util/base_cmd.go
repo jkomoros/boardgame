@@ -13,6 +13,8 @@ type SubcommandObject interface {
 	Description() string
 	//The aliases to register for
 	Aliases() []string
+	//The rest of the usage string, which will be appened to "NAME "
+	Usage() string
 	//The command to actually run
 	Run(p writ.Path, positional []string)
 }
@@ -24,6 +26,10 @@ func (b *baseSubCommand) Aliases() []string {
 }
 
 func (b *baseSubCommand) Description() string {
+	return ""
+}
+
+func (b *baseSubCommand) Usage() string {
 	return ""
 }
 
@@ -41,25 +47,13 @@ func (b *BoardgameUtil) Name() string {
 	return "boardgame-util"
 }
 
+func (b *BoardgameUtil) Usage() string {
+	return "COMMAND [OPTION]... [ARG]..."
+}
+
 func (b *BoardgameUtil) SubcommandObjects() []SubcommandObject {
 	return []SubcommandObject{
 		&b.Help,
 		&b.Db,
-	}
-}
-
-func (b *BoardgameUtil) SubcommandConfig() []*writ.Command {
-	//TODO :iterate through this automatically based on SubcommandObjects[]
-	return []*writ.Command{
-		&writ.Command{
-			Name: b.Help.Name(),
-			//TODO: pop this out to b.Help.Description().
-			Description: b.Help.Description(),
-		},
-		&writ.Command{
-			Name:        b.Db.Name(),
-			Aliases:     b.Db.Aliases(),
-			Description: b.Db.Description(),
-		},
 	}
 }

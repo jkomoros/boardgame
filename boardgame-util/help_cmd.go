@@ -29,6 +29,10 @@ func (h *Help) Run(p writ.Path, positional []string) {
 
 }
 
+func (h *Help) Usage() string {
+	return "SUBCOMMAND"
+}
+
 func (h *Help) Name() string {
 	return "help"
 }

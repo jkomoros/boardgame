@@ -41,10 +41,11 @@ func mainImpl(args []string) {
 	b.Help.base = cmd
 
 	baseUsage := "Usage: " + b.Name() + " "
+	cmd.Help.Usage = baseUsage + b.Usage()
 
-	cmd.Help.Usage = baseUsage + "COMMAND [OPTION]... [ARG]..."
-	cmd.Subcommand(b.Help.Name()).Help.Usage = b.Help.Name() + " SUBCOMMAND"
-	cmd.Subcommand(b.Db.Name()).Help.Usage = b.Db.Name() + " SUBCOMMAND"
+	for _, obj := range b.SubcommandObjects() {
+		cmd.Subcommand(obj.Name()).Help.Usage = obj.Name() + " " + obj.Usage()
+	}
 
 	path, positional, err := cmd.Decode(args[1:])
 
