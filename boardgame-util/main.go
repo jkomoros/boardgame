@@ -7,33 +7,12 @@
 package main
 
 import (
-	"errors"
 	"github.com/bobziuchkovski/writ"
 	"os"
 )
 
 const cmdBase = "boardgame-util"
 const cmdHelp = "help"
-
-type BoardgameUtil struct {
-	Help Help `command:"help" description:"Prints help for a specific subcommand"`
-}
-
-type Help struct {
-}
-
-func (b *BoardgameUtil) Run(p writ.Path, positional []string) {
-	p.Last().ExitHelp(errors.New("COMMAND is required"))
-}
-
-func (h *Help) Run(p writ.Path, positional []string) {
-	if len(positional) != 1 {
-		p.Last().ExitHelp(errors.New(cmdHelp + " requires one argument SUBCOMMAND"))
-	}
-
-	p.Last().ExitHelp(errors.New("No subcommands yet"))
-
-}
 
 func main() {
 	mainImpl(os.Args)
