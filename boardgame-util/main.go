@@ -12,50 +12,52 @@ package main
 import (
 	"github.com/bobziuchkovski/writ"
 	"os"
-	"strings"
 )
 
-func makeConfigs(commands []SubcommandObject) []*writ.Command {
+func makeHelp(cmd *writ.Command, obj SubcommandObject) writ.Help {
 
-	result := make([]*writ.Command, len(commands))
-
-	for i, cmd := range commands {
-		result[i] = &writ.Command{
-			Name:        cmd.Name(),
-			Description: cmd.Description(),
-			Aliases:     cmd.Aliases(),
-			Subcommands: makeConfigs(cmd.SubcommandObjects()),
-		}
-	}
-
-	return result
-}
-
-func setupHelp(cmdNames []string, cmd *writ.Command, obj SubcommandObject) {
-
-	cmdNames = append(cmdNames, obj.Name())
+	var result writ.Help
 
 	baseSubCommands := obj.SubcommandObjects()
 
 	if len(baseSubCommands) > 0 {
 
 		subCmdNames := make([]string, len(baseSubCommands))
-
 		for i, obj := range baseSubCommands {
 			subCmdNames[i] = obj.Name()
-
-			subCmd := cmd.Subcommand(obj.Name())
-			setupHelp(cmdNames, subCmd, obj)
 		}
 
 		group := cmd.GroupCommands(subCmdNames...)
 		group.Header = "Subcommands:"
-		cmd.Help.CommandGroups = append(cmd.Help.CommandGroups, group)
+		result.CommandGroups = append(result.CommandGroups, group)
 
 	}
 
-	cmd.Help.Usage = "Usage: " + strings.Join(cmdNames, " ")
+	result.Usage = "Usage: " + FullName(obj) + obj.Usage()
 
+	return result
+}
+
+func makeConfig(obj SubcommandObject) *writ.Command {
+
+	cmd := &writ.Command{
+		Name:        obj.Name(),
+		Description: obj.Description(),
+		Aliases:     obj.Aliases(),
+		Subcommands: makeConfigs(obj.SubcommandObjects()),
+	}
+
+	cmd.Help = makeHelp(cmd, obj)
+
+	return cmd
+}
+
+func makeConfigs(commands []SubcommandObject) []*writ.Command {
+	result := make([]*writ.Command, len(commands))
+	for i, obj := range commands {
+		result[i] = makeConfig(obj)
+	}
+	return result
 }
 
 func main() {
@@ -67,15 +69,7 @@ func mainImpl(args []string) {
 
 	setupParents(b, nil)
 
-	cmd := &writ.Command{
-		Name: b.Name(),
-	}
-
-	baseSubCommands := b.SubcommandObjects()
-
-	cmd.Subcommands = makeConfigs(baseSubCommands)
-
-	setupHelp(nil, cmd, b)
+	cmd := makeConfig(b)
 
 	b.Help.base = cmd
 
