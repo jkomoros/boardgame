@@ -295,9 +295,11 @@ func fileNamesToUse() (publicConfig, privateConfig string) {
 		if foundNames[name] {
 			return name, privateConfig
 		}
-		//Keep track of one of the names to return by default if we don't find
-		//a direct match
-		publicConfig = name
+	}
+
+	//Whatever, return the first one
+	for name, _ := range foundNames {
+		return name, privateConfig
 	}
 
 	//None of the preferred names were found, just return whatever is in

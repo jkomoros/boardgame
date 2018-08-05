@@ -1,0 +1,23 @@
+{
+	"prod" : {
+		"allowedorigins" : "https://www.mygame.com",
+		"defaultport" : "8080",
+		"firebaseprojectid": "sample-123456",
+		"adminuserids": [
+			"aH1TV07K47RC4mTNCai0ZPnQ9Kd2",
+			"uYuZl1jXWXVJ9fEk7mDFifhTGmK2"
+		],
+		"storageconfig": {
+			"mysql": "Your production server config goes here, See https://github.com/go-sql-driver/mysql for examples"
+		}
+	},
+	"dev" : {
+		"allowedorigins" : "http://localhost:8080",
+		"defaultport" : "8888",
+		"firebaseprojectid": "sample-123456",
+		"disableadminchecking": true,
+		"storageconfig": {
+			"mysql": "root:root@tcp(localhost:3306)/boardgame"
+		}
+	}
+}
