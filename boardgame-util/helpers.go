@@ -28,6 +28,10 @@ type SubcommandObject interface {
 	//repeated calls.
 	WritCommand() *writ.Command
 	WritOptions() []*writ.Option
+	//WritParentOptions returns a series of frames back up to the root command
+	//with options. They aren't regeistered, per se, but are used to generate
+	//help for all options.
+	WritParentOptions() []*ParentOptions
 	//WritHelp should return a Help config object for this command
 	WritHelp() writ.Help
 
@@ -40,6 +44,11 @@ type SubcommandObject interface {
 	Parent() SubcommandObject
 	//SetParent will be called with the command's parent object.
 	SetParent(parent SubcommandObject)
+}
+
+type ParentOptions struct {
+	Name    string
+	Options []*writ.Option
 }
 
 type baseSubCommand struct {
@@ -128,6 +137,28 @@ func (b *baseSubCommand) WritCommand() *writ.Command {
 	config.Help = obj.WritHelp()
 
 	return config
+}
+
+func (b *baseSubCommand) WritParentOptions() []*ParentOptions {
+	var result []*ParentOptions
+
+	obj := b.TopLevelStruct()
+
+	obj = obj.Parent()
+
+	for obj != nil {
+
+		parentOptions := &ParentOptions{
+			Name:    obj.Name(),
+			Options: obj.WritOptions(),
+		}
+
+		result = append(result, parentOptions)
+
+		obj = obj.Parent()
+	}
+
+	return result
 }
 
 func (b *baseSubCommand) TopLevelStruct() SubcommandObject {
