@@ -49,6 +49,7 @@ type SubcommandObject interface {
 type ParentOptions struct {
 	Name    string
 	Options []*writ.Option
+	Cmd     *writ.Command
 }
 
 type baseSubCommand struct {
@@ -64,6 +65,27 @@ func (b *baseSubCommand) Base() SubcommandObject {
 
 func (b *baseSubCommand) SetBase(base SubcommandObject) {
 	b.base = base
+}
+
+func (b *baseSubCommand) optionGroupForObject(name string, cmd *writ.Command, options []*writ.Option) *writ.OptionGroup {
+
+	if len(options) == 0 {
+		return nil
+	}
+
+	optionNames := make([]string, len(options))
+	for i, opt := range options {
+		optionNames[i] = opt.Names[0]
+	}
+	group := cmd.GroupOptions(optionNames...)
+	if name == "" {
+		group.Header = "Options:"
+	} else {
+		group.Header = "Options for " + name + ":"
+	}
+
+	return &group
+
 }
 
 func (b *baseSubCommand) WritHelp() writ.Help {
@@ -94,16 +116,16 @@ func (b *baseSubCommand) WritHelp() writ.Help {
 
 	}
 
-	baseOptions := obj.WritOptions()
+	group := b.optionGroupForObject("", obj.WritCommand(), obj.WritOptions())
+	if group != nil {
+		result.OptionGroups = append(result.OptionGroups, *group)
+	}
 
-	if len(baseOptions) > 0 {
-		optionNames := make([]string, len(baseOptions))
-		for i, opt := range baseOptions {
-			optionNames[i] = opt.Names[0]
+	for _, parentOptions := range obj.WritParentOptions() {
+		group := b.optionGroupForObject(parentOptions.Name, parentOptions.Cmd, parentOptions.Options)
+		if group != nil {
+			result.OptionGroups = append(result.OptionGroups, *group)
 		}
-		group := b.WritCommand().GroupOptions(optionNames...)
-		group.Header = "Options:"
-		result.OptionGroups = append(result.OptionGroups, group)
 	}
 
 	result.Usage = "Usage: " + FullName(obj) + " " + obj.Usage()
@@ -151,6 +173,7 @@ func (b *baseSubCommand) WritParentOptions() []*ParentOptions {
 		parentOptions := &ParentOptions{
 			Name:    obj.Name(),
 			Options: obj.WritOptions(),
+			Cmd:     obj.WritCommand(),
 		}
 
 		result = append(result, parentOptions)
