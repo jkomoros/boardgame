@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"github.com/bobziuchkovski/writ"
 	"github.com/jkomoros/boardgame/storage/mysql/connect"
 	"github.com/mattes/migrate"
@@ -74,16 +75,35 @@ func (d *Db) SubcommandObjects() []SubcommandObject {
 
 }
 
+func (d *Db) prodConfirm() bool {
+	if !d.Prod {
+		return true
+	}
+	fmt.Println("You have selected a destructive action on prod. Are you sure? (y/N)")
+	var response string
+	fmt.Scanln(&response)
+	yesResponses := []string{"Yes", "Y", "yes"}
+	for _, responseToTest := range yesResponses {
+		if response == responseToTest {
+			return true
+		}
+	}
+	return false
+}
+
 func (d *Db) GetMigrate(createDb bool) *migrate.Migrate {
 
 	base := d.Base().(*BoardgameUtil)
 	config := base.GetConfig()
 
+	if !d.prodConfirm() {
+		msgAndQuit("Didn't agree to operate on prod")
+	}
+
 	mode := config.Dev
 
 	if d.Prod {
-		//TODO: confirm if they want to do prod
-		d.WritCommand().ExitHelp(errors.New("Prod not yet supported"))
+		mode = config.Prod
 	}
 
 	dsn, ok := mode.StorageConfig["mysql"]

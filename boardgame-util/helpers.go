@@ -269,6 +269,11 @@ func errAndQuit(message string) {
 	os.Exit(1)
 }
 
+func msgAndQuit(message string) {
+	fmt.Println(message)
+	os.Exit(0)
+}
+
 //selectSubcommandObject takes a subcommand object and a path. It verifes the
 //first item is us, then identifies the next object to recurse into based on
 //Names of SubcommandObjects.
