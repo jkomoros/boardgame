@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"github.com/MarcGrol/golangAnnotations/model"
 	"github.com/MarcGrol/golangAnnotations/parser"
 	"github.com/jkomoros/boardgame"
@@ -52,7 +53,13 @@ func init() {
 	memoizedEmbeddedStructs = make(map[memoizedEmbeddedStructKey]*typeInfo)
 }
 
-func processStructs(sources model.ParsedSources, location string) (output string, testOutput string, err error) {
+func processStructs(location string) (output string, testOutput string, err error) {
+
+	sources, err := parser.ParseSourceDir(location, ".*")
+
+	if err != nil {
+		return "", "", errors.New("Couldn't parse sources: " + err.Error())
+	}
 
 	output, err = doProcessStructs(sources, location, false)
 

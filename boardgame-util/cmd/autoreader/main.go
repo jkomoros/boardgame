@@ -65,7 +65,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/MarcGrol/golangAnnotations/parser"
 	"go/format"
 	"io"
 	"io/ioutil"
@@ -167,13 +166,7 @@ func process(options *appOptions, out io.ReadWriter, errOut io.ReadWriter) {
 
 func processPackage(location string) (output string, testOutput string, enumOutput string, err error) {
 
-	sources, err := parser.ParseSourceDir(location, ".*")
-
-	if err != nil {
-		return "", "", "", errors.New("Couldn't parse sources: " + err.Error())
-	}
-
-	output, testOutput, err = processStructs(sources, location)
+	output, testOutput, err = processStructs(location)
 
 	if err != nil {
 		return "", "", "", errors.New("Couldn't process structs: " + err.Error())
