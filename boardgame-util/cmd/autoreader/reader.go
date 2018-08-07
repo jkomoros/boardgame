@@ -53,7 +53,36 @@ func init() {
 	memoizedEmbeddedStructs = make(map[memoizedEmbeddedStructKey]*typeInfo)
 }
 
-func processStructs(location string) (output string, testOutput string, err error) {
+/*
+
+ProcessStructs operates on the package at the given relative location, and
+produces two strings, one that is appropriate to be saved in auto_reader.go,
+and one that is appropriate to be saved in auto_reader_test.go.
+
+Autoreader processes a package of go files, searching for structs that
+have a comment immediately above their declaration that begins with
+"+autoreader". For each such struct, it creates a Reader(), ReadSetter(),
+and ReadSetConfigurer() method that implement boardgame.Reader,
+boardgame.ReadSetter, and boardgame.ReadSetConfigurer, respectively.
+
+Producing a ReadSetConfigurator requires a ReadSetter, and producing a
+ReadSetter requires a Reader. By default if you have the magic comment of
+`+autoreader` it with produce all three. However, if you want only some of
+the methods, include an argument for the highest one you want, e.g.
+`+autoreader readsetter` to generate a Reader() and ReadSetter().
+
+This package will automatically create additional type transform methods
+to handle fields whose literal type is boardgame.ImmutableSizedStack,
+boardgame.SizedStack, boardgame.MergedStack, enum.RangeValue, and
+enum.TreeValue.
+
+The outputted readers, readsetters, and readsetconfigurers use a hard-
+coded list of fields for performance (reflection would be about 30% slower
+under normal usage). You should re-generate output every time you add a
+struct or modify the fields on a struct.
+
+*/
+func ProcessStructs(location string) (output string, testOutput string, err error) {
 
 	sources, err := parser.ParseSourceDir(location, ".*")
 

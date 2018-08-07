@@ -384,7 +384,7 @@ func titleCaseToWords(in string) string {
 
 }
 
-func processEnums(packageName string) (enumOutput string, err error) {
+func ProcessEnums(packageName string) (enumOutput string, err error) {
 
 	packageASTs, err := parser.ParseDir(token.NewFileSet(), packageName, nil, parser.ParseComments)
 
