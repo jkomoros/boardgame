@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"github.com/bobziuchkovski/writ"
+	"os"
 )
 
 //SubcommandObject is a literal struct that implements a subcommand
@@ -260,6 +262,11 @@ func strMatchesObject(str string, s SubcommandObject) bool {
 	}
 
 	return false
+}
+
+func errAndQuit(message string) {
+	fmt.Println(message)
+	os.Exit(1)
 }
 
 //selectSubcommandObject takes a subcommand object and a path. It verifes the

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"github.com/bobziuchkovski/writ"
 )
 
@@ -19,7 +18,11 @@ func (d *DbUp) Description() string {
 
 func (d *DbUp) Run(p writ.Path, positonal []string) {
 
-	_ = d.Base().(*BoardgameUtil).GetConfig()
+	parent := d.Parent().(*Db)
 
-	p.Last().ExitHelp(errors.New("Not yet implemented"))
+	m := parent.GetMigrate(false)
+
+	if err := m.Up(); err != nil {
+		errAndQuit("Couldn't call up on database: " + err.Error())
+	}
 }

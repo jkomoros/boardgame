@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"github.com/bobziuchkovski/writ"
 )
 
@@ -18,5 +17,11 @@ func (d *DbSetup) Description() string {
 }
 
 func (d *DbSetup) Run(p writ.Path, positonal []string) {
-	p.Last().ExitHelp(errors.New("Not yet implemented"))
+	parent := d.Parent().(*Db)
+
+	m := parent.GetMigrate(true)
+
+	if err := m.Up(); err != nil {
+		errAndQuit("Couldn't call up on database: " + err.Error())
+	}
 }

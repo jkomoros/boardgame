@@ -2,10 +2,8 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"github.com/bobziuchkovski/writ"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
-	"os"
 )
 
 type BoardgameUtil struct {
@@ -65,8 +63,7 @@ func (b *BoardgameUtil) GetConfig() *config.Config {
 	c, err := config.Get()
 
 	if err != nil {
-		fmt.Println("config is required for this command, but it couldn't be loaded. See README.md for more about structuring config.json.\nError: " + err.Error())
-		os.Exit(1)
+		errAndQuit("config is required for this command, but it couldn't be loaded. See README.md for more about structuring config.json.\nError: " + err.Error())
 	}
 
 	b.config = c

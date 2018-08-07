@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"github.com/bobziuchkovski/writ"
 )
 
@@ -18,5 +17,11 @@ func (d *DbDown) Description() string {
 }
 
 func (d *DbDown) Run(p writ.Path, positonal []string) {
-	p.Last().ExitHelp(errors.New("Not yet implemented"))
+	parent := d.Parent().(*Db)
+
+	m := parent.GetMigrate(false)
+
+	if err := m.Down(); err != nil {
+		errAndQuit("Couldn't call down on database: " + err.Error())
+	}
 }

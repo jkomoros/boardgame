@@ -3,6 +3,8 @@ package main
 import (
 	"errors"
 	"github.com/bobziuchkovski/writ"
+	"github.com/jkomoros/boardgame/storage/mysql/connect"
+	"github.com/mattes/migrate"
 )
 
 type Db struct {
@@ -69,5 +71,39 @@ func (d *Db) SubcommandObjects() []SubcommandObject {
 		&d.Setup,
 		&d.Version,
 	}
+
+}
+
+func (d *Db) GetMigrate(createDb bool) *migrate.Migrate {
+
+	base := d.Base().(*BoardgameUtil)
+	config := base.GetConfig()
+
+	mode := config.Dev
+
+	if d.Prod {
+		//TODO: confirm if they want to do prod
+		d.WritCommand().ExitHelp(errors.New("Prod not yet supported"))
+	}
+
+	dsn, ok := mode.StorageConfig["mysql"]
+
+	if !ok {
+		errAndQuit("No mysql config provided")
+	}
+
+	db, err := connect.Db(dsn, false, createDb)
+
+	if err != nil {
+		errAndQuit("Couldn't connect to database: " + err.Error())
+	}
+
+	m, err := connect.Migrations(db)
+
+	if err != nil {
+		errAndQuit("Couldn't get migrations handle: " + err.Error())
+	}
+
+	return m
 
 }

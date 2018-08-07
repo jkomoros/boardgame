@@ -1,8 +1,9 @@
 package main
 
 import (
-	"errors"
+	"fmt"
 	"github.com/bobziuchkovski/writ"
+	"strconv"
 )
 
 type DbVersion struct {
@@ -18,5 +19,16 @@ func (d *DbVersion) Description() string {
 }
 
 func (d *DbVersion) Run(p writ.Path, positonal []string) {
-	p.Last().ExitHelp(errors.New("Not yet implemented"))
+	parent := d.Parent().(*Db)
+
+	m := parent.GetMigrate(false)
+
+	version, _, err := m.Version()
+
+	if err != nil {
+		errAndQuit("Couldn't get version: " + err.Error())
+	}
+
+	fmt.Println("Version: " + strconv.Itoa(int(version)))
+
 }
