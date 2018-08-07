@@ -31,6 +31,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"text/template"
 )
 
@@ -112,15 +113,15 @@ func process(options *appOptions, out io.ReadWriter, errOut io.ReadWriter) {
 	}
 
 	if output != "" && options.OutputReader {
-		ioutil.WriteFile(options.OutputFile, []byte(output), 0644)
+		ioutil.WriteFile(filepath.Join(options.PackageDirectory, options.OutputFile), []byte(output), 0644)
 	}
 
 	if testOutput != "" && options.OutputReaderTest {
-		ioutil.WriteFile(options.OutputFileTest, []byte(testOutput), 0644)
+		ioutil.WriteFile(filepath.Join(options.PackageDirectory, options.OutputFileTest), []byte(testOutput), 0644)
 	}
 
 	if enumOutput != "" && options.OutputEnum {
-		ioutil.WriteFile(options.EnumOutputFile, []byte(enumOutput), 0644)
+		ioutil.WriteFile(filepath.Join(options.PackageDirectory, options.EnumOutputFile), []byte(enumOutput), 0644)
 	}
 
 }
