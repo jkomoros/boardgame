@@ -313,9 +313,9 @@ This will only work if it's a domain-backed bucket.
 
 ### API
 
-Use the `boardgame-mysql-admin` tool. Sitting in the directory with your config.SECRET.json, run:
+Use the `boardgame-util db` tool. Sitting in the directory with your config.SECRET.json, run:
 
-`boardgame-mysql-admin -prod setup`
+`boardgame-util db --prod setup`
 
 If you want to set up your API server to be at e.g. https://api.mydomain.com, follow the instructions [https://cloud.google.com/appengine/docs/flexible/go/using-custom-domains-and-ssl](here).
 
@@ -343,7 +343,7 @@ Make sure your database is up to date.
 
 Run:
 ```
-boardgame-mysql-admin -prod up
+boardgame-util db --prod up
 ```
 
 Run:

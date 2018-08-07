@@ -1819,9 +1819,9 @@ You'd also need to have a mysql connection string configured in your config.SECR
 }
 ```
 
-Of course, you'd also need to stand up a mysql server to connect to and configure the tables correctly. The `boardgame-mysql-admin` tool, in `storage/mysql/cmd/boardgame-mysql-admin`, makes this incredibly easy to setup a server and roll its schema forward. 
+Of course, you'd also need to stand up a mysql server to connect to and configure the tables correctly. The `boardgame-util db` tool makes this incredibly easy to setup a server and roll its schema forward. 
 
-Check out `storage/mysql/README.md` for more information on configuring the server connection string and using `boardgame-mysql-admin`.
+Check out `storage/mysql/README.md` for more information on configuring the server connection string and using `boardgame-util db`.
 
 ### Conclusion
 
