@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"github.com/workfit/tester/assert"
 	"io/ioutil"
 	"log"
@@ -78,30 +79,24 @@ func TestEnumOutput(t *testing.T) {
 
 func TestBuild(t *testing.T) {
 
-	log.Println("WARNING: running this command builds and `go install`s autoreader")
+	log.Println("WARNING: running this command generates auto output for examplepkg/")
 
-	//Make sure a recent version of us is built
-	cmd := exec.Command("go", "install")
+	//Get default options
+	options := getOptions(flag.NewFlagSet("test", 0), []string{})
 
-	err := cmd.Run()
+	options.PackageDirectory = "examplepkg/"
 
-	if !assert.For(t).ThatActual(err).IsNil().Passed() {
-		log.Println(err)
-	}
+	out := &bytes.Buffer{}
+	errOut := &bytes.Buffer{}
 
-	cmd = exec.Command("go", "generate")
-	cmd.Dir = "examplepkg/"
+	process(options, out, errOut)
 
-	err = cmd.Run()
+	assert.For(t).ThatActual(errOut.String()).Equals("").ThenDiffOnFail()
 
-	if !assert.For(t).ThatActual(err).IsNil().Passed() {
-		log.Println(err)
-	}
-
-	cmd = exec.Command("go", "test")
+	cmd := exec.Command("go", "test")
 	cmd.Dir = "./examplepkg/"
 
-	err = cmd.Run()
+	err := cmd.Run()
 
 	if !assert.For(t).ThatActual(err).IsNil().Passed() {
 		log.Println(err)
