@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"github.com/bobziuchkovski/writ"
+	"github.com/mattes/migrate"
 )
 
 type DbSetup struct {
@@ -22,6 +24,10 @@ func (d *DbSetup) Run(p writ.Path, positonal []string) {
 	m := parent.GetMigrate(true)
 
 	if err := m.Up(); err != nil {
-		errAndQuit("Couldn't call up on database: " + err.Error())
+		if err == migrate.ErrNoChange {
+			fmt.Println("Already up to date")
+		} else {
+			errAndQuit("Couldn't call up on database: " + err.Error())
+		}
 	}
 }

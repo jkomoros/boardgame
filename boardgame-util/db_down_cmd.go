@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"github.com/bobziuchkovski/writ"
+	"github.com/mattes/migrate"
 )
 
 type DbDown struct {
@@ -22,6 +24,10 @@ func (d *DbDown) Run(p writ.Path, positonal []string) {
 	m := parent.GetMigrate(false)
 
 	if err := m.Down(); err != nil {
-		errAndQuit("Couldn't call down on database: " + err.Error())
+		if err == migrate.ErrNoChange {
+			fmt.Println("Already at version 0")
+		} else {
+			errAndQuit("Couldn't call down on database: " + err.Error())
+		}
 	}
 }
