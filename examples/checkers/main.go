@@ -13,7 +13,7 @@ import (
 	"github.com/jkomoros/boardgame/moves/with"
 )
 
-//go:generate autoreader
+//go:generate boardgame-util codegen
 
 type gameDelegate struct {
 	boardgame.DefaultGameDelegate

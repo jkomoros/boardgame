@@ -8,9 +8,10 @@ import (
 
 type BoardgameUtil struct {
 	baseSubCommand
-	Help   Help
-	Db     Db
-	config *config.Config
+	Help    Help
+	Db      Db
+	Codegen Codegen
+	config  *config.Config
 }
 
 func (b *BoardgameUtil) Run(p writ.Path, positional []string) {
@@ -48,6 +49,7 @@ func (b *BoardgameUtil) SubcommandObjects() []SubcommandObject {
 	return []SubcommandObject{
 		&b.Help,
 		&b.Db,
+		&b.Codegen,
 	}
 }
 

@@ -178,12 +178,12 @@ only its value within the container. For those, the PropertyReader getters are f
 
 Implementing all of those getters and setters for each custom object type you have is a complete pain. That's why there's a command, suitable for use with `go generate`, that automatically creates PropertyReaders for your structs.
 
-First, install the command by running `go install` from within `$GOPATH/github.com/jkomoros/boardgame/util/cmd/autoreader`. You only need to do this once.
+First, install the command by running `go install` from within `$GOPATH/github.com/jkomoros/boardgame/boardgame-util`. You only need to do this once.
 
 Somewhere in the package, include:
 
 ```
-//go:generate autoreader
+//go:generate boardgame-util codegen
 ```
 
 (In the memory package you'll find it near the top of `examples/memory/main.go`)

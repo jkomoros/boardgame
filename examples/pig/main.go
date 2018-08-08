@@ -14,7 +14,7 @@ import (
 	"strings"
 )
 
-//go:generate autoreader
+//go:generate boardgame-util codegen
 
 const DefaultTargetScore = 100
 const diceDeckName = "dice"

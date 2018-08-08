@@ -11,7 +11,7 @@ import (
 	"math/rand"
 )
 
-//go:generate autoreader
+//go:generate boardgame-util codegen
 
 //+autoreader
 type Value struct {

@@ -12,7 +12,7 @@ import (
 	"github.com/jkomoros/boardgame/enum"
 )
 
-//go:generate autoreader
+//go:generate boardgame-util codegen
 
 //+autoreader
 const (

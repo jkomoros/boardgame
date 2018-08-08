@@ -13,7 +13,7 @@ import (
 	"sync"
 )
 
-//go:generate autoreader
+//go:generate boardgame-util codegen
 
 //game.Name() to set of move types that are always legal
 var alwaysLegalMoveTypesByGame map[string]map[string]bool

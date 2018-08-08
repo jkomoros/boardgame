@@ -15,7 +15,7 @@ import (
 	"strings"
 )
 
-//go:generate autoreader
+//go:generate boardgame-util codegen
 
 const targetScore = 21
 

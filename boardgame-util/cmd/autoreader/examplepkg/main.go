@@ -14,7 +14,7 @@ import (
 	"github.com/jkomoros/boardgame/moves/roundrobinhelpers"
 )
 
-//go:generate autoreader
+//go:generate boardgame-util codegen
 
 //This is a normal gameDelegate that should have its ConfigureEnums output,
 //because it has ConfigureMoves() but not its own ConfigureEnums.

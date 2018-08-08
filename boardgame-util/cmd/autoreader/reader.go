@@ -1,4 +1,4 @@
-package main
+package autoreader
 
 import (
 	"errors"
@@ -429,7 +429,7 @@ func withImmutable(in string) string {
 
 func isMutable(in string) bool {
 
-	for key, _ := range configureTypes {
+	for key := range configureTypes {
 		if strings.Contains(in, key) {
 			return true
 		}
@@ -546,7 +546,7 @@ func headerForStruct(structName string, types *typeInfo, outputReadSetter bool, 
 	sortedKeys := make([]string, len(propertyTypes))
 	i := 0
 
-	for propType, _ := range propertyTypes {
+	for propType := range propertyTypes {
 		sortedKeys[i] = propType
 		i++
 	}

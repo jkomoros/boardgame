@@ -5,21 +5,12 @@
 	boardgame.PropertyReader and boardgame.PropertyReadSetter, as well as
 	generating the boilerplate for enums.
 
-	You can configure which package to process and where to write output via
-	command-line flags. By default it processes the current package and writes
-	its output to auto_reader.go, overwriting whatever file was there before.
-	See command-line options by passing -h. Structs with an +autoreader
-	comment that are in a _test.go file will be outputin auto_reader_test.go.
-
-	The defaults are set reasonably so that you can use go:generate very
-	easily. See examplepkg/ for a very simple example.
-
 	You typically don't use this package directly, but instead use the
 	`boardgame-util codegen` command. See `boardgam-util help codegen` for
 	more.
 
 */
-package main
+package autoreader
 
 import (
 	"bytes"
@@ -30,7 +21,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"os"
 	"path/filepath"
 	"text/template"
 )
@@ -77,12 +67,10 @@ func getOptions(flagSet *flag.FlagSet, flagArguments []string) *appOptions {
 	return options
 }
 
-func main() {
-	flagSet := flag.CommandLine
-	process(getOptions(flagSet, os.Args[1:]), os.Stdout, os.Stderr)
-}
-
 func process(options *appOptions, out io.ReadWriter, errOut io.ReadWriter) {
+
+	//This is superceded by the codegen_cmd.go in boardgame-util, is here
+	//mainly for testing purposes.
 
 	if options.Help {
 		options.flagSet.SetOutput(out)
@@ -90,7 +78,7 @@ func process(options *appOptions, out io.ReadWriter, errOut io.ReadWriter) {
 		return
 	}
 
-	output, testOutput, enumOutput, err := processPackage(options.PackageDirectory)
+	output, testOutput, enumOutput, err := ProcessPackage(options.PackageDirectory)
 
 	if err != nil {
 		fmt.Fprintln(errOut, "ERROR", err)
@@ -126,7 +114,13 @@ func process(options *appOptions, out io.ReadWriter, errOut io.ReadWriter) {
 
 }
 
-func processPackage(location string) (output string, testOutput string, enumOutput string, err error) {
+/*
+
+ProcessPackage is a wrapper around ProcessStructs and ProcessEnums. It formats
+the bytes before returning them.
+
+*/
+func ProcessPackage(location string) (output string, testOutput string, enumOutput string, err error) {
 
 	output, testOutput, err = ProcessStructs(location)
 
