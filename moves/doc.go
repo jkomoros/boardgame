@@ -28,7 +28,7 @@ change the name of a move.
 
 Take this example:
 
-	//+autoreader
+	//boardgame:codegen
 	type MoveDealInitialCards struct {
 		moves.DealComponentsUntilPlayerCountReached
 	}

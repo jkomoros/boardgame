@@ -21,7 +21,7 @@ Typically you'd implement your own Legal method that calls
 CurrentPlayer.Legal() first, then do your own specific checking after that,
 too.
 
-+autoreader
+boardgame:codegen
 */
 type CurrentPlayer struct {
 	Base

@@ -13,7 +13,7 @@ import (
 //In practice it is common to just use this move directly in your game, and
 //pass the stack via WithSourceStack to auto.Config.
 //
-//+autoreader
+//boardgame:codegen
 type ShuffleStack struct {
 	FixUp
 }

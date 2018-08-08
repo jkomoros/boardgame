@@ -6,49 +6,49 @@ import (
 	"github.com/jkomoros/boardgame/moves"
 )
 
-//+autoreader
+//boardgame:codegen
 type moveMoveCardBetweenShortStacks struct {
 	moves.Base
 	FromFirst bool
 }
 
-//+autoreader
+//boardgame:codegen
 type moveMoveCardBetweenDrawAndDiscardStacks struct {
 	moves.Base
 	FromDraw bool
 }
 
-//+autoreader
+//boardgame:codegen
 type moveFlipHiddenCard struct {
 	moves.Base
 }
 
-//+autoreader
+//boardgame:codegen
 type moveMoveCardBetweenFanStacks struct {
 	moves.Base
 }
 
-//+autoreader
+//boardgame:codegen
 type moveVisibleShuffleCards struct {
 	moves.Base
 }
 
-//+autoreader
+//boardgame:codegen
 type moveShuffleCards struct {
 	moves.Base
 }
 
-//+autoreader
+//boardgame:codegen
 type moveMoveBetweenHidden struct {
 	moves.Base
 }
 
-//+autoreader
+//boardgame:codegen
 type moveMoveToken struct {
 	moves.Base
 }
 
-//+autoreader
+//boardgame:codegen
 type moveMoveTokenSanitized struct {
 	moves.Base
 }

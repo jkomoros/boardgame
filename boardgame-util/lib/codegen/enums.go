@@ -388,7 +388,7 @@ func titleCaseToWords(in string) string {
 
 ProcessEnums processes the given package and outputs the contents of a file
 representing the auto-generated boilerplate for those enums. If it finds a
-const() block at the top-level decorated with the magic comment (+autoreader)
+const() block at the top-level decorated with the magic comment (boardgame:codegen)
 it will generate enum boilerplate. See the package doc of enum for more
 on what you need to include.
 

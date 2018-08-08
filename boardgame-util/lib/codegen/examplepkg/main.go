@@ -70,7 +70,7 @@ func (f *fakeGameDelegateWrongReturnType) ConfigureMoves() *boardgame.DefaultGam
 	return nil
 }
 
-//+autoreader
+//boardgame:codegen
 const (
 	ColorUnknown = iota
 	ColorBlue
@@ -78,14 +78,14 @@ const (
 	ColorRed
 )
 
-//+autoreader
+//boardgame:codegen
 const (
 	PhaseUnknown = iota
 	PhaseMultiWord
 	PhaseVeryLongName
 )
 
-//+autoreader
+//boardgame:codegen
 const (
 	//display:""
 	FooOverrideBlank = iota
@@ -98,7 +98,7 @@ const (
 	FooOverrideQuoted
 )
 
-//+autoreader
+//boardgame:codegen
 const (
 	TransformExampleNormalTransform = iota
 	//transform: lower
@@ -109,7 +109,7 @@ const (
 	TransformExampleNormalConfiguredTransform
 )
 
-//+autoreader
+//boardgame:codegen
 //transform: upper
 const (
 	DefaultTransformBlue = iota
@@ -123,7 +123,7 @@ const (
 	DontIncludeGreen
 )
 
-//+autoreader
+//boardgame:codegen
 const (
 	Tree = iota
 	TreeBlue
@@ -131,7 +131,7 @@ const (
 	TreeRed
 )
 
-//+autoreader
+//boardgame:codegen
 const (
 	Blam = iota
 	BlamOne
@@ -142,7 +142,7 @@ const (
 	BlamTwo_One
 )
 
-//+autoreader
+//boardgame:codegen
 const (
 	Example = iota
 	ExampleOne
@@ -152,7 +152,7 @@ const (
 	ExampleOne_Two
 )
 
-//+autoreader
+//boardgame:codegen
 const (
 	MultiWordTree = iota
 	MultiWordTreeBlueGreen
@@ -167,14 +167,14 @@ const (
 	MultiWordTreeBlueGreenThree_A
 )
 
-//+autoreader
+//boardgame:codegen
 const (
 	SkipNode = iota
 	//SkipNodeRed is implied but not listed
 	SkipNodeRed_Circle
 )
 
-//+autoreader all
+//boardgame:codegen all
 type myStruct struct {
 	boardgame.BaseSubState
 	MyInt              int
@@ -188,7 +188,7 @@ type myStruct struct {
 	MyPlayerIndexSlice []boardgame.PlayerIndex
 }
 
-//+autoreader
+//boardgame:codegen
 type roundRobinStruct struct {
 	roundrobinhelpers.BaseGameState
 	MyBool bool
@@ -198,7 +198,7 @@ type roundRobinStruct struct {
 
 Long comment
 
-+autoreader
+boardgame:codegen
 */
 type structWithManyKeys struct {
 	boardgame.BaseSubState
@@ -213,18 +213,18 @@ type structWithManyKeys struct {
 	I int
 }
 
-//+autoreader
+//boardgame:codegen
 type embeddedStruct struct {
 	moves.CurrentPlayer
 	MyInt int
 }
 
-//+autoreader
+//boardgame:codegen
 type doubleEmbeddedStruct struct {
 	embeddedStruct
 }
 
-//	 +autoreader
+//	 boardgame:codegen
 type myOtherStruct struct {
 	blarg           int
 	MyGrowableStack boardgame.Stack
@@ -235,12 +235,12 @@ type noReaderStruct struct {
 	MyInt int
 }
 
-// +autoreader reader
+// boardgame:codegen reader
 type onlyReader struct {
 	MyString string
 }
 
-//+autoreader
+//boardgame:codegen
 type includesImmutable struct {
 	//The immutable variants are allowed; their Mutable*Prop methods will
 	//simply return ErrPropertyImmutable.
@@ -252,29 +252,29 @@ type includesImmutable struct {
 	MyMutableEnum    enum.Val
 }
 
-// +autoreader    readSetter
+// boardgame:codegen    readSetter
 type upToReadSetter struct {
 	MyInt int
 }
 
-//+autoreader
+//boardgame:codegen
 type sizedStackExample struct {
 	MySizedStack        boardgame.ImmutableSizedStack
 	MyMutableSizedStack boardgame.SizedStack
 }
 
-//+autoreader
+//boardgame:codegen
 type mergedStackExample struct {
 	MyMergedStack boardgame.MergedStack
 }
 
-//+autoreader
+//boardgame:codegen
 type rangeValExample struct {
 	MyMutableRangeVal enum.RangeVal
 	MyRangeVal        enum.ImmutableRangeVal
 }
 
-//+autoreader
+//boardgame:codegen
 type treeValExample struct {
 	MyTreeVal          enum.TreeVal
 	MyImmutableTreeVal enum.ImmutableTreeVal

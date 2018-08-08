@@ -18,7 +18,7 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 	return game, players
 }
 
-//+autoreader
+//boardgame:codegen
 type gameState struct {
 	boardgame.BaseSubState
 	CurrentPlayer boardgame.PlayerIndex
@@ -48,7 +48,7 @@ func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {
 	g.CurrentPlayer = currentPlayer
 }
 
-//+autoreader
+//boardgame:codegen
 type playerState struct {
 	boardgame.BaseSubState
 	playerIndex  boardgame.PlayerIndex

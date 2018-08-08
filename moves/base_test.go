@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-//+autoreader
+//boardgame:codegen
 type moveNoOpFixUp struct {
 	FixUp
 }
@@ -19,7 +19,7 @@ func (m *moveNoOpFixUp) Apply(state boardgame.State) error {
 	return nil
 }
 
-//+autoreader
+//boardgame:codegen
 type moveNoOpFixUpMulti struct {
 	FixUpMulti
 }
@@ -58,7 +58,7 @@ func TestMoveProgression(t *testing.T) {
 	singleMoveConfigs := make([]interfaces.MoveProgressionGroup, len(singleMoveNames))
 	multiMoveConfigs := make([]interfaces.MoveProgressionGroup, len(multiMoveNames))
 
-	for i, _ := range singleMoveNames {
+	for i := range singleMoveNames {
 		singleMoveConfigs[i] = configs[i]
 		multiMoveConfigs[i] = configs[numMoveNames+i]
 	}

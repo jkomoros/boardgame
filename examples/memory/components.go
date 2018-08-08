@@ -75,7 +75,7 @@ var animalCards []string = []string{
 
 const cardsDeckName = "cards"
 
-//+autoreader reader
+//boardgame:codegen reader
 type cardValue struct {
 	boardgame.BaseComponentValues
 	Type    string

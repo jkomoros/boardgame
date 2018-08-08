@@ -15,22 +15,6 @@ import (
 
 var Enums = enum.NewSet()
 
-//ConfigureEnums simply returns Enums, the auto-generated Enums variable. This
-//is output because gameDelegate appears to be a struct that implements
-//boardgame.GameDelegate, and does not already have a ConfigureEnums
-//explicitly defined.
-func (g *gameDelegate) ConfigureEnums() *enum.Set {
-	return Enums
-}
-
-//ConfigureEnums simply returns Enums, the auto-generated Enums variable. This
-//is output because secondGameDelegate appears to be a struct that implements
-//boardgame.GameDelegate, and does not already have a ConfigureEnums
-//explicitly defined.
-func (s *secondGameDelegate) ConfigureEnums() *enum.Set {
-	return Enums
-}
-
 var ColorEnum = Enums.MustAdd("Color", map[int]string{
 	ColorBlue:    "Blue",
 	ColorGreen:   "Green",

@@ -23,7 +23,7 @@ var cardNames []string = []string{
 const cardsDeckName = "cards"
 const tokensDeckName = "tokens"
 
-//+autoreader reader
+//boardgame:codegen reader
 type cardValue struct {
 	boardgame.BaseComponentValues
 	Type string

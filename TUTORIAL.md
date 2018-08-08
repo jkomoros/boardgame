@@ -59,7 +59,7 @@ Let's dig into concrete examples in memory, in `examples/memory/state.go`.
 The core of the states are represented here:
 
 ```
-//+autoreader
+//boardgame:codegen
 type gameState struct {
 	boardgame.BaseSubState
 	CardSet        string
@@ -73,7 +73,7 @@ type gameState struct {
 	UnusedCards boardgame.Stack `stack:"cards"`
 }
 
-//+autoreader
+//boardgame:codegen
 type playerState struct {
 	boardgame.BaseSubState
 	playerIndex       boardgame.PlayerIndex
@@ -113,7 +113,7 @@ When a memory game starts, most of the cards will be in GameState.HiddenCards. P
 
 #### autoreader
 
-Both of the State objects also have a cryptic comment above them: `//+autoreader`. These are actually a critical concept to understand about the core engine.
+Both of the State objects also have a cryptic comment above them: `//boardgame:codegen`. These are actually a critical concept to understand about the core engine.
 
 In a number of cases (including your GameState and PlayerState), your specific game package provides the structs to operate on. The core engine doesn't know their shape. In a number of cases, however, it is necessary to interact with specific fields of that struct, or enumerate how many of a certain type of property there are. It's possible to do that via reflection, but that would be slow. In addition, the engine requires that your structs be simple and only have known types of properties, but if general reflection were used it would be harder to detect that.
 
@@ -191,7 +191,7 @@ Somewhere in the package, include:
 And then immediately before every struct you want to have a PropertyReader for, include the magic comment:
 
 ```
-//+autoreader
+//boardgame:codegen
 type MyStruct struct {
 	//....
 }
@@ -336,7 +336,7 @@ But that's not what memory does; it simply returns a pointer to a gameState obje
 The answer is in the struct tags in game and playerStates:
 
 ```
-//+autoreader
+//boardgame:codegen
 type gameState struct {
 	//...
 	HiddenCards    boardgame.SizedStack `sizedstack:"cards,40" sanitize:"order"`
@@ -345,7 +345,7 @@ type gameState struct {
 	//...
 }
 
-//+autoreader
+//boardgame:codegen
 type playerState struct {
 	//...
 	WonCards          boardgame.Stack `stack:"cards"`
@@ -631,7 +631,7 @@ installing moves, in the `moves` package doc.
 Let's look at a fully-worked example of defining a specific move from memory:
 
 ```
-//+autoreader readsetter
+//boardgame:codegen readsetter
 type MoveHideCards struct {
     moves.CurrentPlayer
 }
@@ -761,7 +761,7 @@ var generalCards []string = []string{
 
 const cardsDeckName = "cards"
 
-//+autoreader reader
+//boardgame:codegen reader
 type cardValue struct {
 	boardgame.BaseComponentValues
 	Type    string
@@ -926,7 +926,7 @@ In most cases, applying a policy is as simple as adding a struct tag to any fiel
 Memory's states are defined as follows:
 
 ```
-//+autoreader
+//boardgame:codegen
 type gameState struct {
 	boardgame.BaseSubState
 	CardSet        string
@@ -940,7 +940,7 @@ type gameState struct {
 	UnusedCards boardgame.Stack `stack:"cards"`
 }
 
-//+autoreader
+//boardgame:codegen
 type playerState struct {
 	boardgame.BaseSubState
 	playerIndex       boardgame.PlayerIndex
@@ -966,7 +966,7 @@ When you use merged stacks, the convention is to name the hidden stack `HiddenFo
 That's not a *particularly* interesting example. Here's the states for blackjack:
 
 ```
-//+autoreader
+//boardgame:codegen
 type gameState struct {
 	roundrobinhelpers.BaseGameState
 	Phase         enum.Val        `enum:"Phase"`
@@ -976,7 +976,7 @@ type gameState struct {
 	CurrentPlayer boardgame.PlayerIndex
 }
 
-//+autoreader
+//boardgame:codegen
 type playerState struct {
 	boardgame.BaseSubState
 	playerIndex boardgame.PlayerIndex
@@ -1338,7 +1338,7 @@ You define your named Enums at set up time as part of an `EnumSet`, and list the
 Given an enum, you can create an `enum.Val`, which is a container for a value from that enum. These `enum.Val` and `enum.MutableVal` are legal properties to add to your states and moves, and like stacks can be configured via struct tags, as you can see in blackjack's `state.go`:
 
 ```
-//+autoreader
+//boardgame:codegen
 type gameState struct {
 	moveinterfaces.RoundRobinBaseGameState
 	Phase         enum.Val        `enum:"Phase"`
@@ -1354,7 +1354,7 @@ Creating an enum is slightly cumbersome and repetitive. You typically create a c
 The autoreader command can also help automate this, as you can see in the blackjack example in `state.go`:
 
 ```
-//+autoreader
+//boardgame:codegen
 const (
 	PhaseInitialDeal = iota
 	PhaseNormalPlay
@@ -1440,7 +1440,7 @@ The actual machinery to implement Moves is not important, other than to know tha
 If you're going to support the notion of phases, you'll need to store the current phase somewhere in your state. In `examples/blackjack/state.go` we have:
 
 ```
-//+autoreader
+//boardgame:codegen
 type gameState struct {
 	roundrobinhelpers.BaseGameState
 	Phase         enum.Val        `enum:"Phase"`
@@ -1454,7 +1454,7 @@ type gameState struct {
 We also need to define the values of the enum. In `examples/blackjack/components.go` we have:
 
 ```
-//+autoreader
+//boardgame:codegen
 const (
 	PhaseSetUp = iota
 	PhaseNormalPlay
@@ -1734,7 +1734,7 @@ func (g *gameDelegate) ConfigureConstants() map[string]interface{} {
 ```
 //In examples/tictactoe/state.go
 
-//+autoreader
+//boardgame:codegen
 type gameState struct {
 	boardgame.BaseSubState
 	CurrentPlayer boardgame.PlayerIndex

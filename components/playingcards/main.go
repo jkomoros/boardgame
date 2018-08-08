@@ -14,7 +14,7 @@ import (
 
 //go:generate boardgame-util codegen
 
-//+autoreader
+//boardgame:codegen
 const (
 	//display:"\uFFFD"
 	SuitUnknown = iota
@@ -30,7 +30,7 @@ const (
 	SuitJokers
 )
 
-//+autoreader
+//boardgame:codegen
 const (
 	RankUnknown = iota
 	RankAce
@@ -49,7 +49,7 @@ const (
 	RankJoker
 )
 
-//+autoreader reader
+//boardgame:codegen reader
 type Card struct {
 	boardgame.BaseComponentValues
 	Suit enum.Val

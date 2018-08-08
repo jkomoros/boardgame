@@ -5,7 +5,7 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
-//+autoreader
+//boardgame:codegen
 type gameState struct {
 	boardgame.BaseSubState
 	CardSet        string
@@ -19,7 +19,7 @@ type gameState struct {
 	UnusedCards boardgame.Stack `stack:"cards"`
 }
 
-//+autoreader
+//boardgame:codegen
 type playerState struct {
 	boardgame.BaseSubState
 	playerIndex       boardgame.PlayerIndex

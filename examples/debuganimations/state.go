@@ -16,7 +16,7 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 	return game, players
 }
 
-//+autoreader
+//boardgame:codegen
 type gameState struct {
 	boardgame.BaseSubState
 	DiscardStack        boardgame.Stack       `stack:"cards"`
@@ -37,7 +37,7 @@ type gameState struct {
 	CurrentPlayer       boardgame.PlayerIndex
 }
 
-//+autoreader
+//boardgame:codegen
 type playerState struct {
 	boardgame.BaseSubState
 	playerIndex boardgame.PlayerIndex

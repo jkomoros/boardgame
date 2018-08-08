@@ -33,7 +33,7 @@ type typeInfo struct {
 	UpConverter map[string]string
 }
 
-const magicDocLinePrefix = "+autoreader"
+const magicDocLinePrefix = "boardgame:codegen"
 
 func init() {
 
@@ -61,15 +61,15 @@ and one that is appropriate to be saved in auto_reader_test.go.
 
 Autoreader processes a package of go files, searching for structs that
 have a comment immediately above their declaration that begins with
-"+autoreader". For each such struct, it creates a Reader(), ReadSetter(),
+"boardgame:codegen". For each such struct, it creates a Reader(), ReadSetter(),
 and ReadSetConfigurer() method that implement boardgame.Reader,
 boardgame.ReadSetter, and boardgame.ReadSetConfigurer, respectively.
 
 Producing a ReadSetConfigurator requires a ReadSetter, and producing a
 ReadSetter requires a Reader. By default if you have the magic comment of
-`+autoreader` it with produce all three. However, if you want only some of
+`boardgame:codegen` it with produce all three. However, if you want only some of
 the methods, include an argument for the highest one you want, e.g.
-`+autoreader readsetter` to generate a Reader() and ReadSetter().
+`boardgame:codegen readsetter` to generate a Reader() and ReadSetter().
 
 This package will automatically create additional type transform methods
 to handle fields whose literal type is boardgame.ImmutableSizedStack,

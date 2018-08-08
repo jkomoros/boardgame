@@ -23,7 +23,7 @@ type legalTyper interface {
 //true. For example, it's useful in checkers to automatically crown tokens
 //that make it to the other side of the board.
 //
-//+autoreader
+//boardgame:codegen
 type DefaultComponent struct {
 	FixUpMulti
 	ComponentIndex int

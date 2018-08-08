@@ -92,7 +92,7 @@ this move (and its subclasses) directly, and pass configuration for GameStack,
 PlayerStack, and TargetCount via WithGameStack, WithPlayerStack, and
 WithTargetCount into auto.Config.
 
-+autoreader
+boardgame:codegen
 */
 type DealCountComponents struct {
 	RoundRobinNumRounds
@@ -276,7 +276,7 @@ func (d *DealCountComponents) FallbackHelpText() string {
 //each player until each player has TargetCount() or greater components in
 //their PlayerStack().
 //
-//+autoreader
+//boardgame:codegen
 type DealComponentsUntilPlayerCountReached struct {
 	DealCountComponents
 }
@@ -320,7 +320,7 @@ func (d *DealComponentsUntilPlayerCountReached) FallbackHelpText() string {
 //DealComponentsUntilGameCountLeft goes around and deals components to each
 //player until the GameStack() has TargetCount() or fewer components left.
 //
-//+autoreader
+//boardgame:codegen
 type DealComponentsUntilGameCountLeft struct {
 	DealCountComponents
 }

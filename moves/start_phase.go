@@ -25,7 +25,7 @@ type phaseToStarter interface {
 //to pass the moves.WithPhaseToStart config object, so that the move has
 //enough information to know which phase to enter.
 //
-//+autoreader
+//boardgame:codegen
 type StartPhase struct {
 	FixUp
 }

@@ -7,17 +7,17 @@ import (
 	"github.com/jkomoros/boardgame/moves"
 )
 
-//+autoreader
+//boardgame:codegen
 type MoveRollDice struct {
 	moves.CurrentPlayer
 }
 
-//+autoreader
+//boardgame:codegen
 type MoveDoneTurn struct {
 	moves.CurrentPlayer
 }
 
-//+autoreader
+//boardgame:codegen
 type MoveCountDie struct {
 	moves.CurrentPlayer
 }

@@ -86,7 +86,7 @@ within another sub-class in your move.
 Base cannot help your move implement PropertyReadSetter; use autoreader to
 generate that code for you.
 
-+autoreader
+boardgame:codegen
 */
 type Base struct {
 	info           *boardgame.MoveInfo

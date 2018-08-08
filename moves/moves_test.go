@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-//+autoreader
+//boardgame:codegen
 type moveDealCards struct {
 	DealCountComponents
 }
@@ -25,7 +25,7 @@ func (m *moveDealCards) PlayerStack(pState boardgame.PlayerState) boardgame.Stac
 	return pState.(*playerState).Hand
 }
 
-//+autoreader
+//boardgame:codegen
 type moveDealOtherCards struct {
 	DealCountComponents
 }
@@ -42,7 +42,7 @@ func (m *moveDealOtherCards) PlayerStack(pState boardgame.PlayerState) boardgame
 	return pState.(*playerState).OtherHand
 }
 
-//+autoreader
+//boardgame:codegen
 type moveCurrentPlayerDraw struct {
 	CurrentPlayer
 }
@@ -55,7 +55,7 @@ func (m *moveCurrentPlayerDraw) Apply(state boardgame.State) error {
 	return game.DrawStack.First().MoveToFirstSlot(p.Hand)
 }
 
-//+autoreader
+//boardgame:codegen
 type moveStartPhaseDrawAgain struct {
 	StartPhase
 }
@@ -64,7 +64,7 @@ func (m *moveStartPhaseDrawAgain) PhaseToStart(currentPhase int) int {
 	return phaseDrawAgain
 }
 
-//+autoreader
+//boardgame:codegen
 type moveStartPhaseIllegal struct {
 	StartPhase
 }

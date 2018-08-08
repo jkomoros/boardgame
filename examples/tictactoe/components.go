@@ -4,7 +4,7 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
-//+autoreader
+//boardgame:codegen
 const (
 	PhaseBeforeFirstMove = iota
 	PhaseAfterFirstMove
@@ -16,7 +16,7 @@ const (
 	Empty = ""
 )
 
-//+autoreader reader
+//boardgame:codegen reader
 type playerToken struct {
 	boardgame.BaseComponentValues
 	Value string

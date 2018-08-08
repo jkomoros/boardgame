@@ -9,7 +9,7 @@ import (
 //have a custom fix up move, it's best to embed this, because otherwise it's
 //easy to forget to pass moves.WithIsFixUp to auto.Config.
 //
-//+autoreader
+//boardgame:codegen
 type FixUp struct {
 	Base
 }
@@ -38,7 +38,7 @@ func (f *FixUp) IsFixUp() bool {
 //the logic for ordered move progressions within a phase will allow multiple
 //in a row, until its Legal returns an error.
 //
-//+autoreader
+//boardgame:codegen
 type FixUpMulti struct {
 	FixUp
 }

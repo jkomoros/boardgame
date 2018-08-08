@@ -8,7 +8,7 @@ import (
 
 //TODO: test this!!
 
-//+autoreader
+//boardgame:codegen
 type MovePlaceToken struct {
 	moves.CurrentPlayer
 	//Which token to place the token

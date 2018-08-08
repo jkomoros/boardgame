@@ -15,7 +15,7 @@ const HideCardsDuration = 4 * time.Second
  *
  **************************************************/
 
-//+autoreader
+//boardgame:codegen
 type MoveRevealCard struct {
 	moves.CurrentPlayer
 	CardIndex int
@@ -83,7 +83,7 @@ func (m *MoveRevealCard) Apply(state boardgame.State) error {
  *
  **************************************************/
 
-//+autoreader
+//boardgame:codegen
 type MoveStartHideCardsTimer struct {
 	moves.FixUp
 }
@@ -138,7 +138,7 @@ func (m *MoveStartHideCardsTimer) Apply(state boardgame.State) error {
  *
  **************************************************/
 
-//+autoreader
+//boardgame:codegen
 type MoveCaptureCards struct {
 	moves.FixUp
 }
@@ -192,7 +192,7 @@ func (m *MoveCaptureCards) Apply(state boardgame.State) error {
  *
  **************************************************/
 
-//+autoreader
+//boardgame:codegen
 type MoveHideCards struct {
 	moves.CurrentPlayer
 }

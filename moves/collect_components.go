@@ -12,7 +12,7 @@ goes around once and collects a component from each. If you want a different
 number of rounds, override TargetCount(). It subclasses DealCountComponents,
 but simply reverses the action to make.
 
-+autoreader
+boardgame:codegen
 */
 type CollectCountComponents struct {
 	DealCountComponents
@@ -54,7 +54,7 @@ func (d *CollectCountComponents) FallbackHelpText() string {
 //their PlayerStack(). It's the same as DealComponentsUntilPlayerCountReached,
 //just with the action reversed and the size check flipped.
 //
-//+autoreader
+//boardgame:codegen
 type CollectComponentsUntilPlayerCountLeft struct {
 	DealComponentsUntilPlayerCountReached
 }
@@ -107,7 +107,7 @@ func (d *CollectComponentsUntilPlayerCountLeft) FallbackHelpText() string {
 //the same as DealComponentsUntilGameCountLeft, just with the action
 //reversed and the size check flipped.
 //
-//+autoreader
+//boardgame:codegen
 type CollectComponentsUntilGameCountReached struct {
 	DealComponentsUntilGameCountLeft
 }

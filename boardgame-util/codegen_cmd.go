@@ -56,7 +56,7 @@ on structs in your package.
 You can configure which package to process and where to write output via
 command-line flags. By default it processes the current package and writes its
 output to auto_reader.go, overwriting whatever file was there before. See
-command-line options by passing -h. Structs with an +autoreader comment that
+command-line options by passing -h. Structs with an boardgame:codegen comment that
 are in a _test.go file will be outputin auto_reader_test.go.
 
 See 'boardgame-util/lib/codegen' for more on its behavior.

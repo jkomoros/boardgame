@@ -20,7 +20,7 @@ like so:
 		new(moves.FinishTurn),
 	)
 
-+autoreader
+boardgame:codegen
 */
 type FinishTurn struct {
 	FixUp

@@ -7,7 +7,7 @@ import (
 	"github.com/jkomoros/boardgame/moves"
 )
 
-//+autoreader
+//boardgame:codegen
 type MovePlaceToken struct {
 	moves.FixUpMulti
 	TargetIndex enum.RangeVal `enum:"Spaces"`
@@ -82,7 +82,7 @@ func (m *MovePlaceToken) Apply(state boardgame.State) error {
 	return game.UnusedTokens.First().MoveTo(game.Spaces, m.TargetIndex.Value())
 }
 
-//+autoreader
+//boardgame:codegen
 type MoveMoveToken struct {
 	moves.CurrentPlayer
 	TokenIndexToMove enum.RangeVal `enum:"Spaces"`
@@ -201,7 +201,7 @@ func (m *MoveMoveToken) Apply(state boardgame.State) error {
 
 }
 
-//+autoreader
+//boardgame:codegen
 type MoveCrownToken struct {
 	moves.DefaultComponent
 }

@@ -78,7 +78,7 @@ interface automatically.
 
 The embeding move should implement interfaces.RoundRobinActioner.
 
-+autoreader
+boardgame:codegen
 */
 type RoundRobin struct {
 	ApplyUntil
@@ -400,7 +400,7 @@ type numRoundser interface {
 //it is ends immediately. NumRounds() defaults to 1; if you want to have
 //multiple rounds, override NumRounds().
 //
-//+autoreader
+//boardgame:codegen
 type RoundRobinNumRounds struct {
 	RoundRobin
 }

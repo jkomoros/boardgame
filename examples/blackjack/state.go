@@ -8,7 +8,7 @@ import (
 	"github.com/jkomoros/boardgame/moves/roundrobinhelpers"
 )
 
-//+autoreader
+//boardgame:codegen
 const (
 	PhaseInitialDeal = iota
 	PhaseNormalPlay
@@ -26,7 +26,7 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 	return game, players
 }
 
-//+autoreader
+//boardgame:codegen
 type gameState struct {
 	roundrobinhelpers.BaseGameState
 	Phase         enum.Val        `enum:"Phase"`
@@ -36,7 +36,7 @@ type gameState struct {
 	CurrentPlayer boardgame.PlayerIndex
 }
 
-//+autoreader
+//boardgame:codegen
 type playerState struct {
 	boardgame.BaseSubState
 	playerIndex boardgame.PlayerIndex

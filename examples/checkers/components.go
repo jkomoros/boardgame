@@ -7,25 +7,25 @@ import (
 	"github.com/jkomoros/boardgame/enum/graph"
 )
 
-//+autoreader
+//boardgame:codegen
 const (
 	PhaseSetup = iota
 	PhasePlaying
 )
 
-//+autoreader
+//boardgame:codegen
 const (
 	ColorBlack = iota
 	ColorRed
 )
 
-//+autoreader reader
+//boardgame:codegen reader
 type token struct {
 	boardgame.BaseComponentValues
 	Color enum.Val
 }
 
-//+autoreader
+//boardgame:codegen
 type tokenDynamic struct {
 	boardgame.BaseSubState
 	Crowned bool

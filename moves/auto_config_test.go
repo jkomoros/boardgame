@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-//+autoreader
+//boardgame:codegen
 type moveShuffleStack struct {
 	ShuffleStack
 }

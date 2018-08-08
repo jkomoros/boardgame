@@ -35,7 +35,7 @@ var phaseEnum = enums.MustAddTree("Phase", map[int]string{
 	phaseDrawAgain:              phase,
 })
 
-//+autoreader
+//boardgame:codegen
 type gameState struct {
 	roundrobinhelpers.BaseGameState
 	Phase         enum.Val `enum:"Phase"`
@@ -45,7 +45,7 @@ type gameState struct {
 	Counter       int
 }
 
-//+autoreader
+//boardgame:codegen
 type playerState struct {
 	boardgame.BaseSubState
 	playerIndex boardgame.PlayerIndex

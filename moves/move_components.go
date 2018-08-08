@@ -26,7 +26,7 @@ type sourceDestinationStacker interface {
 //TargetCount with WithSourceStack, WithDestinationStack, and WithTargetCount
 //to auto.Config.
 //
-//+autoreader
+//boardgame:codegen
 type MoveCountComponents struct {
 	ApplyCountTimes
 }
@@ -175,7 +175,7 @@ func (m *MoveCountComponents) FallbackHelpText() string {
 //up to having TargetCount components in it. See also
 //MoveComponentsUntilCountLeft for a slightly different end condition.
 //
-//+autoreader
+//boardgame:codegen
 type MoveComponentsUntilCountReached struct {
 	MoveCountComponents
 }
@@ -221,7 +221,7 @@ func (m *MoveComponentsUntilCountReached) FallbackHelpText() string {
 //MoveComponentsUntilCountReached is that its target is based on reducing the
 //size of SourceStack to a target size.
 //
-//+autoreader
+//boardgame:codegen
 type MoveComponentsUntilCountLeft struct {
 	MoveCountComponents
 }

@@ -65,14 +65,14 @@ the autoreader package to generate the repetitive boilerplate for you.
 Instead of the above code for components.go, you'd instead only include the
 following:
 
-	//+autoreader
+	//boardgame:codegen
 	const (
 		ColorRed = iota
 		ColorBlue
 		ColorGreen
 	)
 
-	//+autoreader
+	//boardgame:codegen
 	const (
 		CardSpade = iota
 		CardHeart
@@ -125,7 +125,7 @@ autoreader is able to make TreeEnums for you automatically.
 
 The signal to create a TreeEnum is that you have an item in your enum whose string value evaluates to "". (Theoretically the int value of that "" node should also be 0, but the actual constant value for constants in Enums is currently ignored due to #631).
 
-	//+autoreader
+	//boardgame:codegen
 	const (
 	  //Because the next item's string value is "" (there is no text beyond the shared prefix), this will be a tree enum
 	  Phase = iota
@@ -141,7 +141,7 @@ Creates a TreeEnum shaped like:
 
 Branch nodes are created based on the implicit ordering and structure of the final string values, splitting at "> " as the delimeter:
 
-	//+autoreader
+	//boardgame:codegen
 	const (
 	  Phase = iota
 	  PhaseRed
@@ -162,7 +162,7 @@ Creates:
 
 Of course, writing the display name is annoying, so if the name of the const has has an underscore `_` then it will be interpreted as " > " when creating the string value:
 
-	//+autoreader
+	//boardgame:codegen
 	const (
 	  Phase = iota
 	  PhaseRed
@@ -183,7 +183,7 @@ Creates:
 If there are node names that are implied but not explicitly created in your
 code, autoreader will define a reasonably-named global constant automatically.
 
-	//+autoreader
+	//boardgame:codegen
 	const (
 		Phase = iota
 		//PhaseRed is not explicitly created, but it is implied by
@@ -206,7 +206,7 @@ if you have a node with a single child (e.g. "Blue" with a single child of
 node break, either with a display value that includes the delimiter there, or
 by using the underscore.
 
-	//+autoreader
+	//boardgame:codegen
 	const (
 		Phase = iota
 		PhaseBlueGreen
@@ -414,7 +414,7 @@ func (e *Set) MarshalJSON() ([]byte, error) {
 //EnumNames returns a list of all names in the Enum.
 func (e *Set) EnumNames() []string {
 	var result []string
-	for key, _ := range e.enums {
+	for key := range e.enums {
 		result = append(result, key)
 	}
 	return result
@@ -528,7 +528,7 @@ func (e *enum) RangeEnum() RangeEnum {
 func (e *enum) Values() []int {
 	result := make([]int, len(e.values))
 	counter := 0
-	for key, _ := range e.values {
+	for key := range e.values {
 		result[counter] = key
 		counter++
 	}
@@ -543,7 +543,7 @@ func (e *enum) RandomValue(r *rand.Rand) int {
 	keys := make([]int, len(e.values))
 
 	i := 0
-	for key, _ := range e.values {
+	for key := range e.values {
 		keys[i] = key
 		i++
 	}

@@ -5,7 +5,7 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
-//+autoreader
+//boardgame:codegen
 type gameState struct {
 	boardgame.BaseSubState
 	CurrentPlayer boardgame.PlayerIndex
@@ -13,7 +13,7 @@ type gameState struct {
 	TargetScore   int
 }
 
-//+autoreader
+//boardgame:codegen
 type playerState struct {
 	boardgame.BaseSubState
 	playerIndex boardgame.PlayerIndex

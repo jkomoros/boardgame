@@ -26,7 +26,7 @@ func targetCountString(topLevelStruct boardgame.Move) string {
 //ConditionMet returns nil. You need to implement
 //interfaces.ConditionMetter by implementing a ConditionMet method.
 //
-//+autoreader
+//boardgame:codegen
 type ApplyUntil struct {
 	FixUpMulti
 }
@@ -84,7 +84,7 @@ type counter interface {
 //Count() and Apply() methods, or use the moves that subclass from this, like
 //MoveComponentsUntilCountReached.
 //
-//+autoreader
+//boardgame:codegen
 type ApplyUntilCount struct {
 	ApplyUntil
 }
@@ -238,7 +238,7 @@ func countMovesApplied(topLevelStruct boardgame.Move, state boardgame.ImmutableS
 //current phase. Override TargetCount() to return the number of moves you
 //actually want to apply. You'll need to provide your own Apply() method.
 //
-//+autoreader
+//boardgame:codegen
 type ApplyCountTimes struct {
 	ApplyUntilCount
 }

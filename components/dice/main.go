@@ -13,13 +13,13 @@ import (
 
 //go:generate boardgame-util codegen
 
-//+autoreader
+//boardgame:codegen
 type Value struct {
 	boardgame.BaseComponentValues
 	Faces []int
 }
 
-//+autoreader
+//boardgame:codegen
 type DynamicValue struct {
 	boardgame.BaseSubState
 	boardgame.BaseComponentValues

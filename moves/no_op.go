@@ -50,7 +50,7 @@ Note that because every move config installed must have a different name, if
 you use multiple moves.NoOp in your game, you will want to override at least
 one of their names with with.MoveName or with.MoveNameSuffix.
 
-+autoreader
+boardgame:codegen
 */
 type NoOp struct {
 	FixUp
@@ -80,7 +80,7 @@ the right time in the progression.
 It's a non-fix-up equivalent to NoOp. It's used primarily when a player could
 decide to make multiple moves, or end early, and has opted to end early.
 
-+autoreader
+boardgame:codegen
 */
 type Done struct {
 	Base

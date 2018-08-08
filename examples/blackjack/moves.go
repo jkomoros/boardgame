@@ -6,27 +6,27 @@ import (
 	"github.com/jkomoros/boardgame/moves"
 )
 
-//+autoreader
+//boardgame:codegen
 type MoveShuffleDiscardToDraw struct {
 	moves.FixUp
 }
 
-//+autoreader
+//boardgame:codegen
 type MoveFinishTurn struct {
 	moves.FinishTurn
 }
 
-//+autoreader
+//boardgame:codegen
 type MoveRevealHiddenCard struct {
 	moves.CurrentPlayer
 }
 
-//+autoreader
+//boardgame:codegen
 type MoveCurrentPlayerHit struct {
 	moves.CurrentPlayer
 }
 
-//+autoreader
+//boardgame:codegen
 type MoveCurrentPlayerStand struct {
 	moves.CurrentPlayer
 }

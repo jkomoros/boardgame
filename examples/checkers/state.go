@@ -6,7 +6,7 @@ import (
 	"github.com/jkomoros/boardgame/enum"
 )
 
-//+autoreader
+//boardgame:codegen
 type gameState struct {
 	boardgame.BaseSubState
 	Phase         enum.Val `enum:"Phase"`
@@ -15,7 +15,7 @@ type gameState struct {
 	UnusedTokens  boardgame.Stack      `stack:"Tokens"`
 }
 
-//+autoreader
+//boardgame:codegen
 type playerState struct {
 	boardgame.BaseSubState
 	playerIndex boardgame.PlayerIndex
