@@ -1,6 +1,6 @@
 /*
 
-	Autoreader is a simple program, designed to be run from go:generate, that
+	codegen is a simple program, designed to be run from go:generate, that
 	helps generate the annoying boilerplate to implement
 	boardgame.PropertyReader and boardgame.PropertyReadSetter, as well as
 	generating the boilerplate for enums.
@@ -10,7 +10,7 @@
 	more.
 
 */
-package autoreader
+package codegen
 
 import (
 	"bytes"

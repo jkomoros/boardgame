@@ -1,4 +1,4 @@
-package autoreader
+package codegen
 
 import (
 	"github.com/workfit/tester/assert"

@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/bobziuchkovski/writ"
-	"github.com/jkomoros/boardgame/boardgame-util/lib/autoreader"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/codegen"
 	"io/ioutil"
 	"path/filepath"
 )
@@ -20,7 +20,7 @@ type Codegen struct {
 }
 
 func (c *Codegen) Run(p writ.Path, positional []string) {
-	output, testOutput, enumOutput, err := autoreader.ProcessPackage(c.PackageDirectory)
+	output, testOutput, enumOutput, err := codegen.ProcessPackage(c.PackageDirectory)
 
 	if err != nil {
 		errAndQuit(err.Error())
@@ -59,7 +59,7 @@ output to auto_reader.go, overwriting whatever file was there before. See
 command-line options by passing -h. Structs with an +autoreader comment that
 are in a _test.go file will be outputin auto_reader_test.go.
 
-See 'boardgame-util/lib/autoreader' for more on its behavior.
+See 'boardgame-util/lib/codegen' for more on its behavior.
 
 The defaults are set reasonably so that you can use go:generate very
 easily. See examplepkg/ for a very simple example.`

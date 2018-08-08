@@ -1,4 +1,4 @@
-package autoreader
+package codegen
 
 import (
 	"bytes"
