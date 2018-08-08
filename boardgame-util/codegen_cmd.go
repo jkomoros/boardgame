@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/bobziuchkovski/writ"
-	"github.com/jkomoros/boardgame/boardgame-util/cmd/autoreader"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/autoreader"
 	"io/ioutil"
 	"path/filepath"
 )
