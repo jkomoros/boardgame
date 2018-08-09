@@ -56,11 +56,11 @@ func init() {
 
 /*
 
-ProcessStructs operates on the package at the given relative location, and
+ProcessReaders operates on the package at the given relative location, and
 produces two strings, one that is appropriate to be saved in auto_reader.go,
 and one that is appropriate to be saved in auto_reader_test.go.
 
-ProcessStructs processes a package of go files, searching for structs that
+ProcessReaders processes a package of go files, searching for structs that
 have a comment immediately above their declaration that begins with
 "boardgame:codegen". For each such struct, it creates a Reader(), ReadSetter(),
 and ReadSetConfigurer() method that implement boardgame.Reader,
@@ -83,7 +83,7 @@ under normal usage). You should re-generate output every time you add a
 struct or modify the fields on a struct.
 
 */
-func ProcessStructs(location string) (output string, testOutput string, err error) {
+func ProcessReaders(location string) (output string, testOutput string, err error) {
 
 	sources, err := parser.ParseSourceDir(location, ".*")
 

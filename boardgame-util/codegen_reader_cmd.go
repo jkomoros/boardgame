@@ -19,7 +19,7 @@ func (c *CodegenReader) Run(p writ.Path, positional []string) {
 
 	parent := c.Parent().(*Codegen)
 
-	readerOutput, testReaderOutput, err := codegen.ProcessStructs(pkgDirectory)
+	readerOutput, testReaderOutput, err := codegen.ProcessReaders(pkgDirectory)
 
 	if err != nil {
 		errAndQuit("Couldn't process readers: " + err.Error())
@@ -83,7 +83,9 @@ coded list of fields for performance (reflection would be about 30% slower
 under normal usage). You should re-generate output every time you add a
 struct or modify the fields on a struct.
 
-It is a thin wrapper around 'boardgame- util/lib/codegen.ProcessStructs.' `
+If PKGNAME parameter is missing, "." is assumed.
+
+It is a thin wrapper around 'boardgame- util/lib/codegen.ProcessReaders'. `
 
 }
 

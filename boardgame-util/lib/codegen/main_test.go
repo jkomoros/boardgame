@@ -11,7 +11,7 @@ import (
 
 func TestOutput(t *testing.T) {
 
-	readerOutput, _, err := ProcessStructs("examplepkg/")
+	readerOutput, _, err := ProcessReaders("examplepkg/")
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -25,7 +25,7 @@ func TestOutput(t *testing.T) {
 
 func TestOutputTest(t *testing.T) {
 
-	_, readerTestOutput, err := ProcessStructs("examplepkg/")
+	_, readerTestOutput, err := ProcessReaders("examplepkg/")
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -59,7 +59,7 @@ func TestBuild(t *testing.T) {
 
 	//Get default options
 
-	output, testOutput, err := ProcessStructs("examplepkg/")
+	output, testOutput, err := ProcessReaders("examplepkg/")
 
 	assert.For(t).ThatActual(err).IsNil()
 
