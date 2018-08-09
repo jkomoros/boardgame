@@ -32,6 +32,8 @@ func (c *CodegenAll) HelpText() string {
 It is equivalent to 'codegen reader' followed by 'codegen enum'. The
 'codegen' command without any sub-commands defaults to 'codegen all'.
 
+If PKGNAME parameter is missing, "." is assumed.
+
 For more on the command, see the help for 'codegen reader' and 'codegen enum'.
 `
 

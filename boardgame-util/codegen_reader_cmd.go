@@ -15,23 +15,25 @@ type CodegenReader struct {
 
 func (c *CodegenReader) Run(p writ.Path, positional []string) {
 
+	pkgDirectory := codegenPackageNameOrErr(positional)
+
 	parent := c.Parent().(*Codegen)
 
-	readerOutput, testReaderOutput, err := codegen.ProcessStructs(parent.PackageDirectory)
+	readerOutput, testReaderOutput, err := codegen.ProcessStructs(pkgDirectory)
 
 	if err != nil {
 		errAndQuit("Couldn't process readers: " + err.Error())
 	}
 
 	if readerOutput != "" {
-		if err := ioutil.WriteFile(filepath.Join(parent.PackageDirectory, parent.OutputFile), []byte(readerOutput), 0644); err != nil {
+		if err := ioutil.WriteFile(filepath.Join(pkgDirectory, parent.OutputFile), []byte(readerOutput), 0644); err != nil {
 			errAndQuit("Couldn't output reader file: " + err.Error())
 		}
 	}
 
 	if !c.DontOutputReaderTest {
 		if testReaderOutput != "" {
-			if err := ioutil.WriteFile(filepath.Join(parent.PackageDirectory, parent.OutputFileTest), []byte(testReaderOutput), 0644); err != nil {
+			if err := ioutil.WriteFile(filepath.Join(pkgDirectory, parent.OutputFileTest), []byte(testReaderOutput), 0644); err != nil {
 				errAndQuit("Couldn't output test reader file: " + err.Error())
 			}
 		}
@@ -45,6 +47,10 @@ func (c *CodegenReader) Name() string {
 
 func (c *CodegenReader) Description() string {
 	return "Automatically generates PropertyReader boilerplate for a package"
+}
+
+func (c *CodegenReader) Usage() string {
+	return "PKGNAME"
 }
 
 func (c *CodegenReader) HelpText() string {

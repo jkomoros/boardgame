@@ -11,10 +11,9 @@ type Codegen struct {
 	CodegenEnum   CodegenEnum
 	CodegenReader CodegenReader
 
-	PackageDirectory string
-	OutputFile       string
-	OutputFileTest   string
-	EnumOutputFile   string
+	OutputFile     string
+	OutputFileTest string
+	EnumOutputFile string
 }
 
 func (c *Codegen) Run(p writ.Path, positional []string) {
@@ -23,6 +22,16 @@ func (c *Codegen) Run(p writ.Path, positional []string) {
 
 func (c *Codegen) Name() string {
 	return "codegen"
+}
+
+func codegenPackageNameOrErr(positional []string) string {
+	if len(positional) > 1 {
+		errAndQuit("More than one positional argument provided, expecting only package")
+	}
+	if len(positional) == 0 {
+		return "."
+	}
+	return positional[0]
 }
 
 func (c *Codegen) Description() string {
@@ -36,7 +45,7 @@ func (c *Codegen) HelpText() string {
 on structs in your package.
 
 Running this command and not any of its subcommands is equivalent to running
-'codegen all'.
+'codegen all'. If PKGNAME parameter is missing, "." is assumed.
 
 See 'boardgame-util/lib/codegen' for more on its behavior.
 
@@ -55,17 +64,13 @@ func (c *Codegen) SubcommandObjects() []SubcommandObject {
 	}
 }
 
+func (c *Codegen) Usage() string {
+	return "PKGNAME"
+}
+
 func (c *Codegen) WritOptions() []*writ.Option {
 
 	return []*writ.Option{
-		{
-			Names: []string{"pkg"},
-			Decoder: writ.NewDefaulter(
-				writ.NewOptionDecoder(&c.PackageDirectory),
-				".",
-			),
-			Description: "Which package to process",
-		},
 		{
 			Names: []string{"out"},
 			Decoder: writ.NewDefaulter(
