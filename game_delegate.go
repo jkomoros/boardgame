@@ -635,8 +635,8 @@ func (d *DefaultGameDelegate) ConfigureAgents() []Agent {
 }
 
 //ConfigureEnums simply returns nil. In general you want to override this with
-//a body of `return Enums`, if you're using autoreader to generate your enum
-//set.
+//a body of `return Enums`, if you're using `boardgame-util config` to
+//generate your enum set.
 func (d *DefaultGameDelegate) ConfigureEnums() *enum.Set {
 	return nil
 }

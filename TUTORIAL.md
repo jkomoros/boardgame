@@ -111,7 +111,7 @@ Each Stack is associated with exactly one deck, and only components that are mem
 
 When a memory game starts, most of the cards will be in GameState.HiddenCards. Players can also have cards in a stack in their hand when they win them, in WonCards. You'll note that there are actually three stacks for cards in GameState: HiddenCards, VisibleCards, and Cards. We'll get into why that is later.
 
-#### autoreader
+#### boardgame-util codegen
 
 Both of the State objects also have a cryptic comment above them: `//boardgame:codegen`. These are actually a critical concept to understand about the core engine.
 
@@ -197,7 +197,7 @@ type MyStruct struct {
 }
 ```
 
-Then, every time you change the shape of one of your objects, run `go generate` on the command line. That will create `autoreader.go`, with generated getters and setters for all of your objects.
+Then, every time you change the shape of one of your objects, run `go generate` on the command line. That will create `auto_reader.go`, with generated getters and setters for all of your objects.
 
 One other thing to note: the actual concrete structs that you define, like `gameState` and `playerState`, should almost always include the mutable variant of an interface type (`Stack`, `SizedStack`, `Enum`, `RangeEnum` and `Timer`; not the versions with "Immutable" prepended); the PropertyReader methods will return just the read-only subset of those objects. In general the whole point of having a state object is to represent the state that *changes* which is why you generally want the mutable variant. However, there are couple of cases where you might want the immutable variant: when you have read-only properties on a component, or when you're using Merged Stacks, which are inherently read-only (more on that later). But for the most part just always use the mutable variants in your state objects.
 
@@ -639,7 +639,7 @@ type MoveHideCards struct {
 
 MoveHideCards is a simple concrete struct that embeds a `moves.CurrentPlayer`. This means it is a move that may only be made by the player who turn it is.
 
-MoveHideCards is decorated by the magic autoreader comment, which means its ReadSetter will be automatically generated. The `readsetter` at the end of the comment tells `autoreader` to only bother creating the `PropertyReadSetter` method and not worry about the `PropertyReader` method. It would work fine (just with a tiny bit more code generated) with that argument omitted.
+MoveHideCards is decorated by the magic codegen comment, which means its ReadSetter will be automatically generated. The `readsetter` at the end of the comment tells `boardgame-util codegen` to only bother creating the `PropertyReadSetter` method and not worry about the `PropertyReader` method. It would work fine (just with a tiny bit more code generated) with that argument omitted.
 
 ```
 var moveHideCardsConfig = boardgame.MoveConfig{
@@ -723,7 +723,7 @@ Remember that each component is immutable, and lives in precisely one deck in th
 
 The `Component` struct is a concrete struct defined in the core package. It is immutable, and includes a reference to the deck this component is in, what its index is within that stack, and the `Values` of this Component--the specific properties of this particular component within this game's semantics.
 
-For example, a component that is a card from a traditional American deck of playing cards would have two properties in its Values object; `Rank` and `Suit`. (In fact, American playing cards are so common that for convenience a ready-to-use version of them are defined in `components/playingcards`). The `Values` object will be a concrete struct that you define in your package that adheres to the `CompontentValues` interface, which includes the `Reader` interface. This mean--you guessed it--that the `autoreader` package will be useful.
+For example, a component that is a card from a traditional American deck of playing cards would have two properties in its Values object; `Rank` and `Suit`. (In fact, American playing cards are so common that for convenience a ready-to-use version of them are defined in `components/playingcards`). The `Values` object will be a concrete struct that you define in your package that adheres to the `CompontentValues` interface, which includes the `Reader` interface. This mean--you guessed it--that the `boardgame-util codegen` tool will be useful.
 
 The components for memory are quite simple:
 
@@ -790,7 +790,7 @@ func newDeck() *boardgame.Deck {
 
 The file primarily consists of two constants--the icons that we will have on the cards, and tha name that we will refer to the deck of cards as. Decks are canonically refered to within a `ComponentChest` by a string name. It's convention to define a constant for that name to make sure that typos in that name will be caught by the compiler.
 
-And then the concrete struct we will use for `Values` is a trivial struct with a single string property, and the `autoreader` magic comment. It also embeds `boardgame.BaseComponentValues` to automatically implement `ContainingComponent()` and `SetContainingComponent()`.
+And then the concrete struct we will use for `Values` is a trivial struct with a single string property, and the `codegen` magic comment. It also embeds `boardgame.BaseComponentValues` to automatically implement `ContainingComponent()` and `SetContainingComponent()`.
 
 In more complicated games, your components and their related constants might be much, much more verbose and effectively be a transcription of the values of a large deck of cards.
 
@@ -870,7 +870,7 @@ func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 }
 ```
 
-`ConfigureEnums() *enum.Set` should return the enum set for your game. If you're using AutoReader, a simple method that returns the Enums for your package will have already been generated for your gameDelegate.
+`ConfigureEnums() *enum.Set` should return the enum set for your game. If you're using `boardgame-util codegen`, a simple method that returns the Enums for your package will have already been generated for your gameDelegate.
 
 ### Property sanitization
 
@@ -1351,7 +1351,7 @@ type gameState struct {
 
 Creating an enum is slightly cumbersome and repetitive. You typically create a const block, enumerate all of the values, and then later install each of those values, while passing their string equivalent.
 
-The autoreader command can also help automate this, as you can see in the blackjack example in `state.go`:
+The `boardgame-util codegen` command can also help automate this, as you can see in the blackjack example in `state.go`:
 
 ```
 //boardgame:codegen
@@ -1361,7 +1361,7 @@ const (
 )
 ```
 
-This will automatically create a global `Enums` EnumSet, and a global `PhaseEnum` that contains the two values, configured with the string values of "Initial Deal" and "Normal Play". You can find much more details on the conventions and how to configure autoreader in the enums package doc.
+This will automatically create a global `Enums` EnumSet, and a global `PhaseEnum` that contains the two values, configured with the string values of "Initial Deal" and "Normal Play". You can find much more details on the conventions and how to configure `boardgame-util codegen` in the enums package doc.
 
 ### RangedEnum and Enum Graphs
 
@@ -1462,7 +1462,7 @@ const (
 )
 ```
 
-In general it's easiest to use autoreader's enum-generation tool, which we do here.
+In general it's easiest to use `boardgame-util codegen`'s enum-generation tool, which we do here.
 
 It's convention to name your phase enum as "Phase", and `moves.Base` will rely on that in some cases to create meaningful error messages. If you want to name it something different, override `GameDelegate.PhaseEnum`.
 

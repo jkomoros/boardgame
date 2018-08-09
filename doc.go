@@ -98,10 +98,10 @@ so, the game is marked as Finished, and the winners are noted. At that point
 no more moves may be applied.
 
 Moves have a number of required methods, and most of them will be no-ops in
-many cases. BaseMove is an optional convenience struct that is designed to
-be embedded in your own Moves that implements a bit of the boilerplate
-automatically. Moves also should generally use the autoreader codegen tool to
-generate their reader methods.
+many cases. BaseMove is an optional convenience struct that is designed to be
+embedded in your own Moves that implements a bit of the boilerplate
+automatically. Moves also should generally use the `boardgame-util codegen`
+tool to generate their reader methods.
 
 You should make your moves granular enough that any semantically-relevant in-
 betweeen state happens between moves, because a move is a bit of a black box
@@ -632,9 +632,9 @@ PropertyReader interface. So do not rely on other hidden properties, because
 they will not be copied over. (This should go without saying as when those are
 marshaled to JSON they are not included anyway).
 
-The cmd autoreader makes it easy to automatically generate Reader and
-ReadSetter implementations with just a few comment lines and go:generate. See
-that packages's documentation for how to use it.
+The cmd `boardgame-util codegen` makes it easy to automatically generate
+Reader and ReadSetter implementations with just a few comment lines and
+go:generate. See that packages's documentation for how to use it.
 
 */
 package boardgame

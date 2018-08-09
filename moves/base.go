@@ -83,8 +83,8 @@ information.
 It is extremely rare to not use moves.Base either directly, or implicitly
 within another sub-class in your move.
 
-Base cannot help your move implement PropertyReadSetter; use autoreader to
-generate that code for you.
+Base cannot help your move implement PropertyReadSetter; use `boardgame-util
+codegen` to generate that code for you.
 
 boardgame:codegen
 */
@@ -169,7 +169,7 @@ var titleCaseReplacer *strings.Replacer
 //titleCaseToWords writes "ATitleCaseString" to "A Title Case String"
 func titleCaseToWords(in string) string {
 
-	//substantially recreated in autoreader/enums.go
+	//substantially recreated in boardgame-util/lib/codegen/enums.go
 
 	if titleCaseReplacer == nil {
 

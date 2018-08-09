@@ -110,8 +110,8 @@ func (e *Set) MustAddTree(enumName string, values map[int]string, parents map[in
 //effective name of the node will be joined all of its ancestors. Unlike
 //normal enums, multiple values can have the same name, as long as the fully
 //qualified name (including all of the ancestors' node names) are unique.
-//Typically you rely on autoreader to create these on your behalf, because the
-//initial set-up is finicky with the two maps.
+//Typically you rely on `boardgame-util codegen` to create these on your
+//behalf, because the initial set-up is finicky with the two maps.
 func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]int) (TreeEnum, error) {
 
 	str, ok := values[0]
@@ -135,12 +135,12 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 	}
 
 	//Verify that values and parents inclue the same keys--that is, each item denotes its parent.
-	for val, _ := range values {
+	for val := range values {
 		if _, ok := parents[val]; !ok {
 			return nil, errors.New("In " + enumName + " missing parent information for key: " + strconv.Itoa(val))
 		}
 	}
-	for parent, _ := range parents {
+	for parent := range parents {
 		if _, ok := values[parent]; !ok {
 			return nil, errors.New("In " + enumName + " parent information provided for " + strconv.Itoa(parent) + " but no corresponding value provided.")
 		}
@@ -199,7 +199,7 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 			}
 		}
 		//CurrentNode is 0, which means all visited nodes are connectedToRoot.
-		for visitedNode, _ := range visitedNodes {
+		for visitedNode := range visitedNodes {
 			connectedToRoot[visitedNode] = true
 		}
 	}
@@ -212,7 +212,7 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 		}
 		childrenMap[parent] = append(childrenMap[parent], child)
 	}
-	for node, _ := range childrenMap {
+	for node := range childrenMap {
 		//TODO: verify that this actually sorts in place
 		sort.Ints(childrenMap[node])
 	}
@@ -220,7 +220,7 @@ func (s *Set) AddTree(enumName string, values map[int]string, parents map[int]in
 	//values is things like "Normal" and "Deal Cards", but we need to provide
 	//things like "Nomral - Deal Cards" to the underlying enum.
 	fullyQualifiedValues := make(map[int]string, len(values))
-	for node, _ := range values {
+	for node := range values {
 
 		var nonRootAncestors []int
 

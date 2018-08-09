@@ -262,8 +262,8 @@ func (c *component) Instance(st State) ComponentInstance {
 
 //ComponentValues is the interface that the Values property of a Component
 //must implement. BaseComponentValues is designed to be anonymously embedded
-//in your component to implement the latter part of the interface. autoreader
-//can be used to implement Reader.
+//in your component to implement the latter part of the interface. 'boardgame-
+//util codegen' can be used to implement Reader.
 type ComponentValues interface {
 	Reader
 	//ContainingComponent is the component that this ComponentValues is

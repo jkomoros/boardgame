@@ -60,7 +60,7 @@ ProcessStructs operates on the package at the given relative location, and
 produces two strings, one that is appropriate to be saved in auto_reader.go,
 and one that is appropriate to be saved in auto_reader_test.go.
 
-Autoreader processes a package of go files, searching for structs that
+ProcessStructs processes a package of go files, searching for structs that
 have a comment immediately above their declaration that begins with
 "boardgame:codegen". For each such struct, it creates a Reader(), ReadSetter(),
 and ReadSetConfigurer() method that implement boardgame.Reader,

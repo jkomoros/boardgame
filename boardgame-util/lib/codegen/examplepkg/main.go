@@ -1,7 +1,7 @@
 /*
 
 	This is just an example package for testing. Note that some of the uses of
-	autoreader use somewhat odd spacing or capitalization; this is primarily
+	codegen use somewhat odd spacing or capitalization; this is primarily
 	just to test how resilient the package is to unexpected input.
 
 */

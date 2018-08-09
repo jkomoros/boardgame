@@ -60,7 +60,7 @@ And then in your main.go:
 	}
 
 This is a fair bit of boilerplate to inlude in your components.go. You can use
-the autoreader package to generate the repetitive boilerplate for you.
+the `boardgame-util codegen` tool to generate the repetitive boilerplate for you.
 
 Instead of the above code for components.go, you'd instead only include the
 following:
@@ -84,16 +84,16 @@ Then, the rest of the example code shown above in components.go would be
 automatically generated, including the ConfigureEnums definition on the
 structs in your package that appear to be your game delegate, if you don't
 have your own definition of that method. The longest common prefix for each
-name in the constant block would be used as the name of the enum. autoreader
+name in the constant block would be used as the name of the enum. codegen
 has more options for controlling the precise way the enums are created; see
-autoreader's package doc for more information.
+codegen's package doc for more information.
 
 Ranged Enums
 
 You can also create RangeEnums. These are just normal enums, but with a
 multi-index enumeration translated to and from string values in a known way.
 
-When you create RangeEnums, you don't use AutoReader, because the values are
+When you create RangeEnums, you don't use codegen, because the values are
 created for you with only minimal configuration.
 
 set.AddRange returns a RangeEnum directly. If you have a normal Enum, you can
@@ -119,9 +119,9 @@ PhaseEnum in your game is a TreeEnum, then the state will refuse to be saved
 if the value is not a leaf value. BranchDefaulValue is the best way to get the
 default leaf value within a sub-tree.
 
-Creating Tree Enums with autoreader
+Creating Tree Enums with boardgame-util codegen
 
-autoreader is able to make TreeEnums for you automatically.
+`boardgame-util codegen` is able to make TreeEnums for you automatically.
 
 The signal to create a TreeEnum is that you have an item in your enum whose string value evaluates to "". (Theoretically the int value of that "" node should also be 0, but the actual constant value for constants in Enums is currently ignored due to #631).
 
@@ -181,7 +181,7 @@ Creates:
 	    Circle
 
 If there are node names that are implied but not explicitly created in your
-code, autoreader will define a reasonably-named global constant automatically.
+code, codegen will define a reasonably-named global constant automatically.
 
 	//boardgame:codegen
 	const (
@@ -195,16 +195,16 @@ Creates:
 		Red
 			Circle
 
-Supplying underscores in constant names is ugly and error-prone. autoreader
-will automatically create tree breaks at word boundaries, combining multiple
-words in a row into one node if it makes sense. It will continue to create
-implied nodes if necessary. This almost always does what you want and means
-that you can skip including "_" in your constant names. There's one exception:
-if you have a node with a single child (e.g. "Blue" with a single child of
-"Green"), autoreader by default will combine those into one multi-word node:
-"Blue Green". If you don't want that to happen, just be explicit about the
-node break, either with a display value that includes the delimiter there, or
-by using the underscore.
+Supplying underscores in constant names is ugly and error-prone. codegen will
+automatically create tree breaks at word boundaries, combining multiple words
+in a row into one node if it makes sense. It will continue to create implied
+nodes if necessary. This almost always does what you want and means that you
+can skip including "_" in your constant names. There's one exception: if you
+have a node with a single child (e.g. "Blue" with a single child of "Green"),
+codegen by default will combine those into one multi-word node: "Blue Green".
+If you don't want that to happen, just be explicit about the node break,
+either with a display value that includes the delimiter there, or by using the
+underscore.
 
 	//boardgame:codegen
 	const (
