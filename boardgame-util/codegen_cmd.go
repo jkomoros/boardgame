@@ -49,8 +49,10 @@ Running this command and not any of its subcommands is equivalent to running
 
 See 'boardgame-util/lib/codegen' for more on its behavior.
 
-The defaults are set reasonably so that you can use go:generate very easily by
-including 'boardgame-util codegen' after the go generate magic string.
+The defaults are set reasonably so that you can use it easily with go generate
+by including the following line in your package:
+
+` + "//go:" + "generate boardgame-util codegen" + `
 
 See examplepkg/ for a very simple example.`
 
