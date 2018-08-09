@@ -2,48 +2,23 @@ package main
 
 import (
 	"github.com/bobziuchkovski/writ"
-	"github.com/jkomoros/boardgame/boardgame-util/lib/codegen"
-	"io/ioutil"
-	"path/filepath"
 )
 
 type Codegen struct {
 	baseSubCommand
 
-	PackageDirectory     string
-	OutputFile           string
-	OutputFileTest       string
-	EnumOutputFile       string
-	DontOutputEnum       bool
-	DontOutputReader     bool
-	DontOutputReaderTest bool
+	CodegenAll    CodegenAll
+	CodegenEnum   CodegenEnum
+	CodegenReader CodegenReader
+
+	PackageDirectory string
+	OutputFile       string
+	OutputFileTest   string
+	EnumOutputFile   string
 }
 
 func (c *Codegen) Run(p writ.Path, positional []string) {
-
-	output, testOutput, err := codegen.ProcessStructs(c.PackageDirectory)
-
-	if err != nil {
-		errAndQuit("Couldn't process structs: " + err.Error())
-	}
-
-	enumOutput, err := codegen.ProcessEnums(c.PackageDirectory)
-
-	if err != nil {
-		errAndQuit("Couldn't process cenums: " + err.Error())
-	}
-
-	if output != "" && !c.DontOutputReader {
-		ioutil.WriteFile(filepath.Join(c.PackageDirectory, c.OutputFile), []byte(output), 0644)
-	}
-
-	if testOutput != "" && !c.DontOutputReaderTest {
-		ioutil.WriteFile(filepath.Join(c.PackageDirectory, c.OutputFileTest), []byte(testOutput), 0644)
-	}
-
-	if enumOutput != "" && !c.DontOutputEnum {
-		ioutil.WriteFile(filepath.Join(c.PackageDirectory, c.EnumOutputFile), []byte(enumOutput), 0644)
-	}
+	c.CodegenAll.Run(p, positional)
 }
 
 func (c *Codegen) Name() string {
@@ -60,17 +35,24 @@ func (c *Codegen) HelpText() string {
 		` automatically generates boilerplate PropertyReader and enums based
 on structs in your package.
 
-You can configure which package to process and where to write output via
-command-line flags. By default it processes the current package and writes its
-output to auto_reader.go, overwriting whatever file was there before. See
-command-line options by passing -h. Structs with an boardgame:codegen comment that
-are in a _test.go file will be outputin auto_reader_test.go.
+Running this command and not any of its subcommands is equivalent to running
+'codegen all'.
 
 See 'boardgame-util/lib/codegen' for more on its behavior.
 
-The defaults are set reasonably so that you can use go:generate very
-easily. See examplepkg/ for a very simple example.`
+The defaults are set reasonably so that you can use go:generate very easily by
+including 'boardgame-util codegen' after the go generate magic string.
 
+See examplepkg/ for a very simple example.`
+
+}
+
+func (c *Codegen) SubcommandObjects() []SubcommandObject {
+	return []SubcommandObject{
+		&c.CodegenAll,
+		&c.CodegenReader,
+		&c.CodegenEnum,
+	}
 }
 
 func (c *Codegen) WritOptions() []*writ.Option {
@@ -107,21 +89,6 @@ func (c *Codegen) WritOptions() []*writ.Option {
 				"auto_enum.go",
 			),
 			Description: "Where to output the auto-enum file. WARNING: it will be overwritten!",
-		},
-		{
-			Names:       []string{"no-enum"},
-			Decoder:     writ.NewFlagDecoder(&c.DontOutputEnum),
-			Description: "Whether to suppress output of auto_enum.go",
-		},
-		{
-			Names:       []string{"no-reader"},
-			Decoder:     writ.NewFlagDecoder(&c.DontOutputReader),
-			Description: "Whether to suppress output of auto_reader.go",
-		},
-		{
-			Names:       []string{"no-reader-test"},
-			Decoder:     writ.NewFlagDecoder(&c.DontOutputReaderTest),
-			Description: "Whether to suppress output of auto_reader_test.go",
 		},
 	}
 }
