@@ -1,8 +1,6 @@
 package codegen
 
 import (
-	"bytes"
-	"flag"
 	"github.com/workfit/tester/assert"
 	"io/ioutil"
 	"log"
@@ -60,21 +58,28 @@ func TestBuild(t *testing.T) {
 	log.Println("WARNING: running this command generates auto output for examplepkg/")
 
 	//Get default options
-	options := getOptions(flag.NewFlagSet("test", 0), []string{})
 
-	options.PackageDirectory = "examplepkg/"
+	output, testOutput, err := ProcessStructs("examplepkg/")
 
-	out := &bytes.Buffer{}
-	errOut := &bytes.Buffer{}
+	assert.For(t).ThatActual(err).IsNil()
 
-	process(options, out, errOut)
+	enumOutput, err := ProcessEnums("examplepkg/")
 
-	assert.For(t).ThatActual(errOut.String()).Equals("").ThenDiffOnFail()
+	assert.For(t).ThatActual(err).IsNil()
+
+	err = ioutil.WriteFile("examplepkg/auto_reader.go", []byte(output), 0644)
+	assert.For(t).ThatActual(err).IsNil()
+
+	err = ioutil.WriteFile("examplepkg/auto_reader_test.go", []byte(testOutput), 0644)
+	assert.For(t).ThatActual(err).IsNil()
+
+	err = ioutil.WriteFile("examplepkg/auto_enum.go", []byte(enumOutput), 0644)
+	assert.For(t).ThatActual(err).IsNil()
 
 	cmd := exec.Command("go", "test")
 	cmd.Dir = "./examplepkg/"
 
-	err := cmd.Run()
+	err = cmd.Run()
 
 	if !assert.For(t).ThatActual(err).IsNil().Passed() {
 		log.Println(err)
