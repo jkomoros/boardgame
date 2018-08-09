@@ -20,10 +20,17 @@ type Codegen struct {
 }
 
 func (c *Codegen) Run(p writ.Path, positional []string) {
-	output, testOutput, enumOutput, err := codegen.ProcessPackage(c.PackageDirectory)
+
+	output, testOutput, err := codegen.ProcessStructs(c.PackageDirectory)
 
 	if err != nil {
-		errAndQuit(err.Error())
+		errAndQuit("Couldn't process structs: " + err.Error())
+	}
+
+	enumOutput, err := codegen.ProcessEnums(c.PackageDirectory)
+
+	if err != nil {
+		errAndQuit("Couldn't process cenums: " + err.Error())
 	}
 
 	if output != "" && !c.DontOutputReader {

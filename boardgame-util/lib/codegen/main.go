@@ -17,7 +17,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"go/format"
 	"io"
 	"io/ioutil"
 	"log"
@@ -78,7 +77,7 @@ func process(options *appOptions, out io.ReadWriter, errOut io.ReadWriter) {
 		return
 	}
 
-	output, testOutput, enumOutput, err := ProcessPackage(options.PackageDirectory)
+	output, testOutput, enumOutput, err := processPackage(options.PackageDirectory)
 
 	if err != nil {
 		fmt.Fprintln(errOut, "ERROR", err)
@@ -120,7 +119,7 @@ ProcessPackage is a wrapper around ProcessStructs and ProcessEnums. It formats
 the bytes before returning them.
 
 */
-func ProcessPackage(location string) (output string, testOutput string, enumOutput string, err error) {
+func processPackage(location string) (output string, testOutput string, enumOutput string, err error) {
 
 	output, testOutput, err = ProcessStructs(location)
 
@@ -134,37 +133,7 @@ func ProcessPackage(location string) (output string, testOutput string, enumOutp
 		return "", "", "", errors.New("Couldn't process enums: " + err.Error())
 	}
 
-	formattedBytes, err := format.Source([]byte(output))
-
-	if err != nil {
-		if debugSaveBadCode {
-			formattedBytes = []byte(output)
-		} else {
-			return "", "", "", errors.New("Couldn't go fmt code for reader: " + err.Error())
-		}
-	}
-
-	formattedTestBytes, err := format.Source([]byte(testOutput))
-
-	if err != nil {
-		if debugSaveBadCode {
-			formattedTestBytes = []byte(testOutput)
-		} else {
-			return "", "", "", errors.New("Couldn't go fmt code for reader: " + err.Error())
-		}
-	}
-
-	formattedEnumBytes, err := format.Source([]byte(enumOutput))
-
-	if err != nil {
-		if debugSaveBadCode {
-			formattedEnumBytes = []byte(enumOutput)
-		} else {
-			return "", "", "", errors.New("Couldn't go fmt code for enums: " + err.Error())
-		}
-	}
-
-	return string(formattedBytes), string(formattedTestBytes), string(formattedEnumBytes), nil
+	return output, testOutput, enumOutput, nil
 
 }
 

@@ -5,6 +5,7 @@ import (
 	"github.com/abcum/lcp"
 	enumpkg "github.com/jkomoros/boardgame/enum"
 	"go/ast"
+	"go/format"
 	"go/parser"
 	"go/token"
 	"math"
@@ -454,7 +455,17 @@ func ProcessEnums(packageName string) (enumOutput string, err error) {
 
 	}
 
-	return output, nil
+	formattedEnumBytes, err := format.Source([]byte(output))
+
+	if err != nil {
+		if debugSaveBadCode {
+			formattedEnumBytes = []byte(enumOutput)
+		} else {
+			return "", errors.New("Couldn't go fmt code for enums: " + err.Error())
+		}
+	}
+
+	return string(formattedEnumBytes), nil
 
 }
 

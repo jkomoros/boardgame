@@ -6,6 +6,7 @@ import (
 	"github.com/MarcGrol/golangAnnotations/parser"
 	"github.com/jkomoros/boardgame"
 	"go/build"
+	"go/format"
 	"log"
 	"sort"
 	"strings"
@@ -93,12 +94,36 @@ func ProcessStructs(location string) (output string, testOutput string, err erro
 	output, err = doProcessStructs(sources, location, false)
 
 	if err != nil {
-		return
+		return "", "", errors.New("Couldn't process non-test files: " + err.Error())
 	}
 
 	testOutput, err = doProcessStructs(sources, location, true)
 
-	return
+	if err != nil {
+		return "", "", errors.New("Couldn't process test files: " + err.Error())
+	}
+
+	formattedBytes, err := format.Source([]byte(output))
+
+	if err != nil {
+		if debugSaveBadCode {
+			formattedBytes = []byte(output)
+		} else {
+			return "", "", errors.New("Couldn't go fmt code for reader: " + err.Error())
+		}
+	}
+
+	formattedTestBytes, err := format.Source([]byte(testOutput))
+
+	if err != nil {
+		if debugSaveBadCode {
+			formattedTestBytes = []byte(testOutput)
+		} else {
+			return "", "", errors.New("Couldn't go fmt code for test reader: " + err.Error())
+		}
+	}
+
+	return string(formattedBytes), string(formattedTestBytes), nil
 }
 
 func doProcessStructs(sources model.ParsedSources, location string, testFiles bool) (output string, err error) {

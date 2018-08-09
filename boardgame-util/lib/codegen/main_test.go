@@ -73,7 +73,10 @@ func TestEnumOutput(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	assert.For(t).ThatActual(strings.TrimSpace(out.String())).Equals(strings.TrimSpace(string(expectedBytes))).ThenDiffOnFail()
+	trimmedOut := strings.TrimSpace(out.String())
+	trimmedExpected := strings.TrimSpace(string(expectedBytes))
+
+	assert.For(t).ThatActual(trimmedOut).Equals(trimmedExpected).ThenDiffOnFail()
 
 }
 
