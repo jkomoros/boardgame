@@ -2,7 +2,6 @@
 	"prod" : {
 		"allowedorigins" : "https://www.mygame.com",
 		"defaultport" : "8080",
-		"firebaseprojectid": "sample-123456",
 		"adminuserids": [
 			"aH1TV07K47RC4mTNCai0ZPnQ9Kd2",
 			"uYuZl1jXWXVJ9fEk7mDFifhTGmK2"
@@ -12,13 +11,15 @@
 		}
 	},
 	"dev" : {
-		"allowedorigins" : "http://localhost:8080",
 		"defaultport" : "8888",
-		"firebaseprojectid": "sample-123456",
+		"allowedorigins" : "http://localhost:8080",
 		"disableadminchecking": true,
 		"storageconfig": {
 			"mysql": "root:root@tcp(localhost:3306)/boardgame"
-		},
+		}
+	},
+	"base" : {
+		"firebaseprojectid": "sample-123456",
 		"games": {
 			"github.com/jkomoros/boardgame/examples": [
 				"checkers",
