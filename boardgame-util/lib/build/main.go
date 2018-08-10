@@ -37,6 +37,18 @@ func init() {
 	apiTemplate = template.Must(template.New("api").Parse(apiTemplateText))
 }
 
+//ValidStorageTypeStrings returns an array of strings that are the normal
+//(i.e. not invalid) strings that would return useful values if passed to
+//StorageTypeFromString.
+func ValidStorageTypeStrings() []string {
+	return []string{
+		StorageMemory.String(),
+		StorageBolt.String(),
+		StorageMysql.String(),
+		StorageFilesystem.String(),
+	}
+}
+
 func StorageTypeFromString(in string) StorageType {
 	in = strings.ToLower(in)
 	in = strings.TrimSpace(in)

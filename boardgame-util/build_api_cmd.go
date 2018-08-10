@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"github.com/bobziuchkovski/writ"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/build"
+	"strings"
 )
 
 type BuildApi struct {
 	baseSubCommand
+
+	Storage string
 }
 
 func (b *BuildApi) Run(p writ.Path, positional []string) {
@@ -28,8 +31,13 @@ func (b *BuildApi) Run(p writ.Path, positional []string) {
 
 	mode := config.Dev
 
-	//TODO: allow switching the type of storage via a command line config.
-	binaryPath, err := build.Api(dir, mode.GamesList, build.StorageMysql)
+	storage := build.StorageTypeFromString(b.Storage)
+
+	if storage == build.StorageInvalid {
+		errAndQuit("Invalid storage type provided (" + b.Storage + "). Must be one of {" + strings.Join(build.ValidStorageTypeStrings(), ",") + "}.")
+	}
+
+	binaryPath, err := build.Api(dir, mode.GamesList, storage)
 
 	if err != nil {
 		errAndQuit("Couldn't generate binary: " + err.Error())
@@ -58,7 +66,21 @@ func (b *BuildApi) HelpText() string {
 api server binary based on the config.json in use. It creates the binary in a
 folder called 'api' within the given DIR.
 
-If DIR is not provided, defaults to "."
+If DIR is not provided, defaults to "."`
+}
 
-`
+func (b *BuildApi) WritOptions() []*writ.Option {
+
+	defaultStorageType := "bolt"
+
+	return []*writ.Option{
+		{
+			Names: []string{"storage", "s"},
+			Decoder: writ.NewDefaulter(
+				writ.NewOptionDecoder(&b.Storage),
+				defaultStorageType,
+			),
+			Description: "Which storage subsystem to use. One of {" + strings.Join(build.ValidStorageTypeStrings(), ",") + "}. Defaults to '" + defaultStorageType + "'.",
+		},
+	}
 }
