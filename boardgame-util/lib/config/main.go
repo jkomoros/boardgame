@@ -40,12 +40,10 @@ type ConfigMode struct {
 //derive takes a raw input and creates a struct with fully derived values in
 //Dev/Prod ready for use.
 func (c *Config) derive() {
-	if c.Base == nil {
-		return
+	if c.Base != nil {
+		c.Prod = c.Base.extend(c.Prod)
+		c.Dev = c.Base.extend(c.Dev)
 	}
-
-	c.Prod = c.Base.extend(c.Prod)
-	c.Dev = c.Base.extend(c.Dev)
 
 	c.Prod.derive()
 	c.Dev.derive()
