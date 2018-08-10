@@ -23,6 +23,8 @@ func mainImpl(args []string) {
 
 	setupParents(b, nil, nil)
 
+	defer b.Cleanup()
+
 	cmd := b.WritCommand()
 
 	path, positional, err := cmd.Decode(args[1:])

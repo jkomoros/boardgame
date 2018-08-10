@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/bobziuchkovski/writ"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/build"
-	"io/ioutil"
 	"os"
 	"os/exec"
 )
@@ -21,13 +20,9 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 
 	//TODO: this should be in a Base helper to get a new temp directory that
 	//base will take care of kiling.
-	dir, err := ioutil.TempDir(".", "serve_")
 
-	if err != nil {
-		errAndQuit("Couldn't create temporary directory: " + err.Error())
-	}
+	dir := base.NewTempDir("temp_serve_")
 
-	//TODO: remove dir on exit
 	//TODO: allow specifying a different storage type
 
 	apiPath, err := build.Api(dir, mode.GamesList, build.StorageBolt)

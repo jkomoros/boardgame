@@ -4,6 +4,8 @@ import (
 	"errors"
 	"github.com/bobziuchkovski/writ"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
+	"io/ioutil"
+	"os"
 )
 
 type BoardgameUtil struct {
@@ -15,6 +17,9 @@ type BoardgameUtil struct {
 	Clean   Clean
 	Serve   Serve
 	config  *config.Config
+
+	//Dirs to delete on exit
+	tempDirs []string
 }
 
 func (b *BoardgameUtil) Run(p writ.Path, positional []string) {
@@ -57,6 +62,28 @@ func (b *BoardgameUtil) SubcommandObjects() []SubcommandObject {
 		&b.Clean,
 		&b.Serve,
 	}
+}
+
+//Do any cleanup tasks as program exits.
+func (b *BoardgameUtil) Cleanup() {
+
+	for _, dir := range b.tempDirs {
+		os.RemoveAll(dir)
+	}
+
+}
+
+//NewTempDir will vend a new temporary dir that will be remove when program exits.
+func (b *BoardgameUtil) NewTempDir(prefix string) string {
+	dir, err := ioutil.TempDir(".", prefix)
+
+	if err != nil {
+		errAndQuit("Couldn't create temporary directory: " + err.Error())
+	}
+
+	b.tempDirs = append(b.tempDirs, dir)
+
+	return dir
 }
 
 //GetConfig fetches the config, finding it from disk if it hasn't yet. If
