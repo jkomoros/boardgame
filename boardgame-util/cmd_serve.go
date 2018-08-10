@@ -4,6 +4,7 @@ import (
 	"github.com/bobziuchkovski/writ"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/build"
 	"io/ioutil"
+	"os"
 	"os/exec"
 )
 
@@ -38,7 +39,8 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 	//cmd will be run as though it's in this directory, which is where
 	//config.json is.
 	cmd := exec.Command(apiPath)
-	//TODO: connect StdOut and StdErr to our own
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
 
 	err = cmd.Run()
 
