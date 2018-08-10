@@ -18,9 +18,6 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 	config := base.GetConfig()
 	mode := config.Dev
 
-	//TODO: this should be in a Base helper to get a new temp directory that
-	//base will take care of kiling.
-
 	dir := base.NewTempDir("temp_serve_")
 
 	//TODO: allow specifying a different storage type
