@@ -88,7 +88,11 @@ func (s StorageType) Constructor() string {
 		args = ".database"
 	}
 
-	return s.String() + ".NewStorageManager(\"" + args + "\")"
+	if args != "" {
+		args = "\"" + args + "\""
+	}
+
+	return s.String() + ".NewStorageManager(" + args + ")"
 
 }
 
