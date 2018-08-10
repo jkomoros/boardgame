@@ -18,6 +18,13 @@
 		"disableadminchecking": true,
 		"storageconfig": {
 			"mysql": "root:root@tcp(localhost:3306)/boardgame"
+		},
+		"games": {
+			"github.com/jkomoros/boardgame/examples": [
+				"checkers",
+				"blackjack",
+				"memory"
+			]
 		}
 	}
 }

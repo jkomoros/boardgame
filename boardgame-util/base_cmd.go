@@ -11,6 +11,7 @@ type BoardgameUtil struct {
 	Help    Help
 	Db      Db
 	Codegen Codegen
+	Build   Build
 	config  *config.Config
 }
 
@@ -50,6 +51,7 @@ func (b *BoardgameUtil) SubcommandObjects() []SubcommandObject {
 		&b.Help,
 		&b.Db,
 		&b.Codegen,
+		&b.Build,
 	}
 }
 
