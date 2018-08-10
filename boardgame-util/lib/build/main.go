@@ -183,6 +183,8 @@ func ApiCode(managers []string, storage StorageType) ([]byte, error) {
 
 }
 
+//CleanApi removes the api/ directory (code and binary) that was generated
+//within directory by ApiCode.
 func CleanApi(directory string) error {
 	return os.RemoveAll(filepath.Join(directory, subFolder))
 }
