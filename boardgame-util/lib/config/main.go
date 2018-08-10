@@ -31,7 +31,10 @@ type ConfigMode struct {
 	//This is a dangerous config. Only enable in Dev!
 	DisableAdminChecking bool
 	StorageConfig        map[string]string
-	Games                *GameNode
+	//The storage type that should be used if no storage type is provided via
+	//command line options.
+	DefaultStorageType string
+	Games              *GameNode
 	//GamesList is not intended to be inflated from JSON, but rather is
 	//derived based on the contents of Games.
 	GamesList []string
@@ -296,7 +299,7 @@ func fileNamesToUse() (publicConfig, privateConfig string) {
 	}
 
 	//Whatever, return the first one
-	for name, _ := range foundNames {
+	for name := range foundNames {
 		return name, privateConfig
 	}
 

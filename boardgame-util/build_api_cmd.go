@@ -13,6 +13,8 @@ type BuildApi struct {
 	Storage string
 }
 
+const defaultStorageType = "mysql"
+
 func (b *BuildApi) Run(p writ.Path, positional []string) {
 
 	base := b.Base().(*BoardgameUtil)
@@ -31,7 +33,20 @@ func (b *BuildApi) Run(p writ.Path, positional []string) {
 
 	mode := config.Dev
 
-	storage := build.StorageTypeFromString(b.Storage)
+	//Use storage type from command line option, then from DefaultStorageType
+	//in config, then just fallback on defaultStorageType.
+
+	storageTypeString := b.Storage
+
+	if storageTypeString == "" {
+		storageTypeString = mode.DefaultStorageType
+	}
+
+	if storageTypeString == "" {
+		storageTypeString = defaultStorageType
+	}
+
+	storage := build.StorageTypeFromString(storageTypeString)
 
 	if storage == build.StorageInvalid {
 		errAndQuit("Invalid storage type provided (" + b.Storage + "). Must be one of {" + strings.Join(build.ValidStorageTypeStrings(), ",") + "}.")
@@ -70,17 +85,11 @@ If DIR is not provided, defaults to "."`
 }
 
 func (b *BuildApi) WritOptions() []*writ.Option {
-
-	defaultStorageType := "bolt"
-
 	return []*writ.Option{
 		{
-			Names: []string{"storage", "s"},
-			Decoder: writ.NewDefaulter(
-				writ.NewOptionDecoder(&b.Storage),
-				defaultStorageType,
-			),
-			Description: "Which storage subsystem to use. One of {" + strings.Join(build.ValidStorageTypeStrings(), ",") + "}. Defaults to '" + defaultStorageType + "'.",
+			Names:       []string{"storage", "s"},
+			Decoder:     writ.NewOptionDecoder(&b.Storage),
+			Description: "Which storage subsystem to use. One of {" + strings.Join(build.ValidStorageTypeStrings(), ",") + "}. If not provided, falls back on the DefaultStorageType from config. If that isn't provided, defaults to '" + defaultStorageType + "'.",
 		},
 	}
 }

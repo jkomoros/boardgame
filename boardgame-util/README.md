@@ -57,6 +57,12 @@ many are fine with just "". When the server is started up, it will fetch the
 connection string from this map that matches the Name of the storage engine in
 use.
 
+## DefaultStorageType
+
+DefaultStorageType is the type of storage that will be used in boardgame-util
+if you don't specify one explicitly at the command line. If you don't specify
+one in your config, boardgame-util will fall back on the default type.
+
 ## Games
 
 Games is a tree defining the game packages you want included. This isn't used

@@ -20,6 +20,7 @@
 	},
 	"base" : {
 		"firebaseprojectid": "sample-123456",
+		"defaultstoragetype": "bolt",
 		"games": {
 			"github.com/jkomoros/boardgame/examples": [
 				"checkers",
