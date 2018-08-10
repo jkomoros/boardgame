@@ -36,7 +36,7 @@ func (b *BuildApi) Run(p writ.Path, positional []string) {
 	}
 
 	fmt.Println("Created api binary at " + binaryPath)
-	fmt.Println("You can remove it with `boardgame-util cleanup api " + dir + "`")
+	fmt.Println("You can remove it with `boardgame-util clean api " + dir + "`")
 
 }
 
