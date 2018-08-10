@@ -18,7 +18,7 @@ func (c *CleanApi) Run(p writ.Path, positional []string) {
 
 	dir := "."
 
-	err := build.CleanupApi(dir)
+	err := build.CleanApi(dir)
 
 	if err != nil {
 		errAndQuit(err.Error())

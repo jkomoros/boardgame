@@ -183,7 +183,7 @@ func ApiCode(managers []string, storage StorageType) ([]byte, error) {
 
 }
 
-func CleanupApi(directory string) error {
+func CleanApi(directory string) error {
 	return os.RemoveAll(filepath.Join(directory, subFolder))
 }
 
