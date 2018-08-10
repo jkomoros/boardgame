@@ -116,6 +116,14 @@ func Api(directory string, managers []string, storage StorageType) (string, erro
 		return "", errors.New("Couldn't generate code: " + err.Error())
 	}
 
+	apiDir := filepath.Join(directory, subFolder)
+
+	if _, err := os.Stat(apiDir); os.IsNotExist(err) {
+		if err := os.Mkdir(apiDir, 0700); err != nil {
+			return "", errors.New("Couldn't create api directory: " + err.Error())
+		}
+	}
+
 	codePath := filepath.Join(directory, subFolder, "main.go")
 
 	if err := ioutil.WriteFile(codePath, code, 0644); err != nil {
