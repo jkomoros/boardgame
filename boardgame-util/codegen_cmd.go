@@ -74,7 +74,7 @@ func (c *Codegen) WritOptions() []*writ.Option {
 
 	return []*writ.Option{
 		{
-			Names: []string{"out"},
+			Names: []string{"reader"},
 			Decoder: writ.NewDefaulter(
 				writ.NewOptionDecoder(&c.OutputFile),
 				"auto_reader.go",
@@ -82,7 +82,7 @@ func (c *Codegen) WritOptions() []*writ.Option {
 			Description: "Defines which file to render output to. WARNING: it will be overwritten!",
 		},
 		{
-			Names: []string{"outtest"},
+			Names: []string{"reader-test"},
 			Decoder: writ.NewDefaulter(
 				writ.NewOptionDecoder(&c.OutputFileTest),
 				"auto_reader_test.go",
@@ -90,7 +90,7 @@ func (c *Codegen) WritOptions() []*writ.Option {
 			Description: "For structs in files that end in _test.go, what is the filename they should be exported to?",
 		},
 		{
-			Names: []string{"enumout"},
+			Names: []string{"enum"},
 			Decoder: writ.NewDefaulter(
 				writ.NewOptionDecoder(&c.EnumOutputFile),
 				"auto_enum.go",
