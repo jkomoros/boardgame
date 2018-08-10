@@ -83,13 +83,11 @@ func (s StorageType) Constructor() string {
 
 	switch s {
 	case StorageFilesystem:
-		args = "games/"
+		args = "\"games/\""
 	case StorageBolt:
-		args = ".database"
-	}
-
-	if args != "" {
-		args = "\"" + args + "\""
+		args = "\".database\""
+	case StorageMysql:
+		args = "false"
 	}
 
 	return s.String() + ".NewStorageManager(" + args + ")"
