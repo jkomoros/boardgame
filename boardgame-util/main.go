@@ -11,7 +11,9 @@ package main
 
 import (
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 )
 
 func main() {
@@ -24,6 +26,18 @@ func mainImpl(args []string) {
 	setupParents(b, nil, nil)
 
 	defer b.Cleanup()
+
+	//Make sure that even if we get exited early we still clean up.
+	c := make(chan os.Signal, 1)
+
+	signal.Notify(c, os.Interrupt)
+	signal.Notify(c, syscall.SIGTERM)
+
+	go func() {
+		<-c
+		b.Cleanup()
+		os.Exit(1)
+	}()
 
 	cmd := b.WritCommand()
 
