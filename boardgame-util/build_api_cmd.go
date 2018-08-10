@@ -13,8 +13,6 @@ type BuildApi struct {
 	Storage string
 }
 
-const defaultStorageType = "mysql"
-
 func (b *BuildApi) Run(p writ.Path, positional []string) {
 
 	base := b.Base().(*BoardgameUtil)
@@ -42,10 +40,7 @@ func (b *BuildApi) Run(p writ.Path, positional []string) {
 		storageTypeString = mode.DefaultStorageType
 	}
 
-	if storageTypeString == "" {
-		storageTypeString = defaultStorageType
-	}
-
+	//It's OK if storageTypeString is "", that will just mean TypeDefault.
 	storage := build.StorageTypeFromString(storageTypeString)
 
 	if storage == build.StorageInvalid {
@@ -77,9 +72,7 @@ func (b *BuildApi) Usage() string {
 
 func (b *BuildApi) HelpText() string {
 
-	return b.Name() + ` generates an
-api server binary based on the config.json in use. It creates the binary in a
-folder called 'api' within the given DIR.
+	return b.Name() + ` generates an api server binary based on the config.json in use. It creates the binary in a folder called 'api' within the given DIR.
 
 If DIR is not provided, defaults to "."`
 }
@@ -89,7 +82,7 @@ func (b *BuildApi) WritOptions() []*writ.Option {
 		{
 			Names:       []string{"storage", "s"},
 			Decoder:     writ.NewOptionDecoder(&b.Storage),
-			Description: "Which storage subsystem to use. One of {" + strings.Join(build.ValidStorageTypeStrings(), ",") + "}. If not provided, falls back on the DefaultStorageType from config. If that isn't provided, defaults to '" + defaultStorageType + "'.",
+			Description: "Which storage subsystem to use. One of {" + strings.Join(build.ValidStorageTypeStrings(), ",") + "}. If not provided, falls back on the DefaultStorageType from config, or as a final fallback just the deafult storage type.",
 		},
 	}
 }

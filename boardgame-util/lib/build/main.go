@@ -25,6 +25,7 @@ type StorageType int
 
 const (
 	StorageInvalid StorageType = iota
+	StorageDefault
 	StorageMemory
 	StorageBolt
 	StorageMysql
@@ -42,6 +43,7 @@ func init() {
 //StorageTypeFromString.
 func ValidStorageTypeStrings() []string {
 	return []string{
+		StorageDefault.String(),
 		StorageMemory.String(),
 		StorageBolt.String(),
 		StorageMysql.String(),
@@ -54,6 +56,10 @@ func StorageTypeFromString(in string) StorageType {
 	in = strings.TrimSpace(in)
 
 	switch in {
+	case "default":
+		return StorageDefault
+	case "":
+		return StorageDefault
 	case "memory":
 		return StorageMemory
 	case "bolt":
@@ -69,6 +75,8 @@ func StorageTypeFromString(in string) StorageType {
 
 func (s StorageType) String() string {
 	switch s {
+	case StorageDefault:
+		return "default"
 	case StorageMemory:
 		return "memory"
 	case StorageBolt:
@@ -83,6 +91,12 @@ func (s StorageType) String() string {
 
 //Import is the string denting the import path for this storage type.
 func (s StorageType) Import() string {
+
+	if s == StorageDefault {
+		//api package already imported
+		return ""
+	}
+
 	base := "github.com/jkomoros/boardgame/storage"
 	return filepath.Join(base, s.String())
 }
@@ -90,6 +104,10 @@ func (s StorageType) Import() string {
 //Constructor is a string representing a default constructor for this storage
 //type, e.g. `bolt.NewStorageManager(".database")`
 func (s StorageType) Constructor() string {
+
+	if s == StorageDefault {
+		return "api.NewDefaultStorageManager()"
+	}
 
 	args := ""
 
@@ -174,10 +192,16 @@ func ApiCode(managers []string, storage StorageType) ([]byte, error) {
 		managerPkgNames[i] = filepath.Base(manager)
 	}
 
+	storageImport := storage.Import()
+
+	if storageImport != "" {
+		storageImport = "\"" + storageImport + "\""
+	}
+
 	err := apiTemplate.Execute(buf, map[string]interface{}{
 		"managers":           managers,
 		"managerNames":       managerPkgNames,
-		"storageImport":      storage.Import(),
+		"storageImport":      storageImport,
 		"storageConstructor": storage.Constructor(),
 	})
 
@@ -213,7 +237,7 @@ import (
 	"{{.}}"
 	{{- end}}
 	"github.com/jkomoros/boardgame/server/api"
-	"{{.storageImport}}"
+	{{.storageImport}}
 )
 
 func main() {
