@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/bobziuchkovski/writ"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/build"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
 	"strings"
 )
 
@@ -11,6 +12,26 @@ type BuildApi struct {
 	baseSubCommand
 
 	Storage string
+}
+
+func effectiveStorageType(m *config.ConfigMode, storageOverride string) build.StorageType {
+
+	//Use storage type from command line option, then from DefaultStorageType
+	//in config, then just fallback on defaultStorageType.
+	storageTypeString := storageOverride
+
+	if storageTypeString == "" {
+		storageTypeString = m.DefaultStorageType
+	}
+
+	//It's OK if storageTypeString is "", that will just mean TypeDefault.
+	storage := build.StorageTypeFromString(storageTypeString)
+
+	if storage == build.StorageInvalid {
+		errAndQuit("Invalid storage type provided (" + storageOverride + "). Must be one of {" + strings.Join(build.ValidStorageTypeStrings(), ",") + "}.")
+	}
+
+	return storage
 }
 
 func (b *BuildApi) Run(p writ.Path, positional []string) {
@@ -28,24 +49,10 @@ func (b *BuildApi) Run(p writ.Path, positional []string) {
 	}
 
 	config := base.GetConfig()
-
+	//TODO: allow building for prod with --prod
 	mode := config.Dev
 
-	//Use storage type from command line option, then from DefaultStorageType
-	//in config, then just fallback on defaultStorageType.
-
-	storageTypeString := b.Storage
-
-	if storageTypeString == "" {
-		storageTypeString = mode.DefaultStorageType
-	}
-
-	//It's OK if storageTypeString is "", that will just mean TypeDefault.
-	storage := build.StorageTypeFromString(storageTypeString)
-
-	if storage == build.StorageInvalid {
-		errAndQuit("Invalid storage type provided (" + b.Storage + "). Must be one of {" + strings.Join(build.ValidStorageTypeStrings(), ",") + "}.")
-	}
+	storage := effectiveStorageType(config.Dev, b.Storage)
 
 	binaryPath, err := build.Api(dir, mode.GamesList, storage)
 
