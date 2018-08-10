@@ -12,6 +12,7 @@ package build
 import (
 	"errors"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -41,6 +42,43 @@ func StorageTypeFromString(in string) StorageType {
 	}
 
 	return StorageInvalid
+}
+
+func (s StorageType) String() string {
+	switch s {
+	case StorageMemory:
+		return "memory"
+	case StorageBolt:
+		return "bolt"
+	case StorageMysql:
+		return "mysql"
+	case StorageFilesystem:
+		return "filesystem"
+	}
+	return "invalid"
+}
+
+//Import is the string denting the import path for this storage type.
+func (s StorageType) Import() string {
+	base := "github.com/jkomoros/boardgame/storage"
+	return filepath.Join(base, s.String())
+}
+
+//Constructor is a string representing a default constructor for this storage
+//type, e.g. `bolt.NewStorageManager(".database")`
+func (s StorageType) Constructor() string {
+
+	args := ""
+
+	switch s {
+	case StorageFilesystem:
+		args = "games/"
+	case StorageBolt:
+		args = ".database"
+	}
+
+	return s.String() + "(" + args + ")"
+
 }
 
 /*
