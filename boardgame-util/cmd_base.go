@@ -13,6 +13,7 @@ type BoardgameUtil struct {
 	Codegen Codegen
 	Build   Build
 	Clean   Clean
+	Serve   Serve
 	config  *config.Config
 }
 
@@ -54,6 +55,7 @@ func (b *BoardgameUtil) SubcommandObjects() []SubcommandObject {
 		&b.Codegen,
 		&b.Build,
 		&b.Clean,
+		&b.Serve,
 	}
 }
 
