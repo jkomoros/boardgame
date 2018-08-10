@@ -20,13 +20,11 @@ package filesystem
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/boardgame-util/lib/golden"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/storage/filesystem/record"
 	"github.com/jkomoros/boardgame/storage/internal/helpers"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,9 +33,8 @@ import (
 type StorageManager struct {
 	//Fall back on those methods
 	*helpers.ExtendedMemoryStorageManager
-	basePath         string
-	goldenFolderName string
-	managers         []*boardgame.GameManager
+	basePath string
+	managers []*boardgame.GameManager
 }
 
 //Store seen ids and remember where the path was
@@ -49,14 +46,11 @@ func init() {
 
 //NewStorageManager returns a new filesystem storage manager. basePath is the
 //folder, relative to this executable, to have as the root of the storage
-//pool. If goldenFolderName is not "", we will call golden.LinkGoldenFolders
-//with that folder name and all of the managers bassed in WithManagers. See
-//util/golden.LinkGoldenFolders for more.
-func NewStorageManager(basePath string, goldenFolderName string) *StorageManager {
+//pool.
+func NewStorageManager(basePath string) *StorageManager {
 
 	result := &StorageManager{
-		basePath:         basePath,
-		goldenFolderName: goldenFolderName,
+		basePath: basePath,
 	}
 
 	result.ExtendedMemoryStorageManager = helpers.NewExtendedMemoryStorageManager(result)
@@ -73,13 +67,6 @@ func (s *StorageManager) Connect(config string) error {
 	if _, err := os.Stat(s.basePath); os.IsNotExist(err) {
 		if err := os.Mkdir(s.basePath, 0700); err != nil {
 			return errors.New("Base path didn't exist and couldn't create it: " + err.Error())
-		}
-	}
-
-	if s.goldenFolderName != "" {
-		log.Println("Creating and linking golden folders")
-		if err := golden.LinkGoldenFolders(s.basePath, s.goldenFolderName, s.managers); err != nil {
-			return errors.New("Couldn't link golden folders: " + err.Error())
 		}
 	}
 

@@ -8,7 +8,7 @@ import (
 func TestStorageManager(t *testing.T) {
 
 	test.Test(func() test.StorageManager {
-		return NewStorageManager("test", "")
+		return NewStorageManager("test")
 	}, "filesystem", "", t)
 
 }
