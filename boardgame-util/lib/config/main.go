@@ -34,7 +34,16 @@ type ConfigMode struct {
 	//The storage type that should be used if no storage type is provided via
 	//command line options.
 	DefaultStorageType string
-	Games              *GameNode
+
+	//The GA config string. Will be used to generate the client_config json
+	//blob. Generally has a structure like "UA-321655-11"
+	GoogleAnalytics string
+	Firebase        *FirebaseConfig
+	//The host name the client should connect to in that mode. Something like
+	//"http://localhost:8888"
+	ApiHost string
+
+	Games *GameNode
 	//GamesList is not intended to be inflated from JSON, but rather is
 	//derived based on the contents of Games.
 	GamesList []string
@@ -152,6 +161,7 @@ func (c *ConfigMode) copy() *ConfigMode {
 	}
 
 	result.Games = result.Games.copy()
+	result.Firebase = result.Firebase.copy()
 
 	return result
 
@@ -218,6 +228,14 @@ func (c *ConfigMode) extend(other *ConfigMode) *ConfigMode {
 		result.DisableAdminChecking = true
 	}
 
+	if other.GoogleAnalytics != "" {
+		result.GoogleAnalytics = other.GoogleAnalytics
+	}
+
+	if other.ApiHost != "" {
+		result.ApiHost = other.ApiHost
+	}
+
 	result.AdminUserIds = mergedStrList(c.AdminUserIds, other.AdminUserIds)
 
 	for key, val := range other.StorageConfig {
@@ -225,6 +243,7 @@ func (c *ConfigMode) extend(other *ConfigMode) *ConfigMode {
 	}
 
 	result.Games = result.Games.extend(other.Games)
+	result.Firebase = result.Firebase.extend(other.Firebase)
 
 	return result
 

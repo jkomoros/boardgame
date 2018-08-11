@@ -68,3 +68,45 @@ one in your config, boardgame-util will fall back on the default type.
 Games is a tree defining the game packages you want included. This isn't used
 for antyhing yet, but will allow commands in `boardgame-util` to know which
 games you want to by default operate on.
+
+
+## GoogleAnalytics
+
+The analytics ID to use client-side. Often has a form like "UA-321655-11"
+
+## ApiHost
+
+The host that the client should reach out to in that context to reach the api
+server. In dev context, almost always "http://localhost:8888". In prod
+context, something like "https://example-boardgame.appspot.com"
+
+## Firebase
+
+Firebase is a sub-object that contains the configuration for firebase. The
+fields are a straight forward application of what you get from firebase.
+Mostly used when generating client_config.json.
+
+### ApiKey
+
+Has a form like "AIzaSyDi0hhBgLPbpJabcVCDzDkk8zuFpb9XadM"
+
+### AuthDomain
+
+Has a form like "example-boardgame.firebaseapp.com"
+
+### DatabaseURL
+
+Has a form like "https://example-boardgame.firebaseio.com"
+
+### ProjectID
+
+Has a form like "example-boardgame" . This field is also used in api server to
+validate logins.
+
+### StorageBucket
+
+Has a form like "example-boardgame.appspot.com"
+
+### MessagingSenderID
+
+Has a form like "138149526364"
