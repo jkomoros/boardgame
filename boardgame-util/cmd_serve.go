@@ -5,10 +5,13 @@ import (
 	"github.com/jkomoros/boardgame/boardgame-util/lib/build"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 type Serve struct {
 	baseSubCommand
+
+	Storage string
 }
 
 func (s *Serve) Run(p writ.Path, positional []string) {
@@ -20,9 +23,9 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 
 	dir := base.NewTempDir("temp_serve_")
 
-	//TODO: allow specifying a different storage type
+	storage := effectiveStorageType(mode, s.Storage)
 
-	apiPath, err := build.Api(dir, mode.GamesList, build.StorageBolt)
+	apiPath, err := build.Api(dir, mode.GamesList, storage)
 
 	if err != nil {
 		errAndQuit("Couldn't create api: " + err.Error())
@@ -45,4 +48,14 @@ func (s *Serve) Name() string {
 
 func (s *Serve) Description() string {
 	return "Creates and runs a local development server based on config.json"
+}
+
+func (s *Serve) WritOptions() []*writ.Option {
+	return []*writ.Option{
+		{
+			Names:       []string{"storage", "s"},
+			Decoder:     writ.NewOptionDecoder(&s.Storage),
+			Description: "Which storage subsystem to use. One of {" + strings.Join(build.ValidStorageTypeStrings(), ",") + "}. If not provided, falls back on the DefaultStorageType from config, or as a final fallback just the deafult storage type.",
+		},
+	}
 }
