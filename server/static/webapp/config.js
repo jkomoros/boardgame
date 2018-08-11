@@ -7,9 +7,7 @@ var CONFIG = {
 		"storageBucket": "example-boardgame.appspot.com",
 		"messagingSenderId": "138149526364"
 	},
-	"api": {
-		"dev_host": "http://localhost:8888",
-		"host": "https://boardgame-159316.appspot.com"
-	},
+	"dev_host": "http://localhost:8888",
+	"host": "https://boardgame-159316.appspot.com",
 	"google_analytics": "UA-321674-10"
 }
