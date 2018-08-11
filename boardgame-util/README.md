@@ -73,7 +73,11 @@ The analytics ID to use client-side. Often has a form like "UA-321655-11"
 
 The host that the client should reach out to in that context to reach the api
 server. In dev context, almost always "http://localhost:8888". In prod
-context, something like "https://example-boardgame.appspot.com"
+context, something like "https://example-boardgame.appspot.com".
+
+If not provided, this will be automatically derived based on the mode
+(dev/prod), the DefaultPort, and the Firebase configuration. This automatic
+derivation is almost always what you want.
 
 ## Firebase
 

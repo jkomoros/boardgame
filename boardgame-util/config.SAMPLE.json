@@ -8,8 +8,7 @@
 		],
 		"storageconfig": {
 			"mysql": "Your production server config goes here, See https://github.com/go-sql-driver/mysql for examples"
-		},
-		"apihost": "https://boardgame-159316.appspot.com"
+		}
 	},
 	"dev" : {
 		"defaultport" : "8888",
@@ -17,8 +16,7 @@
 		"disableadminchecking": true,
 		"storageconfig": {
 			"mysql": "root:root@tcp(localhost:3306)/boardgame"
-		},
-		"apihost": "http://localhost:8888"
+		}
 	},
 	"base" : {
 		"defaultstoragetype": "bolt",

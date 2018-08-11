@@ -175,3 +175,95 @@ func TestBaseExtend(t *testing.T) {
 	}
 
 }
+
+func TestApiHostDerivation(t *testing.T) {
+
+	tests := []struct {
+		description string
+		prodMode    bool
+		in          *ConfigMode
+		out         *ConfigMode
+	}{
+		{
+			"No op",
+			false,
+			&ConfigMode{
+				ApiHost:     "provided",
+				DefaultPort: "8888",
+			},
+			&ConfigMode{
+				ApiHost:     "provided",
+				DefaultPort: "8888",
+			},
+		},
+		{
+			"dev",
+			false,
+			&ConfigMode{
+				DefaultPort: "8888",
+			},
+			&ConfigMode{
+				ApiHost:     "http://localhost:8888",
+				DefaultPort: "8888",
+			},
+		},
+		{
+			"prod non default port",
+			true,
+			&ConfigMode{
+				ApiHost:     "",
+				DefaultPort: "8080",
+				Firebase: &FirebaseConfig{
+					StorageBucket: "example-boardgame.appspot.com",
+				},
+			},
+			&ConfigMode{
+				ApiHost:     "https://example-boardgame.appspot.com:8080",
+				DefaultPort: "8080",
+				Firebase: &FirebaseConfig{
+					StorageBucket: "example-boardgame.appspot.com",
+				},
+			},
+		},
+		{
+			"prod no default port",
+			true,
+			&ConfigMode{
+				ApiHost: "",
+				Firebase: &FirebaseConfig{
+					StorageBucket: "example-boardgame.appspot.com",
+				},
+			},
+			&ConfigMode{
+				ApiHost: "https://example-boardgame.appspot.com",
+				Firebase: &FirebaseConfig{
+					StorageBucket: "example-boardgame.appspot.com",
+				},
+			},
+		},
+		{
+			"prod default port 80",
+			true,
+			&ConfigMode{
+				ApiHost:     "",
+				DefaultPort: "80",
+				Firebase: &FirebaseConfig{
+					StorageBucket: "example-boardgame.appspot.com",
+				},
+			},
+			&ConfigMode{
+				ApiHost:     "https://example-boardgame.appspot.com",
+				DefaultPort: "80",
+				Firebase: &FirebaseConfig{
+					StorageBucket: "example-boardgame.appspot.com",
+				},
+			},
+		},
+	}
+
+	for i, test := range tests {
+		test.in.derive(test.prodMode)
+		assert.For(t, i, test.description).ThatActual(test.in).Equals(test.out).ThenDiffOnFail()
+	}
+
+}

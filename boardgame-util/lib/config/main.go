@@ -56,8 +56,8 @@ func (c *Config) derive() {
 		c.Dev = c.Base.extend(c.Dev)
 	}
 
-	c.Prod.derive()
-	c.Dev.derive()
+	c.Prod.derive(true)
+	c.Dev.derive(false)
 
 }
 
@@ -106,13 +106,29 @@ func (c *Config) validate() error {
 
 //derive tells the ConfigMode to do its final processing to create any derived
 //fields, like GamesList.
-func (c *ConfigMode) derive() {
+func (c *ConfigMode) derive(prodMode bool) {
 
 	if c == nil {
 		return
 	}
 
 	c.GamesList = c.Games.List()
+
+	if c.ApiHost == "" {
+		if prodMode {
+			if c.Firebase == nil {
+				return
+			}
+			c.ApiHost = "https://" + c.Firebase.StorageBucket
+
+		} else {
+			c.ApiHost = "http://localhost"
+		}
+
+		if c.DefaultPort != "80" && c.DefaultPort != "" {
+			c.ApiHost += ":" + c.DefaultPort
+		}
+	}
 
 }
 
