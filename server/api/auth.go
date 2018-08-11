@@ -154,7 +154,7 @@ func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie, email, photoUrl, 
 
 	if cookie == "" && uid != "" {
 
-		verifiedUid, err := firebase.VerifyIDToken(token, s.config.FirebaseProjectId)
+		verifiedUid, err := firebase.VerifyIDToken(token, s.config.Firebase.ProjectID)
 
 		if err != nil {
 			r.Error(errors.New("Failed to verify jwt token: " + err.Error()))

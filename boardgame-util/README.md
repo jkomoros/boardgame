@@ -31,11 +31,6 @@ be allowed to access your endpoint.
 DefaultPort is the port (e.g. "8080") to use when no port is specified in
 environment variables.
 
-### FirebaseProjectId
-
-FirebaseProjectId is the ID of your firebase project. It is necessary for user
-authentication. Note that you'll also likely need to update it in index.html
-
 ### DisableAdminChecking
 
 This option *should only be enabled in dev*. When set to true, it disables all

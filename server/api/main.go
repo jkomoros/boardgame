@@ -575,7 +575,7 @@ func (s *Server) doListManager(r *Renderer) {
 
 		i := 0
 
-		for key, _ := range configs {
+		for key := range configs {
 			sortedKeys[i] = key
 			i++
 		}
@@ -1054,6 +1054,11 @@ func (s *Server) Start() {
 		s.logger.Infoln("Using dev mode config")
 		s.config = config.Dev
 		s.logger.SetLevel(logrus.DebugLevel)
+	}
+
+	if s.config.Firebase == nil {
+		s.logger.Errorln("No firebase config provided in active mode. Required for auth.")
+		return
 	}
 
 	s.logger.Infoln("Derived config: " + s.config.String())

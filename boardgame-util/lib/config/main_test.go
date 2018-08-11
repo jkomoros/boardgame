@@ -19,7 +19,6 @@ func TestBaseExtend(t *testing.T) {
 				&ConfigMode{
 					"AllowedOriginsDev",
 					"DefaultPortDev",
-					"FirebaseProjectIDDev",
 					[]string{
 						"AdminUserIdDev1",
 						"AdminUserIdDev2",
@@ -43,7 +42,6 @@ func TestBaseExtend(t *testing.T) {
 				&ConfigMode{
 					"AllowedOriginsDev",
 					"DefaultPortDev",
-					"FirebaseProjectIDDev",
 					[]string{
 						"AdminUserIdDev1",
 						"AdminUserIdDev2",
@@ -69,7 +67,6 @@ func TestBaseExtend(t *testing.T) {
 				&ConfigMode{
 					"AllowedOriginsBase",
 					"DefaultPortBase",
-					"FirebaseProjectIDBase",
 					[]string{
 						"AdminUserIdBase1",
 						"AdminUserIdDev2",
@@ -90,7 +87,6 @@ func TestBaseExtend(t *testing.T) {
 				&ConfigMode{
 					"AllowedOriginsDev",
 					"",
-					"FirebaseProjectIDDev",
 					[]string{
 						"AdminUserIdDev1",
 					},
@@ -111,7 +107,6 @@ func TestBaseExtend(t *testing.T) {
 				&ConfigMode{
 					"AllowedOriginsBase",
 					"DefaultPortBase",
-					"FirebaseProjectIDBase",
 					[]string{
 						"AdminUserIdBase1",
 						"AdminUserIdDev2",
@@ -132,7 +127,6 @@ func TestBaseExtend(t *testing.T) {
 				&ConfigMode{
 					"AllowedOriginsDev",
 					"DefaultPortBase",
-					"FirebaseProjectIDDev",
 					[]string{
 						"AdminUserIdBase1",
 						"AdminUserIdDev2",
@@ -154,7 +148,6 @@ func TestBaseExtend(t *testing.T) {
 				&ConfigMode{
 					"AllowedOriginsBase",
 					"DefaultPortBase",
-					"FirebaseProjectIDBase",
 					[]string{
 						"AdminUserIdBase1",
 						"AdminUserIdDev2",
