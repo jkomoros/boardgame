@@ -1,14 +1,18 @@
 package build
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/golden"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 )
 
 const staticSubFolder = "static"
+const configJsFileName = "config.js"
 
 //The path, relative to goPath, where all of the files are to copy
 const staticServerPackage = "github.com/jkomoros/boardgame/server/static/webapp"
@@ -26,7 +30,7 @@ var filesToLink []string = []string{
 //subfolder of directory. It symlinks necessary resources in. The return value
 //is the directory where the assets can be served from, and an error if there
 //was an error. You can clean up the created folder structure with CleanStatic.
-func Static(directory string, managers []string) (assetRoot string, err error) {
+func Static(directory string, managers []string, c *config.Config) (assetRoot string, err error) {
 	if _, err := os.Stat(directory); os.IsNotExist(err) {
 		return "", errors.New(directory + " did not already exist.")
 	}
@@ -83,7 +87,31 @@ func Static(directory string, managers []string) (assetRoot string, err error) {
 
 	}
 
+	fmt.Println("Creating " + configJsFileName)
+	if err := createConfigJs(filepath.Join(staticDir, configJsFileName), c); err != nil {
+		return "", errors.New("Couldn't create " + configJsFileName + ": " + err.Error())
+	}
+
 	return staticDir, nil
+
+}
+
+func createConfigJs(path string, c *config.Config) error {
+	client := c.Client(false)
+
+	clientBlob, err := json.MarshalIndent(client, "", "\t")
+
+	if err != nil {
+		return errors.New("Couldn't create blob: " + err.Error())
+	}
+
+	fileContents := "var CONFIG = " + string(clientBlob)
+
+	if err := ioutil.WriteFile(path, []byte(fileContents), 0644); err != nil {
+		return errors.New("Couldn't create file: " + err.Error())
+	}
+
+	return nil
 
 }
 
