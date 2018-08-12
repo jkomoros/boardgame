@@ -58,10 +58,16 @@ func TestPrefix(t *testing.T) {
 			"../../../d/e/f",
 			false,
 		},
+		{
+			"/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/boardgame-util/static/",
+			"/Users/jkomoros/Code/go/src/github.com/jkomoros/boardgame/server/static/webapp/bower.json",
+			"../../server/static/webapp/bower.json",
+			false,
+		},
 	}
 
 	for i, test := range tests {
-		result, err := relativizePaths(test.from, test.to)
+		result, err := RelativizePaths(test.from, test.to)
 
 		if test.expectErr {
 			assert.For(t, i).ThatActual(err).IsNotNil()
