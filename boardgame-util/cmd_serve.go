@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"github.com/bobziuchkovski/writ"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/build"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
@@ -25,17 +27,28 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 
 	storage := effectiveStorageType(mode, s.Storage)
 
+	fmt.Println("Creating temporary binary")
 	apiPath, err := build.Api(dir, mode.GamesList, storage)
 
 	if err != nil {
 		errAndQuit("Couldn't create api: " + err.Error())
 	}
 
-	_, err = build.Static(dir, mode.GamesList, config)
+	fmt.Println("Creating temporary static assets folder")
+	staticPath, err := build.Static(dir, mode.GamesList, config)
 
 	if err != nil {
 		errAndQuit("Couldn't create static directory: " + err.Error())
 	}
+
+	go func() {
+
+		fs := http.FileServer(http.Dir(staticPath))
+
+		http.Handle("/", fs)
+		fmt.Println("Starting up asset server at 8080")
+		http.ListenAndServe(":8080", nil)
+	}()
 
 	//TODO: simple serving of staticPath here. Do we need a new parameter for
 	//default static serving port?
