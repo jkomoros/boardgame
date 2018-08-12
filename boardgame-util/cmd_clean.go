@@ -8,7 +8,8 @@ import (
 type Clean struct {
 	baseSubCommand
 
-	CleanApi CleanApi
+	CleanApi    CleanApi
+	CleanStatic CleanStatic
 }
 
 func (c *Clean) Run(p writ.Path, positional []string) {
@@ -26,5 +27,6 @@ func (c *Clean) Description() string {
 func (c *Clean) SubcommandObjects() []SubcommandObject {
 	return []SubcommandObject{
 		&c.CleanApi,
+		&c.CleanStatic,
 	}
 }
