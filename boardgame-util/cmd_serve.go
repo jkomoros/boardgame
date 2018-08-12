@@ -31,6 +31,15 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 		errAndQuit("Couldn't create api: " + err.Error())
 	}
 
+	_, err = build.Static(dir, mode.GamesList, config)
+
+	if err != nil {
+		errAndQuit("Couldn't create static directory: " + err.Error())
+	}
+
+	//TODO: simple serving of staticPath here. Do we need a new parameter for
+	//default static serving port?
+
 	//cmd will be run as though it's in this directory, which is where
 	//config.json is.
 	cmd := exec.Command(apiPath)
