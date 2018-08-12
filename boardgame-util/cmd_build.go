@@ -8,7 +8,8 @@ import (
 type Build struct {
 	baseSubCommand
 
-	BuildApi BuildApi
+	BuildApi    BuildApi
+	BuildStatic BuildStatic
 }
 
 func (b *Build) Run(p writ.Path, positional []string) {
@@ -26,5 +27,6 @@ func (b *Build) Description() string {
 func (b *Build) SubcommandObjects() []SubcommandObject {
 	return []SubcommandObject{
 		&b.BuildApi,
+		&b.BuildStatic,
 	}
 }
