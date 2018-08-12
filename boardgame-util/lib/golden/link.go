@@ -63,13 +63,11 @@ func linkGoldenFolder(gameType, pkgPath, basePath, goldenFolderName string) erro
 	//This SHOULD handle vendored games correctly, given that
 	//reflect.PkgPath() returns using the full path, including /vendor/
 
-	goPath := os.Getenv("GOPATH")
+	fullPkgPath, err := AbsoluteGoPkgPath(pkgPath)
 
-	if goPath == "" {
-		return errors.New("Gopath wasn't set")
+	if err != nil {
+		return errors.New("Couldn't get full pkg path: " + err.Error())
 	}
-
-	fullPkgPath := filepath.Join(goPath, "src", pkgPath)
 
 	fullPath := filepath.Join(fullPkgPath, goldenFolderName)
 
@@ -90,7 +88,7 @@ func linkGoldenFolder(gameType, pkgPath, basePath, goldenFolderName string) erro
 			return errors.New("Couldn't get executable path: " + err.Error())
 		}
 
-		relPath, err := relativizePaths(execPath, fullPath)
+		relPath, err := RelativizePaths(execPath, fullPath)
 
 		if err != nil {
 			return errors.New("Couldn't relativize paths: " + err.Error())
@@ -114,9 +112,25 @@ func linkGoldenFolder(gameType, pkgPath, basePath, goldenFolderName string) erro
 
 }
 
-//relativizePaths takes two absolute paths and returns a string that is the
+//AbsoluteGoPkgPath takes a pkg import and returns the full path to the pkg on
+//this system.
+func AbsoluteGoPkgPath(pkgImport string) (string, error) {
+	goPath := os.Getenv("GOPATH")
+
+	if goPath == "" {
+		return "", errors.New("Gopath wasn't set")
+	}
+
+	fullPkgPath := filepath.Join(goPath, "src", pkgImport)
+
+	return fullPkgPath, nil
+}
+
+//RelativizePaths takes two absolute paths and returns a string that is the
 //relative path from from to to.
-func relativizePaths(from, to string) (string, error) {
+func RelativizePaths(from, to string) (string, error) {
+
+	//TODO: pop this out to another more generic place
 
 	if !filepath.IsAbs(from) {
 		return "", errors.New("From is not absolute")
@@ -142,7 +156,7 @@ func relativizePaths(from, to string) (string, error) {
 
 	dots := make([]string, len(fromPieces))
 
-	for i, _ := range fromPieces {
+	for i := range fromPieces {
 		dots[i] = ".."
 	}
 
