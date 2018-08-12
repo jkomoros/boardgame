@@ -19,6 +19,7 @@ func TestBaseExtend(t *testing.T) {
 				&ConfigMode{
 					"AllowedOriginsDev",
 					"DefaultPortDev",
+					"DefaultStaticPortDev",
 					[]string{
 						"AdminUserIdDev1",
 						"AdminUserIdDev2",
@@ -42,6 +43,7 @@ func TestBaseExtend(t *testing.T) {
 				&ConfigMode{
 					"AllowedOriginsDev",
 					"DefaultPortDev",
+					"DefaultStaticPortDev",
 					[]string{
 						"AdminUserIdDev1",
 						"AdminUserIdDev2",
@@ -67,6 +69,7 @@ func TestBaseExtend(t *testing.T) {
 				&ConfigMode{
 					"AllowedOriginsBase",
 					"DefaultPortBase",
+					"DefaultStaticPortBase",
 					[]string{
 						"AdminUserIdBase1",
 						"AdminUserIdDev2",
@@ -86,6 +89,7 @@ func TestBaseExtend(t *testing.T) {
 				},
 				&ConfigMode{
 					"AllowedOriginsDev",
+					"",
 					"",
 					[]string{
 						"AdminUserIdDev1",
@@ -107,6 +111,7 @@ func TestBaseExtend(t *testing.T) {
 				&ConfigMode{
 					"AllowedOriginsBase",
 					"DefaultPortBase",
+					"DefaultStaticPortBase",
 					[]string{
 						"AdminUserIdBase1",
 						"AdminUserIdDev2",
@@ -127,6 +132,7 @@ func TestBaseExtend(t *testing.T) {
 				&ConfigMode{
 					"AllowedOriginsDev",
 					"DefaultPortBase",
+					"DefaultStaticPortBase",
 					[]string{
 						"AdminUserIdBase1",
 						"AdminUserIdDev2",
@@ -148,6 +154,7 @@ func TestBaseExtend(t *testing.T) {
 				&ConfigMode{
 					"AllowedOriginsBase",
 					"DefaultPortBase",
+					"DefaultStaticPortBase",
 					[]string{
 						"AdminUserIdBase1",
 						"AdminUserIdDev2",

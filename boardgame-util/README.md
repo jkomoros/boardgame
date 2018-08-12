@@ -28,8 +28,14 @@ be allowed to access your endpoint.
 
 ### DefaultPort
 
-DefaultPort is the port (e.g. "8080") to use when no port is specified in
-environment variables.
+DefaultPort is the port (e.g. "8888") to use for the api binary when no port
+is specified in environment variables.
+
+### DefaultStaticPort
+
+DefaultStaticPort is the default port to use in `boardgame-util serve` for the
+static files. Doesn't do anything in prod (since you typically serve the files
+using a more generic static file server like firebase)
 
 ### DisableAdminChecking
 

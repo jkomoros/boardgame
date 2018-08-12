@@ -24,9 +24,10 @@ type Config struct {
 }
 
 type ConfigMode struct {
-	AllowedOrigins string
-	DefaultPort    string
-	AdminUserIds   []string
+	AllowedOrigins    string
+	DefaultPort       string
+	DefaultStaticPort string
+	AdminUserIds      []string
 	//This is a dangerous config. Only enable in Dev!
 	DisableAdminChecking bool
 	StorageConfig        map[string]string
@@ -233,6 +234,10 @@ func (c *ConfigMode) extend(other *ConfigMode) *ConfigMode {
 
 	if other.DefaultPort != "" {
 		result.DefaultPort = other.DefaultPort
+	}
+
+	if other.DefaultStaticPort != "" {
+		result.DefaultStaticPort = other.DefaultStaticPort
 	}
 
 	if other.DisableAdminChecking {

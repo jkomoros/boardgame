@@ -45,9 +45,15 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 
 		fs := http.FileServer(http.Dir(staticPath))
 
+		staticPort := "8080"
+
+		if mode.DefaultStaticPort != "" {
+			staticPort = mode.DefaultStaticPort
+		}
+
 		http.Handle("/", fs)
-		fmt.Println("Starting up asset server at 8080")
-		http.ListenAndServe(":8080", nil)
+		fmt.Println("Starting up asset server at " + staticPort)
+		http.ListenAndServe(":"+staticPort, nil)
 	}()
 
 	//TODO: simple serving of staticPath here. Do we need a new parameter for
