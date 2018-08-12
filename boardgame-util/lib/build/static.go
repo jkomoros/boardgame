@@ -8,6 +8,7 @@ import (
 	"github.com/jkomoros/boardgame/boardgame-util/lib/path"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -35,6 +36,11 @@ var filesToLink []string = []string{
 //is the directory where the assets can be served from, and an error if there
 //was an error. You can clean up the created folder structure with CleanStatic.
 func Static(directory string, managers []string, c *config.Config) (assetRoot string, err error) {
+
+	if err := ensureBowerComponents(); err != nil {
+		return "", errors.New("bower_components couldn't be created: " + err.Error())
+	}
+
 	if _, err := os.Stat(directory); os.IsNotExist(err) {
 		return "", errors.New(directory + " did not already exist.")
 	}
@@ -107,6 +113,42 @@ func Static(directory string, managers []string, c *config.Config) (assetRoot st
 	}
 
 	return staticDir, nil
+
+}
+
+//ensureBowerComoonents ensures that
+//`$GOPATH/src/github.com/jkomoros/boardgame/server/static/webapp` has bower
+//components.
+func ensureBowerComponents() error {
+
+	p, err := path.AbsoluteGoPkgPath(staticServerPackage)
+
+	if err != nil {
+		return err
+	}
+
+	if _, err := os.Stat(filepath.Join(p, "bower_components")); err == nil {
+		//It appears to exist, we're fine!
+		return nil
+	}
+
+	_, err = exec.LookPath("bower")
+
+	if err != nil {
+		return errors.New("bower_components didn't exist and bower didn't appear to be installed. You need to install bower.")
+	}
+
+	cmd := exec.Command("bower", "update")
+	cmd.Dir = p
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	fmt.Println("bower_components didn't exist, running `bower update`...")
+	if err := cmd.Run(); err != nil {
+		return errors.New("Couldn't `bower update`: " + err.Error())
+	}
+
+	return nil
 
 }
 
