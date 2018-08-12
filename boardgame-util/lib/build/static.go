@@ -13,6 +13,8 @@ import (
 
 const staticSubFolder = "static"
 const configJsFileName = "config.js"
+const gameSrcSubFolder = "game-src"
+const clientSubFolder = "client"
 
 //The path, relative to goPath, where all of the files are to copy
 const staticServerPackage = "github.com/jkomoros/boardgame/server/static/webapp"
@@ -92,7 +94,80 @@ func Static(directory string, managers []string, c *config.Config) (assetRoot st
 		return "", errors.New("Couldn't create " + configJsFileName + ": " + err.Error())
 	}
 
+	fmt.Println("Creatig " + gameSrcSubFolder)
+	if err := linkGameClientFolders(staticDir, managers); err != nil {
+		return "", errors.New("Couldn't create " + gameSrcSubFolder + ": " + err.Error())
+	}
+
 	return staticDir, nil
+
+}
+
+//linkGameClientFolders creates a game-src within basePath and then links the
+//client folders for each one.
+func linkGameClientFolders(basePath string, managers []string) error {
+
+	if _, err := os.Stat(basePath); os.IsNotExist(err) {
+		return errors.New(basePath + " doesn't exist")
+	}
+
+	gameSrcDir := filepath.Join(basePath, gameSrcSubFolder)
+
+	if _, err := os.Stat(gameSrcDir); os.IsNotExist(err) {
+		if err := os.Mkdir(gameSrcDir, 0700); err != nil {
+			return errors.New("Couldn't create game-src directory: " + err.Error())
+		}
+	}
+
+	workingDirectory, err := os.Getwd()
+
+	if err != nil {
+		return errors.New("Can't get working directory: " + err.Error())
+	}
+
+	for _, manager := range managers {
+		absPkgPath, err := path.AbsoluteGoPkgPath(manager)
+
+		if err != nil {
+			return errors.New("Couldn't generate absPkgPath for " + manager + ": " + err.Error())
+		}
+
+		absClientPath := filepath.Join(absPkgPath, clientSubFolder)
+
+		if _, err := os.Stat(absClientPath); os.IsNotExist(err) {
+			fmt.Println("Skipping " + manager + " because it doesn't appear to have a client sub-directory")
+			continue
+		}
+
+		pkgShortName := filepath.Base(manager)
+
+		relLocalPath := filepath.Join(gameSrcDir, pkgShortName)
+
+		//This feels like it should be relLocalPath, but it needs to be
+		//gameSrcDir, otherwise there's an extra ".." in the path. Not really
+		//sure why. :-/
+		absLocalPath := filepath.Join(workingDirectory, gameSrcDir)
+
+		relPath, err := path.RelativizePaths(absLocalPath, absClientPath)
+
+		if err != nil {
+			return errors.New("Couldn't relativize path: " + err.Error())
+		}
+
+		rejoinedPath := filepath.Join(absLocalPath, relPath)
+
+		if _, err := os.Stat(rejoinedPath); os.IsNotExist(err) {
+			return errors.New("Unexpected error: relPath of " + relPath + " doesn't exist " + absLocalPath + " : " + absClientPath + "(" + rejoinedPath + ")")
+		}
+
+		fmt.Println("Linking " + relLocalPath + " to " + relPath)
+		if err := os.Symlink(relPath, relLocalPath); err != nil {
+			return errors.New("Couldn't create sym lnk for " + manager + ": " + relPath + ":: " + relLocalPath)
+		}
+
+	}
+
+	return nil
 
 }
 
