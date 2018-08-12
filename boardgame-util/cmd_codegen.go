@@ -24,9 +24,16 @@ func (c *Codegen) Name() string {
 	return "codegen"
 }
 
-func codegenPackageNameOrErr(positional []string) string {
+func dirPositionalOrDefault(positional []string, isPkg bool) string {
+
+	errString := "More than one positional argument provided, expecting only DIR"
+
+	if isPkg {
+		errString = "More than one positional argument provided, expecting only PKG"
+	}
+
 	if len(positional) > 1 {
-		errAndQuit("More than one positional argument provided, expecting only package")
+		errAndQuit(errString)
 	}
 	if len(positional) == 0 {
 		return "."

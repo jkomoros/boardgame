@@ -15,7 +15,7 @@ type CodegenReader struct {
 
 func (c *CodegenReader) Run(p writ.Path, positional []string) {
 
-	pkgDirectory := codegenPackageNameOrErr(positional)
+	pkgDirectory := dirPositionalOrDefault(positional, true)
 
 	parent := c.Parent().(*Codegen)
 

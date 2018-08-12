@@ -13,7 +13,7 @@ type CodegenEnum struct {
 
 func (c *CodegenEnum) Run(p writ.Path, positional []string) {
 
-	packageDir := codegenPackageNameOrErr(positional)
+	packageDir := dirPositionalOrDefault(positional, true)
 
 	parent := c.Parent().(*Codegen)
 

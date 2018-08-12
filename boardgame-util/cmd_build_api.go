@@ -40,15 +40,7 @@ func (b *BuildApi) Run(p writ.Path, positional []string) {
 
 	base := b.Base().(*BoardgameUtil)
 
-	if len(positional) > 1 {
-		errAndQuit(b.Name() + " called with more than one positional argument")
-	}
-
-	dir := "."
-
-	if len(positional) > 0 {
-		dir = positional[0]
-	}
+	dir := dirPositionalOrDefault(positional, false)
 
 	config := base.GetConfig()
 
