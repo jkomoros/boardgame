@@ -1,12 +1,12 @@
 package config
 
 type FirebaseConfig struct {
-	ApiKey            string
-	AuthDomain        string
-	DatabaseURL       string
-	ProjectID         string
-	StorageBucket     string
-	MessagingSenderID string
+	ApiKey            string `json:"apiKey"`
+	AuthDomain        string `json:"autoDomain"`
+	DatabaseURL       string `json:"databaseURL"`
+	ProjectID         string `json:"projectId"`
+	StorageBucket     string `json:"storageBucket"`
+	MessagingSenderID string `json:"messagingSenderId"`
 }
 
 func (f *FirebaseConfig) copy() *FirebaseConfig {
