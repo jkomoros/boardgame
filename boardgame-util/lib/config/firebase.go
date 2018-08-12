@@ -2,7 +2,7 @@ package config
 
 type FirebaseConfig struct {
 	ApiKey            string `json:"apiKey"`
-	AuthDomain        string `json:"autoDomain"`
+	AuthDomain        string `json:"authDomain"`
 	DatabaseURL       string `json:"databaseURL"`
 	ProjectID         string `json:"projectId"`
 	StorageBucket     string `json:"storageBucket"`
