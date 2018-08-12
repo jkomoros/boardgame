@@ -16,7 +16,6 @@ const staticServerPackage = "github.com/jkomoros/boardgame/server/static/webapp"
 var filesToLink []string = []string{
 	"bower.json",
 	"firebase.json",
-	"index.html",
 	"polymer.json",
 	"manifest.json",
 	"index.html",
