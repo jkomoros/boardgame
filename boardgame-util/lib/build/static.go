@@ -94,7 +94,7 @@ func Static(directory string, managers []string, c *config.Config) (assetRoot st
 		return "", errors.New("Couldn't create " + configJsFileName + ": " + err.Error())
 	}
 
-	fmt.Println("Creatig " + gameSrcSubFolder)
+	fmt.Println("Creating " + gameSrcSubFolder)
 	if err := linkGameClientFolders(staticDir, managers); err != nil {
 		return "", errors.New("Couldn't create " + gameSrcSubFolder + ": " + err.Error())
 	}
@@ -158,6 +158,11 @@ func linkGameClientFolders(basePath string, managers []string) error {
 
 		if _, err := os.Stat(rejoinedPath); os.IsNotExist(err) {
 			return errors.New("Unexpected error: relPath of " + relPath + " doesn't exist " + absLocalPath + " : " + absClientPath + "(" + rejoinedPath + ")")
+		}
+
+		if _, err := os.Stat(relLocalPath); err == nil {
+			//Must already exist, so can skip
+			continue
 		}
 
 		fmt.Println("Linking " + relLocalPath + " to " + relPath)
