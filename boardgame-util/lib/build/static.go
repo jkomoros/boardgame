@@ -19,7 +19,7 @@ var filesToLink []string = []string{
 	"polymer.json",
 	"manifest.json",
 	"index.html",
-	"src/",
+	"src",
 }
 
 //Static creates a folder of static resources for serving within the static
@@ -57,10 +57,16 @@ func Static(directory string, managers []string) (assetRoot string, err error) {
 
 	for _, name := range filesToLink {
 		localPath := filepath.Join(staticDir, name)
-		absLocalPath := filepath.Join(workingDirectory, localPath)
+		absLocalDirPath := filepath.Join(workingDirectory, staticDir) + string(filepath.Separator)
 		absRemotePath := filepath.Join(fullPkgPath, name)
 
-		relRemotePath, err := golden.RelativizePaths(absLocalPath, absRemotePath)
+		relRemotePath, err := golden.RelativizePaths(absLocalDirPath, absRemotePath)
+
+		rejoinedPath := filepath.Join(absLocalDirPath, relRemotePath)
+
+		if _, err := os.Stat(rejoinedPath); os.IsNotExist(err) {
+			return "", errors.New("Unexpected error: relRemotePath of " + relRemotePath + " doesn't exist " + absLocalDirPath + " : " + absRemotePath + "(" + rejoinedPath + ")")
+		}
 
 		if err != nil {
 			return "", errors.New("Couldn't relativize paths: " + err.Error())
