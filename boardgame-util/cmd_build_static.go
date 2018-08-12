@@ -1,8 +1,9 @@
 package main
 
 import (
-	"errors"
+	"fmt"
 	"github.com/bobziuchkovski/writ"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/build"
 )
 
 type BuildStatic struct {
@@ -11,10 +12,22 @@ type BuildStatic struct {
 
 func (b *BuildStatic) Run(p writ.Path, positional []string) {
 
-	//Positional dir should use the same thing we use in cmd_codegen. (And
-	//buildApi should too)
+	base := b.Base().(*BoardgameUtil)
 
-	p.Last().ExitHelp(errors.New("Not yet implemented"))
+	dir := dirPositionalOrDefault(positional, false)
+
+	config := base.GetConfig()
+
+	mode := config.Dev
+
+	staticPath, err := build.Static(dir, mode.GamesList)
+
+	if err != nil {
+		errAndQuit("Couldn't create static directory: " + err.Error())
+	}
+
+	fmt.Println("Created static dir at " + staticPath)
+	fmt.Println("You can remove it with `boardgame-util clean static " + dir + "`")
 
 }
 
