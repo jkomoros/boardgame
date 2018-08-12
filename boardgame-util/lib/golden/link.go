@@ -3,8 +3,8 @@ package golden
 import (
 	"bytes"
 	"errors"
-	"github.com/abcum/lcp"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/path"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -13,7 +13,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strings"
 	"text/template"
 )
 
@@ -63,7 +62,7 @@ func linkGoldenFolder(gameType, pkgPath, basePath, goldenFolderName string) erro
 	//This SHOULD handle vendored games correctly, given that
 	//reflect.PkgPath() returns using the full path, including /vendor/
 
-	fullPkgPath, err := AbsoluteGoPkgPath(pkgPath)
+	fullPkgPath, err := path.AbsoluteGoPkgPath(pkgPath)
 
 	if err != nil {
 		return errors.New("Couldn't get full pkg path: " + err.Error())
@@ -88,7 +87,7 @@ func linkGoldenFolder(gameType, pkgPath, basePath, goldenFolderName string) erro
 			return errors.New("Couldn't get executable path: " + err.Error())
 		}
 
-		relPath, err := RelativizePaths(execPath, fullPath)
+		relPath, err := path.RelativizePaths(execPath, fullPath)
 
 		if err != nil {
 			return errors.New("Couldn't relativize paths: " + err.Error())
@@ -109,58 +108,6 @@ func linkGoldenFolder(gameType, pkgPath, basePath, goldenFolderName string) erro
 	}
 
 	return nil
-
-}
-
-//AbsoluteGoPkgPath takes a pkg import and returns the full path to the pkg on
-//this system.
-func AbsoluteGoPkgPath(pkgImport string) (string, error) {
-	goPath := os.Getenv("GOPATH")
-
-	if goPath == "" {
-		return "", errors.New("Gopath wasn't set")
-	}
-
-	fullPkgPath := filepath.Join(goPath, "src", pkgImport)
-
-	return fullPkgPath, nil
-}
-
-//RelativizePaths takes two absolute paths and returns a string that is the
-//relative path from from to to.
-func RelativizePaths(from, to string) (string, error) {
-
-	//TODO: pop this out to another more generic place
-
-	if !filepath.IsAbs(from) {
-		return "", errors.New("From is not absolute")
-	}
-
-	if !filepath.IsAbs(to) {
-		return "", errors.New("To is not absolute")
-	}
-
-	from = filepath.Clean(from)
-	to = filepath.Clean(to)
-
-	prefix := string(lcp.LCP([]byte(from), []byte(to)))
-
-	if prefix == "" {
-		return "", errors.New("No prefix in common")
-	}
-
-	fromRest := strings.TrimPrefix(from, prefix)
-	toRest := strings.TrimPrefix(to, prefix)
-
-	fromPieces := strings.Split(fromRest, string(filepath.Separator))
-
-	dots := make([]string, len(fromPieces))
-
-	for i := range fromPieces {
-		dots[i] = ".."
-	}
-
-	return filepath.Join(filepath.Join(dots...), toRest), nil
 
 }
 

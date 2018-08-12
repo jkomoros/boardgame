@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
-	"github.com/jkomoros/boardgame/boardgame-util/lib/golden"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/path"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -43,7 +43,7 @@ func Static(directory string, managers []string, c *config.Config) (assetRoot st
 		}
 	}
 
-	fullPkgPath, err := golden.AbsoluteGoPkgPath(staticServerPackage)
+	fullPkgPath, err := path.AbsoluteGoPkgPath(staticServerPackage)
 
 	if err != nil {
 		return "", errors.New("Couldn't get full package path: " + err.Error())
@@ -64,7 +64,7 @@ func Static(directory string, managers []string, c *config.Config) (assetRoot st
 		absLocalDirPath := filepath.Join(workingDirectory, staticDir) + string(filepath.Separator)
 		absRemotePath := filepath.Join(fullPkgPath, name)
 
-		relRemotePath, err := golden.RelativizePaths(absLocalDirPath, absRemotePath)
+		relRemotePath, err := path.RelativizePaths(absLocalDirPath, absRemotePath)
 
 		rejoinedPath := filepath.Join(absLocalDirPath, relRemotePath)
 
