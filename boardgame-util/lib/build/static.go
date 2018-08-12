@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const staticSubFolder = "static"
@@ -26,6 +27,7 @@ var filesToLink []string = []string{
 	"manifest.json",
 	"index.html",
 	"src",
+	"bower_components",
 }
 
 //Static creates a folder of static resources for serving within the static
@@ -71,6 +73,11 @@ func Static(directory string, managers []string, c *config.Config) (assetRoot st
 		rejoinedPath := filepath.Join(absLocalDirPath, relRemotePath)
 
 		if _, err := os.Stat(rejoinedPath); os.IsNotExist(err) {
+
+			if strings.Contains(name, "bower") {
+				return "", errors.New("bower_components doesn't appear to exist. You may need to run `bower update` from within `boardgame/server/static/webapp`.")
+			}
+
 			return "", errors.New("Unexpected error: relRemotePath of " + relRemotePath + " doesn't exist " + absLocalDirPath + " : " + absRemotePath + "(" + rejoinedPath + ")")
 		}
 
