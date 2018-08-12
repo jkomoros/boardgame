@@ -181,14 +181,14 @@ func linkGameClientFolders(basePath string, managers []string) error {
 			return errors.New("Couldn't generate absPkgPath for " + manager + ": " + err.Error())
 		}
 
-		absClientPath := filepath.Join(absPkgPath, clientSubFolder)
+		pkgShortName := filepath.Base(manager)
+
+		absClientPath := filepath.Join(absPkgPath, clientSubFolder, pkgShortName)
 
 		if _, err := os.Stat(absClientPath); os.IsNotExist(err) {
 			fmt.Println("Skipping " + manager + " because it doesn't appear to have a client sub-directory")
 			continue
 		}
-
-		pkgShortName := filepath.Base(manager)
 
 		relLocalPath := filepath.Join(gameSrcDir, pkgShortName)
 
