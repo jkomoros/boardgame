@@ -45,7 +45,32 @@ func SimpleStaticServer(directory string, port string) error {
 
 	fs := http.FileServer(http.Dir(staticPath))
 
-	http.Handle("/", fs)
+	infos, err := ioutil.ReadDir(staticPath)
+
+	if err != nil {
+		return errors.New("Couldn't enumerate items in serving path")
+	}
+
+	//Install specific handlers for each existing file or directory in the
+	//path to serve.
+	for _, info := range infos {
+		if info.Name() == "index.html" {
+			continue
+		}
+		name := "/" + info.Name()
+		if info.IsDir() {
+			name += "/"
+		}
+		http.Handle(name, fs)
+	}
+
+	//This pattern will match as fallback (it's the shortest), and should
+	//return "index.html" for everythign that doesn't match one of the ones
+	//already returned.
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		//Safe to use since "index.html" is not provided by user but is a constant
+		http.ServeFile(w, r, filepath.Join(staticPath, "index.html"))
+	})
 
 	return http.ListenAndServe(":"+port, nil)
 
