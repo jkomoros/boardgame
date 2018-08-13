@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/bobziuchkovski/writ"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/build"
-	"net/http"
 	"os"
 	"os/exec"
 	"strings"
@@ -35,25 +34,24 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 	}
 
 	fmt.Println("Creating temporary static assets folder")
-	staticPath, err := build.Static(dir, mode.GamesList, config)
+	_, err = build.Static(dir, mode.GamesList, config)
 
 	if err != nil {
 		errAndQuit("Couldn't create static directory: " + err.Error())
 	}
 
+	staticPort := "8080"
+
+	if mode.DefaultStaticPort != "" {
+		staticPort = mode.DefaultStaticPort
+	}
+
 	go func() {
-
-		fs := http.FileServer(http.Dir(staticPath))
-
-		staticPort := "8080"
-
-		if mode.DefaultStaticPort != "" {
-			staticPort = mode.DefaultStaticPort
-		}
-
-		http.Handle("/", fs)
 		fmt.Println("Starting up asset server at " + staticPort)
-		http.ListenAndServe(":"+staticPort, nil)
+		if err := build.SimpleStaticServer(dir, staticPort); err != nil {
+			//TODO: when this happens we should quit the whole program
+			fmt.Println("ERROR: couldn't start static server: " + err.Error())
+		}
 	}()
 
 	//TODO: simple serving of staticPath here. Do we need a new parameter for

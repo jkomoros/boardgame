@@ -7,6 +7,7 @@ import (
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/path"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -29,6 +30,25 @@ var filesToLink []string = []string{
 	"index.html",
 	"src",
 	"bower_components",
+}
+
+//SimpleStaticServer creates and runs a simple static server. directory is the
+//folder that the `static` folder is contained within. If no error is
+//returned, Runs until the program exits.
+func SimpleStaticServer(directory string, port string) error {
+
+	staticPath := filepath.Join(directory, staticSubFolder)
+
+	if _, err := os.Stat(staticPath); os.IsNotExist(err) {
+		return errors.New(staticPath + " does not exist")
+	}
+
+	fs := http.FileServer(http.Dir(staticPath))
+
+	http.Handle("/", fs)
+
+	return http.ListenAndServe(":"+port, nil)
+
 }
 
 //Static creates a folder of static resources for serving within the static
