@@ -22,14 +22,12 @@ const clientSubFolder = "client"
 //The path, relative to goPath, where all of the files are to copy
 const staticServerPackage = "github.com/jkomoros/boardgame/server/static/webapp"
 
-var filesToLink []string = []string{
-	"bower.json",
-	"firebase.json",
-	"polymer.json",
-	"manifest.json",
-	"index.html",
-	"src",
-	"bower_components",
+var filesToExclude map[string]bool = map[string]bool{
+	".gitignore": true,
+	"README.md":  true,
+	//Don't copy over because we'll generate our own; if we copy over and
+	//generate our own we'll overwrite original.
+	"config.js": true,
 }
 
 //SimpleStaticServer creates and runs a simple static server. directory is the
@@ -128,7 +126,20 @@ func Static(directory string, managers []string, c *config.Config) (assetRoot st
 		return "", errors.New("Can't get working directory: " + err.Error())
 	}
 
-	for _, name := range filesToLink {
+	infos, err := ioutil.ReadDir(fullPkgPath)
+
+	if err != nil {
+		return "", errors.New("Couldn't list files in remote directory: " + err.Error())
+	}
+
+	for _, info := range infos {
+
+		name := info.Name()
+
+		if filesToExclude[name] {
+			continue
+		}
+
 		localPath := filepath.Join(staticDir, name)
 		absLocalDirPath := filepath.Join(workingDirectory, staticDir) + string(filepath.Separator)
 		absRemotePath := filepath.Join(fullPkgPath, name)
