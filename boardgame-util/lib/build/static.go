@@ -58,10 +58,24 @@ func SimpleStaticServer(directory string, port string) error {
 			continue
 		}
 		name := "/" + info.Name()
+
 		if info.IsDir() {
 			name += "/"
+		} else {
+
+			//Need to check if the file is a symlink to a directory, and symnlinks to directory
+			//don't report as a directory in info.
+			resolvedPath, err := filepath.EvalSymlinks(filepath.Join(staticPath, info.Name()))
+			if err == nil {
+				if info, err := os.Stat(resolvedPath); err == nil {
+					if info.IsDir() {
+						name += "/"
+					}
+				}
+			}
 		}
-		http.Handle(name, fs)
+
+		http.Handle(name, http.StripPrefix(name, fs))
 	}
 
 	//This pattern will match as fallback (it's the shortest), and should
