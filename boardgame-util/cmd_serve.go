@@ -13,6 +13,9 @@ type Serve struct {
 	baseSubCommand
 
 	Storage string
+
+	Port       string
+	StaticPort string
 }
 
 func (s *Serve) Run(p writ.Path, positional []string) {
@@ -46,6 +49,10 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 		staticPort = mode.DefaultStaticPort
 	}
 
+	if s.StaticPort != "" {
+		staticPort = s.StaticPort
+	}
+
 	go func() {
 		fmt.Println("Starting up asset server at " + staticPort)
 		if err := build.SimpleStaticServer(dir, staticPort); err != nil {
@@ -57,11 +64,22 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 	//TODO: simple serving of staticPath here. Do we need a new parameter for
 	//default static serving port?
 
+	port := "8888"
+
+	if mode.DefaultPort != "" {
+		port = mode.DefaultPort
+	}
+
+	if s.Port != "" {
+		port = s.Port
+	}
+
 	//cmd will be run as though it's in this directory, which is where
 	//config.json is.
 	cmd := exec.Command(apiPath)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
+	cmd.Env = append(os.Environ(), "PORT="+port)
 
 	err = cmd.Run()
 
@@ -96,6 +114,16 @@ func (s *Serve) WritOptions() []*writ.Option {
 			Names:       []string{"storage", "s"},
 			Decoder:     writ.NewOptionDecoder(&s.Storage),
 			Description: "Which storage subsystem to use. One of {" + strings.Join(build.ValidStorageTypeStrings(), ",") + "}. If not provided, falls back on the DefaultStorageType from config, or as a final fallback just the deafult storage type.",
+		},
+		{
+			Names:       []string{"port", "p"},
+			Decoder:     writ.NewOptionDecoder(&s.Port),
+			Description: "Port to use for the api server, overriding value in config.json's DefaultPort",
+		},
+		{
+			Names:       []string{"static-port"},
+			Decoder:     writ.NewOptionDecoder(&s.StaticPort),
+			Description: "Port to use for the static file server, overridig value in config.json's DefaultStaticPort",
 		},
 	}
 }
