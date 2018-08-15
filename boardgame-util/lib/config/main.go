@@ -21,6 +21,10 @@ type Config struct {
 	Base *ConfigMode
 	Dev  *ConfigMode
 	Prod *ConfigMode
+	//If extendWithPrivate(other) is called, the other's path will be set here
+	privatePath string
+	//Path is the path this config was loaded up from
+	path string
 }
 
 type ConfigMode struct {
@@ -63,15 +67,44 @@ func (c *Config) derive() {
 }
 
 func (c *Config) copy() *Config {
-	return &Config{
-		c.Base.copy(),
-		c.Dev.copy(),
-		c.Prod.copy(),
+
+	result := &Config{}
+
+	//Copy over all of the non-deep stuff
+	(*result) = *c
+
+	result.Base = c.Base.copy()
+	result.Dev = c.Dev.copy()
+	result.Prod = c.Prod.copy()
+
+	return result
+}
+
+//Path returns the path that this config's public components were loaded from.
+func (c *Config) Path() string {
+	return c.path
+}
+
+//PrivatePath returns the path that this config's private components were
+//loaded from, or "" if no private components.
+func (c *Config) PrivatePath() string {
+	return c.privatePath
+}
+
+//extendWithPrivate is a wrapper around extend. In addition to normal
+//behavior, it sets result's privatePath to be private's path. This means that
+//the result will return the right thing for Path() and PrivatePath().
+func (c *Config) extendWithPrivate(private *Config) *Config {
+	result := c.extend(private)
+	if private != nil {
+		result.privatePath = private.path
 	}
+	return result
 }
 
 //extend takes an other config and returns a *new* config where any non-zero
-//value for other extends base.
+//value for other extends base. If you're extending with private, use
+//extendWithPrivate instead.
 func (c *Config) extend(other *Config) *Config {
 
 	result := c.copy()
@@ -362,6 +395,8 @@ func getConfig(filename string) (*Config, error) {
 		return nil, errors.New("couldn't unmarshal config file: " + err.Error())
 	}
 
+	config.path = filename
+
 	return &config, nil
 }
 
@@ -380,7 +415,7 @@ func combinedConfig() (*Config, error) {
 		return nil, errors.New("Couldn't get private config: " + err.Error())
 	}
 
-	return publicConfig.extend(privateConfig), nil
+	return publicConfig.extendWithPrivate(privateConfig), nil
 
 }
 

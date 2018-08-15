@@ -37,6 +37,8 @@ func TestBaseExtend(t *testing.T) {
 					nil,
 				},
 				nil,
+				"",
+				"",
 			},
 			&Config{
 				nil,
@@ -61,6 +63,8 @@ func TestBaseExtend(t *testing.T) {
 					nil,
 				},
 				nil,
+				"",
+				"",
 			},
 		},
 		{
@@ -106,6 +110,8 @@ func TestBaseExtend(t *testing.T) {
 					nil,
 				},
 				nil,
+				"",
+				"",
 			},
 			&Config{
 				&ConfigMode{
@@ -172,6 +178,8 @@ func TestBaseExtend(t *testing.T) {
 					nil,
 					nil,
 				},
+				"",
+				"",
 			},
 		},
 	}
