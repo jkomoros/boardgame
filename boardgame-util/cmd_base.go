@@ -95,7 +95,7 @@ func (b *BoardgameUtil) GetConfig() *config.Config {
 		return b.config
 	}
 
-	c, err := config.Get()
+	c, err := config.Get("")
 
 	if err != nil {
 		errAndQuit("config is required for this command, but it couldn't be loaded. See README.md for more about structuring config.json.\nError: " + err.Error())

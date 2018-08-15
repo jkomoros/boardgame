@@ -14,6 +14,7 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -332,13 +333,55 @@ const (
 	publicConfigFileName  = "config.PUBLIC.json"
 )
 
-func fileNamesToUse() (publicConfig, privateConfig string) {
+func fileNamesToUse(dir string) (publicConfig, privateConfig string, err error) {
 
-	if _, err := os.Stat(privateConfigFileName); err == nil {
-		privateConfig = privateConfigFileName
+	if dir == "" {
+		dir = "."
 	}
 
-	infos, err := ioutil.ReadDir(".")
+	goPath, err := filepath.Abs(os.Getenv("GOPATH"))
+
+	if err != nil {
+		//Gopath isn't set correctly
+		return "", "", errors.New("Couldn't absolutize gopath: " + err.Error())
+	}
+
+	for {
+
+		abs, err := filepath.Abs(dir)
+
+		if err != nil {
+			//Maybe fell off the end of what is a real file?
+			return "", "", errors.New("Got err absolutizing search directory: " + dir + " : " + err.Error())
+		}
+
+		if !strings.HasPrefix(abs, goPath) {
+			return "", "", errors.New("Fell out of gopath without finding config: " + abs)
+		}
+
+		public, private := fileNamesToUseInDir(dir)
+
+		if public != "" || private != "" {
+			return public, private, nil
+		}
+
+		dir = filepath.Join("..", dir)
+	}
+
+	return "", "", errors.New("Couldn't find a path")
+
+}
+
+//fileNamesToUseInDir looks for public/private values precisely in the given folder.
+func fileNamesToUseInDir(dir string) (publicConfig, privateConfig string) {
+
+	possiblePrivateConfig := filepath.Join(dir, privateConfigFileName)
+
+	if _, err := os.Stat(possiblePrivateConfig); err == nil {
+		privateConfig = possiblePrivateConfig
+	}
+
+	infos, err := ioutil.ReadDir(dir)
 
 	if err != nil {
 		return "", ""
@@ -362,17 +405,18 @@ func fileNamesToUse() (publicConfig, privateConfig string) {
 
 	for _, name := range prioritizedNames {
 		if foundNames[name] {
-			return name, privateConfig
+			return filepath.Join(dir, name), privateConfig
 		}
 	}
 
 	//Whatever, return the first one
 	for name := range foundNames {
-		return name, privateConfig
+		return filepath.Join(dir, name), privateConfig
 	}
 
 	//None of the preferred names were found, just return whatever is in
-	//publicConfig, privateConfig.
+	//publicConfig, privateConfig. publicConfig is "", privateConfig already
+	//has the dir in it
 	return
 
 }
@@ -400,8 +444,12 @@ func getConfig(filename string) (*Config, error) {
 	return &config, nil
 }
 
-func combinedConfig() (*Config, error) {
-	publicConfigName, privateConfigName := fileNamesToUse()
+func combinedConfig(dir string) (*Config, error) {
+	publicConfigName, privateConfigName, err := fileNamesToUse(dir)
+
+	if err != nil {
+		return nil, errors.New("Couldn't get file names to use: " + err.Error())
+	}
 
 	publicConfig, err := getConfig(publicConfigName)
 
@@ -419,9 +467,13 @@ func combinedConfig() (*Config, error) {
 
 }
 
-func Get() (*Config, error) {
+//Get fetches a fully realized config by looking for files in dir. If none are
+//found, walks upwards in the directory hierarchy (as long as that's still in
+//$GOPATH) until it finds a folder that appears to work. If dir is "", working
+//directory is assumed.
+func Get(dir string) (*Config, error) {
 
-	config, err := combinedConfig()
+	config, err := combinedConfig(dir)
 
 	if err != nil {
 		return nil, err
