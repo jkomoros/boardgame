@@ -73,7 +73,7 @@ func SimpleStaticServer(directory string, port string) error {
 			}
 		}
 
-		http.Handle(name, http.StripPrefix(name, fs))
+		http.Handle(name, fs)
 	}
 
 	//This pattern will match as fallback (it's the shortest), and should
