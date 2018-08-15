@@ -65,7 +65,21 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 
 	err = cmd.Run()
 
-	errAndQuit("Error running command: " + err.Error())
+	if err != nil {
+		exitErr, ok := err.(*exec.ExitError)
+		if !ok {
+			errAndQuit("Couldn't cast exiterror")
+		}
+
+		//Programs that are signaled and who responded to it before us (the
+		//parent) did (which is a race) will have Exited() false, whereas a
+		//program that errored and quit on its own should have true. Only the
+		//latter is an err; calling errAndQuit not in an error could prevent
+		//our own clean shutdown from happening.
+		if exitErr.ProcessState.Exited() {
+			errAndQuit("Error running command: " + err.Error())
+		}
+	}
 }
 
 func (s *Serve) Name() string {
