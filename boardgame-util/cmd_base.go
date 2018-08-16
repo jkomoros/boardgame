@@ -17,7 +17,10 @@ type BoardgameUtil struct {
 	Clean   Clean
 	Serve   Serve
 	Config  Config
-	config  *config.Config
+
+	ConfigPath string
+
+	config *config.Config
 
 	//Dirs to delete on exit
 	tempDirs []string
@@ -52,6 +55,16 @@ See the individual sub-commands for more on what each one does.`
 
 func (b *BoardgameUtil) Usage() string {
 	return "COMMAND [OPTION]... [ARG]..."
+}
+
+func (b *BoardgameUtil) WritOptions() []*writ.Option {
+	return []*writ.Option{
+		{
+			Names:       []string{"config", "c"},
+			Decoder:     writ.NewOptionDecoder(&b.ConfigPath),
+			Description: "The path to the config file or dir to use. If not provided, searches within current directory for files that could be a config, and then walks upwards until it finds one.",
+		},
+	}
 }
 
 func (b *BoardgameUtil) SubcommandObjects() []SubcommandObject {
@@ -97,7 +110,7 @@ func (b *BoardgameUtil) GetConfig() *config.Config {
 		return b.config
 	}
 
-	c, err := config.Get("")
+	c, err := config.Get(b.ConfigPath)
 
 	if err != nil {
 		errAndQuit("config is required for this command, but it couldn't be loaded. See README.md for more about structuring config.json.\nError: " + err.Error())
