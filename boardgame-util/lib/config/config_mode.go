@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+//ConfigMode is the leaf of Configs, where all of the actual values are
+//stored.
 type ConfigMode struct {
 	AllowedOrigins    string
 	DefaultPort       string

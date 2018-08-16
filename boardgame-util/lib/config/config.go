@@ -4,82 +4,97 @@ import (
 	"errors"
 )
 
+//Config represents the derived config values. It is based on RawConfigs. This
+//is the object you generally use directly in your application.
 type Config struct {
-	Base *ConfigMode
-	Dev  *ConfigMode
-	Prod *ConfigMode
-	//If extendWithPrivate(other) is called, the other's path will be set here
-	secretPath string
-	//Path is the path this config was loaded up from
-	path string
+	Dev             *ConfigMode
+	Prod            *ConfigMode
+	rawPublicConfig *RawConfig
+	rawSecretConfig *RawConfig
 }
 
-//derive takes a raw input and creates a struct with fully derived values in
-//Dev/Prod ready for use.
+//NewConfig returns a new, derived config object based on the given raw
+//configs. rawSecret may be nil. In general you don't use this directly, but
+//use Get().
+func NewConfig(raw, rawSecret *RawConfig) (*Config, error) {
+	result := &Config{
+		rawPublicConfig: raw,
+		rawSecretConfig: rawSecret,
+	}
+	result.derive()
+	if err := result.validate(); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Config) derive() {
-	if c.Base != nil {
-		c.Prod = c.Base.extend(c.Prod)
-		c.Dev = c.Base.extend(c.Dev)
+
+	if c.rawPublicConfig == nil {
+		return
 	}
 
-	c.Prod.derive(true)
-	c.Dev.derive(false)
+	base := c.rawPublicConfig.Base
+	prod := c.rawPublicConfig.Prod
+	dev := c.rawPublicConfig.Dev
+
+	if c.rawSecretConfig != nil {
+		base = base.extend(c.rawSecretConfig.Base)
+		prod = prod.extend(c.rawSecretConfig.Prod)
+		dev = dev.extend(c.rawSecretConfig.Dev)
+	}
+
+	if base != nil {
+		c.Prod = base.extend(prod)
+		c.Dev = base.extend(dev)
+	} else {
+		c.Prod = prod
+		c.Dev = dev
+	}
+
+	if c.Prod != nil {
+		c.Prod.derive(true)
+	}
+
+	if c.Dev != nil {
+		c.Dev.derive(false)
+	}
+
+	return
 
 }
 
-func (c *Config) copy() *Config {
+//RawConfig returns the underlying, non-secret config that this derived config
+//is based on.
+func (c *Config) RawConfig() *RawConfig {
+	return c.rawPublicConfig
+}
 
-	result := &Config{}
-
-	//Copy over all of the non-deep stuff
-	(*result) = *c
-
-	result.Base = c.Base.copy()
-	result.Dev = c.Dev.copy()
-	result.Prod = c.Prod.copy()
-
-	return result
+//RawSecretConfig returns the underlying secret config that this derived
+//config is based on, or nil if there is no secret component.
+func (c *Config) RawSecretConfig() *RawConfig {
+	return c.rawSecretConfig
 }
 
 //Path returns the path that this config's public components were loaded from.
+//Convenience wrapper around c.RawConfig().Path().
 func (c *Config) Path() string {
-	return c.path
+	raw := c.rawPublicConfig
+	if raw == nil {
+		return ""
+	}
+	return raw.Path()
 }
 
-//SecretPath returns the path that this config's secret components were
-//loaded from, or "" if no secret components.
+//SecretPath returns the path that this config's secret components were loaded
+//from, or "" if no secret components. Convenience wrapper around
+//c.RawSecretConfig().Path().
 func (c *Config) SecretPath() string {
-	return c.secretPath
-}
-
-//extendWithSecret is a wrapper around extend. In addition to normal behavior,
-//it sets result's secretPath to be secret's path. This means that the result
-//will return the right thing for Path() and SecretPath().
-func (c *Config) extendWithSecret(secret *Config) *Config {
-	result := c.extend(secret)
-	if secret != nil {
-		result.secretPath = secret.path
+	raw := c.rawSecretConfig
+	if raw == nil {
+		return ""
 	}
-	return result
-}
-
-//extend takes an other config and returns a *new* config where any non-zero
-//value for other extends base. If you're extending with private, use
-//extendWithPrivate instead.
-func (c *Config) extend(other *Config) *Config {
-
-	result := c.copy()
-
-	if other == nil {
-		return result
-	}
-
-	result.Base = c.Base.extend(other.Base)
-	result.Dev = c.Dev.extend(other.Dev)
-	result.Prod = c.Prod.extend(other.Prod)
-
-	return result
-
+	return raw.Path()
 }
 
 func (c *Config) validate() error {

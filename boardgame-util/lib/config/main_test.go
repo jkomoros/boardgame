@@ -9,12 +9,12 @@ func TestBaseExtend(t *testing.T) {
 
 	tests := []struct {
 		description string
-		in          *Config
+		in          *RawConfig
 		out         *Config
 	}{
 		{
 			"No op",
-			&Config{
+			&RawConfig{
 				nil,
 				&ConfigMode{
 					"AllowedOriginsDev",
@@ -37,11 +37,9 @@ func TestBaseExtend(t *testing.T) {
 					nil,
 				},
 				nil,
-				"",
 				"",
 			},
 			&Config{
-				nil,
 				&ConfigMode{
 					"AllowedOriginsDev",
 					"DefaultPortDev",
@@ -63,13 +61,13 @@ func TestBaseExtend(t *testing.T) {
 					nil,
 				},
 				nil,
-				"",
-				"",
+				nil,
+				nil,
 			},
 		},
 		{
 			"Simple derive",
-			&Config{
+			&RawConfig{
 				&ConfigMode{
 					"AllowedOriginsBase",
 					"DefaultPortBase",
@@ -78,7 +76,7 @@ func TestBaseExtend(t *testing.T) {
 						"AdminUserIdBase1",
 						"AdminUserIdDev2",
 					},
-					true,
+					false,
 					map[string]string{
 						"Config1": "Base",
 						"Config2": "Base",
@@ -98,7 +96,7 @@ func TestBaseExtend(t *testing.T) {
 					[]string{
 						"AdminUserIdDev1",
 					},
-					false,
+					true,
 					map[string]string{
 						"Config2": "Dev",
 					},
@@ -111,30 +109,8 @@ func TestBaseExtend(t *testing.T) {
 				},
 				nil,
 				"",
-				"",
 			},
 			&Config{
-				&ConfigMode{
-					"AllowedOriginsBase",
-					"DefaultPortBase",
-					"DefaultStaticPortBase",
-					[]string{
-						"AdminUserIdBase1",
-						"AdminUserIdDev2",
-					},
-					true,
-					map[string]string{
-						"Config1": "Base",
-						"Config2": "Base",
-						"Config3": "Base",
-					},
-					"bolt",
-					"gastring",
-					nil,
-					"https://localhost",
-					nil,
-					nil,
-				},
 				&ConfigMode{
 					"AllowedOriginsDev",
 					"DefaultPortBase",
@@ -165,7 +141,7 @@ func TestBaseExtend(t *testing.T) {
 						"AdminUserIdBase1",
 						"AdminUserIdDev2",
 					},
-					true,
+					false,
 					map[string]string{
 						"Config1": "Base",
 						"Config2": "Base",
@@ -178,15 +154,27 @@ func TestBaseExtend(t *testing.T) {
 					nil,
 					nil,
 				},
-				"",
-				"",
+				nil,
+				nil,
 			},
 		},
 	}
 
 	for i, test := range tests {
-		test.in.derive()
-		assert.For(t, i, test.description).ThatActual(test.in).Equals(test.out).ThenDiffOnFail()
+
+		out, err := NewConfig(test.in, nil)
+
+		assert.For(t, i, test.description).ThatActual(err).IsNil()
+
+		if out == nil {
+			continue
+		}
+
+		//Chjeat and zero these out so we skip them in the compare
+		out.rawSecretConfig = nil
+		out.rawPublicConfig = nil
+
+		assert.For(t, i, test.description).ThatActual(out).Equals(test.out).ThenDiffOnFail()
 	}
 
 }

@@ -4,11 +4,14 @@ config is a simple library that manages config set-up for boardgame-util and
 friends, reading from config.json and config.SECRET.json files. See boardgame-
 util/README.md for more on the structure of config.json files.
 
+Although a number of the details are exposed in this package, generally you
+just use Get() and then directly read the values of the returned Config's Dev
+and Prod properties.
+
 */
 package config
 
 import (
-	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"os"
@@ -143,52 +146,6 @@ func fileNamesToUseInDir(dir string) (publicConfig, privateConfig string) {
 
 }
 
-func getConfig(filename string) (*Config, error) {
-
-	if filename == "" {
-		return nil, nil
-	}
-
-	contents, err := ioutil.ReadFile(filename)
-
-	if err != nil {
-		return nil, errors.New("Couldn't read config file: " + err.Error())
-	}
-
-	var config Config
-
-	if err := json.Unmarshal(contents, &config); err != nil {
-		return nil, errors.New("couldn't unmarshal config file: " + err.Error())
-	}
-
-	config.path = filename
-
-	return &config, nil
-}
-
-func combinedConfig(dir string) (*Config, error) {
-	publicConfigName, privateConfigName, err := fileNamesToUse(dir)
-
-	if err != nil {
-		return nil, errors.New("Couldn't get file names to use: " + err.Error())
-	}
-
-	publicConfig, err := getConfig(publicConfigName)
-
-	if err != nil {
-		return nil, errors.New("Couldn't get public config: " + err.Error())
-	}
-
-	privateConfig, err := getConfig(privateConfigName)
-
-	if err != nil {
-		return nil, errors.New("Couldn't get private config: " + err.Error())
-	}
-
-	return publicConfig.extendWithSecret(privateConfig), nil
-
-}
-
 //Get fetches a fully realized config. If dir is a config file itself, loads
 //that (and any private component in same directory). Next it interprets dir
 //as a directory to search within for any config files. If none are found,
@@ -196,19 +153,24 @@ func combinedConfig(dir string) (*Config, error) {
 //$GOPATH) until it finds a folder that appears to work. If dir is "", working
 //directory is assumed.
 func Get(dir string) (*Config, error) {
-
-	config, err := combinedConfig(dir)
+	publicConfigName, privateConfigName, err := fileNamesToUse(dir)
 
 	if err != nil {
-		return nil, err
+		return nil, errors.New("Couldn't get file names to use: " + err.Error())
 	}
 
-	config.derive()
+	publicConfig, err := NewRawConfig(publicConfigName)
 
-	if err := config.validate(); err != nil {
-		return nil, errors.New("Couldn't validate config: " + err.Error())
+	if err != nil {
+		return nil, errors.New("Couldn't get public config: " + err.Error())
 	}
 
-	return config, nil
+	privateConfig, err := NewRawConfig(privateConfigName)
+
+	if err != nil {
+		return nil, errors.New("Couldn't get private config: " + err.Error())
+	}
+
+	return NewConfig(publicConfig, privateConfig)
 
 }

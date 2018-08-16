@@ -1,5 +1,7 @@
 package config
 
+//FirebaseConfig is a sub-struct within ConfigMode that holds values specific
+//to firebase.
 type FirebaseConfig struct {
 	ApiKey            string `json:"apiKey"`
 	AuthDomain        string `json:"authDomain"`
