@@ -27,6 +27,13 @@ func fileNamesToUse(dir string) (publicConfig, privateConfig string, err error) 
 		dir = "."
 	}
 
+	//Try to interpret it as a file
+	if public, private, err := fileNamesToUseWithFile(dir); err == nil {
+		return public, private, nil
+	}
+
+	//Guess it wasn't a file, try interpreting as a directory.
+
 	goPath, err := filepath.Abs(os.Getenv("GOPATH"))
 
 	if err != nil {
@@ -57,6 +64,33 @@ func fileNamesToUse(dir string) (publicConfig, privateConfig string, err error) 
 	}
 
 	return "", "", errors.New("Couldn't find a path")
+
+}
+
+//fileNamesToUseWithFile takes a filename of the public component. Returns the
+//string to the publicComponent and also the private component if it exists in
+//that folder.z
+func fileNamesToUseWithFile(filename string) (publicConfig, privateConfig string, err error) {
+
+	if info, err := os.Stat(filename); err != nil {
+		return "", "", errors.New("That file does not exist: " + err.Error())
+	} else {
+		if info.IsDir() {
+			return "", "", errors.New(filename + " points to a dir, not a file")
+		}
+	}
+
+	//Check to see if there's a private config in that folder
+	dir := filepath.Dir(filename)
+
+	privatePath := filepath.Join(dir, privateConfigFileName)
+
+	if _, err := os.Stat(privatePath); err != nil {
+		// No private path I guess
+		return filename, "", nil
+	}
+
+	return filename, privatePath, nil
 
 }
 
@@ -155,8 +189,10 @@ func combinedConfig(dir string) (*Config, error) {
 
 }
 
-//Get fetches a fully realized config by looking for files in dir. If none are
-//found, walks upwards in the directory hierarchy (as long as that's still in
+//Get fetches a fully realized config. If dir is a config file itself, loads
+//that (and any private component in same directory). Next it interprets dir
+//as a directory to search within for any config files. If none are found,
+//walks upwards in the directory hierarchy (as long as that's still in
 //$GOPATH) until it finds a folder that appears to work. If dir is "", working
 //directory is assumed.
 func Get(dir string) (*Config, error) {
