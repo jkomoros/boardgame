@@ -16,6 +16,7 @@ type BoardgameUtil struct {
 	Build   Build
 	Clean   Clean
 	Serve   Serve
+	Config  Config
 	config  *config.Config
 
 	//Dirs to delete on exit
@@ -61,6 +62,7 @@ func (b *BoardgameUtil) SubcommandObjects() []SubcommandObject {
 		&b.Build,
 		&b.Clean,
 		&b.Serve,
+		&b.Config,
 	}
 }
 
