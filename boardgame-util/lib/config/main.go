@@ -23,7 +23,7 @@ type Config struct {
 	Dev  *ConfigMode
 	Prod *ConfigMode
 	//If extendWithPrivate(other) is called, the other's path will be set here
-	privatePath string
+	secretPath string
 	//Path is the path this config was loaded up from
 	path string
 }
@@ -86,19 +86,19 @@ func (c *Config) Path() string {
 	return c.path
 }
 
-//PrivatePath returns the path that this config's private components were
-//loaded from, or "" if no private components.
-func (c *Config) PrivatePath() string {
-	return c.privatePath
+//SecretPath returns the path that this config's secret components were
+//loaded from, or "" if no secret components.
+func (c *Config) SecretPath() string {
+	return c.secretPath
 }
 
-//extendWithPrivate is a wrapper around extend. In addition to normal
-//behavior, it sets result's privatePath to be private's path. This means that
-//the result will return the right thing for Path() and PrivatePath().
-func (c *Config) extendWithPrivate(private *Config) *Config {
-	result := c.extend(private)
-	if private != nil {
-		result.privatePath = private.path
+//extendWithSecret is a wrapper around extend. In addition to normal behavior,
+//it sets result's secretPath to be secret's path. This means that the result
+//will return the right thing for Path() and SecretPath().
+func (c *Config) extendWithSecret(secret *Config) *Config {
+	result := c.extend(secret)
+	if secret != nil {
+		result.secretPath = secret.path
 	}
 	return result
 }
@@ -463,7 +463,7 @@ func combinedConfig(dir string) (*Config, error) {
 		return nil, errors.New("Couldn't get private config: " + err.Error())
 	}
 
-	return publicConfig.extendWithPrivate(privateConfig), nil
+	return publicConfig.extendWithSecret(privateConfig), nil
 
 }
 

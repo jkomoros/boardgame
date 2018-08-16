@@ -17,10 +17,10 @@ func (c *Config) Run(p writ.Path, positional []string) {
 	config := base.GetConfig()
 
 	fmt.Println("Path: " + config.Path())
-	if privatePath := config.PrivatePath(); privatePath != "" {
-		fmt.Println("Private path: " + privatePath)
+	if secretPath := config.SecretPath(); secretPath != "" {
+		fmt.Println("Secret path: " + secretPath)
 	} else {
-		fmt.Println("NO private path in use")
+		fmt.Println("NO secret path in use")
 	}
 
 	devBlob, err := json.MarshalIndent(config.Dev, "", "\t")
