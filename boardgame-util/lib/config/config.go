@@ -45,20 +45,12 @@ func (c *Config) derive() {
 	}
 
 	if base != nil {
-		c.Prod = base.extend(prod)
-		c.Dev = base.extend(dev)
-	} else {
-		c.Prod = prod
-		c.Dev = dev
+		prod = base.extend(prod)
+		dev = base.extend(dev)
 	}
 
-	if c.Prod != nil {
-		c.Prod.derive(true)
-	}
-
-	if c.Dev != nil {
-		c.Dev.derive(false)
-	}
+	c.Prod = prod.derive(true)
+	c.Dev = dev.derive(false)
 
 	return
 

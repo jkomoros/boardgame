@@ -16,24 +16,25 @@ func TestBaseExtend(t *testing.T) {
 			"No op",
 			&RawConfig{
 				nil,
-				&ConfigMode{
-					"AllowedOriginsDev",
-					"DefaultPortDev",
-					"DefaultStaticPortDev",
-					[]string{
-						"AdminUserIdDev1",
-						"AdminUserIdDev2",
+				&RawConfigMode{
+					ConfigModeCommon{
+						"AllowedOriginsDev",
+						"DefaultPortDev",
+						"DefaultStaticPortDev",
+						[]string{
+							"AdminUserIdDev1",
+							"AdminUserIdDev2",
+						},
+						true,
+						map[string]string{
+							"Config1": "Dev",
+							"Config2": "Dev",
+						},
+						"bolt",
+						"gastring",
+						nil,
+						"https://localhost",
 					},
-					true,
-					map[string]string{
-						"Config1": "Dev",
-						"Config2": "Dev",
-					},
-					"bolt",
-					"gastring",
-					nil,
-					"https://localhost",
-					nil,
 					nil,
 				},
 				nil,
@@ -41,23 +42,24 @@ func TestBaseExtend(t *testing.T) {
 			},
 			&Config{
 				&ConfigMode{
-					"AllowedOriginsDev",
-					"DefaultPortDev",
-					"DefaultStaticPortDev",
-					[]string{
-						"AdminUserIdDev1",
-						"AdminUserIdDev2",
+					ConfigModeCommon{
+						"AllowedOriginsDev",
+						"DefaultPortDev",
+						"DefaultStaticPortDev",
+						[]string{
+							"AdminUserIdDev1",
+							"AdminUserIdDev2",
+						},
+						true,
+						map[string]string{
+							"Config1": "Dev",
+							"Config2": "Dev",
+						},
+						"bolt",
+						"gastring",
+						nil,
+						"https://localhost",
 					},
-					true,
-					map[string]string{
-						"Config1": "Dev",
-						"Config2": "Dev",
-					},
-					"bolt",
-					"gastring",
-					nil,
-					"https://localhost",
-					nil,
 					nil,
 				},
 				nil,
@@ -68,43 +70,45 @@ func TestBaseExtend(t *testing.T) {
 		{
 			"Simple derive",
 			&RawConfig{
-				&ConfigMode{
-					"AllowedOriginsBase",
-					"DefaultPortBase",
-					"DefaultStaticPortBase",
-					[]string{
-						"AdminUserIdBase1",
-						"AdminUserIdDev2",
+				&RawConfigMode{
+					ConfigModeCommon{
+						"AllowedOriginsBase",
+						"DefaultPortBase",
+						"DefaultStaticPortBase",
+						[]string{
+							"AdminUserIdBase1",
+							"AdminUserIdDev2",
+						},
+						false,
+						map[string]string{
+							"Config1": "Base",
+							"Config2": "Base",
+							"Config3": "Base",
+						},
+						"bolt",
+						"gastring",
+						nil,
+						"https://localhost",
 					},
-					false,
-					map[string]string{
-						"Config1": "Base",
-						"Config2": "Base",
-						"Config3": "Base",
-					},
-					"bolt",
-					"gastring",
-					nil,
-					"https://localhost",
-					nil,
 					nil,
 				},
-				&ConfigMode{
-					"AllowedOriginsDev",
-					"",
-					"",
-					[]string{
-						"AdminUserIdDev1",
+				&RawConfigMode{
+					ConfigModeCommon{
+						"AllowedOriginsDev",
+						"",
+						"",
+						[]string{
+							"AdminUserIdDev1",
+						},
+						true,
+						map[string]string{
+							"Config2": "Dev",
+						},
+						"bolt",
+						"gastring",
+						nil,
+						"https://localhost",
 					},
-					true,
-					map[string]string{
-						"Config2": "Dev",
-					},
-					"bolt",
-					"gastring",
-					nil,
-					"https://localhost",
-					nil,
 					nil,
 				},
 				nil,
@@ -112,46 +116,48 @@ func TestBaseExtend(t *testing.T) {
 			},
 			&Config{
 				&ConfigMode{
-					"AllowedOriginsDev",
-					"DefaultPortBase",
-					"DefaultStaticPortBase",
-					[]string{
-						"AdminUserIdBase1",
-						"AdminUserIdDev2",
-						"AdminUserIdDev1",
+					ConfigModeCommon{
+						"AllowedOriginsDev",
+						"DefaultPortBase",
+						"DefaultStaticPortBase",
+						[]string{
+							"AdminUserIdBase1",
+							"AdminUserIdDev2",
+							"AdminUserIdDev1",
+						},
+						true,
+						map[string]string{
+							"Config1": "Base",
+							"Config2": "Dev",
+							"Config3": "Base",
+						},
+						"bolt",
+						"gastring",
+						nil,
+						"https://localhost",
 					},
-					true,
-					map[string]string{
-						"Config1": "Base",
-						"Config2": "Dev",
-						"Config3": "Base",
-					},
-					"bolt",
-					"gastring",
-					nil,
-					"https://localhost",
-					nil,
 					nil,
 				},
 				&ConfigMode{
-					"AllowedOriginsBase",
-					"DefaultPortBase",
-					"DefaultStaticPortBase",
-					[]string{
-						"AdminUserIdBase1",
-						"AdminUserIdDev2",
+					ConfigModeCommon{
+						"AllowedOriginsBase",
+						"DefaultPortBase",
+						"DefaultStaticPortBase",
+						[]string{
+							"AdminUserIdBase1",
+							"AdminUserIdDev2",
+						},
+						false,
+						map[string]string{
+							"Config1": "Base",
+							"Config2": "Base",
+							"Config3": "Base",
+						},
+						"bolt",
+						"gastring",
+						nil,
+						"https://localhost",
 					},
-					false,
-					map[string]string{
-						"Config1": "Base",
-						"Config2": "Base",
-						"Config3": "Base",
-					},
-					"bolt",
-					"gastring",
-					nil,
-					"https://localhost",
-					nil,
 					nil,
 				},
 				nil,
@@ -184,89 +190,119 @@ func TestApiHostDerivation(t *testing.T) {
 	tests := []struct {
 		description string
 		prodMode    bool
-		in          *ConfigMode
+		in          *RawConfigMode
 		out         *ConfigMode
 	}{
 		{
 			"No op",
 			false,
-			&ConfigMode{
-				ApiHost:     "provided",
-				DefaultPort: "8888",
+			&RawConfigMode{
+				ConfigModeCommon{
+					ApiHost:     "provided",
+					DefaultPort: "8888",
+				},
+				nil,
 			},
 			&ConfigMode{
-				ApiHost:     "provided",
-				DefaultPort: "8888",
+				ConfigModeCommon{
+					ApiHost:     "provided",
+					DefaultPort: "8888",
+				},
+				nil,
 			},
 		},
 		{
 			"dev",
 			false,
-			&ConfigMode{
-				DefaultPort: "8888",
+			&RawConfigMode{
+				ConfigModeCommon{
+					DefaultPort: "8888",
+				},
+				nil,
 			},
 			&ConfigMode{
-				ApiHost:     "http://localhost:8888",
-				DefaultPort: "8888",
+				ConfigModeCommon{
+					ApiHost:     "http://localhost:8888",
+					DefaultPort: "8888",
+				},
+				nil,
 			},
 		},
 		{
 			"prod non default port",
 			true,
-			&ConfigMode{
-				ApiHost:     "",
-				DefaultPort: "8080",
-				Firebase: &FirebaseConfig{
-					StorageBucket: "example-boardgame.appspot.com",
+			&RawConfigMode{
+				ConfigModeCommon{
+					ApiHost:     "",
+					DefaultPort: "8080",
+					Firebase: &FirebaseConfig{
+						StorageBucket: "example-boardgame.appspot.com",
+					},
 				},
+				nil,
 			},
 			&ConfigMode{
-				ApiHost:     "https://example-boardgame.appspot.com:8080",
-				DefaultPort: "8080",
-				Firebase: &FirebaseConfig{
-					StorageBucket: "example-boardgame.appspot.com",
+				ConfigModeCommon{
+					ApiHost:     "https://example-boardgame.appspot.com:8080",
+					DefaultPort: "8080",
+					Firebase: &FirebaseConfig{
+						StorageBucket: "example-boardgame.appspot.com",
+					},
 				},
+				nil,
 			},
 		},
 		{
 			"prod no default port",
 			true,
-			&ConfigMode{
-				ApiHost: "",
-				Firebase: &FirebaseConfig{
-					StorageBucket: "example-boardgame.appspot.com",
+			&RawConfigMode{
+				ConfigModeCommon{
+					ApiHost: "",
+					Firebase: &FirebaseConfig{
+						StorageBucket: "example-boardgame.appspot.com",
+					},
 				},
+				nil,
 			},
 			&ConfigMode{
-				ApiHost: "https://example-boardgame.appspot.com",
-				Firebase: &FirebaseConfig{
-					StorageBucket: "example-boardgame.appspot.com",
+				ConfigModeCommon{
+					ApiHost: "https://example-boardgame.appspot.com",
+					Firebase: &FirebaseConfig{
+						StorageBucket: "example-boardgame.appspot.com",
+					},
 				},
+				nil,
 			},
 		},
 		{
 			"prod default port 80",
 			true,
-			&ConfigMode{
-				ApiHost:     "",
-				DefaultPort: "80",
-				Firebase: &FirebaseConfig{
-					StorageBucket: "example-boardgame.appspot.com",
+			&RawConfigMode{
+				ConfigModeCommon{
+					ApiHost:     "",
+					DefaultPort: "80",
+					Firebase: &FirebaseConfig{
+						StorageBucket: "example-boardgame.appspot.com",
+					},
 				},
+				nil,
 			},
 			&ConfigMode{
-				ApiHost:     "https://example-boardgame.appspot.com",
-				DefaultPort: "80",
-				Firebase: &FirebaseConfig{
-					StorageBucket: "example-boardgame.appspot.com",
+				ConfigModeCommon{
+					ApiHost:     "https://example-boardgame.appspot.com",
+					DefaultPort: "80",
+					Firebase: &FirebaseConfig{
+						StorageBucket: "example-boardgame.appspot.com",
+					},
 				},
+				nil,
 			},
 		},
 	}
 
 	for i, test := range tests {
-		test.in.derive(test.prodMode)
-		assert.For(t, i, test.description).ThatActual(test.in).Equals(test.out).ThenDiffOnFail()
+		out := test.in.derive(test.prodMode)
+		assert.For(t, i, test.description).ThatActual(out).Equals(test.out).ThenDiffOnFail()
 	}
 
 }
