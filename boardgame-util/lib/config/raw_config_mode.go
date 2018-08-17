@@ -8,24 +8,24 @@ import (
 //directly, factored out for convenience so they can be anonymously embedded
 //in ConfigMdoe and RawConfigMode.
 type ConfigModeCommon struct {
-	AllowedOrigins    string
-	DefaultPort       string
-	DefaultStaticPort string
-	AdminUserIds      []string
+	AllowedOrigins    string   `json:",omitempty"`
+	DefaultPort       string   `json:",omitempty"`
+	DefaultStaticPort string   `json:",omitempty"`
+	AdminUserIds      []string `json:",omitempty"`
 	//This is a dangerous config. Only enable in Dev!
-	DisableAdminChecking bool
-	StorageConfig        map[string]string
+	DisableAdminChecking bool              `json:",omitempty"`
+	StorageConfig        map[string]string `json:",omitempty"`
 	//The storage type that should be used if no storage type is provided via
 	//command line options.
-	DefaultStorageType string
+	DefaultStorageType string `json:",omitempty"`
 
 	//The GA config string. Will be used to generate the client_config json
 	//blob. Generally has a structure like "UA-321655-11"
-	GoogleAnalytics string
-	Firebase        *FirebaseConfig
+	GoogleAnalytics string          `json:",omitempty"`
+	Firebase        *FirebaseConfig `json:",omitempty"`
 	//The host name the client should connect to in that mode. Something like
 	//"http://localhost:8888"
-	ApiHost string
+	ApiHost string `json:",omitempty"`
 }
 
 //RawConfigMode is the leaf of RawConfig, where all of the actual values are
@@ -33,7 +33,7 @@ type ConfigModeCommon struct {
 type RawConfigMode struct {
 	//ConfigMode is primarily just the common config mode values
 	ConfigModeCommon
-	Games *GameNode
+	Games *GameNode `json:",omitempty"`
 }
 
 //Derive tells the RawConfigMode to create a new, fully derived ConfigMode

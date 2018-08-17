@@ -57,6 +57,27 @@ func (c *Config) derive() {
 
 }
 
+//Save saves the two underlying RawConfigs back to disk. Convenience wrapper
+//around RawConfig().Save(), RawSecretConfig.Save()
+func (c *Config) Save() error {
+	config := c.RawConfig()
+	if config != nil {
+		if err := config.Save(); err != nil {
+			return errors.New("Couldn't save public config: " + err.Error())
+		}
+	}
+
+	config = c.RawSecretConfig()
+
+	if config != nil {
+		if err := config.Save(); err != nil {
+			return errors.New("Couldn't save private config: " + err.Error())
+		}
+	}
+
+	return nil
+}
+
 //RawConfig returns the underlying, non-secret config that this derived config
 //is based on.
 func (c *Config) RawConfig() *RawConfig {
