@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"errors"
 	"log"
 	"net/url"
@@ -15,6 +16,14 @@ type ConfigMode struct {
 	//GamesList is not intended to be inflated from JSON, but rather is
 	//derived based on the contents of Games.
 	GamesList []string
+}
+
+func (c *ConfigMode) String() string {
+	blob, err := json.MarshalIndent(c, "", "\t")
+	if err != nil {
+		return "ERROR, couldn't unmarshal: " + err.Error()
+	}
+	return string(blob)
 }
 
 func (c *ConfigMode) validate(isDev bool) error {
