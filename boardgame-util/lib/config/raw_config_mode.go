@@ -8,24 +8,24 @@ import (
 //directly, factored out for convenience so they can be anonymously embedded
 //in ConfigMdoe and RawConfigMode.
 type ConfigModeCommon struct {
-	AllowedOrigins    string   `json:",omitempty"`
-	DefaultPort       string   `json:",omitempty"`
-	DefaultStaticPort string   `json:",omitempty"`
-	AdminUserIds      []string `json:",omitempty"`
+	AllowedOrigins    string   `json:"allowedOrigins,omitempty"`
+	DefaultPort       string   `json:"defaultPort,omitempty"`
+	DefaultStaticPort string   `json:"defaultStaticPort,omitempty"`
+	AdminUserIds      []string `json:"adminUserIds,omitempty"`
 	//This is a dangerous config. Only enable in Dev!
-	DisableAdminChecking bool              `json:",omitempty"`
-	StorageConfig        map[string]string `json:",omitempty"`
+	DisableAdminChecking bool              `json:"disableAdminChecking,omitempty"`
+	StorageConfig        map[string]string `json:"storageConfig,omitempty"`
 	//The storage type that should be used if no storage type is provided via
 	//command line options.
-	DefaultStorageType string `json:",omitempty"`
+	DefaultStorageType string `json:"defaultStorageType,omitempty"`
 
 	//The GA config string. Will be used to generate the client_config json
 	//blob. Generally has a structure like "UA-321655-11"
-	GoogleAnalytics string          `json:",omitempty"`
-	Firebase        *FirebaseConfig `json:",omitempty"`
+	GoogleAnalytics string          `json:"googleAnalytics,omitempty"`
+	Firebase        *FirebaseConfig `json:"firebase,omitempty"`
 	//The host name the client should connect to in that mode. Something like
 	//"http://localhost:8888"
-	ApiHost string `json:",omitempty"`
+	ApiHost string `json:"apiHost,omitempty"`
 }
 
 //RawConfigMode is the leaf of RawConfig, where all of the actual values are
@@ -33,7 +33,7 @@ type ConfigModeCommon struct {
 type RawConfigMode struct {
 	//ConfigMode is primarily just the common config mode values
 	ConfigModeCommon
-	Games *GameNode `json:",omitempty"`
+	Games *GameNode `json:"games,omitempty"`
 }
 
 //Derive tells the RawConfigMode to create a new, fully derived ConfigMode

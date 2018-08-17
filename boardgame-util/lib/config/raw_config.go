@@ -10,9 +10,9 @@ import (
 //modifications. The derived Config object will use RawConfig's and combine
 //them to create the overall Config.
 type RawConfig struct {
-	Base *RawConfigMode `json:",omitempty"`
-	Dev  *RawConfigMode `json:",omitempty"`
-	Prod *RawConfigMode `json:",omitempty"`
+	Base *RawConfigMode `json:"base,omitempty"`
+	Dev  *RawConfigMode `json:"dev,omitempty"`
+	Prod *RawConfigMode `json:"prod,omitempty"`
 	//Path is the path this config was loaded up from
 	path string
 }

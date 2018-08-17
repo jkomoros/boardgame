@@ -1,40 +1,40 @@
 {
-	"prod" : {
-		"allowedorigins" : "https://www.mygame.com",
-		"defaultport" : "8080",
-		"adminuserids": [
-			"aH1TV07K47RC4mTNCai0ZPnQ9Kd2",
-			"uYuZl1jXWXVJ9fEk7mDFifhTGmK2"
-		],
-		"storageconfig": {
-			"mysql": "Your production server config goes here, See https://github.com/go-sql-driver/mysql for examples"
-		}
-	},
-	"dev" : {
-		"defaultport" : "8888",
-		"allowedorigins" : "http://localhost:8080",
-		"disableadminchecking": true,
-		"storageconfig": {
-			"mysql": "root:root@tcp(localhost:3306)/boardgame"
-		}
-	},
-	"base" : {
-		"defaultstoragetype": "bolt",
+	"base": {
+		"defaultStorageType": "bolt",
+		"googleAnalytics": "UA-321674-10",
+		"firebase": {
+			"apiKey": "AIzaSyDi0hhBgLPbpJgprVCDzDkk8zuFpb9XadM",
+			"authDomain": "example-boardgame.firebaseapp.com",
+			"databaseURL": "https://example-boardgame.firebaseio.com",
+			"projectId": "example-boardgame",
+			"storageBucket": "example-boardgame.appspot.com",
+			"messagingSenderId": "138149526364"
+		},
 		"games": {
 			"github.com/jkomoros/boardgame/examples": [
 				"checkers",
 				"blackjack",
 				"memory"
 			]
-		},
-		"googleanalytics": "UA-321674-10",
-		"firebase": {
-		    "apiKey": "AIzaSyDi0hhBgLPbpJgprVCDzDkk8zuFpb9XadM",
-		    "authDomain": "example-boardgame.firebaseapp.com",
-		    "databaseURL": "https://example-boardgame.firebaseio.com",
-		    "projectId": "example-boardgame",
-		    "storageBucket": "example-boardgame.appspot.com",
-		    "messagingSenderId": "138149526364"
+		}
+	},
+	"dev": {
+		"allowedOrigins": "http://localhost:8080",
+		"defaultPort": "8888",
+		"disableAdminChecking": true,
+		"storageConfig": {
+			"mysql": "root:root@tcp(localhost:3306)/boardgame"
+		}
+	},
+	"prod": {
+		"allowedOrigins": "https://www.mygame.com",
+		"defaultPort": "8080",
+		"adminUserIds": [
+			"aH1TV07K47RC4mTNCai0ZPnQ9Kd2",
+			"uYuZl1jXWXVJ9fEk7mDFifhTGmK2"
+		],
+		"storageConfig": {
+			"mysql": "Your production server config goes here, See https://github.com/go-sql-driver/mysql for examples"
 		}
 	}
 }
