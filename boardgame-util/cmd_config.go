@@ -8,6 +8,8 @@ import (
 
 type Config struct {
 	baseSubCommand
+
+	ConfigNormalize ConfigNormalize
 }
 
 func (c *Config) Run(p writ.Path, positional []string) {
@@ -55,4 +57,10 @@ func (c *Config) HelpText() string {
 	return c.Name() + ` run without arguments prints the derived config in use and the path that is being used.
 
 It's a good way to debug config issues.`
+}
+
+func (c *Config) SubcommandObjects() []SubcommandObject {
+	return []SubcommandObject{
+		&c.ConfigNormalize,
+	}
 }
