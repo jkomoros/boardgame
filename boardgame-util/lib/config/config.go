@@ -2,6 +2,16 @@ package config
 
 import (
 	"errors"
+	"path/filepath"
+	"strconv"
+)
+
+type ConfigModeType int
+
+const (
+	TypeBase = iota
+	TypeDev
+	TypeProd
 )
 
 //Config represents the derived config values. It is based on RawConfigs. This
@@ -27,6 +37,97 @@ func NewConfig(raw, rawSecret *RawConfig) (*Config, error) {
 		return nil, err
 	}
 	return result, nil
+}
+
+//Update modifies the config in a specified way. typ and secret select the
+//RawConfigMode to modify (creating one if necessary) and then updater applies
+//the update. See Set* functions in this package for factories for common
+//ConfigUpdaters. After the update, the Config has all of its values rederived
+//to reflect the change.
+func (c *Config) Update(typ ConfigModeType, secret bool, updater ConfigUpdater) error {
+
+	if updater == nil {
+		return errors.New("No updater provided. Perhaps the config to the factory was invalid?")
+	}
+
+	var rawConfig *RawConfig
+
+	if secret {
+		rawConfig = c.rawSecretConfig
+		if rawConfig == nil {
+			//Need to create one
+
+			path := privateConfigFileName
+
+			if c.rawPublicConfig != nil {
+				path = filepath.Join(filepath.Dir(c.Path()), privateConfigFileName)
+			}
+
+			rawConfig = &RawConfig{
+				path: path,
+			}
+
+			c.rawSecretConfig = rawConfig
+		}
+	} else {
+		rawConfig = c.rawPublicConfig
+
+		if rawConfig == nil {
+			//Need to create one
+
+			path := publicConfigFileName
+			if c.rawSecretConfig != nil {
+				path = filepath.Join(filepath.Dir(c.SecretPath()), publicConfigFileName)
+			}
+
+			rawConfig = &RawConfig{
+				path: path,
+			}
+
+			c.rawPublicConfig = rawConfig
+		}
+	}
+
+	var mode *RawConfigMode
+
+	switch typ {
+	case TypeBase:
+		mode = rawConfig.Base
+		if mode == nil {
+			//Create it
+			mode = &RawConfigMode{}
+			rawConfig.Base = mode
+		}
+	case TypeDev:
+		mode = rawConfig.Dev
+		if mode == nil {
+			mode = &RawConfigMode{}
+			rawConfig.Dev = mode
+		}
+	case TypeProd:
+		mode = rawConfig.Prod
+		if mode == nil {
+			mode = &RawConfigMode{}
+			rawConfig.Prod = mode
+		}
+	default:
+		return errors.New(strconv.Itoa(int(typ)) + " is not a valid type")
+	}
+
+	if err := updater(mode); err != nil {
+		return errors.New("Updater errored: " + err.Error())
+	}
+
+	c.derive()
+
+	if err := c.validate(); err != nil {
+		//TODO: if this happens ideally the change won't ahve actually been
+		//made. See TODO in issue #655.
+		return errors.New("Modified raw didn't validate: " + err.Error())
+	}
+
+	return nil
+
 }
 
 func (c *Config) derive() {
