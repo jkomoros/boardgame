@@ -36,9 +36,11 @@ type RawConfigMode struct {
 	Games *GameNode
 }
 
-//derive tells the ConfigMode to do its final processing to create any derived
-//fields, like GamesList.
-func (c *RawConfigMode) derive(prodMode bool) *ConfigMode {
+//Derive tells the RawConfigMode to create a new, fully derived ConfigMode
+//based on the current properties of this RawConfigMode. prodMode is whether
+//the ConfigMode being derived is for a Prod or Dev slot in Config. Generally
+//you don't call this, but use NewConfig() instead.
+func (c *RawConfigMode) Derive(prodMode bool) *ConfigMode {
 
 	if c == nil {
 		return nil
@@ -79,8 +81,8 @@ func (c *RawConfigMode) String() string {
 	return string(blob)
 }
 
-//copy returns a deep copy of the config mode.
-func (c *RawConfigMode) copy() *RawConfigMode {
+//Copy returns a deep copy of the RawConfigMode.
+func (c *RawConfigMode) Copy() *RawConfigMode {
 
 	if c == nil {
 		return nil
@@ -137,12 +139,14 @@ func mergedStrList(base, other []string) []string {
 	return result
 }
 
-//extend takes a given base config mode, extends it with properties set in
-//other (with any non-zero value overwriting the base values) and returns a
-//*new* config representing the merged one.
-func (c *RawConfigMode) extend(other *RawConfigMode) *RawConfigMode {
+//Extend takes a given base config mode, extends it with properties set in
+//other (with any non-zero value overwriting the base values, and with Games
+//and string lists being merged and de-duped) and returns a *new* config
+//representing the merged one. Normally you don't call this directly but use
+//NewConfig instead.
+func (c *RawConfigMode) Extend(other *RawConfigMode) *RawConfigMode {
 
-	result := c.copy()
+	result := c.Copy()
 
 	if other == nil {
 		return result

@@ -14,8 +14,9 @@ type Config struct {
 }
 
 //NewConfig returns a new, derived config object based on the given raw
-//configs. rawSecret may be nil. In general you don't use this directly, but
-//use Get().
+//configs, using primarily mode.Extend, mode.Derive in the right order to
+//produce the result. rawSecret may be nil. In general you don't use this
+//directly, but use Get().
 func NewConfig(raw, rawSecret *RawConfig) (*Config, error) {
 	result := &Config{
 		rawPublicConfig: raw,
@@ -39,18 +40,18 @@ func (c *Config) derive() {
 	dev := c.rawPublicConfig.Dev
 
 	if c.rawSecretConfig != nil {
-		base = base.extend(c.rawSecretConfig.Base)
-		prod = prod.extend(c.rawSecretConfig.Prod)
-		dev = dev.extend(c.rawSecretConfig.Dev)
+		base = base.Extend(c.rawSecretConfig.Base)
+		prod = prod.Extend(c.rawSecretConfig.Prod)
+		dev = dev.Extend(c.rawSecretConfig.Dev)
 	}
 
 	if base != nil {
-		prod = base.extend(prod)
-		dev = base.extend(dev)
+		prod = base.Extend(prod)
+		dev = base.Extend(dev)
 	}
 
-	c.Prod = prod.derive(true)
-	c.Dev = dev.derive(false)
+	c.Prod = prod.Derive(true)
+	c.Dev = dev.Derive(false)
 
 	return
 

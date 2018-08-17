@@ -301,7 +301,7 @@ func TestApiHostDerivation(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		out := test.in.derive(test.prodMode)
+		out := test.in.Derive(test.prodMode)
 		assert.For(t, i, test.description).ThatActual(out).Equals(test.out).ThenDiffOnFail()
 	}
 
