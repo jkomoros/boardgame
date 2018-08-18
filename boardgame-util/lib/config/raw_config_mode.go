@@ -4,6 +4,22 @@ import (
 	"encoding/json"
 )
 
+type ConfigModeField string
+
+const (
+	FieldAllowedOrigins       ConfigModeField = "AllowedOrigins"
+	FieldDefaultPort                          = "DefaultPort"
+	FieldDefaultStaticPort                    = "DefaultStaticPort"
+	FieldAdminUserIds                         = "AdminUserIds"
+	FieldDisableAdminChecking                 = "DisableAdminChecking"
+	FieldStorageConfig                        = "StorageConfig"
+	FieldDefaultStorageType                   = "DefaultStorageType"
+	FieldGoogleAnalytics                      = "GoogleAnalytics"
+	FieldFirebase                             = "Firebase"
+	FieldApiHost                              = "ApiHost"
+	FieldGames                                = "Games"
+)
+
 //ConfigModeCommon is the values that both ConfigMode and RawConfigMode share
 //directly, factored out for convenience so they can be anonymously embedded
 //in ConfigMdoe and RawConfigMode.

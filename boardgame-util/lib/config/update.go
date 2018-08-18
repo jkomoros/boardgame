@@ -2,7 +2,6 @@ package config
 
 import (
 	"errors"
-	"strings"
 )
 
 //ConfigUpdater is a function that takes a rawConfig and makes a modifcation
@@ -13,27 +12,24 @@ type ConfigUpdater func(r *RawConfigMode) error
 
 //SetString returns a function to set the given rawconfig string property to
 //the given value.
-func SetString(propName, val string) ConfigUpdater {
-
-	propName = strings.ToLower(propName)
-	propName = strings.TrimSpace(propName)
+func SetString(field ConfigModeField, val string) ConfigUpdater {
 
 	return func(r *RawConfigMode) error {
-		switch propName {
-		case "allowedorigins":
+		switch field {
+		case FieldAllowedOrigins:
 			r.AllowedOrigins = val
-		case "defaultport":
+		case FieldDefaultPort:
 			r.DefaultPort = val
-		case "defaultstaticport":
+		case FieldDefaultStaticPort:
 			r.DefaultStaticPort = val
-		case "defaultstoragetype":
+		case FieldDefaultStorageType:
 			r.DefaultStorageType = val
-		case "googleanalytics":
+		case FieldGoogleAnalytics:
 			r.GoogleAnalytics = val
-		case "apihost":
+		case FieldApiHost:
 			r.ApiHost = val
 		default:
-			return errors.New(propName + " is not a valid string property")
+			return errors.New(string(field) + " is not a valid string property")
 		}
 
 		return nil

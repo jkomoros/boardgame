@@ -34,7 +34,7 @@ func TestUpdate(t *testing.T) {
 			nil,
 			TypeBase,
 			false,
-			SetString("allowedORIGINs ", "after"),
+			SetString(FieldAllowedOrigins, "after"),
 			false,
 			&RawConfig{
 				&RawConfigMode{
@@ -65,7 +65,7 @@ func TestUpdate(t *testing.T) {
 			},
 			TypeBase,
 			true,
-			SetString("allowedORIGINs ", "after"),
+			SetString(FieldAllowedOrigins, "after"),
 			false,
 			nil,
 			&RawConfig{
@@ -96,7 +96,7 @@ func TestUpdate(t *testing.T) {
 			nil,
 			TypeDev,
 			false,
-			SetString("allowedORIGINs ", "after"),
+			SetString(FieldAllowedOrigins, "after"),
 			false,
 			&RawConfig{
 				&RawConfigMode{
@@ -142,7 +142,7 @@ func TestUpdate(t *testing.T) {
 			nil,
 			TypeBase,
 			false,
-			SetString("allowedORIGINs ", "after"),
+			SetString(FieldAllowedOrigins, "after"),
 			false,
 			&RawConfig{
 				&RawConfigMode{
@@ -172,7 +172,7 @@ func TestUpdate(t *testing.T) {
 			nil,
 			TypeBase,
 			true,
-			SetString("allowedORIGINs ", "after"),
+			SetString(FieldAllowedOrigins, "after"),
 			false,
 			&RawConfig{
 				&RawConfigMode{
@@ -212,7 +212,7 @@ func TestUpdate(t *testing.T) {
 			},
 			TypeBase,
 			false,
-			SetString("allowedORIGINs ", "after"),
+			SetString(FieldAllowedOrigins, "after"),
 			false,
 			&RawConfig{
 				&RawConfigMode{

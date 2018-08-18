@@ -9,7 +9,7 @@ import (
 type ConfigModeType int
 
 const (
-	TypeBase = iota
+	TypeBase ConfigModeType = iota
 	TypeDev
 	TypeProd
 )
