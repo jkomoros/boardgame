@@ -25,18 +25,15 @@ type Config struct {
 
 //NewConfig returns a new, derived config object based on the given raw
 //configs, using primarily mode.Extend, mode.Derive in the right order to
-//produce the result. rawSecret may be nil. In general you don't use this
-//directly, but use Get().
-func NewConfig(raw, rawSecret *RawConfig) (*Config, error) {
+//produce the result. Both raw and rawSecret may be nil. In general you don't
+//use this directly, but use Get().
+func NewConfig(raw, rawSecret *RawConfig) *Config {
 	result := &Config{
 		rawPublicConfig: raw,
 		rawSecretConfig: rawSecret,
 	}
 	result.derive()
-	if err := result.validate(); err != nil {
-		return nil, err
-	}
-	return result, nil
+	return result
 }
 
 //Update modifies the config in a specified way. typ and secret select the
@@ -119,12 +116,6 @@ func (c *Config) Update(typ ConfigModeType, secret bool, updater ConfigUpdater) 
 	}
 
 	c.derive()
-
-	if err := c.validate(); err != nil {
-		//TODO: if this happens ideally the change won't ahve actually been
-		//made. See TODO in issue #655.
-		return errors.New("Modified raw didn't validate: " + err.Error())
-	}
 
 	return nil
 
@@ -212,21 +203,4 @@ func (c *Config) SecretPath() string {
 		return ""
 	}
 	return raw.Path()
-}
-
-func (c *Config) validate() error {
-
-	if c.Dev == nil && c.Prod == nil {
-		return errors.New("Neither dev nor prod configuration was valid")
-	}
-
-	if c.Dev != nil {
-		if err := c.Dev.validate(true); err != nil {
-			return err
-		}
-	}
-	if c.Prod != nil {
-		return c.Prod.validate(false)
-	}
-	return nil
 }

@@ -37,36 +37,60 @@ type RawConfigMode struct {
 }
 
 //Derive tells the RawConfigMode to create a new, fully derived ConfigMode
-//based on the current properties of this RawConfigMode. prodMode is whether
-//the ConfigMode being derived is for a Prod or Dev slot in Config. Generally
-//you don't call this, but use NewConfig() instead.
+//based on the current properties of this RawConfigMode, setting defaults as
+//necessary. prodMode is whether the ConfigMode being derived is for a Prod or
+//Dev slot in Config. Will always return a reasonably defaulted ConfigMode
+//even if the RawcConfigMode itself is nil. Generally you don't call this, but
+//use NewConfig() instead.
 func (c *RawConfigMode) Derive(prodMode bool) *ConfigMode {
 
+	var result *ConfigMode
+
 	if c == nil {
-		return nil
+		result = &ConfigMode{}
+	} else {
+		result = &ConfigMode{
+			c.ConfigModeCommon,
+			c.Games.List(),
+		}
 	}
 
-	result := &ConfigMode{
-		c.ConfigModeCommon,
-		c.Games.List(),
+	if result.DefaultPort == "" {
+		if prodMode {
+			result.DefaultPort = "8080"
+		} else {
+			result.DefaultPort = "8888"
+		}
+	}
+	//AllowedOrigins will just be default allow
+	if result.AllowedOrigins == "" {
+		result.AllowedOrigins = "*"
 	}
 
 	if result.ApiHost == "" {
 		if prodMode {
-			if result.Firebase == nil {
-				//TODO: this should be refactored to not early return, which
-				//will be prone to errors later.
-				return result
+			if result.Firebase != nil {
+				result.ApiHost = "https://" + result.Firebase.StorageBucket
 			}
-			result.ApiHost = "https://" + result.Firebase.StorageBucket
-
 		} else {
 			result.ApiHost = "http://localhost"
 		}
-
-		if result.DefaultPort != "80" && result.DefaultPort != "" {
-			result.ApiHost += ":" + result.DefaultPort
+		if result.ApiHost != "" {
+			if result.DefaultPort != "80" && result.DefaultPort != "" {
+				result.ApiHost += ":" + result.DefaultPort
+			}
 		}
+	}
+
+	if result.StorageConfig == nil {
+		result.StorageConfig = make(map[string]string)
+	}
+
+	if result.DisableAdminChecking && prodMode {
+		//Not legal, turn off!
+
+		//TODO: ideally we'd communicate that we had unset this...
+		result.DisableAdminChecking = false
 	}
 
 	return result

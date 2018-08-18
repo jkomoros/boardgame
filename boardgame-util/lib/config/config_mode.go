@@ -2,8 +2,6 @@ package config
 
 import (
 	"encoding/json"
-	"errors"
-	"log"
 	"net/url"
 	"strings"
 )
@@ -24,24 +22,6 @@ func (c *ConfigMode) String() string {
 		return "ERROR, couldn't unmarshal: " + err.Error()
 	}
 	return string(blob)
-}
-
-func (c *ConfigMode) validate(isDev bool) error {
-	if c.DefaultPort == "" {
-		return errors.New("No default port provided")
-	}
-	//AllowedOrigins will just be default allow
-	if c.AllowedOrigins == "" {
-		log.Println("No AllowedOrigins found. Defaulting to '*'")
-		c.AllowedOrigins = "*"
-	}
-	if c.StorageConfig == nil {
-		c.StorageConfig = make(map[string]string)
-	}
-	if c.DisableAdminChecking && !isDev {
-		return errors.New("DisableAdminChecking enabled in prod, which is illegal")
-	}
-	return nil
 }
 
 func (c *ConfigMode) OriginAllowed(origin string) bool {

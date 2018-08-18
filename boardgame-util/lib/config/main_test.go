@@ -62,7 +62,14 @@ func TestBaseExtend(t *testing.T) {
 					},
 					nil,
 				},
-				nil,
+				&ConfigMode{
+					ConfigModeCommon{
+						AllowedOrigins: "*",
+						DefaultPort:    "8080",
+						StorageConfig:  make(map[string]string),
+					},
+					nil,
+				},
 				nil,
 				nil,
 			},
@@ -168,9 +175,7 @@ func TestBaseExtend(t *testing.T) {
 
 	for i, test := range tests {
 
-		out, err := NewConfig(test.in, nil)
-
-		assert.For(t, i, test.description).ThatActual(err).IsNil()
+		out := NewConfig(test.in, nil)
 
 		if out == nil {
 			continue
@@ -205,8 +210,10 @@ func TestApiHostDerivation(t *testing.T) {
 			},
 			&ConfigMode{
 				ConfigModeCommon{
-					ApiHost:     "provided",
-					DefaultPort: "8888",
+					ApiHost:        "provided",
+					DefaultPort:    "8888",
+					AllowedOrigins: "*",
+					StorageConfig:  make(map[string]string),
 				},
 				nil,
 			},
@@ -222,8 +229,10 @@ func TestApiHostDerivation(t *testing.T) {
 			},
 			&ConfigMode{
 				ConfigModeCommon{
-					ApiHost:     "http://localhost:8888",
-					DefaultPort: "8888",
+					ApiHost:        "http://localhost:8888",
+					DefaultPort:    "8888",
+					AllowedOrigins: "*",
+					StorageConfig:  make(map[string]string),
 				},
 				nil,
 			},
@@ -248,6 +257,8 @@ func TestApiHostDerivation(t *testing.T) {
 					Firebase: &FirebaseConfig{
 						StorageBucket: "example-boardgame.appspot.com",
 					},
+					AllowedOrigins: "*",
+					StorageConfig:  make(map[string]string),
 				},
 				nil,
 			},
@@ -261,6 +272,7 @@ func TestApiHostDerivation(t *testing.T) {
 					Firebase: &FirebaseConfig{
 						StorageBucket: "example-boardgame.appspot.com",
 					},
+					DefaultPort: "80",
 				},
 				nil,
 			},
@@ -270,6 +282,9 @@ func TestApiHostDerivation(t *testing.T) {
 					Firebase: &FirebaseConfig{
 						StorageBucket: "example-boardgame.appspot.com",
 					},
+					DefaultPort:    "80",
+					AllowedOrigins: "*",
+					StorageConfig:  make(map[string]string),
 				},
 				nil,
 			},
@@ -294,6 +309,8 @@ func TestApiHostDerivation(t *testing.T) {
 					Firebase: &FirebaseConfig{
 						StorageBucket: "example-boardgame.appspot.com",
 					},
+					AllowedOrigins: "*",
+					StorageConfig:  make(map[string]string),
 				},
 				nil,
 			},
@@ -302,6 +319,7 @@ func TestApiHostDerivation(t *testing.T) {
 
 	for i, test := range tests {
 		out := test.in.Derive(test.prodMode)
+
 		assert.For(t, i, test.description).ThatActual(out).Equals(test.out).ThenDiffOnFail()
 	}
 

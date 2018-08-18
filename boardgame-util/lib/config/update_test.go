@@ -144,11 +144,9 @@ func TestUpdate(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		config, err := NewConfig(test.inPublic, test.inSecret)
+		config := NewConfig(test.inPublic, test.inSecret)
 
-		assert.For(t, i, test.description).ThatActual(err).IsNil()
-
-		err = config.Update(test.inType, test.inIsSecret, test.inUpdater)
+		err := config.Update(test.inType, test.inIsSecret, test.inUpdater)
 
 		if test.errExpected {
 			assert.For(t, i, test.description).ThatActual(err).IsNotNil()

@@ -20,7 +20,6 @@
 	},
 	"dev": {
 		"allowedOrigins": "http://localhost:8080",
-		"defaultPort": "8888",
 		"disableAdminChecking": true,
 		"storageConfig": {
 			"mysql": "root:root@tcp(localhost:3306)/boardgame"
@@ -28,7 +27,6 @@
 	},
 	"prod": {
 		"allowedOrigins": "https://www.mygame.com",
-		"defaultPort": "8080",
 		"adminUserIds": [
 			"aH1TV07K47RC4mTNCai0ZPnQ9Kd2",
 			"uYuZl1jXWXVJ9fEk7mDFifhTGmK2"

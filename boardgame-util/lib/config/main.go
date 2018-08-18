@@ -171,6 +171,6 @@ func Get(dir string) (*Config, error) {
 		return nil, errors.New("Couldn't get private config: " + err.Error())
 	}
 
-	return NewConfig(publicConfig, privateConfig)
+	return NewConfig(publicConfig, privateConfig), nil
 
 }
