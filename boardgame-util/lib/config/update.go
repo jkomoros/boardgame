@@ -36,3 +36,9 @@ func SetString(field ConfigModeField, val string) ConfigUpdater {
 
 	}
 }
+
+//DeleteString returns a function to unset the given rawcofngi string
+//property.
+func DeleteString(field ConfigModeField) ConfigUpdater {
+	return SetString(field, "")
+}
