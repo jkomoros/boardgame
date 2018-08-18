@@ -10,6 +10,7 @@ type Config struct {
 	baseSubCommand
 
 	ConfigNormalize ConfigNormalize
+	ConfigSet       ConfigSet
 }
 
 func (c *Config) Run(p writ.Path, positional []string) {
@@ -61,6 +62,7 @@ It's a good way to debug config issues.`
 
 func (c *Config) SubcommandObjects() []SubcommandObject {
 	return []SubcommandObject{
+		&c.ConfigSet,
 		&c.ConfigNormalize,
 	}
 }
