@@ -517,7 +517,7 @@ func TestUpdate(t *testing.T) {
 			nil,
 			TypeBase,
 			false,
-			DeleteStringKey(FieldStorageConfig, "foo"),
+			SetStringKey(FieldStorageConfig, "foo", ""),
 			false,
 			&RawConfig{
 				&RawConfigMode{
@@ -550,7 +550,7 @@ func TestUpdate(t *testing.T) {
 			nil,
 			TypeBase,
 			false,
-			DeleteStringKey(FieldStorageConfig, "foo"),
+			SetStringKey(FieldStorageConfig, "foo", ""),
 			false,
 			&RawConfig{
 				&RawConfigMode{
@@ -583,7 +583,7 @@ func TestUpdate(t *testing.T) {
 			nil,
 			TypeBase,
 			false,
-			DeleteStringKey(FieldStorageConfig, "foo"),
+			SetStringKey(FieldStorageConfig, "foo", ""),
 			false,
 			&RawConfig{
 				&RawConfigMode{

@@ -93,6 +93,7 @@ func RemoveString(field ConfigModeField, val string) ConfigUpdater {
 //SetStringKey adds the given key and val to the map[string]string field
 //denoted by field. If that key is already set, it updates it to the new
 //value. If the map is nil, creates one. Field must be of FieldTypeStringMap.
+//If val is "" then the key will be deleted.
 func SetStringKey(field ConfigModeField, key, val string) ConfigUpdater {
 
 	return func(r *RawConfigMode) error {
@@ -100,29 +101,17 @@ func SetStringKey(field ConfigModeField, key, val string) ConfigUpdater {
 			return errors.New(string(field) + " is not a map[string]string")
 		}
 		if r.StorageConfig == nil {
+			if val == "" {
+				//Told us to remove it, and there are no vals, so done!
+				return nil
+			}
 			r.StorageConfig = make(map[string]string)
 		}
-		r.StorageConfig[key] = val
-		return nil
-	}
-
-}
-
-//DeleteStringKey deletes the given key from the map[string]string field
-//denoted by field. Field must be of FieldTypeStringMap.
-func DeleteStringKey(field ConfigModeField, key string) ConfigUpdater {
-
-	return func(r *RawConfigMode) error {
-		if field != FieldStorageConfig {
-			return errors.New(string(field) + " is not a map[string]string")
+		if val == "" {
+			delete(r.StorageConfig, key)
+		} else {
+			r.StorageConfig[key] = val
 		}
-		//This shouldn't happen
-		if r.StorageConfig == nil {
-			return nil
-		}
-		delete(r.StorageConfig, key)
-		//Don't nil out the storage map if no keys are left; Storage should
-		//always be non-nil.
 		return nil
 	}
 
