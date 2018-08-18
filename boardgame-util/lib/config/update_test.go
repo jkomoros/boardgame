@@ -236,6 +236,173 @@ func TestUpdate(t *testing.T) {
 				filepath.Join("folder", privateConfigFileName),
 			},
 		},
+		{
+			"Simple AddString",
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						AdminUserIds: []string{
+							"foo",
+						},
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+			TypeBase,
+			false,
+			AddString(FieldAdminUserIds, "bar"),
+			false,
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						AdminUserIds: []string{
+							"foo",
+							"bar",
+						},
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+		},
+		{
+			"Simple AddString already exists",
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						AdminUserIds: []string{
+							"foo",
+						},
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+			TypeBase,
+			false,
+			AddString(FieldAdminUserIds, "foo"),
+			false,
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						AdminUserIds: []string{
+							"foo",
+						},
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+		},
+		{
+			"Simple RemoveString",
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						AdminUserIds: []string{
+							"foo",
+							"bar",
+						},
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+			TypeBase,
+			false,
+			RemoveString(FieldAdminUserIds, "bar"),
+			false,
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						AdminUserIds: []string{
+							"foo",
+						},
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+		},
+		{
+			"Simple RemoveString last item",
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						AdminUserIds: []string{
+							"bar",
+						},
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+			TypeBase,
+			false,
+			RemoveString(FieldAdminUserIds, "bar"),
+			false,
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						AdminUserIds: nil,
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+		},
+		{
+			"Simple RemoveString key not in list",
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						AdminUserIds: []string{
+							"foo",
+							"bar",
+						},
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+			TypeBase,
+			false,
+			RemoveString(FieldAdminUserIds, "baz"),
+			false,
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						AdminUserIds: []string{
+							"foo",
+							"bar",
+						},
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+		},
 	}
 
 	for i, test := range tests {

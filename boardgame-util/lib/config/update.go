@@ -42,3 +42,49 @@ func SetString(field ConfigModeField, val string) ConfigUpdater {
 func DeleteString(field ConfigModeField) ConfigUpdater {
 	return SetString(field, "")
 }
+
+//AddString adds the given string, if it doesn't exist, to the []string type
+//ConfigModeField.
+func AddString(field ConfigModeField, val string) ConfigUpdater {
+
+	return func(r *RawConfigMode) error {
+		if field != FieldAdminUserIds {
+			return errors.New(string(field) + " is not a []string field")
+		}
+		//Make sure the value isn't already set
+		for _, rec := range r.AdminUserIds {
+			if rec == val {
+				//Already exists, we're done
+				return nil
+			}
+		}
+
+		r.AdminUserIds = append(r.AdminUserIds, val)
+		return nil
+	}
+
+}
+
+//RemoveString removes the given string, if it exists, from the []string type
+//ConfigModeField. If it was the last item to remove, sets that field to nil.
+func RemoveString(field ConfigModeField, val string) ConfigUpdater {
+
+	return func(r *RawConfigMode) error {
+		if field != FieldAdminUserIds {
+			return errors.New(string(field) + " is not a []string field")
+		}
+		var newList []string
+		//Make sure the value isn't already set
+		for _, rec := range r.AdminUserIds {
+			if rec == val {
+				//Don't copy this one over!
+				continue
+			}
+			newList = append(newList, rec)
+		}
+
+		r.AdminUserIds = newList
+		return nil
+	}
+
+}
