@@ -403,6 +403,200 @@ func TestUpdate(t *testing.T) {
 			},
 			nil,
 		},
+		{
+			"Simple SetStingKey",
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						StorageConfig: map[string]string{
+							"mysql": "foo",
+						},
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+			TypeBase,
+			false,
+			SetStringKey(FieldStorageConfig, "foo", "bar"),
+			false,
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						StorageConfig: map[string]string{
+							"mysql": "foo",
+							"foo":   "bar",
+						},
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+		},
+		{
+			"Simple SetStingKey on existing key",
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						StorageConfig: map[string]string{
+							"mysql": "foo",
+							"foo":   "foo",
+						},
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+			TypeBase,
+			false,
+			SetStringKey(FieldStorageConfig, "foo", "bar"),
+			false,
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						StorageConfig: map[string]string{
+							"mysql": "foo",
+							"foo":   "bar",
+						},
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+		},
+		{
+			"Simple SetStingKey first key",
+			&RawConfig{
+				&RawConfigMode{},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+			TypeBase,
+			false,
+			SetStringKey(FieldStorageConfig, "foo", "bar"),
+			false,
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						StorageConfig: map[string]string{
+							"foo": "bar",
+						},
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+		},
+		{
+			"Simple DeleteStringKey",
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						StorageConfig: map[string]string{
+							"mysql": "foo",
+							"foo":   "foo",
+						},
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+			TypeBase,
+			false,
+			DeleteStringKey(FieldStorageConfig, "foo"),
+			false,
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						StorageConfig: map[string]string{
+							"mysql": "foo",
+						},
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+		},
+		{
+			"Simple DeleteStringKey nonexistent key",
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						StorageConfig: map[string]string{
+							"mysql": "foo",
+						},
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+			TypeBase,
+			false,
+			DeleteStringKey(FieldStorageConfig, "foo"),
+			false,
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						StorageConfig: map[string]string{
+							"mysql": "foo",
+						},
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+		},
+		{
+			"Simple DeleteStringKey last key",
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						StorageConfig: map[string]string{
+							"foo": "foo",
+						},
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+			TypeBase,
+			false,
+			DeleteStringKey(FieldStorageConfig, "foo"),
+			false,
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						StorageConfig: map[string]string{},
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+		},
 	}
 
 	for i, test := range tests {
