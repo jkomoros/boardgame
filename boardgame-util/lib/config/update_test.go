@@ -49,6 +49,37 @@ func TestUpdate(t *testing.T) {
 			},
 			nil,
 		},
+		{
+			"Simple secret",
+			nil,
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						AllowedOrigins: "before",
+						DefaultPort:    "before",
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", privateConfigFileName),
+			},
+			TypeBase,
+			true,
+			SetString("allowedORIGINs ", "after"),
+			false,
+			nil,
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						AllowedOrigins: "after",
+						DefaultPort:    "before",
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", privateConfigFileName),
+			},
+		},
 		//TODO: test simple set secret
 		//TODO: test set on nil config mode
 		//TODO: test nil updater

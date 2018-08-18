@@ -146,6 +146,10 @@ func mergedStrList(base, other []string) []string {
 //NewConfig instead.
 func (c *RawConfigMode) Extend(other *RawConfigMode) *RawConfigMode {
 
+	if c == nil && other != nil {
+		return other.Copy()
+	}
+
 	result := c.Copy()
 
 	if other == nil {

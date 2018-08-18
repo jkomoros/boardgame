@@ -132,13 +132,15 @@ func (c *Config) Update(typ ConfigModeType, secret bool, updater ConfigUpdater) 
 
 func (c *Config) derive() {
 
-	if c.rawPublicConfig == nil {
-		return
-	}
+	var base *RawConfigMode
+	var prod *RawConfigMode
+	var dev *RawConfigMode
 
-	base := c.rawPublicConfig.Base
-	prod := c.rawPublicConfig.Prod
-	dev := c.rawPublicConfig.Dev
+	if c.rawPublicConfig != nil {
+		base = c.rawPublicConfig.Base
+		prod = c.rawPublicConfig.Prod
+		dev = c.rawPublicConfig.Dev
+	}
 
 	if c.rawSecretConfig != nil {
 		base = base.Extend(c.rawSecretConfig.Base)
