@@ -11,7 +11,7 @@ import (
 type ConfigUpdater func(r *RawConfigMode) error
 
 //SetString returns a function to set the given rawconfig string property to
-//the given value.
+//the given value. field must be of FieldTypeString.
 func SetString(field ConfigModeField, val string) ConfigUpdater {
 
 	return func(r *RawConfigMode) error {
@@ -37,14 +37,14 @@ func SetString(field ConfigModeField, val string) ConfigUpdater {
 	}
 }
 
-//DeleteString returns a function to unset the given rawcofngi string
-//property.
+//DeleteString returns a function to unset the given config string
+//propert, as long as field is of type FieldTypeString.
 func DeleteString(field ConfigModeField) ConfigUpdater {
 	return SetString(field, "")
 }
 
 //AddString adds the given string, if it doesn't exist, to the []string type
-//ConfigModeField.
+//ConfigModeField. Field must be of FieldTypeStringSlice.
 func AddString(field ConfigModeField, val string) ConfigUpdater {
 
 	return func(r *RawConfigMode) error {
@@ -67,6 +67,7 @@ func AddString(field ConfigModeField, val string) ConfigUpdater {
 
 //RemoveString removes the given string, if it exists, from the []string type
 //ConfigModeField. If it was the last item to remove, sets that field to nil.
+//Field must be of FieldTypeStringSlice.
 func RemoveString(field ConfigModeField, val string) ConfigUpdater {
 
 	return func(r *RawConfigMode) error {
@@ -91,7 +92,7 @@ func RemoveString(field ConfigModeField, val string) ConfigUpdater {
 
 //SetStringKey adds the given key and val to the map[string]string field
 //denoted by field. If that key is already set, it updates it to the new
-//value. If the map is nil, creates one.
+//value. If the map is nil, creates one. Field must be of FieldTypeStringMap.
 func SetStringKey(field ConfigModeField, key, val string) ConfigUpdater {
 
 	return func(r *RawConfigMode) error {
@@ -108,7 +109,7 @@ func SetStringKey(field ConfigModeField, key, val string) ConfigUpdater {
 }
 
 //DeleteStringKey deletes the given key from the map[string]string field
-//denoted by field.
+//denoted by field. Field must be of FieldTypeStringMap.
 func DeleteStringKey(field ConfigModeField, key string) ConfigUpdater {
 
 	return func(r *RawConfigMode) error {
