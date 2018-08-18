@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 )
 
+//ConfigModeField denotes the field in a RawConfigMode. Used to pass to the
+//UpdateConfig family of function factories.
 type ConfigModeField string
 
 const (
@@ -19,6 +21,34 @@ const (
 	FieldApiHost                              = "ApiHost"
 	FieldGames                                = "Games"
 )
+
+//ConfigModeFieldType is the type of field in RawConfigMode. Different
+//UpdateConfig function factories only work on certain types of fields.
+type ConfigModeFieldType int
+
+const (
+	FieldTypeString ConfigModeFieldType = iota
+	FieldTypeStringSlice
+	FieldTypeStringMap
+	FieldTypeBool
+	FieldTypeFirebase
+	FieldTypeGameNode
+)
+
+//FieldTypes maps each ConfigModeField to its ConfigModeFieldType.
+var FieldTypes = map[ConfigModeField]ConfigModeFieldType{
+	FieldAllowedOrigins:       FieldTypeString,
+	FieldDefaultPort:          FieldTypeString,
+	FieldDefaultStaticPort:    FieldTypeString,
+	FieldAdminUserIds:         FieldTypeStringSlice,
+	FieldDisableAdminChecking: FieldTypeBool,
+	FieldStorageConfig:        FieldTypeStringMap,
+	FieldDefaultStorageType:   FieldTypeString,
+	FieldGoogleAnalytics:      FieldTypeString,
+	FieldFirebase:             FieldTypeFirebase,
+	FieldApiHost:              FieldTypeString,
+	FieldGames:                FieldTypeGameNode,
+}
 
 //ConfigModeCommon is the values that both ConfigMode and RawConfigMode share
 //directly, factored out for convenience so they can be anonymously embedded
