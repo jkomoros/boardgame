@@ -150,7 +150,7 @@ func (c *ConfigSet) WritOptions() []*writ.Option {
 }
 
 func (c *ConfigSet) Usage() string {
-	return "[-s] [-d|b] KEY [SUB-KEY] VAL"
+	return "[--secret] [--dev|--prod] KEY [SUB-KEY] VAL"
 }
 
 func keyNamesForConfigType(typ config.ConfigModeFieldType) []string {
