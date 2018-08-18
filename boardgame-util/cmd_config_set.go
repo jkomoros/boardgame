@@ -173,7 +173,7 @@ func (c *ConfigSet) HelpText() string {
 
 		"Keys of this type are (" + strings.Join(keyNamesForConfigType(config.FieldTypeString), ",") + ")\n\n" +
 
-		"If KEY is of type []string, simply adds the key to the given val if it doesn't exist. " +
+		"If KEY is of type []string, simply adds the key to the given val if it doesn't exist. A simple convenience instead of `config add`. " +
 
 		"Keys of this type are (" + strings.Join(keyNamesForConfigType(config.FieldTypeStringSlice), ",") + ")\n\n" +
 
