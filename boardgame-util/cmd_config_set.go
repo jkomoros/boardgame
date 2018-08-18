@@ -11,7 +11,8 @@ type ConfigSet struct {
 	baseSubCommand
 
 	Secret bool
-	Mode   string
+	Dev    bool
+	Prod   bool
 }
 
 func strToBool(in string) (bool, error) {
@@ -30,26 +31,29 @@ func strToBool(in string) (bool, error) {
 
 }
 
+func deriveMode(dev, prod bool) config.ConfigModeType {
+
+	//If one of dev or prod is set, return that
+	if dev || prod {
+		if dev {
+			return config.TypeDev
+		}
+		if prod {
+			return config.TypeProd
+		}
+	}
+
+	//Default to base
+	return config.TypeBase
+}
+
 func (c *ConfigSet) Run(p writ.Path, positional []string) {
 
 	base := c.Base().(*BoardgameUtil)
 
 	cfg := base.GetConfig()
 
-	mode := config.TypeBase
-
-	c.Mode = strings.ToLower(c.Mode)
-
-	switch c.Mode {
-	case "base":
-		//Pass; mode is already base
-	case "dev":
-		mode = config.TypeDev
-	case "prod":
-		mode = config.TypeProd
-	default:
-		errAndQuit(c.Mode + " is not a valid mode")
-	}
+	mode := deriveMode(c.Dev, c.Prod)
 
 	if len(positional) < 1 {
 		errAndQuit("KEY must be provided")
@@ -131,18 +135,22 @@ func (c *ConfigSet) WritOptions() []*writ.Option {
 			Decoder:     writ.NewFlagDecoder(&c.Secret),
 		},
 		{
-			Names:       []string{"m", "mode"},
-			Description: "The mode type to operate on. One of {base, dev, prod}. Defaults to base.",
-			Decoder: writ.NewDefaulter(
-				writ.NewOptionDecoder(&c.Mode),
-				"base",
-			),
+			Names:       []string{"d", "dev"},
+			Description: "If set, will write to dev options instead of base. No effect if prod is also passed",
+			Flag:        true,
+			Decoder:     writ.NewFlagDecoder(&c.Dev),
+		},
+		{
+			Names:       []string{"p", "prod"},
+			Description: "If set, will write to prod options instead of base. No effect if dev is also passed",
+			Flag:        true,
+			Decoder:     writ.NewFlagDecoder(&c.Prod),
 		},
 	}
 }
 
 func (c *ConfigSet) Usage() string {
-	return "KEY [SUB-KEY] VAL"
+	return "[-s] [-d|b] KEY [SUB-KEY] VAL"
 }
 
 func keyNamesForConfigType(typ config.ConfigModeFieldType) []string {
