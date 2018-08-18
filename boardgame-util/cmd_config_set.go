@@ -145,14 +145,47 @@ func (c *ConfigSet) Usage() string {
 	return "KEY [SUB-KEY] VAL"
 }
 
+func keyNamesForConfigType(typ config.ConfigModeFieldType) []string {
+
+	var result []string
+
+	for key, val := range config.FieldTypes {
+		if val == typ {
+			result = append(result, "'"+string(key)+"'")
+		}
+	}
+
+	return result
+
+}
+
 func (c *ConfigSet) HelpText() string {
-	return c.Name() + ` sets the given field to the given value in the current config.
 
-If KEY is of type string, simply sets the key to the given val.
+	var firebaseKeys []string
 
-If KEY is of type []string, simply adds the key to the given val if it doesn't exist.
+	for key, _ := range config.FirebaseKeys {
+		firebaseKeys = append(firebaseKeys, "'"+string(key)+"'")
+	}
 
-If KEY is of type bool, val must be either "0", "1", "true", "false"
+	return c.Name() + " sets the given field to the given value in the current config.\n\n" +
 
-If KEY is of type map[key]val then SUB-KEY must also be provided.`
+		"If KEY is of type string, simply sets the key to the given val. " +
+
+		"Keys of this type are (" + strings.Join(keyNamesForConfigType(config.FieldTypeString), ",") + ")\n\n" +
+
+		"If KEY is of type []string, simply adds the key to the given val if it doesn't exist. " +
+
+		"Keys of this type are (" + strings.Join(keyNamesForConfigType(config.FieldTypeStringSlice), ",") + ")\n\n" +
+
+		"If KEY is of type bool, val must be either '0', '1', 'true', 'false'. " +
+
+		"Keys of this type are (" + strings.Join(keyNamesForConfigType(config.FieldTypeBool), ",") + ")\n\n" +
+
+		"If KEY is of type map[key]val then SUB-KEY must also be provided. " +
+
+		"Keys of this type are (" + strings.Join(keyNamesForConfigType(config.FieldTypeStringMap), ",") + "). " +
+
+		"'Firebase' is also of this type, but only allows the following sub-keys: (" +
+
+		strings.Join(firebaseKeys, ",") + ")."
 }
