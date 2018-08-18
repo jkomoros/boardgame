@@ -27,7 +27,8 @@ const (
 type ConfigModeFieldType int
 
 const (
-	FieldTypeString ConfigModeFieldType = iota
+	FieldTypeInvalid ConfigModeFieldType = iota
+	FieldTypeString
 	FieldTypeStringSlice
 	FieldTypeStringMap
 	FieldTypeBool
