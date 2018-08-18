@@ -80,9 +80,62 @@ func TestUpdate(t *testing.T) {
 				filepath.Join("folder", privateConfigFileName),
 			},
 		},
-		//TODO: test simple set secret
-		//TODO: test set on nil config mode
-		//TODO: test nil updater
+		{
+			"Set on nil mode",
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						AllowedOrigins: "before",
+						DefaultPort:    "before",
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+			TypeDev,
+			false,
+			SetString("allowedORIGINs ", "after"),
+			false,
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						AllowedOrigins: "before",
+						DefaultPort:    "before",
+					},
+				},
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						AllowedOrigins: "after",
+					},
+				},
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+		},
+		{
+			"Nil updater",
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						AllowedOrigins: "before",
+						DefaultPort:    "before",
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+			TypeBase,
+			false,
+			SetString("NOTAPROPERTs ", "after"),
+			true,
+			nil,
+			nil,
+		},
 		//TODO: test totally nil configs in
 		//TODO: test set on nil secret with non-nil public
 		//TODO: test set on nil public with nil secret
