@@ -89,7 +89,17 @@ func (c *ConfigSet) Run(p writ.Path, positional []string) {
 		}
 		updater = config.SetBool(field, b)
 	case config.FieldTypeFirebase:
-		errAndQuit("Firebase key not yet supported")
+		if len(positional) != 3 {
+			errAndQuit("KEY of type firebase wants KEY SUB-KEY VAL")
+		}
+
+		firebaseKey := config.FirebaseKeyFromString(positional[1])
+
+		if firebaseKey == config.FirebaseInvalid {
+			errAndQuit(positional[1] + " is not a valid firebase key")
+		}
+
+		updater = config.SetFirebaseKey(firebaseKey, positional[2])
 	case config.FieldTypeGameNode:
 		errAndQuit("GAmes not yet supported")
 	}
