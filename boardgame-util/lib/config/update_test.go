@@ -136,11 +136,106 @@ func TestUpdate(t *testing.T) {
 			nil,
 			nil,
 		},
-		//TODO: test totally nil configs in
-		//TODO: test set on nil secret with non-nil public
-		//TODO: test set on nil public with nil secret
-		//TODO: test set on nil public with non-nil secret
-		//TODO: test invalid type
+		{
+			"Public on fully nil config",
+			nil,
+			nil,
+			TypeBase,
+			false,
+			SetString("allowedORIGINs ", "after"),
+			false,
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						AllowedOrigins: "after",
+					},
+				},
+				nil,
+				nil,
+				publicConfigFileName,
+			},
+			nil,
+		},
+		{
+			"Set on nil secret with non-nil public",
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						AllowedOrigins: "before",
+						DefaultPort:    "before",
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+			TypeBase,
+			true,
+			SetString("allowedORIGINs ", "after"),
+			false,
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						AllowedOrigins: "before",
+						DefaultPort:    "before",
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						AllowedOrigins: "after",
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", privateConfigFileName),
+			},
+		},
+		{
+			"Set on nil public with non-nil secret",
+			nil,
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						AllowedOrigins: "before",
+						DefaultPort:    "before",
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", privateConfigFileName),
+			},
+			TypeBase,
+			false,
+			SetString("allowedORIGINs ", "after"),
+			false,
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						AllowedOrigins: "after",
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						AllowedOrigins: "before",
+						DefaultPort:    "before",
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", privateConfigFileName),
+			},
+		},
 	}
 
 	for i, test := range tests {
