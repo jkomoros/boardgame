@@ -167,7 +167,7 @@ func (c *ConfigSet) HelpText() string {
 		firebaseKeys = append(firebaseKeys, "'"+string(key)+"'")
 	}
 
-	return c.Name() + " sets the given field to the given value in the current config.\n\n" +
+	return c.Name() + " sets the given field to the given value in the current config. KEY is not case sensitive.\n\n" +
 
 		"If KEY is of type string, simply sets the key to the given val. " +
 
@@ -181,11 +181,11 @@ func (c *ConfigSet) HelpText() string {
 
 		"Keys of this type are (" + strings.Join(keyNamesForConfigType(config.FieldTypeBool), ",") + ")\n\n" +
 
-		"If KEY is of type map[key]val then SUB-KEY must also be provided. " +
+		"If KEY is of type map[key]val then SUB-KEY must also be provided. A value of '' will delete the key. " +
 
 		"Keys of this type are (" + strings.Join(keyNamesForConfigType(config.FieldTypeStringMap), ",") + "). " +
 
 		"'Firebase' is also of this type, but only allows the following sub-keys: (" +
 
-		strings.Join(firebaseKeys, ",") + ")."
+		strings.Join(firebaseKeys, ",") + "), and keys set to value of '' will not be deleted."
 }
