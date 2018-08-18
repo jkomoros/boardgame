@@ -127,3 +127,15 @@ func DeleteStringKey(field ConfigModeField, key string) ConfigUpdater {
 	}
 
 }
+
+//SetBool sets the field denoted by field to the val. Field must be of type
+//FieldTypeBool.
+func SetBool(field ConfigModeField, val bool) ConfigUpdater {
+	return func(r *RawConfigMode) error {
+		if field != FieldDisableAdminChecking {
+			return errors.New(string(field) + " is not a bool")
+		}
+		r.DisableAdminChecking = val
+		return nil
+	}
+}
