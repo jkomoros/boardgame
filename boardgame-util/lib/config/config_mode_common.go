@@ -1,11 +1,16 @@
 package config
 
+import (
+	"strings"
+)
+
 //ConfigModeField denotes the field in a RawConfigMode. Used to pass to the
 //UpdateConfig family of function factories.
 type ConfigModeField string
 
 const (
-	FieldAllowedOrigins       ConfigModeField = "AllowedOrigins"
+	FieldInvalid              ConfigModeField = "<INVALID>"
+	FieldAllowedOrigins                       = "AllowedOrigins"
 	FieldDefaultPort                          = "DefaultPort"
 	FieldDefaultStaticPort                    = "DefaultStaticPort"
 	FieldAdminUserIds                         = "AdminUserIds"
@@ -34,6 +39,7 @@ const (
 
 //FieldTypes maps each ConfigModeField to its ConfigModeFieldType.
 var FieldTypes = map[ConfigModeField]ConfigModeFieldType{
+	FieldInvalid:              FieldTypeInvalid,
 	FieldAllowedOrigins:       FieldTypeString,
 	FieldDefaultPort:          FieldTypeString,
 	FieldDefaultStaticPort:    FieldTypeString,
@@ -69,4 +75,20 @@ type ConfigModeCommon struct {
 	//The host name the client should connect to in that mode. Something like
 	//"http://localhost:8888"
 	ApiHost string `json:"apiHost,omitempty"`
+}
+
+//FieldFromString returns a ConfigModeField by doing fuzzing matching.
+func FieldFromString(s string) ConfigModeField {
+	s = strings.TrimSpace(s)
+	s = strings.ToLower(s)
+
+	for key, _ := range FieldTypes {
+		normalizedKey := strings.ToLower(string(key))
+
+		if normalizedKey == s {
+			return key
+		}
+	}
+
+	return FieldInvalid
 }
