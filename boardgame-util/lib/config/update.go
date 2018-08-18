@@ -139,3 +139,39 @@ func SetBool(field ConfigModeField, val bool) ConfigUpdater {
 		return nil
 	}
 }
+
+//SetFirebaseKey sets the key denoted by FirebaseKey to val. Implicitly
+//operates only on the FieldFirebase field. If Firebase is nil, initalizes it.
+func SetFirebaseKey(key FirebaseKey, val string) ConfigUpdater {
+
+	return func(r *RawConfigMode) error {
+
+		config := r.Firebase
+
+		if config == nil {
+			config = &FirebaseConfig{}
+		}
+
+		switch key {
+		case FirebaseApiKey:
+			config.ApiKey = val
+		case FirebaseAuthDomain:
+			config.AuthDomain = val
+		case FirebaseDatabaseURL:
+			config.DatabaseURL = val
+		case FirebaseProjectID:
+			config.ProjectID = val
+		case FirebaseStorageBucket:
+			config.StorageBucket = val
+		case FirebaseMessagingSenderID:
+			config.MessagingSenderID = val
+		default:
+			return errors.New(string(key) + " is not a valid firebase key")
+		}
+
+		r.Firebase = config
+		return nil
+
+	}
+
+}

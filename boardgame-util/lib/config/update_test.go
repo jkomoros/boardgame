@@ -597,6 +597,100 @@ func TestUpdate(t *testing.T) {
 			},
 			nil,
 		},
+		{
+			"Simple Firebase key",
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						Firebase: &FirebaseConfig{
+							StorageBucket: "foo",
+						},
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+			TypeBase,
+			false,
+			SetFirebaseKey(FirebaseProjectID, "foo"),
+			false,
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						Firebase: &FirebaseConfig{
+							StorageBucket: "foo",
+							ProjectID:     "foo",
+						},
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+		},
+		{
+			"Simple Firebase key nil firebase",
+			&RawConfig{
+				&RawConfigMode{},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+			TypeBase,
+			false,
+			SetFirebaseKey(FirebaseProjectID, "foo"),
+			false,
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						Firebase: &FirebaseConfig{
+							ProjectID: "foo",
+						},
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+		},
+		{
+			"Simple Firebase key invalid key",
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						Firebase: &FirebaseConfig{
+							StorageBucket: "foo",
+						},
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+			TypeBase,
+			false,
+			SetFirebaseKey(FirebaseInvalid, "foo"),
+			true,
+			&RawConfig{
+				&RawConfigMode{
+					ConfigModeCommon: ConfigModeCommon{
+						Firebase: &FirebaseConfig{
+							StorageBucket: "foo",
+						},
+					},
+				},
+				nil,
+				nil,
+				filepath.Join("folder", publicConfigFileName),
+			},
+			nil,
+		},
 	}
 
 	for i, test := range tests {
