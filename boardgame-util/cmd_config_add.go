@@ -7,11 +7,7 @@ import (
 )
 
 type ConfigAdd struct {
-	baseSubCommand
-
-	Secret bool
-	Dev    bool
-	Prod   bool
+	ConfigModify
 }
 
 func (c *ConfigAdd) Run(p writ.Path, positional []string) {
@@ -64,31 +60,8 @@ func (c *ConfigAdd) Description() string {
 	return "Adds the given value to the list for the given field for slice types"
 }
 
-func (c *ConfigAdd) WritOptions() []*writ.Option {
-	return []*writ.Option{
-		{
-			Names:       []string{"s", "secret"},
-			Flag:        true,
-			Description: "If provided, will set the secret config instead of public config, creating it if necessary.",
-			Decoder:     writ.NewFlagDecoder(&c.Secret),
-		},
-		{
-			Names:       []string{"d", "dev"},
-			Description: "If set, will write to dev options instead of base. No effect if prod is also passed",
-			Flag:        true,
-			Decoder:     writ.NewFlagDecoder(&c.Dev),
-		},
-		{
-			Names:       []string{"p", "prod"},
-			Description: "If set, will write to prod options instead of base. No effect if dev is also passed",
-			Flag:        true,
-			Decoder:     writ.NewFlagDecoder(&c.Prod),
-		},
-	}
-}
-
 func (c *ConfigAdd) Usage() string {
-	return "[--secret] [--dev|--prod] KEY VAL"
+	return strings.Replace(c.ConfigModify.Usage(), "[SUB-KEY] ", "", -1)
 }
 
 func (c *ConfigAdd) HelpText() string {

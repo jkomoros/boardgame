@@ -8,11 +8,7 @@ import (
 )
 
 type ConfigSet struct {
-	baseSubCommand
-
-	Secret bool
-	Dev    bool
-	Prod   bool
+	ConfigModify
 }
 
 func strToBool(in string) (bool, error) {
@@ -126,33 +122,6 @@ func (c *ConfigSet) Description() string {
 	return "Sets the given field to the given value"
 }
 
-func (c *ConfigSet) WritOptions() []*writ.Option {
-	return []*writ.Option{
-		{
-			Names:       []string{"s", "secret"},
-			Flag:        true,
-			Description: "If provided, will set the secret config instead of public config, creating it if necessary.",
-			Decoder:     writ.NewFlagDecoder(&c.Secret),
-		},
-		{
-			Names:       []string{"d", "dev"},
-			Description: "If set, will write to dev options instead of base. No effect if prod is also passed",
-			Flag:        true,
-			Decoder:     writ.NewFlagDecoder(&c.Dev),
-		},
-		{
-			Names:       []string{"p", "prod"},
-			Description: "If set, will write to prod options instead of base. No effect if dev is also passed",
-			Flag:        true,
-			Decoder:     writ.NewFlagDecoder(&c.Prod),
-		},
-	}
-}
-
-func (c *ConfigSet) Usage() string {
-	return "[--secret] [--dev|--prod] KEY [SUB-KEY] VAL"
-}
-
 func keyNamesForConfigType(typ config.ConfigModeFieldType) []string {
 
 	var result []string
@@ -171,7 +140,7 @@ func (c *ConfigSet) HelpText() string {
 
 	var firebaseKeys []string
 
-	for key, _ := range config.FirebaseKeys {
+	for key := range config.FirebaseKeys {
 		firebaseKeys = append(firebaseKeys, "'"+string(key)+"'")
 	}
 
