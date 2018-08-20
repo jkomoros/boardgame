@@ -40,7 +40,7 @@ func TestUnmarshalGameNode(t *testing.T) {
 			`,
 			&GameNode{
 				Mids: map[string]*GameNode{
-					"github.com/jkomoros": &GameNode{
+					"github.com/jkomoros": {
 						Leafs: []string{
 							"checkers",
 							"blackjack",
@@ -66,17 +66,58 @@ func TestUnmarshalGameNode(t *testing.T) {
 			`,
 			&GameNode{
 				Mids: map[string]*GameNode{
-					"github.com/jkomoros": &GameNode{
+					"github.com/jkomoros": {
 						Mids: map[string]*GameNode{
-							"boardgame": &GameNode{
+							"boardgame": {
 								Leafs: []string{
 									"checkers",
 									"blackjack",
 								},
 							},
-							"other-repo": &GameNode{
+							"other-repo": {
 								Leafs: []string{
 									"pass",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			"mixed mid and leaf",
+			`
+				{
+					"github.com/jkomoros":{
+						"boardgame": {
+							"checkers": [
+								""
+							],
+							"subdir": [
+								"blackjack",
+								"memory"
+							]
+						}
+					}
+				}
+			`,
+			&GameNode{
+				Mids: map[string]*GameNode{
+					"github.com/jkomoros": {
+						Mids: map[string]*GameNode{
+							"boardgame": {
+								Mids: map[string]*GameNode{
+									"checkers": {
+										Leafs: []string{
+											"",
+										},
+									},
+									"subdir": {
+										Leafs: []string{
+											"blackjack",
+											"memory",
+										},
+									},
 								},
 							},
 						},
@@ -110,7 +151,7 @@ func TestGameNodeExtend(t *testing.T) {
 			"No other",
 			&GameNode{
 				Mids: map[string]*GameNode{
-					"github.com/jkomoros": &GameNode{
+					"github.com/jkomoros": {
 						Leafs: []string{
 							"checkers",
 							"blackjack",
@@ -121,7 +162,7 @@ func TestGameNodeExtend(t *testing.T) {
 			nil,
 			&GameNode{
 				Mids: map[string]*GameNode{
-					"github.com/jkomoros": &GameNode{
+					"github.com/jkomoros": {
 						Leafs: []string{
 							"checkers",
 							"blackjack",
@@ -135,7 +176,7 @@ func TestGameNodeExtend(t *testing.T) {
 			nil,
 			&GameNode{
 				Mids: map[string]*GameNode{
-					"github.com/jkomoros": &GameNode{
+					"github.com/jkomoros": {
 						Leafs: []string{
 							"checkers",
 							"blackjack",
@@ -145,7 +186,7 @@ func TestGameNodeExtend(t *testing.T) {
 			},
 			&GameNode{
 				Mids: map[string]*GameNode{
-					"github.com/jkomoros": &GameNode{
+					"github.com/jkomoros": {
 						Leafs: []string{
 							"checkers",
 							"blackjack",
@@ -180,7 +221,7 @@ func TestGameNodeExtend(t *testing.T) {
 			"One level nesting no overlap",
 			&GameNode{
 				Mids: map[string]*GameNode{
-					"github.com/jkomoros": &GameNode{
+					"github.com/jkomoros": {
 						Leafs: []string{
 							"checkers",
 							"blackjack",
@@ -190,7 +231,7 @@ func TestGameNodeExtend(t *testing.T) {
 			},
 			&GameNode{
 				Mids: map[string]*GameNode{
-					"github.com/bob": &GameNode{
+					"github.com/bob": {
 						Leafs: []string{
 							"pass",
 						},
@@ -199,13 +240,13 @@ func TestGameNodeExtend(t *testing.T) {
 			},
 			&GameNode{
 				Mids: map[string]*GameNode{
-					"github.com/jkomoros": &GameNode{
+					"github.com/jkomoros": {
 						Leafs: []string{
 							"checkers",
 							"blackjack",
 						},
 					},
-					"github.com/bob": &GameNode{
+					"github.com/bob": {
 						Leafs: []string{
 							"pass",
 						},
@@ -217,13 +258,13 @@ func TestGameNodeExtend(t *testing.T) {
 			"One level nesting partial overlap",
 			&GameNode{
 				Mids: map[string]*GameNode{
-					"github.com/jkomoros": &GameNode{
+					"github.com/jkomoros": {
 						Leafs: []string{
 							"checkers",
 							"blackjack",
 						},
 					},
-					"github.com/a": &GameNode{
+					"github.com/a": {
 						Leafs: []string{
 							"checkers",
 							"blackjack",
@@ -233,13 +274,13 @@ func TestGameNodeExtend(t *testing.T) {
 			},
 			&GameNode{
 				Mids: map[string]*GameNode{
-					"github.com/jkomoros": &GameNode{
+					"github.com/jkomoros": {
 						Leafs: []string{
 							"checkers",
 							"memory",
 						},
 					},
-					"github.com/b": &GameNode{
+					"github.com/b": {
 						Leafs: []string{
 							"pass",
 						},
@@ -248,20 +289,20 @@ func TestGameNodeExtend(t *testing.T) {
 			},
 			&GameNode{
 				Mids: map[string]*GameNode{
-					"github.com/jkomoros": &GameNode{
+					"github.com/jkomoros": {
 						Leafs: []string{
 							"checkers",
 							"blackjack",
 							"memory",
 						},
 					},
-					"github.com/a": &GameNode{
+					"github.com/a": {
 						Leafs: []string{
 							"checkers",
 							"blackjack",
 						},
 					},
-					"github.com/b": &GameNode{
+					"github.com/b": {
 						Leafs: []string{
 							"pass",
 						},
@@ -273,15 +314,15 @@ func TestGameNodeExtend(t *testing.T) {
 			"overlap at second level",
 			&GameNode{
 				Mids: map[string]*GameNode{
-					"one": &GameNode{
+					"one": {
 						Mids: map[string]*GameNode{
-							"github.com/jkomoros": &GameNode{
+							"github.com/jkomoros": {
 								Leafs: []string{
 									"checkers",
 									"blackjack",
 								},
 							},
-							"github.com/a": &GameNode{
+							"github.com/a": {
 								Leafs: []string{
 									"checkers",
 									"blackjack",
@@ -289,7 +330,7 @@ func TestGameNodeExtend(t *testing.T) {
 							},
 						},
 					},
-					"two": &GameNode{
+					"two": {
 						Leafs: []string{
 							"a",
 						},
@@ -298,22 +339,22 @@ func TestGameNodeExtend(t *testing.T) {
 			},
 			&GameNode{
 				Mids: map[string]*GameNode{
-					"one": &GameNode{
+					"one": {
 						Mids: map[string]*GameNode{
-							"github.com/jkomoros": &GameNode{
+							"github.com/jkomoros": {
 								Leafs: []string{
 									"checkers",
 									"memory",
 								},
 							},
-							"github.com/b": &GameNode{
+							"github.com/b": {
 								Leafs: []string{
 									"pass",
 								},
 							},
 						},
 					},
-					"three": &GameNode{
+					"three": {
 						Leafs: []string{
 							"b",
 						},
@@ -322,36 +363,69 @@ func TestGameNodeExtend(t *testing.T) {
 			},
 			&GameNode{
 				Mids: map[string]*GameNode{
-					"one": &GameNode{
+					"one": {
 						Mids: map[string]*GameNode{
-							"github.com/jkomoros": &GameNode{
+							"github.com/jkomoros": {
 								Leafs: []string{
 									"checkers",
 									"blackjack",
 									"memory",
 								},
 							},
-							"github.com/a": &GameNode{
+							"github.com/a": {
 								Leafs: []string{
 									"checkers",
 									"blackjack",
 								},
 							},
-							"github.com/b": &GameNode{
+							"github.com/b": {
 								Leafs: []string{
 									"pass",
 								},
 							},
 						},
 					},
-					"two": &GameNode{
+					"two": {
 						Leafs: []string{
 							"a",
 						},
 					},
-					"three": &GameNode{
+					"three": {
 						Leafs: []string{
 							"b",
+						},
+					},
+				},
+			},
+		},
+		{
+			"overlap leaf + mid",
+			&GameNode{
+				Mids: map[string]*GameNode{
+					"toplevelgame": {
+						Leafs: []string{
+							"",
+						},
+					},
+				},
+			},
+			&GameNode{
+				Mids: map[string]*GameNode{
+					"toplevelgame": {
+						Leafs: []string{
+							"blackjack",
+							"memory",
+						},
+					},
+				},
+			},
+			&GameNode{
+				Mids: map[string]*GameNode{
+					"toplevelgame": {
+						Leafs: []string{
+							"",
+							"blackjack",
+							"memory",
 						},
 					},
 				},
@@ -392,13 +466,13 @@ func TestGameNodeList(t *testing.T) {
 			"Single nest",
 			&GameNode{
 				Mids: map[string]*GameNode{
-					"one": &GameNode{
+					"one": {
 						Leafs: []string{
 							"a",
 							"b",
 						},
 					},
-					"two": &GameNode{
+					"two": {
 						Leafs: []string{
 							"c",
 							"d",
@@ -417,15 +491,15 @@ func TestGameNodeList(t *testing.T) {
 			"Double nest with path separator in key",
 			&GameNode{
 				Mids: map[string]*GameNode{
-					"github.com/jkomoros": &GameNode{
+					"github.com/jkomoros": {
 						Mids: map[string]*GameNode{
-							"one": &GameNode{
+							"one": {
 								Leafs: []string{
 									"a",
 									"b",
 								},
 							},
-							"two": &GameNode{
+							"two": {
 								Leafs: []string{
 									"c",
 									"d",
@@ -440,6 +514,62 @@ func TestGameNodeList(t *testing.T) {
 				"github.com/jkomoros/one/b",
 				"github.com/jkomoros/two/c",
 				"github.com/jkomoros/two/d",
+			},
+		},
+		{
+			"Mixed leaf and min",
+			&GameNode{
+				Mids: map[string]*GameNode{
+					"github.com/jkomoros": {
+						Mids: map[string]*GameNode{
+							"toplevelgame": {
+								Leafs: []string{
+									"",
+								},
+							},
+							"examples": {
+								Leafs: []string{
+									"blackjack",
+									"memory",
+								},
+							},
+						},
+					},
+				},
+			},
+			[]string{
+				"github.com/jkomoros/examples/blackjack",
+				"github.com/jkomoros/examples/memory",
+				"github.com/jkomoros/toplevelgame",
+			},
+		},
+		{
+			"Mixed leaf and min with extra",
+			&GameNode{
+				Mids: map[string]*GameNode{
+					"github.com/jkomoros": {
+						Mids: map[string]*GameNode{
+							"toplevelgame": {
+								Leafs: []string{
+									"",
+									"another",
+								},
+							},
+							"examples": {
+								Leafs: []string{
+									"blackjack",
+									"memory",
+								},
+							},
+						},
+					},
+				},
+			},
+			[]string{
+				"github.com/jkomoros/examples/blackjack",
+				"github.com/jkomoros/examples/memory",
+				"github.com/jkomoros/toplevelgame",
+				"github.com/jkomoros/toplevelgame/another",
 			},
 		},
 	}

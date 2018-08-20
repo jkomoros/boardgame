@@ -14,6 +14,9 @@ decides based on the raw json whether to populate Leafs or Mids. This means
 that the actual JSON ingested can elide the "Leafs" or "Mids" keys for
 brevity.
 
+A Leafs that has the value "" means "one key with no additional suffix". This
+allows terminating leafs within a node that is otherwise a mid.
+
 Example valid JSON to ingest for GameNode:
 	{
 		"github.com/jkomoros": {
@@ -23,7 +26,15 @@ Example valid JSON to ingest for GameNode:
 			],
 			"other-games-repo": [
 				"pass"
-			]
+			],
+			"other-mixed-leaf-mid-repo": {
+				"leaf": [
+					""
+				],
+				"subdir": [
+					"foo"
+				]
+			}
 		}
 	}
 
@@ -66,7 +77,15 @@ Input:
 			],
 			"other-games-repo": [
 				"pass"
-			]
+			],
+			"other-mixed-leaf-mid-repo": {
+				"leaf": [
+					""
+				],
+				"subdir": [
+					"foo"
+				]
+			}
 		}
 	}
 
@@ -75,6 +94,8 @@ Output:
 		"github.com/jkomoros/boardgame/examples/blackjack",
 		"github.com/jkomoros/boardgame/examples/checkers",
 		"github.com/jkomoros/other-games-repo/pass",
+		"github.com/jkomoros/other-mixed-leaf-mid-repo/leaf",
+		"github.com/jkomoros/other-mixed-leaf-mid-repo/subdir/foo",
 	]
 
 */
@@ -98,7 +119,7 @@ func alphabetizeUnique(in []string) []string {
 	result := make([]string, len(set))
 
 	i := 0
-	for str, _ := range set {
+	for str := range set {
 		result[i] = str
 		i++
 	}
