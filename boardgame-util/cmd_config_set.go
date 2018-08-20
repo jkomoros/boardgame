@@ -43,42 +43,23 @@ func deriveMode(dev, prod bool) config.ConfigModeType {
 	return config.TypeBase
 }
 
-func (c *ConfigSet) Run(p writ.Path, positional []string) {
-
-	base := c.Base().(*BoardgameUtil)
-
-	cfg := base.GetConfig()
-
-	mode := deriveMode(c.Dev, c.Prod)
-
-	if len(positional) < 1 {
-		errAndQuit("KEY must be provided")
-	}
-
-	field := config.FieldFromString(positional[0])
-
-	fieldType := config.FieldTypes[field]
-
-	var updater config.ConfigUpdater
-
+func configSetFactory(field config.ConfigModeField, fieldType config.ConfigModeFieldType, positional []string) config.ConfigUpdater {
 	switch fieldType {
-	case config.FieldTypeInvalid:
-		errAndQuit(positional[0] + " is not a valid field")
 	case config.FieldTypeString:
 		if len(positional) != 2 {
 			errAndQuit("KEY of type string wants precisely one VAL")
 		}
-		updater = config.SetString(field, positional[1])
+		return config.SetString(field, positional[1])
 	case config.FieldTypeStringSlice:
 		if len(positional) != 2 {
 			errAndQuit("KEY of type []string wants precisely one VAL")
 		}
-		updater = config.AddString(field, positional[1])
+		return config.AddString(field, positional[1])
 	case config.FieldTypeStringMap:
 		if len(positional) != 3 {
 			errAndQuit("KEY of type map[string]string wants KEY SUB-KEY VAL")
 		}
-		updater = config.SetStringKey(field, positional[1], positional[2])
+		return config.SetStringKey(field, positional[1], positional[2])
 	case config.FieldTypeBool:
 		if len(positional) != 2 {
 			errAndQuit("KEY of type bool wants one VAL")
@@ -87,7 +68,7 @@ func (c *ConfigSet) Run(p writ.Path, positional []string) {
 		if err != nil {
 			errAndQuit(err.Error())
 		}
-		updater = config.SetBool(field, b)
+		return config.SetBool(field, b)
 	case config.FieldTypeFirebase:
 		if len(positional) != 3 {
 			errAndQuit("KEY of type firebase wants KEY SUB-KEY VAL")
@@ -99,19 +80,15 @@ func (c *ConfigSet) Run(p writ.Path, positional []string) {
 			errAndQuit(positional[1] + " is not a valid firebase key")
 		}
 
-		updater = config.SetFirebaseKey(firebaseKey, positional[2])
+		return config.SetFirebaseKey(firebaseKey, positional[2])
 	case config.FieldTypeGameNode:
 		errAndQuit("GAmes not yet supported")
 	}
+	return nil
+}
 
-	if err := cfg.Update(mode, c.Secret, updater); err != nil {
-		errAndQuit("Couldn't update value: " + err.Error())
-	}
-
-	if err := cfg.Save(); err != nil {
-		errAndQuit("Couldn't save updated config files: " + err.Error())
-	}
-
+func (c *ConfigSet) Run(p writ.Path, positional []string) {
+	c.ConfigModify.RunWithUpdateFactory(p, positional, configSetFactory)
 }
 
 func (c *ConfigSet) Name() string {

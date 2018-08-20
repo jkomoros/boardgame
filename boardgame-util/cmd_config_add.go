@@ -10,46 +10,23 @@ type ConfigAdd struct {
 	ConfigModify
 }
 
-func (c *ConfigAdd) Run(p writ.Path, positional []string) {
-
-	base := c.Base().(*BoardgameUtil)
-
-	cfg := base.GetConfig()
-
-	mode := deriveMode(c.Dev, c.Prod)
-
-	if len(positional) < 1 {
-		errAndQuit("KEY must be provided")
-	}
-
-	field := config.FieldFromString(positional[0])
-
-	fieldType := config.FieldTypes[field]
-
-	var updater config.ConfigUpdater
+func configAddFactory(field config.ConfigModeField, fieldType config.ConfigModeFieldType, positional []string) config.ConfigUpdater {
 
 	switch fieldType {
-	case config.FieldTypeInvalid:
-		errAndQuit(positional[0] + " is not a valid field")
 	case config.FieldTypeStringSlice:
 		if len(positional) != 2 {
 			errAndQuit("KEY of type []string wants precisely one VAL")
 		}
-		updater = config.AddString(field, positional[1])
+		return config.AddString(field, positional[1])
 	case config.FieldTypeGameNode:
 		errAndQuit("GAmes not yet supported")
-	default:
-		errAndQuit("Invalid field type for this command")
 	}
 
-	if err := cfg.Update(mode, c.Secret, updater); err != nil {
-		errAndQuit("Couldn't update value: " + err.Error())
-	}
+	return nil
+}
 
-	if err := cfg.Save(); err != nil {
-		errAndQuit("Couldn't save updated config files: " + err.Error())
-	}
-
+func (c *ConfigAdd) Run(p writ.Path, positional []string) {
+	c.ConfigModify.RunWithUpdateFactory(p, positional, configAddFactory)
 }
 
 func (c *ConfigAdd) Name() string {

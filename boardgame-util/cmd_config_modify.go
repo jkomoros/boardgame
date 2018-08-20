@@ -15,7 +15,12 @@ type ConfigModify struct {
 	Prod   bool
 }
 
-func (c *ConfigModify) Run(p writ.Path, positional []string) {
+//If fieldType is one this responds to, should either teturn an updater or
+//errAndQuit. Otherwise, OK to return nil to signal it's not a valid tyep.
+//fieldType won't be TypeInvalid; that will already be screened out.
+type updateFactory func(field config.ConfigModeField, fieldType config.ConfigModeFieldType, positional []string) config.ConfigUpdater
+
+func (c *ConfigModify) RunWithUpdateFactory(p writ.Path, positional []string, factory updateFactory) {
 
 	base := c.Base().(*BoardgameUtil)
 
@@ -31,19 +36,13 @@ func (c *ConfigModify) Run(p writ.Path, positional []string) {
 
 	fieldType := config.FieldTypes[field]
 
-	var updater config.ConfigUpdater
-
-	switch fieldType {
-	case config.FieldTypeInvalid:
+	if fieldType == config.FieldTypeInvalid {
 		errAndQuit(positional[0] + " is not a valid field")
-	case config.FieldTypeStringSlice:
-		if len(positional) != 2 {
-			errAndQuit("KEY of type []string wants precisely one VAL")
-		}
-		updater = config.AddString(field, positional[1])
-	case config.FieldTypeGameNode:
-		errAndQuit("GAmes not yet supported")
-	default:
+	}
+
+	updater := factory(field, fieldType, positional)
+
+	if updater == nil {
 		errAndQuit("Invalid field type for this command")
 	}
 
