@@ -15,7 +15,7 @@ const (
 	FieldDefaultStaticPort                    = "DefaultStaticPort"
 	FieldAdminUserIds                         = "AdminUserIds"
 	FieldDisableAdminChecking                 = "DisableAdminChecking"
-	FieldStorageConfig                        = "StorageConfig"
+	FieldStorage                              = "Storage"
 	FieldDefaultStorageType                   = "DefaultStorageType"
 	FieldGoogleAnalytics                      = "GoogleAnalytics"
 	FieldFirebase                             = "Firebase"
@@ -45,7 +45,7 @@ var FieldTypes = map[ConfigModeField]ConfigModeFieldType{
 	FieldDefaultStaticPort:    FieldTypeString,
 	FieldAdminUserIds:         FieldTypeStringSlice,
 	FieldDisableAdminChecking: FieldTypeBool,
-	FieldStorageConfig:        FieldTypeStringMap,
+	FieldStorage:              FieldTypeStringMap,
 	FieldDefaultStorageType:   FieldTypeString,
 	FieldGoogleAnalytics:      FieldTypeString,
 	FieldFirebase:             FieldTypeFirebase,
@@ -63,7 +63,7 @@ type ConfigModeCommon struct {
 	AdminUserIds      []string `json:"adminUserIds,omitempty"`
 	//This is a dangerous config. Only enable in Dev!
 	DisableAdminChecking bool              `json:"disableAdminChecking,omitempty"`
-	StorageConfig        map[string]string `json:"storageConfig,omitempty"`
+	Storage              map[string]string `json:"storage,omitempty"`
 	//The storage type that should be used if no storage type is provided via
 	//command line options.
 	DefaultStorageType string `json:"defaultStorageType,omitempty"`
@@ -82,7 +82,7 @@ func FieldFromString(s string) ConfigModeField {
 	s = strings.TrimSpace(s)
 	s = strings.ToLower(s)
 
-	for key, _ := range FieldTypes {
+	for key := range FieldTypes {
 		normalizedKey := strings.ToLower(string(key))
 
 		if normalizedKey == s {

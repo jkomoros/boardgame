@@ -55,7 +55,7 @@ func (d *Db) Usage() string {
 
 func (d *Db) WritOptions() []*writ.Option {
 	return []*writ.Option{
-		&writ.Option{
+		{
 			Names:       []string{"prod", "p"},
 			Flag:        true,
 			Description: "If true, uses prod settings instead of dev settings",
@@ -106,7 +106,7 @@ func (d *Db) GetMigrate(createDb bool) *migrate.Migrate {
 		mode = config.Prod
 	}
 
-	dsn, ok := mode.StorageConfig["mysql"]
+	dsn, ok := mode.Storage["mysql"]
 
 	if !ok {
 		errAndQuit("No mysql config provided")

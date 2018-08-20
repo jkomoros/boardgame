@@ -1065,7 +1065,7 @@ func (s *Server) Start() {
 
 	name := s.storage.Name()
 
-	storageConfig := s.config.StorageConfig[name]
+	storageConfig := s.config.Storage[name]
 
 	s.logger.Infoln("Connecting to storage", name, "with config '"+storageConfig+"'")
 

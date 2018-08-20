@@ -58,8 +58,8 @@ func (c *RawConfigMode) Derive(prodMode bool) *ConfigMode {
 		}
 	}
 
-	if result.StorageConfig == nil {
-		result.StorageConfig = make(map[string]string)
+	if result.Storage == nil {
+		result.Storage = make(map[string]string)
 	}
 
 	if result.DisableAdminChecking && prodMode {
@@ -93,9 +93,9 @@ func (c *RawConfigMode) Copy() *RawConfigMode {
 	(*result) = *c
 	result.AdminUserIds = make([]string, len(c.AdminUserIds))
 	copy(result.AdminUserIds, c.AdminUserIds)
-	result.StorageConfig = make(map[string]string, len(c.StorageConfig))
-	for key, val := range c.StorageConfig {
-		result.StorageConfig[key] = val
+	result.Storage = make(map[string]string, len(c.Storage))
+	for key, val := range c.Storage {
+		result.Storage[key] = val
 	}
 
 	result.Games = result.Games.copy()
@@ -182,8 +182,8 @@ func (c *RawConfigMode) Extend(other *RawConfigMode) *RawConfigMode {
 
 	result.AdminUserIds = mergedStrList(c.AdminUserIds, other.AdminUserIds)
 
-	for key, val := range other.StorageConfig {
-		result.StorageConfig[key] = val
+	for key, val := range other.Storage {
+		result.Storage[key] = val
 	}
 
 	result.Games = result.Games.extend(other.Games)

@@ -21,7 +21,7 @@
 	"dev": {
 		"allowedOrigins": "http://localhost:8080",
 		"disableAdminChecking": true,
-		"storageConfig": {
+		"storage": {
 			"mysql": "root:root@tcp(localhost:3306)/boardgame"
 		}
 	},
@@ -31,7 +31,7 @@
 			"aH1TV07K47RC4mTNCai0ZPnQ9Kd2",
 			"uYuZl1jXWXVJ9fEk7mDFifhTGmK2"
 		],
-		"storageConfig": {
+		"storage": {
 			"mysql": "Your production server config goes here, See https://github.com/go-sql-driver/mysql for examples"
 		}
 	}

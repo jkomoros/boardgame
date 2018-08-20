@@ -97,20 +97,20 @@ func RemoveString(field ConfigModeField, val string) ConfigUpdater {
 func SetStringKey(field ConfigModeField, key, val string) ConfigUpdater {
 
 	return func(r *RawConfigMode) error {
-		if field != FieldStorageConfig {
+		if field != FieldStorage {
 			return errors.New(string(field) + " is not a map[string]string")
 		}
-		if r.StorageConfig == nil {
+		if r.Storage == nil {
 			if val == "" {
 				//Told us to remove it, and there are no vals, so done!
 				return nil
 			}
-			r.StorageConfig = make(map[string]string)
+			r.Storage = make(map[string]string)
 		}
 		if val == "" {
-			delete(r.StorageConfig, key)
+			delete(r.Storage, key)
 		} else {
-			r.StorageConfig[key] = val
+			r.Storage[key] = val
 		}
 		return nil
 	}

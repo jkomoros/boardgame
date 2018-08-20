@@ -408,7 +408,7 @@ func TestUpdate(t *testing.T) {
 			&RawConfig{
 				&RawConfigMode{
 					ConfigModeCommon: ConfigModeCommon{
-						StorageConfig: map[string]string{
+						Storage: map[string]string{
 							"mysql": "foo",
 						},
 					},
@@ -420,12 +420,12 @@ func TestUpdate(t *testing.T) {
 			nil,
 			TypeBase,
 			false,
-			SetStringKey(FieldStorageConfig, "foo", "bar"),
+			SetStringKey(FieldStorage, "foo", "bar"),
 			false,
 			&RawConfig{
 				&RawConfigMode{
 					ConfigModeCommon: ConfigModeCommon{
-						StorageConfig: map[string]string{
+						Storage: map[string]string{
 							"mysql": "foo",
 							"foo":   "bar",
 						},
@@ -442,7 +442,7 @@ func TestUpdate(t *testing.T) {
 			&RawConfig{
 				&RawConfigMode{
 					ConfigModeCommon: ConfigModeCommon{
-						StorageConfig: map[string]string{
+						Storage: map[string]string{
 							"mysql": "foo",
 							"foo":   "foo",
 						},
@@ -455,12 +455,12 @@ func TestUpdate(t *testing.T) {
 			nil,
 			TypeBase,
 			false,
-			SetStringKey(FieldStorageConfig, "foo", "bar"),
+			SetStringKey(FieldStorage, "foo", "bar"),
 			false,
 			&RawConfig{
 				&RawConfigMode{
 					ConfigModeCommon: ConfigModeCommon{
-						StorageConfig: map[string]string{
+						Storage: map[string]string{
 							"mysql": "foo",
 							"foo":   "bar",
 						},
@@ -483,12 +483,12 @@ func TestUpdate(t *testing.T) {
 			nil,
 			TypeBase,
 			false,
-			SetStringKey(FieldStorageConfig, "foo", "bar"),
+			SetStringKey(FieldStorage, "foo", "bar"),
 			false,
 			&RawConfig{
 				&RawConfigMode{
 					ConfigModeCommon: ConfigModeCommon{
-						StorageConfig: map[string]string{
+						Storage: map[string]string{
 							"foo": "bar",
 						},
 					},
@@ -504,7 +504,7 @@ func TestUpdate(t *testing.T) {
 			&RawConfig{
 				&RawConfigMode{
 					ConfigModeCommon: ConfigModeCommon{
-						StorageConfig: map[string]string{
+						Storage: map[string]string{
 							"mysql": "foo",
 							"foo":   "foo",
 						},
@@ -517,12 +517,12 @@ func TestUpdate(t *testing.T) {
 			nil,
 			TypeBase,
 			false,
-			SetStringKey(FieldStorageConfig, "foo", ""),
+			SetStringKey(FieldStorage, "foo", ""),
 			false,
 			&RawConfig{
 				&RawConfigMode{
 					ConfigModeCommon: ConfigModeCommon{
-						StorageConfig: map[string]string{
+						Storage: map[string]string{
 							"mysql": "foo",
 						},
 					},
@@ -538,7 +538,7 @@ func TestUpdate(t *testing.T) {
 			&RawConfig{
 				&RawConfigMode{
 					ConfigModeCommon: ConfigModeCommon{
-						StorageConfig: map[string]string{
+						Storage: map[string]string{
 							"mysql": "foo",
 						},
 					},
@@ -550,12 +550,12 @@ func TestUpdate(t *testing.T) {
 			nil,
 			TypeBase,
 			false,
-			SetStringKey(FieldStorageConfig, "foo", ""),
+			SetStringKey(FieldStorage, "foo", ""),
 			false,
 			&RawConfig{
 				&RawConfigMode{
 					ConfigModeCommon: ConfigModeCommon{
-						StorageConfig: map[string]string{
+						Storage: map[string]string{
 							"mysql": "foo",
 						},
 					},
@@ -571,7 +571,7 @@ func TestUpdate(t *testing.T) {
 			&RawConfig{
 				&RawConfigMode{
 					ConfigModeCommon: ConfigModeCommon{
-						StorageConfig: map[string]string{
+						Storage: map[string]string{
 							"foo": "foo",
 						},
 					},
@@ -583,12 +583,12 @@ func TestUpdate(t *testing.T) {
 			nil,
 			TypeBase,
 			false,
-			SetStringKey(FieldStorageConfig, "foo", ""),
+			SetStringKey(FieldStorage, "foo", ""),
 			false,
 			&RawConfig{
 				&RawConfigMode{
 					ConfigModeCommon: ConfigModeCommon{
-						StorageConfig: map[string]string{},
+						Storage: map[string]string{},
 					},
 				},
 				nil,
