@@ -187,6 +187,8 @@ func (c *RawConfigMode) Extend(other *RawConfigMode) *RawConfigMode {
 	}
 
 	result.Games = result.Games.extend(other.Games)
+	result.Games.normalize()
+
 	result.Firebase = result.Firebase.extend(other.Firebase)
 
 	return result

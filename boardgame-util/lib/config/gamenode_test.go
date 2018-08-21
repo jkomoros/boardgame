@@ -431,12 +431,182 @@ func TestGameNodeExtend(t *testing.T) {
 				},
 			},
 		},
+		{
+			"key is mid and leafs (test normalize is called)",
+			&GameNode{
+				Mids: map[string]*GameNode{
+					"github.com/jkomoros": {
+						Mids: map[string]*GameNode{
+							"examples": {
+								Leafs: []string{
+									"blackjack",
+									"memory",
+								},
+							},
+						},
+					},
+				},
+			},
+			&GameNode{
+				Mids: map[string]*GameNode{
+					"github.com/jkomoros": {
+						Leafs: []string{
+							"other-dir/bar",
+							"other-dir/baz",
+						},
+					},
+				},
+			},
+			&GameNode{
+				Mids: map[string]*GameNode{
+					"github.com/jkomoros": {
+						Mids: map[string]*GameNode{
+							"examples": {
+								Leafs: []string{
+									"blackjack",
+									"memory",
+								},
+							},
+							"other-dir/bar": {
+								Leafs: []string{
+									"",
+								},
+							},
+							"other-dir/baz": {
+								Leafs: []string{
+									"",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for i, test := range tests {
 
 		result := test.base.extend(test.other)
+		//Call normalize explicitly; that's what RawConfigMode.Extend() does.
+		result.normalize()
 		assert.For(t, i, test.description).ThatActual(result).Equals(test.expected).ThenDiffOnFail()
+
+	}
+}
+
+func TestGameNodeNormalize(t *testing.T) {
+	tests := []struct {
+		description string
+		in          *GameNode
+		out         *GameNode
+	}{
+		{
+			"No op",
+			&GameNode{
+				Mids: map[string]*GameNode{
+					"github.com/jkomoros/examples": {
+						Leafs: []string{
+							"blackjack",
+							"memory",
+						},
+					},
+				},
+			},
+			&GameNode{
+				Mids: map[string]*GameNode{
+					"github.com/jkomoros/examples": {
+						Leafs: []string{
+							"blackjack",
+							"memory",
+						},
+					},
+				},
+			},
+		},
+		{
+			"Single layer normalize",
+			&GameNode{
+				Mids: map[string]*GameNode{
+					"github.com/jkomoros/examples": {
+						Leafs: []string{
+							"blackjack",
+							"memory",
+						},
+					},
+				},
+				Leafs: []string{
+					"github.com/jkomoros/other-repo/foo",
+				},
+			},
+			&GameNode{
+				Mids: map[string]*GameNode{
+					"github.com/jkomoros/examples": {
+						Leafs: []string{
+							"blackjack",
+							"memory",
+						},
+					},
+					"github.com/jkomoros/other-repo/foo": {
+						Leafs: []string{
+							"",
+						},
+					},
+				},
+			},
+		},
+		{
+			"Multi layer normalize",
+			&GameNode{
+				Mids: map[string]*GameNode{
+					"github.com/jkomoros": {
+						Mids: map[string]*GameNode{
+							"examples": {
+								Leafs: []string{
+									"blackjack",
+									"memory",
+								},
+							},
+						},
+						Leafs: []string{
+							"top-level/bar",
+						},
+					},
+				},
+				Leafs: []string{
+					"github.com/jkomoros/other-repo/foo",
+				},
+			},
+			&GameNode{
+				Mids: map[string]*GameNode{
+					"github.com/jkomoros": {
+						Mids: map[string]*GameNode{
+							"examples": {
+								Leafs: []string{
+									"blackjack",
+									"memory",
+								},
+							},
+							"top-level/bar": {
+								Leafs: []string{
+									"",
+								},
+							},
+						},
+					},
+					"github.com/jkomoros/other-repo/foo": {
+						Leafs: []string{
+							"",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for i, test := range tests {
+
+		test.in.normalize()
+		assert.For(t, i, test.description).ThatActual(test.in).Equals(test.out)
 
 	}
 }

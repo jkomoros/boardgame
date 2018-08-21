@@ -193,8 +193,47 @@ func (g *GameNode) copy() *GameNode {
 
 }
 
+//normalize ensures that the given node has either all mids or all leafs. If
+//it has any mids, converts all of the leafs to be terminal mids.
+func (g *GameNode) normalize() {
+
+	if g == nil {
+		return
+	}
+
+	//If no mids, then 0 or more leafs are fine.s
+	if len(g.Mids) == 0 {
+		return
+	}
+
+	for _, node := range g.Mids {
+		node.normalize()
+	}
+
+	//If no leafs, than 0 or more mids are fine.
+	if len(g.Leafs) == 0 {
+		return
+	}
+
+	//We have both leafs and mids. Go through and convert each leaf to a mid.
+	for _, leaf := range g.Leafs {
+
+		newMid := &GameNode{
+			Leafs: []string{
+				"",
+			},
+		}
+
+		g.Mids[leaf] = newMid
+
+	}
+
+	g.Leafs = nil
+}
+
 //extend takes an other GameNode and returns a *new* GameNode representing the
 //merging of the two, where the keys in other overwrite the keys in this.
+//Should call normalize() after calling on the top-level node.
 func (g *GameNode) extend(other *GameNode) *GameNode {
 
 	if g == nil {
