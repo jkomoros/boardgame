@@ -5,6 +5,7 @@ import (
 	"errors"
 	"path/filepath"
 	"sort"
+	"strings"
 )
 
 /*
@@ -42,6 +43,147 @@ Example valid JSON to ingest for GameNode:
 type GameNode struct {
 	Leafs []string
 	Mids  map[string]*GameNode
+}
+
+//NewGameNode takes the given values and creates a reduced GameNode tree where
+//all of the common prefixes are factored out.
+func NewGameNode(paths ...string) *GameNode {
+
+	panic("Not yet tested")
+
+	result := newGameNodeItem()
+
+	for _, path := range paths {
+		splitPath := strings.Split(path, string(filepath.Separator))
+		result.addPath(splitPath)
+	}
+
+	result.reduceTerminals()
+
+	return result.elideSimpleMids()
+
+}
+
+//newGameNodeItem returns a very basic initalized gameNode. In particular,
+//mids will not be nil.
+func newGameNodeItem() *GameNode {
+	return &GameNode{
+		Mids: make(map[string]*GameNode),
+	}
+}
+
+//addPath adds the given split string into this GameNode's mids, creating new
+//sub-game nodes if necessary. Designed to only be called in NewGameNode,
+//because further normalization must happen later.
+func (g *GameNode) addPath(path []string) {
+	//This shouldn't happen
+	if len(path) == 0 {
+		return
+	}
+
+	newItem := newGameNodeItem()
+
+	//Base case
+	g.Mids[path[0]] = newItem
+
+	if len(path) == 1 {
+		return
+	}
+
+	newItem.addPath(path[1:])
+
+}
+
+//reduceTerminals goes through each node and if all of its mids are GameNodes
+//with no Mids or Leafs, then makes this child a Leafs terminal. Designed to
+//be called only at the end of NewGameNode. This expects there to be no Leafs
+//yet.
+func (g *GameNode) reduceTerminals() {
+
+	if len(g.Mids) == 0 {
+		g.Leafs = []string{""}
+		g.Mids = nil
+		return
+	}
+
+	nonLeafFound := false
+
+	for _, node := range g.Mids {
+		if len(node.Mids) != 0 {
+			nonLeafFound = true
+		}
+	}
+
+	if !nonLeafFound {
+		//All of the children are terminal, hoist into self.
+		var leafs []string
+		for key := range g.Mids {
+			leafs = append(leafs, key)
+		}
+		g.Leafs = leafs
+		g.Mids = nil
+		return
+	}
+
+	//At least one of mids is non-terminal. The base case of the rest will
+	//give them the terminal leaves.
+	for _, node := range g.Mids {
+		node.reduceTerminals()
+	}
+
+}
+
+//addPrefix joins the given prefix to the front of all Mids and Leafs in this
+//node.
+func (g *GameNode) addPrefix(prefix string) {
+
+	if len(g.Mids) > 0 {
+		newMids := make(map[string]*GameNode, len(g.Mids))
+
+		for key, node := range g.Mids {
+			newMids[filepath.Join(prefix, key)] = node
+		}
+
+		g.Mids = newMids
+	}
+
+	if len(g.Leafs) > 0 {
+		newLeafs := make([]string, len(g.Leafs))
+
+		for i, leaf := range g.Leafs {
+			newLeafs[i] = filepath.Join(prefix, leaf)
+		}
+
+		g.Leafs = newLeafs
+
+	}
+}
+
+//elideSimpleMids removes any nodes that have a single child, merging the
+//children with the Mid name and reducing this node. It returns the new root
+//GameNode. Designed to be called as the last step of NewGameNode.
+func (g *GameNode) elideSimpleMids() *GameNode {
+
+	var childKey string
+	var child *GameNode
+
+	for key, node := range g.Mids {
+		childKey = key
+		child = node.elideSimpleMids()
+		g.Mids[key] = child
+	}
+
+	if len(g.Mids) != 1 {
+		return g
+	}
+
+	//If there's precisely one child, then hoist the child and add our key to it.
+
+	//child is set to the one child, childKey is its key
+	child.addPrefix(childKey)
+
+	return child
+
 }
 
 func (g *GameNode) UnmarshalJSON(raw []byte) error {
