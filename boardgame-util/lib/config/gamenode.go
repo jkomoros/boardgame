@@ -49,6 +49,18 @@ type GameNode struct {
 //all of the common prefixes are factored out.
 func NewGameNode(paths ...string) *GameNode {
 
+	//At a high level the way this works is we split all of the paths at file
+	//separators, and create a tree where each node has a single part of a
+	//file path.
+
+	//Then we go through and make the terminal leaves be Leafs.
+
+	//Then we go through and combine any parts of the tree with only one
+	//child, recombining the keys by joining with the path separator.
+
+	//The result is a reduced GameNode whose List() should return paths...
+	//(modulo sort order).
+
 	panic("Not yet tested")
 
 	result := newGameNodeItem()
