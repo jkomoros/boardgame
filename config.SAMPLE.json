@@ -12,8 +12,8 @@
 		},
 		"games": {
 			"github.com/jkomoros/boardgame/examples": [
-				"checkers",
 				"blackjack",
+				"checkers",
 				"memory"
 			]
 		}

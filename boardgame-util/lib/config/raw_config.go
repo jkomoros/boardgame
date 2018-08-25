@@ -36,6 +36,18 @@ func NewRawConfig(filename string) (*RawConfig, error) {
 		return nil, errors.New("couldn't unmarshal config file: " + err.Error())
 	}
 
+	if config.Base != nil {
+		config.Base.Games = config.Base.Games.Normalize()
+	}
+
+	if config.Dev != nil {
+		config.Dev.Games = config.Dev.Games.Normalize()
+	}
+
+	if config.Prod != nil {
+		config.Prod.Games = config.Prod.Games.Normalize()
+	}
+
 	config.path = filename
 
 	return &config, nil

@@ -49,6 +49,10 @@ type GameNode struct {
 //all of the common prefixes are factored out.
 func NewGameNode(paths ...string) *GameNode {
 
+	if len(paths) == 0 {
+		return nil
+	}
+
 	//At a high level the way this works is we split all of the paths at file
 	//separators, and create a tree where each node has a single part of a
 	//file path.
@@ -397,6 +401,12 @@ func (g *GameNode) copy() *GameNode {
 
 	return result
 
+}
+
+//Normalize returns a GameNode representing the same list of games, but in a
+//canonically normalized tree structure.
+func (g *GameNode) Normalize() *GameNode {
+	return NewGameNode(g.List()...)
 }
 
 //AddGame adds the given game to the list and returns a game node that
