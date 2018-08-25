@@ -303,6 +303,10 @@ Output:
 */
 func (g *GameNode) List() []string {
 
+	if g == nil {
+		return nil
+	}
+
 	return alphabetizeUnique(g.listRecursive(""))
 
 }
@@ -392,6 +396,41 @@ func (g *GameNode) copy() *GameNode {
 	}
 
 	return result
+
+}
+
+//AddGame adds the given game to the list and returns a game node that
+//contains it.
+func (g *GameNode) AddGame(game string) *GameNode {
+
+	//g.List will handle if g is nil
+	list := mergedStrList(g.List(), []string{game})
+
+	return NewGameNode(list...)
+
+}
+
+//RemoveGame returns a game node that doesn't generate `game`.
+func (g *GameNode) RemoveGame(game string) *GameNode {
+
+	var newList []string
+
+	foundItem := false
+
+	for _, item := range g.List() {
+		if item == game {
+			foundItem = true
+			continue
+		}
+		newList = append(newList, item)
+	}
+
+	if !foundItem {
+		//Nothing was removed so the given game node is fine
+		return g
+	}
+
+	return NewGameNode(newList...)
 
 }
 
