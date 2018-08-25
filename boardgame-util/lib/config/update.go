@@ -90,6 +90,24 @@ func RemoveString(field ConfigModeField, val string) ConfigUpdater {
 
 }
 
+//AddGame adds the given value to the Games node.
+func AddGame(val string) ConfigUpdater {
+
+	return func(r *RawConfigMode) error {
+		r.Games = r.Games.AddGame(val)
+		return nil
+	}
+
+}
+
+//RemoveGame removes the given value from the Games node.
+func RemoveGame(val string) ConfigUpdater {
+	return func(r *RawConfigMode) error {
+		r.Games = r.Games.RemoveGame(val)
+		return nil
+	}
+}
+
 //SetStringKey adds the given key and val to the map[string]string field
 //denoted by field. If that key is already set, it updates it to the new
 //value. If the map is nil, creates one. Field must be of FieldTypeStringMap.
