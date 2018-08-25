@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/bobziuchkovski/writ"
 )
@@ -15,6 +16,10 @@ type Config struct {
 }
 
 func (c *Config) Run(p writ.Path, positional []string) {
+
+	if len(positional) > 0 {
+		p.Last().ExitHelp(errors.New(c.Name() + " doesn't take any positional parameters"))
+	}
 
 	base := c.Base().(*BoardgameUtil)
 
