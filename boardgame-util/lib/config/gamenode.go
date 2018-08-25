@@ -61,8 +61,6 @@ func NewGameNode(paths ...string) *GameNode {
 	//The result is a reduced GameNode whose List() should return paths...
 	//(modulo sort order).
 
-	panic("Not yet tested")
-
 	result := newGameNodeItem()
 
 	for _, path := range paths {
@@ -70,9 +68,13 @@ func NewGameNode(paths ...string) *GameNode {
 		result.addPath(splitPath)
 	}
 
+	result.clipSuperTerminals()
+
 	result.reduceTerminals()
 
-	return result.elideSimpleMids()
+	result = result.elideSimpleMids()
+
+	return result
 
 }
 
@@ -88,21 +90,54 @@ func newGameNodeItem() *GameNode {
 //sub-game nodes if necessary. Designed to only be called in NewGameNode,
 //because further normalization must happen later.
 func (g *GameNode) addPath(path []string) {
+
 	//This shouldn't happen
 	if len(path) == 0 {
 		return
 	}
 
-	newItem := newGameNodeItem()
+	item := g.Mids[path[0]]
 
-	//Base case
-	g.Mids[path[0]] = newItem
+	if item == nil {
+		item = newGameNodeItem()
+
+		//Base case
+		g.Mids[path[0]] = item
+	}
 
 	if len(path) == 1 {
+		//Mark explicitly that this is a terminal.
+
+		//TODO: reduceTerminals isn't reducing mids that are only "".
+		item.Mids[""] = newGameNodeItem()
 		return
 	}
 
-	newItem.addPath(path[1:])
+	item.addPath(path[1:])
+
+}
+
+//clioSuperTerminals replaces super-terminals with simple terminals. Super-
+//terminals are GameNodes who have a single Mid child at "", and that child
+//has no mids or leafs. These are created for terminals by addPath, just in
+//case other terminals are nested beneath it.
+func (g *GameNode) clipSuperTerminals() {
+
+	if len(g.Mids) == 1 && g.Mids[""] != nil {
+		child := g.Mids[""]
+		if len(child.Leafs) == 0 && len(child.Mids) == 0 {
+			//We're a super-terminal!
+			g.Leafs = []string{""}
+			g.Mids = nil
+			return
+		}
+	}
+
+	for _, mid := range g.Mids {
+		mid.clipSuperTerminals()
+	}
+
+	return
 
 }
 
@@ -133,6 +168,8 @@ func (g *GameNode) reduceTerminals() {
 			leafs = append(leafs, key)
 		}
 		g.Leafs = leafs
+		//Ensure canonical order
+		sort.Strings(g.Leafs)
 		g.Mids = nil
 		return
 	}
@@ -169,6 +206,7 @@ func (g *GameNode) addPrefix(prefix string) {
 		g.Leafs = newLeafs
 
 	}
+
 }
 
 //elideSimpleMids removes any nodes that have a single child, merging the
@@ -186,6 +224,16 @@ func (g *GameNode) elideSimpleMids() *GameNode {
 	}
 
 	if len(g.Mids) != 1 {
+		return g
+	}
+
+	//We only have one child, but it itself has multiple and thus should not
+	//be elided.
+	if len(child.Leafs) > 0 {
+		return g
+	}
+
+	if len(child.Mids) > 1 {
 		return g
 	}
 
@@ -347,80 +395,22 @@ func (g *GameNode) copy() *GameNode {
 
 }
 
-//normalize ensures that the given node has either all mids or all leafs. If
-//it has any mids, converts all of the leafs to be terminal mids.
-func (g *GameNode) normalize() {
-
-	if g == nil {
-		return
-	}
-
-	//If no mids, then 0 or more leafs are fine.s
-	if len(g.Mids) == 0 {
-		return
-	}
-
-	for _, node := range g.Mids {
-		node.normalize()
-	}
-
-	//If no leafs, than 0 or more mids are fine.
-	if len(g.Leafs) == 0 {
-		return
-	}
-
-	//We have both leafs and mids. Go through and convert each leaf to a mid.
-	for _, leaf := range g.Leafs {
-
-		newMid := &GameNode{
-			Leafs: []string{
-				"",
-			},
-		}
-
-		g.Mids[leaf] = newMid
-
-	}
-
-	g.Leafs = nil
-}
-
 //extend takes an other GameNode and returns a *new* GameNode representing the
 //merging of the two, where the keys in other overwrite the keys in this.
-//Should call normalize() after calling on the top-level node.
 func (g *GameNode) extend(other *GameNode) *GameNode {
 
 	if g == nil {
-		return other.copy()
+		return other
 	}
-
-	//Note: it's possible that its' better to do a shallowCopy, where we copy
-	//map/lists of the gameNode, but not the pointers, because we're going to
-	//rewrite them anyway. Think about whether that will break some other behavior.
-	result := g.copy()
 
 	if other == nil {
-		return result
+		return g
 	}
 
-	result.Leafs = mergedStrList(result.Leafs, other.Leafs)
+	//Geneate a full list of the g and other, combine, and then create a new
+	//reduced GameNode out of it.
+	newLeafs := mergedStrList(g.List(), other.List())
 
-	processedNodeNames := make(map[string]bool)
-
-	for nodeName, node := range result.Mids {
-		//This will handle nil nodes in other correctly
-		result.Mids[nodeName] = node.extend(other.Mids[nodeName])
-		processedNodeNames[nodeName] = true
-	}
-
-	//Now copy in the node names in other that weren't in g
-	for nodeName, node := range other.Mids {
-		if processedNodeNames[nodeName] {
-			continue
-		}
-		result.Mids[nodeName] = node.copy()
-	}
-
-	return result
+	return NewGameNode(newLeafs...)
 
 }

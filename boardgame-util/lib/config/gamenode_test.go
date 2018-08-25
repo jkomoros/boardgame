@@ -153,8 +153,8 @@ func TestGameNodeExtend(t *testing.T) {
 				Mids: map[string]*GameNode{
 					"github.com/jkomoros": {
 						Leafs: []string{
-							"checkers",
 							"blackjack",
+							"checkers",
 						},
 					},
 				},
@@ -164,8 +164,8 @@ func TestGameNodeExtend(t *testing.T) {
 				Mids: map[string]*GameNode{
 					"github.com/jkomoros": {
 						Leafs: []string{
-							"checkers",
 							"blackjack",
+							"checkers",
 						},
 					},
 				},
@@ -178,8 +178,8 @@ func TestGameNodeExtend(t *testing.T) {
 				Mids: map[string]*GameNode{
 					"github.com/jkomoros": {
 						Leafs: []string{
-							"checkers",
 							"blackjack",
+							"checkers",
 						},
 					},
 				},
@@ -188,8 +188,8 @@ func TestGameNodeExtend(t *testing.T) {
 				Mids: map[string]*GameNode{
 					"github.com/jkomoros": {
 						Leafs: []string{
-							"checkers",
 							"blackjack",
+							"checkers",
 						},
 					},
 				},
@@ -199,8 +199,8 @@ func TestGameNodeExtend(t *testing.T) {
 			"Simple no nesting one duplicate",
 			&GameNode{
 				Leafs: []string{
-					"checkers",
 					"blackjack",
+					"checkers",
 				},
 			},
 			&GameNode{
@@ -211,8 +211,8 @@ func TestGameNodeExtend(t *testing.T) {
 			},
 			&GameNode{
 				Leafs: []string{
-					"checkers",
 					"blackjack",
+					"checkers",
 					"pass",
 				},
 			},
@@ -223,8 +223,8 @@ func TestGameNodeExtend(t *testing.T) {
 				Mids: map[string]*GameNode{
 					"github.com/jkomoros": {
 						Leafs: []string{
-							"checkers",
 							"blackjack",
+							"checkers",
 						},
 					},
 				},
@@ -240,15 +240,19 @@ func TestGameNodeExtend(t *testing.T) {
 			},
 			&GameNode{
 				Mids: map[string]*GameNode{
-					"github.com/jkomoros": {
-						Leafs: []string{
-							"checkers",
-							"blackjack",
-						},
-					},
-					"github.com/bob": {
-						Leafs: []string{
-							"pass",
+					"github.com": {
+						Mids: map[string]*GameNode{
+							"jkomoros": {
+								Leafs: []string{
+									"blackjack",
+									"checkers",
+								},
+							},
+							"bob": {
+								Leafs: []string{
+									"pass",
+								},
+							},
 						},
 					},
 				},
@@ -289,22 +293,26 @@ func TestGameNodeExtend(t *testing.T) {
 			},
 			&GameNode{
 				Mids: map[string]*GameNode{
-					"github.com/jkomoros": {
-						Leafs: []string{
-							"checkers",
-							"blackjack",
-							"memory",
-						},
-					},
-					"github.com/a": {
-						Leafs: []string{
-							"checkers",
-							"blackjack",
-						},
-					},
-					"github.com/b": {
-						Leafs: []string{
-							"pass",
+					"github.com": {
+						Mids: map[string]*GameNode{
+							"jkomoros": {
+								Leafs: []string{
+									"blackjack",
+									"checkers",
+									"memory",
+								},
+							},
+							"a": {
+								Leafs: []string{
+									"blackjack",
+									"checkers",
+								},
+							},
+							"b": {
+								Leafs: []string{
+									"pass",
+								},
+							},
 						},
 					},
 				},
@@ -365,22 +373,26 @@ func TestGameNodeExtend(t *testing.T) {
 				Mids: map[string]*GameNode{
 					"one": {
 						Mids: map[string]*GameNode{
-							"github.com/jkomoros": {
-								Leafs: []string{
-									"checkers",
-									"blackjack",
-									"memory",
-								},
-							},
-							"github.com/a": {
-								Leafs: []string{
-									"checkers",
-									"blackjack",
-								},
-							},
-							"github.com/b": {
-								Leafs: []string{
-									"pass",
+							"github.com": {
+								Mids: map[string]*GameNode{
+									"jkomoros": {
+										Leafs: []string{
+											"blackjack",
+											"checkers",
+											"memory",
+										},
+									},
+									"a": {
+										Leafs: []string{
+											"blackjack",
+											"checkers",
+										},
+									},
+									"b": {
+										Leafs: []string{
+											"pass",
+										},
+									},
 								},
 							},
 						},
@@ -467,14 +479,10 @@ func TestGameNodeExtend(t *testing.T) {
 									"memory",
 								},
 							},
-							"other-dir/bar": {
+							"other-dir": {
 								Leafs: []string{
-									"",
-								},
-							},
-							"other-dir/baz": {
-								Leafs: []string{
-									"",
+									"bar",
+									"baz",
 								},
 							},
 						},
@@ -487,126 +495,7 @@ func TestGameNodeExtend(t *testing.T) {
 	for i, test := range tests {
 
 		result := test.base.extend(test.other)
-		//Call normalize explicitly; that's what RawConfigMode.Extend() does.
-		result.normalize()
 		assert.For(t, i, test.description).ThatActual(result).Equals(test.expected).ThenDiffOnFail()
-
-	}
-}
-
-func TestGameNodeNormalize(t *testing.T) {
-	tests := []struct {
-		description string
-		in          *GameNode
-		out         *GameNode
-	}{
-		{
-			"No op",
-			&GameNode{
-				Mids: map[string]*GameNode{
-					"github.com/jkomoros/examples": {
-						Leafs: []string{
-							"blackjack",
-							"memory",
-						},
-					},
-				},
-			},
-			&GameNode{
-				Mids: map[string]*GameNode{
-					"github.com/jkomoros/examples": {
-						Leafs: []string{
-							"blackjack",
-							"memory",
-						},
-					},
-				},
-			},
-		},
-		{
-			"Single layer normalize",
-			&GameNode{
-				Mids: map[string]*GameNode{
-					"github.com/jkomoros/examples": {
-						Leafs: []string{
-							"blackjack",
-							"memory",
-						},
-					},
-				},
-				Leafs: []string{
-					"github.com/jkomoros/other-repo/foo",
-				},
-			},
-			&GameNode{
-				Mids: map[string]*GameNode{
-					"github.com/jkomoros/examples": {
-						Leafs: []string{
-							"blackjack",
-							"memory",
-						},
-					},
-					"github.com/jkomoros/other-repo/foo": {
-						Leafs: []string{
-							"",
-						},
-					},
-				},
-			},
-		},
-		{
-			"Multi layer normalize",
-			&GameNode{
-				Mids: map[string]*GameNode{
-					"github.com/jkomoros": {
-						Mids: map[string]*GameNode{
-							"examples": {
-								Leafs: []string{
-									"blackjack",
-									"memory",
-								},
-							},
-						},
-						Leafs: []string{
-							"top-level/bar",
-						},
-					},
-				},
-				Leafs: []string{
-					"github.com/jkomoros/other-repo/foo",
-				},
-			},
-			&GameNode{
-				Mids: map[string]*GameNode{
-					"github.com/jkomoros": {
-						Mids: map[string]*GameNode{
-							"examples": {
-								Leafs: []string{
-									"blackjack",
-									"memory",
-								},
-							},
-							"top-level/bar": {
-								Leafs: []string{
-									"",
-								},
-							},
-						},
-					},
-					"github.com/jkomoros/other-repo/foo": {
-						Leafs: []string{
-							"",
-						},
-					},
-				},
-			},
-		},
-	}
-
-	for i, test := range tests {
-
-		test.in.normalize()
-		assert.For(t, i, test.description).ThatActual(test.in).Equals(test.out)
 
 	}
 }
