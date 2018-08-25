@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/workfit/tester/assert"
 	"testing"
 )
@@ -490,12 +491,60 @@ func TestGameNodeExtend(t *testing.T) {
 				},
 			},
 		},
+		/*
+		   //TODO: make this test work and uncomment it
+		   		{
+		   			"inner key should be merged to normalize",
+		   			&GameNode{
+		   				Mids: map[string]*GameNode{
+		   					"github.com/jkomoros/boardgame/examples": {
+		   						Leafs: []string{
+		   							"blackjack",
+		   							"checkers",
+		   							"memory",
+		   						},
+		   					},
+		   				},
+		   			},
+		   			&GameNode{
+		   				Mids: map[string]*GameNode{
+		   					"github.com/jkomoros/games": {
+		   						Leafs: []string{
+		   							"darwin",
+		   						},
+		   					},
+		   				},
+		   			},
+		   			&GameNode{
+		   				Mids: map[string]*GameNode{
+		   					"github.com/jkomoros": {
+		   						Mids: map[string]*GameNode{
+		   							"boardgame/examples": {
+		   								Leafs: []string{
+		   									"blackjack",
+		   									"checkers",
+		   									"memory",
+		   								},
+		   							},
+		   							"games": {
+		   								Leafs: []string{
+		   									"darwin",
+		   								},
+		   							},
+		   						},
+		   					},
+		   				},
+		   			},
+		   		},
+		*/
 	}
 
 	for i, test := range tests {
 
 		result := test.base.extend(test.other)
-		assert.For(t, i, test.description).ThatActual(result).Equals(test.expected).ThenDiffOnFail()
+		if !assert.For(t, i, test.description).ThatActual(result).Equals(test.expected).ThenDiffOnFail().Passed() {
+			spew.Dump(result)
+		}
 
 	}
 }
