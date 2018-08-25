@@ -82,7 +82,10 @@ func configSetFactory(field config.ConfigModeField, fieldType config.ConfigModeF
 
 		return config.SetFirebaseKey(firebaseKey, positional[2])
 	case config.FieldTypeGameNode:
-		errAndQuit("GAmes not yet supported")
+		if len(positional) != 2 {
+			errAndQuit("games node wants precisely one VAL")
+		}
+		return config.AddGame(positional[1])
 	}
 	return nil
 }
@@ -129,7 +132,7 @@ func (c *ConfigSet) HelpText() string {
 
 		"If KEY is of type []string, simply adds the key to the given val if it doesn't exist. A simple convenience instead of `config add`. " +
 
-		"Keys of this type are (" + strings.Join(keyNamesForConfigType(config.FieldTypeStringSlice), ",") + ")\n\n" +
+		"Keys of this type are (" + strings.Join(keyNamesForConfigType(config.FieldTypeStringSlice), ",") + "). `Games` is also of this type.\n\n" +
 
 		"If KEY is of type bool, val must be either '0', '1', 'true', 'false'. " +
 

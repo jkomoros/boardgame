@@ -19,7 +19,10 @@ func configAddFactory(field config.ConfigModeField, fieldType config.ConfigModeF
 		}
 		return config.AddString(field, positional[1])
 	case config.FieldTypeGameNode:
-		errAndQuit("GAmes not yet supported")
+		if len(positional) != 2 {
+			errAndQuit("games node wants precisely one VAL")
+		}
+		return config.AddGame(positional[1])
 	}
 
 	return nil
@@ -47,6 +50,6 @@ func (c *ConfigAdd) HelpText() string {
 
 		"If KEY is of type []string, simply adds the key to the given val if it doesn't exist. `config set` also has a similar effect for fields of this type. " +
 
-		"Keys of this type are (" + strings.Join(keyNamesForConfigType(config.FieldTypeStringSlice), ",") + ")"
+		"Keys of this type are (" + strings.Join(keyNamesForConfigType(config.FieldTypeStringSlice), ",") + "). `Games` is also of this type."
 
 }
