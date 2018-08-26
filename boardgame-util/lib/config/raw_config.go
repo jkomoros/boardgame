@@ -80,7 +80,8 @@ func (r *RawConfig) Path() string {
 	return r.path
 }
 
-//Save saves RawConfig back to disk at Path().
+//Save saves RawConfig back to disk at Path(). If HasContent() returns false
+//and Path() doesn't exist yet, no file is saved and a nil error is returned.
 func (r *RawConfig) Save() error {
 
 	if r.Path() == "" {
