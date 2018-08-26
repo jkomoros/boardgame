@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"os"
 )
 
 //RawConfig corresponds to the raw input/output from disk without any
@@ -53,6 +54,20 @@ func NewRawConfig(filename string) (*RawConfig, error) {
 	return &config, nil
 }
 
+//HasContent returns true if there is any content in the RawConfig at all.
+func (r *RawConfig) HasContent() bool {
+	if r.Base != nil {
+		return true
+	}
+	if r.Dev != nil {
+		return true
+	}
+	if r.Prod != nil {
+		return true
+	}
+	return false
+}
+
 //Path returns the filename of the file that this RawConfig represents on
 //disk.
 func (r *RawConfig) Path() string {
@@ -64,6 +79,18 @@ func (r *RawConfig) Save() error {
 
 	if r.Path() == "" {
 		return errors.New("No path provided")
+	}
+
+	if !r.HasContent() {
+		//No content to save. Make sure that nothing exists at that path!
+		if _, err := os.Stat(r.Path()); os.IsNotExist(err) {
+			//Good, nothing exists there
+			return nil
+		}
+		if err := os.Remove(r.Path()); err != nil {
+			return errors.New("No content so tried to remove " + r.Path() + " but got error: " + err.Error())
+		}
+		return nil
 	}
 
 	blob, err := json.MarshalIndent(r, "", "\t")
