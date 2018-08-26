@@ -29,6 +29,11 @@ const (
 //will be returned, with privateConfig being in the same folder. If it's a
 //dir, it will be the default filenames in that folder.
 func DefaultFileNames(dirOrFile string) (publicConfig, privateConfig string, err error) {
+
+	if dirOrFile == "" {
+		dirOrFile = "."
+	}
+
 	if strings.HasSuffix(dirOrFile, ".json") {
 		dir := filepath.Dir(dirOrFile)
 
