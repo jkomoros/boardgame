@@ -1034,7 +1034,7 @@ func (s *Server) genericHandler(c *gin.Context) {
 //Start is where you start the server, and it never returns until it's time to shut down.
 func (s *Server) Start() {
 
-	config, err := config.Get("")
+	config, err := config.Get("", false)
 
 	if err != nil {
 		s.logger.Errorln("Configuration error: " + err.Error())
