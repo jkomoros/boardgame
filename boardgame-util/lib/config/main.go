@@ -24,6 +24,29 @@ const (
 	publicConfigFileName  = "config.PUBLIC.json"
 )
 
+//DefaultFileNames returns the publicConfig and privateConfig names for the
+//given path, even if they don't exist. If dirOrFile ends in ".json" then that
+//will be returned, with privateConfig being in the same folder. If it's a
+//dir, it will be the default filenames in that folder.
+func DefaultFileNames(dirOrFile string) (publicConfig, privateConfig string, err error) {
+	if strings.HasSuffix(dirOrFile, ".json") {
+		dir := filepath.Dir(dirOrFile)
+
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			return "", "", errors.New("Dir " + dir + " does not exist.")
+		}
+
+		return dirOrFile, filepath.Join(dir, privateConfigFileName), nil
+	}
+
+	//OK, we'll interpret as Dir.
+
+	if _, err := os.Stat(dirOrFile); os.IsNotExist(err) {
+		return "", "", errors.New(dirOrFile + " is interpreted as a directory but does not exist")
+	}
+	return filepath.Join(dirOrFile, publicConfigFileName), filepath.Join(dirOrFile, privateConfigFileName), nil
+}
+
 //FileNames returns the publicConfig filename and privateConfig filename to
 //use given the search path. If dir is a config file itself, loads that (and
 //any private component in same directory). Next it interprets dir as a
