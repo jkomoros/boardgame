@@ -82,15 +82,16 @@ func (r *RawConfig) Save() error {
 	}
 
 	if !r.HasContent() {
-		//No content to save. Make sure that nothing exists at that path!
+		//No content to save. If nothing exists at that path, no need to write
+		//anything.
 		if _, err := os.Stat(r.Path()); os.IsNotExist(err) {
 			//Good, nothing exists there
 			return nil
 		}
-		if err := os.Remove(r.Path()); err != nil {
-			return errors.New("No content so tried to remove " + r.Path() + " but got error: " + err.Error())
-		}
-		return nil
+
+		//Something does exist at that path. We should write the empty blob,
+		//because we could have had stuff in the file and need to write that
+		//it's empty now.
 	}
 
 	blob, err := json.MarshalIndent(r, "", "\t")
