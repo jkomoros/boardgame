@@ -64,9 +64,10 @@ func TestBaseExtend(t *testing.T) {
 				},
 				&ConfigMode{
 					ConfigModeCommon{
-						AllowedOrigins: "*",
-						DefaultPort:    "8080",
-						Storage:        make(map[string]string),
+						AllowedOrigins:    "*",
+						DefaultPort:       "8080",
+						DefaultStaticPort: "80",
+						Storage:           make(map[string]string),
 					},
 					nil,
 				},
@@ -210,10 +211,11 @@ func TestApiHostDerivation(t *testing.T) {
 			},
 			&ConfigMode{
 				ConfigModeCommon{
-					ApiHost:        "provided",
-					DefaultPort:    "8888",
-					AllowedOrigins: "*",
-					Storage:        make(map[string]string),
+					ApiHost:           "provided",
+					DefaultPort:       "8888",
+					DefaultStaticPort: "8080",
+					AllowedOrigins:    "*",
+					Storage:           make(map[string]string),
 				},
 				nil,
 			},
@@ -229,10 +231,11 @@ func TestApiHostDerivation(t *testing.T) {
 			},
 			&ConfigMode{
 				ConfigModeCommon{
-					ApiHost:        "http://localhost:8888",
-					DefaultPort:    "8888",
-					AllowedOrigins: "*",
-					Storage:        make(map[string]string),
+					ApiHost:           "http://localhost:8888",
+					DefaultPort:       "8888",
+					DefaultStaticPort: "8080",
+					AllowedOrigins:    "*",
+					Storage:           make(map[string]string),
 				},
 				nil,
 			},
@@ -252,8 +255,9 @@ func TestApiHostDerivation(t *testing.T) {
 			},
 			&ConfigMode{
 				ConfigModeCommon{
-					ApiHost:     "https://example-boardgame.appspot.com:8080",
-					DefaultPort: "8080",
+					ApiHost:           "https://example-boardgame.appspot.com:8080",
+					DefaultPort:       "8080",
+					DefaultStaticPort: "80",
 					Firebase: &FirebaseConfig{
 						StorageBucket: "example-boardgame.appspot.com",
 					},
@@ -282,9 +286,10 @@ func TestApiHostDerivation(t *testing.T) {
 					Firebase: &FirebaseConfig{
 						StorageBucket: "example-boardgame.appspot.com",
 					},
-					DefaultPort:    "80",
-					AllowedOrigins: "*",
-					Storage:        make(map[string]string),
+					DefaultPort:       "80",
+					DefaultStaticPort: "80",
+					AllowedOrigins:    "*",
+					Storage:           make(map[string]string),
 				},
 				nil,
 			},
@@ -304,8 +309,9 @@ func TestApiHostDerivation(t *testing.T) {
 			},
 			&ConfigMode{
 				ConfigModeCommon{
-					ApiHost:     "https://example-boardgame.appspot.com",
-					DefaultPort: "80",
+					ApiHost:           "https://example-boardgame.appspot.com",
+					DefaultPort:       "80",
+					DefaultStaticPort: "80",
 					Firebase: &FirebaseConfig{
 						StorageBucket: "example-boardgame.appspot.com",
 					},

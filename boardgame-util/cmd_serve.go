@@ -43,11 +43,7 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 		errAndQuit("Couldn't create static directory: " + err.Error())
 	}
 
-	staticPort := "8080"
-
-	if mode.DefaultStaticPort != "" {
-		staticPort = mode.DefaultStaticPort
-	}
+	staticPort := mode.DefaultStaticPort
 
 	if s.StaticPort != "" {
 		staticPort = s.StaticPort
@@ -64,11 +60,7 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 	//TODO: simple serving of staticPath here. Do we need a new parameter for
 	//default static serving port?
 
-	port := "8888"
-
-	if mode.DefaultPort != "" {
-		port = mode.DefaultPort
-	}
+	port := mode.DefaultPort
 
 	if s.Port != "" {
 		port = s.Port

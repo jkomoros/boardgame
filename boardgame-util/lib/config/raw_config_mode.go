@@ -38,6 +38,15 @@ func (c *RawConfigMode) Derive(prodMode bool) *ConfigMode {
 			result.DefaultPort = "8888"
 		}
 	}
+
+	if result.DefaultStaticPort == "" {
+		if prodMode {
+			result.DefaultStaticPort = "80"
+		} else {
+			result.DefaultStaticPort = "8080"
+		}
+	}
+
 	//AllowedOrigins will just be default allow
 	if result.AllowedOrigins == "" {
 		result.AllowedOrigins = "*"
