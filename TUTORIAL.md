@@ -10,29 +10,41 @@ A number of example games are defined in the examples sub-package to demonstrate
 
 *This tutorial will walk through some concrete examples of how to configure a server and create games, in a way that narratively makes sense but leaves a number of topics unexplored or lightly developed. For more in-depth documentation of the core concepts, check out the core library's package doc, and for more about the server, see `server/README.md`*
 
-Each instantitation of a server includes multiple game packages, each of which defines a Game Manager that describes the logic necessary to run that type of game. These game packages are organized in a canonical way to make it easy to link in game packages into your server even if you didn't write them.
+## boardgame-util
 
-An example server can be found in `examples/server`. This tutorial will walk through how those work.
+`boardgame-util` is a multi-purpose tool provided by this package that does a number of things, from automatically generating code, to adminstering a mysql databse, to building and running a server based on a configuration file.
+
+The rest of this tutorial will assume you have it installed. Sitting in the `boardgame` folder, run `go install ./...` to install `boardgame-util` as well as registering all of the sub-packages on the system.
+
+Now ensure it's installed by running:
+
+```
+boardgame-util
+```
+
+You should see a help message describing what boardgame-util can do. The help of the boardgame-util command is very comprehensive, and it's the best way to learn about what it can do. The `help` subcommand to learn more about any given comand or sub-command:
+
+```
+boardgame-util help
+```
+
+The `boardgame-util` command looks for configuration in json files when it runs (looking up the directory hiearchy until it finds one). The boardgame package provides a `config.SAMPLE.json` in its root, which defines reasonable defaults. For all of the commands in this tutorial, it assumes that the current working directory is `$GOPATH/src/github.com/jkomoros/boardgame` or one of its sub-directories.
 
 ## Quickstart servers
 
-The server has two components: the static asset hosting and the core game engine API server. The former is mainly used in the development enviornment (in a production environment all of the static assets can be served by Firebase hosting). The API server is easy to set-up; normally it requires only 20 lines of set up, most of which is configuration for MySQL and other aspects.
+The quickest way to get a server running is via the `boardgame-util serve` command. 
 
-For simplicity, the server in examples/server is configured to be able to get up and running with no changes in configuration. (It uses a simpler storage backend that doesn't require MySQL).
+The command requires you have the `bower` command installed. If not, follow the instructions on `https://bower.io/` to install it.
 
-In `boardgame/examples/server/static`, run
-
-```
-go build && ./static
-```
-
-In `boardgame/examples/server/api`, run
+Sitting in the boardgame package, run:
 
 ```
-go build && ./api
+boardgame-util serve
 ```
 
 Now you can visit the web app in your browser by navigating to `localhost:8080`
+
+This command automatically uses the default configuration file in `boardgame/config.SAMPLE.json` to identify which games packages to include, then creates a temporary binary that imports and instantiates them, as well as pulling together the necessary static files to serve as well. When you kill the command with `Ctrl-C` those temporary files are deleted.
 
 ## Game Managers
 
