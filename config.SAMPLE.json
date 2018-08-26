@@ -11,16 +11,11 @@
 			"messagingSenderId": "138149526364"
 		},
 		"games": {
-			"github.com/jkomoros": {
-				"boardgame/examples": [
-					"blackjack",
-					"checkers",
-					"memory"
-				],
-				"examples": [
-					"blackjack"
-				]
-			}
+			"github.com/jkomoros/boardgame/examples": [
+				"blackjack",
+				"checkers",
+				"memory"
+			]
 		}
 	},
 	"dev": {
