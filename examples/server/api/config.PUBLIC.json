@@ -1,8 +1,0 @@
-{
-	"dev" : {
-		"allowedorigins" : "http://localhost:8080",
-		"defaultport" : "8888",
-		"firebaseprojectid": "example-boardgame",
-		"disableadminchecking": true
-	}
-}
