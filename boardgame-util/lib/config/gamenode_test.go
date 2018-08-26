@@ -372,28 +372,24 @@ func TestGameNodeExtend(t *testing.T) {
 			},
 			&GameNode{
 				Mids: map[string]*GameNode{
-					"one": {
+					"one/github.com": {
 						Mids: map[string]*GameNode{
-							"github.com": {
-								Mids: map[string]*GameNode{
-									"jkomoros": {
-										Leafs: []string{
-											"blackjack",
-											"checkers",
-											"memory",
-										},
-									},
-									"a": {
-										Leafs: []string{
-											"blackjack",
-											"checkers",
-										},
-									},
-									"b": {
-										Leafs: []string{
-											"pass",
-										},
-									},
+							"jkomoros": {
+								Leafs: []string{
+									"blackjack",
+									"checkers",
+									"memory",
+								},
+							},
+							"a": {
+								Leafs: []string{
+									"blackjack",
+									"checkers",
+								},
+							},
+							"b": {
+								Leafs: []string{
+									"pass",
 								},
 							},
 						},
@@ -491,52 +487,50 @@ func TestGameNodeExtend(t *testing.T) {
 				},
 			},
 		},
-		/*
-		   //TODO: make this test work and uncomment it
-		   		{
-		   			"inner key should be merged to normalize",
-		   			&GameNode{
-		   				Mids: map[string]*GameNode{
-		   					"github.com/jkomoros/boardgame/examples": {
-		   						Leafs: []string{
-		   							"blackjack",
-		   							"checkers",
-		   							"memory",
-		   						},
-		   					},
-		   				},
-		   			},
-		   			&GameNode{
-		   				Mids: map[string]*GameNode{
-		   					"github.com/jkomoros/games": {
-		   						Leafs: []string{
-		   							"darwin",
-		   						},
-		   					},
-		   				},
-		   			},
-		   			&GameNode{
-		   				Mids: map[string]*GameNode{
-		   					"github.com/jkomoros": {
-		   						Mids: map[string]*GameNode{
-		   							"boardgame/examples": {
-		   								Leafs: []string{
-		   									"blackjack",
-		   									"checkers",
-		   									"memory",
-		   								},
-		   							},
-		   							"games": {
-		   								Leafs: []string{
-		   									"darwin",
-		   								},
-		   							},
-		   						},
-		   					},
-		   				},
-		   			},
-		   		},
-		*/
+
+		{
+			"inner key should be merged to normalize",
+			&GameNode{
+				Mids: map[string]*GameNode{
+					"github.com/jkomoros/boardgame/examples": {
+						Leafs: []string{
+							"blackjack",
+							"checkers",
+							"memory",
+						},
+					},
+				},
+			},
+			&GameNode{
+				Mids: map[string]*GameNode{
+					"github.com/jkomoros/games": {
+						Leafs: []string{
+							"darwin",
+						},
+					},
+				},
+			},
+			&GameNode{
+				Mids: map[string]*GameNode{
+					"github.com/jkomoros": {
+						Mids: map[string]*GameNode{
+							"boardgame/examples": {
+								Leafs: []string{
+									"blackjack",
+									"checkers",
+									"memory",
+								},
+							},
+							"games": {
+								Leafs: []string{
+									"darwin",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for i, test := range tests {

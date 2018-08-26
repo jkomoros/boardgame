@@ -218,15 +218,43 @@ func (g *GameNode) addPrefix(prefix string) {
 //GameNode. Designed to be called as the last step of NewGameNode.
 func (g *GameNode) elideSimpleMids() *GameNode {
 
+	//elideSimpleMids is responsible for eliding itself up into its parent if
+	//it has only a single child. But it's also responsible for eliding the
+	//children up into itself if they have only one mid.
+
 	var childKey string
 	var child *GameNode
+
+	newMids := make(map[string]*GameNode)
 
 	for key, node := range g.Mids {
 		childKey = key
 		child = node.elideSimpleMids()
-		g.Mids[key] = child
+
+		if len(child.Mids) == 1 {
+			var childSingleKey string
+			var childSingleChild *GameNode
+			//Get reference to the single one
+			for subKey, subNode := range child.Mids {
+				childSingleKey = subKey
+				childSingleChild = subNode
+			}
+
+			//Cut out the child and directly hoist its child
+			childKey = filepath.Join(childKey, childSingleKey)
+			child = childSingleChild
+
+		}
+
+		newMids[childKey] = child
 	}
 
+	if len(newMids) > 0 {
+		g.Mids = newMids
+	}
+
+	//If we don't have precisely one mid then we're not a candidate to be
+	//elided.
 	if len(g.Mids) != 1 {
 		return g
 	}
