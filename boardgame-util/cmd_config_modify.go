@@ -40,6 +40,10 @@ func (c *ConfigModify) RunWithUpdateFactory(p writ.Path, positional []string, fa
 		errAndQuit(positional[0] + " is not a valid field")
 	}
 
+	if !c.ConfirmField(field) {
+		errAndQuit("Didn't confirm secret field set.")
+	}
+
 	updater := factory(field, fieldType, positional)
 
 	if updater == nil {
@@ -53,6 +57,30 @@ func (c *ConfigModify) RunWithUpdateFactory(p writ.Path, positional []string, fa
 	if err := cfg.Save(); err != nil {
 		errAndQuit("Couldn't save updated config files: " + err.Error())
 	}
+
+}
+
+func (c *ConfigModify) ConfirmField(field config.ConfigModeField) bool {
+	//We only warn for secret fields on prod.
+	if !c.Prod {
+		return true
+	}
+	//Setting on secret is always fine.
+	if c.Secret {
+		return true
+	}
+
+	sensitiveFields := map[config.ConfigModeField]bool{
+		config.FieldAdminUserIds: true,
+		config.FieldStorage:      true,
+	}
+
+	//Only show confirm for sensitive fields.
+	if !sensitiveFields[field] {
+		return true
+	}
+
+	return baseConfirm("You have proposed setting a field that is typically secret on prod in a non-secret config.")
 
 }
 

@@ -75,20 +75,24 @@ func (d *Db) SubcommandObjects() []SubcommandObject {
 
 }
 
-func (d *Db) prodConfirm() bool {
-	if !d.Prod {
-		return true
-	}
-	fmt.Println("You have selected a destructive action on prod. Are you sure? (y/N)")
+func baseConfirm(message string) bool {
+	fmt.Println(message + " Are you sure? (y/N)")
 	var response string
 	fmt.Scanln(&response)
-	yesResponses := []string{"Yes", "Y", "yes"}
+	yesResponses := []string{"Yes", "Y", "yes", "y"}
 	for _, responseToTest := range yesResponses {
 		if response == responseToTest {
 			return true
 		}
 	}
 	return false
+}
+
+func (d *Db) prodConfirm() bool {
+	if !d.Prod {
+		return true
+	}
+	return baseConfirm("You have selected a destructive action on prod.")
 }
 
 func (d *Db) GetMigrate(createDb bool) *migrate.Migrate {
