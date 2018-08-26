@@ -24,7 +24,14 @@ const (
 	publicConfigFileName  = "config.PUBLIC.json"
 )
 
-func fileNamesToUse(dir string) (publicConfig, privateConfig string, err error) {
+//FileNames returns the publicConfig filename and privateConfig filename to
+//use given the search path. If dir is a config file itself, loads that (and
+//any private component in same directory). Next it interprets dir as a
+//directory to search within for any config files. If none are found, walks
+//upwards in the directory hierarchy (as long as that's still in $GOPATH)
+//until it finds a folder that appears to work. If dir is "", working
+//directory is assumed.
+func FileNames(dir string) (publicConfig, privateConfig string, err error) {
 
 	if dir == "" {
 		dir = "."
@@ -146,31 +153,33 @@ func fileNamesToUseInDir(dir string) (publicConfig, privateConfig string) {
 
 }
 
-//Get fetches a fully realized config. If dir is a config file itself, loads
-//that (and any private component in same directory). Next it interprets dir
-//as a directory to search within for any config files. If none are found,
-//walks upwards in the directory hierarchy (as long as that's still in
-//$GOPATH) until it finds a folder that appears to work. If dir is "", working
-//directory is assumed.
-func Get(dir string) (*Config, error) {
-	publicConfigName, privateConfigName, err := fileNamesToUse(dir)
-
-	if err != nil {
-		return nil, errors.New("Couldn't get file names to use: " + err.Error())
-	}
-
-	publicConfig, err := NewRawConfig(publicConfigName)
+//GetConfig returns a Config for those two named files. publicConfig and
+//privateConfig may both be "" without erroring.
+func GetConfig(publicConfigFile, privateConfigFile string) (*Config, error) {
+	publicConfig, err := NewRawConfig(publicConfigFile)
 
 	if err != nil {
 		return nil, errors.New("Couldn't get public config: " + err.Error())
 	}
 
-	privateConfig, err := NewRawConfig(privateConfigName)
+	privateConfig, err := NewRawConfig(privateConfigFile)
 
 	if err != nil {
 		return nil, errors.New("Couldn't get private config: " + err.Error())
 	}
 
 	return NewConfig(publicConfig, privateConfig), nil
+}
+
+//Get fetches a fully realized config. It is a simple convenience wrapper
+//around FileNames and GetConfig.
+func Get(dir string) (*Config, error) {
+	publicConfigName, privateConfigName, err := FileNames(dir)
+
+	if err != nil {
+		return nil, errors.New("Couldn't get file names to use: " + err.Error())
+	}
+
+	return GetConfig(publicConfigName, privateConfigName)
 
 }
