@@ -261,7 +261,7 @@ func (g *GameNode) elideSimpleMids() *GameNode {
 
 	//We only have one child, but it itself has multiple and thus should not
 	//be elided.
-	if len(child.Leafs) > 0 {
+	if len(child.Leafs) > 1 {
 		return g
 	}
 
@@ -477,11 +477,11 @@ func (g *GameNode) RemoveGame(game string) *GameNode {
 func (g *GameNode) extend(other *GameNode) *GameNode {
 
 	if g == nil {
-		return other
+		return other.Normalize()
 	}
 
 	if other == nil {
-		return g
+		return g.Normalize()
 	}
 
 	//Geneate a full list of the g and other, combine, and then create a new

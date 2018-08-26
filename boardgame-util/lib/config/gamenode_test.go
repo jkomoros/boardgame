@@ -487,7 +487,6 @@ func TestGameNodeExtend(t *testing.T) {
 				},
 			},
 		},
-
 		{
 			"inner key should be merged to normalize",
 			&GameNode{
@@ -528,6 +527,24 @@ func TestGameNodeExtend(t *testing.T) {
 							},
 						},
 					},
+				},
+			},
+		},
+		{
+			"Single item",
+			&GameNode{
+				Mids: map[string]*GameNode{
+					"github.com/jkomoros/boardgame/examples": {
+						Leafs: []string{
+							"checkers",
+						},
+					},
+				},
+			},
+			nil,
+			&GameNode{
+				Leafs: []string{
+					"github.com/jkomoros/boardgame/examples/checkers",
 				},
 			},
 		},
