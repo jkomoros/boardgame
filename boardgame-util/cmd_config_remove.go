@@ -50,6 +50,8 @@ func (c *ConfigRemove) HelpText() string {
 
 		"If KEY is of type []string, simply removes the key from the given val if it exists. " +
 
-		"Keys of this type are (" + strings.Join(keyNamesForConfigType(config.FieldTypeStringSlice), ",") + "). `Games` is also of this type."
+		"Keys of this type are (" + strings.Join(keyNamesForConfigType(config.FieldTypeStringSlice), ",") + "). `Games` is also of this type.\n\n" +
+
+		"See help for the parent command for more information about configuration in general."
 
 }

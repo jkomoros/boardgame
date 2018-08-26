@@ -33,5 +33,9 @@ func (c *ConfigNormalize) Description() string {
 func (c *ConfigNormalize) HelpText() string {
 	return c.Name() + ` simply parses and then saves the config.json in use.
 
-This guarantees that it is in canonical structure, so in the future small changes to the config via "boardgame-util config set" should have only a few line diffs.`
+This guarantees that it is in canonical structure, so in the future small changes to the config via "boardgame-util config set" should have only a few line diffs.` +
+
+		"\n\n" +
+
+		"See help for the parent command for more information about configuration in general."
 }

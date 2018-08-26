@@ -62,9 +62,24 @@ func (c *Config) Description() string {
 }
 
 func (c *Config) HelpText() string {
-	return c.Name() + ` run without arguments prints the derived config in use and the path that is being used.
+	return c.Name() + ` run without arguments prints the derived config in use and the path that is being used. It's a good way to debug config issues.
 
-It's a good way to debug config issues.`
+GENERAL INFORMATION ON CONFIG
+
+configuration is provided for boardgame-util and other libraries within boardgame via a JSON configuration file, typically called "config.json". boardgame libraries search for that file in the current directory, and if they don't find it they walk up the directory hierarchy until they find one. You can also pass an override config parameter to specify a specific file or folder to search in.
+
+It is reasonable to modify the file directly by hand, although the "config" command and its sub-commands can modify the files for you directly to ensure the syntax is correct.
+
+The config file contains information to derive both a Dev and Prod configuration. The file has three sections: base, dev, and prod, each of which is optional.
+
+base is the base values for all items. dev and prod both extend base, overriding any set values. Typically you set values in base and only override them in dev or prod if they differ. For that reason, if you don't pass --dev or --prod options, by default this command will modify the base.
+
+The fields for each section are described in README.md in "boardgame-util/lib/config".
+
+Typically the configuration file is checked into source control. However, some settings (especially the connection strings for databases) might contain sensitive information that should not be checked into version control. For that reason it's also possible to define a "config.SECRET.json" in the same directory as the non-secret config. If your .gitignore file has the pattern "*.SECRET.*" within it, then that file cannot be accidentally committed to version control (of course, it's then your responsibility to distribute it). Any values defined in the secret config override any values defined in the non-secret config. If you want to modify the secret config, pass --secret option. Some fields are assumed to be sensitive, so the tool will ask for explicit confirmation if you try to set them for prod without also passing --secret.
+
+If you use any of the "boardgame-util config set" commands on a configuration file that does not exist, one will be created for you at a default location in the current directory, or in the given directory if you passed a config parameter.`
+
 }
 
 func (c *Config) SubcommandObjects() []SubcommandObject {

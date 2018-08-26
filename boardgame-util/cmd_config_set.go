@@ -144,5 +144,7 @@ func (c *ConfigSet) HelpText() string {
 
 		"'Firebase' is also of this type, but only allows the following sub-keys: (" +
 
-		strings.Join(firebaseKeys, ",") + "), and keys set to value of '' will not be deleted."
+		strings.Join(firebaseKeys, ",") + "), and keys set to value of '' will not be deleted.\n\n" +
+
+		"See help for the parent command for more information about configuration in general."
 }
