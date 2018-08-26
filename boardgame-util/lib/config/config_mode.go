@@ -11,9 +11,10 @@ import (
 type ConfigMode struct {
 	//ConfigMode is primarily just the common config mode values
 	ConfigModeCommon
-	//GamesList is not intended to be inflated from JSON, but rather is
-	//derived based on the contents of Games.
-	GamesList []string
+	//Games is not intended to be inflated from JSON, but rather is derived
+	//based on the contents of Games. It is OK to use literally as Games in
+	//RawConfig, though, because its serialization is a legal GamesNode.
+	Games []string `json:"games"`
 }
 
 func (c *ConfigMode) String() string {

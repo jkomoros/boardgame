@@ -30,14 +30,14 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 	storage := effectiveStorageType(mode, s.Storage)
 
 	fmt.Println("Creating temporary binary")
-	apiPath, err := build.Api(dir, mode.GamesList, storage)
+	apiPath, err := build.Api(dir, mode.Games, storage)
 
 	if err != nil {
 		errAndQuit("Couldn't create api: " + err.Error())
 	}
 
 	fmt.Println("Creating temporary static assets folder")
-	_, err = build.Static(dir, mode.GamesList, config)
+	_, err = build.Static(dir, mode.Games, config)
 
 	if err != nil {
 		errAndQuit("Couldn't create static directory: " + err.Error())

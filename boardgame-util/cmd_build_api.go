@@ -51,7 +51,7 @@ func (b *BuildApi) Run(p writ.Path, positional []string) {
 
 	storage := effectiveStorageType(config.Dev, b.Storage)
 
-	binaryPath, err := build.Api(dir, mode.GamesList, storage)
+	binaryPath, err := build.Api(dir, mode.Games, storage)
 
 	if err != nil {
 		errAndQuit("Couldn't generate binary: " + err.Error())
