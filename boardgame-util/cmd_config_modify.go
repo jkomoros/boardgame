@@ -80,7 +80,7 @@ func (c *ConfigModify) ConfirmField(field config.ConfigModeField) bool {
 		return true
 	}
 
-	return baseConfirm("You have proposed setting a field that is typically secret on prod in a non-secret config.")
+	return baseConfirm("You have proposed setting a field that is typically secret on prod without passing `--secret`, which means the configuration would be added to the public config that might be checked into source control.")
 
 }
 
