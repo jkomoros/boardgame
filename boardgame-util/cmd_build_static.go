@@ -16,7 +16,7 @@ func (b *BuildStatic) Run(p writ.Path, positional []string) {
 
 	dir := dirPositionalOrDefault(positional, false)
 
-	config := base.GetConfig()
+	config := base.GetConfig(false)
 
 	mode := config.Dev
 

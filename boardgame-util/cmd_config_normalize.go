@@ -12,7 +12,7 @@ func (c *ConfigNormalize) Run(p writ.Path, positional []string) {
 
 	base := c.Base().(*BoardgameUtil)
 
-	config := base.GetConfig()
+	config := base.GetConfig(false)
 
 	err := config.Save()
 

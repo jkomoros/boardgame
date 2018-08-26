@@ -94,7 +94,7 @@ func (d *Db) prodConfirm() bool {
 func (d *Db) GetMigrate(createDb bool) *migrate.Migrate {
 
 	base := d.Base().(*BoardgameUtil)
-	config := base.GetConfig()
+	config := base.GetConfig(false)
 
 	if !d.prodConfirm() {
 		msgAndQuit("Didn't agree to operate on prod")

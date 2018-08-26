@@ -19,34 +19,40 @@ type RawConfig struct {
 }
 
 //NewRawConfig loads up a raw config given a config.json file on disk.
-//Generally you don't use this directly, but instead use Get().
-func NewRawConfig(filename string) (*RawConfig, error) {
+//Generally you don't use this directly, but instead use Get(). If create is
+//true, then if the file doesn't exist on disk it's not an error, and a blank
+//config with that name will be returned.
+func NewRawConfig(filename string, create bool) (*RawConfig, error) {
 	if filename == "" {
 		return nil, nil
 	}
 
+	var config RawConfig
+
 	contents, err := ioutil.ReadFile(filename)
 
 	if err != nil {
-		return nil, errors.New("Couldn't read config file: " + err.Error())
-	}
+		//If we weren't told to create a config then if it doesn't exist it's an error.
+		if !create {
+			return nil, errors.New("Couldn't read config file: " + err.Error())
+		}
+	} else {
+		//If there are file contents, unmarshal
+		if err := json.Unmarshal(contents, &config); err != nil {
+			return nil, errors.New("couldn't unmarshal config file: " + err.Error())
+		}
 
-	var config RawConfig
+		if config.Base != nil {
+			config.Base.Games = config.Base.Games.Normalize()
+		}
 
-	if err := json.Unmarshal(contents, &config); err != nil {
-		return nil, errors.New("couldn't unmarshal config file: " + err.Error())
-	}
+		if config.Dev != nil {
+			config.Dev.Games = config.Dev.Games.Normalize()
+		}
 
-	if config.Base != nil {
-		config.Base.Games = config.Base.Games.Normalize()
-	}
-
-	if config.Dev != nil {
-		config.Dev.Games = config.Dev.Games.Normalize()
-	}
-
-	if config.Prod != nil {
-		config.Prod.Games = config.Prod.Games.Normalize()
+		if config.Prod != nil {
+			config.Prod.Games = config.Prod.Games.Normalize()
+		}
 	}
 
 	config.path = filename

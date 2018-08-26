@@ -105,12 +105,12 @@ func (b *BoardgameUtil) NewTempDir(prefix string) string {
 //finding the config errors for any reason, program will quit. That is, when
 //you call this method we assume that it's required for operation of that
 //command.
-func (b *BoardgameUtil) GetConfig() *config.Config {
+func (b *BoardgameUtil) GetConfig(createIfNotExist bool) *config.Config {
 	if b.config != nil {
 		return b.config
 	}
 
-	c, err := config.Get(b.ConfigPath)
+	c, err := config.Get(b.ConfigPath, createIfNotExist)
 
 	if err != nil {
 		errAndQuit("config is required for this command, but it couldn't be loaded. See README.md for more about structuring config.json.\nError: " + err.Error())

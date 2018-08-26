@@ -24,7 +24,7 @@ func (c *Config) Run(p writ.Path, positional []string) {
 
 	base := c.Base().(*BoardgameUtil)
 
-	config := base.GetConfig()
+	config := base.GetConfig(false)
 
 	fmt.Println("Path: " + config.Path())
 	if secretPath := config.SecretPath(); secretPath != "" {

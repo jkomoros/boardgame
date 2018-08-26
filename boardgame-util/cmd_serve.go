@@ -22,7 +22,7 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 
 	base := s.Base().(*BoardgameUtil)
 
-	config := base.GetConfig()
+	config := base.GetConfig(false)
 	mode := config.Dev
 
 	dir := base.NewTempDir("temp_serve_")

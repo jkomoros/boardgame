@@ -177,15 +177,17 @@ func fileNamesToUseInDir(dir string) (publicConfig, privateConfig string) {
 }
 
 //GetConfig returns a Config for those two named files. publicConfig and
-//privateConfig may both be "" without erroring.
-func GetConfig(publicConfigFile, privateConfigFile string) (*Config, error) {
-	publicConfig, err := NewRawConfig(publicConfigFile)
+//privateConfig may both be "" without erroring. If createIfNotExist is true,
+//then NewRawConfig will be told to create the Configs even if they don't
+//exist on disk.
+func GetConfig(publicConfigFile, privateConfigFile string, createIfNotExist bool) (*Config, error) {
+	publicConfig, err := NewRawConfig(publicConfigFile, createIfNotExist)
 
 	if err != nil {
 		return nil, errors.New("Couldn't get public config: " + err.Error())
 	}
 
-	privateConfig, err := NewRawConfig(privateConfigFile)
+	privateConfig, err := NewRawConfig(privateConfigFile, createIfNotExist)
 
 	if err != nil {
 		return nil, errors.New("Couldn't get private config: " + err.Error())
@@ -195,14 +197,23 @@ func GetConfig(publicConfigFile, privateConfigFile string) (*Config, error) {
 }
 
 //Get fetches a fully realized config. It is a simple convenience wrapper
-//around FileNames and GetConfig.
-func Get(dir string) (*Config, error) {
+//around FileNames and GetConfig. If createIfNotExist is true, then if the
+//files don't exist on disk we'll generate file names and return raw configs
+//for those filenames.
+func Get(dir string, createIfNotExist bool) (*Config, error) {
 	publicConfigName, privateConfigName, err := FileNames(dir)
 
 	if err != nil {
-		return nil, errors.New("Couldn't get file names to use: " + err.Error())
+		if createIfNotExist {
+			publicConfigName, privateConfigName, err = DefaultFileNames(dir)
+			if err != nil {
+				return nil, errors.New("Couldn't get default file names to create: " + err.Error())
+			}
+		} else {
+			return nil, errors.New("Couldn't get file names to use: " + err.Error())
+		}
 	}
 
-	return GetConfig(publicConfigName, privateConfigName)
+	return GetConfig(publicConfigName, privateConfigName, createIfNotExist)
 
 }
