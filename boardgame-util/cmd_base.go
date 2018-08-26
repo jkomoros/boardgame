@@ -47,7 +47,8 @@ available as individual utility libraries to use directly if for some reason
 this tool doesn't do exactly what you need.
 
 A number of the commands expect some values to be provided in config.json. See
-the README for more on configuring that configuration file.
+the README for more on configuring that configuration file, or run "boardgame-
+util help config" to learn more.
 
 See the individual sub-commands for more on what each one does.`
 
