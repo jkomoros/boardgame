@@ -20,7 +20,7 @@ const gameSrcSubFolder = "game-src"
 const clientSubFolder = "client"
 
 //The path, relative to goPath, where all of the files are to copy
-const staticServerPackage = "github.com/jkomoros/boardgame/server/static/webapp"
+const staticServerPackage = "github.com/jkomoros/boardgame/server/static"
 
 var filesToExclude map[string]bool = map[string]bool{
 	".gitignore": true,

@@ -19,6 +19,10 @@ _cgo_export.*
 
 _testmain.go
 
+bower_components/
+build/
+node_modules/
+
 *.exe
 *.test
 *.prof
