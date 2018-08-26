@@ -53,11 +53,13 @@ func DefaultFileNames(dirOrFile string) (publicConfig, privateConfig string, err
 //directory to search within for any config files. If none are found, walks
 //upwards in the directory hierarchy (as long as that's still in $GOPATH)
 //until it finds a folder that appears to work. If dir is "", working
-//directory is assumed.
-func FileNames(dir string) (publicConfig, privateConfig string, err error) {
+//directory is assumed. If skipUpwardSearch is true, then if dir is non-blank
+//upward searching in the dir hiearchy will not be done.
+func FileNames(dir string, skipUpwardSearch bool) (publicConfig, privateConfig string, err error) {
 
 	if dir == "" {
 		dir = "."
+		skipUpwardSearch = false
 	}
 
 	//Try to interpret it as a file
@@ -91,6 +93,10 @@ func FileNames(dir string) (publicConfig, privateConfig string, err error) {
 
 		if public != "" || private != "" {
 			return public, private, nil
+		}
+
+		if skipUpwardSearch {
+			break
 		}
 
 		dir = filepath.Join("..", dir)
@@ -201,7 +207,7 @@ func GetConfig(publicConfigFile, privateConfigFile string, createIfNotExist bool
 //files don't exist on disk we'll generate file names and return raw configs
 //for those filenames.
 func Get(dir string, createIfNotExist bool) (*Config, error) {
-	publicConfigName, privateConfigName, err := FileNames(dir)
+	publicConfigName, privateConfigName, err := FileNames(dir, createIfNotExist)
 
 	if err != nil {
 		if createIfNotExist {

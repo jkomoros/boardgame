@@ -24,7 +24,7 @@ func (c *ConfigModify) RunWithUpdateFactory(p writ.Path, positional []string, fa
 
 	base := c.Base().(*BoardgameUtil)
 
-	cfg := base.GetConfig(false)
+	cfg := base.GetConfig(true)
 
 	mode := deriveMode(c.Dev, c.Prod)
 
