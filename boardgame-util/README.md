@@ -50,9 +50,9 @@ When adminmode chcecking is enabled (which is the default, see above), only
 users whose userId is in this list will be allowed to enable admin mode. You
 can find the userIds in the Firebase user console.
 
-### StorageConfig
+### Storage
 
-StorageConfig is how you configure the parameter to be passed to
+Storage is how you configure the parameter to be passed to
 Storage.Connect(). Different storage backends have different expectations, and
 many are fine with just "". When the server is started up, it will fetch the
 connection string from this map that matches the Name of the storage engine in
