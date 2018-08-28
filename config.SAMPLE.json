@@ -14,7 +14,10 @@
 			"github.com/jkomoros/boardgame/examples": [
 				"blackjack",
 				"checkers",
-				"memory"
+				"debuganimations",
+				"memory",
+				"pig",
+				"tictactoe"
 			]
 		}
 	},
