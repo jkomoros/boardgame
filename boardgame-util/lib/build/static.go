@@ -15,7 +15,7 @@ import (
 )
 
 const staticSubFolder = "static"
-const configJsFileName = "config.js"
+const configJsFileName = "client_config.js"
 const gameSrcSubFolder = "game-src"
 const clientSubFolder = "client"
 
