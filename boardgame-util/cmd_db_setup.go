@@ -27,7 +27,7 @@ func (d *DbSetup) Run(p writ.Path, positonal []string) {
 		if err == migrate.ErrNoChange {
 			fmt.Println("Already up to date")
 		} else {
-			errAndQuit("Couldn't call up on database: " + err.Error())
+			d.Base().errAndQuit("Couldn't call up on database: " + err.Error())
 		}
 	}
 }

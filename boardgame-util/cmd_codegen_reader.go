@@ -15,26 +15,26 @@ type CodegenReader struct {
 
 func (c *CodegenReader) Run(p writ.Path, positional []string) {
 
-	pkgDirectory := dirPositionalOrDefault(positional, true)
+	pkgDirectory := dirPositionalOrDefault(c.Base(), positional, true)
 
 	parent := c.Parent().(*Codegen)
 
 	readerOutput, testReaderOutput, err := codegen.ProcessReaders(pkgDirectory)
 
 	if err != nil {
-		errAndQuit("Couldn't process readers: " + err.Error())
+		c.Base().errAndQuit("Couldn't process readers: " + err.Error())
 	}
 
 	if readerOutput != "" {
 		if err := ioutil.WriteFile(filepath.Join(pkgDirectory, parent.OutputFile), []byte(readerOutput), 0644); err != nil {
-			errAndQuit("Couldn't output reader file: " + err.Error())
+			c.Base().errAndQuit("Couldn't output reader file: " + err.Error())
 		}
 	}
 
 	if !c.DontOutputReaderTest {
 		if testReaderOutput != "" {
 			if err := ioutil.WriteFile(filepath.Join(pkgDirectory, parent.OutputFileTest), []byte(testReaderOutput), 0644); err != nil {
-				errAndQuit("Couldn't output test reader file: " + err.Error())
+				c.Base().errAndQuit("Couldn't output test reader file: " + err.Error())
 			}
 		}
 	}

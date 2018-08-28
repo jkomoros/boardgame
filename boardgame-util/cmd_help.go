@@ -11,15 +11,15 @@ type Help struct {
 
 func (h *Help) Run(p writ.Path, positional []string) {
 
-	if h.base == nil {
+	if h.Base() == nil {
 		p.Last().ExitHelp(errors.New("BUG: help didn't have reference to base command"))
 	}
 
 	if len(positional) == 0 {
-		h.base.WritCommand().ExitHelp(nil)
+		h.Base().WritCommand().ExitHelp(nil)
 	}
 
-	subCmd := selectSubcommandObject(h.base, append([]string{h.base.Name()}, positional...))
+	subCmd := selectSubcommandObject(h.Base(), append([]string{h.base.Name()}, positional...))
 
 	if subCmd == nil {
 		p.Last().ExitHelp(errors.New(positional[0] + " is not a valid subcommand"))

@@ -12,12 +12,12 @@ type CleanStatic struct {
 
 func (c *CleanStatic) Run(p writ.Path, positional []string) {
 
-	dir := dirPositionalOrDefault(positional, false)
+	dir := dirPositionalOrDefault(c.Base(), positional, false)
 
 	err := build.CleanStatic(dir)
 
 	if err != nil {
-		errAndQuit(err.Error())
+		c.Base().errAndQuit(err.Error())
 	}
 
 	fmt.Println("Cleaned static folder")

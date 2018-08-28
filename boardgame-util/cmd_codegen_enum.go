@@ -13,19 +13,19 @@ type CodegenEnum struct {
 
 func (c *CodegenEnum) Run(p writ.Path, positional []string) {
 
-	packageDir := dirPositionalOrDefault(positional, true)
+	packageDir := dirPositionalOrDefault(c.Base(), positional, true)
 
 	parent := c.Parent().(*Codegen)
 
 	enumOutput, err := codegen.ProcessEnums(packageDir)
 
 	if err != nil {
-		errAndQuit("Couldn't process enums: " + err.Error())
+		c.Base().errAndQuit("Couldn't process enums: " + err.Error())
 	}
 
 	if enumOutput != "" {
 		if err := ioutil.WriteFile(filepath.Join(packageDir, parent.EnumOutputFile), []byte(enumOutput), 0644); err != nil {
-			errAndQuit("Couldn't output file: " + err.Error())
+			c.Base().errAndQuit("Couldn't output file: " + err.Error())
 		}
 	}
 

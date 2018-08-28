@@ -10,17 +10,17 @@ type ConfigAdd struct {
 	ConfigModify
 }
 
-func configAddFactory(field config.ConfigModeField, fieldType config.ConfigModeFieldType, positional []string) config.ConfigUpdater {
+func configAddFactory(base *BoardgameUtil, field config.ConfigModeField, fieldType config.ConfigModeFieldType, positional []string) config.ConfigUpdater {
 
 	switch fieldType {
 	case config.FieldTypeStringSlice:
 		if len(positional) != 2 {
-			errAndQuit("KEY of type []string wants precisely one VAL")
+			base.errAndQuit("KEY of type []string wants precisely one VAL")
 		}
 		return config.AddString(field, positional[1])
 	case config.FieldTypeGameNode:
 		if len(positional) != 2 {
-			errAndQuit("games node wants precisely one VAL")
+			base.errAndQuit("games node wants precisely one VAL")
 		}
 		return config.AddGame(positional[1])
 	}
@@ -50,6 +50,8 @@ func (c *ConfigAdd) HelpText() string {
 
 		"If KEY is of type []string, simply adds the key to the given val if it doesn't exist. `config set` also has a similar effect for fields of this type. " +
 
-		"Keys of this type are (" + strings.Join(keyNamesForConfigType(config.FieldTypeStringSlice), ",") + "). `Games` is also of this type."
+		"Keys of this type are (" + strings.Join(keyNamesForConfigType(config.FieldTypeStringSlice), ",") + "). `Games` is also of this type.\n\n" +
+
+		"See help for the parent command for more information about configuration in general."
 
 }

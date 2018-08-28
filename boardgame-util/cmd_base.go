@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"github.com/bobziuchkovski/writ"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
 	"io/ioutil"
@@ -89,12 +90,24 @@ func (b *BoardgameUtil) Cleanup() {
 
 }
 
+func (b *BoardgameUtil) errAndQuit(message string) {
+	fmt.Println(message)
+	b.Cleanup()
+	os.Exit(1)
+}
+
+func (b *BoardgameUtil) msgAndQuit(message string) {
+	fmt.Println(message)
+	b.Cleanup()
+	os.Exit(0)
+}
+
 //NewTempDir will vend a new temporary dir that will be remove when program exits.
 func (b *BoardgameUtil) NewTempDir(prefix string) string {
 	dir, err := ioutil.TempDir(".", prefix)
 
 	if err != nil {
-		errAndQuit("Couldn't create temporary directory: " + err.Error())
+		b.errAndQuit("Couldn't create temporary directory: " + err.Error())
 	}
 
 	b.tempDirs = append(b.tempDirs, dir)
@@ -114,7 +127,7 @@ func (b *BoardgameUtil) GetConfig(createIfNotExist bool) *config.Config {
 	c, err := config.Get(b.ConfigPath, createIfNotExist)
 
 	if err != nil {
-		errAndQuit("config is required for this command, but it couldn't be loaded. See README.md for more about structuring config.json.\nError: " + err.Error())
+		b.errAndQuit("config is required for this command, but it couldn't be loaded. See README.md for more about structuring config.json.\nError: " + err.Error())
 	}
 
 	b.config = c

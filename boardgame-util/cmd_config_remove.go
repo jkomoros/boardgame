@@ -10,17 +10,17 @@ type ConfigRemove struct {
 	ConfigModify
 }
 
-func configRemoveFactory(field config.ConfigModeField, fieldType config.ConfigModeFieldType, positional []string) config.ConfigUpdater {
+func configRemoveFactory(base *BoardgameUtil, field config.ConfigModeField, fieldType config.ConfigModeFieldType, positional []string) config.ConfigUpdater {
 
 	switch fieldType {
 	case config.FieldTypeStringSlice:
 		if len(positional) != 2 {
-			errAndQuit("KEY of type []string wants precisely one VAL")
+			base.errAndQuit("KEY of type []string wants precisely one VAL")
 		}
 		return config.RemoveString(field, positional[1])
 	case config.FieldTypeGameNode:
 		if len(positional) != 2 {
-			errAndQuit("games node wants precisely one VAL")
+			base.errAndQuit("games node wants precisely one VAL")
 		}
 		return config.RemoveGame(positional[1])
 	}

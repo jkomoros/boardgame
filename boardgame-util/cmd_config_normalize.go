@@ -10,14 +10,12 @@ type ConfigNormalize struct {
 
 func (c *ConfigNormalize) Run(p writ.Path, positional []string) {
 
-	base := c.Base().(*BoardgameUtil)
-
-	config := base.GetConfig(false)
+	config := c.Base().GetConfig(false)
 
 	err := config.Save()
 
 	if err != nil {
-		errAndQuit("Couldn't save: " + err.Error())
+		c.Base().errAndQuit("Couldn't save: " + err.Error())
 	}
 
 }

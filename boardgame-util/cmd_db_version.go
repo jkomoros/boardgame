@@ -26,7 +26,7 @@ func (d *DbVersion) Run(p writ.Path, positonal []string) {
 	version, _, err := m.Version()
 
 	if err != nil {
-		errAndQuit("Couldn't get version: " + err.Error())
+		d.Base().errAndQuit("Couldn't get version: " + err.Error())
 	}
 
 	fmt.Println("Version: " + strconv.Itoa(int(version)))

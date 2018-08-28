@@ -13,7 +13,7 @@ type CleanApi struct {
 func (c *CleanApi) Run(p writ.Path, positional []string) {
 
 	if len(positional) > 1 {
-		errAndQuit(c.Name() + " called with more than one positional argument")
+		c.Base().errAndQuit(c.Name() + " called with more than one positional argument")
 	}
 
 	dir := "."
@@ -21,7 +21,7 @@ func (c *CleanApi) Run(p writ.Path, positional []string) {
 	err := build.CleanApi(dir)
 
 	if err != nil {
-		errAndQuit(err.Error())
+		c.Base().errAndQuit(err.Error())
 	}
 
 	fmt.Println("Cleaned api folder")

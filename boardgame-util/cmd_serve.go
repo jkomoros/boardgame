@@ -20,27 +20,25 @@ type Serve struct {
 
 func (s *Serve) Run(p writ.Path, positional []string) {
 
-	base := s.Base().(*BoardgameUtil)
-
-	config := base.GetConfig(false)
+	config := s.Base().GetConfig(false)
 	mode := config.Dev
 
-	dir := base.NewTempDir("temp_serve_")
+	dir := s.Base().NewTempDir("temp_serve_")
 
-	storage := effectiveStorageType(mode, s.Storage)
+	storage := effectiveStorageType(s.Base(), mode, s.Storage)
 
 	fmt.Println("Creating temporary binary")
 	apiPath, err := build.Api(dir, mode.Games, storage)
 
 	if err != nil {
-		errAndQuit("Couldn't create api: " + err.Error())
+		s.Base().errAndQuit("Couldn't create api: " + err.Error())
 	}
 
 	fmt.Println("Creating temporary static assets folder")
 	_, err = build.Static(dir, mode.Games, config)
 
 	if err != nil {
-		errAndQuit("Couldn't create static directory: " + err.Error())
+		s.Base().errAndQuit("Couldn't create static directory: " + err.Error())
 	}
 
 	staticPort := mode.DefaultStaticPort
@@ -78,7 +76,7 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 	if err != nil {
 		exitErr, ok := err.(*exec.ExitError)
 		if !ok {
-			errAndQuit("Couldn't cast exiterror")
+			s.Base().errAndQuit("Couldn't cast exiterror")
 		}
 
 		//Programs that are signaled and who responded to it before us (the
@@ -87,7 +85,7 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 		//latter is an err; calling errAndQuit not in an error could prevent
 		//our own clean shutdown from happening.
 		if exitErr.ProcessState.Exited() {
-			errAndQuit("Error running command: " + err.Error())
+			s.Base().errAndQuit("Error running command: " + err.Error())
 		}
 	}
 }

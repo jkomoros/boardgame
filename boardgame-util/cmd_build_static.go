@@ -12,18 +12,16 @@ type BuildStatic struct {
 
 func (b *BuildStatic) Run(p writ.Path, positional []string) {
 
-	base := b.Base().(*BoardgameUtil)
+	dir := dirPositionalOrDefault(b.Base(), positional, false)
 
-	dir := dirPositionalOrDefault(positional, false)
-
-	config := base.GetConfig(false)
+	config := b.Base().GetConfig(false)
 
 	mode := config.Dev
 
 	staticPath, err := build.Static(dir, mode.Games, config)
 
 	if err != nil {
-		errAndQuit("Couldn't create static directory: " + err.Error())
+		b.Base().errAndQuit("Couldn't create static directory: " + err.Error())
 	}
 
 	fmt.Println("Created static dir at " + staticPath)

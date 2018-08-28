@@ -1,9 +1,7 @@
 package main
 
 import (
-	"fmt"
 	"github.com/bobziuchkovski/writ"
-	"os"
 )
 
 //SubcommandObject is a literal struct that implements a subcommand
@@ -40,8 +38,8 @@ type SubcommandObject interface {
 	TopLevelStruct() SubcommandObject
 	SetTopLevelStruct(top SubcommandObject)
 
-	Base() SubcommandObject
-	SetBase(base SubcommandObject)
+	Base() *BoardgameUtil
+	SetBase(base *BoardgameUtil)
 
 	Parent() SubcommandObject
 	//SetParent will be called with the command's parent object.
@@ -58,14 +56,14 @@ type baseSubCommand struct {
 	parent         SubcommandObject
 	topLevelStruct SubcommandObject
 	writCommand    *writ.Command
-	base           SubcommandObject
+	base           *BoardgameUtil
 }
 
-func (b *baseSubCommand) Base() SubcommandObject {
+func (b *baseSubCommand) Base() *BoardgameUtil {
 	return b.base
 }
 
-func (b *baseSubCommand) SetBase(base SubcommandObject) {
+func (b *baseSubCommand) SetBase(base *BoardgameUtil) {
 	b.base = base
 }
 
@@ -227,14 +225,14 @@ func (b *baseSubCommand) WritOptions() []*writ.Option {
 	return nil
 }
 
-func setupParents(cmd SubcommandObject, parent SubcommandObject, base SubcommandObject) {
+func setupParents(cmd SubcommandObject, parent SubcommandObject, base *BoardgameUtil) {
 
 	cmd.SetParent(parent)
 	cmd.SetTopLevelStruct(cmd)
 	cmd.SetBase(base)
 
 	if parent == nil {
-		base = cmd
+		base = cmd.(*BoardgameUtil)
 	}
 
 	for _, subCmd := range cmd.SubcommandObjects() {
@@ -262,16 +260,6 @@ func strMatchesObject(str string, s SubcommandObject) bool {
 	}
 
 	return false
-}
-
-func errAndQuit(message string) {
-	fmt.Println(message)
-	os.Exit(1)
-}
-
-func msgAndQuit(message string) {
-	fmt.Println(message)
-	os.Exit(0)
 }
 
 //selectSubcommandObject takes a subcommand object and a path. It verifes the

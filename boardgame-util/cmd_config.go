@@ -22,9 +22,7 @@ func (c *Config) Run(p writ.Path, positional []string) {
 		p.Last().ExitHelp(errors.New(c.Name() + " doesn't take any positional parameters"))
 	}
 
-	base := c.Base().(*BoardgameUtil)
-
-	config := base.GetConfig(false)
+	config := c.Base().GetConfig(false)
 
 	fmt.Println("Path: " + config.Path())
 	if secretPath := config.SecretPath(); secretPath != "" {
@@ -36,13 +34,13 @@ func (c *Config) Run(p writ.Path, positional []string) {
 	devBlob, err := json.MarshalIndent(config.Dev, "", "\t")
 
 	if err != nil {
-		errAndQuit("Couldn't marshal dev: " + err.Error())
+		c.Base().errAndQuit("Couldn't marshal dev: " + err.Error())
 	}
 
 	prodBlob, err := json.MarshalIndent(config.Prod, "", "\t")
 
 	if err != nil {
-		errAndQuit("Couldn't marshal prod: " + err.Error())
+		c.Base().errAndQuit("Couldn't marshal prod: " + err.Error())
 	}
 
 	fmt.Println("Derived dev configuration:")

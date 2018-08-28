@@ -43,47 +43,47 @@ func deriveMode(dev, prod bool) config.ConfigModeType {
 	return config.TypeBase
 }
 
-func configSetFactory(field config.ConfigModeField, fieldType config.ConfigModeFieldType, positional []string) config.ConfigUpdater {
+func configSetFactory(base *BoardgameUtil, field config.ConfigModeField, fieldType config.ConfigModeFieldType, positional []string) config.ConfigUpdater {
 	switch fieldType {
 	case config.FieldTypeString:
 		if len(positional) != 2 {
-			errAndQuit("KEY of type string wants precisely one VAL")
+			base.errAndQuit("KEY of type string wants precisely one VAL")
 		}
 		return config.SetString(field, positional[1])
 	case config.FieldTypeStringSlice:
 		if len(positional) != 2 {
-			errAndQuit("KEY of type []string wants precisely one VAL")
+			base.errAndQuit("KEY of type []string wants precisely one VAL")
 		}
 		return config.AddString(field, positional[1])
 	case config.FieldTypeStringMap:
 		if len(positional) != 3 {
-			errAndQuit("KEY of type map[string]string wants KEY SUB-KEY VAL")
+			base.errAndQuit("KEY of type map[string]string wants KEY SUB-KEY VAL")
 		}
 		return config.SetStringKey(field, positional[1], positional[2])
 	case config.FieldTypeBool:
 		if len(positional) != 2 {
-			errAndQuit("KEY of type bool wants one VAL")
+			base.errAndQuit("KEY of type bool wants one VAL")
 		}
 		b, err := strToBool(positional[1])
 		if err != nil {
-			errAndQuit(err.Error())
+			base.errAndQuit(err.Error())
 		}
 		return config.SetBool(field, b)
 	case config.FieldTypeFirebase:
 		if len(positional) != 3 {
-			errAndQuit("KEY of type firebase wants KEY SUB-KEY VAL")
+			base.errAndQuit("KEY of type firebase wants KEY SUB-KEY VAL")
 		}
 
 		firebaseKey := config.FirebaseKeyFromString(positional[1])
 
 		if firebaseKey == config.FirebaseInvalid {
-			errAndQuit(positional[1] + " is not a valid firebase key")
+			base.errAndQuit(positional[1] + " is not a valid firebase key")
 		}
 
 		return config.SetFirebaseKey(firebaseKey, positional[2])
 	case config.FieldTypeGameNode:
 		if len(positional) != 2 {
-			errAndQuit("games node wants precisely one VAL")
+			base.errAndQuit("games node wants precisely one VAL")
 		}
 		return config.AddGame(positional[1])
 	}

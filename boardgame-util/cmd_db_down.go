@@ -27,7 +27,7 @@ func (d *DbDown) Run(p writ.Path, positonal []string) {
 		if err == migrate.ErrNoChange {
 			fmt.Println("Already at version 0")
 		} else {
-			errAndQuit("Couldn't call down on database: " + err.Error())
+			d.Base().errAndQuit("Couldn't call down on database: " + err.Error())
 		}
 	}
 }

@@ -18,18 +18,16 @@ type ConfigModify struct {
 //If fieldType is one this responds to, should either teturn an updater or
 //errAndQuit. Otherwise, OK to return nil to signal it's not a valid tyep.
 //fieldType won't be TypeInvalid; that will already be screened out.
-type updateFactory func(field config.ConfigModeField, fieldType config.ConfigModeFieldType, positional []string) config.ConfigUpdater
+type updateFactory func(base *BoardgameUtil, field config.ConfigModeField, fieldType config.ConfigModeFieldType, positional []string) config.ConfigUpdater
 
 func (c *ConfigModify) RunWithUpdateFactory(p writ.Path, positional []string, factory updateFactory) {
 
-	base := c.Base().(*BoardgameUtil)
-
-	cfg := base.GetConfig(true)
+	cfg := c.Base().GetConfig(true)
 
 	mode := deriveMode(c.Dev, c.Prod)
 
 	if len(positional) < 1 {
-		errAndQuit("KEY must be provided")
+		c.Base().errAndQuit("KEY must be provided")
 	}
 
 	field := config.FieldFromString(positional[0])
@@ -37,25 +35,25 @@ func (c *ConfigModify) RunWithUpdateFactory(p writ.Path, positional []string, fa
 	fieldType := config.FieldTypes[field]
 
 	if fieldType == config.FieldTypeInvalid {
-		errAndQuit(positional[0] + " is not a valid field")
+		c.Base().errAndQuit(positional[0] + " is not a valid field")
 	}
 
 	if !c.ConfirmField(field) {
-		errAndQuit("Didn't confirm secret field set.")
+		c.Base().errAndQuit("Didn't confirm secret field set.")
 	}
 
-	updater := factory(field, fieldType, positional)
+	updater := factory(c.Base(), field, fieldType, positional)
 
 	if updater == nil {
-		errAndQuit("Invalid field type for this command")
+		c.Base().errAndQuit("Invalid field type for this command")
 	}
 
 	if err := cfg.Update(mode, c.Secret, updater); err != nil {
-		errAndQuit("Couldn't update value: " + err.Error())
+		c.Base().errAndQuit("Couldn't update value: " + err.Error())
 	}
 
 	if err := cfg.Save(); err != nil {
-		errAndQuit("Couldn't save updated config files: " + err.Error())
+		c.Base().errAndQuit("Couldn't save updated config files: " + err.Error())
 	}
 
 }

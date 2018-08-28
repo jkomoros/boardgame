@@ -16,7 +16,7 @@ type BuildApi struct {
 	Prod bool
 }
 
-func effectiveStorageType(m *config.ConfigMode, storageOverride string) build.StorageType {
+func effectiveStorageType(base *BoardgameUtil, m *config.ConfigMode, storageOverride string) build.StorageType {
 
 	//Use storage type from command line option, then from DefaultStorageType
 	//in config, then just fallback on defaultStorageType.
@@ -30,7 +30,7 @@ func effectiveStorageType(m *config.ConfigMode, storageOverride string) build.St
 	storage := build.StorageTypeFromString(storageTypeString)
 
 	if storage == build.StorageInvalid {
-		errAndQuit("Invalid storage type provided (" + storageOverride + "). Must be one of {" + strings.Join(build.ValidStorageTypeStrings(), ",") + "}.")
+		base.errAndQuit("Invalid storage type provided (" + storageOverride + "). Must be one of {" + strings.Join(build.ValidStorageTypeStrings(), ",") + "}.")
 	}
 
 	return storage
@@ -38,23 +38,21 @@ func effectiveStorageType(m *config.ConfigMode, storageOverride string) build.St
 
 func (b *BuildApi) Run(p writ.Path, positional []string) {
 
-	base := b.Base().(*BoardgameUtil)
+	dir := dirPositionalOrDefault(b.Base(), positional, false)
 
-	dir := dirPositionalOrDefault(positional, false)
-
-	config := base.GetConfig(false)
+	config := b.Base().GetConfig(false)
 
 	mode := config.Dev
 	if b.Prod {
 		mode = config.Prod
 	}
 
-	storage := effectiveStorageType(config.Dev, b.Storage)
+	storage := effectiveStorageType(b.Base(), config.Dev, b.Storage)
 
 	binaryPath, err := build.Api(dir, mode.Games, storage)
 
 	if err != nil {
-		errAndQuit("Couldn't generate binary: " + err.Error())
+		b.Base().errAndQuit("Couldn't generate binary: " + err.Error())
 	}
 
 	fmt.Println("Created api binary at " + binaryPath)

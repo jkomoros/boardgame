@@ -97,11 +97,10 @@ func (d *Db) prodConfirm() bool {
 
 func (d *Db) GetMigrate(createDb bool) *migrate.Migrate {
 
-	base := d.Base().(*BoardgameUtil)
-	config := base.GetConfig(false)
+	config := d.Base().GetConfig(false)
 
 	if !d.prodConfirm() {
-		msgAndQuit("Didn't agree to operate on prod")
+		d.Base().msgAndQuit("Didn't agree to operate on prod")
 	}
 
 	mode := config.Dev
@@ -113,19 +112,19 @@ func (d *Db) GetMigrate(createDb bool) *migrate.Migrate {
 	dsn, ok := mode.Storage["mysql"]
 
 	if !ok {
-		errAndQuit("No mysql config provided")
+		d.Base().errAndQuit("No mysql config provided")
 	}
 
 	db, err := connect.Db(dsn, false, createDb)
 
 	if err != nil {
-		errAndQuit("Couldn't connect to database: " + err.Error())
+		d.Base().errAndQuit("Couldn't connect to database: " + err.Error())
 	}
 
 	m, err := connect.Migrations(db)
 
 	if err != nil {
-		errAndQuit("Couldn't get migrations handle: " + err.Error())
+		d.Base().errAndQuit("Couldn't get migrations handle: " + err.Error())
 	}
 
 	return m
