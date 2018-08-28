@@ -27,7 +27,7 @@ var filesToExclude map[string]bool = map[string]bool{
 	"README.md":  true,
 	//Don't copy over because we'll generate our own; if we copy over and
 	//generate our own we'll overwrite original.
-	"config.js": true,
+	configJsFileName: true,
 }
 
 //SimpleStaticServer creates and runs a simple static server. directory is the
