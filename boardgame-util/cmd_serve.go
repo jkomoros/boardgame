@@ -16,6 +16,7 @@ type Serve struct {
 
 	Port       string
 	StaticPort string
+	ForceBower bool
 }
 
 func (s *Serve) Run(p writ.Path, positional []string) {
@@ -35,7 +36,7 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 	}
 
 	fmt.Println("Creating temporary static assets folder")
-	_, err = build.Static(dir, mode.Games, config)
+	_, err = build.Static(dir, mode.Games, config, s.ForceBower)
 
 	if err != nil {
 		s.Base().errAndQuit("Couldn't create static directory: " + err.Error())
@@ -114,6 +115,12 @@ func (s *Serve) WritOptions() []*writ.Option {
 			Names:       []string{"static-port"},
 			Decoder:     writ.NewOptionDecoder(&s.StaticPort),
 			Description: "Port to use for the static file server, overridig value in config.json's DefaultStaticPort",
+		},
+		{
+			Names:       []string{"force-bower"},
+			Description: "If provided, will force an update to bower_components even if that folder already exists.",
+			Decoder:     writ.NewFlagDecoder(&s.ForceBower),
+			Flag:        true,
 		},
 	}
 }

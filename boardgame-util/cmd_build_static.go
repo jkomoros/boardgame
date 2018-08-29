@@ -8,6 +8,8 @@ import (
 
 type BuildStatic struct {
 	baseSubCommand
+
+	ForceBower bool
 }
 
 func (b *BuildStatic) Run(p writ.Path, positional []string) {
@@ -18,7 +20,7 @@ func (b *BuildStatic) Run(p writ.Path, positional []string) {
 
 	mode := config.Dev
 
-	staticPath, err := build.Static(dir, mode.Games, config)
+	staticPath, err := build.Static(dir, mode.Games, config, b.ForceBower)
 
 	if err != nil {
 		b.Base().errAndQuit("Couldn't create static directory: " + err.Error())
@@ -46,4 +48,15 @@ func (b *BuildStatic) HelpText() string {
 	return b.Name() + ` generates a folder of static server assets based on the config.json in use. It creates the binary in a folder called 'static' within the given DIR.
 
 If DIR is not provided, defaults to "."`
+}
+
+func (b *BuildStatic) WritOptions() []*writ.Option {
+	return []*writ.Option{
+		{
+			Names:       []string{"force-bower"},
+			Description: "If provided, will force an update to bower_components even if that folder already exists.",
+			Decoder:     writ.NewFlagDecoder(&b.ForceBower),
+			Flag:        true,
+		},
+	}
 }

@@ -91,10 +91,12 @@ func SimpleStaticServer(directory string, port string) error {
 //Static creates a folder of static resources for serving within the static
 //subfolder of directory. It symlinks necessary resources in. The return value
 //is the directory where the assets can be served from, and an error if there
-//was an error. You can clean up the created folder structure with CleanStatic.
-func Static(directory string, managers []string, c *config.Config) (assetRoot string, err error) {
+//was an error. You can clean up the created folder structure with
+//CleanStatic. If forceBower is true, will force update bower_components even
+//if it appears to already exist.
+func Static(directory string, managers []string, c *config.Config, forceBower bool) (assetRoot string, err error) {
 
-	if err := ensureBowerComponents(); err != nil {
+	if err := ensureBowerComponents(forceBower); err != nil {
 		return "", errors.New("bower_components couldn't be created: " + err.Error())
 	}
 
@@ -188,8 +190,9 @@ func Static(directory string, managers []string, c *config.Config) (assetRoot st
 
 //ensureBowerComoonents ensures that
 //`$GOPATH/src/github.com/jkomoros/boardgame/server/static/webapp` has bower
-//components.
-func ensureBowerComponents() error {
+//components. If force is true, then will update them even if bower_components
+//appears to exist.
+func ensureBowerComponents(force bool) error {
 
 	p, err := path.AbsoluteGoPkgPath(staticServerPackage)
 
@@ -197,9 +200,11 @@ func ensureBowerComponents() error {
 		return err
 	}
 
-	if _, err := os.Stat(filepath.Join(p, "bower_components")); err == nil {
-		//It appears to exist, we're fine!
-		return nil
+	if !force {
+		if _, err := os.Stat(filepath.Join(p, "bower_components")); err == nil {
+			//It appears to exist, we're fine!
+			return nil
+		}
 	}
 
 	_, err = exec.LookPath("bower")
@@ -213,7 +218,7 @@ func ensureBowerComponents() error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	fmt.Println("bower_components didn't exist, running `bower update`...")
+	fmt.Println("bower_components needs updating, running `bower update`...")
 	if err := cmd.Run(); err != nil {
 		return errors.New("Couldn't `bower update`: " + err.Error())
 	}
