@@ -457,6 +457,37 @@ func polymerJsonContents(fragments []string) ([]byte, error) {
 
 }
 
+//buildPolymer calls `polymer build` to build the bundled version. Expects
+//polymer.json to exist; that is that createPolymerJson has been called.
+func buildPolymer(dir string) error {
+
+	staticDir := filepath.Join(dir, staticSubFolder)
+
+	polymerJson := filepath.Join(staticDir, polymerConfig)
+
+	if _, err := os.Stat(polymerJson); os.IsNotExist(err) {
+		return errors.New("polymer.json does not appears to exist")
+	}
+
+	_, err := exec.LookPath("polymer")
+
+	if err != nil {
+		return errors.New("polymer command is not installed. Run `npm install -g polymer-cli` to install it.")
+	}
+
+	cmd := exec.Command("polymer", "build")
+	cmd.Dir = staticDir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return errors.New("Couldn't `polymer build`: " + err.Error())
+	}
+
+	return nil
+
+}
+
 const basePolymerJson = `{
   "entrypoint": "index.html",
   "shell": "src/boardgame-app.html",
