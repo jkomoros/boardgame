@@ -10,6 +10,7 @@ type BuildStatic struct {
 	baseSubCommand
 
 	ForceBower bool
+	Prod       bool
 }
 
 func (b *BuildStatic) Run(p writ.Path, positional []string) {
@@ -20,7 +21,7 @@ func (b *BuildStatic) Run(p writ.Path, positional []string) {
 
 	mode := config.Dev
 
-	staticPath, err := build.Static(dir, mode.Games, config, b.ForceBower)
+	staticPath, err := build.Static(dir, mode.Games, config, b.ForceBower, b.Prod)
 
 	if err != nil {
 		b.Base().errAndQuit("Couldn't create static directory: " + err.Error())
@@ -56,6 +57,12 @@ func (b *BuildStatic) WritOptions() []*writ.Option {
 			Names:       []string{"force-bower"},
 			Description: "If provided, will force an update to bower_components even if that folder already exists.",
 			Decoder:     writ.NewFlagDecoder(&b.ForceBower),
+			Flag:        true,
+		},
+		{
+			Names:       []string{"prod", "p"},
+			Description: "If provided, will created bundled build directory for static resources.",
+			Decoder:     writ.NewFlagDecoder(&b.Prod),
 			Flag:        true,
 		},
 	}

@@ -98,8 +98,9 @@ func SimpleStaticServer(directory string, port string) error {
 //is the directory where the assets can be served from, and an error if there
 //was an error. You can clean up the created folder structure with
 //CleanStatic. If forceBower is true, will force update bower_components even
-//if it appears to already exist.
-func Static(directory string, managers []string, c *config.Config, forceBower bool) (assetRoot string, err error) {
+//if it appears to already exist. If prodBuild is true, then `polymer build`
+//will be run.
+func Static(directory string, managers []string, c *config.Config, forceBower bool, prodBuild bool) (assetRoot string, err error) {
 
 	if err := ensureBowerComponents(forceBower); err != nil {
 		return "", errors.New("bower_components couldn't be created: " + err.Error())
@@ -192,6 +193,13 @@ func Static(directory string, managers []string, c *config.Config, forceBower bo
 	fmt.Println("Creating " + polymerConfig)
 	if err := createPolymerJson(directory, false); err != nil {
 		return "", errors.New("Couldn't create " + polymerConfig + ": " + err.Error())
+	}
+
+	if prodBuild {
+		fmt.Println("Building bundled resources with `polymer build`")
+		if err := buildPolymer(directory); err != nil {
+			return "", errors.New("Couldn't build bundled resources: " + err.Error())
+		}
 	}
 
 	return staticDir, nil
