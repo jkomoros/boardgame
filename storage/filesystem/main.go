@@ -226,8 +226,8 @@ func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageR
 	}
 
 	return &extendedgame.CombinedStorageRecord{
-		*rec.Game(),
-		*eGame,
+		GameStorageRecord: *rec.Game(),
+		StorageRecord:     *eGame,
 	}, nil
 }
 
