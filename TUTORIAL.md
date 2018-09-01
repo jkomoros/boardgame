@@ -1758,82 +1758,19 @@ type gameState struct {
 
 That allows you to tie the size of the stack automatically to the constant in use elsewhere in the package. The reason you have to export the constant is because constants are not available in go programs at run-time.
 
-### Hooking into your own server
+### Creating a more production-ready server
 
-So far this tutorial has told you how to start up an existing server. But configuring your own server, with your own custom collection of games, is incredibly simple too.
+The default server in the tutorial uses the bolt db backend because it doesn't
+require much configuration. But in practice you'll probably want a mysql
+backend.
 
-The server example in `examples/server/api` is very simple:
+So far we've used `boardgame-util serve` to run a server. What that command does is effectively `boardgame-util build api` and `boardgame-util build static`, to generate a simple server binary and also generate a linked folder of all of the necessary static HTML files to render the client. `boardgame-util serve` does that in a temporary folder that it then discards when the command is quit. But you can run those other commands directly to generate the server. There's nothing special about these commands; you could manually wire up your own server with the game packages on your own if you wanted.
 
-```
-package main
+Each server binary has a specific storage backend it uses. `boardgame-util build api` and `boardgame-util serve` by default use the DefaultStorageType configuration property to select that although an argument of `--storage=TYPE` overrides that. 
 
-import (
-	"github.com/jkomoros/boardgame/examples/blackjack"
-	"github.com/jkomoros/boardgame/examples/debuganimations"
-	"github.com/jkomoros/boardgame/examples/memory"
-	"github.com/jkomoros/boardgame/examples/pig"
-	"github.com/jkomoros/boardgame/examples/tictactoe"
-	"github.com/jkomoros/boardgame/server/api"
-	"github.com/jkomoros/boardgame/storage/bolt"
-)
+The `config.SAMPLE.json` in `github.com/jkomoros/boardgame` (the config you've implicitly been using in this tutorial) sets the default type to `bolt`, but in production or in any real development you'll probably want to use mysql. That requires you to set up your own mysql server and make sure your config file knows how to connect to it. The `config.SAMPLE.json` has a reasonable config string for local development, but your DSN for the production environment will likely be more complicated. See `storage/mysql/README.md` for more about the structure of that connetion string.
 
-func main() {
-	storage := api.NewServerStorageManager(bolt.NewStorageManager(".database"))
-	defer storage.Close()
-	api.NewServer(storage,
-		blackjack.NewDelegate(),
-		tictactoe.NewDelegate(),
-		memory.NewDelegate(),
-		debuganimations.NewDelegate(),
-		pig.NewDelegate(),
-	).Start()
-}
-```
-
-It uses the `bolt` storage backend for simplicity because it doesn't require configuration. But if you wanted to use the mysql backend instead, it would require just a couple of lines changed:
-
-```
-package main
-
-import (
-	"github.com/jkomoros/boardgame/examples/blackjack"
-	"github.com/jkomoros/boardgame/examples/debuganimations"
-	"github.com/jkomoros/boardgame/examples/memory"
-	"github.com/jkomoros/boardgame/examples/pig"
-	"github.com/jkomoros/boardgame/examples/tictactoe"
-	"github.com/jkomoros/boardgame/server/api"
-)
-
-func main() {
-	//The default storage engine is mysql
-	storage := api.NewDefaultStorageManager()
-	defer storage.Close()
-	api.NewServer(storage,
-		blackjack.NewDelegate(),
-		tictactoe.NewDelegate(),
-		memory.NewDelegate(),
-		debuganimations.NewDelegate(),
-		pig.NewDelegate(),
-	).Start()
-}
-```
-
-You'd also need to have a mysql connection string configured in your config.SECRET.json, something like:
-```
-{
-	//...
-	"dev" : {
-		//...
-		"storageconfig": {
-			"mysql" : "root:root@tcp(localhost:3306)/boardgame"
-		}
-	}
-}
-```
-
-Of course, you'd also need to stand up a mysql server to connect to and configure the tables correctly. The `boardgame-util db` tool makes this incredibly easy to setup a server and roll its schema forward. 
-
-Check out `storage/mysql/README.md` for more information on configuring the server connection string and using `boardgame-util db`.
+`boardgame-util db` and its subcommands can help you configure and set up your database correctly. After starting the mysql server (and ensuring that connection strings are set correctly in your config), run `boardgame-util db setup` to set up the initial configuration. In the future, to ensure your database is fully migrated, you can run `boardgame-util db up`.
 
 ### Conclusion
 
