@@ -1758,6 +1758,16 @@ type gameState struct {
 
 That allows you to tie the size of the stack automatically to the constant in use elsewhere in the package. The reason you have to export the constant is because constants are not available in go programs at run-time.
 
+### Setting config properties
+
+Many server and `boardgame-util` commands read from a config.json file.
+
+In this tutorial so far you've implicitly been using the `config.SAMPLE.json` file. But in practice you'll generally want to create your own. You can find the canonical help about how those files are structured by running `boardgame-util help config`.
+
+You can modify the config files directly yourself, but it's more common to use `boardgame-util config set` to set properties directly. The first time you call that command, if there isn't an operative config in your directory or its ancestors, it will create a reasonably-named config file in your current directory.
+
+The description of what the various config fields do is in `boardgame/boardgame-util/README.md`.
+
 ### Creating a more production-ready server
 
 The default server in the tutorial uses the bolt db backend because it doesn't
