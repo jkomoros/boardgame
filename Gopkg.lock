@@ -40,6 +40,12 @@
   version = "v1.3.1"
 
 [[projects]]
+  name = "github.com/davecgh/go-spew"
+  packages = ["spew"]
+  revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
+  version = "v1.1.1"
+
+[[projects]]
   branch = "master"
   name = "github.com/dustin/go-humanize"
   packages = ["."]
@@ -196,6 +202,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "389e5a31784b9f2322a84af3f963ee253baffd6f076a47c8ccff9fc20b458da4"
+  inputs-digest = "b25dcb041d1922294b33e91713ce27b8bac48d99b40b8694fadb63af852cd83c"
   solver-name = "gps-cdcl"
   solver-version = 1

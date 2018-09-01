@@ -72,12 +72,12 @@ func (b *BoardgameUtil) WritOptions() []*writ.Option {
 func (b *BoardgameUtil) SubcommandObjects() []SubcommandObject {
 	return []SubcommandObject{
 		&b.Help,
-		&b.Db,
-		&b.Codegen,
-		&b.Build,
-		&b.Clean,
 		&b.Serve,
 		&b.Config,
+		&b.Codegen,
+		&b.Db,
+		&b.Build,
+		&b.Clean,
 	}
 }
 
