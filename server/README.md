@@ -1,88 +1,11 @@
 
 ## Running the server
 
-Assuming you have already set up your game, you will need to start both your
-static server and your api server.
+Sitting in a folder that has a valid config file in it or one of its ancestors, run:
 
-From mygame/server/static, run:
+`boardgame-util serve`. That will build the api and static servers and run them, so you can visit `localhost:8080`.
 
-`go build && ./static`
-
-From mygame/server/api, run:
-
-`go build && ./api`
-
-You can now visit localhost:8080.
-
-## Starting a new game from scratch
-
-1. Create your mygame directory at the right place in your $GOPATH
-2. Define your moves, components, etc in the directory.
-3. Create mygame/server/static/main.go with the following content:
-```
-package main
-
-import (
-	"github.com/jkomoros/boardgame/server/static"
-)
-
-func main() {
-	static.NewServer().Start()
-}
-```
-4. Create mygame/server/api/main.go with the following content:
-```
-package main
-
-import (
-	"<mygame import>"
-	"github.com/jkomoros/boardgame/server/api"
-)
-
-func main() {
-	storage := api.NewDefaultStorageManager()
-	defer storage.Close()
-	api.NewServer(storage, mygame.NewManager(storage)).Start()
-}
-
-```
-5. Copy boardgame/server/api/app.yaml to be in your mygame/server/api folder. You  may need to modify the cloud_sql_instances property (see the README in the mysql directory on how to set that).
-5. Ensure your .gitignore file contains the following line:
-
-```
-*.SECRET.*
-```
-
-6. Copy boardgame/server/api/config.SAMPLE.json to be mygame/server/api/config.SECRET.json . Do not commit this file to version control (your gitignore should help you avoid doing that)
-7. Create mygame/server/static/webapp directory
-8. Create mygame/server/webapp/game-src directory, which is where you will link to all of your game-rendering subviews.
-9. Create mygame/client/mygame/
-10. Create a relative symlink from mygame/server/webapp/game-src to mygame/client/mygame/ (see #14 for an example)
-11. In mygame/client/mygame, create boardgame-render-game-GAMENAME.html (where GAMENAME is the short name of the game) and define a polymer element in it. This is the entrypoint for the rendering of your view, and will be passed Game object.
-12. Copy the following items from boardgame/server/static/webapp to your own webapp. None of them require modification by default.
-* bower.json
-* manifest.json
-* firebase.json
-* .gitignore
-13. Copy polymer.json to your own webapp. Modify it to add the game-src/mygame/boardgame-render-game-GAMENAME.html fragment.
-14. Copy config.js and modify the values as necessary.
-15. Create symlinks from the following items:
-* src 
-* index.html (note that you may want to copy this to put in your firebase id and analytics code)
-
-Example symlink:
-```
-#sitting in mygame/server/static/webapp
-ln -s ../../../../server/static/webapp/index.html
-```
-
-By doing relative paths, they can be checked into and managed by git, as long as everything is in its canonical path in $GOPATH--because it will work for everyone.
-
-15. In mygame/server/webapp directory, run:
-```
-bower update
-```
-This will create bower_components.
+`boardgame/boardgame-util/lib/build` is the package that does canonical building of servers for both api and static hosting. You can theoretically build them yourself by hand, but in practice it's best to use those methods (or implicitly use them via `boardgame-util build` and `boardgame-util serve`).
 
 ## Writing your client-side views
 
@@ -238,13 +161,7 @@ firebase login
 
 ## Building
 
-By default the server will serve from /src, /game-src, and /bower-components. From mygame/server/webapp, you can run
-
-```
-polymer build
-```
-
-To create results in mygame/server/webapp/build/{bundled, unbundled}. 
+Use `boardgame-util build` and friends.
 
 ## First deploy
 

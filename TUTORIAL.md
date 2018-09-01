@@ -1768,6 +1768,14 @@ You can modify the config files directly yourself, but it's more common to use `
 
 The description of what the various config fields do is in `boardgame/boardgame-util/README.md`.
 
+When creating a new repo or game, it's strongly encouraged to add the following line to your .gitignore:
+
+```
+*.SECRET.*
+```
+
+That helps ensure that you don't accidentally check in secret things into version control, like production database DSNs.
+
 ### Creating a more production-ready server
 
 The default server in the tutorial uses the bolt db backend because it doesn't
