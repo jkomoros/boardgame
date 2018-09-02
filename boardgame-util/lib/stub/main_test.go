@@ -14,7 +14,8 @@ import (
 )
 
 //If true, will save out the files generated. Useful for generating new golden
-//output when output is changed.
+//output when output is changed. Flip to true, run `go test`, verify the diff
+//looks right, and then flip this back to false before committing.
 const generateNewGolden = false
 
 //The go tool will ignore everything rooted in 'testdata'
