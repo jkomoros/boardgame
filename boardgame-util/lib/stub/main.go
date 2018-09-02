@@ -80,14 +80,16 @@ func (f FileContents) Format() error {
 
 //Save saves the given FileContents to the filesystem, creating any implied
 //directories. Dir is the prefix to join with each path in FileContents; "" is
-//fine. Will error if any of the files to create already exist. After saving,
-//runs `go generate`.
-func (f FileContents) Save(dir string) error {
+//fine. Will error if overwite is not true and any of the files to create
+//already exist.
+func (f FileContents) Save(dir string, overwrite bool) error {
 
-	for name := range f {
-		path := filepath.Join(dir, name)
-		if _, err := os.Stat(path); err == nil {
-			return errors.New(name + " already existed; save aborted")
+	if !overwrite {
+		for name := range f {
+			path := filepath.Join(dir, name)
+			if _, err := os.Stat(path); err == nil {
+				return errors.New(name + " already existed; save aborted")
+			}
 		}
 	}
 

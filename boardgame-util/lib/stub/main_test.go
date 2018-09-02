@@ -43,7 +43,7 @@ func TestGenerate(t *testing.T) {
 	if generateNewGolden {
 
 		//Save out contents as new golden files to compare against
-		contents.Save(testDir)
+		contents.Save(testDir, true)
 		return
 	}
 
