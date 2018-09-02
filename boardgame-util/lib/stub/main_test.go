@@ -11,9 +11,10 @@ import (
 
 //If true, will save out the files generated. Useful for generating new golden
 //output when output is changed.
-const generateNewGolden = false
+const generateNewGolden = true
 
-const testDir = "test"
+//The go tool will ignore everything rooted in 'testdata'
+const testDir = "testdata"
 
 func TestBasicGenerate(t *testing.T) {
 
