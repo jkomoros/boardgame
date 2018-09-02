@@ -23,11 +23,27 @@ type Options struct {
 //filesystem.
 type FileContents map[string][]byte
 
-//Generate generates FileContents for the given set of options.
+//Generate generates FileContents for the given set of options. A convenience
+//wrapper around DefaultTemplateSet, templates.Generate(), and files.Format().
 func Generate(opt *Options) (FileContents, error) {
 
-	//TODO: gofmt the code before returning
-	return nil, errors.New("Not yet implemented")
+	templates := DefaultTemplateSet()
+
+	if templates == nil {
+		return nil, errors.New("No templates returned")
+	}
+
+	files, err := templates.Generate(opt)
+
+	if err != nil {
+		return nil, errors.New("Couldn't generate file contents: " + err.Error())
+	}
+
+	if err := files.Format(); err != nil {
+		return nil, errors.New("Couldn't go fmt generated file contents: " + err.Error())
+	}
+
+	return files, nil
 }
 
 //Format go formats all of the code om FileContents whose path ends in ".go",
@@ -71,7 +87,7 @@ func (f FileContents) Save(dir string) error {
 		}
 	}
 
-	for name, contents := range f {
+	for name := range f {
 		path := filepath.Join(dir, name)
 		dirsToCreate := filepath.Dir(path)
 		if err := os.MkdirAll(dirsToCreate, os.ModePerm); err != nil {
