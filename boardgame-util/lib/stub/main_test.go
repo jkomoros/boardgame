@@ -5,6 +5,10 @@ import (
 	"testing"
 )
 
+//If true, will save out the files generated. Useful for generating new golden
+//output when output is changed.
+const generateNewGolden = false
+
 func TestGenerate(t *testing.T) {
 
 	tmpls, err := DefaultTemplateSet()
@@ -29,6 +33,14 @@ func TestGenerate(t *testing.T) {
 	contents, err = Generate(opt)
 
 	assert.For(t).ThatActual(err).IsNil()
+
+	if generateNewGolden {
+
+		//Save out contents as new golden files to compare against
+		contents.Save("test")
+
+		return
+	}
 
 	mainGo := contents["checkers/main.go"]
 
