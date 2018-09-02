@@ -11,6 +11,22 @@ import (
 //expanded FileContents when given an Options struct.
 type TemplateSet map[string]*template.Template
 
+//lowercaseFirst ensures first character is lower case
+func lowercaseFirst(in string) string {
+	if len(in) == 0 {
+		return in
+	}
+	return strings.ToLower(in[0:1]) + in[1:]
+}
+
+//uppercastFirst ensures first characer is upper case
+func uppercaseFirst(in string) string {
+	if len(in) == 0 {
+		return in
+	}
+	return strings.ToUpper(in[0:1]) + in[1:]
+}
+
 //DefaultTemplateSet returns the default template set for this stub.
 func DefaultTemplateSet(opt *Options) (TemplateSet, error) {
 	result := make(TemplateSet, len(templateMap))
@@ -22,6 +38,10 @@ func DefaultTemplateSet(opt *Options) (TemplateSet, error) {
 		}
 
 		tmpl := template.New(name)
+		tmpl.Funcs(template.FuncMap{
+			"lowercaseFirst": lowercaseFirst,
+			"uppercaseFirst": uppercaseFirst,
+		})
 		tmpl, err := tmpl.Parse(contents)
 		if err != nil {
 			return nil, errors.New(name + " could not be parsed: " + err.Error())
@@ -79,7 +99,7 @@ var templateMap = map[string]string{
 const templateContentsMainGo = `{{if .Description -}}
 /*
 
-	{{.Name}} is {{.Description}}
+	{{.Name}} is {{lowercaseFirst .Description}}
 
 */
 {{- end}}
