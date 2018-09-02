@@ -92,6 +92,17 @@ func (g *gameDelegate) Name() string {
 	return "{{.Name}}"
 }
 
+{{if .DisplayName -}}
+func (g *gameDelegate) DisplayName() string {
+	return "{{.DisplayName}}"
+}
+{{- end}}
+
+{{if .Description -}}
+func (g *gameDelegate) Description() string {
+	return "{{.Description}}"
+}
+{{- end}}
 
 func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 	return new(gameState)

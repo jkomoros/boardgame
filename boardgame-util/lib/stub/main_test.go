@@ -18,7 +18,9 @@ const testDir = "test"
 func TestGenerate(t *testing.T) {
 
 	opt := &Options{
-		Name: "checkers",
+		Name:        "checkers",
+		DisplayName: "Checkers",
+		Description: "A classic game for two players where you advance across the board, capturing the other player's pawns",
 	}
 
 	tmpls, err := DefaultTemplateSet(opt)

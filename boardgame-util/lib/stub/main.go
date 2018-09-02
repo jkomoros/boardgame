@@ -17,6 +17,10 @@ import (
 type Options struct {
 	//The name of the game
 	Name string
+	//DisplayName to output (skipped if "")
+	DisplayName string
+	//Description of game to output (skipped if "")
+	Description string
 }
 
 //FileContents is the generated contents of the files to later write to the
