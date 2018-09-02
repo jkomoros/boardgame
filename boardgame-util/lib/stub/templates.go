@@ -54,6 +54,10 @@ func DefaultTemplateSet(opt *Options) (TemplateSet, error) {
 			continue
 		}
 
+		if opt.SuppressComponentsStubs && strings.Contains(name, "components.go") {
+			continue
+		}
+
 		if opt.SuppressMovesStubs && strings.Contains(name, "moves") {
 			continue
 		}
@@ -136,6 +140,7 @@ var templateMap = map[string]string{
 	"{{.Name}}/moves.go":        templateContentsMovesGo,
 	"{{.Name}}/moves_setup.go":  templateContentsMovesGo,
 	"{{.Name}}/moves_normal.go": templateContentsMovesGo,
+	"{{.Name}}/components.go":   templateContentComponentsGo,
 	"{{.Name}}/client/{{.Name}}/boardgame-render-game-{{.Name}}.html":        templateContentsRenderGameHtml,
 	"{{.Name}}/client/{{.Name}}/boardgame-render-player-info-{{.Name}}.html": templateContentsRenderPlayerInfoHtml,
 }
@@ -312,6 +317,13 @@ const templateContentsMovesGo = `package {{.Name}}
 //Typically you create a separate file for moves of each major phase, and put
 //the moves for that phase in it.
 {{- end}}
+
+`
+
+const templateContentComponentsGo = `package {{.Name}}
+
+//components.go is where you generally define your component structs and deck
+//constructors.
 
 `
 

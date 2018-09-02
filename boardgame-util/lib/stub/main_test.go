@@ -37,6 +37,14 @@ func TestBasicGenerate(t *testing.T) {
 
 func TestGolden(t *testing.T) {
 
+	minimalOptions := &Options{
+		//ensure we validate name
+		Name: " Checkers",
+	}
+
+	minimalOptions.SuppressClient()
+	minimalOptions.SuppressExtras()
+
 	tests := map[string]*Options{
 		"default": {
 			Name:              "checkers",
@@ -46,15 +54,7 @@ func TestGolden(t *testing.T) {
 			MaxNumPlayers:     4,
 			DefaultNumPlayers: 2,
 		},
-		"minimal": {
-			//ensure we validate name
-			Name:                           " Checkers",
-			SuppressTest:                   true,
-			SuppressCurrentPlayer:          true,
-			SuppressClientRenderGame:       true,
-			SuppressClientRenderPlayerInfo: true,
-			SuppressPhase:                  true,
-		},
+		"minimal": minimalOptions,
 	}
 
 	for name, opt := range tests {
