@@ -45,16 +45,13 @@ func InteractiveOptions(in, out *os.File, gameName string) *Options {
 	extras := getBool(out, in, "Generate extra defaults for currentplayers and phases?", true)
 
 	if !extras {
-		result.SuppressTest = true
-		result.SuppressPhase = true
-		result.SuppressCurrentPlayer = true
+		result.SuppressExtras()
 	}
 
 	client := getBool(out, in, "Generate stub client renderers?", true)
 
 	if !client {
-		result.SuppressClientRenderGame = true
-		result.SuppressClientRenderPlayerInfo = true
+		result.SuppressClient()
 	}
 
 	return result

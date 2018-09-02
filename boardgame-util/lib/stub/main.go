@@ -39,6 +39,20 @@ type Options struct {
 //filesystem.
 type FileContents map[string][]byte
 
+//SuppressClient sets the options about clients to suppressed.
+func (o *Options) SuppressClient() {
+	o.SuppressClientRenderGame = true
+	o.SuppressClientRenderPlayerInfo = true
+}
+
+//SuppressExtras sets all of the non-client extras that are on by default to
+//off.
+func (o *Options) SuppressExtras() {
+	o.SuppressTest = true
+	o.SuppressPhase = true
+	o.SuppressCurrentPlayer = true
+}
+
 //Validate verifies that Options is in a legal state. Makes sure Name exists
 //and ensures it's lowerCase. Repeated calls are OK.
 func (o *Options) Validate() error {
