@@ -20,7 +20,10 @@ type Options struct {
 	//DisplayName to output (skipped if "")
 	DisplayName string
 	//Description of game to output (skipped if "")
-	Description string
+	Description       string
+	MinNumPlayers     int
+	MaxNumPlayers     int
+	DefaultNumPlayers int
 }
 
 //FileContents is the generated contents of the files to later write to the

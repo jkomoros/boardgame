@@ -30,6 +30,18 @@ func (g *gameDelegate) Description() string {
 	return "A classic game for two players where you advance across the board, capturing the other player's pawns"
 }
 
+func (g *gameDelegate) MinNumPlayers() int {
+	return 2
+}
+
+func (g *gameDelegate) MaxNumPlayers() int {
+	return 4
+}
+
+func (g *gameDelegate) DefaultNumPlayers() int {
+	return 2
+}
+
 func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 	return new(gameState)
 }

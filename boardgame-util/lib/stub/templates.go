@@ -104,6 +104,24 @@ func (g *gameDelegate) Description() string {
 }
 {{- end}}
 
+{{if .MinNumPlayers -}}
+func (g *gameDelegate) MinNumPlayers() int {
+	return {{.MinNumPlayers}}
+}
+{{- end}}
+
+{{if .MaxNumPlayers -}}
+func (g *gameDelegate) MaxNumPlayers() int {
+	return {{.MaxNumPlayers}}
+}
+{{- end}}
+
+{{if .DefaultNumPlayers -}}
+func (g *gameDelegate) DefaultNumPlayers() int {
+	return {{.DefaultNumPlayers}}
+}
+{{- end}}
+
 func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 	return new(gameState)
 }

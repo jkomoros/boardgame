@@ -38,9 +38,12 @@ func TestGolden(t *testing.T) {
 
 	tests := map[string]*Options{
 		"base": {
-			Name:        "checkers",
-			DisplayName: "Checkers",
-			Description: "A classic game for two players where you advance across the board, capturing the other player's pawns",
+			Name:              "checkers",
+			DisplayName:       "Checkers",
+			Description:       "A classic game for two players where you advance across the board, capturing the other player's pawns",
+			MinNumPlayers:     2,
+			MaxNumPlayers:     4,
+			DefaultNumPlayers: 2,
 		},
 		"no_description": {
 			Name: "checkers",
