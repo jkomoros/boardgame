@@ -45,6 +45,12 @@ func TestGolden(t *testing.T) {
 	minimalOptions.SuppressClient()
 	minimalOptions.SuppressExtras()
 
+	tutorialOptions := &Options{
+		Name: "checkers",
+	}
+
+	tutorialOptions.EnableTutorials()
+
 	tests := map[string]*Options{
 		"default": {
 			Name:              "checkers",
@@ -54,7 +60,8 @@ func TestGolden(t *testing.T) {
 			MaxNumPlayers:     4,
 			DefaultNumPlayers: 2,
 		},
-		"minimal": minimalOptions,
+		"minimal":  minimalOptions,
+		"tutorial": tutorialOptions,
 	}
 
 	for name, opt := range tests {

@@ -36,6 +36,7 @@ type Options struct {
 	SuppressComponentsStubs        bool
 	SuppressClientRenderGame       bool
 	SuppressClientRenderPlayerInfo bool
+	EnableExampleDeck              bool
 }
 
 //FileContents is the generated contents of the files to later write to the
@@ -56,6 +57,11 @@ func (o *Options) SuppressExtras() {
 	o.SuppressCurrentPlayer = true
 	o.SuppressMovesStubs = true
 	o.SuppressComponentsStubs = true
+}
+
+//EnableTutorials enables all of the off-by-default tutorial options.
+func (o *Options) EnableTutorials() {
+	o.EnableExampleDeck = true
 }
 
 //Validate verifies that Options is in a legal state. Makes sure Name exists
@@ -84,6 +90,11 @@ func (o *Options) Validate() error {
 	//We don't verify that the name is fully legal according to the boardgame
 	//framework, because that test will fail given the test generated in
 	//main_test.go.
+
+	//Disallow illegal combinations
+	if o.EnableExampleDeck {
+		o.SuppressComponentsStubs = false
+	}
 
 	return nil
 }

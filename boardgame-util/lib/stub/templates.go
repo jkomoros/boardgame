@@ -218,9 +218,31 @@ func (g *gameDelegate) PlayerStateConstructor(index boardgame.PlayerIndex) board
 
 func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.ImmutableStack, error) {
 
+	{{if .EnableExampleDeck -}}
+	game := state.ImmutableGameState().(*gameState)
+	if c.Deck().Name() == exampleCardDeckName {
+		return game.DrawDeck, nil
+	}
+	return nil, errors.New("Unknown deck: " + c.Deck().Name())
+	{{- else -}}
 	return nil, errors.New("Not yet implemented")
+	{{- end}}
 
 }
+
+{{if .EnableExampleDeck }}
+func (g *gameDelegate) FinishSetUp(state boardgame.State) error {
+	game := state.GameState().(*gameState)
+	return game.DrawDeck.Shuffle()
+}
+
+func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
+	return map[string]*boardgame.Deck{
+		exampleCardDeckName: newExampleCardDeck(),
+	}
+}
+
+{{end}}
 
 func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
@@ -265,6 +287,9 @@ import (
 type playerState struct {
 	boardgame.BaseSubState
 	playerIndex         boardgame.PlayerIndex
+	{{if .EnableExampleDeck -}}
+	Hand boardgame.Stack ` + "`stack:\"examplecards\" sanitize:\"len\"`" + `
+	{{- end}}
 }
 
 func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
@@ -291,6 +316,9 @@ type gameState struct {
 	{{if not .SuppressPhase -}}
 	//DefaultGameDelegate will automatically return this from PhaseEnum, CurrentPhase.
 	Phase enum.Val ` + "`enum:\"Phase\"`" + `
+	{{- end}}
+	{{if .EnableExampleDeck -}}
+	DrawDeck boardgame.Stack ` + "`stack:\"examplecards\"`" + `
 	{{- end}}
 }
 
@@ -322,8 +350,36 @@ const templateContentsMovesGo = `package {{.Name}}
 
 const templateContentComponentsGo = `package {{.Name}}
 
+{{if .EnableExampleDeck }}
+import (
+	"github.com/jkomoros/boardgame"
+)
+
+const numCards = 10
+const exampleCardDeckName = "examplecards"
+
+//boardgame:codegen
+type exampleCard struct {
+	boardgame.BaseComponentValues
+	Value int
+}
+
+//newExampleCardDeck returns a new deck for examplecards.
+func newExampleCardDeck() *boardgame.Deck {
+	deck := boardgame.NewDeck()
+
+	for i := 0; i < numCards; i++ {
+		deck.AddComponent(&exampleCard{
+			Value: i + 1,
+		})
+	}
+
+	return deck
+}
+{{else}}
 //components.go is where you generally define your component structs and deck
 //constructors.
+{{end}}
 
 `
 
