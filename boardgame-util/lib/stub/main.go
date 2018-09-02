@@ -27,8 +27,9 @@ type Options struct {
 	//If true, won't save main_test.go
 	SuppressTest bool
 	//If true, won't add a CurrentPlayer to gameState
-	SuppressCurrentPlayer    bool
-	SuppressClientRenderGame bool
+	SuppressCurrentPlayer          bool
+	SuppressClientRenderGame       bool
+	SuppressClientRenderPlayerInfo bool
 }
 
 //FileContents is the generated contents of the files to later write to the

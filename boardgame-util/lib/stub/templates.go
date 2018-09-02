@@ -41,6 +41,10 @@ func DefaultTemplateSet(opt *Options) (TemplateSet, error) {
 			continue
 		}
 
+		if opt.SuppressClientRenderPlayerInfo && strings.Contains(name, "boardgame-render-player-info") {
+			continue
+		}
+
 		tmpl := template.New(name)
 		tmpl.Funcs(template.FuncMap{
 			"lowercaseFirst": lowercaseFirst,
@@ -98,7 +102,8 @@ var templateMap = map[string]string{
 	"{{.Name}}/main.go":      templateContentsMainGo,
 	"{{.Name}}/main_test.go": templateContentsMainTestGo,
 	"{{.Name}}/state.go":     templateContentsStateGo,
-	"{{.Name}}/client/{{.Name}}/boardgame-render-game-{{.Name}}.html": templateContentsRenderGameHtml,
+	"{{.Name}}/client/{{.Name}}/boardgame-render-game-{{.Name}}.html":        templateContentsRenderGameHtml,
+	"{{.Name}}/client/{{.Name}}/boardgame-render-player-info-{{.Name}}.html": templateContentsRenderPlayerInfoHtml,
 }
 
 const templateContentsMainGo = `{{if .Description -}}
@@ -273,6 +278,28 @@ const templateContentsRenderGameHtml = `<link rel="import" href="../../bower_com
     }
 
     customElements.define(BoardgameRenderGame{{uppercaseFirst .Name}}.is, BoardgameRenderGame{{uppercaseFirst .Name}};
+
+  </script>
+</dom-module>
+`
+
+const templateContentsRenderPlayerInfoHtml = `<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+
+<dom-module id="boardgame-render-player-info-{{.Name}}">
+  <template>
+    This is where you render info on player, typically using &gt;boardgame-status-text&lt;.
+  </template>
+
+  <script>
+
+    class BoardgameRenderPlayerInfo{{uppercaseFirst .Name}} extends Polymer.Element {
+
+      static get is() {
+        return "boardgame-render-player-info-{{.Name}}"
+      }
+    }
+
+    customElements.define(BoardgameRenderPlayerInfo{{uppercaseFirst .Name}}.is, BoardgameRenderPlayerInfo{{uppercaseFirst .Name}});
 
   </script>
 </dom-module>
