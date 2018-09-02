@@ -48,6 +48,18 @@ func (o *Options) Validate() error {
 		return errors.New("No name provided")
 	}
 
+	if o.MinNumPlayers != 0 && o.MaxNumPlayers != 0 {
+		if o.MaxNumPlayers < o.MinNumPlayers {
+			return errors.New("Max num players less than min")
+		}
+
+		if o.DefaultNumPlayers != 0 {
+			if o.DefaultNumPlayers < o.MinNumPlayers || o.DefaultNumPlayers > o.MaxNumPlayers {
+				return errors.New("Default num players not within min/max range")
+			}
+		}
+	}
+
 	//We don't verify that the name is fully legal according to the boardgame
 	//framework, because that test will fail given the test generated in
 	//main_test.go.
@@ -143,22 +155,6 @@ func (f FileContents) Save(dir string, overwrite bool) error {
 		if err := ioutil.WriteFile(path, contents, 0644); err != nil {
 			return errors.New("Couldn't save " + path + ": " + err.Error())
 		}
-	}
-
-	return nil
-}
-
-//InteractiveOptions renders an interactve prompt at out, in to generate an
-//Options from the user. If in or out are nil, StdIn or StdOut will be used
-//implicitly.
-func InteractiveOptions(in, out *os.File) *Options {
-
-	if in == nil {
-		in = os.Stdin
-	}
-
-	if out == nil {
-		out = os.Stdout
 	}
 
 	return nil
