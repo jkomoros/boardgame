@@ -252,6 +252,19 @@ func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 }
 
 {{end}}
+{{if .EnableExampleConstants }}
+func (g *gameDelegate) ConfigureConstants() map[string]interface{} {
+
+	//ConfigureConstants isn't needed very often. It's useful to ensure a
+	//constant value is available client-side, or if you want to use the value
+	//in a struct tag.
+
+	return map[string]interface{}{
+		"numCards": numCards,
+	}
+}
+
+{{end}}
 {{if .EnableExampleEndState }}
 func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool {
 	//DefaultGameDelegate's CheckGameFinished checks this method and if true

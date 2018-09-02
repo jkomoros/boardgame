@@ -40,6 +40,7 @@ type Options struct {
 	EnableExampleDynamicComponentValues bool
 	EnableExampleEndState               bool
 	EnableExampleComputedProperties     bool
+	EnableExampleConstants              bool
 }
 
 //FileContents is the generated contents of the files to later write to the
@@ -68,6 +69,7 @@ func (o *Options) EnableTutorials() {
 	o.EnableExampleDynamicComponentValues = true
 	o.EnableExampleEndState = true
 	o.EnableExampleComputedProperties = true
+	o.EnableExampleConstants = true
 }
 
 //Validate verifies that Options is in a legal state. Makes sure Name exists
@@ -107,6 +109,10 @@ func (o *Options) Validate() error {
 	}
 
 	if o.EnableExampleComputedProperties {
+		o.EnableExampleDeck = true
+	}
+
+	if o.EnableExampleConstants {
 		o.EnableExampleDeck = true
 	}
 
