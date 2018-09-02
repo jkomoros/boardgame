@@ -8,8 +8,6 @@ package checkers
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/moves"
-	"github.com/jkomoros/boardgame/moves/with"
 )
 
 /*
