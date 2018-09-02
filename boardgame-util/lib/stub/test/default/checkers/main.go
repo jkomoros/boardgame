@@ -1,3 +1,8 @@
+/*
+
+	checkers is A classic game for two players where you advance across the board, capturing the other player's pawns
+
+*/
 package checkers
 
 import (

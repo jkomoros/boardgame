@@ -76,7 +76,14 @@ var templateMap = map[string]string{
 	"{{.Name}}/state.go":     templateContentsStateGo,
 }
 
-const templateContentsMainGo = `package {{.Name}}
+const templateContentsMainGo = `{{if .Description -}}
+/*
+
+	{{.Name}} is {{.Description}}
+
+*/
+{{- end}}
+package {{.Name}}
 
 import (
 	"errors"
