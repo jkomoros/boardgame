@@ -48,6 +48,10 @@ func (o *Options) Validate() error {
 		return errors.New("No name provided")
 	}
 
+	//We don't verify that the name is fully legal according to the boardgame
+	//framework, because that test will fail given the test generated in
+	//main_test.go.
+
 	return nil
 }
 
