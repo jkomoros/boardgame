@@ -11,7 +11,7 @@ import (
 //InteractiveOptions renders an interactve prompt at out, in to generate an
 //Options from the user. If in or out are nil, StdIn or StdOut will be used
 //implicitly.
-func InteractiveOptions(in, out *os.File) *Options {
+func InteractiveOptions(in, out *os.File, gameName string) *Options {
 
 	if in == nil {
 		in = os.Stdin
@@ -21,9 +21,9 @@ func InteractiveOptions(in, out *os.File) *Options {
 		out = os.Stdout
 	}
 
-	result := &Options{}
-
-	result.Name = getString(out, in, "Name for game (short, no spaces, unique, e.g. 'checkers', 'tic-tac-toe'", "")
+	result := &Options{
+		Name: gameName,
+	}
 
 	if displayName := getString(out, in, "Display name", result.Name); displayName != result.Name {
 		result.DisplayName = displayName
