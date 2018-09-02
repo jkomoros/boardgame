@@ -54,6 +54,22 @@ func DefaultTemplateSet(opt *Options) (TemplateSet, error) {
 			continue
 		}
 
+		if opt.SuppressMovesStubs && strings.Contains(name, "moves") {
+			continue
+		}
+
+		//There are three entries for moves.go; in every case we skip either
+		//one or two of them.
+		if opt.SuppressPhase {
+			if strings.Contains(name, "moves_") {
+				continue
+			}
+		} else {
+			if strings.Contains(name, "moves.go") {
+				continue
+			}
+		}
+
 		tmpl := template.New(name)
 		tmpl.Funcs(template.FuncMap{
 			"lowercaseFirst": lowercaseFirst,
@@ -117,6 +133,9 @@ var templateMap = map[string]string{
 	"{{.Name}}/main_test.go":    templateContentsMainTestGo,
 	"{{.Name}}/player_state.go": templateContentsPlayerStateGo,
 	"{{.Name}}/game_state.go":   templateContentsGameStateGo,
+	"{{.Name}}/moves.go":        templateContentsMovesGo,
+	"{{.Name}}/moves_setup.go":  templateContentsMovesGo,
+	"{{.Name}}/moves_normal.go": templateContentsMovesGo,
 	"{{.Name}}/client/{{.Name}}/boardgame-render-game-{{.Name}}.html":        templateContentsRenderGameHtml,
 	"{{.Name}}/client/{{.Name}}/boardgame-render-player-info-{{.Name}}.html": templateContentsRenderPlayerInfoHtml,
 }
@@ -281,6 +300,19 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 
 	return game, players
 }
+`
+
+const templateContentsMovesGo = `package {{.Name}}
+
+//TODO: define your move structs here. Don't forget the 'boardgame:codegen'
+//magic comment, and don't forget to return them from
+//delegate.ConfigureMoves().
+{{if not .SuppressPhase}}
+
+//Typically you create a separate file for moves of each major phase, and put
+//the moves for that phase in it.
+{{- end}}
+
 `
 
 const templateContentsMainTestGo = `package {{.Name}}

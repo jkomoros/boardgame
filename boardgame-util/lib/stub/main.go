@@ -30,7 +30,9 @@ type Options struct {
 	SuppressTest  bool
 	SuppressPhase bool
 	//If true, won't add a CurrentPlayer to gameState
-	SuppressCurrentPlayer          bool
+	SuppressCurrentPlayer bool
+	//If true, won't render moves_normal.go, moves_setup.go, or moves.go if suppressphase is true
+	SuppressMovesStubs             bool
 	SuppressClientRenderGame       bool
 	SuppressClientRenderPlayerInfo bool
 }
@@ -51,6 +53,7 @@ func (o *Options) SuppressExtras() {
 	o.SuppressTest = true
 	o.SuppressPhase = true
 	o.SuppressCurrentPlayer = true
+	o.SuppressMovesStubs = true
 }
 
 //Validate verifies that Options is in a legal state. Makes sure Name exists
