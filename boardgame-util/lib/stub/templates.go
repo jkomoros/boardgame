@@ -37,6 +37,10 @@ func DefaultTemplateSet(opt *Options) (TemplateSet, error) {
 			continue
 		}
 
+		if opt.SuppressPhase && strings.Contains(name, "enum.go") {
+			continue
+		}
+
 		if opt.SuppressClientRenderGame && strings.Contains(name, "boardgame-render-game") {
 			continue
 		}
@@ -100,6 +104,7 @@ func (t TemplateSet) Generate(opt *Options) (FileContents, error) {
 
 var templateMap = map[string]string{
 	"{{.Name}}/main.go":      templateContentsMainGo,
+	"{{.Name}}/enum.go":      templateContentsEnumGo,
 	"{{.Name}}/main_test.go": templateContentsMainTestGo,
 	"{{.Name}}/state.go":     templateContentsStateGo,
 	"{{.Name}}/client/{{.Name}}/boardgame-render-game-{{.Name}}.html":        templateContentsRenderGameHtml,
@@ -195,11 +200,23 @@ func NewDelegate() boardgame.GameDelegate {
 
 `
 
+const templateContentsEnumGo = `package {{.Name}}
+
+//boardgame:codegen
+const(
+	//Because the naked Phase exists, this will be a TreeEnum. See package doc for "boardgame/enum" for more.
+	Phase = iota
+	PhaseSetUp
+	PhaseNormal
+)
+
+`
+
 const templateContentsStateGo = `package {{.Name}}
 
 import (
-	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/enum"
+	"github.com/jkomoros/boardgame"{{if not .SuppressPhase}}
+	"github.com/jkomoros/boardgame/enum"{{- end}}
 	"github.com/jkomoros/boardgame/moves/roundrobinhelpers"
 )
 
@@ -208,7 +225,12 @@ type gameState struct {
 	//Use roundrobinhelpers so roundrobin moves can be used without any changes
 	roundrobinhelpers.BaseGameState
 	{{if not .SuppressCurrentPlayer -}}
+	//DefaultGameDelegate will automatically return this from CurrentPlayerIndex
 	CurrentPlayer boardgame.PlayerIndex
+	{{- end}}
+	{{if not .SuppressPhase -}}
+	//DefaultGameDelegate will automatically return this from PhaseEnum, CurrentPhase.
+	Phase enum.Val ` + "`enum:\"Phase\"`" + `
 	{{- end}}
 }
 

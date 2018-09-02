@@ -51,6 +51,7 @@ func TestGolden(t *testing.T) {
 			SuppressCurrentPlayer:          true,
 			SuppressClientRenderGame:       true,
 			SuppressClientRenderPlayerInfo: true,
+			SuppressPhase:                  true,
 		},
 	}
 

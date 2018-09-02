@@ -25,7 +25,8 @@ type Options struct {
 	MaxNumPlayers     int
 	DefaultNumPlayers int
 	//If true, won't save main_test.go
-	SuppressTest bool
+	SuppressTest  bool
+	SuppressPhase bool
 	//If true, won't add a CurrentPlayer to gameState
 	SuppressCurrentPlayer          bool
 	SuppressClientRenderGame       bool

@@ -10,7 +10,10 @@ import (
 type gameState struct {
 	//Use roundrobinhelpers so roundrobin moves can be used without any changes
 	roundrobinhelpers.BaseGameState
+	//DefaultGameDelegate will automatically return this from CurrentPlayerIndex
 	CurrentPlayer boardgame.PlayerIndex
+	//DefaultGameDelegate will automatically return this from PhaseEnum, CurrentPhase.
+	Phase enum.Val `enum:"Phase"`
 }
 
 //boardgame:codegen

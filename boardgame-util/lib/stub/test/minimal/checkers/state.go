@@ -2,7 +2,6 @@ package checkers
 
 import (
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves/roundrobinhelpers"
 )
 
