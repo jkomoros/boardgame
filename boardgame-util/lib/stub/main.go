@@ -41,6 +41,7 @@ type Options struct {
 	EnableExampleEndState               bool
 	EnableExampleComputedProperties     bool
 	EnableExampleConstants              bool
+	EnableExampleConfigs                bool
 }
 
 //FileContents is the generated contents of the files to later write to the
@@ -70,6 +71,7 @@ func (o *Options) EnableTutorials() {
 	o.EnableExampleEndState = true
 	o.EnableExampleComputedProperties = true
 	o.EnableExampleConstants = true
+	o.EnableExampleConfigs = true
 }
 
 //Validate verifies that Options is in a legal state. Makes sure Name exists

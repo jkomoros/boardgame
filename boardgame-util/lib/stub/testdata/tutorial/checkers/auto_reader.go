@@ -980,6 +980,7 @@ var __gameStateReaderProps map[string]boardgame.PropertyType = map[string]boardg
 	"RRLastPlayer":    boardgame.TypePlayerIndex,
 	"RRRoundCount":    boardgame.TypeInt,
 	"RRStarterPlayer": boardgame.TypePlayerIndex,
+	"TargetCardsLeft": boardgame.TypeInt,
 }
 
 type __gameStateReader struct {
@@ -1044,6 +1045,8 @@ func (g *__gameStateReader) PropMutable(name string) bool {
 	case "RRRoundCount":
 		return true
 	case "RRStarterPlayer":
+		return true
+	case "TargetCardsLeft":
 		return true
 	}
 
@@ -1363,6 +1366,8 @@ func (g *__gameStateReader) IntProp(name string) (int, error) {
 	switch name {
 	case "RRRoundCount":
 		return g.data.RRRoundCount, nil
+	case "TargetCardsLeft":
+		return g.data.TargetCardsLeft, nil
 
 	}
 
@@ -1375,6 +1380,9 @@ func (g *__gameStateReader) SetIntProp(name string, value int) error {
 	switch name {
 	case "RRRoundCount":
 		g.data.RRRoundCount = value
+		return nil
+	case "TargetCardsLeft":
+		g.data.TargetCardsLeft = value
 		return nil
 
 	}

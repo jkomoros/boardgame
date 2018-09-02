@@ -103,6 +103,76 @@ func (g *gameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) 
 	}
 }
 
+//values for the config setup
+const (
+	configKeyTargetCardsLeft = "targetcardsleft"
+)
+
+const (
+	configTargetCardsLeftDefault = "default"
+	configTargetCardsLeftShort   = "short"
+)
+
+func (g *gameDelegate) Configs() map[string][]string {
+
+	//configs are the legal configuration options that will be show in the new
+	//game dialog. Display names and description are returned in
+	//ConfigKeyDisplay and ConfigValueDisplay.
+
+	return map[string][]string{
+		configKeyTargetCardsLeft: []string{
+			configTargetCardsLeftDefault,
+			configTargetCardsLeftShort,
+		},
+	}
+}
+
+func (g *gameDelegate) ConfigKeyDisplay(key string) (displayName, description string) {
+	if key == configKeyTargetCardsLeft {
+		return "Target Cards Left", "Whether or not the target cards left is the default"
+	}
+	return "", ""
+}
+
+func (g *gameDelegate) ConfigValueDisplay(key, val string) (displayName, description string) {
+	if key == configKeyTargetCardsLeft {
+		switch val {
+		case configTargetCardsLeftShort:
+			return "Short", "A short game that ends when 2 cards are left"
+		default:
+			return "Default", "A normal-length game that ends when no cards are left"
+		}
+	}
+	return "", ""
+}
+
+func (g *gameDelegate) BeginSetUp(state boardgame.State, config boardgame.GameConfig) error {
+
+	//This is the only time that config is passed in, so we need to interpret
+	//it now and set it as a property in GameState.
+	targetCardsLeftVal := config[configKeyTargetCardsLeft]
+	if targetCardsLeftVal == "" {
+		targetCardsLeftVal = configTargetCardsLeftDefault
+	}
+
+	var targetCardsLeft int
+
+	switch targetCardsLeftVal {
+	case configTargetCardsLeftShort:
+		targetCardsLeft = 2
+	case configTargetCardsLeftDefault:
+		targetCardsLeft = 0
+	default:
+		return errors.New("Unknown value for " + configKeyTargetCardsLeft + ": " + targetCardsLeftVal)
+	}
+
+	game := state.GameState().(*gameState)
+	game.TargetCardsLeft = targetCardsLeft
+
+	return nil
+
+}
+
 func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
 	auto := moves.NewAutoConfigurer(g)
