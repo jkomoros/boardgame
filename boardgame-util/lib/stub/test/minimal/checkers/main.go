@@ -40,6 +40,9 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.Immutab
 
 func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
+	//TODO: this is where you should return your list of moves, often using
+	//moves.Combine. See TUTORIAL.md for an example.
+
 	return nil
 
 }
