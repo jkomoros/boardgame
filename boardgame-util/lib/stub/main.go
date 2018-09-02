@@ -14,6 +14,8 @@ import (
 	"strings"
 )
 
+//Options is the default options struct. Name is the only required field; the
+//zero-value of every other field is default.
 type Options struct {
 	//The name of the game
 	Name string

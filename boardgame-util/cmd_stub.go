@@ -12,7 +12,8 @@ import (
 type Stub struct {
 	baseSubCommand
 
-	Dir string
+	Dir  string
+	Fast bool
 }
 
 func (s *Stub) Run(p writ.Path, positional []string) {
@@ -25,7 +26,13 @@ func (s *Stub) Run(p writ.Path, positional []string) {
 
 	gameName := positional[0]
 
-	opt := stub.InteractiveOptions(nil, nil, gameName)
+	opt := &stub.Options{
+		Name: gameName,
+	}
+
+	if !s.Fast {
+		opt = stub.InteractiveOptions(nil, nil, gameName)
+	}
 
 	files, err := stub.Generate(opt)
 
@@ -81,6 +88,12 @@ func (s *Stub) WritOptions() []*writ.Option {
 			Names:       []string{"dir", "d"},
 			Description: "The directory to save the generated game folder in. Defaults to '.'",
 			Decoder:     writ.NewOptionDecoder(&s.Dir),
+		},
+		{
+			Names:       []string{"fast", "f"},
+			Description: "If provided, skips the interactive prompts and just uses the defaults.",
+			Decoder:     writ.NewFlagDecoder(&s.Fast),
+			Flag:        true,
 		},
 	}
 }
