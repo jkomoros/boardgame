@@ -11,7 +11,7 @@ import (
 type TemplateSet map[string]*template.Template
 
 //DefaultTemplateSet returns the default template set for this stub.
-func DefaultTemplateSet() (TemplateSet, error) {
+func DefaultTemplateSet(opt *Options) (TemplateSet, error) {
 	result := make(TemplateSet, len(templateMap))
 
 	for name, contents := range templateMap {

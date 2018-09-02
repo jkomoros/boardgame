@@ -17,14 +17,14 @@ const testDir = "test"
 
 func TestGenerate(t *testing.T) {
 
-	tmpls, err := DefaultTemplateSet()
-
-	assert.For(t).ThatActual(err).IsNil()
-	assert.For(t).ThatActual(len(tmpls)).DoesNotEqual(0)
-
 	opt := &Options{
 		Name: "checkers",
 	}
+
+	tmpls, err := DefaultTemplateSet(opt)
+
+	assert.For(t).ThatActual(err).IsNil()
+	assert.For(t).ThatActual(len(tmpls)).DoesNotEqual(0)
 
 	contents, err := tmpls.Generate(opt)
 
