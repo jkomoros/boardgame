@@ -38,6 +38,7 @@ type Options struct {
 	SuppressClientRenderPlayerInfo      bool
 	EnableExampleDeck                   bool
 	EnableExampleDynamicComponentValues bool
+	EnableExampleEndState               bool
 }
 
 //FileContents is the generated contents of the files to later write to the
@@ -64,6 +65,7 @@ func (o *Options) SuppressExtras() {
 func (o *Options) EnableTutorials() {
 	o.EnableExampleDeck = true
 	o.EnableExampleDynamicComponentValues = true
+	o.EnableExampleEndState = true
 }
 
 //Validate verifies that Options is in a legal state. Makes sure Name exists
@@ -95,6 +97,10 @@ func (o *Options) Validate() error {
 
 	//Disallow illegal combinations
 	if o.EnableExampleDynamicComponentValues {
+		o.EnableExampleDeck = true
+	}
+
+	if o.EnableExampleEndState {
 		o.EnableExampleDeck = true
 	}
 

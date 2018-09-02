@@ -60,6 +60,14 @@ func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 	}
 }
 
+func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool {
+	//DefaultGameDelegate's CheckGameFinished checks this method and if true
+	//looks at the score to see who won.
+
+	//In this example, the game is over once all of the cards are gone.
+	return state.ImmutableGameState().(*gameState).CardsDone()
+}
+
 func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
 	auto := moves.NewAutoConfigurer(g)

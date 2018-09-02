@@ -252,6 +252,16 @@ func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 }
 
 {{end}}
+{{if .EnableExampleEndState }}
+func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool {
+	//DefaultGameDelegate's CheckGameFinished checks this method and if true
+	//looks at the score to see who won.
+
+	//In this example, the game is over once all of the cards are gone.
+	return state.ImmutableGameState().(*gameState).CardsDone()
+}
+
+{{end}}
 
 func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
@@ -304,6 +314,20 @@ type playerState struct {
 func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
 	return p.playerIndex
 }
+
+{{if .EnableExampleEndState}}
+func (p *playerState) GameScore() int {
+	//DefaultGameDelegate's PlayerScore will use the GameScore() method on
+	//playerState automatically if it exists.
+	var sum int
+	for _, c := range p.Hand.Components() {
+		card := c.Values().(*exampleCard)
+		sum += card.Value
+	}
+	return sum
+}
+
+{{end}}
 `
 
 const templateContentsGameStateGo = `package {{.Name}}
@@ -342,6 +366,17 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 
 	return game, players
 }
+
+{{if .EnableExampleEndState}}
+func (g *gameState) CardsDone() bool {
+	//It's common to hang computed properties and methods off of gameState and
+	//playerState to use in logic elsewhere.
+
+	return g.DrawDeck.Len() == 0
+}
+
+{{end}}
+
 `
 
 const templateContentsMovesGo = `package {{.Name}}
