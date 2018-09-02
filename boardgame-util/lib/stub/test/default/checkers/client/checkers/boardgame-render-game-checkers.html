@@ -1,0 +1,25 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../src/boardgame-base-game-renderer.html">
+
+<dom-module id="boardgame-render-game-checkers">
+  <template>
+  This is where you game should render itself. See boardgame/server/README.md for more on the components you can use, or check out the examples in boardgame/examples.
+  </template>
+
+  <script>
+
+    class BoardgameRenderGameCheckers extends BoardgameBaseGameRenderer {
+
+      static get is() {
+        return "boardgame-render-game-checkers"
+      }
+
+      //We don't need to compute any properties that BoardgameBaseGamErenderer
+      //doesn't have.
+
+    }
+
+    customElements.define(BoardgameRenderGameCheckers.is, BoardgameRenderGameCheckers;
+
+  </script>
+</dom-module>

@@ -46,9 +46,10 @@ func TestGolden(t *testing.T) {
 			DefaultNumPlayers: 2,
 		},
 		"minimal": {
-			Name:                  "checkers",
-			SuppressTest:          true,
-			SuppressCurrentPlayer: true,
+			Name:                     "checkers",
+			SuppressTest:             true,
+			SuppressCurrentPlayer:    true,
+			SuppressClientRenderGame: true,
 		},
 	}
 

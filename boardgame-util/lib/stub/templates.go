@@ -37,6 +37,10 @@ func DefaultTemplateSet(opt *Options) (TemplateSet, error) {
 			continue
 		}
 
+		if opt.SuppressClientRenderGame && strings.Contains(name, "boardgame-render-game") {
+			continue
+		}
+
 		tmpl := template.New(name)
 		tmpl.Funcs(template.FuncMap{
 			"lowercaseFirst": lowercaseFirst,
@@ -94,6 +98,7 @@ var templateMap = map[string]string{
 	"{{.Name}}/main.go":      templateContentsMainGo,
 	"{{.Name}}/main_test.go": templateContentsMainTestGo,
 	"{{.Name}}/state.go":     templateContentsStateGo,
+	"{{.Name}}/client/{{.Name}}/boardgame-render-game-{{.Name}}.html": templateContentsRenderGameHtml,
 }
 
 const templateContentsMainGo = `{{if .Description -}}
@@ -244,4 +249,31 @@ func TestNewManager(t *testing.T) {
 }
 
 
+`
+
+const templateContentsRenderGameHtml = `<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../src/boardgame-base-game-renderer.html">
+
+<dom-module id="boardgame-render-game-{{.Name}}">
+  <template>
+  This is where you game should render itself. See boardgame/server/README.md for more on the components you can use, or check out the examples in boardgame/examples.
+  </template>
+
+  <script>
+
+    class BoardgameRenderGame{{uppercaseFirst .Name}} extends BoardgameBaseGameRenderer {
+
+      static get is() {
+        return "boardgame-render-game-{{.Name}}"
+      }
+
+      //We don't need to compute any properties that BoardgameBaseGamErenderer
+      //doesn't have.
+
+    }
+
+    customElements.define(BoardgameRenderGame{{uppercaseFirst .Name}}.is, BoardgameRenderGame{{uppercaseFirst .Name}};
+
+  </script>
+</dom-module>
 `
