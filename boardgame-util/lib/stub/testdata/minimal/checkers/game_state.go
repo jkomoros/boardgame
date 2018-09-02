@@ -2,7 +2,6 @@ package checkers
 
 import (
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves/roundrobinhelpers"
 )
 
@@ -10,16 +9,6 @@ import (
 type gameState struct {
 	//Use roundrobinhelpers so roundrobin moves can be used without any changes
 	roundrobinhelpers.BaseGameState
-	//DefaultGameDelegate will automatically return this from CurrentPlayerIndex
-	CurrentPlayer boardgame.PlayerIndex
-	//DefaultGameDelegate will automatically return this from PhaseEnum, CurrentPhase.
-	Phase enum.Val `enum:"Phase"`
-}
-
-//boardgame:codegen
-type playerState struct {
-	boardgame.BaseSubState
-	playerIndex boardgame.PlayerIndex
 }
 
 func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState) {
@@ -32,8 +21,4 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 	}
 
 	return game, players
-}
-
-func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
-	return p.playerIndex
 }

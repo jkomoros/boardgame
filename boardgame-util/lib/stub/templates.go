@@ -112,10 +112,11 @@ func (t TemplateSet) Generate(opt *Options) (FileContents, error) {
 }
 
 var templateMap = map[string]string{
-	"{{.Name}}/main.go":      templateContentsMainGo,
-	"{{.Name}}/enum.go":      templateContentsEnumGo,
-	"{{.Name}}/main_test.go": templateContentsMainTestGo,
-	"{{.Name}}/state.go":     templateContentsStateGo,
+	"{{.Name}}/main.go":         templateContentsMainGo,
+	"{{.Name}}/enum.go":         templateContentsEnumGo,
+	"{{.Name}}/main_test.go":    templateContentsMainTestGo,
+	"{{.Name}}/player_state.go": templateContentsPlayerStateGo,
+	"{{.Name}}/game_state.go":   templateContentsGameStateGo,
 	"{{.Name}}/client/{{.Name}}/boardgame-render-game-{{.Name}}.html":        templateContentsRenderGameHtml,
 	"{{.Name}}/client/{{.Name}}/boardgame-render-player-info-{{.Name}}.html": templateContentsRenderPlayerInfoHtml,
 }
@@ -230,7 +231,24 @@ const(
 
 `
 
-const templateContentsStateGo = `package {{.Name}}
+const templateContentsPlayerStateGo = `package {{.Name}}
+
+import (
+	"github.com/jkomoros/boardgame"
+)
+
+//boardgame:codegen
+type playerState struct {
+	boardgame.BaseSubState
+	playerIndex         boardgame.PlayerIndex
+}
+
+func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
+	return p.playerIndex
+}
+`
+
+const templateContentsGameStateGo = `package {{.Name}}
 
 import (
 	"github.com/jkomoros/boardgame"{{if not .SuppressPhase}}
@@ -252,12 +270,6 @@ type gameState struct {
 	{{- end}}
 }
 
-//boardgame:codegen
-type playerState struct {
-	boardgame.BaseSubState
-	playerIndex         boardgame.PlayerIndex
-}
-
 func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState) {
 	game := state.ImmutableGameState().(*gameState)
 
@@ -268,10 +280,6 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 	}
 
 	return game, players
-}
-
-func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
-	return p.playerIndex
 }
 `
 
