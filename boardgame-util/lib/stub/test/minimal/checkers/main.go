@@ -3,6 +3,8 @@ package checkers
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves"
+	"github.com/jkomoros/boardgame/moves/with"
 )
 
 /*
@@ -38,10 +40,16 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.Immutab
 
 func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
-	//TODO: this is where you should return your list of moves, often using
-	//moves.Combine. See TUTORIAL.md for an example.
+	auto := moves.NewAutoConfigurer(g)
 
-	return nil
+	return moves.Combine(
+		moves.Add(
+			auto.MustConfig(new(moves.NoOp),
+				with.MoveName("Example No Op Move"),
+				with.HelpText("This move is an example that is always legal and does nothing. It exists to show how to return moves and make sure 'go test' works from the beginning, but you should remove it."),
+			),
+		),
+	)
 
 }
 
