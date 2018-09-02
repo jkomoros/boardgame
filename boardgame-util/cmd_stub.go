@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"github.com/bobziuchkovski/writ"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/stub"
 )
@@ -33,6 +34,8 @@ func (s *Stub) Run(p writ.Path, positional []string) {
 	}
 
 	//TODO: run go generate on the output.
+
+	fmt.Println("Generated game in " + positional[0])
 
 }
 
