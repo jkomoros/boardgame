@@ -54,7 +54,7 @@ func InteractiveOptions(in, out *os.File, gameName string) *Options {
 		result.SuppressClient()
 	}
 
-	tutorial := getBool(out, in, "Generate extra tutorial examples?", false)
+	tutorial := getBool(out, in, "Generate extra tutorial content that demonstrate how to wire up more things?", false)
 
 	if tutorial {
 		result.EnableTutorials()
