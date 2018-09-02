@@ -216,6 +216,15 @@ func (g *gameDelegate) PlayerStateConstructor(index boardgame.PlayerIndex) board
 	}
 }
 
+{{if .EnableExampleDynamicComponentValues }}
+func (g *gameDelegate) DynamicComponentValuesConstructor(deck *boardgame.Deck) boardgame.ConfigurableSubState {
+	if deck.Name() == exampleCardDeckName {
+		return new(exampleCardDynamicValues)
+	}
+	return nil
+}
+
+{{end}}
 func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.ImmutableStack, error) {
 
 	{{if .EnableExampleDeck -}}
@@ -364,6 +373,15 @@ type exampleCard struct {
 	Value int
 }
 
+{{if .EnableExampleDynamicComponentValues}}
+//boardgame:codegen
+type exampleCardDynamicValues struct {
+	boardgame.BaseSubState
+	boardgame.BaseComponentValues
+	DynamicValue int
+}
+
+{{end}}
 //newExampleCardDeck returns a new deck for examplecards.
 func newExampleCardDeck() *boardgame.Deck {
 	deck := boardgame.NewDeck()

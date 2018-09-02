@@ -9,7 +9,15 @@ const exampleCardDeckName = "examplecards"
 
 //boardgame:codegen
 type exampleCard struct {
+	boardgame.BaseComponentValues
 	Value int
+}
+
+//boardgame:codegen
+type exampleCardDynamicValues struct {
+	boardgame.BaseSubState
+	boardgame.BaseComponentValues
+	DynamicValue int
 }
 
 //newExampleCardDeck returns a new deck for examplecards.

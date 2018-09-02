@@ -32,11 +32,12 @@ type Options struct {
 	//If true, won't add a CurrentPlayer to gameState
 	SuppressCurrentPlayer bool
 	//If true, won't render moves_normal.go, moves_setup.go, or moves.go if suppressphase is true
-	SuppressMovesStubs             bool
-	SuppressComponentsStubs        bool
-	SuppressClientRenderGame       bool
-	SuppressClientRenderPlayerInfo bool
-	EnableExampleDeck              bool
+	SuppressMovesStubs                  bool
+	SuppressComponentsStubs             bool
+	SuppressClientRenderGame            bool
+	SuppressClientRenderPlayerInfo      bool
+	EnableExampleDeck                   bool
+	EnableExampleDynamicComponentValues bool
 }
 
 //FileContents is the generated contents of the files to later write to the
@@ -62,6 +63,7 @@ func (o *Options) SuppressExtras() {
 //EnableTutorials enables all of the off-by-default tutorial options.
 func (o *Options) EnableTutorials() {
 	o.EnableExampleDeck = true
+	o.EnableExampleDynamicComponentValues = true
 }
 
 //Validate verifies that Options is in a legal state. Makes sure Name exists
@@ -92,6 +94,10 @@ func (o *Options) Validate() error {
 	//main_test.go.
 
 	//Disallow illegal combinations
+	if o.EnableExampleDynamicComponentValues {
+		o.EnableExampleDeck = true
+	}
+
 	if o.EnableExampleDeck {
 		o.SuppressComponentsStubs = false
 	}

@@ -32,6 +32,13 @@ func (g *gameDelegate) PlayerStateConstructor(index boardgame.PlayerIndex) board
 	}
 }
 
+func (g *gameDelegate) DynamicComponentValuesConstructor(deck *boardgame.Deck) boardgame.ConfigurableSubState {
+	if deck.Name() == exampleCardDeckName {
+		return new(exampleCardDynamicValues)
+	}
+	return nil
+}
+
 func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.ImmutableStack, error) {
 
 	game := state.ImmutableGameState().(*gameState)
