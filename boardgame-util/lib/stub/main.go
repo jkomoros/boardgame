@@ -7,8 +7,10 @@ package stub
 
 import (
 	"errors"
+	"go/format"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type Options struct {
@@ -22,7 +24,37 @@ type FileContents map[string][]byte
 
 //Generate generates FileContents for the given set of options.
 func Generate(opt *Options) (FileContents, error) {
+
+	//TODO: gofmt the code before returning
 	return nil, errors.New("Not yet implemented")
+}
+
+//Format go formats all of the code om FileContents whose path ends in ".go",
+//erroring if the code isn't valid. If an error is returned, then the contents
+//of FileContents will not have been modified.
+func (f FileContents) Format() error {
+
+	newContent := make(map[string][]byte)
+
+	for filename, rawSource := range f {
+		if strings.ToLower(filepath.Ext(filename)) != ".go" {
+			continue
+		}
+
+		transformedSource, err := format.Source(rawSource)
+
+		if err != nil {
+			return errors.New("Couldn't format go code for " + filename + ": " + err.Error())
+		}
+
+		newContent[filename] = transformedSource
+	}
+
+	for name, content := range newContent {
+		f[name] = content
+	}
+
+	return nil
 }
 
 //Save saves the given FileContents to the filesystem, creating any implied
