@@ -18,6 +18,7 @@ type BoardgameUtil struct {
 	Clean   Clean
 	Serve   Serve
 	Config  Config
+	Stub    Stub
 
 	ConfigPath string
 
@@ -75,6 +76,7 @@ func (b *BoardgameUtil) SubcommandObjects() []SubcommandObject {
 		&b.Serve,
 		&b.Config,
 		&b.Codegen,
+		&b.Stub,
 		&b.Db,
 		&b.Build,
 		&b.Clean,
