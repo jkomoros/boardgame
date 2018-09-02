@@ -11,7 +11,7 @@ import (
 
 //If true, will save out the files generated. Useful for generating new golden
 //output when output is changed.
-const generateNewGolden = true
+const generateNewGolden = false
 
 //The go tool will ignore everything rooted in 'testdata'
 const testDir = "testdata"
