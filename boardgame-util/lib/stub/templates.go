@@ -262,7 +262,32 @@ func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool 
 }
 
 {{end}}
+{{if .EnableExampleComputedProperties}}
+func (g *gameDelegate) ComputedPlayerProperties(player boardgame.ImmutablePlayerState) boardgame.PropertyCollection {
 
+	//ComputedProperties are mostly useful when a given state object's
+	//computed property is useful clientside, too.
+
+	p := player.(*playerState)
+
+	return boardgame.PropertyCollection{
+		"GameScore": p.GameScore(),
+	}
+}
+
+func (g *gameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) boardgame.PropertyCollection {
+	
+	//ComputedProperties are mostly useful when a given state object's
+	//computed property is useful clientside, too.
+
+	game := state.ImmutableGameState().(*gameState)
+
+	return boardgame.PropertyCollection{
+		"CardsDone": game.CardsDone(),
+	}
+}
+
+{{end}}
 func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
 	auto := moves.NewAutoConfigurer(g)
@@ -315,7 +340,7 @@ func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
 	return p.playerIndex
 }
 
-{{if .EnableExampleEndState}}
+{{if or .EnableExampleEndState .EnableExampleComputedProperties}}
 func (p *playerState) GameScore() int {
 	//DefaultGameDelegate's PlayerScore will use the GameScore() method on
 	//playerState automatically if it exists.
@@ -367,7 +392,7 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 	return game, players
 }
 
-{{if .EnableExampleEndState}}
+{{if or .EnableExampleEndState .EnableExampleComputedProperties}}
 func (g *gameState) CardsDone() bool {
 	//It's common to hang computed properties and methods off of gameState and
 	//playerState to use in logic elsewhere.

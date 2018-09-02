@@ -68,6 +68,30 @@ func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool 
 	return state.ImmutableGameState().(*gameState).CardsDone()
 }
 
+func (g *gameDelegate) ComputedPlayerProperties(player boardgame.ImmutablePlayerState) boardgame.PropertyCollection {
+
+	//ComputedProperties are mostly useful when a given state object's
+	//computed property is useful clientside, too.
+
+	p := player.(*playerState)
+
+	return boardgame.PropertyCollection{
+		"GameScore": p.GameScore(),
+	}
+}
+
+func (g *gameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) boardgame.PropertyCollection {
+
+	//ComputedProperties are mostly useful when a given state object's
+	//computed property is useful clientside, too.
+
+	game := state.ImmutableGameState().(*gameState)
+
+	return boardgame.PropertyCollection{
+		"CardsDone": game.CardsDone(),
+	}
+}
+
 func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
 	auto := moves.NewAutoConfigurer(g)
