@@ -2,10 +2,13 @@ package stub
 
 import (
 	"errors"
+	"fmt"
 	"github.com/workfit/tester/assert"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -82,6 +85,15 @@ func compareGolden(t *testing.T, name string, opt *Options) {
 
 		//Save out contents as new golden files to compare against
 		contents.Save(dir, true)
+
+		cmd := exec.Command("go", "generate")
+		cmd.Dir = filepath.Join(dir, opt.Name)
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+
+		if err := cmd.Run(); err != nil {
+			fmt.Println(err.Error())
+		}
 		return
 	}
 
@@ -129,6 +141,11 @@ func recursiveListFilesForFileContents(basePath, prefix string, contents FileCon
 			continue
 		}
 		//info represents a file.
+
+		//Skip auto-generated files
+		if strings.HasPrefix(info.Name(), "auto_") && strings.HasSuffix(info.Name(), ".go") {
+			continue
+		}
 
 		content, err := ioutil.ReadFile(filepath.Join(basePath, info.Name()))
 
