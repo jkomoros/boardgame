@@ -11,7 +11,7 @@ import (
 
 //If true, will save out the files generated. Useful for generating new golden
 //output when output is changed.
-const generateNewGolden = true
+const generateNewGolden = false
 
 const testDir = "test"
 
@@ -37,7 +37,7 @@ func TestBasicGenerate(t *testing.T) {
 func TestGolden(t *testing.T) {
 
 	tests := map[string]*Options{
-		"base": {
+		"default": {
 			Name:              "checkers",
 			DisplayName:       "Checkers",
 			Description:       "A classic game for two players where you advance across the board, capturing the other player's pawns",
@@ -45,7 +45,7 @@ func TestGolden(t *testing.T) {
 			MaxNumPlayers:     4,
 			DefaultNumPlayers: 2,
 		},
-		"no_description": {
+		"minimal": {
 			Name:         "checkers",
 			SuppressTest: true,
 		},
