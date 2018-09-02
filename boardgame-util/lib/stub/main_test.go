@@ -86,14 +86,30 @@ func compareGolden(t *testing.T, name string, opt *Options) {
 		//Save out contents as new golden files to compare against
 		contents.Save(dir, true)
 
+		gameDir := filepath.Join(dir, opt.Name)
+
 		cmd := exec.Command("go", "generate")
-		cmd.Dir = filepath.Join(dir, opt.Name)
+		cmd.Dir = gameDir
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
 
 		if err := cmd.Run(); err != nil {
-			fmt.Println(err.Error())
+			fmt.Println("Couldn't generate: " + err.Error())
+			return
 		}
+
+		//Generated golden; now verify that the generated pass tests. We do
+		//this now so that general tests will be fast; we verify that future
+		//tests output the same thing, and then verify that the thing they
+		//equal was valid when generated.
+		cmd = exec.Command("go", "test")
+		cmd.Dir = filepath.Join(dir, opt.Name)
+
+		if err := cmd.Run(); err != nil {
+			fmt.Println("New package didn't pass test: " + err.Error())
+			return
+		}
+
 		return
 	}
 
