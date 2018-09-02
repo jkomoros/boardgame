@@ -8,6 +8,7 @@ package stub
 import (
 	"errors"
 	"go/format"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -70,7 +71,23 @@ func (f FileContents) Save(dir string) error {
 		}
 	}
 
-	return errors.New("Not yet implemented")
+	for name, contents := range f {
+		path := filepath.Join(dir, name)
+		dirsToCreate := filepath.Dir(path)
+		if err := os.MkdirAll(dirsToCreate, os.ModePerm); err != nil {
+			return errors.New("Couldn't create directories for " + path + ": " + err.Error())
+		}
+	}
+
+	for name, contents := range f {
+		path := filepath.Join(dir, name)
+
+		if err := ioutil.WriteFile(path, contents, 0644); err != nil {
+			return errors.New("Couldn't save " + path + ": " + err.Error())
+		}
+	}
+
+	return nil
 }
 
 //InteractiveOptions renders an interactve prompt at out, in to generate an
