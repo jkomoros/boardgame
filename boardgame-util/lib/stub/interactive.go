@@ -118,7 +118,7 @@ func getBool(out, in *os.File, message string, defaultVal bool) bool {
 	response := getString(out, in, message, "")
 
 	yesResponses := []string{"Yes", "Y", "yes", "y"}
-	noResponses := []string{"No", "N", "no", "n'"}
+	noResponses := []string{"No", "N", "no", "n"}
 
 	if defaultVal {
 		for _, responseToTest := range noResponses {
