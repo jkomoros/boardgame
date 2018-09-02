@@ -29,6 +29,11 @@ func uppercaseFirst(in string) string {
 
 //DefaultTemplateSet returns the default template set for this stub.
 func DefaultTemplateSet(opt *Options) (TemplateSet, error) {
+
+	if err := opt.Validate(); err != nil {
+		return nil, errors.New("Options didn't validate: " + err.Error())
+	}
+
 	result := make(TemplateSet, len(templateMap))
 
 	for name, contents := range templateMap {
@@ -68,6 +73,10 @@ func DefaultTemplateSet(opt *Options) (TemplateSet, error) {
 //options to expand. Names of files will also be run through templates and
 //expanded.
 func (t TemplateSet) Generate(opt *Options) (FileContents, error) {
+
+	if err := opt.Validate(); err != nil {
+		return nil, errors.New("Options didn't validate: " + err.Error())
+	}
 
 	result := make(FileContents)
 

@@ -37,9 +37,27 @@ type Options struct {
 //filesystem.
 type FileContents map[string][]byte
 
+//Validate verifies that Options is in a legal state. Makes sure Name exists
+//and ensures it's lowerCase. Repeated calls are OK.
+func (o *Options) Validate() error {
+
+	o.Name = strings.TrimSpace(o.Name)
+	o.Name = strings.ToLower(o.Name)
+
+	if o.Name == "" {
+		return errors.New("No name provided")
+	}
+
+	return nil
+}
+
 //Generate generates FileContents for the given set of options. A convenience
 //wrapper around DefaultTemplateSet, templates.Generate(), and files.Format().
 func Generate(opt *Options) (FileContents, error) {
+
+	if err := opt.Validate(); err != nil {
+		return nil, errors.New("Options didn't validate: " + err.Error())
+	}
 
 	templates, err := DefaultTemplateSet(opt)
 
