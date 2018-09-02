@@ -11,7 +11,7 @@ import (
 
 //If true, will save out the files generated. Useful for generating new golden
 //output when output is changed.
-const generateNewGolden = false
+const generateNewGolden = true
 
 const testDir = "test"
 
@@ -46,7 +46,8 @@ func TestGolden(t *testing.T) {
 			DefaultNumPlayers: 2,
 		},
 		"no_description": {
-			Name: "checkers",
+			Name:         "checkers",
+			SuppressTest: true,
 		},
 	}
 

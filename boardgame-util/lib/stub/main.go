@@ -24,6 +24,8 @@ type Options struct {
 	MinNumPlayers     int
 	MaxNumPlayers     int
 	DefaultNumPlayers int
+	//If true, won't save main_test.go
+	SuppressTest bool
 }
 
 //FileContents is the generated contents of the files to later write to the

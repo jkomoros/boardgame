@@ -3,6 +3,7 @@ package stub
 import (
 	"bytes"
 	"errors"
+	"strings"
 	"text/template"
 )
 
@@ -15,6 +16,11 @@ func DefaultTemplateSet(opt *Options) (TemplateSet, error) {
 	result := make(TemplateSet, len(templateMap))
 
 	for name, contents := range templateMap {
+
+		if opt.SuppressTest && strings.Contains(name, "main_test.go") {
+			continue
+		}
+
 		tmpl := template.New(name)
 		tmpl, err := tmpl.Parse(contents)
 		if err != nil {
@@ -22,6 +28,7 @@ func DefaultTemplateSet(opt *Options) (TemplateSet, error) {
 		}
 		result[name] = tmpl
 	}
+
 	return result, nil
 }
 
@@ -64,8 +71,9 @@ func (t TemplateSet) Generate(opt *Options) (FileContents, error) {
 }
 
 var templateMap = map[string]string{
-	"{{.Name}}/main.go":  templateContentsMainGo,
-	"{{.Name}}/state.go": templateContentsStateGo,
+	"{{.Name}}/main.go":      templateContentsMainGo,
+	"{{.Name}}/main_test.go": templateContentsMainTestGo,
+	"{{.Name}}/state.go":     templateContentsStateGo,
 }
 
 const templateContentsMainGo = `package {{.Name}}
@@ -185,4 +193,25 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
 	return p.playerIndex
 }
+`
+
+const templateContentsMainTestGo = `package {{.Name}}
+
+import (
+	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/storage/memory"
+	"github.com/workfit/tester/assert"
+	"testing"
+)
+
+func TestNewManager(t *testing.T) {
+	manager, err := boardgame.NewGameManager(NewDelegate(), memory.NewStorageManager())
+
+	assert.For(t).ThatActual(manager).IsNotNil()
+
+	assert.For(t).ThatActual(err).IsNil()
+
+}
+
+
 `
