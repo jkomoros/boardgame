@@ -27,7 +27,11 @@ type FileContents map[string][]byte
 //wrapper around DefaultTemplateSet, templates.Generate(), and files.Format().
 func Generate(opt *Options) (FileContents, error) {
 
-	templates := DefaultTemplateSet()
+	templates, err := DefaultTemplateSet()
+
+	if err != nil {
+		return nil, errors.New("Default Template Set errored: " + err.Error())
+	}
 
 	if templates == nil {
 		return nil, errors.New("No templates returned")
