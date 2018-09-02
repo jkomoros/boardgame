@@ -177,6 +177,9 @@ import (
 type gameState struct {
 	//Use roundrobinhelpers so roundrobin moves can be used without any changes
 	roundrobinhelpers.BaseGameState
+	{{if not .SuppressCurrentPlayer -}}
+	CurrentPlayer boardgame.PlayerIndex
+	{{- end}}
 }
 
 //boardgame:codegen

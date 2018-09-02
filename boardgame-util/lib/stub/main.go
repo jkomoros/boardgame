@@ -26,6 +26,8 @@ type Options struct {
 	DefaultNumPlayers int
 	//If true, won't save main_test.go
 	SuppressTest bool
+	//If true, won't add a CurrentPlayer to gameState
+	SuppressCurrentPlayer bool
 }
 
 //FileContents is the generated contents of the files to later write to the

@@ -10,6 +10,7 @@ import (
 type gameState struct {
 	//Use roundrobinhelpers so roundrobin moves can be used without any changes
 	roundrobinhelpers.BaseGameState
+	CurrentPlayer boardgame.PlayerIndex
 }
 
 //boardgame:codegen
