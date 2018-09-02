@@ -15,12 +15,10 @@ const generateNewGolden = false
 
 const testDir = "test"
 
-func TestGenerate(t *testing.T) {
+func TestBasicGenerate(t *testing.T) {
 
 	opt := &Options{
-		Name:        "checkers",
-		DisplayName: "Checkers",
-		Description: "A classic game for two players where you advance across the board, capturing the other player's pawns",
+		Name: "checkers",
 	}
 
 	tmpls, err := DefaultTemplateSet(opt)
@@ -34,26 +32,47 @@ func TestGenerate(t *testing.T) {
 	assert.For(t).ThatActual(len(contents)).DoesNotEqual(0)
 
 	assert.For(t).ThatActual(contents["checkers/main.go"]).IsNotNil()
+}
 
-	//Now that we unit tested underlying stuff, use Generate() top level,
-	//which also formats.
+func TestGolden(t *testing.T) {
 
-	contents, err = Generate(opt)
+	tests := map[string]*Options{
+		"base": {
+			Name:        "checkers",
+			DisplayName: "Checkers",
+			Description: "A classic game for two players where you advance across the board, capturing the other player's pawns",
+		},
+		"no_description": {
+			Name: "checkers",
+		},
+	}
 
-	assert.For(t).ThatActual(err).IsNil()
+	for name, opt := range tests {
+		compareGolden(t, name, opt)
+	}
+
+}
+
+func compareGolden(t *testing.T, name string, opt *Options) {
+
+	contents, err := Generate(opt)
+
+	assert.For(t, name).ThatActual(err).IsNil()
+
+	dir := filepath.Join(testDir, name)
 
 	if generateNewGolden {
 
 		//Save out contents as new golden files to compare against
-		contents.Save(testDir, true)
+		contents.Save(dir, true)
 		return
 	}
 
-	golden, err := fileContentsFromDir(testDir)
+	golden, err := fileContentsFromDir(dir)
 
-	assert.For(t).ThatActual(err).IsNil()
+	assert.For(t, name).ThatActual(err).IsNil()
 
-	assert.For(t).ThatActual(contents).Equals(golden).ThenDiffOnFail()
+	assert.For(t, name).ThatActual(contents).Equals(golden).ThenDiffOnFail()
 
 }
 
