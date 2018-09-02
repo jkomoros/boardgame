@@ -1,6 +1,7 @@
 package stub
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"github.com/workfit/tester/assert"
@@ -104,9 +105,13 @@ func compareGolden(t *testing.T, name string, opt *Options) {
 		//equal was valid when generated.
 		cmd = exec.Command("go", "test")
 		cmd.Dir = filepath.Join(dir, opt.Name)
+		buf := &bytes.Buffer{}
+		cmd.Stderr = buf
 
 		if err := cmd.Run(); err != nil {
 			fmt.Println("New package didn't pass test: " + err.Error())
+			fmt.Println(buf.String())
+			t.FailNow()
 			return
 		}
 
