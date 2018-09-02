@@ -20,7 +20,7 @@ func TestGenerate(t *testing.T) {
 	tmpls, err := DefaultTemplateSet()
 
 	assert.For(t).ThatActual(err).IsNil()
-	assert.For(t).ThatActual(len(tmpls)).Equals(1)
+	assert.For(t).ThatActual(len(tmpls)).DoesNotEqual(0)
 
 	opt := &Options{
 		Name: "checkers",
@@ -29,7 +29,7 @@ func TestGenerate(t *testing.T) {
 	contents, err := tmpls.Generate(opt)
 
 	assert.For(t).ThatActual(err).IsNil()
-	assert.For(t).ThatActual(len(contents)).Equals(1)
+	assert.For(t).ThatActual(len(contents)).DoesNotEqual(0)
 
 	assert.For(t).ThatActual(contents["checkers/main.go"]).IsNotNil()
 

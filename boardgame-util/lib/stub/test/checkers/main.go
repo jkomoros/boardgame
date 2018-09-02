@@ -23,11 +23,13 @@ func (g *gameDelegate) Name() string {
 }
 
 func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
-	return nil
+	return new(gameState)
 }
 
 func (g *gameDelegate) PlayerStateConstructor(index boardgame.PlayerIndex) boardgame.ConfigurablePlayerState {
-	return nil
+	return &playerState{
+		playerIndex: index,
+	}
 }
 
 func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.ImmutableStack, error) {
