@@ -1,6 +1,7 @@
 package stub
 
 import (
+	"bytes"
 	"errors"
 	"text/template"
 )
@@ -28,7 +29,38 @@ func DefaultTemplateSet() (TemplateSet, error) {
 //options to expand. Names of files will also be run through templates and
 //expanded.
 func (t TemplateSet) Generate(opt *Options) (FileContents, error) {
-	return nil, errors.New("Not yet implemented")
+
+	result := make(FileContents)
+
+	for name, tmpl := range t {
+
+		nameTmpl := template.New("pass")
+		nameTmpl, err := nameTmpl.Parse(name)
+
+		if err != nil {
+			return nil, errors.New(name + " could not be intpreted as a template: " + err.Error())
+		}
+
+		buf := new(bytes.Buffer)
+
+		if err := nameTmpl.Execute(buf, opt); err != nil {
+			return nil, errors.New(name + " name template could not be executed: " + err.Error())
+		}
+
+		resolvedName := buf.String()
+
+		contentBuf := new(bytes.Buffer)
+
+		if err := tmpl.Execute(contentBuf, opt); err != nil {
+			return nil, errors.New(name + " template could not be executed: " + err.Error())
+		}
+
+		result[resolvedName] = contentBuf.Bytes()
+
+	}
+
+	return result, nil
+
 }
 
 var templateMap = map[string]string{
