@@ -42,7 +42,7 @@ func InteractiveOptions(in, out *os.File, gameName string) *Options {
 	result.MaxNumPlayers = max
 	result.DefaultNumPlayers = defaultNum
 
-	extras := getBool(out, in, "Generate extra defaults for currentplayers and phases?", true)
+	extras := getBool(out, in, "Generate useful extras like a test, CurrentPhase, and CurrentPlayer?", true)
 
 	if !extras {
 		result.SuppressExtras()
