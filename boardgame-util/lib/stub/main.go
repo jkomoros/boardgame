@@ -8,6 +8,7 @@ package stub
 import (
 	"errors"
 	"os"
+	"path/filepath"
 )
 
 type Options struct {
@@ -28,7 +29,15 @@ func Generate(opt *Options) (FileContents, error) {
 //directories. Dir is the prefix to join with each path in FileContents; "" is
 //fine. Will error if any of the files to create already exist. After saving,
 //runs `go generate`.
-func (f *FileContents) Save(dir string) error {
+func (f FileContents) Save(dir string) error {
+
+	for name := range f {
+		path := filepath.Join(dir, name)
+		if _, err := os.Stat(path); err == nil {
+			return errors.New(name + " already existed; save aborted")
+		}
+	}
+
 	return errors.New("Not yet implemented")
 }
 
