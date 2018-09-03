@@ -97,7 +97,9 @@ func parseNumPlayers(in string) (min, max, defaultNum int, err error) {
 
 func getString(out, in *os.File, prompt, defaultValue string) string {
 
-	if defaultValue != "" {
+	if defaultValue == "" {
+		prompt += " [press ENTER for blank]"
+	} else {
 		prompt += " [" + defaultValue + "]"
 	}
 
@@ -108,7 +110,7 @@ func getString(out, in *os.File, prompt, defaultValue string) string {
 
 	response = strings.TrimSpace(response)
 
-	if defaultValue != "" && response == "" {
+	if response == "" {
 		return defaultValue
 	}
 
