@@ -193,12 +193,29 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	auto := moves.NewAutoConfigurer(g)
 
 	return moves.Combine(
+		{{if .SuppressPhase }}
 		moves.Add(
 			auto.MustConfig(new(moves.NoOp),
 				with.MoveName("Example No Op Move"),
 				with.HelpText("This move is an example that is always legal and does nothing. It exists to show how to return moves and make sure 'go test' works from the beginning, but you should remove it."),
 			),
 		),
+		{{ else -}}
+		moves.AddOrderedForPhase(
+			PhaseSetUp,
+			{{if .EnableExampleDeck -}}
+			auto.MustConfig(new(moves.DealComponentsUntilPlayerCountReached),
+				with.GameStack("DrawDeck"),
+				with.PlayerStack("Hand"),
+				with.TargetCount(2),
+			),
+			{{- end -}}
+			auto.MustConfig(new(moves.StartPhase),
+				with.PhaseToStart(PhaseNormal, PhaseEnum),
+				with.HelpText("Move to the normal play phase."),
+			),
+		),
+		{{- end }}
 	)
 
 }
@@ -488,6 +505,12 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 	return game, players
 }
 
+{{if not .SuppressPhase }}
+func (g *gameState) SetCurrentPhase(phase int) {
+	g.Phase.SetValue(phase)
+}
+
+{{end}}
 {{if or .EnableExampleEndState .EnableExampleComputedProperties}}
 func (g *gameState) CardsDone() bool {
 	//It's common to hang computed properties and methods off of gameState and

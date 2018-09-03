@@ -32,6 +32,10 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 	return game, players
 }
 
+func (g *gameState) SetCurrentPhase(phase int) {
+	g.Phase.SetValue(phase)
+}
+
 func (g *gameState) CardsDone() bool {
 	//It's common to hang computed properties and methods off of gameState and
 	//playerState to use in logic elsewhere.

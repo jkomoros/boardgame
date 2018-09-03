@@ -39,10 +39,11 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	auto := moves.NewAutoConfigurer(g)
 
 	return moves.Combine(
-		moves.Add(
-			auto.MustConfig(new(moves.NoOp),
-				with.MoveName("Example No Op Move"),
-				with.HelpText("This move is an example that is always legal and does nothing. It exists to show how to return moves and make sure 'go test' works from the beginning, but you should remove it."),
+		moves.AddOrderedForPhase(
+			PhaseSetUp,
+			auto.MustConfig(new(moves.StartPhase),
+				with.PhaseToStart(PhaseNormal, PhaseEnum),
+				with.HelpText("Move to the normal play phase."),
 			),
 		),
 	)

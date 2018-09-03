@@ -27,6 +27,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	auto := moves.NewAutoConfigurer(g)
 
 	return moves.Combine(
+
 		moves.Add(
 			auto.MustConfig(new(moves.NoOp),
 				with.MoveName("Example No Op Move"),

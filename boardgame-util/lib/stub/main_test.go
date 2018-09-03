@@ -111,7 +111,7 @@ func compareGolden(t *testing.T, name string, opt *Options) {
 		cmd.Stderr = buf
 
 		if err := cmd.Run(); err != nil {
-			fmt.Println("New package didn't pass test: " + err.Error())
+			fmt.Println("New package didn't pass test: " + name + ": " + err.Error())
 			fmt.Println(buf.String())
 			t.FailNow()
 			return
