@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 type Serve struct {
@@ -73,7 +74,28 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 	cmd.Stdout = os.Stdout
 	cmd.Env = append(os.Environ(), "PORT="+port)
 
-	err = cmd.Run()
+	err = cmd.Start()
+
+	if err == nil {
+		topLine := "************************************************************************"
+
+		//Cheat and wait to print the message until later
+		time.Sleep(time.Millisecond * 250)
+
+		fmt.Println(" ")
+		fmt.Println(topLine)
+		for i := 0; i < 2; i++ {
+			fmt.Println("*")
+		}
+		fmt.Println("*     Server running. Open 'http://localhost:" + staticPort + "' in your browser")
+		for i := 0; i < 2; i++ {
+			fmt.Println("*")
+		}
+		fmt.Println(topLine)
+		fmt.Println(" ")
+
+		err = cmd.Wait()
+	}
 
 	if err != nil {
 		exitErr, ok := err.(*exec.ExitError)
