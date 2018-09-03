@@ -660,7 +660,7 @@ const templateContentsRenderPlayerInfoHtml = `<link rel="import" href="../../bow
 
 <dom-module id="boardgame-render-player-info-{{.Name}}">
   <template>
-    This is where you render info on player, typically using &gt;boardgame-status-text&lt;.
+    This is where you render info on player, typically using &lt;boardgame-status-text&gt;.
   </template>
 
   <script>
