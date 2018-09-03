@@ -22,6 +22,10 @@ func (g *gameDelegate) Name() string {
 	return "checkers"
 }
 
+func (g *gameDelegate) DisplayName() string {
+	return "Checkers"
+}
+
 func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
 	auto := moves.NewAutoConfigurer(g)

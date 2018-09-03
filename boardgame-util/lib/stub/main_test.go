@@ -51,7 +51,8 @@ func TestGolden(t *testing.T) {
 	minimalOptions.SuppressExtras()
 
 	tutorialOptions := &Options{
-		Name: "checkers",
+		Name:        "checkers",
+		DisplayName: "Checkers",
 	}
 
 	tutorialOptions.EnableTutorials()
