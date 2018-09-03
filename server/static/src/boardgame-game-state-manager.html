@@ -272,6 +272,7 @@
       }
 
       _expandMoveForms(moveForms) {
+        if (!moveForms) return null;
         for (let i = 0; i < moveForms.length; i++){
           let form = moveForms[i];
           for (let j = 0; j < form.Fields.length; j++) {
