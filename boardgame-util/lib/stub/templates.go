@@ -452,6 +452,16 @@ func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
 func (p *playerState) GameScore() int {
 	//DefaultGameDelegate's PlayerScore will use the GameScore() method on
 	//playerState automatically if it exists.
+
+	{{if .EnableExampleComputedProperties }}
+	//This method is exported as a computed property which means this method
+	//will be called on created states, including ones that are sanitized.
+	//Because Hand, as configured in the struct tag, will be sanitized 'len',
+	//sometimes the values we need to sum will be generic placeholder
+	//components. However, because newExampleCardDeck used SetGenericValues,
+	//we'll always have a *exampleCard, never nil, to cast to.
+	{{end}}
+
 	var sum int
 	for _, c := range p.Hand.Components() {
 		card := c.Values().(*exampleCard)
@@ -570,6 +580,15 @@ func newExampleCardDeck() *boardgame.Deck {
 			Value: i + 1,
 		})
 	}
+
+	//Set the value to return whenever the stack is sanitized. If we didn't
+	//set this then sometimes the ComponentValues in a stack would be nil when
+	//they are sanitized, which is error-prone for methods. It's always best
+	//to set a reasonable generic value so that methods can always assume non-
+	//nil ComponentValues.
+	deck.SetGenericValues(&exampleCard{
+		Value:0,
+	})
 
 	return deck
 }

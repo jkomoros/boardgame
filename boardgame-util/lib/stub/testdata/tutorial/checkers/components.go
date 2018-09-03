@@ -30,5 +30,14 @@ func newExampleCardDeck() *boardgame.Deck {
 		})
 	}
 
+	//Set the value to return whenever the stack is sanitized. If we didn't
+	//set this then sometimes the ComponentValues in a stack would be nil when
+	//they are sanitized, which is error-prone for methods. It's always best
+	//to set a reasonable generic value so that methods can always assume non-
+	//nil ComponentValues.
+	deck.SetGenericValues(&exampleCard{
+		Value: 0,
+	})
+
 	return deck
 }
