@@ -42,6 +42,7 @@ type Options struct {
 	EnableExampleComputedProperties     bool
 	EnableExampleConstants              bool
 	EnableExampleConfigs                bool
+	EnableExampleClient                 bool
 }
 
 //FileContents is the generated contents of the files to later write to the
@@ -72,6 +73,7 @@ func (o *Options) EnableTutorials() {
 	o.EnableExampleComputedProperties = true
 	o.EnableExampleConstants = true
 	o.EnableExampleConfigs = true
+	o.EnableExampleClient = true
 }
 
 //Validate verifies that Options is in a legal state. Makes sure Name exists
@@ -116,6 +118,15 @@ func (o *Options) Validate() error {
 
 	if o.EnableExampleConstants {
 		o.EnableExampleDeck = true
+	}
+
+	if o.EnableExampleClient {
+		o.EnableExampleDeck = true
+	}
+
+	if o.EnableExampleClient {
+		o.SuppressClientRenderGame = false
+		o.SuppressClientRenderPlayerInfo = false
 	}
 
 	if o.EnableExampleDeck {

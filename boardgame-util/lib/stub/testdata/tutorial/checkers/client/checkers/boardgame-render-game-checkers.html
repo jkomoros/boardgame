@@ -1,9 +1,47 @@
 <link rel="import" href="../../bower_components/polymer/polymer-element.html">
 <link rel="import" href="../../src/boardgame-base-game-renderer.html">
+<link rel="import" href="../../bower_components/polymer/lib/elements/dom-repeat.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../../src/boardgame-component-stack.html">
+<link rel="import" href="../../src/boardgame-card.html">
+<link rel="import" href="../../src/boardgame-deck-defaults.html">
+<link rel="import" href="../../src/boardgame-fading-text.html">
 
 <dom-module id="boardgame-render-game-checkers">
   <template>
-  This is where you game should render itself. See boardgame/server/README.md for more on the components you can use, or check out the examples in boardgame/examples.
+  
+  	
+  	<style>
+      #players {
+        @apply --layout-horizontal;
+        @apply --layout-center;
+      }
+      .flex {
+        @apply --layout-flex;
+      }
+      .player {
+        @apply --layout-vertical;
+      }
+    </style>
+    <boardgame-deck-defaults>
+      <template deck="examplecards">
+        <boardgame-card rank="{{item.Values.Value}}"></boardgame-card>
+      </template>
+    </boardgame-deck-defaults>
+    <boardgame-component-stack stack="{{state.Game.DrawDeck}}" layout="stack" messy></boardgame-component-stack>
+    <div id="players">
+      <template is="dom-repeat" items="{{state.Players}}">
+      	<div class="player flex">
+		    <strong>Player {{index}}</strong>
+		    <boardgame-component-stack stack="{{item.Hand}}" layout="fan" messy component-rotated>
+		    	<boardgame-fading-text trigger="{{item.GameScore}}" message="Busted!"></boardgame-fading-text>
+		    </boardgame-component-stack>
+	    </div>
+      </template>
+    </div>
+    <boardgame-fading-text trigger="{{isCurrentPlayer}}" message="Your Turn" suppress="falsey"></boardgame-fading-text>
+    
+  
   </template>
 
   <script>
