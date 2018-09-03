@@ -52,7 +52,7 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 		return nil, errors.New("That delegate has already been associated with another game manager.")
 	}
 
-	matched, err := regexp.MatchString(`^[0-9a-zA-Z_-]+$`, delegate.Name())
+	matched, err := regexp.MatchString(`^[0-9a-zA-Z]+$`, delegate.Name())
 
 	if err != nil {
 		return nil, errors.New("The legal name regexp failed: " + err.Error())

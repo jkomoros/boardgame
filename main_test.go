@@ -60,7 +60,7 @@ type testingComponentDynamic struct {
 	Enum   enum.Val
 }
 
-const testGameName = "test_game"
+const testGameName = "testgame"
 
 func (t *testingComponent) Reader() PropertyReader {
 	return getDefaultReader(t)
