@@ -776,7 +776,7 @@ const templateContentsRenderGameHtml = `<link rel="import" href="../../bower_com
       	<div class="player flex">
 		    <strong>Player {{index}}</strong>
 		    <boardgame-component-stack stack="{{item.Hand}}" layout="fan" messy component-rotated>
-		    	<boardgame-fading-text trigger="{{item.GameScore}}" message="Busted!"></boardgame-fading-text>
+		    	<boardgame-fading-text trigger="{{item.Computed.GameScore}}" auto-message="diff-up"></boardgame-fading-text>
 		    </boardgame-component-stack>
 	    </div>
       </template>
