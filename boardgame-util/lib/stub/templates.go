@@ -699,10 +699,19 @@ const templateContentsRenderGameHtml = `<link rel="import" href="../../bower_com
 `
 
 const templateContentsRenderPlayerInfoHtml = `<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+{{if .EnableExampleClient}}
+<link rel="import" href="../../src/boardgame-status-text.html">
+{{end}}
 
 <dom-module id="boardgame-render-player-info-{{.Name}}">
   <template>
+  	{{if .EnableExampleClient}}
+  	{{` + "`" + `
+  	Number of Cards <boardgame-status-text>{{playerState.Hand.Indexes.length}}</boardgame-status-text>
+  	` + "`" + `}}
+  	{{else}}
     This is where you render info on player, typically using &lt;boardgame-status-text&gt;.
+    {{end}}
   </template>
 
   <script>
@@ -712,6 +721,17 @@ const templateContentsRenderPlayerInfoHtml = `<link rel="import" href="../../bow
       static get is() {
         return "boardgame-render-player-info-{{.Name}}"
       }
+
+      {{if .EnableExampleClient}}
+      static get properties() {
+        return {
+          state: Object,
+          playerIndex: Number,
+          playerState: Object,
+        }
+      }
+      {{end}}
+
     }
 
     customElements.define(BoardgameRenderPlayerInfo{{uppercaseFirst .Name}}.is, BoardgameRenderPlayerInfo{{uppercaseFirst .Name}});

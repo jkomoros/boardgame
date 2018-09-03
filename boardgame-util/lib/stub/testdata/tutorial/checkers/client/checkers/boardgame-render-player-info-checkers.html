@@ -1,8 +1,15 @@
 <link rel="import" href="../../bower_components/polymer/polymer-element.html">
 
+<link rel="import" href="../../src/boardgame-status-text.html">
+
+
 <dom-module id="boardgame-render-player-info-checkers">
   <template>
-    This is where you render info on player, typically using &lt;boardgame-status-text&gt;.
+  	
+  	
+  	Number of Cards <boardgame-status-text>{{playerState.Hand.Indexes.length}}</boardgame-status-text>
+  	
+  	
   </template>
 
   <script>
@@ -12,6 +19,17 @@
       static get is() {
         return "boardgame-render-player-info-checkers"
       }
+
+      
+      static get properties() {
+        return {
+          state: Object,
+          playerIndex: Number,
+          playerState: Object,
+        }
+      }
+      
+
     }
 
     customElements.define(BoardgameRenderPlayerInfoCheckers.is, BoardgameRenderPlayerInfoCheckers);
