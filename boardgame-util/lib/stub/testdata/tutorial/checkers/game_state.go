@@ -36,6 +36,11 @@ func (g *gameState) SetCurrentPhase(phase int) {
 	g.Phase.SetValue(phase)
 }
 
+func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {
+	//Having this setter allows us to work with moves.TurnDone
+	g.CurrentPlayer = currentPlayer
+}
+
 func (g *gameState) CardsDone() bool {
 	//It's common to hang computed properties and methods off of gameState and
 	//playerState to use in logic elsewhere.

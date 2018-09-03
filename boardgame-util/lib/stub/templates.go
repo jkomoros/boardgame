@@ -521,6 +521,13 @@ func (g *gameState) SetCurrentPhase(phase int) {
 }
 
 {{end}}
+{{if not .SuppressCurrentPlayer}}
+func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {
+	//Having this setter allows us to work with moves.TurnDone
+	g.CurrentPlayer = currentPlayer
+}
+
+{{end}}
 {{if or .EnableExampleEndState .EnableExampleComputedProperties}}
 func (g *gameState) CardsDone() bool {
 	//It's common to hang computed properties and methods off of gameState and

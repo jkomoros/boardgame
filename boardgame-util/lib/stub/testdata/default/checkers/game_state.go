@@ -31,3 +31,8 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 func (g *gameState) SetCurrentPhase(phase int) {
 	g.Phase.SetValue(phase)
 }
+
+func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {
+	//Having this setter allows us to work with moves.TurnDone
+	g.CurrentPlayer = currentPlayer
+}
