@@ -67,13 +67,13 @@ func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 	}
 }
 
-func (g *gameDelegate) ConfigureConstants() map[string]interface{} {
+func (g *gameDelegate) ConfigureConstants() boardgame.PropertyCollection {
 
 	//ConfigureConstants isn't needed very often. It's useful to ensure a
 	//constant value is available client-side, or if you want to use the value
 	//in a struct tag.
 
-	return map[string]interface{}{
+	return boardgame.PropertyCollection{
 		"numCards": numCards,
 	}
 }

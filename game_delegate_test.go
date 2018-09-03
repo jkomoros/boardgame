@@ -23,8 +23,8 @@ func (t *testGameDelegate) ConfigureEnums() *enum.Set {
 	return testEnums
 }
 
-func (t *testGameDelegate) ConfigureConstants() map[string]interface{} {
-	return map[string]interface{}{
+func (t *testGameDelegate) ConfigureConstants() PropertyCollection {
+	return PropertyCollection{
 		"ConstantStackSize": 4,
 		"MyBool":            false,
 	}

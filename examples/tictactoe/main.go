@@ -139,8 +139,8 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	)
 }
 
-func (g *gameDelegate) ConfigureConstants() map[string]interface{} {
-	return map[string]interface{}{
+func (g *gameDelegate) ConfigureConstants() boardgame.PropertyCollection {
+	return boardgame.PropertyCollection{
 		"TOTAL_DIM": TOTAL_DIM,
 	}
 }

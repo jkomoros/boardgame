@@ -72,7 +72,7 @@ type GameDelegate interface {
 	//useful in two cases: first, when you want to have access to a constant
 	//value client-side, and second, when you want to be able to use a
 	//constant value in a tag-based struct inflater.
-	ConfigureConstants() map[string]interface{}
+	ConfigureConstants() PropertyCollection
 
 	//GameStateConstructor and PlayerStateConstructor are called to get an
 	//instantiation of the concrete game/player structs that your package
@@ -650,6 +650,6 @@ func (d *DefaultGameDelegate) ConfigureDecks() map[string]*Deck {
 //ConfigureConstants returns a zero-entry map. If you have any constants you
 //wa8nt to use client-side or in tag-based struct auto-inflaters, you will want
 //to override this.
-func (d *DefaultGameDelegate) ConfigureConstants() map[string]interface{} {
-	return make(map[string]interface{})
+func (d *DefaultGameDelegate) ConfigureConstants() PropertyCollection {
+	return nil
 }
