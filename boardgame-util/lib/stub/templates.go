@@ -650,7 +650,7 @@ const templateContentsRenderGameHtml = `<link rel="import" href="../../bower_com
 
     }
 
-    customElements.define(BoardgameRenderGame{{uppercaseFirst .Name}}.is, BoardgameRenderGame{{uppercaseFirst .Name}};
+    customElements.define(BoardgameRenderGame{{uppercaseFirst .Name}}.is, BoardgameRenderGame{{uppercaseFirst .Name}});
 
   </script>
 </dom-module>
