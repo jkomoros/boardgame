@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -145,6 +146,9 @@ func (o *Options) Validate() error {
 
 	return nil
 }
+
+var spaceReducer *regexp.Regexp
+var titleCaseReplacer *strings.Replacer
 
 //Generate generates FileContents for the given set of options. A convenience
 //wrapper around DefaultTemplateSet, templates.Generate(), and files.Format().

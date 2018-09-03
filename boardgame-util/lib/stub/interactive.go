@@ -25,9 +25,7 @@ func InteractiveOptions(in, out *os.File, gameName string) *Options {
 		Name: gameName,
 	}
 
-	if displayName := getString(out, in, "What is the human-readable display name for this game? (e.g. 'Checkers', 'Tic Tac Toe')", result.Name); displayName != result.Name {
-		result.DisplayName = displayName
-	}
+	result.DisplayName = getString(out, in, "What is the human-readable display name for this game? (e.g. 'Checkers', 'Tic Tac Toe')", strings.Title(gameName))
 
 	if description := getString(out, in, "What is the description of the game?", ""); description != "" {
 		result.Description = description
