@@ -137,9 +137,9 @@ var templateMap = map[string]string{
 	"{{.Name}}/main_test.go":    templateContentsMainTestGo,
 	"{{.Name}}/player_state.go": templateContentsPlayerStateGo,
 	"{{.Name}}/game_state.go":   templateContentsGameStateGo,
-	"{{.Name}}/moves.go":        templateContentsMovesGo,
-	"{{.Name}}/moves_setup.go":  templateContentsMovesGo,
-	"{{.Name}}/moves_normal.go": templateContentsMovesGo,
+	"{{.Name}}/moves.go":        templateContentsDefaultMovesGo,
+	"{{.Name}}/moves_setup.go":  templateContentsDefaultMovesGo,
+	"{{.Name}}/moves_normal.go": templateContentsNormalMovesGo,
 	"{{.Name}}/components.go":   templateContentComponentsGo,
 	"{{.Name}}/client/{{.Name}}/boardgame-render-game-{{.Name}}.html":        templateContentsRenderGameHtml,
 	"{{.Name}}/client/{{.Name}}/boardgame-render-player-info-{{.Name}}.html": templateContentsRenderPlayerInfoHtml,
@@ -204,17 +204,32 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		moves.AddOrderedForPhase(
 			PhaseSetUp,
 			{{if .EnableExampleDeck -}}
+			//This move will keep on applying itself in round robin fashion
+			//until all of the cards are dealt.
 			auto.MustConfig(new(moves.DealComponentsUntilPlayerCountReached),
 				with.GameStack("DrawStack"),
 				with.PlayerStack("Hand"),
 				with.TargetCount(2),
 			),
-			{{- end -}}
+			{{- end }}
+			//Because we used AddOrderedForPhase, this next move won't apply
+			//until the move before it is done applying.
 			auto.MustConfig(new(moves.StartPhase),
 				with.PhaseToStart(PhaseNormal, PhaseEnum),
 				with.HelpText("Move to the normal play phase."),
 			),
 		),
+		{{if .EnableExampleMoves }}
+		moves.AddForPhase(
+			PhaseNormal,
+			auto.MustConfig(new(moveDrawCard),
+				with.HelpText("Draw a card from the deck when it's your turn"),
+			),
+			//FinishTurn will advance to the next player automatically, when
+			//playerState.TurnDone() is true.
+			auto.MustConfig(new(moves.FinishTurn)),
+		),
+		{{- end}}
 		{{- end }}
 	)
 
@@ -432,6 +447,9 @@ const(
 const templateContentsPlayerStateGo = `package {{.Name}}
 
 import (
+	{{if .EnableExampleMoves}}
+	"errors"
+	{{end}}
 	"github.com/jkomoros/boardgame"
 )
 
@@ -441,6 +459,9 @@ type playerState struct {
 	playerIndex         boardgame.PlayerIndex
 	{{if .EnableExampleDeck -}}
 	Hand boardgame.Stack ` + "`stack:\"examplecards\" sanitize:\"len\"`" + `
+	{{- end}}
+	{{if .EnableExampleMoves -}}
+	HasDrawnCardThisTurn bool
 	{{- end}}
 }
 
@@ -468,6 +489,29 @@ func (p *playerState) GameScore() int {
 		sum += card.Value
 	}
 	return sum
+}
+
+{{end}}
+{{if .EnableExampleMoves}}
+//TurnDone returns true when this player's turn is done. moves.FinishTurn expects it.
+func (p *playerState) TurnDone() error {
+	if p.HasDrawnCardThisTurn {
+		return nil
+	}
+	return errors.New("Player hasn't drawn their card yet.")
+}
+
+//ResetForTurnStart is called by moves.FinishTurn when the player's turn has
+//just started,
+func (p *playerState) ResetForTurnStart() error {
+	p.HasDrawnCardThisTurn = false
+	return nil
+}
+
+//ResetForTurnEnd is called by moves.FinishTurn when the player's turn has
+//just finished,
+func (p *playerState) ResetForTurnEnd() error {
+	return nil
 }
 
 {{end}}
@@ -540,7 +584,7 @@ func (g *gameState) CardsDone() bool {
 
 `
 
-const templateContentsMovesGo = `package {{.Name}}
+const templateContentsDefaultMovesGo = `package {{.Name}}
 
 //TODO: define your move structs here. Don't forget the 'boardgame:codegen'
 //magic comment, and don't forget to return them from
@@ -551,6 +595,64 @@ const templateContentsMovesGo = `package {{.Name}}
 //the moves for that phase in it.
 {{- end}}
 
+`
+
+const templateContentsNormalMovesGo = `package {{.Name}}
+
+{{if .EnableExampleMoves}}
+import (
+	"errors"
+	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/moves"
+)
+{{end}}
+
+//TODO: define your move structs here. Don't forget the 'boardgame:codegen'
+//magic comment, and don't forget to return them from
+//delegate.ConfigureMoves().
+{{if not .SuppressPhase}}
+
+//Typically you create a separate file for moves of each major phase, and put
+//the moves for that phase in it.
+{{- end}}
+
+{{if .EnableExampleMoves}}
+//boardgame:codegen
+type moveDrawCard struct {
+	moves.CurrentPlayer
+}
+
+func (m *moveDrawCard) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	//There's important logic up the chain of move types; it's always
+	//important to call your parent's Legal. CurrentPlayer will ensure that
+	//it's the proposer's turn.
+	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
+		return err
+	}
+
+	game := state.ImmutableGameState().(*gameState)
+
+	if game.DrawStack.Len() < 1 {
+		return errors.New("No cards left to draw!")
+	}
+
+	return nil
+
+}
+
+func (m *moveDrawCard) Apply(state boardgame.State) error {
+	game := state.GameState().(*gameState)
+	player := state.CurrentPlayer().(*playerState)
+
+	if err := game.DrawStack.First().MoveToLastSlot(player.Hand); err != nil {
+		return err
+	}
+
+	player.HasDrawnCardThisTurn = true
+	return nil
+}
+
+{{end}}
 `
 
 const templateContentComponentsGo = `package {{.Name}}
@@ -668,7 +770,7 @@ const templateContentsRenderGameHtml = `<link rel="import" href="../../bower_com
         <boardgame-card rank="{{item.Values.Value}}"></boardgame-card>
       </template>
     </boardgame-deck-defaults>
-    <boardgame-component-stack stack="{{state.Game.DrawStack}}" layout="stack" messy></boardgame-component-stack>
+    <boardgame-component-stack stack="{{state.Game.DrawStack}}" layout="stack" messy` + "`" + `}}{{if .EnableExampleMoves}} component-propose-move="Draw Card"{{end}}{{` + "`" + `></boardgame-component-stack>
     <div id="players">
       <template is="dom-repeat" items="{{state.Players}}">
       	<div class="player flex">

@@ -43,6 +43,7 @@ type Options struct {
 	EnableExampleConstants              bool
 	EnableExampleConfigs                bool
 	EnableExampleClient                 bool
+	EnableExampleMoves                  bool
 }
 
 //FileContents is the generated contents of the files to later write to the
@@ -74,6 +75,7 @@ func (o *Options) EnableTutorials() {
 	o.EnableExampleConstants = true
 	o.EnableExampleConfigs = true
 	o.EnableExampleClient = true
+	o.EnableExampleMoves = true
 }
 
 //Validate verifies that Options is in a legal state. Makes sure Name exists
@@ -122,6 +124,14 @@ func (o *Options) Validate() error {
 
 	if o.EnableExampleClient {
 		o.EnableExampleDeck = true
+	}
+
+	if o.EnableExampleMoves {
+		o.EnableExampleDeck = true
+	}
+
+	if o.EnableExampleMoves {
+		o.SuppressPhase = false
 	}
 
 	if o.EnableExampleClient {

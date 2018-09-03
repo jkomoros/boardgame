@@ -1,14 +1,17 @@
 package checkers
 
 import (
+	"errors"
+
 	"github.com/jkomoros/boardgame"
 )
 
 //boardgame:codegen
 type playerState struct {
 	boardgame.BaseSubState
-	playerIndex boardgame.PlayerIndex
-	Hand        boardgame.Stack `stack:"examplecards" sanitize:"len"`
+	playerIndex          boardgame.PlayerIndex
+	Hand                 boardgame.Stack `stack:"examplecards" sanitize:"len"`
+	HasDrawnCardThisTurn bool
 }
 
 func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
@@ -32,4 +35,25 @@ func (p *playerState) GameScore() int {
 		sum += card.Value
 	}
 	return sum
+}
+
+//TurnDone returns true when this player's turn is done. moves.FinishTurn expects it.
+func (p *playerState) TurnDone() error {
+	if p.HasDrawnCardThisTurn {
+		return nil
+	}
+	return errors.New("Player hasn't drawn their card yet.")
+}
+
+//ResetForTurnStart is called by moves.FinishTurn when the player's turn has
+//just started,
+func (p *playerState) ResetForTurnStart() error {
+	p.HasDrawnCardThisTurn = false
+	return nil
+}
+
+//ResetForTurnEnd is called by moves.FinishTurn when the player's turn has
+//just finished,
+func (p *playerState) ResetForTurnEnd() error {
+	return nil
 }
