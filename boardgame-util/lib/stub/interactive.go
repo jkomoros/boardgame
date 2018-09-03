@@ -29,6 +29,10 @@ func InteractiveOptions(in, out *os.File, gameName string) *Options {
 		result.DisplayName = displayName
 	}
 
+	if description := getString(out, in, "What is the description of the game?", ""); description != "" {
+		result.Description = description
+	}
+
 	numPlayersString := getString(out, in, "Range of valid players counts", "2-4")
 
 	min, max, defaultNum, err := parseNumPlayers(numPlayersString)
