@@ -32,6 +32,8 @@ The `boardgame-util` command looks for configuration in json files when it runs 
 
 ## Quickstart servers
 
+*Note: this tutorial will walk you through real examples to introduce you to the concepts. If you want to start creating your own game based on a quick-start example you can modify, feel free to skip ahead to the "Creating your own game" section. *
+
 The quickest way to get a server running is via the `boardgame-util serve` command. 
 
 The command requires you have the `bower` command installed. If not, follow the instructions on `https://bower.io/` to install it.
@@ -1292,6 +1294,75 @@ memory's player-info just prints out the current score:
 
 The tictactoe example shows how to override the badge/chip color and text.
 
+## Creating your own game
+
+So far we've worked through an example game using a default config. But how do you set up your own game? In this section we'll describe all of the steps to take to get up and running.
+
+First, create a new directory where all of your new games will go. This will be your git repo.
+
+Before we go further we'll want to generate a config.json. In the tutorial to date we've been using the config.SAMPLE.json in the boardgame library.
+
+`boardgame-util` can help us create and modify config files, but we'll start from config.SAMPLE.json. Copy it over into your own repo, but call it just `config.PUBLIC.json`. The rest of the commands in this section assume you're sitting in the root of your new games repo.
+
+config.SAMPLE.json had a default storage type of `bolt` so that it was quick and easy to dive into the demo. But we'll want to use mysql.
+
+First, install mysql on your system and run it. The rest of the steps assume it's running on port 3306 (default) and has user: `root` and pass: `root`
+
+config.SAMPLE.json actually has a reasonable mysql connection string for development already, but the config selects `bolt` by default. Change it to mysql:
+
+```
+boardgame-util config set defaultstoragetype mysql
+```
+
+Now we need to set-up the tables we expect. `boardgame-util` can help us with that, too:
+
+```
+boardgame-util db setup
+```
+
+In the future if we upgrade the library, you can make sure your mysql tables are migrated to the most recent structure by runing `boardgame-util db up`. If they're already migrated it will have no effect.
+
+OK, now we should have mysql set up. Verify everything's working:
+
+```
+boardgame-util serve
+```
+
+When you actually push to production you'll need to set the production mysql config string. You'll run:
+
+```
+boardgame-util config set --secret --prod storage mysql USERNAME:PASSWORD@unix(CONNECTIONSTRING)/boardgame
+```
+
+See storage/mysql/README.md for more on the structure of that property.
+
+OK, so we have the server set up, but we don't have our own game. `boardgame-util` can help us generate a starter game.
+
+```
+boardgame-util stub examplegame
+```
+
+This will start an interactive prompt of a few questions. Feel free to hit [ENTER] to accept the default for each, with the exception of the question that asks if you want tutorial content--accept that. It generates a lot more example code.
+
+(In general if you aren't a beginner you want all of those deafults, but without tutorial content. You can pass `-f` to skip the interactive prompts and accept all of the defaults)
+
+This made a new directory called examplegame and filled it with lots of starter content to demonstrate how to wire up a complete simple game. 
+
+You still need to add it to your games list, so run:
+
+```
+boardgame-util config add games github.com/USERNAME/REPONAME/examplegame
+```
+
+Now you can see it by running `boardgame-util serve`.
+
+Remember that as you modify and recompile, you need to run `go generate` every time you modify the defined fields of a struct.
+
+`go test` in that directory will help verify that the game is set up reasonably.
+
+From here on out you can tweak the game and continue running `boardgame-util serve` to play with it!
+
+
 ## Other important concepts
 
 The sections above cover the information you almost always need to know to build a game from start to finish. However, there are other, slightly more complex features and concepts that are optional but sometimes useful for specific types of games. They're described in separate sections below.
@@ -1777,6 +1848,8 @@ When creating a new repo or game, it's strongly encouraged to add the following 
 That helps ensure that you don't accidentally check in secret things into version control, like production database DSNs.
 
 ### Creating a more production-ready server
+
+Check out the "Creating your own game" section above before reading this section.
 
 The default server in the tutorial uses the bolt db backend because it doesn't
 require much configuration. But in practice you'll probably want a mysql
