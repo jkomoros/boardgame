@@ -34,7 +34,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		moves.AddOrderedForPhase(
 			PhaseSetUp,
 			auto.MustConfig(new(moves.DealComponentsUntilPlayerCountReached),
-				with.GameStack("DrawDeck"),
+				with.GameStack("DrawStack"),
 				with.PlayerStack("Hand"),
 				with.TargetCount(2),
 			), auto.MustConfig(new(moves.StartPhase),
@@ -84,7 +84,7 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.Immutab
 
 	game := state.ImmutableGameState().(*gameState)
 	if c.Deck().Name() == exampleCardDeckName {
-		return game.DrawDeck, nil
+		return game.DrawStack, nil
 	}
 	return nil, errors.New("Unknown deck: " + c.Deck().Name())
 
@@ -119,7 +119,7 @@ func (g *gameDelegate) BeginSetUp(state boardgame.State, config boardgame.GameCo
 
 func (g *gameDelegate) FinishSetUp(state boardgame.State) error {
 	game := state.GameState().(*gameState)
-	return game.DrawDeck.Shuffle()
+	return game.DrawStack.Shuffle()
 }
 
 func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool {

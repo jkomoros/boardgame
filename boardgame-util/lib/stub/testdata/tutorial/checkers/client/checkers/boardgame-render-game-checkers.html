@@ -28,7 +28,7 @@
         <boardgame-card rank="{{item.Values.Value}}"></boardgame-card>
       </template>
     </boardgame-deck-defaults>
-    <boardgame-component-stack stack="{{state.Game.DrawDeck}}" layout="stack" messy></boardgame-component-stack>
+    <boardgame-component-stack stack="{{state.Game.DrawStack}}" layout="stack" messy></boardgame-component-stack>
     <div id="players">
       <template is="dom-repeat" items="{{state.Players}}">
       	<div class="player flex">

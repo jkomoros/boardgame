@@ -205,7 +205,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			PhaseSetUp,
 			{{if .EnableExampleDeck -}}
 			auto.MustConfig(new(moves.DealComponentsUntilPlayerCountReached),
-				with.GameStack("DrawDeck"),
+				with.GameStack("DrawStack"),
 				with.PlayerStack("Hand"),
 				with.TargetCount(2),
 			),
@@ -265,7 +265,7 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.Immutab
 	{{if .EnableExampleDeck -}}
 	game := state.ImmutableGameState().(*gameState)
 	if c.Deck().Name() == exampleCardDeckName {
-		return game.DrawDeck, nil
+		return game.DrawStack, nil
 	}
 	return nil, errors.New("Unknown deck: " + c.Deck().Name())
 	{{- else -}}
@@ -307,7 +307,7 @@ func (g *gameDelegate) BeginSetUp(state boardgame.State, config boardgame.GameCo
 {{if .EnableExampleDeck }}
 func (g *gameDelegate) FinishSetUp(state boardgame.State) error {
 	game := state.GameState().(*gameState)
-	return game.DrawDeck.Shuffle()
+	return game.DrawStack.Shuffle()
 }
 
 {{end}}
@@ -494,7 +494,7 @@ type gameState struct {
 	Phase enum.Val ` + "`enum:\"Phase\"`" + `
 	{{- end}}
 	{{if .EnableExampleDeck -}}
-	DrawDeck boardgame.Stack ` + "`stack:\"examplecards\"`" + `
+	DrawStack boardgame.Stack ` + "`stack:\"examplecards\" sanitize:\"len\"`" + `
 	{{- end}}
 	{{if .EnableExampleConfigs -}}
 	//This is where the example config is stored in BeginSetup. We use it in
@@ -526,7 +526,7 @@ func (g *gameState) CardsDone() bool {
 	//It's common to hang computed properties and methods off of gameState and
 	//playerState to use in logic elsewhere.
 
-	return g.DrawDeck.Len() == {{if .EnableExampleConfigs}}g.TargetCardsLeft{{else}}0{{end}}
+	return g.DrawStack.Len() == {{if .EnableExampleConfigs}}g.TargetCardsLeft{{else}}0{{end}}
 }
 
 {{end}}
@@ -661,7 +661,7 @@ const templateContentsRenderGameHtml = `<link rel="import" href="../../bower_com
         <boardgame-card rank="{{item.Values.Value}}"></boardgame-card>
       </template>
     </boardgame-deck-defaults>
-    <boardgame-component-stack stack="{{state.Game.DrawDeck}}" layout="stack" messy></boardgame-component-stack>
+    <boardgame-component-stack stack="{{state.Game.DrawStack}}" layout="stack" messy></boardgame-component-stack>
     <div id="players">
       <template is="dom-repeat" items="{{state.Players}}">
       	<div class="player flex">

@@ -13,8 +13,8 @@ type gameState struct {
 	//DefaultGameDelegate will automatically return this from CurrentPlayerIndex
 	CurrentPlayer boardgame.PlayerIndex
 	//DefaultGameDelegate will automatically return this from PhaseEnum, CurrentPhase.
-	Phase    enum.Val        `enum:"Phase"`
-	DrawDeck boardgame.Stack `stack:"examplecards"`
+	Phase     enum.Val        `enum:"Phase"`
+	DrawStack boardgame.Stack `stack:"examplecards" sanitize:"len"`
 	//This is where the example config is stored in BeginSetup. We use it in
 	//gameState.CardsDone().
 	TargetCardsLeft int
@@ -40,5 +40,5 @@ func (g *gameState) CardsDone() bool {
 	//It's common to hang computed properties and methods off of gameState and
 	//playerState to use in logic elsewhere.
 
-	return g.DrawDeck.Len() == g.TargetCardsLeft
+	return g.DrawStack.Len() == g.TargetCardsLeft
 }

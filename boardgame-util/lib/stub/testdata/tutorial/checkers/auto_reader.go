@@ -974,7 +974,7 @@ func (e *exampleCardDynamicValues) ReadSetConfigurer() boardgame.PropertyReadSet
 
 var __gameStateReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
 	"CurrentPlayer":   boardgame.TypePlayerIndex,
-	"DrawDeck":        boardgame.TypeStack,
+	"DrawStack":       boardgame.TypeStack,
 	"Phase":           boardgame.TypeEnum,
 	"RRHasStarted":    boardgame.TypeBool,
 	"RRLastPlayer":    boardgame.TypePlayerIndex,
@@ -1034,7 +1034,7 @@ func (g *__gameStateReader) PropMutable(name string) bool {
 	switch name {
 	case "CurrentPlayer":
 		return true
-	case "DrawDeck":
+	case "DrawStack":
 		return true
 	case "Phase":
 		return true
@@ -1453,8 +1453,8 @@ func (g *__gameStateReader) SetPlayerIndexSliceProp(name string, value []boardga
 func (g *__gameStateReader) ImmutableStackProp(name string) (boardgame.ImmutableStack, error) {
 
 	switch name {
-	case "DrawDeck":
-		return g.data.DrawDeck, nil
+	case "DrawStack":
+		return g.data.DrawStack, nil
 
 	}
 
@@ -1465,8 +1465,8 @@ func (g *__gameStateReader) ImmutableStackProp(name string) (boardgame.Immutable
 func (g *__gameStateReader) ConfigureStackProp(name string, value boardgame.Stack) error {
 
 	switch name {
-	case "DrawDeck":
-		g.data.DrawDeck = value
+	case "DrawStack":
+		g.data.DrawStack = value
 		return nil
 
 	}
@@ -1478,7 +1478,7 @@ func (g *__gameStateReader) ConfigureStackProp(name string, value boardgame.Stac
 func (g *__gameStateReader) ConfigureImmutableStackProp(name string, value boardgame.ImmutableStack) error {
 
 	switch name {
-	case "DrawDeck":
+	case "DrawStack":
 		return boardgame.ErrPropertyImmutable
 
 	}
@@ -1490,8 +1490,8 @@ func (g *__gameStateReader) ConfigureImmutableStackProp(name string, value board
 func (g *__gameStateReader) StackProp(name string) (boardgame.Stack, error) {
 
 	switch name {
-	case "DrawDeck":
-		return g.data.DrawDeck, nil
+	case "DrawStack":
+		return g.data.DrawStack, nil
 
 	}
 
