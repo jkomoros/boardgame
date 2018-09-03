@@ -21,6 +21,7 @@ A comprehensive getting started guide, including a walkthrough of all of the imp
 - **Fast** Minimal reliance on features like reflection at runtime
 - **Minimize Javascript** Most client-side views are 10's of lines of templates and databinding, sometimes without any javascript at all
 - **Rich animations and UI** Common operations like cards moving between stacks should make use of flexible, fast animations computed automatically
+- **Robust tooling** A swiss-army-knife utility called `boardgame-util` makes it easy to generate boilerplate code, generate starter projects, run development servers, make sure the database is structured well, and more.
 
 ## Status
 
