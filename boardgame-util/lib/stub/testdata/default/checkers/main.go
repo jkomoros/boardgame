@@ -34,17 +34,19 @@ func (g *gameDelegate) DisplayName() string {
 func (g *gameDelegate) Description() string {
 	return "A classic game for two players where you advance across the board, capturing the other player's pawns"
 }
+func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
-func (g *gameDelegate) MinNumPlayers() int {
-	return 2
-}
+	auto := moves.NewAutoConfigurer(g)
 
-func (g *gameDelegate) MaxNumPlayers() int {
-	return 4
-}
+	return moves.Combine(
+		moves.Add(
+			auto.MustConfig(new(moves.NoOp),
+				with.MoveName("Example No Op Move"),
+				with.HelpText("This move is an example that is always legal and does nothing. It exists to show how to return moves and make sure 'go test' works from the beginning, but you should remove it."),
+			),
+		),
+	)
 
-func (g *gameDelegate) DefaultNumPlayers() int {
-	return 2
 }
 
 func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
@@ -63,19 +65,14 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.Immutab
 
 }
 
-func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
-
-	auto := moves.NewAutoConfigurer(g)
-
-	return moves.Combine(
-		moves.Add(
-			auto.MustConfig(new(moves.NoOp),
-				with.MoveName("Example No Op Move"),
-				with.HelpText("This move is an example that is always legal and does nothing. It exists to show how to return moves and make sure 'go test' works from the beginning, but you should remove it."),
-			),
-		),
-	)
-
+func (g *gameDelegate) DefaultNumPlayers() int {
+	return 2
+}
+func (g *gameDelegate) MinNumPlayers() int {
+	return 2
+}
+func (g *gameDelegate) MaxNumPlayers() int {
+	return 4
 }
 
 func NewDelegate() boardgame.GameDelegate {

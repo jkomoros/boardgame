@@ -186,26 +186,44 @@ func (g *gameDelegate) DisplayName() string {
 func (g *gameDelegate) Description() string {
 	return "{{.Description}}"
 }
-{{- end}}
 
-{{if .MinNumPlayers -}}
-func (g *gameDelegate) MinNumPlayers() int {
-	return {{.MinNumPlayers}}
+{{- end}}
+func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
+
+	auto := moves.NewAutoConfigurer(g)
+
+	return moves.Combine(
+		moves.Add(
+			auto.MustConfig(new(moves.NoOp),
+				with.MoveName("Example No Op Move"),
+				with.HelpText("This move is an example that is always legal and does nothing. It exists to show how to return moves and make sure 'go test' works from the beginning, but you should remove it."),
+			),
+		),
+	)
+
 }
-{{- end}}
 
-{{if .MaxNumPlayers -}}
-func (g *gameDelegate) MaxNumPlayers() int {
-	return {{.MaxNumPlayers}}
+{{if .EnableExampleDeck }}
+func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
+	return map[string]*boardgame.Deck{
+		exampleCardDeckName: newExampleCardDeck(),
+	}
 }
-{{- end}}
 
-{{if .DefaultNumPlayers -}}
-func (g *gameDelegate) DefaultNumPlayers() int {
-	return {{.DefaultNumPlayers}}
+{{end}}
+{{if .EnableExampleConstants }}
+func (g *gameDelegate) ConfigureConstants() map[string]interface{} {
+
+	//ConfigureConstants isn't needed very often. It's useful to ensure a
+	//constant value is available client-side, or if you want to use the value
+	//in a struct tag.
+
+	return map[string]interface{}{
+		"numCards": numCards,
+	}
 }
-{{- end}}
 
+{{end}}
 func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
 	return new(gameState)
 }
@@ -239,29 +257,40 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.Immutab
 
 }
 
+{{if .EnableExampleConfigs}}
+func (g *gameDelegate) BeginSetUp(state boardgame.State, config boardgame.GameConfig) error {
+
+	//This is the only time that config is passed in, so we need to interpret
+	//it now and set it as a property in GameState.
+	targetCardsLeftVal := config[configKeyTargetCardsLeft]
+	if targetCardsLeftVal == "" {
+		targetCardsLeftVal = configTargetCardsLeftDefault
+	}
+
+	var targetCardsLeft int
+
+	switch targetCardsLeftVal {
+	case configTargetCardsLeftShort:
+		targetCardsLeft = 2
+	case configTargetCardsLeftDefault:
+		targetCardsLeft = 0
+	default: 
+		return errors.New("Unknown value for " + configKeyTargetCardsLeft + ": " + targetCardsLeftVal)
+	}
+
+	game := state.GameState().(*gameState)
+	game.TargetCardsLeft = targetCardsLeft
+
+	return nil
+
+}
+
+{{end}}
+
 {{if .EnableExampleDeck }}
 func (g *gameDelegate) FinishSetUp(state boardgame.State) error {
 	game := state.GameState().(*gameState)
 	return game.DrawDeck.Shuffle()
-}
-
-func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
-	return map[string]*boardgame.Deck{
-		exampleCardDeckName: newExampleCardDeck(),
-	}
-}
-
-{{end}}
-{{if .EnableExampleConstants }}
-func (g *gameDelegate) ConfigureConstants() map[string]interface{} {
-
-	//ConfigureConstants isn't needed very often. It's useful to ensure a
-	//constant value is available client-side, or if you want to use the value
-	//in a struct tag.
-
-	return map[string]interface{}{
-		"numCards": numCards,
-	}
 }
 
 {{end}}
@@ -275,32 +304,24 @@ func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool 
 }
 
 {{end}}
-{{if .EnableExampleComputedProperties}}
-func (g *gameDelegate) ComputedPlayerProperties(player boardgame.ImmutablePlayerState) boardgame.PropertyCollection {
-
-	//ComputedProperties are mostly useful when a given state object's
-	//computed property is useful clientside, too.
-
-	p := player.(*playerState)
-
-	return boardgame.PropertyCollection{
-		"GameScore": p.GameScore(),
-	}
+{{if .DefaultNumPlayers -}}
+func (g *gameDelegate) DefaultNumPlayers() int {
+	return {{.DefaultNumPlayers}}
 }
 
-func (g *gameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) boardgame.PropertyCollection {
-	
-	//ComputedProperties are mostly useful when a given state object's
-	//computed property is useful clientside, too.
-
-	game := state.ImmutableGameState().(*gameState)
-
-	return boardgame.PropertyCollection{
-		"CardsDone": game.CardsDone(),
-	}
+{{- end}}
+{{if .MinNumPlayers -}}
+func (g *gameDelegate) MinNumPlayers() int {
+	return {{.MinNumPlayers}}
 }
 
-{{end}}
+{{- end}}
+{{if .MaxNumPlayers -}}
+func (g *gameDelegate) MaxNumPlayers() int {
+	return {{.MaxNumPlayers}}
+}
+
+{{- end}}
 {{if .EnableExampleConfigs}}
 
 //values for the config setup
@@ -346,49 +367,33 @@ func (g *gameDelegate) ConfigValueDisplay(key, val string) (displayName, descrip
 	return "", ""
 }
 
-func (g *gameDelegate) BeginSetUp(state boardgame.State, config boardgame.GameConfig) error {
+{{end}}
+{{if .EnableExampleComputedProperties}}
+func (g *gameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) boardgame.PropertyCollection {
+	
+	//ComputedProperties are mostly useful when a given state object's
+	//computed property is useful clientside, too.
 
-	//This is the only time that config is passed in, so we need to interpret
-	//it now and set it as a property in GameState.
-	targetCardsLeftVal := config[configKeyTargetCardsLeft]
-	if targetCardsLeftVal == "" {
-		targetCardsLeftVal = configTargetCardsLeftDefault
+	game := state.ImmutableGameState().(*gameState)
+
+	return boardgame.PropertyCollection{
+		"CardsDone": game.CardsDone(),
 	}
+}
 
-	var targetCardsLeft int
+func (g *gameDelegate) ComputedPlayerProperties(player boardgame.ImmutablePlayerState) boardgame.PropertyCollection {
 
-	switch targetCardsLeftVal {
-	case configTargetCardsLeftShort:
-		targetCardsLeft = 2
-	case configTargetCardsLeftDefault:
-		targetCardsLeft = 0
-	default: 
-		return errors.New("Unknown value for " + configKeyTargetCardsLeft + ": " + targetCardsLeftVal)
+	//ComputedProperties are mostly useful when a given state object's
+	//computed property is useful clientside, too.
+
+	p := player.(*playerState)
+
+	return boardgame.PropertyCollection{
+		"GameScore": p.GameScore(),
 	}
-
-	game := state.GameState().(*gameState)
-	game.TargetCardsLeft = targetCardsLeft
-
-	return nil
-
 }
 
 {{end}}
-func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
-
-	auto := moves.NewAutoConfigurer(g)
-
-	return moves.Combine(
-		moves.Add(
-			auto.MustConfig(new(moves.NoOp),
-				with.MoveName("Example No Op Move"),
-				with.HelpText("This move is an example that is always legal and does nothing. It exists to show how to return moves and make sure 'go test' works from the beginning, but you should remove it."),
-			),
-		),
-	)
-
-}
-
 func NewDelegate() boardgame.GameDelegate {
 	return &gameDelegate{}
 }
