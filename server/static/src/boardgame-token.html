@@ -3,18 +3,18 @@
 
 <dom-module id="boardgame-token">
 
-	<template>
-		<style>
+  <template>
+    <style>
 
-		#inner {
-			height: var(--component-effective-height);
-			width: var(--component-effective-width);
-		}
+    #inner {
+      height: var(--component-effective-height);
+      width: var(--component-effective-width);
+    }
 
-		#inner img {
-			height: 100%;
-			width: 100%;
-		}
+    #inner img {
+      height: 100%;
+      width: 100%;
+    }
 
     #outer.pawn {
       --component-aspect-ratio:2.0;
@@ -32,7 +32,7 @@
       animation-iteration-count: infinite;
     }
 
-		#outer.active #inner {
+    #outer.active #inner {
 
       --throb-color-from: rgba(136,136,38,1.0);
       --throb-color-to: rgba(136,136,38,0.5);
@@ -96,48 +96,48 @@
       filter: saturate(0.0) brightness(1.7);
     }
 
-		</style>
-		<div id="import">
-			<img src="{{_asset}}">
-		</div>
-	</template>
+    </style>
+    <div id="import">
+      <img src="{{_asset}}">
+    </div>
+  </template>
 
   <script>
 
-  	(function() {
+    (function() {
 
-  		let memoizedTemplate;
+      let memoizedTemplate;
 
-	    class BoardgameToken extends BoardgameComponent {
+      class BoardgameToken extends BoardgameComponent {
 
-	    	static get properties() {
-	    		return {
+        static get properties() {
+          return {
             //Color to set. One of the colors returned by legalColors.
-	    			color: {
-	    				type: String,
-	    				value: "red",
-	    			},
-	    			//Active changes the styling to make it clear the thing is selcted
-	    			active: Boolean,
-	    			//highlighted has a different visual style than active. different
-	    			//games will use it for different things.
-	    			highlighted: Boolean,
+            color: {
+              type: String,
+              value: "red",
+            },
+            //Active changes the styling to make it clear the thing is selcted
+            active: Boolean,
+            //highlighted has a different visual style than active. different
+            //games will use it for different things.
+            highlighted: Boolean,
             //The type of token. Supported values: "token" (default), "chip",
             //"cube", "pawn", "meeple"
-	    			type: {
-	    				type: String,
-	    				value: "token",
-	    			},
-	    			_asset: {
-	    				type: String,
-	    				computed: "_computeAsset(type)"
-	    			}
-	    		}
-	    	}
+            type: {
+              type: String,
+              value: "token",
+            },
+            _asset: {
+              type: String,
+              computed: "_computeAsset(type)"
+            }
+          }
+        }
 
-	      static get is() {
-	        return "boardgame-token"
-	      }
+        static get is() {
+          return "boardgame-token"
+        }
 
         get legalTypes() {
           return [
@@ -164,7 +164,7 @@
           ]
         }
 
-	      static get template() {
+        static get template() {
           if (!memoizedTemplate) {
             memoizedTemplate = BoardgameComponent.combinedTemplate(Polymer.DomModule.import(this.is, 'template'));
           }
@@ -184,28 +184,28 @@
         }
 
         _computeAsset(type) {
-    			return this.resolveUrl("assets/token_" + type + ".svg")    
+          return this.resolveUrl("assets/token_" + type + ".svg")    
         }
 
         //Override _computeClasses and add some more.
         _computeClasses() {
-        	let result = [this.color];
-        	if (this.active) {
-        		result.push("active");
-        	}
-        	if (this.highlighted) {
-        		result.push("highlighted");
-        	}
-        	result.push(this.type);
+          let result = [this.color];
+          if (this.active) {
+            result.push("active");
+          }
+          if (this.highlighted) {
+            result.push("highlighted");
+          }
+          result.push(this.type);
           result.push(super._computeClasses());
           return result.join(" ");
         }
 
 
-	    }
+      }
 
-	    customElements.define(BoardgameToken.is, BoardgameToken);
+      customElements.define(BoardgameToken.is, BoardgameToken);
 
-	  })();
+    })();
   </script>
 </dom-module>
