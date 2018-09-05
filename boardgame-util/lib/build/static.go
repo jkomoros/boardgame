@@ -33,6 +33,7 @@ var filesToExclude map[string]bool = map[string]bool{
 	//Don't copy over because we'll generate our own; if we copy over and
 	//generate our own we'll overwrite original.
 	configJsFileName: true,
+	".DS_Store":      true,
 }
 
 //SimpleStaticServer creates and runs a simple static server. directory is the
@@ -99,8 +100,10 @@ func SimpleStaticServer(directory string, port string) error {
 //was an error. You can clean up the created folder structure with
 //CleanStatic. If forceBower is true, will force update bower_components even
 //if it appears to already exist. If prodBuild is true, then `polymer build`
-//will be run.
-func Static(directory string, managers []string, c *config.Config, forceBower bool, prodBuild bool) (assetRoot string, err error) {
+//will be run. If copyFiles is true, instead of symlinking the files it will
+//copy them (directories will still be symlinked). This is good if you intend
+//to modify the files.
+func Static(directory string, managers []string, c *config.Config, forceBower bool, prodBuild bool, copyFiles bool) (assetRoot string, err error) {
 
 	if err := ensureBowerComponents(forceBower); err != nil {
 		return "", errors.New("bower_components couldn't be created: " + err.Error())
@@ -173,9 +176,17 @@ func Static(directory string, managers []string, c *config.Config, forceBower bo
 			//Must already exist, so can skip
 			continue
 		}
-		fmt.Println("Linking " + localPath + " to " + relRemotePath)
-		if err := os.Symlink(relRemotePath, localPath); err != nil {
-			return "", errors.New("Couldn't link " + name + ": " + err.Error())
+
+		if copyFiles && !info.IsDir() {
+			fmt.Println("Copying " + localPath + " to " + relRemotePath)
+			if err := copyFile(absRemotePath, localPath); err != nil {
+				return "", errors.New("Couldn't copy " + name + ": " + err.Error())
+			}
+		} else {
+			fmt.Println("Linking " + localPath + " to " + relRemotePath)
+			if err := os.Symlink(relRemotePath, localPath); err != nil {
+				return "", errors.New("Couldn't link " + name + ": " + err.Error())
+			}
 		}
 
 	}
@@ -203,6 +214,30 @@ func Static(directory string, managers []string, c *config.Config, forceBower bo
 	}
 
 	return staticDir, nil
+
+}
+
+//copyFile copies the file at location remote to location local, copying
+//cotents and perms.
+func copyFile(remote, local string) error {
+
+	info, err := os.Stat(remote)
+
+	if err != nil {
+		return errors.New("Couldn't get info for remote: " + err.Error())
+	}
+
+	contents, err := ioutil.ReadFile(remote)
+
+	if err != nil {
+		return errors.New("Couldn't read file " + remote + ": " + err.Error())
+	}
+
+	if err := ioutil.WriteFile(local, contents, info.Mode()); err != nil {
+		return errors.New("Couldn't write file: " + err.Error())
+	}
+
+	return nil
 
 }
 

@@ -10,6 +10,7 @@ type BuildStatic struct {
 	baseSubCommand
 
 	ForceBower bool
+	CopyFiles  bool
 	Prod       bool
 }
 
@@ -21,7 +22,7 @@ func (b *BuildStatic) Run(p writ.Path, positional []string) {
 
 	mode := config.Dev
 
-	staticPath, err := build.Static(dir, mode.Games, config, b.ForceBower, b.Prod)
+	staticPath, err := build.Static(dir, mode.Games, config, b.ForceBower, b.Prod, b.CopyFiles)
 
 	if err != nil {
 		b.Base().errAndQuit("Couldn't create static directory: " + err.Error())
@@ -63,6 +64,12 @@ func (b *BuildStatic) WritOptions() []*writ.Option {
 			Names:       []string{"prod", "p"},
 			Description: "If provided, will created bundled build directory for static resources.",
 			Decoder:     writ.NewFlagDecoder(&b.Prod),
+			Flag:        true,
+		},
+		{
+			Names:       []string{"copy-files"},
+			Description: "If provided, will copy files instead of symlinking them.",
+			Decoder:     writ.NewFlagDecoder(&b.CopyFiles),
 			Flag:        true,
 		},
 	}
