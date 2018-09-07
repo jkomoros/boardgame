@@ -1,0 +1,250 @@
+/**
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+*/
+import { Element } from '@polymer/polymer/polymer-element.js';
+
+import '@polymer/polymer/lib/elements/dom-if.js';
+import '@polymer/polymer/lib/elements/dom-repeat.js';
+import './boardgame-player-roster.js';
+import './shared-styles.js';
+import './boardgame-render-game.js';
+import './boardgame-admin-controls.js';
+import './boardgame-game-state-manager.js';
+import { html } from '@polymer/polymer/lib/utils/html-tag.js';
+
+class BoardgameGameView extends Element {
+  static get template() {
+    return html`
+    <style include="shared-styles iron-flex">
+      :host {
+        display: block;
+        --animation-length: 0.5s;
+      }
+
+      [hidden] {
+        display:none !important;
+      }
+
+      #moves > details {
+        margin-left:1em;
+      }
+
+      .admin > div:first-child {
+        margin-left: 0;
+      }
+
+      .admin > div {
+        margin-left:1em;
+      }
+
+      .card {
+        position:relative;
+      }
+    </style>
+
+    <div class="card">
+      <boardgame-player-roster id="player" logged-in="{{loggedIn}}" game-route="[[gameRoute]]" viewing-as-player="{{viewingAsPlayer}}" has-empty-slots="{{hasEmptySlots}}" game-open="{{gameOpen}}" game-visible="{{gameVisible}}" current-player-index="{{game.CurrentPlayerIndex}}" players-info="[[playersInfo]]" state="{{currentState}}" finished="[[game.Finished]]" winners="[[game.Winners]]" admin="{{admin}}" is-owner="{{isOwner}}" active="[[selected]]"></boardgame-player-roster>
+    </div>
+    <div class="card">
+      <boardgame-render-game state="{{currentState}}" diagram="{{game.Diagram}}" game-name="[[gameRoute.name]]" viewing-as-player="{{viewingAsPlayer}}" current-player-index="{{game.CurrentPlayerIndex}}" socket-active="{{socketActive}}" active="[[selected]]" chest="[[chest]]"></boardgame-render-game>
+    </div>
+    <boardgame-admin-controls id="admin" active="{{admin}}" game="[[game]]" viewing-as-player="[[viewingAsPlayer]]" move-forms="[[moveForms]]" game-route="[[gameRoute]]" chest="[[chest]]" game-state="[[gameState]]" requested-player="{{requestedPlayer}}" auto-current-player="{{autoCurrentPlayer}}"></boardgame-admin-controls>
+    <boardgame-game-state-manager id="manager" game-route="[[gameRoute]]" requested-player="[[requestedPlayer]]" active="[[selected]]" admin="[[admin]]" game-finished="[[game.Finished]]" game-version="[[game.Version]]" logged-in="[[loggedIn]]" auto-current-player="{{autoCurrentPlayer}}" viewing-as-player="[[viewingAsPlayer]]" socket-active="{{socketActive}}"></boardgame-game-state-manager>
+`;
+  }
+
+  static get is() {
+    return "boardgame-game-view"
+  }
+
+  static get properties() {
+    return {
+
+      requestedPlayer: {
+        type: Number,
+        value: 0,
+      },
+      gameState : String,
+      game: Object,
+      currentState: Object,
+      chest : Object,
+      playersInfo: Array,
+      hasEmptySlots: Boolean,
+      gameOpen: Boolean,
+      gameVisible: Boolean,
+      isOwner: Boolean,
+      gameRoute: {
+        type: Object,
+        observer: "_gameRouteChanged"
+      },
+      autoCurrentPlayer: Boolean,
+      admin: Boolean,
+      selected: {
+        type: Boolean,
+        observer: "_selectedChanged",
+      },
+      loggedIn: Boolean,
+      promptedToJoin: {
+        type: Boolean,
+        value: false,
+      },
+      pathsToTick: {
+        type: Array
+      },
+      originalWallClockStartTime: {
+        type: Number
+      },
+      viewingAsPlayer: {
+        type: Number,
+        value: 0,
+      },
+      moveForms: Object,
+      socketActive: Boolean,
+      _firstStateBundle: {
+        type: Boolean,
+        value: true,
+      }
+    }
+  }
+
+  ready() {
+    super.ready();
+
+    this.addEventListener('propose-move', e => this.handleProposeMove(e));
+    this.addEventListener('refresh-info', e => this._handleRefreshData(e));
+    this.addEventListener('install-state-bundle', e => this._handleStateBundle(e));
+    this.addEventListener('install-game-static-info', e => this._handleGameStaticInfo(e));
+  }
+
+  _handleRefreshData(e) {
+    this.$.manager.fetchInfo();
+  }
+
+  handleProposeMove(e) {
+    let adminEle = this.shadowRoot.querySelector("#admin");
+
+    if (!adminEle) {
+      console.warn("propose-move fired, but no moves element to forward to.");
+      return;
+    }
+
+    adminEle.proposeMove(e.detail.name, e.detail.arguments);
+  }
+
+  _selectedChanged(newValue) {
+    if (!newValue) {
+      this._resetState();
+    }
+  }
+
+  _gameRouteChanged() {
+    //reset this so the next time we get data set and notice that we COULD
+    //login we prompt for it.
+    this.promptedToJoin = false;
+    this._resetState();
+  }
+
+  doTick() {
+    this._tick();
+    if (this.pathsToTick.length > 0) {
+      window.requestAnimationFrame(this.doTick.bind(this));
+    }
+  }
+
+  _tick() {
+
+    if (!this.currentState) return;
+
+    let newPaths = [];
+
+    let pathToExpanded = ["currentState"]
+
+    for (let i = 0; i < this.pathsToTick.length; i++) {
+      let currentPath = this.pathsToTick[i];
+
+      let pathToFetch = pathToExpanded.concat(currentPath);
+
+      let timer = this.get(pathToFetch);
+
+      let now = Date.now();
+      let difference = now - this.originalWallClockStartTime;
+
+      let result = Math.max(0, timer.originalTimeLeft - difference);
+
+      this.set(pathToExpanded.concat(currentPath).concat(["TimeLeft"]), result);
+
+      //If we still have time to tick on this, then make sure it's still
+      //in the list of things to tick.
+      if (timer.TimeLeft > 0) {
+        newPaths.push(currentPath)
+      }
+    }
+
+    this.pathsToTick = newPaths;
+  }
+
+  _handleStateBundle(e) {
+    this._installStateBundle(e.detail);
+  }
+
+  _handleGameStaticInfo(e) {
+    this.setProperties(e.detail);
+  }
+
+  _firstStateBundleInstalled() {
+    if (this.selected && this.loggedIn && this.$.player.showJoin && !this.promptedToJoin) {
+
+      //Take note that we already prompted them, and don't prompt again unless the game changes.
+      this.promptedToJoin = true;
+      //Prompt the user to join!
+      this.$.player.showDialog();
+    }
+  }
+
+  _resetState() {
+    this.game = null;
+    this.currentState = null;
+    this.moveForms = null;
+    this.viewingAsPlayer = 0;
+    this.originalWallClockStartTime = null;
+    this.gameState = "";
+    this.pathsToTick = null;
+    this._firstStateBundle = true;
+    this.chest = null;
+    this.playersInfo = null;
+    this.hasEmptySlots = false;
+    this.gameOpen = false;
+    this.gameVisible = false;
+    this.isOwner = false;
+    this._firstStateBundle = true;
+  }
+
+
+  _installStateBundle(bundle) {
+
+    this.setProperties({
+      game: bundle.game,
+      currentState: bundle.game.CurrentState,
+      moveForms: bundle.moveForms,
+      viewingAsPlayer: bundle.viewingAsPlayer,
+      originalWallClockStartTime: bundle.originalWallClockStartTime,
+      gameState: bundle.gameState,
+      pathsToTick: bundle.pathsToTick
+    })
+
+    if (this._firstStateBundle) {
+      this._firstStateBundleInstalled();
+    }
+    this._firstStateBundle = false;
+
+    window.requestAnimationFrame(() => this.doTick());
+  }
+}
+
+customElements.define(BoardgameGameView.is, BoardgameGameView);
