@@ -10,12 +10,6 @@ import { Element } from '@polymer/polymer/polymer-element.js';
 import './boardgame-component-animator.js';
 import '@polymer/paper-spinner/paper-spinner-lite.js';
 import '@polymer/iron-flex-layout/iron-flex-layout.js';
-import '../game-src/blackjack/boardgame-render-game-blackjack.js';
-import '../game-src/checkers/boardgame-render-game-checkers.js';
-import '../game-src/debuganimations/boardgame-render-game-debuganimations.js';
-import '../game-src/memory/boardgame-render-game-memory.js';
-import '../game-src/pig/boardgame-render-game-pig.js';
-import '../game-src/tictactoe/boardgame-render-game-tictactoe.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 import { importHref } from '@polymer/polymer/lib/utils/import-href.js';
 

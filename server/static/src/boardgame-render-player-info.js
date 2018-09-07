@@ -7,10 +7,6 @@
 */
 import { Element } from '@polymer/polymer/polymer-element.js';
 
-import '../game-src/blackjack/boardgame-render-player-info-blackjack.js';
-import '../game-src/memory/boardgame-render-player-info-memory.js';
-import '../game-src/pig/boardgame-render-player-info-pig.js';
-import '../game-src/tictactoe/boardgame-render-player-info-tictactoe.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
 class BoardgameRenderPlayerInfo extends Element {
