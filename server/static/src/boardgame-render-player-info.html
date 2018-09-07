@@ -1,5 +1,12 @@
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
 
+<!-- Making dynamic imports static for modulizer -->
+<link rel="import" href="../game-src/blackjack/boardgame-render-player-info-blackjack.html">
+<link rel="import" href="../game-src/memory/boardgame-render-player-info-memory.html">
+<link rel="import" href="../game-src/pig/boardgame-render-player-info-pig.html">
+<link rel="import" href="../game-src/tictactoe/boardgame-render-player-info-tictactoe.html">
+<!-- end faux static imports -->
+
 <dom-module id="boardgame-render-player-info">
   <template>
     <div id="container">

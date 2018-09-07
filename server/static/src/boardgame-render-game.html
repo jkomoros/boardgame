@@ -3,6 +3,15 @@
 <link rel="import" href="../bower_components/paper-spinner/paper-spinner-lite.html">
 <link rel="import" href="../bower_components/iron-flex-layout/iron-flex-layout.html">
 
+<!-- Making dynamic imports static for modulizer -->
+<link rel="import" href="../game-src/blackjack/boardgame-render-game-blackjack.html">
+<link rel="import" href="../game-src/checkers/boardgame-render-game-checkers.html">
+<link rel="import" href="../game-src/debuganimations/boardgame-render-game-debuganimations.html">
+<link rel="import" href="../game-src/memory/boardgame-render-game-memory.html">
+<link rel="import" href="../game-src/pig/boardgame-render-game-pig.html">
+<link rel="import" href="../game-src/tictactoe/boardgame-render-game-tictactoe.html">
+<!-- end faux static imports -->
+
 <dom-module id="boardgame-render-game">
   <template>
     <style>
