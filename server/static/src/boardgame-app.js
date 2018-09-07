@@ -202,8 +202,7 @@ class BoardgameApp extends Element {
 
   _pageChanged(page) {
     // Load page import on demand. Show 404 page if fails
-    var resolvedPageUrl = this.resolveUrl('boardgame-' + page + '-view.html');
-    importHref(resolvedPageUrl, null, () => this._showPage404(), true);
+    import('./boardgame-' + page + '-view.js').then(null, this._showPage404.bind(this));
   }
 
   _showPage404() {

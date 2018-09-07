@@ -189,9 +189,7 @@ class BoardgameRenderGame extends Element {
     }
     this.renderer = null;
 
-
-    var resolvedUrl = this.resolveUrl("../game-src/" +newValue + "/boardgame-render-game-" + newValue + ".html")
-    importHref(resolvedUrl, () => this._instantiateRenderer(), null, true);
+    import("../game-src/" +newValue + "/boardgame-render-game-" + newValue + ".js").then(this._instantiateRenderer.bind(this), null);
   }
 
   _instantiateRenderer(e) {

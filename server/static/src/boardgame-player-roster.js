@@ -177,8 +177,7 @@ class BoardgamePlayerRoster extends Element {
   _gameRouteChanged(newValue) {
     if (!newValue) return;
     this.rendererLoaded = false;
-    var resolvedUrl = this.resolveUrl("../game-src/" +newValue.name + "/boardgame-render-player-info-" + newValue.name + ".html")
-    importHref(resolvedUrl, () => this._rendererLoaded(), null, true);
+    import("../game-src/" +newValue.name + "/boardgame-render-player-info-" + newValue.name + ".js").then(this._rendererLoaded.bind(this), null);
   }
 
   _rendererLoaded(e) {
