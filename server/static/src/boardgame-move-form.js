@@ -32,7 +32,7 @@ class BoardgameMoveForm extends PolymerElement {
       <div id="container">
         <template is="dom-repeat" items="{{config}}">
           <details id="moves-{{_normalizeID(item.Name)}}">
-            <summary on-tap="saveZippyState">Move {{item.Name}}</summary>
+            <summary>Move {{item.Name}}</summary>
             <form>
               <p><em>{{item.HelpText}}</em></p>
               <input type="hidden" name="MoveType" value="{{item.Name}}">
@@ -70,10 +70,7 @@ class BoardgameMoveForm extends PolymerElement {
 
   static get properties() {
     return {
-      config : {
-        type: Object,
-        observer: '_configChanged'
-      },
+      config : Object,
       admin: Boolean,
       gameRoute: Object,
       moveAsPlayer: Number,
@@ -201,49 +198,6 @@ class BoardgameMoveForm extends PolymerElement {
     }
   }
 
-  _configChanged(newValue, oldValue) {
-    //Must be async because databinding hasn't created the details yet.
-    window.requestAnimationFrame(() => this.loadZippyState());
-  }
-
-  _storageKey(id) {
-    //TODO: store the game ID in here too when we have one.
-    return "move-form-zippy-" + id
-  }
-
-  saveZippyState(e) {
-    var zippy = e.currentTarget.parentElement;
-    if (!zippy.id.startsWith("moves")) {
-      return
-    }
-    //This next if condition appears to be backwards, because by the time
-    //the tap fires the zippy hasn't actually been opened (it will if we
-    //don't preventDefault). So when we see zippy.open, it's the opposite
-    //of what it will be.
-
-    storageKey = this._storageKey(zippy.id)
-
-    if (zippy.open) {
-      sessionStorage.removeItem(storageKey)
-    } else {
-      sessionStorage.setItem(storageKey, true)
-    }
-  }
-
-  loadZippyState() {
-    var that = this;
-    this.shadowRoot.querySelectorAll("details").forEach(function(el) {
-      if (!el.id.startsWith("moves")) {
-        return;
-      }
-      //TODO: store in sessionStorage in a way that won't conflict across GAME IDs.
-      var data = sessionStorage.getItem(that._storageKey(el.id));
-
-      if (data) {
-        el.open = true;
-      }
-    });
-  }
 }
 
 customElements.define(BoardgameMoveForm.is, BoardgameMoveForm);
