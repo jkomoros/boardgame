@@ -111,7 +111,7 @@ func (c *Config) Update(typ ConfigModeType, secret bool, updater ConfigUpdater) 
 		return errors.New(strconv.Itoa(int(typ)) + " is not a valid type")
 	}
 
-	if err := updater(mode); err != nil {
+	if err := updater(mode, typ); err != nil {
 		return errors.New("Updater errored: " + err.Error())
 	}
 

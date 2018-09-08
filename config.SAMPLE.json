@@ -1,6 +1,5 @@
 {
 	"base": {
-		"offlineDevMode": true,
 		"defaultStorageType": "bolt",
 		"googleAnalytics": "UA-321674-10",
 		"firebase": {
@@ -25,6 +24,7 @@
 	"dev": {
 		"allowedOrigins": "http://localhost:8080",
 		"disableAdminChecking": true,
+		"offlineDevMode": true,
 		"storage": {
 			"mysql": "root:root@tcp(localhost:3306)/boardgame"
 		}
