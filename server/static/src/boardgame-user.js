@@ -59,6 +59,7 @@ class BoardgameUser extends PolymerElement {
     <style is="custom-style" include="iron-flex shared-styles">
       :host {
         display:block;
+        position: relative;
         padding:16px;
       }
 
@@ -74,8 +75,24 @@ class BoardgameUser extends PolymerElement {
       .verifying {
         font-style: italic;
       }
+
+      #offline {
+        display:none;
+        height: 5px;
+        width: 5px;
+        top: 16px;
+        left: 16px;
+        position: absolute;
+        border-radius:2.5px;
+        background-color:red;
+      }
+
+      .offline #offline {
+        display:block;
+      }
     </style>
-    <div class\$="{{_classForVerifyingAuth(verifyingAuth)}}">
+    <div class\$="{{_classForVerifyingAuth(verifyingAuth, offlineDevMode)}}">
+      <div id="offline"></div>
       <div class="horizontal layout">
         <boardgame-player-chip photo-url="{{_string(user.PhotoUrl)}}" display-name="{{_string(user.DisplayName)}}"></boardgame-player-chip>
         <div class="vertical layout">
@@ -200,8 +217,11 @@ class BoardgameUser extends PolymerElement {
     return true;
   }
 
-  _classForVerifyingAuth(verifyingAuth) {
-    return (verifyingAuth) ? "verifying" : "";
+  _classForVerifyingAuth(verifyingAuth, offlineDevMode) {
+    let pieces = [];
+    if (offlineDevMode) pieces.push("offline");
+    if (verifyingAuth) pieces.push("verifying");
+    return pieces.join(" ");
   }
 
   _string(str) {
