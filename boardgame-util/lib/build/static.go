@@ -36,10 +36,37 @@ var filesToExclude map[string]bool = map[string]bool{
 	".DS_Store":      true,
 }
 
+//StaticServer runs a static server. directory is the folder that the `static`
+//folder is contained within. If no error is returned, runs until the program
+//exits. Under the cover uses `polymer serve` because imports use bare module
+//specifiers that must be rewritten.
+func StaticServer(directory string, port string) error {
+
+	if err := verifyPolymer(directory); err != nil {
+		return err
+	}
+
+	staticDir := filepath.Join(directory, staticSubFolder)
+
+	cmd := exec.Command("polymer", "serve", "--port="+port)
+	cmd.Dir = staticDir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return errors.New("Couldn't `polymer serve`: " + err.Error())
+	}
+
+	return nil
+
+}
+
 //SimpleStaticServer creates and runs a simple static server. directory is the
 //folder that the `static` folder is contained within. If no error is
 //returned, Runs until the program exits.
-func SimpleStaticServer(directory string, port string) error {
+func simpleStaticServer(directory string, port string) error {
+
+	//This is an old implementation that came before polymer 3.0, where we really need to use polymer serve.
 
 	staticPath := filepath.Join(directory, staticSubFolder)
 
@@ -500,10 +527,9 @@ func polymerJsonContents(fragments []string) ([]byte, error) {
 
 }
 
-//buildPolymer calls `polymer build` to build the bundled version. Expects
-//polymer.json to exist; that is that createPolymerJson has been called.
-func buildPolymer(dir string) error {
-
+//verifyPolymer should be called before running a polymer command to ensure it
+//will work.
+func verifyPolymer(dir string) error {
 	staticDir := filepath.Join(dir, staticSubFolder)
 
 	polymerJson := filepath.Join(staticDir, polymerConfig)
@@ -516,6 +542,19 @@ func buildPolymer(dir string) error {
 
 	if err != nil {
 		return errors.New("polymer command is not installed. Run `npm install -g polymer-cli` to install it.")
+	}
+
+	return nil
+}
+
+//buildPolymer calls `polymer build` to build the bundled version. Expects
+//polymer.json to exist; that is that createPolymerJson has been called.
+func buildPolymer(dir string) error {
+
+	staticDir := filepath.Join(dir, staticSubFolder)
+
+	if err := verifyPolymer(dir); err != nil {
+		return err
 	}
 
 	cmd := exec.Command("polymer", "build")
