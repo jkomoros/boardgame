@@ -89,6 +89,25 @@ func DefaultTemplateSet(opt *Options) (TemplateSet, error) {
 	return result, nil
 }
 
+var postProcessReplacements = map[string]string{
+	"[[BACKTICK]]": "`",
+	"{[[":          "{{",
+	"]]}":          "}}",
+}
+
+//postProcess to replace hard-to-escape literals with different results.
+func postProcess(in []byte) []byte {
+
+	str := string(in)
+
+	for find, replace := range postProcessReplacements {
+		str = strings.Replace(str, find, replace, -1)
+	}
+
+	return []byte(str)
+
+}
+
 //Generate generates FileContents based on this TemplateSet, using those
 //options to expand. Names of files will also be run through templates and
 //expanded.
@@ -123,7 +142,7 @@ func (t TemplateSet) Generate(opt *Options) (FileContents, error) {
 			return nil, errors.New(name + " template could not be executed: " + err.Error())
 		}
 
-		result[resolvedName] = contentBuf.Bytes()
+		result[resolvedName] = postProcess(contentBuf.Bytes())
 
 	}
 
@@ -141,8 +160,8 @@ var templateMap = map[string]string{
 	"{{.Name}}/moves_setup.go":  templateContentsDefaultMovesGo,
 	"{{.Name}}/moves_normal.go": templateContentsNormalMovesGo,
 	"{{.Name}}/components.go":   templateContentComponentsGo,
-	"{{.Name}}/client/{{.Name}}/boardgame-render-game-{{.Name}}.html":        templateContentsRenderGameHtml,
-	"{{.Name}}/client/{{.Name}}/boardgame-render-player-info-{{.Name}}.html": templateContentsRenderPlayerInfoHtml,
+	"{{.Name}}/client/{{.Name}}/boardgame-render-game-{{.Name}}.js":        templateContentsRenderGameJs,
+	"{{.Name}}/client/{{.Name}}/boardgame-render-player-info-{{.Name}}.js": templateContentsRenderPlayerInfoJs,
 }
 
 const templateContentsMainGo = `{{if .Description -}}
@@ -738,22 +757,22 @@ func TestNewManager(t *testing.T) {
 
 `
 
-const templateContentsRenderGameHtml = `<link rel="import" href="../../bower_components/polymer/polymer-element.html">
-<link rel="import" href="../../src/boardgame-base-game-renderer.html">
+const templateContentsRenderGameJs = `import { BoardgameBaseGameRenderer } from '../../src/boardgame-base-game-renderer.js';
+import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 {{- if .EnableExampleClient }}
-<link rel="import" href="../../bower_components/polymer/lib/elements/dom-repeat.html">
-<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout.html">
-<link rel="import" href="../../src/boardgame-component-stack.html">
-<link rel="import" href="../../src/boardgame-card.html">
-<link rel="import" href="../../src/boardgame-deck-defaults.html">
-<link rel="import" href="../../src/boardgame-fading-text.html">
+import '@polymer/polymer/lib/elements/dom-repeat.js';
+import '@polymer/iron-flex-layout/iron-flex-layout.js';
+import '../../src/boardgame-component-stack.js';
+import '../../src/boardgame-card.js';
+import '../../src/boardgame-deck-defaults.js';
+import '../../src/boardgame-fading-text.js';
 {{- end}}
 
-<dom-module id="boardgame-render-game-{{.Name}}">
-  <template>
-  {{if .EnableExampleClient }}
-  	{{` + "`" + `
-  	<style>
+class BoardgameRenderGame{{uppercaseFirst .Name}} extends BoardgameBaseGameRenderer {
+
+  static get template() {
+  	{{if .EnableExampleClient }}
+  	return html[[BACKTICK]]<style>
       #players {
         @apply --layout-horizontal;
         @apply --layout-center;
@@ -767,84 +786,72 @@ const templateContentsRenderGameHtml = `<link rel="import" href="../../bower_com
     </style>
     <boardgame-deck-defaults>
       <template deck="examplecards">
-        <boardgame-card rank="{{item.Values.Value}}"></boardgame-card>
+        <boardgame-card rank="{[[item.Values.Value]]}"></boardgame-card>
       </template>
     </boardgame-deck-defaults>
-    <boardgame-component-stack stack="{{state.Game.DrawStack}}" layout="stack" messy` + "`" + `}}{{if .EnableExampleMoves}} component-propose-move="Draw Card"{{end}}{{` + "`" + `></boardgame-component-stack>
+    <boardgame-component-stack stack="{[[state.Game.DrawStack]]}" layout="stack" messy {{if .EnableExampleMoves}} component-propose-move="Draw Card"{{end}}></boardgame-component-stack>
     <div id="players">
-      <template is="dom-repeat" items="{{state.Players}}">
+      <template is="dom-repeat" items="{[[state.Players]]}">
       	<div class="player flex">
-		    <strong>Player {{index}}</strong>
-		    <boardgame-component-stack stack="{{item.Hand}}" layout="fan" messy component-rotated>
-		    	<boardgame-fading-text trigger="{{item.Computed.GameScore}}" auto-message="diff-up"></boardgame-fading-text>
+		    <strong>Player {[[index]]}</strong>
+		    <boardgame-component-stack stack="{[[item.Hand]]}" layout="fan" messy component-rotated>
+		    	<boardgame-fading-text trigger="{[[item.Computed.GameScore]]}" auto-message="diff-up"></boardgame-fading-text>
 		    </boardgame-component-stack>
 	    </div>
       </template>
     </div>
-    <boardgame-fading-text trigger="{{isCurrentPlayer}}" message="Your Turn" suppress="falsey"></boardgame-fading-text>
-    ` + "`" + `}}
-  {{else}}
-  This is where you game should render itself. See boardgame/server/README.md for more on the components you can use, or check out the examples in boardgame/examples.
-  {{end}}
-  </template>
+    <boardgame-fading-text trigger="{[[isCurrentPlayer]]}" message="Your Turn" suppress="falsey"></boardgame-fading-text>
+[[BACKTICK]];
+{{else}}
+return html[[BACKTICK]]This is where you game should render itself. See boardgame/server/README.md for more on the components you can use, or check out the examples in boardgame/examples.[[BACKTICK]];
+{{end}}
+  }
 
-  <script>
+  static get is() {
+    return "boardgame-render-game-{{.Name}}"
+  }
 
-    class BoardgameRenderGame{{uppercaseFirst .Name}} extends BoardgameBaseGameRenderer {
+  //We don't need to compute any properties that BoardgameBaseGamErenderer
+  //doesn't have.
 
-      static get is() {
-        return "boardgame-render-game-{{.Name}}"
-      }
+}
 
-      //We don't need to compute any properties that BoardgameBaseGamErenderer
-      //doesn't have.
+customElements.define(BoardgameRenderGame{{uppercaseFirst .Name}}.is, BoardgameRenderGame{{uppercaseFirst .Name}});
 
-    }
-
-    customElements.define(BoardgameRenderGame{{uppercaseFirst .Name}}.is, BoardgameRenderGame{{uppercaseFirst .Name}});
-
-  </script>
-</dom-module>
 `
 
-const templateContentsRenderPlayerInfoHtml = `<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+const templateContentsRenderPlayerInfoJs = `import { PolymerElement } from '@polymer/polymer/polymer-element.js';
+import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 {{if .EnableExampleClient}}
-<link rel="import" href="../../src/boardgame-status-text.html">
+import '../../src/boardgame-status-text.js';
 {{end}}
 
-<dom-module id="boardgame-render-player-info-{{.Name}}">
-  <template>
+class BoardgameRenderPlayerInfo{{uppercaseFirst .Name}} extends Polymer.Element {
+
+  static get template() {
   	{{if .EnableExampleClient}}
-  	{{` + "`" + `
-  	Number of Cards <boardgame-status-text>{{playerState.Hand.Indexes.length}}</boardgame-status-text>
-  	` + "`" + `}}
-  	{{else}}
-    This is where you render info on player, typically using &lt;boardgame-status-text&gt;.
-    {{end}}
-  </template>
+		return html[[BACKTICK]]Number of Cards <boardgame-status-text>{[[playerState.Hand.Indexes.length]]}</boardgame-status-text>[[BACKTICK]];
+	{{else}}
+		return html[[BACKTICK]]This is where you render info on player, typically using &lt;boardgame-status-text&gt;.[[BACKTICK]];
+	{{end}}
 
-  <script>
+  }
 
-    class BoardgameRenderPlayerInfo{{uppercaseFirst .Name}} extends Polymer.Element {
+  static get is() {
+    return "boardgame-render-player-info-{{.Name}}"
+  }
 
-      static get is() {
-        return "boardgame-render-player-info-{{.Name}}"
-      }
-
-      {{if .EnableExampleClient}}
-      static get properties() {
-        return {
-          state: Object,
-          playerIndex: Number,
-          playerState: Object,
-        }
-      }
-      {{end}}
-
+  {{if .EnableExampleClient}}
+  static get properties() {
+    return {
+      state: Object,
+      playerIndex: Number,
+      playerState: Object,
     }
+  }
+  {{end}}
 
-    customElements.define(BoardgameRenderPlayerInfo{{uppercaseFirst .Name}}.is, BoardgameRenderPlayerInfo{{uppercaseFirst .Name}});
+}
 
-  </script>
-</dom-module>
+customElements.define(BoardgameRenderPlayerInfo{{uppercaseFirst .Name}}.is, BoardgameRenderPlayerInfo{{uppercaseFirst .Name}});
 `
