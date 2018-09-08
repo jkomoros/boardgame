@@ -54,8 +54,8 @@ class BoardgamePlayerChip extends PolymerElement {
   }
 
   _effectivePhotoUrl(photoUrl, isAgent) {
-    if (isAgent) return this.resolveUrl("assets/agent.svg");
-    return (photoUrl) ? photoUrl : this.resolveUrl("assets/player.svg");
+    if (isAgent) return "src/assets/agent.svg";
+    return (photoUrl) ? photoUrl : "src/assets/player.svg";
   }
 
   _displayNameChanged(newValue) {
