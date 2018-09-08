@@ -1,8 +1,8 @@
-import { Element } from '@polymer/polymer/polymer-element.js';
+import { PolymerElement } from '@polymer/polymer/polymer-element.js';
 import '@polymer/iron-flex-layout/iron-flex-layout.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
-class BoardgameFadingText extends Element {
+class BoardgameFadingText extends PolymerElement {
   static get template() {
     return html`
     <style>

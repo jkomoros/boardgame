@@ -1,4 +1,4 @@
-import { Element } from '@polymer/polymer/polymer-element.js';
+import { PolymerElement } from '@polymer/polymer/polymer-element.js';
 import '@polymer/iron-flex-layout/iron-flex-layout-classes.js';
 import '@polymer/paper-radio-button/paper-radio-button.js';
 import '@polymer/paper-radio-group/paper-radio-group.js';
@@ -9,7 +9,7 @@ import './boardgame-move-form.js';
 import './shared-styles.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
-class BoardgameAdminControls extends Element {
+class BoardgameAdminControls extends PolymerElement {
   static get template() {
     return html`
     <style include="iron-flex shared-styles">

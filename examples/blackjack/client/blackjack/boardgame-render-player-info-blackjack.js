@@ -1,8 +1,8 @@
-import { Element } from '@polymer/polymer/polymer-element.js';
+import { PolymerElement } from '@polymer/polymer/polymer-element.js';
 import '../../src/boardgame-status-text.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
-class BoardgameRenderPlayerInfoBlackjack extends Element {
+class BoardgameRenderPlayerInfoBlackjack extends PolymerElement {
   static get template() {
     return html`
     <div>Score <strong>{{playerState.Computed.HandValue}}</strong></div>

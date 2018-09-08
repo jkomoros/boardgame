@@ -1,4 +1,4 @@
-import { Element } from '@polymer/polymer/polymer-element.js';
+import { PolymerElement } from '@polymer/polymer/polymer-element.js';
 import { templatize } from '@polymer/polymer/lib/utils/templatize.js';
 
 //defaultsInstances will be populated, on connected, by any boardgame-
@@ -9,7 +9,7 @@ let templatesByName = {};
 
 //BoardgameDeckDefaults is really just a container for templates with a deck
 //property.
-class BoardgameDeckDefaults extends Element {
+class BoardgameDeckDefaults extends PolymerElement {
   static get is() {
     return "boardgame-deck-defaults"
   }

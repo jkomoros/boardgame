@@ -7,7 +7,7 @@ The complete set of contributors may be found at http://polymer.github.io/CONTRI
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 */
-import { Element } from '@polymer/polymer/polymer-element.js';
+import { PolymerElement } from '@polymer/polymer/polymer-element.js';
 
 import '@polymer/polymer/lib/elements/dom-if.js';
 import '@polymer/polymer/lib/elements/dom-repeat.js';
@@ -18,7 +18,7 @@ import './boardgame-admin-controls.js';
 import './boardgame-game-state-manager.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
-class BoardgameGameView extends Element {
+class BoardgameGameView extends PolymerElement {
   static get template() {
     return html`
     <style include="shared-styles iron-flex">

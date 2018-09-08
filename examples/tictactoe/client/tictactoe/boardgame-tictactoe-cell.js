@@ -1,10 +1,10 @@
-import { Element } from '@polymer/polymer/polymer-element.js';
+import { PolymerElement } from '@polymer/polymer/polymer-element.js';
 import '@polymer/iron-flex-layout/iron-flex-layout-classes.js';
 import '@polymer/paper-styles/typography.js';
 import '@polymer/paper-styles/color.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
-class BoardgameTictactoeCell extends Element {
+class BoardgameTictactoeCell extends PolymerElement {
   static get template() {
     return html`
     <style include="iron-flex">

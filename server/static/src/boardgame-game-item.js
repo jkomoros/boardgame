@@ -1,4 +1,4 @@
-import { Element } from '@polymer/polymer/polymer-element.js';
+import { PolymerElement } from '@polymer/polymer/polymer-element.js';
 import '@polymer/polymer/lib/elements/dom-repeat.js';
 import './shared-styles.js';
 import '@polymer/iron-flex-layout/iron-flex-layout-classes.js';
@@ -8,7 +8,7 @@ import './boardgame-player-chip.js';
 import './boardgame-game-path.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
-class BoardgameGameItem extends GamePathMixin(Element) {
+class BoardgameGameItem extends GamePathMixin(PolymerElement) {
   static get template() {
     return html`
     <style include="shared-styles iron-flex">

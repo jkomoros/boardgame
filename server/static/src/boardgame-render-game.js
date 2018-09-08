@@ -5,7 +5,7 @@
   from HTML and may be out of place here. Review them and
   then delete this comment!
 */
-import { Element } from '@polymer/polymer/polymer-element.js';
+import { PolymerElement } from '@polymer/polymer/polymer-element.js';
 
 import './boardgame-component-animator.js';
 import '@polymer/paper-spinner/paper-spinner-lite.js';
@@ -13,7 +13,7 @@ import '@polymer/iron-flex-layout/iron-flex-layout.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 import { importHref } from '@polymer/polymer/lib/utils/import-href.js';
 
-class BoardgameRenderGame extends Element {
+class BoardgameRenderGame extends PolymerElement {
   static get template() {
     return html`
     <style>

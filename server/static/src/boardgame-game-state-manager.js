@@ -1,4 +1,4 @@
-import { Element } from '@polymer/polymer/polymer-element.js';
+import { PolymerElement } from '@polymer/polymer/polymer-element.js';
 import './boardgame-ajax.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
@@ -19,7 +19,7 @@ import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
 
 
-class BoardgameGameStateManager extends Element {
+class BoardgameGameStateManager extends PolymerElement {
   static get template() {
     return html`
     <boardgame-ajax id="version" game-path="[[effectiveGameVersionPath]]" game-route="[[gameRoute]]" handle-as="json" last-response="{{versionData}}"></boardgame-ajax>

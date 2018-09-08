@@ -1,9 +1,9 @@
-import { Element } from '@polymer/polymer/polymer-element.js';
+import { PolymerElement } from '@polymer/polymer/polymer-element.js';
 import '@polymer/polymer/lib/elements/dom-repeat.js';
 import '@polymer/iron-flex-layout/iron-flex-layout-classes.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
-class BoardgameBoard extends Element {
+class BoardgameBoard extends PolymerElement {
   static get template() {
     return html`
     <style include="iron-flex">

@@ -1,11 +1,11 @@
-import { Element } from '@polymer/polymer/polymer-element.js';
+import { PolymerElement } from '@polymer/polymer/polymer-element.js';
 import '@polymer/iron-icons/iron-icons.js';
 import '@polymer/iron-icons/social-icons.js';
 import '@polymer/paper-icon-button/paper-icon-button.js';
 import './boardgame-ajax.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
-class BoardgameConfigureGameProperties extends Element {
+class BoardgameConfigureGameProperties extends PolymerElement {
   static get template() {
     return html`
       <paper-icon-button icon="{{_openIcon(gameOpen)}}" alt="{{_openAlt(gameOpen)}}" disabled="{{disabled}}" on-tap="_handleOpenTapped"></paper-icon-button>

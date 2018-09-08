@@ -1,7 +1,7 @@
-import { Element } from '@polymer/polymer/polymer-element.js';
+import { PolymerElement } from '@polymer/polymer/polymer-element.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
-class BoardgameRenderPlayerInfoTictactoe extends Element {
+class BoardgameRenderPlayerInfoTictactoe extends PolymerElement {
   static get template() {
     return html`
 

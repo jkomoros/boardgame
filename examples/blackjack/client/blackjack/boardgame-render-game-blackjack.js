@@ -1,4 +1,3 @@
-import '@polymer/polymer/polymer-element.js';
 import '@polymer/polymer/lib/elements/dom-repeat.js';
 import '@polymer/iron-flex-layout/iron-flex-layout.js';
 import '@polymer/paper-button/paper-button.js';

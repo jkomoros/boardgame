@@ -5,11 +5,11 @@
   from HTML and may be out of place here. Review them and
   then delete this comment!
 */
-import { Element } from '@polymer/polymer/polymer-element.js';
+import { PolymerElement } from '@polymer/polymer/polymer-element.js';
 
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
-class BoardgameRenderPlayerInfo extends Element {
+class BoardgameRenderPlayerInfo extends PolymerElement {
   static get template() {
     return html`
     <div id="container">

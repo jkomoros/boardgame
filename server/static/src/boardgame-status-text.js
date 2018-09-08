@@ -1,8 +1,8 @@
-import { Element } from '@polymer/polymer/polymer-element.js';
+import { PolymerElement } from '@polymer/polymer/polymer-element.js';
 import './boardgame-fading-text.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
-class BoardgameStatusText extends Element {
+class BoardgameStatusText extends PolymerElement {
   static get template() {
     return html`
     <style>
