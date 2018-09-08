@@ -36,7 +36,17 @@ The `boardgame-util` command looks for configuration in json files when it runs 
 
 The quickest way to get a server running is via the `boardgame-util serve` command. 
 
-The command requires you have the `bower` command installed. If not, follow the instructions on `https://bower.io/` to install it.
+The command requires you have `npm` and the `polymer` cli installed. 
+
+You can install npm by following the instructions to install node: https://nodejs.org/en/
+
+Once you have npm installed, run:
+
+```
+npm install -g polymer-cli
+```
+
+Now you have the prerequisites installed and can use the `boardgame-util serve` command.
 
 Sitting in the boardgame package, run:
 
@@ -1107,7 +1117,7 @@ where `GAMENAME` is the name of your game (what your GameDelegate returns from
 the Name() method).
 
 The import will be looked for in `../game-src/GAMENAME/boardgame-render-game-
-GAMENAME.html`.
+GAMENAME.js`.
 
 Your game type might be imported into many different servers, so it's best
 practice to keep the renderer definition near the package defining your server
@@ -1121,8 +1131,8 @@ memory:
 memory/
 	|	client/
 	|	|	memory/
-	|	|	| boardgame-render-game-memory.html
-	|	|	| boardgame-render-player-info-memory.html
+	|	|	| boardgame-render-game-memory.js
+	|	|	| boardgame-render-player-info-memory.js
 	|	agent.go
 	|	agent_test.go
 	|	auto_reader.go
@@ -1133,13 +1143,10 @@ memory/
 	|	state.go
 ```
 
-(We'll get to what `boardgame-render-player-info-memory.html` in just a bit).
+(We'll get to what `boardgame-render-player-info-memory.js` in just a bit).
 
-Then, when you're configuring your server, you create a `game-src/` folder in
-the right location and then take advantage of the game repo and your server repo
-both having a canonical location in your `$GOPATH` to create a relative link for
-that directory into `game-src/`, something like `ln -s ../../../../memory/client/memory`.
-You can then check that symlink into git, and be reasonably certain that it will work in other places.
+When a server is set up (using `boadgame-util build static`), a symlink is
+created from the server resources to the client folders for each game.
 
 By following this convention, you cleanly keep your client views for a game next
 to the server logic, and also make it easy to import the game package into
