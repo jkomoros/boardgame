@@ -47,9 +47,9 @@ the state from the perspective of any user, etc).
 ### OfflineDevMode
 
 If provided, this mode will not check that the firebase auth tokens are
-legitimate, and will instruct the client to not bother reaching out to the
-firebase server to authenticate. This is an extremely dangerous option and may
-not be enabled in prod.
+legitimate, will use faux authentication clientside (showing a red dot), and
+will disable loading roboto fonts in index.html. This is an extremely
+dangerous option and may not be enabled in prod.
 
 ### AdminUserIds
 
