@@ -4,7 +4,7 @@ import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 import '../../src/boardgame-status-text.js';
 
 
-class BoardgameRenderPlayerInfoCheckers extends Polymer.Element {
+class BoardgameRenderPlayerInfoCheckers extends PolymerElement {
 
   static get template() {
   	

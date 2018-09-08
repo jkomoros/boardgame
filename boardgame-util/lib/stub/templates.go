@@ -826,7 +826,7 @@ import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 import '../../src/boardgame-status-text.js';
 {{end}}
 
-class BoardgameRenderPlayerInfo{{uppercaseFirst .Name}} extends Polymer.Element {
+class BoardgameRenderPlayerInfo{{uppercaseFirst .Name}} extends PolymerElement {
 
   static get template() {
   	{{if .EnableExampleClient}}
