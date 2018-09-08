@@ -209,7 +209,7 @@ class BoardgameUser extends PolymerElement {
   }
 
   validateCookie() {
-    this.firebaseUser.getToken(true).then(this.validateCookieWithToken.bind(this));
+    this.firebaseUser.getIdToken(true).then(this.validateCookieWithToken.bind(this));
   }
 
   validateCookieWithToken(token) {
