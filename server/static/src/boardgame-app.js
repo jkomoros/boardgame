@@ -35,7 +35,6 @@ import '@polymer/paper-styles/default-theme.js';
 import './boardgame-user.js';
 import './my-icons.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
-import { importHref } from '@polymer/polymer/lib/utils/import-href.js';
 
 class BoardgameApp extends PolymerElement {
   static get template() {

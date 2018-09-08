@@ -11,7 +11,6 @@ import './boardgame-component-animator.js';
 import '@polymer/paper-spinner/paper-spinner-lite.js';
 import '@polymer/iron-flex-layout/iron-flex-layout.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
-import { importHref } from '@polymer/polymer/lib/utils/import-href.js';
 
 class BoardgameRenderGame extends PolymerElement {
   static get template() {

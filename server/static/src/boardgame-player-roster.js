@@ -20,7 +20,7 @@ import './boardgame-player-roster-item.js';
 import './boardgame-ajax.js';
 import './shared-styles.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
-import { importHref } from '@polymer/polymer/lib/utils/import-href.js';
+
 class BoardgamePlayerRoster extends PolymerElement {
   static get template() {
     return html`
