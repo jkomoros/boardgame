@@ -82,7 +82,7 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 		topLine := "************************************************************************"
 
 		//Cheat and wait to print the message until later
-		time.Sleep(time.Millisecond * 250)
+		time.Sleep(time.Second * 2)
 
 		fmt.Println(" ")
 		fmt.Println(topLine)
