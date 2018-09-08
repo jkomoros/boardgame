@@ -98,15 +98,15 @@ func SimpleStaticServer(directory string, port string) error {
 //subfolder of directory. It symlinks necessary resources in. The return value
 //is the directory where the assets can be served from, and an error if there
 //was an error. You can clean up the created folder structure with
-//CleanStatic. If forceBower is true, will force update bower_components even
+//CleanStatic. If forceNode is true, will force update node_modules even
 //if it appears to already exist. If prodBuild is true, then `polymer build`
 //will be run. If copyFiles is true, instead of symlinking the files it will
 //copy them (directories will still be symlinked). This is good if you intend
 //to modify the files.
-func Static(directory string, managers []string, c *config.Config, forceBower bool, prodBuild bool, copyFiles bool) (assetRoot string, err error) {
+func Static(directory string, managers []string, c *config.Config, forceNode bool, prodBuild bool, copyFiles bool) (assetRoot string, err error) {
 
-	if err := ensureBowerComponents(forceBower); err != nil {
-		return "", errors.New("bower_components couldn't be created: " + err.Error())
+	if err := ensureNodeModules(forceNode); err != nil {
+		return "", errors.New("node_modules couldn't be created: " + err.Error())
 	}
 
 	if _, err := os.Stat(directory); os.IsNotExist(err) {
@@ -161,8 +161,8 @@ func Static(directory string, managers []string, c *config.Config, forceBower bo
 
 		if _, err := os.Stat(rejoinedPath); os.IsNotExist(err) {
 
-			if strings.Contains(name, "bower") {
-				return "", errors.New("bower_components doesn't appear to exist. You may need to run `bower update` from within `boardgame/server/static/webapp`.")
+			if strings.Contains(name, "node_") {
+				return "", errors.New("node_modules doesn't appear to exist. You may need to run `npm up` from within `boardgame/server/static/webapp`.")
 			}
 
 			return "", errors.New("Unexpected error: relRemotePath of " + relRemotePath + " doesn't exist " + absLocalDirPath + " : " + absRemotePath + "(" + rejoinedPath + ")")
@@ -242,10 +242,10 @@ func copyFile(remote, local string) error {
 }
 
 //ensureBowerComoonents ensures that
-//`$GOPATH/src/github.com/jkomoros/boardgame/server/static/webapp` has bower
+//`$GOPATH/src/github.com/jkomoros/boardgame/server/static/webapp` has node
 //components. If force is true, then will update them even if bower_components
 //appears to exist.
-func ensureBowerComponents(force bool) error {
+func ensureNodeModules(force bool) error {
 
 	p, err := path.AbsoluteGoPkgPath(staticServerPackage)
 
@@ -254,26 +254,26 @@ func ensureBowerComponents(force bool) error {
 	}
 
 	if !force {
-		if _, err := os.Stat(filepath.Join(p, "bower_components")); err == nil {
+		if _, err := os.Stat(filepath.Join(p, "node_modules")); err == nil {
 			//It appears to exist, we're fine!
 			return nil
 		}
 	}
 
-	_, err = exec.LookPath("bower")
+	_, err = exec.LookPath("npm")
 
 	if err != nil {
-		return errors.New("bower_components didn't exist and bower didn't appear to be installed. You need to install bower.")
+		return errors.New("node_modules didn't exist and npm didn't appear to be installed. You need to install npm.")
 	}
 
-	cmd := exec.Command("bower", "update")
+	cmd := exec.Command("npm", "up")
 	cmd.Dir = p
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	fmt.Println("bower_components needs updating, running `bower update`...")
+	fmt.Println("node_modules needs updating, running `npm up`...")
 	if err := cmd.Run(); err != nil {
-		return errors.New("Couldn't `bower update`: " + err.Error())
+		return errors.New("Couldn't `npm up`: " + err.Error())
 	}
 
 	return nil
@@ -546,6 +546,6 @@ const basePolymerJson = `{
   ],
   "includeDependencies": [
     "manifest.json",
-    "bower_components/webcomponentsjs/webcomponents-lite.min.js"
+    "node_modules/@webcomponentsjs/webcomponents-loader.js"
   ]
 }`

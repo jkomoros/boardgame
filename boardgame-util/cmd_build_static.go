@@ -9,9 +9,9 @@ import (
 type BuildStatic struct {
 	baseSubCommand
 
-	ForceBower bool
-	CopyFiles  bool
-	Prod       bool
+	ForceNode bool
+	CopyFiles bool
+	Prod      bool
 }
 
 func (b *BuildStatic) Run(p writ.Path, positional []string) {
@@ -22,7 +22,7 @@ func (b *BuildStatic) Run(p writ.Path, positional []string) {
 
 	mode := config.Dev
 
-	staticPath, err := build.Static(dir, mode.Games, config, b.ForceBower, b.Prod, b.CopyFiles)
+	staticPath, err := build.Static(dir, mode.Games, config, b.ForceNode, b.Prod, b.CopyFiles)
 
 	if err != nil {
 		b.Base().errAndQuit("Couldn't create static directory: " + err.Error())
@@ -55,9 +55,9 @@ If DIR is not provided, defaults to "."`
 func (b *BuildStatic) WritOptions() []*writ.Option {
 	return []*writ.Option{
 		{
-			Names:       []string{"force-bower"},
-			Description: "If provided, will force an update to bower_components even if that folder already exists.",
-			Decoder:     writ.NewFlagDecoder(&b.ForceBower),
+			Names:       []string{"force-node"},
+			Description: "If provided, will force an update to node_modules even if that folder already exists.",
+			Decoder:     writ.NewFlagDecoder(&b.ForceNode),
 			Flag:        true,
 		},
 		{
