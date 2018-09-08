@@ -65,6 +65,10 @@
           API_HOST = CONFIG.host;
         }
 
+        if (CONFIG.offline_dev_mode) {
+          //font-roboto looks for this
+          polymerSkipLoadingFontRoboto = true;
+        }
         
       } else {
         console.warn("CONFIG not found.")
