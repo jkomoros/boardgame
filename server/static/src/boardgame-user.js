@@ -146,13 +146,8 @@ class BoardgameUser extends PolymerElement {
     }
   }
 
-  get config() {
-    //CONFIG is the global defined in index.html
-    return CONFIG;
-  }
-
   ready() {
-    this._firebaseApp = firebase.initializeApp(config.firebase);
+    this._firebaseApp = firebase.initializeApp(CONFIG.firebase);
     this._firebaseApp.auth().onAuthStateChanged(this._firebaseUserChanged.bind(this));
   }
 
