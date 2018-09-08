@@ -5,7 +5,7 @@ import '@polymer/iron-flex-layout/iron-flex-layout-classes.js';
 import './boardgame-configure-game-properties.js';
 import '@polymer/paper-styles/typography.js';
 import './boardgame-player-chip.js';
-import './boardgame-game-path.js';
+import {GamePathMixin} from './boardgame-game-path.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
 class BoardgameGameItem extends GamePathMixin(PolymerElement) {

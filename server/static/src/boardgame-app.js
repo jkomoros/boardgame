@@ -204,7 +204,8 @@ class BoardgameApp extends PolymerElement {
     import('./boardgame-' + page + '-view.js').then(null, this._showPage404.bind(this));
   }
 
-  _showPage404() {
+  _showPage404(err) {
+    console.log(err);
     this.page = '404';
   }
 }

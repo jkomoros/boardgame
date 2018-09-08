@@ -27,7 +27,7 @@ import '@polymer/paper-styles/typography.js';
 import '@polymer/paper-styles/default-theme.js';
 import './boardgame-ajax.js';
 import './shared-styles.js';
-import './boardgame-game-path.js';
+import {GamePathMixin} from './boardgame-game-path.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
 class BoardgameCreateGame extends GamePathMixin(PolymerElement) {
