@@ -24,6 +24,35 @@ import './boardgame-player-chip.js';
 import './shared-styles.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
+const fauxFirebaseEmailKey = "faux-firebase-email";
+const fauxFirebaseDisplayNameKey = "faux-firebase-display-name"
+
+class fauxFirebaseUser {
+  constructor(email, displayName) {
+    this.email = email || "tester@gmail.com"
+    this.displayName = displayName || "Mr. Tester"
+    this.uid = this.email;
+    localStorage.setItem(fauxFirebaseEmailKey, this.email);
+    localStorage.setItem(fauxFirebaseDisplayNameKey, this.displayName);
+  }
+
+  getIdToken(force) {
+    return Promise.resolve("fake-token-value-for-offline-dev-mode");
+  }
+}
+
+function recoverFauxUser() {
+  let email = localStorage.getItem(fauxFirebaseEmailKey);
+  if (!email) return null;
+  let displayName = localStorage.getItem(fauxFirebaseDisplayNameKey) || email;
+  return new fauxFirebaseUser(email, displayName);
+}
+
+function fauxSignOut() {
+  localStorage.removeItem(fauxFirebaseEmailKey);
+  localStorage.removeItem(fauxFirebaseDisplayNameKey);
+}
+
 class BoardgameUser extends PolymerElement {
   static get template() {
     return html`
@@ -45,7 +74,6 @@ class BoardgameUser extends PolymerElement {
       .verifying {
         font-style: italic;
       }
-
     </style>
     <div class\$="{{_classForVerifyingAuth(verifyingAuth)}}">
       <div class="horizontal layout">
@@ -66,6 +94,9 @@ class BoardgameUser extends PolymerElement {
     See https://github.com/PolymerElements/paper-dialog/issues/7 -->
 
     <paper-dialog id="dialog" no-cancel-on-esc-key="" no-cancel-on-outside-click="">
+      <div hidden$="{{!offlineDevMode}}">
+        <strong style="color:red;">Offline Dev Mode enabled; login is faked</strong>
+      </div>
       <iron-pages id="pages">
         <div>
           <h2>Sign In</h2>
@@ -147,8 +178,17 @@ class BoardgameUser extends PolymerElement {
 
   ready() {
     super.ready();
-    this._firebaseApp = firebase.initializeApp(CONFIG.firebase);
-    this._firebaseApp.auth().onAuthStateChanged(user => this.firebaseUser = user);
+    if (this.offlineDevMode) {
+      this.firebaseUser = recoverFauxUser();
+    } else {
+      this._firebaseApp = firebase.initializeApp(CONFIG.firebase);
+      this._firebaseApp.auth().onAuthStateChanged(user => this.firebaseUser = user);
+    }
+  }
+
+  get offlineDevMode() {
+    if (!CONFIG) return false;
+    return CONFIG.offline_dev_mode || false;
   }
 
   buttonText(isSignIn) {
@@ -271,21 +311,42 @@ class BoardgameUser extends PolymerElement {
     this.showEmailPage();
   }
 
+  fauxSignIn(email, displayName) {
+    if (!CONFIG || !CONFIG.offline_dev_mode) {
+      console.error("OfflineDevMode not enabled")
+      return;
+    }
+    this.firebaseUser = new fauxFirebaseUser(email, displayName);
+  }
+
   signInWithGoogle() {
-    let provider = new firebase.auth.GoogleAuthProvider();
-    provider.addScope("profile");
-    provider.addScope("email");
-    this._firebaseApp.auth().signInWithPopup(provider).catch(this.handleSignInError.bind(this));
+    if (this.offlineDevMode) {
+      let email = prompt("Fake email address to login with:");
+      this.fauxSignIn(email, email);
+    } else {
+      let provider = new firebase.auth.GoogleAuthProvider();
+      provider.addScope("profile");
+      provider.addScope("email");
+      this._firebaseApp.auth().signInWithPopup(provider).catch(this.handleSignInError.bind(this));
+    }
     this.$.pages.selected = 2;
   }
 
   signInWithEmailAndPassword(email, password) {
-    this._firebaseApp.auth().signInWithEmailAndPassword(email, password).catch(this.handleSignInError.bind(this));
+    if (this.offlineDevMode) {
+      this.fauxSignIn(email, email);
+    } else {
+      this._firebaseApp.auth().signInWithEmailAndPassword(email, password).catch(this.handleSignInError.bind(this));
+    };
     this.$.pages.selected = 2;
   }
 
   createUserWithEmailAndPassword(email, password) {
-    this._firebaseApp.auth().createUserWithEmailAndPassword(email, password).catch(this.handleSignInError.bind(this));
+    if (this.offlineDevMode) {
+      this.fauxSignIn(email, email);
+    } else {
+      this._firebaseApp.auth().createUserWithEmailAndPassword(email, password).catch(this.handleSignInError.bind(this));
+    }
     this.$.pages.selected = 2;
   }
 
@@ -305,7 +366,12 @@ class BoardgameUser extends PolymerElement {
   }
 
   signOut(e) {
-    this._firebaseApp.auth().signOut();
+    if (this.offlineDevMode) {
+      fauxSignOut();
+      this.firebaseUser = null;
+    } else {
+      this._firebaseApp.auth().signOut();
+    }
   }
 }
 
