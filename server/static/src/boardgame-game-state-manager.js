@@ -273,6 +273,8 @@ class BoardgameGameStateManager extends PolymerElement {
     if (!moveForms) return null;
     for (let i = 0; i < moveForms.length; i++){
       let form = moveForms[i];
+      //Some forms don't have fields and that's OK.
+      if (!form.Fields) continue;
       for (let j = 0; j < form.Fields.length; j++) {
         let field = form.Fields[j];
         if (field.EnumName) {
