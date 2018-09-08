@@ -154,17 +154,24 @@ func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie, email, photoUrl, 
 
 	if cookie == "" && uid != "" {
 
-		verifiedUid, err := firebase.VerifyIDToken(token, s.config.Firebase.ProjectID)
+		if s.config.OfflineDevMode {
 
-		if err != nil {
-			r.Error(errors.New("Failed to verify jwt token: " + err.Error()))
-			return
-		}
+			s.logger.Warnln("Skipping auth checking because of OfflineDevMode. This setting should NEVER be enabled in prod.")
 
-		if verifiedUid != uid {
+		} else {
 
-			r.Error(errors.New("The decoded jwt token doesn not match with the provided uid."))
-			return
+			verifiedUid, err := firebase.VerifyIDToken(token, s.config.Firebase.ProjectID)
+
+			if err != nil {
+				r.Error(errors.New("Failed to verify jwt token: " + err.Error()))
+				return
+			}
+
+			if verifiedUid != uid {
+
+				r.Error(errors.New("The decoded jwt token doesn not match with the provided uid."))
+				return
+			}
 		}
 
 		user := s.storage.GetUserById(uid)

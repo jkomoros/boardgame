@@ -78,6 +78,13 @@ func (c *RawConfigMode) Derive(prodMode bool) *ConfigMode {
 		result.DisableAdminChecking = false
 	}
 
+	if result.OfflineDevMode && prodMode {
+		//Not legal, turn off!
+
+		//TODO: ideally we'd communicate that we had unset this...
+		result.OfflineDevMode = false
+	}
+
 	return result
 
 }
@@ -179,6 +186,10 @@ func (c *RawConfigMode) Extend(other *RawConfigMode) *RawConfigMode {
 
 	if other.DisableAdminChecking {
 		result.DisableAdminChecking = true
+	}
+
+	if other.OfflineDevMode {
+		result.OfflineDevMode = true
 	}
 
 	if other.GoogleAnalytics != "" {

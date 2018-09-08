@@ -26,6 +26,7 @@ func TestBaseExtend(t *testing.T) {
 							"AdminUserIdDev2",
 						},
 						true,
+						true,
 						map[string]string{
 							"Config1": "Dev",
 							"Config2": "Dev",
@@ -50,6 +51,7 @@ func TestBaseExtend(t *testing.T) {
 							"AdminUserIdDev1",
 							"AdminUserIdDev2",
 						},
+						true,
 						true,
 						map[string]string{
 							"Config1": "Dev",
@@ -88,6 +90,7 @@ func TestBaseExtend(t *testing.T) {
 							"AdminUserIdDev2",
 						},
 						false,
+						false,
 						map[string]string{
 							"Config1": "Base",
 							"Config2": "Base",
@@ -108,6 +111,7 @@ func TestBaseExtend(t *testing.T) {
 						[]string{
 							"AdminUserIdDev1",
 						},
+						true,
 						true,
 						map[string]string{
 							"Config2": "Dev",
@@ -134,6 +138,7 @@ func TestBaseExtend(t *testing.T) {
 							"AdminUserIdDev1",
 						},
 						true,
+						true,
 						map[string]string{
 							"Config1": "Base",
 							"Config2": "Dev",
@@ -155,6 +160,7 @@ func TestBaseExtend(t *testing.T) {
 							"AdminUserIdBase1",
 							"AdminUserIdDev2",
 						},
+						false,
 						false,
 						map[string]string{
 							"Config1": "Base",

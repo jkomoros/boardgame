@@ -8,6 +8,8 @@ type ClientConfig struct {
 	GoogleAnalytics string          `json:"google_analytics"`
 	Host            string          `json:"host"`
 	DevHost         string          `json:"dev_host"`
+	//This property will be set if DisableAuthChecking is true in config
+	OfflineDevMode bool `json:"offline_dev_mode,omitempty"`
 }
 
 //Client returns a ClientConfig derived from the given config. The returned
@@ -44,5 +46,6 @@ func (c *Config) Client(prodMode bool) *ClientConfig {
 		GoogleAnalytics: mode.GoogleAnalytics,
 		Host:            host,
 		DevHost:         devHost,
+		OfflineDevMode:  mode.OfflineDevMode,
 	}
 }

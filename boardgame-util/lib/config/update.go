@@ -139,10 +139,18 @@ func SetStringKey(field ConfigModeField, key, val string) ConfigUpdater {
 //FieldTypeBool.
 func SetBool(field ConfigModeField, val bool) ConfigUpdater {
 	return func(r *RawConfigMode) error {
-		if field != FieldDisableAdminChecking {
+		fieldType := FieldTypes[field]
+		if fieldType != FieldTypeBool {
 			return errors.New(string(field) + " is not a bool")
 		}
-		r.DisableAdminChecking = val
+		switch field {
+		case FieldDisableAdminChecking:
+			r.DisableAdminChecking = val
+		case FieldOfflineDevMode:
+			r.OfflineDevMode = val
+		default:
+			return errors.New("Unknown bool field: " + string(field))
+		}
 		return nil
 	}
 }

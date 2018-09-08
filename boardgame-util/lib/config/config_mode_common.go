@@ -15,6 +15,7 @@ const (
 	FieldDefaultStaticPort                    = "DefaultStaticPort"
 	FieldAdminUserIds                         = "AdminUserIds"
 	FieldDisableAdminChecking                 = "DisableAdminChecking"
+	FieldOfflineDevMode                       = "OfflineDevMode"
 	FieldStorage                              = "Storage"
 	FieldDefaultStorageType                   = "DefaultStorageType"
 	FieldGoogleAnalytics                      = "GoogleAnalytics"
@@ -45,6 +46,7 @@ var FieldTypes = map[ConfigModeField]ConfigModeFieldType{
 	FieldDefaultStaticPort:    FieldTypeString,
 	FieldAdminUserIds:         FieldTypeStringSlice,
 	FieldDisableAdminChecking: FieldTypeBool,
+	FieldOfflineDevMode:       FieldTypeBool,
 	FieldStorage:              FieldTypeStringMap,
 	FieldDefaultStorageType:   FieldTypeString,
 	FieldGoogleAnalytics:      FieldTypeString,
@@ -62,8 +64,10 @@ type ConfigModeCommon struct {
 	DefaultStaticPort string   `json:"defaultStaticPort,omitempty"`
 	AdminUserIds      []string `json:"adminUserIds,omitempty"`
 	//This is a dangerous config. Only enable in Dev!
-	DisableAdminChecking bool              `json:"disableAdminChecking,omitempty"`
-	Storage              map[string]string `json:"storage,omitempty"`
+	DisableAdminChecking bool `json:"disableAdminChecking,omitempty"`
+	//This is a dangerous config, designed to only be used in dev.
+	OfflineDevMode bool              `json:"offlineDevMode,omitempty"`
+	Storage        map[string]string `json:"storage,omitempty"`
 	//The storage type that should be used if no storage type is provided via
 	//command line options.
 	DefaultStorageType string `json:"defaultStorageType,omitempty"`

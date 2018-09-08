@@ -44,6 +44,13 @@ admin checking. That means that any user can enable admin mode clientside and
 then operate as an admin (e.g. make whatever moves they want on a game, view
 the state from the perspective of any user, etc).
 
+### OfflineDevMode
+
+If provided, this mode will not check that the firebase auth tokens are
+legitimate, and will instruct the client to not bother reaching out to the
+firebase server to authenticate. This is an extremely dangerous option and may
+not be enabled in prod.
+
 ### AdminUserIds
 
 When adminmode chcecking is enabled (which is the default, see above), only

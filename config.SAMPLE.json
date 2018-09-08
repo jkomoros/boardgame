@@ -1,5 +1,6 @@
 {
 	"base": {
+		"offlineDevMode": true,
 		"defaultStorageType": "bolt",
 		"googleAnalytics": "UA-321674-10",
 		"firebase": {
