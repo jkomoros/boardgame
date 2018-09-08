@@ -54,7 +54,7 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 
 	go func() {
 		fmt.Println("Starting up asset server at " + staticPort)
-		if err := build.SimpleStaticServer(dir, staticPort); err != nil {
+		if err := build.StaticServer(dir, staticPort); err != nil {
 			//TODO: when this happens we should quit the whole program
 			fmt.Println("ERROR: couldn't start static server: " + err.Error())
 		}
@@ -82,7 +82,7 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 		topLine := "************************************************************************"
 
 		//Cheat and wait to print the message until later
-		time.Sleep(time.Millisecond * 250)
+		time.Sleep(time.Second * 2)
 
 		fmt.Println(" ")
 		fmt.Println(topLine)

@@ -20,8 +20,8 @@ const gameSrcSubFolder = "game-src"
 const clientSubFolder = "client"
 const polymerConfig = "polymer.json"
 const polymerFragmentsKey = "fragments"
-const clientGameRendererFileName = "boardgame-render-game-%s.html"
-const clientPlayerInfoRendererFileName = "boardgame-render-player-info-%s.html"
+const clientGameRendererFileName = "boardgame-render-game-%s.js"
+const clientPlayerInfoRendererFileName = "boardgame-render-player-info-%s.js"
 
 //The path, relative to goPath, where all of the files are to copy
 const staticServerPackage = "github.com/jkomoros/boardgame/server/static"
@@ -36,10 +36,37 @@ var filesToExclude map[string]bool = map[string]bool{
 	".DS_Store":      true,
 }
 
+//StaticServer runs a static server. directory is the folder that the `static`
+//folder is contained within. If no error is returned, runs until the program
+//exits. Under the cover uses `polymer serve` because imports use bare module
+//specifiers that must be rewritten.
+func StaticServer(directory string, port string) error {
+
+	if err := verifyPolymer(directory); err != nil {
+		return err
+	}
+
+	staticDir := filepath.Join(directory, staticSubFolder)
+
+	cmd := exec.Command("polymer", "serve", "--port="+port)
+	cmd.Dir = staticDir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return errors.New("Couldn't `polymer serve`: " + err.Error())
+	}
+
+	return nil
+
+}
+
 //SimpleStaticServer creates and runs a simple static server. directory is the
 //folder that the `static` folder is contained within. If no error is
 //returned, Runs until the program exits.
-func SimpleStaticServer(directory string, port string) error {
+func simpleStaticServer(directory string, port string) error {
+
+	//This is an old implementation that came before polymer 3.0, where we really need to use polymer serve.
 
 	staticPath := filepath.Join(directory, staticSubFolder)
 
@@ -98,15 +125,15 @@ func SimpleStaticServer(directory string, port string) error {
 //subfolder of directory. It symlinks necessary resources in. The return value
 //is the directory where the assets can be served from, and an error if there
 //was an error. You can clean up the created folder structure with
-//CleanStatic. If forceBower is true, will force update bower_components even
+//CleanStatic. If forceNode is true, will force update node_modules even
 //if it appears to already exist. If prodBuild is true, then `polymer build`
 //will be run. If copyFiles is true, instead of symlinking the files it will
 //copy them (directories will still be symlinked). This is good if you intend
 //to modify the files.
-func Static(directory string, managers []string, c *config.Config, forceBower bool, prodBuild bool, copyFiles bool) (assetRoot string, err error) {
+func Static(directory string, managers []string, c *config.Config, forceNode bool, prodBuild bool, copyFiles bool) (assetRoot string, err error) {
 
-	if err := ensureBowerComponents(forceBower); err != nil {
-		return "", errors.New("bower_components couldn't be created: " + err.Error())
+	if err := ensureNodeModules(forceNode); err != nil {
+		return "", errors.New("node_modules couldn't be created: " + err.Error())
 	}
 
 	if _, err := os.Stat(directory); os.IsNotExist(err) {
@@ -161,8 +188,8 @@ func Static(directory string, managers []string, c *config.Config, forceBower bo
 
 		if _, err := os.Stat(rejoinedPath); os.IsNotExist(err) {
 
-			if strings.Contains(name, "bower") {
-				return "", errors.New("bower_components doesn't appear to exist. You may need to run `bower update` from within `boardgame/server/static/webapp`.")
+			if strings.Contains(name, "node_") {
+				return "", errors.New("node_modules doesn't appear to exist. You may need to run `npm up` from within `boardgame/server/static/webapp`.")
 			}
 
 			return "", errors.New("Unexpected error: relRemotePath of " + relRemotePath + " doesn't exist " + absLocalDirPath + " : " + absRemotePath + "(" + rejoinedPath + ")")
@@ -242,10 +269,10 @@ func copyFile(remote, local string) error {
 }
 
 //ensureBowerComoonents ensures that
-//`$GOPATH/src/github.com/jkomoros/boardgame/server/static/webapp` has bower
+//`$GOPATH/src/github.com/jkomoros/boardgame/server/static/webapp` has node
 //components. If force is true, then will update them even if bower_components
 //appears to exist.
-func ensureBowerComponents(force bool) error {
+func ensureNodeModules(force bool) error {
 
 	p, err := path.AbsoluteGoPkgPath(staticServerPackage)
 
@@ -254,26 +281,26 @@ func ensureBowerComponents(force bool) error {
 	}
 
 	if !force {
-		if _, err := os.Stat(filepath.Join(p, "bower_components")); err == nil {
+		if _, err := os.Stat(filepath.Join(p, "node_modules")); err == nil {
 			//It appears to exist, we're fine!
 			return nil
 		}
 	}
 
-	_, err = exec.LookPath("bower")
+	_, err = exec.LookPath("npm")
 
 	if err != nil {
-		return errors.New("bower_components didn't exist and bower didn't appear to be installed. You need to install bower.")
+		return errors.New("node_modules didn't exist and npm didn't appear to be installed. You need to install npm.")
 	}
 
-	cmd := exec.Command("bower", "update")
+	cmd := exec.Command("npm", "up")
 	cmd.Dir = p
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	fmt.Println("bower_components needs updating, running `bower update`...")
+	fmt.Println("node_modules needs updating, running `npm up`...")
 	if err := cmd.Run(); err != nil {
-		return errors.New("Couldn't `bower update`: " + err.Error())
+		return errors.New("Couldn't `npm up`: " + err.Error())
 	}
 
 	return nil
@@ -500,10 +527,9 @@ func polymerJsonContents(fragments []string) ([]byte, error) {
 
 }
 
-//buildPolymer calls `polymer build` to build the bundled version. Expects
-//polymer.json to exist; that is that createPolymerJson has been called.
-func buildPolymer(dir string) error {
-
+//verifyPolymer should be called before running a polymer command to ensure it
+//will work.
+func verifyPolymer(dir string) error {
 	staticDir := filepath.Join(dir, staticSubFolder)
 
 	polymerJson := filepath.Join(staticDir, polymerConfig)
@@ -516,6 +542,19 @@ func buildPolymer(dir string) error {
 
 	if err != nil {
 		return errors.New("polymer command is not installed. Run `npm install -g polymer-cli` to install it.")
+	}
+
+	return nil
+}
+
+//buildPolymer calls `polymer build` to build the bundled version. Expects
+//polymer.json to exist; that is that createPolymerJson has been called.
+func buildPolymer(dir string) error {
+
+	staticDir := filepath.Join(dir, staticSubFolder)
+
+	if err := verifyPolymer(dir); err != nil {
+		return err
 	}
 
 	cmd := exec.Command("polymer", "build")
@@ -533,11 +572,11 @@ func buildPolymer(dir string) error {
 
 const basePolymerJson = `{
   "entrypoint": "index.html",
-  "shell": "src/boardgame-app.html",
+  "shell": "src/boardgame-app.js",
   "fragments": [
-    "src/boardgame-game-view.html",
-    "src/boardgame-list-games-view.html",
-    "src/boardgame-404-view.html"
+    "src/boardgame-game-view.js",
+    "src/boardgame-list-games-view.js",
+    "src/boardgame-404-view.js"
   ],
   "sourceGlobs": [
     "src/**/*",
@@ -546,6 +585,6 @@ const basePolymerJson = `{
   ],
   "includeDependencies": [
     "manifest.json",
-    "bower_components/webcomponentsjs/webcomponents-lite.min.js"
+    "node_modules/@webcomponentsjs/webcomponents-loader.js"
   ]
 }`

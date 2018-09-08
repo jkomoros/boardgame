@@ -5,7 +5,6 @@ package path
 
 import (
 	"errors"
-	"github.com/abcum/lcp"
 	"os"
 	"path/filepath"
 	"strings"
@@ -42,7 +41,7 @@ func RelativizePaths(from, to string) (string, error) {
 	from = filepath.Clean(from)
 	to = filepath.Clean(to)
 
-	prefix := string(lcp.LCP([]byte(from), []byte(to)))
+	prefix := pathPrefix(from, to)
 
 	if prefix == "" {
 		return "", errors.New("No prefix in common")
@@ -60,5 +59,28 @@ func RelativizePaths(from, to string) (string, error) {
 	}
 
 	return filepath.Join(filepath.Join(dots...), toRest), nil
+
+}
+
+func pathPrefix(from, to string) string {
+
+	var overlappingParts []string
+
+	fromParts := strings.Split(from, string(filepath.Separator))
+	toParts := strings.Split(to, string(filepath.Separator))
+
+	for i, fromPart := range fromParts {
+		if i >= len(toParts) {
+			break
+		}
+		toPart := toParts[i]
+
+		if fromPart != toPart {
+			break
+		}
+		overlappingParts = append(overlappingParts, fromPart)
+	}
+
+	return strings.Join(overlappingParts, string(filepath.Separator)) + string(filepath.Separator)
 
 }
