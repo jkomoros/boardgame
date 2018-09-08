@@ -47,7 +47,7 @@
     "@polymer/paper-toggle-button": "^3.0.0-pre.18",
     "@polymer/polymer": "^3.0.0",
     "@webcomponents/webcomponentsjs": "^2.0.0",
-    "browser-detector": "^0.1.2",
+    "browser-detect": "^0.2.28",
     "firebase": "^5.4.2",
     "web-animations-js": "^2.3.1"
   }
