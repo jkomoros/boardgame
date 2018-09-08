@@ -71,10 +71,12 @@
       }
     </script>
 
+    <!-- This shim was added to fix a bug in the drop-down menus, as written at https://github.com/PolymerElements/paper-swatch-picker/issues/36 -->
+    <script src="./node_modules/web-animations-js/web-animations-next.min.js"></script>
+
     <!-- Load webcomponents-loader.js to check and load any polyfills your browser needs -->
     <script src="./node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
-    <!-- This shim was added to fix a bug in the drop-down menus, as written at https://github.com/PolymerElements/paper-swatch-picker/issues/36 -->
-    <script type="module" src="./node_modules/web-animations-js/web-animations-next.min.js"></script>
+
 
     <script type="module" src="/src/boardgame-app.js"></script>
 
