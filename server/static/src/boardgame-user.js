@@ -108,7 +108,6 @@ class BoardgameUser extends PolymerElement {
 
   static get properties() {
     return {
-      user: Object,
       emailFormIsSignIn: {
         type: Boolean,
         value: true,
