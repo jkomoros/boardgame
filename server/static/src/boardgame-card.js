@@ -4,11 +4,10 @@ import '@polymer/iron-flex-layout/iron-flex-layout.js';
 import '@polymer/polymer/lib/elements/dom-bind.js';
 import { BoardgameComponent } from './boardgame-component.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
-import { DomModule } from '@polymer/polymer/lib/elements/dom-module.js';
 let memoizedTemplate;
 
 class BoardgameCard extends BoardgameComponent {
-  static get template() {
+  static get templateContents() {
     return html`
     <style include="iron-flex">
 
@@ -294,7 +293,7 @@ class BoardgameCard extends BoardgameComponent {
 
   static get template() {
     if (!memoizedTemplate) {
-      memoizedTemplate = BoardgameComponent.combinedTemplate(DomModule.import(this.is, 'template'));
+      memoizedTemplate = BoardgameComponent.combinedTemplate(this.templateContents);
     }
     return memoizedTemplate;
   }
