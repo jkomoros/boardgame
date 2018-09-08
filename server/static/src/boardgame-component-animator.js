@@ -1,5 +1,5 @@
 import { PolymerElement } from '@polymer/polymer/polymer-element.js';
-import 'browser-detector/browser-detector.js';
+import '../node_modules/browser-detector/index.js';
 import './boardgame-component-stack.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
