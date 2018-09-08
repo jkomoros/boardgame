@@ -272,7 +272,10 @@ class BoardgameUser extends PolymerElement {
   }
 
   signInWithGoogle() {
-    this._firebaseApp.auth().signInWithPopup("google").catch(this.handleSignInError.bind(this));
+    let provider = new firebase.auth.GoogleAuthProvider();
+    provider.addScope("profile");
+    provider.addScope("email");
+    this._firebaseApp.auth().signInWithPopup(provider).catch(this.handleSignInError.bind(this));
     this.$.pages.selected = 2;
   }
 
