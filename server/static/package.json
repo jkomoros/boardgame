@@ -48,6 +48,7 @@
     "@polymer/polymer": "^3.0.0",
     "@webcomponents/webcomponentsjs": "^2.0.0",
     "browser-detector": "^0.1.2",
+    "firebase": "^5.4.2",
     "web-animations-js": "^2.3.1"
   }
 }

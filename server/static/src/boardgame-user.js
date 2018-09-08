@@ -17,8 +17,9 @@ import '@polymer/iron-pages/iron-pages.js';
 import '@polymer/iron-flex-layout/iron-flex-layout-classes.js';
 import '@polymer/paper-spinner/paper-spinner-lite.js';
 import './boardgame-ajax.js';
-import 'polymerfire/firebase-app.js';
-import 'polymerfire/firebase-auth.js';
+// This import loads the firebase namespace along with all its type information.
+import firebase from '@firebase/app';
+import '@firebase/auth';
 import './boardgame-player-chip.js';
 import './shared-styles.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
@@ -98,9 +99,6 @@ class BoardgameUser extends PolymerElement {
       </iron-pages>
     </paper-dialog>
     <boardgame-ajax id="auth" path="auth" handle-as="json" last-response="{{authResponse}}" method="POST"></boardgame-ajax>
-
-    <firebase-app auth-domain="{{config.firebase.authDomain}}" api-key="{{config.firebase.apiKey}}" database-url="{{config.firebase.databaseURL}}" storage-bucket="{{config.firebase.storageBucket}}" messaging-sender-id="{{config.firebase.messagingSenderId}}"></firebase-app>
-    <firebase-auth id="fbauth" user="{{firebaseUser}}"></firebase-auth>
 `;
   }
 
@@ -144,12 +142,18 @@ class BoardgameUser extends PolymerElement {
       lastUserId: String,
       //When the user signs in successfully, if this is not undefined, will be called.
       signedInAction: Object,
+      _firebaseApp: Object,
     }
   }
 
   get config() {
     //CONFIG is the global defined in index.html
     return CONFIG;
+  }
+
+  ready() {
+    this._firebaseApp = firebase.initializeApp(config.firebase);
+    this._firebaseApp.auth().onAuthStateChanged(this._firebaseUserChanged.bind(this));
   }
 
   buttonText(isSignIn) {
@@ -273,17 +277,17 @@ class BoardgameUser extends PolymerElement {
   }
 
   signInWithGoogle() {
-    this.$.fbauth.signInWithPopup("google").catch(this.handleSignInError.bind(this));
+    this._firebaseApp.auth().signInWithPopup("google").catch(this.handleSignInError.bind(this));
     this.$.pages.selected = 2;
   }
 
   signInWithEmailAndPassword(email, password) {
-    this.$.fbauth.signInWithEmailAndPassword(email, password).catch(this.handleSignInError.bind(this));
+    this._firebaseApp.auth().signInWithEmailAndPassword(email, password).catch(this.handleSignInError.bind(this));
     this.$.pages.selected = 2;
   }
 
   createUserWithEmailAndPassword(email, password) {
-    this.$.fbauth.createUserWithEmailAndPassword(email, password).catch(this.handleSignInError.bind(this));
+    this._firebaseApp.auth().createUserWithEmailAndPassword(email, password).catch(this.handleSignInError.bind(this));
     this.$.pages.selected = 2;
   }
 
