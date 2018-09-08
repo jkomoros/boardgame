@@ -181,7 +181,7 @@ class BoardgameToken extends BoardgameComponent {
   }
 
   _computeAsset(type) {
-    return this.resolveUrl("assets/token_" + type + ".svg")    
+    return "src/assets/token_" + type + ".svg";  
   }
 
   //Override _computeClasses and add some more.
