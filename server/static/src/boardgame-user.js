@@ -147,7 +147,7 @@ class BoardgameUser extends PolymerElement {
 
   ready() {
     this._firebaseApp = firebase.initializeApp(CONFIG.firebase);
-    this._firebaseApp.auth().onAuthStateChanged(this._firebaseUserChanged.bind(this));
+    this._firebaseApp.auth().onAuthStateChanged(user => this.firebaseUser = user);
   }
 
   buttonText(isSignIn) {
