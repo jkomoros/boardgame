@@ -63,6 +63,7 @@ class BoardgameGameItem extends GamePathMixin(PolymerElement) {
 
   _computeGameDisplayName(item, managers) {
     if (!item) return "";
+    if (!managers) return "";
     for (let i = 0; i < managers.length; i++) {
       let manager = managers[i];
       if (manager.Name == item.Name) {
