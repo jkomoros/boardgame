@@ -20,8 +20,8 @@ const gameSrcSubFolder = "game-src"
 const clientSubFolder = "client"
 const polymerConfig = "polymer.json"
 const polymerFragmentsKey = "fragments"
-const clientGameRendererFileName = "boardgame-render-game-%s.html"
-const clientPlayerInfoRendererFileName = "boardgame-render-player-info-%s.html"
+const clientGameRendererFileName = "boardgame-render-game-%s.js"
+const clientPlayerInfoRendererFileName = "boardgame-render-player-info-%s.js"
 
 //The path, relative to goPath, where all of the files are to copy
 const staticServerPackage = "github.com/jkomoros/boardgame/server/static"
@@ -533,11 +533,11 @@ func buildPolymer(dir string) error {
 
 const basePolymerJson = `{
   "entrypoint": "index.html",
-  "shell": "src/boardgame-app.html",
+  "shell": "src/boardgame-app.js",
   "fragments": [
-    "src/boardgame-game-view.html",
-    "src/boardgame-list-games-view.html",
-    "src/boardgame-404-view.html"
+    "src/boardgame-game-view.js",
+    "src/boardgame-list-games-view.js",
+    "src/boardgame-404-view.js"
   ],
   "sourceGlobs": [
     "src/**/*",
