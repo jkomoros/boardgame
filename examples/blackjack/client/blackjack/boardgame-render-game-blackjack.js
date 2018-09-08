@@ -3,7 +3,7 @@ import '@polymer/iron-flex-layout/iron-flex-layout.js';
 import '@polymer/paper-button/paper-button.js';
 import '../../src/boardgame-component-stack.js';
 import '../../src/boardgame-card.js';
-import '../../src/boardgame-base-game-renderer.js';
+import { BoardgameBaseGameRenderer } from '../../src/boardgame-base-game-renderer.js';
 import '../../src/boardgame-fading-text.js';
 import '../../src/boardgame-deck-defaults.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';

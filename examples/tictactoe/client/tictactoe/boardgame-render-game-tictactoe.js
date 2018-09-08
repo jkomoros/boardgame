@@ -1,6 +1,6 @@
 import '@polymer/polymer/polymer-element.js';
 import '@polymer/iron-flex-layout/iron-flex-layout-classes.js';
-import '../../src/boardgame-base-game-renderer.js';
+import { BoardgameBaseGameRenderer } from '../../src/boardgame-base-game-renderer.js';
 import './boardgame-tictactoe-cell.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 class BoardgameRenderGameTictactoe extends BoardgameBaseGameRenderer {

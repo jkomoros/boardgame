@@ -4,7 +4,7 @@ import '@polymer/iron-flex-layout/iron-flex-layout-classes.js';
 import '@polymer/paper-button/paper-button.js';
 import '@polymer/paper-progress/paper-progress.js';
 import '@polymer/paper-styles/typography.js';
-import '../../src/boardgame-base-game-renderer.js';
+import { BoardgameBaseGameRenderer } from '../../src/boardgame-base-game-renderer.js';
 import '../../src/boardgame-card.js';
 import '../../src/boardgame-component-stack.js';
 import '../../src/boardgame-fading-text.js';

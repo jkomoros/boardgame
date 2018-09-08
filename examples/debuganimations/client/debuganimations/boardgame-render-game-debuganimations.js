@@ -8,7 +8,7 @@ import '@polymer/paper-item/paper-item.js';
 import '@polymer/paper-toggle-button/paper-toggle-button.js';
 import '@polymer/paper-slider/paper-slider.js';
 import '../../src/boardgame-deck-defaults.js';
-import '../../src/boardgame-base-game-renderer.js';
+import { BoardgameBaseGameRenderer } from '../../src/boardgame-base-game-renderer.js';
 import '../../src/boardgame-card.js';
 import '../../src/boardgame-component-stack.js';
 import '../../src/boardgame-fading-text.js';
