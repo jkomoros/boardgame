@@ -1,6 +1,6 @@
 import '@polymer/polymer/polymer-element.js';
 import '@polymer/iron-ajax/iron-ajax.js';
-import './boardgame-game-path.js';
+import {GamePathMixin} from './boardgame-game-path.js';
 
 let IronAjax = customElements.get("iron-ajax");
 

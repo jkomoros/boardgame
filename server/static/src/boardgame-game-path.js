@@ -3,7 +3,7 @@
  * @polymer
  * @mixinFunction
  */
-GamePathMixin = function(superClass) {
+export const GamePathMixin = function(superClass) {
 		return class extends superClass {
 		    GamePath(name, id) {
 		      return "game/" + name + "/" + id + "/";
