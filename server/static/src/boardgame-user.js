@@ -146,6 +146,7 @@ class BoardgameUser extends PolymerElement {
   }
 
   ready() {
+    super.ready();
     this._firebaseApp = firebase.initializeApp(CONFIG.firebase);
     this._firebaseApp.auth().onAuthStateChanged(user => this.firebaseUser = user);
   }
@@ -301,7 +302,7 @@ class BoardgameUser extends PolymerElement {
   }
 
   signOut(e) {
-    this.$.fbauth.signOut();
+    this._firebaseApp.auth().signOut();
   }
 }
 
