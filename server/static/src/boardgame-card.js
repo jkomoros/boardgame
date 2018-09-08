@@ -2,7 +2,7 @@ import '@polymer/polymer/polymer-element.js';
 import '@polymer/paper-styles/typography.js';
 import '@polymer/iron-flex-layout/iron-flex-layout.js';
 import '@polymer/polymer/lib/elements/dom-bind.js';
-import './boardgame-component.js';
+import { BoardgameComponent } from './boardgame-component.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 import { DomModule } from '@polymer/polymer/lib/elements/dom-module.js';
 let memoizedTemplate;
