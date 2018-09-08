@@ -1130,9 +1130,8 @@ memory:
 ```
 memory/
 	|	client/
-	|	|	memory/
-	|	|	| boardgame-render-game-memory.js
-	|	|	| boardgame-render-player-info-memory.js
+	|	| boardgame-render-game-memory.js
+	|	| boardgame-render-player-info-memory.js
 	|	agent.go
 	|	agent_test.go
 	|	auto_reader.go

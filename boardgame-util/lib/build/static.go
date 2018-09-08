@@ -338,7 +338,7 @@ func linkGameClientFolders(basePath string, managers []string) error {
 
 		pkgShortName := filepath.Base(manager)
 
-		absClientPath := filepath.Join(absPkgPath, clientSubFolder, pkgShortName)
+		absClientPath := filepath.Join(absPkgPath, clientSubFolder)
 
 		if _, err := os.Stat(absClientPath); os.IsNotExist(err) {
 			fmt.Println("Skipping " + manager + " because it doesn't appear to have a client sub-directory")

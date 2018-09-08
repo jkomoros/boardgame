@@ -151,17 +151,17 @@ func (t TemplateSet) Generate(opt *Options) (FileContents, error) {
 }
 
 var templateMap = map[string]string{
-	"{{.Name}}/main.go":         templateContentsMainGo,
-	"{{.Name}}/enum.go":         templateContentsEnumGo,
-	"{{.Name}}/main_test.go":    templateContentsMainTestGo,
-	"{{.Name}}/player_state.go": templateContentsPlayerStateGo,
-	"{{.Name}}/game_state.go":   templateContentsGameStateGo,
-	"{{.Name}}/moves.go":        templateContentsDefaultMovesGo,
-	"{{.Name}}/moves_setup.go":  templateContentsDefaultMovesGo,
-	"{{.Name}}/moves_normal.go": templateContentsNormalMovesGo,
-	"{{.Name}}/components.go":   templateContentComponentsGo,
-	"{{.Name}}/client/{{.Name}}/boardgame-render-game-{{.Name}}.js":        templateContentsRenderGameJs,
-	"{{.Name}}/client/{{.Name}}/boardgame-render-player-info-{{.Name}}.js": templateContentsRenderPlayerInfoJs,
+	"{{.Name}}/main.go":                                          templateContentsMainGo,
+	"{{.Name}}/enum.go":                                          templateContentsEnumGo,
+	"{{.Name}}/main_test.go":                                     templateContentsMainTestGo,
+	"{{.Name}}/player_state.go":                                  templateContentsPlayerStateGo,
+	"{{.Name}}/game_state.go":                                    templateContentsGameStateGo,
+	"{{.Name}}/moves.go":                                         templateContentsDefaultMovesGo,
+	"{{.Name}}/moves_setup.go":                                   templateContentsDefaultMovesGo,
+	"{{.Name}}/moves_normal.go":                                  templateContentsNormalMovesGo,
+	"{{.Name}}/components.go":                                    templateContentComponentsGo,
+	"{{.Name}}/client/boardgame-render-game-{{.Name}}.js":        templateContentsRenderGameJs,
+	"{{.Name}}/client/boardgame-render-player-info-{{.Name}}.js": templateContentsRenderPlayerInfoJs,
 }
 
 const templateContentsMainGo = `{{if .Description -}}
