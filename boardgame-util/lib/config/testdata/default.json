@@ -1,0 +1,30 @@
+{
+	"base": {
+		"defaultStorageType": "mysql",
+		"firebase": {
+			"apiKey": "AIzaSyDi0hhBgLPbpJgprVCDzDkk8zuFpb9XadM",
+			"authDomain": "example-boardgame.firebaseapp.com",
+			"databaseURL": "https://example-boardgame.firebaseio.com",
+			"projectId": "example-boardgame",
+			"storageBucket": "example-boardgame.appspot.com",
+			"messagingSenderId": "138149526364"
+		},
+		"games": {
+			"github.com/jkomoros/boardgame/example": [
+				"blackjack",
+				"checkers",
+				"debuganimations",
+				"memory",
+				"pig",
+				"tictactoe"
+			]
+		}
+	},
+	"dev": {
+		"allowedOrigins": "http://localhost:8080",
+		"disableAdminChecking": true,
+		"storage": {
+			"mysql": "root:root@tcp(localhost:3306)/boardgame"
+		}
+	}
+}
