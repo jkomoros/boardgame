@@ -46,6 +46,8 @@ Once you have npm installed, run:
 npm install -g polymer-cli
 ```
 
+*There's currently a bug in its installation, so if the installation fails, you might have to pass `--unsafe-perm` to install it.*
+
 Now you have the prerequisites installed and can use the `boardgame-util serve` command.
 
 Sitting in the boardgame package, run:
