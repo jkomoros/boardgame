@@ -105,7 +105,7 @@ func SampleStarterConfig(dirOrFile string) *Config {
 //MinimalStaterConfig returns a minimal config starter point, with minimal
 //settings you might want to set. dirOrFile will be used to give the path
 //name, using DefaultFileNames. Leave "" for default.
-func MinimialStaterConfig(dirOrFile string) *Config {
+func MinimalStaterConfig(dirOrFile string) *Config {
 	base := &RawConfigMode{
 		ConfigModeCommon: ConfigModeCommon{
 			DefaultStorageType: "mysql",
