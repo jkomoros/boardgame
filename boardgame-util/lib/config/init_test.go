@@ -22,7 +22,7 @@ func TestSampleConfigs(t *testing.T) {
 			"default.json",
 		},
 		{
-			MinimalStaterConfig,
+			MinimalStarterConfig,
 			"minimal.json",
 		},
 		{
