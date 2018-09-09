@@ -15,7 +15,7 @@ var defaultFirebase = &FirebaseConfig{
 
 func defaultGamesNode() *GameNode {
 
-	baseDir := "github.com/jkomoros/boardgame/example"
+	baseDir := "github.com/jkomoros/boardgame/examples"
 
 	games := []string{
 		"blackjack",

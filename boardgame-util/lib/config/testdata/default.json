@@ -10,7 +10,7 @@
 			"messagingSenderId": "138149526364"
 		},
 		"games": {
-			"github.com/jkomoros/boardgame/example": [
+			"github.com/jkomoros/boardgame/examples": [
 				"blackjack",
 				"checkers",
 				"debuganimations",
