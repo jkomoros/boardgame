@@ -131,6 +131,20 @@ func simpleStaticServer(directory string, port string) error {
 
 }
 
+//CleanCache clears the central cache the build system uses (currently just
+//node_modules). If that cache doesn't exist, is a no op.
+func CleanCache() error {
+
+	cacheDir, err := buildCachePath()
+	if err != nil {
+		return errors.New("Couldn't get build cache path: " + err.Error())
+	}
+
+	//os.RemoveAll is OK if the path doesn't exist
+	return os.RemoveAll(cacheDir)
+
+}
+
 //Static creates a folder of static resources for serving within the static
 //subfolder of directory. It symlinks necessary resources in. The return value
 //is the directory where the assets can be served from, and an error if there
@@ -221,7 +235,7 @@ func Static(directory string, managers []string, c *config.Config, prodBuild boo
 	}
 
 	//Ensure node_modules exists adn link to it
-	absRemoteNodePath, err := nodeModulesPath(filepath.Join(fullPkgPath, packageJsonFileName))
+	absRemoteNodePath, err := updateNodeModules(filepath.Join(fullPkgPath, packageJsonFileName))
 	if err != nil {
 		return "", errors.New("Couldn't get " + nodeModulesFolder + " path: " + err.Error())
 	}
@@ -293,12 +307,24 @@ func copyFile(remote, local string) error {
 
 }
 
-//nodeModulesPath returns an absolute path to where on disk the node_modules
+//buildCachePath returns where we store our build cache (or where we WOULD if
+//it existed).
+func buildCachePath() (string, error) {
+	userCacheDir, err := os.UserCacheDir()
+
+	if err != nil {
+		return "", errors.New("Couldn't get usercachedir: " + err.Error())
+	}
+
+	return filepath.Join(userCacheDir, nodeModulesCacheDir), nil
+}
+
+//updateNodeModules returns an absolute path to where on disk the node_modules
 //folder for the static resources is. Takes an absolute path to the
 //package.json to use. If it doesn't exist it will create it and update. It
 //will call `npm up` on it even if it already exists to ensure it is up to
 //date. The node_modules will be stored in a user cache dir.
-func nodeModulesPath(absPackageJsonPath string) (string, error) {
+func updateNodeModules(absPackageJsonPath string) (string, error) {
 
 	_, err := exec.LookPath("npm")
 
@@ -306,16 +332,13 @@ func nodeModulesPath(absPackageJsonPath string) (string, error) {
 		return "", errors.New("npm didn't appear to be installed. You need to install npm.")
 	}
 
-	userCacheDir, err := os.UserCacheDir()
-
+	cacheDir, err := buildCachePath()
 	if err != nil {
-		return "", errors.New("Couldn't get usercachedir: " + err.Error())
+		return "", errors.New("Couldn't get build cache path: " + err.Error())
 	}
 
-	cacheDir := filepath.Join(userCacheDir, nodeModulesCacheDir)
-
 	if _, err := os.Stat(cacheDir); os.IsNotExist(err) {
-		fmt.Println("Creating " + cacheDir)
+		fmt.Println("Creating " + cacheDir + " You can remove it with boardgame-util clean cache")
 		if err := os.Mkdir(cacheDir, 0700); err != nil {
 			return "", errors.New("Couldn't create cache dir: " + err.Error())
 		}

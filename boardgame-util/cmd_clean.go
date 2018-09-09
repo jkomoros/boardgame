@@ -10,6 +10,7 @@ type Clean struct {
 
 	CleanApi    CleanApi
 	CleanStatic CleanStatic
+	CleanCache  CleanCache
 }
 
 func (c *Clean) Run(p writ.Path, positional []string) {
@@ -28,5 +29,6 @@ func (c *Clean) SubcommandObjects() []SubcommandObject {
 	return []SubcommandObject{
 		&c.CleanApi,
 		&c.CleanStatic,
+		&c.CleanCache,
 	}
 }
