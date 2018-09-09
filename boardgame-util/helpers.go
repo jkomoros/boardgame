@@ -263,7 +263,7 @@ func strMatchesObject(str string, s SubcommandObject) bool {
 }
 
 //selectSubcommandObject takes a subcommand object and a path. It verifes the
-//first item is us, then identifies the next object to recurse into based on
+//first item is us, then identifies the nexct object to recurse into based on
 //Names of SubcommandObjects.
 func selectSubcommandObject(s SubcommandObject, p []string) SubcommandObject {
 

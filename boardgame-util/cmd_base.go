@@ -7,6 +7,7 @@ import (
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
 	"io/ioutil"
 	"os"
+	"strings"
 )
 
 type BoardgameUtil struct {
@@ -20,7 +21,8 @@ type BoardgameUtil struct {
 	Config  Config
 	Stub    Stub
 
-	ConfigPath string
+	ConfigPath            string
+	OverrideStarterConfig string
 
 	config *config.Config
 
@@ -66,6 +68,12 @@ func (b *BoardgameUtil) WritOptions() []*writ.Option {
 			Names:       []string{"config", "c"},
 			Decoder:     writ.NewOptionDecoder(&b.ConfigPath),
 			Description: "The path to the config file or dir to use. If not provided, searches within current directory for files that could be a config, and then walks upwards until it finds one.",
+		},
+		{
+			Names:       []string{"override-starter-config"},
+			Decoder:     writ.NewOptionDecoder(&b.OverrideStarterConfig),
+			Description: "If provided, the normal config will be ignored and a starter config will be used instead. Useful for running in contexts where you don't have a config.json set up yet. Valid values are the same as for `config init`",
+			Placeholder: "TYPE",
 		},
 	}
 }
@@ -117,6 +125,28 @@ func (b *BoardgameUtil) NewTempDir(prefix string) string {
 	return dir
 }
 
+func (b *BoardgameUtil) starterConfigForType(typ string) (*config.Config, error) {
+
+	if typ == "" {
+		typ = "default"
+	}
+
+	typ = strings.ToLower(typ)
+
+	configPath := b.ConfigPath
+
+	switch typ {
+	case "default":
+		return config.DefaultStarterConfig(configPath), nil
+	case "sample":
+		return config.SampleStarterConfig(configPath), nil
+	case "minimal":
+		return config.MinimalStarterConfig(configPath), nil
+	default:
+		return nil, errors.New(typ + " is not a legal type")
+	}
+}
+
 //GetConfig fetches the config, finding it from disk if it hasn't yet. If
 //finding the config errors for any reason, program will quit. That is, when
 //you call this method we assume that it's required for operation of that
@@ -126,7 +156,19 @@ func (b *BoardgameUtil) GetConfig(createIfNotExist bool) *config.Config {
 		return b.config
 	}
 
-	c, err := config.Get(b.ConfigPath, createIfNotExist)
+	var c *config.Config
+	var err error
+
+	if b.OverrideStarterConfig != "" {
+		fmt.Println("Ignoring normal config, using starter config of type: " + b.OverrideStarterConfig)
+		c, err = b.starterConfigForType(b.OverrideStarterConfig)
+		if err != nil {
+			b.errAndQuit(err.Error())
+			return nil
+		}
+	} else {
+		c, err = config.Get(b.ConfigPath, createIfNotExist)
+	}
 
 	if err != nil {
 		b.errAndQuit("config is required for this command, but it couldn't be loaded. You can create one with `boardgame-util config init`.\nError: " + err.Error())

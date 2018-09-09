@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bobziuchkovski/writ"
-	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
-	"strings"
 )
 
 type ConfigInit struct {
@@ -14,29 +12,20 @@ type ConfigInit struct {
 
 func (c *ConfigInit) Run(p writ.Path, positional []string) {
 
-	typ := "default"
-
 	if len(positional) > 1 {
 		p.Last().ExitHelp(errors.New("Only one positional argument may be provided"))
 	}
 
+	typ := ""
+
 	if len(positional) == 1 {
-		typ = strings.ToLower(positional[0])
+		typ = positional[0]
 	}
 
-	var cfg *config.Config
+	cfg, err := c.Base().starterConfigForType(typ)
 
-	configPath := c.Base().ConfigPath
-
-	switch typ {
-	case "default":
-		cfg = config.DefaultStarterConfig(configPath)
-	case "sample":
-		cfg = config.SampleStarterConfig(configPath)
-	case "minimal":
-		cfg = config.MinimalStarterConfig(configPath)
-	default:
-		p.Last().ExitHelp(errors.New(typ + " is not a legal type"))
+	if err != nil {
+		p.Last().ExitHelp(err)
 	}
 
 	if err := cfg.Save(); err != nil {
