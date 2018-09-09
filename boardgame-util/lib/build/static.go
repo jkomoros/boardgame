@@ -20,8 +20,10 @@ const gameSrcSubFolder = "game-src"
 const clientSubFolder = "client"
 const polymerConfig = "polymer.json"
 const polymerFragmentsKey = "fragments"
+const packageJsonFileName = "package.json"
 const clientGameRendererFileName = "boardgame-render-game-%s.js"
 const clientPlayerInfoRendererFileName = "boardgame-render-player-info-%s.js"
+const nodeModulesFolder = "node_modules"
 
 //The main import for the main library
 const mainPackage = "github.com/jkomoros/boardgame"
@@ -29,10 +31,15 @@ const mainPackage = "github.com/jkomoros/boardgame"
 //The path, relative to mainPackage, where the static files are
 const staticServerPath = "server/static"
 
+//The name of the direcotry within os.UserCacheDir() that node_modules should
+//be created within.
+const nodeModulesCacheDir = "com.github.jkomoros.boardgame"
+
 var filesToExclude map[string]bool = map[string]bool{
-	".gitignore":  true,
-	"README.md":   true,
-	polymerConfig: true,
+	".gitignore":      true,
+	"README.md":       true,
+	polymerConfig:     true,
+	nodeModulesFolder: true,
 	//Don't copy over because we'll generate our own; if we copy over and
 	//generate our own we'll overwrite original.
 	configJsFileName: true,
@@ -135,10 +142,6 @@ func simpleStaticServer(directory string, port string) error {
 //to modify the files.
 func Static(directory string, managers []string, c *config.Config, forceNode bool, prodBuild bool, copyFiles bool) (assetRoot string, err error) {
 
-	if err := ensureNodeModules(forceNode); err != nil {
-		return "", errors.New("node_modules couldn't be created: " + err.Error())
-	}
-
 	if _, err := os.Stat(directory); os.IsNotExist(err) {
 		return "", errors.New(directory + " did not already exist.")
 	}
@@ -173,6 +176,8 @@ func Static(directory string, managers []string, c *config.Config, forceNode boo
 		return "", errors.New("Couldn't list files in remote directory: " + err.Error())
 	}
 
+	absLocalDirPath := filepath.Join(workingDirectory, staticDir) + string(filepath.Separator)
+
 	for _, info := range infos {
 
 		name := info.Name()
@@ -182,24 +187,19 @@ func Static(directory string, managers []string, c *config.Config, forceNode boo
 		}
 
 		localPath := filepath.Join(staticDir, name)
-		absLocalDirPath := filepath.Join(workingDirectory, staticDir) + string(filepath.Separator)
-		absRemotePath := filepath.Join(fullPkgPath, name)
 
+		absRemotePath := filepath.Join(fullPkgPath, name)
 		relRemotePath, err := path.RelativizePaths(absLocalDirPath, absRemotePath)
+
+		if err != nil {
+			return "", errors.New("Couldn't relativize paths: " + err.Error())
+		}
 
 		rejoinedPath := filepath.Join(absLocalDirPath, relRemotePath)
 
 		if _, err := os.Stat(rejoinedPath); os.IsNotExist(err) {
 
-			if strings.Contains(name, "node_") {
-				return "", errors.New("node_modules doesn't appear to exist. You may need to run `npm up` from within `boardgame/server/static/webapp`.")
-			}
-
 			return "", errors.New("Unexpected error: relRemotePath of " + relRemotePath + " doesn't exist " + absLocalDirPath + " : " + absRemotePath + "(" + rejoinedPath + ")")
-		}
-
-		if err != nil {
-			return "", errors.New("Couldn't relativize paths: " + err.Error())
 		}
 
 		if _, err := os.Stat(localPath); err == nil {
@@ -219,6 +219,17 @@ func Static(directory string, managers []string, c *config.Config, forceNode boo
 			}
 		}
 
+	}
+
+	//Ensure node_modules exists adn link to it
+	absRemoteNodePath, err := nodeModulesPath(filepath.Join(fullPkgPath, packageJsonFileName))
+	if err != nil {
+		return "", errors.New("Couldn't get " + nodeModulesFolder + " path: " + err.Error())
+	}
+	//This isn't a relativized path because the UserCacheDir is not  nearby
+	//this dir, unlike the game folders. So leave it as an absolute path.
+	if err := os.Symlink(absRemoteNodePath, filepath.Join(staticDir, nodeModulesFolder)); err != nil {
+		return "", errors.New("Couldn't symlink in " + nodeModulesFolder + ": " + err.Error())
 	}
 
 	fmt.Println("Creating " + configJsFileName)
@@ -283,42 +294,71 @@ func copyFile(remote, local string) error {
 
 }
 
-//ensureBowerComoonents ensures that
-//`$GOPATH/src/github.com/jkomoros/boardgame/server/static/webapp` has node
-//components. If force is true, then will update them even if bower_components
-//appears to exist.
-func ensureNodeModules(force bool) error {
+//nodeModulesPath returns an absolute path to where on disk the node_modules
+//folder for the static resources is. Takes an absolute path to the
+//package.json to use. If it doesn't exist it will create it and update. It
+//will call `npm up` on it even if it already exists to ensure it is up to
+//date. The node_modules will be stored in a user cache dir.
+func nodeModulesPath(absPackageJsonPath string) (string, error) {
 
-	p, err := absoluteStaticServerPath()
+	_, err := exec.LookPath("npm")
 
 	if err != nil {
-		return err
+		return "", errors.New("npm didn't appear to be installed. You need to install npm.")
 	}
 
-	if !force {
-		if _, err := os.Stat(filepath.Join(p, "node_modules")); err == nil {
-			//It appears to exist, we're fine!
-			return nil
+	userCacheDir, err := os.UserCacheDir()
+
+	if err != nil {
+		return "", errors.New("Couldn't get usercachedir: " + err.Error())
+	}
+
+	cacheDir := filepath.Join(userCacheDir, nodeModulesCacheDir)
+
+	if _, err := os.Stat(cacheDir); os.IsNotExist(err) {
+		fmt.Println("Creating " + cacheDir)
+		if err := os.Mkdir(cacheDir, 0700); err != nil {
+			return "", errors.New("Couldn't create cache dir: " + err.Error())
 		}
 	}
 
-	_, err = exec.LookPath("npm")
-
-	if err != nil {
-		return errors.New("node_modules didn't exist and npm didn't appear to be installed. You need to install npm.")
+	if _, err := os.Stat(absPackageJsonPath); os.IsNotExist(err) {
+		return "", errors.New("The path to package.json didn't denote a real file")
 	}
 
+	//Copy over package.json
+	if err := copyFile(absPackageJsonPath, filepath.Join(cacheDir, packageJsonFileName)); err != nil {
+		return "", errors.New("Couldn't copy over package.json: " + err.Error())
+	}
+
+	//call `npm up`, warning if it fails
 	cmd := exec.Command("npm", "up")
-	cmd.Dir = p
+	cmd.Dir = cacheDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	fmt.Println("node_modules needs updating, running `npm up`...")
+	npmUpErrored := false
+
 	if err := cmd.Run(); err != nil {
-		return errors.New("Couldn't `npm up`: " + err.Error())
+		//Don't quit because it's not NECESSARILY an error, if node_modules
+		//already existed. For example, if they're on an airplane without wifi
+		//and have node_modules already (even if out of date) it's OK.
+		fmt.Println("WARNING: npm up failed: " + err.Error())
+		npmUpErrored = true
 	}
 
-	return nil
+	nodeCacheDir := filepath.Join(cacheDir, nodeModulesFolder)
+	if _, err := os.Stat(nodeCacheDir); os.IsNotExist(err) {
+		//As long as node_modules exists, even if `npm up` failed (perhaps
+		//because the user is not on wifi), then it's fine.
+		return "", errors.New("node_modules cache could not be created, aborting build")
+	} else if err != nil {
+		return "", errors.New("Unexpected error: " + err.Error())
+	} else if npmUpErrored {
+		fmt.Println("An older version of " + nodeModulesFolder + " still existed, so proceeding...")
+	}
+
+	return nodeCacheDir, nil
 
 }
 
