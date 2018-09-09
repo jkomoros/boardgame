@@ -23,8 +23,11 @@ const polymerFragmentsKey = "fragments"
 const clientGameRendererFileName = "boardgame-render-game-%s.js"
 const clientPlayerInfoRendererFileName = "boardgame-render-player-info-%s.js"
 
-//The path, relative to goPath, where all of the files are to copy
-const staticServerPackage = "github.com/jkomoros/boardgame/server/static"
+//The main import for the main library
+const mainPackage = "github.com/jkomoros/boardgame"
+
+//The path, relative to mainPackage, where the static files are
+const staticServerPath = "server/static"
 
 var filesToExclude map[string]bool = map[string]bool{
 	".gitignore":  true,
@@ -148,7 +151,7 @@ func Static(directory string, managers []string, c *config.Config, forceNode boo
 		}
 	}
 
-	fullPkgPath, err := path.AbsoluteGoPkgPath(staticServerPackage)
+	fullPkgPath, err := absoluteStaticServerPath()
 
 	if err != nil {
 		return "", errors.New("Couldn't get full package path: " + err.Error())
@@ -244,6 +247,18 @@ func Static(directory string, managers []string, c *config.Config, forceNode boo
 
 }
 
+func absoluteStaticServerPath() (string, error) {
+
+	pth, err := path.AbsoluteGoPkgPath(mainPackage)
+
+	if err != nil {
+		return "", errors.New("Couldn't load main package location: " + err.Error())
+	}
+
+	return filepath.Join(pth, staticServerPath), nil
+
+}
+
 //copyFile copies the file at location remote to location local, copying
 //cotents and perms.
 func copyFile(remote, local string) error {
@@ -274,7 +289,7 @@ func copyFile(remote, local string) error {
 //appears to exist.
 func ensureNodeModules(force bool) error {
 
-	p, err := path.AbsoluteGoPkgPath(staticServerPackage)
+	p, err := absoluteStaticServerPath()
 
 	if err != nil {
 		return err
