@@ -76,6 +76,13 @@ func FileNames(dir string, skipUpwardSearch bool) (publicConfig, privateConfig s
 
 	for {
 
+		if absDir, err := filepath.Abs(dir); err != nil {
+			//Must have fallen off the end at the top.
+			break
+		} else if absDir == string(filepath.Separator) {
+			break
+		}
+
 		public, private := fileNamesToUseInDir(dir)
 
 		if public != "" || private != "" {
