@@ -135,12 +135,11 @@ func simpleStaticServer(directory string, port string) error {
 //subfolder of directory. It symlinks necessary resources in. The return value
 //is the directory where the assets can be served from, and an error if there
 //was an error. You can clean up the created folder structure with
-//CleanStatic. If forceNode is true, will force update node_modules even
-//if it appears to already exist. If prodBuild is true, then `polymer build`
-//will be run. If copyFiles is true, instead of symlinking the files it will
-//copy them (directories will still be symlinked). This is good if you intend
-//to modify the files.
-func Static(directory string, managers []string, c *config.Config, forceNode bool, prodBuild bool, copyFiles bool) (assetRoot string, err error) {
+//CleanStatic. If prodBuild is true, then `polymer build` will be run. If
+//copyFiles is true, instead of symlinking the files it will copy them
+//(directories will still be symlinked). This is good if you intend to modify
+//the files.
+func Static(directory string, managers []string, c *config.Config, prodBuild bool, copyFiles bool) (assetRoot string, err error) {
 
 	if _, err := os.Stat(directory); os.IsNotExist(err) {
 		return "", errors.New(directory + " did not already exist.")
