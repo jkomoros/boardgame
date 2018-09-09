@@ -129,7 +129,7 @@ func (b *BoardgameUtil) GetConfig(createIfNotExist bool) *config.Config {
 	c, err := config.Get(b.ConfigPath, createIfNotExist)
 
 	if err != nil {
-		b.errAndQuit("config is required for this command, but it couldn't be loaded. See README.md for more about structuring config.json.\nError: " + err.Error())
+		b.errAndQuit("config is required for this command, but it couldn't be loaded. You can create one with `boardgame-util config init`.\nError: " + err.Error())
 	}
 
 	b.config = c

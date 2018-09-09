@@ -13,6 +13,8 @@ type ConfigModify struct {
 	Secret bool
 	Dev    bool
 	Prod   bool
+
+	Force bool
 }
 
 //If fieldType is one this responds to, should either teturn an updater or
@@ -22,7 +24,7 @@ type updateFactory func(base *BoardgameUtil, field config.ConfigModeField, field
 
 func (c *ConfigModify) RunWithUpdateFactory(p writ.Path, positional []string, factory updateFactory) {
 
-	cfg := c.Base().GetConfig(true)
+	cfg := c.Base().GetConfig(c.Force)
 
 	mode := deriveMode(c.Dev, c.Prod)
 
@@ -101,6 +103,12 @@ func (c *ConfigModify) WritOptions() []*writ.Option {
 			Description: "If set, will write to prod options instead of base. No effect if dev is also passed",
 			Flag:        true,
 			Decoder:     writ.NewFlagDecoder(&c.Prod),
+		},
+		{
+			Names:       []string{"f", "force"},
+			Description: "If provided, will allow modifying the given property even if the underlying config does not yet exist.",
+			Flag:        true,
+			Decoder:     writ.NewFlagDecoder(&c.Force),
 		},
 	}
 }
