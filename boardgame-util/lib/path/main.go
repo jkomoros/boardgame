@@ -4,24 +4,48 @@
 package path
 
 import (
+	"bytes"
 	"errors"
-	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
 
 //AbsoluteGoPkgPath takes a pkg import and returns the full path to the pkg on
-//this system.
+//this system. The pkgImport must denote an actual package of go files or it
+//will error.
 func AbsoluteGoPkgPath(pkgImport string) (string, error) {
-	goPath := os.Getenv("GOPATH")
 
-	if goPath == "" {
-		return "", errors.New("Gopath wasn't set")
+	_, err := exec.LookPath("go")
+
+	if err != nil {
+		return "", errors.New("go tool not installed")
 	}
 
-	fullPkgPath := filepath.Join(goPath, "src", pkgImport)
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
 
-	return fullPkgPath, nil
+	cmd := exec.Command("go", "list", "-f='{{.Dir}}'", pkgImport)
+	cmd.Stdout = buf
+	cmd.Stderr = errBuf
+
+	if err := cmd.Run(); err != nil {
+		return "", errors.New("go list failed: " + err.Error() + ": " + errBuf.String())
+	}
+
+	outputParts := strings.Split(buf.String(), "\n")
+
+	if len(outputParts) < 1 {
+		return "", errors.New("No content returned from go list unexpectedly")
+	}
+
+	result := outputParts[0]
+
+	result = strings.TrimPrefix(result, "'")
+	result = strings.TrimSuffix(result, "'")
+
+	return result, nil
+
 }
 
 //RelativizePaths takes two absolute paths and returns a string that is the
