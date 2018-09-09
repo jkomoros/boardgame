@@ -1310,17 +1310,17 @@ First, create a new directory where all of your new games will go. This will be 
 
 Before we go further we'll want to generate a config.json. In the tutorial to date we've been using the config.SAMPLE.json in the boardgame library.
 
-`boardgame-util` can help us create and modify config files, but we'll start from config.SAMPLE.json. Copy it over into your own repo, but call it just `config.PUBLIC.json`. The rest of the commands in this section assume you're sitting in the root of your new games repo.
+`boardgame-util` can help us create and modify config files. The rest of the commands in this section assume you're sitting in the root of your new games repo.
 
-config.SAMPLE.json had a default storage type of `bolt` so that it was quick and easy to dive into the demo. But we'll want to use mysql.
+```
+boardgame-util config init
+```
+
+This creates config.PUBLIC.json in the current directory, with reasonable starting values.
+
+The default config has mysql as the defaultstoragetype, so we need to get mysql set up for use.
 
 First, install mysql on your system and run it. The rest of the steps assume it's running on port 3306 (default) and has user: `root` and pass: `root`
-
-config.SAMPLE.json actually has a reasonable mysql connection string for development already, but the config selects `bolt` by default. Change it to mysql:
-
-```
-boardgame-util config set defaultstoragetype mysql
-```
 
 Now we need to set-up the tables we expect. `boardgame-util` can help us with that, too:
 
