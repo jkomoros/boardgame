@@ -73,9 +73,16 @@ one in your config, boardgame-util will fall back on the default type.
 
 ## Games
 
-Games is a tree defining the game packages you want included. This isn't used
-for antyhing yet, but will allow commands in `boardgame-util` to know which
-games you want to by default operate on.
+Games is a tree defining the game packages you want included, listed by their
+imports, e.g. "github.com/jkomoros/boardgame/examples/checkers" and
+"github.com/jkomoros/test-game/example". boardgame-util will literally use
+these strings as the imports for the packages in the generated server binary,
+and will also use them to find the location of that package on disk so it can
+symlink any static server resource folders to point to their client folder.
+See boardgame-util/lib/path.AbsoluteGoPkgPath for more on how those static
+server bundles are looked up. Note that if modules are enabled, when
+build.Static() is called with a game, it will be fetched and cached if
+necessary.
 
 
 ## GoogleAnalytics
