@@ -51,10 +51,13 @@ func Api(directory string, managers []string, storage StorageType) (string, erro
 	cmd := exec.Command("go", "build")
 	cmd.Dir = filepath.Join(directory, apiSubFolder)
 
+	errBuf := new(bytes.Buffer)
+	cmd.Stderr = errBuf
+
 	err = cmd.Run()
 
 	if err != nil {
-		return "", errors.New("Couldn't build binary: " + err.Error())
+		return "", errors.New("Couldn't build binary: " + err.Error() + ": " + errBuf.String())
 	}
 
 	//The binary will have the name of the subfolder it was created in.
