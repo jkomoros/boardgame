@@ -74,25 +74,7 @@ func FileNames(dir string, skipUpwardSearch bool) (publicConfig, privateConfig s
 
 	//Guess it wasn't a file, try interpreting as a directory.
 
-	goPath, err := filepath.Abs(os.Getenv("GOPATH"))
-
-	if err != nil {
-		//Gopath isn't set correctly
-		return "", "", errors.New("Couldn't absolutize gopath: " + err.Error())
-	}
-
 	for {
-
-		abs, err := filepath.Abs(dir)
-
-		if err != nil {
-			//Maybe fell off the end of what is a real file?
-			return "", "", errors.New("Got err absolutizing search directory: " + dir + " : " + err.Error())
-		}
-
-		if !strings.HasPrefix(abs, goPath) {
-			return "", "", errors.New("Fell out of gopath without finding config: " + abs)
-		}
 
 		public, private := fileNamesToUseInDir(dir)
 
