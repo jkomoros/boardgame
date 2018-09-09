@@ -14,6 +14,7 @@ type Config struct {
 	ConfigSet       ConfigSet
 	ConfigAdd       ConfigAdd
 	ConfigRemove    ConfigRemove
+	ConfigInit      ConfigInit
 }
 
 func (c *Config) Run(p writ.Path, positional []string) {
@@ -86,5 +87,6 @@ func (c *Config) SubcommandObjects() []SubcommandObject {
 		&c.ConfigAdd,
 		&c.ConfigRemove,
 		&c.ConfigNormalize,
+		&c.ConfigInit,
 	}
 }
