@@ -35,9 +35,10 @@ func defaultGamesNode() *GameNode {
 	return NewGameNode(fullList...)
 }
 
-//DefaultStarterConfig returns the default starting config, which is most appropriate
-//starting point.
-func DefaultStarterConfig() *Config {
+//DefaultStarterConfig returns the default starting config, which is most
+//appropriate starting point. dirOrFile will be used to give the path name,
+//using DefaultFileNames. Leave "" for default.
+func DefaultStarterConfig(dirOrFile string) *Config {
 
 	base := &RawConfigMode{
 		ConfigModeCommon: ConfigModeCommon{
@@ -57,12 +58,13 @@ func DefaultStarterConfig() *Config {
 		},
 	}
 
-	return starterConfig(base, dev, nil)
+	return starterConfig(dirOrFile, base, dev, nil)
 }
 
 //SampleStaterConfig returns a full sample starting config, which is also
-//provided in `boardgame/config.SAMPLE.json`.
-func SampleStarterConfig() *Config {
+//provided in `boardgame/config.SAMPLE.json`. dirOrFile will be used to give
+//the path name, using DefaultFileNames. Leave "" for default.
+func SampleStarterConfig(dirOrFile string) *Config {
 
 	base := &RawConfigMode{
 		ConfigModeCommon: ConfigModeCommon{
@@ -96,13 +98,14 @@ func SampleStarterConfig() *Config {
 		},
 	}
 
-	return starterConfig(base, dev, prod)
+	return starterConfig(dirOrFile, base, dev, prod)
 
 }
 
 //MinimalStaterConfig returns a minimal config starter point, with minimal
-//settings you might want to set.
-func MinimialStaterConfig() *Config {
+//settings you might want to set. dirOrFile will be used to give the path
+//name, using DefaultFileNames. Leave "" for default.
+func MinimialStaterConfig(dirOrFile string) *Config {
 	base := &RawConfigMode{
 		ConfigModeCommon: ConfigModeCommon{
 			DefaultStorageType: "mysql",
@@ -120,11 +123,12 @@ func MinimialStaterConfig() *Config {
 		},
 	}
 
-	return starterConfig(base, dev, nil)
+	return starterConfig(dirOrFile, base, dev, nil)
 }
 
-func starterConfig(base, dev, prod *RawConfigMode) *Config {
-	publicFile, _, err := DefaultFileNames("")
+func starterConfig(dirOrFile string, base, dev, prod *RawConfigMode) *Config {
+
+	publicFile, _, err := DefaultFileNames(dirOrFile)
 
 	if err != nil {
 		return nil

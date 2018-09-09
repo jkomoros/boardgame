@@ -9,7 +9,7 @@ import (
 //If upddateGolden is true, save new goldens in testdata
 const updateGolden = false
 
-type initialConfigConstructor func() *Config
+type initialConfigConstructor func(string) *Config
 
 func TestSampleConfigs(t *testing.T) {
 
@@ -35,8 +35,7 @@ func TestSampleConfigs(t *testing.T) {
 
 		filename := filepath.Join("testdata", test.filename)
 
-		c := test.constructor()
-		c.rawPublicConfig.path = filename
+		c := test.constructor(filename)
 
 		if updateGolden {
 
