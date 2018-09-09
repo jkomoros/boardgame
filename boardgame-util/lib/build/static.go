@@ -353,6 +353,14 @@ func updateNodeModules(absPackageJsonPath string) (string, error) {
 		return "", errors.New("Couldn't copy over package.json: " + err.Error())
 	}
 
+	nodeCacheDir := filepath.Join(cacheDir, nodeModulesFolder)
+
+	if _, err := os.Stat(nodeCacheDir); os.IsNotExist(err) {
+		fmt.Println("Downloading initial npm modules. This might take awhile, but future builds can skip it...")
+	} else if err == nil {
+		fmt.Println("node_modules already exists, doing quick `npm up` to make sure it's up to date...")
+	}
+
 	//call `npm up`, warning if it fails
 	cmd := exec.Command("npm", "up")
 	cmd.Dir = cacheDir
@@ -369,7 +377,6 @@ func updateNodeModules(absPackageJsonPath string) (string, error) {
 		npmUpErrored = true
 	}
 
-	nodeCacheDir := filepath.Join(cacheDir, nodeModulesFolder)
 	if _, err := os.Stat(nodeCacheDir); os.IsNotExist(err) {
 		//As long as node_modules exists, even if `npm up` failed (perhaps
 		//because the user is not on wifi), then it's fine.
