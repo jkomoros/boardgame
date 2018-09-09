@@ -276,7 +276,7 @@ func absoluteStaticServerPath() (string, error) {
 	pth, err := path.AbsoluteGoPkgPath(mainPackage)
 
 	if err != nil {
-		return "", errors.New("Couldn't load main package location: " + err.Error())
+		return "", errors.New("Couldn't load main boardgame package location: " + err.Error())
 	}
 
 	return filepath.Join(pth, staticServerPath), nil
@@ -417,7 +417,7 @@ func linkGameClientFolders(basePath string, managers []string) error {
 		absPkgPath, err := path.AbsoluteGoPkgPath(manager)
 
 		if err != nil {
-			return errors.New("Couldn't generate absPkgPath for " + manager + ": " + err.Error())
+			return errors.New(manager + " didn't seem to be installed or installable: " + err.Error())
 		}
 
 		pkgShortName := filepath.Base(manager)

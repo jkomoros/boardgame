@@ -6,6 +6,7 @@ package path
 import (
 	"bytes"
 	"errors"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -13,8 +14,27 @@ import (
 
 //AbsoluteGoPkgPath takes a pkg import and returns the full path to the pkg on
 //this system. The pkgImport must denote an actual package of go files or it
-//will error.
+//will error. It first looks for the right package in $GOPATH, and returns
+//that if it finds it. If that doesn't work it falls back on `go list`, which
+//will try to download it if it cannot already be satisfied locally. Because
+//this uses the $GOPATH copy first, that allows for example relying on games
+//locally without going through a VCS, which is nice if you're not connected
+//to the internet.
 func AbsoluteGoPkgPath(pkgImport string) (string, error) {
+
+	//TODO: look into supporting the "no VCS" use case with replace
+	//directives, as described here: https://github.com/golang/go/wiki/Modules
+	//#what-is-the-status-of-module-support-in-ides-editors-and-standard-
+	//tools-like-goimports-gorename-etc
+
+	goPath := os.Getenv("GOPATH")
+	if goPath != "" {
+		//Check to see if the package at that location exists
+		fullPkgPath := filepath.Join(goPath, "src", pkgImport)
+		if _, err := os.Stat(fullPkgPath); err == nil {
+			return fullPkgPath, nil
+		}
+	}
 
 	_, err := exec.LookPath("go")
 
