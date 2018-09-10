@@ -84,9 +84,9 @@ func CleanCache() error {
 
 }
 
-//StaticBuildDir returns the static build directory within dir, creating it
+//staticBuildDir returns the static build directory within dir, creating it
 //if it doesn't exist. For example, for dir="temp", returns "temp/static".
-func StaticBuildDir(dir string) (string, error) {
+func staticBuildDir(dir string) (string, error) {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		return "", errors.New(dir + " did not already exist.")
 	}
@@ -112,7 +112,7 @@ func StaticBuildDir(dir string) (string, error) {
 //the files.
 func Build(directory string, managers []string, c *config.Config, prodBuild bool, copyFiles bool) (assetRoot string, err error) {
 
-	staticDir, err := StaticBuildDir(directory)
+	staticDir, err := staticBuildDir(directory)
 	if err != nil {
 		return "", err
 	}
@@ -169,7 +169,7 @@ func Build(directory string, managers []string, c *config.Config, prodBuild bool
 //symlinks them.
 func CopyStaticResources(dir string, copyFiles bool) error {
 
-	staticDir, err := StaticBuildDir(dir)
+	staticDir, err := staticBuildDir(dir)
 	if err != nil {
 		return err
 	}
