@@ -117,70 +117,14 @@ func Static(directory string, managers []string, c *config.Config, prodBuild boo
 		return "", err
 	}
 
+	//TODO: remove this from here when nodeModules popped out
 	fullPkgPath, err := absoluteStaticServerPath()
 	if err != nil {
 		return "", errors.New("Couldn't get full package path: " + err.Error())
 	}
 
-	//TODO: some of the config files should be copied not symlinked; some of
-	//these folders will stay around. Maybe take a temp parameter about
-	//whehter it should do copying or not.
-
-	workingDirectory, err := os.Getwd()
-
-	if err != nil {
-		return "", errors.New("Can't get working directory: " + err.Error())
-	}
-
-	infos, err := ioutil.ReadDir(fullPkgPath)
-
-	if err != nil {
-		return "", errors.New("Couldn't list files in remote directory: " + err.Error())
-	}
-
-	absLocalDirPath := filepath.Join(workingDirectory, staticDir) + string(filepath.Separator)
-
-	for _, info := range infos {
-
-		name := info.Name()
-
-		if filesToExclude[name] {
-			continue
-		}
-
-		localPath := filepath.Join(staticDir, name)
-
-		absRemotePath := filepath.Join(fullPkgPath, name)
-		relRemotePath, err := path.RelativizePaths(absLocalDirPath, absRemotePath)
-
-		if err != nil {
-			return "", errors.New("Couldn't relativize paths: " + err.Error())
-		}
-
-		rejoinedPath := filepath.Join(absLocalDirPath, relRemotePath)
-
-		if _, err := os.Stat(rejoinedPath); os.IsNotExist(err) {
-
-			return "", errors.New("Unexpected error: relRemotePath of " + relRemotePath + " doesn't exist " + absLocalDirPath + " : " + absRemotePath + "(" + rejoinedPath + ")")
-		}
-
-		if _, err := os.Stat(localPath); err == nil {
-			//Must already exist, so can skip
-			continue
-		}
-
-		if copyFiles && !info.IsDir() {
-			fmt.Println("Copying " + localPath + " to " + relRemotePath)
-			if err := copyFile(absRemotePath, localPath); err != nil {
-				return "", errors.New("Couldn't copy " + name + ": " + err.Error())
-			}
-		} else {
-			fmt.Println("Linking " + localPath + " to " + relRemotePath)
-			if err := os.Symlink(relRemotePath, localPath); err != nil {
-				return "", errors.New("Couldn't link " + name + ": " + err.Error())
-			}
-		}
-
+	if err := CopyStaticResources(directory, copyFiles); err != nil {
+		return "", errors.New("Couldn't copy static resources")
 	}
 
 	//Ensure node_modules exists adn link to it
@@ -218,6 +162,80 @@ func Static(directory string, managers []string, c *config.Config, prodBuild boo
 
 	return staticDir, nil
 
+}
+
+//CopyStaticResources copies all of the top-level files into the build
+//directory given by dir. If copyFiles is true, it copies them, otherwise it
+//symlinks them.
+func CopyStaticResources(dir string, copyFiles bool) error {
+
+	staticDir, err := StaticBuildDir(dir)
+	if err != nil {
+		return err
+	}
+
+	fullPkgPath, err := absoluteStaticServerPath()
+	if err != nil {
+		return errors.New("Couldn't get full package path: " + err.Error())
+	}
+
+	workingDirectory, err := os.Getwd()
+
+	if err != nil {
+		return errors.New("Can't get working directory: " + err.Error())
+	}
+
+	infos, err := ioutil.ReadDir(fullPkgPath)
+
+	if err != nil {
+		return errors.New("Couldn't list files in remote directory: " + err.Error())
+	}
+
+	absLocalDirPath := filepath.Join(workingDirectory, staticDir) + string(filepath.Separator)
+
+	for _, info := range infos {
+
+		name := info.Name()
+
+		if filesToExclude[name] {
+			continue
+		}
+
+		localPath := filepath.Join(staticDir, name)
+
+		absRemotePath := filepath.Join(fullPkgPath, name)
+		relRemotePath, err := path.RelativizePaths(absLocalDirPath, absRemotePath)
+
+		if err != nil {
+			return errors.New("Couldn't relativize paths: " + err.Error())
+		}
+
+		rejoinedPath := filepath.Join(absLocalDirPath, relRemotePath)
+
+		if _, err := os.Stat(rejoinedPath); os.IsNotExist(err) {
+
+			return errors.New("Unexpected error: relRemotePath of " + relRemotePath + " doesn't exist " + absLocalDirPath + " : " + absRemotePath + "(" + rejoinedPath + ")")
+		}
+
+		if _, err := os.Stat(localPath); err == nil {
+			//Must already exist, so can skip
+			continue
+		}
+
+		if copyFiles && !info.IsDir() {
+			fmt.Println("Copying " + localPath + " to " + relRemotePath)
+			if err := copyFile(absRemotePath, localPath); err != nil {
+				return errors.New("Couldn't copy " + name + ": " + err.Error())
+			}
+		} else {
+			fmt.Println("Linking " + localPath + " to " + relRemotePath)
+			if err := os.Symlink(relRemotePath, localPath); err != nil {
+				return errors.New("Couldn't link " + name + ": " + err.Error())
+			}
+		}
+	}
+
+	return nil
 }
 
 func absoluteStaticServerPath() (string, error) {
