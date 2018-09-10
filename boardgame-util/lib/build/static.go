@@ -7,7 +7,6 @@ import (
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/path"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -68,66 +67,6 @@ func StaticServer(directory string, port string) error {
 	}
 
 	return nil
-
-}
-
-//SimpleStaticServer creates and runs a simple static server. directory is the
-//folder that the `static` folder is contained within. If no error is
-//returned, Runs until the program exits.
-func simpleStaticServer(directory string, port string) error {
-
-	//This is an old implementation that came before polymer 3.0, where we really need to use polymer serve.
-
-	staticPath := filepath.Join(directory, staticSubFolder)
-
-	if _, err := os.Stat(staticPath); os.IsNotExist(err) {
-		return errors.New(staticPath + " does not exist")
-	}
-
-	fs := http.FileServer(http.Dir(staticPath))
-
-	infos, err := ioutil.ReadDir(staticPath)
-
-	if err != nil {
-		return errors.New("Couldn't enumerate items in serving path")
-	}
-
-	//Install specific handlers for each existing file or directory in the
-	//path to serve.
-	for _, info := range infos {
-		if info.Name() == "index.html" {
-			continue
-		}
-		name := "/" + info.Name()
-
-		if info.IsDir() {
-			name += "/"
-		} else {
-
-			//Need to check if the file is a symlink to a directory, and symnlinks to directory
-			//don't report as a directory in info.
-			resolvedPath, err := filepath.EvalSymlinks(filepath.Join(staticPath, info.Name()))
-			if err == nil {
-				if info, err := os.Stat(resolvedPath); err == nil {
-					if info.IsDir() {
-						name += "/"
-					}
-				}
-			}
-		}
-
-		http.Handle(name, fs)
-	}
-
-	//This pattern will match as fallback (it's the shortest), and should
-	//return "index.html" for everythign that doesn't match one of the ones
-	//already returned.
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		//Safe to use since "index.html" is not provided by user but is a constant
-		http.ServeFile(w, r, filepath.Join(staticPath, "index.html"))
-	})
-
-	return http.ListenAndServe(":"+port, nil)
 
 }
 
