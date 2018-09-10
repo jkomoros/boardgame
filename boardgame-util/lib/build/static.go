@@ -84,6 +84,24 @@ func CleanCache() error {
 
 }
 
+//StaticBuildDir returns the static build directory within dir, creating it
+//if it doesn't exist. For example, for dir="temp", returns "temp/static".
+func StaticBuildDir(dir string) (string, error) {
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		return "", errors.New(dir + " did not already exist.")
+	}
+
+	staticDir := filepath.Join(dir, staticSubFolder)
+
+	if _, err := os.Stat(staticDir); os.IsNotExist(err) {
+		if err := os.Mkdir(staticDir, 0700); err != nil {
+			return "", errors.New("Couldn't create static directory: " + err.Error())
+		}
+	}
+
+	return staticDir, nil
+}
+
 //Static creates a folder of static resources for serving within the static
 //subfolder of directory. It symlinks necessary resources in. The return value
 //is the directory where the assets can be served from, and an error if there
@@ -94,20 +112,12 @@ func CleanCache() error {
 //the files.
 func Static(directory string, managers []string, c *config.Config, prodBuild bool, copyFiles bool) (assetRoot string, err error) {
 
-	if _, err := os.Stat(directory); os.IsNotExist(err) {
-		return "", errors.New(directory + " did not already exist.")
-	}
-
-	staticDir := filepath.Join(directory, staticSubFolder)
-
-	if _, err := os.Stat(staticDir); os.IsNotExist(err) {
-		if err := os.Mkdir(staticDir, 0700); err != nil {
-			return "", errors.New("Couldn't create static directory: " + err.Error())
-		}
+	staticDir, err := StaticBuildDir(directory)
+	if err != nil {
+		return "", err
 	}
 
 	fullPkgPath, err := absoluteStaticServerPath()
-
 	if err != nil {
 		return "", errors.New("Couldn't get full package path: " + err.Error())
 	}
