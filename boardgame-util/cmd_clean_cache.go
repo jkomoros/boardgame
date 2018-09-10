@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/bobziuchkovski/writ"
-	"github.com/jkomoros/boardgame/boardgame-util/lib/build"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/build/static"
 )
 
 type CleanCache struct {
@@ -16,7 +16,7 @@ func (c *CleanCache) Run(p writ.Path, positional []string) {
 		c.Base().errAndQuit("This command accepts no parameters")
 	}
 
-	err := build.CleanCache()
+	err := static.CleanCache()
 
 	if err != nil {
 		c.Base().errAndQuit(err.Error())

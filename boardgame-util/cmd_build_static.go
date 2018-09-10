@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/bobziuchkovski/writ"
-	"github.com/jkomoros/boardgame/boardgame-util/lib/build"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/build/static"
 )
 
 type BuildStatic struct {
@@ -21,7 +21,7 @@ func (b *BuildStatic) Run(p writ.Path, positional []string) {
 
 	mode := config.Dev
 
-	staticPath, err := build.Static(dir, mode.Games, config, b.Prod, b.CopyFiles)
+	staticPath, err := static.Build(dir, mode.Games, config, b.Prod, b.CopyFiles)
 
 	if err != nil {
 		b.Base().errAndQuit("Couldn't create static directory: " + err.Error())

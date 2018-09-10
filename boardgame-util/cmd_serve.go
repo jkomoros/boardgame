@@ -3,7 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/bobziuchkovski/writ"
-	"github.com/jkomoros/boardgame/boardgame-util/lib/build"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/build/api"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/build/static"
 	"os"
 	"os/exec"
 	"strings"
@@ -30,7 +31,7 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 	storage := effectiveStorageType(s.Base(), mode, s.Storage)
 
 	fmt.Println("Creating temporary binary")
-	apiPath, err := build.Api(dir, mode.Games, storage)
+	apiPath, err := api.Build(dir, mode.Games, storage)
 
 	if err != nil {
 		s.Base().errAndQuit("Couldn't create api: " + err.Error())
@@ -39,7 +40,7 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 	fmt.Println("Creating temporary static assets folder")
 	//TODO: should we allow you to pass CopyFiles? I don't know why you'd want
 	//to given this is a temp dir.
-	_, err = build.Static(dir, mode.Games, config, s.Prod, false)
+	_, err = static.Build(dir, mode.Games, config, s.Prod, false)
 
 	if err != nil {
 		s.Base().errAndQuit("Couldn't create static directory: " + err.Error())
@@ -53,7 +54,7 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 
 	go func() {
 		fmt.Println("Starting up asset server at " + staticPort)
-		if err := build.StaticServer(dir, staticPort); err != nil {
+		if err := static.Server(dir, staticPort); err != nil {
 			//TODO: when this happens we should quit the whole program
 			fmt.Println("ERROR: couldn't start static server: " + err.Error())
 		}
@@ -128,7 +129,7 @@ func (s *Serve) WritOptions() []*writ.Option {
 		{
 			Names:       []string{"storage", "s"},
 			Decoder:     writ.NewOptionDecoder(&s.Storage),
-			Description: "Which storage subsystem to use. One of {" + strings.Join(build.ValidStorageTypeStrings(), ",") + "}. If not provided, falls back on the DefaultStorageType from config, or as a final fallback just the deafult storage type.",
+			Description: "Which storage subsystem to use. One of {" + strings.Join(api.ValidStorageTypeStrings(), ",") + "}. If not provided, falls back on the DefaultStorageType from config, or as a final fallback just the deafult storage type.",
 		},
 		{
 			Names:       []string{"port", "p"},

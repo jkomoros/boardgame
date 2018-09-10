@@ -1,11 +1,11 @@
-package build
+package api
 
 import (
 	"github.com/workfit/tester/assert"
 	"testing"
 )
 
-func TestApi(t *testing.T) {
+func TestCode(t *testing.T) {
 
 	managers := []string{
 		"github.com/jkomoros/boardgame/examples/blackjack",
@@ -13,7 +13,7 @@ func TestApi(t *testing.T) {
 		"github.com/jkomoros/boardgame/examples/tictactoe",
 	}
 
-	code, err := ApiCode(managers, StorageBolt)
+	code, err := Code(managers, StorageBolt)
 
 	assert.For(t).ThatActual(err).IsNil()
 

@@ -7,7 +7,7 @@ Typically it is not used directly, but via the `boardgame-util build` and
 `boardgame-util cleanup` commands.
 
 */
-package build
+package api
 
 import (
 	"path/filepath"

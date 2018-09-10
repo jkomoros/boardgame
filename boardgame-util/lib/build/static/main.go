@@ -1,4 +1,4 @@
-package build
+package static
 
 import (
 	"encoding/json"
@@ -45,11 +45,11 @@ var filesToExclude map[string]bool = map[string]bool{
 	".DS_Store":      true,
 }
 
-//StaticServer runs a static server. directory is the folder that the `static`
+//Server runs a static server. directory is the folder that the `static`
 //folder is contained within. If no error is returned, runs until the program
 //exits. Under the cover uses `polymer serve` because imports use bare module
 //specifiers that must be rewritten.
-func StaticServer(directory string, port string) error {
+func Server(directory string, port string) error {
 
 	if err := verifyPolymer(directory); err != nil {
 		return err
@@ -102,7 +102,7 @@ func StaticBuildDir(dir string) (string, error) {
 	return staticDir, nil
 }
 
-//Static creates a folder of static resources for serving within the static
+//Build creates a folder of static resources for serving within the static
 //subfolder of directory. It symlinks necessary resources in. The return value
 //is the directory where the assets can be served from, and an error if there
 //was an error. You can clean up the created folder structure with
@@ -110,7 +110,7 @@ func StaticBuildDir(dir string) (string, error) {
 //copyFiles is true, instead of symlinking the files it will copy them
 //(directories will still be symlinked). This is good if you intend to modify
 //the files.
-func Static(directory string, managers []string, c *config.Config, prodBuild bool, copyFiles bool) (assetRoot string, err error) {
+func Build(directory string, managers []string, c *config.Config, prodBuild bool, copyFiles bool) (assetRoot string, err error) {
 
 	staticDir, err := StaticBuildDir(directory)
 	if err != nil {
@@ -450,9 +450,9 @@ func createConfigJs(path string, c *config.Config) error {
 
 }
 
-//CleanStatic removes all of the things created in the static subfolder within
+//Clean removes all of the things created in the static subfolder within
 //directory.
-func CleanStatic(directory string) error {
+func Clean(directory string) error {
 	return os.RemoveAll(filepath.Join(directory, staticSubFolder))
 }
 

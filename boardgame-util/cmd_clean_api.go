@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/bobziuchkovski/writ"
-	"github.com/jkomoros/boardgame/boardgame-util/lib/build"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/build/api"
 )
 
 type CleanApi struct {
@@ -18,7 +18,7 @@ func (c *CleanApi) Run(p writ.Path, positional []string) {
 
 	dir := "."
 
-	err := build.CleanApi(dir)
+	err := api.Clean(dir)
 
 	if err != nil {
 		c.Base().errAndQuit(err.Error())

@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/bobziuchkovski/writ"
-	"github.com/jkomoros/boardgame/boardgame-util/lib/build"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/build/static"
 )
 
 type CleanStatic struct {
@@ -14,7 +14,7 @@ func (c *CleanStatic) Run(p writ.Path, positional []string) {
 
 	dir := dirPositionalOrDefault(c.Base(), positional, false)
 
-	err := build.CleanStatic(dir)
+	err := static.Clean(dir)
 
 	if err != nil {
 		c.Base().errAndQuit(err.Error())

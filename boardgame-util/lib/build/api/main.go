@@ -1,4 +1,4 @@
-package build
+package api
 
 import (
 	"bytes"
@@ -14,7 +14,7 @@ const apiSubFolder = "api"
 
 /*
 
-Api generates the code for a server with the following imported games and
+Build generates the code for a server with the following imported games and
 given storage type in a folder called api/ within the given directory, builds
 it, and returns the path to the compiled binary. The bulk of the logic to
 generate the code is in ApiCode.
@@ -22,13 +22,13 @@ generate the code is in ApiCode.
 To clean up the binary, call CleanupApi and pass the same directory.
 
 */
-func Api(directory string, managers []string, storage StorageType) (string, error) {
+func Build(directory string, managers []string, storage StorageType) (string, error) {
 
 	if _, err := os.Stat(directory); os.IsNotExist(err) {
 		return "", errors.New("The provided directory, " + directory + " does not exist.")
 	}
 
-	code, err := ApiCode(managers, storage)
+	code, err := Code(managers, storage)
 
 	if err != nil {
 		return "", errors.New("Couldn't generate code: " + err.Error())
@@ -70,8 +70,8 @@ func Api(directory string, managers []string, storage StorageType) (string, erro
 	return binaryName, nil
 }
 
-//ApiCode returns the code for an api server with the given type.
-func ApiCode(managers []string, storage StorageType) ([]byte, error) {
+//Code returns the code for an api server with the given type.
+func Code(managers []string, storage StorageType) ([]byte, error) {
 
 	buf := new(bytes.Buffer)
 
@@ -108,9 +108,9 @@ func ApiCode(managers []string, storage StorageType) ([]byte, error) {
 
 }
 
-//CleanApi removes the api/ directory (code and binary) that was generated
+//Clean removes the api/ directory (code and binary) that was generated
 //within directory by ApiCode.
-func CleanApi(directory string) error {
+func Clean(directory string) error {
 	return os.RemoveAll(filepath.Join(directory, apiSubFolder))
 }
 

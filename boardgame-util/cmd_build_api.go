@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/bobziuchkovski/writ"
-	"github.com/jkomoros/boardgame/boardgame-util/lib/build"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/build/api"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
 	"strings"
 )
@@ -16,7 +16,7 @@ type BuildApi struct {
 	Prod bool
 }
 
-func effectiveStorageType(base *BoardgameUtil, m *config.ConfigMode, storageOverride string) build.StorageType {
+func effectiveStorageType(base *BoardgameUtil, m *config.ConfigMode, storageOverride string) api.StorageType {
 
 	//Use storage type from command line option, then from DefaultStorageType
 	//in config, then just fallback on defaultStorageType.
@@ -27,10 +27,10 @@ func effectiveStorageType(base *BoardgameUtil, m *config.ConfigMode, storageOver
 	}
 
 	//It's OK if storageTypeString is "", that will just mean TypeDefault.
-	storage := build.StorageTypeFromString(storageTypeString)
+	storage := api.StorageTypeFromString(storageTypeString)
 
-	if storage == build.StorageInvalid {
-		base.errAndQuit("Invalid storage type provided (" + storageOverride + "). Must be one of {" + strings.Join(build.ValidStorageTypeStrings(), ",") + "}.")
+	if storage == api.StorageInvalid {
+		base.errAndQuit("Invalid storage type provided (" + storageOverride + "). Must be one of {" + strings.Join(api.ValidStorageTypeStrings(), ",") + "}.")
 	}
 
 	return storage
@@ -49,7 +49,7 @@ func (b *BuildApi) Run(p writ.Path, positional []string) {
 
 	storage := effectiveStorageType(b.Base(), config.Dev, b.Storage)
 
-	binaryPath, err := build.Api(dir, mode.Games, storage)
+	binaryPath, err := api.Build(dir, mode.Games, storage)
 
 	if err != nil {
 		b.Base().errAndQuit("Couldn't generate binary: " + err.Error())
@@ -84,7 +84,7 @@ func (b *BuildApi) WritOptions() []*writ.Option {
 		{
 			Names:       []string{"storage", "s"},
 			Decoder:     writ.NewOptionDecoder(&b.Storage),
-			Description: "Which storage subsystem to use. One of {" + strings.Join(build.ValidStorageTypeStrings(), ",") + "}. If not provided, falls back on the DefaultStorageType from config, or as a final fallback just the deafult storage type.",
+			Description: "Which storage subsystem to use. One of {" + strings.Join(api.ValidStorageTypeStrings(), ",") + "}. If not provided, falls back on the DefaultStorageType from config, or as a final fallback just the deafult storage type.",
 		},
 		{
 			Names:       []string{"prod", "p"},
