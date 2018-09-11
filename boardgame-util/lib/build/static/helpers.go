@@ -8,6 +8,14 @@ import (
 	"path/filepath"
 )
 
+//The main import for the main library
+const mainPackage = "github.com/jkomoros/boardgame"
+
+//The path, relative to mainPackage, where the static files are
+const staticServerPath = "server/static"
+
+const staticSubFolder = "static"
+
 func absoluteStaticServerPath() (string, error) {
 
 	pth, err := path.AbsoluteGoPkgPath(mainPackage)
