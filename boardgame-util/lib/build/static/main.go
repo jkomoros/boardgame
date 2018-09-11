@@ -92,7 +92,7 @@ func CleanCache() error {
 //copyFiles is true, instead of symlinking the files it will copy them
 //(directories will still be symlinked). This is good if you intend to modify
 //the files.
-func Build(directory string, managers []string, c *config.Config, prodBuild bool, copyFiles bool) (assetRoot string, err error) {
+func Build(directory string, gameImports []string, c *config.Config, prodBuild bool, copyFiles bool) (assetRoot string, err error) {
 
 	staticDir, err := staticBuildDir(directory)
 	if err != nil {
@@ -115,7 +115,7 @@ func Build(directory string, managers []string, c *config.Config, prodBuild bool
 	}
 
 	fmt.Println("Creating " + gameSrcSubFolder)
-	if err := LinkGameClientFolders(directory, managers); err != nil {
+	if err := LinkGameClientFolders(directory, gameImports); err != nil {
 		return "", errors.New("Couldn't create " + gameSrcSubFolder + ": " + err.Error())
 	}
 
@@ -317,7 +317,7 @@ func updateNodeModules(absPackageJsonPath string) (string, error) {
 //LinkGameClientFoldrs creates a game-src directory and for each import listed
 //in gameImports, finds a copy of that game on disk and symlinks its client
 //directory into game-src.
-func LinkGameClientFolders(dir string, managers []string) error {
+func LinkGameClientFolders(dir string, gameImports []string) error {
 
 	staticDir, err := staticBuildDir(dir)
 	if err != nil {
@@ -342,7 +342,7 @@ func LinkGameClientFolders(dir string, managers []string) error {
 		return errors.New("Can't get working directory: " + err.Error())
 	}
 
-	for _, manager := range managers {
+	for _, manager := range gameImports {
 		absPkgPath, err := path.AbsoluteGoPkgPath(manager)
 
 		if err != nil {
