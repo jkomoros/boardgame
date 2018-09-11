@@ -115,7 +115,7 @@ func Build(directory string, managers []string, c *config.Config, prodBuild bool
 	}
 
 	fmt.Println("Creating " + gameSrcSubFolder)
-	if err := linkGameClientFolders(staticDir, managers); err != nil {
+	if err := LinkGameClientFolders(directory, managers); err != nil {
 		return "", errors.New("Couldn't create " + gameSrcSubFolder + ": " + err.Error())
 	}
 
@@ -314,15 +314,21 @@ func updateNodeModules(absPackageJsonPath string) (string, error) {
 
 }
 
-//linkGameClientFolders creates a game-src within basePath and then links the
-//client folders for each one.
-func linkGameClientFolders(basePath string, managers []string) error {
+//LinkGameClientFoldrs creates a game-src directory and for each import listed
+//in gameImports, finds a copy of that game on disk and symlinks its client
+//directory into game-src.
+func LinkGameClientFolders(dir string, managers []string) error {
 
-	if _, err := os.Stat(basePath); os.IsNotExist(err) {
-		return errors.New(basePath + " doesn't exist")
+	staticDir, err := staticBuildDir(dir)
+	if err != nil {
+		return err
 	}
 
-	gameSrcDir := filepath.Join(basePath, gameSrcSubFolder)
+	if _, err := os.Stat(staticDir); os.IsNotExist(err) {
+		return errors.New(staticDir + " doesn't exist")
+	}
+
+	gameSrcDir := filepath.Join(staticDir, gameSrcSubFolder)
 
 	if _, err := os.Stat(gameSrcDir); os.IsNotExist(err) {
 		if err := os.Mkdir(gameSrcDir, 0700); err != nil {
