@@ -61,7 +61,7 @@
 	generated file to `static/polymer.json`. This step is encapsulated by
 	CreatePolymerJson.
 
-	The static build is not mostly complete. Optionally, BuildPolymer can be
+	The static build is now mostly complete. Optionally, BuildPolymer can be
 	called to run `polymer build` on the generated static dir. This step is
 	encapsulated by BuildPolymer.
 
