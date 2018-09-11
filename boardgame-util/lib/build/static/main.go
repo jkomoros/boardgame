@@ -99,10 +99,12 @@ func Build(directory string, managers []string, c *config.Config, prodBuild bool
 		return "", err
 	}
 
+	fmt.Println("Copying base static resources")
 	if err := CopyStaticResources(directory, copyFiles); err != nil {
 		return "", errors.New("Couldn't copy static resources")
 	}
 
+	fmt.Println("Updating " + nodeModulesFolder + " and linking in")
 	if err := LinkNodeModules(directory); err != nil {
 		return "", errors.New("Couldn't link " + nodeModulesFolder + ": " + err.Error())
 	}
