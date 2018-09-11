@@ -99,25 +99,12 @@ func Build(directory string, managers []string, c *config.Config, prodBuild bool
 		return "", err
 	}
 
-	//TODO: remove this from here when nodeModules popped out
-	fullPkgPath, err := absoluteStaticServerPath()
-	if err != nil {
-		return "", errors.New("Couldn't get full package path: " + err.Error())
-	}
-
 	if err := CopyStaticResources(directory, copyFiles); err != nil {
 		return "", errors.New("Couldn't copy static resources")
 	}
 
-	//Ensure node_modules exists adn link to it
-	absRemoteNodePath, err := updateNodeModules(filepath.Join(fullPkgPath, packageJsonFileName))
-	if err != nil {
-		return "", errors.New("Couldn't get " + nodeModulesFolder + " path: " + err.Error())
-	}
-	//This isn't a relativized path because the UserCacheDir is not  nearby
-	//this dir, unlike the game folders. So leave it as an absolute path.
-	if err := os.Symlink(absRemoteNodePath, filepath.Join(staticDir, nodeModulesFolder)); err != nil {
-		return "", errors.New("Couldn't symlink in " + nodeModulesFolder + ": " + err.Error())
+	if err := LinkNodeModules(directory); err != nil {
+		return "", errors.New("Couldn't link " + nodeModulesFolder + ": " + err.Error())
 	}
 
 	fmt.Println("Creating " + configJsFileName)
@@ -215,6 +202,39 @@ func CopyStaticResources(dir string, copyFiles bool) error {
 				return errors.New("Couldn't link " + name + ": " + err.Error())
 			}
 		}
+	}
+
+	return nil
+}
+
+//LinkNodeModules symlinks a node_modules folder into the build directory
+//given by dir, that is fully up to date based on the resources required.
+//node_modules is cached in a known cache on the system, and only topped up as
+//necessary, so only the first call to this on a given system should be
+//particularly expensive (or after CleanCache()) has been called. Returns an
+//error if node_modules can't be updated or if it can't be linked in.
+func LinkNodeModules(dir string) error {
+
+	staticDir, err := staticBuildDir(dir)
+
+	if err != nil {
+		return errors.New("Couldn't get static dir: " + err.Error())
+	}
+
+	fullPkgPath, err := absoluteStaticServerPath()
+	if err != nil {
+		return errors.New("Couldn't get full package path: " + err.Error())
+	}
+
+	//Ensure node_modules exists adn link to it
+	absRemoteNodePath, err := updateNodeModules(filepath.Join(fullPkgPath, packageJsonFileName))
+	if err != nil {
+		return errors.New("Couldn't get " + nodeModulesFolder + " path: " + err.Error())
+	}
+	//This isn't a relativized path because the UserCacheDir is not  nearby
+	//this dir, unlike the game folders. So leave it as an absolute path.
+	if err := os.Symlink(absRemoteNodePath, filepath.Join(staticDir, nodeModulesFolder)); err != nil {
+		return errors.New("Couldn't symlink in " + nodeModulesFolder + ": " + err.Error())
 	}
 
 	return nil
