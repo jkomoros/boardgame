@@ -59,14 +59,20 @@ func CleanCache() error {
 
 }
 
-//Build creates a folder of static resources for serving within the static
-//subfolder of directory. It symlinks necessary resources in. The return value
-//is the directory where the assets can be served from, and an error if there
-//was an error. You can clean up the created folder structure with
-//CleanStatic. If prodBuild is true, then `polymer build` will be run. If
-//copyFiles is true, instead of symlinking the files it will copy them
-//(directories will still be symlinked). This is good if you intend to modify
-//the files.
+/*
+
+Build creates a folder of static resources for a server in the given
+directory. It is the primary entrypoint for this package. It has no logic of
+its own but serves to call all of the build steps in the correct order.
+
+Specificlaly, it calls: CopyStaticResources, passing copyFiles;
+LinkNodeModules; CreateClientConfigJs, passing c; LinkGameClientFolders,
+passing gameImports; CreatePolymerJson, passing false. If prodBuild is true,
+also calls BuildPolymer.
+
+See the package doc for more about the specific build steps and what they do.
+
+*/
 func Build(directory string, gameImports []string, c *config.Config, prodBuild bool, copyFiles bool) (assetRoot string, err error) {
 
 	staticDir, err := staticBuildDir(directory)
