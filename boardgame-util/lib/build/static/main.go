@@ -118,7 +118,7 @@ func Build(directory string, managers []string, c *config.Config, prodBuild bool
 	}
 
 	fmt.Println("Creating " + polymerConfig)
-	if err := createPolymerJson(directory, false); err != nil {
+	if err := CreatePolymerJson(directory, false); err != nil {
 		return "", errors.New("Couldn't create " + polymerConfig + ": " + err.Error())
 	}
 
@@ -410,12 +410,19 @@ func Clean(directory string) error {
 	return os.RemoveAll(filepath.Join(directory, staticSubFolder))
 }
 
-//createPolymerJson outputs a polymer.json in dir/static/ that includes
-//fragments for all of the games in game-src. If missingFragmentsError is
-//true, then if there are missing fragments we will return an error.
-func createPolymerJson(dir string, missingFragmentsErrors bool) error {
+//CreatePolymerJson outputs a polymer.json in the given build folder that
+//includes fragments for all of the valid game directories that exist in the
+//build folder's game-src directory. If missingFragmentsError is true, then if
+//there are missing fragments we will return an error. Otherwise, will print a
+//message for missing fragments but not error.
+func CreatePolymerJson(dir string, missingFragmentsErrors bool) error {
 
-	path := filepath.Join(dir, staticSubFolder, polymerConfig)
+	staticDir, err := staticBuildDir(dir)
+	if err != nil {
+		return errors.New("Couldn't get static di: " + err.Error())
+	}
+
+	path := filepath.Join(staticDir, polymerConfig)
 
 	if _, err := os.Stat(path); err == nil {
 		return errors.New(path + " already exists")
