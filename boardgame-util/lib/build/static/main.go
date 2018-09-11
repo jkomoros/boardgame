@@ -14,7 +14,7 @@ import (
 )
 
 const staticSubFolder = "static"
-const configJsFileName = "client_config.js"
+const clientConfigJsFileName = "client_config.js"
 const gameSrcSubFolder = "game-src"
 const clientSubFolder = "client"
 const polymerConfig = "polymer.json"
@@ -41,8 +41,8 @@ var filesToExclude map[string]bool = map[string]bool{
 	nodeModulesFolder: true,
 	//Don't copy over because we'll generate our own; if we copy over and
 	//generate our own we'll overwrite original.
-	configJsFileName: true,
-	".DS_Store":      true,
+	clientConfigJsFileName: true,
+	".DS_Store":            true,
 }
 
 //Server runs a static server. directory is the folder that the `static`
@@ -107,9 +107,9 @@ func Build(directory string, managers []string, c *config.Config, prodBuild bool
 		return "", errors.New("Couldn't link " + nodeModulesFolder + ": " + err.Error())
 	}
 
-	fmt.Println("Creating " + configJsFileName)
-	if err := createConfigJs(filepath.Join(staticDir, configJsFileName), c); err != nil {
-		return "", errors.New("Couldn't create " + configJsFileName + ": " + err.Error())
+	fmt.Println("Creating " + clientConfigJsFileName)
+	if err := CreateClientConfigJs(directory, c); err != nil {
+		return "", errors.New("Couldn't create " + clientConfigJsFileName + ": " + err.Error())
 	}
 
 	fmt.Println("Creating " + gameSrcSubFolder)
@@ -385,7 +385,18 @@ func linkGameClientFolders(basePath string, managers []string) error {
 
 }
 
-func createConfigJs(path string, c *config.Config) error {
+//CreateClientConfigJs creates and saves a client_config.js corresponding to
+//the given top-level config object, into the given build directory. It uses
+//config.Client() to generate the contents for the file.
+func CreateClientConfigJs(dir string, c *config.Config) error {
+
+	staticDir, err := staticBuildDir(dir)
+	if err != nil {
+		return err
+	}
+
+	path := filepath.Join(staticDir, clientConfigJsFileName)
+
 	client := c.Client(false)
 
 	clientBlob, err := json.MarshalIndent(client, "", "\t")
