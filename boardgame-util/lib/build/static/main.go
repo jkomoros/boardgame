@@ -126,7 +126,7 @@ func Build(directory string, gameImports []string, c *config.Config, prodBuild b
 
 	if prodBuild {
 		fmt.Println("Building bundled resources with `polymer build`")
-		if err := buildPolymer(directory); err != nil {
+		if err := BuildPolymer(directory); err != nil {
 			return "", errors.New("Couldn't build bundled resources: " + err.Error())
 		}
 	}
@@ -578,9 +578,10 @@ func verifyPolymer(dir string) error {
 	return nil
 }
 
-//buildPolymer calls `polymer build` to build the bundled version. Expects
-//polymer.json to exist; that is that createPolymerJson has been called.
-func buildPolymer(dir string) error {
+//BuildPolymer calls `polymer build` to build the bundled version within a
+//given build directory. Will error if the build directory doesn't include
+//polymer.json (which CreatePolymerJson will have created).
+func BuildPolymer(dir string) error {
 
 	staticDir := filepath.Join(dir, staticSubFolder)
 
