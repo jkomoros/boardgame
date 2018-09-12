@@ -1,10 +1,21 @@
 /*
 
-build is a package that can create and cleanup api server binaries, static
-asset folders, and golden test setups.
+api is a package that can create and cleanup api server binaries.
 
-Typically it is not used directly, but via the `boardgame-util build` and
-`boardgame-util cleanup` commands.
+Its cousin is the build/static package, which contains considerably more
+logic.
+
+The point of this package is primarily to create an `api/main.go` output that
+statically links the games and storage type configured via config.json, and
+then build that binary using `go build`.
+
+There's nothing magic about this package; it's legal to create your own server
+binary by hand. This package just automates that for you so when you add a
+game to your server you only have to worry about adding it in your config.json
+and everything else happens automatically.
+
+Typically it is not used directly, but via the `boardgame-util build api`,
+`boardgame-util cleanup api`, and `boardgame-util serve` commands.
 
 */
 package api
