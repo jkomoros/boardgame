@@ -14,12 +14,12 @@ const apiSubFolder = "api"
 
 /*
 
-Build generates the code for a server with the following imported games and
-given storage type in a folder called api/ within the given directory, builds
-it, and returns the path to the compiled binary. The bulk of the logic to
-generate the code is in ApiCode.
+Build is the primary method in this package. It generates the code for a
+server with the following imported games and given storage type in a folder
+called api/ within the given directory, builds it, and returns the path to the
+compiled binary. The bulk of the logic to generate the code is in Code().
 
-To clean up the binary, call CleanupApi and pass the same directory.
+To clean up the binary, call Cleanup and pass the same directory.
 
 */
 func Build(directory string, managers []string, storage StorageType) (string, error) {
@@ -70,7 +70,7 @@ func Build(directory string, managers []string, storage StorageType) (string, er
 	return binaryName, nil
 }
 
-//Code returns the code for an api server with the given type.
+//Code returns the code for the `api/main.go`of a server with the given type.
 func Code(managers []string, storage StorageType) ([]byte, error) {
 
 	buf := new(bytes.Buffer)
@@ -109,7 +109,7 @@ func Code(managers []string, storage StorageType) ([]byte, error) {
 }
 
 //Clean removes the api/ directory (code and binary) that was generated
-//within directory by ApiCode.
+//within directory by Build.
 func Clean(directory string) error {
 	return os.RemoveAll(filepath.Join(directory, apiSubFolder))
 }
