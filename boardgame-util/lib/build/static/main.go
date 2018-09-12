@@ -19,6 +19,17 @@
 	Tools like `boardgame-util serve` create a temporary directory and use
 	that, so it's easy to clean up later.
 
+	Various steps of the build symlink other files and folders into the
+	created static build directory, for example when we symlink in the client
+	directories of each game into game_src. These symlinks use relative paths,
+	not absolute paths. This means that if all of the packages (including the
+	current repo) are in the canonical location in $GOPATH (and modules are
+	not enabled), then these relative symlinks are OK to check in to a source
+	control repo because they should work reasonably on other systems.
+	However, typically you don't check in the results of the static build into
+	source control, and instead use `boardgame-util serve`, which creates a
+	temporary directory for the build each time.
+
 	The steps of the build process, at a high level, are as follows:
 
 	First, create the `static` sub directory, if it doesn't already exist. All
