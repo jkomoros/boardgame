@@ -1,21 +1,50 @@
 /*
 
-api is a package that can create and cleanup api server binaries.
+api is a package that can create and cleanup api server binaries. Its cousin
+is the build/static package, which contains considerably more logic.
 
-Its cousin is the build/static package, which contains considerably more
-logic.
+The point of this package is primarily to create an `api/main.go` output in
+the given directory that statically links the games and storage type
+configured via config.json, and then build that binary using `go build`.
 
-The point of this package is primarily to create an `api/main.go` output that
-statically links the games and storage type configured via config.json, and
-then build that binary using `go build`.
+The directory parameter gives the build directory; the build command will
+create an `api` sub-folder within that, and static.Build() will create a
+static directory. A directory of "" is legal and is effectively ".".
 
 There's nothing magic about this package; it's legal to create your own server
 binary by hand. This package just automates that for you so when you add a
 game to your server you only have to worry about adding it in your config.json
 and everything else happens automatically.
 
-Typically it is not used directly, but via the `boardgame-util build api`,
-`boardgame-util cleanup api`, and `boardgame-util serve` commands.
+For a config json that has a defaultstoragetype of bolt and lists the games
+`github.com/jkomoros/boardgame/examples/checkers`,
+`github.com/jkomoros/boardgame/examples/memory`, and
+`github.com/jkomoros/boardgame/examples/pig` it would output (with the package
+doc comment omitted):
+
+	package main
+
+	import (
+		"github.com/jkomoros/boardgame/examples/checkers"
+		"github.com/jkomoros/boardgame/examples/memory"
+		"github.com/jkomoros/boardgame/examples/pig"
+		"github.com/jkomoros/boardgame/server/api"
+		"github.com/jkomoros/boardgame/storage/bolt"
+	)
+
+	func main() {
+
+		storage := api.NewServerStorageManager(bolt.NewStorageManager(".database"))
+		defer storage.Close()
+		api.NewServer(storage,
+			checkers.NewDelegate(),
+			memory.NewDelegate(),
+			pig.NewDelegate(),
+		).Start()
+	}
+
+Typically it is not used directly, but via the `boardgame-util build api
+`,`boardgame-util cleanup api`, and `boardgame-util serve` commands.
 
 */
 package api
