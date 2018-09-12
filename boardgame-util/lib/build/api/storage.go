@@ -55,6 +55,8 @@ import (
 	"text/template"
 )
 
+//StorageType denotes one of the storage managers this package knows how to
+//generate code for.
 type StorageType int
 
 const (
@@ -85,6 +87,8 @@ func ValidStorageTypeStrings() []string {
 	}
 }
 
+//StorageTypeFromString returns the right storage type for the given string.
+//"" returns StorageDefault, and any unknown types return StorageInvalid.
 func StorageTypeFromString(in string) StorageType {
 	in = strings.ToLower(in)
 	in = strings.TrimSpace(in)
@@ -123,7 +127,8 @@ func (s StorageType) String() string {
 	return "invalid"
 }
 
-//Import is the string denting the import path for this storage type.
+//Import is the string denting the import path for this storage type, e.g.
+//"github.com/jkomoros/boardgame/storage/mysql"
 func (s StorageType) Import() string {
 
 	if s == StorageDefault {
