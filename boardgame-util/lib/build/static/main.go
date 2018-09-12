@@ -68,6 +68,18 @@
 	Typically direct users of this package use Build(), which automatically
 	runs these steps in the proper order.
 
+	Clean() removes the static build contents from the given build directory
+	(specifically, it removes the `static` subdirectory and all of its
+	contents). LinkNodeModules also might create (or update) a shared cache
+	directory of node_modules on the system, and CleanCache() removes that
+	cache.
+
+	Server() is a simple development server that makes the static resources
+	available at `localhost:PORT`. Polymer requires that imports use bare
+	module specifiers, which means that a naive local serve is not sufficient
+	because the import URLs must be lightly rewritten, so this Server() is
+	necessary. Under the covers it uses `polymer serve`.
+
 	Typically you don't use this package directly, but use `boardgame-util
 	build static` or `boardgame-util serve`.
 
