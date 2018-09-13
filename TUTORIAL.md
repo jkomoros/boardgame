@@ -1729,18 +1729,18 @@ AllowMultipleInProgression means that the move inherently knows how to terminate
 
 Note that move progression groups match greedily as much as they can. In some cases when you have two groups that abut, where the same type of AllowMultipleInProgression moves are next to each other within different groups, the first one consumes all of them in a row, meaning the second group will never match. In this case you can use moves.NoOp to form a barrier.
 
-### Configs
+### Variants
 
-Games can often take different configurations. For example, a deck-based card game might be playable with an expansion pack of cards mixed in. 
+Games can often have different variations. For example, a deck-based card game might be playable with an expansion pack of cards mixed in. 
 
-These are represented in the engine by the notion of a `GameConfig` which is just a `map[string]string`. When your game is created, a bundle of Config will be passed to `NewGame`, along with how many players are in the game. That config is simply passed to your `GameDelegate`'s `BeginSetUp` method, and that's it. It's your game's responsibility to take that information to set properties differently so the game can be configured that way.
+These are represented in the engine by the notion of a `Variant` which is just a `map[string]string`. When your game is created, a bundle of Variant will be passed to `NewGame`, along with how many players are in the game. That variant is simply passed to your `GameDelegate`'s `BeginSetUp` method, and that's it. It's your game's responsibility to take that information to set properties differently so the game can be configured that way.
 
-There are a few other extension points for `Config`. One is `GameDelegate.Configs() map[string][]string`. This is a purely optional method that just enumerates different keys your game understands and valid values for them, like in `memory`:
+There are a few other extension points for `Variant`. One is `GameDelegate.Variants() map[string][]string`. This is a purely optional method that just enumerates different keys your game understands and valid values for them, like in `memory`:
 
 ```
 const (
-	configKeyNumCards = "numcards"
-	configKeyCardSet  = "cardset"
+	variantKeyNumCards = "numcards"
+	variantKeyCardSet  = "cardset"
 )
 
 const (
@@ -1756,19 +1756,19 @@ const (
 	cardSetGeneral = "general"
 )
 
-func (g *gameDelegate) Configs() map[string][]string {
+func (g *gameDelegate) Variants() map[string][]string {
 	return map[string][]string{
-		configKeyCardSet:  {cardSetAll, cardSetFoods, cardSetAnimals, cardSetGeneral},
-		configKeyNumCards: {numCardsMedium, numCardsSmall, numCardsLarge},
+		variantKeyCardSet:  {cardSetAll, cardSetFoods, cardSetAnimals, cardSetGeneral},
+		variantKeyNumCards: {numCardsMedium, numCardsSmall, numCardsLarge},
 	}
 }
 ```
 
 These values are used primarily just so the webapp can create reasonable fields in the UI. 
 
-Another extension point is `GameDelegate.LegalConfig()`. When a Game is being set up, just after the number of players is checked for legality, the config object is passed to that method. If it returns an error then `NewGame` will fail. `DefaultGameDelegate` just verifies that all of the keys and values are legal according to the return value of `Configs()`, which is almost always what you want.
+Another extension point is `GameDelegate.LegalVariant()`. When a Game is being set up, just after the number of players is checked for legality, the variant configuration object is passed to that method. If it returns an error then `NewGame` will fail. `DefaultGameDelegate` just verifies that all of the keys and values are legal according to the return value of `Variants()`, which is almost always what you want.
 
-There are two other methods on `GameDelegate`,  `ConfigKeyDisplay` and `ConfigValueDisplay`, which are used to get strings to show to the user in the web app UI.
+There are two other methods on `GameDelegate`,  `VariantKeyDisplay` and `VariantValueDisplay`, which are used to get strings to show to the user in the web app UI.
 
 ### Agents
 

@@ -54,8 +54,8 @@ func (g *gameDelegate) ComputedGlobalProperties(state boardgame.ImmutableState) 
 }
 
 const (
-	configKeyNumCards = "numcards"
-	configKeyCardSet  = "cardset"
+	variantKeyNumCards = "numcards"
+	variantKeyCardSet  = "cardset"
 )
 
 const (
@@ -71,26 +71,26 @@ const (
 	cardSetGeneral = "general"
 )
 
-func (g *gameDelegate) Configs() map[string][]string {
+func (g *gameDelegate) Variants() map[string][]string {
 	return map[string][]string{
-		configKeyCardSet:  {cardSetAll, cardSetFoods, cardSetAnimals, cardSetGeneral},
-		configKeyNumCards: {numCardsMedium, numCardsSmall, numCardsLarge},
+		variantKeyCardSet:  {cardSetAll, cardSetFoods, cardSetAnimals, cardSetGeneral},
+		variantKeyNumCards: {numCardsMedium, numCardsSmall, numCardsLarge},
 	}
 }
 
-func (g *gameDelegate) ConfigKeyDisplay(key string) (displayName, description string) {
+func (g *gameDelegate) VariantKeyDisplay(key string) (displayName, description string) {
 	switch key {
-	case configKeyCardSet:
+	case variantKeyCardSet:
 		return "Card Set", "Which theme of cards to use"
-	case configKeyNumCards:
+	case variantKeyNumCards:
 		return "Number of Cards", "How many cards to use? Larger numbers are more difficult."
 	}
 	return "", ""
 }
 
-func (g *gameDelegate) ConfigValueDisplay(key, val string) (displayName, description string) {
+func (g *gameDelegate) VariantValueDisplay(key, val string) (displayName, description string) {
 	switch key {
-	case configKeyCardSet:
+	case variantKeyCardSet:
 		switch val {
 		case cardSetAll:
 			return "All Cards", "All cards mixed together"
@@ -101,7 +101,7 @@ func (g *gameDelegate) ConfigValueDisplay(key, val string) (displayName, descrip
 		case cardSetGeneral:
 			return "General", "Random cards with no particular theme"
 		}
-	case configKeyNumCards:
+	case variantKeyNumCards:
 		switch val {
 		case numCardsSmall:
 			return "Small", "An easy game"
@@ -125,16 +125,16 @@ func (g *gameDelegate) PlayerStateConstructor(playerIndex boardgame.PlayerIndex)
 	}
 }
 
-func (g *gameDelegate) BeginSetUp(state boardgame.State, config boardgame.GameConfig) error {
+func (g *gameDelegate) BeginSetUp(state boardgame.State, variant boardgame.Variant) error {
 	game, _ := concreteStates(state)
 
-	game.CardSet = config[configKeyCardSet]
+	game.CardSet = variant[variantKeyCardSet]
 
 	if game.CardSet == "" {
 		game.CardSet = cardSetAll
 	}
 
-	switch config[configKeyNumCards] {
+	switch variant[variantKeyNumCards] {
 	case numCardsSmall:
 		game.NumCards = 10
 	case numCardsMedium:

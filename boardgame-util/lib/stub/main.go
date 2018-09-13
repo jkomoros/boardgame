@@ -42,7 +42,7 @@ type Options struct {
 	EnableExampleEndState               bool
 	EnableExampleComputedProperties     bool
 	EnableExampleConstants              bool
-	EnableExampleConfigs                bool
+	EnableExampleVariants               bool
 	EnableExampleClient                 bool
 	EnableExampleMoves                  bool
 }
@@ -74,7 +74,7 @@ func (o *Options) EnableTutorials() {
 	o.EnableExampleEndState = true
 	o.EnableExampleComputedProperties = true
 	o.EnableExampleConstants = true
-	o.EnableExampleConfigs = true
+	o.EnableExampleVariants = true
 	o.EnableExampleClient = true
 	o.EnableExampleMoves = true
 }

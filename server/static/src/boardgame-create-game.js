@@ -47,7 +47,7 @@ class BoardgameCreateGame extends GamePathMixin(PolymerElement) {
         margin-bottom: -1em;
       }
 
-      .config>div {
+      .variant>div {
         margin-right: 1em;
       }
 
@@ -103,10 +103,10 @@ class BoardgameCreateGame extends GamePathMixin(PolymerElement) {
           </div>
         </template>
       </div>
-      <div class="horizontal layout config">
-        <template is="dom-repeat" items="{{selectedManager.data.Config}}">
+      <div class="horizontal layout variant">
+        <template is="dom-repeat" items="{{selectedManager.data.Variant}}">
           <div class="vertical layout">
-            <paper-dropdown-menu label="{{item.DisplayName}}" name="config_{{item.Name}}" horizontal-align="left">
+            <paper-dropdown-menu label="{{item.DisplayName}}" name="variant_{{item.Name}}" horizontal-align="left">
               <paper-listbox slot="dropdown-content" selected="0">
                 <template is="dom-repeat" items="{{item.Values}}">
                   <paper-item value="{{item.Value}}" label="{{item.DisplayName}}">

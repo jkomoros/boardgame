@@ -422,7 +422,7 @@ func (s *Server) newGameHandler(c *gin.Context) {
 		return
 	}
 
-	config := s.getRequestConfig(c, manager.Delegate().Configs())
+	variant := s.getRequestVariant(c, manager.Delegate().Variants())
 
 	if numPlayers == 0 && manager != nil {
 		numPlayers = manager.Delegate().DefaultNumPlayers()
@@ -435,11 +435,11 @@ func (s *Server) newGameHandler(c *gin.Context) {
 	open := s.getRequestOpen(c)
 	visible := s.getRequestVisible(c)
 
-	s.doNewGame(r, owner, manager, numPlayers, agents, open, visible, config)
+	s.doNewGame(r, owner, manager, numPlayers, agents, open, visible, variant)
 
 }
 
-func (s *Server) doNewGame(r *Renderer, owner *users.StorageRecord, manager *boardgame.GameManager, numPlayers int, agents []string, open bool, visible bool, config map[string]string) {
+func (s *Server) doNewGame(r *Renderer, owner *users.StorageRecord, manager *boardgame.GameManager, numPlayers int, agents []string, open bool, visible bool, variant map[string]string) {
 
 	if manager == nil {
 		r.Error(errors.New("No manager provided"))
@@ -451,7 +451,7 @@ func (s *Server) doNewGame(r *Renderer, owner *users.StorageRecord, manager *boa
 		return
 	}
 
-	game, err := manager.NewGame(numPlayers, config, agents)
+	game, err := manager.NewGame(numPlayers, variant, agents)
 
 	if err != nil {
 		//TODO: communicate the error state back to the client in a sane way
@@ -567,15 +567,15 @@ func (s *Server) doListManager(r *Renderer) {
 				"DisplayName": agent.DisplayName(),
 			}
 		}
-		var config []interface{}
+		var variant []interface{}
 
-		configs := manager.Delegate().Configs()
+		variants := manager.Delegate().Variants()
 
-		sortedKeys := make([]string, len(configs))
+		sortedKeys := make([]string, len(variants))
 
 		i := 0
 
-		for key := range configs {
+		for key := range variants {
 			sortedKeys[i] = key
 			i++
 		}
@@ -584,11 +584,11 @@ func (s *Server) doListManager(r *Renderer) {
 
 		for _, key := range sortedKeys {
 
-			vals := configs[key]
+			vals := variants[key]
 
 			part := make(map[string]interface{})
 			part["Name"] = key
-			displayName, description := manager.Delegate().ConfigKeyDisplay(key)
+			displayName, description := manager.Delegate().VariantKeyDisplay(key)
 			part["DisplayName"] = displayName
 			part["Description"] = description
 
@@ -597,7 +597,7 @@ func (s *Server) doListManager(r *Renderer) {
 			for _, val := range vals {
 				valuePart := make(map[string]interface{})
 
-				displayName, description := manager.Delegate().ConfigValueDisplay(key, val)
+				displayName, description := manager.Delegate().VariantValueDisplay(key, val)
 
 				valuePart["Value"] = val
 				valuePart["DisplayName"] = displayName
@@ -609,7 +609,7 @@ func (s *Server) doListManager(r *Renderer) {
 
 			part["Values"] = valueInfo
 
-			config = append(config, part)
+			variant = append(variant, part)
 		}
 
 		managers = append(managers, map[string]interface{}{
@@ -620,7 +620,7 @@ func (s *Server) doListManager(r *Renderer) {
 			"MinNumPlayers":     manager.Delegate().MinNumPlayers(),
 			"MaxNumPlayers":     manager.Delegate().MaxNumPlayers(),
 			"Agents":            agents,
-			"Config":            config,
+			"Variant":           variant,
 		})
 	}
 

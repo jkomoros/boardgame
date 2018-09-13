@@ -1,0 +1,1 @@
+alter table `games` change `Variant` `Config` text;

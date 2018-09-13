@@ -11,6 +11,6 @@
     ""
   ],
   "Winners": null,
-  "Config": null,
+  "Variant": null,
   "Diagram": "This should be overriden to render a reasonable state here"
 }

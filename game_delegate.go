@@ -7,15 +7,16 @@ import (
 	"sort"
 )
 
-//GameConfig is just a map of keys to values that are passed to your game so
-//it can configure different alternate rulesets, for example using a Short
+//Variant is just a map of keys to values that are passed to your game so it
+//can configure different alternate rulesets, for example using a Short
 //variant that uses fewer cards and should play faster, or using a different
-//deck of cards than normal. The config will be considered legal if it passes
-//Delegate.LegalConfig(), and will be passed to Delegate.BeginSetup so that
-//you can set up your game in whatever way makes sense for a given Config.
-//Your Delegate defines what valid keys and values are with its return value
-//for Configs(), and how they should show to the user with ConfigDisplay.
-type GameConfig map[string]string
+//deck of cards than normal. The variant configuration will be considered
+//legal if it passes Delegate.LegalVariant(), and will be passed to
+//Delegate.BeginSetup so that you can set up your game in whatever way makes
+//sense for a given Variant. Your Delegate defines what valid keys and values
+//are with its return value for Variants(), and how they should show to the
+//user with VariantDisplay.
+type Variant map[string]string
 
 //GameDelegate is the place that various parts of the game lifecycle can be
 //modified to support this particular game. Typically you embed
@@ -120,15 +121,16 @@ type GameDelegate interface {
 	DistributeComponentToStarterStack(state ImmutableState, c Component) (ImmutableStack, error)
 
 	//BeginSetup is a chance to modify the initial state object *before* the
-	//components are distributed to it. It is also where the config for your
-	//gametype will be passed (it will have already passed LegalConfig),
-	//although you can also retrieve that at any time via game.Config(). This
-	//is a good place to configure state that will be necessary for you to
-	//make the right decisions in DistributeComponentToStarterStack, or to
-	//transcribe config information you were passed into properties on your
-	//gameState as appropriate. If error is non-nil, Game setup will be
-	//aborted, with the reasoning including the error message provided.
-	BeginSetUp(state State, config GameConfig) error
+	//components are distributed to it. It is also where the variant
+	//configuration for your gametype will be passed (it will have already
+	//passed LegalVariant), although you can also retrieve that at any time
+	//via game.Variant(). This is a good place to configure state that will be
+	//necessary for you to make the right decisions in
+	//DistributeComponentToStarterStack, or to transcribe config information
+	//you were passed into properties on your gameState as appropriate. If
+	//error is non-nil, Game setup will be aborted, with the reasoning
+	//including the error message provided.
+	BeginSetUp(state State, variant Variant) error
 
 	//FinishSetUp is called during NewGame, *after* components have been
 	//distributed to their StarterStack. This is the last chance to modify the
@@ -176,30 +178,31 @@ type GameDelegate interface {
 	//numbers of players.
 	LegalNumPlayers(numPlayers int) bool
 
-	//Configs returns a list of all of the various config values that are
-	//valid for the given config keys. Ultimately your LegalConfig is the
-	//final arbiter of which configs are legal; this method is mainly used so
-	//that user interfaces know which configs to show to the user.
-	Configs() map[string][]string
+	//Variants returns a list of all of the various variant configuation
+	//values that are valid for the given variant keys. Ultimately your
+	//LegalVariant is the final arbiter of which variants are legal; this
+	//method is mainly used so that user interfaces know which variants to
+	//show to the user.
+	Variants() map[string][]string
 
-	//ConfigKeyDisplay will be called to figure out the user-visible name this
-	//config key should have, and a description of what it does to show to a
+	//VariantKeyDisplay will be called to figure out the user-visible name this
+	//variant key should have, and a description of what it does to show to a
 	//user. It will be called repeatedly by each key in the map returned by
-	//your Configs().
-	ConfigKeyDisplay(key string) (displayName, description string)
+	//your Variants().
+	VariantKeyDisplay(key string) (displayName, description string)
 
-	//ConfigValueDisplay is called to figure out the displayname and
-	//description for each key/val in Config to show to users in the
+	//VariantValueDisplay is called to figure out the displayname and
+	//description for each key/val in Variant to show to users in the
 	//interface. It will be called repeatedly on every key/val pair in the map
-	//returned by Configs().
-	ConfigValueDisplay(key, val string) (displayName, description string)
+	//returned by Variants().
+	VariantValueDisplay(key, val string) (displayName, description string)
 
-	//LegalConfig will be consulted when a new game is created. It should
-	//return nil if the provided config is a reasonable configuration for your
-	//gametype, and a descriptive error (that's reasonable to show to the end
-	//user) otherwise. If this returns non-nil, NewGame will fail with an
-	//error.
-	LegalConfig(config GameConfig) error
+	//LegalVariant will be consulted when a new game is created. It should
+	//return nil if the provided variant configuartion is a reasonable
+	//configuration for your gametype, and a descriptive error (that's
+	//reasonable to show to the end user) otherwise. If this returns non-nil,
+	//NewGame will fail with an error.
+	LegalVariant(variant Variant) error
 
 	//CurrentPlayerIndex returns the index of the "current" player--a notion
 	//that is game specific (and sometimes inapplicable). If CurrentPlayer
@@ -466,7 +469,7 @@ func (d *DefaultGameDelegate) ComputedPlayerProperties(player ImmutablePlayerSta
 }
 
 //BeginSetUp does not do anything and returns nil.
-func (d *DefaultGameDelegate) BeginSetUp(state State, config GameConfig) error {
+func (d *DefaultGameDelegate) BeginSetUp(state State, variant Variant) error {
 	//Don't need to do anything by default
 	return nil
 }
@@ -585,31 +588,31 @@ func (d *DefaultGameDelegate) LegalNumPlayers(numPlayers int) bool {
 
 }
 
-//Configs returns an empty map[string][]string
-func (d *DefaultGameDelegate) Configs() map[string][]string {
+//Variants returns an empty map[string][]string
+func (d *DefaultGameDelegate) Variants() map[string][]string {
 	return make(map[string][]string)
 }
 
-//ConfigKeyDisplay by default just returns the key and no description.
-func (d *DefaultGameDelegate) ConfigKeyDisplay(key string) (displayName, description string) {
+//VariantKeyDisplay by default just returns the key and no description.
+func (d *DefaultGameDelegate) VariantKeyDisplay(key string) (displayName, description string) {
 	return key, ""
 }
 
-//ConfigValueDisplay by default just returns the value and no description.
-func (d *DefaultGameDelegate) ConfigValueDisplay(key, val string) (displayName, description string) {
+//VariantValueDisplay by default just returns the value and no description.
+func (d *DefaultGameDelegate) VariantValueDisplay(key, val string) (displayName, description string) {
 	return val, ""
 }
 
-//LegalConfig on DefaultGameDelegate by default verifies that each of the keys
-//and values in the Config are legal keys and values in the map returned by
-//Configs().
-func (d *DefaultGameDelegate) LegalConfig(config GameConfig) error {
+//LegalVariant on DefaultGameDelegate by default verifies that each of the keys
+//and values in the Variant are legal keys and values in the map returned by
+//Variants().
+func (d *DefaultGameDelegate) LegalVariant(variant Variant) error {
 	//We can't call Configs on self because that might not be the right one,
 	//it might be overridden.
 	del := d.Manager().Delegate()
 
-	validConfigs := del.Configs()
-	for key, val := range config {
+	validConfigs := del.Variants()
+	for key, val := range variant {
 		if _, ok := validConfigs[key]; !ok {
 			return errors.New("configuration had a property called " + key + " that isn't expected")
 		}
@@ -620,7 +623,7 @@ func (d *DefaultGameDelegate) LegalConfig(config GameConfig) error {
 			}
 		}
 		if !foundAllowedVal {
-			keyDisplayName, _ := del.ConfigKeyDisplay(key)
+			keyDisplayName, _ := del.VariantKeyDisplay(key)
 			return errors.New("configuration's " + keyDisplayName + " property had a value that wasn't allowed: " + val)
 		}
 	}

@@ -207,19 +207,19 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	//Verify that if the game is stored with wrong name that doesn't match manager it won't load up.
 
-	config := boardgame.GameConfig{
+	variant := boardgame.Variant{
 		"numcards": "small",
 	}
 
-	memoryGame, err := memoryManager.NewGame(0, config, nil)
+	memoryGame, err := memoryManager.NewGame(0, variant, nil)
 
-	assert.For(t).ThatActual(config).Equals(memoryGame.Config())
+	assert.For(t).ThatActual(variant).Equals(memoryGame.Variant())
 
 	refriedMemoryGame := memoryManager.Game(memoryGame.Id())
 
 	assert.For(t).ThatActual(refriedMemoryGame).IsNotNil()
 
-	assert.For(t).ThatActual(refriedMemoryGame.Config()).Equals(memoryGame.Config())
+	assert.For(t).ThatActual(refriedMemoryGame.Variant()).Equals(memoryGame.Variant())
 
 	games := storage.ListGames(10, listing.All, "", "")
 

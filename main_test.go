@@ -684,7 +684,7 @@ func testDefaultGame(t *testing.T, stableIds bool) *Game {
 }
 
 //testGame returns a Game that has not yet had SetUp() called.
-func testGame(t *testing.T, stableIds bool, numPlayers int, config GameConfig, agentNames []string) *Game {
+func testGame(t *testing.T, stableIds bool, numPlayers int, variant Variant, agentNames []string) *Game {
 
 	manager := newTestGameManger(t)
 
@@ -704,7 +704,7 @@ func testGame(t *testing.T, stableIds bool, numPlayers int, config GameConfig, a
 		t.Error("Couldn't create game: " + err.Error())
 	}
 
-	if err := game.setUp(numPlayers, config, agentNames); err != nil {
+	if err := game.setUp(numPlayers, variant, agentNames); err != nil {
 		t.Error("Couldn't set up game: " + err.Error())
 	}
 

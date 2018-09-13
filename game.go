@@ -36,7 +36,7 @@ type Game struct {
 
 	numPlayers int
 
-	config GameConfig
+	variant Variant
 
 	//Memozied answer to CurrentState. Invalidated whenever ApplyMove is
 	//called.
@@ -114,17 +114,17 @@ func (g *Game) Modified() time.Time {
 	return g.modified
 }
 
-//Config returns a copy of the GameConfig passed to NewGame to create this
+//Variant returns a copy of the Variant passed to NewGame to create this
 //game originally.
-func (g *Game) Config() GameConfig {
+func (g *Game) Variant() Variant {
 
-	if g.config == nil {
+	if g.variant == nil {
 		return nil
 	}
 
-	result := make(GameConfig, len(g.config))
+	result := make(Variant, len(g.variant))
 
-	for key, val := range g.config {
+	for key, val := range g.variant {
 		result[key] = val
 	}
 
@@ -182,7 +182,7 @@ func (g *Game) JSONForPlayer(player PlayerIndex, state ImmutableState) interface
 		"Id":                 g.Id(),
 		"NumPlayers":         g.NumPlayers(),
 		"Agents":             g.Agents(),
-		"Config":             g.Config(),
+		"Variant":            g.Variant(),
 		"Version":            g.Version(),
 	}
 }
@@ -207,7 +207,7 @@ func (g *Game) StorageRecord() *GameStorageRecord {
 		SecretSalt: g.secretSalt,
 		NumPlayers: g.NumPlayers(),
 		Agents:     g.Agents(),
-		Config:     g.Config(),
+		Variant:    g.Variant(),
 	}
 }
 
@@ -365,12 +365,12 @@ func (g *Game) starterState(numPlayers int) (State, error) {
 //SetUp initializes a specific game object and gets it ready for the first
 //move to apply. SetUp must be called before ProposeMove can be called. Even
 //if an error is returned, the game should be in a consistent state. If
-//numPlayers is 0, we will use delegate.DefaultNumPlayers(). Config may be nil
-//(an empty GameConfig will be passed to your delegate's LegalConfig method).
+//numPlayers is 0, we will use delegate.DefaultNumPlayers(). Variant may be nil
+//(an empty Variant will be passed to your delegate's LegalVariant method).
 //if agentNames is not nil, it should have len(numPlayers). The strings in
 //each index represent the agent to install for that player (empty strings
 //mean a human player).
-func (g *Game) setUp(numPlayers int, config GameConfig, agentNames []string) error {
+func (g *Game) setUp(numPlayers int, variant Variant, agentNames []string) error {
 
 	baseErr := errors.NewFriendly("Game couldn't be set up")
 
@@ -395,17 +395,17 @@ func (g *Game) setUp(numPlayers int, config GameConfig, agentNames []string) err
 		return errors.NewFriendly("The number of players, " + strconv.Itoa(numPlayers) + " was not legal.")
 	}
 
-	nonNilConfig := config
+	nonNilVariant := variant
 
-	if config == nil {
-		nonNilConfig = GameConfig{}
+	if variant == nil {
+		nonNilVariant = Variant{}
 	}
 
-	if err := g.manager.Delegate().LegalConfig(nonNilConfig); err != nil {
-		return errors.NewFriendly("That configuration is not legal for this game: " + err.Error())
+	if err := g.manager.Delegate().LegalVariant(nonNilVariant); err != nil {
+		return errors.NewFriendly("That variation is not legal for this game: " + err.Error())
 	}
 
-	g.config = config
+	g.variant = variant
 
 	if agentNames != nil && len(agentNames) != numPlayers {
 		return baseErr.WithError("If agentNames is not nil, it must have length equivalent to numPlayers.")
@@ -428,7 +428,7 @@ func (g *Game) setUp(numPlayers int, config GameConfig, agentNames []string) err
 	//Make a starter one so that buildComponentIndex doesn't get called.
 	stateCopy.(*state).componentIndex = make(map[Component]componentIndexItem)
 
-	if err := g.manager.delegate.BeginSetUp(stateCopy, config); err != nil {
+	if err := g.manager.delegate.BeginSetUp(stateCopy, variant); err != nil {
 		return errors.New("BeginSetUp errored: " + err.Error())
 	}
 

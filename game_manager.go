@@ -322,18 +322,18 @@ func (g *GameManager) NewDefaultGame() (*Game, error) {
 //NewGame returns a new game that is set up with these options, persisted to
 //the datastore, starter state created, first round of fix up moves applied,
 //and in general ready for the first move to be proposed.
-func (g *GameManager) NewGame(numPlayers int, config GameConfig, agentNames []string) (*Game, error) {
-	return g.createGame("", "", numPlayers, config, agentNames)
+func (g *GameManager) NewGame(numPlayers int, variant Variant, agentNames []string) (*Game, error) {
+	return g.createGame("", "", numPlayers, variant, agentNames)
 }
 
-func (g *GameManager) createGame(id, secretSalt string, numPlayers int, config GameConfig, agentNames []string) (*Game, error) {
+func (g *GameManager) createGame(id, secretSalt string, numPlayers int, variant Variant, agentNames []string) (*Game, error) {
 	result, err := g.newGameImpl(id, secretSalt)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if err := result.setUp(numPlayers, config, agentNames); err != nil {
+	if err := result.setUp(numPlayers, variant, agentNames); err != nil {
 		return nil, err
 	}
 
@@ -366,7 +366,7 @@ func (g *GameManager) RecreateGame(rec *GameStorageRecord) (*Game, error) {
 		return nil, errors.New("A game with that Id already exists in this storage pool. Did you mean to use manager.NewGame, manager.Game(), or manager.ModifiableGame instead?")
 	}
 
-	return g.createGame(rec.Id, rec.SecretSalt, rec.NumPlayers, rec.Config, rec.Agents)
+	return g.createGame(rec.Id, rec.SecretSalt, rec.NumPlayers, rec.Variant, rec.Agents)
 
 }
 
@@ -427,7 +427,7 @@ func (g *GameManager) gameFromStorageRecord(record *GameStorageRecord) *Game {
 		numPlayers: record.NumPlayers,
 		created:    record.Created,
 		agents:     record.Agents,
-		config:     record.Config,
+		variant:    record.Variant,
 		modifiable: false,
 		initalized: true,
 	}

@@ -45,7 +45,7 @@ type GameStorageRecord struct {
 	Agents     string `db:",size:1024"`
 	//Derived field to enable HasEmptySlots SQL query
 	NumAgents int64
-	Config    string `db:",size:65536"`
+	Variant   string `db:",size:65536"`
 }
 
 type ExtendedGameStorageRecord struct {
@@ -153,12 +153,12 @@ func stringToWinners(winners string) ([]boardgame.PlayerIndex, error) {
 
 }
 
-func stringToConfig(config string) (boardgame.GameConfig, error) {
+func stringToConfig(config string) (boardgame.Variant, error) {
 	if config == "" {
 		return nil, nil
 	}
 
-	var result boardgame.GameConfig
+	var result boardgame.Variant
 
 	if err := json.Unmarshal([]byte(config), &result); err != nil {
 		return nil, errors.New("Couldn't unmarshal value: " + err.Error())
@@ -167,7 +167,7 @@ func stringToConfig(config string) (boardgame.GameConfig, error) {
 	return result, nil
 }
 
-func configToString(config boardgame.GameConfig) string {
+func configToString(config boardgame.Variant) string {
 	if config == nil {
 		return ""
 	}
@@ -189,7 +189,7 @@ func (g *GameStorageRecord) ToStorageRecord() *boardgame.GameStorageRecord {
 		return nil
 	}
 
-	config, err := stringToConfig(g.Config)
+	variant, err := stringToConfig(g.Variant)
 
 	if err != nil {
 		return nil
@@ -206,7 +206,7 @@ func (g *GameStorageRecord) ToStorageRecord() *boardgame.GameStorageRecord {
 		Finished:   g.Finished,
 		NumPlayers: int(g.NumPlayers),
 		Agents:     stringToAgents(g.Agents),
-		Config:     config,
+		Variant:    variant,
 	}
 }
 
@@ -235,7 +235,7 @@ func NewGameStorageRecord(game *boardgame.GameStorageRecord) *GameStorageRecord 
 		Modified:   game.Modified.UnixNano(),
 		Agents:     agentsToString(game.Agents),
 		NumAgents:  int64(numAgents),
-		Config:     configToString(game.Config),
+		Variant:    configToString(game.Variant),
 	}
 }
 

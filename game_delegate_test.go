@@ -166,13 +166,13 @@ func (t *testGameDelegate) MaxNumPlayers() int {
 	return 5
 }
 
-func (t *testGameDelegate) Configs() map[string][]string {
+func (t *testGameDelegate) Variants() map[string][]string {
 	return map[string][]string{
 		"color": {"blue", "red"},
 	}
 }
 
-func (t *testGameDelegate) BeginSetUp(state State, config GameConfig) error {
+func (t *testGameDelegate) BeginSetUp(state State, variant Variant) error {
 	game, players := concreteStates(state)
 
 	if len(players) != 3 {

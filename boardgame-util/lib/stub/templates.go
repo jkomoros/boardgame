@@ -308,25 +308,25 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.Immutab
 
 }
 
-{{if .EnableExampleConfigs}}
-func (g *gameDelegate) BeginSetUp(state boardgame.State, config boardgame.GameConfig) error {
+{{if .EnableExampleVariants}}
+func (g *gameDelegate) BeginSetUp(state boardgame.State, variant boardgame.Variant) error {
 
 	//This is the only time that config is passed in, so we need to interpret
 	//it now and set it as a property in GameState.
-	targetCardsLeftVal := config[configKeyTargetCardsLeft]
+	targetCardsLeftVal := variant[variantKeyTargetCardsLeft]
 	if targetCardsLeftVal == "" {
-		targetCardsLeftVal = configTargetCardsLeftDefault
+		targetCardsLeftVal = variantTargetCardsLeftDefault
 	}
 
 	var targetCardsLeft int
 
 	switch targetCardsLeftVal {
-	case configTargetCardsLeftShort:
+	case variantTargetCardsLeftShort:
 		targetCardsLeft = 2
-	case configTargetCardsLeftDefault:
+	case variantTargetCardsLeftDefault:
 		targetCardsLeft = 0
 	default: 
-		return errors.New("Unknown value for " + configKeyTargetCardsLeft + ": " + targetCardsLeftVal)
+		return errors.New("Unknown value for " + variantKeyTargetCardsLeft + ": " + targetCardsLeftVal)
 	}
 
 	game := state.GameState().(*gameState)
@@ -373,43 +373,43 @@ func (g *gameDelegate) MaxNumPlayers() int {
 }
 
 {{- end}}
-{{if .EnableExampleConfigs}}
+{{if .EnableExampleVariants}}
 
-//values for the config setup
+//values for the variant setup
 const (
-	configKeyTargetCardsLeft = "targetcardsleft"
+	variantKeyTargetCardsLeft = "targetcardsleft"
 )
 
 const (
-	configTargetCardsLeftDefault = "default"
-	configTargetCardsLeftShort = "short"
+	variantTargetCardsLeftDefault = "default"
+	variantTargetCardsLeftShort = "short"
 )
 
-func (g *gameDelegate) Configs() map[string][]string{
+func (g *gameDelegate) Variants() map[string][]string{
 
-	//configs are the legal configuration options that will be show in the new
-	//game dialog. Display names and description are returned in
-	//ConfigKeyDisplay and ConfigValueDisplay.
+	//variants are the legal configuration options that will be show in the
+	//new game dialog. Display names and description are returned in
+	//VariantKeyDisplay and VariantValueDisplay.
 
 	return map[string][]string{
-		configKeyTargetCardsLeft: []string{
-			configTargetCardsLeftDefault,
-			configTargetCardsLeftShort,
+		variantKeyTargetCardsLeft: []string{
+			variantTargetCardsLeftDefault,
+			variantTargetCardsLeftShort,
 		},
 	}
 }
 
-func (g *gameDelegate) ConfigKeyDisplay(key string) (displayName, description string) {
-	if key == configKeyTargetCardsLeft {
+func (g *gameDelegate) VariantKeyDisplay(key string) (displayName, description string) {
+	if key == variantKeyTargetCardsLeft {
 		return "Target Cards Left", "Whether or not the target cards left is the default"
 	}
 	return "", ""
 }
 
-func (g *gameDelegate) ConfigValueDisplay(key, val string) (displayName, description string) {
-	if key == configKeyTargetCardsLeft {
+func (g *gameDelegate) VariantValueDisplay(key, val string) (displayName, description string) {
+	if key == variantKeyTargetCardsLeft {
 		switch val {
-		case configTargetCardsLeftShort:
+		case variantTargetCardsLeftShort:
 			return "Short", "A short game that ends when 2 cards are left"
 		default:
 			return "Default", "A normal-length game that ends when no cards are left"
@@ -559,7 +559,7 @@ type gameState struct {
 	{{if .EnableExampleDeck -}}
 	DrawStack boardgame.Stack ` + "`stack:\"examplecards\" sanitize:\"len\"`" + `
 	{{- end}}
-	{{if .EnableExampleConfigs -}}
+	{{if .EnableExampleVariants -}}
 	//This is where the example config is stored in BeginSetup. We use it in
 	//gameState.CardsDone().
 	TargetCardsLeft int
@@ -596,7 +596,7 @@ func (g *gameState) CardsDone() bool {
 	//It's common to hang computed properties and methods off of gameState and
 	//playerState to use in logic elsewhere.
 
-	return g.DrawStack.Len() == {{if .EnableExampleConfigs}}g.TargetCardsLeft{{else}}0{{end}}
+	return g.DrawStack.Len() == {{if .EnableExampleVariants}}g.TargetCardsLeft{{else}}0{{end}}
 }
 
 {{end}}

@@ -70,6 +70,10 @@ func TestGolden(t *testing.T) {
 		"tutorial": tutorialOptions,
 	}
 
+	if generateNewGolden {
+		fmt.Println("Saving new golden. Before committing, flip generateNewGolden back to false.")
+	}
+
 	for name, opt := range tests {
 		compareGolden(t, name, opt)
 	}
