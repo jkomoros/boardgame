@@ -118,6 +118,55 @@ func compareGolden(t *testing.T, name string, opt *Options) {
 		}
 
 		return
+	} else if name == "tutorial" {
+		//We also do a lot of the expensive building and testing for tutorial,
+		//as a tripline to have tests fail when the underlying libraries have
+		//changed and the stub outputs need updating.
+
+		tempDir, err := ioutil.TempDir("", "TEMP_test_pkg_")
+
+		if err != nil {
+			t.Fatal("Couldn't create temp dir")
+		}
+
+		defer func() {
+			if err := os.RemoveAll(tempDir); err != nil {
+				t.Fatal("couldn't clean up temp testing dir: " + err.Error())
+			}
+		}()
+
+		if err := contents.Save(tempDir, false); err != nil {
+			t.Error("couldn't save contents: " + err.Error())
+		}
+
+		//TODO: this is substantially recreated from right above, which is
+		//error-prone.
+
+		gameDir := filepath.Join(tempDir, opt.Name)
+
+		cmd := exec.Command("go", "generate")
+		cmd.Dir = gameDir
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+
+		if err := cmd.Run(); err != nil {
+			fmt.Println("Couldn't generate: " + err.Error())
+			return
+		}
+
+		//Generated golden; now verify that the generated pass tests. We do
+		//this now so that general tests will be fast; we verify that future
+		//tests output the same thing, and then verify that the thing they
+		//equal was valid when generated.
+		cmd = exec.Command("go", "build")
+		cmd.Dir = filepath.Join(tempDir, opt.Name)
+		buf := &bytes.Buffer{}
+		cmd.Stderr = buf
+
+		if err := cmd.Run(); err != nil {
+			t.Fatal("Didn't build (likely underlying library changed) " + err.Error() + ": " + buf.String())
+		}
+
 	}
 
 	golden, err := fileContentsFromDir(dir)
