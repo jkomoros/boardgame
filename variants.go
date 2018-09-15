@@ -186,10 +186,6 @@ func (d *VariantDisplayInfo) Initialize(nameInParent string) {
 //directly, but it is called for you implicitly within NewGame.
 func (v VariantConfig) NewVariant(variantValues map[string]string) (Variant, error) {
 
-	if len(variantValues) == 0 {
-		return nil, nil
-	}
-
 	result := make(Variant, len(variantValues))
 
 	for key, val := range variantValues {
@@ -208,6 +204,11 @@ func (v VariantConfig) NewVariant(variantValues map[string]string) (Variant, err
 
 	if err := v.LegalVariant(result); err != nil {
 		return nil, err
+	}
+
+	//If there's no values just return nil
+	if len(result) == 0 {
+		return nil, nil
 	}
 
 	return result, nil
