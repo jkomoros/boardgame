@@ -422,7 +422,7 @@ func (s *Server) newGameHandler(c *gin.Context) {
 		return
 	}
 
-	variant := s.getRequestVariant(c, manager.Delegate().Variants())
+	variant := s.getRequestVariant(c, manager.Variants())
 
 	if numPlayers == 0 && manager != nil {
 		numPlayers = manager.Delegate().DefaultNumPlayers()
@@ -569,7 +569,7 @@ func (s *Server) doListManager(r *Renderer) {
 		}
 		var variant []interface{}
 
-		variants := manager.Delegate().Variants()
+		variants := manager.Variants()
 
 		sortedKeys := make([]string, len(variants))
 
@@ -584,24 +584,21 @@ func (s *Server) doListManager(r *Renderer) {
 
 		for _, key := range sortedKeys {
 
-			vals := variants[key]
+			info := variants[key]
 
 			part := make(map[string]interface{})
-			part["Name"] = key
-			displayName, description := manager.Delegate().VariantKeyDisplay(key)
-			part["DisplayName"] = displayName
-			part["Description"] = description
+			part["Name"] = info.Name
+			part["DisplayName"] = info.DisplayName
+			part["Description"] = info.Description
 
 			var valueInfo []interface{}
 
-			for _, val := range vals {
+			for _, val := range info.Values {
 				valuePart := make(map[string]interface{})
 
-				displayName, description := manager.Delegate().VariantValueDisplay(key, val)
-
-				valuePart["Value"] = val
-				valuePart["DisplayName"] = displayName
-				valuePart["Description"] = description
+				valuePart["Value"] = val.Name
+				valuePart["DisplayName"] = val.DisplayName
+				valuePart["Description"] = val.Description
 
 				valueInfo = append(valueInfo, valuePart)
 

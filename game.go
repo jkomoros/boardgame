@@ -365,12 +365,11 @@ func (g *Game) starterState(numPlayers int) (State, error) {
 //SetUp initializes a specific game object and gets it ready for the first
 //move to apply. SetUp must be called before ProposeMove can be called. Even
 //if an error is returned, the game should be in a consistent state. If
-//numPlayers is 0, we will use delegate.DefaultNumPlayers(). Variant may be nil
-//(an empty Variant will be passed to your delegate's LegalVariant method).
-//if agentNames is not nil, it should have len(numPlayers). The strings in
-//each index represent the agent to install for that player (empty strings
-//mean a human player).
-func (g *Game) setUp(numPlayers int, variant Variant, agentNames []string) error {
+//numPlayers is 0, we will use delegate.DefaultNumPlayers(). Variant may be
+//nil; the values will be passed to NewVariant if agentNames is not nil, it
+//should have len(numPlayers). The strings in each index represent the agent
+//to install for that player (empty strings mean a human player).
+func (g *Game) setUp(numPlayers int, variantValues map[string]string, agentNames []string) error {
 
 	baseErr := errors.NewFriendly("Game couldn't be set up")
 
@@ -395,13 +394,9 @@ func (g *Game) setUp(numPlayers int, variant Variant, agentNames []string) error
 		return errors.NewFriendly("The number of players, " + strconv.Itoa(numPlayers) + " was not legal.")
 	}
 
-	nonNilVariant := variant
+	variant, err := g.manager.Variants().NewVariant(variantValues)
 
-	if variant == nil {
-		nonNilVariant = Variant{}
-	}
-
-	if err := g.manager.Delegate().LegalVariant(nonNilVariant); err != nil {
+	if err != nil {
 		return errors.NewFriendly("That variation is not legal for this game: " + err.Error())
 	}
 

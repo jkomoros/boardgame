@@ -71,47 +71,50 @@ const (
 	cardSetGeneral = "general"
 )
 
-func (g *gameDelegate) Variants() map[string][]string {
-	return map[string][]string{
-		variantKeyCardSet:  {cardSetAll, cardSetFoods, cardSetAnimals, cardSetGeneral},
-		variantKeyNumCards: {numCardsMedium, numCardsSmall, numCardsLarge},
-	}
-}
+func (g *gameDelegate) Variants() boardgame.VariantConfig {
 
-func (g *gameDelegate) VariantKeyDisplay(key string) (displayName, description string) {
-	switch key {
-	case variantKeyCardSet:
-		return "Card Set", "Which theme of cards to use"
-	case variantKeyNumCards:
-		return "Number of Cards", "How many cards to use? Larger numbers are more difficult."
+	return boardgame.VariantConfig{
+		variantKeyCardSet: {
+			VariantDisplayInfo: boardgame.VariantDisplayInfo{
+				DisplayName: "Card Set",
+				Description: "Which theme of cards to use",
+			},
+			Default: cardSetAll,
+			Values: map[string]*boardgame.VariantDisplayInfo{
+				cardSetAll: {
+					DisplayName: "All Cards",
+					Description: "All cards mixed together",
+				},
+				cardSetFoods: {
+					Description: "Food cards",
+				},
+				cardSetAnimals: {
+					Description: "Animal cards",
+				},
+				cardSetGeneral: {
+					Description: "Random cards with no particular theme",
+				},
+			},
+		},
+		variantKeyNumCards: {
+			VariantDisplayInfo: boardgame.VariantDisplayInfo{
+				DisplayName: "Number of Cards",
+				Description: "How many cards to use? Larger numbers are more difficult.",
+			},
+			Default: numCardsMedium,
+			Values: map[string]*boardgame.VariantDisplayInfo{
+				numCardsMedium: {
+					Description: "A default difficulty game",
+				},
+				numCardsSmall: {
+					Description: "An easy game",
+				},
+				numCardsLarge: {
+					Description: "A challenging game",
+				},
+			},
+		},
 	}
-	return "", ""
-}
-
-func (g *gameDelegate) VariantValueDisplay(key, val string) (displayName, description string) {
-	switch key {
-	case variantKeyCardSet:
-		switch val {
-		case cardSetAll:
-			return "All Cards", "All cards mixed together"
-		case cardSetAnimals:
-			return "Animals", "Animal cards"
-		case cardSetFoods:
-			return "Foods", "Food cards"
-		case cardSetGeneral:
-			return "General", "Random cards with no particular theme"
-		}
-	case variantKeyNumCards:
-		switch val {
-		case numCardsSmall:
-			return "Small", "An easy game"
-		case numCardsMedium:
-			return "Medium", "A default difficulty game"
-		case numCardsLarge:
-			return "Large", "A challenging game"
-		}
-	}
-	return "", ""
 }
 
 func (g *gameDelegate) GameStateConstructor() boardgame.ConfigurableSubState {
@@ -129,10 +132,6 @@ func (g *gameDelegate) BeginSetUp(state boardgame.State, variant boardgame.Varia
 	game, _ := concreteStates(state)
 
 	game.CardSet = variant[variantKeyCardSet]
-
-	if game.CardSet == "" {
-		game.CardSet = cardSetAll
-	}
 
 	switch variant[variantKeyNumCards] {
 	case numCardsSmall:

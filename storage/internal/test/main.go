@@ -209,6 +209,7 @@ func BasicTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	variant := boardgame.Variant{
 		"numcards": "small",
+		"cardset":  "all",
 	}
 
 	memoryGame, err := memoryManager.NewGame(0, variant, nil)

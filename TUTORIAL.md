@@ -1733,9 +1733,11 @@ Note that move progression groups match greedily as much as they can. In some ca
 
 Games can often have different variations. For example, a deck-based card game might be playable with an expansion pack of cards mixed in. 
 
-These are represented in the engine by the notion of a `Variant` which is just a `map[string]string`. When your game is created, a bundle of Variant will be passed to `NewGame`, along with how many players are in the game. That variant is simply passed to your `GameDelegate`'s `BeginSetUp` method, and that's it. It's your game's responsibility to take that information to set properties differently so the game can be configured that way.
+These are represented in the engine by the notion of a `Variant` which is just an alias of `map[string]string`. When your game is created, a bundle of Variant will be passed to `NewGame`, along with how many players are in the game. That variant is simply passed to your `GameDelegate`'s `BeginSetUp` method, and that's it. It's your game's responsibility to take that information to set properties differently so the game can be configured that way. (Although you can later retrieve the variant a game was created with with game.Variant()).
 
-There are a few other extension points for `Variant`. One is `GameDelegate.Variants() map[string][]string`. This is a purely optional method that just enumerates different keys your game understands and valid values for them, like in `memory`:
+If you want to support variants in your game, your delegate should return a VariantConfig from its Variants() method. This config defines what the legal keys and values are, what the defaults are, how those keys and values should be displayed to end users.
+
+Here's memory's:
 
 ```
 const (
@@ -1756,19 +1758,56 @@ const (
 	cardSetGeneral = "general"
 )
 
-func (g *gameDelegate) Variants() map[string][]string {
-	return map[string][]string{
-		variantKeyCardSet:  {cardSetAll, cardSetFoods, cardSetAnimals, cardSetGeneral},
-		variantKeyNumCards: {numCardsMedium, numCardsSmall, numCardsLarge},
+func (g *gameDelegate) Variants() boardgame.VariantConfig {
+
+	return boardgame.VariantConfig{
+		variantKeyCardSet: {
+			VariantDisplayInfo: boardgame.VariantDisplayInfo{
+				DisplayName: "Card Set",
+				Description: "Which theme of cards to use",
+			},
+			Default: cardSetAll,
+			Values: map[string]*boardgame.VariantDisplayInfo{
+				cardSetAll: {
+					DisplayName: "All Cards",
+					Description: "All cards mixed together",
+				},
+				cardSetFoods: {
+					Description: "Food cards",
+				},
+				cardSetAnimals: {
+					Description: "Animal cards",
+				},
+				cardSetGeneral: {
+					Description: "Random cards with no particular theme",
+				},
+			},
+		},
+		variantKeyNumCards: {
+			VariantDisplayInfo: boardgame.VariantDisplayInfo{
+				DisplayName: "Number of Cards",
+				Description: "How many cards to use? Larger numbers are more difficult.",
+			},
+			Default: numCardsMedium,
+			Values: map[string]*boardgame.VariantDisplayInfo{
+				numCardsMedium: {
+					Description: "A default difficulty game",
+				},
+				numCardsSmall: {
+					Description: "An easy game",
+				},
+				numCardsLarge: {
+					Description: "A challenging game",
+				},
+			},
+		},
 	}
 }
 ```
 
-These values are used primarily just so the webapp can create reasonable fields in the UI. 
+If a variant is passed to the game that is a key/value set that is not legal, the game will fail to be created.
 
-Another extension point is `GameDelegate.LegalVariant()`. When a Game is being set up, just after the number of players is checked for legality, the variant configuration object is passed to that method. If it returns an error then `NewGame` will fail. `DefaultGameDelegate` just verifies that all of the keys and values are legal according to the return value of `Variants()`, which is almost always what you want.
-
-There are two other methods on `GameDelegate`,  `VariantKeyDisplay` and `VariantValueDisplay`, which are used to get strings to show to the user in the web app UI.
+As you can see, a number of times DisplayNames can be omitted because they can be set automatically by just title-casing the name. See boardgame.VariantConfig (and other related docs) for more.
 
 ### Agents
 

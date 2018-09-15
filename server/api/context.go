@@ -75,16 +75,16 @@ func (s *Server) getRequestGameVersion(c *gin.Context) int {
 }
 
 //getRequestVariant will get the various config
-func (s *Server) getRequestVariant(c *gin.Context, variants map[string][]string) map[string]string {
+func (s *Server) getRequestVariant(c *gin.Context, variants boardgame.VariantConfig) map[string]string {
 	result := make(map[string]string)
 
-	for key, vals := range variants {
+	for key, info := range variants {
 		if formVal := c.PostForm("variant_" + key); formVal != "" {
 			//We were given a formval. Sanity check it was one of the ones
 			//htat's legal for this game.
 			legal := false
-			for _, val := range vals {
-				if val == formVal {
+			for _, val := range info.Values {
+				if val.Name == formVal {
 					legal = true
 				}
 			}

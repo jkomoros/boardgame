@@ -166,9 +166,18 @@ func (t *testGameDelegate) MaxNumPlayers() int {
 	return 5
 }
 
-func (t *testGameDelegate) Variants() map[string][]string {
-	return map[string][]string{
-		"color": {"blue", "red"},
+func (t *testGameDelegate) Variants() VariantConfig {
+
+	return VariantConfig{
+		"color": {
+			Values: map[string]*VariantDisplayInfo{
+				"blue": nil,
+				"red": {
+					DisplayName: "Red",
+					Description: "The color red",
+				},
+			},
+		},
 	}
 }
 

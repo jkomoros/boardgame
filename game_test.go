@@ -219,7 +219,7 @@ func TestGameSetUp(t *testing.T) {
 	//TODO: we no longer test that SetUp calls the Component distribution logic.
 
 	//Blue is a legal color according to our delegate's Configs()
-	if err := game.setUp(0, Variant{"color": "blue"}, nil); err != nil {
+	if err := game.setUp(0, map[string]string{"color": "blue"}, nil); err != nil {
 		t.Error("Calling SetUp on a previously errored game did not succeed", err)
 	}
 

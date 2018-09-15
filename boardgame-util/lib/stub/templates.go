@@ -314,9 +314,6 @@ func (g *gameDelegate) BeginSetUp(state boardgame.State, variant boardgame.Varia
 	//This is the only time that config is passed in, so we need to interpret
 	//it now and set it as a property in GameState.
 	targetCardsLeftVal := variant[variantKeyTargetCardsLeft]
-	if targetCardsLeftVal == "" {
-		targetCardsLeftVal = variantTargetCardsLeftDefault
-	}
 
 	var targetCardsLeft int
 
@@ -325,7 +322,9 @@ func (g *gameDelegate) BeginSetUp(state boardgame.State, variant boardgame.Varia
 		targetCardsLeft = 2
 	case variantTargetCardsLeftDefault:
 		targetCardsLeft = 0
-	default: 
+	default:
+		//This shouldn't happen because NewGame checks that given configs are
+		//legal before passing to this method.
 		return errors.New("Unknown value for " + variantKeyTargetCardsLeft + ": " + targetCardsLeftVal)
 	}
 
@@ -377,7 +376,7 @@ func (g *gameDelegate) MaxNumPlayers() int {
 
 //values for the variant setup
 const (
-	variantKeyTargetCardsLeft = "targetcardsleft"
+	variantKeyTargetCardsLeft = "target_cards_left"
 )
 
 const (
@@ -385,37 +384,28 @@ const (
 	variantTargetCardsLeftShort = "short"
 )
 
-func (g *gameDelegate) Variants() map[string][]string{
+func (g *gameDelegate) Variants() boardgame.VariantConfig {
 
 	//variants are the legal configuration options that will be show in the
-	//new game dialog. Display names and description are returned in
-	//VariantKeyDisplay and VariantValueDisplay.
+	//new game dialog.
 
-	return map[string][]string{
-		variantKeyTargetCardsLeft: []string{
-			variantTargetCardsLeftDefault,
-			variantTargetCardsLeftShort,
+	return boardgame.VariantConfig{
+		variantKeyTargetCardsLeft: {
+			VariantDisplayInfo: boardgame.VariantDisplayInfo{
+				//Can skip DisplayName because that will be set automatically correctly
+				Description: "Whether or not the target cards left is the default",
+			},
+			Default: variantTargetCardsLeftDefault,
+			Values: map[string]*boardgame.VariantDisplayInfo{
+				variantTargetCardsLeftShort: {
+					Description:  "A short game that ends when 2 cards are left",
+				},
+				variantTargetCardsLeftDefault: {
+					Description: "A normal-length game that ends when no cards are left",
+				},
+			},
 		},
 	}
-}
-
-func (g *gameDelegate) VariantKeyDisplay(key string) (displayName, description string) {
-	if key == variantKeyTargetCardsLeft {
-		return "Target Cards Left", "Whether or not the target cards left is the default"
-	}
-	return "", ""
-}
-
-func (g *gameDelegate) VariantValueDisplay(key, val string) (displayName, description string) {
-	if key == variantKeyTargetCardsLeft {
-		switch val {
-		case variantTargetCardsLeftShort:
-			return "Short", "A short game that ends when 2 cards are left"
-		default:
-			return "Default", "A normal-length game that ends when no cards are left"
-		}
-	}
-	return "", ""
 }
 
 {{end}}

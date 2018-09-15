@@ -37,6 +37,7 @@ type GameManager struct {
 	timers                    *timerManager
 	initialized               bool
 	logger                    *logrus.Logger
+	variantConfig             VariantConfig
 }
 
 //NewGameManager creates a new game manager with the given delegate. It will
@@ -66,6 +67,15 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 		return nil, errors.New("No Storage provided")
 	}
 
+	variantConfig := delegate.Variants()
+
+	//Esnure it's initalized
+	variantConfig.Initalize()
+
+	if err := variantConfig.Valid(); err != nil {
+		return nil, errors.New("The provided Variants config was not valid: " + err.Error())
+	}
+
 	chest := newComponentChest(delegate.ConfigureEnums())
 
 	for name, deck := range delegate.ConfigureDecks() {
@@ -83,11 +93,12 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 	chest.Finish()
 
 	result := &GameManager{
-		delegate:    delegate,
-		chest:       chest,
-		storage:     storage,
-		logger:      logrus.New(),
-		movesByName: make(map[string]*moveType),
+		delegate:      delegate,
+		chest:         chest,
+		storage:       storage,
+		logger:        logrus.New(),
+		movesByName:   make(map[string]*moveType),
+		variantConfig: variantConfig,
 	}
 
 	chest.manager = result
@@ -153,6 +164,13 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 	result.initialized = true
 
 	return result, nil
+}
+
+//Variants returns the VariantConfig for this game type. A simple wrapper
+//around gameDelegate.Variants() that calls Initialize() on that result and
+//also memoizes it for performance.
+func (g *GameManager) Variants() VariantConfig {
+	return g.variantConfig
 }
 
 func (g *GameManager) installMoves(configs []MoveConfig) error {
@@ -321,19 +339,20 @@ func (g *GameManager) NewDefaultGame() (*Game, error) {
 
 //NewGame returns a new game that is set up with these options, persisted to
 //the datastore, starter state created, first round of fix up moves applied,
-//and in general ready for the first move to be proposed.
-func (g *GameManager) NewGame(numPlayers int, variant Variant, agentNames []string) (*Game, error) {
-	return g.createGame("", "", numPlayers, variant, agentNames)
+//and in general ready for the first move to be proposed. The variant will be
+//passed to delegate.Variant().NewVariant().
+func (g *GameManager) NewGame(numPlayers int, variantValues map[string]string, agentNames []string) (*Game, error) {
+	return g.createGame("", "", numPlayers, variantValues, agentNames)
 }
 
-func (g *GameManager) createGame(id, secretSalt string, numPlayers int, variant Variant, agentNames []string) (*Game, error) {
+func (g *GameManager) createGame(id, secretSalt string, numPlayers int, variantValues map[string]string, agentNames []string) (*Game, error) {
 	result, err := g.newGameImpl(id, secretSalt)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if err := result.setUp(numPlayers, variant, agentNames); err != nil {
+	if err := result.setUp(numPlayers, variantValues, agentNames); err != nil {
 		return nil, err
 	}
 
