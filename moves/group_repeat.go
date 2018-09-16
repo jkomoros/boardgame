@@ -1,4 +1,4 @@
-package groups
+package moves
 
 import (
 	"github.com/jkomoros/boardgame"
@@ -8,7 +8,7 @@ import (
 
 //Optional returns a MoveProgressionGroup that matches the provided group
 //either 0 or 1 times. Equivalent to Repeat() with a count of Between(0, 1).
-func Optional(group interfaces.MoveProgressionGroup) interfaces.MoveProgressionGroup {
+func Optional(group MoveProgressionGroup) MoveProgressionGroup {
 	return Repeat(count.Between(0, 1), group)
 }
 
@@ -20,7 +20,7 @@ func Optional(group interfaces.MoveProgressionGroup) interfaces.MoveProgressionG
 //range. All ValidCounters in the count package satisfy this. It is
 //conceptually equivalent to duplicating a given group within a parent
 //groups.Serial count times.
-func Repeat(count interfaces.ValidCounter, group interfaces.MoveProgressionGroup) interfaces.MoveProgressionGroup {
+func Repeat(count interfaces.ValidCounter, group MoveProgressionGroup) MoveProgressionGroup {
 	return repeat{
 		count,
 		group,
@@ -29,14 +29,14 @@ func Repeat(count interfaces.ValidCounter, group interfaces.MoveProgressionGroup
 
 type repeat struct {
 	Count interfaces.ValidCounter
-	Child interfaces.MoveProgressionGroup
+	Child MoveProgressionGroup
 }
 
 func (r repeat) MoveConfigs() []boardgame.MoveConfig {
 	return r.Child.MoveConfigs()
 }
 
-func (r repeat) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interfaces.MoveGroupHistoryItem) {
+func (r repeat) Satisfied(tape *MoveGroupHistoryItem) (error, *MoveGroupHistoryItem) {
 
 	tapeHead := tape
 

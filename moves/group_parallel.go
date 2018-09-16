@@ -1,4 +1,4 @@
-package groups
+package moves
 
 import (
 	"errors"
@@ -24,7 +24,7 @@ could match at the given point in the tape, it chooses the match that consumes
 the most tape.
 
 */
-func Parallel(children ...interfaces.MoveProgressionGroup) interfaces.MoveProgressionGroup {
+func Parallel(children ...MoveProgressionGroup) MoveProgressionGroup {
 	return ParallelCount(count.All(), children...)
 }
 
@@ -34,7 +34,7 @@ type matchInfo struct {
 	//The index within the containing group of the group that mached
 	index int
 	//The tape head result, if we choose to use this one
-	tapeHead *interfaces.MoveGroupHistoryItem
+	tapeHead *MoveGroupHistoryItem
 	//The length of the match from tapehead to this new tapeHead; longer
 	//matches are better.
 	length int
@@ -42,7 +42,7 @@ type matchInfo struct {
 
 //tapeLength returns the length between from and to, if they're in the same
 //tape. If to cannot be reached from from, math.MaxInt64 is returned.
-func tapeLength(from, to *interfaces.MoveGroupHistoryItem) int {
+func tapeLength(from, to *MoveGroupHistoryItem) int {
 
 	count := 0
 
@@ -64,7 +64,7 @@ func tapeLength(from, to *interfaces.MoveGroupHistoryItem) int {
 //of children to match before being satisfied is given by Count. The length
 //argument to Count will be the number of Groups who are children. See
 //moves/count package for many options for this.
-func ParallelCount(count interfaces.ValidCounter, children ...interfaces.MoveProgressionGroup) interfaces.MoveProgressionGroup {
+func ParallelCount(count interfaces.ValidCounter, children ...MoveProgressionGroup) MoveProgressionGroup {
 	return &parallelCount{
 		children,
 		count,
@@ -72,7 +72,7 @@ func ParallelCount(count interfaces.ValidCounter, children ...interfaces.MovePro
 }
 
 type parallelCount struct {
-	Children []interfaces.MoveProgressionGroup
+	Children []MoveProgressionGroup
 	Count    interfaces.ValidCounter
 }
 
@@ -84,7 +84,7 @@ func (p parallelCount) MoveConfigs() []boardgame.MoveConfig {
 	return result
 }
 
-func (p parallelCount) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interfaces.MoveGroupHistoryItem) {
+func (p parallelCount) Satisfied(tape *MoveGroupHistoryItem) (error, *MoveGroupHistoryItem) {
 	tapeHead := tape
 
 	//Keep track of items that have matched, by index into self.

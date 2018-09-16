@@ -4,7 +4,6 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/errors"
-	"github.com/jkomoros/boardgame/moves/interfaces"
 	"log"
 	"reflect"
 	"strconv"
@@ -386,9 +385,9 @@ func (d *Base) legalPhases() []int {
 	return ints
 }
 
-func (d *Base) legalMoveProgression() interfaces.MoveProgressionGroup {
+func (d *Base) legalMoveProgression() MoveProgressionGroup {
 	val := d.CustomConfiguration()[configPropLegalMoveProgression]
-	group, ok := val.(interfaces.MoveProgressionGroup)
+	group, ok := val.(MoveProgressionGroup)
 	if !ok {
 		return nil
 	}
@@ -545,12 +544,12 @@ func (d *Base) legalMoveInProgression(state boardgame.ImmutableState, proposer b
 
 }
 
-func makeTape(moveNames []string) *interfaces.MoveGroupHistoryItem {
-	var tapeStart *interfaces.MoveGroupHistoryItem
-	var tapeEnd *interfaces.MoveGroupHistoryItem
+func makeTape(moveNames []string) *MoveGroupHistoryItem {
+	var tapeStart *MoveGroupHistoryItem
+	var tapeEnd *MoveGroupHistoryItem
 
 	for _, moveName := range moveNames {
-		newItem := &interfaces.MoveGroupHistoryItem{
+		newItem := &MoveGroupHistoryItem{
 			MoveName: moveName,
 		}
 		if tapeStart == nil {
@@ -577,7 +576,7 @@ func movesToNames(moves []*boardgame.MoveStorageRecord) []string {
 	return result
 }
 
-func matchTape(group interfaces.MoveProgressionGroup, historicalMoves []string) error {
+func matchTape(group MoveProgressionGroup, historicalMoves []string) error {
 
 	tapeStart := makeTape(historicalMoves)
 

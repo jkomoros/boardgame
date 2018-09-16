@@ -13,7 +13,7 @@ import (
 //in any of the objects in the moves/groups package.
 type GroupableMoveConfig interface {
 	boardgame.MoveConfig
-	interfaces.MoveProgressionGroup
+	MoveProgressionGroup
 }
 
 //NewGroupableMoveConfig takes a generic boardgame.MoveConfig and makes it
@@ -40,7 +40,7 @@ func (d *defaultMoveConfig) MoveConfigs() []boardgame.MoveConfig {
 	return []boardgame.MoveConfig{d.MoveConfig}
 }
 
-func (d *defaultMoveConfig) Satisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interfaces.MoveGroupHistoryItem) {
+func (d *defaultMoveConfig) Satisfied(tape *MoveGroupHistoryItem) (error, *MoveGroupHistoryItem) {
 
 	if tape == nil {
 		return nil, nil
@@ -61,7 +61,7 @@ func (d *defaultMoveConfig) Satisfied(tape *interfaces.MoveGroupHistoryItem) (er
 	return d.singleItemSatisified(tape)
 }
 
-func (d *defaultMoveConfig) singleItemSatisified(tape *interfaces.MoveGroupHistoryItem) (error, *interfaces.MoveGroupHistoryItem) {
+func (d *defaultMoveConfig) singleItemSatisified(tape *MoveGroupHistoryItem) (error, *MoveGroupHistoryItem) {
 	//If there's one, and the next item either doesn't exist or has a different name, OK.
 
 	if tape.MoveName != d.Name() {
@@ -72,7 +72,7 @@ func (d *defaultMoveConfig) singleItemSatisified(tape *interfaces.MoveGroupHisto
 
 }
 
-func (d *defaultMoveConfig) multipleItemSatisfied(tape *interfaces.MoveGroupHistoryItem) (error, *interfaces.MoveGroupHistoryItem) {
+func (d *defaultMoveConfig) multipleItemSatisfied(tape *MoveGroupHistoryItem) (error, *MoveGroupHistoryItem) {
 	//Must have at least one; consume as many as you can
 
 	if tape.MoveName != d.Name() {

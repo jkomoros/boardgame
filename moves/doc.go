@@ -305,5 +305,50 @@ ShuffleStack
 Shuffle stack is a simple move that just shuffles the stack denoted by
 SourceStack.
 
+Groups
+
+Groups allow you to specify a specific set of moves that must occur in a given
+order. You pass them to AddOrderedForPhase. All of the groups are of type
+MoveProgressionGroup, and this package defines 5: Serial, Parallel,
+ParallelCount, Repeat, and Optional. They can be nested as often as you'd
+like to express the semantics of your move progression.
+
+They are defined as functions that return anonymous underlying structs so
+that when used in configuration you can avoid needing to wrap your
+children list with []interfaces.MoveProgressionGroup, saving you typing.
+
+	//Example
+
+	//AddOrderedForPhase accepts move configs from auto.Config, or
+	//groups.
+	moves.AddOrderedForPhase(PhaseNormal,
+		//Top level groups are all joined implicitly into a group.Serial.
+		auto.MustConfig(new(MoveZero)),
+		moves.Serial(
+			auto.MustConfig(new(MoveOne)),
+			moves.Optional(
+				moves.Serial(
+					auto.MustConfig(new(MoveTwo)),
+					auto.MustConfig(new(MoveThree)),
+				),
+			),
+			moves.ParallelCount(
+				count.Any(),
+				auto.MustConfig(new(MoveFour)),
+				auto.MustConfig(new(MoveFive)),
+				moves.Repeat(
+					count.AtMost(2),
+					moves.Serial(
+						auto.MustConfig(new(MoveSix)),
+						auto.MustConfig(new(MoveSeven)),
+					),
+				),
+			),
+		),
+	)
+
+Move names must be unique, but sometimes you want to use the same underlying
+move at multiple points in a progression. WithMoveNameSuffix is useful for
+that case.
 */
 package moves

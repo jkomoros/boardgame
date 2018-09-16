@@ -2,8 +2,6 @@ package moves
 
 import (
 	"github.com/jkomoros/boardgame"
-	gr "github.com/jkomoros/boardgame/moves/groups"
-	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
 //Combine takes a series of lists of moveTypeConfigs and flattens them into a
@@ -59,7 +57,7 @@ func AddForPhase(phase int, moves ...boardgame.MoveConfig) []boardgame.MoveConfi
 //the provided groups will be registered.  If your PhaseEnum is a Tree, then
 //phase must be a leaf enum value, or the moves will fail to pass the
 //ValidConfiguration check.
-func AddOrderedForPhase(phase int, groups ...interfaces.MoveProgressionGroup) []boardgame.MoveConfig {
+func AddOrderedForPhase(phase int, groups ...MoveProgressionGroup) []boardgame.MoveConfig {
 
 	//Technically it's illegal to attach a move progression to a non-leaf
 	//phase enum val, but at this point we don't have a reference to delegate
@@ -70,7 +68,7 @@ func AddOrderedForPhase(phase int, groups ...interfaces.MoveProgressionGroup) []
 	//move tests if it is legal by speculatively adding itself to the
 	//historical tape and seing if the progression still matches. This means
 	//that the same progression can be shared.
-	impliedSerialGroup := gr.Serial(groups...)
+	impliedSerialGroup := Serial(groups...)
 
 	moves := impliedSerialGroup.MoveConfigs()
 

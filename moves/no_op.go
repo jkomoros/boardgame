@@ -13,10 +13,10 @@ greedily, even though the move was in two adjacent groups. A simple example:
 
 	//...
 	moves.AddOrderedForPhase(PhaseNormal,
-		groups.Serial(
+		Serial(
 			auto.MustConfig(new(FixUpAllowsMultiple)),
 		),
-		groups.Serial(
+		Serial(
 			auto.MustConfig(new(FixUpAllowsMultiple)),
 			auto.Mustconfig(new(FixUpAnotherMove)),
 		),
@@ -29,10 +29,10 @@ provides a barrier:
 
 	//...
 	moves.AddOrderedForPhase(PhaseNormal,
-		groups.Serial(
+		Serial(
 			auto.MustConfig(new(FixUpAllowsMultiple)),
 		),
-		groups.Serial(
+		Serial(
 			auto.MustConfig(new(moves.NoOp)),
 			auto.MustConfig(new(FixUpAllowsMultiple)),
 			auto.Mustconfig(new(FixUpAnotherMove)),

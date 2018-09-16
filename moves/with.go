@@ -3,7 +3,6 @@ package moves
 import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
-	"github.com/jkomoros/boardgame/moves/interfaces"
 )
 
 const fullyQualifiedPackageName = "github.com/jkomoros/boardgame/moves."
@@ -37,7 +36,6 @@ type CustomConfigurationOption func(boardgame.PropertyCollection)
 //related to the legalType for that type of component. However, if you only
 //have one DefaultComponent move for that type of component, it's fine to just
 //skip this to use 0 instead.
-//TODO: chain doc for all of these to match new names nocommit
 func WithLegalType(legalType int) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropLegalType] = legalType
@@ -102,7 +100,7 @@ func WithLegalPhases(legalPhases ...int) CustomConfigurationOption {
 //move type to determine if the move is legal in the order it's being applied.
 //Typically you don't use this directly, and instead use moves.AddOrderedForPhase to
 //use this implicitly.
-func WithLegalMoveProgression(group interfaces.MoveProgressionGroup) CustomConfigurationOption {
+func WithLegalMoveProgression(group MoveProgressionGroup) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropLegalMoveProgression] = group
 	}

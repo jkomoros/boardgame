@@ -3,8 +3,6 @@ package moves
 import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves/count"
-	"github.com/jkomoros/boardgame/moves/groups"
-	"github.com/jkomoros/boardgame/moves/interfaces"
 	"github.com/workfit/tester/assert"
 	"strconv"
 	"testing"
@@ -55,8 +53,8 @@ func TestMoveProgression(t *testing.T) {
 		configs = append(configs, newMoveConfig(name, new(moveNoOpFixUpMulti), nil))
 	}
 
-	singleMoveConfigs := make([]interfaces.MoveProgressionGroup, len(singleMoveNames))
-	multiMoveConfigs := make([]interfaces.MoveProgressionGroup, len(multiMoveNames))
+	singleMoveConfigs := make([]MoveProgressionGroup, len(singleMoveNames))
+	multiMoveConfigs := make([]MoveProgressionGroup, len(multiMoveNames))
 
 	for i := range singleMoveNames {
 		singleMoveConfigs[i] = configs[i]
@@ -70,7 +68,7 @@ func TestMoveProgression(t *testing.T) {
 	tests := []struct {
 		description    string
 		tape           []string
-		pattern        []interfaces.MoveProgressionGroup
+		pattern        []MoveProgressionGroup
 		expectedResult bool
 	}{
 		{
@@ -78,7 +76,7 @@ func TestMoveProgression(t *testing.T) {
 			[]string{
 				singleMoveNames[0],
 			},
-			[]interfaces.MoveProgressionGroup{
+			[]MoveProgressionGroup{
 				singleMoveConfigs[0],
 				singleMoveConfigs[1],
 				singleMoveConfigs[2],
@@ -90,7 +88,7 @@ func TestMoveProgression(t *testing.T) {
 			[]string{
 				singleMoveNames[1],
 			},
-			[]interfaces.MoveProgressionGroup{
+			[]MoveProgressionGroup{
 				singleMoveConfigs[0],
 				singleMoveConfigs[1],
 				singleMoveConfigs[2],
@@ -104,7 +102,7 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[0],
 				singleMoveNames[0],
 			},
-			[]interfaces.MoveProgressionGroup{
+			[]MoveProgressionGroup{
 				singleMoveConfigs[0],
 				singleMoveConfigs[1],
 				singleMoveConfigs[2],
@@ -118,7 +116,7 @@ func TestMoveProgression(t *testing.T) {
 				multiMoveNames[0],
 				multiMoveNames[0],
 			},
-			[]interfaces.MoveProgressionGroup{
+			[]MoveProgressionGroup{
 				multiMoveConfigs[0],
 				singleMoveConfigs[1],
 				singleMoveConfigs[2],
@@ -132,7 +130,7 @@ func TestMoveProgression(t *testing.T) {
 				multiMoveNames[0],
 				multiMoveNames[1],
 			},
-			[]interfaces.MoveProgressionGroup{
+			[]MoveProgressionGroup{
 				multiMoveConfigs[0],
 				multiMoveConfigs[1],
 				singleMoveConfigs[2],
@@ -146,7 +144,7 @@ func TestMoveProgression(t *testing.T) {
 				multiMoveNames[0],
 				multiMoveNames[2],
 			},
-			[]interfaces.MoveProgressionGroup{
+			[]MoveProgressionGroup{
 				multiMoveConfigs[0],
 				multiMoveConfigs[1],
 				singleMoveConfigs[2],
@@ -161,7 +159,7 @@ func TestMoveProgression(t *testing.T) {
 				multiMoveNames[1],
 				multiMoveNames[0],
 			},
-			[]interfaces.MoveProgressionGroup{
+			[]MoveProgressionGroup{
 				multiMoveConfigs[0],
 				multiMoveConfigs[1],
 				multiMoveConfigs[0],
@@ -177,7 +175,7 @@ func TestMoveProgression(t *testing.T) {
 				multiMoveNames[1],
 				multiMoveNames[1],
 			},
-			[]interfaces.MoveProgressionGroup{
+			[]MoveProgressionGroup{
 				multiMoveConfigs[0],
 				multiMoveConfigs[1],
 				multiMoveConfigs[0],
@@ -193,7 +191,7 @@ func TestMoveProgression(t *testing.T) {
 				multiMoveNames[1],
 				multiMoveNames[2],
 			},
-			[]interfaces.MoveProgressionGroup{
+			[]MoveProgressionGroup{
 				multiMoveConfigs[0],
 				multiMoveConfigs[1],
 				multiMoveConfigs[0],
@@ -210,13 +208,13 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[2],
 				singleMoveNames[1],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Serial(
+			[]MoveProgressionGroup{
+				Serial(
 					multiMoveConfigs[0],
 					singleMoveConfigs[1],
 				),
 				singleMoveConfigs[2],
-				groups.Serial(
+				Serial(
 					singleMoveConfigs[1],
 					singleMoveConfigs[2],
 				),
@@ -232,13 +230,13 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[2],
 				singleMoveNames[2],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Serial(
+			[]MoveProgressionGroup{
+				Serial(
 					multiMoveConfigs[0],
 					singleMoveConfigs[1],
 				),
 				singleMoveConfigs[2],
-				groups.Serial(
+				Serial(
 					singleMoveConfigs[1],
 					singleMoveConfigs[2],
 				),
@@ -252,8 +250,8 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[1],
 				singleMoveNames[2],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Parallel(
+			[]MoveProgressionGroup{
+				Parallel(
 					singleMoveConfigs[0],
 					singleMoveConfigs[1],
 					singleMoveConfigs[2],
@@ -266,8 +264,8 @@ func TestMoveProgression(t *testing.T) {
 			[]string{
 				singleMoveNames[0],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Parallel(
+			[]MoveProgressionGroup{
+				Parallel(
 					singleMoveConfigs[0],
 					singleMoveConfigs[1],
 					singleMoveConfigs[2],
@@ -282,8 +280,8 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[2],
 				singleMoveNames[0],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Parallel(
+			[]MoveProgressionGroup{
+				Parallel(
 					singleMoveConfigs[0],
 					singleMoveConfigs[1],
 					singleMoveConfigs[2],
@@ -299,8 +297,8 @@ func TestMoveProgression(t *testing.T) {
 				multiMoveNames[2],
 				multiMoveNames[0],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Parallel(
+			[]MoveProgressionGroup{
+				Parallel(
 					multiMoveConfigs[0],
 					multiMoveConfigs[1],
 					multiMoveConfigs[2],
@@ -317,8 +315,8 @@ func TestMoveProgression(t *testing.T) {
 				multiMoveNames[0],
 				multiMoveNames[2],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Parallel(
+			[]MoveProgressionGroup{
+				Parallel(
 					multiMoveConfigs[0],
 					multiMoveConfigs[1],
 					multiMoveConfigs[2],
@@ -334,13 +332,13 @@ func TestMoveProgression(t *testing.T) {
 				multiMoveNames[0],
 				multiMoveNames[2],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Parallel(
+			[]MoveProgressionGroup{
+				Parallel(
 					multiMoveConfigs[0],
 					multiMoveConfigs[1],
 					multiMoveConfigs[2],
 				),
-				groups.Parallel(
+				Parallel(
 					multiMoveConfigs[0],
 					multiMoveConfigs[1],
 					multiMoveConfigs[2],
@@ -357,13 +355,13 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[0],
 				singleMoveNames[2],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Parallel(
+			[]MoveProgressionGroup{
+				Parallel(
 					singleMoveConfigs[0],
 					singleMoveConfigs[1],
 					singleMoveConfigs[2],
 				),
-				groups.Parallel(
+				Parallel(
 					singleMoveConfigs[0],
 					singleMoveConfigs[1],
 					singleMoveConfigs[2],
@@ -379,13 +377,13 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[0],
 				singleMoveNames[2],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Parallel(
+			[]MoveProgressionGroup{
+				Parallel(
 					singleMoveConfigs[0],
 					singleMoveConfigs[1],
 					singleMoveConfigs[2],
 				),
-				groups.Serial(
+				Serial(
 					singleMoveConfigs[2],
 					singleMoveConfigs[1],
 				),
@@ -400,10 +398,10 @@ func TestMoveProgression(t *testing.T) {
 				multiMoveNames[2],
 				multiMoveNames[0],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Parallel(
+			[]MoveProgressionGroup{
+				Parallel(
 					multiMoveConfigs[0],
-					groups.Serial(
+					Serial(
 						multiMoveConfigs[1],
 						multiMoveConfigs[2],
 					),
@@ -419,10 +417,10 @@ func TestMoveProgression(t *testing.T) {
 				multiMoveNames[2],
 				multiMoveNames[1],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Parallel(
+			[]MoveProgressionGroup{
+				Parallel(
 					multiMoveConfigs[2],
-					groups.Serial(
+					Serial(
 						multiMoveConfigs[2],
 						multiMoveConfigs[1],
 					),
@@ -436,8 +434,8 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[1],
 				singleMoveNames[2],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.ParallelCount(
+			[]MoveProgressionGroup{
+				ParallelCount(
 					count.Any(),
 					singleMoveConfigs[0],
 					singleMoveConfigs[1],
@@ -453,8 +451,8 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[0],
 				singleMoveNames[2],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.ParallelCount(
+			[]MoveProgressionGroup{
+				ParallelCount(
 					count.Any(),
 					singleMoveConfigs[0],
 					singleMoveConfigs[1],
@@ -469,10 +467,10 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[0],
 				singleMoveNames[1],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Repeat(
+			[]MoveProgressionGroup{
+				Repeat(
 					count.Exactly(1),
-					groups.Serial(
+					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
 					),
@@ -487,10 +485,10 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[1],
 				singleMoveNames[0],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Repeat(
+			[]MoveProgressionGroup{
+				Repeat(
 					count.Exactly(1),
-					groups.Serial(
+					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
 					),
@@ -505,10 +503,10 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[1],
 				singleMoveNames[0],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Repeat(
+			[]MoveProgressionGroup{
+				Repeat(
 					count.Exactly(2),
-					groups.Serial(
+					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
 					),
@@ -523,10 +521,10 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[1],
 				singleMoveNames[0],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Repeat(
+			[]MoveProgressionGroup{
+				Repeat(
 					count.AtMost(2),
-					groups.Serial(
+					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
 					),
@@ -541,10 +539,10 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[1],
 				singleMoveNames[0],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Repeat(
+			[]MoveProgressionGroup{
+				Repeat(
 					count.Between(1, 2),
-					groups.Serial(
+					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
 					),
@@ -560,10 +558,10 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[0],
 				singleMoveNames[1],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Repeat(
+			[]MoveProgressionGroup{
+				Repeat(
 					count.Between(1, 2),
-					groups.Serial(
+					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
 					),
@@ -580,10 +578,10 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[1],
 				singleMoveNames[0],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Repeat(
+			[]MoveProgressionGroup{
+				Repeat(
 					count.Between(1, 2),
-					groups.Serial(
+					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
 					),
@@ -599,10 +597,10 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[0],
 				singleMoveNames[1],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Repeat(
+			[]MoveProgressionGroup{
+				Repeat(
 					count.Between(1, 1),
-					groups.Serial(
+					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
 					),
@@ -618,10 +616,10 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[0],
 				singleMoveNames[1],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Repeat(
+			[]MoveProgressionGroup{
+				Repeat(
 					count.AtMost(1),
-					groups.Serial(
+					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
 					),
@@ -635,10 +633,10 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[0],
 				singleMoveNames[1],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Repeat(
+			[]MoveProgressionGroup{
+				Repeat(
 					count.AtMost(1),
-					groups.Serial(
+					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
 					),
@@ -653,10 +651,10 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[1],
 				singleMoveNames[2],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Repeat(
+			[]MoveProgressionGroup{
+				Repeat(
 					count.AtMost(2),
-					groups.Serial(
+					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
 					),
@@ -674,10 +672,10 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[1],
 				singleMoveNames[2],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Repeat(
+			[]MoveProgressionGroup{
+				Repeat(
 					count.AtMost(2),
-					groups.Serial(
+					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
 					),
@@ -697,10 +695,10 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[1],
 				singleMoveNames[2],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Repeat(
+			[]MoveProgressionGroup{
+				Repeat(
 					count.AtMost(2),
-					groups.Serial(
+					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
 					),
@@ -718,10 +716,10 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[1],
 				singleMoveNames[2],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Repeat(
+			[]MoveProgressionGroup{
+				Repeat(
 					count.AtLeast(2),
-					groups.Serial(
+					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
 					),
@@ -738,10 +736,10 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[0],
 				singleMoveNames[2],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Repeat(
+			[]MoveProgressionGroup{
+				Repeat(
 					count.AtLeast(2),
-					groups.Serial(
+					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
 					),
@@ -757,10 +755,10 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[1],
 				singleMoveNames[2],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Repeat(
+			[]MoveProgressionGroup{
+				Repeat(
 					count.AtLeast(2),
-					groups.Serial(
+					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
 					),
@@ -780,10 +778,10 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[1],
 				singleMoveNames[2],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Repeat(
+			[]MoveProgressionGroup{
+				Repeat(
 					count.AtLeast(2),
-					groups.Serial(
+					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
 					),
@@ -800,10 +798,10 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[1],
 				singleMoveNames[0],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Repeat(
+			[]MoveProgressionGroup{
+				Repeat(
 					count.Exactly(2),
-					groups.Parallel(
+					Parallel(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
 					),
@@ -819,12 +817,12 @@ func TestMoveProgression(t *testing.T) {
 				multiMoveNames[1],
 				multiMoveNames[0],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Serial(
+			[]MoveProgressionGroup{
+				Serial(
 					multiMoveConfigs[0],
 					multiMoveConfigs[1],
 				),
-				groups.Serial(
+				Serial(
 					multiMoveConfigs[1],
 					multiMoveConfigs[0],
 				),
@@ -840,12 +838,12 @@ func TestMoveProgression(t *testing.T) {
 				multiMoveNames[1],
 				multiMoveNames[0],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Serial(
+			[]MoveProgressionGroup{
+				Serial(
 					multiMoveConfigs[0],
 					multiMoveConfigs[1],
 				),
-				groups.Serial(
+				Serial(
 					noNopConfig,
 					multiMoveConfigs[1],
 					multiMoveConfigs[0],
@@ -858,9 +856,9 @@ func TestMoveProgression(t *testing.T) {
 			[]string{
 				singleMoveNames[2],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Optional(
-					groups.Serial(
+			[]MoveProgressionGroup{
+				Optional(
+					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
 					),
@@ -876,9 +874,9 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[1],
 				singleMoveNames[2],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Optional(
-					groups.Serial(
+			[]MoveProgressionGroup{
+				Optional(
+					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
 					),
@@ -893,9 +891,9 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[0],
 				singleMoveNames[2],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Optional(
-					groups.Serial(
+			[]MoveProgressionGroup{
+				Optional(
+					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
 					),
@@ -913,9 +911,9 @@ func TestMoveProgression(t *testing.T) {
 				singleMoveNames[1],
 				singleMoveNames[2],
 			},
-			[]interfaces.MoveProgressionGroup{
-				groups.Optional(
-					groups.Serial(
+			[]MoveProgressionGroup{
+				Optional(
+					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
 					),
@@ -936,7 +934,7 @@ func TestMoveProgression(t *testing.T) {
 
 	for i, test := range tests {
 
-		group := groups.Serial(test.pattern...)
+		group := Serial(test.pattern...)
 
 		err := matchTape(group, test.tape)
 
