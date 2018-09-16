@@ -113,6 +113,8 @@ type VariantDisplayInfo struct {
 	Name string
 }
 
+const whitespaceChars = " \n\t"
+
 //Valid returns an error if there is any misconfiguration in this
 //VariantConfig. In particular, it verifies that the implied name for each key
 //matches its explicit Name property, and the same for values. It also
@@ -130,6 +132,14 @@ func (v VariantConfig) Valid() error {
 			return errors.New("Key " + name + " does not have its name set the same: " + key.Name)
 		}
 
+		if name != strings.ToLower(name) {
+			return errors.New("Key " + name + " has upper-case letters but may only have lower-case.")
+		}
+
+		if strings.IndexAny(name, whitespaceChars) != -1 {
+			return errors.New("Key " + name + " has whitespace chars which is illegal")
+		}
+
 		if len(key.Values) == 0 {
 			return errors.New("Key " + name + " does not define any values.")
 		}
@@ -140,6 +150,13 @@ func (v VariantConfig) Valid() error {
 			}
 			if valName != val.Name {
 				return errors.New("Key " + name + " value " + valName + " does not have its name set the same: " + val.Name)
+			}
+			if valName != strings.ToLower(valName) {
+				return errors.New("Key " + name + " value " + valName + " has upper-case letters but may only have lower-case.")
+			}
+
+			if strings.IndexAny(valName, whitespaceChars) != -1 {
+				return errors.New("Key " + name + " value " + valName + " has whitespace chars which is illegal")
 			}
 		}
 
