@@ -27,13 +27,13 @@ The behavior of Initialize() (and the methods on sub-objects it calls) allows
 you to omit certain configuration and have them automatically set.
 
 
-	func (g *gameDelegate) Variants() VariantConfig {
+	func (g *gameDelegate) Variants() boardgame.VariantConfig {
 
 		//As long as you access this via gameManager.Variants() instead of
 		//directly from the delegate, Initialize will have already been called
 		//for us.
 
-		return VariantConfig{
+		return boardgame.VariantConfig{
 			"color": {
 
 				//You can skip setting the VariantDiplayInfo.Name,
@@ -42,7 +42,7 @@ you to omit certain configuration and have them automatically set.
 				//entry in the map, and then the displayname will be set to a
 				//reasonable title-casing.
 
-				Values: map[string]*VariantDisplayInfo{
+				Values: map[string]*boardgame.VariantDisplayInfo{
 					"red": {
 						//Name can be omitted because Initialize() will
 						//automatically set it bassed on this value's name in
@@ -63,6 +63,24 @@ you to omit certain configuration and have them automatically set.
 				//will always have the "color" key to either the value
 				//provided, or "blue".
 				Default: "blue",
+			},
+			"hand-size": {
+				VariantDisplayInfo: boardgame.VariantDisplayInfo{
+					//DisplayName will be "Hand Size" automatically
+					Description: "How big of a hand players get on initial deal",
+				},
+				Default: "normal",
+				Values: map[string]*boardgame.VariantDisplayInfo{
+					"small": {
+						Description: "A small hand",
+					},
+					"normal": {
+						Description: "A normal-sized hand",
+					},
+					"large": {
+						Description: "A large hand",
+					},
+				},
 			},
 		}
 
