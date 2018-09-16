@@ -184,7 +184,11 @@ import (
 Call the code generation for readers and enums here, so "go generate" will generate code correctly.
 
 */
-//go:generate boardgame-util codegen
+//go` +
+
+	//Split this here so that running go gen with the whole module won't generate code here
+
+	`:generate boardgame-util codegen
 
 type gameDelegate struct {
 	boardgame.DefaultGameDelegate
