@@ -3,8 +3,6 @@ package moves
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/moves/count"
-	"github.com/jkomoros/boardgame/moves/interfaces"
 	"math"
 	"sort"
 )
@@ -14,7 +12,7 @@ Parallel is a type of move group that requires all sub-groups to be present,
 but in any order. It is one of the most basic types of groups. If you want
 parallel semantics but don't want to require matching all groups, see
 ParallelCount. The base Parallel is equivalent to ParallelCount with a Count
-of count.All().
+of CountAll().
 
 Its Satisfied goes through each item in turn, seeing if any of them that have
 not yet been applied can consume items off of the front of the tape without
@@ -25,7 +23,7 @@ the most tape.
 
 */
 func Parallel(children ...MoveProgressionGroup) MoveProgressionGroup {
-	return ParallelCount(count.All(), children...)
+	return ParallelCount(CountAll(), children...)
 }
 
 //matchInfo reflects a match that was found while doing a run through of
@@ -63,8 +61,8 @@ func tapeLength(from, to *MoveGroupHistoryItem) int {
 //ParallelCount is a version of Parallel, but where the target count of number
 //of children to match before being satisfied is given by Count. The length
 //argument to Count will be the number of Groups who are children. See
-//moves/count package for many options for this.
-func ParallelCount(count interfaces.ValidCounter, children ...MoveProgressionGroup) MoveProgressionGroup {
+//ValidCounter in this package for multiple counters you can pass.
+func ParallelCount(count ValidCounter, children ...MoveProgressionGroup) MoveProgressionGroup {
 	return &parallelCount{
 		children,
 		count,
@@ -73,7 +71,7 @@ func ParallelCount(count interfaces.ValidCounter, children ...MoveProgressionGro
 
 type parallelCount struct {
 	Children []MoveProgressionGroup
-	Count    interfaces.ValidCounter
+	Count    ValidCounter
 }
 
 func (p parallelCount) MoveConfigs() []boardgame.MoveConfig {

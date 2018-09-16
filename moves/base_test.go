@@ -2,7 +2,6 @@ package moves
 
 import (
 	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/moves/count"
 	"github.com/workfit/tester/assert"
 	"strconv"
 	"testing"
@@ -436,7 +435,7 @@ func TestMoveProgression(t *testing.T) {
 			},
 			[]MoveProgressionGroup{
 				ParallelCount(
-					count.Any(),
+					CountAny(),
 					singleMoveConfigs[0],
 					singleMoveConfigs[1],
 				),
@@ -453,7 +452,7 @@ func TestMoveProgression(t *testing.T) {
 			},
 			[]MoveProgressionGroup{
 				ParallelCount(
-					count.Any(),
+					CountAny(),
 					singleMoveConfigs[0],
 					singleMoveConfigs[1],
 				),
@@ -469,7 +468,7 @@ func TestMoveProgression(t *testing.T) {
 			},
 			[]MoveProgressionGroup{
 				Repeat(
-					count.Exactly(1),
+					CountExactly(1),
 					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
@@ -487,7 +486,7 @@ func TestMoveProgression(t *testing.T) {
 			},
 			[]MoveProgressionGroup{
 				Repeat(
-					count.Exactly(1),
+					CountExactly(1),
 					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
@@ -505,7 +504,7 @@ func TestMoveProgression(t *testing.T) {
 			},
 			[]MoveProgressionGroup{
 				Repeat(
-					count.Exactly(2),
+					CountExactly(2),
 					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
@@ -523,7 +522,7 @@ func TestMoveProgression(t *testing.T) {
 			},
 			[]MoveProgressionGroup{
 				Repeat(
-					count.AtMost(2),
+					CountAtMost(2),
 					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
@@ -541,7 +540,7 @@ func TestMoveProgression(t *testing.T) {
 			},
 			[]MoveProgressionGroup{
 				Repeat(
-					count.Between(1, 2),
+					CountBetween(1, 2),
 					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
@@ -560,7 +559,7 @@ func TestMoveProgression(t *testing.T) {
 			},
 			[]MoveProgressionGroup{
 				Repeat(
-					count.Between(1, 2),
+					CountBetween(1, 2),
 					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
@@ -580,7 +579,7 @@ func TestMoveProgression(t *testing.T) {
 			},
 			[]MoveProgressionGroup{
 				Repeat(
-					count.Between(1, 2),
+					CountBetween(1, 2),
 					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
@@ -599,7 +598,7 @@ func TestMoveProgression(t *testing.T) {
 			},
 			[]MoveProgressionGroup{
 				Repeat(
-					count.Between(1, 1),
+					CountBetween(1, 1),
 					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
@@ -618,7 +617,7 @@ func TestMoveProgression(t *testing.T) {
 			},
 			[]MoveProgressionGroup{
 				Repeat(
-					count.AtMost(1),
+					CountAtMost(1),
 					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
@@ -635,7 +634,7 @@ func TestMoveProgression(t *testing.T) {
 			},
 			[]MoveProgressionGroup{
 				Repeat(
-					count.AtMost(1),
+					CountAtMost(1),
 					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
@@ -653,7 +652,7 @@ func TestMoveProgression(t *testing.T) {
 			},
 			[]MoveProgressionGroup{
 				Repeat(
-					count.AtMost(2),
+					CountAtMost(2),
 					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
@@ -674,7 +673,7 @@ func TestMoveProgression(t *testing.T) {
 			},
 			[]MoveProgressionGroup{
 				Repeat(
-					count.AtMost(2),
+					CountAtMost(2),
 					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
@@ -697,7 +696,7 @@ func TestMoveProgression(t *testing.T) {
 			},
 			[]MoveProgressionGroup{
 				Repeat(
-					count.AtMost(2),
+					CountAtMost(2),
 					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
@@ -718,7 +717,7 @@ func TestMoveProgression(t *testing.T) {
 			},
 			[]MoveProgressionGroup{
 				Repeat(
-					count.AtLeast(2),
+					CountAtLeast(2),
 					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
@@ -738,7 +737,7 @@ func TestMoveProgression(t *testing.T) {
 			},
 			[]MoveProgressionGroup{
 				Repeat(
-					count.AtLeast(2),
+					CountAtLeast(2),
 					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
@@ -757,7 +756,7 @@ func TestMoveProgression(t *testing.T) {
 			},
 			[]MoveProgressionGroup{
 				Repeat(
-					count.AtLeast(2),
+					CountAtLeast(2),
 					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
@@ -780,7 +779,7 @@ func TestMoveProgression(t *testing.T) {
 			},
 			[]MoveProgressionGroup{
 				Repeat(
-					count.AtLeast(2),
+					CountAtLeast(2),
 					Serial(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],
@@ -800,7 +799,7 @@ func TestMoveProgression(t *testing.T) {
 			},
 			[]MoveProgressionGroup{
 				Repeat(
-					count.Exactly(2),
+					CountExactly(2),
 					Parallel(
 						singleMoveConfigs[0],
 						singleMoveConfigs[1],

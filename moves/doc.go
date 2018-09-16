@@ -333,11 +333,11 @@ children list with []MoveProgressionGroup, saving you typing.
 				),
 			),
 			moves.ParallelCount(
-				count.Any(),
+				CountAny(),
 				auto.MustConfig(new(MoveFour)),
 				auto.MustConfig(new(MoveFive)),
 				moves.Repeat(
-					count.AtMost(2),
+					CountAtMost(2),
 					moves.Serial(
 						auto.MustConfig(new(MoveSix)),
 						auto.MustConfig(new(MoveSeven)),

@@ -1,15 +1,18 @@
-/*
-
-	count defines a collection of interfaces.ValidCounter for use in
-	moves/groups/ParallelCount and friends.
-
-*/
-package count
+package moves
 
 import (
 	"errors"
-	"github.com/jkomoros/boardgame/moves/interfaces"
 )
+
+//ValidCounter is the signature of objects in the moves/count package. It is
+//expected within groups in the move/groups package for items like
+//ParallelCount. currentCount is the value of the counter in question, and
+//length is the context-specific length of the important item, often the
+//number of children in the parrent group. If ValidCounter returns nil, the
+//count is considered valid and complete; if it is not valid it should return
+//a descriptive error. Typically these functions are closures that close over
+//configuration options.
+type ValidCounter func(currentCount, length int) error
 
 //anyFunc will be returned for Any. Since there are no values to close over,
 //we can return the same item each time.
@@ -36,20 +39,20 @@ func allFunc(currentCount, length int) error {
 	return errors.New("Too many count have occurred.")
 }
 
-//Any will return nil if currentCount is 1, denoting that any item has matched.
-//Equivalent to Between(0,1).
-func Any() interfaces.ValidCounter {
+//CountAny will return nil if currentCount is 1, denoting that any item has matched.
+//Equivalent to CountBetween(0,1).
+func CountAny() ValidCounter {
 	return anyFunc
 }
 
-//All will return nil if currentCount is precisely the same length as length.
-//Equivalent to Between(0,-1).
-func All() interfaces.ValidCounter {
+//CountAll will return nil if currentCount is precisely the same length as length.
+//Equivalent to CountBetween(0,-1).
+func CountAll() ValidCounter {
 	return allFunc
 }
 
-//AtLeast will return nil if currentCount is min or greater.
-func AtLeast(min int) interfaces.ValidCounter {
+//CountAtLeast will return nil if currentCount is min or greater.
+func CountAtLeast(min int) ValidCounter {
 	return func(currentCount, length int) error {
 		if currentCount >= min {
 			return nil
@@ -58,10 +61,10 @@ func AtLeast(min int) interfaces.ValidCounter {
 	}
 }
 
-//AtMost will return nil as long as currentCount is less than or equal to max. A
+//CountAtMost will return nil as long as currentCount is less than or equal to max. A
 //max argument of less than 0 will be interpreted to mean precisely the length
 //parameter passed into ValidCounter.
-func AtMost(max int) interfaces.ValidCounter {
+func CountAtMost(max int) ValidCounter {
 	return func(currentCount, length int) error {
 		if max < 0 {
 			max = length
@@ -73,10 +76,10 @@ func AtMost(max int) interfaces.ValidCounter {
 	}
 }
 
-//Between returns nil as long as the value is greater than or equal to min and
+//CountBetween returns nil as long as the value is greater than or equal to min and
 //less than or equal to max. A max argument of less than 0 will be interpreted
 //to mean precise the length parameter passed into ValidCounter.
-func Between(min, max int) interfaces.ValidCounter {
+func CountBetween(min, max int) ValidCounter {
 	return func(currentCount, length int) error {
 		if max < 0 {
 			max = length
@@ -91,9 +94,9 @@ func Between(min, max int) interfaces.ValidCounter {
 	}
 }
 
-//Exactly returns nil if currentCount is precisely equaly to targetCount.
-//Equivalent to Between(targetCount,targetCount).
-func Exactly(targetCount int) interfaces.ValidCounter {
+//CountExactly returns nil if currentCount is precisely equaly to targetCount.
+//Equivalent to CountBetween(targetCount,targetCount).
+func CountExactly(targetCount int) ValidCounter {
 	return func(currentCount, length int) error {
 		if targetCount == currentCount {
 			return nil

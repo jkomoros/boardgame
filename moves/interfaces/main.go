@@ -13,16 +13,6 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
-//ValidCounter is the signature of objects in the moves/count package. It is
-//expected within groups in the move/groups package for items like
-//ParallelCount. currentCount is the value of the counter in question, and
-//length is the context-specific length of the important item, often the
-//number of children in the parrent group. If ValidCounter returns nil, the
-//count is considered valid and complete; if it is not valid it should return
-//a descriptive error. Typically these functions are closures that close over
-//configuration options.
-type ValidCounter func(currentCount, length int) error
-
 //Moves should implement AllowMultipleInProgression if they want to
 //affirmatively communicate to moves.Base that in a move progression is it
 //legal to apply multiple. If the move does not implement this interface then
