@@ -530,13 +530,14 @@ const templateContentsGameStateGo = `package {{.Name}}
 import (
 	"github.com/jkomoros/boardgame"{{if not .SuppressPhase}}
 	"github.com/jkomoros/boardgame/enum"{{- end}}
-	"github.com/jkomoros/boardgame/moves/roundrobinhelpers"
+	"github.com/jkomoros/boardgame/moves"
 )
 
 //boardgame:codegen
 type gameState struct {
-	//Use roundrobinhelpers so roundrobin moves can be used without any changes
-	roundrobinhelpers.BaseGameState
+	boardgame.BaseSubState
+	//Use RoundRobinGameStateProperties so roundrobin moves can be used without any changes
+	moves.RoundRobinGameStateProperties
 	{{if not .SuppressCurrentPlayer -}}
 	//DefaultGameDelegate will automatically return this from CurrentPlayerIndex
 	CurrentPlayer boardgame.PlayerIndex

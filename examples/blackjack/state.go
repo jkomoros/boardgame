@@ -5,7 +5,7 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/components/playingcards"
 	"github.com/jkomoros/boardgame/enum"
-	"github.com/jkomoros/boardgame/moves/roundrobinhelpers"
+	"github.com/jkomoros/boardgame/moves"
 )
 
 //boardgame:codegen
@@ -28,7 +28,8 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 
 //boardgame:codegen
 type gameState struct {
-	roundrobinhelpers.BaseGameState
+	boardgame.BaseSubState
+	moves.RoundRobinGameStateProperties
 	Phase         enum.Val        `enum:"Phase"`
 	DiscardStack  boardgame.Stack `stack:"cards" sanitize:"len"`
 	DrawStack     boardgame.Stack `stack:"cards" sanitize:"len"`

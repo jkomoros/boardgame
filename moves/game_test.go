@@ -4,7 +4,6 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/components/playingcards"
 	"github.com/jkomoros/boardgame/enum"
-	"github.com/jkomoros/boardgame/moves/roundrobinhelpers"
 	"github.com/jkomoros/boardgame/storage/memory"
 )
 
@@ -37,7 +36,8 @@ var phaseEnum = enums.MustAddTree("Phase", map[int]string{
 
 //boardgame:codegen
 type gameState struct {
-	roundrobinhelpers.BaseGameState
+	RoundRobinGameStateProperties
+	boardgame.BaseSubState
 	Phase         enum.Val `enum:"Phase"`
 	CurrentPlayer boardgame.PlayerIndex
 	DrawStack     boardgame.Stack `stack:"cards"`

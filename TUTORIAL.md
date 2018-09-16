@@ -994,7 +994,8 @@ That's not a *particularly* interesting example. Here's the states for blackjack
 ```
 //boardgame:codegen
 type gameState struct {
-	roundrobinhelpers.BaseGameState
+	boardgame.BaseSubState
+	moves.RoundRobinGameStateProperties
 	Phase         enum.Val        `enum:"Phase"`
 	DiscardStack  boardgame.Stack `stack:"cards" sanitize:"len"`
 	DrawStack     boardgame.Stack `stack:"cards" sanitize:"len"`
@@ -1533,7 +1534,8 @@ If you're going to support the notion of phases, you'll need to store the curren
 ```
 //boardgame:codegen
 type gameState struct {
-	roundrobinhelpers.BaseGameState
+	boardgame.BaseSubState
+	moves.RoundRobinGameStateProperties
 	Phase         enum.Val        `enum:"Phase"`
 	DiscardStack  boardgame.Stack `stack:"cards" sanitize:"len"`
 	DrawStack     boardgame.Stack `stack:"cards" sanitize:"len"`

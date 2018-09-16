@@ -11,7 +11,6 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves"
-	"github.com/jkomoros/boardgame/moves/roundrobinhelpers"
 )
 
 //go:generate boardgame-util codegen
@@ -190,7 +189,8 @@ type myStruct struct {
 
 //boardgame:codegen
 type roundRobinStruct struct {
-	roundrobinhelpers.BaseGameState
+	moves.RoundRobinGameStateProperties
+	boardgame.BaseSubState
 	MyBool bool
 }
 

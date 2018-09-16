@@ -3,13 +3,14 @@ package checkers
 import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
-	"github.com/jkomoros/boardgame/moves/roundrobinhelpers"
+	"github.com/jkomoros/boardgame/moves"
 )
 
 //boardgame:codegen
 type gameState struct {
-	//Use roundrobinhelpers so roundrobin moves can be used without any changes
-	roundrobinhelpers.BaseGameState
+	boardgame.BaseSubState
+	//Use RoundRobinGameStateProperties so roundrobin moves can be used without any changes
+	moves.RoundRobinGameStateProperties
 	//DefaultGameDelegate will automatically return this from CurrentPlayerIndex
 	CurrentPlayer boardgame.PlayerIndex
 	//DefaultGameDelegate will automatically return this from PhaseEnum, CurrentPhase.
