@@ -52,11 +52,12 @@ func AddForPhase(phase int, moves ...boardgame.MoveConfig) []boardgame.MoveConfi
 //make it less error-prone and more clear what the intent is for phase-locked,
 //ordered moves. All moveTypes passed must be legal auto-configurable moves.
 //You may pass configs generated from AutoConfigurer.Config(), or any of the
-//group types defined in moves/groups. All of the top level groups passed will
-//be treated implicitly like a single group.Serial. All moves contained within
-//the provided groups will be registered.  If your PhaseEnum is a Tree, then
-//phase must be a leaf enum value, or the moves will fail to pass the
-//ValidConfiguration check.
+//MoveProgressionGroup types defined in this package. All of the top level
+//groups passed will be treated implicitly like a single Serial group. All
+//moves contained within the provided groups will be registered. If your
+//PhaseEnum is a Tree, then phase must be a leaf enum value, or the moves will
+//fail to pass the ValidConfiguration check. Check out the package doc for an
+//example of using groups in this function.
 func AddOrderedForPhase(phase int, groups ...MoveProgressionGroup) []boardgame.MoveConfig {
 
 	//Technically it's illegal to attach a move progression to a non-leaf

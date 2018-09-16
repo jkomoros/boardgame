@@ -315,7 +315,7 @@ like to express the semantics of your move progression.
 
 They are defined as functions that return anonymous underlying structs so
 that when used in configuration you can avoid needing to wrap your
-children list with []interfaces.MoveProgressionGroup, saving you typing.
+children list with []MoveProgressionGroup, saving you typing.
 
 	//Example
 
