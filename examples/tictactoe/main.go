@@ -11,7 +11,6 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves"
-	"github.com/jkomoros/boardgame/moves/with"
 	"strings"
 )
 
@@ -131,7 +130,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	return moves.Add(
 		auto.MustConfig(
 			new(MovePlaceToken),
-			with.HelpText("Place a player's token in a specific space."),
+			moves.WithHelpText("Place a player's token in a specific space."),
 		),
 		auto.MustConfig(
 			new(moves.FinishTurn),

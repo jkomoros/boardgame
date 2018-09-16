@@ -9,7 +9,6 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/components/dice"
 	"github.com/jkomoros/boardgame/moves"
-	"github.com/jkomoros/boardgame/moves/with"
 	"strconv"
 	"strings"
 )
@@ -129,20 +128,20 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	return moves.Add(
 		auto.MustConfig(
 			new(MoveRollDice),
-			with.HelpText("Rolls the dice for the current player"),
+			moves.WithHelpText("Rolls the dice for the current player"),
 		),
 		auto.MustConfig(
 			new(MoveDoneTurn),
-			with.HelpText("Played when a player is done with their turn and wants to keep their score."),
+			moves.WithHelpText("Played when a player is done with their turn and wants to keep their score."),
 		),
 		auto.MustConfig(
 			new(MoveCountDie),
-			with.HelpText("After a die has been rolled, tabulating its impact"),
-			with.IsFixUp(true),
+			moves.WithHelpText("After a die has been rolled, tabulating its impact"),
+			moves.WithIsFixUp(true),
 		),
 		auto.MustConfig(
 			new(moves.FinishTurn),
-			with.HelpText("Advance to the next player when the current player has busted or said they are done."),
+			moves.WithHelpText("Advance to the next player when the current player has busted or said they are done."),
 		),
 	)
 }

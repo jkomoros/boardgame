@@ -33,6 +33,6 @@ func (g *gameState) SetCurrentPhase(phase int) {
 }
 
 func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {
-	//Having this setter allows us to work with moves.TurnDone
+	//Having this setter allows us to work moves.With moves.TurnDone
 	g.CurrentPlayer = currentPlayer
 }

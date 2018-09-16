@@ -855,18 +855,18 @@ func (g *gameDelegate) ConfigureMoves() *boardgame.MoveTypeConfigBundle {
 		//... one move type configuration elided ...
 		auto.MustConfig(
 			new(MoveHideCards),
-			with.HelpText("After the current player has revealed both cards and tried to memorize them, this move hides the cards so that play can continue to next player."),
+			moves.WithHelpText("After the current player has revealed both cards and tried to memorize them, this move hides the cards so that play can continue to next player."),
 		),
 		auto.MustConfig(
 			new(moves.FinishTurn),
 		),
 		auto.MustConfig(
 			new(MoveCaptureCards),
-			with.HelpText("If two cards are showing and they are the same type, capture them to the current player's hand."),
+			moves.WithHelpText("If two cards are showing and they are the same type, capture them to the current player's hand."),
 		),
 		auto.MustConfig(
 			new(MoveStartHideCardsTimer),
-			with.HelpText("If two cards are showing and they are not the same type and the timer is not active, start a timer to automatically hide them."),
+			moves.WithHelpText("If two cards are showing and they are not the same type and the timer is not active, start a timer to automatically hide them."),
 		),
 	)
 }
@@ -1571,7 +1571,7 @@ there and returns it.
 
 Now the core engine knows about what phase it is. `moves.Base` will consult that information it is Legal method. But how do we tell `moves.Base` which phases a move is legal in?
 
-Moves that are based on `moves.Base` have a `LegalPhases() []int` method that `moves.Base` consults to see if the game's CurrentPhase is one of those. `LegalPhases()` just returns whatever was passed in `moves.AutoConfigurer` with `with.LegalPhases`. However, setting that manually is error-prone; you have to remember to include it for each move in that phase, and it can be hard to keep track of the order of the moves.
+Moves that are based on `moves.Base` have a `LegalPhases() []int` method that `moves.Base` consults to see if the game's CurrentPhase is one of those. `LegalPhases()` just returns whatever was passed in `moves.AutoConfigurer` with `WithLegalPhases`. However, setting that manually is error-prone; you have to remember to include it for each move in that phase, and it can be hard to keep track of the order of the moves.
 
 That's why the `moves` package defines `Add`, `AddForPhase`, and `AddOrderedForPhase`, which automatically call the right `WithLegalPhases` and `WithLegalMoveProgression` methods for you. In addition, the `moves` package defines `moves.Combine`, a convenience wrapper to use in your `ConfigureMoves` when you have phases.
 
@@ -1585,20 +1585,20 @@ You can see this in action in `examples/blackjack/main.go` in `ConfigureMoves`
 		moves.AddForPhase(PhaseNormalPlay,
 			auto.MustConfig(
 				new(MoveCurrentPlayerHit),
-				with.HelpText("The current player hits, drawing a card."),
+				moves.WithHelpText("The current player hits, drawing a card."),
 			),
 			auto.MustConfig(
 				new(MoveCurrentPlayerStand),
-				with.HelpText("If the current player no longer wants to draw cards, they can stand."),
+				moves.WithHelpText("If the current player no longer wants to draw cards, they can stand."),
 			),
 			auto.MustConfig(
 				new(MoveRevealHiddenCard),
-				with.HelpText("Reveals the hidden card in the user's hand"),
-				with.IsFixUp(true),
+				moves.WithHelpText("Reveals the hidden card in the user's hand"),
+				moves.WithIsFixUp(true),
 			),
 			auto.MustConfig(
 				new(moves.FinishTurn),
-				with.HelpText("When the current player has either busted or decided to stand, we advance to next player."),
+				moves.WithHelpText("When the current player has either busted or decided to stand, we advance to next player."),
 			),
 		),//...
 	)
@@ -1611,7 +1611,7 @@ Of course, there are sometimes moves that are legal in *any* mode. For those, it
 		moves.Add(
 			auto.MustConfig(
 				new(MoveShuffleDiscardToDraw),
-				with.HelpText("When the draw deck is empty, shuffles the discard deck into draw deck."),
+				moves.WithHelpText("When the draw deck is empty, shuffles the discard deck into draw deck."),
 			),
 		),
 		//...
@@ -1642,21 +1642,21 @@ You can see it in action in Blackjack:
 		moves.AddOrderedForPhase(PhaseInitialDeal,
 			auto.MustConfig(
 				new(moves.DealCountComponents),
-				with.MoveName("Deal Initial Hidden Card"),
-				with.HelpText("Deals a hidden card to each player"),
-				with.GameStack("DrawStack"),
-				with.PlayerStack("HiddenHand"),
+				moves.WithMoveName("Deal Initial Hidden Card"),
+				moves.WithHelpText("Deals a hidden card to each player"),
+				moves.WithGameStack("DrawStack"),
+				moves.WithPlayerStack("HiddenHand"),
 			),
 			auto.MustConfig(
 				new(moves.DealCountComponents),
-				with.MoveName("Deal Initial Visible Card"),
-				with.HelpText("Deals a visible card to each player"),
-				with.GameStack("DrawStack"),
-				with.PlayerStack("VisibleHand"),
+				moves.WithMoveName("Deal Initial Visible Card"),
+				moves.WithHelpText("Deals a visible card to each player"),
+				moves.WithGameStack("DrawStack"),
+				moves.WithPlayerStack("VisibleHand"),
 			),
 			auto.MustConfig(
 				new(moves.StartPhase),
-				with.PhaseToStart(PhaseNormalPlay, PhaseEnum),
+				moves.WithPhaseToStart(PhaseNormalPlay, PhaseEnum),
 			),
 		),
 	)
@@ -1672,7 +1672,7 @@ By default move progressions are simple serial lists of moves that must occur in
 
 #### StartPhase move
 
-The last move in that section is of type `moves.StartPhase`. It needs to be configured with a `with.PhaseToStart`. Often you don't need to override its Legal or Apply at all (the Legal it inherits from Base is sufficient), and can just use the naked `moves.StartPhase` struct itself without embedding it in your own struct.
+The last move in that section is of type `moves.StartPhase`. It needs to be configured with a `WithPhaseToStart`. Often you don't need to override its Legal or Apply at all (the Legal it inherits from Base is sufficient), and can just use the naked `moves.StartPhase` struct itself without embedding it in your own struct.
 
 It is common for the last move of an ordered round to have a move that advances to the next phase. 
 

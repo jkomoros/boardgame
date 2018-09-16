@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves"
-	"github.com/jkomoros/boardgame/moves/with"
 )
 
 /*
@@ -30,8 +29,8 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
 		moves.Add(
 			auto.MustConfig(new(moves.NoOp),
-				with.MoveName("Example No Op Move"),
-				with.HelpText("This move is an example that is always legal and does nothing. It exists to show how to return moves and make sure 'go test' works from the beginning, but you should remove it."),
+				moves.WithMoveName("Example No Op Move"),
+				moves.WithHelpText("This move is an example that is always legal and does nothing. It exists to show how to return moves and make sure 'go test' works from the beginning, but you should remove it."),
 			),
 		),
 	)

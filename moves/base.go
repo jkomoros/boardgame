@@ -5,7 +5,6 @@ import (
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/errors"
 	"github.com/jkomoros/boardgame/moves/interfaces"
-	"github.com/jkomoros/boardgame/moves/internal/privateconstants"
 	"log"
 	"reflect"
 	"strconv"
@@ -125,9 +124,9 @@ func (d *Base) Description() string {
 func (d *Base) ValidConfiguration(exampleState boardgame.State) error {
 	config := d.CustomConfiguration()
 
-	if config[privateconstants.LegalMoveProgression] != nil {
+	if config[configPropLegalMoveProgression] != nil {
 
-		legalPhasesRaw := config[privateconstants.LegalPhases]
+		legalPhasesRaw := config[configPropLegalPhases]
 
 		if legalPhasesRaw == nil {
 			return errors.New("WithLegalMoveProgression configuration provided, but without WithLegalPhases")
@@ -196,7 +195,7 @@ func titleCaseToWords(in string) string {
 //If the struct does not come from the moves package, it will create a name
 //like `MoveMyMove` --> `My Move`. Finally, if it's a struct from this
 //package, it will fall back on whatever the FallbackName() method returns.
-//Subclasses generally should not override this. If with.MoveNameSuffix() was
+//Subclasses generally should not override this. If WithMoveNameSuffix() was
 //used, it will then add " - " + suffix to the end of the move name.
 func (b *Base) DeriveName(m *boardgame.GameManager) string {
 
@@ -205,7 +204,7 @@ func (b *Base) DeriveName(m *boardgame.GameManager) string {
 	suffix := ""
 
 	if config != nil {
-		rawSuffix, hasSuffix := config[privateconstants.MoveNameSuffix]
+		rawSuffix, hasSuffix := config[configPropMoveNameSuffix]
 		if hasSuffix {
 			strSuffix, ok := rawSuffix.(string)
 			if !ok {
@@ -227,7 +226,7 @@ func (b *Base) baseDeriveName(m *boardgame.GameManager) string {
 
 	if config != nil {
 
-		overrideName, hasOverrideName := config[privateconstants.MoveName]
+		overrideName, hasOverrideName := config[configPropMoveName]
 
 		if hasOverrideName {
 			strOverrideName, ok := overrideName.(string)
@@ -281,7 +280,7 @@ func (b *Base) FallbackName(m *boardgame.GameManager) string {
 func (b *Base) HelpText() string {
 	config := b.CustomConfiguration()
 
-	overrideHelpText, hasOverrideHelpText := config[privateconstants.HelpText]
+	overrideHelpText, hasOverrideHelpText := config[configPropHelpText]
 
 	if hasOverrideHelpText {
 		strOverrideHelpText, ok := overrideHelpText.(string)
@@ -320,7 +319,7 @@ func (b *Base) IsFixUp() bool {
 
 //overrideIsFixUp takes the config and the base fix up value and returns the override if it exists, otherwise defaultIsFixUp
 func overrideIsFixUp(config boardgame.PropertyCollection, defaultIsFixUp bool) bool {
-	overrideIsFixUp, hasOverrideIsFixUp := config[privateconstants.IsFixUp]
+	overrideIsFixUp, hasOverrideIsFixUp := config[configPropIsFixUp]
 
 	if hasOverrideIsFixUp {
 		boolOverrideIsFixUp, ok := overrideIsFixUp.(bool)
@@ -379,7 +378,7 @@ func (d *Base) CustomConfiguration() boardgame.PropertyCollection {
 }
 
 func (d *Base) legalPhases() []int {
-	val := d.CustomConfiguration()[privateconstants.LegalPhases]
+	val := d.CustomConfiguration()[configPropLegalPhases]
 	ints, ok := val.([]int)
 	if !ok {
 		return nil
@@ -388,7 +387,7 @@ func (d *Base) legalPhases() []int {
 }
 
 func (d *Base) legalMoveProgression() interfaces.MoveProgressionGroup {
-	val := d.CustomConfiguration()[privateconstants.LegalMoveProgression]
+	val := d.CustomConfiguration()[configPropLegalMoveProgression]
 	group, ok := val.(interfaces.MoveProgressionGroup)
 	if !ok {
 		return nil

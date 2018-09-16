@@ -95,7 +95,7 @@ var postProcessReplacements = map[string]string{
 	"]]}":          "}}",
 }
 
-//postProcess to replace hard-to-escape literals with different results.
+//postProcess to replace hard-to-escape literals moves.With different results.
 func postProcess(in []byte) []byte {
 
 	str := string(in)
@@ -177,7 +177,6 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves"
-	"github.com/jkomoros/boardgame/moves/with"
 )
 
 /*
@@ -215,8 +214,8 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		{{if .SuppressPhase }}
 		moves.Add(
 			auto.MustConfig(new(moves.NoOp),
-				with.MoveName("Example No Op Move"),
-				with.HelpText("This move is an example that is always legal and does nothing. It exists to show how to return moves and make sure 'go test' works from the beginning, but you should remove it."),
+				moves.WithMoveName("Example No Op Move"),
+				moves.WithHelpText("This move is an example that is always legal and does nothing. It exists to show how to return moves and make sure 'go test' works from the beginning, but you should remove it."),
 			),
 		),
 		{{ else -}}
@@ -226,23 +225,23 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			//This move will keep on applying itself in round robin fashion
 			//until all of the cards are dealt.
 			auto.MustConfig(new(moves.DealComponentsUntilPlayerCountReached),
-				with.GameStack("DrawStack"),
-				with.PlayerStack("Hand"),
-				with.TargetCount(2),
+				moves.WithGameStack("DrawStack"),
+				moves.WithPlayerStack("Hand"),
+				moves.WithTargetCount(2),
 			),
 			{{- end }}
 			//Because we used AddOrderedForPhase, this next move won't apply
 			//until the move before it is done applying.
 			auto.MustConfig(new(moves.StartPhase),
-				with.PhaseToStart(PhaseNormal, PhaseEnum),
-				with.HelpText("Move to the normal play phase."),
+				moves.WithPhaseToStart(PhaseNormal, PhaseEnum),
+				moves.WithHelpText("Move to the normal play phase."),
 			),
 		),
 		{{if .EnableExampleMoves }}
 		moves.AddForPhase(
 			PhaseNormal,
 			auto.MustConfig(new(moveDrawCard),
-				with.HelpText("Draw a card from the deck when it's your turn"),
+				moves.WithHelpText("Draw a card from the deck when it's your turn"),
 			),
 			//FinishTurn will advance to the next player automatically, when
 			//playerState.TurnDone() is true.
@@ -576,7 +575,7 @@ func (g *gameState) SetCurrentPhase(phase int) {
 {{end}}
 {{if not .SuppressCurrentPlayer}}
 func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {
-	//Having this setter allows us to work with moves.TurnDone
+	//Having this setter allows us to work moves.With moves.TurnDone
 	g.CurrentPlayer = currentPlayer
 }
 
@@ -729,7 +728,7 @@ import (
 func TestNewManager(t *testing.T) {
 
 	//A lot of validation goes on in boardgame.NewGameManager, which means
-	//that simply testing that we don't get an error with our delegate is a
+	//that simply testing that we don't get an error moves.With our delegate is a
 	//useful test. However, this is not a very robust test because it doesn't
 	//verify that moves are legal when they should be or do the right things,
 	//among other things. Typically you should also create golden game

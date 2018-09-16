@@ -10,7 +10,6 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves"
-	"github.com/jkomoros/boardgame/moves/with"
 )
 
 //go:generate boardgame-util codegen
@@ -51,25 +50,25 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		moves.AddOrderedForPhase(PhaseSetup,
 			auto.MustConfig(
 				new(MovePlaceToken),
-				with.HelpText("Places one token at a time on the board."),
+				moves.WithHelpText("Places one token at a time on the board."),
 			),
 			auto.MustConfig(
 				new(moves.StartPhase),
-				with.PhaseToStart(PhasePlaying, PhaseEnum),
+				moves.WithPhaseToStart(PhasePlaying, PhaseEnum),
 			),
 		),
 		moves.AddForPhase(PhasePlaying,
 			auto.MustConfig(
 				new(MoveCrownToken),
-				with.HelpText("Crowns tokens that make it to the other end of the board."),
-				with.SourceStack("Spaces"),
+				moves.WithHelpText("Crowns tokens that make it to the other end of the board."),
+				moves.WithSourceStack("Spaces"),
 			),
 			auto.MustConfig(
 				new(moves.FinishTurn),
 			),
 			auto.MustConfig(
 				new(MoveMoveToken),
-				with.HelpText("Moves a token from one place to another"),
+				moves.WithHelpText("Moves a token from one place to another"),
 			),
 		),
 	)

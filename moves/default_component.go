@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves/interfaces"
-	"github.com/jkomoros/boardgame/moves/internal/privateconstants"
 	"strconv"
 )
 
@@ -138,7 +137,7 @@ func (d *DefaultComponent) Legal(state boardgame.ImmutableState, proposer boardg
 func (d *DefaultComponent) LegalType() int {
 	config := d.CustomConfiguration()
 
-	legalType, ok := config[privateconstants.SourceStack]
+	legalType, ok := config[configPropSourceStack]
 
 	if !ok {
 		return 0
@@ -210,12 +209,12 @@ func (d *DefaultComponent) FallbackName(m *boardgame.GameManager) string {
 
 	sourceStack, _ := d.sourceStackImpl(exampleState)
 
-	return "Default Component For " + stackName(d, privateconstants.SourceStack, sourceStack, exampleState) + " LegalType " + strconv.Itoa(legalType)
+	return "Default Component For " + stackName(d, configPropSourceStack, sourceStack, exampleState) + " LegalType " + strconv.Itoa(legalType)
 }
 
 //FallbackName returns a string based on the stackName passed to
 //WithSourceStack, and the LegalType.
 func (d *DefaultComponent) FallbackHelpText() string {
 	legalType, _ := d.legalTypeImpl()
-	return "Searches " + stackName(d, privateconstants.SourceStack, nil, nil) + " for a component that returns nil for Legal() with LegalType " + strconv.Itoa(legalType)
+	return "Searches " + stackName(d, configPropSourceStack, nil, nil) + " for a component that returns nil for Legal() with LegalType " + strconv.Itoa(legalType)
 }

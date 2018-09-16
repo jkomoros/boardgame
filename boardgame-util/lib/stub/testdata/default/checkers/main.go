@@ -9,7 +9,6 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves"
-	"github.com/jkomoros/boardgame/moves/with"
 )
 
 /*
@@ -45,8 +44,8 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			//Because we used AddOrderedForPhase, this next move won't apply
 			//until the move before it is done applying.
 			auto.MustConfig(new(moves.StartPhase),
-				with.PhaseToStart(PhaseNormal, PhaseEnum),
-				with.HelpText("Move to the normal play phase."),
+				moves.WithPhaseToStart(PhaseNormal, PhaseEnum),
+				moves.WithHelpText("Move to the normal play phase."),
 			),
 		),
 	)

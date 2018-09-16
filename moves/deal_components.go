@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves/interfaces"
-	"github.com/jkomoros/boardgame/moves/internal/privateconstants"
 )
 
 func dealActionHelper(topLevelStruct boardgame.Move, playerState boardgame.PlayerState) (playerStack boardgame.Stack, gameStack boardgame.Stack, err error) {
@@ -105,7 +104,7 @@ func (d *DealCountComponents) TargetCount() int {
 
 	config := d.CustomConfiguration()
 
-	val, ok := config[privateconstants.TargetCount]
+	val, ok := config[configPropTargetCount]
 
 	if !ok {
 		//No configuration provided, just return default
@@ -141,7 +140,7 @@ func (d *DealCountComponents) NumRounds() int {
 func (d *DealCountComponents) PlayerStack(playerState boardgame.PlayerState) boardgame.Stack {
 	config := d.CustomConfiguration()
 
-	stackName, ok := config[privateconstants.PlayerStack]
+	stackName, ok := config[configPropPlayerStack]
 
 	if !ok {
 		return nil
@@ -168,7 +167,7 @@ func (d *DealCountComponents) PlayerStack(playerState boardgame.PlayerState) boa
 func (d *DealCountComponents) GameStack(gameState boardgame.SubState) boardgame.Stack {
 	config := d.CustomConfiguration()
 
-	stackName, ok := config[privateconstants.GameStack]
+	stackName, ok := config[configPropGameStack]
 
 	if !ok {
 		return nil
@@ -252,7 +251,7 @@ func (d *DealCountComponents) moveTypeInfo(exampleState boardgame.ImmutableState
 
 	}
 
-	return stackName(d, privateconstants.PlayerStack, playerStack, exampleState), stackName(d, privateconstants.GameStack, gameStack, exampleState), targetCountString(d.TopLevelStruct())
+	return stackName(d, configPropPlayerStack, playerStack, exampleState), stackName(d, configPropGameStack, gameStack, exampleState), targetCountString(d.TopLevelStruct())
 }
 
 //FallbackName returns a string based on the names of the player

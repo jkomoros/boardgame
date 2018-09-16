@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves"
-	"github.com/jkomoros/boardgame/moves/with"
 )
 
 /*
@@ -36,22 +35,22 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			//This move will keep on applying itself in round robin fashion
 			//until all of the cards are dealt.
 			auto.MustConfig(new(moves.DealComponentsUntilPlayerCountReached),
-				with.GameStack("DrawStack"),
-				with.PlayerStack("Hand"),
-				with.TargetCount(2),
+				moves.WithGameStack("DrawStack"),
+				moves.WithPlayerStack("Hand"),
+				moves.WithTargetCount(2),
 			),
 			//Because we used AddOrderedForPhase, this next move won't apply
 			//until the move before it is done applying.
 			auto.MustConfig(new(moves.StartPhase),
-				with.PhaseToStart(PhaseNormal, PhaseEnum),
-				with.HelpText("Move to the normal play phase."),
+				moves.WithPhaseToStart(PhaseNormal, PhaseEnum),
+				moves.WithHelpText("Move to the normal play phase."),
 			),
 		),
 
 		moves.AddForPhase(
 			PhaseNormal,
 			auto.MustConfig(new(moveDrawCard),
-				with.HelpText("Draw a card from the deck when it's your turn"),
+				moves.WithHelpText("Draw a card from the deck when it's your turn"),
 			),
 			//FinishTurn will advance to the next player automatically, when
 			//playerState.TurnDone() is true.

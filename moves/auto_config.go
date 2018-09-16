@@ -127,7 +127,7 @@ func NewAutoConfigurer(g boardgame.GameDelegate) *AutoConfigurer {
 
 //MustConfig is a wrapper around Config that if it errors will panic. Only
 //suitable for being used during setup.
-func (a *AutoConfigurer) MustConfig(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConfigurationOption) GroupableMoveConfig {
+func (a *AutoConfigurer) MustConfig(exampleStruct AutoConfigurableMove, options ...CustomConfigurationOption) GroupableMoveConfig {
 	result, err := a.Config(exampleStruct, options...)
 
 	if err != nil {
@@ -148,7 +148,7 @@ func (a *AutoConfigurer) MustConfig(exampleStruct AutoConfigurableMove, options 
 //equivalent to what you'd get from NewGroupableMoveConfig, which satisfies
 //boardgame.MoveConfig but also adds enough methods to be useable as input to
 //AddOrderedForPhase.
-func (a *AutoConfigurer) Config(exampleStruct AutoConfigurableMove, options ...interfaces.CustomConfigurationOption) (GroupableMoveConfig, error) {
+func (a *AutoConfigurer) Config(exampleStruct AutoConfigurableMove, options ...CustomConfigurationOption) (GroupableMoveConfig, error) {
 
 	if a.delegate == nil {
 		return nil, errors.New("No delegate provided")

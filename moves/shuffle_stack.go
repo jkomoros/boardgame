@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves/interfaces"
-	"github.com/jkomoros/boardgame/moves/internal/privateconstants"
 )
 
 //ShuffleStack is a move, typically used in SetUp phases, that simply shuffles
@@ -25,7 +24,7 @@ type moveInfoer interface {
 func sourceStackFromConfig(m moveInfoer, state boardgame.State) boardgame.Stack {
 	config := m.CustomConfiguration()
 
-	stackName, ok := config[privateconstants.SourceStack]
+	stackName, ok := config[configPropSourceStack]
 
 	if !ok {
 		return nil
@@ -106,11 +105,11 @@ func (s *ShuffleStack) FallbackName(m *boardgame.GameManager) string {
 		stack = stacker.SourceStack(exampleState)
 	}
 
-	return "Shuffle " + stackName(s, privateconstants.SourceStack, stack, exampleState)
+	return "Shuffle " + stackName(s, configPropSourceStack, stack, exampleState)
 }
 
 //FallbackHelpText returns "Shuffles the STACK stack" where STACK is the name
 //of the stack set by WithSourceStack.
 func (s *ShuffleStack) FallbackHelpText() string {
-	return "Shuffles " + stackName(s, privateconstants.SourceStack, nil, nil)
+	return "Shuffles " + stackName(s, configPropSourceStack, nil, nil)
 }

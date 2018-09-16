@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves"
-	"github.com/jkomoros/boardgame/moves/with"
 	"strconv"
 	"strings"
 )
@@ -302,12 +301,12 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
 	revealCardConfig := auto.MustConfig(
 		new(MoveRevealCard),
-		with.HelpText("Reveals the card at the specified location"),
+		moves.WithHelpText("Reveals the card at the specified location"),
 	)
 
 	hideCardConfig := auto.MustConfig(
 		new(MoveHideCards),
-		with.HelpText("After the current player has revealed both cards and tried to memorize them, this move hides the cards so that play can continue to next player."),
+		moves.WithHelpText("After the current player has revealed both cards and tried to memorize them, this move hides the cards so that play can continue to next player."),
 	)
 
 	//Save this name so agent can use it and we don't have to worry about
@@ -323,11 +322,11 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		),
 		auto.MustConfig(
 			new(MoveCaptureCards),
-			with.HelpText("If two cards are showing and they are the same type, capture them to the current player's hand."),
+			moves.WithHelpText("If two cards are showing and they are the same type, capture them to the current player's hand."),
 		),
 		auto.MustConfig(
 			new(MoveStartHideCardsTimer),
-			with.HelpText("If two cards are showing and they are not the same type and the timer is not active, start a timer to automatically hide them."),
+			moves.WithHelpText("If two cards are showing and they are not the same type and the timer is not active, start a timer to automatically hide them."),
 		),
 	)
 }

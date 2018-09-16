@@ -10,7 +10,6 @@ package debuganimations
 import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves"
-	"github.com/jkomoros/boardgame/moves/with"
 )
 
 //go:generate boardgame-util codegen
@@ -135,15 +134,15 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		auto.MustConfig(new(moveMoveCardBetweenShortStacks)),
 		auto.MustConfig(new(moveMoveCardBetweenDrawAndDiscardStacks)),
 		auto.MustConfig(new(moveFlipHiddenCard),
-			with.MoveName("Flip Card Between Hidden and Revealed")),
+			moves.WithMoveName("Flip Card Between Hidden and Revealed")),
 		auto.MustConfig(new(moveMoveCardBetweenFanStacks),
-			with.MoveName("Move Fan Card"),
+			moves.WithMoveName("Move Fan Card"),
 		),
 		auto.MustConfig(new(moveVisibleShuffleCards),
-			with.MoveName("Visible Shuffle"),
+			moves.WithMoveName("Visible Shuffle"),
 		),
 		auto.MustConfig(new(moveShuffleCards),
-			with.MoveName("Shuffle"),
+			moves.WithMoveName("Shuffle"),
 		),
 		auto.MustConfig(new(moveMoveBetweenHidden)),
 		auto.MustConfig(new(moveMoveToken)),

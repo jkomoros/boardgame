@@ -10,7 +10,7 @@ import (
 func TestNewManager(t *testing.T) {
 
 	//A lot of validation goes on in boardgame.NewGameManager, which means
-	//that simply testing that we don't get an error with our delegate is a
+	//that simply testing that we don't get an error moves.With our delegate is a
 	//useful test. However, this is not a very robust test because it doesn't
 	//verify that moves are legal when they should be or do the right things,
 	//among other things. Typically you should also create golden game

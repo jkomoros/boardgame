@@ -1,17 +1,35 @@
-/*
-
-	with is a package of configuration functions designed to be passed in as
-	options in auto.Config.
-
-*/
-package with
+package moves
 
 import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves/interfaces"
-	"github.com/jkomoros/boardgame/moves/internal/privateconstants"
 )
+
+const fullyQualifiedPackageName = "github.com/jkomoros/boardgame/moves."
+
+const configPropStartPhase = fullyQualifiedPackageName + "StartPhase"
+const configPropStartPhaseEnum = fullyQualifiedPackageName + "StartPhaseEnum"
+const configPropSourceStack = fullyQualifiedPackageName + "SourceStack"
+const configPropDestinationStack = fullyQualifiedPackageName + "DestinationStack"
+const configPropTargetCount = fullyQualifiedPackageName + "TargetCount"
+const configPropNumRounds = fullyQualifiedPackageName + "NumRounds"
+const configPropGameStack = fullyQualifiedPackageName + "GameStack"
+const configPropPlayerStack = fullyQualifiedPackageName + "PlayerStack"
+const configPropMoveName = fullyQualifiedPackageName + "MoveName"
+const configPropMoveNameSuffix = fullyQualifiedPackageName + "MoveNameSuffix"
+const configPropHelpText = fullyQualifiedPackageName + "HelpText"
+const configPropIsFixUp = fullyQualifiedPackageName + "IsFixUp"
+const configPropLegalPhases = fullyQualifiedPackageName + "LegalPhases"
+const configPropLegalMoveProgression = fullyQualifiedPackageName + "LegalMoveProgression"
+const configPropLegalType = fullyQualifiedPackageName + "LegalType"
+
+//CustomConfigurationOption is a function that takes a PropertyCollection and
+//modifies a key on it. This package defines a number of functions that return
+//funcs that satisfy this interface and can be used in auto.Config to pass in
+//configuration to the base moves without requiring verbose embedding and
+//method overriding. All of those functions in this package start with "With".
+type CustomConfigurationOption func(boardgame.PropertyCollection)
 
 //LegalType returns a function configuration option suitable for being
 //passed to auto.Config. The legalType will be bassed to the components'
@@ -19,9 +37,10 @@ import (
 //related to the legalType for that type of component. However, if you only
 //have one DefaultComponent move for that type of component, it's fine to just
 //skip this to use 0 instead.
-func LegalType(legalType int) interfaces.CustomConfigurationOption {
+//TODO: chain doc for all of these to match new names nocommit
+func WithLegalType(legalType int) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[privateconstants.LegalType] = legalType
+		config[configPropLegalType] = legalType
 	}
 }
 
@@ -31,9 +50,9 @@ func LegalType(legalType int) interfaces.CustomConfigurationOption {
 //passed. If you're passing a move struct that not's from this package, the
 //auto-generated move name is likely sufficient and you don't need this. See
 //the documentation for moves.Base.MoveTypeName for more information.
-func MoveName(moveName string) interfaces.CustomConfigurationOption {
+func WithMoveName(moveName string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[privateconstants.MoveName] = moveName
+		config[configPropMoveName] = moveName
 	}
 }
 
@@ -44,9 +63,9 @@ func MoveName(moveName string) interfaces.CustomConfigurationOption {
 //sometimes you have the same underlying move struct who is legal in different
 //points in different progressions. This makes it easy to provide a suffix for
 //subsequent uses of the same move to ensure the names are all unique.
-func MoveNameSuffix(suffix string) interfaces.CustomConfigurationOption {
+func WithMoveNameSuffix(suffix string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[privateconstants.MoveNameSuffix] = suffix
+		config[configPropMoveNameSuffix] = suffix
 	}
 }
 
@@ -55,9 +74,9 @@ func MoveNameSuffix(suffix string) interfaces.CustomConfigurationOption {
 //MoveTypeHelpText, which means that auto.Config will use this text whenever
 //it is passed. See the documentation for moves.Base.MoveTypeHelpText for more
 //information.
-func HelpText(helpText string) interfaces.CustomConfigurationOption {
+func WithHelpText(helpText string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[privateconstants.HelpText] = helpText
+		config[configPropHelpText] = helpText
 	}
 }
 
@@ -66,15 +85,15 @@ func HelpText(helpText string) interfaces.CustomConfigurationOption {
 //passed before. move.Base will use the result of this to determine if a given
 //move is legal in the current phase. Typically you don't use this directly,
 //and instead use moves.AddForPhase to use this implicitly.
-func LegalPhases(legalPhases ...int) interfaces.CustomConfigurationOption {
+func WithLegalPhases(legalPhases ...int) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		previousLegalPhases := config[privateconstants.LegalPhases]
+		previousLegalPhases := config[configPropLegalPhases]
 
 		if ints, ok := previousLegalPhases.([]int); ok {
 			legalPhases = append(ints, legalPhases...)
 		}
 
-		config[privateconstants.LegalPhases] = legalPhases
+		config[configPropLegalPhases] = legalPhases
 	}
 }
 
@@ -83,9 +102,9 @@ func LegalPhases(legalPhases ...int) interfaces.CustomConfigurationOption {
 //move type to determine if the move is legal in the order it's being applied.
 //Typically you don't use this directly, and instead use moves.AddOrderedForPhase to
 //use this implicitly.
-func LegalMoveProgression(group interfaces.MoveProgressionGroup) interfaces.CustomConfigurationOption {
+func WithLegalMoveProgression(group interfaces.MoveProgressionGroup) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[privateconstants.LegalMoveProgression] = group
+		config[configPropLegalMoveProgression] = group
 	}
 }
 
@@ -97,10 +116,10 @@ func LegalMoveProgression(group interfaces.MoveProgressionGroup) interfaces.Cust
 //much more rare to use this than other config options in this package. In
 //general, instead of using this option you should simply embed FixUp (or a
 //move that itself embedds IsFixUp), so you don't have to remember to pass
-//with.IsFixUp, which is easy to forget.
-func IsFixUp(isFixUp bool) interfaces.CustomConfigurationOption {
+//WithIsFixUp, which is easy to forget.
+func WithIsFixUp(isFixUp bool) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[privateconstants.IsFixUp] = isFixUp
+		config[configPropIsFixUp] = isFixUp
 	}
 }
 
@@ -109,10 +128,10 @@ func IsFixUp(isFixUp bool) interfaces.CustomConfigurationOption {
 //and phaseToStart is the value within that phase to start. The phaseEnum is
 //optional; if not provided, the name of the move and help text will just use
 //the int value of the phase instead.
-func PhaseToStart(phaseToStart int, optionalPhaseEnum enum.Enum) interfaces.CustomConfigurationOption {
+func WithPhaseToStart(phaseToStart int, optionalPhaseEnum enum.Enum) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[privateconstants.StartPhase] = phaseToStart
-		config[privateconstants.StartPhaseEnum] = optionalPhaseEnum
+		config[configPropStartPhase] = phaseToStart
+		config[configPropStartPhaseEnum] = optionalPhaseEnum
 	}
 }
 
@@ -120,9 +139,9 @@ func PhaseToStart(phaseToStart int, optionalPhaseEnum enum.Enum) interfaces.Cust
 //passed to auto.Config. The stackPropName is assumed to be on the GameState
 //object. If it isn't, you'll need to embed the move and override SourceStack
 //yourself.
-func SourceStack(stackPropName string) interfaces.CustomConfigurationOption {
+func WithSourceStack(stackPropName string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[privateconstants.SourceStack] = stackPropName
+		config[configPropSourceStack] = stackPropName
 	}
 }
 
@@ -130,40 +149,40 @@ func SourceStack(stackPropName string) interfaces.CustomConfigurationOption {
 //being passed to auto.Config. The stackPropName is assumed to be on the
 //GameState object. If it isn't, you'll need to embed the move and override
 //DestinationStack yourself.
-func DestinationStack(stackPropName string) interfaces.CustomConfigurationOption {
+func WithDestinationStack(stackPropName string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[privateconstants.DestinationStack] = stackPropName
+		config[configPropDestinationStack] = stackPropName
 	}
 }
 
 //GameStack returns a function configuration option suitable for being passed
 //to auto.Config.
-func GameStack(stackPropName string) interfaces.CustomConfigurationOption {
+func WithGameStack(stackPropName string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[privateconstants.GameStack] = stackPropName
+		config[configPropGameStack] = stackPropName
 	}
 }
 
 //PlayerStack returns a function configuration option suitable for being
 //passed to auto.Config.
-func PlayerStack(stackPropName string) interfaces.CustomConfigurationOption {
+func WithPlayerStack(stackPropName string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[privateconstants.PlayerStack] = stackPropName
+		config[configPropPlayerStack] = stackPropName
 	}
 }
 
 //NumRounds returns a function configuration option suitable for being
 //passed to auto.Config.
-func NumRounds(numRounds int) interfaces.CustomConfigurationOption {
+func WithNumRounds(numRounds int) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[privateconstants.NumRounds] = numRounds
+		config[configPropNumRounds] = numRounds
 	}
 }
 
 //TargetCount returns a function configuration option suitable for being
 //passed to auto.Config.
-func TargetCount(targetCount int) interfaces.CustomConfigurationOption {
+func WithTargetCount(targetCount int) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[privateconstants.TargetCount] = targetCount
+		config[configPropTargetCount] = targetCount
 	}
 }

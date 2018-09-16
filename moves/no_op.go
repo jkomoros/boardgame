@@ -48,7 +48,7 @@ it begins matching the second group.
 
 Note that because every move config installed must have a different name, if
 you use multiple moves.NoOp in your game, you will want to override at least
-one of their names with with.MoveName or with.MoveNameSuffix.
+one of their names with WithMoveName or WithMoveNameSuffix.
 
 boardgame:codegen
 */
