@@ -28,6 +28,16 @@ type GamePkg struct {
 	memoizedIsGamePkgErr error
 }
 
+//New tries to interpret the input as an import. If that files, tries to
+//interpret it as a path (rel or absolute), and if that fails, bails.
+func New(importOrPath string) (*GamePkg, error) {
+	pkg, err := NewFromImport(importOrPath)
+	if err == nil {
+		return pkg, nil
+	}
+	return NewFromPath(importOrPath)
+}
+
 //NewFromPath takes path (either relative or absolute path) and returns a new
 //GamePkg. Will error if the given path does not appear to denote a valid game
 //package for any reason.
