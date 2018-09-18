@@ -36,8 +36,10 @@ func NewFromPath(path string) (*GamePkg, error) {
 		path = filepath.Join(cwd, path)
 	}
 
-	if _, err := os.Stat(path); err != nil {
+	if info, err := os.Stat(path); err != nil {
 		return nil, errors.New("Path doesn't point to valid location on disk: " + err.Error())
+	} else if !info.IsDir() {
+		return nil, errors.New("Path points to an object but it's not a directory.")
 	}
 
 	result := &GamePkg{
