@@ -36,6 +36,24 @@ func TestBasic(t *testing.T) {
 			true,
 			true,
 		},
+		{
+			"Relative path to blackjack",
+			"../../../examples/blackjack/",
+			false,
+			false,
+		},
+		{
+			"Relative path to non-existant folder",
+			"../../../blackjack",
+			false,
+			true,
+		},
+		{
+			"Relative path to non-game pkg",
+			"../../lib/gamepkg/",
+			false,
+			true,
+		},
 	}
 
 	for i, test := range tests {
