@@ -123,6 +123,8 @@ func (g *GamePkg) goPkg() bool {
 
 }
 
+//Import returns the string that could be used in your source to import this
+//package.
 func (g *GamePkg) Import() (string, error) {
 	//Calculate it if not already calculated (for example via NewFromImport constructor)
 	if g.importPath == "" {
