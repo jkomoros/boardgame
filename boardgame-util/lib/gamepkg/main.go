@@ -9,6 +9,7 @@ package gamepkg
 import (
 	"errors"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/path"
+	"go/build"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -22,7 +23,8 @@ type GamePkg struct {
 }
 
 //NewFromPath takes path (either relative or absolute path) and returns a new
-//GamePkg. Will error if the given path does not appear to denote a valid game package for any reason.
+//GamePkg. Will error if the given path does not appear to denote a valid game
+//package for any reason.
 func NewFromPath(path string) (*GamePkg, error) {
 
 	if !filepath.IsAbs(path) {
@@ -40,7 +42,9 @@ func NewFromPath(path string) (*GamePkg, error) {
 
 }
 
-//NewFromImport will return a new GamePkg pointing to that import.
+//NewFromImport will return a new GamePkg pointing to that import. Will error
+//if the given path does not appear to denote a valid game package for any
+//reason.
 func NewFromImport(importPath string) (*GamePkg, error) {
 
 	absPath, err := path.AbsoluteGoPkgPath(importPath)
@@ -95,4 +99,22 @@ func (g *GamePkg) goPkg() bool {
 
 	return false
 
+}
+
+func (g *GamePkg) Import() (string, error) {
+	//Calculate it if not already calculated (for example via NewFromImport constructor)
+	if g.importPath == "" {
+
+		goPkg, err := build.ImportDir(g.AbsolutePath(), 0)
+
+		if err != nil {
+			return "", errors.New("Couldn't read package: " + err.Error())
+		}
+
+		//TODO: factor this into a helper that also sets the package name in
+		//case it's asked for later.
+		g.importPath = goPkg.ImportPath
+	}
+
+	return g.importPath, nil
 }
