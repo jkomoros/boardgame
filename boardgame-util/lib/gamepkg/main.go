@@ -9,6 +9,7 @@ package gamepkg
 import (
 	"errors"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/path"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -21,8 +22,7 @@ type GamePkg struct {
 }
 
 //NewFromPath takes path (either relative or absolute path) and returns a new
-//GamePkg. It only returns an error if path doesn't denote a real object on
-//disk; it doesn't do any other checking yet.
+//GamePkg. Will error if the given path does not appear to denote a valid game package for any reason.
 func NewFromPath(path string) (*GamePkg, error) {
 
 	if !filepath.IsAbs(path) {
@@ -36,17 +36,7 @@ func NewFromPath(path string) (*GamePkg, error) {
 		path = filepath.Join(cwd, path)
 	}
 
-	if info, err := os.Stat(path); err != nil {
-		return nil, errors.New("Path doesn't point to valid location on disk: " + err.Error())
-	} else if !info.IsDir() {
-		return nil, errors.New("Path points to an object but it's not a directory.")
-	}
-
-	result := &GamePkg{
-		absolutePath: path,
-	}
-
-	return result, nil
+	return newGamePkg(path, "")
 
 }
 
@@ -61,13 +51,27 @@ func NewFromImport(importPath string) (*GamePkg, error) {
 
 	//If no error, then absPath must point to a valid thing
 
+	return newGamePkg(absPath, importPath)
+
+}
+
+func newGamePkg(absPath, importPath string) (*GamePkg, error) {
 	result := &GamePkg{
 		absolutePath: absPath,
 		importPath:   importPath,
 	}
 
-	return result, nil
+	if info, err := os.Stat(absPath); err != nil {
+		return nil, errors.New("Path doesn't point to valid location on disk: " + err.Error())
+	} else if !info.IsDir() {
+		return nil, errors.New("Path points to an object but it's not a directory.")
+	}
 
+	if !result.goPkg() {
+		return nil, errors.New(absPath + " denotes a folder with no go source files")
+	}
+
+	return result, nil
 }
 
 //AbsolutePath returns the absolute path where the package in question resides
@@ -75,4 +79,20 @@ func NewFromImport(importPath string) (*GamePkg, error) {
 //very least point to a valid location on disk.
 func (g *GamePkg) AbsolutePath() string {
 	return g.absolutePath
+}
+
+//goPkg validates that the absolutePath denotes a package with at least one go
+//file. If there's an error will default to false.
+func (g *GamePkg) goPkg() bool {
+
+	infos, _ := ioutil.ReadDir(g.AbsolutePath())
+
+	for _, info := range infos {
+		if filepath.Ext(info.Name()) == ".go" {
+			return true
+		}
+	}
+
+	return false
+
 }
