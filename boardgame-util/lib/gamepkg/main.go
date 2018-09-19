@@ -18,7 +18,7 @@ import (
 	"path/filepath"
 )
 
-type GamePkg struct {
+type Pkg struct {
 	//Every contstructo sets absolutePath to something that at least exists on
 	//disk.
 	absolutePath         string
@@ -30,7 +30,7 @@ type GamePkg struct {
 
 //New tries to interpret the input as an import. If that files, tries to
 //interpret it as a path (rel or absolute), and if that fails, bails.
-func New(importOrPath string) (*GamePkg, error) {
+func New(importOrPath string) (*Pkg, error) {
 	pkg, err := NewFromImport(importOrPath)
 	if err == nil {
 		return pkg, nil
@@ -39,9 +39,9 @@ func New(importOrPath string) (*GamePkg, error) {
 }
 
 //NewFromPath takes path (either relative or absolute path) and returns a new
-//GamePkg. Will error if the given path does not appear to denote a valid game
+//Pkg. Will error if the given path does not appear to denote a valid game
 //package for any reason.
-func NewFromPath(path string) (*GamePkg, error) {
+func NewFromPath(path string) (*Pkg, error) {
 
 	if !filepath.IsAbs(path) {
 
@@ -54,14 +54,14 @@ func NewFromPath(path string) (*GamePkg, error) {
 		path = filepath.Join(cwd, path)
 	}
 
-	return newGamePkg(path, "")
+	return newPkg(path, "")
 
 }
 
-//NewFromImport will return a new GamePkg pointing to that import. Will error
+//NewFromImport will return a new Pkg pointing to that import. Will error
 //if the given path does not appear to denote a valid game package for any
 //reason.
-func NewFromImport(importPath string) (*GamePkg, error) {
+func NewFromImport(importPath string) (*Pkg, error) {
 
 	absPath, err := path.AbsoluteGoPkgPath(importPath)
 
@@ -71,12 +71,12 @@ func NewFromImport(importPath string) (*GamePkg, error) {
 
 	//If no error, then absPath must point to a valid thing
 
-	return newGamePkg(absPath, importPath)
+	return newPkg(absPath, importPath)
 
 }
 
-func newGamePkg(absPath, importPath string) (*GamePkg, error) {
-	result := &GamePkg{
+func newPkg(absPath, importPath string) (*Pkg, error) {
+	result := &Pkg{
 		absolutePath: absPath,
 		importPath:   importPath,
 	}
@@ -103,13 +103,13 @@ func newGamePkg(absPath, importPath string) (*GamePkg, error) {
 //AbsolutePath returns the absolute path where the package in question resides
 //on disk. All constructors will have errored if AbsolutePath doesn't at the
 //very least point to a valid location on disk.
-func (g *GamePkg) AbsolutePath() string {
-	return g.absolutePath
+func (p *Pkg) AbsolutePath() string {
+	return p.absolutePath
 }
 
 //goPkg validates that the absolutePath denotes a package with at least one go
 //file. If there's an error will default to false.
-func (g *GamePkg) goPkg() bool {
+func (g *Pkg) goPkg() bool {
 
 	infos, _ := ioutil.ReadDir(g.AbsolutePath())
 
@@ -125,11 +125,11 @@ func (g *GamePkg) goPkg() bool {
 
 //Import returns the string that could be used in your source to import this
 //package.
-func (g *GamePkg) Import() (string, error) {
+func (p *Pkg) Import() (string, error) {
 	//Calculate it if not already calculated (for example via NewFromImport constructor)
-	if g.importPath == "" {
+	if p.importPath == "" {
 
-		goPkg, err := build.ImportDir(g.AbsolutePath(), 0)
+		goPkg, err := build.ImportDir(p.AbsolutePath(), 0)
 
 		if err != nil {
 			return "", errors.New("Couldn't read package: " + err.Error())
@@ -137,22 +137,22 @@ func (g *GamePkg) Import() (string, error) {
 
 		//TODO: factor this into a helper that also sets the package name in
 		//case it's asked for later.
-		g.importPath = goPkg.ImportPath
+		p.importPath = goPkg.ImportPath
 	}
 
-	return g.importPath, nil
+	return p.importPath, nil
 }
 
-//isGamePkg verifies that the package appears to be a valid game package.
+//isPkg verifies that the package appears to be a valid game package.
 //Specifically it checks for
-func (g *GamePkg) isGamePkg() (bool, error) {
+func (g *Pkg) isGamePkg() (bool, error) {
 	if !g.calculatedIsGamePkg {
 		g.memoizedIsGamePkg, g.memoizedIsGamePkgErr = g.calculateIsGamePkg()
 	}
 	return g.memoizedIsGamePkg, g.memoizedIsGamePkgErr
 }
 
-func (g *GamePkg) calculateIsGamePkg() (bool, error) {
+func (g *Pkg) calculateIsGamePkg() (bool, error) {
 	pkgs, err := parser.ParseDir(token.NewFileSet(), g.AbsolutePath(), nil, 0)
 
 	if err != nil {
