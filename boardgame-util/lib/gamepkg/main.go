@@ -141,6 +141,18 @@ func (p *Pkg) ReadOnly() bool {
 
 }
 
+//Has returns whether the given relPath (directory or file) exists relative to
+//this package.
+func (p *Pkg) Has(relPath string) bool {
+	path := filepath.Join(p.AbsolutePath(), relPath)
+
+	if _, err := os.Stat(path); err != nil {
+		return false
+	}
+
+	return true
+}
+
 //goPkg validates that the absolutePath denotes a package with at least one go
 //file. If there's an error will default to false.
 func (g *Pkg) goPkg() bool {
@@ -164,6 +176,8 @@ func (p *Pkg) Import() string {
 	return p.importPath
 }
 
+//Name returns the package name, which should also be the name of the game
+//(what NewDelegate.Name() returns).
 func (p *Pkg) Name() string {
 	return p.name
 }
