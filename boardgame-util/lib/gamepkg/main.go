@@ -32,6 +32,47 @@ type Pkg struct {
 	memoizedIsGamePkgErr error
 }
 
+//Packages is a convenience func that takes a list of arguments to pass to
+//New() (paths or imports) and returns a list of all of the valid packages.
+//Any packages that errored for any reason will have their error contained in
+//the map of errors. If len(errors) == 0 then no packages errored.
+func Packages(inputs []string) ([]*Pkg, map[string]error) {
+	var result []*Pkg
+	errs := make(map[string]error)
+
+	for _, input := range inputs {
+		pkg, err := New(input)
+		if err == nil {
+			result = append(result, pkg)
+		} else {
+			errs[input] = err
+		}
+	}
+
+	if len(errs) == 0 {
+		errs = nil
+	}
+
+	return result, errs
+}
+
+//AllPackages is a wrapper around Packages that will return a single error and
+//no packages if any of the packages was invalid.
+func AllPackages(inputs []string) ([]*Pkg, error) {
+	pkgs, errs := Packages(inputs)
+
+	if len(errs) == 0 {
+		return pkgs, nil
+	}
+
+	var errorStrings []string
+	for key, val := range errs {
+		errorStrings = append(errorStrings, key+": "+val.Error())
+	}
+
+	return nil, errors.New("At least one package failed to load: " + strings.Join(errorStrings, "; "))
+}
+
 //New is a wrapper around NewFromImport and NewFromPath. First, it tries to
 //interpret the input as an import. If that files, tries to interpret it as a
 //path (rel or absolute), and if that fails, bails.
