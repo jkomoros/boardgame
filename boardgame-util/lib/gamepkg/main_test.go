@@ -7,52 +7,61 @@ import (
 
 func TestBasic(t *testing.T) {
 	tests := []struct {
-		description   string
-		input         string
-		inputIsImport bool
-		errExpected   bool
+		description  string
+		input        string
+		errExpected  bool
+		expectedName string
+		//Leave empty to signal that input is the expected import.
+		expectedImport string
 	}{
 		{
 			"Basic legal",
 			"github.com/jkomoros/boardgame/examples/blackjack",
-			true,
 			false,
+			"blackjack",
+			"",
 		},
 		{
 			"Basic illegal import",
 			"github.com/jkomoros/boardgame/NONEXISTENTFOLDER/blackjack",
 			true,
-			true,
+			"blackjack",
+			"",
 		},
 		{
 			"No go files",
 			"github.com/jkomoros/boardgame/boardgame-util/lib",
 			true,
-			true,
+			"",
+			"",
 		},
 		{
 			"Package doesn't have NewDelegate",
 			"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg",
 			true,
-			true,
+			"",
+			"",
 		},
 		{
 			"Relative path to blackjack",
 			"../../../examples/blackjack/",
 			false,
-			false,
+			"blackjack",
+			"github.com/jkomoros/boardgame/examples/blackjack",
 		},
 		{
 			"Relative path to non-existant folder",
 			"../../../blackjack",
-			false,
 			true,
+			"",
+			"",
 		},
 		{
 			"Relative path to non-game pkg",
 			"../../lib/gamepkg/",
-			false,
 			true,
+			"",
+			"",
 		},
 	}
 
@@ -67,12 +76,12 @@ func TestBasic(t *testing.T) {
 		assert.For(t, i, test.description).ThatActual(err).IsNil()
 		assert.For(t, i, test.description).ThatActual(pkg).IsNotNil()
 
-		if !test.inputIsImport {
-			continue
+		if test.expectedImport == "" {
+			test.expectedImport = test.input
 		}
 
-		calculatedImport := pkg.Import()
+		assert.For(t, i, test.description).ThatActual(pkg.Name()).Equals(test.expectedName)
+		assert.For(t, i, test.description).ThatActual(pkg.Import()).Equals(test.expectedImport)
 
-		assert.For(t, i, test.description).ThatActual(calculatedImport).Equals(test.input)
 	}
 }

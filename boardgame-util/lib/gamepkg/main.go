@@ -24,6 +24,7 @@ type Pkg struct {
 	//disk.
 	absolutePath         string
 	importPath           string
+	name                 string
 	calculatedIsGamePkg  bool
 	memoizedIsGamePkg    bool
 	memoizedIsGamePkgErr error
@@ -56,24 +57,7 @@ func NewFromPath(path string) (*Pkg, error) {
 		path = filepath.Join(cwd, path)
 	}
 
-	pkg, err := newPkg(path, "")
-
-	if err != nil {
-		return pkg, err
-	}
-
-	//We also ensure we have a good value for importPath now, so that Import()
-	//later can just return a string, not (string, error)
-
-	goPkg, err := build.ImportDir(pkg.AbsolutePath(), 0)
-
-	if err != nil {
-		return nil, errors.New("Couldn't read package: " + err.Error())
-	}
-
-	pkg.importPath = goPkg.ImportPath
-
-	return pkg, nil
+	return newPkg(path, "")
 
 }
 
@@ -115,6 +99,23 @@ func newPkg(absPath, importPath string) (*Pkg, error) {
 	if !isGamePkg {
 		return nil, errors.New(absPath + " was not a valid game package: " + err.Error())
 	}
+
+	//We also ensure we have a good value for importPath now, so that Import()
+	//later can just return a string, not (string, error)
+
+	goPkg, err := build.ImportDir(absPath, 0)
+
+	if err != nil {
+		return nil, errors.New("Couldn't read package: " + err.Error())
+	}
+
+	if importPath != "" {
+		if importPath != goPkg.ImportPath {
+			return nil, errors.New("The provided import path does not agree with what go.build thinks the import path is: " + importPath + " : " + goPkg.ImportPath)
+		}
+	}
+	result.importPath = goPkg.ImportPath
+	result.name = goPkg.Name
 
 	return result, nil
 }
@@ -161,6 +162,10 @@ func (g *Pkg) goPkg() bool {
 func (p *Pkg) Import() string {
 
 	return p.importPath
+}
+
+func (p *Pkg) Name() string {
+	return p.name
 }
 
 //isPkg verifies that the package appears to be a valid game package.
