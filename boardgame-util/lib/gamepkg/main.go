@@ -16,6 +16,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type Pkg struct {
@@ -105,6 +106,20 @@ func newPkg(absPath, importPath string) (*Pkg, error) {
 //very least point to a valid location on disk.
 func (p *Pkg) AbsolutePath() string {
 	return p.absolutePath
+}
+
+//ReadOnly returns true if the package appears to be in a read-only location
+//(e.g. a cached module checkout)
+func (p *Pkg) ReadOnly() bool {
+
+	absPath := p.AbsolutePath()
+
+	modulePath := filepath.Join(os.Getenv("GOPATH"), "pkg", "mod")
+
+	//TODO: check the file permissions on package files to check
+
+	return strings.Contains(absPath, modulePath)
+
 }
 
 //goPkg validates that the absolutePath denotes a package with at least one go
