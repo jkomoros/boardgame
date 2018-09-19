@@ -9,6 +9,7 @@ func TestBasic(t *testing.T) {
 	tests := []struct {
 		description  string
 		input        string
+		basePath     string
 		errExpected  bool
 		expectedName string
 		//Leave empty to signal that input is the expected import.
@@ -17,6 +18,7 @@ func TestBasic(t *testing.T) {
 		{
 			"Basic legal",
 			"github.com/jkomoros/boardgame/examples/blackjack",
+			"SHOULDNTBEUSED",
 			false,
 			"blackjack",
 			"",
@@ -24,6 +26,7 @@ func TestBasic(t *testing.T) {
 		{
 			"Basic illegal import",
 			"github.com/jkomoros/boardgame/NONEXISTENTFOLDER/blackjack",
+			"",
 			true,
 			"blackjack",
 			"",
@@ -31,6 +34,7 @@ func TestBasic(t *testing.T) {
 		{
 			"No go files",
 			"github.com/jkomoros/boardgame/boardgame-util/lib",
+			"",
 			true,
 			"",
 			"",
@@ -38,6 +42,7 @@ func TestBasic(t *testing.T) {
 		{
 			"Package doesn't have NewDelegate",
 			"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg",
+			"",
 			true,
 			"",
 			"",
@@ -45,6 +50,7 @@ func TestBasic(t *testing.T) {
 		{
 			"Relative path to blackjack",
 			"../../../examples/blackjack/",
+			"",
 			false,
 			"blackjack",
 			"github.com/jkomoros/boardgame/examples/blackjack",
@@ -52,6 +58,7 @@ func TestBasic(t *testing.T) {
 		{
 			"Relative path to non-existant folder",
 			"../../../blackjack",
+			"",
 			true,
 			"",
 			"",
@@ -59,14 +66,23 @@ func TestBasic(t *testing.T) {
 		{
 			"Relative path to non-game pkg",
 			"../../lib/gamepkg/",
+			"",
 			true,
 			"",
 			"",
 		},
+		{
+			"Relative path to blackjack from parent",
+			"../../examples/blackjack/",
+			"../",
+			false,
+			"blackjack",
+			"github.com/jkomoros/boardgame/examples/blackjack",
+		},
 	}
 
 	for i, test := range tests {
-		pkg, err := New(test.input)
+		pkg, err := New(test.input, test.basePath)
 		if test.errExpected {
 			if err == nil {
 				assert.For(t, i, test.description).ThatActual(err).IsNotNil()

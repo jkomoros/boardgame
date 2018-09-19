@@ -36,12 +36,13 @@ type Pkg struct {
 //New() (paths or imports) and returns a list of all of the valid packages.
 //Any packages that errored for any reason will have their error contained in
 //the map of errors. If len(errors) == 0 then no packages errored.
-func Packages(inputs []string) ([]*Pkg, map[string]error) {
+//optionalBasePath will be passed on to New().
+func Packages(inputs []string, optionalBasePath string) ([]*Pkg, map[string]error) {
 	var result []*Pkg
 	errs := make(map[string]error)
 
 	for _, input := range inputs {
-		pkg, err := New(input)
+		pkg, err := New(input, optionalBasePath)
 		if err == nil {
 			result = append(result, pkg)
 		} else {
@@ -58,8 +59,8 @@ func Packages(inputs []string) ([]*Pkg, map[string]error) {
 
 //AllPackages is a wrapper around Packages that will return a single error and
 //no packages if any of the packages was invalid.
-func AllPackages(inputs []string) ([]*Pkg, error) {
-	pkgs, errs := Packages(inputs)
+func AllPackages(inputs []string, optionalBasePath string) ([]*Pkg, error) {
+	pkgs, errs := Packages(inputs, optionalBasePath)
 
 	if len(errs) == 0 {
 		return pkgs, nil
@@ -75,29 +76,38 @@ func AllPackages(inputs []string) ([]*Pkg, error) {
 
 //New is a wrapper around NewFromImport and NewFromPath. First, it tries to
 //interpret the input as an import. If that files, tries to interpret it as a
-//path (rel or absolute), and if that fails, bails.
-func New(importOrPath string) (*Pkg, error) {
+//path (rel or absolute), and if that fails, bails. optionalBasePath is what
+//to pass to NewFromPath if that is used.
+func New(importOrPath string, optionalBasePath string) (*Pkg, error) {
 	pkg, err := NewFromImport(importOrPath)
 	if err == nil {
 		return pkg, nil
 	}
-	return NewFromPath(importOrPath)
+	return NewFromPath(importOrPath, optionalBasePath)
 }
 
 //NewFromPath takes path (either relative or absolute path) and returns a new
 //Pkg. Will error if the given path does not appear to denote a valid game
-//package for any reason.
-func NewFromPath(path string) (*Pkg, error) {
+//package for any reason. If the path is not absolute, will join wiht
+//optionalBasePath (can be either a rel or absolute path). If optionalBasePath
+//is "" it will be set to current working directory automatically.
+func NewFromPath(path string, optionalBasePath string) (*Pkg, error) {
 
 	if !filepath.IsAbs(path) {
 
-		cwd, err := os.Getwd()
+		//If optionalBasePath is "" this is a no op
+		path = filepath.Join(optionalBasePath, path)
 
-		if err != nil {
-			return nil, errors.New("Couldn't get working directory: " + err.Error())
+		//if it's still not absolute then optionalBasePath must have been "" or a rel path itself.
+		if !filepath.IsAbs(path) {
+			cwd, err := os.Getwd()
+
+			if err != nil {
+				return nil, errors.New("Couldn't get working directory: " + err.Error())
+			}
+
+			path = filepath.Join(cwd, path)
 		}
-
-		path = filepath.Join(cwd, path)
 	}
 
 	return newPkg(path, "")
