@@ -29,8 +29,9 @@ type Pkg struct {
 	memoizedIsGamePkgErr error
 }
 
-//New tries to interpret the input as an import. If that files, tries to
-//interpret it as a path (rel or absolute), and if that fails, bails.
+//New is a wrapper around NewFromImport and NewFromPath. First, it tries to
+//interpret the input as an import. If that files, tries to interpret it as a
+//path (rel or absolute), and if that fails, bails.
 func New(importOrPath string) (*Pkg, error) {
 	pkg, err := NewFromImport(importOrPath)
 	if err == nil {
