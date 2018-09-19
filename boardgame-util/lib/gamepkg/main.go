@@ -104,7 +104,7 @@ func newPkg(absPath, importPath string) (*Pkg, error) {
 
 //AbsolutePath returns the absolute path where the package in question resides
 //on disk. All constructors will have errored if AbsolutePath doesn't at the
-//very least point to a valid location on disk.
+//very least point to a valid location on disk. For example, "/Users/YOURUSERNAME/Code/go/src/github.com/jkomoros/boardgame/examples/memory"
 func (p *Pkg) AbsolutePath() string {
 	return p.absolutePath
 }
@@ -140,7 +140,7 @@ func (g *Pkg) goPkg() bool {
 }
 
 //Import returns the string that could be used in your source to import this
-//package.
+//package, for exampjle "github.com/jkomoros/boardgame/examples/memory"
 func (p *Pkg) Import() (string, error) {
 	//Calculate it if not already calculated (for example via NewFromImport constructor)
 	if p.importPath == "" {
