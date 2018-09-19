@@ -19,6 +19,8 @@ import (
 	"strings"
 )
 
+const clientSubFolder = "client"
+
 type Pkg struct {
 	//Every contstructo sets absolutePath to something that at least exists on
 	//disk.
@@ -139,6 +141,16 @@ func (p *Pkg) ReadOnly() bool {
 
 	return strings.Contains(absPath, modulePath)
 
+}
+
+//ClientFolder returns the absolute path to this game package's folder of
+//client assets, or "" if this game does not have a client folder. Example: "/Users/YOURUSERNAME/Code/go/src/github.com/jkomoros/boardgame/examples/memory/client"
+func (p *Pkg) ClientFolder() string {
+	path := filepath.Join(p.AbsolutePath(), clientSubFolder)
+	if p.Has(path) {
+		return path
+	}
+	return ""
 }
 
 //Has returns whether the given relPath (directory or file) exists relative to

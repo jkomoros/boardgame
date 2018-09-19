@@ -13,6 +13,8 @@ import (
 
 const clientConfigJsFileName = "client_config.js"
 const gameSrcSubFolder = "game-src"
+
+//TODO: remove this, rely only on gamepkg.ClientFolder().
 const clientSubFolder = "client"
 
 const clientGameRendererFileName = "boardgame-render-game-%s.js"
