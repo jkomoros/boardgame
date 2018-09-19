@@ -71,9 +71,7 @@ func TestBasic(t *testing.T) {
 			continue
 		}
 
-		calculatedImport, err := pkg.Import()
-
-		assert.For(t, i, test.description).ThatActual(err).IsNil()
+		calculatedImport := pkg.Import()
 
 		assert.For(t, i, test.description).ThatActual(calculatedImport).Equals(test.input)
 	}

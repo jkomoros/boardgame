@@ -56,7 +56,24 @@ func NewFromPath(path string) (*Pkg, error) {
 		path = filepath.Join(cwd, path)
 	}
 
-	return newPkg(path, "")
+	pkg, err := newPkg(path, "")
+
+	if err != nil {
+		return pkg, err
+	}
+
+	//We also ensure we have a good value for importPath now, so that Import()
+	//later can just return a string, not (string, error)
+
+	goPkg, err := build.ImportDir(pkg.AbsolutePath(), 0)
+
+	if err != nil {
+		return nil, errors.New("Couldn't read package: " + err.Error())
+	}
+
+	pkg.importPath = goPkg.ImportPath
+
+	return pkg, nil
 
 }
 
@@ -141,22 +158,9 @@ func (g *Pkg) goPkg() bool {
 
 //Import returns the string that could be used in your source to import this
 //package, for exampjle "github.com/jkomoros/boardgame/examples/memory"
-func (p *Pkg) Import() (string, error) {
-	//Calculate it if not already calculated (for example via NewFromImport constructor)
-	if p.importPath == "" {
+func (p *Pkg) Import() string {
 
-		goPkg, err := build.ImportDir(p.AbsolutePath(), 0)
-
-		if err != nil {
-			return "", errors.New("Couldn't read package: " + err.Error())
-		}
-
-		//TODO: factor this into a helper that also sets the package name in
-		//case it's asked for later.
-		p.importPath = goPkg.ImportPath
-	}
-
-	return p.importPath, nil
+	return p.importPath
 }
 
 //isPkg verifies that the package appears to be a valid game package.
