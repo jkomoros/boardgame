@@ -14,11 +14,12 @@ type RawConfigMode struct {
 
 //Derive tells the RawConfigMode to create a new, fully derived ConfigMode
 //based on the current properties of this RawConfigMode, setting defaults as
-//necessary. prodMode is whether the ConfigMode being derived is for a Prod or
-//Dev slot in Config. Will always return a reasonably defaulted ConfigMode
-//even if the RawcConfigMode itself is nil. Generally you don't call this, but
-//use NewConfig() instead.
-func (c *RawConfigMode) Derive(prodMode bool) *ConfigMode {
+//necessary. parentConfig is the Config that this configMode will be part of.
+//prodMode is whether the ConfigMode being derived is for a Prod or Dev slot
+//in Config. Will always return a reasonably defaulted ConfigMode even if the
+//RawcConfigMode itself is nil. Generally you don't call this, but use
+//NewConfig() instead.
+func (c *RawConfigMode) Derive(parentConfig *Config, prodMode bool) *ConfigMode {
 
 	var result *ConfigMode
 
@@ -26,10 +27,12 @@ func (c *RawConfigMode) Derive(prodMode bool) *ConfigMode {
 		result = &ConfigMode{}
 	} else {
 		result = &ConfigMode{
-			c.ConfigModeCommon,
-			c.Games.List(),
+			ConfigModeCommon: c.ConfigModeCommon,
+			Games:            c.Games.List(),
 		}
 	}
+
+	result.parentConfig = parentConfig
 
 	if result.DefaultPort == "" {
 		if prodMode {

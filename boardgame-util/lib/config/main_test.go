@@ -63,6 +63,7 @@ func TestBaseExtend(t *testing.T) {
 						"https://localhost",
 					},
 					nil,
+					nil,
 				},
 				&ConfigMode{
 					ConfigModeCommon{
@@ -71,6 +72,7 @@ func TestBaseExtend(t *testing.T) {
 						DefaultStaticPort: "80",
 						Storage:           make(map[string]string),
 					},
+					nil,
 					nil,
 				},
 				nil,
@@ -150,6 +152,7 @@ func TestBaseExtend(t *testing.T) {
 						"https://localhost",
 					},
 					nil,
+					nil,
 				},
 				&ConfigMode{
 					ConfigModeCommon{
@@ -173,6 +176,7 @@ func TestBaseExtend(t *testing.T) {
 						"https://localhost",
 					},
 					nil,
+					nil,
 				},
 				nil,
 				nil,
@@ -191,6 +195,8 @@ func TestBaseExtend(t *testing.T) {
 		//Chjeat and zero these out so we skip them in the compare
 		out.rawSecretConfig = nil
 		out.rawPublicConfig = nil
+		out.Prod.parentConfig = nil
+		out.Dev.parentConfig = nil
 
 		assert.For(t, i, test.description).ThatActual(out).Equals(test.out).ThenDiffOnFail()
 	}
@@ -224,6 +230,7 @@ func TestApiHostDerivation(t *testing.T) {
 					Storage:           make(map[string]string),
 				},
 				nil,
+				nil,
 			},
 		},
 		{
@@ -243,6 +250,7 @@ func TestApiHostDerivation(t *testing.T) {
 					AllowedOrigins:    "*",
 					Storage:           make(map[string]string),
 				},
+				nil,
 				nil,
 			},
 		},
@@ -271,6 +279,7 @@ func TestApiHostDerivation(t *testing.T) {
 					Storage:        make(map[string]string),
 				},
 				nil,
+				nil,
 			},
 		},
 		{
@@ -297,6 +306,7 @@ func TestApiHostDerivation(t *testing.T) {
 					AllowedOrigins:    "*",
 					Storage:           make(map[string]string),
 				},
+				nil,
 				nil,
 			},
 		},
@@ -325,12 +335,13 @@ func TestApiHostDerivation(t *testing.T) {
 					Storage:        make(map[string]string),
 				},
 				nil,
+				nil,
 			},
 		},
 	}
 
 	for i, test := range tests {
-		out := test.in.Derive(test.prodMode)
+		out := test.in.Derive(nil, test.prodMode)
 
 		assert.For(t, i, test.description).ThatActual(out).Equals(test.out).ThenDiffOnFail()
 	}

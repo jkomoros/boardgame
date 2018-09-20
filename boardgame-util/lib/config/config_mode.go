@@ -15,6 +15,8 @@ type ConfigMode struct {
 	//based on the contents of Games. It is OK to use literally as Games in
 	//RawConfig, though, because its serialization is a legal GamesNode.
 	Games []string `json:"games"`
+
+	parentConfig *Config
 }
 
 func (c *ConfigMode) String() string {
@@ -23,6 +25,13 @@ func (c *ConfigMode) String() string {
 		return "ERROR, couldn't unmarshal: " + err.Error()
 	}
 	return string(blob)
+}
+
+//ParentConfig returns the Config that this ConfigMode is part of.
+//Specifically, returns the config that was passed as ParentConfig to
+//RawConfigMode.Derive().
+func (c *ConfigMode) ParentConfig() *Config {
+	return c.parentConfig
 }
 
 func (c *ConfigMode) OriginAllowed(origin string) bool {

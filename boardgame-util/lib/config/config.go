@@ -144,8 +144,8 @@ func (c *Config) derive() {
 		dev = base.Extend(dev)
 	}
 
-	c.Prod = prod.Derive(true)
-	c.Dev = dev.Derive(false)
+	c.Prod = prod.Derive(c, true)
+	c.Dev = dev.Derive(c, false)
 
 	return
 
