@@ -2,7 +2,9 @@ package config
 
 import (
 	"encoding/json"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 	"net/url"
+	"path/filepath"
 	"strings"
 )
 
@@ -25,6 +27,47 @@ func (c *ConfigMode) String() string {
 		return "ERROR, couldn't unmarshal: " + err.Error()
 	}
 	return string(blob)
+}
+
+//GamePackages returns all of the game packages listed in Games[] that are
+//valid, with errors for the invalid ones. A wrapper around
+//gamepkg.Packages(), that passes the path of the config as optionalBasePath,
+//so that relative paths in games listed in config are interpreted as relative
+//to the config.json, not whatever working directory boardgame-util is being
+//run in.
+func (c *ConfigMode) GamePackages() ([]*gamepkg.Pkg, map[string]error) {
+
+	return gamepkg.Packages(c.Games, c.basePath())
+
+}
+
+//AllGamePackages returns either a gamepkg for each listed game, or an error
+//if any one of them was invalid. A wrapper around gamepkg.AllPackages(), that
+//passes the path of the config as optionalBasePath, so that relative paths in
+//games listed in config are interpreted as relative to the config.json, not
+//whatever working directory boardgame-util is being run in.
+func (c *ConfigMode) AllGamePackages() ([]*gamepkg.Pkg, error) {
+	return gamepkg.AllPackages(c.Games, c.basePath())
+}
+
+//basePath returns the base path to pass to gamepkg.Packages and friends.
+func (c *ConfigMode) basePath() string {
+	if c.parentConfig == nil {
+		return ""
+	}
+
+	path := c.parentConfig.Path()
+
+	if path == "" {
+		path = c.parentConfig.SecretPath()
+	}
+
+	if path == "" {
+		return path
+	}
+
+	return filepath.Dir(path)
+
 }
 
 //ParentConfig returns the Config that this ConfigMode is part of.
