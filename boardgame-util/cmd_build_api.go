@@ -49,7 +49,13 @@ func (b *BuildApi) Run(p writ.Path, positional []string) {
 
 	storage := effectiveStorageType(b.Base(), config.Dev, b.Storage)
 
-	binaryPath, err := api.Build(dir, mode.Games, storage)
+	pkgs, err := mode.AllGamePackages()
+
+	if err != nil {
+		b.Base().errAndQuit("Not all game packages were valid: " + err.Error())
+	}
+
+	binaryPath, err := api.Build(dir, pkgs, storage)
 
 	if err != nil {
 		b.Base().errAndQuit("Couldn't generate binary: " + err.Error())

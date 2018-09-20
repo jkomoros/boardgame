@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"errors"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 	"go/format"
 	"io/ioutil"
 	"os"
@@ -22,13 +23,13 @@ compiled binary. The bulk of the logic to generate the code is in Code().
 To clean up the binary, call Cleanup and pass the same directory.
 
 */
-func Build(directory string, managers []string, storage StorageType) (string, error) {
+func Build(directory string, pkgs []*gamepkg.Pkg, storage StorageType) (string, error) {
 
 	if _, err := os.Stat(directory); os.IsNotExist(err) {
 		return "", errors.New("The provided directory, " + directory + " does not exist.")
 	}
 
-	code, err := Code(managers, storage)
+	code, err := Code(pkgs, storage)
 
 	if err != nil {
 		return "", errors.New("Couldn't generate code: " + err.Error())
@@ -71,15 +72,9 @@ func Build(directory string, managers []string, storage StorageType) (string, er
 }
 
 //Code returns the code for the `api/main.go`of a server with the given type.
-func Code(managers []string, storage StorageType) ([]byte, error) {
+func Code(pkgs []*gamepkg.Pkg, storage StorageType) ([]byte, error) {
 
 	buf := new(bytes.Buffer)
-
-	managerPkgNames := make([]string, len(managers))
-
-	for i, manager := range managers {
-		managerPkgNames[i] = filepath.Base(manager)
-	}
 
 	storageImport := storage.Import()
 
@@ -88,8 +83,7 @@ func Code(managers []string, storage StorageType) ([]byte, error) {
 	}
 
 	err := apiTemplate.Execute(buf, map[string]interface{}{
-		"managers":           managers,
-		"managerNames":       managerPkgNames,
+		"pkgs":               pkgs,
 		"storageImport":      storageImport,
 		"storageConstructor": storage.Constructor(),
 	})
@@ -122,8 +116,8 @@ A server binary generated automatically by 'boardgame-util/lib/build.Api()'
 package main
 
 import (
-	{{- range .managers}}
-	"{{.}}"
+	{{- range .pkgs}}
+	"{{.Import}}"
 	{{- end}}
 	"github.com/jkomoros/boardgame/server/api"
 	{{.storageImport}}
@@ -134,8 +128,8 @@ func main() {
 	storage := api.NewServerStorageManager({{.storageConstructor}})
 	defer storage.Close()
 	api.NewServer(storage,
-		{{- range .managerNames}}
-		{{.}}.NewDelegate(),
+		{{- range .pkgs}}
+		{{.Name}}.NewDelegate(),
 		{{- end}}
 	).Start()
 }

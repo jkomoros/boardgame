@@ -30,8 +30,14 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 
 	storage := effectiveStorageType(s.Base(), mode, s.Storage)
 
+	pkgs, err := mode.AllGamePackages()
+
+	if err != nil {
+		s.Base().errAndQuit("Not all game packages were valid: " + err.Error())
+	}
+
 	fmt.Println("Creating temporary binary")
-	apiPath, err := api.Build(dir, mode.Games, storage)
+	apiPath, err := api.Build(dir, pkgs, storage)
 
 	if err != nil {
 		s.Base().errAndQuit("Couldn't create api: " + err.Error())

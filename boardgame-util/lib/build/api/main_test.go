@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 	"github.com/workfit/tester/assert"
 	"testing"
 )
@@ -13,7 +14,11 @@ func TestCode(t *testing.T) {
 		"github.com/jkomoros/boardgame/examples/tictactoe",
 	}
 
-	code, err := Code(managers, StorageBolt)
+	pkgs, err := gamepkg.AllPackages(managers, "")
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	code, err := Code(pkgs, StorageBolt)
 
 	assert.For(t).ThatActual(err).IsNil()
 
