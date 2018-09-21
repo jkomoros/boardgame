@@ -5,6 +5,7 @@ import (
 	"github.com/bobziuchkovski/writ"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/build/api"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/build/static"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
 	"os"
 	"os/exec"
 	"strings"
@@ -19,12 +20,19 @@ type Serve struct {
 	Port       string
 	StaticPort string
 	Prod       bool
+
+	OfflineDevMode bool
 }
 
 func (s *Serve) Run(p writ.Path, positional []string) {
 
-	config := s.Base().GetConfig(false)
-	mode := config.Dev
+	c := s.Base().GetConfig(false)
+
+	if s.OfflineDevMode {
+		c.AddOverride(config.EnableOfflineDevMode())
+	}
+
+	mode := c.Dev
 
 	dir := s.Base().NewTempDir("temp_serve_")
 
@@ -36,8 +44,14 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 		s.Base().errAndQuit("Not all game packages were valid: " + err.Error())
 	}
 
+	apiOptions := &api.Options{}
+
+	if s.OfflineDevMode {
+		apiOptions.OverrideOfflineDevMode = true
+	}
+
 	fmt.Println("Creating temporary binary")
-	apiPath, err := api.Build(dir, pkgs, storage, nil)
+	apiPath, err := api.Build(dir, pkgs, storage, apiOptions)
 
 	if err != nil {
 		s.Base().errAndQuit("Couldn't create api: " + err.Error())
@@ -46,7 +60,7 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 	fmt.Println("Creating temporary static assets folder")
 	//TODO: should we allow you to pass CopyFiles? I don't know why you'd want
 	//to given this is a temp dir.
-	_, err = static.Build(dir, mode.Games, config, s.Prod, false, mode.OfflineDevMode)
+	_, err = static.Build(dir, mode.Games, c, s.Prod, false, mode.OfflineDevMode)
 
 	if err != nil {
 		s.Base().errAndQuit("Couldn't create static directory: " + err.Error())
@@ -151,6 +165,12 @@ func (s *Serve) WritOptions() []*writ.Option {
 			Names:       []string{"prod"},
 			Description: "If provided, will created bundled build directory for static resources.",
 			Decoder:     writ.NewFlagDecoder(&s.Prod),
+			Flag:        true,
+		},
+		{
+			Names:       []string{"offline-dev-mode"},
+			Description: "If provided, will override OfflineDevMode to true, no matter what is in config. This is generally the best way to enable offline dev mode.",
+			Decoder:     writ.NewFlagDecoder(&s.OfflineDevMode),
 			Flag:        true,
 		},
 	}

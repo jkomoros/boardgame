@@ -51,6 +51,8 @@ legitimate, will use faux authentication clientside (showing a red dot), and
 will disable loading roboto fonts in index.html. This is an extremely
 dangerous option and may not be enabled in prod.
 
+Typically you only want to enable this in certain conditions, like when you're developing on an airplane. For that reason it's not common to set this in your config.json; typically you instead pass `--offline-dev-mode` to `boardgaume-util serve` to enable it only temporarily.
+
 ### AdminUserIds
 
 When adminmode chcecking is enabled (which is the default, see above), only
