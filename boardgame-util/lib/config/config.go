@@ -21,6 +21,7 @@ type Config struct {
 	Prod            *ConfigMode
 	rawPublicConfig *RawConfig
 	rawSecretConfig *RawConfig
+	overriders      []OptionOverrider
 }
 
 //NewConfig returns a new, derived config object based on the given raw
@@ -36,11 +37,43 @@ func NewConfig(raw, rawSecret *RawConfig) *Config {
 	return result
 }
 
+//OptionOverriders are the primary option that config.AddOverride takes. They
+//take a configmode and modify some number of properties. prodMode is true if
+//it's being called on the prod option, false if on dev. A few are defined as
+//conveniences in this package.
+type OptionOverrider func(prodMode bool, c *ConfigMode)
+
+//EnableOfflineDevMode returns an OptionOverrider that can be passed to
+//config.AddOverride. It simply sets OfflineDevMode to true. It will not
+//modify ProdMode, since that value is unsafe in prod mode.
+func EnableOfflineDevMode() OptionOverrider {
+	//Return a closure mainly just so that EnableOfflineDevMode nests under OptionOverrider in godoc.
+	return func(prodMode bool, c *ConfigMode) {
+		//OfflineDevMode should never be enabled on prod mode.
+		if prodMode {
+			return
+		}
+		c.OfflineDevMode = true
+	}
+}
+
+//AddOverride takes an OptionOverrider. Overrides are applied to the final Dev
+//and Prod configModes after they are derived, passing prodMode of true for
+//the prod mode. If you want an override to only apply to dev or prod, the
+//OptionOverrider you pass should filter based on prodMode. The changes are
+//temporary and will not be persisted to disk when Save() is called. If you
+//want changes that will be persisted, see Update.
+func (c *Config) AddOverride(o OptionOverrider) {
+	c.overriders = append(c.overriders, o)
+	c.derive()
+}
+
 //Update modifies the config in a specified way. typ and secret select the
 //RawConfigMode to modify (creating one if necessary) and then updater applies
 //the update. See Set* functions in this package for factories for common
 //ConfigUpdaters. After the update, the Config has all of its values rederived
-//to reflect the change.
+//to reflect the change. If you want changes that will not be persisted, see
+//AddOverride.
 func (c *Config) Update(typ ConfigModeType, secret bool, updater ConfigUpdater) error {
 
 	if updater == nil {
@@ -146,6 +179,11 @@ func (c *Config) derive() {
 
 	c.Prod = prod.Derive(c, true)
 	c.Dev = dev.Derive(c, false)
+
+	for _, overrider := range c.overriders {
+		overrider(false, c.Dev)
+		overrider(true, c.Prod)
+	}
 
 	return
 
