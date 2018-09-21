@@ -77,15 +77,15 @@ one in your config, boardgame-util will fall back on the default type.
 
 Games is a tree defining the game packages you want included, listed by their
 imports, e.g. "github.com/jkomoros/boardgame/examples/checkers" and
-"github.com/jkomoros/test-game/example". boardgame-util will literally use
-these strings as the imports for the packages in the generated server binary,
-and will also use them to find the location of that package on disk so it can
-symlink any static server resource folders to point to their client folder.
-See boardgame-util/lib/path.AbsoluteGoPkgPath for more on how those static
-server bundles are looked up. Note that if modules are enabled, when
-build.Static() is called with a game, it will be fetched and cached if
-necessary.
+"github.com/jkomoros/test-game/example". You can also provide relative paths that point to a valid game package directory, relative to the location of the config.json file they're contained within. Note that if you provide relative paths to `boardgame-util config add games`, the relative paths will be converted to their import, so if you want a relative path in the config file you need to add it manually.
 
+boardgame-util will use `boardgame/boardgame-util/lib/gamepkg` to load up the
+provided imports and verify that they are valid game packages on disk. See the
+documentation for that library for more on how it finds and validates packages.
+`build/api` and `build/static` will use the information in the packages to
+generate code that imports them and creates delegates, and also symlinks folders to the underlying client directories for the static assets.
+
+Note that if modules are enabled, when build.Static() is called with a game that is in a module not yet on disk, it will be fetched and cached if necessary.
 
 ## GoogleAnalytics
 
