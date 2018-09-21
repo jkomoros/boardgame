@@ -169,7 +169,7 @@ func (s *Serve) WritOptions() []*writ.Option {
 		},
 		{
 			Names:       []string{"offline-dev-mode"},
-			Description: "If provided, will override OfflineDevMode to true, no matter what is in config. This is generally the best way to enable offline dev mode.",
+			Description: "If provided, will override OfflineDevMode to true, no matter what is in config. The effect of this is that the webapp won't make any calls to anything but localhost, allowing development on for example a plane. This is generally the best way to enable offline dev mode.",
 			Decoder:     writ.NewFlagDecoder(&s.OfflineDevMode),
 			Flag:        true,
 		},
