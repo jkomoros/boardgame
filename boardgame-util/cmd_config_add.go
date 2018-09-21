@@ -50,7 +50,7 @@ func (c *ConfigAdd) HelpText() string {
 
 		"If KEY is of type []string, simply adds the key to the given val if it doesn't exist. `config set` also has a similar effect for fields of this type. " +
 
-		"Keys of this type are (" + strings.Join(keyNamesForConfigType(config.FieldTypeStringSlice), ",") + "). `Games` is also of this type.\n\n" +
+		"Keys of this type are (" + strings.Join(keyNamesForConfigType(config.FieldTypeStringSlice), ",") + "). `Games` is also of this type, although games will verify the given value is either an import for a valid gamepackage or a reference to a directory that contains a valid game package.\n\n" +
 
 		"See help for the parent command for more information about configuration in general."
 

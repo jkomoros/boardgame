@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 )
 
 //ConfigUpdater is a function that takes a rawConfig and makes a modifcation
@@ -90,11 +91,22 @@ func RemoveString(field ConfigModeField, val string) ConfigUpdater {
 
 }
 
-//AddGame adds the given value to the Games node.
+//AddGame adds the given value to the Games node. Val can be a path or import;
+//in either case it's looked up via gamepkg, and its Import() is used if the
+//package is valid. Returns an error if the package isn't valid.
 func AddGame(val string) ConfigUpdater {
 
 	return func(r *RawConfigMode, typ ConfigModeType) error {
-		r.Games = r.Games.AddGame(val)
+
+		//We don't pass the path of the config, because the usage is often
+		//from a CLI, where relative-path tab completion is relative to CWD.
+		pkg, err := gamepkg.New(val, "")
+
+		if err != nil {
+			return errors.New("Invalid game package: " + err.Error())
+		}
+
+		r.Games = r.Games.AddGame(pkg.Import())
 		return nil
 	}
 
