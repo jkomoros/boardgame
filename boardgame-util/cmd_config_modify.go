@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/bobziuchkovski/writ"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
 )
@@ -61,8 +62,14 @@ func (c *ConfigModify) RunWithUpdateFactory(p writ.Path, positional []string, fa
 }
 
 func (c *ConfigModify) ConfirmField(field config.ConfigModeField) bool {
+
 	//We only warn for secret fields on prod.
 	if !c.Prod {
+
+		if field == config.FieldOfflineDevMode {
+			fmt.Println("WARNING: Typically you don't set offlinedevmode in your config, but pass --offline-dev-mode to 'boardgame-util serve' when you want it.")
+		}
+
 		return true
 	}
 	//Setting on secret is always fine.
