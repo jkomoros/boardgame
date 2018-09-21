@@ -46,7 +46,7 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 	fmt.Println("Creating temporary static assets folder")
 	//TODO: should we allow you to pass CopyFiles? I don't know why you'd want
 	//to given this is a temp dir.
-	_, err = static.Build(dir, mode.Games, config, s.Prod, false)
+	_, err = static.Build(dir, mode.Games, config, s.Prod, false, mode.OfflineDevMode)
 
 	if err != nil {
 		s.Base().errAndQuit("Couldn't create static directory: " + err.Error())

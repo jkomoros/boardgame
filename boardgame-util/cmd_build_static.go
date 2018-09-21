@@ -21,7 +21,7 @@ func (b *BuildStatic) Run(p writ.Path, positional []string) {
 
 	mode := config.Dev
 
-	staticPath, err := static.Build(dir, mode.Games, config, b.Prod, b.CopyFiles)
+	staticPath, err := static.Build(dir, mode.Games, config, b.Prod, b.CopyFiles, mode.OfflineDevMode)
 
 	if err != nil {
 		b.Base().errAndQuit("Couldn't create static directory: " + err.Error())

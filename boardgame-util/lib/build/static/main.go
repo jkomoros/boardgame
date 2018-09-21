@@ -44,9 +44,9 @@
 	dependencies given the contents of
 	`github.com/jkomoros/boardgame/server/static/package.json`. Checking out
 	this whole directory is expensive, so this package creates a node_modules
-	in a central cache, re-upping it each time this command is run, and then
-	symlinks it into the static directory. This step is encapsulated by
-	LinkNodeModules.
+	in a central cache, re-upping it each time this command is run (unless
+	skipUpdate is true), and then symlinks it into the static directory. This
+	step is encapsulated by LinkNodeModules.
 
 	Next, it generates a `client_config.js`, which encodes the global
 	configuration for the client webapp. It calls config.Client(false) and
@@ -163,14 +163,14 @@ directory. It is the primary entrypoint for this package. It has no logic of
 its own but serves to call all of the build steps in the correct order.
 
 Specificlaly, it calls: CopyStaticResources, passing copyFiles;
-LinkNodeModules; CreateClientConfigJs, passing c; LinkGameClientFolders,
-passing gameImports; CreatePolymerJson, passing false. If prodBuild is true,
-also calls BuildPolymer.
+LinkNodeModules, passing skipNodeUpdate; CreateClientConfigJs, passing c;
+LinkGameClientFolders, passing gameImports; CreatePolymerJson, passing false.
+If prodBuild is true, also calls BuildPolymer.
 
 See the package doc for more about the specific build steps and what they do.
 
 */
-func Build(directory string, gameImports []string, c *config.Config, prodBuild bool, copyFiles bool) (assetRoot string, err error) {
+func Build(directory string, gameImports []string, c *config.Config, prodBuild bool, copyFiles bool, skipNodeUpdate bool) (assetRoot string, err error) {
 
 	staticDir, err := staticBuildDir(directory)
 	if err != nil {
@@ -183,7 +183,7 @@ func Build(directory string, gameImports []string, c *config.Config, prodBuild b
 	}
 
 	fmt.Println("Updating " + nodeModulesFolder + " and linking in")
-	if err := LinkNodeModules(directory); err != nil {
+	if err := LinkNodeModules(directory, skipNodeUpdate); err != nil {
 		return "", errors.New("Couldn't link " + nodeModulesFolder + ": " + err.Error())
 	}
 
