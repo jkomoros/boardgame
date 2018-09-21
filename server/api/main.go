@@ -27,6 +27,8 @@ type Server struct {
 	lastErrorMessage string
 	config           *config.ConfigMode
 
+	overriders []config.OptionOverrider
+
 	upgrader websocket.Upgrader
 
 	notifier *versionNotifier
@@ -719,6 +721,13 @@ func (s *Server) doGameVersion(r *Renderer, game *boardgame.Game, version, fromV
 	})
 }
 
+//AddOverrides defines overrides that will be applied on top of the config we
+//load. We return a reference to ourself to allow chaining of configurations.
+func (s *Server) AddOverrides(overrides []config.OptionOverrider) *Server {
+	s.overriders = append(s.overriders, overrides...)
+	return s
+}
+
 func (s *Server) configureGameHandler(c *gin.Context) {
 	game := s.getGame(c)
 
@@ -1032,6 +1041,10 @@ func (s *Server) genericHandler(c *gin.Context) {
 func (s *Server) Start() {
 
 	config, err := config.Get("", false)
+
+	for _, o := range s.overriders {
+		config.AddOverride(o)
+	}
 
 	if err != nil {
 		s.logger.Errorln("Configuration error: " + err.Error())
