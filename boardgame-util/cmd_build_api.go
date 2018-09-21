@@ -55,7 +55,7 @@ func (b *BuildApi) Run(p writ.Path, positional []string) {
 		b.Base().errAndQuit("Not all game packages were valid: " + err.Error())
 	}
 
-	binaryPath, err := api.Build(dir, pkgs, storage)
+	binaryPath, err := api.Build(dir, pkgs, storage, nil)
 
 	if err != nil {
 		b.Base().errAndQuit("Couldn't generate binary: " + err.Error())

@@ -37,7 +37,7 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 	}
 
 	fmt.Println("Creating temporary binary")
-	apiPath, err := api.Build(dir, pkgs, storage)
+	apiPath, err := api.Build(dir, pkgs, storage, nil)
 
 	if err != nil {
 		s.Base().errAndQuit("Couldn't create api: " + err.Error())

@@ -13,6 +13,14 @@ import (
 
 const apiSubFolder = "api"
 
+//Options is a struct to pass extra options to Code() and Build(). The
+//defaults are all the zero values.
+type Options struct {
+	//If true, installs an overrider in the generated binary that enables
+	//offline dev mode.
+	OverrideOfflineDevMode bool
+}
+
 /*
 
 Build is the primary method in this package. It generates the code for a
@@ -23,13 +31,13 @@ compiled binary. The bulk of the logic to generate the code is in Code().
 To clean up the binary, call Cleanup and pass the same directory.
 
 */
-func Build(directory string, pkgs []*gamepkg.Pkg, storage StorageType) (string, error) {
+func Build(directory string, pkgs []*gamepkg.Pkg, storage StorageType, options *Options) (string, error) {
 
 	if _, err := os.Stat(directory); os.IsNotExist(err) {
 		return "", errors.New("The provided directory, " + directory + " does not exist.")
 	}
 
-	code, err := Code(pkgs, storage)
+	code, err := Code(pkgs, storage, options)
 
 	if err != nil {
 		return "", errors.New("Couldn't generate code: " + err.Error())
@@ -72,7 +80,12 @@ func Build(directory string, pkgs []*gamepkg.Pkg, storage StorageType) (string, 
 }
 
 //Code returns the code for the `api/main.go`of a server with the given type.
-func Code(pkgs []*gamepkg.Pkg, storage StorageType) ([]byte, error) {
+//Options may be nil for default options.
+func Code(pkgs []*gamepkg.Pkg, storage StorageType, options *Options) ([]byte, error) {
+
+	if options == nil {
+		options = &Options{}
+	}
 
 	buf := new(bytes.Buffer)
 
@@ -86,6 +99,7 @@ func Code(pkgs []*gamepkg.Pkg, storage StorageType) ([]byte, error) {
 		"pkgs":               pkgs,
 		"storageImport":      storageImport,
 		"storageConstructor": storage.Constructor(),
+		"options":            options,
 	})
 
 	if err != nil {
@@ -110,7 +124,7 @@ func Clean(directory string) error {
 
 var apiTemplateText = `/*
 
-A server binary generated automatically by 'boardgame-util/lib/build.Api()'
+A server binary generated automatically by 'boardgame-util/lib/build/api/Build()'
 
 */
 package main
@@ -121,7 +135,18 @@ import (
 	{{- end}}
 	"github.com/jkomoros/boardgame/server/api"
 	{{.storageImport}}
+	{{- if .options.OverrideOfflineDevMode }}
+	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
+	{{- end}}
 )
+
+{{if .options.OverrideOfflineDevMode}}
+var overrides []config.OptionOverrider
+
+func init() {
+	overrides = append(overrides, config.EnableOfflineDevMode())
+}
+{{end}}
 
 func main() {
 
@@ -131,7 +156,11 @@ func main() {
 		{{- range .pkgs}}
 		{{.Name}}.NewDelegate(),
 		{{- end}}
+	{{- if .options.OverrideOfflineDevMode }}		
+	).AddOverrides(overrides).Start()
+	{{- else}}
 	).Start()
+	{{- end}}
 }
 
 `
