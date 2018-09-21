@@ -198,7 +198,7 @@ func (p *Pkg) ReadOnly() bool {
 //client assets, or "" if this game does not have a client folder. Example: "/Users/YOURUSERNAME/Code/go/src/github.com/jkomoros/boardgame/examples/memory/client"
 func (p *Pkg) ClientFolder() string {
 	path := filepath.Join(p.AbsolutePath(), clientSubFolder)
-	if p.Has(path) {
+	if p.Has(clientSubFolder) {
 		return path
 	}
 	return ""

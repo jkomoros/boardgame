@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/path"
 	"io/ioutil"
 	"os"
@@ -95,9 +96,9 @@ func CopyStaticResources(dir string, copyFiles bool) error {
 }
 
 //LinkGameClientFoldrs creates a game-src directory and for each import listed
-//in gameImports, finds a copy of that game on disk and symlinks its client
+//in pkgs, finds a copy of that game on disk and symlinks its client
 //directory into game-src.
-func LinkGameClientFolders(dir string, gameImports []string) error {
+func LinkGameClientFolders(dir string, pkgs []*gamepkg.Pkg) error {
 
 	staticDir, err := staticBuildDir(dir)
 	if err != nil {
@@ -122,23 +123,16 @@ func LinkGameClientFolders(dir string, gameImports []string) error {
 		return errors.New("Can't get working directory: " + err.Error())
 	}
 
-	for _, manager := range gameImports {
-		absPkgPath, err := path.AbsoluteGoPkgPath(manager)
+	for _, pkg := range pkgs {
 
-		if err != nil {
-			return errors.New(manager + " didn't seem to be installed or installable: " + err.Error())
-		}
+		absClientPath := pkg.ClientFolder()
 
-		pkgShortName := filepath.Base(manager)
-
-		absClientPath := filepath.Join(absPkgPath, clientSubFolder)
-
-		if _, err := os.Stat(absClientPath); os.IsNotExist(err) {
-			fmt.Println("Skipping " + manager + " because it doesn't appear to have a client sub-directory")
+		if absClientPath == "" {
+			fmt.Println("Skipping " + pkg.Name() + " because it doesn't appear to have a client sub-directory")
 			continue
 		}
 
-		relLocalPath := filepath.Join(gameSrcDir, pkgShortName)
+		relLocalPath := filepath.Join(gameSrcDir, pkg.Name())
 
 		//This feels like it should be relLocalPath, but it needs to be
 		//gameSrcDir, otherwise there's an extra ".." in the path. Not really
@@ -164,7 +158,7 @@ func LinkGameClientFolders(dir string, gameImports []string) error {
 
 		fmt.Println("Linking " + relLocalPath + " to " + relPath)
 		if err := os.Symlink(relPath, relLocalPath); err != nil {
-			return errors.New("Couldn't create sym lnk for " + manager + ": " + relPath + ":: " + relLocalPath)
+			return errors.New("Couldn't create sym lnk for " + pkg.Name() + ": " + relPath + ":: " + relLocalPath)
 		}
 
 	}

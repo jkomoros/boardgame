@@ -101,6 +101,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -170,7 +171,7 @@ If prodBuild is true, also calls BuildPolymer.
 See the package doc for more about the specific build steps and what they do.
 
 */
-func Build(directory string, gameImports []string, c *config.Config, prodBuild bool, copyFiles bool, skipNodeUpdate bool) (assetRoot string, err error) {
+func Build(directory string, pkgs []*gamepkg.Pkg, c *config.Config, prodBuild bool, copyFiles bool, skipNodeUpdate bool) (assetRoot string, err error) {
 
 	staticDir, err := staticBuildDir(directory)
 	if err != nil {
@@ -193,7 +194,7 @@ func Build(directory string, gameImports []string, c *config.Config, prodBuild b
 	}
 
 	fmt.Println("Creating " + gameSrcSubFolder)
-	if err := LinkGameClientFolders(directory, gameImports); err != nil {
+	if err := LinkGameClientFolders(directory, pkgs); err != nil {
 		return "", errors.New("Couldn't create " + gameSrcSubFolder + ": " + err.Error())
 	}
 
