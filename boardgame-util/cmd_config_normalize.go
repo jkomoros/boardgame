@@ -12,6 +12,14 @@ func (c *ConfigNormalize) Run(p writ.Path, positional []string) {
 
 	config := c.Base().GetConfig(false)
 
+	if _, err := config.Dev.AllGamePackages(); err != nil {
+		c.Base().errAndQuit("At least one DEV game package invalid: " + err.Error())
+	}
+
+	if _, err := config.Prod.AllGamePackages(); err != nil {
+		c.Base().errAndQuit("At least one PROD game package invalid: " + err.Error())
+	}
+
 	err := config.Save()
 
 	if err != nil {

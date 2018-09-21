@@ -32,6 +32,14 @@ func (c *Config) Run(p writ.Path, positional []string) {
 		fmt.Println("NO secret path in use")
 	}
 
+	if _, err := config.Dev.AllGamePackages(); err != nil {
+		fmt.Println("Not all DEV game packages are valid: " + err.Error())
+	}
+
+	if _, err := config.Prod.AllGamePackages(); err != nil {
+		fmt.Println("Not all PROD game packages are valid: " + err.Error())
+	}
+
 	devBlob, err := json.MarshalIndent(config.Dev, "", "\t")
 
 	if err != nil {
