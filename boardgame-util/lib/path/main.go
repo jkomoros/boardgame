@@ -19,7 +19,8 @@ import (
 //will try to download it if it cannot already be satisfied locally. Because
 //this uses the $GOPATH copy first, that allows for example relying on games
 //locally without going through a VCS, which is nice if you're not connected
-//to the internet.
+//to the internet. If you're trying to load up Game Packages, you should
+//likely use the lib/gamepkg package directly.
 func AbsoluteGoPkgPath(pkgImport string) (string, error) {
 
 	//TODO: look into supporting the "no VCS" use case with replace
