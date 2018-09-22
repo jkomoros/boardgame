@@ -168,9 +168,9 @@ func LinkGameClientFolders(dir string, pkgs []*gamepkg.Pkg) error {
 }
 
 //CreateClientConfigJs creates and saves a client_config.js corresponding to
-//the given top-level config object, into the given build directory. It uses
-//config.Client() to generate the contents for the file.
-func CreateClientConfigJs(dir string, c *config.Config) error {
+//the given Clientconfig object, into the given build directory. You should use
+//config.Client() to generate the ClientConfig.
+func CreateClientConfigJs(dir string, c *config.ClientConfig) error {
 
 	staticDir, err := staticBuildDir(dir)
 	if err != nil {
@@ -179,9 +179,7 @@ func CreateClientConfigJs(dir string, c *config.Config) error {
 
 	path := filepath.Join(staticDir, clientConfigJsFileName)
 
-	client := c.Client(false)
-
-	clientBlob, err := json.MarshalIndent(client, "", "\t")
+	clientBlob, err := json.MarshalIndent(c, "", "\t")
 
 	if err != nil {
 		return errors.New("Couldn't create blob: " + err.Error())

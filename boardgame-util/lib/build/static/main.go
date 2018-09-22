@@ -171,7 +171,7 @@ If prodBuild is true, also calls BuildPolymer.
 See the package doc for more about the specific build steps and what they do.
 
 */
-func Build(directory string, pkgs []*gamepkg.Pkg, c *config.Config, prodBuild bool, copyFiles bool, skipNodeUpdate bool) (assetRoot string, err error) {
+func Build(directory string, pkgs []*gamepkg.Pkg, c *config.ClientConfig, prodBuild bool, copyFiles bool, skipNodeUpdate bool) (assetRoot string, err error) {
 
 	staticDir, err := staticBuildDir(directory)
 	if err != nil {

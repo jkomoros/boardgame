@@ -34,6 +34,10 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 
 	mode := c.Dev
 
+	if s.Prod {
+		mode = c.Prod
+	}
+
 	dir := s.Base().NewTempDir("temp_serve_")
 
 	storage := effectiveStorageType(s.Base(), mode, s.Storage)
@@ -60,7 +64,7 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 	fmt.Println("Creating temporary static assets folder")
 	//TODO: should we allow you to pass CopyFiles? I don't know why you'd want
 	//to given this is a temp dir.
-	_, err = static.Build(dir, pkgs, c, s.Prod, false, mode.OfflineDevMode)
+	_, err = static.Build(dir, pkgs, c.Client(s.Prod), s.Prod, false, mode.OfflineDevMode)
 
 	if err != nil {
 		s.Base().errAndQuit("Couldn't create static directory: " + err.Error())

@@ -21,13 +21,17 @@ func (b *BuildStatic) Run(p writ.Path, positional []string) {
 
 	mode := config.Dev
 
+	if b.Prod {
+		mode = config.Prod
+	}
+
 	pkgs, err := mode.AllGamePackages()
 
 	if err != nil {
 		b.Base().errAndQuit("Not all games packages were legal: " + err.Error())
 	}
 
-	staticPath, err := static.Build(dir, pkgs, config, b.Prod, b.CopyFiles, mode.OfflineDevMode)
+	staticPath, err := static.Build(dir, pkgs, config.Client(b.Prod), b.Prod, b.CopyFiles, mode.OfflineDevMode)
 
 	if err != nil {
 		b.Base().errAndQuit("Couldn't create static directory: " + err.Error())
