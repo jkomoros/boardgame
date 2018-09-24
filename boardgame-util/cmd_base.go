@@ -20,6 +20,7 @@ type BoardgameUtil struct {
 	Serve   Serve
 	Config  Config
 	Stub    Stub
+	Golden  Golden
 
 	ConfigPath            string
 	OverrideStarterConfig string
@@ -88,6 +89,7 @@ func (b *BoardgameUtil) SubcommandObjects() []SubcommandObject {
 		&b.Db,
 		&b.Build,
 		&b.Clean,
+		&b.Golden,
 	}
 }
 
