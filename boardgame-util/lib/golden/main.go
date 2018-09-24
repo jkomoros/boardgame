@@ -105,7 +105,18 @@ func compare(manager *boardgame.GameManager, rec *record.Record) error {
 				return errors.New("Couldn't get " + strconv.Itoa(lastVerifiedVersion) + " state: " + err.Error())
 			}
 
-			if err := compareJsonBlobs(game.State(lastVerifiedVersion).StorageRecord(), stateToCompare); err != nil {
+			//We used to just do
+			//game.State(lastVerifiedVersion).StorageRecord(), but that
+			//doesn't guarantee that it's the same as
+			//manager.Storage().State() because it relies on state in
+			//timerManager. This is unexpected and needs its own issue.
+			storageRec, err := manager.Storage().State(game.Id(), lastVerifiedVersion)
+
+			if err != nil {
+				return errors.New("Couldn't get state storage rec from game: " + err.Error())
+			}
+
+			if err := compareJsonBlobs(storageRec, stateToCompare); err != nil {
 				return errors.New("State " + strconv.Itoa(lastVerifiedVersion) + " compared differently: " + err.Error())
 			}
 
