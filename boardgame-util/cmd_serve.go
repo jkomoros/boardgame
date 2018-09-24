@@ -167,6 +167,12 @@ func (s *Serve) WritOptions() []*writ.Option {
 			Description: "Which storage subsystem to use. One of {" + strings.Join(api.ValidStorageTypeStrings(), ",") + "}. If not provided, falls back on the DefaultStorageType from config, or as a final fallback just the deafult storage type.",
 		},
 		{
+			Names:       []string{"prod"},
+			Description: "If provided, will created bundled build directory for static resources.",
+			Decoder:     writ.NewFlagDecoder(&s.Prod),
+			Flag:        true,
+		},
+		{
 			Names:       []string{"port", "p"},
 			Decoder:     writ.NewOptionDecoder(&s.Port),
 			Description: "Port to use for the api server, overriding value in config.json's DefaultPort",
@@ -175,12 +181,6 @@ func (s *Serve) WritOptions() []*writ.Option {
 			Names:       []string{"static-port"},
 			Decoder:     writ.NewOptionDecoder(&s.StaticPort),
 			Description: "Port to use for the static file server, overridig value in config.json's DefaultStaticPort",
-		},
-		{
-			Names:       []string{"prod"},
-			Description: "If provided, will created bundled build directory for static resources.",
-			Decoder:     writ.NewFlagDecoder(&s.Prod),
-			Flag:        true,
 		},
 		{
 			Names:       []string{"offline-dev-mode"},
