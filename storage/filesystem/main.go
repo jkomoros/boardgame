@@ -1,18 +1,20 @@
 /*
 
 	filesystem is a storage layer that stores information about games as JSON
-	files within a given folder, one per game. It's extremely inefficient and
-	doesn't even persist extended game information to disk. It's most useful
-	for cases where having an easy-to-read, diffable representation for games
-	makes sense, for example to create golden tester games for use in testing.
+	files within a given folder, (or somewhere nested in a folder within base
+	folder) one per game. It's extremely inefficient and doesn't even persist
+	extended game information to disk. It's most useful for cases where having
+	an easy-to-read, diffable representation for games makes sense, for
+	example to create golden tester games for use in testing.
 
-	filesystem stores files according to their gametype in the given base
-	folder, for example 'checkers/a22ffcdef.json'. If the sub-folders don't
-	exist, they will be created. Folders may be soft-linked from within the
-	base folder; often when using the filesystem storage layer to help
-	generate test cases you set up soft-links from a central location to a
-	folder for test files in each game's sub-directory, so the test files can
-	be in the same place.
+	filesystem stores files in the given base folder. If a sub-folder exists
+	with the name of the gameType, then the game will be stored in that folder
+	instead. For example if the gametype is "checkers" and the checkers subdir
+	exists, will store at  'checkers/a22ffcdef.json'. Folders may be soft-
+	linked from within the base folder; often when using the filesystem
+	storage layer to help generate test cases you set up soft- links from a
+	central location to a folder for test files in each game's sub-directory,
+	so the test files can be in the same place.
 
 */
 package filesystem
@@ -137,12 +139,15 @@ func (s *StorageManager) saveRecordForId(gameId string, rec *record.Record) erro
 
 	gameId = strings.ToLower(gameId)
 
-	path := filepath.Join(s.basePath, rec.Game().Name, gameId+".json")
+	//If a sub directory for that game type exists, save there. If not, save in the root of basePath.
+	gameTypeSubDir := filepath.Join(s.basePath, rec.Game().Name)
 
-	dir, _ := filepath.Split(path)
+	var path string
 
-	if err := os.MkdirAll(dir, 0700); err != nil {
-		return errors.New("Couldn't create all necessary sub-paths: " + err.Error())
+	if _, err := os.Stat(gameTypeSubDir); err == nil {
+		path = filepath.Join(gameTypeSubDir, gameId+".json")
+	} else {
+		path = filepath.Join(s.basePath, gameId+".json")
 	}
 
 	if err := rec.Save(path); err != nil {
