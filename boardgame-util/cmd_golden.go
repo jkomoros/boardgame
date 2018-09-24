@@ -21,6 +21,8 @@ func (g *Golden) Run(p writ.Path, positional []string) {
 		g.Base().errAndQuit("Current directory is not a valid package. You must run this command sitting in the root of a valid package. " + err.Error())
 	}
 
+	fmt.Println("Creating golden structures with " + pkg.AbsolutePath())
+
 	if err := golden.MakeGoldenTest(pkg); err != nil {
 		g.Base().errAndQuit("Couldn't create golden directory: " + err.Error())
 	}
