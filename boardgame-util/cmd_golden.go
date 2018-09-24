@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/bobziuchkovski/writ"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/golden"
@@ -25,6 +26,11 @@ func (g *Golden) Run(p writ.Path, positional []string) {
 	}
 
 	g.doServe(p, positional, []*gamepkg.Pkg{pkg}, `"`+golden.GameRecordsFolder+`"`)
+
+	fmt.Println("Cleaning golden folder...")
+	if err := golden.CleanGoldenTest(pkg); err != nil {
+		g.Base().errAndQuit("Couldn't clean golden: " + err.Error())
+	}
 }
 
 func (g *Golden) Name() string {

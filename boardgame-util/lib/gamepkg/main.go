@@ -234,6 +234,42 @@ func (p *Pkg) WriteFile(relPath string, contents []byte, overwrite bool) error {
 
 }
 
+func (p *Pkg) RemoveFile(relPath string) error {
+	if p.ReadOnly() {
+		return errors.New("Package is readonly")
+	}
+	if !p.Has(relPath) {
+		return nil
+	}
+	path := filepath.Join(p.AbsolutePath(), relPath)
+	return os.Remove(path)
+}
+
+//RemoveDirIfEmpty removes the given dir if it contains no items.
+func (p *Pkg) RemoveDirIfEmpty(relPath string) error {
+	if !p.Has(relPath) {
+		return nil
+	}
+
+	dir := filepath.Join(p.AbsolutePath(), relPath)
+	infos, err := ioutil.ReadDir(dir)
+
+	if err != nil {
+		return errors.New("Couldn't read dir: " + err.Error())
+	}
+
+	if len(infos) != 0 {
+		//Items so don't remove
+		return nil
+	}
+
+	if p.ReadOnly() {
+		return errors.New("Package is read only")
+	}
+
+	return os.Remove(dir)
+}
+
 //ClientFolder returns the absolute path to this game package's folder of
 //client assets, or "" if this game does not have a client folder. Example: "/Users/YOURUSERNAME/Code/go/src/github.com/jkomoros/boardgame/examples/memory/client"
 func (p *Pkg) ClientFolder() string {

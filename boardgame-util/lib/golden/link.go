@@ -7,6 +7,8 @@ import (
 	"text/template"
 )
 
+const testdataFolder = "testdata"
+
 //Path relative to package root where goldens should be stored
 const GameRecordsFolder = "testdata/golden"
 
@@ -43,6 +45,30 @@ func MakeGoldenTest(pkg *gamepkg.Pkg) error {
 	}
 
 	return pkg.WriteFile(GoldenTestFile, buf.Bytes(), true)
+
+}
+
+//CleanGoldenTest sees if GameRecordsFolder contains any tests. If it doesn't,
+//removes that folder structure and golden_test.go
+func CleanGoldenTest(pkg *gamepkg.Pkg) error {
+
+	if pkg.ReadOnly() {
+		return errors.New("That package is read only")
+	}
+
+	if err := pkg.RemoveDirIfEmpty(GameRecordsFolder); err != nil {
+		return errors.New("Couldn't remove empty top level dir: " + err.Error())
+	}
+
+	if err := pkg.RemoveDirIfEmpty(testdataFolder); err != nil {
+		return errors.New("Couldn't remove empty testdata dir: " + err.Error())
+	}
+
+	if !pkg.Has(GameRecordsFolder) {
+		return pkg.RemoveFile(GoldenTestFile)
+	}
+
+	return nil
 
 }
 
