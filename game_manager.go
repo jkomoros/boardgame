@@ -70,6 +70,13 @@ func (m *ManagerInternals) RecreateGame(rec *GameStorageRecord) (*Game, error) {
 	return m.manager.recreateGame(rec)
 }
 
+//ForceNextTimer forces the next timer to fire even if it's not supposed to
+//fire yet. Will return true if there was a timer that was fired, false
+//otherwise.
+func (m *ManagerInternals) ForceNextTimer() bool {
+	return m.manager.timers.ForceNextTimer()
+}
+
 //NewGameManager creates a new game manager with the given delegate. It will
 //validate that the various sub-states are reasonable, and will call
 //ConfigureMoves and ConfigureAgents and then check that all tiems are

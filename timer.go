@@ -245,6 +245,20 @@ func (t *timerManager) CancelTimer(id int) {
 
 }
 
+//ForceNextTimer is designed to force fire the next timer no matter when it's
+//_supposed_ to fire. Will return true if a timer was fired. Primarily exists
+//for debug purposes.
+func (t *timerManager) ForceNextTimer() bool {
+	record := t.popNext()
+	if record == nil {
+		return false
+	}
+
+	<-record.game.ProposeMove(record.move, AdminPlayerIndex)
+
+	return true
+}
+
 //Should be called regularly by the manager to tell this to check and see if
 //any timers have fired, and execute them if so.
 func (t *timerManager) Tick() {

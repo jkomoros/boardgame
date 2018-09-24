@@ -142,6 +142,13 @@ func compare(manager *boardgame.GameManager, rec *record.Record) error {
 		}
 
 		if nextMoveRec.Proposer < 0 {
+			//We could be waiting for a timer to fire.
+			//If there was a timer, try to force it to fire early.
+			if manager.Internals().ForceNextTimer() {
+				continue
+			}
+
+			//There wasn't a timer pending, so it's just an error
 			return errors.New("At version " + strconv.Itoa(lastVerifiedVersion) + " the next player move to apply was not applied by a player")
 		}
 
