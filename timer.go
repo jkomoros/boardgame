@@ -249,7 +249,7 @@ func (t *timerManager) CancelTimer(id int) {
 //_supposed_ to fire. Will return true if a timer was fired. Primarily exists
 //for debug purposes.
 func (t *timerManager) ForceNextTimer() bool {
-	record := t.popNext()
+	record := t.popNext(true)
 	if record == nil {
 		return false
 	}
@@ -263,7 +263,7 @@ func (t *timerManager) ForceNextTimer() bool {
 //any timers have fired, and execute them if so.
 func (t *timerManager) Tick() {
 	for t.nextTimerFired() {
-		record := t.popNext()
+		record := t.popNext(false)
 		if record == nil {
 			continue
 		}
@@ -286,9 +286,15 @@ func (t *timerManager) nextTimerFired() bool {
 	return record.TimeRemaining() <= 0
 }
 
-func (t *timerManager) popNext() *timerRecord {
-	if !t.nextTimerFired() {
-		return nil
+func (t *timerManager) popNext(force bool) *timerRecord {
+	if force {
+		if len(t.records) == 0 {
+			return nil
+		}
+	} else {
+		if !t.nextTimerFired() {
+			return nil
+		}
 	}
 
 	x := heap.Pop(&t.records)
