@@ -87,7 +87,7 @@ func CompareFolder(delegate boardgame.GameDelegate, recFolder string) error {
 }
 
 func compare(manager *boardgame.GameManager, rec *record.Record) error {
-	game, err := manager.RecreateGame(rec.Game())
+	game, err := manager.Internals().RecreateGame(rec.Game())
 
 	if err != nil {
 		return errors.New("Couldn't create game: " + err.Error())

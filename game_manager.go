@@ -40,6 +40,36 @@ type GameManager struct {
 	variantConfig             VariantConfig
 }
 
+//Internals returns a ManagerInternals for this manager. All of the methods on
+//a ManagerInternals are designed to be used only in very specific conditions;
+//users of this package should almost never do anything with these
+func (g *GameManager) Internals() *ManagerInternals {
+	return &ManagerInternals{
+		g,
+	}
+}
+
+//ManagerInternals is a special struct that has debug-only methods hanging off
+//of it. Some methods need to be exposed outside of the package due to how the
+//sub-packages are organized. All of the methods off of this object are
+//designed to be used only by other sub-pacxages, and should be used at your
+//own risk.
+type ManagerInternals struct {
+	manager *GameManager
+}
+
+//RecreateGame creates a new game that has the same properties as the provided
+//GameStorageRecord. It is very rarely what you want; see NewGame(), Game(),
+//and ModifiableGame(). RecreateGame is most useful in debugging or testing
+//scenarios where you want a game to have the same ID and SecretSalt as a
+//previously created game, so the moves can be applied deterministically with
+//the same input. rec generally should be a GameStorageRecord representing a
+//game that was created in a different storage pool; if a game with that ID
+//already exists in this storage pool RecreateGame will error.
+func (m *ManagerInternals) RecreateGame(rec *GameStorageRecord) (*Game, error) {
+	return m.manager.recreateGame(rec)
+}
+
 //NewGameManager creates a new game manager with the given delegate. It will
 //validate that the various sub-states are reasonable, and will call
 //ConfigureMoves and ConfigureAgents and then check that all tiems are
@@ -359,15 +389,9 @@ func (g *GameManager) createGame(id, secretSalt string, numPlayers int, variantV
 	return result, nil
 }
 
-//RecreateGame creates a new game that has the same properties as the provided
-//GameStorageRecord. It is very rarely what you want; see NewGame(), Game(),
-//and ModifiableGame(). RecreateGame is most useful in debugging or testing
-//scenarios where you want a game to have the same ID and SecretSalt as a
-//previously created game, so the moves can be applied deterministically with
-//the same input. rec generally should be a GameStorageRecord representing a
-//game that was created in a different storage pool; if a game with that ID
-//already exists in this storage pool RecreateGame will error.
-func (g *GameManager) RecreateGame(rec *GameStorageRecord) (*Game, error) {
+//recreateGame is designed to be called by Internals().RecreateGame. See its
+//documentation.
+func (g *GameManager) recreateGame(rec *GameStorageRecord) (*Game, error) {
 
 	if rec == nil {
 		return nil, errors.New("No GameStorageRecord provided")
