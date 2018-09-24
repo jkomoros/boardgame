@@ -6,7 +6,6 @@ import (
 	"github.com/jkomoros/boardgame/boardgame-util/lib/build/api"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/build/static"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
-	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 	"os"
 	"os/exec"
 	"strings"
@@ -25,36 +24,33 @@ type Serve struct {
 	OfflineDevMode bool
 }
 
-func doServe(base *BoardgameUtil, pkgs []*gamepkg.Pkg, offlineDevMode bool, prod bool, storageArg string, staticPort string, port string) {
+func (s *Serve) Run(p writ.Path, positional []string) {
 
-	c := base.GetConfig(false)
+	c := s.Base().GetConfig(false)
 
-	if offlineDevMode {
+	if s.OfflineDevMode {
 		c.AddOverride(config.EnableOfflineDevMode())
 	}
 
 	mode := c.Dev
 
-	if prod {
+	if s.Prod {
 		mode = c.Prod
 	}
 
-	storage := effectiveStorageType(base, mode, storageArg)
+	dir := s.Base().NewTempDir("temp_serve_")
 
-	dir := base.NewTempDir("temp_serve_")
+	storage := effectiveStorageType(s.Base(), mode, s.Storage)
 
-	if pkgs == nil {
-		var err error
-		pkgs, err = mode.AllGamePackages()
+	pkgs, err := mode.AllGamePackages()
 
-		if err != nil {
-			base.errAndQuit("Not all game packages were valid: " + err.Error())
-		}
+	if err != nil {
+		s.Base().errAndQuit("Not all game packages were valid: " + err.Error())
 	}
 
 	apiOptions := &api.Options{}
 
-	if offlineDevMode {
+	if s.OfflineDevMode {
 		apiOptions.OverrideOfflineDevMode = true
 	}
 
@@ -62,20 +58,22 @@ func doServe(base *BoardgameUtil, pkgs []*gamepkg.Pkg, offlineDevMode bool, prod
 	apiPath, err := api.Build(dir, pkgs, storage, apiOptions)
 
 	if err != nil {
-		base.errAndQuit("Couldn't create api: " + err.Error())
+		s.Base().errAndQuit("Couldn't create api: " + err.Error())
 	}
 
 	fmt.Println("Creating temporary static assets folder")
 	//TODO: should we allow you to pass CopyFiles? I don't know why you'd want
 	//to given this is a temp dir.
-	_, err = static.Build(dir, pkgs, c.Client(prod), prod, false, mode.OfflineDevMode)
+	_, err = static.Build(dir, pkgs, c.Client(s.Prod), s.Prod, false, mode.OfflineDevMode)
 
 	if err != nil {
-		base.errAndQuit("Couldn't create static directory: " + err.Error())
+		s.Base().errAndQuit("Couldn't create static directory: " + err.Error())
 	}
 
-	if staticPort == "" {
-		staticPort = mode.DefaultStaticPort
+	staticPort := mode.DefaultStaticPort
+
+	if s.StaticPort != "" {
+		staticPort = s.StaticPort
 	}
 
 	go func() {
@@ -89,8 +87,10 @@ func doServe(base *BoardgameUtil, pkgs []*gamepkg.Pkg, offlineDevMode bool, prod
 	//TODO: simple serving of staticPath here. Do we need a new parameter for
 	//default static serving port?
 
-	if port == "" {
-		port = mode.DefaultPort
+	port := mode.DefaultPort
+
+	if s.Port != "" {
+		port = s.Port
 	}
 
 	//cmd will be run as though it's in this directory, which is where
@@ -126,7 +126,7 @@ func doServe(base *BoardgameUtil, pkgs []*gamepkg.Pkg, offlineDevMode bool, prod
 	if err != nil {
 		exitErr, ok := err.(*exec.ExitError)
 		if !ok {
-			base.errAndQuit("Couldn't cast exiterror")
+			s.Base().errAndQuit("Couldn't cast exiterror")
 		}
 
 		//Programs that are signaled and who responded to it before us (the
@@ -135,14 +135,9 @@ func doServe(base *BoardgameUtil, pkgs []*gamepkg.Pkg, offlineDevMode bool, prod
 		//latter is an err; calling errAndQuit not in an error could prevent
 		//our own clean shutdown from happening.
 		if exitErr.ProcessState.Exited() {
-			base.errAndQuit("Error running command: " + err.Error())
+			s.Base().errAndQuit("Error running command: " + err.Error())
 		}
 	}
-}
-
-func (s *Serve) Run(p writ.Path, positional []string) {
-	//Pass nil options ot use mode.Games
-	doServe(s.Base(), nil, s.OfflineDevMode, s.Prod, s.Storage, s.StaticPort, s.Port)
 }
 
 func (s *Serve) Name() string {
