@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/path"
 	"go/ast"
 	"go/parser"
@@ -16,10 +17,43 @@ import (
 	"text/template"
 )
 
+//Path relative to package root where goldens should be stored
+const GameRecordsFolder = "testdata/golden"
+
+//The name of the test file to create
+const GoldenTestFile = "golden_test.go"
+
 var goldenTestTemplate *template.Template
 
 func init() {
 	goldenTestTemplate = template.Must(template.New("golden").Parse(goldenTestTemplateText))
+}
+
+//MakeGoldenTest ensures that GameRecordFolder exists and creates
+//golden_test.go in the root of the package if it doesn't yet exist.
+func MakeGoldenTest(pkg *gamepkg.Pkg) error {
+
+	if pkg == nil {
+		return errors.New("No package provided")
+	}
+
+	if err := pkg.EnsureDir(GameRecordsFolder); err != nil {
+		return errors.New("Couldn't ensure game records dir: " + err.Error())
+	}
+
+	buf := new(bytes.Buffer)
+
+	err := goldenTestTemplate.Execute(buf, map[string]string{
+		"gametype": pkg.Name(),
+		"folder":   GameRecordsFolder,
+	})
+
+	if err != nil {
+		return errors.New("Couldn't generate blob from template: " + err.Error())
+	}
+
+	return pkg.WriteFile(GoldenTestFile, buf.Bytes(), true)
+
 }
 
 //LinkGoldenFolders helps create a folder system for the `filesystem` storage

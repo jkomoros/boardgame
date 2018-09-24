@@ -194,6 +194,46 @@ func (p *Pkg) ReadOnly() bool {
 
 }
 
+//EnsureDir ensures the given directory, relative to package root, exists.
+func (p *Pkg) EnsureDir(relPath string) error {
+
+	dir := filepath.Join(p.AbsolutePath(), relPath)
+
+	if info, err := os.Stat(dir); err == nil {
+		if info.IsDir() {
+			return nil
+		}
+		return errors.New("relPath " + relPath + " exists but is not a directory")
+	}
+
+	//Need to create it.
+	if p.ReadOnly() {
+		return errors.New(relPath + " didn't exist, but package was read only")
+	}
+
+	return os.MkdirAll(dir, 0700)
+
+}
+
+//WriteFile writes the given relPath contents with 0644 perms. If overwite is
+//true will overwrite; if overwrite is false and the file already exists will
+//fail.
+func (p *Pkg) WriteFile(relPath string, contents []byte, overwrite bool) error {
+	if p.ReadOnly() {
+		return errors.New("Package is readonly")
+	}
+
+	path := filepath.Join(p.AbsolutePath(), relPath)
+	if !overwrite {
+		if _, err := os.Stat(path); err == nil {
+			return errors.New(relPath + " already existed and overwrite wasn't true")
+		}
+	}
+
+	return ioutil.WriteFile(path, contents, 0644)
+
+}
+
 //ClientFolder returns the absolute path to this game package's folder of
 //client assets, or "" if this game does not have a client folder. Example: "/Users/YOURUSERNAME/Code/go/src/github.com/jkomoros/boardgame/examples/memory/client"
 func (p *Pkg) ClientFolder() string {
