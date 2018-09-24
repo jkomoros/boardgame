@@ -141,11 +141,14 @@ func (s StorageType) Import() string {
 }
 
 //Constructor is a string representing a default constructor for this storage
-//type, e.g. `bolt.NewStorageManager(".database")`
-func (s StorageType) Constructor() string {
+//type, e.g. `bolt.NewStorageManager(".database")`. optionalLiteralArgs will
+//be passed literally within the `()` of the storage constructor, so valid
+//strings are "\".database\"" etc. If not provided, will fall back on
+//reasonable defaults for that type.
+func (s StorageType) Constructor(optionalLiteralArgs string) string {
 
 	if s == StorageDefault {
-		return "api.NewDefaultStorageManager()"
+		return "api.NewDefaultStorageManager(" + optionalLiteralArgs + ")"
 	}
 
 	args := ""
@@ -157,6 +160,10 @@ func (s StorageType) Constructor() string {
 		args = "\".database\""
 	case StorageMysql:
 		args = "false"
+	}
+
+	if optionalLiteralArgs != "" {
+		args = optionalLiteralArgs
 	}
 
 	return s.String() + ".NewStorageManager(" + args + ")"

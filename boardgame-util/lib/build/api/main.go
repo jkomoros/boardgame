@@ -19,6 +19,10 @@ type Options struct {
 	//If true, installs an overrider in the generated binary that enables
 	//offline dev mode.
 	OverrideOfflineDevMode bool
+
+	//Will be passed to the storage's Constructor() method as the
+	//optionalLiteralArgs.
+	StorageLiteralArgs string
 }
 
 /*
@@ -98,7 +102,7 @@ func Code(pkgs []*gamepkg.Pkg, storage StorageType, options *Options) ([]byte, e
 	err := apiTemplate.Execute(buf, map[string]interface{}{
 		"pkgs":               pkgs,
 		"storageImport":      storageImport,
-		"storageConstructor": storage.Constructor(),
+		"storageConstructor": storage.Constructor(options.StorageLiteralArgs),
 		"options":            options,
 	})
 
