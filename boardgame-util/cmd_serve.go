@@ -6,6 +6,7 @@ import (
 	"github.com/jkomoros/boardgame/boardgame-util/lib/build/api"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/build/static"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 	"os"
 	"os/exec"
 	"strings"
@@ -24,7 +25,8 @@ type Serve struct {
 	OfflineDevMode bool
 }
 
-func (s *Serve) Run(p writ.Path, positional []string) {
+//if pkgs == nil, will use the game packages from the selected mode.
+func (s *Serve) doServe(p writ.Path, positional []string, pkgs []*gamepkg.Pkg) {
 
 	c := s.Base().GetConfig(false)
 
@@ -42,10 +44,13 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 
 	storage := effectiveStorageType(s.Base(), mode, s.Storage)
 
-	pkgs, err := mode.AllGamePackages()
+	if pkgs == nil {
+		var err error
+		pkgs, err = mode.AllGamePackages()
 
-	if err != nil {
-		s.Base().errAndQuit("Not all game packages were valid: " + err.Error())
+		if err != nil {
+			s.Base().errAndQuit("Not all game packages were valid: " + err.Error())
+		}
 	}
 
 	apiOptions := &api.Options{}
@@ -138,6 +143,10 @@ func (s *Serve) Run(p writ.Path, positional []string) {
 			s.Base().errAndQuit("Error running command: " + err.Error())
 		}
 	}
+}
+
+func (s *Serve) Run(p writ.Path, positional []string) {
+	s.doServe(p, positional, nil)
 }
 
 func (s *Serve) Name() string {
