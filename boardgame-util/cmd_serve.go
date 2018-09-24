@@ -26,7 +26,7 @@ type Serve struct {
 }
 
 //if pkgs == nil, will use the game packages from the selected mode.
-func (s *Serve) doServe(p writ.Path, positional []string, pkgs []*gamepkg.Pkg) {
+func (s *Serve) doServe(p writ.Path, positional []string, pkgs []*gamepkg.Pkg, storageLiteralArgs string) {
 
 	c := s.Base().GetConfig(false)
 
@@ -53,7 +53,9 @@ func (s *Serve) doServe(p writ.Path, positional []string, pkgs []*gamepkg.Pkg) {
 		}
 	}
 
-	apiOptions := &api.Options{}
+	apiOptions := &api.Options{
+		StorageLiteralArgs: storageLiteralArgs,
+	}
 
 	if s.OfflineDevMode {
 		apiOptions.OverrideOfflineDevMode = true
@@ -146,7 +148,7 @@ func (s *Serve) doServe(p writ.Path, positional []string, pkgs []*gamepkg.Pkg) {
 }
 
 func (s *Serve) Run(p writ.Path, positional []string) {
-	s.doServe(p, positional, nil)
+	s.doServe(p, positional, nil, "")
 }
 
 func (s *Serve) Name() string {
