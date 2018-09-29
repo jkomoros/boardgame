@@ -170,7 +170,7 @@ func (a *AutoConfigurer) Config(exampleStruct AutoConfigurableMove, options ...C
 
 	throwAwayConfig := newMoveConfig("Temporary Move", exampleStruct, config)
 
-	generatedExample, err := boardgame.OrphanExampleMove(throwAwayConfig)
+	generatedExample, err := a.delegate.Manager().Internals().OrphanExampleMove(throwAwayConfig)
 
 	if err != nil {
 		return nil, err

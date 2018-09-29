@@ -152,7 +152,7 @@ func newMoveType(config MoveConfig, manager *GameManager) (*moveType, error) {
 //real move, in terms of struct-based auto-inflation, etc. This is exposed
 //primarily for moves.AutoConfigrer, and generally shouldn't be used by
 //others.
-func OrphanExampleMove(config MoveConfig) (Move, error) {
+func (m *ManagerInternals) OrphanExampleMove(config MoveConfig) (Move, error) {
 	throwAwayMoveType, err := newMoveType(config, nil)
 
 	if err != nil {
