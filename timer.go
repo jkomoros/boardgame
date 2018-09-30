@@ -88,7 +88,7 @@ func (t *timer) Start(duration time.Duration, move Move) {
 	game := t.statePtr.game
 	manager := game.manager
 
-	t.Id = manager.timers.PrepareTimer(duration, game, move)
+	t.Id = manager.timers.PrepareTimer(duration, t.statePtr, move)
 
 	t.statePtr.timersToStart = append(t.statePtr.timersToStart, t.Id)
 }
@@ -165,7 +165,7 @@ func newTimerManager(gameManager *GameManager) *timerManager {
 //PrepareTimer creates a timer entry and gets it ready and an Id allocated.
 //However, the timer doesn't actually start counting down until
 //manager.StartTimer(id) is called.
-func (t *timerManager) PrepareTimer(duration time.Duration, game *Game, move Move) int {
+func (t *timerManager) PrepareTimer(duration time.Duration, state *state, move Move) int {
 	record := &timerRecord{
 		id:       t.nextId,
 		index:    -1,
@@ -173,7 +173,7 @@ func (t *timerManager) PrepareTimer(duration time.Duration, game *Game, move Mov
 		//fireTime will be set when StartTimer is called. For now, set it to
 		//something impossibly far in the future.
 		fireTime: time.Now().Add(time.Hour * 100000),
-		game:     game,
+		game:     state.Game(),
 		move:     move,
 	}
 	t.nextId++
