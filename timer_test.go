@@ -8,7 +8,7 @@ import (
 
 func TestTimerManager(t *testing.T) {
 
-	game := testDefaultGame(t, false)
+	game := testDefaultGame(t, true)
 
 	currentVersion := game.Version()
 
@@ -22,15 +22,11 @@ func TestTimerManager(t *testing.T) {
 
 	assert.For(t).ThatActual(timer.nextTimerFired()).Equals(false)
 
-	assert.For(t).ThatActual(timer.nextId).Equals(1)
-
 	registeredDuration := time.Duration(50) * time.Millisecond
 
 	id := timer.PrepareTimer(registeredDuration, game.CurrentState().(*state), move)
 
-	assert.For(t).ThatActual(id).Equals("1")
-
-	assert.For(t).ThatActual(timer.nextId).Equals(2)
+	assert.For(t).ThatActual(id).Equals("D732D7BBF5331D57")
 
 	remaining := timer.GetTimerRemaining(id)
 

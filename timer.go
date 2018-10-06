@@ -2,7 +2,6 @@ package boardgame
 
 import (
 	"container/heap"
-	"strconv"
 	"time"
 )
 
@@ -147,7 +146,6 @@ func (t *timerRecord) TimeRemaining() time.Duration {
 type timerQueue []*timerRecord
 
 type timerManager struct {
-	nextId      int
 	records     timerQueue
 	recordsById map[string]*timerRecord
 	manager     *GameManager
@@ -156,20 +154,21 @@ type timerManager struct {
 func newTimerManager(gameManager *GameManager) *timerManager {
 	return &timerManager{
 		//the default id in TimerProps is 0, so we should start beyond that.
-		nextId:      1,
 		records:     make(timerQueue, 0),
 		recordsById: make(map[string]*timerRecord),
 		manager:     gameManager,
 	}
 }
 
+const timerIDLength = 16
+
 //PrepareTimer creates a timer entry and gets it ready and an Id allocated.
 //However, the timer doesn't actually start counting down until
 //manager.StartTimer(id) is called.
 func (t *timerManager) PrepareTimer(duration time.Duration, state *state, move Move) string {
+
 	record := &timerRecord{
-		//TODO: next step: generate the string based on random string from the state.
-		id:       strconv.Itoa(t.nextId),
+		id:       randomString(timerIDLength, state.Rand()),
 		index:    -1,
 		duration: duration,
 		//fireTime will be set when StartTimer is called. For now, set it to
@@ -178,7 +177,6 @@ func (t *timerManager) PrepareTimer(duration time.Duration, state *state, move M
 		game:     state.Game(),
 		move:     move,
 	}
-	t.nextId++
 
 	t.recordsById[record.id] = record
 
