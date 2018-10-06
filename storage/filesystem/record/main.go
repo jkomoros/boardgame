@@ -15,6 +15,7 @@ package record
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/go-test/deep"
 	"github.com/jkomoros/boardgame"
 	"github.com/yudai/gojsondiff"
@@ -254,7 +255,19 @@ func confirmPatch(before, after, formattedPatch []byte) error {
 	differ.ApplyPatch(inflatedBefore, reinflatedPatch)
 
 	if diff := deep.Equal(inflatedBefore, inflatedAfter); len(diff) > 0 {
+
+		fmt.Println("UNEXPECTED ERROR IN UNDERLYING LIBRARY:")
+		fmt.Println("Before:")
+		fmt.Println(string(before))
+		fmt.Println("\nAfter:")
+		fmt.Println(string(after))
+		fmt.Println("\nFormatted Patch:")
+		fmt.Println(string(formattedPatch))
+		fmt.Println("\nDiff:")
+		fmt.Println(strings.Join(diff, "\n"))
+
 		return errors.New("Patched before did not equal after: " + strings.Join(diff, "\n"))
+
 	}
 
 	return nil
