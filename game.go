@@ -193,6 +193,7 @@ func (g *Game) JSONForPlayer(player PlayerIndex, state ImmutableState) interface
 		"Agents":             g.Agents(),
 		"Variant":            g.Variant(),
 		"Version":            g.Version(),
+		"ActiveTimers":       g.manager.timers.ActiveTimersForGame(g.Id()),
 	}
 }
 

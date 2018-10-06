@@ -57,10 +57,8 @@ func (t *timer) setState(state *state) {
 func (t *timer) MarshalJSON() ([]byte, error) {
 	obj := map[string]interface{}{
 		"Id": t.Id,
-		//TimeLeft is only ever for the client (it's not read back in when
-		//deserialized), so put it in the more traditional milliseconds units,
-		//not nanoseconds.
-		"TimeLeft": t.TimeLeft() / time.Millisecond,
+		//TODO: this is a hack so client can find it easily
+		"IsTimer": true,
 	}
 
 	return DefaultMarshalJSON(obj)
@@ -127,6 +125,18 @@ type timerRecord struct {
 	move     Move
 }
 
+func (t *timerRecord) MarshalJSON() ([]byte, error) {
+	//TODO: return other information, evertyhing in TimerRecord struct in issue 698.
+	obj := map[string]interface{}{
+		//TimeLeft is only ever for the client (it's not read back in when
+		//deserialized), so put it in the more traditional milliseconds units,
+		//not nanoseconds.
+		"TimeLeft": t.TimeRemaining() / time.Millisecond,
+	}
+
+	return DefaultMarshalJSON(obj)
+}
+
 func (t *timerRecord) TimeRemaining() time.Duration {
 
 	//Before a timer is Started(), just say its duration as the time
@@ -164,11 +174,11 @@ func newTimerManager(gameManager *GameManager) *timerManager {
 
 const timerIDLength = 16
 
-func (t *timerManager) ActiveTimersForGame(gameId string) []*timerRecord {
-	var result []*timerRecord
+func (t *timerManager) ActiveTimersForGame(gameId string) map[string]*timerRecord {
+	result := make(map[string]*timerRecord)
 	for _, rec := range t.recordsById {
 		if rec.gameId == gameId {
-			result = append(result, rec)
+			result[rec.id] = rec
 		}
 	}
 	return result

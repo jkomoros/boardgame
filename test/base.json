@@ -27,7 +27,7 @@
         },
         "Timer" : {
             "Id": "",
-            "TimeLeft": 0
+            "IsTimer": true
         },
         "MyIntSlice": [],
         "MyBoolSlice": [],

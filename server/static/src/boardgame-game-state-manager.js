@@ -260,7 +260,7 @@ class BoardgameGameStateManager extends PolymerElement {
 
     bundle.originalWallClockStartTime = Date.now();
 
-    bundle.pathsToTick = this._expandState(game.CurrentState);
+    bundle.pathsToTick = this._expandState(game.CurrentState, game.ActiveTimers);
 
     bundle.game = game;
     bundle.moveForms = this._expandMoveForms(moveForms);
@@ -285,22 +285,22 @@ class BoardgameGameStateManager extends PolymerElement {
     return moveForms;
   }
 
-  _expandState(currentState) {
+  _expandState(currentState, timerInfos) {
     //Takes the currentState and returns an object where all of the Stacks are replaced by actual references to the component they reference.
 
     var pathsToTick = [];
 
 
-    this._expandLeafState(currentState, currentState.Game, ["Game"], pathsToTick)
+    this._expandLeafState(currentState, currentState.Game, ["Game"], pathsToTick, timerInfos)
     for (var i = 0; i < currentState.Players.length; i++) {
-      this._expandLeafState(currentState, currentState.Players[i], ["Players", i], pathsToTick)
+      this._expandLeafState(currentState, currentState.Players[i], ["Players", i], pathsToTick, timerInfos)
     }
 
     return pathsToTick;
 
   }
 
-  _expandLeafState(wholeState, leafState, pathToLeaf, pathsToTick) {
+  _expandLeafState(wholeState, leafState, pathToLeaf, pathsToTick, timerInfos) {
     //Returns an expanded version of leafState. leafState should have keys that are either bools, floats, strings, or Stacks.
     
     var entries = Object.entries(leafState);
@@ -312,8 +312,8 @@ class BoardgameGameStateManager extends PolymerElement {
       if (val && typeof val == "object") {
         if (val.Deck) {
           this._expandStack(val, wholeState);
-        } else if (val.TimeLeft !== undefined) {
-          this._expandTimer(val, pathToLeaf.concat([key]), pathsToTick);
+        } else if (val.IsTimer) {
+          this._expandTimer(val, pathToLeaf.concat([key]), pathsToTick, timerInfos);
         }   
       }
     }
@@ -366,10 +366,14 @@ class BoardgameGameStateManager extends PolymerElement {
 
   }
 
-  _expandTimer(timer, pathToLeaf, pathsToTick) {
-    if (timer.TimeLeft === undefined) {
-      return;
-    }
+  _expandTimer(timer, pathToLeaf, pathsToTick, timerInfo) {
+
+    if (!timerInfo) return;
+
+    let info = timerInfo[timer.Id];
+
+    if (!info) return;
+    timer.TimeLeft = info.TimeLeft;
     timer.originalTimeLeft = timer.TimeLeft;
     pathsToTick.push(pathToLeaf);
   }
