@@ -2,6 +2,7 @@ package boardgame
 
 import (
 	"container/heap"
+	"strconv"
 	"time"
 )
 
@@ -12,7 +13,7 @@ import (
 type ImmutableTimer interface {
 	Active() bool
 	TimeLeft() time.Duration
-	id() int
+	id() string
 	state() *state
 	setState(*state)
 }
@@ -29,7 +30,7 @@ type timer struct {
 	//Id will be an opaque identifier that is used to keep track of the
 	//corresponding underlying Timer object in the game engine. It is not
 	//meaningful to inspect yourself and should not be modified.
-	Id       int
+	Id       string
 	statePtr *state
 }
 
@@ -42,7 +43,7 @@ func (t *timer) importFrom(other ImmutableTimer) error {
 	return nil
 }
 
-func (t *timer) id() int {
+func (t *timer) id() string {
 	return t.Id
 }
 
@@ -108,13 +109,13 @@ func (t *timer) Cancel() bool {
 	//never fully committed. However, StartTimer() on a canceled timer is a
 	//no-op so it's fine.
 
-	t.Id = 0
+	t.Id = ""
 
 	return wasActive
 }
 
 type timerRecord struct {
-	id    int
+	id    string
 	index int
 	//When the timer should fire. Set after the timer is fully Started().
 	//Before that it is impossibly far in the future.
@@ -148,7 +149,7 @@ type timerQueue []*timerRecord
 type timerManager struct {
 	nextId      int
 	records     timerQueue
-	recordsById map[int]*timerRecord
+	recordsById map[string]*timerRecord
 	manager     *GameManager
 }
 
@@ -157,7 +158,7 @@ func newTimerManager(gameManager *GameManager) *timerManager {
 		//the default id in TimerProps is 0, so we should start beyond that.
 		nextId:      1,
 		records:     make(timerQueue, 0),
-		recordsById: make(map[int]*timerRecord),
+		recordsById: make(map[string]*timerRecord),
 		manager:     gameManager,
 	}
 }
@@ -165,9 +166,10 @@ func newTimerManager(gameManager *GameManager) *timerManager {
 //PrepareTimer creates a timer entry and gets it ready and an Id allocated.
 //However, the timer doesn't actually start counting down until
 //manager.StartTimer(id) is called.
-func (t *timerManager) PrepareTimer(duration time.Duration, state *state, move Move) int {
+func (t *timerManager) PrepareTimer(duration time.Duration, state *state, move Move) string {
 	record := &timerRecord{
-		id:       t.nextId,
+		//TODO: next step: generate the string based on random string from the state.
+		id:       strconv.Itoa(t.nextId),
 		index:    -1,
 		duration: duration,
 		//fireTime will be set when StartTimer is called. For now, set it to
@@ -187,7 +189,7 @@ func (t *timerManager) PrepareTimer(duration time.Duration, state *state, move M
 
 //StartTimer actually triggers a timer that was previously PrepareTimer'd to
 //start counting down.
-func (t *timerManager) StartTimer(id int) {
+func (t *timerManager) StartTimer(id string) {
 
 	if t.TimerActive(id) {
 		return
@@ -206,7 +208,7 @@ func (t *timerManager) StartTimer(id int) {
 }
 
 //TimerActive returns if the timer is active and counting down.
-func (t *timerManager) TimerActive(id int) bool {
+func (t *timerManager) TimerActive(id string) bool {
 	record := t.recordsById[id]
 
 	if record == nil {
@@ -220,7 +222,7 @@ func (t *timerManager) TimerActive(id int) bool {
 	return true
 }
 
-func (t *timerManager) GetTimerRemaining(id int) time.Duration {
+func (t *timerManager) GetTimerRemaining(id string) time.Duration {
 	record := t.recordsById[id]
 
 	if record == nil {
@@ -230,7 +232,7 @@ func (t *timerManager) GetTimerRemaining(id int) time.Duration {
 	return record.TimeRemaining()
 }
 
-func (t *timerManager) CancelTimer(id int) {
+func (t *timerManager) CancelTimer(id string) {
 	record := t.recordsById[id]
 
 	if record == nil {

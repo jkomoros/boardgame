@@ -28,7 +28,7 @@ func TestTimerManager(t *testing.T) {
 
 	id := timer.PrepareTimer(registeredDuration, game.CurrentState().(*state), move)
 
-	assert.For(t).ThatActual(id).Equals(1)
+	assert.For(t).ThatActual(id).Equals("1")
 
 	assert.For(t).ThatActual(timer.nextId).Equals(2)
 
@@ -147,6 +147,6 @@ func TestTimerProp(t *testing.T) {
 
 	gameState.Timer.Cancel()
 
-	assert.For(t).ThatActual(gameState.Timer.id()).Equals(0)
+	assert.For(t).ThatActual(gameState.Timer.id()).Equals("")
 
 }

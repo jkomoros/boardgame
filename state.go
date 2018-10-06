@@ -344,7 +344,7 @@ type state struct {
 	//actually start ticking it until this state is committed. This is where
 	//we accumulate the timers that still need to be fully started at that
 	//point.
-	timersToStart []int
+	timersToStart []string
 }
 
 func (s *state) Rand() *rand.Rand {
