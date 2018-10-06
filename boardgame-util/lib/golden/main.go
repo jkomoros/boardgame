@@ -8,6 +8,7 @@
 package golden
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/storage/filesystem/record"
@@ -188,8 +189,6 @@ func compare(manager *boardgame.GameManager, rec *record.Record) error {
 
 var differ = gojsondiff.New()
 
-var diffformatter = formatter.NewDeltaFormatter()
-
 func compareJsonBlobs(one, two []byte) error {
 
 	diff, err := differ.Compare(one, two)
@@ -199,6 +198,16 @@ func compareJsonBlobs(one, two []byte) error {
 	}
 
 	if diff.Modified() {
+
+		var oneJson map[string]interface{}
+
+		if err := json.Unmarshal(one, &oneJson); err != nil {
+			return errors.New("Couldn't unmarshal left")
+		}
+
+		diffformatter := formatter.NewAsciiFormatter(oneJson, formatter.AsciiFormatterConfig{
+			Coloring: true,
+		})
 
 		str, err := diffformatter.Format(diff)
 
