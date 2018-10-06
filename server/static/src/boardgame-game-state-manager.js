@@ -368,6 +368,10 @@ class BoardgameGameStateManager extends PolymerElement {
 
   _expandTimer(timer, pathToLeaf, pathsToTick, timerInfo) {
 
+    //Always make sure these default to a number so databinding can use them.
+    timer.TimeLeft = 0;
+    timer.originalTimeLeft = 0;
+
     if (!timerInfo) return;
 
     let info = timerInfo[timer.Id];
