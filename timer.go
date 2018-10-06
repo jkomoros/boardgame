@@ -114,8 +114,9 @@ func (t *timer) Cancel() bool {
 }
 
 type timerRecord struct {
-	id    string
-	index int
+	id     string
+	gameId string
+	index  int
 	//When the timer should fire. Set after the timer is fully Started().
 	//Before that it is impossibly far in the future.
 	fireTime time.Time
@@ -148,7 +149,8 @@ type timerQueue []*timerRecord
 type timerManager struct {
 	records     timerQueue
 	recordsById map[string]*timerRecord
-	manager     *GameManager
+	//TODO: recordsByGameId for efficiency so we don't have to search
+	manager *GameManager
 }
 
 func newTimerManager(gameManager *GameManager) *timerManager {
@@ -162,6 +164,16 @@ func newTimerManager(gameManager *GameManager) *timerManager {
 
 const timerIDLength = 16
 
+func (t *timerManager) ActiveTimersForGame(gameId string) []*timerRecord {
+	var result []*timerRecord
+	for _, rec := range t.recordsById {
+		if rec.gameId == gameId {
+			result = append(result, rec)
+		}
+	}
+	return result
+}
+
 //PrepareTimer creates a timer entry and gets it ready and an Id allocated.
 //However, the timer doesn't actually start counting down until
 //manager.StartTimer(id) is called.
@@ -169,6 +181,7 @@ func (t *timerManager) PrepareTimer(duration time.Duration, state *state, move M
 
 	record := &timerRecord{
 		id:       randomString(timerIDLength, state.Rand()),
+		gameId:   state.Game().Id(),
 		index:    -1,
 		duration: duration,
 		//fireTime will be set when StartTimer is called. For now, set it to
