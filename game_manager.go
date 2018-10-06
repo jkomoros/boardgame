@@ -442,11 +442,11 @@ func (g *GameManager) newGame(id, secretSalt string) *Game {
 	}
 
 	if id == "" {
-		id = randomString(gameIDLength)
+		id = randomString(gameIDLength, nil)
 	}
 
 	if secretSalt == "" {
-		secretSalt = randomString(gameIDLength)
+		secretSalt = randomString(gameIDLength, nil)
 	}
 
 	return &Game{

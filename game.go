@@ -87,18 +87,27 @@ type proposedMoveItem struct {
 	ch DelayedError
 }
 
+var defaultStringRand *rand.Rand
+
 func init() {
-	rand.Seed(time.Now().UTC().UnixNano())
+
+	defaultStringRand = rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
+
 }
 
 const randomStringChars = "ABCDEF0123456789"
 
-//randomString returns a random string of the given length.
-func randomString(length int) string {
+//randomString returns a random string of the given length. If rand is not
+//nil, will use that source. Ohterwise will use a global source.
+func randomString(length int, rnd *rand.Rand) string {
 	var result = ""
 
+	if rnd == nil {
+		rnd = defaultStringRand
+	}
+
 	for len(result) < length {
-		result += string(randomStringChars[rand.Intn(len(randomStringChars))])
+		result += string(randomStringChars[rnd.Intn(len(randomStringChars))])
 	}
 
 	return result
