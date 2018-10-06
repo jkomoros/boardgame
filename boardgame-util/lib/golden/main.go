@@ -117,9 +117,9 @@ func compare(manager *boardgame.GameManager, rec *record.Record) error {
 				return errors.New("Couldn't get state storage rec from game: " + err.Error())
 			}
 
-			if err := compareJsonBlobs(storageRec, stateToCompare); err != nil {
-				return errors.New("State " + strconv.Itoa(lastVerifiedVersion) + " compared differently: " + err.Error())
-			}
+			//Compare move first, because if the state doesn't match, it's
+			//important to know first if the wrong move was applied or if the
+			//state was wrong.
 
 			if lastVerifiedVersion > 0 {
 
@@ -141,6 +141,10 @@ func compare(manager *boardgame.GameManager, rec *record.Record) error {
 				if err := compareMoveStorageRecords(moves[len(moves)-1], recMove); err != nil {
 					return errors.New("Move " + strconv.Itoa(lastVerifiedVersion) + " compared differently: " + err.Error())
 				}
+			}
+
+			if err := compareJsonBlobs(storageRec, stateToCompare); err != nil {
+				return errors.New("State " + strconv.Itoa(lastVerifiedVersion) + " compared differently: " + err.Error())
 			}
 
 			lastVerifiedVersion++
