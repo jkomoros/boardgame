@@ -15,6 +15,7 @@ package record
 import (
 	"encoding/json"
 	"errors"
+	"github.com/go-test/deep"
 	"github.com/jkomoros/boardgame"
 	"github.com/yudai/gojsondiff"
 	"github.com/yudai/gojsondiff/formatter"
@@ -215,11 +216,48 @@ func (r *Record) AddGameAndCurrentState(game *boardgame.GameStorageRecord, state
 		return errors.New("Couldn't format patch json to byte: " + err.Error())
 	}
 
+	if err := confirmPatch(lastState, state, formattedPatch); err != nil {
+		return errors.New("Sanity check failed: patch did not do what it should: " + err.Error())
+	}
+
 	r.states = append(r.states, state)
 	r.data.StatePatches = append(r.data.StatePatches, formattedPatch)
 
 	return nil
 
+}
+
+//confirmPatch does a sanity check by ensuring that applying the formatted
+//patch to before would give you after. Helps ensure that there aren't
+//unexpected bugs in the diffing library (which has been known to happen with
+//these kinds of things).
+func confirmPatch(before, after, formattedPatch []byte) error {
+
+	var inflatedBefore map[string]interface{}
+	if err := json.Unmarshal(before, &inflatedBefore); err != nil {
+		return errors.New("Couldn't unmarshal before blob: " + err.Error())
+	}
+
+	var inflatedAfter map[string]interface{}
+	if err := json.Unmarshal(after, &inflatedAfter); err != nil {
+		return errors.New("Couldn't unmarshal before blob: " + err.Error())
+	}
+
+	unmarshaller := gojsondiff.NewUnmarshaller()
+
+	reinflatedPatch, err := unmarshaller.UnmarshalBytes(formattedPatch)
+	if err != nil {
+		return errors.New("Couldn't reinflate patch: " + err.Error())
+	}
+
+	differ := gojsondiff.New()
+	differ.ApplyPatch(inflatedBefore, reinflatedPatch)
+
+	if diff := deep.Equal(inflatedBefore, inflatedAfter); len(diff) > 0 {
+		return errors.New("Patched before did not equal after: " + strings.Join(diff, "\n"))
+	}
+
+	return nil
 }
 
 //State fetches the State object at that version. It can return an error
