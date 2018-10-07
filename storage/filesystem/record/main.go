@@ -4,10 +4,12 @@
 	filesystem's format.
 
 	We encode states as diffs by default, but if that's not possible (for
-	example, the diff the diffing library gave did not give the right result)
+	example, the diff the diffing library gave did not give us a valid diff
+	because applying it to the left input does not provide the right input)
 	then we convert to a full encoding mode, which encodes the entirerty of
 	the blobs. Every time we save we try to revert to a diffed encoding if
-	possible.
+	possible. This allows these files to be relatively resilient to errors in
+	the undelrying diff library and heal as that library improves.
 
 	Note that because reading the files from disk is expensive, this library
 	maintains a cache of records by filename that it returns, for a
@@ -90,9 +92,10 @@ func EmptyWithFullStateEncoding() *Record {
 	}
 }
 
-//New returns a new record with the data encoded in the file. You can
-//instantiate one manually. If a record with that filename has already been
-//saved, it will return that record.
+//New returns a new record with the data encoded in the file. If you want one
+//that does not yet have a file backing it, you can just use an empty value of
+//Record. If a record with that filename has already been saved, it will
+//return that record.
 func New(filename string) (*Record, error) {
 
 	if cachedRec := recCache[filename]; cachedRec != nil {
@@ -128,7 +131,7 @@ func (r *Record) encoder() encoder {
 	if r.fullStateEncoding {
 		return fullEncoder
 	}
-	return yudaiEncoder
+	return diffEncoder
 }
 
 //FullStateEncoding returns whether the record is using full state encoding
@@ -145,7 +148,7 @@ func (r *Record) Compress() error {
 		return nil
 	}
 
-	if err := r.reencode(yudaiEncoder); err != nil {
+	if err := r.reencode(diffEncoder); err != nil {
 		return err
 	}
 

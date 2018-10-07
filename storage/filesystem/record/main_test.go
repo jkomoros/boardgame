@@ -5,9 +5,12 @@ import (
 	"testing"
 )
 
+const fullJsonFilename = "testdata/full.json"
+const diffJsonFilename = "testdata/diff.json"
+
 func TestEncoding(t *testing.T) {
 
-	canonicalRec, err := New("testdata/full.json")
+	canonicalRec, err := New(fullJsonFilename)
 
 	assert.For(t).ThatActual(err).IsNil()
 	assert.For(t).ThatActual(canonicalRec.FullStateEncoding()).IsTrue()
@@ -17,10 +20,10 @@ func TestEncoding(t *testing.T) {
 	//Ensure that the full and diff matchers are mutually exclusive
 	err = fullEncoder.Matches(exampleCanonicalPatch)
 	assert.For(t).ThatActual(err).IsNil()
-	err = yudaiEncoder.Matches(exampleCanonicalPatch)
+	err = diffEncoder.Matches(exampleCanonicalPatch)
 	assert.For(t).ThatActual(err).IsNotNil()
 
-	rec, err := New("testdata/yudai.json")
+	rec, err := New("testdata/diff.json")
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -29,7 +32,7 @@ func TestEncoding(t *testing.T) {
 	exampleDiffPatch := rec.data.StatePatches[0]
 
 	//Ensure that the full and diff matchers are mutually exclusive
-	err = yudaiEncoder.Matches(exampleDiffPatch)
+	err = diffEncoder.Matches(exampleDiffPatch)
 	assert.For(t).ThatActual(err).IsNil()
 	err = fullEncoder.Matches(exampleDiffPatch)
 	assert.For(t).ThatActual(err).IsNotNil()
@@ -42,11 +45,11 @@ func TestEncoding(t *testing.T) {
 
 func TestCompress(t *testing.T) {
 
-	canonicalRec, err := New("testdata/full.json")
+	canonicalRec, err := New(fullJsonFilename)
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	rec, err := New("testdata/full.json")
+	rec, err := New(fullJsonFilename)
 	assert.For(t).ThatActual(err).IsNil()
 
 	err = rec.Compress()
@@ -60,11 +63,11 @@ func TestCompress(t *testing.T) {
 
 func TestExpand(t *testing.T) {
 
-	canonicalRec, err := New("testdata/full.json")
+	canonicalRec, err := New(fullJsonFilename)
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	rec, err := New("testdata/yudai.json")
+	rec, err := New("testdata/diff.json")
 	assert.For(t).ThatActual(err).IsNil()
 
 	err = rec.Expand()
