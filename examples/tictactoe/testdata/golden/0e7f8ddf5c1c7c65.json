@@ -1,0 +1,776 @@
+{
+	"Game": {
+		"Name": "tictactoe",
+		"Id": "0E7F8DDF5C1C7C65",
+		"SecretSalt": "BBB97973B4CE3DEC",
+		"Version": 13,
+		"Winners": [
+			0
+		],
+		"Finished": true,
+		"Created": "2018-10-07T16:47:57.150238-07:00",
+		"Modified": "2018-10-07T16:48:06.937939-07:00",
+		"NumPlayers": 2,
+		"Agents": [
+			"",
+			""
+		],
+		"Variant": null
+	},
+	"Moves": [
+		{
+			"Name": "Place Token",
+			"Version": 1,
+			"Initiator": 1,
+			"Phase": 0,
+			"Proposer": 0,
+			"Timestamp": "2018-10-07T16:47:58.131807-07:00",
+			"Blob": {
+				"TargetPlayerIndex": 0,
+				"Slot": 0
+			}
+		},
+		{
+			"Name": "Finish Turn",
+			"Version": 2,
+			"Initiator": 1,
+			"Phase": 1,
+			"Proposer": -2,
+			"Timestamp": "2018-10-07T16:47:58.133329-07:00",
+			"Blob": {}
+		},
+		{
+			"Name": "Place Token",
+			"Version": 3,
+			"Initiator": 3,
+			"Phase": 1,
+			"Proposer": 1,
+			"Timestamp": "2018-10-07T16:47:59.197767-07:00",
+			"Blob": {
+				"TargetPlayerIndex": 1,
+				"Slot": 4
+			}
+		},
+		{
+			"Name": "Finish Turn",
+			"Version": 4,
+			"Initiator": 3,
+			"Phase": 1,
+			"Proposer": -2,
+			"Timestamp": "2018-10-07T16:47:59.1992-07:00",
+			"Blob": {}
+		},
+		{
+			"Name": "Place Token",
+			"Version": 5,
+			"Initiator": 5,
+			"Phase": 1,
+			"Proposer": 0,
+			"Timestamp": "2018-10-07T16:47:59.816142-07:00",
+			"Blob": {
+				"TargetPlayerIndex": 0,
+				"Slot": 3
+			}
+		},
+		{
+			"Name": "Finish Turn",
+			"Version": 6,
+			"Initiator": 5,
+			"Phase": 1,
+			"Proposer": -2,
+			"Timestamp": "2018-10-07T16:47:59.817563-07:00",
+			"Blob": {}
+		},
+		{
+			"Name": "Place Token",
+			"Version": 7,
+			"Initiator": 7,
+			"Phase": 1,
+			"Proposer": 1,
+			"Timestamp": "2018-10-07T16:48:02.246494-07:00",
+			"Blob": {
+				"TargetPlayerIndex": 1,
+				"Slot": 1
+			}
+		},
+		{
+			"Name": "Finish Turn",
+			"Version": 8,
+			"Initiator": 7,
+			"Phase": 1,
+			"Proposer": -2,
+			"Timestamp": "2018-10-07T16:48:02.248048-07:00",
+			"Blob": {}
+		},
+		{
+			"Name": "Place Token",
+			"Version": 9,
+			"Initiator": 9,
+			"Phase": 1,
+			"Proposer": 0,
+			"Timestamp": "2018-10-07T16:48:03.384395-07:00",
+			"Blob": {
+				"TargetPlayerIndex": 0,
+				"Slot": 7
+			}
+		},
+		{
+			"Name": "Finish Turn",
+			"Version": 10,
+			"Initiator": 9,
+			"Phase": 1,
+			"Proposer": -2,
+			"Timestamp": "2018-10-07T16:48:03.385977-07:00",
+			"Blob": {}
+		},
+		{
+			"Name": "Place Token",
+			"Version": 11,
+			"Initiator": 11,
+			"Phase": 1,
+			"Proposer": 1,
+			"Timestamp": "2018-10-07T16:48:06.105094-07:00",
+			"Blob": {
+				"TargetPlayerIndex": 1,
+				"Slot": 5
+			}
+		},
+		{
+			"Name": "Finish Turn",
+			"Version": 12,
+			"Initiator": 11,
+			"Phase": 1,
+			"Proposer": -2,
+			"Timestamp": "2018-10-07T16:48:06.106658-07:00",
+			"Blob": {}
+		},
+		{
+			"Name": "Place Token",
+			"Version": 13,
+			"Initiator": 13,
+			"Phase": 1,
+			"Proposer": 0,
+			"Timestamp": "2018-10-07T16:48:06.937939-07:00",
+			"Blob": {
+				"TargetPlayerIndex": 0,
+				"Slot": 6
+			}
+		}
+	],
+	"StatePatches": [
+		{
+			"Components": [
+				{}
+			],
+			"Game": [
+				{
+					"CurrentPlayer": 0,
+					"Phase": "Before First Move",
+					"Slots": {
+						"Deck": "tokens",
+						"Ids": [
+							"",
+							"",
+							"",
+							"",
+							"",
+							"",
+							"",
+							"",
+							""
+						],
+						"IdsLastSeen": {},
+						"Indexes": [
+							-1,
+							-1,
+							-1,
+							-1,
+							-1,
+							-1,
+							-1,
+							-1,
+							-1
+						],
+						"Size": 9
+					}
+				}
+			],
+			"Players": [
+				[
+					{
+						"TokenValue": "X",
+						"TokensToPlaceThisTurn": 1,
+						"UnusedTokens": {
+							"Deck": "tokens",
+							"Ids": [
+								"39ec9d2e791870e729b61ab4a19e88a812a55bf5",
+								"7722873d00c223473c1c660b0ba6944c403b22e8",
+								"8124ee6ead66cad934b5089eb7b656b7dac2326d",
+								"29795d2f93fa8a00346f70f6a1950a89c311158c",
+								"2d95a865267e1a3c956e1d7a605d015ed2214644"
+							],
+							"IdsLastSeen": {
+								"29795d2f93fa8a00346f70f6a1950a89c311158c": 0,
+								"2d95a865267e1a3c956e1d7a605d015ed2214644": 0,
+								"39ec9d2e791870e729b61ab4a19e88a812a55bf5": 0,
+								"7722873d00c223473c1c660b0ba6944c403b22e8": 0,
+								"8124ee6ead66cad934b5089eb7b656b7dac2326d": 0
+							},
+							"Indexes": [
+								0,
+								1,
+								2,
+								3,
+								4
+							]
+						}
+					},
+					{
+						"TokenValue": "O",
+						"TokensToPlaceThisTurn": 1,
+						"UnusedTokens": {
+							"Deck": "tokens",
+							"Ids": [
+								"ced53b67af77b1e7b828818214bb1c3027f22b49",
+								"e326b5f000e5435a05815ca90ee27d9701a56d72",
+								"7595f3404834735b046b6425c53f9f0baeebc4f0",
+								"e69cdca2ca4d79656a71f6bb02f110e82432ceff",
+								"ec37d3e6feb4bdc11dd04ac17a91bd4b99a0c7ef"
+							],
+							"IdsLastSeen": {
+								"7595f3404834735b046b6425c53f9f0baeebc4f0": 0,
+								"ced53b67af77b1e7b828818214bb1c3027f22b49": 0,
+								"e326b5f000e5435a05815ca90ee27d9701a56d72": 0,
+								"e69cdca2ca4d79656a71f6bb02f110e82432ceff": 0,
+								"ec37d3e6feb4bdc11dd04ac17a91bd4b99a0c7ef": 0
+							},
+							"Indexes": [
+								5,
+								6,
+								7,
+								8,
+								9
+							]
+						}
+					}
+				]
+			],
+			"Version": [
+				0
+			]
+		},
+		{
+			"Game": {
+				"Phase": [
+					"Before First Move",
+					"After First Move"
+				],
+				"Slots": {
+					"Ids": {
+						"0": [
+							"",
+							"39ec9d2e791870e729b61ab4a19e88a812a55bf5"
+						],
+						"_t": "a"
+					},
+					"IdsLastSeen": {
+						"39ec9d2e791870e729b61ab4a19e88a812a55bf5": [
+							1
+						]
+					},
+					"Indexes": {
+						"0": [
+							-1,
+							0
+						],
+						"_t": "a"
+					}
+				}
+			},
+			"Players": {
+				"0": {
+					"TokensToPlaceThisTurn": [
+						1,
+						0
+					],
+					"UnusedTokens": {
+						"Ids": {
+							"_0": [
+								"39ec9d2e791870e729b61ab4a19e88a812a55bf5",
+								0,
+								0
+							],
+							"_t": "a"
+						},
+						"Indexes": {
+							"_0": [
+								0,
+								0,
+								0
+							],
+							"_t": "a"
+						}
+					}
+				},
+				"_t": "a"
+			},
+			"Version": [
+				0,
+				1
+			]
+		},
+		{
+			"Game": {
+				"CurrentPlayer": [
+					0,
+					1
+				]
+			},
+			"Version": [
+				1,
+				2
+			]
+		},
+		{
+			"Game": {
+				"Slots": {
+					"Ids": {
+						"4": [
+							"",
+							"ced53b67af77b1e7b828818214bb1c3027f22b49"
+						],
+						"_t": "a"
+					},
+					"IdsLastSeen": {
+						"ced53b67af77b1e7b828818214bb1c3027f22b49": [
+							3
+						]
+					},
+					"Indexes": {
+						"4": [
+							-1,
+							5
+						],
+						"_t": "a"
+					}
+				}
+			},
+			"Players": {
+				"1": {
+					"TokensToPlaceThisTurn": [
+						1,
+						0
+					],
+					"UnusedTokens": {
+						"Ids": {
+							"_0": [
+								"ced53b67af77b1e7b828818214bb1c3027f22b49",
+								0,
+								0
+							],
+							"_t": "a"
+						},
+						"Indexes": {
+							"_0": [
+								5,
+								0,
+								0
+							],
+							"_t": "a"
+						}
+					}
+				},
+				"_t": "a"
+			},
+			"Version": [
+				2,
+				3
+			]
+		},
+		{
+			"Game": {
+				"CurrentPlayer": [
+					1,
+					0
+				]
+			},
+			"Players": {
+				"0": {
+					"TokensToPlaceThisTurn": [
+						0,
+						1
+					]
+				},
+				"_t": "a"
+			},
+			"Version": [
+				3,
+				4
+			]
+		},
+		{
+			"Game": {
+				"Slots": {
+					"Ids": {
+						"3": [
+							"",
+							"7722873d00c223473c1c660b0ba6944c403b22e8"
+						],
+						"_t": "a"
+					},
+					"IdsLastSeen": {
+						"7722873d00c223473c1c660b0ba6944c403b22e8": [
+							5
+						]
+					},
+					"Indexes": {
+						"3": [
+							-1,
+							1
+						],
+						"_t": "a"
+					}
+				}
+			},
+			"Players": {
+				"0": {
+					"TokensToPlaceThisTurn": [
+						1,
+						0
+					],
+					"UnusedTokens": {
+						"Ids": {
+							"_0": [
+								"7722873d00c223473c1c660b0ba6944c403b22e8",
+								0,
+								0
+							],
+							"_t": "a"
+						},
+						"Indexes": {
+							"_0": [
+								1,
+								0,
+								0
+							],
+							"_t": "a"
+						}
+					}
+				},
+				"_t": "a"
+			},
+			"Version": [
+				4,
+				5
+			]
+		},
+		{
+			"Game": {
+				"CurrentPlayer": [
+					0,
+					1
+				]
+			},
+			"Players": {
+				"1": {
+					"TokensToPlaceThisTurn": [
+						0,
+						1
+					]
+				},
+				"_t": "a"
+			},
+			"Version": [
+				5,
+				6
+			]
+		},
+		{
+			"Game": {
+				"Slots": {
+					"Ids": {
+						"1": [
+							"",
+							"e326b5f000e5435a05815ca90ee27d9701a56d72"
+						],
+						"_t": "a"
+					},
+					"IdsLastSeen": {
+						"e326b5f000e5435a05815ca90ee27d9701a56d72": [
+							7
+						]
+					},
+					"Indexes": {
+						"1": [
+							-1,
+							6
+						],
+						"_t": "a"
+					}
+				}
+			},
+			"Players": {
+				"1": {
+					"TokensToPlaceThisTurn": [
+						1,
+						0
+					],
+					"UnusedTokens": {
+						"Ids": {
+							"_0": [
+								"e326b5f000e5435a05815ca90ee27d9701a56d72",
+								0,
+								0
+							],
+							"_t": "a"
+						},
+						"Indexes": {
+							"_0": [
+								6,
+								0,
+								0
+							],
+							"_t": "a"
+						}
+					}
+				},
+				"_t": "a"
+			},
+			"Version": [
+				6,
+				7
+			]
+		},
+		{
+			"Game": {
+				"CurrentPlayer": [
+					1,
+					0
+				]
+			},
+			"Players": {
+				"0": {
+					"TokensToPlaceThisTurn": [
+						0,
+						1
+					]
+				},
+				"_t": "a"
+			},
+			"Version": [
+				7,
+				8
+			]
+		},
+		{
+			"Game": {
+				"Slots": {
+					"Ids": {
+						"7": [
+							"",
+							"8124ee6ead66cad934b5089eb7b656b7dac2326d"
+						],
+						"_t": "a"
+					},
+					"IdsLastSeen": {
+						"8124ee6ead66cad934b5089eb7b656b7dac2326d": [
+							9
+						]
+					},
+					"Indexes": {
+						"7": [
+							-1,
+							2
+						],
+						"_t": "a"
+					}
+				}
+			},
+			"Players": {
+				"0": {
+					"TokensToPlaceThisTurn": [
+						1,
+						0
+					],
+					"UnusedTokens": {
+						"Ids": {
+							"_0": [
+								"8124ee6ead66cad934b5089eb7b656b7dac2326d",
+								0,
+								0
+							],
+							"_t": "a"
+						},
+						"Indexes": {
+							"_0": [
+								2,
+								0,
+								0
+							],
+							"_t": "a"
+						}
+					}
+				},
+				"_t": "a"
+			},
+			"Version": [
+				8,
+				9
+			]
+		},
+		{
+			"Game": {
+				"CurrentPlayer": [
+					0,
+					1
+				]
+			},
+			"Players": {
+				"1": {
+					"TokensToPlaceThisTurn": [
+						0,
+						1
+					]
+				},
+				"_t": "a"
+			},
+			"Version": [
+				9,
+				10
+			]
+		},
+		{
+			"Game": {
+				"Slots": {
+					"Ids": {
+						"5": [
+							"",
+							"7595f3404834735b046b6425c53f9f0baeebc4f0"
+						],
+						"_t": "a"
+					},
+					"IdsLastSeen": {
+						"7595f3404834735b046b6425c53f9f0baeebc4f0": [
+							11
+						]
+					},
+					"Indexes": {
+						"5": [
+							-1,
+							7
+						],
+						"_t": "a"
+					}
+				}
+			},
+			"Players": {
+				"1": {
+					"TokensToPlaceThisTurn": [
+						1,
+						0
+					],
+					"UnusedTokens": {
+						"Ids": {
+							"_0": [
+								"7595f3404834735b046b6425c53f9f0baeebc4f0",
+								0,
+								0
+							],
+							"_t": "a"
+						},
+						"Indexes": {
+							"_0": [
+								7,
+								0,
+								0
+							],
+							"_t": "a"
+						}
+					}
+				},
+				"_t": "a"
+			},
+			"Version": [
+				10,
+				11
+			]
+		},
+		{
+			"Game": {
+				"CurrentPlayer": [
+					1,
+					0
+				]
+			},
+			"Players": {
+				"0": {
+					"TokensToPlaceThisTurn": [
+						0,
+						1
+					]
+				},
+				"_t": "a"
+			},
+			"Version": [
+				11,
+				12
+			]
+		},
+		{
+			"Game": {
+				"Slots": {
+					"Ids": {
+						"6": [
+							"",
+							"29795d2f93fa8a00346f70f6a1950a89c311158c"
+						],
+						"_t": "a"
+					},
+					"IdsLastSeen": {
+						"29795d2f93fa8a00346f70f6a1950a89c311158c": [
+							13
+						]
+					},
+					"Indexes": {
+						"6": [
+							-1,
+							3
+						],
+						"_t": "a"
+					}
+				}
+			},
+			"Players": {
+				"0": {
+					"TokensToPlaceThisTurn": [
+						1,
+						0
+					],
+					"UnusedTokens": {
+						"Ids": {
+							"_0": [
+								"29795d2f93fa8a00346f70f6a1950a89c311158c",
+								0,
+								0
+							],
+							"_t": "a"
+						},
+						"Indexes": {
+							"_0": [
+								3,
+								0,
+								0
+							],
+							"_t": "a"
+						}
+					}
+				},
+				"_t": "a"
+			},
+			"Version": [
+				12,
+				13
+			]
+		}
+	]
+}
