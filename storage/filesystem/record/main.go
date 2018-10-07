@@ -70,6 +70,10 @@ func (s StateEncoding) encoder() encoder {
 		return &yudaiEncoder{}
 	case StateEncodingFull:
 		return &fullEncoder{}
+	case StateEncodingJosephBurnett:
+		//TODO: before enabling the line, ensure that tests in main_test for filesystem for it work.
+		//return &josephBurnettEncoder{}
+		return nil
 	default:
 		return nil
 	}
@@ -82,7 +86,7 @@ func (s StateEncoding) name() string {
 	case StateEncodingFull:
 		return "full"
 	case StateEncodingJosephBurnett:
-		return "joseph_burnett"
+		return "josephburnett"
 	default:
 		return "INVALID"
 	}

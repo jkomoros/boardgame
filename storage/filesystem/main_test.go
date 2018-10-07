@@ -25,3 +25,14 @@ func TestStorageManagerFullEncoding(t *testing.T) {
 	}, "filesystem", "", t)
 
 }
+
+/*
+func TestStorageManagerJosephBurnettEncoding(t *testing.T) {
+
+	test.Test(func() test.StorageManager {
+		mgr := NewStorageManager("test")
+		mgr.SetStateEncoding(record.StateEncodingJosephBurnett)
+		return mgr
+	}, "filesystem", "", t)
+
+}*/
