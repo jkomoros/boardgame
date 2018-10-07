@@ -39,3 +39,19 @@ func (f *fullEncoder) ConfirmPatch(before, after, formattedPatch []byte) error {
 func (f *fullEncoder) ApplyPatch(lastStateBlob, patchBlob []byte) (boardgame.StateStorageRecord, error) {
 	return patchBlob, nil
 }
+
+func (f *fullEncoder) Matches(examplePatch []byte) error {
+
+	//We match if the patch has a version string who is an int.
+
+	var probeStruct struct {
+		Version int
+	}
+
+	if err := json.Unmarshal(examplePatch, &probeStruct); err != nil {
+		return errors.New("Unmarshal probe for Version as single int failed: " + err.Error())
+	}
+
+	return nil
+
+}

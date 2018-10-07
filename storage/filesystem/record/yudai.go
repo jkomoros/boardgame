@@ -95,3 +95,23 @@ func (y *yudaiEncoder) ApplyPatch(lastStateBlob, patchBlob []byte) (boardgame.St
 
 	return blob, nil
 }
+
+func (y *yudaiEncoder) Matches(examplePatch []byte) error {
+
+	//We match if the patch has a version string who is an int.
+
+	var probeStruct struct {
+		Version []int
+	}
+
+	if err := json.Unmarshal(examplePatch, &probeStruct); err != nil {
+		return errors.New("Unmarshal probe for Version as two ints failed: " + err.Error())
+	}
+
+	if len(probeStruct.Version) == 0 || len(probeStruct.Version) > 2 {
+		return errors.New("Probe struct version had zero version ints, expected 1 or 2")
+	}
+
+	return nil
+
+}

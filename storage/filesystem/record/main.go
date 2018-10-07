@@ -104,6 +104,9 @@ type encoder interface {
 	ConfirmPatch(lastState, state, patch []byte) error
 	//ApplyPatch takes a previous state and the patch and returns the new state.
 	ApplyPatch(lastState, patch []byte) (boardgame.StateStorageRecord, error)
+	//Matches should return nil if the patch is not in a format we accept, or
+	//a descriptive error otherwise.
+	Matches(examplePatch []byte) error
 }
 
 //Empty returns an empty record initialized to use the DefaultStateEncoding
@@ -330,7 +333,14 @@ func (r *Record) State(version int) (boardgame.StateStorageRecord, error) {
 
 	enc := r.encoder()
 
-	blob, err := enc.ApplyPatch(lastStateBlob, r.data.StatePatches[version])
+	patch := r.data.StatePatches[version]
+
+	//Sanity check the patch is a format we expect
+	if err := enc.Matches(patch); err != nil {
+		return nil, errors.New("Unexpected error: Sanity check failed: the stored patch does not appear to be in the format this encoder expects: " + err.Error())
+	}
+
+	blob, err := enc.ApplyPatch(lastStateBlob, patch)
 
 	if err != nil {
 		return nil, errors.New("Couldn't apply patch: " + err.Error())
