@@ -399,12 +399,6 @@ func (r *Record) AddGameAndCurrentState(game *boardgame.GameStorageRecord, state
 		r.data = &storageRecord{}
 	}
 
-	r.data.Game = game
-
-	if move != nil {
-		r.data.Moves = append(r.data.Moves, move)
-	}
-
 	lastState, err := r.State(len(r.data.StatePatches) - 1)
 
 	if err != nil {
@@ -443,6 +437,15 @@ func (r *Record) AddGameAndCurrentState(game *boardgame.GameStorageRecord, state
 		//Try again now that we're expanded
 		return r.AddGameAndCurrentState(game, state, move)
 
+	}
+
+	//Now that we've failed and expanded, actually modify the various
+	//datastrutures in ourself (otherwise we could have, for example, double
+	//moves)
+	r.data.Game = game
+
+	if move != nil {
+		r.data.Moves = append(r.data.Moves, move)
 	}
 
 	r.states = append(r.states, state)

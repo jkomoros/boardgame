@@ -78,3 +78,7 @@ func TestExpand(t *testing.T) {
 	assert.For(t).ThatActual(err).IsNil()
 
 }
+
+//TODO: actually test the behavior where we flip from compressed to expanded
+//mode in AddCurentGameAndSave. Have the encoder fail to confirm in that mode
+//to force the error?
