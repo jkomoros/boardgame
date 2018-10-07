@@ -74,6 +74,19 @@ func (s StateEncoding) encoder() encoder {
 	}
 }
 
+func (s StateEncoding) name() string {
+	switch s {
+	case StateEncodingYudai:
+		return "yudai"
+	case StateEncodingFull:
+		return "full"
+	case StateEncodingJosephBurnett:
+		return "joseph_burnett"
+	default:
+		return "INVALID"
+	}
+}
+
 //The encoding that new records should have.
 var DefaultStateEncoding StateEncoding = StateEncodingYudai
 

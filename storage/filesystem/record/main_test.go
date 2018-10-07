@@ -6,8 +6,14 @@ import (
 )
 
 func TestFullEncoding(t *testing.T) {
+	encodingTestHelper(t, StateEncodingFull)
+}
 
-	rec, err := New("testdata/full.json")
+func encodingTestHelper(t *testing.T, encoding StateEncoding) {
+
+	filename := "testdata/" + encoding.name() + ".json"
+
+	rec, err := New(filename)
 
 	assert.For(t).ThatActual(err).IsNil()
 
@@ -15,6 +21,5 @@ func TestFullEncoding(t *testing.T) {
 	enc := rec.encoder()
 	assert.For(t).ThatActual(enc).IsNotNil()
 
-	assert.For(t).ThatActual(rec.detectedEncoding).Equals(StateEncodingFull)
-
+	assert.For(t).ThatActual(rec.detectedEncoding).Equals(encoding)
 }
