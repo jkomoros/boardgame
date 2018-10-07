@@ -57,8 +57,12 @@ const (
 	StateEncodingJosephBurnett
 )
 
+//The encoding that new records should have.
+var DefaultStateEncoding StateEncoding = StateEncodingYudai
+
 //Record is a record of moves, states, and game. Get a new one based on the
-//contents of a file with New(). Instantiate directly for a blank one.
+//contents of a file with New(). If you want a new blank one using the default
+//encoding use Empty().
 type Record struct {
 	data   *storageRecord
 	states []boardgame.StateStorageRecord
@@ -79,8 +83,17 @@ type storageRecord struct {
 	Description  string `json:"omitempty"`
 }
 
+//Empty returns an empty record initialized to use the DefaultStateEncoding
+//provided.
+func Empty() *Record {
+	return &Record{
+		detectedEncoding: DefaultStateEncoding,
+		encodingDetected: true,
+	}
+}
+
 //New returns a new record with the data encoded in the file. If you want an
-//empty record, just instantiate a blank struct. If a record with that
+//empty record, use Empty(). If a record with that
 //filename has already been saved, it will return that record.
 func New(filename string) (*Record, error) {
 

@@ -206,7 +206,7 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 
 	if err != nil {
 		//Must be the first save.
-		rec = &record.Record{}
+		rec = record.Empty()
 	}
 
 	if err := rec.AddGameAndCurrentState(game, state, move); err != nil {
