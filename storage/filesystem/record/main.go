@@ -58,6 +58,8 @@ func (s StateEncoding) encoder() encoder {
 	switch s {
 	case StateEncodingYudai:
 		return &yudaiEncoder{}
+	case StateEncodingFull:
+		return &fullEncoder{}
 	default:
 		return nil
 	}

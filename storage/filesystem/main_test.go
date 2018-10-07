@@ -15,3 +15,13 @@ func TestStorageManagerYudaiEncoding(t *testing.T) {
 	}, "filesystem", "", t)
 
 }
+
+func TestStorageManagerFullEncoding(t *testing.T) {
+
+	test.Test(func() test.StorageManager {
+		mgr := NewStorageManager("test")
+		mgr.SetStateEncoding(record.StateEncodingFull)
+		return mgr
+	}, "filesystem", "", t)
+
+}
