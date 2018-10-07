@@ -288,7 +288,27 @@ func (r *Record) ConvertEncoding(newEncoding StateEncoding) error {
 //compare ensures that this and the other contain the same information
 func (r *Record) compare(other *Record) error {
 
-	//TODO: also compare moves and games
+	if r.data == nil {
+		return errors.New("Nil for us")
+	}
+
+	if other.data == nil {
+		return errors.New("nil for them")
+	}
+
+	if diff := deep.Equal(r.data.Game, other.data.Game); len(diff) != 0 {
+		return errors.New("Game was not the same: " + strings.Join(diff, "\n"))
+	}
+
+	if len(r.data.Moves) != len(other.data.Moves) {
+		return errors.New("Length of moves doesn't match")
+	}
+
+	for i := 0; i < len(r.data.Moves); i++ {
+		if diff := deep.Equal(r.data.Moves[i], other.data.Moves[i]); len(diff) != 0 {
+			return errors.New("Move " + strconv.Itoa(i) + " was not the same: " + strings.Join(diff, "\n"))
+		}
+	}
 
 	for i := 0; i < len(r.data.StatePatches); i++ {
 
