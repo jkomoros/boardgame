@@ -36,7 +36,7 @@ func (g *Golden) Run(p writ.Path, positional []string) {
 }
 
 func (g *Golden) Name() string {
-	return "golden"
+	return "create-golden"
 }
 
 func (g *Golden) Description() string {
@@ -46,7 +46,7 @@ func (g *Golden) Description() string {
 func (g *Golden) HelpText() string {
 	return g.Name() + ` helps create golden example games to test the current game package.
 
-You run it sittig in the root of a game package, and it will create a stub server (with similiar behavior to what you'd get with 'boardgame-util serve'), but with only one game, and the games will all be persisted to a testdata folder, with a golden_test.go created.
+You run it sitting in the root of a game package, and it will create a stub server (with similiar behavior to what you'd get with 'boardgame-util serve'), but with only one game, and the games will all be persisted to a testdata folder, with a golden_test.go created.
 
 This is useful for saving runs of games that are known good so that you can ensure you don't mess with the game logic later.
 `
