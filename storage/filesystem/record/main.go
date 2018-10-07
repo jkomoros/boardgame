@@ -37,11 +37,37 @@ func init() {
 	recCache = make(map[string]*Record, 16)
 }
 
+//StateEncoding captures how the states are encoded within the file.
+type StateEncoding int
+
+const (
+	//The entirety of each state is encoded in StatePatch, with no diffing.
+	//The most robust, but least efficient encoding. Also makes it hard to
+	//eyeball the state patches to see what changed from state to state. This
+	//is the encoding we return when there isn't yet enough information
+	//encoded to determine the encoding (e.g. no second state encoded)
+	StateEncodingFull StateEncoding = iota
+	//Patches are encoded with delta format from github.com/yudai/gojsondiff.
+	//This format is easy to represent in json, and is compatible with the
+	//popular github.com/benjamine/jsondiffpatch (in javascript). However, it
+	//handles at least some cases incorrectly.
+	StateEncodingYudai
+	//Patches are encoded using the jd format transformed to json, where each
+	//line is represented as an item in an array of JSON strings.
+	StateEncodingJosephBurnett
+)
+
 //Record is a record of moves, states, and game. Get a new one based on the
 //contents of a file with New(). Instantiate directly for a blank one.
 type Record struct {
 	data   *storageRecord
 	states []boardgame.StateStorageRecord
+	//The StateEncoding we've figure out our patches are represented as
+	detectedEncoding StateEncoding
+	//Whether or not we have figured out our encoding. Helps detect if the
+	//zero value of detectedEncoding means that we've affirmatively detected
+	//that encoding or haven'et yet.
+	encodingDetected bool
 }
 
 type storageRecord struct {
