@@ -58,7 +58,7 @@ const (
 	StateEncodingYudai
 	//Patches are encoded using the jd format transformed to json, where each
 	//line is represented as an item in an array of JSON strings.
-	StateEncodingJosephBurnett
+	stateEncodingJosephBurnett
 
 	//When adding a new one here, change the loop condition in
 	//fullSanityCheckPatchEncoding and autoDetectEncoding
@@ -70,7 +70,7 @@ func (s StateEncoding) encoder() encoder {
 		return &yudaiEncoder{}
 	case StateEncodingFull:
 		return &fullEncoder{}
-	case StateEncodingJosephBurnett:
+	case stateEncodingJosephBurnett:
 		//TODO: before enabling the line, ensure that tests in main_test for filesystem for it work.
 		//return &josephBurnettEncoder{}
 		return nil
@@ -85,7 +85,7 @@ func (s StateEncoding) name() string {
 		return "yudai"
 	case StateEncodingFull:
 		return "full"
-	case StateEncodingJosephBurnett:
+	case stateEncodingJosephBurnett:
 		return "josephburnett"
 	default:
 		return "INVALID"
@@ -187,7 +187,7 @@ func (r *Record) autoDetectEncoding() (StateEncoding, error) {
 
 	var encoding StateEncoding
 
-	for encoding = 0; encoding <= StateEncodingJosephBurnett; encoding++ {
+	for encoding = 0; encoding <= stateEncodingJosephBurnett; encoding++ {
 		encoder := encoding.encoder()
 		if encoder == nil {
 			continue
@@ -495,7 +495,7 @@ func (r *Record) fullSanityCheckPatchEncoding(patch []byte) error {
 
 	var i StateEncoding
 
-	for i = 0; i <= StateEncodingJosephBurnett; i++ {
+	for i = 0; i <= stateEncodingJosephBurnett; i++ {
 		//we want to make sure we try all of the other ones and that they fail first.
 		if i == r.detectedEncoding {
 			continue
