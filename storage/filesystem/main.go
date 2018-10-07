@@ -152,7 +152,7 @@ func (s *StorageManager) saveRecordForId(gameId string, rec *record.Record) erro
 		path = filepath.Join(s.basePath, gameId+".json")
 	}
 
-	if err := rec.Save(path); err != nil {
+	if err := rec.Save(path, false); err != nil {
 		return err
 	}
 

@@ -355,8 +355,17 @@ func safeOvewritefile(path string, blob []byte) error {
 
 }
 
-//Save saves to the given path.
-func (r *Record) Save(filename string) error {
+//Save saves to the given path. Always try to Compress() if possible. If
+//fullEncodingErrors is true then we'll error if we can't compress, otherwise
+//we'll be OK with saving a full encoded version.
+func (r *Record) Save(filename string, fullEncodingErrors bool) error {
+
+	if err := r.Compress(); err != nil {
+		if fullEncodingErrors {
+			return errors.New("The data would have been saved in expanded form but that would be an error: " + err.Error())
+		}
+		//If we get to here then it's OK that we failed to compress.
+	}
 
 	blob, err := json.MarshalIndent(r.data, "", "\t")
 
@@ -403,15 +412,28 @@ func (r *Record) AddGameAndCurrentState(game *boardgame.GameStorageRecord, state
 
 	if err := enc.ConfirmPatch(lastState, state, patch); err != nil {
 
-		fmt.Println("UNEXPECTED ERROR IN UNDERLYING LIBRARY:")
+		fmt.Println("UNEXPECTED ERROR IN UNDERLYING LIBRARY")
 		fmt.Println("LastState:")
 		fmt.Println(string(lastState))
 		fmt.Println("\nState:")
 		fmt.Println(string(state))
 		fmt.Println("\nFormatted Patch:")
 		fmt.Println(string(patch))
+		fmt.Println("Trying to auto expand...")
 
-		return errors.New("Sanity check failed: patch did not do what it should: " + err.Error())
+		if r.FullStateEncoding() {
+			//We're already fully encoded, this really shouldn't happen
+			return errors.New("Sanity check failed: patch did not do what it should: " + err.Error())
+		}
+
+		//OK, we found an error in underlying data. Exapnd and try again.
+		if err := r.Expand(); err != nil {
+			return errors.New("Saving failed in compressed mode, but expanding didn't work: " + err.Error())
+		}
+
+		//Try again now that we're expanded
+		return r.AddGameAndCurrentState(game, state, move)
+
 	}
 
 	r.states = append(r.states, state)
