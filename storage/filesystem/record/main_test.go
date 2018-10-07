@@ -9,6 +9,10 @@ func TestFullEncoding(t *testing.T) {
 	encodingTestHelper(t, StateEncodingFull)
 }
 
+func TestYudaiEncoding(t *testing.T) {
+	encodingTestHelper(t, StateEncodingYudai)
+}
+
 func encodingTestHelper(t *testing.T, encoding StateEncoding) {
 
 	filename := "testdata/" + encoding.name() + ".json"
