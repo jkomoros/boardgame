@@ -60,7 +60,7 @@ const (
 	StateEncodingJosephBurnett
 
 	//When adding a new one here, change the loop condition in
-	//fullSanityCheckPatchEncoding.
+	//fullSanityCheckPatchEncoding and autoDetectEncoding
 )
 
 func (s StateEncoding) encoder() encoder {
@@ -153,12 +153,52 @@ func New(filename string) (*Record, error) {
 	}, nil
 }
 
+var errNoEncodingMatches = errors.New("No encodings matched the example patch")
+
+func (r *Record) autoDetectEncoding() (StateEncoding, error) {
+
+	if r.data == nil {
+		return 0, errors.New("No data yet")
+	}
+
+	if len(r.data.StatePatches) < 1 {
+		return 0, errors.New("No state patches yet to examine")
+	}
+
+	examplePatch := r.data.StatePatches[0]
+
+	var encoding StateEncoding
+
+	for encoding = 0; encoding <= StateEncodingJosephBurnett; encoding++ {
+		encoder := encoding.encoder()
+		if encoder == nil {
+			continue
+		}
+		if err := encoder.Matches(examplePatch); err == nil {
+			return encoding, nil
+		}
+	}
+
+	return 0, errNoEncodingMatches
+
+}
+
 func (r *Record) encoder() encoder {
-	//TODO: figure out our encoding based on contents if not set.
 
 	if !r.encodingDetected {
-		r.detectedEncoding = StateEncodingYudai
-		r.encodingDetected = true
+
+		encoding, err := r.autoDetectEncoding()
+
+		if err == errNoEncodingMatches {
+			panic("No encoding matches the given file")
+		}
+
+		//If it's an error we just don't know yet.
+		if err == nil {
+			r.detectedEncoding = encoding
+			r.encodingDetected = true
+		}
+
 	}
 
 	enc := r.detectedEncoding.encoder()
