@@ -43,8 +43,8 @@ func init() {
 }
 
 //Record is a record of moves, states, and game. Get a new one based on the
-//contents of a file with New(). If you want a new blank one using the default
-//encoding use Empty().
+//contents of a file with New(). If you want a new blank one you can just use
+//a zero value of this.
 type Record struct {
 	data              *storageRecord
 	states            []boardgame.StateStorageRecord
@@ -385,7 +385,11 @@ func (r *Record) Save(filename string, fullEncodingErrors bool) error {
 }
 
 //AddGameAndCurrentState adds the game, state, and move (if non-nil), ready
-//for saving. Designed to be used in a SaveGameAndCurrentState method.
+//for saving. Designed to be used in a SaveGameAndCurrentState method. If the
+//state cannot be succcesfully encoded as a diffed encoding (due to an
+//underlying issue in the diffing library, for example, that gives an invalid
+//diff) then this will automatically expand the record into a
+//FullStateEncoding mode.
 func (r *Record) AddGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord, move *boardgame.MoveStorageRecord) error {
 
 	if r.data == nil {
