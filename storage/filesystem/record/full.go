@@ -8,14 +8,16 @@ import (
 	"strings"
 )
 
-//This encoder is so easy!
-type fullEncoder struct{}
+var fullEncoder = &fullEncoderImpl{}
 
-func (f *fullEncoder) CreatePatch(lastState, state boardgame.StateStorageRecord) ([]byte, error) {
+//This encoder is so easy!
+type fullEncoderImpl struct{}
+
+func (f *fullEncoderImpl) CreatePatch(lastState, state boardgame.StateStorageRecord) ([]byte, error) {
 	return state, nil
 }
 
-func (f *fullEncoder) ConfirmPatch(before, after, formattedPatch []byte) error {
+func (f *fullEncoderImpl) ConfirmPatch(before, after, formattedPatch []byte) error {
 
 	var inflatedAfter map[string]interface{}
 	if err := json.Unmarshal(after, &inflatedAfter); err != nil {
@@ -36,11 +38,11 @@ func (f *fullEncoder) ConfirmPatch(before, after, formattedPatch []byte) error {
 	return nil
 }
 
-func (f *fullEncoder) ApplyPatch(lastStateBlob, patchBlob []byte) (boardgame.StateStorageRecord, error) {
+func (f *fullEncoderImpl) ApplyPatch(lastStateBlob, patchBlob []byte) (boardgame.StateStorageRecord, error) {
 	return patchBlob, nil
 }
 
-func (f *fullEncoder) Matches(examplePatch []byte) error {
+func (f *fullEncoderImpl) Matches(examplePatch []byte) error {
 
 	//We match if the patch has a version string who is an int.
 

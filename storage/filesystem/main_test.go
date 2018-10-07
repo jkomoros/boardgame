@@ -1,17 +1,14 @@
 package filesystem
 
 import (
-	"github.com/jkomoros/boardgame/storage/filesystem/record"
 	"github.com/jkomoros/boardgame/storage/internal/test"
 	"testing"
 )
 
-func TestStorageManagerYudaiEncoding(t *testing.T) {
+func TestStorageManagerDiffEncoding(t *testing.T) {
 
 	test.Test(func() test.StorageManager {
-		mgr := NewStorageManager("test")
-		mgr.SetStateEncoding(record.StateEncodingYudai)
-		return mgr
+		return NewStorageManager("test")
 	}, "filesystem", "", t)
 
 }
@@ -20,19 +17,8 @@ func TestStorageManagerFullEncoding(t *testing.T) {
 
 	test.Test(func() test.StorageManager {
 		mgr := NewStorageManager("test")
-		mgr.SetStateEncoding(record.StateEncodingFull)
+		mgr.forceFullEncoding = true
 		return mgr
 	}, "filesystem", "", t)
 
 }
-
-/*
-func TestStorageManagerJosephBurnettEncoding(t *testing.T) {
-
-	test.Test(func() test.StorageManager {
-		mgr := NewStorageManager("test")
-		mgr.SetStateEncoding(record.StateEncodingJosephBurnett)
-		return mgr
-	}, "filesystem", "", t)
-
-}*/

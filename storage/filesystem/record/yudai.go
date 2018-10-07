@@ -10,9 +10,11 @@ import (
 	"strings"
 )
 
-type yudaiEncoder struct{}
+var yudaiEncoder = &yudaiEncoderImpl{}
 
-func (y *yudaiEncoder) CreatePatch(lastState, state boardgame.StateStorageRecord) ([]byte, error) {
+type yudaiEncoderImpl struct{}
+
+func (y *yudaiEncoderImpl) CreatePatch(lastState, state boardgame.StateStorageRecord) ([]byte, error) {
 	differ := gojsondiff.New()
 
 	patch, err := differ.Compare(lastState, state)
@@ -38,7 +40,7 @@ func (y *yudaiEncoder) CreatePatch(lastState, state boardgame.StateStorageRecord
 	return formattedPatch, nil
 }
 
-func (y *yudaiEncoder) ConfirmPatch(before, after, formattedPatch []byte) error {
+func (y *yudaiEncoderImpl) ConfirmPatch(before, after, formattedPatch []byte) error {
 	var inflatedBefore map[string]interface{}
 	if err := json.Unmarshal(before, &inflatedBefore); err != nil {
 		return errors.New("Couldn't unmarshal before blob: " + err.Error())
@@ -68,7 +70,7 @@ func (y *yudaiEncoder) ConfirmPatch(before, after, formattedPatch []byte) error 
 	return nil
 }
 
-func (y *yudaiEncoder) ApplyPatch(lastStateBlob, patchBlob []byte) (boardgame.StateStorageRecord, error) {
+func (y *yudaiEncoderImpl) ApplyPatch(lastStateBlob, patchBlob []byte) (boardgame.StateStorageRecord, error) {
 	unmarshaller := gojsondiff.NewUnmarshaller()
 
 	patch, err := unmarshaller.UnmarshalBytes(patchBlob)
@@ -96,7 +98,7 @@ func (y *yudaiEncoder) ApplyPatch(lastStateBlob, patchBlob []byte) (boardgame.St
 	return blob, nil
 }
 
-func (y *yudaiEncoder) Matches(examplePatch []byte) error {
+func (y *yudaiEncoderImpl) Matches(examplePatch []byte) error {
 
 	//We match if the patch has a version string who is an int.
 

@@ -3,6 +3,12 @@
 	record is a package to open, read, and save game records stored in
 	filesystem's format.
 
+	We encode states as diffs by default, but if that's not possible (for
+	example, the diff the diffing library gave did not give the right result)
+	then we convert to a full encoding mode, which encodes the entirerty of
+	the blobs. Every time we save we try to revert to a diffed encoding if
+	possible.
+
 	Note that because reading the files from disk is expensive, this library
 	maintains a cache of records by filename that it returns, for a
 	considerable performance boost. This means that changes in the filesystem
@@ -36,77 +42,15 @@ func init() {
 	recCache = make(map[string]*Record, 16)
 }
 
-//FullPatchSanityCheck is whether we ensure that each state patch not only
-//matches our current encoder, but DOESN'T match other encoders. More
-//expensive, should only be set in testing scenarios.
-var fullPatchSanityCheck bool
-
-//StateEncoding captures how the states are encoded within the file.
-type StateEncoding int
-
-const (
-	//The entirety of each state is encoded in StatePatch, with no diffing.
-	//The most robust, but least efficient encoding. Also makes it hard to
-	//eyeball the state patches to see what changed from state to state. This
-	//is the encoding we return when there isn't yet enough information
-	//encoded to determine the encoding (e.g. no second state encoded)
-	StateEncodingFull StateEncoding = iota
-	//Patches are encoded with delta format from github.com/yudai/gojsondiff.
-	//This format is easy to represent in json, and is compatible with the
-	//popular github.com/benjamine/jsondiffpatch (in javascript). However, it
-	//handles at least some cases incorrectly.
-	StateEncodingYudai
-	//Patches are encoded using the jd format transformed to json, where each
-	//line is represented as an item in an array of JSON strings.
-	stateEncodingJosephBurnett
-
-	//When adding a new one here, change the loop condition in
-	//fullSanityCheckPatchEncoding and autoDetectEncoding
-)
-
-func (s StateEncoding) encoder() encoder {
-	switch s {
-	case StateEncodingYudai:
-		return &yudaiEncoder{}
-	case StateEncodingFull:
-		return &fullEncoder{}
-	case stateEncodingJosephBurnett:
-		//TODO: before enabling the line, ensure that tests in main_test for filesystem for it work.
-		//return &josephBurnettEncoder{}
-		return nil
-	default:
-		return nil
-	}
-}
-
-func (s StateEncoding) name() string {
-	switch s {
-	case StateEncodingYudai:
-		return "yudai"
-	case StateEncodingFull:
-		return "full"
-	case stateEncodingJosephBurnett:
-		return "josephburnett"
-	default:
-		return "INVALID"
-	}
-}
-
-//The encoding that new records should have.
-var DefaultStateEncoding StateEncoding = StateEncodingYudai
-
 //Record is a record of moves, states, and game. Get a new one based on the
 //contents of a file with New(). If you want a new blank one using the default
 //encoding use Empty().
 type Record struct {
-	data   *storageRecord
-	states []boardgame.StateStorageRecord
-	//The StateEncoding we've figure out our patches are represented as
-	detectedEncoding StateEncoding
-	//Whether or not we have figured out our encoding. Helps detect if the
-	//zero value of detectedEncoding means that we've affirmatively detected
-	//that encoding or haven'et yet.
-	encodingDetected bool
+	data              *storageRecord
+	states            []boardgame.StateStorageRecord
+	fullStateEncoding bool
+	//If true, we will never try to turn off full-state encoding
+	preferFullStateEncoding bool
 }
 
 type storageRecord struct {
@@ -136,18 +80,19 @@ type encoder interface {
 	Matches(examplePatch []byte) error
 }
 
-//Empty returns an empty record initialized to use the DefaultStateEncoding
-//provided.
-func Empty() *Record {
+//EmptyWithFullStateEncoding returns a record that will default to full state
+//encoding and will never automatically try to reduce down to
+//fullstateencoding. Primarily useful for testing.
+func EmptyWithFullStateEncoding() *Record {
 	return &Record{
-		detectedEncoding: DefaultStateEncoding,
-		encodingDetected: true,
+		fullStateEncoding:       true,
+		preferFullStateEncoding: true,
 	}
 }
 
-//New returns a new record with the data encoded in the file. If you want an
-//empty record, use Empty(). If a record with that
-//filename has already been saved, it will return that record.
+//New returns a new record with the data encoded in the file. You can
+//instantiate one manually. If a record with that filename has already been
+//saved, it will return that record.
 func New(filename string) (*Record, error) {
 
 	if cachedRec := recCache[filename]; cachedRec != nil {
@@ -166,87 +111,75 @@ func New(filename string) (*Record, error) {
 		return nil, errors.New("Couldn't decode json: " + err.Error())
 	}
 
-	return &Record{
+	result := &Record{
 		data: &storageRec,
-	}, nil
-}
-
-var errNoEncodingMatches = errors.New("No encodings matched the example patch")
-
-func (r *Record) autoDetectEncoding() (StateEncoding, error) {
-
-	if r.data == nil {
-		return 0, errors.New("No data yet")
 	}
 
-	if len(r.data.StatePatches) < 1 {
-		return 0, errors.New("No state patches yet to examine")
-	}
-
-	examplePatch := r.data.StatePatches[0]
-
-	var encoding StateEncoding
-
-	for encoding = 0; encoding <= stateEncodingJosephBurnett; encoding++ {
-		encoder := encoding.encoder()
-		if encoder == nil {
-			continue
-		}
-		if err := encoder.Matches(examplePatch); err == nil {
-			return encoding, nil
+	if len(storageRec.StatePatches) > 0 {
+		if err := fullEncoder.Matches(storageRec.StatePatches[0]); err == nil {
+			result.fullStateEncoding = true
 		}
 	}
 
-	return 0, errNoEncodingMatches
-
+	return result, nil
 }
 
 func (r *Record) encoder() encoder {
-
-	if !r.encodingDetected {
-
-		encoding, err := r.autoDetectEncoding()
-
-		if err == errNoEncodingMatches {
-			panic("No encoding matches the given file")
-		}
-
-		//If it's an error we just don't know yet.
-		if err == nil {
-			r.detectedEncoding = encoding
-			r.encodingDetected = true
-		}
-
+	if r.fullStateEncoding {
+		return fullEncoder
 	}
-
-	enc := r.detectedEncoding.encoder()
-
-	if enc == nil {
-		panic("Unsupported encoder")
-	}
-
-	return enc
+	return yudaiEncoder
 }
 
-//ConvertEncoding converts the given contents to the new encoding, returning
+//FullStateEncoding returns whether the record is using full state encoding
+//instead of the default diff.
+func (r *Record) FullStateEncoding() bool {
+	return r.fullStateEncoding
+}
+
+//Compress converts from full state encoding to diff encoding, if possible.
+//Noop if already diff encoded.
+func (r *Record) Compress() error {
+
+	if !r.FullStateEncoding() {
+		return nil
+	}
+
+	if err := r.reencode(yudaiEncoder); err != nil {
+		return err
+	}
+
+	r.fullStateEncoding = false
+
+	return nil
+
+}
+
+//Expand converts from diff state encoding to full encoding, if possible.
+//Noop if already full encoded.
+func (r *Record) Expand() error {
+	if r.FullStateEncoding() {
+		return nil
+	}
+
+	if err := r.reencode(fullEncoder); err != nil {
+		return err
+	}
+
+	r.fullStateEncoding = true
+	return nil
+}
+
+//reencode converts the given contents to the new encoding, returning
 //an error if that's not possible. You still need to re-save to disk if you
 //want to save the new contents. If error is non nil, the contents of the
 //record won't have been modified. If newEncoding is the same as current encoding,
 //will be a no op.
-func (r *Record) ConvertEncoding(newEncoding StateEncoding) error {
+func (r *Record) reencode(targetEncoder encoder) error {
 
 	if r.data == nil {
 		return errors.New("No data!")
 	}
-
-	//ensure detectedEncoding is set
-	_ = r.encoder()
-
-	if r.detectedEncoding == newEncoding {
-		return nil
-	}
-
-	targetEncoder := newEncoding.encoder()
 
 	if targetEncoder == nil {
 		return errors.New("The target encoder doesn't exist")
@@ -488,38 +421,6 @@ func (r *Record) AddGameAndCurrentState(game *boardgame.GameStorageRecord, state
 
 }
 
-func (r *Record) fullSanityCheckPatchEncoding(patch []byte) error {
-
-	//This should set detectedEncoding
-	enc := r.encoder()
-
-	var i StateEncoding
-
-	for i = 0; i <= stateEncodingJosephBurnett; i++ {
-		//we want to make sure we try all of the other ones and that they fail first.
-		if i == r.detectedEncoding {
-			continue
-		}
-
-		testEncoding := i.encoder()
-
-		if testEncoding == nil {
-			continue
-		}
-
-		if err := testEncoding.Matches(patch); err == nil {
-			return errors.New("Encoder that was not us matched when we expected it not to:" + strconv.Itoa(int(i)))
-		}
-
-	}
-
-	if err := enc.Matches(patch); err != nil {
-		return errors.New("The encoder we thought we were didn't mtach: " + err.Error())
-	}
-
-	return nil
-}
-
 //State fetches the State object at that version. It can return an error
 //because under the covers it has to apply serialized patches.
 func (r *Record) State(version int) (boardgame.StateStorageRecord, error) {
@@ -550,15 +451,9 @@ func (r *Record) State(version int) (boardgame.StateStorageRecord, error) {
 
 	patch := r.data.StatePatches[version]
 
-	if fullPatchSanityCheck {
-		if err := r.fullSanityCheckPatchEncoding(patch); err != nil {
-			return nil, errors.New("Full patch sanity check failed: " + err.Error())
-		}
-	} else {
-		//Sanity check the patch is a format we expect
-		if err := enc.Matches(patch); err != nil {
-			return nil, errors.New("Unexpected error: Sanity check failed: the stored patch does not appear to be in the format this encoder expects: " + err.Error())
-		}
+	//Sanity check the patch is a format we expect
+	if err := enc.Matches(patch); err != nil {
+		return nil, errors.New("Unexpected error: Sanity check failed: the stored patch does not appear to be in the format this encoder expects: " + err.Error())
 	}
 
 	blob, err := enc.ApplyPatch(lastStateBlob, patch)

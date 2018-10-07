@@ -37,6 +37,8 @@ type StorageManager struct {
 	*helpers.ExtendedMemoryStorageManager
 	basePath string
 	managers []*boardgame.GameManager
+	//Only shoiuld be on in testing scenarios
+	forceFullEncoding bool
 }
 
 //Store seen ids and remember where the path was
@@ -58,12 +60,6 @@ func NewStorageManager(basePath string) *StorageManager {
 	result.ExtendedMemoryStorageManager = helpers.NewExtendedMemoryStorageManager(result)
 
 	return result
-}
-
-//SetStateEncoding sets the state encoding we should use by default for Empty
-//states.
-func (s *StorageManager) SetStateEncoding(encoding record.StateEncoding) {
-	record.DefaultStateEncoding = encoding
 }
 
 func (s *StorageManager) Name() string {
@@ -212,7 +208,11 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 
 	if err != nil {
 		//Must be the first save.
-		rec = record.Empty()
+		if s.forceFullEncoding {
+			rec = record.EmptyWithFullStateEncoding()
+		} else {
+			rec = &record.Record{}
+		}
 	}
 
 	if err := rec.AddGameAndCurrentState(game, state, move); err != nil {
