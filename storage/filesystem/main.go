@@ -64,7 +64,6 @@ func NewStorageManager(basePath string) *StorageManager {
 //states.
 func (s *StorageManager) SetStateEncoding(encoding record.StateEncoding) {
 	record.DefaultStateEncoding = encoding
-	record.FullPatchSanityCheck = true
 }
 
 func (s *StorageManager) Name() string {

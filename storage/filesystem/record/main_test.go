@@ -15,6 +15,10 @@ func TestYudaiEncoding(t *testing.T) {
 
 func encodingTestHelper(t *testing.T, encoding StateEncoding, others ...StateEncoding) {
 
+	previousSanityCheck := fullPatchSanityCheck
+
+	fullPatchSanityCheck = true
+
 	filename := "testdata/" + encoding.name() + ".json"
 
 	rec, err := New(filename)
@@ -52,4 +56,5 @@ func encodingTestHelper(t *testing.T, encoding StateEncoding, others ...StateEnc
 		assert.For(t, i).ThatActual(err).IsNil()
 	}
 
+	fullPatchSanityCheck = previousSanityCheck
 }

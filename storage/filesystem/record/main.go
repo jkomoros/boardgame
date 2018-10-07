@@ -39,7 +39,7 @@ func init() {
 //FullPatchSanityCheck is whether we ensure that each state patch not only
 //matches our current encoder, but DOESN'T match other encoders. More
 //expensive, should only be set in testing scenarios.
-var FullPatchSanityCheck bool
+var fullPatchSanityCheck bool
 
 //StateEncoding captures how the states are encoded within the file.
 type StateEncoding int
@@ -546,7 +546,7 @@ func (r *Record) State(version int) (boardgame.StateStorageRecord, error) {
 
 	patch := r.data.StatePatches[version]
 
-	if FullPatchSanityCheck {
+	if fullPatchSanityCheck {
 		if err := r.fullSanityCheckPatchEncoding(patch); err != nil {
 			return nil, errors.New("Full patch sanity check failed: " + err.Error())
 		}
