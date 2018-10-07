@@ -6,14 +6,14 @@ import (
 )
 
 func TestFullEncoding(t *testing.T) {
-	encodingTestHelper(t, StateEncodingFull)
+	encodingTestHelper(t, StateEncodingFull, StateEncodingYudai)
 }
 
 func TestYudaiEncoding(t *testing.T) {
-	encodingTestHelper(t, StateEncodingYudai)
+	encodingTestHelper(t, StateEncodingYudai, StateEncodingFull)
 }
 
-func encodingTestHelper(t *testing.T, encoding StateEncoding) {
+func encodingTestHelper(t *testing.T, encoding StateEncoding, others ...StateEncoding) {
 
 	filename := "testdata/" + encoding.name() + ".json"
 
@@ -26,4 +26,22 @@ func encodingTestHelper(t *testing.T, encoding StateEncoding) {
 	assert.For(t).ThatActual(enc).IsNotNil()
 
 	assert.For(t).ThatActual(rec.detectedEncoding).Equals(encoding)
+
+	encodings := append([]StateEncoding{encoding}, others...)
+
+	//We explicitly want to compare to ourselves to ensure that it's a no-op.
+	for i, other := range encodings {
+		otherRec, err := New(filename)
+
+		assert.For(t, i).ThatActual(err).IsNil()
+
+		err = otherRec.ConvertEncoding(other)
+
+		assert.For(t, i).ThatActual(err).IsNil()
+
+		err = rec.compare(otherRec)
+
+		assert.For(t, i).ThatActual(err).IsNil()
+	}
+
 }

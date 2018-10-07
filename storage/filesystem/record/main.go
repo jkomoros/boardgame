@@ -16,6 +16,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/go-test/deep"
 	"github.com/jkomoros/boardgame"
 	"io/ioutil"
 	"math/rand"
@@ -221,6 +222,102 @@ func (r *Record) encoder() encoder {
 	}
 
 	return enc
+}
+
+//ConvertEncoding converts the given contents to the new encoding, returning
+//an error if that's not possible. You still need to re-save to disk if you
+//want to save the new contents. If error is non nil, the contents of the
+//record won't have been modified. If newEncoding is the same as current encoding,
+//will be a no op.
+func (r *Record) ConvertEncoding(newEncoding StateEncoding) error {
+
+	if r.data == nil {
+		return errors.New("No data!")
+	}
+
+	//ensure detectedEncoding is set
+	_ = r.encoder()
+
+	if r.detectedEncoding == newEncoding {
+		return nil
+	}
+
+	targetEncoder := newEncoding.encoder()
+
+	if targetEncoder == nil {
+		return errors.New("The target encoder doesn't exist")
+	}
+
+	var newStatePatches []json.RawMessage
+
+	lastState := boardgame.StateStorageRecord(`{}`)
+
+	for i := 0; i < len(r.data.StatePatches); i++ {
+		state, err := r.State(i)
+
+		if err != nil {
+			return errors.New("Couldn't fetch state " + strconv.Itoa(i) + ": " + err.Error())
+		}
+
+		patch, err := targetEncoder.CreatePatch(lastState, state)
+
+		if err != nil {
+			return errors.New("Couldn't create patch for state " + strconv.Itoa(i) + ": " + err.Error())
+		}
+
+		if err := targetEncoder.ConfirmPatch(lastState, state, patch); err != nil {
+			return errors.New("Created patch did not confirm for state " + strconv.Itoa(i) + ": " + err.Error())
+		}
+
+		newStatePatches = append(newStatePatches, patch)
+
+		lastState = state
+
+	}
+
+	if len(newStatePatches) != len(r.data.StatePatches) {
+		return errors.New("Unexpected error: after converting didn't have enough state patches")
+	}
+
+	r.data.StatePatches = newStatePatches
+
+	return nil
+
+}
+
+//compare ensures that this and the other contain the same information
+func (r *Record) compare(other *Record) error {
+
+	//TODO: also compare moves and games
+
+	for i := 0; i < len(r.data.StatePatches); i++ {
+
+		left, err := r.State(i)
+		if err != nil {
+			return errors.New("Couldn't get left state for version " + strconv.Itoa(i) + ": " + err.Error())
+		}
+		var leftContents map[string]interface{}
+		if err := json.Unmarshal(left, &leftContents); err != nil {
+			return errors.New("Couldn't inflate left contents for version " + strconv.Itoa(i) + ": " + err.Error())
+		}
+
+		right, err := other.State(i)
+		if err != nil {
+			return errors.New("Couldn't get right state for version " + strconv.Itoa(i) + ": " + err.Error())
+		}
+		var rightContents map[string]interface{}
+		if err := json.Unmarshal(right, &rightContents); err != nil {
+			return errors.New("Couldn't inflate right contents for version " + strconv.Itoa(i) + ": " + err.Error())
+		}
+
+		if diff := deep.Equal(leftContents, rightContents); len(diff) != 0 {
+			return errors.New("Diff of version " + strconv.Itoa(i) + " was not nil: " + strings.Join(diff, "\n"))
+		}
+
+	}
+
+	return nil
+
 }
 
 func (r *Record) Game() *boardgame.GameStorageRecord {
