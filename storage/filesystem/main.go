@@ -60,6 +60,12 @@ func NewStorageManager(basePath string) *StorageManager {
 	return result
 }
 
+//SetStateEncoding sets the state encoding we should use by default for Empty
+//states.
+func (s *StorageManager) SetStateEncoding(encoding record.StateEncoding) {
+	record.DefaultStateEncoding = encoding
+}
+
 func (s *StorageManager) Name() string {
 	return "filesystem"
 }

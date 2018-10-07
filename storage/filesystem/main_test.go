@@ -1,14 +1,17 @@
 package filesystem
 
 import (
+	"github.com/jkomoros/boardgame/storage/filesystem/record"
 	"github.com/jkomoros/boardgame/storage/internal/test"
 	"testing"
 )
 
-func TestStorageManager(t *testing.T) {
+func TestStorageManagerYudaiEncoding(t *testing.T) {
 
 	test.Test(func() test.StorageManager {
-		return NewStorageManager("test")
+		mgr := NewStorageManager("test")
+		mgr.SetStateEncoding(record.StateEncodingYudai)
+		return mgr
 	}, "filesystem", "", t)
 
 }
