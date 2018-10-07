@@ -21,6 +21,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -33,6 +34,11 @@ func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 	recCache = make(map[string]*Record, 16)
 }
+
+//FullPatchSanityCheck is whether we ensure that each state patch not only
+//matches our current encoder, but DOESN'T match other encoders. More
+//expensive, should only be set in testing scenarios.
+var FullPatchSanityCheck bool
 
 //StateEncoding captures how the states are encoded within the file.
 type StateEncoding int
@@ -52,6 +58,9 @@ const (
 	//Patches are encoded using the jd format transformed to json, where each
 	//line is represented as an item in an array of JSON strings.
 	StateEncodingJosephBurnett
+
+	//When adding a new one here, change the loop condition in
+	//fullSanityCheckPatchEncoding.
 )
 
 func (s StateEncoding) encoder() encoder {
@@ -305,6 +314,38 @@ func (r *Record) AddGameAndCurrentState(game *boardgame.GameStorageRecord, state
 
 }
 
+func (r *Record) fullSanityCheckPatchEncoding(patch []byte) error {
+
+	//This should set detectedEncoding
+	enc := r.encoder()
+
+	var i StateEncoding
+
+	for i = 0; i <= StateEncodingJosephBurnett; i++ {
+		//we want to make sure we try all of the other ones and that they fail first.
+		if i == r.detectedEncoding {
+			continue
+		}
+
+		testEncoding := i.encoder()
+
+		if testEncoding == nil {
+			continue
+		}
+
+		if err := testEncoding.Matches(patch); err == nil {
+			return errors.New("Encoder that was not us matched when we expected it not to:" + strconv.Itoa(int(i)))
+		}
+
+	}
+
+	if err := enc.Matches(patch); err != nil {
+		return errors.New("The encoder we thought we were didn't mtach: " + err.Error())
+	}
+
+	return nil
+}
+
 //State fetches the State object at that version. It can return an error
 //because under the covers it has to apply serialized patches.
 func (r *Record) State(version int) (boardgame.StateStorageRecord, error) {
@@ -335,9 +376,15 @@ func (r *Record) State(version int) (boardgame.StateStorageRecord, error) {
 
 	patch := r.data.StatePatches[version]
 
-	//Sanity check the patch is a format we expect
-	if err := enc.Matches(patch); err != nil {
-		return nil, errors.New("Unexpected error: Sanity check failed: the stored patch does not appear to be in the format this encoder expects: " + err.Error())
+	if FullPatchSanityCheck {
+		if err := r.fullSanityCheckPatchEncoding(patch); err != nil {
+			return nil, errors.New("Full patch sanity check failed: " + err.Error())
+		}
+	} else {
+		//Sanity check the patch is a format we expect
+		if err := enc.Matches(patch); err != nil {
+			return nil, errors.New("Unexpected error: Sanity check failed: the stored patch does not appear to be in the format this encoder expects: " + err.Error())
+		}
 	}
 
 	blob, err := enc.ApplyPatch(lastStateBlob, patch)
