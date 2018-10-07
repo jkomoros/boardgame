@@ -21,6 +21,14 @@ func encodingTestHelper(t *testing.T, encoding StateEncoding, others ...StateEnc
 
 	assert.For(t).ThatActual(err).IsNil()
 
+	canonicalRec, err := New("testdata/full.json")
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	err = rec.compare(canonicalRec)
+
+	assert.For(t).ThatActual(err).IsNil()
+
 	//this should set detectedEncoder correctly
 	enc := rec.encoder()
 	assert.For(t).ThatActual(enc).IsNotNil()
