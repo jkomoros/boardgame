@@ -16,10 +16,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/go-test/deep"
 	"github.com/jkomoros/boardgame"
-	"github.com/yudai/gojsondiff"
-	"github.com/yudai/gojsondiff/formatter"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -57,6 +54,15 @@ const (
 	StateEncodingJosephBurnett
 )
 
+func (s StateEncoding) encoder() encoder {
+	switch s {
+	case StateEncodingYudai:
+		return &yudaiEncoder{}
+	default:
+		return nil
+	}
+}
+
 //The encoding that new records should have.
 var DefaultStateEncoding StateEncoding = StateEncodingYudai
 
@@ -81,6 +87,21 @@ type storageRecord struct {
 	//version with State().
 	StatePatches []json.RawMessage
 	Description  string `json:"omitempty"`
+}
+
+//encoder is the thing that actually does the encoding
+type encoder interface {
+	//CreatePatch returns the patch object to save. Doesn't have to confirm;
+	//we'll call that automatically.
+	CreatePatch(lastState, state boardgame.StateStorageRecord) ([]byte, error)
+	//ConfirmPatch verifies the patch it returned will create state given
+	//lastState + patch. confirmPatch does a sanity check by ensuring that
+	//applying the formatted patch to before would give you after. Helps
+	//ensure that there aren't unexpected bugs in the diffing library (which
+	//has been known to happen with these kinds of things).
+	ConfirmPatch(lastState, state, patch []byte) error
+	//ApplyPatch takes a previous state and the patch and returns the new state.
+	ApplyPatch(lastState, patch []byte) (boardgame.StateStorageRecord, error)
 }
 
 //Empty returns an empty record initialized to use the DefaultStateEncoding
@@ -116,6 +137,23 @@ func New(filename string) (*Record, error) {
 	return &Record{
 		data: &storageRec,
 	}, nil
+}
+
+func (r *Record) encoder() encoder {
+	//TODO: figure out our encoding based on contents if not set.
+
+	if !r.encodingDetected {
+		r.detectedEncoding = StateEncodingYudai
+		r.encodingDetected = true
+	}
+
+	enc := r.detectedEncoding.encoder()
+
+	if enc == nil {
+		panic("Unsupported encoder")
+	}
+
+	return enc
 }
 
 func (r *Record) Game() *boardgame.GameStorageRecord {
@@ -234,82 +272,32 @@ func (r *Record) AddGameAndCurrentState(game *boardgame.GameStorageRecord, state
 		return errors.New("Couldn't fetch last state: " + err.Error())
 	}
 
-	differ := gojsondiff.New()
+	enc := r.encoder()
 
-	patch, err := differ.Compare(lastState, state)
-
-	if err != nil {
-		return err
-	}
-
-	f := formatter.NewDeltaFormatter()
-
-	js, err := f.FormatAsJson(patch)
+	patch, err := enc.CreatePatch(lastState, state)
 
 	if err != nil {
-		return errors.New("Couldn't format patch as json: " + err.Error())
+		return errors.New("Couldn't create patch: " + err.Error())
 	}
 
-	formattedPatch, err := json.Marshal(js)
+	if err := enc.ConfirmPatch(lastState, state, patch); err != nil {
 
-	if err != nil {
-		return errors.New("Couldn't format patch json to byte: " + err.Error())
-	}
+		fmt.Println("UNEXPECTED ERROR IN UNDERLYING LIBRARY:")
+		fmt.Println("LastState:")
+		fmt.Println(string(lastState))
+		fmt.Println("\nState:")
+		fmt.Println(string(state))
+		fmt.Println("\nFormatted Patch:")
+		fmt.Println(string(patch))
 
-	if err := confirmPatch(lastState, state, formattedPatch); err != nil {
 		return errors.New("Sanity check failed: patch did not do what it should: " + err.Error())
 	}
 
 	r.states = append(r.states, state)
-	r.data.StatePatches = append(r.data.StatePatches, formattedPatch)
+	r.data.StatePatches = append(r.data.StatePatches, patch)
 
 	return nil
 
-}
-
-//confirmPatch does a sanity check by ensuring that applying the formatted
-//patch to before would give you after. Helps ensure that there aren't
-//unexpected bugs in the diffing library (which has been known to happen with
-//these kinds of things).
-func confirmPatch(before, after, formattedPatch []byte) error {
-
-	var inflatedBefore map[string]interface{}
-	if err := json.Unmarshal(before, &inflatedBefore); err != nil {
-		return errors.New("Couldn't unmarshal before blob: " + err.Error())
-	}
-
-	var inflatedAfter map[string]interface{}
-	if err := json.Unmarshal(after, &inflatedAfter); err != nil {
-		return errors.New("Couldn't unmarshal before blob: " + err.Error())
-	}
-
-	unmarshaller := gojsondiff.NewUnmarshaller()
-
-	reinflatedPatch, err := unmarshaller.UnmarshalBytes(formattedPatch)
-	if err != nil {
-		return errors.New("Couldn't reinflate patch: " + err.Error())
-	}
-
-	differ := gojsondiff.New()
-	differ.ApplyPatch(inflatedBefore, reinflatedPatch)
-
-	if diff := deep.Equal(inflatedBefore, inflatedAfter); len(diff) > 0 {
-
-		fmt.Println("UNEXPECTED ERROR IN UNDERLYING LIBRARY:")
-		fmt.Println("Before:")
-		fmt.Println(string(before))
-		fmt.Println("\nAfter:")
-		fmt.Println(string(after))
-		fmt.Println("\nFormatted Patch:")
-		fmt.Println(string(formattedPatch))
-		fmt.Println("\nDiff:")
-		fmt.Println(strings.Join(diff, "\n"))
-
-		return errors.New("Patched before did not equal after: " + strings.Join(diff, "\n"))
-
-	}
-
-	return nil
 }
 
 //State fetches the State object at that version. It can return an error
@@ -338,28 +326,12 @@ func (r *Record) State(version int) (boardgame.StateStorageRecord, error) {
 		return nil, err
 	}
 
-	unmarshaller := gojsondiff.NewUnmarshaller()
+	enc := r.encoder()
 
-	patch, err := unmarshaller.UnmarshalBytes(r.data.StatePatches[version])
-
-	if err != nil {
-		return nil, err
-	}
-
-	differ := gojsondiff.New()
-
-	var state map[string]interface{}
-
-	if err := json.Unmarshal(lastStateBlob, &state); err != nil {
-		return nil, errors.New("Couldn't unmarshal last blob: " + err.Error())
-	}
-
-	differ.ApplyPatch(state, patch)
-
-	blob, err := json.MarshalIndent(state, "", "\t")
+	blob, err := enc.ApplyPatch(lastStateBlob, r.data.StatePatches[version])
 
 	if err != nil {
-		return nil, errors.New("Couldn't marshal modified blob: " + err.Error())
+		return nil, errors.New("Couldn't apply patch: " + err.Error())
 	}
 
 	r.states = append(r.states, blob)
