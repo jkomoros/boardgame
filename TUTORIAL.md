@@ -1904,7 +1904,7 @@ It's important to save robust tests to ensure your games continue to behave as e
 
 You run that tool from within a game package. It's similar to running `boardgame-util serve`, except instead of using all of the game packages listed in your config, it only uses the package in the current directory. It wires it up so that it uses a storage layer that creates json files for each game and its states, stores them in `testdata/golden`, and also creates a `golden_test.go` that automatically loads up all of the games in that directory and ensures that the current behavior matches.
 
-So the workflow is that every so often, sit in the game package, and run `boardgame-util create-golden`. Then create a few new games that exercise interesting behavior, and as long as they behave as expected, check them in. Every so often you can run the command and create new ones; the existing ones won't be removed.
+So the workflow is that every so often, sit in the game package, and run `boardgame-util create-golden`. Then create a few new games that exercise interesting behavior (using admin mode's Current Player view to make moves as all players), and as long as they behave as expected, check them in. Every so often you can run the command and create new ones; the existing ones won't be removed.
 
 It's important that your game is deterministic for the same inputs, so its behavior doesn't change and can be compared to tests. In particular, only ever use state.Rand() for randomness, as its state is seeded deterministically based on the game id and version.
 
