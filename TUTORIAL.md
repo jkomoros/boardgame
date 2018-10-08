@@ -1896,6 +1896,20 @@ When creating a new repo or game, it's strongly encouraged to add the following 
 
 That helps ensure that you don't accidentally check in secret things into version control, like production database DSNs.
 
+### Ensuring your game is well tested
+
+It's important to save robust tests to ensure your games continue to behave as expected.
+
+`boardgame-util` has a special `create-golden` mode that makes it easy to record game play, generating golden game runs that can then be compared to current behavior of your game in `go test`.
+
+You run that tool from within a game package. It's similar to running `boardgame-util serve`, except instead of using all of the game packages listed in your config, it only uses the package in the current directory. It wires it up so that it uses a storage layer that creates json files for each game and its states, stores them in `testdata/golden`, and also creates a `golden_test.go` that automatically loads up all of the games in that directory and ensures that the current behavior matches.
+
+So the workflow is that every so often, sit in the game package, and run `boardgame-util create-golden`. Then create a few new games that exercise interesting behavior, and as long as they behave as expected, check them in. Every so often you can run the command and create new ones; the existing ones won't be removed.
+
+It's important that your game is deterministic for the same inputs, so its behavior doesn't change and can be compared to tests. In particular, only ever use state.Rand() for randomness, as its state is seeded deterministically based on the game id and version.
+
+
+
 ### Creating a more production-ready server
 
 Check out the "Creating your own game" section above before reading this section.
