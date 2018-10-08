@@ -593,17 +593,34 @@ func (s *Server) doListManager(r *Renderer) {
 			part["DisplayName"] = info.DisplayName
 			part["Description"] = info.Description
 
-			var valueInfo []interface{}
+			//We need to sort the values so they're in a stable order. It
+			//should be the default value (if there is one) then everything
+			//else in sorted order.
+
+			var defaultValueInfo map[string]string
+			var valueInfo []map[string]string
 
 			for _, val := range info.Values {
-				valuePart := make(map[string]interface{})
+				valuePart := make(map[string]string)
 
 				valuePart["Value"] = val.Name
 				valuePart["DisplayName"] = val.DisplayName
 				valuePart["Description"] = val.Description
 
-				valueInfo = append(valueInfo, valuePart)
+				if info.Default == val.Name {
+					defaultValueInfo = valuePart
+				} else {
+					valueInfo = append(valueInfo, valuePart)
+				}
 
+			}
+
+			sort.Slice(valueInfo, func(i, j int) bool {
+				return valueInfo[i]["Value"] < valueInfo[j]["Value"]
+			})
+
+			if defaultValueInfo != nil {
+				valueInfo = append([]map[string]string{defaultValueInfo}, valueInfo...)
 			}
 
 			part["Values"] = valueInfo
