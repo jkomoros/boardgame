@@ -148,7 +148,13 @@ func (m *MoveCountComponents) Apply(state boardgame.State) error {
 		return errors.New("Destination was nil")
 	}
 
-	return source.First().MoveToNextSlot(destination)
+	first := source.First()
+
+	if first == nil {
+		return errors.New("Unexpected error: no first object to move!")
+	}
+
+	return first.MoveToNextSlot(destination)
 
 }
 

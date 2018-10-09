@@ -233,7 +233,13 @@ func (d *DealCountComponents) RoundRobinAction(playerState boardgame.PlayerState
 		return err
 	}
 
-	return gameStack.First().MoveToNextSlot(playerStack)
+	first := gameStack.First()
+
+	if first == nil {
+		return errors.New("Unexpectedly there's no first object!")
+	}
+
+	return first.MoveToNextSlot(playerStack)
 }
 
 //moveTypeInfo is used as a helper to generate sttrings for all of the MoveType getters.
