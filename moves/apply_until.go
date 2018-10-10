@@ -168,7 +168,8 @@ func (a *ApplyUntilCount) ConditionMet(state boardgame.ImmutableState) error {
 	countDown := moveCounter.CountDown(state)
 
 	if targetCount == count {
-		return errors.New("Count is equal to TargetCount. This will be our last move")
+		//We're at the goal!
+		return nil
 	}
 
 	if countDown {
@@ -181,7 +182,7 @@ func (a *ApplyUntilCount) ConditionMet(state boardgame.ImmutableState) error {
 		}
 	}
 
-	return nil
+	return errors.New("Our condition is met, but we seem to have over-shot the goal, which shouldn't happen. Perhaps CountDown is set wrong?")
 
 }
 
