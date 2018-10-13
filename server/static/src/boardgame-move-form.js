@@ -155,7 +155,12 @@ class BoardgameMoveForm extends PolymerElement {
         if (element.type == "submit") continue;
 
         if (element.name == key) {
-          element.value = args[key];
+          //Set enums values differently
+          if (element.type == "select-one") {
+            element.selectedIndex = args[key];
+          } else {
+            element.value = args[key];
+          }
           fieldFilled = true;
         }
 
