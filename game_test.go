@@ -117,7 +117,7 @@ func TestMoveModifyDynamicValues(t *testing.T) {
 
 	currentJSON, _ := json.MarshalIndent(game.CurrentState(), "", "\t")
 
-	compareJSONObjects(currentJSON, patchtree.MustJSON("./test/after_dynamic_component_move"), "Comparing json after two dynamic moves", t)
+	compareJSONObjects(currentJSON, patchtree.MustJSON("./testdata/after_dynamic_component_move"), "Comparing json after two dynamic moves", t)
 
 }
 
@@ -341,7 +341,7 @@ func TestApplyMove(t *testing.T) {
 
 	currentJson, _ := json.Marshal(wrapper)
 
-	compareJSONObjects(currentJson, patchtree.MustJSON("./test/after_move"), "Basic state after test move", t)
+	compareJSONObjects(currentJson, patchtree.MustJSON("./testdata/after_move"), "Basic state after test move", t)
 
 	//Apply a move that should finish the game (any player has score > 5)
 	newRawMove := game.MoveByName("test")
@@ -542,11 +542,11 @@ func TestGameSalt(t *testing.T) {
 }
 
 func goldenGameBlob() []byte {
-	gameBlob, err := ioutil.ReadFile("test/game_blob.json")
+	gameBlob, err := ioutil.ReadFile("testdata/game_blob.json")
 	if err != nil {
 		return nil
 	}
-	baseState, err := ioutil.ReadFile("test/base.json")
+	baseState, err := ioutil.ReadFile("testdata/base.json")
 	if err != nil {
 		return nil
 	}

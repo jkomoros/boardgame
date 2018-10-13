@@ -430,7 +430,7 @@ func compareJSONObjects(in []byte, golden []byte, message string, t *testing.T) 
 
 func goldenJSON(fileName string, t *testing.T) []byte {
 
-	contents, err := ioutil.ReadFile("./test/" + fileName)
+	contents, err := ioutil.ReadFile("./testdata/" + fileName)
 
 	if !assert.For(t, fileName).ThatActual(err).IsNil().Passed() {
 		t.FailNow()

@@ -17,7 +17,7 @@ func TestComponentChestMarshal(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	golden, err := ioutil.ReadFile("test/component_chest.json")
+	golden, err := ioutil.ReadFile("testdata/component_chest.json")
 
 	assert.For(t).ThatActual(err).IsNil()
 

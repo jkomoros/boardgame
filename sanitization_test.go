@@ -79,7 +79,7 @@ func (s *sanitizationTestConfig) policyForSubObject(reader PropertyReader, confi
 		defaultGroup = "other"
 	}
 
-	for propName, _ := range reader.Props() {
+	for propName := range reader.Props() {
 		result[propName] = policyFromStructTag(config[propName], defaultGroup)
 	}
 
@@ -195,7 +195,7 @@ func TestSanitization(t *testing.T) {
 		{
 			&sanitizationTestConfig{
 				DynamicComponentValues: map[string]map[string]string{
-					"test": map[string]string{
+					"test": {
 						"IntVar": "hidden",
 					},
 				},
@@ -207,7 +207,7 @@ func TestSanitization(t *testing.T) {
 		{
 			&sanitizationTestConfig{
 				DynamicComponentValues: map[string]map[string]string{
-					"test": map[string]string{
+					"test": {
 						"IntVar": "hidden",
 					},
 				},
@@ -238,7 +238,7 @@ func TestSanitization(t *testing.T) {
 
 	for i, test := range tests {
 
-		inputBlob, err := patchtree.JSON("test/" + test.inputPatchTree)
+		inputBlob, err := patchtree.JSON("testdata/" + test.inputPatchTree)
 
 		if err != nil {
 			t.Fatal("patchtree failure: " + err.Error())
@@ -261,7 +261,7 @@ func TestSanitization(t *testing.T) {
 
 		assert.For(t).ThatActual(err).IsNil()
 
-		expectedBlob, err := patchtree.JSON("test/" + test.expectedPatchTree)
+		expectedBlob, err := patchtree.JSON("testdata/" + test.expectedPatchTree)
 
 		if err != nil {
 			t.Fatal("patchetree failure for expected: " + err.Error())
