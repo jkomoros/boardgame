@@ -57,6 +57,7 @@ func ensureAllMovesSatisfyFallBack() {
 	m = new(ShuffleStack)
 	m = new(StartPhase)
 	m = new(DefaultComponent)
+	m = new(Increment)
 	if m != nil {
 		return
 	}

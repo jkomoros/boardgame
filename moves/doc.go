@@ -305,6 +305,12 @@ ShuffleStack
 Shuffle stack is a simple move that just shuffles the stack denoted by
 SourceStack.
 
+Increment
+
+Increment is a simple move that's useful to include in a MoveProgression when
+you want to increment a simple int property, for example by adding 1 to round
+count at the end of a scoring phase.
+
 Groups
 
 Groups allow you to specify a specific set of moves that must occur in a given

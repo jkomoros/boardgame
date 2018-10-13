@@ -22,6 +22,7 @@ const configPropIsFixUp = fullyQualifiedPackageName + "IsFixUp"
 const configPropLegalPhases = fullyQualifiedPackageName + "LegalPhases"
 const configPropLegalMoveProgression = fullyQualifiedPackageName + "LegalMoveProgression"
 const configPropLegalType = fullyQualifiedPackageName + "LegalType"
+const configPropAmount = fullyQualifiedPackageName + "Amount"
 
 //CustomConfigurationOption is a function that takes a PropertyCollection and
 //modifies a key on it. This package defines a number of functions that return
@@ -184,5 +185,13 @@ func WithNumRounds(numRounds int) CustomConfigurationOption {
 func WithTargetCount(targetCount int) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropTargetCount] = targetCount
+	}
+}
+
+//Amount returns a function configuration option suitable for being
+//passed to auto.Config.
+func WithAmount(amount int) CustomConfigurationOption {
+	return func(config boardgame.PropertyCollection) {
+		config[configPropAmount] = amount
 	}
 }
