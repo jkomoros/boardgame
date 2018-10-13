@@ -53,13 +53,34 @@ func configureDelays(manager *boardgame.GameManager) (preDelays map[string]time.
 func (s *Server) moveBundles(game *boardgame.Game, moves []*boardgame.MoveStorageRecord, playerIndex boardgame.PlayerIndex, autoCurrentPlayer bool) []gin.H {
 	var bundles []gin.H
 
+	animationInfo := s.animationDelays[game.Manager().Delegate().Name()]
+
 	currentInitiator := moves[0].Initiator
+
+	//Delay from the last move. Starts at 0 (no delay)
+	var postDelay time.Duration
 
 	for i, move := range moves {
 
-		//Slide along until we find the last move in an initator chain, or the last move
-		if move.Initiator == currentInitiator && i != len(moves)-1 {
-			continue
+		preDelay := animationInfo.preDelays[move.Name]
+		//The current' move's postDelay. Before moving on to the next thing, will set it to most
+		nextPostDelay := animationInfo.postDelays[move.Name]
+
+		//We make a bundle edge unless all of the following are true:
+		// 1) We aren't the last move in the total run
+		// 2) the last move didn't have a postDelay
+		// 3) Current move doesn't have a preDelay
+		// 4) The move.initiatior is the same as the last move's initiator (no new causal chain)
+		if i != len(moves)-1 {
+			if postDelay == 0 {
+				if preDelay == 0 {
+					if move.Initiator == currentInitiator {
+						//OK, if all of these things are true, we don't have a bundle break here.
+						postDelay = nextPostDelay
+						continue
+					}
+				}
+			}
 		}
 
 		//This is the state for the end of the bundle.
@@ -72,7 +93,10 @@ func (s *Server) moveBundles(game *boardgame.Game, moves []*boardgame.MoveStorag
 			}
 		}
 
-		delay := 500
+		delay := preDelay
+		if postDelay > preDelay {
+			delay = postDelay
+		}
 
 		if len(bundles) == 0 {
 			delay = 0
@@ -91,6 +115,7 @@ func (s *Server) moveBundles(game *boardgame.Game, moves []*boardgame.MoveStorag
 		bundles = append(bundles, bundle)
 
 		currentInitiator = move.Initiator
+		postDelay = nextPostDelay
 	}
 
 	return bundles
