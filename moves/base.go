@@ -386,17 +386,35 @@ func (d *Base) Name() string {
 }
 
 //PreAniamtionDelay returns the amount of time the move should have between it
-//and moves ahead of it. Defaults to 0. Learn more about animation delays in
-//TUTORIAL.md
+//and moves ahead of it. Returns value provied by WithPreAnimationDelay, or 0
+//if no value provided. Learn more about animation delays in TUTORIAL.md
 func (d *Base) PreAnimationDelay() time.Duration {
-	return 0
+	config := d.CustomConfiguration()
+	val, ok := config[configPropPreAnimationDelay]
+	if !ok {
+		return 0
+	}
+	durationVal, ok := val.(time.Duration)
+	if !ok {
+		return 0
+	}
+	return durationVal
 }
 
-//PostAnimationDelay returns the amount of time the move should have between it
-//and moves ahead of it. Defaults to 0. Learn more about animation delays in
-//TUTORIAL.md
+//PostAniamtionDelay returns the amount of time the move should have between it
+//and moves after it. Returns value provied by WithPostAnimationDelay, or 0
+//if no value provided. Learn more about animation delays in TUTORIAL.md
 func (d *Base) PostAnimationDelay() time.Duration {
-	return 0
+	config := d.CustomConfiguration()
+	val, ok := config[configPropPostAnimationDelay]
+	if !ok {
+		return 0
+	}
+	durationVal, ok := val.(time.Duration)
+	if !ok {
+		return 0
+	}
+	return durationVal
 }
 
 //CustomConfiguration returns the custom configuration associated with this
