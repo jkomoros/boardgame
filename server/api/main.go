@@ -21,7 +21,10 @@ import (
 
 type Server struct {
 	managers managerMap
-	storage  *ServerStorageManager
+
+	animationDelays map[string]*animationDelayInfo
+
+	storage *ServerStorageManager
 	//We store the last error so that next time viewHandler is called we can
 	//display it. Yes, this is a hack.
 	lastErrorMessage string
@@ -33,6 +36,11 @@ type Server struct {
 
 	notifier *versionNotifier
 	logger   *logrus.Logger
+}
+
+type animationDelayInfo struct {
+	preDelays  map[string]time.Duration
+	postDelays map[string]time.Duration
 }
 
 type Renderer struct {
@@ -92,9 +100,10 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 	logger := logrus.New()
 
 	result := &Server{
-		managers: make(managerMap),
-		storage:  storage,
-		logger:   logger,
+		managers:        make(managerMap),
+		animationDelays: make(map[string]*animationDelayInfo),
+		storage:         storage,
+		logger:          logger,
 	}
 
 	storage.server = result
@@ -118,6 +127,14 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 			logger.Fatalln("The storage for one of the managers was not the same item passed in as major storage.")
 			return nil
 		}
+
+		preDelays, postDelays := configureDelays(manager)
+
+		result.animationDelays[name] = &animationDelayInfo{
+			preDelays:  preDelays,
+			postDelays: postDelays,
+		}
+
 	}
 
 	result.upgrader = websocket.Upgrader{
@@ -129,6 +146,42 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 	storage.WithManagers(managers)
 
 	return result
+
+}
+
+type movePreDelay interface {
+	PreAnimationDelay() time.Duration
+}
+
+type movePostDelay interface {
+	PostAnimationDelay() time.Duration
+}
+
+func configureDelays(manager *boardgame.GameManager) (preDelays map[string]time.Duration, postDelays map[string]time.Duration) {
+
+	preDelays = make(map[string]time.Duration)
+	postDelays = make(map[string]time.Duration)
+
+	for _, move := range manager.ExampleMoves() {
+
+		var preDelay time.Duration
+		var postDelay time.Duration
+
+		if preDelayer, ok := move.(movePreDelay); ok {
+			preDelay = preDelayer.PreAnimationDelay()
+		}
+
+		if postDelayer, ok := move.(movePostDelay); ok {
+			postDelay = postDelayer.PostAnimationDelay()
+		}
+
+		name := move.Info().Name()
+
+		preDelays[name] = preDelay
+		postDelays[name] = postDelay
+	}
+
+	return preDelays, postDelays
 
 }
 
