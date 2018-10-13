@@ -32,10 +32,10 @@ type ImmutableState interface {
 	//values, one per component in that deck.
 	ImmutableDynamicComponentValues() map[string][]ImmutableSubState
 
-	//CurrentPlayer returns the ImmutablePlayerState corresponding to the
+	//ImmutableCurrentPlayer returns the ImmutablePlayerState corresponding to the
 	//result of delegate.CurrentPlayerIndex(), or nil if the index isn't
 	//valid.
-	CurrentPlayer() ImmutablePlayerState
+	ImmutableCurrentPlayer() ImmutablePlayerState
 	//CurrentPlayerIndex is a simple convenience wrapper around
 	//delegate.CurrentPlayerIndex for this state.
 	CurrentPlayerIndex() PlayerIndex
@@ -218,6 +218,11 @@ type State interface {
 	PlayerStates() []PlayerState
 
 	DynamicComponentValues() map[string][]SubState
+
+	//CurrentPlayer returns the PlayerState corresponding to the
+	//result of delegate.CurrentPlayerIndex(), or nil if the index isn't
+	//valid.
+	CurrentPlayer() PlayerState
 
 	//Rand returns a source of randomness. All game logic should use this rand
 	//source. It is deterministically seeded when it is created for this state
@@ -541,7 +546,11 @@ func (s *state) ImmutablePlayerStates() []ImmutablePlayerState {
 	return result
 }
 
-func (s *state) CurrentPlayer() ImmutablePlayerState {
+func (s *state) ImmutableCurrentPlayer() ImmutablePlayerState {
+	return s.CurrentPlayer()
+}
+
+func (s *state) CurrentPlayer() PlayerState {
 	index := s.CurrentPlayerIndex()
 	if index < 0 || int(index) >= len(s.playerStates) {
 		return nil

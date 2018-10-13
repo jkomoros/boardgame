@@ -94,7 +94,7 @@ func (m *MoveMoveToken) Legal(state boardgame.ImmutableState, proposer boardgame
 		return err
 	}
 
-	p := state.CurrentPlayer().(*playerState)
+	p := state.ImmutableCurrentPlayer().(*playerState)
 
 	g := state.ImmutableGameState().(*gameState)
 
