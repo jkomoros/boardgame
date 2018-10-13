@@ -8,8 +8,6 @@ import (
 	"strconv"
 )
 
-const startPhaseConfigName = "__moves.StartPhaseConfigProp"
-
 //phaseToStarter should be implemented by moves that embed moves.StartPhase to
 //configure which phase to enter. It's a private interface because StartPhase
 //already has a base PhaseToStart, and to keep the number of interfaces
