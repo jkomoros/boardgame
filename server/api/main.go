@@ -149,11 +149,19 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 
 }
 
-type movePreDelay interface {
+//If moves in your game implement PreAnimationDelay, the server will use that
+//information to inject non-semantic animation delays on the client. All moves
+//derived from moves.Base implement this interface. See TUTORIAL.md for more
+//on animation delays.
+type PreAnimationDelayer interface {
 	PreAnimationDelay() time.Duration
 }
 
-type movePostDelay interface {
+//If moves in your game implement PreAnimationDelay, the server will use that
+//information to inject non-semantic animation delays on the client. All moves
+//derived from moves.Base implement this interface. See TUTORIAL.md for more
+//on animation delays.
+type PostAnimationDelayer interface {
 	PostAnimationDelay() time.Duration
 }
 
@@ -167,11 +175,11 @@ func configureDelays(manager *boardgame.GameManager) (preDelays map[string]time.
 		var preDelay time.Duration
 		var postDelay time.Duration
 
-		if preDelayer, ok := move.(movePreDelay); ok {
+		if preDelayer, ok := move.(PreAnimationDelayer); ok {
 			preDelay = preDelayer.PreAnimationDelay()
 		}
 
-		if postDelayer, ok := move.(movePostDelay); ok {
+		if postDelayer, ok := move.(PostAnimationDelayer); ok {
 			postDelay = postDelayer.PostAnimationDelay()
 		}
 
