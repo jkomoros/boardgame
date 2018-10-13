@@ -4,11 +4,13 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/errors"
+	"github.com/jkomoros/boardgame/server/api"
 	"log"
 	"reflect"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 //go:generate boardgame-util codegen
@@ -32,6 +34,22 @@ type autoConfigFallbackMoveType interface {
 	//called live, unlike Name, which is fully implied at MoveConfig install
 	//time.
 	FallbackHelpText() string
+}
+
+//Ensure at compile time that our moves always implement the PreAnimationDelay
+//and PostAnimationDelay as expected by server.
+func ensureMovesHavePrePostAnimationDelays() {
+	var pre api.PreAnimationDelayer
+	pre = new(Base)
+	if pre != nil {
+		return
+	}
+
+	var post api.PostAnimationDelayer
+	post = new(Base)
+	if post != nil {
+		return
+	}
 }
 
 //A func that will fail to compile if all of the moves don't have a valid fallback.
@@ -365,6 +383,20 @@ func (d *Base) Name() string {
 		return ""
 	}
 	return d.info.Name()
+}
+
+//PreAniamtionDelay returns the amount of time the move should have between it
+//and moves ahead of it. Defaults to 0. Learn more about animation delays in
+//TUTORIAL.md
+func (d *Base) PreAnimationDelay() time.Duration {
+	return 0
+}
+
+//PostAnimationDelay returns the amount of time the move should have between it
+//and moves ahead of it. Defaults to 0. Learn more about animation delays in
+//TUTORIAL.md
+func (d *Base) PostAnimationDelay() time.Duration {
+	return 0
 }
 
 //CustomConfiguration returns the custom configuration associated with this
