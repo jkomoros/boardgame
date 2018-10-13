@@ -60,7 +60,7 @@ class BoardgameGameStateManager extends PolymerElement {
       },
       gameViewPath : {
         type: String,
-        computed: "_computeGameViewPath(requestedPlayer, admin)"
+        computed: "_computeGameViewPath(requestedPlayer, admin, lastFetchedVersion)"
       },
       gameBasePath : String,
       //This is split out because lastFetchedVersion should be current
@@ -68,7 +68,7 @@ class BoardgameGameStateManager extends PolymerElement {
       //considered a meaningful change that needs a refetch.
       effectiveGameVersionPath: {
         type: String,
-        computed: "_computeEffectiveGameVersionPath(gameVersionPath, lastFetchedVersion)",
+        computed: "_computeEffectiveGameVersionPath(gameVersionPath, lastFetchedVersion, version)",
       },
       viewingAsPlayer: Number,
       requestedPlayer: {
@@ -112,8 +112,14 @@ class BoardgameGameStateManager extends PolymerElement {
     this.updateData();
   }
 
-  _computeEffectiveGameVersionPath(gameVersionPath, lastFetchedVersion) {
+  _computeEffectiveGameVersionPath(gameVersionPath, lastFetchedVersion, version) {
     if (!gameVersionPath) return "";
+    //version is already part of gameVersionPath. However, often on first
+    //load, version and lastFetchedVersion are the same, and we should skip
+    //fetching because we already have that info. However in some cases the
+    //info bundle will not have all of the most up to date stuff, and we still
+    //do need to fetch.
+    if (lastFetchedVersion == version) return "";
     return gameVersionPath + "&from=" + lastFetchedVersion
   }
 
@@ -124,8 +130,8 @@ class BoardgameGameStateManager extends PolymerElement {
     return "version/" + version + "?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0) + "&current=" + (autoCurrentPlayer ? 1 : 0);
   }
 
-  _computeGameViewPath(requestedPlayer, admin){
-    return "info?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0);
+  _computeGameViewPath(requestedPlayer, admin, lastFetchedVersion){
+    return "info?player=" + requestedPlayer+"&admin=" + (admin ? 1 : 0) + "&from=" + lastFetchedVersion;
   }
 
   _computeSocketUrl(active, infoInstalled) {
@@ -138,7 +144,7 @@ class BoardgameGameStateManager extends PolymerElement {
   }
 
   _loggedInChanged(newValue) {
-    this.reset();
+    this.softReset();
   }
 
   _activeChanged(newValue) {
@@ -154,11 +160,6 @@ class BoardgameGameStateManager extends PolymerElement {
 
   _gameVersionPathChanged(newValue, oldValue) {
     if (!newValue) return;
-
-    //The first time there is a non-empty URL is not worth fetching
-    //because it represents the state right after the info bundle has been
-    //installed, and so the state will be duplicative.
-    if (!oldValue) return;
 
     if (this.autoCurrentPlayer && this.requestedPlayer == this.viewingAsPlayer && this.targetVersion == this.gameVersion) {
       return
@@ -227,11 +228,18 @@ class BoardgameGameStateManager extends PolymerElement {
     this.fetchInfo();
   }
 
+  //When we should do a soft reset; that is, when we haven't flipped out and
+  //back; it's still the same game we're viewing as before.
+  softReset() {
+    this.infoData = null;
+    this._infoInstalled = false;
+    window.requestAnimationFrame(() => this.updateData());
+  }
+
+  //When evertyhing should be reset
   reset() {
-      this.infoData = null;
-      this._infoInstalled = false;
-      this.lastFetchedVersion = 0;
-      window.requestAnimationFrame(() => this.updateData());
+    this.lastFetchedVersion = 0;
+    this.softReset();
   }
 
   fetchInfo() {
@@ -436,8 +444,12 @@ class BoardgameGameStateManager extends PolymerElement {
 
     this._infoInstalled = true;
 
-    this.lastFetchedVersion = newValue.Game.Version;
-
+    //We don't use newValue.Game.Version, because in some cases the current
+    //state we're returning is not actually current state, but an old one to
+    //force us to play animations for moves that are made before a player move
+    //is.
+    this.lastFetchedVersion = newValue.Game.CurrentState.Version;
+    this.targetVersion = newValue.Game.Version;
   }
 
   _versionDataChanged(newValue) {

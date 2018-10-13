@@ -791,6 +791,8 @@ func (s *Server) gameInfoHandler(c *gin.Context) {
 
 	hasEmptySlots := s.getHasEmptySlots(c)
 
+	fromVersion := s.getRequestFromVersion(c)
+
 	var gameId string
 
 	if game != nil {
@@ -804,7 +806,7 @@ func (s *Server) gameInfoHandler(c *gin.Context) {
 
 	r := s.NewRenderer(c)
 
-	s.doGameInfo(r, game, playerIndex, hasEmptySlots, gameInfo, user)
+	s.doGameInfo(r, game, playerIndex, hasEmptySlots, gameInfo, user, fromVersion)
 
 }
 
@@ -875,7 +877,7 @@ func (s *Server) gamePlayerInfo(game *boardgame.GameStorageRecord, manager *boar
 	return result
 }
 
-func (s *Server) doGameInfo(r *Renderer, game *boardgame.Game, playerIndex boardgame.PlayerIndex, hasEmptySlots bool, gameInfo *extendedgame.StorageRecord, user *users.StorageRecord) {
+func (s *Server) doGameInfo(r *Renderer, game *boardgame.Game, playerIndex boardgame.PlayerIndex, hasEmptySlots bool, gameInfo *extendedgame.StorageRecord, user *users.StorageRecord, fromVersion int) {
 	if game == nil {
 		r.Error(errors.New("Couldn't find game"))
 		return
@@ -897,10 +899,29 @@ func (s *Server) doGameInfo(r *Renderer, game *boardgame.Game, playerIndex board
 		isOwner = gameInfo.Owner == user.Id
 	}
 
+	state := game.CurrentState()
+
+	//If it's the first load and no player moves have been applied, fetch the
+	//first version only so that the other moves can be fetched and then applied.
+	if fromVersion == 0 {
+		//We check fromVersion because sometimes we re-load info because login
+		//state changed, and that shouldn't give the early version, but the
+		//proper version.
+		if state.Version() != 0 {
+			if lastMove, err := game.Move(state.Version()); err == nil {
+				if lastMove.Info().Initiator() == 1 {
+					//We're in a special case where no player moves have been applied yet since the beginning of the game.
+					//To ensure that the animation delays from the first moves (e.g. dealing out cards) actually play, load up state 0 and return that.
+					state = game.State(0)
+				}
+			}
+		}
+	}
+
 	args := gin.H{
 		"Chest":           game.Chest(),
 		"Forms":           s.generateForms(game),
-		"Game":            game.JSONForPlayer(playerIndex, nil),
+		"Game":            game.JSONForPlayer(playerIndex, state),
 		"Error":           s.lastErrorMessage,
 		"Players":         s.gamePlayerInfo(game.StorageRecord(), game.Manager()),
 		"ViewingAsPlayer": playerIndex,
