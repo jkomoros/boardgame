@@ -35,8 +35,8 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			//This move will keep on applying itself in round robin fashion
 			//until all of the cards are dealt.
 			auto.MustConfig(new(moves.DealComponentsUntilPlayerCountReached),
-				moves.WithGameStack("DrawStack"),
-				moves.WithPlayerStack("Hand"),
+				moves.WithGameProperty("DrawStack"),
+				moves.WithPlayerProperty("Hand"),
 				moves.WithTargetCount(2),
 			),
 			//Because we used AddOrderedForPhase, this next move won't apply

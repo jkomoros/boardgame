@@ -22,8 +22,8 @@ type sourceDestinationStacker interface {
 //
 //In practice it is most common to just use this move (and its subclasses)
 //directly, and pass configuration for SourceStack, DestinationStack, and
-//TargetCount with WithSourceStack, WithDestinationStack, and WithTargetCount
-//to auto.Config.
+//TargetCount with WithSourceProperty, WithDestinationProperty, and
+//WithTargetCount to auto.Config.
 //
 //boardgame:codegen
 type MoveCountComponents struct {
@@ -53,12 +53,12 @@ func (m *MoveCountComponents) ValidConfiguration(exampleState boardgame.State) e
 }
 
 //SourceStack by default just returns the property on GameState with the name
-//passed to DefaultConfig by WithSourceStack. If that is not sufficient,
+//passed to DefaultConfig by WithSourceProperty. If that is not sufficient,
 //override this in your embedding struct.
 func (m *MoveCountComponents) SourceStack(state boardgame.State) boardgame.Stack {
 	config := m.CustomConfiguration()
 
-	stackName, ok := config[configPropSourceStack]
+	stackName, ok := config[configPropSourceProperty]
 
 	if !ok {
 		return nil
@@ -80,12 +80,12 @@ func (m *MoveCountComponents) SourceStack(state boardgame.State) boardgame.Stack
 }
 
 //DestinationStack by default just returns the property on GameState with the
-//name passed to DefaultConfig by WithDestinationStack. If that is not sufficient,
+//name passed to DefaultConfig by WithDestinationProperty. If that is not sufficient,
 //override this in your embedding struct.
 func (m *MoveCountComponents) DestinationStack(state boardgame.State) boardgame.Stack {
 	config := m.CustomConfiguration()
 
-	stackName, ok := config[configPropDestinationStack]
+	stackName, ok := config[configPropDestinationProperty]
 
 	if !ok {
 		return nil
@@ -131,7 +131,7 @@ func (m *MoveCountComponents) stackNames(state boardgame.ImmutableState) (starte
 		sourceStack, destinationStack = m.stacks(state)
 	}
 
-	return stackName(m, configPropSourceStack, sourceStack, state), stackName(m, configPropDestinationStack, destinationStack, state)
+	return stackName(m, configPropSourceProperty, sourceStack, state), stackName(m, configPropDestinationProperty, destinationStack, state)
 }
 
 //Apply by default moves one component from SourceStack() to

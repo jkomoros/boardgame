@@ -10,7 +10,7 @@ import (
 //a given stack. The struct you embed this in should implement SourceStacker.
 //
 //In practice it is common to just use this move directly in your game, and
-//pass the stack via WithSourceStack to auto.Config.
+//pass the stack via WithSourceProperty to auto.Config.
 //
 //boardgame:codegen
 type ShuffleStack struct {
@@ -24,7 +24,7 @@ type moveInfoer interface {
 func sourceStackFromConfig(m moveInfoer, state boardgame.State) boardgame.Stack {
 	config := m.CustomConfiguration()
 
-	stackName, ok := config[configPropSourceStack]
+	stackName, ok := config[configPropSourceProperty]
 
 	if !ok {
 		return nil
@@ -46,7 +46,7 @@ func sourceStackFromConfig(m moveInfoer, state boardgame.State) boardgame.Stack 
 }
 
 //SourceStack by default just returns the property on GameState with the name
-//passed to DefaultConfig by WithSourceStack. If that is not sufficient,
+//passed to DefaultConfig by WithSourceProperty. If that is not sufficient,
 //override this in your embedding struct.
 func (s *ShuffleStack) SourceStack(state boardgame.State) boardgame.Stack {
 	return sourceStackFromConfig(s, state)
@@ -91,7 +91,7 @@ func (s *ShuffleStack) ValidConfiguration(exampleState boardgame.State) error {
 }
 
 //FallbackName returns "Shuffle STACK" where STACK is the name of the
-//stack set by WithSourceStack.
+//stack set by WithSourceProperty.
 func (s *ShuffleStack) FallbackName(m *boardgame.GameManager) string {
 
 	//This is an ugly hack to make it mutable
@@ -105,11 +105,11 @@ func (s *ShuffleStack) FallbackName(m *boardgame.GameManager) string {
 		stack = stacker.SourceStack(exampleState)
 	}
 
-	return "Shuffle " + stackName(s, configPropSourceStack, stack, exampleState)
+	return "Shuffle " + stackName(s, configPropSourceProperty, stack, exampleState)
 }
 
 //FallbackHelpText returns "Shuffles the STACK stack" where STACK is the name
-//of the stack set by WithSourceStack.
+//of the stack set by WithSourceProperty.
 func (s *ShuffleStack) FallbackHelpText() string {
-	return "Shuffles " + stackName(s, configPropSourceStack, nil, nil)
+	return "Shuffles " + stackName(s, configPropSourceProperty, nil, nil)
 }

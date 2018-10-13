@@ -137,7 +137,7 @@ func (d *DefaultComponent) Legal(state boardgame.ImmutableState, proposer boardg
 func (d *DefaultComponent) LegalType() int {
 	config := d.CustomConfiguration()
 
-	legalType, ok := config[configPropSourceStack]
+	legalType, ok := config[configPropLegalType]
 
 	if !ok {
 		return 0
@@ -152,7 +152,7 @@ func (d *DefaultComponent) LegalType() int {
 	return legalTypeInt
 }
 
-//SourceStack returns the stack set in configuration by WithSourceStack on the
+//SourceStack returns the stack set in configuration by WithSourceProperty on the
 //GameState, or nil. If that is not sufficient for your needs you should
 //override SourceStack yourself.
 func (d *DefaultComponent) SourceStack(state boardgame.State) boardgame.Stack {
@@ -200,7 +200,7 @@ func (d *DefaultComponent) ValidConfiguration(exampleState boardgame.State) erro
 }
 
 //FallbackName returns a string based on the stackName passed to
-//WithSourceStack, and the LegalType.
+//WithSourceProperty, and the LegalType.
 func (d *DefaultComponent) FallbackName(m *boardgame.GameManager) string {
 	legalType, _ := d.legalTypeImpl()
 
@@ -209,12 +209,12 @@ func (d *DefaultComponent) FallbackName(m *boardgame.GameManager) string {
 
 	sourceStack, _ := d.sourceStackImpl(exampleState)
 
-	return "Default Component For " + stackName(d, configPropSourceStack, sourceStack, exampleState) + " LegalType " + strconv.Itoa(legalType)
+	return "Default Component For " + stackName(d, configPropSourceProperty, sourceStack, exampleState) + " LegalType " + strconv.Itoa(legalType)
 }
 
 //FallbackName returns a string based on the stackName passed to
-//WithSourceStack, and the LegalType.
+//WithSourceProperty, and the LegalType.
 func (d *DefaultComponent) FallbackHelpText() string {
 	legalType, _ := d.legalTypeImpl()
-	return "Searches " + stackName(d, configPropSourceStack, nil, nil) + " for a component that returns nil for Legal() with LegalType " + strconv.Itoa(legalType)
+	return "Searches " + stackName(d, configPropSourceProperty, nil, nil) + " for a component that returns nil for Legal() with LegalType " + strconv.Itoa(legalType)
 }

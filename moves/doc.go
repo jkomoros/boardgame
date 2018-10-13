@@ -68,8 +68,8 @@ signficantly:
 		return moves.Add(
 			auto.MustConfig(
 				new(moves.DealComponentsUntilPlayerCountReached),
-				moves.WithGameStack("DrawStack"),
-				moves.WithPlayerStack("Hand"),
+				moves.WithGameProperty("DrawStack"),
+				moves.WithPlayerProperty("Hand"),
 				moves.WithTargetCount(2),
 			)
 		)
@@ -104,13 +104,13 @@ reasonable names for DeriveName(), so in many cases you can use those
 structs directly without having to pass WithMoveName().
 
 Other moves in the moves package, like DealCountComponents, will use
-configuration, like WithGameStack(), to power their default GameStack()
+configuration, like WithGameProperty(), to power their default GameStack()
 method.
 
 All moves in the moves package are designed to return an error from
 ValidConfiguration(), which means that if you forgot to pass a required
 configuration property (e.g. you don't override GameStack and also don't
-provide WithGameStack), when you try to create NewGameManager() and all
+provide WithGameProperty), when you try to create NewGameManager() and all
 moves' ValidConfiguration() is checked, you'll get an error. This helps
 catch mis-configurations during boot time.
 
@@ -206,7 +206,7 @@ allow multiple of this move type to apply in a row.
 Default Component Move
 
 DefaultComponent is a move type that, in DefaultsForState, searches through
-all of the components in the stack provided with WithSourceStack, and testing
+all of the components in the stack provided with WithSourceProperty, and testing
 the Legal() method of each component. It sets the first one that returns nil
 to m.ComponentIndex. Its Legal() returns whether there is a valid component
 specified, and what its Legal returns. You provide your own Apply().
@@ -250,11 +250,11 @@ All moves in this collection implement TargetCount() int, and all of them
 default to 1. Override this if you want a different number of components
 checked for in the end condition.
 
-In practice you'll often use WithTargetCount, WithGameStack, and friends as
-configuration to AutoConfigurer.Config instead of overriding those yourself. In fact, in
-many cases configuartion options are powerful enough to allow you to use these
-moves types on their own directly in your game. See the documentation in
-the sections above for more examples.
+In practice you'll often use WithTargetCount, WithGameProperty, and friends as
+configuration to AutoConfigurer.Config instead of overriding those yourself.
+In fact, in many cases configuartion options are powerful enough to allow you
+to use these moves types on their own directly in your game. See the
+documentation in the sections above for more examples.
 
 Each of Move, Deal, and Collect have three variants based on the end
 condition. Note that Move-type moves have only two stacks, but Deal and

@@ -9,12 +9,12 @@ const fullyQualifiedPackageName = "github.com/jkomoros/boardgame/moves."
 
 const configPropStartPhase = fullyQualifiedPackageName + "StartPhase"
 const configPropStartPhaseEnum = fullyQualifiedPackageName + "StartPhaseEnum"
-const configPropSourceStack = fullyQualifiedPackageName + "SourceStack"
-const configPropDestinationStack = fullyQualifiedPackageName + "DestinationStack"
+const configPropSourceProperty = fullyQualifiedPackageName + "SourceProperty"
+const configPropDestinationProperty = fullyQualifiedPackageName + "DestinationProperty"
 const configPropTargetCount = fullyQualifiedPackageName + "TargetCount"
 const configPropNumRounds = fullyQualifiedPackageName + "NumRounds"
-const configPropGameStack = fullyQualifiedPackageName + "GameStack"
-const configPropPlayerStack = fullyQualifiedPackageName + "PlayerStack"
+const configPropGameProperty = fullyQualifiedPackageName + "GameProperty"
+const configPropPlayerProperty = fullyQualifiedPackageName + "PlayerPropety"
 const configPropMoveName = fullyQualifiedPackageName + "MoveName"
 const configPropMoveNameSuffix = fullyQualifiedPackageName + "MoveNameSuffix"
 const configPropHelpText = fullyQualifiedPackageName + "HelpText"
@@ -133,39 +133,41 @@ func WithPhaseToStart(phaseToStart int, optionalPhaseEnum enum.Enum) CustomConfi
 	}
 }
 
-//SourceStack returns a function configuration option suitable for being
+//SourceProperty returns a function configuration option suitable for being
 //passed to auto.Config. The stackPropName is assumed to be on the GameState
 //object. If it isn't, you'll need to embed the move and override SourceStack
 //yourself.
-func WithSourceStack(stackPropName string) CustomConfigurationOption {
+func WithSourceProperty(stackPropName string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[configPropSourceStack] = stackPropName
+		config[configPropSourceProperty] = stackPropName
 	}
 }
 
-//DestinationStack returns a function configuration option suitable for
+//DestinationProperty returns a function configuration option suitable for
 //being passed to auto.Config. The stackPropName is assumed to be on the
 //GameState object. If it isn't, you'll need to embed the move and override
 //DestinationStack yourself.
-func WithDestinationStack(stackPropName string) CustomConfigurationOption {
+func WithDestinationProperty(stackPropName string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[configPropDestinationStack] = stackPropName
+		config[configPropDestinationProperty] = stackPropName
 	}
 }
 
-//GameStack returns a function configuration option suitable for being passed
-//to auto.Config.
-func WithGameStack(stackPropName string) CustomConfigurationOption {
+//GameProperty returns a function configuration option suitable for being
+//passed to auto.Config. Often used to configure what a move's GameStack()
+//will return, but other moves use it for non-stack properties.
+func WithGameProperty(stackPropName string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[configPropGameStack] = stackPropName
+		config[configPropGameProperty] = stackPropName
 	}
 }
 
-//PlayerStack returns a function configuration option suitable for being
-//passed to auto.Config.
-func WithPlayerStack(stackPropName string) CustomConfigurationOption {
+//PlayerProperty returns a function configuration option suitable for being
+//passed to auto.Config. Often used to configure what a move's PlayerStack()
+//will return, but other moves use it for non-stack properties.
+func WithPlayerProperty(stackPropName string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
-		config[configPropPlayerStack] = stackPropName
+		config[configPropPlayerProperty] = stackPropName
 	}
 }
 

@@ -107,8 +107,8 @@ func defaultMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveConfig
 			auto.MustConfig(
 				new(DealComponentsUntilPlayerCountReached),
 				WithMoveName("Deal Cards To Three"),
-				WithGameStack("DrawStack"),
-				WithPlayerStack("Hand"),
+				WithGameProperty("DrawStack"),
+				WithPlayerProperty("Hand"),
 				WithTargetCount(3),
 			),
 		),

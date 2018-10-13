@@ -61,7 +61,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			auto.MustConfig(
 				new(MoveCrownToken),
 				moves.WithHelpText("Crowns tokens that make it to the other end of the board."),
-				moves.WithSourceStack("Spaces"),
+				moves.WithSourceProperty("Spaces"),
 			),
 			auto.MustConfig(
 				new(moves.FinishTurn),

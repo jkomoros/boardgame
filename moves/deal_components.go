@@ -88,7 +88,7 @@ gameState's GameStack() to each PlayerState's PlayerStack(). It goes around
 TargetCount() times. TargetCount() defaults to 1; override if you want to deal
 out a different number of components. In practice it is more common to use
 this move (and its subclasses) directly, and pass configuration for GameStack,
-PlayerStack, and TargetCount via WithGameStack, WithPlayerStack, and
+PlayerStack, and TargetCount via WithGameProperty, WithPlayerProperty, and
 WithTargetCount into auto.Config.
 
 boardgame:codegen
@@ -135,12 +135,12 @@ func (d *DealCountComponents) NumRounds() int {
 }
 
 //PlayerStack by default just returns the property on GameState with the name
-//passed to auto.Config by WithPlayerStack. If that is not sufficient,
+//passed to auto.Config by WithPlayerProperty. If that is not sufficient,
 //override this in your embedding struct.
 func (d *DealCountComponents) PlayerStack(playerState boardgame.PlayerState) boardgame.Stack {
 	config := d.CustomConfiguration()
 
-	stackName, ok := config[configPropPlayerStack]
+	stackName, ok := config[configPropPlayerProperty]
 
 	if !ok {
 		return nil
@@ -162,12 +162,12 @@ func (d *DealCountComponents) PlayerStack(playerState boardgame.PlayerState) boa
 }
 
 //GameStack by default just returns the property on GameState with the name
-//passed to auto.Config by WithGameStack. If that is not sufficient,
+//passed to auto.Config by WithGameProperty. If that is not sufficient,
 //override this in your embedding struct.
 func (d *DealCountComponents) GameStack(gameState boardgame.SubState) boardgame.Stack {
 	config := d.CustomConfiguration()
 
-	stackName, ok := config[configPropGameStack]
+	stackName, ok := config[configPropGameProperty]
 
 	if !ok {
 		return nil
@@ -257,7 +257,7 @@ func (d *DealCountComponents) moveTypeInfo(exampleState boardgame.ImmutableState
 
 	}
 
-	return stackName(d, configPropPlayerStack, playerStack, exampleState), stackName(d, configPropGameStack, gameStack, exampleState), targetCountString(d.TopLevelStruct())
+	return stackName(d, configPropPlayerProperty, playerStack, exampleState), stackName(d, configPropGameProperty, gameStack, exampleState), targetCountString(d.TopLevelStruct())
 }
 
 //FallbackName returns a string based on the names of the player
