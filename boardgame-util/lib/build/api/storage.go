@@ -61,7 +61,6 @@ type StorageType int
 
 const (
 	StorageInvalid StorageType = iota
-	StorageDefault
 	StorageMemory
 	StorageBolt
 	StorageMysql
@@ -79,7 +78,6 @@ func init() {
 //StorageTypeFromString.
 func ValidStorageTypeStrings() []string {
 	return []string{
-		StorageDefault.String(),
 		StorageMemory.String(),
 		StorageBolt.String(),
 		StorageMysql.String(),
@@ -94,10 +92,8 @@ func StorageTypeFromString(in string) StorageType {
 	in = strings.TrimSpace(in)
 
 	switch in {
-	case "default":
-		return StorageDefault
 	case "":
-		return StorageDefault
+		return StorageBolt
 	case "memory":
 		return StorageMemory
 	case "bolt":
@@ -113,8 +109,6 @@ func StorageTypeFromString(in string) StorageType {
 
 func (s StorageType) String() string {
 	switch s {
-	case StorageDefault:
-		return "default"
 	case StorageMemory:
 		return "memory"
 	case StorageBolt:
@@ -131,11 +125,6 @@ func (s StorageType) String() string {
 //"github.com/jkomoros/boardgame/storage/mysql"
 func (s StorageType) Import() string {
 
-	if s == StorageDefault {
-		//api package already imported
-		return ""
-	}
-
 	base := "github.com/jkomoros/boardgame/storage"
 	return filepath.Join(base, s.String())
 }
@@ -146,10 +135,6 @@ func (s StorageType) Import() string {
 //strings are "\".database\"" etc. If not provided, will fall back on
 //reasonable defaults for that type.
 func (s StorageType) Constructor(optionalLiteralArgs string) string {
-
-	if s == StorageDefault {
-		return "api.NewDefaultStorageManager(" + optionalLiteralArgs + ")"
-	}
 
 	args := ""
 

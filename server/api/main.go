@@ -84,12 +84,12 @@ server.calcFoo takes dependencies and returns a result, with no touching context
 
 NewServer returns a new server. Get it to run by calling Start(). storage
 should a *ServerStorageManager, which can be created either from
-NewDefaultStorageManager or NewServerStorageManager.
+NewServerStorageManager.
 
 Use it like so:
 
 	func main() {
-		storage := server.NewDefaultStorageManager()
+		storage := server.NewServerStorageManager(bolt.NewStorageManager(".database"))
 		defer storage.Close()
 		server.NewServer(storage, mygame.NewManager(storage)).Start()
 	}

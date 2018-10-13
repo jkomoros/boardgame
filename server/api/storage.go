@@ -6,7 +6,6 @@ import (
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/server/api/users"
-	"github.com/jkomoros/boardgame/storage/mysql"
 )
 
 //StorageManager extends the base boardgame.StorageManager with a few more
@@ -85,12 +84,6 @@ func NewServerStorageManager(manager StorageManager) *ServerStorageManager {
 		manager,
 		nil,
 	}
-}
-
-//NewDefaultStorageManager currently uses mysql. See the README in
-//github.com/jkomoros/boardgame/storage/mysql for how to set up and configure it.
-func NewDefaultStorageManager() *ServerStorageManager {
-	return NewServerStorageManager(mysql.NewStorageManager(false))
 }
 
 func (s *ServerStorageManager) PlayerMoveApplied(game *boardgame.GameStorageRecord) error {
