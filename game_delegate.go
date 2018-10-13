@@ -4,6 +4,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/errors"
+	"math"
 	"sort"
 )
 
@@ -495,6 +496,11 @@ func (d *DefaultGameDelegate) CheckGameFinished(state ImmutableState) (finished 
 	//Game is over. What's the most extreme (max or min, depending on
 	//LowScoreWins) score?
 	extremeScore := 0
+
+	if lowScoreWins {
+		extremeScore = math.MaxInt32
+	}
+
 	for _, player := range state.ImmutablePlayerStates() {
 		score := checkGameFinished.PlayerScore(player)
 
