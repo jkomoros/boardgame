@@ -105,9 +105,11 @@ func (s *Server) moveBundles(game *boardgame.Game, moves []*boardgame.MoveStorag
 		//If state is nil, JSONForPlayer will basically treat it as just "give the
 		//current version" which is a reasonable fallback.
 		bundle := gin.H{
-			"Game":            game.JSONForPlayer(playerIndex, state),
-			"Move":            move,
-			"Delay":           delay,
+			"Game": game.JSONForPlayer(playerIndex, state),
+			"Move": move,
+			//Convert time.nanonseconds into milliseconds since that number is
+			//way more familiar clientside.
+			"Delay":           delay / time.Millisecond,
 			"ViewingAsPlayer": playerIndex,
 			"Forms":           s.generateForms(game),
 		}
