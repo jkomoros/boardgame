@@ -264,3 +264,37 @@ func (m *MoveComponentsUntilCountLeft) FallbackHelpText() string {
 
 	return "Moves components from " + source + " to " + destination + " until " + source + " has " + targetCountString(m.TopLevelStruct()) + " left"
 }
+
+//MoveAllComponents is simply a MoveComponentsUntilCountLeft that overrides
+//TargetCount() to return 0. It's effectively the equivalent of
+//stack.MoveAllTo, just broken into individual moves. A simple convenience
+//since that combination is common.
+//
+//boardgame:codegen
+type MoveAllComponents struct {
+	MoveComponentsUntilCountLeft
+}
+
+//TargetCount returns 0, no matter what was passed with WithTargetCount. This
+//is the primary behavior of this move, compared to
+//MoveComponentsUntilCountLeft.
+func (m *MoveAllComponents) TargetCount() int {
+	return 0
+}
+
+//FallbackName returns "Move All Components From SOURCESTACKNAME To
+//DESTINATIONSTACKNAME"
+func (m *MoveAllComponents) FallbackName(g *boardgame.GameManager) string {
+
+	source, destination := m.stackNames(g.ExampleState())
+
+	return "Move All Components From " + source + " To " + destination
+}
+
+//FallbackHelpText returns "Moves all components from SOURCESTACKNAME to
+//DESTINATIONSTACKNAME"
+func (m *MoveAllComponents) FallbackHelpText() string {
+	source, destination := m.stackNames(nil)
+
+	return "Moves all components from " + source + " to " + destination
+}

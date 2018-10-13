@@ -364,3 +364,36 @@ func (d *DealComponentsUntilGameCountLeft) FallbackHelpText() string {
 
 	return "Deals components from " + game + " in GameState to " + player + " in each PlayerState until the game stack has " + count + " left"
 }
+
+//DeallAllComponents is simply a DealComponentsUntilGameCountLeft that
+//overrides TargetCount() to return 0. A simple convenience since that
+//combination is common.
+//
+//boardgame:codegen
+type DealAllComponents struct {
+	DealComponentsUntilGameCountLeft
+}
+
+//TargetCount returns 0, no matter what was passed with WithTargetCount. This
+//is the primary behavior of this move, compared to
+//DealComponentsUntilGameCountLeft.
+func (d *DealAllComponents) TargetCount() int {
+	return 0
+}
+
+//FallbackName returns "Deal All Components From GAMESTACKNAME In GameState To
+//PlAYERSTACKNAME in Each PlayerState"
+func (d *DealAllComponents) FallbackName(g *boardgame.GameManager) string {
+
+	game, player, _ := d.moveTypeInfo(g.ExampleState())
+
+	return "Deal All Components From " + game + " In GameState To " + player + " In Each PlayerState"
+}
+
+//FallbackHelpText returns "Deals all components from GAMESTACKNAME in GameState to
+//PLAYERSTACKNAME in cach PlayerState"
+func (d *DealAllComponents) FallbackHelpText() string {
+	game, player, _ := d.moveTypeInfo(nil)
+
+	return "Deals all components from " + game + " in GameState to " + player + " in each PlayerState"
+}

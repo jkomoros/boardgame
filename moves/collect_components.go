@@ -179,3 +179,36 @@ func (d *CollectComponentsUntilGameCountReached) FallbackHelpText() string {
 
 	return "Collects components from " + player + " in each PlayerState to " + game + " in GameState until the game has " + count + " total"
 }
+
+//CollectAllComponents is simply a CollectComponentsUntilPlayerCountLeft that
+//overrides TargetCount() to return 0. A simple convenience since that
+//combination is common.
+//
+//boardgame:codegen
+type CollectAllComponents struct {
+	CollectComponentsUntilPlayerCountLeft
+}
+
+//TargetCount returns 0, no matter what was passed with WithTargetCount. This
+//is the primary behavior of this move, compared to
+//CollectComponentsUntilPlayerCountLeft.
+func (c *CollectAllComponents) TargetCount() int {
+	return 0
+}
+
+//FallbackName returns "Collect All Components From PLAYERSTACKNAME In Each
+//PlayerState To GAMESTACKNAME In GameState"
+func (c *CollectAllComponents) FallbackName(g *boardgame.GameManager) string {
+
+	player, game, _ := c.moveTypeInfo(g.ExampleState())
+
+	return "Collect All Components From " + player + " In Each PlayerState To " + game + " In GameState"
+}
+
+//FallbackHelpText returns "Collects all components from PLAYERSTACKNAME in each
+//PlayerState to GAMESTACKNAME in GameState"
+func (c *CollectAllComponents) FallbackHelpText() string {
+	player, game, _ := c.moveTypeInfo(nil)
+
+	return "Collects all components from " + player + " in each PlayerState to " + game + " in GameState"
+}

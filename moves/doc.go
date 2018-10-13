@@ -268,6 +268,10 @@ that end in CountReached operate until the destination stacks all have
 TargetCount or more items. Move names that end in CountLeft operate until the
 source stacks all have TargetCount or fewer items in them.
 
+Since a common configuration of these moves is to use
+{Move,Deal,Collect}ComponentsUntil*Reached with a TargetCount of 0, each also
+provides a *AllComponents as sugar.
+
 ApplyUntil ApplyUntilCount and ApplyCountTimes
 
 These moves are what the MoveComponents moves are based off of and are
