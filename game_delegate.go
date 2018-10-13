@@ -457,6 +457,7 @@ func (d *DefaultGameDelegate) FinishSetUp(state State) error {
 type defaultCheckGameFinishedDelegate interface {
 	GameEndConditionMet(state ImmutableState) bool
 	PlayerScore(pState ImmutablePlayerState) int
+	LowScoreWins() bool
 }
 
 //PlayerGameScorer is an optional interface that can be implemented by
@@ -470,9 +471,10 @@ type PlayerGameScorer interface {
 
 //CheckGameFinished by default checks delegate.GameEndConditionMet(). If true,
 //then it fetches delegate.PlayerScore() for each player and returns all
-//players who have the highest score as winners. To use this implementation
-//simply implement those methods. This is sufficient for many games, but not
-//all, so sometimes needs to be overriden.
+//players who have the highest score as winners. (If delegate.LowScoreWins()
+//is true, instead of highest score, it does lowest score.) To use this
+//implementation simply implement those methods. This is sufficient for many
+//games, but not all, so sometimes needs to be overriden.
 func (d *DefaultGameDelegate) CheckGameFinished(state ImmutableState) (finished bool, winners []PlayerIndex) {
 
 	if d.Manager() == nil {
@@ -488,27 +490,43 @@ func (d *DefaultGameDelegate) CheckGameFinished(state ImmutableState) (finished 
 		return false, nil
 	}
 
-	//Game is over. What's the max score?
-	maxScore := 0
+	lowScoreWins := checkGameFinished.LowScoreWins()
+
+	//Game is over. What's the most extreme (max or min, depending on
+	//LowScoreWins) score?
+	extremeScore := 0
 	for _, player := range state.ImmutablePlayerStates() {
 		score := checkGameFinished.PlayerScore(player)
 
-		if score > maxScore {
-			maxScore = score
+		if lowScoreWins {
+			if score < extremeScore {
+				extremeScore = score
+			}
+		} else {
+			if score > extremeScore {
+				extremeScore = score
+			}
 		}
 	}
 
-	//Who has the max score?
+	//Who has the most extreme score score?
 	for i, player := range state.ImmutablePlayerStates() {
 		score := checkGameFinished.PlayerScore(player)
 
-		if score == maxScore {
+		if score == extremeScore {
 			winners = append(winners, PlayerIndex(i))
 		}
 	}
 
 	return true, winners
 
+}
+
+//LowScoreWins is used in DefaultGameDelegate's CheckGameFinished. If false
+//(default) higher scores are better. If true, however, then lower scores win
+//(similar to golf), and all of the players with the lowest score win.
+func (d *DefaultGameDelegate) LowScoreWins() bool {
+	return false
 }
 
 //GameEndConditionMet is used in the default CheckGameFinished implementation.
