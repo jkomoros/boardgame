@@ -416,7 +416,7 @@ class BoardgameGameStateManager extends PolymerElement {
     return copy
   }
 
-  _addStateBundle(bundle) {
+  _enqueueStateBundle(bundle) {
     this.dispatchEvent(new CustomEvent('install-state-bundle', {composed: true, detail: bundle}));
   }
 
@@ -440,7 +440,7 @@ class BoardgameGameStateManager extends PolymerElement {
     this.dispatchEvent(new CustomEvent("install-game-static-info", {composed: true, detail: gameInfo}))
 
     var bundle = this._prepareStateBundle(newValue.Game, newValue.Forms, newValue.ViewingAsPlayer);
-    this._addStateBundle(bundle);
+    this._enqueueStateBundle(bundle);
 
     this._infoInstalled = true;
 
@@ -464,7 +464,7 @@ class BoardgameGameStateManager extends PolymerElement {
 
 
     var bundle = this._prepareStateBundle(serverBundle.Game, serverBundle.Forms, serverBundle.ViewingAsPlayer);
-    this._addStateBundle(bundle);
+    this._enqueueStateBundle(bundle);
 
     this.lastFetchedVersion = serverBundle.Game.Version;
   }
