@@ -104,11 +104,16 @@ class BoardgameGameStateManager extends PolymerElement {
         value: false,
       },
       _socket: Object,
+      _pendingStateBundles: Object,
+      _stateBundleTimeout: Number,
     }
   }
 
   ready() {
     super.ready();
+
+    this._pendingStateBundles = [];
+
     this.updateData();
   }
 
@@ -239,6 +244,7 @@ class BoardgameGameStateManager extends PolymerElement {
   //When evertyhing should be reset
   reset() {
     this.lastFetchedVersion = 0;
+    this._resetPendingStateBundles();
     this.softReset();
   }
 
@@ -258,7 +264,7 @@ class BoardgameGameStateManager extends PolymerElement {
     this.$.info.generateRequest();
   }
 
-  _prepareStateBundle(game, moveForms, viewingAsPlayer) {
+  _prepareStateBundle(game, moveForms, viewingAsPlayer, delay) {
 
 
     var bundle = {};
@@ -273,6 +279,7 @@ class BoardgameGameStateManager extends PolymerElement {
     bundle.game = game;
     bundle.moveForms = this._expandMoveForms(moveForms);
     bundle.viewingAsPlayer = viewingAsPlayer;
+    bundle.delay = delay;
 
     return bundle;
   }
@@ -416,8 +423,43 @@ class BoardgameGameStateManager extends PolymerElement {
     return copy
   }
 
+  //A new state bundle has been enqueued. Ensure that we're working ot fire a state bundle.
+  _scheduleNextStateBundle() {
+
+    if (this._stateBundleTimeout) return;
+    if (!this._pendingStateBundles.length) return;
+
+    let nextBundle = this._pendingStateBundles[0];
+
+    if (!nextBundle.delay) {
+      this._fireNextStateBundle();
+      return;
+    }
+
+    this._stateBundleTimeout = setTimeout(() => this._fireNextStateBundle(), nextBundle.delay);
+
+  }
+
+  _resetPendingStateBundles() {
+    if (this._stateBundleTimeout) clearTimeout(this._stateBundleTimeout);
+    this._stateBundleTimeout = 0;
+    this._pendingStateBundles = [];
+  }
+
+  _fireNextStateBundle() {
+    //Called when the next state bundle should be installed NOW.
+    this._stateBundleTimeout = 0;
+    let bundle = this._pendingStateBundles.shift();
+    if (bundle) {
+      this.dispatchEvent(new CustomEvent('install-state-bundle', {composed: true, detail: bundle}));
+    }
+    this._scheduleNextStateBundle();
+  }
+
+  //Add the next state bundle to the end
   _enqueueStateBundle(bundle) {
-    this.dispatchEvent(new CustomEvent('install-state-bundle', {composed: true, detail: bundle}));
+    this._pendingStateBundles.push(bundle);
+    this._scheduleNextStateBundle();    
   }
 
   _infoDataChanged(newValue, oldValue) {
@@ -439,7 +481,7 @@ class BoardgameGameStateManager extends PolymerElement {
 
     this.dispatchEvent(new CustomEvent("install-game-static-info", {composed: true, detail: gameInfo}))
 
-    var bundle = this._prepareStateBundle(newValue.Game, newValue.Forms, newValue.ViewingAsPlayer);
+    var bundle = this._prepareStateBundle(newValue.Game, newValue.Forms, newValue.ViewingAsPlayer, 0);
     this._enqueueStateBundle(bundle);
 
     this._infoInstalled = true;
@@ -459,14 +501,16 @@ class BoardgameGameStateManager extends PolymerElement {
       return
     }
 
-    var serverBundle = newValue.Bundles[newValue.Bundles.length - 1];
+    let lastServerBundle = {};
 
+    for (let i = 0; i < newValue.Bundles.length; i++) {
+      let serverBundle = newValue.Bundles[i];
+      let bundle = this._prepareStateBundle(serverBundle.Game, serverBundle.Forms, serverBundle.ViewingAsPlayer, serverBundle.Delay);
+      this._enqueueStateBundle(bundle);
+      lastServerBundle = serverBundle;
+    }
 
-
-    var bundle = this._prepareStateBundle(serverBundle.Game, serverBundle.Forms, serverBundle.ViewingAsPlayer);
-    this._enqueueStateBundle(bundle);
-
-    this.lastFetchedVersion = serverBundle.Game.Version;
+    this.lastFetchedVersion = lastServerBundle.Game.Version;
   }
 }
 
