@@ -207,7 +207,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 				moves.WithHelpText("Deals a hidden card to each player"),
 				moves.WithGameProperty("DrawStack"),
 				moves.WithPlayerProperty("HiddenHand"),
-				moves.WithPreAnimationDelay(time.Duration(500)*time.Millisecond),
+				moves.WithPostAnimationDelay(time.Duration(750)*time.Millisecond),
 			),
 			auto.MustConfig(
 				new(moves.DealCountComponents),
@@ -215,7 +215,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 				moves.WithHelpText("Deals a visible card to each player"),
 				moves.WithGameProperty("DrawStack"),
 				moves.WithPlayerProperty("VisibleHand"),
-				moves.WithPreAnimationDelay(time.Duration(500)*time.Millisecond),
+				moves.WithPostAnimationDelay(time.Duration(750)*time.Millisecond),
 			),
 			auto.MustConfig(
 				new(moves.StartPhase),

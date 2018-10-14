@@ -106,6 +106,7 @@ class BoardgameGameStateManager extends PolymerElement {
       _socket: Object,
       _pendingStateBundles: Object,
       _stateBundleTimeout: Number,
+      _stateBundleAnimationFrame: Number,
     }
   }
 
@@ -427,12 +428,14 @@ class BoardgameGameStateManager extends PolymerElement {
   _scheduleNextStateBundle() {
 
     if (this._stateBundleTimeout) return;
+    if (this._stateBundleAnimationFrame) return;
     if (!this._pendingStateBundles.length) return;
 
     let nextBundle = this._pendingStateBundles[0];
 
     if (!nextBundle.delay) {
-      this._fireNextStateBundle();
+      //Fire it immediately but int he next micro task
+      this._stateBundleAnimationFrame = window.requestAnimationFrame(() => this._fireNextStateBundle());
       return;
     }
 
@@ -443,12 +446,15 @@ class BoardgameGameStateManager extends PolymerElement {
   _resetPendingStateBundles() {
     if (this._stateBundleTimeout) clearTimeout(this._stateBundleTimeout);
     this._stateBundleTimeout = 0;
+    if (this._stateBundleAnimationFrame) window.cancelAnimationFrame(this._stateBundleAnimationFrame);
+    this._stateBundleAnimationFrame = 0;
     this._pendingStateBundles = [];
   }
 
   _fireNextStateBundle() {
     //Called when the next state bundle should be installed NOW.
     this._stateBundleTimeout = 0;
+    this._stateBundleAnimationFrame = 0;
     let bundle = this._pendingStateBundles.shift();
     if (bundle) {
       this.dispatchEvent(new CustomEvent('install-state-bundle', {composed: true, detail: bundle}));
