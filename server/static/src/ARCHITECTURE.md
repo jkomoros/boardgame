@@ -116,10 +116,22 @@ DOM element, but the other end of the transition doesn't; perhaps it's going
 to a `boardgame-component-stack` with so many elements that we print only a
 handful of faux components instead of one per actual item. In those cases, we
 ask the stack that contains the component to generate a fake component to
-animate, that will act like the literal element. When the animation is over,
-the faux animating component is removed.
+animate (the stack gives it a default position in the middle), that will act
+like the literal element. When the animation is over, the faux animating
+component is removed.
 
-*TODO* boardgame-component-stack with no literal item (len sanitization)
+The hardest case is when there is a component who either before or after is
+not known to be in a specific location in a stack. This happens, for exmaple,
+when a component moves from a normal stack to one that's sanitized with
+PolicyLen. That means that the actual list of component IDs is elided, and all
+that's left is stack.IdsLastSeen. This captures that the last time the given
+ID was seen was in this particular stack, but not _where_ in the stack it was
+seen. In this case `boardgame-component-animator` does a behavior like the one
+immediatley above. It creates a faux animating element. It positions the
+component in the middle of the stack, and styles the element to be very small
+and transparent, so as the component animates back to 0 state it's visually
+clear which stack the component went to in general, but not where in the
+component it went.
 
 *TODO*: Describe how the server decides where animations MAY be, but it's up to the client to figure out where they actually are (choosing to combine some).
 
