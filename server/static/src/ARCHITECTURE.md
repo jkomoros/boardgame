@@ -121,5 +121,7 @@ the faux animating component is removed.
 
 *TODO* boardgame-component-stack with no literal item (len sanitization)
 
+*TODO*: Describe how the server decides where animations MAY be, but it's up to the client to figure out where they actually are (choosing to combine some).
+
 *TODO*: Animation-coordinator during prepare and start animator, listens for events to be emitted that are `will-animate` and stores them in a map of id to bool. Then later when `animation-done` is received, it removes each one from the map. It's the component's responsibiltiy to only fire one `animation-done` when it's fully done. When the map has zero entries, it tells the game-view to fetch and render another state from the state manager.
 
