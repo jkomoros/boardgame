@@ -100,10 +100,10 @@ class BoardgameComponentAnimator extends PolymerElement {
 
         var computedStyle = getComputedStyle(component)
 
-        record.previousTransform = computedStyle.transform;
+        record.beforeTransform = computedStyle.transform;
 
-        if (record.previousTransform == "none") {
-          record.previousTransform = "";
+        if (record.beforeTransform == "none") {
+          record.beforeTransform = "";
         }
 
         record.before = component.animatingPropValues();
@@ -240,16 +240,19 @@ class BoardgameComponentAnimator extends PolymerElement {
 
           record.before = component.animatingPropDefaults(theStack);
           
-          record.postPreviousOpacity = component.style.opacity;
-          record.postPreviousTransform = component.style.transform;
+          record.afterOpacity = component.style.opacity;
+          record.afterTransform = component.style.transform;
 
           theStack.setUnknownAnimationState(component);
 
-          record.previousTransform = component.style.transform;
+          //TODO: can this move up to be next to setting record.before for
+          //clarity, or todes it depend on being after
+          //theStack.setUnknownAnimationState?
+          record.beforeTransform = component.style.transform;
 
         } else {
-          record.postPreviousOpacity = component.style.opacity;
-          record.postPreviousTransform = component.style.transform;
+          record.afterOpacity = component.style.opacity;
+          record.afterTransform = component.style.transform;
         }
 
         //Mark that we've seen where this one is going.
@@ -286,7 +289,7 @@ class BoardgameComponentAnimator extends PolymerElement {
         //this didn't appear to have any appreciable performance difference.
         var transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`
         var scaleTransform = `scale(${scaleFactor})`
-        component.style.transform = transform + " " + record.previousTransform + " " + scaleTransform;
+        component.style.transform = transform + " " + record.beforeTransform + " " + scaleTransform;
 
         var clonedNodes = this._lastSeenNodesById.get(component.id);
 
@@ -337,8 +340,8 @@ class BoardgameComponentAnimator extends PolymerElement {
         stack: anonRecord.stack,
         component: component,
         after: record.after,
-        postPreviousTransform: component.style.transform,
-        postPreviousOpacity: component.style.opacity,
+        afterTransform: component.style.transform,
+        afterOpacity: component.style.opacity,
       })
 
       var stackLocation = collectionOffsets.get(anonRecord.stack.id);
@@ -368,7 +371,7 @@ class BoardgameComponentAnimator extends PolymerElement {
       var transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`;
       var scaleTransform = `scale(${scaleFactor})`
       
-      component.style.transform = transform + " " + record.previousTransform + " " + scaleTransform;
+      component.style.transform = transform + " " + record.beforeTransform + " " + scaleTransform;
 
       component.style.opacity = "1.0";
 
@@ -400,8 +403,8 @@ class BoardgameComponentAnimator extends PolymerElement {
         var record = this._infoById[component.id];
         if (!record) continue;
         component.noAnimate = false;
-        component.style.transform = record.postPreviousTransform;
-        component.style.opacity = record.postPreviousOpacity;
+        component.style.transform = record.afterTransform;
+        component.style.opacity = record.afterOpacity;
         component.startAnimation(record.after);
       }
     }
@@ -412,8 +415,8 @@ class BoardgameComponentAnimator extends PolymerElement {
 
       record.component.startAnimation(record.after);
 
-      record.component.style.opacity = record.postPreviousOpacity;
-      record.component.style.transform = record.postPreviousTransform;
+      record.component.style.opacity = record.afterOpacity;
+      record.component.style.transform = record.afterTransform;
     }
 
   }
