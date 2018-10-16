@@ -269,13 +269,23 @@ export class BoardgameComponent extends PolymerElement {
     return result;
   }
 
+  //computeAnimationProps is called by prepareAnimation and startAnimation,
+  //passing the raw props and returning the actual properties to set. This is
+  //the override point for sub-classes like boardgame-card who actually want
+  //to set other properties, not the literal ones we were provided. The
+  //default simply returns props.
+  computeAnimationProps(isAfter, props) {
+    return props
+  }
+
   //prepareAnimation is called after the new state is databound but just
   //before animation starts. Default is this.setProperties(beforeProps),
   //but some things have more complicated logic for animation performance.
   //beforeProps is what this element--or one like it--returned from
   //animatingPropValues() before the databinding happened.
   prepareAnimation(beforeProps) {
-    this.setProperties(beforeProps);
+    let props = this.computeAnimationProps(false, beforeProps);
+    this.setProperties(props);
   }
 
   //startAnimation is called after the new state is databound and after
@@ -284,7 +294,8 @@ export class BoardgameComponent extends PolymerElement {
   //afterProps is what this element--or one like it--returned from
   //animatingPropValues() after the databinding happened.
   startAnimation(afterProps) {
-    this.setProperties(afterProps);
+    let props = this.computeAnimationProps(true, afterProps);
+    this.setProperties(props);
   }
 
   //prepareForBeingAnimatingComponent is called if the component is going

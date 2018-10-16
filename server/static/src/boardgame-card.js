@@ -319,22 +319,25 @@ class BoardgameCard extends BoardgameComponent {
     return super.animatingProperties.concat(["rotated", "faceUp"]);
   }
 
-  prepareAnimation(beforeProps) {
+  computeAnimationProps(isAfter, props) {
+
+    //We override these props for performance.
+
     //All of these set inner rotation on card, so do them all at once
-    this.setProperties({
+
+    if (isAfter) {
+      return {
+        faceUp: afterProps.faceUp,
+        overrideRotated: false,
+        basicRotated: afterProps.rotated
+      }
+    }
+
+    return {
       faceUp: beforeProps.faceUp,
       overrideRotated: true,
       basicRotated: beforeProps.rotated
-    })
-  }
-
-  startAnimation(afterProps) {
-    //All of these set inner rotation on card, so do them all at once
-    this.setProperties({
-      faceUp: afterProps.faceUp,
-      overrideRotated: false,
-      basicRotated: afterProps.rotated
-    })
+    }
   }
 
   get cloneContent() {
