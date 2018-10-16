@@ -272,30 +272,38 @@ export class BoardgameComponent extends PolymerElement {
   //computeAnimationProps is called by prepareAnimation and startAnimation,
   //passing the raw props and returning the actual properties to set. This is
   //the override point for sub-classes like boardgame-card who actually want
-  //to set other properties, not the literal ones we were provided. The
-  //default simply returns props.
+  //to set other properties, not the literal ones we were provided, for
+  //performance reasons. The default simply returns props.
   computeAnimationProps(isAfter, props) {
     return props
   }
 
   //prepareAnimation is called after the new state is databound but just
-  //before animation starts. Default is this.setProperties(beforeProps),
-  //but some things have more complicated logic for animation performance.
-  //beforeProps is what this element--or one like it--returned from
-  //animatingPropValues() before the databinding happened.
-  prepareAnimation(beforeProps) {
+  //before animation starts. Will call computeAnimationProps to get the final
+  //props to set, which is an override point for subClasses. beforeProps is
+  //what this element--or one like it--returned from animatingPropValues()
+  //before the databinding happened. Transform is the transform to set on the
+  //top-level element. This often isn't the literal transform from before, but
+  //one that has been modified to be the previous transform, combined with the
+  //inversion transform to move the component visually back to where it was.
+  prepareAnimation(beforeProps, transform, opacity) {
     let props = this.computeAnimationProps(false, beforeProps);
     this.setProperties(props);
+    this.style.transform = transform;
+    this.style.opacty = opacity;
   }
 
   //startAnimation is called after the new state is databound and after
-  //prepareAnimatino. Default is this.setProperties(beforeProps), but some
-  //things have more complicated logic for animation performance.
-  //afterProps is what this element--or one like it--returned from
-  //animatingPropValues() after the databinding happened.
-  startAnimation(afterProps) {
+  //prepareAnimatino. Will call computeAnimationProps to get the final props
+  //to set, which is an override point for subClasses.  afterProps is what
+  //this element--or one like it--returned from animatingPropValues() after
+  //the databinding happened. transform and opacity are the final values for
+  //those two properties in their final location.
+  startAnimation(afterProps, transform, opacity) {
     let props = this.computeAnimationProps(true, afterProps);
     this.setProperties(props);
+    this.style.transform = transform;
+    this.style.opacity = opacity;
   }
 
   //prepareForBeingAnimatingComponent is called if the component is going

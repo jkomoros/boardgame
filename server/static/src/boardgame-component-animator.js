@@ -260,8 +260,6 @@ class BoardgameComponentAnimator extends PolymerElement {
 
         record.after = component.animatingPropValues();
 
-        component.prepareAnimation(record.before);
-
         var invertTop = record.offsets.top - record.newOffsets.top;
         var invertLeft = record.offsets.left - record.newOffsets.left;
 
@@ -289,7 +287,10 @@ class BoardgameComponentAnimator extends PolymerElement {
         //this didn't appear to have any appreciable performance difference.
         var transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`
         var scaleTransform = `scale(${scaleFactor})`
-        component.style.transform = transform + " " + record.beforeTransform + " " + scaleTransform;
+        let beforeInvertedTransform = transform + " " + record.beforeTransform + " " + scaleTransform;
+
+        //TODO: what should opacity be?
+        component.prepareAnimation(record.before, beforeInvertedTransform, "1.0");
 
         var clonedNodes = this._lastSeenNodesById.get(component.id);
 
@@ -334,7 +335,7 @@ class BoardgameComponentAnimator extends PolymerElement {
 
       record.after = component.animatingPropDefaults(anonRecord.stack),
 
-      component.prepareAnimation(record.before);
+      
 
       this._animatingComponents.push({
         stack: anonRecord.stack,
@@ -371,9 +372,10 @@ class BoardgameComponentAnimator extends PolymerElement {
       var transform = `translateY(${invertTop}px) translateX(${invertLeft}px)`;
       var scaleTransform = `scale(${scaleFactor})`
       
-      component.style.transform = transform + " " + record.beforeTransform + " " + scaleTransform;
+      let beforeInvertedTransform = component.style.transform = transform + " " + record.beforeTransform + " " + scaleTransform;
+      let beforeOpacity = component.style.opacity = "1.0";
 
-      component.style.opacity = "1.0";
+      component.prepareAnimation(record.before, beforeInvertedTransform, beforeOpacity);
 
       var clonedNodes = this._lastSeenNodesById.get(id);
       if (clonedNodes) {
@@ -403,9 +405,7 @@ class BoardgameComponentAnimator extends PolymerElement {
         var record = this._infoById[component.id];
         if (!record) continue;
         component.noAnimate = false;
-        component.style.transform = record.afterTransform;
-        component.style.opacity = record.afterOpacity;
-        component.startAnimation(record.after);
+        component.startAnimation(record.after, record.afterTransform, record.afterOpacity);
       }
     }
 
@@ -413,10 +413,7 @@ class BoardgameComponentAnimator extends PolymerElement {
       var record = this._animatingComponents[i];
       record.component.noAnimate = false;
 
-      record.component.startAnimation(record.after);
-
-      record.component.style.opacity = record.afterOpacity;
-      record.component.style.transform = record.afterTransform;
+      record.component.startAnimation(record.after, record.afterTransform, record.afterOpacity);
     }
 
   }
