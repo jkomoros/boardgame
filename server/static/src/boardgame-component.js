@@ -222,6 +222,8 @@ export class BoardgameComponent extends PolymerElement {
 
   //obj.properties, smooshed down all the way to the upper.
   get _composedPropertyDefinition() {
+    //TODO: can we get rid of this? Doesn't seem to be used, and I believe
+    //Polymer does this for us now.
     if (!this._memoizedComposedPropertyDefinition) {
       let result = {};
       let obj = this;
