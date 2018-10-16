@@ -327,16 +327,16 @@ class BoardgameCard extends BoardgameComponent {
 
     if (isAfter) {
       return {
-        faceUp: afterProps.faceUp,
+        faceUp: props.faceUp,
         overrideRotated: false,
-        basicRotated: afterProps.rotated
+        basicRotated: props.rotated
       }
     }
 
     return {
-      faceUp: beforeProps.faceUp,
+      faceUp: props.faceUp,
       overrideRotated: true,
-      basicRotated: beforeProps.rotated
+      basicRotated: props.rotated
     }
   }
 
