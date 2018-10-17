@@ -104,6 +104,10 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.Immutab
 		return game.HiddenStack, nil
 	}
 
+	if game.AllVisibleStack.NumComponents() < 4 {
+		return game.AllVisibleStack, nil
+	}
+
 	return game.DrawStack, nil
 
 }
@@ -130,24 +134,51 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
 	auto := moves.NewAutoConfigurer(g)
 
-	return []boardgame.MoveConfig{
-		auto.MustConfig(new(moveMoveCardBetweenShortStacks)),
-		auto.MustConfig(new(moveMoveCardBetweenDrawAndDiscardStacks)),
-		auto.MustConfig(new(moveFlipHiddenCard),
-			moves.WithMoveName("Flip Card Between Hidden and Revealed")),
-		auto.MustConfig(new(moveMoveCardBetweenFanStacks),
-			moves.WithMoveName("Move Fan Card"),
+	return moves.Combine(
+		moves.Add(
+			auto.MustConfig(new(moveMoveCardBetweenShortStacks)),
+			auto.MustConfig(new(moveMoveCardBetweenDrawAndDiscardStacks)),
+			auto.MustConfig(new(moveFlipHiddenCard),
+				moves.WithMoveName("Flip Card Between Hidden and Revealed")),
+			auto.MustConfig(new(moveMoveCardBetweenFanStacks),
+				moves.WithMoveName("Move Fan Card"),
+			),
+			auto.MustConfig(new(moveVisibleShuffleCards),
+				moves.WithMoveName("Visible Shuffle"),
+			),
+			auto.MustConfig(new(moveShuffleCards),
+				moves.WithMoveName("Shuffle"),
+			),
+			auto.MustConfig(new(moveMoveBetweenHidden)),
+			auto.MustConfig(new(moveMoveToken)),
+			auto.MustConfig(new(moveMoveTokenSanitized)),
 		),
-		auto.MustConfig(new(moveVisibleShuffleCards),
-			moves.WithMoveName("Visible Shuffle"),
+		moves.AddOrderedForPhase(PhaseNormal,
+			//Signaling if the button should move to or from visible (for
+			//example with a moves.MoveAllCompoennts wrapped in a struct that
+			//auto-selects the Source/Destination stack) is non-trivial since
+			//it changes in the middle of the move run. So just have two
+			//serial groups, and hope the player plays the right ones.
+			moves.Serial(
+				auto.MustConfig(new(moves.Done),
+					moves.WithMoveName("Start Move All Components To Hidden"),
+				),
+				auto.MustConfig(new(moves.MoveAllComponents),
+					moves.WithSourceProperty("AllVisibleStack"),
+					moves.WithDestinationProperty("AllHiddenStack"),
+				),
+			),
+			moves.Serial(
+				auto.MustConfig(new(moves.Done),
+					moves.WithMoveName("Start Move All Components To Visible"),
+				),
+				auto.MustConfig(new(moves.MoveAllComponents),
+					moves.WithSourceProperty("AllHiddenStack"),
+					moves.WithDestinationProperty("AllVisibleStack"),
+				),
+			),
 		),
-		auto.MustConfig(new(moveShuffleCards),
-			moves.WithMoveName("Shuffle"),
-		),
-		auto.MustConfig(new(moveMoveBetweenHidden)),
-		auto.MustConfig(new(moveMoveToken)),
-		auto.MustConfig(new(moveMoveTokenSanitized)),
-	}
+	)
 }
 
 func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {

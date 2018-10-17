@@ -4,6 +4,12 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
+//boardgame:codegen
+const (
+	Phase = iota
+	PhaseNormal
+)
+
 var cardNames []string = []string{
 	"🏇",
 	"🚴",
@@ -18,6 +24,11 @@ var cardNames []string = []string{
 	"🍒",
 	"🍔",
 	"🍭",
+	"🍺",
+	"🌮",
+	"🌭",
+	"🧀",
+	"🥐",
 }
 
 const cardsDeckName = "cards"

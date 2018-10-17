@@ -4328,6 +4328,8 @@ func (m *moveMoveTokenSanitized) ReadSetConfigurer() boardgame.PropertyReadSetCo
 // Implementation for gameState
 
 var __gameStateReaderProps map[string]boardgame.PropertyType = map[string]boardgame.PropertyType{
+	"AllHiddenStack":      boardgame.TypeStack,
+	"AllVisibleStack":     boardgame.TypeStack,
 	"Card":                boardgame.TypeStack,
 	"CurrentPlayer":       boardgame.TypePlayerIndex,
 	"DiscardStack":        boardgame.TypeStack,
@@ -4337,6 +4339,7 @@ var __gameStateReaderProps map[string]boardgame.PropertyType = map[string]boardg
 	"FirstShortStack":     boardgame.TypeStack,
 	"HiddenCard":          boardgame.TypeStack,
 	"HiddenStack":         boardgame.TypeStack,
+	"Phase":               boardgame.TypeEnum,
 	"SanitizedTokensFrom": boardgame.TypeStack,
 	"SanitizedTokensTo":   boardgame.TypeStack,
 	"SecondShortStack":    boardgame.TypeStack,
@@ -4395,6 +4398,10 @@ func (g *__gameStateReader) Prop(name string) (interface{}, error) {
 
 func (g *__gameStateReader) PropMutable(name string) bool {
 	switch name {
+	case "AllHiddenStack":
+		return true
+	case "AllVisibleStack":
+		return true
 	case "Card":
 		return false
 	case "CurrentPlayer":
@@ -4412,6 +4419,8 @@ func (g *__gameStateReader) PropMutable(name string) bool {
 	case "HiddenCard":
 		return true
 	case "HiddenStack":
+		return true
+	case "Phase":
 		return true
 	case "SanitizedTokensFrom":
 		return true
@@ -4680,11 +4689,24 @@ func (g *__gameStateReader) SetBoolSliceProp(name string, value []bool) error {
 
 func (g *__gameStateReader) ImmutableEnumProp(name string) (enum.ImmutableVal, error) {
 
+	switch name {
+	case "Phase":
+		return g.data.Phase, nil
+
+	}
+
 	return nil, errors.New("No such Enum prop: " + name)
 
 }
 
 func (g *__gameStateReader) ConfigureEnumProp(name string, value enum.Val) error {
+
+	switch name {
+	case "Phase":
+		g.data.Phase = value
+		return nil
+
+	}
 
 	return errors.New("No such Enum prop: " + name)
 
@@ -4692,11 +4714,23 @@ func (g *__gameStateReader) ConfigureEnumProp(name string, value enum.Val) error
 
 func (g *__gameStateReader) ConfigureImmutableEnumProp(name string, value enum.ImmutableVal) error {
 
+	switch name {
+	case "Phase":
+		return boardgame.ErrPropertyImmutable
+
+	}
+
 	return errors.New("No such ImmutableEnum prop: " + name)
 
 }
 
 func (g *__gameStateReader) EnumProp(name string) (enum.Val, error) {
+
+	switch name {
+	case "Phase":
+		return g.data.Phase, nil
+
+	}
 
 	return nil, errors.New("No such Enum prop: " + name)
 
@@ -4766,6 +4800,10 @@ func (g *__gameStateReader) SetPlayerIndexSliceProp(name string, value []boardga
 func (g *__gameStateReader) ImmutableStackProp(name string) (boardgame.ImmutableStack, error) {
 
 	switch name {
+	case "AllHiddenStack":
+		return g.data.AllHiddenStack, nil
+	case "AllVisibleStack":
+		return g.data.AllVisibleStack, nil
 	case "Card":
 		return g.data.Card, nil
 	case "DiscardStack":
@@ -4806,6 +4844,12 @@ func (g *__gameStateReader) ImmutableStackProp(name string) (boardgame.Immutable
 func (g *__gameStateReader) ConfigureStackProp(name string, value boardgame.Stack) error {
 
 	switch name {
+	case "AllHiddenStack":
+		g.data.AllHiddenStack = value
+		return nil
+	case "AllVisibleStack":
+		g.data.AllVisibleStack = value
+		return nil
 	case "Card":
 		return boardgame.ErrPropertyImmutable
 	case "DiscardStack":
@@ -4868,6 +4912,10 @@ func (g *__gameStateReader) ConfigureStackProp(name string, value boardgame.Stac
 func (g *__gameStateReader) ConfigureImmutableStackProp(name string, value boardgame.ImmutableStack) error {
 
 	switch name {
+	case "AllHiddenStack":
+		return boardgame.ErrPropertyImmutable
+	case "AllVisibleStack":
+		return boardgame.ErrPropertyImmutable
 	case "Card":
 		slotValue := value.MergedStack()
 		if slotValue == nil {
@@ -4913,6 +4961,10 @@ func (g *__gameStateReader) ConfigureImmutableStackProp(name string, value board
 func (g *__gameStateReader) StackProp(name string) (boardgame.Stack, error) {
 
 	switch name {
+	case "AllHiddenStack":
+		return g.data.AllHiddenStack, nil
+	case "AllVisibleStack":
+		return g.data.AllVisibleStack, nil
 	case "Card":
 		return nil, boardgame.ErrPropertyImmutable
 	case "DiscardStack":

@@ -2,6 +2,7 @@ package debuganimations
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/enum"
 )
 
 func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState) {
@@ -19,6 +20,7 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 //boardgame:codegen
 type gameState struct {
 	boardgame.BaseSubState
+	Phase               enum.Val              `enum:"Phase"`
 	DiscardStack        boardgame.Stack       `stack:"cards"`
 	DrawStack           boardgame.Stack       `stack:"cards" sanitize:"order"`
 	FirstShortStack     boardgame.Stack       `stack:"cards" sanitize:"order"`
@@ -30,6 +32,8 @@ type gameState struct {
 	FanDiscard          boardgame.Stack       `stack:"cards" sanitize:"order"`
 	VisibleStack        boardgame.Stack       `stack:"cards"`
 	HiddenStack         boardgame.Stack       `stack:"cards" sanitize:"nonempty"`
+	AllVisibleStack     boardgame.Stack       `stack:"cards"`
+	AllHiddenStack      boardgame.Stack       `stack:"cards" sanitize:"order"`
 	TokensFrom          boardgame.Stack       `stack:"tokens"`
 	TokensTo            boardgame.Stack       `stack:"tokens"`
 	SanitizedTokensFrom boardgame.Stack       `stack:"tokens"`

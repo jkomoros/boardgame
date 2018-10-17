@@ -62,6 +62,10 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
         @apply --layout-horizontal;
       }
 
+      #all {
+        @apply --layout-horizontal;
+      }
+
       #token {
         @apply --layout-horizontal;
       }
@@ -147,6 +151,15 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
         <boardgame-component-stack layout="stack" messy="{{messy}}" stack="{{state.Game.HiddenStack}}" style\$="--component-scale:{{toCardScale}}" faux-components="5" component-rotated="{{toStackRotated}}">
         </boardgame-component-stack>
         <paper-button propose-move="Move Between Hidden">Draw</paper-button>
+      </div>
+
+      <div id="all">
+        <boardgame-component-stack layout="stack" messy="{{messy}}" stack="{{state.Game.AllVisibleStack}}">
+        </boardgame-component-stack>
+        <boardgame-component-stack layout="stack" messy="{{messy}}" stack="{{state.Game.AllHiddenStack}}">
+        </boardgame-component-stack>
+        <paper-button propose-move="Start Move All Components To Hidden">To Hidden</paper-button>
+        <paper-button propose-move="Start Move All Components To Visible">To Visible</paper-button>
       </div>
 
       <div id="token">
