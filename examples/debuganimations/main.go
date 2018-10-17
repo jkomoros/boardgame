@@ -160,18 +160,14 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			//it changes in the middle of the move run. So just have two
 			//serial groups, and hope the player plays the right ones.
 			moves.Serial(
-				auto.MustConfig(new(moves.Done),
-					moves.WithMoveName("Start Move All Components To Hidden"),
-				),
+				auto.MustConfig(new(moveStartMoveAllComponentsToHidden)),
 				auto.MustConfig(new(moves.MoveAllComponents),
 					moves.WithSourceProperty("AllVisibleStack"),
 					moves.WithDestinationProperty("AllHiddenStack"),
 				),
 			),
 			moves.Serial(
-				auto.MustConfig(new(moves.Done),
-					moves.WithMoveName("Start Move All Components To Visible"),
-				),
+				auto.MustConfig(new(moveStartMoveAllComponentsToVisible)),
 				auto.MustConfig(new(moves.MoveAllComponents),
 					moves.WithSourceProperty("AllHiddenStack"),
 					moves.WithDestinationProperty("AllVisibleStack"),

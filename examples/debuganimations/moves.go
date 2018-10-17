@@ -53,6 +53,16 @@ type moveMoveTokenSanitized struct {
 	moves.Base
 }
 
+//boardgame:codegen
+type moveStartMoveAllComponentsToHidden struct {
+	moves.Done
+}
+
+//boardgame:codegen
+type moveStartMoveAllComponentsToVisible struct {
+	moves.Done
+}
+
 /**************************************************
  *
  * moveMoveCardBetweenShortStacks Implementation
@@ -444,4 +454,51 @@ func (m *moveMoveTokenSanitized) Apply(state boardgame.State) error {
 
 	return game.SanitizedTokensFrom.ComponentAt(2).MoveToFirstSlot(game.SanitizedTokensTo)
 
+}
+
+/**************************************************
+ *
+ * moveStartMoveAllComponentsToHidden Implementation
+ *
+ **************************************************/
+
+func (m *moveStartMoveAllComponentsToHidden) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+
+	//TODO: it's kind of weird that this has to be above the m.Done.Legal
+	//check, right? Does that imply a bug in group matching logic?
+
+	game := state.ImmutableGameState().(*gameState)
+
+	if game.AllHiddenStack.NumComponents() > 0 {
+		return errors.New("The hidden stack already has items. Use the 'To Visible' move")
+	}
+
+	if err := m.Done.Legal(state, proposer); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+/**************************************************
+ *
+ * moveStartMoveAllComponentsToVisible Implementation
+ *
+ **************************************************/
+
+func (m *moveStartMoveAllComponentsToVisible) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+
+	//TODO: it's kind of weird that this has to be above the m.Done.Legal check, right?
+
+	game := state.ImmutableGameState().(*gameState)
+
+	if game.AllVisibleStack.NumComponents() > 0 {
+		return errors.New("The visible stack already has items. Use the 'To Hidden' move")
+	}
+
+	if err := m.Done.Legal(state, proposer); err != nil {
+		return err
+	}
+
+	return nil
 }
