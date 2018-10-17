@@ -109,7 +109,7 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
         </boardgame-component-stack>
         <boardgame-component-stack layout="stack" messy="{{messy}}" stack="{{state.Game.DiscardStack}}">
         </boardgame-component-stack>
-        <paper-button propose-move="Move Card Between Draw and Discard Stacks">Draw</paper-button>
+        <paper-button propose-move="Move Card Between Draw And Discard Stacks">Draw</paper-button>
         <boardgame-fading-text trigger="{{state.Game.DrawStack.Components.length}}" auto-message="diff"></boardgame-fading-text>
       </div>
 
