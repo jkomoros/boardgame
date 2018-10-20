@@ -78,9 +78,18 @@ Note that all animations of all types have a default length set by the CSS var
 `--animation-length`. If you want to change the animation, you can target a
 different CSS var at the item.
 
-*TODO Describe in detail how external transforms for e.g. messy and fan work.
-*(how do they interact with inverse transforms set by component animator? When
-*does component-stack use literal layout vs transformed layout)
+Components have three types of transforms that can apply. The first is
+*internal*. These are transformations on the inner element. For cards this
+includes whether the card is faceUp and whether it's rotated. The next is
+*external*. These are transform tweaks applied by the `component-stack` to
+perturb the final layout, for example to make messy cards or fanned cards be
+in their final layout. (Normal layout is used for gross position; these are
+just small tweaks). The final are *inverse* transforms, which are applied by
+component animator during animations in order to position a component where it
+was in the last state, so it can animate to its new location. *External* and
+*inverse* transforms are in practice applied the same way currently, which
+means that animator has to figure out how to munge them toegether, setting
+what is properly an *external plus internal* transform.
 
 This is all pretty straightforward. However, the real benefit of the engine is
 that it handles animations as components move between states well. At a high
@@ -88,10 +97,10 @@ level, the game logic on the server has decided how granularly to break up
 moves. Correct animations can only happen between versions; the server game
 logic thus decides where full animations MAY happen. It's up to the client to
 actually calculate the animations to occur, set them in motion, and figure out
-when they're done. _In the future it will also be possible for the client to
+when they're done. *In the future it will also be possible for the client to
 decide to skip certain states because it doesn't want to animate each state
 change individually, by looking at a before and after state and choosing to
-not databind the former._
+not databind the former.*
 
 At a high level, what we do is bind the first state, then bind the second
 state as a totally separate item. Items that just so happen to be in the same
@@ -109,12 +118,11 @@ to the next step to avoid layout thrashing).
 
 Now for the hard part. It goes through and generates inverse transforms to
 move each component, visually, back to where it was in the previous state, and
-then applies a CSS transition to bring it back to the location it literally is
-in the DOM, by reducing those transforms to 0. This transformation is referred
-to as an "external" aniamtion, because the transforms are set on the
-components from the outside. This is a very challenging calculation to do,
-especially because components have internal animations that could change their
-layout.
+then applies a CSS transform to bring it back to the location it literally is
+in the DOM, by reducing those transforms to 0 in an animation. This
+transformation is referred to as the *inverse* transform. This is a very
+challenging calculation to do, especially because components have internal
+animations that could change their layout.
 
 Components who are represented by a literal DOM element before and after are
 (relatively) easy. Just calculate the inverse transform and apply it.
@@ -141,5 +149,29 @@ and transparent, so as the component animates back to 0 state it's visually
 clear which stack the component went to in general, but not where in the
 component it went.
 
-*TODO*: Animation-coordinator during prepare and start animator, listens for events to be emitted that are `will-animate` and stores them in a map of id to bool. Then later when `animation-done` is received, it removes each one from the map. It's the component's responsibiltiy to only fire one `animation-done` when it's fully done. When the map has zero entries, it tells the game-view to fetch and render another state from the state manager.
+The timing logic of the animation is controlled by when animations are done,
+which fundamentally relies on `transitionend` events. During the animation
+state, each boardgame-component fires a `will-animate` event as soon as it
+realizes that it will animate, because either its external or internal
+transforms will change. It does this by calling _startingAnimation, which
+handles the logic of keeping track of how many `transitionend` the component
+expects before all of its animations are done. Because sometimes the transform
+is set multiple times by multiple property sets, _startingAnimation takes a
+name, so we can make sure to only count as many animations as we will actually
+receive `transtiionend`s later. (That deduping logic is reset at the beginning
+of each new animation pass when _resetAnimating is called by animation
+coordinator).
 
+The components are also responsible for firing `animation-done` when all of
+their aniamtions are done. We do this by watching for `transitionend` events
+coming up from within, calling _animationEnded. We wait until we get as many
+`transitionend` events as we expected base don _startingAnimation, and when
+that's true, we fire `animation-done`.
+
+`boardgame-render-game` listens for `will-animate` events, and then keeps
+track of it, waiting to hear later of a `animation-done` from that component.
+Once every `will-animate` for this animation cycle has had a matching
+`aniamtion-done`, render-game fires `all-animations-done`, which game view
+catches and then asks the state manager to install the next state bundle, if
+it has one. Thus the process continues, until the queue of state bundles is
+empty.
