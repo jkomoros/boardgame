@@ -187,9 +187,11 @@ class BoardgameRenderGame extends PolymerElement {
     this.renderer.notifyPath(record.path);
     if (record.path == "state" && !stateWasNull) {
       this.$.animator.animate();
-      //If nothing was going to animate, then notify right now that we're
-      //done. (This should be very rare).
-      if (this._activeAnimations.size == 0) this._notifyAnimationsDone();
+      //TODO: technically it's possible that no animations fire, but
+      //this.$.animator.animate() returns immediately but schedules work in a
+      //rAF call back. We used to check for this._activeAnimations.length == 0
+      //and then bail, but that always triggered becauase animate() returns
+      //immediately.
     }
   }
 
