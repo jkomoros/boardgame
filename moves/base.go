@@ -15,14 +15,14 @@ import (
 
 //go:generate boardgame-util codegen
 
-//game.Name() to set of move types that are always legal
-var alwaysLegalMoveTypesByGame map[string]map[string]bool
-var alwaysLegalMoveTypesMutex sync.RWMutex
+//game.Name() to set of move types that have no move progression logic
+var noProgressionMoveTypesByGame map[string]map[string]bool
+var noProgressionMoveTypesMutex sync.RWMutex
 
 func init() {
-	alwaysLegalMoveTypesMutex.Lock()
-	alwaysLegalMoveTypesByGame = make(map[string]map[string]bool)
-	alwaysLegalMoveTypesMutex.Unlock()
+	noProgressionMoveTypesMutex.Lock()
+	noProgressionMoveTypesByGame = make(map[string]map[string]bool)
+	noProgressionMoveTypesMutex.Unlock()
 }
 
 //The interface that moves that can be handled by DefaultConfig implement.
@@ -361,11 +361,13 @@ func overrideIsFixUp(config boardgame.PropertyCollection, defaultIsFixUp bool) b
 //current phase will be based on the enum value of the PhaseEnum named by
 //delegate.PhaseEnumName(), if it exists. Next, it checks to see if the give
 //move is at a legal point in the move progression for this phase, if it
-//exists. Each move in the move progression must show up 1 or more times. The
-//method checks to see if we were to make this move, would the moves since the
-//last phase change match the pattern? If your move can be made legally
-//multiple times in a row in a given move progression, implement
-//interfaces.AllowMultipleInProgression() and return true.
+//exists. Each move in the move progression must show up 1 or more times.
+//(Moves that don't define a progression group are ignored, since they may
+//show up at any time in the phase.) The method checks to see if we were to
+//make this move, would the moves since the last phase change match the
+//pattern? If your move can be made legally multiple times in a row in a given
+//move progression, implement interfaces.AllowMultipleInProgression() and
+//return true.
 func (d *Base) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := d.legalInPhase(state); err != nil {
@@ -511,29 +513,38 @@ func (d *Base) historicalMovesSincePhaseTransition(game *boardgame.Game, upToVer
 		return nil
 	}
 
-	alwaysLegalMoveTypesMutex.RLock()
-	alwaysLegalMoveTypes, ok := alwaysLegalMoveTypesByGame[game.Name()]
-	alwaysLegalMoveTypesMutex.RUnlock()
+	//When generating this list of moves to compare against to test if the
+	//move progression matches, we want to skip any moves who couldn't be part
+	//of the progression. At this point we've already bailed early if the move
+	//we're considering isn't legal in this phase. And since moves can only be
+	//registered in one phase, and they must be this phase, that means that if
+	//they don't have a move progression then we can skip them because they're
+	//allowed to match at any point in the move progression.
+
+	noProgressionMoveTypesMutex.RLock()
+	noProgressionMoveTypes, ok := noProgressionMoveTypesByGame[game.Name()]
+	noProgressionMoveTypesMutex.RUnlock()
 
 	if !ok {
 
-		alwaysLegalMoveTypes = make(map[string]bool)
+		noProgressionMoveTypes = make(map[string]bool)
 
 		//Create the list!
 		for _, move := range game.Moves() {
 
-			if !move.IsFixUp() {
+			//We don't need to use toplevelstruct because legalMoveProgression
+			//is package private and thus can only be changed via
+			//WithLegalMoveProgression.
+			if progression := d.legalMoveProgression(); progression != nil {
 				continue
 			}
 
-			if len(d.legalPhases()) == 0 {
-				alwaysLegalMoveTypes[move.Info().Name()] = true
-			}
+			noProgressionMoveTypes[move.Info().Name()] = true
 		}
 
-		alwaysLegalMoveTypesMutex.Lock()
-		alwaysLegalMoveTypesByGame[game.Name()] = alwaysLegalMoveTypes
-		alwaysLegalMoveTypesMutex.Unlock()
+		noProgressionMoveTypesMutex.Lock()
+		noProgressionMoveTypesByGame[game.Name()] = noProgressionMoveTypes
+		noProgressionMoveTypesMutex.Unlock()
 	}
 
 	var keptMoves []*boardgame.MoveStorageRecord
@@ -541,7 +552,7 @@ func (d *Base) historicalMovesSincePhaseTransition(game *boardgame.Game, upToVer
 	for i := len(moves) - 1; i >= 0; i-- {
 		move := moves[i]
 
-		if alwaysLegalMoveTypes[move.Name] {
+		if noProgressionMoveTypes[move.Name] {
 			//We skip move types that are always legal for the purposes of
 			//matching.
 			continue
