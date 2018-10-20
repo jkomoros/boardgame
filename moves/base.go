@@ -4,7 +4,6 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/errors"
-	"github.com/jkomoros/boardgame/server/api"
 	"log"
 	"reflect"
 	"strconv"
@@ -34,22 +33,6 @@ type autoConfigFallbackMoveType interface {
 	//called live, unlike Name, which is fully implied at MoveConfig install
 	//time.
 	FallbackHelpText() string
-}
-
-//Ensure at compile time that our moves always implement the PreAnimationDelay
-//and PostAnimationDelay as expected by server.
-func ensureMovesHavePrePostAnimationDelays() {
-	var pre api.PreAnimationDelayer
-	pre = new(Base)
-	if pre != nil {
-		return
-	}
-
-	var post api.PostAnimationDelayer
-	post = new(Base)
-	if post != nil {
-		return
-	}
 }
 
 //A func that will fail to compile if all of the moves don't have a valid fallback.

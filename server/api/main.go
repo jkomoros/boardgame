@@ -22,8 +22,6 @@ import (
 type Server struct {
 	managers managerMap
 
-	animationDelays map[string]*animationDelayInfo
-
 	storage *ServerStorageManager
 	//We store the last error so that next time viewHandler is called we can
 	//display it. Yes, this is a hack.
@@ -36,11 +34,6 @@ type Server struct {
 
 	notifier *versionNotifier
 	logger   *logrus.Logger
-}
-
-type animationDelayInfo struct {
-	preDelays  map[string]time.Duration
-	postDelays map[string]time.Duration
 }
 
 type Renderer struct {
@@ -100,10 +93,9 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 	logger := logrus.New()
 
 	result := &Server{
-		managers:        make(managerMap),
-		animationDelays: make(map[string]*animationDelayInfo),
-		storage:         storage,
-		logger:          logger,
+		managers: make(managerMap),
+		storage:  storage,
+		logger:   logger,
 	}
 
 	storage.server = result
@@ -126,13 +118,6 @@ func NewServer(storage *ServerStorageManager, delegates ...boardgame.GameDelegat
 		if manager.Storage() != storage {
 			logger.Fatalln("The storage for one of the managers was not the same item passed in as major storage.")
 			return nil
-		}
-
-		preDelays, postDelays := configureDelays(manager)
-
-		result.animationDelays[name] = &animationDelayInfo{
-			preDelays:  preDelays,
-			postDelays: postDelays,
 		}
 
 	}
@@ -683,6 +668,37 @@ func (s *Server) gameVersionHandler(c *gin.Context) {
 
 	s.doGameVersion(r, game, version, fromVersion, playerIndex, autoCurrentPlayer)
 
+}
+
+func (s *Server) moveBundles(game *boardgame.Game, moves []*boardgame.MoveStorageRecord, playerIndex boardgame.PlayerIndex, autoCurrentPlayer bool) []gin.H {
+	var bundles []gin.H
+
+	for _, move := range moves {
+
+		//This is the state for the end of the bundle.
+		state := game.State(move.Version)
+
+		if autoCurrentPlayer {
+			newPlayerIndex := game.Manager().Delegate().CurrentPlayerIndex(state)
+			if newPlayerIndex.Valid(state) {
+				playerIndex = newPlayerIndex
+			}
+		}
+
+		//If state is nil, JSONForPlayer will basically treat it as just "give the
+		//current version" which is a reasonable fallback.
+		bundle := gin.H{
+			"Game":            game.JSONForPlayer(playerIndex, state),
+			"Move":            move,
+			"ViewingAsPlayer": playerIndex,
+			"Forms":           s.generateForms(game),
+		}
+
+		bundles = append(bundles, bundle)
+
+	}
+
+	return bundles
 }
 
 func (s *Server) doGameVersion(r *Renderer, game *boardgame.Game, version, fromVersion int, playerIndex boardgame.PlayerIndex, autoCurrentPlayer bool) {
