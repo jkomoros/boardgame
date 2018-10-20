@@ -24,6 +24,11 @@ export class BoardgameAnimatableItem extends PolymerElement {
     }
   }
 
+  ready() {
+    super.ready();
+    this.addEventListener("transitionend", e => this._endingAnimation(e));
+  }
+
     //resetAnimating should be called when we expect animating count to be zero, 
   resetAnimating() {
     //if (this._animatingCount != 0) console.warn(this, this._animatingCount, "Was not zero when expected");

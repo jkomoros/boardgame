@@ -182,12 +182,6 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
     }
   }
 
-  ready() {
-    super.ready();
-    this.addEventListener("transitionend", e => this._endingAnimation(e));
-    this.$.inner.addEventListener("transitionend", e => this._endingAnimation(e));
-  }
-
   static get observers() {
     //Your subclass should add an entry like _updateClasses(...allPropNames that could change), where all props includes noAnimate, spacer, noshadow,interactive,and disabled. We don't return one here because if we did it would be called twice--one for yours and one for this one.
     return []
