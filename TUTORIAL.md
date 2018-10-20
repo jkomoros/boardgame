@@ -1908,7 +1908,36 @@ So the workflow is that every so often, sit in the game package, and run `boardg
 
 It's important that your game is deterministic for the same inputs, so its behavior doesn't change and can be compared to tests. In particular, only ever use state.Rand() for randomness, as its state is seeded deterministically based on the game id and version.
 
+### Client animations
 
+The client side library automatically handles generating rich animations of
+components moving from stack to stack, and generally the default ones are
+totally sufficient.
+
+Every state version is shipped down to the client to be rendered. When we
+render a state, we wait for any animations it kicked off to finish, then
+render the next one.
+
+What this means is that basically every individual move you make is eligible
+for animating, if it modifies any items on state that would change rendering
+and cause an animation to occur. This means that if you want a certain action
+to be distinctly visible on the client, you should ensure that there's an
+individual move in which it happens. All actions that occur within one move
+will be animated simultaneously.
+
+As a concrete example, if you move all cards from one stack to another with
+stack.MoveAllTo(), all of the cards will animate moving at exactly the same
+time, which isn't particularly clear, visually. If instead you want each card
+to be collected one at a time, you'd use moves.MoveAllComponents, which has a
+similar effect but renders each individual card movement separately.
+
+You can modify a number of properties of animations. The most simple is the
+`--animation-length` CSS var, which the built-in components respect for how
+long all of their animations will take. In the future there will be a number
+of other attributes and method override points, and they'll be described here.
+
+For a more thorough overview of how the animation system actually works, check
+out `server/static/src/ARCHITECTURE.md`.
 
 ### Creating a more production-ready server
 
