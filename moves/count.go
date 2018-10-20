@@ -45,10 +45,22 @@ func CountAny() ValidCounter {
 	return anyFunc
 }
 
-//CountAll will return nil if currentCount is precisely the same length as length.
-//Equivalent to CountBetween(0,-1).
+//CountAll will return nil if currentCount is precisely the same length as
+//length. Equivalent to CountBetween(0,-1). Not to be confused with
+//CountInfinite; CountAll expects to see precisely all children matched.
 func CountAll() ValidCounter {
 	return allFunc
+}
+
+func infiniteFunc(currentCount, length int) error {
+	return nil
+}
+
+//CountInfinite always returns nil; that is, any count is legal. Not to be
+//confused with CountAny, which expects any single item to match, and CountAll
+//which expects all children to match.
+func CountInfinite() ValidCounter {
+	return infiniteFunc
 }
 
 //CountAtLeast will return nil if currentCount is min or greater.

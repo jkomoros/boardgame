@@ -159,18 +159,22 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 			//auto-selects the Source/Destination stack) is non-trivial since
 			//it changes in the middle of the move run. So just have two
 			//serial groups, and hope the player plays the right ones.
-			moves.Serial(
-				auto.MustConfig(new(moveStartMoveAllComponentsToHidden)),
-				auto.MustConfig(new(moves.MoveAllComponents),
-					moves.WithSourceProperty("AllVisibleStack"),
-					moves.WithDestinationProperty("AllHiddenStack"),
-				),
-			),
-			moves.Serial(
-				auto.MustConfig(new(moveStartMoveAllComponentsToVisible)),
-				auto.MustConfig(new(moves.MoveAllComponents),
-					moves.WithSourceProperty("AllHiddenStack"),
-					moves.WithDestinationProperty("AllVisibleStack"),
+			moves.Repeat(moves.CountInfinite(),
+				moves.Parallel(
+					moves.Serial(
+						auto.MustConfig(new(moveStartMoveAllComponentsToHidden)),
+						auto.MustConfig(new(moves.MoveAllComponents),
+							moves.WithSourceProperty("AllVisibleStack"),
+							moves.WithDestinationProperty("AllHiddenStack"),
+						),
+					),
+					moves.Serial(
+						auto.MustConfig(new(moveStartMoveAllComponentsToVisible)),
+						auto.MustConfig(new(moves.MoveAllComponents),
+							moves.WithSourceProperty("AllHiddenStack"),
+							moves.WithDestinationProperty("AllVisibleStack"),
+						),
+					),
 				),
 			),
 		),
