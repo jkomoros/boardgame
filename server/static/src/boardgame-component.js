@@ -279,7 +279,7 @@ export class BoardgameComponent extends PolymerElement {
     this._animatingCount++;
     if (this._animatingCount == 1) {
       //This was the first one, fire a will-animate.
-      this.dispatchEvent(new CustomEvent('will-animate', {composed: true}));
+      this.dispatchEvent(new CustomEvent('will-animate', {composed: true, detail:{ele: this}}));
     }
   }
 
@@ -293,7 +293,7 @@ export class BoardgameComponent extends PolymerElement {
     if (this._animatingCount < 0) this._animatingCount = 0;
     if (this._animatingCount == 0) {
       //all of the animations we were expecting to finish are finished.
-      this.dispatchEvent(new CustomEvent('animation-done', {composed: true}));
+      this.dispatchEvent(new CustomEvent('animation-done', {composed: true, detail:{ele:this}}));
     }
   }
 

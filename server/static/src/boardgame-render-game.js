@@ -110,8 +110,16 @@ class BoardgameRenderGame extends PolymerElement {
       socketActive: {
         type: Boolean,
         value: false,
-      }
+      },
+      //Keep track of the will-animate we've heard.
+      _activeAnimations: Object
     }
+  }
+
+  ready() {
+    super.ready();
+    this.addEventListener("will-animate", e => this._componentWillAnimate(e));
+    this.addEventListener("animation-done", e => this._componentAnimationDone(e));
   }
 
   static get observers() {
@@ -145,10 +153,32 @@ class BoardgameRenderGame extends PolymerElement {
     }
   }
 
+  _resetAnimating() {
+    this._activeAnimations = new Map();
+  }
+
+  _componentWillAnimate(e) {
+    this._activeAnimations.set(e.detail.ele, true);
+  }
+
+  _componentAnimationDone(e) {
+    //If we're already done, don't bother firing again
+    if(this._activeAnimations.size == 0) return;
+    this._activeAnimations.delete(e.detail.ele);
+    if (this._activeAnimations.size == 0) {
+      this._notifyAnimationsDone();
+    }
+  }
+
+  _notifyAnimationsDone() {
+    console.log("Animations done!")
+  }
+
   _stateChanged(record) {
     if (!this.renderer) return;
     var stateWasNull = (this.renderer.state == null);
     if (record.path == "state" && !stateWasNull) {
+      this._resetAnimating();
       this.$.animator.prepare();
     }
     this.renderer.set(record.path, record.value);
@@ -157,6 +187,9 @@ class BoardgameRenderGame extends PolymerElement {
     this.renderer.notifyPath(record.path);
     if (record.path == "state" && !stateWasNull) {
       this.$.animator.animate();
+      //If nothing was going to animate, then notify right now that we're
+      //done. (This should be very rare).
+      if (this._activeAnimations.size == 0) this._notifyAnimationsDone();
     }
   }
 
