@@ -301,7 +301,6 @@ class BoardgameCard extends BoardgameComponent {
 
   ready() {
     super.ready();
-    this.$.inner.addEventListener("transitionend", e => this._animationEnded(e));
     this.$['front-slot'].addEventListener("slotchange", e => this._frontChanged());
     this._frontChanged();
   }
@@ -386,13 +385,7 @@ class BoardgameCard extends BoardgameComponent {
       transform = "none";
     }
     this.$.inner.style.transform = transform;
-    if (!this.noAnimate) {
-      this._animating = true;
-    }
-  }
-
-  _animationEnded(e) {
-    this._animating = false;
+    this._startingAnimation("inner");
   }
 
   _itemChanged(newValue) {

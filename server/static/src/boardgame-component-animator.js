@@ -83,6 +83,8 @@ class BoardgameComponentAnimator extends PolymerElement {
       for (var j = 0; j < components.length; j++) {
         var component = components[j];
 
+        component.resetAnimating();
+
         //Skip comoonents without ids (e.g. faux-components, spacer
         //components).
         if (component.id == "") continue;
