@@ -105,8 +105,6 @@ class BoardgameGameStateManager extends PolymerElement {
       },
       _socket: Object,
       _pendingStateBundles: Object,
-      _stateBundleTimeout: Number,
-      _stateBundleAnimationFrame: Number,
     }
   }
 
@@ -427,51 +425,35 @@ class BoardgameGameStateManager extends PolymerElement {
   //Called when gameView tells us to pass up the next state if we have one
   //(the animations are done).
   readyForNextState() {
-    console.log("Ready for next state called");
+    this._scheduleNextStateBundle();
   }
 
   //A new state bundle has been enqueued. Ensure that we're working ot fire a state bundle.
   _scheduleNextStateBundle() {
-
-    if (this._stateBundleTimeout) return;
-    if (this._stateBundleAnimationFrame) return;
     if (!this._pendingStateBundles.length) return;
 
-    let nextBundle = this._pendingStateBundles[0];
-
-    if (!nextBundle.delay) {
-      //Fire it immediately but int he next micro task
-      this._stateBundleAnimationFrame = window.requestAnimationFrame(() => this._fireNextStateBundle());
-      return;
-    }
-
-    this._stateBundleTimeout = setTimeout(() => this._fireNextStateBundle(), nextBundle.delay);
+    //Fire it immediately but int he next micro task
+    window.requestAnimationFrame(() => this._fireNextStateBundle());
 
   }
 
   _resetPendingStateBundles() {
-    if (this._stateBundleTimeout) clearTimeout(this._stateBundleTimeout);
-    this._stateBundleTimeout = 0;
-    if (this._stateBundleAnimationFrame) window.cancelAnimationFrame(this._stateBundleAnimationFrame);
-    this._stateBundleAnimationFrame = 0;
     this._pendingStateBundles = [];
   }
 
   _fireNextStateBundle() {
     //Called when the next state bundle should be installed NOW.
-    this._stateBundleTimeout = 0;
-    this._stateBundleAnimationFrame = 0;
     let bundle = this._pendingStateBundles.shift();
     if (bundle) {
       this.dispatchEvent(new CustomEvent('install-state-bundle', {composed: true, detail: bundle}));
     }
-    this._scheduleNextStateBundle();
   }
 
   //Add the next state bundle to the end
   _enqueueStateBundle(bundle) {
     this._pendingStateBundles.push(bundle);
-    this._scheduleNextStateBundle();    
+    //If that was the first one we added, go ahead and fire it right now.
+    if (this._pendingStateBundles.length == 1) this._scheduleNextStateBundle();  
   }
 
   _infoDataChanged(newValue, oldValue) {
