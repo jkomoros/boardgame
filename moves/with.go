@@ -3,7 +3,6 @@ package moves
 import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
-	"time"
 )
 
 const fullyQualifiedPackageName = "github.com/jkomoros/boardgame/moves."
@@ -24,8 +23,6 @@ const configPropLegalPhases = fullyQualifiedPackageName + "LegalPhases"
 const configPropLegalMoveProgression = fullyQualifiedPackageName + "LegalMoveProgression"
 const configPropLegalType = fullyQualifiedPackageName + "LegalType"
 const configPropAmount = fullyQualifiedPackageName + "Amount"
-const configPropPreAnimationDelay = fullyQualifiedPackageName + "PreAnimationDelay"
-const configPropPostAnimationDelay = fullyQualifiedPackageName + "PostAnimationDelay"
 
 //CustomConfigurationOption is a function that takes a PropertyCollection and
 //modifies a key on it. This package defines a number of functions that return
@@ -196,21 +193,5 @@ func WithTargetCount(targetCount int) CustomConfigurationOption {
 func WithAmount(amount int) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropAmount] = amount
-	}
-}
-
-//WithPreAnimationDelay returns a function configuration option suitable for
-//being passed to auto.Config.
-func WithPreAnimationDelay(delay time.Duration) CustomConfigurationOption {
-	return func(config boardgame.PropertyCollection) {
-		config[configPropPreAnimationDelay] = delay
-	}
-}
-
-//WithPostAnimationDelay returns a function configuration option suitable for
-//being passed to auto.Config.
-func WithPostAnimationDelay(delay time.Duration) CustomConfigurationOption {
-	return func(config boardgame.PropertyCollection) {
-		config[configPropPostAnimationDelay] = delay
 	}
 }

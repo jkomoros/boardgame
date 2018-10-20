@@ -12,7 +12,6 @@ import (
 	"github.com/jkomoros/boardgame/components/playingcards"
 	"github.com/jkomoros/boardgame/moves"
 	"strings"
-	"time"
 )
 
 //go:generate boardgame-util codegen
@@ -207,7 +206,6 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 				moves.WithHelpText("Deals a hidden card to each player"),
 				moves.WithGameProperty("DrawStack"),
 				moves.WithPlayerProperty("HiddenHand"),
-				moves.WithPostAnimationDelay(time.Duration(750)*time.Millisecond),
 			),
 			auto.MustConfig(
 				new(moves.DealCountComponents),
@@ -215,7 +213,6 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 				moves.WithHelpText("Deals a visible card to each player"),
 				moves.WithGameProperty("DrawStack"),
 				moves.WithPlayerProperty("VisibleHand"),
-				moves.WithPostAnimationDelay(time.Duration(750)*time.Millisecond),
 			),
 			auto.MustConfig(
 				new(moves.StartPhase),
