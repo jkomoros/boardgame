@@ -1,5 +1,4 @@
 import { PolymerElement } from '@polymer/polymer/polymer-element.js';
-import browserDetect from '../node_modules/browser-detect/dist/browser-detect.es5.js';
 import './boardgame-component-stack.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
@@ -56,9 +55,6 @@ class BoardgameComponentAnimator extends PolymerElement {
   ready() {
     super.ready();
     this._lastSeenNodesById = new Map();
-    //This calculation takes a bit of time to run, so do it now so that
-    //it's ready before the first animation is triggered.
-    let browsername = browserDetect().name
   }
 
   prepare() {
@@ -138,22 +134,15 @@ class BoardgameComponentAnimator extends PolymerElement {
   }
 
   animate() {
-    //Wait for the style to be set--but BEFORE a frame is rendered! On
-    //Chrome, requestAnimationFrame happens right before this--but
-    //microTask timing isn't sufficiently late. On Safari,
-    //requestAnimationFrame is already too late, and you'll see a visual
-    //glitch if you wait until then.
+    //Wait for the style to be set--but BEFORE a frame is rendered!
+    //Originally, on Chrome, requestAnimationFrame happens right before this--
+    //but microTask timing isn't sufficiently late.
 
-    //TODO: there's got to be a better way to test which behavior to use,
-    //but I don't know how to do it reliably, so falling back to the hack
-    //of browser detection.
-    let detector = browserDetect();
-    if (detector && detector.name == "Safari") {
-      console.log("Bam!")
-      Promise.resolve().then(() => this._doAnimate());
-    } else {
-      window.requestAnimationFrame(()=> this._doAnimate());
-    }
+    //On Safari, requestAnimationFrame is already too late, and you'll see a
+    //visual glitch if you wait until then. As of October 18, Chrome seems to
+    //now have the Safari behavior, so just doing that.
+
+    Promise.resolve().then(() => this._doAnimate());
   }
 
   _doAnimate() {
