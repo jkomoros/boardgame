@@ -441,6 +441,10 @@ func (d *Base) legalPhases() []int {
 	return ints
 }
 
+type legalMoveProgressioner interface {
+	legalMoveProgression() MoveProgressionGroup
+}
+
 func (d *Base) legalMoveProgression() MoveProgressionGroup {
 	val := d.CustomConfiguration()[configPropLegalMoveProgression]
 	group, ok := val.(MoveProgressionGroup)
@@ -532,13 +536,16 @@ func (d *Base) historicalMovesSincePhaseTransition(game *boardgame.Game, upToVer
 		//Create the list!
 		for _, move := range game.Moves() {
 
-			//We don't need to use toplevelstruct because legalMoveProgression
-			//is package private and thus can only be changed via
-			//WithLegalMoveProgression.
-			if progression := d.legalMoveProgression(); progression != nil {
-				continue
-			}
+			progressionMove, ok := move.(legalMoveProgressioner)
 
+			if ok {
+				//If it has a legalMoveProgression method then we have to see
+				//if it returns a move progression.
+				if progression := progressionMove.legalMoveProgression(); progression != nil {
+					continue
+				}
+
+			}
 			noProgressionMoveTypes[move.Info().Name()] = true
 		}
 
