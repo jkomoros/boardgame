@@ -199,7 +199,7 @@ class BoardgameGameView extends PolymerElement {
   }
 
   _handleAllAnimationsDone(e) {
-    console.log("Caughta ll animations done", e);
+    this.$.manager.readyForNextState();
   }
 
   _firstStateBundleInstalled() {

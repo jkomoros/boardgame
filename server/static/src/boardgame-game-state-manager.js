@@ -424,6 +424,12 @@ class BoardgameGameStateManager extends PolymerElement {
     return copy
   }
 
+  //Called when gameView tells us to pass up the next state if we have one
+  //(the animations are done).
+  readyForNextState() {
+    console.log("Ready for next state called");
+  }
+
   //A new state bundle has been enqueued. Ensure that we're working ot fire a state bundle.
   _scheduleNextStateBundle() {
 
