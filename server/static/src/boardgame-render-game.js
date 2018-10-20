@@ -171,7 +171,7 @@ class BoardgameRenderGame extends PolymerElement {
   }
 
   _notifyAnimationsDone() {
-    console.log("Animations done!")
+    this.dispatchEvent(new CustomEvent('all-animations-done', {composed: true}));
   }
 
   _stateChanged(record) {

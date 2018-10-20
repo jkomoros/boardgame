@@ -120,6 +120,7 @@ class BoardgameGameView extends PolymerElement {
     this.addEventListener('refresh-info', e => this._handleRefreshData(e));
     this.addEventListener('install-state-bundle', e => this._handleStateBundle(e));
     this.addEventListener('install-game-static-info', e => this._handleGameStaticInfo(e));
+    this.addEventListener('all-animations-done', e => this._handleAllAnimationsDone(e));
   }
 
   _handleRefreshData(e) {
@@ -195,6 +196,10 @@ class BoardgameGameView extends PolymerElement {
 
   _handleGameStaticInfo(e) {
     this.setProperties(e.detail);
+  }
+
+  _handleAllAnimationsDone(e) {
+    console.log("Caughta ll animations done", e);
   }
 
   _firstStateBundleInstalled() {
