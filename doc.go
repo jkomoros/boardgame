@@ -357,13 +357,13 @@ when this hapepns)
 Different Sanitization Policies will do different things to Ids and
 IdsLastSeen, according to the following table:
 
-	| Policy         | Values Behavior                                                  | Ids()        | IdsLastSeen() | Notes                                                                                                 |
-	|----------------|------------------------------------------------------------------|--------------|---------------|-------------------------------------------------------------------------------------------------------|
-	| PolicyVisible  | All values visible                                               | Present      | Present       | Visible is effectively no transformation                                                              |
-	| PolicyOrder    | All values replaced by generic component                         | Present      | Present       | PolicyOrder is similar to PolicyLen, but the order of components is observable                        |
-	| PolicyLen      | All values replaced by generic component                         | Random Order | Present       | PolicyLen makes it so it's only possible to see the length of a stack, not its order.                 |
-	| PolicyNonEmpty | Values will be either 0 components or a single generic component | Absent       | Present       | PolicyNonEmpty makes it so it's only possible to tell if a stack had 0 items in it or more than zero. |
-	| PolicyHidden   | Values are completely empty                                      | Absent       | Absent        | PolicyHidden is the most restrictive; stacks look entirely empty.                                     |
+	| Policy         | Values Behavior                                                  | Ids()                       | IdsLastSeen() | Notes                                                                                                 |
+	|----------------|------------------------------------------------------------------|-----------------------------|---------------|-------------------------------------------------------------------------------------------------------|
+	| PolicyVisible  | All values visible                                               | Present                     | Present       | Visible is effectively no transformation                                                              |
+	| PolicyOrder    | All values replaced by generic component                         | Present                     | Present       | PolicyOrder is similar to PolicyLen, but the order of components is observable                        |
+	| PolicyLen      | All values replaced by generic component                         | Consistent But Random Order | Present       | PolicyLen makes it so it's only possible to see the length of a stack, not its order.                 |
+	| PolicyNonEmpty | Values will be either 0 components or a single generic component | Absent                      | Present       | PolicyNonEmpty makes it so it's only possible to tell if a stack had 0 items in it or more than zero. |
+	| PolicyHidden   | Values are completely empty                                      | Absent                      | Absent        | PolicyHidden is the most restrictive; stacks look entirely empty.                                     |
 
 
 However, in some cases it is not possible to keep track of the precise order

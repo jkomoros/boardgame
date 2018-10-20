@@ -180,7 +180,7 @@ func generateSubStateSanitizationTransformation(subState ImmutableSubState, prop
 
 	result := make(subStateSanitizationTransformation)
 
-	for propName, _ := range subState.Reader().Props() {
+	for propName := range subState.Reader().Props() {
 		propertyRef.PropName = propName
 
 		//Initalize it for GroupAll, and either GroupSelf or GroupOther
@@ -228,7 +228,7 @@ func (s *state) applySanitizationTransformation(transformation *sanitizationTran
 	//visibleDyanmicComponents.
 	visibleDynamicComponents := make(map[string]map[int]bool)
 
-	for deckName, _ := range s.dynamicComponentValues {
+	for deckName := range s.dynamicComponentValues {
 		visibleDynamicComponents[deckName] = make(map[int]bool)
 	}
 
@@ -342,7 +342,7 @@ func transativelyMarkDynamicComponentsAsVisible(dynamicComponentValues map[strin
 	//Fill the list of items to work through with all visible items.
 
 	for deckName, visibleItems := range visibleComponents {
-		for index, _ := range visibleItems {
+		for index := range visibleItems {
 			workItems = append(workItems, workItem{deckName, index})
 		}
 	}
@@ -637,10 +637,40 @@ func (g *growableStack) applySanitizationPolicy(policy Policy) {
 //implicitly.
 func randPermForStack(stack Stack) []int {
 
-	//TODO: we really only do this in order to have straight-forward testing
-	//via golden json blobs. That feels like the wrong trade-off...
+	//We want this to be deterministic for two reasons: to have stable goldens
+	//to compare against in testing. But also so that the same stack,
+	//sanitized with order, will have a somewhat-stable list of IDs. If it
+	//changes every time then they might animate on the client, which is what
+	//caused #711.
 
-	seedStr := stack.state().game.secretSalt + strconv.Itoa(stack.state().Version())
+	//We want something unguessable, different per stack, that's semi-stable,
+	//but that doesn't change when items in the stack are reordered. Ideally
+	//we'd use a stable stack.Id(), but those don't exist. Another option
+	//would be to do it based on the secret salt of the game, as well as the
+	//StatePropertyRef of this stack in state, which is stable. But we don't
+	//actually know that cheaply.
+
+	//As a compromise, iterate through the stack to find the lowest-ID'd
+	//component, and use that. That will change if that particular component
+	//happens to leave the stack, but that fact is already observable via
+	//lastSeenIds, so that's OK>
+
+	lowestComponentId := ""
+
+	for _, c := range stack.Components() {
+		if c == nil {
+			continue
+		}
+		if lowestComponentId == "" {
+			lowestComponentId = c.ID()
+			continue
+		}
+		if c.ID() < lowestComponentId {
+			lowestComponentId = c.ID()
+		}
+	}
+
+	seedStr := stack.state().game.secretSalt + lowestComponentId
 
 	h := fnv.New64()
 	h.Write([]byte(seedStr))
