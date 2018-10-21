@@ -32,6 +32,13 @@ export class BoardgameBaseGameRenderer extends PolymerElement {
     this.addEventListener("component-tapped", e => this._handleButtonTapped(e));
   }
 
+  //delayAnimation will be consulted when applying an animation. It will delay
+  //by the returned number of milliseconds. A negative return value will skip
+  //the animation entirely. The default one returns 0 for all combinations.
+  delayAnimation(fromMove, toMove) {
+    return 0;
+  }
+
   _computeIsCurrentPlayer(currentPlayerIndex, viewingAsPlayer) {
     if (viewingAsPlayer == -2) return true;
     return currentPlayerIndex == viewingAsPlayer;

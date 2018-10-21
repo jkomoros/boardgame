@@ -1933,8 +1933,17 @@ similar effect but renders each individual card movement separately.
 
 You can modify a number of properties of animations. The most simple is the
 `--animation-length` CSS var, which the built-in components respect for how
-long all of their animations will take. In the future there will be a number
-of other attributes and method override points, and they'll be described here.
+long all of their animations will take.
+
+Sometimes you want to delay applying a new state for a bit, to give the player
+time to notice what happened. For example, in memory when a second card is
+flipped over that matches the first, we want to wait a second or two before
+'capturing' the cards. This is distinct from the actual animation itself, because it's a pre-delay before applying the next animation. If your game renderer has a `delayAnimation(fromMove,toMove)` method, it will be consulted, passing the last move applied and the new move, to see how long we should wait before applying the next state. `BoardgameBaseGameRenderer` provides a default `delayAnimation` that simply always returns 0, but you can override it. In this example, you might check to see if the `toMove` has the name of `Capture Cards`, and it it does return 1000, which signifies that the engine should wait 1 full second before animating the cards to their new locations.
+
+The way the game logic is defined on the server specifies the maximally separate chunking of renderering. However, sometimes you don't want all of those chunks and want to combine some. For example, maybe the user has turned on a 'Fast Animations' option in your game renderer, and instead of animating each card one at a time going from one stack to another, you want all of the cards to move simultaneously. You configure this behavior via `delayAnimation`, described in the paragraph above. Instead of returning a positive delay however, you return any negative number to signify that that state should be skipped and the next one should be installed instead. (Note that the last bunlde in the queue is always installed).
+
+In the future there will be a number of other attributes and method override
+points, and they'll be described here.
 
 For a more thorough overview of how the animation system actually works, check
 out `server/static/src/ARCHITECTURE.md`.

@@ -105,6 +105,8 @@ class BoardgameGameStateManager extends PolymerElement {
       },
       _socket: Object,
       _pendingStateBundles: Object,
+      _lastFiredBundle: Object,
+      _lastSeenRenderer: Object,
     }
   }
 
@@ -112,6 +114,7 @@ class BoardgameGameStateManager extends PolymerElement {
     super.ready();
 
     this._pendingStateBundles = [];
+    this._lastFiredBundle = null;
 
     this.updateData();
   }
@@ -263,7 +266,7 @@ class BoardgameGameStateManager extends PolymerElement {
     this.$.info.generateRequest();
   }
 
-  _prepareStateBundle(game, moveForms, viewingAsPlayer, delay) {
+  _prepareStateBundle(game, moveForms, viewingAsPlayer, move) {
 
 
     var bundle = {};
@@ -276,9 +279,9 @@ class BoardgameGameStateManager extends PolymerElement {
     bundle.pathsToTick = this._expandState(game.CurrentState, game.ActiveTimers);
 
     bundle.game = game;
+    bundle.move = move;
     bundle.moveForms = this._expandMoveForms(moveForms);
     bundle.viewingAsPlayer = viewingAsPlayer;
-    bundle.delay = delay;
 
     return bundle;
   }
@@ -423,18 +426,57 @@ class BoardgameGameStateManager extends PolymerElement {
   }
 
   //Called when gameView tells us to pass up the next state if we have one
-  //(the animations are done).
-  readyForNextState() {
+  //(the animations are done). renderer might be a reference to the specific
+  //game's renderer object, or null.
+  readyForNextState(renderer) {
+    this._lastSeenRenderer = renderer;
     this._scheduleNextStateBundle();
   }
 
-  //A new state bundle has been enqueued. Ensure that we're working ot fire a state bundle.
+  //A new state bundle has been enqueued. Ensure that we're working ot fire a
+  //state bundle. renderer might be a reference to the underlying renderer, or
+  //null.
   _scheduleNextStateBundle() {
     if (!this._pendingStateBundles.length) return;
 
-    //Fire it immediately but int he next micro task
-    window.requestAnimationFrame(() => this._fireNextStateBundle());
+    let renderer = this._lastSeenRenderer;
 
+    //If we were given a renderer that knows how to delay animations, consult
+    //it.
+    if (renderer && renderer.delayAnimation) {
+      let nextBundle = this._pendingStateBundles[0];
+      let lastBundle = this._lastFiredBundle;
+      let nextMove = nextBundle ? nextBundle.move : null;
+      let lastMove = lastBundle ? lastBundle.move : null;
+      if (nextMove || lastMove) {
+        let delay = renderer.delayAnimation(lastMove, nextMove);
+        //If the delay is negative, that's the signal to skip binding this
+        //one.
+        if (delay < 0) {
+          //We always render the last bundle to install
+          if (this._pendingStateBundles.length > 1) {
+            //Skip this bundle.
+            this._lastFiredBundle = this._pendingStateBundles.shift();
+            this._scheduleNextStateBundle(renderer);
+            return;
+          }
+        }
+        //If delay is greater than 0, wait that long before firing
+        if (delay > 0) {
+          window.setTimeout(() => this._asyncFireNextStateBundle(), delay);
+          return;
+        }
+      }
+    }
+
+    this._asyncFireNextStateBundle();
+
+  }
+
+  _asyncFireNextStateBundle() {
+    //Not entirely sure why this has to be done this way, but it needs to be
+    //done outside of the current task, even when fired from a timeout.
+    window.requestAnimationFrame(() => this._fireNextStateBundle())
   }
 
   _resetPendingStateBundles() {
@@ -445,6 +487,7 @@ class BoardgameGameStateManager extends PolymerElement {
     //Called when the next state bundle should be installed NOW.
     let bundle = this._pendingStateBundles.shift();
     if (bundle) {
+      this._lastFiredBundle = bundle;
       this.dispatchEvent(new CustomEvent('install-state-bundle', {composed: true, detail: bundle}));
     }
   }
@@ -475,7 +518,7 @@ class BoardgameGameStateManager extends PolymerElement {
 
     this.dispatchEvent(new CustomEvent("install-game-static-info", {composed: true, detail: gameInfo}))
 
-    var bundle = this._prepareStateBundle(newValue.Game, newValue.Forms, newValue.ViewingAsPlayer, 0);
+    var bundle = this._prepareStateBundle(newValue.Game, newValue.Forms, newValue.ViewingAsPlayer, null);
     this._enqueueStateBundle(bundle);
 
     this._infoInstalled = true;
@@ -499,7 +542,7 @@ class BoardgameGameStateManager extends PolymerElement {
 
     for (let i = 0; i < newValue.Bundles.length; i++) {
       let serverBundle = newValue.Bundles[i];
-      let bundle = this._prepareStateBundle(serverBundle.Game, serverBundle.Forms, serverBundle.ViewingAsPlayer, serverBundle.Delay);
+      let bundle = this._prepareStateBundle(serverBundle.Game, serverBundle.Forms, serverBundle.ViewingAsPlayer, serverBundle.Move);
       this._enqueueStateBundle(bundle);
       lastServerBundle = serverBundle;
     }
