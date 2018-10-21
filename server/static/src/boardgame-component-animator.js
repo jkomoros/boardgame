@@ -142,6 +142,13 @@ class BoardgameComponentAnimator extends PolymerElement {
     //visual glitch if you wait until then. As of October 18, Chrome seems to
     //now have the Safari behavior, so just doing that.
 
+    Promise.resolve().then(() => this._scheduleAnimate());
+  }
+
+  _scheduleAnimate() {
+    //This bizarre indirection is necessary because by the time the first
+    //microtask resolves some databinding won't have been done, so we need to
+    //one more time wait until the end of the microtask. See #722 for more.
     Promise.resolve().then(() => this._doAnimate());
   }
 
