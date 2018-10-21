@@ -70,6 +70,14 @@ class BoardgameRenderGameMemory extends BoardgameBaseGameRenderer {
     }
   }
 
+  delayAnimation(fromMove, toMove) {
+    if (toMove && toMove.Name == "Capture Cards") {
+      //Show the cards for a second before capturing them.
+      return 1000;
+    }
+    return 0;
+  }
+
   computeMaxTimeLeft(timeLeft) {
     return Math.max(timeLeft, 100);
   }
