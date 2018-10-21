@@ -215,6 +215,15 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
     return result;
   }
 
+  get willNotAnimate() {
+    if (super.willNotAnimate) return true;
+    //Spacer causes us to be visibility:hidden, which won't generate a
+    //transitionend in chrome. See https://github.com/digitaledgeit/js-
+    //transition-auto/issues/1
+    if (this.spacer) return true;
+    return false;
+  }
+
   //obj.properties, smooshed down all the way to the upper.
   get _composedPropertyDefinition() {
     //TODO: can we get rid of this? Doesn't seem to be used, and I believe

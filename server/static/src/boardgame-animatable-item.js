@@ -30,6 +30,15 @@ export class BoardgameAnimatableItem extends PolymerElement {
     this.shadowRoot.addEventListener("transitionend", e => this._endingAnimation(e));
   }
 
+  //willNotAnimate should return true if we won't animate due to our current
+  //properties. That is, should a transitionend event be expected? Sub-classes
+  //can add aditional behavior on top of this (but should always call
+  //super.willNotAnimate()). The default one returns true if noAnimate is
+  //true.
+  get willNotAnimate() {
+    return this.noAnimate
+  }
+
     //resetAnimating should be called when we expect animating count to be zero, 
   resetAnimating() {
     //if (this._animatingCount != 0) console.warn(this, this._animatingCount, "Was not zero when expected");
@@ -44,7 +53,7 @@ export class BoardgameAnimatableItem extends PolymerElement {
   //__updateInnerTransform multiple times, but only one transitionend fires.
   _startingAnimation(name) {
     //If called during no animation, ignore it.
-    if (this.noAnimate) return;
+    if (this.willNotAnimate) return;
 
     if (!this._animatingCalledNames) this._animatingCalledNames = {};
     if (this._animatingCalledNames[name]) return;
@@ -60,9 +69,8 @@ export class BoardgameAnimatableItem extends PolymerElement {
 
   //_endingAnimation is the handler for transitionend.
   _endingAnimation(e) {
-    if (this.noAnimate) {
-      console.warn("_endingAnimation called when noAnimate was true", e, this);
-      return;
+    if (this.willNotAnimate) {
+      console.warn("_endingAnimation called when willNotAniamte was true", e, this);
     }
     this._animatingCount--;
     if (this._animatingCount < 0) this._animatingCount = 0;
