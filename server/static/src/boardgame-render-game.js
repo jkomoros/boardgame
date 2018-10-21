@@ -158,11 +158,13 @@ class BoardgameRenderGame extends PolymerElement {
   }
 
   _componentWillAnimate(e) {
+    if (!this._activeAnimations) this._activeAnimations = new Map();
     this._activeAnimations.set(e.detail.ele, true);
   }
 
   _componentAnimationDone(e) {
     //If we're already done, don't bother firing again
+    if (!this._activeAnimations) this._activeAnimations = new Map();
     if(this._activeAnimations.size == 0) return;
     this._activeAnimations.delete(e.detail.ele);
     if (this._activeAnimations.size == 0) {
