@@ -22,8 +22,8 @@ export class BoardgameAnimatableItem extends PolymerElement {
   ready() {
     super.ready();
     this.resetAnimating();
-    this.addEventListener("transitionend", e => this._endingAnimation(e));
-    this.shadowRoot.addEventListener("transitionend", e => this._endingAnimation(e));
+    this.addEventListener("transitionend", e => this._transitionEnded(e));
+    this.shadowRoot.addEventListener("transitionend", e => this._transitionEnded(e));
   }
 
   //willNotAnimate says whehter based on our current settings we expect this ele
@@ -44,11 +44,12 @@ export class BoardgameAnimatableItem extends PolymerElement {
     this._outstandingTransitonEnds = 0;
   }
 
-  //_startingAnimation is called whenever we have just changed a property that
-  //_will later fire a transitionend, with the specific ele (this, #inner,
-  //_#outer), and propertyName we expect to fire. We only care about transform
-  //_and opacity changes; ignore everything else.
-  _startingAnimation(ele, propName) {
+  //_expectTransitionEnd is called whenever we have just changed a property
+  //_that will later fire a transitionend, with the specific ele (this,
+  //_#inner, #outer), and propertyName we expect to fire. We only care about
+  //_transform and opacity changes; ignore everything else. We also will
+  //_ignore things that this.willNotAnimate() tell us won't animate.
+  _expectTransitionEnd(ele, propName) {
     if (!this._expectedTransitionEnds) {
       //This happens the first time state is installed. No biggie, just skip;
       //it.
@@ -102,11 +103,12 @@ export class BoardgameAnimatableItem extends PolymerElement {
     return true
   }
 
-  //_endingAnimation is the handler for transitionend. We only care about
+  //_transitionEnded is the handler for transitionend. It will fire for _any_
+  //_transition that ended on ourselves or our shadow root. We only care about
   //_transform and opacity changes; ignore everything else, because we'll
   //_heard about every property that changes, including box-shadow and others
   //_that are non-semantic.
-  _endingAnimation(e) {
+  _transitionEnded(e) {
 
     if (e.propertyName != "transform" && e.propertyName != "opacity") return;
     if (!e.path || e.path.length < 1) return;

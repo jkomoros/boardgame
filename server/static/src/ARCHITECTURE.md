@@ -155,18 +155,18 @@ The timing logic of the animation is controlled by when animations are done,
 which fundamentally relies on `transitionend` events. During the animation
 state, each boardgame-component fires a `will-animate` event as soon as it
 realizes that it will animate, because either its external or internal
-transforms will change. It does this by calling _startingAnimation, which
+transforms will change. It does this by calling _expectTransitionEnd, which
 handles the logic of keeping track of how many `transitionend` the component
 expects before all of its animations are done. Because sometimes the transform
-is set multiple times by multiple property sets, _startingAnimation takes an element and property name that we expect to animate, so we can make sure to only count as many animations as we will actually
-receive `transtiionend`s later (and ignore anything that's not a `transform` or `opacity`, as those are never semantic). (That deduping logic is reset at the beginning
+is set multiple times by multiple property sets, _expectTransitionEnd takes an element and property name that we expect to animate, so we can make sure to only count as many animations as we will actually
+receive `transtiionend`s later (and ignore anything that's not a `transform` or `opacity`, as those are never semantic, as well as anything that this.willNotAnimate tells us won't animate, for example because this.noAnimate is true). (That deduping logic is reset at the beginning
 of each new animation pass when _resetAnimating is called by animation
 coordinator).
 
 The components are also responsible for firing `animation-done` when all of
 their aniamtions are done. We do this by watching for `transitionend` events
 coming up from within, calling _animationEnded. We wait until we get as many
-`transitionend` events as we expected base don _startingAnimation, and when
+`transitionend` events as we expected base don _expectTransitionEnd, and when
 that's true, we fire `animation-done`.
 
 `boardgame-render-game` listens for `will-animate` events, and then keeps

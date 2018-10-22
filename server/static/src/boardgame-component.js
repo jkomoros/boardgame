@@ -312,10 +312,10 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
     let props = this.computeAnimationProps(true, afterProps);
     this.setProperties(props);
     this.style.transform = transform;
-    this._startingAnimation(this, "transform");
+    this._expectTransitionEnd(this, "transform");
     if (this.style.opacity != opacity) {
       this.style.opacity = opacity;
-      this._startingAnimation(this, "opacity");
+      this._expectTransitionEnd(this, "opacity");
     }
   }
 
