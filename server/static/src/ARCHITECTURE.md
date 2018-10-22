@@ -158,9 +158,8 @@ realizes that it will animate, because either its external or internal
 transforms will change. It does this by calling _startingAnimation, which
 handles the logic of keeping track of how many `transitionend` the component
 expects before all of its animations are done. Because sometimes the transform
-is set multiple times by multiple property sets, _startingAnimation takes a
-name, so we can make sure to only count as many animations as we will actually
-receive `transtiionend`s later. (That deduping logic is reset at the beginning
+is set multiple times by multiple property sets, _startingAnimation takes an element and property name that we expect to animate, so we can make sure to only count as many animations as we will actually
+receive `transtiionend`s later (and ignore anything that's not a `transform` or `opacity`, as those are never semantic). (That deduping logic is reset at the beginning
 of each new animation pass when _resetAnimating is called by animation
 coordinator).
 

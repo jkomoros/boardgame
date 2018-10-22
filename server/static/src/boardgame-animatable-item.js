@@ -46,7 +46,8 @@ export class BoardgameAnimatableItem extends PolymerElement {
 
   //_startingAnimation is called whenever we have just changed a property that
   //_will later fire a transitionend, with the specific ele (this, #inner,
-  //_#outer), and propertyName we expect to fire.
+  //_#outer), and propertyName we expect to fire. We only care about transform
+  //_and opacity changes; ignore everything else.
   _startingAnimation(ele, propName) {
     if (!this._expectedTransitionEnds) {
       //This happens the first time state is installed. No biggie, just skip;
@@ -101,7 +102,10 @@ export class BoardgameAnimatableItem extends PolymerElement {
     return true
   }
 
-  //_endingAnimation is the handler for transitionend.
+  //_endingAnimation is the handler for transitionend. We only care about
+  //_transform and opacity changes; ignore everything else, because we'll
+  //_heard about every property that changes, including box-shadow and others
+  //_that are non-semantic.
   _endingAnimation(e) {
 
     if (e.propertyName != "transform" && e.propertyName != "opacity") return;
