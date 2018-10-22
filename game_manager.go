@@ -116,13 +116,13 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 	chest := newComponentChest(delegate.ConfigureEnums())
 
 	for name, deck := range delegate.ConfigureDecks() {
-		if err := chest.AddDeck(name, deck); err != nil {
+		if err := chest.addDeck(name, deck); err != nil {
 			return nil, errors.New("Couldn't add deck named " + name + ": " + err.Error())
 		}
 	}
 
 	for name, val := range delegate.ConfigureConstants() {
-		if err := chest.AddConstant(name, val); err != nil {
+		if err := chest.addConstant(name, val); err != nil {
 			return nil, errors.New("Couldn't add constant named " + name + ": " + err.Error())
 		}
 	}

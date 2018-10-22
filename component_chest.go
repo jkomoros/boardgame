@@ -78,7 +78,7 @@ func (c *ComponentChest) ConstantNames() []string {
 	}
 	var result []string
 
-	for name, _ := range c.constants {
+	for name := range c.constants {
 		result = append(result, name)
 	}
 
@@ -101,7 +101,7 @@ func (c *ComponentChest) Constant(name string) interface{} {
 
 //AddConstant adds a constant to the chest. Will error if the chest is already
 //finished, or if the val is not a bool, int, or string.
-func (c *ComponentChest) AddConstant(name string, val interface{}) error {
+func (c *ComponentChest) addConstant(name string, val interface{}) error {
 	if c.initialized {
 		return errors.New("Couldn't add constant because the chest was already finished")
 	}
@@ -131,7 +131,7 @@ func (c *ComponentChest) AddConstant(name string, val interface{}) error {
 }
 
 //AddDeck adds a deck with a given name, but only if Freeze() has not yet been called.
-func (c *ComponentChest) AddDeck(name string, deck *Deck) error {
+func (c *ComponentChest) addDeck(name string, deck *Deck) error {
 	//Only add the deck if we haven't finished initalizing
 	if c.initialized {
 		return errors.New("The chest was already finished, so no new decks may be added.")

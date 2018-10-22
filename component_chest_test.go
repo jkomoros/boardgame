@@ -28,25 +28,25 @@ func TestComponentChestMarshal(t *testing.T) {
 func TestComponentChestConstant(t *testing.T) {
 	chest := newComponentChest(nil)
 
-	err := chest.AddConstant("int", 1)
+	err := chest.addConstant("int", 1)
 
 	assert.For(t).ThatActual(err).IsNil()
 
 	//Fails because already set
-	err = chest.AddConstant("int", 2)
+	err = chest.addConstant("int", 2)
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
-	err = chest.AddConstant("string", "foo")
+	err = chest.addConstant("string", "foo")
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	err = chest.AddConstant("bool", true)
+	err = chest.addConstant("bool", true)
 
 	assert.For(t).ThatActual(err).IsNil()
 
 	//Illegal type
-	err = chest.AddConstant("float", 3.4)
+	err = chest.addConstant("float", 3.4)
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
@@ -115,7 +115,7 @@ func TestComponentChest(t *testing.T) {
 		t.Error("We got nil components before it was added to the chest, but now we're supposed to get them even before they're finished")
 	}
 
-	chest.AddDeck("test", deckOne)
+	chest.addDeck("test", deckOne)
 
 	componentValues := make([]ComponentValues, 2)
 
@@ -157,7 +157,7 @@ func TestComponentChest(t *testing.T) {
 		Integer: 3,
 	})
 
-	chest.AddDeck("other", deckTwo)
+	chest.addDeck("other", deckTwo)
 
 	chest.Finish()
 
@@ -167,7 +167,7 @@ func TestComponentChest(t *testing.T) {
 		t.Error("c.Values didn't have its containing component set")
 	}
 
-	chest.AddDeck("shouldfail", deckOne)
+	chest.addDeck("shouldfail", deckOne)
 
 	if chest.decks["shouldfail"] != nil {
 		t.Fatal("We were able to add a deck after freezing")
