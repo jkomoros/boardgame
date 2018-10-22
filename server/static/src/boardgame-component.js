@@ -215,12 +215,17 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
     return result;
   }
 
-  get willNotAnimate() {
-    if (super.willNotAnimate) return true;
+  willNotAnimate(ele, propName) {
+    if (super.willNotAnimate(ele, propName)) return true;
+
     //Spacer causes us to be visibility:hidden, which won't generate a
     //transitionend in chrome. See https://github.com/digitaledgeit/js-
     //transition-auto/issues/1
-    if (this.spacer) return true;
+    if (this.spacer) {
+      //Spacer only makes inner and outer visibility:hidden
+      if (ele.id == "outer") return true;
+      if (ele.id == "inner") return true;
+    }
     return false;
   }
 
@@ -307,8 +312,11 @@ export class BoardgameComponent extends BoardgameAnimatableItem {
     let props = this.computeAnimationProps(true, afterProps);
     this.setProperties(props);
     this.style.transform = transform;
-    this.style.opacity = opacity;
-    this._startingAnimation("default");
+    this._startingAnimation(this, "transform");
+    if (this.style.opacity != opacity) {
+      this.style.opacity = opacity;
+      this._startingAnimation(this, "opacity");
+    }
   }
 
   //prepareForBeingAnimatingComponent is called if the component is going

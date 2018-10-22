@@ -385,7 +385,7 @@ class BoardgameCard extends BoardgameComponent {
       transform = "none";
     }
     this.$.inner.style.transform = transform;
-    this._startingAnimation("inner");
+    this._startingAnimation(this.$.inner, "transform");
   }
 
   _itemChanged(newValue) {

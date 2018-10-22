@@ -79,8 +79,6 @@ class BoardgameComponentAnimator extends PolymerElement {
       for (var j = 0; j < components.length; j++) {
         var component = components[j];
 
-        component.resetAnimating();
-
         //Skip comoonents without ids (e.g. faux-components, spacer
         //components).
         if (component.id == "") continue;
@@ -170,7 +168,14 @@ class BoardgameComponentAnimator extends PolymerElement {
       for (var j = 0; j < components.length; j++) {
         var component = components[j];
         if (component.id == "") continue;
-        component.noAnimate = true; 
+        component.noAnimate = true;
+        //We reset this here, and not in prepare(), because we only want to
+        //animate properties we set from here on out, and also all of the
+        //physical components might not yet be created during prepare, for
+        //example if a new component is added ot a stack and a new one is
+        //stamped. Calling this here makes sure they can call be
+        //resetAnimating.
+        component.resetAnimating();
       }
     }
 

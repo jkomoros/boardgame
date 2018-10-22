@@ -13,68 +13,105 @@ export class BoardgameAnimatableItem extends PolymerElement {
         type: Boolean,
         value: false
       },
-      //An inner counter keeping track of how many transitionend 's we expect
-      //to receive before we fire `animation-done`.
-      _animatingCount: {
-        type: Number,
-        value: 0,
-      },
-      //The names that have been called so far to _statedAnimating
-      _animatingCalledNames: Object
+      //The names that have been called so far to _statedAnimating. Map of objects, to map of property names.
+      _expectedTransitionEnds: Object,
+      _outstandingTransitonEnds: Number,
     }
   }
 
   ready() {
     super.ready();
+    this.resetAnimating();
     this.addEventListener("transitionend", e => this._endingAnimation(e));
     this.shadowRoot.addEventListener("transitionend", e => this._endingAnimation(e));
   }
 
-  //willNotAnimate should return true if we won't animate due to our current
-  //properties. That is, should a transitionend event be expected? Sub-classes
-  //can add aditional behavior on top of this (but should always call
-  //super.willNotAnimate()). The default one returns true if noAnimate is
-  //true.
-  get willNotAnimate() {
-    return this.noAnimate
+  //willNotAnimate says whehter based on our current settings we expect this ele
+  //and propName to fire a transitionend. Subclasses can override, but should
+  //call this. Default answer is false, but this will return true if noAnimate
+  //is true.
+  willNotAnimate(ele, propName) {
+    if (this.noAnimate) {
+      return true
+    }
+    return false
   }
 
     //resetAnimating should be called when we expect animating count to be zero, 
   resetAnimating() {
     //if (this._animatingCount != 0) console.warn(this, this._animatingCount, "Was not zero when expected");
-    this._animatingCount = 0;
-    this._animatingCalledNames = {};
+    this._expectedTransitionEnds = new Map();
+    this._outstandingTransitonEnds = 0;
   }
 
   //_startingAnimation is called whenever we have just changed a property that
-  //_will later fire a transitionend (unless noAnimate is true). Will skip
-  //_calls that have already been called with that name passed since the last
-  //_resetAnimating called. This is because for example cards call
-  //__updateInnerTransform multiple times, but only one transitionend fires.
-  _startingAnimation(name) {
-    //If called during no animation, ignore it.
-    if (this.willNotAnimate) return;
+  //_will later fire a transitionend, with the specific ele (this, #inner,
+  //_#outer), and propertyName we expect to fire.
+  _startingAnimation(ele, propName) {
+    if (!this._expectedTransitionEnds) {
+      //This happens the first time state is installed. No biggie, just skip;
+      //it.
+      return;
+    }
 
-    if (!this._animatingCalledNames) this._animatingCalledNames = {};
-    if (this._animatingCalledNames[name]) return;
-    this._animatingCalledNames[name] = true;
+    if (propName != "transform" && propName != "opacity") return;
+    if (this.willNotAnimate(ele, propName)) {
+      //Sometimes we will have already told us to expect one, but later we
+      //realize that we actually won't. This can happen for example the first
+      //time a non-spacer card is set to a spacer--we update the inner
+      //transform, then set spacer, then later update again. In those cases,
+      //we should forget the one we previously told ourselves to expect.
+      this._removeExpectedTransition(ele, propName);
+      return;
+    }
 
-    //Keep track that we expect one more transitionend to be received.
-    this._animatingCount++;
-    if (this._animatingCount == 1) {
+    let expectedPropsMap = this._expectedTransitionEnds.get(ele);
+    if (!expectedPropsMap) {
+      expectedPropsMap = new Map();
+      this._expectedTransitionEnds.set(ele,expectedPropsMap);
+    }
+  
+    //Already set!
+    if (expectedPropsMap.get(propName)) return;
+
+    expectedPropsMap.set(propName, true);
+    this._outstandingTransitonEnds++;
+
+    if (this._outstandingTransitonEnds == 1) {
       //This was the first one, fire a will-animate.
       this.dispatchEvent(new CustomEvent('will-animate', {composed: true, detail:{ele: this}}));
     }
   }
 
+  //removes the ele and propName from the map, and returns whether it was in there.
+  _removeExpectedTransition(ele, propName) {
+    if (!this._expectedTransitionEnds) return false;
+    let expectedPropsMap = this._expectedTransitionEnds.get(ele);
+    if (!expectedPropsMap) return false;
+    if (!expectedPropsMap.get(propName)) return false;
+    expectedPropsMap.delete(propName);
+    this._outstandingTransitonEnds--;
+    if (this._outstandingTransitonEnds < 0) {
+      console.warn("Got to less than 0 transition ends somehow", e);
+      this._outstandingTransitonEnds = 0;
+    }
+    if (expectedPropsMap.size == 0) {
+      this._expectedTransitionEnds.delete(ele);
+    }
+    return true
+  }
+
   //_endingAnimation is the handler for transitionend.
   _endingAnimation(e) {
-    if (this.willNotAnimate) {
-      console.warn("_endingAnimation called when willNotAniamte was true", e, this);
-    }
-    this._animatingCount--;
-    if (this._animatingCount < 0) this._animatingCount = 0;
-    if (this._animatingCount == 0) {
+
+    if (e.propertyName != "transform" && e.propertyName != "opacity") return;
+    if (!e.path || e.path.length < 1) return;
+
+    let ele = e.path[0];
+
+    let changeMade = this._removeExpectedTransition(ele, e.propertyName);
+
+    if (changeMade && this._outstandingTransitonEnds == 0) {
       //all of the animations we were expecting to finish are finished.
       this.dispatchEvent(new CustomEvent('animation-done', {composed: true, detail:{ele:this}}));
     }
