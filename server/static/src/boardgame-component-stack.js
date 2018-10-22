@@ -92,7 +92,7 @@ BoardgameComponentStack = class extends PolymerElement {
       /* The second card should stick out justa bit */
 
       .stack ::slotted([boardgame-component]:nth-child(2)), .stack [boardgame-component]:nth-child(2) {
-        top:2px;
+        top:1px;
         z-index: 9;
       }
 
@@ -100,7 +100,22 @@ BoardgameComponentStack = class extends PolymerElement {
 
       .stack ::slotted([boardgame-component]:nth-child(3)), .stack [boardgame-component]:nth-child(3) {
         z-index: 8;
+        top:2px;
+      }
+
+      .stack ::slotted([boardgame-component]:nth-child(4)), .stack [boardgame-component]:nth-child(4) {
+        z-index: 7;
+        top:3px;
+      }
+
+      .stack ::slotted([boardgame-component]:nth-child(5)), .stack [boardgame-component]:nth-child(5) {
+        z-index: 6;
         top:4px;
+      }
+
+      .stack ::slotted([boardgame-component]:nth-child(6)), .stack [boardgame-component]:nth-child(6) {
+        z-index: 5;
+        top:5px;
       }
 
       #container.spread #slot-holder {
@@ -723,8 +738,10 @@ BoardgameComponentStack = class extends PolymerElement {
 
       let transformPieces = [];
 
+      let id = component.id || i.toString();
+
       if (this.messy && this.layout != "pile") {
-        transformPieces.push("rotate(" + this._messyRotationForIndex(i) + "deg)");
+        transformPieces.push("rotate(" + this._messyRotationForId(id) + "deg)");
       }
 
       if (this.layout == "pile") {
@@ -820,15 +837,7 @@ BoardgameComponentStack = class extends PolymerElement {
   _messyRotationForId(id) {
     let index = Math.abs(this._hashCode(id));
     index %= pseudoRandomValues.length;
-    return (pseudoRandomValues[index] * 8 - 4) * 4;
-  }
-
-  _messyRotationForIndex(index) {
-
-    index = (index  + this._randomRotationOffset) % pseudoRandomValues.length;
-
     return (pseudoRandomValues[index] * 8 - 4) * this.messiness;
-
   }
 
   _pileOffsetsForId(id, numComponents) {
