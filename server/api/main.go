@@ -673,10 +673,19 @@ func (s *Server) gameVersionHandler(c *gin.Context) {
 func (s *Server) moveBundles(game *boardgame.Game, moves []*boardgame.MoveStorageRecord, playerIndex boardgame.PlayerIndex, autoCurrentPlayer bool) []gin.H {
 	var bundles []gin.H
 
+	if len(moves) == 0 {
+		moves = append(moves, nil)
+	}
+
 	for _, move := range moves {
 
+		version := 0
+		if move != nil {
+			version = move.Version
+		}
+
 		//This is the state for the end of the bundle.
-		state := game.State(move.Version)
+		state := game.State(version)
 
 		if autoCurrentPlayer {
 			newPlayerIndex := game.Manager().Delegate().CurrentPlayerIndex(state)
@@ -714,14 +723,18 @@ func (s *Server) doGameVersion(r *Renderer, game *boardgame.Game, version, fromV
 
 	moves, err := s.storage.Moves(game.Id(), fromVersion, version)
 
-	if err != nil {
-		r.Error(errors.New(err.Error()))
-		return
-	}
-
-	if len(moves) == 0 {
-		r.Error(errors.New("No moves in that range"))
-		return
+	//if there aren't any moves, that's only legal if it's the first version,
+	//which happens sometimes when the player requests to view the game as a
+	//different player.
+	if fromVersion != 0 && version != 0 {
+		if err != nil {
+			r.Error(errors.New(err.Error()))
+			return
+		}
+		if len(moves) == 0 {
+			r.Error(errors.New("No moves in that range"))
+			return
+		}
 	}
 
 	r.Success(gin.H{
