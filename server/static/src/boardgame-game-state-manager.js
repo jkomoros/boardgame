@@ -444,28 +444,38 @@ class BoardgameGameStateManager extends PolymerElement {
 
     //If we were given a renderer that knows how to delay animations, consult
     //it.
-    if (renderer && renderer.delayAnimation) {
+    if (renderer) {
       let nextBundle = this._pendingStateBundles[0];
       let lastBundle = this._lastFiredBundle;
       let nextMove = nextBundle ? nextBundle.move : null;
       let lastMove = lastBundle ? lastBundle.move : null;
       if (nextMove || lastMove) {
-        let delay = renderer.delayAnimation(lastMove, nextMove);
-        //If the delay is negative, that's the signal to skip binding this
-        //one.
-        if (delay < 0) {
-          //We always render the last bundle to install
-          if (this._pendingStateBundles.length > 1) {
-            //Skip this bundle.
-            this._lastFiredBundle = this._pendingStateBundles.shift();
-            this._scheduleNextStateBundle(renderer);
-            return;
+        if (renderer.animationLength) {
+          let length = renderer.animationLength(lastMove, nextMove);
+          //If the length is negative, that's the signal to skip binding this
+          //one.
+          if (length < 0) {
+            //We always render the last bundle to install
+            if (this._pendingStateBundles.length > 1) {
+              //Skip this bundle.
+              this._lastFiredBundle = this._pendingStateBundles.shift();
+              this._scheduleNextStateBundle(renderer);
+              return;
+            }
+          } else {
+            this.dispatchEvent(new CustomEvent("set-animation-length", {composed: true, detail:length}));
           }
         }
-        //If delay is greater than 0, wait that long before firing
-        if (delay > 0) {
-          window.setTimeout(() => this._asyncFireNextStateBundle(), delay);
-          return;
+        if (renderer.delayAnimation) {
+          let delay = renderer.delayAnimation(lastMove, nextMove);
+          if (delay < 0) {
+            console.warn("Negative value for delayAnimation. Did you mean to use animationLength instead?", lastMove, nextMove)
+          }
+          //If delay is greater than 0, wait that long before firing
+          if (delay > 0) {
+            window.setTimeout(() => this._asyncFireNextStateBundle(), delay);
+            return;
+          }
         }
       }
     }

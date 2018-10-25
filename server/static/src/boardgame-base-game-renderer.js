@@ -32,9 +32,18 @@ export class BoardgameBaseGameRenderer extends PolymerElement {
     this.addEventListener("component-tapped", e => this._handleButtonTapped(e));
   }
 
+  //animationLenght is consulted when applying an animation to configure the
+  //animation length by setting `--animation-length` on the renderer. Zero
+  //will specify default animation length (that is, unset an override style).
+  //A negative return value will skip the animation entirely. The default one
+  //returns 0 for all combinations. See also delayAnimation.
+  animationLength(fromMove, toMove) {
+    return 0;
+  }
+
   //delayAnimation will be consulted when applying an animation. It will delay
-  //by the returned number of milliseconds. A negative return value will skip
-  //the animation entirely. The default one returns 0 for all combinations.
+  //by the returned number of milliseconds. The default one returns 0 for all
+  //combinations. See also animationLength.
   delayAnimation(fromMove, toMove) {
     return 0;
   }

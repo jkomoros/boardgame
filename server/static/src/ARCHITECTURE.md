@@ -23,7 +23,9 @@ view asks for another one to render (because the previous one is done
 animating). It also modifies the state objects as received from the server to
 include additional information that is useful for databinding. 
 
-Finally, when `game-state-manager` is told by `game-view` to render another state, it checks with the current game renderer to see if it has a `delayAnimation` method. If it does, it will call that, passing the lastMove and the nextMove, and then check the return result, which is how long to delay before installing the next bundle. `BoardgameBaseGameRenderer` has a default `delayAnimation` that always returns 0 (for no delay), but other game renderers might override this. If the delay is negative, then that bundle will simply be skipped (unless it's the last bundle in the queue, which is always installed).
+Finally, when `game-state-manager` is told by `game-view` to render another state, it checks with the current game renderer to see if it has a `delayAnimation` method. If it does, it will call that, passing the lastMove and the nextMove, and then check the return result, which is how long to delay before installing the next bundle. `BoardgameBaseGameRenderer` has a default `delayAnimation` that always returns 0 (for no delay), but other game renderers might override this. 
+
+Similarly, there's animationLength, which can (temporarily) overridde the `--animation-length` css property. If you return 0 then the default CSS values will be used, but any value above that will be set on the renderer object as `--animation-length` until the next one is received. If the length is negative, then that bundle will simply be skipped (unless it's the last bundle in the queue, which is always installed).
 
 `boardgame-game-view` also listens for `propose-move` events emanating from
 within the rendererd game, and then forwards them to the `boardgame-admin-
@@ -78,7 +80,7 @@ they are based on information set internally.
 
 Note that all animations of all types have a default length set by the CSS var
 `--animation-length`. If you want to change the animation, you can target a
-different CSS var at the item.
+different CSS var at the item. You can also override renderer.animationLength to set a different animation value temporarily.
 
 Components have three types of transforms that can apply. The first is
 *internal*. These are transformations on the inner element. For cards this
@@ -177,4 +179,4 @@ catches and then asks the state manager to install the next state bundle, if
 it has one. Thus the process continues, until the queue of state bundles is
 empty.
 
-As a recap, at a high level the timing works like this. `game-state-manager`, when it boots up, fetches the game info and tells the game-view to install the first state-bundle. `game-state-manager` also keeps a socket to the server, so it always knows when there are new game versions to fetch and put in its queue to apply. If the queue was empty when a new one is fetched, it immediately tells `game-view` to install it. After that, it waits until all animations are done, before `game-view` tells `game-state-manager` to pass the next state bundle, if it has one. Every time `game-state-manager` is told to pass a new state bundle if it has one, it checks whether it should delay applying it or not, by inspecting the renderer's `delayAnimation` (which might even tell it to skip it).
+As a recap, at a high level the timing works like this. `game-state-manager`, when it boots up, fetches the game info and tells the game-view to install the first state-bundle. `game-state-manager` also keeps a socket to the server, so it always knows when there are new game versions to fetch and put in its queue to apply. If the queue was empty when a new one is fetched, it immediately tells `game-view` to install it. After that, it waits until all animations are done, before `game-view` tells `game-state-manager` to pass the next state bundle, if it has one. Every time `game-state-manager` is told to pass a new state bundle if it has one, it checks whether it should delay applying it or not, by inspecting the renderer's `delayAnimation`, and also sees if it should set an override animationLength (which might even tell it to skip it).

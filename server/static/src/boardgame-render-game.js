@@ -204,6 +204,14 @@ class BoardgameRenderGame extends PolymerElement {
     this.dispatchEvent(new CustomEvent('all-animations-done', {composed: true}));
   }
 
+  setAnimationLength(length) {
+    if (length == 0) {
+      this.style.removeProperty("--animation-length");
+      return;
+    }
+    this.style.setProperty("--animation-length", "" + (length / 1000) + "s");;
+  }
+
   _stateChanged(record) {
     if (!this.renderer) return;
     var stateWasNull = (this.renderer.state == null);
