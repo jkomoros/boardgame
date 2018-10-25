@@ -131,6 +131,8 @@ class BoardgameComponentAnimator extends PolymerElement {
     this._infoById = result;
   }
 
+  //animate returns a promise that is resolved once all animations that will
+  //be started are started.
   animate() {
     //Wait for the style to be set--but BEFORE a frame is rendered!
     //Originally, on Chrome, requestAnimationFrame happens right before this--
@@ -140,17 +142,21 @@ class BoardgameComponentAnimator extends PolymerElement {
     //visual glitch if you wait until then. As of October 18, Chrome seems to
     //now have the Safari behavior, so just doing that.
 
-    Promise.resolve().then(() => this._scheduleAnimate());
+    return new Promise((resolve, reject) => {
+      Promise.resolve().then(() => this._scheduleAnimate(resolve, reject));
+    })
+
+    
   }
 
-  _scheduleAnimate() {
+  _scheduleAnimate(resolve, reject) {
     //This bizarre indirection is necessary because by the time the first
     //microtask resolves some databinding won't have been done, so we need to
     //one more time wait until the end of the microtask. See #722 for more.
-    Promise.resolve().then(() => this._doAnimate());
+    Promise.resolve().then(() => this._doAnimate(resolve, reject));
   }
 
-  _doAnimate() {
+  _doAnimate(resolve, reject) {
     var collections = this.$.stack._sharedStackList;
 
     //The last seen location of a given card ID
@@ -391,11 +397,11 @@ class BoardgameComponentAnimator extends PolymerElement {
     }
 
     //Wait for styles to be set to do the animations
-    window.requestAnimationFrame(() => this._startAnimations());
+    window.requestAnimationFrame(() => this._startAnimations(resolve, reject));
 
   }
 
-  _startAnimations() {
+  _startAnimations(resolve, reject) {
     var collections = this.$.stack._sharedStackList;
 
     for (var i = 0; i < collections.length; i++) {
@@ -418,6 +424,8 @@ class BoardgameComponentAnimator extends PolymerElement {
 
       record.component.startAnimation(record.after, record.afterTransform, record.afterOpacity);
     }
+
+    resolve();
 
   }
 

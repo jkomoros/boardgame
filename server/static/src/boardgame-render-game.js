@@ -186,6 +186,12 @@ class BoardgameRenderGame extends PolymerElement {
     }
   }
 
+  _nextStateIfNoAnimations() {
+    if (this._activeAnimations && this._activeAnimations.size == 0) {
+      this._notifyAnimationsDone();
+    }
+  }
+
   _notifyAnimationsDone() {
     if (this._allAnimationsDoneFired) return;
     this._allAnimationsDoneFired = true;
@@ -204,7 +210,10 @@ class BoardgameRenderGame extends PolymerElement {
     //notifyPath. Bug in Polymer 2?
     this.renderer.notifyPath(record.path);
     if (record.path == "state" && !stateWasNull) {
-      this.$.animator.animate();
+      //Call animate. When all of the things that will be animating have
+      //started, check to see if no animations have been registered; if htey
+      //haven't, then we can advance to the next state immediately.
+      this.$.animator.animate().then(() => this._nextStateIfNoAnimations())
       //TODO: technically it's possible that no animations fire, but
       //this.$.animator.animate() returns immediately but schedules work in a
       //rAF call back. We used to check for this._activeAnimations.length == 0
