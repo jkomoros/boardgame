@@ -207,7 +207,7 @@ class BoardgameGameView extends PolymerElement {
   }
 
   _handleSetAnimationLength(e) {
-    this.$.render.setAnimationLength(e.detail);
+    this.$.render.defaultAnimationLength = e.detail;
   }
 
   _firstStateBundleInstalled() {

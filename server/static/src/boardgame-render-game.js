@@ -114,6 +114,12 @@ class BoardgameRenderGame extends PolymerElement {
         type: Boolean,
         value: false,
       },
+      //If non-zero, will be set to override `--animation-length` in CSS for all children.
+      defaultAnimationLength: {
+        type: Number,
+        value: 0,
+        observer: "_defaultAnimationLengthChanged"
+      },
       //Keep track of the will-animate we've heard.
       _activeAnimations: Object,
       _allAnimationsDoneFired: {
@@ -204,12 +210,12 @@ class BoardgameRenderGame extends PolymerElement {
     this.dispatchEvent(new CustomEvent('all-animations-done', {composed: true}));
   }
 
-  setAnimationLength(length) {
-    if (length == 0) {
+  _defaultAnimationLengthChanged(newValue) {
+    if (newValue == 0) {
       this.style.removeProperty("--animation-length");
       return;
     }
-    this.style.setProperty("--animation-length", "" + (length / 1000) + "s");;
+    this.style.setProperty("--animation-length", "" + (newValue / 1000) + "s");;
   }
 
   _stateChanged(record) {
