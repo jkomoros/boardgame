@@ -12,6 +12,7 @@ import { BoardgameBaseGameRenderer } from '../../src/boardgame-base-game-rendere
 import '../../src/boardgame-card.js';
 import '../../src/boardgame-component-stack.js';
 import '../../src/boardgame-fading-text.js';
+import '../../src/boardgame-status-text.js';
 import '../../src/boardgame-token.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
@@ -134,6 +135,7 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
           <paper-button propose-move="Visible Shuffle">Public Shuffle</paper-button>
           <paper-button propose-move="Shuffle">Shuffle</paper-button>
           <paper-button propose-move="Shuffle Hidden">Shuffle Hidden</paper-button>
+          <boardgame-status-text>{{state.Game.FanShuffleCount}}</boardgame-status-text>
           <paper-dropdown-menu label="Layout">
             <paper-listbox slot="dropdown-content" selected="{{fromStackLayout}}" attr-for-selected="value">
               <paper-item value="fan">fan</paper-item>

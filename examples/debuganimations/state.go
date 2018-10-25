@@ -30,14 +30,15 @@ type gameState struct {
 	Card                boardgame.MergedStack `overlap:"VisibleCard,HiddenCard"`
 	FanStack            boardgame.Stack       `stack:"cards"`
 	FanDiscard          boardgame.Stack       `stack:"cards" sanitize:"order"`
-	VisibleStack        boardgame.Stack       `stack:"cards"`
-	HiddenStack         boardgame.Stack       `stack:"cards" sanitize:"nonempty"`
-	AllVisibleStack     boardgame.Stack       `stack:"cards"`
-	AllHiddenStack      boardgame.Stack       `stack:"cards" sanitize:"order"`
-	TokensFrom          boardgame.Stack       `stack:"tokens"`
-	TokensTo            boardgame.Stack       `stack:"tokens"`
-	SanitizedTokensFrom boardgame.Stack       `stack:"tokens"`
-	SanitizedTokensTo   boardgame.Stack       `stack:"tokens" sanitize:"nonempty"`
+	FanShuffleCount     int
+	VisibleStack        boardgame.Stack `stack:"cards"`
+	HiddenStack         boardgame.Stack `stack:"cards" sanitize:"nonempty"`
+	AllVisibleStack     boardgame.Stack `stack:"cards"`
+	AllHiddenStack      boardgame.Stack `stack:"cards" sanitize:"order"`
+	TokensFrom          boardgame.Stack `stack:"tokens"`
+	TokensTo            boardgame.Stack `stack:"tokens"`
+	SanitizedTokensFrom boardgame.Stack `stack:"tokens"`
+	SanitizedTokensTo   boardgame.Stack `stack:"tokens" sanitize:"nonempty"`
 	CurrentPlayer       boardgame.PlayerIndex
 }
 

@@ -5255,6 +5255,7 @@ var __gameStateReaderProps map[string]boardgame.PropertyType = map[string]boardg
 	"DiscardStack":        boardgame.TypeStack,
 	"DrawStack":           boardgame.TypeStack,
 	"FanDiscard":          boardgame.TypeStack,
+	"FanShuffleCount":     boardgame.TypeInt,
 	"FanStack":            boardgame.TypeStack,
 	"FirstShortStack":     boardgame.TypeStack,
 	"HiddenCard":          boardgame.TypeStack,
@@ -5331,6 +5332,8 @@ func (g *__gameStateReader) PropMutable(name string) bool {
 	case "DrawStack":
 		return true
 	case "FanDiscard":
+		return true
+	case "FanShuffleCount":
 		return true
 	case "FanStack":
 		return true
@@ -5658,11 +5661,24 @@ func (g *__gameStateReader) EnumProp(name string) (enum.Val, error) {
 
 func (g *__gameStateReader) IntProp(name string) (int, error) {
 
+	switch name {
+	case "FanShuffleCount":
+		return g.data.FanShuffleCount, nil
+
+	}
+
 	return 0, errors.New("No such Int prop: " + name)
 
 }
 
 func (g *__gameStateReader) SetIntProp(name string, value int) error {
+
+	switch name {
+	case "FanShuffleCount":
+		g.data.FanShuffleCount = value
+		return nil
+
+	}
 
 	return errors.New("No such Int prop: " + name)
 
