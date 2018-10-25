@@ -5,6 +5,7 @@ import (
 	"github.com/jkomoros/boardgame/errors"
 	"hash/fnv"
 	"math/rand"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -581,12 +582,7 @@ func (g *growableStack) applySanitizationPolicy(policy Policy) {
 		}
 
 		if policy == PolicyLen {
-			perm := randPermForStack(g)
-			shuffledIds := make([]string, len(g.overrideIds))
-			for i, j := range perm {
-				shuffledIds[i] = g.overrideIds[j]
-			}
-			g.overrideIds = shuffledIds
+			g.overrideIds = overrideIDsForLen(g)
 		}
 
 		indexes := make([]int, len(g.indexes))
@@ -625,6 +621,12 @@ func (g *growableStack) applySanitizationPolicy(policy Policy) {
 	g.idsLastSeen = make(map[string]int)
 	return
 
+}
+
+func overrideIDsForLen(stack Stack) []string {
+	ids := stack.Ids()
+	sort.Strings(ids)
+	return ids
 }
 
 //returns a random permutation of size stack.Len(). The permutation will be
@@ -702,12 +704,7 @@ func (s *sizedStack) applySanitizationPolicy(policy Policy) {
 		}
 
 		if policy == PolicyLen {
-			perm := randPermForStack(s)
-			shuffledIds := make([]string, len(s.overrideIds))
-			for i, j := range perm {
-				shuffledIds[i] = s.overrideIds[j]
-			}
-			s.overrideIds = shuffledIds
+			s.overrideIds = overrideIDsForLen(s)
 		}
 
 		indexes := make([]int, len(s.indexes))

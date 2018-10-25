@@ -46,5 +46,11 @@
 @ ["Game","MyStringSlice",0]
 - "a"
 + ""
+@ ["Game","DrawDeck","Ids",0]
+- "eb8210726e015b0e472c225e512166e7f1ac34de"
++ "667bc729077137a8932a2cffc5ca4b0cec905956"
+@ ["Game","DrawDeck","Ids",1]
+- "667bc729077137a8932a2cffc5ca4b0cec905956"
++ "eb8210726e015b0e472c225e512166e7f1ac34de"
 @ ["SecretMoveCount"]
 - {"test":[1,0,0,0]}

@@ -834,7 +834,7 @@ func (m *mergedStack) ImmutableComponents() []ImmutableComponentInstance {
 
 		result := make([]ImmutableComponentInstance, len(m.stacks[0].ImmutableComponents()))
 
-		for i, _ := range m.stacks[0].ImmutableComponents() {
+		for i := range m.stacks[0].ImmutableComponents() {
 			result[i] = m.ImmutableComponentAt(i)
 		}
 		return result
@@ -1221,7 +1221,7 @@ func (s *sizedStack) setState(state *state) {
 }
 
 func (m *mergedStack) setState(state *state) {
-	for i, _ := range m.stacks {
+	for i := range m.stacks {
 		m.stacks[i].setState(state)
 	}
 }
@@ -1800,7 +1800,7 @@ func (s *sizedStack) ExpandSize(newSlots int) error {
 
 	slots := make([]int, newSlots)
 
-	for i, _ := range slots {
+	for i := range slots {
 		slots[i] = -1
 	}
 
