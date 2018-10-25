@@ -246,6 +246,7 @@ class BoardgameGameStateManager extends PolymerElement {
   //When evertyhing should be reset
   reset() {
     this.lastFetchedVersion = 0;
+    this.targetVersion = -1;
     this._resetPendingStateBundles();
     this.softReset();
   }
