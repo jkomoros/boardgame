@@ -1,10 +1,10 @@
-import { PolymerElement } from '@polymer/polymer/polymer-element.js';
+import { BoardgameAnimatableItem} from './boardgame-animatable-item.js';
 import '@polymer/iron-flex-layout/iron-flex-layout.js';
 import '@polymer/polymer/lib/elements/dom-repeat.js';
 import '@polymer/paper-styles/shadow.js';
 import { html } from '@polymer/polymer/lib/utils/html-tag.js';
 
-class BoardgameDie extends PolymerElement {
+class BoardgameDie extends BoardgameAnimatableItem {
   static get template() {
     return html`
     <style>
@@ -158,7 +158,10 @@ class BoardgameDie extends PolymerElement {
       },
       value: Number,
       faces: Array,
-      selectedFace: Number,
+      selectedFace: {
+        type: Number,
+        observer: "_selectedFaceChanged"
+      },
       disabled: Boolean,
     }
   }
@@ -173,6 +176,10 @@ class BoardgameDie extends PolymerElement {
     if (this.disabled) {
       e.stopPropagation();
     }
+  }
+
+  _selectedFaceChanged(newValue) {
+    this._expectTransitionEnd(this.$.inner, "transform");
   }
 
   _itemChanged(newValue) {
