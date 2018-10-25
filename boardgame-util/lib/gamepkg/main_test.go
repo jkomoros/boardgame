@@ -79,9 +79,26 @@ func TestBasic(t *testing.T) {
 			"blackjack",
 			"github.com/jkomoros/boardgame/examples/blackjack",
 		},
+		{
+			"Unsafe rand use",
+			"testdata/unsaferanduse/",
+			"",
+			true,
+			"unsaferanduse",
+			".",
+		},
+		{
+			"safe rand use (magic comment)",
+			"testdata/saferanduse/",
+			"",
+			false,
+			"saferanduse",
+			".",
+		},
 	}
 
 	for i, test := range tests {
+
 		pkg, err := New(test.input, test.basePath)
 		if test.errExpected {
 			if err == nil {

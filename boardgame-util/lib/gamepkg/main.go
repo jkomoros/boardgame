@@ -21,15 +21,23 @@ import (
 
 const clientSubFolder = "client"
 
+//If this comment is included in a source file, then pkg will not error will
+//even if that file does import math.Rand(). This comment asserts that the
+//package is using math/rand for some reason other than game logic, because
+//game logic is supposed to use state.Rand() in order to be predictable.
+const RAND_MAGIC_COMMENT = "boardgame:assert(rand_use_deterministic)"
+
 type Pkg struct {
 	//Every contstructo sets absolutePath to something that at least exists on
 	//disk.
-	absolutePath         string
-	importPath           string
-	name                 string
-	calculatedIsGamePkg  bool
-	memoizedIsGamePkg    bool
-	memoizedIsGamePkgErr error
+	absolutePath          string
+	importPath            string
+	name                  string
+	calculatedIsGamePkg   bool
+	memoizedIsGamePkg     bool
+	memoizedIsGamePkgErr  error
+	calculatedHasMathRand bool
+	memoizedHasMathRand   error
 }
 
 //Packages is a convenience func that takes a list of arguments to pass to
@@ -79,9 +87,12 @@ func AllPackages(inputs []string, optionalBasePath string) ([]*Pkg, error) {
 //path (rel or absolute), and if that fails, bails. optionalBasePath is what
 //to pass to NewFromPath if that is used.
 func New(importOrPath string, optionalBasePath string) (*Pkg, error) {
-	pkg, err := NewFromImport(importOrPath)
+	pkg, err, tryPath := newFromImport(importOrPath)
 	if err == nil {
 		return pkg, nil
+	}
+	if !tryPath {
+		return nil, err
 	}
 	return NewFromPath(importOrPath, optionalBasePath)
 }
@@ -110,7 +121,8 @@ func NewFromPath(path string, optionalBasePath string) (*Pkg, error) {
 		}
 	}
 
-	return newPkg(path, "")
+	p, e, _ := newPkg(path, "")
+	return p, e
 
 }
 
@@ -118,39 +130,43 @@ func NewFromPath(path string, optionalBasePath string) (*Pkg, error) {
 //if the given path does not appear to denote a valid game package for any
 //reason.
 func NewFromImport(importPath string) (*Pkg, error) {
+	p, e, _ := newFromImport(importPath)
+	return p, e
+}
 
+func newFromImport(importPath string) (pack *Pkg, err error, tryPath bool) {
 	absPath, err := path.AbsoluteGoPkgPath(importPath)
 
 	if err != nil {
-		return nil, errors.New("Absolute path couldn't be found: " + err.Error())
+		return nil, errors.New("Absolute path couldn't be found: " + err.Error()), true
 	}
 
 	//If no error, then absPath must point to a valid thing
-
 	return newPkg(absPath, importPath)
-
 }
 
-func newPkg(absPath, importPath string) (*Pkg, error) {
+//tryPath means, if we fail, should we try using the input as a path?
+func newPkg(absPath, importPath string) (p *Pkg, err error, tryPath bool) {
+
 	result := &Pkg{
 		absolutePath: absPath,
 		importPath:   importPath,
 	}
 
 	if info, err := os.Stat(absPath); err != nil {
-		return nil, errors.New("Path doesn't point to valid location on disk: " + err.Error())
+		return nil, errors.New("Path doesn't point to valid location on disk: " + err.Error()), true
 	} else if !info.IsDir() {
-		return nil, errors.New("Path points to an object but it's not a directory.")
+		return nil, errors.New("Path points to an object but it's not a directory."), true
 	}
 
 	if !result.goPkg() {
-		return nil, errors.New(absPath + " denotes a folder with no go source files")
+		return nil, errors.New(absPath + " denotes a folder with no go source files"), true
 	}
 
 	isGamePkg, err := result.isGamePkg()
 
 	if !isGamePkg {
-		return nil, errors.New(absPath + " was not a valid game package: " + err.Error())
+		return nil, errors.New(absPath + " was not a valid game package: " + err.Error()), true
 	}
 
 	//We also ensure we have a good value for importPath now, so that Import()
@@ -159,18 +175,22 @@ func newPkg(absPath, importPath string) (*Pkg, error) {
 	goPkg, err := build.ImportDir(absPath, 0)
 
 	if err != nil {
-		return nil, errors.New("Couldn't read package: " + err.Error())
+		return nil, errors.New("Couldn't read package: " + err.Error()), false
+	}
+
+	if err := result.randUseSafe(); err != nil {
+		return nil, err, false
 	}
 
 	if importPath != "" {
 		if importPath != goPkg.ImportPath {
-			return nil, errors.New("The provided import path does not agree with what go.build thinks the import path is: " + importPath + " : " + goPkg.ImportPath)
+			return nil, errors.New("The provided import path does not agree with what go.build thinks the import path is: " + importPath + " : " + goPkg.ImportPath), true
 		}
 	}
 	result.importPath = goPkg.ImportPath
 	result.name = goPkg.Name
 
-	return result, nil
+	return result, nil, true
 }
 
 //AbsolutePath returns the absolute path where the package in question resides
@@ -319,6 +339,72 @@ func (p *Pkg) Import() string {
 //(what NewDelegate.Name() returns).
 func (p *Pkg) Name() string {
 	return p.name
+}
+
+//RandUseSafe returns nil if the package either doesn't use math/rand or if it
+//asserts that its use is safe via an override.  Naive use of math/rand is
+//likely to be an error because game logic is supposed to use state.Rand() for
+//all randomness so games can be deterministic. If the math/rand import
+//includes RAND_MAGIC_COMMENT in the documentation line then the usage will be
+//considered safe.
+func (p *Pkg) randUseSafe() error {
+	if !p.calculatedHasMathRand {
+		p.memoizedHasMathRand = p.calculateUnsafeRandUse()
+		p.calculatedHasMathRand = true
+	}
+	return p.memoizedHasMathRand
+}
+
+func (p *Pkg) calculateUnsafeRandUse() error {
+	pkgs, err := parser.ParseDir(token.NewFileSet(), p.AbsolutePath(), nil, parser.ParseComments)
+
+	if err != nil {
+		return errors.New("Couldn't parse package: " + err.Error())
+	}
+
+	if len(pkgs) < 1 {
+		return errors.New("No packages in that directory")
+	}
+
+	if len(pkgs) > 1 {
+		return errors.New("More than one package in that directory.")
+	}
+
+	var pkg *ast.Package
+
+	for _, p := range pkgs {
+		pkg = p
+	}
+
+	for name, file := range pkg.Files {
+		for _, impt := range file.Imports {
+			if !strings.Contains(impt.Path.Value, "math/rand") {
+				continue
+			}
+			hasMagicComment := false
+			if impt.Doc != nil {
+				for _, comment := range impt.Doc.List {
+					if strings.Contains(comment.Text, RAND_MAGIC_COMMENT) {
+						hasMagicComment = true
+					}
+				}
+			}
+			if impt.Comment != nil {
+				for _, comment := range impt.Comment.List {
+					if strings.Contains(comment.Text, RAND_MAGIC_COMMENT) {
+						hasMagicComment = true
+					}
+				}
+			}
+
+			if !hasMagicComment {
+				return errors.New("math/rand imported in " + name + ". Your game logic is supposed to use state.Rand() so logic can be deterministic. If this import of math/rand is not used for game logic, you may suppress this error by including a comment above the import with the magic string " + RAND_MAGIC_COMMENT)
+			}
+		}
+	}
+
+	return nil
+
 }
 
 //isPkg verifies that the package appears to be a valid game package.

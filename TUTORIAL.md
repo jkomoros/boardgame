@@ -1906,7 +1906,7 @@ You run that tool from within a game package. It's similar to running `boardgame
 
 So the workflow is that every so often, sit in the game package, and run `boardgame-util create-golden`. Then create a few new games that exercise interesting behavior (using admin mode's Current Player view to make moves as all players), and as long as they behave as expected, check them in. Every so often you can run the command and create new ones; the existing ones won't be removed.
 
-It's important that your game is deterministic for the same inputs, so its behavior doesn't change and can be compared to tests. In particular, only ever use state.Rand() for randomness, as its state is seeded deterministically based on the game id and version.
+It's important that your game is deterministic for the same inputs, so its behavior doesn't change and can be compared to tests. In particular, only ever use state.Rand() for randomness, as its state is seeded deterministically based on the game id and version. In fact, if your game package imports math/rand, the package won't be valid to run with the engine unless you have a comment asserting that it the game logic is still deterministic despite the import.
 
 ### Client animations
 

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/jkomoros/boardgame"
 	"log"
+	//boardgame:assert(rand_use_deterministic)
 	"math/rand"
 )
 
