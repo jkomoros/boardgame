@@ -263,10 +263,19 @@ class BoardgameRenderGame extends PolymerElement {
     this.$.container.appendChild(ele);
 
 
-    //Sometimes the renderer is instantiated after the state is already
-    //databound--which means that `all-animations-done` won't have fired.
-    //_notifyAnimationsDone won't fire it again if it's already fired.
-    window.requestAnimationFrame(() => this._notifyAnimationsDone());
+    //Only try to to fire if there's a state. If it's the first time this
+    //session we load the renderer, this will probably happen after the first
+    //non-nil state is installed (it takes time to download the component), so
+    //we'll need to ask for the next state. But if you load the same game type
+    //again, the renderer will load imemediately, most likely before the state
+    //is isntalled. If we called this._notifyAnimationsDone() before there's a
+    //state, it would be useless (and would prevent it from firing later).
+    if (this.state) {
+      //Sometimes the renderer is instantiated after the state is already
+      //databound--which means that `all-animations-done` won't have fired.
+      //_notifyAnimationsDone won't fire it again if it's already fired.
+      window.requestAnimationFrame(() => this._notifyAnimationsDone());
+    }
   }
 }
 
