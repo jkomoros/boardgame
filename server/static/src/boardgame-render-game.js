@@ -112,7 +112,11 @@ class BoardgameRenderGame extends PolymerElement {
         value: false,
       },
       //Keep track of the will-animate we've heard.
-      _activeAnimations: Object
+      _activeAnimations: Object,
+      _allAnimationsDoneFired: {
+        type: Boolean,
+        value: true,
+      }
     }
   }
 
@@ -120,6 +124,7 @@ class BoardgameRenderGame extends PolymerElement {
     super.ready();
     this.addEventListener("will-animate", e => this._componentWillAnimate(e));
     this.addEventListener("animation-done", e => this._componentAnimationDone(e));
+    this._resetAnimating();
   }
 
   static get observers() {
@@ -150,11 +155,17 @@ class BoardgameRenderGame extends PolymerElement {
       this.diagram = "";
       this.viewingAsPlayer = 0;
       this.currentPlayerIndex = 0;
+      this._removeRenderer();
+    } else {
+      if (this.rendererLoaded) {
+        this._instantiateRenderer();
+      }
     }
   }
 
   _resetAnimating() {
     this._activeAnimations = new Map();
+    this._allAnimationsDoneFired = false;
   }
 
   _componentWillAnimate(e) {
@@ -173,6 +184,8 @@ class BoardgameRenderGame extends PolymerElement {
   }
 
   _notifyAnimationsDone() {
+    if (this._allAnimationsDoneFired) return;
+    this._allAnimationsDoneFired = true;
     this.dispatchEvent(new CustomEvent('all-animations-done', {composed: true}));
   }
 
@@ -220,12 +233,16 @@ class BoardgameRenderGame extends PolymerElement {
 
     this.rendererLoaded = false
 
+    this._removeRenderer();
+
+    import("../game-src/" +newValue + "/boardgame-render-game-" + newValue + ".js").then(this._instantiateRenderer.bind(this), null);
+  }
+
+  _removeRenderer() {
     if (this.renderer) {
       this.$.container.removeChild(this.renderer);
     }
     this.renderer = null;
-
-    import("../game-src/" +newValue + "/boardgame-render-game-" + newValue + ".js").then(this._instantiateRenderer.bind(this), null);
   }
 
   _instantiateRenderer(e) {
@@ -245,6 +262,11 @@ class BoardgameRenderGame extends PolymerElement {
 
     this.$.container.appendChild(ele);
 
+
+    //Sometimes the renderer is instantiated after the state is already
+    //databound--which means that `all-animations-done` won't have fired.
+    //_notifyAnimationsDone won't fire it again if it's already fired.
+    window.requestAnimationFrame(() => this._notifyAnimationsDone());
   }
 }
 
