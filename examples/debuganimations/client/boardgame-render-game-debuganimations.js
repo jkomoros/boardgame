@@ -133,6 +133,7 @@ class BoardgameRenderGameDebuganimations extends BoardgameBaseGameRenderer {
           <paper-button propose-move="Move Fan Card">Draw</paper-button>
           <paper-button propose-move="Visible Shuffle">Public Shuffle</paper-button>
           <paper-button propose-move="Shuffle">Shuffle</paper-button>
+          <paper-button propose-move="Shuffle Hidden">Shuffle Hidden</paper-button>
           <paper-dropdown-menu label="Layout">
             <paper-listbox slot="dropdown-content" selected="{{fromStackLayout}}" attr-for-selected="value">
               <paper-item value="fan">fan</paper-item>
