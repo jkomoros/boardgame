@@ -430,6 +430,7 @@ BoardgameComponentStack = class extends PolymerElement {
     var container = this.$['animating-components'];
     while(container.children.length > 0) {
       var child = container.children[0];
+      if (child.beforeOrphaned) child.beforeOrphaned();
       //TODO: we should have an _animatingComponentPool too.
       container.removeChild(child);
     }

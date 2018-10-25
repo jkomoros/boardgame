@@ -44,6 +44,16 @@ export class BoardgameAnimatableItem extends PolymerElement {
     this._outstandingTransitonEnds = 0;
   }
 
+  //beforeOrphaned is called when we know we're about to be orphaned (for
+  //example if we're an animating component that will be removed when done
+  //animating). it's our last chance to fire 'animation-done' if we were going
+  //to fire that.
+  beforeOrphaned() {
+    if (!this._expectedTransitionEnds) return;
+    if (!this._expectedTransitionEnds.size) return;
+    this._notifyAnimationDone();
+  }
+
   //_expectTransitionEnd is called whenever we have just changed a property
   //_that will later fire a transitionend, with the specific ele (this,
   //_#inner, #outer), and propertyName we expect to fire. We only care about
@@ -103,6 +113,10 @@ export class BoardgameAnimatableItem extends PolymerElement {
     return true
   }
 
+  _notifyAnimationDone() {
+    this.dispatchEvent(new CustomEvent('animation-done', {composed: true, detail:{ele:this}}));
+  }
+
   //_transitionEnded is the handler for transitionend. It will fire for _any_
   //_transition that ended on ourselves or our shadow root. We only care about
   //_transform and opacity changes; ignore everything else, because we'll
@@ -119,7 +133,7 @@ export class BoardgameAnimatableItem extends PolymerElement {
 
     if (changeMade && this._outstandingTransitonEnds == 0) {
       //all of the animations we were expecting to finish are finished.
-      this.dispatchEvent(new CustomEvent('animation-done', {composed: true, detail:{ele:this}}));
+      this._notifyAnimationDone();
     }
   }
 
