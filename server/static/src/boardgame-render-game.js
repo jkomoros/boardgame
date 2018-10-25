@@ -94,7 +94,10 @@ class BoardgameRenderGame extends PolymerElement {
         type: String,
         observer: "_gameNameChanged",
       },
-      renderer: Object,
+      renderer: {
+        type: Object,
+        notify: true,
+      },
       rendererLoaded: {
         type: Boolean,
         value: false,

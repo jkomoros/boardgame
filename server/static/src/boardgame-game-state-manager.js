@@ -94,6 +94,9 @@ class BoardgameGameStateManager extends PolymerElement {
         notify: true,
         value: false,
       },
+      //The current renderer, so we can ask if it we should delay animations.
+      //Databound from above.
+      activeRenderer: Object,
       _socketUrl: {
         type: String,
         computed: "_computeSocketUrl(active, _infoInstalled)",
@@ -106,7 +109,6 @@ class BoardgameGameStateManager extends PolymerElement {
       _socket: Object,
       _pendingStateBundles: Object,
       _lastFiredBundle: Object,
-      _lastSeenRenderer: Object,
     }
   }
 
@@ -427,10 +429,8 @@ class BoardgameGameStateManager extends PolymerElement {
   }
 
   //Called when gameView tells us to pass up the next state if we have one
-  //(the animations are done). renderer might be a reference to the specific
-  //game's renderer object, or null.
-  readyForNextState(renderer) {
-    this._lastSeenRenderer = renderer;
+  //(the animations are done). 
+  readyForNextState() {
     this._scheduleNextStateBundle();
   }
 
@@ -440,7 +440,7 @@ class BoardgameGameStateManager extends PolymerElement {
   _scheduleNextStateBundle() {
     if (!this._pendingStateBundles.length) return;
 
-    let renderer = this._lastSeenRenderer;
+    let renderer = this.activeRenderer;
 
     //If we were given a renderer that knows how to delay animations, consult
     //it.
