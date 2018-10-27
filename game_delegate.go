@@ -6,6 +6,7 @@ import (
 	"github.com/jkomoros/boardgame/errors"
 	"math"
 	"sort"
+	"strings"
 )
 
 //GameDelegate is the place that various parts of the game lifecycle can be
@@ -256,10 +257,10 @@ func (d *DefaultGameDelegate) Diagram(state ImmutableState) string {
 	return "This should be overriden to render a reasonable state here"
 }
 
-//DisplayName by default just returns the Name() that is returned from the
-//delegate in use.
+//DisplayName by default just returns the title-case of Name() that is
+//returned from the delegate in use.
 func (d *DefaultGameDelegate) DisplayName() string {
-	return d.Manager().Delegate().Name()
+	return strings.Title(d.Manager().Delegate().Name())
 }
 
 //Description defaults to "" if not overriden.

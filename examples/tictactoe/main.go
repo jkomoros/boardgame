@@ -16,7 +16,6 @@ import (
 
 //go:generate boardgame-util codegen
 
-const gameDisplayname = "Tic Tac Toe"
 const gameName = "tictactoe"
 
 const DIM = 3
@@ -45,7 +44,7 @@ func (g *gameDelegate) Name() string {
 }
 
 func (g *gameDelegate) DisplayName() string {
-	return gameDisplayname
+	return "Tic Tac Toe"
 }
 
 func (g *gameDelegate) Description() string {

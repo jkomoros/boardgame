@@ -25,10 +25,6 @@ func (g *gameDelegate) Name() string {
 	return "memory"
 }
 
-func (g *gameDelegate) DisplayName() string {
-	return "Memory"
-}
-
 func (g *gameDelegate) Description() string {
 	return "Players flip over two cards at a time and keep any matches they find"
 }

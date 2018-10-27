@@ -22,10 +22,6 @@ func (g *gameDelegate) Name() string {
 	return "checkers"
 }
 
-func (g *gameDelegate) DisplayName() string {
-	return "Checkers"
-}
-
 func (g *gameDelegate) Description() string {
 	return "Checkers is the classic game on a grid where players compete to capture opponents' pieces."
 }

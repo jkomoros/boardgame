@@ -18,7 +18,6 @@ import (
 
 const targetScore = 21
 
-const gameDisplayname = "Blackjack"
 const gameName = "blackjack"
 
 //computeHandValue is used in our ComputedPropertyConfig.
@@ -36,10 +35,6 @@ type gameDelegate struct {
 
 func (g *gameDelegate) Name() string {
 	return gameName
-}
-
-func (g *gameDelegate) DisplayName() string {
-	return gameDisplayname
 }
 
 func (g *gameDelegate) Description() string {
