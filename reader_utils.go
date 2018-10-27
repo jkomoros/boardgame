@@ -256,7 +256,7 @@ func newReaderValidator(exampleObj Reader, illegalTypes map[PropertyType]bool, c
 		illegalTypes,
 	}
 
-	if err := result.VerifyNoIllegalProps(exampleReader); err != nil {
+	if err := result.VerifyNoIllegalProps(exampleObj); err != nil {
 		return nil, errors.New("Example had illegal prop types: " + err.Error())
 	}
 
@@ -329,7 +329,13 @@ func policyFromStructTag(tag string, defaultGroup string) map[int]Policy {
 //AutoInflate will go through and inflate fields that are nil that it knows
 //how to inflate due to comments in structs detected in the constructor for
 //this validator.
-func (r *readerValidator) AutoInflate(readSetConfigurer PropertyReadSetConfigurer, st ImmutableState) error {
+func (r *readerValidator) AutoInflate(obj ReadSetConfigurer, st ImmutableState) error {
+
+	readSetConfigurer := obj.ReadSetConfigurer()
+
+	if readSetConfigurer == nil {
+		return errors.New("Object's ReadSetConfigurer returned nil")
+	}
 
 	for propName, config := range r.autoStackFields {
 
@@ -481,7 +487,14 @@ func (r *readerValidator) AutoInflate(readSetConfigurer PropertyReadSetConfigure
 	return nil
 }
 
-func (r *readerValidator) VerifyNoIllegalProps(reader PropertyReader) error {
+func (r *readerValidator) VerifyNoIllegalProps(obj Reader) error {
+
+	reader := obj.Reader()
+
+	if reader == nil {
+		return errors.New("Object's Reader returned nil")
+	}
+
 	for propName, propType := range reader.Props() {
 		if propType == TypeIllegal {
 			return errors.New(propName + " was TypeIllegal, which is always illegal")
@@ -495,8 +508,15 @@ func (r *readerValidator) VerifyNoIllegalProps(reader PropertyReader) error {
 
 //Valid will return an error if the reader is not valid according to the
 //configuration of this validator.
-func (r *readerValidator) Valid(reader PropertyReader) error {
-	if err := r.VerifyNoIllegalProps(reader); err != nil {
+func (r *readerValidator) Valid(obj Reader) error {
+
+	reader := obj.Reader()
+
+	if reader == nil {
+		return errors.New("Object's Reader returned nil")
+	}
+
+	if err := r.VerifyNoIllegalProps(obj); err != nil {
 		return err
 	}
 	for propName, propType := range reader.Props() {

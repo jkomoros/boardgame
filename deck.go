@@ -159,7 +159,7 @@ func (d *Deck) finish(chest *ComponentChest, name string) error {
 		if err != nil {
 			return errors.New("Component " + strconv.Itoa(i) + "failed to validate: " + err.Error())
 		}
-		if err := validator.Valid(c.Values().Reader()); err != nil {
+		if err := validator.Valid(c.Values()); err != nil {
 			return errors.New("Component " + strconv.Itoa(i) + " failed to validate: " + err.Error())
 		}
 	}

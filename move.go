@@ -347,25 +347,16 @@ func (m *moveType) NewMove(state ImmutableState) Move {
 	move.SetInfo(info)
 	move.SetTopLevelStruct(move)
 
-	readSetConfigurer := move.ReadSetConfigurer()
-
-	if readSetConfigurer == nil {
-		//This shouldn't happen because we verified that ReadSetter returned
-		//non-nil when the movetype was registered.
-		m.manager.Logger().Error("ReadSetConfigurer for move unexpectedly returned nil")
-		return nil
-	}
-
 	//validator might be nil if we have a half-functioning MoveType. (Like
 	//what will be returned, along with an error, when NewMoveType is called
 	//during moves.DefaultConfig)
 	if m.validator != nil {
-		if err := m.validator.AutoInflate(readSetConfigurer, state); err != nil {
+		if err := m.validator.AutoInflate(move, state); err != nil {
 			m.manager.Logger().Error("AutoInflate had an error: " + err.Error())
 			return nil
 		}
 
-		if err := m.validator.Valid(readSetConfigurer); err != nil {
+		if err := m.validator.Valid(move); err != nil {
 			m.manager.Logger().Error("Move was not valid: " + err.Error())
 			return nil
 		}

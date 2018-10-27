@@ -212,15 +212,15 @@ func TestReaderValidator(t *testing.T) {
 
 	autoFilledObj := &testGeneralReadSetter{}
 
-	err = validator.Valid(autoFilledObj.ReadSetter())
+	err = validator.Valid(autoFilledObj)
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
-	err = validator.AutoInflate(autoFilledObj.ReadSetConfigurer(), game.CurrentState())
+	err = validator.AutoInflate(autoFilledObj, game.CurrentState())
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	err = validator.Valid(autoFilledObj.ReadSetter())
+	err = validator.Valid(autoFilledObj)
 
 	assert.For(t).ThatActual(err).IsNil()
 
