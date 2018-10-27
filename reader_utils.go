@@ -42,10 +42,10 @@ type readerValidator struct {
 //given types. It will also do an expensive processing for any nil pointer-
 //properties to see if they have struct tags that tell us how to inflate them.
 //This processing uses reflection, but afterwards AutoInflate can run quickly.
-//exampleReadSetter is optional. If provided, it's used to do a PropMutable
-//check for those properties--and if not provided, we assume all of the
-//interface props are not mutable.
-func newReaderValidator(exampleReader PropertyReader, exampleReadSetter PropertyReadSetter, exampleObj interface{}, illegalTypes map[PropertyType]bool, chest *ComponentChest, isPlayerState bool) (*readerValidator, error) {
+//If exampleObj also implements ReadSetter, the resulting ReadSetter is used
+//to do a PropMutable check for those properties--and if not provided, we
+//assume all of the interface props are not mutable.
+func newReaderValidator(exampleObj Reader, illegalTypes map[PropertyType]bool, chest *ComponentChest, isPlayerState bool) (*readerValidator, error) {
 	//TODO: there's got to be a way to not need both exampleReader and exampleObj, but only one.
 
 	if chest == nil {
@@ -54,6 +54,17 @@ func newReaderValidator(exampleReader PropertyReader, exampleReadSetter Property
 
 	if illegalTypes == nil {
 		illegalTypes = make(map[PropertyType]bool)
+	}
+
+	exampleReader := exampleObj.Reader()
+
+	if exampleReader == nil {
+		return nil, errors.New("Example object's Reader() returned nil")
+	}
+
+	var exampleReadSetter PropertyReadSetter
+	if readSetter, ok := exampleObj.(ReadSetter); ok {
+		exampleReadSetter = readSetter.ReadSetter()
 	}
 
 	autoEnumFields := make(map[string]enum.Enum)

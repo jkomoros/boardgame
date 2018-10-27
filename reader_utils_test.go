@@ -188,6 +188,10 @@ type testGeneralReadSetter struct {
 	TheGrowableStack  Stack `stack:"test" sanitize:"order"`
 }
 
+func (t *testGeneralReadSetter) Reader() PropertyReader {
+	return getDefaultReader(t)
+}
+
 func (t *testGeneralReadSetter) ReadSetter() PropertyReadSetter {
 	return getDefaultReadSetter(t)
 }
@@ -202,7 +206,7 @@ func TestReaderValidator(t *testing.T) {
 
 	game := testDefaultGame(t, false)
 
-	validator, err := newReaderValidator(example.ReadSetter(), example.ReadSetter(), example, nil, game.manager.Chest(), false)
+	validator, err := newReaderValidator(example, nil, game.manager.Chest(), false)
 
 	assert.For(t).ThatActual(err).IsNil()
 
