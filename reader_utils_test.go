@@ -206,7 +206,7 @@ func TestReaderValidator(t *testing.T) {
 
 	game := testDefaultGame(t, false)
 
-	validator, err := newReaderValidator(example, nil, game.manager.Chest(), false)
+	validator, err := newReaderValidator(example, nil, game.manager.Chest())
 
 	assert.For(t).ThatActual(err).IsNil()
 

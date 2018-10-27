@@ -128,7 +128,7 @@ func newMoveType(config MoveConfig, manager *GameManager) (*moveType, error) {
 	//useful object in that case... but also an error so anyone else who
 	//checks the error will ignore the half-useful move type.
 	if manager != nil {
-		validator, err = newReaderValidator(exampleMove, moveTypeIllegalPropTypes, manager.Chest(), false)
+		validator, err = newReaderValidator(exampleMove, moveTypeIllegalPropTypes, manager.Chest())
 
 		if err != nil {
 			return nil, errors.New("Couldn't create validator: " + err.Error())

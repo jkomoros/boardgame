@@ -45,7 +45,7 @@ type readerValidator struct {
 //If exampleObj also implements ReadSetter, the resulting ReadSetter is used
 //to do a PropMutable check for those properties--and if not provided, we
 //assume all of the interface props are not mutable.
-func newReaderValidator(exampleObj Reader, illegalTypes map[PropertyType]bool, chest *ComponentChest, isPlayerState bool) (*readerValidator, error) {
+func newReaderValidator(exampleObj Reader, illegalTypes map[PropertyType]bool, chest *ComponentChest) (*readerValidator, error) {
 	//TODO: there's got to be a way to not need both exampleReader and exampleObj, but only one.
 
 	if chest == nil {
@@ -74,7 +74,8 @@ func newReaderValidator(exampleObj Reader, illegalTypes map[PropertyType]bool, c
 	sanitizationPolicy := make(map[string]map[int]Policy)
 
 	defaultGroup := "all"
-	if isPlayerState {
+	//If the object apeparst to be a playerState, then the default group is "other", not "all".
+	if _, ok := exampleObj.(PlayerState); ok {
 		defaultGroup = "other"
 	}
 
