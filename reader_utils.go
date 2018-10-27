@@ -29,6 +29,19 @@ type autoMergedStackConfig struct {
 	overlap bool
 }
 
+/*
+
+StructInflater is an object that knows how to check given structs for whether
+they are valid-ly configured, knows how to auto-fill any nil fields in the
+struct, and finally knows how to extract a sanitization Policy based on struct
+tag configuration. It uses struct-based tags for its configuration. All struct
+inspection is done in the constructor, so subquent uses of the StructInflater
+are fast and reflection-free. Get a new one from NewStructInflater. For more
+about the precise configuration of struct tags that StructInlater understands,
+see the documenation for the methods on StructInflater that make use of it,
+including Inflate() and PropertySanitizationPolicy().
+
+*/
 type readerValidator struct {
 	autoEnumFields        map[string]enum.Enum
 	autoMutableEnumFields map[string]enum.Enum
@@ -38,13 +51,24 @@ type readerValidator struct {
 	illegalTypes          map[PropertyType]bool
 }
 
-//newReaderValidator returns a new readerValidator configured to disallow the
-//given types. It will also do an expensive processing for any nil pointer-
-//properties to see if they have struct tags that tell us how to inflate them.
-//This processing uses reflection, but afterwards AutoInflate can run quickly.
-//If exampleObj also implements ReadSetter, the resulting ReadSetter is used
-//to do a PropMutable check for those properties--and if not provided, we
-//assume all of the interface props are not mutable.
+//NewStructInflater returns a new StructInflater configured for use based on
+//the given object. NewStructInflater does all of the reflection necessary to
+//do auto-inflation later, meaning that although this is a bit slow, later
+//calls on the StructInflater don't need to use reflection again. Chest must
+//be non-nil, so that we can validate that the tag-based configuration denotes
+//valid properties. If illegalTypes is non-nil, then this constructor, and
+//calls to this StructInflater's Valid() method, will error if the struct has
+//any of those fields defined.
+//
+//NewStructInflater checks for any number of illegal or nonsensical
+//conditions, including checking Valid() on the return value, as well as
+//verifying that if the exampleObj also has a ReadSetter that things like
+//MergedStacksa are not accesible from mutable reader accessors, retuning an
+//error and a nil StructInflater if anything is invalid.
+//
+//You typically do not use this directly; the base library will automatically
+//create ones for you for its own use, and which you can get access to via
+//manager.StructInflater().
 func newReaderValidator(exampleObj Reader, illegalTypes map[PropertyType]bool, chest *ComponentChest) (*readerValidator, error) {
 
 	if chest == nil {
