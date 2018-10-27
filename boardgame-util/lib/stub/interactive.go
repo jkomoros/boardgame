@@ -25,6 +25,11 @@ func InteractiveOptions(in, out *os.File, gameName string) *Options {
 		Name: gameName,
 	}
 
+	//Bail early if the name isn't legal anyway.
+	if !nameLegal(gameName) {
+		return result
+	}
+
 	defaultDisplayName := strings.Title(gameName)
 
 	result.DisplayName = getString(out, in, "What is the human-readable display name for this game? (e.g. 'Checkers', 'Tic Tac Toe')", defaultDisplayName)

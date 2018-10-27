@@ -9,6 +9,7 @@ import (
 	"errors"
 	"go/format"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -79,6 +80,17 @@ func (o *Options) EnableTutorials() {
 	o.EnableExampleMoves = true
 }
 
+func nameLegal(gameName string) bool {
+	matches, err := regexp.Match("^[a-zA-Z0-9]*$", []byte(gameName))
+
+	if err != nil {
+		log.Println("Regexmp illegal: " + err.Error())
+		return false
+	}
+
+	return matches
+}
+
 //Validate verifies that Options is in a legal state. Makes sure Name exists
 //and ensures it's lowerCase. Repeated calls are OK.
 func (o *Options) Validate() error {
@@ -88,6 +100,10 @@ func (o *Options) Validate() error {
 
 	if o.Name == "" {
 		return errors.New("No name provided")
+	}
+
+	if !nameLegal(o.Name) {
+		return errors.New("Illegal characters in gamename. Must be a valid go package name.")
 	}
 
 	if o.MinNumPlayers != 0 && o.MaxNumPlayers != 0 {
