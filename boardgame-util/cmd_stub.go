@@ -78,7 +78,7 @@ func (s *Stub) HelpText() string {
 
 		` generates a starter game stub based on options provided interactively at the command prompt.
 
-GAMENAME is the base name of the game. It should be short, unique, and not have spaces, for example "checkers", "tic-tac-toe".`
+GAMENAME is the base name of the game. It should be short, unique, and be a valid go package name, for example "checkers", "tictactoe".`
 
 }
 
