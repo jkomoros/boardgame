@@ -256,7 +256,7 @@ func newReaderValidator(exampleObj Reader, illegalTypes map[PropertyType]bool, c
 		illegalTypes,
 	}
 
-	if err := result.VerifyNoIllegalProps(exampleObj); err != nil {
+	if err := result.verifyNoIllegalProps(exampleReader); err != nil {
 		return nil, errors.New("Example had illegal prop types: " + err.Error())
 	}
 
@@ -487,13 +487,7 @@ func (r *readerValidator) AutoInflate(obj ReadSetConfigurer, st ImmutableState) 
 	return nil
 }
 
-func (r *readerValidator) VerifyNoIllegalProps(obj Reader) error {
-
-	reader := obj.Reader()
-
-	if reader == nil {
-		return errors.New("Object's Reader returned nil")
-	}
+func (r *readerValidator) verifyNoIllegalProps(reader PropertyReader) error {
 
 	for propName, propType := range reader.Props() {
 		if propType == TypeIllegal {
@@ -516,7 +510,7 @@ func (r *readerValidator) Valid(obj Reader) error {
 		return errors.New("Object's Reader returned nil")
 	}
 
-	if err := r.VerifyNoIllegalProps(obj); err != nil {
+	if err := r.verifyNoIllegalProps(reader); err != nil {
 		return err
 	}
 	for propName, propType := range reader.Props() {
