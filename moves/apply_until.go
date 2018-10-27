@@ -74,15 +74,13 @@ func (a *ApplyUntil) FallbackHelpText() string {
 type counter interface {
 	Count(state boardgame.ImmutableState) int
 	interfaces.TargetCounter
-	CountDown(state boardgame.ImmutableState) bool
 }
 
 //ApplyUntilCount is a subclass of ApplyUntil that is legal until Count() is
-//one past TargetCount()'s value (which direction "past" is determined by the
-//result of CountDown()). At the minimum you'll want to provide your own
-//Count() and Apply() methods, or use the moves that subclass from this, like
-//MoveComponentsUntilCountReached.
-//
+//equal to TargetCount(). (This presumes that each time the move is applied it
+//gets the TargetCount one closer to Count and never overshoots). At the
+//minimum you'll want to provide your own Count() and Apply() methods, or use
+//the moves that subclass from this, like MoveComponentsUntilCountReached.
 //boardgame:codegen
 type ApplyUntilCount struct {
 	ApplyUntil
@@ -116,10 +114,9 @@ func (a *ApplyUntilCount) Count(state boardgame.ImmutableState) int {
 	return 1
 }
 
-//TargetCount should return the count that you want to target. Note that it's
-//also important to override CountDown() if you're counting down, not up. Will
-//return the configuration option passed via WithTargetCount in DefaultConfig,
-//or 1 if that wasn't provided.
+//TargetCount should return the count that you want to target. Will return the
+//configuration option passed via WithTargetCount in DefaultConfig, or 1 if
+//that wasn't provided.
 func (a *ApplyUntilCount) TargetCount() int {
 
 	config := a.CustomConfiguration()
@@ -142,17 +139,11 @@ func (a *ApplyUntilCount) TargetCount() int {
 
 }
 
-//CountDown should return true if we're counting downward, or false if we're
-//counting up. ConditionMet() needs to know if we're counting down or we're
-//counting up because it can't tell that by itself, and needs to stop one
-//after the target is reached. Defaults to false.
-func (a *ApplyUntilCount) CountDown(state boardgame.ImmutableState) bool {
-	return false
-}
-
-//ConditionMet returns nil once TargetCount() is one past Count() (which
-//direction is picked based on CountDown()). In general you override Count()
-//and TargetCount() to customize behavior instead of overriding this.
+//ConditionMet returns nil once Count() is equal to TargetCount(). Note this
+//presumes that repeated applciations of this move move Count one closer to
+//TargetCount, and that it never overshoots, otherwise this could never
+//terminate. In general you override Count() and TargetCount() to customize
+//behavior instead of overriding this.
 func (a *ApplyUntilCount) ConditionMet(state boardgame.ImmutableState) error {
 
 	embeddingMove := a.TopLevelStruct()
@@ -165,24 +156,13 @@ func (a *ApplyUntilCount) ConditionMet(state boardgame.ImmutableState) error {
 
 	count := moveCounter.Count(state)
 	targetCount := moveCounter.TargetCount()
-	countDown := moveCounter.CountDown(state)
 
 	if targetCount == count {
 		//We're at the goal!
 		return nil
 	}
 
-	if countDown {
-		if count > targetCount {
-			return errors.New("Counting down, and still greater than TargetCount")
-		}
-	} else {
-		if count < targetCount {
-			return errors.New("Counting up, and still less than target count")
-		}
-	}
-
-	return errors.New("Our condition is met, but we seem to have over-shot the goal, which shouldn't happen. Perhaps CountDown is set wrong?")
+	return errors.New("Not yet at the count goal (" + strconv.Itoa(targetCount) + " / " + strconv.Itoa(count) + ")")
 
 }
 

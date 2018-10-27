@@ -185,12 +185,6 @@ type MoveComponentsUntilCountReached struct {
 	MoveCountComponents
 }
 
-//CountDown returns false, because as we move components from source to
-//destination, destination will be getting larger.
-func (m *MoveComponentsUntilCountReached) CountDown(state boardgame.ImmutableState) bool {
-	return false
-}
-
 //Count returns the number of components in DestinationStack().
 func (m *MoveComponentsUntilCountReached) Count(state boardgame.ImmutableState) int {
 
@@ -240,12 +234,6 @@ func (m *MoveComponentsUntilCountLeft) Count(state boardgame.ImmutableState) int
 	}
 
 	return targetStack.NumComponents()
-}
-
-//CountDown returns true, because as we move components from source to
-//destination, source will be getting smaller and smaller.
-func (m *MoveComponentsUntilCountLeft) CountDown(state boardgame.ImmutableState) bool {
-	return true
 }
 
 //FallbackName returns a string based on the names of the player
