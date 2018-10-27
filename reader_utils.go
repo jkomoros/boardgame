@@ -46,7 +46,6 @@ type readerValidator struct {
 //to do a PropMutable check for those properties--and if not provided, we
 //assume all of the interface props are not mutable.
 func newReaderValidator(exampleObj Reader, illegalTypes map[PropertyType]bool, chest *ComponentChest) (*readerValidator, error) {
-	//TODO: there's got to be a way to not need both exampleReader and exampleObj, but only one.
 
 	if chest == nil {
 		return nil, errors.New("Passed nil chest")
