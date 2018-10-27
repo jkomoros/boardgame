@@ -51,8 +51,9 @@ func TestGolden(t *testing.T) {
 	minimalOptions.SuppressExtras()
 
 	tutorialOptions := &Options{
-		Name:        "checkers",
-		DisplayName: "Checkers",
+		Name: "checkers",
+		//Ensure that if the display name is not "" we output it.
+		DisplayName: "CHECKERS!!!",
 	}
 
 	tutorialOptions.EnableTutorials()
@@ -60,7 +61,6 @@ func TestGolden(t *testing.T) {
 	tests := map[string]*Options{
 		"default": {
 			Name:              "checkers",
-			DisplayName:       "Checkers",
 			Description:       "A classic game for two players where you advance across the board, capturing the other player's pawns",
 			MinNumPlayers:     2,
 			MaxNumPlayers:     4,

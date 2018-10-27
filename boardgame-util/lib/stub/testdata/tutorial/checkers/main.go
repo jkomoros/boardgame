@@ -22,7 +22,7 @@ func (g *gameDelegate) Name() string {
 }
 
 func (g *gameDelegate) DisplayName() string {
-	return "Checkers"
+	return "CHECKERS!!!"
 }
 
 func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {

@@ -26,10 +26,6 @@ func (g *gameDelegate) Name() string {
 	return "checkers"
 }
 
-func (g *gameDelegate) DisplayName() string {
-	return "Checkers"
-}
-
 func (g *gameDelegate) Description() string {
 	return "A classic game for two players where you advance across the board, capturing the other player's pawns"
 }
