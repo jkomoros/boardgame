@@ -251,7 +251,7 @@ func (g *GameManager) setUpValidators() error {
 	//Technically we don't need to do this test inflation now, but we might as
 	//well catch these problems at SetUp instead of later.
 
-	if err = validator.AutoInflate(exampleGameState, fakeState); err != nil {
+	if err = validator.Inflate(exampleGameState, fakeState); err != nil {
 		return errors.New("Couldn't auto inflate empty game state: " + err.Error())
 	}
 
@@ -273,7 +273,7 @@ func (g *GameManager) setUpValidators() error {
 		return errors.New("Could not validate empty player state: " + err.Error())
 	}
 
-	if err = validator.AutoInflate(examplePlayerState, fakeState); err != nil {
+	if err = validator.Inflate(examplePlayerState, fakeState); err != nil {
 		return errors.New("Couldn't auto inflate empty player state: " + err.Error())
 	}
 
@@ -300,7 +300,7 @@ func (g *GameManager) setUpValidators() error {
 			return errors.New("Could not validate empty dynamic component state for " + deckName + ": " + err.Error())
 		}
 
-		if err = validator.AutoInflate(exampleDynamicComponentValue, fakeState); err != nil {
+		if err = validator.Inflate(exampleDynamicComponentValue, fakeState); err != nil {
 			return errors.New("Couldn't auto inflate empty dynamic component state for " + deckName + ": " + err.Error())
 		}
 
@@ -553,7 +553,7 @@ func (g *GameManager) playerStateConstructor(state *state, player PlayerIndex) (
 		return nil, errors.New("PlayerStateConstructor returned nil for " + strconv.Itoa(int(player)))
 	}
 
-	if err := g.playerValidator.AutoInflate(playerState, state); err != nil {
+	if err := g.playerValidator.Inflate(playerState, state); err != nil {
 		return nil, errors.New("Couldn't auto-inflate empty player state: " + err.Error())
 	}
 
@@ -575,7 +575,7 @@ func (g *GameManager) gameStateConstructor(state *state) (ConfigurableSubState, 
 		return nil, errors.New("GameStateConstructor returned nil")
 	}
 
-	if err := g.gameValidator.AutoInflate(gameState, state); err != nil {
+	if err := g.gameValidator.Inflate(gameState, state); err != nil {
 		return nil, errors.New("Couldn't auto-inflate empty game state: " + err.Error())
 	}
 
@@ -630,7 +630,7 @@ func (g *GameManager) dynamicComponentValuesConstructor(state *state) (map[strin
 				}
 			}
 
-			if err := validator.AutoInflate(arr[i], state); err != nil {
+			if err := validator.Inflate(arr[i], state); err != nil {
 				return nil, errors.New("Couldn't auto-inflate dynamic compoonent values for " + deckName + " " + strconv.Itoa(i) + ": " + err.Error())
 			}
 

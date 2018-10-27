@@ -331,10 +331,10 @@ func (r *readerValidator) PropertySanitizationPolicy(propName string) map[int]Po
 	return r.sanitizationPolicy[propName]
 }
 
-//AutoInflate will go through and inflate fields that are nil that it knows
+//Inflate will go through and inflate fields that are nil that it knows
 //how to inflate due to comments in structs detected in the constructor for
 //this validator.
-func (r *readerValidator) AutoInflate(obj ReadSetConfigurer, st ImmutableState) error {
+func (r *readerValidator) Inflate(obj ReadSetConfigurer, st ImmutableState) error {
 
 	readSetConfigurer := obj.ReadSetConfigurer()
 

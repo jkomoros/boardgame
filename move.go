@@ -351,7 +351,7 @@ func (m *moveType) NewMove(state ImmutableState) Move {
 	//what will be returned, along with an error, when NewMoveType is called
 	//during moves.DefaultConfig)
 	if m.validator != nil {
-		if err := m.validator.AutoInflate(move, state); err != nil {
+		if err := m.validator.Inflate(move, state); err != nil {
 			m.manager.Logger().Error("AutoInflate had an error: " + err.Error())
 			return nil
 		}

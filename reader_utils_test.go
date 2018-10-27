@@ -216,7 +216,7 @@ func TestReaderValidator(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNotNil()
 
-	err = validator.AutoInflate(autoFilledObj, game.CurrentState())
+	err = validator.Inflate(autoFilledObj, game.CurrentState())
 
 	assert.For(t).ThatActual(err).IsNil()
 
