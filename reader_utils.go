@@ -326,6 +326,12 @@ func policyFromStructTag(tag string, defaultGroup string) map[int]Policy {
 
 }
 
+//PropertySanitizationPolicy returns the policy (map[GroupIndex]Policy) based
+//on the struct tags from the example struct given to NewStructInflater.
+func (r *readerValidator) PropertySanitizationPolicy(propName string) map[int]Policy {
+	return r.sanitizationPolicy[propName]
+}
+
 //AutoInflate will go through and inflate fields that are nil that it knows
 //how to inflate due to comments in structs detected in the constructor for
 //this validator.
