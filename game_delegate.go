@@ -252,8 +252,7 @@ func (p PropertyCollection) Copy() PropertyCollection {
 //implemented, since those almost certainly must be overridden for your
 //particular game.
 type DefaultGameDelegate struct {
-	manager          *GameManager
-	moveProgressions map[int][]string
+	manager *GameManager
 }
 
 //Diagram returns the string "This should be overriden to render a reasonable state here"
