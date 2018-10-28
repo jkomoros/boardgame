@@ -1,7 +1,7 @@
 package tictactoe
 
 import (
-	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 )
 
 //boardgame:codegen
@@ -18,6 +18,6 @@ const (
 
 //boardgame:codegen reader
 type playerToken struct {
-	boardgame.BaseComponentValues
+	base.ComponentValues
 	Value string
 }

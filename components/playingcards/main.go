@@ -9,6 +9,7 @@ package playingcards
 import (
 	"fmt"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/enum"
 )
 
@@ -51,7 +52,7 @@ const (
 
 //boardgame:codegen reader
 type Card struct {
-	boardgame.BaseComponentValues
+	base.ComponentValues
 	Suit enum.Val
 	Rank enum.Val
 }

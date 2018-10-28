@@ -47,18 +47,26 @@ func (t *testAgent) ProposeMove(game *Game, player PlayerIndex, agentState []byt
 
 //testingComponent is a very basic thing that fufills the Component interface.
 type testingComponent struct {
-	BaseComponentValues
+	c       Component
 	String  string
 	Integer int
+}
+
+func (t *testingComponent) ContainingComponent() Component {
+	return t.c
+}
+
+func (t *testingComponent) SetContainingComponent(c Component) {
+	t.c = c
 }
 
 type testingComponentDynamic struct {
 	state          State
 	immutableState ImmutableState
-	BaseComponentValues
-	IntVar int
-	Stack  Stack
-	Enum   enum.Val
+	c              Component
+	IntVar         int
+	Stack          Stack
+	Enum           enum.Val
 }
 
 const testGameName = "testgame"
@@ -93,6 +101,14 @@ func (t *testingComponentDynamic) SetImmutableState(state ImmutableState) {
 
 func (t *testingComponentDynamic) ImmutableState() ImmutableState {
 	return t.immutableState
+}
+
+func (t *testingComponentDynamic) ContainingComponent() Component {
+	return t.c
+}
+
+func (t *testingComponentDynamic) SetContainingComponent(c Component) {
+	t.c = c
 }
 
 //Every game should do such a convenience method. state might be nil.

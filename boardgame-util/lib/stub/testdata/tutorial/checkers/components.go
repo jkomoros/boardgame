@@ -10,14 +10,14 @@ const exampleCardDeckName = "examplecards"
 
 //boardgame:codegen
 type exampleCard struct {
-	boardgame.BaseComponentValues
+	base.ComponentValues
 	Value int
 }
 
 //boardgame:codegen
 type exampleCardDynamicValues struct {
 	base.SubState
-	boardgame.BaseComponentValues
+	base.ComponentValues
 	DynamicValue int
 }
 

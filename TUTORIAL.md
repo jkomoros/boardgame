@@ -789,7 +789,7 @@ const cardsDeckName = "cards"
 
 //boardgame:codegen reader
 type cardValue struct {
-	boardgame.BaseComponentValues
+	base.ComponentValues
 	Type    string
 	CardSet string
 }
@@ -816,7 +816,7 @@ func newDeck() *boardgame.Deck {
 
 The file primarily consists of two constants--the icons that we will have on the cards, and tha name that we will refer to the deck of cards as. Decks are canonically refered to within a `ComponentChest` by a string name. It's convention to define a constant for that name to make sure that typos in that name will be caught by the compiler.
 
-And then the concrete struct we will use for `Values` is a trivial struct with a single string property, and the `codegen` magic comment. It also embeds `boardgame.BaseComponentValues` to automatically implement `ContainingComponent()` and `SetContainingComponent()`.
+And then the concrete struct we will use for `Values` is a trivial struct with a single string property, and the `codegen` magic comment. It also embeds `base.ComponentValues` to automatically implement `ContainingComponent()` and `SetContainingComponent()`.
 
 In more complicated games, your components and their related constants might be much, much more verbose and effectively be a transcription of the values of a large deck of cards.
 
@@ -1392,7 +1392,7 @@ If you look at the JSON output of a state, you'll see that dynamic component val
 
 The way you configure that a given deck has dynamic component values is by the output to `GameDelegate.DynamicComponentValuesConstructor(deck *Deck) ConfigurableSubState`. For decks that don't have dynamic values, just return nil. For decks that do have dynamic component values, just return a new concrete struct, just as you would for `GameStateConstructor` and `PlayerStateConstructor`.
 
-If the struct you return from DynamicComponentValuesConstructor also implements the ComponentValues interface, then SetContainingComponent will be called on the struct every time a new one is created, and pass a reference the component it's associated with. This is useful if the dynamicComponentValues needs access to static property of the component it's associated with to do some methods. You can simply anonymously embed BaseComponentValues in your DynamicComponentValues struct to get that reference for free.
+If the struct you return from DynamicComponentValuesConstructor also implements the ComponentValues interface, then SetContainingComponent will be called on the struct every time a new one is created, and pass a reference the component it's associated with. This is useful if the dynamicComponentValues needs access to static property of the component it's associated with to do some methods. You can simply anonymously embed base.ComponentValues in your DynamicComponentValues struct to get that reference for free.
 
 When sanitizing dynamic component values, each deck has its own policy. Importantly, though, that policy is only effective if the stack that the component is currently in has a policy of Visible. In most cases it should just behave as you'd naively expect. For more about specific behaviors, see the package doc on Sanitization.
 

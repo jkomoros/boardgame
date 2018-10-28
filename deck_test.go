@@ -5,8 +5,16 @@ import (
 )
 
 type testShadowValues struct {
-	BaseComponentValues
+	c       Component
 	Message string
+}
+
+func (t *testShadowValues) ContainingComponent() Component {
+	return t.c
+}
+
+func (t *testShadowValues) SetContainingComponent(c Component) {
+	t.c = c
 }
 
 func (t *testShadowValues) Reader() PropertyReader {

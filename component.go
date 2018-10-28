@@ -261,7 +261,7 @@ func (c *component) Instance(st State) ComponentInstance {
 }
 
 //ComponentValues is the interface that the Values property of a Component
-//must implement. BaseComponentValues is designed to be anonymously embedded
+//must implement. base.ComponentValues is designed to be anonymously embedded
 //in your component to implement the latter part of the interface. 'boardgame-
 //util codegen' can be used to implement Reader.
 type ComponentValues interface {
@@ -273,21 +273,6 @@ type ComponentValues interface {
 	//SetContainingComponent is called to let the component values know what
 	//its containing component is.
 	SetContainingComponent(c Component)
-}
-
-//BaseComponentValues is an optional convenience struct designed to be
-//embedded anoymously in your component values to implement
-//ContainingComponent() and SetContainingComponent() automatically.
-type BaseComponentValues struct {
-	c Component
-}
-
-func (b *BaseComponentValues) ContainingComponent() Component {
-	return b.c
-}
-
-func (b *BaseComponentValues) SetContainingComponent(c Component) {
-	b.c = c
 }
 
 func (c componentInstance) ContainingStack() (Stack, int, error) {

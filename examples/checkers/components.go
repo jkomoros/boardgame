@@ -22,7 +22,7 @@ const (
 
 //boardgame:codegen reader
 type token struct {
-	boardgame.BaseComponentValues
+	base.ComponentValues
 	Color enum.Val
 }
 

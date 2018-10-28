@@ -674,8 +674,8 @@ const templateContentComponentsGo = `package {{.Name}}
 
 {{if .EnableExampleDeck }}
 import (
-	"github.com/jkomoros/boardgame"{{if .EnableExampleDynamicComponentValues}}
-	"github.com/jkomoros/boardgame/base"{{- end}}	
+	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 )
 
 const numCards = 10
@@ -683,7 +683,7 @@ const exampleCardDeckName = "examplecards"
 
 //boardgame:codegen
 type exampleCard struct {
-	boardgame.BaseComponentValues
+	base.ComponentValues
 	Value int
 }
 
@@ -691,7 +691,7 @@ type exampleCard struct {
 //boardgame:codegen
 type exampleCardDynamicValues struct {
 	base.SubState
-	boardgame.BaseComponentValues
+	base.ComponentValues
 	DynamicValue int
 }
 

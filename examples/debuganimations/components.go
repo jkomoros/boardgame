@@ -1,7 +1,7 @@
 package debuganimations
 
 import (
-	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 )
 
 //boardgame:codegen
@@ -36,6 +36,6 @@ const tokensDeckName = "tokens"
 
 //boardgame:codegen reader
 type cardValue struct {
-	boardgame.BaseComponentValues
+	base.ComponentValues
 	Type string
 }

@@ -35,3 +35,19 @@ func (s *SubState) SetImmutableState(state boardgame.ImmutableState) {
 func (s *SubState) ImmutableState() boardgame.ImmutableState {
 	return s.immutableState
 }
+
+//ComponentValues is an optional convenience struct designed to be embedded
+//anoymously in your component values to implement
+//boardgame.ContainingComponent() and boardgame.SetContainingComponent()
+//automatically.
+type ComponentValues struct {
+	c boardgame.Component
+}
+
+func (v *ComponentValues) ContainingComponent() boardgame.Component {
+	return v.c
+}
+
+func (v *ComponentValues) SetContainingComponent(c boardgame.Component) {
+	v.c = c
+}

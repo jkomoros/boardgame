@@ -2,6 +2,7 @@ package memory
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 )
 
 var generalCards []string = []string{
@@ -77,7 +78,7 @@ const cardsDeckName = "cards"
 
 //boardgame:codegen reader
 type cardValue struct {
-	boardgame.BaseComponentValues
+	base.ComponentValues
 	Type    string
 	CardSet string
 }

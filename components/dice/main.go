@@ -6,7 +6,6 @@ dice is a simple package that defines die components with variable numbers of si
 package dice
 
 import (
-	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 	"math"
 	"math/rand"
@@ -16,14 +15,14 @@ import (
 
 //boardgame:codegen
 type Value struct {
-	boardgame.BaseComponentValues
+	base.ComponentValues
 	Faces []int
 }
 
 //boardgame:codegen
 type DynamicValue struct {
 	base.SubState
-	boardgame.BaseComponentValues
+	base.ComponentValues
 	Value        int
 	SelectedFace int
 }
