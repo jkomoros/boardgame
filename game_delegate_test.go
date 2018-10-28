@@ -221,7 +221,7 @@ type defaultCheckGameFinishedDelegate interface {
 //PlayerGameScorer is an optional interface that can be implemented by
 //PlayerSubStates. If it is implemented, defaultGameDelegate's default
 //PlayerScore() method will return it.
-type PlayerGameScorer interface {
+type playerGameScorer interface {
 	//Score returns the overall score for the game for the player at this
 	//point in time.
 	GameScore() int
@@ -307,7 +307,7 @@ func (d *defaultGameDelegate) GameEndConditionMet(state ImmutableState) bool {
 //The default implementation returns pState.GameScore() (if pState implements
 //the PlayerGameScorer interface), or 0 otherwise.
 func (d *defaultGameDelegate) PlayerScore(pState ImmutablePlayerState) int {
-	if scorer, ok := pState.(PlayerGameScorer); ok {
+	if scorer, ok := pState.(playerGameScorer); ok {
 		return scorer.GameScore()
 	}
 	return 0
