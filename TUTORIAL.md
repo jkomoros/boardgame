@@ -514,7 +514,7 @@ Conceptually there are two types of Moves: Player Moves, and FixUp moves. Player
 
 After each move is succesfully applied via ProposeMove, and before the next move in the queue of moves is considered, the engine checks if any FixUp moves should be applied. It does this by consulting the `ProposeFixUpMove` method on the GameDelegate. If that method returns a move, it will be immediately applied, so long as it is legal. This will continue until `ProposeFixUpMove` returns nil, at which point the next player move in the proposed move queue will be considered.
 
-FixUp moves, as a concept, do not exist as a base concept in the base library, except that moves returned from ProposeFixUpMove implicitly are a FixUp move. In practie, the notion of FixUp move is implemented in base.GameDelegate's ProposeFixUpMove, and moves.Base.
+FixUp moves, as a concept, do not exist as a base concept in the base library, except that moves returned from ProposeFixUpMove implicitly are a FixUp move. In practie, the notion of FixUp move is implemented in base.GameDelegate's ProposeFixUpMove, and base.Move.
 
 Technically it is possible to override the behavior of exactly when to apply certain FixUp moves. Realistically, however, the behavior of `ProposeFixUpMove` on `base.GameDelegate` is almost always sufficient. It simply runs through each move configured on the gametype in order, skipping any for whom `.sFixUp()` returns false, setting its values by calling DefaultsForState, and then checking if it is `Legal`. It returns the first fix up move it finds that is legal. This means that it is **important to make sure that your FixUp moves always have well-constructed `Legal` methods**. If a given FixUp move always returns Legal for some state, then the engine will get in an infinite loop. (Technically the engine will detect that it is in an unreasonable state and will panic.)
 
@@ -535,13 +535,15 @@ There is a fair bit of boilerplate to implement a move, and you'll define a larg
 
 That's why there's a `moves` package that defines three common move types. You embed these moves anonymously in your move struct and then only override the methods you need to change. In some cases you don't even need to implement your own `Legal` or `Apply` because the base ones are sufficent.
 
-##### moves.Base
+##### base.Move and moves.Default
 
-Base is the simplest possible base move. It implements stubs for every required method, with the exception of `Apply` which you must implement yourself. This allows you to minimize the boilerplate you have to implement for simple moves. Almost every move you make will embed this move type either directly or indirectly.
+base.Move is the simplest possible base move. It implements stubs for every required method, with the exception of `Apply` and `Legal` which you must implement yourself. This allows you to minimize the boilerplate you have to implement for simple moves. Almost every move you make will embed this move type either directly or indirectly.
 
-Base includes a lot of base functionality and defaults. The most important is its `Legal()` method, which is where much of the notion of Phases is implemented. More on that in a later section. For now it's important to know that if you embed a move anonymously in your own move struct, it's very important to always call your "super"'s Legal method as well, because non-trivial logic is encoded in it in Base.
+In practice though you'll use a base move that adds a little bit more functionality: moves.Default. moves.Default embeds base.Move but adds more meaty Legal logic and the ability to override certain methods via With* constructors in the moves package.
 
-Another simple type of move is `FixUp`. It's a simple embedding of `Base`, but
+Default includes a lot of base functionality and defaults. The most important is its `Legal()` method, which is where much of the notion of Phases is implemented. More on that in a later section. For now it's important to know that if you embed a move anonymously in your own move struct, it's very important to always call your "super"'s Legal method as well, because non-trivial logic is encoded in it in Default.
+
+Another simple type of move is `FixUp`. It's a simple embedding of `Default`, but
 if your move is a FixUp move it's best to embed it so that
 `moves.AutoConfigurer` will treat it as a FixUp move automatically.
 
@@ -640,7 +642,7 @@ Because most of the logic for moves that embed `moves.FinishTurn` lives in metho
 
 ##### Other move types
 
-moves.Base, moves.CurrentPlayer, and moves.FinsihTurn are only three types of moves defined in the moves package. There are a number of others that are useful in other contexts. More detail about how to use some of them is covered below in the Phases section.
+moves.Default, moves.CurrentPlayer, and moves.FinsihTurn are only three types of moves defined in the moves package. There are a number of others that are useful in other contexts. More detail about how to use some of them is covered below in the Phases section.
 
 #### moves.AutoConfigurer
 
@@ -706,7 +708,7 @@ func (m *MoveHideCards) Legal(state boardgame.ImmutableState, proposer boardgame
 }
 ```
 
-This is our Legal method. We embed `moves.CurrentPlayer`, but add on our own logic. That's why we call `m.CurrentPlayer.Legal` first, since we want to extend our "superclass". In general you should always call the Legal method of your super class, as even moves.Base includes important logic in its Legal implementation.
+This is our Legal method. We embed `moves.CurrentPlayer`, but add on our own logic. That's why we call `m.CurrentPlayer.Legal` first, since we want to extend our "superclass". In general you should always call the Legal method of your super class, as even moves.Default includes important logic in its Legal implementation.
 
 ```
 func (m *MoveHideCards) Apply(state boardgame.State) error {
@@ -1525,7 +1527,7 @@ For that reason, a convention of "Phases" is used. A game can have multiple phas
 
 The concept of Phases is barely represented in the core library at all. Delegates have `CurrentPhase() int` and `PhaseEnum() *enum.Enum`, but other than that the notion of Phases is implemented entirely in the (technically optional) `moves` package.
 
-At the core, the notion of Phases is implmented by `moves.Base`'s Legal method--which is why it's so important to always call your super's `Legal` method! `moves.Base` will first check to make sure that the current phase of the game is one that is legal for this move, and then check to see if playing this move at this point in the phase is legal. All other methods and machinery for representing Phases are just about giving moves.Base the information it needs to make this determination.
+At the core, the notion of Phases is implmented by `moves.Default`'s Legal method--which is why it's so important to always call your super's `Legal` method! `moves.Default` will first check to make sure that the current phase of the game is one that is legal for this move, and then check to see if playing this move at this point in the phase is legal. All other methods and machinery for representing Phases are just about giving moves.Default the information it needs to make this determination.
 
 The actual machinery to implement Moves is not important, other than to know that it can be overriden by swapping out the implementations of a few delegate methods, as covered in the package documentation. This part of the tutorial will primarily just discuss how to use it in practice by examining the blackjack example.
 
@@ -1557,7 +1559,7 @@ const (
 
 In general it's easiest to use `boardgame-util codegen`'s enum-generation tool, which we do here.
 
-It's convention to name your phase enum as "Phase", and `moves.Base` will rely on that in some cases to create meaningful error messages. If you want to name it something different, override `GameDelegate.PhaseEnum`.
+It's convention to name your phase enum as "Phase", and `moves.Default` will rely on that in some cases to create meaningful error messages. If you want to name it something different, override `GameDelegate.PhaseEnum`.
 
 Now we have to tell the engine what the current phase is. We do this by overriding a method on our gamedelegate, much like we do for CurrentPlayerIndex:
 ```
@@ -1571,9 +1573,9 @@ However, since we're using base.GameDelegate and our Phase property is `Phase` o
 we don't even have to do that. base.GameDelegate's CurrentPhase() already looks for that value
 there and returns it.
 
-Now the core engine knows about what phase it is. `moves.Base` will consult that information it is Legal method. But how do we tell `moves.Base` which phases a move is legal in?
+Now the core engine knows about what phase it is. `moves.Default` will consult that information it is Legal method. But how do we tell `moves.Deafult` which phases a move is legal in?
 
-Moves that are based on `moves.Base` have a `LegalPhases() []int` method that `moves.Base` consults to see if the game's CurrentPhase is one of those. `LegalPhases()` just returns whatever was passed in `moves.AutoConfigurer` with `WithLegalPhases`. However, setting that manually is error-prone; you have to remember to include it for each move in that phase, and it can be hard to keep track of the order of the moves.
+Moves that are based on `moves.Default` have a `LegalPhases() []int` method that `moves.Default` consults to see if the game's CurrentPhase is one of those. `LegalPhases()` just returns whatever was passed in `moves.AutoConfigurer` with `WithLegalPhases`. However, setting that manually is error-prone; you have to remember to include it for each move in that phase, and it can be hard to keep track of the order of the moves.
 
 That's why the `moves` package defines `Add`, `AddForPhase`, and `AddOrderedForPhase`, which automatically call the right `WithLegalPhases` and `WithLegalMoveProgression` methods for you. In addition, the `moves` package defines `moves.Combine`, a convenience wrapper to use in your `ConfigureMoves` when you have phases.
 
@@ -1629,11 +1631,11 @@ This machinery works great for moves that legal at any point within a phase, lik
 
 However in many cases, like setting up a new round of a game, there are a series of moves that should be applied in a precise order, one after the other. Writing bespoke `Legal` methods that did complicated signaling to each other about when it was their turn would be very error prone.
 
-For that reason, the Phase machinery also has a notion of *ordered* moves in a Phase. When a phase is configured to require certain moves in a specific order, `moves.Base`'s `Legal()` will return an error if the move is applied in the wrong order. 
+For that reason, the Phase machinery also has a notion of *ordered* moves in a Phase. When a phase is configured to require certain moves in a specific order, `moves.Default`'s `Legal()` will return an error if the move is applied in the wrong order. 
 
 This means that instead of writing an error-prone Legal method, in many cases you don't need to write a custom Legal method at all, and can just rely on the phase ordering machinery.
 
-The actual machinery to do this uses what are called MoveProgressions, a notion encoded in the `moves` package. You pass `WithLegalMoveProgression` when configuring the move, and `moves.Base.Legal()` consults that information.
+The actual machinery to do this uses what are called MoveProgressions, a notion encoded in the `moves` package. You pass `WithLegalMoveProgression` when configuring the move, and `moves.Default.Legal()` consults that information.
 
 Like setting the legal phases, though, it's extremely error prone to call these yourself. That's why `moves.AddOrderedForPhase` exists, which automatically calls `WithLegalPhases` and `WithLegalMoveProgression` on the moves with the right information.
 
@@ -1715,7 +1717,7 @@ form a tree. You can learn more about how a TreeEnum works in the package doc fo
 The whole library (including the moves sub-package) will interpret PhaseEnums
 that also happen to be TreeEnums specially. They'll make sure, for example,
 that the delegate.CurrentPhase() is never in a non-leaf node phase. Also,
-moves.Base().Legal() will interpret a move that applies in a certain phase to
+moves.Default().Legal() will interpret a move that applies in a certain phase to
 also be legal any time delegate.CurrentPhase returns a value that is a child
 of that phase.
 

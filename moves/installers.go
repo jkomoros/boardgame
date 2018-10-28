@@ -62,7 +62,7 @@ func AddOrderedForPhase(phase int, groups ...MoveProgressionGroup) []boardgame.M
 
 	//Technically it's illegal to attach a move progression to a non-leaf
 	//phase enum val, but at this point we don't have a reference to delegate
-	//so we can't check. moves.Base.ValidConfiguration will check.
+	//so we can't check. moves.Default.ValidConfiguration will check.
 
 	//Every move in the phase shares the same group to match against. That's
 	//because the group matches as long as the whole tape is consumed, and a

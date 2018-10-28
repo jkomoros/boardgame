@@ -14,7 +14,7 @@ import (
 )
 
 //Moves should implement AllowMultipleInProgression if they want to
-//affirmatively communicate to moves.Base that in a move progression is it
+//affirmatively communicate to moves.Default that in a move progression is it
 //legal to apply multiple. If the move does not implement this interface then
 //it is considered to only allow one.
 type AllowMultipleInProgression interface {

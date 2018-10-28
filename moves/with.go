@@ -44,11 +44,11 @@ func WithLegalType(legalType int) CustomConfigurationOption {
 }
 
 //MoveName returns a function configuration option suitable for being
-//passed to auto.Config. moves.Base uses this, if provided, to power
+//passed to auto.Config. moves.Default uses this, if provided, to power
 //MoveTypeName, which means that auto.Config will use this name whenever it is
 //passed. If you're passing a move struct that not's from this package, the
 //auto-generated move name is likely sufficient and you don't need this. See
-//the documentation for moves.Base.MoveTypeName for more information.
+//the documentation for moves.Default.MoveTypeName for more information.
 func WithMoveName(moveName string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
 		config[configPropMoveName] = moveName
@@ -58,7 +58,7 @@ func WithMoveName(moveName string) CustomConfigurationOption {
 //MoveNameSuffix returns a function configuration option suitable for being
 //passed to auto.Config. The suffix, if provided, will be appended to whatever
 //the Move's name would have been (see the behavior for DeriveName on
-//move.Base). This is useful because every move must have a unique name, but
+//move.Default). This is useful because every move must have a unique name, but
 //sometimes you have the same underlying move struct who is legal in different
 //points in different progressions. This makes it easy to provide a suffix for
 //subsequent uses of the same move to ensure the names are all unique.
@@ -69,9 +69,9 @@ func WithMoveNameSuffix(suffix string) CustomConfigurationOption {
 }
 
 //HelpText returns a function configuration option suitable for being
-//passed to auto.Config. moves.Base uses this, if provided, to power
+//passed to auto.Config. moves.Default uses this, if provided, to power
 //MoveTypeHelpText, which means that auto.Config will use this text whenever
-//it is passed. See the documentation for moves.Base.MoveTypeHelpText for more
+//it is passed. See the documentation for moves.Default.MoveTypeHelpText for more
 //information.
 func WithHelpText(helpText string) CustomConfigurationOption {
 	return func(config boardgame.PropertyCollection) {
@@ -97,7 +97,7 @@ func WithLegalPhases(legalPhases ...int) CustomConfigurationOption {
 }
 
 //LegalMoveProgression returns a function configuration option suitable
-//for being passed to auto.Config. moves.Base's Legal() will use this for this
+//for being passed to auto.Config. moves.Default's Legal() will use this for this
 //move type to determine if the move is legal in the order it's being applied.
 //Typically you don't use this directly, and instead use moves.AddOrderedForPhase to
 //use this implicitly.
@@ -108,9 +108,9 @@ func WithLegalMoveProgression(group MoveProgressionGroup) CustomConfigurationOpt
 }
 
 //IsFixUp returns a function configuration option suitable for being passed to
-//auto.Config. moves.Base uses this, if provided, to power MoveTypeIsFixUp,
+//auto.Config. moves.Default uses this, if provided, to power MoveTypeIsFixUp,
 //which means that auto.Config will use this if it is passed. See the
-//documentation for moves.Base.IsFixUp for more information. All moves in this
+//documentation for moves.Default.IsFixUp for more information. All moves in this
 //package will return reasonable values for IsFixUp on their own, so it is
 //much more rare to use this than other config options in this package. In
 //general, instead of using this option you should simply embed FixUp (or a

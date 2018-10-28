@@ -186,11 +186,11 @@ type GameDelegate interface {
 	CurrentPlayerIndex(state ImmutableState) PlayerIndex
 
 	//CurrentPhase returns the phase that the game state is currently in.
-	//Phase is a formalized convention used in moves.Base to make it easier to
-	//write fix-up moves that only apply in certain phases, like SetUp. The
-	//return result is primarily used in moves.Base to check whether it is one
-	//of the phases in a give Move's LegalPhases. See moves.Base for more
-	//information.
+	//Phase is a formalized convention used in moves.Default to make it easier
+	//to write fix-up moves that only apply in certain phases, like SetUp. The
+	//return result is primarily used in moves.Default to check whether it is
+	//one of the phases in a give Move's LegalPhases. See moves.Default for
+	//more information.
 	CurrentPhase(state ImmutableState) int
 
 	//PhaseEnum returns the enum for game phases (the return values of

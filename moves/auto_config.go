@@ -100,9 +100,9 @@ func (d *defaultMoveConfig) multipleItemSatisfied(tape *MoveGroupHistoryItem) (e
 
 //AutoConfigurableMove is the interface that moves passed to AutoConfigurer.Config must
 //implement. These methods are interrogated to set the move name,
-//helptext,isFixUp, and legalPhases to good values. moves.Base defines
-//powerful stubs for these, so any moves that embed moves.Base (or embed a
-//move that embeds moves.Base, etc) satisfy this interface.
+//helptext,isFixUp, and legalPhases to good values. moves.Default defines
+//powerful stubs for these, so any moves that embed moves.Default (or embed a
+//move that embeds moves.Default, etc) satisfy this interface.
 type AutoConfigurableMove interface {
 	//DefaultConfigMoves all must implement all Move methods.
 	boardgame.Move
@@ -142,7 +142,7 @@ func (a *AutoConfigurer) MustConfig(exampleStruct AutoConfigurableMove, options 
 //Generating a MoveConfig for each is a pain. This method auto- generates the
 //MoveConfig based on an example zero type of your move to install. Moves need
 //a few extra methods that are consulted to generate the move name, helptext,
-//and isFixUp; anything based on moves.Base automatically satisfies the
+//and isFixUp; anything based on moves.Default automatically satisfies the
 //necessary interface. See the package doc for an example of use. Instead of
 //returning a boardgame.MoveConfig, it returns a GroupableMoveConfig
 //equivalent to what you'd get from NewGroupableMoveConfig, which satisfies

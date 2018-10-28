@@ -8,49 +8,49 @@ import (
 
 //boardgame:codegen
 type moveMoveCardBetweenShortStacks struct {
-	moves.Base
+	moves.Default
 	FromFirst bool
 }
 
 //boardgame:codegen
 type moveMoveCardBetweenDrawAndDiscardStacks struct {
-	moves.Base
+	moves.Default
 	FromDraw bool
 }
 
 //boardgame:codegen
 type moveFlipHiddenCard struct {
-	moves.Base
+	moves.Default
 }
 
 //boardgame:codegen
 type moveMoveCardBetweenFanStacks struct {
-	moves.Base
+	moves.Default
 }
 
 //boardgame:codegen
 type moveVisibleShuffleCards struct {
-	moves.Base
+	moves.Default
 }
 
 //boardgame:codegen
 type moveShuffleCards struct {
-	moves.Base
+	moves.Default
 }
 
 //boardgame:codegen
 type moveMoveBetweenHidden struct {
-	moves.Base
+	moves.Default
 }
 
 //boardgame:codegen
 type moveMoveToken struct {
-	moves.Base
+	moves.Default
 }
 
 //boardgame:codegen
 type moveMoveTokenSanitized struct {
-	moves.Base
+	moves.Default
 }
 
 //boardgame:codegen
@@ -85,7 +85,7 @@ func (m *moveMoveCardBetweenShortStacks) DefaultsForState(state boardgame.Immuta
 
 func (m *moveMoveCardBetweenShortStacks) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
-	if err := m.Base.Legal(state, proposer); err != nil {
+	if err := m.Default.Legal(state, proposer); err != nil {
 		return err
 	}
 
@@ -143,7 +143,7 @@ func (m *moveMoveCardBetweenDrawAndDiscardStacks) DefaultsForState(state boardga
 
 func (m *moveMoveCardBetweenDrawAndDiscardStacks) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
-	if err := m.Base.Legal(state, proposer); err != nil {
+	if err := m.Default.Legal(state, proposer); err != nil {
 		return err
 	}
 
@@ -191,7 +191,7 @@ func (m *moveFlipHiddenCard) HelpText() string {
 
 func (m *moveFlipHiddenCard) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
-	if err := m.Base.Legal(state, proposer); err != nil {
+	if err := m.Default.Legal(state, proposer); err != nil {
 		return err
 	}
 
@@ -239,7 +239,7 @@ func (m *moveMoveCardBetweenFanStacks) HelpText() string {
 
 func (m *moveMoveCardBetweenFanStacks) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
-	if err := m.Base.Legal(state, proposer); err != nil {
+	if err := m.Default.Legal(state, proposer); err != nil {
 		return err
 	}
 
@@ -279,7 +279,7 @@ func (m *moveVisibleShuffleCards) HelpText() string {
 
 func (m *moveVisibleShuffleCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
-	if err := m.Base.Legal(state, proposer); err != nil {
+	if err := m.Default.Legal(state, proposer); err != nil {
 		return err
 	}
 
@@ -312,7 +312,7 @@ func (m *moveShuffleCards) HelpText() string {
 
 func (m *moveShuffleCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
-	if err := m.Base.Legal(state, proposer); err != nil {
+	if err := m.Default.Legal(state, proposer); err != nil {
 		return err
 	}
 
@@ -345,7 +345,7 @@ func (m *moveMoveBetweenHidden) HelpText() string {
 
 func (m *moveMoveBetweenHidden) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
-	if err := m.Base.Legal(state, proposer); err != nil {
+	if err := m.Default.Legal(state, proposer); err != nil {
 		return err
 	}
 
@@ -386,7 +386,7 @@ func (m *moveMoveToken) HelpText() string {
 
 func (m *moveMoveToken) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
-	if err := m.Base.Legal(state, proposer); err != nil {
+	if err := m.Default.Legal(state, proposer); err != nil {
 		return err
 	}
 
@@ -427,7 +427,7 @@ func (m *moveMoveTokenSanitized) HelpText() string {
 
 func (m *moveMoveTokenSanitized) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
-	if err := m.Base.Legal(state, proposer); err != nil {
+	if err := m.Default.Legal(state, proposer); err != nil {
 		return err
 	}
 

@@ -42,7 +42,7 @@ func (f *FinishTurn) ValidConfiguration(exampleState boardgame.State) error {
 //Legal checks if the game's CurrentPlayer's TurnDone() returns true.
 func (f *FinishTurn) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
-	if err := f.Base.Legal(state, proposer); err != nil {
+	if err := f.Default.Legal(state, proposer); err != nil {
 		return err
 	}
 

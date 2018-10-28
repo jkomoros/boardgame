@@ -175,8 +175,8 @@ type MoveInfo struct {
 //initialization. Packages define structs that implement Move for all
 //modifications. The Move should be JSON-able (that is, all persistable state
 //should be in public fields), and it may not include Timers, Stacks, or
-//EnumValues. Use moves.Base for a convenient composable base Move that will
-//allow you to skip most of the boilerplate overhead.
+//EnumValues. Use base.Move or moves.Default for a convenient composable base
+//Move that will allow you to skip most of the boilerplate overhead.
 type Move interface {
 
 	//Info returns the MoveInfo objec that was affiliated with this object by
@@ -229,7 +229,7 @@ type Move interface {
 	//SetInfo will be called after the constructor is called to set the
 	//information, including what type the move is. Splitting this out allows
 	//the basic constructors not in the base classes to be very small, because
-	//in most cases you'll compose a moves.Base.
+	//in most cases you'll compose a base.Move.
 	SetInfo(m *MoveInfo)
 
 	//TopLevelStruct should return the value that was set via
@@ -242,7 +242,7 @@ type Move interface {
 
 	//SetTopLevelStruct is called right after the move is constructed.
 	//Splitting this out allows the basic constructors not in the base classes
-	//to be very small, because in most cases you'll compose a moves.Base.
+	//to be very small, because in most cases you'll compose a base.Move.
 	SetTopLevelStruct(m Move)
 
 	//ValidConfiguration will be checked when the game manager is SetUp, and
@@ -366,7 +366,7 @@ func (m *moveType) NewMove(state ImmutableState) Move {
 	return move
 }
 
-//We implement a private stub of moves.Base in this package just for the
+//We implement a private stub of base.Move in this package just for the
 //convience of our own test structs.
 type baseMove struct {
 	info           MoveInfo

@@ -90,7 +90,7 @@ type MoveStartHideCardsTimer struct {
 
 func (m *MoveStartHideCardsTimer) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
-	if err := m.Base.Legal(state, proposer); err != nil {
+	if err := m.FixUp.Legal(state, proposer); err != nil {
 		return err
 	}
 
@@ -144,7 +144,7 @@ type MoveCaptureCards struct {
 }
 
 func (m *MoveCaptureCards) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-	if err := m.Base.Legal(state, proposer); err != nil {
+	if err := m.FixUp.Legal(state, proposer); err != nil {
 		return err
 	}
 

@@ -40,7 +40,7 @@ func ensureAllMovesSatisfyFallBack() {
 	m = new(ApplyUntil)
 	m = new(ApplyUntilCount)
 	m = new(ApplyCountTimes)
-	m = new(Base)
+	m = new(Default)
 	m = new(CollectCountComponents)
 	m = new(CollectComponentsUntilGameCountReached)
 	m = new(CollectComponentsUntilPlayerCountLeft)
@@ -66,87 +66,113 @@ func ensureAllMovesSatisfyFallBack() {
 	}
 }
 
-/*
-Base is an optional, convenience struct designed to be embedded
-anonymously in your own Moves. It implements no-op methods for many of the
-required methods on Moves. Apply is not covered, because every Move
-should implement their own, and if this implemented them it would obscure
-errors where for example your Apply() was incorrectly named and thus not used.
+/* Move is an optional, convenience struct designed to be embedded anonymously
+in your own Moves. Although technically optional to embed this struct, in
+almost all cases you will embed it or a move that transitively embeds it.
 
-Base's Legal() method does basic checking for whehter the move is legal in
-this phase, so your own Legal() method should always call Base.Legal() (or the
-Legal method of whichever struct you embedded that in turn calls Base.Legal())
-at the top of its own method.
+It provides minimal stubs for all of the expected methods Moves should have,
+other than Legal() and Apply(), which generally have logic specific to the
+move.
 
-Base contains a fair bit of logic for generating the values that auto.Config
-will use for the move configuration; see MoveType* methods on Base for more
-information.
-
-It is extremely rare to not use moves.Base either directly, or implicitly
-within another sub-class in your move.
-
-Base cannot help your move implement PropertyReadSetter; use `boardgame-util
-codegen` to generate that code for you.
+See also moves.Default, which embeds this but adds logic about overriding
+configuration via auto.Config(), as well as robust base logic for phases and
+phase progressions. Typically your moves will use that (or something that
+embeds that).
 
 boardgame:codegen
 */
-type Base struct {
+type Move struct {
 	info           *boardgame.MoveInfo
 	topLevelStruct boardgame.Move
 }
 
-func (d *Base) SetInfo(m *boardgame.MoveInfo) {
-	d.info = m
+func (m *Move) SetInfo(info *boardgame.MoveInfo) {
+	m.info = info
 }
 
 //Type simply returns BaseMove.MoveInfo
-func (d *Base) Info() *boardgame.MoveInfo {
-	return d.info
+func (m *Move) Info() *boardgame.MoveInfo {
+	return m.info
 }
 
-func (d *Base) SetTopLevelStruct(m boardgame.Move) {
-	d.topLevelStruct = m
+func (m *Move) SetTopLevelStruct(t boardgame.Move) {
+	m.topLevelStruct = t
 }
 
 //TopLevelStruct returns the object that was set via SetTopLevelStruct.
-func (d *Base) TopLevelStruct() boardgame.Move {
-	return d.topLevelStruct
+func (m *Move) TopLevelStruct() boardgame.Move {
+	return m.topLevelStruct
 }
 
 //DefaultsForState doesn't do anything
-func (d *Base) DefaultsForState(state boardgame.ImmutableState) {
+func (m *Move) DefaultsForState(state boardgame.ImmutableState) {
 	return
 }
 
 //Description defaults to returning the Type's HelpText()
-func (d *Base) Description() string {
-	return d.TopLevelStruct().HelpText()
+func (m *Move) Description() string {
+	return m.TopLevelStruct().HelpText()
 }
 
 //Name returns the name of this move according to MoveInfo.Name(). A simple
 //convenience wrapper that allows you to avoid a nil check.
-func (d *Base) Name() string {
-	if d.info == nil {
+func (m *Move) Name() string {
+	if m.info == nil {
 		return ""
 	}
-	return d.info.Name()
+	return m.info.Name()
 }
 
 //CustomConfiguration returns the custom configuration associated with this
 //move, according to MoveInfo.CustomConfiguration(). A simple convenience
 //wrapper that allows you to avoid a nil check.
-func (d *Base) CustomConfiguration() boardgame.PropertyCollection {
+func (m *Move) CustomConfiguration() boardgame.PropertyCollection {
 
-	if d.info == nil {
+	if m.info == nil {
 		return nil
 	}
 
-	return d.info.CustomConfiguration()
+	return m.info.CustomConfiguration()
 
 }
 
+//HelpText returns ""
+func (m *Move) HelpText() string {
+	return ""
+}
+
+//IsFixUp always returns false; it's designed ot be overriden. It is designed
+//to work well with base.IsFixUp, for use in base.GameDelegate.ProposeFixUp.
+func (m *Move) IsFixUp() bool {
+	return false
+}
+
+/* Default is an optional, convenience struct designed to be embedded
+anonymously in your own Moves. It builds on base.Move to add to a layer of
+default Legal logic and configuraability.. Apply is not covered, because every
+Move should implement their own, and if this implemented them it would obscure
+errors where for example your Apply() was incorrectly named and thus not used.
+
+Default's Legal() method does basic checking for whehter the move is legal in
+this phase, so your own Legal() method should always call Default.Legal() (or the
+Legal method of whichever struct you embedded that in turn calls Default.Legal())
+at the top of its own method.
+
+Default contains a fair bit of logic for generating the values that auto.Config
+will use for the move configuration; see MoveType* methods on Default for more
+information.
+
+It is extremely rare to not use moves.Default either directly, or implicitly
+within another sub-class in your move.
+
+boardgame:codegen
+*/
+type Default struct {
+	Move
+}
+
 //ValidConfiguration ensures that phase progression is configured in sane way.
-func (d *Base) ValidConfiguration(exampleState boardgame.State) error {
+func (d *Default) ValidConfiguration(exampleState boardgame.State) error {
 	config := d.CustomConfiguration()
 
 	if config[configPropLegalMoveProgression] != nil {
@@ -222,7 +248,7 @@ func titleCaseToWords(in string) string {
 //package, it will fall back on whatever the FallbackName() method returns.
 //Subclasses generally should not override this. If WithMoveNameSuffix() was
 //used, it will then add " - " + suffix to the end of the move name.
-func (b *Base) DeriveName(m *boardgame.GameManager) string {
+func (b *Default) DeriveName(m *boardgame.GameManager) string {
 
 	config := b.CustomConfiguration()
 
@@ -245,7 +271,7 @@ func (b *Base) DeriveName(m *boardgame.GameManager) string {
 }
 
 //baseDeriveName does most of the name logic, but not the suffix behavior.
-func (b *Base) baseDeriveName(m *boardgame.GameManager) string {
+func (b *Default) baseDeriveName(m *boardgame.GameManager) string {
 
 	config := b.CustomConfiguration()
 
@@ -294,15 +320,15 @@ func (b *Base) baseDeriveName(m *boardgame.GameManager) string {
 }
 
 //FallbackName is the name that is returned if other higher-priority
-//methods in MoveTypeName fail. For moves.Base returns "Base Move".
-func (b *Base) FallbackName(m *boardgame.GameManager) string {
-	return "Base Move"
+//methods in MoveTypeName fail. For moves.Default returns "Base Move".
+func (b *Default) FallbackName(m *boardgame.GameManager) string {
+	return "Default Move"
 }
 
 //HelpText will return the value passed via the WithHelpText config option, if
 //it was passed. Otherwise it will fall back on the move's HelpTextFallback
 //method.
-func (b *Base) HelpText() string {
+func (b *Default) HelpText() string {
 	config := b.CustomConfiguration()
 
 	overrideHelpText, hasOverrideHelpText := config[configPropHelpText]
@@ -329,15 +355,15 @@ func (b *Base) HelpText() string {
 }
 
 //FallbackHelpText is the help text that will be used by HelpText if nothing
-//was passed via WithHelpText to auto.Config. By default it returns "A base
+//was passed via WithHelpText to auto.Config. By default it returns "A default
 //move that does nothing on its own"
-func (b *Base) FallbackHelpText() string {
-	return "A base move that does nothing on its own"
+func (b *Default) FallbackHelpText() string {
+	return "A default move that does nothing on its own"
 }
 
 //IsFixUp will return the value passed with WithFixUp, falling back on
 //returning false.
-func (b *Base) IsFixUp() bool {
+func (b *Default) IsFixUp() bool {
 	config := b.CustomConfiguration()
 	return overrideIsFixUp(config, false)
 }
@@ -372,7 +398,7 @@ func overrideIsFixUp(config boardgame.PropertyCollection, defaultIsFixUp bool) b
 //pattern? If your move can be made legally multiple times in a row in a given
 //move progression, implement interfaces.AllowMultipleInProgression() and
 //return true.
-func (d *Base) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+func (d *Default) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	if err := d.legalInPhase(state); err != nil {
 		return err
@@ -382,7 +408,7 @@ func (d *Base) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIn
 
 }
 
-func (d *Base) legalPhases() []int {
+func (d *Default) legalPhases() []int {
 	val := d.CustomConfiguration()[configPropLegalPhases]
 	ints, ok := val.([]int)
 	if !ok {
@@ -395,7 +421,7 @@ type legalMoveProgressioner interface {
 	legalMoveProgression() MoveProgressionGroup
 }
 
-func (d *Base) legalMoveProgression() MoveProgressionGroup {
+func (d *Default) legalMoveProgression() MoveProgressionGroup {
 	val := d.CustomConfiguration()[configPropLegalMoveProgression]
 	group, ok := val.(MoveProgressionGroup)
 	if !ok {
@@ -406,7 +432,7 @@ func (d *Base) legalMoveProgression() MoveProgressionGroup {
 
 //legalInPhase will return a descriptive error if this move is not legal in
 //the current phase of hte game.
-func (d *Base) legalInPhase(state boardgame.ImmutableState) error {
+func (d *Default) legalInPhase(state boardgame.ImmutableState) error {
 
 	legalPhases := d.legalPhases()
 
@@ -454,7 +480,7 @@ func (d *Base) legalInPhase(state boardgame.ImmutableState) error {
 	return errors.New("Move is not legal in phase " + phaseName)
 }
 
-func (d *Base) historicalMovesSincePhaseTransition(game *boardgame.Game, upToVersion int, targetPhase int) []*boardgame.MoveStorageRecord {
+func (d *Default) historicalMovesSincePhaseTransition(game *boardgame.Game, upToVersion int, targetPhase int) []*boardgame.MoveStorageRecord {
 
 	moves := game.MoveRecords(upToVersion)
 
@@ -544,7 +570,7 @@ func (d *Base) historicalMovesSincePhaseTransition(game *boardgame.Game, upToVer
 //method terminating, becuase this method won't; because as far as the
 //progression is concerned, it's legal, and it's the sub-class's Legal()
 //method's job to decide it's no longer legal.
-func (d *Base) legalMoveInProgression(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+func (d *Default) legalMoveInProgression(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
 	group := d.legalMoveProgression()
 

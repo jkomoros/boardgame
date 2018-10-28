@@ -24,7 +24,7 @@ too.
 boardgame:codegen
 */
 type CurrentPlayer struct {
-	Base
+	Default
 	TargetPlayerIndex boardgame.PlayerIndex
 }
 
@@ -33,7 +33,7 @@ type CurrentPlayer struct {
 //proposer, or if the TargetPlayerIndex is not one of the players.
 func (c *CurrentPlayer) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
-	if err := c.Base.Legal(state, proposer); err != nil {
+	if err := c.Default.Legal(state, proposer); err != nil {
 		return err
 	}
 

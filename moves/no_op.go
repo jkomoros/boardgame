@@ -42,7 +42,7 @@ provides a barrier:
 
 FixUpAllowsMultiple will at some point decide itself that it is no longer
 legal to apply. At that point, the next move in the progression is NoOp, which
-only uses moves.Base.Legal() and is therefore always legal at its point in the
+only uses moves.Default.Legal() and is therefore always legal at its point in the
 phase. After NoOp applies, the next FixUpAllowsMultiple applies, guaranteeing
 it begins matching the second group.
 
@@ -74,7 +74,7 @@ func (n *NoOp) FallbackHelpText() string {
 
 /*
 Done is a simple move that does nothing and whose Legal is equivalent to
-moves.Base.Legal(), meaning it is legal purely if the phase matches and it's
+moves.Default.Legal(), meaning it is legal purely if the phase matches and it's
 the right time in the progression.
 
 It's a non-fix-up equivalent to NoOp. It's used primarily when a player could
@@ -83,7 +83,7 @@ decide to make multiple moves, or end early, and has opted to end early.
 boardgame:codegen
 */
 type Done struct {
-	Base
+	Default
 }
 
 //Apply is a no-op; it makes no change to state and alwasy returns nil.

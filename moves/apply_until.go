@@ -41,7 +41,7 @@ func (a *ApplyUntil) ValidConfiguration(exampleState boardgame.State) error {
 
 //Legal returns an error until ConditionMet returns nil.
 func (a *ApplyUntil) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
-	if err := a.Base.Legal(state, proposer); err != nil {
+	if err := a.Default.Legal(state, proposer); err != nil {
 		return err
 	}
 

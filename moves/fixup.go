@@ -4,14 +4,14 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
-//FixUp is a simple move type that just wraps moves.Base. Its primary effect
+//FixUp is a simple move type that just wraps moves.Default. Its primary effect
 //is to have the default IsFixUp for auto.Config to default to true. When you
 //have a custom fix up move, it's best to embed this, because otherwise it's
 //easy to forget to pass moves.WithIsFixUp to auto.Config.
 //
 //boardgame:codegen
 type FixUp struct {
-	Base
+	Default
 }
 
 //FallbackName returns FixUp Move"

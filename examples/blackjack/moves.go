@@ -39,7 +39,7 @@ type MoveCurrentPlayerStand struct {
 
 func (m *MoveShuffleDiscardToDraw) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 
-	if err := m.Base.Legal(state, proposer); err != nil {
+	if err := m.FixUp.Legal(state, proposer); err != nil {
 		return err
 	}
 

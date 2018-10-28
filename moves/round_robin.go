@@ -291,7 +291,7 @@ func (r *RoundRobin) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 	//We run the base legal first to see if this phase is even legal for us.
 	//We can't run ApplyUntil until later, because it will say it's not legal
 	//if the round robin hasn't started.
-	if err := r.Base.Legal(state, proposer); err != nil {
+	if err := r.Default.Legal(state, proposer); err != nil {
 		return err
 	}
 
