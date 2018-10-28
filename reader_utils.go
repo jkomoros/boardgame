@@ -374,13 +374,13 @@ struct is a playerState if it can be cast to a boardgame.PlayerState.
 
 This means all of the following are valid:
 
-type myPlayerState struct {
-	boardgame.BaseSubState
-	playerIndex boardgame.PlayerIndex
-	VisibleHand boardgame.Stack //Equivalent to `sanitize:"all:visible"`
-	HiddenHand boardgame.Stack `sanitize:"len"` // Equivalent to `sanitize:"other:len"`, since this is a player state.
-	OtherStack boardgame.Stack `sanitize:"nonempty,self:len"` //Eqiuvalent to `sanitize:"other:nonempty,self:len"`
-}
+	type myPlayerState struct {
+		boardgame.BaseSubState
+		playerIndex boardgame.PlayerIndex
+		VisibleHand boardgame.Stack //Equivalent to `sanitize:"all:visible"`
+		HiddenHand boardgame.Stack `sanitize:"len"` // Equivalent to `sanitize:"other:len"`, since this is a player state.
+		OtherStack boardgame.Stack `sanitize:"nonempty,self:len"` //Eqiuvalent to `sanitize:"other:nonempty,self:len"`
+	}
 
 Missing policy configuration is interpreted for that property as though it
 said `sanitize:"all:visible"`
