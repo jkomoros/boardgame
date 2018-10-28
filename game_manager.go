@@ -77,6 +77,28 @@ func (m *ManagerInternals) ForceNextTimer() bool {
 	return m.manager.timers.ForceNextTimer()
 }
 
+//StructInflater returns the autp-created StructInflater for the given type of
+//property in your state, allowing you to retrieve the inflater in use to
+//inspect for e.g. SanitizationPolicy configuration. Typically you don't use
+//this directly--it's primarily provided for base.GameDelegate to use.
+func (m *ManagerInternals) StructInflater(propRef StatePropertyRef) *StructInflater {
+
+	manager := m.manager
+
+	var validator *StructInflater
+	switch propRef.Group {
+	case StateGroupGame:
+		validator = manager.gameValidator
+	case StateGroupPlayer:
+		validator = manager.playerValidator
+	case StateGroupDynamicComponentValues:
+		validator = manager.dynamicComponentValidator[propRef.DeckName]
+	}
+
+	return validator
+
+}
+
 //NewGameManager creates a new game manager with the given delegate. It will
 //validate that the various sub-states are reasonable, and will call
 //ConfigureMoves and ConfigureAgents and then check that all tiems are

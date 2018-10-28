@@ -72,7 +72,7 @@ type StructInflater struct {
 //You typically do not use this directly; the base library will automatically
 //create ones for you for its own use to infalte your gameStates,
 //playerStates, dynamicComponentValueStates, and Moves, and which you can get
-//access to via manager.StructInflater().
+//access to via manager.Internals().StructInflater().
 func NewStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, chest *ComponentChest) (*StructInflater, error) {
 
 	if chest == nil {

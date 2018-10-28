@@ -394,21 +394,13 @@ func (d *DefaultGameDelegate) SanitizationPolicy(prop StatePropertyRef, groupMem
 
 	manager := d.Manager()
 
-	var validator *StructInflater
-	switch prop.Group {
-	case StateGroupGame:
-		validator = manager.gameValidator
-	case StateGroupPlayer:
-		validator = manager.playerValidator
-	case StateGroupDynamicComponentValues:
-		validator = manager.dynamicComponentValidator[prop.DeckName]
-	}
+	inflater := manager.Internals().StructInflater(prop)
 
-	if validator == nil {
+	if inflater == nil {
 		return PolicyInvalid
 	}
 
-	policyMap := validator.sanitizationPolicy[prop.PropName]
+	policyMap := inflater.PropertySanitizationPolicy(prop.PropName)
 
 	var applicablePolicies []int
 
