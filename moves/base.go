@@ -123,6 +123,28 @@ func (d *Base) Description() string {
 	return d.TopLevelStruct().HelpText()
 }
 
+//Name returns the name of this move according to MoveInfo.Name(). A simple
+//convenience wrapper that allows you to avoid a nil check.
+func (d *Base) Name() string {
+	if d.info == nil {
+		return ""
+	}
+	return d.info.Name()
+}
+
+//CustomConfiguration returns the custom configuration associated with this
+//move, according to MoveInfo.CustomConfiguration(). A simple convenience
+//wrapper that allows you to avoid a nil check.
+func (d *Base) CustomConfiguration() boardgame.PropertyCollection {
+
+	if d.info == nil {
+		return nil
+	}
+
+	return d.info.CustomConfiguration()
+
+}
+
 //ValidConfiguration ensures that phase progression is configured in sane way.
 func (d *Base) ValidConfiguration(exampleState boardgame.State) error {
 	config := d.CustomConfiguration()
@@ -357,28 +379,6 @@ func (d *Base) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIn
 	}
 
 	return d.legalMoveInProgression(state, proposer)
-
-}
-
-//Name returns the name of this move according to MoveInfo.Name(). A simple
-//convenience wrapper that allows you to avoid a nil check.
-func (d *Base) Name() string {
-	if d.info == nil {
-		return ""
-	}
-	return d.info.Name()
-}
-
-//CustomConfiguration returns the custom configuration associated with this
-//move, according to MoveInfo.CustomConfiguration(). A simple convenience
-//wrapper that allows you to avoid a nil check.
-func (d *Base) CustomConfiguration() boardgame.PropertyCollection {
-
-	if d.info == nil {
-		return nil
-	}
-
-	return d.info.CustomConfiguration()
 
 }
 
