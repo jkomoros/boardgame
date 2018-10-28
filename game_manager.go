@@ -23,9 +23,9 @@ import (
 //games.
 type GameManager struct {
 	delegate                  GameDelegate
-	gameValidator             *readerValidator
-	playerValidator           *readerValidator
-	dynamicComponentValidator map[string]*readerValidator
+	gameValidator             *StructInflater
+	playerValidator           *StructInflater
+	dynamicComponentValidator map[string]*StructInflater
 	chest                     *ComponentChest
 	storage                   StorageManager
 	agents                    []Agent
@@ -242,7 +242,7 @@ func (g *GameManager) setUpValidators() error {
 		return errors.New("GameStateConstructor returned nil")
 	}
 
-	validator, err := newReaderValidator(exampleGameState, nil, g.chest)
+	validator, err := NewStructInflater(exampleGameState, nil, g.chest)
 
 	if err != nil {
 		return errors.New("Could not validate empty game state: " + err.Error())
@@ -267,7 +267,7 @@ func (g *GameManager) setUpValidators() error {
 		return errors.New("PlayerStateConstructor returned nil")
 	}
 
-	validator, err = newReaderValidator(examplePlayerState, nil, g.chest)
+	validator, err = NewStructInflater(examplePlayerState, nil, g.chest)
 
 	if err != nil {
 		return errors.New("Could not validate empty player state: " + err.Error())
@@ -283,7 +283,7 @@ func (g *GameManager) setUpValidators() error {
 
 	g.playerValidator = validator
 
-	g.dynamicComponentValidator = make(map[string]*readerValidator)
+	g.dynamicComponentValidator = make(map[string]*StructInflater)
 
 	for _, deckName := range g.chest.DeckNames() {
 		deck := g.chest.Deck(deckName)
@@ -294,7 +294,7 @@ func (g *GameManager) setUpValidators() error {
 			continue
 		}
 
-		validator, err = newReaderValidator(exampleDynamicComponentValue, nil, g.chest)
+		validator, err = NewStructInflater(exampleDynamicComponentValue, nil, g.chest)
 
 		if err != nil {
 			return errors.New("Could not validate empty dynamic component state for " + deckName + ": " + err.Error())

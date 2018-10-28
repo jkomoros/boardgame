@@ -390,7 +390,7 @@ func (d *DefaultGameDelegate) SanitizationPolicy(prop StatePropertyRef, groupMem
 
 	manager := d.Manager()
 
-	var validator *readerValidator
+	var validator *StructInflater
 	switch prop.Group {
 	case StateGroupGame:
 		validator = manager.gameValidator

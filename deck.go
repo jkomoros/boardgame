@@ -155,7 +155,7 @@ func (d *Deck) finish(chest *ComponentChest, name string) error {
 		if c.Values() == nil {
 			continue
 		}
-		validator, err := newReaderValidator(c.Values(), illegalComponentValuesProps, chest)
+		validator, err := NewStructInflater(c.Values(), illegalComponentValuesProps, chest)
 		if err != nil {
 			return errors.New("Component " + strconv.Itoa(i) + "failed to validate: " + err.Error())
 		}

@@ -14,7 +14,7 @@ import (
 type moveType struct {
 	name                string
 	constructor         func() Move
-	validator           *readerValidator
+	validator           *StructInflater
 	customConfiguration PropertyCollection
 	manager             *GameManager
 }
@@ -121,14 +121,14 @@ func newMoveType(config MoveConfig, manager *GameManager) (*moveType, error) {
 		return nil, errors.New("Constructor's readsetter returned nil")
 	}
 
-	var validator *readerValidator
+	var validator *StructInflater
 	var err error
 
 	//moves.Defaultconfig will call this without a manager. So return a half-
 	//useful object in that case... but also an error so anyone else who
 	//checks the error will ignore the half-useful move type.
 	if manager != nil {
-		validator, err = newReaderValidator(exampleMove, moveTypeIllegalPropTypes, manager.Chest())
+		validator, err = NewStructInflater(exampleMove, moveTypeIllegalPropTypes, manager.Chest())
 
 		if err != nil {
 			return nil, errors.New("Couldn't create validator: " + err.Error())

@@ -45,7 +45,7 @@ documenation for the methods on StructInflater that make use of it, including
 Inflate() and PropertySanitizationPolicy().
 
 */
-type readerValidator struct {
+type StructInflater struct {
 	autoEnumFields        map[string]enum.Enum
 	autoMutableEnumFields map[string]enum.Enum
 	autoStackFields       map[string]*autoStackConfig
@@ -73,7 +73,7 @@ type readerValidator struct {
 //create ones for you for its own use to infalte your gameStates,
 //playerStates, dynamicComponentValueStates, and Moves, and which you can get
 //access to via manager.StructInflater().
-func newReaderValidator(exampleObj Reader, illegalTypes map[PropertyType]bool, chest *ComponentChest) (*readerValidator, error) {
+func NewStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, chest *ComponentChest) (*StructInflater, error) {
 
 	if chest == nil {
 		return nil, errors.New("Passed nil chest")
@@ -274,7 +274,7 @@ func newReaderValidator(exampleObj Reader, illegalTypes map[PropertyType]bool, c
 
 	}
 
-	result := &readerValidator{
+	result := &StructInflater{
 		autoEnumFields,
 		autoMutableEnumFields,
 		autoStackFields,
@@ -386,8 +386,8 @@ Missing policy configuration is interpreted for that property as though it
 said `sanitize:"all:visible"`
 
 */
-func (r *readerValidator) PropertySanitizationPolicy(propName string) map[int]Policy {
-	return r.sanitizationPolicy[propName]
+func (s *StructInflater) PropertySanitizationPolicy(propName string) map[int]Policy {
+	return s.sanitizationPolicy[propName]
 }
 
 /*
@@ -434,7 +434,7 @@ ComponentChest. We'll fetch that constant and use that for the int (erroring
 if it's not an int).
 
 */
-func (r *readerValidator) Inflate(obj ReadSetConfigurer, st ImmutableState) error {
+func (s *StructInflater) Inflate(obj ReadSetConfigurer, st ImmutableState) error {
 
 	readSetConfigurer := obj.ReadSetConfigurer()
 
@@ -442,7 +442,7 @@ func (r *readerValidator) Inflate(obj ReadSetConfigurer, st ImmutableState) erro
 		return errors.New("Object's ReadSetConfigurer returned nil")
 	}
 
-	for propName, config := range r.autoStackFields {
+	for propName, config := range s.autoStackFields {
 
 		if config.boardSize > 0 {
 
@@ -496,7 +496,7 @@ func (r *readerValidator) Inflate(obj ReadSetConfigurer, st ImmutableState) erro
 		}
 	}
 
-	for propName, config := range r.autoMergedStackFields {
+	for propName, config := range s.autoMergedStackFields {
 		stack, err := readSetConfigurer.ImmutableStackProp(propName)
 		if stack != nil {
 			//Guess it was already set!
@@ -532,7 +532,7 @@ func (r *readerValidator) Inflate(obj ReadSetConfigurer, st ImmutableState) erro
 
 	}
 
-	for propName, enum := range r.autoEnumFields {
+	for propName, enum := range s.autoEnumFields {
 		enumConst, err := readSetConfigurer.ImmutableEnumProp(propName)
 		if enumConst != nil {
 			//Guess it was already set!
@@ -549,7 +549,7 @@ func (r *readerValidator) Inflate(obj ReadSetConfigurer, st ImmutableState) erro
 		}
 	}
 
-	for propName, enum := range r.autoMutableEnumFields {
+	for propName, enum := range s.autoMutableEnumFields {
 		enumConst, err := readSetConfigurer.EnumProp(propName)
 		if enumConst != nil {
 			//Guess it was already set!
@@ -592,13 +592,13 @@ func (r *readerValidator) Inflate(obj ReadSetConfigurer, st ImmutableState) erro
 	return nil
 }
 
-func (r *readerValidator) verifyNoIllegalProps(reader PropertyReader) error {
+func (s *StructInflater) verifyNoIllegalProps(reader PropertyReader) error {
 
 	for propName, propType := range reader.Props() {
 		if propType == TypeIllegal {
 			return errors.New(propName + " was TypeIllegal, which is always illegal")
 		}
-		if _, illegal := r.illegalTypes[propType]; illegal {
+		if _, illegal := s.illegalTypes[propType]; illegal {
 			return errors.New(propName + " was the type " + propType.String() + ", which is illegal in this context")
 		}
 	}
@@ -610,7 +610,7 @@ func (r *readerValidator) verifyNoIllegalProps(reader PropertyReader) error {
 //constructor, or if any Interface property (e.g. Stack, Timer, Enum) is
 //currently nil. Valid can help ensure that a given object has been fully
 //inflated.
-func (r *readerValidator) Valid(obj Reader) error {
+func (s *StructInflater) Valid(obj Reader) error {
 
 	reader := obj.Reader()
 
@@ -618,12 +618,12 @@ func (r *readerValidator) Valid(obj Reader) error {
 		return errors.New("Object's Reader returned nil")
 	}
 
-	if err := r.verifyNoIllegalProps(reader); err != nil {
+	if err := s.verifyNoIllegalProps(reader); err != nil {
 		return err
 	}
 	for propName, propType := range reader.Props() {
 
-		policyMap := r.sanitizationPolicy[propName]
+		policyMap := s.sanitizationPolicy[propName]
 
 		if policyMap == nil {
 			return errors.New(propName + " had no sanitization policy")
