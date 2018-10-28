@@ -6,7 +6,7 @@ import (
 
 //GameDelegate is the place that various parts of the game lifecycle can be
 //modified to support this particular game. Typically you embed
-//defaultGameDelegate in your won struct, and only override methods whose
+//base.GameDelegate in your won struct, and only override methods whose
 //default behavior is incorrect for your game.
 type GameDelegate interface {
 
