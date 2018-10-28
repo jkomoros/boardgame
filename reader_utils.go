@@ -70,8 +70,9 @@ type readerValidator struct {
 //error and a nil StructInflater if anything is invalid.
 //
 //You typically do not use this directly; the base library will automatically
-//create ones for you for its own use, and which you can get access to via
-//manager.StructInflater().
+//create ones for you for its own use to infalte your gameStates,
+//playerStates, dynamicComponentValueStates, and Moves, and which you can get
+//access to via manager.StructInflater().
 func newReaderValidator(exampleObj Reader, illegalTypes map[PropertyType]bool, chest *ComponentChest) (*readerValidator, error) {
 
 	if chest == nil {
@@ -604,8 +605,11 @@ func (r *readerValidator) verifyNoIllegalProps(reader PropertyReader) error {
 	return nil
 }
 
-//Valid will return an error if the reader is not valid according to the
-//configuration of this validator.
+//Valid will return an error if the object has any properties defined of a
+//type that is part of the illegalTypes passed to the StructInflater
+//constructor, or if any Interface property (e.g. Stack, Timer, Enum) is
+//currently nil. Valid can help ensure that a given object has been fully
+//inflated.
 func (r *readerValidator) Valid(obj Reader) error {
 
 	reader := obj.Reader()
