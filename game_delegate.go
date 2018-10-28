@@ -76,12 +76,13 @@ type GameDelegate interface {
 	//properties (ints, bools, strings) should all be their zero-value.
 	//Importantly, all Stacks, Timers, and Enums should be non- nil, because
 	//an initialized struct contains information about things like MaxSize,
-	//Size, and a reference to the deck they are affiliated with. It is also
-	//possible to use tag-based auto-initalization for these fields; see the
-	//package doc on Constructors.  Since these two methods are always
-	//required and always specific to each game type, DefaultGameDelegate does
-	//not implement them, as an extra reminder that you must implement them
-	//yourself.
+	//Size, and a reference to the deck they are affiliated with. GameManger
+	//will automatically create and use StructInflaters for these types of
+	//objects, allowing you to use tag-based configuration to automatically
+	//inflate these properties. See the documentation for StructInflater for
+	//more. Since these two methods are always required and always specific to
+	//each game type, DefaultGameDelegate does not implement them, as an extra
+	//reminder that you must implement them yourself.
 	GameStateConstructor() ConfigurableSubState
 	//PlayerStateConstructor is similar to GameStateConstructor, but
 	//playerIndex is the value that this PlayerState must return when its
@@ -92,7 +93,10 @@ type GameDelegate interface {
 	//DynamicComponentValues for the given deck. If nil is returned, then the
 	//components in that deck don't have any dynamic component state. This
 	//method must always return the same underlying type of struct for the
-	//same deck. If the returned object also implements the ComponentValues
+	//same deck. Like GameStateConstructor and PlayerStateConstructor, the
+	//engine will automatically create StructInflaters for these objects,
+	//allowing you to use tag-based inflation of properties. See StructInflate
+	//for more. If the returned object also implements the ComponentValues
 	//interface, then SetContainingComponent will be called on the
 	//DynamicComponent whenever one is created, with a reference back to the
 	//component it's associated with.
