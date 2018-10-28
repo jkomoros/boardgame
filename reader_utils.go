@@ -33,13 +33,14 @@ type autoMergedStackConfig struct {
 
 StructInflater is an object that knows how to check given structs for whether
 they are valid-ly configured, knows how to auto-fill any nil fields in the
-struct, and finally knows how to extract a sanitization Policy based on struct
-tag configuration. It uses struct-based tags for its configuration. All struct
-inspection is done in the constructor, so subquent uses of the StructInflater
-are fast and reflection-free. Get a new one from NewStructInflater. For more
-about the precise configuration of struct tags that StructInlater understands,
-see the documenation for the methods on StructInflater that make use of it,
-including Inflate() and PropertySanitizationPolicy().
+struct via configuration values passed on the struct's fields, and finally
+knows how to extract a sanitization Policy based on struct tag configuration.
+It uses struct-based tags for its configuration. All struct inspection is done
+in the constructor, so subquent uses of the StructInflater are fast and
+reflection-free. Get a new one from NewStructInflater. For more about the
+precise configuration of struct tags that StructInlater understands, see the
+documenation for the methods on StructInflater that make use of it, including
+Inflate() and PropertySanitizationPolicy().
 
 */
 type readerValidator struct {
