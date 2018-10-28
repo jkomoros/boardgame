@@ -34,14 +34,12 @@ type MoveConfig interface {
 	Name() string
 
 	//Constructor should return a zero-valued Move of the given type. Normally
-	//very simple: just a new(MyMoveType). Required. If you have a field that
-	//is an enum.Var you'll need to initalize it with a variable for the
-	//correct enum (generally necessitating a multi-line constructor),
-	//otherwise your move will fail to register. If that field has a struct
-	//tag of `enum:"ENUMNAME"` then so long as ENUMNAME is the name of a valid
-	//enum in the game's Chest.Enums, it will auto-instantiate a enum.Var for
-	//the correct enum for that field, allowing you to maintain a single-line
-	//constructor.
+	//very simple: just a new(MyMoveType). Required. The moves you create may
+	//not have an fields of Stack, Board, or Timer type, but may have enum.Val
+	//type. Those fields must be non-nil; like delegate.GameStateConstructor
+	//and others, a StructInflater will be created for each move type, which
+	//allows you to provide inflation configuration via struct tags. See
+	//StructInflater for more.
 	Constructor() func() Move
 
 	//CustomConfiguration is an optional PropertyCollection. Some move types--
