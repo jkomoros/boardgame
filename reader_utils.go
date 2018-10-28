@@ -31,14 +31,16 @@ type autoMergedStackConfig struct {
 
 /*
 
-StructInflater is an object that knows how to check given structs for whether
-they are valid-ly configured, knows how to auto-fill any nil fields in the
-struct via configuration values passed on the struct's fields, and finally
-knows how to extract a sanitization Policy based on struct tag configuration.
-It uses struct-based tags for its configuration. All struct inspection is done
-in the constructor, so subquent uses of the StructInflater are fast and
-reflection-free. Get a new one from NewStructInflater. For more about the
-precise configuration of struct tags that StructInlater understands, see the
+StructInflater is an object that inspects structs for tags with instructions
+using reflection. Later, it can use what it learned to auto-inflate nil
+interface properties (e.g. Timers, Stacks, and Enums) on those structs using
+the instructions encoded in the tag. After the creation of a StructInflater,
+reflection is no longer necessary, so operations are fast. In addition,
+StructInflaters can inspect a struct for whether it's valid (has no nil
+properties, has no illegal property types in this context), as well as
+reporting what the configuration of sanitization policies was based on the
+struct tags. Get a new one from NewStructInflater. For more about the precise
+configuration of struct tags that StructInlater understands, see the
 documenation for the methods on StructInflater that make use of it, including
 Inflate() and PropertySanitizationPolicy().
 
@@ -350,15 +352,87 @@ func policyFromStructTag(tag string, defaultGroup string) map[int]Policy {
 
 }
 
-//PropertySanitizationPolicy returns the policy (map[GroupIndex]Policy) based
-//on the struct tags from the example struct given to NewStructInflater.
+/*
+
+PropertySanitizationPolicy returns the policy (map[GroupIndex]Policy) based on
+the struct tags from the example struct given originally to NewStructInflater.
+It does not use reflection, relying on reflection at the time of creation of
+the StructInflater. In particular, it interprets policy tags in the following
+way:
+
+It looks for struct tag configuration with the `sanitize` keyword.
+
+Keywords are interpreted by splitting at "," into a series of configurations.
+For each configuration, a group name ("all", "other", "self") is followed by a
+":" and then a policy, one of "visible", "order", "len", "nonempty", and
+"hidden".
+
+If the group name is omitted for a config item, it is assumed to be "all" (for
+non-playerState structs), or "other" for playerState structs. We decide if a
+struct is a playerState if it can be cast to a boardgame.PlayerState.
+
+This means all of the following are valid:
+
+type myPlayerState struct {
+	boardgame.BaseSubState
+	playerIndex boardgame.PlayerIndex
+	VisibleHand boardgame.Stack //Equivalent to `sanitize:"all:visible"`
+	HiddenHand boardgame.Stack `sanitize:"len"` // Equivalent to `sanitize:"other:len"`, since this is a player state.
+	OtherStack boardgame.Stack `sanitize:"nonempty,self:len"` //Eqiuvalent to `sanitize:"other:nonempty,self:len"`
+}
+
+Missing policy configuration is interpreted for that property as though it
+said `sanitize:"all:visible"`
+
+*/
 func (r *readerValidator) PropertySanitizationPolicy(propName string) map[int]Policy {
 	return r.sanitizationPolicy[propName]
 }
 
-//Inflate will go through and inflate fields that are nil that it knows
-//how to inflate due to comments in structs detected in the constructor for
-//this validator.
+/*
+
+Inflate uses tag-based configuration it detected when this StructInflater
+was created in order to fill in instantiated values for nil Interface
+properties (e.g. Stacks, Timers, and Enums). It skips any properties that
+didn't have configuration provided via struct tags, or that were already
+non-nil. It assumes that the object is the same underlying shape as the one
+that was passed when this StructInflater was created.
+
+The struct tag based configuration is interpreted as follows:
+
+For Timers, no struct-based configuration is necessary, any property of type
+Timer is simply replaced with a timer object (since timers don't take any
+configuration to set-up).
+
+For default (growable) Stacks, the struct tag is `stack`. The contents of the
+tag is the name of the deck this stack is affiliated with. If the given deck
+name does not exist in the ComponentChest in use, the StructInflater would
+have failed to be created. You can also optionally provide a max-size by
+appending ",SIZE" into your struct tag.
+
+For sized Stacks, you provide the same types of configuration as for stacks,
+but with the struct tag of "sizedstack" instead. Note that whereas a max-size
+of a growable stack is the default, a size of 0 for a sizedstack is
+effectively useless, so generally for sized stacks you provide a size.
+
+For boards, you provide a stack tag, and also a "board" tag which denotes how
+many slots the board should have.
+
+For merged stacks, you provide a tag of either "concatenate" or "overlap" and
+then a comma-separated list of the names of stacks on this object to combine
+in that way. If any of those property names are not defined on this object,
+the StructInflater would have failed to have been crated.
+
+For enums, you provide the name of the enum this val is associated with by
+providing the struct-tag "enum". If that named enum does not exist in the
+ComponentChest in use, the StructInflater would have failed to be created.
+
+For every integer-based property described above, you can replace the int in
+the struct value with the name of a constant value that is defined on this
+ComponentChest. We'll fetch that constant and use that for the int (erroring
+if it's not an int).
+
+*/
 func (r *readerValidator) Inflate(obj ReadSetConfigurer, st ImmutableState) error {
 
 	readSetConfigurer := obj.ReadSetConfigurer()
