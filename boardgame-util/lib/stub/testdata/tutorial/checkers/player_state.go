@@ -20,7 +20,7 @@ func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
 }
 
 func (p *playerState) GameScore() int {
-	//DefaultGameDelegate's PlayerScore will use the GameScore() method on
+	//base.GameDelegate's PlayerScore will use the GameScore() method on
 	//playerState automatically if it exists.
 
 	//This method is exported as a computed property which means this method

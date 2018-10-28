@@ -3,6 +3,7 @@ package checkers
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/moves"
 )
 
@@ -14,7 +15,7 @@ Call the code generation for readers and enums here, so "go generate" will gener
 //go:generate boardgame-util codegen
 
 type gameDelegate struct {
-	boardgame.DefaultGameDelegate
+	base.GameDelegate
 }
 
 func (g *gameDelegate) Name() string {

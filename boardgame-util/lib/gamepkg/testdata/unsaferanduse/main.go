@@ -7,11 +7,12 @@ package unsaferanduse
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 	"math/rand"
 )
 
 type gameDelegate struct {
-	boardgame.DefaultGameDelegate
+	base.GameDelegate
 }
 
 func (g *gameDelegate) Name() string {

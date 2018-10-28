@@ -45,7 +45,7 @@ func TestIllegalPhase(t *testing.T) {
 }
 
 func TestGameScorer(t *testing.T) {
-	d := &DefaultGameDelegate{}
+	d := &defaultGameDelegate{}
 	p := &testPlayerState{
 		Score: 10,
 	}

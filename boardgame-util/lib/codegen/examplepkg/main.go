@@ -19,7 +19,7 @@ import (
 //This is a normal gameDelegate that should have its ConfigureEnums output,
 //because it has ConfigureMoves() but not its own ConfigureEnums.
 type gameDelegate struct {
-	boardgame.DefaultGameDelegate
+	base.GameDelegate
 }
 
 func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
@@ -28,7 +28,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 
 //This is a normal gameDelegate that should also have its ConfigureEnums output.
 type secondGameDelegate struct {
-	boardgame.DefaultGameDelegate
+	base.GameDelegate
 }
 
 func (s *secondGameDelegate) ConfigureMoves() []boardgame.MoveConfig {
@@ -38,7 +38,7 @@ func (s *secondGameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 //This delegate already has a manual configureEnums, so shouldn't have one
 //automatically generated.
 type alreadyHasEnumsGameDelegate struct {
-	boardgame.DefaultGameDelegate
+	base.GameDelegate
 }
 
 func (a *alreadyHasEnumsGameDelegate) ConfigureMoves() []boardgame.MoveConfig {
@@ -53,7 +53,7 @@ func (a *alreadyHasEnumsGameDelegate) ConfigureEnums() *enum.Set {
 //This delegate shouldn't have ConfigureEnums generated because it has
 //AnotherMethodName, not ConfigureMoves.
 type fakeGameDelegateWrongMethodName struct {
-	boardgame.DefaultGameDelegate
+	base.GameDelegate
 }
 
 func (f *fakeGameDelegateWrongMethodName) AnotherMethodName() []boardgame.MoveConfig {
@@ -63,10 +63,10 @@ func (f *fakeGameDelegateWrongMethodName) AnotherMethodName() []boardgame.MoveCo
 //This delegate shouldn't have ConfigureEnums generated because the return
 //type doesn't match the ConfigureMoves() signature.
 type fakeGameDelegateWrongReturnType struct {
-	boardgame.DefaultGameDelegate
+	base.GameDelegate
 }
 
-func (f *fakeGameDelegateWrongReturnType) ConfigureMoves() *boardgame.DefaultGameDelegate {
+func (f *fakeGameDelegateWrongReturnType) ConfigureMoves() *base.GameDelegate {
 	return nil
 }
 

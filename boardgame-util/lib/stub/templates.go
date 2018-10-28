@@ -177,6 +177,7 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves"
+	"github.com/jkomoros/boardgame/base"
 )
 
 /*
@@ -191,7 +192,7 @@ Call the code generation for readers and enums here, so "go generate" will gener
 	`:generate boardgame-util codegen
 
 type gameDelegate struct {
-	boardgame.DefaultGameDelegate
+	base.GameDelegate
 }
 
 func (g *gameDelegate) Name() string {
@@ -349,7 +350,7 @@ func (g *gameDelegate) FinishSetUp(state boardgame.State) error {
 {{end}}
 {{if .EnableExampleEndState }}
 func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool {
-	//DefaultGameDelegate's CheckGameFinished checks this method and if true
+	//base.GameDelegate's CheckGameFinished checks this method and if true
 	//looks at the score to see who won.
 
 	//In this example, the game is over once all of the cards are gone.
@@ -484,7 +485,7 @@ func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
 
 {{if or .EnableExampleEndState .EnableExampleComputedProperties}}
 func (p *playerState) GameScore() int {
-	//DefaultGameDelegate's PlayerScore will use the GameScore() method on
+	//base.GameDelegate's PlayerScore will use the GameScore() method on
 	//playerState automatically if it exists.
 
 	{{if .EnableExampleComputedProperties }}
@@ -545,11 +546,11 @@ type gameState struct {
 	//Use RoundRobinGameStateProperties so roundrobin moves can be used without any changes
 	moves.RoundRobinGameStateProperties
 	{{if not .SuppressCurrentPlayer -}}
-	//DefaultGameDelegate will automatically return this from CurrentPlayerIndex
+	//base.GameDelegate will automatically return this from CurrentPlayerIndex
 	CurrentPlayer boardgame.PlayerIndex
 	{{- end}}
 	{{if not .SuppressPhase -}}
-	//DefaultGameDelegate will automatically return this from PhaseEnum, CurrentPhase.
+	//base.GameDelegate will automatically return this from PhaseEnum, CurrentPhase.
 	Phase enum.Val ` + "`enum:\"Phase\"`" + `
 	{{- end}}
 	{{if .EnableExampleDeck -}}

@@ -9,13 +9,14 @@ package debuganimations
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/moves"
 )
 
 //go:generate boardgame-util codegen
 
 type gameDelegate struct {
-	boardgame.DefaultGameDelegate
+	base.GameDelegate
 }
 
 func (g *gameDelegate) Name() string {

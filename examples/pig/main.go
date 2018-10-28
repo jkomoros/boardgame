@@ -7,6 +7,7 @@ package pig
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/components/dice"
 	"github.com/jkomoros/boardgame/moves"
 	"strconv"
@@ -19,7 +20,7 @@ const DefaultTargetScore = 100
 const diceDeckName = "dice"
 
 type gameDelegate struct {
-	boardgame.DefaultGameDelegate
+	base.GameDelegate
 }
 
 func (g *gameDelegate) Name() string {

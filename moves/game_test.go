@@ -76,7 +76,7 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 }
 
 type gameDelegate struct {
-	boardgame.DefaultGameDelegate
+	base.GameDelegate
 	moveInstaller func(manager *boardgame.GameManager) []boardgame.MoveConfig
 }
 

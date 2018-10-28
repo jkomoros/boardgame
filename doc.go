@@ -146,10 +146,10 @@ GameManager is being set up.
 In some cases, your delegate doesn't need to do much special. For example,
 Delegate.ProposeFixUp() is often the same for many games: iterate through each
 FixUpMove that has been configured on the manager, and return the first one
-that is Legal(). For those reasons, this package defines a DefaultGameDelegate
-that is designed to be anonymously embedded into your own struct, so you only
-need to modify the behavior of the methods whose behavior is actually special
-to your game.
+that is Legal(). For those reasons, the base package defines a
+base.GameDelegate that is designed to be anonymously embedded into your own
+struct, so you only need to modify the behavior of the methods whose behavior
+is actually special to your game.
 
 Components
 
@@ -277,7 +277,7 @@ ShadowComponent, so that observes can keep track of the lenght, and when
 components switch orders in the stack, but not what the underlying components
 are.
 
-DefaultGameDelegate's SanitizationPolicy is configured in a way that is almost
+base.GameDelegate's SanitizationPolicy is configured in a way that is almost
 always sufficient, but its behavior can be overridden if absolutely
 neceassary. It uses struct tags on your state objects to figure out which
 properties to sanitize. Like tag-based auto-inflation (see below), the struct

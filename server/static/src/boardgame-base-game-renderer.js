@@ -33,10 +33,10 @@ export class BoardgameBaseGameRenderer extends PolymerElement {
   }
 
   //animationLenght is consulted when applying an animation to configure the
-  //animation length by setting `--animation-length` on the renderer. Zero
-  //will specify default animation length (that is, unset an override style).
-  //A negative return value will skip the animation entirely. The default one
-  //returns 0 for all combinations. See also delayAnimation.
+  //animation length (in milliseconds) by setting `--animation-length` on the
+  //renderer. Zero will specify default animation length (that is, unset an
+  //override style). A negative return value will skip the animation entirely.
+  //The default one returns 0 for all combinations. See also delayAnimation.
   animationLength(fromMove, toMove) {
     return 0;
   }

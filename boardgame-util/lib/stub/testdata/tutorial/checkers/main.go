@@ -3,6 +3,7 @@ package checkers
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/moves"
 )
 
@@ -14,7 +15,7 @@ Call the code generation for readers and enums here, so "go generate" will gener
 //go:generate boardgame-util codegen
 
 type gameDelegate struct {
-	boardgame.DefaultGameDelegate
+	base.GameDelegate
 }
 
 func (g *gameDelegate) Name() string {
@@ -136,7 +137,7 @@ func (g *gameDelegate) FinishSetUp(state boardgame.State) error {
 }
 
 func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool {
-	//DefaultGameDelegate's CheckGameFinished checks this method and if true
+	//base.GameDelegate's CheckGameFinished checks this method and if true
 	//looks at the score to see who won.
 
 	//In this example, the game is over once all of the cards are gone.

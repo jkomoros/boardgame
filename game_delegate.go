@@ -11,7 +11,7 @@ import (
 
 //GameDelegate is the place that various parts of the game lifecycle can be
 //modified to support this particular game. Typically you embed
-//DefaultGameDelegate in your won struct, and only override methods whose
+//defaultGameDelegate in your won struct, and only override methods whose
 //default behavior is incorrect for your game.
 type GameDelegate interface {
 
@@ -81,7 +81,7 @@ type GameDelegate interface {
 	//objects, allowing you to use tag-based configuration to automatically
 	//inflate these properties. See the documentation for StructInflater for
 	//more. Since these two methods are always required and always specific to
-	//each game type, DefaultGameDelegate does not implement them, as an extra
+	//each game type, defaultGameDelegate does not implement them, as an extra
 	//reminder that you must implement them yourself.
 	GameStateConstructor() ConfigurableSubState
 	//PlayerStateConstructor is similar to GameStateConstructor, but
@@ -206,7 +206,7 @@ type GameDelegate interface {
 
 	//SanitizationPolicy is consulted when sanitizing states. It is called for
 	//each prop in the state, including the set of groups that this player is
-	//a mamber of. In practice the default behavior of DefaultGameDelegate,
+	//a mamber of. In practice the default behavior of defaultGameDelegate,
 	//which uses struct tags to figure out the policy, is sufficient and you
 	//do not need to override this. For more on how sanitization works, see
 	//the package doc. The statePropetyRef passed will always have the Index
@@ -245,47 +245,47 @@ func (p PropertyCollection) Copy() PropertyCollection {
 	return result
 }
 
-//DefaultGameDelegate is a struct that implements stubs for all of
+//defaultGameDelegate is a struct that implements stubs for all of
 //GameDelegate's methods. This makes it easy to override just one or two
 //methods by creating your own struct that anonymously embeds this one. Name,
 //GameStateConstructor, PlayerStateConstructor, and ConfigureMoves are not
 //implemented, since those almost certainly must be overridden for your
 //particular game.
-type DefaultGameDelegate struct {
+type defaultGameDelegate struct {
 	manager *GameManager
 }
 
 //Diagram returns the string "This should be overriden to render a reasonable state here"
-func (d *DefaultGameDelegate) Diagram(state ImmutableState) string {
+func (d *defaultGameDelegate) Diagram(state ImmutableState) string {
 	return "This should be overriden to render a reasonable state here"
 }
 
 //DisplayName by default just returns the title-case of Name() that is
 //returned from the delegate in use.
-func (d *DefaultGameDelegate) DisplayName() string {
+func (d *defaultGameDelegate) DisplayName() string {
 	return strings.Title(d.Manager().Delegate().Name())
 }
 
 //Description defaults to "" if not overriden.
-func (d *DefaultGameDelegate) Description() string {
+func (d *defaultGameDelegate) Description() string {
 	return ""
 }
 
 //Manager returns the manager object that was provided to SetManager.
-func (d *DefaultGameDelegate) Manager() *GameManager {
+func (d *defaultGameDelegate) Manager() *GameManager {
 	return d.manager
 }
 
 //SetManager keeps a reference to the passed manager, and returns it when
 //Manager() is called.
-func (d *DefaultGameDelegate) SetManager(manager *GameManager) {
+func (d *defaultGameDelegate) SetManager(manager *GameManager) {
 	d.manager = manager
 }
 
 //DynamicComponentValuesConstructor returns nil, as not all games have
 //DynamicComponentValues. Override this if your game does require
 //DynamicComponentValues.
-func (d *DefaultGameDelegate) DynamicComponentValuesConstructor(deck *Deck) ConfigurableSubState {
+func (d *defaultGameDelegate) DynamicComponentValuesConstructor(deck *Deck) ConfigurableSubState {
 	return nil
 }
 
@@ -296,7 +296,7 @@ func (d *DefaultGameDelegate) DynamicComponentValuesConstructor(deck *Deck) Conf
 //function, otherwise you could get a panic from applying too many FixUp
 //moves. Wil emit debug information about why certain fixup moves didn't apply
 //if the Manager's log level is Debug or higher.
-func (d *DefaultGameDelegate) ProposeFixUpMove(state ImmutableState) Move {
+func (d *defaultGameDelegate) ProposeFixUpMove(state ImmutableState) Move {
 
 	isDebug := d.Manager().Logger().Level >= logrus.DebugLevel
 
@@ -343,7 +343,7 @@ func (d *DefaultGameDelegate) ProposeFixUpMove(state ImmutableState) Move {
 
 //CurrentPlayerIndex returns gameState.CurrentPlayer, if that is a PlayerIndex
 //property. If not, returns ObserverPlayerIndex.≈
-func (d *DefaultGameDelegate) CurrentPlayerIndex(state ImmutableState) PlayerIndex {
+func (d *defaultGameDelegate) CurrentPlayerIndex(state ImmutableState) PlayerIndex {
 	index, err := state.ImmutableGameState().Reader().PlayerIndexProp("CurrentPlayer")
 
 	if err != nil {
@@ -357,7 +357,7 @@ func (d *DefaultGameDelegate) CurrentPlayerIndex(state ImmutableState) PlayerInd
 //CurrentPhase by default with return the value of gameState.Phase, if it is
 //an enum. If it is not, it will return -1 instead, to make it more clear that
 //it's an invalid CurrentPhase (phase 0 is often valid).
-func (d *DefaultGameDelegate) CurrentPhase(state ImmutableState) int {
+func (d *defaultGameDelegate) CurrentPhase(state ImmutableState) int {
 
 	phaseEnum, err := state.ImmutableGameState().Reader().ImmutableEnumProp("Phase")
 
@@ -373,11 +373,11 @@ func (d *DefaultGameDelegate) CurrentPhase(state ImmutableState) int {
 //PhaseEnum defaults to the enum named "Phase" which is the convention for the
 //name of the Phase enum. moves.Base will handle cases where that isn't a
 //valid enum gracefully.
-func (d *DefaultGameDelegate) PhaseEnum() enum.Enum {
+func (d *defaultGameDelegate) PhaseEnum() enum.Enum {
 	return d.Manager().Chest().Enums().Enum("Phase")
 }
 
-func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state ImmutableState, c Component) (ImmutableStack, error) {
+func (d *defaultGameDelegate) DistributeComponentToStarterStack(state ImmutableState, c Component) (ImmutableStack, error) {
 	//The stub returns an error, because if this is called that means there
 	//was a component in the deck. And if we didn't store it in a stack, then
 	//we are in violation of the invariant.
@@ -389,7 +389,7 @@ func (d *DefaultGameDelegate) DistributeComponentToStarterStack(state ImmutableS
 //It sees which policies apply given the provided group membership, and then
 //returns the LEAST restrictive policy that applies. This behavior is almost
 //always what you want; it is rare to need to override this method.
-func (d *DefaultGameDelegate) SanitizationPolicy(prop StatePropertyRef, groupMembership map[int]bool) Policy {
+func (d *defaultGameDelegate) SanitizationPolicy(prop StatePropertyRef, groupMembership map[int]bool) Policy {
 
 	manager := d.Manager()
 
@@ -428,23 +428,23 @@ func (d *DefaultGameDelegate) SanitizationPolicy(prop StatePropertyRef, groupMem
 }
 
 //ComputedGlobalProperties returns nil.
-func (d *DefaultGameDelegate) ComputedGlobalProperties(state ImmutableState) PropertyCollection {
+func (d *defaultGameDelegate) ComputedGlobalProperties(state ImmutableState) PropertyCollection {
 	return nil
 }
 
 //ComputedPlayerProperties returns nil.
-func (d *DefaultGameDelegate) ComputedPlayerProperties(player ImmutablePlayerState) PropertyCollection {
+func (d *defaultGameDelegate) ComputedPlayerProperties(player ImmutablePlayerState) PropertyCollection {
 	return nil
 }
 
 //BeginSetUp does not do anything and returns nil.
-func (d *DefaultGameDelegate) BeginSetUp(state State, variant Variant) error {
+func (d *defaultGameDelegate) BeginSetUp(state State, variant Variant) error {
 	//Don't need to do anything by default
 	return nil
 }
 
 //FinishSetUp doesn't do anything and returns nil.
-func (d *DefaultGameDelegate) FinishSetUp(state State) error {
+func (d *defaultGameDelegate) FinishSetUp(state State) error {
 	//Don't need to do anything by default
 	return nil
 }
@@ -458,7 +458,7 @@ type defaultCheckGameFinishedDelegate interface {
 }
 
 //PlayerGameScorer is an optional interface that can be implemented by
-//PlayerSubStates. If it is implemented, DefaultGameDelegate's default
+//PlayerSubStates. If it is implemented, defaultGameDelegate's default
 //PlayerScore() method will return it.
 type PlayerGameScorer interface {
 	//Score returns the overall score for the game for the player at this
@@ -472,7 +472,7 @@ type PlayerGameScorer interface {
 //is true, instead of highest score, it does lowest score.) To use this
 //implementation simply implement those methods. This is sufficient for many
 //games, but not all, so sometimes needs to be overriden.
-func (d *DefaultGameDelegate) CheckGameFinished(state ImmutableState) (finished bool, winners []PlayerIndex) {
+func (d *defaultGameDelegate) CheckGameFinished(state ImmutableState) (finished bool, winners []PlayerIndex) {
 
 	if d.Manager() == nil {
 		return false, nil
@@ -524,10 +524,10 @@ func (d *DefaultGameDelegate) CheckGameFinished(state ImmutableState) (finished 
 
 }
 
-//LowScoreWins is used in DefaultGameDelegate's CheckGameFinished. If false
+//LowScoreWins is used in defaultGameDelegate's CheckGameFinished. If false
 //(default) higher scores are better. If true, however, then lower scores win
 //(similar to golf), and all of the players with the lowest score win.
-func (d *DefaultGameDelegate) LowScoreWins() bool {
+func (d *defaultGameDelegate) LowScoreWins() bool {
 	return false
 }
 
@@ -536,7 +536,7 @@ func (d *DefaultGameDelegate) LowScoreWins() bool {
 //CheckGameFinished uses this by default; if you override CheckGameFinished
 //you don't need to override this. The default implementation of this simply
 //returns false.
-func (d *DefaultGameDelegate) GameEndConditionMet(state ImmutableState) bool {
+func (d *defaultGameDelegate) GameEndConditionMet(state ImmutableState) bool {
 	return false
 }
 
@@ -545,7 +545,7 @@ func (d *DefaultGameDelegate) GameEndConditionMet(state ImmutableState) bool {
 //default; if you override CheckGameFinished you don't need to override this.
 //The default implementation returns pState.GameScore() (if pState implements
 //the PlayerGameScorer interface), or 0 otherwise.
-func (d *DefaultGameDelegate) PlayerScore(pState ImmutablePlayerState) int {
+func (d *defaultGameDelegate) PlayerScore(pState ImmutablePlayerState) int {
 	if scorer, ok := pState.(PlayerGameScorer); ok {
 		return scorer.GameScore()
 	}
@@ -553,17 +553,17 @@ func (d *DefaultGameDelegate) PlayerScore(pState ImmutablePlayerState) int {
 }
 
 //DefaultNumPlayers returns 2.
-func (d *DefaultGameDelegate) DefaultNumPlayers() int {
+func (d *defaultGameDelegate) DefaultNumPlayers() int {
 	return 2
 }
 
 //MinNumPlayers returns 1
-func (d *DefaultGameDelegate) MinNumPlayers() int {
+func (d *defaultGameDelegate) MinNumPlayers() int {
 	return 1
 }
 
 //MaxNumPlayers returns 16
-func (d *DefaultGameDelegate) MaxNumPlayers() int {
+func (d *defaultGameDelegate) MaxNumPlayers() int {
 	return 16
 }
 
@@ -571,7 +571,7 @@ func (d *DefaultGameDelegate) MaxNumPlayers() int {
 //and MaxNumPlayers, inclusive. You'd only want to override this if some
 //player numbers in that range are not legal, for example a game where only
 //even numbers of players may play.
-func (d *DefaultGameDelegate) LegalNumPlayers(numPlayers int) bool {
+func (d *defaultGameDelegate) LegalNumPlayers(numPlayers int) bool {
 
 	min := d.Manager().Delegate().MinNumPlayers()
 	max := d.Manager().Delegate().MaxNumPlayers()
@@ -581,32 +581,32 @@ func (d *DefaultGameDelegate) LegalNumPlayers(numPlayers int) bool {
 }
 
 //Variants returns a VariantConfig with no entries.
-func (d *DefaultGameDelegate) Variants() VariantConfig {
+func (d *defaultGameDelegate) Variants() VariantConfig {
 	return VariantConfig{}
 }
 
 //ConfigureAgents by default returns nil. If you want agents in your game,
 //override this.
-func (d *DefaultGameDelegate) ConfigureAgents() []Agent {
+func (d *defaultGameDelegate) ConfigureAgents() []Agent {
 	return nil
 }
 
 //ConfigureEnums simply returns nil. In general you want to override this with
 //a body of `return Enums`, if you're using `boardgame-util config` to
 //generate your enum set.
-func (d *DefaultGameDelegate) ConfigureEnums() *enum.Set {
+func (d *defaultGameDelegate) ConfigureEnums() *enum.Set {
 	return nil
 }
 
 //ConfigureDecks returns a zero-entry map. You want to override this if you
 //have any components in your game (which the vast majority of games do)
-func (d *DefaultGameDelegate) ConfigureDecks() map[string]*Deck {
+func (d *defaultGameDelegate) ConfigureDecks() map[string]*Deck {
 	return make(map[string]*Deck)
 }
 
 //ConfigureConstants returns a zero-entry map. If you have any constants you
 //wa8nt to use client-side or in tag-based struct auto-inflaters, you will want
 //to override this.
-func (d *DefaultGameDelegate) ConfigureConstants() PropertyCollection {
+func (d *defaultGameDelegate) ConfigureConstants() PropertyCollection {
 	return nil
 }

@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/moves"
 	"strconv"
 	"strings"
@@ -18,7 +19,7 @@ import (
 //go:generate boardgame-util codegen
 
 type gameDelegate struct {
-	boardgame.DefaultGameDelegate
+	base.GameDelegate
 }
 
 func (g *gameDelegate) Name() string {

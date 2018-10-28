@@ -297,7 +297,7 @@ type GameDelegate interface {
 
 Those methods are how you configure the name of the type of the game (e.g. 'memory' or 'blackjack', or 'pig'), what the game type should be called when presented to users (e.g. "Memory", "Blackjack", or "Pig"), and a short description of the game (e.g. "A card game where players draw cards trying to get as close to 21 as possible without going over")
 
-The GameDelegate interface is long and complex. In many cases you only need to override a handful out of the tens of methods. That's why the core engine provides a `DefaultGameDelegate` struct that has default stubs for each of the methods a `GameDelegate` must implement. That way you can embed a `DefaultGameDelegate` in your concrete GameDelegate and only implement the methods where you need special behavior.
+The GameDelegate interface is long and complex. In many cases you only need to override a handful out of the tens of methods. That's why the base package provides a `base.GameDelegate` struct that has default stubs for each of the methods a `GameDelegate` must implement. That way you can embed a `base.GameDelegate` in your concrete GameDelegate and only implement the methods where you need special behavior.
 
 Most of the methods on GameDelegate are straightforward, like `LegalNumPlayers(num int) bool` which is consulted when a game is created to ensure that it includes a legal number of players.
 
@@ -426,7 +426,7 @@ func (g *gameDelegate) CheckGameFinished(state boardgame.ImmutableState) (finish
 
 If there are no cards left in the grid, it figures out which player has the most cards, and denotes them the winner.
 
-However, this pattern--check if the game is finished, and if it is return as a winner any player who has the highest score--is so common that the engine makes it easy to implement with a default behavior built into `DefaultGameDelegate`. Memory uses it, as you can see in `examples/memory/main.go`:
+However, this pattern--check if the game is finished, and if it is return as a winner any player who has the highest score--is so common that the engine makes it easy to implement with a default behavior built into `base.GameDelegate`. Memory uses it, as you can see in `examples/memory/main.go`:
 
 ```
 func (g *gameDelegate) GameEndConditionMet(state boardgame.ImmutableState) bool {
@@ -447,17 +447,17 @@ func (g *gameDelegate) PlayerScore(pState boardgame.ImmutablePlayerState) int {
 
 ```
 
-Implementing these two methods is sufficient for DefaultGameDelegate's default CheckGameFinished to do the right thing.
+Implementing these two methods is sufficient for base.GameDelegate's default CheckGameFinished to do the right thing.
 
 After `CheckGameFinished` returns true, the game is over and no more moves may be applied.
 
 Another method is `CurrentPlayerIndex`. This method should inspect the provided state and return the `PlayerIndex` corresponding to the current player. If any player may make a move, you should return `AdminPlayerIndex`, and if no player may make a move, you should return `ObserverPlayerIndex`. This method is consulted for various convenience methods elsewhere. The reason it can't be done fully automatically is because different games might store this value in a differently-named field, have non obvious rules for when it changes (for example, return the value in this field in the first phase of the game, but a value in another field in the second phase of the game), or not have a notion of current player at all.
 
-The convention is simply to store this value in a property on your gameState called `CurrentPlayer`. If you do that, DefaultGameDelegate's `CurrentPlayerIndex` will just return that.
+The convention is simply to store this value in a property on your gameState called `CurrentPlayer`. If you do that, base.GameDelegate's `CurrentPlayerIndex` will just return that.
 
 There are also four methods that start with `Configure`, which are called to set up which decks to use, which enums, and other state. Those are covered later in the guide.
 
-GameDelegate has a number of other methods that are consulted at various key points and drive certain behaviors. Each is documented to describe what they do. In a number of cases the default implementations in `DefaultGameDelegate` do complex behaviors that are almost always the correct thing, but can theoretically be overriden if necessary. `SanitizationPolicy` is a great example. We'll get to what it does in just a little bit, but although the method is quite generic, `DefaultGameDelegate`'s implementation encodes the formal convention of using struct-based tags to configure its behavior.
+GameDelegate has a number of other methods that are consulted at various key points and drive certain behaviors. Each is documented to describe what they do. In a number of cases the default implementations in `base.GameDelegate` do complex behaviors that are almost always the correct thing, but can theoretically be overriden if necessary. `SanitizationPolicy` is a great example. We'll get to what it does in just a little bit, but although the method is quite generic, `base.GameDelegate`'s implementation encodes the formal convention of using struct-based tags to configure its behavior.
 
 #### Set Up
 
@@ -514,9 +514,9 @@ Conceptually there are two types of Moves: Player Moves, and FixUp moves. Player
 
 After each move is succesfully applied via ProposeMove, and before the next move in the queue of moves is considered, the engine checks if any FixUp moves should be applied. It does this by consulting the `ProposeFixUpMove` method on the GameDelegate. If that method returns a move, it will be immediately applied, so long as it is legal. This will continue until `ProposeFixUpMove` returns nil, at which point the next player move in the proposed move queue will be considered.
 
-FixUp moves, as a concept, do not exist as a base concept in the base library, except that moves returned from ProposeFixUpMove implicitly are a FixUp move. In practie, the notion of FixUp move is implemented in DefaultGameDelegate's ProposeFixUpMove, and moves.Base.
+FixUp moves, as a concept, do not exist as a base concept in the base library, except that moves returned from ProposeFixUpMove implicitly are a FixUp move. In practie, the notion of FixUp move is implemented in base.GameDelegate's ProposeFixUpMove, and moves.Base.
 
-Technically it is possible to override the behavior of exactly when to apply certain FixUp moves. Realistically, however, the behavior of `ProposeFixUpMove` on `DefaultGameDelegate` is almost always sufficient. It simply runs through each move configured on the gametype in order, skipping any for whom `.sFixUp()` returns false, setting its values by calling DefaultsForState, and then checking if it is `Legal`. It returns the first fix up move it finds that is legal. This means that it is **important to make sure that your FixUp moves always have well-constructed `Legal` methods**. If a given FixUp move always returns Legal for some state, then the engine will get in an infinite loop. (Technically the engine will detect that it is in an unreasonable state and will panic.)
+Technically it is possible to override the behavior of exactly when to apply certain FixUp moves. Realistically, however, the behavior of `ProposeFixUpMove` on `base.GameDelegate` is almost always sufficient. It simply runs through each move configured on the gametype in order, skipping any for whom `.sFixUp()` returns false, setting its values by calling DefaultsForState, and then checking if it is `Legal`. It returns the first fix up move it finds that is legal. This means that it is **important to make sure that your FixUp moves always have well-constructed `Legal` methods**. If a given FixUp move always returns Legal for some state, then the engine will get in an infinite loop. (Technically the engine will detect that it is in an unreasonable state and will panic.)
 
 #### What should be a move?
 
@@ -1513,7 +1513,7 @@ redLegalMoves := graph.NewGridConnectedness(chessBoard, DirectionDiagonal, Direc
 
 ### Phases
 
-At the core of the engine, there's just a big collection of moves, any of which may be `Legal()` at any time. `ProposeFixUpMove` is called after every move is applied, and any move that is returned is applied. `DefaultGameDelegate`'s default implementation simply cycles through every move in order, and returns the first one whose `IsFixUp()` returns true, and who is Legal with defaults set for the current state. 
+At the core of the engine, there's just a big collection of moves, any of which may be `Legal()` at any time. `ProposeFixUpMove` is called after every move is applied, and any move that is returned is applied. `base.GameDelegate`'s default implementation simply cycles through every move in order, and returns the first one whose `IsFixUp()` returns true, and who is Legal with defaults set for the current state. 
 
 This is fine for simple games like memory, but quickly becomes cumbersome for more complicated games. For example, some games have multiple rounds, where each round is basically a mini-game, where scores accumulate across rounds. For each round you might have to do some set-up tasks (like moving all of the cards from discard to the draw stack, shuffling them, and then dealing out two cards per player), then have the normal play, and then finally some clean-up tasks (collecting the cards remaining in players' hands, tallying up scores).
 
@@ -1567,8 +1567,8 @@ func (g *gameDelegate) CurrentPhase(state boardgame.ImmutableState) int {
 }
 ```
 
-However, since we're using DefaultGameDelegate and our Phase property is `Phase` on our `gameState`,
-we don't even have to do that. DefaultGameDelegate's CurrentPhase() already looks for that value
+However, since we're using base.GameDelegate and our Phase property is `Phase` on our `gameState`,
+we don't even have to do that. base.GameDelegate's CurrentPhase() already looks for that value
 there and returns it.
 
 Now the core engine knows about what phase it is. `moves.Base` will consult that information it is Legal method. But how do we tell `moves.Base` which phases a move is legal in?

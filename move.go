@@ -222,7 +222,7 @@ type Move interface {
 
 	//IsFixUp should return true if this type of move is a candidate to be
 	//returned from ProposeFixUpMove. Doesn't do anything in the core engine,
-	//but many other things (like DefaultGameDelegate's ProposeFixUpMove) want
+	//but many other things (like base.GameDelegate's ProposeFixUpMove) want
 	//to know this, so it's part of the default signature.
 	IsFixUp() bool
 

@@ -7,12 +7,13 @@ package saferanduse
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 	//boardgame:assert(rand_use_deterministic)
 	"math/rand"
 )
 
 type gameDelegate struct {
-	boardgame.DefaultGameDelegate
+	base.GameDelegate
 }
 
 func (g *gameDelegate) Name() string {

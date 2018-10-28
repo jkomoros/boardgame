@@ -9,6 +9,7 @@ package blackjack
 import (
 	"fmt"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/components/playingcards"
 	"github.com/jkomoros/boardgame/moves"
 	"strings"
@@ -30,7 +31,7 @@ func computeHandValue(state boardgame.PlayerState) (interface{}, error) {
 }
 
 type gameDelegate struct {
-	boardgame.DefaultGameDelegate
+	base.GameDelegate
 }
 
 func (g *gameDelegate) Name() string {

@@ -10,6 +10,7 @@ package tictactoe
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/moves"
 	"strings"
 )
@@ -22,7 +23,7 @@ const DIM = 3
 const TOTAL_DIM = DIM * DIM
 
 type gameDelegate struct {
-	boardgame.DefaultGameDelegate
+	base.GameDelegate
 }
 
 func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.ImmutableStack, error) {

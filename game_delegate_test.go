@@ -7,7 +7,7 @@ import (
 )
 
 type testGameDelegate struct {
-	DefaultGameDelegate
+	defaultGameDelegate
 	//if this is higher than 0, then will craete this many extra comoponents
 	extraComponentsToCreate int
 	moveInstaller           func(manager *GameManager) []MoveConfig
