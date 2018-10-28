@@ -7,11 +7,11 @@ import (
 /*
 RoundRobinGameStateProperties is designed to be embedded in your GameState anonymously to
 automatically satisfy the RoundRobinProperties interface, making it easy to
-use RoundRobin-basd moves. You typically embed this IN ADDITION TO boardgame.BaseSubState.
+use RoundRobin-basd moves. You typically embed this IN ADDITION TO base.SubState.
 
 	//Example
 	type gameState struct {
-		boardgame.BaseSubState
+		base.SubState
 		//By including this, we can use any round-robin based move without any
 		//other changes
 		moves.RoundRobinGameStateProperties

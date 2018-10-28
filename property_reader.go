@@ -288,7 +288,7 @@ func (d *defaultReader) propsImpl() (types map[string]PropertyType, mutable map[
 			name := typeOfObj.Field(i).Name
 
 			if typeOfObj.Field(i).Anonymous {
-				//Anonymous fields are likely BaseSubState.
+				//Anonymous fields are likely base.SubState.
 				continue
 			}
 

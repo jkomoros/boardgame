@@ -350,7 +350,7 @@ struct is a playerState if it can be cast to a boardgame.PlayerState.
 This means all of the following are valid:
 
 	type myPlayerState struct {
-		boardgame.BaseSubState
+		base.SubState
 		playerIndex boardgame.PlayerIndex
 		VisibleHand boardgame.Stack //Equivalent to `sanitize:"all:visible"`
 		HiddenHand boardgame.Stack `sanitize:"len"` // Equivalent to `sanitize:"other:len"`, since this is a player state.

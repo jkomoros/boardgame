@@ -87,7 +87,7 @@ The core of the states are represented here:
 ```
 //boardgame:codegen
 type gameState struct {
-	boardgame.BaseSubState
+	base.SubState
 	CardSet        string
 	NumCards       int
 	CurrentPlayer  boardgame.PlayerIndex
@@ -101,7 +101,7 @@ type gameState struct {
 
 //boardgame:codegen
 type playerState struct {
-	boardgame.BaseSubState
+	base.SubState
 	playerIndex       boardgame.PlayerIndex
 	CardsLeftToReveal int
 	WonCards          boardgame.Stack `stack:"cards"`
@@ -115,7 +115,7 @@ At the core you can see that these objects are simple structs with (mostly) publ
 It's not explicitly listed, but the only (public) properties on these objects are ones that are
 legal according to `boardgame.PropertyType`. Your GameManager would fail to be created if your state structs included illegal property types.
 
-Note the first anonymous field of `boardgame.BaseSubState`. This is a simple struct designed to be anonymously embedded in the substates you define that implements the SetState method that SubStates must define. It's technically optional, but you'll normally just want to anonymously embed it in your gameState and playerStates.
+Note the first anonymous field of `base.SubState`. This is a simple struct designed to be anonymously embedded in the substates you define that implements the SetState method that SubStates must define. It's technically optional, but you'll normally just want to anonymously embed it in your gameState and playerStates.
 
 Most of the properties are straightforward. Each player has how many cards they are still allowed to draw this turn, for example.
 
@@ -954,7 +954,7 @@ Memory's states are defined as follows:
 ```
 //boardgame:codegen
 type gameState struct {
-	boardgame.BaseSubState
+	base.SubState
 	CardSet        string
 	NumCards       int
 	CurrentPlayer  boardgame.PlayerIndex
@@ -968,7 +968,7 @@ type gameState struct {
 
 //boardgame:codegen
 type playerState struct {
-	boardgame.BaseSubState
+	base.SubState
 	playerIndex       boardgame.PlayerIndex
 	CardsLeftToReveal int
 	WonCards          boardgame.Stack `stack:"cards"`
@@ -994,7 +994,7 @@ That's not a *particularly* interesting example. Here's the states for blackjack
 ```
 //boardgame:codegen
 type gameState struct {
-	boardgame.BaseSubState
+	base.SubState
 	moves.RoundRobinGameStateProperties
 	Phase         enum.Val        `enum:"Phase"`
 	DiscardStack  boardgame.Stack `stack:"cards" sanitize:"len"`
@@ -1005,7 +1005,7 @@ type gameState struct {
 
 //boardgame:codegen
 type playerState struct {
-	boardgame.BaseSubState
+	base.SubState
 	playerIndex boardgame.PlayerIndex
 	HiddenHand  boardgame.Stack       `stack:"cards,1" sanitize:"len"`
 	VisibleHand boardgame.Stack       `stack:"cards"`
@@ -1490,7 +1490,7 @@ const TOTAL_DIM = DIM * DIM
 chessBoard := set.MustAddRange("Spaces", DIM, DIM)
 
 type gameState struct {
-	boargame.BaseSubState
+	base.SubState
 	Spaces boargame.Stack `sizedstack:"Tokens, TOTAL_DIM"`
 }
 
@@ -1534,7 +1534,7 @@ If you're going to support the notion of phases, you'll need to store the curren
 ```
 //boardgame:codegen
 type gameState struct {
-	boardgame.BaseSubState
+	base.SubState
 	moves.RoundRobinGameStateProperties
 	Phase         enum.Val        `enum:"Phase"`
 	DiscardStack  boardgame.Stack `stack:"cards" sanitize:"len"`
@@ -1684,7 +1684,7 @@ Another more complex type of move is `moves.RoundRobin`. RoundRobin moves are mo
 
 A RoundRobin move defines some end-condition (by default the move has gone around one complete cycle and applied for each player) and an action to apply when each Move is applied. It stores some bookkeeping information in your gameState, and has its DefaultsForState handle advancing to the next target player each time.
 
-RoundRobins are pretty complex under the hood because they can model a number of interesting exit criterion. To use a round robin your gameState must implement `moveinterfaces.RoundRobinProperties`. Alternatively you can anonymously embed `moveinterfaces.RoundRobinBaseGameState` instead of `boardgame.BaseSubState` to implement it for free. 
+RoundRobins are pretty complex under the hood because they can model a number of interesting exit criterion. To use a round robin your gameState must implement `moveinterfaces.RoundRobinProperties`. Alternatively you can anonymously embed `moveinterfaces.RoundRobinBaseGameState` instead of `base.SubState` to implement it for free. 
 
 RoundRobin moves are very powerful and general, and the `moves.RoundRobin` documentation goes into
 more depth on how to configure and use them. In practice you almost always use two types of moves
@@ -1868,7 +1868,7 @@ func (g *gameDelegate) ConfigureConstants() boardgame.PropertyCollection {
 
 //boardgame:codegen
 type gameState struct {
-	boardgame.BaseSubState
+	base.SubState
 	CurrentPlayer boardgame.PlayerIndex
 	Slots         boardgame.SizedStack `sizedstack:"tokens,TOTAL_DIM"`
 	//... Other fields elided

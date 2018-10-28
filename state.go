@@ -875,7 +875,7 @@ type ReadSetConfigurer interface {
 type ImmutableStateSetter interface {
 	//SetImmutableState is called to give the SubState object a pointer back
 	//to the State that contains it. You can implement it yourself, or
-	//anonymously embed BaseSubState to get it for free.
+	//anonymously embed base.SubState to get it for free.
 	SetImmutableState(state ImmutableState)
 	//ImmutableState() returns the state that was set via SetState().
 	ImmutableState() ImmutableState
