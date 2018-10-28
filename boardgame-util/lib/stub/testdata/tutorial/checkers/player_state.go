@@ -4,11 +4,12 @@ import (
 	"errors"
 
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 )
 
 //boardgame:codegen
 type playerState struct {
-	boardgame.BaseSubState
+	base.SubState
 	playerIndex          boardgame.PlayerIndex
 	Hand                 boardgame.Stack `stack:"examplecards" sanitize:"len"`
 	HasDrawnCardThisTurn bool

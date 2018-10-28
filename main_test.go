@@ -53,7 +53,8 @@ type testingComponent struct {
 }
 
 type testingComponentDynamic struct {
-	BaseSubState
+	state          State
+	immutableState ImmutableState
 	BaseComponentValues
 	IntVar int
 	Stack  Stack

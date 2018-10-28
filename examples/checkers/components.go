@@ -3,6 +3,7 @@ package checkers
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/enum/graph"
 )
@@ -27,7 +28,7 @@ type token struct {
 
 //boardgame:codegen
 type tokenDynamic struct {
-	boardgame.BaseSubState
+	base.SubState
 	Crowned bool
 }
 

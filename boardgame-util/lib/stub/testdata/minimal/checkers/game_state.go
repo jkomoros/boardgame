@@ -2,12 +2,13 @@ package checkers
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/moves"
 )
 
 //boardgame:codegen
 type gameState struct {
-	boardgame.BaseSubState
+	base.SubState
 	//Use RoundRobinGameStateProperties so roundrobin moves can be used without any changes
 	moves.RoundRobinGameStateProperties
 }

@@ -9,6 +9,7 @@ package examplepkg
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves"
 )
@@ -175,7 +176,7 @@ const (
 
 //boardgame:codegen all
 type myStruct struct {
-	boardgame.BaseSubState
+	base.SubState
 	MyInt              int
 	MyBool             bool
 	MySizedStack       boardgame.Stack
@@ -190,7 +191,7 @@ type myStruct struct {
 //boardgame:codegen
 type roundRobinStruct struct {
 	moves.RoundRobinGameStateProperties
-	boardgame.BaseSubState
+	base.SubState
 	MyBool bool
 }
 
@@ -201,7 +202,7 @@ Long comment
 boardgame:codegen
 */
 type structWithManyKeys struct {
-	boardgame.BaseSubState
+	base.SubState
 	A int
 	B int
 	D int

@@ -870,7 +870,8 @@ type ReadSetConfigurer interface {
 //ImmutableStateSetter is included in ImmutableSubState, SubState, and
 //ConfigureableSubState as the way to keep track of which ImmutableState a
 //given SubState is part of. See also StateSetter, which adds getters/setters
-//for mutable States.
+//for mutable States. Typically you use base.SubState to implement this
+//automatically.
 type ImmutableStateSetter interface {
 	//SetImmutableState is called to give the SubState object a pointer back
 	//to the State that contains it. You can implement it yourself, or
@@ -881,7 +882,7 @@ type ImmutableStateSetter interface {
 }
 
 //StateSetter is like ImmutableStateSetter but it also includes Mutable
-//methods.
+//methods. Typically you use base.SubState to implement this automatically.
 type StateSetter interface {
 	ImmutableStateSetter
 	SetState(state State)
@@ -943,29 +944,4 @@ type ConfigurablePlayerState interface {
 //JSON, use this to encode it.
 func DefaultMarshalJSON(obj interface{}) ([]byte, error) {
 	return json.MarshalIndent(obj, "", "  ")
-}
-
-//BaseSubState is a simple struct designed to be anonymously embedded in the
-//SubStates you create, so you don't have to implement SetState yourself.
-type BaseSubState struct {
-	//Ugh it's really annoying to have to hold onto the same state in two
-	//references...
-	immutableState ImmutableState
-	state          State
-}
-
-func (b *BaseSubState) SetState(state State) {
-	b.state = state
-}
-
-func (b *BaseSubState) State() State {
-	return b.state
-}
-
-func (b *BaseSubState) SetImmutableState(state ImmutableState) {
-	b.immutableState = state
-}
-
-func (b *BaseSubState) ImmutableState() ImmutableState {
-	return b.immutableState
 }

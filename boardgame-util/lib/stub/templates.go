@@ -463,11 +463,12 @@ import (
 	"errors"
 	{{end}}
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 )
 
 //boardgame:codegen
 type playerState struct {
-	boardgame.BaseSubState
+	base.SubState
 	playerIndex         boardgame.PlayerIndex
 	{{if .EnableExampleDeck -}}
 	Hand boardgame.Stack ` + "`stack:\"examplecards\" sanitize:\"len\"`" + `
@@ -535,11 +536,12 @@ import (
 	"github.com/jkomoros/boardgame"{{if not .SuppressPhase}}
 	"github.com/jkomoros/boardgame/enum"{{- end}}
 	"github.com/jkomoros/boardgame/moves"
+	"github.com/jkomoros/boardgame/base"
 )
 
 //boardgame:codegen
 type gameState struct {
-	boardgame.BaseSubState
+	base.SubState
 	//Use RoundRobinGameStateProperties so roundrobin moves can be used without any changes
 	moves.RoundRobinGameStateProperties
 	{{if not .SuppressCurrentPlayer -}}
@@ -672,7 +674,8 @@ const templateContentComponentsGo = `package {{.Name}}
 
 {{if .EnableExampleDeck }}
 import (
-	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame"{{if .EnableExampleDynamicComponentValues}}
+	"github.com/jkomoros/boardgame/base"{{- end}}	
 )
 
 const numCards = 10
@@ -687,7 +690,7 @@ type exampleCard struct {
 {{if .EnableExampleDynamicComponentValues}}
 //boardgame:codegen
 type exampleCardDynamicValues struct {
-	boardgame.BaseSubState
+	base.SubState
 	boardgame.BaseComponentValues
 	DynamicValue int
 }

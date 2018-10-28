@@ -3,6 +3,7 @@ package blackjack
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/components/playingcards"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves"
@@ -28,7 +29,7 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 
 //boardgame:codegen
 type gameState struct {
-	boardgame.BaseSubState
+	base.SubState
 	moves.RoundRobinGameStateProperties
 	Phase         enum.Val        `enum:"Phase"`
 	DiscardStack  boardgame.Stack `stack:"cards" sanitize:"len"`
@@ -39,7 +40,7 @@ type gameState struct {
 
 //boardgame:codegen
 type playerState struct {
-	boardgame.BaseSubState
+	base.SubState
 	playerIndex boardgame.PlayerIndex
 	HiddenHand  boardgame.Stack       `stack:"cards,1" sanitize:"len"`
 	VisibleHand boardgame.Stack       `stack:"cards"`

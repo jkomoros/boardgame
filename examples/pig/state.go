@@ -3,11 +3,12 @@ package pig
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 )
 
 //boardgame:codegen
 type gameState struct {
-	boardgame.BaseSubState
+	base.SubState
 	CurrentPlayer boardgame.PlayerIndex
 	Die           boardgame.SizedStack `sizedstack:"dice"`
 	TargetScore   int
@@ -15,7 +16,7 @@ type gameState struct {
 
 //boardgame:codegen
 type playerState struct {
-	boardgame.BaseSubState
+	base.SubState
 	playerIndex boardgame.PlayerIndex
 	Busted      bool
 	Done        bool

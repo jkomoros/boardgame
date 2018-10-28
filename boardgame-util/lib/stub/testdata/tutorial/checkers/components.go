@@ -2,6 +2,7 @@ package checkers
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 )
 
 const numCards = 10
@@ -15,7 +16,7 @@ type exampleCard struct {
 
 //boardgame:codegen
 type exampleCardDynamicValues struct {
-	boardgame.BaseSubState
+	base.SubState
 	boardgame.BaseComponentValues
 	DynamicValue int
 }

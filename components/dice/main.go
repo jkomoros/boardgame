@@ -7,6 +7,7 @@ package dice
 
 import (
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 	"math"
 	"math/rand"
 )
@@ -21,7 +22,7 @@ type Value struct {
 
 //boardgame:codegen
 type DynamicValue struct {
-	boardgame.BaseSubState
+	base.SubState
 	boardgame.BaseComponentValues
 	Value        int
 	SelectedFace int

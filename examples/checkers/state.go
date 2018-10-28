@@ -3,12 +3,13 @@ package checkers
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/enum"
 )
 
 //boardgame:codegen
 type gameState struct {
-	boardgame.BaseSubState
+	base.SubState
 	Phase         enum.Val `enum:"Phase"`
 	CurrentPlayer boardgame.PlayerIndex
 	Spaces        boardgame.SizedStack `sizedstack:"Tokens,BOARD_SIZE"`
@@ -17,7 +18,7 @@ type gameState struct {
 
 //boardgame:codegen
 type playerState struct {
-	boardgame.BaseSubState
+	base.SubState
 	playerIndex boardgame.PlayerIndex
 	Color       enum.Val `enum:"Color"`
 	//The tokens of the OTHER player that we've captured.

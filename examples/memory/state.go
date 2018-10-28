@@ -3,11 +3,12 @@ package memory
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 )
 
 //boardgame:codegen
 type gameState struct {
-	boardgame.BaseSubState
+	base.SubState
 	CardSet        string
 	NumCards       int
 	CurrentPlayer  boardgame.PlayerIndex
@@ -21,7 +22,7 @@ type gameState struct {
 
 //boardgame:codegen
 type playerState struct {
-	boardgame.BaseSubState
+	base.SubState
 	playerIndex       boardgame.PlayerIndex
 	CardsLeftToReveal int
 	WonCards          boardgame.Stack `stack:"cards"`

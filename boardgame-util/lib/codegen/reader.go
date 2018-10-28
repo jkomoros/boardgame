@@ -349,7 +349,7 @@ func typesForPossibleEmbeddedStruct(location string, theField model.Field, allSt
 	targetType := targetTypeParts[1]
 
 	//BaseSubState will be anonymously embedded but should be ignored.
-	if targetType == "BaseSubState" {
+	if targetType == "SubState" {
 		return nil
 	}
 

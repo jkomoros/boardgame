@@ -3,6 +3,7 @@ package tictactoe
 import (
 	"errors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/enum"
 )
 
@@ -20,7 +21,7 @@ func concreteStates(state boardgame.ImmutableState) (*gameState, []*playerState)
 
 //boardgame:codegen
 type gameState struct {
-	boardgame.BaseSubState
+	base.SubState
 	CurrentPlayer boardgame.PlayerIndex
 	Slots         boardgame.SizedStack `sizedstack:"tokens,TOTAL_DIM"`
 	//We don't actually need this; we mainly do it because the storage manager
@@ -50,7 +51,7 @@ func (g *gameState) SetCurrentPlayer(currentPlayer boardgame.PlayerIndex) {
 
 //boardgame:codegen
 type playerState struct {
-	boardgame.BaseSubState
+	base.SubState
 	playerIndex  boardgame.PlayerIndex
 	TokenValue   string
 	UnusedTokens boardgame.Stack `stack:"tokens"`
