@@ -200,7 +200,7 @@ func (t *testGeneralReadSetter) ReadSetConfigurer() PropertyReadSetConfigurer {
 	return getDefaultReadSetConfigurer(t)
 }
 
-func TestReaderValidator(t *testing.T) {
+func TestStructInflater(t *testing.T) {
 
 	example := &testGeneralReadSetter{}
 
