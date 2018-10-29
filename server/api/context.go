@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"log"
 	"strconv"
@@ -426,7 +427,7 @@ func (s *Server) getMoveFromForm(c *gin.Context, game *boardgame.Game) (boardgam
 		return nil, errors.New("Invalid MoveType")
 	}
 
-	if move.IsFixUp() {
+	if base.IsFixUp(move) {
 		return nil, errors.New("Players cannot make fixup moves.")
 	}
 

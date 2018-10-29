@@ -50,6 +50,21 @@ func (d *defaultGameDelegate) DynamicComponentValuesConstructor(deck *Deck) Conf
 	return nil
 }
 
+type isFixUpper interface {
+	IsFixUp() bool
+}
+
+func isFixUp(move Move) bool {
+
+	fixUpper, ok := move.(isFixUpper)
+	if !ok {
+		return false
+	}
+
+	return fixUpper.IsFixUp()
+
+}
+
 //The Default ProposeFixUpMove runs through all moves in Moves, in order, and
 //returns the first one that returns true from IsFixUp and is legal at the
 //current state. In many cases, this behavior should be suficient and need not
@@ -78,7 +93,7 @@ func (d *defaultGameDelegate) ProposeFixUpMove(state ImmutableState) Move {
 			entry = logEntry.WithField("movetype", move.Info().Name())
 		}
 
-		if !move.IsFixUp() {
+		if !isFixUp(move) {
 			//Not a fix up move
 			continue
 		}

@@ -6,6 +6,26 @@ import (
 
 //go:generate boardgame-util codegen
 
+type isFixUpper interface {
+	IsFixUp() bool
+}
+
+//IsFixUp is a convenience method that takes the given move and returns
+//whehter its IsFixUp method returns true. If no IsFixUp exists, will return
+//false. Used by base.GameDelegate, since IsFixUp() isn't defined in the core
+//library, which means that moves fetched via the GameManager will have to be
+//casted to an interface.
+func IsFixUp(move boardgame.Move) bool {
+
+	fixUpper, ok := move.(isFixUpper)
+	if !ok {
+		return false
+	}
+
+	return fixUpper.IsFixUp()
+
+}
+
 /*
 Move is an optional, convenience struct designed to be embedded anonymously
 in your own Moves. Although technically optional to embed this struct, in

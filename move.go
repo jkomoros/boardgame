@@ -220,12 +220,6 @@ type Move interface {
 	//token in position 3".
 	Description() string
 
-	//IsFixUp should return true if this type of move is a candidate to be
-	//returned from ProposeFixUpMove. Doesn't do anything in the core engine,
-	//but many other things (like base.GameDelegate's ProposeFixUpMove) want
-	//to know this, so it's part of the default signature.
-	IsFixUp() bool
-
 	//SetInfo will be called after the constructor is called to set the
 	//information, including what type the move is. Splitting this out allows
 	//the basic constructors not in the base classes to be very small, because

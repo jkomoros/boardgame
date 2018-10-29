@@ -82,7 +82,7 @@ func (g *GameDelegate) ProposeFixUpMove(state boardgame.ImmutableState) boardgam
 			entry = logEntry.WithField("movetype", move.Info().Name())
 		}
 
-		if !move.IsFixUp() {
+		if !IsFixUp(move) {
 			//Not a fix up move
 			continue
 		}

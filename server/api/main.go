@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/itsjamie/gin-cors"
 	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
 	"github.com/jkomoros/boardgame/errors"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
@@ -1027,7 +1028,7 @@ func (s *Server) generateForms(game *boardgame.Game) []*MoveForm {
 
 	for _, move := range game.Moves() {
 
-		if move.IsFixUp() {
+		if base.IsFixUp(move) {
 			continue
 		}
 
