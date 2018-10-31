@@ -8,8 +8,11 @@
 package golden
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/Sirupsen/logrus"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/storage/filesystem/record"
 	"github.com/jkomoros/boardgame/storage/memory"
@@ -87,16 +90,48 @@ func CompareFolder(delegate boardgame.GameDelegate, recFolder string) error {
 	return nil
 }
 
-func compare(manager *boardgame.GameManager, rec *record.Record) error {
+func newLogger() (*logrus.Logger, *bytes.Buffer) {
+	result := logrus.New()
+	buf := &bytes.Buffer{}
+	result.Out = buf
+	result.SetLevel(logrus.DebugLevel)
+	return result, buf
+}
+
+func compare(manager *boardgame.GameManager, rec *record.Record) (result error) {
 	game, err := manager.Internals().RecreateGame(rec.Game())
 
 	if err != nil {
 		return errors.New("Couldn't create game: " + err.Error())
 	}
 
+	//buf is set at top of loop, but doesn't get a useful value until bottom
+	//of loop.
+	var buf *bytes.Buffer
+	var lastBuf *bytes.Buffer
+	var logger *logrus.Logger
+
+	defer func() {
+		//If we errored, return debug output as well about last fix ups from
+		//game manager.
+		if result == nil {
+			return
+		}
+
+		if lastBuf.Len() == 0 {
+			return
+		}
+		fmt.Println(lastBuf)
+	}()
+
 	lastVerifiedVersion := 0
 
 	for !game.Finished() {
+
+		lastBuf = buf
+		logger, buf = newLogger()
+		manager.SetLogger(logger)
+
 		//Verify all new moves that have happened since the last time we
 		//checked (often, fix-up moves).
 		for lastVerifiedVersion < game.Version() {
