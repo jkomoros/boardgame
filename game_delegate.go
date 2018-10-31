@@ -15,7 +15,12 @@ type GameDelegate interface {
 	//or "_", since they will sometimes be used in a URL path. Good examples
 	//are "tictactoe", "blackjack". Once configured, names should never change
 	//over the lifetime of the gametype, since it will be persisted in
-	//storage. Subclasses should override this.
+	//storage. Subclasses should override this. This must return the package
+	//name that contains the game (e.g. "github.com/jkomoros/mygame" should
+	//return "mygame"), since the package name and the delegate.Name() are
+	//both used at different times in the system, since one can be determined
+	//statically and the other only at run-time. NewGameManager will fail if
+	//that is not true.
 	Name() string
 
 	//DisplayName is a string that defines the type of game this is in a way

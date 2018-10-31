@@ -81,7 +81,7 @@ type gameDelegate struct {
 }
 
 func (g *gameDelegate) Name() string {
-	return "tester"
+	return "moves"
 }
 
 func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.ImmutableStack, error) {

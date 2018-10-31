@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/Sirupsen/logrus"
 	"github.com/jkomoros/boardgame/errors"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -99,6 +100,34 @@ func (m *ManagerInternals) StructInflater(propRef StatePropertyRef) *StructInfla
 
 }
 
+const baseLibraryName = "github.com/jkomoros/boardgame"
+
+//gamePkgMatchesDelegateName checks, via reflection, that the delegate's
+//package name is the same as the delegate.Name(), because many systems assume
+//that is the case. If the delegate comes from this package (i.e. it's a test)
+//then it returns nil.
+func gamePkgMatchesDelegateName(delegate GameDelegate) error {
+
+	path := reflect.ValueOf(delegate).Elem().Type().PkgPath()
+
+	if path == baseLibraryName {
+		//Delegates in this package are test delegates, and are always fine as
+		//a special case.
+		return nil
+	}
+
+	pieces := strings.Split(path, "/")
+
+	lastPiece := pieces[len(pieces)-1]
+
+	if lastPiece != delegate.Name() {
+		return errors.New("Delegate name (" + delegate.Name() + ") did not match the last part of the package name (" + path + "), which is required.")
+	}
+
+	return nil
+
+}
+
 //NewGameManager creates a new game manager with the given delegate. It will
 //validate that the various sub-states are reasonable, and will call
 //ConfigureMoves and ConfigureAgents and then check that all tiems are
@@ -120,6 +149,10 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 
 	if !matched {
 		return nil, errors.New("Your delegate's name contains illegal characters.")
+	}
+
+	if err := gamePkgMatchesDelegateName(delegate); err != nil {
+		return nil, err
 	}
 
 	if storage == nil {

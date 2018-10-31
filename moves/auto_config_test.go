@@ -32,6 +32,10 @@ func TestShuffleStackDefaultConfig(t *testing.T) {
 
 	assert.For(t).ThatActual(err).IsNil()
 
+	if err != nil {
+		return
+	}
+
 	move := manager.ExampleMoveByName("Shuffle Draw Stack - Test")
 
 	var typedNil boardgame.Move
@@ -54,6 +58,10 @@ func TestDealCardsDefaultConfig(t *testing.T) {
 	manager, err := newGameManager(moveInstaller)
 
 	assert.For(t).ThatActual(err).IsNil()
+
+	if err != nil {
+		return
+	}
 
 	move := manager.ExampleMoveByName("Deal Cards")
 
