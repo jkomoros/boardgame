@@ -34,7 +34,9 @@ type Options struct {
 	//If true, won't add a CurrentPlayer to gameState
 	SuppressCurrentPlayer bool
 	//If true, won't render moves_normal.go, moves_setup.go, or moves.go if suppressphase is true
-	SuppressMovesStubs                  bool
+	SuppressMovesStubs bool
+	//If true, instead of using reflection for delegate.Name() will just output {{.Name}}
+	SuppressReflectedName               bool
 	SuppressComponentsStubs             bool
 	SuppressClientRenderGame            bool
 	SuppressClientRenderPlayerInfo      bool

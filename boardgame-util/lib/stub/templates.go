@@ -177,9 +177,9 @@ import (
 	"errors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves"
-	"github.com/jkomoros/boardgame/base"
+	"github.com/jkomoros/boardgame/base"{{if not .SuppressReflectedName}}
 	"reflect"
-	"strings"
+	"strings"{{- end}}
 )
 
 /*
@@ -197,6 +197,11 @@ type gameDelegate struct {
 	base.GameDelegate
 }
 
+{{ if .SuppressReflectedName}}
+func (g *gameDelegate) Name() string {
+	return "{{.Name}}"
+}
+{{ else }}
 var memoizedDelegateName string
 
 func (g *gameDelegate) Name() string {
@@ -212,6 +217,7 @@ func (g *gameDelegate) Name() string {
 	}
 	return memoizedDelegateName
 }
+{{- end}}
 
 {{if .DisplayName -}}
 func (g *gameDelegate) DisplayName() string {
