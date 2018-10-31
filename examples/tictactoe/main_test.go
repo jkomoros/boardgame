@@ -19,9 +19,6 @@ func TestGame(t *testing.T) {
 		t.Error("Didn't get tictactoe game back")
 	}
 
-	if game.Name() != gameName {
-		t.Error("Game didn't have right name. wanted", gameName, "got", game.Name())
-	}
 }
 
 func TestCheckGameFinished(t *testing.T) {

@@ -12,12 +12,11 @@ import (
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/moves"
+	"reflect"
 	"strings"
 )
 
 //go:generate boardgame-util codegen
-
-const gameName = "tictactoe"
 
 const DIM = 3
 const TOTAL_DIM = DIM * DIM
@@ -40,8 +39,20 @@ func (g *gameDelegate) DistributeComponentToStarterStack(state boardgame.Immutab
 	return nil, errors.New("Component with unexpected value")
 }
 
+var memoizedDelegateName string
+
 func (g *gameDelegate) Name() string {
-	return gameName
+
+	//If our package name and delegate.Name() don't match, NewGameManager will
+	//fail with an error. Given they have to be the same, we might as well
+	//just ensure they are actually the same, via a one-time reflection.
+
+	if memoizedDelegateName == "" {
+		pkgPath := reflect.ValueOf(g).Elem().Type().PkgPath()
+		pathPieces := strings.Split(pkgPath, "/")
+		memoizedDelegateName = pathPieces[len(pathPieces)-1]
+	}
+	return memoizedDelegateName
 }
 
 func (g *gameDelegate) DisplayName() string {

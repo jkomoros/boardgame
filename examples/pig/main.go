@@ -10,6 +10,7 @@ import (
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/components/dice"
 	"github.com/jkomoros/boardgame/moves"
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -23,8 +24,20 @@ type gameDelegate struct {
 	base.GameDelegate
 }
 
+var memoizedDelegateName string
+
 func (g *gameDelegate) Name() string {
-	return "pig"
+
+	//If our package name and delegate.Name() don't match, NewGameManager will
+	//fail with an error. Given they have to be the same, we might as well
+	//just ensure they are actually the same, via a one-time reflection.
+
+	if memoizedDelegateName == "" {
+		pkgPath := reflect.ValueOf(g).Elem().Type().PkgPath()
+		pathPieces := strings.Split(pkgPath, "/")
+		memoizedDelegateName = pathPieces[len(pathPieces)-1]
+	}
+	return memoizedDelegateName
 }
 
 func (g *gameDelegate) Description() string {
