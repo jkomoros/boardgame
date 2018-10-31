@@ -223,6 +223,17 @@ func (d *DealCountComponents) ValidConfiguration(exampleState boardgame.State) e
 	return d.RoundRobinNumRounds.ValidConfiguration(exampleState)
 }
 
+type sourceAndDestinationer interface {
+	sourceAndDestination(playerStack boardgame.Stack, gameStack boardgame.Stack) (source boardgame.Stack, destination boardgame.Stack)
+}
+
+//sourceAndDestination takes the playerStack and gameStrack and returns the
+//source and desintation, for this move. All Deal* moves should return
+//gameStack, PlayerStack; all Collect* moves should return the opposite.
+func (d *DealCountComponents) sourceAndDestination(playerStack boardgame.Stack, gameStack boardgame.Stack) (source boardgame.Stack, destination boardgame.Stack) {
+	return gameStack, playerStack
+}
+
 func (d *DealCountComponents) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	if err := d.RoundRobinNumRounds.Legal(state, proposer); err != nil {
 		return err
@@ -237,7 +248,15 @@ func (d *DealCountComponents) Legal(state boardgame.ImmutableState, proposer boa
 		return errors.New("ImmutablePlayerState couldn't be casted to PlayerState")
 	}
 
-	destination, source, err := dealActionHelper(d.TopLevelStruct(), playerState)
+	playerStack, gameStack, err := dealActionHelper(d.TopLevelStruct(), playerState)
+
+	sAndD, ok := d.TopLevelStruct().(sourceAndDestinationer)
+
+	if !ok {
+		return errors.New("Source and Destination overridden")
+	}
+
+	source, destination := sAndD.sourceAndDestination(playerStack, gameStack)
 
 	if err != nil {
 		return err

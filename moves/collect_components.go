@@ -19,6 +19,10 @@ type CollectCountComponents struct {
 	DealCountComponents
 }
 
+func (d *CollectCountComponents) sourceAndDestination(playerStack boardgame.Stack, gameStack boardgame.Stack) (source boardgame.Stack, destination boardgame.Stack) {
+	return playerStack, gameStack
+}
+
 //RoundRobinAction moves a component from the PlayerStack to the GameStack, as
 //configured by the PlayerStacker and GameStacker interfaces.
 func (d *CollectCountComponents) RoundRobinAction(playerState boardgame.PlayerState) error {
@@ -64,6 +68,10 @@ func (d *CollectCountComponents) FallbackHelpText() string {
 //boardgame:codegen
 type CollectComponentsUntilPlayerCountLeft struct {
 	DealComponentsUntilPlayerCountReached
+}
+
+func (d *CollectComponentsUntilPlayerCountLeft) sourceAndDestination(playerStack boardgame.Stack, gameStack boardgame.Stack) (source boardgame.Stack, destination boardgame.Stack) {
+	return playerStack, gameStack
 }
 
 //RoundRobinAction moves a component from the PlayerStack to the GameStack, as
@@ -123,6 +131,10 @@ func (d *CollectComponentsUntilPlayerCountLeft) FallbackHelpText() string {
 //boardgame:codegen
 type CollectComponentsUntilGameCountReached struct {
 	DealComponentsUntilGameCountLeft
+}
+
+func (d *CollectComponentsUntilGameCountReached) sourceAndDestination(playerStack boardgame.Stack, gameStack boardgame.Stack) (source boardgame.Stack, destination boardgame.Stack) {
+	return playerStack, gameStack
 }
 
 //RoundRobinAction moves a component from the PlayerStack to the GameStack, as
