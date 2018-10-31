@@ -335,8 +335,12 @@ func (p *Pkg) Import() string {
 	return p.importPath
 }
 
-//Name returns the package name, which should also be the name of the game
-//(what NewDelegate.Name() returns).
+//Name returns the package name, according to a static analysis of the source.
+//Technically it's possible that this differs from the package's delegate's
+//Name(), however in practice that's extremely unlikely because the core
+//library will fail to create a GameManager if the package and delegate name
+//don't match. That means that the return value of this method can effectively
+//be used as though it equals the delegate's Name().
 func (p *Pkg) Name() string {
 	return p.name
 }
