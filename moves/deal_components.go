@@ -223,6 +223,45 @@ func (d *DealCountComponents) ValidConfiguration(exampleState boardgame.State) e
 	return d.RoundRobinNumRounds.ValidConfiguration(exampleState)
 }
 
+func (d *DealCountComponents) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	if err := d.RoundRobinNumRounds.Legal(state, proposer); err != nil {
+		return err
+	}
+
+	nextPlayerIndex, _ := d.nextPlayerIndex(state)
+	immutablePlayerState := state.ImmutablePlayerStates()[nextPlayerIndex]
+
+	//Yes. this is a hack. :-/
+	playerState, ok := immutablePlayerState.(boardgame.PlayerState)
+	if !ok {
+		return errors.New("ImmutablePlayerState couldn't be casted to PlayerState")
+	}
+
+	destination, source, err := dealActionHelper(d.TopLevelStruct(), playerState)
+
+	if err != nil {
+		return err
+	}
+
+	if source == nil {
+		return errors.New("Source was nil")
+	}
+
+	if destination == nil {
+		return errors.New("Destination was nil")
+	}
+
+	if source.NumComponents() < 1 {
+		return errors.New("The stack to draw from doesn't have any components to move!")
+	}
+
+	if destination.SlotsRemaining() < 1 {
+		return errors.New("The destination stack doesn't have any slots to move the component to!")
+	}
+
+	return nil
+}
+
 //RoundRobinAction moves a component from the GameStack to the PlayerStack, as
 //configured by the PlayerStacker and GameStacker interfaces.
 func (d *DealCountComponents) RoundRobinAction(playerState boardgame.PlayerState) error {

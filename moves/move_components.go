@@ -134,6 +134,33 @@ func (m *MoveCountComponents) stackNames(state boardgame.ImmutableState) (starte
 	return stackName(m, configPropSourceProperty, sourceStack, state), stackName(m, configPropDestinationProperty, destinationStack, state)
 }
 
+func (m *MoveCountComponents) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+	if err := m.ApplyCountTimes.Legal(state, proposer); err != nil {
+		return err
+	}
+
+	source, destination := m.stacks(state)
+
+	if source == nil {
+		return errors.New("Source was nil")
+	}
+
+	if destination == nil {
+		return errors.New("Destination was nil")
+	}
+
+	if source.NumComponents() < 1 {
+		return errors.New("The stack to draw from doesn't have any components to move!")
+	}
+
+	if destination.SlotsRemaining() < 1 {
+		return errors.New("The destination stack doesn't have any slots to move the component to!")
+	}
+
+	return nil
+
+}
+
 //Apply by default moves one component from SourceStack() to
 //DestinationStack(). You likely do not need to override this method.
 func (m *MoveCountComponents) Apply(state boardgame.State) error {

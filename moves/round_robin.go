@@ -178,11 +178,11 @@ func (r *RoundRobin) finishRoundRobin(state boardgame.State) error {
 //operate on.  Also returns roundSkip true if the player we end on is the
 //first player in the round robin, or if we skipped over them to find the next
 //valid player.
-func (r *RoundRobin) nextPlayerIndex(state boardgame.State) (player boardgame.PlayerIndex, roundSkip bool) {
+func (r *RoundRobin) nextPlayerIndex(state boardgame.ImmutableState) (player boardgame.PlayerIndex, roundSkip bool) {
 
 	var currentPlayer boardgame.PlayerIndex
 
-	roundRobiner, ok := state.GameState().(interfaces.RoundRobinProperties)
+	roundRobiner, ok := state.ImmutableGameState().(interfaces.RoundRobinProperties)
 
 	if !ok {
 		return boardgame.ObserverPlayerIndex, true
@@ -222,7 +222,7 @@ func (r *RoundRobin) nextPlayerIndex(state boardgame.State) (player boardgame.Pl
 	roundSkip = false
 
 	//Advance around, but if we loop back just leave it.
-	for counter <= len(state.PlayerStates()) {
+	for counter <= len(state.ImmutablePlayerStates()) {
 
 		currentPlayer = currentPlayer.Next(state)
 
@@ -230,14 +230,14 @@ func (r *RoundRobin) nextPlayerIndex(state boardgame.State) (player boardgame.Pl
 			roundSkip = true
 		}
 
-		if !conditionsMet.PlayerConditionMet(state.PlayerStates()[currentPlayer]) {
+		if !conditionsMet.PlayerConditionMet(state.ImmutablePlayerStates()[currentPlayer]) {
 			break
 		}
 
 		counter++
 	}
 
-	if counter > len(state.PlayerStates()) {
+	if counter > len(state.ImmutablePlayerStates()) {
 		//No players are legal
 		return currentPlayer, true
 	}
