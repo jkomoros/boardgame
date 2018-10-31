@@ -105,6 +105,8 @@ func compare(manager *boardgame.GameManager, rec *record.Record) (result error) 
 		return errors.New("Couldn't create game: " + err.Error())
 	}
 
+	lastVerifiedVersion := 0
+
 	//buf is set at top of loop, but doesn't get a useful value until bottom
 	//of loop.
 	var buf *bytes.Buffer
@@ -122,9 +124,12 @@ func compare(manager *boardgame.GameManager, rec *record.Record) (result error) 
 			return
 		}
 		fmt.Println(lastBuf)
-	}()
 
-	lastVerifiedVersion := 0
+		fmt.Println("Last state: ")
+		state := game.State(lastVerifiedVersion)
+		jsonBuf, _ := json.MarshalIndent(state, "", "\t")
+		fmt.Println(string(jsonBuf))
+	}()
 
 	for !game.Finished() {
 
