@@ -200,7 +200,7 @@ func compare(manager *boardgame.GameManager, rec *record.Record) (result error) 
 			}
 
 			//There wasn't a timer pending, so it's just an error
-			return errors.New("At version " + strconv.Itoa(lastVerifiedVersion) + " the next player move to apply was not applied by a player")
+			return errors.New("At version " + strconv.Itoa(lastVerifiedVersion) + " the next player move to apply was not applied by a player. This implies that the fixUp move named " + nextMoveRec.Name + " is erroneously returning an error from its Legal method.")
 		}
 
 		nextMove, err := nextMoveRec.Inflate(game)
