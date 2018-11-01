@@ -8,6 +8,46 @@ import (
 	"testing"
 )
 
+func TestShuffleCount(t *testing.T) {
+	game := testDefaultGame(t, false)
+
+	gameState, _ := concreteStates(game.CurrentState())
+
+	drawStack := gameState.DrawDeck
+
+	assert.For(t).ThatActual(drawStack.ShuffleCount()).Equals(0)
+
+	err := drawStack.Shuffle()
+	assert.For(t).ThatActual(err).IsNil()
+	assert.For(t).ThatActual(drawStack.ShuffleCount()).Equals(1)
+
+	err = drawStack.PublicShuffle()
+	assert.For(t).ThatActual(err).IsNil()
+	assert.For(t).ThatActual(drawStack.ShuffleCount()).Equals(2)
+
+	//Verify that shuffleCount makes it through round-tripping.
+	blob, err := json.Marshal(drawStack)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	newGame := testDefaultGame(t, false)
+
+	newGameState, _ := concreteStates(newGame.CurrentState())
+
+	newDrawStack := newGameState.DrawDeck
+
+	assert.For(t).ThatActual(newDrawStack.ShuffleCount()).Equals(0)
+
+	err = json.Unmarshal(blob, newDrawStack)
+
+	assert.For(t).ThatActual(err).IsNil()
+
+	assert.For(t).ThatActual(newDrawStack.ShuffleCount()).Equals(2)
+
+	//TODO: also test this for sized stacks.
+
+}
+
 func TestEmptyStacks(t *testing.T) {
 	game := testDefaultGame(t, false)
 

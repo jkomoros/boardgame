@@ -413,7 +413,8 @@
 							9,
 							39,
 							28
-						]
+						],
+						"ShuffleCount": 1
 					},
 					"Phase": "Initial Deal",
 					"RRHasStarted": false,

@@ -640,7 +640,8 @@
 							18,
 							24,
 							31
-						]
+						],
+						"ShuffleCount": 1
 					},
 					"Phase": "Initial Deal",
 					"RRHasStarted": false,

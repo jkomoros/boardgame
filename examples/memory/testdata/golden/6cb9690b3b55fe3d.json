@@ -971,6 +971,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -1110,6 +1111,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -1163,6 +1165,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -1765,6 +1768,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -1906,6 +1910,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -1961,6 +1966,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -2563,6 +2569,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -2705,6 +2712,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -2761,6 +2769,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -3363,6 +3372,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -3505,6 +3515,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -3561,6 +3572,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -4163,6 +4175,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -4305,6 +4318,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -4361,6 +4375,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -4963,6 +4978,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -5105,6 +5121,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -5161,6 +5178,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -5763,6 +5781,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -5906,6 +5925,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -5963,6 +5983,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -6565,6 +6586,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -6709,6 +6731,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -6767,6 +6790,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -7369,6 +7393,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -7513,6 +7538,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -7571,6 +7597,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -8173,6 +8200,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -8317,6 +8345,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -8375,6 +8404,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -8977,6 +9007,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -9121,6 +9152,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -9179,6 +9211,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -9781,6 +9814,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -9926,6 +9960,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -9985,6 +10020,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -10587,6 +10623,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -10733,6 +10770,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -10793,6 +10831,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -11395,6 +11434,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -11541,6 +11581,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -11601,6 +11642,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -12212,6 +12254,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -12358,6 +12401,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -12418,6 +12462,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -13029,6 +13074,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -13176,6 +13222,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -13237,6 +13284,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -13848,6 +13896,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -13996,6 +14045,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -14058,6 +14108,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -14669,6 +14720,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -14817,6 +14869,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -14879,6 +14932,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -15490,6 +15544,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -15638,6 +15693,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -15700,6 +15756,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -16311,6 +16368,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -16459,6 +16517,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -16521,6 +16580,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -17132,6 +17192,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -17281,6 +17342,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -17344,6 +17406,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -17955,6 +18018,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -18104,6 +18168,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -18167,6 +18232,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -18778,6 +18844,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -18927,6 +18994,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -18990,6 +19058,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -19601,6 +19670,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -19750,6 +19820,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -19813,6 +19884,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -20424,6 +20496,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -20573,6 +20646,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -20636,6 +20710,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -21247,6 +21322,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -21396,6 +21472,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -21459,6 +21536,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -22070,6 +22148,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -22219,6 +22298,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						9,
@@ -22282,6 +22362,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -22893,6 +22974,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -23042,6 +23124,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -23105,6 +23188,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -23725,6 +23809,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -23874,6 +23959,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -23937,6 +24023,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -24557,6 +24644,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -24706,6 +24794,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -24769,6 +24858,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -25389,6 +25479,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -25539,6 +25630,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -25603,6 +25695,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -26223,6 +26316,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -26373,6 +26467,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -26437,6 +26532,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -27063,6 +27159,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -27213,6 +27310,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -27277,6 +27375,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -27903,6 +28002,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -28054,6 +28154,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -28119,6 +28220,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -28745,6 +28847,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -28897,6 +29000,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -28963,6 +29067,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -29589,6 +29694,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -29741,6 +29847,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -29807,6 +29914,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -30433,6 +30541,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -30585,6 +30694,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -30651,6 +30761,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -31277,6 +31388,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -31429,6 +31541,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -31495,6 +31608,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -32121,6 +32235,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -32274,6 +32389,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -32341,6 +32457,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -32967,6 +33084,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -33120,6 +33238,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -33187,6 +33306,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -33813,6 +33933,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -33966,6 +34087,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -34033,6 +34155,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -34665,6 +34788,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -34818,6 +34942,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -34885,6 +35010,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -35517,6 +35643,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -35671,6 +35798,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -35739,6 +35867,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -36371,6 +36500,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -36526,6 +36656,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -36595,6 +36726,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -37227,6 +37359,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -37382,6 +37515,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -37451,6 +37585,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -38083,6 +38218,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -38238,6 +38374,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -38307,6 +38444,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -38939,6 +39077,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -39094,6 +39233,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -39163,6 +39303,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -39795,6 +39936,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -39950,6 +40092,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -40019,6 +40162,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -40651,6 +40795,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -40806,6 +40951,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -40875,6 +41021,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -41507,6 +41654,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -41662,6 +41810,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -41731,6 +41880,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -42369,6 +42519,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -42524,6 +42675,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -42593,6 +42745,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -43231,6 +43384,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -43386,6 +43540,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -43455,6 +43610,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -44093,6 +44249,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -44248,6 +44405,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -44317,6 +44475,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -44955,6 +45114,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -45110,6 +45270,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -45179,6 +45340,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -45823,6 +45985,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -45978,6 +46141,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -46047,6 +46211,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -46691,6 +46856,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -46846,6 +47012,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -46915,6 +47082,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -47559,6 +47727,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -47714,6 +47883,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -47783,6 +47953,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -48427,6 +48598,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -48582,6 +48754,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -48651,6 +48824,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -49295,6 +49469,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -49450,6 +49625,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -49519,6 +49695,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -50163,6 +50340,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -50318,6 +50496,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -50387,6 +50566,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -51031,6 +51211,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -51186,6 +51367,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -51255,6 +51437,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -51899,6 +52082,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -52055,6 +52239,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -52125,6 +52310,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -52769,6 +52955,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -52925,6 +53112,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -52995,6 +53183,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -53639,6 +53828,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -53795,6 +53985,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -53865,6 +54056,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -54509,6 +54701,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -54665,6 +54858,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -54735,6 +54929,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -55379,6 +55574,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -55536,6 +55732,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -55607,6 +55804,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -56251,6 +56449,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -56409,6 +56608,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -56481,6 +56681,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -57125,6 +57326,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -57283,6 +57485,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -57355,6 +57558,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -57999,6 +58203,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -58157,6 +58362,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -58229,6 +58435,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -58873,6 +59080,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -59031,6 +59239,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -59103,6 +59312,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -59747,6 +59957,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -59905,6 +60116,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -59977,6 +60189,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -60621,6 +60834,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -60779,6 +60993,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -60851,6 +61066,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -61495,6 +61711,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -61653,6 +61870,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -61725,6 +61943,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -62375,6 +62594,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -62533,6 +62753,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -62605,6 +62826,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -63255,6 +63477,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -63414,6 +63637,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -63487,6 +63711,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -64137,6 +64362,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -64296,6 +64522,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -64369,6 +64596,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -65019,6 +65247,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -65178,6 +65407,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -65251,6 +65481,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -65907,6 +66138,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -66066,6 +66298,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -66139,6 +66372,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -66795,6 +67029,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -66954,6 +67189,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -67027,6 +67263,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -67683,6 +67920,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -67842,6 +68080,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -67915,6 +68154,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -68571,6 +68811,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -68730,6 +68971,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -68803,6 +69045,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -69459,6 +69702,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -69618,6 +69862,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -69691,6 +69936,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -70347,6 +70593,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -70506,6 +70753,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -70579,6 +70827,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -71235,6 +71484,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -71394,6 +71644,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -71467,6 +71718,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -72123,6 +72375,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -72282,6 +72535,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -72355,6 +72609,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -73011,6 +73266,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 0,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -73170,6 +73426,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -73243,6 +73500,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -73905,6 +74163,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -74064,6 +74323,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -74137,6 +74397,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -74799,6 +75060,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -74958,6 +75220,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -75031,6 +75294,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -75693,6 +75957,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -75853,6 +76118,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -75927,6 +76193,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,
@@ -76589,6 +76856,7 @@
 				"NumCards": 20,
 				"CurrentPlayer": 1,
 				"HiddenCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -76749,6 +77017,7 @@
 					"Size": 20
 				},
 				"Cards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -76823,6 +77092,7 @@
 					"IsTimer": true
 				},
 				"UnusedCards": {
+					"ShuffleCount": 1,
 					"Deck": "cards",
 					"Indexes": [
 						76,

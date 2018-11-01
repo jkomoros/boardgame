@@ -108,7 +108,8 @@
 							68,
 							69
 						],
-						"Size": 10
+						"Size": 10,
+						"ShuffleCount": 1
 					},
 					"CurrentPlayer": 0,
 					"HiddenCards": {
@@ -159,7 +160,8 @@
 							68,
 							69
 						],
-						"Size": 10
+						"Size": 10,
+						"ShuffleCount": 1
 					},
 					"HideCardsTimer": {
 						"Id": "",
@@ -633,7 +635,8 @@
 							27,
 							22,
 							44
-						]
+						],
+						"ShuffleCount": 1
 					},
 					"VisibleCards": {
 						"Deck": "cards",

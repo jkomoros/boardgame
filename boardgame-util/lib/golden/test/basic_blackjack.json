@@ -468,7 +468,8 @@
 							23,
 							15,
 							8
-						]
+						],
+						"ShuffleCount": 1
 					},
 					"Phase": "Initial Deal",
 					"RRHasStarted": false,
