@@ -120,6 +120,10 @@ func compare(manager *boardgame.GameManager, rec *record.Record) (result error) 
 			return
 		}
 
+		if lastBuf == nil {
+			return
+		}
+
 		if lastBuf.Len() == 0 {
 			return
 		}
