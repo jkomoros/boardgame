@@ -40,6 +40,8 @@
 - 0
 @ ["Game","DrawDeck","IdsLastSeen","eb8210726e015b0e472c225e512166e7f1ac34de"]
 - 0
+@ ["Game","DrawDeck","ShuffleCount"]
+- 1
 @ ["Game","MyBoolSlice",2]
 - true
 @ ["Game","MyBoolSlice",1]

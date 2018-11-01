@@ -29,6 +29,8 @@
 @ ["Game","DrawDeck","Indexes",0]
 - 2
 + -2
+@ ["Game","DrawDeck","ShuffleCount"]
+- 1
 @ ["Game","MyBoolSlice",2]
 - true
 @ ["Game","MyBoolSlice",1]

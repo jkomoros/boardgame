@@ -595,6 +595,8 @@ func (g *growableStack) applySanitizationPolicy(policy Policy) {
 		return
 	}
 
+	g.shuffleCount = 0
+
 	//Anything other than PolicyVisible and PolicyLen (at least currently)
 	//will move Ids to PossibleIds.
 	for _, c := range g.Components() {
@@ -721,6 +723,8 @@ func (s *sizedStack) applySanitizationPolicy(policy Policy) {
 
 		return
 	}
+
+	s.shuffleCount = 0
 
 	//Anything other than PolicyVisible and PolicyLen (at least currently)
 	//will move Ids to PossibleIds.
