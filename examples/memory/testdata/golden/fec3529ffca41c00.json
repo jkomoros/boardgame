@@ -665,7 +665,8 @@
 							-1,
 							-1
 						],
-						"Size": 10
+						"Size": 10,
+						"ShuffleCount": 0
 					}
 				}
 			],
@@ -677,7 +678,8 @@
 							"Deck": "cards",
 							"Ids": [],
 							"IdsLastSeen": {},
-							"Indexes": []
+							"Indexes": [],
+							"ShuffleCount": 0
 						}
 					},
 					{
@@ -686,7 +688,8 @@
 							"Deck": "cards",
 							"Ids": [],
 							"IdsLastSeen": {},
-							"Indexes": []
+							"Indexes": [],
+							"ShuffleCount": 0
 						}
 					}
 				]

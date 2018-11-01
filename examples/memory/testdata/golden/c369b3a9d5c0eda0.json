@@ -174,6 +174,7 @@
 					"Size": 10
 				},
 				"VisibleCards": {
+					"ShuffleCount": 0,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -711,6 +712,7 @@
 				{
 					"CardsLeftToReveal": 2,
 					"WonCards": {
+						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"Ids": [],
@@ -720,6 +722,7 @@
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
+						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"Ids": [],
@@ -911,6 +914,7 @@
 					"Size": 10
 				},
 				"VisibleCards": {
+					"ShuffleCount": 0,
 					"Deck": "cards",
 					"Indexes": [
 						67,
@@ -1452,6 +1456,7 @@
 				{
 					"CardsLeftToReveal": 1,
 					"WonCards": {
+						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"Ids": [],
@@ -1461,6 +1466,7 @@
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
+						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"Ids": [],
@@ -1652,6 +1658,7 @@
 					"Size": 10
 				},
 				"VisibleCards": {
+					"ShuffleCount": 0,
 					"Deck": "cards",
 					"Indexes": [
 						67,
@@ -2195,6 +2202,7 @@
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
+						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"Ids": [],
@@ -2204,6 +2212,7 @@
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
+						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"Ids": [],
@@ -2395,6 +2404,7 @@
 					"Size": 10
 				},
 				"VisibleCards": {
+					"ShuffleCount": 0,
 					"Deck": "cards",
 					"Indexes": [
 						67,
@@ -2938,6 +2948,7 @@
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
+						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"Ids": [],
@@ -2947,6 +2958,7 @@
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
+						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"Ids": [],
@@ -3138,6 +3150,7 @@
 					"Size": 10
 				},
 				"VisibleCards": {
+					"ShuffleCount": 0,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -3681,6 +3694,7 @@
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
+						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"Ids": [],
@@ -3690,6 +3704,7 @@
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
+						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"Ids": [],
@@ -3881,6 +3896,7 @@
 					"Size": 10
 				},
 				"VisibleCards": {
+					"ShuffleCount": 0,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -4424,6 +4440,7 @@
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
+						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"Ids": [],
@@ -4433,6 +4450,7 @@
 				{
 					"CardsLeftToReveal": 2,
 					"WonCards": {
+						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"Ids": [],
@@ -4624,6 +4642,7 @@
 					"Size": 10
 				},
 				"VisibleCards": {
+					"ShuffleCount": 0,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -5167,6 +5186,7 @@
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
+						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"Ids": [],
@@ -5176,6 +5196,7 @@
 				{
 					"CardsLeftToReveal": 1,
 					"WonCards": {
+						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"Ids": [],
@@ -5367,6 +5388,7 @@
 					"Size": 10
 				},
 				"VisibleCards": {
+					"ShuffleCount": 0,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -5912,6 +5934,7 @@
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
+						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"Ids": [],
@@ -5921,6 +5944,7 @@
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
+						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"Ids": [],
@@ -6112,6 +6136,7 @@
 					"Size": 10
 				},
 				"VisibleCards": {
+					"ShuffleCount": 0,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -6657,6 +6682,7 @@
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
+						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"Ids": [],
@@ -6666,6 +6692,7 @@
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
+						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [
 							75,
@@ -6866,6 +6893,7 @@
 					"Size": 10
 				},
 				"VisibleCards": {
+					"ShuffleCount": 0,
 					"Deck": "cards",
 					"Indexes": [
 						-1,
@@ -7411,6 +7439,7 @@
 				{
 					"CardsLeftToReveal": 2,
 					"WonCards": {
+						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [],
 						"Ids": [],
@@ -7420,6 +7449,7 @@
 				{
 					"CardsLeftToReveal": 0,
 					"WonCards": {
+						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Indexes": [
 							75,

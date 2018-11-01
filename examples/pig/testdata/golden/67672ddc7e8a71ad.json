@@ -2461,7 +2461,8 @@
 						"Indexes": [
 							0
 						],
-						"Size": 1
+						"Size": 1,
+						"ShuffleCount": 0
 					},
 					"TargetScore": 100
 				}

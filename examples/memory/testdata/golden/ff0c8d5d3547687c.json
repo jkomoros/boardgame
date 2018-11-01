@@ -1013,6 +1013,7 @@
 						"ShuffleCount": 1
 					},
 					"VisibleCards": {
+						"ShuffleCount": 0,
 						"Deck": "cards",
 						"Ids": [
 							"",
@@ -1111,7 +1112,8 @@
 							"Deck": "cards",
 							"Ids": [],
 							"IdsLastSeen": {},
-							"Indexes": []
+							"Indexes": [],
+							"ShuffleCount": 0
 						}
 					},
 					{
@@ -1120,7 +1122,8 @@
 							"Deck": "cards",
 							"Ids": [],
 							"IdsLastSeen": {},
-							"Indexes": []
+							"Indexes": [],
+							"ShuffleCount": 0
 						}
 					}
 				]
@@ -1632,7 +1635,8 @@
 							"Deck": "cards",
 							"Ids": [],
 							"IdsLastSeen": {},
-							"Indexes": []
+							"Indexes": [],
+							"ShuffleCount": 0
 						}
 					}
 				],
@@ -1643,7 +1647,8 @@
 							"Deck": "cards",
 							"Ids": [],
 							"IdsLastSeen": {},
-							"Indexes": []
+							"Indexes": [],
+							"ShuffleCount": 0
 						}
 					},
 					0,
@@ -2168,7 +2173,8 @@
 							"Deck": "cards",
 							"Ids": [],
 							"IdsLastSeen": {},
-							"Indexes": []
+							"Indexes": [],
+							"ShuffleCount": 0
 						}
 					}
 				],
@@ -2179,7 +2185,8 @@
 							"Deck": "cards",
 							"Ids": [],
 							"IdsLastSeen": {},
-							"Indexes": []
+							"Indexes": [],
+							"ShuffleCount": 0
 						}
 					},
 					0,

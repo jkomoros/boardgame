@@ -415,7 +415,7 @@ type stackJSONObj struct {
 	Indexes      []int
 	Ids          []string
 	IdsLastSeen  map[string]int
-	ShuffleCount int `json:",omitempty"`
+	ShuffleCount int
 	Size         int `json:",omitempty"`
 	MaxSize      int `json:",omitempty"`
 }

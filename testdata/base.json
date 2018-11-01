@@ -23,7 +23,8 @@
                 "eb8210726e015b0e472c225e512166e7f1ac34de": 0,
                 "667bc729077137a8932a2cffc5ca4b0cec905956": 0,
                 "8bf6916c4aba0745eeff7e0495cdb67abe66f031": 0
-            }
+            },
+            "ShuffleCount": 0
         },
         "Timer" : {
             "Id": "",
@@ -50,7 +51,8 @@
                 "",
                 ""
             ],
-            "IdsLastSeen": {}
+            "IdsLastSeen": {},
+            "ShuffleCount": 0
         },
         "OtherStack": {
             "Deck": "test",
@@ -63,7 +65,8 @@
                 "",
                 ""
             ],
-            "IdsLastSeen": {}
+            "IdsLastSeen": {},
+            "ShuffleCount": 0
         },
         "MyMergedStack": {
             "Deck": "test",
@@ -84,7 +87,8 @@
                 "",
                 ""
             ],
-            "IdsLastSeen": {}
+            "IdsLastSeen": {},
+            "ShuffleCount": 0
         },
         "MyBoard": {
             "Spaces": [
@@ -92,7 +96,8 @@
                     "Deck": "test",
                     "Indexes": [],
                     "Ids": [],
-                    "IdsLastSeen": {}
+                    "IdsLastSeen": {},
+                    "ShuffleCount": 0
                 },
                 {
                     "Deck": "test",
@@ -104,13 +109,15 @@
                     ],
                     "IdsLastSeen": {
                         "8bf6916c4aba0745eeff7e0495cdb67abe66f031": 0
-                    }
+                    },
+                    "ShuffleCount": 0
                 },
                 {
                     "Deck": "test",
                     "Indexes": [],
                     "Ids": [],
-                    "IdsLastSeen": {}
+                    "IdsLastSeen": {},
+                    "ShuffleCount": 0
                 }
             ]
         }
@@ -131,7 +138,8 @@
                     ""
                 ],
                 "IdsLastSeen": {},
-                "Size" : 2
+                "Size" : 2,
+                "ShuffleCount": 0
             },
             "EnumVal" : "Red"
         },
@@ -150,7 +158,8 @@
                     ""
                 ],
                 "IdsLastSeen": {},
-                "Size" : 2
+                "Size" : 2,
+                "ShuffleCount": 0
             },
             "EnumVal" : "Green"
         },
@@ -169,7 +178,8 @@
                     ""
                 ],
                 "IdsLastSeen": {},
-                "Size" : 2
+                "Size" : 2,
+                "ShuffleCount": 0
             },
             "EnumVal" : "Red"
         }
@@ -187,7 +197,8 @@
                         ""
                     ],
                     "IdsLastSeen": {},
-                    "Size": 1
+                    "Size": 1,
+                    "ShuffleCount": 0
                 },
                 "Enum": "Blue"
             },
@@ -202,7 +213,8 @@
                         ""
                     ],
                     "IdsLastSeen": {},
-                    "Size": 1
+                    "Size": 1,
+                    "ShuffleCount": 0
                 },
                 "Enum": "Blue"
             },
@@ -217,7 +229,8 @@
                         ""
                     ],
                     "IdsLastSeen": {},
-                    "Size": 1
+                    "Size": 1,
+                    "ShuffleCount": 0
                 },
                 "Enum": "Blue"
             },
@@ -232,7 +245,8 @@
                         ""
                     ],
                     "IdsLastSeen": {},
-                    "Size": 1
+                    "Size": 1,
+                    "ShuffleCount": 0
                 },
                 "Enum": "Blue"
             },
@@ -247,7 +261,8 @@
                         ""
                     ],
                     "IdsLastSeen": {},
-                    "Size": 1
+                    "Size": 1,
+                    "ShuffleCount": 0
                 },
                 "Enum": "Blue"
             }

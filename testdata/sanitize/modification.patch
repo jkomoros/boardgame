@@ -34,6 +34,7 @@
 - 0
 + 2
 @ ["Game","DrawDeck","ShuffleCount"]
+- 0
 + 1
 @ ["Game","MyBoolSlice",0]
 + true

@@ -196,7 +196,8 @@
 						"Deck": "cards",
 						"Ids": [],
 						"IdsLastSeen": {},
-						"Indexes": []
+						"Indexes": [],
+						"ShuffleCount": 0
 					},
 					"DrawStack": {
 						"Deck": "cards",
@@ -425,7 +426,8 @@
 						"Deck": "cards",
 						"Ids": [],
 						"IdsLastSeen": {},
-						"Indexes": []
+						"Indexes": [],
+						"ShuffleCount": 0
 					}
 				}
 			],
@@ -438,21 +440,24 @@
 							"Ids": null,
 							"IdsLastSeen": {},
 							"Indexes": [],
-							"MaxSize": 1
+							"MaxSize": 1,
+							"ShuffleCount": 0
 						},
 						"HiddenHand": {
 							"Deck": "cards",
 							"Ids": [],
 							"IdsLastSeen": {},
 							"Indexes": [],
-							"MaxSize": 1
+							"MaxSize": 1,
+							"ShuffleCount": 0
 						},
 						"Stood": false,
 						"VisibleHand": {
 							"Deck": "cards",
 							"Ids": [],
 							"IdsLastSeen": {},
-							"Indexes": []
+							"Indexes": [],
+							"ShuffleCount": 0
 						}
 					},
 					{
@@ -462,21 +467,24 @@
 							"Ids": null,
 							"IdsLastSeen": {},
 							"Indexes": [],
-							"MaxSize": 1
+							"MaxSize": 1,
+							"ShuffleCount": 0
 						},
 						"HiddenHand": {
 							"Deck": "cards",
 							"Ids": [],
 							"IdsLastSeen": {},
 							"Indexes": [],
-							"MaxSize": 1
+							"MaxSize": 1,
+							"ShuffleCount": 0
 						},
 						"Stood": false,
 						"VisibleHand": {
 							"Deck": "cards",
 							"Ids": [],
 							"IdsLastSeen": {},
-							"Indexes": []
+							"Indexes": [],
+							"ShuffleCount": 0
 						}
 					},
 					{
@@ -486,21 +494,24 @@
 							"Ids": null,
 							"IdsLastSeen": {},
 							"Indexes": [],
-							"MaxSize": 1
+							"MaxSize": 1,
+							"ShuffleCount": 0
 						},
 						"HiddenHand": {
 							"Deck": "cards",
 							"Ids": [],
 							"IdsLastSeen": {},
 							"Indexes": [],
-							"MaxSize": 1
+							"MaxSize": 1,
+							"ShuffleCount": 0
 						},
 						"Stood": false,
 						"VisibleHand": {
 							"Deck": "cards",
 							"Ids": [],
 							"IdsLastSeen": {},
-							"Indexes": []
+							"Indexes": [],
+							"ShuffleCount": 0
 						}
 					},
 					{
@@ -510,21 +521,24 @@
 							"Ids": null,
 							"IdsLastSeen": {},
 							"Indexes": [],
-							"MaxSize": 1
+							"MaxSize": 1,
+							"ShuffleCount": 0
 						},
 						"HiddenHand": {
 							"Deck": "cards",
 							"Ids": [],
 							"IdsLastSeen": {},
 							"Indexes": [],
-							"MaxSize": 1
+							"MaxSize": 1,
+							"ShuffleCount": 0
 						},
 						"Stood": false,
 						"VisibleHand": {
 							"Deck": "cards",
 							"Ids": [],
 							"IdsLastSeen": {},
-							"Indexes": []
+							"Indexes": [],
+							"ShuffleCount": 0
 						}
 					}
 				]
