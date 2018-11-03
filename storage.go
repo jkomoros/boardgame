@@ -59,7 +59,10 @@ func (m *MoveStorageRecord) Inflate(game *Game) (Move, error) {
 //GameStorageRecord is a simple struct with public fields representing the
 //important aspects of a game that should be serialized to storage. The fields
 //are broken out specifically so that the storage layer can understand these
-//properties in queries.
+//properties in queries. Typically you don't use this struct directly, instead
+//getting an inflated version via something like GameManager.ModifiableGame()
+//and then using the associated methods on the struct to get at the undelying
+//values.
 type GameStorageRecord struct {
 	//Name is the type of the game, from its manager. Used for sanity
 	//checking.
