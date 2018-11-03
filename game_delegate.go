@@ -7,7 +7,8 @@ import (
 //GameDelegate is the place that various parts of the game lifecycle can be
 //modified to support this particular game. Typically you embed
 //base.GameDelegate in your won struct, and only override methods whose
-//default behavior is incorrect for your game.
+//default behavior is incorrect for your game. Think of your GameDelegate like
+//the brain that you plug into the robot body of a GameManager.
 type GameDelegate interface {
 
 	//Name is a string that defines the type of game this is. The name should
