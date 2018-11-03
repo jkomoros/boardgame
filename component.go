@@ -65,7 +65,8 @@ type Component interface {
 }
 
 //ImmutableComponentInstance is a specific instantiation of a component as it
-//exists in the particular State it is associated with.
+//exists in the particular State it is associated with. They are like a
+//ComponentInstance, but without mutating methods.
 //ImmutableComponentInstances also implement all of the Component information,
 //as a convenience you often need both bits of inforamation.  The downside of
 //this is that two Component values can't be compared directly for equality
@@ -83,15 +84,19 @@ type ImmutableComponentInstance interface {
 	//ID returns a semi-stable ID for this component within this game and the
 	//current state this component instance is associated with. Within this
 	//game, it will only change when the shuffleCount for this component
-	//changes. Across games the Id for the "same" component will be different,
-	//in a way that cannot be guessed without access to game.SecretSalt. See
-	//the package doc for more on semi-stable Ids for components, what they
-	//can be used for, and when they do (and don't) change.
+	//changes (that is, when the component is in a stack that is Shuffle()'d
+	//or when the ComponentInstance is in a stach that has a component moved
+	//to it via SecretMoveTo). Across games the Id for the "same" component
+	//will be different, in a way that cannot be guessed without access to
+	//game.SecretSalt. Typically your game logic can ignore IDs and not use
+	//them; they're provided to enable certain scenarios and animations in the
+	//core engine and other packages. See the documentation for Policy for
+	//more on IDs and why they exist.
 	ID() string
 
 	//ImmutableDynamicValues returns the Dynamic Values for this component in the state
 	//this instance is associated with. A convenience so you don't have to go
-	//find them within the DynamicComponentValues yourself.
+	//find them within the state.DynamicComponentValues yourself.
 	ImmutableDynamicValues() ImmutableSubState
 
 	//ContainingImmutableStack will return the stack and slot index for the
