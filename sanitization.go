@@ -37,8 +37,71 @@ const (
 	GroupAll = -3
 )
 
-//A sanitization policy reflects how to tranform a given State property when
-//presenting to someone outside of the target group.
+/*
+
+A sanitization policy reflects how to tranform a given State property when
+presenting to someone outside of the target group. They are returned from your
+GameDelegate's SanitizationPolicy method, and the results are used to
+configure how properties are modified or elided in state.SanitizedForPlayer.
+
+For most types of properties, there are two effective policies: PolicyVisible,
+in which the property is left untouched, and PolicyHidden, in which case the
+value is sanitized to its zero value.
+
+However Stacks are much more complicated and have more policies. Even when the
+specific components in a stack aren't visible, it can still be important to
+know that a given ComponentInstance in one state is the same as another
+ComponentInstance in another state, which allows for example animations of the
+same logical card from one stack to another, even though the value of the card
+is not visible.
+
+In order to do this, every component has a semi-stable Id. This Id is
+calculated based on a hash of the component, deck, deckIndex, gameId, and also
+a secret salt for the game. This way, the same component in different games
+will have different Ids, and if you have never observed the value of the
+component in a given game, it is impossible to guess it. However, it is
+possible to keep track of the component as it moves between different stacks
+within a game.
+
+Every stack has an ordered list of Ids representing the Id for each component.
+Components can also be queried for their Id.
+
+Stacks also have an unordered set of IdsLastSeen, which tracks the last time
+the Id was affirmitively seen in a stack. The basic time this happens is when
+a component is first inserted into a stack. (See below for additional times
+when this hapepns)
+
+Different Sanitization Policies will do different things to Ids and
+IdsLastSeen, according to the following table:
+
+	| Policy         | Values Behavior                                                  | Ids()                       | IdsLastSeen() | ShuffleCount() |Notes                                                                                                  |
+	|----------------|------------------------------------------------------------------|-----------------------------|---------------|----------------|-------------------------------------------------------------------------------------------------------|
+	| PolicyVisible  | All values visible                                               | Present                     | Present       | Present        | Visible is effectively no transformation                                                              |
+	| PolicyOrder    | All values replaced by generic component                         | Present                     | Present       | Present        | PolicyOrder is similar to PolicyLen, but the order of components is observable                        |
+	| PolicyLen      | All values replaced by generic component                         | Sorted Lexicographically    | Present       | Present        | PolicyLen makes it so it's only possible to see the length of a stack, not its order.                 |
+	| PolicyNonEmpty | Values will be either 0 components or a single generic component | Absent                      | Present       | Absent         | PolicyNonEmpty makes it so it's only possible to tell if a stack had 0 items in it or more than zero. |
+	| PolicyHidden   | Values are completely empty                                      | Absent                      | Absent        | Absent         | PolicyHidden is the most restrictive; stacks look entirely empty.                                     |
+
+
+However, in some cases it is not possible to keep track of the precise order
+of components, even with perfect observation. The canonical example is when a
+stack is shuffled. Another example would be when a card is inserted at an
+unknown location in a deck.
+
+For this reason, a component's Id is only semi-stable. When one of these
+secret moves has occurred, the Ids is randomized. However, in order to be able
+to keep track of where the component is, the component is "seen" in
+IdsLastSeen immediately before having its Id scrambled, and immediately after.
+This procedure is referred to as "scrambling" the Ids.
+
+stack.Shuffle() automatically scrambles the ids of all items in the stack.
+SecretMoveComponent, which is similar to the normal MoveComponent, moves the
+component to the target stack and then scrambles the Ids of ALL components in
+that stack as described above. This is because if only the new item's id
+changed, it would be trivial to observe that the new Id is equivalent to the
+old Id.
+
+*/
 type Policy int
 
 const (
