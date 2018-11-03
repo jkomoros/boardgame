@@ -281,10 +281,15 @@ func (c *component) Instance(st State) ComponentInstance {
 }
 
 //ComponentValues is the interface that the Values property of a Component
-//must implement. base.ComponentValues is designed to be anonymously embedded
-//in your component to implement the latter part of the interface. 'boardgame-
-//util codegen' can be used to implement Reader.
+//must implement. You define your own ComponentValues to describe the
+//immutable properties of the components in your game type. You associate a
+//given ComponentValues struct with a given Component in deck.AddComponent.
+//base.ComponentValues is designed to be anonymously embedded in your
+//component to implement the latter part of the interface. 'boardgame- util
+//codegen' can be used to implement Reader.
 type ComponentValues interface {
+	//Reader is the way that the engine will enumerate and extract properties
+	//on the ComponentValues.
 	Reader
 	//ContainingComponent is the component that this ComponentValues is
 	//embedded in. It should return the component that was passed to
