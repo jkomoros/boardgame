@@ -6,12 +6,8 @@ import (
 	"strconv"
 )
 
-//ImmutableBoard represents an array of growable Stacks. They're useful for
-//representing spaces on a board, which may allow unlimited components to
-//reside in them, or have a maxium number of occupants. If each board's space
-//only allows a single item, it's often equivalent--and simpler--to just use a
-//single Stack of a FixedSize. Get one from deck.NewBoard(). See also Board,
-//which is the same, but adds mutator methods.
+//ImmutableBoard is a version of a Board without any of the mutator methods.
+//See Board for more.
 type ImmutableBoard interface {
 	ImmutableSpaces() []ImmutableStack
 	ImmutableSpaceAt(index int) ImmutableStack
@@ -20,8 +16,12 @@ type ImmutableBoard interface {
 	setState(st *state)
 }
 
-//Board represents a mutable array of growable stacks. See the documentation
-//for ImmutableBoard for more.
+//Board represents an array of growable Stacks. They're useful for
+//representing spaces on a board, which may allow unlimited components to
+//reside in them, or have a maxium number of occupants. If each board's space
+//only allows a single item, it's often equivalent--and simpler--to just use a
+//single Stack of a FixedSize. Get one from deck.NewBoard(). See also
+//ImmutableBiard, which is the same, but without mutator methods.
 type Board interface {
 	ImmutableBoard
 	Spaces() []Stack
