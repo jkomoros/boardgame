@@ -4,24 +4,29 @@ import (
 	"github.com/jkomoros/boardgame/enum"
 )
 
-//GameDelegate is the place that various parts of the game lifecycle can be
-//modified to support this particular game. Typically you embed
-//base.GameDelegate in your won struct, and only override methods whose
-//default behavior is incorrect for your game. Think of your GameDelegate like
-//the brain that you plug into the robot body of a GameManager.
+//GameDelegate is the key entrypoint for the game logic specific to the game
+//you are defining. Think of it is as the brain that is inserted into the
+//robot shell of GameManager to imbue it with life. Typically your package
+//that defines your game will have one public entrypoint, which is to return a
+//GameDelegate for that packge. All logic specific to your game is configured
+//via the return values of various methods in your GameDelegate. Your
+//GameDelegate defines configuration for the type of game in general (via
+//Configure* methods), as well as lifecycle methods for specific games (e.g.
+//DistributeComponentToStarterStack). base.GameDelegate is a useful base
+//struct to embed in your own GameDelegate, providing reasonable default
+//behavior for nearly every method in GameDelegate.
 type GameDelegate interface {
 
-	//Name is a string that defines the type of game this is. The name should
-	//be unique and compact, and avoid any special characters other than "-"
-	//or "_", since they will sometimes be used in a URL path. Good examples
-	//are "tictactoe", "blackjack". Once configured, names should never change
-	//over the lifetime of the gametype, since it will be persisted in
-	//storage. Subclasses should override this. This must return the package
-	//name that contains the game (e.g. "github.com/jkomoros/mygame" should
-	//return "mygame"), since the package name and the delegate.Name() are
-	//both used at different times in the system, since one can be determined
-	//statically and the other only at run-time. NewGameManager will fail if
-	//that is not true.
+	//Name is a string that defines the type of game this is. This must return
+	//the package name that contains the game (e.g.
+	//"github.com/jkomoros/mygame" should return "mygame"), since the package
+	//name and the delegate.Name() are both used at different times in the
+	//system, since one can be determined statically and the other only at
+	//run-time. NewGameManager will fail if that is not true.The name should
+	//be unique and compact since it will sometimes be used in a URL path.
+	//Good examples are "tictactoe", "blackjack". Once configured, names
+	//should never change over the lifetime of the gametype, since it will be
+	//persisted in storage.
 	Name() string
 
 	//DisplayName is a string that defines the type of game this is in a way
@@ -32,17 +37,21 @@ type GameDelegate interface {
 	DisplayName() string
 
 	//Description is a string that describes the game type in a descriptive
-	//sentence. A reasonable value for "tictactoe" is "A classic game where
-	//players compete to get three in a row"
+	//sentence, for use in showing to end users. A reasonable value for
+	//"tictactoe" is "A classic game where players compete to get three in a
+	//row"
 	Description() string
 
 	//ConfigureMoves will be called during creation of a GameManager in
 	//NewGameManager. This is the time to install moves onto the manager by
-	//returning a list of moves to install. Typically you use moves.Combine
-	//and friends to organize your list of moves to install. If the moves you
-	//add are illegal for any reason, NewGameManager will fail with an error.
-	//By the time this is called. delegate.SetManager will already have been
-	//called, so you'll have access to the manager via Manager().
+	//returning a list of moves to install. This is the single most important
+	//configuration point for your game logic, as the collection of moves for
+	//the game--and the logic of when they apply--is the bedrock of your game
+	//logic. Typically you use moves.Combine and friends to organize your list
+	//of moves to install. If the moves you add are illegal for any reason,
+	//NewGameManager will fail with an error. By the time this is called.
+	//delegate.SetManager will already have been called, so you'll have access
+	//to the manager via Manager().
 	ConfigureMoves() []MoveConfig
 
 	//ConfigureAgents will be called when creating a new GameManager. Emit the
@@ -50,8 +59,8 @@ type GameDelegate interface {
 	ConfigureAgents() []Agent
 
 	//ConfigureDecks will be called when the GameManager is being booted up.
-	//Each entry in the return value will be configured on the ComponentChest
-	//that is being created.
+	//Each entry in the return value will be added to the ComponentChest that
+	//is being created for this game type.
 	ConfigureDecks() map[string]*Deck
 
 	//ConfigureEnums is called during set up of a new GameManager. Return the
@@ -60,11 +69,12 @@ type GameDelegate interface {
 
 	//ConfigureConstants is called during set-up of a new GameManager. Return
 	//the map of constants you want to create, which will be configured onto
-	//the newly created chest via AddConstant. If any of the AddConstant calls
-	//errors, the GameManager will fail to be set up. Constants are primarily
-	//useful in two cases: first, when you want to have access to a constant
-	//value client-side, and second, when you want to be able to use a
-	//constant value in a tag-based struct inflater.
+	//the newly created chest. If any of the constants cannot be added to the
+	//ComponentChest, errors, the GameManager will fail to be set up.
+	//Constants are primarily useful in two cases: first, when you want to
+	//have access to a constant value client-side, and second, when you want
+	//to be able to use a constant value in a struct tag provided as an
+	//instruction for a StructInflater.
 	ConfigureConstants() PropertyCollection
 
 	//GameStateConstructor and PlayerStateConstructor are called to get an
@@ -81,9 +91,7 @@ type GameDelegate interface {
 	//will automatically create and use StructInflaters for these types of
 	//objects, allowing you to use tag-based configuration to automatically
 	//inflate these properties. See the documentation for StructInflater for
-	//more. Since these two methods are always required and always specific to
-	//each game type, defaultGameDelegate does not implement them, as an extra
-	//reminder that you must implement them yourself.
+	//more.
 	GameStateConstructor() ConfigurableSubState
 	//PlayerStateConstructor is similar to GameStateConstructor, but
 	//playerIndex is the value that this PlayerState must return when its
@@ -103,29 +111,32 @@ type GameDelegate interface {
 	//component it's associated with.
 	DynamicComponentValuesConstructor(deck *Deck) ConfigurableSubState
 
-	//DistributeComponentToStarterStack is called during set up to establish
-	//the Deck/Stack invariant that every component in the chest is placed in
-	//precisely one Stack. Game will call this on each component in the Chest
-	//in order. This is where the logic goes to make sure each Component goes
-	//into its correct starter stack. You must return a non-nil Stack for each
-	//call, after which the given Component will be inserted into
-	//NextSlotIndex of that stack. If that is not the ordering you desire, you
-	//can fix it up in FinishSetUp by using SwapComponents. If any errors are
-	//returned, any nil Stacks are returned, or any returned stacks don't have
-	//space for another component, NewGame will fail and return an error.
-	//State and Component are only provided for reference; do not modify them.
+	//DistributeComponentToStarterStack is called during set up of a given
+	//Game to establish the Deck/Stack invariant that every component in the
+	//chest is placed in precisely one Stack. Game will call this on each
+	//component in the Chest in order. This is where the logic goes to make
+	//sure each Component goes into its correct starter stack. You must return
+	//a non-nil Stack for each call, after which the given Component will be
+	//inserted into NextSlotIndex of that stack. If that is not the ordering
+	//you desire, you can fix it up in FinishSetUp by using SwapComponents. If
+	//any errors are returned, any nil Stacks are returned, or any returned
+	//stacks don't have space for another component, NewGame will fail and
+	//return an error. State and Component are only provided for reference; do
+	//not modify them.
 	DistributeComponentToStarterStack(state ImmutableState, c Component) (ImmutableStack, error)
 
-	//BeginSetup is a chance to modify the initial state object *before* the
-	//components are distributed to it. It is also where the variant
-	//configuration for your gametype will be passed (it will already have
-	//been checked for legality and had all configure defaults set), although
-	//you can also retrieve that at any time via game.Variant(). This is a
-	//good place to configure state that will be necessary for you to make the
-	//right decisions in DistributeComponentToStarterStack, or to transcribe
-	//config information you were passed into properties on your gameState as
-	//appropriate. If error is non-nil, Game setup will be aborted, with the
-	//reasoning including the error message provided.
+	//BeginSetup is called on a newly created Game before components are
+	//distributed via DistributeComponentToStarterStack. If you need to modify
+	//your state before components are distributed, do it here. It is also
+	//where the variant configuration for your gametype will be passed (it
+	//will already have been checked for legality and had all configure
+	//defaults set), although you can also retrieve that at any time via
+	//game.Variant(). This is a good place to configure state that will be
+	//necessary for you to make the right decisions in
+	//DistributeComponentToStarterStack, or to transcribe config information
+	//you were passed into properties on your gameState as appropriate. If
+	//error is non-nil, Game setup will be aborted, with the reasoning
+	//including the error message provided.
 	BeginSetUp(state State, variant Variant) error
 
 	//FinishSetUp is called during NewGame, *after* components have been
@@ -149,12 +160,13 @@ type GameDelegate interface {
 	//If it returns nil, we may take the next move off of the queue. FixUp
 	//moves are useful for things like shuffling a discard deck back into a
 	//draw deck, or other moves that are necessary to get the GameState back
-	//into reasonable shape.
+	//into reasonable shape. base.GameDelegate's defintion is almost always
+	//suficient.
 	ProposeFixUpMove(state ImmutableState) Move
 
-	//DefaultNumPlayers returns the number of users that this game defaults to.
-	//For example, for tictactoe, it will be 2. If 0 is provided to
-	//manager.NewGame(), we wil use this value instead.
+	//DefaultNumPlayers returns the number of users that new games of this
+	//type default to. For example, for tictactoe, it will be 2. If 0 is
+	//provided to manager.NewGame(), we wil use this value instead.
 	DefaultNumPlayers() int
 
 	//Min/MaxNumPlayers should return the min and max number of players,
@@ -175,20 +187,19 @@ type GameDelegate interface {
 	LegalNumPlayers(numPlayers int) bool
 
 	//Variants returns a VariantConfig, which describes the different
-	//categories of configuration values and the legal values they may take
-	//on. Ultimately your LegalVariant is the final arbiter of which variants
-	//are legal; this method is mainly used so that user interfaces know which
-	//variants to show to the user. In general you shouldn't call this, but
-	//instead call gameManager.Variants() which will ensure your VariantConfig
-	//is initalized and memoize the return result.
+	//categories of configuration values and the legal values they may take on
+	//when a new game is created. In general if you want to inspect legal
+	//variants in your own game logic you shouldn't call this, but instead
+	//call gameManager.Variants() which will ensure your VariantConfig is
+	//initalized and memoize the return result.
 	Variants() VariantConfig
 
-	//CurrentPlayerIndex returns the index of the "current" player--a notion
-	//that is game specific (and sometimes inapplicable). If CurrentPlayer
-	//doesn't make sense (perhaps the game never has a notion of current
-	//player, or the type of round that we're in has no current player), this
-	//should return ObserverPlayerIndex. The result of this method is used to
-	//power state.CurrentPlayer.
+	//CurrentPlayerIndex returns the index of the "current" player for the
+	//given game state--a notion that is game specific (and sometimes
+	//inapplicable). If CurrentPlayer doesn't make sense (perhaps the game
+	//never has a notion of current player, or the type of round that we're in
+	//has no current player), this should return ObserverPlayerIndex. The
+	//result of this method is used to power state.CurrentPlayer.
 	CurrentPlayerIndex(state ImmutableState) PlayerIndex
 
 	//CurrentPhase returns the phase that the game state is currently in.
@@ -196,23 +207,25 @@ type GameDelegate interface {
 	//to write fix-up moves that only apply in certain phases, like SetUp. The
 	//return result is primarily used in moves.Default to check whether it is
 	//one of the phases in a give Move's LegalPhases. See moves.Default for
-	//more information.
+	//more information. The only use of this method in the main library is
+	//when generating a MoveStorageRecord.
 	CurrentPhase(state ImmutableState) int
 
 	//PhaseEnum returns the enum for game phases (the return values of
 	//CurrentPhase are expected to be valid enums within that enum). If this
 	//returns a non-nil enums.TreeEnum, then the state will not be able to be
-	//saved if CurrentPhase() returns a value that is not a leaf-node.
+	//saved if CurrentPhase() returns a value that is not a leaf-node. The
+	//core package doesn't rely on this method directly.
 	PhaseEnum() enum.Enum
 
 	//SanitizationPolicy is consulted when sanitizing states. It is called for
 	//each prop in the state, including the set of groups that this player is
-	//a mamber of. In practice the default behavior of defaultGameDelegate,
+	//a mamber of. In practice the default behavior of base.GameDelegate,
 	//which uses struct tags to figure out the policy, is sufficient and you
 	//do not need to override this. For more on how sanitization works, see
-	//the package doc. The statePropetyRef passed will always have the Index
-	//properties set to -1, signifying that the returned policy applies to all
-	//items in the Stack/Board.
+	//the documenation for Policy. The statePropetyRef passed will always have
+	//the Index properties set to -1, signifying that the returned policy
+	//applies to all items in the Stack/Board.
 	SanitizationPolicy(prop StatePropertyRef, groupMembership map[int]bool) Policy
 
 	//If you have computed properties that you want to be included in your
