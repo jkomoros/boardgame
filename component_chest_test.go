@@ -11,7 +11,7 @@ import (
 func TestComponentChestMarshal(t *testing.T) {
 	game := testDefaultGame(t, false)
 
-	chest := game.Chest()
+	chest := game.Manager().Chest()
 
 	in, err := DefaultMarshalJSON(chest)
 
@@ -76,7 +76,7 @@ func TestComponentChestConstant(t *testing.T) {
 func TestComponentInstanceIdentity(t *testing.T) {
 	game := testDefaultGame(t, false)
 
-	c := game.Chest().Deck("test").ComponentAt(0)
+	c := game.Manager().Chest().Deck("test").ComponentAt(0)
 
 	one := c.ImmutableInstance(game.CurrentState())
 

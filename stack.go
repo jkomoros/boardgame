@@ -1258,7 +1258,7 @@ func (m *mergedStack) setState(state *state) {
 func (g *growableStack) Deck() *Deck {
 	if g.deckPtr == nil {
 		if g.statePtr.game != nil {
-			g.deckPtr = g.statePtr.game.Chest().Deck(g.deckName)
+			g.deckPtr = g.statePtr.game.Manager().Chest().Deck(g.deckName)
 		}
 	}
 	return g.deckPtr
@@ -1267,7 +1267,7 @@ func (g *growableStack) Deck() *Deck {
 func (s *sizedStack) Deck() *Deck {
 	if s.deckPtr == nil {
 		if s.statePtr.game != nil {
-			s.deckPtr = s.statePtr.game.Chest().Deck(s.deckName)
+			s.deckPtr = s.statePtr.game.Manager().Chest().Deck(s.deckName)
 		}
 	}
 	return s.deckPtr

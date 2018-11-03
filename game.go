@@ -20,8 +20,9 @@ const selfInitiatorSentinel = -1
 //be legal, and is evidence of a serious error in your game logic.
 var ErrTooManyFixUps = errors.New("We recursed deeply in fixup, which implies that ProposeFixUp has a move that is always legal.")
 
-//A Game represents a specific game between a collection of Players. Create a
-//new one with manager.NewGame().
+//A Game represents a specific game between a collection of Players; an
+//instantiation of a game of the given type. Create a new one with
+//GameManager.NewGame().
 type Game struct {
 	manager *GameManager
 
@@ -142,20 +143,20 @@ func (g *Game) Variant() Variant {
 
 //Winners is the player indexes who were winners. Typically, this will be
 //one player, but it could be multiple in the case of tie, or 0 in the
-//case of a draw.
+//case of a draw. Will return nil if Finished() is not yet true.
 func (g *Game) Winners() []PlayerIndex {
 	return g.winners
 }
 
-//Finished is whether the came has been completed. If it is over, the
-//Winners will be set.
+//Finished is whether the came has been completed. If it is over, the Winners
+//will be set. A game is finished when GameDelegate.CheckGameFinished()
+//returns true. Once a game is Finished it may never be un-finished, and no
+//more moves may ever be applied to it.
 func (g *Game) Finished() bool {
 	return g.finished
 }
 
 //Manager is a reference to the GameManager that controls this game.
-//GameManager's methods will be called at key points in the lifecycle of
-//this game.
 func (g *Game) Manager() *GameManager {
 	return g.manager
 }
@@ -170,7 +171,8 @@ func (g *Game) NumPlayers() int {
 //json.Marshal. The object is the equivalent to what MarshalJSON would output,
 //only as an object, and with state sanitized for the current player. State
 //should be a state for this game (e.g. an old version). If state is nil, the
-//game's CurrentState will be used.
+//game's CurrentState will be used. This is effectively equivalent to
+//state.SanitizeForPlayer().
 func (g *Game) JSONForPlayer(player PlayerIndex, state ImmutableState) interface{} {
 
 	if state == nil {
@@ -197,6 +199,8 @@ func (g *Game) JSONForPlayer(player PlayerIndex, state ImmutableState) interface
 	}
 }
 
+//MarshalJSON returns a marshaled version of the output of JSONForPlayer for
+//AdminPlayerIndex.
 func (g *Game) MarshalJSON() ([]byte, error) {
 	//We define our own MarshalJSON because if we didn't there'd be an infinite loop because of the redirects back up.
 	return json.Marshal(g.JSONForPlayer(AdminPlayerIndex, nil))
@@ -228,6 +232,7 @@ func (g *Game) Name() string {
 }
 
 //Id returns the unique id string that corresponds to this particular game.
+//The ID is used in URLs and to retrieve this particular game from storage.
 func (g *Game) Id() string {
 	return g.id
 }
@@ -238,8 +243,7 @@ func (g *Game) Agents() []string {
 }
 
 //Version returns the version number of the highest State that is stored for
-//this game. This number will increase by one every time a move (either Player
-//or FixUp) is applied.
+//this game. This number will increase by one every time a move is applied.
 func (g *Game) Version() int {
 	return g.version
 }
@@ -253,7 +257,8 @@ func (g *Game) CurrentState() ImmutableState {
 	return g.cachedCurrentState
 }
 
-//Returns the game's atate at the current version.
+//Returns the state of the game at the given version. Because states can only
+//be modffied in moves, the state returned is immutable.
 func (g *Game) State(version int) ImmutableState {
 
 	if version < 0 || version > g.Version() {
@@ -280,7 +285,10 @@ func (g *Game) State(version int) ImmutableState {
 
 }
 
-//Move returns the Move that was applied to get the Game to the given version.
+//Move returns the Move that was applied to get the Game to the given version;
+//an inflated version of the MoveStorageRecord. Not to be confused with
+//Moves(), which returns examples of moves that haven't yet been applied, but
+//have their defaults set based on the current state.
 func (g *Game) Move(version int) (Move, error) {
 
 	if version < 0 || version > g.Version() {
@@ -307,7 +315,8 @@ func (g *Game) Move(version int) (Move, error) {
 
 //MoveRecords returns all of the move storage records up to upToVersion, in
 //ascending order. If upToVersion is 0 or less, game.Version() will be used
-//for upToVersion. It is cached so repeated calls should be fast.
+//for upToVersion. It is cached so repeated calls should be fast. This is a
+//wrapper around game.Manager().Storage().Moves(), cached for performance.
 func (g *Game) MoveRecords(upToVersion int) []*MoveStorageRecord {
 
 	if upToVersion < 1 {
@@ -439,8 +448,8 @@ func (g *Game) setUp(numPlayers int, variantValues map[string]string, agentNames
 
 	//Distribute all components to their starter locations
 
-	for _, name := range g.Chest().DeckNames() {
-		deck := g.Chest().Deck(name)
+	for _, name := range g.Manager().Chest().DeckNames() {
+		deck := g.Manager().Chest().Deck(name)
 		for i, component := range deck.Components() {
 			stack, err := g.manager.Delegate().DistributeComponentToStarterStack(stateCopy, component)
 			if err != nil {
@@ -550,14 +559,22 @@ func (g *Game) mainLoop() {
 }
 
 //Modifiable returns true if this instantiation of the game can be modified.
-//If false, this instantiation is read-only: attributes can be read, but not
-//written. In practice this means moves cannot be made.
+//Games that are created via GameManager.NewGame() or retrieved from
+//GameManager.Game() can be modified directly via ProposeMove, and the game
+//object will be updated as those changes are made. Games that return
+//Modifiable() false can still have ProposeMove called on them, but after the
+//moves are applied the Game will have to have Refresh() called to make sure
+//their properties reflect the underlying value of the game in storage.
 func (g *Game) Modifiable() bool {
 	return g.modifiable
 }
 
 //Moves returns an array of all Moves with their defaults set for this current
-//state.
+//state. This method is useful for getting a list of all moves that could
+//possibly be applied to the game at its current state.
+//base.GameDelegate.ProposeFixUpMove uses this. Not to be confused with
+//Move(), which returns an inflated version of a move that has already been
+//succdefully applied to this game in the past.
 func (g *Game) Moves() []Move {
 
 	if !g.initalized {
@@ -575,7 +592,8 @@ func (g *Game) Moves() []Move {
 }
 
 //MoveByName returns a move of the given name set to reasonable defaults for
-//the game at its current state.
+//the game at its current state. Moves() is similar to this, but returns all
+//moves.
 func (g *Game) MoveByName(name string) Move {
 	if !g.initalized {
 		return nil
@@ -588,11 +606,6 @@ func (g *Game) MoveByName(name string) Move {
 	}
 
 	return moveType.NewMove(g.CurrentState())
-}
-
-//Chest is the ComponentChest in use for this game.
-func (g *Game) Chest() *ComponentChest {
-	return g.manager.Chest()
 }
 
 //Refresh goes and sets this game object to reflect the current state of the
@@ -615,18 +628,21 @@ func (g *Game) Refresh() {
 
 //ProposedMove is the way to propose a move to the game. DelayedError will
 //return an error in the future if the move was unable to be applied, or nil
-//if the move was applied successfully. DelayedError will only resolve once
-//any applicable FixUp moves have been applied already. This is legal to call
-//on a non-modifiable game--the change will be dispatched to a modifiable
-//version of the game with this ID. However, note that if you call it on a
-//non-modifiable game, even once DelayedError has resolved, the original game
-//will still represent its old state. If you wantt to see its current state,
-//calling game.Refresh() after DelayedError has resolved should contain the
-//move changes you proposed, if they were accepted (and of course potentially
-//more moves if other moves were applied in the meantime). Proposer is the
-//PlayerIndex of the player who is notionally proposing the move. If you don't
-//know which player is moving it, AdminPlayerIndex is a reasonable default
-//that will generally allow any move to be made.
+//if the move was applied successfully. Proposer is the PlayerIndex of the
+//player who is notionally proposing the move. If you don't know which player
+//is moving it, AdminPlayerIndex is a reasonable default that will generally
+//allow any move to be made. After the move is applied, your GameDelegate's
+//ProposeFixUpMove will be called; if any move is returned it will be applied,
+//repeating the cycle until no moves are returned from ProposeFixUpMove.
+//DelayedError will only resolve once any applicable FixUp moves have been
+//applied already. This is legal to call on a non-modifiable game--the change
+//will be dispatched to a modifiable version of the game with this ID.
+//However, note that if you call it on a non- modifiable game, even once
+//DelayedError has resolved, the original game will still represent its old
+//state. If you wantt to see its current state, calling game.Refresh() after
+//DelayedError has resolved should contain the move changes you proposed, if
+//they were accepted (and of course potentially more moves if other moves were
+//applied in the meantime).
 func (g *Game) ProposeMove(move Move, proposer PlayerIndex) DelayedError {
 
 	if !g.Modifiable() {

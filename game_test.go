@@ -257,7 +257,7 @@ func TestGameSetUp(t *testing.T) {
 		t.Error("PlayerStates Hand didn't have state set correctly. Got", playerStates[0].Hand.state(), "wanted", currentState)
 	}
 
-	deck := game.Chest().Deck("test").Components()
+	deck := game.Manager().Chest().Deck("test").Components()
 
 	//We put one of the components in MyBoard[1]
 	if gameState.DrawDeck.Len() != len(deck)-1 {
@@ -526,8 +526,8 @@ func TestGameSalt(t *testing.T) {
 
 	assert.For(t).ThatActual(game.secretSalt).Equals(refriedGame.secretSalt)
 
-	mainC := game.Chest().Deck("test").ComponentAt(0).ImmutableInstance(game.CurrentState())
-	refriedC := refriedGame.Chest().Deck("test").ComponentAt(0).ImmutableInstance(refriedGame.CurrentState())
+	mainC := game.Manager().Chest().Deck("test").ComponentAt(0).ImmutableInstance(game.CurrentState())
+	refriedC := refriedGame.Manager().Chest().Deck("test").ComponentAt(0).ImmutableInstance(refriedGame.CurrentState())
 
 	mainCId := mainC.ID()
 
@@ -536,7 +536,7 @@ func TestGameSalt(t *testing.T) {
 
 	otherGame := testDefaultGame(t, false)
 
-	otherC := otherGame.Chest().Deck("test").ComponentAt(0).ImmutableInstance(otherGame.CurrentState())
+	otherC := otherGame.Manager().Chest().Deck("test").ComponentAt(0).ImmutableInstance(otherGame.CurrentState())
 
 	assert.For(t).ThatActual(mainCId).DoesNotEqual(otherC.ID())
 }

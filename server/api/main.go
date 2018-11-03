@@ -949,7 +949,7 @@ func (s *Server) doGameInfo(r *Renderer, game *boardgame.Game, playerIndex board
 	}
 
 	args := gin.H{
-		"Chest":           game.Chest(),
+		"Chest":           game.Manager().Chest(),
 		"Forms":           s.generateForms(game),
 		"Game":            game.JSONForPlayer(playerIndex, state),
 		"Error":           s.lastErrorMessage,
