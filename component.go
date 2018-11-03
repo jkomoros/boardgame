@@ -115,11 +115,11 @@ type ImmutableComponentInstance interface {
 //state, it must remain that way, because it can't be moved from a Stack to a
 //ImmutableStack.
 
-//ComponentInstance is a component instance that's in a context that is
-//mutable. You generally get these from a Stack that contains them. The
-//instance contains many methods to move the component to other stacks or
-//locations. See also ImmutableComponentInstance, which is the same, but
-//without mutator methods.
+//ComponentInstance is a mutable instantiation of a specific type of component
+//in a particular state of a particular game. You generally get these from a
+//Stack that contains them. The instance contains many methods to move the
+//component to other stacks or locations. See also ImmutableComponentInstance,
+//which is similar but lacks mutator methods.
 type ComponentInstance interface {
 
 	//ComponentInstance can be used anywhere that ImmutableComponentInstance
@@ -127,8 +127,9 @@ type ComponentInstance interface {
 	ImmutableComponentInstance
 
 	//DynamicValues returns the Dynamic Values for this component in the state
-	//this instance is associated with. A convenience so you don't have to go
-	//find them within the DynamicComponentValues yourself.
+	//this instance is associated with, if it exists. A convenience so you
+	//don't have to go find them within  state.DynamicComponentValues
+	//yourself.
 	DynamicValues() SubState
 
 	//ContainingStack will return the stack and slot index for the associated
@@ -143,7 +144,7 @@ type ComponentInstance interface {
 	//components within a stack, use SwapComponent. In destination, slotIndex
 	//must point to a valid "slot" to put a component, such that after
 	//insertion, using that index on the destination will return that
-	//component. In defaults Stacks, slots are any index from 0 up to and
+	//component. In default Stacks, slots are any index from 0 up to and
 	//including stack.Len(), because the stack will grow to insert the
 	//component between existing components if necessary. For SizedStacks,
 	//slotIndex must point to a currently empty slot.
@@ -155,8 +156,9 @@ type ComponentInstance interface {
 	//SecretMoveTo is equivalent to MoveTo, but after the move the Ids of all
 	//components in destination will be scrambled. SecretMoveTo is useful when
 	//the destination stack will be sanitized with something like PolicyOrder,
-	//but the precise location of this insertion should not be observable.
-	//Read the package doc for more about when this is useful.
+	//but the precise location of this insertion should not be observable. For
+	//example, if you're cutting a given card to an unknown location deep in
+	//the middle of a large stack.
 	SecretMoveTo(other Stack, slotIndex int) error
 
 	//MoveToFirstSlot moves the component to the first valid slot in the other

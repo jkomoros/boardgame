@@ -102,16 +102,21 @@ type GameDelegate interface {
 	PlayerStateConstructor(player PlayerIndex) ConfigurablePlayerState
 
 	//DynamicComponentValuesConstructor returns an empty
-	//DynamicComponentValues for the given deck. If nil is returned, then the
-	//components in that deck don't have any dynamic component state. This
-	//method must always return the same underlying type of struct for the
-	//same deck. Like GameStateConstructor and PlayerStateConstructor, the
-	//engine will automatically create StructInflaters for these objects,
-	//allowing you to use tag-based inflation of properties. See StructInflate
-	//for more. If the returned object also implements the ComponentValues
-	//interface, then SetContainingComponent will be called on the
-	//DynamicComponent whenever one is created, with a reference back to the
-	//component it's associated with.
+	//DynamicComponentValues for the given deck. DynamicComponentValues are
+	//useful for representing when a given component has mutable properties
+	//associated with it--for example, if a given card could have a stack of
+	//tokens on top, the stack of tokens would be a property on a
+	//DynamicComponentValues associated with that card component. If nil is
+	//returned, then the components in that deck don't have any dynamic
+	//component state. This method must always return the same underlying type
+	//of struct for the same deck. Like GameStateConstructor and
+	//PlayerStateConstructor, the engine will automatically create
+	//StructInflaters for these objects, allowing you to use tag-based
+	//inflation of properties. See StructInflate for more. If the returned
+	//object also implements the ComponentValues interface, then
+	//SetContainingComponent will be called on the DynamicComponent whenever
+	//one is created, with a reference back to the component it's associated
+	//with.
 	DynamicComponentValuesConstructor(deck *Deck) ConfigurableSubState
 
 	//DistributeComponentToStarterStack is called during set up of a given
