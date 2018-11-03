@@ -903,10 +903,59 @@ type SubState interface {
 	ReadSetter
 }
 
-//ConfigurableSubState is the interface that Configurable{Game,Player}State's
-//implement.
+/*
+
+ConfigurableSubState is the interface for many types of structs that store
+properties and configuration specific to your game type. The values returned
+from your GameDelegate's GameStateConstructor, PlayerStateConstructor, and
+DynamicComponentValues constructor must all implement this interface.
+(PlayerStateConstructor also adds PlayerIndex())
+
+A ConfigurableSubState is a struct that has a collection of properties all of
+a given small set of legal types, enumerated in PropertyType. These are the
+core objects to maintain state in your game type. The types of properties on
+these objects are strictly defined to ensure the shapes of the objects are
+simple and knowable.
+
+The engine in general doesn't know the shape of your underlying structs, so it
+uses the ProeprtyReadSetConfigurer interface to interact with your objects.
+See the documetnation for PropertyReadSetConfigurer for more.
+
+Many legal property types, like string and int, are simple and can be Read and
+Set as you'd expect. But some, called interface types, are more complex
+because they denote objects that carry configuration information in their
+instantiation. Stacks, Timers, and Enums are examples of these. These
+interface types can be Read and have their sub-properties Set. But they also
+must be able to be Configured, which is to say instantied and set onto the
+underlying struct.
+
+ConfigurableSubState is the most powerful interface for interacting with these
+types of objects, because it has methods to Read, Set, and Configure all
+properties. In certain cases, however, for example with an ImmutableState, it
+might not be appropriate to allow Setting or Configuring propeties. For this
+reason, the interfaces are split into a series of layers, building up from
+only Reader methods up to adding Set proeprties, and then terminating by
+layering on Configure methods.
+
+ConfigurablePlayerSubState is an interface that extends ConfigurableSubState
+with one extra method, PlayerIndex().
+
+Typically your game's sub-states satisfy this interface by embedding
+base.SubState, and then using `boardgame-util codegen` to generate the
+underlying code for the PropertyReadSetConfigurer for your object type.
+
+*/
 type ConfigurableSubState interface {
+	//Every SubState should be able to have its containing State set and read
+	//back, so each sub-state knows how to reach up and over into other parts
+	//of the over-arching state. You can implement this interface by emedding
+	//base.SubState in your struct.
 	StateSetter
+
+	//ReadSetConfigurer defines the method to retrieve the
+	//PropertyReadSetConfigurer for this object type. Typically this getter--
+	//and the underlying PropertyReadSetConfigurer it returns--are generated
+	//via `boardgame-util codegen`.
 	ReadSetConfigurer
 }
 
@@ -933,7 +982,9 @@ type ImmutablePlayerState interface {
 }
 
 //A ConfigurablePlayerState is a PlayerState that is allowed to be mutated and
-//configured.
+//configured. It is simply a ConfigurableSubState that also has a
+//PlayerIndex() method. See ConfigurableSubState for more on this hierarchy of
+//objects.
 type ConfigurablePlayerState interface {
 	PlayerIndexer
 	ConfigurableSubState
