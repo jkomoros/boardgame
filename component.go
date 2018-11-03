@@ -8,31 +8,49 @@ import (
 )
 
 //A Component represents a movable resource in the game. Cards, dice, meeples,
-//resource tokens, etc are all components. Values is a struct that stores the
-//specific values for the component. Components are the same across all games
-//of this type. Component references should not be compared directly for
-//equality, as sometimes different underlying objects will represent the same
-//notional component (in order to satisfy both the Component and
-//ComponentInstance interfaces simultaneously). Instead, use Equivalent() to
-//test that two Components refer to the same conceptual Component.
+//resource tokens, etc are all components. You don't define these yourself;
+//it's an interface because the core engine uses different underlying structs
+//in different cases. Values is a struct that stores the specific values for
+//the component, as defined in your ConfigureDecks method on GameDelegate.
+//Components are the same across all games of this type. Component is a
+//generic notion of that type of obejct; see also ComponentInstance and
+//ImmutableComponentInstance for a notion of a SPECIFIC instantiation of a
+//given type of component within a specific game. Component references should
+//not be compared directly for equality, as sometimes different underlying
+//objects will represent the same notional component (in order to satisfy both
+//the Component and ComponentInstance interfaces simultaneously). Instead, use
+//Equivalent() to test that two Components refer to the same conceptual
+//Component.
 type Component interface {
+
+	//Values returns the ComponentValues struct that you associated with this
+	//component via deck.AddComponent during GameDelegate.ConfigureDecks().
 	Values() ComponentValues
+
+	//Deck returns the deck that this component is part of.
 	Deck() *Deck
+
+	//DeckIndex returns the index into the deck that this component is. This
+	//is always fixed and never changes in any game.
 	DeckIndex() int
+
 	//Equivalent checks whether two components are equivalent--that is,
 	//whether they represent the same index in the same deck.
 	Equivalent(other Component) bool
 
-	//Instance returns a mutable ComponentInstance representing this component
-	//in the given state. Will never return nil, even if the component isn't
-	//valid in this state----although later things like ContainingStack may
-	//error later in that case.
+	//Instance returns a mutable ComponentInstance representing the specific
+	//instantiation of this component in the given state of the given game.
+	//Will never return nil, even if the component isn't valid in this state
+	//----although later things like ContainingStack may error later in that
+	//case. ComponentInstance is where the methods for moving the instance to
+	//other stacks lie.
 	Instance(st State) ComponentInstance
 
-	//ImmutableInstance returns an ImmutableComponentInstance representing
-	//this component in the given state. Will never return nil, even if the
-	//component isn't valid in this state--although later things like
-	//ContainingStack may error later in that case.
+	//ImmutableInstance returns an ImmutableComponentInstance representing the
+	//specific instantiation of this component in the given state of the given
+	//game. Will never return nil, even if the component isn't valid in this
+	//state--although later things like ContainingStack may error later in
+	//that case.
 	ImmutableInstance(st ImmutableState) ImmutableComponentInstance
 
 	//Generic returns true if this Component is the generic component for this
