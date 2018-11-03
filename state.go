@@ -938,7 +938,8 @@ only Reader methods up to adding Set proeprties, and then terminating by
 layering on Configure methods.
 
 ConfigurablePlayerSubState is an interface that extends ConfigurableSubState
-with one extra method, PlayerIndex().
+with one extra method, PlayerIndex(). There are also player-state versions for
+SubState and ImmutableSubState.
 
 Typically your game's sub-states satisfy this interface by embedding
 base.SubState, and then using `boardgame-util codegen` to generate the
@@ -975,7 +976,9 @@ type PlayerState interface {
 }
 
 //ImmutablePlayerState represents a PlayerState SubState that is not in a
-//context where mutating is legal.
+//context where mutating is legal. It is simply an ImmutableSubState that also
+//has a PlayerIndex method. See more on substates at the documentation for
+//ConfigurableSubState.
 type ImmutablePlayerState interface {
 	PlayerIndexer
 	ImmutableSubState
