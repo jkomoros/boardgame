@@ -60,11 +60,14 @@ type GameDelegate interface {
 
 	//ConfigureDecks will be called when the GameManager is being booted up.
 	//Each entry in the return value will be added to the ComponentChest that
-	//is being created for this game type.
+	//is being created for this game type. This method is where you create
+	//individual decks via NewDeck and associate the right underlying
+	//ComponentValues with each component via AddComponent.
 	ConfigureDecks() map[string]*Deck
 
 	//ConfigureEnums is called during set up of a new GameManager. Return the
 	//set of enums you want to be associated with this GameManagaer's Chest.
+	//`boardgame-util codegen` will often generate this automatically for you.
 	ConfigureEnums() *enum.Set
 
 	//ConfigureConstants is called during set-up of a new GameManager. Return

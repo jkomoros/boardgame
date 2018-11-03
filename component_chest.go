@@ -10,15 +10,12 @@ import (
 //might be nice to be able to cast the Deck directly to its underlying type to
 //minimize later casts)
 
-//ComponentChest is a list of all decks for this game type. Each game has one
-//ComponentChest, which is an immutable set of all components in this game,
-//configured into 0 or more Decks. A chest has two phases: construction and
-//serving. During consruction, decks may be added but non may be retrieved.
-//After consruction decks may be retrieved but not added. This helps ensure
-//that Decks always give a consistent view of the world. You do not create
-//ComponentChests yourself; they are created when a new GameManager is created
-//and populated based on what the GameDelegate returns for ConfigureEnums and
-//ConfigureDecks().
+//ComponentChest is a list of all decks, enums, and constants, for this game
+//type. Each game type has one ComponentChest, which is an immutable set of
+//all components in this game type. Every game of a given game type uses the
+//same ComponentChest. NewGameManager creates a new ComponentChest, filling it
+//with values returned from your GameDelegate's ConfigureDecks(),
+//ConfigureConstants(), and ConfigureEnums().
 type ComponentChest struct {
 	initialized bool
 	deckNames   []string
@@ -44,17 +41,19 @@ func newComponentChest(enums *enum.Set) *ComponentChest {
 	}
 }
 
-//Enums returns the enum.Set in use in this chest.
+//Enums returns the enum.Set in use in this chest--the set that was returned
+//from your GameDelegate's ConfigureEnums().
 func (c *ComponentChest) Enums() *enum.Set {
 	return c.enums
 }
 
-//Manager returns the GameManager that is associated with this ComponentChest.
+//Manager returns the GameManager that this ComponentChest is associated with.
 func (c *ComponentChest) Manager() *GameManager {
 	return c.manager
 }
 
-//DeckNames returns all of the valid deck names, if the chest has finished initalization.
+//DeckNames returns all of the valid deck names--the names that would return a
+//valid deck if passed to Deck().
 func (c *ComponentChest) DeckNames() []string {
 	//If it's not finished being initalized then no decks are valid.
 	if !c.initialized {
@@ -63,7 +62,9 @@ func (c *ComponentChest) DeckNames() []string {
 	return c.deckNames
 }
 
-//Deck returns the deck with a given name, if the chest has finished initalization.
+//Deck returns the deck in the chest with the given name. Those Decks() are
+//associated with this ComponentChest based on what your GameDelegate returns
+//from ConfigureDecks().
 func (c *ComponentChest) Deck(name string) *Deck {
 	if !c.initialized {
 		return nil
@@ -71,7 +72,8 @@ func (c *ComponentChest) Deck(name string) *Deck {
 	return c.decks[name]
 }
 
-//ConstantNames returns all of the names of constants in this chest.
+//ConstantNames returns all of the names of constants in this chest that would
+//return something from Constant().
 func (c *ComponentChest) ConstantNames() []string {
 	if !c.initialized {
 		return nil
@@ -87,8 +89,8 @@ func (c *ComponentChest) ConstantNames() []string {
 	return result
 }
 
-//Constant returns the constant that was set via AddConstant, or nil if none
-//was set.
+//Constant returns the constant of that name, that was configured via your
+//GameDelegate's ConfigureConstants().
 func (c *ComponentChest) Constant(name string) interface{} {
 	if !c.initialized {
 		return nil
@@ -164,7 +166,7 @@ func (c *ComponentChest) addDeck(name string, deck *Deck) error {
 //be retrieved but not added. Finish() is called automatically when a Chest is
 //added to a game via SetChest(), but you can call it before then if you'd
 //like.
-func (c *ComponentChest) Finish() {
+func (c *ComponentChest) finish() {
 
 	//Check if Finish() has already been called
 	if c.initialized {
@@ -185,6 +187,7 @@ func (c *ComponentChest) Finish() {
 	}
 }
 
+//MarshalJSON returns all of the decks, connstants, and enums in this chest.
 func (c *ComponentChest) MarshalJSON() ([]byte, error) {
 	obj := struct {
 		Decks     map[string]*Deck

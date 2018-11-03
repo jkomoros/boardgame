@@ -182,7 +182,7 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 		}
 	}
 
-	chest.Finish()
+	chest.finish()
 
 	result := &GameManager{
 		delegate:      delegate,

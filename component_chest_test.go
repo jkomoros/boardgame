@@ -55,7 +55,7 @@ func TestComponentChestConstant(t *testing.T) {
 
 	assert.For(t).ThatActual(val).IsNil()
 
-	chest.Finish()
+	chest.finish()
 
 	assert.For(t).ThatActual(chest.ConstantNames()).Equals([]string{
 		"bool",
@@ -159,7 +159,7 @@ func TestComponentChest(t *testing.T) {
 
 	chest.addDeck("other", deckTwo)
 
-	chest.Finish()
+	chest.finish()
 
 	c := deckTwo.ComponentAt(0)
 
