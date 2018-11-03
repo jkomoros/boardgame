@@ -40,8 +40,11 @@ type board struct {
 //number of spaces to create. maxSize is the maximum size for each growable
 //Stack in the board. 0 means "no limitation". If you pass maxSize of 1,
 //consider simply using a sized Stack for that property instead, as those are
-//semantically equivalent, and a sized Stack is simpler. Boards can be created
-//with struct tags as well.
+//semantically equivalent, and a sized Stack is simpler. Typically you'd use
+//this in your GameDelegate's GameStateConstructor() and other similar
+//methods; although in practice it is much more common to use struct-tag based
+//inflation, making direct use of this constructor unnecessary. See
+//StructInflater for more.
 func (d *Deck) NewBoard(length int, maxSize int) Board {
 	if length <= 0 {
 		return nil

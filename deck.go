@@ -5,16 +5,31 @@ import (
 	"strconv"
 )
 
-//TODO: consider making Deck be an interface again (in some cases it
-//might be nice to be able to cast the Deck directly to its underlying type to
-//minimize later casts)
+/*
+A Deck represents an immutable collection of a certain type of component for
+a given game type. A Deck, like a Component, is immutable for a given game
+type and shared by every game of that type. Every Component lives in one
+deck in a position that is always the same; the Component's identity is
+defined by the deck it is in and the index in that deck.
 
-//A Deck represents an immutable collection of a certain type of components.
-//Every component lives in one deck. 1 or more Stacks index into every Deck,
-//and cover every item in the deck, with no items in more than one deck. The
-//zero-value of Deck is useful. The Deck will not return items until it has
-//been added to a ComponentChest, which helps enforce that Decks' values never
-//change. Create a new Deck with NewDeck()
+Stack is a related concept; they represent the collections in your GameState,
+PlayerStates, and DynamicComponentValues where ComponentInstances live in a
+given state.
+
+Each State of every game in this game type must have each component from each
+deck live in precisely one position in one stack at all times. This is
+referred to as the "component invariant", and captures the notion that the
+component instance is a physical entity that can only be in one place at one
+time and must exist somewhere. This invariant is established via careeful
+design of the library. When a given game is created,
+GameDelegate.DistributeComponentToStarterStack ensures that every component
+instance for the game has a home befofre the game starts, and after that the
+move methods on ComponentInstance ensure that a component can't ever be copied.
+
+You generally only create decks inside of your GameDelegate's ConfigureDecks()
+method, which is called when the GameManager is being set up.
+
+*/
 type Deck struct {
 	chest *ComponentChest
 	//Name is only set when it's added to the component chest.
@@ -29,33 +44,42 @@ type Deck struct {
 
 const genericComponentSentinel = -2
 
-//NewDeck returns a new deck, ready to have components added to it, and then
-//be added to a ComponentChest. Typically you only do this when creating a new
-//GameManager.
+//NewDeck returns a new deck, ready to have components added to it. Typically
+//you call this within your GameDelegate's ConfigureDecks() method.
 func NewDeck() *Deck {
 	return &Deck{}
 }
 
 //NewStack returns a new default (growable Stack) with the given size based on
-//this deck. You normally do this in *Constructor delegate methods, if you
-//aren't using the auto-inflating struct tags to configure your stacks. The
-//returned stack will allow up to maxSize items to be inserted. If you don't
-//want to set a maxSize on the stack (you often don't) pass 0 for maxSize to
-//allow it to grow without limit.
+//this deck. The returned stack will allow up to maxSize items to be inserted.
+//If you don't want to set a maxSize on the stack (you often don't) pass 0 for
+//maxSize to allow it to grow without limit. Typically you'd use this in your
+//GameDelegate's GameStateConstructor() and other similar methods; although in
+//practice it is much more common to use struct-tag based inflation, making
+//direct use of this constructor unnecessary. See StructInflater for more.
 func (d *Deck) NewStack(maxSize int) Stack {
 	return newGrowableStack(d, maxSize)
 }
 
 //NewSizedStack returns a new SizedStack (a stack whose FixedSize() will
-//return true). Refer to the Stack interface documentation for more about the
-//difference.
+//return true) associated with this deck. Typically you'd use this in your
+//GameDelegate's GameStateConstructor() and other similar methods; although in
+//practice it is much more common to use struct-tag based inflation, making
+//direct use of this constructor unnecessary. See StructInflater for more.
 func (d *Deck) NewSizedStack(size int) SizedStack {
 	return newSizedStack(d, size)
 }
 
 //AddComponent adds a new component with the given values to the next spot in
-//the deck. v may be nil. If the deck has already been added to a
-//componentchest, this will do nothing.
+//the deck. This is where you affiliate the specific immutable properties
+//specific to this component and your game with the component. v may be nil.
+//This method is only legal to be called before the Deck has been installed
+//into a ComponentChest, which is to say generally only within your
+//GameDelegate's ConfigureDecks() method. Although technically there is no
+//problem with using a different underlying struct for different components in
+//the same deck, in practice it is strongly discouraged because often you will
+//blindly cast returned component values for a given deck into the underlying
+//struct.
 func (d *Deck) AddComponent(v ComponentValues) {
 	if d.chest != nil {
 		return
@@ -74,9 +98,15 @@ func (d *Deck) AddComponent(v ComponentValues) {
 	d.components = append(d.components, c)
 }
 
-//Components returns a list of Components in order in this deck.
+//Components returns a list of Components in order in this deck, equivalent to
+//calling ComponentAt() from 0 to deck.Len()
 func (d *Deck) Components() []Component {
 	return d.components
+}
+
+//Len returns the number of components in this deck.
+func (d *Deck) Len() int {
+	return len(d.components)
 }
 
 //Chest points back to the chest we're part of.
@@ -85,7 +115,9 @@ func (d *Deck) Chest() *ComponentChest {
 }
 
 //Name returns the name of this deck; the string by which it could be retrived
-//from the ComponentChest it resides in.
+//from the ComponentChest it resides in. This name is implied by the string
+//key the deck was associated with in the return value from
+//GameDelegate.ConfigureDecks().
 func (d *Deck) Name() string {
 	return d.name
 }
@@ -108,9 +140,11 @@ func (d *Deck) ComponentAt(index int) Component {
 
 }
 
-//SetGenericValues sets the SubState to return for every generic component
-//that is returned. May only be set before added to a chest. Should  be the
-//same shape of componentValues as used for other components in the deck.
+//SetGenericValues sets the ComponentValues to return for every generic
+//component that is returned via GenericComponent(). May only be set before
+//added to a chest, that is within your GameDelegate's ConfigureDecks method.
+//Should  be the same underlying struct type as the ComponentValues used for
+//other components of this type.
 func (d *Deck) SetGenericValues(v ComponentValues) {
 	if d.chest != nil {
 		return
@@ -119,10 +153,11 @@ func (d *Deck) SetGenericValues(v ComponentValues) {
 }
 
 //GenericComponent returns the component that is considereed fully generic for
-//this deck. This is the component that every component will be if a Stack is
-//sanitized with PolicyLen, for example. If you want to figure out if a Stack
-//was sanitized according to that policy, you can compare the component to
-//this.
+//this deck. This is the component that every component will be if a Stack
+//affilated with this deck is sanitized with PolicyLen, for example. If you
+//want to figure out if a Stack was sanitized according to that policy, you
+//can compare the component to this. To override the ComponentValues in this
+//GenericComponent, call SetGenericValues.
 func (d *Deck) GenericComponent() Component {
 
 	if d.vendedGenericComponent == nil {
