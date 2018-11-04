@@ -10,23 +10,10 @@ import (
 
 const emptyIndexSentinel = -1
 
-//Stack is one of the fundamental types in BoardGame. It represents an ordered
-//stack of 0 or more Components, all from the same Deck. Each deck has 0 or
-//more Stacks based off of it, and together they include all components in
-//that deck, with no component residing in more than one stack. Stacks model
-//things like a stack of cards, a collection of resource tokens, etc. Stacks
-//can either be growable (the default), or of a fixed size (called
-//SizedStacks). The default stacks have a SizedStack() of nil and can grow to
-//accomodate as many components as desired (up to maxSize), with no gaps in
-//between components. An insertion at an index in the middle of a stack will
-//simply move later components down. SizedStacks, however, have a specific
-//size, with empty slots being allowed. Each insertion puts the component at
-//precisely that slot, and will fail if it is already taken. ImmutableStack
-//contains only read-only methods, and Stack extends with mutator methods. In
-//general you retrieve new Stack objects from the associated deck's NewStack
-//or NewSizedStack and install them in your Constructor methods (if you don't
-//use tag-based auto-inflation). NewOverlappedStack and NewConcatenatedStack
-//are advanced techniques.
+//ImmutableStack is a flavor of Stack, but minus any methods that can be used
+//to mutate anything. See the documentation for Stack for more about the
+//hierarchy of Stack-based types. ImmutableStack is the lowest-common-
+//denominator that all Stack types implement.
 type ImmutableStack interface {
 	//Len returns the number of slots in the Stack. For a normal Stack this is
 	//the number of items in the stack. For SizedStacks, this is the number of
@@ -128,9 +115,12 @@ type ImmutableStack interface {
 //of slots, any of which may be nil. Although very few methods are added, the
 //basic behavior of the Stack methods is quite different for these kinds of
 //stacks. See also SizedStack, which adds mutator methods to this definition.
+//See the documentation for Stack for more about the hierarchy of Stack
+//objects.
 type ImmutableSizedStack interface {
 	//An ImmutableSizedStack can be used everywhere a normal ImmutableStack
-	//can.
+	//can. Note the behavior of an ImmutableSizedStack's base ImmutableStack
+	//methods will often be different than a default stack.
 	ImmutableStack
 
 	//FirstComponentIndex returns the index of the first non-nil component
@@ -161,8 +151,22 @@ type MergedStack interface {
 	Overlapped() bool
 }
 
-//Stack is an ImmutableStack that also has mutator methods. See ImmutableStack
-//for more documentation about Stacks in general.
+//Stack is one of the fundamental types in BoardGame. It represents an ordered
+//stack of 0 or more Components, all from the same Deck. Each deck has 0 or
+//more Stacks based off of it, and together they include all components in
+//that deck, with no component residing in more than one stack. Stacks model
+//things like a stack of cards, a collection of resource tokens, etc. Stacks
+//can either be growable (the default), or of a fixed size (called
+//SizedStacks). The default stacks have a SizedStack() of nil and can grow to
+//accomodate as many components as desired (up to maxSize), with no gaps in
+//between components. An insertion at an index in the middle of a stack will
+//simply move later components down. SizedStacks, however, have a specific
+//size, with empty slots being allowed. Each insertion puts the component at
+//precisely that slot, and will fail if it is already taken. ImmutableStack
+//contains only read-only methods, and Stack extends with mutator methods. In
+//general you retrieve new Stack objects from the associated deck's NewStack
+//or NewSizedStack and install them in your Constructor methods (if you don't
+//use tag-based auto-inflation).
 type Stack interface {
 	//A Stack can be used anywhere an ImmutableStack can be.
 	ImmutableStack
