@@ -187,6 +187,12 @@ The moves in this package are all defined as a hierarchy of structs that
 anonymously embed higher level structs, overriding, modifying, and extending
 the behavior of the struct they embed.
 
+You can use many of these moves directly, using the configuration options like
+WithSourceProperty() to configure which properties they should operate on.
+Alternatively, you can embed them in your own move struct, overriding or
+tweaking their behavior, perhaps adding an additional check to their Legal
+check.
+
 For convenience, here's the type hierarchy, with a brief description of the
 diff each has on the one above it. See the documentation for each struct for
 more.
