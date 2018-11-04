@@ -15,6 +15,10 @@ const emptyIndexSentinel = -1
 //hierarchy of Stack-based types. ImmutableStack is the lowest-common-
 //denominator that all Stack types implement.
 type ImmutableStack interface {
+
+	//Deck returns the Deck associated with this stack.
+	Deck() *Deck
+
 	//Len returns the number of slots in the Stack. For a normal Stack this is
 	//the number of items in the stack. For SizedStacks, this is the number of
 	//slots--even if some are unfilled.
@@ -24,47 +28,6 @@ type ImmutableStack interface {
 	//For default Stacks this is the same as Len(); for SizedStacks, this is
 	//the number of non-nil slots.
 	NumComponents() int
-
-	//ImmutableComponentAt retrieves the component at the given index in the
-	//stack.
-	ImmutableComponentAt(index int) ImmutableComponentInstance
-
-	//ImmutableComponents returns all of the components. Equivalent to calling
-	//ImmutableComponentAt from 0 to Len().
-	ImmutableComponents() []ImmutableComponentInstance
-
-	//ImmutableFirst returns a reference to the first non-nil component from
-	//the left, or nil if empty. For default stacks, this is simply a
-	//convenience wrapper around stack.ImmutableComponentAt(0). Other types of
-	//stacks might do more complicated calculations.
-	ImmutableFirst() ImmutableComponentInstance
-
-	//ImmutableLast returns a reference to the first non-nil component from
-	//the right, or nil if empty. For default stacks, this is simply a
-	//convenience wrapper around stack.ComponentAt(stack.Len() - 1). Other
-	//types of stacks might do more complicated calculations.
-	ImmutableLast() ImmutableComponentInstance
-
-	//Ids returns a slice of strings representing the Ids of each component at
-	//each index. Under normal circumstances this will be the results of
-	//calling c.Id() on each component in order. This information will be
-	//elided if the Sanitization policy in effect is more restrictive than
-	//PolicyOrder, and tweaked if PolicyOrder is in effect.
-	Ids() []string
-
-	//LastSeen represents an unordered list of the last version number at
-	//which the given ID was seen in this stack. A component is "seen" at
-	//three moments: 1) when it is moved to this stack, 2) immediately before
-	//its Id is scrambled, and 3) immediately after its Id is scrambled.
-	//LastSeen thus represents the last time that we knew for sure it was in
-	//this stack --although it may have been in this stack after that, and may
-	//no longer be in this stack.
-	IdsLastSeen() map[string]int
-
-	//ShuffleCount is the number of times during this game that Shuffle (or
-	//PublicShuffle) have been called on this stack. Not visible in some
-	//sanitization policies.
-	ShuffleCount() int
 
 	//SlotsRemaining returns how many slots there are left in this stack to
 	//add items. For default stacks this will be the number of slots until
@@ -77,8 +40,48 @@ type ImmutableStack interface {
 	//unfilled), which is equivalent to Len().
 	MaxSize() int
 
-	//Deck returns the Deck associated with this stack.
-	Deck() *Deck
+	//ImmutableComponentAt retrieves the component at the given index in the
+	//stack.
+	ImmutableComponentAt(index int) ImmutableComponentInstance
+
+	//ImmutableComponents returns all of the components. Equivalent to calling
+	//ImmutableComponentAt from 0 to Len().
+	ImmutableComponents() []ImmutableComponentInstance
+
+	//ImmutableFirst returns a reference to the first non-nil component from
+	//the left, or nil if empty. For default stacks, this is simply a
+	//convenience wrapper around stack.ImmutableComponentAt(0). SizedStacks
+	//however will use the result of FirstComponentIndex().
+	ImmutableFirst() ImmutableComponentInstance
+
+	//ImmutableLast returns a reference to the first non-nil component from
+	//the right, or nil if empty. For default stacks, this is simply a
+	//convenience wrapper around stack.ComponentAt(stack.Len() - 1).
+	//SizedStacks however will use the result of LastComponentIndex().
+	ImmutableLast() ImmutableComponentInstance
+
+	//Ids returns a slice of strings representing the Ids of each component at
+	//each index. Under normal circumstances this will be the results of
+	//calling c.Id() on each component in order. This information will be
+	//elided or modified if the state has been sanitized. See documentation
+	//for Policy for more on when and how these might be changed.
+	Ids() []string
+
+	//LastSeen represents an unordered list of the last version number at
+	//which the given ID was seen in this stack. A component is "seen" at
+	//three moments: 1) when it is moved to this stack, 2) immediately before
+	//its Id is scrambled, and 3) immediately after its Id is scrambled.
+	//LastSeen thus represents the last time that we knew for sure it was in
+	//this stack --although it may have been in this stack after that, and may
+	//no longer be in this stack. This information may be elided if the stack
+	//has been sanitized. See the documentation for Policy for more about when
+	//this might be elided.
+	IdsLastSeen() map[string]int
+
+	//ShuffleCount is the number of times during this game that Shuffle (or
+	//PublicShuffle) have been called on this stack. Not visible in some
+	//sanitization policies, see Policy for more.
+	ShuffleCount() int
 
 	//ImmutableSizedStack will return a version of this stack that implements
 	//the ImmutableSizedStack interface, if that's possible, or nil otherwise.
@@ -88,14 +91,6 @@ type ImmutableStack interface {
 	//MergedStack interface, if that's possible, or nil otherwise.
 	MergedStack() MergedStack
 
-	//Returns the state that this Stack is currently part of. Mainly a
-	//convenience method when you have a Stack but don't know its underlying
-	//type.
-	state() *state
-
-	//setState sets the state ptr that will be returned by state().
-	setState(state *state)
-
 	//ImmutableBoard will return the Board that this Stack is part of, or nil
 	//if it is not part of a board.
 	ImmutableBoard() ImmutableBoard
@@ -103,6 +98,14 @@ type ImmutableStack interface {
 	//If Board returns a non-nil Board, this will return the index within the
 	//Board that this stack is.
 	BoardIndex() int
+
+	//Returns the state that this Stack is currently part of. Mainly a
+	//convenience method when you have a Stack but don't know its underlying
+	//type.
+	state() *state
+
+	//setState sets the state ptr that will be returned by state().
+	setState(state *state)
 
 	//All stacks have these, even though they aren't exported, because within
 	//this library we iterate trhough a lot of Stacks via readers and it's
