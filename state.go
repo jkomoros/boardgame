@@ -49,9 +49,11 @@ type ImmutableState interface {
 	//component in that deck. See State.DynamicComponentValues for more.
 	ImmutableDynamicComponentValues() map[string][]ImmutableSubState
 
-	//ImmutableCurrentPlayer returns the ImmutablePlayerState corresponding to the
-	//result of delegate.CurrentPlayerIndex(), or nil if the index isn't
-	//valid. See State.CurrentPlayer for more.
+	//ImmutableCurrentPlayer returns the ImmutablePlayerState corresponding to
+	//the result of delegate.CurrentPlayerIndex(), or nil if the index isn't
+	//valid. This object is the same underlying struct that you returned from
+	//GameDelegate.PlayerStateConstructor and can be cast back safely to
+	//access the underlying methods. See State.CurrentPlayer for more.
 	ImmutableCurrentPlayer() ImmutablePlayerState
 	//CurrentPlayerIndex is a simple convenience wrapper around
 	//delegate.CurrentPlayerIndex(state) for this state.
@@ -266,9 +268,11 @@ type State interface {
 	//can access its methods directly in a type- checked way.
 	DynamicComponentValues() map[string][]SubState
 
-	//CurrentPlayer returns the PlayerState corresponding to the
-	//result of delegate.CurrentPlayerIndex(), or nil if the index isn't
-	//valid.
+	//CurrentPlayer returns the PlayerState corresponding to the result of
+	//delegate.CurrentPlayerIndex(), or nil if the index isn't valid. This
+	//object is the same underlying struct that you returned from
+	//GameDelegate.PlayerStateConstructor and can be cast back safely to
+	//access the underlying methods.
 	CurrentPlayer() PlayerState
 
 	//Rand returns a source of randomness. All game logic should use this rand
