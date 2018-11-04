@@ -868,23 +868,21 @@ func (s *state) computed() *computedProperties {
 
 //SanitizedForPlayer is in sanitized.go
 
-//Reader is the interface that any object that can return a PropertyReader
-//implements.
+//Reader is the interface to fetch a PropertyReader from an object. See
+//ConfigurableSubState and PropertyReadSetConfigurer for more.
 type Reader interface {
 	Reader() PropertyReader
 }
 
-//ReadSetter is the interface that any object that can return a
-//PropertyReadSetter implements. Objects that implement ReadSetter also
-//implement Reader.
+//ReadSetter is the interface to fetch a PropertyReadSetter from an object.
+//See ConfigurableSubState and PropertyReadSetConfigurer for more.
 type ReadSetter interface {
 	Reader
 	ReadSetter() PropertyReadSetter
 }
 
-//ReadSetCongigurer is the interface that any object that can return a
-//PropertyReadSetConfigurer implements. Objects that implement
-//ReadSetConfigurer also implement ReadSetter.
+//ReadSetConfigurer is the interface to fetch a PropertyReadSetConfigurer from
+//an object. See ConfigurableSubState and PropertyReadSetConfigurer for more.
 type ReadSetConfigurer interface {
 	ReadSetter
 	ReadSetConfigurer() PropertyReadSetConfigurer
