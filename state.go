@@ -9,64 +9,72 @@ import (
 	"strconv"
 )
 
-//State represents the entire semantic state of a game at a given version. For
-//your specific game, GameState and PlayerStates will actually be concrete
-//structs to your particular game. Games often define a top-level
-//concreteStates() *myGameState, []*myPlayerState so at the top of methods
-//that accept a State they can quickly get concrete, type-checked types with
-//only a single conversion leap of faith at the top. States are intended to be
-//read-only, which is why the base interface is ImmutableState; methods where
-//you are allowed to mutate the state (e.g. Move.Apply()) will take a State
-//instead as a signal that it is permissable to modify the state. That is why
-//the states only return non- mutable states (PropertyReaders, not
-//PropertyReadSetters, although realistically it is possible to cast them and
-//modify directly. The MarshalJSON output of a State is appropriate for
-//sending to a client or serializing a state to be put in storage.
+//ImmutableState is a version of State, but minus any mutator methods. Because
+//states may not be modified except by moves, in almost every case where a
+//state is passed to game logic you define (whether on your GameDelegate
+//methods, or Legal() on your move structs), an ImmutableState will be passed
+//instead. If an ImmutableState is passed to your method, it's a strong signal
+//that you shouldn't modify the state. Note that idiomatic use (e.g.
+//concreteStates) will cast an ImmutableState to a State immediately in order
+//to retrieve the concrete structs underneath, but if you do that you have to
+//be careful not to inadvertently modify the state because the changes won't
+//be persisted. See the documentation for State for more about states in
+//general.
 type ImmutableState interface {
-	//ImmutableGameState returns the ImmutableGameState for this State
+
+	//ImmutableGameState returns the ImmutableGameState for this State. See
+	//State.GameState for more.
 	ImmutableGameState() ImmutableSubState
 	//ImmutablePlayerStates returns a slice of all ImmutablePlayerStates for
-	//this State
+	//this State. See State.PlayerStates for more.
 	ImmutablePlayerStates() []ImmutablePlayerState
 	//DynamicComponentValues returns a map of deck name to array of component
-	//values, one per component in that deck.
+	//values, one per component in that deck. See State.DynamicComponentValues
+	//for more.
 	ImmutableDynamicComponentValues() map[string][]ImmutableSubState
 
 	//ImmutableCurrentPlayer returns the ImmutablePlayerState corresponding to the
 	//result of delegate.CurrentPlayerIndex(), or nil if the index isn't
-	//valid.
+	//valid. See State.CurrentPlayer for more.
 	ImmutableCurrentPlayer() ImmutablePlayerState
 	//CurrentPlayerIndex is a simple convenience wrapper around
-	//delegate.CurrentPlayerIndex for this state.
+	//delegate.CurrentPlayerIndex(state) for this state.
 	CurrentPlayerIndex() PlayerIndex
 
 	//Version returns the version number the state is (or will be once
 	//committed).
 	Version() int
 
-	//Copy returns a deep copy of the State, including copied version of the Game
-	//and Player States.
+	//Copy returns a deep copy of the State, including copied version of the
+	//Game and Player States. Note that copying uses the
+	//ProperyReadSetConfigurer interface, so any properties not enumerated
+	//there or otherwise defined in the constructors on your GameDelegate will
+	//not be copied.
 	Copy(sanitized bool) (ImmutableState, error)
+
 	//Diagram returns a basic, ascii rendering of the state for debug rendering.
 	//It thunks out to Delegate.Diagram.
 	Diagram() string
+
 	//Santizied will return false if this is a full-fidelity State object, or
 	//true if it has been sanitized, which means that some properties might be
 	//hidden or otherwise altered. This should return true if the object was
 	//created with Copy(true)
 	Sanitized() bool
+
 	//Computed returns the computed properties for this state.
 	computed() *computedProperties
+
 	//SanitizedForPlayer produces a copy state object that has been sanitized
 	//for the player at the given index. The state object returned will have
 	//Sanitized() return true. Will call GameDelegate.SanitizationPolicy to
-	//construct the effective policy to apply. See the package level comment
-	//for an overview of how state sanitization works.
+	//construct the effective policy to apply. See the documentation for
+	//Policy for more on sanitization.
 	SanitizedForPlayer(player PlayerIndex) ImmutableState
 
 	//Game is the Game that this state is part of. Calling
-	//Game.State(s.Version()) should return a state equivalent to this State
-	//(module sanitization, if applied).
+	//Game.State(state.Version()) should return a state equivalent to this State
+	//(modulo sanitization, if applied).
 	Game() *Game
 
 	//StorageRecord returns a StateStorageRecord representing the state.
@@ -206,9 +214,19 @@ const ObserverPlayerIndex PlayerIndex = -1
 //should only be used in rare or debug circumstances.
 const AdminPlayerIndex PlayerIndex = -2
 
-//A State is an ImmutableState that is designed to be modified in place. These
-//are passed to methods (instead of normal States) as a signal that
-//modifications are intended to be done on the state.
+//State represents the entire semantic state of a game at a given version. For
+//your specific game, GameState and PlayerStates will actually be concrete
+//structs to your particular game. Games often define a top-level
+//concreteStates() *myGameState, []*myPlayerState so at the top of methods
+//that accept a State they can quickly get concrete, type-checked types with
+//only a single conversion leap of faith at the top. States are intended to be
+//read-only, which is why the base interface is ImmutableState; methods where
+//you are allowed to mutate the state (e.g. Move.Apply()) will take a State
+//instead as a signal that it is permissable to modify the state. That is why
+//the states only return non- mutable states (PropertyReaders, not
+//PropertyReadSetters, although realistically it is possible to cast them and
+//modify directly. The MarshalJSON output of a State is appropriate for
+//sending to a client or serializing a state to be put in storage.
 type State interface {
 	//State contains all of the methods of a read-only state.
 	ImmutableState
