@@ -44,6 +44,12 @@ type timer struct {
 	statePtr *state
 }
 
+//NewTimer returns a new blank timer, ready for use. Typically this would be
+//used inside of GameDelegate.GameStateConstructor and friends. In practice
+//however this is not necessary because the auto-crated StructInflaters for
+//your structs will install a non-nil Timer even if not struct tags are
+//provided, because no configuration is necessary. See StructInflater for
+//more.
 func NewTimer() Timer {
 	return &timer{}
 }
