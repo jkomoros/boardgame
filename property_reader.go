@@ -11,9 +11,9 @@ import (
 	"unicode"
 )
 
-//Property reader is a way to read out properties on an object with unknown
-//shape. The properties are returned in a way that their values cannot be
-//manipulated (at least, not from only the PropertyReader methods).
+//PropertyReader is a version of PropertyReadSetConfigurer that has no
+//mutating methods. See PropertyReadSetConfigurer for more about this
+//interface hierarchy.
 type PropertyReader interface {
 	//Props returns a list of all property names that are defined for this
 	//object.
@@ -68,9 +68,9 @@ const (
 //immutable variant) is used on mutable properties.
 var ErrPropertyImmutable = errors.New("That property is an immutable type in the underlying object.")
 
-//Property read setter is a way to enumerate and manipulate properties on an
-//object of an unknown shape. For simple properties they can be set directly;
-//for interface types a mutable version can be retrieved, but not set.
+//PropertyReadSetter is a version of PropertyReadSetConfigurer that has no
+//Configuration methods. See PropertyReadSetConfigurer for more about this
+//interface hierarchy.
 type PropertyReadSetter interface {
 	//All PropertyReadSetters have read interfaces
 	PropertyReader
@@ -88,8 +88,8 @@ type PropertyReadSetter interface {
 	//PropMutable will return whether the given property is backed by an
 	//underlying mutable object or not. For non-interface types this should
 	//always be true, because Set*Prop always exists. For interface types,
-	//this will be true if the underlying property is stored as the Mutable
-	//variant, false otherwise.
+	//this will be true if the underlying property is stored as the non-
+	//Immutable variant, false otherwise.
 	PropMutable(name string) bool
 
 	//For interface types the setter also wants to give access to the mutable
@@ -110,12 +110,56 @@ type PropertyReadSetter interface {
 	SetProp(name string, value interface{}) error
 }
 
-//PropertyReadSetConfigurer allows setting of all properties but also
-//configuration of interface types--that is, settting the container for each
-//property in adddition to manipulating the value within the container. There
-//are versions for the mutable and immutable versions of each interface type;
-//make sure to use the correct one for the underlying type.
+/*
+
+PropertyReadSetConfigurer is a core interface that the engine uses to interact
+with user-provided structs of unknown shape, to read, set, and configure their
+properties. The PropertyReadSetConfigurer interface is used to interact with
+an underlying struct.
+
+Only certain types of properties are supported, as enumerated by PropertyType.
+In certain contexts (for example, Move), even some of those types are not
+allowed.
+
+The engine uses this interface extremely often, to create new blank values of
+your structs, inflate them based on serialized information in storage, and
+even to copy them. As far as the game engine is concerned, if a given field on
+your struct cannot be accessed via this interface, it doesn't exist. The
+engine uses this interface instead of reflection to a) make it easier to
+enforce that only certain shapes of objects are allowed, making them easier to
+reason about, and b) for performance so reflection can be skipped as these
+objects often have to be manipulated in tight loops.
+
+Some properties (like int, string, bool) are straightforward and can be read
+and set as expected. However, there's also a class of properties called
+Interface properties, including Timer, Stack, and Enum. These are special
+because they must be instantiated, and some of their instantiation includes
+important information about their underlying type. For example, a Stack() must
+be associated with a given deck, and may never host components who are not a
+member of that deck. For that reason, there's a different between Setting
+(which is just mutating a property, for example my moving a component within
+the stack), and Configuring a property, which is setting up its fundamental
+instantiation.
+
+PropertyReadSetConfigurer is the maximally powerful interface that allows
+reading, setting, and configuring properties. PropertyReadSetter and
+PropertyReader have subsets of the functionality.
+
+Typically, a PropertyReadSetConfigurer for your struct will be fetched from a
+method called PropertyReader(), PropertyReadSetter(), or
+PropertyReadSetConfigurer on your object. See ReadSetConfigurer for more.
+
+Creating the code for your object to implement this interface is extremely
+tedious and error prone. `boardgame-util codegen` is a powerful utility that
+will automatically generate the code for you based on a magic comment in the
+documentation for your struct. In this way we get the best of reflection
+(flexibility) and the best of hard-coded (performance).
+
+*/
 type PropertyReadSetConfigurer interface {
+
+	//PropertyReadSetConfigurer adds configuration methods to
+	//PropertyReadSetter.
 	PropertyReadSetter
 
 	//Configure*Prop allows you to set the named property to the given
