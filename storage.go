@@ -13,26 +13,34 @@ import (
 type StateStorageRecord json.RawMessage
 
 //MoveStorageRecord is a record representing the Move that was made to get the
-//game to its most recent version.
+//game to its most recent version. It pops out various fields that
+//StorageManagers could conceivably want to understand. Typically you don't
+//use this directly, but instead fetch information for moves from game.Moves()
+//and game.Move().
 type MoveStorageRecord struct {
 	Name      string
 	Version   int
 	Initiator int
 	//The Phase as returned by Delegate.CurrentPhase() for the state the move
-	//was in before it was applied.
+	//was in before it was applied. This is captured in this field because
+	//moves in the moves package need to quickly inspect this value without
+	//fully inflating the move structs.
 	Phase int
 	//The player index of the proposer of the move.
 	Proposer  PlayerIndex
 	Timestamp time.Time
-	Blob      json.RawMessage
+	//The actual JSON serialized blob representing the properties of the move.
+	Blob json.RawMessage
 }
 
+//String returns the name of the move and its version, for easy debugging.
 func (m *MoveStorageRecord) String() string {
 	return m.Name + ": " + strconv.Itoa(m.Version)
 }
 
 //Inflate takes a move storage record and turns it into a move associated with
-//that game, if possible. Returns nil if not possible.
+//that game, if possible. Returns nil if not possible. You rarely need this;
+//it's exposed primarily for the use of boardgame/boardgame-util/lib/golden.
 func (m *MoveStorageRecord) Inflate(game *Game) (Move, error) {
 
 	if game == nil {
