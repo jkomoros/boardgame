@@ -989,12 +989,14 @@ type ConfigurableSubState interface {
 //from a generic SubState.
 type PlayerIndexer interface {
 	//PlayerIndex encodes the index this user's state is in the containing
-	//state object.
+	//state object, allowing the SubState to know how to fetch itself from its
+	//containing State.
 	PlayerIndex() PlayerIndex
 }
 
 //PlayerState represents the state of a game associated with a specific user.
-//It is just a SubState with the addition of a PlayerIndex().
+//It is just a SubState with the addition of a PlayerIndex(). See
+//ConfigurableSubState for more on the SubState type hierarchy.
 type PlayerState interface {
 	PlayerIndexer
 	SubState
