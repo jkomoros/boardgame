@@ -903,8 +903,10 @@ type ImmutableStateSetter interface {
 	ImmutableState() ImmutableState
 }
 
-//StateSetter is like ImmutableStateSetter but it also includes Mutable
-//methods. Typically you use base.SubState to implement this automatically.
+//StateSetter is included in SubState and ConfigureableSubState as the way to
+//keep track of which State a given SubState is part of. See also
+//ImmutableStateSetter, which adds getters/setters for ImmutableStates.
+//Typically you use base.SubState to implement this automatically.
 type StateSetter interface {
 	ImmutableStateSetter
 	SetState(state State)

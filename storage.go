@@ -9,7 +9,9 @@ import (
 
 //StateStorageRecord is a record representing a state that can be written to
 //storage and later returned. It is an encoded json blob, and can be written
-//directly to storage with no modification.
+//directly to storage with no modification. Typically you don't use this
+//representation directly, instead fetching a game from the GameManager and
+//then using State() for a fully-inflated state.
 type StateStorageRecord json.RawMessage
 
 //MoveStorageRecord is a record representing the Move that was made to get the
