@@ -41,11 +41,11 @@ type ImmutableStack interface {
 	MaxSize() int
 
 	//ImmutableComponentAt retrieves the component at the given index in the
-	//stack.
+	//stack. See also Stack.ComponentAt.
 	ImmutableComponentAt(index int) ImmutableComponentInstance
 
 	//ImmutableComponents returns all of the components. Equivalent to calling
-	//ImmutableComponentAt from 0 to Len().
+	//ImmutableComponentAt from 0 to Len(). See also Stack.Components().
 	ImmutableComponents() []ImmutableComponentInstance
 
 	//ImmutableFirst returns a reference to the first non-nil component from
@@ -156,58 +156,133 @@ type MergedStack interface {
 	Overlapped() bool
 }
 
-//Stack is one of the fundamental types in BoardGame. It represents an ordered
-//stack of 0 or more Components, all from the same Deck. Each deck has 0 or
-//more Stacks based off of it, and together they include all components in
-//that deck, with no component residing in more than one stack. Stacks model
-//things like a stack of cards, a collection of resource tokens, etc. Stacks
-//can either be growable (the default), or of a fixed size (called
-//SizedStacks). The default stacks have a SizedStack() of nil and can grow to
-//accomodate as many components as desired (up to maxSize), with no gaps in
-//between components. An insertion at an index in the middle of a stack will
-//simply move later components down. SizedStacks, however, have a specific
-//size, with empty slots being allowed. Each insertion puts the component at
-//precisely that slot, and will fail if it is already taken. ImmutableStack
-//contains only read-only methods, and Stack extends with mutator methods. In
-//general you retrieve new Stack objects from the associated deck's NewStack
-//or NewSizedStack and install them in your Constructor methods (if you don't
-//use tag-based auto-inflation).
+/*
+
+Stack is one of the fundamental types in the engine. Stacks model things like
+a stack of cards, a collection of resource tokens, etc. Each component in each
+deck must reside in precisely one stack in each state, the so called
+"component invariant". This captures the notion that each ComponentInstance is
+a physical object that resides in one spot at any given time. See also the
+documentation for Deck.
+
+Stacks fundamentally keep track of a list of ComponentInstances in specific
+slots within the stack, and can return those components via ComponentAt().
+ComponentInstances can be moved into a Stack via one of their Move* methods;
+those methods will fail if the ComponentInstance cannot be moved to that slot
+for any reason. The only exception is Stack.MoveAllTo(), which operates on
+Stacks, not ComponentInstances.
+
+Stacks are known as an interface type whose initial value contains important
+information about their type (e.g. which Deck they're affiliated with),
+meaning that your GameDelegate.GameStateConstructor() and others are supposed
+to initalize them to a non-nil value before returning the struct they're in.
+You generally retrieve them from Deck.NewStack() or Deck.NewSizedStack(). In
+practice you often use tags on your struct to instruct the StructInflaters on
+how to initialize them for you. See StructInflater for more.
+
+There are a hierarchy of different types for Stacks, with diferent behavior
+for these methods.
+
+	* ImmutableStack
+		* Stack
+			* SizedStack
+		* ImmutableSizedStack
+		* MergedStack
+
+The default Stack is known as a "growable" stack. The number of slots it has
+is precisely the number of ComponentInstaces it contains, and when a new
+ComponentInstance is moved in, a new slot is simply spliced into the right
+place, growing the length of the stack. (That is, unless the stack is already
+at MaxSize(), in which case the move will fail.) Growable stacks can never
+have an empty slot, meaning that ComponentAt() (as long as the index is
+between 0 and stack.Len()) will always return a non-nil ComponentInstance.
+Stacks can have an optional MaxSize, which sets the maximum limit for the size
+of the stack. That can be set via Stack.SetSize() and related methods.
+
+Stack has a sub-class with slightly different behavior, called the SizedStack.
+The SizedStack implements the same methods that a normal Stack does, but with
+a few extra methods and with different behavior for some of the core methods.
+A SizedStack has a fixed, defined number of slots. Those slots may be empty.
+Moving a ComponentInstance in to an occupied slot will fail, unlike in a
+growable stack where a new slot will be created automatically. SizedStacks add
+methods for fetching the first index from the left where a ComponentInstance
+resides, and the first index from the right where one resides. SizedStacks can
+have their number of slots modified via SetSize() and friends. Unlike a normal
+growable Stack, SizedStacks must always have a size set.
+
+The core engine primarily reasons about Stack, not the sub-types.
+PropertyReadSetConfigurers, for example, will return the Stack for a given
+stack object, not the SizedStack. The way you access the extra methods is via
+the SizedStack() getter on the default Stack() interface. If the underlying
+Stack is a SizedStack, that method will return a non-nil object that
+implements the SizedStack interface. In general you rarely need to do this, as
+the default Stack methods are almost always sufficient, and this check for
+non-nil is mainly a way to determine if the Stack you have will operate like a
+growable or sized stack. See SizedStack for more.
+
+Stack contains mutator methods, but in some cases, like in an
+ImmutableSubState, the stack shouldn't be modified. That's why the non-
+mutating methods are encapsulated in the ImmutableStack interface, which Stack
+embeds. There's also an ImmutableSizedStack interface defined, so you can test
+if an ImmutableStack will operate like a growable or sized Stack.
+
+There is one extra type of Stack: the MergedStack. These specisl stacks are
+actually combinations of underlying normal stacks, with their output merged
+together. Because these merged stacks are just wrappers around other stacks,
+they don't have any mutators, so they extend the ImmutableStack interface, and
+don't implement the Stack interface. ImmutableStack is thus the lowest common
+denominator: the interface that all Stack objects implement. See MergedStack
+for more.
+
+*/
 type Stack interface {
 	//A Stack can be used anywhere an ImmutableStack can be.
 	ImmutableStack
 
-	//ComponentAt is the same as ImmutableComponentAt, but returns a
-	//ComponentInstance.
+	//ComponentAt fetches the ComponentInstance that exists at the given
+	//index. For default stacks, this will never be nil as long as the index
+	//is between 0 and Stack.Len(). For SizedStacks, however, this might be
+	//nil if the given slot is empty. See also ImmutableComponentAt, which has
+	//the same behavior but returns an ImmutableComponentInstance.
 	ComponentAt(componentIndex int) ComponentInstance
 
-	//Components is similar to ImmutableComponents, but returns
-	//ComponentInstances instead.
+	//Components returns all of the ComponentInstances. Equivalent to calling
+	//ComponentAt from 0 to Len().  The index of each ComponentInstance will
+	//correspond to the index you could fetch that item at via
+	//Stack.ComponentAt. SizedStacks will return a slice that may have nils if
+	//that slot is empty. See also Stack.Components().
 	Components() []ComponentInstance
 
 	//First returns a reference to the first non-nil component from the left,
 	//or nil if empty. For default stacks, ths is simply a convenience for
-	//ComponentAt(0). Other types of stacks might do more complicated
-	//calculations.
+	//ComponentAt(0). For SizedStacks, this returns the component at
+	//SizedStack.FirstComponentIndex. See also ImmutableFirst.
 	First() ComponentInstance
 
 	//Last() returns a reference to the first non-nil component from the
 	//right, or nil if empty. For defaults stacks, this is simply a
-	//convenience for ComponentAt(stack.Len() - 1). Other types of stacks
-	//might do more complicated calculations.
+	//convenience for ComponentAt(stack.Len() - 1). For SizedStacks this
+	//returns the component at LastComponentIndex(). See also ImmutableLast.
 	Last() ComponentInstance
 
-	//MoveAllTo moves all of the components in this stack to the other stack,
-	//by repeatedly calling RemoveFirst() and InsertBack(). Errors and does
-	//not complete the move if there's not enough space in the target stack.
+	//MoveAllTo is a convenience method that moves all of the components in
+	//this stack to the other stack, by repeatedly calling
+	//stack.First().MoveToNextSlot(other). All other Move* methods can be
+	//found on ComponentInstance. This will fail if the SlotsRemaining in
+	//other Stack are less than the NumComponents of this stack. In pracitce
+	//this is rarely moved, because it chunks all of the component moves up
+	//into one notional Move, meaning that animations will show all of the
+	//components moving at once. Instead, often moves.MoveAllComponents is
+	//used to chunk up the move into a series of distinct Moves.
 	MoveAllTo(other Stack) error
 
 	//Shuffle shuffles the order of the stack, so that it has the same items,
 	//but in a different order. In a SizedStack, the empty slots will move
 	//around as part of a shuffle. Shuffling will scramble all of the ids in
 	//the stack, such that the Ids of all items in the stack change. See the
-	//package doc section on sanitization for more on Id scrambling. Shuffle
-	//uses state.Rand() as a source of randomness, allowing it to be
-	//deterministic if other things also use state.Rand().
+	//documenation for Policy for more on Id scrambling. Shuffle uses
+	//state.Rand() as a source of randomness, allowing it to be deterministic
+	//if other things also use state.Rand().
 	Shuffle() error
 
 	//PublicShuffle is the same as Shuffle, but the Ids are not scrambled
@@ -221,7 +296,8 @@ type Stack interface {
 
 	//SwapComponents swaps the position of two components within this stack
 	//without changing the size of the stack (in SizedStacks, it is legal to
-	//swap empty slots). i,j must be between [0, stack.Len()).
+	//swap empty slots). i,j must be between [0, stack.Len()). This is like a
+	//ComponentInstance.MoveTo, except within the same stack.
 	SwapComponents(i, j int) error
 
 	//SortComponents sorts the stack's components in the order implied by less
@@ -236,14 +312,14 @@ type Stack interface {
 	Resizable() bool
 
 	//ContractSize changes the size of the stack. For default stacks it
-	//contracts the MaxSize, if non-zero. For sized stacks it will reduce the
+	//contracts the MaxSize, if non-zero. For SizedStack it will reduce the
 	//size by removing the given number of slots, starting from the right.
 	//This method will fail if there are more components in the stack
 	//currently than would fit in newSize.
 	ContractSize(newSize int) error
 
 	//ExpandSize changes the size of the stack. For default stacks it
-	//increases MaxSize (unless it is zero). For sized stacks it does it by
+	//increases MaxSize (unless it is zero). For SizedStack it does it by
 	//adding the given number of newSlots to the end.
 	ExpandSize(newSlots int) error
 
