@@ -72,6 +72,15 @@ func (n *NoOp) FallbackHelpText() string {
 	return "A move that does nothing and is primarily used in specific move progression situations."
 }
 
+type isNoOper interface {
+	isNoOp() bool
+}
+
+//Quick way to check for a no op move
+func (n *NoOp) isNoOp() bool {
+	return true
+}
+
 /*
 Done is a simple move that does nothing and whose Legal is equivalent to
 moves.Default.Legal(), meaning it is legal purely if the phase matches and it's

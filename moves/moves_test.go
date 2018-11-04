@@ -111,8 +111,32 @@ func defaultMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveConfig
 				WithPlayerProperty("Hand"),
 				WithTargetCount(3),
 			),
+			//Override teh AddOrderedForPhase error
+			auto.MustConfig(
+				new(NoOp),
+			),
 		),
 	)
+}
+
+func noStartPhaseMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveConfig {
+
+	auto := NewAutoConfigurer(manager.Delegate())
+
+	return AddOrderedForPhase(phaseDrawAgain,
+		auto.MustConfig(
+			new(DealComponentsUntilPlayerCountReached),
+			WithMoveName("Deal Cards To Three"),
+			WithGameProperty("DrawStack"),
+			WithPlayerProperty("Hand"),
+			WithTargetCount(3),
+		),
+	)
+}
+
+func TestAddOrderedForPhaseEndsWithStartPhase(t *testing.T) {
+	_, err := newGameManager(noStartPhaseMoveInstaller)
+	assert.For(t).ThatActual(err).IsNotNil()
 }
 
 func illegalPhaseMoveInstaller(manager *boardgame.GameManager) []boardgame.MoveConfig {
@@ -187,8 +211,9 @@ func TestGeneral(t *testing.T) {
 
 	assert.For(t).ThatActual(manager.Delegate().CurrentPhase(game.CurrentState())).Equals(phaseDrawAgain)
 
-	//3 additional moves, but skipping the one player who already had 3 in their hand.
-	assert.For(t).ThatActual(game.Version()).Equals(26)
+	//3 additional moves, but skipping the one player who already had 3 in
+	//their hand, plus the one terminal no op.
+	assert.For(t).ThatActual(game.Version()).Equals(27)
 
 }
 

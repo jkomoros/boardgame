@@ -207,6 +207,8 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 					),
 				),
 			),
+			//Override that this skipping of StartPhase is intentional
+			auto.MustConfig(new(moves.NoOp)),
 		),
 	)
 }

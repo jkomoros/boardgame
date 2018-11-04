@@ -1,7 +1,9 @@
 package moves
 
 import (
+	"errors"
 	"github.com/jkomoros/boardgame"
+	"strconv"
 )
 
 //Combine takes a series of lists of moveTypeConfigs and flattens them into a
@@ -45,6 +47,29 @@ func AddForPhase(phase int, moves ...boardgame.MoveConfig) []boardgame.MoveConfi
 
 }
 
+//errorMove is a special type of move used entirely to signal an error in
+//ValidConfiguration.
+//
+//boardgame:codegen
+type errorMove struct {
+	NoOp
+	Message string
+}
+
+type moveFactory func() boardgame.Move
+
+func errorMoveWithMessage(message string) moveFactory {
+	return func() boardgame.Move {
+		return &errorMove{
+			Message: message,
+		}
+	}
+}
+
+func (e *errorMove) ValidConfiguration(exampleState boardgame.State) error {
+	return errors.New("Error earlier in move processing: " + e.Message)
+}
+
 //AddOrderedForPhase is designed to be used within Combine. It calls
 //WithLegalPhases() and also WithLegalMoveProgression() on the config for each
 //config passed in, which means that the moves' Legal() will only be Legal in
@@ -56,13 +81,49 @@ func AddForPhase(phase int, moves ...boardgame.MoveConfig) []boardgame.MoveConfi
 //groups passed will be treated implicitly like a single Serial group. All
 //moves contained within the provided groups will be registered. If your
 //PhaseEnum is a Tree, then phase must be a leaf enum value, or the moves will
-//fail to pass the ValidConfiguration check. Check out the package doc for an
+//fail to pass the ValidConfiguration check. This will also sanity check that
+//the last Move enumerated is a StartPhase move, which is almost always what
+//you want, and omission is likely an error. Check out the package doc for an
 //example of using groups in this function.
 func AddOrderedForPhase(phase int, groups ...MoveProgressionGroup) []boardgame.MoveConfig {
 
 	//Technically it's illegal to attach a move progression to a non-leaf
 	//phase enum val, but at this point we don't have a reference to delegate
 	//so we can't check. moves.Default.ValidConfiguration will check.
+
+	if len(groups) == 0 {
+		return nil
+	}
+
+	lastGroup := groups[len(groups)-1]
+	lastGroupItems := lastGroup.MoveConfigs()
+	if len(lastGroupItems) == 0 {
+		return nil
+	}
+
+	lastGroupLastItem := lastGroupItems[len(lastGroupItems)-1]
+
+	lastGroupLastItemStruct := lastGroupLastItem.Constructor()()
+	if lastGroupLastItemStruct == nil {
+		return nil
+	}
+
+	if _, ok := lastGroupLastItemStruct.(phaseToStarter); !ok {
+		//It's not a StartPhase. If it's a NoOp, that's our signal it was
+		//intentional and we should let it slide.
+		if _, noOpOk := lastGroupLastItemStruct.(isNoOper); !noOpOk {
+			//Not a no op either. Error and tell them how to signal it was
+			//intentional.
+
+			//TODO: in the future it'd be nice if we could use the human-
+			//readable name for the phase here.
+			message := "The end of your phase run for phase " + strconv.Itoa(phase) + " did not end with a StartPhase move, which is typical. If this was intentional, end that phase with a moves.NoOp to override this error."
+
+			return []boardgame.MoveConfig{
+				boardgame.NewMoveConfig("AddOrderedForPhase Error", errorMoveWithMessage(message), nil),
+			}
+		}
+	}
 
 	//Every move in the phase shares the same group to match against. That's
 	//because the group matches as long as the whole tape is consumed, and a
