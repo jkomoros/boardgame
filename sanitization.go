@@ -101,6 +101,11 @@ that stack as described above. This is because if only the new item's id
 changed, it would be trivial to observe that the new Id is equivalent to the
 old Id.
 
+Note that DynamicComponentValues behave slightly differently than values in
+other SubStates; all properties in them are effectively PolicyHidden unless
+the component they are attached to is PolicyVisible (either directly, or
+transatively)--in which case their configured policy is used.
+
 */
 type Policy int
 
