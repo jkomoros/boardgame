@@ -22,15 +22,31 @@ import (
 //general.
 type ImmutableState interface {
 
-	//ImmutableGameState returns the ImmutableGameState for this State. See
-	//State.GameState for more.
+	//ImmutableGameState is a reference to to the underlying object returned
+	//from your GameDelegate.GameStateConstructor(), and can be safely cast
+	//back to that underlying struct so you can access its methods directly in
+	//a type- checked way. The difference is that the object formally exposed
+	//lacks the mutator methods, although when you cast back you'll get access
+	//to the full struct--be careful not to mutate things as they will not be
+	//persisted. See State.GameState for more.
 	ImmutableGameState() ImmutableSubState
-	//ImmutablePlayerStates returns a slice of all ImmutablePlayerStates for
-	//this State. See State.PlayerStates for more.
+	//Each PlayerState is a reference to to the underlying object returned
+	//from your GameDelegate.PlayerStateConstructor(), and can be safely cast
+	//back to that underlying struct so you can access its methods directly in
+	//a type- checked way. The difference is that the object formally exposed
+	//lacks the mutator methods, although when you cast back you'll get access
+	//to the full struct--be careful not to mutate things as they will not be
+	//persisted. See State.PlayerStates for more.
 	ImmutablePlayerStates() []ImmutablePlayerState
-	//DynamicComponentValues returns a map of deck name to array of component
-	//values, one per component in that deck. See State.DynamicComponentValues
-	//for more.
+	//Each SubState is a reference to to the underlying object returned from
+	//your GameDelegate.DynamicComponentValuesConstructor() for the deck with
+	//that name, and can be safely cast back to that underlying struct so you
+	//can access its methods directly in a type- checked way. The difference
+	//is that the object formally exposed lacks the mutator methods, although
+	//when you cast back you'll get access to the full struct--be careful not
+	//to mutate things as they will not be persisted. DynamicComponentValues
+	//returns a map of deck name to array of component values, one per
+	//component in that deck. See State.DynamicComponentValues for more.
 	ImmutableDynamicComponentValues() map[string][]ImmutableSubState
 
 	//ImmutableCurrentPlayer returns the ImmutablePlayerState corresponding to the
@@ -234,10 +250,20 @@ const AdminPlayerIndex PlayerIndex = -2
 type State interface {
 	//State contains all of the methods of a read-only state.
 	ImmutableState
-	//GameState is a reference to the MutableGameState for this MutableState.
+	//GameState is a reference to to the underlying object returned from your
+	//GameDelegate.GameStateConstructor(), and can be safely cast back to that
+	//underlying struct so you can access its methods directly in a type-
+	//checked way.
 	GameState() SubState
-	//Playerstates returns a slice of PlayerStates for this State.
+	//Each PlayerState is a reference to to the underlying object returned
+	//from your GameDelegate.PlayerStateConstructor(), and can be safely cast
+	//back to that underlying struct so you can access its methods directly in
+	//a type- checked way.
 	PlayerStates() []PlayerState
+	//Each SubState is a reference to to the underlying object returned from
+	//your GameDelegate.DynamicComponentValuesConstructor() for the deck with
+	//that name, and can be safely cast back to that underlying struct so you
+	//can access its methods directly in a type- checked way.
 	DynamicComponentValues() map[string][]SubState
 
 	//CurrentPlayer returns the PlayerState corresponding to the
