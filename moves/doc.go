@@ -181,6 +181,49 @@ convenience wrappers (each describes the straightforward things it's doing),
 but in practice they're the best way to do it. See the tutorial in the main
 package for more.
 
+Move Type Hierarchy
+
+The moves in this package are all defined as a hierarchy of structs that
+anonymously embed higher level structs, overriding, modifying, and extending
+the behavior of the struct they embed.
+
+For convenience, here's the type hierarchy, with a brief description of the
+diff each has on the one above it. See the documentation for each struct for
+more.
+
+	* base.Move - The simplest, unopinonated stub of a move, from the base package.
+		* Default - Substantial base logic, including base property overriding for with and especially in Legal() around move progressions and phases.
+			* Done - A simple move that does nothing in its Apply and has no extra Legal() logic, meaning it's primarily a non-fix-up move applied by a player to move out of a move progression.
+			* CurrentPlayer - Defaults to the GameDelegate.CurrentPlayerIndex, and only lets the move be made if it's on behalf of that player.
+			* FixUp - Overrides IsFixUp() to always return true, making the move eligible for base.GameDelegate.ProposeFixUpMove.
+				* NoOp - A move that does nothing. Useful for specific edge cases of MoveProessionMatching, and also to signal to AddOrderedForPhase that the lack of a StartPhase move was intentional.
+				* Increment - Increments the provided SourceProperty by Amount. Useful to run automatically at a given spot in a move progression.
+				* ShuffleStack - Shuffles the stack at SourceProperty. Useful to run automatically at a certain time in a MoveProgression.
+				* StartPhase - Calls BeforeLeavePhase, then BeforeEnterPhase, then SetCurrentPhase. Generally you have one of these at the end of an AddOrderedForPhase.
+				* FinishTurn - Checks if State.CurrentPlayer().TurnDone() is true, and if so increments CurrentPlayerIndex to the next player, calling playerState.ResetForTurnEnd() and then ResetForTurnStart.
+				* FixUpMulti - Overrides AllowMultipleInProgression() to true, meaning multiple of the same move are legal to apply in a row according to Deafult.Legal()
+					* DefaultComponent - Looks at each component in SourceStack() and sees which one's method of Legal() returns nil, selecting that component for you to operate on in your own Apply.
+					* ApplyUntil - Legal() returns nil only once ConditionMet() returns nil.
+						* ApplyUntilCount - Supplies a ConditionMet that returns true when Count() is the same as TargetCount().
+							* ApplyCountTimes - Supplies a Count() that is the number of times this move has been applied in a row.
+								* MoveCountComponents - Moves components from SourceStack to DestinationStack until TargetCount have been moved.
+									* MoveComponentsUntilCountReached - Overrides Count to be how many components are in DestinatinoStack
+									* MoveComponentsUntilCountLeft - Overrides Count to be how many components are left in SourceStack
+										* MoveAllComponents - Overrides TargetCount to be 0
+						* RoundRobin - Applies around and aroudn for each player until PlayerConditionMet returns true for all. You must embed RoundRobinGameStateProperties in your GameState, as all of these moves store state in properties.
+							* RoundRobinNumRounds - Also checks that no more than NumRounds() around have happened
+								* DealCountComponents - Moves a component from GameStack to PlayerSTack() one at a time until each player has been dealt TargetCount() components.
+									* DealComponentsUntilPlayerCountReached - Instead of a fixed number, done when every player has TargetCount or more components in PlayerStack.
+										* CollectComponentsUntilPlayerCountReached - Flip so that the components move from PlayerStack to GameStack.
+											* CollectComponentsUntilPlayerCountLeft - Flips it so the TargetCount is when each PlayerStack has that many items or fewer.
+												*CollectAllComponents - Overrides TargetCount to 0, colleting all components.
+										* CollectComponentsUntilPlayerCountLeft - Flip movement to be from PlayerStack to GameStack, and flip TargetCount to be when all PlayerStack have TargetCount or less.
+									* DealComponentsUntilGameCountLeft - Instead of a fixed number, done when GameStack's count is TargetCount or less.
+										* DealAllComponents - Overrides TargetCount to be 0
+										* CollectComponentsUntilGameCountLeft - Flips move so it's from PlayerStack to GameStack
+									* CollectCountComponents - Flips so components move from PlayerStacks to GameStack
+
+
 Default Move
 
 Implementing a Move requires a lot of stub methods to implement the

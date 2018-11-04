@@ -46,6 +46,9 @@ only uses moves.Default.Legal() and is therefore always legal at its point in th
 phase. After NoOp applies, the next FixUpAllowsMultiple applies, guaranteeing
 it begins matching the second group.
 
+NoOp is also used by AddOrderedForPhase to signal that the lack of a
+StartPhase move was intentional.
+
 Note that because every move config installed must have a different name, if
 you use multiple moves.NoOp in your game, you will want to override at least
 one of their names with WithMoveName or WithMoveNameSuffix.
