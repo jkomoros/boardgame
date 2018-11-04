@@ -20,12 +20,12 @@ type moveType struct {
 }
 
 //MoveConfig is a collection of information used to create a Move. Your
-//delegate's ConfigureMoves() will emit a slice of them. Typically you'll use
-//moves.Combine, moves.Add, moves.AddWithPhase, combined with
-//moves.AutoConfigurer.Configure() to generate these. This is an interface and
-//not a concrete struct because other packages, like moves, add more behavior
-//to the ones they return. If you want just a vanilla one without using the
-//moves package, use NewMoveConfig.
+//delegate's ConfigureMoves() will emit a slice of them to define which moves
+//are valid for your game. Typically you'll use moves.Combine, moves.Add,
+//moves.AddWithPhase, combined with moves.AutoConfigurer.Configure() to
+//generate these. This is an interface and not a concrete struct because other
+//packages, like moves, add more behavior to the ones they return. If you want
+//just a vanilla one without using the moves package, use NewMoveConfig.
 type MoveConfig interface {
 	//Name is the name for this type of move. No other Move structs
 	//in use in this game should have the same name, but it should be human-
@@ -165,7 +165,8 @@ func (m *ManagerInternals) OrphanExampleMove(config MoveConfig) (Move, error) {
 	return throwAwayMoveType.NewMove(nil), nil
 }
 
-//MoveInfo is an object that contains meta-information about a move.
+//MoveInfo is an object that contains meta-information about a move. It is
+//fetched via move.Info().
 type MoveInfo struct {
 	moveType  *moveType
 	version   int
@@ -295,8 +296,10 @@ func StorageRecordForMove(move Move, currentPhase int, proposer PlayerIndex) *Mo
 	}
 }
 
-//Name returns the name of the move type that this move is. Calling
-//manager.ExampleMove() with that string value will return a similar struct.
+//Name returns the name of the move type that this move is, based on the value
+//passed in the affiliated MoveConfig from your GameDelegate.ConfigureMoves().
+//Calling manager.ExampleMove() with that string value will return a similar
+//struct.
 func (m *MoveInfo) Name() string {
 	return m.name
 }
@@ -322,10 +325,11 @@ func (m *MoveInfo) CustomConfiguration() PropertyCollection {
 }
 
 //Initiator returns the move version that initiated this causal chain: the
-//PlayerMove that was applied that led to this chain of FixUp moves. The
-//Initiator of a PlayerMove is its own version, so this value will be less
-//than or equal to its own version. The value of Initator is unspecified until
-//after the move has been successfully committed.
+//player Move that was applied that led to this chain of fix up moves as
+//proposed by GameDelegate.ProposeFixUpMove. The Initiator of a PlayerMove is
+//its own version, so this value will be less than or equal to its own
+//version. The value of Initator is unspecified until after the move has been
+//successfully committed.
 func (m *MoveInfo) Initiator() int {
 	return m.initiator
 }
