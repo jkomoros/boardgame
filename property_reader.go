@@ -43,20 +43,25 @@ type PropertyReader interface {
 
 //PropertyType is an enumeration of the types that are legal to have on an
 //underyling object that can return a Reader. This ensures that State objects
-//are not overly complex and can be reasoned about clearnly.
+//are not overly complex and can be reasoned about cleanly. See
+//PropertyReadSetConfigurer and ConfigurableSubState for more.
 type PropertyType int
 
 const (
+	//TypeIllegal is used to signal error states.
 	TypeIllegal PropertyType = iota
 	TypeInt
 	TypeBool
 	TypeString
 	TypePlayerIndex
+	//TypeEnum represents an enum.Val or enum.ImmutableVal.
 	TypeEnum
 	TypeIntSlice
 	TypeBoolSlice
 	TypeStringSlice
 	TypePlayerIndexSlice
+	//TypeStack can in practice be any kind of object in the Stack hierarchy,
+	//including SizedStack, Stack, MergedStack's, etc.
 	TypeStack
 	TypeBoard
 	TypeTimer
