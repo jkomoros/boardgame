@@ -403,10 +403,16 @@ type Stack interface {
 	lastSlot() int
 }
 
-//SizedStack is Stack, but with SizedStack related methods.
+//SizedStack is Stack, but with SizedStack related methods. See the
+//documentation for Stack for more about how SizedStacks are different than
+//Stacks. Note that although a SizedStack has only a few more methods than a
+//normal Stack, its Stack methods will also have different methods than a
+//"normal" stack.
 type SizedStack interface {
 	//SizedStack can be used anywhere a Stack can be.
 	Stack
+
+	//Recreate the methods in ImmutableSizedStack.
 
 	//FirstComponentIndex returns the index of the first non-nil component
 	//from the left.
