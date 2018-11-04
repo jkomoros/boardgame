@@ -218,17 +218,16 @@ const AdminPlayerIndex PlayerIndex = -2
 
 //State represents the entire semantic state of a game at a given version. For
 //your specific game, GameState and PlayerStates will actually be concrete
-//structs to your particular game. Games often define a top-level
-//concreteStates() *myGameState, []*myPlayerState so at the top of methods
-//that accept a State they can quickly get concrete, type-checked types with
-//only a single conversion leap of faith at the top. States are intended to be
-//read-only, which is why the base interface is ImmutableState; methods where
-//you are allowed to mutate the state (e.g. Move.Apply()) will take a State
-//instead as a signal that it is permissable to modify the state. That is why
-//the states only return non- mutable states (PropertyReaders, not
-//PropertyReadSetters, although realistically it is possible to cast them and
-//modify directly. The MarshalJSON output of a State is appropriate for
-//sending to a client or serializing a state to be put in storage.
+//structs to your particular game. State is a container of gameStates,
+//playerStates, and dynamicComponentValues for your game. Games often define a
+//top-level concreteStates() *myGameState, []*myPlayerState so at the top of
+//methods that accept a State they can quickly get concrete, type-checked
+//types with only a single conversion leap of faith at the top. States contain
+//mutable refrences to their contained SubStates, whereas ImmutableState does
+//not. Most of the methods you define that accept states from the core game
+//engine will be an ImmutableState, because the only time States should be
+//modified is when the game is initally being set up before the first move,
+//and during a move's Apply()  method.
 type State interface {
 	//State contains all of the methods of a read-only state.
 	ImmutableState
@@ -236,7 +235,6 @@ type State interface {
 	GameState() SubState
 	//Playerstates returns a slice of PlayerStates for this State.
 	PlayerStates() []PlayerState
-
 	DynamicComponentValues() map[string][]SubState
 
 	//CurrentPlayer returns the PlayerState corresponding to the
