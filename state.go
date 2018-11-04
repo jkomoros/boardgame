@@ -908,7 +908,9 @@ type StateSetter interface {
 }
 
 //ImmutableSubState is the interface that all non-modifiable sub-state objects
-//(PlayerStates. GameStates, and DynamicComponentValues) implement.
+//(PlayerStates. GameStates, and DynamicComponentValues) implement. It is like
+//SubState, but minus any mutator methods. See ConfigurableSubState for more
+//on the SubState type hierarchy.
 type ImmutableSubState interface {
 	ImmutableStateSetter
 	Reader

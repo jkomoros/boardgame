@@ -5,22 +5,33 @@ import (
 	"time"
 )
 
-//Timer is a type of property that can be used in states that represents a
-//countdown. ImmutableTimer only contains read-only properties; the Timer
-//interface includes mutator methods as well. See the package documentation
-//for more on timers.
+//ImmutableTimer is a Timer that does not have any mutator methods. See Timer
+//for more.
 type ImmutableTimer interface {
+	//Active returns true if the given timer has been Start()'d and has not
+	//yet fired or been canceled.
 	Active() bool
+	//TimerLeft reutrns the amount of time until the timer fires, if it is
+	//active.
 	TimeLeft() time.Duration
 	id() string
 	state() *state
 	setState(*state)
 }
 
-//Timer is an ImmutableTimer that also includes mutator methods.
+//Timer is a type of property that can be used in states that represents a
+//countdown. Timers must exist in a given SubState in your state, and must
+//always be non-nil, even if they aren't actively being used.
 type Timer interface {
 	ImmutableTimer
+	//Start begins a timer that will automatically call game.ProposeMove(Move,
+	//AdminPlayerIndex) after the given duration has elapsed. Generally called
+	//from within a move.Apply() method.
 	Start(time.Duration, Move)
+	//Cancel cancels a previously Start()'d timer, so that it will no longer
+	//fire. If the timer was not active, it's a no-op. The return value is
+	//whether the timer was active before being canceled. Generally called
+	//during a move.Apply() method.
 	Cancel() bool
 	importFrom(other ImmutableTimer) error
 }
