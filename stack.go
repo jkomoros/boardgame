@@ -134,8 +134,10 @@ type ImmutableSizedStack interface {
 	LastComponentIndex() int
 }
 
-//MergedStack is a special variant of ImmutableStack that is actually formed from
-//multiple underlying stacks combined.
+//MergedStack is a special variant of ImmutableStack that is actually formed
+//from multiple underlying stacks combined. MergedStacks can never be mutated
+//directly; instead, mutate the underlying stacks.  See the documentation for
+//Stack for more about the hierarchy of Stack types.
 type MergedStack interface {
 	//A MergedStack can be used anywhere an ImmutableStack can be.
 	ImmutableStack
@@ -432,7 +434,8 @@ type stackJSONObj struct {
 //stack, and on down the list of stacks. In practice this is useful as a
 //computed property when you have a logical stack made up of components that
 //are santiized followed by components that are not sanitized, like in a
-//blackjack hand. All stacks must be from the same deck.
+//blackjack hand. All stacks must be from the same deck, or Valid() will
+//error.
 func NewConcatenatedStack(stack ...ImmutableStack) MergedStack {
 	return &mergedStack{
 		stacks:  stack,
@@ -445,7 +448,8 @@ func NewConcatenatedStack(stack ...ImmutableStack) MergedStack {
 //stack, and so on down the line. In practice this is useful as a computed
 //property when you have a logical stack made up of components where some are
 //sanitized and some are not, like the grid of cards in Memory. All stacks
-//must be from the same deck, and all stacks must be FixedSize.
+//must be from the same deck, and return non-nil objects from
+//ImmutableSizedStack() for all, otherwise Valid() will error.
 func NewOverlappedStack(stack ...ImmutableStack) MergedStack {
 
 	return &mergedStack{
