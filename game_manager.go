@@ -771,16 +771,25 @@ func (g *GameManager) stateFromRecord(record StateStorageRecord) (*state, error)
 //have a move they want to make on a given move ID. For now it's just a simple
 //wrapper around ModifiableGame, but in multi-server situations, in the future
 //it would conceivably do an RPC or something.
-func (g *GameManager) proposeMoveOnGame(id string, move Move, proposer PlayerIndex) DelayedError {
+func (g *GameManager) proposeMoveOnGame(nonModifiableGame *Game, move Move, proposer PlayerIndex) DelayedError {
 
+	//The chan that the core logic will tell us the move is done in.
 	errChan := make(DelayedError, 1)
+	//The chan that we'll erturn on after refreshing the game.
+	finalErrChan := make(DelayedError, 1)
+
+	go func() {
+		result := <-errChan
+		nonModifiableGame.Refresh()
+		finalErrChan <- result
+	}()
 
 	//ModifiableGame could take awhile if it has to be fetched from storage,
 	//so we'll run all of this in a goroutine since we're returning a
 	//DelayedError anyway.
 
 	go func() {
-		game := g.ModifiableGame(id)
+		game := g.ModifiableGame(nonModifiableGame.Id())
 
 		if game == nil {
 			errChan <- errors.New("There was no game with that ID")
@@ -797,7 +806,7 @@ func (g *GameManager) proposeMoveOnGame(id string, move Move, proposer PlayerInd
 
 	}()
 
-	return errChan
+	return finalErrChan
 
 }
 

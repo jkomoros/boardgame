@@ -562,9 +562,8 @@ func (g *Game) mainLoop() {
 //Games that are created via GameManager.NewGame() or retrieved from
 //GameManager.Game() can be modified directly via ProposeMove, and the game
 //object will be updated as those changes are made. Games that return
-//Modifiable() false can still have ProposeMove called on them, but after the
-//moves are applied the Game will have to have Refresh() called to make sure
-//their properties reflect the underlying value of the game in storage.
+//Modifiable() false can still have ProposeMove called on them; they will
+//simply forward the move to a game for this Id that is modifiable.
 func (g *Game) Modifiable() bool {
 	return g.modifiable
 }
@@ -612,8 +611,13 @@ func (g *Game) MoveByName(name string) Move {
 //underlying game in Storage. Basically, when you call manager.Game() you get
 //a snapshot of the game in storage at that moment. If you believe that the
 //underlying game in storage has been modified, calling Refresh() will re-load
-//the snapshot, effectively. Most useful after calling ProposeMove() on a non-
-//modifiable game.
+//the snapshot, effectively. You only have to do this if you suspect that a
+//modifiable version of this game somewhere in another application binary
+//that's currently running may have changed since this game object was
+//created. You don't need to call this after calling ProposeMove, even on non-
+//modifiable games; it will have been called for you already. If you only have
+//one instance of your application binary running at a time, you never need to
+//call this.
 func (g *Game) Refresh() {
 
 	freshGame := g.manager.Game(g.Id())
@@ -636,17 +640,13 @@ func (g *Game) Refresh() {
 //repeating the cycle until no moves are returned from ProposeFixUpMove.
 //DelayedError will only resolve once any applicable FixUp moves have been
 //applied already. This is legal to call on a non-modifiable game--the change
-//will be dispatched to a modifiable version of the game with this ID.
-//However, note that if you call it on a non- modifiable game, even once
-//DelayedError has resolved, the original game will still represent its old
-//state. If you wantt to see its current state, calling game.Refresh() after
-//DelayedError has resolved should contain the move changes you proposed, if
-//they were accepted (and of course potentially more moves if other moves were
-//applied in the meantime).
+//will be dispatched to a modifiable version of the game with this ID, and
+//afterwards this Game object's state will be updated in place with the new
+//values after the change (by automatically calling Refresh()).
 func (g *Game) ProposeMove(move Move, proposer PlayerIndex) DelayedError {
 
 	if !g.Modifiable() {
-		return g.manager.proposeMoveOnGame(g.Id(), move, proposer)
+		return g.manager.proposeMoveOnGame(g, move, proposer)
 	}
 
 	errChan := make(DelayedError, 1)

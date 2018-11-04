@@ -149,8 +149,7 @@ func TestProposeMoveNonModifiableGame(t *testing.T) {
 		t.Error("Propose move on refried game failed:", err)
 	}
 
-	//Update it from server
-	refriedGame.Refresh()
+	//No refresh necessary becuase we should have refreshed it automatically.
 
 	if refriedGame.Version() != 2 {
 		t.Error("The proposed move didn't actually modify the underlying game in storage: ", refriedGame.Version())
