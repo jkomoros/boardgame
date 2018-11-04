@@ -97,11 +97,16 @@ type GameStorageRecord struct {
 	Variant    Variant
 }
 
-//StorageManager is an interface that anything can implement to handle the
-//persistence of Games and States.
+//StorageManager is the interface that storage layers implement. The core
+//engine expects one of these to be passed in via NewGameManager as the place
+//to store and retrieve game information. A number of different
+//implementations are available in boardgame/storage that can all be used.
+//Typically you don't use this interface directly--it's defined just to
+//formalize the interface between the core engine and the underlying storage
+//layer.
 type StorageManager interface {
-	//State returns the StateWrapper for the game at the given version, or
-	//nil.
+	//State returns the StateStorageRecord for the game at the given version,
+	//or nil.
 	State(gameId string, version int) (StateStorageRecord, error)
 
 	//Move returns the MoveStorageRecord for the game at the given version, or
@@ -111,18 +116,20 @@ type StorageManager interface {
 	//Moves is like Move but returns all moves from fromVersion (exclusive) to
 	//toVersion (inclusive). If fromVersion == toVersion, should return
 	//toVersion. In many storage subsystems this is cheaper than repeated
-	//calls to Move.
+	//calls to Move, which is why it's broken out separately.
 	Moves(gameId string, fromVersion, toVersion int) ([]*MoveStorageRecord, error)
 
-	//Game fetches the game with the given ID from the store, if it exists.
+	//Game fetches the GameStorageRecord with the given ID from the store, if
+	//it exists.
 	Game(id string) (*GameStorageRecord, error)
 
 	//AgentState retrieves the most recent state for the given agent
 	AgentState(gameId string, player PlayerIndex) ([]byte, error)
 
 	//SaveGameAndCurrentState stores the game and the current state (at
-	//game.Version()) into the store at the same time in a transaction. If
-	//Game.Modifiable() is false, storage should fail. Move can be nil (if game.Version() is 0)
+	//game.Version()) into the store at the same time in a transaction. Move
+	//is normally provided but will be be nil if game.Version() is 0, denoting
+	//the initial state for a game.
 	SaveGameAndCurrentState(game *GameStorageRecord, state StateStorageRecord, move *MoveStorageRecord) error
 
 	//SaveAgentState saves the agent state for the given player
@@ -130,7 +137,7 @@ type StorageManager interface {
 
 	//PlayerMoveApplied is called after a PlayerMove and all of its resulting
 	//FixUp moves have been applied. Most StorageManagers don't need to do
-	//anything here; it's primarily useful for signaling that a run of moves
-	//has been applied, e.g. in the server.
+	//anything here; it's primarily useful as a callback to signal that a run
+	//of moves has been applied, e.g. in the server.
 	PlayerMoveApplied(game *GameStorageRecord) error
 }
