@@ -106,6 +106,8 @@ const (
 //one, with all properties set to reasonable defaults, from
 //NewStatePropertyRef.
 type StatePropertyRef struct {
+	//Group is which of Game, Player, or DynamicComponentValues this is a
+	//reference to.
 	Group StateGroupType
 	//PropName is the specific property on the given SubStateObject specified
 	//by the rest of the StatePropertyRef.
@@ -113,6 +115,9 @@ type StatePropertyRef struct {
 
 	//PlayerIndex is the index of the player, if Group is StateGroupPlayer.
 	PlayerIndex int
+	//DeckName is only used when Group is StateGroupDynamicComponentValues
+	DeckName string
+
 	//StackIndex specifies the index of the component within the stack (if it
 	//is a stack) that is intended. Negative values signify "all components in
 	//stack"
@@ -121,8 +126,6 @@ type StatePropertyRef struct {
 	//board) that is intended. Negative values signify "all stacks within the
 	//board".
 	BoardIndex int
-	//DeckName is only used when Group is StateGroupDynamicComponentValues
-	DeckName string
 	//DeckIndex is used only when the Group is
 	//StateGroupDynamicComponentValues. Negative values mean "all values in
 	//deck".
