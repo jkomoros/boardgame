@@ -922,8 +922,12 @@ type ImmutableSubState interface {
 	Reader
 }
 
-//ImmutableSubState is the interface that mutable {Game,Player}State's
-//implement.
+//SubState is the interface that all sub-state objects (PlayerStates,
+//GameStates, and DynamicComponentValues) implement. it is like
+//ConfigurableSubState, but minus any configure methods. This means they can't
+//be used to configure the substates at creation time but can be used to
+//mutate them, for example in move.Apply(). See ConfigurableSubState for more
+//on the SubState type hierarchy.
 type SubState interface {
 	StateSetter
 	ReadSetter
