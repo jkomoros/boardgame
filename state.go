@@ -209,9 +209,11 @@ type PlayerIndex int
 //for them.
 const ObserverPlayerIndex PlayerIndex = -1
 
-//AdminPlayerINdex is a special PlayerIndex that denotes the omniscient admin
-//who can see all state and make moves whenever they want. This PlayerIndex
-//should only be used in rare or debug circumstances.
+//AdminPlayerIndex is a special PlayerIndex that denotes the omniscient admin
+//who can see all state and make moves whenever they want. This PlayerIndex is
+//used for example to apply moves that your GameDelegate.ProposeFixUpMove
+//returns, as well as when Timer's fire. It is also used when the server is in
+//debug mode, allowing the given player to operate as the admin.
 const AdminPlayerIndex PlayerIndex = -2
 
 //State represents the entire semantic state of a game at a given version. For
@@ -260,7 +262,8 @@ type State interface {
 }
 
 //Valid returns true if the PlayerIndex's value is legal in the context of the
-//current State.
+//current State--that is, it is either AdminPlayerIndex, ObserverPlayerIndex,
+//or between 0 (inclusive) and game.NumPlayers().
 func (p PlayerIndex) Valid(state ImmutableState) bool {
 	if p == AdminPlayerIndex || p == ObserverPlayerIndex {
 		return true
@@ -307,7 +310,8 @@ func (p PlayerIndex) Previous(state ImmutableState) PlayerIndex {
 //when compared to any other PlayerIndex. AdminPlayerIndex returns true when
 //compared to any other index (other than ObserverPlayerIndex). This method is
 //useful for verifying that a given TargerPlayerIndex is equivalent to the
-//proposer PlayerIndex in a move's Legal method.
+//proposer PlayerIndex in a move's Legal method. moves.CurrentPlayer handles
+//that logic for you.
 func (p PlayerIndex) Equivalent(other PlayerIndex) bool {
 
 	//Sanity check obviously-illegal values
@@ -324,6 +328,7 @@ func (p PlayerIndex) Equivalent(other PlayerIndex) bool {
 	return p == other
 }
 
+//String returns the int value of the PlayerIndex.
 func (p PlayerIndex) String() string {
 	return strconv.Itoa(int(p))
 }
