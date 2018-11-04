@@ -309,7 +309,7 @@ func (g *Game) Move(version int) (Move, error) {
 		return nil, errors.New("The version of the returned move was not what was expected.")
 	}
 
-	return record.Inflate(g)
+	return record.inflate(g)
 
 }
 

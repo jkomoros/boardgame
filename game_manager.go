@@ -97,6 +97,17 @@ func (m *ManagerInternals) StructInflater(propRef StatePropertyRef) *StructInfla
 
 }
 
+//InflateMoveStorageRecord takes a move storage record and turns it into a
+//move associated with that game, if possible. Returns nil if not possible.
+//You rarely need this; it's exposed primarily for the use of boardgame
+///boardgame-util/lib/golden.
+func (m *ManagerInternals) InflateMoveStorageRecord(rec *MoveStorageRecord, game *Game) (Move, error) {
+	if rec == nil {
+		return nil, nil
+	}
+	return rec.inflate(game)
+}
+
 const baseLibraryName = "github.com/jkomoros/boardgame"
 
 //gamePkgMatchesDelegateName checks, via reflection, that the delegate's

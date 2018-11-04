@@ -41,9 +41,8 @@ func (m *MoveStorageRecord) String() string {
 }
 
 //Inflate takes a move storage record and turns it into a move associated with
-//that game, if possible. Returns nil if not possible. You rarely need this;
-//it's exposed primarily for the use of boardgame/boardgame-util/lib/golden.
-func (m *MoveStorageRecord) Inflate(game *Game) (Move, error) {
+//that game, if possible. Returns nil if not possible.
+func (m *MoveStorageRecord) inflate(game *Game) (Move, error) {
 
 	if game == nil {
 		return nil, errors.New("Game was nil")
