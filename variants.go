@@ -114,8 +114,9 @@ Here's an example showing a lot of the defaulting in action:
 */
 type VariantConfig map[string]*VariantKey
 
-//VariantKey represents a specific key in your variants that has a particular
-//meaning. For example, "color".
+//VariantKey represents a specific key in your VariantConfig that has a
+//particular meaning for this game type. For example, "color". See
+//VariantConfig for more.
 type VariantKey struct {
 	//VariantKey has a DisplayInfo embedded in it the defines the display name
 	//and description for this configuration key.
@@ -133,10 +134,14 @@ type VariantKey struct {
 //VariantKey both to describe the Key itself as well as to give information
 //about the values within the key for each value. See VariantConfig for more.
 type VariantDisplayInfo struct {
+	//The string to actually display to the user
 	DisplayName string
+	//An optional description to be shown to the user to describe what the
+	//setting does.
 	Description string
-	//Name can often be skipped because it is often set implicitly during
-	//initialization of the containing object.
+	//The string that is actually used in the game engine. Name can often be
+	//skipped because it is often set implicitly during initialization of the
+	//containing object.
 	Name string
 }
 
@@ -205,8 +210,8 @@ func (v VariantConfig) Initalize() {
 
 //Initialize is given the name of this key within its parent's map. The
 //provided name will override whatever Name was already set and also sets the
-//display name (see VariantDisplayInfo.Initialize). Also calls Initialize() on
-//all values.
+//display name. Called by VariantConfig.Initialize, and also calls all Values'
+//Initialize. See VariantConfig for more.
 func (v *VariantKey) Initialize(nameInParent string) {
 	for key, val := range v.Values {
 		if val == nil {
