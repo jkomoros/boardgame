@@ -255,7 +255,9 @@ type GameDelegate interface {
 	Manager() *GameManager
 }
 
-//PropertyCollection is just an alias for map[string]interface{}
+//PropertyCollection is just an alias for map[string]interface{}. It is used
+//as the return value for a number of things, including
+//GameDelegate.ConfigureConstants, and MoveConfig.CustomConfigration.
 type PropertyCollection map[string]interface{}
 
 //Copy returns a shallow copy of PropertyCollection
