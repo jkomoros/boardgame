@@ -12,7 +12,7 @@ creates a powerful Progressive Web App, complete with automatically-generated
 animations.
 
 The boardgame/boardgame-util command is a powerful swiss army knife of
-functionality to help create game packages and run serves based on that
+functionality to help create game packages and run servers based on that
 automatically.
 
 The documentation in this package is primarily detail about how the various
