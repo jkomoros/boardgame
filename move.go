@@ -39,7 +39,10 @@ type MoveConfig interface {
 	//type. Those fields must be non-nil; like delegate.GameStateConstructor
 	//and others, a StructInflater will be created for each move type, which
 	//allows you to provide inflation configuration via struct tags. See
-	//StructInflater for more.
+	//StructInflater for more. Like ConfigurableSubState, all of the
+	//properties to persist must be accessible via their ReadSetConfigurer, as
+	//that is how the core engine serializes them, re-inflates them from
+	//storage, and copies them.
 	Constructor() func() Move
 
 	//CustomConfiguration is an optional PropertyCollection. Some move types--
@@ -171,84 +174,103 @@ type MoveInfo struct {
 	timestamp time.Time
 }
 
-//Move's are how all modifications are made to Game States after
-//initialization. Packages define structs that implement Move for all
-//modifications. The Move should be JSON-able (that is, all persistable state
-//should be in public fields), and it may not include Timers, Stacks, or
-//EnumValues. Use base.Move or moves.Default for a convenient composable base
-//Move that will allow you to skip most of the boilerplate overhead.
+//Move's are how all modifications are made to States after initialization.
+//Packages define structs that implement different Moves for all types of
+//valid modifications. Moves are objects your own packages will returen. Use
+//base.Move or moves.Default for a convenient composable base Move that will
+//allow you to skip most of the boilerplate overhead. Your Move is similar to
+//a SubState in that all of the persistable properties must be one of the
+//enumerated types in PropertyType, excluding a few types. Your Moves are
+//installed based on what your GameDelegate returns from ConfigureMoves(). See
+//MoveConfig for more about things that must be true about structs you return.
+//The two primary methods for your game logic are Legal() and Apply().
 type Move interface {
 
-	//Info returns the MoveInfo objec that was affiliated with this object by
-	//SetInfo.
-	Info() *MoveInfo
-
-	//Legal returns nil if this proposed move is legal, or an error if the
-	//move is not legal. The error message may be shown directly to the end-
-	//user so be sure to make it user friendly. proposer is set to the
-	//notional player that is proposing the move. proposer might be a valid
-	//player index, or AdminPlayerIndex (for example, if it is a FixUpMove it
-	//will typically be AdminPlayerIndex). AdminPlayerIndex is always allowed
-	//to make any move. It will never be ObserverPlayerIndex, because by
-	//definition Observers may not make moves. If you want to check that the
-	//person proposing is able to apply the move for the given player, and
-	//that it is their turn, you would do something like test
+	//Legal returns nil if this proposed move is legal at the given state, or
+	//an error if the move is not legal. The error message may be shown
+	//directly to the end- user so be sure to make it user friendly. proposer
+	//is set to the notional player that is proposing the move. proposer might
+	//be a valid player index, or AdminPlayerIndex (for example, if it is a
+	//FixUpMove it will typically be AdminPlayerIndex). AdminPlayerIndex is
+	//always allowed to make any move. It will never be ObserverPlayerIndex,
+	//because by definition Observers may not make moves. If you want to check
+	//that the person proposing is able to apply the move for the given
+	//player, and that it is their turn, you would do something like test
 	//m.TargetPlayerIndex.Equivalent(proposer),
-	//m.TargetPlayerIndex.Equivalent(game.CurrentPlayer).
+	//m.TargetPlayerIndex.Equivalent(game.CurrentPlayer). Legal is one of the
+	//most key parts of logic for your game type. It is important for fix up
+	//moves in particular to have carefully-designed Legal() methods, as the
+	//ProposeFixUpMove on base.GameDelegate (which you almost always use)
+	//walks through each move and returns the first one that is legal at this
+	//game state--so if one of your moves is erroneously legal more often than
+	//it should be it could be mistakenly applied, perhaps in an infinite
+	//loop!
 	Legal(state ImmutableState, proposer PlayerIndex) error
 
-	//Apply applies the move to the state. It is handed a copy of the state to
-	//modify. If error is non-nil it will not be applied to the game. It
-	//should not be called directly; use Game.ProposeMove.
+	//Apply applies the move to the state by modifying hte right properties.
+	//It is handed a copy of the state to modify. If error is non-nil it will
+	//not be applied to the game. It should not be called directly; use
+	//Game.ProposeMove. Legal() will have been called before and returned nil.
+	//Apply is the only place (outside of some of the Game initalization logic
+	//on GameDelegate) where you are allowed to modify the state direclty and
+	//are passed a State, not an ImmutableState.
 	Apply(state State) error
+
+	//All of the methods below this point are typically provided by base.Move
+	//and not necessary to be modified.
 
 	//Sets the move to have reasonable defaults for the given state.For
 	//example, if the Move has a TargetPlayerIndex property, a reasonable
-	//default is state.CurrentPlayer().
+	//default is state.CurrentPlayer(). DefaultsForState is used to set
+	//reasonable defaults for fix up moves. Typically you can skip this.
 	DefaultsForState(state ImmutableState)
 
 	//HelpText is a human-readable sentence describing what the move does in
 	//general. HelpText should be the same for all moves of the same type, and
 	//should not vary with the Move's specific properties. For example, the
 	//HelpText for "Place Token" might be "Places the current user's token in
-	//the specified slot on the board."
+	//the specified slot on the board." Primarily useful just to show to a
+	//user in an interface.
 	HelpText() string
 
-	//Description is a human-readable prose description of the effects that
-	//this particular move will have, including any move configuration. For
-	//example the Description for "Place Token" might be "Player 0 places a
-	//token in position 3".
-	Description() string
+	//Info returns the MoveInfo object that was affiliated with this object by
+	//SetInfo. It includes information about when the move was applied, the
+	//name of the move, and other information.
+	Info() *MoveInfo
 
 	//SetInfo will be called after the constructor is called to set the
-	//information, including what type the move is. Splitting this out allows
-	//the basic constructors not in the base classes to be very small, because
-	//in most cases you'll compose a base.Move.
+	//information, including what type the move is.
 	SetInfo(m *MoveInfo)
 
 	//TopLevelStruct should return the value that was set via
 	//SetTopLevelStruct. It returns the Move that is at the top of the
 	//embedding chain (because structs that are embedded anonymously can only
 	//access themselves and not their embedders). This is useful because in a
-	//number of cases embeded moves (for example moves in the moves package)
-	//need to consult a method on their embedder.
+	//number of cases embedded moves (for example moves in the moves package)
+	//need to consult a method on their embedder to see if any of their
+	//behavior should be overridden.
 	TopLevelStruct() Move
 
-	//SetTopLevelStruct is called right after the move is constructed.
-	//Splitting this out allows the basic constructors not in the base classes
-	//to be very small, because in most cases you'll compose a base.Move.
+	//SetTopLevelStruct is called right after the move is constructed, with
+	//the top-level struct. This should be returned from TopLevelStruct.
 	SetTopLevelStruct(m Move)
 
-	//ValidConfiguration will be checked when the game manager is SetUp, and
-	//if it returns an error the manager will fail to SetUp. Some Moves,
-	//especially sub-classes of moves in the moves package, require set up
-	//that can only be verified at run time (for example, verifying that the
-	//embedder implements a certain inteface). This is a useful way to detect
-	//those misconfigurations at the earliest moment. In most cases you never
-	//need to implement this yourself; moves in the moves package that need it
-	//will implement it.
+	//ValidConfiguration will be checked when the NewGameManager is being set
+	//up, and if it returns an error the manager will fail to be created. Some
+	//Moves, especially sub-classes of moves in the moves package, require set
+	//up that can only be verified at run time (for example, verifying that
+	//the embedder implements a certain inteface). This is a useful way to
+	//detect those misconfigurations at the earliest moment. In most cases you
+	//never need to implement this yourself; moves in the moves package that
+	//need it will implement it.
 	ValidConfiguration(exampleState State) error
 
+	//Moves, like ConfigurableSubStates, must only have all of their
+	//important, persistable properties available to be inspected and modified
+	//via a PropertyReadSetConfigurer. The game engine will use that interface
+	//to create new moves, inflate old moves from storage, and copy moves.
+	//Typically you generate this automatically for your moves with `boargame-
+	//util codegen`.
 	ReadSetConfigurer
 }
 

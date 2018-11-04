@@ -70,11 +70,6 @@ func (m *Move) DefaultsForState(state boardgame.ImmutableState) {
 	return
 }
 
-//Description defaults to returning the Type's HelpText()
-func (m *Move) Description() string {
-	return m.TopLevelStruct().HelpText()
-}
-
 //Name returns the name of this move according to MoveInfo.Name(). A simple
 //convenience wrapper that allows you to avoid a nil check.
 func (m *Move) Name() string {
