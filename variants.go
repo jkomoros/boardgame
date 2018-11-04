@@ -198,11 +198,11 @@ func (v VariantConfig) Valid() error {
 	return nil
 }
 
-//Initalize calls initalize on each Key in config, setting reasonable defaults
+//Initialize calls initalize on each Key in config, setting reasonable defaults
 //if they weren't provided. Typically your GameDelegate.Variants() doesn't
 //have to call this, as the GameManager will. See the documentation for the
 //VariantConfig struct for more.
-func (v VariantConfig) Initalize() {
+func (v VariantConfig) Initialize() {
 	for key, val := range v {
 		val.Initialize(key)
 	}

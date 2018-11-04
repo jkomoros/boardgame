@@ -161,7 +161,7 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 	variantConfig := delegate.Variants()
 
 	//Esnure it's initalized
-	variantConfig.Initalize()
+	variantConfig.Initialize()
 
 	if err := variantConfig.Valid(); err != nil {
 		return nil, errors.New("The provided Variants config was not valid: " + err.Error())

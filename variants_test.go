@@ -174,7 +174,7 @@ func TestVariants(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		test.in.Initalize()
+		test.in.Initialize()
 
 		err := test.in.Valid()
 
