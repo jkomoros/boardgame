@@ -159,9 +159,9 @@ func NewStatePropertyRef() StatePropertyRef {
 		StateGroupGame,
 		"",
 		-1,
-		-1,
-		-1,
 		"",
+		-1,
+		-1,
 		-1,
 	}
 }
