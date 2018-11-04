@@ -128,9 +128,10 @@ type VariantKey struct {
 	Values map[string]*VariantDisplayInfo
 }
 
-//VariantDisplayInfo is information about a given value and how to display it to end-
-//users. It is used as part of VariantKey both to describe the Key itself as
-//well as to give information about the values within the key.
+//VariantDisplayInfo is information about a given value and how to display it
+//to end- users, with a DisplayName and Description. It is used as part of
+//VariantKey both to describe the Key itself as well as to give information
+//about the values within the key for each value. See VariantConfig for more.
 type VariantDisplayInfo struct {
 	DisplayName string
 	Description string
@@ -219,7 +220,7 @@ func (v *VariantKey) Initialize(nameInParent string) {
 
 //Initialize sets the name to the given name. It also sets the display name
 //automatically if one wasn't provided by replacing "_" and "-" with spaces
-//and title casing name.
+//and title casing name. It's called automatically by VariantKey.Initalize.
 func (d *VariantDisplayInfo) Initialize(nameInParent string) {
 	d.Name = nameInParent
 
