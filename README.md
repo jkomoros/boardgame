@@ -8,6 +8,9 @@ boardgame is under active development as a hobby project and different component
 
 A comprehensive getting started guide, including a walkthrough of all of the important concepts in a real-world example, is in the [tutorial](https://github.com/jkomoros/boardgame/blob/master/TUTORIAL.md).
 
+## Demo
+![Demo showing automatic card and token animations](demo.gif)
+
 ## Design Goals
 
 - **Don't Repeat Yourself** Write your normative logic that defines your game in Go a single time.
