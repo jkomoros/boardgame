@@ -21,6 +21,7 @@ require (
 	github.com/gin-gonic/gin v0.0.0-20170702092826-d459835d2b07
 	github.com/go-gorp/gorp v0.0.0-20180410155428-6032c66e0f5f
 	github.com/go-sql-driver/mysql v1.3.0
+	github.com/go-test/deep v1.0.4
 	github.com/golang/protobuf v1.1.0 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20180825215210-0210a2f0f73c // indirect
 	github.com/gorilla/websocket v1.2.0
@@ -65,3 +66,5 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.2.1 // indirect
 )
+
+go 1.13
