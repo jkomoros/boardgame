@@ -2,10 +2,11 @@ package boardgame
 
 import (
 	"encoding/json"
-	jd "github.com/josephburnett/jd/lib"
-	"github.com/workfit/tester/assert"
 	"io/ioutil"
 	"testing"
+
+	jd "github.com/josephburnett/jd/lib"
+	"github.com/workfit/tester/assert"
 )
 
 func TestPlayerIndexNextPrevious(t *testing.T) {
@@ -304,18 +305,18 @@ func TestState(t *testing.T) {
 
 	testSubStatesHaveStateSet(t, state)
 
-	currentJson, _ := json.Marshal(state)
+	currentJSON, _ := json.Marshal(state)
 	golden := goldenJSON("base.json", t)
 
-	compareJSONObjects(currentJson, golden, "Basic state", t)
+	compareJSONObjects(currentJSON, golden, "Basic state", t)
 
 	stateCopy, err := state.Copy(false)
 
 	assert.For(t).ThatActual(err).IsNil()
 
-	copyJson, _ := DefaultMarshalJSON(stateCopy)
+	copyJSON, _ := DefaultMarshalJSON(stateCopy)
 
-	compareJSONObjects(copyJson, currentJson, "Copy was not same", t)
+	compareJSONObjects(copyJSON, currentJSON, "Copy was not same", t)
 
 	_, playerStatesCopy := concreteStates(stateCopy)
 
@@ -406,19 +407,19 @@ func compareJSONObjects(in []byte, golden []byte, message string, t *testing.T) 
 
 	//recreated in server/internal/teststoragemanager
 
-	inJson, err := jd.ReadJsonString(string(in))
+	inJSON, err := jd.ReadJsonString(string(in))
 
 	if err != nil {
 		t.Fatal(message + ": Couldn't read json in: " + err.Error())
 	}
 
-	goldenJson, err := jd.ReadJsonString(string(golden))
+	goldenJSON, err := jd.ReadJsonString(string(golden))
 
 	if err != nil {
 		t.Fatal(message + ": Couldn't read json golden: " + err.Error())
 	}
 
-	diff := goldenJson.Diff(inJson)
+	diff := goldenJSON.Diff(inJSON)
 
 	if len(diff) == 0 {
 		return

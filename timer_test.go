@@ -1,9 +1,10 @@
 package boardgame
 
 import (
-	"github.com/workfit/tester/assert"
 	"testing"
 	"time"
+
+	"github.com/workfit/tester/assert"
 )
 
 func TestTimerManager(t *testing.T) {
@@ -76,24 +77,24 @@ func TestTimerManagerMultiple(t *testing.T) {
 
 	state := game.CurrentState().(*state)
 
-	firstId := timer.PrepareTimer(time.Duration(50)*time.Millisecond, state, move)
-	timer.StartTimer(firstId)
-	secondId := timer.PrepareTimer(time.Duration(10)*time.Millisecond, state, move)
-	timer.StartTimer(secondId)
-	thirdId := timer.PrepareTimer(time.Duration(70)*time.Millisecond, state, move)
-	timer.StartTimer(thirdId)
+	firstID := timer.PrepareTimer(time.Duration(50)*time.Millisecond, state, move)
+	timer.StartTimer(firstID)
+	secondID := timer.PrepareTimer(time.Duration(10)*time.Millisecond, state, move)
+	timer.StartTimer(secondID)
+	thirdID := timer.PrepareTimer(time.Duration(70)*time.Millisecond, state, move)
+	timer.StartTimer(thirdID)
 
 	//Make sure that even though the second timer was added second, it is first.
-	assert.For(t).ThatActual(timer.records[0].id).Equals(secondId)
-	assert.For(t).ThatActual(timer.records[1].id).Equals(firstId)
-	assert.For(t).ThatActual(timer.records[2].id).Equals(thirdId)
+	assert.For(t).ThatActual(timer.records[0].id).Equals(secondID)
+	assert.For(t).ThatActual(timer.records[1].id).Equals(firstID)
+	assert.For(t).ThatActual(timer.records[2].id).Equals(thirdID)
 
-	timer.CancelTimer(secondId)
+	timer.CancelTimer(secondID)
 
 	assert.For(t).ThatActual(len(timer.records)).Equals(2)
 
-	assert.For(t).ThatActual(timer.records[0].id).Equals(firstId)
-	assert.For(t).ThatActual(timer.records[1].id).Equals(thirdId)
+	assert.For(t).ThatActual(timer.records[0].id).Equals(firstID)
+	assert.For(t).ThatActual(timer.records[1].id).Equals(thirdID)
 
 	assert.For(t).ThatActual(timer.nextTimerFired()).IsFalse()
 

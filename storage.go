@@ -106,24 +106,24 @@ type GameStorageRecord struct {
 type StorageManager interface {
 	//State returns the StateStorageRecord for the game at the given version,
 	//or nil.
-	State(gameId string, version int) (StateStorageRecord, error)
+	State(gameID string, version int) (StateStorageRecord, error)
 
 	//Move returns the MoveStorageRecord for the game at the given version, or
 	//nil.
-	Move(gameId string, version int) (*MoveStorageRecord, error)
+	Move(gameID string, version int) (*MoveStorageRecord, error)
 
 	//Moves is like Move but returns all moves from fromVersion (exclusive) to
 	//toVersion (inclusive). If fromVersion == toVersion, should return
 	//toVersion. In many storage subsystems this is cheaper than repeated
 	//calls to Move, which is why it's broken out separately.
-	Moves(gameId string, fromVersion, toVersion int) ([]*MoveStorageRecord, error)
+	Moves(gameID string, fromVersion, toVersion int) ([]*MoveStorageRecord, error)
 
 	//Game fetches the GameStorageRecord with the given ID from the store, if
 	//it exists.
 	Game(id string) (*GameStorageRecord, error)
 
 	//AgentState retrieves the most recent state for the given agent
-	AgentState(gameId string, player PlayerIndex) ([]byte, error)
+	AgentState(gameID string, player PlayerIndex) ([]byte, error)
 
 	//SaveGameAndCurrentState stores the game and the current state (at
 	//game.Version()) into the store at the same time in a transaction. Move
@@ -132,7 +132,7 @@ type StorageManager interface {
 	SaveGameAndCurrentState(game *GameStorageRecord, state StateStorageRecord, move *MoveStorageRecord) error
 
 	//SaveAgentState saves the agent state for the given player
-	SaveAgentState(gameId string, player PlayerIndex, state []byte) error
+	SaveAgentState(gameID string, player PlayerIndex, state []byte) error
 
 	//PlayerMoveApplied is called after a PlayerMove and all of its resulting
 	//FixUp moves have been applied. Most StorageManagers don't need to do

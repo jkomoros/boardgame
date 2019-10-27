@@ -2,11 +2,12 @@ package boardgame
 
 import (
 	"encoding/json"
-	"github.com/jkomoros/boardgame/errors"
 	"hash/fnv"
 	"log"
 	"math/rand"
 	"strconv"
+
+	"github.com/jkomoros/boardgame/errors"
 )
 
 //ImmutableState is a version of State, but minus any mutator methods. Because
@@ -113,8 +114,12 @@ type computedProperties struct {
 type StateGroupType int
 
 const (
+	//StateGroupGame refers to the GameState part of State
 	StateGroupGame StateGroupType = iota
+	//StateGroupPlayer refers to the PlayerState part of State
 	StateGroupPlayer
+	//StateGroupDynamicComponentValues refers to the DynamicComponentValues part
+	//of State.
 	StateGroupDynamicComponentValues
 )
 
@@ -453,7 +458,7 @@ func (s *state) containingStack(c Component) (stack Stack, slotIndex int, err er
 		//This can happen if the state is sanitized, after
 		//buildComponentIndex, which won't be able to see the component.
 		if s.Sanitized() {
-			return nil, 0, errors.New("That component's location is not public information.")
+			return nil, 0, errors.New("that component's location is not public information")
 		}
 		//If this happened and the state isn't expected, then something bad happened.
 		//TODO: remove this once debugging that it doesn't happen
@@ -465,7 +470,7 @@ func (s *state) containingStack(c Component) (stack Stack, slotIndex int, err er
 	otherC := item.stack.ComponentAt(item.slotIndex)
 
 	if otherC == nil || otherC.Generic() {
-		return nil, 0, errors.New("That component's location is not public information.")
+		return nil, 0, errors.New("that component's location is not public information")
 	}
 
 	//This check should always work if the stack has been sanitized, because
@@ -758,7 +763,7 @@ func (s *state) validateBeforeSave() error {
 		return nil
 	}
 
-	return errors.New("PhaseEnum is a TreeEnum, but CurrentPhase is not a leaf value.")
+	return errors.New("phaseEnum is a TreeEnum, but CurrentPhase is not a leaf value")
 }
 
 func validateReaderBeforeSave(reader PropertyReader, name string, state State) error {

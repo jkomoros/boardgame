@@ -191,10 +191,10 @@ func newTimerManager(gameManager *GameManager) *timerManager {
 
 const timerIDLength = 16
 
-func (t *timerManager) ActiveTimersForGame(gameId string) map[string]*timerRecord {
+func (t *timerManager) ActiveTimersForGame(gameID string) map[string]*timerRecord {
 	result := make(map[string]*timerRecord)
 	for _, rec := range t.recordsById {
-		if rec.gameId == gameId {
+		if rec.gameId == gameID {
 			result[rec.id] = rec
 		}
 	}

@@ -1,11 +1,12 @@
 package boardgame
 
 import (
-	"github.com/jkomoros/boardgame/enum"
-	"github.com/jkomoros/boardgame/errors"
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/jkomoros/boardgame/enum"
+	"github.com/jkomoros/boardgame/errors"
 )
 
 const enumStructTag = "enum"
@@ -173,7 +174,7 @@ func NewStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, ch
 				}
 
 				if isFixed && boardSize > 0 {
-					return nil, errors.New("Provided a board tag with a sizedstack, which is invalid.")
+					return nil, errors.New("[rovided a board tag with a sizedstack, which is invalid")
 				}
 
 				if tag != "" {
@@ -198,7 +199,7 @@ func NewStructInflater(exampleObj Reader, illegalTypes map[PropertyType]bool, ch
 					}
 				} else {
 					if boardSize > 0 {
-						return nil, errors.New("board stuct tag provided, without a corresponding stack struct tag.")
+						return nil, errors.New("board stuct tag provided, without a corresponding stack struct tag")
 					}
 				}
 			}
@@ -681,7 +682,7 @@ func unpackMergedStackStructTag(tag string, reader PropertyReader) (stackNames [
 	pieces := strings.Split(tag, ",")
 
 	if len(pieces) < 2 {
-		return nil, errors.New("There were fewer properties than we expected.")
+		return nil, errors.New("there were fewer properties than we expected")
 	}
 
 	result := make([]string, len(pieces))

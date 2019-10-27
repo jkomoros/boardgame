@@ -25,12 +25,12 @@ func newTestStorageManager() *testStorageManager {
 	}
 }
 
-func (s *testStorageManager) String() string {
+func (t *testStorageManager) String() string {
 	var results []string
 
 	results = append(results, "States")
 
-	for key, states := range s.states {
+	for key, states := range t.states {
 		results = append(results, key)
 		for version, state := range states {
 			results = append(results, strconv.Itoa(version)+": "+string(state))
@@ -39,15 +39,15 @@ func (s *testStorageManager) String() string {
 
 	results = append(results, "Games")
 
-	for key, game := range s.games {
+	for key, game := range t.games {
 		results = append(results, key, game.Name, game.Id, strconv.Itoa(game.Version))
 	}
 
 	return strings.Join(results, "\n")
 }
 
-func (i *testStorageManager) State(gameId string, version int) (StateStorageRecord, error) {
-	if gameId == "" {
+func (t *testStorageManager) State(gameID string, version int) (StateStorageRecord, error) {
+	if gameID == "" {
 		return nil, errors.New("No game provided")
 	}
 
@@ -55,7 +55,7 @@ func (i *testStorageManager) State(gameId string, version int) (StateStorageReco
 		return nil, errors.New("Illegal version")
 	}
 
-	versionMap, ok := i.states[gameId]
+	versionMap, ok := t.states[gameID]
 
 	if !ok {
 		return nil, errors.New("That game does not exist")
@@ -70,12 +70,12 @@ func (i *testStorageManager) State(gameId string, version int) (StateStorageReco
 	return record, nil
 }
 
-func (t *testStorageManager) Moves(gameId string, fromVersion, toVersion int) ([]*MoveStorageRecord, error) {
+func (t *testStorageManager) Moves(gameID string, fromVersion, toVersion int) ([]*MoveStorageRecord, error) {
 	result := make([]*MoveStorageRecord, toVersion-fromVersion+1)
 
 	index := 0
 	for i := fromVersion; i <= toVersion; i++ {
-		move, err := t.Move(gameId, i)
+		move, err := t.Move(gameID, i)
 		if err != nil {
 			return nil, err
 		}
@@ -85,8 +85,8 @@ func (t *testStorageManager) Moves(gameId string, fromVersion, toVersion int) ([
 	return result, nil
 }
 
-func (i *testStorageManager) Move(gameId string, version int) (*MoveStorageRecord, error) {
-	if gameId == "" {
+func (t *testStorageManager) Move(gameID string, version int) (*MoveStorageRecord, error) {
+	if gameID == "" {
 		return nil, errors.New("No game provided")
 	}
 
@@ -94,7 +94,7 @@ func (i *testStorageManager) Move(gameId string, version int) (*MoveStorageRecor
 		return nil, errors.New("Illegal version")
 	}
 
-	versionMap, ok := i.moves[gameId]
+	versionMap, ok := t.moves[gameID]
 
 	if !ok {
 		return nil, errors.New("That game does not exist")
@@ -109,8 +109,8 @@ func (i *testStorageManager) Move(gameId string, version int) (*MoveStorageRecor
 	return record, nil
 }
 
-func (i *testStorageManager) Game(id string) (*GameStorageRecord, error) {
-	record := i.games[id]
+func (t *testStorageManager) Game(id string) (*GameStorageRecord, error) {
+	record := t.games[id]
 
 	if record == nil {
 		return nil, errors.New("That game does not exist")
@@ -120,25 +120,25 @@ func (i *testStorageManager) Game(id string) (*GameStorageRecord, error) {
 
 }
 
-func (i *testStorageManager) SaveGameAndCurrentState(game *GameStorageRecord, state StateStorageRecord, move *MoveStorageRecord) error {
+func (t *testStorageManager) SaveGameAndCurrentState(game *GameStorageRecord, state StateStorageRecord, move *MoveStorageRecord) error {
 	if game == nil {
 		return errors.New("No game provided")
 	}
 
 	//TODO: validate that state.Version is reasonable.
 
-	if _, ok := i.states[game.Id]; !ok {
-		i.states[game.Id] = make(map[int]StateStorageRecord)
+	if _, ok := t.states[game.Id]; !ok {
+		t.states[game.Id] = make(map[int]StateStorageRecord)
 	}
 
-	if _, ok := i.moves[game.Id]; !ok {
-		i.moves[game.Id] = make(map[int]*MoveStorageRecord)
+	if _, ok := t.moves[game.Id]; !ok {
+		t.moves[game.Id] = make(map[int]*MoveStorageRecord)
 	}
 
 	version := game.Version
 
-	versionMap := i.states[game.Id]
-	moveMap := i.moves[game.Id]
+	versionMap := t.states[game.Id]
+	moveMap := t.moves[game.Id]
 
 	if _, ok := versionMap[version]; ok {
 		//Wait, there was already a version stored there?
@@ -153,22 +153,22 @@ func (i *testStorageManager) SaveGameAndCurrentState(game *GameStorageRecord, st
 	versionMap[version] = state
 	moveMap[version] = move
 
-	i.games[game.Id] = game
+	t.games[game.Id] = game
 
 	return nil
 }
 
-func (i *testStorageManager) PlayerMoveApplied(game *GameStorageRecord) error {
+func (t *testStorageManager) PlayerMoveApplied(game *GameStorageRecord) error {
 	//Pass
 	return nil
 }
 
-func (i *testStorageManager) AgentState(gameId string, player PlayerIndex) ([]byte, error) {
+func (t *testStorageManager) AgentState(gameID string, player PlayerIndex) ([]byte, error) {
 	//TODO: implement
 	return nil, nil
 }
 
-func (i *testStorageManager) SaveAgentState(gameId string, player PlayerIndex, state []byte) error {
+func (t *testStorageManager) SaveAgentState(gameID string, player PlayerIndex, state []byte) error {
 	//TODO: implement
 	return nil
 }
