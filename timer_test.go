@@ -57,7 +57,7 @@ func TestTimerManager(t *testing.T) {
 
 	//Now that the tick has happened, there should be not more records.
 	assert.For(t).ThatActual(len(timer.records)).Equals(0)
-	assert.For(t).ThatActual(len(timer.recordsById)).Equals(0)
+	assert.For(t).ThatActual(len(timer.recordsByID)).Equals(0)
 
 	assert.For(t).ThatActual(timer.GetTimerRemaining(id)).Equals(time.Duration(0))
 

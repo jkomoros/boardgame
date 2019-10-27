@@ -175,7 +175,7 @@ type timerQueue []*timerRecord
 
 type timerManager struct {
 	records     timerQueue
-	recordsById map[string]*timerRecord
+	recordsByID map[string]*timerRecord
 	//TODO: recordsByGameId for efficiency so we don't have to search
 	manager *GameManager
 }
@@ -184,7 +184,7 @@ func newTimerManager(gameManager *GameManager) *timerManager {
 	return &timerManager{
 		//the default id in TimerProps is 0, so we should start beyond that.
 		records:     make(timerQueue, 0),
-		recordsById: make(map[string]*timerRecord),
+		recordsByID: make(map[string]*timerRecord),
 		manager:     gameManager,
 	}
 }
@@ -193,7 +193,7 @@ const timerIDLength = 16
 
 func (t *timerManager) ActiveTimersForGame(gameID string) map[string]*timerRecord {
 	result := make(map[string]*timerRecord)
-	for _, rec := range t.recordsById {
+	for _, rec := range t.recordsByID {
 		if rec.gameID == gameID {
 			result[rec.id] = rec
 		}
@@ -218,7 +218,7 @@ func (t *timerManager) PrepareTimer(duration time.Duration, state *state, move M
 		move:     move,
 	}
 
-	t.recordsById[record.id] = record
+	t.recordsByID[record.id] = record
 
 	heap.Push(&t.records, record)
 
@@ -233,7 +233,7 @@ func (t *timerManager) StartTimer(id string) {
 		return
 	}
 
-	record := t.recordsById[id]
+	record := t.recordsByID[id]
 
 	if record == nil {
 		return
@@ -247,7 +247,7 @@ func (t *timerManager) StartTimer(id string) {
 
 //TimerActive returns if the timer is active and counting down.
 func (t *timerManager) TimerActive(id string) bool {
-	record := t.recordsById[id]
+	record := t.recordsByID[id]
 
 	if record == nil {
 		return false
@@ -261,7 +261,7 @@ func (t *timerManager) TimerActive(id string) bool {
 }
 
 func (t *timerManager) GetTimerRemaining(id string) time.Duration {
-	record := t.recordsById[id]
+	record := t.recordsByID[id]
 
 	if record == nil {
 		return 0
@@ -271,7 +271,7 @@ func (t *timerManager) GetTimerRemaining(id string) time.Duration {
 }
 
 func (t *timerManager) CancelTimer(id string) {
-	record := t.recordsById[id]
+	record := t.recordsByID[id]
 
 	if record == nil {
 		return
@@ -281,7 +281,7 @@ func (t *timerManager) CancelTimer(id string) {
 
 	record.index = -1
 
-	delete(t.recordsById, record.id)
+	delete(t.recordsByID, record.id)
 
 }
 
@@ -341,7 +341,7 @@ func (t *timerManager) popNext(force bool) *timerRecord {
 
 	record := x.(*timerRecord)
 
-	delete(t.recordsById, record.id)
+	delete(t.recordsByID, record.id)
 
 	return record
 }
