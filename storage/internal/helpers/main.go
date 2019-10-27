@@ -1,9 +1,7 @@
 /*
-
-	helpers has generic implementations of finicky methods, like Moves(),
-	ListGames() that are appropriate for storage managers who don't get a
-	performance boost from well-crafted queries to use.
-
+Package helpers has generic implementations of finicky methods, like Moves(),
+ListGames() that are appropriate for storage managers who don't get a
+performance boost from well-crafted queries to use.
 */
 package helpers
 
@@ -16,6 +14,8 @@ import (
 	"github.com/jkomoros/boardgame/server/api/listing"
 )
 
+//AllGamesStorageManager wraps normal storage manager but also has an AllGames
+//method.
 type AllGamesStorageManager interface {
 	api.StorageManager
 	//AllGames simply returns all games
@@ -24,7 +24,7 @@ type AllGamesStorageManager interface {
 
 //MovesHelper is an implementation for Moves() if the underlying storage
 //manager can't do any better than just repeated calls to Move() anyway.
-func MovesHelper(s boardgame.StorageManager, gameId string, fromVersion, toVersion int) ([]*boardgame.MoveStorageRecord, error) {
+func MovesHelper(s boardgame.StorageManager, gameID string, fromVersion, toVersion int) ([]*boardgame.MoveStorageRecord, error) {
 
 	//There's no efficiency boost for fetching multiple moves at once so just wrap around Move()
 
@@ -36,7 +36,7 @@ func MovesHelper(s boardgame.StorageManager, gameId string, fromVersion, toVersi
 
 	index := 0
 	for i := fromVersion + 1; i <= toVersion; i++ {
-		move, err := s.Move(gameId, i)
+		move, err := s.Move(gameID, i)
 		if err != nil {
 			return nil, err
 		}
@@ -49,9 +49,9 @@ func MovesHelper(s boardgame.StorageManager, gameId string, fromVersion, toVersi
 //ListGamesHelper is an implementation for ListGames() if the underlying
 //storage manager can't do any better than walking through each game anyway.
 //Note that your StorageManager must implement AllGames().
-func ListGamesHelper(s AllGamesStorageManager, max int, list listing.Type, userId string, gameType string) []*extendedgame.CombinedStorageRecord {
+func ListGamesHelper(s AllGamesStorageManager, max int, list listing.Type, userID string, gameType string) []*extendedgame.CombinedStorageRecord {
 
-	if (list == listing.ParticipatingActive || list == listing.ParticipatingFinished) && userId == "" {
+	if (list == listing.ParticipatingActive || list == listing.ParticipatingFinished) && userID == "" {
 		//If we're filtering to only participating games and there's no userId, then there can't be any games,
 		//because the non-user can't be participating in any games.
 		return nil
@@ -78,7 +78,7 @@ func ListGamesHelper(s AllGamesStorageManager, max int, list listing.Type, userI
 			if user != "" {
 				numUsers++
 			}
-			if userId != "" && user == userId {
+			if userID != "" && user == userID {
 				hasUser = true
 				break
 			}

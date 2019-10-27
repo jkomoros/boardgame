@@ -2,14 +2,18 @@ package helpers
 
 import (
 	"errors"
+	"sync"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/users"
-	"sync"
 )
 
+//GameChecker is just one meethod to fetch a Game given an ID. It's typically
+//just the storage manager you're embedded in but can be other objects in other
+//cases, thus why it's split out separately.
 type GameChecker interface {
-	Game(gameId string) (*boardgame.GameStorageRecord, error)
+	Game(gameID string) (*boardgame.GameStorageRecord, error)
 }
 
 //ExtendedMemoryStorageManager implements the ExtendedGame methods (i.e the
@@ -19,7 +23,7 @@ type GameChecker interface {
 type ExtendedMemoryStorageManager struct {
 	agentStates   map[string][]byte
 	extendedGames map[string]*extendedgame.StorageRecord
-	usersById     map[string]*users.StorageRecord
+	usersByID     map[string]*users.StorageRecord
 	usersByCookie map[string]*users.StorageRecord
 	usersForGames map[string][]string
 
@@ -31,8 +35,8 @@ type ExtendedMemoryStorageManager struct {
 	gameChecker GameChecker
 }
 
-//Returns a new extended memory storage manager. Checker is generally the
-//storage manager you're embedded in.
+//NewExtendedMemoryStorageManager returns a new extended memory storage manager.
+//Checker is generally the storage manager you're embedded in.
 func NewExtendedMemoryStorageManager(checker GameChecker) *ExtendedMemoryStorageManager {
 
 	if checker == nil {
@@ -41,7 +45,7 @@ func NewExtendedMemoryStorageManager(checker GameChecker) *ExtendedMemoryStorage
 
 	return &ExtendedMemoryStorageManager{
 		extendedGames: make(map[string]*extendedgame.StorageRecord),
-		usersById:     make(map[string]*users.StorageRecord),
+		usersByID:     make(map[string]*users.StorageRecord),
 		usersByCookie: make(map[string]*users.StorageRecord),
 		usersForGames: make(map[string][]string),
 		agentStates:   make(map[string][]byte),
@@ -49,13 +53,14 @@ func NewExtendedMemoryStorageManager(checker GameChecker) *ExtendedMemoryStorage
 	}
 }
 
-func keyForAgent(gameId string, player boardgame.PlayerIndex) string {
-	return gameId + "-" + player.String()
+func keyForAgent(gameID string, player boardgame.PlayerIndex) string {
+	return gameID + "-" + player.String()
 }
 
-func (s *ExtendedMemoryStorageManager) AgentState(gameId string, player boardgame.PlayerIndex) ([]byte, error) {
+//AgentState implements the AgentState part of the interface.
+func (s *ExtendedMemoryStorageManager) AgentState(gameID string, player boardgame.PlayerIndex) ([]byte, error) {
 
-	key := keyForAgent(gameId, player)
+	key := keyForAgent(gameID, player)
 
 	s.agentStatesLock.RLock()
 	result := s.agentStates[key]
@@ -64,8 +69,9 @@ func (s *ExtendedMemoryStorageManager) AgentState(gameId string, player boardgam
 	return result, nil
 }
 
-func (s *ExtendedMemoryStorageManager) SaveAgentState(gameId string, player boardgame.PlayerIndex, state []byte) error {
-	key := keyForAgent(gameId, player)
+//SaveAgentState implements that part of the StorageManager interface.
+func (s *ExtendedMemoryStorageManager) SaveAgentState(gameID string, player boardgame.PlayerIndex, state []byte) error {
+	key := keyForAgent(gameID, player)
 
 	s.agentStatesLock.Lock()
 	s.agentStates[key] = state
@@ -74,6 +80,7 @@ func (s *ExtendedMemoryStorageManager) SaveAgentState(gameId string, player boar
 	return nil
 }
 
+//CombinedGame implements that part of the server interface.
 func (s *ExtendedMemoryStorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageRecord, error) {
 	s.extendedGamesLock.RLock()
 	eGame := s.extendedGames[id]
@@ -115,6 +122,7 @@ func (s *ExtendedMemoryStorageManager) ExtendedGame(id string) (*extendedgame.St
 	return eGame, nil
 }
 
+//UpdateExtendedGame implements that part of the server storage interface
 func (s *ExtendedMemoryStorageManager) UpdateExtendedGame(id string, eGame *extendedgame.StorageRecord) error {
 	s.extendedGamesLock.Lock()
 	s.extendedGames[id] = eGame
@@ -122,13 +130,14 @@ func (s *ExtendedMemoryStorageManager) UpdateExtendedGame(id string, eGame *exte
 	return nil
 }
 
-func (s *ExtendedMemoryStorageManager) UserIdsForGame(gameId string) []string {
+//UserIdsForGame implements that part of the server storage interface.
+func (s *ExtendedMemoryStorageManager) UserIdsForGame(gameID string) []string {
 	s.usersForGamesLock.RLock()
-	ids := s.usersForGames[gameId]
+	ids := s.usersForGames[gameID]
 	s.usersForGamesLock.RUnlock()
 
 	if ids == nil {
-		game, _ := s.gameChecker.Game(gameId)
+		game, _ := s.gameChecker.Game(gameID)
 		if game == nil {
 			return nil
 		}
@@ -138,8 +147,9 @@ func (s *ExtendedMemoryStorageManager) UserIdsForGame(gameId string) []string {
 	return ids
 }
 
-func (s *ExtendedMemoryStorageManager) SetPlayerForGame(gameId string, playerIndex boardgame.PlayerIndex, userId string) error {
-	ids := s.UserIdsForGame(gameId)
+//SetPlayerForGame implemnts that part of the server storage interface.
+func (s *ExtendedMemoryStorageManager) SetPlayerForGame(gameID string, playerIndex boardgame.PlayerIndex, userID string) error {
+	ids := s.UserIdsForGame(gameID)
 
 	if int(playerIndex) < 0 || int(playerIndex) >= len(ids) {
 		return errors.New("PlayerIndex " + playerIndex.String() + " is not valid for this game.")
@@ -149,40 +159,42 @@ func (s *ExtendedMemoryStorageManager) SetPlayerForGame(gameId string, playerInd
 		return errors.New("PlayerIndex " + playerIndex.String() + " is already taken.")
 	}
 
-	user := s.GetUserById(userId)
+	user := s.GetUserById(userID)
 
 	if user == nil {
 		return errors.New("That uid does not describe an existing user")
 	}
 
-	ids[playerIndex] = userId
+	ids[playerIndex] = userID
 
 	s.usersForGamesLock.Lock()
-	s.usersForGames[gameId] = ids
+	s.usersForGames[gameID] = ids
 	s.usersForGamesLock.Unlock()
 
 	return nil
 }
 
-//Store or update all fields
+//UpdateUser stores or update all fields
 func (s *ExtendedMemoryStorageManager) UpdateUser(user *users.StorageRecord) error {
 
 	s.usersLock.Lock()
-	s.usersById[user.Id] = user
+	s.usersByID[user.Id] = user
 	s.usersLock.Unlock()
 
 	return nil
 
 }
 
+//GetUserById implements that part of the server storage interface.
 func (s *ExtendedMemoryStorageManager) GetUserById(uid string) *users.StorageRecord {
 	s.usersLock.RLock()
-	user := s.usersById[uid]
+	user := s.usersByID[uid]
 	s.usersLock.RUnlock()
 
 	return user
 }
 
+//GetUserByCookie implements that part of the server storage interface.
 func (s *ExtendedMemoryStorageManager) GetUserByCookie(cookie string) *users.StorageRecord {
 	s.usersLock.RLock()
 	user := s.usersByCookie[cookie]
@@ -191,8 +203,9 @@ func (s *ExtendedMemoryStorageManager) GetUserByCookie(cookie string) *users.Sto
 	return user
 }
 
-//If user is nil, the cookie should be deleted if it exists. If the user
-//does not yet exist, it should be added to the database.
+//ConnectCookieToUser implements that part of the server storage interface. If
+//user is nil, the cookie should be deleted if it exists. If the user does not
+//yet exist, it should be added to the database.
 func (s *ExtendedMemoryStorageManager) ConnectCookieToUser(cookie string, user *users.StorageRecord) error {
 	if user == nil {
 		s.usersLock.Lock()
@@ -216,27 +229,28 @@ func (s *ExtendedMemoryStorageManager) ConnectCookieToUser(cookie string, user *
 
 //Provide defaults for all of these that are no op
 
-//No op
+//Connect is a no op
 func (s *ExtendedMemoryStorageManager) Connect(config string) error {
 	return nil
 }
 
-//No op
+//Close is a no op
 func (s *ExtendedMemoryStorageManager) Close() {
 	//Don't need to do anything
 }
 
-//No op
+//CleanUp is a no op
 func (s *ExtendedMemoryStorageManager) CleanUp() {
 	//Don't need to do
 }
 
-//No op
+//PlayerMoveApplied is a no op
 func (s *ExtendedMemoryStorageManager) PlayerMoveApplied(game *boardgame.GameStorageRecord) error {
 	//Don't need to do anything
 	return nil
 }
 
+//WithManagers is a no op
 func (s *ExtendedMemoryStorageManager) WithManagers(managers []*boardgame.GameManager) {
 	//Do nothing
 }
