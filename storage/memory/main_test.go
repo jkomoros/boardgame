@@ -1,8 +1,9 @@
 package memory
 
 import (
-	"github.com/jkomoros/boardgame/storage/internal/test"
 	"testing"
+
+	"github.com/jkomoros/boardgame/storage/internal/test"
 )
 
 func TestStorageManager(t *testing.T) {

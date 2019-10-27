@@ -1,10 +1,10 @@
 /*
 
-	memory is a storage manager that just keeps the games and storage in
-	memory, which means that when the program exits the storage evaporates.
-	Useful in cases where you don't want a persistent store (e.g. testing or
-	fast iteration). Implements both boardgame.StorageManager and
-	boardgame/server.StorageManager.
+Package memory is a storage manager that just keeps the games and storage in
+memory, which means that when the program exits the storage evaporates.
+Useful in cases where you don't want a persistent store (e.g. testing or
+fast iteration). Implements both boardgame.StorageManager and
+boardgame/server.StorageManager.
 
 */
 package memory
@@ -19,6 +19,8 @@ import (
 	"github.com/jkomoros/boardgame/storage/internal/helpers"
 )
 
+//StorageManager is the primary type of this package. Get a new one with
+//NewStorageManager.
 type StorageManager struct {
 	states map[string]map[int]boardgame.StateStorageRecord
 	moves  map[string]map[int]*boardgame.MoveStorageRecord
@@ -31,6 +33,7 @@ type StorageManager struct {
 	*helpers.ExtendedMemoryStorageManager
 }
 
+//NewStorageManager is the way to get a new StorageManager.
 func NewStorageManager() *StorageManager {
 	//InMemoryStorageManager is an extremely simple StorageManager that just keeps
 	//track of the objects in memory.
@@ -43,12 +46,14 @@ func NewStorageManager() *StorageManager {
 	return result
 }
 
+//Name returns 'memory'
 func (s *StorageManager) Name() string {
 	return "memory"
 }
 
-func (s *StorageManager) State(gameId string, version int) (boardgame.StateStorageRecord, error) {
-	if gameId == "" {
+//State implements that part of the core storage interface
+func (s *StorageManager) State(gameID string, version int) (boardgame.StateStorageRecord, error) {
+	if gameID == "" {
 		return nil, errors.New("No game provided")
 	}
 
@@ -58,7 +63,7 @@ func (s *StorageManager) State(gameId string, version int) (boardgame.StateStora
 
 	s.statesLock.RLock()
 
-	versionMap, ok := s.states[gameId]
+	versionMap, ok := s.states[gameID]
 
 	s.statesLock.RUnlock()
 
@@ -77,12 +82,14 @@ func (s *StorageManager) State(gameId string, version int) (boardgame.StateStora
 
 }
 
-func (s *StorageManager) Moves(gameId string, fromVersion, toVersion int) ([]*boardgame.MoveStorageRecord, error) {
-	return helpers.MovesHelper(s, gameId, fromVersion, toVersion)
+//Moves implements that part of the core storage interface
+func (s *StorageManager) Moves(gameID string, fromVersion, toVersion int) ([]*boardgame.MoveStorageRecord, error) {
+	return helpers.MovesHelper(s, gameID, fromVersion, toVersion)
 }
 
-func (s *StorageManager) Move(gameId string, version int) (*boardgame.MoveStorageRecord, error) {
-	if gameId == "" {
+//Move implements that part of the core storage interface
+func (s *StorageManager) Move(gameID string, version int) (*boardgame.MoveStorageRecord, error) {
+	if gameID == "" {
 		return nil, errors.New("No game provided")
 	}
 
@@ -92,7 +99,7 @@ func (s *StorageManager) Move(gameId string, version int) (*boardgame.MoveStorag
 
 	s.movesLock.RLock()
 
-	versionMap, ok := s.moves[gameId]
+	versionMap, ok := s.moves[gameID]
 
 	s.movesLock.RUnlock()
 
@@ -111,6 +118,7 @@ func (s *StorageManager) Move(gameId string, version int) (*boardgame.MoveStorag
 
 }
 
+//Game implements that part of the core storage interface
 func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 
 	s.gamesLock.RLock()
@@ -124,6 +132,7 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 	return record, nil
 }
 
+//SaveGameAndCurrentState implements that part of the core storage interface
 func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord, move *boardgame.MoveStorageRecord) error {
 	if game == nil {
 		return errors.New("No game provided")
@@ -186,6 +195,7 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 	return nil
 }
 
+//AllGames implements the extra method that storage/internal/helpers needs.
 func (s *StorageManager) AllGames() []*boardgame.GameStorageRecord {
 	var result []*boardgame.GameStorageRecord
 
@@ -199,6 +209,6 @@ func (s *StorageManager) AllGames() []*boardgame.GameStorageRecord {
 }
 
 //ListGames will return game objects for up to max number of games
-func (s *StorageManager) ListGames(max int, list listing.Type, userId string, gameType string) []*extendedgame.CombinedStorageRecord {
-	return helpers.ListGamesHelper(s, max, list, userId, gameType)
+func (s *StorageManager) ListGames(max int, list listing.Type, userID string, gameType string) []*extendedgame.CombinedStorageRecord {
+	return helpers.ListGamesHelper(s, max, list, userID, gameType)
 }
