@@ -2,13 +2,14 @@ package boardgame
 
 import (
 	"encoding/json"
-	"github.com/jkomoros/boardgame/internal/patchtree"
-	"github.com/workfit/tester/assert"
 	"io/ioutil"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/jkomoros/boardgame/internal/patchtree"
+	"github.com/workfit/tester/assert"
 )
 
 type testInfiniteLoopGameDelegate struct {
@@ -338,9 +339,9 @@ func TestApplyMove(t *testing.T) {
 
 	wrapper.game = game
 
-	currentJson, _ := json.Marshal(wrapper)
+	currentJSON, _ := json.Marshal(wrapper)
 
-	compareJSONObjects(currentJson, patchtree.MustJSON("./testdata/after_move"), "Basic state after test move", t)
+	compareJSONObjects(currentJSON, patchtree.MustJSON("./testdata/after_move"), "Basic state after test move", t)
 
 	//Apply a move that should finish the game (any player has score > 5)
 	newRawMove := game.MoveByName("test")
@@ -550,20 +551,20 @@ func goldenGameBlob() []byte {
 		return nil
 	}
 
-	var gameBlobJson map[string]interface{}
-	var baseStateJson map[string]interface{}
+	var gameBlobJSON map[string]interface{}
+	var baseStateJSON map[string]interface{}
 
-	if err := json.Unmarshal(gameBlob, &gameBlobJson); err != nil {
+	if err := json.Unmarshal(gameBlob, &gameBlobJSON); err != nil {
 		return nil
 	}
 
-	if err := json.Unmarshal(baseState, &baseStateJson); err != nil {
+	if err := json.Unmarshal(baseState, &baseStateJSON); err != nil {
 		return nil
 	}
 
-	gameBlobJson["CurrentState"] = baseStateJson
+	gameBlobJSON["CurrentState"] = baseStateJSON
 
-	blob, err := json.Marshal(gameBlobJson)
+	blob, err := json.Marshal(gameBlobJSON)
 
 	if err != nil {
 		return nil

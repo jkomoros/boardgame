@@ -1,8 +1,9 @@
 package boardgame
 
 import (
-	"github.com/jkomoros/boardgame/errors"
 	"strconv"
+
+	"github.com/jkomoros/boardgame/errors"
 )
 
 /*
@@ -205,6 +206,7 @@ func (d *Deck) finish(chest *ComponentChest, name string) error {
 	return nil
 }
 
+//MarshalJSON marshasl in a format appropriate for use on the client.
 func (d *Deck) MarshalJSON() ([]byte, error) {
 	components := d.Components()
 

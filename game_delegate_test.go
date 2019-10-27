@@ -2,12 +2,13 @@ package boardgame
 
 import (
 	"errors"
-	"github.com/Sirupsen/logrus"
-	"github.com/jkomoros/boardgame/enum"
 	"math"
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/Sirupsen/logrus"
+	"github.com/jkomoros/boardgame/enum"
 )
 
 //defaultGameDelegate is a clone of base.GameDelegate recreated here because
@@ -98,16 +99,17 @@ func (d *defaultGameDelegate) ProposeFixUpMove(state ImmutableState) Move {
 			continue
 		}
 
-		if err := move.Legal(state, AdminPlayerIndex); err == nil {
+		err := move.Legal(state, AdminPlayerIndex)
+
+		if err == nil {
 			if isDebug {
 				entry.Debug(move.Info().Name() + " : MATCH")
 			}
 			//Found it!
 			return move
-		} else {
-			if isDebug {
-				entry.Debug(move.Info().Name() + " : " + err.Error())
-			}
+		}
+		if isDebug {
+			entry.Debug(move.Info().Name() + " : " + err.Error())
 		}
 	}
 	if isDebug {

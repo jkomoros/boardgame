@@ -2,10 +2,11 @@ package boardgame
 
 import (
 	"encoding/json"
-	"github.com/jkomoros/boardgame/errors"
 	"math/rand"
 	"strconv"
 	"time"
+
+	"github.com/jkomoros/boardgame/errors"
 )
 
 //maxRecurseCount is the number of fixUp moves that can be considered normal--
@@ -18,7 +19,7 @@ const selfInitiatorSentinel = -1
 //ErrTooManyFixUps is returned from game.ProposeMove if too many fix up moves
 //are applied, which implies that there is a FixUp move configured to always
 //be legal, and is evidence of a serious error in your game logic.
-var ErrTooManyFixUps = errors.New("We recursed deeply in fixup, which implies that ProposeFixUp has a move that is always legal.")
+var ErrTooManyFixUps = errors.New("we recursed deeply in fixup, which implies that ProposeFixUp has a move that is always legal")
 
 //A Game represents a specific game between a collection of Players; an
 //instantiation of a game of the given type. Create a new one with
@@ -248,7 +249,7 @@ func (g *Game) Version() int {
 	return g.version
 }
 
-//CurrentVersion returns the state object for the current state. Equivalent,
+//CurrentState returns the state object for the current state. Equivalent,
 //semantically, to game.State(game.Version())
 func (g *Game) CurrentState() ImmutableState {
 	if g.cachedCurrentState == nil {
@@ -257,8 +258,8 @@ func (g *Game) CurrentState() ImmutableState {
 	return g.cachedCurrentState
 }
 
-//Returns the state of the game at the given version. Because states can only
-//be modffied in moves, the state returned is immutable.
+//State returns the state of the game at the given version. Because states can
+//only be modffied in moves, the state returned is immutable.
 func (g *Game) State(version int) ImmutableState {
 
 	if version < 0 || version > g.Version() {
@@ -306,7 +307,7 @@ func (g *Game) Move(version int) (Move, error) {
 	}
 
 	if record.Version != version {
-		return nil, errors.New("The version of the returned move was not what was expected.")
+		return nil, errors.New("the version of the returned move was not what was expected")
 	}
 
 	return record.inflate(g)
@@ -630,19 +631,19 @@ func (g *Game) Refresh() {
 
 }
 
-//ProposedMove is the way to propose a move to the game. DelayedError will
-//return an error in the future if the move was unable to be applied, or nil
-//if the move was applied successfully. Proposer is the PlayerIndex of the
-//player who is notionally proposing the move. If you don't know which player
-//is moving it, AdminPlayerIndex is a reasonable default that will generally
-//allow any move to be made. After the move is applied, your GameDelegate's
-//ProposeFixUpMove will be called; if any move is returned it will be applied,
-//repeating the cycle until no moves are returned from ProposeFixUpMove.
-//DelayedError will only resolve once any applicable FixUp moves have been
-//applied already. This is legal to call on a non-modifiable game--the change
-//will be dispatched to a modifiable version of the game with this ID, and
-//afterwards this Game object's state will be updated in place with the new
-//values after the change (by automatically calling Refresh()).
+//ProposeMove is the way to propose a move to the game. DelayedError will return
+//an error in the future if the move was unable to be applied, or nil if the
+//move was applied successfully. Proposer is the PlayerIndex of the player who
+//is notionally proposing the move. If you don't know which player is moving it,
+//AdminPlayerIndex is a reasonable default that will generally allow any move to
+//be made. After the move is applied, your GameDelegate's ProposeFixUpMove will
+//be called; if any move is returned it will be applied, repeating the cycle
+//until no moves are returned from ProposeFixUpMove. DelayedError will only
+//resolve once any applicable FixUp moves have been applied already. This is
+//legal to call on a non-modifiable game--the change will be dispatched to a
+//modifiable version of the game with this ID, and afterwards this Game object's
+//state will be updated in place with the new values after the change (by
+//automatically calling Refresh()).
 func (g *Game) ProposeMove(move Move, proposer PlayerIndex) DelayedError {
 
 	if !g.Modifiable() {
@@ -659,7 +660,7 @@ func (g *Game) ProposeMove(move Move, proposer PlayerIndex) DelayedError {
 
 	if !g.initalized {
 		//The channel isn't even ready to send one.
-		errChan <- errors.New("Proposed a move before the game had been successfully set-up.")
+		errChan <- errors.New("[roposed a move before the game had been successfully set-up")
 		return errChan
 	}
 

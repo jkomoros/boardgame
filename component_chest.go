@@ -2,8 +2,9 @@ package boardgame
 
 import (
 	"errors"
-	"github.com/jkomoros/boardgame/enum"
 	"sort"
+
+	"github.com/jkomoros/boardgame/enum"
 )
 
 //TODO: consider making ComponentChest be an interface again (in some cases it
@@ -136,7 +137,7 @@ func (c *ComponentChest) addConstant(name string, val interface{}) error {
 func (c *ComponentChest) addDeck(name string, deck *Deck) error {
 	//Only add the deck if we haven't finished initalizing
 	if c.initialized {
-		return errors.New("The chest was already finished, so no new decks may be added.")
+		return errors.New("the chest was already finished, so no new decks may be added")
 	}
 	if c.decks == nil {
 		c.decks = make(map[string]*Deck)

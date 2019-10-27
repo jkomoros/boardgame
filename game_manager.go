@@ -2,14 +2,15 @@ package boardgame
 
 import (
 	"encoding/json"
-	"github.com/Sirupsen/logrus"
-	"github.com/jkomoros/boardgame/errors"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/Sirupsen/logrus"
+	"github.com/jkomoros/boardgame/errors"
 )
 
 //GameManager defines the logic and machinery for a given game type. It is the
@@ -148,7 +149,7 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 	}
 
 	if delegate.Manager() != nil {
-		return nil, errors.New("That delegate has already been associated with another game manager.")
+		return nil, errors.New("that delegate has already been associated with another game manager")
 	}
 
 	matched, err := regexp.MatchString(`^[0-9a-zA-Z]+$`, delegate.Name())
@@ -158,7 +159,7 @@ func NewGameManager(delegate GameDelegate, storage StorageManager) (*GameManager
 	}
 
 	if !matched {
-		return nil, errors.New("Your delegate's name contains illegal characters.")
+		return nil, errors.New("your delegate's name contains illegal characters")
 	}
 
 	if err := gamePkgMatchesDelegateName(delegate); err != nil {
@@ -441,7 +442,7 @@ func (g *GameManager) recreateGame(rec *GameStorageRecord) (*Game, error) {
 	}
 
 	if rec.SecretSalt == "" {
-		return nil, errors.New("That secret salt is not valid.")
+		return nil, errors.New("that secret salt is not valid")
 	}
 
 	if other, _ := g.Storage().Game(rec.Id); other != nil {
@@ -889,7 +890,7 @@ func (g *GameManager) addMove(config MoveConfig) error {
 	}
 
 	if g.initialized {
-		return errors.New("GameManager has already been SetUp so no new moves may be added.")
+		return errors.New("gameManager has already been SetUp so no new moves may be added")
 	}
 
 	moveName := strings.ToLower(moveType.Name())
