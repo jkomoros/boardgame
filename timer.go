@@ -40,7 +40,7 @@ type timer struct {
 	//Id will be an opaque identifier that is used to keep track of the
 	//corresponding underlying Timer object in the game engine. It is not
 	//meaningful to inspect yourself and should not be modified.
-	Id       string
+	ID       string
 	statePtr *state
 }
 
@@ -55,12 +55,12 @@ func NewTimer() Timer {
 }
 
 func (t *timer) importFrom(other ImmutableTimer) error {
-	t.Id = other.id()
+	t.ID = other.id()
 	return nil
 }
 
 func (t *timer) id() string {
-	return t.Id
+	return t.ID
 }
 
 func (t *timer) state() *state {
@@ -73,7 +73,7 @@ func (t *timer) setState(state *state) {
 
 func (t *timer) MarshalJSON() ([]byte, error) {
 	obj := map[string]interface{}{
-		"Id": t.Id,
+		"Id": t.ID,
 		//TODO: this is a hack so client can find it easily
 		"IsTimer": true,
 	}
@@ -83,12 +83,12 @@ func (t *timer) MarshalJSON() ([]byte, error) {
 
 //Active returns true if the timer is active and counting down.
 func (t *timer) Active() bool {
-	return t.statePtr.game.manager.timers.TimerActive(t.Id)
+	return t.statePtr.game.manager.timers.TimerActive(t.ID)
 }
 
 //TimeLeft returns the number of nanoseconds left until this timer fires.
 func (t *timer) TimeLeft() time.Duration {
-	return t.statePtr.game.manager.timers.GetTimerRemaining(t.Id)
+	return t.statePtr.game.manager.timers.GetTimerRemaining(t.ID)
 }
 
 //Start starts the timer. After duration has passed, the Move will be proposed
@@ -103,9 +103,9 @@ func (t *timer) Start(duration time.Duration, move Move) {
 	game := t.statePtr.game
 	manager := game.manager
 
-	t.Id = manager.timers.PrepareTimer(duration, t.statePtr, move)
+	t.ID = manager.timers.PrepareTimer(duration, t.statePtr, move)
 
-	t.statePtr.timersToStart = append(t.statePtr.timersToStart, t.Id)
+	t.statePtr.timersToStart = append(t.statePtr.timersToStart, t.ID)
 }
 
 //Cancel cancels an active timer. If the timer is not active, it has no
@@ -117,13 +117,13 @@ func (t *timer) Cancel() bool {
 
 	manager := t.statePtr.game.manager
 
-	manager.timers.CancelTimer(t.Id)
+	manager.timers.CancelTimer(t.ID)
 
 	//Technically there's a case where Start() was called, but the state was
 	//never fully committed. However, StartTimer() on a canceled timer is a
 	//no-op so it's fine.
 
-	t.Id = ""
+	t.ID = ""
 
 	return wasActive
 }
