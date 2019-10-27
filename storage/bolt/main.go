@@ -1,6 +1,6 @@
 /*
 
-bolt provides a bolt-backed database that implements both
+Package bolt provides a bolt-backed database that implements both
 boardgame.StorageManager and boardgame/server.StorageManager.
 
 */
@@ -24,6 +24,8 @@ import (
 
 //TODO: test this package
 
+//StorageManager is the main object that implements StorageManager and
+//api.StorageManager. Get a new one from NewStorageManager.
 type StorageManager struct {
 	db       *bolt.DB
 	filename string
@@ -40,6 +42,9 @@ var (
 	agentStatesBucket   = []byte("AgentStates")
 )
 
+//NewStorageManager returns a new StorageManager ready for use, backed by the
+//boltDB that exists at that filename, relative to current directory. Will
+//create that file if it doesn't exist.
 func NewStorageManager(fileName string) *StorageManager {
 	db, err := bolt.Open(fileName, 0600, nil)
 
@@ -87,12 +92,12 @@ func NewStorageManager(fileName string) *StorageManager {
 
 }
 
-func keyForState(gameId string, version int) []byte {
-	return []byte(gameId + "_" + strconv.Itoa(version))
+func keyForState(gameID string, version int) []byte {
+	return []byte(gameID + "_" + strconv.Itoa(version))
 }
 
-func keyForMove(gameId string, version int) []byte {
-	return []byte(gameId + "_" + strconv.Itoa(version))
+func keyForMove(gameID string, version int) []byte {
+	return []byte(gameID + "_" + strconv.Itoa(version))
 }
 
 func keyForGame(id string) []byte {
@@ -107,16 +112,18 @@ func keyForCookie(cookie string) []byte {
 	return []byte(cookie)
 }
 
-func keyForAgentState(gameId string, player boardgame.PlayerIndex) []byte {
-	return []byte(gameId + "-" + player.String())
+func keyForAgentState(gameID string, player boardgame.PlayerIndex) []byte {
+	return []byte(gameID + "-" + player.String())
 }
 
+//Name returns 'bolt'
 func (s *StorageManager) Name() string {
 	return "bolt"
 }
 
-func (s *StorageManager) State(gameId string, version int) (boardgame.StateStorageRecord, error) {
-	if gameId == "" {
+//State implements that method from the main storagemanager interface
+func (s *StorageManager) State(gameID string, version int) (boardgame.StateStorageRecord, error) {
+	if gameID == "" {
 		return nil, errors.New("No game provided")
 	}
 
@@ -133,7 +140,7 @@ func (s *StorageManager) State(gameId string, version int) (boardgame.StateStora
 			return errors.New("Couldn't get bucket")
 		}
 
-		record = b.Get(keyForState(gameId, version))
+		record = b.Get(keyForState(gameID, version))
 		return nil
 	})
 
@@ -148,12 +155,14 @@ func (s *StorageManager) State(gameId string, version int) (boardgame.StateStora
 	return record, nil
 }
 
-func (s *StorageManager) Moves(gameId string, fromVersion, toVersion int) ([]*boardgame.MoveStorageRecord, error) {
-	return helpers.MovesHelper(s, gameId, fromVersion, toVersion)
+//Moves implements that method from the main storagemanager interface
+func (s *StorageManager) Moves(gameID string, fromVersion, toVersion int) ([]*boardgame.MoveStorageRecord, error) {
+	return helpers.MovesHelper(s, gameID, fromVersion, toVersion)
 }
 
-func (s *StorageManager) Move(gameId string, version int) (*boardgame.MoveStorageRecord, error) {
-	if gameId == "" {
+//Move implements that method from the main storagemanager interface
+func (s *StorageManager) Move(gameID string, version int) (*boardgame.MoveStorageRecord, error) {
+	if gameID == "" {
 		return nil, errors.New("No game provided")
 	}
 
@@ -170,7 +179,7 @@ func (s *StorageManager) Move(gameId string, version int) (*boardgame.MoveStorag
 			return errors.New("Couldn't get bucket")
 		}
 
-		record = b.Get(keyForMove(gameId, version))
+		record = b.Get(keyForMove(gameID, version))
 		return nil
 	})
 
@@ -179,7 +188,7 @@ func (s *StorageManager) Move(gameId string, version int) (*boardgame.MoveStorag
 	}
 
 	if record == nil {
-		return nil, errors.New("No such version (" + strconv.Itoa(version) + ") for game " + gameId)
+		return nil, errors.New("No such version (" + strconv.Itoa(version) + ") for game " + gameID)
 	}
 
 	var result boardgame.MoveStorageRecord
@@ -191,6 +200,7 @@ func (s *StorageManager) Move(gameId string, version int) (*boardgame.MoveStorag
 	return &result, nil
 }
 
+//Game implements that method from the main storagemanager interface
 func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 
 	var rawRecord []byte
@@ -222,6 +232,7 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 
 }
 
+//SaveGameAndCurrentState implements that method from the main storagemanager interface
 func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord, move *boardgame.MoveStorageRecord) error {
 
 	version := game.Version
@@ -310,7 +321,8 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 
 }
 
-func (s *StorageManager) AgentState(gameId string, player boardgame.PlayerIndex) ([]byte, error) {
+//AgentState implements that method from the main storagemanager interface
+func (s *StorageManager) AgentState(gameID string, player boardgame.PlayerIndex) ([]byte, error) {
 
 	var result []byte
 
@@ -322,7 +334,7 @@ func (s *StorageManager) AgentState(gameId string, player boardgame.PlayerIndex)
 			return errors.New("Couldn't open agent states bucket")
 		}
 
-		result = aBucket.Get(keyForAgentState(gameId, player))
+		result = aBucket.Get(keyForAgentState(gameID, player))
 		return nil
 
 	})
@@ -335,7 +347,8 @@ func (s *StorageManager) AgentState(gameId string, player boardgame.PlayerIndex)
 
 }
 
-func (s *StorageManager) SaveAgentState(gameId string, player boardgame.PlayerIndex, state []byte) error {
+//SaveAgentState implements that method from the main storagemanager interface
+func (s *StorageManager) SaveAgentState(gameID string, player boardgame.PlayerIndex, state []byte) error {
 
 	return s.db.Update(func(tx *bolt.Tx) error {
 		aBucket := tx.Bucket(agentStatesBucket)
@@ -344,7 +357,7 @@ func (s *StorageManager) SaveAgentState(gameId string, player boardgame.PlayerIn
 			return errors.New("Couldn't open agent states bucket")
 		}
 
-		if err := aBucket.Put(keyForAgentState(gameId, player), state); err != nil {
+		if err := aBucket.Put(keyForAgentState(gameID, player), state); err != nil {
 			return err
 		}
 		return nil
@@ -352,6 +365,7 @@ func (s *StorageManager) SaveAgentState(gameId string, player boardgame.PlayerIn
 
 }
 
+//AllGames implements the extra method necessary for storage/internal/helpers
 func (s *StorageManager) AllGames() []*boardgame.GameStorageRecord {
 	var results []*boardgame.GameStorageRecord
 
@@ -385,10 +399,12 @@ func (s *StorageManager) AllGames() []*boardgame.GameStorageRecord {
 	return results
 }
 
-func (s *StorageManager) ListGames(max int, list listing.Type, userId string, gameType string) []*extendedgame.CombinedStorageRecord {
-	return helpers.ListGamesHelper(s, max, list, userId, gameType)
+//ListGames implements that method from the server api storagemanager interface
+func (s *StorageManager) ListGames(max int, list listing.Type, userID string, gameType string) []*extendedgame.CombinedStorageRecord {
+	return helpers.ListGamesHelper(s, max, list, userID, gameType)
 }
 
+//ExtendedGame implements that method from the server api storagemanager interface
 func (s *StorageManager) ExtendedGame(id string) (*extendedgame.StorageRecord, error) {
 
 	var rawRecord []byte
@@ -422,6 +438,7 @@ func (s *StorageManager) ExtendedGame(id string) (*extendedgame.StorageRecord, e
 	return eGame, nil
 }
 
+//CombinedGame implements that method from the server api storagemanager interface
 func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageRecord, error) {
 
 	game, err := s.Game(id)
@@ -464,6 +481,7 @@ func (s *StorageManager) CombinedGame(id string) (*extendedgame.CombinedStorageR
 	}, nil
 }
 
+//UpdateExtendedGame implements that method from the server api storagemanager interface
 func (s *StorageManager) UpdateExtendedGame(id string, eGame *extendedgame.StorageRecord) error {
 
 	serializedExtendedGameRecord, err := json.Marshal(eGame)
@@ -491,9 +509,10 @@ func (s *StorageManager) UpdateExtendedGame(id string, eGame *extendedgame.Stora
 
 }
 
-func (s *StorageManager) SetPlayerForGame(gameId string, playerIndex boardgame.PlayerIndex, userId string) error {
+//SetPlayerForGame implements that method from the server api storagemanager interface
+func (s *StorageManager) SetPlayerForGame(gameID string, playerIndex boardgame.PlayerIndex, userID string) error {
 
-	ids := s.UserIdsForGame(gameId)
+	ids := s.UserIdsForGame(gameID)
 
 	if ids == nil {
 		return errors.New("Couldn't fetch original player indexes for that game")
@@ -507,13 +526,13 @@ func (s *StorageManager) SetPlayerForGame(gameId string, playerIndex boardgame.P
 		return errors.New("PlayerIndex " + playerIndex.String() + " is already taken")
 	}
 
-	user := s.GetUserById(userId)
+	user := s.GetUserById(userID)
 
 	if user == nil {
 		return errors.New("That userId does not describe an existing user")
 	}
 
-	ids[playerIndex] = userId
+	ids[playerIndex] = userID
 
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		gUBucket := tx.Bucket(gameUsersBucket)
@@ -528,7 +547,7 @@ func (s *StorageManager) SetPlayerForGame(gameId string, playerIndex boardgame.P
 			return errors.New("Unable to marshal ids blob: " + err.Error())
 		}
 
-		return gUBucket.Put(keyForGame(gameId), blob)
+		return gUBucket.Put(keyForGame(gameID), blob)
 	})
 
 	if err != nil {
@@ -539,7 +558,9 @@ func (s *StorageManager) SetPlayerForGame(gameId string, playerIndex boardgame.P
 
 }
 
-func (s *StorageManager) UserIdsForGame(gameId string) []string {
+//UserIdsForGame implements that method from the server api storagemanager
+//interface
+func (s *StorageManager) UserIdsForGame(gameID string) []string {
 
 	noRecordErr := errors.New("No such record")
 
@@ -552,7 +573,7 @@ func (s *StorageManager) UserIdsForGame(gameId string) []string {
 			return errors.New("Couldn't open game users bucket")
 		}
 
-		blob := gUBucket.Get(keyForGame(gameId))
+		blob := gUBucket.Get(keyForGame(gameID))
 
 		if blob == nil {
 			//NO such game info.
@@ -565,7 +586,7 @@ func (s *StorageManager) UserIdsForGame(gameId string) []string {
 	if err == noRecordErr {
 		//It's possible that we just haven't stored anything for this user before.
 
-		gameRecord, err := s.Game(gameId)
+		gameRecord, err := s.Game(gameID)
 
 		if err != nil {
 			log.Println("Couldn fetch game: " + err.Error())
@@ -588,6 +609,7 @@ func (s *StorageManager) UserIdsForGame(gameId string) []string {
 	return result
 }
 
+//UpdateUser implements that method from the server api storagemanager interface
 func (s *StorageManager) UpdateUser(user *users.StorageRecord) error {
 	err := s.db.Update(func(tx *bolt.Tx) error {
 
@@ -610,6 +632,7 @@ func (s *StorageManager) UpdateUser(user *users.StorageRecord) error {
 	return err
 }
 
+//GetUserById implements that method from the server api storagemanager interface
 func (s *StorageManager) GetUserById(uid string) *users.StorageRecord {
 	var result users.StorageRecord
 
@@ -637,6 +660,8 @@ func (s *StorageManager) GetUserById(uid string) *users.StorageRecord {
 	return &result
 }
 
+//GetUserByCookie implements that method from the server api storagemanager
+//interface
 func (s *StorageManager) GetUserByCookie(cookie string) *users.StorageRecord {
 
 	var result users.StorageRecord
@@ -684,6 +709,8 @@ func (s *StorageManager) GetUserByCookie(cookie string) *users.StorageRecord {
 
 }
 
+//ConnectCookieToUser implements that method from the server api storagemanager
+//interface
 func (s *StorageManager) ConnectCookieToUser(cookie string, user *users.StorageRecord) error {
 	err := s.db.Update(func(tx *bolt.Tx) error {
 
@@ -705,23 +732,28 @@ func (s *StorageManager) ConnectCookieToUser(cookie string, user *users.StorageR
 	return err
 }
 
+//Connect is a no op
 func (s *StorageManager) Connect(config string) error {
 	return nil
 }
 
+//Close closes the handle to the bolt db
 func (s *StorageManager) Close() {
 	s.db.Close()
 }
 
+//CleanUp removes the backing file
 func (s *StorageManager) CleanUp() {
 	os.Remove(s.filename)
 }
 
+//PlayerMoveApplied is a noop
 func (s *StorageManager) PlayerMoveApplied(game *boardgame.GameStorageRecord) error {
 	//Don't need to do anything
 	return nil
 }
 
+//WithManagers  does nothing.
 func (s *StorageManager) WithManagers(managers []*boardgame.GameManager) {
 	//Do nothing
 }
