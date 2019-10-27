@@ -130,7 +130,7 @@ func (t *timer) Cancel() bool {
 
 type timerRecord struct {
 	id     string
-	gameId string
+	gameID string
 	index  int
 	//When the timer should fire. Set after the timer is fully Started().
 	//Before that it is impossibly far in the future.
@@ -194,7 +194,7 @@ const timerIDLength = 16
 func (t *timerManager) ActiveTimersForGame(gameID string) map[string]*timerRecord {
 	result := make(map[string]*timerRecord)
 	for _, rec := range t.recordsById {
-		if rec.gameId == gameID {
+		if rec.gameID == gameID {
 			result[rec.id] = rec
 		}
 	}
@@ -208,7 +208,7 @@ func (t *timerManager) PrepareTimer(duration time.Duration, state *state, move M
 
 	record := &timerRecord{
 		id:       randomString(timerIDLength, state.Rand()),
-		gameId:   state.Game().Id(),
+		gameID:   state.Game().Id(),
 		index:    -1,
 		duration: duration,
 		//fireTime will be set when StartTimer is called. For now, set it to
