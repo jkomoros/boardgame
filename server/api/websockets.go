@@ -1,14 +1,15 @@
 package api
 
 import (
+	"net/http"
+	"strconv"
+	"time"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/errors"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 const (
@@ -173,7 +174,7 @@ func newVersionNotifier(s *Server) *versionNotifier {
 
 func (v *versionNotifier) gameChanged(game *boardgame.GameStorageRecord) {
 	v.notifyVersion <- gameVersionChanged{
-		Id:      game.Id,
+		Id:      game.ID,
 		Version: game.Version,
 	}
 }

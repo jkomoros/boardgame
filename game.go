@@ -218,7 +218,7 @@ func (g *Game) StorageRecord() *GameStorageRecord {
 		Finished:   g.Finished(),
 		Created:    g.Created(),
 		Modified:   g.Modified(),
-		Id:         g.Id(),
+		ID:         g.Id(),
 		SecretSalt: g.secretSalt,
 		NumPlayers: g.NumPlayers(),
 		Agents:     g.Agents(),

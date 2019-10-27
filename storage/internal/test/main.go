@@ -8,6 +8,12 @@ package test
 
 import (
 	"encoding/json"
+	"log"
+	"reflect"
+	"sort"
+	"testing"
+	"time"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/examples/blackjack"
 	"github.com/jkomoros/boardgame/examples/memory"
@@ -16,11 +22,6 @@ import (
 	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/workfit/tester/assert"
-	"log"
-	"reflect"
-	"sort"
-	"testing"
-	"time"
 )
 
 type StorageManager interface {
@@ -713,10 +714,10 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 		}
 
 		sort.Slice(games, func(i, j int) bool {
-			return games[i].Id < games[j].Id
+			return games[i].ID < games[j].ID
 		})
 		sort.Slice(golden, func(i, j int) bool {
-			return golden[i].Id < golden[j].Id
+			return golden[i].ID < golden[j].ID
 		})
 
 		if len(games) == 0 && len(golden) == 0 {
@@ -727,11 +728,11 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 			//The Diff for when they aren't the same isn't very good, so do our own.
 			log.Println("Games")
 			for i, item := range games {
-				log.Println(i, item, storage.UserIdsForGame(item.Id))
+				log.Println(i, item, storage.UserIdsForGame(item.ID))
 			}
 			log.Println("Golden")
 			for i, item := range golden {
-				log.Println(i, item, storage.UserIdsForGame(item.Id))
+				log.Println(i, item, storage.UserIdsForGame(item.ID))
 			}
 
 		}

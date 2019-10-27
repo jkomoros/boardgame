@@ -437,7 +437,7 @@ func (g *GameManager) recreateGame(rec *GameStorageRecord) (*Game, error) {
 		return nil, errors.New("No GameStorageRecord provided")
 	}
 
-	if rec.Id == "" {
+	if rec.ID == "" {
 		return nil, errors.New("That Id is not valid")
 	}
 
@@ -445,11 +445,11 @@ func (g *GameManager) recreateGame(rec *GameStorageRecord) (*Game, error) {
 		return nil, errors.New("that secret salt is not valid")
 	}
 
-	if other, _ := g.Storage().Game(rec.Id); other != nil {
+	if other, _ := g.Storage().Game(rec.ID); other != nil {
 		return nil, errors.New("A game with that Id already exists in this storage pool. Did you mean to use manager.NewGame, manager.Game(), or manager.ModifiableGame instead?")
 	}
 
-	return g.createGame(rec.Id, rec.SecretSalt, rec.NumPlayers, rec.Variant, rec.Agents)
+	return g.createGame(rec.ID, rec.SecretSalt, rec.NumPlayers, rec.Variant, rec.Agents)
 
 }
 
@@ -503,7 +503,7 @@ func (g *GameManager) gameFromStorageRecord(record *GameStorageRecord) *Game {
 	return &Game{
 		manager:    g,
 		version:    record.Version,
-		id:         record.Id,
+		id:         record.ID,
 		secretSalt: record.SecretSalt,
 		finished:   record.Finished,
 		winners:    record.Winners,

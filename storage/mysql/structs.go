@@ -3,12 +3,13 @@ package mysql
 import (
 	"encoding/json"
 	"errors"
-	"github.com/jkomoros/boardgame"
-	"github.com/jkomoros/boardgame/server/api/extendedgame"
-	"github.com/jkomoros/boardgame/server/api/users"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/jkomoros/boardgame"
+	"github.com/jkomoros/boardgame/server/api/extendedgame"
+	"github.com/jkomoros/boardgame/server/api/users"
 )
 
 //We define our own records, primarily to decorate with tags for Gorp, but
@@ -197,7 +198,7 @@ func (g *GameStorageRecord) ToStorageRecord() *boardgame.GameStorageRecord {
 
 	return &boardgame.GameStorageRecord{
 		Name:       g.Name,
-		Id:         g.Id,
+		ID:         g.Id,
 		SecretSalt: g.SecretSalt,
 		Version:    int(g.Version),
 		Winners:    winners,
@@ -225,7 +226,7 @@ func NewGameStorageRecord(game *boardgame.GameStorageRecord) *GameStorageRecord 
 
 	return &GameStorageRecord{
 		Name:       game.Name,
-		Id:         game.Id,
+		Id:         game.ID,
 		SecretSalt: game.SecretSalt,
 		Version:    int64(game.Version),
 		Winners:    winnersToString(game.Winners),
@@ -253,7 +254,7 @@ func (c *CombinedGameStorageRecord) ToStorageRecord() *extendedgame.CombinedStor
 	return &extendedgame.CombinedStorageRecord{
 		GameStorageRecord: boardgame.GameStorageRecord{
 			Name:       c.Name,
-			Id:         c.Id,
+			ID:         c.Id,
 			SecretSalt: c.SecretSalt,
 			Version:    int(c.Version),
 			Winners:    winners,
@@ -280,7 +281,7 @@ func NewCombinedGameStorageRecord(combined *extendedgame.CombinedStorageRecord) 
 
 	return &CombinedGameStorageRecord{
 		Name:       combined.Name,
-		Id:         combined.Id,
+		Id:         combined.ID,
 		SecretSalt: combined.SecretSalt,
 		Version:    int64(combined.Version),
 		Winners:    winnersToString(combined.Winners),

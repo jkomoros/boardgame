@@ -24,8 +24,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/go-test/deep"
-	"github.com/jkomoros/boardgame"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -33,6 +31,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-test/deep"
+	"github.com/jkomoros/boardgame"
 )
 
 const randomStringChars = "ABCDEF0123456789"

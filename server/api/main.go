@@ -1,11 +1,17 @@
 package api
 
 import (
+	"net/http"
+	"os"
+	"sort"
+	"strconv"
+	"time"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/dustin/go-humanize"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	"github.com/itsjamie/gin-cors"
+	cors "github.com/itsjamie/gin-cors"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
@@ -13,11 +19,6 @@ import (
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/server/api/users"
-	"net/http"
-	"os"
-	"sort"
-	"strconv"
-	"time"
 )
 
 type Server struct {
@@ -855,7 +856,7 @@ func (s *Server) gamePlayerInfo(game *boardgame.GameStorageRecord, manager *boar
 
 	result := make([]*playerBoardInfo, game.NumPlayers)
 
-	userIds := s.storage.UserIdsForGame(game.Id)
+	userIds := s.storage.UserIdsForGame(game.ID)
 	agentNames := game.Agents
 
 	for i := range result {

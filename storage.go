@@ -76,7 +76,7 @@ type GameStorageRecord struct {
 	//Name is the type of the game, from its manager. Used for sanity
 	//checking.
 	Name string
-	Id   string
+	ID   string
 	//SecretSalt for this game for things like component Ids. Should never be
 	//transmitted to an insecure or untrusted environment; the only way to
 	//access it outside this package is via this field, because it must be

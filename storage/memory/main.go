@@ -11,11 +11,12 @@ package memory
 
 import (
 	"errors"
+	"sync"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/storage/internal/helpers"
-	"sync"
 )
 
 type StorageManager struct {
@@ -129,27 +130,27 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 	}
 
 	s.statesLock.RLock()
-	_, ok := s.states[game.Id]
+	_, ok := s.states[game.ID]
 	s.statesLock.RUnlock()
 	if !ok {
 		s.statesLock.Lock()
-		s.states[game.Id] = make(map[int]boardgame.StateStorageRecord)
+		s.states[game.ID] = make(map[int]boardgame.StateStorageRecord)
 		s.statesLock.Unlock()
 	}
 
 	s.movesLock.RLock()
-	_, ok = s.moves[game.Id]
+	_, ok = s.moves[game.ID]
 	s.movesLock.RUnlock()
 	if !ok {
 		s.movesLock.Lock()
-		s.moves[game.Id] = make(map[int]*boardgame.MoveStorageRecord)
+		s.moves[game.ID] = make(map[int]*boardgame.MoveStorageRecord)
 		s.movesLock.Unlock()
 	}
 
 	version := game.Version
 
 	s.statesLock.RLock()
-	versionMap := s.states[game.Id]
+	versionMap := s.states[game.ID]
 	_, ok = versionMap[version]
 	s.statesLock.RUnlock()
 
@@ -159,7 +160,7 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 	}
 
 	s.movesLock.RLock()
-	moveMap := s.moves[game.Id]
+	moveMap := s.moves[game.ID]
 	_, ok = moveMap[version]
 	s.movesLock.RUnlock()
 
@@ -179,7 +180,7 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 	s.movesLock.Unlock()
 
 	s.gamesLock.Lock()
-	s.games[game.Id] = game
+	s.games[game.ID] = game
 	s.gamesLock.Unlock()
 
 	return nil

@@ -8,11 +8,12 @@
 package helpers
 
 import (
+	"sort"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
-	"sort"
 )
 
 type AllGamesStorageManager interface {
@@ -66,9 +67,9 @@ func ListGamesHelper(s AllGamesStorageManager, max int, list listing.Type, userI
 			}
 		}
 
-		eGame, _ := s.ExtendedGame(game.Id)
+		eGame, _ := s.ExtendedGame(game.ID)
 
-		usersForGame := s.UserIdsForGame(game.Id)
+		usersForGame := s.UserIdsForGame(game.ID)
 
 		hasUser := false
 		numUsers := 0

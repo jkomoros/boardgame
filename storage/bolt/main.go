@@ -9,16 +9,17 @@ package bolt
 import (
 	"encoding/json"
 	"errors"
+	"log"
+	"os"
+	"strconv"
+	"strings"
+
 	"github.com/boltdb/bolt"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/jkomoros/boardgame/storage/internal/helpers"
-	"log"
-	"os"
-	"strconv"
-	"strings"
 )
 
 //TODO: test this package
@@ -231,13 +232,13 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		return errors.New("Couldn't serialize the internal game record: " + err.Error())
 	}
 
-	previousGame, _ := s.Game(game.Id)
+	previousGame, _ := s.Game(game.ID)
 
 	eGame := extendedgame.DefaultStorageRecord()
 
 	if previousGame != nil {
 		//This is not a new game!
-		eGame, err = s.ExtendedGame(game.Id)
+		eGame, err = s.ExtendedGame(game.ID)
 		if err != nil {
 			return errors.New("Couldnt' find extended game for an already created game: " + err.Error())
 		}
@@ -284,20 +285,20 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 			return errors.New("Couldn't open extended games bucket")
 		}
 
-		if err := gBucket.Put(keyForGame(game.Id), serializedGameRecord); err != nil {
+		if err := gBucket.Put(keyForGame(game.ID), serializedGameRecord); err != nil {
 			return err
 		}
 
-		if err := sBucket.Put(keyForState(game.Id, version), state); err != nil {
+		if err := sBucket.Put(keyForState(game.ID, version), state); err != nil {
 			return err
 		}
 
-		if err := eBucket.Put(keyForGame(game.Id), serializedExtendedGameRecord); err != nil {
+		if err := eBucket.Put(keyForGame(game.ID), serializedExtendedGameRecord); err != nil {
 			return err
 		}
 
 		if serializedMoveRecord != nil {
-			if err := mBucket.Put(keyForMove(game.Id, version), serializedMoveRecord); err != nil {
+			if err := mBucket.Put(keyForMove(game.ID, version), serializedMoveRecord); err != nil {
 				return err
 			}
 

@@ -21,15 +21,16 @@ package filesystem
 
 import (
 	"errors"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/storage/filesystem/record"
 	"github.com/jkomoros/boardgame/storage/internal/helpers"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
 type StorageManager struct {
@@ -204,7 +205,7 @@ func (s *StorageManager) Game(id string) (*boardgame.GameStorageRecord, error) {
 }
 
 func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageRecord, state boardgame.StateStorageRecord, move *boardgame.MoveStorageRecord) error {
-	rec, err := s.recordForId(game.Id)
+	rec, err := s.recordForId(game.ID)
 
 	if err != nil {
 		//Must be the first save.
@@ -219,7 +220,7 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 		return errors.New("Couldn't add state: " + err.Error())
 	}
 
-	return s.saveRecordForId(game.Id, rec)
+	return s.saveRecordForId(game.ID, rec)
 
 }
 

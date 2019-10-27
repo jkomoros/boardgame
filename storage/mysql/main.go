@@ -10,13 +10,14 @@ package mysql
 import (
 	"database/sql"
 	"errors"
+	"log"
+
 	"github.com/go-gorp/gorp"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/server/api/extendedgame"
 	"github.com/jkomoros/boardgame/server/api/listing"
 	"github.com/jkomoros/boardgame/server/api/users"
 	"github.com/jkomoros/boardgame/storage/mysql/connect"
-	"log"
 )
 
 const (
@@ -281,15 +282,15 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 	version := game.Version
 
 	gameRecord := NewGameStorageRecord(game)
-	stateRecord := NewStateStorageRecord(game.Id, version, state)
+	stateRecord := NewStateStorageRecord(game.ID, version, state)
 
 	var moveRecord *MoveStorageRecord
 
 	if move != nil {
-		moveRecord = NewMoveStorageRecord(game.Id, version, move)
+		moveRecord = NewMoveStorageRecord(game.ID, version, move)
 	}
 
-	count, _ := s.dbMap.SelectInt("select count(*) from "+TableGames+" where Id=?", game.Id)
+	count, _ := s.dbMap.SelectInt("select count(*) from "+TableGames+" where Id=?", game.ID)
 
 	if count < 1 {
 		//Need to insert
@@ -301,7 +302,7 @@ func (s *StorageManager) SaveGameAndCurrentState(game *boardgame.GameStorageReco
 
 		extendedRecord := NewExtendedGameStorageRecord(extendedgame.DefaultStorageRecord())
 
-		extendedRecord.Id = game.Id
+		extendedRecord.Id = game.ID
 
 		err = s.dbMap.Insert(extendedRecord)
 
@@ -481,13 +482,13 @@ func (s *StorageManager) SetPlayerForGame(gameId string, playerIndex boardgame.P
 
 	var player PlayerStorageRecord
 
-	err = s.dbMap.SelectOne(&player, "select * from "+TablePlayers+" where GameId=? and PlayerIndex=?", game.Id, int(playerIndex))
+	err = s.dbMap.SelectOne(&player, "select * from "+TablePlayers+" where GameId=? and PlayerIndex=?", game.ID, int(playerIndex))
 
 	if err == sql.ErrNoRows {
 		// Insert the row
 
 		player = PlayerStorageRecord{
-			GameId:      game.Id,
+			GameId:      game.ID,
 			PlayerIndex: int64(playerIndex),
 			UserId:      userId,
 		}
@@ -539,7 +540,7 @@ func (s *StorageManager) UserIdsForGame(gameId string) []string {
 
 	var players []PlayerStorageRecord
 
-	_, err = s.dbMap.Select(&players, "select * from "+TablePlayers+" where GameId=? order by PlayerIndex desc", game.Id)
+	_, err = s.dbMap.Select(&players, "select * from "+TablePlayers+" where GameId=? order by PlayerIndex desc", game.ID)
 
 	result := make([]string, game.NumPlayers)
 

@@ -40,7 +40,7 @@ func (t *testStorageManager) String() string {
 	results = append(results, "Games")
 
 	for key, game := range t.games {
-		results = append(results, key, game.Name, game.Id, strconv.Itoa(game.Version))
+		results = append(results, key, game.Name, game.ID, strconv.Itoa(game.Version))
 	}
 
 	return strings.Join(results, "\n")
@@ -127,18 +127,18 @@ func (t *testStorageManager) SaveGameAndCurrentState(game *GameStorageRecord, st
 
 	//TODO: validate that state.Version is reasonable.
 
-	if _, ok := t.states[game.Id]; !ok {
-		t.states[game.Id] = make(map[int]StateStorageRecord)
+	if _, ok := t.states[game.ID]; !ok {
+		t.states[game.ID] = make(map[int]StateStorageRecord)
 	}
 
-	if _, ok := t.moves[game.Id]; !ok {
-		t.moves[game.Id] = make(map[int]*MoveStorageRecord)
+	if _, ok := t.moves[game.ID]; !ok {
+		t.moves[game.ID] = make(map[int]*MoveStorageRecord)
 	}
 
 	version := game.Version
 
-	versionMap := t.states[game.Id]
-	moveMap := t.moves[game.Id]
+	versionMap := t.states[game.ID]
+	moveMap := t.moves[game.ID]
 
 	if _, ok := versionMap[version]; ok {
 		//Wait, there was already a version stored there?
@@ -153,7 +153,7 @@ func (t *testStorageManager) SaveGameAndCurrentState(game *GameStorageRecord, st
 	versionMap[version] = state
 	moveMap[version] = move
 
-	t.games[game.Id] = game
+	t.games[game.ID] = game
 
 	return nil
 }
