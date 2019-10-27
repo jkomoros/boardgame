@@ -2,9 +2,10 @@ package boardgame
 
 import (
 	"errors"
-	"github.com/jkomoros/boardgame/enum"
 	"log"
 	"testing"
+
+	"github.com/jkomoros/boardgame/enum"
 )
 
 //Place to define testing structs and helpers that are useful throughout
@@ -505,7 +506,7 @@ func (t *testMoveAdvanceCurentPlayer) Legal(state ImmutableState, proposer Playe
 	player := players[game.CurrentPlayer]
 
 	if player.MovesLeftThisTurn > 0 {
-		return errors.New("The current player still has moves left this turn.")
+		return errors.New("the current player still has moves left this turn")
 	}
 
 	return nil
@@ -600,7 +601,7 @@ func (t *testMove) Apply(state State) error {
 
 	players[game.CurrentPlayer].Score += t.ScoreIncrement
 
-	players[game.CurrentPlayer].MovesLeftThisTurn -= 1
+	players[game.CurrentPlayer].MovesLeftThisTurn--
 
 	return nil
 }

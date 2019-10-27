@@ -2,8 +2,9 @@ package boardgame
 
 import (
 	"encoding/json"
-	"github.com/jkomoros/boardgame/errors"
 	"time"
+
+	"github.com/jkomoros/boardgame/errors"
 )
 
 //MoveType represents a type of a move in a game, and information about that
@@ -175,13 +176,13 @@ type MoveInfo struct {
 	timestamp time.Time
 }
 
-//Move's are how all modifications are made to States after initialization.
-//Packages define structs that implement different Moves for all types of
-//valid modifications. Moves are objects your own packages will returen. Use
-//base.Move or moves.Default for a convenient composable base Move that will
-//allow you to skip most of the boilerplate overhead. Your Move is similar to
-//a SubState in that all of the persistable properties must be one of the
-//enumerated types in PropertyType, excluding a few types. Your Moves are
+//Move is the struct that are how all modifications are made to States after
+//initialization. Packages define structs that implement different Moves for all
+//types of valid modifications. Moves are objects your own packages will
+//returen. Use base.Move or moves.Default for a convenient composable base Move
+//that will allow you to skip most of the boilerplate overhead. Your Move is
+//similar to a SubState in that all of the persistable properties must be one of
+//the enumerated types in PropertyType, excluding a few types. Your Moves are
 //installed based on what your GameDelegate returns from ConfigureMoves(). See
 //MoveConfig for more about things that must be true about structs you return.
 //The two primary methods for your game logic are Legal() and Apply().

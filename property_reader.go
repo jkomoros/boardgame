@@ -2,13 +2,14 @@ package boardgame
 
 import (
 	"fmt"
-	"github.com/jkomoros/boardgame/enum"
-	"github.com/jkomoros/boardgame/errors"
 	"reflect"
 	"strconv"
 	"strings"
 	"sync"
 	"unicode"
+
+	"github.com/jkomoros/boardgame/enum"
+	"github.com/jkomoros/boardgame/errors"
 )
 
 //PropertyReader is a version of PropertyReadSetConfigurer that has no
@@ -50,20 +51,30 @@ type PropertyType int
 const (
 	//TypeIllegal is used to signal error states.
 	TypeIllegal PropertyType = iota
+	//TypeInt is a basic int
 	TypeInt
+	//TypeBool is a basic bool
 	TypeBool
+	//TypeString is a basic stirng
 	TypeString
+	//TypePlayerIndex is a basic PlayerIndex
 	TypePlayerIndex
 	//TypeEnum represents an enum.Val or enum.ImmutableVal.
 	TypeEnum
+	//TypeIntSlice represents a slice of ints
 	TypeIntSlice
+	//TypeBoolSlice represents a slice of bools
 	TypeBoolSlice
+	//TypeStringSlice represents a slice of strings
 	TypeStringSlice
+	//TypePlayerIndexSlice represents a slice of PlayerIndexes
 	TypePlayerIndexSlice
 	//TypeStack can in practice be any kind of object in the Stack hierarchy,
 	//including SizedStack, Stack, MergedStack's, etc.
 	TypeStack
+	//TypeBoard is a Board object, which is basically a collection of Stacks.
 	TypeBoard
+	//TypeTimer is a Timer.
 	TypeTimer
 )
 
@@ -71,7 +82,7 @@ const (
 //Mutable{Enum,Stack,Timer}Prop when the underlying property is actually an
 //immutable variant of that type of object, or for when Configure*Prop (the
 //immutable variant) is used on mutable properties.
-var ErrPropertyImmutable = errors.New("That property is an immutable type in the underlying object.")
+var ErrPropertyImmutable = errors.New("that property is an immutable type in the underlying object")
 
 //PropertyReadSetter is a version of PropertyReadSetConfigurer that has no
 //Configuration methods. See PropertyReadSetConfigurer for more about this
@@ -1234,7 +1245,7 @@ func (d *defaultReader) setProp(name string, val interface{}, allowInterface boo
 	}
 
 	if !propertyReaderImplNameShouldBeIncluded(name) {
-		return errors.New("That name is not valid to set.")
+		return errors.New("that name is not valid to set")
 	}
 
 	s := reflect.ValueOf(obj).Elem()
