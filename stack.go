@@ -2,10 +2,11 @@ package boardgame
 
 import (
 	"encoding/json"
-	"github.com/jkomoros/boardgame/errors"
 	"math"
 	"sort"
 	"strconv"
+
+	"github.com/jkomoros/boardgame/errors"
 )
 
 const emptyIndexSentinel = -1
@@ -583,7 +584,7 @@ func (g *growableStack) importFrom(other Stack) error {
 	otherGrowable, ok := other.(*growableStack)
 
 	if !ok {
-		return errors.New("The other stack provided was not a growable.")
+		return errors.New("the other stack provided was not a growable")
 	}
 
 	myState := g.statePtr
@@ -607,7 +608,7 @@ func (s *sizedStack) importFrom(other Stack) error {
 	otherSized, ok := other.(*sizedStack)
 
 	if !ok {
-		return errors.New("The other stack provided was not a sized.")
+		return errors.New("the other stack provided was not a sized")
 	}
 
 	myState := s.statePtr
@@ -787,8 +788,8 @@ func (m *mergedStack) lastComponentIndex() int {
 }
 
 //Len returns the number of items in the stack.
-func (s *growableStack) Len() int {
-	return len(s.indexes)
+func (g *growableStack) Len() int {
+	return len(g.indexes)
 }
 
 //Len returns the number of slots in the stack. It will always equal Size.
@@ -872,7 +873,7 @@ func (m *mergedStack) NumComponents() int {
 
 func (m *mergedStack) Valid() error {
 	if len(m.stacks) == 0 {
-		return errors.New("No sub-stacks provided.")
+		return errors.New("no sub-stacks provided")
 	}
 	for i, stack := range m.stacks {
 		if stack == nil {
@@ -1030,25 +1031,25 @@ func (g *growableStack) ImmutableComponentAt(index int) ImmutableComponentInstan
 
 //ComponentAt fetches the component object representing the n-th object in
 //this stack.
-func (s *growableStack) ComponentAt(index int) ComponentInstance {
+func (g *growableStack) ComponentAt(index int) ComponentInstance {
 
 	//Substantially recreated in SizedStack.ComponentAt()
-	if index >= s.Len() || index < 0 {
+	if index >= g.Len() || index < 0 {
 		return nil
 	}
 
-	if s.deckPtr == nil {
+	if g.deckPtr == nil {
 		return nil
 	}
 
-	deckIndex := s.indexes[index]
+	deckIndex := g.indexes[index]
 
 	//ComponentAt will handle negative values and empty sentinel correctly.
-	component := s.Deck().ComponentAt(deckIndex)
+	component := g.Deck().ComponentAt(deckIndex)
 	if component == nil {
 		return nil
 	}
-	return component.Instance(s.state())
+	return component.Instance(g.state())
 
 }
 
@@ -1249,11 +1250,11 @@ func (s *sizedStack) scrambleIds() {
 
 //SlotsRemaining returns the count of slots left in this stack. If Cap is 0
 //(inifinite) this will be MaxInt64.
-func (s *growableStack) SlotsRemaining() int {
-	if s.maxSize <= 0 {
+func (g *growableStack) SlotsRemaining() int {
+	if g.maxSize <= 0 {
 		return math.MaxInt64
 	}
-	return s.maxSize - s.Len()
+	return g.maxSize - g.Len()
 }
 
 //SlotsRemaining returns the count of unfilled slots in this stack.
@@ -1585,15 +1586,15 @@ func moveComonentImpl(source Stack, componentIndex int, destination Stack, slotI
 	}
 
 	if source == destination {
-		return errors.New("Source and desintation stack are the same. Use SwapComponents instead.")
+		return errors.New("source and desintation stack are the same. Use SwapComponents instead")
 	}
 
 	if source.state() != destination.state() {
-		return errors.New("Source and destination are not members of the same state object.")
+		return errors.New("source and destination are not members of the same state object")
 	}
 
 	if source.Deck() != destination.Deck() {
-		return errors.New("Source and destination are affiliated with two different decks.")
+		return errors.New("source and destination are affiliated with two different decks")
 	}
 
 	if c := source.ComponentAt(componentIndex); c == nil {
@@ -1605,13 +1606,13 @@ func moveComonentImpl(source Stack, componentIndex int, destination Stack, slotI
 	}
 
 	if destination.SlotsRemaining() < 1 {
-		return errors.New("The destination stack does not have any extra slots.")
+		return errors.New("the destination stack does not have any extra slots")
 	}
 
 	c := source.removeComponentAt(componentIndex)
 
 	if c == nil {
-		return errors.New("Unexpected nil component returned from removeComponentAt")
+		return errors.New("unexpected nil component returned from removeComponentAt")
 	}
 
 	destination.insertComponentAt(slotIndex, c)
@@ -1802,7 +1803,7 @@ func (g *growableStack) MaxSize() int {
 func (g *growableStack) ExpandSize(newSlots int) error {
 
 	if !g.Resizable() {
-		return errors.New("Stack is not resizable.")
+		return errors.New("stack is not resizable")
 	}
 
 	if g.MaxSize() == 0 {
@@ -1820,7 +1821,7 @@ func (g *growableStack) ExpandSize(newSlots int) error {
 
 func (g *growableStack) ContractSize(newSize int) error {
 	if !g.Resizable() {
-		return errors.New("Stack is not resizable.")
+		return errors.New("stack is not resizable")
 	}
 
 	if g.MaxSize() == 0 {
@@ -1915,7 +1916,7 @@ func (s *sizedStack) MaxSize() int {
 
 func (s *sizedStack) ExpandSize(newSlots int) error {
 	if !s.Resizable() {
-		return errors.New("Stack is not resizable.")
+		return errors.New("stack is not resizable")
 	}
 
 	if newSlots < 1 {
@@ -1937,7 +1938,7 @@ func (s *sizedStack) ExpandSize(newSlots int) error {
 
 func (s *sizedStack) ContractSize(newSize int) error {
 	if !s.Resizable() {
-		return errors.New("Stack is not resizable.")
+		return errors.New("stack is not resizable")
 	}
 	if newSize > s.Len() {
 		return errors.New("Contract size cannot be used to grow a sized stack")
@@ -1963,7 +1964,7 @@ func (s *sizedStack) ContractSize(newSize int) error {
 		}
 
 		if slotIndex == -1 {
-			return errors.New("There was an unexpected error contracting size of stack: no more slots to remove!")
+			return errors.New("there was an unexpected error contracting size of stack: no more slots to remove")
 		}
 
 		//This finicky code is replicated in g.removeComponentAt

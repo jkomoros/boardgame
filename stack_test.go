@@ -3,9 +3,10 @@ package boardgame
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/workfit/tester/assert"
 	"reflect"
 	"testing"
+
+	"github.com/workfit/tester/assert"
 )
 
 func TestShuffleCount(t *testing.T) {
@@ -789,11 +790,11 @@ func secretMoveTestHelper(t *testing.T, from Stack, to Stack, description string
 		if id == "" {
 			continue
 		}
-		for _, oldId := range toLastIds {
-			if oldId == "" {
+		for _, oldID := range toLastIds {
+			if oldID == "" {
 				continue
 			}
-			assert.For(t, description).ThatActual(id).DoesNotEqual(oldId)
+			assert.For(t, description).ThatActual(id).DoesNotEqual(oldID)
 		}
 	}
 
