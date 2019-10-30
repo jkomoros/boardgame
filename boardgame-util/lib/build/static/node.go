@@ -9,7 +9,7 @@ import (
 )
 
 const nodeModulesFolder = "node_modules"
-const packageJsonFileName = "package.json"
+const packageJSONFileName = "package.json"
 
 //The name of the direcotry within os.UserCacheDir() that node_modules should
 //be created within.
@@ -37,7 +37,7 @@ func LinkNodeModules(dir string, skipUpdate bool) error {
 	}
 
 	//Ensure node_modules exists adn link to it
-	absRemoteNodePath, err := updateNodeModules(filepath.Join(fullPkgPath, packageJsonFileName), skipUpdate)
+	absRemoteNodePath, err := updateNodeModules(filepath.Join(fullPkgPath, packageJSONFileName), skipUpdate)
 	if err != nil {
 		return errors.New("Couldn't get " + nodeModulesFolder + " path: " + err.Error())
 	}
@@ -56,12 +56,12 @@ func LinkNodeModules(dir string, skipUpdate bool) error {
 //will call `npm up` on it even if it already exists to ensure it is up to
 //date. The node_modules will be stored in a user cache dir. If skipUpdate is
 //true, then if the folder already exists it will skip it.
-func updateNodeModules(absPackageJsonPath string, skipUpdate bool) (string, error) {
+func updateNodeModules(absPackageJSONPath string, skipUpdate bool) (string, error) {
 
 	_, err := exec.LookPath("npm")
 
 	if err != nil {
-		return "", errors.New("npm didn't appear to be installed. You need to install npm.")
+		return "", errors.New("npm didn't appear to be installed. You need to install npm")
 	}
 
 	cacheDir, err := buildCachePath()
@@ -76,12 +76,12 @@ func updateNodeModules(absPackageJsonPath string, skipUpdate bool) (string, erro
 		}
 	}
 
-	if _, err := os.Stat(absPackageJsonPath); os.IsNotExist(err) {
+	if _, err := os.Stat(absPackageJSONPath); os.IsNotExist(err) {
 		return "", errors.New("The path to package.json didn't denote a real file")
 	}
 
 	//Copy over package.json
-	if err := copyFile(absPackageJsonPath, filepath.Join(cacheDir, packageJsonFileName)); err != nil {
+	if err := copyFile(absPackageJSONPath, filepath.Join(cacheDir, packageJSONFileName)); err != nil {
 		return "", errors.New("Couldn't copy over package.json: " + err.Error())
 	}
 
@@ -98,7 +98,7 @@ func updateNodeModules(absPackageJsonPath string, skipUpdate bool) (string, erro
 
 	if skipUpdate {
 		if !nodeCacheExists {
-			return "", errors.New("Node cache didn't exist, but we were told not to update node. Aborting build.")
+			return "", errors.New("node cache didn't exist, but we were told not to update node. Aborting build")
 		}
 		fmt.Println("node_modules existed, but we were told not to update so skipping `npm up`")
 		return nodeCacheDir, nil

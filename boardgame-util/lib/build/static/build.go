@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
-	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
-	"github.com/jkomoros/boardgame/boardgame-util/lib/path"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
+	"github.com/jkomoros/boardgame/boardgame-util/lib/path"
 )
 
 const clientConfigJsFileName = "client_config.js"
@@ -95,9 +96,9 @@ func CopyStaticResources(dir string, copyFiles bool) error {
 	return nil
 }
 
-//LinkGameClientFoldrs creates a game-src directory and for each import listed
-//in pkgs, finds a copy of that game on disk and symlinks its client
-//directory into game-src.
+//LinkGameClientFolders creates a game-src directory and for each import listed
+//in pkgs, finds a copy of that game on disk and symlinks its client directory
+//into game-src.
 func LinkGameClientFolders(dir string, pkgs []*gamepkg.Pkg) error {
 
 	staticDir, err := staticBuildDir(dir)

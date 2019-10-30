@@ -59,12 +59,12 @@ func listClientFragments(dir string) (fragments []string, missingFragments []str
 
 }
 
-//CreatePolymerJson outputs a polymer.json in the given build folder that
+//CreatePolymerJSON outputs a polymer.json in the given build folder that
 //includes fragments for all of the valid game directories that exist in the
 //build folder's game-src directory. If missingFragmentsError is true, then if
 //there are missing fragments we will return an error. Otherwise, will print a
 //message for missing fragments but not error.
-func CreatePolymerJson(dir string, missingFragmentsErrors bool) error {
+func CreatePolymerJSON(dir string, missingFragmentsErrors bool) error {
 
 	staticDir, err := staticBuildDir(dir)
 	if err != nil {
@@ -86,14 +86,13 @@ func CreatePolymerJson(dir string, missingFragmentsErrors bool) error {
 	if len(missingFragments) > 0 {
 		if missingFragmentsErrors {
 			return errors.New("The following fragments didn't exist: " + strings.Join(missingFragments, ", "))
-		} else {
-			for _, fragment := range missingFragments {
-				fmt.Println("WARNING: missing fragment: " + fragment)
-			}
+		}
+		for _, fragment := range missingFragments {
+			fmt.Println("WARNING: missing fragment: " + fragment)
 		}
 	}
 
-	blob, err := polymerJsonContents(fragments)
+	blob, err := polymerJSONContents(fragments)
 
 	if err != nil {
 		return errors.New("Couldn't create polymer config blob: " + err.Error())
@@ -103,13 +102,13 @@ func CreatePolymerJson(dir string, missingFragmentsErrors bool) error {
 
 }
 
-//polymerJsonContents returns the blob representing the contents for Polymer
+//polymerJSONContents returns the blob representing the contents for Polymer
 //json with the given fragments.
-func polymerJsonContents(fragments []string) ([]byte, error) {
+func polymerJSONContents(fragments []string) ([]byte, error) {
 
 	var obj map[string]interface{}
 
-	if err := json.Unmarshal([]byte(basePolymerJson), &obj); err != nil {
+	if err := json.Unmarshal([]byte(basePolymerJSON), &obj); err != nil {
 		return nil, errors.New("Couldn't unmarshal base json: " + err.Error())
 	}
 
@@ -148,16 +147,16 @@ func polymerJsonContents(fragments []string) ([]byte, error) {
 func verifyPolymer(dir string) error {
 	staticDir := filepath.Join(dir, staticSubFolder)
 
-	polymerJson := filepath.Join(staticDir, polymerConfig)
+	polymerJSON := filepath.Join(staticDir, polymerConfig)
 
-	if _, err := os.Stat(polymerJson); os.IsNotExist(err) {
+	if _, err := os.Stat(polymerJSON); os.IsNotExist(err) {
 		return errors.New("polymer.json does not appears to exist")
 	}
 
 	_, err := exec.LookPath("polymer")
 
 	if err != nil {
-		return errors.New("polymer command is not installed. Run `npm install -g polymer-cli` to install it.")
+		return errors.New("polymer command is not installed. Run `npm install -g polymer-cli` to install it")
 	}
 
 	return nil
@@ -187,7 +186,7 @@ func BuildPolymer(dir string) error {
 
 }
 
-const basePolymerJson = `{
+const basePolymerJSON = `{
   "entrypoint": "index.html",
   "shell": "src/boardgame-app.js",
   "fragments": [
