@@ -2,8 +2,6 @@ package codegen
 
 import (
 	"errors"
-	"github.com/abcum/lcp"
-	enumpkg "github.com/jkomoros/boardgame/enum"
 	"go/ast"
 	"go/format"
 	"go/parser"
@@ -14,6 +12,9 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+
+	"github.com/abcum/lcp"
+	enumpkg "github.com/jkomoros/boardgame/enum"
 )
 
 var displayNameRegExp = regexp.MustCompile(`display:\"(.*)\"`)
@@ -330,7 +331,7 @@ func findEnums(packageASTs map[string]*ast.Package) (enums []*enum, err error) {
 					}
 
 					if len(valueSpec.Names) != 1 {
-						return nil, errors.New("Found an enum that had more than one name on a line. That's not allowed for now.")
+						return nil, errors.New("found an enum that had more than one name on a line. That's not allowed for now")
 					}
 
 					keyName := valueSpec.Names[0].Name
@@ -446,12 +447,11 @@ func ProcessEnums(packageName string) (enumOutput string, err error) {
 		if err := e.Process(); err != nil {
 			return "", errors.New(strconv.Itoa(i) + " enum could not be processed: " + err.Error())
 		}
-
-		if enumOutput, err := e.Output(); err != nil {
+		enumOutput, err := e.Output()
+		if err != nil {
 			return "", errors.New(strconv.Itoa(i) + " enum output failed: " + err.Error())
-		} else {
-			output += enumOutput
 		}
+		output += enumOutput
 
 	}
 
@@ -529,7 +529,7 @@ func overrideDisplayname(docLines string) (hasOverride bool, displayName string)
 func (e *enum) Process() error {
 
 	if e.processed {
-		return errors.New("Already processed!")
+		return errors.New("already processed")
 	}
 
 	if err := e.Legal(); err != nil {
@@ -673,7 +673,7 @@ func (e *enum) Parents() map[string]string {
 func (e *enum) Output() (string, error) {
 
 	if !e.processed {
-		return "", errors.New("Not processed. Call Process first.")
+		return "", errors.New("not processed. Call Process first")
 	}
 
 	return e.baseOutput(e.Prefix(), e.ValueMap(), e.Parents(), e.NewKeys()), nil

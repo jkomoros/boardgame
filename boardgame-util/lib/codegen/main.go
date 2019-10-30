@@ -1,13 +1,12 @@
 /*
 
-	codegen is a simple program, designed to be run from go:generate, that
-	helps generate the annoying boilerplate to implement
-	boardgame.PropertyReader and boardgame.PropertyReadSetter, as well as
-	generating the boilerplate for enums.
+Package codegen is a simple program, designed to be run from go:generate, that
+helps generate the annoying boilerplate to implement boardgame.PropertyReader
+and boardgame.PropertyReadSetter, as well as generating the boilerplate for
+enums.
 
-	You typically don't use this package directly, but instead use the
-	`boardgame-util codegen` command. See `boardgam-util help codegen` for
-	more.
+You typically don't use this package directly, but instead use the
+`boardgame-util codegen` command. See `boardgam-util help codegen` for more.
 
 */
 package codegen
