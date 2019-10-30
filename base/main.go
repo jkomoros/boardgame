@@ -1,8 +1,8 @@
 /*
 
-base contains a number of base classes for common objects in boardgame.
-Technically all of these base objects are fully optional, but in practice
-almost every game will use them (or a class that embeds them).
+Package base contains a number of base classes for common objects in boardgame.
+Technically all of these base objects are fully optional, but in practice almost
+every game will use them (or a class that embeds them).
 
 */
 package base
@@ -20,18 +20,22 @@ type SubState struct {
 	state          boardgame.State
 }
 
+//SetState sets the State to the given state.
 func (s *SubState) SetState(state boardgame.State) {
 	s.state = state
 }
 
+//State returns the state set with SetState.
 func (s *SubState) State() boardgame.State {
 	return s.state
 }
 
+//SetImmutableState sets the ImmutableState to return.
 func (s *SubState) SetImmutableState(state boardgame.ImmutableState) {
 	s.immutableState = state
 }
 
+//ImmutableState returns the immutablestate set via SetImmutableState.
 func (s *SubState) ImmutableState() boardgame.ImmutableState {
 	return s.immutableState
 }
@@ -44,10 +48,12 @@ type ComponentValues struct {
 	c boardgame.Component
 }
 
+//ContainingComponent returns the component set via SetContainingComponent.
 func (v *ComponentValues) ContainingComponent() boardgame.Component {
 	return v.c
 }
 
+//SetContainingComponent sets the return value of ContainingComponent.
 func (v *ComponentValues) SetContainingComponent(c boardgame.Component) {
 	v.c = c
 }

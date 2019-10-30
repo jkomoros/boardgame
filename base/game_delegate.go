@@ -1,13 +1,14 @@
 package base
 
 import (
+	"math"
+	"sort"
+	"strings"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/errors"
-	"math"
-	"sort"
-	"strings"
 )
 
 //GameDelegate is a struct that implements stubs for all of GameDelegate's
@@ -54,13 +55,13 @@ func (g *GameDelegate) DynamicComponentValuesConstructor(deck *boardgame.Deck) b
 	return nil
 }
 
-//The Default ProposeFixUpMove runs through all moves in Moves, in order, and
-//returns the first one that returns true from IsFixUp and is legal at the
-//current state. In many cases, this behavior should be suficient and need not
-//be overwritten. Be extra sure that your FixUpMoves have a conservative Legal
-//function, otherwise you could get a panic from applying too many FixUp
-//moves. Wil emit debug information about why certain fixup moves didn't apply
-//if the Manager's log level is Debug or higher.
+//ProposeFixUpMove runs through all moves in Moves, in order, and returns the
+//first one that returns true from IsFixUp and is legal at the current state. In
+//many cases, this behavior should be suficient and need not be overwritten. Be
+//extra sure that your FixUpMoves have a conservative Legal function, otherwise
+//you could get a panic from applying too many FixUp moves. Wil emit debug
+//information about why certain fixup moves didn't apply if the Manager's log
+//level is Debug or higher.
 func (g *GameDelegate) ProposeFixUpMove(state boardgame.ImmutableState) boardgame.Move {
 
 	isDebug := g.Manager().Logger().Level >= logrus.DebugLevel
@@ -87,17 +88,19 @@ func (g *GameDelegate) ProposeFixUpMove(state boardgame.ImmutableState) boardgam
 			continue
 		}
 
-		if err := move.Legal(state, boardgame.AdminPlayerIndex); err == nil {
+		err := move.Legal(state, boardgame.AdminPlayerIndex)
+		if err == nil {
 			if isDebug {
 				entry.Debug(move.Info().Name() + " : MATCH")
 			}
 			//Found it!
 			return move
-		} else {
-			if isDebug {
-				entry.Debug(move.Info().Name() + " : " + err.Error())
-			}
 		}
+
+		if isDebug {
+			entry.Debug(move.Info().Name() + " : " + err.Error())
+		}
+
 	}
 	if isDebug {
 		logEntry.Debug("NO MATCH")
@@ -142,6 +145,11 @@ func (g *GameDelegate) PhaseEnum() enum.Enum {
 	return g.Manager().Chest().Enums().Enum("Phase")
 }
 
+//DistributeComponentToStarterStack does nothing any returns an error. If your
+//game has components, it should override this to tell the engine where to stash
+//the components to start. If your game doesn't have any components, then this
+//won't be called on GameManager boot up, and this stub will have prevented you
+//from needing to define a no-op.
 func (g *GameDelegate) DistributeComponentToStarterStack(state boardgame.ImmutableState, c boardgame.Component) (boardgame.ImmutableStack, error) {
 	//The stub returns an error, because if this is called that means there
 	//was a component in the deck. And if we didn't store it in a stack, then
@@ -149,7 +157,7 @@ func (g *GameDelegate) DistributeComponentToStarterStack(state boardgame.Immutab
 	return nil, errors.New("DistributeComponentToStarterStack was called, but the component was not stored in a stack")
 }
 
-//SanitizatinoPolicy uses struct tags to identify the right policy to apply
+//SanitizationPolicy uses struct tags to identify the right policy to apply
 //(see the package doc on SanitizationPolicy for how to configure those tags).
 //It sees which policies apply given the provided group membership, and then
 //returns the LEAST restrictive policy that applies. This behavior is almost

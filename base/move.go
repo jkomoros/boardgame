@@ -47,15 +47,17 @@ type Move struct {
 	topLevelStruct boardgame.Move
 }
 
+//SetInfo sets the return value of Info.
 func (m *Move) SetInfo(info *boardgame.MoveInfo) {
 	m.info = info
 }
 
-//Type simply returns BaseMove.MoveInfo
+//Info simply returns the info set via SetInfo.
 func (m *Move) Info() *boardgame.MoveInfo {
 	return m.info
 }
 
+//SetTopLevelStruct sets the return value of TopLevelStruct.
 func (m *Move) SetTopLevelStruct(t boardgame.Move) {
 	m.topLevelStruct = t
 }
