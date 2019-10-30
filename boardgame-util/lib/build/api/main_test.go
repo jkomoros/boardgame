@@ -1,9 +1,10 @@
 package api
 
 import (
+	"testing"
+
 	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 	"github.com/workfit/tester/assert"
-	"testing"
 )
 
 func TestCode(t *testing.T) {

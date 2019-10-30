@@ -3,12 +3,13 @@ package api
 import (
 	"bytes"
 	"errors"
-	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 	"go/format"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	"github.com/jkomoros/boardgame/boardgame-util/lib/gamepkg"
 )
 
 const apiSubFolder = "api"
@@ -77,7 +78,7 @@ func Build(directory string, pkgs []*gamepkg.Pkg, storage StorageType, options *
 	binaryName := filepath.Join(directory, apiSubFolder, apiSubFolder)
 
 	if _, err := os.Stat(binaryName); os.IsNotExist(err) {
-		return "", errors.New("Sanity check failed: binary does not appear to have been created.")
+		return "", errors.New("sanity check failed: binary does not appear to have been created")
 	}
 
 	return binaryName, nil
