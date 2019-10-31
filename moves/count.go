@@ -23,7 +23,7 @@ func anyFunc(currentCount, length int) error {
 	case 1:
 		return nil
 	default:
-		return errors.New("Too many count have occurred.")
+		return errors.New("too many count have occurred")
 	}
 }
 
@@ -36,7 +36,7 @@ func allFunc(currentCount, length int) error {
 		return nil
 	}
 
-	return errors.New("Too many count have occurred.")
+	return errors.New("too many count have occurred")
 }
 
 //CountAny will return nil if currentCount is 1, denoting that any item has matched.

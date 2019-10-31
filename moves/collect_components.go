@@ -2,6 +2,7 @@ package moves
 
 import (
 	"errors"
+
 	"github.com/jkomoros/boardgame"
 )
 
@@ -36,7 +37,7 @@ func (d *CollectCountComponents) RoundRobinAction(playerState boardgame.PlayerSt
 	first := playerStack.First()
 
 	if first == nil {
-		return errors.New("Unexpectedly there's no first object!")
+		return errors.New("unexpectedly there's no first object")
 	}
 
 	return first.MoveToNextSlot(gameStack)
@@ -87,7 +88,7 @@ func (d *CollectComponentsUntilPlayerCountLeft) RoundRobinAction(playerState boa
 	first := playerStack.First()
 
 	if first == nil {
-		return errors.New("Unexpectedly there's no first object!")
+		return errors.New("unexpectedly there's no first object")
 	}
 
 	return first.MoveToNextSlot(gameStack)
@@ -150,7 +151,7 @@ func (d *CollectComponentsUntilGameCountReached) RoundRobinAction(playerState bo
 	first := playerStack.First()
 
 	if first == nil {
-		return errors.New("Unexpectedly there's no first object!")
+		return errors.New("unexpectedly there's no first object")
 	}
 
 	return first.MoveToNextSlot(gameStack)

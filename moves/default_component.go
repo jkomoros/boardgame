@@ -2,9 +2,10 @@ package moves
 
 import (
 	"errors"
+	"strconv"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves/interfaces"
-	"strconv"
 )
 
 //legalTyper is the interface that moves that implement DefaultComponent must
@@ -159,6 +160,9 @@ func (d *DefaultComponent) SourceStack(state boardgame.State) boardgame.Stack {
 	return sourceStackFromConfig(d, state)
 }
 
+//ValidConfiguration verifies that there's a SourceStack that returns non-nil,
+//and a valid LegalType, and at least one component in the deck implements
+//interfaces.LegalComponent.
 func (d *DefaultComponent) ValidConfiguration(exampleState boardgame.State) error {
 	if err := d.FixUpMulti.ValidConfiguration(exampleState); err != nil {
 		return err
@@ -196,7 +200,7 @@ func (d *DefaultComponent) ValidConfiguration(exampleState boardgame.State) erro
 		}
 	}
 
-	return errors.New("No components in the SourceStack's deck implemented LegalComponent.")
+	return errors.New("no components in the SourceStack's deck implemented LegalComponent")
 }
 
 //FallbackName returns a string based on the stackName passed to
@@ -212,7 +216,7 @@ func (d *DefaultComponent) FallbackName(m *boardgame.GameManager) string {
 	return "Default Component For " + stackName(d, configPropSourceProperty, sourceStack, exampleState) + " LegalType " + strconv.Itoa(legalType)
 }
 
-//FallbackName returns a string based on the stackName passed to
+//FallbackHelpText returns a string based on the stackName passed to
 //WithSourceProperty, and the LegalType.
 func (d *DefaultComponent) FallbackHelpText() string {
 	legalType, _ := d.legalTypeImpl()

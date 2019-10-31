@@ -2,6 +2,7 @@ package moves
 
 import (
 	"errors"
+
 	"github.com/jkomoros/boardgame"
 )
 
@@ -48,11 +49,11 @@ func (c *CurrentPlayer) Legal(state boardgame.ImmutableState, proposer boardgame
 	}
 
 	if !c.TargetPlayerIndex.Equivalent(currentPlayer) {
-		return errors.New("It's not your turn!")
+		return errors.New("it's not your turn")
 	}
 
 	if !c.TargetPlayerIndex.Equivalent(proposer) {
-		return errors.New("It's not your turn!")
+		return errors.New("it's not your turn")
 	}
 
 	return nil

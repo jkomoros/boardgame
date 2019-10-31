@@ -2,9 +2,10 @@ package moves
 
 import (
 	"errors"
+	"reflect"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves/interfaces"
-	"reflect"
 )
 
 //GroupableMoveConfig is a type of MoveConfig that also has enough methods for
@@ -40,6 +41,8 @@ func (d *defaultMoveConfig) MoveConfigs() []boardgame.MoveConfig {
 	return []boardgame.MoveConfig{d.MoveConfig}
 }
 
+//Satisfied checks to see if the move allows multiple. If it does, then it's OK
+//if multiple are in a row. If not, verifies that only 0 or 1 are in a row.
 func (d *defaultMoveConfig) Satisfied(tape *MoveGroupHistoryItem) (error, *MoveGroupHistoryItem) {
 
 	if tape == nil {

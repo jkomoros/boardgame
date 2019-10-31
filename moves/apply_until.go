@@ -2,9 +2,10 @@ package moves
 
 import (
 	"errors"
+	"strconv"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves/interfaces"
-	"strconv"
 )
 
 //targetCountString is a simple helper that returns the string of the target count.
@@ -30,6 +31,8 @@ type ApplyUntil struct {
 	FixUpMulti
 }
 
+//ValidConfiguration verifies the Move this is embedded in implements
+//interfaces.ConditionMetter.
 func (a *ApplyUntil) ValidConfiguration(exampleState boardgame.State) error {
 
 	if _, ok := a.TopLevelStruct().(interfaces.ConditionMetter); !ok {
@@ -57,7 +60,7 @@ func (a *ApplyUntil) Legal(state boardgame.ImmutableState, proposer boardgame.Pl
 		return nil
 	}
 
-	return errors.New("The condition was met, so the move is no longer legal.")
+	return errors.New("the condition was met, so the move is no longer legal")
 
 }
 
@@ -86,6 +89,8 @@ type ApplyUntilCount struct {
 	ApplyUntil
 }
 
+//ValidConfiguration verifes the top level move implements Count() and
+//interfaces.TargetCounter, and that TargetCount doesn't return below 0.
 func (a *ApplyUntilCount) ValidConfiguration(exampleState boardgame.State) error {
 	if err := a.ApplyUntil.ValidConfiguration(exampleState); err != nil {
 		return err

@@ -2,6 +2,7 @@ package moves
 
 import (
 	"errors"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/moves/interfaces"
 )
@@ -188,6 +189,10 @@ func (d *DealCountComponents) GameStack(gameState boardgame.SubState) boardgame.
 	return stack
 }
 
+//ValidConfiguration checks that the top level move implements
+//interfaces.PlayerStacker and interfaces.GameStacker, and that both return a
+//non-nil stack. It also verifies the top level move implements
+//interfacdes.TargetCounter.
 func (d *DealCountComponents) ValidConfiguration(exampleState boardgame.State) error {
 
 	playerStacker, ok := d.TopLevelStruct().(interfaces.PlayerStacker)
@@ -234,6 +239,8 @@ func (d *DealCountComponents) sourceAndDestination(playerStack boardgame.Stack, 
 	return gameStack, playerStack
 }
 
+//Legal checks to make sure that there's at least count components to deal to
+//the next player.
 func (d *DealCountComponents) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	if err := d.RoundRobinNumRounds.Legal(state, proposer); err != nil {
 		return err
@@ -271,11 +278,11 @@ func (d *DealCountComponents) Legal(state boardgame.ImmutableState, proposer boa
 	}
 
 	if source.NumComponents() < 1 {
-		return errors.New("The stack to draw from doesn't have any components to move!")
+		return errors.New("the stack to draw from doesn't have any components to move")
 	}
 
 	if destination.SlotsRemaining() < 1 {
-		return errors.New("The destination stack doesn't have any slots to move the component to!")
+		return errors.New("the destination stack doesn't have any slots to move the component to")
 	}
 
 	return nil
@@ -294,7 +301,7 @@ func (d *DealCountComponents) RoundRobinAction(playerState boardgame.PlayerState
 	first := gameStack.First()
 
 	if first == nil {
-		return errors.New("Unexpectedly there's no first object!")
+		return errors.New("unexpectedly there's no first object")
 	}
 
 	return first.MoveToNextSlot(playerStack)
@@ -372,8 +379,8 @@ func (d *DealComponentsUntilPlayerCountReached) FallbackName(m *boardgame.GameMa
 	return "Deal Components From " + game + " In GameState To " + player + " In Each PlayerState Until Each Player Has " + count
 }
 
-//allbackHelpText returns a string based on the names of the player
-//stack name, game stack name, and target count.
+//FallbackHelpText returns a string based on the names of the player stack name,
+//game stack name, and target count.
 func (d *DealComponentsUntilPlayerCountReached) FallbackHelpText() string {
 	player, game, count := d.moveTypeInfo(nil)
 
@@ -423,9 +430,9 @@ func (d *DealComponentsUntilGameCountLeft) FallbackHelpText() string {
 	return "Deals components from " + game + " in GameState to " + player + " in each PlayerState until the game stack has " + count + " left"
 }
 
-//DeallAllComponents is simply a DealComponentsUntilGameCountLeft that
-//overrides TargetCount() to return 0. A simple convenience since that
-//combination is common.
+//DealAllComponents is simply a DealComponentsUntilGameCountLeft that overrides
+//TargetCount() to return 0. A simple convenience since that combination is
+//common.
 //
 //boardgame:codegen
 type DealAllComponents struct {
