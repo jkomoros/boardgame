@@ -1,13 +1,14 @@
 package api
 
 import (
+	"math/rand"
+	"net/http"
+	"time"
+
 	"github.com/alternaDev/go-firebase-verify"
 	"github.com/gin-gonic/gin"
 	"github.com/jkomoros/boardgame/errors"
 	"github.com/jkomoros/boardgame/server/api/users"
-	"math/rand"
-	"net/http"
-	"time"
 )
 
 const cookieName = "c"
@@ -120,7 +121,7 @@ func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie, email, photoUrl, 
 			//Do NOT return; fall through to the rest of handler.
 
 		} else {
-			if userRecord.Id == uid {
+			if userRecord.ID == uid {
 
 				if userRecord.PhotoUrl == "" && photoUrl != "" {
 					userRecord.PhotoUrl = photoUrl
@@ -180,7 +181,7 @@ func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie, email, photoUrl, 
 		if user == nil {
 
 			user = &users.StorageRecord{
-				Id:          uid,
+				ID:          uid,
 				Email:       email,
 				PhotoUrl:    photoUrl,
 				DisplayName: displayName,

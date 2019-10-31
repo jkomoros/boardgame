@@ -6,7 +6,7 @@ package users
 //StorageRecord denotes the storage record with info about a user.
 type StorageRecord struct {
 	//The Firebase user id
-	Id          string
+	ID          string
 	Created     int64
 	LastSeen    int64
 	DisplayName string

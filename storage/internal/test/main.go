@@ -281,7 +281,7 @@ func UsersTest(factory StorageManagerFactory, testName string, connectConfig str
 
 	assert.For(t).ThatActual(fetchedUser).Equals(nilUser)
 
-	user := &users.StorageRecord{Id: userId}
+	user := &users.StorageRecord{ID: userId}
 
 	err := storage.UpdateUser(user)
 
@@ -387,15 +387,15 @@ func ListingTest(factory StorageManagerFactory, testName string, connectConfig s
 	testUserAnother := "Slam"
 
 	storage.UpdateUser(&users.StorageRecord{
-		Id: testUser,
+		ID: testUser,
 	})
 
 	storage.UpdateUser(&users.StorageRecord{
-		Id: testUserOther,
+		ID: testUserOther,
 	})
 
 	storage.UpdateUser(&users.StorageRecord{
-		Id: testUserAnother,
+		ID: testUserAnother,
 	})
 
 	manager, _ := boardgame.NewGameManager(tictactoe.NewDelegate(), storage)

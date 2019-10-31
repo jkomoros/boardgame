@@ -178,7 +178,7 @@ func (s *ExtendedMemoryStorageManager) SetPlayerForGame(gameID string, playerInd
 func (s *ExtendedMemoryStorageManager) UpdateUser(user *users.StorageRecord) error {
 
 	s.usersLock.Lock()
-	s.usersByID[user.Id] = user
+	s.usersByID[user.ID] = user
 	s.usersLock.Unlock()
 
 	return nil
@@ -214,7 +214,7 @@ func (s *ExtendedMemoryStorageManager) ConnectCookieToUser(cookie string, user *
 		return nil
 	}
 
-	otherUser := s.GetUserById(user.Id)
+	otherUser := s.GetUserById(user.ID)
 
 	if otherUser == nil {
 		s.UpdateUser(user)

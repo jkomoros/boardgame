@@ -3,12 +3,13 @@ package api
 import (
 	"errors"
 	"fmt"
+	"log"
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/server/api/users"
-	"log"
-	"strconv"
 )
 
 const (
@@ -267,7 +268,7 @@ func (s *Server) calcViewingAsPlayerAndEmptySlots(userIds []string, user *users.
 		if userId == "" && agents[i] == "" {
 			emptySlots = append(emptySlots, boardgame.PlayerIndex(i))
 		}
-		if user != nil && userId == user.Id {
+		if user != nil && userId == user.ID {
 			//We're here!
 			result = boardgame.PlayerIndex(i)
 		}
@@ -351,7 +352,7 @@ func (s *Server) calcAdminAllowed(user *users.StorageRecord) bool {
 		matchedAdmin := false
 
 		for _, userId := range s.config.AdminUserIds {
-			if user.Id == userId {
+			if user.ID == userId {
 				matchedAdmin = true
 				break
 			}

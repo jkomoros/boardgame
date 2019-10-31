@@ -322,7 +322,7 @@ func (s *Server) gameAPISetup(c *gin.Context) {
 
 		slot := emptySlots[0]
 
-		if err := s.storage.SetPlayerForGame(game.Id(), slot, user.Id); err != nil {
+		if err := s.storage.SetPlayerForGame(game.Id(), slot, user.ID); err != nil {
 			s.logger.Errorln("Tried to set the user as player " + slot.String() + " but failed: " + err.Error())
 			return
 		} else {
@@ -404,7 +404,7 @@ func (s *Server) doJoinGame(r *Renderer, game *boardgame.Game, viewingAsPlayer b
 
 	slot := emptySlots[0]
 
-	if err := s.storage.SetPlayerForGame(game.Id(), slot, user.Id); err != nil {
+	if err := s.storage.SetPlayerForGame(game.Id(), slot, user.ID); err != nil {
 		r.Error(errors.New("Tried to set the user as player " + slot.String() + " but failed: " + err.Error()))
 		return
 	}
@@ -476,7 +476,7 @@ func (s *Server) doNewGame(r *Renderer, owner *users.StorageRecord, manager *boa
 		return
 	}
 
-	eGame.Owner = owner.Id
+	eGame.Owner = owner.ID
 	eGame.Open = open
 	eGame.Visible = visible
 
@@ -512,7 +512,7 @@ func (s *Server) listGamesHandler(c *gin.Context) {
 func (s *Server) doListGames(r *Renderer, user *users.StorageRecord, gameName string, isAdmin bool) {
 	var userId string
 	if user != nil {
-		userId = user.Id
+		userId = user.ID
 	}
 	result := gin.H{
 		"ParticipatingActiveGames":   s.listGamesWithUsers(100, listing.ParticipatingActive, userId, gameName),
@@ -795,7 +795,7 @@ func (s *Server) doConfigureGame(r *Renderer, user *users.StorageRecord, isAdmin
 		return
 	}
 
-	if !isAdmin && user.Id != gameInfo.Owner {
+	if !isAdmin && user.ID != gameInfo.Owner {
 		r.Error(errors.NewFriendly("You are neither the owner nor an admin."))
 		return
 	}
@@ -927,7 +927,7 @@ func (s *Server) doGameInfo(r *Renderer, game *boardgame.Game, playerIndex board
 	isOwner := false
 
 	if user != nil {
-		isOwner = gameInfo.Owner == user.Id
+		isOwner = gameInfo.Owner == user.ID
 	}
 
 	state := game.CurrentState()

@@ -348,7 +348,7 @@ func NewMoveStorageRecord(gameId string, version int, record *boardgame.MoveStor
 
 func (s *UserStorageRecord) ToStorageRecord() *users.StorageRecord {
 	return &users.StorageRecord{
-		Id:          s.Id,
+		ID:          s.Id,
 		DisplayName: s.DisplayName,
 		Created:     s.Created,
 		LastSeen:    s.LastSeen,
@@ -359,7 +359,7 @@ func (s *UserStorageRecord) ToStorageRecord() *users.StorageRecord {
 
 func NewUserStorageRecord(user *users.StorageRecord) *UserStorageRecord {
 	return &UserStorageRecord{
-		Id:          user.Id,
+		Id:          user.ID,
 		DisplayName: user.DisplayName,
 		Created:     user.Created,
 		LastSeen:    user.LastSeen,

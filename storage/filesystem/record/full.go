@@ -3,9 +3,10 @@ package record
 import (
 	"encoding/json"
 	"errors"
+	"strings"
+
 	"github.com/go-test/deep"
 	"github.com/jkomoros/boardgame"
-	"strings"
 )
 
 var fullEncoder = &fullEncoderImpl{}

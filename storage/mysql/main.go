@@ -571,7 +571,7 @@ func (s *StorageManager) UserIdsForGame(gameId string) []string {
 func (s *StorageManager) UpdateUser(user *users.StorageRecord) error {
 	userRecord := NewUserStorageRecord(user)
 
-	existingRecord, _ := s.dbMap.SelectInt("select count(*) from "+TableUsers+" where Id=?", user.Id)
+	existingRecord, _ := s.dbMap.SelectInt("select count(*) from "+TableUsers+" where Id=?", user.ID)
 
 	if existingRecord < 1 {
 		//Need to insert
@@ -676,7 +676,7 @@ func (s *StorageManager) ConnectCookieToUser(cookie string, user *users.StorageR
 	}
 
 	//If user does not yet exist in database, put them in.
-	otherUser := s.GetUserById(user.Id)
+	otherUser := s.GetUserById(user.ID)
 
 	if otherUser == nil {
 
@@ -690,7 +690,7 @@ func (s *StorageManager) ConnectCookieToUser(cookie string, user *users.StorageR
 
 	record := &CookieStorageRecord{
 		Cookie: cookie,
-		UserId: user.Id,
+		UserId: user.ID,
 	}
 
 	if err := s.dbMap.Insert(record); err != nil {

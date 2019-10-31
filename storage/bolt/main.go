@@ -625,7 +625,7 @@ func (s *StorageManager) UpdateUser(user *users.StorageRecord) error {
 			return errors.New("Couldn't marshal user: " + err.Error())
 		}
 
-		return uBucket.Put(keyForUser(user.Id), blob)
+		return uBucket.Put(keyForUser(user.ID), blob)
 
 	})
 
@@ -725,7 +725,7 @@ func (s *StorageManager) ConnectCookieToUser(cookie string, user *users.StorageR
 			return cBucket.Delete(keyForCookie(cookie))
 		}
 
-		return cBucket.Put(keyForCookie(cookie), keyForUser(user.Id))
+		return cBucket.Put(keyForCookie(cookie), keyForUser(user.ID))
 
 	})
 
