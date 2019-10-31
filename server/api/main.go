@@ -896,7 +896,7 @@ func (s *Server) gamePlayerInfo(game *boardgame.GameStorageRecord, manager *boar
 
 		player.IsAgent = false
 		player.IsEmpty = false
-		player.PhotoUrl = user.PhotoUrl
+		player.PhotoUrl = user.PhotoURL
 		player.DisplayName = user.EffectiveDisplayName()
 
 		if player.DisplayName == "" {

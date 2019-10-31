@@ -352,7 +352,7 @@ func (s *UserStorageRecord) ToStorageRecord() *users.StorageRecord {
 		DisplayName: s.DisplayName,
 		Created:     s.Created,
 		LastSeen:    s.LastSeen,
-		PhotoUrl:    s.PhotoUrl,
+		PhotoURL:    s.PhotoUrl,
 		Email:       s.Email,
 	}
 }
@@ -363,7 +363,7 @@ func NewUserStorageRecord(user *users.StorageRecord) *UserStorageRecord {
 		DisplayName: user.DisplayName,
 		Created:     user.Created,
 		LastSeen:    user.LastSeen,
-		PhotoUrl:    user.PhotoUrl,
+		PhotoUrl:    user.PhotoURL,
 		Email:       user.Email,
 	}
 }

@@ -10,7 +10,7 @@ type StorageRecord struct {
 	Created     int64
 	LastSeen    int64
 	DisplayName string
-	PhotoUrl    string
+	PhotoURL    string
 	Email       string
 }
 

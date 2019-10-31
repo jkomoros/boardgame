@@ -123,8 +123,8 @@ func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie, email, photoUrl, 
 		} else {
 			if userRecord.ID == uid {
 
-				if userRecord.PhotoUrl == "" && photoUrl != "" {
-					userRecord.PhotoUrl = photoUrl
+				if userRecord.PhotoURL == "" && photoUrl != "" {
+					userRecord.PhotoURL = photoUrl
 				}
 
 				if userRecord.DisplayName == "" && displayName != "" {
@@ -183,7 +183,7 @@ func (s *Server) doAuthCookie(r *Renderer, uid, token, cookie, email, photoUrl, 
 			user = &users.StorageRecord{
 				ID:          uid,
 				Email:       email,
-				PhotoUrl:    photoUrl,
+				PhotoURL:    photoUrl,
 				DisplayName: displayName,
 				Created:     time.Now().UnixNano(),
 				LastSeen:    time.Now().UnixNano(),
