@@ -1,13 +1,14 @@
 /*
 
-playingcards is a convenience package that helps define and work with a set of
-american playing cards.
+Package playingcards is a convenience package that helps define and work with a
+set of american playing cards.
 
 */
 package playingcards
 
 import (
 	"fmt"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/enum"
@@ -50,6 +51,8 @@ const (
 	RankJoker
 )
 
+//Card is a struct, ready for use in your own package without modification, that
+//encodes the notion of a typical playing card.
 //boardgame:codegen reader
 type Card struct {
 	base.ComponentValues

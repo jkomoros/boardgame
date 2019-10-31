@@ -1,8 +1,9 @@
 package playingcards
 
 import (
-	"github.com/jkomoros/boardgame"
 	"testing"
+
+	"github.com/jkomoros/boardgame"
 )
 
 func TestNewDeck(t *testing.T) {

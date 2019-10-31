@@ -6,9 +6,10 @@ dice is a simple package that defines die components with variable numbers of si
 package dice
 
 import (
-	"github.com/jkomoros/boardgame/base"
 	"math"
 	"math/rand"
+
+	"github.com/jkomoros/boardgame/base"
 )
 
 //go:generate boardgame-util codegen
