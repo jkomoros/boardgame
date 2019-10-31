@@ -3,24 +3,30 @@ package connect
 import (
 	"database/sql"
 	"errors"
+	"os"
+
 	dsnparser "github.com/go-sql-driver/mysql"
 	"github.com/mattes/migrate"
 	"github.com/mattes/migrate/database/mysql"
+
+	//This is the way to include the necessary driver
 	_ "github.com/mattes/migrate/source/file"
-	"os"
 )
 
 const (
 	pathToMigrations = "$GOPATH/src/github.com/jkomoros/boardgame/storage/mysql/migrations/"
-	testDbName       = "TEMPORARY_DATABASE_boardgame_test"
+	//TestDbName is the name of the test database to create.
+	TestDbName = "TEMPORARY_DATABASE_boardgame_test"
 )
 
+//Db creates the Database handle. If testMode is true, then dbName will be
+//TestDbName.
 func Db(dsn string, testMode bool, createDb bool) (*sql.DB, error) {
 
 	dbName := "boardgame"
 
 	if testMode {
-		dbName = testDbName
+		dbName = TestDbName
 	}
 
 	//TODO: if createDb is true, make sure the DB exists and create if not.
@@ -73,6 +79,7 @@ func doCreateDb(dsn string, dbName string) error {
 	return nil
 }
 
+//Migrations returns the Migrate object to migrate a database.
 func Migrations(db *sql.DB) (*migrate.Migrate, error) {
 	path := os.ExpandEnv(pathToMigrations)
 
@@ -93,6 +100,7 @@ func Migrations(db *sql.DB) (*migrate.Migrate, error) {
 	return m, nil
 }
 
+//DropTestDb is called to delete the test database. Will fail if the database name isn't TestDbName
 func DropTestDb(dsn string) error {
 
 	parsedDSN, err := dsnparser.ParseDSN(dsn)
@@ -101,7 +109,7 @@ func DropTestDb(dsn string) error {
 		return errors.New("config provided was not valid DSN: " + err.Error())
 	}
 
-	if parsedDSN.DBName != testDbName {
+	if parsedDSN.DBName != TestDbName {
 		return errors.New("Database to connect to wasn't test db name")
 	}
 
@@ -113,7 +121,7 @@ func DropTestDb(dsn string) error {
 
 	defer db.Close()
 
-	_, err = db.Exec("drop database `" + testDbName + "`;")
+	_, err = db.Exec("drop database `" + TestDbName + "`;")
 
 	if err != nil {
 		return errors.New("Couldnt' drop test db: " + err.Error())
