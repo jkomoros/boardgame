@@ -2,6 +2,7 @@ package checkers
 
 import (
 	"errors"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/enum"
@@ -52,7 +53,7 @@ func (p *playerState) PlayerIndex() boardgame.PlayerIndex {
 
 func (p *playerState) TurnDone() error {
 	if !p.FinishedTurn {
-		return errors.New("The player has not yet finished their turn.")
+		return errors.New("the player has not yet finished their turn")
 	}
 	return nil
 }

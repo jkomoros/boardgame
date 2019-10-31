@@ -2,18 +2,19 @@ package checkers
 
 import (
 	"errors"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/enum"
 	"github.com/jkomoros/boardgame/moves"
 )
 
 //boardgame:codegen
-type MovePlaceToken struct {
+type movePlaceToken struct {
 	moves.FixUpMulti
 	TargetIndex enum.RangeVal `enum:"Spaces"`
 }
 
-func (m *MovePlaceToken) DefaultsForState(state boardgame.ImmutableState) {
+func (m *movePlaceToken) DefaultsForState(state boardgame.ImmutableState) {
 
 	game := state.ImmutableGameState().(*gameState)
 
@@ -55,7 +56,7 @@ func (m *MovePlaceToken) DefaultsForState(state boardgame.ImmutableState) {
 
 }
 
-func (m *MovePlaceToken) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+func (m *movePlaceToken) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	if err := m.FixUpMulti.Legal(state, proposer); err != nil {
 		return err
 	}
@@ -77,19 +78,19 @@ func (m *MovePlaceToken) Legal(state boardgame.ImmutableState, proposer boardgam
 	return nil
 }
 
-func (m *MovePlaceToken) Apply(state boardgame.State) error {
+func (m *movePlaceToken) Apply(state boardgame.State) error {
 	game := state.GameState().(*gameState)
 	return game.UnusedTokens.First().MoveTo(game.Spaces, m.TargetIndex.Value())
 }
 
 //boardgame:codegen
-type MoveMoveToken struct {
+type moveMoveToken struct {
 	moves.CurrentPlayer
 	TokenIndexToMove enum.RangeVal `enum:"Spaces"`
 	SpaceIndex       enum.RangeVal `enum:"Spaces"`
 }
 
-func (m *MoveMoveToken) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
+func (m *moveMoveToken) Legal(state boardgame.ImmutableState, proposer boardgame.PlayerIndex) error {
 	if err := m.CurrentPlayer.Legal(state, proposer); err != nil {
 		return err
 	}
@@ -107,15 +108,15 @@ func (m *MoveMoveToken) Legal(state boardgame.ImmutableState, proposer boardgame
 	t := c.Values().(*token)
 
 	if !p.Color.Equals(t.Color) {
-		return errors.New("That token isn't your token to move!")
+		return errors.New("that token isn't your token to move")
 	}
 
 	if !spaceIsBlack(m.SpaceIndex.Value()) {
-		return errors.New("You can only move to spaces that are black.")
+		return errors.New("you can only move to spaces that are black")
 	}
 
 	if g.Spaces.ComponentAt(m.SpaceIndex.Value()) != nil {
-		return errors.New("The space you're trying to move to is occupied.")
+		return errors.New("the space you're trying to move to is occupied")
 	}
 
 	//If it's one of the legal spaces, great.
@@ -131,11 +132,11 @@ func (m *MoveMoveToken) Legal(state boardgame.ImmutableState, proposer boardgame
 		}
 	}
 
-	return errors.New("SpaceIndex does not represent a legal space for that token to move to.")
+	return errors.New("spaceIndex does not represent a legal space for that token to move to")
 
 }
 
-func (m *MoveMoveToken) Apply(state boardgame.State) error {
+func (m *moveMoveToken) Apply(state boardgame.State) error {
 
 	g := state.GameState().(*gameState)
 
@@ -162,7 +163,7 @@ func (m *MoveMoveToken) Apply(state boardgame.State) error {
 		finishIndexes[1] - startIndexes[1],
 	}
 
-	middleSpace := SpacesEnum.RangeToValue(middleIndexes...)
+	middleSpace := spacesEnum.RangeToValue(middleIndexes...)
 
 	if middleSpace < 0 {
 		return errors.New("Invalid resule from range to value")
@@ -202,11 +203,11 @@ func (m *MoveMoveToken) Apply(state boardgame.State) error {
 }
 
 //boardgame:codegen
-type MoveCrownToken struct {
+type moveCrownToken struct {
 	moves.DefaultComponent
 }
 
-func (m *MoveCrownToken) Apply(state boardgame.State) error {
+func (m *moveCrownToken) Apply(state boardgame.State) error {
 	g := state.GameState().(*gameState)
 
 	c := g.Spaces.ComponentAt(m.ComponentIndex)

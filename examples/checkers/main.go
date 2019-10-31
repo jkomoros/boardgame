@@ -1,18 +1,19 @@
 /*
 
-	checkers is a simple example of the classic checkers game. It exercises a
-	grid-like board.
+Package checkers is a simple example of the classic checkers game. It exercises
+a grid-like board.
 
 */
 package checkers
 
 import (
 	"errors"
+	"reflect"
+	"strings"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/moves"
-	"reflect"
-	"strings"
 )
 
 //go:generate boardgame-util codegen
@@ -60,7 +61,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 	return moves.Combine(
 		moves.AddOrderedForPhase(PhaseSetup,
 			auto.MustConfig(
-				new(MovePlaceToken),
+				new(movePlaceToken),
 				moves.WithHelpText("Places one token at a time on the board."),
 			),
 			auto.MustConfig(
@@ -70,7 +71,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 		),
 		moves.AddForPhase(PhasePlaying,
 			auto.MustConfig(
-				new(MoveCrownToken),
+				new(moveCrownToken),
 				moves.WithHelpText("Crowns tokens that make it to the other end of the board."),
 				moves.WithSourceProperty("Spaces"),
 			),
@@ -78,7 +79,7 @@ func (g *gameDelegate) ConfigureMoves() []boardgame.MoveConfig {
 				new(moves.FinishTurn),
 			),
 			auto.MustConfig(
-				new(MoveMoveToken),
+				new(moveMoveToken),
 				moves.WithHelpText("Moves a token from one place to another"),
 			),
 		),
@@ -138,6 +139,8 @@ func (g *gameDelegate) ConfigureDecks() map[string]*boardgame.Deck {
 	}
 }
 
+//NewDelegate is the primary entrypoint of the package, returning a new delegate
+//that configures a game of checkers.
 func NewDelegate() boardgame.GameDelegate {
 	return &gameDelegate{}
 }

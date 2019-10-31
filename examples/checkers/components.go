@@ -2,6 +2,7 @@ package checkers
 
 import (
 	"errors"
+
 	"github.com/jkomoros/boardgame"
 	"github.com/jkomoros/boardgame/base"
 	"github.com/jkomoros/boardgame/enum"
@@ -37,10 +38,10 @@ const numTokens = 12
 const boardWidth = 8
 const boardSize = boardWidth * boardWidth
 
-var SpacesEnum = Enums.MustAddRange("Spaces", boardWidth, boardWidth)
+var spacesEnum = Enums.MustAddRange("Spaces", boardWidth, boardWidth)
 
-var GraphDownward = graph.MustNewGridConnectedness(SpacesEnum, graph.DirectionDown, graph.DirectionDiagonal)
-var GraphUpward = graph.MustNewGridConnectedness(SpacesEnum, graph.DirectionUp, graph.DirectionDiagonal)
+var graphDownward = graph.MustNewGridConnectedness(spacesEnum, graph.DirectionDown, graph.DirectionDiagonal)
+var graphUpward = graph.MustNewGridConnectedness(spacesEnum, graph.DirectionUp, graph.DirectionDiagonal)
 
 const tokenDeckName = "Tokens"
 
@@ -89,7 +90,7 @@ func (t *token) Legal(state boardgame.ImmutableState, legalType int) error {
 		return errors.New("Component's position could not be found: " + err.Error())
 	}
 
-	indexes := SpacesEnum.ValueToRange(slotIndex)
+	indexes := spacesEnum.ValueToRange(slotIndex)
 
 	if indexes[0] != targetRow {
 		//Not in the target row
@@ -138,12 +139,12 @@ func (t *token) AllNextSpaces(state boardgame.ImmutableState, componentIndex int
 
 	crowned := dyn.Crowned
 
-	g := GraphUpward
-	oppositeG := GraphDownward
+	g := graphUpward
+	oppositeG := graphDownward
 
 	if fromBottom {
-		g = GraphDownward
-		oppositeG = GraphUpward
+		g = graphDownward
+		oppositeG = graphUpward
 	}
 
 	for _, val := range g.Neighbors(componentIndex) {
@@ -184,8 +185,8 @@ func (t *token) LegalCaptureSpaces(state boardgame.ImmutableState, componentInde
 		//The item at space is a legal capture. What's the spot one beyond it,
 		//and is it taken?
 
-		startIndexes := SpacesEnum.ValueToRange(componentIndex)
-		endIndexes := SpacesEnum.ValueToRange(space)
+		startIndexes := spacesEnum.ValueToRange(componentIndex)
+		endIndexes := spacesEnum.ValueToRange(space)
 
 		diff := []int{
 			endIndexes[0] - startIndexes[0],
@@ -197,7 +198,7 @@ func (t *token) LegalCaptureSpaces(state boardgame.ImmutableState, componentInde
 			endIndexes[1] + diff[1],
 		}
 
-		finalSpace := SpacesEnum.RangeToValue(finalIndexes...)
+		finalSpace := spacesEnum.RangeToValue(finalIndexes...)
 
 		if finalSpace == enum.IllegalValue {
 			//A space beyond the bounds
