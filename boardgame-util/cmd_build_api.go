@@ -9,7 +9,7 @@ import (
 	"github.com/jkomoros/boardgame/boardgame-util/lib/config"
 )
 
-type BuildApi struct {
+type buildAPI struct {
 	baseSubCommand
 
 	Storage string
@@ -37,7 +37,7 @@ func effectiveStorageType(base *boardgameUtil, m *config.Mode, storageOverride s
 	return storage
 }
 
-func (b *BuildApi) Run(p writ.Path, positional []string) {
+func (b *buildAPI) Run(p writ.Path, positional []string) {
 
 	dir := dirPositionalOrDefault(b.Base(), positional, false)
 
@@ -67,26 +67,26 @@ func (b *BuildApi) Run(p writ.Path, positional []string) {
 
 }
 
-func (b *BuildApi) Name() string {
+func (b *buildAPI) Name() string {
 	return "api"
 }
 
-func (b *BuildApi) Description() string {
+func (b *buildAPI) Description() string {
 	return "Generates an api server binary for config"
 }
 
-func (b *BuildApi) Usage() string {
+func (b *buildAPI) Usage() string {
 	return "DIR"
 }
 
-func (b *BuildApi) HelpText() string {
+func (b *buildAPI) HelpText() string {
 
 	return b.Name() + ` generates an api server binary based on the config.json in use. It creates the binary in a folder called 'api' within the given DIR.
 
 If DIR is not provided, defaults to "."`
 }
 
-func (b *BuildApi) WritOptions() []*writ.Option {
+func (b *buildAPI) WritOptions() []*writ.Option {
 	return []*writ.Option{
 		{
 			Names:       []string{"storage", "s"},

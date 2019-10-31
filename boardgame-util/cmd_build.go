@@ -9,7 +9,7 @@ import (
 type Build struct {
 	baseSubCommand
 
-	BuildApi    BuildApi
+	BuildAPI    buildAPI
 	BuildStatic BuildStatic
 }
 
@@ -27,7 +27,7 @@ func (b *Build) Description() string {
 
 func (b *Build) SubcommandObjects() []SubcommandObject {
 	return []SubcommandObject{
-		&b.BuildApi,
+		&b.BuildAPI,
 		&b.BuildStatic,
 	}
 }
