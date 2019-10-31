@@ -13,7 +13,7 @@ import (
 
 type boardgameUtil struct {
 	baseSubCommand
-	Help    Help
+	Help    help
 	Db      db
 	Codegen codegen
 	Build   build

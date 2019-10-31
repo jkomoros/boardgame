@@ -2,14 +2,15 @@ package main
 
 import (
 	"errors"
+
 	"github.com/bobziuchkovski/writ"
 )
 
-type Help struct {
+type help struct {
 	baseSubCommand
 }
 
-func (h *Help) Run(p writ.Path, positional []string) {
+func (h *help) Run(p writ.Path, positional []string) {
 
 	if h.Base() == nil {
 		p.Last().ExitHelp(errors.New("BUG: help didn't have reference to base command"))
@@ -29,14 +30,14 @@ func (h *Help) Run(p writ.Path, positional []string) {
 
 }
 
-func (h *Help) Usage() string {
+func (h *help) Usage() string {
 	return "SUBCOMMAND"
 }
 
-func (h *Help) Name() string {
+func (h *help) Name() string {
 	return "help"
 }
 
-func (h *Help) Description() string {
+func (h *help) Description() string {
 	return "Prints help for a specific subcommand"
 }
