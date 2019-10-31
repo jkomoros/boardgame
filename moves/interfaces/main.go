@@ -1,6 +1,6 @@
 /*
 
-interfaces is a collection of interfaces that your objects can implement
+Package interfaces is a collection of interfaces that your objects can implement
 to configure how the moves package's base moves operate.
 
 Factored into a separate package primarily just to make the moves package more
@@ -13,10 +13,10 @@ import (
 	"github.com/jkomoros/boardgame"
 )
 
-//Moves should implement AllowMultipleInProgression if they want to
-//affirmatively communicate to moves.Default that in a move progression is it
-//legal to apply multiple. If the move does not implement this interface then
-//it is considered to only allow one.
+//AllowMultipleInProgression is an interface that moves should implement if they
+//want to affirmatively communicate to moves.Default that in a move progression
+//is it legal to apply multiple. If the move does not implement this interface
+//then it is considered to only allow one.
 type AllowMultipleInProgression interface {
 	//AllowMultipleInProgression should return true if the given move is
 	//allowed to apply multiple times in order in a move progression.
@@ -56,8 +56,8 @@ type SourceStacker interface {
 	SourceStack(state boardgame.State) boardgame.Stack
 }
 
-//SourceStacker should be implemented by moves that need a destination stack
-//to operate on as primary/source, for example ApplyUntilCount.
+//DestinationStacker should be implemented by moves that need a destination
+//stack to operate on as primary/source, for example ApplyUntilCount.
 type DestinationStacker interface {
 	DestinationStack(state boardgame.State) boardgame.Stack
 }
